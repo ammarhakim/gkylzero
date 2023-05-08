@@ -368,6 +368,33 @@ test_rect_decomp_per_2d(void)
 void
 test_rect_decomp_per_3d(void)
 {
+  struct gkyl_range range;
+  gkyl_range_init(&range, 3, (int[]) { 1, 1, 1 }, (int[]) { 100, 100, 100 });
+  
+  int cuts[] = { 3, 3, 3 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
+
+  struct gkyl_range crange;
+  gkyl_range_init_from_shape(&crange, range.ndim, cuts);
+
+  struct gkyl_range_iter iter;
+
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+    
+    for (int d=0; d<range.ndim; ++d) {
+      struct gkyl_rect_decomp_neigh *neigh = gkyl_rect_decomp_calc_periodic_neigh(decomp,
+        d, false, gkyl_range_idx(&crange, iter.idx));
+
+      if (is_on_dir_edge(range.ndim, d, iter.idx, cuts)) {
+        TEST_CHECK( neigh->num_neigh == 1 );
+      }
+      
+      gkyl_rect_decomp_neigh_release(neigh);
+    }
+  }
+
+  gkyl_rect_decomp_release(decomp);  
 }
 
 void

@@ -415,6 +415,25 @@ gkyl_sub_range_intersect(struct gkyl_range* irng,
   return irng->volume > 0 ? 1 : 0;
 }
 
+bool
+gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent)
+{
+  if (range->lower[dir] == parent->lower[dir])
+    return true;
+  return false;
+  
+}
+
+bool
+gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent)
+{
+  if (range->upper[dir] == parent->upper[dir])
+    return true;
+  return false;  
+}
+    
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)

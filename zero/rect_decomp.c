@@ -243,24 +243,6 @@ gkyl_rect_decomp_calc_neigh(const struct gkyl_rect_decomp *decomp,
   return calc_neigh_no_corners(decomp, nidx);
 }
 
-// check if range touches lower/upper edge of parent range in direction dir
-static bool
-is_on_lower_edge(int dir, const struct gkyl_range *range,
-  const struct gkyl_range *parent)
-{
-  if (range->lower[dir] == parent->lower[dir])
-    return true;
-  return false;
-}
-static bool
-is_on_upper_edge(int dir, const struct gkyl_range *range,
-  const struct gkyl_range *parent)
-{
-  if (range->upper[dir] == parent->upper[dir])
-    return true;
-  return false;
-}
-
 struct gkyl_rect_decomp_neigh*
 gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
   int dir, bool inc_corners, int nidx)
@@ -276,7 +258,7 @@ gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
   // Note: a range can be both on the lower and upper edges of the
   // parent edge so we must check for both
 
-  if (is_on_lower_edge(dir, curr, &decomp->parent_range)) {
+  if (gkyl_range_is_on_lower_edge(dir, curr, &decomp->parent_range)) {
     int delta[GKYL_MAX_DIM] = { 0 };
     delta[dir] = gkyl_range_shape(&decomp->parent_range, dir);
     
@@ -287,16 +269,16 @@ gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
     gkyl_range_extend(&shift_erng, &curr_shift, elo, eup);
 
     for (int i=0; i<decomp->ndecomp; ++i)
-      if (is_on_upper_edge(dir, &decomp->ranges[i], &decomp->parent_range)) {
+      if (gkyl_range_is_on_upper_edge(dir, &decomp->ranges[i], &decomp->parent_range)) {
         struct gkyl_range irng;
         int is_inter = gkyl_range_intersect(&irng, &shift_erng,
           &decomp->ranges[i]);
         if (is_inter)
-          cvec_int_push_back(&cont->l_neigh, i);        
+          cvec_int_push_back(&cont->l_neigh, i);
       }
   }
 
-  if (is_on_upper_edge(dir, curr, &decomp->parent_range)) {
+  if (gkyl_range_is_on_upper_edge(dir, curr, &decomp->parent_range)) {
     int delta[GKYL_MAX_DIM] = { 0 };
     delta[dir] = -gkyl_range_shape(&decomp->parent_range, dir);
     
@@ -307,7 +289,7 @@ gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
     gkyl_range_extend(&shift_erng, &curr_shift, elo, eup);
 
     for (int i=0; i<decomp->ndecomp; ++i)
-      if (is_on_lower_edge(dir, &decomp->ranges[i], &decomp->parent_range)) {
+      if (gkyl_range_is_on_lower_edge(dir, &decomp->ranges[i], &decomp->parent_range)) {
         struct gkyl_range irng;
         int is_inter = gkyl_range_intersect(&irng, &shift_erng,
           &decomp->ranges[i]);

@@ -294,6 +294,30 @@ int gkyl_sub_range_intersect(struct gkyl_range* irng,
   const struct gkyl_range *r1, const struct gkyl_range *r2);
 
 /**
+ * Check if range touches the lower edge of parent range in direction
+ * dir.
+ *
+ * @param dir Direction to check
+ * @param range Inner range
+ * @param parent Parent range
+ * @return true if range is on lower edge, false otherwise
+ */
+bool gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent);
+
+/**
+ * Check if range touches the upper edge of parent range in direction
+ * dir.
+ *
+ * @param dir Direction to check
+ * @param range Inner range
+ * @param parent Parent range
+ * @return true if range is on upper edge, false otherwise
+ */
+bool gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent);
+
+/**
  * General indexing function. Returns linear index into the index
  * range mapped by 'range'.
  *
