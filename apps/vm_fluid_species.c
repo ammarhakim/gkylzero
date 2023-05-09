@@ -379,12 +379,12 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
   }
   else if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
     if (fluid_species->bc_is_absorb)
-      gkyl_calc_prim_vars_pkpm(app->confBasis, &app->local, app->field->bvar,
+      gkyl_calc_pkpm_vars_prim(app->confBasis, &app->local, app->field->bvar,
         fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
         fluid_species->u, fluid_species->p, fluid_species->T_ij, 
         fluid_species->rho_inv, fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_inv);
     else
-      gkyl_calc_prim_vars_pkpm(app->confBasis, &app->local_ext, app->field->bvar,
+      gkyl_calc_pkpm_vars_prim(app->confBasis, &app->local_ext, app->field->bvar,
         fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
         fluid_species->u, fluid_species->p, fluid_species->T_ij, 
         fluid_species->rho_inv, fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_inv);      
@@ -412,11 +412,11 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
     gkyl_array_clear(fluid_species->div_p, 0.0);
     gkyl_array_clear(fluid_species->pkpm_accel_vars, 0.0);
-    gkyl_calc_prim_vars_pkpm_recovery(&app->grid, app->confBasis, &app->local, fluid_species->nuHyp, 
+    gkyl_calc_pkpm_vars_recovery(&app->grid, app->confBasis, &app->local, fluid_species->nuHyp, 
       app->field->bvar, fluid_species->u, 
       fluid_species->p, fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
-      fluid_species->rho_inv, fluid_species->T_perp_over_m, fluid_species->T_perp_over_m_inv, 
-      fluid_species->pkpm_species->lbo.nu_sum, fluid_species->pkpm_species->lbo.nu_prim_moms, 
+      fluid_species->rho_inv, fluid_species->T_perp_over_m, 
+      fluid_species->T_perp_over_m_inv, fluid_species->pkpm_species->lbo.nu_sum, 
       fluid_species->div_p, fluid_species->pkpm_accel_vars);
   }
 }
@@ -483,7 +483,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
     if (app->field->has_ext_em)
       gkyl_array_accumulate(fluid_species->pkpm_species->qmem, qbym, app->field->ext_em);
 
-    gkyl_calc_prim_vars_pkpm_source(app->confBasis, &app->local, fluid_species->pkpm_species->qmem,
+    gkyl_calc_pkpm_vars_source(app->confBasis, &app->local, fluid_species->pkpm_species->qmem,
       fluid_species->pkpm_species->pkpm_moms.marr, fluid, rhs);
   }
 
