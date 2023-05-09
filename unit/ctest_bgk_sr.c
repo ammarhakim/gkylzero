@@ -14,9 +14,12 @@
 #include <gkyl_rect_grid.h>
 #include <math.h>
 
+#include <gkyl_array_ops.h>
+#include <gkyl_array_ops_priv.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_bgk_collisions_priv.h>
 #include <gkyl_array_ops_priv.h>
+#include <gkyl_dg_calc_sr_vars.h>
 
 // allocate array (filled with zeros)
 static struct gkyl_array *
@@ -25,67 +28,6 @@ mkarr(long nc, long size)
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
-
-// Projection functions for p/(gamma) = v in special relativistic systems
-// Simplifies to p/sqrt(1 + p^2) where c = 1
-static void
-ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = xn[0] / sqrt(1.0 + xn[0] * xn[0]);
-}
-static void
-ev_p_over_gamma_2p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = xn[0] / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1]);
-  out[1] = xn[1] / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1]);
-}
-static void
-ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = xn[0] / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1] + xn[2] * xn[2]);
-  out[1] = xn[1] / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1] + xn[2] * xn[2]);
-  out[2] = xn[2] / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1] + xn[2] * xn[2]);
-}
-
-static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
-
-// Projection functions for gamma = sqrt(1 + p^2) in special relativistic systems
-static void
-ev_gamma_1p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = sqrt(1.0 + xn[0] * xn[0]);
-}
-static void
-ev_gamma_2p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1]);
-}
-static void
-ev_gamma_3p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1] + xn[2] * xn[2]);
-}
-
-static const evalf_t gamma_func[3] = {ev_gamma_1p, ev_gamma_2p, ev_gamma_3p};
-
-// Projection functions for gamma_inv = 1/sqrt(1 + p^2) in special relativistic systems
-static void
-ev_gamma_inv_1p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = 1.0 / sqrt(1.0 + xn[0] * xn[0]);
-}
-static void
-ev_gamma_inv_2p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = 1.0 / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1]);
-}
-static void
-ev_gamma_inv_3p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = 1.0 / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1] + xn[2] * xn[2]);
-}
-
-static const evalf_t gamma_inv_func[3] = {ev_gamma_inv_1p, ev_gamma_inv_2p, ev_gamma_inv_3p};
 
 struct skin_ghost_ranges
 {
@@ -239,6 +181,10 @@ void test_1x1v(int poly_order)
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *m0_original, *m1i_original, *m2_original;
+  m0_original = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m1i_original = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
+  m2_original = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
                                                        poly_order + 1, 1, eval_M0, NULL);
@@ -254,41 +200,18 @@ void test_1x1v(int poly_order)
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
-  gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &vel_grid,
-      .basis = &velBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 8,
-      .num_ret_vals = vdim,
-      .eval = p_over_gamma_func[vdim - 1], // ev_p_over_gamma_1p,
-      .ctx = 0});
-  gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
 
   // build gamma
   struct gkyl_array *gamma;
   gamma = mkarr(velBasis.num_basis, velLocal.volume);
-  gkyl_proj_on_basis *gamma_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &vel_grid,
-      .basis = &velBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 8,
-      .num_ret_vals = 1,
-      .eval = gamma_func[vdim - 1],
-      .ctx = 0});
-  gkyl_proj_on_basis_advance(gamma_proj, 0.0, &velLocal, gamma);
 
   // build gamma_inv
   struct gkyl_array *gamma_inv;
   gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  gkyl_proj_on_basis *gamma_inv_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &vel_grid,
-      .basis = &velBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 8,
-      .num_ret_vals = 1,
-      .eval = gamma_inv_func[vdim - 1],
-      .ctx = 0});
-  gkyl_proj_on_basis_advance(gamma_inv_proj, 0.0, &velLocal, gamma_inv);
+
+  // Make GammaV2, GammaV, GammaV_inv
+  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
+                                p_over_gamma, gamma, gamma_inv);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -323,6 +246,19 @@ void test_1x1v(int poly_order)
   // create the waterbag distribution for distf
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
+  // Create correction object and moments object
+  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+
+  // Compute the original moments (of f_waterbag), save them for later comparison
+  gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf, m0, m1i, m2, &local, &confLocal);
+  gkyl_array_clear(m0_original, 0.0);
+  gkyl_array_clear(m1i_original, 0.0);
+  gkyl_array_clear(m2_original, 0.0);
+  gkyl_array_accumulate(m0_original, 1.0, m0);
+  gkyl_array_accumulate(m1i_original, 1.0, m1i);
+  gkyl_array_accumulate(m2_original, 1.0, m2);
+
   // create the collision frequency matrix
   gkyl_proj_on_basis_advance(projnu, 0.0, &local, nudt);
 
@@ -346,15 +282,16 @@ void test_1x1v(int poly_order)
     gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
-    gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
     gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf, m0, m1i, m2, &local, &confLocal);
 
     // Update the dist_mj using the moments
     gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf_mj);
 
     // correct the mj distribution m0 (n) Moment
-    gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
-    gkyl_correct_mj_fix_m0(corr_mj, p_over_gamma, distf_mj, m0, m1i, &local, &confLocal);
+    // gkyl_correct_mj_fix_m0(corr_mj, p_over_gamma, distf_mj, m0, m1i, &local, &confLocal);
+
+    // correct all moments
+    gkyl_correct_mj_fix(corr_mj, distf_mj, m0, m1i, m2, &local, &confLocal, poly_order, &confLocal_ext, &velLocal, &velBasis, &vel_grid);
 
     // calculate nu*f^mj,
     // gkyl_dg_mul_op_range(basis, 0, distf_mj, 0, nudt, 0, distf_mj, &local);
@@ -363,6 +300,31 @@ void test_1x1v(int poly_order)
 
     // TEMPORARY: Verf the mj projections
     // gkyl_mj_moments_advance(mj_moms,p_over_gamma,gamma,gamma_inv,distf_mj,m0,m1i,m2,&local,&confLocal);
+
+    if ((i % 10) == 0)
+    { // (0) {
+      struct gkyl_range_iter biter;
+      gkyl_range_iter_init(&biter, &confLocal);
+      while (gkyl_range_iter_next(&biter))
+      {
+        long midx = gkyl_range_idx(&confLocal, biter.idx);
+        const double *m0_local = gkyl_array_cfetch(m0, midx);
+        const double *m1i_local = gkyl_array_cfetch(m1i, midx);
+        const double *m2_local = gkyl_array_cfetch(m2, midx);
+        const double *m0_original_local = gkyl_array_cfetch(m0_original, midx);
+        const double *m1i_original_local = gkyl_array_cfetch(m1i_original, midx);
+        const double *m2_original_local = gkyl_array_cfetch(m2_original, midx);
+        printf("\n------- n interation : %d ------\n", i);
+        printf("n: %g\n", m0_local[0]);
+        printf("error(n): %g\n", m0_local[0] - m0_original_local[0]);
+        printf("------- vbx interation : %d ------\n", i);
+        printf("vbx: %g\n", m1i_local[0]);
+        printf("error(vbx): %g\n", m1i_local[0] - m1i_original_local[0]);
+        printf("------- T interation : %d ------\n", i);
+        printf("m2: %g\n", m2_local[0]);
+        printf("error(T): %g\n", m2_local[0] - m2_original_local[0]);
+      }
+    }
 
     // calculate the BGK contribution
     gkyl_bgk_collisions_advance(bgk_obj,
@@ -385,10 +347,10 @@ void test_1x1v(int poly_order)
     }
 
     // Release the memory
-    gkyl_correct_mj_release(corr_mj);
-    gkyl_mj_moments_release(mj_moms);
   }
   // end timeloop
+  gkyl_correct_mj_release(corr_mj);
+  gkyl_mj_moments_release(mj_moms);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.4908183182853421, -1.779993558391936e-17,
@@ -407,9 +369,6 @@ void test_1x1v(int poly_order)
   }
 
   // release memory for moment data object
-  gkyl_proj_on_basis_release(p_over_gamma_proj);
-  gkyl_proj_on_basis_release(gamma_proj);
-  gkyl_proj_on_basis_release(gamma_inv_proj);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
