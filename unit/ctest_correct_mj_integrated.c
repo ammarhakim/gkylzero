@@ -253,7 +253,7 @@ void test_1x1v(int poly_order)
   {
     for (int i = 0; i < basis.num_basis; ++i)
     {
-      // printf("fv[%d] = %1.16g\n",i,fv[i]);
+      // printf("fv[%d] = %1.16g\n", i, fv[i]);
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
     }
   }
@@ -271,7 +271,7 @@ void test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_array_release(p_over_gamma);
 }
-/*
+
 void test_1x2v(int poly_order)
 {
   double lower[] = {0.1, -10.0, -10.0}, upper[] = {1.0, 10.0, 10.0};
@@ -315,28 +315,15 @@ void test_1x2v(int poly_order)
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
-  // create moment arrays
-  struct gkyl_array *m0, *m1i, *m2;
-  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-
   // Create a copy for comparison
   struct gkyl_array *m0_corr, *m1i_corr, *m2_corr;
-  m0_corr = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1i_corr = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
-  m2_corr = mkarr(confBasis.num_basis, confLocal_ext.volume);
-
-  // Create a copy for differences (d) and differences of differences (dd)
-  struct gkyl_array *dm0, *dm1i, *dm2;
-  dm0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  dm1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
-  dm2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-
-  struct gkyl_array *ddm0, *ddm1i, *ddm2;
-  ddm0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  ddm1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
-  ddm2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  m1i_corr = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
+  m2_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *m0, *m1i, *m2;
+  m0 = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  m1i = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
+  m2 = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
 
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
                                                        poly_order + 1, 1, eval_M0, NULL);
@@ -345,196 +332,81 @@ void test_1x2v(int poly_order)
   gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
                                                        poly_order + 1, 1, eval_M2, NULL);
 
-  gkyl_proj_on_basis *proj_m0_null = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-                                                            poly_order + 1, 1, eval_M0_null, NULL);
-  gkyl_proj_on_basis *proj_m1i_null = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-                                                             poly_order + 1, vdim, eval_M1i_2v_null, NULL);
-  gkyl_proj_on_basis *proj_m2_null = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-                                                            poly_order + 1, 1, eval_M2_null, NULL);
-
-  gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
-  gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
-  gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
-
   // create a copy for the correct intial value
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0_corr);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i_corr);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2_corr);
-
-  // create a copy for the differences & differences of differences
-  gkyl_proj_on_basis_advance(proj_m0_null, 0.0, &confLocal, dm0);
-  gkyl_proj_on_basis_advance(proj_m1i_null, 0.0, &confLocal, dm1i);
-  gkyl_proj_on_basis_advance(proj_m2_null, 0.0, &confLocal, dm2);
-
-  gkyl_proj_on_basis_advance(proj_m0_null, 0.0, &confLocal, ddm0);
-  gkyl_proj_on_basis_advance(proj_m1i_null, 0.0, &confLocal, ddm1i);
-  gkyl_proj_on_basis_advance(proj_m2_null, 0.0, &confLocal, ddm2);
+  gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
+  gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
+  gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
-  gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &vel_grid,
-      .basis = &velBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 8,
-      .num_ret_vals = vdim,
-      .eval = p_over_gamma_func[vdim - 1], // ev_p_over_gamma_1p,
-      .ctx = 0});
-  gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
 
   // build gamma
   struct gkyl_array *gamma;
   gamma = mkarr(velBasis.num_basis, velLocal.volume);
-  gkyl_proj_on_basis *gamma_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &vel_grid,
-      .basis = &velBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 8,
-      .num_ret_vals = 1,
-      .eval = gamma_func[vdim - 1],
-      .ctx = 0});
-  gkyl_proj_on_basis_advance(gamma_proj, 0.0, &velLocal, gamma);
 
   // build gamma_inv
   struct gkyl_array *gamma_inv;
   gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  gkyl_proj_on_basis *gamma_inv_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &vel_grid,
-      .basis = &velBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 8,
-      .num_ret_vals = 1,
-      .eval = gamma_inv_func[vdim - 1],
-      .ctx = 0});
-  gkyl_proj_on_basis_advance(gamma_inv_proj, 0.0, &velLocal, gamma_inv);
+
+  // Make GammaV2, GammaV, GammaV_inv
+  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
+                                p_over_gamma, gamma, gamma_inv);
 
   // create distribution function array
   struct gkyl_array *distf_mj;
   distf_mj = mkarr(basis.num_basis, local_ext.volume);
 
-  // projection updater to compute mj
-  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-                                                             &confBasis, &basis, poly_order + 1);
+  // Create a MJ with corrected moments
+  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+  gkyl_correct_mj_fix(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, &local, &confLocal, poly_order, &confLocal_ext, &velLocal, &velBasis, &vel_grid);
+  gkyl_correct_mj_release(corr_mj);
 
-  // 1. Project the MJ with the intially correct moments
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0_corr, m1i_corr, m2_corr, distf_mj);
+  // Correct the distribution function
+  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+  gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, m0, m1i, m2, &local, &confLocal);
 
-  // timeloop evolving partial_t(f) = -nu(f-f^mj)
-  for (int i = 0; i < 300; ++i)
-  { // 3000
-
-    // printf("\n----------- ************************* ---------\n");
-    // printf("----------- Begining iterative Loop: T = %d ---------\n", i);
-    // printf("----------- ************************* ---------\n\n");
-
-    // write distribution function to file
-    char fname[1024];
-    if ((i % 100) == 0)
-    {
-      sprintf(fname, "ctest_correct_mj_1x2v_p%d_iteration_%03d.gkyl", poly_order, i);
-      gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
-    }
-
-    // 2. Calculate the new moments
-    // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
-    gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
-    gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, m0, m1i, m2, &local, &confLocal);
-
-    // a. Calculate  ddMi^(k+1) =  Mi_corr - Mi_new
-    // ddm0 = m0_corr - m0;
-    //  Compute out = out + a*inp. Returns out.
-    gkyl_array_clear_range(ddm0, 0.0, confLocal);
-    gkyl_array_accumulate_range(ddm0, -1.0, m0, confLocal);
-    gkyl_array_accumulate_range(ddm0, 1.0, m0_corr, confLocal);
-    gkyl_array_clear_range(ddm1i, 0.0, confLocal);
-    gkyl_array_accumulate_range(ddm1i, -1.0, m1i, confLocal);
-    gkyl_array_accumulate_range(ddm1i, 1.0, m1i_corr, confLocal);
-    gkyl_array_clear_range(ddm2, 0.0, confLocal);
-    gkyl_array_accumulate_range(ddm2, -1.0, m2, confLocal);
-    gkyl_array_accumulate_range(ddm2, 1.0, m2_corr, confLocal);
-
-    // b. Calculate  dMi^(k+1) = dM0^k + ddMi^(k+1) | where dM0^0 = 0
-    // dm_new = dm_old + ddm0;
-    gkyl_array_accumulate_range(dm0, 1.0, ddm0, confLocal);
-    gkyl_array_accumulate_range(dm1i, 1.0, ddm1i, confLocal);
-    gkyl_array_accumulate_range(dm2, 1.0, ddm2, confLocal);
-
-    // 4. Diagnostic ouputs
-    if ((i % 100) == 0)
-    { //
-      struct gkyl_range_iter biter;
-      gkyl_range_iter_init(&biter, &confLocal);
-      while (gkyl_range_iter_next(&biter))
-      {
-        long midx = gkyl_range_idx(&confLocal, biter.idx);
-        const double *m0_corr_local = gkyl_array_cfetch(m0_corr, midx);
-        const double *m0_local = gkyl_array_cfetch(m0, midx);
-        const double *dm0_local = gkyl_array_cfetch(dm0, midx);
-        const double *ddm0_local = gkyl_array_cfetch(ddm0, midx);
-        const double *m1i_corr_local = gkyl_array_cfetch(m1i_corr, midx);
-        const double *m1i_local = gkyl_array_cfetch(m1i, midx);
-        const double *dm1i_local = gkyl_array_cfetch(dm1i, midx);
-        const double *ddm1i_local = gkyl_array_cfetch(ddm1i, midx);
-        const double *m2_corr_local = gkyl_array_cfetch(m2_corr, midx);
-        const double *m2_local = gkyl_array_cfetch(m2, midx);
-        const double *dm2_local = gkyl_array_cfetch(dm2, midx);
-        const double *ddm2_local = gkyl_array_cfetch(ddm2, midx);
-        printf("\n------- n interation : %d ------\n", i);
-        printf("n_corr: %g\n", m0_corr_local[0]);
-        printf("n: %g\n", m0_local[0]);
-        printf("dn: %g\n", dm0_local[0]);
-        printf("ddn: %g\n", ddm0_local[0]);
-        printf("Diff (n - n_corr): %g\n", (m0_local[0] - m0_corr_local[0]));
-        printf("------- vbx interation : %d ------\n", i);
-        printf("vbx_corr: %g\n", m1i_corr_local[0]);
-        printf("vbx: %g\n", m1i_local[0]);
-        printf("dvbx: %g\n", dm1i_local[0]);
-        printf("ddvbx: %g\n", ddm1i_local[0]);
-        printf("Diff (vbx - vbx_corr): %g\n", (m1i_local[0] - m1i_corr_local[0]));
-        printf("------- vby interation : %d ------\n", i);
-        printf("vby_corr: %g\n", m1i_corr_local[3]);
-        printf("vby: %g\n", m1i_local[3]);
-        printf("dvby: %g\n", dm1i_local[3]);
-        printf("ddvby: %g\n", ddm1i_local[3]);
-        printf("Diff (vby - vby_corr): %g\n", (m1i_local[3] - m1i_corr_local[3]));
-        printf("------- T interation : %d ------\n", i);
-        printf("m2_corr: %g\n", m2_corr_local[0]);
-        printf("m2: %g\n", m2_local[0]);
-        printf("dm2: %g\n", dm2_local[0]);
-        printf("ddm2: %g\n", ddm2_local[0]);
-        printf("Diff (vb - vb_corr): %g\n", (m2_local[0] - m2_corr_local[0]));
-      }
-    }
-
-    // c. Calculate  M0^(k+1) = m0 + dm^(k+1)
-    // m0 = m0_corr + dm_new;
-    gkyl_array_clear_range(m0, 0.0, confLocal);
-    gkyl_array_accumulate_range(m0, 1.0, m0_corr, confLocal);
-    gkyl_array_accumulate_range(m0, 1.0, dm0, confLocal);
-    gkyl_array_clear_range(m1i, 0.0, confLocal);
-    gkyl_array_accumulate_range(m1i, 1.0, m1i_corr, confLocal);
-    gkyl_array_accumulate_range(m1i, 1.0, dm1i, confLocal);
-    gkyl_array_clear_range(m2, 0.0, confLocal);
-    gkyl_array_accumulate_range(m2, 1.0, m2_corr, confLocal);
-    gkyl_array_accumulate_range(m2, 1.0, dm2, confLocal);
-
-    // 3. Update the dist_mj using the corrected moments
-    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf_mj);
-
-    // Release the memory
-    gkyl_mj_moments_release(mj_moms);
+  // Diagnostic ouputs
+  struct gkyl_range_iter biter;
+  gkyl_range_iter_init(&biter, &confLocal);
+  while (gkyl_range_iter_next(&biter))
+  {
+    long midx = gkyl_range_idx(&confLocal, biter.idx);
+    const double *m0_corr_local = gkyl_array_cfetch(m0_corr, midx);
+    const double *m0_local = gkyl_array_cfetch(m0, midx);
+    const double *m1i_corr_local = gkyl_array_cfetch(m1i_corr, midx);
+    const double *m1i_local = gkyl_array_cfetch(m1i, midx);
+    const double *m2_corr_local = gkyl_array_cfetch(m2_corr, midx);
+    const double *m2_local = gkyl_array_cfetch(m2, midx);
+    printf("\n------- n interation : %d ------\n", 100);
+    printf("n_corr: %g\n", m0_corr_local[0]);
+    printf("n: %g\n", m0_local[0]);
+    printf("Diff (n - n_corr): %g\n", (m0_local[0] - m0_corr_local[0]));
+    printf("------- vbx interation : %d ------\n", 100);
+    printf("vbx_corr: %g\n", m1i_corr_local[0]);
+    printf("vbx: %g\n", m1i_local[0]);
+    printf("Diff (vb - vb_corr): %g\n", (m1i_local[0] - m1i_corr_local[0]));
+    printf("------- vby interation : %d ------\n", 100);
+    printf("vby_corr: %g\n", m1i_corr_local[3]);
+    printf("vby: %g\n", m1i_local[3]);
+    printf("Diff (vb - vb_corr): %g\n", (m1i_local[3] - m1i_corr_local[3]));
+    printf("------- T interation : %d ------\n", 100);
+    printf("m2_corr: %g\n", m2_corr_local[0]);
+    printf("m2: %g\n", m2_local[0]);
+    printf("Diff (vb - vb_corr): %g\n", (m2_local[0] - m2_corr_local[0]));
   }
-  // end iteration loop
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {0.1058336461123523, 5.01515683169162e-18,
-                      0.01542605155554769, 0.01043165001734224, 3.106758521064691e-18,
-                      4.138086106795255e-19, 0.001738151599168632, -3.924127109902212e-17,
-                      -0.000303946880719045, -0.0008667315399732082, -1.336455635005713e-18,
-                      -1.151749488110853e-17, -4.5786009772013e-18, -5.445962715189703e-18,
-                      -4.744506222986833e-05, 4.962378140671139e-18, -0.0001530208670883591,
-                      2.091100066377491e-18, 2.958461804365895e-18, -1.378346885576123e-18};
+  double p2_vals[] = {0.1196584827807841, -3.488028281807569e-18,
+                      0.01964687504797331, 0.01333312935386793, 3.040820909981071e-18,
+                      1.049969351462672e-18, 0.0024642991346404, -5.334926505468131e-18,
+                      -0.0002280262498167821, -0.001033628149770621, -1.153462471614103e-18,
+                      -8.381126915873462e-18, -1.442233011966233e-18, 8.098746105906206e-18,
+                      -4.291622780592622e-05, 2.924904640105737e-19, -0.0002003167531638971,
+                      2.378358894760202e-18, -2.237263192050087e-19, -2.237263192050087e-19};
 
   const double *fv = gkyl_array_cfetch(distf_mj, gkyl_range_idx(&local_ext, (int[3]){1, 16, 16}));
 
@@ -542,43 +414,30 @@ void test_1x2v(int poly_order)
   {
     for (int i = 0; i < basis.num_basis; ++i)
     {
-      // printf("fv[%d] = %1.16g\n",i,fv[i]);
-      // printf("%1.16g,\n",fv[i]);
+      // printf("%1.16g,\n", fv[i]);
+      // printf("fv[%d] = %1.16g\n", i, fv[i]);
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
     }
   }
 
   // release memory for moment data object
-  gkyl_proj_on_basis_release(p_over_gamma_proj);
-  gkyl_proj_on_basis_release(gamma_proj);
-  gkyl_proj_on_basis_release(gamma_inv_proj);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
   gkyl_array_release(m0_corr);
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
-  gkyl_array_release(dm0);
-  gkyl_array_release(dm1i);
-  gkyl_array_release(dm2);
-  gkyl_array_release(ddm0);
-  gkyl_array_release(ddm1i);
-  gkyl_array_release(ddm2);
   gkyl_array_release(distf_mj);
-  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_proj_on_basis_release(proj_m0_null);
-  gkyl_proj_on_basis_release(proj_m1i_null);
-  gkyl_proj_on_basis_release(proj_m2_null);
   gkyl_array_release(p_over_gamma);
 }
 
 void test_1x3v(int poly_order)
 {
-  double lower[] = {0.1, -20.0, -20.0, -20.0}, upper[] = {1.0, 20.0, 20.0, 20.0};
-  int cells[] = {2, 64, 64, 64};
+  double lower[] = {0.1, -10.0, -10.0, -10.0}, upper[] = {1.0, 10.0, 10.0, 10.0};
+  int cells[] = {2, 16, 16, 16};
   int vdim = 3, cdim = 1;
   int ndim = cdim + vdim;
 
@@ -618,28 +477,15 @@ void test_1x3v(int poly_order)
   struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
-  // create moment arrays
-  struct gkyl_array *m0, *m1i, *m2;
-  m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
-  m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-
   // Create a copy for comparison
   struct gkyl_array *m0_corr, *m1i_corr, *m2_corr;
-  m0_corr = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1i_corr = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
-  m2_corr = mkarr(confBasis.num_basis, confLocal_ext.volume);
-
-  // Create a copy for differences (d) and differences of differences (dd)
-  struct gkyl_array *dm0, *dm1i, *dm2;
-  dm0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  dm1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
-  dm2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-
-  struct gkyl_array *ddm0, *ddm1i, *ddm2;
-  ddm0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  ddm1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
-  ddm2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  m1i_corr = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
+  m2_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *m0, *m1i, *m2;
+  m0 = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  m1i = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
+  m2 = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
 
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
                                                        poly_order + 1, 1, eval_M0, NULL);
@@ -648,259 +494,129 @@ void test_1x3v(int poly_order)
   gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
                                                        poly_order + 1, 1, eval_M2, NULL);
 
-  gkyl_proj_on_basis *proj_m0_null = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-                                                            poly_order + 1, 1, eval_M0_null, NULL);
-  gkyl_proj_on_basis *proj_m1i_null = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-                                                             poly_order + 1, vdim, eval_M1i_3v_null, NULL);
-  gkyl_proj_on_basis *proj_m2_null = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-                                                            poly_order + 1, 1, eval_M2_null, NULL);
-
-  gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
-  gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
-  gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
-
   // create a copy for the correct intial value
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0_corr);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i_corr);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2_corr);
-
-  // create a copy for the differences & differences of differences
-  gkyl_proj_on_basis_advance(proj_m0_null, 0.0, &confLocal, dm0);
-  gkyl_proj_on_basis_advance(proj_m1i_null, 0.0, &confLocal, dm1i);
-  gkyl_proj_on_basis_advance(proj_m2_null, 0.0, &confLocal, dm2);
-
-  gkyl_proj_on_basis_advance(proj_m0_null, 0.0, &confLocal, ddm0);
-  gkyl_proj_on_basis_advance(proj_m1i_null, 0.0, &confLocal, ddm1i);
-  gkyl_proj_on_basis_advance(proj_m2_null, 0.0, &confLocal, ddm2);
+  gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
+  gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
+  gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
-  gkyl_proj_on_basis *p_over_gamma_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &vel_grid,
-      .basis = &velBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 8,
-      .num_ret_vals = vdim,
-      .eval = p_over_gamma_func[vdim - 1], // ev_p_over_gamma_1p,
-      .ctx = 0});
-  gkyl_proj_on_basis_advance(p_over_gamma_proj, 0.0, &velLocal, p_over_gamma);
 
   // build gamma
   struct gkyl_array *gamma;
   gamma = mkarr(velBasis.num_basis, velLocal.volume);
-  gkyl_proj_on_basis *gamma_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &vel_grid,
-      .basis = &velBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 8,
-      .num_ret_vals = 1,
-      .eval = gamma_func[vdim - 1],
-      .ctx = 0});
-  gkyl_proj_on_basis_advance(gamma_proj, 0.0, &velLocal, gamma);
 
   // build gamma_inv
   struct gkyl_array *gamma_inv;
   gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  gkyl_proj_on_basis *gamma_inv_proj = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){
-      .grid = &vel_grid,
-      .basis = &velBasis,
-      .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-      .num_quad = 8,
-      .num_ret_vals = 1,
-      .eval = gamma_inv_func[vdim - 1],
-      .ctx = 0});
-  gkyl_proj_on_basis_advance(gamma_inv_proj, 0.0, &velLocal, gamma_inv);
+
+  // Make GammaV2, GammaV, GammaV_inv
+  gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
+                                p_over_gamma, gamma, gamma_inv);
 
   // create distribution function array
   struct gkyl_array *distf_mj;
   distf_mj = mkarr(basis.num_basis, local_ext.volume);
 
-  // projection updater to compute mj
-  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-                                                             &confBasis, &basis, poly_order + 1);
+  // Create a MJ with corrected moments
+  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+  gkyl_correct_mj_fix(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, &local, &confLocal, poly_order, &confLocal_ext, &velLocal, &velBasis, &vel_grid);
+  gkyl_correct_mj_release(corr_mj);
 
-  // 1. Project the MJ with the intially correct moments
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0_corr, m1i_corr, m2_corr, distf_mj);
-  char fname_0[1024];
-  sprintf(fname_0, "ctest_correct_mj_1x3v_TEST0.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname_0);
+  // Correct the distribution function
+  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+  gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, m0, m1i, m2, &local, &confLocal);
 
-  // timeloop evolving partial_t(f) = -nu(f-f^mj)
-  for (int i = 0; i < 300; ++i)
-  { // 3000
-
-    // printf("\n----------- ************************* ---------\n");
-    // printf("----------- Begining iterative Loop: T = %d ---------\n", i);
-    // printf("----------- ************************* ---------\n\n");
-
-    // write distribution function to file
-    char fname[1024];
-    if ((i % 100) == 0)
-    {
-      sprintf(fname, "ctest_correct_mj_1x3v_p%d_iteration_%03d.gkyl", poly_order, i);
-      gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
-    }
-
-    // correct the mj distribution m0 Moment
-    gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
-    gkyl_correct_mj_fix_m0(corr_mj, p_over_gamma, distf_mj, m0, m1i, &local, &confLocal);
-    gkyl_correct_mj_release(corr_mj);
-
-    // 2. Calculate the new moments
-    // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
-    gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
-    gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, m0, m1i, m2, &local, &confLocal);
-
-    // a. Calculate  ddMi^(k+1) =  Mi_corr - Mi_new
-    // ddm0 = m0_corr - m0;
-    //  Compute out = out + a*inp. Returns out.
-    gkyl_array_clear_range(ddm0, 0.0, confLocal);
-    gkyl_array_accumulate_range(ddm0, -1.0, m0, confLocal);
-    gkyl_array_accumulate_range(ddm0, 1.0, m0_corr, confLocal);
-    gkyl_array_clear_range(ddm1i, 0.0, confLocal);
-    gkyl_array_accumulate_range(ddm1i, -1.0, m1i, confLocal);
-    gkyl_array_accumulate_range(ddm1i, 1.0, m1i_corr, confLocal);
-    gkyl_array_clear_range(ddm2, 0.0, confLocal);
-    gkyl_array_accumulate_range(ddm2, -1.0, m2, confLocal);
-    gkyl_array_accumulate_range(ddm2, 1.0, m2_corr, confLocal);
-
-    // b. Calculate  dMi^(k+1) = dM0^k + ddMi^(k+1) | where dM0^0 = 0
-    // dm_new = dm_old + ddm0;
-    gkyl_array_accumulate_range(dm0, 1.0, ddm0, confLocal);
-    gkyl_array_accumulate_range(dm1i, 1.0, ddm1i, confLocal);
-    gkyl_array_accumulate_range(dm2, 1.0, ddm2, confLocal);
-
-    // 4. Diagnostic ouputs
-    if ((i % 10) == 0)
-    { // (0) {
-      struct gkyl_range_iter biter;
-      gkyl_range_iter_init(&biter, &confLocal);
-      while (gkyl_range_iter_next(&biter))
-      {
-        long midx = gkyl_range_idx(&confLocal, biter.idx);
-        const double *m0_corr_local = gkyl_array_cfetch(m0_corr, midx);
-        const double *m0_local = gkyl_array_cfetch(m0, midx);
-        const double *dm0_local = gkyl_array_cfetch(dm0, midx);
-        const double *ddm0_local = gkyl_array_cfetch(ddm0, midx);
-        const double *m1i_corr_local = gkyl_array_cfetch(m1i_corr, midx);
-        const double *m1i_local = gkyl_array_cfetch(m1i, midx);
-        const double *dm1i_local = gkyl_array_cfetch(dm1i, midx);
-        const double *ddm1i_local = gkyl_array_cfetch(ddm1i, midx);
-        const double *m2_corr_local = gkyl_array_cfetch(m2_corr, midx);
-        const double *m2_local = gkyl_array_cfetch(m2, midx);
-        const double *dm2_local = gkyl_array_cfetch(dm2, midx);
-        const double *ddm2_local = gkyl_array_cfetch(ddm2, midx);
-        printf("\n------- n interation : %d ------\n", i);
-        printf("n_corr: %g\n", m0_corr_local[0]);
-        printf("n: %g\n", m0_local[0]);
-        printf("dn: %g\n", dm0_local[0]);
-        printf("ddn: %g\n", ddm0_local[0]);
-        printf("Diff (n - n_corr): %g\n", (m0_local[0] - m0_corr_local[0]));
-        printf("------- vbx interation : %d ------\n", i);
-        printf("vbx_corr: %g\n", m1i_corr_local[0]);
-        printf("vbx: %g\n", m1i_local[0]);
-        printf("dvbx: %g\n", dm1i_local[0]);
-        printf("ddvbx: %g\n", ddm1i_local[0]);
-        printf("Diff (vbx - vbx_corr): %g\n", (m1i_local[0] - m1i_corr_local[0]));
-        printf("------- vby interation : %d ------\n", i);
-        printf("vby_corr: %g\n", m1i_corr_local[3]);
-        printf("vby: %g\n", m1i_local[3]);
-        printf("dvby: %g\n", dm1i_local[3]);
-        printf("ddvby: %g\n", ddm1i_local[3]);
-        printf("Diff (vby - vby_corr): %g\n", (m1i_local[3] - m1i_corr_local[3]));
-        printf("------- vbz interation : %d ------\n", i);
-        printf("vbz_corr: %g\n", m1i_corr_local[6]);
-        printf("vbz: %g\n", m1i_local[6]);
-        printf("dvbz: %g\n", dm1i_local[6]);
-        printf("ddvbz: %g\n", ddm1i_local[6]);
-        printf("Diff (vbz - vbz_corr): %g\n", (m1i_local[6] - m1i_corr_local[6]));
-        printf("------- T interation : %d ------\n", i);
-        printf("m2_corr: %g\n", m2_corr_local[0]);
-        printf("m2: %g\n", m2_local[0]);
-        printf("dm2: %g\n", dm2_local[0]);
-        printf("ddm2: %g\n", ddm2_local[0]);
-        printf("Diff (T - T_corr): %g\n", (m2_local[0] - m2_corr_local[0]));
-      }
-    }
-
-    // c. Calculate  M0^(k+1) = m0 + dm^(k+1)
-    // m0 = m0_corr + dm_new;
-    gkyl_array_clear_range(m0, 0.0, confLocal);
-    gkyl_array_accumulate_range(m0, 1.0, m0_corr, confLocal);
-    gkyl_array_accumulate_range(m0, 1.0, dm0, confLocal);
-    gkyl_array_clear_range(m1i, 0.0, confLocal);
-    gkyl_array_accumulate_range(m1i, 1.0, m1i_corr, confLocal);
-    gkyl_array_accumulate_range(m1i, 1.0, dm1i, confLocal);
-    gkyl_array_clear_range(m2, 0.0, confLocal);
-    gkyl_array_accumulate_range(m2, 1.0, m2_corr, confLocal);
-    gkyl_array_accumulate_range(m2, 1.0, dm2, confLocal);
-
-    // 3. Update the dist_mj using the corrected moments
-    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf_mj);
-
-    // Release the memory
-    gkyl_mj_moments_release(mj_moms);
+  // Diagnostic ouputs
+  struct gkyl_range_iter biter;
+  gkyl_range_iter_init(&biter, &confLocal);
+  while (gkyl_range_iter_next(&biter))
+  {
+    long midx = gkyl_range_idx(&confLocal, biter.idx);
+    const double *m0_corr_local = gkyl_array_cfetch(m0_corr, midx);
+    const double *m0_local = gkyl_array_cfetch(m0, midx);
+    const double *m1i_corr_local = gkyl_array_cfetch(m1i_corr, midx);
+    const double *m1i_local = gkyl_array_cfetch(m1i, midx);
+    const double *m2_corr_local = gkyl_array_cfetch(m2_corr, midx);
+    const double *m2_local = gkyl_array_cfetch(m2, midx);
+    printf("\n------- n interation : %d ------\n", 100);
+    printf("n_corr: %g\n", m0_corr_local[0]);
+    printf("n: %g\n", m0_local[0]);
+    printf("Diff (n - n_corr): %g\n", (m0_local[0] - m0_corr_local[0]));
+    printf("------- vbx interation : %d ------\n", 100);
+    printf("vbx_corr: %g\n", m1i_corr_local[0]);
+    printf("vbx: %g\n", m1i_local[0]);
+    printf("Diff (vb - vb_corr): %g\n", (m1i_local[0] - m1i_corr_local[0]));
+    printf("------- vby interation : %d ------\n", 100);
+    printf("vby_corr: %g\n", m1i_corr_local[3]);
+    printf("vby: %g\n", m1i_local[3]);
+    printf("Diff (vb - vb_corr): %g\n", (m1i_local[3] - m1i_corr_local[3]));
+    printf("------- vbz interation : %d ------\n", 100);
+    printf("vbz_corr: %g\n", m1i_corr_local[6]);
+    printf("vbz: %g\n", m1i_local[6]);
+    printf("Diff (vb - vb_corr): %g\n", (m1i_local[6] - m1i_corr_local[6]));
+    printf("------- T interation : %d ------\n", 100);
+    printf("m2_corr: %g\n", m2_corr_local[0]);
+    printf("m2: %g\n", m2_local[0]);
+    printf("Diff (vb - vb_corr): %g\n", (m2_local[0] - m2_corr_local[0]));
   }
-  // end iteration loop
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {0.0001234591060179143, -1.136068520822534e-19,
-                      1.398994558650599e-05, -1.71153822243424e-05, -1.100430002107951e-21,
-                      2.606295587513747e-20, -1.979045206989932e-06, 1.701451099212577e-19,
-                      5.210078360927479e-07, 1.058460270783746e-06, 1.00905226246503e-20,
-                      6.042643576629102e-21, 4.348577682120501e-21, -1.936834484099991e-20,
-                      -7.292179235842868e-08, 6.889676523883402e-21, 1.254929091387326e-07,
-                      1.85271447795526e-20, 7.515716465246691e-21, 8.362749412500992e-21};
+  double p2_vals[] = {0.002127623222952959, -1.631506586025315e-19, 0.001142561434832162,
+                      0.00114256143483216, 0.00114256143483216, -2.51371116629004e-19,
+                      -2.01075727593333e-19, 0.0006425084967736795, -2.595001694861082e-19,
+                      0.0006425084967736792, 0.0006425084967736784, -3.510815947551172e-18,
+                      0.0001864729154912117, 0.000186472915491211, 0.0001864729154912109,
+                      4.028479705065517e-20, -1.268594757705666e-19, -2.111921481277014e-19,
+                      0.000380214364112294, -1.816029978707947e-18, 1.480556426471607e-19,
+                      -1.941768451297124e-18, 0.0001121226604556045, -2.797821897768886e-20,
+                      0.0001121226604556044, -1.816029978707946e-18, 0.0001121226604556046,
+                      0.0001121226604556042, -5.757070789733834e-20, 0.0001121226604556041,
+                      0.0001121226604556039, -8.190440447282892e-20, -8.088564395679194e-19,
+                      8.497928576027658e-20, -1.5611492311066e-20, -7.504319976751439e-19,
+                      9.536202206769661e-21, -9.434845009607244e-19, 7.168010462749378e-05,
+                      -9.105457586457297e-20, 7.168010462749364e-05, -5.777782848963335e-20,
+                      -1.332209120431403e-19, 7.168010462749348e-05, -4.780821736467332e-19,
+                      6.948823307748629e-20, -5.954850476020656e-21, -8.13979340295276e-20};
 
-  const double *fv = gkyl_array_cfetch(distf_mj, gkyl_range_idx(&local_ext, (int[4]){1, 16, 16, 16}));
+  const double *fv = gkyl_array_cfetch(distf_mj, gkyl_range_idx(&local_ext, (int[4]){1, 8, 8, 8}));
 
   if (poly_order == 2)
   {
     for (int i = 0; i < basis.num_basis; ++i)
     {
-      // printf("fv[%d] = %1.16g\n",i,fv[i]);
-      // printf("%1.16g,\n",fv[i]);
-      // TEST_CHECK( gkyl_compare_double(p2_vals[i], fv[i], 1e-12) );
+      // printf("%1.16g,\n", fv[i]);
+      //  printf("fv[%d] = %1.16g\n", i, fv[i]);
+      TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
     }
   }
 
   // release memory for moment data object
-  gkyl_proj_on_basis_release(p_over_gamma_proj);
-  gkyl_proj_on_basis_release(gamma_proj);
-  gkyl_proj_on_basis_release(gamma_inv_proj);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
   gkyl_array_release(m0_corr);
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
-  gkyl_array_release(dm0);
-  gkyl_array_release(dm1i);
-  gkyl_array_release(dm2);
-  gkyl_array_release(ddm0);
-  gkyl_array_release(ddm1i);
-  gkyl_array_release(ddm2);
   gkyl_array_release(distf_mj);
-  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
-  gkyl_proj_on_basis_release(proj_m0_null);
-  gkyl_proj_on_basis_release(proj_m1i_null);
-  gkyl_proj_on_basis_release(proj_m2_null);
   gkyl_array_release(p_over_gamma);
 }
-*/
 
 // special note, the p1 basis does not function
 void test_1x1v_p2() { test_1x1v(2); }
-/* void test_1x2v_p2() { test_1x2v(2); }
-void test_1x3v_p2() { test_1x3v(2); } */
+void test_1x2v_p2() { test_1x2v(2); }
+void test_1x3v_p2() { test_1x3v(2); }
 
 TEST_LIST = {
     {"test_1x1v_p2", test_1x1v_p2},
-    /* {"test_1x2v_p2", test_1x2v_p2},
-    {"test_1x3v_p2", test_1x3v_p2}, */
+    {"test_1x2v_p2", test_1x2v_p2},
+    {"test_1x3v_p2", test_1x3v_p2},
     {NULL, NULL},
 };

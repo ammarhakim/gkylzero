@@ -184,12 +184,15 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
   // 0. Project the MJ with the intially correct moments
   gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, conf_local, m0_corr, m1i_corr, m2_corr, distf_mj);
 
-  // Iteration loop, 100 iterations is usually more than sufficient (for all vdim)
+  // Iteration loop, 300 iterations is usually sufficient (for all vdim) for machine precision moments
   for (int i = 0; i < 300; ++i)
   {
 
     // 1. Correct the M0 moment to fix the asymptotically approximated MJ function
-    // gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, cmj->m1i, phase_local, conf_local);
+    if (vdim == 3)
+    {
+      gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, cmj->m1i, phase_local, conf_local);
+    }
 
     // 2. Calculate the new moments
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
@@ -216,9 +219,12 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
 
     // c. Calculate  M0^(k+1) = m0 + dm^(k+1)
     // m0 = m0_corr + dm_new;
-    gkyl_array_clear(cmj->m0, 0.0);
-    gkyl_array_accumulate(cmj->m0, 1.0, m0_corr);
-    gkyl_array_accumulate(cmj->m0, 1.0, cmj->dm0);
+    if (vdim != 3)
+    {
+      gkyl_array_clear(cmj->m0, 0.0);
+      gkyl_array_accumulate(cmj->m0, 1.0, m0_corr);
+      gkyl_array_accumulate(cmj->m0, 1.0, cmj->dm0);
+    }
     gkyl_array_clear(cmj->m1i, 0.0);
     gkyl_array_accumulate(cmj->m1i, 1.0, m1i_corr);
     gkyl_array_accumulate(cmj->m1i, 1.0, cmj->dm1i);
@@ -229,7 +235,33 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
     // 3. Update the dist_mj using the corrected moments
     gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, conf_local, cmj->m0, cmj->m1i, cmj->m2, distf_mj);
 
-  } // Iteration loop
+  } // Iteration loop end
+
+  // If the algorithm fails (density fails to converge)!
+  // Project the distribution function
+  if (vdim == 3)
+  {
+    gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, cmj->m1i, phase_local, conf_local);
+  }
+  gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, cmj->m0, cmj->m1i, cmj->m2, phase_local, conf_local);
+  double diff = 0.0;
+  struct gkyl_range_iter biter;
+  gkyl_range_iter_init(&biter, conf_local);
+  while (gkyl_range_iter_next(&biter))
+  {
+    long midx = gkyl_range_idx(conf_local, biter.idx);
+    const double *m0_corr_local = gkyl_array_cfetch(m0_corr, midx);
+    const double *m0_local = gkyl_array_cfetch(cmj->m0, midx);
+    if (diff < (m0_local[0] - m0_corr_local[0]))
+    {
+      diff = fabs(m0_local[0] - m0_corr_local[0]);
+    }
+  }
+  if (fabs(diff) > 1e-10)
+  {
+    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, conf_local, m0_corr, m1i_corr, m2_corr, distf_mj);
+    gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, cmj->m1i, phase_local, conf_local);
+  }
 
   // Release the memory
   gkyl_mj_moments_release(mj_moms);

@@ -45,6 +45,8 @@ void gkyl_correct_mj_fix_m0(gkyl_correct_mj *cmj, const struct gkyl_array *p_ove
 
 /**
  * Fix the Maxwell-Juttner so that it's moments match desired moments.
+ * NOTE: If this algorithm fails, the returns the original distribution function
+ * with only the m0 moment corrected (i.e. runs: gkyl_correct_mj_fix_m0())
  *
  * @param cmj MJ correction updater
  * @param fout Distribution function to fix (modified in-place)
