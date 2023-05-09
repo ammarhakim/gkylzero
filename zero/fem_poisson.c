@@ -32,9 +32,18 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   } else {
     up->isvareps = false;
     // Create an array to hold epsilon.
-    up->epsilon  = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+#ifdef GKYL_HAVE_CUDA
+    up->epsilon = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 1) : gkyl_array_new(GKYL_DOUBLE, 1, 1);
+#else
+    up->epsilon = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+#endif
     gkyl_array_shiftc(up->epsilon, epsilon_const, 0);
   }
+
+  // We assume epsilon_var lives on the device, and we create a host-side
+  // copy temporarily to compute the LHS matrix. This also work for CPU solves.
+  struct gkyl_array *epsilon_ho = gkyl_array_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
+  gkyl_array_copy(epsilon_ho, up->epsilon);
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
@@ -64,7 +73,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   for (int d=0; d<up->ndim; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
   if (up->isdomperiodic) {
 #ifdef GKYL_HAVE_CUDA
-    if(up->use_gpu) {
+    if (up->use_gpu) {
       up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
       up->rhs_avg_cu = (double*) gkyl_cu_malloc(sizeof(double)); 
     } else {
@@ -95,7 +104,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
     }
   }
 #ifdef GKYL_HAVE_CUDA
-  if(up->use_gpu) {
+  if (up->use_gpu) {
     up->bcvals_cu = (double *) gkyl_cu_malloc(sizeof(double[POISSON_MAX_DIM*3*2]));
     gkyl_cu_memcpy(up->bcvals_cu, up->bcvals, sizeof(double[POISSON_MAX_DIM*3*2]), GKYL_CU_MEMCPY_H2D);
   }
@@ -107,7 +116,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   for (int d=0; d<up->ndim; d++) up->dx[d] = up->grid.dx[d];  // Cell lengths.
 #ifdef GKYL_HAVE_CUDA
-  if(up->use_gpu) {
+  if (up->use_gpu) {
     up->dx_cu = (double *) gkyl_cu_malloc(sizeof(double[POISSON_MAX_DIM]));
     gkyl_cu_memcpy(up->dx_cu, up->dx, sizeof(double[POISSON_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
   }
@@ -153,7 +162,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
-    double *eps_p = up->isvareps? gkyl_array_fetch(up->epsilon, linidx) : up->epsilon->data;
+    double *eps_p = up->isvareps? gkyl_array_fetch(epsilon_ho, linidx) : epsilon_ho->data;
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
@@ -174,6 +183,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 #endif
 
   gkyl_mat_triples_release(tri);
+  gkyl_array_release(epsilon_ho);
 
   return up;
 }

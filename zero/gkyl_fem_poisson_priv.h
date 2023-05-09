@@ -660,7 +660,7 @@ struct gkyl_fem_poisson {
   double *rhs_avg_cu;
 
   double bcvals[POISSON_MAX_DIM*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
-  double* bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
+  double *bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
 
   struct gkyl_range local_range, local_range_ext;
   struct gkyl_range solve_range;
@@ -685,7 +685,7 @@ struct gkyl_fem_poisson {
 };
 
 void
-fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers);
+fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc* bcs, bool isvareps, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers);
 
 static long
 gkyl_fem_poisson_global_num_nodes(const int dim, const int poly_order, const int basis_type, const int *num_cells, bool *isdirperiodic)

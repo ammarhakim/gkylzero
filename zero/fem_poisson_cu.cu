@@ -44,22 +44,35 @@ fem_poisson_set_cu_l2gker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_
 // CUDA kernel to set device pointers to RHS src and solution kernels.
 __global__ static void
 fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_basis_type b_type,
-  int dim, int poly_order, const int *bckey)
+  int dim, int poly_order, const int *bckey, bool isvareps)
 {
 
   // Set RHS stencil kernels.
   const srcstencil_kern_bcx_list_1x *srcstencil_1x_kernels;
   const srcstencil_kern_bcx_list_2x *srcstencil_2x_kernels;
 
-  switch (b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-        srcstencil_1x_kernels = ser_srcstencil_list_1x;
-        srcstencil_2x_kernels = ser_srcstencil_list_2x;
-      break;
-//    case GKYL_BASIS_MODAL_TENSOR:
-//      break;
-    default:
-      assert(false);
+  if (isvareps) {
+    switch (b_type) {
+      case GKYL_BASIS_MODAL_SERENDIPITY:
+          srcstencil_1x_kernels = ser_srcstencil_vareps_list_1x;
+          srcstencil_2x_kernels = ser_srcstencil_vareps_list_2x;
+        break;
+//      case GKYL_BASIS_MODAL_TENSOR:
+//        break;
+      default:
+        assert(false);
+    }
+  } else {
+    switch (b_type) {
+      case GKYL_BASIS_MODAL_SERENDIPITY:
+          srcstencil_1x_kernels = ser_srcstencil_consteps_list_1x;
+          srcstencil_2x_kernels = ser_srcstencil_consteps_list_2x;
+        break;
+//      case GKYL_BASIS_MODAL_TENSOR:
+//        break;
+      default:
+        assert(false);
+    }
   }
 
   for (int k=0; k<(int)(pow(3,dim)+0.5); k++) {
@@ -90,7 +103,7 @@ fem_poisson_set_cu_ker_ptrs(struct gkyl_fem_poisson_kernels* kers, enum gkyl_bas
 }
 
 void
-fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
+fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_poisson_bc *bcs, bool isvareps, const bool *isdirperiodic, struct gkyl_fem_poisson_kernels *kers)
 {
 
   int dim = basis->ndim;
@@ -114,13 +127,13 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
   };
   gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[POISSON_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
 
-  fem_poisson_set_cu_ker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
+  fem_poisson_set_cu_ker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d, isvareps);
 
   gkyl_cu_free(bckey_d);
 }
 
 __global__ void
-gkyl_fem_poisson_set_rhs_kernel(double epsilon, const double *dx, double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, const double *bcvals, struct gkyl_fem_poisson_kernels *kers)
+gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *epsilon, bool isvareps, const double *dx, double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, const double *bcvals, struct gkyl_fem_poisson_kernels *kers)
 {
   int idx[GKYL_MAX_DIM];
   int idx0[GKYL_MAX_DIM];
@@ -142,6 +155,8 @@ gkyl_fem_poisson_set_rhs_kernel(double epsilon, const double *dx, double *rhs_gl
     long start = gkyl_range_idx(&range, idx);
     
     const double *local_d = (const double*) gkyl_array_cfetch(rhs_local, start);
+    const double *epsilon_d = isvareps? (const double*) gkyl_array_cfetch(epsilon, start)
+                                      : (const double*) gkyl_array_cfetch(epsilon, 0);
 
     int keri = idx_to_inup_ker(range.ndim, num_cells, idx);
 
@@ -152,7 +167,7 @@ gkyl_fem_poisson_set_rhs_kernel(double epsilon, const double *dx, double *rhs_gl
     // Apply the RHS source stencil. It's mostly the mass matrix times a
     // modal-to-nodal operator times the source, modified by BCs in skin cells.
     keri = idx_to_inloup_ker(range.ndim, num_cells, idx);
-    kers->srcker[keri](epsilon, dx, local_d, bcvals, globalidx, rhs_global);
+    kers->srcker[keri](epsilon_d, dx, local_d, bcvals, globalidx, rhs_global);
   }
 }
 
@@ -197,7 +212,7 @@ gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
   double *rhs_cu = gkyl_cusolver_get_rhs_ptr(up->prob_cu, 0);
   gkyl_cu_memset(rhs_cu, 0, sizeof(double)*up->numnodes_global);
-  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon, up->dx_cu, rhs_cu, rhsin->on_dev, up->solve_range, up->bcvals_cu, up->kernels_cu); 
+  gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev, up->isvareps, up->dx_cu, rhs_cu, rhsin->on_dev, up->solve_range, up->bcvals_cu, up->kernels_cu); 
 }	
 
 void
