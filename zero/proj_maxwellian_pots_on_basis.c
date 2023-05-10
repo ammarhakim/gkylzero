@@ -1,13 +1,15 @@
-#include "gkyl_const.h"
-#include <gkyl_range.h>
-#include <gkyl_util.h>
+#include <math.h>
 #include <string.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_array.h>
+#include <gkyl_const.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_proj_maxwellian_pots_on_basis_priv.h>
+#include <gkyl_range.h>
+#include <gkyl_util.h>
 
 // Create range to loop over quadrature points
 static inline struct gkyl_range get_qrange(int cdim, int dim, int num_quad) {
@@ -248,4 +250,16 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
   }
 }
 
-
+void gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *up)
+{
+  gkyl_array_release(up->ordinates);
+  gkyl_array_release(up->weights);
+  gkyl_array_release(up->basis_at_ords);
+  gkyl_array_release(up->conf_ordinates);
+  gkyl_array_release(up->conf_weights);
+  gkyl_array_release(up->conf_basis_at_ords);
+  
+  gkyl_array_release(up->fpo_h_at_ords);
+  gkyl_array_release(up->fpo_g_at_ords);
+  gkyl_free(up);
+}
