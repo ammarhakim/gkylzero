@@ -255,7 +255,7 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
           sp->bc_buffer, d, sp->lower_bc[d], sp->upper_bc[d], f);
     }
 
-  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, app->nghost, f);
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
 }
 
 // maximum stable time-step

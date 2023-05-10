@@ -25,7 +25,13 @@ typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
 // "Synchronize" @a array across the regions or blocks.
 typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *local_ext,
-  const int *nghost, struct gkyl_array *array);
+  struct gkyl_array *array);
+
+// "Synchronize" @a array across the periodic directions
+typedef int (*gkyl_array_per_sync_t)(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *local_ext,
+  int nper_dirs, const int *per_dirs,
+  struct gkyl_array *array);
 
 // Write array to specified file
 typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
@@ -48,10 +54,10 @@ struct gkyl_comm {
   get_size_t get_size; // get number of ranks
   all_reduce_t all_reduce; // all reduce function
   gkyl_array_sync_t gkyl_array_sync; // sync array
+  gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
   barrier_t barrier; // barrier
 
   gkyl_array_write_t gkyl_array_write; // array output
-
   extend_comm_t extend_comm; // extend communcator
 
   struct gkyl_ref_count ref_count; // reference count
@@ -107,18 +113,38 @@ gkyl_comm_all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
  * @param comm Communicator
  * @param local Local range for array: sub-range of local_ext
  * @param local_ext Extended range, i.e. range over which array is defined
- * @param nghost Number of ghost cells in direction dir is nghost[dir]
  * @param array Array to synchronize
  * @return error code: 0 for success
  */
 static int gkyl_comm_array_sync(struct gkyl_comm *comm,
   const struct gkyl_range *local,
   const struct gkyl_range *local_ext,
-  const int *nghost,
   struct gkyl_array *array)
 {
   comm->barrier(comm);
-  return comm->gkyl_array_sync(comm, local, local_ext, nghost, array);
+  return comm->gkyl_array_sync(comm, local, local_ext, array);
+}
+
+/**
+ * Synchronize array across domain in periodic directions.
+ *
+ * @param comm Communicator
+ * @param local Local range for array: sub-range of local_ext
+ * @param local_ext Extended range, i.e. range over which array is defined
+ * @param nper_dirs Number of periodic directions
+ * @param per_dirs Directions that are periodic
+ * @param array Array to synchronize
+ * @return error code: 0 for success
+ */
+static int gkyl_comm_array_per_sync(struct gkyl_comm *comm,
+  const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
+  int nper_dirs, const int *per_dirs,
+  struct gkyl_array *array)
+{
+  comm->barrier(comm);
+  return comm->gkyl_array_per_sync(comm, local, local_ext,
+    nper_dirs, per_dirs, array);
 }
 
 /**

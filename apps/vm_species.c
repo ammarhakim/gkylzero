@@ -585,7 +585,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
     }
   }
 
-  gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, species->nghost, f); 
+  gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, f); 
 }
 
 void

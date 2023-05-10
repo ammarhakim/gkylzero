@@ -400,7 +400,7 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
     }
   }
 
-  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, app->nghost, f);
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
 }
 
 void

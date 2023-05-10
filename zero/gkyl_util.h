@@ -44,6 +44,11 @@
 # define GKYL_MAX_SPECIES 8
 #endif
 
+// Maximum number of ghost cells in each direction
+#ifndef GKYL_MAX_NGHOST
+# define GKYL_MAX_NGHOST 8
+#endif
+
 // Default alignment boundary
 #ifndef GKYL_DEF_ALIGN
 # define GKYL_DEF_ALIGN 64

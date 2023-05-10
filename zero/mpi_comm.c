@@ -79,7 +79,7 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
 static int
 array_sync(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *local_ext,
-  const int *nghost, struct gkyl_array *array)
+  struct gkyl_array *array)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
 
@@ -88,7 +88,7 @@ array_sync(struct gkyl_comm *comm,
 
   int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
   for (int i=0; i<mpi->decomp->ndim; ++i)
-    elo[i] = eup[i] = nghost[i];
+    elo[i] = eup[i] = local_ext->upper[i]-local->upper[i];
 
   int tag = 4242;
 

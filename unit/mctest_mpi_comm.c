@@ -128,7 +128,7 @@ test_n2_sync_1d()
     f[0] = iter.idx[0];
   }
 
-  gkyl_comm_array_sync(comm, &local, &local_ext, nghost, arr);
+  gkyl_comm_array_sync(comm, &local, &local_ext, arr);
 
   struct gkyl_range in_range; // interior, including ghost cells
   gkyl_sub_range_intersect(&in_range, &local_ext, &range);
@@ -193,7 +193,7 @@ test_n4_sync_2d(bool use_corners)
     f[0] = iter.idx[0]; f[1] = iter.idx[1];
   }
 
-  gkyl_comm_array_sync(comm, &local, &local_ext, nghost, arr);
+  gkyl_comm_array_sync(comm, &local, &local_ext, arr);
 
   struct gkyl_range in_range; // interior, including ghost cells
   gkyl_sub_range_intersect(&in_range, &local_ext, &range);
@@ -270,7 +270,7 @@ test_n4_sync_1x1v()
     f[0] = iter.idx[0]; f[1] = iter.idx[1];
   }
 
-  gkyl_comm_array_sync(ext_comm, &local, &local_ext, nghost, arr);
+  gkyl_comm_array_sync(ext_comm, &local, &local_ext, arr);
 
   struct gkyl_range in_range; // interior, including ghost cells
   gkyl_sub_range_intersect(&in_range, &local_ext, &ext_decomp->parent_range);
