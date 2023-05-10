@@ -15,7 +15,6 @@ struct skin_ghost_ranges {
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
   long max_vol; // maximum vol of send/recv region
-  gkyl_mem_buff bc_buffer; // buffer for use in BCs
 };
 
 // Create ghost and skin sub-ranges given a parent range
@@ -43,23 +42,12 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   }
 
   sgr->max_vol = max_vol;
-  // the buffer will be resized as needed
-  sgr->bc_buffer = gkyl_mem_buff_new(1);
-
 #undef G_MAX
-}
-
-static void
-drop_skin_ghost_ranges(struct skin_ghost_ranges *sgr)
-{
-  gkyl_mem_buff_release(sgr->bc_buffer);
 }
 
 // define long -> skin_ghost_ranges ...
 #define i_key long
 #define i_val struct skin_ghost_ranges
-#define i_opt c_no_clone
-#define i_valdrop drop_skin_ghost_ranges
 #define i_tag l2sgr
 #include <stc/cmap.h>
 // ... done with map definition
@@ -71,6 +59,8 @@ struct null_comm {
 
   struct gkyl_range grange; // range to "hash" ghost layout
   cmap_l2sgr l2sgr; // map from int -> skin_ghost_ranges
+
+  gkyl_mem_buff pbuff; // buffer for periodic BCs
 };
 
 static void
@@ -81,6 +71,7 @@ comm_free(const struct gkyl_ref_count *ref)
 
   cmap_l2sgr_drop(&null_comm->l2sgr);
   gkyl_rect_decomp_release(null_comm->decomp);
+  gkyl_mem_buff_release(null_comm->pbuff);
   gkyl_free(null_comm);
 }
 
@@ -115,6 +106,18 @@ array_sync(struct gkyl_comm *comm,
   return 0;
 }
 
+// apply periodic BCs
+static void
+apply_periodic_bc(struct skin_ghost_ranges *sgr, char *data,
+  int dir, struct gkyl_array *f)
+{
+  gkyl_array_copy_to_buffer(data, f, sgr->lower_skin[dir]);
+  gkyl_array_copy_from_buffer(f, data, sgr->upper_ghost[dir]);
+
+  gkyl_array_copy_to_buffer(data, f, sgr->upper_skin[dir]);
+  gkyl_array_copy_from_buffer(f, data, sgr->lower_ghost[dir]);
+}
+
 static int
 array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   const struct gkyl_range *local_ext,
@@ -136,9 +139,14 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 
   cmap_l2sgr_value *val = cmap_l2sgr_get_mut(&null_comm->l2sgr, lkey);
   long max_vol_esnz = val->second.max_vol*array->esznc;
+  
+  if  (max_vol_esnz > gkyl_mem_buff_size(null_comm->pbuff))
+    null_comm->pbuff = gkyl_mem_buff_resize(null_comm->pbuff, max_vol_esnz);
 
-  if  (max_vol_esnz < gkyl_mem_buff_size(val->second.bc_buffer))
-    val->second.bc_buffer = gkyl_mem_buff_resize(val->second.bc_buffer, max_vol_esnz);
+  char *data = gkyl_mem_buff_data(null_comm->pbuff);
+
+  for (int d=0; d<nper_dirs; ++d)
+    apply_periodic_bc(&val->second, data, per_dirs[d], array);
 
   return 0;
 }
@@ -185,6 +193,7 @@ gkyl_null_comm_new(const struct gkyl_null_comm_inp *inp)
   gkyl_range_init(&comm->grange, inp->decomp->ndim, lower, upper);
 
   comm->l2sgr = cmap_l2sgr_init();
+  comm->pbuff = gkyl_mem_buff_new(1024); // will be reallocated
 
   comm->base.get_rank = get_rank;
   comm->base.get_size = get_size;
