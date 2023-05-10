@@ -58,8 +58,7 @@ struct null_comm {
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
 
   struct gkyl_range grange; // range to "hash" ghost layout
-  cmap_l2sgr l2sgr; // map from int -> skin_ghost_ranges
-
+  cmap_l2sgr l2sgr; // map from long -> skin_ghost_ranges
   gkyl_mem_buff pbuff; // buffer for periodic BCs
 };
 
@@ -108,7 +107,7 @@ array_sync(struct gkyl_comm *comm,
 
 // apply periodic BCs
 static void
-apply_periodic_bc(struct skin_ghost_ranges *sgr, char *data,
+apply_periodic_bc(const struct skin_ghost_ranges *sgr, char *data,
   int dir, struct gkyl_array *f)
 {
   gkyl_array_copy_to_buffer(data, f, sgr->lower_skin[dir]);
@@ -137,10 +136,10 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
     cmap_l2sgr_insert(&null_comm->l2sgr, lkey, sgr);
   }
 
-  cmap_l2sgr_value *val = cmap_l2sgr_get_mut(&null_comm->l2sgr, lkey);
+  const cmap_l2sgr_value *val = cmap_l2sgr_get(&null_comm->l2sgr, lkey);
   long max_vol_esnz = val->second.max_vol*array->esznc;
   
-  if  (max_vol_esnz > gkyl_mem_buff_size(null_comm->pbuff))
+  if (max_vol_esnz > gkyl_mem_buff_size(null_comm->pbuff))
     null_comm->pbuff = gkyl_mem_buff_resize(null_comm->pbuff, max_vol_esnz);
 
   char *data = gkyl_mem_buff_data(null_comm->pbuff);
