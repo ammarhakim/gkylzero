@@ -3,7 +3,7 @@
 
 gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, double epsilon_const, struct gkyl_array *epsilon_var, bool use_gpu)
+  struct gkyl_poisson_bc *bcs, double epsilon_const, struct gkyl_array *epsilon_var, struct gkyl_array *kSq, bool use_gpu)
 {
 
   gkyl_fem_poisson *up = gkyl_malloc(sizeof(gkyl_fem_poisson));
@@ -40,10 +40,20 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
     gkyl_array_shiftc(up->epsilon, epsilon_const, 0);
   }
 
-  // We assume epsilon_var lives on the device, and we create a host-side
-  // copy temporarily to compute the LHS matrix. This also work for CPU solves.
+  // We assume epsilon_var and kSq live on the device, and we create a host-side
+  // copies temporarily to compute the LHS matrix. This also works for CPU solves.
   struct gkyl_array *epsilon_ho = gkyl_array_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
   gkyl_array_copy(epsilon_ho, up->epsilon);
+  struct gkyl_array *kSq_ho;
+  if (kSq) {
+    up->ishelmholtz = true;
+    kSq_ho = gkyl_array_new(GKYL_DOUBLE, kSq->ncomp, kSq->size);
+    gkyl_array_copy(kSq_ho, kSq);
+  } else {
+    up->ishelmholtz = false;
+    kSq_ho = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+    gkyl_array_clear(kSq_ho, 0.);
+  }
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
@@ -163,14 +173,15 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
     double *eps_p = up->isvareps? gkyl_array_fetch(epsilon_ho, linidx) : epsilon_ho->data;
+    double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq_ho, linidx) : kSq_ho->data;
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
     up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
 
-    // Apply the -nabla . (epsilon*nabla) stencil.
+    // Apply the -nabla . (epsilon*nabla)-kSq stencil.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->kernels->lhsker[keri](eps_p, up->dx, up->bcvals, up->globalidx, tri);
+    up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri);
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -184,6 +195,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   gkyl_mat_triples_release(tri);
   gkyl_array_release(epsilon_ho);
+  gkyl_array_release(kSq_ho);
 
   return up;
 }
@@ -192,7 +204,7 @@ void
 gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 {
 
-  if (up->isdomperiodic) {
+  if (up->isdomperiodic && !(up->ishelmholtz)) {
     // Subtract the volume averaged RHS from the RHS.
     gkyl_array_clear(up->rhs_cellavg, 0.0);
     gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, up->solve_range);

@@ -69,7 +69,7 @@ static const local2global_kern_bcx_list_2x ser_loc2glob_list_2x[] = {
 };
 
 // Function pointer type for lhs kernels.
-typedef void (*lhsstencil_t)(const double *epsilon, const double *dx, const double *bcVals,
+typedef void (*lhsstencil_t)(const double *epsilon, const double *kSq, const double *dx, const double *bcVals,
   const long *globalIdxs, gkyl_mat_triples *tri);
 
 // For use in kernel tables.
@@ -653,6 +653,7 @@ struct gkyl_fem_poisson {
 
   struct gkyl_array *epsilon; // permittivity.
   bool isvareps; // indicate if permittivity is a tensor/varies in space.
+  bool ishelmholtz; // if solving Helmholtz equation (kSq is not zero/NULL).
 
   bool isdomperiodic; // =true if all directions are periodic.
   struct gkyl_array *rhs_cellavg;

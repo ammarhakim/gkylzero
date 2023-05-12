@@ -37,11 +37,12 @@ struct gkyl_poisson_bc {
 };
 
 /**
- * Create new updater to solve the Poisson problem
- *   - nabla . (epsilon * nabla phi) = rho
- * using a FEM to ensure phi is continuous. The input is the
+ * Create new updater to solve the Helmholtz problem
+ *   - nabla . (epsilon * nabla phi) - kSq * phi = rho
+ * using a FEM to ensure phi is continuous. This solver is also
+ * used as a Poisson solver by passing a zero kSq. The input is the
  * DG field rho, which is translated to FEM. The output is the
- * DG field phi, after we've translted the FEM solution to DG.
+ * DG field phi, after we've translated the FEM solution to DG.
  * Free using gkyl_fem_poisson_release method.
  *
  * For scalar, spatially constant epsilon use gkyl_fem_poisson_consteps_new,
@@ -52,12 +53,13 @@ struct gkyl_poisson_bc {
  * @param bcs Boundary conditions.
  * @param epsilon_const Constant scalar value of the permittivity.
  * @param epsilon_var Spatially varying permittivity tensor.
+ * @param kSq Squared wave number (factor multiplying phi in Helmholtz eq).
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 gkyl_fem_poisson* gkyl_fem_poisson_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
-  double epsilon_const, struct gkyl_array *epsilon_var, bool use_gpu);
+  double epsilon_const, struct gkyl_array *epsilon_var, struct gkyl_array *kSq, bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
