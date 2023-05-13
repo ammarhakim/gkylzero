@@ -213,12 +213,12 @@ main(int argc, char **argv)
     );
   }
   else
-    comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp
       }
     );
 #else
-  comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp
     }
   );

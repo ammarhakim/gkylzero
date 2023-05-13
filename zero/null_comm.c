@@ -1,56 +1,11 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_comm_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_null_comm.h>
 
 #include <string.h>
 #include <math.h>
-
-// ranges for use in BCs
-struct skin_ghost_ranges {
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-
-  long max_vol; // maximum vol of send/recv region
-};
-
-// Create ghost and skin sub-ranges given a parent range
-static void
-skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
-  const struct gkyl_range *parent, const int *ghost)
-{
-#define G_MAX(a,b) (a)>(b)?(a):(b)
-  
-  int ndim = parent->ndim;
-  long max_vol = 0;
-    
-  for (int d=0; d<ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
-      d, GKYL_LOWER_EDGE, parent, ghost);
-
-    max_vol = G_MAX(max_vol, sgr->lower_skin[d].volume);
-    max_vol = G_MAX(max_vol, sgr->lower_ghost[d].volume);
-    
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
-      d, GKYL_UPPER_EDGE, parent, ghost);
-
-    max_vol = G_MAX(max_vol, sgr->upper_skin[d].volume);
-    max_vol = G_MAX(max_vol, sgr->upper_ghost[d].volume);
-  }
-
-  sgr->max_vol = max_vol;
-#undef G_MAX
-}
-
-// define long -> skin_ghost_ranges ...
-#define i_key long
-#define i_val struct skin_ghost_ranges
-#define i_tag l2sgr
-#include <stc/cmap.h>
-// ... done with map definition
 
 // Private struct
 struct null_comm {
@@ -69,7 +24,8 @@ comm_free(const struct gkyl_ref_count *ref)
   struct null_comm *null_comm = container_of(comm, struct null_comm, base);
 
   cmap_l2sgr_drop(&null_comm->l2sgr);
-  gkyl_rect_decomp_release(null_comm->decomp);
+  if (null_comm->decomp)
+    gkyl_rect_decomp_release(null_comm->decomp);
   gkyl_mem_buff_release(null_comm->pbuff);
   gkyl_free(null_comm);
 }
@@ -170,7 +126,7 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   struct null_comm *null_comm = container_of(comm, struct null_comm, base);
   // extend internal decomp object and create a new communicator
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, null_comm->decomp);
-  struct gkyl_comm *ext_comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+  struct gkyl_comm *ext_comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = ext_decomp
     }
   );
@@ -180,7 +136,28 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
 }
 
 struct gkyl_comm*
-gkyl_null_comm_new(const struct gkyl_null_comm_inp *inp)
+gkyl_null_comm_new(void)
+{
+  struct null_comm *comm = gkyl_malloc(sizeof *comm);
+
+  comm->l2sgr = cmap_l2sgr_init();
+  comm->pbuff = gkyl_mem_buff_new(1);
+  comm->decomp = 0;
+  
+  comm->base.get_rank = get_rank;
+  comm->base.get_size = get_size;
+  comm->base.all_reduce = all_reduce;
+  comm->base.gkyl_array_sync = array_sync;
+  comm->base.barrier = barrier;
+  comm->base.gkyl_array_write = array_write;
+
+  comm->base.ref_count = gkyl_ref_count_init(comm_free);
+
+  return &comm->base;
+}
+
+struct gkyl_comm*
+gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
   struct null_comm *comm = gkyl_malloc(sizeof *comm);
   comm->decomp = gkyl_rect_decomp_acquire(inp->decomp);

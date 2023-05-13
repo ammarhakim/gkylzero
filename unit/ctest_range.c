@@ -932,6 +932,28 @@ void test_intersect_2()
   TEST_CHECK( 0 == gkyl_range_intersect(&inter, &r1, &r3) );
 }
 
+void
+test_sub_intersect()
+{
+  struct gkyl_range local_ext;
+  gkyl_range_init(&local_ext, 2, (int[]) { 1, 1 }, (int[]) { 15, 15 });
+
+  struct gkyl_range local;
+  gkyl_range_init(&local, 2, (int[]) { 4, 4 }, (int[]) { 10, 12 });
+
+  struct gkyl_range local_sub;
+  gkyl_sub_range_intersect(&local_sub, &local_ext, &local);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local_sub);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx1 = gkyl_range_idx(&local_sub, iter.idx);
+    long lidx2 = gkyl_range_idx(&local_ext, iter.idx);
+
+    TEST_CHECK( lidx2 == lidx1 );
+  }
+}
+
 void test_extend(void)
 {
   int lo[] = {1, 1}, up[] = { 4, 8 };
@@ -1004,7 +1026,8 @@ TEST_LIST = {
   { "sub_range_split_iter", test_sub_range_split_iter },
   { "nested_iter", test_nested_iter },
   { "intersect", test_intersect },
-  { "intersect_2", test_intersect_2 },  
+  { "intersect_2", test_intersect_2 },
+  { "sub_intersect", test_sub_intersect },
   { "extend", test_extend },
 #ifdef GKYL_HAVE_CUDA
   { "cu_range", test_cu_range },

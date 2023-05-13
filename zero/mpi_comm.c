@@ -5,6 +5,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
+#include <gkyl_comm_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_mpi_comm.h>
 
@@ -32,9 +33,11 @@ struct mpi_comm {
   MPI_Comm mcomm; // MPI communicator to use
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   long local_range_offset; // offset of the local region
-  
+
+  struct gkyl_range grange; // range to "hash" ghost layout
+  cmap_l2sgr l2sgr; // map from long -> skin_ghost_ranges
   struct gkyl_rect_decomp_neigh *neigh; // neighbors of local region
-  gkyl_mem_buff sendb, recvb; // send/recv buffers
+  gkyl_mem_buff sendb, recvb, perb; // send/recv & periodic BC buffers
 };
 
 static void
@@ -42,8 +45,12 @@ comm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_comm *comm = container_of(ref, struct gkyl_comm, ref_count);
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  cmap_l2sgr_drop(&mpi->l2sgr);  
+  
   gkyl_rect_decomp_release(mpi->decomp);
   gkyl_rect_decomp_neigh_release(mpi->neigh);
+  gkyl_mem_buff_release(mpi->perb);
   gkyl_mem_buff_release(mpi->sendb);
   gkyl_mem_buff_release(mpi->recvb);
   gkyl_free(mpi);
@@ -128,6 +135,39 @@ array_sync(struct gkyl_comm *comm,
     }
   }
   return 0;
+}
+
+static int
+array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
+  int nper_dirs, const int *per_dirs, struct gkyl_array *array)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  int quick_return = 0;
+  bool is_on_lo[GKYL_MAX_DIM], is_on_up[GKYL_MAX_DIM];
+  for (int d=0; d<mpi->decomp->ndim; ++d) {
+    is_on_lo[d] = gkyl_range_is_on_lower_edge(d, local, &mpi->decomp->parent_range);
+    is_on_up[d] = gkyl_range_is_on_upper_edge(d, local, &mpi->decomp->parent_range);
+    quick_return += is_on_lo[d] + is_on_up[d];
+  }
+  if (quick_return == 0) return 0; // return immediately if local range is not on edge
+
+  int nghost[GKYL_MAX_DIM];
+  for (int d=0; d<mpi->decomp->ndim; ++d)
+    nghost[d] = local_ext->upper[d]-local->upper[d];
+  
+  long lkey = gkyl_range_idx(&mpi->grange, nghost);
+
+  if (!cmap_l2sgr_contains(&mpi->l2sgr, lkey)) {
+    struct skin_ghost_ranges sgr;
+    skin_ghost_ranges_init(&sgr, &mpi->decomp->parent_range, nghost);
+    cmap_l2sgr_insert(&mpi->l2sgr, lkey, sgr);
+  }
+
+  const cmap_l2sgr_value *val = cmap_l2sgr_get(&mpi->l2sgr, lkey);
+  
+  return 1;
 }
 
 static int
@@ -282,15 +322,25 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   MPI_Comm_rank(inp->mpi_comm, &rank);
   mpi->local_range_offset = gkyl_rect_decomp_calc_offset(mpi->decomp, rank);
 
+  // construct range to hash ghost layout
+  int lower[GKYL_MAX_DIM] = { 0 };
+  int upper[GKYL_MAX_DIM];
+  for (int d=0; d<inp->decomp->ndim; ++d) upper[d] = GKYL_MAX_NGHOST;
+  gkyl_range_init(&mpi->grange, inp->decomp->ndim, lower, upper);
+  
+  mpi->l2sgr = cmap_l2sgr_init();
+  
   mpi->neigh = gkyl_rect_decomp_calc_neigh(mpi->decomp, inp->sync_corners, rank);
   mpi->sendb = gkyl_mem_buff_new(1024); // will be resized later
   mpi->recvb = gkyl_mem_buff_new(1024);
+  mpi->perb = gkyl_mem_buff_new(1024);
   
   mpi->base.get_rank = get_rank;
   mpi->base.get_size = get_size;
   mpi->base.barrier = barrier;
   mpi->base.all_reduce = all_reduce;
   mpi->base.gkyl_array_sync = array_sync;
+  mpi->base.gkyl_array_per_sync = array_per_sync;
   mpi->base.gkyl_array_write = array_write;
   mpi->base.extend_comm = extend_comm;
 

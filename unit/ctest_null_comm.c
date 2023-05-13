@@ -11,7 +11,7 @@ test_1d()
   struct gkyl_rect_decomp *decomp =
     gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
 
-  struct gkyl_comm *comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp
     }
   );
@@ -87,7 +87,7 @@ test_2d()
   struct gkyl_rect_decomp *decomp =
     gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
 
-  struct gkyl_comm *comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp
     }
   );

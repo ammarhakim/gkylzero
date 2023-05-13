@@ -49,7 +49,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
       struct gkyl_rect_decomp *rect_decomp =
         gkyl_rect_decomp_new_from_cuts(ndim, cuts, &app->global);
       
-      app->comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+      app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
           .decomp = rect_decomp
         }
       );
@@ -66,13 +66,15 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     struct gkyl_rect_decomp *rect_decomp =
       gkyl_rect_decomp_new_from_cuts(ndim, cuts, &app->global);
     
-    app->comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+    app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = rect_decomp
       }
     );
     
     gkyl_rect_decomp_release(rect_decomp);
   }
+
+  skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);  
   
   app->c2p_ctx = app->mapc2p = 0;  
   app->has_mapc2p = mom->mapc2p ? true : false;
