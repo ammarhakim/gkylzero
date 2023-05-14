@@ -16,8 +16,6 @@ struct pkpm_brio_wu_ctx {
   double beta; // plasma beta (for strength of magnetic field)
   double Lx; // size of the box
   double n0; // initial number density
-  double tend; // end time
-  double min_dt; // minimum size time step for breaking out of simulation
 };
 
 static inline double sq(double x) { return x*x; }
@@ -137,24 +135,13 @@ create_ctx(void)
     .massElc = 1.0,
     .chargeIon = 1.0,
     .massIon = 1836.153,
-    .vte = 0.05,
+    .vte = 0.04,
     .vti = ctx.vte/sqrt(ctx.massIon),
     .beta = 0.1, 
-    .Lx = 2000.0,
-    .n0 = 1.0,
-    .tend = 25000.0,
-    .min_dt = 0.001,
+    .Lx = 409.6,
+    .n0 = 1.0
   };
   return ctx;
-}
-
-void
-write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
-{
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
-    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
-    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
-  }
 }
 
 int
@@ -162,8 +149,8 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 1792);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 96);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 224);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 64);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -187,8 +174,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -12.0 * ctx.vte},
-    .upper = { 12.0 * ctx.vte}, 
+    .lower = { -16.0 * ctx.vte},
+    .upper = { 16.0 * ctx.vte}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -220,8 +207,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -24.0 * ctx.vti},
-    .upper = { 24.0 * ctx.vti}, 
+    .lower = { -16.0 * ctx.vti},
+    .upper = { 16.0 * ctx.vti}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -257,7 +244,7 @@ main(int argc, char **argv)
     .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type, 
-    .cfl_frac = 0.5,
+    .cfl_frac = 0.8,
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
@@ -275,15 +262,14 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = ctx.tend;
+  double tcurr = 0.0, tend = 10.0;
   double dt = tend-tcurr;
-  int nframe = 250;
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
-  write_data(&io_trig, app, tcurr);
+  
+  gkyl_vlasov_app_write(app, tcurr, 0);
+  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -295,19 +281,14 @@ main(int argc, char **argv)
       printf("** Update method failed! Aborting simulation ....\n");
       break;
     }
-    if (status.dt_actual < ctx.min_dt) {
-      printf("** Time step crashing! Aborting simulation and writing out last output ....\n");
-      gkyl_vlasov_app_write(app, tcurr, 1000);
-      gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1000);
-      break;
-    }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
-
-    write_data(&io_trig, app, tcurr);
-
     step += 1;
   }
+
+  gkyl_vlasov_app_write(app, tcurr, 1);
+  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
+  gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
