@@ -2,6 +2,7 @@
 #include <gkyl_basis_ser_3x_p1_surfx3_eval_quad.h> 
 #include <gkyl_basis_ser_3x_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
+  const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr,
   const double *u_il, const double *u_ic, const double *u_ir,
   const double *T_ijl, const double *T_ijc, const double *T_ijr,
   const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out) 

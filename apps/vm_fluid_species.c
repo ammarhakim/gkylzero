@@ -437,15 +437,16 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   if (app->use_gpu) {
     if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
       gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->u, fluid_species->div_p, fluid_species->T_ij, 
+        &app->local, fluid_species->u, fluid_species->div_p, 
+        fluid_species->pkpm_species->pkpm_moms.marr, fluid_species->T_ij, 
         fluid, fluid_species->cflrate, rhs);
     else if(fluid_species->eqn_id == GKYL_EQN_EULER)
       gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->u, fluid_species->p, 0, 
+        &app->local, fluid_species->u, fluid_species->p, 0, 0, 
         fluid, fluid_species->cflrate, rhs);
     else
       gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->u, 0, 0, 
+        &app->local, fluid_species->u, 0, 0, 0, 
         fluid, fluid_species->cflrate, rhs);
 
     if (fluid_species->has_diffusion)
@@ -455,15 +456,16 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   else {
     if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
       gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->u, fluid_species->div_p, fluid_species->T_ij, 
+        &app->local, fluid_species->u, fluid_species->div_p, 
+        fluid_species->pkpm_species->pkpm_moms.marr, fluid_species->T_ij, 
         fluid, fluid_species->cflrate, rhs);
     else if(fluid_species->eqn_id == GKYL_EQN_EULER)
       gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->u, fluid_species->p, 0, 
+        &app->local, fluid_species->u, fluid_species->p, 0, 0, 
         fluid, fluid_species->cflrate, rhs);
     else
       gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->u, 0, 0, 
+        &app->local, fluid_species->u, 0, 0, 0, 
         fluid, fluid_species->cflrate, rhs);
 
     if (fluid_species->has_diffusion)

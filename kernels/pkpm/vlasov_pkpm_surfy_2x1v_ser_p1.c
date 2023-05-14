@@ -38,29 +38,29 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   double alpha_l[12] = {0.0}; 
   double alpha_c[12] = {0.0}; 
   double alpha_r[12] = {0.0}; 
-  alpha_l[0] = 1.414213562373095*bl[0]*wvpar; 
-  alpha_l[1] = 1.414213562373095*bl[1]*wvpar; 
-  alpha_l[2] = 1.414213562373095*bl[2]*wvpar; 
+  alpha_l[0] = 1.414213562373095*bl[0]*wvpar+1.414213562373095*ul[0]; 
+  alpha_l[1] = 1.414213562373095*bl[1]*wvpar+1.414213562373095*ul[1]; 
+  alpha_l[2] = 1.414213562373095*bl[2]*wvpar+1.414213562373095*ul[2]; 
   alpha_l[3] = 0.408248290463863*bl[0]*dvpar; 
-  alpha_l[4] = 1.414213562373095*bl[3]*wvpar; 
+  alpha_l[4] = 1.414213562373095*bl[3]*wvpar+1.414213562373095*ul[3]; 
   alpha_l[5] = 0.408248290463863*bl[1]*dvpar; 
   alpha_l[6] = 0.408248290463863*bl[2]*dvpar; 
   alpha_l[7] = 0.408248290463863*bl[3]*dvpar; 
 
-  alpha_c[0] = 1.414213562373095*bc[0]*wvpar; 
-  alpha_c[1] = 1.414213562373095*bc[1]*wvpar; 
-  alpha_c[2] = 1.414213562373095*bc[2]*wvpar; 
+  alpha_c[0] = 1.414213562373095*bc[0]*wvpar+1.414213562373095*uc[0]; 
+  alpha_c[1] = 1.414213562373095*bc[1]*wvpar+1.414213562373095*uc[1]; 
+  alpha_c[2] = 1.414213562373095*bc[2]*wvpar+1.414213562373095*uc[2]; 
   alpha_c[3] = 0.408248290463863*bc[0]*dvpar; 
-  alpha_c[4] = 1.414213562373095*bc[3]*wvpar; 
+  alpha_c[4] = 1.414213562373095*bc[3]*wvpar+1.414213562373095*uc[3]; 
   alpha_c[5] = 0.408248290463863*bc[1]*dvpar; 
   alpha_c[6] = 0.408248290463863*bc[2]*dvpar; 
   alpha_c[7] = 0.408248290463863*bc[3]*dvpar; 
 
-  alpha_r[0] = 1.414213562373095*br[0]*wvpar; 
-  alpha_r[1] = 1.414213562373095*br[1]*wvpar; 
-  alpha_r[2] = 1.414213562373095*br[2]*wvpar; 
+  alpha_r[0] = 1.414213562373095*br[0]*wvpar+1.414213562373095*ur[0]; 
+  alpha_r[1] = 1.414213562373095*br[1]*wvpar+1.414213562373095*ur[1]; 
+  alpha_r[2] = 1.414213562373095*br[2]*wvpar+1.414213562373095*ur[2]; 
   alpha_r[3] = 0.408248290463863*br[0]*dvpar; 
-  alpha_r[4] = 1.414213562373095*br[3]*wvpar; 
+  alpha_r[4] = 1.414213562373095*br[3]*wvpar+1.414213562373095*ur[3]; 
   alpha_r[5] = 0.408248290463863*br[1]*dvpar; 
   alpha_r[6] = 0.408248290463863*br[2]*dvpar; 
   alpha_r[7] = 0.408248290463863*br[3]*dvpar; 
@@ -321,14 +321,14 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   F_0_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_0_l(F_0c); 
   F_0_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_0_r(F_0c); 
   F_0_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_0_l(F_0r); 
-  lax_F_0_quad_l[0] = 0.5*(alpha_l_r*F_0_l_r + alpha_c_l*F_0_c_l) - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
-  lax_F_0_quad_r[0] = 0.5*(alpha_c_r*F_0_c_r + alpha_r_l*F_0_r_l) - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
+  lax_F_0_quad_l[0] = - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
+  lax_F_0_quad_r[0] = - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
   G_1_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_0_r(G_1l); 
   G_1_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_0_l(G_1c); 
   G_1_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_0_r(G_1c); 
   G_1_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_0_l(G_1r); 
-  lax_G_1_quad_l[0] = 0.5*(alpha_l_r*G_1_l_r + alpha_c_l*G_1_c_l) - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
-  lax_G_1_quad_r[0] = 0.5*(alpha_c_r*G_1_c_r + alpha_r_l*G_1_r_l) - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
+  lax_G_1_quad_l[0] = - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
+  lax_G_1_quad_r[0] = - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
 
   alpha_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_1_r(alpha_u_l); 
   alpha_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_1_l(alpha_u_c); 
@@ -348,14 +348,14 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   F_0_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_1_l(F_0c); 
   F_0_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_1_r(F_0c); 
   F_0_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_1_l(F_0r); 
-  lax_F_0_quad_l[1] = 0.5*(alpha_l_r*F_0_l_r + alpha_c_l*F_0_c_l) - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
-  lax_F_0_quad_r[1] = 0.5*(alpha_c_r*F_0_c_r + alpha_r_l*F_0_r_l) - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
+  lax_F_0_quad_l[1] = - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
+  lax_F_0_quad_r[1] = - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
   G_1_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_1_r(G_1l); 
   G_1_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_1_l(G_1c); 
   G_1_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_1_r(G_1c); 
   G_1_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_1_l(G_1r); 
-  lax_G_1_quad_l[1] = 0.5*(alpha_l_r*G_1_l_r + alpha_c_l*G_1_c_l) - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
-  lax_G_1_quad_r[1] = 0.5*(alpha_c_r*G_1_c_r + alpha_r_l*G_1_r_l) - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
+  lax_G_1_quad_l[1] = - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
+  lax_G_1_quad_r[1] = - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
 
   alpha_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_2_r(alpha_u_l); 
   alpha_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_2_l(alpha_u_c); 
@@ -375,14 +375,14 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   F_0_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_2_l(F_0c); 
   F_0_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_2_r(F_0c); 
   F_0_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_2_l(F_0r); 
-  lax_F_0_quad_l[2] = 0.5*(alpha_l_r*F_0_l_r + alpha_c_l*F_0_c_l) - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
-  lax_F_0_quad_r[2] = 0.5*(alpha_c_r*F_0_c_r + alpha_r_l*F_0_r_l) - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
+  lax_F_0_quad_l[2] = - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
+  lax_F_0_quad_r[2] = - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
   G_1_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_2_r(G_1l); 
   G_1_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_2_l(G_1c); 
   G_1_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_2_r(G_1c); 
   G_1_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_2_l(G_1r); 
-  lax_G_1_quad_l[2] = 0.5*(alpha_l_r*G_1_l_r + alpha_c_l*G_1_c_l) - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
-  lax_G_1_quad_r[2] = 0.5*(alpha_c_r*G_1_c_r + alpha_r_l*G_1_r_l) - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
+  lax_G_1_quad_l[2] = - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
+  lax_G_1_quad_r[2] = - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
 
   alpha_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_3_r(alpha_u_l); 
   alpha_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_3_l(alpha_u_c); 
@@ -402,14 +402,14 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   F_0_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_3_l(F_0c); 
   F_0_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_3_r(F_0c); 
   F_0_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_3_l(F_0r); 
-  lax_F_0_quad_l[3] = 0.5*(alpha_l_r*F_0_l_r + alpha_c_l*F_0_c_l) - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
-  lax_F_0_quad_r[3] = 0.5*(alpha_c_r*F_0_c_r + alpha_r_l*F_0_r_l) - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
+  lax_F_0_quad_l[3] = - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
+  lax_F_0_quad_r[3] = - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
   G_1_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_3_r(G_1l); 
   G_1_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_3_l(G_1c); 
   G_1_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_3_r(G_1c); 
   G_1_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_3_l(G_1r); 
-  lax_G_1_quad_l[3] = 0.5*(alpha_l_r*G_1_l_r + alpha_c_l*G_1_c_l) - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
-  lax_G_1_quad_r[3] = 0.5*(alpha_c_r*G_1_c_r + alpha_r_l*G_1_r_l) - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
+  lax_G_1_quad_l[3] = - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
+  lax_G_1_quad_r[3] = - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
 
   alpha_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_4_r(alpha_u_l); 
   alpha_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_4_l(alpha_u_c); 
@@ -429,14 +429,14 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   F_0_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_4_l(F_0c); 
   F_0_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_4_r(F_0c); 
   F_0_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_4_l(F_0r); 
-  lax_F_0_quad_l[4] = 0.5*(alpha_l_r*F_0_l_r + alpha_c_l*F_0_c_l) - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
-  lax_F_0_quad_r[4] = 0.5*(alpha_c_r*F_0_c_r + alpha_r_l*F_0_r_l) - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
+  lax_F_0_quad_l[4] = - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
+  lax_F_0_quad_r[4] = - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
   G_1_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_4_r(G_1l); 
   G_1_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_4_l(G_1c); 
   G_1_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_4_r(G_1c); 
   G_1_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_4_l(G_1r); 
-  lax_G_1_quad_l[4] = 0.5*(alpha_l_r*G_1_l_r + alpha_c_l*G_1_c_l) - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
-  lax_G_1_quad_r[4] = 0.5*(alpha_c_r*G_1_c_r + alpha_r_l*G_1_r_l) - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
+  lax_G_1_quad_l[4] = - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
+  lax_G_1_quad_r[4] = - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
 
   alpha_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_5_r(alpha_u_l); 
   alpha_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_5_l(alpha_u_c); 
@@ -456,14 +456,14 @@ GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv
   F_0_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_5_l(F_0c); 
   F_0_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_5_r(F_0c); 
   F_0_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_5_l(F_0r); 
-  lax_F_0_quad_l[5] = 0.5*(alpha_l_r*F_0_l_r + alpha_c_l*F_0_c_l) - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
-  lax_F_0_quad_r[5] = 0.5*(alpha_c_r*F_0_c_r + alpha_r_l*F_0_r_l) - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
+  lax_F_0_quad_l[5] = - 0.5*max_speed_l*(F_0_c_l - F_0_l_r); 
+  lax_F_0_quad_r[5] = - 0.5*max_speed_r*(F_0_r_l - F_0_c_r); 
   G_1_l_r = hyb_2x1v_p1_surfx2_eval_quad_node_5_r(G_1l); 
   G_1_c_l = hyb_2x1v_p1_surfx2_eval_quad_node_5_l(G_1c); 
   G_1_c_r = hyb_2x1v_p1_surfx2_eval_quad_node_5_r(G_1c); 
   G_1_r_l = hyb_2x1v_p1_surfx2_eval_quad_node_5_l(G_1r); 
-  lax_G_1_quad_l[5] = 0.5*(alpha_l_r*G_1_l_r + alpha_c_l*G_1_c_l) - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
-  lax_G_1_quad_r[5] = 0.5*(alpha_c_r*G_1_c_r + alpha_r_l*G_1_r_l) - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
+  lax_G_1_quad_l[5] = - 0.5*max_speed_l*(G_1_c_l - G_1_l_r); 
+  lax_G_1_quad_r[5] = - 0.5*max_speed_r*(G_1_r_l - G_1_c_r); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   hyb_2x1v_p1_xdir_upwind_quad_to_modal(lax_F_0_quad_l, lax_F_0_modal_l); 
