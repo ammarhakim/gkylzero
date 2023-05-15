@@ -96,7 +96,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   long max_vol_esnz = val->second.max_vol*array->esznc;
   
   if (max_vol_esnz > gkyl_mem_buff_size(null_comm->pbuff))
-    null_comm->pbuff = gkyl_mem_buff_resize(null_comm->pbuff, max_vol_esnz);
+    gkyl_mem_buff_resize(null_comm->pbuff, max_vol_esnz);
 
   char *data = gkyl_mem_buff_data(null_comm->pbuff);
 

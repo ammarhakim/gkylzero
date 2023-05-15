@@ -129,7 +129,6 @@ struct gkyl_mem_buff_tag {
 gkyl_mem_buff
 gkyl_mem_buff_new(size_t count)
 {
-  size_t sz = sizeof(struct gkyl_mem_buff_tag) + sizeof(char[count]);
   struct gkyl_mem_buff_tag *mem = gkyl_malloc(sizeof(*mem));
   mem->count = count;
   mem->data = gkyl_malloc(count);

@@ -366,11 +366,13 @@ void
 vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f)
 {
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+    num_periodic_dir, app->periodic_dirs, f);
+  
   int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
-  for (int d=0; d<num_periodic_dir; ++d) {
-    vm_field_apply_periodic_bc(app, field, app->periodic_dirs[d], f);
+  for (int d=0; d<num_periodic_dir; ++d)
     is_np_bc[app->periodic_dirs[d]] = 0;
-  }
+
   for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 

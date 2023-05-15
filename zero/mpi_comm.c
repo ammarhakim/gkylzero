@@ -15,6 +15,9 @@
 // good idea.
 #define MAX_RECV_NEIGH 32
 
+#define MPI_BASE_TAG 4242
+#define MPI_BASE_PER_TAG 5252
+
 // Mapping of Gkeyll type to MPI_Datatype
 static MPI_Datatype g2_mpi_datatype[] = {
   [GKYL_INT] = MPI_INT,
@@ -120,7 +123,7 @@ array_sync(struct gkyl_comm *comm,
   for (int i=0; i<mpi->decomp->ndim; ++i)
     elo[i] = eup[i] = local_ext->upper[i]-local->upper[i];
 
-  int tag = 4242;
+  int tag = MPI_BASE_TAG;
 
   for (int n=0; n<mpi->neigh->num_neigh; ++n) {
     int nid = mpi->neigh->neigh[n];
@@ -133,7 +136,7 @@ array_sync(struct gkyl_comm *comm,
     MPI_Request recv_req;
     if (isrecv) {
       if (gkyl_mem_buff_size(mpi->recvb) < recv_vol)
-        mpi->recvb = gkyl_mem_buff_resize(mpi->recvb, recv_vol);
+        gkyl_mem_buff_resize(mpi->recvb, recv_vol);
       MPI_Irecv(gkyl_mem_buff_data(mpi->recvb),
         recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &recv_req);
     }
@@ -147,7 +150,7 @@ array_sync(struct gkyl_comm *comm,
 
     if (issend) {
       if (gkyl_mem_buff_size(mpi->sendb) < send_vol)
-        mpi->sendb = gkyl_mem_buff_resize(mpi->sendb, send_vol);
+        gkyl_mem_buff_resize(mpi->sendb, send_vol);
       gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->sendb), array, send_rgn);
       MPI_Send(gkyl_mem_buff_data(mpi->sendb), send_vol, MPI_CHAR, nid, tag, mpi->mcomm);
     }
@@ -164,14 +167,14 @@ static int
 per_send_tag(const struct gkyl_range *dir_edge,
   int dir, int e)
 {
-  int base_tag = 4242;
+  int base_tag = MPI_BASE_PER_TAG;
   return base_tag + gkyl_range_idx(dir_edge, (int[]) { dir, e });
 }
 static int
 per_recv_tag(const struct gkyl_range *dir_edge,
   int dir, int e)
 {
-  int base_tag = 4242;
+  int base_tag = MPI_BASE_PER_TAG;
   return base_tag + gkyl_range_idx(dir_edge, (int[]) { dir, (e+1)%2 });
 }
 
@@ -215,8 +218,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 
           if (isrecv) {
             if (gkyl_mem_buff_size(mpi->rinfo[nridx].buff) < recv_vol)
-              mpi->rinfo[nridx].buff = gkyl_mem_buff_resize(
-                mpi->rinfo[nridx].buff, recv_vol);
+              gkyl_mem_buff_resize(mpi->rinfo[nridx].buff, recv_vol);
 
             int tag = per_recv_tag(&mpi->dir_edge, dir, e);
             MPI_Irecv(gkyl_mem_buff_data(mpi->rinfo[nridx].buff),
@@ -249,7 +251,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 
           if (issend) {
             if (gkyl_mem_buff_size(mpi->sendb) < send_vol)
-              mpi->sendb = gkyl_mem_buff_resize(mpi->sendb, send_vol);
+              gkyl_mem_buff_resize(mpi->sendb, send_vol);
             gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->sendb), array, send_rgn);
 
             int tag = per_send_tag(&mpi->dir_edge, dir, e);
@@ -260,7 +262,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
     }
   }
 
-  // complete recv, copying data ito ghost-cells
+  // complete recv, copying data into ghost-cells
   for (int r=0; r<nridx; ++r) {
     int isrecv = mpi->rinfo[r].range.volume;
     if (isrecv) {
