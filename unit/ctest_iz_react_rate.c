@@ -6,6 +6,7 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_const.h>
 #include <stdio.h>
 
@@ -13,15 +14,15 @@
 double echarge = GKYL_ELEMENTARY_CHARGE;
 double emass = GKYL_ELECTRON_MASS;
 
-void eval_dens(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_m0(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0e19;
 }
-void eval_vtSq(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_m2(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 40*echarge/emass;  //fabs(x);
+  fout[0] = 40*echarge/emass*1.0e19;  //fabs(x);
 }
 
 void
@@ -33,7 +34,7 @@ test_iz_react_rate()
   int pdim = cdim + vdim; 
   double lower[] = {-2.0,-1.0}, upper[] = {2.0,1.0};
   int ghost[] = {0, 0};
-  int cells[] = {16,8};
+  int cells[] = {1,1};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -53,30 +54,37 @@ test_iz_react_rate()
   gkyl_cart_modal_serendip(&basis, cdim, poly_order);
 
   // projection updater for moments
-  gkyl_proj_on_basis *projDens = gkyl_proj_on_basis_new(&confGrid, &basis,
-    poly_order+1, 1, eval_dens, NULL);
-  gkyl_proj_on_basis *projVtSq = gkyl_proj_on_basis_new(&confGrid, &basis,
-    poly_order+1, 1, eval_vtSq, NULL);
+  gkyl_proj_on_basis *projM0 = gkyl_proj_on_basis_new(&confGrid, &basis,
+    poly_order+1, 1, eval_m0, NULL);
+  gkyl_proj_on_basis *projM2 = gkyl_proj_on_basis_new(&confGrid, &basis,
+    poly_order+1, 1, eval_m2, NULL);
 
-  // create moment arrays
-  struct gkyl_array *m0Neut = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  struct gkyl_array *vtSqElc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  struct gkyl_array *vtSqNeut = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+   // create moment arrays
+  struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+  struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+  struct gkyl_array *moms_neut = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+  struct gkyl_array *moms_elc = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
   struct gkyl_array *cflRate = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
   struct gkyl_array *vtSqIz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *coefIz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  
-  // project moments on basis
-  gkyl_proj_on_basis_advance(projDens, 0.0, &confRange, m0Neut);
-  gkyl_proj_on_basis_advance(projVtSq, 0.0, &confRange, vtSqElc);
-  gkyl_proj_on_basis_advance(projVtSq, 0.0, &confRange, vtSqNeut);
-  
-  struct gkyl_dg_iz *reactRate = gkyl_dg_iz_new(&basis, echarge, emass, GKYL_H, false);
 
-  gkyl_dg_iz_temp(reactRate, &confRange, vtSqElc, vtSqIz);
+  // project moments on basis
+  gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
+  gkyl_proj_on_basis_advance(projM2, 0.0, &confRange, m2);
+
+  printf("\nset moms array"); 
+  gkyl_array_set_offset(moms_neut, 1.0, m0, 0);
+  gkyl_array_set_offset(moms_elc, 1.0, m0, 0);
+  printf("\nbefore offset");
+  gkyl_array_set_offset(moms_neut, 1.0, m2, 2*basis.num_basis);
+  gkyl_array_set_offset(moms_elc, 1.0, m2, 2*basis.num_basis);  
+
+  printf("\nwhy does this take so long?");
+  struct gkyl_dg_iz *reactRate = gkyl_dg_iz_new(&basis, &phaseBasis, &confRange, &phaseRange,
+						echarge, emass, GKYL_H, true, false);
+
+  gkyl_dg_iz_react_rate(reactRate, moms_elc, moms_neut, vtSqIz, cflRate, coefIz);
   gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
-  
-  gkyl_dg_iz_react_rate(reactRate, &confRange, &phaseRange, m0Neut, vtSqNeut, vtSqElc, cflRate, coefIz);
   gkyl_grid_sub_array_write(&confGrid, &confRange, coefIz, "ctest_react_rate_1x.gkyl");
     
   // left cell

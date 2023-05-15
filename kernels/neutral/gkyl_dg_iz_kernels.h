@@ -2,66 +2,6 @@
 #include <math.h> 
 #include <gkyl_util.h> 
 
-GKYL_CU_DH static inline void 
-iz_temp_1x(double elem_charge, double mass, double E, const double *vt_sq, double* GKYL_RESTRICT vt_sq_iz) 
-{ 
-  // elem_charge : elementary charge
-  // mass :        electron mass
-  // E :   	       Voronov ionization energy [eV]. 
-  // vt_sq:        electron squared thermal speed, sqrt(T/m) 
-  // vt_sq_iz:     ionization squared thermal speed. 
- 
-  double vt_sq0 = 0.7071067811865476*vt_sq[0]; 
-  if (vt_sq0 > 2.0/3.0*E*elem_charge/mass) { 
-     vt_sq_iz[0] = 0.5*vt_sq[0]-(0.4714045207910317*E*elem_charge)/mass; 
-  }
- 
-  else { 
-     vt_sq_iz[0] = 1.414213562373093e-10; 
-  }
- 
-} 
-
-GKYL_CU_DH static inline void 
-iz_temp_2x(double elem_charge, double mass, double E, const double *vt_sq, double* GKYL_RESTRICT vt_sq_iz) 
-{ 
-  // elem_charge : elementary charge
-  // mass :        electron mass
-  // E :   	       Voronov ionization energy [eV]. 
-  // vt_sq:        electron squared thermal speed, sqrt(T/m) 
-  // vt_sq_iz:     ionization squared thermal speed. 
- 
-  double vt_sq0 = 0.5*vt_sq[0]; 
-  if (vt_sq0 > 2.0/3.0*E*elem_charge/mass) { 
-     vt_sq_iz[0] = 0.5*vt_sq[0]-(0.6666666666666666*E*elem_charge)/mass; 
-  }
- 
-  else { 
-     vt_sq_iz[0] = 2.0e-10; 
-  }
- 
-} 
-
-GKYL_CU_DH static inline void 
-iz_temp_3x(double elem_charge, double mass, double E, const double *vt_sq, double* GKYL_RESTRICT vt_sq_iz) 
-{ 
-  // elem_charge : elementary charge
-  // mass :        electron mass
-  // E :   	       Voronov ionization energy [eV]. 
-  // vt_sq:        electron squared thermal speed, sqrt(T/m) 
-  // vt_sq_iz:     ionization squared thermal speed. 
- 
-  double vt_sq0 = 0.3535533905932738*vt_sq[0]; 
-  if (vt_sq0 > 2.0/3.0*E*elem_charge/mass) { 
-     vt_sq_iz[0] = 0.5*vt_sq[0]-(0.9428090415820636*E*elem_charge)/mass; 
-  }
- 
-  else { 
-     vt_sq_iz[0] = 2.828427124746187e-10; 
-  }
- 
-} 
-
 GKYL_CU_DH static inline double 
 iz_react_rate_1x_ser_p1(double elem_charge, double mass, double E, double A, double K, double P, double X, const double *n_neut, const double *vt_sq_neut, const double *vt_sq_elc, double* GKYL_RESTRICT coef_iz) 
 { 
