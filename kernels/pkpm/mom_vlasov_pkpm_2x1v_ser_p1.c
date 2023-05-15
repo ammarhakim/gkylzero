@@ -1,4 +1,4 @@
-#include <gkyl_mom_vlasov_kernels.h> 
+#include <gkyl_mom_vlasov_pkpm_kernels.h> 
 GKYL_CU_DH void mom_vlasov_pkpm_2x1v_ser_p1(const double *w, const double *dxv, const int *idx, double mass, const double *f, double* GKYL_RESTRICT out) 
 { 
   const double volFact = dxv[2]/2.0; 

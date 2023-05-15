@@ -1,4 +1,4 @@
-#include <gkyl_lbo_vlasov_kernels.h> 
+#include <gkyl_lbo_vlasov_pkpm_kernels.h> 
 GKYL_CU_DH void lbo_vlasov_pkpm_drag_surfvpar_2x1v_ser_p2(const double *w, const double *dxv, const double *nu, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[3]:    cell-center coordinates. 

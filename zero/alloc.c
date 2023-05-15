@@ -135,6 +135,15 @@ gkyl_mem_buff_new(size_t count)
   return mem;
 }
 
+gkyl_mem_buff
+gkyl_mem_buff_resize(gkyl_mem_buff mem, size_t count)
+{
+  size_t sz = sizeof(struct gkyl_mem_buff_tag) + sizeof(char[count]);
+  struct gkyl_mem_buff_tag *memr = gkyl_realloc(mem, count);
+  memr->count = count;
+  return memr;
+}
+
 size_t
 gkyl_mem_buff_size(gkyl_mem_buff mem)
 {

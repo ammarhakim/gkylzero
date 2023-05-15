@@ -1,6 +1,8 @@
 #include <acutest.h>
 #include <gkyl_rect_decomp.h>
 
+#include <string.h>
+
 void test_ranges_1d()
 {
   double lower[] = { 1.0 }, upper[] = {2.5 };
@@ -82,12 +84,253 @@ void test_ranges_3d()
   TEST_CHECK( range.lower[2] == 1 );
   TEST_CHECK( range.upper[2] == 10 );  
 
-  TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );    
+  TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );
+}
+
+void
+test_ranges_from_range_2d(void)
+{
+  struct gkyl_range inlocal;
+  gkyl_range_init(&inlocal, 2, (int[]) { 1, 2 }, (int[]) { 10, 20 });
+
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&inlocal, (int[]) { 2, 1 }, &local_ext, &local);
+
+  TEST_CHECK( local.ndim == inlocal.ndim );
+  TEST_CHECK( local_ext.ndim == inlocal.ndim );
+  
+  for (int i=0; i<inlocal.ndim; ++i) {
+    TEST_CHECK( local.lower[i] == inlocal.lower[i] );
+    TEST_CHECK( local.upper[i] == inlocal.upper[i] );
+  }
+
+  TEST_CHECK( gkyl_range_is_sub_range(&local) == 1 );
+}
+
+void
+test_ranges_from_range_3d(void)
+{
+  struct gkyl_range inlocal;
+  gkyl_range_init(&inlocal, 3, (int[]) { 1, 2, 3 }, (int[]) { 10, 20, 30 });
+
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&inlocal, (int[]) { 2, 1, 0 }, &local_ext, &local);
+
+  TEST_CHECK( local.ndim == inlocal.ndim );
+  TEST_CHECK( local_ext.ndim == inlocal.ndim );
+  
+  for (int i=0; i<inlocal.ndim; ++i) {
+    TEST_CHECK( local.lower[i] == inlocal.lower[i] );
+    TEST_CHECK( local.upper[i] == inlocal.upper[i] );
+  }
+
+  TEST_CHECK( gkyl_range_is_sub_range(&local) == 1 );
+}
+
+// some helper functions
+static bool
+is_on_corner(int ndim, const int *idx, const int *shape)
+{
+  bool isc = true;
+  for (int i=0; i<ndim; ++i) {
+    if ( !((idx[i] == 0) || (idx[i] == shape[i]-1)) )
+      isc = false;
+  }
+  return isc;
+}
+static bool
+is_on_edge(int ndim, const int *idx, const int *shape)
+{
+  for (int i=0; i<ndim; ++i) {
+    if ((idx[i] == 0) || (idx[i] == shape[i]-1)) { // on a face
+      for (int d=0; d<3; ++d) {
+        if (d != i)
+          if ((idx[d] == 0) || (idx[d] == shape[d]-1))
+            return true;
+      }
+    }
+  }
+  return false;
+}
+static bool
+is_on_face(int ndim, const int *idx, const int *shape)
+{
+  for (int i=0; i<ndim; ++i) {
+    if ((idx[i] == 0) || (idx[i] == shape[i]-1))
+      return true;
+  }
+  return false;
+}
+
+void
+test_rect_decomp_2d(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 2 }, (int[]) { 100, 100 });
+  
+  int cuts[] = { 5, 6 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
+
+  TEST_CHECK( decomp->ndim == 2 );
+  TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1] );
+
+  TEST_CHECK( memcmp(&range, &decomp->parent_range, sizeof(struct gkyl_range)) == 0 );
+
+  long vol = 0;
+  for (int i=0; i<decomp->ndecomp; ++i)
+    vol += decomp->ranges[i].volume;
+
+  TEST_CHECK( vol == range.volume );
+  TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
+
+  long offs = 0;
+  for (int i=0; i<decomp->ndecomp; ++i) {
+    TEST_CHECK( offs == gkyl_rect_decomp_calc_offset(decomp, i) );
+    offs += decomp->ranges[i].volume;
+  }
+
+  struct gkyl_range crange;
+  gkyl_range_init_from_shape(&crange, 2, cuts);
+  struct gkyl_range_iter iter;
+
+  // check decomposition without corner neighbors
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+
+    struct gkyl_rect_decomp_neigh *neigh =
+      gkyl_rect_decomp_calc_neigh(decomp, false, gkyl_range_idx(&crange, iter.idx));
+    
+    if (is_on_corner(2, iter.idx, cuts))
+      TEST_CHECK( neigh->num_neigh == 2 );
+    else if (is_on_face(2, iter.idx, cuts) )
+      TEST_CHECK( neigh->num_neigh == 3 );
+    else
+      TEST_CHECK( neigh->num_neigh == 4 );
+
+    gkyl_rect_decomp_neigh_release(neigh);
+  }
+
+  // check decomposition with corner neighbors
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+
+    struct gkyl_rect_decomp_neigh *neigh =
+      gkyl_rect_decomp_calc_neigh(decomp, true, gkyl_range_idx(&crange, iter.idx));
+
+    if (is_on_corner(2, iter.idx, cuts))
+      TEST_CHECK( neigh->num_neigh == 3 );
+    else if (is_on_face(2, iter.idx, cuts) )
+      TEST_CHECK( neigh->num_neigh == 5 );
+    else
+      TEST_CHECK( neigh->num_neigh == 8 );
+
+    gkyl_rect_decomp_neigh_release(neigh);
+  }  
+
+  gkyl_rect_decomp_release(decomp);
+}
+
+void
+test_rect_decomp_3d(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 3, (int[]) { 1, 2, 3 }, (int[]) { 100, 200, 300 });
+  
+  int cuts[] = { 5, 6, 7 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(3, cuts, &range);
+
+  TEST_CHECK( decomp->ndim == 3 );
+  TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1]*cuts[2] );
+
+  TEST_CHECK( memcmp(&range, &decomp->parent_range, sizeof(struct gkyl_range)) == 0 );
+
+  long vol = 0;
+  for (int i=0; i<decomp->ndecomp; ++i)
+    vol += decomp->ranges[i].volume;
+
+  TEST_CHECK( vol == range.volume );
+  TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
+
+  struct gkyl_range crange;
+  gkyl_range_init_from_shape(&crange, 3, cuts);
+  struct gkyl_range_iter iter;
+
+  // check decomposition without corner neighbors
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+
+    struct gkyl_rect_decomp_neigh *neigh =
+      gkyl_rect_decomp_calc_neigh(decomp, false, gkyl_range_idx(&crange, iter.idx));
+    
+    if (is_on_corner(3, iter.idx, cuts))
+      TEST_CHECK( neigh->num_neigh == 3 );
+    else if (is_on_edge(3, iter.idx, cuts) )
+      TEST_CHECK( neigh->num_neigh == 4 );
+    else if (is_on_face(3, iter.idx, cuts) )
+      TEST_CHECK( neigh->num_neigh == 5 );
+    else
+      TEST_CHECK( neigh->num_neigh == 6 );
+
+    gkyl_rect_decomp_neigh_release(neigh);
+  }
+
+  // check decomposition with corner neighbors
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+
+    struct gkyl_rect_decomp_neigh *neigh =
+      gkyl_rect_decomp_calc_neigh(decomp, true, gkyl_range_idx(&crange, iter.idx));
+    
+    if (is_on_corner(3, iter.idx, cuts))
+      TEST_CHECK( neigh->num_neigh == 7 );
+    else if (is_on_edge(3, iter.idx, cuts) )
+      TEST_CHECK( neigh->num_neigh == 11 );
+    else if (is_on_face(3, iter.idx, cuts) )
+      TEST_CHECK( neigh->num_neigh == 17 );
+    else
+      TEST_CHECK( neigh->num_neigh == 26 );
+
+    gkyl_rect_decomp_neigh_release(neigh);
+  }  
+
+  gkyl_rect_decomp_release(decomp);
+}
+
+void
+test_rect_decomp_4d(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 4, (int[]) { 1, 2, 3, 4 }, (int[]) { 10, 20, 30, 40 });
+  
+  int cuts[] = { 2, 1, 3, 4 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(4, cuts, &range);
+
+  TEST_CHECK( decomp->ndim == 4 );
+  TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1]*cuts[2]*cuts[3] );
+
+  TEST_CHECK( memcmp(&range, &decomp->parent_range, sizeof(struct gkyl_range)) == 0 );
+
+  long vol = 0;
+  for (int i=0; i<decomp->ndecomp; ++i)
+    vol += decomp->ranges[i].volume;
+
+  TEST_CHECK( vol == range.volume );
+  TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
+
+  gkyl_rect_decomp_release(decomp);
 }
 
 TEST_LIST = {
   { "ranges_1d", test_ranges_1d },
   { "ranges_2d", test_ranges_2d },
   { "ranges_3d", test_ranges_3d },
+
+  { "ranges_from_range_2d", test_ranges_from_range_2d },
+  { "ranges_from_range_3d", test_ranges_from_range_3d },
+
+  { "rect_decomp_2d", test_rect_decomp_2d },
+  { "rect_decomp_3d", test_rect_decomp_3d },
+  { "rect_decomp_4d", test_rect_decomp_4d },
+  
   { NULL, NULL },
 };

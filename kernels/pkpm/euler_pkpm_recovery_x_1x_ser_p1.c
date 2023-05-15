@@ -1,12 +1,11 @@
-#include <gkyl_euler_kernels.h> 
+#include <gkyl_euler_pkpm_kernels.h> 
 GKYL_CU_DH void euler_pkpm_recovery_x_1x_ser_p1(const double *dxv, double nuHyp, 
   const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
   const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
   const double *statevecl, const double *statevecc, const double *statevecr, 
-  const double *rho_inv, const double *T_perp_over_m, const double *T_perp_over_m_inv, 
-  const double *nu, const double *nu_vthsq, 
+  const double *rho_inv, const double *T_perp_over_m, const double *T_perp_over_m_inv, const double *nu, 
   double* div_p, double* pkpm_accel_vars) 
 { 
   // dxv[NDIM]:             Cell spacing.
@@ -20,7 +19,6 @@ GKYL_CU_DH void euler_pkpm_recovery_x_1x_ser_p1(const double *dxv, double nuHyp,
   // T_perp_over_m:         Input p_perp/rho = T_perp/m in center cell.
   // T_perp_over_m_inv:     Input (T_perp/m)^-1 in center cell.
   // nu:                    Input collisionality in center cell.
-  // nu_vthsq:              Input nu*vth^2 in center cell.
   // div_p:                 Increment to volume expansion of div(p) in one direction; includes hyper-diffusion for momentum.
   // pkpm_accel_vars:       Increment to volume expansion of pkpm acceleration variables.
 
@@ -153,8 +151,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_1x_ser_p1(const double *dxv, double nuHyp,
   p_force[0] += 0.7071067811865475*div_ppar_b[1]*rho_inv[1]-0.7071067811865475*T_perp_over_m[1]*div_b_comp[1]+0.7071067811865475*div_ppar_b[0]*rho_inv[0]-0.7071067811865475*T_perp_over_m[0]*div_b_comp[0]; 
   p_force[1] += 0.7071067811865475*(div_ppar_b[0]*rho_inv[1]+rho_inv[0]*div_ppar_b[1])-0.7071067811865475*(T_perp_over_m[0]*div_b_comp[1]+div_b_comp[0]*T_perp_over_m[1]); 
 
-  p_perp_source[0] += 0.7071067811865475*(T_perp_over_m_inv[1]*nu_vthsq[1]+T_perp_over_m_inv[0]*nu_vthsq[0])-1.0*(nu[0]+grad_u_x[0])+bb_grad_u_comp[0]; 
-  p_perp_source[1] += 0.7071067811865475*T_perp_over_m_inv[0]*nu_vthsq[1]-1.0*(nu[1]+grad_u_x[1])+bb_grad_u_comp[1]+0.7071067811865475*nu_vthsq[0]*T_perp_over_m_inv[1]; 
+  p_perp_source[0] += (-2.0*nu[0])-1.0*grad_u_x[0]+bb_grad_u_comp[0]; 
+  p_perp_source[1] += (-2.0*nu[1])-1.0*grad_u_x[1]+bb_grad_u_comp[1]; 
 
   p_perp_div_b[0] += 0.7071067811865475*(T_perp_over_m[1]*div_b_comp[1]+T_perp_over_m[0]*div_b_comp[0]); 
   p_perp_div_b[1] += 0.7071067811865475*(T_perp_over_m[0]*div_b_comp[1]+div_b_comp[0]*T_perp_over_m[1]); 

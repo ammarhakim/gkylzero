@@ -1,4 +1,4 @@
-#include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_sr_kernels.h> 
 GKYL_CU_DH double vlasov_sr_stream_vol_1x3v_ser_p2(const double *w, const double *dxv, const double *p_over_gamma, const double *qmem, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.

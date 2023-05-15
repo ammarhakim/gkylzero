@@ -52,6 +52,18 @@ ifeq ($(CC), nvcc)
        CUDA_LIBS += -lcublas -lcusparse -lcusolver
 endif
 
+# Read MPI paths and flags if needed 
+USING_MPI =
+MPI_INC_DIR = zero # dummy
+MPI_LIB_DIR = .
+ifeq (${USE_MPI}, 1)
+	USING_MPI = yes
+	MPI_INC_DIR = ${MPI_INC}
+	MPI_LIB_DIR = ${MPI_LIB}
+	MPI_LIBS = -lmpi
+	CFLAGS += -DGKYL_HAVE_MPI
+endif
+
 # Build directory
 ifdef USING_NVCC
 	BUILD_DIR ?= cuda-build
@@ -84,7 +96,7 @@ INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sor
 INSTALL_HEADERS += $(shell ls minus/*.h)
 
 # all includes
-INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC}
+INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR}
 
 # Directories containing source code
 SRC_DIRS := minus zero apps kernels
@@ -92,6 +104,7 @@ SRC_DIRS := minus zero apps kernels
 # List of regression and unit tests
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
 UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
+MPI_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/mctest_*.c))
 
 # list of includes from kernels
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
@@ -108,8 +121,8 @@ ifdef USING_NVCC
 endif
 
 # List of link directories and libraries for unit and regression tests
-EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR}
-EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
+EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR}
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_LIBS} -lm -lpthread
 EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
 
@@ -124,12 +137,12 @@ $(BUILD_DIR)/%.cu.o: %.cu
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
 # Unit tests
-${BUILD_DIR}/unit/%: unit/%.c ${ZERO_SH_LIB} ${UNIT_CU_OBJS}
+${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/libgkylzero.so ${UNIT_CU_OBJS}
 	$(MKDIR_P) ${BUILD_DIR}/unit
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${UNIT_CU_OBJS} ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Regression tests
-${BUILD_DIR}/regression/%: regression/%.c ${ZERO_SH_LIB}
+${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}/regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
@@ -241,13 +254,17 @@ $(ZERO_SH_INSTALL_LIB): $(OBJS)
 all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
 
 # Explicit targets to build unit and regression tests
-unit: ${UNITS} ## Build unit tests
-regression: ${REGS} ## Build regression tests
+unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ## Build unit tests
+regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ## Build regression tests
 
-.PHONY: check
+.PHONY: check mpicheck
 # Run all unit tests
 check: ${UNITS} ## Build (if needed) and run all unit tests
 	$(foreach unit,${UNITS},echo $(unit); $(unit) -E;)
+
+# Run all unit tests needing MPI
+mpicheck: ${MPI_UNITS} ## Build (if needed) and run all unit tests needing MPI
+	$(foreach unit,${MPI_UNITS},echo $(unit); $(unit) -E -M;)
 
 install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # Construct install directories
@@ -262,6 +279,7 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # libraries
 	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
 # Examples
+	test -e config.mak && cp -f config.mak ${PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
 	cp -f Makefile.sample ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
@@ -274,6 +292,10 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 .PHONY: clean
 clean: ## Clean build output
 	rm -rf ${BUILD_DIR}
+
+.PHONY: cleanur
+cleanur: ## Delete the unit and regression test executables
+	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression
 
 # include dependencies
 -include $(DEPS)

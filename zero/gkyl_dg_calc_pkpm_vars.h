@@ -40,26 +40,38 @@ void gkyl_calc_pkpm_vars_source(struct gkyl_basis basis, const struct gkyl_range
   struct gkyl_array* rhs);
 
 /**
- * Compute parallel-kinetic-perpendicular-moment model mirror force distribution function.
- * In the mirror force for the T_perp/m*G = T_perp/m*(F_0 - F_1) kinetic equation,
- * g_dist_source = 2.0*(T_perp/m*G) - T_perp/m*F_0 + T_perp/m*F_2
+ * Compute parallel-kinetic-perpendicular-moment model distribution function
+ * in the mirror force for the T_perp/m*G = T_perp/m*(F_0 - F_1) kinetic equation,
+ * along with the vperp characteristics which are a pure source term in the first Laguerre moment update.
+ * g_dist_source = [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)), 
+ *                  (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0 ]
+ * First output is mirror force source *distribution*, second output is *total* vperp characteristics source.
  * Note that T_perp/m*G is the evolved quantity for the first Laguerre moment. 
  * Also outputs F_1 from T_perp/m*G for the evolution of F_2 if F_2 is present. 
  * To simplify internal Gkeyll logic, assume F_2 is present and output F_1 even if F_2 = 0.0.
  *
+ * @param grid Grid (for getting cell spacing and cell center for vperp characteristics)
  * @param basis Basis functions used in expansions
  * @param conf_range Range to index configuration space fields
  * @param phase_range Range to calculate mirror force distribution function 
  * @param T_perp_over_m Input array of p_perp/rho = T_perp/m
  * @param T_perp_over_m_inv Input array of (T_perp/m)^-1
+ * @param nu_vthsq Input array of nu*vth^2
+ * @param pkpm_accel_vars Input arrary of pkpm acceleration variables ordered as (this updater needs div_b and p_perp_source):
+ *        0: div_b (divergence of magnetic field unit vector)
+          1: bb_grad_u (bb : grad(u))
+          2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+          3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2 nu)
+          4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
  * @param fIn Input array of pkpm distribution functions: [F_0, T_perp/m G = T_perp/m (F_0 - F_1)]
  * @param F_k_p_1 Input array of k+1 distribution function. F_2 expansion is the first NP coefficients.
  * @param g_dist_source Output array: 2.0*(T_perp/m*G) + T_perp/m*(F_2 - F_0)
  * @param F_k_m_1 Output array of k-1 distribution function. F_1 expansion is the first NP coefficients.
  */
-void gkyl_calc_pkpm_vars_dist_mirror_force(struct gkyl_basis basis, 
+void gkyl_calc_pkpm_vars_dist_mirror_force(const struct gkyl_rect_grid *grid, struct gkyl_basis basis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const struct gkyl_array* T_perp_over_m, const struct gkyl_array* T_perp_over_m_inv, 
+  const struct gkyl_array* nu_vthsq, const struct gkyl_array* pkpm_accel_vars, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);
 
@@ -79,21 +91,20 @@ void gkyl_calc_pkpm_vars_dist_mirror_force(struct gkyl_basis basis,
  * @param T_perp_over_m Input array of p_perp/rho = T_perp/m
  * @param T_perp_over_m_inv Input array of (T_perp/m)^-1
  * @param nu Input array of collisionality
- * @param nu_vthsq Input array of nu*vth^2
  * @param div_p Output array of divergence of pressure tensor
  * @param pkpm_accel_vars Output arrary of pkpm acceleration variables ordered as:
  *        0: div_b (divergence of magnetic field unit vector)
           1: bb_grad_u (bb : grad(u))
           2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
-          3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - nu + nu rho vth^2/p_perp)
+          3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2 nu)
           4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
  */
 void gkyl_calc_pkpm_vars_recovery(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, const struct gkyl_array* T_perp_over_m_inv, 
-  const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
+  const struct gkyl_array* T_perp_over_m_inv, const struct gkyl_array* nu, 
   struct gkyl_array* div_p, struct gkyl_array* pkpm_accel_vars);
 
 /**
@@ -109,9 +120,10 @@ void gkyl_calc_pkpm_vars_source_cu(struct gkyl_basis basis, const struct gkyl_ra
   const struct gkyl_array* qmem, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
   struct gkyl_array* rhs);
 
-void gkyl_calc_pkpm_vars_dist_mirror_force_cu(struct gkyl_basis basis, 
+void gkyl_calc_pkpm_vars_dist_mirror_force_cu(const struct gkyl_rect_grid *grid, struct gkyl_basis basis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const struct gkyl_array* T_perp_over_m, const struct gkyl_array* T_perp_over_m_inv, 
+  const struct gkyl_array* nu_vthsq, const struct gkyl_array* pkpm_accel_vars, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);
 
@@ -119,6 +131,6 @@ void gkyl_calc_pkpm_vars_recovery_cu(const struct gkyl_rect_grid *grid,
   struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, const struct gkyl_array* T_perp_over_m_inv, 
-  const struct gkyl_array* nu, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
+  const struct gkyl_array* T_perp_over_m_inv, const struct gkyl_array* nu, 
   struct gkyl_array* div_p, struct gkyl_array* pkpm_accel_vars);

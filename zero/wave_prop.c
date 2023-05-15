@@ -5,6 +5,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_null_comm.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
@@ -23,6 +24,8 @@ struct gkyl_wave_prop {
   bool check_inv_domain; // flag to indicate if invariant domains are checked
 
   struct gkyl_wave_geom *geom; // geometry object
+  struct gkyl_comm *comm; // communcator
+  
   // data for 1D slice update
   struct gkyl_array *waves, *apdq, *amdq, *speeds, *flux2;
   // flags to indicate if fluctuations should be recomputed
@@ -99,6 +102,11 @@ gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
   up->limiter = winp->limiter == 0 ? GKYL_MONOTONIZED_CENTERED : winp->limiter;
   up->cfl = winp->cfl;
   up->equation = gkyl_wv_eqn_acquire(winp->equation);
+
+  if (winp->comm)
+    up->comm = gkyl_comm_acquire(winp->comm);
+  else
+    up->comm = gkyl_null_comm_new();
 
   up->force_low_order_flux = winp->force_low_order_flux;
   up->check_inv_domain = winp->check_inv_domain;
@@ -240,7 +248,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   int mwaves = wv->force_low_order_flux ? 2 :  wv->equation->num_waves;
 
   double cfla = 0.0, cfl = wv->cfl, cflm = 1.1*cfl;
-
+  double is_cfl_violated = 0.0; // delibrately a double
+  
   double ql_local[meqn], qr_local[meqn];
   double waves_local[meqn*mwaves];
   double amdq_local[meqn], apdq_local[meqn];
@@ -327,10 +336,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
             calc_jump(meqn, ql_local, qr_local, delta);
           
-
             double my_max_speed = gkyl_wv_eqn_waves(wv->equation, ftype, delta,
-                                                    ql_local, qr_local,
-                                                    waves_local, s);
+              ql_local, qr_local, waves_local, s);
             max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
 
             double lenr = cg->lenr[dir];
@@ -361,12 +368,13 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           cfla = calc_cfla(mwaves, cfla, dtdx/cg->kappa, s);
         }
 
-        if (cfla > cflm) // check time-step before any updates are performed
-          return (struct gkyl_wave_prop_status) {
-            .success = 0,
-            .dt_suggested = dt*cfl/cfla,
-            .max_speed = max_speed,
-          };
+        if (cfla > cflm) { // check time-step before any updates are performed
+          is_cfl_violated = 1.0;
+          // we need to use this goto to jump out of this deep loop to
+          // avoid potential problems with taking too large a
+          // time-step
+          goto outsideloop;
+        }
 
         // compute first-order update in each cell
         for (int i=loidx_c; i<=upidx_c; ++i) { // loop is over cells
@@ -472,14 +480,34 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
     } // end loop over perpendicular directions
   } // end loop over directions
 
-  // compute allowable time-step from this update, but suggest only
-  // bigger time-step; (Only way dt can reduce is if the update
-  // fails. If the code comes here the update suceeded and so we
-  // should not allow dt to reduce).
+  outsideloop:
+  ;
+
+  // compute actual CFL, status & max-speed across all domains
+  double red_vars[3] = { cfla, is_cfl_violated, max_speed };
+  double red_vars_global[3] = { 0.0 };
+  gkyl_comm_all_reduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 3, &red_vars, &red_vars_global);
+
+  cfla = red_vars_global[0];
+  is_cfl_violated = red_vars_global[1];
+  max_speed = red_vars_global[2];
+
   double dt_suggested = dt*cfl/fmax(cfla, DBL_MIN);
 
+  if (is_cfl_violated > 0.0)
+    // indicate failure, and return smaller stable time-step
+    return (struct gkyl_wave_prop_status) {
+      .success = 0,
+      .dt_suggested = dt_suggested,
+      .max_speed = max_speed,
+    };
+  
+  // on success, suggest only bigger time-step; (Only way dt can
+  // reduce is if the update fails. If the code comes here the update
+  // succeeded and so we should not allow dt to reduce).
+
   return (struct gkyl_wave_prop_status) {
-    .success = 1,
+    .success = is_cfl_violated > 0.0 ? 0 : 1,
     .dt_suggested = dt_suggested > dt ? dt_suggested : dt,
     .max_speed = max_speed,
   };
@@ -530,6 +558,7 @@ gkyl_wave_prop_release(gkyl_wave_prop* up)
   gkyl_array_release(up->speeds);
   gkyl_array_release(up->flux2);
   gkyl_array_release(up->redo_fluct);
+  gkyl_comm_release(up->comm);
   
   gkyl_wave_geom_release(up->geom);
   

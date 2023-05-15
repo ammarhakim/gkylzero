@@ -1,4 +1,4 @@
-#include <gkyl_lbo_vlasov_kernels.h> 
+#include <gkyl_lbo_vlasov_pkpm_kernels.h> 
 GKYL_CU_DH void lbo_vlasov_pkpm_diff_boundary_surfvpar_3x1v_ser_p1(const double *w, const double *dxv, const double *nuVtSq, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[4]:         Cell-center coordinates. 

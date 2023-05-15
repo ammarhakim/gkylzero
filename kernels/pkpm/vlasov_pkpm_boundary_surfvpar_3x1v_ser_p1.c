@@ -1,4 +1,4 @@
-#include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_pkpm_kernels.h> 
 #include <gkyl_basis_hyb_3x1v_p1_surfx4_eval_quad.h> 
 #include <gkyl_basis_hyb_3x1v_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void vlasov_pkpm_boundary_surfvpar_3x1v_ser_p1(const double *w, const double *dxv, const double *pkpm_accel_vars, 

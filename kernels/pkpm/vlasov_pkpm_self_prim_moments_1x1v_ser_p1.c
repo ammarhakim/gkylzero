@@ -1,4 +1,4 @@
-#include <gkyl_prim_lbo_vlasov_kernels.h> 
+#include <gkyl_prim_lbo_vlasov_pkpm_kernels.h> 
  
 GKYL_CU_DH void vlasov_pkpm_self_prim_moments_1x1v_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *vlasov_pkpm_moms, const double *boundary_corrections) 
 { 

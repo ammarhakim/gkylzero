@@ -1,12 +1,11 @@
-#include <gkyl_euler_kernels.h> 
+#include <gkyl_euler_pkpm_kernels.h> 
 GKYL_CU_DH void euler_pkpm_recovery_x_3x_ser_p1(const double *dxv, double nuHyp, 
   const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
   const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
   const double *statevecl, const double *statevecc, const double *statevecr, 
-  const double *rho_inv, const double *T_perp_over_m, const double *T_perp_over_m_inv, 
-  const double *nu, const double *nu_vthsq, 
+  const double *rho_inv, const double *T_perp_over_m, const double *T_perp_over_m_inv, const double *nu, 
   double* div_p, double* pkpm_accel_vars) 
 { 
   // dxv[NDIM]:             Cell spacing.
@@ -20,7 +19,6 @@ GKYL_CU_DH void euler_pkpm_recovery_x_3x_ser_p1(const double *dxv, double nuHyp,
   // T_perp_over_m:         Input p_perp/rho = T_perp/m in center cell.
   // T_perp_over_m_inv:     Input (T_perp/m)^-1 in center cell.
   // nu:                    Input collisionality in center cell.
-  // nu_vthsq:              Input nu*vth^2 in center cell.
   // div_p:                 Increment to volume expansion of div(p) in one direction; includes hyper-diffusion for momentum.
   // pkpm_accel_vars:       Increment to volume expansion of pkpm acceleration variables.
 
@@ -243,14 +241,14 @@ GKYL_CU_DH void euler_pkpm_recovery_x_3x_ser_p1(const double *dxv, double nuHyp,
   p_force[6] += 0.3535533905932737*(div_ppar_b[1]*rho_inv[7]+rho_inv[1]*div_ppar_b[7])-0.3535533905932737*(T_perp_over_m[1]*div_b_comp[7]+div_b_comp[1]*T_perp_over_m[7])+0.3535533905932737*(div_ppar_b[0]*rho_inv[6]+rho_inv[0]*div_ppar_b[6])-0.3535533905932737*(T_perp_over_m[0]*div_b_comp[6]+div_b_comp[0]*T_perp_over_m[6])+0.3535533905932737*(div_ppar_b[4]*rho_inv[5]+rho_inv[4]*div_ppar_b[5])-0.3535533905932737*(T_perp_over_m[4]*div_b_comp[5]+div_b_comp[4]*T_perp_over_m[5])+0.3535533905932737*(div_ppar_b[2]*rho_inv[3]+rho_inv[2]*div_ppar_b[3])-0.3535533905932737*(T_perp_over_m[2]*div_b_comp[3]+div_b_comp[2]*T_perp_over_m[3]); 
   p_force[7] += 0.3535533905932737*(div_ppar_b[0]*rho_inv[7]+rho_inv[0]*div_ppar_b[7])-0.3535533905932737*(T_perp_over_m[0]*div_b_comp[7]+div_b_comp[0]*T_perp_over_m[7])+0.3535533905932737*(div_ppar_b[1]*rho_inv[6]+rho_inv[1]*div_ppar_b[6])-0.3535533905932737*(T_perp_over_m[1]*div_b_comp[6]+div_b_comp[1]*T_perp_over_m[6])+0.3535533905932737*(div_ppar_b[2]*rho_inv[5]+rho_inv[2]*div_ppar_b[5])-0.3535533905932737*(T_perp_over_m[2]*div_b_comp[5]+div_b_comp[2]*T_perp_over_m[5])+0.3535533905932737*(div_ppar_b[3]*rho_inv[4]+rho_inv[3]*div_ppar_b[4])-0.3535533905932737*(T_perp_over_m[3]*div_b_comp[4]+div_b_comp[3]*T_perp_over_m[4]); 
 
-  p_perp_source[0] += 0.1178511301977579*(T_perp_over_m_inv[7]*nu_vthsq[7]+T_perp_over_m_inv[6]*nu_vthsq[6]+T_perp_over_m_inv[5]*nu_vthsq[5]+T_perp_over_m_inv[4]*nu_vthsq[4]+T_perp_over_m_inv[3]*nu_vthsq[3]+T_perp_over_m_inv[2]*nu_vthsq[2]+T_perp_over_m_inv[1]*nu_vthsq[1]+T_perp_over_m_inv[0]*nu_vthsq[0])-0.3333333333333333*nu[0]-1.0*grad_u_x[0]+bb_grad_u_comp[0]; 
-  p_perp_source[1] += 0.1178511301977579*(T_perp_over_m_inv[6]*nu_vthsq[7]+nu_vthsq[6]*T_perp_over_m_inv[7]+T_perp_over_m_inv[3]*nu_vthsq[5]+nu_vthsq[3]*T_perp_over_m_inv[5]+T_perp_over_m_inv[2]*nu_vthsq[4]+nu_vthsq[2]*T_perp_over_m_inv[4]+T_perp_over_m_inv[0]*nu_vthsq[1])-0.3333333333333333*nu[1]-1.0*grad_u_x[1]+bb_grad_u_comp[1]+0.1178511301977579*nu_vthsq[0]*T_perp_over_m_inv[1]; 
-  p_perp_source[2] += 0.1178511301977579*(T_perp_over_m_inv[5]*nu_vthsq[7]+nu_vthsq[5]*T_perp_over_m_inv[7]+T_perp_over_m_inv[3]*nu_vthsq[6]+nu_vthsq[3]*T_perp_over_m_inv[6]+T_perp_over_m_inv[1]*nu_vthsq[4]+nu_vthsq[1]*T_perp_over_m_inv[4]+T_perp_over_m_inv[0]*nu_vthsq[2])-0.3333333333333333*nu[2]-1.0*grad_u_x[2]+bb_grad_u_comp[2]+0.1178511301977579*nu_vthsq[0]*T_perp_over_m_inv[2]; 
-  p_perp_source[3] += 0.1178511301977579*(T_perp_over_m_inv[4]*nu_vthsq[7]+nu_vthsq[4]*T_perp_over_m_inv[7]+T_perp_over_m_inv[2]*nu_vthsq[6]+nu_vthsq[2]*T_perp_over_m_inv[6]+T_perp_over_m_inv[1]*nu_vthsq[5]+nu_vthsq[1]*T_perp_over_m_inv[5]+T_perp_over_m_inv[0]*nu_vthsq[3])-0.3333333333333333*nu[3]-1.0*grad_u_x[3]+bb_grad_u_comp[3]+0.1178511301977579*nu_vthsq[0]*T_perp_over_m_inv[3]; 
-  p_perp_source[4] += 0.1178511301977579*(T_perp_over_m_inv[3]*nu_vthsq[7]+nu_vthsq[3]*T_perp_over_m_inv[7]+T_perp_over_m_inv[5]*nu_vthsq[6]+nu_vthsq[5]*T_perp_over_m_inv[6]+T_perp_over_m_inv[0]*nu_vthsq[4])-0.3333333333333333*nu[4]-1.0*grad_u_x[4]+bb_grad_u_comp[4]+0.1178511301977579*(nu_vthsq[0]*T_perp_over_m_inv[4]+T_perp_over_m_inv[1]*nu_vthsq[2]+nu_vthsq[1]*T_perp_over_m_inv[2]); 
-  p_perp_source[5] += 0.1178511301977579*(T_perp_over_m_inv[2]*nu_vthsq[7]+nu_vthsq[2]*T_perp_over_m_inv[7]+T_perp_over_m_inv[4]*nu_vthsq[6]+nu_vthsq[4]*T_perp_over_m_inv[6]+T_perp_over_m_inv[0]*nu_vthsq[5])-0.3333333333333333*nu[5]-1.0*grad_u_x[5]+bb_grad_u_comp[5]+0.1178511301977579*(nu_vthsq[0]*T_perp_over_m_inv[5]+T_perp_over_m_inv[1]*nu_vthsq[3]+nu_vthsq[1]*T_perp_over_m_inv[3]); 
-  p_perp_source[6] += 0.1178511301977579*(T_perp_over_m_inv[1]*nu_vthsq[7]+nu_vthsq[1]*T_perp_over_m_inv[7]+T_perp_over_m_inv[0]*nu_vthsq[6])-0.3333333333333333*nu[6]-1.0*grad_u_x[6]+bb_grad_u_comp[6]+0.1178511301977579*(nu_vthsq[0]*T_perp_over_m_inv[6]+T_perp_over_m_inv[4]*nu_vthsq[5]+nu_vthsq[4]*T_perp_over_m_inv[5]+T_perp_over_m_inv[2]*nu_vthsq[3]+nu_vthsq[2]*T_perp_over_m_inv[3]); 
-  p_perp_source[7] += 0.1178511301977579*T_perp_over_m_inv[0]*nu_vthsq[7]-0.3333333333333333*nu[7]-1.0*grad_u_x[7]+bb_grad_u_comp[7]+0.1178511301977579*(nu_vthsq[0]*T_perp_over_m_inv[7]+T_perp_over_m_inv[1]*nu_vthsq[6]+nu_vthsq[1]*T_perp_over_m_inv[6]+T_perp_over_m_inv[2]*nu_vthsq[5]+nu_vthsq[2]*T_perp_over_m_inv[5]+T_perp_over_m_inv[3]*nu_vthsq[4]+nu_vthsq[3]*T_perp_over_m_inv[4]); 
+  p_perp_source[0] += (-0.6666666666666666*nu[0])-1.0*grad_u_x[0]+bb_grad_u_comp[0]; 
+  p_perp_source[1] += (-0.6666666666666666*nu[1])-1.0*grad_u_x[1]+bb_grad_u_comp[1]; 
+  p_perp_source[2] += (-0.6666666666666666*nu[2])-1.0*grad_u_x[2]+bb_grad_u_comp[2]; 
+  p_perp_source[3] += (-0.6666666666666666*nu[3])-1.0*grad_u_x[3]+bb_grad_u_comp[3]; 
+  p_perp_source[4] += (-0.6666666666666666*nu[4])-1.0*grad_u_x[4]+bb_grad_u_comp[4]; 
+  p_perp_source[5] += (-0.6666666666666666*nu[5])-1.0*grad_u_x[5]+bb_grad_u_comp[5]; 
+  p_perp_source[6] += (-0.6666666666666666*nu[6])-1.0*grad_u_x[6]+bb_grad_u_comp[6]; 
+  p_perp_source[7] += (-0.6666666666666666*nu[7])-1.0*grad_u_x[7]+bb_grad_u_comp[7]; 
 
   p_perp_div_b[0] += 0.3535533905932737*(T_perp_over_m[7]*div_b_comp[7]+T_perp_over_m[6]*div_b_comp[6]+T_perp_over_m[5]*div_b_comp[5]+T_perp_over_m[4]*div_b_comp[4]+T_perp_over_m[3]*div_b_comp[3]+T_perp_over_m[2]*div_b_comp[2]+T_perp_over_m[1]*div_b_comp[1]+T_perp_over_m[0]*div_b_comp[0]); 
   p_perp_div_b[1] += 0.3535533905932737*(T_perp_over_m[6]*div_b_comp[7]+div_b_comp[6]*T_perp_over_m[7]+T_perp_over_m[3]*div_b_comp[5]+div_b_comp[3]*T_perp_over_m[5]+T_perp_over_m[2]*div_b_comp[4]+div_b_comp[2]*T_perp_over_m[4]+T_perp_over_m[0]*div_b_comp[1]+div_b_comp[0]*T_perp_over_m[1]); 

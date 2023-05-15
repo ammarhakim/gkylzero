@@ -1,4 +1,4 @@
-#include <gkyl_euler_kernels.h> 
+#include <gkyl_euler_pkpm_kernels.h> 
 #include <gkyl_basis_ser_1x_p1_surfx1_eval_quad.h> 
 GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p1(const double *w, const double *dxv, 
   const double *u_il, const double *u_ic, const double *u_ir,

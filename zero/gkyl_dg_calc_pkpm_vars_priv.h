@@ -25,11 +25,12 @@ typedef void (*pkpm_recovery_t)(const double *dxv, double nuHyp,
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
   const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
   const double *statevecl, const double *statevecc, const double *statevecr, 
-  const double *rho_inv, const double *T_perp_over_m, const double *T_perp_over_m_inv, 
-  const double *nu, const double *nu_vthsq, 
+  const double *rho_inv, const double *T_perp_over_m, const double *T_perp_over_m_inv, const double *nu, 
   double* div_p, double* pkpm_accel_vars); 
 
-typedef void (*pkpm_dist_mirror_force_t)(const double* T_perp_over_m, const double* T_perp_over_m_inv, 
+typedef void (*pkpm_dist_mirror_force_t)(const double *w, const double *dxv, 
+  const double* T_perp_over_m, const double* T_perp_over_m_inv, 
+  const double *nu_vthsq, const double* pkpm_accel_vars, 
   const double* f, const double* F_k_p_1, 
   double* g_dist_source, double* F_k_m_1); 
 

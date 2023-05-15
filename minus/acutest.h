@@ -395,6 +395,7 @@ static int test_current_failures_ = 0;
 static int test_colorize_ = 0;
 static int test_timer_ = 0;
 static int test_gkyl_mem_check_ = 0; // gkyl specific flag
+static int test_gkyl_mpi_init_ = 0; // gkyl specific flag
 
 static int test_abort_has_jmp_buf_ = 0;
 static jmp_buf test_abort_jmp_buf_;
@@ -1404,6 +1405,7 @@ test_help_(void)
     printf("      --color[=WHEN]    Enable colorized output\n");
     printf("                          (WHEN is one of 'auto', 'always', 'never')\n");
     printf("  -m  --mem-trace       Turn on memory tracing\n");
+    printf("  -M  --mpi             Test needs to initialize MPI to run properly\n");
     printf("      --no-color        Same as --color=never\n");
     printf("  -h, --help            Display this help and exit\n");
 
@@ -1432,6 +1434,7 @@ static const TEST_CMDLINE_OPTION_ test_cmdline_options_[] = {
     {  0,   "color",        'c', TEST_CMDLINE_OPTFLAG_OPTIONALARG_ },
     {  0,   "no-color",     'C', 0 },
     { 'm',  "mem-trace",    'm', 0 },
+    { 'M',  "mpi      ",    'M', 0 },
     { 'h',  "help",         'h', 0 },
     {  0,   "worker",       'w', TEST_CMDLINE_OPTFLAG_REQUIREDARG_ },  /* internal */
     { 'x',  "xml-output",   'x', TEST_CMDLINE_OPTFLAG_REQUIREDARG_ },
@@ -1521,6 +1524,10 @@ test_cmdline_callback_(int id, const char* arg)
         case 'm':
             test_gkyl_mem_check_ = 1;
             break;
+
+        case 'M':
+            test_gkyl_mpi_init_ = 1;
+            break;            
 
         case 'h':
             test_help_();
@@ -1619,6 +1626,10 @@ test_is_tracer_present_(void)
 extern void gkyl_mem_debug_set(bool flag);
 extern void gkyl_cu_dev_mem_debug_set(bool flag);
 
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#endif
+
 int
 main(int argc, char** argv)
 {
@@ -1651,6 +1662,12 @@ main(int argc, char** argv)
     /* Parse options */
     test_cmdline_read_(test_cmdline_options_, argc, argv, test_cmdline_callback_);
 
+    if (test_gkyl_mpi_init_) {
+#ifdef GKYL_HAVE_MPI
+      MPI_Init(&argc, &argv);
+#endif
+    }
+    
     if (test_gkyl_mem_check_) {
       gkyl_mem_debug_set(true);
       gkyl_cu_dev_mem_debug_set(true);
@@ -1771,6 +1788,12 @@ main(int argc, char** argv)
 
     free((void*) test_details_);
 
+    if (test_gkyl_mpi_init_) {    
+#ifdef GKYL_HAVE_MPI
+      MPI_Finalize();
+#endif
+    }
+    
     return (test_stat_failed_units_ == 0) ? 0 : 1;
 }
 
