@@ -2,20 +2,15 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_array_ops_priv.h>
 #include <gkyl_correct_mj.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_updater_moment.h>
-#include <gkyl_proj_on_basis.h>
-
+#include <gkyl_mj_moments.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov_sr.h>
-
-// Temporary
-#include <gkyl_array_ops_priv.h>
-#include <gkyl_correct_mj.h>
-#include <gkyl_array_ops.h>
-#include <gkyl_mj_moments.h>
 #include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 
@@ -146,25 +141,6 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
   // Make GammaV2, GammaV, GammaV_inv
   gkyl_calc_sr_vars_init_p_vars(vel_grid, vel_basis, velLocal,
                                 p_over_gamma, gamma, gamma_inv);
-
-  // Diagnostic ouputs
-  /* LOOKS GOOD
-  struct gkyl_range_iter biter;
-  gkyl_range_iter_init(&biter, velLocal);
-  while (gkyl_range_iter_next(&biter))
-  {
-    long midx = gkyl_range_idx(velLocal, biter.idx);
-    const double *p_over_gamma_local = gkyl_array_cfetch(p_over_gamma, midx);
-    const double *gamma_local = gkyl_array_cfetch(gamma, midx);
-    const double *gamma_inv_local = gkyl_array_cfetch(gamma_inv, midx);
-    printf("\n------- p_over_gamma ------\n");
-    printf("p_over_gamma: %g\n", p_over_gamma_local[0]);
-    printf("\n------- gamma ------\n");
-    printf("gamma: %g\n", gamma_local[0]);
-    printf("\n------- gamma_inv ------\n");
-    printf("gamma_inv: %g\n", gamma_inv_local[0]);
-  }
-  */
 
   // Copy the intial moments for m*_corr -> m*
   gkyl_array_clear(cmj->m0, 0.0);

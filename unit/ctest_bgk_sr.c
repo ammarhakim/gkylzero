@@ -2,10 +2,15 @@
 #include "gkyl_util.h"
 #include <acutest.h>
 
+#include <gkyl_array_ops.h>
+#include <gkyl_array_ops_priv.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_bgk_collisions.h>
+#include <gkyl_bgk_collisions_priv.h>
 #include <gkyl_correct_maxwellian.h>
 #include <gkyl_correct_mj.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_mj_moments.h>
 #include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
@@ -13,13 +18,6 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <math.h>
-
-#include <gkyl_array_ops.h>
-#include <gkyl_array_ops_priv.h>
-#include <gkyl_bgk_collisions.h>
-#include <gkyl_bgk_collisions_priv.h>
-#include <gkyl_array_ops_priv.h>
-#include <gkyl_dg_calc_sr_vars.h>
 
 // allocate array (filled with zeros)
 static struct gkyl_array *
