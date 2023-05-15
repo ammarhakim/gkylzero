@@ -182,7 +182,7 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
       }
     );
 #else
-  comm = gkyl_null_comm_new( &(struct gkyl_null_comm_inp) {
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp
     }
   );
