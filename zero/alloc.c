@@ -139,8 +139,10 @@ gkyl_mem_buff_new(size_t count)
 gkyl_mem_buff
 gkyl_mem_buff_resize(gkyl_mem_buff mem, size_t count)
 {
-  if (count > mem->count)
+  if (count > mem->count) {
     mem->data = gkyl_realloc(mem->data, count);
+    mem->count = count;
+  }
   return mem;
 }
 

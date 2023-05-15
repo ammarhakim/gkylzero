@@ -11,6 +11,10 @@
 
 #include <errno.h>
 
+// Maximum number of recv neighbors: not sure hard-coding this is a
+// good idea.
+#define MAX_RECV_NEIGH 32
+
 // Mapping of Gkeyll type to MPI_Datatype
 static MPI_Datatype g2_mpi_datatype[] = {
   [GKYL_INT] = MPI_INT,
@@ -26,6 +30,13 @@ static MPI_Op g2_mpi_op[] = {
   [GKYL_SUM] = MPI_SUM
 };
 
+// Receive data
+struct recv_info {
+  struct gkyl_range range;
+  MPI_Request status;
+  gkyl_mem_buff buff;
+};
+
 // Private struct wrapping MPI-specific code
 struct mpi_comm {
   struct gkyl_comm base; // base communicator
@@ -34,10 +45,16 @@ struct mpi_comm {
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   long local_range_offset; // offset of the local region
 
-  struct gkyl_range grange; // range to "hash" ghost layout
-  cmap_l2sgr l2sgr; // map from long -> skin_ghost_ranges
   struct gkyl_rect_decomp_neigh *neigh; // neighbors of local region
-  gkyl_mem_buff sendb, recvb, perb; // send/recv & periodic BC buffers
+  struct gkyl_rect_decomp_neigh *per_neigh[GKYL_MAX_DIM]; // periodic neighbors
+
+  struct gkyl_range dir_edge; // for use in computing tags
+  int is_on_edge[2][GKYL_MAX_DIM]; // flags to indicate if local range is on edge
+  bool touches_any_edge; // true if this range touches any edge
+
+  int nrinfo; // number of elements in rinfo array
+  struct recv_info rinfo[MAX_RECV_NEIGH]; // info for recv data
+  gkyl_mem_buff sendb, recvb; // send/recv buffers
 };
 
 static void
@@ -46,13 +63,19 @@ comm_free(const struct gkyl_ref_count *ref)
   struct gkyl_comm *comm = container_of(ref, struct gkyl_comm, ref_count);
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
 
-  cmap_l2sgr_drop(&mpi->l2sgr);  
-  
+  int ndim = mpi->decomp->ndim;
   gkyl_rect_decomp_release(mpi->decomp);
+
   gkyl_rect_decomp_neigh_release(mpi->neigh);
-  gkyl_mem_buff_release(mpi->perb);
+  for (int d=0; d<ndim; ++d)
+    gkyl_rect_decomp_neigh_release(mpi->per_neigh[d]);
+
   gkyl_mem_buff_release(mpi->sendb);
   gkyl_mem_buff_release(mpi->recvb);
+
+  for (int i=0; i<MAX_RECV_NEIGH; ++i)
+    gkyl_mem_buff_release(mpi->rinfo[i].buff);
+  
   gkyl_free(mpi);
 }
 
@@ -119,7 +142,7 @@ array_sync(struct gkyl_comm *comm,
     struct gkyl_range neigh_ext;
     gkyl_range_extend(&neigh_ext, &mpi->decomp->ranges[nid], elo, eup);
     struct gkyl_range send_rgn;
-    int issend =  gkyl_sub_range_intersect(&send_rgn, local, &neigh_ext);
+    int issend = gkyl_sub_range_intersect(&send_rgn, local, &neigh_ext);
     size_t send_vol = array->esznc*send_rgn.volume;
 
     if (issend) {
@@ -138,36 +161,121 @@ array_sync(struct gkyl_comm *comm,
 }
 
 static int
+per_send_tag(const struct gkyl_range *dir_edge,
+  int dir, int e)
+{
+  int base_tag = 4242;
+  return base_tag + gkyl_range_idx(dir_edge, (int[]) { dir, e });
+}
+static int
+per_recv_tag(const struct gkyl_range *dir_edge,
+  int dir, int e)
+{
+  int base_tag = 4242;
+  return base_tag + gkyl_range_idx(dir_edge, (int[]) { dir, (e+1)%2 });
+}
+
+static int
 array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   const struct gkyl_range *local_ext,
   int nper_dirs, const int *per_dirs, struct gkyl_array *array)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
 
-  int quick_return = 0;
-  bool is_on_lo[GKYL_MAX_DIM], is_on_up[GKYL_MAX_DIM];
-  for (int d=0; d<mpi->decomp->ndim; ++d) {
-    is_on_lo[d] = gkyl_range_is_on_lower_edge(d, local, &mpi->decomp->parent_range);
-    is_on_up[d] = gkyl_range_is_on_upper_edge(d, local, &mpi->decomp->parent_range);
-    quick_return += is_on_lo[d] + is_on_up[d];
-  }
-  if (quick_return == 0) return 0; // return immediately if local range is not on edge
+  if (!mpi->touches_any_edge) return 0; // nothing to sync
 
-  int nghost[GKYL_MAX_DIM];
-  for (int d=0; d<mpi->decomp->ndim; ++d)
-    nghost[d] = local_ext->upper[d]-local->upper[d];
+  int rank;
+  MPI_Comm_rank(mpi->mcomm, &rank);
   
-  long lkey = gkyl_range_idx(&mpi->grange, nghost);
+  int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
+  for (int i=0; i<mpi->decomp->ndim; ++i)
+    elo[i] = eup[i] = local_ext->upper[i]-local->upper[i];
 
-  if (!cmap_l2sgr_contains(&mpi->l2sgr, lkey)) {
-    struct skin_ghost_ranges sgr;
-    skin_ghost_ranges_init(&sgr, &mpi->decomp->parent_range, nghost);
-    cmap_l2sgr_insert(&mpi->l2sgr, lkey, sgr);
+  int nridx = 0;
+  int shift_sign[] = { -1, 1 };
+
+  // post nonblocking recv to get data into ghost-cells
+  for (int i=0; i<nper_dirs; ++i) {
+    int dir = per_dirs[i];
+
+    for (int e=0; e<2; ++e) {
+      if (mpi->is_on_edge[e][dir]) {
+        int delta[GKYL_MAX_DIM] = { 0 };
+        delta[dir] = shift_sign[e]*gkyl_range_shape(&mpi->decomp->parent_range, dir);
+
+        if (mpi->per_neigh[dir]->num_neigh == 1) { // really should  be a loop
+          int nid = mpi->per_neigh[dir]->neigh[0];
+
+          struct gkyl_range neigh_shift;
+          gkyl_range_shift(&neigh_shift, &mpi->decomp->ranges[nid], delta);
+
+          int isrecv = gkyl_sub_range_intersect(
+            &mpi->rinfo[nridx].range, local_ext, &neigh_shift);
+          size_t recv_vol = array->esznc*mpi->rinfo[nridx].range.volume;
+
+          if (isrecv) {
+            if (gkyl_mem_buff_size(mpi->rinfo[nridx].buff) < recv_vol)
+              mpi->rinfo[nridx].buff = gkyl_mem_buff_resize(
+                mpi->rinfo[nridx].buff, recv_vol);
+
+            int tag = per_recv_tag(&mpi->dir_edge, dir, e);
+            MPI_Irecv(gkyl_mem_buff_data(mpi->rinfo[nridx].buff),
+              recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->rinfo[nridx].status);
+          }
+          nridx += 1;
+        }
+      }
+    }
   }
 
-  const cmap_l2sgr_value *val = cmap_l2sgr_get(&mpi->l2sgr, lkey);
+  // send skin-cell data to neighbors
+  for (int i=0; i<nper_dirs; ++i) {
+    int dir = per_dirs[i];
+
+    for (int e=0; e<2; ++e) {
+      if (mpi->is_on_edge[e][dir]) {
+        int delta[GKYL_MAX_DIM] = { 0 };
+        delta[dir] = shift_sign[e]*gkyl_range_shape(&mpi->decomp->parent_range, dir);
+
+        if (mpi->per_neigh[dir]->num_neigh == 1) { // really should  be a loop
+          int nid = mpi->per_neigh[dir]->neigh[0];
+
+          struct gkyl_range neigh_shift, neigh_shift_ext, send_rgn;
+          gkyl_range_shift(&neigh_shift, &mpi->decomp->ranges[nid], delta);
+
+          gkyl_range_extend(&neigh_shift_ext, &neigh_shift, elo, eup);
+          int issend = gkyl_sub_range_intersect(&send_rgn, local, &neigh_shift_ext);
+          size_t send_vol = array->esznc*send_rgn.volume;
+
+          if (issend) {
+            if (gkyl_mem_buff_size(mpi->sendb) < send_vol)
+              mpi->sendb = gkyl_mem_buff_resize(mpi->sendb, send_vol);
+            gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->sendb), array, send_rgn);
+
+            int tag = per_send_tag(&mpi->dir_edge, dir, e);
+            MPI_Send(gkyl_mem_buff_data(mpi->sendb), send_vol, MPI_CHAR, nid, tag, mpi->mcomm);
+          }
+        }
+      }
+    }
+  }
+
+  // complete recv, copying data ito ghost-cells
+  for (int r=0; r<nridx; ++r) {
+    int isrecv = mpi->rinfo[r].range.volume;
+    if (isrecv) {
+      MPI_Wait(&mpi->rinfo[r].status, MPI_STATUS_IGNORE);
+      
+      gkyl_array_copy_from_buffer(array,
+        gkyl_mem_buff_data(mpi->rinfo[r].buff),
+        mpi->rinfo[r].range
+      );
+    }
+  }
+
+  mpi->nrinfo = nridx > mpi->nrinfo ? nridx : mpi->nrinfo;
   
-  return 1;
+  return 0;
 }
 
 static int
@@ -322,18 +430,29 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   MPI_Comm_rank(inp->mpi_comm, &rank);
   mpi->local_range_offset = gkyl_rect_decomp_calc_offset(mpi->decomp, rank);
 
-  // construct range to hash ghost layout
-  int lower[GKYL_MAX_DIM] = { 0 };
-  int upper[GKYL_MAX_DIM];
-  for (int d=0; d<inp->decomp->ndim; ++d) upper[d] = GKYL_MAX_NGHOST;
-  gkyl_range_init(&mpi->grange, inp->decomp->ndim, lower, upper);
-  
-  mpi->l2sgr = cmap_l2sgr_init();
-  
   mpi->neigh = gkyl_rect_decomp_calc_neigh(mpi->decomp, inp->sync_corners, rank);
+  for (int d=0; d<mpi->decomp->ndim; ++d)
+    mpi->per_neigh[d] =
+        gkyl_rect_decomp_calc_periodic_neigh(mpi->decomp, d, false, rank);
+
+  gkyl_range_init(&mpi->dir_edge, 2, (int[]) { 0, 0 }, (int[]) { GKYL_MAX_DIM, 2 });
+
+  int num_touches = 0;
+  for (int d=0; d<mpi->decomp->ndim; ++d) {
+    mpi->is_on_edge[0][d] = gkyl_range_is_on_lower_edge(
+      d, &mpi->decomp->ranges[rank], &mpi->decomp->parent_range);
+    mpi->is_on_edge[1][d] = gkyl_range_is_on_upper_edge(
+      d, &mpi->decomp->ranges[rank], &mpi->decomp->parent_range);
+    num_touches += mpi->is_on_edge[0][d] + mpi->is_on_edge[1][d];
+  }
+  mpi->touches_any_edge = num_touches > 0 ? true : false;
+  
   mpi->sendb = gkyl_mem_buff_new(1024); // will be resized later
   mpi->recvb = gkyl_mem_buff_new(1024);
-  mpi->perb = gkyl_mem_buff_new(1024);
+
+  mpi->nrinfo = 0;
+  for (int i=0; i<MAX_RECV_NEIGH; ++i)
+    mpi->rinfo[i].buff = gkyl_mem_buff_new(1024);
   
   mpi->base.get_rank = get_rank;
   mpi->base.get_size = get_size;

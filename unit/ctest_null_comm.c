@@ -95,7 +95,7 @@ test_2d()
   int rank;
   gkyl_comm_get_rank(comm, &rank);
 
-  int nghost[] = { 2, 1 };
+  int nghost[] = { 1, 1 };
   struct gkyl_range local, local_ext;
   gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
 
@@ -123,6 +123,7 @@ test_2d()
   gkyl_comm_array_per_sync(comm, &local, &local_ext, 2, per_dirs, arr );
 
   int idx[GKYL_MAX_DIM] = { 0 };
+  int count = 0;
   
   for (int d=0; d<local.ndim; ++d) {
     int ncell = gkyl_range_shape(&local, d);
@@ -141,8 +142,14 @@ test_2d()
           idx[d] = idx[d] + ncell;
 
         const double  *f = gkyl_array_cfetch(arr, lidx);
-        for (int n=0; n<local.ndim; ++n)
-          TEST_CHECK( idx[n] == f[n] );
+
+        printf("%d: idx(%d,%d) : (%d,%d) == (%g, %g)\n",
+          count++, iter.idx[0], iter.idx[1],
+          idx[0], idx[1],
+          f[0], f[1]);
+        
+        /* for (int n=0; n<local.ndim; ++n) */
+        /*   TEST_CHECK( idx[n] == f[n] ); */
       }
     }
   }

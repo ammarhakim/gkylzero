@@ -508,5 +508,6 @@ gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
   fprintf(fp, " volume = %ld, ", range->volume );
   fprintf(fp, " is_sub_range = %d", gkyl_range_is_sub_range(range) );
   
-  fprintf(fp, " }\n ");
+  fprintf(fp, " }\n");
+  fflush(fp);
 }

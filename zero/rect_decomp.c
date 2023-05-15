@@ -255,9 +255,6 @@ gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
   int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
   elo[dir] = eup[dir] = 1; // only extend in 1 direction
   
-  // Note: a range can be both on the lower and upper edges of the
-  // parent edge so we must check for both
-
   if (gkyl_range_is_on_lower_edge(dir, curr, &decomp->parent_range)) {
     int delta[GKYL_MAX_DIM] = { 0 };
     delta[dir] = gkyl_range_shape(&decomp->parent_range, dir);
@@ -277,8 +274,7 @@ gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
           cvec_int_push_back(&cont->l_neigh, i);
       }
   }
-
-  if (gkyl_range_is_on_upper_edge(dir, curr, &decomp->parent_range)) {
+  else if (gkyl_range_is_on_upper_edge(dir, curr, &decomp->parent_range)) {
     int delta[GKYL_MAX_DIM] = { 0 };
     delta[dir] = -gkyl_range_shape(&decomp->parent_range, dir);
     
