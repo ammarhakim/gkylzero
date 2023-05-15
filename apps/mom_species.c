@@ -235,12 +235,15 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
   const struct moment_species *sp, struct gkyl_array *f)
 {
   int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
-  for (int d=0; d<num_periodic_dir; ++d) {
-    moment_apply_periodic_bc(app, sp->bc_buffer, app->periodic_dirs[d], f);
+
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
+    app->periodic_dirs, f);
+  
+  for (int d=0; d<num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
-  }
+
   if (ndim == 2)
-    moment_apply_periodic_corner_sync_2d(app, f);
+    moment_apply_periodic_corner_sync_2d(app, f); // TODO: SHOULD BE IN PER_SYNC
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
       // handle non-wedge BCs
@@ -255,7 +258,7 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
           sp->bc_buffer, d, sp->lower_bc[d], sp->upper_bc[d], f);
     }
 
-  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, app->nghost, f);
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
 }
 
 // maximum stable time-step

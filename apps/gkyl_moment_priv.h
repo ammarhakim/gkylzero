@@ -267,7 +267,7 @@ void moment_apply_periodic_bc(const gkyl_moment_app *app,
 
 // Apply periodic BCs to corner cells of "f" (ONLY WORKS IN 2D)
 void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app,
-                                          struct gkyl_array *f);
+  struct gkyl_array *f);
 
 // Apply wedge-periodic BCs to array "f"
 void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,

@@ -44,18 +44,38 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     
     if (mom->low_inp.comm)
       app->comm = gkyl_comm_acquire(mom->low_inp.comm);
-    else
-      app->comm = gkyl_null_comm_new();
+    else {
+      int cuts[] = { 1, 1, 1 };
+      struct gkyl_rect_decomp *rect_decomp =
+        gkyl_rect_decomp_new_from_cuts(ndim, cuts, &app->global);
+      
+      app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+          .decomp = rect_decomp
+        }
+      );
+
+      gkyl_rect_decomp_release(rect_decomp);
+    }
   }
   else {
     // global and local ranges are same, and so just copy
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
     memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
-    app->comm = gkyl_null_comm_new();
-  }
-  
-  skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);
 
+    int cuts[] = { 1, 1, 1 };
+    struct gkyl_rect_decomp *rect_decomp =
+      gkyl_rect_decomp_new_from_cuts(ndim, cuts, &app->global);
+    
+    app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .decomp = rect_decomp
+      }
+    );
+    
+    gkyl_rect_decomp_release(rect_decomp);
+  }
+
+  skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);  
+  
   app->c2p_ctx = app->mapc2p = 0;  
   app->has_mapc2p = mom->mapc2p ? true : false;
 
