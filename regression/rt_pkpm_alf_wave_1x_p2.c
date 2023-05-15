@@ -368,13 +368,13 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "pkpm_alf_wave_1x_p1",
+    .name = "pkpm_alf_wave_1x_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0},
     .upper = { ctx.L },
     .cells = { NX},
-    .poly_order = 1,
+    .poly_order = 2,
     .basis_type = app_args.basis_type,
     //.cfl_frac = 0.8,
     
