@@ -122,7 +122,7 @@ void eval_M1i_3v_null(double t, const double *xn, double *restrict fout, void *c
 void test_1x1v(int poly_order)
 {
   double lower[] = {0.1, -10.0}, upper[] = {1.0, 10.0};
-  int cells[] = {2, 32};
+  int cells[] = {2, 32}; // 1001
   int vdim = 1, cdim = 1;
   int ndim = cdim + vdim;
 
@@ -209,38 +209,21 @@ void test_1x1v(int poly_order)
 
   // Create a MJ with corrected moments
   gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+  // gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
+  //                                                            &confBasis, &basis, poly_order + 1);
+  // gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0_corr, m1i_corr, m2_corr, distf_mj);
+  // gkyl_correct_mj_fix_m0(corr_mj, p_over_gamma, distf_mj, m0_corr, m1i_corr, &local, &confLocal);
   gkyl_correct_mj_fix(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, &local, &confLocal, poly_order, &confLocal_ext, &velLocal, &velBasis, &vel_grid);
   gkyl_correct_mj_release(corr_mj);
+
+  // Write the output
+  char fname[1024];
+  sprintf(fname, "ctest_correct_mj_integrated_1x1v_p%d_with_fix_x10.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
 
   // Correct the distribution function
   gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
   gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, m0, m1i, m2, &local, &confLocal);
-
-  // Diagnostic ouputs
-  struct gkyl_range_iter biter;
-  gkyl_range_iter_init(&biter, &confLocal);
-  while (gkyl_range_iter_next(&biter))
-  {
-    long midx = gkyl_range_idx(&confLocal, biter.idx);
-    const double *m0_corr_local = gkyl_array_cfetch(m0_corr, midx);
-    const double *m0_local = gkyl_array_cfetch(m0, midx);
-    const double *m1i_corr_local = gkyl_array_cfetch(m1i_corr, midx);
-    const double *m1i_local = gkyl_array_cfetch(m1i, midx);
-    const double *m2_corr_local = gkyl_array_cfetch(m2_corr, midx);
-    const double *m2_local = gkyl_array_cfetch(m2, midx);
-    printf("\n------- n interation : %d ------\n", 100);
-    printf("n_corr: %g\n", m0_corr_local[0]);
-    printf("n: %g\n", m0_local[0]);
-    printf("Diff (n - n_corr): %g\n", (m0_local[0] - m0_corr_local[0]));
-    printf("------- vb interation : %d ------\n", 100);
-    printf("vb_corr: %g\n", m1i_corr_local[0]);
-    printf("vb: %g\n", m1i_local[0]);
-    printf("Diff (vb - vb_corr): %g\n", (m1i_local[0] - m1i_corr_local[0]));
-    printf("------- T interation : %d ------\n", 100);
-    printf("m2_corr: %g\n", m2_corr_local[0]);
-    printf("m2: %g\n", m2_local[0]);
-    printf("Diff (vb - vb_corr): %g\n", (m2_local[0] - m2_corr_local[0]));
-  }
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.4106556323526475, -8.940762710879627e-17,
@@ -368,36 +351,6 @@ void test_1x2v(int poly_order)
   // Correct the distribution function
   gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
   gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, m0, m1i, m2, &local, &confLocal);
-
-  // Diagnostic ouputs
-  struct gkyl_range_iter biter;
-  gkyl_range_iter_init(&biter, &confLocal);
-  while (gkyl_range_iter_next(&biter))
-  {
-    long midx = gkyl_range_idx(&confLocal, biter.idx);
-    const double *m0_corr_local = gkyl_array_cfetch(m0_corr, midx);
-    const double *m0_local = gkyl_array_cfetch(m0, midx);
-    const double *m1i_corr_local = gkyl_array_cfetch(m1i_corr, midx);
-    const double *m1i_local = gkyl_array_cfetch(m1i, midx);
-    const double *m2_corr_local = gkyl_array_cfetch(m2_corr, midx);
-    const double *m2_local = gkyl_array_cfetch(m2, midx);
-    printf("\n------- n interation : %d ------\n", 100);
-    printf("n_corr: %g\n", m0_corr_local[0]);
-    printf("n: %g\n", m0_local[0]);
-    printf("Diff (n - n_corr): %g\n", (m0_local[0] - m0_corr_local[0]));
-    printf("------- vbx interation : %d ------\n", 100);
-    printf("vbx_corr: %g\n", m1i_corr_local[0]);
-    printf("vbx: %g\n", m1i_local[0]);
-    printf("Diff (vb - vb_corr): %g\n", (m1i_local[0] - m1i_corr_local[0]));
-    printf("------- vby interation : %d ------\n", 100);
-    printf("vby_corr: %g\n", m1i_corr_local[3]);
-    printf("vby: %g\n", m1i_local[3]);
-    printf("Diff (vb - vb_corr): %g\n", (m1i_local[3] - m1i_corr_local[3]));
-    printf("------- T interation : %d ------\n", 100);
-    printf("m2_corr: %g\n", m2_corr_local[0]);
-    printf("m2: %g\n", m2_local[0]);
-    printf("Diff (vb - vb_corr): %g\n", (m2_local[0] - m2_corr_local[0]));
-  }
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.1196584827807841, -3.488028281807569e-18,
@@ -530,40 +483,6 @@ void test_1x3v(int poly_order)
   // Correct the distribution function
   gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
   gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, m0, m1i, m2, &local, &confLocal);
-
-  // Diagnostic ouputs
-  struct gkyl_range_iter biter;
-  gkyl_range_iter_init(&biter, &confLocal);
-  while (gkyl_range_iter_next(&biter))
-  {
-    long midx = gkyl_range_idx(&confLocal, biter.idx);
-    const double *m0_corr_local = gkyl_array_cfetch(m0_corr, midx);
-    const double *m0_local = gkyl_array_cfetch(m0, midx);
-    const double *m1i_corr_local = gkyl_array_cfetch(m1i_corr, midx);
-    const double *m1i_local = gkyl_array_cfetch(m1i, midx);
-    const double *m2_corr_local = gkyl_array_cfetch(m2_corr, midx);
-    const double *m2_local = gkyl_array_cfetch(m2, midx);
-    printf("\n------- n interation : %d ------\n", 100);
-    printf("n_corr: %g\n", m0_corr_local[0]);
-    printf("n: %g\n", m0_local[0]);
-    printf("Diff (n - n_corr): %g\n", (m0_local[0] - m0_corr_local[0]));
-    printf("------- vbx interation : %d ------\n", 100);
-    printf("vbx_corr: %g\n", m1i_corr_local[0]);
-    printf("vbx: %g\n", m1i_local[0]);
-    printf("Diff (vb - vb_corr): %g\n", (m1i_local[0] - m1i_corr_local[0]));
-    printf("------- vby interation : %d ------\n", 100);
-    printf("vby_corr: %g\n", m1i_corr_local[3]);
-    printf("vby: %g\n", m1i_local[3]);
-    printf("Diff (vb - vb_corr): %g\n", (m1i_local[3] - m1i_corr_local[3]));
-    printf("------- vbz interation : %d ------\n", 100);
-    printf("vbz_corr: %g\n", m1i_corr_local[6]);
-    printf("vbz: %g\n", m1i_local[6]);
-    printf("Diff (vb - vb_corr): %g\n", (m1i_local[6] - m1i_corr_local[6]));
-    printf("------- T interation : %d ------\n", 100);
-    printf("m2_corr: %g\n", m2_corr_local[0]);
-    printf("m2: %g\n", m2_local[0]);
-    printf("Diff (vb - vb_corr): %g\n", (m2_local[0] - m2_corr_local[0]));
-  }
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.002127623222952959, -1.631506586025315e-19, 0.001142561434832162,
