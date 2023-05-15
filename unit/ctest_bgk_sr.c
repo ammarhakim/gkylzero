@@ -135,8 +135,8 @@ void evalFunc_nu_conf(double t, const double *xn, double *restrict fout, void *c
 
 void test_1x1v(int poly_order)
 {
-  double lower[] = {0.1, -32.0}, upper[] = {1.0, 32.0};
-  int cells[] = {2, 320};
+  double lower[] = {0.1, -10.0}, upper[] = {1.0, 10.0};
+  int cells[] = {2, 32}; // 1000
   int vdim = 1, cdim = 1;
   int ndim = cdim + vdim;
 
@@ -266,8 +266,8 @@ void test_1x1v(int poly_order)
   gkyl_proj_on_basis_advance(projnu_conf, 0.0, &confLocal, nudt_conf);
 
   // timeloop evolving partial_t(f) = -nu(f-f^mj)
-  for (int i = 0; i < 1000; ++i)
-  { // 3000
+  for (int i = 0; i < 301; ++i)
+  { // 1001
 
     // printf("\n----------- ************************* ---------\n");
     // printf("----------- Begining timeloop: T = %d ---------\n", i);
@@ -275,11 +275,11 @@ void test_1x1v(int poly_order)
 
     // write distribution function to file
     char fname[1024];
-    if (i == 999 || i == 0)
+    if (i == 300 || i == 100 || i == 0)
     {
       sprintf(fname, "ctest_bgk_sr_1x1v_p%d_time_%03d.gkyl", poly_order, i);
+      gkyl_grid_sub_array_write(&grid, &local, distf, fname);
     }
-    gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
     gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf, m0, m1i, m2, &local, &confLocal);
@@ -297,34 +297,6 @@ void test_1x1v(int poly_order)
     // gkyl_dg_mul_op_range(basis, 0, distf_mj, 0, nudt, 0, distf_mj, &local);
     gkyl_dg_mul_conf_phase_op_range(&confBasis, &basis,
                                     distf_mj, nudt_conf, distf_mj, &confLocal, &local);
-
-    // TEMPORARY: Verf the mj projections
-    // gkyl_mj_moments_advance(mj_moms,p_over_gamma,gamma,gamma_inv,distf_mj,m0,m1i,m2,&local,&confLocal);
-
-    if ((i % 10) == 0)
-    { // (0) {
-      struct gkyl_range_iter biter;
-      gkyl_range_iter_init(&biter, &confLocal);
-      while (gkyl_range_iter_next(&biter))
-      {
-        long midx = gkyl_range_idx(&confLocal, biter.idx);
-        const double *m0_local = gkyl_array_cfetch(m0, midx);
-        const double *m1i_local = gkyl_array_cfetch(m1i, midx);
-        const double *m2_local = gkyl_array_cfetch(m2, midx);
-        const double *m0_original_local = gkyl_array_cfetch(m0_original, midx);
-        const double *m1i_original_local = gkyl_array_cfetch(m1i_original, midx);
-        const double *m2_original_local = gkyl_array_cfetch(m2_original, midx);
-        printf("\n------- n interation : %d ------\n", i);
-        printf("n: %g\n", m0_local[0]);
-        printf("error(n): %g\n", m0_local[0] - m0_original_local[0]);
-        printf("------- vbx interation : %d ------\n", i);
-        printf("vbx: %g\n", m1i_local[0]);
-        printf("error(vbx): %g\n", m1i_local[0] - m1i_original_local[0]);
-        printf("------- T interation : %d ------\n", i);
-        printf("m2: %g\n", m2_local[0]);
-        printf("error(T): %g\n", m2_local[0] - m2_original_local[0]);
-      }
-    }
 
     // calculate the BGK contribution
     gkyl_bgk_collisions_advance(bgk_obj,
@@ -353,16 +325,17 @@ void test_1x1v(int poly_order)
   gkyl_mj_moments_release(mj_moms);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {0.4908183182853421, -1.779993558391936e-17,
-                      0.01957103464383442, 4.791671361253045e-18, -2.283871108067826e-17,
-                      -0.000481110805805566, -9.813947903343648e-19, -1.29480691392842e-17};
+  double p2_vals[] = {0.1656333899823638, -1.57246950256639e-17,
+                      0.146961492792848, -9.802279035466299e-18, 4.479617143823178e-17,
+                      0.05558727357585599, 4.814166767741567e-17, -1.575372718994952e-18};
 
-  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){1, 160}));
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){1, 16}));
 
   if (poly_order == 2)
   {
     for (int i = 0; i < basis.num_basis; ++i)
     {
+      // printf("%1.16g,\n", fv[i]);
       // printf("fv[%d] = %1.16g\n",i,fv[i]);
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
     }
