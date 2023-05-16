@@ -248,6 +248,9 @@ struct gkyl_vlasov_stat {
 
   long ndiag; // calls to diagnostics
   double diag_tm; // time to compute diagnostics
+
+  long nio; // number of calls to IO
+  double io_tm; // time to perform IO
 };
 
 // Object representing Vlasov app
