@@ -155,8 +155,10 @@ struct gkyl_moment_stat {
   double init_field_tm; // time to initialize fields
 
   double species_rhs_tm; // time to compute species collisionless RHS
-  
+  double species_bc_tm; // time to apply BCs
+
   double field_rhs_tm; // time to compute field RHS
+  double field_bc_tm; // time to apply BCs
 };
 
 // Object representing moments app

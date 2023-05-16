@@ -123,25 +123,31 @@ array_sync(struct gkyl_comm *comm,
   for (int i=0; i<mpi->decomp->ndim; ++i)
     elo[i] = eup[i] = local_ext->upper[i]-local->upper[i];
 
+  int nridx = 0;
   int tag = MPI_BASE_TAG;
 
+    // post nonblocking recv to get data into ghost-cells  
   for (int n=0; n<mpi->neigh->num_neigh; ++n) {
     int nid = mpi->neigh->neigh[n];
+    
+    int isrecv = gkyl_sub_range_intersect(
+      &mpi->rinfo[nridx].range, local_ext, &mpi->decomp->ranges[nid]);
+    size_t recv_vol = array->esznc*mpi->rinfo[nridx].range.volume;
 
-    // post nonblocking recv to get data into ghost-cells
-    struct gkyl_range recv_rgn;
-    int isrecv = gkyl_sub_range_intersect(&recv_rgn, local_ext, &mpi->decomp->ranges[nid]);
-    size_t recv_vol = array->esznc*recv_rgn.volume;
-
-    MPI_Request recv_req;
     if (isrecv) {
-      if (gkyl_mem_buff_size(mpi->recvb) < recv_vol)
-        gkyl_mem_buff_resize(mpi->recvb, recv_vol);
-      MPI_Irecv(gkyl_mem_buff_data(mpi->recvb),
-        recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &recv_req);
-    }
+      if (gkyl_mem_buff_size(mpi->rinfo[nridx].buff) < recv_vol)
+        gkyl_mem_buff_resize(mpi->rinfo[nridx].buff, recv_vol);      
+      MPI_Irecv(gkyl_mem_buff_data(mpi->rinfo[nridx].buff),
+        recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->rinfo[nridx].status);
 
-    // send skin-cell data to neighbors
+      nridx += 1;
+    }
+  }
+
+  // send skin-cell data to neighbors
+  for (int n=0; n<mpi->neigh->num_neigh; ++n) {
+    int nid = mpi->neigh->neigh[n];
+    
     struct gkyl_range neigh_ext;
     gkyl_range_extend(&neigh_ext, &mpi->decomp->ranges[nid], elo, eup);
     struct gkyl_range send_rgn;
@@ -154,10 +160,18 @@ array_sync(struct gkyl_comm *comm,
       gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->sendb), array, send_rgn);
       MPI_Send(gkyl_mem_buff_data(mpi->sendb), send_vol, MPI_CHAR, nid, tag, mpi->mcomm);
     }
+  }
 
+  // complete recv, copying data into ghost-cells
+  for (int r=0; r<nridx; ++r) {
+    int isrecv = mpi->rinfo[r].range.volume;
     if (isrecv) {
-      MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
-      gkyl_array_copy_from_buffer(array, gkyl_mem_buff_data(mpi->recvb), recv_rgn);
+      MPI_Wait(&mpi->rinfo[r].status, MPI_STATUS_IGNORE);
+      
+      gkyl_array_copy_from_buffer(array,
+        gkyl_mem_buff_data(mpi->rinfo[r].buff),
+        mpi->rinfo[r].range
+      );
     }
   }
   return 0;
@@ -223,8 +237,9 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
             int tag = per_recv_tag(&mpi->dir_edge, dir, e);
             MPI_Irecv(gkyl_mem_buff_data(mpi->rinfo[nridx].buff),
               recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->rinfo[nridx].status);
+
+            nridx += 1;
           }
-          nridx += 1;
         }
       }
     }

@@ -1024,6 +1024,9 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, "stat.json");
 
+  int num_ranks;
+  gkyl_comm_get_size(app->comm, &num_ranks);
+
   char buff[70];
   time_t t = time(NULL);
   struct tm curr_tm = *localtime(&t);
@@ -1046,6 +1049,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
     gkyl_vlasov_app_cout(app, fp, " date : %s,\n", buff);
 
   gkyl_vlasov_app_cout(app, fp, " use_gpu : %d,\n", stat.use_gpu);
+  gkyl_vlasov_app_cout(app, fp, " num_ranks : %d,\n", num_ranks); 
   
   for (int s=0; s<app->num_species; ++s)
     range_stat_write(app, app->species[s].info.name, &app->species[s].global, fp);
