@@ -344,6 +344,9 @@ gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
 void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
+  app->stat.nio += 1;
+  struct timespec wtm = gkyl_wall_clock();
+  
   if (app->has_field)
     gkyl_vlasov_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) {
@@ -363,6 +366,8 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
       gkyl_vlasov_app_write_fluid_p_species(app, i, tm, frame);
     }
   }
+
+  app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
 void
@@ -952,7 +957,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     TOTAL_TM, INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM,
     SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, SPECIES_COLL_MOM_TM,
     SPECIES_COL_TM, FIELD_RHS_TM, CURRENT_TM,
-    SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, MOM_TM, DIAG_TM,
+    SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, MOM_TM, DIAG_TM, IO_TM,
     D_END
   };
 
@@ -971,6 +976,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     [FIELD_OMEGA_CFL_TM] = local->field_omega_cfl_tm,
     [MOM_TM] = local->mom_tm,
     [DIAG_TM] = local->diag_tm,
+    [IO_TM] = local->io_tm
   };
 
   double d_red_global[D_END];
@@ -990,6 +996,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   global->field_omega_cfl_tm = d_red_global[FIELD_OMEGA_CFL_TM];
   global->mom_tm = d_red_global[MOM_TM];
   global->diag_tm = d_red_global[DIAG_TM];
+  global->io_tm = d_red_global[IO_TM];
 
   // misc data needing reduction
 
@@ -1083,6 +1090,9 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 
   gkyl_vlasov_app_cout(app, fp, " nfield_omega_cfl : %ld,\n", stat.nfield_omega_cfl);
   gkyl_vlasov_app_cout(app, fp, " field_omega_cfl_tm : %lg\n", stat.field_omega_cfl_tm);
+
+  gkyl_vlasov_app_cout(app, fp, " nio : %ld,\n", stat.nio);
+  gkyl_vlasov_app_cout(app, fp, " io_tm : %lg\n", stat.io_tm);
   
   gkyl_vlasov_app_cout(app, fp, "}\n");
 
