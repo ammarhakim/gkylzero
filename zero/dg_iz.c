@@ -101,24 +101,24 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
   // Calculate vtsq from moms using bin ops
   // neutral vtsq
   for (int d=1; d<iz->vdim_vl+1; d+=1) {
-    gkyl_dg_mul_op(*iz->basis, 0, iz->u_sq_temp, d, moms_neut, d, moms_neut);
-    gkyl_array_accumulate(iz->m2_temp, -1.0, iz->u_sq_temp); // -u.u
+    gkyl_dg_mul_op_range(*iz->basis, 0, iz->u_sq_temp, d, moms_neut, d, moms_neut, iz->conf_rng);
+    gkyl_array_accumulate_range(iz->m2_temp, -1.0, iz->u_sq_temp, *iz->conf_rng); // -u.u
   }
-  gkyl_dg_mul_op(*iz->basis, 0, iz->m2_temp, 0, iz->m2_temp, 0, moms_neut); // -u.u*m0
-  gkyl_array_accumulate_offset(iz->m2_temp, 1.0, moms_neut, iz->vdim_vl+1); // m2-u.u*m0
-  gkyl_dg_div_op(iz->mem, *iz->basis, 0, iz->vth_sq_neut, 0, iz->m2_temp, 0, moms_neut); // (m2-u.u*m0)/m0
-  gkyl_array_scale(iz->vth_sq_neut, 1/iz->vdim_vl); // (m2-u.u*m0)/(vdim*m0)
+  gkyl_dg_mul_op_range(*iz->basis, 0, iz->m2_temp, 0, iz->m2_temp, 0, moms_neut, iz->conf_rng); // -u.u*m0
+  gkyl_array_accumulate_offset_range(iz->m2_temp, 1.0, moms_neut, iz->vdim_vl+1, *iz->conf_rng); // m2-u.u*m0
+  gkyl_dg_div_op_range(iz->mem, *iz->basis, 0, iz->vth_sq_neut, 0, iz->m2_temp, 0, moms_neut, iz->conf_rng); // (m2-u.u*m0)/m0
+  gkyl_array_scale_range(iz->vth_sq_neut, 1/iz->vdim_vl, *iz->conf_rng); // (m2-u.u*m0)/(vdim*m0)
 
   /* // elc vtsq */
-  gkyl_dg_mul_op(*iz->basis, 0, iz->m2_temp, 1, moms_elc, 1, moms_elc); // upar*upar
-  gkyl_dg_mul_op(*iz->basis, 0, iz->m2_temp, 0, iz->m2_temp, 0, moms_elc); // uparSq*m0
-  gkyl_array_accumulate_offset(iz->m2_temp, 1.0, moms_elc, 2); // uparSq*m0 - m2
-  gkyl_dg_div_op(iz->mem, *iz->basis, 0, iz->vth_sq_elc, 0, iz->m2_temp, 0, moms_elc); // (uparSq*m0 - m2)/m0
-  gkyl_array_scale(iz->vth_sq_elc, -1/iz->vdim_vl); // (m2 - uparSq*m0) / (vdim*m0)
+  gkyl_dg_mul_op_range(*iz->basis, 0, iz->m2_temp, 1, moms_elc, 1, moms_elc, iz->conf_rng); // upar*upar
+  gkyl_dg_mul_op_range(*iz->basis, 0, iz->m2_temp, 0, iz->m2_temp, 0, moms_elc , iz->conf_rng); // uparSq*m0
+  gkyl_array_accumulate_offset_range(iz->m2_temp, 1.0, moms_elc, 2, *iz->conf_rng); // uparSq*m0 - m2
+  gkyl_dg_div_op_range(iz->mem, *iz->basis, 0, iz->vth_sq_elc, 0, iz->m2_temp, 0, moms_elc, iz->conf_rng); // (uparSq*m0 - m2)/m0
+  gkyl_array_scale_range(iz->vth_sq_elc, -1/iz->vdim_vl, *iz->conf_rng); // (m2 - uparSq*m0) / (vdim*m0)
     
   /* // Calculate vt_sq_iz */
   gkyl_array_copy_range(vth_sq_iz, iz->vth_sq_elc, *iz->conf_rng);
-  gkyl_array_scale(vth_sq_iz, 1/2.0);
+  gkyl_array_scale_range(vth_sq_iz, 1/2.0, *iz->conf_rng);
   gkyl_array_shiftc0(vth_sq_iz, -iz->E*iz->elem_charge/(3*iz->mass_elc));
   
   gkyl_range_iter_init(&conf_iter, iz->conf_rng);
