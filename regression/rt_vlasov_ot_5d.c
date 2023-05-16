@@ -177,7 +177,7 @@ create_ctx(void)
 
   // domain size and simulation time
   double L = 20.0*M_PI*rhoi;
-  double tend = 1.0/omegaCi;
+  double tend = 1.0;
   
   struct ot_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -221,7 +221,7 @@ main(int argc, char **argv)
 #endif
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 12);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 8);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -237,20 +237,21 @@ main(int argc, char **argv)
 #endif  
 
   // create global range
-  int cells[] = { NX };
+  int cells[] = { NX, NX };
   struct gkyl_range globalr;
-  gkyl_create_global_range(1, cells, &globalr);
-
+  gkyl_create_global_range(2, cells, &globalr);
+  
   // create decomposition
-  int cuts[] = { 1 };
+  int cuts[] = { 1, 1 };
 #ifdef GKYL_HAVE_MPI  
   if (app_args.use_mpi) {
     cuts[0] = app_args.cuts[0];
+    cuts[1] = app_args.cuts[1];
   }
-#endif  
+#endif 
     
   struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts(1, cuts, &globalr);
+    gkyl_rect_decomp_new_from_cuts(2, cuts, &globalr);
 
   // construct communcator for use in app
   struct gkyl_comm *comm;
@@ -279,12 +280,12 @@ main(int argc, char **argv)
   int comm_sz;
   gkyl_comm_get_size(comm, &comm_sz);
 
-  int ncuts = cuts[0];
+  int ncuts = cuts[0]*cuts[1];
   if (ncuts != comm_sz) {
     if (my_rank == 0)
       fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
     goto mpifinalize;
-  }  
+  }
 
   // electrons
   struct gkyl_vlasov_species elc = {
