@@ -233,6 +233,9 @@ struct gkyl_vlasov_stat {
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
+
+  double species_bc_tm; // time to compute species BCs
+  double field_bc_tm; // time to compute field
   
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
