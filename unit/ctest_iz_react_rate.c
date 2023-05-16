@@ -34,7 +34,7 @@ test_iz_react_rate()
   int pdim = cdim + vdim; 
   double lower[] = {-2.0,-1.0}, upper[] = {2.0,1.0};
   int ghost[] = {0, 0};
-  int cells[] = {8,16};
+  int cells[] = {1,2};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -74,8 +74,8 @@ test_iz_react_rate()
 
   gkyl_array_set_offset(moms_neut, 1.0, m0, 0);
   gkyl_array_set_offset(moms_elc, 1.0, m0, 0);
-  gkyl_array_set_offset(moms_neut, 1.0, m2, 2*m2->ncomp);
-  gkyl_array_set_offset(moms_elc, 1.0, m2, 2*m2->ncomp);
+  gkyl_array_set_offset(moms_neut, 1.0, m2, 2*basis.num_basis);
+  gkyl_array_set_offset(moms_elc, 1.0, m2, 2*basis.num_basis);
 
   gkyl_grid_sub_array_write(&confGrid, &confRange, moms_neut, "ctest_moms_neut_1x.gkyl");
   gkyl_grid_sub_array_write(&confGrid, &confRange, moms_elc, "ctest_moms_elc_1x.gkyl");
