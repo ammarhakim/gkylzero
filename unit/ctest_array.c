@@ -1031,7 +1031,6 @@ void test_rio_3()
     long idx = gkyl_range_idx(&sub_range, iter.idx);
     const double *rhs = gkyl_array_cfetch(arr, idx);
     const double *lhs = gkyl_array_cfetch(arr2, idx);
-    
     TEST_CHECK( lhs[0] == rhs[0] );
   }  
 
