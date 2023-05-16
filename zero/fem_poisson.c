@@ -151,8 +151,8 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
     fem_poisson_choose_kernels_cu(&basis, bcs, up->isvareps, up->isdirperiodic, up->kernels_cu);
 #endif
 
-  // Create a linear Ax=B problem. Here A is the discrete (global) stiffness
-  // matrix times epsilon.
+  // Create a linear Ax=B problem. Here A is the discrete (global) matrix
+  // representation of the LHS of the Helmholtz equation.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) 
     up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
@@ -292,8 +292,10 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
     gkyl_array_release(up->rhs_cellavg);
     gkyl_free(up->rhs_avg);
   }
+
   if (!up->isvareps)
     gkyl_array_release(up->epsilon);
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cu_free(up->kernels_cu);

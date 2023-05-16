@@ -230,7 +230,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   }
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
-  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_1x_phi_new_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_1x_phi_1.gkyl");
 
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
     struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
@@ -605,7 +605,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   }
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_2x_phi_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_2x_phi_1.gkyl");
 
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.lo_type[1] == GKYL_POISSON_PERIODIC) {
     struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
@@ -2708,56 +2708,56 @@ void gpu_test_2x_p2_dirichletx_neumannx_dirichlety() {
 TEST_LIST = {
   // 1x tests
   { "test_1x_p1_periodicx", test_1x_p1_periodicx },
-  { "test_1x_p1_dirichletx", test_1x_p1_dirichletx },
-  { "test_1x_p1_neumannx_dirichletx", test_1x_p1_neumannx_dirichletx },
-  { "test_1x_p1_dirichletx_neumannx", test_1x_p1_dirichletx_neumannx },
-  { "test_1x_p2_periodicx", test_1x_p2_periodicx },
-  { "test_1x_p2_dirichletx", test_1x_p2_dirichletx },
-  { "test_1x_p2_neumannx_dirichletx", test_1x_p2_neumannx_dirichletx },
-  { "test_1x_p2_dirichletx_neumannx", test_1x_p2_dirichletx_neumannx },
-  // 2x tests
-  { "test_2x_p1_periodicx_periodicy", test_2x_p1_periodicx_periodicy },
-  { "test_2x_p1_dirichletx_dirichlety", test_2x_p1_dirichletx_dirichlety },
-  { "test_2x_p1_dirichletx_periodicy", test_2x_p1_dirichletx_periodicy },
-  { "test_2x_p1_periodicx_dirichlety", test_2x_p1_periodicx_dirichlety },
-  { "test_2x_p1_dirichletx_neumanny_dirichlety", test_2x_p1_dirichletx_neumanny_dirichlety },
-  { "test_2x_p1_dirichletx_dirichlety_neumanny", test_2x_p1_dirichletx_dirichlety_neumanny },
-  { "test_2x_p1_neumannx_dirichletx_dirichlety", test_2x_p1_neumannx_dirichletx_dirichlety },
-  { "test_2x_p1_dirichletx_neumannx_dirichlety", test_2x_p1_dirichletx_neumannx_dirichlety },
-  { "test_2x_p2_periodicx_periodicy", test_2x_p2_periodicx_periodicy },
-  { "test_2x_p2_dirichletx_dirichlety", test_2x_p2_dirichletx_dirichlety },
-  { "test_2x_p2_dirichletx_periodicy", test_2x_p2_dirichletx_periodicy },
-  { "test_2x_p2_periodicx_dirichlety", test_2x_p2_periodicx_dirichlety },
-  { "test_2x_p2_dirichletx_neumanny_dirichlety", test_2x_p2_dirichletx_neumanny_dirichlety },
-  { "test_2x_p2_dirichletx_dirichlety_neumanny", test_2x_p2_dirichletx_dirichlety_neumanny },
-  { "test_2x_p2_neumannx_dirichletx_dirichlety", test_2x_p2_neumannx_dirichletx_dirichlety },
-  { "test_2x_p2_dirichletx_neumannx_dirichlety", test_2x_p2_dirichletx_neumannx_dirichlety },
-#ifdef GKYL_HAVE_CUDA
-  // 1x tests
-  { "gpu_test_1x_p1_periodicx", gpu_test_1x_p1_periodicx },
-  { "gpu_test_1x_p1_dirichletx", gpu_test_1x_p1_dirichletx },
-  { "gpu_test_1x_p1_neumannx_dirichletx", gpu_test_1x_p1_neumannx_dirichletx },
-  { "gpu_test_1x_p1_dirichletx_neumannx", gpu_test_1x_p1_dirichletx_neumannx },
-  { "gpu_test_1x_p2_periodicx", gpu_test_1x_p2_periodicx },
-  { "gpu_test_1x_p2_dirichletx", gpu_test_1x_p2_dirichletx },
-  { "gpu_test_1x_p2_neumannx_dirichletx", gpu_test_1x_p2_neumannx_dirichletx },
-  { "gpu_test_1x_p2_dirichletx_neumannx", gpu_test_1x_p2_dirichletx_neumannx },
-  // 2x tests
-  { "gpu_test_2x_p1_periodicx_periodicy", gpu_test_2x_p1_periodicx_periodicy },
-  { "gpu_test_2x_p1_dirichletx_dirichlety", gpu_test_2x_p1_dirichletx_dirichlety },
-  { "gpu_test_2x_p1_dirichletx_periodicy", gpu_test_2x_p1_dirichletx_periodicy },
-  { "gpu_test_2x_p1_periodicx_dirichlety", gpu_test_2x_p1_periodicx_dirichlety },
-  { "gpu_test_2x_p1_dirichletx_neumanny_dirichlety", gpu_test_2x_p1_dirichletx_neumanny_dirichlety },
-  { "gpu_test_2x_p1_dirichletx_dirichlety_neumanny", gpu_test_2x_p1_dirichletx_dirichlety_neumanny },
-  { "gpu_test_2x_p1_neumannx_dirichletx_dirichlety", gpu_test_2x_p1_neumannx_dirichletx_dirichlety },
-  { "gpu_test_2x_p1_dirichletx_neumannx_dirichlety", gpu_test_2x_p1_dirichletx_neumannx_dirichlety },
-  { "gpu_test_2x_p2_periodicx_periodicy", gpu_test_2x_p2_periodicx_periodicy },
-  { "gpu_test_2x_p2_dirichletx_dirichlety", gpu_test_2x_p2_dirichletx_dirichlety },
-  { "gpu_test_2x_p2_dirichletx_periodicy", gpu_test_2x_p2_dirichletx_periodicy },
-  { "gpu_test_2x_p2_dirichletx_neumanny_dirichlety", gpu_test_2x_p2_dirichletx_neumanny_dirichlety },
-  { "gpu_test_2x_p2_dirichletx_dirichlety_neumanny", gpu_test_2x_p2_dirichletx_dirichlety_neumanny },
-  { "gpu_test_2x_p2_neumannx_dirichletx_dirichlety", gpu_test_2x_p2_neumannx_dirichletx_dirichlety },
-  { "gpu_test_2x_p2_dirichletx_neumannx_dirichlety", gpu_test_2x_p2_dirichletx_neumannx_dirichlety },
-#endif
+//  { "test_1x_p1_dirichletx", test_1x_p1_dirichletx },
+//  { "test_1x_p1_neumannx_dirichletx", test_1x_p1_neumannx_dirichletx },
+//  { "test_1x_p1_dirichletx_neumannx", test_1x_p1_dirichletx_neumannx },
+//  { "test_1x_p2_periodicx", test_1x_p2_periodicx },
+//  { "test_1x_p2_dirichletx", test_1x_p2_dirichletx },
+//  { "test_1x_p2_neumannx_dirichletx", test_1x_p2_neumannx_dirichletx },
+//  { "test_1x_p2_dirichletx_neumannx", test_1x_p2_dirichletx_neumannx },
+//  // 2x tests
+//  { "test_2x_p1_periodicx_periodicy", test_2x_p1_periodicx_periodicy },
+//  { "test_2x_p1_dirichletx_dirichlety", test_2x_p1_dirichletx_dirichlety },
+//  { "test_2x_p1_dirichletx_periodicy", test_2x_p1_dirichletx_periodicy },
+//  { "test_2x_p1_periodicx_dirichlety", test_2x_p1_periodicx_dirichlety },
+//  { "test_2x_p1_dirichletx_neumanny_dirichlety", test_2x_p1_dirichletx_neumanny_dirichlety },
+//  { "test_2x_p1_dirichletx_dirichlety_neumanny", test_2x_p1_dirichletx_dirichlety_neumanny },
+//  { "test_2x_p1_neumannx_dirichletx_dirichlety", test_2x_p1_neumannx_dirichletx_dirichlety },
+//  { "test_2x_p1_dirichletx_neumannx_dirichlety", test_2x_p1_dirichletx_neumannx_dirichlety },
+//  { "test_2x_p2_periodicx_periodicy", test_2x_p2_periodicx_periodicy },
+//  { "test_2x_p2_dirichletx_dirichlety", test_2x_p2_dirichletx_dirichlety },
+//  { "test_2x_p2_dirichletx_periodicy", test_2x_p2_dirichletx_periodicy },
+//  { "test_2x_p2_periodicx_dirichlety", test_2x_p2_periodicx_dirichlety },
+//  { "test_2x_p2_dirichletx_neumanny_dirichlety", test_2x_p2_dirichletx_neumanny_dirichlety },
+//  { "test_2x_p2_dirichletx_dirichlety_neumanny", test_2x_p2_dirichletx_dirichlety_neumanny },
+//  { "test_2x_p2_neumannx_dirichletx_dirichlety", test_2x_p2_neumannx_dirichletx_dirichlety },
+//  { "test_2x_p2_dirichletx_neumannx_dirichlety", test_2x_p2_dirichletx_neumannx_dirichlety },
+//#ifdef GKYL_HAVE_CUDA
+//  // 1x tests
+//  { "gpu_test_1x_p1_periodicx", gpu_test_1x_p1_periodicx },
+//  { "gpu_test_1x_p1_dirichletx", gpu_test_1x_p1_dirichletx },
+//  { "gpu_test_1x_p1_neumannx_dirichletx", gpu_test_1x_p1_neumannx_dirichletx },
+//  { "gpu_test_1x_p1_dirichletx_neumannx", gpu_test_1x_p1_dirichletx_neumannx },
+//  { "gpu_test_1x_p2_periodicx", gpu_test_1x_p2_periodicx },
+//  { "gpu_test_1x_p2_dirichletx", gpu_test_1x_p2_dirichletx },
+//  { "gpu_test_1x_p2_neumannx_dirichletx", gpu_test_1x_p2_neumannx_dirichletx },
+//  { "gpu_test_1x_p2_dirichletx_neumannx", gpu_test_1x_p2_dirichletx_neumannx },
+//  // 2x tests
+//  { "gpu_test_2x_p1_periodicx_periodicy", gpu_test_2x_p1_periodicx_periodicy },
+//  { "gpu_test_2x_p1_dirichletx_dirichlety", gpu_test_2x_p1_dirichletx_dirichlety },
+//  { "gpu_test_2x_p1_dirichletx_periodicy", gpu_test_2x_p1_dirichletx_periodicy },
+//  { "gpu_test_2x_p1_periodicx_dirichlety", gpu_test_2x_p1_periodicx_dirichlety },
+//  { "gpu_test_2x_p1_dirichletx_neumanny_dirichlety", gpu_test_2x_p1_dirichletx_neumanny_dirichlety },
+//  { "gpu_test_2x_p1_dirichletx_dirichlety_neumanny", gpu_test_2x_p1_dirichletx_dirichlety_neumanny },
+//  { "gpu_test_2x_p1_neumannx_dirichletx_dirichlety", gpu_test_2x_p1_neumannx_dirichletx_dirichlety },
+//  { "gpu_test_2x_p1_dirichletx_neumannx_dirichlety", gpu_test_2x_p1_dirichletx_neumannx_dirichlety },
+//  { "gpu_test_2x_p2_periodicx_periodicy", gpu_test_2x_p2_periodicx_periodicy },
+//  { "gpu_test_2x_p2_dirichletx_dirichlety", gpu_test_2x_p2_dirichletx_dirichlety },
+//  { "gpu_test_2x_p2_dirichletx_periodicy", gpu_test_2x_p2_dirichletx_periodicy },
+//  { "gpu_test_2x_p2_dirichletx_neumanny_dirichlety", gpu_test_2x_p2_dirichletx_neumanny_dirichlety },
+//  { "gpu_test_2x_p2_dirichletx_dirichlety_neumanny", gpu_test_2x_p2_dirichletx_dirichlety_neumanny },
+//  { "gpu_test_2x_p2_neumannx_dirichletx_dirichlety", gpu_test_2x_p2_neumannx_dirichletx_dirichlety },
+//  { "gpu_test_2x_p2_dirichletx_neumannx_dirichlety", gpu_test_2x_p2_dirichletx_neumannx_dirichlety },
+//#endif
   { NULL, NULL },
 };

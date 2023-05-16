@@ -45,9 +45,6 @@ struct gkyl_poisson_bc {
  * DG field phi, after we've translated the FEM solution to DG.
  * Free using gkyl_fem_poisson_release method.
  *
- * For scalar, spatially constant epsilon use gkyl_fem_poisson_consteps_new,
- * for tensor or heterogenous epsilon use gkyl_fem_poisson_vareps_new.
- *
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
  * @param bcs Boundary conditions.

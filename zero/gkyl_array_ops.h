@@ -193,6 +193,19 @@ struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
   double a, struct gkyl_range range);
 
 /**
+ * Shift the k-th coefficient in every cell, out_k = a+out_k within
+ * a given range. Returns out.
+ *
+ * @param out Output array.
+ * @param a Factor to shift k-th coefficient by.
+ * @param k Coefficient to be shifted.
+ * @param range Range to shift coefficient k in.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
+  unsigned k, struct gkyl_range range);
+
+/**
  * Copy out inp. Returns out.
  *
  * @param out Output array
