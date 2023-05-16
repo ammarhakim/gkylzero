@@ -191,9 +191,9 @@ gkyl_mat_triples_clear(struct gkyl_mat_triples *tri, double val)
   while (gkyl_mat_triples_iter_next(iter)) {
     struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
 
-    csmap_triple_insert_or_assign(&tri->triples,
-      (struct mat_idx) { .row = mt.row, .col = mt.col },
-      (struct gkyl_mtriple) { .row = mt.row, .col = mt.row, .val = val });
+    struct csmap_triple_value *mtm = csmap_triple_get_mut(&tri->triples,
+      (struct mat_idx) { .row = mt.row, .col = mt.col });
+    mtm->second.val = val;
   }
   gkyl_mat_triples_iter_release(iter);
 }

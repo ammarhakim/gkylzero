@@ -280,8 +280,9 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
 
     gkyl_array_clear(up->brhs, 0.0);
 
-    gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
     double *brhs_p = gkyl_array_fetch(up->brhs, 0);
+
+    gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
     while (gkyl_range_iter_next(&up->perp_iter2d)) {
       long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
 
