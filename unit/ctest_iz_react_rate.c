@@ -34,7 +34,7 @@ test_iz_react_rate()
   int pdim = cdim + vdim; 
   double lower[] = {-2.0,-1.0}, upper[] = {2.0,1.0};
   int ghost[] = {0, 0};
-  int cells[] = {1,1};
+  int cells[] = {8,16};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -72,16 +72,16 @@ test_iz_react_rate()
   gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
   gkyl_proj_on_basis_advance(projM2, 0.0, &confRange, m2);
 
-  printf("\nset moms array"); 
   gkyl_array_set_offset(moms_neut, 1.0, m0, 0);
   gkyl_array_set_offset(moms_elc, 1.0, m0, 0);
-  printf("\nbefore offset");
-  gkyl_array_set_offset(moms_neut, 1.0, m2, 2*basis.num_basis);
-  gkyl_array_set_offset(moms_elc, 1.0, m2, 2*basis.num_basis);  
+  gkyl_array_set_offset(moms_neut, 1.0, m2, 2*m2->ncomp);
+  gkyl_array_set_offset(moms_elc, 1.0, m2, 2*m2->ncomp);
 
-  printf("\nwhy does this take so long?");
+  gkyl_grid_sub_array_write(&confGrid, &confRange, moms_neut, "ctest_moms_neut_1x.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confRange, moms_elc, "ctest_moms_elc_1x.gkyl");
+
   struct gkyl_dg_iz *reactRate = gkyl_dg_iz_new(&basis, &phaseBasis, &confRange, &phaseRange,
-						echarge, emass, GKYL_H, true, false);
+  						echarge, emass, GKYL_H, true, false);
 
   gkyl_dg_iz_react_rate(reactRate, moms_elc, moms_neut, vtSqIz, cflRate, coefIz);
   gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
@@ -94,9 +94,9 @@ test_iz_react_rate()
 
   double *cl_coef = gkyl_array_fetch(coefIz, 0);
   TEST_CHECK( gkyl_compare(3.362239235468358e-14, cl_coef[0], 1e-16) );
-  TEST_CHECK( gkyl_compare(0.0, cl_coef[1], 1e-12) );
+  TEST_CHECK( gkyl_compare(0.0, cl_coef[1], 1e-16) );
   
-  gkyl_dg_iz_release(reactRate);
+  //gkyl_dg_iz_release(reactRate);
 }
 
 #ifdef GKYL_HAVE_CUDA
