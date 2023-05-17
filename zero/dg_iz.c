@@ -105,28 +105,34 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
     gkyl_array_accumulate_range(iz->m2_temp, -1.0, iz->u_sq_temp, *iz->conf_rng); // -u.u
   }
   gkyl_dg_mul_op_range(*iz->basis, 0, iz->m2_temp, 0, iz->m2_temp, 0, moms_neut, iz->conf_rng); // -u.u*m0
-  gkyl_array_accumulate_offset_range(iz->m2_temp, 1.0, moms_neut, iz->vdim_vl+1, *iz->conf_rng); // m2-u.u*m0
+  gkyl_array_accumulate_offset_range(iz->m2_temp, 1.0, moms_neut, (iz->vdim_vl+1)*iz->basis->num_basis, *iz->conf_rng); // m2-u.u*m0
   gkyl_dg_div_op_range(iz->mem, *iz->basis, 0, iz->vth_sq_neut, 0, iz->m2_temp, 0, moms_neut, iz->conf_rng); // (m2-u.u*m0)/m0
   gkyl_array_scale_range(iz->vth_sq_neut, 1/iz->vdim_vl, *iz->conf_rng); // (m2-u.u*m0)/(vdim*m0)
 
-  /* // elc vtsq */
+  // elc vtsq 
   gkyl_dg_mul_op_range(*iz->basis, 0, iz->m2_temp, 1, moms_elc, 1, moms_elc, iz->conf_rng); // upar*upar
   gkyl_dg_mul_op_range(*iz->basis, 0, iz->m2_temp, 0, iz->m2_temp, 0, moms_elc , iz->conf_rng); // uparSq*m0
-  gkyl_array_accumulate_offset_range(iz->m2_temp, 1.0, moms_elc, 2, *iz->conf_rng); // uparSq*m0 - m2
+  gkyl_array_accumulate_offset_range(iz->m2_temp, -1.0, moms_elc, (iz->vdim_vl+1)*iz->basis->num_basis, *iz->conf_rng); // uparSq*m0 - m2
   gkyl_dg_div_op_range(iz->mem, *iz->basis, 0, iz->vth_sq_elc, 0, iz->m2_temp, 0, moms_elc, iz->conf_rng); // (uparSq*m0 - m2)/m0
   gkyl_array_scale_range(iz->vth_sq_elc, -1/iz->vdim_vl, *iz->conf_rng); // (m2 - uparSq*m0) / (vdim*m0)
+
+  // for testing
+  // gkyl_array_accumulate_offset_range(iz->vth_sq_neut, 1.0, moms_neut, (iz->vdim_vl+1)*iz->basis->num_basis, *iz->conf_rng);
+  //gkyl_array_accumulate_offset_range(iz->vth_sq_elc, 1.0, moms_elc, (iz->vdim_vl+1)*iz->basis->num_basis, *iz->conf_rng);
     
   /* // Calculate vt_sq_iz */
   gkyl_array_copy_range(vth_sq_iz, iz->vth_sq_elc, *iz->conf_rng);
   gkyl_array_scale_range(vth_sq_iz, 1/2.0, *iz->conf_rng);
-  gkyl_array_shiftc0(vth_sq_iz, -iz->E*iz->elem_charge/(3*iz->mass_elc));
+  gkyl_array_shiftc0(vth_sq_iz, -iz->E*iz->elem_charge/(3*iz->mass_elc)*pow(sqrt(2),iz->cdim));
   
   gkyl_range_iter_init(&conf_iter, iz->conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(iz->conf_rng, conf_iter.idx);
    
     // Reference proj_maxwellian_on_basis
-    const double *m0_neut_d = gkyl_array_cfetch(moms_neut, loc);
+    const double *moms_neut_d = gkyl_array_cfetch(moms_neut, loc);
+    const double *m0_neut_d = &moms_neut_d[0]; 
+
     const double *vth_sq_neut_d = gkyl_array_cfetch(iz->vth_sq_neut, loc);
     const double *vth_sq_elc_d = gkyl_array_cfetch(iz->vth_sq_elc, loc);
     double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
