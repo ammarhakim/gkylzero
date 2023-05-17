@@ -42,6 +42,12 @@ gkyl_prim_lbo_vlasov_pkpm_set_cu_dev_ptrs(struct prim_lbo_type_vlasov_pkpm *prim
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       self_prim_kernels = ser_self_prim_kernels;
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      self_prim_kernels = ten_self_prim_kernels;
+      
       break;
 
     default:

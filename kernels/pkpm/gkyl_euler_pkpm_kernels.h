@@ -49,6 +49,12 @@ GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p2(const double *w, const double *dxv,
   const double *T_ijl, const double *T_ijc, const double *T_ijr, 
   const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out); 
 
+GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_tensor_p2(const double *w, const double *dxv, 
+  const double* T_perp_over_m, const double* T_perp_over_m_inv, 
+  const double *nu_vthsq, const double* pkpm_accel_vars, 
+  const double* f, const double* F_k_p_1, 
+  double* g_dist_source, double* F_k_m_1); 
+
 GKYL_CU_DH void euler_pkpm_prim_vars_2x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
   double* u_i, double* p_ij, double* T_ij, double* rho_inv, double* T_perp_over_m, double* T_perp_over_m_inv); 
 GKYL_CU_DH void euler_pkpm_source_2x_ser_p1(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* out); 

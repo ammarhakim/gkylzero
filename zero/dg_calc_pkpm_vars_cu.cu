@@ -132,7 +132,22 @@ gkyl_calc_pkpm_vars_dist_mirror_force_cu_kernel(struct gkyl_rect_grid grid, stru
   for (int d=0; d<cdim+1; ++d) 
     dx[d] = grid.dx[d];
 
-  pkpm_dist_mirror_force_t pkpm_dist_mirror_force = choose_ser_pkpm_dist_mirror_force_kern(cdim, poly_order);
+  pkpm_dist_mirror_force_t pkpm_dist_mirror_force;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      pkpm_dist_mirror_force = choose_ser_pkpm_dist_mirror_force_kern(cdim, poly_order);
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      pkpm_dist_mirror_force = choose_ten_pkpm_dist_mirror_force_kern(cdim, poly_order);
+      
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
 
   int idx[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;

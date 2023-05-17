@@ -95,7 +95,24 @@ void gkyl_calc_pkpm_vars_dist_mirror_force(const struct gkyl_rect_grid *grid, st
 
   int cdim = basis.ndim;
   int poly_order = basis.poly_order;
-  pkpm_dist_mirror_force_t pkpm_dist_mirror_force = choose_ser_pkpm_dist_mirror_force_kern(cdim, poly_order);
+
+  pkpm_dist_mirror_force_t pkpm_dist_mirror_force;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      pkpm_dist_mirror_force = choose_ser_pkpm_dist_mirror_force_kern(cdim, poly_order);
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      pkpm_dist_mirror_force = choose_ten_pkpm_dist_mirror_force_kern(cdim, poly_order);
+      
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
+  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
   while (gkyl_range_iter_next(&iter)) {

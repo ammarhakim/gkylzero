@@ -41,6 +41,16 @@ kernel_mom_vlasov_pkpm_1x1v_ser_p2(const struct gkyl_mom_type *momt, const doubl
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_pkpm_1x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_vlasov_pkpm, momt);
+
+  return mom_vlasov_pkpm_1x1v_tensor_p2(xc, dx, idx, mom_vlasov_pkpm->mass, f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_pkpm_2x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -69,13 +79,24 @@ kernel_mom_vlasov_pkpm_3x1v_ser_p1(const struct gkyl_mom_type *momt, const doubl
   return mom_vlasov_pkpm_3x1v_ser_p1(xc, dx, idx, mom_vlasov_pkpm->mass, f, out);  
 }
 
-// PKPM kernel list
+// PKPM coupling moment kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_mom_vlasov_pkpm_kern_list ser_mom_vlasov_pkpm_kernels[] = {
   // 1x kernels
   { NULL, kernel_mom_vlasov_pkpm_1x1v_ser_p1, kernel_mom_vlasov_pkpm_1x1v_ser_p2 }, // 0
   // 2x kernels
   { NULL, kernel_mom_vlasov_pkpm_2x1v_ser_p1, kernel_mom_vlasov_pkpm_2x1v_ser_p2 }, // 1
+  // 3x kernels
+  { NULL, kernel_mom_vlasov_pkpm_3x1v_ser_p1, NULL }, // 2
+};
+
+// PKPM coupling moment kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_mom_vlasov_pkpm_kern_list ten_mom_vlasov_pkpm_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_mom_vlasov_pkpm_1x1v_ser_p1, kernel_mom_vlasov_pkpm_1x1v_tensor_p2 }, // 0
+  // 2x kernels
+  { NULL, kernel_mom_vlasov_pkpm_2x1v_ser_p1, NULL }, // 1
   // 3x kernels
   { NULL, kernel_mom_vlasov_pkpm_3x1v_ser_p1, NULL }, // 2
 };
@@ -98,6 +119,16 @@ kernel_mom_vlasov_pkpm_diag_1x1v_ser_p2(const struct gkyl_mom_type *momt, const 
   struct mom_type_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_vlasov_pkpm, momt);
 
   return mom_vlasov_pkpm_diag_1x1v_ser_p2(xc, dx, idx, mom_vlasov_pkpm->mass, f, out);  
+}
+
+GKYL_CU_DH
+static void
+kernel_mom_vlasov_pkpm_diag_1x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_vlasov_pkpm, momt);
+
+  return mom_vlasov_pkpm_diag_1x1v_tensor_p2(xc, dx, idx, mom_vlasov_pkpm->mass, f, out);  
 }
 
 GKYL_CU_DH
@@ -130,13 +161,24 @@ kernel_mom_vlasov_pkpm_diag_3x1v_ser_p1(const struct gkyl_mom_type *momt, const 
   return mom_vlasov_pkpm_diag_3x1v_ser_p1(xc, dx, idx, mom_vlasov_pkpm->mass, f, out);  
 }
 
-// PKPM diagnostic kernel list
+// PKPM diagnostic kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_mom_vlasov_pkpm_kern_list ser_mom_vlasov_pkpm_diag_kernels[] = {
   // 1x kernels
   { NULL, kernel_mom_vlasov_pkpm_diag_1x1v_ser_p1, kernel_mom_vlasov_pkpm_diag_1x1v_ser_p2 }, // 0
   // 2x kernels
   { NULL, kernel_mom_vlasov_pkpm_diag_2x1v_ser_p1, kernel_mom_vlasov_pkpm_diag_2x1v_ser_p2 }, // 1
+  // 3x kernels
+  { NULL, kernel_mom_vlasov_pkpm_diag_3x1v_ser_p1, NULL }, // 2
+};
+
+// PKPM diagnostic kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_mom_vlasov_pkpm_kern_list ten_mom_vlasov_pkpm_diag_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_mom_vlasov_pkpm_diag_1x1v_ser_p1, kernel_mom_vlasov_pkpm_diag_1x1v_tensor_p2 }, // 0
+  // 2x kernels
+  { NULL, kernel_mom_vlasov_pkpm_diag_2x1v_ser_p1, NULL }, // 1
   // 3x kernels
   { NULL, kernel_mom_vlasov_pkpm_diag_3x1v_ser_p1, NULL }, // 2
 };

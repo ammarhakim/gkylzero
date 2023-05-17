@@ -65,6 +65,12 @@ gkyl_prim_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis,
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       self_prim_kernels = ser_self_prim_kernels;
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      self_prim_kernels = ten_self_prim_kernels;
+      
       break;
 
     default:

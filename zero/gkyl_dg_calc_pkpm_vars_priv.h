@@ -80,10 +80,18 @@ static const gkyl_dg_pkpm_recovery_kern_list ser_pkpm_recovery_z_kernels[] = {
   { NULL, euler_pkpm_recovery_z_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM distribution function source in mirror force
+// PKPM distribution function source in mirror force (Serendipity basis)
 GKYL_CU_D
 static const gkyl_dg_pkpm_dist_mirror_force_kern_list ser_pkpm_dist_mirror_force_kernels[] = {
   { NULL, pkpm_dist_mirror_force_1x1v_ser_p1, pkpm_dist_mirror_force_1x1v_ser_p2 }, // 0
+  { NULL, pkpm_dist_mirror_force_2x1v_ser_p1, NULL }, // 1
+  { NULL, pkpm_dist_mirror_force_3x1v_ser_p1, NULL }, // 2
+};
+
+// PKPM distribution function source in mirror force (Tensor basis)
+GKYL_CU_D
+static const gkyl_dg_pkpm_dist_mirror_force_kern_list ten_pkpm_dist_mirror_force_kernels[] = {
+  { NULL, pkpm_dist_mirror_force_1x1v_ser_p1, pkpm_dist_mirror_force_1x1v_tensor_p2 }, // 0
   { NULL, pkpm_dist_mirror_force_2x1v_ser_p1, NULL }, // 1
   { NULL, pkpm_dist_mirror_force_3x1v_ser_p1, NULL }, // 2
 };
@@ -121,4 +129,11 @@ static pkpm_dist_mirror_force_t
 choose_ser_pkpm_dist_mirror_force_kern(int cdim, int poly_order)
 {
   return ser_pkpm_dist_mirror_force_kernels[cdim-1].kernels[poly_order];
+}
+
+GKYL_CU_D
+static pkpm_dist_mirror_force_t
+choose_ten_pkpm_dist_mirror_force_kern(int cdim, int poly_order)
+{
+  return ten_pkpm_dist_mirror_force_kernels[cdim-1].kernels[poly_order];
 }
