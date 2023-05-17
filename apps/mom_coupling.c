@@ -26,6 +26,11 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     for (int r=0; r<app->num_species; ++r)
       src_inp.nu_base[s][r] = app->nu_base[s][r];
 
+  src_inp.has_nT_sources = false;
+  for (int i=0; i<app->num_species; ++i)
+    if (app->species[i].proj_nT_source)
+      src_inp.has_nT_sources = true;
+
   // create updater to solve for sources
   src->slvr = gkyl_moment_em_coupling_new(src_inp);
 
@@ -75,6 +80,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
   const struct gkyl_array *pr_rhs_const[GKYL_MAX_SPECIES];
+  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES];
   
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
@@ -106,12 +112,26 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   }
 
   // Get the RHS pointer for accumulation during source update
-  for (int i=0; i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i) {
     pr_rhs_const[i] = src->pr_rhs[i];
+  }
+
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].proj_nT_source
+        && !(app->species[i].nT_source_set_only_once
+             && app->species[i].nT_source_is_set))
+    {
+      gkyl_fv_proj_advance(app->species[i].proj_nT_source, tcurr,
+                           &app->local, app->species[i].nT_source);
+    }
+    nT_sources[i] = app->species[i].nT_source;
+    app->species[i].nT_source_is_set = true;
+  }
 
   gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local,
     fluids, app_accels, pr_rhs_const, 
-    app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
+    app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em,
+    nT_sources);
 
   for (int i=0; i<app->num_species; ++i)
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
