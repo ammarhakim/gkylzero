@@ -376,7 +376,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
 /***********************************************/
 
 static void
-user_source_euler_update(const gkyl_moment_em_coupling *mes,
+nT_source_euler_update(const gkyl_moment_em_coupling *mes,
             const int s,
             const double dt,
             double *q,
@@ -405,7 +405,7 @@ user_source_euler_update(const gkyl_moment_em_coupling *mes,
 }
 
 void
-user_source_update(
+nT_source_update(
   const gkyl_moment_em_coupling *mes,
   const double dt,
   double *qPtrs[],
@@ -415,7 +415,7 @@ user_source_update(
   {
     double *q = qPtrs[s];
     const double *S = sourcePtrs[s];
-    user_source_euler_update(mes, s, dt, q, q, S);
+    nT_source_euler_update(mes, s, dt, q, q, S);
   }
 }
 
