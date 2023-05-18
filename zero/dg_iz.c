@@ -32,20 +32,6 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
 
   up->elem_charge = elem_charge;
   up->mass_elc = mass_elc;
-  if (type_ion == GKYL_H) {
-    up->E = 13.6;
-    up->P = 0.0;
-    up->A = 0.291e-7;
-    up->K = 0.39;
-    up->X = 0.232;
-  }
-  else if (type_ion == GKYL_AR) {
-    up->E = 15.8;
-    up->P = 1.0;
-    up->A = 0.599e-7;
-    up->K = 0.26;
-    up->X = 0.136;
-  }
 
   // Establish vdim for gk and vlasov species
   // will be either 1 & 1 or 2 & 3
@@ -71,7 +57,22 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
     vdim_vl = vdim;
   }
   up->vdim_gk = vdim_gk;
-  up->vdim_vl = vdim_vl; 
+  up->vdim_vl = vdim_vl;
+
+    if (type_ion == GKYL_H) {
+    up->E = 13.6;
+    up->P = 0.0;
+    up->A = 0.291e-7;
+    up->K = 0.39;
+    up->X = 0.232;
+  }
+  else if (type_ion == GKYL_AR) {
+    up->E = 15.8;
+    up->P = 1.0;
+    up->A = 0.599e-7;
+    up->K = 0.26;
+    up->X = 0.136;
+  }
     
   // allocate fields for prim mom calculation
   up->u_sq_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume);
@@ -102,15 +103,15 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *iz,
   // neutral vtsq
   for (int d=1; d<iz->vdim_vl+1; d+=1) {
     gkyl_dg_mul_op_range(*iz->basis, 0, iz->u_sq_temp, d, moms_neut, d, moms_neut, iz->conf_rng);
-    gkyl_array_accumulate_range(iz->m2_temp, -1.0, iz->u_sq_temp, *iz->conf_rng); // -u.u
+    gkyl_array_accumulate_range(iz->m2_temp, -1.0, iz->u_sq_temp, *iz->conf_rng); // -M1.M1
   }
-  gkyl_dg_mul_op_range(*iz->basis, 0, iz->m2_temp, 0, iz->m2_temp, 0, moms_neut, iz->conf_rng); // -u.u*m0
+  gkyl_dg_div_op_range(iz->mem, *iz->basis, 0, iz->m2_temp, 0, iz->m2_temp, 0, moms_neut, iz->conf_rng); // -u.u*m0
   gkyl_array_accumulate_offset_range(iz->m2_temp, 1.0, moms_neut, (iz->vdim_vl+1)*iz->basis->num_basis, *iz->conf_rng); // m2-u.u*m0
   gkyl_dg_div_op_range(iz->mem, *iz->basis, 0, iz->vth_sq_neut, 0, iz->m2_temp, 0, moms_neut, iz->conf_rng); // (m2-u.u*m0)/m0
   gkyl_array_scale_range(iz->vth_sq_neut, 1/iz->vdim_vl, *iz->conf_rng); // (m2-u.u*m0)/(vdim*m0)
 
   // elc vtsq 
-  gkyl_dg_mul_op_range(*iz->basis, 0, iz->m2_temp, 1, moms_elc, 1, moms_elc, iz->conf_rng); // upar*upar
+  gkyl_dg_mul_op_range(*iz->basis, 0, iz->m2_temp, 1, moms_elc, 1, moms_elc, iz->conf_rng); // M1par*M1par
   gkyl_dg_mul_op_range(*iz->basis, 0, iz->m2_temp, 0, iz->m2_temp, 0, moms_elc , iz->conf_rng); // uparSq*m0
   gkyl_array_accumulate_offset_range(iz->m2_temp, -1.0, moms_elc, (iz->vdim_vl+1)*iz->basis->num_basis, *iz->conf_rng); // uparSq*m0 - m2
   gkyl_dg_div_op_range(iz->mem, *iz->basis, 0, iz->vth_sq_elc, 0, iz->m2_temp, 0, moms_elc, iz->conf_rng); // (uparSq*m0 - m2)/m0

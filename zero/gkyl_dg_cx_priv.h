@@ -9,12 +9,22 @@ typedef double (*dg_cx_react_ratef_t)(double a, double b, const double *m0_neut,
 struct gkyl_dg_cx {
   struct gkyl_rect_grid grid; // grid object
   int cdim; // number of configuration space dimensions
-  int vdim; 
+  int vdim_vl; // number of vlasov velocity space dimensions
   int poly_order; // polynomial order of DG basis
+  struct gkyl_basis *basis;
+  const struct gkyl_range *conf_rng;
+  const struct gkyl_range *phase_rng; 
   
   double a; // Fitting function coefficient.
   double b; // Fitting function coefficient.
-  double mass_ion; 
+  double mass_ion;
+
+  struct gkyl_array *m2_temp;
+  struct gkyl_array *udrift_neut;
+  struct gkyl_array *udrift_ion; 
+  struct gkyl_array *vth_sq_neut;
+  struct gkyl_array *vth_sq_ion;
+  struct gkyl_dg_bin_op_mem *mem; 
 
   dg_cx_react_ratef_t react_rate; // pointer to reaction rate kernel
 };
