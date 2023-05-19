@@ -102,9 +102,9 @@ void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx, const struct gkyl_array 
     gkyl_dg_div_op_range(cx->mem, *cx->basis, d, cx->udrift_neut, d+1, moms_neut, 0, moms_neut, cx->conf_rng);
   }
   
-  gkyl_dg_dot_product_op_range(*cx->basis, cx->m2_temp, cx->udrift_neut, cx->udrift_neut, cx->conf_rng);
-  gkyl_dg_mul_op_range(*cx->basis, 0, cx->m2_temp, 0, cx->m2_temp, 0, moms_neut, cx->conf_rng);
-  gkyl_array_accumulate_offset_range(cx->m2_temp, 1.0, moms_neut, (cx->vdim_vl+1)*cx->basis->num_basis, *cx->conf_rng); // u.u*m0 - m2
+  gkyl_dg_dot_product_op_range(*cx->basis, cx->m2_temp, cx->udrift_neut, cx->udrift_neut, cx->conf_rng); // u.u
+  gkyl_dg_mul_op_range(*cx->basis, 0, cx->m2_temp, 0, cx->m2_temp, 0, moms_neut, cx->conf_rng); //u.u*m0
+  gkyl_array_accumulate_offset_range(cx->m2_temp, -1.0, moms_neut, (cx->vdim_vl+1)*cx->basis->num_basis, *cx->conf_rng); // u.u*m0 - m2
   gkyl_dg_div_op_range(cx->mem, *cx->basis, 0, cx->vth_sq_neut, 0, cx->m2_temp, 0, moms_neut, cx->conf_rng); // (u.u*m0 - m2)/m0
   gkyl_array_scale_range(cx->vth_sq_neut, -1/cx->vdim_vl, *cx->conf_rng); // (m2-u.u*m0)/(vdim*m0)
 
@@ -115,10 +115,10 @@ void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx, const struct gkyl_array 
   }
 
   gkyl_dg_dot_product_op_range(*cx->basis, cx->m2_temp, cx->udrift_ion, cx->udrift_ion, cx->conf_rng);
-  gkyl_dg_mul_op_range(*cx->basis, 0, cx->m2_temp, 0, cx->m2_temp, 0, moms_neut, cx->conf_rng);
-  gkyl_array_accumulate_offset_range(cx->m2_temp, 1.0, moms_neut, (cx->vdim_vl+1)*cx->basis->num_basis, *cx->conf_rng); // u.u*m0 - m2
-  gkyl_dg_div_op_range(cx->mem, *cx->basis, 0, cx->vth_sq_neut, 0, cx->m2_temp, 0, moms_neut, cx->conf_rng); // (u.u*m0 - m2)/m0
-  gkyl_array_scale_range(cx->vth_sq_neut, -1/cx->vdim_vl, *cx->conf_rng); // (m2-u.u*m0)/(vdim*m0)
+  gkyl_dg_mul_op_range(*cx->basis, 0, cx->m2_temp, 0, cx->m2_temp, 0, moms_ion, cx->conf_rng);
+  gkyl_array_accumulate_offset_range(cx->m2_temp, -1.0, moms_ion, (cx->vdim_vl+1)*cx->basis->num_basis, *cx->conf_rng); // u.u*m0 - m2
+  gkyl_dg_div_op_range(cx->mem, *cx->basis, 0, cx->vth_sq_ion, 0, cx->m2_temp, 0, moms_ion, cx->conf_rng); // (u.u*m0 - m2)/m0
+  gkyl_array_scale_range(cx->vth_sq_ion, -1/cx->vdim_vl, *cx->conf_rng); // (m2-u.u*m0)/(vdim*m0)
   
   gkyl_range_iter_init(&conf_iter, cx->conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
@@ -129,6 +129,7 @@ void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx, const struct gkyl_array 
     const double *u_ion_d = gkyl_array_cfetch(cx->udrift_ion, loc);
     const double *vth_sq_neut_d = gkyl_array_cfetch(cx->vth_sq_neut, loc);
     const double *vth_sq_ion_d = gkyl_array_cfetch(cx->vth_sq_ion, loc);
+
     double *coef_cx_d = gkyl_array_fetch(coef_cx, loc);
 
     // Calculate vt_sq min for ion, neut (use same for now to test 1x1v)
