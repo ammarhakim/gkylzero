@@ -112,6 +112,36 @@ gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
   gkyl_range_init(rng, ndim, lo, up);
 }
 
+void
+gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a, const struct gkyl_range *b)
+{
+  int adim = a->ndim, bdim = b->ndim;
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<adim; ++d) {
+    lower[d] = a->lower[d];
+    upper[d] = a->upper[d];
+  }
+  for (int d=0; d<bdim; ++d) {
+    lower[adim+d] = b->lower[d];
+    upper[adim+d] = b->upper[d];
+  }
+  gkyl_range_init(rng, adim+bdim, lower, upper);
+}
+
+void
+gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
+  const int *delta)
+{
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<inp->ndim; ++d) {
+    lower[d] = inp->lower[d] + delta[d];
+    upper[d] = inp->upper[d] + delta[d];
+  }
+  gkyl_range_init(rng, inp->ndim, lower, upper);
+}
+
 int
 gkyl_range_is_sub_range(const struct gkyl_range *rng)
 {
@@ -385,6 +415,25 @@ gkyl_sub_range_intersect(struct gkyl_range* irng,
   return irng->volume > 0 ? 1 : 0;
 }
 
+bool
+gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent)
+{
+  if (range->lower[dir] == parent->lower[dir])
+    return true;
+  return false;
+  
+}
+
+bool
+gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent)
+{
+  if (range->upper[dir] == parent->upper[dir])
+    return true;
+  return false;  
+}
+    
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
@@ -459,5 +508,6 @@ gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
   fprintf(fp, " volume = %ld, ", range->volume );
   fprintf(fp, " is_sub_range = %d", gkyl_range_is_sub_range(range) );
   
-  fprintf(fp, " }\n ");
+  fprintf(fp, " }\n");
+  fflush(fp);
 }

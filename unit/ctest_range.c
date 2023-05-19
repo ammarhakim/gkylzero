@@ -49,6 +49,26 @@ void test_range_shape()
   }
 }
 
+void test_range_shift()
+{
+  int lower[] = {1, 1}, upper[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int delta[] = { 10, -20 };
+  
+  struct gkyl_range rshift;
+  gkyl_range_shift(&rshift, &range, delta);
+
+  TEST_CHECK( rshift.ndim = range.ndim );
+  TEST_CHECK( rshift.volume = range.volume );
+
+  for (int d=0; d<range.ndim; ++d) {
+    TEST_CHECK( rshift.lower[d] - range.lower[d] == delta[d] );
+    TEST_CHECK( rshift.upper[d] - range.upper[d] == delta[d] );
+  }
+}
+
 void test_sub_range()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
@@ -912,6 +932,28 @@ void test_intersect_2()
   TEST_CHECK( 0 == gkyl_range_intersect(&inter, &r1, &r3) );
 }
 
+void
+test_sub_intersect()
+{
+  struct gkyl_range local_ext;
+  gkyl_range_init(&local_ext, 2, (int[]) { 1, 1 }, (int[]) { 15, 15 });
+
+  struct gkyl_range local;
+  gkyl_range_init(&local, 2, (int[]) { 4, 4 }, (int[]) { 10, 12 });
+
+  struct gkyl_range local_sub;
+  gkyl_sub_range_intersect(&local_sub, &local_ext, &local);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local_sub);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx1 = gkyl_range_idx(&local_sub, iter.idx);
+    long lidx2 = gkyl_range_idx(&local_ext, iter.idx);
+
+    TEST_CHECK( lidx2 == lidx1 );
+  }
+}
+
 void test_extend(void)
 {
   int lo[] = {1, 1}, up[] = { 4, 8 };
@@ -954,6 +996,7 @@ void test_cu_range()
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
+  { "range_shift", test_range_shift },
   { "range_shape",  test_range_shape },
   { "sub_range",  test_sub_range },
   { "sub_sub_range",  test_sub_sub_range },
@@ -983,7 +1026,8 @@ TEST_LIST = {
   { "sub_range_split_iter", test_sub_range_split_iter },
   { "nested_iter", test_nested_iter },
   { "intersect", test_intersect },
-  { "intersect_2", test_intersect_2 },  
+  { "intersect_2", test_intersect_2 },
+  { "sub_intersect", test_sub_intersect },
   { "extend", test_extend },
 #ifdef GKYL_HAVE_CUDA
   { "cu_range", test_cu_range },

@@ -101,6 +101,28 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
 
 /**
+ * Create a new range which is a tensor product of @a a and @a b input
+ * ranges.
+ *
+ * @param rng On output, rng = a X b
+ * @param a First operand of tensor-product
+ * @param b Second operand of tensor-product
+ */
+void gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a,
+  const struct gkyl_range *b);
+
+/**
+ * Create a new range that is the same shape as inp range, but the
+ * indices are shifted in each direction by delta[dir]
+ *
+ * @param rng On output new shifted range
+ * @param inp Input range to shift
+ * @param delta Range indices are shifted by delta[dir] in each direction
+ */
+void gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
+  const int *delta);
+
+/**
  * Shape in direction dir
  *
  * @param rng Range object
@@ -270,6 +292,30 @@ int gkyl_range_intersect(struct gkyl_range *irng, const struct gkyl_range *r1,
  */
 int gkyl_sub_range_intersect(struct gkyl_range* irng,
   const struct gkyl_range *r1, const struct gkyl_range *r2);
+
+/**
+ * Check if range touches the lower edge of parent range in direction
+ * dir.
+ *
+ * @param dir Direction to check
+ * @param range Inner range
+ * @param parent Parent range
+ * @return true if range is on lower edge, false otherwise
+ */
+bool gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent);
+
+/**
+ * Check if range touches the upper edge of parent range in direction
+ * dir.
+ *
+ * @param dir Direction to check
+ * @param range Inner range
+ * @param parent Parent range
+ * @return true if range is on upper edge, false otherwise
+ */
+bool gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent);
 
 /**
  * General indexing function. Returns linear index into the index
