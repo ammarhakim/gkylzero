@@ -217,7 +217,7 @@ void test_1x1v(int poly_order)
 
   // Write the output
   char fname[1024];
-  sprintf(fname, "ctest_correct_mj_integrated_1x1v_p%d_with_fix_x10.gkyl", poly_order);
+  sprintf(fname, "ctest_correct_mj_integrated_1x1v_p%d.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
 
   // Correct the distribution function
@@ -235,6 +235,7 @@ void test_1x1v(int poly_order)
   {
     for (int i = 0; i < basis.num_basis; ++i)
     {
+      // printf("%1.16g,\n", fv[i]);
       // printf("fv[%d] = %1.16g\n", i, fv[i]);
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
     }
@@ -350,6 +351,11 @@ void test_1x2v(int poly_order)
   // Correct the distribution function
   gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
   gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, m0, m1i, m2, &local, &confLocal);
+
+  // Write the output
+  char fname[1024];
+  sprintf(fname, "ctest_correct_mj_integrated_1x2v_p%d.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.1196584827807841, -3.488028281807569e-18,
@@ -483,23 +489,28 @@ void test_1x3v(int poly_order)
   gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
   gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, m0, m1i, m2, &local, &confLocal);
 
+  // Write the output
+  char fname[1024];
+  sprintf(fname, "ctest_correct_mj_integrated_1x3v_p%d.gkyl", poly_order);
+  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
+
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
-  double p2_vals[] = {0.002127623222952959, -1.631506586025315e-19, 0.001142561434832162,
-                      0.00114256143483216, 0.00114256143483216, -2.51371116629004e-19,
-                      -2.01075727593333e-19, 0.0006425084967736795, -2.595001694861082e-19,
-                      0.0006425084967736792, 0.0006425084967736784, -3.510815947551172e-18,
-                      0.0001864729154912117, 0.000186472915491211, 0.0001864729154912109,
-                      4.028479705065517e-20, -1.268594757705666e-19, -2.111921481277014e-19,
-                      0.000380214364112294, -1.816029978707947e-18, 1.480556426471607e-19,
-                      -1.941768451297124e-18, 0.0001121226604556045, -2.797821897768886e-20,
-                      0.0001121226604556044, -1.816029978707946e-18, 0.0001121226604556046,
-                      0.0001121226604556042, -5.757070789733834e-20, 0.0001121226604556041,
-                      0.0001121226604556039, -8.190440447282892e-20, -8.088564395679194e-19,
-                      8.497928576027658e-20, -1.5611492311066e-20, -7.504319976751439e-19,
-                      9.536202206769661e-21, -9.434845009607244e-19, 7.168010462749378e-05,
-                      -9.105457586457297e-20, 7.168010462749364e-05, -5.777782848963335e-20,
-                      -1.332209120431403e-19, 7.168010462749348e-05, -4.780821736467332e-19,
-                      6.948823307748629e-20, -5.954850476020656e-21, -8.13979340295276e-20};
+  double p2_vals[] = {0.002127623222951445, -2.162483920741371e-19, 0.001142561434831357,
+                      0.001142561434831355, 0.001142561434831355, 1.764595896820067e-20,
+                      -8.294481910314426e-20, 0.0006425084967732312, 9.516906111084089e-21,
+                      0.000642508496773231, 0.0006425084967732302, -3.192214167141901e-18,
+                      0.000186472915491083, 0.0001864729154910819, 0.0001864729154910819,
+                      -5.325792575489166e-20, 8.137013563789262e-20, 4.733285231645305e-20,
+                      0.000380214364112031, -1.642788966842025e-18, 1.704766833543138e-19,
+                      -1.642788966842023e-18, 0.0001121226604555277, 1.95905162472965e-20,
+                      0.0001121226604555275, -1.906839759279303e-18, 0.0001121226604555277,
+                      0.0001121226604555272, 6.544111088116724e-20, 0.0001121226604555273,
+                      0.000112122660455527, 1.685634497069759e-20, -5.335890207604426e-19,
+                      1.154778075974092e-19, -3.540835950960802e-20, -7.517892185638519e-19,
+                      1.657731966330816e-19, -7.688078602245709e-19, 7.168010462744494e-05,
+                      -1.026066499177183e-20, 7.168010462744473e-05, 7.331147141885321e-20,
+                      7.33114714188532e-20, 7.168010462744468e-05, -3.388438170490261e-19,
+                      3.636875421167469e-20, -3.907432934183393e-20, 3.636875421167467e-20};
 
   const double *fv = gkyl_array_cfetch(distf_mj, gkyl_range_idx(&local_ext, (int[4]){1, 8, 8, 8}));
 
