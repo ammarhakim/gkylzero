@@ -114,6 +114,10 @@ void gkyl_correct_mj_fix_m0(gkyl_correct_mj *cmj, const struct gkyl_array *p_ove
   // rescale distribution function
   gkyl_dg_mul_conf_phase_op_range(&cmj->conf_basis, &cmj->phase_basis,
                                   fout, cmj->num_ratio, fout, conf_local, phase_local);
+
+  // Hand back rescaled m0:
+  gkyl_array_clear(cmj->m0, 0.0);
+  gkyl_array_accumulate(cmj->m0, 1.0, cmj->num_ratio);
 }
 
 void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
@@ -160,17 +164,21 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
   // 0. Project the MJ with the intially correct moments
   gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, conf_local, m0_corr, m1i_corr, m2_corr, distf_mj);
 
-  // Iteration loop, 300 iterations is usually sufficient (for all vdim) for machine precision moments
-  for (int i = 0; i < 300; ++i)
+  // tolerance of the iterative scheme
+  double tol = 1e-13;
+  int i = 0;
+  double error_n = 1.0;
+  double error_vbx = 1.0;
+  double error_vby = 0.0;
+  double error_vbz = 0.0;
+  double error_T = 1.0;
+
+  // Iteration loop, 100 iterations is usually sufficient (for all vdim) for machine precision moments
+  while ((i < 100) && ((fabs(error_n) > 1e-14) || (fabs(error_vbx) > 1e-14) ||
+                       (fabs(error_vby) > 1e-14) || (fabs(error_vbz) > 1e-14) || (fabs(error_T) > 1e-14)))
   {
 
-    // 1. Correct the M0 moment to fix the asymptotically approximated MJ function
-    if (vdim == 3)
-    {
-      gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, cmj->m1i, phase_local, conf_local);
-    }
-
-    // 2. Calculate the new moments
+    // 1. Calculate the new moments
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
     gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, cmj->m0, cmj->m1i, cmj->m2, phase_local, conf_local);
 
@@ -193,14 +201,39 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
     gkyl_array_accumulate(cmj->dm1i, 1.0, cmj->ddm1i);
     gkyl_array_accumulate(cmj->dm2, 1.0, cmj->ddm2);
 
+    // End the iteration early if all moments converge
+    if ((i % 5) == 0)
+    {
+      struct gkyl_range_iter biter;
+      gkyl_range_iter_init(&biter, conf_local);
+      while (gkyl_range_iter_next(&biter))
+      {
+        long midx = gkyl_range_idx(conf_local, biter.idx);
+        const double *m0_local = gkyl_array_cfetch(cmj->m0, midx);
+        const double *m1i_local = gkyl_array_cfetch(cmj->m1i, midx);
+        const double *m2_local = gkyl_array_cfetch(cmj->m2, midx);
+        const double *m0_original_local = gkyl_array_cfetch(m0_corr, midx);
+        const double *m1i_original_local = gkyl_array_cfetch(m1i_corr, midx);
+        const double *m2_original_local = gkyl_array_cfetch(m2_corr, midx);
+        error_n = m0_local[0] - m0_original_local[0];
+        error_vbx = m1i_local[0] - m1i_original_local[0];
+        error_T = m2_local[0] - m2_original_local[0];
+        if (vdim > 1)
+        {
+          error_vby = m1i_local[poly_order + 1] - m1i_original_local[poly_order + 1];
+        }
+        if (vdim > 2)
+        {
+          error_vbz = m1i_local[2 * (poly_order + 1)] - m1i_original_local[2 * (poly_order + 1)];
+        }
+      }
+    }
+
     // c. Calculate  M0^(k+1) = m0 + dm^(k+1)
     // m0 = m0_corr + dm_new;
-    if (vdim != 3)
-    {
-      gkyl_array_clear(cmj->m0, 0.0);
-      gkyl_array_accumulate(cmj->m0, 1.0, m0_corr);
-      gkyl_array_accumulate(cmj->m0, 1.0, cmj->dm0);
-    }
+    gkyl_array_clear(cmj->m0, 0.0);
+    gkyl_array_accumulate(cmj->m0, 1.0, m0_corr);
+    gkyl_array_accumulate(cmj->m0, 1.0, cmj->dm0);
     gkyl_array_clear(cmj->m1i, 0.0);
     gkyl_array_accumulate(cmj->m1i, 1.0, m1i_corr);
     gkyl_array_accumulate(cmj->m1i, 1.0, cmj->dm1i);
@@ -208,17 +241,19 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
     gkyl_array_accumulate(cmj->m2, 1.0, m2_corr);
     gkyl_array_accumulate(cmj->m2, 1.0, cmj->dm2);
 
-    // 3. Update the dist_mj using the corrected moments
+    // 2. Update the dist_mj using the corrected moments
     gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, conf_local, cmj->m0, cmj->m1i, cmj->m2, distf_mj);
+
+    // 3. Correct the M0 moment to fix the asymptotically approximated MJ function
+    gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, cmj->m1i, phase_local, conf_local);
+
+    // increment i
+    i += 1;
 
   } // Iteration loop end
 
   // If the algorithm fails (density fails to converge)!
-  // Project the distribution function
-  if (vdim == 3)
-  {
-    gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, cmj->m1i, phase_local, conf_local);
-  }
+  // Project the distribution function with the basic moments and correct m0
   gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, cmj->m0, cmj->m1i, cmj->m2, phase_local, conf_local);
   double diff = 0.0;
   struct gkyl_range_iter biter;
