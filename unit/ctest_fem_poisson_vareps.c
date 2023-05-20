@@ -48,7 +48,7 @@ void evalFunc2x_periodicx_periodicy(double t, const double *xn, double* restrict
       double b = bmn[(m-1)*3+(n-1)];
       double t1 = (a*gxx*pow(m,2) - 2*b*gxy*m*n + a*gyy*pow(n,2))*cos(m*x)*cos(n*y);
       double t2 = (b*gxx*pow(m,2) - 2*a*gxy*m*n + b*gyy*pow(n,2))*sin(m*x)*sin(n*y);
-      fout[0] = fout[0] + (t1+t2);
+      fout[0] += t1+t2;
     }
   }
 }
@@ -207,7 +207,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
 
   double lower[] = {-M_PI,-M_PI}, upper[] = {M_PI,M_PI};
   if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
-             (bcs.lo_type[1]==GKYL_POISSON_NEUMANN && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) {
+      (bcs.lo_type[1]==GKYL_POISSON_NEUMANN && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) {
     lower[0] = 0.;  lower[1] = 0.;
     upper[0] = 1.;  upper[1] = 1.;
   }
