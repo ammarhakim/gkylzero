@@ -14,12 +14,9 @@
 
 void evalFunc_consteps_periodicx_periodicy_sol(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  // These values have to match those in the test below.
-  double gxx = 1.0;
-  double gxy = 0.;
-  double gyy = 1.0;
-
   double x = xn[0], y = xn[1], z = xn[2];
+  // These values have to match those in the test below.
+  double gxx = 1.0,  gxy = 0.,  gyy = 1.0;
   double amn[] = {0., 10., 0., 10., 0., 0., 10., 0., 0.};
   double bmn[] = {0., 10., 0., 10., 0., 0., 10., 0., 0.};
   fout[0] = 0.;
@@ -38,12 +35,9 @@ void evalFunc_consteps_periodicx_periodicy_sol(double t, const double *xn, doubl
 }
 void evalFunc_consteps_periodicx_periodicy(double t, const double *xn, double* restrict fout, void *ctx)
 {
-  // These values have to match those in the test below.
-  double gxx = 1.0;
-  double gxy = 0.;
-  double gyy = 1.0;
-
   double x = xn[0], y = xn[1], z = xn[2];
+  // These values have to match those in the test below.
+  double gxx = 1.0,  gxy = 0.,  gyy = 1.0;
   double amn[] = {0., 10., 0., 10., 0., 0., 10., 0., 0.};
   double bmn[] = {0., 10., 0., 10., 0., 0., 10., 0., 0.};
   fout[0] = 0.;
@@ -69,6 +63,20 @@ double poly_test_func_1x(double x, double a, double *c)
   return pow(x,2)/2.-a*pow(x,4)/12.+c[0]*x+c[1];
 }
 
+void evalFunc_consteps_dirichletx_dirichlety_sol(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
+  double a = 2.;
+  double c[] = {a/12.-1./2., 0.};
+  double b = 2.;
+  double d[] = {b/12.-1./2., 0.};
+  double kz = 1.;
+  double xp = x, yp = y, zp = z;
+  fout[0] = poly_test_func_1x(xp, a, c)*poly_test_func_1x(yp, b, d)
+//           *sin(kz*z);
+           *(1.+kz*z);
+//           *(1.+kz*z+0.5*pow(z,2));
+}
 void evalFunc_consteps_dirichletx_dirichlety(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
@@ -84,21 +92,30 @@ void evalFunc_consteps_dirichletx_dirichlety(double t, const double *xn, double*
               *(1.+kz*z);
 //              *(1.+kz*z+0.5*pow(z,2));
 }
-void evalFunc_consteps_dirichletx_dirichlety_sol(double t, const double *xn, double* restrict fout, void *ctx)
+
+void evalFunc_consteps_dirichletx_periodicy_sol(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double a = 2.;
   double c[] = {a/12.-1./2., 0.};
-  double b = 2.;
-  double d[] = {b/12.-1./2., 0.};
-  double kz = 1.;
-  double xp = x, yp = y, zp = z;
-  fout[0] = poly_test_func_1x(xp, a, c)*poly_test_func_1x(yp, b, d)
-//           *sin(kz*z);
-           *(1.+kz*z);
-//           *(1.+kz*z+0.5*pow(z,2));
-}
+  double n = 2.;
+  fout[0] = poly_test_func_1x(x, a, c)*(y+M_PI/2.)*sin(n*y);
 
+//  double kz = 1.;
+//  fout[0] *= (1.+kz*z);
+}
+void evalFunc_consteps_dirichletx_periodicy(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
+  double a = 2.;
+  double c[] = {a/12.-1./2., 0.};
+  double n = 2.;
+  fout[0] = -( (1-a*pow(x,2))*(M_PI/2.+y)*sin(n*y)
+              +n*poly_test_func_1x(x, a, c)*(2.*cos(n*y)-n*(y+M_PI/2.)*sin(n*y)) );
+
+//  double kz = 1.;
+//  fout[0] *= (1.+kz*z);
+}
 // allocate array (filled with zeros)
 static struct gkyl_array*
 mkarr(long nc, long size)
@@ -146,6 +163,9 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) {
     lower[0] = 0.;  upper[0] = 1.;
     lower[1] = 0.;  upper[1] = 1.;
+  } else if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+             (bcs.lo_type[1]==GKYL_POISSON_PERIODIC && bcs.up_type[1]==GKYL_POISSON_PERIODIC)) {
+    lower[0] = 0.;  upper[0] = 1.;
   }
   int dim = sizeof(lower)/sizeof(lower[0]);
 
@@ -177,6 +197,12 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
       poly_order+1, 1, evalFunc_consteps_dirichletx_dirichlety, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
       2*(poly_order+1), 1, evalFunc_consteps_dirichletx_dirichlety_sol, NULL);
+  } else if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+             (bcs.lo_type[1]==GKYL_POISSON_PERIODIC && bcs.up_type[1]==GKYL_POISSON_PERIODIC)) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_periodicy, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_periodicy_sol, NULL);
   }
 
   // Create DG field we wish to make continuous.
@@ -781,6 +807,18 @@ void test_p1_dirichletx_dirichlety_consteps() {
   test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
 }
 
+void test_p1_dirichletx_periodicy_consteps() {
+  int cells[] = {8,8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps(1, cells, bc_tv, false);
+}
+
 void test_p2_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
@@ -808,6 +846,7 @@ void test_p2_dirichletx_dirichlety_consteps() {
 TEST_LIST = {
   { "test_p1_periodicx_periodicy", test_p1_periodicx_periodicy_consteps },
   { "test_p1_dirichletx_dirichlety", test_p1_dirichletx_dirichlety_consteps },
+//  { "test_p1_dirichletx_periodicy", test_p1_dirichletx_periodicy_consteps },
   { "test_p2_periodicx_periodicy", test_p2_periodicx_periodicy_consteps },
   { "test_p2_dirichletx_dirichlety", test_p2_dirichletx_dirichlety_consteps },
   { NULL, NULL },
