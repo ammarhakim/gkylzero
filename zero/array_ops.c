@@ -392,7 +392,7 @@ gkyl_array_shiftc_range(struct gkyl_array* out, double a, unsigned k, struct gky
   assert(out->type == GKYL_DOUBLE);
   assert(k < NCOM(out));
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_shiftc_range_cu(out, a, k); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_shiftc_range_cu(out, a, k, range); return out; }
 #endif
 
   struct gkyl_range_iter iter;
