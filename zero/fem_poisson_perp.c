@@ -159,8 +159,8 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
   up->kernels->solker = fem_poisson_perp_choose_sol_kernels(&basis);
 
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
-    fem_poisson_perp_choose_kernels_cu(&basis, bcs, up->isdirperiodic, up->kernels_cu);
+//  if (up->use_gpu)
+//    fem_poisson_perp_choose_kernels_cu(&basis, bcs, up->isdirperiodic, up->kernels_cu);
 #endif
 
   // Create a linear Ax=B problem for each perp plane. Here A is the discrete (global)
@@ -268,7 +268,7 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(rhsin));
 
-    gkyl_fem_poisson_perp_set_rhs_cu(up, rhsin);
+//    gkyl_fem_poisson_perp_set_rhs_cu(up, rhsin);
     return;
   }
 #endif
@@ -314,7 +314,7 @@ gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(phiout));
-    gkyl_fem_poisson_perp_solve_cu(up, phiout);
+//    gkyl_fem_poisson_perp_solve_cu(up, phiout);
     return;
   }
 #endif
