@@ -328,7 +328,7 @@ struct gkyl_fem_poisson_perp {
   double *rhs_avg, mavgfac;
   double *rhs_avg_cu;
 
-  double bcvals[GKYL_MAX_CDIM*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
+  double bcvals[PERP_DIM*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
   double *bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
 
   struct gkyl_range local_range, local_range_ext;

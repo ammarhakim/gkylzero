@@ -160,11 +160,11 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   }
   int dim = sizeof(lower)/sizeof(lower[0]);
 
-  // grids.
+  // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
 
-  // basis functions.
+  // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
@@ -174,7 +174,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
   skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
-  // projection updater for DG field.
+  // Projection updater for DG field.
   gkyl_proj_on_basis *projob;
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
@@ -190,18 +190,18 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
       poly_order+1, 1, evalFunc1x_dirichletx_neumannx, NULL);
   }
 
-  // create DG field we wish to make continuous.
+  // Create DG field we wish to make continuous.
   struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
-  // create array holding continuous field we'll compute.
+  // Create array holding continuous field we'll compute.
   struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
-  // device copies:
+  // Device copies:
   struct gkyl_array *rho_cu, *phi_cu;
   if (use_gpu) {
     rho_cu  = mkarr_cu(basis.num_basis, localRange_ext.volume);
     phi_cu  = mkarr_cu(basis.num_basis, localRange_ext.volume);
   }
 
-  // project distribution function on basis.
+  // Project the right-side source on the basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   struct gkyl_array *perbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   for (int d=0; d<dim; d++)
@@ -230,7 +230,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   }
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
-  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_1x_phi_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_1x_phi_1.gkyl");
 
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
     struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
@@ -530,7 +530,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
   skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
-  // projection updater for DG field.
+  // Projection updater for DG field.
   gkyl_proj_on_basis *projob;
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.lo_type[1] == GKYL_POISSON_PERIODIC) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
@@ -565,18 +565,18 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
       poly_order+1, 1, evalFunc2x_dirichletx_neumannx_dirichlety, NULL);
   }
 
-  // create DG field we wish to make continuous.
+  // Create DG field we wish to make continuous.
   struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
-  // create array holding continuous field we'll compute.
+  // Create array holding continuous field we'll compute.
   struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
-  // device copies:
+  // Device copies:
   struct gkyl_array *rho_cu, *phi_cu;
   if (use_gpu) {
     rho_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
     phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
   }
 
-  // project distribution function on basis.
+  // Project the right-side source on the basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   struct gkyl_array *perbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   for (int d=0; d<dim; d++)
@@ -605,7 +605,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   }
   for (int d=0; d<dim; d++)
     if (bcs.lo_type[d] == GKYL_POISSON_PERIODIC) apply_periodic_bc(perbuff, phi, d, skin_ghost);
-  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_2x_phi_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_2x_phi_1.gkyl");
 
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.lo_type[1] == GKYL_POISSON_PERIODIC) {
     struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
