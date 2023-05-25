@@ -23,6 +23,7 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   int poly_order = cbasis->poly_order;
   up->cdim = cdim;
   up->basis = cbasis;
+  up->use_gpu = use_gpu;
   up->conf_rng = conf_rng;
   up->phase_rng = phase_rng; 
 
@@ -79,7 +80,7 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
     gkyl_iz_choose_react_ratef_kernel_cu(up->basis, up->kernels_cu);
   } else {
     up->kernels->react_ratef = gkyl_iz_choose_react_ratef_kernel(up->basis);
-    assert(up->kernels->reflectedf);
+    assert(up->kernels->react_ratef);
     up->kernels_cu = up->kernels;
   }
 #else

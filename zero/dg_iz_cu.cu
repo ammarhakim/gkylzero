@@ -49,7 +49,7 @@ gkyl_iz_react_rate_cu_ker(struct gkyl_range conf_rng, double elem_charge, double
 }
 
 void
-gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_neut,
+gkyl_iz_react_rate_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_neut,
   const struct gkyl_array *coef_iz){
   int nblocks = up->conf_rng.nblocks, nthreads = up->conf_rng.nthreads;
   

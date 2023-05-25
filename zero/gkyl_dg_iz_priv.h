@@ -81,7 +81,7 @@ gkyl_iz_choose_react_ratef_kernel(const struct gkyl_basis *basis)
  * @param moms_neut Neutral moments.
  * @param coef_iz Ionization reaction rate parameter.
  */
-gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_neut,
+gkyl_iz_react_rate_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_neut,
   const struct gkyl_array *coef_iz);
 
 #endif
