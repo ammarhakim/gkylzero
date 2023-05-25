@@ -12,10 +12,6 @@
 #include <gkyl_mat_triples.h>
 #include <gkyl_dg_bin_ops.h>
 
-#ifndef POISSON_MAX_DIM
-# define POISSON_MAX_DIM 3
-#endif
-
 // Object type
 typedef struct gkyl_fem_poisson gkyl_fem_poisson;
 
@@ -32,8 +28,8 @@ enum gkyl_poisson_bc_type {
 struct gkyl_poisson_bc_value { double v[3]; };
 
 struct gkyl_poisson_bc {
-  enum gkyl_poisson_bc_type lo_type[POISSON_MAX_DIM], up_type[POISSON_MAX_DIM];
-  struct gkyl_poisson_bc_value lo_value[POISSON_MAX_DIM], up_value[POISSON_MAX_DIM];
+  enum gkyl_poisson_bc_type lo_type[GKYL_MAX_CDIM], up_type[GKYL_MAX_CDIM];
+  struct gkyl_poisson_bc_value lo_value[GKYL_MAX_CDIM], up_value[GKYL_MAX_CDIM];
 };
 
 /**

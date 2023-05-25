@@ -5,10 +5,6 @@
 #include <gkyl_superlu_ops.h>
 #include <gkyl_cusolver_ops.h>
 
-#ifndef POISSON_MAX_DIM
-# define POISSON_MAX_DIM 3
-#endif
-
 #ifndef GKYL_IPOW
 # define GKYL_IPOW(a,e) (int)(pow(a,e)+0.5)
 #endif
@@ -644,12 +640,12 @@ struct gkyl_fem_poisson {
   enum gkyl_basis_type basis_type;
   int poly_order;
   struct gkyl_basis basis;
-  int num_cells[POISSON_MAX_DIM];
-  double dx[POISSON_MAX_DIM];
+  int num_cells[GKYL_MAX_CDIM];
+  double dx[GKYL_MAX_CDIM];
 #ifdef GKYL_HAVE_CUDA
   double *dx_cu;
 #endif
-  bool isdirperiodic[POISSON_MAX_DIM]; // =true if direction is periodic.
+  bool isdirperiodic[GKYL_MAX_CDIM]; // =true if direction is periodic.
 
   struct gkyl_array *epsilon; // permittivity.
   bool isvareps; // indicate if permittivity is a tensor/varies in space.
@@ -660,7 +656,7 @@ struct gkyl_fem_poisson {
   double *rhs_avg, mavgfac;
   double *rhs_avg_cu;
 
-  double bcvals[POISSON_MAX_DIM*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
+  double bcvals[GKYL_MAX_CDIM*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
   double *bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
 
   struct gkyl_range local_range, local_range_ext;
@@ -674,7 +670,7 @@ struct gkyl_fem_poisson {
   struct gkyl_array *brhs;
 
 #ifdef GKYL_HAVE_CUDA
-  struct gkyl_cusolver_prob* prob_cu;
+  struct gkyl_cusolver_prob *prob_cu;
   struct gkyl_array *brhs_cu;
 #endif
 
@@ -741,7 +737,7 @@ fem_poisson_choose_local2global_kernels(const struct gkyl_basis* basis, const bo
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
 
-  int bckey[POISSON_MAX_DIM] = {-1};
+  int bckey[GKYL_MAX_CDIM] = {-1};
   for (int d=0; d<basis->ndim; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
 
   switch (basis->b_type) {
@@ -771,7 +767,7 @@ fem_poisson_choose_lhs_kernels(const struct gkyl_basis* basis, const struct gkyl
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
 
-  int bckey[POISSON_MAX_DIM] = {-1};
+  int bckey[GKYL_MAX_CDIM] = {-1};
   for (int d=0; d<basis->ndim; d++) {
     if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC && bcs->up_type[d]==GKYL_POISSON_PERIODIC) { bckey[d] = 0; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
@@ -812,7 +808,7 @@ fem_poisson_choose_src_kernels(const struct gkyl_basis* basis, const struct gkyl
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
 
-  int bckey[POISSON_MAX_DIM] = {-1};
+  int bckey[GKYL_MAX_CDIM] = {-1};
   for (int d=0; d<basis->ndim; d++) {
     if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC && bcs->up_type[d]==GKYL_POISSON_PERIODIC) { bckey[d] = 0; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }

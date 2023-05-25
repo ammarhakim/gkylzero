@@ -400,9 +400,8 @@ fem_poisson_perp_choose_local2global_kernels(const struct gkyl_basis* basis, con
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<GKYL_IPOW(2,PERP_DIM); k++) {
+      for (int k=0; k<GKYL_IPOW(2,PERP_DIM); k++)
         l2gout[k] = CK(ser_loc2glob_list_3x, poly_order, k, bckey[0], bckey[1]);
-      }
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
 //      break;

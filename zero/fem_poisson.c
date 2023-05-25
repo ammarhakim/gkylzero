@@ -63,7 +63,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   gkyl_create_grid_ranges(grid, ghost, &up->local_range_ext, &up->local_range);
   // Range of cells we'll solve Poisson in, as
   // a sub-range of up->local_range_ext.
-  int sublower[POISSON_MAX_DIM], subupper[POISSON_MAX_DIM];
+  int sublower[GKYL_MAX_CDIM], subupper[GKYL_MAX_CDIM];
   for (int d=0; d<up->ndim; d++) {
     sublower[d] = up->local_range.lower[d];
     subupper[d] = up->local_range.upper[d];
@@ -115,8 +115,8 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    up->bcvals_cu = (double *) gkyl_cu_malloc(sizeof(double[POISSON_MAX_DIM*3*2]));
-    gkyl_cu_memcpy(up->bcvals_cu, up->bcvals, sizeof(double[POISSON_MAX_DIM*3*2]), GKYL_CU_MEMCPY_H2D);
+    up->bcvals_cu = (double *) gkyl_cu_malloc(sizeof(double[GKYL_MAX_CDIM*3*2]));
+    gkyl_cu_memcpy(up->bcvals_cu, up->bcvals, sizeof(double[GKYL_MAX_CDIM*3*2]), GKYL_CU_MEMCPY_H2D);
   }
 #endif
 
@@ -127,8 +127,8 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   for (int d=0; d<up->ndim; d++) up->dx[d] = up->grid.dx[d];  // Cell lengths.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    up->dx_cu = (double *) gkyl_cu_malloc(sizeof(double[POISSON_MAX_DIM]));
-    gkyl_cu_memcpy(up->dx_cu, up->dx, sizeof(double[POISSON_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
+    up->dx_cu = (double *) gkyl_cu_malloc(sizeof(double[GKYL_MAX_CDIM]));
+    gkyl_cu_memcpy(up->dx_cu, up->dx, sizeof(double[GKYL_MAX_CDIM]), GKYL_CU_MEMCPY_H2D);
   }
 #endif
 
@@ -168,7 +168,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(tri);
 #endif
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
-  int idx0[POISSON_MAX_DIM];
+  int idx0[GKYL_MAX_CDIM];
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
@@ -234,7 +234,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
   gkyl_array_clear(up->brhs, 0.0);
 
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
-  int idx0[POISSON_MAX_DIM];
+  int idx0[GKYL_MAX_CDIM];
   double *brhs_p = gkyl_array_fetch(up->brhs, 0);
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
@@ -269,7 +269,7 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
   gkyl_superlu_solve(up->prob);
 
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
-  int idx0[POISSON_MAX_DIM];
+  int idx0[GKYL_MAX_CDIM];
   gkyl_array_clear(phiout, 0.0);
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);

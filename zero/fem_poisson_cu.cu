@@ -109,10 +109,10 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
 
-  int bckey[POISSON_MAX_DIM] = {-1};
+  int bckey[GKYL_MAX_CDIM] = {-1};
   for (int d=0; d<basis->ndim; d++) bckey[d] = isdirperiodic[d] ? 0 : 1;
-  int *bckey_d = (int *) gkyl_cu_malloc(sizeof(int[POISSON_MAX_DIM]));
-  gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[POISSON_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
+  int *bckey_d = (int *) gkyl_cu_malloc(sizeof(int[GKYL_MAX_CDIM]));
+  gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[GKYL_MAX_CDIM]), GKYL_CU_MEMCPY_H2D);
 
   fem_poisson_set_cu_l2gker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d);
   
@@ -125,7 +125,7 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
     else if (bcs->lo_type[d]==GKYL_POISSON_ROBIN && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 5; }
     else { assert(false); }
   };
-  gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[POISSON_MAX_DIM]), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(bckey_d, bckey, sizeof(int[GKYL_MAX_CDIM]), GKYL_CU_MEMCPY_H2D);
 
   fem_poisson_set_cu_ker_ptrs<<<1,1>>>(kers, basis->b_type, dim, poly_order, bckey_d, isvareps);
 
@@ -135,11 +135,11 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
 __global__ void
 gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *epsilon, bool isvareps, const double *dx, double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, const double *bcvals, struct gkyl_fem_poisson_kernels *kers)
 {
-  int idx[GKYL_MAX_DIM];
-  int idx0[GKYL_MAX_DIM];
-  int num_cells[POISSON_MAX_DIM];
+  int idx[GKYL_MAX_CDIM];
+  int idx0[GKYL_MAX_CDIM];
+  int num_cells[GKYL_MAX_CDIM];
   long globalidx[32];
-  for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
+  for (int d=0; d<GKYL_MAX_CDIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
        linc1 < range.volume;
@@ -174,11 +174,11 @@ gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *epsilon, bool isvareps, const
 __global__ void
 gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_global, struct gkyl_range range, struct gkyl_fem_poisson_kernels *kers)
 {
-  int idx[GKYL_MAX_DIM];
-  int idx0[GKYL_MAX_DIM];
-  int num_cells[POISSON_MAX_DIM];
+  int idx[GKYL_MAX_CDIM];
+  int idx0[GKYL_MAX_CDIM];
+  int num_cells[GKYL_MAX_CDIM];
   long globalidx[32];
-  for (int d=0; d<POISSON_MAX_DIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
+  for (int d=0; d<GKYL_MAX_CDIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
        linc1 < range.volume;

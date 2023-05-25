@@ -149,7 +149,7 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
     up->kernels->l2g(up->parnum_cells, paridx, up->globalidx);
 
-    const double *wgt_p = isweighted? (const double *) gkyl_array_cfetch(weight, isparperiodic? paridx : paridx+1) : NULL;
+    const double *wgt_p = isweighted? gkyl_array_cfetch(weight, isparperiodic? paridx : paridx+1) : NULL;
 
     // Apply the wgt*phi*basis stencil.
     up->kernels->lhsker(wgt_p, up->globalidx, tri);
