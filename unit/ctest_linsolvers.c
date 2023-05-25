@@ -11,6 +11,7 @@ void test_cusolver_qr();
 void test_cusolver_rf();
 void test_cusolver_ops();
 void test_cusolver_ops_multiple_rhs();
+void test_cusolver_ops_multiple_prob();
 
 void test_slu_example()
 {
@@ -177,6 +178,7 @@ TEST_LIST = {
   { "cusolver_rf", test_cusolver_rf },
   { "cusolver_ops", test_cusolver_ops },
   { "cusolver_ops_multiple_rhs", test_cusolver_ops_multiple_rhs },
+  { "cusolver_ops_multiple_prob", test_cusolver_ops_multiple_prob },
 #endif
   { NULL, NULL }
 };

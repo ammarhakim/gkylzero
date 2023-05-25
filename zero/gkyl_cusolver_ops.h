@@ -14,17 +14,25 @@
 typedef struct gkyl_cusolver_prob gkyl_cusolver_prob;
 
 /**
- * Create a new cuSolver Ax=B problem.
+ * Create a new cuSolver A_i x_i = B_i where i \in {0,1,...,nprob-1},
+ * for solving nprob linear problems. This module can be used in two ways:
+ *   a) Using nprob=1 and nrhs>=1, so that one can solve a nrhs linear problems
+ *      with the same left-side matrix A_i for each problem, i.e. B is a matrix
+ *      of nprob columns.
+ *   b) Using nprob=>1 and nrhs=1, so we are solving nprob separate linear
+ *      problems (each with a different left-side Matrix A_i, but with the same
+ *      dimensions and sparsity pattern) where each problem only has a
+ *      right-side vector with a single column.
  */
-struct gkyl_cusolver_prob* gkyl_cusolver_prob_new(const int mrow, const int ncol, const int nprob);
+struct gkyl_cusolver_prob* gkyl_cusolver_prob_new(int nprob, int mrow, int ncol, int nrhs);
 
 /**
  * Initialize cuSolver matrix A in Ax=B problem from a list of triples.
  *
  * @param prob cuSolver struct holding arrays used in problem.
- * @param tri coordinates & values of non-zero entries in A matrix (triplets).
+ * @param tri (array of) coordinates & values of non-zero entries in A matrix (triplets).
  */
-void gkyl_cusolver_amat_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri);
+void gkyl_cusolver_amat_from_triples(struct gkyl_cusolver_prob *prob, struct gkyl_mat_triples **tri);
 
 /**
  * Method to print the matrix A to screen.

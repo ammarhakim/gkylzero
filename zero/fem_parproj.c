@@ -131,7 +131,7 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   //     separate Ax=B problem for each perpendicular cell.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, up->perp_range.volume);
+    up->prob_cu = gkyl_cusolver_prob_new(1, up->numnodes_global, up->numnodes_global, up->perp_range.volume);
   else
     up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, up->perp_range.volume);
 #else
@@ -139,9 +139,10 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 #endif
 
   // Assign non-zero elements in A.
-  gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
+  struct gkyl_mat_triples **tri = gkyl_malloc(sizeof(struct gkyl_mat_triples *));
+  tri[0] = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(tri);
+  if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(tri[0]);
 #endif
   gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
   while (gkyl_range_iter_next(&up->par_iter1d)) {
@@ -152,18 +153,19 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
     const double *wgt_p = isweighted? gkyl_array_cfetch(weight, isparperiodic? paridx : paridx+1) : NULL;
 
     // Apply the wgt*phi*basis stencil.
-    up->kernels->lhsker(wgt_p, up->globalidx, tri);
+    up->kernels->lhsker(wgt_p, up->globalidx, tri[0]);
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
   else
-    gkyl_superlu_amat_from_triples(up->prob, tri);
+    gkyl_superlu_amat_from_triples(up->prob, tri[0]);
 #else
-  gkyl_superlu_amat_from_triples(up->prob, tri);
+  gkyl_superlu_amat_from_triples(up->prob, tri[0]);
 #endif
 
-  gkyl_mat_triples_release(tri);
+  gkyl_mat_triples_release(tri[0]);
+  gkyl_free(tri);
 
   return up;
 }

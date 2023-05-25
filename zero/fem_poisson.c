@@ -155,7 +155,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   // representation of the LHS of the Helmholtz equation.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) 
-    up->prob_cu = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
+    up->prob_cu = gkyl_cusolver_prob_new(1, up->numnodes_global, up->numnodes_global, 1);
   else
     up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
 #else
@@ -163,9 +163,10 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 #endif
 
   // Assign non-zero elements in A.
-  gkyl_mat_triples *tri = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
+  struct gkyl_mat_triples **tri = gkyl_malloc(sizeof(struct gkyl_mat_triples *));
+  tri[0] = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(tri);
+  if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(tri[0]);
 #endif
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   int idx0[GKYL_MAX_CDIM];
@@ -181,19 +182,20 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
     // Apply the -nabla . (epsilon*nabla)-kSq stencil.
     keri = idx_to_inloup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
-    up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri);
+    up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[0]);
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
   } else {
-    gkyl_superlu_amat_from_triples(up->prob, tri);
+    gkyl_superlu_amat_from_triples(up->prob, tri[0]);
   }
 #else
-  gkyl_superlu_amat_from_triples(up->prob, tri);
+  gkyl_superlu_amat_from_triples(up->prob, tri[0]);
 #endif
 
-  gkyl_mat_triples_release(tri);
+  gkyl_mat_triples_release(tri[0]);
+  gkyl_free(tri);
   gkyl_array_release(epsilon_ho);
   gkyl_array_release(kSq_ho);
 

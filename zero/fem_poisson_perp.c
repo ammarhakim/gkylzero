@@ -170,8 +170,8 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     up->prob_cu = gkyl_malloc(up->par_range.volume * sizeof(struct gkyl_cusolver_prob *));
-    for (size_t i=0; i<up->par_range.volume; i++)
-      up->prob_cu[i] = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
+//    for (size_t i=0; i<up->par_range.volume; i++)
+//      up->prob_cu[i] = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
   } else {
     up->prob = gkyl_malloc(up->par_range.volume * sizeof(struct gkyl_superlu_prob *));
     for (size_t i=0; i<up->par_range.volume; i++)
@@ -216,7 +216,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
     }
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
-      gkyl_cusolver_amat_from_triples(up->prob_cu[paridx], tri);
+//      gkyl_cusolver_amat_from_triples(up->prob_cu[paridx], tri);
     } else {
       gkyl_superlu_amat_from_triples(up->prob[paridx], tri);
     }
