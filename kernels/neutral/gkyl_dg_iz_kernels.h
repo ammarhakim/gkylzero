@@ -2,7 +2,7 @@
 #include <math.h> 
 #include <gkyl_util.h> 
 
-GKYL_CU_DH static inline double 
+GKYL_CU_DH static inline void 
 iz_react_rate_1x_ser_p1(double elem_charge, double mass, double E, double A, double K, double P, double X, const double *n_neut, const double *vt_sq_neut, const double *vt_sq_elc, double* GKYL_RESTRICT coef_iz) 
 { 
   // elem_charge : elementary charge (J - eV conversion factor). 
@@ -25,15 +25,13 @@ iz_react_rate_1x_ser_p1(double elem_charge, double mass, double E, double A, dou
  
   if (U >= 3.0/2.0 || n_neut0 <= 0.0 || vt_sq_neut0 <= 0.0 || vt_sq_elc0 <= 0.0) { 
     coef_iz[0] = 0.0;
-    return 0.0; 
   } 
   else {
     coef_iz[0] = (1.414213562373095*A*P*pow(U,K+1/2))/(1000000.0*X*exp(U)+1000000.0*U*exp(U))+(1.414213562373095*A*pow(U,K))/(1000000.0*X*exp(U)+1000000.0*U*exp(U)); 
-    return 0.1666666666666667*coef_iz[0]*n_neut[0]; 
   }
 } 
 
-GKYL_CU_DH static inline double 
+GKYL_CU_DH static inline void 
 iz_react_rate_1x_ser_p2(double elem_charge, double mass, double E, double A, double K, double P, double X, const double *n_neut, const double *vt_sq_neut, const double *vt_sq_elc, double* GKYL_RESTRICT coef_iz) 
 { 
   // elem_charge : elementary charge (J - eV conversion factor). 
@@ -56,15 +54,13 @@ iz_react_rate_1x_ser_p2(double elem_charge, double mass, double E, double A, dou
  
   if (U >= 3.0/2.0 || n_neut0 <= 0.0 || vt_sq_neut0 <= 0.0 || vt_sq_elc0 <= 0.0) { 
     coef_iz[0] = 0.0;
-    return 0.0; 
   } 
   else {
     coef_iz[0] = (1.414213562373095*A*P*pow(U,K+1/2))/(1000000.0*X*exp(U)+1000000.0*U*exp(U))+(1.414213562373095*A*pow(U,K))/(1000000.0*X*exp(U)+1000000.0*U*exp(U)); 
-    return 0.1*coef_iz[0]*n_neut[0]; 
   }
 }
 
-GKYL_CU_DH static inline double 
+GKYL_CU_DH static inline void 
 iz_react_rate_2x_ser_p1(double elem_charge, double mass, double E, double A, double K, double P, double X, const double *n_neut, const double *vt_sq_neut, const double *vt_sq_elc, double* GKYL_RESTRICT coef_iz) 
 { 
   // elem_charge : elementary charge (J - eV conversion factor). 
@@ -87,15 +83,13 @@ iz_react_rate_2x_ser_p1(double elem_charge, double mass, double E, double A, dou
  
   if (U >= 3.0/2.0 || n_neut0 <= 0.0 || vt_sq_neut0 <= 0.0 || vt_sq_elc0 <= 0.0) { 
     coef_iz[0] = 0.0;
-    return 0.0; 
   } 
   else {
     coef_iz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
-    return 0.08333333333333333*coef_iz[0]*n_neut[0]; 
   }
 }
 
-GKYL_CU_DH static inline double 
+GKYL_CU_DH static inline void 
 iz_react_rate_2x_ser_p2(double elem_charge, double mass, double E, double A, double K, double P, double X, const double *n_neut, const double *vt_sq_neut, const double *vt_sq_elc, double* GKYL_RESTRICT coef_iz) 
 { 
   // elem_charge : elementary charge (J - eV conversion factor). 
@@ -118,15 +112,13 @@ iz_react_rate_2x_ser_p2(double elem_charge, double mass, double E, double A, dou
  
   if (U >= 3.0/2.0 || n_neut0 <= 0.0 || vt_sq_neut0 <= 0.0 || vt_sq_elc0 <= 0.0) { 
     coef_iz[0] = 0.0;
-    return 0.0; 
   } 
   else {
     coef_iz[0] = (A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
-    return 0.05*coef_iz[0]*n_neut[0]; 
   }
 }
 
-GKYL_CU_DH static inline double 
+GKYL_CU_DH static inline void 
 iz_react_rate_3x_ser_p1(double elem_charge, double mass, double E, double A, double K, double P, double X, const double *n_neut, const double *vt_sq_neut, const double *vt_sq_elc, double* GKYL_RESTRICT coef_iz) 
 { 
   // elem_charge : elementary charge (J - eV conversion factor). 
@@ -149,15 +141,13 @@ iz_react_rate_3x_ser_p1(double elem_charge, double mass, double E, double A, dou
  
   if (U >= 3.0/2.0 || n_neut0 <= 0.0 || vt_sq_neut0 <= 0.0 || vt_sq_elc0 <= 0.0) { 
     coef_iz[0] = 0.0;
-    return 0.0; 
   } 
   else {
     coef_iz[0] = (1.414213562373095*A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(1.414213562373095*A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
-    return 0.04166666666666666*coef_iz[0]*n_neut[0]; 
   }
 }
 
-GKYL_CU_DH static inline double 
+GKYL_CU_DH static inline void 
 iz_react_rate_3x_ser_p2(double elem_charge, double mass, double E, double A, double K, double P, double X, const double *n_neut, const double *vt_sq_neut, const double *vt_sq_elc, double* GKYL_RESTRICT coef_iz) 
 { 
   // elem_charge : elementary charge (J - eV conversion factor). 
@@ -180,10 +170,8 @@ iz_react_rate_3x_ser_p2(double elem_charge, double mass, double E, double A, dou
  
   if (U >= 3.0/2.0 || n_neut0 <= 0.0 || vt_sq_neut0 <= 0.0 || vt_sq_elc0 <= 0.0) { 
     coef_iz[0] = 0.0;
-    return 0.0; 
   } 
   else {
     coef_iz[0] = (1.414213562373095*A*P*pow(U,K+1/2))/(500000.0*X*exp(U)+500000.0*U*exp(U))+(1.414213562373095*A*pow(U,K))/(500000.0*X*exp(U)+500000.0*U*exp(U)); 
-    return 0.025*coef_iz[0]*n_neut[0]; 
   }
 }

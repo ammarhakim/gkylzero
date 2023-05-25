@@ -36,7 +36,7 @@ gkyl_dg_cx_new(const struct gkyl_rect_grid *grid,
   // Establish vdim for gk and vlasov species
   // will be either 1 & 1 or 2 & 3
   // for gk and vlasov, respectively
-  int vdim_gk, vdim_vl; 
+  int vdim_vl; 
   int vdim = pdim - up->cdim;
   if (is_gk) {
     if (vdim == 1) {
