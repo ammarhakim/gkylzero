@@ -8,7 +8,7 @@ extern "C" {
 // CUDA kernel to set device pointers to kernel that computes react rate.
 __global__ static void
 gkyl_iz_set_cu_ker_ptrs(const struct gkyl_basis *basis,
-  struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
+  struct gkyl_iz_kernels *kers)
 {
   int cdim = basis->ndim;
   int poly_order = basis->poly_order;
@@ -25,6 +25,7 @@ gkyl_iz_choose_react_ratef_kernel_cu(const struct gkyl_basis *basis,
 __global__ static void
 gkyl_iz_react_rate_cu_ker(struct gkyl_range conf_rng, double elem_charge, double mass_elc, double E,
   double A, double K, double P, double X, const struct gkyl_array *moms_neut,
+  const struct gkyl_array *vth_sq_neut, const struct gkyl_array *vth_sq_elc,
   struct gkyl_iz_kernels *kers, struct gkyl_array *coef_iz) {
 
   int cidx[3];
@@ -35,7 +36,7 @@ gkyl_iz_react_rate_cu_ker(struct gkyl_range conf_rng, double elem_charge, double
     gkyl_sub_range_inv_idx(&conf_rng, linc, cidx);
     long loc = gkyl_range_idx(&conf_rng, cidx);
    
-    const double *moms_neut_d = gkyl_array_cfetch(moms_neut, loc);
+    const double *moms_neut_d = (const double*) gkyl_array_cfetch(moms_neut, loc);
     const double *m0_neut_d = &moms_neut_d[0]; 
 
     const double *vth_sq_neut_d = (const double*) gkyl_array_cfetch(vth_sq_neut, loc);
@@ -50,10 +51,11 @@ gkyl_iz_react_rate_cu_ker(struct gkyl_range conf_rng, double elem_charge, double
 
 void
 gkyl_iz_react_rate_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_neut,
-  const struct gkyl_array *coef_iz){
-  int nblocks = up->conf_rng.nblocks, nthreads = up->conf_rng.nthreads;
+  struct gkyl_array *coef_iz)
+{
+  //int nblocks = up->conf_rng.nblocks, nthreads = up->conf_rng.nthreads;
   
-  gkyl_iz_react_rate_cu_ker<<<nblocks, nthreads>>>gkyl_iz_react_rate_cu_ker(up->conf_rng, up->elem_charge,
-    up->mass_elc, up->E, up->A, up->K, up->P, up->X, moms_neut->on_dev, up->vth_sq_neut->on_dev, up->vth_sq_ion->on_dev,
+  gkyl_iz_react_rate_cu_ker<<<coef_iz->nblocks, coef_iz->nthreads>>>(*up->conf_rng, up->elem_charge,
+    up->mass_elc, up->E, up->A, up->K, up->P, up->X, moms_neut->on_dev, up->vth_sq_neut->on_dev, up->vth_sq_elc->on_dev,
     up->kernels_cu, coef_iz->on_dev);
 }					

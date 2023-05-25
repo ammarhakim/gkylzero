@@ -34,6 +34,7 @@ struct gkyl_dg_iz {
   struct gkyl_basis *basis;
   const struct gkyl_range *conf_rng;
   const struct gkyl_range *phase_rng; 
+  bool use_gpu; 
   
   double elem_charge; // elementary charge value
   double mass_elc; // mass of the electron
@@ -81,7 +82,7 @@ gkyl_iz_choose_react_ratef_kernel(const struct gkyl_basis *basis)
  * @param moms_neut Neutral moments.
  * @param coef_iz Ionization reaction rate parameter.
  */
-gkyl_iz_react_rate_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_neut,
+void gkyl_iz_react_rate_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_neut,
   const struct gkyl_array *coef_iz);
 
 #endif

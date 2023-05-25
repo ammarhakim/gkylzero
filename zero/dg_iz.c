@@ -126,7 +126,7 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_dg_iz_react_rate_cu(up, moms_neut, coef_iz);
+    gkyl_iz_react_rate_cu(up, moms_neut, coef_iz);
     return;
   }
 #endif
