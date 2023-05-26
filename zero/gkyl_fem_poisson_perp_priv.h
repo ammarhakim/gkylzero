@@ -161,7 +161,7 @@ static const lhsstencil_kern_bcx_list_3x ser_lhsstencil_list_3x[] = {
 };
 
 // Function pointer type for rhs source kernels.
-typedef void (*srcstencil_t)(const double *epsilon, const double *dx, const double *rho, const double *bcVals, const long *globalIdxs,
+typedef void (*srcstencil_t)(const double *epsilon, const double *dx, const double *rho, const double *bcVals, long perpOff, const long *globalIdxs,
   double *bsrc);
 
 // For use in kernel tables.
@@ -271,7 +271,7 @@ static const srcstencil_kern_bcx_list_3x ser_srcstencil_list_3x[] = {
 };
 
 // Function pointer type for sol kernels.
-typedef void (*solstencil_t)(const double *sol_nodal_global, const long *globalIdxs, double *sol_modal_local);
+typedef void (*solstencil_t)(const double *sol_nodal_global, long perpOff, const long *globalIdxs, double *sol_modal_local);
 
 typedef struct { solstencil_t kernels[3]; } solstencil_kern_list;
 
@@ -347,7 +347,7 @@ struct gkyl_fem_poisson_perp {
   struct gkyl_array *brhs;
 
 #ifdef GKYL_HAVE_CUDA
-  struct gkyl_cusolver_prob **prob_cu;
+  struct gkyl_cusolver_prob *prob_cu;
   struct gkyl_array *brhs_cu;
 #endif
 

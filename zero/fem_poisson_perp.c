@@ -134,7 +134,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
   }
 #endif
 
-  up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global); // Global right side vector.
+  up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global*up->par_range.volume); // Global right side vector.
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_poisson_perp_kernels));
 #ifdef GKYL_HAVE_CUDA
@@ -169,9 +169,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
   // structure for the GPU solve.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-//    up->prob_cu = gkyl_malloc(up->par_range.volume * sizeof(struct gkyl_cusolver_prob *));
-//    for (size_t i=0; i<up->par_range.volume; i++)
-//      up->prob_cu[i] = gkyl_cusolver_prob_new(up->numnodes_global, up->numnodes_global, 1);
+    up->prob_cu = gkyl_cusolver_prob_new(up->par_range.volume, up->numnodes_global, up->numnodes_global, 1);
   } else {
     up->prob = gkyl_superlu_prob_new(up->par_range.volume, up->numnodes_global, up->numnodes_global, 1);
   }
@@ -179,7 +177,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
   up->prob = gkyl_superlu_prob_new(up->par_range.volume, up->numnodes_global, up->numnodes_global, 1);
 #endif
 
-  struct gkyl_mat_triples **tri = gkyl_malloc(sizeof(struct gkyl_mat_triples *));
+  struct gkyl_mat_triples **tri = gkyl_malloc(up->par_range.volume*sizeof(struct gkyl_mat_triples *));
   for (size_t i=0; i<up->par_range.volume; i++) {
     tri[i] = gkyl_mat_triples_new(up->numnodes_global, up->numnodes_global);
 #ifdef GKYL_HAVE_CUDA
@@ -213,17 +211,15 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
       keri = idx_to_inloup_ker(PERP_DIM, up->num_cells, idx1);
       up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[paridx]);
     }
-#ifdef GKYL_HAVE_CUDA
-    if (up->use_gpu) {
-//      gkyl_cusolver_amat_from_triples(up->prob_cu[paridx], tri);
-    } else {
-      gkyl_superlu_amat_from_triples(up->prob, tri);
-    }
-#else
-    gkyl_superlu_amat_from_triples(up->prob, tri);
-#endif
-
   }
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
+  else
+    gkyl_superlu_amat_from_triples(up->prob, tri);
+#else
+  gkyl_superlu_amat_from_triples(up->prob, tri);
+#endif
 
   for (size_t i=0; i<up->par_range.volume; i++)
     gkyl_mat_triples_release(tri[i]);
@@ -273,39 +269,42 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
   }
 #endif
 
-//  int idx0[GKYL_MAX_CDIM], idx1[GKYL_MAX_CDIM];
-//  gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
-//  while (gkyl_range_iter_next(&up->par_iter1d)) {
-//    long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
-//
-//    gkyl_array_clear(up->brhs, 0.0);
-//
-//    double *brhs_p = gkyl_array_fetch(up->brhs, 0);
-//
-//    gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
-//    while (gkyl_range_iter_next(&up->perp_iter2d)) {
-//      long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
-//
-//      for (size_t d=0; d<PERP_DIM; d++) idx1[d] = up->perp_iter2d.idx[d];
-//      idx1[up->pardir] = up->par_iter1d.idx[0];
-//
-//      long linidx = gkyl_range_idx(&up->solve_range, idx1);
-//
-//      double *eps_p = gkyl_array_fetch(up->epsilon, linidx);
-//      double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
-//
-//      int keri = idx_to_inup_ker(PERP_DIM, up->num_cells, up->perp_iter2d.idx);
-//      for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
-//      up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
-//
-//      // Apply the RHS source stencil. It's mostly the mass matrix times a
-//      // modal-to-nodal operator times the source, modified by BCs in skin cells.
-//      keri = idx_to_inloup_ker(PERP_DIM, up->num_cells, idx1);
-//      up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, up->globalidx, brhs_p);
-//    }
-//
-//    gkyl_superlu_brhs_from_array(up->prob[paridx], brhs_p);
-//  }
+  gkyl_array_clear(up->brhs, 0.0);
+  double *brhs_p = gkyl_array_fetch(up->brhs, 0);
+
+  int idx0[GKYL_MAX_CDIM], idx1[GKYL_MAX_CDIM];
+  gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+  while (gkyl_range_iter_next(&up->par_iter1d)) {
+    long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
+
+    gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
+    while (gkyl_range_iter_next(&up->perp_iter2d)) {
+      long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
+
+      for (size_t d=0; d<PERP_DIM; d++) idx1[d] = up->perp_iter2d.idx[d];
+      idx1[up->pardir] = up->par_iter1d.idx[0];
+
+      long linidx = gkyl_range_idx(&up->solve_range, idx1);
+
+      double *eps_p = gkyl_array_fetch(up->epsilon, linidx);
+      double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
+
+      int keri = idx_to_inup_ker(PERP_DIM, up->num_cells, up->perp_iter2d.idx);
+      for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;
+      up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+
+      // Apply the RHS source stencil. It's mostly the mass matrix times a
+      // modal-to-nodal operator times the source, modified by BCs in skin cells.
+      keri = idx_to_inloup_ker(PERP_DIM, up->num_cells, idx1);
+
+      long parProbOff = paridx*up->numnodes_global;
+
+      up->kernels->srcker[keri](eps_p, up->dx, rhsin_p, up->bcvals, parProbOff, up->globalidx, brhs_p);
+    }
+
+  }
+
+  gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 
 }
 
@@ -321,31 +320,33 @@ gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout
 
   gkyl_array_clear(phiout, 0.0);
 
-//  int idx0[GKYL_MAX_CDIM], idx1[GKYL_MAX_CDIM];
-//  gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
-//  while (gkyl_range_iter_next(&up->par_iter1d)) {
-//    long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
-//  
-//    gkyl_superlu_solve(up->prob[paridx]);
-//
-//    gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
-//    while (gkyl_range_iter_next(&up->perp_iter2d)) {
-//      long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
-//
-//      for (size_t d=0; d<PERP_DIM; d++) idx1[d] = up->perp_iter2d.idx[d];
-//      idx1[up->pardir] = up->par_iter1d.idx[0];
-//
-//      long linidx = gkyl_range_idx(&up->solve_range, idx1);
-//
-//      double *phiout_p = gkyl_array_fetch(phiout, linidx);
-//
-//      int keri = idx_to_inup_ker(PERP_DIM, up->num_cells, up->perp_iter2d.idx);
-//      for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d]-1;
-//      up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
-//
-//      up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob[paridx], 0), up->globalidx, phiout_p);
-//    }
-//  }
+  gkyl_superlu_solve(up->prob);
+
+  int idx0[GKYL_MAX_CDIM], idx1[GKYL_MAX_CDIM];
+  gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
+  while (gkyl_range_iter_next(&up->par_iter1d)) {
+    long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
+  
+    gkyl_range_iter_init(&up->perp_iter2d, &up->perp_range2d);
+    while (gkyl_range_iter_next(&up->perp_iter2d)) {
+      long perpidx = gkyl_range_idx(&up->perp_range2d, up->perp_iter2d.idx);
+
+      for (size_t d=0; d<PERP_DIM; d++) idx1[d] = up->perp_iter2d.idx[d];
+      idx1[up->pardir] = up->par_iter1d.idx[0];
+
+      long linidx = gkyl_range_idx(&up->solve_range, idx1);
+
+      double *phiout_p = gkyl_array_fetch(phiout, linidx);
+
+      int keri = idx_to_inup_ker(PERP_DIM, up->num_cells, up->perp_iter2d.idx);
+      for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d]-1;
+      up->kernels->l2g[keri](up->num_cells, idx0, up->globalidx);
+
+      long parProbOff = paridx*up->numnodes_global;
+
+      up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), parProbOff, up->globalidx, phiout_p);
+    }
+  }
 
 }
 
@@ -362,9 +363,7 @@ void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
     gkyl_cu_free(up->dx_cu);
     if (up->isdomperiodic) gkyl_cu_free(up->rhs_avg_cu);
     gkyl_cu_free(up->bcvals_cu);
-//    for (size_t i=0; i<up->par_range.volume; i++)
-//      gkyl_cusolver_prob_release(up->prob_cu[i]);
-//    gkyl_free(up->prob_cu);
+    gkyl_cusolver_prob_release(up->prob_cu);
   } else {
     gkyl_superlu_prob_release(up->prob);
   }
