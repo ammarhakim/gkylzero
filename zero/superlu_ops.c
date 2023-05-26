@@ -5,8 +5,8 @@
 #include <stdbool.h>
 
 struct gkyl_superlu_prob {
-  SuperMatrix *A, *B; // matrices in A_j x_j = B_j problems.
-  SuperMatrix *L, *U; // L and U factors in LU decomposition.
+  SuperMatrix **A, **B; // matrices in A_j x_j = B_j problems.
+  SuperMatrix **L, **U; // L and U factors in LU decomposition.
   double *rhs; // right-hand side entries. 
   int *perm_c; // column permutation vector (re-used for each problem).
   int **perm_r; // row permutations from partial pivoting.
@@ -43,6 +43,12 @@ gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs)
   prob->B = gkyl_malloc(prob->nprob*sizeof(SuperMatrix *));
   prob->L = gkyl_malloc(prob->nprob*sizeof(SuperMatrix *));
   prob->U = gkyl_malloc(prob->nprob*sizeof(SuperMatrix *));
+  for (size_t k=0; k<prob->nprob; k++) {
+    prob->A[k] = gkyl_malloc(sizeof(SuperMatrix));
+    prob->B[k] = gkyl_malloc(sizeof(SuperMatrix));
+    prob->L[k] = gkyl_malloc(sizeof(SuperMatrix));
+    prob->U[k] = gkyl_malloc(sizeof(SuperMatrix));
+  }
 
   prob->rhs = doubleMalloc(mrow*GKYL_MAX(nprob,nrhs));
   prob->perm_c = intMalloc(ncol);
@@ -70,7 +76,7 @@ gkyl_superlu_amat_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_mat_t
   prob->nnz = gkyl_mat_triples_size(tri[0]);
   for (size_t k=0; k<prob->nprob; k++) {
     assert(gkyl_mat_triples_size(tri[k]) == prob->nnz);  // No. of nonzeros must be the same for every problem.
-    assert(gkyl_mat_triples_is_colmaj(tri[k]));  // triples must be in colmaj order for superlu
+    assert(gkyl_mat_triples_is_colmaj(tri[k]));  // triples must be in colmaj order for superlu.
   }
 
   // Allocate some memory needed in superlu. NOTE: this memory is
@@ -113,7 +119,7 @@ gkyl_superlu_amat_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_mat_t
     gkyl_mat_triples_iter_release(iter);
 
     // Create matrix A. See SuperLU manual for definitions.
-    dCreate_CompCol_Matrix(&prob->A[k], prob->mrow, prob->ncol, prob->nnz,
+    dCreate_CompCol_Matrix(prob->A[k], prob->mrow, prob->ncol, prob->nnz,
       nzval, rowind, colptr, SLU_NC, SLU_D, SLU_GE);
   }
   
@@ -128,7 +134,7 @@ gkyl_superlu_print_amat(struct gkyl_superlu_prob *prob)
   char strA[5];
   for (size_t k=0; k<prob->nprob; k++) {
     snprintf(strA, 5, "A%d", k); // puts string into buffer
-    dPrint_CompCol_Matrix(strA, &prob->A[k]);
+    dPrint_CompCol_Matrix(strA, prob->A[k]);
   }
 }
 
@@ -143,23 +149,23 @@ gkyl_superlu_ludecomp(struct gkyl_superlu_prob *prob)
   * = 3: approximate minimum degree for unsymmetric matrices
   */
   int permc_spec = 0; 
-  get_perm_c(permc_spec, &prob->A[0], prob->perm_c);
+  get_perm_c(permc_spec, prob->A[0], prob->perm_c);
 
   int *etree; // Column elimination tree.
   if ( !(etree = intMalloc(prob->ncol)) ) ABORT("superlu_ops: Malloc fails for etree[].");
   SuperMatrix AC; // permutation matrix time A.
-  sp_preorder(&prob->options, &prob->A[0], prob->perm_c, etree, &AC);
+  sp_preorder(&prob->options, prob->A[0], prob->perm_c, etree, &AC);
 
   int panel_size = sp_ienv(1);
   int relax = sp_ienv(2);
   dgstrf(&prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c,
-    prob->perm_r[0], &prob->L[0], &prob->U[0], &prob->Glu, &prob->stat, &prob->info);
+    prob->perm_r[0], prob->L[0], prob->U[0], &prob->Glu, &prob->stat, &prob->info);
 
   prob->options.Fact = prob->nprob==1? FACTORED : SamePattern; // LU decomp done.
 
   for (size_t k=1; k<prob->nprob; k++) {
     dgstrf(&prob->options, &AC, relax, panel_size, etree, NULL, 0, prob->perm_c,
-      prob->perm_r[k], &prob->L[k], &prob->U[k], &prob->Glu, &prob->stat, &prob->info);
+      prob->perm_r[k], prob->L[k], prob->U[k], &prob->Glu, &prob->stat, &prob->info);
   }
 
   SUPERLU_FREE(etree);
@@ -182,7 +188,7 @@ gkyl_superlu_brhs_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_mat_t
   
   // Create RHS matrix B. See SuperLU manual for definitions.
   for (size_t k=0; k<prob->nprob; k++)
-    dCreate_Dense_Matrix(&prob->B[k], prob->mrow, prob->nrhs, &prob->rhs[k*prob->mrow], prob->mrow,
+    dCreate_Dense_Matrix(prob->B[k], prob->mrow, prob->nrhs, &prob->rhs[k*prob->mrow], prob->mrow,
       SLU_DN, SLU_D, SLU_GE);
 
   prob->assigned_rhs = true;
@@ -196,7 +202,7 @@ gkyl_superlu_brhs_from_array(struct gkyl_superlu_prob *prob, const double *bin)
   
   // Create RHS matrix B. See SuperLU manual for definitions.
   for (size_t k=0; k<prob->nprob; k++)
-    dCreate_Dense_Matrix(&prob->B[k], prob->mrow, prob->nrhs, &prob->rhs[k*prob->mrow], prob->mrow,
+    dCreate_Dense_Matrix(prob->B[k], prob->mrow, prob->nrhs, &prob->rhs[k*prob->mrow], prob->mrow,
       SLU_DN, SLU_D, SLU_GE);
 
   prob->assigned_rhs = true;
@@ -207,16 +213,18 @@ gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
 {
   if (prob->options.Fact==FACTORED) {
     for (size_t k=0; k<prob->nprob; k++)
-      dgstrs(prob->trans, &prob->L[k], &prob->U[k], prob->perm_c, prob->perm_r[k], &prob->B[k], &prob->stat, &prob->info);
+      dgstrs(prob->trans, prob->L[k], prob->U[k], prob->perm_c, prob->perm_r[k], prob->B[k], &prob->stat, &prob->info);
   } else {
-    dgssv(&prob->options, &prob->A[0], prob->perm_c, prob->perm_r[0], &prob->L[0], &prob->U[0],
-      &prob->B[0], &prob->stat, &prob->info);
+    dgssv(&prob->options, prob->A[0], prob->perm_c, prob->perm_r[0], prob->L[0], prob->U[0],
+      prob->B[0], &prob->stat, &prob->info);
 
-    prob->options.Fact = prob->nprob==1? FACTORED : SamePattern; // LU decomp done.
+//  MF 2023/05/25: My intention was to re-use the column permutation vector perm_c by
+//  using SamePattern. But for some reason it errors out.
+//    prob->options.Fact = prob->nprob==1? FACTORED : SamePattern; // LU decomp done.
 
     for (size_t k=1; k<prob->nprob; k++)
-      dgssv(&prob->options, &prob->A[k], prob->perm_c, prob->perm_r[k], &prob->L[k], &prob->U[k],
-        &prob->B[k], &prob->stat, &prob->info);
+      dgssv(&prob->options, prob->A[k], prob->perm_c, prob->perm_r[k], prob->L[k], prob->U[k],
+        prob->B[k], &prob->stat, &prob->info);
 
     prob->options.Fact = FACTORED; // LU decomp done.
   }
@@ -248,14 +256,14 @@ gkyl_superlu_prob_release(struct gkyl_superlu_prob *prob)
   SUPERLU_FREE (prob->perm_c);
   for (size_t k=0; k<prob->nprob; k++) {
     SUPERLU_FREE (prob->perm_r[k]);
-    Destroy_CompCol_Matrix(&prob->A[k]);
+    Destroy_CompCol_Matrix(prob->A[k]);
 
     if (prob->assigned_rhs)
-      Destroy_SuperMatrix_Store(&prob->B[k]);
+      Destroy_SuperMatrix_Store(prob->B[k]);
 
     if (prob->options.Fact==FACTORED) {
-      Destroy_SuperNode_Matrix(&prob->L[k]);
-      Destroy_CompCol_Matrix(&prob->U[k]);
+      Destroy_SuperNode_Matrix(prob->L[k]);
+      Destroy_CompCol_Matrix(prob->U[k]);
     }
   }
   StatFree(&prob->stat);

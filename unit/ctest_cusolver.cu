@@ -352,11 +352,8 @@ void test_cusolver_ops_multiple_prob()
 
   // Allocate the A matrix from triples.
   gkyl_cusolver_amat_from_triples(prob, tri_arr);
-  for (size_t k=0; k<nprob; k++) {
-    tri_arr[k] = gkyl_mat_triples_new(m, n);
-    struct gkyl_mat_triples *tri = tri_arr[k];
-    gkyl_mat_triples_release(tri);
-  }
+  for (size_t k=0; k<nprob; k++)
+    gkyl_mat_triples_release(tri_arr[k]);
   gkyl_free(tri_arr);
 
   // Create right-hand side matrix B = transpose([1,1,1,1,1]).
