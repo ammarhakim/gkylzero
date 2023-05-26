@@ -126,9 +126,11 @@ gkyl_cusolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
 void
 gkyl_cusolver_amat_from_triples(struct gkyl_cusolver_prob *prob, struct gkyl_mat_triples **tri)
 {
-  for (size_t k=0; k<prob->nprob; k++)
+  prob->nnz = gkyl_mat_triples_size(tri[0]);
+  for (size_t k=0; k<prob->nprob; k++) {
+    assert(gkyl_mat_triples_size(tri[k]) == prob->nnz);  // No. of nonzeros must be the same for every problem.
     assert(gkyl_mat_triples_is_rowmaj(tri[k]));  // Triples must be in rowmaj order for cusolver.
-  prob->nnz = gkyl_mat_triples_size(tri[0]);  // Number of nonzero entries must be the same for every problem.
+  }
 
   // Convert triples to CSR arrays on device.
   // Use CSR format

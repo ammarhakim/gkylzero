@@ -16,7 +16,7 @@ typedef struct gkyl_cusolver_prob gkyl_cusolver_prob;
 /**
  * Create a new cuSolver A_i x_i = B_i where i \in {0,1,...,nprob-1},
  * for solving nprob linear problems. This module can be used in two ways:
- *   a) Using nprob=1 and nrhs>=1, so that one can solve a nrhs linear problems
+ *   a) Using nprob=1 and nrhs>=1, so that one can solve nrhs linear problems
  *      with the same left-side matrix A_i for each problem, i.e. B is a matrix
  *      of nprob columns.
  *   b) Using nprob=>1 and nrhs=1, so we are solving nprob separate linear

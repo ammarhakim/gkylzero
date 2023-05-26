@@ -105,7 +105,9 @@ void test_slu_ops(const bool separateLUdecomp)
   
   s = 19.0; u = 21.0; p = 16.0; e = 5.0; r = 18.0; l = 12.0;
   /*  A : matrix([s,0,u,u,0],[l,u,0,0,0],[0,l,p,0,0],[0,0,0,e,u],[l,l,0,0,r]); */
-  gkyl_mat_triples *tri = gkyl_mat_triples_new(m, n);
+  struct gkyl_mat_triples **tri_arr = gkyl_malloc(sizeof(struct gkyl_mat_triples *));
+  tri_arr[0] = gkyl_mat_triples_new(m, n);
+  struct gkyl_mat_triples *tri = tri_arr[0];
   // row 0
   gkyl_mat_triples_insert(tri, 0, 0, s);
   gkyl_mat_triples_insert(tri, 0, 2, u);
@@ -125,11 +127,12 @@ void test_slu_ops(const bool separateLUdecomp)
   gkyl_mat_triples_insert(tri, 4, 4, r);
 
   // Create the SuperLU linear problem setup.
-  gkyl_superlu_prob *sluprob = gkyl_superlu_prob_new(m, n, nrhs);
+  gkyl_superlu_prob *sluprob = gkyl_superlu_prob_new(1, m, n, nrhs);
 
   // Allocate the A matrix from triples.
-  gkyl_superlu_amat_from_triples(sluprob, tri);
-  gkyl_mat_triples_release(tri);
+  gkyl_superlu_amat_from_triples(sluprob, tri_arr);
+  gkyl_mat_triples_release(tri_arr[0]);
+  gkyl_free(tri_arr);
 
   // Create right-hand side matrix B = transpose([1,1,1,1,1]).
   gkyl_mat_triples *triRHS = gkyl_mat_triples_new(m, nrhs);

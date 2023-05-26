@@ -343,7 +343,7 @@ struct gkyl_fem_poisson_perp {
   int numnodes_local;
   long numnodes_global;
 
-  struct gkyl_superlu_prob **prob;
+  struct gkyl_superlu_prob *prob;
   struct gkyl_array *brhs;
 
 #ifdef GKYL_HAVE_CUDA

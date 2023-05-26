@@ -157,9 +157,9 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   if (up->use_gpu) 
     up->prob_cu = gkyl_cusolver_prob_new(1, up->numnodes_global, up->numnodes_global, 1);
   else
-    up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
+    up->prob = gkyl_superlu_prob_new(1, up->numnodes_global, up->numnodes_global, 1);
 #else
-  up->prob = gkyl_superlu_prob_new(up->numnodes_global, up->numnodes_global, 1);
+  up->prob = gkyl_superlu_prob_new(1, up->numnodes_global, up->numnodes_global, 1);
 #endif
 
   // Assign non-zero elements in A.
@@ -188,10 +188,10 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   if (up->use_gpu) {
     gkyl_cusolver_amat_from_triples(up->prob_cu, tri);
   } else {
-    gkyl_superlu_amat_from_triples(up->prob, tri[0]);
+    gkyl_superlu_amat_from_triples(up->prob, tri);
   }
 #else
-  gkyl_superlu_amat_from_triples(up->prob, tri[0]);
+  gkyl_superlu_amat_from_triples(up->prob, tri);
 #endif
 
   gkyl_mat_triples_release(tri[0]);
