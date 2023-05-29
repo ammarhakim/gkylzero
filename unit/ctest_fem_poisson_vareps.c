@@ -233,7 +233,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     projob = gkyl_proj_on_basis_new(&grid, &basis,
       poly_order+1, 1, evalFunc2x_periodicx_periodicy, NULL);
     projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc2x_periodicx_periodicy_sol, NULL);
+      2*(poly_order+1), 1, evalFunc2x_periodicx_periodicy_sol, NULL);
   } else if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
              (bcs.lo_type[1]==GKYL_POISSON_PERIODIC && bcs.up_type[1]==GKYL_POISSON_PERIODIC)) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
@@ -272,23 +272,16 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   // Project distribution function on basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
-//  gkyl_grid_sub_array_write(&grid, &localRange, rho, "ctest_fem_poisson_vareps_2x_rho_1.gkyl");
 
   // Project the expected solution.
-  if (projob_sol != NULL) {
-    struct gkyl_array *phisol = mkarr(basis.num_basis, localRange_ext.volume);
-    gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol);
-//    gkyl_grid_sub_array_write(&grid, &localRange, phisol, "ctest_fem_poisson_vareps_2x_phisol_1.gkyl");
-    gkyl_array_release(phisol);
-    gkyl_proj_on_basis_release(projob_sol);
-  }
+  struct gkyl_array *phisol = mkarr(basis.num_basis, localRange_ext.volume);
+  gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol);
 
   // Project the permittivity onto the basis.
   double dg0norm = pow(sqrt(2.),dim);
   gkyl_array_shiftc(eps, gxx*dg0norm, 0*basis.num_basis);
   gkyl_array_shiftc(eps, gxy*dg0norm, 1*basis.num_basis);
   gkyl_array_shiftc(eps, gyy*dg0norm, 2*basis.num_basis);
-//  gkyl_grid_sub_array_write(&grid, &localRange, eps, "ctest_fem_poisson_vareps_2x_eps_1.gkyl");
 
   // FEM poisson solver.
   gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, 0, eps, NULL, use_gpu);
@@ -325,7 +318,6 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     gkyl_free(sol_avg);
     gkyl_array_release(sol_cellavg);
   }
-//  gkyl_grid_sub_array_write(&grid, &localRange, phi, "ctest_fem_poisson_vareps_2x_phi_16x16_p1.gkyl");
 
   if (poly_order == 1) {
     if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.lo_type[1] == GKYL_POISSON_PERIODIC) {
@@ -871,11 +863,18 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     TEST_MSG("This poly_order is not available");
   }
 
+//  gkyl_grid_sub_array_write(&grid, &localRange, rho,    "ctest_fem_poisson_vareps_2x_rho_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, eps,    "ctest_fem_poisson_vareps_2x_eps_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, phisol, "ctest_fem_poisson_vareps_2x_phisol_64x64_p2.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, phi,       "ctest_fem_poisson_vareps_2x_phi_64x64_p2.gkyl");
+
   gkyl_fem_poisson_release(poisson);
   gkyl_proj_on_basis_release(projob);
+  gkyl_proj_on_basis_release(projob_sol);
   gkyl_array_release(rho);
   gkyl_array_release(eps);
   gkyl_array_release(phi);
+  gkyl_array_release(phisol);
   if (use_gpu) {
     gkyl_array_release(rho_cu);
     gkyl_array_release(phi_cu);

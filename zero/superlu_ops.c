@@ -133,7 +133,7 @@ gkyl_superlu_print_amat(struct gkyl_superlu_prob *prob)
 {
   char strA[5];
   for (size_t k=0; k<prob->nprob; k++) {
-    snprintf(strA, 5, "A%d", k); // puts string into buffer
+    snprintf(strA, 5, "A%zu", k); // puts string into buffer
     dPrint_CompCol_Matrix(strA, prob->A[k]);
   }
 }
