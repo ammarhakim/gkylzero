@@ -201,7 +201,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
       long linidx = gkyl_range_idx(&up->solve_range, idx1);
 
       double *eps_p = gkyl_array_fetch(epsilon_ho, linidx);
-      double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq_ho, linidx) : kSq_ho->data;
+      double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq_ho, linidx) : gkyl_array_fetch(kSq_ho,0);
 
       int keri = idx_to_inup_ker(PERP_DIM, up->num_cells, up->perp_iter2d.idx);
       for (size_t d=0; d<up->ndim; d++) idx0[d] = idx1[d] - 1;

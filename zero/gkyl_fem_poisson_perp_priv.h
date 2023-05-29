@@ -417,7 +417,7 @@ fem_poisson_perp_choose_lhs_kernels(const struct gkyl_basis* basis, const struct
 {
   int poly_order = basis->poly_order;
 
-  int bckey[GKYL_MAX_CDIM] = {-1};
+  int bckey[GKYL_MAX_CDIM] = {-1, -1, -1};
   for (int d=0; d<PERP_DIM; d++) {
          if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC  && bcs->up_type[d]==GKYL_POISSON_PERIODIC ) { bckey[d] = 0; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
@@ -428,9 +428,8 @@ fem_poisson_perp_choose_lhs_kernels(const struct gkyl_basis* basis, const struct
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<GKYL_IPOW(3,PERP_DIM); k++) {
+      for (int k=0; k<GKYL_IPOW(3,PERP_DIM); k++)
         lhsout[k] = CK(ser_lhsstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
-      }
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
 //      break;
@@ -446,7 +445,7 @@ fem_poisson_perp_choose_src_kernels(const struct gkyl_basis* basis, const struct
 {
   int poly_order = basis->poly_order;
 
-  int bckey[GKYL_MAX_CDIM] = {-1};
+  int bckey[GKYL_MAX_CDIM] = {-1, -1, -1};
   for (int d=0; d<PERP_DIM; d++) {
          if (bcs->lo_type[d]==GKYL_POISSON_PERIODIC  && bcs->up_type[d]==GKYL_POISSON_PERIODIC ) { bckey[d] = 0; }
     else if (bcs->lo_type[d]==GKYL_POISSON_DIRICHLET && bcs->up_type[d]==GKYL_POISSON_DIRICHLET) { bckey[d] = 1; }
@@ -457,9 +456,8 @@ fem_poisson_perp_choose_src_kernels(const struct gkyl_basis* basis, const struct
 
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      for (int k=0; k<GKYL_IPOW(3,PERP_DIM); k++) {
+      for (int k=0; k<GKYL_IPOW(3,PERP_DIM); k++)
         srcout[k] = CK(ser_srcstencil_list_3x, poly_order, k, bckey[0], bckey[1]);
-      }
       break;
 //    case GKYL_BASIS_MODAL_TENSOR:
 //      break;

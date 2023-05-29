@@ -173,8 +173,8 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
-    double *eps_p = up->isvareps? gkyl_array_fetch(epsilon_ho, linidx) : epsilon_ho->data;
-    double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq_ho, linidx) : kSq_ho->data;
+    double *eps_p = up->isvareps? gkyl_array_fetch(epsilon_ho, linidx) : gkyl_array_fetch(up->epsilon,0);
+    double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq_ho, linidx) : gkyl_array_fetch(kSq_ho,0);
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d=0; d<up->ndim; d++) idx0[d] = up->solve_iter.idx[d]-1;
@@ -241,7 +241,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
-    double *eps_p = up->isvareps? gkyl_array_fetch(up->epsilon, linidx) : up->epsilon->data;
+    double *eps_p = up->isvareps? gkyl_array_fetch(up->epsilon, linidx) : gkyl_array_fetch(up->epsilon,0);
     double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
