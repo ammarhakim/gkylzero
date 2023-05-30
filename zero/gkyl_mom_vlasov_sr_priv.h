@@ -5,7 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_ref_count.h>
-#include <gkyl_mom_vlasov_kernels.h>
+#include <gkyl_mom_vlasov_sr_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
@@ -314,7 +314,7 @@ kernel_vlasov_sr_M1i_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double 
 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
-  return vlasov_sr_M1i_1x1v_ser_p2(xc, dx, idx, 
+  return vlasov_sr_M1i_2x3v_ser_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     f, out);
 }
@@ -534,7 +534,7 @@ kernel_vlasov_sr_Ni_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *
 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
-  return vlasov_sr_Ni_1x1v_ser_p2(xc, dx, idx, 
+  return vlasov_sr_Ni_2x3v_ser_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.p_over_gamma, vidx),
     f, out);
 }
@@ -754,7 +754,7 @@ kernel_vlasov_sr_Energy_2x3v_ser_p2(const struct gkyl_mom_type *momt, const doub
 
   long vidx = gkyl_range_idx(&mom_vm_sr->vel_range, idx_vel);
 
-  return vlasov_sr_Energy_1x1v_ser_p2(xc, dx, idx, 
+  return vlasov_sr_Energy_2x3v_ser_p2(xc, dx, idx, 
     (const double*) gkyl_array_cfetch(mom_vm_sr->auxfields.gamma, vidx),
     f, out);
 }

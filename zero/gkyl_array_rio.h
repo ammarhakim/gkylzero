@@ -5,6 +5,15 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
+// Array header data to write: this is for low-level control and is
+// typically not something most user would every encounter
+struct gkyl_array_header_info {
+  uint64_t file_type; // file type
+  enum gkyl_elem_type etype; // element type
+  uint64_t esznc; // elem sz * number of components
+  uint64_t tot_cells; // total number of cells in grid
+};
+
 /**
  * Write array data to file. Data is written as a binary file.
  *
@@ -45,6 +54,17 @@ int gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid,
 int gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range,
   const struct gkyl_array *arr, FILE *fp);
+
+/**
+ * Write out grid and array data header data to file. Note that only
+ * HEADER is written and NOT the array data itself.
+ *
+ * @param grid Grid object to write
+ * @param hrd Header data.
+ * @return Status flag: 0 if write succeeded, 'errno' otherwise
+ */
+int gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
+  struct gkyl_array_header_info *hdr, FILE *fp);
 
 /**
  * Read data from file and create new array. 

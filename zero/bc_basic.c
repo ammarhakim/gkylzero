@@ -35,9 +35,21 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
       fout->func = species_reflect_bc;
       break;
 
-    // Perfect electrical conductor
+    // Maxwell's perfect electrical conductor (zero normal B and zero tangent E)
     case GKYL_BC_MAXWELL_PEC:
       fout->func = maxwell_pec_bc;
+      break;
+
+    // Maxwell's symmetry BC (zero normal E and zero tangent B)
+    case GKYL_BC_MAXWELL_SYM:
+      fout->func = maxwell_sym_bc;
+      break;
+
+    // Reservoir Maxwell's BCs for heat flux problem
+    // Based on Roberg-Clark et al. PRL 2018
+    // NOTE: ONLY WORKS WITH X BOUNDARY 
+    case GKYL_BC_MAXWELL_RESERVOIR:
+      fout->func = maxwell_reservoir_bc;
       break;
 
     // PKPM Reflecting wall for distribution function
@@ -110,6 +122,8 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
     case GKYL_BC_COPY:
     case GKYL_BC_ABSORB:
     case GKYL_BC_MAXWELL_PEC:
+    case GKYL_BC_MAXWELL_SYM:
+    case GKYL_BC_MAXWELL_RESERVOIR:
     case GKYL_BC_PKPM_MOM_REFLECT:
     case GKYL_BC_PKPM_MOM_NO_SLIP:
       gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,

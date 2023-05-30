@@ -145,26 +145,17 @@ qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-// Waves and speeds using Roe averaging
+// project column vector delta onto the right eigenvectors of the flux Jacobian
+// evaluated at avg = {u, v, w, enth}
 static double
-wave_roe(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+proj_onto_euler_eigvect(const struct gkyl_wv_eqn *eqn,
+  const double *delta, const double *avg, double *waves, double *s)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   double gas_gamma = euler->gas_gamma;
   double g1 = gas_gamma - 1;
 
-  double rhol = ql[0], rhor = qr[0];
-  double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
-
-  // Roe averages: see Roe's original 1981 paper or LeVeque book
-  double srrhol = sqrt(rhol), srrhor = sqrt(rhor);
-  double ravgl1 = 1/srrhol, ravgr1 = 1/srrhor;
-  double ravg2 = 1/(srrhol+srrhor);
-  double u = (ql[1]*ravgl1 + qr[1]*ravgr1)*ravg2;
-  double v = (ql[2]*ravgl1 + qr[2]*ravgr1)*ravg2;
-  double w = (ql[3]*ravgl1 + qr[3]*ravgr1)*ravg2;
-  double enth = ((ql[4]+pl)*ravgl1 + (qr[4]+pr)*ravgr1)*ravg2;
+  double u = avg[0], v = avg[1], w = avg[2], enth = avg[3];
 
   // See http://ammar-hakim.org/sj/euler-eigensystem.html for notation
   // and meaning of these terms
@@ -211,6 +202,40 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   return fabs(u)+a;
 }
 
+inline static void
+roe_avg(const struct gkyl_wv_eqn *eqn, const double *ql,
+    const double *qr, double *avg)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  double gas_gamma = euler->gas_gamma;
+  double g1 = gas_gamma - 1;
+
+  double rhol = ql[0], rhor = qr[0];
+  double pl = gkyl_euler_pressure(gas_gamma, ql), pr = gkyl_euler_pressure(gas_gamma, qr);
+
+  // Roe averages: see Roe's original 1981 paper or LeVeque book
+  double srrhol = sqrt(rhol), srrhor = sqrt(rhor);
+  double ravgl1 = 1/srrhol, ravgr1 = 1/srrhor;
+  double ravg2 = 1/(srrhol+srrhor);
+  double u = (ql[1]*ravgl1 + qr[1]*ravgr1)*ravg2;
+  double v = (ql[2]*ravgl1 + qr[2]*ravgr1)*ravg2;
+  double w = (ql[3]*ravgl1 + qr[3]*ravgr1)*ravg2;
+  double enth = ((ql[4]+pl)*ravgl1 + (qr[4]+pr)*ravgr1)*ravg2;
+
+  avg[0] = u; avg[1] = v; avg[2] = w; avg[3] = enth;
+}
+
+// Waves and speeds using Roe averaging
+static double
+wave_roe(const struct gkyl_wv_eqn *eqn,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  double avg[4];
+  roe_avg(eqn, ql, qr, avg);
+
+  return proj_onto_euler_eigvect(eqn, delta, avg, waves, s);
+}
+
 static void
 qfluct_roe(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s,
@@ -249,10 +274,10 @@ qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-// HLLC
+// HLL
 static void
-states_hllc(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  double *speeds, double *qml, double *qmr)
+states_hll_common(const struct gkyl_wv_eqn *eqn, const double *ql,
+  const double *qr, double state[8])
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   double g = euler->gas_gamma;
@@ -261,15 +286,18 @@ states_hllc(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
   double rl = ql[0];
   double ul = ql[1] / rl;
   double pl = gkyl_euler_pressure(g, ql);
-  double cl = sqrt(g*pl/rl);
 
   double rr = qr[0];
   double ur = qr[1] / rr;
   double pr = gkyl_euler_pressure(g, qr);
-  double cr = sqrt(g*pr/rr);
 
-  // STEP 1. compute min and max wave speeds; here, Toro (10.59) is chosen
-  //   first, estimate middle pressure, Toro (10.61)
+  // STEP 1. compute min and max wave speeds; here, the pressure-based speed
+  // estimates Toro (10.59) are used
+  //   first, estimate middle pressure; using PVRS Toro (10.61) but Toro Fig 9.4
+  //   presents an adaptive method to switch between PVRS and TRRS (10.63) and
+  //   TSRS (10.65); for ideal gases, max(0, p_PVRS) might also be good
+  double cl = sqrt(g*pl/rl);
+  double cr = sqrt(g*pr/rr);
   double ra = 0.5 * (rl + rr);
   double ca = 0.5 * (cl + cr);
   double pm = 0.5 * (pl + pr) - 0.5 * (ur - ul) * ra * ca;
@@ -279,6 +307,126 @@ states_hllc(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
   //   finally, compute Toro (10.59)
   double sl = ul - cl * coeffl;
   double sr = ur + cr * coeffr;
+
+  state[0] = rl;
+  state[1] = ul;
+  state[2] = pl;
+  state[3] = rr;
+  state[4] = ur;
+  state[5] = pr;
+  state[6] = sl;
+  state[7] = sr;
+}
+
+// HLL
+static void
+states_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
+  double *speeds, double *qm)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+
+  // STEP 1. compute min and max wave speeds
+  double state[8];
+  states_hll_common(eqn, ql, qr, state);
+  double rl = state[0], ul = state[1], pl = state[2];
+  double rr = state[3], ur = state[4], pr = state[5];
+  double sl = state[6], sr = state[7];
+
+  // STEP 2. compute left and right fluxes
+  double fl[5];
+  fl[0] = ql[0] * ul;
+  fl[1] = ql[1] * ul + pl;
+  fl[2] = ql[2] * ul;
+  fl[3] = ql[3] * ul;
+  fl[4] = ql[4] * ul + pl * ul;
+
+  double fr[5];
+  fr[0] = qr[0] * ur;
+  fr[1] = qr[1] * ur + pr;
+  fr[2] = qr[2] * ur;
+  fr[3] = qr[3] * ur;
+  fr[4] = qr[4] * ur + pr * ur;
+
+  // STEP 3. compute standard HLL intermediate states
+  qm[0] = (sr*qr[0]-sl*ql[0]+fl[0]-fr[0]) / (sr-sl);
+  qm[1] = (sr*qr[1]-sl*ql[1]+fl[1]-fr[1]) / (sr-sl);
+  qm[2] = (sr*qr[2]-sl*ql[2]+fl[2]-fr[2]) / (sr-sl);
+  qm[3] = (sr*qr[3]-sl*ql[3]+fl[3]-fr[3]) / (sr-sl);
+  qm[4] = (sr*qr[4]-sl*ql[4]+fl[4]-fr[4]) / (sr-sl);
+
+  // STEP 4. collect all speeds
+  speeds[0] = sl;
+  speeds[1] = sr;
+}
+  
+static double
+wave_hll(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
+  const double *qr, double *waves, double *speeds)
+{
+  double qm[5];
+  states_hll(eqn, ql, qr, speeds, qm);
+
+  double *wv;
+
+  wv = waves;
+  for (int i=0; i<5; ++i)  wv[i] = qm[i] - ql[i];
+
+  wv += 5;
+  for (int i=0; i<5; ++i)  wv[i] = qr[i] - qm[i];
+
+  return fmax(fabs(speeds[0]), fabs(speeds[1]));
+}
+
+static void
+qfluct_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
+  const double *waves, const double *s, double *amdq, double *apdq)
+{
+  const double *w0 = &waves[0], *w1 = &waves[5];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
+
+  for (int i=0; i<5; ++i) {
+    amdq[i] = s0m*w0[i] + s1m*w1[i];
+    apdq[i] = s0p*w0[i] + s1p*w1[i];
+  }
+}
+
+static double
+wave_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return wave_hll(eqn, delta, ql, qr, waves, s);
+  else // FIXME perhaps not needed
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+
+  return 0.0; // can't happen
+}
+
+static void
+qfluct_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX)
+    return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
+  else
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+// HLLC
+static void
+states_hllc(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
+  double *speeds, double *qml, double *qmr)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+
+  // STEP 1. compute min and max wave speeds
+  double state[8];
+  states_hll_common(eqn, ql, qr, state);
+  double rl = state[0], ul = state[1], pl = state[2];
+  double rr = state[3], ur = state[4], pr = state[5];
+  double sl = state[6], sr = state[7];
 
   // STEP 2. compute middle wave speed, Toro (10.37)
   double sm = (pr-pl+rl*ul*(sl-ul)-rr*ur*(sr-ur)) / (rl*(sl-ul)-rr*(sr-ur));
@@ -459,7 +607,13 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
       euler->eqn.num_waves = 2;
       euler->eqn.waves_func = wave_lax_l;
       euler->eqn.qfluct_func = qfluct_lax_l;
-      break;      
+      break;   
+
+    case WV_EULER_RP_HLL:
+      euler->eqn.num_waves = 2;  
+      euler->eqn.waves_func = wave_hll_l;
+      euler->eqn.qfluct_func = qfluct_hll_l;
+      break;
   }
       
 

@@ -6,7 +6,8 @@
 enum gkyl_wv_euler_rp {
   WV_EULER_RP_ROE = 0, // default
   WV_EULER_RP_HLLC,
-  WV_EULER_RP_LAX
+  WV_EULER_RP_LAX,
+  WV_EULER_RP_HLL
 };
 
 // input packaged as a struct

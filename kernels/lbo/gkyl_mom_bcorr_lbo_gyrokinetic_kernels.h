@@ -1,6 +1,6 @@
 #pragma once
 #include <math.h>
-#include <gkyl_mom_calc_bcorr.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_util.h>
 
 EXTERN_C_BEG 

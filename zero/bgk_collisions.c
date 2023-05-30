@@ -55,13 +55,13 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
     const double *nu_d = gkyl_array_cfetch(nu, cloc);
     double *out_d = gkyl_array_fetch(out, ploc);
 
+    // Add nu*f_M.
+    array_set1(up->pnum_basis, out_d, 1., gkyl_array_cfetch(nufM, ploc));
+
     // Calculate -nu*f.
     double incr[160]; // mul_op assigns, but need increment, so use a buffer.
     up->mul_op(nu_d, gkyl_array_cfetch(fin, ploc), incr);
     for (int i=0; i<up->pnum_basis; i++) out_d[i] += -incr[i];
-
-    // Add nu*f_M.
-    array_acc1(up->pnum_basis, out_d, 1., gkyl_array_cfetch(nufM, ploc));
 
     // Add contribution to CFL frequency.
     double *cflfreq_d = gkyl_array_fetch(cflfreq, ploc);

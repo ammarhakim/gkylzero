@@ -43,8 +43,8 @@ evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double n = 1+alpha*cos(k*x);
   double mc2_T = 1.0/T;
 
-  double fv = 0.5*n/(4*M_PI*K_2)*(exp(-mc2_T*gamma*(sqrt(1 + p*p) - vdrift*p)) + exp(-mc2_T*gamma*(sqrt(1 + p*p) + vdrift*p)));
-  fout[0] = (1+alpha*cos(k*x))*fv;
+  double fv = 0.5*n/(4*M_PI*T*K_2)*(exp(-mc2_T*gamma*(sqrt(1 + p*p) - vdrift*p)) + exp(-mc2_T*gamma*(sqrt(1 + p*p) + vdrift*p)));
+  fout[0] = fv;
 }
 
 void
@@ -65,10 +65,10 @@ struct twostream_ctx
 create_default_ctx(void)
 {
   return (struct twostream_ctx) {
-    .knumber = 0.02,
+    .knumber = 0.5,
     .T = 0.04,
-    .vdrift = 0.99,
-    .perturbation = 1.0e-4,
+    .vdrift = 0.9,
+    .perturbation = 1.0e-3,
   };
 }
 
@@ -82,8 +82,8 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 128);  
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 64);  
 
   struct twostream_ctx ctx;
   
@@ -95,8 +95,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_SR,
     .charge = -1.0,
     .mass = 1.0,
-    .lower = { -32.0 },
-    .upper = { 32.0 }, 
+    .lower = { -8.0 },
+    .upper = { 8.0 }, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -141,7 +141,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 500.0;
+  double tcurr = 0.0, tend = 100.0;
   double dt = tend-tcurr;
 
   // initialize simulation

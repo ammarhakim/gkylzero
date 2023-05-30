@@ -2,7 +2,7 @@
 
 // Private header, not for direct use in user code
 
-#include <gkyl_lbo_vlasov_kernels.h>
+#include <gkyl_lbo_vlasov_pkpm_kernels.h>
 
 // Types for various kernels
 typedef void (*lbo_vlasov_pkpm_drag_surf_t)(const double *w, const double *dxv,

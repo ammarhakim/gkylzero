@@ -17,12 +17,14 @@
 
 struct gkyl_app_args {
   bool use_gpu; // should this be run on GPU?
+  bool use_mpi; // should this be run on MPI?  
   bool step_mode; // run for fixed number of steps? (for valgrind/cuda-memcheck)
   bool trace_mem; // should we trace memory allocation/deallocations?
   int num_steps; // number of steps
   int num_threads; // number of threads
   int xcells[3]; // configuration space cells
   int vcells[3]; // velocity space cells
+  int cuts[3]; // domain decomposition "cuts"
   char file_name[1024]; // name of input file
   enum gkyl_basis_type basis_type; // type of basis functions to use
   enum gkyl_mp_recon mp_recon; // the XX in MP-XX
@@ -70,6 +72,7 @@ static struct gkyl_app_args
 parse_app_args(int argc, char **argv)
 {
   bool use_gpu = false;
+  bool use_mpi = false;
   bool step_mode = false;
   bool trace_mem = false;
   bool skip_limiters = false;
@@ -79,19 +82,21 @@ parse_app_args(int argc, char **argv)
   struct gkyl_app_args args = {
     .xcells = { 0 },
     .vcells = { 0 },
+    .cuts = { 1, 1, 1 },
   };
 
   strcpy(args.file_name, APP_ARGS_DEFAULT_FILE_NAME); // default
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
   int c;
-  while ((c = getopt(argc, argv, "+hgmt:s:i:b:x:y:z:u:v:w:r:")) != -1) {
+  while ((c = getopt(argc, argv, "+hgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:")) != -1) {
     switch (c)
     {
       case 'h':
         printf("Usage: <app_name> -g -m -s nsteps -t nthreads -i inp -b [ms|mt] -x NX -y NY -z NZ -u VX -v VY -w VZ\n");
         printf(" All flags and parameters are optional.\n");
         printf(" -g     Run on GPUs if GPUs are present and code built for GPUs\n");
+        printf(" -M     Run with MPI if code built with MPI\n");        
         printf(" -sN    Only run N steps of simulation\n");
         printf(" -tN    Use N threads (when available)\n");
         printf(" -b     Basis function to use (ms: Modal serendipity; mt: Modal tensor-product)\n");
@@ -105,12 +110,18 @@ parse_app_args(int argc, char **argv)
         printf(" -xNX -yNY -zNZ\n");
         printf(" Grid resolution in velocity space:\n");
         printf(" -uVX -vVY -wVZ\n");
+        printf(" Domain decomposition in each direction:\n");
+        printf(" -cPX -dPY -ePZ\n");
         exit(-1);
         break;
 
       case 'g':
         use_gpu = true;
         break;
+
+      case 'M':
+        use_mpi = true;
+        break;        
 
       case 'm':
         trace_mem = true;
@@ -128,6 +139,18 @@ parse_app_args(int argc, char **argv)
       case 't':
         num_threads = atoi(optarg);
         break;
+
+      case 'c':
+        args.cuts[0] = atoi(optarg);
+        break;
+        
+      case 'd':
+        args.cuts[1] = atoi(optarg);
+        break;
+        
+      case 'e':
+        args.cuts[2] = atoi(optarg);
+        break;        
 
       case 'x':
         args.xcells[0] = atoi(optarg);
@@ -173,6 +196,7 @@ parse_app_args(int argc, char **argv)
   }
   
   args.use_gpu = use_gpu;
+  args.use_mpi = use_mpi;
   args.trace_mem = trace_mem;
   args.step_mode = step_mode;
   args.num_steps = num_steps;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <gkyl_euler_kernels.h>
+#include <gkyl_euler_pkpm_kernels.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_dg_eqn.h>
 

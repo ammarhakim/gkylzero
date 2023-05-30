@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <unistd.h>
+#include <sys/stat.h>
+
 #include <gkyl_util.h>
 
 int
@@ -162,4 +165,18 @@ double
 gkyl_pcg64_rand_double(pcg64_random_t* rng)
 {
   return ldexp(gkyl_pcg64_rand_uint64(rng), -64);
+}
+
+bool
+gkyl_check_file_exists(const char *fname)
+{
+  return access(fname, F_OK) == 0;
+}
+
+int64_t
+gkyl_file_size(const char *fname)
+{
+  struct stat st;
+  stat(fname, &st);
+  return st.st_size;
 }

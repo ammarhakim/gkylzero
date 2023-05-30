@@ -16,9 +16,9 @@ enum gkyl_eqn_type {
 // Identifiers for specific field object types
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
-  GKYL_FIELD_PHI, // Poisson (only phi)
-  GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
-  GKYL_FIELD_NULL, // no field is present
+  GKYL_FIELD_PHI = 1, // Poisson (only phi)
+  GKYL_FIELD_PHI_A = 2, // Poisson with static B = curl(A) (phi, A)
+  GKYL_FIELD_NULL = 3, // no field is present
 };
 
 // Identifiers for subsidary models
@@ -26,10 +26,10 @@ enum gkyl_field_id {
 // or the parallel-kinetic-perpendicular-moment model
 enum gkyl_model_id {
   GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
-  GKYL_MODEL_SR,
-  GKYL_MODEL_GEN_GEO,
-  GKYL_MODEL_PKPM,
-  GKYL_MODEL_SR_PKPM,
+  GKYL_MODEL_SR = 1,
+  GKYL_MODEL_GEN_GEO = 2,
+  GKYL_MODEL_PKPM = 3,
+  GKYL_MODEL_SR_PKPM = 4,
 };
 
 // Identifiers for specific diffusion object types
@@ -60,4 +60,10 @@ enum gkyl_source_id {
 enum gkyl_quad_type {
   GKYL_GAUSS_QUAD, // Gauss-Legendre quadrature
   GKYL_GAUSS_LOBATTO_QUAD, // Gauss-Lobatto quadrature
+};
+
+/** Flags for indicating acting edge of velocity space */
+enum gkyl_vel_edge { 
+  GKYL_VX_LOWER, GKYL_VY_LOWER, GKYL_VZ_LOWER, 
+  GKYL_VX_UPPER, GKYL_VY_UPPER, GKYL_VZ_UPPER 
 };

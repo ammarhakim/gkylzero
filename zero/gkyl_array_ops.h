@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_elem_type.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 
@@ -10,9 +11,6 @@ flat_fetch(void *data, size_t loc)
 {
   return ((char*) data) + loc;
 }
-
-// Array reduce operators
-enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
 
 // Struct used to pass function pointer and context to various buffer
 // copy operators

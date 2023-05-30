@@ -158,10 +158,14 @@ void test_euler_waves_ho(void) { test_euler_waves(GKYL_WV_HIGH_ORDER_FLUX); }
 void test_euler_waves_lo(void) { test_euler_waves(GKYL_WV_LOW_ORDER_FLUX); }
 
 void
-test_euler_waves_2(enum gkyl_wv_flux_type ftype)
+test_euler_waves_2(enum gkyl_wv_flux_type ftype, enum gkyl_wv_euler_rp rp_type)
 {
   double gas_gamma = 1.4;
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(gas_gamma);
+  struct gkyl_wv_euler_inp inp = {
+    .gas_gamma = gas_gamma,
+    .rp_type = rp_type
+  };
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(&inp);
 
   double vl[5] = { 1.0, 0.1, 0.2, 0.3, 1.5};
   double vr[5] = { 0.01, 1.0, 2.0, 3.0, 15.0};
@@ -227,14 +231,46 @@ test_euler_waves_2(enum gkyl_wv_flux_type ftype)
   gkyl_wv_eqn_release(euler);
 }
 
-void test_euler_waves_2_ho(void) { test_euler_waves_2(GKYL_WV_HIGH_ORDER_FLUX); }
-void test_euler_waves_2_lo(void) { test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX); }
+void test_euler_waves_2_ho_roe(void) {
+  test_euler_waves_2(GKYL_WV_HIGH_ORDER_FLUX, WV_EULER_RP_ROE);
+}
+void test_euler_waves_2_lo_roe(void) {
+  test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX, WV_EULER_RP_ROE);
+}
+
+void test_euler_waves_2_ho_hllc(void) {
+  test_euler_waves_2(GKYL_WV_HIGH_ORDER_FLUX, WV_EULER_RP_HLLC);
+}
+void test_euler_waves_2_lo_hllc(void) {
+  test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX, WV_EULER_RP_HLLC);
+}
+
+void test_euler_waves_2_ho_lax(void) {
+  test_euler_waves_2(GKYL_WV_HIGH_ORDER_FLUX, WV_EULER_RP_LAX);
+}
+void test_euler_waves_2_lo_lax(void) {
+  test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX, WV_EULER_RP_LAX);
+}
+
+void test_euler_waves_2_ho_hll(void) {
+  test_euler_waves_2(GKYL_WV_HIGH_ORDER_FLUX, WV_EULER_RP_HLL);
+}
+void test_euler_waves_2_lo_hll(void) {
+  test_euler_waves_2(GKYL_WV_LOW_ORDER_FLUX, WV_EULER_RP_HLL);
+}
+
 
 TEST_LIST = {
   { "euler_basic", test_euler_basic },
   { "euler_waves_ho", test_euler_waves_ho },
   { "euler_waves_lo", test_euler_waves_lo },
-  { "euler_waves_2_ho", test_euler_waves_2_ho },
-  { "euler_waves_2_lo", test_euler_waves_2_lo },
+  { "euler_waves_2_ho_roe", test_euler_waves_2_ho_roe },
+  { "euler_waves_2_lo_roe", test_euler_waves_2_lo_roe },
+  { "euler_waves_2_ho_hllc", test_euler_waves_2_ho_hllc },
+  { "euler_waves_2_lo_hllc", test_euler_waves_2_lo_hllc },
+  { "euler_waves_2_ho_lax", test_euler_waves_2_ho_lax },
+  { "euler_waves_2_lo_lax", test_euler_waves_2_lo_lax },
+  { "euler_waves_2_ho_hll", test_euler_waves_2_ho_hll },
+  { "euler_waves_2_lo_hll", test_euler_waves_2_lo_hll },
   { NULL, NULL },
 };

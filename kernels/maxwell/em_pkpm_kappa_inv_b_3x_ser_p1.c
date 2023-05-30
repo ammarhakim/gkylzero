@@ -8,6 +8,9 @@ GKYL_CU_DH void em_pkpm_kappa_inv_b_3x_ser_p1(const double *bvar, const double *
   // ExB:         Input E x B velocity. 
   // kappa_inv_b: b_i/kappa = B_i/|B| * sqrt(1 - |E x B|^2/(c^2 |B|^4)). 
  
+  const double *bx = &bvar[0]; 
+  const double *by = &bvar[8]; 
+  const double *bz = &bvar[16]; 
   const double *bxbx = &bvar[24]; 
   const double *byby = &bvar[48]; 
   const double *bzbz = &bvar[64]; 
@@ -61,8 +64,10 @@ GKYL_CU_DH void em_pkpm_kappa_inv_b_3x_ser_p1(const double *bvar, const double *
   kappa_inv_bz_sq[6] = (-0.3535533905932737*ExB_z_sq[1]*bzbz[7])-0.3535533905932737*ExB_y_sq[1]*bzbz[7]-0.3535533905932737*ExB_x_sq[1]*bzbz[7]-0.3535533905932737*bzbz[1]*ExB_z_sq[7]-0.3535533905932737*bzbz[1]*ExB_y_sq[7]-0.3535533905932737*bzbz[1]*ExB_x_sq[7]-0.3535533905932737*ExB_z_sq[0]*bzbz[6]-0.3535533905932737*ExB_y_sq[0]*bzbz[6]-0.3535533905932737*ExB_x_sq[0]*bzbz[6]+bzbz[6]-0.3535533905932737*bzbz[0]*ExB_z_sq[6]-0.3535533905932737*bzbz[0]*ExB_y_sq[6]-0.3535533905932737*bzbz[0]*ExB_x_sq[6]-0.3535533905932737*ExB_z_sq[4]*bzbz[5]-0.3535533905932737*ExB_y_sq[4]*bzbz[5]-0.3535533905932737*ExB_x_sq[4]*bzbz[5]-0.3535533905932737*bzbz[4]*ExB_z_sq[5]-0.3535533905932737*bzbz[4]*ExB_y_sq[5]-0.3535533905932737*bzbz[4]*ExB_x_sq[5]-0.3535533905932737*ExB_z_sq[2]*bzbz[3]-0.3535533905932737*ExB_y_sq[2]*bzbz[3]-0.3535533905932737*ExB_x_sq[2]*bzbz[3]-0.3535533905932737*bzbz[2]*ExB_z_sq[3]-0.3535533905932737*bzbz[2]*ExB_y_sq[3]-0.3535533905932737*bzbz[2]*ExB_x_sq[3]; 
   kappa_inv_bz_sq[7] = (-0.3535533905932737*ExB_z_sq[0]*bzbz[7])-0.3535533905932737*ExB_y_sq[0]*bzbz[7]-0.3535533905932737*ExB_x_sq[0]*bzbz[7]+bzbz[7]-0.3535533905932737*bzbz[0]*ExB_z_sq[7]-0.3535533905932737*bzbz[0]*ExB_y_sq[7]-0.3535533905932737*bzbz[0]*ExB_x_sq[7]-0.3535533905932737*ExB_z_sq[1]*bzbz[6]-0.3535533905932737*ExB_y_sq[1]*bzbz[6]-0.3535533905932737*ExB_x_sq[1]*bzbz[6]-0.3535533905932737*bzbz[1]*ExB_z_sq[6]-0.3535533905932737*bzbz[1]*ExB_y_sq[6]-0.3535533905932737*bzbz[1]*ExB_x_sq[6]-0.3535533905932737*ExB_z_sq[2]*bzbz[5]-0.3535533905932737*ExB_y_sq[2]*bzbz[5]-0.3535533905932737*ExB_x_sq[2]*bzbz[5]-0.3535533905932737*bzbz[2]*ExB_z_sq[5]-0.3535533905932737*bzbz[2]*ExB_y_sq[5]-0.3535533905932737*bzbz[2]*ExB_x_sq[5]-0.3535533905932737*ExB_z_sq[3]*bzbz[4]-0.3535533905932737*ExB_y_sq[3]*bzbz[4]-0.3535533905932737*ExB_x_sq[3]*bzbz[4]-0.3535533905932737*bzbz[3]*ExB_z_sq[4]-0.3535533905932737*bzbz[3]*ExB_y_sq[4]-0.3535533905932737*bzbz[3]*ExB_x_sq[4]; 
 
-  ser_3x_p1_sqrt_with_sign(kappa_inv_bx_sq, kappa_inv_bx); 
-  ser_3x_p1_sqrt_with_sign(kappa_inv_by_sq, kappa_inv_by); 
-  ser_3x_p1_sqrt_with_sign(kappa_inv_bz_sq, kappa_inv_bz); 
+  // Calculate b_i/kappa = (B_i/|B|)/kappa at quadrature points. 
+  // Uses the sign of b_i at quadrature points to get the correct sign of b_i/kappa. 
+  ser_3x_p1_sqrt_with_sign(bx, kappa_inv_bx_sq, kappa_inv_bx); 
+  ser_3x_p1_sqrt_with_sign(by, kappa_inv_by_sq, kappa_inv_by); 
+  ser_3x_p1_sqrt_with_sign(bz, kappa_inv_bz_sq, kappa_inv_bz); 
 } 
  

@@ -179,15 +179,24 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_COPY;
     else if (f->lower_bc[d] == GKYL_FIELD_PEC_WALL)
       bctype = GKYL_BC_MAXWELL_PEC;
-  
+    else if (f->lower_bc[d] == GKYL_FIELD_SYM_WALL)
+      bctype = GKYL_BC_MAXWELL_SYM;
+    else if (f->lower_bc[d] == GKYL_FIELD_RESERVOIR)
+      bctype = GKYL_BC_MAXWELL_RESERVOIR;
+
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
       app->basis_on_dev.confBasis, f->em->ncomp, app->cdim, app->use_gpu);
+
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_FIELD_COPY)
       bctype = GKYL_BC_COPY;
     else if (f->upper_bc[d] == GKYL_FIELD_PEC_WALL)
       bctype = GKYL_BC_MAXWELL_PEC;
-    
+    else if (f->upper_bc[d] == GKYL_FIELD_SYM_WALL)
+      bctype = GKYL_BC_MAXWELL_SYM;
+    else if (f->upper_bc[d] == GKYL_FIELD_RESERVOIR)
+      bctype = GKYL_BC_MAXWELL_RESERVOIR;
+
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
       app->basis_on_dev.confBasis, f->em->ncomp, app->cdim, app->use_gpu);
   }
@@ -357,19 +366,24 @@ void
 vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f)
 {
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+    num_periodic_dir, app->periodic_dirs, f);
+  
   int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
-  for (int d=0; d<num_periodic_dir; ++d) {
-    vm_field_apply_periodic_bc(app, field, app->periodic_dirs[d], f);
+  for (int d=0; d<num_periodic_dir; ++d)
     is_np_bc[app->periodic_dirs[d]] = 0;
-  }
+
   for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 
       switch (field->lower_bc[d]) {
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_PEC_WALL:
+        case GKYL_FIELD_SYM_WALL:
+        case GKYL_FIELD_RESERVOIR:
           gkyl_bc_basic_advance(field->bc_lo[d], field->bc_buffer, f);
           break;
+
         default:
           break;
       }
@@ -377,13 +391,18 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
       switch (field->upper_bc[d]) {
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_PEC_WALL:
+        case GKYL_FIELD_SYM_WALL:
+        case GKYL_FIELD_RESERVOIR:
           gkyl_bc_basic_advance(field->bc_up[d], field->bc_buffer, f);
           break;
+          
         default:
           break;
       }   
     }
   }
+
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
 }
 
 void
@@ -402,8 +421,11 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
   else { 
     gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, app->local);
   }
+
+  double energy_global[6] = { 0.0 };
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
   
-  gkyl_dynvec_append(field->integ_energy, tm, energy);
+  gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 }
 
 // release resources for field
@@ -417,6 +439,10 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->cflrate);
   gkyl_array_release(f->em_energy);
   gkyl_dynvec_release(f->integ_energy);
+
+  gkyl_array_release(f->bvar);
+  gkyl_array_release(f->kappa_inv_b);
+  gkyl_array_release(f->ExB);
 
   if (f->has_ext_em) {
     gkyl_array_release(f->ext_em);
