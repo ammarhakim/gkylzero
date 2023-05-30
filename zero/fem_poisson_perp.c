@@ -313,7 +313,7 @@ gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(phiout));
-//    gkyl_fem_poisson_perp_solve_cu(up, phiout);
+    gkyl_fem_poisson_perp_solve_cu(up, phiout);
     return;
   }
 #endif
