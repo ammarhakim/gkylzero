@@ -141,7 +141,7 @@ void gkyl_calc_pkpm_vars_recovery(const struct gkyl_rect_grid *grid,
   struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
+  const struct gkyl_array* pkpm_div_ppar, const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
   const struct gkyl_array* T_perp_over_m_inv, const struct gkyl_array* nu, 
   struct gkyl_array* div_p, struct gkyl_array* pkpm_accel_vars)
 {
@@ -151,7 +151,7 @@ void gkyl_calc_pkpm_vars_recovery(const struct gkyl_rect_grid *grid,
   if (gkyl_array_is_cu_dev(div_p)) {
     return gkyl_calc_pkpm_vars_recovery_cu(grid, basis, range, nuHyp, 
       bvar, u_i, p_ij, vlasov_pkpm_moms, euler_pkpm, 
-      rho_inv, T_perp_over_m, 
+      pkpm_div_ppar, rho_inv, T_perp_over_m, 
       T_perp_over_m_inv, nu, 
       div_p, pkpm_accel_vars);
   }
@@ -178,7 +178,8 @@ void gkyl_calc_pkpm_vars_recovery(const struct gkyl_rect_grid *grid,
     const double *vlasov_pkpm_moms_c = gkyl_array_cfetch(vlasov_pkpm_moms, linc);
     const double *euler_pkpm_c = gkyl_array_cfetch(euler_pkpm, linc);
 
-    // Only need rho_inv, T_perp_over_m, T_perp_over_m_inv, nu, and nu_vthsq in center cell
+    // Only need rho_inv, T_perp_over_m, T_perp_over_m_inv, and nu in center cell
+    const double *pkpm_div_ppar_d = gkyl_array_cfetch(pkpm_div_ppar, linc);
     const double *rho_inv_d = gkyl_array_cfetch(rho_inv, linc);
     const double *T_perp_over_m_d = gkyl_array_cfetch(T_perp_over_m, linc);
     const double *T_perp_over_m_inv_d = gkyl_array_cfetch(T_perp_over_m_inv, linc);
@@ -215,9 +216,85 @@ void gkyl_calc_pkpm_vars_recovery(const struct gkyl_rect_grid *grid,
         bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, 
         p_ij_l, p_ij_c, p_ij_r, vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, 
         euler_pkpm_l, euler_pkpm_c, euler_pkpm_r, 
-        rho_inv_d, T_perp_over_m_d, 
+        pkpm_div_ppar_d, rho_inv_d, T_perp_over_m_d, 
         T_perp_over_m_inv_d, nu_d,
         div_p_d, pkpm_accel_vars_d);
     }
   }
+}
+
+void gkyl_calc_pkpm_vars_pressure(const struct gkyl_rect_grid *grid, struct gkyl_basis basis, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_array* bvar, const struct gkyl_array* fin, 
+  struct gkyl_array* pkpm_div_ppar)
+{
+// Check if more than one of the output arrays is on device? 
+// Probably a better way to do this (JJ: 11/16/22)
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(pkpm_div_ppar)) {
+    return gkyl_calc_pkpm_vars_pressure_cu(grid, basis, 
+      conf_range, phase_range, 
+      bvar, f, pkpm_div_ppar);
+  }
+#endif
+  // Cell center array
+  double xc[GKYL_MAX_DIM];
+
+  int cdim = basis.ndim;
+  int poly_order = basis.poly_order;
+
+  pkpm_pressure_t pkpm_pressure[3];
+  // Fetch the kernels in each direction
+  for (int d=0; d<cdim; ++d) {
+    switch (basis.b_type) {
+      case GKYL_BASIS_MODAL_SERENDIPITY:
+        pkpm_pressure[d] = choose_ser_pkpm_pressure_kern(d, cdim, poly_order);
+
+        break;
+
+      case GKYL_BASIS_MODAL_TENSOR:
+        pkpm_pressure[d] = choose_ten_pkpm_pressure_kern(d, cdim, poly_order);
+        
+        break;
+
+      default:
+        assert(false);
+        break;    
+    }
+  }
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, phase_range);
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_copy_int_arr(cdim+1, iter.idx, idxc);
+    gkyl_rect_grid_cell_center(grid, idxc, xc);
+    long loc_conf_c = gkyl_range_idx(conf_range, idxc);
+    long loc_phase_c = gkyl_range_idx(phase_range, idxc);
+
+    const double *bvar_c = gkyl_array_cfetch(bvar, loc_conf_c);
+    const double *f_c = gkyl_array_cfetch(fin, loc_phase_c);
+    double *pkpm_div_ppar_d = gkyl_array_fetch(pkpm_div_ppar, loc_conf_c);
+    
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim+1, iter.idx, idxl);
+      gkyl_copy_int_arr(cdim+1, iter.idx, idxr);
+
+      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+
+      long loc_conf_l = gkyl_range_idx(conf_range, idxl);
+      long loc_phase_l = gkyl_range_idx(phase_range, idxl);
+      long loc_conf_r = gkyl_range_idx(conf_range, idxr);
+      long loc_phase_r = gkyl_range_idx(phase_range, idxr);
+
+      const double *bvar_l = gkyl_array_cfetch(bvar, loc_conf_l);
+      const double *f_l = gkyl_array_cfetch(fin, loc_phase_l);
+      const double *bvar_r = gkyl_array_cfetch(bvar, loc_conf_r);
+      const double *f_r = gkyl_array_cfetch(fin, loc_phase_r);
+
+      pkpm_pressure[dir](xc, grid->dx, 
+        bvar_l, bvar_c, bvar_r, f_l, f_c, f_r, 
+        pkpm_div_ppar_d);
+    }    
+  }  
 }

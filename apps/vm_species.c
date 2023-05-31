@@ -184,6 +184,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
 
   s->has_magB = false;
+  s->m1i_pkpm = 0;
+  s->pkpm_div_ppar = 0;
   if (s->model_id  == GKYL_MODEL_PKPM) {
     // Get pointer to fluid species object for coupling
     s->pkpm_fluid_species = vm_find_fluid_species(app, s->info.pkpm_fluid_species);
@@ -197,6 +199,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
     // Current density for accumulating onto electric field
     s->m1i_pkpm = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    // div(p_parallel b_hat), for use in total pressure force
+    s->pkpm_div_ppar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
     // setup magB if solving PKPM system along field-line 
     if (s->info.magB) {
       s->has_magB = true;
@@ -398,6 +403,9 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
     vm_species_moment_calc(&species->pkpm_moms, species->local_ext,
       app->local_ext, fin);
     vm_field_calc_bvar(app, app->field, em);   
+    gkyl_array_clear(species->pkpm_div_ppar, 0.0);
+    gkyl_calc_pkpm_vars_pressure(&species->grid, app->confBasis, 
+        &app->local, &species->local, app->field->bvar, fin, species->pkpm_div_ppar);
   }
   else if (species->model_id == GKYL_MODEL_SR_PKPM) {
     vm_field_calc_sr_pkpm_vars(app, app->field, em);  
@@ -653,6 +661,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->F_k_m_1);
     gkyl_array_release(s->F_k_p_1);
     gkyl_array_release(s->m1i_pkpm);
+    gkyl_array_release(s->pkpm_div_ppar);
     if (s->has_magB) {
       gkyl_array_release(s->magB);
       if (app->use_gpu) {

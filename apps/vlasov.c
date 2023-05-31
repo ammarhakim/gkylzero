@@ -304,8 +304,10 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_vlasov_app_write_species(app, i, tm, frame);
-    if (app->species[i].model_id == GKYL_MODEL_PKPM)
+    if (app->species[i].model_id == GKYL_MODEL_PKPM) {
       gkyl_vlasov_app_write_species_pkpm_moms(app, i, tm, frame);
+      gkyl_vlasov_app_write_species_pkpm_div_p(app, i, tm, frame);
+    }
     if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
     if (app->species[i].has_magB && frame == 0) {
@@ -375,6 +377,26 @@ gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double t
     gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
 
   gkyl_grid_sub_array_write(&app->grid, &app->local, s->pkpm_moms_diag.marr_host, fileNm);
+}
+
+void
+gkyl_vlasov_app_write_species_pkpm_div_p(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  struct vm_species *s = &app->species[sidx];
+  const char *fmt_kin = "%s-%s_pkpm_div_p_kin_%d.gkyl";
+  int sz_kin = gkyl_calc_strlen(fmt_kin, app->name, s->info.name, frame);
+  char fileNm_kin[sz_kin+1]; // ensures no buffer overflow
+  snprintf(fileNm_kin, sizeof fileNm_kin, fmt_kin, app->name, s->info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local, s->pkpm_div_ppar, fileNm_kin);
+
+  struct vm_fluid_species *f = &app->fluid_species[sidx];
+  const char *fmt_fluid = "%s-%s_pkpm_div_p_fluid_%d.gkyl";
+  int sz_fluid = gkyl_calc_strlen(fmt_fluid, app->name, f->info.name, frame);
+  char fileNm_fluid[sz_fluid+1]; // ensures no buffer overflow
+  snprintf(fileNm_fluid, sizeof fileNm_fluid, fmt_fluid, app->name, f->info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local, f->div_p, fileNm_fluid);
 }
 
 void

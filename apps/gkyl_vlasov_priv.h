@@ -199,6 +199,7 @@ struct vm_species {
                         // index corresponds to location in fluid_species array (size num_fluid_species)
   struct gkyl_array *m1i_pkpm; // "M1i" in the pkpm model for use in current coupling
                                // Used to copy over fluid variable from pkpm_fluid_species (first three components are momentum)
+  struct gkyl_array *pkpm_div_ppar; // div(p_parallel b_hat) used for computing total pressure force 
   struct gkyl_array *g_dist_source; // 2*T_perp/m*G - T_perp/m*(F_0 - F_2)
   struct gkyl_array *F_k_p_1; // k+1 distribution function (first NP components are F_2) 
   struct gkyl_array *F_k_m_1; // k-1 distribution function (first NP components are F_1)

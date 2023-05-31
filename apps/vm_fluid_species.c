@@ -415,7 +415,7 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     gkyl_calc_pkpm_vars_recovery(&app->grid, app->confBasis, &app->local, fluid_species->nuHyp, 
       app->field->bvar, fluid_species->u, 
       fluid_species->p, fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
-      fluid_species->rho_inv, fluid_species->T_perp_over_m, 
+      fluid_species->pkpm_species->pkpm_div_ppar, fluid_species->rho_inv, fluid_species->T_perp_over_m, 
       fluid_species->T_perp_over_m_inv, fluid_species->pkpm_species->lbo.nu_sum, 
       fluid_species->div_p, fluid_species->pkpm_accel_vars);
   }

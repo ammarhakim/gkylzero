@@ -347,6 +347,16 @@ void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, in
 void gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
+ * Write pkpm div pressure tensor.
+ * 
+ * @param app App object.
+ * @param sidx Index of fluid species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species_pkpm_div_p(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
  * Write species p/gamma to file.
  * 
  * @param app App object.

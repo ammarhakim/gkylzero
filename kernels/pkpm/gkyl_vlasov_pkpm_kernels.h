@@ -12,6 +12,9 @@ GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *dxv
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *T_ijl, const double *T_ijc, const double *T_ijr, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_pkpm_pressure_x_1x1v_ser_p1(const double *w, const double *dxv, 
+       const double *bvarl, const double *bvarc, const double *bvarr, 
+       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_pkpm_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double *pkpm_accel_vars, 
      const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
@@ -28,6 +31,9 @@ GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p2(const double *w, const double *dxv
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *T_ijl, const double *T_ijc, const double *T_ijr, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_pkpm_pressure_x_1x1v_ser_p2(const double *w, const double *dxv, 
+       const double *bvarl, const double *bvarc, const double *bvarr, 
+       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_pkpm_surfvpar_1x1v_ser_p2(const double *w, const double *dxv, const double *pkpm_accel_vars, 
      const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
@@ -44,11 +50,17 @@ GKYL_CU_DH void vlasov_pkpm_surfx_2x1v_ser_p1(const double *w, const double *dxv
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *T_ijl, const double *T_ijc, const double *T_ijr, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_pkpm_pressure_x_2x1v_ser_p1(const double *w, const double *dxv, 
+       const double *bvarl, const double *bvarc, const double *bvarr, 
+       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p1(const double *w, const double *dxv, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *T_ijl, const double *T_ijc, const double *T_ijr, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_pkpm_pressure_y_2x1v_ser_p1(const double *w, const double *dxv, 
+       const double *bvarl, const double *bvarc, const double *bvarr, 
+       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_pkpm_surfvpar_2x1v_ser_p1(const double *w, const double *dxv, const double *pkpm_accel_vars, 
      const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
@@ -65,11 +77,17 @@ GKYL_CU_DH void vlasov_pkpm_surfx_2x1v_ser_p2(const double *w, const double *dxv
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *T_ijl, const double *T_ijc, const double *T_ijr, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_pkpm_pressure_x_2x1v_ser_p2(const double *w, const double *dxv, 
+       const double *bvarl, const double *bvarc, const double *bvarr, 
+       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_pkpm_surfy_2x1v_ser_p2(const double *w, const double *dxv, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *T_ijl, const double *T_ijc, const double *T_ijr, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_pkpm_pressure_y_2x1v_ser_p2(const double *w, const double *dxv, 
+       const double *bvarl, const double *bvarc, const double *bvarr, 
+       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_pkpm_surfvpar_2x1v_ser_p2(const double *w, const double *dxv, const double *pkpm_accel_vars, 
      const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
@@ -86,16 +104,25 @@ GKYL_CU_DH void vlasov_pkpm_surfx_3x1v_ser_p1(const double *w, const double *dxv
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *T_ijl, const double *T_ijc, const double *T_ijr, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_pkpm_pressure_x_3x1v_ser_p1(const double *w, const double *dxv, 
+       const double *bvarl, const double *bvarc, const double *bvarr, 
+       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *dxv, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *T_ijl, const double *T_ijc, const double *T_ijr, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_pkpm_pressure_y_3x1v_ser_p1(const double *w, const double *dxv, 
+       const double *bvarl, const double *bvarc, const double *bvarr, 
+       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_pkpm_surfz_3x1v_ser_p1(const double *w, const double *dxv, 
     const double *bvarl, const double *bvarc, const double *bvarr, 
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *T_ijl, const double *T_ijc, const double *T_ijr, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_pkpm_pressure_z_3x1v_ser_p1(const double *w, const double *dxv, 
+       const double *bvarl, const double *bvarc, const double *bvarr, 
+       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_pkpm_surfvpar_3x1v_ser_p1(const double *w, const double *dxv, const double *pkpm_accel_vars, 
      const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
@@ -112,6 +139,9 @@ GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_tensor_p2(const double *w, const double *
     const double *u_il, const double *u_ic, const double *u_ir, 
     const double *T_ijl, const double *T_ijc, const double *T_ijr, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void vlasov_pkpm_pressure_x_1x1v_tensor_p2(const double *w, const double *dxv, 
+       const double *bvarl, const double *bvarc, const double *bvarr, 
+       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_pkpm_surfvpar_1x1v_tensor_p2(const double *w, const double *dxv, const double *pkpm_accel_vars, 
      const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
