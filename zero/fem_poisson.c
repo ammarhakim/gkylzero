@@ -1,12 +1,12 @@
 #include <gkyl_fem_poisson.h>
 #include <gkyl_fem_poisson_priv.h>
 
-gkyl_fem_poisson*
+struct gkyl_fem_poisson*
 gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
   struct gkyl_poisson_bc *bcs, double epsilon_const, struct gkyl_array *epsilon_var, struct gkyl_array *kSq, bool use_gpu)
 {
 
-  gkyl_fem_poisson *up = gkyl_malloc(sizeof(gkyl_fem_poisson));
+  struct gkyl_fem_poisson *up = gkyl_malloc(sizeof(struct gkyl_fem_poisson));
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_poisson_kernels));
 #ifdef GKYL_HAVE_CUDA
@@ -173,7 +173,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 
-    double *eps_p = up->isvareps? gkyl_array_fetch(epsilon_ho, linidx) : gkyl_array_fetch(up->epsilon,0);
+    double *eps_p = up->isvareps? gkyl_array_fetch(epsilon_ho, linidx) : gkyl_array_fetch(epsilon_ho,0);
     double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq_ho, linidx) : gkyl_array_fetch(kSq_ho,0);
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);

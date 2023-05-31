@@ -50,7 +50,7 @@ struct gkyl_poisson_bc {
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_fem_poisson* gkyl_fem_poisson_new(
+struct gkyl_fem_poisson* gkyl_fem_poisson_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
   double epsilon_const, struct gkyl_array *epsilon_var, struct gkyl_array *kSq, bool use_gpu);
 
