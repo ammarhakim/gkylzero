@@ -29,6 +29,8 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, double nuHyp,
   const double *b_c = &bvarc[0]; 
   const double *b_r = &bvarr[0]; 
 
+  const double *pkpm_div_ppar_c = &pkpm_div_ppar[0]; 
+
   const double *ux_l = &u_il[0]; 
   const double *uy_l = &u_il[4]; 
   const double *uz_l = &u_il[8]; 
@@ -172,10 +174,10 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, double nuHyp,
   div_p_z[2] += (4.871392896287466*rhouz_r[3]-4.871392896287466*rhouz_l[3]-2.8125*(rhouz_r[2]+rhouz_l[2])+5.625*rhouz_c[2])*dxHyp*nuHyp+div_p_z_comp[2]; 
   div_p_z[3] += (72.1875*(rhouz_r[3]+rhouz_l[3])+249.375*rhouz_c[3]-56.83291712335378*rhouz_r[2]+56.83291712335378*rhouz_l[2])*dxHyp*nuHyp+div_p_z_comp[3]; 
 
-  p_force[0] += 0.5*pkpm_div_ppar[3]*rho_inv[3]-0.5*T_perp_over_m[3]*div_b_comp[3]+0.5*pkpm_div_ppar[2]*rho_inv[2]-0.5*T_perp_over_m[2]*div_b_comp[2]+0.5*pkpm_div_ppar[1]*rho_inv[1]-0.5*T_perp_over_m[1]*div_b_comp[1]+0.5*pkpm_div_ppar[0]*rho_inv[0]-0.5*T_perp_over_m[0]*div_b_comp[0]; 
-  p_force[1] += 0.5*(pkpm_div_ppar[2]*rho_inv[3]+rho_inv[2]*pkpm_div_ppar[3])-0.5*(T_perp_over_m[2]*div_b_comp[3]+div_b_comp[2]*T_perp_over_m[3])+0.5*(pkpm_div_ppar[0]*rho_inv[1]+rho_inv[0]*pkpm_div_ppar[1])-0.5*(T_perp_over_m[0]*div_b_comp[1]+div_b_comp[0]*T_perp_over_m[1]); 
-  p_force[2] += 0.5*(pkpm_div_ppar[1]*rho_inv[3]+rho_inv[1]*pkpm_div_ppar[3])-0.5*(T_perp_over_m[1]*div_b_comp[3]+div_b_comp[1]*T_perp_over_m[3])+0.5*(pkpm_div_ppar[0]*rho_inv[2]+rho_inv[0]*pkpm_div_ppar[2])-0.5*(T_perp_over_m[0]*div_b_comp[2]+div_b_comp[0]*T_perp_over_m[2]); 
-  p_force[3] += 0.5*(pkpm_div_ppar[0]*rho_inv[3]+rho_inv[0]*pkpm_div_ppar[3])-0.5*(T_perp_over_m[0]*div_b_comp[3]+div_b_comp[0]*T_perp_over_m[3])+0.5*(pkpm_div_ppar[1]*rho_inv[2]+rho_inv[1]*pkpm_div_ppar[2])-0.5*(T_perp_over_m[1]*div_b_comp[2]+div_b_comp[1]*T_perp_over_m[2]); 
+  p_force[0] += 0.5*pkpm_div_ppar_c[3]*rho_inv[3]-0.5*T_perp_over_m[3]*div_b_comp[3]+0.5*pkpm_div_ppar_c[2]*rho_inv[2]-0.5*T_perp_over_m[2]*div_b_comp[2]+0.5*pkpm_div_ppar_c[1]*rho_inv[1]-0.5*T_perp_over_m[1]*div_b_comp[1]+0.5*pkpm_div_ppar_c[0]*rho_inv[0]-0.5*T_perp_over_m[0]*div_b_comp[0]; 
+  p_force[1] += 0.5*(pkpm_div_ppar_c[2]*rho_inv[3]+rho_inv[2]*pkpm_div_ppar_c[3])-0.5*(T_perp_over_m[2]*div_b_comp[3]+div_b_comp[2]*T_perp_over_m[3])+0.5*(pkpm_div_ppar_c[0]*rho_inv[1]+rho_inv[0]*pkpm_div_ppar_c[1])-0.5*(T_perp_over_m[0]*div_b_comp[1]+div_b_comp[0]*T_perp_over_m[1]); 
+  p_force[2] += 0.5*(pkpm_div_ppar_c[1]*rho_inv[3]+rho_inv[1]*pkpm_div_ppar_c[3])-0.5*(T_perp_over_m[1]*div_b_comp[3]+div_b_comp[1]*T_perp_over_m[3])+0.5*(pkpm_div_ppar_c[0]*rho_inv[2]+rho_inv[0]*pkpm_div_ppar_c[2])-0.5*(T_perp_over_m[0]*div_b_comp[2]+div_b_comp[0]*T_perp_over_m[2]); 
+  p_force[3] += 0.5*(pkpm_div_ppar_c[0]*rho_inv[3]+rho_inv[0]*pkpm_div_ppar_c[3])-0.5*(T_perp_over_m[0]*div_b_comp[3]+div_b_comp[0]*T_perp_over_m[3])+0.5*(pkpm_div_ppar_c[1]*rho_inv[2]+rho_inv[1]*pkpm_div_ppar_c[2])-0.5*(T_perp_over_m[1]*div_b_comp[2]+div_b_comp[1]*T_perp_over_m[2]); 
 
   p_perp_source[0] += bb_grad_u_comp[0]-1.0*(nu[0]+grad_u_x[0]); 
   p_perp_source[1] += bb_grad_u_comp[1]-1.0*(nu[1]+grad_u_x[1]); 

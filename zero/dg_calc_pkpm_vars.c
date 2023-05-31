@@ -234,7 +234,7 @@ void gkyl_calc_pkpm_vars_pressure(const struct gkyl_rect_grid *grid, struct gkyl
   if (gkyl_array_is_cu_dev(pkpm_div_ppar)) {
     return gkyl_calc_pkpm_vars_pressure_cu(grid, basis, 
       conf_range, phase_range, 
-      bvar, f, pkpm_div_ppar);
+      bvar, fin, pkpm_div_ppar);
   }
 #endif
   // Cell center array

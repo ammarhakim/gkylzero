@@ -200,7 +200,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // Current density for accumulating onto electric field
     s->m1i_pkpm = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     // div(p_parallel b_hat), for use in total pressure force
-    s->pkpm_div_ppar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    s->pkpm_div_ppar = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
 
     // setup magB if solving PKPM system along field-line 
     if (s->info.magB) {

@@ -19,7 +19,7 @@ GKYL_CU_DH void vlasov_pkpm_pressure_z_3x1v_ser_p1(const double *w, const double
   const double *F_0l = &fl[0]; 
   const double *F_0c = &fc[0]; 
   const double *F_0r = &fr[0]; 
-  double *out_pressure = &out[0]; 
+  double *out_pressure = &out[16]; 
   double alpha_l[24] = {0.0}; 
   double alpha_c[24] = {0.0}; 
   double alpha_r[24] = {0.0}; 
