@@ -20,7 +20,7 @@ struct gkyl_mpi_comm_inp {
  * this object must ensure consistency of the arrays and the
  * decomposition.
  *
- * @param inp Input struct to use for initialiation
+ * @param inp Input struct to use for initialization
  * @return New MPI communicator
  */
 struct gkyl_comm *gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp);

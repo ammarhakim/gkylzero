@@ -3,9 +3,21 @@
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_range.h>
 #include <gkyl_util.h>
 
 #include <stdbool.h>
+
+// Lower-level inputs: in general this does not need to be set by the
+// user. It is needed when the App is being created on a sub-range of
+// the global range, and is meant for use in higher-level drivers that
+// use MPI or other parallel mechanism.
+struct gkyl_vm_low_inp {
+  // local range over which App operates
+  struct gkyl_range local_range;
+  // communicator to used
+  struct gkyl_comm *comm;
+};
 
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
@@ -189,6 +201,11 @@ struct gkyl_vm {
   
   bool skip_field; // Skip field update or no field specified
   struct gkyl_vlasov_field field; // field object
+
+  // this should not be set by typical user-facing code but only by
+  // higher-level drivers
+  bool has_low_inp; // should one use low-level inputs?
+  struct gkyl_vm_low_inp low_inp; // low-level inputs  
 };
 
 // Simulation statistics
@@ -216,6 +233,9 @@ struct gkyl_vlasov_stat {
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
+
+  double species_bc_tm; // time to compute species BCs
+  double field_bc_tm; // time to compute field
   
   double field_rhs_tm; // time to compute field RHS
   double current_tm; // time to compute currents and accumulation
@@ -231,6 +251,9 @@ struct gkyl_vlasov_stat {
 
   long ndiag; // calls to diagnostics
   double diag_tm; // time to compute diagnostics
+
+  long nio; // number of calls to IO
+  double io_tm; // time to perform IO
 };
 
 // Object representing Vlasov app
@@ -427,6 +450,18 @@ void gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app);
  * @param app App object.
  */
 void gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app);
+
+/**
+ * Write output to console: this is mainly for diagnostic messages the
+ * driver code wants to write to console. It accounts for parallel
+ * output by not messing up the console with messages from each rank.
+ *
+ * @param app App object
+ * @param fp File pointer for open file for output
+ * @param fmt Format string for console output
+ * @param argp Objects to write
+ */
+void gkyl_vlasov_app_cout(const gkyl_vlasov_app* app, FILE *fp, const char *fmt, ...);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too
