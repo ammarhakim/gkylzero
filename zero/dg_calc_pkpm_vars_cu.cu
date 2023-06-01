@@ -204,7 +204,7 @@ __global__ void
 gkyl_calc_pkpm_vars_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
+  const struct gkyl_array* pkpm_div_ppar, const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
   const struct gkyl_array* T_perp_over_m_inv, const struct gkyl_array* nu, 
   struct gkyl_array* div_p, struct gkyl_array* pkpm_accel_vars)
 {
@@ -240,6 +240,7 @@ gkyl_calc_pkpm_vars_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_b
     const double *euler_pkpm_c = (const double*) gkyl_array_cfetch(euler_pkpm, linc);
 
     // Only need rho_inv, T_perp_over_m, T_perp_over_m_inv, nu, and nu_vthsq in center cell
+    const double *pkpm_div_ppar_d = (const double *) gkyl_array_cfetch(pkpm_div_ppar, linc);
     const double *rho_inv_d = (const double*) gkyl_array_cfetch(rho_inv, linc);
     const double *T_perp_over_m_d = (const double*) gkyl_array_cfetch(T_perp_over_m, linc);
     const double *T_perp_over_m_inv_d = (const double*) gkyl_array_cfetch(T_perp_over_m_inv, linc);
@@ -276,7 +277,7 @@ gkyl_calc_pkpm_vars_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_b
         bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, 
         p_ij_l, p_ij_c, p_ij_r, vlasov_pkpm_moms_l, vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, 
         euler_pkpm_l, euler_pkpm_c, euler_pkpm_r, 
-        rho_inv_d, T_perp_over_m_d, 
+        pkpm_div_ppar_d, rho_inv_d, T_perp_over_m_d, 
         T_perp_over_m_inv_d, nu_d, 
         div_p_d, pkpm_accel_vars_d);
     }
@@ -289,7 +290,7 @@ gkyl_calc_pkpm_vars_recovery_cu(const struct gkyl_rect_grid *grid,
   struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
+  const struct gkyl_array* pkpm_div_ppar, const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
   const struct gkyl_array* T_perp_over_m_inv, const struct gkyl_array* nu, 
   struct gkyl_array* div_p, struct gkyl_array* pkpm_accel_vars)
 {
@@ -297,7 +298,7 @@ gkyl_calc_pkpm_vars_recovery_cu(const struct gkyl_rect_grid *grid,
   int nthreads = range->nthreads;
   gkyl_calc_pkpm_vars_recovery_cu_kernel<<<nblocks, nthreads>>>(*grid, basis, *range, nuHyp, 
     bvar->on_dev, u_i->on_dev, p_ij->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
-    rho_inv->on_dev, T_perp_over_m->on_dev, 
+    pkpm_div_ppar->on_dev, rho_inv->on_dev, T_perp_over_m->on_dev, 
     T_perp_over_m_inv->on_dev, nu->on_dev, 
     div_p->on_dev, pkpm_accel_vars->on_dev);
 }
@@ -354,7 +355,9 @@ gkyl_calc_pkpm_vars_pressure_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_b
     const double *bvar_c = (const double*) gkyl_array_cfetch(bvar, linc_conf);
     const double *f_c = (const double*) gkyl_array_cfetch(fin, linc_phase);
 
-    double *pkpm_div_ppar_d = (double*) gkyl_array_fetch(pkpm_div_ppar, linc_phase);
+    double momLocal[96]; // hard-coded to 3 * max confBasis.num_basis (3x p=3 Ser) for now.
+    for (unsigned int k=0; k<96; ++k)
+      momLocal[k] = 0.0;
 
     for (int dir=0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(cdim+1, idxc, idxl);
@@ -374,8 +377,14 @@ gkyl_calc_pkpm_vars_pressure_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_b
 
       pkpm_pressure[dir](xc, dx, 
         bvar_l, bvar_c, bvar_r, f_l, f_c, f_r, 
-        pkpm_div_ppar_d);
+        &momLocal[0]);
     }
+    // Accumulate output to output array atomically to avoid race conditions
+    double *pkpm_div_ppar_d = (double*) gkyl_array_fetch(pkpm_div_ppar, linc_conf);
+    for (unsigned int k = 0; k < pkpm_div_ppar->ncomp; ++k) {
+       if (linc1 < phase_range.volume)
+         atomicAdd(&pkpm_div_ppar_d[k], momLocal[k]);
+    }    
   }  
 }
 // Host-side wrapper for pkpm div(p_parallel b_hat) calculation

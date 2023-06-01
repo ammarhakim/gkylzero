@@ -306,7 +306,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_species(app, i, tm, frame);
     if (app->species[i].model_id == GKYL_MODEL_PKPM) {
       gkyl_vlasov_app_write_species_pkpm_moms(app, i, tm, frame);
-      gkyl_vlasov_app_write_species_pkpm_div_p(app, i, tm, frame);
+      //gkyl_vlasov_app_write_species_pkpm_div_p(app, i, tm, frame);
     }
     if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
