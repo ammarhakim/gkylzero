@@ -270,9 +270,10 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
 
   gkyl_superlu_solve(up->prob);
 
-  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
-  int idx0[GKYL_MAX_CDIM];
   gkyl_array_clear(phiout, 0.0);
+
+  int idx0[GKYL_MAX_CDIM];
+  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
 

@@ -318,9 +318,9 @@ gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout
   }
 #endif
 
-  gkyl_array_clear(phiout, 0.0);
-
   gkyl_superlu_solve(up->prob);
+
+  gkyl_array_clear(phiout, 0.0);
 
   int idx0[GKYL_MAX_CDIM], idx1[GKYL_MAX_CDIM];
   gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);

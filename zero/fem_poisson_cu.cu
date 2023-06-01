@@ -135,9 +135,7 @@ fem_poisson_choose_kernels_cu(const struct gkyl_basis* basis, const struct gkyl_
 __global__ void
 gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *epsilon, bool isvareps, const double *dx, double *rhs_global, struct gkyl_array *rhs_local, struct gkyl_range range, const double *bcvals, struct gkyl_fem_poisson_kernels *kers)
 {
-  int idx[GKYL_MAX_CDIM];
-  int idx0[GKYL_MAX_CDIM];
-  int num_cells[GKYL_MAX_CDIM];
+  int idx[GKYL_MAX_CDIM];  int idx0[GKYL_MAX_CDIM];  int num_cells[GKYL_MAX_CDIM];
   long globalidx[32];
   for (int d=0; d<GKYL_MAX_CDIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
@@ -159,9 +157,7 @@ gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *epsilon, bool isvareps, const
                                       : (const double*) gkyl_array_cfetch(epsilon, 0);
 
     int keri = idx_to_inup_ker(range.ndim, num_cells, idx);
-
     for (size_t d=0; d<range.ndim; d++) idx0[d] = idx[d]-1;
-
     kers->l2g[keri](num_cells, idx0, globalidx);
 
     // Apply the RHS source stencil. It's mostly the mass matrix times a
@@ -174,9 +170,7 @@ gkyl_fem_poisson_set_rhs_kernel(struct gkyl_array *epsilon, bool isvareps, const
 __global__ void
 gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_global, struct gkyl_range range, struct gkyl_fem_poisson_kernels *kers)
 {
-  int idx[GKYL_MAX_CDIM];
-  int idx0[GKYL_MAX_CDIM];
-  int num_cells[GKYL_MAX_CDIM];
+  int idx[GKYL_MAX_CDIM];  int idx0[GKYL_MAX_CDIM];  int num_cells[GKYL_MAX_CDIM];
   long globalidx[32];
   for (int d=0; d<GKYL_MAX_CDIM; d++) num_cells[d] = range.upper[d]-range.lower[d]+1;
 
@@ -196,9 +190,7 @@ gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_glob
     double *local_d = (double*) gkyl_array_cfetch(x_local, start);
 
     int keri = idx_to_inup_ker(range.ndim, num_cells, idx);
-
     for (size_t d=0; d<range.ndim; d++) idx0[d] = idx[d]-1;
-
     kers->l2g[keri](num_cells, idx0, globalidx);
 
     // Apply the RHS source stencil. It's mostly the mass matrix times a
