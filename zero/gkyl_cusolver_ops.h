@@ -37,13 +37,13 @@ void gkyl_cusolver_amat_from_triples(struct gkyl_cusolver_prob *prob, struct gky
 /**
  * Method to print the matrix A to screen.
  */
-void gkyl_cusolver_print_amat(gkyl_cusolver_prob *prob);
+void gkyl_cusolver_print_amat(struct gkyl_cusolver_prob *prob);
 
 /**
  * Perform the LU decomposition of the A matrix.
  * The _solve method will use these if they are pre-computed.
  */
-void gkyl_cusolver_ludecomp(gkyl_cusolver_prob *prob);
+void gkyl_cusolver_ludecomp(struct gkyl_cusolver_prob *prob);
 
 /**
  * Initialize right-hand-side cuSolver matrix B in Ax=B problem from a list of
@@ -52,27 +52,56 @@ void gkyl_cusolver_ludecomp(gkyl_cusolver_prob *prob);
  * @param prob cuSolver struct holding arrays used in problem.
  * @param tri coordinates & values of non-zero entries in B matrix (triplets).
  */
-void gkyl_cusolver_brhs_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri);
+void gkyl_cusolver_brhs_from_triples(struct gkyl_cusolver_prob *prob, gkyl_mat_triples *tri);
 
 /**
  * Solve Ax=B problem.
  *
  * @param prob cuSolver struct holding arrays used in problem.
  */
-void gkyl_cusolver_solve(gkyl_cusolver_prob *prob);
+void gkyl_cusolver_solve(struct gkyl_cusolver_prob *prob);
 
 /**
  * Copy solution back to host
  *
  * @param prob cuSolver struct holding arrays used in problem.
  */
-void gkyl_cusolver_finish_host(gkyl_cusolver_prob *prob);
+void gkyl_cusolver_finish_host(struct gkyl_cusolver_prob *prob);
 
-void gkyl_cusolver_sync(gkyl_cusolver_prob *prob);
+/**
+ * Synchronize the stream cuSolver ran on.
+ *
+ * @param prob cuSolver struct holding arrays used in problem.
+ */
+void gkyl_cusolver_sync(struct gkyl_cusolver_prob *prob);
 
-double* gkyl_cusolver_get_rhs_ptr(gkyl_cusolver_prob *prob, const long loc);
+/**
+ * Clear the RHS vector by setting all its elements to a value (e.g. 0.).
+ *
+ * @param prob cuSolver struct holding arrays used in problem.
+ * @param val value to set entries of RHS vector to.
+ */
+void gkyl_cusolver_clear_rhs(struct gkyl_cusolver_prob *prob, double val);
 
-double* gkyl_cusolver_get_sol_ptr(gkyl_cusolver_prob *prob, const long loc);
+/**
+ * Get a pointer to the element of the RHS vector at a given location.
+ *
+ * @param prob cuSolver struct holding arrays used in problem.
+ * @param loc element we wish to return a pointer to.
+ * @return pointer to loc-th element in RHS vector. 
+ */
+double* gkyl_cusolver_get_rhs_ptr(struct gkyl_cusolver_prob *prob, long loc);
+
+/**
+ * Get a pointer to the element of the solution vector at a given location.
+ * Note that the solution vector is the RHS vector after the problem was solved,
+ * so this function is equivalent to gkyl_cusolver_get_rhs_ptr.
+ *
+ * @param prob cuSolver struct holding arrays used in problem.
+ * @param loc element we wish to return a pointer to.
+ * @return pointer to loc-th element in solution vector. 
+ */
+double* gkyl_cusolver_get_sol_ptr(struct gkyl_cusolver_prob *prob, long loc);
 
 /**
  * Obtain the RHS ielement-th value of the jprob-th linear problem.
@@ -81,7 +110,7 @@ double* gkyl_cusolver_get_sol_ptr(gkyl_cusolver_prob *prob, const long loc);
  * @param linear index into the RHS flattened array for the desired value.
  * @return RHS value.
  */
-double gkyl_cusolver_get_sol_ij(gkyl_cusolver_prob *prob, const long ielement, const long jprob);
+double gkyl_cusolver_get_sol_ij(struct gkyl_cusolver_prob *prob, long ielement, long jprob);
 
 /**
  * Obtain the RHS value at location loc (a linear index into the RHS matrix).
@@ -89,11 +118,11 @@ double gkyl_cusolver_get_sol_ij(gkyl_cusolver_prob *prob, const long ielement, c
  * @param linear index into the RHS flattened array for the desired value.
  * @return RHS value.
  */
-double gkyl_cusolver_get_sol_lin(gkyl_cusolver_prob *prob, const long loc);
+double gkyl_cusolver_get_sol_lin(struct gkyl_cusolver_prob *prob, long loc);
 
 /**
  * Release cuSolver problem
  *
  * @param prob Pointer to cuSolver problem to release.
  */
-void gkyl_cusolver_prob_release(gkyl_cusolver_prob *prob);
+void gkyl_cusolver_prob_release(struct gkyl_cusolver_prob *prob);

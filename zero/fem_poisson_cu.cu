@@ -202,15 +202,15 @@ gkyl_fem_poisson_get_sol_kernel(struct gkyl_array *x_local, const double *x_glob
 void 
 gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
+  gkyl_cusolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_cusolver_get_rhs_ptr(up->prob_cu, 0);
-  gkyl_cu_memset(rhs_cu, 0, sizeof(double)*up->numnodes_global);
   gkyl_fem_poisson_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev, up->isvareps, up->dx_cu, rhs_cu, rhsin->on_dev, up->solve_range, up->bcvals_cu, up->kernels_cu); 
 }	
 
 void
 gkyl_fem_poisson_solve_cu(gkyl_fem_poisson *up, struct gkyl_array *phiout)
 {
-  // do linear solve with cusolver
+  // Do linear solve with cusolver.
   gkyl_cusolver_solve(up->prob_cu);
 
   double *x_cu = gkyl_cusolver_get_sol_ptr(up->prob_cu, 0);

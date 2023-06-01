@@ -403,7 +403,7 @@ gkyl_cusolver_amat_from_triples(struct gkyl_cusolver_prob *prob, struct gkyl_mat
 }
 
 void
-gkyl_cusolver_brhs_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
+gkyl_cusolver_brhs_from_triples(struct gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
 {
   long nnz_rhs = gkyl_mat_triples_size(tri);  // number of non-zero entries in RHS matrix B
   
@@ -420,7 +420,7 @@ gkyl_cusolver_brhs_from_triples(gkyl_cusolver_prob *prob, gkyl_mat_triples *tri)
 }
 
 void
-gkyl_cusolver_solve(gkyl_cusolver_prob *prob)
+gkyl_cusolver_solve(struct gkyl_cusolver_prob *prob)
 {
   // MF 2023/05/25: the 1 below is nrhs, and cuSolver docs say only 1 is supported. To me it is not
   // clear whether this means one can only solve 1 system, or whether we can solve multiple systems
@@ -432,45 +432,51 @@ gkyl_cusolver_solve(gkyl_cusolver_prob *prob)
 }
 
 void
-gkyl_cusolver_sync(gkyl_cusolver_prob *prob)
+gkyl_cusolver_sync(struct gkyl_cusolver_prob *prob)
 {
   cudaStreamSynchronize(prob->stream);
 }
 
 void
-gkyl_cusolver_finish_host(gkyl_cusolver_prob *prob)
+gkyl_cusolver_finish_host(struct gkyl_cusolver_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
   gkyl_cu_memcpy(prob->rhs, prob->rhs_cu, sizeof(double)*prob->mrow*prob->nrhs, GKYL_CU_MEMCPY_D2H);
 }
 
+void
+gkyl_cusolver_clear_rhs(struct gkyl_cusolver_prob *prob, double val)
+{
+  gkyl_cu_memset(prob->rhs_cu, val, prob->mrow*prob->nrhs*sizeof(double));
+}
+
 double*
-gkyl_cusolver_get_rhs_ptr(gkyl_cusolver_prob *prob, const long loc)
+gkyl_cusolver_get_rhs_ptr(struct gkyl_cusolver_prob *prob, long loc)
 {
   return prob->rhs_cu+loc;
 }
 
 double*
-gkyl_cusolver_get_sol_ptr(gkyl_cusolver_prob *prob, const long loc)
+gkyl_cusolver_get_sol_ptr(struct gkyl_cusolver_prob *prob, long loc)
 {
   return prob->rhs_cu+loc;
 }
 
 double
-gkyl_cusolver_get_sol_ij(gkyl_cusolver_prob *prob, const long ielement, const long jprob)
+gkyl_cusolver_get_sol_ij(struct gkyl_cusolver_prob *prob, long ielement, long jprob)
 {
   return prob->rhs[jprob*prob->mrow+ielement];
 }
 
 
 double
-gkyl_cusolver_get_sol_lin(gkyl_cusolver_prob *prob, const long loc)
+gkyl_cusolver_get_sol_lin(struct gkyl_cusolver_prob *prob, long loc)
 {
   return prob->rhs[loc];
 }
 
 void
-gkyl_cusolver_prob_release(gkyl_cusolver_prob *prob)
+gkyl_cusolver_prob_release(struct gkyl_cusolver_prob *prob)
 {
   gkyl_cu_free(prob->rhs_cu);
   gkyl_cu_free(prob->csrcolindA_cu);
