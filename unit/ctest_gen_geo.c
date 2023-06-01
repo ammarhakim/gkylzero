@@ -61,10 +61,13 @@ test_alpha_gen_geo_(bool use_gpu)
 
   // initialize basis
   int poly_order = 1;
-  struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
+  struct gkyl_basis basis, alphaGeoBasis, confBasis; // phase-space, alphaGeo basis, conf-space basis
 
   /* Force hybrid basis (p=2 in velocity space). */
   gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  /* Also initialize pure p=1 basis for alpha_geo to increase sparseness
+     since alpha_geo only varies linearly in velocity space */
+  gkyl_cart_modal_serendip(&alphaGeoBasis, cdim+vdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // projection updater for geo factors
@@ -82,7 +85,7 @@ test_alpha_gen_geo_(bool use_gpu)
   a1 = mkarr1(use_gpu, confBasis.num_basis, confRange.volume);
   tv_comp = mkarr1(use_gpu, 9*confBasis.num_basis, confRange.volume);
   gij = mkarr1(use_gpu, 6*confBasis.num_basis, confRange.volume);
-  alpha_geo = mkarr1(use_gpu, vdim*basis.num_basis, phaseRange.volume);
+  alpha_geo = mkarr1(use_gpu, vdim*alphaGeoBasis.num_basis, phaseRange.volume);
 
   // initialize arrays of 1 and 0.
   gkyl_proj_on_basis_advance(projConfOne, 0.0, &confRange, a1);
@@ -119,23 +122,23 @@ test_alpha_gen_geo_(bool use_gpu)
   int linl = gkyl_range_idx(&phaseRange, idx);
 
   double *alpha_geo_d; 
-  alpha_geo_h = mkarr1(false, vdim*basis.num_basis, phaseRange.volume);
+  alpha_geo_h = mkarr1(false, vdim*alphaGeoBasis.num_basis, phaseRange.volume);
   gkyl_array_copy(alpha_geo_h, alpha_geo);
   alpha_geo_d = gkyl_array_fetch(alpha_geo_h, linl);
 
   // field is sparse so only check key components
   /* printf("\n  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 0, alpha_geo_d[0]); */
   /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 4, alpha_geo_d[4]); */
-  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 160, alpha_geo_d[160]); */
-  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 165, alpha_geo_d[165]); */
-  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 320, alpha_geo_d[320]); */
-  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 326, alpha_geo_d[326]); */
+  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 64, alpha_geo_d[64]); */
+  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 69, alpha_geo_d[69]); */
+  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 128, alpha_geo_d[128]); */
+  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 134, alpha_geo_d[134]); */
   TEST_CHECK( gkyl_compare_double(alpha_geo_d[0], -7.0000000000000036e+00, 1e-12) );
   TEST_CHECK( gkyl_compare_double(alpha_geo_d[4], 5.7735026918962595e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(alpha_geo_d[160], -7.0000000000000036e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(alpha_geo_d[165], 5.7735026918962595e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(alpha_geo_d[320], -7.0000000000000036e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(alpha_geo_d[326], 5.7735026918962595e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(alpha_geo_d[64], -7.0000000000000036e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(alpha_geo_d[69], 5.7735026918962595e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(alpha_geo_d[128], -7.0000000000000036e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(alpha_geo_d[134], 5.7735026918962595e-01, 1e-12) );
 
   // test another cell
   int idx2[] = {2, 4, 6, 2, 4, 6};
@@ -143,16 +146,16 @@ test_alpha_gen_geo_(bool use_gpu)
   alpha_geo_d = gkyl_array_fetch(alpha_geo_h, linl2);
   /* printf("\n  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 0, alpha_geo_d[0]); */
   /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 4, alpha_geo_d[4]); */
-  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 160, alpha_geo_d[160]); */
-  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 165, alpha_geo_d[165]); */
-  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 320, alpha_geo_d[320]); */
-  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 326, alpha_geo_d[326]); */
+  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 64, alpha_geo_d[64]); */
+  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 69, alpha_geo_d[69]); */
+  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 128, alpha_geo_d[128]); */
+  /* printf("  TEST_CHECK( gkyl_compare_double(alpha_geo_d[%d], %.16e, 1e-12) );\n", 134, alpha_geo_d[134]); */
   TEST_CHECK( gkyl_compare_double(alpha_geo_d[0], -5.0000000000000036e+00, 1e-12) );
   TEST_CHECK( gkyl_compare_double(alpha_geo_d[4], 5.7735026918962595e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(alpha_geo_d[160], -1.0000000000000007e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(alpha_geo_d[165], 5.7735026918962595e-01, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(alpha_geo_d[320], 3.0000000000000013e+00, 1e-12) );
-  TEST_CHECK( gkyl_compare_double(alpha_geo_d[326], 5.7735026918962595e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(alpha_geo_d[64], -1.0000000000000007e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(alpha_geo_d[69], 5.7735026918962595e-01, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(alpha_geo_d[128], 3.0000000000000013e+00, 1e-12) );
+  TEST_CHECK( gkyl_compare_double(alpha_geo_d[134], 5.7735026918962595e-01, 1e-12) );
 
 }
 
@@ -181,10 +184,13 @@ test_stream_gen_geo_(bool use_gpu)
 
   // initialize basis
   int poly_order = 1;
-  struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
+  struct gkyl_basis basis, alphaGeoBasis, confBasis; // phase-space, alphaGeo basis, conf-space basis
 
   /* Force hybrid basis (p=2 in velocity space). */
   gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  /* Also initialize pure p=1 basis for alpha_geo to increase sparseness
+     since alpha_geo only varies linearly in velocity space */
+  gkyl_cart_modal_serendip(&alphaGeoBasis, cdim+vdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // projection updater for geo factors
@@ -202,7 +208,7 @@ test_stream_gen_geo_(bool use_gpu)
   a1 = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
   tv_comp = mkarr1(use_gpu, 9*confBasis.num_basis, confRange_ext.volume);
   gij = mkarr1(use_gpu, 6*confBasis.num_basis, confRange_ext.volume);
-  alpha_geo = mkarr1(use_gpu, vdim*basis.num_basis, phaseRange_ext.volume);
+  alpha_geo = mkarr1(use_gpu, vdim*alphaGeoBasis.num_basis, phaseRange_ext.volume);
 
   // initialize arrays of 1 and 0.
   gkyl_proj_on_basis_advance(projConfOne, 0.0, &confRange, a1);
