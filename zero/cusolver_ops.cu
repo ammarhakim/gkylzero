@@ -178,7 +178,7 @@ gkyl_cusolver_amat_from_triples(struct gkyl_cusolver_prob *prob, struct gkyl_mat
     csrvalApointers = (double**) gkyl_malloc(prob->nrhs*sizeof(double*));
     prob->csrvalApointers_cu = (double**) gkyl_cu_malloc(prob->nrhs*sizeof(double*));
     for (size_t k=0; k<prob->nrhs; k++)
-      csrvalApointers[k] = &prob->csrvalA_cu[k*prob->nnz];
+      csrvalApointers[k] = prob->nprob == 1? &prob->csrvalA_cu[0] : &prob->csrvalA_cu[k*prob->nnz];
     gkyl_cu_memcpy(prob->csrvalApointers_cu, csrvalApointers, sizeof(double*)*prob->nrhs, GKYL_CU_MEMCPY_H2D);
   }
 
@@ -325,13 +325,8 @@ gkyl_cusolver_amat_from_triples(struct gkyl_cusolver_prob *prob, struct gkyl_mat
       nnzL, h_csrRowIndL, h_csrColIndL, h_csrValL,
       nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q, prob->cusolverRfH);
   } else {
-    if (prob->nprob == 1) {
-      for (size_t k=0; k<prob->nrhs; k++)
-        csrvalApointers[k] = &csrvalA[0];
-    } else {
-      for (size_t k=0; k<prob->nrhs; k++)
-        csrvalApointers[k] = &csrvalA[k*prob->nnz];
-    }
+    for (size_t k=0; k<prob->nrhs; k++)
+      csrvalApointers[k] = prob->nprob == 1? &csrvalA[0] : &csrvalA[k*prob->nnz];
     cusolverRfBatchSetupHost(prob->nrhs, prob->mrow, prob->nnz, csrrowptrA, csrcolindA, csrvalApointers,
       nnzL, h_csrRowIndL, h_csrColIndL, h_csrValL,
       nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q, prob->cusolverRfH);
@@ -429,7 +424,7 @@ gkyl_cusolver_solve(gkyl_cusolver_prob *prob)
 {
   // MF 2023/05/25: the 1 below is nrhs, and cuSolver docs say only 1 is supported. To me it is not
   // clear whether this means one can only solve 1 system, or whether we can solve multiple systems
-  // but each system can only have nrhs=1. I suspect it's the latter.
+  // but each system can only have nrhs=1. I think it's the latter.
   if (prob->nrhs==1)
     cusolverRfSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, 1, prob->d_T, prob->mrow, prob->rhs_cu, prob->mrow);
   else

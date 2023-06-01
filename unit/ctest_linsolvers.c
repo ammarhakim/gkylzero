@@ -264,8 +264,8 @@ void test_superlu_ops_multiple_prob()
 
   for (int k=0; k<nprob; k++) {
     s = 19.0*(k+1)/nprob; u = 21.0*(k+1)/nprob; p = 16.0*(k+1)/nprob; e = 5.0*(k+1)/nprob; r = 18.0*(k+1)/nprob; l = 12.0*(k+1)/nprob;
-//    for (int i=0; i<m; i++)
-//      TEST_CHECK( gkyl_compare_double( superlu_test_answer(s,u,p,e,r,l,i), gkyl_superlu_get_rhs_lin(prob,k*m+i), 1e-10) );
+    for (int i=0; i<m; i++)
+      TEST_CHECK( gkyl_compare_double( superlu_test_answer(s,u,p,e,r,l,i), gkyl_superlu_get_rhs_lin(prob,k*m+i), 1e-10) );
   }
 
   gkyl_superlu_prob_release(prob);
