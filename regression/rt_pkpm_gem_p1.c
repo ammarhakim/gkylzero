@@ -281,7 +281,7 @@ create_ctx(void)
   double n0 = 1.0; // initial number density
   double nbOverN0 = 0.2; // background number density
 
-  double vAe = 1.0/12.0;
+  double vAe = 1.0/6.0;
   double vAi = vAe/sqrt(massIon);
   double beta_elc = 1.0/6.0;
   // B0 has 1/sqrt(2) factor because B is equally subdivided between
@@ -393,8 +393,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -28.0 * ctx.vtElc},
-    .upper = { 28.0 * ctx.vtElc}, 
+    .lower = { -12.0 * ctx.vtElc},
+    .upper = { 12.0 * ctx.vtElc}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -428,8 +428,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -16.0 * ctx.vtIon},
-    .upper = { 16.0 * ctx.vtIon}, 
+    .lower = { -12.0 * ctx.vtIon},
+    .upper = { 12.0 * ctx.vtIon}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -487,7 +487,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 185;
+  int nframe = 37;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
