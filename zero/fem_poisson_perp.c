@@ -19,6 +19,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
   up->epsilon = epsilon;
 
   assert(up->ndim == 3);
+  assert(up->epsilon->ncomp == 3*basis.num_basis);
 
   // We assume epsilon and kSq live on the device, and we create a host-side
   // copies temporarily to compute the LHS matrix. This also works for CPU solves.
