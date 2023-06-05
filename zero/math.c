@@ -8,7 +8,7 @@
 // https://www.genivia.com/qthsh.html
 //
 // PS: I do not think the improvements claimed in the above note are
-// acutally correct. Hence, at present I am using the wp34s
+// actually correct. Hence, at present I am using the wp34s
 // implementation in Appendix B of the note.
 
 struct gkyl_qr_res
@@ -73,9 +73,11 @@ gkyl_dbl_exp(double (*func)(double, void *), void *ctx,
 }
 
 // Helper functions for ridders
-static inline double sgn(double x) { return x >= 0 ? 1 : -1; }
-static inline double babs(double a, double b) { return b>=0 ? fabs(a) : -fabs(a); }
+static inline double dsign(double x) { return x >= 0 ? 1 : -1; }
 
+// See IEEE Tran. Circuit and Systems, vol CAS-26 No 11, Pg 976
+// 1976. The following is almost a direct implementation from the
+// original paper
 struct gkyl_qr_res
 gkyl_ridders(double (*func)(double,void*), void *ctx,
   double x1, double x2, double f1, double f2, int max_iter, double eps)
@@ -87,28 +89,27 @@ gkyl_ridders(double (*func)(double,void*), void *ctx,
   while(iterating && nitr<=max_iter) {
     double xm = 0.5*(xl+xr);
     double fm = func(xm, ctx); nev += 1;
-    double sr = sqrt(fm*fm - fl*fr);
-    if (sr == 0) {
-      res = xm;
-      break;
-    }
+    double W = sqrt(fm*fm - fl*fr);
+
+    if (W == 0) { res = xm;  break; }
     
-    double xnew = xm + (xm-xl)*sgn(fl-fr)*fm/sr;
+    double xnew = xm + (xm-xl)*dsign(fl-fr)*fm/W;
     if (fabs(xnew-res) < eps) break;
     res = xnew;
     double fnew = func(xnew, ctx); nev += 1;
     if (fnew == 0.0) break;
 
-    if (babs(fm, fnew) != fm) {
+    if (fm*fnew < 0) {
       xl = xm; fl = fm;
       xr = res; fr = fnew;
     }
-    else if (babs(fl,fnew) != fl) {
+    else if (fl*fnew < 0) {
       xr = res; fr = fnew;      
     }
-    else if (babs(fr,fnew) != fr) {
+    else if (fr*fnew < fr) {
       xl = res; fl = fnew;
     }
+
     if (fabs(xr-xl) < eps) iterating = 0;
     nitr += 1;
   }

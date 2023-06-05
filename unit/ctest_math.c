@@ -23,7 +23,7 @@ static void
 show_qr_res(struct gkyl_qr_res res, const char *msg)
 {
   fprintf(stdout, "%s\n", msg);
-  fprintf(stdout, ">> Status = %d. Res = %.10lg, Error = %g, Neval = %d. Nlevel = %d\n",
+  fprintf(stdout, ">> Status = %d. Res = %.15lg, Error = %g, Neval = %d. Nlevel = %d\n",
     res.status, res.res, res.error, res.nevals, res.nlevels);
 }
 
@@ -76,6 +76,11 @@ double rfunc_2(double x, void *ctx)
   return x*sin(x*x);
 }
 
+double rfunc_3(double x, void *ctx)
+{
+  return x*exp(x)-10;
+}
+
 void
 test_ridders()
 {
@@ -97,6 +102,14 @@ test_ridders()
     TEST_CHECK( gkyl_compare(res.res, 0.0, 1e-10) );
   } while(0);
 
+  do {
+    double x1 = -1.0, x2 = 5.0;
+    double f1 = rfunc_3(x1, 0), f2 = rfunc_3(x2, 0);
+    struct gkyl_qr_res res = gkyl_ridders(rfunc_3, 0, x1, x2, f1, f2,
+      100, 1e-12);
+    //show_qr_res(res, "rfunc_3");
+    TEST_CHECK( gkyl_compare(res.res, 1.745528002740699, 1e-10) );
+  } while(0);  
 }
 
 TEST_LIST = {
