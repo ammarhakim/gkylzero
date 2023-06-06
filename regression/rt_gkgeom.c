@@ -74,6 +74,32 @@ cerforn_rt(void)
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&inp);
 
+  int cum_nroots = 0;
+  
+  do {
+    double psi_ref = 1e-4;
+    double arcL = gkyl_gkgeom_integrate_psi_contour(geo, psi_ref,
+      lower[1], upper[1], upper[0]);
+
+    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    fprintf(stdout, "psi = %lg has arc-length %.10lg. Roots computed = %ld\n",
+      psi_ref, arcL, stat.num_roots-cum_nroots);
+    
+    cum_nroots += stat.num_roots;
+  } while(0);
+
+  do {
+    double psi_ref = 1.2;
+    double arcL = gkyl_gkgeom_integrate_psi_contour(geo, psi_ref,
+      lower[1], upper[1], upper[0]);
+
+    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);    
+    fprintf(stdout, "psi = %lg has arc-length %.10lg. Roots computed = %ld\n",
+      psi_ref, arcL, stat.num_roots-cum_nroots);
+
+    cum_nroots += stat.num_roots;
+  } while(0);  
+  
   gkyl_gkgeom_release(geo);
   gkyl_array_release(psiRZ);
 }

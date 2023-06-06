@@ -12,10 +12,22 @@ struct gkyl_gkgeom_inp {
   const struct gkyl_range *rzlocal; // local range over which psiRZ is defined
 
   // Parameters for root finder: leave unset to use defaults
-  struct { int max_iter; double eps; } root_param;
+  struct {
+    int max_iter; // typically 20
+    double eps; // typically 1e-10
+  } root_param;
+
   // Parameters for nmumerical quadrature: leave unset to use default
-  struct { double eps; } quad_param;
+  struct {
+   int max_levels; // typically 6-7    
+    double eps; // typically 1e-10
+  } quad_param;
 };
+
+// Some cumulative statistics
+struct gkyl_gkgeom_stat {
+  long num_roots; // number of root computations
+};  
 
 /**
  * Create new updater to compute the geometry (mapc2p) needed in GK
@@ -44,6 +56,14 @@ gkyl_gkgeom *gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp);
  */
 double gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi,
   double zmin, double zmax, double rclose);
+
+/**
+ * Return cumulative statistics from geometry computations
+ *
+ * @param geo Geometry object
+ * @return Cumulative statistics
+ */
+struct gkyl_gkgeom_stat gkyl_gkgeom_get_stat(const gkyl_gkgeom *geo);
 
 /**
  * Delete updater.

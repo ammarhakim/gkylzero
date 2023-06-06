@@ -2,8 +2,9 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_gkgeom.h>
-#include <gkyl_rect_grid.h>
+#include <gkyl_math.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 
 #include <math.h>
 #include <string.h>
@@ -15,11 +16,13 @@ struct gkyl_gkgeom {
   int num_rzbasis; // number of basis functions in RZ
 
   struct { int max_iter; double eps; } root_param;
-  struct { double eps; } quad_param;
+  struct { int max_level; double eps; } quad_param;
 
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
+
+  long nroot_calls; // number of times roots are computed
 };
 
 // some helper functions
@@ -121,7 +124,7 @@ calc_RdR_p2(const double *psi, double psi0, double Z, double xc[2], double dx[2]
 // or no solutions. The number of roots found is returned and are
 // copied in the array R and dR. The calling function must ensure that
 // these arrays are big enough to hold all roots required
-int
+static int
 R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR)
 {
@@ -158,6 +161,91 @@ R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots,
   return sidx;
 }
 
+// Function context to pass to coutour integration function
+struct contour_ctx {
+  const gkyl_gkgeom *geo;
+  double psi, last_R;
+  long ncall;
+};
+
+// function to pass to numerical quadrature to integrate along a contour
+static inline double
+contour_func(double Z, void *ctx)
+{
+  struct contour_ctx *c = ctx;
+  c->ncall += 1;
+  double R[2] = { 0 }, dR[2] = { 0 };
+  
+  int nr = R_psiZ(c->geo, c->psi, Z, 2, R, dR);
+  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR);
+  
+  return nr>0 ? sqrt(1+dRdZ*dRdZ) : 0.0;
+}
+
+// Integrates along a specified contour, optionally using a "memory"
+// of previously computed values, or storing computed values in
+// memory.The function basically breaks up the integral into a loop
+// over z-cells. This needs to be done as the DG representation is,
+// well, discontinuous, and adaptive quadrature struggles with such
+// functions.
+static double
+integrate_psi_contour_memo(const gkyl_gkgeom *geo, double psi,
+  double zmin, double zmax, double rclose,
+  bool use_memo, bool fill_memo, double *memo)
+{
+  struct contour_ctx ctx = {
+    .geo = geo,
+    .psi = psi,
+    .ncall = 0,
+    .last_R = rclose
+  };
+
+  int nlevels = geo->quad_param.max_level;
+  double eps = geo->quad_param.eps;
+  
+  double dz = geo->rzgrid.dx[1];
+  double zlo = geo->rzgrid.lower[1];
+  int izlo = geo->rzlocal.lower[1], izup = geo->rzlocal.upper[1];
+  
+  int ilo = get_idx(1, zmin, &geo->rzgrid, &geo->rzlocal);
+  int iup = get_idx(1, zmax, &geo->rzgrid, &geo->rzlocal);
+
+  double res = 0.0;
+  for (int i=ilo; i<=iup; ++i) {
+    double z1 = gkyl_median(zmin, zlo+(i-izlo)*dz, zlo+(i-izlo+1)*dz);
+    double z2 = gkyl_median(zmax, zlo+(i-izlo)*dz, zlo+(i-izlo+1)*dz);
+    
+    if (z1 < z2) {
+      if (use_memo) {
+        if (fill_memo) {
+          struct gkyl_qr_res res_local =
+            gkyl_dbl_exp(contour_func, &ctx, z1, z2, nlevels, eps);
+          memo[i-izlo] = res_local.res;
+          res += res_local.res;
+        }
+        else {
+          if (z2-z1 == dz) {
+            res += memo[i-izlo];
+          }
+          else {
+            struct gkyl_qr_res res_local =
+              gkyl_dbl_exp(contour_func, &ctx, z1, z2, nlevels, eps);
+            res += res_local.res;
+          }
+        }
+      }
+      else {
+        struct gkyl_qr_res res_local =
+          gkyl_dbl_exp(contour_func, &ctx, z1, z2, nlevels, eps);
+        res += res_local.res;
+      }
+    }
+  }
+
+  ((gkyl_gkgeom *)geo)->nroot_calls += ctx.ncall;
+  return res;
+}
+
 gkyl_gkgeom*
 gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
 {
@@ -168,15 +256,22 @@ gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
   geo->num_rzbasis = inp->rzbasis->num_basis;
   memcpy(&geo->rzlocal, inp->rzlocal, sizeof(struct gkyl_range));
 
-  geo->root_param.eps = inp->root_param.eps > 0 ? inp->root_param.eps : 1e-10;
-  geo->root_param.max_iter = inp->root_param.max_iter > 0 ? inp->root_param.max_iter : 100;
+  geo->root_param.eps =
+    inp->root_param.eps > 0 ? inp->root_param.eps : 1e-10;
+  geo->root_param.max_iter =
+    inp->root_param.max_iter > 0 ? inp->root_param.max_iter : 100;
 
-  geo->quad_param.eps = inp->quad_param.eps > 0 ? inp->quad_param.eps : 1e-10;
+  geo->quad_param.max_level =
+    inp->quad_param.max_levels > 0 ? inp->quad_param.max_levels : 10;
+  geo->quad_param.eps =
+    inp->quad_param.eps > 0 ? inp->quad_param.eps : 1e-10;
 
   if (inp->rzbasis->poly_order == 1)
     geo->calc_roots = calc_RdR_p1;
   else if (inp->rzbasis->poly_order == 2)
     geo->calc_roots = calc_RdR_p2;
+
+  geo->nroot_calls = 0;
   
   return geo;
 }
@@ -185,7 +280,16 @@ double
 gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi,
   double zmin, double zmax, double rclose)
 {
-  return 0;
+  return integrate_psi_contour_memo(geo, psi, zmin, zmax, rclose,
+    false, false, 0);
+}
+
+struct gkyl_gkgeom_stat
+gkyl_gkgeom_get_stat(const gkyl_gkgeom *geo)
+{
+  return (struct gkyl_gkgeom_stat) {
+    .num_roots = geo->nroot_calls
+  };
 }
 
 void
