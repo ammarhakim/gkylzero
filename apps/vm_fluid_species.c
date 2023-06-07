@@ -170,7 +170,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     }
     // allocate array for cell average of d/dx_i p_ij and d/dx_i u_j for use in limiting div(p)
     // 9 components of d/dx_i p_ij and 9 components of d/dx_i u_j
-    f->div_p_cell_avg = mkarr(app->use_gpu, 18*app->confBasis.num_basis, app->local_ext.volume);
+    f->div_p_cell_avg = mkarr(app->use_gpu, 18, app->local_ext.volume);
     // allocate array for divergence of pressure tensor (for momentum equation coupling)
     f->div_p = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     // allocate array for pkpm acceleration variables, stored in pkpm_accel_vars: 
