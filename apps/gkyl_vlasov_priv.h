@@ -324,13 +324,14 @@ struct vm_fluid_species {
   struct gkyl_array *u_host; // array for host-side fluid/advection velocity (for I/O)
   struct gkyl_array *p_host; // array for host-side pressure (for I/O)
   // pkpm variables
-  struct gkyl_array *div_p_cell_avg;   // array for cell average of d/dx_i p_ij for use in limiting div(p)
+  struct gkyl_array *div_p_cell_avg;   // array for cell average of d/dx_i p_ij and d/dx_i u_j for use in limiting div(p) and grad(u)
+  struct gkyl_array *limiter_bc_buffer;// buffer for applying BCs to limiter function (for sync/periodic & copy BCs)
   struct gkyl_array *div_p;            // array for divergence of the pressure tensor
   struct gkyl_array *pkpm_accel_vars;  // Acceleration variables for pkpm, pkpm_accel_vars:
                                        // 0: div_b (divergence of magnetic field unit vector)
                                        // 1: bb_grad_u (bb : grad(u))
                                        // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
-                                       // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - nu + nu rho vth^2/p_perp)
+                                       // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
                                        // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
 
   double nuHyp; // Hyper-diffusion coefficient
@@ -1018,6 +1019,14 @@ void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fl
  * @param f Fluid Species to apply BCs
  */
 void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
+
+/**
+ * Apply BCs to limiter function if appropriate (sync, periodic BCs, or copy BCs)
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ */
+void vm_fluid_species_pkpm_limiter_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species);
 
 /**
  * Apply BCs to primitive variables (bulk velocity, u, and pressure, p, if pressure present)

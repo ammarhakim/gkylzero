@@ -58,8 +58,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->p_host = 0;
   f->p_bc_buffer = 0;
 
-  // cell average of d/dx_i p_ij for limiting div(p)
+  // cell average of d/dx_i p_ij and d/dx_i u_j for limiting div(p) and grad(u)
   f->div_p_cell_avg = 0;
+  f->limiter_bc_buffer = 0;
   // div_p (divergence of the pressure tensor)
   f->div_p = 0;
 
@@ -171,6 +172,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // allocate array for cell average of d/dx_i p_ij and d/dx_i u_j for use in limiting div(p)
     // 9 components of d/dx_i p_ij and 9 components of d/dx_i u_j
     f->div_p_cell_avg = mkarr(app->use_gpu, 18, app->local_ext.volume);
+    // allocate buffer for applying boundary conditions to limiter function
+    // limiter BCs only defined in special cases (periodic and copy)
+    f->limiter_bc_buffer = mkarr(app->use_gpu, 18, buff_sz);
     // allocate array for divergence of pressure tensor (for momentum equation coupling)
     f->div_p = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     // allocate array for pkpm acceleration variables, stored in pkpm_accel_vars: 
@@ -411,6 +415,10 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     gkyl_array_clear(fluid_species->div_p_cell_avg, 0.0);
     gkyl_calc_pkpm_vars_limit_div_p(&app->grid, app->confBasis, &app->local, 
       fluid_species->u, fluid_species->p, fluid_species->div_p_cell_avg);
+    // Apply boundary conditions to limiter function if appropriate
+    // The gradient inside the ghost cell is not always defined, but we can apply
+    // BCs if the BCs are periodic or copy. Also synchronizes ghost cell values of limiter. 
+    vm_fluid_species_pkpm_limiter_apply_bc(app, fluid_species);
 
     // calculate gradient quantities using recovery
     // These are div(p), divergence of the pressure tensor,
@@ -572,6 +580,34 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
   }
 }
 
+// Apply boundary conditions to limiter function when appropriate (periodic or copy BCs)
+void
+vm_fluid_species_pkpm_limiter_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species)
+{
+  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
+  for (int d=0; d<num_periodic_dir; ++d) {
+    gkyl_array_copy_to_buffer(fluid_species->limiter_bc_buffer->data, fluid_species->div_p_cell_avg, app->skin_ghost.lower_skin[d]);
+    gkyl_array_copy_from_buffer(fluid_species->div_p_cell_avg, fluid_species->limiter_bc_buffer->data, app->skin_ghost.upper_ghost[d]);
+
+    gkyl_array_copy_to_buffer(fluid_species->limiter_bc_buffer->data, fluid_species->div_p_cell_avg, app->skin_ghost.upper_skin[d]);
+    gkyl_array_copy_from_buffer(fluid_species->div_p_cell_avg, fluid_species->limiter_bc_buffer->data, app->skin_ghost.lower_ghost[d]);
+    is_np_bc[app->periodic_dirs[d]] = 0;
+  }
+  for (int d=0; d<cdim; ++d) {
+    if (is_np_bc[d]) {
+      if (fluid_species->lower_bc[d] == GKYL_SPECIES_COPY) {
+        gkyl_array_copy_to_buffer(fluid_species->limiter_bc_buffer->data, fluid_species->div_p_cell_avg, app->skin_ghost.lower_skin[d]);
+        gkyl_array_copy_from_buffer(fluid_species->div_p_cell_avg, fluid_species->limiter_bc_buffer->data, app->skin_ghost.lower_ghost[d]);        
+      }
+      if (fluid_species->upper_bc[d] == GKYL_SPECIES_COPY) {
+        gkyl_array_copy_to_buffer(fluid_species->limiter_bc_buffer->data, fluid_species->div_p_cell_avg, app->skin_ghost.upper_skin[d]);
+        gkyl_array_copy_from_buffer(fluid_species->div_p_cell_avg, fluid_species->limiter_bc_buffer->data, app->skin_ghost.upper_ghost[d]);        
+      }
+    }
+  }
+}
+
 // Apply boundary conditions to primitive variables (bulk velocity u and pressure p)
 void
 vm_fluid_species_prim_vars_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species)
@@ -678,6 +714,7 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_array_release(f->T_perp_over_m_inv);
     gkyl_array_release(f->T_ij);
     gkyl_array_release(f->div_p_cell_avg);
+    gkyl_array_release(f->limiter_bc_buffer);
     gkyl_array_release(f->div_p);
     gkyl_array_release(f->pkpm_accel_vars);
   }
