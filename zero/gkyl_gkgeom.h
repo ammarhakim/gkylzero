@@ -1,7 +1,17 @@
 #pragma once
 
+#include <stdbool.h>
+
 // Object type
 typedef struct gkyl_gkgeom gkyl_gkgeom;
+
+// Type of flux surface
+enum gkyl_gkgeom_type {
+  GKYL_SOL_DN, // SOL of double-null configuration
+  GKYL_SOL_SN, // SOL of single-null configuration
+  GKYL_PF, // Private flux region
+  GKYL_CORE // Core (closed flux-surface)
+};  
 
 // Inputs to create a new GK geometry creation object
 struct gkyl_gkgeom_inp {
@@ -24,9 +34,24 @@ struct gkyl_gkgeom_inp {
   } quad_param;
 };
 
+// Inputs to create geometry for a specific computational grid
+struct gkyl_gkgeom_geo_inp {
+  const struct gkyl_rect_grid *cgrid;
+  const struct gkyl_basis *cbasis;
+
+  enum gkyl_gkgeom_type ftype; // type of geometry
+  
+  double rclose; // closest R to discrimate
+  double zmin, zmax; // extents of Z for integration
+
+  bool write_node_coord_array; // set to true if nodal coordinates should be written
+  const char *node_file_nm; // name of nodal coordinate file
+};
+
 // Some cumulative statistics
 struct gkyl_gkgeom_stat {
-  long num_roots; // number of root computations
+  long nquad_cont_calls; // num calls from quadrature
+  long nroot_cont_calls; // num calls from root-finder
 };  
 
 /**
@@ -56,6 +81,17 @@ gkyl_gkgeom *gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp);
  */
 double gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi,
   double zmin, double zmax, double rclose);
+
+/**
+ * Compute geometry (mapc2p) on a specified computational grid. The
+ * output array must be pre-allocated by the caller.
+ *
+ * @param geo Geometry object
+ * @param ginp Input structure for creating mapc2p
+ * @param mapc2p On output, the DG representation of mapc2p
+ */
+void gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
+  const struct gkyl_gkgeom_geo_inp *ginp, struct gkyl_array *mapc2p);
 
 /**
  * Return cumulative statistics from geometry computations

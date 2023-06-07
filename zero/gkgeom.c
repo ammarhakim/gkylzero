@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
 #include <gkyl_gkgeom.h>
 #include <gkyl_math.h>
@@ -22,7 +23,7 @@ struct gkyl_gkgeom {
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
 
-  long nroot_calls; // number of times roots are computed
+  struct gkyl_gkgeom_stat stat; 
 };
 
 // some helper functions
@@ -168,7 +169,7 @@ struct contour_ctx {
   long ncall;
 };
 
-// function to pass to numerical quadrature to integrate along a contour
+// Function to pass to numerical quadrature to integrate along a contour
 static inline double
 contour_func(double Z, void *ctx)
 {
@@ -184,7 +185,7 @@ contour_func(double Z, void *ctx)
 
 // Integrates along a specified contour, optionally using a "memory"
 // of previously computed values, or storing computed values in
-// memory.The function basically breaks up the integral into a loop
+// memory. The function basically breaks up the integral into a loop
 // over z-cells. This needs to be done as the DG representation is,
 // well, discontinuous, and adaptive quadrature struggles with such
 // functions.
@@ -242,8 +243,27 @@ integrate_psi_contour_memo(const gkyl_gkgeom *geo, double psi,
     }
   }
 
-  ((gkyl_gkgeom *)geo)->nroot_calls += ctx.ncall;
+  ((gkyl_gkgeom *)geo)->stat.nquad_cont_calls += ctx.ncall;
   return res;
+}
+
+// Function context to pass to root finder
+struct arc_length_ctx {
+  const gkyl_gkgeom *geo;
+  double *arc_memo;
+  double psi, rclose, zmin, arcL;
+};
+
+
+// Function to pass to root-finder to find Z location for given arc-length
+static inline double
+arc_length_func(double Z, void *ctx)
+{
+  struct arc_length_ctx *actx = ctx;
+  double *arc_memo = actx->arc_memo;
+  double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL;
+  return integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose,
+    true, false, arc_memo) - arcL;
 }
 
 gkyl_gkgeom*
@@ -271,7 +291,7 @@ gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
   else if (inp->rzbasis->poly_order == 2)
     geo->calc_roots = calc_RdR_p2;
 
-  geo->nroot_calls = 0;
+  geo->stat = (struct gkyl_gkgeom_stat) { };
   
   return geo;
 }
@@ -284,12 +304,128 @@ gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi,
     false, false, 0);
 }
 
+// write out nodal coordinates 
+static void
+write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
+  struct gkyl_array *nodes)
+{
+  double lower[3] = { 0.0, 0.0, 0.0 };
+  double upper[3] = { 1.0, 1.0, 1.0 };
+  int cells[3];
+  for (int i=0; i<nrange->ndim; ++i)
+    cells[i] = gkyl_range_shape(nrange, i);
+  
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+
+  gkyl_grid_sub_array_write(&grid, nrange, nodes, nm);
+}
+
+void
+gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
+  const struct gkyl_gkgeom_geo_inp *inp, struct gkyl_array *mapc2p)
+{
+  int poly_order = inp->cbasis->poly_order;
+  int nodes[3] = { 1, 1, 1 };
+  if (poly_order == 1)
+    for (int d=0; d<inp->cgrid->ndim; ++d)
+      nodes[d] = inp->cgrid->cells[d]+1;
+  if (poly_order == 2)
+    for (int d=0; d<inp->cgrid->ndim; ++d)
+      nodes[d] = 2*inp->cgrid->cells[d]+1;
+
+  struct gkyl_range nrange;
+  gkyl_range_init_from_shape(&nrange, inp->cgrid->ndim, nodes);
+  struct gkyl_array *mc2p = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim, nrange.volume);
+
+  enum { TH_IDX, PH_IDX, AL_IDX }; // arrangement of computational coordinates
+  enum { R_IDX, Z_IDX }; // arrangement of physical coordinates  
+  
+  double dtheta = inp->cgrid->dx[TH_IDX],
+    dphi = inp->cgrid->dx[PH_IDX],
+    dalpha = inp->cgrid->dx[AL_IDX];
+  
+  double theta_lo = inp->cgrid->lower[TH_IDX],
+    phi_lo = inp->cgrid->lower[PH_IDX],
+    alpha_lo = inp->cgrid->lower[AL_IDX];
+
+  double dx_fact = poly_order == 1 ? 1 : 0.5;
+  dtheta *= dx_fact; dphi *= dx_fact; dalpha *= dx_fact;
+
+  double R[2] = { 0 }, dR[2] = { 0 };
+  double rclose = inp->rclose;
+
+  int nzcells = geo->rzgrid.cells[1];
+  double *arc_memo = gkyl_malloc(sizeof(double[nzcells]));
+
+  struct arc_length_ctx arc_ctx = {
+    .geo = geo,
+    .arc_memo = arc_memo
+  };
+
+  int cidx[2] = { 0 };
+  for (int ip=nrange.lower[PH_IDX]; ip<=nrange.upper[PH_IDX]; ++ip) {
+
+    double zmin = inp->zmin, zmax = inp->zmax;
+
+    double psi_curr = phi_lo + ip * dphi;
+    double arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose,
+      true, true, arc_memo);
+
+    double delta_arcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]);
+
+    cidx[PH_IDX] = ip;
+
+    // set node coordinates of first node
+    cidx[TH_IDX] = nrange.lower[TH_IDX];
+    double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
+    mc2p_n[Z_IDX] = zmin;
+    int nr = R_psiZ(geo, psi_curr, zmin, 2, R, dR);
+    mc2p_n[R_IDX] = choose_closest(rclose, R, R);
+
+    // set node coordinates of rest of nodes
+    double arcL_curr = 0.0;
+    for (int it=nrange.lower[TH_IDX]+1; it<nrange.upper[TH_IDX]; ++it) {
+      arcL_curr += delta_arcL;
+
+      arc_ctx.psi = psi_curr;
+      arc_ctx.rclose = rclose;
+      arc_ctx.zmin = zmin;
+      arc_ctx.arcL = arcL_curr;
+
+      struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx, zmin, zmax, 0, arcL,
+        geo->root_param.max_iter,1e-10);
+      double z_curr = res.res;
+      ((gkyl_gkgeom *)geo)->stat.nroot_cont_calls += res.nevals;
+      
+      int nr = R_psiZ(geo, psi_curr, z_curr, 2, R, dR);
+      double r_curr = choose_closest(rclose, R, R);
+
+      cidx[TH_IDX] = it;
+      double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
+      mc2p_n[Z_IDX] = z_curr;
+      mc2p_n[R_IDX] = r_curr;
+    }
+
+    // set node coordinates of last node
+    cidx[TH_IDX] = nrange.upper[TH_IDX];
+    mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
+    mc2p_n[Z_IDX] = zmax;
+    nr = R_psiZ(geo, psi_curr, zmax, 2, R, dR);
+    mc2p_n[R_IDX] = choose_closest(rclose, R, R);
+  }
+
+  if (inp->write_node_coord_array)
+    write_nodal_coordinates(inp->node_file_nm, &nrange, mc2p);
+
+  gkyl_free(arc_memo);
+  gkyl_array_release(mc2p);  
+}
+
 struct gkyl_gkgeom_stat
 gkyl_gkgeom_get_stat(const gkyl_gkgeom *geo)
 {
-  return (struct gkyl_gkgeom_stat) {
-    .num_roots = geo->nroot_calls
-  };
+  return geo->stat;
 }
 
 void

@@ -60,32 +60,30 @@ cerforn_rt(void)
   gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
   gkyl_eval_on_nodes_release(eon);
 
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psiRZ, "cerforn_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psiRZ, "cerfon_psi.gkyl");
 
-  // construct geometry calculator
-  struct gkyl_gkgeom_inp inp = {
-    // psiRZ and related inputs
-    .rzgrid = &rzgrid,
-    .rzbasis = &rzbasis,
-    .psiRZ = psiRZ,
-    .rzlocal = &rzlocal
-
-  };
-
-  gkyl_gkgeom *geo = gkyl_gkgeom_new(&inp);
+  gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
+      // psiRZ and related inputs
+      .rzgrid = &rzgrid,
+      .rzbasis = &rzbasis,
+      .psiRZ = psiRZ,
+      .rzlocal = &rzlocal
+    }
+  );
 
   int cum_nroots = 0;
-  
+
+  // compute arc-length of various flux-surfaces
   do {
-    double psi_ref = 1e-4;
+    double psi_ref = 1e-4; // close to the seperatrix
     double arcL = gkyl_gkgeom_integrate_psi_contour(geo, psi_ref,
       lower[1], upper[1], upper[0]);
 
     struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
-    fprintf(stdout, "psi = %lg has arc-length %.10lg. Roots computed = %ld\n",
-      psi_ref, arcL, stat.num_roots-cum_nroots);
+    fprintf(stdout, "psi = %lg has arc-length %.10lg. Calls to contour func = %ld\n",
+      psi_ref, arcL, stat.nquad_cont_calls-cum_nroots);
     
-    cum_nroots += stat.num_roots;
+    cum_nroots += stat.nquad_cont_calls;
   } while(0);
 
   do {
@@ -93,13 +91,103 @@ cerforn_rt(void)
     double arcL = gkyl_gkgeom_integrate_psi_contour(geo, psi_ref,
       lower[1], upper[1], upper[0]);
 
-    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);    
-    fprintf(stdout, "psi = %lg has arc-length %.10lg. Roots computed = %ld\n",
-      psi_ref, arcL, stat.num_roots-cum_nroots);
+    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    fprintf(stdout, "psi = %lg has arc-length %.10lg. Calls to contour func = %ld\n",
+      psi_ref, arcL, stat.nquad_cont_calls-cum_nroots);
 
-    cum_nroots += stat.num_roots;
-  } while(0);  
+    cum_nroots += stat.nquad_cont_calls;
+  } while(0);
+
+  do {
+    // compute outboard SOL geometry
+    int npsi = 10;
+    double psi_min = 0.0001, psi_max = 1.2;
+    double dpsi = (psi_max-psi_min)/npsi;
   
+    // Computational grid: theta X psi X alpha (only 2D for now)
+    double clower[] = { -M_PI/2, psi_min };
+    double cupper[] = { M_PI/2, psi_max };
+    int ccells[] = { 16, npsi };
+    
+    struct gkyl_rect_grid cgrid;
+    gkyl_rect_grid_init(&cgrid, 2, clower, cupper, ccells);
+
+    // create mpc2p DG array
+    struct gkyl_range clocal, clocal_ext;
+    gkyl_create_grid_ranges(&cgrid, (int[]) { 0, 0, 0 },
+      &clocal_ext, &clocal);
+
+    int cpoly_order = 2;
+    struct gkyl_basis cbasis;
+    gkyl_cart_modal_serendip(&cbasis, 2, cpoly_order);
+    struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 2*cbasis.num_basis, clocal_ext.volume);
+    
+    struct gkyl_gkgeom_geo_inp ginp = {
+      .cgrid = &cgrid,
+      .cbasis = &cbasis,
+      .ftype = GKYL_SOL_DN,
+      .rclose = upper[0],
+      .zmin = lower[1],
+      .zmax = upper[1],
+    
+      .write_node_coord_array = true,
+      .node_file_nm = "cerfon_out_sol_nod.gkyl"
+    };
+
+    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
+    
+    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
+      stat.nquad_cont_calls-cum_nroots, stat.nroot_cont_calls);
+
+    gkyl_array_release(mapc2p);
+  } while(0);
+
+  do {
+    // compute inboard SOL geometry
+    int npsi = 2;
+    double psi_min = 0.0001, psi_max = 0.01;    
+    double dpsi = (psi_max-psi_min)/npsi;
+  
+    // Computational grid: theta X psi X alpha (only 2D for now)
+    double clower[] = { -M_PI/2, psi_min };
+    double cupper[] = { M_PI/2, psi_max };
+    int ccells[] = { 16, npsi };
+    
+    struct gkyl_rect_grid cgrid;
+    gkyl_rect_grid_init(&cgrid, 2, clower, cupper, ccells);
+
+    // create mpc2p DG array
+    struct gkyl_range clocal, clocal_ext;
+    gkyl_create_grid_ranges(&cgrid, (int[]) { 0, 0, 0 },
+      &clocal_ext, &clocal);
+
+    int cpoly_order = 2;
+    struct gkyl_basis cbasis;
+    gkyl_cart_modal_serendip(&cbasis, 2, cpoly_order);
+    struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 2*cbasis.num_basis, clocal_ext.volume);
+    
+    struct gkyl_gkgeom_geo_inp ginp = {
+      .cgrid = &cgrid,
+      .cbasis = &cbasis,
+      .ftype = GKYL_SOL_DN,
+      .rclose = lower[0],
+      .zmin = lower[1],
+      .zmax = upper[1],
+    
+      .write_node_coord_array = true,
+      .node_file_nm = "cerfon_in_sol_nod.gkyl"
+    };
+
+    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
+    
+    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
+      stat.nquad_cont_calls-cum_nroots, stat.nroot_cont_calls);
+
+    gkyl_array_release(mapc2p);
+  } while(0);  
+
   gkyl_gkgeom_release(geo);
   gkyl_array_release(psiRZ);
 }

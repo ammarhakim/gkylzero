@@ -30,7 +30,9 @@ ellip_unit(void)
 {
   // create RZ grid
   double lower[] = { 0.5, -4.0 }, upper[] = { 6.0, 4.0 };
-  int cells[] = { 64, 128 };
+  // as ellipitical surfaces are exact, we only need 1 cell in each
+  // direction
+  int cells[] = { 1, 1 };
 
   struct gkyl_rect_grid rzgrid;
   gkyl_rect_grid_init(&rzgrid, 2, lower, upper, cells);
@@ -79,7 +81,7 @@ ellip_unit(void)
     
     R : 2 + sqrt(psi0-Z^2/4)$
     fR : sqrt(1+diff(R,Z)^2)$
-    Ipsi : quad_qag(fR,Z,Zmin,Zmax, 3, 'epsrel=1e-10)$
+    Ipsi : quad_qag(fR,Z,Zmin,Zmax, 3, 'epsrel=1e-12)$
   */
   
   do {
