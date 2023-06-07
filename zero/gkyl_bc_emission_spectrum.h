@@ -33,12 +33,14 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(struct gkyl_rect_grid *grid,
-  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_conf_range_ext,
-  const struct gkyl_range *local_range_ext, const int *num_ghosts,
-  enum gkyl_bc_emission_spectrum_type bctype, const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *basis, int cdim, int vdim, double* bc_param, double *gain,
-  double *elastic, bool use_gpu);
+struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(int dir, enum gkyl_edge_loc edge,
+  const struct gkyl_range *ghost_r,
+  enum gkyl_bc_emission_spectrum_type bctype, const struct gkyl_basis *cbasis, const struct gkyl_basis *basis,
+  int cdim, int vdim, bool use_gpu);
+
+double gkyl_bc_emission_spectrum_advance_cross(const struct gkyl_bc_emission_spectrum *up,
+  struct gkyl_array *f_self, struct gkyl_array *f_other, struct gkyl_array *f_proj,
+  double *bc_param, double flux, struct gkyl_rect_grid *grid, double *gain, const struct gkyl_range *other_r);
 
 /**
  * Advance boundary conditions. Fill buffer array based on boundary conditions and copy
@@ -49,7 +51,7 @@ struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(struct gkyl_rect
  * @param f_arr Field array to apply BC to.
  */
 void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
-  struct gkyl_array *buff_arr, struct gkyl_array *f_arr);
+  struct gkyl_array *buff_arr, struct gkyl_array *f_arr, struct gkyl_array *f_proj, double k);
 
 /**
  * Free memory associated with bc_emission_spectrum updater.
