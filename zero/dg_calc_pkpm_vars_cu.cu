@@ -209,10 +209,10 @@ gkyl_calc_pkpm_vars_limit_div_p_cu_kernel(struct gkyl_rect_grid grid, struct gky
   int poly_order = basis.poly_order;
   double dx[GKYL_MAX_DIM] = {0.0};
 
-  pkpm_recovery_t pkpm_recovery[3];
+  pkpm_limit_div_p_t pkpm_limit_div_p[3];
   // Fetch the kernels in each direction
   for (int d=0; d<cdim; ++d) {
-    pkpm_recovery[d] = choose_ser_pkpm_limit_div_p_kern(d, cdim, poly_order);
+    pkpm_limit_div_p[d] = choose_ser_pkpm_limit_div_p_kern(d, cdim, poly_order);
     dx[d] = grid.dx[d];
   }
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];

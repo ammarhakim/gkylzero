@@ -147,7 +147,7 @@ void gkyl_calc_pkpm_vars_limit_div_p(const struct gkyl_rect_grid *grid,
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(div_p_cell_avg)) {
     return gkyl_calc_pkpm_vars_limit_div_p_cu(grid, basis, range, 
-      p_ij, div_p);
+      u_i, p_ij, div_p_cell_avg);
   }
 #endif
 
