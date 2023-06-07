@@ -281,8 +281,7 @@ void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
  * @param nneg Number of negative space cells
  */
 void gkyl_pos_neg_ranges(struct gkyl_range *pos, struct gkyl_range *neg,
-  int dir, const struct gkyl_range *parent, const int *nghost,
-  int *npos, int *nneg);
+  int dir, const struct gkyl_range *parent, const int *nghost);
 
 /**
  * Compute intersection of two ranges. No sub-range information is

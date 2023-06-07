@@ -382,27 +382,29 @@ gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   }
 }
 
-// CHANGE NEEDED - I don't like passing in the number of cells in the positive and negative directions,
-// but I don't really like looping over and checking cell center positivity internally either. This
-// can probably be improved.
+// CHANGE NEEDED - Number of cells in the positive and negative directions
+// is assumed to be the same, half of the cells in that dimension. Need to
+// do this more rigorously.
 void
 gkyl_pos_neg_ranges(struct gkyl_range *pos, struct gkyl_range *neg,
-  int dir, const struct gkyl_range *parent, const int *nghost,
-  int *npos, int *nneg)
+  int dir, const struct gkyl_range *parent, const int *nghost)
 {
   int ndim = parent->ndim;
   int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
 
   incr_int_array(ndim, 0, nghost, parent->lower, lo);
   incr_int_array(ndim, 0, nghost, parent->upper, up);
+
+  double nneg = (up[dir]-lo[dir] + 1)/2;
+  double npos = (up[dir]-lo[dir] + 1)/2;
   
-  up[dir] = lo[dir]+nneg[dir];
+  up[dir] = lo[dir] + nneg;
   gkyl_sub_range_init(neg, parent, lo, up);
 
   incr_int_array(ndim, 0, nghost, parent->lower, lo);
   incr_int_array(ndim, 0, nghost, parent->upper, up);
     
-  lo[dir] = up[dir]-npos[dir];
+  lo[dir] = up[dir] - npos;
   gkyl_sub_range_init(pos, parent, lo, up);
 }
 
