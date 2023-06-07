@@ -324,7 +324,8 @@ struct vm_fluid_species {
   struct gkyl_array *u_host; // array for host-side fluid/advection velocity (for I/O)
   struct gkyl_array *p_host; // array for host-side pressure (for I/O)
   // pkpm variables
-  struct gkyl_array *div_p; // array for divergence of the pressure tensor
+  struct gkyl_array *div_p_cell_avg;   // array for cell average of d/dx_i p_ij for use in limiting div(p)
+  struct gkyl_array *div_p;            // array for divergence of the pressure tensor
   struct gkyl_array *pkpm_accel_vars;  // Acceleration variables for pkpm, pkpm_accel_vars:
                                        // 0: div_b (divergence of magnetic field unit vector)
                                        // 1: bb_grad_u (bb : grad(u))

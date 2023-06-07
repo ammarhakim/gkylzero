@@ -58,6 +58,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->p_host = 0;
   f->p_bc_buffer = 0;
 
+  // cell average of d/dx_i p_ij for limiting div(p)
+  f->div_p_cell_avg = 0;
   // div_p (divergence of the pressure tensor)
   f->div_p = 0;
 
@@ -166,6 +168,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       f->u_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
       f->p_host = mkarr(false, 6*app->confBasis.num_basis, app->local_ext.volume);
     }
+    // allocate array for cell average of d/dx_i p_ij and d/dx_i u_j for use in limiting div(p)
+    // 9 components of d/dx_i p_ij and 9 components of d/dx_i u_j
+    f->div_p_cell_avg = mkarr(app->use_gpu, 18*app->confBasis.num_basis, app->local_ext.volume);
     // allocate array for divergence of pressure tensor (for momentum equation coupling)
     f->div_p = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     // allocate array for pkpm acceleration variables, stored in pkpm_accel_vars: 
@@ -402,6 +407,11 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     vm_fluid_species_prim_vars_apply_bc(app, fluid_species);
 
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
+    // Calculate cell average d/dx_i p_ij for use in limiting div(p)
+    gkyl_array_clear(fluid_species->div_p_cell_avg, 0.0);
+    gkyl_calc_pkpm_vars_limit_div_p(&app->grid, app->confBasis, &app->local, 
+      fluid_species->u, fluid_species->p, fluid_species->div_p_cell_avg);
+
     // calculate gradient quantities using recovery
     // These are div(p), divergence of the pressure tensor,
     // And acceleration variables for pkpm, pkpm_accel_vars:
@@ -414,7 +424,7 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
     gkyl_array_clear(fluid_species->pkpm_accel_vars, 0.0);
     gkyl_calc_pkpm_vars_recovery(&app->grid, app->confBasis, &app->local, fluid_species->nuHyp, 
       app->field->bvar, fluid_species->u, 
-      fluid_species->p, fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
+      fluid_species->p, fluid_species->div_p_cell_avg, fluid, 
       fluid_species->pkpm_species->pkpm_div_ppar, fluid_species->rho_inv, fluid_species->T_perp_over_m, 
       fluid_species->T_perp_over_m_inv, fluid_species->pkpm_species->lbo.nu_sum, 
       fluid_species->div_p, fluid_species->pkpm_accel_vars);
@@ -667,6 +677,7 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_array_release(f->T_perp_over_m);
     gkyl_array_release(f->T_perp_over_m_inv);
     gkyl_array_release(f->T_ij);
+    gkyl_array_release(f->div_p_cell_avg);
     gkyl_array_release(f->div_p);
     gkyl_array_release(f->pkpm_accel_vars);
   }

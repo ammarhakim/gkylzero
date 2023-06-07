@@ -201,6 +201,75 @@ gkyl_calc_pkpm_vars_dist_mirror_force_cu(const struct gkyl_rect_grid *grid, stru
 }
 
 __global__ void
+gkyl_calc_pkpm_vars_limit_div_p_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range range, 
+  const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
+  struct gkyl_array* div_p_cell_avg)
+{
+  int cdim = basis.ndim;
+  int poly_order = basis.poly_order;
+  double dx[GKYL_MAX_DIM] = {0.0};
+
+  pkpm_recovery_t pkpm_recovery[3];
+  // Fetch the kernels in each direction
+  for (int d=0; d<cdim; ++d) {
+    pkpm_recovery[d] = choose_ser_pkpm_limit_div_p_kern(d, cdim, poly_order);
+    dx[d] = grid.dx[d];
+  }
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idxc);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long linc = gkyl_range_idx(&range, idxc);
+
+    const double *u_i_c = (const double*) gkyl_array_cfetch(u_i, linc);
+    const double *p_ij_c = (const double*) gkyl_array_cfetch(p_ij, linc);
+    double *div_p_cell_avg_d = (double*) gkyl_array_fetch(div_p_cell_avg, linc);
+
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, idxc, idxl);
+      gkyl_copy_int_arr(cdim, idxc, idxr);
+
+      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+
+      long linl = gkyl_range_idx(&range, idxl); 
+      long linr = gkyl_range_idx(&range, idxr);
+
+      const double *u_i_l = (const double*) gkyl_array_cfetch(u_i, linl);
+      const double *u_i_r = (const double*) gkyl_array_cfetch(u_i, linr);
+
+      const double *p_ij_l = (const double*) gkyl_array_cfetch(p_ij, linl);
+      const double *p_ij_r = (const double*) gkyl_array_cfetch(p_ij, linr);
+
+      pkpm_limit_div_p[dir](dx, 
+        u_i_l, u_i_c, u_i_r, p_ij_l, p_ij_c, p_ij_r, 
+        div_p_cell_avg_d);
+    }
+  }
+}
+
+// Host-side wrapper for pkpm limiter on div(p) and grad(u)
+void 
+gkyl_calc_pkpm_vars_limit_div_p_cu(const struct gkyl_rect_grid *grid, 
+  struct gkyl_basis basis, const struct gkyl_range *range, 
+  const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
+  struct gkyl_array* div_p_cell_avg)
+{
+  int nblocks = range->nblocks;
+  int nthreads = range->nthreads;
+  gkyl_calc_pkpm_vars_limit_div_p_cu_kernel<<<nblocks, nthreads>>>(*grid, basis, *range, 
+    u_i->on_dev, p_ij->on_dev, div_p_cell_avg->on_dev);
+}
+
+__global__ void
 gkyl_calc_pkpm_vars_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
   const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 

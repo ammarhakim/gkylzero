@@ -12,6 +12,10 @@ GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_ser_p1(const double *w, const double
   const double *nu_vthsq, const double* pkpm_accel_vars, 
   const double* f, const double* F_k_p_1, 
   double* g_dist_source, double* F_k_m_1); 
+GKYL_CU_DH void euler_pkpm_limit_div_p_x_1x_ser_p1(const double *dxv, 
+      const double *u_il, const double *u_ic, const double *u_ir, 
+      const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+      double* div_p); 
 GKYL_CU_DH void euler_pkpm_recovery_x_1x_ser_p1(const double *dxv, double nuHyp, 
       const double *bvarl, const double *bvarc, const double *bvarr, 
       const double *u_il, const double *u_ic, const double *u_ir, 
@@ -36,6 +40,10 @@ GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_ser_p2(const double *w, const double
   const double *nu_vthsq, const double* pkpm_accel_vars, 
   const double* f, const double* F_k_p_1, 
   double* g_dist_source, double* F_k_m_1); 
+GKYL_CU_DH void euler_pkpm_limit_div_p_x_1x_ser_p2(const double *dxv, 
+      const double *u_il, const double *u_ic, const double *u_ir, 
+      const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+      double* div_p); 
 GKYL_CU_DH void euler_pkpm_recovery_x_1x_ser_p2(const double *dxv, double nuHyp, 
       const double *bvarl, const double *bvarc, const double *bvarr, 
       const double *u_il, const double *u_ic, const double *u_ir, 
@@ -66,6 +74,10 @@ GKYL_CU_DH void pkpm_dist_mirror_force_2x1v_ser_p1(const double *w, const double
   const double *nu_vthsq, const double* pkpm_accel_vars, 
   const double* f, const double* F_k_p_1, 
   double* g_dist_source, double* F_k_m_1); 
+GKYL_CU_DH void euler_pkpm_limit_div_p_x_2x_ser_p1(const double *dxv, 
+      const double *u_il, const double *u_ic, const double *u_ir, 
+      const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+      double* div_p); 
 GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, double nuHyp, 
       const double *bvarl, const double *bvarc, const double *bvarr, 
       const double *u_il, const double *u_ic, const double *u_ir, 
@@ -80,6 +92,10 @@ GKYL_CU_DH void euler_pkpm_surfx_2x_ser_p1(const double *w, const double *dxv,
       const double *u_il, const double *u_ic, const double *u_ir, 
       const double *T_ijl, const double *T_ijc, const double *T_ijr, 
       const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void euler_pkpm_limit_div_p_y_2x_ser_p1(const double *dxv, 
+      const double *u_il, const double *u_ic, const double *u_ir, 
+      const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+      double* div_p); 
 GKYL_CU_DH void euler_pkpm_recovery_y_2x_ser_p1(const double *dxv, double nuHyp, 
       const double *bvarl, const double *bvarc, const double *bvarr, 
       const double *u_il, const double *u_ic, const double *u_ir, 
@@ -104,6 +120,10 @@ GKYL_CU_DH void pkpm_dist_mirror_force_2x1v_ser_p2(const double *w, const double
   const double *nu_vthsq, const double* pkpm_accel_vars, 
   const double* f, const double* F_k_p_1, 
   double* g_dist_source, double* F_k_m_1); 
+GKYL_CU_DH void euler_pkpm_limit_div_p_x_2x_ser_p2(const double *dxv, 
+      const double *u_il, const double *u_ic, const double *u_ir, 
+      const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+      double* div_p); 
 GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p2(const double *dxv, double nuHyp, 
       const double *bvarl, const double *bvarc, const double *bvarr, 
       const double *u_il, const double *u_ic, const double *u_ir, 
@@ -118,6 +138,10 @@ GKYL_CU_DH void euler_pkpm_surfx_2x_ser_p2(const double *w, const double *dxv,
       const double *u_il, const double *u_ic, const double *u_ir, 
       const double *T_ijl, const double *T_ijc, const double *T_ijr, 
       const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void euler_pkpm_limit_div_p_y_2x_ser_p2(const double *dxv, 
+      const double *u_il, const double *u_ic, const double *u_ir, 
+      const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+      double* div_p); 
 GKYL_CU_DH void euler_pkpm_recovery_y_2x_ser_p2(const double *dxv, double nuHyp, 
       const double *bvarl, const double *bvarc, const double *bvarr, 
       const double *u_il, const double *u_ic, const double *u_ir, 
@@ -142,6 +166,10 @@ GKYL_CU_DH void pkpm_dist_mirror_force_3x1v_ser_p1(const double *w, const double
   const double *nu_vthsq, const double* pkpm_accel_vars, 
   const double* f, const double* F_k_p_1, 
   double* g_dist_source, double* F_k_m_1); 
+GKYL_CU_DH void euler_pkpm_limit_div_p_x_3x_ser_p1(const double *dxv, 
+      const double *u_il, const double *u_ic, const double *u_ir, 
+      const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+      double* div_p); 
 GKYL_CU_DH void euler_pkpm_recovery_x_3x_ser_p1(const double *dxv, double nuHyp, 
       const double *bvarl, const double *bvarc, const double *bvarr, 
       const double *u_il, const double *u_ic, const double *u_ir, 
@@ -156,6 +184,10 @@ GKYL_CU_DH void euler_pkpm_surfx_3x_ser_p1(const double *w, const double *dxv,
       const double *u_il, const double *u_ic, const double *u_ir, 
       const double *T_ijl, const double *T_ijc, const double *T_ijr, 
       const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void euler_pkpm_limit_div_p_y_3x_ser_p1(const double *dxv, 
+      const double *u_il, const double *u_ic, const double *u_ir, 
+      const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+      double* div_p); 
 GKYL_CU_DH void euler_pkpm_recovery_y_3x_ser_p1(const double *dxv, double nuHyp, 
       const double *bvarl, const double *bvarc, const double *bvarr, 
       const double *u_il, const double *u_ic, const double *u_ir, 
@@ -170,6 +202,10 @@ GKYL_CU_DH void euler_pkpm_surfy_3x_ser_p1(const double *w, const double *dxv,
       const double *u_il, const double *u_ic, const double *u_ir, 
       const double *T_ijl, const double *T_ijc, const double *T_ijr, 
       const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void euler_pkpm_limit_div_p_z_3x_ser_p1(const double *dxv, 
+      const double *u_il, const double *u_ic, const double *u_ir, 
+      const double *p_ijl, const double *p_ijc, const double *p_ijr, 
+      double* div_p); 
 GKYL_CU_DH void euler_pkpm_recovery_z_3x_ser_p1(const double *dxv, double nuHyp, 
       const double *bvarl, const double *bvarc, const double *bvarr, 
       const double *u_il, const double *u_ic, const double *u_ir, 
