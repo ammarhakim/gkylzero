@@ -37,9 +37,9 @@ GKYL_CU_DH void vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *dxv
   const double *G_1r = &fr[24]; 
   double *out_F_0 = &out[0]; 
   double *out_G_1 = &out[24]; 
-  double alpha_l[24] = {0.0}; 
-  double alpha_c[24] = {0.0}; 
-  double alpha_r[24] = {0.0}; 
+  double alpha_l[16] = {0.0}; 
+  double alpha_c[16] = {0.0}; 
+  double alpha_r[16] = {0.0}; 
   alpha_l[0] = 1.414213562373095*bl[0]*wvpar; 
   alpha_l[1] = 1.414213562373095*bl[1]*wvpar; 
   alpha_l[2] = 1.414213562373095*bl[2]*wvpar; 
@@ -91,7 +91,7 @@ GKYL_CU_DH void vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *dxv
   alpha_r[14] = 0.408248290463863*br[6]*dvpar; 
   alpha_r[15] = 0.408248290463863*br[7]*dvpar; 
 
-  double alphaSurf_l[12] = {0.0}; 
+  double alphaSurf_l[8] = {0.0}; 
   alphaSurf_l[0] = 0.408248290463863*alpha_l[2]-0.408248290463863*alpha_c[2]+0.3535533905932737*alpha_l[0]+0.3535533905932737*alpha_c[0]; 
   alphaSurf_l[1] = 0.408248290463863*alpha_l[5]-0.408248290463863*alpha_c[5]+0.3535533905932737*alpha_l[1]+0.3535533905932737*alpha_c[1]; 
   alphaSurf_l[2] = 0.408248290463863*alpha_l[7]-0.408248290463863*alpha_c[7]+0.3535533905932737*alpha_l[3]+0.3535533905932737*alpha_c[3]; 
@@ -101,7 +101,7 @@ GKYL_CU_DH void vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *dxv
   alphaSurf_l[6] = 0.408248290463863*alpha_l[14]-0.408248290463863*alpha_c[14]+0.3535533905932737*alpha_l[10]+0.3535533905932737*alpha_c[10]; 
   alphaSurf_l[7] = 0.408248290463863*alpha_l[15]-0.408248290463863*alpha_c[15]+0.3535533905932737*alpha_l[13]+0.3535533905932737*alpha_c[13]; 
 
-  double alphaSurf_r[12] = {0.0}; 
+  double alphaSurf_r[8] = {0.0}; 
   alphaSurf_r[0] = (-0.408248290463863*alpha_r[2])+0.408248290463863*alpha_c[2]+0.3535533905932737*alpha_r[0]+0.3535533905932737*alpha_c[0]; 
   alphaSurf_r[1] = (-0.408248290463863*alpha_r[5])+0.408248290463863*alpha_c[5]+0.3535533905932737*alpha_r[1]+0.3535533905932737*alpha_c[1]; 
   alphaSurf_r[2] = (-0.408248290463863*alpha_r[7])+0.408248290463863*alpha_c[7]+0.3535533905932737*alpha_r[3]+0.3535533905932737*alpha_c[3]; 
