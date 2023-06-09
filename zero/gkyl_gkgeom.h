@@ -64,6 +64,21 @@ struct gkyl_gkgeom_stat {
 gkyl_gkgeom *gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp);
 
 /**
+ * Get R(psi,Z) for a specified psi and Z value. Multiple values may
+ * be returned (or none). The R(psi,Z) and dR/dZ are stored in the R
+ * and dR arrays which be allocated by the caller.
+ *
+ * @param geo Geometry object
+ * @param psi Psi value
+ * @param Z Z value
+ * @param nmaxroots Maximum number of roots
+ * @param R on output, R(psi,Z)
+ * @param dR on output, dR/dZ
+ */
+int gkyl_gkgeom_R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots,
+  double *R, double *dR);
+
+/**
  * Integrate along a specified psi countour and return its length. The
  * contour must lie completely inside the RZ domain of the psiRZ DG
  * field. The @a rclose parameter is used to select amongst the

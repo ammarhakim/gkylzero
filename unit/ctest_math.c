@@ -89,16 +89,25 @@ test_ridders()
     double f1 = rfunc_1(x1, 0), f2 = rfunc_1(x2, 0);
     struct gkyl_qr_res res = gkyl_ridders(rfunc_1, 0, x1, x2, f1, f2,
       100, 1e-12);
-    //show_qr_res(res, "rfunc_1");
+    show_qr_res(res, "rfunc_1");
     TEST_CHECK( gkyl_compare(res.res, 1.0, 1e-10) );
   } while(0);
+
+  do {
+    double x1 = -2.0, x2 = 0.0;
+    double f1 = rfunc_1(x1, 0), f2 = rfunc_1(x2, 0);
+    struct gkyl_qr_res res = gkyl_ridders(rfunc_1, 0, x1, x2, f1, f2,
+      100, 1e-12);
+    show_qr_res(res, "rfunc_1");
+    TEST_CHECK( gkyl_compare(res.res, -1.0, 1e-10) );
+  } while(0);  
 
   do {
     double x1 = -0.5, x2 = 1.0;
     double f1 = rfunc_2(x1, 0), f2 = rfunc_2(x2, 0);
     struct gkyl_qr_res res = gkyl_ridders(rfunc_2, 0, x1, x2, f1, f2,
       100, 1e-12);
-    //show_qr_res(res, "rfunc_2");
+    show_qr_res(res, "rfunc_2");
     TEST_CHECK( gkyl_compare(res.res, 0.0, 1e-10) );
   } while(0);
 
@@ -107,7 +116,7 @@ test_ridders()
     double f1 = rfunc_3(x1, 0), f2 = rfunc_3(x2, 0);
     struct gkyl_qr_res res = gkyl_ridders(rfunc_3, 0, x1, x2, f1, f2,
       100, 1e-12);
-    //show_qr_res(res, "rfunc_3");
+    show_qr_res(res, "rfunc_3");
     TEST_CHECK( gkyl_compare(res.res, 1.745528002740699, 1e-10) );
   } while(0);  
 }

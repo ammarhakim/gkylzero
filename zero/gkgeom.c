@@ -156,8 +156,8 @@ R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots,
       for (int s=0; s<sol.nsol; ++s) {
         R[sidx] = sol.R[s];
         dR[sidx] = sol.dRdZ[s];
+        sidx += 1;
       }
-    sidx += sol.nsol;
   }
   return sidx;
 }
@@ -262,8 +262,9 @@ arc_length_func(double Z, void *ctx)
   struct arc_length_ctx *actx = ctx;
   double *arc_memo = actx->arc_memo;
   double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL;
-  return integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose,
+  double ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose,
     true, false, arc_memo) - arcL;
+  return ival;
 }
 
 gkyl_gkgeom*
@@ -302,6 +303,13 @@ gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi,
 {
   return integrate_psi_contour_memo(geo, psi, zmin, zmax, rclose,
     false, false, 0);
+}
+
+int
+gkyl_gkgeom_R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots,
+  double *R, double *dR)
+{
+  return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
 }
 
 // write out nodal coordinates 
@@ -352,7 +360,6 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
   double dx_fact = poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dphi *= dx_fact; dalpha *= dx_fact;
 
-  double R[2] = { 0 }, dR[2] = { 0 };
   double rclose = inp->rclose;
 
   int nzcells = geo->rzgrid.cells[1];
@@ -368,7 +375,7 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
 
     double zmin = inp->zmin, zmax = inp->zmax;
 
-    double psi_curr = phi_lo + ip * dphi;
+    double psi_curr = phi_lo + ip*dphi;
     double arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose,
       true, true, arc_memo);
 
@@ -376,12 +383,15 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
 
     cidx[PH_IDX] = ip;
 
-    // set node coordinates of first node
-    cidx[TH_IDX] = nrange.lower[TH_IDX];
-    double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
-    mc2p_n[Z_IDX] = zmin;
-    int nr = R_psiZ(geo, psi_curr, zmin, 2, R, dR);
-    mc2p_n[R_IDX] = choose_closest(rclose, R, R);
+    do {
+      // set node coordinates of first node
+      cidx[TH_IDX] = nrange.lower[TH_IDX];
+      double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
+      mc2p_n[Z_IDX] = zmin;
+      double R[2] = { 0 }, dR[2] = { 0 };    
+      int nr = R_psiZ(geo, psi_curr, zmin, 2, R, dR);
+      mc2p_n[R_IDX] = choose_closest(rclose, R, R);
+    } while(0);
 
     // set node coordinates of rest of nodes
     double arcL_curr = 0.0;
@@ -393,11 +403,13 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
       arc_ctx.zmin = zmin;
       arc_ctx.arcL = arcL_curr;
 
-      struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx, zmin, zmax, 0, arcL,
-        geo->root_param.max_iter,1e-10);
+      struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
+        zmin, zmax, -arcL_curr, arcL-arcL_curr,
+        geo->root_param.max_iter, 1e-10);
       double z_curr = res.res;
       ((gkyl_gkgeom *)geo)->stat.nroot_cont_calls += res.nevals;
-      
+
+      double R[2] = { 0 }, dR[2] = { 0 };
       int nr = R_psiZ(geo, psi_curr, z_curr, 2, R, dR);
       double r_curr = choose_closest(rclose, R, R);
 
@@ -407,12 +419,15 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
       mc2p_n[R_IDX] = r_curr;
     }
 
-    // set node coordinates of last node
-    cidx[TH_IDX] = nrange.upper[TH_IDX];
-    mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
-    mc2p_n[Z_IDX] = zmax;
-    nr = R_psiZ(geo, psi_curr, zmax, 2, R, dR);
-    mc2p_n[R_IDX] = choose_closest(rclose, R, R);
+    do {
+      // set node coordinates of last node
+      cidx[TH_IDX] = nrange.upper[TH_IDX];
+      double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
+      mc2p_n[Z_IDX] = zmax;
+      double R[2] = { 0 }, dR[2] = { 0 };    
+      int nr = R_psiZ(geo, psi_curr, zmax, 2, R, dR);
+      mc2p_n[R_IDX] = choose_closest(rclose, R, R);
+    } while (0);
   }
 
   if (inp->write_node_coord_array)

@@ -76,42 +76,44 @@ gkyl_dbl_exp(double (*func)(double, void *), void *ctx,
 static inline double dsign(double x) { return x >= 0 ? 1 : -1; }
 
 // See IEEE Tran. Circuit and Systems, vol CAS-26 No 11, Pg 976
-// 1976. The following is almost a direct implementation from the
+// 1976. The following is almost direct implementation from the
 // original paper
 struct gkyl_qr_res
 gkyl_ridders(double (*func)(double,void*), void *ctx,
-  double x1, double x2, double f1, double f2, int max_iter, double eps)
+  double xl, double xr, double fl, double fr, int max_iter, double eps)
 {
-  double xl = x1, xr = x2, fl = f1, fr = f2;
+  double x0 = xl, x2 = xr, f0 = fl, f2 = fr;
   double res = DBL_MAX;
 
   int nev = 0, nitr = 0, iterating = 1;
-  while(iterating && nitr<=max_iter) {
-    double xm = 0.5*(xl+xr);
-    double fm = func(xm, ctx); nev += 1;
-    double W = sqrt(fm*fm - fl*fr);
+  while (iterating && nitr <= max_iter) {
+    double x1 = 0.5*(x0+x2);
+    double f1 = func(x1, ctx); nev += 1;
+    double W = f1*f1 - f0*f2;
 
-    if (W == 0) { res = xm;  break; }
-    
-    double xnew = xm + (xm-xl)*dsign(fl-fr)*fm/W;
-    if (fabs(xnew-res) < eps) break;
-    res = xnew;
-    double fnew = func(xnew, ctx); nev += 1;
-    if (fnew == 0.0) break;
+    double d = x2-x1;
+    double x3 = x1 + dsign(f0)*f1*d/sqrt(W);
+    double f3 = func(x3, ctx); nev += 1;
 
-    if (fm*fnew < 0) {
-      xl = xm; fl = fm;
-      xr = res; fr = fnew;
-    }
-    else if (fl*fnew < 0) {
-      xr = res; fr = fnew;      
-    }
-    else if (fr*fnew < fr) {
-      xl = res; fl = fnew;
-    }
+    if (fabs(res-x3) < eps) iterating = 0;
+    res = x3;
 
-    if (fabs(xr-xl) < eps) iterating = 0;
-    nitr += 1;
+    if (f3*f0 < 0) {
+      x2 = x3;
+      f2 = f3;
+    }
+    else if (f3*f1 < 0) {
+      x0 = x1 < x3 ? x1 : x3;
+      f0 = x1 < x3 ? f1 : f3;
+
+      x2 = x1 < x3 ? x3 : x1;
+      f2 = x1 < x3 ? f3 : f1;
+    }
+    else if (f3*f2 < 0 ) {
+      x0 = x3;
+      f0 = f3;
+    }
+    nitr++;
   }
   
   return (struct gkyl_qr_res) {
