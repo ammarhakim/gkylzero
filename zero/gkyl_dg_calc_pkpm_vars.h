@@ -76,25 +76,6 @@ void gkyl_calc_pkpm_vars_dist_mirror_force(const struct gkyl_rect_grid *grid, st
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);
 
 /**
- * Compute cell average of d/dx_i p_ij for use in limiting div(p) in pkpm algorithm.
- * Cell average of d/dx_i p_ij gives us a single-valued function for how the gradient
- * varies across cells for use in standard flux limiters F_low - phi*(F_low - F_high)
- * where F_low is the low-order flux (simple averaging), F_high is the high-order flux (recovery)
- * and phi is the flux limiter which takes the ratio of the gradients as inputs
- *
- * @param grid Grid (for getting cell spacing)
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- * @param u_i Input array of flow velocity 
- * @param p_ij Input array of pressure tensor
- * @param div_p_cell_avg Output array of cell average of d/dx_i p_ij (9 components) and d/dx_i u_j (9 components)
- */
-void gkyl_calc_pkpm_vars_limit_div_p(const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis basis, const struct gkyl_range *range, 
-  const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
-  struct gkyl_array* div_p_cell_avg);
-
-/**
  * Compute needed gradient quantities with recovery for discretization of the 
  * parallel-kinetic-perpendicular-moment (pkpm) model. These include div(p) and the forces and sources in the pkpm kinetic equation
  *
@@ -104,7 +85,6 @@ void gkyl_calc_pkpm_vars_limit_div_p(const struct gkyl_rect_grid *grid,
  * @param bvar Input array of magnetic field unit vector and unit tensor
  * @param u_i Input array of flow velocity 
  * @param p_ij Input array of pressure tensor
- * @param vlasov_pkpm_moms Input array of parallel-kinetic-perpendicular-moment kinetic moments [rho, p_parallel, p_perp]
  * @param euler_pkpm Input array parallel-kinetic-perpendicular-moment fluid variables [rho ux, rho uy, rho uz]
  * @param pkpm_div_ppar Input array of div(p_parallel b_hat) for computing pressure force
  * @param rho_inv Input array of 1/rho
@@ -122,7 +102,7 @@ void gkyl_calc_pkpm_vars_limit_div_p(const struct gkyl_rect_grid *grid,
 void gkyl_calc_pkpm_vars_recovery(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
-  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* euler_pkpm, 
   const struct gkyl_array* pkpm_div_ppar, const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
   const struct gkyl_array* T_perp_over_m_inv, const struct gkyl_array* nu, 
   struct gkyl_array* div_p, struct gkyl_array* pkpm_accel_vars);
@@ -164,15 +144,10 @@ void gkyl_calc_pkpm_vars_dist_mirror_force_cu(const struct gkyl_rect_grid *grid,
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);
 
-void gkyl_calc_pkpm_vars_limit_div_p_cu(const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis basis, const struct gkyl_range *range, 
-  const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
-  struct gkyl_array* div_p_cell_avg);
-
 void gkyl_calc_pkpm_vars_recovery_cu(const struct gkyl_rect_grid *grid, 
   struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
   const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
-  const struct gkyl_array* p_ij, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* euler_pkpm, 
   const struct gkyl_array* pkpm_div_ppar, const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
   const struct gkyl_array* T_perp_over_m_inv, const struct gkyl_array* nu, 
   struct gkyl_array* div_p, struct gkyl_array* pkpm_accel_vars);

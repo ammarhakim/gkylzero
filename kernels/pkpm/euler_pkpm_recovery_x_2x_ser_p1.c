@@ -3,7 +3,6 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, double nuHyp,
   const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-  const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
   const double *statevecl, const double *statevecc, const double *statevecr, 
   const double *pkpm_div_ppar, const double *rho_inv, const double *T_perp_over_m, 
   const double *T_perp_over_m_inv, const double *nu, 
@@ -14,7 +13,6 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, double nuHyp,
   // bvarl/c/r:             Input magnetic field unit vector in left/center/right cells.
   // u_il/c/r:              Input bulk velocity (ux,uy,uz) in left/center/right cells.
   // p_ijl/c/r:             Input pressure tensor in left/center/right cells.
-  // vlasov_pkpm_momsl/c/r: Input pkpm moments (rho, p_parallel, p_perp) in left/center/right cells.
   // statevecl/c/r:         [rho ux, rho uy, rho uz], Fluid input state vector in center cell.
   // pkpm_div_ppar:         Input div(p_parallel b_hat) in center cell.
   // rho_inv:               Input 1/rho in center cell.
@@ -70,12 +68,6 @@ GKYL_CU_DH void euler_pkpm_recovery_x_2x_ser_p1(const double *dxv, double nuHyp,
   const double *Pyy_r = &p_ijr[12]; 
   const double *Pyz_r = &p_ijr[16]; 
   const double *Pzz_r = &p_ijr[20]; 
-
-  const double *ppar_l = &vlasov_pkpm_momsl[4]; 
-  const double *ppar_c = &vlasov_pkpm_momsc[4]; 
-  const double *ppar_r = &vlasov_pkpm_momsr[4]; 
-  const double *rho = &vlasov_pkpm_momsc[0]; 
-  const double *p_perp = &vlasov_pkpm_momsc[8]; 
 
   const double *rhoux_l = &statevecl[0]; 
   const double *rhouy_l = &statevecl[4]; 

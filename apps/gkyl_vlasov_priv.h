@@ -324,8 +324,6 @@ struct vm_fluid_species {
   struct gkyl_array *u_host; // array for host-side fluid/advection velocity (for I/O)
   struct gkyl_array *p_host; // array for host-side pressure (for I/O)
   // pkpm variables
-  struct gkyl_array *div_p_cell_avg;   // array for cell average of d/dx_i p_ij and d/dx_i u_j for use in limiting div(p) and grad(u)
-  struct gkyl_array *limiter_bc_buffer;// buffer for applying BCs to limiter function (for sync/periodic & copy BCs)
   struct gkyl_array *div_p;            // array for divergence of the pressure tensor
   struct gkyl_array *pkpm_accel_vars;  // Acceleration variables for pkpm, pkpm_accel_vars:
                                        // 0: div_b (divergence of magnetic field unit vector)
@@ -580,14 +578,6 @@ double vm_species_lbo_rhs(gkyl_vlasov_app *app,
   const struct vm_species *species,
   struct vm_lbo_collisions *lbo,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
-
-/**
- * Apply BCs to primitive moments
- *
- * @param app Vlasov app object
- * @param lbo Species LBO object to apply boundary conditions to primitive moments
- */
-void vm_species_lbo_apply_bc(struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo);
 
 /**
  * Release species LBO object.
@@ -1019,22 +1009,6 @@ void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fl
  * @param f Fluid Species to apply BCs
  */
 void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
-
-/**
- * Apply BCs to limiter function if appropriate (sync, periodic BCs, or copy BCs)
- *
- * @param app Vlasov app object
- * @param fluid_species Pointer to fluid species
- */
-void vm_fluid_species_pkpm_limiter_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species);
-
-/**
- * Apply BCs to primitive variables (bulk velocity, u, and pressure, p, if pressure present)
- *
- * @param app Vlasov app object
- * @param fluid_species Pointer to fluid species
- */
-void vm_fluid_species_prim_vars_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species);
 
 /**
  * Release resources allocated by fluid species

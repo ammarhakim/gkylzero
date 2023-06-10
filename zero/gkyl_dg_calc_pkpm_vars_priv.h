@@ -20,16 +20,10 @@ typedef void (*pkpm_source_t)(const double* qmem,
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   double* out);
 
-typedef void (*pkpm_limit_div_p_t)(const double *dxv, 
-  const double *u_il, const double *u_ic, const double *u_ir, 
-  const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-  double* div_p_cell_avg); 
-
 typedef void (*pkpm_recovery_t)(const double *dxv, double nuHyp, 
   const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-  const double *div_p_cell_avgl, const double *div_p_cell_avgc, const double *div_p_cell_avgr, 
   const double *statevecl, const double *statevecc, const double *statevecr, 
   const double *pkpm_div_ppar, const double *rho_inv, const double *T_perp_over_m, 
   const double *T_perp_over_m_inv, const double *nu, 
@@ -48,7 +42,6 @@ typedef void (*pkpm_pressure_t)(const double *w, const double *dxv,
 // for use in kernel tables
 typedef struct { pkpm_prim_t kernels[3]; } gkyl_dg_pkpm_prim_kern_list;
 typedef struct { pkpm_source_t kernels[3]; } gkyl_dg_pkpm_source_kern_list;
-typedef struct { pkpm_limit_div_p_t kernels[3]; } gkyl_dg_pkpm_limit_div_p_kern_list;
 typedef struct { pkpm_recovery_t kernels[3]; } gkyl_dg_pkpm_recovery_kern_list;
 typedef struct { pkpm_dist_mirror_force_t kernels[3]; } gkyl_dg_pkpm_dist_mirror_force_kern_list;
 typedef struct { pkpm_pressure_t kernels[3]; } gkyl_dg_pkpm_pressure_kern_list;
@@ -91,30 +84,6 @@ static const gkyl_dg_pkpm_recovery_kern_list ser_pkpm_recovery_z_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, euler_pkpm_recovery_z_3x_ser_p1, NULL }, // 2
-};
-
-// PKPM limit_div_p (in x) kernels
-GKYL_CU_D
-static const gkyl_dg_pkpm_limit_div_p_kern_list ser_pkpm_limit_div_p_x_kernels[] = {
-  { NULL, euler_pkpm_limit_div_p_x_1x_ser_p1, euler_pkpm_limit_div_p_x_1x_ser_p2 }, // 0
-  { NULL, euler_pkpm_limit_div_p_x_2x_ser_p1, NULL }, // 1
-  { NULL, euler_pkpm_limit_div_p_x_3x_ser_p1, NULL }, // 2
-};
-
-// PKPM limit_div_p (in y) kernels
-GKYL_CU_D
-static const gkyl_dg_pkpm_limit_div_p_kern_list ser_pkpm_limit_div_p_y_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, euler_pkpm_limit_div_p_y_2x_ser_p1, NULL }, // 1
-  { NULL, euler_pkpm_limit_div_p_y_3x_ser_p1, NULL }, // 2
-};
-
-// PKPM limit_div_p (in z) kernels
-GKYL_CU_D
-static const gkyl_dg_pkpm_limit_div_p_kern_list ser_pkpm_limit_div_p_z_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, euler_pkpm_limit_div_p_z_3x_ser_p1, NULL }, // 2
 };
 
 // PKPM distribution function source in mirror force (Serendipity basis)
@@ -193,20 +162,6 @@ static pkpm_source_t
 choose_ser_pkpm_source_kern(int cdim, int poly_order)
 {
   return ser_pkpm_source_kernels[cdim-1].kernels[poly_order];
-}
-
-GKYL_CU_D
-static pkpm_limit_div_p_t
-choose_ser_pkpm_limit_div_p_kern(int dir, int cdim, int poly_order)
-{
-  if (dir == 0)
-    return ser_pkpm_limit_div_p_x_kernels[cdim-1].kernels[poly_order];
-  else if (dir == 1)
-    return ser_pkpm_limit_div_p_y_kernels[cdim-1].kernels[poly_order];
-  else if (dir == 2)
-    return ser_pkpm_limit_div_p_z_kernels[cdim-1].kernels[poly_order];
-  else 
-    return NULL;
 }
 
 GKYL_CU_D
