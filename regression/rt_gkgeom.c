@@ -161,50 +161,50 @@ cerforn_rt(void)
     gkyl_array_release(mapc2p);
   } while(0);
 
-  /* do { */
-  /*   // compute inboard SOL geometry */
-  /*   int npsi = 2; */
-  /*   double psi_min = 0.0001, psi_max = 0.01;     */
-  /*   double dpsi = (psi_max-psi_min)/npsi; */
+  do {
+    // compute inboard SOL geometry
+    int npsi = 2;
+    double psi_min = 0.0001, psi_max = 0.01;
+    double dpsi = (psi_max-psi_min)/npsi;
   
-  /*   // Computational grid: theta X psi X alpha (only 2D for now) */
-  /*   double clower[] = { -M_PI/2, psi_min }; */
-  /*   double cupper[] = { M_PI/2, psi_max }; */
-  /*   int ccells[] = { 16, npsi }; */
+    // Computational grid: theta X psi X alpha (only 2D for now)
+    double clower[] = { -M_PI/2, psi_min };
+    double cupper[] = { M_PI/2, psi_max };
+    int ccells[] = { 16, npsi };
     
-  /*   struct gkyl_rect_grid cgrid; */
-  /*   gkyl_rect_grid_init(&cgrid, 2, clower, cupper, ccells); */
+    struct gkyl_rect_grid cgrid;
+    gkyl_rect_grid_init(&cgrid, 2, clower, cupper, ccells);
 
-  /*   // create mpc2p DG array */
-  /*   struct gkyl_range clocal, clocal_ext; */
-  /*   gkyl_create_grid_ranges(&cgrid, (int[]) { 0, 0, 0 }, */
-  /*     &clocal_ext, &clocal); */
+    // create mpc2p DG array
+    struct gkyl_range clocal, clocal_ext;
+    gkyl_create_grid_ranges(&cgrid, (int[]) { 0, 0, 0 },
+      &clocal_ext, &clocal);
 
-  /*   int cpoly_order = 2; */
-  /*   struct gkyl_basis cbasis; */
-  /*   gkyl_cart_modal_serendip(&cbasis, 2, cpoly_order); */
-  /*   struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 2*cbasis.num_basis, clocal_ext.volume); */
+    int cpoly_order = 2;
+    struct gkyl_basis cbasis;
+    gkyl_cart_modal_serendip(&cbasis, 2, cpoly_order);
+    struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 2*cbasis.num_basis, clocal_ext.volume);
     
-  /*   struct gkyl_gkgeom_geo_inp ginp = { */
-  /*     .cgrid = &cgrid, */
-  /*     .cbasis = &cbasis, */
-  /*     .ftype = GKYL_SOL_DN, */
-  /*     .rclose = lower[0], */
-  /*     .zmin = lower[1], */
-  /*     .zmax = upper[1], */
+    struct gkyl_gkgeom_geo_inp ginp = {
+      .cgrid = &cgrid,
+      .cbasis = &cbasis,
+      .ftype = GKYL_SOL_DN,
+      .rclose = lower[0],
+      .zmin = lower[1],
+      .zmax = upper[1],
     
-  /*     .write_node_coord_array = true, */
-  /*     .node_file_nm = "cerfon_in_sol_nod.gkyl" */
-  /*   }; */
+      .write_node_coord_array = true,
+      .node_file_nm = "cerfon_in_sol_nod.gkyl"
+    };
 
-  /*   gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p); */
+    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
     
-  /*   struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo); */
-  /*   fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n", */
-  /*     stat.nquad_cont_calls-cum_nroots, stat.nroot_cont_calls); */
+    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
+      stat.nquad_cont_calls-cum_nroots, stat.nroot_cont_calls);
 
-  /*   gkyl_array_release(mapc2p); */
-  /* } while(0);   */
+    gkyl_array_release(mapc2p);
+  } while(0);
 
   gkyl_gkgeom_release(geo);
   gkyl_array_release(psiRZ);
