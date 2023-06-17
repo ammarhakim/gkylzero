@@ -71,6 +71,8 @@ void
 gkyl_range_init(struct gkyl_range *rng, int ndim,
   const int *lower, const int *upper)
 {
+  *rng = (struct gkyl_range) { };
+  
   int is_zero_vol = 0;
   rng->ndim = ndim;
   rng->volume = 1L;

@@ -28,7 +28,7 @@ struct gkyl_gkgeom {
 
 // some helper functions
 static inline double
-choose_closest(int ref, double R[2], double out[2])
+choose_closest(double ref, double R[2], double out[2])
 {
   return fabs(R[0]-ref) < fabs(R[1]-ref) ? out[0] : out[1];
 }
