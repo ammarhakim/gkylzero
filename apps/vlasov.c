@@ -306,7 +306,11 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_species(app, i, tm, frame);
     if (app->species[i].model_id == GKYL_MODEL_PKPM) {
       gkyl_vlasov_app_write_species_pkpm_moms(app, i, tm, frame);
-      //gkyl_vlasov_app_write_species_pkpm_div_p(app, i, tm, frame);
+      // Debugging tools (ONLY ON CPU)
+      // Writes out collisional quantities (nu_self, prim_moms, nu_prim_moms)
+      // gkyl_vlasov_app_write_species_coll_moms(app, i, tm, frame);
+      // Writes out PKPM forces (div(p), div(p_parallel b_hat), pkpm_accel_vars)
+      // gkyl_vlasov_app_write_species_pkpm_forces(app, i, tm, frame);
     }
     if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
@@ -362,6 +366,34 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
 }
 
 void
+gkyl_vlasov_app_write_species_coll_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_self_nu_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local, 
+    app->species[sidx].lbo.self_nu, fileNm);
+
+  const char *fmt_vth = "%s-%s_vthsq_%d.gkyl";
+  int sz_vth = gkyl_calc_strlen(fmt_vth, app->name, app->species[sidx].info.name, frame);
+  char fileNm_vth[sz_vth+1]; // ensures no buffer overflow
+  snprintf(fileNm_vth, sizeof fileNm_vth, fmt_vth, app->name, app->species[sidx].info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local, 
+    app->species[sidx].lbo.prim_moms, fileNm_vth);
+
+  const char *fmt_nu_vth = "%s-%s_nu_vthsq_%d.gkyl";
+  int sz_nu_vth = gkyl_calc_strlen(fmt_nu_vth, app->name, app->species[sidx].info.name, frame);
+  char fileNm_nu_vth[sz_nu_vth+1]; // ensures no buffer overflow
+  snprintf(fileNm_nu_vth, sizeof fileNm_nu_vth, fmt_nu_vth, app->name, app->species[sidx].info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local, 
+    app->species[sidx].lbo.nu_prim_moms, fileNm_nu_vth);
+}
+
+void
 gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
   // Since PKPM moments are one set of moments, just compute here in the write method before writing out
@@ -380,7 +412,7 @@ gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double t
 }
 
 void
-gkyl_vlasov_app_write_species_pkpm_div_p(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+gkyl_vlasov_app_write_species_pkpm_forces(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
   struct vm_species *s = &app->species[sidx];
   const char *fmt_kin = "%s-%s_pkpm_div_p_kin_%d.gkyl";
@@ -397,6 +429,13 @@ gkyl_vlasov_app_write_species_pkpm_div_p(gkyl_vlasov_app* app, int sidx, double 
   snprintf(fileNm_fluid, sizeof fileNm_fluid, fmt_fluid, app->name, f->info.name, frame);
 
   gkyl_grid_sub_array_write(&app->grid, &app->local, f->div_p, fileNm_fluid);
+
+  const char *fmt_accel_vars = "%s-%s_pkpm_accel_vars_%d.gkyl";
+  int sz_accel_vars = gkyl_calc_strlen(fmt_accel_vars, app->name, f->info.name, frame);
+  char fileNm_accel_vars[sz_accel_vars+1]; // ensures no buffer overflow
+  snprintf(fileNm_accel_vars, sizeof fileNm_accel_vars, fmt_accel_vars, app->name, f->info.name, frame);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local, f->pkpm_accel_vars, fileNm_accel_vars);
 }
 
 void

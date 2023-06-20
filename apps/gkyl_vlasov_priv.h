@@ -51,6 +51,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov.h>
 
@@ -90,6 +91,10 @@ struct vm_lbo_collisions {
   struct gkyl_array *boundary_corrections; // LBO boundary corrections
   struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator
   struct gkyl_array *nu_sum, *prim_moms, *nu_prim_moms; // LBO primitive moments
+  bool normNu; // Boolean to determine if using Spitzer value
+  struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
+  struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
+  struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
   double betaGreenep1; // value of Greene's factor beta + 1
   double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
@@ -254,6 +259,7 @@ struct vm_field {
   bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
   struct gkyl_array *ext_em; // external electromagnetic field
   struct gkyl_array *ext_em_host; // host copy for use in IO and projecting
+  struct gkyl_array *tot_em; // total electromagnetic field
   gkyl_proj_on_basis *ext_em_proj; // projector for external electromagnetic field 
   struct vm_eval_ext_em_ctx ext_em_ctx; // context for external electromagnetic field 
 

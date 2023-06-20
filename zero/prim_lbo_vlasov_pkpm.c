@@ -20,22 +20,6 @@ prim_lbo_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
   gkyl_free(prim);
 }
 
-void
-gkyl_prim_lbo_vlasov_pkpm_set_auxfields(const struct gkyl_prim_lbo_type *prim,
-  struct gkyl_prim_lbo_vlasov_pkpm_auxfields auxin)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.pvar)) {
-    gkyl_prim_lbo_vlasov_pkpm_set_auxfields_cu(prim->on_dev, auxin);
-    return;
-  }
-#endif
-
-  struct prim_lbo_type_vlasov_pkpm *prim_vlasov_pkpm = container_of(prim, struct prim_lbo_type_vlasov_pkpm, prim);
-  prim_vlasov_pkpm->auxfields.pvar = auxin.pvar;
-}
-
-
 struct gkyl_prim_lbo_type*
 gkyl_prim_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, bool use_gpu)

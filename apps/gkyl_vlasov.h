@@ -14,8 +14,11 @@ struct gkyl_vlasov_collisions {
   void *ctx; // context for collision function
   // function for computing self-collision frequency
   void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
-  // input constant collisionality
-  double const_nu;
+
+  // inputs for Spitzer collisionality
+  bool normNu; // Set to true if you want to rescale collision frequency
+  double nuFrac; // Parameter for rescaling collision frequency from SI values
+  double hbar; // Planck's constant/2 pi 
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -347,14 +350,26 @@ void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, in
 void gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write pkpm div pressure tensor.
+ * Write collision auxiliary variables, including self_nu, prim_moms, and nu prim_moms.
+ * FOR DEBUGGING ONLY, DOES NOT WORK ON GPUS
  * 
  * @param app App object.
  * @param sidx Index of fluid species to initialize.
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_species_pkpm_div_p(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+void gkyl_vlasov_app_write_species_coll_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write pkpm forces, including div(p), div(p_parallel b_hat), and other acceleration variables.
+ * FOR DEBUGGING ONLY, DOES NOT WORK ON GPUS
+ * 
+ * @param app App object.
+ * @param sidx Index of fluid species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species_pkpm_forces(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write species p/gamma to file.

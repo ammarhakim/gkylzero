@@ -85,6 +85,9 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     // field as it will get added to qmem
     f->ext_em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
 
+    // allocate a total field variable for methods which require ext_em + em such as b_hat calculation
+    f->tot_em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+
     f->ext_em_host = f->ext_em;
     if (app->use_gpu)
       f->ext_em_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
@@ -98,7 +101,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   f->has_app_current = false;
   f->app_current_evolve = false;
-  // setup external electromagnetic field
+  // setup external currents
   if (f->info.app_current) {
     f->has_app_current = true;
     if (f->info.app_current_evolve)
@@ -250,29 +253,41 @@ void
 vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *em)
 {
+  gkyl_array_clear(field->tot_em, 0.0);
+  gkyl_array_set(field->tot_em, 1.0, em);
+  if (field->has_ext_em) 
+    gkyl_array_accumulate(field->tot_em, 1.0, field->ext_em);
   // Assumes magnetic field boundary conditions applied so magnetic field 
   // unit vector and unit tensor are defined everywhere in the domain
-  gkyl_calc_em_vars_bvar(app->confBasis, &app->local_ext, em, field->bvar);
+  gkyl_calc_em_vars_bvar(app->confBasis, &app->local_ext, field->tot_em, field->bvar);
 }
 
 void
 vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *em)
 {
+  gkyl_array_clear(field->tot_em, 0.0);
+  gkyl_array_set(field->tot_em, 1.0, em);
+  if (field->has_ext_em) 
+    gkyl_array_accumulate(field->tot_em, 1.0, field->ext_em);
   // Assumes electric field and magnetic field boundary conditions applied 
   // so E x B velocity is defined everywhere in the domain 
-  gkyl_calc_em_vars_ExB(app->confBasis, &app->local_ext, em, field->ExB);
+  gkyl_calc_em_vars_ExB(app->confBasis, &app->local_ext, field->tot_em, field->ExB);
 }
 
 void
 vm_field_calc_sr_pkpm_vars(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *em)
 {
+  gkyl_array_clear(field->tot_em, 0.0);
+  gkyl_array_set(field->tot_em, 1.0, em);
+  if (field->has_ext_em) 
+    gkyl_array_accumulate(field->tot_em, 1.0, field->ext_em);
   // Assumes electric field and magnetic field boundary conditions applied 
   // so E x B velocity and magnetic field unit vector and unit tensor
   // are defined everywhere in the domain   
-  gkyl_calc_em_vars_bvar(app->confBasis, &app->local_ext, em, field->bvar);
-  gkyl_calc_em_vars_ExB(app->confBasis, &app->local_ext, em, field->ExB);
+  gkyl_calc_em_vars_bvar(app->confBasis, &app->local_ext, field->tot_em, field->bvar);
+  gkyl_calc_em_vars_ExB(app->confBasis, &app->local_ext, field->tot_em, field->ExB);
   gkyl_calc_em_vars_pkpm_kappa_inv_b(app->confBasis, &app->local_ext, field->bvar, field->ExB, field->kappa_inv_b);
   // TO DO: THESE VARIABLES NEED TO BE CONTINUOUS
 }
@@ -439,6 +454,7 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 
   if (f->has_ext_em) {
     gkyl_array_release(f->ext_em);
+    gkyl_array_release(f->tot_em);
     if (app->use_gpu)
       gkyl_array_release(f->ext_em_host);
 

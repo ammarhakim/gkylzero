@@ -40,7 +40,6 @@ struct prim_lbo_type_vlasov_pkpm {
   struct gkyl_prim_lbo_type prim; // Base object
   vlasov_pkpm_self_prim_t self_prim; // Self-primitive moments kernel
   struct gkyl_range conf_range; // configuration space range
-  struct gkyl_prim_lbo_vlasov_pkpm_auxfields auxfields; // Auxiliary fields.
 };
 
 /**
