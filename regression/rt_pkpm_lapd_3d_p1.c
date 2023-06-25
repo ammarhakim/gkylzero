@@ -15,6 +15,7 @@ struct pkpm_lapd_ctx {
   double massIon; // ion mass
   double Te_Ti; // electron to ion temperature ratio
   double n0;
+  double di; // ion inertial length for setting density gradient length scale
   double vAe;
   double B0;
   double beta;
@@ -43,7 +44,7 @@ evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   
   double x = xn[0], y = xn[1], z = xn[2], vx = xn[3];
   // Radial density profile in x and y
-  double sigma2 = (app->L/4.0)*(app->L/4.0);
+  double sigma2 = app->di*app->di;
   double n = app->n0*exp(-(x*x + y*y)/(2.0*sigma2));
   double fv = maxwellian(n, vx, app->vtElc);
     
@@ -57,7 +58,7 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   
   double x = xn[0], y = xn[1], z = xn[2], vx = xn[3];
   // Radial density profile in x and y
-  double sigma2 = (app->L/4.0)*(app->L/4.0);
+  double sigma2 = app->di*app->di;
   double n = app->n0*exp(-(x*x + y*y)/(2.0*sigma2));
   double fv = maxwellian(n, vx, app->vtIon);
     
@@ -169,7 +170,7 @@ create_ctx(void)
   // domain size and simulation time
   double L = 2*di;
   double Lz = 4*di;
-  double tend = 1.0/omegaCi;
+  double tend = 10.0/omegaCi;
 
   // Denormalized values for reference
   // Compute electron thermal velocity from speed of light normalization
@@ -207,6 +208,7 @@ create_ctx(void)
     .massIon = massIon,
     .Te_Ti = Te_Ti,
     .n0 = n0,
+    .di = di,
     .vAe = vAe,
     .B0 = B0,
     .beta = beta,
@@ -277,7 +279,7 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuElc,
-      .normNu = true,
+      //.normNu = true,
     },    
 
     .num_diag_moments = 0,
@@ -316,7 +318,7 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuIon,
-      .normNu = true,
+      //.normNu = true,
     },    
 
     .num_diag_moments = 0,
