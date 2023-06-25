@@ -297,7 +297,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    //.nuHyp = 1.0e-5,
+    //.diffusion = {.D = 1.0e-5, .order=6},
   };  
   
   // electrons
@@ -330,7 +330,7 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    //.nuHyp = 1.0e-5, 
+    //.diffusion = {.D = 1.0e-5, .order=6},
   };  
   
   // ions

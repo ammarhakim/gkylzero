@@ -57,13 +57,6 @@
 
 // Definitions of private structs and APIs attached to these objects
 // for use in Vlasov app.
-// context for use in special relativistic simulations
-struct gamma_ctx {
-  double mass; // species mass
-};
-
-// Labels for lower, upper edge of domain
-enum vm_domain_edge { VM_EDGE_LOWER, VM_EDGE_UPPER };
 
 // data for moments
 struct vm_species_moment {
@@ -292,12 +285,6 @@ struct vm_field {
   double* omegaCfl_ptr;
 };
 
-// context for use in computing applied advection
-struct vm_eval_advect_ctx { evalf_t advect_func; void *advect_ctx; };
-
-// context for use in computing applied diffusion
-struct vm_eval_diffusion_ctx { evalf_t diff_func; void* diff_ctx; };
-
 struct vm_fluid_source {
   struct vm_species_moment moms; // source moments
 
@@ -323,9 +310,6 @@ struct vm_fluid_species {
   struct gkyl_array *T_perp_over_m; // array for p_perp/rho = T_perp/m
   struct gkyl_array *T_perp_over_m_inv; // array for (T_perp/m)^-1 
   struct gkyl_array *T_ij; // Temperature tensor for penalization T_ij = 3.0*P_ij/rho
-
-  struct gkyl_array *u_bc_buffer; // buffer for applying BCs to flow
-  struct gkyl_array *p_bc_buffer; // buffer for applying BCs to pressure
   
   struct gkyl_array *u_host; // array for host-side fluid/advection velocity (for I/O)
   struct gkyl_array *p_host; // array for host-side pressure (for I/O)
@@ -338,11 +322,6 @@ struct vm_fluid_species {
                                        // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
                                        // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
 
-  double nuHyp; // Hyper-diffusion coefficient
-
-  struct gkyl_array *D; // array for diffusion tensor
-  struct gkyl_array *D_host; // host copy of diffusion tensor
-
   gkyl_dg_updater_fluid *advect_slvr; // Fluid equation solver
   gkyl_dg_updater_diffusion *diff_slvr; // Fluid equation solver
 
@@ -351,13 +330,8 @@ struct vm_fluid_species {
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
-
-  // Pointers to updaters that apply BCs to velocity and pressure (and Tij in pkpm)
   bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
-  struct gkyl_bc_basic *bc_u_lo[3];
-  struct gkyl_bc_basic *bc_u_up[3];
-  struct gkyl_bc_basic *bc_p_lo[3];
-  struct gkyl_bc_basic *bc_p_up[3];
+                     // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range 
 
   // fluid advection
   bool has_advect; // flag to indicate there is advection of fluid equation
@@ -373,34 +347,18 @@ struct vm_fluid_species {
                      // index corresponds to location in vm_species array (size num_species)
 
   // applied advection
-  struct gkyl_array *advect; // applied advection
-  struct gkyl_array *advect_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *advect_proj; // projector for advection
-  struct vm_eval_advect_ctx advect_ctx; // context for applied advection
-
-  // advection with another species
-  bool advects_with_species; // flag to indicate we are advecting with another species
-  struct vm_species *advection_species; // pointer to species we advect with
-  struct gkyl_array *other_advect; // pointer to that species drift velocity
+  struct gkyl_array *app_advect; // applied advection
+  struct gkyl_array *app_advect_host; // host copy for use in IO and projecting
 
   // fluid diffusion
   bool has_diffusion; // flag to indicate there is applied diffusion
+  struct gkyl_array *Dij; // array for diffusion tensor
+  struct gkyl_array *Dij_host; // host copy of diffusion tensor
   enum gkyl_diffusion_id diffusion_id; // type of diffusion (e.g., isotropic vs. anisotropic)
-  gkyl_proj_on_basis* diff_proj; // projector for diffusion
-  struct vm_eval_diffusion_ctx diff_ctx; // context for applied diffusion
 
   // fluid source
   enum gkyl_source_id source_id; // type of source
   struct vm_fluid_source src; // applied source
-  
-  // collisions with another species present
-  enum gkyl_collision_id collision_id; // type of collisions
-  struct gkyl_array *other_nu; // pointer to that species collision frequency
-  struct gkyl_array *other_m0; // pointer to that species density
-  struct gkyl_array *other_nu_vthsq; // pointer to that species nu*vth_sq
-
-  struct gkyl_array *nu_fluid; // collision frequency multiplying fluid_species (nu*nT_perp or nu*nT_z)
-  struct gkyl_array *nu_n_vthsq; // nu*n*vthsq (what collisions relax auxiliary temperature to)
 
   double* omegaCfl_ptr;
 };
@@ -953,24 +911,6 @@ void vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, stru
  * @param t0 Time for use in ICs
  */
 void vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0);
-
-/**
- * Compute species applied advection term
- *
- * @param app Vlasov app object
- * @param fluid_species Fluid Species object
- * @param tm Time for use in advection
- */
-void vm_fluid_species_calc_advect(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
-
-/**
- * Compute species applied diffusion term
- *
- * @param app Vlasov app object
- * @param fluid_species Fluid Species object
- * @param tm Time for use in advection
- */
-void vm_fluid_species_calc_diff(gkyl_vlasov_app* app, struct vm_fluid_species* fluid_species, double tm);
 
 /**
  * Compute primitive variables (bulk velocity, u, and pressure, p, if pressure present)

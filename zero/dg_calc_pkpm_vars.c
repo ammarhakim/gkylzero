@@ -138,21 +138,18 @@ void gkyl_calc_pkpm_vars_dist_mirror_force(const struct gkyl_rect_grid *grid, st
 }
 
 void gkyl_calc_pkpm_vars_recovery(const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis basis, const struct gkyl_range *range, double nuHyp, 
-  const struct gkyl_array* bvar, const struct gkyl_array* u_i, 
-  const struct gkyl_array* p_ij, const struct gkyl_array* euler_pkpm, 
-  const struct gkyl_array* pkpm_div_ppar, const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, 
-  const struct gkyl_array* T_perp_over_m_inv, const struct gkyl_array* nu, 
+  struct gkyl_basis basis, const struct gkyl_range *range, 
+  const struct gkyl_array* bvar, const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
+  const struct gkyl_array* pkpm_div_ppar, const struct gkyl_array* rho_inv, const struct gkyl_array* T_perp_over_m, const struct gkyl_array* nu, 
   struct gkyl_array* div_p, struct gkyl_array* pkpm_accel_vars)
 {
 // Check if more than one of the output arrays is on device? 
 // Probably a better way to do this (JJ: 11/16/22)
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(div_p)) {
-    return gkyl_calc_pkpm_vars_recovery_cu(grid, basis, range, nuHyp, 
-      bvar, u_i, p_ij, euler_pkpm, 
-      pkpm_div_ppar, rho_inv, T_perp_over_m, 
-      T_perp_over_m_inv, nu, 
+    return gkyl_calc_pkpm_vars_recovery_cu(grid, basis, range, 
+      bvar, u_i, p_ij, 
+      pkpm_div_ppar, rho_inv, T_perp_over_m, nu, 
       div_p, pkpm_accel_vars);
   }
 #endif
@@ -175,13 +172,11 @@ void gkyl_calc_pkpm_vars_recovery(const struct gkyl_rect_grid *grid,
     const double *bvar_c = gkyl_array_cfetch(bvar, linc);
     const double *u_i_c = gkyl_array_cfetch(u_i, linc);
     const double *p_ij_c = gkyl_array_cfetch(p_ij, linc);
-    const double *euler_pkpm_c = gkyl_array_cfetch(euler_pkpm, linc);
 
     // Only need rho_inv, T_perp_over_m, T_perp_over_m_inv, and nu in center cell
     const double *pkpm_div_ppar_d = gkyl_array_cfetch(pkpm_div_ppar, linc);
     const double *rho_inv_d = gkyl_array_cfetch(rho_inv, linc);
     const double *T_perp_over_m_d = gkyl_array_cfetch(T_perp_over_m, linc);
-    const double *T_perp_over_m_inv_d = gkyl_array_cfetch(T_perp_over_m_inv, linc);
     const double *nu_d = gkyl_array_cfetch(nu, linc);
 
     double *div_p_d = gkyl_array_fetch(div_p, linc);
@@ -205,14 +200,10 @@ void gkyl_calc_pkpm_vars_recovery(const struct gkyl_rect_grid *grid,
       const double *p_ij_l = gkyl_array_cfetch(p_ij, linl);
       const double *p_ij_r = gkyl_array_cfetch(p_ij, linr);
 
-      const double *euler_pkpm_l = gkyl_array_cfetch(euler_pkpm, linl);
-      const double *euler_pkpm_r = gkyl_array_cfetch(euler_pkpm, linr);
-
-      pkpm_recovery[dir](grid->dx, nuHyp, 
+      pkpm_recovery[dir](grid->dx, 
         bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, 
-        p_ij_l, p_ij_c, p_ij_r, euler_pkpm_l, euler_pkpm_c, euler_pkpm_r, 
-        pkpm_div_ppar_d, rho_inv_d, T_perp_over_m_d, 
-        T_perp_over_m_inv_d, nu_d,
+        p_ij_l, p_ij_c, p_ij_r, 
+        pkpm_div_ppar_d, rho_inv_d, T_perp_over_m_d, nu_d,
         div_p_d, pkpm_accel_vars_d);
     }
   }

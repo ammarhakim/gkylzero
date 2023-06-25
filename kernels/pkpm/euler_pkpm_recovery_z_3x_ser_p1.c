@@ -1,23 +1,18 @@
 #include <gkyl_euler_pkpm_kernels.h> 
-GKYL_CU_DH void euler_pkpm_recovery_z_3x_ser_p1(const double *dxv, double nuHyp, 
+GKYL_CU_DH void euler_pkpm_recovery_z_3x_ser_p1(const double *dxv, 
   const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-  const double *statevecl, const double *statevecc, const double *statevecr, 
-  const double *pkpm_div_ppar, const double *rho_inv, const double *T_perp_over_m, 
-  const double *T_perp_over_m_inv, const double *nu, 
+  const double *pkpm_div_ppar, const double *rho_inv, const double *T_perp_over_m, const double *nu, 
   double* div_p, double* pkpm_accel_vars) 
 { 
   // dxv[NDIM]:             Cell spacing.
-  // nuHyp:                 Hyper-diffusion coefficient.
   // bvarl/c/r:             Input magnetic field unit vector in left/center/right cells.
   // u_il/c/r:              Input bulk velocity (ux,uy,uz) in left/center/right cells.
   // p_ijl/c/r:             Input pressure tensor in left/center/right cells.
-  // statevecl/c/r:         [rho ux, rho uy, rho uz], Fluid input state vector in center cell.
   // pkpm_div_ppar:         Input div(p_parallel b_hat) in center cell.
   // rho_inv:               Input 1/rho in center cell.
   // T_perp_over_m:         Input p_perp/rho = T_perp/m in center cell.
-  // T_perp_over_m_inv:     Input (T_perp/m)^-1 in center cell.
   // nu:                    Input collisionality in center cell.
   // div_p:                 Increment to volume expansion of div(p) in one direction; includes hyper-diffusion for momentum.
   // pkpm_accel_vars:       Increment to volume expansion of pkpm acceleration variables.
@@ -69,18 +64,6 @@ GKYL_CU_DH void euler_pkpm_recovery_z_3x_ser_p1(const double *dxv, double nuHyp,
   const double *Pyz_r = &p_ijr[32]; 
   const double *Pzz_r = &p_ijr[40]; 
 
-  const double *rhoux_l = &statevecl[0]; 
-  const double *rhouy_l = &statevecl[8]; 
-  const double *rhouz_l = &statevecl[16]; 
-
-  const double *rhoux_c = &statevecc[0]; 
-  const double *rhouy_c = &statevecc[8]; 
-  const double *rhouz_c = &statevecc[16]; 
-
-  const double *rhoux_r = &statevecr[0]; 
-  const double *rhouy_r = &statevecr[8]; 
-  const double *rhouz_r = &statevecr[16]; 
-
   double *div_p_x = &div_p[0]; 
   double *div_p_y = &div_p[8]; 
   double *div_p_z = &div_p[16]; 
@@ -90,8 +73,6 @@ GKYL_CU_DH void euler_pkpm_recovery_z_3x_ser_p1(const double *dxv, double nuHyp,
   double *p_force = &pkpm_accel_vars[16]; 
   double *p_perp_source = &pkpm_accel_vars[24]; 
   double *p_perp_div_b = &pkpm_accel_vars[32]; 
-
-  const double dxHyp = dx1*dx1*dx1*dx1; 
 
   double grad_u_x[8] = {0.0}; 
   double grad_u_y[8] = {0.0}; 
@@ -191,32 +172,32 @@ GKYL_CU_DH void euler_pkpm_recovery_z_3x_ser_p1(const double *dxv, double nuHyp,
   bb_grad_u[6] += bb_grad_u_comp[6]; 
   bb_grad_u[7] += bb_grad_u_comp[7]; 
 
-  div_p_x[0] += (4.871392896287466*rhoux_r[3]-4.871392896287466*rhoux_l[3]-2.8125*(rhoux_r[0]+rhoux_l[0])+5.625*rhoux_c[0])*dxHyp*nuHyp+div_p_x_comp[0]; 
-  div_p_x[1] += (4.871392896287466*rhoux_r[5]-4.871392896287466*rhoux_l[5]-2.8125*(rhoux_r[1]+rhoux_l[1])+5.625*rhoux_c[1])*dxHyp*nuHyp+div_p_x_comp[1]; 
-  div_p_x[2] += (4.871392896287466*rhoux_r[6]-4.871392896287466*rhoux_l[6]-2.8125*(rhoux_r[2]+rhoux_l[2])+5.625*rhoux_c[2])*dxHyp*nuHyp+div_p_x_comp[2]; 
-  div_p_x[3] += (72.1875*(rhoux_r[3]+rhoux_l[3])+249.375*rhoux_c[3]-56.83291712335378*rhoux_r[0]+56.83291712335378*rhoux_l[0])*dxHyp*nuHyp+div_p_x_comp[3]; 
-  div_p_x[4] += (4.871392896287466*rhoux_r[7]-4.871392896287466*rhoux_l[7]-2.8125*(rhoux_r[4]+rhoux_l[4])+5.625*rhoux_c[4])*dxHyp*nuHyp+div_p_x_comp[4]; 
-  div_p_x[5] += (72.1875*(rhoux_r[5]+rhoux_l[5])+249.375*rhoux_c[5]-56.83291712335378*rhoux_r[1]+56.83291712335378*rhoux_l[1])*dxHyp*nuHyp+div_p_x_comp[5]; 
-  div_p_x[6] += (72.1875*(rhoux_r[6]+rhoux_l[6])+249.375*rhoux_c[6]-56.83291712335378*rhoux_r[2]+56.83291712335378*rhoux_l[2])*dxHyp*nuHyp+div_p_x_comp[6]; 
-  div_p_x[7] += (72.1875*(rhoux_r[7]+rhoux_l[7])+249.375*rhoux_c[7]-56.83291712335378*rhoux_r[4]+56.83291712335378*rhoux_l[4])*dxHyp*nuHyp+div_p_x_comp[7]; 
+  div_p_x[0] += div_p_x_comp[0]; 
+  div_p_x[1] += div_p_x_comp[1]; 
+  div_p_x[2] += div_p_x_comp[2]; 
+  div_p_x[3] += div_p_x_comp[3]; 
+  div_p_x[4] += div_p_x_comp[4]; 
+  div_p_x[5] += div_p_x_comp[5]; 
+  div_p_x[6] += div_p_x_comp[6]; 
+  div_p_x[7] += div_p_x_comp[7]; 
 
-  div_p_y[0] += (4.871392896287466*rhouy_r[3]-4.871392896287466*rhouy_l[3]-2.8125*(rhouy_r[0]+rhouy_l[0])+5.625*rhouy_c[0])*dxHyp*nuHyp+div_p_y_comp[0]; 
-  div_p_y[1] += (4.871392896287466*rhouy_r[5]-4.871392896287466*rhouy_l[5]-2.8125*(rhouy_r[1]+rhouy_l[1])+5.625*rhouy_c[1])*dxHyp*nuHyp+div_p_y_comp[1]; 
-  div_p_y[2] += (4.871392896287466*rhouy_r[6]-4.871392896287466*rhouy_l[6]-2.8125*(rhouy_r[2]+rhouy_l[2])+5.625*rhouy_c[2])*dxHyp*nuHyp+div_p_y_comp[2]; 
-  div_p_y[3] += (72.1875*(rhouy_r[3]+rhouy_l[3])+249.375*rhouy_c[3]-56.83291712335378*rhouy_r[0]+56.83291712335378*rhouy_l[0])*dxHyp*nuHyp+div_p_y_comp[3]; 
-  div_p_y[4] += (4.871392896287466*rhouy_r[7]-4.871392896287466*rhouy_l[7]-2.8125*(rhouy_r[4]+rhouy_l[4])+5.625*rhouy_c[4])*dxHyp*nuHyp+div_p_y_comp[4]; 
-  div_p_y[5] += (72.1875*(rhouy_r[5]+rhouy_l[5])+249.375*rhouy_c[5]-56.83291712335378*rhouy_r[1]+56.83291712335378*rhouy_l[1])*dxHyp*nuHyp+div_p_y_comp[5]; 
-  div_p_y[6] += (72.1875*(rhouy_r[6]+rhouy_l[6])+249.375*rhouy_c[6]-56.83291712335378*rhouy_r[2]+56.83291712335378*rhouy_l[2])*dxHyp*nuHyp+div_p_y_comp[6]; 
-  div_p_y[7] += (72.1875*(rhouy_r[7]+rhouy_l[7])+249.375*rhouy_c[7]-56.83291712335378*rhouy_r[4]+56.83291712335378*rhouy_l[4])*dxHyp*nuHyp+div_p_y_comp[7]; 
+  div_p_y[0] += div_p_y_comp[0]; 
+  div_p_y[1] += div_p_y_comp[1]; 
+  div_p_y[2] += div_p_y_comp[2]; 
+  div_p_y[3] += div_p_y_comp[3]; 
+  div_p_y[4] += div_p_y_comp[4]; 
+  div_p_y[5] += div_p_y_comp[5]; 
+  div_p_y[6] += div_p_y_comp[6]; 
+  div_p_y[7] += div_p_y_comp[7]; 
 
-  div_p_z[0] += (4.871392896287466*rhouz_r[3]-4.871392896287466*rhouz_l[3]-2.8125*(rhouz_r[0]+rhouz_l[0])+5.625*rhouz_c[0])*dxHyp*nuHyp+div_p_z_comp[0]; 
-  div_p_z[1] += (4.871392896287466*rhouz_r[5]-4.871392896287466*rhouz_l[5]-2.8125*(rhouz_r[1]+rhouz_l[1])+5.625*rhouz_c[1])*dxHyp*nuHyp+div_p_z_comp[1]; 
-  div_p_z[2] += (4.871392896287466*rhouz_r[6]-4.871392896287466*rhouz_l[6]-2.8125*(rhouz_r[2]+rhouz_l[2])+5.625*rhouz_c[2])*dxHyp*nuHyp+div_p_z_comp[2]; 
-  div_p_z[3] += (72.1875*(rhouz_r[3]+rhouz_l[3])+249.375*rhouz_c[3]-56.83291712335378*rhouz_r[0]+56.83291712335378*rhouz_l[0])*dxHyp*nuHyp+div_p_z_comp[3]; 
-  div_p_z[4] += (4.871392896287466*rhouz_r[7]-4.871392896287466*rhouz_l[7]-2.8125*(rhouz_r[4]+rhouz_l[4])+5.625*rhouz_c[4])*dxHyp*nuHyp+div_p_z_comp[4]; 
-  div_p_z[5] += (72.1875*(rhouz_r[5]+rhouz_l[5])+249.375*rhouz_c[5]-56.83291712335378*rhouz_r[1]+56.83291712335378*rhouz_l[1])*dxHyp*nuHyp+div_p_z_comp[5]; 
-  div_p_z[6] += (72.1875*(rhouz_r[6]+rhouz_l[6])+249.375*rhouz_c[6]-56.83291712335378*rhouz_r[2]+56.83291712335378*rhouz_l[2])*dxHyp*nuHyp+div_p_z_comp[6]; 
-  div_p_z[7] += (72.1875*(rhouz_r[7]+rhouz_l[7])+249.375*rhouz_c[7]-56.83291712335378*rhouz_r[4]+56.83291712335378*rhouz_l[4])*dxHyp*nuHyp+div_p_z_comp[7]; 
+  div_p_z[0] += div_p_z_comp[0]; 
+  div_p_z[1] += div_p_z_comp[1]; 
+  div_p_z[2] += div_p_z_comp[2]; 
+  div_p_z[3] += div_p_z_comp[3]; 
+  div_p_z[4] += div_p_z_comp[4]; 
+  div_p_z[5] += div_p_z_comp[5]; 
+  div_p_z[6] += div_p_z_comp[6]; 
+  div_p_z[7] += div_p_z_comp[7]; 
 
   p_force[0] += 0.3535533905932737*pkpm_div_ppar_c[7]*rho_inv[7]-0.3535533905932737*T_perp_over_m[7]*div_b_comp[7]+0.3535533905932737*pkpm_div_ppar_c[6]*rho_inv[6]-0.3535533905932737*T_perp_over_m[6]*div_b_comp[6]+0.3535533905932737*pkpm_div_ppar_c[5]*rho_inv[5]-0.3535533905932737*T_perp_over_m[5]*div_b_comp[5]+0.3535533905932737*pkpm_div_ppar_c[4]*rho_inv[4]-0.3535533905932737*T_perp_over_m[4]*div_b_comp[4]+0.3535533905932737*pkpm_div_ppar_c[3]*rho_inv[3]-0.3535533905932737*T_perp_over_m[3]*div_b_comp[3]+0.3535533905932737*pkpm_div_ppar_c[2]*rho_inv[2]-0.3535533905932737*T_perp_over_m[2]*div_b_comp[2]+0.3535533905932737*pkpm_div_ppar_c[1]*rho_inv[1]-0.3535533905932737*T_perp_over_m[1]*div_b_comp[1]+0.3535533905932737*pkpm_div_ppar_c[0]*rho_inv[0]-0.3535533905932737*T_perp_over_m[0]*div_b_comp[0]; 
   p_force[1] += 0.3535533905932737*(pkpm_div_ppar_c[6]*rho_inv[7]+rho_inv[6]*pkpm_div_ppar_c[7])-0.3535533905932737*(T_perp_over_m[6]*div_b_comp[7]+div_b_comp[6]*T_perp_over_m[7])+0.3535533905932737*(pkpm_div_ppar_c[3]*rho_inv[5]+rho_inv[3]*pkpm_div_ppar_c[5])-0.3535533905932737*(T_perp_over_m[3]*div_b_comp[5]+div_b_comp[3]*T_perp_over_m[5])+0.3535533905932737*(pkpm_div_ppar_c[2]*rho_inv[4]+rho_inv[2]*pkpm_div_ppar_c[4])-0.3535533905932737*(T_perp_over_m[2]*div_b_comp[4]+div_b_comp[2]*T_perp_over_m[4])+0.3535533905932737*(pkpm_div_ppar_c[0]*rho_inv[1]+rho_inv[0]*pkpm_div_ppar_c[1])-0.3535533905932737*(T_perp_over_m[0]*div_b_comp[1]+div_b_comp[0]*T_perp_over_m[1]); 

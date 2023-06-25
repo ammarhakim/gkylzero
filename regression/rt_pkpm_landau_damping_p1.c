@@ -53,11 +53,21 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double k = app->k0, alpha = app->perturb;
   double x = xn[0];
   double E_x = -alpha*sin(k*x)/k;
-  double B_x = 1.0;
   
   fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
   fout[6] = 0.0; fout[7] = 0.0;
+}
+
+void
+evalExtEmFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct pkpm_sheath_ctx *app = ctx;
+  double x = xn[0];
+  double B_x = 1.0;
+  
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
 }
 
 void
@@ -140,7 +150,10 @@ main(int argc, char **argv)
     .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
+
+    .ext_em = evalExtEmFunc,
+    .ext_em_ctx = &ctx,
   };
 
   // VM app

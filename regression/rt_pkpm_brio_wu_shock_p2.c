@@ -158,14 +158,14 @@ main(int argc, char **argv)
   }
   struct pkpm_brio_wu_ctx ctx = create_ctx(); // context for init functions
 
-  // electron Tperp                                                                                              
+  // electron momentum
   struct gkyl_vlasov_fluid_species fluid_elc = {
     .name = "fluid_elc",
     .num_eqn = 3,
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-5,
+    .diffusion = {.D = 1.0e-5, .order=6},
   };  
   
   // electrons
@@ -191,14 +191,14 @@ main(int argc, char **argv)
     .num_diag_moments = 0,
   };
 
-  // ion Tperp                                                                                              
+  // ion momentum
   struct gkyl_vlasov_fluid_species fluid_ion = {
     .name = "fluid_ion",
     .num_eqn = 3,
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    .nuHyp = 1.0e-5,
+    .diffusion = {.D = 1.0e-5, .order=6},
   };  
   
   // ions

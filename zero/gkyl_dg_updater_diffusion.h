@@ -20,15 +20,18 @@ struct gkyl_dg_updater_diffusion_tm {
  * @param grid Grid object
  * @param cbasis Configuration space basis functions
  * @param conf_range Config space range
+ * @param D Constant diffusion coefficient if equation object is isotropic diffusion
+ * @param order Integer order of diffusion (default is grad^2, supports grad^4 and grad^6)
+ * @param diffusion_id Enum for identifying type of diffusion (e.g. isotropic vs. general diffusion tensor)
  * @return New diff updater object
  */
 gkyl_dg_updater_diffusion* gkyl_dg_updater_diffusion_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  enum gkyl_diffusion_id diffusion_id, bool use_gpu);
+  double D, int order, enum gkyl_diffusion_id diffusion_id, bool use_gpu);
 
 gkyl_dg_updater_diffusion* gkyl_dg_updater_diffusion_cu_dev_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  enum gkyl_diffusion_id diffusion_id);
+  double D, int order, enum gkyl_diffusion_id diffusion_id);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -38,23 +41,19 @@ gkyl_dg_updater_diffusion* gkyl_dg_updater_diffusion_cu_dev_new(const struct gky
  *
  * @param diff diffusion updater object
  * @param update_rng Range on which to compute.
- * @param D Diffusion tensor
+ * @param Dij Diffusion tensor
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
-void gkyl_dg_updater_diffusion_advance(gkyl_dg_updater_diffusion *diff, enum gkyl_diffusion_id diffusion_id,
+void gkyl_dg_updater_diffusion_advance(gkyl_dg_updater_diffusion *diff, 
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *D,
-  const struct gkyl_array *u,
-  const struct gkyl_array* GKYL_RESTRICT fIn,
+  const struct gkyl_array *Dij, const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
-void gkyl_dg_updater_diffusion_advance_cu(gkyl_dg_updater_diffusion *diff, enum gkyl_diffusion_id diffusion_id,
+void gkyl_dg_updater_diffusion_advance_cu(gkyl_dg_updater_diffusion *diff, 
   const struct gkyl_range *update_rng,
-  const struct gkyl_array *D,
-  const struct gkyl_array *u,
-  const struct gkyl_array* GKYL_RESTRICT fIn,
+  const struct gkyl_array *Dij, const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 /**

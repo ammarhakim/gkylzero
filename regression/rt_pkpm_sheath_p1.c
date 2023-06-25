@@ -148,6 +148,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidElc,
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
+    //.diffusion = {.D = 1.0e-5, .order=4},
   };  
   
   // electrons
@@ -183,6 +184,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidIon,
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
+    //.diffusion = {.D = 1.0e-5, .order=4},
   };  
   
   // ions

@@ -55,6 +55,9 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->emnew = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   f->em_energy = mkarr(app->use_gpu, 6, app->local_ext.volume);
 
+  // allocate a total field variable for methods which require ext_em + em such as b_hat calculation
+  f->tot_em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+
   f->em_host = f->em;  
   if (app->use_gpu) {
     f->em_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
@@ -84,9 +87,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     // we need to ensure external electromagnetic field has same shape as EM
     // field as it will get added to qmem
     f->ext_em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-
-    // allocate a total field variable for methods which require ext_em + em such as b_hat calculation
-    f->tot_em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
 
     f->ext_em_host = f->ext_em;
     if (app->use_gpu)
@@ -443,6 +443,8 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
+  gkyl_array_release(f->tot_em);
+  
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
   gkyl_array_release(f->em_energy);
@@ -454,7 +456,6 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 
   if (f->has_ext_em) {
     gkyl_array_release(f->ext_em);
-    gkyl_array_release(f->tot_em);
     if (app->use_gpu)
       gkyl_array_release(f->ext_em_host);
 

@@ -187,8 +187,8 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .nuHyp = 1.0e-2,
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
+    .diffusion = {.D = 1.0e-2, .order=4},
   };  
   
   // electrons

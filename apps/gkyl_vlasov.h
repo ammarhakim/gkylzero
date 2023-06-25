@@ -57,10 +57,11 @@ struct gkyl_vlasov_fluid_advection {
 
 // Parameters for fluid species diffusion
 struct gkyl_vlasov_fluid_diffusion {
-  bool anisotropic; // bool for whether the diffusion tensor is anisotropic
-  void* D_ctx; // context for applied diffusion function
-  // pointer to applied advection diffusion tensor function
-  void (*D)(double t, const double* xn, double* Dout, void* ctx);
+  double D; // constant diffusion coefficient
+  int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
+  void* Dij_ctx; // context for applied diffusion function if using general diffusion tensor
+  // pointer to applied diffusion function is using general diffusion tensor 
+  void (*Dij)(double t, const double* xn, double* Dout, void* ctx);
 };
 
 // Parameters for Vlasov species

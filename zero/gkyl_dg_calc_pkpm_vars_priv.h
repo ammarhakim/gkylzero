@@ -20,13 +20,11 @@ typedef void (*pkpm_source_t)(const double* qmem,
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   double* out);
 
-typedef void (*pkpm_recovery_t)(const double *dxv, double nuHyp, 
+typedef void (*pkpm_recovery_t)(const double *dxv, 
   const double *bvarl, const double *bvarc, const double *bvarr, 
   const double *u_il, const double *u_ic, const double *u_ir, 
   const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-  const double *statevecl, const double *statevecc, const double *statevecr, 
-  const double *pkpm_div_ppar, const double *rho_inv, const double *T_perp_over_m, 
-  const double *T_perp_over_m_inv, const double *nu, 
+  const double *pkpm_div_ppar, const double *rho_inv, const double *T_perp_over_m, const double *nu, 
   double* div_p, double* pkpm_accel_vars); 
 
 typedef void (*pkpm_dist_mirror_force_t)(const double *w, const double *dxv, 
