@@ -262,9 +262,6 @@ gkyl_calc_pkpm_vars_recovery_cu_kernel(struct gkyl_rect_grid grid, struct gkyl_b
       const double *p_ij_l = (const double*) gkyl_array_cfetch(p_ij, linl);
       const double *p_ij_r = (const double*) gkyl_array_cfetch(p_ij, linr);
 
-      const double *euler_pkpm_l = (const double*) gkyl_array_cfetch(euler_pkpm, linl);
-      const double *euler_pkpm_r = (const double*) gkyl_array_cfetch(euler_pkpm, linr);
-
       pkpm_recovery[dir](dx, 
         bvar_l, bvar_c, bvar_r, u_i_l, u_i_c, u_i_r, 
         p_ij_l, p_ij_c, p_ij_r, 

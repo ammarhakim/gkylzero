@@ -32,7 +32,7 @@ gkyl_dg_diffusion_new(const struct gkyl_basis* cbasis,
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu)
-    return gkyl_dg_diffusion_cu_dev_new(cbasis, D, diffusion_id);
+    return gkyl_dg_diffusion_cu_dev_new(cbasis, D, order, diffusion_id);
 #endif
   
   struct dg_diffusion* diffusion = gkyl_malloc(sizeof(struct dg_diffusion));
@@ -322,7 +322,7 @@ gkyl_dg_diffusion_new(const struct gkyl_basis* cbasis,
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_eqn*
-gkyl_dg_diffusion_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, 
+gkyl_dg_diffusion_cu_dev_new(const struct gkyl_basis* cbasis, 
   double D, int order, enum gkyl_diffusion_id diffusion_id)
 {
   assert(false);

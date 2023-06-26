@@ -28,5 +28,5 @@ struct gkyl_dg_eqn* gkyl_dg_diffusion_new(const struct gkyl_basis* cbasis,
  * @param diffusion_id Enum for identifying type of diffusion (default isotropic grad^2, also support grad^4 and grad^6)
  * @return Pointer to diffusion equation object
  */
-struct gkyl_dg_eqn* gkyl_dg_diffusion_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, 
+struct gkyl_dg_eqn* gkyl_dg_diffusion_cu_dev_new(const struct gkyl_basis* cbasis, 
   double D, int order, enum gkyl_diffusion_id diffusion_id);

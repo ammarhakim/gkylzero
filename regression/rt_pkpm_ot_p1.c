@@ -265,7 +265,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 112);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 224);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
 
   if (app_args.trace_mem) {
@@ -282,7 +282,7 @@ main(int argc, char **argv)
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
-    .diffusion = {.D = 1.0e-5, .order=4}, 
+    .diffusion = {.D = 1.0e-4, .order=4}, 
   };  
   
   // electrons
@@ -315,7 +315,7 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    .diffusion = {.D = 1.0e-5, .order=4}, 
+    .diffusion = {.D = 1.0e-4, .order=4}, 
   };  
   
   // ions
