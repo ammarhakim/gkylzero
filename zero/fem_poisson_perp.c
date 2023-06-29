@@ -84,6 +84,10 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
   for (int d=0; d<PERP_DIM; d++) up->isdirperiodic[d] = bcs->lo_type[d] == GKYL_POISSON_PERIODIC;
   up->isdomperiodic = true;
   for (int d=0; d<PERP_DIM; d++) up->isdomperiodic = up->isdomperiodic && up->isdirperiodic[d];
+  assert(up->isdomperiodic == false);  // MF 2023/06/29: there's an error in
+                                       // the periodic domain case I have not
+                                       // solved.
+
   if (up->isdomperiodic) {
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
