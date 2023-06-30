@@ -267,7 +267,7 @@ void moment_apply_periodic_bc(const gkyl_moment_app *app,
 
 // Apply periodic BCs to corner cells of "f" (ONLY WORKS IN 2D)
 void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app,
-                                          struct gkyl_array *f);
+  struct gkyl_array *f);
 
 // Apply wedge-periodic BCs to array "f"
 void moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
@@ -286,7 +286,7 @@ void moment_species_init(const struct gkyl_moment *mom,
   struct moment_species *sp);
 
 // Apply BCs to species data "f"
-void moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
+void moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
   const struct moment_species *sp,
   struct gkyl_array *f);
 
@@ -295,7 +295,7 @@ double moment_species_max_dt(const gkyl_moment_app *app,
   const struct moment_species *sp);
 
 // Advance solution of species by time-step dt to tcurr+dt
-struct gkyl_update_status moment_species_update(const gkyl_moment_app *app,
+struct gkyl_update_status moment_species_update(gkyl_moment_app *app,
   struct moment_species *sp,
   double tcurr, double dt);
 
@@ -314,7 +314,7 @@ void moment_field_init(const struct gkyl_moment *mom,
   struct gkyl_moment_app *app, struct moment_field *fld);
 
 // Apply BCs to EM field
-void moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
+void moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
   const struct moment_field *field,
   struct gkyl_array *f);
 
@@ -323,7 +323,7 @@ double moment_field_max_dt(const gkyl_moment_app *app,
   const struct moment_field *fld);
 
 // Update EM field from tcurr to tcurr+dt
-struct gkyl_update_status moment_field_update(const gkyl_moment_app *app,
+struct gkyl_update_status moment_field_update(gkyl_moment_app *app,
   const struct moment_field *fld,
   double tcurr, double dt);
 

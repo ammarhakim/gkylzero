@@ -33,6 +33,7 @@ struct ot_ctx {
   double delta_u0;
   double delta_B0;
   double L;
+  double Lz;
   double tend;
   bool use_gpu;
 };
@@ -48,23 +49,37 @@ void
 evalDistFuncElc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct ot_ctx *app = ctx;
-  
-  double x = xn[0], y = xn[1], vx = xn[2], vy = xn[3], vz = xn[4];
+
+  double x = xn[0], y = xn[1], z = xn[2], vx = xn[3], vy = xn[4], vz = xn[5];
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
+  double me = app->massElc;
+  double mi = app->massIon;
+  double mu0 = app->mu0;
+  double _2pi = 2.0*M_PI;
+  double _4pi = 4.0*M_PI;
   double Lx = app->L;
   double Ly = app->L;
+  double Lz = app->Lz;
   double u0x = app->delta_u0;
   double u0y = app->delta_u0;
   double B0x = app->delta_B0;
   double B0y = app->delta_B0;
 
-  double Jz = (B0y*(4.0*M_PI/Lx)*cos(4.0*M_PI*x/Lx) + B0x*(2.0*M_PI/Ly)*cos(2.0*M_PI*y/Ly)) / app->mu0;
+  double ne = app->n0;
 
-  double vdrift_x = -u0x*sin(2.0*M_PI*y/Ly);
-  double vdrift_y = u0y*sin(2.0*M_PI*x/Lx);
-  double vdrift_z = -Jz / qi;
+  double Jx = (_2pi/Lz)*0.5*B0y*(cos(_2pi*x/Lx - _2pi*z/Lz) + cos(_2pi*x/Lx + _2pi*z/Lz) ) / mu0;
+  Jx = Jx + (_2pi/Lz)*0.5*B0y*(cos(_4pi*x/Lx - _2pi*z/Lz) - cos(_4pi*x/Lx + _2pi*z/Lz)) / mu0;
+  double Jy = (_2pi/Lz)*B0x*cos(_2pi*y/Ly - _2pi*z/Lz) / mu0;
+  double Jz = (_2pi/Lx)*0.5*B0y*(cos(_2pi*x/Lx - _2pi*z/Lz) - cos(_2pi*x/Lx + _2pi*z/Lz) ) / mu0;
+  Jz = Jz + (_4pi/Lx)*0.5*B0y*(cos(_4pi*x/Lx - _2pi*z/Lz) + cos(_4pi*x/Lx + _2pi*z/Lz) ) / mu0;
+  Jz = Jz + (_2pi/Ly)*B0x*cos(_2pi*y/Ly - _2pi*z/Lz) / mu0;
+
+  double vdrift_x = -u0x*sin(_2pi*y/Ly - _2pi*z/Lz) - Jx / (qi*ne);
+  double vdrift_y = 0.5*u0y*(sin(_2pi*x/Lx + _2pi*z/Lz) + sin(_2pi*x/Lx - _2pi*z/Lz)) - Jy / (qi*ne);
+  vdrift_y = vdrift_y + 0.5*u0y*(sin(_4pi*x/Lx - _2pi*z/Lz) - sin(_4pi*x/Lx + _2pi*z/Lz));
+  double vdrift_z = -Jz / (qi*ne);
   
   double fv = maxwellian3D(app->n0, vx, vy, vz, vdrift_x, vdrift_y, vdrift_z, app->vtElc);
     
@@ -75,19 +90,26 @@ evalDistFuncIon(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct ot_ctx *app = ctx;
   
-  double x = xn[0], y = xn[1], vx = xn[2], vy = xn[3], vz = xn[4];
+  double x = xn[0], y = xn[1], z = xn[2], vx = xn[3], vy = xn[4], vz = xn[5];
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
+  double me = app->massElc;
+  double mi = app->massIon;
+  double mu0 = app->mu0;
+  double _2pi = 2.0*M_PI;
+  double _4pi = 4.0*M_PI;
   double Lx = app->L;
   double Ly = app->L;
+  double Lz = app->Lz;
   double u0x = app->delta_u0;
   double u0y = app->delta_u0;
   double B0x = app->delta_B0;
   double B0y = app->delta_B0;
 
-  double vdrift_x = -u0x*sin(2.0*M_PI*y/Ly);
-  double vdrift_y = u0y*sin(2.0*M_PI*x/Lx);
+  double vdrift_x = -u0x*sin(_2pi*y/Ly - _2pi*z/Lz);
+  double vdrift_y = 0.5*u0y*(sin(_2pi*x/Lx + _2pi*z/Lz) + sin(_2pi*x/Lx - _2pi*z/Lz));
+  vdrift_y = vdrift_y + 0.5*u0y*(sin(_4pi*x/Lx - _2pi*z/Lz) - sin(_4pi*x/Lx + _2pi*z/Lz));
   double vdrift_z = 0.0;
   
   double fv = maxwellian3D(app->n0, vx, vy, vz, vdrift_x, vdrift_y, vdrift_z, app->vtIon);
@@ -100,35 +122,50 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct ot_ctx *app = ctx;
 
-  double x = xn[0], y = xn[1];
+  double x = xn[0], y = xn[1], z = xn[2];
 
   double qe = app->chargeElc;
   double qi = app->chargeIon;
+  double mu0 = app->mu0;
+  double _2pi = 2.0*M_PI;
+  double _4pi = 4.0*M_PI;
   double Lx = app->L;
   double Ly = app->L;
+  double Lz = app->Lz;
   double u0x = app->delta_u0;
   double u0y = app->delta_u0;
   double B0x = app->delta_B0;
   double B0y = app->delta_B0;
+  double B0 = app->B0;
 
-  double Jz = (B0y*(4.0*M_PI/Lx)*cos(4.0*M_PI*x/Lx) + B0x*(2.0*M_PI/Ly)*cos(2.0*M_PI*y/Ly)) / app->mu0;
+  double ne = app->n0;
+  double ni = app->n0;
 
-  double B_x = -B0x*sin(2.0*M_PI*y/Ly);
-  double B_y = B0y*sin(4.0*M_PI*x/Lx);
-  double B_z = app->B0;
+  double Jx = (_2pi/Lz)*0.5*B0y*(cos(_2pi*x/Lx - _2pi*z/Lz) + cos(_2pi*x/Lx + _2pi*z/Lz) ) / mu0;
+  Jx = Jx + (_2pi/Lz)*0.5*B0y*(cos(_4pi*x/Lx - _2pi*z/Lz) - cos(_4pi*x/Lx + _2pi*z/Lz)) / mu0;
+  double Jy = (_2pi/Lz)*B0x*cos(_2pi*y/Ly - _2pi*z/Lz) / mu0;
+  double Jz = (_2pi/Lx)*0.5*B0y*(cos(_2pi*x/Lx - _2pi*z/Lz) - cos(_2pi*x/Lx + _2pi*z/Lz) ) / mu0;
+  Jz = Jz + (_4pi/Lx)*0.5*B0y*(cos(_4pi*x/Lx - _2pi*z/Lz) + cos(_4pi*x/Lx + _2pi*z/Lz) ) / mu0;
+  Jz = Jz + (_2pi/Ly)*B0x*cos(_2pi*y/Ly - _2pi*z/Lz) / mu0;
+
+  double Bx = -B0x*sin(_2pi*y/Ly - _2pi*z/Lz);
+  double By = 0.5*B0y*(sin(_2pi*x/Lx - _2pi*z/Lz) - sin(_2pi*x/Lx + _2pi*z/Lz));
+  By = By + 0.5*B0y*(sin(_4pi*x/Lx - _2pi*z/Lz) + sin(_4pi*x/Lx + _2pi*z/Lz));
+  double Bz = B0;
 
   // Assumes qi = abs(qe)
-  double u_xe = -u0x*sin(2.0*M_PI*y/Ly);
-  double u_ye = u0y*sin(2.0*M_PI*x/Lx);
-  double u_ze = -Jz / qi;
+  double u_xe = -u0x*sin(_2pi*y/Ly - _2pi*z/Lz) - Jx / (qi*ne);
+  double u_ye = 0.5*u0y*(sin(_2pi*x/Lx + _2pi*z/Lz) + sin(_2pi*x/Lx - _2pi*z/Lz)) - Jy / (qi*ne);
+  u_ye = u_ye + 0.5*u0y*(sin(_4pi*x/Lx - _2pi*z/Lz) - sin(_4pi*x/Lx + _2pi*z/Lz));
+  double u_ze = -Jz / (qi*ne);
 
   // E = - v_e x B ~  (J - u) x B
-  double E_x = - (u_ye*B_z - u_ze*B_y);
-  double E_y = - (u_ze*B_x - u_xe*B_z);
-  double E_z = - (u_xe*B_y - u_ye*B_x);
+  double Ex = - (u_ye*Bz - u_ze*By);
+  double Ey = - (u_ze*Bx - u_xe*Bz);
+  double Ez = - (u_xe*By - u_ye*Bx);
   
-  fout[0] = E_x; fout[1] = E_y, fout[2] = E_z;
-  fout[3] = B_x; fout[4] = B_y; fout[5] = B_z;
+  fout[0] = Ex; fout[1] = Ey, fout[2] = Ez;
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
@@ -178,12 +215,16 @@ create_ctx(void)
   double nuIon = 0.01*omegaCi/sqrt(massIon);
 
   // OT initial conditions
-  double delta_u0 = 0.2*vAi;
-  double delta_B0 = 0.2*B0;
+  double elong = 7.0;
+  double u0x = vAi/elong;
+  double u0y = vAi/elong;
+  double B0x = B0/elong;
+  double B0y = B0/elong;
 
   // domain size and simulation time
   double L = 20.48*di;
-  double tend = 5.0;
+  double Lz = elong*L;
+  double tend = 100.0/omegaCi;
   
   struct ot_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -201,9 +242,10 @@ create_ctx(void)
     .vtIon = vtIon,
     .nuElc = nuElc,
     .nuIon = nuIon,
-    .delta_u0 = delta_u0,
-    .delta_B0 = delta_B0,
+    .delta_u0 = u0x,
+    .delta_B0 = B0x,
     .L = L,
+    .Lz = Lz,
     .tend = tend,
   };
   return ctx;
@@ -228,7 +270,7 @@ main(int argc, char **argv)
     MPI_Init(&argc, &argv);
 #endif
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 4);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 8);
 
   if (app_args.trace_mem) {
@@ -245,21 +287,22 @@ main(int argc, char **argv)
 #endif  
 
   // create global range
-  int cells[] = { NX, NX };
+  int cells[] = { NX, NX, 7*NX };
   struct gkyl_range globalr;
-  gkyl_create_global_range(2, cells, &globalr);
+  gkyl_create_global_range(3, cells, &globalr);
   
   // create decomposition
-  int cuts[] = { 1, 1 };
+  int cuts[] = { 1, 1, 1 };
 #ifdef GKYL_HAVE_MPI  
   if (app_args.use_mpi) {
     cuts[0] = app_args.cuts[0];
     cuts[1] = app_args.cuts[1];
+    cuts[2] = app_args.cuts[2];
   }
 #endif 
     
   struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts(2, cuts, &globalr);
+    gkyl_rect_decomp_new_from_cuts(3, cuts, &globalr);
 
   // construct communcator for use in app
   struct gkyl_comm *comm;
@@ -288,7 +331,7 @@ main(int argc, char **argv)
   int comm_sz;
   gkyl_comm_get_size(comm, &comm_sz);
 
-  int ncuts = cuts[0]*cuts[1];
+  int ncuts = cuts[0]*cuts[1]*cuts[2];
   if (ncuts != comm_sz) {
     if (my_rank == 0)
       fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
@@ -353,15 +396,15 @@ main(int argc, char **argv)
   struct gkyl_vm vm = {
     .name = "ot_vlasov_2x3v",
 
-    .cdim = 2, .vdim = 3,
-    .lower = { 0.0, 0.0 },
-    .upper = { ctx.L, ctx.L },
-    .cells = { NX, NX },
-    .poly_order = 2,
+    .cdim = 3, .vdim = 3,
+    .lower = { 0.0, 0.0, 0.0 },
+    .upper = { ctx.L, ctx.L, ctx.Lz },
+    .cells = { NX, NX, 7*NX },
+    .poly_order = 1,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 2,
-    .periodic_dirs = { 0, 1 },
+    .num_periodic_dir = 3,
+    .periodic_dirs = { 0, 1, 2 },
 
     .num_species = 2,
     .species = { elc, ion },

@@ -10,5 +10,6 @@ gkyl_comm_acquire(const struct gkyl_comm *comm)
 void
 gkyl_comm_release(const struct gkyl_comm *comm)
 {
-  gkyl_ref_count_dec(&comm->ref_count);
+  if (comm)
+    gkyl_ref_count_dec(&comm->ref_count);
 }

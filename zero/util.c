@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <unistd.h>
+#include <sys/stat.h>
+
 #include <gkyl_util.h>
 
 int
@@ -27,6 +30,8 @@ gkyl_exit(const char* msg)
 int
 gkyl_compare_float(float a, float b, float eps)
 {
+  if (isnanf(a) || isnanf(b)) return 0;
+  
   float absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
 
   if (a == b) return 1;
@@ -39,6 +44,8 @@ gkyl_compare_float(float a, float b, float eps)
 int
 gkyl_compare_double(double a, double b, double eps)
 {
+  if (isnan(a) || isnan(b)) return 0;
+  
   double absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
   if (a == b) return 1;
   if (a == 0 || b == 0 || (absa+absb < DBL_MIN)) return diff < eps;
@@ -162,4 +169,18 @@ double
 gkyl_pcg64_rand_double(pcg64_random_t* rng)
 {
   return ldexp(gkyl_pcg64_rand_uint64(rng), -64);
+}
+
+bool
+gkyl_check_file_exists(const char *fname)
+{
+  return access(fname, F_OK) == 0;
+}
+
+int64_t
+gkyl_file_size(const char *fname)
+{
+  struct stat st;
+  stat(fname, &st);
+  return st.st_size;
 }

@@ -123,25 +123,26 @@ gkyl_aligned_free_(const char *file, int line, const char *func,
 
 struct gkyl_mem_buff_tag {
   size_t count; // size of memory in bytes
-  char data[]; // Allocated memory
+  char *data; // Allocated memory
 };
 
 gkyl_mem_buff
 gkyl_mem_buff_new(size_t count)
 {
-  size_t sz = sizeof(struct gkyl_mem_buff_tag) + sizeof(char[count]);
-  struct gkyl_mem_buff_tag *mem = gkyl_calloc(sz,1);
+  struct gkyl_mem_buff_tag *mem = gkyl_malloc(sizeof(*mem));
   mem->count = count;
+  mem->data = gkyl_malloc(count);
   return mem;
 }
 
 gkyl_mem_buff
 gkyl_mem_buff_resize(gkyl_mem_buff mem, size_t count)
 {
-  size_t sz = sizeof(struct gkyl_mem_buff_tag) + sizeof(char[count]);
-  struct gkyl_mem_buff_tag *memr = gkyl_realloc(mem, count);
-  memr->count = count;
-  return memr;
+  if (count > mem->count) {
+    mem->data = gkyl_realloc(mem->data, count);
+    mem->count = count;
+  }
+  return mem;
 }
 
 size_t
@@ -159,6 +160,7 @@ gkyl_mem_buff_data(gkyl_mem_buff mem)
 void
 gkyl_mem_buff_release(gkyl_mem_buff mem)
 {
+  gkyl_free(mem->data);
   gkyl_free(mem);
 }
 
