@@ -98,6 +98,16 @@ double gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi,
   double zmin, double zmax, double rclose);
 
 /**
+ * Compute physical coordinates (mapc2p)  given computational coordinates
+ *
+ * @param geo Geometry object
+ * @param xn computational coordinates
+ * @param ret physical coordinates
+ */
+void gkyl_gkgeom_mapc2p(const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp *inp,
+    const double *xn, double *ret);
+
+/**
  * Compute geometry (mapc2p) on a specified computational grid. The
  * output array must be pre-allocated by the caller.
  *

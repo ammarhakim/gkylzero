@@ -330,6 +330,61 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 }
 
 void
+gkyl_gkgeom_mapc2p(const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp *inp,
+    const double *xn, double *ret)
+{
+  double R[2] = { 0 }, dR[2] = { 0 };
+  double Rmax = geo->rzgrid.upper[0];
+
+
+  double rclose = inp->rclose;
+  int nzcells = geo->rzgrid.cells[1];
+  double *arc_memo = gkyl_malloc(sizeof(double[nzcells]));
+
+  struct arc_length_ctx arc_ctx = {
+    .geo = geo,
+    .arc_memo = arc_memo
+  };
+
+  double zmin = geo->rzgrid.lower[1];
+  double zmax = geo->rzgrid.upper[1];
+  double psi_curr = xn[1];
+  //printf("psi_curr = %g\n", psi_curr);
+  double arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);
+  //printf("arcL = %g\n", arcL);
+  //printf("theta_curr = %g\n", xn[0]);
+  double arcL_curr = (xn[0] + M_PI/2)/M_PI*arcL;
+  //printf("arcL_curr = %g\n", arcL_curr);
+  arc_ctx.psi = psi_curr;
+  arc_ctx.rclose = Rmax;
+  arc_ctx.zmin = zmin;
+  arc_ctx.arcL = arcL_curr;
+
+  //double z_curr = ridders(arc_length_func, &arc_ctx, zmin, zmax, 0, arcL, 1e-10);
+  ////printf("zcurr = %g\n", z_curr);
+  //int nr = R_psiZ(geo, psi_curr, zmin, 2, R, dR);
+  //double r_curr = choose_closest(Rmax, R, R);
+  ////printf("rcurr,zcurr = %g, %g\n", r_curr,z_curr);
+  //ret[0] = r_curr;
+  //ret[1] = z_curr;
+
+  struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
+    zmin, zmax, -arcL_curr, arcL-arcL_curr,
+    geo->root_param.max_iter, 1e-10);
+  double z_curr = res.res;
+  ((gkyl_gkgeom *)geo)->stat.nroot_cont_calls += res.nevals;
+
+  int nr = R_psiZ(geo, psi_curr, z_curr, 2, R, dR);
+  double r_curr = choose_closest(rclose, R, R);
+  ret[0] = r_curr;
+  ret[1] = z_curr;
+
+
+}
+
+
+
+void
 gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
   const struct gkyl_gkgeom_geo_inp *inp, struct gkyl_array *mapc2p)
 {

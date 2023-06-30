@@ -4,9 +4,11 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_gkgeom.h>
 
 // Object type
 typedef struct gkyl_calc_bmag gkyl_calc_bmag;
+typedef struct bmag_ctx bmag_ctx;
 
 /**
  * Create new updater to compute the metric coefficients
@@ -15,8 +17,10 @@ typedef struct gkyl_calc_bmag gkyl_calc_bmag;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_calc_metric* gkyl_calc_bmag_new(const struct gkyl_basis *cbasis,
-  struct gkyl_rect_grid *grid, bool use_gpu);
+gkyl_calc_bmag* 
+gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  struct gkyl_rect_grid *cgrid, struct gkyl_rect_grid *pgrid, const gkyl_gkgeom *app, const struct gkyl_gkgeom_geo_inp *ginp, bool use_gpu);
+
 
 /**
  * Advance calc_metric (compute the metric coefficients).
@@ -27,8 +31,8 @@ gkyl_calc_metric* gkyl_calc_bmag_new(const struct gkyl_basis *cbasis,
  * @param gFld output field where metric coefficients will be placed
  */
 
-void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange,
-    struct gkyl_array *XYZ, struct gkyl_array *gFld);
+void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext,
+     const struct gkyl_range *prange, const struct gkyl_range *prange_ext, struct gkyl_array *psidg, struct gkyl_array *psibyrdg, struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg);
 
 /**
  * Delete updater.

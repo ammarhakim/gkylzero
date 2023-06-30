@@ -1,73 +1,100 @@
-#include <gkyl_calc_metric.h>
-#include <gkyl_calc_metric_priv.h>
+#include <gkyl_calc_bmag.h>
+#include <gkyl_calc_bmag_priv.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_range.h>
+#include <gkyl_eval_on_nodes.h>
 
 #include <gkyl_array_ops_priv.h>
 
-gkyl_calc_metric*
-gkyl_calc_metric_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid, bool use_gpu)
+gkyl_calc_bmag*
+gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  struct gkyl_rect_grid *cgrid, struct gkyl_rect_grid *pgrid, const gkyl_gkgeom *app, const struct gkyl_gkgeom_geo_inp *ginp, bool use_gpu)
 {
-  gkyl_calc_metric *up = gkyl_malloc(sizeof(gkyl_calc_metric));
-  up->cdim = cbasis->ndim;
-  up->cnum_basis = cbasis->num_basis;
-  up->poly_order = cbasis->poly_order;
-  up->grid = grid;
+  gkyl_calc_bmag *up = gkyl_malloc(sizeof(gkyl_calc_bmag));
+  up->cbasis = cbasis;
+  up->pbasis = pbasis;
+  up->cgrid = cgrid;
+  up->pgrid = pgrid;
   up->use_gpu = use_gpu;
-  up->kernel = metric_choose_kernel(up->cdim, cbasis->b_type, up->poly_order);
+  up->kernel = bmag_choose_kernel(up->pbasis->ndim, up->pbasis->b_type, up->pbasis->poly_order);
+  //up->bmag_ctx = bmag_ctx;
+  up->app = app;
+  up->ginp = ginp;
   return up;
 }
 
-void
-gkyl_calc_metric_advance(const gkyl_calc_metric *up, const struct gkyl_range *crange, struct gkyl_array *XYZ, struct gkyl_array *gFld)
+static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx)
 {
-  const double **xyz = gkyl_malloc((1+2*up->cdim)*sizeof(double*));
+  struct bmag_ctx *gc = (struct bmag_ctx*) ctx;
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, crange);
+  double RZ[2];
+  gkyl_gkgeom_mapc2p(gc->app, gc->ginp, xn, RZ);
+  double R = RZ[0];
+  double Z = RZ[1];
+  gkyl_range_iter_init(&iter, gc->range); // sets the iteration range
+  iter.idx[0] = fmin(gc->range->lower[0] + (int) floor((R - gc->grid->lower[0])/gc->grid->dx[0]), gc->range->upper[0]);
+  iter.idx[1] = fmin(gc->range->lower[1] + (int) floor((Z - gc->grid->lower[1])/gc->grid->dx[1]), gc->range->upper[1]);
+  long loc = gkyl_range_idx(gc->range, iter.idx);
+  const double *coeffs = gkyl_array_cfetch(gc->bmagdg,loc);
+  double xc[2];
+  gkyl_rect_grid_cell_center(gc->grid, iter.idx, xc);
+  double x = (R-xc[0])/(gc->grid->dx[0]*0.5);
+  double y = (Z-xc[1])/(gc->grid->dx[1]*0.5);
+  double xy[2];
+  xy[0] = x;
+  xy[1] = y;
+  fout[0] = gc->basis->eval_expand(xy, coeffs);
+}
+
+
+
+void
+gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext,
+     const struct gkyl_range *prange, const struct gkyl_range *prange_ext, struct gkyl_array *psidg, struct gkyl_array *psibyrdg, struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg)
+{
+  //First Stage is use psidg, psibydg, psibyr2dg to create bmagdg = B(R,Z) continuous
+  struct gkyl_array* bmagdg = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
+  //make psibyr have LIRBT for recovery
+  const double **psibyrall = gkyl_malloc(5*sizeof(double*));
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, prange);
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(crange, iter.idx);
-    double *gij = gkyl_array_fetch(gFld, loc);
-    xyz[0] = gkyl_array_cfetch(XYZ,loc);
+    long loc = gkyl_range_idx(prange, iter.idx);
+    double *bmag_i = gkyl_array_fetch(bmagdg, loc);
+    double *psibyr2_i= gkyl_array_fetch(psibyr2dg, loc);
+    psibyrall[0] = gkyl_array_cfetch(psibyrdg,loc);
     int count = 1;
-    int idx_temp[up->cdim];
-    for(int l = 0; l<up->cdim; l++){idx_temp[l] = iter.idx[l]; }
-    for(int i = 0; i<up->cdim; i++){
-      for(int l = 0; l<up->cdim; l++){idx_temp[l] = iter.idx[l]; }
+    int idx_temp[2] = {iter.idx[0], iter.idx[1]};
+    for(int i = 0; i<2; i++){
+      idx_temp[0] = iter.idx[0];
+      idx_temp[1] = iter.idx[1];
       for(int j = -1; j<3; j+=2){
         idx_temp[i] = iter.idx[i] + j;
-        loc = gkyl_range_idx(crange, idx_temp);
-        xyz[count] = gkyl_array_cfetch(XYZ, loc);
+        loc = gkyl_range_idx(prange, idx_temp);
+        psibyrall[count] = gkyl_array_cfetch(psibyrdg, loc);
         count = count+1;
       }
     }
-    up->kernel(xyz,gij);
+    double scale_factorR = 2.0/(up->pgrid->dx[0]);
+    double scale_factorZ = 2.0/(up->pgrid->dx[1]);
+    up->kernel(psibyrall,psibyr2_i, bmag_i, scale_factorR, scale_factorZ);
   }
 
-  double scale_factor[up->cdim * (up->cdim+1)/2];
-  int count = 0;
-  for(int i=0; i<up->cdim; i++){
-    for(int j=i; j<up->cdim; j++){
-      scale_factor[count] = 4.0/(up->grid->dx[i]*up->grid->dx[j]);
-      count = count+1;
-    }
-  }
-
-  gkyl_range_iter_init(&iter, crange);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(crange, iter.idx);
-    double *gij = gkyl_array_fetch(gFld, loc);
-    for(int i=0; i<up->cdim * (up->cdim+1)/2; i++){
-      double *gcomp = &gij[i*(up->cnum_basis)];
-      for(int j=0; j < (up->cnum_basis); j++){
-        gcomp[j] = gcomp[j]*scale_factor[i];
-      }
-    }
-  }
+  //Second stage is to convert bmag into computational coordinates
+  struct bmag_ctx *ctx = gkyl_malloc(sizeof(*ctx));
+  ctx->grid = up->pgrid;
+  ctx->range = prange;
+  ctx->bmagdg = bmagdg;
+  ctx->basis = up->pbasis;
+  ctx->app = up->app;
+  ctx->ginp = up->ginp;
+  gkyl_eval_on_nodes *eval_bmag_comp = gkyl_eval_on_nodes_new(up->cgrid, up->cbasis, 1, bmag_comp, ctx);
+  gkyl_eval_on_nodes_advance(eval_bmag_comp, 0.0, crange_ext, bmag_compdg); //on ghosts with ext_range
 }
 
 void
-gkyl_calc_metric_release(gkyl_calc_metric* up)
+gkyl_calc_bmag_release(gkyl_calc_bmag* up)
 {
   gkyl_free(up);
 }
