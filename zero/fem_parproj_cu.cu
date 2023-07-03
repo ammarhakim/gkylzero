@@ -141,15 +141,15 @@ fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool isperiodic, s
 void
 gkyl_fem_parproj_set_rhs_cu(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
 {
+  gkyl_cusolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_cusolver_get_rhs_ptr(up->prob_cu, 0);
-  gkyl_cu_memset(rhs_cu, 0, sizeof(double)*up->numnodes_global*up->perp_range.volume);
   gkyl_fem_parproj_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(rhs_cu, rhsin->on_dev, up->solve_range, up->perp_range2d, up->par_range1d, up->kernels_cu, up->numnodes_global);
 }
 
 void
 gkyl_fem_parproj_solve_cu(gkyl_fem_parproj *up, struct gkyl_array *phiout)
 {
-  // do linear solve with cusolver
+  // Do linear solve with cusolver.
   gkyl_cusolver_solve(up->prob_cu);
 
   double *x_cu = gkyl_cusolver_get_sol_ptr(up->prob_cu, 0);
