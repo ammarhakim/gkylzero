@@ -19,7 +19,16 @@
 #include <gkyl_gkgeom.h>
 
 
+#include <gkyl_calc_metric.h>
+#include <gkyl_calc_metric_kernels.h>
+#include <gkyl_gkgeom.h>
 
+
+
+struct mapc2p_ctx{
+   struct gkyl_gkgeom* app;
+   struct gkyl_gkgeom_geo_inp* ginp;
+};
 
 void
 psi(double t, const double *xn, double *fout, void *ctx)
@@ -42,6 +51,14 @@ psibyr2(double t, const double *xn, double *fout, void *ctx)
   double R = xn[0], Z = xn[1];
   psi(t,xn,fout,ctx);
   fout[0] = fout[0]/R/R;
+}
+
+
+void mapc2p(double t, const double *xn, double* fout, void *ctx)
+{
+  struct mapc2p_ctx *gc = (struct mapc2p_ctx*) ctx;
+  //double RZ[2];
+  gkyl_gkgeom_mapc2p(gc->app, gc->ginp, xn, fout);
 }
 
 void
@@ -94,9 +111,9 @@ test_1()
   //basic_root_test(&inp, app);
 
   // Computational grid: theta X psi X alpha (only 2D for now)
-  double clower[] = { -M_PI/2, 7.0 };
-  double cupper[] = { M_PI/2, 12.0 };
-  int ccells[] = { 16, 8 };
+  double clower[] = { -2.5, 6.0 };
+  double cupper[] = { 2.5, 10.0 };
+  int ccells[] = { 8, 8 };
 
 
   struct gkyl_rect_grid cgrid;
@@ -126,7 +143,7 @@ test_1()
   gkyl_eval_on_nodes *eval_psi = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psi, 0);
   struct gkyl_array* psidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   gkyl_eval_on_nodes_advance(eval_psi, 0.0, &rzlocal_ext, psidg); //on ghosts with ext_range
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "test_bmag_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "circular_psi.gkyl");
 
   gkyl_eval_on_nodes *eval_psibyr = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psibyr, 0);
   struct gkyl_array* psibyrdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -148,9 +165,35 @@ test_1()
   do{
     printf("writing the comp bmag file \n");
     const char *fmt = "%s_compbmag.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "test3");
+    snprintf(fileNm, sizeof fileNm, fmt, "circular_psi");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmag_compdg, fileNm);
   } while (0);
+
+
+  //// write mapc2p and get metrics
+  struct mapc2p_ctx *mctx = gkyl_malloc(sizeof(*mctx));
+  mctx->app = geo;
+  mctx->ginp = &ginp;
+  gkyl_eval_on_nodes *eval_mapc2p = gkyl_eval_on_nodes_new(&cgrid, &cbasis, 2, mapc2p, mctx);
+  struct gkyl_array *XYZ = gkyl_array_new(GKYL_DOUBLE, 2*cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *gFld = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
+  gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &clocal_ext, XYZ);
+
+  printf("writing rz file\n");
+  gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "rzfile.gkyl");
+  printf("wrote rz file\n");
+  
+  gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, false);
+  gkyl_calc_metric_advance( mcalculator, &clocal, XYZ, gFld);
+  do{
+    printf("writing the gij file \n");
+    const char *fmt = "%s_gij.gkyl";
+    snprintf(fileNm, sizeof fileNm, fmt, "circular_psi");
+    gkyl_grid_sub_array_write(&cgrid, &clocal, gFld, fileNm);
+  } while (0);
+
+  // done doing metrics
+
 
 
 

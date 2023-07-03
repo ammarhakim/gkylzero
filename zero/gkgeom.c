@@ -353,7 +353,8 @@ gkyl_gkgeom_mapc2p(const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp *inp
   double arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);
   //printf("arcL = %g\n", arcL);
   //printf("theta_curr = %g\n", xn[0]);
-  double arcL_curr = (xn[0] + M_PI/2)/M_PI*arcL;
+  //double arcL_curr = (xn[0] + M_PI/2)/M_PI*arcL;
+  double arcL_curr = (xn[0] + M_PI)/2/M_PI*arcL;
   //printf("arcL_curr = %g\n", arcL_curr);
   arc_ctx.psi = psi_curr;
   arc_ctx.rclose = Rmax;
