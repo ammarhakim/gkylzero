@@ -39,8 +39,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   else
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
-  f->source_id = f->info.source.source_id;
-
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
   // pre-allocated memory for weak division
@@ -218,6 +216,18 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->diff_slvr = gkyl_dg_updater_diffusion_new(&app->grid, &app->confBasis,
       &app->local, f->info.diffusion.D, f->info.diffusion.order, f->diffusion_id, app->use_gpu);    
   }
+
+  // array for storing integrated moments in each cell
+  f->integ_mom = mkarr(app->use_gpu, 9, app->local_ext.volume);
+  if (app->use_gpu) {
+    f->red_integ_diag = gkyl_cu_malloc(sizeof(double[9]));
+  }
+  // allocate dynamic-vector to store all-reduced integrated moments 
+  f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 9);
+  f->is_first_integ_write_call = true;
+
+  // set species source id
+  f->source_id = f->info.source.source_id;
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -512,6 +522,28 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
   }
 }
 
+void
+vm_fluid_species_calc_int_diag(gkyl_vlasov_app *app, double tm, const struct vm_fluid_species *fluid_species)
+{
+  if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
+    gkyl_array_clear(fluid_species->integ_mom, 0.0);
+    gkyl_calc_integrated_pkpm_vars(app->confBasis, &app->local, 
+      fluid_species->pkpm_species->pkpm_moms.marr, fluid_species->fluid, fluid_species->u, fluid_species->integ_mom);
+    gkyl_array_scale_range(fluid_species->integ_mom, app->grid.cellVolume, app->local);
+    
+    double int_mom[9] = { 0.0 };
+    if (app->use_gpu) {
+      gkyl_array_reduce_range(fluid_species->red_integ_diag, fluid_species->integ_mom, GKYL_SUM, app->local);
+      gkyl_cu_memcpy(int_mom, fluid_species->red_integ_diag, sizeof(double[9]), GKYL_CU_MEMCPY_D2H);
+    }
+    else { 
+      gkyl_array_reduce_range(int_mom, fluid_species->integ_mom, GKYL_SUM, app->local);
+    }
+    
+    gkyl_dynvec_append(fluid_species->integ_diag, tm, int_mom);
+  }
+}
+
 // release resources for fluid species
 void
 vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
@@ -551,6 +583,9 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
       gkyl_array_release(f->app_advect_host);
   }
 
+  gkyl_array_release(f->integ_mom);
+  gkyl_dynvec_release(f->integ_diag);
+
   if (f->source_id) {
     vm_fluid_species_source_release(app, &f->src);
   }
@@ -559,6 +594,7 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_array_release(f->fluid_host);
     gkyl_array_release(f->u_host);
     gkyl_cu_free(f->omegaCfl_ptr);
+    gkyl_cu_free(f->red_integ_diag);
     if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM) 
       gkyl_array_release(f->p_host);
   }

@@ -289,10 +289,34 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
 }
 
 void
+gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm)
+{
+  struct timespec wst = gkyl_wall_clock();
+  for (int i=0; i<app->num_species; ++i) {
+    struct vm_species *s = &app->species[i];
+    vm_species_calc_L2(app, tm, s);
+  }
+  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.ndiag += 1;
+}
+
+void
+gkyl_vlasov_app_calc_integrated_fluid_vars(gkyl_vlasov_app* app, double tm)
+{
+  struct timespec wst = gkyl_wall_clock();
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    struct vm_fluid_species *f = &app->fluid_species[i];
+    vm_fluid_species_calc_int_diag(app, tm, f);
+  }
+  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.ndiag += 1;
+}
+
+void
 gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
-  vm_field_calc_energy(app, tm, app->field, app->field->em);
+  vm_field_calc_energy(app, tm, app->field);
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
 }
@@ -569,6 +593,52 @@ gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
       gkyl_dynvec_awrite(app->species[i].integ_diag, fileNm);
     }
     gkyl_dynvec_clear(app->species[i].integ_diag);
+  }
+}
+
+void
+gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app* app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    // write out diagnostic moments
+    const char *fmt = "%s-%s-%s.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+      "L2");
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+      "L2");
+
+    if (app->species[i].is_first_integ_L2_write_call) {
+      gkyl_dynvec_write(app->species[i].integ_L2_f, fileNm);
+      app->species[i].is_first_integ_L2_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(app->species[i].integ_L2_f, fileNm);
+    }
+    gkyl_dynvec_clear(app->species[i].integ_L2_f);
+  }
+}
+
+void
+gkyl_vlasov_app_write_integrated_fluid_vars(gkyl_vlasov_app* app)
+{
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    // write out diagnostic moments
+    const char *fmt = "%s-%s-%s.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[i].info.name,
+      "imom");
+    char fileNm[sz+1]; // ensures no buffer overflow
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[i].info.name,
+      "imom");
+
+    if (app->fluid_species[i].is_first_integ_write_call) {
+      gkyl_dynvec_write(app->fluid_species[i].integ_diag, fileNm);
+      app->fluid_species[i].is_first_integ_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(app->fluid_species[i].integ_diag, fileNm);
+    }
+    gkyl_dynvec_clear(app->fluid_species[i].integ_diag);
   }
 }
 

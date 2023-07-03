@@ -16,6 +16,9 @@ typedef void (*pkpm_prim_t)(const double *bvar,
   double* u_i, double* p_ij, double* T_ij, 
   double* rho_inv, double* T_perp_over_m, double* T_perp_over_m_inv); 
 
+typedef void (*pkpm_int_t)(const double *vlasov_pkpm_moms, 
+  const double *statevec, const double* u_i, double* int_pkpm_vars); 
+
 typedef void (*pkpm_source_t)(const double* qmem, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   double* out);
@@ -39,6 +42,7 @@ typedef void (*pkpm_pressure_t)(const double *w, const double *dxv,
 
 // for use in kernel tables
 typedef struct { pkpm_prim_t kernels[3]; } gkyl_dg_pkpm_prim_kern_list;
+typedef struct { pkpm_int_t kernels[3]; } gkyl_dg_pkpm_int_kern_list;
 typedef struct { pkpm_source_t kernels[3]; } gkyl_dg_pkpm_source_kern_list;
 typedef struct { pkpm_recovery_t kernels[3]; } gkyl_dg_pkpm_recovery_kern_list;
 typedef struct { pkpm_dist_mirror_force_t kernels[3]; } gkyl_dg_pkpm_dist_mirror_force_kern_list;
@@ -50,6 +54,14 @@ static const gkyl_dg_pkpm_prim_kern_list ser_pkpm_prim_kernels[] = {
   { NULL, euler_pkpm_prim_vars_1x_ser_p1, euler_pkpm_prim_vars_1x_ser_p2 }, // 0
   { NULL, euler_pkpm_prim_vars_2x_ser_p1, NULL }, // 1
   { NULL, euler_pkpm_prim_vars_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM integrated variables integral (rho, p_parallel, p_perp, rhoux^2, rhouy^2, rhouz^2, 3/2 p, 1/2 rho u^2, E)
+GKYL_CU_D
+static const gkyl_dg_pkpm_int_kern_list ser_pkpm_int_kernels[] = {
+  { NULL, euler_pkpm_int_vars_1x_ser_p1, euler_pkpm_int_vars_1x_ser_p2 }, // 0
+  { NULL, euler_pkpm_int_vars_2x_ser_p1, NULL }, // 1
+  { NULL, euler_pkpm_int_vars_3x_ser_p1, NULL }, // 2
 };
 
 // PKPM explicit source solve 
@@ -153,6 +165,13 @@ static pkpm_prim_t
 choose_ser_pkpm_prim_kern(int cdim, int poly_order)
 {
   return ser_pkpm_prim_kernels[cdim-1].kernels[poly_order];
+}
+
+GKYL_CU_D
+static pkpm_int_t
+choose_ser_pkpm_int_kern(int cdim, int poly_order)
+{
+  return ser_pkpm_int_kernels[cdim-1].kernels[poly_order];
 }
 
 GKYL_CU_D

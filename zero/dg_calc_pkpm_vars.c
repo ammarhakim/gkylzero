@@ -46,6 +46,36 @@ void gkyl_calc_pkpm_vars_prim(struct gkyl_basis basis, const struct gkyl_range *
   }
 }
 
+void gkyl_calc_integrated_pkpm_vars(struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* u_i, struct gkyl_array* int_pkpm_vars)
+{
+// Check if more than one of the output arrays is on device? 
+// Probably a better way to do this (JJ: 11/16/22)
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(int_pkpm_vars)) {
+    return gkyl_calc_integrated_pkpm_vars_cu(basis, range, 
+      vlasov_pkpm_moms, euler_pkpm, u_i, int_pkpm_vars);
+  }
+#endif
+
+  int cdim = basis.ndim;
+  int poly_order = basis.poly_order;
+  pkpm_int_t pkpm_int = choose_ser_pkpm_int_kern(cdim, poly_order);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(range, iter.idx);
+
+    const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
+    const double *euler_pkpm_d = gkyl_array_cfetch(euler_pkpm, loc);
+    const double *u_i_d = gkyl_array_cfetch(u_i, loc);
+    
+    double *int_pkpm_vars_d = gkyl_array_fetch(int_pkpm_vars, loc);
+    pkpm_int(vlasov_pkpm_moms_d, euler_pkpm_d, u_i_d, int_pkpm_vars_d);
+  }
+}
+
 void gkyl_calc_pkpm_vars_source(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* qmem, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
   struct gkyl_array* rhs)

@@ -417,11 +417,10 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
 }
 
 void
-vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field,
-  struct gkyl_array *f)
+vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
 {
   for (int i=0; i<6; ++i)
-    gkyl_dg_calc_l2_range(app->confBasis, i, field->em_energy, i, f, app->local);
+    gkyl_dg_calc_l2_range(app->confBasis, i, field->em_energy, i, field->em, app->local);
   gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, app->local);
   
   double energy[6] = { 0.0 };

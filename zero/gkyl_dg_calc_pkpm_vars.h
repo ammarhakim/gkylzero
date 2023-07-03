@@ -26,6 +26,20 @@ void gkyl_calc_pkpm_vars_prim(struct gkyl_basis basis, const struct gkyl_range *
   struct gkyl_array* rho_inv, struct gkyl_array* T_perp_over_m, struct gkyl_array* T_perp_over_m_inv);
 
 /**
+ * Compute integrated PKPM variables (rho, p_parallel, p_perp, rhoux^2, rhouy^2, rhouz^2, 3/2 p, 1/2 rho u^2, E).
+ *
+ * @param basis Basis functions used in expansions
+ * @param range Range to apply division operator
+ * @param vlasov_pkpm_moms Input array of parallel-kinetic-perpendicular-moment kinetic moments [rho, p_parallel, p_perp]
+ * @param euler_pkpm Input array of parallel-kinetic-perpendicular-moment fluid variables [rho ux, rho uy, rho uz]
+ * @param u_i Input array of flow velocity 
+ * @param int_pkpm_vars Output array of integrated variables (9 components)
+ */
+void gkyl_calc_integrated_pkpm_vars(struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* u_i, struct gkyl_array* int_pkpm_vars);
+
+/**
  * Compute parallel-kinetic-perpendicular-moment model source terms.
  *
  * @param basis Basis functions used in expansions
@@ -128,6 +142,10 @@ void gkyl_calc_pkpm_vars_prim_cu(struct gkyl_basis basis, const struct gkyl_rang
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   struct gkyl_array* u_i, struct gkyl_array* p_ij, struct gkyl_array* T_ij, 
   struct gkyl_array* rho_inv, struct gkyl_array* T_perp_over_m, struct gkyl_array* T_perp_over_m_inv);
+
+void gkyl_calc_integrated_pkpm_vars_cu(struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* u_i, struct gkyl_array* int_pkpm_vars);
 
 void gkyl_calc_pkpm_vars_source_cu(struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* qmem, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,

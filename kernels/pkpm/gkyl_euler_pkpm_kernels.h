@@ -5,6 +5,8 @@ EXTERN_C_BEG
 
 GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
   double* u_i, double* p_ij, double* T_ij, double* rho_inv, double* T_perp_over_m, double* T_perp_over_m_inv); 
+GKYL_CU_DH void euler_pkpm_int_vars_1x_ser_p1(const double *vlasov_pkpm_moms, const double *statevec, 
+  const double* u_i, double* pkpm_int_vars); 
 GKYL_CU_DH void euler_pkpm_source_1x_ser_p1(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* out); 
 GKYL_CU_DH double euler_pkpm_vol_1x_ser_p1(const double *w, const double *dxv, const double *u_i, const double *div_p, const double *statevec, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_ser_p1(const double *w, const double *dxv, 
@@ -26,6 +28,8 @@ GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p1(const double *w, const double *dxv,
 
 GKYL_CU_DH void euler_pkpm_prim_vars_1x_ser_p2(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
   double* u_i, double* p_ij, double* T_ij, double* rho_inv, double* T_perp_over_m, double* T_perp_over_m_inv); 
+GKYL_CU_DH void euler_pkpm_int_vars_1x_ser_p2(const double *vlasov_pkpm_moms, const double *statevec, 
+  const double* u_i, double* pkpm_int_vars); 
 GKYL_CU_DH void euler_pkpm_source_1x_ser_p2(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* out); 
 GKYL_CU_DH double euler_pkpm_vol_1x_ser_p2(const double *w, const double *dxv, const double *u_i, const double *div_p, const double *statevec, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_ser_p2(const double *w, const double *dxv, 
@@ -53,6 +57,8 @@ GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_tensor_p2(const double *w, const dou
 
 GKYL_CU_DH void euler_pkpm_prim_vars_2x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
   double* u_i, double* p_ij, double* T_ij, double* rho_inv, double* T_perp_over_m, double* T_perp_over_m_inv); 
+GKYL_CU_DH void euler_pkpm_int_vars_2x_ser_p1(const double *vlasov_pkpm_moms, const double *statevec, 
+  const double* u_i, double* pkpm_int_vars); 
 GKYL_CU_DH void euler_pkpm_source_2x_ser_p1(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* out); 
 GKYL_CU_DH double euler_pkpm_vol_2x_ser_p1(const double *w, const double *dxv, const double *u_i, const double *div_p, const double *statevec, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_2x1v_ser_p1(const double *w, const double *dxv, 
@@ -85,6 +91,8 @@ GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
 
 GKYL_CU_DH void euler_pkpm_prim_vars_2x_ser_p2(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
   double* u_i, double* p_ij, double* T_ij, double* rho_inv, double* T_perp_over_m, double* T_perp_over_m_inv); 
+GKYL_CU_DH void euler_pkpm_int_vars_2x_ser_p2(const double *vlasov_pkpm_moms, const double *statevec, 
+  const double* u_i, double* pkpm_int_vars); 
 GKYL_CU_DH void euler_pkpm_source_2x_ser_p2(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* out); 
 GKYL_CU_DH double euler_pkpm_vol_2x_ser_p2(const double *w, const double *dxv, const double *u_i, const double *div_p, const double *statevec, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_2x1v_ser_p2(const double *w, const double *dxv, 
@@ -117,6 +125,8 @@ GKYL_CU_DH void euler_pkpm_surfy_2x_ser_p2(const double *w, const double *dxv,
 
 GKYL_CU_DH void euler_pkpm_prim_vars_3x_ser_p1(const double *bvar, const double *vlasov_pkpm_moms, const double *statevec, 
   double* u_i, double* p_ij, double* T_ij, double* rho_inv, double* T_perp_over_m, double* T_perp_over_m_inv); 
+GKYL_CU_DH void euler_pkpm_int_vars_3x_ser_p1(const double *vlasov_pkpm_moms, const double *statevec, 
+  const double* u_i, double* pkpm_int_vars); 
 GKYL_CU_DH void euler_pkpm_source_3x_ser_p1(const double *qmem, const double *vlasov_pkpm_moms, const double *euler_pkpm, double* out); 
 GKYL_CU_DH double euler_pkpm_vol_3x_ser_p1(const double *w, const double *dxv, const double *u_i, const double *div_p, const double *statevec, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_3x1v_ser_p1(const double *w, const double *dxv, 

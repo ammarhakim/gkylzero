@@ -166,11 +166,14 @@ struct vm_species {
   struct vm_species_moment pkpm_moms; // for computing pkpm moments needed in update
   struct vm_species_moment pkpm_moms_diag; // for computing pkpm moments diagnostics
   struct vm_species_moment *moms; // diagnostic moments
+
+  struct gkyl_array *L2_f; // L2 norm f^2
   struct vm_species_moment integ_moms; // integrated moments
-
+  double *red_L2_f; // for reduction on GPU
   double *red_integ_diag; // for reduction on GPU
+  gkyl_dynvec integ_L2_f; // integrated moments reduced across grid
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
-
+  bool is_first_integ_L2_write_call; // flag for int-moments dynvec written first time
   bool is_first_integ_write_call; // flag for int-moments dynvec written first time
 
   enum gkyl_field_id field_id; // type of field equation 
@@ -355,6 +358,11 @@ struct vm_fluid_species {
   struct gkyl_array *Dij; // array for diffusion tensor
   struct gkyl_array *Dij_host; // host copy of diffusion tensor
   enum gkyl_diffusion_id diffusion_id; // type of diffusion (e.g., isotropic vs. anisotropic)
+
+  struct gkyl_array *integ_mom; // Integrated moments
+  double *red_integ_diag; // for reduction on GPU
+  gkyl_dynvec integ_diag; // Integrated moments reduced across grid
+  bool is_first_integ_write_call; // flag for int-moments dynvec written first time
 
   // fluid source
   enum gkyl_source_id source_id; // type of source
@@ -694,10 +702,18 @@ void vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species 
  *
  * @param app Vlasov app object
  * @param species Pointer to species
- * @param dir Direction to apply BCs
  * @param f Field to apply BCs
  */
 void vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f);
+
+/**
+ * Compute L2 norm (f^2) of the distribution function diagnostic
+ *
+ * @param app Vlasov app object
+ * @param tm Time at which diagnostic is computed
+ * @param species Pointer to species
+ */
+void vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species);
 
 /**
  * Fill stat object in app with collision timers.
@@ -839,10 +855,8 @@ void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field,
  * @param app Vlasov app object
  * @param tm Time at which diagnostic is computed
  * @param field Pointer to field
- * @param f Field array
  */
-void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field,
-  struct gkyl_array *f);
+void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
 
 /**
  * Release resources allocated by field
@@ -955,6 +969,15 @@ void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fl
  * @param f Fluid Species to apply BCs
  */
 void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
+
+/**
+ * Compute integrated fluid diagnostics
+ *
+ * @param app Vlasov app object
+ * @param tm Time at which diagnostic is computed
+ * @param fluid_species Pointer to fluid species
+ */
+void vm_fluid_species_calc_int_diag(gkyl_vlasov_app *app, double tm, const struct vm_fluid_species *fluid_species);
 
 /**
  * Release resources allocated by fluid species

@@ -305,6 +305,22 @@ void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app *app);
 void gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm);
 
 /**
+ * Calculate integrated L2 norm of the distribution function, f^2.
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm);
+
+/**
+ * Calculate integrated fluid variables.
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_vlasov_app_calc_integrated_fluid_vars(gkyl_vlasov_app* app, double tm);
+
+/**
  * Calculate integrated field energy
  *
  * @param tm Time at which integrated diagnostic are to be computed
@@ -433,14 +449,30 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
 
 /**
  * Write integrated diagnostic moments for species to file. Integrated
- * moments are appened to the same file.
+ * moments are appended to the same file.
  * 
  * @param app App object.
  */
 void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
 
 /**
- * Write field energy to file. Field energy data is appened to the
+ * Write integrated L2 norm of the species distribution function to file. Integrated
+ * L2 norm is appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app *app);
+
+/**
+ * Write integrated fluid variables for fluid species to file. Integrated
+ * fluid variables are appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_integrated_fluid_vars(gkyl_vlasov_app *app);
+
+/**
+ * Write field energy to file. Field energy data is appended to the
  * same file.
  * 
  * @param app App object.

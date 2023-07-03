@@ -133,7 +133,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   if (app->use_gpu)
     s->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
-  else
+  else 
     s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
   // allocate array to store q/m*(E,B) or potential depending on equation system
@@ -248,14 +248,18 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   for (int m=0; m<ndm; ++m)
     vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
+  // array for storing f^2 in each cell
+  s->L2_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
   // allocate data for integrated moments
   vm_species_moment_init(app, s, &s->integ_moms, "Integrated");
-
-  if (app->use_gpu)
+  if (app->use_gpu) {
+    s->red_L2_f = gkyl_cu_malloc(sizeof(double));
     s->red_integ_diag = gkyl_cu_malloc(sizeof(double[2+GKYL_MAX_DIM]));
-  
-  // allocate dynamic-vector to store all-reduced integrated moments
+  }
+  // allocate dynamic-vector to store all-reduced integrated moments and f^2
+  s->integ_L2_f = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  s->is_first_integ_L2_write_call = true;
   s->is_first_integ_write_call = true;
 
   s->has_accel = false;
@@ -567,6 +571,24 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
 }
 
 void
+vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species)
+{
+  gkyl_dg_calc_l2_range(app->basis, 0, species->L2_f, 0, species->f, species->local);
+  gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, species->local);
+  
+  double L2[1] = { 0.0 };
+  if (app->use_gpu) {
+    gkyl_array_reduce_range(species->red_L2_f, species->L2_f, GKYL_SUM, species->local);
+    gkyl_cu_memcpy(L2, species->red_L2_f, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  }
+  else { 
+    gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, species->local);
+  }
+  
+  gkyl_dynvec_append(species->integ_L2_f, tm, L2);
+}
+
+void
 vm_species_coll_tm(gkyl_vlasov_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
@@ -614,6 +636,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_free(s->moms);
   vm_species_moment_release(app, &s->integ_moms);
 
+  gkyl_array_release(s->L2_f);
+  gkyl_dynvec_release(s->integ_L2_f);
   gkyl_dynvec_release(s->integ_diag);
 
   gkyl_dg_eqn_release(s->eqn_vlasov);
@@ -677,6 +701,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   
   if (app->use_gpu) {
     gkyl_cu_free(s->omegaCfl_ptr);
+    gkyl_cu_free(s->red_L2_f);
     gkyl_cu_free(s->red_integ_diag);
   }
   else
