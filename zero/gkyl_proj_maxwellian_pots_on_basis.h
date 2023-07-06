@@ -15,24 +15,36 @@ typedef struct gkyl_proj_maxwellian_pots_on_basis gkyl_proj_maxwellian_pots_on_b
  * @param grid Grid object
  * @param conf_basis Configuration space basis functions
  * @param phase_basis Phase space basis functions
+ * @param surf_basis Phase space surface basis functions
  * @param num_quad Number of quadrature nodes
  * @return New updater pointer
 */
 gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(
     const struct gkyl_rect_grid *grid,
     const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-    int num_quad);
+    const struct gkyl_basis *surf_basis, int num_quad);
 
 /**
  * @param mpob Project on basis updater to run
  * @param phase_range Phase space range
  * @param conf_range Configuration space range
- * @param moms Velocity momends (m0, m1i, m2)
- * @param max_pots Output potentials
+ * @param moms Velocity moments (m0, m1i, m2)
+ * @param gamma Scalar gkyl_array of Gamma values
+ * @param mass Species mass
+ * @param fpo_h Potential H output array
+ * @param fpo_g Potential G output array
+ * @param fpo_h_surf Potential H surface expansion output array
+ * @param fpo_g_surf Potential G surface expansion output array
+ * @param fpo_dhdv_surf First derivative of potential H surface expansion output array
+ * @param fpo_dgdv_surf First derivative of potential G surface expansion output array
+ * @param fpo_d2gdv2_surf Second derivative of potential G surface expansion output array
 */
 void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_on_basis *up,
     const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-    const struct gkyl_array *moms, const struct gkyl_array *gamma, const double mass, struct gkyl_array *max_pots);
+    const struct gkyl_array *moms, const struct gkyl_array *gamma, const double mass,
+    struct gkyl_array *fpo_h, struct gkyl_array *fpo_g,
+    struct gkyl_array *fpo_h_surf, struct gkyl_array *fpo_g_surf,
+    struct gkyl_array *fpo_dhdv_surf, struct gkyl_array *fpo_dgdv_surf, struct gkyl_array *fpo_d2gdv2_surf);
 
 /**
  * Delete updater.
