@@ -154,16 +154,17 @@ gkyl_array_scale_by_cell(struct gkyl_array* out, const struct gkyl_array* a)
 }
 
 struct gkyl_array*
-gkyl_array_shiftc0(struct gkyl_array* out, double a)
+gkyl_array_shiftc(struct gkyl_array* out, double a, unsigned k)
 {
   assert(out->type == GKYL_DOUBLE);
+  assert(k < NCOM(out));
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_shiftc0_cu(out, a); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_shiftc_cu(out, a, k); return out; }
 #endif
 
   double *out_d = out->data;
   for (size_t i=0; i<out->size; ++i)
-    out_d[i*NCOM(out)] = a+out_d[i*NCOM(out)];
+    out_d[i*NCOM(out)+k] = a+out_d[i*NCOM(out)+k];
   return out;
 }
 
@@ -383,6 +384,26 @@ gkyl_array_scale_range(struct gkyl_array *out,
 #endif
 
   return gkyl_array_set_range(out, a, out, range);
+}
+
+struct gkyl_array*
+gkyl_array_shiftc_range(struct gkyl_array* out, double a, unsigned k, struct gkyl_range range)
+{
+  assert(out->type == GKYL_DOUBLE);
+  assert(k < NCOM(out));
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_shiftc_range_cu(out, a, k, range); return out; }
+#endif
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(&range, iter.idx);
+    double *out_d = gkyl_array_fetch(out, start);
+    out_d[k] += a;
+  }
+  return out;
 }
 
 void
