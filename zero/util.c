@@ -30,7 +30,7 @@ gkyl_exit(const char* msg)
 int
 gkyl_compare_float(float a, float b, float eps)
 {
-  if (isnanf(a) || isnanf(b)) return 0;
+  //if (isnanf(a) || isnanf(b)) return 0;
   
   float absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
 
