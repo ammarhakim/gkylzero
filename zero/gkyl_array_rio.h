@@ -105,7 +105,7 @@ int gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_rang
 /**
  * Read grid and array data from file, creating a new array.
  * 
- * @param grid Grid object to read
+ * @param grid On outout, grid on which array is defined.
  * @param fname Name of input file
  * @return Newly created array object
  */
