@@ -33,7 +33,10 @@ build on Traverse please run
 ./machines/mkdeps.traverse.sh
 ./machines/configure.traverse.sh
 ```
-After this is completed then just type:
+At this point you may need to manually load environment modules by hand
+if you haven't done it yet; for example on Traverse and Stellar-amd you
+need to ```module load cudatoolkit/11.6``` before proceeding. Next,
+compile the code with:
 ```
 make -j # install
 ```
@@ -41,8 +44,6 @@ where # is the number of cores you wish to use (if working on the login
 node of a cluster it is preferable that you use fewer than the total number
 of cores available, otherwise you will slow down the login node and irk
 other users and admins).
-
-Note: On Traverse and Stellar-amd you need to load cudatoolkit/11.6. 
 
 The ```machine``` files default to installing in $HOME/gkylsoft/, and to
 searching for dependencies there too. If you wish to install somewhere else
@@ -86,7 +87,7 @@ a dependency is already available in your computer/cluster, you should
 use the configure script to specify the location of the include and full
 path to the static libraries for these dependencies. See configure help.
 ```
-   ./configure --help
+./configure --help
 ```
 You can also see machine files in ```machines/``` for examples of how
 this script is used.
@@ -97,7 +98,7 @@ this script is used.
 Once you are done with installing/specifying the compiler and
 dependencies simply type:
 ```
-    make -j #
+ make -j #
 ```
 in the top-level directory (# is the number of cores, see previous
 comment on this).
@@ -105,24 +106,24 @@ comment on this).
 If you do not run configure (see previous section/step) you can also
 specify the compiler when running make. For example:
 ```
-    make CC=icc -j #
+ make CC=icc -j #
 ```
 to build with the Intel C compiler (# is the number of cores, see previous
 comment on this). If you use the NVIDIA nvcc compiler then the CUDA
 specific parts of the code will be built:
 ```
-    make CC=nvcc -j #
+make CC=nvcc -j #
 ```
 (# is the number of cores, see previous comment on this).
 
 If you want to use the code as a library (e.g. for use by
 [gkyl](https://github.com/ammarhakim/gkyl/)) you should install it:
 ```
-  make install
+make install
 ```
 or run compilation and library installation in one step as
 ```
-    make -j # install
+make -j # install
 ```
 
 Note that GkeyllZero is meant to be used as a *library*. You can use
@@ -145,26 +146,29 @@ command used to compile the code (see previous sections). Instead the
 developer needs to build specific targets. For example we can build
 the unit tests for gkyl_array on a CPU with
 ```
-    make build/unit/ctest_array
+make build/unit/ctest_array
 ```
 or build the same unit test on a NVIDIA GPU-accelerated node with
 ```
-    make cuda-build/unit/ctest_array
+make cuda-build/unit/ctest_array
 ```
 These produce an executable in the ```build``` or ```cuda-build``` directory,
 respectively, that can be run. For example, to run the ```ctest_array``` executable
 we just compiled use
 ```
-    ./cuda-build/unit/ctest_array
+./cuda-build/unit/ctest_array
 ```
-A similar procedure should be followed to compile and run regression tests in ```/regression```.
+Alternatively you could choose to build all unit tests with
+```
+make -j # unit
+```
+(# is the number of cores, see previous comment on this). A similar procedure
+should be followed to compile and run regression tests in ```/regression```.
 
-You may also compile and run all the unit tests with
+You may also compile and run all the unit tests with one command:
 ```
-    make -j # check
+make -j # check
 ```
-(# is the number of cores, see previous comment on this).
-
 
 Development philosophy
 ---------------------
