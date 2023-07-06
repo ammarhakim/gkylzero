@@ -16,40 +16,18 @@ first but one gets used to it.
 
 Documentation is available at http://gkeyll.rtfd.io.
 
-# Install
+# Installation
 
-GkeyllZero has just a few dependencies: OpenBLAS and SuperLU. If you
-are on a cluster these libraries are likely already installed. In that
-case you should use the configure script to specify the location of
-the include and full path to the static libraries for these. See
-configure help.
-```
-   ./configure --help
-```
+Installing GkeyllZero consists of three steps: building dependencies,
+configuring, and compiling. How you do the first two of these steps varies
+depending on whether you are installing on a computer we already have
+installation scripts ("machine files") for, or if you are installing in
+a new computer. Since the former is the most common we describe that first.
 
-# Building dependencies
+## On a known computer using machine files
 
-Some parts of GkeyllZero rely on presence of LAPACK and BLAS. Note
-that on Macs you do not need to do anything special to use LAPACK/BLAS
-as it comes with the developer tools. GkeyllZero also relies on
-SuperLU for sparse, direct linear solvers.
-
-To install these yourself please use the mkdep.sh script to do so.
-From the top-level directory do:
-```
-cd install-deps
-./mkdeps.sh --build-openblas=yes --build-superlu=yes
-```
-
-This will install OpenBLAS and SuperLU in the $HOME/gkylsoft
-directory. Note that OpenBLAS **requires you to have gfortran**
-installed. Likewise, SuperLU **requires you to have cmake** installed.
-**You** are responsible for installing this on your machine.
-
-# Building Using Machine Files
-
-We have provided a set of "machine files" to ease the build
-process. These are stored in the machines directory. For example, to
+We provide a set of "machine files" to ease the build process.
+These are stored in the machines directory. For example, to
 build on Traverse please run
 ```
 ./machines/mkdeps.traverse.sh
@@ -57,41 +35,75 @@ build on Traverse please run
 ```
 After this is completed then just type:
 ```
-make -j #
+make -j # install
 ```
 where # is the number of cores you wish to use (if working on the login
 node of a cluster it is preferable that you use fewer than the total number
 of cores available, otherwise you will slow down the login node and irk
-other users).
+other users and admins).
 
 Note: On Traverse and Stellar-amd you need to load cudatoolkit/11.6. 
 
-# Building on your own machine
+The ```machine``` files default to installing in $HOME/gkylsoft/, and to
+searching for dependencies there too. If you wish to install somewhere else
+you'll need to indicate the install directory in ```--prefix``` in both
+machine files, and make sure the paths to the dependencies are correct
+in the ```machines/configure.<machine name>.sh``` file.
 
-If you are on your own machine please use the mkdeps.sh shell-script
-in the install-deps directory
-```
-   cd install-deps
-   ./mkdeps.sh --build-openblas=yes --build-superlu=yes
-```
-to install dependencies. We have also included a number of pre-packaged
-configure.[machine].sh and mkdeps.[machine].sh scripts in the machines directory.
+## On a new computer (no machine files available)
 
-Clone this repo and then optionally run the configure script to set the
-compiler you wish to use and the various paths to the
-dependencies. Once you are done with installing/specifying the compiler 
-and dependencies simply type:
+When installing on your own computer, or on a cluster we don't yet have
+machine files for, you could choose to build machine files using existing
+ones as guides, or you could do each step manually. We expand on each of
+these steps below.
+
+### Specifying/building dependencies
+
+GkeyllZero has a few dependencies (e.g. OpenBLAS, SuperLU). If you are
+on a cluster some or all of these libraries are likely already installed.
+To install dependencies (either all or the ones your cluster doesn't
+have) use the ```mkdeps.sh``` script in ```install-deps``` as follows:
+```
+cd install-deps
+./mkdeps.sh --build-openblas=yes --build-superlu=yes
+```
+In this example we opted to build OpenBLAS and SuperLU, assuming
+neither is available in this new computer. This will install OpenBLAS and
+SuperLU in the ```$HOME/gkylsoft``` directory; in order to install in a
+different directory one must specify it with ``--prefix=``.
+
+Note that OpenBLAS **requires you to have gfortran**
+installed. Likewise, SuperLU **requires you to have cmake** installed.
+**You** are responsible for installing this on your machine. Also keep
+in mind that on Apple Macs you do not need to do anything special to use
+LAPACK/BLAS as it comes with the developer tools.
+
+### Configuring
+
+The (optional) configure step is used when we need to specify the use of
+specific compilers, dependency paths or other options. For example, if
+a dependency is already available in your computer/cluster, you should
+use the configure script to specify the location of the include and full
+path to the static libraries for these dependencies. See configure help.
+```
+   ./configure --help
+```
+You can also see machine files in ```machines/``` for examples of how
+this script is used.
+
+
+### Compiling
+
+Once you are done with installing/specifying the compiler and
+dependencies simply type:
 ```
     make -j #
 ```
-in the top-level directory (# is the number of cores, see previous comment
-on this). To run all unit tests do:
-```
-    make check
-```
+in the top-level directory (# is the number of cores, see previous
+comment on this).
 
-If you do not run configure you can also specify the compiler when
-running make. For example:
+If you do not run configure (see previous section/step) you can also
+specify the compiler when running make. For example:
 ```
     make CC=icc -j #
 ```
@@ -108,12 +120,18 @@ If you want to use the code as a library (e.g. for use by
 ```
   make install
 ```
+or run compilation and library installation in one step as
+```
+    make -j # install
+```
 
 Note that GkeyllZero is meant to be used as a *library*. You can use
 it to create your own "app" for your particular problem. See that
 various "app_*.c" files for examples. Full documentation is available
 on the RTFD website linked above.
 
+In order to test that your installation worked, you can compile one of
+the unit or regression tests and run it. See instructions for that below.
 
 # Developing for GkeyllZero
 
@@ -134,8 +152,19 @@ or build the same unit test on a NVIDIA GPU-accelerated node with
     make cuda-build/unit/ctest_array
 ```
 These produce an executable in the ```build``` or ```cuda-build``` directory,
-respectively, that can be run. A similar procedure should be followed
-to compile and run regression tests in ```/regression```.
+respectively, that can be run. For example, to run the ```ctest_array``` executable
+we just compiled use
+```
+    ./cuda-build/unit/ctest_array
+```
+A similar procedure should be followed to compile and run regression tests in ```/regression```.
+
+You may also compile and run all the unit tests with
+```
+    make -j # check
+```
+(# is the number of cores, see previous comment on this).
+
 
 Development philosophy
 ---------------------
