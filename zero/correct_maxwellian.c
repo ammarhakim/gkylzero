@@ -26,8 +26,8 @@ gkyl_correct_maxwellian_new(const struct gkyl_rect_grid *grid,
   up->conf_basis = *conf_basis;
   up->phase_basis = *phase_basis;
   
-  struct gkyl_mom_type *m0 = gkyl_mom_vlasov_new(conf_basis, phase_basis, "M0");  
-  up->m0calc = gkyl_mom_calc_new(grid, m0);
+  struct gkyl_mom_type *m0 = gkyl_mom_vlasov_new(conf_basis, phase_basis, "M0", false);  
+  up->m0calc = gkyl_mom_calc_new(grid, m0, false);
   gkyl_mom_type_release(m0);
 
   up->num_ratio = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);

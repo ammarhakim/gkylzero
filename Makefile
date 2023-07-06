@@ -13,18 +13,18 @@ PREFIX ?= ${HOME}/gkylsoft
 UNAME = $(shell uname)
 
 # Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
-LAPACK_LIB_DIR = ${HOME}/gkylsoft/OpenBLAS/lib
+LAPACK_INC = $(PREFIX)/OpenBLAS/include
+LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
 
 # SuperLU includes and librararies
-SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
+SUPERLU_INC = $(PREFIX)/superlu/include
 ifeq ($(UNAME_S),Linux)
-	SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib64
-	SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib64/libsuperlu.a
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib64
+	SUPERLU_LIB = $(PREFIX)/superlu/lib64/libsuperlu.a
 else
-	SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
-	SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib
+	SUPERLU_LIB = $(PREFIX)/superlu/lib/libsuperlu.a
 endif
 
 # Include config.mak file (if it exists) to overide defaults above
@@ -52,6 +52,18 @@ ifeq ($(CC), nvcc)
        CUDA_LIBS += -lcublas -lcusparse -lcusolver
 endif
 
+# Read MPI paths and flags if needed 
+USING_MPI =
+MPI_INC_DIR = zero # dummy
+MPI_LIB_DIR = .
+ifeq (${USE_MPI}, 1)
+	USING_MPI = yes
+	MPI_INC_DIR = ${MPI_INC}
+	MPI_LIB_DIR = ${MPI_LIB}
+	MPI_LIBS = -lmpi
+	CFLAGS += -DGKYL_HAVE_MPI
+endif
+
 # Build directory
 ifdef USING_NVCC
 	BUILD_DIR ?= cuda-build
@@ -65,9 +77,16 @@ ifeq ($(UNAME), Darwin)
 	LAPACK_INC = zero # dummy
 	LAPACK_LIB = -framework Accelerate
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
-	SHFLAGS += -dynamiclib
+	SHFLAGS += -dynamiclib 
 else
 	SHFLAGS += -shared
+endif
+
+# For install shared-lib we need to pass extra flag to Mac
+# compiler. See note below for ZERO_SH_INSTALL_LIB target.
+SHFLAGS_INSTALL = ${SHFLAGS}
+ifeq ($(UNAME), Darwin)
+	SHFLAGS_INSTALL = ${SHFLAGS} -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so
 endif
 
 # Header files
@@ -77,7 +96,7 @@ INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sor
 INSTALL_HEADERS += $(shell ls minus/*.h)
 
 # all includes
-INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC}
+INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR}
 
 # Directories containing source code
 SRC_DIRS := minus zero apps kernels
@@ -85,16 +104,27 @@ SRC_DIRS := minus zero apps kernels
 # List of regression and unit tests
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
 UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
+MPI_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/mctest_*.c))
 
 # list of includes from kernels
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
 KERN_INCLUDES = $(addprefix -I,$(KERN_INC_DIRS))
 
+# We need to build CUDA unit-test objects
+UNIT_CU_SRCS =
+UNIT_CU_OBJS =
+# There is some problem with the Vlasov and Maxwell kernels that is causing some unit builds to fail
+ifdef USING_NVCC
+#	UNIT_CU_SRCS = $(shell find unit -name *.cu)
+	UNIT_CU_SRCS = unit/ctest_cusolver.cu unit/ctest_basis_cu.cu unit/ctest_array_cu.cu unit/ctest_mom_vlasov_cu.cu unit/ctest_range_cu.cu unit/ctest_rect_grid_cu.cu
+	UNIT_CU_OBJS = $(UNIT_CU_SRCS:%=$(BUILD_DIR)/%.o)
+endif
+
 # List of link directories and libraries for unit and regression tests
-EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR}
-EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} -lm -lpthread
-EXEC_LIBS = -lgkylzero ${EXEC_EXT_LIBS}
-EXEC_RPATH = -Wl,-rpath,${BUILD_DIR}
+EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR}
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_LIBS} -lm -lpthread
+EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
+EXEC_RPATH = 
 
 # Build commands for C source
 $(BUILD_DIR)/%.c.o: %.c
@@ -107,12 +137,12 @@ $(BUILD_DIR)/%.cu.o: %.cu
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
 # Unit tests
-${BUILD_DIR}/unit/%: unit/%.c ${ZERO_SH_LIB} ${UNIT_CU_OBJS} ${UNIT_CU_SRCS}
+${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/libgkylzero.so ${UNIT_CU_OBJS}
 	$(MKDIR_P) ${BUILD_DIR}/unit
-	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${UNIT_CU_OBJS} ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Regression tests
-${BUILD_DIR}/regression/%: regression/%.c ${ZERO_SH_LIB}
+${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}/regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
@@ -140,6 +170,14 @@ $(BUILD_DIR)/kernels/dg_diffusion/%.c.o : kernels/dg_diffusion/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/dg_gen_diffusion/%.c.o : kernels/dg_gen_diffusion/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/euler/%.c.o : kernels/euler/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/gyrokinetic/%.c.o : kernels/gyrokinetic/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
@@ -152,7 +190,19 @@ $(BUILD_DIR)/kernels/maxwell/%.c.o : kernels/maxwell/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/neutral_react/%.c.o : kernels/neutral_react/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/pkpm/%.c.o : kernels/pkpm/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/vlasov/%.c.o : kernels/vlasov/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/sr_vlasov/%.c.o : kernels/sr_vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
@@ -165,6 +215,14 @@ $(BUILD_DIR)/kernels/fem_poisson/%.c.o : kernels/fem_poisson/%.c
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/kernels/fem_parproj/%.c.o : kernels/fem_parproj/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/fem_poisson_perp/%.c.o : kernels/fem_poisson_perp/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/ambi_bolt_potential/%.c.o : kernels/ambi_bolt_potential/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
@@ -184,21 +242,35 @@ $(ZERO_SH_LIB): $(OBJS)
 	$(MKDIR_P) $(dir $@)
 	${CC} ${SHFLAGS} ${LDFLAGS} ${OBJS} ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@
 
+# Due to an issue with shared-lib linking on the Mac, we need to build
+# a separate shared lib to install. This one has the install path
+# hard-coded into the library itself, so external execs, like gkyl,
+# can link to the library properly. Perhaps there is a another way to
+# do this, don't know. -- AH, Feb 4th 2023.
+ZERO_SH_INSTALL_LIB := $(BUILD_DIR)/$(ZERO)-install.so
+$(ZERO_SH_INSTALL_LIB): $(OBJS)
+	$(MKDIR_P) $(dir $@)
+	${CC} ${SHFLAGS_INSTALL} ${LDFLAGS} ${OBJS} ${EXEC_LIB_DIRS} ${EXEC_EXT_LIBS} -o $@
+
 ## All libraries build targets completed at this point
 
 .PHONY: all
 all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
 
 # Explicit targets to build unit and regression tests
-unit: ${UNITS} ## Build unit tests
-regression: ${REGS} ## Build regression tests
+unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ## Build unit tests
+regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ## Build regression tests
 
-.PHONY: check
+.PHONY: check mpicheck
 # Run all unit tests
 check: ${UNITS} ## Build (if needed) and run all unit tests
 	$(foreach unit,${UNITS},echo $(unit); $(unit) -E;)
 
-install: all ## Install library and headers
+# Run all unit tests needing MPI
+mpicheck: ${MPI_UNITS} ## Build (if needed) and run all unit tests needing MPI
+	$(foreach unit,${MPI_UNITS},echo $(unit); $(unit) -E -M;)
+
+install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # Construct install directories
 	$(MKDIR_P) ${PREFIX}/gkylzero/include
 	${MKDIR_P} ${PREFIX}/gkylzero/lib
@@ -209,8 +281,9 @@ install: all ## Install library and headers
 	cp ${INSTALL_HEADERS} ${PREFIX}/gkylzero/include
 	./minus/gengkylzeroh.sh > ${PREFIX}/gkylzero/include/gkylzero.h
 # libraries
-	cp -f ${ZERO_SH_LIB} ${PREFIX}/gkylzero/lib
+	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
 # Examples
+	test -e config.mak && cp -f config.mak ${PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
 	cp -f Makefile.sample ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
@@ -223,6 +296,10 @@ install: all ## Install library and headers
 .PHONY: clean
 clean: ## Clean build output
 	rm -rf ${BUILD_DIR}
+
+.PHONY: cleanur
+cleanur: ## Delete the unit and regression test executables
+	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression
 
 # include dependencies
 -include $(DEPS)

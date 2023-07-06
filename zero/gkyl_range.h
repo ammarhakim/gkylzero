@@ -101,6 +101,28 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
 
 /**
+ * Create a new range which is a tensor product of @a a and @a b input
+ * ranges.
+ *
+ * @param rng On output, rng = a X b
+ * @param a First operand of tensor-product
+ * @param b Second operand of tensor-product
+ */
+void gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a,
+  const struct gkyl_range *b);
+
+/**
+ * Create a new range that is the same shape as inp range, but the
+ * indices are shifted in each direction by delta[dir]
+ *
+ * @param rng On output new shifted range
+ * @param inp Input range to shift
+ * @param delta Range indices are shifted by delta[dir] in each direction
+ */
+void gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
+  const int *delta);
+
+/**
  * Shape in direction dir
  *
  * @param rng Range object
@@ -120,6 +142,14 @@ static inline int gkyl_range_shape(const struct gkyl_range *rng, int dir)
  * @return 1 if true, 0 otherwise
  */
 int gkyl_range_is_sub_range(const struct gkyl_range *rng);
+
+/**
+ * Return 1 if idx is inside the range.
+ *
+ * @param rng Range obkect
+ * @return 1 if true, 0 otherwise
+ */
+int gkyl_range_contains_idx(const struct gkyl_range *rng, const int *idx);
 
 /**
  * Create a sub-range from a given range. The sub-range must be fully
@@ -186,6 +216,19 @@ void gkyl_range_shorten(struct gkyl_range *rng,
   const struct gkyl_range* range, int dir, int len);
 
 /**
+ * Return a new range that is an extension of the input range. The
+ * lower index in dir is reduced by elo[dir] and upper index increased
+ * by eup[dir].
+ *
+ * @param erng Extended range
+ * @param rng Range to extend
+ * @param elo Lower in dir is reduced by elo[dir]
+ * @param eup Upper in dir is increased by eup[dir]
+ */
+void gkyl_range_extend(struct gkyl_range *erng,
+  const struct gkyl_range* rng, const int *elo, const int *eup);
+
+/**
  * Return range in direction 'dir' which corresponds to the "lower
  * skin" cells.  Lower skin cells refer to the second inner-most layer
  * of cells on the lower end of the range.
@@ -235,8 +278,44 @@ void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
  * @param r2 Range to intersect
  * @return 1 if intersection is not-empty, 0 otherwise
  */
-int gkyl_range_intersect(struct gkyl_range* irng,
+int gkyl_range_intersect(struct gkyl_range *irng, const struct gkyl_range *r1,
+  const struct gkyl_range *r2);
+
+/**
+ * Compute intersection of two ranges. The intersection is a sub-range
+ * of @a r1.
+ * 
+ * @param irng Intersection of r1 and r2. 
+ * @param r1 Range to intersect. irng is sub-range of r1
+ * @param r2 Range to intersect
+ * @return 1 if intersection is not-empty, 0 otherwise
+ */
+int gkyl_sub_range_intersect(struct gkyl_range* irng,
   const struct gkyl_range *r1, const struct gkyl_range *r2);
+
+/**
+ * Check if range touches the lower edge of parent range in direction
+ * dir.
+ *
+ * @param dir Direction to check
+ * @param range Inner range
+ * @param parent Parent range
+ * @return true if range is on lower edge, false otherwise
+ */
+bool gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent);
+
+/**
+ * Check if range touches the upper edge of parent range in direction
+ * dir.
+ *
+ * @param dir Direction to check
+ * @param range Inner range
+ * @param parent Parent range
+ * @return true if range is on upper edge, false otherwise
+ */
+bool gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent);
 
 /**
  * General indexing function. Returns linear index into the index

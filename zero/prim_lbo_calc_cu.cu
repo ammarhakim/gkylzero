@@ -9,14 +9,14 @@ extern "C" {
 #include <gkyl_prim_lbo_kernels.h> 
 #include <gkyl_prim_lbo_gyrokinetic.h>
 #include <gkyl_prim_lbo_vlasov.h>
-#include <gkyl_prim_lbo_vlasov_with_fluid.h>
+#include <gkyl_prim_lbo_vlasov_pkpm.h>
 #include <gkyl_util.h>
 }
 
 __global__ static void
 gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc,
   struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  struct gkyl_basis cbasis, struct gkyl_range conf_rng,
+  struct gkyl_range conf_rng,
   const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections)
 {
   int idx[GKYL_MAX_DIM];
@@ -48,7 +48,7 @@ gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc* calc,
 
 __global__ static void
 gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
-  struct gkyl_basis cbasis, struct gkyl_range conf_rng,
+  struct gkyl_range conf_rng,
   int nc, int udim, 
   struct gkyl_array* prim_moms_out)
 {
@@ -75,12 +75,12 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
 }
 
 void
-gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis,
-  struct gkyl_range *conf_rng, 
+gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc* calc, 
+  const struct gkyl_range *conf_rng, 
   const struct gkyl_array* moms, const struct gkyl_array* boundary_corrections,
   struct gkyl_array* prim_moms_out)
 {
-  int nc = cbasis.num_basis;
+  int nc = calc->prim->num_config;
   int udim = calc->prim->udim;
   int N = nc*(udim + 1);
 
@@ -92,17 +92,17 @@ gkyl_prim_lbo_calc_advance_cu(gkyl_prim_lbo_calc* calc, struct gkyl_basis cbasis
   }
 
   gkyl_prim_lbo_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->on_dev,
-    calc->As->on_dev, calc->xs->on_dev, cbasis, *conf_rng,
+    calc->As->on_dev, calc->xs->on_dev, *conf_rng,
     moms->on_dev, boundary_corrections->on_dev);
   
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
 
   gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->xs->on_dev,
-    cbasis, *conf_rng, nc, udim,
+    *conf_rng, nc, udim,
     prim_moms_out->on_dev);
 }
 
-gkyl_prim_lbo_calc*
+struct gkyl_prim_lbo_calc*
 gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
   struct gkyl_prim_lbo_type *prim)
 {

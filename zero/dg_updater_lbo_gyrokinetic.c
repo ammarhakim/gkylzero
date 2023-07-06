@@ -1,21 +1,21 @@
-#include "gkyl_dg_eqn.h"
 #include <assert.h>
 #include <math.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_dg_updater_lbo_gyrokinetic.h>
-#include <gkyl_dg_updater_lbo_gyrokinetic_priv.h>
+#include <gkyl_dg_eqn.h>
 #include <gkyl_dg_lbo_gyrokinetic_drag.h>
 #include <gkyl_dg_lbo_gyrokinetic_diff.h>
+#include <gkyl_dg_updater_lbo_gyrokinetic.h>
+#include <gkyl_dg_updater_collisions_priv.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-gkyl_dg_updater_lbo_gyrokinetic*
+struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, double mass, bool use_gpu)
 {
-  gkyl_dg_updater_lbo_gyrokinetic *up = gkyl_malloc(sizeof(gkyl_dg_updater_lbo_gyrokinetic));
+  struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
 
   up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(cbasis, pbasis, conf_range, grid, mass, use_gpu);
   up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(cbasis, pbasis, conf_range, grid, mass, use_gpu);
@@ -38,7 +38,7 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *grid, const str
 }
 
 void
-gkyl_dg_updater_lbo_gyrokinetic_advance(gkyl_dg_updater_lbo_gyrokinetic *lbo,
+gkyl_dg_updater_lbo_gyrokinetic_advance(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag_inv,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
@@ -56,20 +56,29 @@ gkyl_dg_updater_lbo_gyrokinetic_advance(gkyl_dg_updater_lbo_gyrokinetic *lbo,
   gkyl_hyper_dg_advance(lbo->drag, update_rng, fIn, cflrate, rhs);
 }
 
-void
-gkyl_dg_updater_lbo_gyrokinetic_release(gkyl_dg_updater_lbo_gyrokinetic* lbo)
+struct gkyl_dg_updater_lbo_gyrokinetic_tm
+gkyl_dg_updater_lbo_gyrokinetic_get_tm(const struct gkyl_dg_updater_collisions *coll)
 {
-  gkyl_dg_eqn_release(lbo->coll_diff);
-  gkyl_dg_eqn_release(lbo->coll_drag);
-  gkyl_hyper_dg_release(lbo->drag);
-  gkyl_hyper_dg_release(lbo->diff);
-  gkyl_free(lbo);
+  return (struct gkyl_dg_updater_lbo_gyrokinetic_tm) {
+    .diff_tm = coll->diff_tm,
+    .drag_tm = coll->drag_tm
+  };
+}
+
+void
+gkyl_dg_updater_lbo_gyrokinetic_release(struct gkyl_dg_updater_collisions* coll)
+{
+  gkyl_dg_eqn_release(coll->coll_diff);
+  gkyl_dg_eqn_release(coll->coll_drag);
+  gkyl_hyper_dg_release(coll->drag);
+  gkyl_hyper_dg_release(coll->diff);
+  gkyl_free(coll);
 }
 
 #ifdef GKYL_HAVE_CUDA
 
 void
-gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,
+gkyl_dg_updater_lbo_gyrokinetic_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag_inv,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
@@ -92,7 +101,7 @@ gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,
 #ifndef GKYL_HAVE_CUDA
 
 void
-gkyl_dg_updater_lbo_gyrokinetic_advance_cu(gkyl_dg_updater_lbo_gyrokinetic *lbo,
+gkyl_dg_updater_lbo_gyrokinetic_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag_inv,
   const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms, 

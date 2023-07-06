@@ -20,6 +20,11 @@ struct gkyl_moment_em_coupling_inp {
   int nfluids; // number of fluids
   struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // species data
   double epsilon0;
+
+  bool has_collision; // has collisions
+  // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
+  // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
+  double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 };
 
 // Object type
@@ -52,7 +57,8 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
 
 void gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_rng, 
-  struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
+  struct gkyl_array *fluid[GKYL_MAX_SPECIES], 
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *rhs[GKYL_MAX_SPECIES], 
   struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em);
 
 /**

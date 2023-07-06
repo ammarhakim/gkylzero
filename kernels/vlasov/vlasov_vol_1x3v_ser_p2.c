@@ -1,26 +1,27 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double vlasov_vol_1x3v_ser_p2(const double *w, const double *dxv, const double *qmem, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_vol_1x3v_ser_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // qmem:      q/m*EM fields.
+  // field:      q/m*EM fields.
+  // cot_vec:   Only used in gen geo.
   // f:         Input distribution function.
   // out:       Incremented output.
   double dv0dx0 = dxv[1]/dxv[0]; 
   double w0dx0 = w[1]/dxv[0]; 
   const double dv10 = 2/dxv[1]; 
-  const double *E0 = &qmem[0]; 
+  const double *E0 = &field[0]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
   const double dv11 = 2/dxv[2]; 
-  const double *E1 = &qmem[3]; 
+  const double *E1 = &field[3]; 
   const double dv2 = dxv[2], wv2 = w[2]; 
   const double dv12 = 2/dxv[3]; 
-  const double *E2 = &qmem[6]; 
+  const double *E2 = &field[6]; 
   const double dv3 = dxv[3], wv3 = w[3]; 
 
-  const double *B0 = &qmem[9]; 
-  const double *B1 = &qmem[12]; 
-  const double *B2 = &qmem[15]; 
+  const double *B0 = &field[9]; 
+  const double *B1 = &field[12]; 
+  const double *B2 = &field[15]; 
   double cflFreq_mid = 0.0; 
   double alpha_cdim[48] = {0.0}; 
   double alpha_vdim[144] = {0.0}; 

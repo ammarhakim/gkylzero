@@ -28,7 +28,7 @@ end
 ffi.cdef [[
 
 // This needs to be enum to allow usage below
-enum { GKYL_MAX_SPECIES = 8 };
+enum { GKYL_MAX_SPECIES = 8, GKYL_MAX_DIM = 7 };
 
 /**
  * Set the global flag to turn on memory allocation/deallocation
@@ -60,6 +60,8 @@ enum gkyl_eqn_type {
   GKYL_EQN_MAXWELL, // Maxwell equations
   GKYL_EQN_MHD,  // Ideal MHD equations
   GKYL_EQN_BURGERS, // Burgers equations
+  GKYL_EQN_ADVECTION, // Scalar advection equation
+  GKYL_EQN_EULER_PKPM, // Euler equations with parallel-kinetic-perpendicular-moment (pkpm) model
 };
 
 // Identifiers for specific field object types
@@ -111,12 +113,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_NO_SLIP, // no-slip boundary conditions
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_SPECIES_FUNC, // Function boundary conditions
-};
-
-// Boundary conditions on fluids
-enum gkyl_fluid_species_bc_type {
-  GKYL_FLUID_SPECIES_COPY = 0, // copy BCs
-  GKYL_FLUID_SPECIES_ABSORB, // Absorbing BCs
+  GKYL_SPECIES_FIXED_FUNC, // Fixed function, time-independent, boundary conditions
 };
 
 // Boundary conditions on fields
@@ -124,6 +121,7 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_COPY = 0, // copy BCs
   GKYL_FIELD_PEC_WALL, // perfect electrical conductor (PEC) BCs
   GKYL_FIELD_WEDGE, // specialized "wedge" BCs for RZ-theta
+  GKYL_FIELD_FUNC, // Function boundary conditions
 };
 
 ]]
@@ -349,8 +347,9 @@ ffi.cdef [[
 struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
+  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
   enum gkyl_wave_limiter limiter; // limiter to use
-  const struct gkyl_wv_eqn *equation; // equation object
+  struct gkyl_wv_eqn *equation; // equation object
 
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
@@ -358,13 +357,19 @@ struct gkyl_moment_species {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
-  // pointer to boundary condition functions
-  void (*bc_lower_func)(double t, int nc, const double *skin, double *  ghost, void *ctx);
-  void (*bc_upper_func)(double t, int nc, const double *skin, double *  ghost, void *ctx);
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  // pointer to boundary condition functions along x
+  void (*bcx_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcx_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along y
+  void (*bcy_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcy_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along z
+  void (*bcz_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcz_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
 };
 
 // Parameter for EM field
@@ -388,6 +393,15 @@ struct gkyl_moment_field {
   
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
+  // pointer to boundary condition functions along x
+  void (*bcx_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcx_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along y
+  void (*bcy_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcy_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  // pointer to boundary condition functions along z
+  void (*bcz_lower_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
+  void (*bcz_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
 };
 
 // Choices of schemes to use in the fluid solver 
@@ -395,6 +409,42 @@ enum gkyl_moment_scheme {
   GKYL_MOMENT_WAVE_PROP = 0, // default, 2nd-order FV
   GKYL_MOMENT_MP, // monotonicity-preserving Suresh-Huynh scheme
   GKYL_MOMENT_KEP // Kinetic-energy preserving scheme
+};
+
+/**
+ * Range object, representing an N-dimensional integer index
+ * set. Lower and upper limits are inclusive.
+ */
+struct gkyl_range {
+  int ndim; // number of dimension
+  int lower[GKYL_MAX_DIM]; // lower bound
+  int upper[GKYL_MAX_DIM]; // upper bound (inclusive)
+  long volume; // total volume of range
+    
+  // do not access directly
+  uint32_t flags; // Flags for internal use
+  int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
+  long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
+  long iac[GKYL_MAX_DIM+1]; // for use in sub-range inverse indexer
+  long linIdxZero; // linear index of {0,0,...}
+  int nsplit, tid; // number of splits, split ID
+
+  // FOR CUDA ONLY
+  int nthreads, nblocks; // CUDA kernel launch specifiers for range-based ops
+};
+
+// Forward declaration
+struct gkyl_comm;
+
+// Lower-level inputs: in general this does not need to be set by the
+// user. It is needed when the App is being created on a sub-range of
+// the global range, and is meant for use in higher-level drivers that
+// use MPI or other parallel mechanism.
+struct gkyl_moment_low_inp {
+  // local range over which App operates
+  struct gkyl_range local_range;
+  // communicator to used
+  struct gkyl_comm *comm;
 };
 
 // Top-level app parameters
@@ -427,6 +477,16 @@ struct gkyl_moment {
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
+
+  bool has_collision; // has collisions
+  // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
+  // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
+  double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
+
+  // this should not be set by typical user-facing code but only by
+  // higher-level drivers
+  bool has_low_inp; // should one use low-level inputs?
+  struct gkyl_moment_low_inp low_inp; // low-level inputs
 };
 
 // Simulation statistics
@@ -449,13 +509,15 @@ struct gkyl_moment_stat {
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
-    
+  
   double init_species_tm; // time to initialize all species
   double init_field_tm; // time to initialize fields
 
   double species_rhs_tm; // time to compute species collisionless RHS
-  
+  double species_bc_tm; // time to apply BCs
+
   double field_rhs_tm; // time to compute field RHS
+  double field_bc_tm; // time to apply BCs
 };
 
 // Object representing moments app
@@ -691,6 +753,11 @@ _M.Advection = function(tbl)
    return ffi.gc(C.gkyl_wv_advect_new(tbl.speed), C.gkyl_wv_eqn_release)
 end
 
+-- Ten-moment equation
+_M.TenMoment = function(tbl)
+   return ffi.gc(C.gkyl_wv_ten_moment_new(tbl.k0), C.gkyl_wv_eqn_release)
+end
+
 -- name to RP-type mappings
 local mhd_rp_tags = {
    ["roe"] = C.WV_MHD_RP_ROE,
@@ -747,6 +814,15 @@ local function gkyl_eval_applied(func)
       local ux,uy,uz = func(t, xnl)
 
       fout[0] = ux; fout[1] = uy; fout[2] = uz
+   end
+end
+
+local function gkyl_eval_bc(func)
+   return function(t, nc, skin, ghost, ctx)
+      local ret = { func(t, nc, skin, ctx) } -- package return into table
+      for i=1,#ret do
+         ghost[i-1] = ret[i]
+      end
    end
 end
 
@@ -834,6 +910,26 @@ local species_mt = {
          s.bcz[0], s.bcz[1] = tbl.bcz[1], tbl.bcz[2]
       end
 
+      if tbl.bcx_lower_func then
+         s.bcx_lower_func = gkyl_eval_bc(tbl.bcx_lower_func)
+      end
+      if tbl.bcy_lower_func then
+         s.bcy_lower_func = gkyl_eval_bc(tbl.bcy_lower_func)
+      end
+      if tbl.bcz_lower_func then
+         s.bcz_lower_func = gkyl_eval_bc(tbl.bcz_lower_func)
+      end
+
+      if tbl.bcx_upper_func then
+         s.bcx_upper_func = gkyl_eval_bc(tbl.bcx_upper_func)
+      end
+      if tbl.bcy_upper_func then
+         s.bcy_upper_func = gkyl_eval_bc(tbl.bcy_upper_func)
+      end
+      if tbl.bcz_upper_func then
+         s.bcz_upper_func = gkyl_eval_bc(tbl.bcz_upper_func)
+      end
+
       return s
    end,
    __index = {
@@ -842,7 +938,8 @@ local species_mt = {
       bcWall = C.GKYL_SPECIES_REFLECT,
       bcCopy = C.GKYL_SPECIES_COPY,
       bcNoSlip = C.GKYL_SPECIES_NO_SLIP,
-      bcWedge = C.GKYL_SPECIES_WEDGE
+      bcWedge = C.GKYL_SPECIES_WEDGE,
+      bcFunc = C.GKYL_SPECIES_FUNC
    }
 }
 _M.Species = ffi.metatype(species_type, species_mt)
@@ -934,6 +1031,26 @@ local field_mt = {
          f.bcz[0], f.bcz[1] = tbl.bcz[1], tbl.bcz[2]
       end
 
+      if tbl.bcx_lower_func then
+         f.bcx_lower_func = gkyl_eval_bc(tbl.bcx_lower_func)
+      end
+      if tbl.bcy_lower_func then
+         f.bcy_lower_func = gkyl_eval_bc(tbl.bcy_lower_func)
+      end
+      if tbl.bcz_lower_func then
+         f.bcz_lower_func = gkyl_eval_bc(tbl.bcz_lower_func)
+      end
+
+      if tbl.bcx_upper_func then
+         f.bcx_upper_func = gkyl_eval_bc(tbl.bcx_upper_func)
+      end
+      if tbl.bcy_upper_func then
+         f.bcy_upper_func = gkyl_eval_bc(tbl.bcy_upper_func)
+      end
+      if tbl.bcz_upper_func then
+         f.bcz_upper_func = gkyl_eval_bc(tbl.bcz_upper_func)
+      end
+
       return f
    end,
    __index = {
@@ -941,7 +1058,8 @@ local field_mt = {
       bcCopy = C.GKYL_FIELD_COPY,
       bcReflect = C.GKYL_FIELD_PEC_WALL,
       bcPEC = C.GKYL_FIELD_PEC_WALL,
-      bcWedge = C.GKYL_FIELD_WEDGE
+      bcWedge = C.GKYL_FIELD_WEDGE,
+      bcFunc = C.GKYL_FIELD_FUNC
    }
 }
 _M.Field = ffi.metatype(field_type, field_mt)

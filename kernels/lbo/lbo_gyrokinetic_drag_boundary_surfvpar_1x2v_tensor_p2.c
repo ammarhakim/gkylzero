@@ -28,7 +28,7 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_tensor_p2(const doub
   alphaDrSurf[1] = 0.5*(2.828427124746191*nuSum[1]*w[1]-2.828427124746191*nuUSum[1]+1.414213562373095*dxv[1]*nuSum[1]); 
   alphaDrSurf[4] = -0.5*(2.828427124746191*nuUSum[2]+((-2.828427124746191*w[1])-1.414213562373095*dxv[1])*nuSum[2]); 
 
-  if (0.4472135954999579*alphaDrSurf[4]-0.6708203932499369*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
+  if (0.4472135954999572*alphaDrSurf[4]-0.6708203932499357*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
     fUpwindQuad[0] = tensor_3x_p2_surfx2_eval_quad_node_0_r(fSkin); 
     fUpwindQuad[1] = tensor_3x_p2_surfx2_eval_quad_node_1_r(fSkin); 
     fUpwindQuad[2] = tensor_3x_p2_surfx2_eval_quad_node_2_r(fSkin); 
@@ -37,7 +37,7 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_tensor_p2(const doub
     fUpwindQuad[1] = tensor_3x_p2_surfx2_eval_quad_node_1_l(fEdge); 
     fUpwindQuad[2] = tensor_3x_p2_surfx2_eval_quad_node_2_l(fEdge); 
   } 
-  if (0.4472135954999579*alphaDrSurf[4]-0.6708203932499369*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
+  if (0.4472135954999572*alphaDrSurf[4]-0.6708203932499357*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
     fUpwindQuad[3] = tensor_3x_p2_surfx2_eval_quad_node_3_r(fSkin); 
     fUpwindQuad[4] = tensor_3x_p2_surfx2_eval_quad_node_4_r(fSkin); 
     fUpwindQuad[5] = tensor_3x_p2_surfx2_eval_quad_node_5_r(fSkin); 
@@ -46,7 +46,7 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_tensor_p2(const doub
     fUpwindQuad[4] = tensor_3x_p2_surfx2_eval_quad_node_4_l(fEdge); 
     fUpwindQuad[5] = tensor_3x_p2_surfx2_eval_quad_node_5_l(fEdge); 
   } 
-  if (0.4472135954999579*alphaDrSurf[4]-0.6708203932499369*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
+  if (0.4472135954999572*alphaDrSurf[4]-0.6708203932499357*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
     fUpwindQuad[6] = tensor_3x_p2_surfx2_eval_quad_node_6_r(fSkin); 
     fUpwindQuad[7] = tensor_3x_p2_surfx2_eval_quad_node_7_r(fSkin); 
     fUpwindQuad[8] = tensor_3x_p2_surfx2_eval_quad_node_8_r(fSkin); 
@@ -103,7 +103,7 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_tensor_p2(const doub
   alphaDrSurf[1] = 0.5*(2.828427124746191*nuSum[1]*w[1]-2.828427124746191*nuUSum[1]-1.414213562373095*dxv[1]*nuSum[1]); 
   alphaDrSurf[4] = -0.5*(2.828427124746191*nuUSum[2]+(1.414213562373095*dxv[1]-2.828427124746191*w[1])*nuSum[2]); 
 
-  if (0.4472135954999579*alphaDrSurf[4]-0.6708203932499369*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
+  if (0.4472135954999572*alphaDrSurf[4]-0.6708203932499357*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
     fUpwindQuad[0] = tensor_3x_p2_surfx2_eval_quad_node_0_r(fEdge); 
     fUpwindQuad[1] = tensor_3x_p2_surfx2_eval_quad_node_1_r(fEdge); 
     fUpwindQuad[2] = tensor_3x_p2_surfx2_eval_quad_node_2_r(fEdge); 
@@ -112,7 +112,7 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_tensor_p2(const doub
     fUpwindQuad[1] = tensor_3x_p2_surfx2_eval_quad_node_1_l(fSkin); 
     fUpwindQuad[2] = tensor_3x_p2_surfx2_eval_quad_node_2_l(fSkin); 
   } 
-  if (0.4472135954999579*alphaDrSurf[4]-0.6708203932499369*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
+  if (0.4472135954999572*alphaDrSurf[4]-0.6708203932499357*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
     fUpwindQuad[3] = tensor_3x_p2_surfx2_eval_quad_node_3_r(fEdge); 
     fUpwindQuad[4] = tensor_3x_p2_surfx2_eval_quad_node_4_r(fEdge); 
     fUpwindQuad[5] = tensor_3x_p2_surfx2_eval_quad_node_5_r(fEdge); 
@@ -121,7 +121,7 @@ GKYL_CU_DH void lbo_gyrokinetic_drag_boundary_surfvpar_1x2v_tensor_p2(const doub
     fUpwindQuad[4] = tensor_3x_p2_surfx2_eval_quad_node_4_l(fSkin); 
     fUpwindQuad[5] = tensor_3x_p2_surfx2_eval_quad_node_5_l(fSkin); 
   } 
-  if (0.4472135954999579*alphaDrSurf[4]-0.6708203932499369*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
+  if (0.4472135954999572*alphaDrSurf[4]-0.6708203932499357*alphaDrSurf[1]+0.5*alphaDrSurf[0] < 0) { 
     fUpwindQuad[6] = tensor_3x_p2_surfx2_eval_quad_node_6_r(fEdge); 
     fUpwindQuad[7] = tensor_3x_p2_surfx2_eval_quad_node_7_r(fEdge); 
     fUpwindQuad[8] = tensor_3x_p2_surfx2_eval_quad_node_8_r(fEdge); 

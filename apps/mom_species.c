@@ -20,6 +20,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   
   // closure parameter, used by 10 moment
   sp->k0 = mom_sp->equation->type == GKYL_EQN_TEN_MOMENT ? gkyl_wv_ten_moment_k0(mom_sp->equation) : 0.0;
+  // check if we are running with gradient-based closure
+  sp->has_grad_closure = mom_sp->has_grad_closure == 0 ? 0 : mom_sp->has_grad_closure;
 
   sp->scheme_type = mom->scheme_type;
 
@@ -43,6 +45,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           .update_dirs = { d },
           .cfl = app->cfl,
           .geom = app->geom,
+          .comm = app->comm
         }
       );
       
@@ -121,6 +124,22 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       else
         bc = mom_sp->bcz;
 
+      void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      if (dir == 0)
+        bc_lower_func = mom_sp->bcx_lower_func;
+      else if (dir == 1)
+        bc_lower_func = mom_sp->bcy_lower_func;
+      else
+        bc_lower_func = mom_sp->bcz_lower_func;
+
+      void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      if (dir == 0)
+        bc_upper_func = mom_sp->bcx_upper_func;
+      else if (dir == 1)
+        bc_upper_func = mom_sp->bcy_upper_func;
+      else
+        bc_upper_func = mom_sp->bcz_upper_func;
+
       sp->lower_bct[dir] = bc[0];
       sp->upper_bct[dir] = bc[1];
 
@@ -141,7 +160,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_FUNC:
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
-            mom_sp->bc_lower_func, mom_sp->ctx);
+            bc_lower_func, mom_sp->ctx);
           break;
         
         case GKYL_SPECIES_COPY:
@@ -172,7 +191,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
         case GKYL_SPECIES_FUNC:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
-            mom_sp->bc_upper_func, mom_sp->ctx);
+            bc_upper_func, mom_sp->ctx);
           break;
           
         case GKYL_SPECIES_COPY:
@@ -212,15 +231,21 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
 // apply BCs to species
 void
-moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
+moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
   const struct moment_species *sp, struct gkyl_array *f)
 {
-  int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
-  for (int d=0; d<num_periodic_dir; ++d) {
-    moment_apply_periodic_bc(app, sp->bc_buffer, app->periodic_dirs[d], f);
-    is_non_periodic[app->periodic_dirs[d]] = 0;
-  }
+  struct timespec wst = gkyl_wall_clock();
   
+  int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
+
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
+    app->periodic_dirs, f);
+  
+  for (int d=0; d<num_periodic_dir; ++d)
+    is_non_periodic[app->periodic_dirs[d]] = 0;
+
+  if (ndim == 2)
+    moment_apply_periodic_corner_sync_2d(app, f); // TODO: SHOULD BE IN PER_SYNC
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
       // handle non-wedge BCs
@@ -234,6 +259,10 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
         moment_apply_wedge_bc(app, tcurr, &app->local,
           sp->bc_buffer, d, sp->lower_bc[d], sp->upper_bc[d], f);
     }
+
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+
+  app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // maximum stable time-step
@@ -257,7 +286,7 @@ moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *s
 // update solution: initial solution is in sp->f[0] and updated
 // solution in sp->f[ndim]
 struct gkyl_update_status
-moment_species_update(const gkyl_moment_app *app,
+moment_species_update(gkyl_moment_app *app,
   struct moment_species *sp, double tcurr, double dt)
 {
   int ndim = sp->ndim;

@@ -154,16 +154,17 @@ gkyl_array_scale_by_cell(struct gkyl_array* out, const struct gkyl_array* a)
 }
 
 struct gkyl_array*
-gkyl_array_shiftc0(struct gkyl_array* out, double a)
+gkyl_array_shiftc(struct gkyl_array* out, double a, unsigned k)
 {
   assert(out->type == GKYL_DOUBLE);
+  assert(k < NCOM(out));
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_shiftc0_cu(out, a); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_shiftc_cu(out, a, k); return out; }
 #endif
 
   double *out_d = out->data;
   for (size_t i=0; i<out->size; ++i)
-    out_d[i*NCOM(out)] = a+out_d[i*NCOM(out)];
+    out_d[i*NCOM(out)+k] = a+out_d[i*NCOM(out)+k];
   return out;
 }
 
@@ -385,6 +386,26 @@ gkyl_array_scale_range(struct gkyl_array *out,
   return gkyl_array_set_range(out, a, out, range);
 }
 
+struct gkyl_array*
+gkyl_array_shiftc_range(struct gkyl_array* out, double a, unsigned k, struct gkyl_range range)
+{
+  assert(out->type == GKYL_DOUBLE);
+  assert(k < NCOM(out));
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_shiftc_range_cu(out, a, k, range); return out; }
+#endif
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(&range, iter.idx);
+    double *out_d = gkyl_array_fetch(out, start);
+    out_d[k] += a;
+  }
+  return out;
+}
+
 void
 gkyl_array_reduce_range(double *res,
   const struct gkyl_array *arr, enum gkyl_array_op op, struct gkyl_range range)
@@ -469,23 +490,30 @@ gkyl_array_copy_range(struct gkyl_array *out,
 
 struct gkyl_array*
 gkyl_array_copy_range_to_range(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range)
+  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range)
 {
-  assert(out->size == inp->size && out->elemsz == inp->elemsz);
-  assert(out_range.volume == inp_range.volume);
+  assert(out->elemsz == inp->elemsz);
+  assert((inp_range->volume < 1) || (out_range->volume == inp_range->volume));
 
 #ifdef GKYL_HAVE_CUDA
   assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
   if (gkyl_array_is_cu_dev(out)) { gkyl_array_copy_range_to_range_cu(out, inp, out_range, inp_range); return out; }
 #endif
 
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &out_range);
+  // Setup linear counter offset for output range/array.
+  int iloLocal_out[GKYL_MAX_DIM];
+  for (int d=0; d<out_range->ndim; ++d)
+    iloLocal_out[d] = out_range->lower[d];
+  long linIdxLo_out = gkyl_range_idx(out_range, iloLocal_out);
+  long lc = 0;
 
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, inp_range);
   while (gkyl_range_iter_next(&iter)) {
-    long start_out = gkyl_range_idx(&out_range, iter.idx);
-    long start_inp = gkyl_range_idx(&inp_range, iter.idx);
+    long start_out = linIdxLo_out+lc;
+    long start_inp = gkyl_range_idx(inp_range, iter.idx);
     memcpy(gkyl_array_fetch(out, start_out), gkyl_array_cfetch(inp, start_inp), inp->esznc);
+    lc++;
   }
   return out;
 }

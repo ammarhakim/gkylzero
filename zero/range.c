@@ -53,6 +53,20 @@ calc_skip_iter(const struct gkyl_range *rng, int *remDir)
   return del;
 }
 
+// compute volume, safely (for malformed ranges
+static long
+calc_volume_safely(int ndim, const int *lower, const int *upper)
+{
+  int is_zero_vol = 0;
+  long vol = 1L;
+  for (int i=0; i<ndim; ++i) {
+    vol *= upper[i]-lower[i]+1;
+    is_zero_vol = GKYL_MAX(is_zero_vol, upper[i]<lower[i] ? 1 : 0);
+  }
+  if (is_zero_vol) vol = 0;
+  return vol;
+}
+
 void
 gkyl_range_init(struct gkyl_range *rng, int ndim,
   const int *lower, const int *upper)
@@ -65,7 +79,7 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
     rng->upper[i] = upper[i];
     rng->volume *= upper[i]-lower[i]+1;
     // need to handle case when upper[i]<lower[i]
-    is_zero_vol = upper[i]<lower[i] ? 1 : 0;
+    is_zero_vol = GKYL_MAX(is_zero_vol, upper[i]<lower[i] ? 1 : 0);
   }
   // reset volume if any lower[d] <= upper[d]
   if (is_zero_vol) rng->volume = 0;
@@ -98,10 +112,50 @@ gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
   gkyl_range_init(rng, ndim, lo, up);
 }
 
+void
+gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a, const struct gkyl_range *b)
+{
+  int adim = a->ndim, bdim = b->ndim;
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<adim; ++d) {
+    lower[d] = a->lower[d];
+    upper[d] = a->upper[d];
+  }
+  for (int d=0; d<bdim; ++d) {
+    lower[adim+d] = b->lower[d];
+    upper[adim+d] = b->upper[d];
+  }
+  gkyl_range_init(rng, adim+bdim, lower, upper);
+}
+
+void
+gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
+  const int *delta)
+{
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<inp->ndim; ++d) {
+    lower[d] = inp->lower[d] + delta[d];
+    upper[d] = inp->upper[d] + delta[d];
+  }
+  gkyl_range_init(rng, inp->ndim, lower, upper);
+}
+
 int
 gkyl_range_is_sub_range(const struct gkyl_range *rng)
 {
   return IS_SUB_RANGE(rng->flags);
+}
+
+int
+gkyl_range_contains_idx(const struct gkyl_range *rng, const int *idx)
+{
+  for (int i=0; i<rng->ndim; ++i) {
+    if ( (idx[i] < rng->lower[i]) || (idx[i] > rng->upper[i]) )
+      return 0;
+  }
+  return 1;
 }
 
 void
@@ -230,6 +284,20 @@ gkyl_range_shorten(struct gkyl_range *rng,
 }
 
 void
+gkyl_range_extend(struct gkyl_range *erng,
+  const struct gkyl_range* range, const int *elo, const int *eup)
+{
+  int ndim = range->ndim;
+  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+
+  for (int i=0; i<ndim; ++i) {
+    lo[i] = range->lower[i]-elo[i];
+    up[i] = range->upper[i]+eup[i];
+  }
+  gkyl_range_init(erng, ndim, lo, up);
+}
+
+void
 gkyl_range_lower_skin(struct gkyl_range *rng,
   const struct gkyl_range* range, int dir, int nskin)
 {
@@ -328,6 +396,44 @@ gkyl_range_intersect(struct gkyl_range* irng,
   return irng->volume > 0 ? 1 : 0;
 }
 
+int
+gkyl_sub_range_intersect(struct gkyl_range* irng,
+  const struct gkyl_range *r1, const struct gkyl_range *r2)
+{
+  int ndim = r1->ndim;
+  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; ++d) {
+    lo[d] = r1->lower[d] > r2->lower[d] ? r1->lower[d] : r2->lower[d];
+    up[d] = r1->upper[d] < r2->upper[d] ? r1->upper[d] : r2->upper[d];
+  }
+  
+  long vol = calc_volume_safely(ndim, lo, up);
+  if (vol > 0)
+    gkyl_sub_range_init(irng, r1, lo, up);
+  else
+    gkyl_range_init(irng, ndim, lo, up);
+  return irng->volume > 0 ? 1 : 0;
+}
+
+bool
+gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent)
+{
+  if (range->lower[dir] == parent->lower[dir])
+    return true;
+  return false;
+  
+}
+
+bool
+gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent)
+{
+  if (range->upper[dir] == parent->upper[dir])
+    return true;
+  return false;  
+}
+    
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
@@ -402,5 +508,6 @@ gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
   fprintf(fp, " volume = %ld, ", range->volume );
   fprintf(fp, " is_sub_range = %d", gkyl_range_is_sub_range(range) );
   
-  fprintf(fp, " }\n ");
+  fprintf(fp, " }\n");
+  fflush(fp);
 }

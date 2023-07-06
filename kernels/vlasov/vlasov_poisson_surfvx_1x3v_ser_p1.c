@@ -1,19 +1,19 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_hyb_1x3v_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_hyb_1x3v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_poisson_surfvx_1x3v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void vlasov_poisson_surfvx_1x3v_ser_p1(const double *w, const double *dxv, const double *field, const double *ext_field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // fac_phi:   potential (scaled by appropriate factors).
-  // vecA:      vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
+  // field:     potential (scaled by appropriate factors).
+  // ext_field: vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
   // fl/fc/fr:  Input Distribution function in left/center/right cells 
   // out:       Output distribution function in center cell 
   const double dv10 = 2/dxv[1]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
   const double dv2 = dxv[2], wv2 = w[2]; 
   const double dv3 = dxv[3], wv3 = w[3]; 
-  const double *phi = &fac_phi[0]; 
+  const double *phi = &field[0]; 
   const double dx10 = 2/dxv[0]; 
   double alpha[16] = {0.0}; 
 
@@ -26,7 +26,7 @@ GKYL_CU_DH void vlasov_poisson_surfvx_1x3v_ser_p1(const double *w, const double 
   double Ghat_l[16] = {0.0}; 
   double Ghat_r[16] = {0.0}; 
 
-  if (alpha[0] > 0) { 
+  if (0.3535533905932737*alpha[0] > 0) { 
     fUpwindQuad_l[0] = hyb_1x3v_p1_surfx2_eval_quad_node_0_r(fl); 
     fUpwindQuad_r[0] = hyb_1x3v_p1_surfx2_eval_quad_node_0_r(fc); 
     fUpwindQuad_l[1] = hyb_1x3v_p1_surfx2_eval_quad_node_1_r(fl); 
@@ -65,7 +65,7 @@ GKYL_CU_DH void vlasov_poisson_surfvx_1x3v_ser_p1(const double *w, const double 
     fUpwindQuad_l[8] = hyb_1x3v_p1_surfx2_eval_quad_node_8_l(fc); 
     fUpwindQuad_r[8] = hyb_1x3v_p1_surfx2_eval_quad_node_8_l(fr); 
   } 
-  if (alpha[0] > 0) { 
+  if (0.3535533905932737*alpha[0] > 0) { 
     fUpwindQuad_l[9] = hyb_1x3v_p1_surfx2_eval_quad_node_9_r(fl); 
     fUpwindQuad_r[9] = hyb_1x3v_p1_surfx2_eval_quad_node_9_r(fc); 
     fUpwindQuad_l[10] = hyb_1x3v_p1_surfx2_eval_quad_node_10_r(fl); 

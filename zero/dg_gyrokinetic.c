@@ -52,10 +52,10 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   const struct gkyl_range* conf_range, const double charge, const double mass, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu)
     return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, charge, mass);
-  } 
 #endif
+
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
@@ -68,13 +68,13 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   gyrokinetic->mass = mass;
 
   gyrokinetic->eqn.num_equations = 1;
-  gyrokinetic->eqn.vol_term = vol;
   gyrokinetic->eqn.surf_term = surf;
   gyrokinetic->eqn.boundary_surf_term = boundary_surf;
 
   const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_vpar_kernels;
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_x_kernels,*boundary_surf_y_kernels,*boundary_surf_z_kernels;
   const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels;
 
   switch (cbasis->b_type) {
@@ -84,6 +84,9 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       surf_y_kernels = ser_surf_y_kernels;
       surf_z_kernels = ser_surf_z_kernels;
       surf_vpar_kernels = ser_surf_vpar_kernels;
+      boundary_surf_x_kernels = ser_boundary_surf_x_kernels;
+      boundary_surf_y_kernels = ser_boundary_surf_y_kernels;
+      boundary_surf_z_kernels = ser_boundary_surf_z_kernels;
       boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
 
       break;
@@ -93,23 +96,27 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       break;
   }
 
-  gyrokinetic->vol = CK(vol_kernels,cdim,vdim,poly_order);
+  gyrokinetic->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
 
   gyrokinetic->surf[0] = CK(surf_x_kernels,cdim,vdim,poly_order);
   if (cdim>1)
     gyrokinetic->surf[1] = CK(surf_y_kernels,cdim,vdim,poly_order);
   if (cdim>2)
     gyrokinetic->surf[2] = CK(surf_z_kernels,cdim,vdim,poly_order);
-
   gyrokinetic->surf[cdim] = CK(surf_vpar_kernels,cdim,vdim,poly_order);
 
-  gyrokinetic->boundary_surf = CK(boundary_surf_vpar_kernels,cdim,vdim,poly_order);
+  gyrokinetic->boundary_surf[0] = CK(boundary_surf_x_kernels,cdim,vdim,poly_order);
+  if (cdim>1)
+    gyrokinetic->boundary_surf[1] = CK(boundary_surf_y_kernels,cdim,vdim,poly_order);
+  if (cdim>2)
+    gyrokinetic->boundary_surf[2] = CK(boundary_surf_z_kernels,cdim,vdim,poly_order);
+  gyrokinetic->boundary_surf[cdim] = CK(boundary_surf_vpar_kernels,cdim,vdim,poly_order);
 
   // Ensure non-NULL pointers.
-  assert(gyrokinetic->vol);
   for (int i=0; i<cdim; ++i) assert(gyrokinetic->surf[i]);
   assert(gyrokinetic->surf[cdim]);
-  assert(gyrokinetic->boundary_surf);
+  for (int i=0; i<cdim; ++i) assert(gyrokinetic->boundary_surf[i]);
+  assert(gyrokinetic->boundary_surf[cdim]);
 
   gyrokinetic->auxfields.bmag         = 0;
   gyrokinetic->auxfields.jacobtot_inv = 0;

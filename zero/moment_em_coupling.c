@@ -1,6 +1,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_moment_em_coupling.h>
+#include <gkyl_mat.h>
 
 // Makes indexing cleaner
 static const unsigned RHO = 0;
@@ -25,19 +26,27 @@ static const unsigned BZ = 5;
 static const unsigned PHIE = 6;
 static const unsigned PHIM = 7;
 
+#define INTERNAL_ENERGY (4)
+
+#define sq(x) ((x) * (x))
+
 struct gkyl_moment_em_coupling {
   struct gkyl_rect_grid grid; // grid object
   int ndim; // number of dimensions
   int nfluids; // number of fluids in multi-fluid system
   struct gkyl_moment_em_coupling_data param[GKYL_MAX_SPECIES]; // struct of fluid parameters
   double epsilon0; // permittivity of free space
+
+  bool has_collision; // has collisions
+  // normalized collision frequencies; nu_sr = nu_base[s][r] * rho_r
+  double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 };
 
 // Rotate pressure tensor using magnetic field. See Wang
 // et. al. 2020 for details.
 static void
 pressure_tensor_rotate(double qbym, double dt, const double *em, const double *ext_em,
-  const double prRhs[6], double prOut[6])
+  double prOld[6], double prRhs[6], double prOut[6])
 {
   double Bx = em[BX] + ext_em[BX];
   double By = em[BY] + ext_em[BY];
@@ -62,12 +71,12 @@ pressure_tensor_rotate(double qbym, double dt, const double *em, const double *e
   double qb4 = qbym * qb3;
   double d = 1 + 5*(Bx2 + By2 + Bz2)*dtsq*qb2 + 4*(Bx2 + By2 + Bz2)*(Bx2 + By2 + Bz2)*dt4*qb4;
 
-  prOut[0] = 2.0*(prRhs[0] + 2*dt1*(Bz*prRhs[1] - By*prRhs[2])*qbym + dtsq*(5*Bx2*prRhs[0] + 2*Bx*(By*prRhs[1] + Bz*prRhs[2]) + Bz2*(3*prRhs[0] + 2*prRhs[3]) - 4*By*Bz*prRhs[4] + By2*(3*prRhs[0] + 2*prRhs[5]))*qb2 + 2*dt3*(4*Bx2*(Bz*prRhs[1] - By*prRhs[2]) - (By2 + Bz2)*(-(Bz*prRhs[1]) + By*prRhs[2]) - 3*Bx*(By2*prRhs[4] - Bz2*prRhs[4] + By*Bz*(-prRhs[3] + prRhs[5])))*qb3 + 2*dt4*(2*Bx4*prRhs[0] + 4*Bx3*(By*prRhs[1] + Bz*prRhs[2]) - 2*Bx*(By2 + Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + (By2 + Bz2)*(Bz2*(prRhs[0] + prRhs[3]) - 2*By*Bz*prRhs[4] + By2*(prRhs[0] + prRhs[5])) + Bx2*(4*By*Bz*prRhs[4] + By2*(3*prRhs[3] + prRhs[5]) + Bz2*(prRhs[3] + 3*prRhs[5])))*qb4)/d - prRhs[0];
-  prOut[1] =  2.0*(prRhs[1] + dt1*(Bx*prRhs[2] + Bz*(-prRhs[0] + prRhs[3]) - By*prRhs[4])*qbym + dtsq*(4*Bx2*prRhs[1] + 4*By2*prRhs[1] + Bz2*prRhs[1] + 3*By*Bz*prRhs[2] + Bx*(3*Bz*prRhs[4] + By*(prRhs[0] + prRhs[3] - 2*prRhs[5])))*qb2 + dt3*(4*Bx3*prRhs[2] - 2*Bx*(By2 + Bz2)*prRhs[2] + Bz3*(-prRhs[0] + prRhs[3]) - 4*By3*prRhs[4] + 2*By*Bz2*prRhs[4] - By2*Bz*(prRhs[0] - 4*prRhs[3] + 3*prRhs[5]) + Bx2*(2*By*prRhs[4] + Bz*(-4*prRhs[0] + prRhs[3] + 3*prRhs[5])))*qb3 + 2*Bx*By*dt4*(6*Bx*(By*prRhs[1] + Bz*prRhs[2]) + 6*By*Bz*prRhs[4] - Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + Bx2*(2*prRhs[0] - prRhs[3] - prRhs[5]) - By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]))*qb4)/d - prRhs[1];
-  prOut[2] =  2.0*(prRhs[2] + dt1*(-(Bx*prRhs[1]) + Bz*prRhs[4] + By*(prRhs[0] - prRhs[5]))*qbym + dtsq*(3*By*Bz*prRhs[1] + 4*Bx2*prRhs[2] + By2*prRhs[2] + 4*Bz2*prRhs[2] + Bx*(3*By*prRhs[4] + Bz*(prRhs[0] - 2*prRhs[3] + prRhs[5])))*qb2 + dt3*(-4*Bx3*prRhs[1] + 2*Bx*(By2 + Bz2)*prRhs[1] - 2*By2*Bz*prRhs[4] + 4*Bz3*prRhs[4] + By*Bz2*(prRhs[0] + 3*prRhs[3] - 4*prRhs[5]) + By3*(prRhs[0] - prRhs[5]) - Bx2*(2*Bz*prRhs[4] + By*(-4*prRhs[0] + 3*prRhs[3] + prRhs[5])))*qb3 + 2*Bx*Bz*dt4*(6*Bx*(By*prRhs[1] + Bz*prRhs[2]) + 6*By*Bz*prRhs[4] - Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + Bx2*(2*prRhs[0] - prRhs[3] - prRhs[5]) - By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]))*qb4)/d - prRhs[2];
-  prOut[3] =  2.0*(prRhs[3] + (-2*Bz*dt1*prRhs[1] + 2*Bx*dt1*prRhs[4])*qbym + dtsq*(2*Bx*By*prRhs[1] + 5*By2*prRhs[3] + Bz2*(2*prRhs[0] + 3*prRhs[3]) + Bz*(-4*Bx*prRhs[2] + 2*By*prRhs[4]) + Bx2*(3*prRhs[3] + 2*prRhs[5]))*qb2 + 2*dt3*(Bx2*(-(Bz*prRhs[1]) + 3*By*prRhs[2]) - Bz*(4*By2*prRhs[1] + Bz2*prRhs[1] + 3*By*Bz*prRhs[2]) + Bx3*prRhs[4] + Bx*(4*By2*prRhs[4] + Bz2*prRhs[4] + 3*By*Bz*(-prRhs[0] + prRhs[5])))*qb3 + 2*dt4*(-2*Bx3*(By*prRhs[1] + Bz*prRhs[2]) + 2*Bx*(2*By2 - Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + 2*By4*prRhs[3] + Bz4*(prRhs[0] + prRhs[3]) + 4*By3*Bz*prRhs[4] - 2*By*Bz3*prRhs[4] + Bx4*(prRhs[3] + prRhs[5]) + By2*Bz2*(prRhs[0] + 3*prRhs[5]) + Bx2*(-2*By*Bz*prRhs[4] + By2*(3*prRhs[0] + prRhs[5]) + Bz2*(prRhs[0] + 2*prRhs[3] + prRhs[5])))*qb4)/d - prRhs[3];
-  prOut[4] =  2.0*(prRhs[4] + dt1*(By*prRhs[1] - Bz*prRhs[2] + Bx*(-prRhs[3] + prRhs[5]))*qbym + dtsq*(3*Bx*Bz*prRhs[1] + Bx2*prRhs[4] + 4*By2*prRhs[4] + 4*Bz2*prRhs[4] + By*(3*Bx*prRhs[2] + Bz*(-2*prRhs[0] + prRhs[3] + prRhs[5])))*qb2 + dt3*(4*By3*prRhs[1] - 2*By*Bz2*prRhs[1] + 2*By2*Bz*prRhs[2] - 4*Bz3*prRhs[2] + Bx2*(-2*By*prRhs[1] + 2*Bz*prRhs[2]) + Bx3*(-prRhs[3] + prRhs[5]) + Bx*(-(Bz2*(3*prRhs[0] + prRhs[3] - 4*prRhs[5])) + By2*(3*prRhs[0] - 4*prRhs[3] + prRhs[5])))*qb3 - 2*By*Bz*dt4*(-6*Bx*(By*prRhs[1] + Bz*prRhs[2]) - 6*By*Bz*prRhs[4] + Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]) + Bx2*(-2*prRhs[0] + prRhs[3] + prRhs[5]))*qb4)/d - prRhs[4];
-  prOut[5] =  2.0*(prRhs[5] + 2*dt1*(By*prRhs[2] - Bx*prRhs[4])*qbym + dtsq*(2*Bx*Bz*prRhs[2] + By*(-4*Bx*prRhs[1] + 2*Bz*prRhs[4]) + 5*Bz2*prRhs[5] + By2*(2*prRhs[0] + 3*prRhs[5]) + Bx2*(2*prRhs[3] + 3*prRhs[5]))*qb2 - 2*dt3*(Bx2*(3*Bz*prRhs[1] - By*prRhs[2]) - By*(3*By*Bz*prRhs[1] + By2*prRhs[2] + 4*Bz2*prRhs[2]) + Bx3*prRhs[4] + Bx*(3*By*Bz*(-prRhs[0] + prRhs[3]) + By2*prRhs[4] + 4*Bz2*prRhs[4]))*qb3 + 2*dt4*(-2*Bx3*(By*prRhs[1] + Bz*prRhs[2]) - 2*Bx*(By2 - 2*Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + By2*Bz2*(prRhs[0] + 3*prRhs[3]) - 2*By3*Bz*prRhs[4] + 4*By*Bz3*prRhs[4] + 2*Bz4*prRhs[5] + By4*(prRhs[0] + prRhs[5]) + Bx4*(prRhs[3] + prRhs[5]) + Bx2*(Bz2*(3*prRhs[0] + prRhs[3]) - 2*By*Bz*prRhs[4] + By2*(prRhs[0] + prRhs[3] + 2*prRhs[5])))*qb4)/d - prRhs[5];
+  prOut[0] = 2.0*(prRhs[0] + 2*dt1*(Bz*prRhs[1] - By*prRhs[2])*qbym + dtsq*(5*Bx2*prRhs[0] + 2*Bx*(By*prRhs[1] + Bz*prRhs[2]) + Bz2*(3*prRhs[0] + 2*prRhs[3]) - 4*By*Bz*prRhs[4] + By2*(3*prRhs[0] + 2*prRhs[5]))*qb2 + 2*dt3*(4*Bx2*(Bz*prRhs[1] - By*prRhs[2]) - (By2 + Bz2)*(-(Bz*prRhs[1]) + By*prRhs[2]) - 3*Bx*(By2*prRhs[4] - Bz2*prRhs[4] + By*Bz*(-prRhs[3] + prRhs[5])))*qb3 + 2*dt4*(2*Bx4*prRhs[0] + 4*Bx3*(By*prRhs[1] + Bz*prRhs[2]) - 2*Bx*(By2 + Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + (By2 + Bz2)*(Bz2*(prRhs[0] + prRhs[3]) - 2*By*Bz*prRhs[4] + By2*(prRhs[0] + prRhs[5])) + Bx2*(4*By*Bz*prRhs[4] + By2*(3*prRhs[3] + prRhs[5]) + Bz2*(prRhs[3] + 3*prRhs[5])))*qb4)/d - prOld[0];
+  prOut[1] =  2.0*(prRhs[1] + dt1*(Bx*prRhs[2] + Bz*(-prRhs[0] + prRhs[3]) - By*prRhs[4])*qbym + dtsq*(4*Bx2*prRhs[1] + 4*By2*prRhs[1] + Bz2*prRhs[1] + 3*By*Bz*prRhs[2] + Bx*(3*Bz*prRhs[4] + By*(prRhs[0] + prRhs[3] - 2*prRhs[5])))*qb2 + dt3*(4*Bx3*prRhs[2] - 2*Bx*(By2 + Bz2)*prRhs[2] + Bz3*(-prRhs[0] + prRhs[3]) - 4*By3*prRhs[4] + 2*By*Bz2*prRhs[4] - By2*Bz*(prRhs[0] - 4*prRhs[3] + 3*prRhs[5]) + Bx2*(2*By*prRhs[4] + Bz*(-4*prRhs[0] + prRhs[3] + 3*prRhs[5])))*qb3 + 2*Bx*By*dt4*(6*Bx*(By*prRhs[1] + Bz*prRhs[2]) + 6*By*Bz*prRhs[4] - Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + Bx2*(2*prRhs[0] - prRhs[3] - prRhs[5]) - By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]))*qb4)/d - prOld[1];
+  prOut[2] =  2.0*(prRhs[2] + dt1*(-(Bx*prRhs[1]) + Bz*prRhs[4] + By*(prRhs[0] - prRhs[5]))*qbym + dtsq*(3*By*Bz*prRhs[1] + 4*Bx2*prRhs[2] + By2*prRhs[2] + 4*Bz2*prRhs[2] + Bx*(3*By*prRhs[4] + Bz*(prRhs[0] - 2*prRhs[3] + prRhs[5])))*qb2 + dt3*(-4*Bx3*prRhs[1] + 2*Bx*(By2 + Bz2)*prRhs[1] - 2*By2*Bz*prRhs[4] + 4*Bz3*prRhs[4] + By*Bz2*(prRhs[0] + 3*prRhs[3] - 4*prRhs[5]) + By3*(prRhs[0] - prRhs[5]) - Bx2*(2*Bz*prRhs[4] + By*(-4*prRhs[0] + 3*prRhs[3] + prRhs[5])))*qb3 + 2*Bx*Bz*dt4*(6*Bx*(By*prRhs[1] + Bz*prRhs[2]) + 6*By*Bz*prRhs[4] - Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + Bx2*(2*prRhs[0] - prRhs[3] - prRhs[5]) - By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]))*qb4)/d - prOld[2];
+  prOut[3] =  2.0*(prRhs[3] + (-2*Bz*dt1*prRhs[1] + 2*Bx*dt1*prRhs[4])*qbym + dtsq*(2*Bx*By*prRhs[1] + 5*By2*prRhs[3] + Bz2*(2*prRhs[0] + 3*prRhs[3]) + Bz*(-4*Bx*prRhs[2] + 2*By*prRhs[4]) + Bx2*(3*prRhs[3] + 2*prRhs[5]))*qb2 + 2*dt3*(Bx2*(-(Bz*prRhs[1]) + 3*By*prRhs[2]) - Bz*(4*By2*prRhs[1] + Bz2*prRhs[1] + 3*By*Bz*prRhs[2]) + Bx3*prRhs[4] + Bx*(4*By2*prRhs[4] + Bz2*prRhs[4] + 3*By*Bz*(-prRhs[0] + prRhs[5])))*qb3 + 2*dt4*(-2*Bx3*(By*prRhs[1] + Bz*prRhs[2]) + 2*Bx*(2*By2 - Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + 2*By4*prRhs[3] + Bz4*(prRhs[0] + prRhs[3]) + 4*By3*Bz*prRhs[4] - 2*By*Bz3*prRhs[4] + Bx4*(prRhs[3] + prRhs[5]) + By2*Bz2*(prRhs[0] + 3*prRhs[5]) + Bx2*(-2*By*Bz*prRhs[4] + By2*(3*prRhs[0] + prRhs[5]) + Bz2*(prRhs[0] + 2*prRhs[3] + prRhs[5])))*qb4)/d - prOld[3];
+  prOut[4] =  2.0*(prRhs[4] + dt1*(By*prRhs[1] - Bz*prRhs[2] + Bx*(-prRhs[3] + prRhs[5]))*qbym + dtsq*(3*Bx*Bz*prRhs[1] + Bx2*prRhs[4] + 4*By2*prRhs[4] + 4*Bz2*prRhs[4] + By*(3*Bx*prRhs[2] + Bz*(-2*prRhs[0] + prRhs[3] + prRhs[5])))*qb2 + dt3*(4*By3*prRhs[1] - 2*By*Bz2*prRhs[1] + 2*By2*Bz*prRhs[2] - 4*Bz3*prRhs[2] + Bx2*(-2*By*prRhs[1] + 2*Bz*prRhs[2]) + Bx3*(-prRhs[3] + prRhs[5]) + Bx*(-(Bz2*(3*prRhs[0] + prRhs[3] - 4*prRhs[5])) + By2*(3*prRhs[0] - 4*prRhs[3] + prRhs[5])))*qb3 - 2*By*Bz*dt4*(-6*Bx*(By*prRhs[1] + Bz*prRhs[2]) - 6*By*Bz*prRhs[4] + Bz2*(prRhs[0] + prRhs[3] - 2*prRhs[5]) + By2*(prRhs[0] - 2*prRhs[3] + prRhs[5]) + Bx2*(-2*prRhs[0] + prRhs[3] + prRhs[5]))*qb4)/d - prOld[4];
+  prOut[5] =  2.0*(prRhs[5] + 2*dt1*(By*prRhs[2] - Bx*prRhs[4])*qbym + dtsq*(2*Bx*Bz*prRhs[2] + By*(-4*Bx*prRhs[1] + 2*Bz*prRhs[4]) + 5*Bz2*prRhs[5] + By2*(2*prRhs[0] + 3*prRhs[5]) + Bx2*(2*prRhs[3] + 3*prRhs[5]))*qb2 - 2*dt3*(Bx2*(3*Bz*prRhs[1] - By*prRhs[2]) - By*(3*By*Bz*prRhs[1] + By2*prRhs[2] + 4*Bz2*prRhs[2]) + Bx3*prRhs[4] + Bx*(3*By*Bz*(-prRhs[0] + prRhs[3]) + By2*prRhs[4] + 4*Bz2*prRhs[4]))*qb3 + 2*dt4*(-2*Bx3*(By*prRhs[1] + Bz*prRhs[2]) - 2*Bx*(By2 - 2*Bz2)*(By*prRhs[1] + Bz*prRhs[2]) + By2*Bz2*(prRhs[0] + 3*prRhs[3]) - 2*By3*Bz*prRhs[4] + 4*By*Bz3*prRhs[4] + 2*Bz4*prRhs[5] + By4*(prRhs[0] + prRhs[5]) + Bx4*(prRhs[3] + prRhs[5]) + Bx2*(Bz2*(3*prRhs[0] + prRhs[3]) - 2*By*Bz*prRhs[4] + By2*(prRhs[0] + prRhs[3] + 2*prRhs[5])))*qb4)/d - prOld[5];
 }
 
 // Update momentum and E field using time-centered scheme. See Wang
@@ -228,6 +237,193 @@ neut_source_update(const gkyl_moment_em_coupling *mes, double dt,
   }
 }
 
+/* INTER-SPECIES FRICTION */
+static inline double
+internal_energy(const double *f)
+{
+  return f[ER] - 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
+}
+
+
+static void
+calcNu(const gkyl_moment_em_coupling *mes,
+       double **fluids,
+       const double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES],
+       double *nu)
+{
+  int nfluids = mes->nfluids;
+
+  // TODO temperature dependence? user-defined calcNu function?
+  for (int s=0; s<nfluids; ++s)
+  {
+    double *nu_s = nu + nfluids * s;
+    for (int r=0; r<nfluids; ++r)
+      nu_s[r] = nu_base[s][r] * fluids[r][RHO];
+  }
+}
+
+
+static void
+collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
+  double *fluids[GKYL_MAX_SPECIES])
+{
+  int nfluids = mes->nfluids;
+  double nu[nfluids * nfluids];
+
+  /* STEP 0: CALCULATE INTER-SPECIES COLLISION FREQUENCIES */
+  calcNu(mes, fluids, mes->nu_base, nu);
+
+  /* STEP 1: UPDATE VELOCITIES */
+  // the lhs matrix is identical for all three (i.e., x,y,z) components
+  struct gkyl_mat *lhs = gkyl_mat_new(nfluids, nfluids, 0.0);
+  // rhs has 3 column vectors, each has nfluids components <-> nfluids equations
+  struct gkyl_mat *rhs = gkyl_mat_new(nfluids, 3, 0.0);
+
+  for (int s=0; s<nfluids; ++s)
+  {
+    double *fs = fluids[s];
+    gkyl_mat_set(rhs, s, 0, fs[MX] / fs[RHO]);
+    gkyl_mat_set(rhs, s, 1, fs[MY] / fs[RHO]);
+    gkyl_mat_set(rhs, s, 2, fs[MZ] / fs[RHO]);
+
+    gkyl_mat_set(lhs, s, s, 1.0);
+    double *nu_s = nu + nfluids * s;
+    for (int r=0; r<nfluids; ++r)
+    {
+      if (r==s) {
+        gkyl_mat_inc(lhs, s, s, 0.5 * dt * nu_s[s]);
+        continue;
+      }
+
+      double half_dt_nu_sr = 0.5 * dt * nu_s[r];
+      gkyl_mat_inc(lhs, s, s, half_dt_nu_sr);
+      gkyl_mat_inc(lhs, s, r, -half_dt_nu_sr);
+    }
+  }
+
+  gkyl_mem_buff ipiv = gkyl_mem_buff_new(sizeof(long[nfluids]));
+  // lhs and rhs will be rewritten by output, i.e., rhs is solution after solve
+  bool status = gkyl_mat_linsolve_lu(lhs, rhs, gkyl_mem_buff_data(ipiv));
+
+  /* STEP 2: UPDATE TEMPERATURE OR PRESSURE */
+  if (true) {
+    gkyl_mat_clear(lhs, 0.0);
+    struct gkyl_mat *rhs_T = gkyl_mat_new(nfluids, 1, 0.0);
+
+    double T[nfluids];
+    for (int s=0; s<nfluids; ++s)
+    {
+      double ms = mes->param[s].mass;
+
+      double *fs = fluids[s];
+      T[s] = internal_energy(fs) / fs[RHO] * ms; // this is actually T/(gamma-1)
+      gkyl_mat_set(rhs_T, s, 0, T[s]);
+      gkyl_mat_set(lhs, s, s, 1.0);
+
+      double *nu_s = nu + nfluids * s;
+      for (int r=0; r<nfluids; ++r)
+      {
+        if (r==s)
+          continue;
+
+        double mr = mes->param[r].mass;
+        // velocity difference due to velocities at t=n+1/2
+        double du2 = sq(gkyl_mat_get(rhs,s,0)-gkyl_mat_get(rhs,r,0))
+                   + sq(gkyl_mat_get(rhs,s,1)-gkyl_mat_get(rhs,r,1))
+                   + sq(gkyl_mat_get(rhs,s,2)-gkyl_mat_get(rhs,r,2));
+        double coeff_sr = dt * nu_s[r] * ms / (ms + mr);
+
+        gkyl_mat_inc(rhs_T, s, 0, coeff_sr * 0.5 * mr * du2);
+        gkyl_mat_inc(lhs, s, s, coeff_sr);
+        gkyl_mat_inc(lhs, s, r, -coeff_sr);
+      }
+    }
+
+    // Compute pressure at n+1/2 and then at n+1 using old velocities
+    status = gkyl_mat_linsolve_lu(lhs, rhs_T, gkyl_mem_buff_data(ipiv));
+    for (int s=0; s<nfluids; ++s)
+    {
+      double *f = fluids[s];
+      f[INTERNAL_ENERGY] = (2.0 * gkyl_mat_get(rhs_T,s,0) - T[s]) * f[RHO] / mes->param[s].mass;
+    }
+
+    gkyl_mat_release(rhs_T);
+  } else {
+    for (int s=0; s<nfluids; ++s)
+    {
+      double *f = fluids[s];
+      f[INTERNAL_ENERGY] = internal_energy(f);
+    }
+  }
+
+  /* STEP 3: UPDATE MOMENTUM AND TOTAL ENERGY */
+  for (int s=0; s<nfluids; ++s)
+  {
+    double *f = fluids[s];
+    f[MX] = 2 * f[RHO] * gkyl_mat_get(rhs,s,0) - f[MX];
+    f[MY] = 2 * f[RHO] * gkyl_mat_get(rhs,s,1) - f[MY];
+    f[MZ] = 2 * f[RHO] * gkyl_mat_get(rhs,s,2) - f[MZ];
+    f[ER] = f[INTERNAL_ENERGY] + 0.5*(sq(f[MX])+sq(f[MY])+sq(f[MZ]))/f[RHO];
+  }
+
+  gkyl_mem_buff_release(ipiv);
+  gkyl_mat_release(lhs);
+  gkyl_mat_release(rhs);
+}
+
+/***********************************************/
+/* user-defined density and temperature source */
+/***********************************************/
+
+static void
+user_source_euler_update(const gkyl_moment_em_coupling *mes,
+            const int s,
+            const double dt,
+            double *q,
+            double *q1,
+            const double *S)
+{
+  double m = mes->param[s].mass;
+
+  double rho0 = q[RHO];
+  double n0 = rho0 / m;
+  double u = q[MX] / rho0;
+  double v = q[MY] / rho0;
+  double w = q[MZ] / rho0;
+  double v2 = u*u + v*v + w*w;
+  double TT0 = (q[ER] - 0.5 * rho0 * v2) / n0; // TT0=kB*T0/(gamma-1)
+
+  double n1 = n0 + dt * S[0]; // source for number density n
+  double TT1 = TT0 + dt * S[1]; // source for scaled temperature kB*T/(gamma-1)
+
+  double rho1 = n1 * m;
+  q[RHO] = rho1;
+  q1[MX] = rho1 * u;
+  q1[MY] = rho1 * v;
+  q1[MZ] = rho1 * w;
+  q1[ER] = n1 * TT1 + 0.5 * rho1 * v2;
+}
+
+void
+user_source_update(
+  const gkyl_moment_em_coupling *mes,
+  const double dt,
+  double *qPtrs[],
+  const double *sourcePtrs[])
+{
+  for (int s=0; s<mes->nfluids; ++s)
+  {
+    double *q = qPtrs[s];
+    const double *S = sourcePtrs[s];
+    user_source_euler_update(mes, s, dt, q, q, S);
+  }
+}
+
+/**********************************/
+/* update all sources in one call */
+/**********************************/
+
+
 // Update momentum and E field along with appropriate pressure update.
 // If isothermal Euler equations, only update momentum and E,
 // if Euler equations, update energy based on new kinetic energy,
@@ -235,15 +431,17 @@ neut_source_update(const gkyl_moment_em_coupling *mes, double dt,
 // See Wang et. al. 2020 JCP for details
 static void
 fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
-  double* fluids[GKYL_MAX_SPECIES], const double *app_accels[GKYL_MAX_SPECIES],
+  double* fluids[GKYL_MAX_SPECIES], 
+  const double *app_accels[GKYL_MAX_SPECIES], const double *rhs_s[GKYL_MAX_SPECIES], 
   double* em, const double* app_current, const double* ext_em)
 {
   int nfluids = mes->nfluids;
   double keOld[GKYL_MAX_SPECIES];
-  double prInp[6], prTen[GKYL_MAX_SPECIES][6];
+  double prInp[6], prRhs[6], prTen[GKYL_MAX_SPECIES][6];
   
   for (int n=0; n < nfluids; ++n) {
     const double *f = fluids[n];
+    const double *rhs = rhs_s[n];
     // If Euler equations, store old value of the kinetic energy for later update.
     if (mes->param[n].type == GKYL_EQN_EULER) {
       keOld[n] = 0.5 * (f[MX]*f[MX] + f[MY]*f[MY] + f[MZ]*f[MZ]) / f[RHO];
@@ -258,15 +456,23 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
       prInp[4] = f[P23] - f[MY] * f[MZ] / f[RHO];
       prInp[5] = f[P33] - f[MZ] * f[MZ] / f[RHO];
 
+      prRhs[0] = prInp[0] + 0.5*dt*rhs[P11];
+      prRhs[1] = prInp[1] + 0.5*dt*rhs[P12];
+      prRhs[2] = prInp[2] + 0.5*dt*rhs[P13];
+      prRhs[3] = prInp[3] + 0.5*dt*rhs[P22];
+      prRhs[4] = prInp[4] + 0.5*dt*rhs[P23];
+      prRhs[5] = prInp[5] + 0.5*dt*rhs[P33];
+
       double p = 1.0/3.0*(prInp[0] + prInp[3] + prInp[5]);
       double vth = sqrt(p/f[RHO]);
       double nu = vth*mes->param[n].k0;
       double edt = exp(nu*dt);
 
+
       // If permittivity of free-space is non-zero, EM fields exist
       // and we rotate pressure tensor around magnetic field 
       if (mes->epsilon0)
-        pressure_tensor_rotate(qbym, dt, em, ext_em, prInp, prTen[n]);
+        pressure_tensor_rotate(qbym, dt, em, ext_em, prInp, prRhs, prTen[n]);
 
       // Divide out integrating factor from collisional relaxation
       // (P - pI) = exp(-nu*dt)*(P - pI); where p is the isotropic pressure 
@@ -305,6 +511,9 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double dt,
       f[P33] = f[MZ] * f[MZ] / f[RHO] + prTen[n][5];
     }
   }
+
+  if (mes->has_collision)
+    collision_source_update(mes, dt, fluids);
 }
 
 gkyl_moment_em_coupling*
@@ -318,18 +527,27 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   for (int n=0; n<inp.nfluids; ++n) up->param[n] = inp.param[n];
   up->epsilon0 = inp.epsilon0;
 
+  up->has_collision = inp.has_collision;
+  if(inp.has_collision) {
+    for (int s=0; s<inp.nfluids; ++s)
+      for (int r=0; r<inp.nfluids; ++r)
+        up->nu_base[s][r] = inp.nu_base[s][r];
+  }
+
   return up;
 }
 
 void
 gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_range,
-  struct gkyl_array *fluid[GKYL_MAX_SPECIES], const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
+  struct gkyl_array *fluid[GKYL_MAX_SPECIES], 
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *rhs[GKYL_MAX_SPECIES],
   struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em)
 {
   int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
   const double *app_accels[GKYL_MAX_SPECIES];
+  const double *rhs_s[GKYL_MAX_SPECIES];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -340,9 +558,10 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
     for (int n=0; n<nfluids; ++n) {
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);
       app_accels[n] = gkyl_array_cfetch(app_accel[n], lidx);
+      rhs_s[n] = gkyl_array_cfetch(rhs[n], lidx);
     }
 
-    fluid_source_update(mes, dt, fluids, app_accels,
+    fluid_source_update(mes, dt, fluids, app_accels, rhs_s, 
       gkyl_array_fetch(em, lidx),
       gkyl_array_cfetch(app_current, lidx),
       gkyl_array_cfetch(ext_em, lidx)

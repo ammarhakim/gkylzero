@@ -9,20 +9,25 @@ ARCH_FLAGS=-march=native
 CUDA_ARCH=70
 
 # Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC=${HOME}/gkylsoft/OpenBLAS/include
-LAPACK_LIB=${HOME}/gkylsoft/OpenBLAS/lib/libopenblas.a
+LAPACK_INC=$PREFIX/OpenBLAS/include
+LAPACK_LIB=$PREFIX/OpenBLAS/lib/libopenblas.a
+
+# MPI specific paths and flags
+USE_MPI=
+MPI_INC=$PREFIX/openmpi/include
+MPI_LIB=$PREFIX/openmpi/lib/
 
 OSTYPE=`uname -o`
 MACHINE=`uname -n`
 USER=`whoami`
 echo "# OS type is $OSTYPE on $MACHINE user $USER"
 # SuperLU includes and librararies
-SUPERLU_INC=${HOME}/gkylsoft/superlu/include
+SUPERLU_INC=$PREFIX/superlu/include
 if [ "$OSTYPE" = "linux-gnu"* ]
 then
-    SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib64/libsuperlu.a;
+    SUPERLU_LIB=$PREFIX/superlu/lib64/libsuperlu.a;
 else
-    SUPERLU_LIB=${HOME}/gkylsoft/superlu/lib/libsuperlu.a;
+    SUPERLU_LIB=$PREFIX/superlu/lib/libsuperlu.a;
 fi
 
 # Location of CUDA math libraries
@@ -54,6 +59,8 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 --prefix=DIR               Prefix where GkeyllZero is installed
                            Default is $HOME/gkylsoft/
 
+--use-mpi                  [no] Build MPI-dependent code
+
 Library Includes and Locations
 
 --lapack-inc               Location of Lapacke headers
@@ -61,6 +68,9 @@ Library Includes and Locations
 
 --superlu-inc              Location of SuperLU headers
 --superlu-lib              Full path to SuperLU static library
+
+--mpi-inc                  Location of MPI headers
+--mpi-lib                  Location to MPI library
 
 --cudamath-libdir          Full path to CUDA math libraries
 
@@ -142,6 +152,18 @@ do
    --superlu-lib)
       [ -n "$value" ] || die "Missing value in flag $key."
       SUPERLU_LIB="$value"
+      ;;
+   --use-mpi)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_MPI="$value"
+      ;;       
+   --openmpi-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      MPI_INC="$value"
+      ;;
+   --openmpi-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      MPI_LIB="$value"
       ;;   
    --cudamath-libdir)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -153,6 +175,13 @@ do
    esac
    shift
 done
+
+if [ "$USE_MPI" = "yes" ]
+then
+    USE_MPI=1
+else
+    USE_MPI=
+fi
 
 # Write out config.mak
 cat <<EOF1 > config.mak
@@ -171,6 +200,10 @@ LAPACK_LIB=$LAPACK_LIB
 
 SUPERLU_INC=$SUPERLU_INC
 SUPERLU_LIB=$SUPERLU_LIB
+
+USE_MPI=$USE_MPI
+MPI_INC=$MPI_INC
+MPI_LIB=$MPI_LIB
 
 CUDAMATH_LIBDIR=$CUDAMATH_LIBDIR
 

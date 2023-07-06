@@ -22,11 +22,16 @@ prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_prim_lbo_type*
 gkyl_prim_lbo_vlasov_new(const struct gkyl_basis* cbasis,
-  const struct gkyl_basis* pbasis)
+  const struct gkyl_basis* pbasis, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
-  
-  struct prim_lbo_type_vlasov *prim_vlasov = gkyl_malloc(sizeof(*prim_vlasov));
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_prim_lbo_vlasov_cu_dev_new(cbasis, pbasis);
+  } 
+#endif  
+  struct prim_lbo_type_vlasov *prim_vlasov = gkyl_malloc(sizeof(struct prim_lbo_type_vlasov));
+
   int cdim = prim_vlasov->prim.cdim = cbasis->ndim;
   int pdim = prim_vlasov->prim.pdim = pbasis->ndim;
   int vdim = pdim-cdim;

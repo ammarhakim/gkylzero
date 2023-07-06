@@ -122,6 +122,7 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_vlasov_species elc = {
     .name = "elc",
+    .model_id = GKYL_MODEL_SR,
     .charge = -1.0, .mass = 1.0,
     .lower = { -8.0, -8.0, -8.0 },
     .upper = { 8.0, 8.0, 8.0 }, 
@@ -136,7 +137,6 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_vlasov_field field = {
-    .field_id = GKYL_FIELD_SR_E_B,
     .epsilon0 = 1.0, .mu0 = 1.0,
 
     .ctx = &ctx,

@@ -2,10 +2,10 @@
 
 #include <stdio.h>
 #include <gkylzero.h>
-#include <gkyl_dg_maxwell_priv.h>
 
 extern "C" {
-    int cu_maxwell_test(const struct gkyl_dg_eqn *eqn);
+#include <gkyl_dg_maxwell_priv.h>
+int cu_maxwell_test(const struct gkyl_dg_eqn *eqn);
 }
 
 __global__

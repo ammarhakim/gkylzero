@@ -22,6 +22,18 @@ nomapc2p(double t, const double *xc, double *xp, void *ctx)
 
 // Computes 1D geometry
 static void
+calc_geom_1d_from_nodes(const double *dx, const double *xlp, const double *xrp,
+    evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
+{
+  geo->kappa = fabs(xrp[0]-xlp[0])/dx[0];
+  geo->lenr[0] = 1.0;
+
+  geo->norm[0][0] = 1.0; geo->norm[0][1] = 0.0; geo->norm[0][2] = 0.0;
+  geo->tau1[0][0] = 0.0; geo->tau1[0][1] = 1.0; geo->tau1[0][2] = 0.0;
+  geo->tau2[0][0] = 0.0; geo->tau2[0][1] = 0.0; geo->tau2[0][2] = 1.0;
+}
+
+static void
 calc_geom_1d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
 {
   double xlc[GKYL_MAX_CDIM], xrc[GKYL_MAX_CDIM];
@@ -34,38 +46,18 @@ calc_geom_1d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
   mapc2p(0.0, xlc, xlp, ctx);
   mapc2p(0.0, xrc, xrp, ctx);
 
-  geo->kappa = fabs(xrp[0]-xlp[0])/dx[0];
-  geo->lenr[0] = 1.0;
-
-  geo->norm[0][0] = 1.0; geo->norm[0][1] = 0.0; geo->norm[0][2] = 0.0;
-  geo->tau1[0][0] = 0.0; geo->tau1[0][1] = 1.0; geo->tau1[0][2] = 0.0;
-  geo->tau2[0][0] = 0.0; geo->tau2[0][1] = 0.0; geo->tau2[0][2] = 1.0;
+  calc_geom_1d_from_nodes(dx, xlp, xrp, mapc2p, ctx, geo);
 }
 
+// Computes 2D geometry
 static void
-calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
+calc_geom_2d_from_nodes(const double *dx, const struct gkyl_vec3 xll_p,
+  const struct gkyl_vec3 xlr_p, const struct gkyl_vec3 xul_p,
+  const struct gkyl_vec3 xur_p, evalf_t mapc2p, void *ctx,
+  struct gkyl_wave_cell_geom *geo)
 {
   // ll: lower-left; lr: lower-right
   // ul: upper-left; ur: upper-right
-  
-  struct gkyl_vec3 xll_p = gkyl_vec3_zeros();
-  struct gkyl_vec3 xlr_p = gkyl_vec3_zeros();
-  struct gkyl_vec3 xul_p = gkyl_vec3_zeros();
-  struct gkyl_vec3 xur_p = gkyl_vec3_zeros();
-
-  struct gkyl_vec3 xll_c = gkyl_vec3_new(xc[0] - 0.5*dx[0],  xc[1] - 0.5*dx[1], 0.0);
-  struct gkyl_vec3 xlr_c = gkyl_vec3_new(xc[0] + 0.5*dx[0],  xc[1] - 0.5*dx[1], 0.0);
-
-  struct gkyl_vec3 xul_c = gkyl_vec3_new(xc[0] - 0.5*dx[0],  xc[1] + 0.5*dx[1], 0.0);
-  struct gkyl_vec3 xur_c = gkyl_vec3_new(xc[0] + 0.5*dx[0],  xc[1] + 0.5*dx[1], 0.0);
-  
-  mapc2p(0.0, xll_c.x, xll_p.x, ctx);
-  mapc2p(0.0, xlr_c.x, xlr_p.x, ctx);
-  mapc2p(0.0, xul_c.x, xul_p.x, ctx);
-  mapc2p(0.0, xur_c.x, xur_p.x, ctx);
-
-  // need to set the final coordinate to 0.0
-  xll_p.x[2] = xlr_p.x[2] = xul_p.x[2] = xur_p.x[2] = 0.0;
 
   // volume factor
   double area = 0.5*gkyl_vec3_len( gkyl_vec3_cross(gkyl_vec3_sub(xlr_p,xll_p), gkyl_vec3_sub(xul_p,xll_p)) )
@@ -100,6 +92,35 @@ calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, stru
   }
 }
 
+static void
+calc_geom_2d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
+{
+  // ll: lower-left; lr: lower-right
+  // ul: upper-left; ur: upper-right
+  
+  struct gkyl_vec3 xll_p = gkyl_vec3_zeros();
+  struct gkyl_vec3 xlr_p = gkyl_vec3_zeros();
+  struct gkyl_vec3 xul_p = gkyl_vec3_zeros();
+  struct gkyl_vec3 xur_p = gkyl_vec3_zeros();
+
+  struct gkyl_vec3 xll_c = gkyl_vec3_new(xc[0] - 0.5*dx[0],  xc[1] - 0.5*dx[1], 0.0);
+  struct gkyl_vec3 xlr_c = gkyl_vec3_new(xc[0] + 0.5*dx[0],  xc[1] - 0.5*dx[1], 0.0);
+
+  struct gkyl_vec3 xul_c = gkyl_vec3_new(xc[0] - 0.5*dx[0],  xc[1] + 0.5*dx[1], 0.0);
+  struct gkyl_vec3 xur_c = gkyl_vec3_new(xc[0] + 0.5*dx[0],  xc[1] + 0.5*dx[1], 0.0);
+  
+  mapc2p(0.0, xll_c.x, xll_p.x, ctx);
+  mapc2p(0.0, xlr_c.x, xlr_p.x, ctx);
+  mapc2p(0.0, xul_c.x, xul_p.x, ctx);
+  mapc2p(0.0, xur_c.x, xur_p.x, ctx);
+
+  // need to set the final coordinate to 0.0
+  xll_p.x[2] = xlr_p.x[2] = xul_p.x[2] = xur_p.x[2] = 0.0;
+
+  calc_geom_2d_from_nodes(dx, xll_p, xlr_p, xul_p, xur_p, mapc2p, ctx, geo);
+}
+
+// Computes 3D geometry
 static double
 vol_tetra(const struct gkyl_vec3 p1,
           const struct gkyl_vec3 p2,
@@ -249,25 +270,9 @@ quad_area_norm_tang(const struct gkyl_vec3 p1,
 }
 
 static void
-calc_geom_3d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx,
-             struct gkyl_wave_cell_geom *geo)
+calc_geom_3d_form_nodes(const double *dx, struct gkyl_vec3 verts[8],
+    evalf_t mapc2p, void *ctx, struct gkyl_wave_cell_geom *geo)
 {
-  // get all vertices of the hexahedron; see vol_hexa for their order
-  struct gkyl_vec3 verts_c[8] = {
-    gkyl_vec3_new(xc[0]-0.5*dx[0], xc[1]-0.5*dx[1], xc[2]-0.5*dx[2]),
-    gkyl_vec3_new(xc[0]+0.5*dx[0], xc[1]-0.5*dx[1], xc[2]-0.5*dx[2]),
-    gkyl_vec3_new(xc[0]+0.5*dx[0], xc[1]+0.5*dx[1], xc[2]-0.5*dx[2]),
-    gkyl_vec3_new(xc[0]-0.5*dx[0], xc[1]+0.5*dx[1], xc[2]-0.5*dx[2]),
-    gkyl_vec3_new(xc[0]-0.5*dx[0], xc[1]-0.5*dx[1], xc[2]+0.5*dx[2]),
-    gkyl_vec3_new(xc[0]+0.5*dx[0], xc[1]-0.5*dx[1], xc[2]+0.5*dx[2]),
-    gkyl_vec3_new(xc[0]+0.5*dx[0], xc[1]+0.5*dx[1], xc[2]+0.5*dx[2]),
-    gkyl_vec3_new(xc[0]-0.5*dx[0], xc[1]+0.5*dx[1], xc[2]+0.5*dx[2])
-  };
-
-  struct gkyl_vec3 verts[8];
-  for (int i=0; i<8; ++i)
-    mapc2p(0.0, verts_c[i].x, verts[i].x, ctx);
-
   // compute cell volume and kappa
   double vol = vol_hexa(verts);
   double cell_vol_c = dx[0] * dx[1] * dx[2];
@@ -302,6 +307,29 @@ calc_geom_3d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx,
       geo->tau2[face_idx][d] = tau2.x[d];
     }
   }
+}
+
+static void
+calc_geom_3d(const double *dx, const double *xc, evalf_t mapc2p, void *ctx,
+             struct gkyl_wave_cell_geom *geo)
+{
+  // get all vertices of the hexahedron; see vol_hexa for their order
+  struct gkyl_vec3 verts_c[8] = {
+    gkyl_vec3_new(xc[0]-0.5*dx[0], xc[1]-0.5*dx[1], xc[2]-0.5*dx[2]),
+    gkyl_vec3_new(xc[0]+0.5*dx[0], xc[1]-0.5*dx[1], xc[2]-0.5*dx[2]),
+    gkyl_vec3_new(xc[0]+0.5*dx[0], xc[1]+0.5*dx[1], xc[2]-0.5*dx[2]),
+    gkyl_vec3_new(xc[0]-0.5*dx[0], xc[1]+0.5*dx[1], xc[2]-0.5*dx[2]),
+    gkyl_vec3_new(xc[0]-0.5*dx[0], xc[1]-0.5*dx[1], xc[2]+0.5*dx[2]),
+    gkyl_vec3_new(xc[0]+0.5*dx[0], xc[1]-0.5*dx[1], xc[2]+0.5*dx[2]),
+    gkyl_vec3_new(xc[0]+0.5*dx[0], xc[1]+0.5*dx[1], xc[2]+0.5*dx[2]),
+    gkyl_vec3_new(xc[0]-0.5*dx[0], xc[1]+0.5*dx[1], xc[2]+0.5*dx[2])
+  };
+
+  struct gkyl_vec3 verts[8]; // physical coordinate nodes
+  for (int i=0; i<8; ++i)
+    mapc2p(0.0, verts_c[i].x, verts[i].x, ctx);
+
+  calc_geom_3d_form_nodes(dx, verts, mapc2p, ctx, geo);
 }
 
 struct gkyl_wave_geom*

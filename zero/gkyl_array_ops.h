@@ -1,6 +1,7 @@
 #pragma once
 
 #include <gkyl_array.h>
+#include <gkyl_elem_type.h>
 #include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
 
@@ -10,9 +11,6 @@ flat_fetch(void *data, size_t loc)
 {
   return ((char*) data) + loc;
 }
-
-// Array reduce operators
-enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
 
 // Struct used to pass function pointer and context to various buffer
 // copy operators
@@ -112,13 +110,14 @@ struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
 struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
- * Shift the zeroth coefficient in every cell, out_0 = a+out_0. Returns out.
+ * Shift the k-th coefficient in every cell, out_k = a+out_k. Returns out.
  *
  * @param out Output array.
- * @param a Factor to shift 0th coefficient by.
+ * @param a Factor to shift k-th coefficient by.
+ * @param k Coefficient to be shifted.
  * @return out array.
  */
-struct gkyl_array* gkyl_array_shiftc0(struct gkyl_array *out, double a);
+struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k);
 
 /**
  * Clear out = val. Returns out.
@@ -194,6 +193,19 @@ struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
   double a, struct gkyl_range range);
 
 /**
+ * Shift the k-th coefficient in every cell, out_k = a+out_k within
+ * a given range. Returns out.
+ *
+ * @param out Output array.
+ * @param a Factor to shift k-th coefficient by.
+ * @param k Coefficient to be shifted.
+ * @param range Range to shift coefficient k in.
+ * @return out array.
+ */
+struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
+  unsigned k, struct gkyl_range range);
+
+/**
  * Copy out inp. Returns out.
  *
  * @param out Output array
@@ -215,7 +227,7 @@ struct gkyl_array* gkyl_array_copy_range(struct gkyl_array *out,
  * @return out array
  */
 struct gkyl_array* gkyl_array_copy_range_to_range(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range out_range, struct gkyl_range inp_range);
+  const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range);
 
 /**
  * Perform an "reduce" operation of data in the array.
@@ -305,7 +317,9 @@ void gkyl_array_scale_cu(struct gkyl_array* out, double a);
 
 void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
 
-void gkyl_array_shiftc0_cu(struct gkyl_array* out, double a);
+void gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k);
+
+void gkyl_array_shiftc_range_cu(struct gkyl_array *out, double a, unsigned k, struct gkyl_range range);
 
 /**
  * Host-side wrappers for range-based array operations
@@ -331,7 +345,7 @@ void gkyl_array_copy_range_cu(struct gkyl_array *out, const struct gkyl_array* i
   struct gkyl_range range);
 
 void gkyl_array_copy_range_to_range_cu(struct gkyl_array *out, const struct gkyl_array* inp,
-  struct gkyl_range out_range, struct gkyl_range inp_range);
+  struct gkyl_range *out_range, struct gkyl_range *inp_range);
 
 void gkyl_array_copy_to_buffer_cu(void *data, const struct gkyl_array *arr, 
   struct gkyl_range range);

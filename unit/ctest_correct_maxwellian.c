@@ -137,11 +137,11 @@ test_1x1v(int poly_order, bool use_gpu)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
-  struct gkyl_array *m0, *m1i, *m2;
+  struct gkyl_array *m0, *m1i, *m2, *moms;
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *m0_cu, *m1i_cu, *m2_cu;
+  moms = mkarr((vdim+2)*confBasis.num_basis, confLocal_ext.volume); 
 
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, 1, eval_M0, NULL);
@@ -153,6 +153,11 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
+
+  // proj_maxwellian expects all the moments in a single array.
+  gkyl_array_set_offset(moms, 1., m0, 0);
+  gkyl_array_set_offset(moms, 1., m1i, confBasis.num_basis);
+  gkyl_array_set_offset(moms, 1., m2, (vdim+1)*confBasis.num_basis);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -166,7 +171,7 @@ test_1x1v(int poly_order, bool use_gpu)
     confLocal.volume, confLocal_ext.volume);
   
   // project the Maxwellian
-  gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, &local, &confLocal, m0, m1i, m2, distf);
+  gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, &local, &confLocal, moms, distf);
 
  // write distribution function to file
   char fname[1024];
@@ -185,8 +190,8 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // compute the number density
-  struct gkyl_mom_type *m0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0");
-  struct gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, m0_t);
+  struct gkyl_mom_type *m0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", use_gpu);
+  struct gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, m0_t, use_gpu);
   gkyl_mom_type_release(m0_t);
 
   gkyl_mom_calc_advance(m0calc, &local, &confLocal, distf, m0); // m0 = 2.5*orginal m0
@@ -204,6 +209,7 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_array_release(m0); gkyl_array_release(m0_r);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
+  gkyl_array_release(moms);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
