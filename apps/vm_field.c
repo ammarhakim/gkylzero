@@ -1,15 +1,12 @@
-#include "gkyl_dg_bin_ops.h"
-#include "gkyl_dynvec.h"
-#include "gkyl_elem_type.h"
-#include <assert.h>
-#include <float.h>
-
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
+
+#include <assert.h>
+#include <float.h>
 #include <time.h>
 
 // function to evaluate external electromagnetic field (this is needed 
@@ -365,6 +362,8 @@ vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field,
 void
 vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f)
 {
+  struct timespec wst = gkyl_wall_clock();  
+  
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, app->periodic_dirs, f);
@@ -403,6 +402,8 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
   }
 
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+
+  app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void

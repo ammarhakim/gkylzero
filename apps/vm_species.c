@@ -1,7 +1,3 @@
-#include "gkyl_dg_bin_ops.h"
-#include "gkyl_util.h"
-#include <assert.h>
-
 #include <gkyl_alloc.h>
 #include <gkyl_app.h>
 #include <gkyl_array.h>
@@ -12,6 +8,8 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_vlasov_priv.h>
+
+#include <assert.h>
 #include <time.h>
 
 // function to evaluate acceleration (this is needed as accel function
@@ -540,6 +538,8 @@ vm_species_apply_copy_bc(gkyl_vlasov_app *app, const struct vm_species *species,
 void
 vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f)
 {
+  struct timespec wst = gkyl_wall_clock();
+  
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
   gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext,
     num_periodic_dir, app->periodic_dirs, f); 
@@ -588,6 +588,8 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
   }
 
   gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, f);
+
+  app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void

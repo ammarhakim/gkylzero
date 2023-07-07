@@ -8,6 +8,8 @@ void
 gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
   const double *lower, const double *upper, const int *cells)
 {
+  *grid = (struct gkyl_rect_grid) { };
+  
   grid->ndim = ndim;  
   grid->cellVolume = 1.0;
   for (int i=0; i<ndim; ++i) {

@@ -30,6 +30,8 @@ gkyl_exit(const char* msg)
 int
 gkyl_compare_float(float a, float b, float eps)
 {
+  //if (isnanf(a) || isnanf(b)) return 0;
+  
   float absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
 
   if (a == b) return 1;
@@ -42,6 +44,8 @@ gkyl_compare_float(float a, float b, float eps)
 int
 gkyl_compare_double(double a, double b, double eps)
 {
+  if (isnan(a) || isnan(b)) return 0;
+  
   double absa = fabs(a), absb = fabs(b), diff = fabs(a-b);
   if (a == b) return 1;
   if (a == 0 || b == 0 || (absa+absb < DBL_MIN)) return diff < eps;
