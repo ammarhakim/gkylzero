@@ -266,10 +266,11 @@ struct vm_field {
   gkyl_proj_on_basis *app_current_proj; // projector for applied current 
   struct vm_eval_app_current_ctx app_current_ctx; // context for applied current
 
+  struct gkyl_array *cell_avg_magB2; // Integer array for whether 1/|B|^2 *only* uses cell averages
+                                     // Determined when constructing the matrix if |B|^2 < 0.0 at control points
   struct gkyl_array *bvar; // magnetic field unit vector and tensor (diagnostic and for use in pkpm model)
   struct gkyl_array *ExB; // E x B velocity = E x B/|B|^2 (diagnostic and for use in relativistic pkpm model)
-  struct gkyl_array *kappa_inv_b; // b_i/kappa; magnetic field unit vector divided by Lorentz boost factor
-                                  // for E x B velocity, b_i/kappa = sqrt((B_i)^2/|B|^2*(1 - |E x B|^2/(c^2 |B|^4)))
+  struct gkyl_dg_bin_op_mem *magB2_mem; // pre-allocated memory for computing weak division of 1.0/|B|^2
 
   gkyl_hyper_dg *slvr; // Maxwell solver
 
@@ -792,19 +793,6 @@ void vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field, const stru
  * @param em Input electromagnetic fields
  */
 void vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em);
-
-/**
- * Compute special relativistic electromagnetic variables
- * bvar = magnetic field unit vector (first 3 components) and unit tensor (last 6 components)
- * ExB = E x B velocity, E x B/|B|^2
- * kappa_inv_b = b_i/kappa; magnetic field unit vector divided by Lorentz boost factor
- *               for E x B velocity, b_i/kappa = sqrt((B_i)^2/|B|^2*(1 - |E x B|^2/(c^2 |B|^4)))
- *
- * @param app Vlasov app object
- * @param field Field object (output bvar is stored in field object)
- * @param em Input electromagnetic fields
- */
-void vm_field_calc_sr_pkpm_vars(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em);
 
 /**
  * Accumulate current density onto RHS from field equations
