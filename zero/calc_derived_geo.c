@@ -1,0 +1,44 @@
+#include <gkyl_calc_derived_geo.h>
+#include <gkyl_calc_derived_geo_priv.h>
+#include <gkyl_alloc.h>
+#include <gkyl_array.h>
+#include <gkyl_range.h>
+
+#include <gkyl_array_ops_priv.h>
+
+gkyl_calc_derived_geo*
+gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid, bool use_gpu)
+{
+  gkyl_calc_derived_geo *up = gkyl_malloc(sizeof(gkyl_calc_derived_geo));
+  up->cdim = cbasis->ndim;
+  up->cnum_basis = cbasis->num_basis;
+  up->poly_order = cbasis->poly_order;
+  up->grid = grid;
+  up->use_gpu = use_gpu;
+  up->kernel = derived_geo_choose_kernel(up->cdim, cbasis->b_type, up->poly_order);
+  return up;
+}
+
+void
+gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange, struct gkyl_array *gFld, struct gkyl_array *jFld, struct gkyl_array *grFld)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, crange);
+  while (gkyl_range_iter_next(&iter)) {
+    //printf("iter.idx = %d,%d,%d\n", iter.idx[0],iter.idx[1],iter.idx[2]);
+    long loc = gkyl_range_idx(crange, iter.idx);
+    const double *gij = gkyl_array_cfetch(gFld, loc);
+    double *grij = gkyl_array_fetch(grFld, loc);
+    double *j_i = gkyl_array_fetch(jFld, loc);
+    up->kernel(gij,j_i,grij);
+    //printf("gij[1] = %g\n",gij[1]);
+    //printf("j[1] = %g\n",j_i[0]);
+  }
+
+}
+
+void
+gkyl_calc_derived_geo_release(gkyl_calc_derived_geo* up)
+{
+  gkyl_free(up);
+}
