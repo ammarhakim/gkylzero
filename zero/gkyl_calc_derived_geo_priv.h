@@ -3,7 +3,7 @@
 #include <gkyl_calc_derived_geo_kernels.h>
 #include <assert.h>
 
-typedef void (*derived_geo_kernel)(const double *gij, double *J, double *grij);
+typedef void (*derived_geo_kernel)(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag);
 
 typedef struct { derived_geo_kernel kernels[3]; } derived_geo_kernel_list;  // For use in kernel tables.
 
@@ -12,7 +12,7 @@ static const derived_geo_kernel_list ser_derived_geo_kernel_list[] = {
   { NULL, NULL, NULL }, // 0x No 0D basis functions
   { NULL, NULL, NULL}, // 1x Not tested yet
   { NULL, NULL, NULL}, // 2x Not tested yet
-  { NULL, derived_geo_3x_Ser_p1, NULL}
+  { NULL, derived_geo_3x_Ser_p1, derived_geo_3x_Ser_p2}
 };
 
 struct gkyl_calc_derived_geo{

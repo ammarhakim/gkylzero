@@ -70,10 +70,14 @@ gkyl_calc_metric_advance( calculator, &range, XYZ, gFld);
 
 
 //Now calculate the jacobian and upper metrics
+struct gkyl_array *bmagFld = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, ext_range.volume);
 struct gkyl_array *jFld = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, ext_range.volume);
+struct gkyl_array *jinvFld = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, ext_range.volume);
 struct gkyl_array *grFld = gkyl_array_new(GKYL_DOUBLE, 6*basis.num_basis, ext_range.volume);
+struct gkyl_array *biFld = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, ext_range.volume);
+struct gkyl_array *cmagFld = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, ext_range.volume);
 gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&basis, &grid, false);
-gkyl_calc_derived_geo_advance( jcalculator, &range, gFld, jFld, grFld);
+gkyl_calc_derived_geo_advance( jcalculator, &range, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld);
 
 char fileNm[1024];
   do{

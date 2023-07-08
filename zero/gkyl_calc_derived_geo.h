@@ -28,7 +28,8 @@ gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis
  */
 
 void gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange,
-    struct gkyl_array *gFld, struct gkyl_array *jFld, struct gkyl_array *grFld);
+    struct gkyl_array *gFld, struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld,
+    struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld);
 
 /**
  * Delete updater.
