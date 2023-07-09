@@ -28,10 +28,10 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
 {
   struct bmag_ctx *gc = (struct bmag_ctx*) ctx;
   struct gkyl_range_iter iter;
-  double RZ[2];
-  gkyl_gkgeom_mapc2p(gc->app, gc->ginp, xn, RZ);
-  double R = RZ[0];
-  double Z = RZ[1];
+  double XYZ[3];
+  gkyl_gkgeom_mapc2p(gc->app, gc->ginp, xn, XYZ);
+  double R = sqrt(XYZ[0]*XYZ[0] + XYZ[1]*XYZ[1]);
+  double Z = XYZ[2];
   gkyl_range_iter_init(&iter, gc->range); // sets the iteration range
   iter.idx[0] = fmin(gc->range->lower[0] + (int) floor((R - gc->grid->lower[0])/gc->grid->dx[0]), gc->range->upper[0]);
   iter.idx[1] = fmin(gc->range->lower[1] + (int) floor((Z - gc->grid->lower[1])/gc->grid->dx[1]), gc->range->upper[1]);
