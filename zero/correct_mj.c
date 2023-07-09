@@ -20,23 +20,23 @@ struct gkyl_correct_mj
   struct gkyl_basis conf_basis, phase_basis;
 
   // struct gkyl_mom_calc *m0calc;
-  gkyl_dg_updater_moment *m0calc;  // moment calculator
-  gkyl_dg_updater_moment *m1icalc; // moment calculator
-  struct gkyl_array *num_ratio;    // number density ratio
-  struct gkyl_array *num_vb;       // number density times vb
-  struct gkyl_array *gamma;        // dg represented gamma of the shifted frame
+  gkyl_dg_updater_moment *m0calc;  
+  gkyl_dg_updater_moment *m1icalc; 
+  struct gkyl_array *num_ratio;  
+  struct gkyl_array *num_vb;   
+  struct gkyl_array *gamma;   
 
-  gkyl_dg_bin_op_mem *mem;          // memory for division operator
-  struct gkyl_array *m0, *m1i, *m2; // memory for corrective mj scheme
+  gkyl_dg_bin_op_mem *mem;     
+  struct gkyl_array *m0, *m1i, *m2;
   struct gkyl_array *dm0, *dm1i, *dm2;
   struct gkyl_array *ddm0, *ddm1i, *ddm2;
 };
 
 gkyl_correct_mj *
 gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
-                    const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-                    const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-                    long conf_local_ncells, long conf_local_ext_ncells, bool use_gpu)
+ const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+ const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+ long conf_local_ncells, long conf_local_ext_ncells, bool use_gpu)
 {
   gkyl_correct_mj *up = gkyl_malloc(sizeof(*up));
 
@@ -47,9 +47,9 @@ gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
 
   // updated moment calculator for sr N and N*vb moments
   up->m0calc = gkyl_dg_updater_moment_new(grid, conf_basis,
-                                          phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "M0", 0, 1, use_gpu);
+    phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "M0", 0, 1, use_gpu);
   up->m1icalc = gkyl_dg_updater_moment_new(grid, conf_basis,
-                                           phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "M1i", 0, 1, use_gpu);
+    phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "M1i", 0, 1, use_gpu);
 
   up->num_ratio = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->num_vb = gkyl_array_new(GKYL_DOUBLE, vdim * conf_basis->num_basis, conf_local_ext_ncells);
@@ -73,66 +73,64 @@ gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_correct_mj_fix_m0(gkyl_correct_mj *cmj, const struct gkyl_array *p_over_gamma,
-                            struct gkyl_array *fout,
-                            const struct gkyl_array *m0,
-                            const struct gkyl_array *m1i,
-                            const struct gkyl_range *phase_local, const struct gkyl_range *conf_local)
+void 
+gkyl_correct_mj_fix_m0(gkyl_correct_mj *cmj, const struct gkyl_array *p_over_gamma,
+  struct gkyl_array *fout,
+  const struct gkyl_array *m0,
+  const struct gkyl_array *m1i,
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local)
 {
   // vdim
   int vdim = cmj->phase_basis.ndim - cmj->conf_basis.ndim;
 
   // compute the sr moments
   gkyl_dg_updater_moment_advance(cmj->m0calc, phase_local, conf_local,
-                                 0, 0, 0,
-                                 0, 0, 0,
-                                 fout, cmj->num_ratio);
+     0, 0, 0,
+     0, 0, 0,
+     fout, cmj->num_ratio);
   gkyl_dg_updater_moment_advance(cmj->m1icalc, phase_local, conf_local,
-                                 p_over_gamma, 0, 0,
-                                 0, 0, 0,
-                                 fout, cmj->num_vb);
+     p_over_gamma, 0, 0,
+     0, 0, 0,
+     fout, cmj->num_vb);
 
   // isolate vb by dividing N*vb by N
   for (int d = 0; d < vdim; ++d)
   {
     gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, d, cmj->num_vb,
-                         d, cmj->num_vb, 0, cmj->num_ratio, conf_local);
+    d, cmj->num_vb, 0, cmj->num_ratio, conf_local);
   }
 
   // compute number density ratio
   gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->num_ratio,
-                       0, m0, 0, cmj->num_ratio, conf_local);
+    0, m0, 0, cmj->num_ratio, conf_local);
 
   // calculate gamma from cmj->num_vb
   gkyl_calc_sr_vars_Gamma(&cmj->conf_basis, &cmj->phase_basis,
-                          conf_local, cmj->num_vb, cmj->gamma);
+    conf_local, cmj->num_vb, cmj->gamma);
 
   // multiply the number density ratio by gamma, to account for the frame trans.
   gkyl_dg_mul_op_range(cmj->conf_basis, 0, cmj->num_ratio,
-                       0, cmj->num_ratio, 0, cmj->gamma, conf_local);
+    0, cmj->num_ratio, 0, cmj->gamma, conf_local);
 
   // rescale distribution function
   gkyl_dg_mul_conf_phase_op_range(&cmj->conf_basis, &cmj->phase_basis,
-                                  fout, cmj->num_ratio, fout, conf_local, phase_local);
+    fout, cmj->num_ratio, fout, conf_local, phase_local);
 
   // Hand back rescaled m0:
   gkyl_array_clear(cmj->m0, 0.0);
   gkyl_array_accumulate(cmj->m0, 1.0, cmj->num_ratio);
 }
 
-void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
-                         struct gkyl_array *distf_mj,
-                         const struct gkyl_array *m0_corr,
-                         const struct gkyl_array *m1i_corr,
-                         const struct gkyl_array *m2_corr,
-                         const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
-                         int poly_order, const struct gkyl_range *conf_local_ext, const struct gkyl_range *velLocal,
-                         const struct gkyl_basis *vel_basis, const struct gkyl_rect_grid *vel_grid)
-// Add:: (1) polyorder (2) conf_local_ext (3) velLocal
-// ADD ::  (1) (2) vel_basis, (3) vel_grid
-// Will have to update alot of other codes dependent on this routine
+void 
+gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
+  struct gkyl_array *distf_mj,
+  const struct gkyl_array *m0_corr,
+  const struct gkyl_array *m1i_corr,
+  const struct gkyl_array *m2_corr,
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
+  int poly_order, const struct gkyl_range *conf_local_ext, const struct gkyl_range *velLocal,
+  const struct gkyl_basis *vel_basis, const struct gkyl_rect_grid *vel_grid)
 {
-  // vdim
   int vdim = cmj->phase_basis.ndim - cmj->conf_basis.ndim;
 
   struct gkyl_array *p_over_gamma;
@@ -144,7 +142,7 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
 
   // Make GammaV2, GammaV, GammaV_inv
   gkyl_calc_sr_vars_init_p_vars(vel_grid, vel_basis, velLocal,
-                                p_over_gamma, gamma, gamma_inv);
+    p_over_gamma, gamma, gamma_inv);
 
   // Copy the intial moments for m*_corr -> m*
   gkyl_array_clear(cmj->m0, 0.0);
@@ -155,14 +153,16 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
   gkyl_array_accumulate(cmj->m2, 1.0, m2_corr);
 
   // Make mj moms stucture
-  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&cmj->grid, &cmj->conf_basis, &cmj->phase_basis, conf_local, velLocal, conf_local->volume, conf_local_ext->volume, false);
+  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&cmj->grid, &cmj->conf_basis, 
+    &cmj->phase_basis, conf_local, velLocal, conf_local->volume, conf_local_ext->volume, false);
 
   // Make the projection routine for the new MJ distributions
   gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&cmj->grid,
-                                                             &cmj->conf_basis, &cmj->phase_basis, poly_order + 1);
+     &cmj->conf_basis, &cmj->phase_basis, poly_order + 1);
 
   // 0. Project the MJ with the intially correct moments
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, conf_local, m0_corr, m1i_corr, m2_corr, distf_mj);
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, 
+    conf_local, m0_corr, m1i_corr, m2_corr, distf_mj);
 
   // tolerance of the iterative scheme
   double tol = 1e-13;
@@ -175,12 +175,13 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
 
   // Iteration loop, 100 iterations is usually sufficient (for all vdim) for machine precision moments
   while ((i < 100) && ((fabs(error_n) > 1e-14) || (fabs(error_vbx) > 1e-14) ||
-                       (fabs(error_vby) > 1e-14) || (fabs(error_vbz) > 1e-14) || (fabs(error_T) > 1e-14)))
+    (fabs(error_vby) > 1e-14) || (fabs(error_vbz) > 1e-14) || (fabs(error_T) > 1e-14)))
   {
 
     // 1. Calculate the new moments
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
-    gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, cmj->m0, cmj->m1i, cmj->m2, phase_local, conf_local);
+    gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv,
+      distf_mj, cmj->m0, cmj->m1i, cmj->m2, phase_local, conf_local);
 
     // a. Calculate  ddMi^(k+1) =  Mi_corr - Mi_new
     // ddm0 = m0_corr - m0;
@@ -202,12 +203,10 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
     gkyl_array_accumulate(cmj->dm2, 1.0, cmj->ddm2);
 
     // End the iteration early if all moments converge
-    if ((i % 5) == 0)
-    {
+    if ((i % 5) == 0){
       struct gkyl_range_iter biter;
       gkyl_range_iter_init(&biter, conf_local);
-      while (gkyl_range_iter_next(&biter))
-      {
+      while (gkyl_range_iter_next(&biter)){
         long midx = gkyl_range_idx(conf_local, biter.idx);
         const double *m0_local = gkyl_array_cfetch(cmj->m0, midx);
         const double *m1i_local = gkyl_array_cfetch(cmj->m1i, midx);
@@ -219,13 +218,9 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
         error_vbx = m1i_local[0] - m1i_original_local[0];
         error_T = m2_local[0] - m2_original_local[0];
         if (vdim > 1)
-        {
           error_vby = m1i_local[poly_order + 1] - m1i_original_local[poly_order + 1];
-        }
         if (vdim > 2)
-        {
           error_vbz = m1i_local[2 * (poly_order + 1)] - m1i_original_local[2 * (poly_order + 1)];
-        }
       }
     }
 
@@ -242,36 +237,35 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
     gkyl_array_accumulate(cmj->m2, 1.0, cmj->dm2);
 
     // 2. Update the dist_mj using the corrected moments
-    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, conf_local, cmj->m0, cmj->m1i, cmj->m2, distf_mj);
+    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, 
+      conf_local, cmj->m0, cmj->m1i, cmj->m2, distf_mj);
 
     // 3. Correct the M0 moment to fix the asymptotically approximated MJ function
-    gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, cmj->m1i, phase_local, conf_local);
+    gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, cmj->m1i, 
+      phase_local, conf_local);
 
-    // increment i
     i += 1;
-
-  } // Iteration loop end
+  }
 
   // If the algorithm fails (density fails to converge)!
   // Project the distribution function with the basic moments and correct m0
-  gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, cmj->m0, cmj->m1i, cmj->m2, phase_local, conf_local);
+  gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, 
+    distf_mj, cmj->m0, cmj->m1i, cmj->m2, phase_local, conf_local);
   double diff = 0.0;
   struct gkyl_range_iter biter;
   gkyl_range_iter_init(&biter, conf_local);
-  while (gkyl_range_iter_next(&biter))
-  {
+  while (gkyl_range_iter_next(&biter)){
     long midx = gkyl_range_idx(conf_local, biter.idx);
     const double *m0_corr_local = gkyl_array_cfetch(m0_corr, midx);
     const double *m0_local = gkyl_array_cfetch(cmj->m0, midx);
     if (diff < (m0_local[0] - m0_corr_local[0]))
-    {
       diff = fabs(m0_local[0] - m0_corr_local[0]);
-    }
   }
-  if (fabs(diff) > 1e-10)
-  {
-    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, conf_local, m0_corr, m1i_corr, m2_corr, distf_mj);
-    gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, cmj->m1i, phase_local, conf_local);
+  if (fabs(diff) > 1e-10){
+    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, phase_local, 
+      conf_local, m0_corr, m1i_corr, m2_corr, distf_mj);
+    gkyl_correct_mj_fix_m0(cmj, p_over_gamma, distf_mj, cmj->m0, 
+      cmj->m1i, phase_local, conf_local);
   }
 
   // Release the memory
@@ -281,7 +275,8 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
   gkyl_array_release(gamma_inv);
 }
 
-void gkyl_correct_mj_release(gkyl_correct_mj *cmj)
+void 
+gkyl_correct_mj_release(gkyl_correct_mj *cmj)
 {
 
   // gkyl_mom_calc_release(cmj->m0calc);
