@@ -184,7 +184,7 @@ main(int argc, char **argv)
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bc_tv, 1.0, NULL, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bc_tv, 1.0, NULL, NULL, use_gpu);
 
   int nrep = inp.nloop;
 
