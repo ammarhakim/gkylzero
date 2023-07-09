@@ -152,7 +152,6 @@ gkyl_mem_buff_resize(gkyl_mem_buff mem, size_t count)
 {
   if (count > mem->count) {
     if (mem->on_gpu) {
-      printf("Realloc called for GPU!\n");
       gkyl_cu_free(mem->data);
       mem->data = gkyl_cu_malloc(count);
     }
