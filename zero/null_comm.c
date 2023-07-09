@@ -51,7 +51,6 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp,
   void *out)
 {
-  
   memcpy(out, inp, gkyl_elem_type_size[type]*nelem);
   return 0;
 }
@@ -130,7 +129,8 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   // extend internal decomp object and create a new communicator
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, null_comm->decomp);
   struct gkyl_comm *ext_comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = ext_decomp
+      .decomp = ext_decomp,
+      .use_gpu = null_comm->use_gpu
     }
   );
   gkyl_rect_decomp_release(ext_decomp);
@@ -174,7 +174,11 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 
   comm->use_gpu = inp->use_gpu;
   comm->l2sgr = cmap_l2sgr_init();
-  comm->pbuff = gkyl_mem_buff_new(1024); // will be reallocated
+
+  if (comm->use_gpu)
+    comm->pbuff = gkyl_mem_buff_cu_new(1024); // will be reallocated
+  else
+    comm->pbuff = gkyl_mem_buff_new(1024); // will be reallocated
 
   comm->base.get_rank = get_rank;
   comm->base.get_size = get_size;

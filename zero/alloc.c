@@ -122,6 +122,7 @@ gkyl_aligned_free_(const char *file, int line, const char *func,
 }
 
 struct gkyl_mem_buff_tag {
+  bool on_gpu; // is this on GPU?
   size_t count; // size of memory in bytes
   char *data; // Allocated memory
 };
@@ -130,8 +131,19 @@ gkyl_mem_buff
 gkyl_mem_buff_new(size_t count)
 {
   struct gkyl_mem_buff_tag *mem = gkyl_malloc(sizeof(*mem));
+  mem->on_gpu = false;
   mem->count = count;
   mem->data = gkyl_malloc(count);
+  return mem;
+}
+
+gkyl_mem_buff
+gkyl_mem_buff_cu_new(size_t count)
+{
+  struct gkyl_mem_buff_tag *mem = gkyl_malloc(sizeof(*mem));
+  mem->on_gpu = true;
+  mem->count = count;
+  mem->data = gkyl_cu_malloc(count);
   return mem;
 }
 
@@ -139,7 +151,14 @@ gkyl_mem_buff
 gkyl_mem_buff_resize(gkyl_mem_buff mem, size_t count)
 {
   if (count > mem->count) {
-    mem->data = gkyl_realloc(mem->data, count);
+    if (mem->on_gpu) {
+      printf("Realloc called for GPU!\n");
+      gkyl_cu_free(mem->data);
+      mem->data = gkyl_cu_malloc(count);
+    }
+    else {
+      mem->data = gkyl_realloc(mem->data, count);
+    }
     mem->count = count;
   }
   return mem;
@@ -160,7 +179,11 @@ gkyl_mem_buff_data(gkyl_mem_buff mem)
 void
 gkyl_mem_buff_release(gkyl_mem_buff mem)
 {
-  gkyl_free(mem->data);
+  if (mem->on_gpu)
+    gkyl_cu_free(mem->data);
+  else
+    gkyl_free(mem->data);
+  
   gkyl_free(mem);
 }
 
