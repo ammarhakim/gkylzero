@@ -22,7 +22,7 @@ void eval_m0(double t, const double *xn, double* restrict fout, void *ctx)
 void eval_m2(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 40*echarge/emass; //*1.0e19;  //fabs(x);
+  fout[0] = 40*echarge/emass*1.0e19;  //fabs(x);
 }
 
 void
@@ -83,10 +83,10 @@ test_iz_react_rate()
   struct gkyl_dg_iz *reactRate = gkyl_dg_iz_new(&basis, &phaseBasis, &confRange, &phaseRange,
   						echarge, emass, GKYL_H, true, false);
 
-  //gkyl_dg_iz_react_rate(reactRate, moms_elc, moms_neut, vtSqIz, cflRate, coefIz);
-  gkyl_dg_iz_react_rate(reactRate, m0, m2, vtSqIz, cflRate, coefIz);
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, coefIz, "ctest_react_rate_1x.gkyl");
+  gkyl_dg_iz_react_rate(reactRate, moms_elc, moms_neut, vtSqIz, cflRate, coefIz);
+  //gkyl_dg_iz_react_rate(reactRate, m0, m2, vtSqIz, cflRate, coefIz);
+  gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confRange, coefIz, "ctest_react_rate_1x.gkyl");
     
   // left cell
   //double *cl_vt = gkyl_array_fetch(vtSqIz, 0);
