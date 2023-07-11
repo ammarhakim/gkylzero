@@ -15,7 +15,7 @@ then
     echo "Downloading OpenBLAS .."
     # delete old checkout and builds
     rm -rf OpenBLAS-*
-    curl -L https://github.com/xianyi/OpenBLAS/releases/download/v0.3.15/OpenBLAS-0.3.23.tar.gz > OpenBLAS-0.3.23.tar.gz
+    curl -L https://github.com/xianyi/OpenBLAS/releases/download/v0.3.23/OpenBLAS-0.3.23.tar.gz > OpenBLAS-0.3.23.tar.gz
 fi
 
 if [ "$BUILD_PKGS" = "yes" ]
