@@ -108,7 +108,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
         gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
       
       app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-          .decomp = rect_decomp
+          .decomp = rect_decomp,
+          .use_gpu = app->use_gpu
         }
       );
 
@@ -125,7 +126,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
     
     app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = rect_decomp
+        .decomp = rect_decomp,
+        .use_gpu = app->use_gpu
       }
     );
     
