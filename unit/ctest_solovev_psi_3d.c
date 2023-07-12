@@ -150,9 +150,9 @@ test_1()
   // Computational grid: theta X psi X alpha (only 2D for now)
   //double clower[] = { -M_PI + 1e-10, 0.06, -1.0 };
   //double cupper[] = { M_PI, 0.1, 1.0 };
-  double clower[] = { -2.5, 0.06, -1.0 };
-  double cupper[] = { 2.5, 0.1, 1.0 };
-  int ccells[] = { 16, 16, 4 };
+  double clower[] = { -2.5, 0.06, -0.1 };
+  double cupper[] = { 2.5, 0.1, 0.1 };
+  int ccells[] = { 16, 16, 1 };
 
 
   struct gkyl_rect_grid cgrid;
