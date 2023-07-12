@@ -139,6 +139,33 @@ struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
   enum gkyl_mat_trans transb, const struct gkyl_mat *B, struct gkyl_mat *C);
 
 /**
+ * Computes matrix-vector product:
+ *
+ * y := alpha*A*x + beta*y,   or   y := alpha*A**T*x + beta*y,
+ *
+ * depending on the transa flag.
+ *
+ * C is returned
+ */
+struct gkyl_mat* gkyl_mat_mv(double alpha, double beta,
+  enum gkyl_mat_trans transa, const struct gkyl_mat *A,
+  const struct gkyl_mat *x, struct gkyl_mat *y);
+
+
+/**
+ * Does a batch of matrix vector multiplies:
+ *
+ * @param alpha list prefactors on A*x or A^T*x
+ * @param beta list prefactors on y
+ * @param transa whether or not to tranpose A
+ * @param A list of matrices to be multiplied 
+ * @param x list of vectors to be multiplied
+ * @param y list of output vectors
+ */
+void
+gkyl_nmat_mv(double *alpha, double *beta, enum gkyl_mat_trans *transa, struct gkyl_nmat *A, struct gkyl_nmat *x, struct gkyl_nmat *y);
+
+/**
  * Solve system of linear equations using LU decomposition. On input
  * the RHS must be in the "x" matrix (each column represents a RHS
  * vector) and on output "x" is replaced with the solution(s). Returns

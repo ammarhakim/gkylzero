@@ -143,6 +143,39 @@ gkyl_mat_mm(double alpha, double beta,
   return C;
 }
 
+struct gkyl_mat*
+gkyl_mat_mv(double alpha, double beta,
+  enum gkyl_mat_trans transa, const struct gkyl_mat *A,
+  const struct gkyl_mat *x, struct gkyl_mat *y)
+{
+  // determine matrix sizes
+  struct mat_sizes sza = get_mat_sizes(transa, A);
+  struct mat_sizes szx = get_mat_sizes(GKYL_NO_TRANS, x);
+  struct mat_sizes szy = get_mat_sizes(GKYL_NO_TRANS, y);
+
+  // intermediate size
+  size_t k = sza.nc; // same as szb.nr
+  size_t lda = transa == GKYL_NO_TRANS ? A->nr : k;
+  size_t ldc = y->nr;
+  
+  assert( (sza.nr == szy.nr) && (sza.nc == szx.nr) && (szx.nr = szy.nr) );
+
+  // call BLAS routine to perform matrix-matrix multiply
+  int incx = 1;
+  int incy = 1;
+  cblas_dgemv(CblasColMajor,
+    cblas_trans_flags[transa],
+    A->nr, A->nc,
+    alpha,
+    A->data, lda,
+    x->data, incx,
+    beta, y->data, incy);
+
+  return y;
+}
+
+
+
 bool
 gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv)
 {
@@ -303,6 +336,26 @@ gkyl_nmat_linsolve_lu_release(gkyl_nmat_mem *mem)
   }
   
   gkyl_free(mem);
+}
+
+void
+gkyl_nmat_mv(double *alpha, double *beta, enum gkyl_mat_trans *transa, struct gkyl_nmat *A, struct gkyl_nmat *x, struct gkyl_nmat *y)
+{
+  size_t num = A->num;
+  //assert( num <= x->num );
+  //assert(mem->on_gpu == false);
+  //assert(mem->num == A->num);
+  //assert(mem->nrows == A->nr);
+
+  bool status = true;
+
+  for (size_t i=0; i<num; ++i) {
+    struct gkyl_mat Ai = gkyl_nmat_get(A,i);
+    struct gkyl_mat xi = gkyl_nmat_get(x,i);
+    struct gkyl_mat yi = gkyl_nmat_get(y,i);
+    gkyl_mat_mv( alpha[i], beta[i], transa[i],  &Ai, &xi, &yi);
+  }
+
 }
 
 static bool
