@@ -97,54 +97,10 @@ void test_nmat_mv()
 
 
 
-//Will complete this test later
-//void test_nmat_vec_mult_1d()
-//{
-//  //create the grid
-//  double lower[] = {1.0}, upper[] = {2.5};
-//  int cells[] = {10};
-//  struct gkyl_rect_grid grid;
-//  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
-//  //create the ranges
-//  struct gkyl_range local, local_ext;
-//  int nghost[GKYL_MAX_CDIM] = {1};
-//  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
-//  //create the basis
-//  struct gkyl_basis basis;
-//  int poly_order = 1;
-//  gkyl_cart_modal_serendip(&basis, grid.ndim, poly_order);
-//
-//  // n_do matrices with shape N_bxN_b
-//  int n_do = 3;
-//  struct gkyl_nmat *nmat = gkyl_nmat_new(n_do, basis.num_basis, basis.num_basis);
-//  TEST_CHECK( false == gkyl_nmat_is_cu_dev(nmat) );
-//
-//  //check num, rows, cols are correct. remove later
-//  TEST_CHECK( n_do == nmat->num );
-//  TEST_CHECK( basis.num_basis == nmat->nr );
-//  TEST_CHECK( basis.num_basis == nmat->nc );
-//
-//  struct gkyl_mat m = gkyl_nmat_get(nmat, 0);
-//  TEST_CHECK( basis.num_basis == m.nr );
-//  TEST_CHECK( basis.num_basis == m.nc );
-//
-//  //fill each matrix with its number
-//  for (size_t n=0; n<nmat->num; ++n) {
-//    struct gkyl_mat m = gkyl_nmat_get(nmat, n);
-//    for (size_t j=0; j<nmat->nc; ++j)
-//      for (size_t i=0; i<nmat->nr; ++i)
-//        gkyl_mat_set(&m, i, j, n);
-//  }
-//
-//  //now create a target DG field
-//}
-
 
 TEST_LIST = {
-  //{ "nmat_vec_mult", test_nmat_vec_mult_1d},
   { "mv", test_mat_mv},
   { "mm", test_mat_mm},
   { "nmat_mv", test_nmat_mv},
-  //{ "mm", test_nmat_mm},
   { NULL, NULL },
 };
