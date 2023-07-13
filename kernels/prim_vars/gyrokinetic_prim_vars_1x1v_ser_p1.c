@@ -1,3 +1,4 @@
+#include <gkyl_dg_prim_vars_kernels.h> 
 #include <gkyl_binop_mul_ser.h> 
 #include <gkyl_basis_ser_1x_p1_inv.h> 
 GKYL_CU_DH void gyrokinetic_prim_vars_1x1v_ser_p1(const double *moms, double* prim_vars) 
@@ -15,6 +16,9 @@ GKYL_CU_DH void gyrokinetic_prim_vars_1x1v_ser_p1(const double *moms, double* pr
   double m0_inv[2] = {0.0}; 
 
   double uparSq[2] = {0.0}; 
+
+  // Calculate expansions of prim_vars, which can be calculated free of aliasing errors. 
+  ser_1x_p1_inv(m0, m0_inv); 
 
   // Calculate expansions of prim_vars, which can be calculated free of aliasing errors. 
   binop_mul_1d_ser_p1(m1, m0_inv, upar); 

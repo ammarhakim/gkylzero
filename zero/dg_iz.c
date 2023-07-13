@@ -233,7 +233,7 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
   // Calculate vt_sq_iz
   gkyl_array_copy_range(vth_sq_iz, up->vth_sq_elc, *up->conf_rng);
   gkyl_array_scale_range(vth_sq_iz, 1/2.0, *up->conf_rng);
-  gkyl_array_shiftc0(vth_sq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim));
+  gkyl_array_shiftc(vth_sq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
 
   //struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;

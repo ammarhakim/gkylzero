@@ -5,7 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_dg_prim_vars_type.h>
-//#include <gkyl_dg_prim_vars_gyrokinetic_kernels.h>
+#include <gkyl_dg_prim_vars_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
@@ -168,7 +168,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_1x1v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
@@ -184,7 +184,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_1x2v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
@@ -200,7 +200,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_2x2v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
@@ -216,7 +216,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_3x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_3x2v_ser_p1(in, out);
 }
 
 // gyrokinetic primitive variable (u_parallel, vth^2) kernel list

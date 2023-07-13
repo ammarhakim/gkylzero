@@ -1,3 +1,4 @@
+#include <gkyl_dg_prim_vars_kernels.h> 
 #include <gkyl_binop_mul_ser.h> 
 #include <gkyl_basis_ser_1x_p1_inv.h> 
 GKYL_CU_DH void vlasov_prim_vars_1x1v_ser_p1(const double *moms, double* prim_vars) 
@@ -19,9 +20,7 @@ GKYL_CU_DH void vlasov_prim_vars_1x1v_ser_p1(const double *moms, double* prim_va
   // Calculate expansions of prim_vars, which can be calculated free of aliasing errors. 
   ser_1x_p1_inv(m0, m0_inv); 
 
-  ux[0] = 0.7071067811865475*m0_inv[1]*m1x[1]+0.7071067811865475*m0_inv[0]*m1x[0]; 
-  ux[1] = 0.7071067811865475*m0_inv[0]*m1x[1]+0.7071067811865475*m1x[0]*m0_inv[1]; 
-  ser_1x_p1_inv(m1x, m0_inv, ux); 
+  binop_mul_1d_ser_p1(m1x, m0_inv, ux); 
   binop_mul_1d_ser_p1(ux, ux, uxSq); 
 
   vtSq[0] = 0.7071067811865475*m0_inv[1]*m2[1]-1.0*uxSq[0]+0.7071067811865475*m0_inv[0]*m2[0]; 
