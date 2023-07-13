@@ -19,7 +19,7 @@ gkyl_dg_prim_vars_gyrokinetic_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_dg_prim_vars_type*
 gkyl_dg_prim_vars_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  bool use_gpu)
+  const char *prim_nm, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -37,11 +37,14 @@ gkyl_dg_prim_vars_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct 
   dg_prim_vars_gyrokinetic->pvt.poly_order = poly_order;
   dg_prim_vars_gyrokinetic->pvt.num_config = cbasis->num_basis;
 
-  // choose kernel tables based on basis-function type
-  const gkyl_dg_prim_vars_gyrokinetic_kern_list *dg_prim_vars_gyrokinetic_kernels;
+  const gkyl_dg_prim_vars_gyrokinetic_kern_list *dg_prim_vars_gyrokinetic_upar_kernels, 
+    *dg_prim_vars_gyrokinetic_vth2_kernels, *dg_prim_vars_gyrokinetic_kernels;
 
+  // choose kernel tables based on basis-function type
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      dg_prim_vars_gyrokinetic_upar_kernels = ser_dg_prim_vars_gyrokinetic_upar_kernels;
+      dg_prim_vars_gyrokinetic_vth2_kernels = ser_dg_prim_vars_gyrokinetic_vth2_kernels;
       dg_prim_vars_gyrokinetic_kernels = ser_dg_prim_vars_gyrokinetic_kernels;
       break;
 
@@ -50,8 +53,22 @@ gkyl_dg_prim_vars_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct 
       break;    
   }
 
-  dg_prim_vars_gyrokinetic->pvt.kernel = dg_prim_vars_gyrokinetic_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-  dg_prim_vars_gyrokinetic->pvt.num_mom = 2; 
+  if (strcmp(prim_nm, "upar") == 0) { // parallel flow velocity
+    dg_prim_vars_gyrokinetic->pvt.kernel = dg_prim_vars_gyrokinetic_upar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    dg_prim_vars_gyrokinetic->pvt.num_mom = 1; 
+  }
+  else if (strcmp(prim_nm, "vth2") == 0) { // thermal velocity squared
+    dg_prim_vars_gyrokinetic->pvt.kernel = dg_prim_vars_gyrokinetic_vth2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    dg_prim_vars_gyrokinetic->pvt.num_mom = 1; 
+  }
+  else if (strcmp(prim_nm, "prim") == 0) { // combined (upar, vth^2)
+    dg_prim_vars_gyrokinetic->pvt.kernel = dg_prim_vars_gyrokinetic_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    dg_prim_vars_gyrokinetic->pvt.num_mom = 2; 
+  }
+  else {
+    // string not recognized
+    gkyl_exit("gkyl_dg_prim_vars_type_gyrokinetic: Unrecognized primitive variable requested!");
+  }
     
   dg_prim_vars_gyrokinetic->pvt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(dg_prim_vars_gyrokinetic->pvt.flags);
@@ -65,7 +82,8 @@ gkyl_dg_prim_vars_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct 
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_prim_vars_type*
-gkyl_dg_prim_vars_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis)
+gkyl_dg_prim_vars_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const char *prim_nm)
 {
   assert(false);
   return 0;

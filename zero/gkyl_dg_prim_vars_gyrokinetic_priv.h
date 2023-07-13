@@ -29,6 +29,142 @@ typedef struct {
 
 GKYL_CU_DH
 static void
+kernel_dg_prim_vars_gyrokinetic_upar_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_upar_1x1v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_upar_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_upar_1x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_upar_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_upar_2x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_upar_3x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+// gyrokinetic u_parallel kernel list
+GKYL_CU_D
+static const gkyl_dg_prim_vars_gyrokinetic_kern_list ser_dg_prim_vars_gyrokinetic_upar_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_dg_prim_vars_gyrokinetic_upar_1x1v_ser_p1, kernel_dg_prim_vars_gyrokinetic_upar_1x1v_ser_p2 }, // 0
+  { NULL, kernel_dg_prim_vars_gyrokinetic_upar_1x2v_ser_p1, kernel_dg_prim_vars_gyrokinetic_upar_1x2v_ser_p2 }, // 1
+  // 2x kernels
+  { NULL, kernel_dg_prim_vars_gyrokinetic_upar_2x2v_ser_p1, kernel_dg_prim_vars_gyrokinetic_upar_2x2v_ser_p2 }, // 2
+  // 3x kernels
+  { NULL, kernel_dg_prim_vars_gyrokinetic_upar_3x2v_ser_p1, NULL }, // 4
+};
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_vth2_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_vth2_1x1v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_vth2_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_vth2_1x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_vth2_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_vth2_2x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_vth2_3x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+// gyrokinetic vth^2 kernel list
+GKYL_CU_D
+static const gkyl_dg_prim_vars_gyrokinetic_kern_list ser_dg_prim_vars_gyrokinetic_vth2_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_dg_prim_vars_gyrokinetic_vth2_1x1v_ser_p1, kernel_dg_prim_vars_gyrokinetic_vth2_1x1v_ser_p2 }, // 0
+  { NULL, kernel_dg_prim_vars_gyrokinetic_vth2_1x2v_ser_p1, kernel_dg_prim_vars_gyrokinetic_vth2_1x2v_ser_p2 }, // 1
+  // 2x kernels
+  { NULL, kernel_dg_prim_vars_gyrokinetic_vth2_2x2v_ser_p1, kernel_dg_prim_vars_gyrokinetic_vth2_2x2v_ser_p2 }, // 2
+  // 3x kernels
+  { NULL, kernel_dg_prim_vars_gyrokinetic_vth2_3x2v_ser_p1, NULL }, // 4
+};
+
+GKYL_CU_DH
+static void
 kernel_dg_prim_vars_gyrokinetic_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
@@ -83,7 +219,7 @@ kernel_dg_prim_vars_gyrokinetic_3x2v_ser_p1(const struct gkyl_dg_prim_vars_type 
 
 }
 
-// gyrokinetic primitive variable kernel list
+// gyrokinetic primitive variable (u_parallel, vth^2) kernel list
 GKYL_CU_D
 static const gkyl_dg_prim_vars_gyrokinetic_kern_list ser_dg_prim_vars_gyrokinetic_kernels[] = {
   // 1x kernels

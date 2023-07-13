@@ -29,6 +29,211 @@ typedef struct {
 
 GKYL_CU_DH
 static void
+kernel_dg_prim_vars_vlasov_u_i_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_u_i_1x1v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_u_i_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_u_i_1x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_u_i_1x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_u_i_1x3v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_u_i_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_u_i_2x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_u_i_2x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_u_i_2x3v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_u_i_3x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+// Vlasov u_i kernel list
+GKYL_CU_D
+static const gkyl_dg_prim_vars_vlasov_kern_list ser_dg_prim_vars_vlasov_u_i_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_dg_prim_vars_vlasov_u_i_1x1v_ser_p1, kernel_dg_prim_vars_vlasov_u_i_1x1v_ser_p2 }, // 0
+  { NULL, kernel_dg_prim_vars_vlasov_u_i_1x2v_ser_p1, kernel_dg_prim_vars_vlasov_u_i_1x2v_ser_p2 }, // 1
+  { NULL, kernel_dg_prim_vars_vlasov_u_i_1x3v_ser_p1, kernel_dg_prim_vars_vlasov_u_i_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, kernel_dg_prim_vars_vlasov_u_i_2x2v_ser_p1, kernel_dg_prim_vars_vlasov_u_i_2x2v_ser_p2 }, // 3
+  { NULL, kernel_dg_prim_vars_vlasov_u_i_2x3v_ser_p1, kernel_dg_prim_vars_vlasov_u_i_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, kernel_dg_prim_vars_vlasov_u_i_3x3v_ser_p1, NULL }, // 5
+};
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_1x1v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_1x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_1x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_1x3v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_2x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_2x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_2x3v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_vlasov_vth2_3x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+// Vlasov vth^2 kernel list
+GKYL_CU_D
+static const gkyl_dg_prim_vars_vlasov_kern_list ser_dg_prim_vars_vlasov_vth2_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_dg_prim_vars_vlasov_vth2_1x1v_ser_p1, kernel_dg_prim_vars_vlasov_vth2_1x1v_ser_p2 }, // 0
+  { NULL, kernel_dg_prim_vars_vlasov_vth2_1x2v_ser_p1, kernel_dg_prim_vars_vlasov_vth2_1x2v_ser_p2 }, // 1
+  { NULL, kernel_dg_prim_vars_vlasov_vth2_1x3v_ser_p1, kernel_dg_prim_vars_vlasov_vth2_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, kernel_dg_prim_vars_vlasov_vth2_2x2v_ser_p1, kernel_dg_prim_vars_vlasov_vth2_2x2v_ser_p2 }, // 3
+  { NULL, kernel_dg_prim_vars_vlasov_vth2_2x3v_ser_p1, kernel_dg_prim_vars_vlasov_vth2_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, kernel_dg_prim_vars_vlasov_vth2_3x3v_ser_p1, NULL }, // 5
+};
+
+
+GKYL_CU_DH
+static void
 kernel_dg_prim_vars_vlasov_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
