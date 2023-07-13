@@ -32,9 +32,9 @@ test_iz_react_rate()
   int poly_order = 1;
   int cdim = 1, vdim = 1;
   int pdim = cdim + vdim; 
-  double lower[] = {-2.0,-1.0}, upper[] = {2.0,1.0};
-  int ghost[] = {0, 0};
-  int cells[] = {1,2};
+  double lower[] = {-2.0,-2.0,-2.0,-1.0,-1.0,-1.0}, upper[] = {2.0,2.0,2.0,1.0,1.0,1.0};
+  int ghost[] = {0, 0, 0, 0, 0, 0, 0};
+  int cells[] = {16,16,16,8,8,8};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -83,10 +83,18 @@ test_iz_react_rate()
   struct gkyl_dg_iz *reactRate = gkyl_dg_iz_new(&basis, &phaseBasis, &confRange, &phaseRange,
   						echarge, emass, GKYL_H, true, false);
 
-  gkyl_dg_iz_react_rate(reactRate, moms_elc, moms_neut, vtSqIz, cflRate, coefIz);
+  struct timespec tm;
+  double tm_tot = 0.0; 
+  for (int t=0; t<1000; ++t) {
+    tm = gkyl_wall_clock();
+    gkyl_dg_iz_react_rate(reactRate, moms_elc, moms_neut, vtSqIz, cflRate, coefIz);
+    tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
+  }
+  tm_tot = tm_tot/1000;
+  printf("Avg time over 1000 loops is %.e s", tm_tot);
   //gkyl_dg_iz_react_rate(reactRate, m0, m2, vtSqIz, cflRate, coefIz);
-  gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
-  gkyl_grid_sub_array_write(&confGrid, &confRange, coefIz, "ctest_react_rate_1x.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, coefIz, "ctest_react_rate_1x.gkyl");
     
   // left cell
   //double *cl_vt = gkyl_array_fetch(vtSqIz, 0);

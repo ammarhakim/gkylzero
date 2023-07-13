@@ -134,8 +134,8 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   // Interpolate ADAS data
   // Resolution, density and temp should be set in input file 
   atomic_data c_recomb, c_ion; 
-  c_recomb = loadadf11("acd96_c.dat");
-  c_ion = loadadf11("scd96_c.dat");
+  c_recomb = loadadf11("acd12_h.dat");
+  c_ion = loadadf11("scd12_h.dat");
 
   double *M0q, *Teq, *recomb_data, *ioniz_data;
   double minM0, minTe, maxM0, maxTe;
@@ -275,7 +275,7 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
       t_idx = (log10(temp_elc_av) - up->Teq[0])/(up->dlogTe);
       diff1 = fabs(up->Teq[t_idx]- log10(temp_elc_av));
       diff2 = fabs(up->Teq[(t_idx+1)] - log10(temp_elc_av));
-      printf("%f %f %f %f", diff1, diff2, pow(10.,up->Teq[t_idx]),  pow(10.,up->Teq[t_idx+1]));
+      //printf("%f %f %f %f", diff1, diff2, pow(10.,up->Teq[t_idx]),  pow(10.,up->Teq[t_idx+1]));
       if (diff1 > diff2) t_idx += 1;
     }
     
