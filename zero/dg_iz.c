@@ -4,6 +4,9 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
+#include <gkyl_dg_prim_vars_vlasov.h>
+#include <gkyl_dg_prim_vars_gyrokinetic.h>
+#include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_iz.h>
@@ -123,7 +126,6 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   int pdim = pbasis->ndim;
   int poly_order = cbasis->poly_order;
   up->cdim = cdim;
-  up->basis = cbasis;
   up->use_gpu = use_gpu;
   up->conf_rng = conf_rng;
   up->phase_rng = phase_rng; 
@@ -192,48 +194,26 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
 
   // allocate fields for prim mom calculation
   // do array declarations require anything for gpus??
-  up->u_sq_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume);
-  up->m2_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume);
-  up->vth_sq_neut = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume);
-  up->vth_sq_elc = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume);
+  /* up->u_sq_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume); */
+  /* up->m2_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume); */
+  up->udrift_neut = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis*up->vdim_vl, up->conf_rng->volume);
+  up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
 
-  gkyl_dg_bin_op_mem *mem; // see binop unit test for allocating gpu mem
-  up->mem = gkyl_dg_bin_op_mem_new(up->vth_sq_elc->size, up->basis->num_basis);
-  
+  up->prim_vars_neut_udrift = gkyl_dg_prim_vars_vlasov_new(cbasis, pbasis, "u_i", use_gpu);
+  up->prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu);
+
   return up;
 }
 
 void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut, struct gkyl_array *vth_sq_iz,
+  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
   struct gkyl_array *cflrate, struct gkyl_array *coef_iz)
 {
-  // gpu func calls will be the same for bin ops
-  // Calculate vtsq from moms using bin ops
-  // neutral vtsq
-  for (int d=1; d<up->vdim_vl+1; d+=1) {
-    gkyl_dg_mul_op_range(*up->basis, 0, up->u_sq_temp, d, moms_neut, d, moms_neut, up->conf_rng);
-    gkyl_array_accumulate_range(up->m2_temp, -1.0, up->u_sq_temp, *up->conf_rng); // -M1.M1
-  }
-  gkyl_dg_div_op_range(up->mem, *up->basis, 0, up->m2_temp, 0, up->m2_temp, 0, moms_neut, up->conf_rng); // -u.u*m0
-  gkyl_array_accumulate_offset_range(up->m2_temp, 1.0, moms_neut, (up->vdim_vl+1)*up->basis->num_basis, *up->conf_rng); // m2-u.u*m0
-  gkyl_dg_div_op_range(up->mem, *up->basis, 0, up->vth_sq_neut, 0, up->m2_temp, 0, moms_neut, up->conf_rng); // (m2-u.u*m0)/m0
-  gkyl_array_scale_range(up->vth_sq_neut, 1/up->vdim_vl, *up->conf_rng); // (m2-u.u*m0)/(vdim*m0)
-
-  // elc vtsq
-  gkyl_dg_mul_op_range(*up->basis, 0, up->m2_temp, 1, moms_elc, 1, moms_elc, up->conf_rng); // M1par*M1par
-  gkyl_dg_mul_op_range(*up->basis, 0, up->m2_temp, 0, up->m2_temp, 0, moms_elc , up->conf_rng); // uparSq*m0
-  gkyl_array_accumulate_offset_range(up->m2_temp, -1.0, moms_elc, (up->vdim_vl+1)*up->basis->num_basis, *up->conf_rng); // uparSq*m0 - m2
-  gkyl_dg_div_op_range(up->mem, *up->basis, 0, up->vth_sq_elc, 0, up->m2_temp, 0, moms_elc, up->conf_rng); // (uparSq*m0 - m2)/m0
-  gkyl_array_scale_range(up->vth_sq_elc, -1/up->vdim_vl, *up->conf_rng); // (m2 - uparSq*m0) / (vdim*m0)
-
-  //for testing
-  /* gkyl_array_accumulate_offset_range(up->vth_sq_neut, 1.0, moms_neut, (up->vdim_vl+1)*up->basis->num_basis, *up->conf_rng); */
-  /* gkyl_array_accumulate_offset_range(up->vth_sq_elc, 1.0, moms_elc, (up->vdim_vl+1)*up->basis->num_basis, *up->conf_rng); */
     
-  // Calculate vt_sq_iz
-  gkyl_array_copy_range(vth_sq_iz, up->vth_sq_elc, *up->conf_rng);
-  gkyl_array_scale_range(vth_sq_iz, 1/2.0, *up->conf_rng);
-  gkyl_array_shiftc(vth_sq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
+  // Calculate vt_sq_iz --> move to inside conf space loop
+  /* gkyl_array_copy_range(vth_sq_iz, up->vth_sq_elc, *up->conf_rng); */
+  /* gkyl_array_scale_range(vth_sq_iz, 1/2.0, *up->conf_rng); */
+  /* gkyl_array_shiftc(vth_sq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0); */
 
   //struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
@@ -246,14 +226,15 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
    
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0]; 
-    const double *vth_sq_neut_d = gkyl_array_cfetch(up->vth_sq_neut, loc);
-    const double *vth_sq_elc_d = gkyl_array_cfetch(up->vth_sq_elc, loc);
+    double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
     double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
-
+    
+    up->kernel(moms_elc_d, elc_vtSq_d);
+    
     // Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
     double m0_elc_av = m0_elc_d[0]*cell_av_fac; 
-    double temp_elc_av = vth_sq_elc_d[0]*cell_av_fac*up->mass_elc/up->elem_charge;
+    double temp_elc_av = vtSq_elc_d[0]*cell_av_fac*up->mass_elc/up->elem_charge;
     double diff1 = 0;
     double diff2 = 0;
     int m0_idx, t_idx, q_idx;

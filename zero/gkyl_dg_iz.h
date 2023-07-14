@@ -49,7 +49,7 @@ struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* 
  */
 
 void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut, struct gkyl_array *vth_sq_iz,
+  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
   struct gkyl_array *cflrate, struct gkyl_array *coef_iz); 
 
 /**

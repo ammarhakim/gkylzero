@@ -11,7 +11,7 @@ struct gkyl_dg_iz {
   struct gkyl_rect_grid grid; // conf grid object
   int cdim; // number of configuration space dimensions
   int poly_order; // polynomial order of DG basis
-  struct gkyl_basis *basis;
+
   const struct gkyl_range *conf_rng;
   const struct gkyl_range *phase_rng; 
   bool use_gpu; 
@@ -32,11 +32,11 @@ struct gkyl_dg_iz {
   double *ioniz_data;
   double E; 
 
-  struct gkyl_array *m2_temp;
-  struct gkyl_array *u_sq_temp;
-  struct gkyl_array *vth_sq_neut;
-  struct gkyl_array *vth_sq_elc;
-  struct gkyl_dg_bin_op_mem *mem; 
+  struct gkyl_array *udrift_neut;
+  struct gkyl_array *vtSq_elc;
+
+  struct gkyl_dg_prim_vars_type *prim_vars_neut_udrift;
+  struct gkyl_dg_prim_vars_type *prim_vars_elc_vtSq;
 
   struct gkyl_iz_kernels *kernels;  // iz_react_rate kernel.
   struct gkyl_iz_kernels *kernels_cu;  // device copy.
