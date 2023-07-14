@@ -1,7 +1,7 @@
 #include <gkyl_dg_prim_vars_kernels.h> 
 #include <gkyl_binop_mul_ser.h> 
 #include <gkyl_basis_ser_1x_p1_inv.h> 
-GKYL_CU_DH void gyrokinetic_prim_vars_vth2_1x1v_ser_p1(const double *moms, double* prim_vars) 
+GKYL_CU_DH void gyrokinetic_prim_vars_vtSq_1x2v_ser_p1(const double *moms, double* prim_vars) 
 { 
   // moms:      Input moments. 
   // prim_vars: vtSq = 1/vdim(m2/m0 - upar^2). 
@@ -24,8 +24,8 @@ GKYL_CU_DH void gyrokinetic_prim_vars_vth2_1x1v_ser_p1(const double *moms, doubl
   binop_mul_1d_ser_p1(m0, m2, m2m0); 
   ser_1x_p1_inv(m0Sq, m0Sq_inv); 
 
-  vtSq[0] = 0.7071067811865475*m0Sq_inv[1]*m2m0[1]-0.7071067811865475*m0Sq_inv[1]*m1Sq[1]+0.7071067811865475*m0Sq_inv[0]*m2m0[0]-0.7071067811865475*m0Sq_inv[0]*m1Sq[0]; 
-  vtSq[1] = 0.7071067811865475*m0Sq_inv[0]*m2m0[1]-0.7071067811865475*m0Sq_inv[0]*m1Sq[1]+0.7071067811865475*m2m0[0]*m0Sq_inv[1]-0.7071067811865475*m1Sq[0]*m0Sq_inv[1]; 
+  vtSq[0] = 0.2357022603955158*m0Sq_inv[1]*m2m0[1]-0.2357022603955158*m0Sq_inv[1]*m1Sq[1]+0.2357022603955158*m0Sq_inv[0]*m2m0[0]-0.2357022603955158*m0Sq_inv[0]*m1Sq[0]; 
+  vtSq[1] = 0.2357022603955158*m0Sq_inv[0]*m2m0[1]-0.2357022603955158*m0Sq_inv[0]*m1Sq[1]+0.2357022603955158*m2m0[0]*m0Sq_inv[1]-0.2357022603955158*m1Sq[0]*m0Sq_inv[1]; 
 
 } 
  

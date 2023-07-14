@@ -1,7 +1,7 @@
 #include <gkyl_dg_prim_vars_kernels.h> 
 #include <gkyl_binop_mul_ser.h> 
 #include <gkyl_basis_ser_3x_p1_inv.h> 
-GKYL_CU_DH void vlasov_prim_vars_vth2_3x3v_ser_p1(const double *moms, double* prim_vars) 
+GKYL_CU_DH void vlasov_prim_vars_vtSq_3x3v_ser_p1(const double *moms, double* prim_vars) 
 { 
   // moms:      Input moments. 
   // prim_vars: vth^2. 

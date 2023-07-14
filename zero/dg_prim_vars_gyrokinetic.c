@@ -38,13 +38,13 @@ gkyl_dg_prim_vars_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct 
   dg_prim_vars_gyrokinetic->pvt.num_config = cbasis->num_basis;
 
   const gkyl_dg_prim_vars_gyrokinetic_kern_list *dg_prim_vars_gyrokinetic_upar_kernels, 
-    *dg_prim_vars_gyrokinetic_vth2_kernels, *dg_prim_vars_gyrokinetic_kernels;
+    *dg_prim_vars_gyrokinetic_vtSq_kernels, *dg_prim_vars_gyrokinetic_kernels;
 
   // choose kernel tables based on basis-function type
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       dg_prim_vars_gyrokinetic_upar_kernels = ser_dg_prim_vars_gyrokinetic_upar_kernels;
-      dg_prim_vars_gyrokinetic_vth2_kernels = ser_dg_prim_vars_gyrokinetic_vth2_kernels;
+      dg_prim_vars_gyrokinetic_vtSq_kernels = ser_dg_prim_vars_gyrokinetic_vtSq_kernels;
       dg_prim_vars_gyrokinetic_kernels = ser_dg_prim_vars_gyrokinetic_kernels;
       break;
 
@@ -57,8 +57,8 @@ gkyl_dg_prim_vars_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct 
     dg_prim_vars_gyrokinetic->pvt.kernel = dg_prim_vars_gyrokinetic_upar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     dg_prim_vars_gyrokinetic->pvt.num_mom = 1; 
   }
-  else if (strcmp(prim_nm, "vth2") == 0) { // thermal velocity squared
-    dg_prim_vars_gyrokinetic->pvt.kernel = dg_prim_vars_gyrokinetic_vth2_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+  else if (strcmp(prim_nm, "vtSq") == 0) { // thermal velocity squared
+    dg_prim_vars_gyrokinetic->pvt.kernel = dg_prim_vars_gyrokinetic_vtSq_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     dg_prim_vars_gyrokinetic->pvt.num_mom = 1; 
   }
   else if (strcmp(prim_nm, "prim") == 0) { // combined (upar, vth^2)

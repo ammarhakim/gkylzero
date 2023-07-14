@@ -97,31 +97,15 @@ static const gkyl_dg_prim_vars_gyrokinetic_kern_list ser_dg_prim_vars_gyrokineti
 
 GKYL_CU_DH
 static void
-kernel_dg_prim_vars_gyrokinetic_vth2_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+kernel_dg_prim_vars_gyrokinetic_vtSq_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  return gyrokinetic_prim_vars_vth2_1x1v_ser_p1(in, out);
+  return gyrokinetic_prim_vars_vtSq_1x1v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
 static void
-kernel_dg_prim_vars_gyrokinetic_vth2_1x1v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
-  const int *idx, const double *in, double* out)
-{
-
-}
-
-GKYL_CU_DH
-static void
-kernel_dg_prim_vars_gyrokinetic_vth2_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
-  const int *idx, const double *in, double* out)
-{
-  return gyrokinetic_prim_vars_vth2_1x2v_ser_p1(in, out);
-}
-
-GKYL_CU_DH
-static void
-kernel_dg_prim_vars_gyrokinetic_vth2_1x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+kernel_dg_prim_vars_gyrokinetic_vtSq_1x1v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
 
@@ -129,15 +113,15 @@ kernel_dg_prim_vars_gyrokinetic_vth2_1x2v_ser_p2(const struct gkyl_dg_prim_vars_
 
 GKYL_CU_DH
 static void
-kernel_dg_prim_vars_gyrokinetic_vth2_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+kernel_dg_prim_vars_gyrokinetic_vtSq_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  return gyrokinetic_prim_vars_vth2_2x2v_ser_p1(in, out);
+  return gyrokinetic_prim_vars_vtSq_1x2v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
 static void
-kernel_dg_prim_vars_gyrokinetic_vth2_2x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+kernel_dg_prim_vars_gyrokinetic_vtSq_1x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
 
@@ -145,22 +129,38 @@ kernel_dg_prim_vars_gyrokinetic_vth2_2x2v_ser_p2(const struct gkyl_dg_prim_vars_
 
 GKYL_CU_DH
 static void
-kernel_dg_prim_vars_gyrokinetic_vth2_3x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+kernel_dg_prim_vars_gyrokinetic_vtSq_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  return gyrokinetic_prim_vars_vth2_3x2v_ser_p1(in, out);
+  return gyrokinetic_prim_vars_vtSq_2x2v_ser_p1(in, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_vtSq_2x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_gyrokinetic_vtSq_3x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+  return gyrokinetic_prim_vars_vtSq_3x2v_ser_p1(in, out);
 }
 
 // gyrokinetic vth^2 kernel list
 GKYL_CU_D
-static const gkyl_dg_prim_vars_gyrokinetic_kern_list ser_dg_prim_vars_gyrokinetic_vth2_kernels[] = {
+static const gkyl_dg_prim_vars_gyrokinetic_kern_list ser_dg_prim_vars_gyrokinetic_vtSq_kernels[] = {
   // 1x kernels
-  { NULL, kernel_dg_prim_vars_gyrokinetic_vth2_1x1v_ser_p1, kernel_dg_prim_vars_gyrokinetic_vth2_1x1v_ser_p2 }, // 0
-  { NULL, kernel_dg_prim_vars_gyrokinetic_vth2_1x2v_ser_p1, kernel_dg_prim_vars_gyrokinetic_vth2_1x2v_ser_p2 }, // 1
+  { NULL, kernel_dg_prim_vars_gyrokinetic_vtSq_1x1v_ser_p1, kernel_dg_prim_vars_gyrokinetic_vtSq_1x1v_ser_p2 }, // 0
+  { NULL, kernel_dg_prim_vars_gyrokinetic_vtSq_1x2v_ser_p1, kernel_dg_prim_vars_gyrokinetic_vtSq_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, kernel_dg_prim_vars_gyrokinetic_vth2_2x2v_ser_p1, kernel_dg_prim_vars_gyrokinetic_vth2_2x2v_ser_p2 }, // 2
+  { NULL, kernel_dg_prim_vars_gyrokinetic_vtSq_2x2v_ser_p1, kernel_dg_prim_vars_gyrokinetic_vtSq_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, kernel_dg_prim_vars_gyrokinetic_vth2_3x2v_ser_p1, NULL }, // 4
+  { NULL, kernel_dg_prim_vars_gyrokinetic_vtSq_3x2v_ser_p1, NULL }, // 4
 };
 
 GKYL_CU_DH
