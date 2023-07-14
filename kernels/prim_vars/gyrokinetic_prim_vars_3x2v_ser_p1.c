@@ -3,7 +3,7 @@
 #include <gkyl_basis_ser_3x_p1_inv.h> 
 GKYL_CU_DH void gyrokinetic_prim_vars_3x2v_ser_p1(const double *moms, double* prim_vars) 
 { 
-  // moms:   Input moments. 
+  // moms:      Input moments. 
   // prim_vars: upar = m1/m0 (first component), vtSq = 1/vdim(m2/m0 - upar^2) (last component). 
  
   const double *m0 = &moms[0]; 
@@ -17,10 +17,8 @@ GKYL_CU_DH void gyrokinetic_prim_vars_3x2v_ser_p1(const double *moms, double* pr
 
   double uparSq[8] = {0.0}; 
 
-  // Calculate expansions of prim_vars, which can be calculated free of aliasing errors. 
   ser_3x_p1_inv(m0, m0_inv); 
 
-  // Calculate expansions of prim_vars, which can be calculated free of aliasing errors. 
   binop_mul_3d_ser_p1(m1, m0_inv, upar); 
   binop_mul_3d_ser_p1(upar, upar, uparSq); 
 

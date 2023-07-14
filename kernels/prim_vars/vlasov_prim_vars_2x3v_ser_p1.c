@@ -3,8 +3,8 @@
 #include <gkyl_basis_ser_2x_p1_inv.h> 
 GKYL_CU_DH void vlasov_prim_vars_2x3v_ser_p1(const double *moms, double* prim_vars) 
 { 
-  // moms:   Input moments. 
-  // prim_vars: udrift = m1/m0 (first vdim components), vtSq = 1/vdim(m2/m0 - udrift.udrift) (last component). 
+  // moms:      Input moments. 
+  // prim_vars: u_i = m1i/m0 (first vdim components), vtSq = 1/vdim(m2/m0 - udrift.udrift) (last component). 
  
   const double *m0 = &moms[0]; 
   const double *m1x = &moms[4]; 
@@ -23,7 +23,6 @@ GKYL_CU_DH void vlasov_prim_vars_2x3v_ser_p1(const double *moms, double* prim_va
   double uySq[4] = {0.0}; 
   double uzSq[4] = {0.0}; 
 
-  // Calculate expansions of prim_vars, which can be calculated free of aliasing errors. 
   ser_2x_p1_inv(m0, m0_inv); 
 
   binop_mul_2d_ser_p1(m1x, m0_inv, ux); 

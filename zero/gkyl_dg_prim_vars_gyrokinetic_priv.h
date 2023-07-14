@@ -32,7 +32,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_upar_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_upar_1x1v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
@@ -48,7 +48,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_upar_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_upar_1x2v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
@@ -64,7 +64,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_upar_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_upar_2x2v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
@@ -80,7 +80,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_upar_3x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_upar_3x2v_ser_p1(in, out);
 }
 
 // gyrokinetic u_parallel kernel list
@@ -100,7 +100,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_vth2_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_vth2_1x1v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
@@ -116,7 +116,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_vth2_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_vth2_1x2v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
@@ -132,7 +132,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_vth2_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_vth2_2x2v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
@@ -148,7 +148,7 @@ static void
 kernel_dg_prim_vars_gyrokinetic_vth2_3x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-
+  return gyrokinetic_prim_vars_vth2_3x2v_ser_p1(in, out);
 }
 
 // gyrokinetic vth^2 kernel list
