@@ -87,7 +87,7 @@ test_iz_react_rate()
   double tm_tot = 0.0; 
   for (int t=0; t<1000; ++t) {
     tm = gkyl_wall_clock();
-    gkyl_dg_iz_react_rate(reactRate, moms_elc, moms_neut, vtSqIz, cflRate, coefIz);
+    gkyl_dg_iz_react_rate(reactRate, moms_elc, moms_neut, cflRate, coefIz);
     tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
   }
   tm_tot = tm_tot/1000;

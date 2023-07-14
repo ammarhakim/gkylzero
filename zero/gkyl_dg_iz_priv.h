@@ -28,7 +28,6 @@ struct gkyl_dg_iz {
   double dlogTe;
   double *M0q;
   double *Teq;
-  double *recomb_data;
   double *ioniz_data;
   double E; 
 

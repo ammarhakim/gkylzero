@@ -63,57 +63,6 @@ double* calc_ionization_coef(atomic_data data, double* te, double* ne, int charg
   return result; 
 }
 
-/* Calculate Recombination rate coefficient.
- * If ne is out of bounds, use value at nearest ne given
- * If Te>Te_max, set coefficient to 0
- * If Te<Te_min, use value at highest Te
- * Inputs: atomic_data data - struct containing adas data
- *         double* te - array of temperatures to evaluate coefficient at
- *         double* ne - array of densities to evaluate coefficient at
- *         int charge_state - atomic charge state the ion ends at
- *         int number - number of (te,ne) points to evaluate
- * 
- */
-double* calc_recombination_coef(atomic_data data, double* te, double* ne, int charge_state, int number){
-  int charge_state_index, *tooSmallTe;
-  double* result, *localte, *localne;
-  double minLogTe, maxLogTe, minLogNe, maxLogNe;
-  
-  localte = (double*)malloc(sizeof(double)*number);
-  localne = (double*)malloc(sizeof(double)*number);
-  tooSmallTe = (int*)malloc(sizeof(int)*number);
-  minLogTe = data.logT[0];
-  minLogNe = data.logNe[0];
-  maxLogTe = data.logT[data.te_intervals-1];
-  maxLogNe = data.logNe[data.ne_intervals-1];
-
-  for(int i=0;i<number;i++){
-    localte[i]=te[i];
-    localne[i]=ne[i];
-    tooSmallTe[i]=1;
-    if(localte[i]<minLogTe){
-      localte[i]=minLogTe;
-    }else if(localte[i]>maxLogTe){
-      tooSmallTe[i]=0;
-    }
-    //printf("%f %f% f\n",localne[i],minLogNe,maxLogNe);
-    if(localne[i]<minLogNe){
-      localne[i]=minLogNe;
-    }else if(localne[i]>maxLogNe){
-      localne[i]=maxLogNe;
-    }
-    //printf("%f %f% f\n",localne[i],minLogNe,maxLogNe);
-  }
-  charge_state_index = data.te_intervals * data.ne_intervals * charge_state;
-  result = bilinear_interp(data.logT,data.logNe,data.logData+charge_state_index,localte,localne,
-			 data.te_intervals,data.ne_intervals,number);
-  for(int i=0;i<number;i++){
-    //Multiplies by 0 if Te<Te_min, 1 otherwise
-    result[i]=tooSmallTe[i]*pow(10.0,result[i]);
-  }
-  return result; 
-}
-
 struct gkyl_dg_iz*
 gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
@@ -135,11 +84,10 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
 
   // Interpolate ADAS data
   // Resolution, density and temp should be set in input file 
-  atomic_data c_recomb, c_ion; 
-  c_recomb = loadadf11("acd12_h.dat");
-  c_ion = loadadf11("scd12_h.dat");
+  atomic_data h_ion; 
+  h_ion = loadadf11("scd12_h.dat");
 
-  double *M0q, *Teq, *recomb_data, *ioniz_data;
+  double *M0q, *Teq, *ioniz_data;
   double minM0, minTe, maxM0, maxTe;
   int resM0=50, resTe=100, qpoints=resM0*resTe;
   minM0 = 1e15;
@@ -167,16 +115,9 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   up->M0q=M0q;
   up->Teq=Teq;
 
-  up->recomb_data = calc_recombination_coef(c_recomb, up->Teq, up->M0q, c_recomb.Z-1, qpoints);
-  up->ioniz_data = calc_ionization_coef(c_ion, up->Teq, up->M0q, c_recomb.Z-1, qpoints);
-  for(int i=0;i<qpoints;i++){
-    printf("Te = %eeV, M0 = %em^-3, Recomb. coef = %em^3/s, Ioniz. coef = %em^3/s\n",
-  	   pow(10,Teq[i]),pow(10,M0q[i]),up->recomb_data[i],up->ioniz_data[i]);
-  }
+  up->ioniz_data = calc_ionization_coef(h_ion, up->Teq, up->M0q, h_ion.Z-1, qpoints);
 
-  // Establish vdim for gk and vlasov species
-  // will be either 1 & 1 or 2 & 3
-  // for gk and vlasov, respectively
+  // Establish vdim vlasov species
   int vdim_vl; 
   int vdim = pdim - up->cdim;
   if (is_gk) {
@@ -225,11 +166,15 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
    
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
+    const double *moms_neut_d = gkyl_array_cfetch(moms_neut, loc);
     const double *m0_elc_d = &moms_elc_d[0]; 
+    const double *m0_neut_d = &moms_neut_d[0]; 
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
+    double *udrift_neut_d = gkyl_array_fetch(up->udrift_neut, loc);
     double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
     
     up->prim_vars_elc_vtSq->kernel(up->prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
+    up->prim_vars_neut_udrift->kernel(up->prim_vars_neut_udrift, conf_iter.idx, moms_neut_d, udrift_neut_d);
     
     // Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
@@ -256,7 +201,6 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
       t_idx = (log10(temp_elc_av) - up->Teq[0])/(up->dlogTe);
       diff1 = fabs(up->Teq[t_idx]- log10(temp_elc_av));
       diff2 = fabs(up->Teq[(t_idx+1)] - log10(temp_elc_av));
-      //printf("%f %f %f %f", diff1, diff2, pow(10.,up->Teq[t_idx]),  pow(10.,up->Teq[t_idx+1]));
       if (diff1 > diff2) t_idx += 1;
     }
     
