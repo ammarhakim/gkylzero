@@ -229,7 +229,7 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
     double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
     
-    up->kernel(moms_elc_d, elc_vtSq_d);
+    up->prim_vars_elc_vtSq->kernel(up->prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
     
     // Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
