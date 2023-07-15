@@ -10,10 +10,10 @@
 // Identifiers for different charge exchange types
 enum gkyl_dg_cx_type
 {
-  GKYL_H, // Hydrogen plasma
-  GKYL_D, // Deuterium plasma
-  GKYL_NE, // Neon plasma
-  GKYL_HE, // Helium plasma
+  GKYL_CX_H, // Hydrogen plasma
+  GKYL_CX_D, // Deuterium plasma
+  GKYL_CX_NE, // Neon plasma
+  GKYL_CX_HE, // Helium plasma
 };
 
 // Object type

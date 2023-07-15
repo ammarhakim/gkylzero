@@ -133,7 +133,7 @@ test_cx_react_rate()
   gkyl_grid_sub_array_write(&confGrid, &confRange, moms_neut, "ctest_cx_moms_neut_1x.gkyl");
   gkyl_grid_sub_array_write(&confGrid, &confRange, moms_ion, "ctest_cx_moms_ion_1x.gkyl");
  
-  struct gkyl_dg_cx *reactRate = gkyl_dg_cx_new(&confGrid, &basis, &phaseBasis, &confRange, &phaseRange, imass, GKYL_H, false, false);
+  struct gkyl_dg_cx *reactRate = gkyl_dg_cx_new(&confGrid, &basis, &phaseBasis, &confRange, &phaseRange, imass, GKYL_CX_H, false, false);
 
   gkyl_dg_cx_react_rate(reactRate, moms_ion, moms_neut, b_hat, cflRate, coefCx);
   gkyl_grid_sub_array_write(&confGrid, &confRange, coefCx, "ctest_cx_react_rate_1x.gkyl");

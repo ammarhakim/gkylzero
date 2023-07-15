@@ -25,7 +25,7 @@ gkyl_dg_prim_vars_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct 
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_prim_vars_gyrokinetic_cu_dev_new(cbasis, pbasis);
+    return gkyl_dg_prim_vars_gyrokinetic_cu_dev_new(cbasis, pbasis, prim_nm);
   } 
 #endif    
   struct dg_prim_vars_type_gyrokinetic *dg_prim_vars_gyrokinetic = gkyl_malloc(sizeof(struct dg_prim_vars_type_gyrokinetic));

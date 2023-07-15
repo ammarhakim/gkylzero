@@ -10,8 +10,8 @@
 // Identifiers for different ionization types
 enum gkyl_dg_iz_type
 {
-  GKYL_H, // Hydrogen plasma
-  GKYL_AR, // Argon plasma
+  GKYL_IZ_H, // Hydrogen plasma
+  GKYL_IZ_AR, // Argon plasma
 };
 
 // Object type
