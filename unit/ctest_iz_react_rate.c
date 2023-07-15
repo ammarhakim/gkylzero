@@ -81,7 +81,7 @@ test_iz_react_rate()
   //gkyl_grid_sub_array_write(&confGrid, &confRange, moms_elc, "ctest_moms_elc_1x.gkyl");
 
   struct gkyl_dg_iz *reactRate = gkyl_dg_iz_new(&basis, &phaseBasis, &confRange, &phaseRange,
-  						echarge, emass, GKYL_H, true, false);
+  						echarge, emass, GKYL_IZ_H, true, false);
 
   gkyl_dg_iz_react_rate(reactRate, moms_elc, moms_neut, cflRate, coefIz);
   //gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");

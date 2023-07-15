@@ -54,19 +54,19 @@ gkyl_dg_cx_new(const struct gkyl_rect_grid *grid,
   /* this assumes ion mass = neut mass */
   up->mass_ion = mass_ion;
 
-  if (type_ion == GKYL_H) {
+  if (type_ion == GKYL_CX_H) {
     up->a = 1.12e-18;
     up->b = 7.15e-20;
   }
-  else if (type_ion == GKYL_D) {
+  else if (type_ion == GKYL_CX_D) {
     up->a = 1.09e-18;
     up->b = 7.15e-20;
   }
-  else if (type_ion == GKYL_NE) {
+  else if (type_ion == GKYL_CX_NE) {
     up->a = 7.95e-19;
     up->b = 5.65e-20;
   }
-  else if (type_ion == GKYL_HE) {
+  else if (type_ion == GKYL_CX_HE) {
     up->a = 6.484e-19;
     up->b = 4.350e-20;
   }  
