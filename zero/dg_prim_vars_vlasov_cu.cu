@@ -83,15 +83,15 @@ set_cu_ptrs(struct dg_prim_vars_type_vlasov* pvt, int prim_id, enum gkyl_basis_t
   
   switch (prim_id) {
     case u_i:
-      pvt.kernel = dg_prim_vars_vlasov_u_i_kernels[tblidx].kernels[poly_order];
+      pvt->pvt.kernel = dg_prim_vars_vlasov_u_i_kernels[tblidx].kernels[poly_order];
       break;
 
     case vtSq:
-      pvt.kernel = dg_prim_vars_vlasov_vtSq_kernels[tblidx].kernels[poly_order];
+      pvt->pvt.kernel = dg_prim_vars_vlasov_vtSq_kernels[tblidx].kernels[poly_order];
       break;
 
     case prim:
-      pvt.kernel = dg_prim_vars_vlasov_kernels[tblidx].kernels[poly_order];
+      pvt->pvt.kernel = dg_prim_vars_vlasov_kernels[tblidx].kernels[poly_order];
       break;
       
     default: // can't happen

@@ -83,15 +83,15 @@ set_cu_ptrs(struct dg_prim_vars_type_gyrokinetic* pvt, int prim_id, enum gkyl_ba
   
   switch (prim_id) {
     case upar:
-      pvt.kernel = dg_prim_vars_gyrokinetic_upar_kernels[tblidx].kernels[poly_order];
+      pvt->pvt.kernel = dg_prim_vars_gyrokinetic_upar_kernels[tblidx].kernels[poly_order];
       break;
 
     case vtSq:
-      pvt.kernel = dg_prim_vars_gyrokinetic_vtSq_kernels[tblidx].kernels[poly_order];
+      pvt->pvt.kernel = dg_prim_vars_gyrokinetic_vtSq_kernels[tblidx].kernels[poly_order];
       break;
 
     case prim:
-      pvt.kernel = dg_prim_vars_gyrokinetic_kernels[tblidx].kernels[poly_order];
+      pvt->pvt.kernel = dg_prim_vars_gyrokinetic_kernels[tblidx].kernels[poly_order];
       break;
       
     default: // can't happen
