@@ -10,6 +10,9 @@ enum gkyl_bc_emission_spectrum_type {
   GKYL_BC_CHUNG_EVERHART = 0,
   GKYL_BC_GAUSSIAN = 1};
 
+enum gkyl_bc_emission_spectrum_gamma_type {
+  GKYL_BC_FURMAN_PIVI = 0};
+
 // Object type
 typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
 
@@ -34,24 +37,17 @@ typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
  * @return New updater pointer.
  */
 struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(int dir, enum gkyl_edge_loc edge,
-  const struct gkyl_range *ghost_r,
-  enum gkyl_bc_emission_spectrum_type bctype, const struct gkyl_basis *cbasis, const struct gkyl_basis *basis,
-  int cdim, int vdim, bool use_gpu);
+  enum gkyl_bc_emission_spectrum_type bctype,
+  enum gkyl_bc_emission_spectrum_gamma_type gammatype,
+  double *bc_param, double *sey_param, int cdim, int vdim, bool use_gpu);
 
-double gkyl_bc_emission_spectrum_advance_cross(const struct gkyl_bc_emission_spectrum *up,
-  struct gkyl_array *f_self, struct gkyl_array *f_other, struct gkyl_array *f_proj,
-  double *bc_param, double flux, struct gkyl_rect_grid *grid, double *gain, const struct gkyl_range *other_r);
-
-/**
- * Advance boundary conditions. Fill buffer array based on boundary conditions and copy
- * contents to ghost cells of input f_arr
- *
- * @param up BC updater.
- * @param buff_arr Buffer array, big enough for ghost cells at this boundary.
- * @param f_arr Field array to apply BC to.
- */
 void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
-  struct gkyl_array *buff_arr, struct gkyl_array *f_arr, struct gkyl_array *f_proj, double k);
+  const struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
+  struct gkyl_array *weight, struct gkyl_array *k,
+  const struct gkyl_array *flux, struct gkyl_rect_grid *grid, struct gkyl_array *gamma,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r);
+
+void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *gamma, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r);
 
 /**
  * Free memory associated with bc_emission_spectrum updater.
