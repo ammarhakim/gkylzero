@@ -31,14 +31,21 @@ struct gkyl_dg_iz {
   double *ioniz_data;
   double E; 
 
+  struct gkyl_basis *cbasis;
+  struct gkyl_basis *pbasis;
+  
   struct gkyl_array *udrift_neut;
+  struct gkyl_array *upar_neut;
   struct gkyl_array *vtSq_elc;
+  struct gkyl_array *vtSq_iz;
+  struct gkyl_array *prim_vars_fmax; 
+  struct gkyl_array *coef_iz;
+  struct gkyl_array *fmax_iz; 
 
   struct gkyl_dg_prim_vars_type *prim_vars_neut_udrift;
   struct gkyl_dg_prim_vars_type *prim_vars_elc_vtSq;
 
-  struct gkyl_iz_kernels *kernels;  // iz_react_rate kernel.
-  struct gkyl_iz_kernels *kernels_cu;  // device copy.
+  struct gkyl_proj_maxwellian_on_basis *proj_max;
   
   //dg_iz_react_ratef_t react_rate; // pointer to reaction rate kernel
 };

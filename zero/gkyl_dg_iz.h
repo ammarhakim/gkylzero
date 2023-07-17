@@ -19,22 +19,23 @@ typedef struct gkyl_dg_iz gkyl_dg_iz;
 
 /**
  * Create new updater to calculate ionization temperature or reaction rate
+ * @param grid Grid object needed for fmax
  * @param cbasis Configuration-space basis-functions
- * @param pbasis
- * @param conf_rng
- * @param phase_rng
+ * @param pbasis Phase-space basis-functions
+ * @param conf_rng Configuration range
+ * @param phase_rng Phase range
  * @param elem_charge Elementary charge value
  * @param mass_elc Mass of the electron value
  * @param type_ion Enum for type of ion for ionization (support H^+ and Ar^+)
  * @param use_gpu Boolean for whether struct is on host or device
  */
-struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
+struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
   double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, 
   bool is_gk, bool use_gpu); 
 
 /**
- * Compute reaction rate coefficient for use in neutral reactions. 
+ * Compute ionization collision term for use in neutral reactions. 
  * The update_rng MUST be a sub-range of the
  * range on which the array is defined.  That is, it must be either
  * the same range as the array range, or one created using the
@@ -43,14 +44,17 @@ struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* 
  * @param iz Ionization object.
  * @param moms_elc Input electron moments
  * @param moms_neut Input neutral moments
- * @param vth_sq_iz Output ionization temperature vth_iz^2 = T_iz/m
- * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
- * @param coef_iz Output reaction rate coefficient
+ * @param bmag Magnetic field used for GK fmax 
+ * @param jacob_tot Total Jacobian used for GK fmax
+ * @param bhat_vec Unit bmag vector in Cartesian (X,Y,Z) components
+ * @param distf_self Species self distribution function
+ * @param coll_iz Output reaction rate coefficient
  */
 
-void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
+void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  struct gkyl_array *cflrate, struct gkyl_array *coef_iz); 
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
+  const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
 
 /**
  * Delete updater.

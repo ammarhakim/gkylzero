@@ -8,6 +8,7 @@
 #include <gkyl_dg_prim_vars_gyrokinetic.h>
 #include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_iz_priv.h>
@@ -64,7 +65,7 @@ double* calc_ionization_coef(atomic_data data, double* te, double* ne, int charg
 }
 
 struct gkyl_dg_iz*
-gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
+gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
   double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, 
   bool is_gk, bool use_gpu)
@@ -74,6 +75,8 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   int cdim = cbasis->ndim;
   int pdim = pbasis->ndim;
   int poly_order = cbasis->poly_order;
+  up->cbasis = cbasis;
+  up->pbasis = pbasis;
   up->cdim = cdim;
   up->use_gpu = use_gpu;
   up->conf_rng = conf_rng;
@@ -138,25 +141,26 @@ gkyl_dg_iz_new(struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   /* up->u_sq_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume); */
   /* up->m2_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume); */
   up->udrift_neut = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis*up->vdim_vl, up->conf_rng->volume);
+  up->upar_neut = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
+  up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
+  up->coef_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
+  up->fmax_iz = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, up->phase_rng->volume);
 
   up->prim_vars_neut_udrift = gkyl_dg_prim_vars_vlasov_new(cbasis, pbasis, "u_i", use_gpu);
   up->prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu);
 
+  up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, use_gpu);
+
   return up;
 }
 
-void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
+void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  struct gkyl_array *cflrate, struct gkyl_array *coef_iz)
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
+  const struct gkyl_array *f_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate)
 {
     
-  // Calculate vt_sq_iz --> move to inside conf space loop
-  /* gkyl_array_copy_range(vth_sq_iz, up->vth_sq_elc, *up->conf_rng); */
-  /* gkyl_array_scale_range(vth_sq_iz, 1/2.0, *up->conf_rng); */
-  /* gkyl_array_shiftc(vth_sq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0); */
-
-  //struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
   int rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<up->conf_rng->ndim; ++d) rem_dir[d] = 1;
@@ -171,7 +175,7 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
     const double *m0_neut_d = &moms_neut_d[0]; 
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
     double *udrift_neut_d = gkyl_array_fetch(up->udrift_neut, loc);
-    double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
+    double *coef_iz_d = gkyl_array_fetch(up->coef_iz, loc);
     
     up->prim_vars_elc_vtSq->kernel(up->prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
     up->prim_vars_neut_udrift->kernel(up->prim_vars_neut_udrift, conf_iter.idx, moms_neut_d, udrift_neut_d);
@@ -205,19 +209,48 @@ void gkyl_dg_iz_react_rate(const struct gkyl_dg_iz *up,
     }
     
     q_idx = m0_idx*up->resTe + t_idx;
-    coef_iz_d[0] = up->ioniz_data[q_idx]/cell_av_fac; // not sure if this is correct
-
-    /* gkyl_range_deflate(&vel_rng, up->phase_rng, rem_dir, conf_iter.idx); */
-    /* gkyl_range_iter_no_split_init(&vel_iter, &vel_rng); */
-    /* // cfl associated with reaction is a *phase space* cfl */
-    /* // Need to loop over velocity space for each configuration space cell */
-    /* // to get total cfl rate in each phase space cell */
-    /* while (gkyl_range_iter_next(&vel_iter)) { */
-    /*   long cfl_idx = gkyl_range_idx(&vel_rng, vel_iter.idx); */
-    /*   double *cflrate_d = gkyl_array_fetch(cflrate, cfl_idx); */
-    /*   cflrate_d[0] += cflr; // frequencies are additive */
-    /* } */
+    coef_iz_d[0] = up->ioniz_data[q_idx]/cell_av_fac;
   }
+
+  // Calculate vt_sq_iz 
+  gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, *up->conf_rng);
+  gkyl_array_scale_range(up->vtSq_iz, 1/2.0, *up->conf_rng);
+  gkyl_array_shiftc(up->vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
+
+  // Calculate upar_neut = udrift . bhat_vec
+  // Add this into prim_vars object: vlasov_to_gk_prim_vars and vice versa.
+  gkyl_dg_dot_product_op(*up->cbasis, up->upar_neut, up->udrift_neut, bhat_vec);
+  
+  gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->upar_neut, 1.0, *up->conf_rng);
+  gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, *up->conf_rng);
+
+  // POM
+  gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_elc,
+    up->prim_vars_fmax, bmag, jacob_tot, up->mass_elc, up->fmax_iz);
+
+  // copy, scale and accumulate
+  gkyl_array_set_range(coll_iz, 2.0, up->fmax_iz, *up->phase_rng);
+  gkyl_array_accumulate_range(coll_iz, -1.0, f_self, *up->phase_rng); 
+  
+  // weak multiply
+  gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_neut, up->conf_rng);
+  // coll_iz = coef_iz*coll_iz
+  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_iz, coll_iz,
+    up->conf_rng, up->phase_rng);
+  
+  // cfl calculation
+  //struct gkyl_range vel_rng;
+  /* gkyl_range_deflate(&vel_rng, up->phase_rng, rem_dir, conf_iter.idx); */
+  /* gkyl_range_iter_no_split_init(&vel_iter, &vel_rng); */
+  /* // cfl associated with reaction is a *phase space* cfl */
+  /* // Need to loop over velocity space for each configuration space cell */
+  /* // to get total cfl rate in each phase space cell */
+  /* while (gkyl_range_iter_next(&vel_iter)) { */
+  /*   long cfl_idx = gkyl_range_idx(&vel_rng, vel_iter.idx); */
+  /*   double *cflrate_d = gkyl_array_fetch(cflrate, cfl_idx); */
+  /*   cflrate_d[0] += cflr; // frequencies are additive */
+  /* } */
+
 }
 
 void
