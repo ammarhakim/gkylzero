@@ -1187,8 +1187,8 @@ test_grid_array_rio_1()
   int err =
     gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
 
-  TEST_CHECK( err < 1 );
-
+  TEST_CHECK( err < 1 );  
+  
   if (err < 1) {
 
     TEST_CHECK( grid.ndim == grid2.ndim );
@@ -1245,6 +1245,8 @@ test_grid_array_rio_2()
 
   struct gkyl_rect_grid grid2;
   struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid2, "ctest_array_grid_array_2.gkyl");
+
+  TEST_CHECK( arr2->type == GKYL_DOUBLE );
 
   TEST_CHECK( grid.ndim == grid2.ndim );
   for (int d=0; d<grid.ndim; ++d) {
