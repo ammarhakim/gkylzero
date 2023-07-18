@@ -163,7 +163,13 @@ struct gkyl_mat* gkyl_mat_mv(double alpha, double beta,
  * @param y list of output vectors
  */
 void
-gkyl_nmat_mv(double *alpha, double *beta, enum gkyl_mat_trans *transa, struct gkyl_nmat *A, struct gkyl_nmat *x, struct gkyl_nmat *y);
+gkyl_nmat_mv(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A, struct gkyl_nmat *x, struct gkyl_nmat *y);
+
+
+void
+gkyl_nmat_mm(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A,  enum gkyl_mat_trans transb, struct gkyl_nmat *B, struct gkyl_nmat *C);
+
+
 
 /**
  * Solve system of linear equations using LU decomposition. On input
