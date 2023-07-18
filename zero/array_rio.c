@@ -235,7 +235,8 @@ gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid, const char* fname)
       break;
     
     gkyl_rect_grid_read(grid, fp);
-    arr = gkyl_array_new_from_file(real_type, fp);
+    arr = gkyl_array_new_from_file(gkyl_array_code_to_data_type[real_type],
+      fp);
   }
   return arr;
 }
