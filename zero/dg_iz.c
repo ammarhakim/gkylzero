@@ -157,7 +157,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
 
 void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *f_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate)
 {
     
@@ -217,9 +217,9 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   gkyl_array_scale_range(up->vtSq_iz, 1/2.0, *up->conf_rng);
   gkyl_array_shiftc(up->vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
 
-  // Calculate upar_neut = udrift . bhat_vec
+  // Calculate upar_neut = udrift . bhat
   // Add this into prim_vars object: vlasov_to_gk_prim_vars and vice versa.
-  gkyl_dg_dot_product_op(*up->cbasis, up->upar_neut, up->udrift_neut, bhat_vec);
+  gkyl_dg_dot_product_op(*up->cbasis, up->upar_neut, up->udrift_neut, b_i);
   
   gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->upar_neut, 1.0, *up->conf_rng);
   gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, *up->conf_rng);

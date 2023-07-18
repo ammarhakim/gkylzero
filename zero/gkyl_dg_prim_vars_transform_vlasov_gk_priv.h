@@ -8,6 +8,7 @@
 #include <gkyl_dg_prim_vars_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_array.h>
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -34,7 +35,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_u_par_i_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_u_par_i_1x1v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -53,7 +54,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_u_par_i_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_u_par_i_1x2v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -72,7 +73,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_u_par_i_1x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_u_par_i_1x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -91,7 +92,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_u_par_i_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_u_par_i_2x2v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -110,7 +111,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_u_par_i_2x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_u_par_i_2x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -129,7 +130,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_u_par_i_3x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_u_par_i_3x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -154,7 +155,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_1x1v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -173,7 +174,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_1x2v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -192,7 +193,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_1x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_1x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -211,7 +212,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_2x2v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -230,7 +231,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_2x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_2x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
@@ -249,7 +250,7 @@ static void
 kernel_dg_prim_vars_transform_vlasov_gk_3x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  struct dg_prim_vars_type_vlasov *prim = container_of(pvt, struct dg_prim_vars_type_vlasov, pvt);
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
 
   long cidx = gkyl_range_idx(&prim->conf_range, idx);
   return transform_vlasov_gk_prim_vars_3x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
