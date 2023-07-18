@@ -136,7 +136,7 @@ kernel_dg_prim_vars_transform_vlasov_gk_u_par_i_3x3v_ser_p1(const struct gkyl_dg
   return transform_vlasov_gk_prim_vars_u_par_i_3x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
 }
 
-// Vlasov u_i kernel list
+// Transformation kernel for u_par -> u_par b_i for use of GK flow in Vlasov
 GKYL_CU_D
 static const gkyl_dg_prim_vars_transform_vlasov_gk_kern_list ser_dg_prim_vars_transform_vlasov_gk_u_par_i_kernels[] = {
   // 1x kernels
@@ -256,7 +256,7 @@ kernel_dg_prim_vars_transform_vlasov_gk_3x3v_ser_p1(const struct gkyl_dg_prim_va
   return transform_vlasov_gk_prim_vars_3x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
 }
 
-// Vlasov primitive variable kernel list
+// Transformation kernel for u_i -> upar = u_i b_i and vth^2 -> vth_GK^2 = 1/vdim(M2/M0 - upar^2) 
 GKYL_CU_D
 static const gkyl_dg_prim_vars_transform_vlasov_gk_kern_list ser_dg_prim_vars_transform_vlasov_gk_kernels[] = {
   // 1x kernels

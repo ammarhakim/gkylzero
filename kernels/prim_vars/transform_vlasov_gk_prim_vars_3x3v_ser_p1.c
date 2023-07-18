@@ -13,17 +13,17 @@ GKYL_CU_DH void transform_vlasov_gk_prim_vars_3x3v_ser_p1(const double *b_i, con
   const double *m1z = &moms[24]; 
   const double *m2 = &moms[32]; 
  
-  const double *b_x = &b_i[8]; 
-  const double *b_y = &b_i[16]; 
-  const double *b_z = &b_i[24]; 
+  const double *b_x = &b_i[0]; 
+  const double *b_y = &b_i[8]; 
+  const double *b_z = &b_i[16]; 
   double *upar = &prim_vars[0]; 
   double *vtSq = &prim_vars[8]; 
  
   double m0_inv[8] = {0.0}; 
 
-  double ux = {0.0}; 
-  double uy = {0.0}; 
-  double uz = {0.0}; 
+  double ux[8] = {0.0}; 
+  double uy[8] = {0.0}; 
+  double uz[8] = {0.0}; 
   double uparSq[8] = {0.0}; 
 
   ser_3x_p1_inv(m0, m0_inv); 
