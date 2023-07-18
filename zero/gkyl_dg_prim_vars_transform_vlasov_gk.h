@@ -16,7 +16,8 @@ struct gkyl_dg_prim_vars_auxfields {
  *
  * @param cbasis Configuration-space basis-functions
  * @param pbasis Phase-space basis-functions
- * @param prim_nm Name of primitive variable (u_i, vth2, or prim)
+ * @param conf_range Configuration-space range
+ * @param prim_nm Name of primitive variable (u_par_i, u_par, or prim)
  * @param use_gpu bool to determine if on GPU
  */
 struct gkyl_dg_prim_vars_type* 

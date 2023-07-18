@@ -6,6 +6,7 @@
 #include <gkyl_array.h>
 #include <gkyl_dg_prim_vars_vlasov.h>
 #include <gkyl_dg_prim_vars_gyrokinetic.h>
+#include <gkyl_dg_prim_vars_transform_vlasov_gk.h>
 #include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
@@ -140,15 +141,14 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   // do array declarations require anything for gpus??
   /* up->u_sq_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume); */
   /* up->m2_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume); */
-  up->udrift_neut = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis*up->vdim_vl, up->conf_rng->volume);
   up->upar_neut = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->coef_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->fmax_iz = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, up->phase_rng->volume);
 
-  up->prim_vars_neut_udrift = gkyl_dg_prim_vars_vlasov_new(cbasis, pbasis, "u_i", use_gpu);
-  up->prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu);
+  up->calc_prim_vars_neut_upar = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "u_par", use_gpu);
+  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu);
 
   up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, use_gpu);
 
@@ -174,11 +174,11 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     const double *m0_elc_d = &moms_elc_d[0]; 
     const double *m0_neut_d = &moms_neut_d[0]; 
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
-    double *udrift_neut_d = gkyl_array_fetch(up->udrift_neut, loc);
+    double *upar_neut_d = gkyl_array_fetch(up->upar_neut, loc);
     double *coef_iz_d = gkyl_array_fetch(up->coef_iz, loc);
     
-    up->prim_vars_elc_vtSq->kernel(up->prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
-    up->prim_vars_neut_udrift->kernel(up->prim_vars_neut_udrift, conf_iter.idx, moms_neut_d, udrift_neut_d);
+    up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
+    up->calc_prim_vars_neut_upar->kernel(up->calc_prim_vars_neut_upar, conf_iter.idx, moms_neut_d, upar_neut_d);
     
     // Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
@@ -217,11 +217,8 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   gkyl_array_scale_range(up->vtSq_iz, 1/2.0, *up->conf_rng);
   gkyl_array_shiftc(up->vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
 
-  // Calculate upar_neut = udrift . bhat
-  // Add this into prim_vars object: vlasov_to_gk_prim_vars and vice versa.
-  gkyl_dg_dot_product_op(*up->cbasis, up->upar_neut, up->udrift_neut, b_i);
-  
-  gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->upar_neut, 1.0, *up->conf_rng);
+  // Set fmax moments
+  gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->upar_neut, 0, *up->conf_rng);
   gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, *up->conf_rng);
 
   // POM

@@ -34,7 +34,6 @@ struct gkyl_dg_iz {
   struct gkyl_basis *cbasis;
   struct gkyl_basis *pbasis;
   
-  struct gkyl_array *udrift_neut;
   struct gkyl_array *upar_neut;
   struct gkyl_array *vtSq_elc;
   struct gkyl_array *vtSq_iz;
@@ -42,8 +41,8 @@ struct gkyl_dg_iz {
   struct gkyl_array *coef_iz;
   struct gkyl_array *fmax_iz; 
 
-  struct gkyl_dg_prim_vars_type *prim_vars_neut_udrift;
-  struct gkyl_dg_prim_vars_type *prim_vars_elc_vtSq;
+  struct gkyl_dg_prim_vars_type *calc_prim_vars_neut_upar;
+  struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq;
 
   struct gkyl_proj_maxwellian_on_basis *proj_max;
   

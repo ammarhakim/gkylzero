@@ -136,7 +136,7 @@ kernel_dg_prim_vars_transform_vlasov_gk_u_par_i_3x3v_ser_p1(const struct gkyl_dg
   return transform_vlasov_gk_prim_vars_u_par_i_3x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
 }
 
-// Vlasov u_i kernel list
+// Vlasov u_par_i kernel list
 GKYL_CU_D
 static const gkyl_dg_prim_vars_transform_vlasov_gk_kern_list ser_dg_prim_vars_transform_vlasov_gk_u_par_i_kernels[] = {
   // 1x kernels
@@ -149,6 +149,130 @@ static const gkyl_dg_prim_vars_transform_vlasov_gk_kern_list ser_dg_prim_vars_tr
   // 3x kernels
   { NULL, kernel_dg_prim_vars_transform_vlasov_gk_u_par_i_3x3v_ser_p1, NULL }, // 5
 };
+
+// u_par
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x1v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
+
+  long cidx = gkyl_range_idx(&prim->conf_range, idx);
+  return transform_vlasov_gk_prim_vars_u_par_1x1v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x1v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
+
+  long cidx = gkyl_range_idx(&prim->conf_range, idx);
+  return transform_vlasov_gk_prim_vars_u_par_1x2v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
+
+  long cidx = gkyl_range_idx(&prim->conf_range, idx);
+  return transform_vlasov_gk_prim_vars_u_par_1x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x3v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
+
+  long cidx = gkyl_range_idx(&prim->conf_range, idx);
+  return transform_vlasov_gk_prim_vars_u_par_2x2v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_2x2v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_2x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
+
+  long cidx = gkyl_range_idx(&prim->conf_range, idx);
+  return transform_vlasov_gk_prim_vars_u_par_2x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_2x3v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+
+}
+
+GKYL_CU_DH
+static void
+kernel_dg_prim_vars_transform_vlasov_gk_u_par_3x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
+  const int *idx, const double *in, double* out)
+{
+  struct dg_prim_vars_type_transform_vlasov_gk *prim = container_of(pvt, struct dg_prim_vars_type_transform_vlasov_gk, pvt);
+
+  long cidx = gkyl_range_idx(&prim->conf_range, idx);
+  return transform_vlasov_gk_prim_vars_u_par_3x3v_ser_p1((const double*) gkyl_array_cfetch(prim->auxfields.b_i, cidx), in, out);
+}
+
+// Vlasov u_i kernel list
+GKYL_CU_D
+static const gkyl_dg_prim_vars_transform_vlasov_gk_kern_list ser_dg_prim_vars_transform_vlasov_gk_u_par_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x1v_ser_p1, kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x1v_ser_p2 }, // 0
+  { NULL, kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x2v_ser_p1, kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x2v_ser_p2 }, // 1
+  { NULL, kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x3v_ser_p1, kernel_dg_prim_vars_transform_vlasov_gk_u_par_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, kernel_dg_prim_vars_transform_vlasov_gk_u_par_2x2v_ser_p1, kernel_dg_prim_vars_transform_vlasov_gk_u_par_2x2v_ser_p2 }, // 3
+  { NULL, kernel_dg_prim_vars_transform_vlasov_gk_u_par_2x3v_ser_p1, kernel_dg_prim_vars_transform_vlasov_gk_u_par_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, kernel_dg_prim_vars_transform_vlasov_gk_u_par_3x3v_ser_p1, NULL }, // 5
+};
+
+
+// prim vars
 
 GKYL_CU_DH
 static void
