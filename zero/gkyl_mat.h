@@ -141,9 +141,10 @@ struct gkyl_mat* gkyl_mat_mm(double alpha, double beta,
 /**
  * Computes matrix-vector product:
  *
- * y := alpha*A*x + beta*y,   or   y := alpha*A**T*x + beta*y,
+ * y := alpha*Op(A)*x + beta*y
  *
- * depending on the transa flag.
+ * where OP(A) indicates transpose/no-transpose based on the
+ * transa flag.
  *
  * C is returned
  */
@@ -153,19 +154,34 @@ struct gkyl_mat* gkyl_mat_mv(double alpha, double beta,
 
 
 /**
- * Does a batch of matrix vector multiplies:
+ * Does a batch of matrix-vector products:
  *
- * @param alpha list prefactors on A*x or A^T*x
- * @param beta list prefactors on y
+ * y[i] := alpha*Op(A[i])*x[i] + beta*y[i]
+ *
+ * @param alpha prefactor on A*x
+ * @param beta prefactor on y
  * @param transa whether or not to tranpose A
- * @param A list of matrices to be multiplied 
- * @param x list of vectors to be multiplied
- * @param y list of output vectors
+ * @param A batch of matrices to be multiplied 
+ * @param x batch of vectors to be multiplied
+ * @param y batch of output vectors
  */
 void
 gkyl_nmat_mv(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A, struct gkyl_nmat *x, struct gkyl_nmat *y);
 
 
+/**
+ * Does a batch of matrix-matrix products:
+ *
+ * C[i] = alpha*OP(A[i])*OP(B[i]) + beta*C[i]
+ *
+ * @param alpha prefactor on A*B
+ * @param beta prefactor on y
+ * @param transa whether or not to tranpose A
+ * @param transb whether or not to tranpose B
+ * @param A batch of matrices to be multiplied 
+ * @param B batch of matrices to be multiplied
+ * @param C batch f output matrices
+ */
 void
 gkyl_nmat_mm(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nmat *A,  enum gkyl_mat_trans transb, struct gkyl_nmat *B, struct gkyl_nmat *C);
 
