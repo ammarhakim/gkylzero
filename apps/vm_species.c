@@ -410,6 +410,7 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
     gkyl_array_clear(species->pkpm_div_ppar, 0.0);
     gkyl_calc_pkpm_vars_pressure(&species->grid, app->confBasis, 
         &app->local, &species->local, app->field->bvar, fin, species->pkpm_div_ppar);
+    gkyl_array_scale(species->pkpm_div_ppar, species->info.mass);
   }
   else if (species->model_id == GKYL_MODEL_SR_PKPM) {
     vm_field_calc_sr_pkpm_vars(app, app->field, em);  
