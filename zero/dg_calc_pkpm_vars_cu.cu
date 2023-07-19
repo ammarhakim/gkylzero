@@ -71,6 +71,53 @@ gkyl_calc_pkpm_vars_prim_cu(struct gkyl_basis basis, const struct gkyl_range *ra
 }
 
 __global__ void
+gkyl_calc_integrated_pkpm_vars_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* u_i, struct gkyl_array* int_pkpm_vars)
+{
+  int cdim = basis.ndim;
+  int poly_order = basis.poly_order;
+
+  pkpm_int_t pkpm_int = choose_ser_pkpm_int_kern(cdim, poly_order);
+
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
+
+    const double *vlasov_pkpm_moms_d = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, start);
+    const double *euler_pkpm_d = (const double*) gkyl_array_cfetch(euler_pkpm, start);
+    const double *u_i_d = (const double*) gkyl_array_cfetch(u_i, start);
+
+    double *int_pkpm_vars_d = (double*) gkyl_array_fetch(int_pkpm_vars, start);
+    pkpm_int(vlasov_pkpm_moms_d, euler_pkpm_d, u_i_d, int_pkpm_vars_d);
+  }
+}
+
+// Host-side wrapper for pkpm integrated variables calculation
+void
+gkyl_calc_integrated_pkpm_vars_cu(struct gkyl_basis basis, const struct gkyl_range *range,
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* u_i, struct gkyl_array* int_pkpm_vars)
+{
+  int nblocks = range->nblocks;
+  int nthreads = range->nthreads;
+  gkyl_calc_integrated_pkpm_vars_cu_kernel<<<nblocks, nthreads>>>(basis, *range, 
+    vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, u_i->on_dev, 
+    int_pkpm_vars->on_dev);
+}
+
+__global__ void
 gkyl_calc_pkpm_vars_source_cu_kernel(struct gkyl_basis basis, struct gkyl_range range, 
   const struct gkyl_array* qmem, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
   struct gkyl_array* rhs)
