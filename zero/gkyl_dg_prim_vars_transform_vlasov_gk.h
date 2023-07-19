@@ -31,3 +31,23 @@ gkyl_dg_prim_vars_transform_vlasov_gk_new(const struct gkyl_basis* cbasis,
 struct gkyl_dg_prim_vars_type* 
 gkyl_dg_prim_vars_transform_vlasov_gk_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const char *prim_nm);
+
+/**
+ * Set the auxiliary fields(e.g. b_i) needed in computing the primitive variables.
+ * 
+ * @param pvt Primitive variables type pointer.
+ * @param auxfields Pointer to struct of aux fields.
+ */
+void gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(const struct gkyl_dg_prim_vars_type *pvt, struct gkyl_dg_prim_vars_auxfields auxin);
+
+#ifdef GKYL_HAVE_CUDA
+/**
+ * CUDA device function to set auxiliary fields (e.g. b_i) needed in computing the primitive variables.
+ * 
+ * @param pvt Primitive variables type pointer.
+ * @param auxfields Pointer to struct of aux fields.
+ */
+void gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields_cu(const struct gkyl_dg_prim_vars_type *pvt, struct gkyl_dg_prim_vars_auxfields auxin);
+
+
+#endif
