@@ -49,15 +49,6 @@ static const mul_op_kern_list ser_mul_list[] = {
   { binop_mul_3d_ser_p0, binop_mul_3d_ser_p1, binop_mul_3d_ser_p2, binop_mul_3d_ser_p3 }
 };
 
-// Tensor multiplication kernels
-GKYL_CU_D
-static const mul_op_kern_list ten_mul_list[] = {
-  { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { binop_mul_1d_ser_p0, binop_mul_1d_ser_p1, binop_mul_1d_ser_p2, binop_mul_1d_ser_p3 },
-  { binop_mul_2d_ser_p0, binop_mul_2d_ser_p1, binop_mul_2d_tensor_p2, NULL },
-  { binop_mul_3d_ser_p0, binop_mul_3d_ser_p1, binop_mul_3d_tensor_p2, NULL }
-};
-
 GKYL_CU_D
 static const cross_mul_op_kern_list ser_cross_mul_list[] = {
   // pdim=2
@@ -113,29 +104,12 @@ static const div_set_op_kern_list ser_div_set_list[] = {
   { binop_div_set_3d_ser_p0, binop_div_set_3d_ser_p1, binop_div_set_3d_ser_p2, binop_div_set_3d_ser_p3 } 
 };
 
-// Tensor division kernels
-GKYL_CU_D
-static const div_set_op_kern_list ten_div_set_list[] = {
-  { NULL, NULL, NULL, NULL }, // No 0D basis functions
-  { binop_div_set_1d_ser_p0, binop_div_set_1d_ser_p1, binop_div_set_1d_ser_p2, binop_div_set_1d_ser_p3 },
-  { binop_div_set_2d_ser_p0, binop_div_set_2d_ser_p1, binop_div_set_2d_tensor_p2, NULL },
-  { binop_div_set_3d_ser_p0, binop_div_set_3d_ser_p1, binop_div_set_3d_tensor_p2, NULL } 
-};
-
 GKYL_CU_D
 static mul_op_t
 choose_ser_mul_kern(int dim, int poly_order)
 {
   assert(dim < 4);
   return ser_mul_list[dim].kernels[poly_order];
-}
-
-GKYL_CU_D
-static mul_op_t
-choose_ten_mul_kern(int dim, int poly_order)
-{
-  assert(dim < 4);
-  return ten_mul_list[dim].kernels[poly_order];
 }
 
 GKYL_CU_D
@@ -174,13 +148,6 @@ static div_set_op_t
 choose_ser_div_set_kern(int dim, int poly_order)
 {
   return ser_div_set_list[dim].kernels[poly_order];
-}
-
-GKYL_CU_D
-static div_set_op_t
-choose_ten_div_set_kern(int dim, int poly_order)
-{
-  return ten_div_set_list[dim].kernels[poly_order];
 }
 
 GKYL_CU_D

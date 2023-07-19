@@ -411,6 +411,13 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
     gkyl_calc_pkpm_vars_pressure(&species->grid, app->confBasis, 
         &app->local, &species->local, app->field->bvar, fin, species->pkpm_div_ppar);
   }
+  else if (species->model_id == GKYL_MODEL_SR_PKPM) {
+    vm_field_calc_sr_pkpm_vars(app, app->field, em);  
+    // EM variables are inputs to special relativistic PKPM moments
+    // kappa_inv_b and ExB velocity are needed for total current
+    vm_species_moment_calc(&species->pkpm_moms, species->local,
+      app->local, fin);  
+  }
 }
 
 // Compute the RHS for species update, returning maximum stable

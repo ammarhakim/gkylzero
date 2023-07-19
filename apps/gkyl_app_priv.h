@@ -18,7 +18,7 @@ struct app_skin_ghost_ranges {
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 };
 
-// allocate double array (filled with zeros)
+// allocate array (filled with zeros)
 static struct gkyl_array*
 mkarr(bool on_gpu, long nc, long size)
 {
@@ -27,17 +27,6 @@ mkarr(bool on_gpu, long nc, long size)
     a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
   else
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
-// allocate integer array (filled with zeros)
-static struct gkyl_array*
-mk_int_arr(bool on_gpu, long nc, long size)
-{
-  struct gkyl_array* a;
-  if (on_gpu)
-    a = gkyl_array_cu_dev_new(GKYL_INT, nc, size);
-  else
-    a = gkyl_array_new(GKYL_INT, nc, size);
   return a;
 }
 
