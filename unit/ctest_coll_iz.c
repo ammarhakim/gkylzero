@@ -35,12 +35,16 @@ test_coll_iz()
   double vmin = -vmax;
   double mumax = 12*40*echarge/(2*B0);
   int poly_order = 1;
-  int cdim = 3, vdim = 2;
+  int cdim = 1, vdim = 1;
   int pdim = cdim + vdim;
-  double lower[] = {-2.0,-2.0,-2.0,-1.0,vmin,0.0}, upper[] = {2.0,2.0,2.0,vmax,mumax};
-  int ghost[] = {0, 0, 0, 0, 0, 0};
-  int cells[] = {16,16,16,8,4};
+  /* double lower[] = {-2.0,-2.0,-2.0,-1.0,vmin,0.0}, upper[] = {2.0,2.0,2.0,vmax,mumax}; */
+  /* int ghost[] = {0, 0, 0, 0, 0, 0}; */
+  /* int cells[] = {16,16,16,8,4}; */
+  double lower[] = {-2.0,vmin}, upper[] = {2.,0,vmax};
+  int ghost[] = {0, 0};
+  int cells[] = {8,4};
 
+  
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower, upper, cells);
@@ -93,11 +97,9 @@ test_coll_iz()
   gkyl_array_set_offset(moms_neut, 1.0, m2, 4*basis.num_basis);
   gkyl_array_set_offset(moms_elc, 1.0, m2, 2*basis.num_basis);
 
-  gkyl_array_clear(bmag, 0.5);
-  gkyl_array_clear(jacob_tot, 1);
-  gkyl_array_clear(b_x, 0.0);
-  gkyl_array_clear(b_y, 0.0);
-  gkyl_array_clear(b_z, 1.0);
+  gkyl_array_shiftc(bmag, 0.5, 0);
+  gkyl_array_shiftc(jacob_tot, 1.0, 0);
+  gkyl_array_shiftc(b_z, 1.0, 0);
 
   gkyl_array_set_offset(b_i, 1.0, b_x, 0);
   gkyl_array_set_offset(b_i, 1.0, b_y, basis.num_basis);
@@ -108,8 +110,8 @@ test_coll_iz()
 
   // project b_i
 									      
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, moms_neut, "ctest_moms_neut_1x.gkyl");
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, moms_elc, "ctest_moms_elc_1x.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confRange, moms_neut, "ctest_moms_neut_1x.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confRange, moms_elc, "ctest_moms_elc_1x.gkyl");
 
   struct gkyl_dg_iz *coll_iz = gkyl_dg_iz_new(&phaseGrid, &basis, &phaseBasis, &confRange, &phaseRange,
   						echarge, emass, GKYL_IZ_H, true, false);
@@ -118,8 +120,7 @@ test_coll_iz()
   double tm_tot = 0.0; 
   for (int t=0; t<1000; ++t) {
     tm = gkyl_wall_clock();
-    gkyl_dg_iz_coll(coll_iz, moms_elc, moms_neut,
-      bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate);
+    gkyl_dg_iz_coll(coll_iz, moms_elc, moms_neut, bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate);
     tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
   }
   tm_tot = tm_tot/1000;
