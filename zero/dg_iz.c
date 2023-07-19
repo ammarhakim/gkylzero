@@ -141,6 +141,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   // do array declarations require anything for gpus??
   up->upar_neut = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
+  up->vtSq_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->coef_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->fmax_iz = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, up->phase_rng->volume);

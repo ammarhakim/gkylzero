@@ -35,15 +35,18 @@ test_coll_iz()
   double vmin = -vmax;
   double mumax = 12*40*echarge/(2*B0);
   int poly_order = 1;
-  int cdim = 1, vdim = 1;
+  int cdim = 3, vdim = 2;
   int pdim = cdim + vdim;
-  /* double lower[] = {-2.0,-2.0,-2.0,-1.0,vmin,0.0}, upper[] = {2.0,2.0,2.0,vmax,mumax}; */
-  /* int ghost[] = {0, 0, 0, 0, 0, 0}; */
-  /* int cells[] = {16,16,16,8,4}; */
-  double lower[] = {-2.0,vmin}, upper[] = {2.,0,vmax};
-  int ghost[] = {0, 0};
-  int cells[] = {8,4};
+  double lower[] = {-2.0,-2.0,-2.0,-1.0,vmin,0.0}, upper[] = {2.0,2.0,2.0,vmax,mumax};
+  int ghost[] = {0, 0, 0, 0, 0, 0};
+  int cells[] = {16,16,16,8,4};
 
+  // low d test
+  /* int cdim = 1, vdim = 1; */
+  /* int pdim = cdim + vdim; */
+  /* double lower[] = {-2.0,vmin}, upper[] = {2.,0,vmax}; */
+  /* int ghost[] = {0, 0}; */
+  /* int cells[] = {16,8}; */
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -117,14 +120,15 @@ test_coll_iz()
   						echarge, emass, GKYL_IZ_H, true, false);
 
   struct timespec tm;
-  double tm_tot = 0.0; 
-  for (int t=0; t<1000; ++t) {
+  double tm_tot = 0.0;
+  int iter = 100;
+  for (int t=0; t<iter; ++t) {
     tm = gkyl_wall_clock();
     gkyl_dg_iz_coll(coll_iz, moms_elc, moms_neut, bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate);
     tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
   }
-  tm_tot = tm_tot/1000;
-  printf("Avg time over 1000 loops is %.e s", tm_tot);
+  tm_tot = tm_tot/iter;
+  printf("Avg time over %d loop(s) is %.e s", iter, tm_tot);
   //gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
   //gkyl_grid_sub_array_write(&confGrid, &confRange, coefIz, "ctest_react_rate_1x.gkyl");
     
