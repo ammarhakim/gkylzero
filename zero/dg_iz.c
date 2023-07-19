@@ -158,7 +158,10 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *f_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate)
 {
-    
+  // Set auxiliary variable (b_i) for computation of upar
+  gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_neut_upar, 
+    (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
+  
   struct gkyl_range_iter conf_iter, vel_iter;
   int rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<up->conf_rng->ndim; ++d) rem_dir[d] = 1;
