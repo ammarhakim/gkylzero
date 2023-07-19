@@ -68,6 +68,7 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
     
     for (int d=0; d<hdg->num_up_dirs; ++d) {
       int dir = hdg->update_dirs[d];
+      double cfls = 0.0;
       // Assumes update_range owns lower and upper edges of the domain
       if (hdg->zero_flux_flags[dir] &&
         (idxc[dir] == update_range->lower[dir] || idxc[dir] == update_range->upper[dir]) ) {
@@ -79,7 +80,7 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
         gkyl_rect_grid_cell_center(&hdg->grid, idx_edge, xc_edge);
         long lin_edge = gkyl_range_idx(update_range, idx_edge);
 
-        hdg->equation->boundary_surf_term(hdg->equation,
+        cfls = hdg->equation->boundary_surf_term(hdg->equation,
           dir, xc_edge, xcc, hdg->grid.dx, hdg->grid.dx,
           idx_edge, idxc, edge,
           gkyl_array_cfetch(fIn, lin_edge), gkyl_array_cfetch(fIn, linc),
@@ -96,13 +97,15 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
         long linl = gkyl_range_idx(update_range, idxl); 
         long linr = gkyl_range_idx(update_range, idxr);
 
-        hdg->equation->surf_term(hdg->equation,
+        cfls = hdg->equation->surf_term(hdg->equation,
           dir, xcl, xcc, xcr, hdg->grid.dx, hdg->grid.dx, hdg->grid.dx,
           idxl, idxc, idxr,
           gkyl_array_cfetch(fIn, linl), gkyl_array_cfetch(fIn, linc), gkyl_array_cfetch(fIn, linr),
           gkyl_array_fetch(rhs, linc)
         );
       }
+      double *cflrate_s_d = gkyl_array_fetch(cflrate, linc);
+      cflrate_s_d[0] += cfls; // frequencies are additive      
     }
   }
 }
