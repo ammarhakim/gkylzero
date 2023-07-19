@@ -27,7 +27,7 @@ atomic_data loadadf11(char* filename){
   /*   fprintf(stderr,"Error. Only metastable unresolved files supported"); */
   /*   exit(EXIT_FAILURE); */
   /* } */
-  
+
   filepath = get_adas_file_loc(filename);
   data.reaction_type = (char*) malloc(sizeof(char)*4);
   sprintf(data.reaction_type, "%.3s", filename);
@@ -38,6 +38,7 @@ atomic_data loadadf11(char* filename){
     exit(EXIT_FAILURE);
   }
 
+  lineptr = NULL;
   status = getline(&lineptr,&n,ptr);
   data.name = (char*)malloc(sizeof(char)*30);
   data.symbol = (char*)malloc(sizeof(char)*3);
@@ -53,7 +54,6 @@ atomic_data loadadf11(char* filename){
   data.charge_states = (int*) malloc(sizeof(int)*data.Z);
 
   status = getline(&lineptr,&n,ptr);//skip line
-
   //Read density abscissa
   //Data is in 8 columns. Partial last row if not perfectly divisible 
   for(int i=0;i<ceil((data.ne_intervals-.01)/8.0);i++){
@@ -113,6 +113,7 @@ atomic_data loadadf11(char* filename){
       }
     }
   }
+  free(lineptr);
   
   fclose(ptr);
   

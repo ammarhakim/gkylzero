@@ -138,7 +138,7 @@ test_coll_iz()
   //TEST_CHECK( gkyl_compare(3.362239235468358e-14, cl_coef[0], 1e-16) );
   //TEST_CHECK( gkyl_compare(0.0, cl_coef[1], 1e-16) );
   
-  gkyl_dg_iz_release(coll_iz);
+   gkyl_dg_iz_release(coll_iz);
 }
 
 #ifdef GKYL_HAVE_CUDA

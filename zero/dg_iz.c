@@ -88,7 +88,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
 
   // Interpolate ADAS data
   // Resolution, density and temp should be set in input file 
-  atomic_data h_ion; 
+  atomic_data h_ion;
   h_ion = loadadf11("scd12_h.dat");
 
   double *M0q, *Teq, *ioniz_data;
@@ -99,7 +99,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   minTe = 1.0;
   maxTe = 4e3;
   double dlogM0 = (log10(maxM0) - log10(minM0))/(resM0-1);
-  double dlogTe = (log10(maxTe) - log10(minTe))/(resTe-1); 
+  double dlogTe = (log10(maxTe) - log10(minTe))/(resTe-1);
   up->resM0=resM0;
   up->resTe=resTe;
   up->dlogM0=dlogM0;
@@ -115,7 +115,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
     }
   }
 
-  up->E = 13.6; 
+  up->E = 13.6;
   up->M0q=M0q;
   up->Teq=Teq;
 
@@ -139,8 +139,6 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
 
   // allocate fields for prim mom calculation
   // do array declarations require anything for gpus??
-  /* up->u_sq_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume); */
-  /* up->m2_temp = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->conf_rng->volume); */
   up->upar_neut = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
@@ -168,21 +166,22 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
-   
+
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     const double *moms_neut_d = gkyl_array_cfetch(moms_neut, loc);
-    const double *m0_elc_d = &moms_elc_d[0]; 
-    const double *m0_neut_d = &moms_neut_d[0]; 
+    const double *m0_elc_d = &moms_elc_d[0];
+    const double *m0_neut_d = &moms_neut_d[0];
+
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
     double *upar_neut_d = gkyl_array_fetch(up->upar_neut, loc);
     double *coef_iz_d = gkyl_array_fetch(up->coef_iz, loc);
-    
+
     up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
     up->calc_prim_vars_neut_upar->kernel(up->calc_prim_vars_neut_upar, conf_iter.idx, moms_neut_d, upar_neut_d);
-    
-    // Find nearest neighbor for n, Te in ADAS interpolated data
+
+    //Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
-    double m0_elc_av = m0_elc_d[0]*cell_av_fac; 
+    double m0_elc_av = m0_elc_d[0]*cell_av_fac;
     double temp_elc_av = vtSq_elc_d[0]*cell_av_fac*up->mass_elc/up->elem_charge;
     double diff1 = 0;
     double diff2 = 0;
@@ -207,7 +206,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
       diff2 = fabs(up->Teq[(t_idx+1)] - log10(temp_elc_av));
       if (diff1 > diff2) t_idx += 1;
     }
-    
+ 
     q_idx = m0_idx*up->resTe + t_idx;
     coef_iz_d[0] = up->ioniz_data[q_idx]/cell_av_fac;
   }
@@ -227,7 +226,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
 
   // copy, scale and accumulate
   gkyl_array_set_range(coll_iz, 2.0, up->fmax_iz, *up->phase_rng);
-  gkyl_array_accumulate_range(coll_iz, -1.0, f_self, *up->phase_rng); 
+  gkyl_array_accumulate_range(coll_iz, -1.0, f_self, *up->phase_rng);
   
   // weak multiply
   gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_neut, up->conf_rng);
