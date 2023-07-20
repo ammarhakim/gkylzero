@@ -261,7 +261,16 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
 }
 
 void
-gkyl_dg_iz_release(gkyl_dg_iz* iz)
+gkyl_dg_iz_release(struct gkyl_dg_iz* up)
 {
-  free(iz);
+  gkyl_array_release(up->upar_neut);
+  gkyl_array_release(up->vtSq_elc);
+  gkyl_array_release(up->vtSq_iz);
+  gkyl_array_release(up->prim_vars_fmax);
+  gkyl_array_release(up->coef_iz);
+  gkyl_array_release(up->fmax_iz);
+  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_neut_upar);
+  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc_vtSq);
+  gkyl_proj_maxwellian_on_basis_release(up->proj_max);
+  free(up);
 }

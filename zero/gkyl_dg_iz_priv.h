@@ -8,7 +8,7 @@
 
 // Primary struct in this updater.
 struct gkyl_dg_iz {
-  struct gkyl_rect_grid grid; // conf grid object
+  struct gkyl_rect_grid *grid; // conf grid object
   int cdim; // number of configuration space dimensions
   int poly_order; // polynomial order of DG basis
 
