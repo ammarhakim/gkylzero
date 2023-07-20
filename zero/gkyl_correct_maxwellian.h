@@ -24,7 +24,7 @@ gkyl_correct_maxwellian *gkyl_correct_maxwellian_new(
   const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext,
-  double mass, bool use_gpu);
+  const struct gkyl_array *bmag, double mass, bool use_gpu);
 
 /**
  * Fix the Maxwellian so that it's moments match desired moments.
@@ -41,10 +41,10 @@ gkyl_correct_maxwellian *gkyl_correct_maxwellian_new(
  * @param poly_order Polynomial order of basis functions
  * @param use_gpu Bool to determine if on gpu 
  */
-void gkyl_correct_maxwellian_fix(gkyl_correct_maxwellian *cmax,
+void gkyl_correct_maxwellian_gyrokinetic(gkyl_correct_maxwellian *cmax,
   struct gkyl_array *fM, 
   const struct gkyl_array *m0_corr, const struct gkyl_array *m1_corr, const struct gkyl_array *m2_corr,
-  const struct gkyl_array *bmag, double mass,
+  const struct gkyl_array *jacob_tot, const struct gkyl_array *bmag, double mass,
   double err_max, int iter_max,
   const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext, 
   const struct gkyl_range *phase_local, 
