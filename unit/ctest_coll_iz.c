@@ -26,6 +26,16 @@ void eval_m2(double t, const double *xn, double* restrict fout, void *ctx)
   double x = xn[0];
   fout[0] = 40*echarge/emass*1.0e19;  //fabs(x);
 }
+void eval_bmag(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 1.0;
+}
+void eval_jac(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 1.0;
+}
 
 void
 test_coll_iz()
@@ -37,16 +47,16 @@ test_coll_iz()
   int poly_order = 1;
   int cdim = 3, vdim = 2;
   int pdim = cdim + vdim;
-  double lower[] = {-2.0,-2.0,-2.0,-1.0,vmin,0.0}, upper[] = {2.0,2.0,2.0,vmax,mumax};
-  int ghost[] = {0, 0, 0, 0, 0, 0};
-  int cells[] = {16,16,16,8,4};
+  double lower[] = {-2.0,-2.0,-2.0,vmin,0.0}, upper[] = {2.0,2.0,2.0,vmax,mumax};
+  int ghost[] = {0, 0, 0, 0, 0};
+  int cells[] = {16, 16, 16, 8, 4};
 
-  // low d test
+  /* // low d test */
   /* int cdim = 1, vdim = 1; */
   /* int pdim = cdim + vdim; */
   /* double lower[] = {-2.0,vmin}, upper[] = {2.,0,vmax}; */
   /* int ghost[] = {0, 0}; */
-  /* int cells[] = {16,8}; */
+  /* int cells[] = {1, 8}; */
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -62,7 +72,7 @@ test_coll_iz()
   struct gkyl_basis phaseBasis, basis; // phase-space, conf-space basis
 
   /* Force hybrid basis (p=2 in velocity space). */
-  gkyl_cart_modal_hybrid(&phaseBasis, cdim, vdim);
+  gkyl_cart_modal_gkhybrid(&phaseBasis, cdim, vdim);
   gkyl_cart_modal_serendip(&basis, cdim, poly_order);
 
   // projection updater for moments
@@ -70,15 +80,19 @@ test_coll_iz()
     poly_order+1, 1, eval_m0, NULL);
   gkyl_proj_on_basis *projM2 = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m2, NULL);
+  gkyl_proj_on_basis *projBmag = gkyl_proj_on_basis_new(&confGrid, &basis,
+    poly_order+1, 1, eval_bmag, NULL);
+  gkyl_proj_on_basis *projJac = gkyl_proj_on_basis_new(&confGrid, &basis,
+    poly_order+1, 1, eval_jac, NULL);
 
   // maxwellian on basis for fdist
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&phaseGrid,
     &basis, &phaseBasis, poly_order+1, false); // set use_gpu to false
 
-   // create moment arrays
+  // create moment arrays
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  struct gkyl_array *moms_neut = gkyl_array_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume); //3x3v
+  struct gkyl_array *moms_neut = gkyl_array_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume);
   struct gkyl_array *moms_elc = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
   struct gkyl_array *cflRate = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
   struct gkyl_array *distf_elc = gkyl_array_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);
@@ -94,34 +108,33 @@ test_coll_iz()
   // project moments on basis
   gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
   gkyl_proj_on_basis_advance(projM2, 0.0, &confRange, m2);
+  gkyl_proj_on_basis_advance(projBmag, 0.0, &confRange, bmag);
+  gkyl_proj_on_basis_advance(projJac, 0.0, &confRange, jacob_tot);
 
   gkyl_array_set_offset(moms_neut, 1.0, m0, 0);
   gkyl_array_set_offset(moms_elc, 1.0, m0, 0);
   gkyl_array_set_offset(moms_neut, 1.0, m2, 4*basis.num_basis);
   gkyl_array_set_offset(moms_elc, 1.0, m2, 2*basis.num_basis);
 
-  gkyl_array_shiftc(bmag, 0.5, 0);
-  gkyl_array_shiftc(jacob_tot, 1.0, 0);
-  gkyl_array_shiftc(b_z, 1.0, 0);
+  gkyl_array_shiftc(bmag, 0.5*pow(sqrt(2),cdim), 0);
+  gkyl_array_shiftc(jacob_tot, 1.0*pow(sqrt(2),cdim), 0);
+  gkyl_array_shiftc(b_z, 1.0*pow(sqrt(2),cdim), 0);
 
+  // project b_i
   gkyl_array_set_offset(b_i, 1.0, b_x, 0);
   gkyl_array_set_offset(b_i, 1.0, b_y, basis.num_basis);
   gkyl_array_set_offset(b_i, 1.0, b_z, 2*basis.num_basis);
   
   gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max, &phaseRange, &confRange, moms_elc,
     bmag, jacob_tot, emass, distf_elc);
-
-  // project b_i
-									      
-  gkyl_grid_sub_array_write(&confGrid, &confRange, moms_neut, "ctest_moms_neut_1x.gkyl");
-  gkyl_grid_sub_array_write(&confGrid, &confRange, moms_elc, "ctest_moms_elc_1x.gkyl");
+  gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, distf_elc, "ctest_distf_elc.gkyl");
 
   struct gkyl_dg_iz *coll_iz = gkyl_dg_iz_new(&phaseGrid, &basis, &phaseBasis, &confRange, &phaseRange,
   						echarge, emass, GKYL_IZ_H, true, false);
 
   struct timespec tm;
   double tm_tot = 0.0;
-  int iter = 100;
+  int iter = 1;
   for (int t=0; t<iter; ++t) {
     tm = gkyl_wall_clock();
     gkyl_dg_iz_coll(coll_iz, moms_elc, moms_neut, bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate);
@@ -129,19 +142,34 @@ test_coll_iz()
   }
   tm_tot = tm_tot/iter;
   printf("Avg time over %d loop(s) is %.e s", iter, tm_tot);
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, vtSqIz, "ctest_vtSqIz_1x.gkyl");
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, coefIz, "ctest_react_rate_1x.gkyl");
-    
-  // left cell
-  //double *cl_vt = gkyl_array_fetch(vtSqIz, 0);
-  // TEST_CHECK( gkyl_compare(3.8470971703792085e+12, cl_vt[0], 1e-12) );
-  // TEST_CHECK( gkyl_compare(0.0, cl_vt[1], 1e-12) );
+									      
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, moms_neut, "ctest_moms_neut.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, moms_elc, "ctest_moms_elc.gkyl");
 
-  //  double *cl_ne = gkyl_array_fetch(m0, 0);
-  //double *cl_coef = gkyl_array_fetch(coefIz, 0);
-  //printf("\n%e", cl_coef[0]/sqrt(2));
-  //TEST_CHECK( gkyl_compare(3.362239235468358e-14, cl_coef[0], 1e-16) );
-  //TEST_CHECK( gkyl_compare(0.0, cl_coef[1], 1e-16) );
+  gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, coll_iz_elc, "ctest_coll_iz_elc.gkyl");
+
+  double p1_vals[] = {-8.3463180471577168e-09, -2.5357290020268411e-25,  1.5128738678010901e-24,
+		      7.8073497887977595e-25,  3.1614574052200733e-09,  8.3394417363177697e-09,
+		      -2.5357290020268416e-25, -1.0248840512211112e-25, -1.0248840512211114e-25,
+		      1.9631603927709042e-25,  3.4276915366603188e-26, -5.7240445748561069e-26,
+		      -9.0446838856348759e-25, -8.4031898521952369e-25,  6.2395879262310432e-25,
+		      -3.1588527640234747e-09,  4.8596089958461935e-26, 1.4873389941337646e-25,
+		      9.1505407389989828e-26, -4.3947174976624737e-26,  1.9373994481848335e-25,
+		      4.2779924260136905e-26,  4.2779924260136882e-26,  9.6360470203878242e-26,
+		      7.5287924529321644e-26,  7.5287924529321644e-26, -9.6583058848471189e-27,
+		      -1.0818009629820964e-25, -3.9074761433474810e-26, -7.3410779567240854e-26,
+		      -7.3410779567240854e-26,  7.5287924529321644e-26,  2.7031868880483916e-10,
+		      -1.3779079306969203e-25, -1.3937080366629122e-26, -1.3937080366629122e-26,
+		      -2.7009598038184710e-10,  2.4188048187977241e-26,  1.9294757232832083e-26,
+		      6.1412104954585808e-26, -1.9735547477471852e-25, -4.5422335402692920e-27,
+		      -4.5422335402692877e-27, -5.4236554558686281e-26, -6.5590691655281548e-26,
+		      -6.0701432153221186e-26, -6.0701432153221186e-26,  5.8584528742794487e-26};
+  
+  const double *cv = gkyl_array_cfetch(coll_iz_elc, gkyl_range_idx(&phaseRange, (int[5]) { 2, 2, 2, 5, 3}));
+
+  for (int i=0; i<basis.num_basis; ++i) {
+    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv[i], 1e-12) );
+  }
   
    gkyl_dg_iz_release(coll_iz);
 }

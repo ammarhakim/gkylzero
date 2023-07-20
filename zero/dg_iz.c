@@ -81,7 +81,8 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   up->cdim = cdim;
   up->use_gpu = use_gpu;
   up->conf_rng = conf_rng;
-  up->phase_rng = phase_rng; 
+  up->phase_rng = phase_rng;
+  up->grid = grid;
 
   up->elem_charge = elem_charge;
   up->mass_elc = mass_elc;
@@ -119,7 +120,12 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   up->M0q=M0q;
   up->Teq=Teq;
 
-  up->ioniz_data = calc_ionization_coef(h_ion, up->Teq, up->M0q, h_ion.Z-1, qpoints);
+  for(int i=0;i<qpoints;i++){
+    up->ioniz_data = calc_ionization_coef(h_ion, up->Teq, up->M0q, h_ion.Z-1, qpoints);
+    /* printf("Te = %eeV, M0 = %em^-3, Ioniz. coef = %em^3/s\n", */
+    /* 	   pow(10,Teq[i]),pow(10,M0q[i]),up->ioniz_data[i]); */
+  }
+ 
 
   // Establish vdim vlasov species
   int vdim_vl; 
@@ -181,7 +187,8 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     double *coef_iz_d = gkyl_array_fetch(up->coef_iz, loc);
 
     up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
-    up->calc_prim_vars_neut_upar->kernel(up->calc_prim_vars_neut_upar, conf_iter.idx, moms_neut_d, upar_neut_d);
+    up->calc_prim_vars_neut_upar->kernel(up->calc_prim_vars_neut_upar, conf_iter.idx,
+      moms_neut_d, upar_neut_d);
 
     //Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
@@ -191,7 +198,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     double diff2 = 0;
     int m0_idx, t_idx, q_idx;
     int qtotal = up->resM0*up->resTe;
-    
+
     // First consider density in flattened array
     if (log10(m0_elc_av) < up->M0q[0]) m0_idx=0;
     else if (log10(m0_elc_av) > up->M0q[qtotal-1]) m0_idx=qtotal-1;
@@ -212,7 +219,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     }
  
     q_idx = m0_idx*up->resTe + t_idx;
-    coef_iz_d[0] = up->ioniz_data[q_idx]/cell_av_fac;
+    coef_iz_d[0] = up->ioniz_data[q_idx]/cell_av_fac;    
   }
 
   // Calculate vt_sq_iz 
@@ -224,7 +231,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->upar_neut, 0, *up->conf_rng);
   gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, *up->conf_rng);
 
-  // POM
+  // Proj maxwellian on basis
   gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_elc,
     up->prim_vars_fmax, bmag, jacob_tot, up->mass_elc, up->fmax_iz);
 
