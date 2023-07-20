@@ -690,7 +690,6 @@ TEST_LIST = {
   { "mv", test_mat_mv},
   { "nmat_mv", test_nmat_mv},
   { "nmat_mm", test_nmat_mm},
-  #ifdef GKYL_HAVE_CUDA
 #ifdef GKYL_HAVE_CUDA
   { "cu_nmat_base", test_cu_nmat_base },
   { "cu_nmat_linsolve", test_cu_nmat_linsolve },
