@@ -133,10 +133,13 @@ gkyl_dg_prim_vars_transform_vlasov_gk_cu_dev_new(const struct gkyl_basis* cbasis
   int poly_order = cbasis->poly_order;
 
   pvt->pvt.cdim = cdim;
-  if (vdim == 2) 
+  if (vdim == 2) {
+    vdim += 1;
     pvt->pvt.vdim = 3; // convert vdim_gk to vdim_vlasov
-  else
+  }
+  else {
     pvt->pvt.vdim = vdim;
+  }
   pvt->pvt.poly_order = poly_order;
   pvt->pvt.num_config = cbasis->num_basis;
 
