@@ -290,7 +290,7 @@ struct gkyl_dg_iz*
 gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
   double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, 
-  bool is_gk, bool use_gpu)
+  bool is_gk)
 {
   assert(false);
   return 0;

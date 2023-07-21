@@ -42,49 +42,69 @@ void eval_jac(double t, const double *xn, double* restrict fout, void *ctx)
 void
 test_prim_vars_3x(bool use_gpu)
 {
+  // use vte = 40 eV for elc grid
+  double vmax = 4*sqrt(40*echarge/emass);
+  double vmin = -vmax;
+  double mumax = 12*40*echarge/(2*B0);
   int poly_order = 1;
-  int cdim = 3;
-  double lower[] = {-2.0,-2.0,-2.0}, upper[] = {2.0,2.0,2.0};
-  int ghost[] = {0, 0, 0};
-  int cells[] = {1, 1, 1};
+  int cdim = 3, vdim = 2;
+  int pdim = cdim + vdim;
+  double lower[] = {-2.0,-2.0,-2.0,vmin,0.0}, upper[] = {2.0,2.0,2.0,vmax,mumax};
+  int ghost[] = {0, 0, 0, 0, 0};
+  int cells[] = {16, 16, 16, 8, 4};
+
+  /* // low d test */
+  /* int cdim = 1, vdim = 1; */
+  /* int pdim = cdim + vdim; */
+  /* double lower[] = {-2.0,vmin}, upper[] = {2.,0,vmax}; */
+  /* int ghost[] = {0, 0}; */
+  /* int cells[] = {1, 8}; */
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower, upper, cells);
   gkyl_create_grid_ranges(&confGrid, ghost, &confRange, &confRange);
 
+  struct gkyl_rect_grid phaseGrid;
+  struct gkyl_range phaseRange, phaseRange_ext;
+  gkyl_rect_grid_init(&phaseGrid, pdim, lower, upper, cells);
+  gkyl_create_grid_ranges(&phaseGrid, ghost, &phaseRange, &phaseRange);
+
   // basis functions
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
+  struct gkyl_basis pbasis, cbasis; // phase-space, conf-space basis
+
+  /* Force hybrid basis (p=2 in velocity space). */
+  gkyl_cart_modal_gkhybrid(&pbasis, cdim, vdim);
+  gkyl_cart_modal_serendip(&cbasis, cdim, poly_order);
 
   // projection updater for moments
-  gkyl_proj_on_basis *projM0 = gkyl_proj_on_basis_new(&confGrid, &basis,
+  gkyl_proj_on_basis *projM0 = gkyl_proj_on_basis_new(&confGrid, &cbasis,
     poly_order+1, 1, eval_m0, NULL);
-  gkyl_proj_on_basis *projM2 = gkyl_proj_on_basis_new(&confGrid, &basis,
+  gkyl_proj_on_basis *projM2 = gkyl_proj_on_basis_new(&confGrid, &cbasis,
     poly_order+1, 1, eval_m2, NULL);
 
-  struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  struct gkyl_array *moms_neut = gkyl_array_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume);
-  struct gkyl_array *moms_elc = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
-  struct gkyl_array *vtSq_elc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  struct gkyl_array *vtSq_neut = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+  struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
+  struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
+  struct gkyl_array *moms_neut = gkyl_array_new(GKYL_DOUBLE, 5*cbasis.num_basis, confRange.volume);
+  struct gkyl_array *moms_elc = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, confRange.volume);
+  struct gkyl_array *vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
+  struct gkyl_array *vtSq_neut = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
 
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_vlasov_vtSq = gkyl_dg_prim_vars_vlasov_new(cbasis, pbasis, "vtSq", use_gpu);
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_gk_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu);
+  struct gkyl_dg_prim_vars_type *calc_prim_vars_vlasov_vtSq = gkyl_dg_prim_vars_vlasov_new(&cbasis, &pbasis, "vtSq", use_gpu);
+  struct gkyl_dg_prim_vars_type *calc_prim_vars_gk_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(&cbasis, &pbasis, "vtSq", use_gpu);
   
   gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
   gkyl_proj_on_basis_advance(projM2, 0.0, &confRange, m2);
  
   gkyl_array_set_offset(moms_neut, 1.0, m0, 0);
   gkyl_array_set_offset(moms_elc, 1.0, m0, 0);
-  gkyl_array_set_offset(moms_neut, 1.0, m2, 4*basis.num_basis); //HARDCODED for gk vdim = 2
-  gkyl_array_set_offset(moms_elc, 1.0, m2, 2*basis.num_basis);
+  gkyl_array_set_offset(moms_neut, 1.0, m2, 4*cbasis.num_basis); //HARDCODED for gk vdim = 2
+  gkyl_array_set_offset(moms_elc, 1.0, m2, 2*cbasis.num_basis);
 
   struct gkyl_range_iter conf_iter;
-  gkyl_range_iter_init(&conf_iter, up->conf_rng);
+  gkyl_range_iter_init(&conf_iter, &confRange);
   while (gkyl_range_iter_next(&conf_iter)) {
-    long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
+    long loc = gkyl_range_idx(&confRange, conf_iter.idx);
 
     // populate the field variables
     // calculate vtsq
@@ -216,7 +236,7 @@ test_coll_iz(bool use_gpu)
     int iter = 1;
     for (int t=0; t<iter; ++t) {
       tm = gkyl_wall_clock();
-      gkyl_dg_iz_coll(coll_iz_cu, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_cu);
+      gkyl_dg_iz_coll(coll_iz, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_cu);
       tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
     }
     tm_tot = tm_tot/iter;
@@ -271,20 +291,20 @@ test_coll_iz(bool use_gpu)
    gkyl_dg_iz_release(coll_iz);
 }
 
-void test_prim_vars_3x() { test_prim_vars_3x(false); }
-void test_coll_iz() { test_coll_iz(false); }
+void prim_vars_3x() { test_prim_vars_3x(false); }
+void coll_iz() { test_coll_iz(false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_prim_vars_3x_gpu() { test_prim_vars_3x(true); }
-void test_coll_iz_gpu() { test_coll_iz(true); }
+void prim_vars_3x_gpu() { test_prim_vars_3x(true); }
+void coll_iz_gpu() { test_coll_iz(true); }
 #endif
 
 TEST_LIST = {
   { "prim_vars_3x", prim_vars_3x },
-  { "coll_iz", test_coll_iz },
+  { "coll_iz", coll_iz },
 #ifdef GKYL_HAVE_CUDA
   { "prim_vars_3x_gpu", prim_vars_3x_gpu },
-  { "coll_iz_gpu", test_coll_iz_gpu },
+  { "coll_iz_gpu", coll_iz_gpu },
 #endif  
   { NULL, NULL },
 };
