@@ -1,8 +1,5 @@
-#pragma once
-
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_bc_twistshift_priv.h>
-#include <assert.h>
 
 struct gkyl_bc_twistshift*
 gkyl_bc_twistshift_new(int dir, enum gkyl_edge_loc edge,
@@ -17,7 +14,7 @@ gkyl_bc_twistshift_new(int dir, enum gkyl_edge_loc edge,
   up->edge = edge;
   up->basis = basis;
   up->grid = grid;
-  up->ndonors = ndonors.
+  up->ndonors = ndonors;
   up->use_gpu = use_gpu;
 
   // Choose the kernel that does the reflection/no reflection/partial
@@ -32,7 +29,7 @@ gkyl_bc_twistshift_new(int dir, enum gkyl_edge_loc edge,
     up->kernels_cu = up->kernels;
   }
 #else
-  gkyl_bc_twistshift_choose_kernel(basis, cdim, up->kernels);
+  gkyl_bc_twistshift_choose_kernels(basis, cdim, up->kernels);
   up->kernels_cu = up->kernels;
 #endif
 
@@ -42,15 +39,37 @@ gkyl_bc_twistshift_new(int dir, enum gkyl_edge_loc edge,
 void gkyl_bc_twistshift_integral_xlimdg(struct gkyl_bc_twistshift *up,
   double sFac, const double *xLimLo, const double *xLimUp, double yLimLo, double yLimUp,
   double dyDo, double yOff, double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx) {
+  
+  size_t linidx =0;
+  for(int i = 0; i<cellidx; i++){
+    linidx += up->ndonors[i];
+  }
+  linidx+= doidx;
+  struct gkyl_mat tsmat = gkyl_nmat_get(mats, linidx);
+  up->kernels->xlimdg(sFac, xLimLo, xLimUp, yLimLo, yLimUp, dyDo, yOff, ySh, &tsmat);
 }
 
 void gkyl_bc_twistshift_integral_ylimdg(struct gkyl_bc_twistshift *up,
   double sFac, double xLimLo, double xLimUp, const double *yLimLo, const double *yLimUp,
   double dyDo, double yOff, const double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx) {
+  size_t linidx =0;
+  for(int i = 0; i<cellidx; i++){
+    linidx += up->ndonors[i];
+  }
+  linidx+= doidx;
+  struct gkyl_mat tsmat = gkyl_nmat_get(mats, linidx);
+  up->kernels->ylimdg(sFac, xLimLo, xLimUp, yLimLo, yLimUp, dyDo, yOff, ySh, &tsmat);
 }
 
 void gkyl_bc_twistshift_integral_fullcelllimdg(struct gkyl_bc_twistshift *up,
   double dyDo, double yOff, const double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx) {
+  size_t linidx =0;
+  for(int i = 0; i<cellidx; i++){
+    linidx += up->ndonors[i];
+  }
+  linidx+= doidx;
+  struct gkyl_mat tsmat = gkyl_nmat_get(mats, linidx);
+  up->kernels->fullcell(dyDo, yOff, ySh, &tsmat);
 }
 
 void gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up) {

@@ -2,9 +2,10 @@
 
 // Private header for bc_twistshift updater, not for direct use in user code.
 
-#include <gkyl_bc_sheath_gyrokinetic.h>
-#include <gkyl_bc_sheath_gyrokinetic_kernels.h>
+#include <gkyl_bc_twistshift.h>
+#include <gkyl_bc_twistshift_gyrokinetic_kernels.h>
 #include <assert.h>
+#include <gkyl_mat.h>
 
 // Function pointer type for twistshift kernels.
 typedef void (*twistshift_xlimdg_t)(double sFac, const double *xLimLo,
@@ -38,15 +39,18 @@ static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_0v[] = {
 
 static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_2v[] = {
   {NULL, NULL, NULL,},
-  {NULL, twistshift_xlimdg_3x2v_ser_p1_yshift_p1, NULL,},
+  //{NULL, twistshift_xlimdg_3x2v_ser_p1_yshift_p1, NULL,}, //remove for now replace with null below
+  {NULL, NULL, NULL,},
 };
 static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_2v[] = {
   {NULL, NULL, NULL,},
-  {NULL, twistshift_ylimdg_3x2v_ser_p1_yshift_p1, NULL,},
+  //{NULL, twistshift_ylimdg_3x2v_ser_p1_yshift_p1, NULL,}, //remove for now replace with null below
+  {NULL, NULL, NULL,},
 };
 static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_2v[] = {
   {NULL, NULL, NULL,},
-  {NULL, twistshift_fullcell_3x2v_ser_p1_yshift_p1, NULL,},
+  //{NULL, twistshift_fullcell_3x2v_ser_p1_yshift_p1, NULL,}, //remove for now replace with null below
+  {NULL, NULL, NULL,},
 };
 
 struct gkyl_bc_twistshift_kernels {
@@ -64,7 +68,7 @@ struct gkyl_bc_twistshift {
   struct gkyl_bc_twistshift_kernels *kernels;  // kernels.
   struct gkyl_bc_twistshift_kernels *kernels_cu;  // device copy.
   const struct gkyl_rect_grid *grid;
-  int *ndonors;
+  const int *ndonors;
 };
 
 void gkyl_bc_twistshift_choose_kernels_cu(const struct gkyl_basis *basis, int cdim,
@@ -80,9 +84,9 @@ void gkyl_bc_twistshift_choose_kernels(const struct gkyl_basis *basis, int cdim,
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers.xlimdg   = vdim==0?   ser_twistshift_xlimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_xlimdg_list_2v[cdim-2].kernels[poly_order];
-      kers.ylimdg   = vdim==0?   ser_twistshift_ylimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_ylimdg_list_2v[cdim-2].kernels[poly_order];
-      kers.fullcell = vdim==0? ser_twistshift_fullcell_list_0v[cdim-2].kernels[poly_order] : ser_twistshift_fullcell_list_2v[cdim-2].kernels[poly_order];
+      kers->xlimdg   = vdim==0?   ser_twistshift_xlimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_xlimdg_list_2v[cdim-2].kernels[poly_order];
+      kers->ylimdg   = vdim==0?   ser_twistshift_ylimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_ylimdg_list_2v[cdim-2].kernels[poly_order];
+      kers->fullcell = vdim==0? ser_twistshift_fullcell_list_0v[cdim-2].kernels[poly_order] : ser_twistshift_fullcell_list_2v[cdim-2].kernels[poly_order];
     default:
       assert(false);
       break;
