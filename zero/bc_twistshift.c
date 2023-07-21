@@ -38,13 +38,13 @@ gkyl_bc_twistshift_new(int dir, enum gkyl_edge_loc edge,
 
 void gkyl_bc_twistshift_integral_xlimdg(struct gkyl_bc_twistshift *up,
   double sFac, const double *xLimLo, const double *xLimUp, double yLimLo, double yLimUp,
-  double dyDo, double yOff, double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx) {
+  double dyDo, double yOff, const double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx) {
   
   size_t linidx =0;
-  for(int i = 0; i<cellidx; i++){
+  for(int i = 0; i<cellidx; i++)
     linidx += up->ndonors[i];
-  }
-  linidx+= doidx;
+  
+  linidx += doidx;
   struct gkyl_mat tsmat = gkyl_nmat_get(mats, linidx);
   up->kernels->xlimdg(sFac, xLimLo, xLimUp, yLimLo, yLimUp, dyDo, yOff, ySh, &tsmat);
 }
@@ -53,10 +53,10 @@ void gkyl_bc_twistshift_integral_ylimdg(struct gkyl_bc_twistshift *up,
   double sFac, double xLimLo, double xLimUp, const double *yLimLo, const double *yLimUp,
   double dyDo, double yOff, const double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx) {
   size_t linidx =0;
-  for(int i = 0; i<cellidx; i++){
+  for(int i = 0; i<cellidx; i++)
     linidx += up->ndonors[i];
-  }
-  linidx+= doidx;
+  
+  linidx += doidx;
   struct gkyl_mat tsmat = gkyl_nmat_get(mats, linidx);
   up->kernels->ylimdg(sFac, xLimLo, xLimUp, yLimLo, yLimUp, dyDo, yOff, ySh, &tsmat);
 }
@@ -64,10 +64,10 @@ void gkyl_bc_twistshift_integral_ylimdg(struct gkyl_bc_twistshift *up,
 void gkyl_bc_twistshift_integral_fullcelllimdg(struct gkyl_bc_twistshift *up,
   double dyDo, double yOff, const double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx) {
   size_t linidx =0;
-  for(int i = 0; i<cellidx; i++){
+  for(int i = 0; i<cellidx; i++)
     linidx += up->ndonors[i];
-  }
-  linidx+= doidx;
+  
+  linidx += doidx;
   struct gkyl_mat tsmat = gkyl_nmat_get(mats, linidx);
   up->kernels->fullcell(dyDo, yOff, ySh, &tsmat);
 }
