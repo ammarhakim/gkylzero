@@ -231,8 +231,6 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_correct_maxwellian_gyrokinetic(corr_max, fM, m0_corr, m1_corr, m2_corr, jacob_tot, bmag, mass, err_max, iter_max, &confLocal, &local, &confLocal_ext, poly_order, false);
   gkyl_correct_maxwellian_release(corr_max);
 
-  // Compare the results
-
   // Write the output
   char fname[1024];
   sprintf(fname, "ctest_correct_maxwellian_1x1v_p%d.gkyl", poly_order);
@@ -259,9 +257,10 @@ void test_1x1v(int poly_order, bool use_gpu)
 
 // Run the test
 void test_1x1v_p1() {test_1x1v(1, false);}
-//void test_1x1v_p2() {test_1x1v(2, false);}
+void test_1x1v_p2() {test_1x1v(2, false);}
 
 TEST_LIST = {
   {"test_1x1v_p1", test_1x1v_p1},
-  //{"test_1x1v_p2", test_1x1v_p2},
+  {"test_1x1v_p2", test_1x1v_p2},
+  {NULL, NULL},
 };
