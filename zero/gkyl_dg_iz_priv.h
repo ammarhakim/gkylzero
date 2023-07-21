@@ -28,7 +28,7 @@ struct gkyl_dg_iz {
   double dlogTe;
   double E;
 
-  double minM0, minTe, maxM0, maxTe;
+  double minLogM0, minLogTe, maxLogM0, maxLogTe;
 
   struct gkyl_basis *cbasis;
   struct gkyl_basis *pbasis;

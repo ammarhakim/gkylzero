@@ -91,18 +91,17 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   atomic_data h_ion;
   h_ion = loadadf11("scd12_h.dat");
 
-  //double *M0q, *Teq, *ioniz_data;
   int resM0=50, resTe=100, qpoints=resM0*resTe;
   double minM0 = 1e15, maxM0 = 1e20;
   double minTe = 1.0, maxTe = 4e3;
 
-  up->minM0 = minM0;
-  up->minTe = minTe;    
-  up->maxM0 = maxM0;
-  up->maxTe = maxTe;
+  up->minLogM0 = log10(minM0);
+  up->minLogTe = log10(minTe);    
+  up->maxLogM0 = log10(maxM0);
+  up->maxLogTe = log10(maxTe);
   
-  double dlogM0 = (log10(maxM0) - log10(minM0))/(resM0-1);
-  double dlogTe = (log10(maxTe) - log10(minTe))/(resTe-1);
+  double dlogM0 = (up->maxLogM0 - up->minLogM0)/(resM0-1);
+  double dlogTe = (up->maxLogTe - up->minLogTe)/(resTe-1);
   up->resM0=resM0;
   up->resTe=resTe;
   up->dlogM0=dlogM0;
@@ -116,8 +115,8 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
     for(int j=0;j<resTe;j++){
       double *M0q_d = gkyl_array_fetch(up->M0q, i*resTe+j);
       double *Teq_d = gkyl_array_fetch(up->Teq, i*resTe+j);
-      M0q_d[0] = log10(minM0) + dlogM0*i;
-      Teq_d[0] = log10(minTe) + dlogTe*j;     
+      M0q_d[0] = up->minLogM0 + dlogM0*i;
+      Teq_d[0] = up->minLogTe + dlogTe*j;     
     }
   }
 
@@ -205,17 +204,11 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     double diff2 = 0;
     int m0_idx, t_idx, q_idx;
     int qtotal = up->resM0*up->resTe;
-
-    /* double m0_min = gkyl_array_fetch(up->M0q, 0); */
-    /* double m0_max = gkyl_array_fetch(up->M0q, qtotal-1);     */
-    /* double Te_min = gkyl_array_fetch(up->M0q, 0); */
-    /* double Te_max = gkyl_array_fetch(up->M0q, qtotal-1); */
     
-    // First consider density in flattened array
-    if (log10(m0_elc_av) < up->minM0) m0_idx=0;
-    else if (log10(m0_elc_av) > up->maxM0) m0_idx=qtotal-1;
+    if (log10(m0_elc_av) < up->minLogM0) m0_idx=0;
+    else if (log10(m0_elc_av) > up->maxLogM0) m0_idx=qtotal-1;
     else {
-      m0_idx = (log10(m0_elc_av) - up->minM0)/(up->dlogM0);
+      m0_idx = (log10(m0_elc_av) - up->minLogM0)/(up->dlogM0);
       double *M0q_1 = gkyl_array_fetch(up->M0q, m0_idx*up->resTe);
       double *M0q_2 = gkyl_array_fetch(up->M0q, (1+m0_idx)*up->resTe);
       diff1 = fabs(M0q_1[0]-log10(m0_elc_av));
@@ -223,10 +216,10 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
       if (diff1 > diff2) m0_idx += 1;
     }
 
-    if (log10(temp_elc_av) < up->minTe) t_idx=0;
-    else if (log10(temp_elc_av) > up->maxTe) t_idx=up->resTe-1;
+    if (log10(temp_elc_av) < up->minLogTe) t_idx=0;
+    else if (log10(temp_elc_av) > up->maxLogTe) t_idx=up->resTe-1;
     else {
-      t_idx = (log10(temp_elc_av) - up->minTe)/(up->dlogTe);
+      t_idx = (log10(temp_elc_av) - up->minLogTe)/(up->dlogTe);
       double *Teq_1 = gkyl_array_fetch(up->Teq, t_idx);
       double *Teq_2 = gkyl_array_fetch(up->Teq, t_idx+1); 
       diff1 = fabs(Teq_1[0]-log10(temp_elc_av));
@@ -236,6 +229,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
  
     q_idx = m0_idx*up->resTe + t_idx;
     double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, q_idx);
+    //printf("m0 %g Te %g iz_dat %g\n", m0_elc_av, temp_elc_av, iz_dat_d[0]);
     coef_iz_d[0] = iz_dat_d[0]/cell_av_fac;    
   }
 
