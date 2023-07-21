@@ -7,7 +7,7 @@
 #include <math.h>
 #include "adf11.h"
 
-char* adas_data_dir="/Users/bernard/gkylzero/kernels/neutral/";
+char* adas_data_dir="$GKYLSOFT/kernels/neutral/";
 
 /* Read adas adf11 data file.
  * Input - filename, either the full path to an adf11 file or
