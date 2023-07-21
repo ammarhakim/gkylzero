@@ -70,6 +70,11 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, 
   bool is_gk, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_iz_cu_dev_new(grid, cbasis, pbasis, conf_rng, phase_rng, elem_charge, mass_elc, type_ion, is_gk);
+  } 
+#endif
   gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
 
   int cdim = cbasis->ndim;
@@ -122,7 +127,6 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
 
   up->E = 13.6; // need to add all E_iz data for different species and charge states
 
-  // this needs to change
   calc_ionization_coef(h_ion, up->Teq, up->M0q, h_ion.Z-1, qpoints, up->ioniz_data);
 
   for(int i=0;i<qpoints;i++){
@@ -163,6 +167,8 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
 
   up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, use_gpu);
 
+  up->on_dev = up; // CPU eqn obj points to itself
+
   return up;
 }
 
@@ -171,6 +177,11 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *f_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate)
 {
+#ifdef GKYL_HAVE_CUDA
+  if(gkyl_array_is_cu_dev(coll_iz)) {
+    return gkyl_dg_iz_coll_cu(up, moms_elc, moms_neut, bmag, jacob_tot, b_i, f_self, coll_iz, cflrate);
+  } 
+#endif
   // Set auxiliary variable (b_i) for computation of upar
   gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_neut_upar, 
     (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
