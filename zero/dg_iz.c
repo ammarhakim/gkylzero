@@ -137,22 +137,6 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
     /* 	   pow(10,Teq_d[0]),pow(10,M0q_d[0]),iz_dat_d[0]); */
   }
   
-  // Establish vdim vlasov species
-  int vdim_vl; 
-  int vdim = pdim - up->cdim;
-  if (is_gk) {
-    if (vdim == 1) {
-      vdim_vl = vdim;
-    }
-    else {
-      vdim_vl = vdim+1;
-    }
-  }
-  else  {
-    vdim_vl = vdim;
-  }
-  up->vdim_vl = vdim_vl;
-
   // allocate fields for prim mom calculation
   // do array declarations require anything for gpus??
   up->upar_neut = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
