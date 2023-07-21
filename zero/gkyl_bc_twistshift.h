@@ -53,7 +53,7 @@ struct gkyl_bc_twistshift* gkyl_bc_twistshift_new(int dir, enum gkyl_edge_loc ed
  */
 void gkyl_bc_twistshift_integral_xlimdg(struct gkyl_bc_twistshift *up,
   double sFac, const double *xLimLo, const double *xLimUp, double yLimLo, double yLimUp,
-  double dyDo, double yOff, double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx);
+  double dyDo, double yOff, const double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx);
 
 /**
  * Populate a matrix in mats corresponding to the x-cell with cellidx and
