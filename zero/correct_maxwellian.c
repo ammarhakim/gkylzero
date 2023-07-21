@@ -1,4 +1,3 @@
-#include <math.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
@@ -8,6 +7,7 @@
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_range.h>
+#include <math.h>
 
 // Allocate array (filled with zeros)
 static struct gkyl_array*
@@ -79,8 +79,10 @@ void gkyl_correct_maxwellian_gyrokinetic(gkyl_correct_maxwellian *cmax, struct g
   
   double err1[1];
   double err2[1];
-  struct gkyl_array *mvals = mkarr(1, conf_local->volume);
-  gkyl_array_clear(mvals, 0.0);
+  struct gkyl_array *mvals1 = mkarr(1, conf_local->volume);
+  struct gkyl_array *mvals2 = mkarr(1, conf_local->volume);
+  gkyl_array_clear(mvals1, 0.0);
+  gkyl_array_clear(mvals2, 0.0);
 
   // Copy the input field into the output field
   //gkyl_array_clear(cmax->fout, 0.0);
@@ -98,12 +100,26 @@ void gkyl_correct_maxwellian_gyrokinetic(gkyl_correct_maxwellian *cmax, struct g
   gkyl_mom_calc_advance(cmax->m0calc, phase_local, conf_local, fM, cmax->m0);
   gkyl_mom_calc_advance(cmax->m1calc, phase_local, conf_local, fM, cmax->m1);
   gkyl_mom_calc_advance(cmax->m2calc, phase_local, conf_local, fM, cmax->m2);
-  
+
+  // Initialize the error
+  gkyl_array_clear(cmax->ddm1, 0.0);
+  gkyl_array_accumulate(cmax->ddm1, -1.0, cmax->m1);
+  gkyl_array_accumulate(cmax->ddm1, 1.0, m1_corr);
+  gkyl_dg_calc_l2_range(cmax->conf_basis, 0, mvals1, 0, cmax->ddm1, *conf_local);
+  gkyl_array_reduce_range(err1, mvals1, GKYL_SUM, *conf_local);
+
+  gkyl_array_clear(cmax->ddm2, 0.0);
+  gkyl_array_accumulate(cmax->ddm2, -1.0, cmax->m2);
+  gkyl_array_accumulate(cmax->ddm2, 1.0, m2_corr);
+  gkyl_dg_calc_l2_range(cmax->conf_basis, 0, mvals2, 0, cmax->ddm2, *conf_local);
+  gkyl_array_reduce_range(err2, mvals2, GKYL_SUM, *conf_local);
+
   // Main iteration loop
   int i = 0;
-  while ((i<iter_max) && (err1[0]>err_max) && (err2[0]>err_max))
+  printf("err1=%10.8e, err2=%10.8e\n", err1[0], err2[0]);
+  while ((i<iter_max) && (err1[0]>err_max) || (err2[0]>err_max))
   {
-    printf("Iteration %d", i);
+    printf("Iteration %d\n", i);
     // Correct the moments
     gkyl_array_clear(cmax->ddm1, 0.0);
     gkyl_array_accumulate(cmax->ddm1, -1.0, cmax->m1);
@@ -113,9 +129,8 @@ void gkyl_correct_maxwellian_gyrokinetic(gkyl_correct_maxwellian *cmax, struct g
     gkyl_array_accumulate(cmax->m1, 1.0, m1_corr);
     gkyl_array_accumulate(cmax->m1, 1.0, cmax->dm1);
 
-    gkyl_dg_calc_l2_range(cmax->conf_basis, 0, mvals, 0, cmax->ddm1, *conf_local);
-    gkyl_array_reduce_range(err1, mvals, GKYL_SUM, *conf_local);
-    gkyl_array_release(mvals);
+    gkyl_dg_calc_l2_range(cmax->conf_basis, 0, mvals1, 0, cmax->ddm1, *conf_local);
+    gkyl_array_reduce_range(err1, mvals1, GKYL_SUM, *conf_local);
 
     gkyl_array_clear(cmax->ddm2, 0.0);
     gkyl_array_accumulate(cmax->ddm2, -1.0, cmax->m2);
@@ -125,9 +140,9 @@ void gkyl_correct_maxwellian_gyrokinetic(gkyl_correct_maxwellian *cmax, struct g
     gkyl_array_accumulate(cmax->m2, 1.0, m2_corr);
     gkyl_array_accumulate(cmax->m2, 1.0, cmax->dm2);
 
-    gkyl_dg_calc_l2_range(cmax->conf_basis, 0, mvals, 0, cmax->ddm2, *conf_local);
-    gkyl_array_reduce_range(err2, mvals, GKYL_SUM, *conf_local);
-    gkyl_array_release(mvals);
+    gkyl_dg_calc_l2_range(cmax->conf_basis, 0, mvals2, 0, cmax->ddm2, *conf_local);
+    gkyl_array_reduce_range(err2, mvals2, GKYL_SUM, *conf_local);
+    printf("err1=%10.8e, err2=%10.8e\n", err1[0], err2[0]);
 
     // Project the maxwellian
     // (1) proj_maxwellian expects the moments as a single array
@@ -157,6 +172,8 @@ void gkyl_correct_maxwellian_gyrokinetic(gkyl_correct_maxwellian *cmax, struct g
     // Increment i
     i += 1;
   } // Main iteration loop ends
+  gkyl_array_release(mvals2);
+  gkyl_array_release(mvals2);
 }
 
 void
