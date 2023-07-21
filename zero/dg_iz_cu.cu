@@ -17,10 +17,14 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng, 
+gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng,
+			  const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq,
+			  const struct gkyl_dg_prim_vars_type *calc_prim_vars_neut_upar, 
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
-  const struct gkyl_array *f_self, struct gkyl_array *coll_iz)
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i, const struct gkyl_array *f_self,
+			  struct gkyl_array *vtSq_elc, struct gkyl_array *upar_neut, struct gkyl_array *coef_iz, 
+			  struct gkyl_array *M0q, struct gkyl_array *Teq, struct gkyl_array *ioniz_data, 
+			  struct gkyl_array *coll_iz)
 {
   int cidx[GKYL_MAX_CDIM];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -33,13 +37,11 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     const double *m0_elc_d = &moms_elc_d[0];
     const double *m0_neut_d = &moms_neut_d[0];
 
-    double *vtSq_elc_d = (double*) gkyl_array_fetch(up->vtSq_elc, loc);
-    double *upar_neut_d = (double*) gkyl_array_fetch(up->upar_neut, loc);
-    double *coef_iz_d = (double*) gkyl_array_fetch(up->coef_iz, loc); 
-
-    up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, cidx, moms_elc_d, vtSq_elc_d);
-    up->calc_prim_vars_neut_upar->kernel(up->calc_prim_vars_neut_upar, cidx, moms_neut_d, upar_neut_d);
-
+    double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
+    double *upar_neut_d = (double*) gkyl_array_fetch(upar_neut, loc);
+    double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc); 
+    calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d, vtSq_elc_d);
+    calc_prim_vars_neut_upar->kernel(calc_prim_vars_neut_upar, cidx, moms_neut_d, upar_neut_d);
     //Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1.0/sqrt(2.0),up->cdim);
     double m0_elc_av = m0_elc_d[0]*cell_av_fac;
@@ -53,8 +55,8 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     else if (log10(m0_elc_av) > up->maxLogM0) m0_idx=qtotal-1;
     else {
       m0_idx = (log10(m0_elc_av) - up->minLogM0)/(up->dlogM0);
-      double *M0q_1 = (double*) gkyl_array_fetch(up->M0q, m0_idx*up->resTe);
-      double *M0q_2 = (double*) gkyl_array_fetch(up->M0q, (1+m0_idx)*up->resTe);
+      double *M0q_1 = (double*) gkyl_array_fetch(M0q, m0_idx*up->resTe);
+      double *M0q_2 = (double*) gkyl_array_fetch(M0q, (1+m0_idx)*up->resTe);
       diff1 = fabs(M0q_1[0]-log10(m0_elc_av));
       diff2 = fabs(M0q_2[0]-log10(m0_elc_av));
       if (diff1 > diff2) m0_idx += 1;
@@ -64,15 +66,15 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     else if (log10(temp_elc_av) > up->maxLogTe) t_idx=up->resTe-1;
     else {
       t_idx = (log10(temp_elc_av) - up->minLogTe)/(up->dlogTe);
-      double *Teq_1 = (double*) gkyl_array_fetch(up->Teq, t_idx);
-      double *Teq_2 = (double*) gkyl_array_fetch(up->Teq, t_idx+1); 
+      double *Teq_1 = (double*) gkyl_array_fetch(Teq, t_idx);
+      double *Teq_2 = (double*) gkyl_array_fetch(Teq, t_idx+1); 
       diff1 = fabs(Teq_1[0]-log10(temp_elc_av));
       diff2 = fabs(Teq_2[0]-log10(temp_elc_av));
       if (diff1 > diff2) t_idx += 1;
     }
  
     q_idx = m0_idx*up->resTe + t_idx;
-    double *iz_dat_d = (double*) gkyl_array_fetch(up->ioniz_data, q_idx);
+    double *iz_dat_d = (double*) gkyl_array_fetch(ioniz_data, q_idx);
     //printf("m0 %g Te %g iz_dat %g\n", m0_elc_av, temp_elc_av, iz_dat_d[0]);
     coef_iz_d[0] = iz_dat_d[0]/cell_av_fac; 
   }
@@ -84,11 +86,20 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
   const struct gkyl_array *f_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate)
 {
   // Set auxiliary variable (b_i) for computation of upar
-  gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields_cu(up->calc_prim_vars_neut_upar, 
+  gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_neut_upar, 
     (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
 
-  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, 
-    moms_elc->on_dev, moms_neut->on_dev, bmag->on_dev, jacob_tot->on_dev, b_i->on_dev, f_self->on_dev, coll_iz->on_dev);
+  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng,
+									       up->calc_prim_vars_elc_vtSq->on_dev,
+									       up->calc_prim_vars_neut_upar->on_dev, 
+    moms_elc->on_dev, moms_neut->on_dev, bmag->on_dev, jacob_tot->on_dev, b_i->on_dev, f_self->on_dev,
+									       up->vtSq_elc->on_dev,
+									       up->upar_neut->on_dev,
+									       up->coef_iz->on_dev,
+									       up->M0q->on_dev,
+									       up->Teq->on_dev,
+									       up->ioniz_data->on_dev,
+									       coll_iz->on_dev);
 
   // Calculate vt_sq_iz 
   gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, *up->conf_rng);
@@ -180,7 +191,7 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
 
   up->calc_prim_vars_neut_upar = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "u_par", true);
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", true);
-
+  
   up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, true);
 
   // copy the host struct to device struct

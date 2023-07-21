@@ -90,7 +90,6 @@ test_prim_vars_3x(bool use_gpu)
   struct gkyl_array *vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
   struct gkyl_array *vtSq_neut = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
 
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_vlasov_vtSq = gkyl_dg_prim_vars_vlasov_new(&cbasis, &pbasis, "vtSq", use_gpu);
   struct gkyl_dg_prim_vars_type *calc_prim_vars_gk_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(&cbasis, &pbasis, "vtSq", use_gpu);
   
   gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
@@ -236,7 +235,7 @@ test_coll_iz(bool use_gpu)
     int iter = 1;
     for (int t=0; t<iter; ++t) {
       tm = gkyl_wall_clock();
-      gkyl_dg_iz_coll(coll_iz, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_cu);
+      gkyl_dg_iz_coll(coll_iz, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_cu);
       tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
     }
     tm_tot = tm_tot/iter;
