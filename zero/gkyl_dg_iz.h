@@ -35,6 +35,14 @@ struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis
   bool is_gk, bool use_gpu); 
 
 /**
+ * Create new ionization updater type object on NV-GPU: 
+ * see new() method above for documentation.
+ */
+struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
+  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, bool is_gk); 
+
+/**
  * Compute ionization collision term for use in neutral reactions. 
  * The update_rng MUST be a sub-range of the
  * range on which the array is defined.  That is, it must be either
@@ -52,6 +60,11 @@ struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis
  */
 
 void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
+  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
+  const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
+
+void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
   const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);

@@ -1,8 +1,19 @@
 /* -*- c++ -*- */
 
 extern "C" {
+#include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
+#include <gkyl_array.h>
+#include <gkyl_dg_prim_vars_vlasov.h>
+#include <gkyl_dg_prim_vars_gyrokinetic.h>
+#include <gkyl_dg_prim_vars_transform_vlasov_gk.h>
+#include <gkyl_dg_prim_vars_type.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_proj_maxwellian_on_basis.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_iz_priv.h>
+#include <gkyl_util.h>
 }
 
 __global__ static void
@@ -30,7 +41,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     up->calc_prim_vars_neut_upar->kernel(up->calc_prim_vars_neut_upar, cidx, moms_neut_d, upar_neut_d);
 
     //Find nearest neighbor for n, Te in ADAS interpolated data
-    double cell_av_fac = pow(1/sqrt(2),up->cdim);
+    double cell_av_fac = pow(1.0/sqrt(2.0),up->cdim);
     double m0_elc_av = m0_elc_d[0]*cell_av_fac;
     double temp_elc_av = vtSq_elc_d[0]*cell_av_fac*up->mass_elc/up->elem_charge;
     double diff1 = 0;
@@ -77,7 +88,7 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
     (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
 
   gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, 
-    mom_elc->on_dev, moms_neut->on_dev, bmag->on_dev, jacob_tot->on_dev, b_i->on_dev, f_self->on_dev, coll_iz->on_dev);
+    moms_elc->on_dev, moms_neut->on_dev, bmag->on_dev, jacob_tot->on_dev, b_i->on_dev, f_self->on_dev, coll_iz->on_dev);
 
   // Calculate vt_sq_iz 
   gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, *up->conf_rng);
@@ -122,7 +133,7 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
   double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, 
   bool is_gk, bool use_gpu)
 {
-  gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
+  gkyl_dg_iz *up = (struct gkyl_dg_iz*) gkyl_malloc(sizeof(struct gkyl_dg_iz));
 
   int cdim = cbasis->ndim;
   int pdim = pbasis->ndim;
@@ -137,27 +148,27 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
   up->elem_charge = elem_charge;
   up->mass_elc = mass_elc;
 
+  int resM0=50, resTe=100, qpoints=resM0*resTe;
+  double minM0 = 1e15, maxM0 = 1e20;
+  double minTe = 1.0, maxTe = 4e3;
+
+  up->minLogM0 = log10(minM0);
+  up->minLogTe = log10(minTe);    
+  up->maxLogM0 = log10(maxM0);
+  up->maxLogTe = log10(maxTe);
+  
+  double dlogM0 = (up->maxLogM0 - up->minLogM0)/(resM0-1);
+  double dlogTe = (up->maxLogTe - up->minLogTe)/(resTe-1);
+  up->resM0=resM0;
+  up->resTe=resTe;
+  up->dlogM0=dlogM0;
+  up->dlogTe=dlogTe;
+  
   up->M0q = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, qpoints); 
   up->Teq = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, qpoints); 
   up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, qpoints);
 
   up->E = 13.6;
-
-  // Establish vdim vlasov species
-  int vdim_vl; 
-  int vdim = pdim - up->cdim;
-  if (is_gk) {
-    if (vdim == 1) {
-      vdim_vl = vdim;
-    }
-    else {
-      vdim_vl = vdim+1;
-    }
-  }
-  else  {
-    vdim_vl = vdim;
-  }
-  up->vdim_vl = vdim_vl;
 
   // allocate fields for prim mom calculation
   up->upar_neut = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);

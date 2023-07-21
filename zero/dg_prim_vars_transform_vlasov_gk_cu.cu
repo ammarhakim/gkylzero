@@ -7,8 +7,8 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_dg_prim_vars_vlasov.h>
-#include <gkyl_dg_prim_vars_vlasov_priv.h>
+#include <gkyl_dg_prim_vars_transform_vlasov_gk.h>
+#include <gkyl_dg_prim_vars_transform_vlasov_gk_priv.h>  
 #include <gkyl_util.h>
 }
 
@@ -20,7 +20,7 @@ get_prim_id(const char *prim_nm)
   int prim_idx = BAD;
 
   if (strcmp(prim_nm, "u_par_i") == 0) { // u_par b_i
-    prim_idx = u_i;
+    prim_idx = u_par_i;
   }
   else if (strcmp(prim_nm, "u_par") == 0) { // u_i . b_i
     prim_idx = u_par;
@@ -41,11 +41,11 @@ v_num_prim(int vdim, int prim_id)
   int num_prim = 0;
   
   switch (prim_id) {
-    case u_i:
+    case u_par_i:
       num_prim = vdim;
       break;
 
-    case vtSq:
+    case u_par:
       num_prim = 1;
       break;
 
@@ -90,7 +90,7 @@ set_cu_ptrs(struct dg_prim_vars_type_transform_vlasov_gk* pvt, int prim_id, enum
     *dg_prim_vars_transform_vlasov_gk_u_par_kernels, *dg_prim_vars_transform_vlasov_gk_kernels;
 
   // choose kernel tables based on basis-function type
-  switch (cbasis->b_type) {
+  switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       dg_prim_vars_transform_vlasov_gk_u_par_i_kernels = ser_dg_prim_vars_transform_vlasov_gk_u_par_i_kernels;
       dg_prim_vars_transform_vlasov_gk_u_par_kernels = ser_dg_prim_vars_transform_vlasov_gk_u_par_kernels;
@@ -148,7 +148,7 @@ gkyl_dg_prim_vars_transform_vlasov_gk_cu_dev_new(const struct gkyl_basis* cbasis
 
   pvt->pvt.flags = 0;
   GKYL_SET_CU_ALLOC(pvt->pvt.flags);
-  pvt->pvt.ref_count = gkyl_ref_count_init(gkyl_dg_prim_vars_vlasov_free);
+  pvt->pvt.ref_count = gkyl_ref_count_init(gkyl_dg_prim_vars_transform_vlasov_gk_free);  
   
   // copy struct to device
   struct dg_prim_vars_type_transform_vlasov_gk *pvt_cu = (struct dg_prim_vars_type_transform_vlasov_gk*)

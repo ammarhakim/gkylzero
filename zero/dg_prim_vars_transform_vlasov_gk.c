@@ -39,7 +39,7 @@ gkyl_dg_prim_vars_transform_vlasov_gk_new(const struct gkyl_basis* cbasis, const
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_prim_vars_transform_vlasov_gk_cu_dev_new(cbasis, pbasis, prim_nm);
+    return gkyl_dg_prim_vars_transform_vlasov_gk_cu_dev_new(cbasis, pbasis, conf_range, prim_nm);
   } 
 #endif    
   struct dg_prim_vars_type_transform_vlasov_gk *pvt = gkyl_malloc(sizeof(struct dg_prim_vars_type_transform_vlasov_gk));
