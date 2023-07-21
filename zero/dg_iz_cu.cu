@@ -18,13 +18,12 @@ extern "C" {
 
 __global__ static void
 gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng,
-			  const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq,
-			  const struct gkyl_dg_prim_vars_type *calc_prim_vars_neut_upar, 
+  const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq, const struct gkyl_dg_prim_vars_type *calc_prim_vars_neut_upar, 
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i, const struct gkyl_array *f_self,
-			  struct gkyl_array *vtSq_elc, struct gkyl_array *upar_neut, struct gkyl_array *coef_iz, 
-			  struct gkyl_array *M0q, struct gkyl_array *Teq, struct gkyl_array *ioniz_data, 
-			  struct gkyl_array *coll_iz)
+  struct gkyl_array *vtSq_elc, struct gkyl_array *upar_neut, struct gkyl_array *coef_iz, 
+  struct gkyl_array *M0q, struct gkyl_array *Teq, struct gkyl_array *ioniz_data, 
+  struct gkyl_array *coll_iz)
 {
   int cidx[GKYL_MAX_CDIM];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -90,16 +89,11 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
     (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
 
   gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng,
-									       up->calc_prim_vars_elc_vtSq->on_dev,
-									       up->calc_prim_vars_neut_upar->on_dev, 
+    up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_neut_upar->on_dev, 
     moms_elc->on_dev, moms_neut->on_dev, bmag->on_dev, jacob_tot->on_dev, b_i->on_dev, f_self->on_dev,
-									       up->vtSq_elc->on_dev,
-									       up->upar_neut->on_dev,
-									       up->coef_iz->on_dev,
-									       up->M0q->on_dev,
-									       up->Teq->on_dev,
-									       up->ioniz_data->on_dev,
-									       coll_iz->on_dev);
+    up->vtSq_elc->on_dev, up->upar_neut->on_dev, up->coef_iz->on_dev,
+    up->M0q->on_dev, up->Teq->on_dev, up->ioniz_data->on_dev,
+    coll_iz->on_dev);
 
   // Calculate vt_sq_iz 
   gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, *up->conf_rng);
