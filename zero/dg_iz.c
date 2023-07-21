@@ -28,41 +28,40 @@
  *         int number - number of (te,ne) points to evaluate
  * 
  */
-double* calc_ionization_coef(atomic_data data, double* te, double* ne, int charge_state, int number){
+void calc_ionization_coef(atomic_data data, struct gkyl_array* Teq, struct gkyl_array* M0q, int charge_state, int number, struct gkyl_array* ioniz_data){
   int charge_state_index, *tooSmallTe;
   double* result, *localte, *localne;
   double minLogTe, maxLogTe, minLogNe, maxLogNe;
-  
-  localte = (double*)malloc(sizeof(double)*number);
-  localne = (double*)malloc(sizeof(double)*number);
-  tooSmallTe = (int*)malloc(sizeof(int)*number);
+
+  //tooSmallTe = (int*)malloc(sizeof(int)*number);
   minLogTe = data.logT[0];
   minLogNe = data.logNe[0];
   maxLogTe = data.logT[data.te_intervals-1];
   maxLogNe = data.logNe[data.ne_intervals-1];
 
   for(int i=0;i<number;i++){
-    localte[i]=te[i];
-    localne[i]=ne[i];
-    tooSmallTe[i]=1.;
-    if(localte[i]<minLogTe){
-      tooSmallTe[i]=0;
-    }else if(localte[i]>maxLogTe){
-      localte[i]=maxLogTe;
-    }if(localne[i]<minLogNe){
-      localne[i]=minLogNe;
-    }else if(localne[i]>maxLogNe){
-      localne[i]=maxLogNe;
+    double *M0q_d = gkyl_array_fetch(M0q, i);
+    double *Teq_d = gkyl_array_fetch(Teq, i);
+    //tooSmallTe[i]=1.;
+    if(Teq_d[0] > maxLogTe){
+      Teq_d[0] = maxLogTe;
+    }if(M0q_d[0] < minLogNe){
+      M0q_d[0] = minLogNe;
+    }else if(M0q_d[0] > maxLogNe){
+      M0q_d[0] = maxLogNe;
     }
   }
+  
   charge_state_index = data.te_intervals * data.ne_intervals * charge_state;
-  result = bilinear_interp(data.logT,data.logNe,data.logData+charge_state_index,localte,localne,
-			 data.te_intervals,data.ne_intervals,number);
+  bilinear_interp(data.logT,data.logNe,data.logData+charge_state_index,Teq,M0q,
+    data.te_intervals,data.ne_intervals,number,ioniz_data);
+
   for(int i=0;i<number;i++){
-    //Multiplies by 0 if Te<Te_min, 1 otherwise
-    result[i]=tooSmallTe[i]*pow(10.0,result[i]);
+    //Multiplies by 0 if Te<Te_min
+    double *Teq_d = gkyl_array_fetch(Teq, i);
+    double *ioniz_data_d = gkyl_array_fetch(ioniz_data, i);
+    if(Teq_d[0] < minLogTe) ioniz_data_d[0] = 0.0;
   }
-  return result; 
 }
 
 struct gkyl_dg_iz*
@@ -92,13 +91,16 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   atomic_data h_ion;
   h_ion = loadadf11("scd12_h.dat");
 
-  double *M0q, *Teq, *ioniz_data;
-  double minM0, minTe, maxM0, maxTe;
+  //double *M0q, *Teq, *ioniz_data;
   int resM0=50, resTe=100, qpoints=resM0*resTe;
-  minM0 = 1e15;
-  maxM0 = 1e20;
-  minTe = 1.0;
-  maxTe = 4e3;
+  double minM0 = 1e15, maxM0 = 1e20;
+  double minTe = 1.0, maxTe = 4e3;
+
+  up->minM0 = minM0;
+  up->minTe = minTe;    
+  up->maxM0 = maxM0;
+  up->maxTe = maxTe;
+  
   double dlogM0 = (log10(maxM0) - log10(minM0))/(resM0-1);
   double dlogTe = (log10(maxTe) - log10(minTe))/(resTe-1);
   up->resM0=resM0;
@@ -106,27 +108,32 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   up->dlogM0=dlogM0;
   up->dlogTe=dlogTe;
 
-  M0q = (double*) malloc(sizeof(double)*qpoints);
-  Teq = (double*) malloc(sizeof(double)*qpoints);
+  up->M0q = gkyl_array_new(GKYL_DOUBLE, 1, qpoints);
+  up->Teq = gkyl_array_new(GKYL_DOUBLE, 1, qpoints);
+  up->ioniz_data = gkyl_array_new(GKYL_DOUBLE, 1, qpoints);
 
   for(int i=0;i<resM0;i++){
     for(int j=0;j<resTe;j++){
-      M0q[i*resTe+j] = log10(minM0) + dlogM0*i;
-      Teq[i*resTe+j] = log10(minTe) + dlogTe*j;
+      double *M0q_d = gkyl_array_fetch(up->M0q, i*resTe+j);
+      double *Teq_d = gkyl_array_fetch(up->Teq, i*resTe+j);
+      M0q_d[0] = log10(minM0) + dlogM0*i;
+      Teq_d[0] = log10(minTe) + dlogTe*j;     
     }
   }
 
-  up->E = 13.6;
-  up->M0q=M0q;
-  up->Teq=Teq;
+  up->E = 13.6; // need to add all E_iz data for different species and charge states
+
+  // this needs to change
+  calc_ionization_coef(h_ion, up->Teq, up->M0q, h_ion.Z-1, qpoints, up->ioniz_data);
 
   for(int i=0;i<qpoints;i++){
-    up->ioniz_data = calc_ionization_coef(h_ion, up->Teq, up->M0q, h_ion.Z-1, qpoints);
+    double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, i);
+    double *M0q_d = gkyl_array_fetch(up->M0q, i);
+    double *Teq_d = gkyl_array_fetch(up->Teq, i);
     /* printf("Te = %eeV, M0 = %em^-3, Ioniz. coef = %em^3/s\n", */
-    /* 	   pow(10,Teq[i]),pow(10,M0q[i]),up->ioniz_data[i]); */
+    /* 	   pow(10,Teq_d[0]),pow(10,M0q_d[0]),iz_dat_d[0]); */
   }
- 
-
+  
   // Establish vdim vlasov species
   int vdim_vl; 
   int vdim = pdim - up->cdim;
@@ -199,27 +206,37 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     int m0_idx, t_idx, q_idx;
     int qtotal = up->resM0*up->resTe;
 
+    /* double m0_min = gkyl_array_fetch(up->M0q, 0); */
+    /* double m0_max = gkyl_array_fetch(up->M0q, qtotal-1);     */
+    /* double Te_min = gkyl_array_fetch(up->M0q, 0); */
+    /* double Te_max = gkyl_array_fetch(up->M0q, qtotal-1); */
+    
     // First consider density in flattened array
-    if (log10(m0_elc_av) < up->M0q[0]) m0_idx=0;
-    else if (log10(m0_elc_av) > up->M0q[qtotal-1]) m0_idx=qtotal-1;
+    if (log10(m0_elc_av) < up->minM0) m0_idx=0;
+    else if (log10(m0_elc_av) > up->maxM0) m0_idx=qtotal-1;
     else {
-      m0_idx = (log10(m0_elc_av) - up->M0q[0])/(up->dlogM0);
-      diff1 = fabs(up->M0q[m0_idx*up->resTe]-log10(m0_elc_av));
-      diff2 = fabs(up->M0q[(m0_idx+1)*up->resTe] - log10(m0_elc_av));
+      m0_idx = (log10(m0_elc_av) - up->minM0)/(up->dlogM0);
+      double *M0q_1 = gkyl_array_fetch(up->M0q, m0_idx*up->resTe);
+      double *M0q_2 = gkyl_array_fetch(up->M0q, (1+m0_idx)*up->resTe);
+      diff1 = fabs(M0q_1[0]-log10(m0_elc_av));
+      diff2 = fabs(M0q_2[0]-log10(m0_elc_av));
       if (diff1 > diff2) m0_idx += 1;
     }
 
-    if (log10(temp_elc_av) < up->Teq[0]) t_idx=0;
-    else if (log10(temp_elc_av) > up->Teq[up->resTe-1]) t_idx=up->resTe-1;
+    if (log10(temp_elc_av) < up->minTe) t_idx=0;
+    else if (log10(temp_elc_av) > up->maxTe) t_idx=up->resTe-1;
     else {
-      t_idx = (log10(temp_elc_av) - up->Teq[0])/(up->dlogTe);
-      diff1 = fabs(up->Teq[t_idx]- log10(temp_elc_av));
-      diff2 = fabs(up->Teq[(t_idx+1)] - log10(temp_elc_av));
+      t_idx = (log10(temp_elc_av) - up->minTe)/(up->dlogTe);
+      double *Teq_1 = gkyl_array_fetch(up->Teq, t_idx);
+      double *Teq_2 = gkyl_array_fetch(up->Teq, t_idx+1); 
+      diff1 = fabs(Teq_1[0]-log10(temp_elc_av));
+      diff2 = fabs(Teq_2[0]-log10(temp_elc_av));
       if (diff1 > diff2) t_idx += 1;
     }
  
     q_idx = m0_idx*up->resTe + t_idx;
-    coef_iz_d[0] = up->ioniz_data[q_idx]/cell_av_fac;    
+    double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, q_idx);
+    coef_iz_d[0] = iz_dat_d[0]/cell_av_fac;    
   }
 
   // Calculate vt_sq_iz 
@@ -263,6 +280,9 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
 void
 gkyl_dg_iz_release(struct gkyl_dg_iz* up)
 {
+  gkyl_array_release(up->M0q);
+  gkyl_array_release(up->Teq);
+  gkyl_array_release(up->ioniz_data);
   gkyl_array_release(up->upar_neut);
   gkyl_array_release(up->vtSq_elc);
   gkyl_array_release(up->vtSq_iz);

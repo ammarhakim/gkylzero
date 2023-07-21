@@ -26,14 +26,16 @@ struct gkyl_dg_iz {
   int resTe;
   double dlogM0;
   double dlogTe;
-  double *M0q;
-  double *Teq;
-  double *ioniz_data;
-  double E; 
+  double E;
+
+  double minM0, minTe, maxM0, maxTe;
 
   struct gkyl_basis *cbasis;
   struct gkyl_basis *pbasis;
-  
+
+  struct gkyl_array *M0q;
+  struct gkyl_array *Teq;
+  struct gkyl_array *ioniz_data;
   struct gkyl_array *upar_neut;
   struct gkyl_array *vtSq_elc;
   struct gkyl_array *vtSq_iz;
