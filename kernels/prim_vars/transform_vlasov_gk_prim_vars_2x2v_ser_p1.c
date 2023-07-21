@@ -14,7 +14,6 @@ GKYL_CU_DH void transform_vlasov_gk_prim_vars_2x2v_ser_p1(const double *b_i, con
  
   const double *b_x = &b_i[0]; 
   const double *b_y = &b_i[4]; 
-  const double *b_z = &b_i[8]; 
   double *upar = &prim_vars[0]; 
   double *vtSq = &prim_vars[4]; 
  
