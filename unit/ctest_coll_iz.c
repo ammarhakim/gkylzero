@@ -292,7 +292,7 @@ test_coll_iz(bool use_gpu)
   else {
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max, &phaseRange, &confRange, moms_elc,
       bmag, jacob_tot, emass, distf_elc);
-  // gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, distf_elc, "ctest_distf_elc.gkyl");
+    // gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, distf_elc, "ctest_distf_elc.gkyl");
     
     struct timespec tm;
     double tm_tot = 0.0;

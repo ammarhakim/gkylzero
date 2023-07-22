@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -94,7 +95,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   // Interpolate ADAS data
   // Resolution, density and temp should be set in input file 
   atomic_data h_ion;
-  h_ion = loadadf11("scd12_h.dat");
+  h_ion = loadadf11("kernels/neutral/scd12_h.dat");
 
   int resM0=50, resTe=100, qpoints=resM0*resTe;
   double minM0 = 1e15, maxM0 = 1e20;

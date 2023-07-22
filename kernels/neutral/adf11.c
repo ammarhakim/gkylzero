@@ -7,7 +7,7 @@
 #include <math.h>
 #include "adf11.h"
 
-char* adas_data_dir="$GKYLSOFT/kernels/neutral/";
+char* adas_data_dir = ""; // /Users/bernard/gkylzero/kernels/neutral/";
 
 /* Read adas adf11 data file.
  * Input - filename, either the full path to an adf11 file or
@@ -27,7 +27,7 @@ atomic_data loadadf11(char* filename){
   /*   fprintf(stderr,"Error. Only metastable unresolved files supported"); */
   /*   exit(EXIT_FAILURE); */
   /* } */
-
+  
   filepath = get_adas_file_loc(filename);
   data.reaction_type = (char*) malloc(sizeof(char)*4);
   sprintf(data.reaction_type, "%.3s", filename);
