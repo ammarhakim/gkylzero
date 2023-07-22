@@ -23,10 +23,15 @@ void eval_m0(double t, const double *xn, double* restrict fout, void *ctx)
   double x = xn[0];
   fout[0] = 1.0e19;
 }
-void eval_m2(double t, const double *xn, double* restrict fout, void *ctx)
+void eval_m2_1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 40*echarge/emass*1.0e19;  //fabs(x);
+  fout[0] = 40*echarge/emass*1.0e19*1.;  //fabs(x);
+}
+void eval_m2_3v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 40*echarge/emass*1.0e19*3.;  //fabs(x);
 }
 void eval_bmag(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -52,6 +57,13 @@ test_prim_vars_gk_3x(bool use_gpu)
   double lower[] = {-2.0,-2.0,-2.0,vmin,0.0}, upper[] = {2.0,2.0,2.0,vmax,mumax};
   int ghost[] = {0, 0, 0, 0, 0};
   int cells[] = {16, 16, 16, 8, 4};
+
+  // low d test -- use eval_m2_1v
+  /* int cdim = 1, vdim = 2; */
+  /* int pdim = cdim + vdim; */
+  /* double lower[] = {-2.0,vmin,0}, upper[] = {2.,0,vmax,mumax}; */
+  /* int ghost[] = {0, 0, 0}; */
+  /* int cells[] = {1, 8, 8}; */
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -69,7 +81,7 @@ test_prim_vars_gk_3x(bool use_gpu)
   gkyl_proj_on_basis *projM0 = gkyl_proj_on_basis_new(&confGrid, &cbasis,
     poly_order+1, 1, eval_m0, NULL);
   gkyl_proj_on_basis *projM2 = gkyl_proj_on_basis_new(&confGrid, &cbasis,
-    poly_order+1, 1, eval_m2, NULL);
+    poly_order+1, 1, eval_m2_3v, NULL);
 
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
   struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
@@ -97,7 +109,18 @@ test_prim_vars_gk_3x(bool use_gpu)
   }
 
   gkyl_grid_sub_array_write(&confGrid, &confRange, vtSq_elc, "ctest_prim_vars_vtsq_elc.gkyl");
+  
   // check vals
+  double p1_vals[] = {1.9898778467478656e+13, -8.1549238327948618e-05,
+		      3.8383544370155868e-05, 3.8383544370155868e-05,
+		      -8.1549238327948822e-05, -2.1582846978896450e-05,
+		      -2.1582846978896450e-05,  3.8383544370155820e-05};
+  
+  const double *pv = gkyl_array_cfetch(vtSq_elc, gkyl_range_idx(&confRange, (int[3]) { 1, 1, 1}));
+
+  for (int i=0; i<cbasis.num_basis; ++i) {
+    TEST_CHECK( gkyl_compare_double(p1_vals[i], pv[i], 1e-12) );
+  }
 
 }
 
@@ -130,7 +153,7 @@ test_prim_vars_vlasov_3x(bool use_gpu)
   gkyl_proj_on_basis *projM0 = gkyl_proj_on_basis_new(&confGrid, &cbasis,
     poly_order+1, 1, eval_m0, NULL);
   gkyl_proj_on_basis *projM2 = gkyl_proj_on_basis_new(&confGrid, &cbasis,
-    poly_order+1, 1, eval_m2, NULL);
+    poly_order+1, 1, eval_m2_3v, NULL);
 
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
   struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
@@ -158,6 +181,17 @@ test_prim_vars_vlasov_3x(bool use_gpu)
   }
 
   gkyl_grid_sub_array_write(&confGrid, &confRange, vtSq_neut, "ctest_prim_vars_vtsq_neut.gkyl");
+
+  double p1_vals[] = {1.9898778467478656e+13, -8.1549238327948618e-05,
+		      3.8383544370155868e-05, 3.8383544370155868e-05,
+		      -8.1549238327948822e-05, -2.1582846978896450e-05,
+		      -2.1582846978896450e-05,  3.8383544370155820e-05};
+  
+  const double *pv = gkyl_array_cfetch(vtSq_neut, gkyl_range_idx(&confRange, (int[3]) { 1, 1, 1}));
+
+  for (int i=0; i<cbasis.num_basis; ++i) {
+    TEST_CHECK( gkyl_compare_double(p1_vals[i], pv[i], 1e-12) );
+  }
 
 }
 
@@ -203,7 +237,7 @@ test_coll_iz(bool use_gpu)
   gkyl_proj_on_basis *projM0 = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m0, NULL);
   gkyl_proj_on_basis *projM2 = gkyl_proj_on_basis_new(&confGrid, &basis,
-    poly_order+1, 1, eval_m2, NULL);
+    poly_order+1, 1, eval_m2_3v, NULL);
   gkyl_proj_on_basis *projBmag = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_bmag, NULL);
   gkyl_proj_on_basis *projJac = gkyl_proj_on_basis_new(&confGrid, &basis,
@@ -310,27 +344,27 @@ test_coll_iz(bool use_gpu)
 
   gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, coll_iz_elc, "ctest_coll_iz_elc.gkyl");
 
-  double p1_vals[] = {-8.3463180471577168e-09, -2.5357290020268411e-25,  1.5128738678010901e-24,
-		      7.8073497887977595e-25,  3.1614574052200733e-09,  8.3394417363177697e-09,
-		      -2.5357290020268416e-25, -1.0248840512211112e-25, -1.0248840512211114e-25,
-		      1.9631603927709042e-25,  3.4276915366603188e-26, -5.7240445748561069e-26,
-		      -9.0446838856348759e-25, -8.4031898521952369e-25,  6.2395879262310432e-25,
-		      -3.1588527640234747e-09,  4.8596089958461935e-26, 1.4873389941337646e-25,
-		      9.1505407389989828e-26, -4.3947174976624737e-26,  1.9373994481848335e-25,
-		      4.2779924260136905e-26,  4.2779924260136882e-26,  9.6360470203878242e-26,
-		      7.5287924529321644e-26,  7.5287924529321644e-26, -9.6583058848471189e-27,
-		      -1.0818009629820964e-25, -3.9074761433474810e-26, -7.3410779567240854e-26,
-		      -7.3410779567240854e-26,  7.5287924529321644e-26,  2.7031868880483916e-10,
-		      -1.3779079306969203e-25, -1.3937080366629122e-26, -1.3937080366629122e-26,
-		      -2.7009598038184710e-10,  2.4188048187977241e-26,  1.9294757232832083e-26,
-		      6.1412104954585808e-26, -1.9735547477471852e-25, -4.5422335402692920e-27,
-		      -4.5422335402692877e-27, -5.4236554558686281e-26, -6.5590691655281548e-26,
-		      -6.0701432153221186e-26, -6.0701432153221186e-26,  5.8584528742794487e-26};
+  double p1_vals[] = {-2.4014565247326178e+00, -3.8514489897962783e-16, -5.7110482341097731e-17,
+		      2.4425487837962348e-16,  3.3375014364519018e-01,  2.0687952656971738e+00,
+		      -2.3506351153000692e-17, -4.0308416747049199e-17, -4.0308416747049205e-17,
+		      4.0625859545969633e-17, -2.1597670852924058e-17, -6.5294602977688739e-18,
+		      -8.9730204140520383e-17, -4.4082448908800082e-17, -1.3946142760251460e-17,
+		      -2.8751741937314046e-01,  3.1625898030465171e-18,  2.0621968577456047e-17,
+		      -4.8782239729356911e-19,  4.4478436458446171e-18,  9.1089012291912308e-17,
+		      2.3503224210675240e-17,  2.3503224210675240e-17, -7.0074177551781357e-18,
+		      -5.3010544555376448e-18,  9.7672710613792879e-18, -1.5936792928689385e-18,
+		      -1.3945912836727961e-17, -1.5710239442394578e-17, -1.0505618208525673e-17,
+		      -1.0505618208525673e-17,  9.7672710613792879e-18,  6.7454560758484550e-02,
+		      -6.5759644472814987e-18, -3.3502754511312654e-18, -3.3502754511312651e-18,
+		      -5.8110429485091361e-02,  1.3427984002112964e-17,  1.2206926022355283e-17,
+		      2.8064629419848202e-18,  3.2284449575695321e-17,  4.2517357754476330e-18,
+		      4.2517357754476330e-18, -1.1616526826346376e-17, -8.9436596275453193e-18,
+		      -7.8917484916331066e-18, -7.8917484916331066e-18,  6.9430384740724518e-19};
   
-  const double *cv = gkyl_array_cfetch(coll_iz_elc, gkyl_range_idx(&phaseRange, (int[5]) { 2, 2, 2, 5, 3}));
+  const double *pv = gkyl_array_cfetch(coll_iz_elc, gkyl_range_idx(&phaseRange, (int[5]) { 2, 2, 2, 5, 3}));
 
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i], pv[i], 1e-12) );
   }
   
    gkyl_dg_iz_release(coll_iz);
