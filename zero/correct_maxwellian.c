@@ -23,8 +23,8 @@ struct gkyl_correct_maxwellian
   struct gkyl_basis conf_basis, phase_basis;
   
   struct gkyl_array *m0, *m1, *m2;
-  struct gkyl_array *dm0, *dm1, *dm2;
-  struct gkyl_array *ddm0, *ddm1, *ddm2;
+  struct gkyl_array *dm1, *dm2;
+  struct gkyl_array *ddm1, *ddm2;
   struct gkyl_array *m0scl;
   //struct gkyl_array *fout;
   
@@ -47,10 +47,8 @@ gkyl_correct_maxwellian_new(const struct gkyl_rect_grid *grid, const struct gkyl
   up->m0 = mkarr(conf_basis->num_basis, conf_local_ext->volume);
   up->m1 = mkarr(conf_basis->num_basis, conf_local_ext->volume);
   up->m2 = mkarr(conf_basis->num_basis, conf_local_ext->volume);
-  up->dm0 = mkarr(conf_basis->num_basis, conf_local_ext->volume);
   up->dm1 = mkarr(conf_basis->num_basis, conf_local_ext->volume);
   up->dm2 = mkarr(conf_basis->num_basis, conf_local_ext->volume);
-  up->ddm0 = mkarr(conf_basis->num_basis, conf_local_ext->volume);
   up->ddm1 = mkarr(conf_basis->num_basis, conf_local_ext->volume);
   up->ddm2 = mkarr(conf_basis->num_basis, conf_local_ext->volume);
 
@@ -116,7 +114,6 @@ void gkyl_correct_maxwellian_gyrokinetic(gkyl_correct_maxwellian *cmax, struct g
 
   // Main iteration loop
   int i = 0;
-  printf("err1=%10.8e, err2=%10.8e\n", err1[0], err2[0]);
   while ((i<iter_max) && (err1[0]>err_max) || (err2[0]>err_max))
   {
     printf("Iteration %d\n", i);
@@ -130,7 +127,9 @@ void gkyl_correct_maxwellian_gyrokinetic(gkyl_correct_maxwellian *cmax, struct g
     gkyl_array_accumulate(cmax->m1, 1.0, cmax->dm1);
 
     gkyl_dg_calc_l2_range(cmax->conf_basis, 0, mvals1, 0, cmax->ddm1, *conf_local);
+    gkyl_array_scale_range(mvals1, cmax->grid.cellVolume, *conf_local);
     gkyl_array_reduce_range(err1, mvals1, GKYL_SUM, *conf_local);
+    err1[0] = sqrt(err1[0]/cmax->grid.cellVolume/conf_local->volume); 
 
     gkyl_array_clear(cmax->ddm2, 0.0);
     gkyl_array_accumulate(cmax->ddm2, -1.0, cmax->m2);
@@ -141,7 +140,10 @@ void gkyl_correct_maxwellian_gyrokinetic(gkyl_correct_maxwellian *cmax, struct g
     gkyl_array_accumulate(cmax->m2, 1.0, cmax->dm2);
 
     gkyl_dg_calc_l2_range(cmax->conf_basis, 0, mvals2, 0, cmax->ddm2, *conf_local);
+    gkyl_array_scale_range(mvals2, cmax->grid.cellVolume, *conf_local);
     gkyl_array_reduce_range(err2, mvals2, GKYL_SUM, *conf_local);
+    err2[0] = sqrt(err2[0]/cmax->grid.cellVolume/conf_local->volume); 
+
     printf("err1=%10.8e, err2=%10.8e\n", err1[0], err2[0]);
 
     // Project the maxwellian
@@ -172,16 +174,12 @@ void gkyl_correct_maxwellian_gyrokinetic(gkyl_correct_maxwellian *cmax, struct g
     // Increment i
     i += 1;
   } // Main iteration loop ends
-  gkyl_array_release(mvals2);
+  gkyl_array_release(mvals1);
   gkyl_array_release(mvals2);
 }
 
 void
 gkyl_correct_maxwellian_release(gkyl_correct_maxwellian* cmax)
 {
-  gkyl_mom_calc_release(cmax->m0calc);
-  gkyl_mom_calc_release(cmax->m1calc);
-  gkyl_mom_calc_release(cmax->m2calc);
-
   gkyl_free(cmax);
 }
