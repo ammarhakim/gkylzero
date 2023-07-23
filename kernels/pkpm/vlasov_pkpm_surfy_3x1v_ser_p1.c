@@ -5,29 +5,27 @@
 #include <gkyl_basis_ser_3x_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH void vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *dxv, 
      const double *bvarl, const double *bvarc, const double *bvarr, 
-     const double *u_il, const double *u_ic, const double *u_ir, 
-     const double *T_ijl, const double *T_ijc, const double *T_ijr,
+     const double *pkpm_priml, const double *pkpm_primc, const double *pkpm_primr, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:                 Cell-center coordinates.
   // dxv[NDIM]:               Cell spacing.
   // bvarl/bvarc/bvarr:       Input magnetic field unit vector in left/center/right cells.
-  // u_il/u_ic/u_ir:          Input bulk velocity (ux,uy,uz) in left/center/right cells.
-  // T_ijl/T_ijc/T_ijr:       Input Temperature tensor/mass (for penalization) in left/center/right cells.
+  // pkpm_priml/pkpm_primc/pkpm_primr: Input primitive variables in left/center/right cells.
   // fl/fc/fr:                Input Distribution function [F_0, T_perp G = T_perp (F_1 - F_0)] in left/center/right cells.
   // out:                     Incremented distribution function in center cell.
   const double dx1 = 2.0/dxv[1]; 
   const double dvpar = dxv[3], wvpar = w[3]; 
-  const double *ul = &u_il[8]; 
-  const double *uc = &u_ic[8]; 
-  const double *ur = &u_ir[8]; 
+  const double *ul = &pkpm_priml[8]; 
+  const double *uc = &pkpm_primc[8]; 
+  const double *ur = &pkpm_primr[8]; 
   const double *bl = &bvarl[8]; 
   const double *bc = &bvarc[8]; 
   const double *br = &bvarr[8]; 
   // Get thermal velocity in direction of update for penalization vth^2 = 3.0*T_ii/m. 
-  const double *vth_sql = &T_ijl[24]; 
-  const double *vth_sqc = &T_ijc[24]; 
-  const double *vth_sqr = &T_ijr[24]; 
+  const double *vth_sql = &pkpm_priml[32]; 
+  const double *vth_sqc = &pkpm_primc[32]; 
+  const double *vth_sqr = &pkpm_primr[32]; 
 
   const double *F_0l = &fl[0]; 
   const double *G_1l = &fl[24]; 
@@ -37,9 +35,9 @@ GKYL_CU_DH void vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *dxv
   const double *G_1r = &fr[24]; 
   double *out_F_0 = &out[0]; 
   double *out_G_1 = &out[24]; 
-  double alpha_l[16] = {0.0}; 
-  double alpha_c[16] = {0.0}; 
-  double alpha_r[16] = {0.0}; 
+  double alpha_l[24] = {0.0}; 
+  double alpha_c[24] = {0.0}; 
+  double alpha_r[24] = {0.0}; 
   alpha_l[0] = 1.414213562373095*bl[0]*wvpar; 
   alpha_l[1] = 1.414213562373095*bl[1]*wvpar; 
   alpha_l[2] = 1.414213562373095*bl[2]*wvpar; 
@@ -91,7 +89,7 @@ GKYL_CU_DH void vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *dxv
   alpha_r[14] = 0.408248290463863*br[6]*dvpar; 
   alpha_r[15] = 0.408248290463863*br[7]*dvpar; 
 
-  double alphaSurf_l[8] = {0.0}; 
+  double alphaSurf_l[12] = {0.0}; 
   alphaSurf_l[0] = 0.408248290463863*alpha_l[2]-0.408248290463863*alpha_c[2]+0.3535533905932737*alpha_l[0]+0.3535533905932737*alpha_c[0]; 
   alphaSurf_l[1] = 0.408248290463863*alpha_l[5]-0.408248290463863*alpha_c[5]+0.3535533905932737*alpha_l[1]+0.3535533905932737*alpha_c[1]; 
   alphaSurf_l[2] = 0.408248290463863*alpha_l[7]-0.408248290463863*alpha_c[7]+0.3535533905932737*alpha_l[3]+0.3535533905932737*alpha_c[3]; 
@@ -101,7 +99,7 @@ GKYL_CU_DH void vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *dxv
   alphaSurf_l[6] = 0.408248290463863*alpha_l[14]-0.408248290463863*alpha_c[14]+0.3535533905932737*alpha_l[10]+0.3535533905932737*alpha_c[10]; 
   alphaSurf_l[7] = 0.408248290463863*alpha_l[15]-0.408248290463863*alpha_c[15]+0.3535533905932737*alpha_l[13]+0.3535533905932737*alpha_c[13]; 
 
-  double alphaSurf_r[8] = {0.0}; 
+  double alphaSurf_r[12] = {0.0}; 
   alphaSurf_r[0] = (-0.408248290463863*alpha_r[2])+0.408248290463863*alpha_c[2]+0.3535533905932737*alpha_r[0]+0.3535533905932737*alpha_c[0]; 
   alphaSurf_r[1] = (-0.408248290463863*alpha_r[5])+0.408248290463863*alpha_c[5]+0.3535533905932737*alpha_r[1]+0.3535533905932737*alpha_c[1]; 
   alphaSurf_r[2] = (-0.408248290463863*alpha_r[7])+0.408248290463863*alpha_c[7]+0.3535533905932737*alpha_r[3]+0.3535533905932737*alpha_c[3]; 

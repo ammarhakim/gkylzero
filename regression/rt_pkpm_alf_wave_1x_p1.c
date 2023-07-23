@@ -209,7 +209,7 @@ create_ctx(void)
   double nuIon = 0.01*omegaCi/sqrt(massIon);
 
   // initial conditions
-  double a = 1.e-1;
+  double a = 1.0/3.0;
   double delta_B0 = a*B0;
   double delta_u0 = a*vAi;
   // kperp rhoi = 0.1
@@ -396,7 +396,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 100;
+  int nframe = 10;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 

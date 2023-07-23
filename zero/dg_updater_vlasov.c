@@ -76,9 +76,8 @@ gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   else if (vlasov->model_id == GKYL_MODEL_PKPM) {
     gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
       (struct gkyl_dg_vlasov_pkpm_auxfields) { 
-        .bvar = aux1, .u_i = aux2, 
-        .pkpm_accel_vars = aux3, .g_dist_source = aux4, 
-        .vth_sq = aux5 });
+        .bvar = aux1, .pkpm_prim = aux2, 
+        .pkpm_accel_vars = aux3, .g_dist_source = aux4});
   }
   else {
     gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, 
@@ -128,9 +127,8 @@ gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
   else if (vlasov->model_id == GKYL_MODEL_PKPM) {
     gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
       (struct gkyl_dg_vlasov_pkpm_auxfields) { 
-        .bvar = aux1, .u_i = aux2, 
-        .pkpm_accel_vars = aux3, .g_dist_source = aux4, 
-        .vth_sq = aux5 });
+        .bvar = aux1, .pkpm_prim = aux2, 
+        .pkpm_accel_vars = aux3, .g_dist_source = aux4});
   }
   else {
     gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, 

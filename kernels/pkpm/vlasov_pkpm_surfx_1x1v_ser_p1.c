@@ -4,29 +4,27 @@
 #include <gkyl_basis_ser_1x_p1_surfx1_eval_quad.h> 
 GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *dxv, 
      const double *bvarl, const double *bvarc, const double *bvarr, 
-     const double *u_il, const double *u_ic, const double *u_ir, 
-     const double *T_ijl, const double *T_ijc, const double *T_ijr,
+     const double *pkpm_priml, const double *pkpm_primc, const double *pkpm_primr, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:                 Cell-center coordinates.
   // dxv[NDIM]:               Cell spacing.
   // bvarl/bvarc/bvarr:       Input magnetic field unit vector in left/center/right cells.
-  // u_il/u_ic/u_ir:          Input bulk velocity (ux,uy,uz) in left/center/right cells.
-  // T_ijl/T_ijc/T_ijr:       Input Temperature tensor/mass (for penalization) in left/center/right cells.
+  // pkpm_priml/pkpm_primc/pkpm_primr: Input primitive variables in left/center/right cells.
   // fl/fc/fr:                Input Distribution function [F_0, T_perp G = T_perp (F_1 - F_0)] in left/center/right cells.
   // out:                     Incremented distribution function in center cell.
   const double dx1 = 2.0/dxv[0]; 
   const double dvpar = dxv[1], wvpar = w[1]; 
-  const double *ul = &u_il[0]; 
-  const double *uc = &u_ic[0]; 
-  const double *ur = &u_ir[0]; 
+  const double *ul = &pkpm_priml[0]; 
+  const double *uc = &pkpm_primc[0]; 
+  const double *ur = &pkpm_primr[0]; 
   const double *bl = &bvarl[0]; 
   const double *bc = &bvarc[0]; 
   const double *br = &bvarr[0]; 
   // Get thermal velocity in direction of update for penalization vth^2 = 3.0*T_ii/m. 
-  const double *vth_sql = &T_ijl[0]; 
-  const double *vth_sqc = &T_ijc[0]; 
-  const double *vth_sqr = &T_ijr[0]; 
+  const double *vth_sql = &pkpm_priml[6]; 
+  const double *vth_sqc = &pkpm_primc[6]; 
+  const double *vth_sqr = &pkpm_primr[6]; 
 
   const double *F_0l = &fl[0]; 
   const double *G_1l = &fl[6]; 
@@ -36,9 +34,9 @@ GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *dxv
   const double *G_1r = &fr[6]; 
   double *out_F_0 = &out[0]; 
   double *out_G_1 = &out[6]; 
-  double alpha_l[4] = {0.0}; 
-  double alpha_c[4] = {0.0}; 
-  double alpha_r[4] = {0.0}; 
+  double alpha_l[6] = {0.0}; 
+  double alpha_c[6] = {0.0}; 
+  double alpha_r[6] = {0.0}; 
   alpha_l[0] = 1.414213562373095*bl[0]*wvpar; 
   alpha_l[1] = 1.414213562373095*bl[1]*wvpar; 
   alpha_l[2] = 0.408248290463863*bl[0]*dvpar; 
@@ -54,11 +52,11 @@ GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *dxv
   alpha_r[2] = 0.408248290463863*br[0]*dvpar; 
   alpha_r[3] = 0.408248290463863*br[1]*dvpar; 
 
-  double alphaSurf_l[2] = {0.0}; 
+  double alphaSurf_l[3] = {0.0}; 
   alphaSurf_l[0] = 0.408248290463863*alpha_l[1]-0.408248290463863*alpha_c[1]+0.3535533905932737*alpha_l[0]+0.3535533905932737*alpha_c[0]; 
   alphaSurf_l[1] = 0.408248290463863*alpha_l[3]-0.408248290463863*alpha_c[3]+0.3535533905932737*alpha_l[2]+0.3535533905932737*alpha_c[2]; 
 
-  double alphaSurf_r[2] = {0.0}; 
+  double alphaSurf_r[3] = {0.0}; 
   alphaSurf_r[0] = (-0.408248290463863*alpha_r[1])+0.408248290463863*alpha_c[1]+0.3535533905932737*alpha_r[0]+0.3535533905932737*alpha_c[0]; 
   alphaSurf_r[1] = (-0.408248290463863*alpha_r[3])+0.408248290463863*alpha_c[3]+0.3535533905932737*alpha_r[2]+0.3535533905932737*alpha_c[2]; 
 

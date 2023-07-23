@@ -19,6 +19,7 @@
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
+#include <gkyl_dg_calc_pkpm_dist_vars.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
@@ -201,9 +202,12 @@ struct vm_species {
   struct gkyl_array *m1i_pkpm; // "M1i" in the pkpm model for use in current coupling
                                // Used to copy over fluid variable from pkpm_fluid_species (first three components are momentum)
   struct gkyl_array *pkpm_div_ppar; // div(p_parallel b_hat) used for computing total pressure force 
-  struct gkyl_array *g_dist_source; // 2*T_perp/m*G - T_perp/m*(F_0 - F_2)
+  struct gkyl_array *g_dist_source; // g_dist_source = [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)), 
+                                    //                 (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0 ]
   struct gkyl_array *F_k_p_1; // k+1 distribution function (first NP components are F_2) 
   struct gkyl_array *F_k_m_1; // k-1 distribution function (first NP components are F_1)
+  struct gkyl_dg_calc_pkpm_dist_vars *calc_pkpm_dist_vars; // Updater to compute pkpm distribution function variables 
+                                                           // div(p_parallel b_hat) and distribution function sources
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
@@ -266,10 +270,12 @@ struct vm_field {
   gkyl_proj_on_basis *app_current_proj; // projector for applied current 
   struct vm_eval_app_current_ctx app_current_ctx; // context for applied current
 
+  struct gkyl_array *cell_avg_magB2; // Integer array for whether |B|^2 *only* uses cell averages for weak division
+                                     // Determined when constructing the matrix if |B|^2 < 0.0 at control points
   struct gkyl_array *bvar; // magnetic field unit vector and tensor (diagnostic and for use in pkpm model)
   struct gkyl_array *ExB; // E x B velocity = E x B/|B|^2 (diagnostic and for use in relativistic pkpm model)
-  struct gkyl_array *kappa_inv_b; // b_i/kappa; magnetic field unit vector divided by Lorentz boost factor
-                                  // for E x B velocity, b_i/kappa = sqrt((B_i)^2/|B|^2*(1 - |E x B|^2/(c^2 |B|^4)))
+  struct gkyl_dg_calc_em_vars *calc_bvar; // Updater to compute magnetic field unit vector and tensor
+  struct gkyl_dg_calc_em_vars *calc_ExB; // Updater to compute ExB velocity
 
   gkyl_hyper_dg *slvr; // Maxwell solver
 
@@ -307,23 +313,37 @@ struct vm_fluid_species {
 
   struct gkyl_array *fluid_host;  // host copy for use IO and initialization
 
-  struct gkyl_array *u; // array for fluid/advection velocity
-  struct gkyl_array *p; // array for pressure (used by Euler (1 component) and pkpm Euler (6 components))
-  struct gkyl_array *rho_inv; // array for 1/rho
-  struct gkyl_array *T_perp_over_m; // array for p_perp/rho = T_perp/m
-  struct gkyl_array *T_perp_over_m_inv; // array for (T_perp/m)^-1 
-  struct gkyl_array *T_ij; // Temperature tensor for penalization T_ij = 3.0*P_ij/rho
+  enum gkyl_eqn_type eqn_id; // type of fluid system (e.g., scalar advection vs. Euler vs. isothermal Euler)
+  double param; // Input parameter for fluid species (vt for isothermal Euler, gas_gamma for Euler)
+
+  // applied advection
+  struct gkyl_array *app_advect; // applied advection
+  struct gkyl_array *app_advect_host; // host copy for use in IO and projecting
+
+  // Pointers to primitive variables, pressure, and boolean array for if we are only using the cell average for primitive variables
+  // For isothermal Euler, prim : (ux, uy, uz), p : (vth*rho)
+  // For Euler, prim : (ux, uy, uz, T/m), p : (gamma - 1)*(E - 1/2 rho u^2)
+  // For PKPM, prim : [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+  // p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
+  struct gkyl_array *prim; 
+  struct gkyl_array *p; 
+  struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
+                                    // Determined when constructing the matrix if rho < 0.0 at control points
+                                    // Equation systems such as pkpm check more variables (p_par, p_perp < 0.0)
   
-  struct gkyl_array *u_host; // array for host-side fluid/advection velocity (for I/O)
-  struct gkyl_array *p_host; // array for host-side pressure (for I/O)
   // pkpm variables
-  struct gkyl_array *div_p;            // array for divergence of the pressure tensor
-  struct gkyl_array *pkpm_accel_vars;  // Acceleration variables for pkpm, pkpm_accel_vars:
-                                       // 0: div_b (divergence of magnetic field unit vector)
-                                       // 1: bb_grad_u (bb : grad(u))
-                                       // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
-                                       // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
-                                       // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
+  struct gkyl_array *pkpm_accel; // Acceleration variables for pkpm, pkpm_accel:
+                                 // 0: div_b (divergence of magnetic field unit vector)
+                                 // 1: bb_grad_u (bb : grad(u))
+                                 // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+                                 // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
+                                 // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
+  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater to compute pkpm variables (primitive and acceleration variables)
+  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars_ext; // Updater to compute pkpm variables (primitive and acceleration variables)
+                                                     // over extended range (used when BCs are not absorbing to minimize apply BCs calls)
+  struct vm_species *pkpm_species; // pointer to coupling species in pkpm model
+  int species_index; // index of the kinetic species being coupled to in pkpm model
+                     // index corresponds to location in vm_species array (size num_species)
 
   gkyl_dg_updater_fluid *advect_slvr; // Fluid equation solver
   gkyl_dg_updater_diffusion *diff_slvr; // Fluid equation solver
@@ -335,23 +355,6 @@ struct vm_fluid_species {
   struct gkyl_bc_basic *bc_up[3];
   bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
                      // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range 
-
-  // fluid advection
-  bool has_advect; // flag to indicate there is advection of fluid equation
-  enum gkyl_eqn_type eqn_id; // type of advection (e.g., scalar advection vs. Euler vs. isothermal Euler)
-  double param; // Input parameter for fluid species (vt for isothermal Euler, gas_gamma for Euler)
-
-  struct gkyl_dg_bin_op_mem *u_mem; // memory needed in computing flow velocity 
-                                    // needed for weak division rho*u = rhou
-
-  // pkpm model
-  struct vm_species *pkpm_species; // pointer to coupling species in pkpm model
-  int species_index; // index of the kinetic species being coupled to in pkpm model
-                     // index corresponds to location in vm_species array (size num_species)
-
-  // applied advection
-  struct gkyl_array *app_advect; // applied advection
-  struct gkyl_array *app_advect_host; // host copy for use in IO and projecting
 
   // fluid diffusion
   bool has_diffusion; // flag to indicate there is applied diffusion
@@ -792,19 +795,6 @@ void vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field, const stru
  * @param em Input electromagnetic fields
  */
 void vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em);
-
-/**
- * Compute special relativistic electromagnetic variables
- * bvar = magnetic field unit vector (first 3 components) and unit tensor (last 6 components)
- * ExB = E x B velocity, E x B/|B|^2
- * kappa_inv_b = b_i/kappa; magnetic field unit vector divided by Lorentz boost factor
- *               for E x B velocity, b_i/kappa = sqrt((B_i)^2/|B|^2*(1 - |E x B|^2/(c^2 |B|^4)))
- *
- * @param app Vlasov app object
- * @param field Field object (output bvar is stored in field object)
- * @param em Input electromagnetic fields
- */
-void vm_field_calc_sr_pkpm_vars(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em);
 
 /**
  * Accumulate current density onto RHS from field equations

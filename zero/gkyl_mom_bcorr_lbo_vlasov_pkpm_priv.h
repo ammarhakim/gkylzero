@@ -65,13 +65,13 @@ kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p1(const struct gkyl_mom_type *momt, c
 
 GKYL_CU_DH
 static void
-kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
   struct mom_type_bcorr_lbo_vlasov_pkpm *mom_vlasov_pkpm = container_of(momt, struct mom_type_bcorr_lbo_vlasov_pkpm, momt);
   enum gkyl_vel_edge edge = *(enum gkyl_vel_edge *)param;
 
-  return mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p2(idx, edge, mom_vlasov_pkpm->vBoundary, dx, mom_vlasov_pkpm->mass, f, out);  
+  return mom_bcorr_lbo_vlasov_pkpm_2x1v_tensor_p2(idx, edge, mom_vlasov_pkpm->vBoundary, dx, mom_vlasov_pkpm->mass, f, out);  
 }
 
 GKYL_CU_DH
@@ -91,7 +91,7 @@ static const gkyl_mom_bcorr_lbo_vlasov_pkpm_kern_list ser_mom_bcorr_lbo_vlasov_p
   // 1x kernels
   { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p1, kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p2 }, // 0
   // 2x kernels
-  { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p1, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p2 }, // 1
+  { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p1, NULL }, // 1
   // 3x kernels
   { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p1, NULL }, // 2
 };
@@ -102,7 +102,7 @@ static const gkyl_mom_bcorr_lbo_vlasov_pkpm_kern_list ten_mom_bcorr_lbo_vlasov_p
   // 1x kernels
   { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_ser_p1, kernel_mom_bcorr_lbo_vlasov_pkpm_1x1v_tensor_p2 }, // 0
   // 2x kernels
-  { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p1, NULL }, // 1
+  { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_ser_p1, kernel_mom_bcorr_lbo_vlasov_pkpm_2x1v_tensor_p2 }, // 1
   // 3x kernels
   { NULL, kernel_mom_bcorr_lbo_vlasov_pkpm_3x1v_ser_p1, NULL }, // 2
 };

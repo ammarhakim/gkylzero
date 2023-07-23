@@ -117,7 +117,7 @@ kernel_lbo_vlasov_pkpm_diff_vol_2x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
 
 GKYL_CU_DH
 static double
-kernel_lbo_vlasov_pkpm_diff_vol_2x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+kernel_lbo_vlasov_pkpm_diff_vol_2x1v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_lbo_vlasov_pkpm_diff *lbo_vlasov_pkpm_diff = container_of(eqn, struct dg_lbo_vlasov_pkpm_diff, eqn);
@@ -127,7 +127,7 @@ kernel_lbo_vlasov_pkpm_diff_vol_2x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const
   const double* nuVtSq_p = (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_diff->auxfields.nuVtSq, cidx);
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_pkpm_diff, nu_p, nuVtSq_p);
   if (noPrimMomCross) {
-    return lbo_vlasov_pkpm_diff_vol_2x1v_ser_p2(xc, dx, nuVtSq_p, qIn, qRhsOut);
+    return lbo_vlasov_pkpm_diff_vol_2x1v_tensor_p2(xc, dx, nuVtSq_p, qIn, qRhsOut);
   } else {
     return 0.;
   }
@@ -157,7 +157,7 @@ static const gkyl_dg_lbo_vlasov_pkpm_diff_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
   { NULL, kernel_lbo_vlasov_pkpm_diff_vol_1x1v_ser_p1, kernel_lbo_vlasov_pkpm_diff_vol_1x1v_ser_p2 }, // 0
   // 2x kernels
-  { NULL, kernel_lbo_vlasov_pkpm_diff_vol_2x1v_ser_p1, kernel_lbo_vlasov_pkpm_diff_vol_2x1v_ser_p2 }, // 1
+  { NULL, kernel_lbo_vlasov_pkpm_diff_vol_2x1v_ser_p1, NULL }, // 1
   // 3x kernels
   { NULL, kernel_lbo_vlasov_pkpm_diff_vol_3x1v_ser_p1, NULL }, // 2
 };
@@ -168,7 +168,7 @@ static const gkyl_dg_lbo_vlasov_pkpm_diff_vol_kern_list ten_vol_kernels[] = {
   // 1x kernels
   { NULL, kernel_lbo_vlasov_pkpm_diff_vol_1x1v_ser_p1, kernel_lbo_vlasov_pkpm_diff_vol_1x1v_tensor_p2 }, // 0
   // 2x kernels
-  { NULL, kernel_lbo_vlasov_pkpm_diff_vol_2x1v_ser_p1, NULL }, // 1
+  { NULL, kernel_lbo_vlasov_pkpm_diff_vol_2x1v_ser_p1, kernel_lbo_vlasov_pkpm_diff_vol_2x1v_tensor_p2 }, // 1
   // 3x kernels
   { NULL, kernel_lbo_vlasov_pkpm_diff_vol_3x1v_ser_p1, NULL }, // 2
 };
@@ -179,7 +179,7 @@ static const gkyl_dg_lbo_vlasov_pkpm_diff_surf_kern_list ser_surf_vpar_kernels[]
   // 1x kernels
   { NULL, lbo_vlasov_pkpm_diff_surfvpar_1x1v_ser_p1, lbo_vlasov_pkpm_diff_surfvpar_1x1v_ser_p2 }, // 0
   // 2x kernels
-  { NULL, lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p1, lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p2 }, // 1
+  { NULL, lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p1, NULL }, // 1
   // 3x kernels
   { NULL, lbo_vlasov_pkpm_diff_surfvpar_3x1v_ser_p1, NULL }, // 2
 };
@@ -190,7 +190,7 @@ static const gkyl_dg_lbo_vlasov_pkpm_diff_surf_kern_list ten_surf_vpar_kernels[]
   // 1x kernels
   { NULL, lbo_vlasov_pkpm_diff_surfvpar_1x1v_ser_p1, lbo_vlasov_pkpm_diff_surfvpar_1x1v_tensor_p2 }, // 0
   // 2x kernels
-  { NULL, lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p1, NULL }, // 1
+  { NULL, lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p1, lbo_vlasov_pkpm_diff_surfvpar_2x1v_tensor_p2 }, // 1
   // 3x kernels
   { NULL, lbo_vlasov_pkpm_diff_surfvpar_3x1v_ser_p1, NULL }, // 2
 };
@@ -201,7 +201,7 @@ static const gkyl_dg_lbo_vlasov_pkpm_diff_boundary_surf_kern_list ser_boundary_s
   // 1x kernels
   { NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_1x1v_ser_p1, lbo_vlasov_pkpm_diff_boundary_surfvpar_1x1v_ser_p2 }, // 0
   // 2x kernels
-  { NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_2x1v_ser_p1, lbo_vlasov_pkpm_diff_boundary_surfvpar_2x1v_ser_p2 }, // 1
+  { NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_2x1v_ser_p1, NULL }, // 1
   // 3x kernels
   { NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_3x1v_ser_p1, NULL }, // 2
 };
@@ -212,7 +212,7 @@ static const gkyl_dg_lbo_vlasov_pkpm_diff_boundary_surf_kern_list ten_boundary_s
   // 1x kernels
   { NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_1x1v_ser_p1, lbo_vlasov_pkpm_diff_boundary_surfvpar_1x1v_tensor_p2 }, // 0
   // 2x kernels
-  { NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_2x1v_ser_p1, NULL }, // 1
+  { NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_2x1v_ser_p1, lbo_vlasov_pkpm_diff_boundary_surfvpar_2x1v_tensor_p2 }, // 1
   // 3x kernels
   { NULL, lbo_vlasov_pkpm_diff_boundary_surfvpar_3x1v_ser_p1, NULL }, // 2
 };

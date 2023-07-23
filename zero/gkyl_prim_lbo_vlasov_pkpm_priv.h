@@ -20,7 +20,7 @@ static const gkyl_prim_lbo_vlasov_pkpm_self_kern_list ser_self_prim_kernels[] = 
   // 1x kernels
   { NULL, vlasov_pkpm_self_prim_moments_1x1v_ser_p1, vlasov_pkpm_self_prim_moments_1x1v_ser_p2 }, // 0
   // 2x kernels
-  { NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p1, vlasov_pkpm_self_prim_moments_2x1v_ser_p2 }, // 1
+  { NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p1, NULL }, // 1
   // 3x kernels
   { NULL, vlasov_pkpm_self_prim_moments_3x1v_ser_p1, NULL }, // 2
 };
@@ -31,7 +31,7 @@ static const gkyl_prim_lbo_vlasov_pkpm_self_kern_list ten_self_prim_kernels[] = 
   // 1x kernels
   { NULL, vlasov_pkpm_self_prim_moments_1x1v_ser_p1, vlasov_pkpm_self_prim_moments_1x1v_tensor_p2 }, // 0
   // 2x kernels
-  { NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p1, NULL }, // 1
+  { NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p1, vlasov_pkpm_self_prim_moments_2x1v_tensor_p2 }, // 1
   // 3x kernels
   { NULL, vlasov_pkpm_self_prim_moments_3x1v_ser_p1, NULL }, // 2
 };

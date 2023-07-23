@@ -67,15 +67,15 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_energy_write_call = true;
 
-  // allocate arrays for diagonstics/parallel-kinetic-perpendicular-moment arrays:
+  // Allocate arrays for diagonstics/parallel-kinetic-perpendicular-moment arrays:
   // bvar = magnetic field unit vector (first 3 components) and unit tensor (last 6 components)
   // ExB = E x B velocity, E x B/|B|^2
-  // kappa_inv_b = b_i/kappa; magnetic field unit vector divided by Lorentz boost factor
-  //               for E x B velocity, b_i/kappa = sqrt((B_i)^2/|B|^2*(1 - |E x B|^2/(c^2 |B|^4)))
-  // Note: these arrays are computed by species objects (if needed) or as diagnostics
+  f->cell_avg_magB2 = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
   f->bvar = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
   f->ExB = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-  f->kappa_inv_b = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+  // Create updaters for bvar and ExB
+  f->calc_bvar = gkyl_dg_calc_em_vars_new(&app->confBasis, &app->local_ext, 0, app->use_gpu);
+  f->calc_ExB = gkyl_dg_calc_em_vars_new(&app->confBasis, &app->local_ext, 1, app->use_gpu);
 
   f->has_ext_em = false;
   f->ext_em_evolve = false;
@@ -259,7 +259,8 @@ vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field,
     gkyl_array_accumulate(field->tot_em, 1.0, field->ext_em);
   // Assumes magnetic field boundary conditions applied so magnetic field 
   // unit vector and unit tensor are defined everywhere in the domain
-  gkyl_calc_em_vars_bvar(app->confBasis, &app->local_ext, field->tot_em, field->bvar);
+  gkyl_dg_calc_em_vars_advance(field->calc_bvar, field->tot_em, 
+    field->cell_avg_magB2, field->bvar);
 }
 
 void
@@ -272,24 +273,8 @@ vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field,
     gkyl_array_accumulate(field->tot_em, 1.0, field->ext_em);
   // Assumes electric field and magnetic field boundary conditions applied 
   // so E x B velocity is defined everywhere in the domain 
-  gkyl_calc_em_vars_ExB(app->confBasis, &app->local_ext, field->tot_em, field->ExB);
-}
-
-void
-vm_field_calc_sr_pkpm_vars(gkyl_vlasov_app *app, struct vm_field *field,
-  const struct gkyl_array *em)
-{
-  gkyl_array_clear(field->tot_em, 0.0);
-  gkyl_array_set(field->tot_em, 1.0, em);
-  if (field->has_ext_em) 
-    gkyl_array_accumulate(field->tot_em, 1.0, field->ext_em);
-  // Assumes electric field and magnetic field boundary conditions applied 
-  // so E x B velocity and magnetic field unit vector and unit tensor
-  // are defined everywhere in the domain   
-  gkyl_calc_em_vars_bvar(app->confBasis, &app->local_ext, field->tot_em, field->bvar);
-  gkyl_calc_em_vars_ExB(app->confBasis, &app->local_ext, field->tot_em, field->ExB);
-  gkyl_calc_em_vars_pkpm_kappa_inv_b(app->confBasis, &app->local_ext, field->bvar, field->ExB, field->kappa_inv_b);
-  // TO DO: THESE VARIABLES NEED TO BE CONTINUOUS
+  gkyl_dg_calc_em_vars_advance(field->calc_ExB, field->tot_em, 
+    field->cell_avg_magB2, field->ExB);
 }
 
 void
@@ -450,8 +435,9 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_dynvec_release(f->integ_energy);
 
   gkyl_array_release(f->bvar);
-  gkyl_array_release(f->kappa_inv_b);
   gkyl_array_release(f->ExB);
+  gkyl_dg_calc_em_vars_release(f->calc_bvar);
+  gkyl_dg_calc_em_vars_release(f->calc_ExB);
 
   if (f->has_ext_em) {
     gkyl_array_release(f->ext_em);

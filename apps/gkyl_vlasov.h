@@ -419,24 +419,14 @@ void gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int f
 void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write velocity of fluid species data to file.
+ * Write primitive variables of fluid species data to file.
  * 
  * @param app App object.
  * @param sidx Index of fluid species to initialize.
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_fluid_u_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write pressure of fluid species data to file.
- * 
- * @param app App object.
- * @param sidx Index of fluid species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_fluid_p_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+void gkyl_vlasov_app_write_fluid_species_prim_vars(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.

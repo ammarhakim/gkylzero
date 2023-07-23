@@ -1,25 +1,26 @@
-#include <gkyl_euler_pkpm_kernels.h> 
+#include <gkyl_vlasov_pkpm_kernels.h> 
 GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_tensor_p2(const double *w, const double *dxv, 
-  const double* T_perp_over_m, const double* T_perp_over_m_inv, 
-  const double *nu_vthsq, const double* pkpm_accel_vars, 
+  const double* pkpm_prim, const double *nu_vthsq, const double* pkpm_accel,  
   const double* f, const double* F_k_p_1, double* g_dist_source, double* F_k_m_1) 
 { 
-  // w[NDIM]:           Cell-center coordinates.
-  // dxv[NDIM]:         Cell spacing.
-  // T_perp_over_m:     Input p_perp/rho = T_perp/m.
-  // T_perp_over_m_inv: Input (T_perp/m)^-1.
-  // nu_vthsq:          Input nu*vth^2.
-  // pkpm_accel_vars:   pkpm acceleration variables
-  // f:                 Input distribution function [F_0, T_perp/m G = T_perp/m (F_0 - F_1)].
-  // F_k_p_1:           Input k+1 distribution function. F_2 expansion is the first NP coefficients. 
-  // g_dist_source:     Output [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)),  
-  //                    (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0 ].
-  //                    First output is mirror force source, second output is vperp characteristics source.
-  // F_k_m_1:           Output k-1 distribution function. F_1 expansion is the first NP coefficients. 
+  // w[NDIM]:       Cell-center coordinates.
+  // dxv[NDIM]:     Cell spacing.
+  // pkpm_prim:     [ux, uy, uz, pxx, pxy, pxz, pyy, pyz, pzz, T_perp/m = p_perp/rho, m/T_perp = rho/p_perp].
+  // nu_vthsq:      Input nu*vth^2.
+  // pkpm_accel:    pkpm acceleration variables [div(b), bb:grad(u), p_force, p_perp_source, T_perp/m*div(b)].
+  // f:             Input distribution function [F_0, T_perp/m G = T_perp/m (F_0 - F_1)].
+  // F_k_p_1:       Input k+1 distribution function. F_2 expansion is the first NP coefficients. 
+  // g_dist_source: Output [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)),  
+  //                (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0 ].
+  //                First output is mirror force source, second output is vperp characteristics source.
+  // F_k_m_1:       Output k-1 distribution function. F_1 expansion is the first NP coefficients. 
 
   const double dvpar = dxv[1], wvpar = w[1]; 
-  const double *div_b = &pkpm_accel_vars[0]; 
-  const double *p_perp_source = &pkpm_accel_vars[9]; 
+  const double *T_perp_over_m = &pkpm_prim[21]; 
+  const double *T_perp_over_m_inv = &pkpm_prim[24]; 
+
+  const double *div_b = &pkpm_accel[0]; 
+  const double *p_perp_source = &pkpm_accel[9]; 
 
   double alpha_G_1_source[9] = {0.0}; 
 

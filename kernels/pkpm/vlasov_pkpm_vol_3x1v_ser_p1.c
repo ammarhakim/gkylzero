@@ -1,13 +1,14 @@
 #include <gkyl_vlasov_pkpm_kernels.h> 
 GKYL_CU_DH double vlasov_pkpm_vol_3x1v_ser_p1(const double *w, const double *dxv, 
-  const double *bvar, const double *u_i, 
+  const double *bvar, const double *pkpm_prim, 
   const double *pkpm_accel_vars, const double *g_dist_source, 
   const double *f, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:         Cell-center coordinates.
   // dxv[NDIM]:       Cell spacing.
   // bvar:            magnetic field unit vector (nine components; first three components, b_i, other six components, b_i b_j.) 
-  // u_i:             flow velocity  // pkpm_accel_vars: pkpm acceleration variables
+  // pkpm_prim:       Input primitive variables. 
+  // pkpm_accel_vars: Input pkpm acceleration variables. 
   // g_dist_source:   Input [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)),  
   //                  (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + nu vth^2 F_0 ].
   //                  First output is mirror force source, second output is vperp characteristics source.
@@ -18,9 +19,9 @@ GKYL_CU_DH double vlasov_pkpm_vol_3x1v_ser_p1(const double *w, const double *dxv
   const double dx2 = 2.0/dxv[2]; 
   const double dv1par = 2.0/dxv[3]; 
   const double dvpar = dxv[3], wvpar = w[3]; 
-  const double *ux = &u_i[0]; 
-  const double *uy = &u_i[8]; 
-  const double *uz = &u_i[16]; 
+  const double *ux = &pkpm_prim[0]; 
+  const double *uy = &pkpm_prim[8]; 
+  const double *uz = &pkpm_prim[16]; 
   const double *bx = &bvar[0]; 
   const double *by = &bvar[8]; 
   const double *bz = &bvar[16]; 

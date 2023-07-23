@@ -69,7 +69,7 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   else if (eqn_id == GKYL_EQN_EULER_PKPM) {
     // Pressure in PKPM is pre-computed div(P) for consistency with kinetic equation
     gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = aux1, .div_p = aux2, .vlasov_pkpm_moms = aux3, .vth_sq = aux4 });
+      (struct gkyl_dg_euler_pkpm_auxfields) { .pkpm_prim = aux1, .p_ij = aux2, .vlasov_pkpm_moms = aux3 });
   }
   else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,
@@ -121,7 +121,7 @@ gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
   else if (eqn_id == GKYL_EQN_EULER_PKPM) {
     // Pressure in PKPM is pre-computed div(P) for consistency with kinetic equation
     gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_pkpm_auxfields) { .u_i = aux1, .div_p = aux2, .vlasov_pkpm_moms = aux3, .vth_sq = aux4 });
+      (struct gkyl_dg_euler_pkpm_auxfields) { .pkpm_prim = aux1, .p_ij = aux2, .vlasov_pkpm_moms = aux3 });
   }
   else if (eqn_id == GKYL_EQN_EULER) {
     gkyl_euler_set_auxfields(fluid->eqn_fluid,

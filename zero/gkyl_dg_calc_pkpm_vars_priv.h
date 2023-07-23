@@ -6,65 +6,180 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_euler_pkpm_kernels.h>
-#include <gkyl_vlasov_pkpm_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*pkpm_prim_t)(const double *bvar, 
-  const double *vlasov_pkpm_moms, const double *statevec, 
-  double* u_i, double* p_ij, double* T_ij, 
-  double* rho_inv, double* T_perp_over_m, double* T_perp_over_m_inv); 
+typedef int (*pkpm_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
+  const double *vlasov_pkpm_moms, const double *euler_pkpm, 
+  const double *p_ij, const double *pkpm_div_ppar);
+
+typedef void (*pkpm_copy_t)(int count, struct gkyl_nmat *x, double* GKYL_RESTRICT prim);
+
+typedef void (*pkpm_pressure_t)(const double *bvar, const double *vlasov_pkpm_moms, 
+  double* GKYL_RESTRICT p_ij);
+
+typedef void (*pkpm_accel_t)(const double *dxv, 
+  const double *bvarl, const double *bvarc, const double *bvarr, 
+  const double *priml, const double *primc, const double *primr, 
+  const double *nu, double* GKYL_RESTRICT pkpm_accel); 
 
 typedef void (*pkpm_int_t)(const double *vlasov_pkpm_moms, 
-  const double *statevec, const double* u_i, double* int_pkpm_vars); 
+  const double *euler_pkpm, const double* prim, 
+  double* GKYL_RESTRICT int_pkpm_vars); 
 
 typedef void (*pkpm_source_t)(const double* qmem, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
-  double* out);
-
-typedef void (*pkpm_recovery_t)(const double *dxv, 
-  const double *bvarl, const double *bvarc, const double *bvarr, 
-  const double *u_il, const double *u_ic, const double *u_ir, 
-  const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-  const double *pkpm_div_ppar, const double *rho_inv, const double *T_perp_over_m, const double *nu, 
-  double* div_p, double* pkpm_accel_vars); 
-
-typedef void (*pkpm_dist_mirror_force_t)(const double *w, const double *dxv, 
-  const double* T_perp_over_m, const double* T_perp_over_m_inv, 
-  const double *nu_vthsq, const double* pkpm_accel_vars, 
-  const double* f, const double* F_k_p_1, 
-  double* g_dist_source, double* F_k_m_1); 
-
-typedef void (*pkpm_pressure_t)(const double *w, const double *dxv, 
-     const double *bvarl, const double *bvarc, const double *bvarr, 
-     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+  double* GKYL_RESTRICT out);
 
 // for use in kernel tables
-typedef struct { pkpm_prim_t kernels[3]; } gkyl_dg_pkpm_prim_kern_list;
+typedef struct { pkpm_set_t kernels[3]; } gkyl_dg_pkpm_set_kern_list;
+typedef struct { pkpm_copy_t kernels[3]; } gkyl_dg_pkpm_copy_kern_list;
+typedef struct { pkpm_pressure_t kernels[3]; } gkyl_dg_pkpm_pressure_kern_list;
+typedef struct { pkpm_accel_t kernels[3]; } gkyl_dg_pkpm_accel_kern_list;
 typedef struct { pkpm_int_t kernels[3]; } gkyl_dg_pkpm_int_kern_list;
 typedef struct { pkpm_source_t kernels[3]; } gkyl_dg_pkpm_source_kern_list;
-typedef struct { pkpm_recovery_t kernels[3]; } gkyl_dg_pkpm_recovery_kern_list;
-typedef struct { pkpm_dist_mirror_force_t kernels[3]; } gkyl_dg_pkpm_dist_mirror_force_kern_list;
-typedef struct { pkpm_pressure_t kernels[3]; } gkyl_dg_pkpm_pressure_kern_list;
 
-// PKPM primitive variables (u, p_ij, T_ij, T_perp/m, (T_perp/m)^-1)
-GKYL_CU_D
-static const gkyl_dg_pkpm_prim_kern_list ser_pkpm_prim_kernels[] = {
-  { NULL, euler_pkpm_prim_vars_1x_ser_p1, euler_pkpm_prim_vars_1x_ser_p2 }, // 0
-  { NULL, euler_pkpm_prim_vars_2x_ser_p1, NULL }, // 1
-  { NULL, euler_pkpm_prim_vars_3x_ser_p1, NULL }, // 2
+struct gkyl_dg_calc_pkpm_vars {
+  struct gkyl_rect_grid conf_grid; // Configuration space grid for cell spacing and cell center
+  int cdim; // Configuration space dimensionality
+  struct gkyl_range mem_range; // Configuration space range for linear solve
+
+  struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
+  gkyl_nmat_mem *mem; // memory for use in batched linear solve
+  int Ncomp; // number of components in the linear solve (9 variables being solved for)
+  int poly_order; // polynomial order (needed because only p>1 solves linear system)
+
+  pkpm_set_t pkpm_set;  // kernel for setting matrices for linear solve
+  pkpm_copy_t pkpm_copy; // kernel for copying solution to output 
+  pkpm_pressure_t pkpm_pressure; // kernel for computing pressure
+  pkpm_accel_t pkpm_accel[3]; // kernel for computing pkpm acceleration and Lax variables
+  pkpm_int_t pkpm_int; // kernel for computing integrated pkpm variables
+  pkpm_source_t pkpm_source; // kernel for computing pkpm source update
+
+  uint32_t flags;
+  struct gkyl_dg_calc_pkpm_vars *on_dev; // pointer to itself or device data
 };
 
-// PKPM integrated variables integral (rho, p_parallel, p_perp, rhoux^2, rhouy^2, rhouz^2, 3/2 p, 1/2 rho u^2, E)
+// Set matrices for computing pkpm primitive vars, e.g., ux,uy,uz (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_set_kern_list ser_pkpm_set_kernels[] = {
+  { NULL, pkpm_vars_set_1x_ser_p1, pkpm_vars_set_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_set_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_set_3x_ser_p1, NULL }, // 2
+};
+
+// Set matrices for computing pkpm primitive vars, e.g., ux,uy,uz (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_set_kern_list ten_pkpm_set_kernels[] = {
+  { NULL, pkpm_vars_set_1x_ser_p1, pkpm_vars_set_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_set_2x_ser_p1, pkpm_vars_set_2x_tensor_p2 }, // 1
+  { NULL, pkpm_vars_set_3x_ser_p1, NULL }, // 2
+};
+
+// Copy solution for pkpm primitive vars, e.g., ux,uy,uz (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_copy_kern_list ser_pkpm_copy_kernels[] = {
+  { NULL, pkpm_vars_copy_1x_ser_p1, pkpm_vars_copy_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_copy_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_copy_3x_ser_p1, NULL }, // 2
+};
+
+// Copy solution for pkpm primitive vars, e.g., ux,uy,uz (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_copy_kern_list ten_pkpm_copy_kernels[] = {
+  { NULL, pkpm_vars_copy_1x_ser_p1, pkpm_vars_copy_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_copy_2x_ser_p1, pkpm_vars_copy_2x_tensor_p2 }, // 1
+  { NULL, pkpm_vars_copy_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM Pressure (p_ij = (p_par - p_perp)b_i b_j + p_perp g_ij) (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_pressure_kern_list ser_pkpm_pressure_kernels[] = {
+  { NULL, pkpm_vars_pressure_1x_ser_p1, pkpm_vars_pressure_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_pressure_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_pressure_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM Pressure (p_ij = (p_ij = (p_par - p_perp)b_i b_j + p_perp g_ij) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_pressure_kern_list ten_pkpm_pressure_kernels[] = {
+  { NULL, pkpm_vars_pressure_1x_ser_p1, pkpm_vars_pressure_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_pressure_2x_ser_p1, pkpm_vars_pressure_2x_tensor_p2 }, // 1
+  { NULL, pkpm_vars_pressure_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM acceleration variables, e.g., div(b) and bb:grad(u), 
+// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in x) (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_x_kernels[] = {
+  { NULL, pkpm_vars_accel_x_1x_ser_p1, pkpm_vars_accel_x_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_accel_x_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_accel_x_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM acceleration variables, e.g., div(b) and bb:grad(u), 
+// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in y) (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_y_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, pkpm_vars_accel_y_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_accel_y_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM acceleration variables, e.g., div(b) and bb:grad(u), 
+// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in z) (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_accel_kern_list ser_pkpm_accel_z_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, pkpm_vars_accel_z_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM acceleration variables, e.g., div(b) and bb:grad(u), 
+// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in x) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_x_kernels[] = {
+  { NULL, pkpm_vars_accel_x_1x_ser_p1, pkpm_vars_accel_x_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_accel_x_2x_ser_p1, pkpm_vars_accel_x_2x_tensor_p2 }, // 1
+  { NULL, pkpm_vars_accel_x_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM acceleration variables, e.g., div(b) and bb:grad(u), 
+// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in y) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_y_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, pkpm_vars_accel_y_2x_ser_p1, pkpm_vars_accel_y_2x_tensor_p2 }, // 1
+  { NULL, pkpm_vars_accel_y_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM acceleration variables, e.g., div(b) and bb:grad(u), 
+// and Lax penalization (lambda_i = |u_i| + sqrt(3*T_ii/m)) (in z) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_accel_kern_list ten_pkpm_accel_z_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, pkpm_vars_accel_z_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM integrated variables integral (rho, p_parallel, p_perp, rhoux^2, rhouy^2, rhouz^2) (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_int_kern_list ser_pkpm_int_kernels[] = {
-  { NULL, euler_pkpm_int_vars_1x_ser_p1, euler_pkpm_int_vars_1x_ser_p2 }, // 0
-  { NULL, euler_pkpm_int_vars_2x_ser_p1, NULL }, // 1
-  { NULL, euler_pkpm_int_vars_3x_ser_p1, NULL }, // 2
+  { NULL, pkpm_vars_integrated_1x_ser_p1, pkpm_vars_integrated_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_integrated_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_integrated_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM explicit source solve 
+// PKPM integrated variables integral (rho, p_parallel, p_perp, rhoux^2, rhouy^2, rhouz^2) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_pkpm_int_kern_list ten_pkpm_int_kernels[] = {
+  { NULL, pkpm_vars_integrated_1x_ser_p1, pkpm_vars_integrated_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_integrated_2x_ser_p1, pkpm_vars_integrated_2x_tensor_p2 }, // 1
+  { NULL, pkpm_vars_integrated_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM explicit source solve (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_pkpm_source_kern_list ser_pkpm_source_kernels[] = {
   { NULL, euler_pkpm_source_1x_ser_p1, euler_pkpm_source_1x_ser_p2 }, // 0
@@ -72,167 +187,126 @@ static const gkyl_dg_pkpm_source_kern_list ser_pkpm_source_kernels[] = {
   { NULL, euler_pkpm_source_3x_ser_p1, NULL }, // 2
 };
 
-// PKPM recovery (in x) kernels
+// PKPM explicit source solve (Tensor kernels)
 GKYL_CU_D
-static const gkyl_dg_pkpm_recovery_kern_list ser_pkpm_recovery_x_kernels[] = {
-  { NULL, euler_pkpm_recovery_x_1x_ser_p1, euler_pkpm_recovery_x_1x_ser_p2 }, // 0
-  { NULL, euler_pkpm_recovery_x_2x_ser_p1, NULL }, // 1
-  { NULL, euler_pkpm_recovery_x_3x_ser_p1, NULL }, // 2
-};
-
-// PKPM recovery (in y) kernels
-GKYL_CU_D
-static const gkyl_dg_pkpm_recovery_kern_list ser_pkpm_recovery_y_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, euler_pkpm_recovery_y_2x_ser_p1, NULL }, // 1
-  { NULL, euler_pkpm_recovery_y_3x_ser_p1, NULL }, // 2
-};
-
-// PKPM recovery (in z) kernels
-GKYL_CU_D
-static const gkyl_dg_pkpm_recovery_kern_list ser_pkpm_recovery_z_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, euler_pkpm_recovery_z_3x_ser_p1, NULL }, // 2
-};
-
-// PKPM distribution function source in mirror force (Serendipity basis)
-GKYL_CU_D
-static const gkyl_dg_pkpm_dist_mirror_force_kern_list ser_pkpm_dist_mirror_force_kernels[] = {
-  { NULL, pkpm_dist_mirror_force_1x1v_ser_p1, pkpm_dist_mirror_force_1x1v_ser_p2 }, // 0
-  { NULL, pkpm_dist_mirror_force_2x1v_ser_p1, NULL }, // 1
-  { NULL, pkpm_dist_mirror_force_3x1v_ser_p1, NULL }, // 2
-};
-
-// PKPM distribution function source in mirror force (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_pkpm_dist_mirror_force_kern_list ten_pkpm_dist_mirror_force_kernels[] = {
-  { NULL, pkpm_dist_mirror_force_1x1v_ser_p1, pkpm_dist_mirror_force_1x1v_tensor_p2 }, // 0
-  { NULL, pkpm_dist_mirror_force_2x1v_ser_p1, NULL }, // 1
-  { NULL, pkpm_dist_mirror_force_3x1v_ser_p1, NULL }, // 2
-};
-
-// PKPM pressure (in x) kernels (Serendipity basis)
-GKYL_CU_D
-static const gkyl_dg_pkpm_pressure_kern_list ser_pkpm_pressure_x_kernels[] = {
-  { NULL, vlasov_pkpm_pressure_x_1x1v_ser_p1, vlasov_pkpm_pressure_x_1x1v_ser_p2 }, // 0
-  { NULL, vlasov_pkpm_pressure_x_2x1v_ser_p1, NULL }, // 1
-  { NULL, vlasov_pkpm_pressure_x_3x1v_ser_p1, NULL }, // 2
-};
-
-// PKPM pressure (in y) kernels (Serendipity basis)
-GKYL_CU_D
-static const gkyl_dg_pkpm_pressure_kern_list ser_pkpm_pressure_y_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, vlasov_pkpm_pressure_y_2x1v_ser_p1, NULL }, // 1
-  { NULL, vlasov_pkpm_pressure_y_3x1v_ser_p1, NULL }, // 2
-};
-
-// PKPM pressure (in z) kernels (Serendipity basis)
-GKYL_CU_D
-static const gkyl_dg_pkpm_pressure_kern_list ser_pkpm_pressure_z_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, vlasov_pkpm_pressure_z_3x1v_ser_p1, NULL }, // 2
-};
-
-// PKPM pressure (in x) kernels (Tensor basis)
-GKYL_CU_D
-static const gkyl_dg_pkpm_pressure_kern_list ten_pkpm_pressure_x_kernels[] = {
-  { NULL, vlasov_pkpm_pressure_x_1x1v_ser_p1, vlasov_pkpm_pressure_x_1x1v_tensor_p2 }, // 0
-  { NULL, vlasov_pkpm_pressure_x_2x1v_ser_p1, NULL }, // 1
-  { NULL, vlasov_pkpm_pressure_x_3x1v_ser_p1, NULL }, // 2
-};
-
-// PKPM pressure (in y) kernels (Serendipity basis)
-GKYL_CU_D
-static const gkyl_dg_pkpm_pressure_kern_list ten_pkpm_pressure_y_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, vlasov_pkpm_pressure_y_2x1v_ser_p1, NULL }, // 1
-  { NULL, vlasov_pkpm_pressure_y_3x1v_ser_p1, NULL }, // 2
-};
-
-// PKPM pressure (in z) kernels (Serendipity basis)
-GKYL_CU_D
-static const gkyl_dg_pkpm_pressure_kern_list ten_pkpm_pressure_z_kernels[] = {
-  { NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, vlasov_pkpm_pressure_z_3x1v_ser_p1, NULL }, // 2
+static const gkyl_dg_pkpm_source_kern_list ten_pkpm_source_kernels[] = {
+  { NULL, euler_pkpm_source_1x_ser_p1, euler_pkpm_source_1x_ser_p2 }, // 0
+  { NULL, euler_pkpm_source_2x_ser_p1, euler_pkpm_source_2x_tensor_p2 }, // 1
+  { NULL, euler_pkpm_source_3x_ser_p1, NULL }, // 2
 };
 
 GKYL_CU_D
-static pkpm_prim_t
-choose_ser_pkpm_prim_kern(int cdim, int poly_order)
+static pkpm_set_t
+choose_pkpm_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  return ser_pkpm_prim_kernels[cdim-1].kernels[poly_order];
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_set_kernels[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_set_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static pkpm_copy_t
+choose_pkpm_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_copy_kernels[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_copy_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static pkpm_pressure_t
+choose_pkpm_pressure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_pressure_kernels[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_pressure_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static pkpm_accel_t
+choose_pkpm_accel_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      if (dir == 0)
+        return ser_pkpm_accel_x_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 1)
+        return ser_pkpm_accel_y_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 2)
+        return ser_pkpm_accel_z_kernels[cdim-1].kernels[poly_order];
+      else
+        return NULL;
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      if (dir == 0)
+        return ten_pkpm_accel_x_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 1)
+        return ten_pkpm_accel_y_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 2)
+        return ten_pkpm_accel_z_kernels[cdim-1].kernels[poly_order];
+      else
+        return NULL;
+      break;
+    default:
+      assert(false);
+      break;  
+  }
 }
 
 GKYL_CU_D
 static pkpm_int_t
-choose_ser_pkpm_int_kern(int cdim, int poly_order)
+choose_pkpm_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  return ser_pkpm_int_kernels[cdim-1].kernels[poly_order];
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_int_kernels[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_int_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
 }
 
 GKYL_CU_D
 static pkpm_source_t
-choose_ser_pkpm_source_kern(int cdim, int poly_order)
+choose_pkpm_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  return ser_pkpm_source_kernels[cdim-1].kernels[poly_order];
-}
-
-GKYL_CU_D
-static pkpm_recovery_t
-choose_ser_pkpm_recovery_kern(int dir, int cdim, int poly_order)
-{
-  if (dir == 0)
-    return ser_pkpm_recovery_x_kernels[cdim-1].kernels[poly_order];
-  else if (dir == 1)
-    return ser_pkpm_recovery_y_kernels[cdim-1].kernels[poly_order];
-  else if (dir == 2)
-    return ser_pkpm_recovery_z_kernels[cdim-1].kernels[poly_order];
-  else 
-    return NULL;
-}
-
-GKYL_CU_D
-static pkpm_dist_mirror_force_t
-choose_ser_pkpm_dist_mirror_force_kern(int cdim, int poly_order)
-{
-  return ser_pkpm_dist_mirror_force_kernels[cdim-1].kernels[poly_order];
-}
-
-GKYL_CU_D
-static pkpm_dist_mirror_force_t
-choose_ten_pkpm_dist_mirror_force_kern(int cdim, int poly_order)
-{
-  return ten_pkpm_dist_mirror_force_kernels[cdim-1].kernels[poly_order];
-}
-
-GKYL_CU_D
-static pkpm_pressure_t
-choose_ser_pkpm_pressure_kern(int dir, int cdim, int poly_order)
-{
-  if (dir == 0)
-    return ser_pkpm_pressure_x_kernels[cdim-1].kernels[poly_order];
-  else if (dir == 1)
-    return ser_pkpm_pressure_y_kernels[cdim-1].kernels[poly_order];
-  else if (dir == 2)
-    return ser_pkpm_pressure_z_kernels[cdim-1].kernels[poly_order];
-  else 
-    return NULL;
-}
-
-GKYL_CU_D
-static pkpm_pressure_t
-choose_ten_pkpm_pressure_kern(int dir, int cdim, int poly_order)
-{
-  if (dir == 0)
-    return ten_pkpm_pressure_x_kernels[cdim-1].kernels[poly_order];
-  else if (dir == 1)
-    return ten_pkpm_pressure_y_kernels[cdim-1].kernels[poly_order];
-  else if (dir == 2)
-    return ten_pkpm_pressure_z_kernels[cdim-1].kernels[poly_order];
-  else 
-    return NULL;
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_source_kernels[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_source_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
 }
