@@ -11,7 +11,7 @@
 #include <gkyl_util.h>
 
 static void
-create_offsets(gkyl_hyper_dg *hdg, const struct gkyl_range *range, long offsets[])
+create_offsets(struct gkyl_hyper_dg *hdg, const struct gkyl_range *range, long offsets[])
 {
   // Construct the offsets *only* in the directions being updated.
   // No need to load the neighbors that are not needed for the update.
@@ -41,7 +41,7 @@ gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
 }
 
 void
-gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
+gkyl_hyper_dg_advance(struct gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = hdg->ndim;
@@ -104,8 +104,8 @@ gkyl_hyper_dg_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
           gkyl_array_fetch(rhs, linc)
         );
       }
-      double *cflrate_s_d = gkyl_array_fetch(cflrate, linc);
-      cflrate_s_d[0] += cfls; // frequencies are additive      
+      double *cflrate_d = gkyl_array_fetch(cflrate, linc);
+      cflrate_d[0] += cfls; // frequencies are additive      
     }
   }
 }
@@ -177,24 +177,27 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
     // NOTE: ASSUMES UNIFORM GRIDS FOR NOW
     for (int d1=0; d1<hdg->num_up_dirs; ++d1) {
       for (int d2=0; d2<hdg->num_up_dirs; ++d2) {
+        double cfls = 0.0;
         int dir1 = hdg->update_dirs[d1];
         int dir2 = hdg->update_dirs[d2];
         // Assumes update_range owns lower and upper edges of the domain
         if (idxc[dir1] == update_range->lower[dir1] || idxc[dir1] == update_range->upper[dir1]
              || idxc[dir2] == update_range->lower[dir2] || idxc[dir2] == update_range->upper[dir2]) {
-          hdg->equation->gen_boundary_surf_term(hdg->equation,
+          cfls = hdg->equation->gen_boundary_surf_term(hdg->equation,
             dir1, dir2, xcc, hdg->grid.dx, idxc,
             sz_dim, idx, fIn_d,
             gkyl_array_fetch(rhs, linc)
           );
         }
         else {
-          hdg->equation->gen_surf_term(hdg->equation,
+          cfls = hdg->equation->gen_surf_term(hdg->equation,
             dir1, dir2, xcc, hdg->grid.dx, idxc,
             sz_dim, idx, fIn_d,
             gkyl_array_fetch(rhs, linc)
           );
         }
+        double *cflrate_d = gkyl_array_fetch(cflrate, linc);
+        cflrate_d[0] += cfls; // frequencies are additive
       }
     }
   }
@@ -234,7 +237,7 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   return up;
 }
 
-void gkyl_hyper_dg_release(gkyl_hyper_dg* hdg)
+void gkyl_hyper_dg_release(struct gkyl_hyper_dg* hdg)
 {
   gkyl_dg_eqn_release(hdg->equation);
   if (GKYL_IS_CU_ALLOC(hdg->flags))

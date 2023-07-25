@@ -1,5 +1,5 @@
 #include <gkyl_lbo_vlasov_pkpm_kernels.h> 
-GKYL_CU_DH void lbo_vlasov_pkpm_drag_surfvpar_2x1v_ser_p2(const double *w, const double *dxv, const double *nu, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_pkpm_drag_surfvpar_2x1v_ser_p2(const double *w, const double *dxv, const double *nu, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[3]:    cell-center coordinates. 
   // dxv[3]:  cell spacing. 
@@ -155,4 +155,7 @@ GKYL_CU_DH void lbo_vlasov_pkpm_drag_surfvpar_2x1v_ser_p2(const double *w, const
   out_G_1[17] += 1.224744871391589*(Ghat_G_1_r[6]+Ghat_G_1_l[6])*dv1par; 
   out_G_1[18] += 1.224744871391589*(Ghat_G_1_r[7]+Ghat_G_1_l[7])*dv1par; 
   out_G_1[19] += (1.58113883008419*Ghat_G_1_r[3]-1.58113883008419*Ghat_G_1_l[3])*dv1par; 
+
+  return 0.;
+
 } 

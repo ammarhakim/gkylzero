@@ -1,7 +1,7 @@
 #include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_basis_gkhyb_1x1v_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_gkhyb_1x1v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
@@ -50,43 +50,56 @@ GKYL_CU_DH void gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double *
   alphaR[0] = -(0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[2]+1.732050807568877*BstarZdBmag[0])*rdx2+2.828427124746191*apardot[0]*q_))/m_; 
   alphaR[1] = -(0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[3]+1.732050807568877*BstarZdBmag[1])*rdx2+2.828427124746191*apardot[1]*q_))/m_; 
 
+  double cflFreq = 0.0;
   double fUpOrdL[2] = {0.};
-  if (alphaL[0]-1.0*alphaL[1] > 0.) {
+  double alphaL_n = 0.;
+
+  alphaL_n = 0.7071067811865468*alphaL[0]-0.7071067811865468*alphaL[1];
+  if (alphaL_n > 0.) {
     fUpOrdL[0] = gkhyb_1x1v_p1_surfx2_eval_quad_node_0_r(fl); 
   } else { 
     fUpOrdL[0] = gkhyb_1x1v_p1_surfx2_eval_quad_node_0_l(fc); 
   } 
-  if (alphaL[1]+alphaL[0] > 0.) {
+  cflFreq += -0.625*rdvpar2*(alphaL_n-fabs(alphaL_n)); 
+  alphaL_n = 0.7071067811865468*alphaL[1]+0.7071067811865468*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_r(fl); 
   } else { 
     fUpOrdL[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_l(fc); 
   } 
+  cflFreq += -0.625*rdvpar2*(alphaL_n-fabs(alphaL_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpL[2] = {0.};
   gkhyb_1x1v_p1_vpardir_upwind_quad_to_modal(fUpOrdL, fUpL); 
 
-  double GhatL[6] = {0.}; 
+  double GhatL[2] = {0.}; 
   GhatL[0] = 0.7071067811865475*alphaL[1]*fUpL[1]+0.7071067811865475*alphaL[0]*fUpL[0]; 
   GhatL[1] = 0.7071067811865475*alphaL[0]*fUpL[1]+0.7071067811865475*fUpL[0]*alphaL[1]; 
 
   double fUpOrdR[2] = {0.};
-  if (alphaR[0]-1.0*alphaR[1] > 0.) {
+  double alphaR_n = 0.;
+
+  alphaR_n = 0.7071067811865468*alphaR[0]-0.7071067811865468*alphaR[1];
+  if (alphaR_n > 0.) {
     fUpOrdR[0] = gkhyb_1x1v_p1_surfx2_eval_quad_node_0_r(fc); 
   } else { 
     fUpOrdR[0] = gkhyb_1x1v_p1_surfx2_eval_quad_node_0_l(fr); 
   } 
-  if (alphaR[1]+alphaR[0] > 0.) {
+  cflFreq += -0.625*rdvpar2*(alphaR_n-fabs(alphaR_n)); 
+  alphaR_n = 0.7071067811865468*alphaR[1]+0.7071067811865468*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_r(fc); 
   } else { 
     fUpOrdR[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_l(fr); 
   } 
+  cflFreq += -0.625*rdvpar2*(alphaR_n-fabs(alphaR_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpR[2] = {0.};
   gkhyb_1x1v_p1_vpardir_upwind_quad_to_modal(fUpOrdR, fUpR); 
 
-  double GhatR[6] = {0.}; 
+  double GhatR[2] = {0.}; 
   GhatR[0] = 0.7071067811865475*alphaR[1]*fUpR[1]+0.7071067811865475*alphaR[0]*fUpR[0]; 
   GhatR[1] = 0.7071067811865475*alphaR[0]*fUpR[1]+0.7071067811865475*fUpR[0]*alphaR[1]; 
 
@@ -96,5 +109,7 @@ GKYL_CU_DH void gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double *
   out[3] += ((-1.224744871391589*GhatR[1])-1.224744871391589*GhatL[1])*rdvpar2; 
   out[4] += (1.58113883008419*GhatL[0]-1.58113883008419*GhatR[0])*rdvpar2; 
   out[5] += (1.58113883008419*GhatL[1]-1.58113883008419*GhatR[1])*rdvpar2; 
+
+  return cflFreq; 
 
 } 
