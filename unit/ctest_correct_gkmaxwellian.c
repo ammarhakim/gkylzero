@@ -14,13 +14,6 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-// Allocate array (filled with zeros)
-static struct gkyl_array *
-mkarr(long nc, long size)
-{
-  struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
-  return a;
-}
 // Allocate cu_dev array
 static struct gkyl_array*
 mkarr_cu(long nc, long size, bool use_gpu)
@@ -163,8 +156,8 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // Create bmag and jacob_tot arrays
   struct gkyl_array *bmag_ho, *jacob_tot_ho;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  jacob_tot_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  bmag_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
+  jacob_tot_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_bmag_1x, NULL);
   gkyl_proj_on_basis *proj_jac = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_jacob_tot, NULL);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
@@ -184,9 +177,9 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // Create correct moment arrays
   struct gkyl_array *m0_corr_ho, *m1_corr_ho, *m2_corr_ho;
-  m0_corr_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1_corr_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m2_corr_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0_corr_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
+  m1_corr_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
+  m2_corr_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_M0, NULL);
   gkyl_proj_on_basis *proj_m1 = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_M1, NULL);
   gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_M2, NULL);
@@ -217,7 +210,7 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // Project the Maxwellian on basis
   // (1) proj_maxwellian expects the moments as a single array
-  struct gkyl_array *moms_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *moms_ho = mkarr_cu(3*confBasis.num_basis, confLocal_ext.volume, false);
   gkyl_array_set_offset(moms_ho, 1., m0_corr, 0*confBasis.num_basis);
   gkyl_array_set_offset(moms_ho, 1., m1_corr, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_ho, 1., m2_corr, 2*confBasis.num_basis);
@@ -234,7 +227,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   // (2) create distribution function array
   gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid, &confBasis, &basis, poly_order+1, use_gpu);
   struct gkyl_array *fM = use_gpu? mkarr_cu(basis.num_basis, local_ext.volume, use_gpu)
-                                 : mkarr(basis.num_basis, local_ext.volume); 
+                                 : mkarr_cu(basis.num_basis, local_ext.volume, false); 
   gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_maxwellian, &local, &confLocal, moms, bmag, jacob_tot, mass, fM);
   // Calculate the uncorrected moments
   // (1) create the calculators
@@ -249,9 +242,9 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
   // (2) create moment arrays
   struct gkyl_array *m0_ho, *m1_ho, *m2_ho; 
-  m0_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m2_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
+  m1_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
+  m2_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
   struct gkyl_array *m0, *m1, *m2;
   if (use_gpu) {
     m0 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
@@ -383,8 +376,8 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Create bmag and jacob_tot arrays
   struct gkyl_array *bmag_ho, *jacob_tot_ho;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  jacob_tot_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  bmag_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
+  jacob_tot_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_bmag_1x, NULL);
   gkyl_proj_on_basis *proj_jac = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_jacob_tot, NULL);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
@@ -404,9 +397,9 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Create correct moment arrays
   struct gkyl_array *m0_corr_ho, *m1_corr_ho, *m2_corr_ho;
-  m0_corr_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1_corr_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m2_corr_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0_corr_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
+  m1_corr_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
+  m2_corr_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_M0, NULL);
   gkyl_proj_on_basis *proj_m1 = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_M1, NULL);
   gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_M2, NULL);
@@ -437,7 +430,7 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Project the Maxwellian on basis
   // (1) proj_maxwellian expects the moments as a single array
-  struct gkyl_array *moms_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *moms_ho = mkarr_cu(3*confBasis.num_basis, confLocal_ext.volume, false);
   gkyl_array_set_offset(moms_ho, 1., m0_corr, 0*confBasis.num_basis);
   gkyl_array_set_offset(moms_ho, 1., m1_corr, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_ho, 1., m2_corr, 2*confBasis.num_basis);
@@ -454,7 +447,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   // (2) create distribution function array
   gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid, &confBasis, &basis, poly_order+1, use_gpu);
   struct gkyl_array *fM = use_gpu? mkarr_cu(basis.num_basis, local_ext.volume, use_gpu)
-                                 : mkarr(basis.num_basis, local_ext.volume); 
+                                 : mkarr_cu(basis.num_basis, local_ext.volume, false); 
   gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_maxwellian, &local, &confLocal, moms, bmag, jacob_tot, mass, fM);
   // Calculate the uncorrected moments
   // (1) create the calculators
@@ -469,9 +462,9 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
   // (2) create moment arrays
   struct gkyl_array *m0_ho, *m1_ho, *m2_ho; 
-  m0_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m1_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  m2_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  m0_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
+  m1_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
+  m2_ho = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, false);
   struct gkyl_array *m0, *m1, *m2;
   if (use_gpu) {
     m0 = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
