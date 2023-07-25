@@ -117,28 +117,18 @@ void test_1x1v(int poly_order, bool use_gpu)
   int ndim = cdim + vdim;
 
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  double velLower[] = {lower[1]}, velUpper[] = {upper[1]};
   int confCells[] = {cells[0]};
-  int velCells[] = {cells[1]};
 
   // Grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
-  struct gkyl_rect_grid velGrid;
-  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
-
-  // Velocity space range
-  int velGhost[] = {0};
-  struct gkyl_range velLocal, velLocal_ext;
-  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
   // Basis functions
-  struct gkyl_basis basis, confBasis, velBasis;
+  struct gkyl_basis basis, confBasis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
-  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
   // Configuration space range
   int confGhost[] = {1};
@@ -337,28 +327,18 @@ void test_1x2v(int poly_order, bool use_gpu)
   int ndim = cdim + vdim;
 
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
-  double velLower[] = {lower[1], lower[2]}, velUpper[] = {upper[1], upper[2]};
   int confCells[] = {cells[0]};
-  int velCells[] = {cells[1], cells[2]};
 
   // Grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
-  struct gkyl_rect_grid velGrid;
-  gkyl_rect_grid_init(&velGrid, vdim, velLower, velUpper, velCells);
-
-  // Velocity space range
-  int velGhost[] = {0, 0};
-  struct gkyl_range velLocal, velLocal_ext;
-  gkyl_create_grid_ranges(&velGrid, velGhost, &velLocal_ext, &velLocal);
 
   // Basis functions
-  struct gkyl_basis basis, confBasis, velBasis;
+  struct gkyl_basis basis, confBasis;
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
-  gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
   // Configuration space range
   int confGhost[] = {1};
