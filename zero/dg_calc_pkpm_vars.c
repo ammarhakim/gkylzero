@@ -63,7 +63,7 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
   if (gkyl_array_is_cu_dev(prim)) {
     return gkyl_calc_pkpm_vars_advance_cu(up, 
       vlasov_pkpm_moms, euler_pkpm, 
-      p_ij, nu, 
+      p_ij, pkpm_div_ppar, 
       cell_avg_prim, prim);
   }
 #endif

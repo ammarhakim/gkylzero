@@ -43,7 +43,7 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_basis* cbasis,
   up->xs = gkyl_nmat_new(up->Ncomp*conf_range->volume, nc, 1);
   up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
   // 6 component temporary variable for either storing B_i B_j (for computing bb) 
-  // or (E x B)_i and B_i^2 (for computing E x B)
+  // or (E x B)_i and B_i^2 (for computing E x B/|B|^2)
   up->temp_var = gkyl_array_new(GKYL_DOUBLE, 6*nc, conf_range->volume);
   up->conf_range = *conf_range;
 
