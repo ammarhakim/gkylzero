@@ -505,13 +505,16 @@ gkyl_array_copy_range_to_range(struct gkyl_array *out,
   for (int d=0; d<out_range->ndim; ++d)
     iloLocal_out[d] = out_range->lower[d];
   long linIdxLo_out = gkyl_range_idx(out_range, iloLocal_out);
-  long lc = 0;
+  long lc = 0; // linear counter
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, inp_range);
   while (gkyl_range_iter_next(&iter)) {
-    long start_out = linIdxLo_out+lc;
+    long start_out = gkyl_range_idx(out_range, iter.idx);
+    //long start_out = linIdxLo_out+lc;
     long start_inp = gkyl_range_idx(inp_range, iter.idx);
+	// Mana Max change
+	printf("idx=%d,%d | linIdx_in=%ld | linIdx_out=%ld\n", iter.idx[0], iter.idx[1], start_inp, start_out);
     memcpy(gkyl_array_fetch(out, start_out), gkyl_array_cfetch(inp, start_inp), inp->esznc);
     lc++;
   }
