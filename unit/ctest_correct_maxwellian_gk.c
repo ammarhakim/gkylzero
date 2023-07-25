@@ -172,8 +172,8 @@ void test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_array *bmag, *jacob_tot;
   if (use_gpu) { 
     // create device copies
-    bmag = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
-    jacob_tot = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+    bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+    jacob_tot = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
     // copy host array to device
     gkyl_array_copy(bmag, bmag_ho);
     gkyl_array_copy(jacob_tot, jacob_tot_ho);
@@ -224,7 +224,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_array *moms;
   if (use_gpu)
   { // copy host array to device
-    moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*confBasis.num_basis, confLocal_ext.volume);
+    moms = mkarr_cu(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
     gkyl_array_copy(moms, moms_ho);
   }
   else
@@ -392,8 +392,8 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_array *bmag, *jacob_tot;
   if (use_gpu) { 
     // create device copies
-    bmag = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
-    jacob_tot = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+    bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+    jacob_tot = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
     // copy host array to device
     gkyl_array_copy(bmag, bmag_ho);
     gkyl_array_copy(jacob_tot, jacob_tot_ho);
@@ -444,7 +444,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_array *moms;
   if (use_gpu)
   { // copy host array to device
-    moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*confBasis.num_basis, confLocal_ext.volume);
+    moms = mkarr_cu(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
     gkyl_array_copy(moms, moms_ho);
   }
   else
