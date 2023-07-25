@@ -8,7 +8,7 @@
 // functions
 
 // Types for various kernels
-typedef void (*maxwell_surf_t)(const gkyl_maxwell_inp *meq, const double *w, const double *dx,
+typedef double (*maxwell_surf_t)(const gkyl_maxwell_inp *meq, const double *w, const double *dx,
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
@@ -111,7 +111,7 @@ static const gkyl_dg_maxwell_surf_kern_list ser_surf_z_kernels[] = {
 void gkyl_maxwell_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
@@ -120,12 +120,12 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  maxwell->surf[dir](&maxwell->maxwell_data, xcC, dxC,
+  return maxwell->surf[dir](&maxwell->maxwell_data, xcC, dxC,
     qInL, qInC, qInR, qRhsOut);
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
@@ -133,5 +133,5 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
-  
+  return 0.;
 }

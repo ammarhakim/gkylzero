@@ -1,12 +1,12 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_hyb_1x3v_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_hyb_1x3v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_poisson_boundary_surfvx_1x3v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_boundary_surfvx_1x3v_ser_p1(const double *w, const double *dxv, const double *field, const double *ext_field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
   // dxv[NDIM]:   Cell spacing.
-  // fac_phi:     potential (scaled by appropriate factors).
-  // vecA:        vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
+  // field:       potential (scaled by appropriate factors).
+  // ext_field:   vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
   // edge:        Determines if the update is for the left edge (-1) or right edge (+1).
   // fSkin/fEdge: Input Distribution function in skin cell/last edge cell 
   // out:         Output distribution function in skin cell 
@@ -14,7 +14,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvx_1x3v_ser_p1(const double *w, cons
   const double dv1 = dxv[1], wv1 = w[1]; 
   const double dv2 = dxv[2], wv2 = w[2]; 
   const double dv3 = dxv[3], wv3 = w[3]; 
-  const double *phi = &fac_phi[0]; 
+  const double *phi = &field[0]; 
   const double dx10 = 2/dxv[0]; 
   double alpha[16] = {0.0}; 
 
@@ -26,7 +26,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvx_1x3v_ser_p1(const double *w, cons
 
   if (edge == -1) { 
 
-  if (alpha[0] > 0) { 
+  if (0.3535533905932737*alpha[0] > 0) { 
     fUpwindQuad[0] = hyb_1x3v_p1_surfx2_eval_quad_node_0_r(fSkin); 
     fUpwindQuad[1] = hyb_1x3v_p1_surfx2_eval_quad_node_1_r(fSkin); 
     fUpwindQuad[2] = hyb_1x3v_p1_surfx2_eval_quad_node_2_r(fSkin); 
@@ -47,7 +47,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvx_1x3v_ser_p1(const double *w, cons
     fUpwindQuad[7] = hyb_1x3v_p1_surfx2_eval_quad_node_7_l(fEdge); 
     fUpwindQuad[8] = hyb_1x3v_p1_surfx2_eval_quad_node_8_l(fEdge); 
   } 
-  if (alpha[0] > 0) { 
+  if (0.3535533905932737*alpha[0] > 0) { 
     fUpwindQuad[9] = hyb_1x3v_p1_surfx2_eval_quad_node_9_r(fSkin); 
     fUpwindQuad[10] = hyb_1x3v_p1_surfx2_eval_quad_node_10_r(fSkin); 
     fUpwindQuad[11] = hyb_1x3v_p1_surfx2_eval_quad_node_11_r(fSkin); 
@@ -132,7 +132,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvx_1x3v_ser_p1(const double *w, cons
 
   } else { 
 
-  if (alpha[0] > 0) { 
+  if (0.3535533905932737*alpha[0] > 0) { 
     fUpwindQuad[0] = hyb_1x3v_p1_surfx2_eval_quad_node_0_r(fEdge); 
     fUpwindQuad[1] = hyb_1x3v_p1_surfx2_eval_quad_node_1_r(fEdge); 
     fUpwindQuad[2] = hyb_1x3v_p1_surfx2_eval_quad_node_2_r(fEdge); 
@@ -153,7 +153,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvx_1x3v_ser_p1(const double *w, cons
     fUpwindQuad[7] = hyb_1x3v_p1_surfx2_eval_quad_node_7_l(fSkin); 
     fUpwindQuad[8] = hyb_1x3v_p1_surfx2_eval_quad_node_8_l(fSkin); 
   } 
-  if (alpha[0] > 0) { 
+  if (0.3535533905932737*alpha[0] > 0) { 
     fUpwindQuad[9] = hyb_1x3v_p1_surfx2_eval_quad_node_9_r(fEdge); 
     fUpwindQuad[10] = hyb_1x3v_p1_surfx2_eval_quad_node_10_r(fEdge); 
     fUpwindQuad[11] = hyb_1x3v_p1_surfx2_eval_quad_node_11_r(fEdge); 
@@ -237,4 +237,6 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvx_1x3v_ser_p1(const double *w, cons
   out[39] += -1.224744871391589*Ghat[15]*dv10; 
 
   } 
+  return 0.;
+
 } 

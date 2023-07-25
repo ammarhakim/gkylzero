@@ -40,10 +40,6 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   BstarZdBmag[2] = (jacobtot_inv[0]*b_y[1]*m_*rdx2)/(q_*rdvpar2); 
   BstarZdBmag[3] = (b_y[1]*jacobtot_inv[1]*m_*rdx2)/(q_*rdvpar2); 
 
-  double cflFreq = 0.0; 
-  double alphaL = 0.0; 
-  double alphaR = 0.0; 
-
   double alphax[6] = {0.}; 
   alphax[0] = (0.8660254037844386*(2.23606797749979*BstarZdBmag[2]*hamil[4]+BstarZdBmag[0]*hamil[2])*rdvpar2*rdx2)/m_; 
   alphax[1] = (0.8660254037844386*(2.23606797749979*BstarZdBmag[3]*hamil[4]+BstarZdBmag[1]*hamil[2])*rdvpar2*rdx2)/m_; 
@@ -51,36 +47,14 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   alphax[3] = (0.8660254037844386*(2.23606797749979*BstarZdBmag[1]*hamil[4]+hamil[2]*BstarZdBmag[3])*rdvpar2*rdx2)/m_; 
   alphax[4] = (1.732050807568877*BstarZdBmag[2]*hamil[4]*rdvpar2*rdx2)/m_; 
   alphax[5] = (1.732050807568877*BstarZdBmag[3]*hamil[4]*rdvpar2*rdx2)/m_; 
-  // Evaluate alpha at left surface quadrature points.
-  alphaL = 0.25*((-0.7745966692414833*alphax[5])+0.4472135954999579*alphax[4]+1.161895003862225*alphax[3]-0.6708203932499369*alphax[2]-0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
-  alphaL = 0.25*(0.9682458365518543*alphax[5]-0.5590169943749475*alphax[4]-0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
-  alphaL = 0.25*((-0.7745966692414833*alphax[5])+0.4472135954999579*alphax[4]-1.161895003862225*alphax[3]+0.6708203932499369*alphax[2]-0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += -1.5*(alphaL-fabs(alphaL)); 
-  // Evaluate alpha at right surface quadrature points.
-  alphaR = 0.25*(0.7745966692414833*alphax[5]+0.4472135954999579*alphax[4]-1.161895003862225*alphax[3]-0.6708203932499369*alphax[2]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
-  alphaR = 0.25*((-0.9682458365518543*alphax[5])-0.5590169943749475*alphax[4]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
-  alphaR = 0.25*(0.7745966692414833*alphax[5]+0.4472135954999579*alphax[4]+1.161895003862225*alphax[3]+0.6708203932499369*alphax[2]+0.8660254037844386*alphax[1]+0.5*alphax[0]); 
-  cflFreq += 1.5*(alphaR+fabs(alphaR)); 
+
 
   double alphavpar[6] = {0.}; 
   alphavpar[0] = -(0.8660254037844386*BstarZdBmag[0]*hamil[1]*rdvpar2*rdx2)/m_; 
   alphavpar[1] = -(0.8660254037844386*BstarZdBmag[1]*hamil[1]*rdvpar2*rdx2)/m_; 
   alphavpar[2] = -(0.8660254037844386*hamil[1]*BstarZdBmag[2]*rdvpar2*rdx2)/m_; 
   alphavpar[3] = -(0.8660254037844386*hamil[1]*BstarZdBmag[3]*rdvpar2*rdx2)/m_; 
-  // Evaluate alpha at left surface quadrature points.
-  alphaL = 0.25*(0.8660254037844386*alphavpar[3]-0.8660254037844386*alphavpar[2]-0.5*alphavpar[1]+0.5*alphavpar[0]); 
-  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
-  alphaL = 0.25*(0.5*(alphavpar[1]+alphavpar[0])-0.8660254037844386*(alphavpar[3]+alphavpar[2])); 
-  cflFreq += -2.5*(alphaL-fabs(alphaL)); 
-  // Evaluate alpha at right surface quadrature points.
-  alphaR = 0.25*((-0.8660254037844386*alphavpar[3])+0.8660254037844386*alphavpar[2]-0.5*alphavpar[1]+0.5*alphavpar[0]); 
-  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
-  alphaR = 0.25*(0.8660254037844386*(alphavpar[3]+alphavpar[2])+0.5*(alphavpar[1]+alphavpar[0])); 
-  cflFreq += 2.5*(alphaR+fabs(alphaR)); 
+
 
   out[1] += 0.8660254037844386*(alphax[5]*fin[5]+alphax[4]*fin[4]+alphax[3]*fin[3]+alphax[2]*fin[2]+alphax[1]*fin[1]+alphax[0]*fin[0]); 
   out[2] += 0.8660254037844386*(alphavpar[3]*fin[3]+alphavpar[2]*fin[2]+alphavpar[1]*fin[1]+alphavpar[0]*fin[0]); 
@@ -88,7 +62,7 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   out[4] += 0.1*(17.32050807568877*alphavpar[3]*fin[5]+17.32050807568877*alphavpar[2]*fin[4]+19.36491673103709*(alphavpar[1]*fin[3]+fin[1]*alphavpar[3]+alphavpar[0]*fin[2]+fin[0]*alphavpar[2])); 
   out[5] += 0.01428571428571429*((38.72983346207417*alphax[5]+121.2435565298214*alphavpar[2])*fin[5]+60.6217782649107*(alphax[1]*fin[5]+fin[1]*alphax[5])+(38.72983346207417*alphax[4]+121.2435565298214*alphavpar[3])*fin[4]+60.62177826491071*(alphax[0]*fin[4]+fin[0]*alphax[4])+54.22176684690384*alphax[3]*fin[3]+135.5544171172596*(alphavpar[0]*fin[3]+fin[0]*alphavpar[3])+54.22176684690384*alphax[2]*fin[2]+135.5544171172596*(alphavpar[1]*fin[2]+fin[1]*alphavpar[2])); 
 
-  return cflFreq; 
+  return 0.; 
 } 
 GKYL_CU_DH double gyrokinetic_step2_vol_1x1v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *apardot, const double *fin, double* GKYL_RESTRICT out) 
 { 

@@ -88,8 +88,8 @@ gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_range update_ran
           (const double*) gkyl_array_cfetch(fIn, linr), (double*) gkyl_array_fetch(rhs, linc)
         );
       }
-      double *cflrate_s_d = (double*) gkyl_array_fetch(cflrate, linc);
-      cflrate_s_d[0] += cfls; // frequencies are additive     
+      double *cflrate_d = (double*) gkyl_array_fetch(cflrate, linc);
+      cflrate_d[0] += cfls; // frequencies are additive     
     }
   }
 }
