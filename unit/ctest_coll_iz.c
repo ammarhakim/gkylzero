@@ -85,17 +85,29 @@ test_prim_vars_gk_3x(bool use_gpu)
 
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
   struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
-  struct gkyl_array *moms_elc = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, confRange.volume);
-  struct gkyl_array *vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
+  struct gkyl_array *moms_elc_ho = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, confRange.volume);
+  struct gkyl_array *vtSq_elc_ho = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
 
   struct gkyl_dg_prim_vars_type *calc_prim_vars_gk_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(&cbasis, &pbasis, "vtSq", use_gpu);
   
   gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
   gkyl_proj_on_basis_advance(projM2, 0.0, &confRange, m2);
  
-  gkyl_array_set_offset(moms_elc, 1.0, m0, 0);
-  gkyl_array_set_offset(moms_elc, 1.0, m2, 2*cbasis.num_basis);
+  gkyl_array_set_offset(moms_elc_ho, 1.0, m0, 0);
+  gkyl_array_set_offset(moms_elc_ho, 1.0, m2, 2*cbasis.num_basis);
 
+  struct gkyl_array *moms_elc, *vtSq_elc;
+  if (use_gpu) {
+    struct gkyl_array *moms_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*cbasis.num_basis, confRange.volume);
+    struct gkyl_array *vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
+    gkyl_array_copy(moms_elc, moms_elc_ho);
+    gkyl_array_copy(vtSq_elc, vtSq_elc_ho);
+  }
+  else {
+    moms_elc = moms_elc_ho;
+    vtSq_elc = vtSq_elc_ho;
+  }
+  
   struct gkyl_range_iter conf_iter;
   gkyl_range_iter_init(&conf_iter, &confRange);
   while (gkyl_range_iter_next(&conf_iter)) {
@@ -104,11 +116,10 @@ test_prim_vars_gk_3x(bool use_gpu)
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     double *vtSq_elc_d = gkyl_array_fetch(vtSq_elc, loc);
 
-    calc_prim_vars_gk_vtSq->kernel(calc_prim_vars_gk_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
-    
+    calc_prim_vars_gk_vtSq->kernel(calc_prim_vars_gk_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);   
   }
 
-  gkyl_grid_sub_array_write(&confGrid, &confRange, vtSq_elc, "ctest_prim_vars_vtsq_elc.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, vtSq_elc, "ctest_prim_vars_vtsq_elc.gkyl");
   
   // check vals
   double p1_vals[] = {1.9898778467478656e+13, -8.1549238327948618e-05,
@@ -157,37 +168,49 @@ test_prim_vars_vlasov_3x(bool use_gpu)
 
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
   struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
-  struct gkyl_array *moms_neut = gkyl_array_new(GKYL_DOUBLE, 5*cbasis.num_basis, confRange.volume);
-  struct gkyl_array *vtSq_neut = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
+  struct gkyl_array *moms_elc_ho = gkyl_array_new(GKYL_DOUBLE, (2+vdim)*cbasis.num_basis, confRange.volume);
+  struct gkyl_array *vtSq_elc_ho = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
 
   struct gkyl_dg_prim_vars_type *calc_prim_vars_vlasov_vtSq = gkyl_dg_prim_vars_vlasov_new(&cbasis, &pbasis, "vtSq", use_gpu);
   
   gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
   gkyl_proj_on_basis_advance(projM2, 0.0, &confRange, m2);
  
-  gkyl_array_set_offset(moms_neut, 1.0, m0, 0);
-  gkyl_array_set_offset(moms_neut, 1.0, m2, (vdim+1)*cbasis.num_basis); //HARDCODED for gk vdim = 2
+  gkyl_array_set_offset(moms_elc_ho, 1.0, m0, 0);
+  gkyl_array_set_offset(moms_elc_ho, 1.0, m2, (vdim+1)*cbasis.num_basis);
+
+  struct gkyl_array *moms_elc, *vtSq_elc;
+  if (use_gpu) {
+    struct gkyl_array *moms_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, (2+vdim)*cbasis.num_basis, confRange.volume);
+    struct gkyl_array *vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
+    gkyl_array_copy(moms_elc, moms_elc_ho);
+    gkyl_array_copy(vtSq_elc, vtSq_elc_ho);
+  }
+  else {
+    moms_elc = moms_elc_ho;
+    vtSq_elc = vtSq_elc_ho;
+  }
 
   struct gkyl_range_iter conf_iter;
   gkyl_range_iter_init(&conf_iter, &confRange);
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(&confRange, conf_iter.idx);
 
-    const double *moms_neut_d = gkyl_array_cfetch(moms_neut, loc);
-    double *vtSq_neut_d = gkyl_array_fetch(vtSq_neut, loc);
+    const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
+    double *vtSq_elc_d = gkyl_array_fetch(vtSq_elc, loc);
 
-    calc_prim_vars_vlasov_vtSq->kernel(calc_prim_vars_vlasov_vtSq, conf_iter.idx, moms_neut_d, vtSq_neut_d);
+    calc_prim_vars_vlasov_vtSq->kernel(calc_prim_vars_vlasov_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
 
   }
 
-  gkyl_grid_sub_array_write(&confGrid, &confRange, vtSq_neut, "ctest_prim_vars_vtsq_neut.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, vtSq_neut, "ctest_prim_vars_vtsq_neut.gkyl");
 
   double p1_vals[] = {1.9898778467478656e+13, -8.1549238327948618e-05,
 		      3.8383544370155868e-05, 3.8383544370155868e-05,
 		      -8.1549238327948822e-05, -2.1582846978896450e-05,
 		      -2.1582846978896450e-05,  3.8383544370155820e-05};
   
-  const double *pv = gkyl_array_cfetch(vtSq_neut, gkyl_range_idx(&confRange, (int[3]) { 1, 1, 1}));
+  const double *pv = gkyl_array_cfetch(vtSq_elc, gkyl_range_idx(&confRange, (int[3]) { 1, 1, 1}));
 
   for (int i=0; i<cbasis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(p1_vals[i], pv[i], 1e-12) );
@@ -208,13 +231,6 @@ test_coll_iz(bool use_gpu)
   double lower[] = {-2.0,-2.0,-2.0,vmin,0.0}, upper[] = {2.0,2.0,2.0,vmax,mumax};
   int ghost[] = {0, 0, 0, 0, 0};
   int cells[] = {16, 16, 16, 8, 4};
-
-  /* // low d test */
-  /* int cdim = 1, vdim = 1; */
-  /* int pdim = cdim + vdim; */
-  /* double lower[] = {-2.0,vmin}, upper[] = {2.,0,vmax}; */
-  /* int ghost[] = {0, 0}; */
-  /* int cells[] = {1, 8}; */
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
