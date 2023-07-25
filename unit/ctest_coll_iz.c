@@ -255,15 +255,15 @@ test_coll_iz(bool use_gpu)
   // create moment arrays
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  struct gkyl_array *moms_neut = gkyl_array_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume);
-  struct gkyl_array *moms_elc = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
-  struct gkyl_array *cflRate = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
-  struct gkyl_array *distf_elc = gkyl_array_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);
-  struct gkyl_array *coll_iz_elc = gkyl_array_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);	
+  struct gkyl_array *moms_neut_ho = gkyl_array_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume);
+  struct gkyl_array *moms_elc_ho = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+  struct gkyl_array *cflRate_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
+  struct gkyl_array *distf_elc_ho = gkyl_array_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);
+  struct gkyl_array *coll_iz_elc_ho = gkyl_array_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);	
   // arrays necessary for fmax
-  struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  struct gkyl_array *jacob_tot = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-  struct gkyl_array *b_i = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+  struct gkyl_array *bmag_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+  struct gkyl_array *jacob_tot_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+  struct gkyl_array *b_i_ho = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
   struct gkyl_array *b_x = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *b_y = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *b_z = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -271,78 +271,72 @@ test_coll_iz(bool use_gpu)
   // project moments on basis
   gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
   gkyl_proj_on_basis_advance(projM2, 0.0, &confRange, m2);
-  gkyl_proj_on_basis_advance(projBmag, 0.0, &confRange, bmag);
-  gkyl_proj_on_basis_advance(projJac, 0.0, &confRange, jacob_tot);
+  gkyl_proj_on_basis_advance(projBmag, 0.0, &confRange, bmag_ho);
+  gkyl_proj_on_basis_advance(projJac, 0.0, &confRange, jacob_tot_ho);
 
-  gkyl_array_set_offset(moms_neut, 1.0, m0, 0);
-  gkyl_array_set_offset(moms_elc, 1.0, m0, 0);
-  gkyl_array_set_offset(moms_neut, 1.0, m2, 4*basis.num_basis); //HARDCODED for gk vdim = 2
-  gkyl_array_set_offset(moms_elc, 1.0, m2, 2*basis.num_basis);
+  gkyl_array_set_offset(moms_neut_ho, 1.0, m0, 0);
+  gkyl_array_set_offset(moms_elc_ho, 1.0, m0, 0);
+  gkyl_array_set_offset(moms_neut_ho, 1.0, m2, 4*basis.num_basis);
+  gkyl_array_set_offset(moms_elc_ho, 1.0, m2, 2*basis.num_basis);
 
-  gkyl_array_shiftc(bmag, 0.5*pow(sqrt(2),cdim), 0);
-  gkyl_array_shiftc(jacob_tot, 1.0*pow(sqrt(2),cdim), 0);
+  gkyl_array_shiftc(bmag_ho, 0.5*pow(sqrt(2),cdim), 0);
+  gkyl_array_shiftc(jacob_tot_ho, 1.0*pow(sqrt(2),cdim), 0);
   gkyl_array_shiftc(b_z, 1.0*pow(sqrt(2),cdim), 0);
 
   // project b_i
-  gkyl_array_set_offset(b_i, 1.0, b_x, 0);
-  gkyl_array_set_offset(b_i, 1.0, b_y, basis.num_basis);
-  gkyl_array_set_offset(b_i, 1.0, b_z, 2*basis.num_basis);
+  gkyl_array_set_offset(b_i_ho, 1.0, b_x, 0);
+  gkyl_array_set_offset(b_i_ho, 1.0, b_y, basis.num_basis);
+  gkyl_array_set_offset(b_i_ho, 1.0, b_z, 2*basis.num_basis);
 
+  struct gkyl_array *moms_neut, *moms_elc, *cflRate, *distf_elc, *coll_iz_elc, *bmag, *jacob_tot, *b_i;
   // cuda stuff
   if (use_gpu) {
-    struct gkyl_array *moms_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume);
-    struct gkyl_array *moms_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
-    struct gkyl_array *cflRate_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
-    struct gkyl_array *distf_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);
-    struct gkyl_array *coll_iz_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);	
+    struct gkyl_array *moms_neut = gkyl_array_cu_dev_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume);
+    struct gkyl_array *moms_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+    struct gkyl_array *cflRate = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
+    struct gkyl_array *distf_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);
+    struct gkyl_array *coll_iz_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);	
     // arrays necessary for fmax
-    struct gkyl_array *bmag_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-    struct gkyl_array *jacob_tot_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-    struct gkyl_array *b_i_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+    struct gkyl_array *bmag = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+    struct gkyl_array *jacob_tot = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+    struct gkyl_array *b_i = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
 
-    gkyl_array_copy(moms_neut_cu, moms_neut);
-    gkyl_array_copy(moms_elc_cu, moms_elc);
-    gkyl_array_copy(cflRate_cu, cflRate);
-    gkyl_array_copy(distf_elc_cu, distf_elc);
-    gkyl_array_copy(coll_iz_elc_cu, coll_iz_elc);
-    gkyl_array_copy(bmag_cu, bmag);
-
-    gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max, &phaseRange, &confRange, moms_elc_cu,
-    bmag_cu, jacob_tot_cu, emass, distf_elc_cu);
-
-    struct timespec tm;
-    double tm_tot = 0.0;
-    int iter = 1;
-    for (int t=0; t<iter; ++t) {
-      tm = gkyl_wall_clock();
-      gkyl_dg_iz_coll(coll_iz, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_cu);
-      tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
-    }
-    tm_tot = tm_tot/iter;
-    printf("Avg time over %d loop(s) is %.e s", iter, tm_tot);
-
-    gkyl_array_copy(coll_iz_elc, coll_iz_elc_cu);
+    gkyl_array_copy(moms_neut, moms_neut_ho);
+    gkyl_array_copy(moms_elc, moms_elc_ho);
+    gkyl_array_copy(cflRate, cflRate_ho);
+    gkyl_array_copy(distf_elc, distf_elc_ho);
+    gkyl_array_copy(coll_iz_elc, coll_iz_elc_ho);
+    gkyl_array_copy(bmag, bmag_ho);
+    gkyl_array_copy(jacob_tot, jacob_tot_ho);
+    gkyl_array_copy(b_i, b_i_ho);
   }
   else {
-    gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max, &phaseRange, &confRange, moms_elc,
-      bmag, jacob_tot, emass, distf_elc);
-    // gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, distf_elc, "ctest_distf_elc.gkyl");
-    
-    struct timespec tm;
-    double tm_tot = 0.0;
-    int iter = 1;
-    for (int t=0; t<iter; ++t) {
-      tm = gkyl_wall_clock();
-      gkyl_dg_iz_coll(coll_iz, moms_elc, moms_neut, bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate);
-      tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
-    }
-    tm_tot = tm_tot/iter;
-    printf("Avg time over %d loop(s) is %.e s", iter, tm_tot);
-									     
-
+    moms_neut = moms_neut_ho;
+    moms_elc = moms_elc_ho;
+    cflRate = cflRate_ho;
+    distf_elc = distf_elc_ho;
+    coll_iz_elc = coll_iz_elc_ho;
+    bmag = bmag_ho;
+    jacob_tot = jacob_tot_ho;
+    b_i = b_i_ho;
   }
-
-  gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, coll_iz_elc, "ctest_coll_iz_elc.gkyl");
+  
+  gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max, &phaseRange, &confRange, moms_elc,
+    bmag, jacob_tot, emass, distf_elc);
+  // gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, distf_elc, "ctest_distf_elc.gkyl");
+  
+  struct timespec tm;
+  double tm_tot = 0.0;
+  int iter = 1;
+  for (int t=0; t<iter; ++t) {
+    tm = gkyl_wall_clock();
+    gkyl_dg_iz_coll(coll_iz, moms_elc, moms_neut, bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate);
+    tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
+  }
+  tm_tot = tm_tot/iter;
+  printf("Avg time over %d loop(s) is %.e s", iter, tm_tot);									    
+  
+  //gkyl_grid_sub_array_write(&phaseGrid, &phaseRange, coll_iz_elc, "ctest_coll_iz_elc.gkyl");
 
   double p1_vals[] = {-2.4014565247326178e+00, -3.8514489897962783e-16, -5.7110482341097731e-17,
 		      2.4425487837962348e-16,  3.3375014364519018e-01,  2.0687952656971738e+00,
