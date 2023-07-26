@@ -1,6 +1,6 @@
 #include <dg_euleriso_diffusion_kernels.h>
 
-GKYL_CU_DH void
+GKYL_CU_DH double
 dg_euleriso_diffusion_surfx_1x_ser_p1(const double* w, const double* dx,
   const double* D_in,
   const double* uvarl, const double* uvarc, const double* uvarr,
@@ -32,4 +32,6 @@ dg_euleriso_diffusion_surfx_1x_ser_p1(const double* w, const double* dx,
   const double *uvarzr = &uvarr[4]; 
   out[2] += J*((-0.5412658773652741*uvarxr[1]*mu)+0.5412658773652741*uvarxl[1]*mu+0.5625*uvarxr[0]*mu+0.5625*uvarxl[0]*mu-1.125*uvarxc[0]*mu);
   out[3] += J*((-0.4375*uvarxr[1]*mu)-0.4375*uvarxl[1]*mu-2.875*uvarxc[1]*mu+0.5412658773652741*uvarxr[0]*mu-0.5412658773652741*uvarxl[0]*mu);
+  return 0.;
+
 }
