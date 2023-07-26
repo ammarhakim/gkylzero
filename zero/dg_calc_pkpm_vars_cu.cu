@@ -283,6 +283,56 @@ gkyl_dg_calc_pkpm_vars_source_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct
     rhs->on_dev);
 }
 
+__global__ void
+gkyl_dg_calc_pkpm_vars_io_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, 
+  const struct gkyl_array* vlasov_pkpm_moms, 
+  const struct gkyl_array* euler_pkpm, const struct gkyl_array* p_ij, 
+  const struct gkyl_array* prim, const struct gkyl_array* pkpm_accel, 
+  struct gkyl_array* fluid_io, struct gkyl_array* pkpm_vars_io)
+{
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < conf_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long loc = gkyl_range_idx(&conf_range, idx);
+
+    const double *vlasov_pkpm_moms_d = (const double*) gkyl_array_cfetch(vlasov_pkpm_moms, loc);
+    const double *euler_pkpm_d = (const double*) gkyl_array_cfetch(euler_pkpm, loc);
+    const double *p_ij_d = (const double*) gkyl_array_cfetch(p_ij, loc);
+    const double *prim_d = (const double*) gkyl_array_cfetch(prim, loc);
+    const double *pkpm_accel_d = (const double*) gkyl_array_cfetch(pkpm_accel, loc);
+
+    double *fluid_io_d = (double*) gkyl_array_fetch(fluid_io, loc);
+    double *pkpm_vars_io_d = (double*) gkyl_array_fetch(pkpm_vars_io, loc);
+    up->pkpm_io(vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d, prim_d, pkpm_accel_d, 
+      fluid_io_d, pkpm_vars_io_d);
+  }
+}
+
+// Host-side wrapper for pkpm io. Computes conserved variables and copies primitive and acceleration variables to output array
+void
+gkyl_dg_calc_pkpm_vars_io_cu(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* vlasov_pkpm_moms, 
+  const struct gkyl_array* euler_pkpm, const struct gkyl_array* p_ij, 
+  const struct gkyl_array* prim, const struct gkyl_array* pkpm_accel, 
+  struct gkyl_array* fluid_io, struct gkyl_array* pkpm_vars_io)
+{
+  int nblocks = conf_range->nblocks;
+  int nthreads = conf_range->nthreads;
+  gkyl_dg_calc_pkpm_vars_io_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, 
+    vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, p_ij->on_dev, prim->on_dev, pkpm_accel->on_dev, 
+    fluid_io->on_dev, pkpm_vars_io->on_dev);
+}
+
 // CUDA kernel to set device pointers to pkpm vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
@@ -294,6 +344,7 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_vars *up, enum gkyl_b
   up->pkpm_pressure = choose_pkpm_pressure_kern(b_type, cdim, poly_order);
   up->pkpm_source = choose_pkpm_source_kern(b_type, cdim, poly_order);
   up->pkpm_int = choose_pkpm_int_kern(b_type, cdim, poly_order);
+  up->pkpm_io = choose_pkpm_io_kern(b_type, cdim, poly_order);
   // Fetch the kernels in each direction
   for (int d=0; d<cdim; ++d) 
     up->pkpm_accel[d] = choose_pkpm_accel_kern(d, b_type, cdim, poly_order);

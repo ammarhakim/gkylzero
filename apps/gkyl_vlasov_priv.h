@@ -330,7 +330,16 @@ struct vm_fluid_species {
   struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
                                     // Determined when constructing the matrix if rho < 0.0 at control points
                                     // Equation systems such as pkpm check more variables (p_par, p_perp < 0.0)
-  
+
+  // Pointers for io.
+  // For isothermal Euler and Euler, these are the same as the state variables
+  // For PKPM we construct the 10 moment conserved variables for ease of analysis 
+  // along with an array of the various update variables, primitive and acceleration
+  struct gkyl_array *fluid_io;
+  struct gkyl_array *fluid_io_host;
+  struct gkyl_array *pkpm_vars_io;
+  struct gkyl_array *pkpm_vars_io_host;
+
   // pkpm variables
   struct gkyl_array *pkpm_accel; // Acceleration variables for pkpm, pkpm_accel:
                                  // 0: div_b (divergence of magnetic field unit vector)
@@ -960,6 +969,7 @@ void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fl
  */
 void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
 
+
 /**
  * Compute integrated fluid diagnostics
  *
@@ -968,6 +978,14 @@ void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_speci
  * @param fluid_species Pointer to fluid species
  */
 void vm_fluid_species_calc_int_diag(gkyl_vlasov_app *app, double tm, const struct vm_fluid_species *fluid_species);
+
+/**
+ * Construct fluid io arrays.
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species
+ */
+void vm_fluid_species_io(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species);
 
 /**
  * Release resources allocated by fluid species

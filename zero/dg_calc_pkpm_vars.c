@@ -35,6 +35,7 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
   up->pkpm_pressure = choose_pkpm_pressure_kern(b_type, cdim, poly_order);
   up->pkpm_source = choose_pkpm_source_kern(b_type, cdim, poly_order);
   up->pkpm_int = choose_pkpm_int_kern(b_type, cdim, poly_order);
+  up->pkpm_io = choose_pkpm_io_kern(b_type, cdim, poly_order);
   // Fetch the kernels in each direction
   for (int d=0; d<cdim; ++d) 
     up->pkpm_accel[d] = choose_pkpm_accel_kern(d, b_type, cdim, poly_order);
@@ -231,6 +232,40 @@ void gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up,
 
     double *rhs_d = gkyl_array_fetch(rhs, loc);
     up->pkpm_source(qmem_d, vlasov_pkpm_moms_d, euler_pkpm_d, rhs_d);
+  }
+}
+
+void gkyl_dg_calc_pkpm_vars_io(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* vlasov_pkpm_moms, 
+  const struct gkyl_array* euler_pkpm, const struct gkyl_array* p_ij, 
+  const struct gkyl_array* prim, const struct gkyl_array* pkpm_accel, 
+  struct gkyl_array* fluid_io, struct gkyl_array* pkpm_vars_io)
+{
+// Check if more than one of the output arrays is on device? 
+// Probably a better way to do this (JJ: 11/16/22)
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(pkpm_vars_io)) {
+    return gkyl_dg_calc_pkpm_vars_io_cu(up, conf_range, 
+      vlasov_pkpm_moms, euler_pkpm, p_ij, prim, pkpm_accel, 
+      fluid_io, pkpm_vars_io);
+  }
+#endif
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+
+    const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
+    const double *euler_pkpm_d = gkyl_array_cfetch(euler_pkpm, loc);
+    const double *p_ij_d = gkyl_array_cfetch(p_ij, loc);
+    const double *prim_d = gkyl_array_cfetch(prim, loc);
+    const double *pkpm_accel_d = gkyl_array_cfetch(pkpm_accel, loc);
+    
+    double *fluid_io_d = gkyl_array_fetch(fluid_io, loc);
+    double *pkpm_vars_io_d = gkyl_array_fetch(pkpm_vars_io, loc);
+    up->pkpm_io(vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d, prim_d, pkpm_accel_d, 
+      fluid_io_d, pkpm_vars_io_d);
   }
 }
 

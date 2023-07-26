@@ -123,6 +123,34 @@ void gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up,
   struct gkyl_array* rhs);
 
 /**
+ * Construct PKPM variables for I/O. Computes the conserved fluid variables 
+ * [rho, rho ux, rho uy, rho uz, Pxx + rho ux^2, Pxy + rho ux uy, Pxz + rho ux uz, Pyy + rho uy^2, Pyz + rho uy uz, Pzz + rho uz^2]
+ * And copies the pkpm primitive and acceleration variables into an array for output
+ * [ux, uy, uz, T_perp/m, m/T_perp, div(b), 1/rho div(p_par b), T_perp/m div(b), bb : grad(u), 
+ *  vperp configuration space characteristics = bb : grad(u) - div(u) - 2 nu]
+ *
+ * @param up Updater for computing pkpm variables 
+ * @param conf_range Configuration space range
+ * @param vlasov_pkpm_moms Input array of parallel-kinetic-perpendicular-moment kinetic moments [rho, p_parallel, p_perp]
+ * @param euler_pkpm Input array of parallel-kinetic-perpendicular-moment fluid variables [rho ux, rho uy, rho uz]
+ * @param p_ij Input pressure tensor p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
+ * @param prim Input array of primitive moments [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+ * @param pkpm_accel Input arrary of pkpm acceleration variables ordered as:
+ *        0: div_b (divergence of magnetic field unit vector)
+          1: bb_grad_u (bb : grad(u))
+          2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+          3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2 nu)
+          4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
+ * @param fluid_io Output array of conserved fluid variables (10 components)
+ * @param pkpm_vars_io Output array of pkpm variables, primitive and acceleration (10 components)
+ */
+void gkyl_dg_calc_pkpm_vars_io(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* vlasov_pkpm_moms, 
+  const struct gkyl_array* euler_pkpm, const struct gkyl_array* p_ij, 
+  const struct gkyl_array* prim, const struct gkyl_array* pkpm_accel, 
+  struct gkyl_array* fluid_io, struct gkyl_array* pkpm_vars_io);
+
+/**
  * Delete pointer to updater to compute pkpm variables.
  *
  * @param up Updater to delete.
@@ -153,3 +181,9 @@ void gkyl_dg_calc_pkpm_vars_source_cu(struct gkyl_dg_calc_pkpm_vars *up,
   const struct gkyl_range *conf_range, const struct gkyl_array* qmem, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm,
   struct gkyl_array* rhs);
+
+void gkyl_dg_calc_pkpm_vars_io_cu(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* vlasov_pkpm_moms, 
+  const struct gkyl_array* euler_pkpm, const struct gkyl_array* p_ij, 
+  const struct gkyl_array* prim, const struct gkyl_array* pkpm_accel, 
+  struct gkyl_array* fluid_io, struct gkyl_array* pkpm_vars_io);

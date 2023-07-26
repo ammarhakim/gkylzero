@@ -58,6 +58,15 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
   f->pkpm_accel = 0;
 
+  // initialize pointers for io.
+  // For isothermal Euler and Euler, these are the same as the state variables
+  // For PKPM we construct the 10 moment variables for ease of analysis 
+  // along with an array of the various update variables, primitive and acceleration
+  f->fluid_io = 0;
+  f->fluid_io_host = 0;
+  f->pkpm_vars_io = 0;
+  f->pkpm_vars_io_host = 0;
+
   f->param = 0.0;
   // fluid solvers
   if (f->info.vt) {
@@ -68,6 +77,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->p = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     // boolean array for if we are only using the cell average for primitive variables
     f->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
+
+    f->fluid_io = f->fluid;
+    f->fluid_io_host = f->fluid_host;
   }
   else if (f->info.gas_gamma) {
     f->param = f->info.gas_gamma; // parameter for Euler is gas_gamma, adiabatic index
@@ -77,6 +89,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->p = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     // boolean array for if we are only using the cell average for primitive variables
     f->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
+
+    f->fluid_io = f->fluid;
+    f->fluid_io_host = f->fluid_host;
   }
   else if (f->info.advection.velocity) {
     f->eqn_id = GKYL_EQN_ADVECTION;
@@ -104,6 +119,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       gkyl_array_copy(f->app_advect, f->app_advect_host);
     // Free projection object
     gkyl_proj_on_basis_release(app_advect_proj);
+
+    f->fluid_io = f->fluid;
+    f->fluid_io_host = f->fluid_host;
   }
   else {
     f->eqn_id = GKYL_EQN_EULER_PKPM;
@@ -121,6 +139,15 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - nu + nu rho vth^2/p_perp)
     // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
     f->pkpm_accel = mkarr(app->use_gpu, 5*app->confBasis.num_basis, app->local_ext.volume);
+
+    f->fluid_io = mkarr(app->use_gpu, 10*app->confBasis.num_basis, app->local_ext.volume);
+    f->pkpm_vars_io = mkarr(app->use_gpu, 10*app->confBasis.num_basis, app->local_ext.volume);
+    f->fluid_io_host = f->fluid_io;
+    f->pkpm_vars_io_host = f->pkpm_vars_io;
+    if (app->use_gpu) {
+      f->fluid_io_host = mkarr(false, 10*app->confBasis.num_basis, app->local_ext.volume);
+      f->pkpm_vars_io_host = mkarr(false, 10*app->confBasis.num_basis, app->local_ext.volume);
+    }
 
     // updater for computing pkpm variables 
     // pressure, primitive variables, and acceleration variables
@@ -482,6 +509,20 @@ vm_fluid_species_calc_int_diag(gkyl_vlasov_app *app, double tm, const struct vm_
   }
 }
 
+void
+vm_fluid_species_io(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species)
+{
+  gkyl_array_clear(fluid_species->fluid_io, 0.0);
+  gkyl_array_clear(fluid_species->pkpm_vars_io, 0.0); 
+  if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
+    vm_fluid_species_prim_vars(app, fluid_species, fluid_species->fluid);
+    gkyl_dg_calc_pkpm_vars_io(fluid_species->calc_pkpm_vars, &app->local, 
+      fluid_species->pkpm_species->pkpm_moms.marr, fluid_species->fluid, 
+      fluid_species->p, fluid_species->prim, fluid_species->pkpm_accel, 
+      fluid_species->fluid_io, fluid_species->pkpm_vars_io);
+  }
+}
+
 // release resources for fluid species
 void
 vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
@@ -512,9 +553,15 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_array_release(f->p);
     gkyl_array_release(f->cell_avg_prim);
     if (f->eqn_id == GKYL_EQN_EULER_PKPM) {
+      gkyl_array_release(f->fluid_io);
+      gkyl_array_release(f->pkpm_vars_io);
       gkyl_array_release(f->pkpm_accel);
       gkyl_dg_calc_pkpm_vars_release(f->calc_pkpm_vars);
       gkyl_dg_calc_pkpm_vars_release(f->calc_pkpm_vars_ext);
+      if (app->use_gpu) {
+        gkyl_array_release(f->fluid_io_host);
+        gkyl_array_release(f->pkpm_vars_io_host);        
+      }
     }
   }
 

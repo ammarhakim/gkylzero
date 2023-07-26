@@ -32,6 +32,11 @@ typedef void (*pkpm_source_t)(const double* qmem,
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
   double* GKYL_RESTRICT out);
 
+typedef void (*pkpm_io_t)(const double *vlasov_pkpm_moms, 
+  const double *euler_pkpm, const double* p_ij, 
+  const double* prim, const double* pkpm_accel, 
+  double* GKYL_RESTRICT fluid_io, double* GKYL_RESTRICT pkpm_vars_io); 
+
 // for use in kernel tables
 typedef struct { pkpm_set_t kernels[3]; } gkyl_dg_pkpm_set_kern_list;
 typedef struct { pkpm_copy_t kernels[3]; } gkyl_dg_pkpm_copy_kern_list;
@@ -39,6 +44,7 @@ typedef struct { pkpm_pressure_t kernels[3]; } gkyl_dg_pkpm_pressure_kern_list;
 typedef struct { pkpm_accel_t kernels[3]; } gkyl_dg_pkpm_accel_kern_list;
 typedef struct { pkpm_int_t kernels[3]; } gkyl_dg_pkpm_int_kern_list;
 typedef struct { pkpm_source_t kernels[3]; } gkyl_dg_pkpm_source_kern_list;
+typedef struct { pkpm_io_t kernels[3]; } gkyl_dg_pkpm_io_kern_list;
 
 struct gkyl_dg_calc_pkpm_vars {
   struct gkyl_rect_grid conf_grid; // Configuration space grid for cell spacing and cell center
@@ -56,6 +62,7 @@ struct gkyl_dg_calc_pkpm_vars {
   pkpm_accel_t pkpm_accel[3]; // kernel for computing pkpm acceleration and Lax variables
   pkpm_int_t pkpm_int; // kernel for computing integrated pkpm variables
   pkpm_source_t pkpm_source; // kernel for computing pkpm source update
+  pkpm_io_t pkpm_io; // kernel for constructing I/O arrays for pkpm diagnostics
 
   uint32_t flags;
   struct gkyl_dg_calc_pkpm_vars *on_dev; // pointer to itself or device data
@@ -195,6 +202,30 @@ static const gkyl_dg_pkpm_source_kern_list ten_pkpm_source_kernels[] = {
   { NULL, euler_pkpm_source_3x_ser_p1, NULL }, // 2
 };
 
+// PKPM io variables (Serendipity kernels)
+// Conserved fluid variables: [rho, rho ux, rho uy, rho uz, Pxx + rho ux^2, Pxy + rho ux uy, Pxz + rho ux uz, Pyy + rho uy^2, Pyz + rho uy uz, Pzz + rho uz^2]
+// PKPM primitive and acceleration variables:  
+// [ux, uy, uz, T_perp/m, m/T_perp, div(b), 1/rho div(p_par b), T_perp/m div(b), bb : grad(u), 
+// vperp configuration space characteristics = bb : grad(u) - div(u) - 2 nu]
+GKYL_CU_D
+static const gkyl_dg_pkpm_io_kern_list ser_pkpm_io_kernels[] = {
+  { NULL, pkpm_vars_io_1x_ser_p1, pkpm_vars_io_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_io_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_io_3x_ser_p1, NULL }, // 2
+};
+
+// PKPM io variables (Tensor kernels)
+// Conserved fluid variables: [rho, rho ux, rho uy, rho uz, Pxx + rho ux^2, Pxy + rho ux uy, Pxz + rho ux uz, Pyy + rho uy^2, Pyz + rho uy uz, Pzz + rho uz^2]
+// PKPM primitive and acceleration variables:  
+// [ux, uy, uz, T_perp/m, m/T_perp, div(b), 1/rho div(p_par b), T_perp/m div(b), bb : grad(u), 
+// vperp configuration space characteristics = bb : grad(u) - div(u) - 2 nu]
+GKYL_CU_D
+static const gkyl_dg_pkpm_io_kern_list ten_pkpm_io_kernels[] = {
+  { NULL, pkpm_vars_io_1x_ser_p1, pkpm_vars_io_1x_ser_p2 }, // 0
+  { NULL, pkpm_vars_io_2x_ser_p1, pkpm_vars_io_2x_tensor_p2 }, // 1
+  { NULL, pkpm_vars_io_3x_ser_p1, NULL }, // 2
+};
+
 GKYL_CU_D
 static pkpm_set_t
 choose_pkpm_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
@@ -304,6 +335,23 @@ choose_pkpm_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       return ten_pkpm_source_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static pkpm_io_t
+choose_pkpm_io_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_pkpm_io_kernels[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_pkpm_io_kernels[cdim-1].kernels[poly_order];
       break;
     default:
       assert(false);

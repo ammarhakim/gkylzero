@@ -333,8 +333,6 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
       // Debugging tools (ONLY ON CPU)
       // Writes out collisional quantities (nu_self, prim_moms, nu_prim_moms)
       // gkyl_vlasov_app_write_species_coll_moms(app, i, tm, frame);
-      // Writes out PKPM forces (div(p), div(p_parallel b_hat), pkpm_accel)
-      // gkyl_vlasov_app_write_species_pkpm_forces(app, i, tm, frame);
     }
     if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
@@ -342,11 +340,8 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
       gkyl_vlasov_app_write_magB(app, i, tm, frame);
     }
   }
-  for (int i=0; i<app->num_fluid_species; ++i) {
+  for (int i=0; i<app->num_fluid_species; ++i)
     gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
-    // if (app->fluid_species[i].eqn_id == GKYL_EQN_EULER_PKPM)
-    //   gkyl_vlasov_app_write_fluid_species_prim_vars(app, i, tm, frame);
-  }
 }
 
 void
@@ -422,6 +417,9 @@ gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double t
   struct vm_species *s = &app->species[sidx];
   vm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
 
+  // Also compute the other PKPM variables from the distribution function
+  vm_species_calc_pkpm_vars(app, s, s->f, app->field->em);
+
   const char *fmt = "%s-%s_pkpm_moms_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
@@ -431,26 +429,6 @@ gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double t
     gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
 
   gkyl_grid_sub_array_write(&app->grid, &app->local, s->pkpm_moms_diag.marr_host, fileNm);
-}
-
-void
-gkyl_vlasov_app_write_species_pkpm_forces(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-{
-  struct vm_species *s = &app->species[sidx];
-  const char *fmt_kin = "%s-%s_pkpm_div_p_kin_%d.gkyl";
-  int sz_kin = gkyl_calc_strlen(fmt_kin, app->name, s->info.name, frame);
-  char fileNm_kin[sz_kin+1]; // ensures no buffer overflow
-  snprintf(fileNm_kin, sizeof fileNm_kin, fmt_kin, app->name, s->info.name, frame);
-
-  gkyl_grid_sub_array_write(&app->grid, &app->local, s->pkpm_div_ppar, fileNm_kin);
-
-  struct vm_fluid_species *f = &app->fluid_species[sidx];
-  const char *fmt_accel_vars = "%s-%s_pkpm_accel_%d.gkyl";
-  int sz_accel_vars = gkyl_calc_strlen(fmt_accel_vars, app->name, f->info.name, frame);
-  char fileNm_accel_vars[sz_accel_vars+1]; // ensures no buffer overflow
-  snprintf(fileNm_accel_vars, sizeof fileNm_accel_vars, fmt_accel_vars, app->name, f->info.name, frame);
-
-  gkyl_grid_sub_array_write(&app->grid, &app->local, f->pkpm_accel, fileNm_accel_vars);
 }
 
 void
@@ -496,37 +474,40 @@ gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 void
 gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
+  vm_fluid_species_io(app, &app->fluid_species[sidx]);
+
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[sidx].info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
 
-  if (app->use_gpu) {
-    // copy data from device to host before writing it out
-    gkyl_array_copy(app->fluid_species[sidx].fluid_host, app->fluid_species[sidx].fluid);
-    gkyl_grid_sub_array_write(&app->grid, &app->local,
-      app->fluid_species[sidx].fluid_host, fileNm);
-  }
-  else {
-    gkyl_grid_sub_array_write(&app->grid, &app->local,
-      app->fluid_species[sidx].fluid, fileNm);
-  }
+  // copy data from device to host before writing it out
+  if (app->use_gpu) 
+    gkyl_array_copy(app->fluid_species[sidx].fluid_io_host, app->fluid_species[sidx].fluid_io);
+
+  gkyl_grid_sub_array_write(&app->grid, &app->local,
+    app->fluid_species[sidx].fluid_io_host, fileNm);
+
+  // If equation ID is PKPM, also write pkpm variables (primitive and acceleration)
+  if (app->fluid_species[sidx].eqn_id == GKYL_EQN_EULER_PKPM)
+    gkyl_vlasov_app_write_fluid_species_pkpm_vars(app, sidx, tm, frame);
 }
 
-// void
-// gkyl_vlasov_app_write_fluid_species_prim_vars(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-// {
-//   const char *fmt = "%s-%s_prim_%d.gkyl";
-//   int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[sidx].info.name, frame);
-//   char fileNm[sz+1]; // ensures no buffer overflow
-//   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
+void
+gkyl_vlasov_app_write_fluid_species_pkpm_vars(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+{
+  const char *fmt = "%s-%s_pkpm_vars_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[sidx].info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
 
-//   if (app->use_gpu)
-//     gkyl_array_copy(app->fluid_species[sidx].pkpm_prim_host, app->fluid_species[sidx].pkpm_prim);
+  // copy data from device to host before writing it out
+  if (app->use_gpu)
+    gkyl_array_copy(app->fluid_species[sidx].pkpm_vars_io_host, app->fluid_species[sidx].pkpm_vars_io);
 
-//   gkyl_grid_sub_array_write(&app->grid, &app->local,
-//     app->fluid_species[sidx].pkpm_prim_host, fileNm);
-// }
+  gkyl_grid_sub_array_write(&app->grid, &app->local,
+    app->fluid_species[sidx].pkpm_vars_io_host, fileNm);
+}
 
 void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)

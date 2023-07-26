@@ -378,17 +378,6 @@ void gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, dou
 void gkyl_vlasov_app_write_species_coll_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write pkpm forces, including div(p), div(p_parallel b_hat), and other acceleration variables.
- * FOR DEBUGGING ONLY, DOES NOT WORK ON GPUS
- * 
- * @param app App object.
- * @param sidx Index of fluid species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_species_pkpm_forces(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
  * Write species p/gamma to file.
  * 
  * @param app App object.
@@ -409,7 +398,7 @@ void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double 
 void gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write fluid species data to file.
+ * Write fluid species data to file. If equation ID is PKPM, also writes pkpm variables.
  * 
  * @param app App object.
  * @param sidx Index of fluid species to initialize.
@@ -419,14 +408,16 @@ void gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int f
 void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write primitive variables of fluid species data to file.
+ * Write pkpm variables, including primitive variables (ux, uy, uz, T_perp/m, m/T_perp) and 
+ * acceleration variables (div(b), 1/rho div(p_par b), T_perp/m div(b), bb : grad(u), and 
+ * vperp configuration space characteristics = bb : grad(u) - div(u) - 2 nu.
  * 
  * @param app App object.
  * @param sidx Index of fluid species to initialize.
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_fluid_species_prim_vars(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+void gkyl_vlasov_app_write_fluid_species_pkpm_vars(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.
