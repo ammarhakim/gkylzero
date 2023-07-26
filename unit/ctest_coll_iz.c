@@ -395,7 +395,8 @@ TEST_LIST = {
   { "prim_vars_vlasov_3x", prim_vars_vlasov_3x },
   { "coll_iz", coll_iz },
 #ifdef GKYL_HAVE_CUDA
-  { "prim_vars_gk_3x_gpu", prim_vars_3x_gpu },
+  { "prim_vars_gk_3x_gpu", prim_vars_gk_3x_gpu },
+  { "prim_vars_vlasov_3x_gpu", prim_vars_vlasov_3x_gpu },
   { "coll_iz_gpu", coll_iz_gpu },
 #endif  
   { NULL, NULL },
