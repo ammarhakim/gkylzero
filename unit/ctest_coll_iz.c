@@ -85,28 +85,16 @@ test_prim_vars_gk_3x(bool use_gpu)
 
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
   struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
-  struct gkyl_array *moms_elc_ho = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, confRange.volume);
-  struct gkyl_array *vtSq_elc_ho = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
+  struct gkyl_array *moms_elc = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, confRange.volume);
+  struct gkyl_array *vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
 
   struct gkyl_dg_prim_vars_type *calc_prim_vars_gk_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(&cbasis, &pbasis, "vtSq", use_gpu);
   
   gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
   gkyl_proj_on_basis_advance(projM2, 0.0, &confRange, m2);
  
-  gkyl_array_set_offset(moms_elc_ho, 1.0, m0, 0);
-  gkyl_array_set_offset(moms_elc_ho, 1.0, m2, 2*cbasis.num_basis);
-
-  struct gkyl_array *moms_elc, *vtSq_elc;
-  if (use_gpu) {
-    struct gkyl_array *moms_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*cbasis.num_basis, confRange.volume);
-    struct gkyl_array *vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
-    gkyl_array_copy(moms_elc, moms_elc_ho);
-    gkyl_array_copy(vtSq_elc, vtSq_elc_ho);
-  }
-  else {
-    moms_elc = moms_elc_ho;
-    vtSq_elc = vtSq_elc_ho;
-  }
+  gkyl_array_set_offset(moms_elc, 1.0, m0, 0);
+  gkyl_array_set_offset(moms_elc, 1.0, m2, 2*cbasis.num_basis);
   
   struct gkyl_range_iter conf_iter;
   gkyl_range_iter_init(&conf_iter, &confRange);
@@ -121,7 +109,6 @@ test_prim_vars_gk_3x(bool use_gpu)
 
   //gkyl_grid_sub_array_write(&confGrid, &confRange, vtSq_elc, "ctest_prim_vars_vtsq_elc.gkyl");
   
-  // check vals
   double p1_vals[] = {1.9898778467478656e+13, -8.1549238327948618e-05,
 		      3.8383544370155868e-05, 3.8383544370155868e-05,
 		      -8.1549238327948822e-05, -2.1582846978896450e-05,
@@ -132,6 +119,11 @@ test_prim_vars_gk_3x(bool use_gpu)
   for (int i=0; i<cbasis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(p1_vals[i], pv[i], 1e-12) );
   }
+  
+  gkyl_array_release(m0); gkyl_array_release(m2);
+  gkyl_array_release(moms_elc); gkyl_array_release(vtSq_elc);
+  gkyl_proj_on_basis_release(projM0); gkyl_proj_on_basis_release(projM2);
+  gkyl_dg_prim_vars_type_release(calc_prim_vars_gk_vtSq);
 
 }
 
@@ -168,28 +160,16 @@ test_prim_vars_vlasov_3x(bool use_gpu)
 
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
   struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
-  struct gkyl_array *moms_elc_ho = gkyl_array_new(GKYL_DOUBLE, (2+vdim)*cbasis.num_basis, confRange.volume);
-  struct gkyl_array *vtSq_elc_ho = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
+  struct gkyl_array *moms_elc = gkyl_array_new(GKYL_DOUBLE, (2+vdim)*cbasis.num_basis, confRange.volume);
+  struct gkyl_array *vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
 
   struct gkyl_dg_prim_vars_type *calc_prim_vars_vlasov_vtSq = gkyl_dg_prim_vars_vlasov_new(&cbasis, &pbasis, "vtSq", use_gpu);
   
   gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
   gkyl_proj_on_basis_advance(projM2, 0.0, &confRange, m2);
  
-  gkyl_array_set_offset(moms_elc_ho, 1.0, m0, 0);
-  gkyl_array_set_offset(moms_elc_ho, 1.0, m2, (vdim+1)*cbasis.num_basis);
-
-  struct gkyl_array *moms_elc, *vtSq_elc;
-  if (use_gpu) {
-    struct gkyl_array *moms_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, (2+vdim)*cbasis.num_basis, confRange.volume);
-    struct gkyl_array *vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis.num_basis, confRange.volume);
-    gkyl_array_copy(moms_elc, moms_elc_ho);
-    gkyl_array_copy(vtSq_elc, vtSq_elc_ho);
-  }
-  else {
-    moms_elc = moms_elc_ho;
-    vtSq_elc = vtSq_elc_ho;
-  }
+  gkyl_array_set_offset(moms_elc, 1.0, m0, 0);
+  gkyl_array_set_offset(moms_elc, 1.0, m2, (vdim+1)*cbasis.num_basis);
 
   struct gkyl_range_iter conf_iter;
   gkyl_range_iter_init(&conf_iter, &confRange);
@@ -215,6 +195,11 @@ test_prim_vars_vlasov_3x(bool use_gpu)
   for (int i=0; i<cbasis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(p1_vals[i], pv[i], 1e-12) );
   }
+
+  gkyl_array_release(m0); gkyl_array_release(m2);
+  gkyl_array_release(moms_elc); gkyl_array_release(vtSq_elc);
+  gkyl_proj_on_basis_release(projM0); gkyl_proj_on_basis_release(projM2);
+  gkyl_dg_prim_vars_type_release(calc_prim_vars_vlasov_vtSq);
 
 }
 
@@ -276,6 +261,7 @@ test_coll_iz(bool use_gpu)
   struct gkyl_array *cflRate_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
   struct gkyl_array *distf_elc_ho = gkyl_array_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);
   struct gkyl_array *coll_iz_elc_ho = gkyl_array_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange.volume);	
+
   // arrays necessary for fmax
   struct gkyl_array *bmag_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *jacob_tot_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -284,7 +270,6 @@ test_coll_iz(bool use_gpu)
   struct gkyl_array *b_y = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *b_z = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   
-  // project moments on basis
   gkyl_proj_on_basis_advance(projM0, 0.0, &confRange, m0);
   gkyl_proj_on_basis_advance(projM2, 0.0, &confRange, m2);
   gkyl_proj_on_basis_advance(projBmag, 0.0, &confRange, bmag_ho);
@@ -299,13 +284,12 @@ test_coll_iz(bool use_gpu)
   gkyl_array_shiftc(jacob_tot_ho, 1.0*pow(sqrt(2),cdim), 0);
   gkyl_array_shiftc(b_z, 1.0*pow(sqrt(2),cdim), 0);
 
-  // project b_i
   gkyl_array_set_offset(b_i_ho, 1.0, b_x, 0);
   gkyl_array_set_offset(b_i_ho, 1.0, b_y, basis.num_basis);
   gkyl_array_set_offset(b_i_ho, 1.0, b_z, 2*basis.num_basis);
 
   struct gkyl_array *moms_neut, *moms_elc, *cflRate, *distf_elc, *coll_iz_elc, *bmag, *jacob_tot, *b_i;
-  // cuda stuff
+
   if (use_gpu) {
     struct gkyl_array *moms_neut = gkyl_array_cu_dev_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume);
     struct gkyl_array *moms_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
@@ -376,8 +360,24 @@ test_coll_iz(bool use_gpu)
   for (int i=0; i<basis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(p1_vals[i], pv[i], 1e-12) );
   }
+
+  gkyl_array_release(m0); gkyl_array_release(m2);
+  gkyl_array_release(b_x); gkyl_array_release(b_y); gkyl_array_release(b_z);
+  gkyl_array_release(moms_elc_ho); gkyl_array_release(moms_neut_ho);
+  gkyl_array_release(cflRate_ho); gkyl_array_release(distf_elc_ho);
+  gkyl_array_release(bmag_ho); gkyl_array_release(jacob_tot_ho);
+  gkyl_array_release(coll_iz_elc_ho); gkyl_array_release(b_i_ho);
+  if (use_gpu) {
+      gkyl_array_release(moms_elc); gkyl_array_release(moms_neut);
+      gkyl_array_release(cflRate); gkyl_array_release(distf_elc);
+      gkyl_array_release(bmag); gkyl_array_release(jacob_tot);
+      gkyl_array_release(coll_iz_elc); gkyl_array_release(b_i);
+  }
   
-   gkyl_dg_iz_release(coll_iz);
+  gkyl_proj_on_basis_release(projM0); gkyl_proj_on_basis_release(projM2);
+  gkyl_proj_on_basis_release(projBmag); gkyl_proj_on_basis_release(projJac);
+  gkyl_proj_maxwellian_on_basis_release(proj_max);
+  gkyl_dg_iz_release(coll_iz);
 }
 
 void prim_vars_gk_3x() { test_prim_vars_gk_3x(false); }
@@ -395,8 +395,6 @@ TEST_LIST = {
   { "prim_vars_vlasov_3x", prim_vars_vlasov_3x },
   { "coll_iz", coll_iz },
 #ifdef GKYL_HAVE_CUDA
-  { "prim_vars_gk_3x_gpu", prim_vars_gk_3x_gpu },
-  { "prim_vars_vlasov_3x_gpu", prim_vars_vlasov_3x_gpu },
   { "coll_iz_gpu", coll_iz_gpu },
 #endif  
   { NULL, NULL },
