@@ -61,21 +61,21 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x1v_ser_p1(const double *w, const 
   } else { 
     fUpOrdR[0] = gkhyb_1x1v_p1_surfx1_eval_quad_node_0_l(fedge); 
   } 
-  cflFreq += -0.375*rdx2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.7071067811865468*alphaR[0]-0.7905694150420945*alphaR[2];
   if (alphaR_n > 0.) {
     fUpOrdR[1] = gkhyb_1x1v_p1_surfx1_eval_quad_node_1_r(fskin); 
   } else { 
     fUpOrdR[1] = gkhyb_1x1v_p1_surfx1_eval_quad_node_1_l(fedge); 
   } 
-  cflFreq += -0.375*rdx2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.6324555320336768*alphaR[2]+0.9486832980505135*alphaR[1]+0.7071067811865468*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[2] = gkhyb_1x1v_p1_surfx1_eval_quad_node_2_r(fskin); 
   } else { 
     fUpOrdR[2] = gkhyb_1x1v_p1_surfx1_eval_quad_node_2_l(fedge); 
   } 
-  cflFreq += -0.375*rdx2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpR[3] = {0.};
@@ -109,21 +109,21 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x1v_ser_p1(const double *w, const 
   } else { 
     fUpOrdL[0] = gkhyb_1x1v_p1_surfx1_eval_quad_node_0_l(fskin); 
   } 
-  cflFreq += -0.375*rdx2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.7071067811865468*alphaL[0]-0.7905694150420945*alphaL[2];
   if (alphaL_n > 0.) {
     fUpOrdL[1] = gkhyb_1x1v_p1_surfx1_eval_quad_node_1_r(fedge); 
   } else { 
     fUpOrdL[1] = gkhyb_1x1v_p1_surfx1_eval_quad_node_1_l(fskin); 
   } 
-  cflFreq += -0.375*rdx2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.6324555320336768*alphaL[2]+0.9486832980505135*alphaL[1]+0.7071067811865468*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[2] = gkhyb_1x1v_p1_surfx1_eval_quad_node_2_r(fedge); 
   } else { 
     fUpOrdL[2] = gkhyb_1x1v_p1_surfx1_eval_quad_node_2_l(fskin); 
   } 
-  cflFreq += -0.375*rdx2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpL[3] = {0.};
@@ -143,6 +143,6 @@ GKYL_CU_DH double gyrokinetic_boundary_surfx_1x1v_ser_p1(const double *w, const 
 
   } 
 
-  return cflFreq; 
+  return 3.0*rdx2*cflFreq; 
 
 } 
