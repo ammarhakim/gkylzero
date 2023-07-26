@@ -69,6 +69,7 @@ struct gkyl_bc_twistshift {
   struct gkyl_bc_twistshift_kernels *kernels_cu;  // device copy.
   const struct gkyl_rect_grid *grid;
   const int *ndonors;
+  const struct gkyl_range *local_range_ext;
 };
 
 void gkyl_bc_twistshift_choose_kernels_cu(const struct gkyl_basis *basis, int cdim,
