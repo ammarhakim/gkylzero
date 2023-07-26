@@ -5,6 +5,7 @@
 
 extern "C" {
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
@@ -13,24 +14,26 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_dg_calc_pkpm_vars_set_cu_ker(gkyl_dg_calc_pkpm_vars* calc,
-  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_rng,
-  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2)
+gkyl_dg_calc_pkpm_vars_set_cu_kernel(gkyl_dg_calc_pkpm_vars* up,
+  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* pkpm_div_ppar, 
+  struct gkyl_array* cell_avg_prim)
 {
   int idx[GKYL_MAX_DIM];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < conf_rng.volume;
+      linc1 < conf_range.volume;
       linc1 += gridDim.x*blockDim.x)
   {
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&conf_rng, linc1, idx);
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    long loc = gkyl_range_idx(&conf_rng, idx);
+    long loc = gkyl_range_idx(&conf_range, idx);
     // fetch the correct count in the matrix (since we solve Ncomp systems in each cell)
     long count = linc1*up->Ncomp;
 
@@ -41,36 +44,36 @@ gkyl_dg_calc_pkpm_vars_set_cu_ker(gkyl_dg_calc_pkpm_vars* calc,
 
     int* cell_avg_prim_d = (int*) gkyl_array_fetch(cell_avg_prim, loc);
 
-    cell_avg_prim_d[0] = up->pkpm_set(count, up->As, up->xs, 
+    cell_avg_prim_d[0] = up->pkpm_set(count, As, xs, 
       vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d, pkpm_div_ppar_d);
   }
 }
 
 __global__ static void
-gkyl_dg_calc_pkpm_vars_copy_sol_cu_ker(gkyl_dg_calc_pkpm_vars* calc, 
-  struct gkyl_nmat *xs, struct gkyl_range conf_rng,
-  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* out)
+gkyl_dg_calc_pkpm_vars_copy_cu_kernel(gkyl_dg_calc_pkpm_vars* up, 
+  struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  struct gkyl_array* prim)
 {
   int idx[GKYL_MAX_DIM];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < conf_rng.volume;
+      linc1 < conf_range.volume;
       linc1 += gridDim.x*blockDim.x)
   {
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&conf_rng, linc1, idx);
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
 
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    long loc = gkyl_range_idx(&conf_rng, idx);
+    long loc = gkyl_range_idx(&conf_range, idx);
     // fetch the correct count in the matrix (since we solve Ncomp systems in each cell)
     long count = linc1*up->Ncomp;
 
     double* prim_d = (double*) gkyl_array_fetch(prim, loc);
 
-    up->pkpm_copy(count, up->xs, prim_d);
+    up->pkpm_copy(count, xs, prim_d);
   }
 }
 
@@ -80,8 +83,10 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
   const struct gkyl_array* p_ij, const struct gkyl_array* pkpm_div_ppar, 
   struct gkyl_array* cell_avg_prim, struct gkyl_array* prim)
 {
-  gkyl_dg_calc_pkpm_vars_set_cu_ker<<<up->mem_range.nblocks, up->mem_range.nthreads>>>(up->on_dev,
-    up->As->on_dev, up->xs->on_dev, up->mem_range,
+  struct gkyl_range conf_range = up->mem_range;
+  
+  gkyl_dg_calc_pkpm_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
+    up->As->on_dev, up->xs->on_dev, conf_range,
     vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
     p_ij->on_dev, pkpm_div_ppar->on_dev, cell_avg_prim->on_dev);
 
@@ -90,12 +95,12 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
     assert(status);
   }
 
-  gkyl_dg_calc_pkpm_vars_copy_cu_ker<<<up->mem_range.nblocks, up->mem_range.nthreads>>>(up->on_dev,
-    up->xs->on_dev, up->mem_range, prim->on_dev);
+  gkyl_dg_calc_pkpm_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
+    up->xs->on_dev, conf_range, prim->on_dev);
 }
 
 __global__ void
-gkyl_calc_pkpm_vars_pressure_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
+gkyl_calc_pkpm_vars_pressure_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, 
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij)
 { 
   int idx[GKYL_MAX_DIM];
@@ -132,7 +137,7 @@ void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up, const
 }
 
 __global__ void
-gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
+gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, 
   const struct gkyl_array* bvar, const struct gkyl_array* prim, const struct gkyl_array* nu, 
   struct gkyl_array* pkpm_accel)
 {
@@ -158,9 +163,9 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, const 
 
     double *pkpm_accel_d = (double*) gkyl_array_fetch(pkpm_accel, linc);
 
-    for (int dir=0; dir<cdim; ++dir) {
-      gkyl_copy_int_arr(cdim, idxc, idxl);
-      gkyl_copy_int_arr(cdim, idxc, idxr);
+    for (int dir=0; dir<up->cdim; ++dir) {
+      gkyl_copy_int_arr(up->cdim, idxc, idxl);
+      gkyl_copy_int_arr(up->cdim, idxc, idxr);
 
       idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
 
@@ -176,7 +181,7 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, const 
       up->pkpm_accel[dir](up->conf_grid.dx, 
         bvar_l, bvar_c, bvar_r, 
         prim_l, prim_c, prim_r, 
-        nu_d, pkpm_accel_vars_d);
+        nu_d, pkpm_accel_d);
     }
   }
 }
@@ -298,7 +303,7 @@ gkyl_dg_calc_pkpm_vars*
 gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range)
 {
-  gkyl_dg_calc_pkpm_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
+  struct gkyl_dg_calc_pkpm_vars *up = (struct gkyl_dg_calc_pkpm_vars*) gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
 
   up->conf_grid = *conf_grid;
   int nc = cbasis->num_basis;
@@ -318,11 +323,10 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
-  gkyl_dg_calc_pkpm_vars *up_cu = (gkyl_dg_calc_pkpm_vars*) gkyl_cu_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
+  struct gkyl_dg_calc_pkpm_vars *up_cu = (struct gkyl_dg_calc_pkpm_vars*) gkyl_cu_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_pkpm_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_pkpm_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cbasis->b_type,
-    cdim, poly_order);
+  dg_calc_pkpm_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

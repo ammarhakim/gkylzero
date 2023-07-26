@@ -8,6 +8,7 @@
 #include <gkyl_maxwell_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <assert.h>
 
 typedef void (*em_calc_temp_t)(const double *em, double* out);
 typedef int (*em_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *temp);

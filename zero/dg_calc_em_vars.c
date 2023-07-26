@@ -59,7 +59,7 @@ void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up,
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_calc_em_vars_advance_cu(up, em, cell_avg_magB2, out);
+    return gkyl_dg_calc_em_vars_advance_cu(up, em, cell_avg_magB2, out);
   }
 #endif
   gkyl_array_clear(up->temp_var, 0.0);

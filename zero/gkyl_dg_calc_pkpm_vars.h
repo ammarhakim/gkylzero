@@ -133,8 +133,8 @@ void gkyl_dg_calc_pkpm_vars_release(struct gkyl_dg_calc_pkpm_vars *up);
  * Host-side wrappers for pkpm vars operations on device
  */
 
-void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   const struct gkyl_array* p_ij, const struct gkyl_array* pkpm_div_ppar, 
   struct gkyl_array* cell_avg_prim, struct gkyl_array* prim);
 
@@ -143,9 +143,9 @@ void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up, const
 
 void gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* bvar, const struct gkyl_array* prim, const struct gkyl_array* nu, 
-  struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel);
+  struct gkyl_array* pkpm_accel);
 
-void gkyl_dg_calc_pkpm_integrated_vars_cu(struct gkyl_dg_calc_pkpm_vars *up, 
+void gkyl_dg_calc_pkpm_integrated_vars_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
   const struct gkyl_array* prim, struct gkyl_array* pkpm_int_vars);
 

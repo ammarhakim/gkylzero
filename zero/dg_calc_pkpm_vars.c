@@ -61,7 +61,7 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(prim)) {
-    return gkyl_calc_pkpm_vars_advance_cu(up, 
+    return gkyl_dg_calc_pkpm_vars_advance_cu(up, 
       vlasov_pkpm_moms, euler_pkpm, 
       p_ij, pkpm_div_ppar, 
       cell_avg_prim, prim);
@@ -111,7 +111,7 @@ void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const st
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(p_ij)) {
-    return gkyl_calc_pkpm_vars_pressure_cu(up, conf_range, 
+    return gkyl_dg_calc_pkpm_vars_pressure_cu(up, conf_range, 
       bvar, vlasov_pkpm_moms, p_ij);
   }
 #endif
@@ -135,8 +135,8 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
   struct gkyl_array* pkpm_accel)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_calc_pkpm_vars_accel_cu(up, conf_range, 
+  if (gkyl_array_is_cu_dev(pkpm_accel)) {
+    return gkyl_dg_calc_pkpm_vars_accel_cu(up, conf_range, 
       bvar, prim, nu, pkpm_accel);
   }
 #endif
@@ -188,7 +188,7 @@ void gkyl_dg_calc_pkpm_integrated_vars(struct gkyl_dg_calc_pkpm_vars *up,
 // Check if more than one of the output arrays is on device? 
 // Probably a better way to do this (JJ: 11/16/22)
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(int_pkpm_vars)) {
+  if (gkyl_array_is_cu_dev(pkpm_int_vars)) {
     return gkyl_dg_calc_pkpm_integrated_vars_cu(up, conf_range, 
       vlasov_pkpm_moms, euler_pkpm, prim, pkpm_int_vars);
   }

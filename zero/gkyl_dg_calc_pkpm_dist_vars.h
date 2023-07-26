@@ -97,14 +97,14 @@ void gkyl_dg_calc_pkpm_dist_vars_release(struct gkyl_dg_calc_pkpm_dist_vars *up)
  * Host-side wrappers for pkpm dist vars operations on device
  */
 
-void gkyl_dg_calc_pkpm_vars_dist_mirror_force_cu(struct gkyl_dg_calc_pkpm_dist_vars *up, 
+void gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const struct gkyl_array* pkpm_prim, 
   const struct gkyl_array* nu_vthsq, const struct gkyl_array* pkpm_accel_vars, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);
 
-void gkyl_dg_calc_pkpm_vars_dist_div_ppar_cu(struct gkyl_dg_calc_pkpm_dist_vars *up, 
+void gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
   const struct gkyl_array* bvar, const struct gkyl_array* fIn, 
   struct gkyl_array* pkpm_div_ppar);
