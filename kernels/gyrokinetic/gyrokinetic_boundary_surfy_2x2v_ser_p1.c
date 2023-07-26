@@ -80,84 +80,84 @@ GKYL_CU_DH double gyrokinetic_boundary_surfy_2x2v_ser_p1(const double *w, const 
   } else { 
     fUpOrdR[0] = gkhyb_2x2v_p1_surfx2_eval_quad_node_0_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.3952847075210473*alphaR[9]-0.3952847075210471*alphaR[8]+0.3535533905932734*alphaR[5]-0.3535533905932734*alphaR[3]-0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[1] = gkhyb_2x2v_p1_surfx2_eval_quad_node_1_r(fskin); 
   } else { 
     fUpOrdR[1] = gkhyb_2x2v_p1_surfx2_eval_quad_node_1_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = (-0.3162277660168378*alphaR[9])+0.3162277660168378*alphaR[8]+0.3535533905932734*alphaR[5]-0.4743416490252568*alphaR[4]-0.3535533905932734*alphaR[3]+0.4743416490252568*alphaR[2]-0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[2] = gkhyb_2x2v_p1_surfx2_eval_quad_node_2_r(fskin); 
   } else { 
     fUpOrdR[2] = gkhyb_2x2v_p1_surfx2_eval_quad_node_2_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = (-0.3162277660168378*alphaR[9])+0.3162277660168378*alphaR[8]-0.3535533905932734*alphaR[5]+0.4743416490252568*alphaR[4]+0.3535533905932734*alphaR[3]-0.4743416490252568*alphaR[2]-0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[3] = gkhyb_2x2v_p1_surfx2_eval_quad_node_3_r(fskin); 
   } else { 
     fUpOrdR[3] = gkhyb_2x2v_p1_surfx2_eval_quad_node_3_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.3952847075210473*alphaR[9]-0.3952847075210471*alphaR[8]-0.3535533905932734*alphaR[5]+0.3535533905932734*alphaR[3]-0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[4] = gkhyb_2x2v_p1_surfx2_eval_quad_node_4_r(fskin); 
   } else { 
     fUpOrdR[4] = gkhyb_2x2v_p1_surfx2_eval_quad_node_4_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = (-0.3162277660168378*alphaR[9])+0.3162277660168378*alphaR[8]-0.3535533905932734*alphaR[5]-0.4743416490252568*alphaR[4]+0.3535533905932734*alphaR[3]+0.4743416490252568*alphaR[2]-0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[5] = gkhyb_2x2v_p1_surfx2_eval_quad_node_5_r(fskin); 
   } else { 
     fUpOrdR[5] = gkhyb_2x2v_p1_surfx2_eval_quad_node_5_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.3162277660168378*alphaR[9]+0.3162277660168378*alphaR[8]-0.3535533905932734*alphaR[5]-0.4743416490252568*alphaR[4]-0.3535533905932734*alphaR[3]-0.4743416490252568*alphaR[2]+0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[6] = gkhyb_2x2v_p1_surfx2_eval_quad_node_6_r(fskin); 
   } else { 
     fUpOrdR[6] = gkhyb_2x2v_p1_surfx2_eval_quad_node_6_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = (-0.3952847075210473*alphaR[9])-0.3952847075210471*alphaR[8]-0.3535533905932734*alphaR[5]-0.3535533905932734*alphaR[3]+0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[7] = gkhyb_2x2v_p1_surfx2_eval_quad_node_7_r(fskin); 
   } else { 
     fUpOrdR[7] = gkhyb_2x2v_p1_surfx2_eval_quad_node_7_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.3162277660168378*alphaR[9]+0.3162277660168378*alphaR[8]-0.3535533905932734*alphaR[5]+0.4743416490252568*alphaR[4]-0.3535533905932734*alphaR[3]+0.4743416490252568*alphaR[2]+0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[8] = gkhyb_2x2v_p1_surfx2_eval_quad_node_8_r(fskin); 
   } else { 
     fUpOrdR[8] = gkhyb_2x2v_p1_surfx2_eval_quad_node_8_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.3162277660168378*alphaR[9]+0.3162277660168378*alphaR[8]+0.3535533905932734*alphaR[5]-0.4743416490252568*alphaR[4]+0.3535533905932734*alphaR[3]-0.4743416490252568*alphaR[2]+0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[9] = gkhyb_2x2v_p1_surfx2_eval_quad_node_9_r(fskin); 
   } else { 
     fUpOrdR[9] = gkhyb_2x2v_p1_surfx2_eval_quad_node_9_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = (-0.3952847075210473*alphaR[9])-0.3952847075210471*alphaR[8]+0.3535533905932734*alphaR[5]+0.3535533905932734*alphaR[3]+0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[10] = gkhyb_2x2v_p1_surfx2_eval_quad_node_10_r(fskin); 
   } else { 
     fUpOrdR[10] = gkhyb_2x2v_p1_surfx2_eval_quad_node_10_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.3162277660168378*alphaR[9]+0.3162277660168378*alphaR[8]+0.3535533905932734*alphaR[5]+0.4743416490252568*alphaR[4]+0.3535533905932734*alphaR[3]+0.4743416490252568*alphaR[2]+0.3535533905932734*alphaR[1]+0.3535533905932734*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[11] = gkhyb_2x2v_p1_surfx2_eval_quad_node_11_r(fskin); 
   } else { 
     fUpOrdR[11] = gkhyb_2x2v_p1_surfx2_eval_quad_node_11_l(fedge); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpR[12] = {0.};
@@ -223,84 +223,84 @@ GKYL_CU_DH double gyrokinetic_boundary_surfy_2x2v_ser_p1(const double *w, const 
   } else { 
     fUpOrdL[0] = gkhyb_2x2v_p1_surfx2_eval_quad_node_0_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.3952847075210473*alphaL[9]-0.3952847075210471*alphaL[8]+0.3535533905932734*alphaL[5]-0.3535533905932734*alphaL[3]-0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[1] = gkhyb_2x2v_p1_surfx2_eval_quad_node_1_r(fedge); 
   } else { 
     fUpOrdL[1] = gkhyb_2x2v_p1_surfx2_eval_quad_node_1_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = (-0.3162277660168378*alphaL[9])+0.3162277660168378*alphaL[8]+0.3535533905932734*alphaL[5]-0.4743416490252568*alphaL[4]-0.3535533905932734*alphaL[3]+0.4743416490252568*alphaL[2]-0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[2] = gkhyb_2x2v_p1_surfx2_eval_quad_node_2_r(fedge); 
   } else { 
     fUpOrdL[2] = gkhyb_2x2v_p1_surfx2_eval_quad_node_2_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = (-0.3162277660168378*alphaL[9])+0.3162277660168378*alphaL[8]-0.3535533905932734*alphaL[5]+0.4743416490252568*alphaL[4]+0.3535533905932734*alphaL[3]-0.4743416490252568*alphaL[2]-0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[3] = gkhyb_2x2v_p1_surfx2_eval_quad_node_3_r(fedge); 
   } else { 
     fUpOrdL[3] = gkhyb_2x2v_p1_surfx2_eval_quad_node_3_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.3952847075210473*alphaL[9]-0.3952847075210471*alphaL[8]-0.3535533905932734*alphaL[5]+0.3535533905932734*alphaL[3]-0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[4] = gkhyb_2x2v_p1_surfx2_eval_quad_node_4_r(fedge); 
   } else { 
     fUpOrdL[4] = gkhyb_2x2v_p1_surfx2_eval_quad_node_4_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = (-0.3162277660168378*alphaL[9])+0.3162277660168378*alphaL[8]-0.3535533905932734*alphaL[5]-0.4743416490252568*alphaL[4]+0.3535533905932734*alphaL[3]+0.4743416490252568*alphaL[2]-0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[5] = gkhyb_2x2v_p1_surfx2_eval_quad_node_5_r(fedge); 
   } else { 
     fUpOrdL[5] = gkhyb_2x2v_p1_surfx2_eval_quad_node_5_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.3162277660168378*alphaL[9]+0.3162277660168378*alphaL[8]-0.3535533905932734*alphaL[5]-0.4743416490252568*alphaL[4]-0.3535533905932734*alphaL[3]-0.4743416490252568*alphaL[2]+0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[6] = gkhyb_2x2v_p1_surfx2_eval_quad_node_6_r(fedge); 
   } else { 
     fUpOrdL[6] = gkhyb_2x2v_p1_surfx2_eval_quad_node_6_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = (-0.3952847075210473*alphaL[9])-0.3952847075210471*alphaL[8]-0.3535533905932734*alphaL[5]-0.3535533905932734*alphaL[3]+0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[7] = gkhyb_2x2v_p1_surfx2_eval_quad_node_7_r(fedge); 
   } else { 
     fUpOrdL[7] = gkhyb_2x2v_p1_surfx2_eval_quad_node_7_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.3162277660168378*alphaL[9]+0.3162277660168378*alphaL[8]-0.3535533905932734*alphaL[5]+0.4743416490252568*alphaL[4]-0.3535533905932734*alphaL[3]+0.4743416490252568*alphaL[2]+0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[8] = gkhyb_2x2v_p1_surfx2_eval_quad_node_8_r(fedge); 
   } else { 
     fUpOrdL[8] = gkhyb_2x2v_p1_surfx2_eval_quad_node_8_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.3162277660168378*alphaL[9]+0.3162277660168378*alphaL[8]+0.3535533905932734*alphaL[5]-0.4743416490252568*alphaL[4]+0.3535533905932734*alphaL[3]-0.4743416490252568*alphaL[2]+0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[9] = gkhyb_2x2v_p1_surfx2_eval_quad_node_9_r(fedge); 
   } else { 
     fUpOrdL[9] = gkhyb_2x2v_p1_surfx2_eval_quad_node_9_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = (-0.3952847075210473*alphaL[9])-0.3952847075210471*alphaL[8]+0.3535533905932734*alphaL[5]+0.3535533905932734*alphaL[3]+0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[10] = gkhyb_2x2v_p1_surfx2_eval_quad_node_10_r(fedge); 
   } else { 
     fUpOrdL[10] = gkhyb_2x2v_p1_surfx2_eval_quad_node_10_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.3162277660168378*alphaL[9]+0.3162277660168378*alphaL[8]+0.3535533905932734*alphaL[5]+0.4743416490252568*alphaL[4]+0.3535533905932734*alphaL[3]+0.4743416490252568*alphaL[2]+0.3535533905932734*alphaL[1]+0.3535533905932734*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[11] = gkhyb_2x2v_p1_surfx2_eval_quad_node_11_r(fedge); 
   } else { 
     fUpOrdL[11] = gkhyb_2x2v_p1_surfx2_eval_quad_node_11_l(fskin); 
   } 
-  cflFreq += -0.09375*rdy2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpL[12] = {0.};
@@ -347,6 +347,6 @@ GKYL_CU_DH double gyrokinetic_boundary_surfy_2x2v_ser_p1(const double *w, const 
 
   } 
 
-  return cflFreq; 
+  return 3.0*rdy2*cflFreq; 
 
 } 

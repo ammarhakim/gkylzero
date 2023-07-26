@@ -60,14 +60,14 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, con
   } else { 
     fUpOrdR[0] = gkhyb_1x1v_p1_surfx2_eval_quad_node_0_l(fedge); 
   } 
-  cflFreq += -0.625*rdvpar2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.7071067811865468*alphaR[1]+0.7071067811865468*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_r(fskin); 
   } else { 
     fUpOrdR[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_l(fedge); 
   } 
-  cflFreq += -0.625*rdvpar2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpR[2] = {0.};
@@ -99,14 +99,14 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, con
   } else { 
     fUpOrdL[0] = gkhyb_1x1v_p1_surfx2_eval_quad_node_0_l(fskin); 
   } 
-  cflFreq += -0.625*rdvpar2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.7071067811865468*alphaL[1]+0.7071067811865468*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_r(fedge); 
   } else { 
     fUpOrdL[1] = gkhyb_1x1v_p1_surfx2_eval_quad_node_1_l(fskin); 
   } 
-  cflFreq += -0.625*rdvpar2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpL[2] = {0.};
@@ -125,6 +125,6 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p1(const double *w, con
 
   } 
 
-  return cflFreq; 
+  return 5.0*rdvpar2*cflFreq; 
 
 } 

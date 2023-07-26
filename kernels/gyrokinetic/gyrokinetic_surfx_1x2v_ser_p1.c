@@ -68,42 +68,42 @@ GKYL_CU_DH double gyrokinetic_surfx_1x2v_ser_p1(const double *w, const double *d
   } else { 
     fUpOrdL[0] = gkhyb_1x2v_p1_surfx1_eval_quad_node_0_l(fc); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.5*alphaL[0]-0.5590169943749465*alphaL[4];
   if (alphaL_n > 0.) {
     fUpOrdL[1] = gkhyb_1x2v_p1_surfx1_eval_quad_node_1_r(fl); 
   } else { 
     fUpOrdL[1] = gkhyb_1x2v_p1_surfx1_eval_quad_node_1_l(fc); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.4472135954999572*alphaL[4]+0.6708203932499357*alphaL[1]+0.5*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[2] = gkhyb_1x2v_p1_surfx1_eval_quad_node_2_r(fl); 
   } else { 
     fUpOrdL[2] = gkhyb_1x2v_p1_surfx1_eval_quad_node_2_l(fc); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.4472135954999572*alphaL[4]-0.6708203932499357*alphaL[1]+0.5*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[3] = gkhyb_1x2v_p1_surfx1_eval_quad_node_3_r(fl); 
   } else { 
     fUpOrdL[3] = gkhyb_1x2v_p1_surfx1_eval_quad_node_3_l(fc); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.5*alphaL[0]-0.5590169943749465*alphaL[4];
   if (alphaL_n > 0.) {
     fUpOrdL[4] = gkhyb_1x2v_p1_surfx1_eval_quad_node_4_r(fl); 
   } else { 
     fUpOrdL[4] = gkhyb_1x2v_p1_surfx1_eval_quad_node_4_l(fc); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
   alphaL_n = 0.4472135954999572*alphaL[4]+0.6708203932499357*alphaL[1]+0.5*alphaL[0];
   if (alphaL_n > 0.) {
     fUpOrdL[5] = gkhyb_1x2v_p1_surfx1_eval_quad_node_5_r(fl); 
   } else { 
     fUpOrdL[5] = gkhyb_1x2v_p1_surfx1_eval_quad_node_5_l(fc); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaL_n-fabs(alphaL_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpL[6] = {0.};
@@ -126,42 +126,42 @@ GKYL_CU_DH double gyrokinetic_surfx_1x2v_ser_p1(const double *w, const double *d
   } else { 
     fUpOrdR[0] = gkhyb_1x2v_p1_surfx1_eval_quad_node_0_l(fr); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.5*alphaR[0]-0.5590169943749465*alphaR[4];
   if (alphaR_n > 0.) {
     fUpOrdR[1] = gkhyb_1x2v_p1_surfx1_eval_quad_node_1_r(fc); 
   } else { 
     fUpOrdR[1] = gkhyb_1x2v_p1_surfx1_eval_quad_node_1_l(fr); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.4472135954999572*alphaR[4]+0.6708203932499357*alphaR[1]+0.5*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[2] = gkhyb_1x2v_p1_surfx1_eval_quad_node_2_r(fc); 
   } else { 
     fUpOrdR[2] = gkhyb_1x2v_p1_surfx1_eval_quad_node_2_l(fr); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.4472135954999572*alphaR[4]-0.6708203932499357*alphaR[1]+0.5*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[3] = gkhyb_1x2v_p1_surfx1_eval_quad_node_3_r(fc); 
   } else { 
     fUpOrdR[3] = gkhyb_1x2v_p1_surfx1_eval_quad_node_3_l(fr); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.5*alphaR[0]-0.5590169943749465*alphaR[4];
   if (alphaR_n > 0.) {
     fUpOrdR[4] = gkhyb_1x2v_p1_surfx1_eval_quad_node_4_r(fc); 
   } else { 
     fUpOrdR[4] = gkhyb_1x2v_p1_surfx1_eval_quad_node_4_l(fr); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
   alphaR_n = 0.4472135954999572*alphaR[4]+0.6708203932499357*alphaR[1]+0.5*alphaR[0];
   if (alphaR_n > 0.) {
     fUpOrdR[5] = gkhyb_1x2v_p1_surfx1_eval_quad_node_5_r(fc); 
   } else { 
     fUpOrdR[5] = gkhyb_1x2v_p1_surfx1_eval_quad_node_5_l(fr); 
   } 
-  cflFreq += -0.1875*rdx2*(alphaR_n-fabs(alphaR_n)); 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpR[6] = {0.};
@@ -188,6 +188,6 @@ GKYL_CU_DH double gyrokinetic_surfx_1x2v_ser_p1(const double *w, const double *d
   out[10] += (0.7071067811865475*GhatL[5]-0.7071067811865475*GhatR[5])*rdx2; 
   out[11] += ((-1.224744871391589*GhatR[5])-1.224744871391589*GhatL[5])*rdx2; 
 
-  return cflFreq; 
+  return 3.0*rdx2*cflFreq; 
 
 } 
