@@ -8,9 +8,10 @@
 // functions
 
 // Types for various kernels
-typedef double (*euler_pkpm_surf_t)(const double *w, const double *dx, 
+typedef double (*euler_pkpm_surf_t)(const double *w, const double *dxv, 
+  const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr,
   const double *u_il, const double *u_ic, const double *u_ir,
-  const double *vth_sql, const double *vth_sqc, const double *vth_sqr, 
+  const double *T_ijl, const double *T_ijc, const double *T_ijr, 
   const double *statevecl, const double *statevecc, const double *statevecr, 
   double* GKYL_RESTRICT out);
 
@@ -145,6 +146,9 @@ surf(const struct gkyl_dg_eqn *eqn,
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_i, cidx_l),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_i, cidx_c),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.u_i, cidx_r),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.moms, cidx_l),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.moms, cidx_c),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.moms, cidx_r),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vth_sq, cidx_l),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vth_sq, cidx_c),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vth_sq, cidx_r),
