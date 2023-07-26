@@ -1,7 +1,7 @@
 #include <gkyl_advection_kernels.h> 
 #include <gkyl_basis_ser_3x_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_ser_3x_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void advection_surfy_3x_ser_p1(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double advection_surfy_3x_ser_p1(const double *w, const double *dxv, const double *ul, const double *uc, const double *ur, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -69,5 +69,7 @@ GKYL_CU_DH void advection_surfy_3x_ser_p1(const double *w, const double *dxv, co
   out[5] += (0.7071067811865475*Ghat_l[3]-0.7071067811865475*Ghat_r[3])*dx1; 
   out[6] += -1.224744871391589*(Ghat_r[2]+Ghat_l[2])*dx1; 
   out[7] += -1.224744871391589*(Ghat_r[3]+Ghat_l[3])*dx1; 
+
+  return 0.;
 
 } 
