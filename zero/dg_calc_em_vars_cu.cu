@@ -34,7 +34,6 @@ gkyl_dg_calc_em_vars_set_cu_kernel(gkyl_dg_calc_em_vars* up,
     long loc = gkyl_range_idx(&conf_range, idx);
     // fetch the correct count in the matrix (since we solve Ncomp systems in each cell)
     long count = linc1*up->Ncomp;
-    printf("count = %ld\n", count);
 
     const double *em_d = (const double*) gkyl_array_cfetch(em, loc);
     int *cell_avg_magB2_d = (int*) gkyl_array_fetch(cell_avg_magB2, loc);

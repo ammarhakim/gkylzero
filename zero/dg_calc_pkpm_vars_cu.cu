@@ -141,6 +141,7 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct
   const struct gkyl_array* bvar, const struct gkyl_array* prim, const struct gkyl_array* nu, 
   struct gkyl_array* pkpm_accel)
 {
+  int cdim = up->cdim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < conf_range.volume;
@@ -163,9 +164,9 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct
 
     double *pkpm_accel_d = (double*) gkyl_array_fetch(pkpm_accel, linc);
 
-    for (int dir=0; dir<up->cdim; ++dir) {
-      gkyl_copy_int_arr(up->cdim, idxc, idxl);
-      gkyl_copy_int_arr(up->cdim, idxc, idxr);
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, idxc, idxl);
+      gkyl_copy_int_arr(cdim, idxc, idxr);
 
       idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
 
@@ -177,11 +178,11 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct
 
       const double *prim_l = (const double*) gkyl_array_cfetch(prim, linl);
       const double *prim_r = (const double*) gkyl_array_cfetch(prim, linr);
-
+      
       up->pkpm_accel[dir](up->conf_grid.dx, 
         bvar_l, bvar_c, bvar_r, 
-        prim_l, prim_c, prim_r, 
-        nu_d, pkpm_accel_d);
+        prim_l, prim_c, prim_r, nu_d,
+	pkpm_accel_d);
     }
   }
 }
@@ -360,6 +361,7 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
   int nc = cbasis->num_basis;
   enum gkyl_basis_type b_type = cbasis->b_type;
   int cdim = cbasis->ndim;
+  up->cdim = cdim;
   int poly_order = cbasis->poly_order;
   up->poly_order = poly_order;
   up->mem_range = *mem_range;
