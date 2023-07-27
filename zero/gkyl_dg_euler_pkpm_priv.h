@@ -75,6 +75,20 @@ kernel_euler_pkpm_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc,
 
 GKYL_CU_DH
 static double
+kernel_euler_pkpm_vol_2x_tensor_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
+  long cidx = gkyl_range_idx(&euler_pkpm->conf_range, idx);
+
+  return euler_pkpm_vol_2x_tensor_p2(xc, dx, 
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_ij, cidx),
+    qIn, qRhsOut);
+}
+
+GKYL_CU_DH
+static double
 kernel_euler_pkpm_vol_3x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
@@ -99,7 +113,7 @@ static const gkyl_dg_euler_pkpm_vol_kern_list ser_vol_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_vol_kern_list ten_vol_kernels[] = {
   { NULL, kernel_euler_pkpm_vol_1x_ser_p1, kernel_euler_pkpm_vol_1x_ser_p2 }, // 0
-  { NULL, kernel_euler_pkpm_vol_2x_ser_p1, NULL }, // 1
+  { NULL, kernel_euler_pkpm_vol_2x_ser_p1, kernel_euler_pkpm_vol_2x_tensor_p2 }, // 1
   { NULL, kernel_euler_pkpm_vol_3x_ser_p1, NULL }, // 2
 };
 
@@ -115,7 +129,7 @@ static const gkyl_dg_euler_pkpm_surf_kern_list ser_surf_x_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_surf_kern_list ten_surf_x_kernels[] = {
   { NULL, euler_pkpm_surfx_1x_ser_p1, euler_pkpm_surfx_1x_ser_p2 }, // 0
-  { NULL, euler_pkpm_surfx_2x_ser_p1, NULL }, // 1
+  { NULL, euler_pkpm_surfx_2x_ser_p1, euler_pkpm_surfx_2x_tensor_p2 }, // 1
   { NULL, euler_pkpm_surfx_3x_ser_p1, NULL }, // 2
 };
 
@@ -131,7 +145,7 @@ static const gkyl_dg_euler_pkpm_surf_kern_list ser_surf_y_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_euler_pkpm_surf_kern_list ten_surf_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
-  { NULL, euler_pkpm_surfy_2x_ser_p1, NULL }, // 1
+  { NULL, euler_pkpm_surfy_2x_ser_p1, euler_pkpm_surfy_2x_tensor_p2 }, // 1
   { NULL, euler_pkpm_surfy_3x_ser_p1, NULL }, // 2
 };
 
