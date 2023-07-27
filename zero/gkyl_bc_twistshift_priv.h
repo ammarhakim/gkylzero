@@ -62,6 +62,8 @@ struct gkyl_bc_twistshift_kernels {
 // Primary struct in this updater.
 struct gkyl_bc_twistshift {
   int dir;
+  int do_dir;
+  int shift_dir;
   enum gkyl_edge_loc edge;
   const struct gkyl_basis *basis;
   bool use_gpu;
@@ -69,6 +71,7 @@ struct gkyl_bc_twistshift {
   struct gkyl_bc_twistshift_kernels *kernels_cu;  // device copy.
   const struct gkyl_rect_grid *grid;
   const int *ndonors;
+  const int *cells_do; // y indices of donor cells for each x
   const struct gkyl_range *local_range_ext;
 };
 
@@ -88,6 +91,7 @@ void gkyl_bc_twistshift_choose_kernels(const struct gkyl_basis *basis, int cdim,
       kers->xlimdg   = vdim==0?   ser_twistshift_xlimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_xlimdg_list_2v[cdim-2].kernels[poly_order];
       kers->ylimdg   = vdim==0?   ser_twistshift_ylimdg_list_0v[cdim-2].kernels[poly_order] :   ser_twistshift_ylimdg_list_2v[cdim-2].kernels[poly_order];
       kers->fullcell = vdim==0? ser_twistshift_fullcell_list_0v[cdim-2].kernels[poly_order] : ser_twistshift_fullcell_list_2v[cdim-2].kernels[poly_order];
+      return;
     default:
       assert(false);
       break;
