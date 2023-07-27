@@ -910,9 +910,6 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
 
     struct vm_species *species = &app->species[i];
 
-    const struct gkyl_array *qmem = species->qmem;
-    const struct gkyl_array *p_over_gamma = species->p_over_gamma;
-
     const struct gkyl_array *fin = species->f;
     struct gkyl_array *rhs = species->f1;
 
@@ -921,16 +918,18 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     // else
     //   gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
-    if (app->use_gpu)
-      gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, 
-        species->qmem, species->p_over_gamma, 
-        0, 0, 0, 
-        fin, species->cflrate, rhs);
-    else
-      gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
-        species->qmem, species->p_over_gamma, 
-        0, 0, 0, 
-        fin, species->cflrate, rhs);
+    if (app->use_gpu) {
+      struct gkyl_dg_vlasov_auxfields vlasov_inp = {.field = species->qmem, 
+        .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
+      gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, &vlasov_inp, 
+        fin, species->cflrate, rhs);  
+    }
+    else {
+      struct gkyl_dg_vlasov_auxfields vlasov_inp = {.field = species->qmem, 
+        .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
+      gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &vlasov_inp, 
+        fin, species->cflrate, rhs); 
+    } 
   }
 }
 

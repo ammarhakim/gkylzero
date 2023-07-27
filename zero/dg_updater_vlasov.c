@@ -59,32 +59,23 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
 
 void
 gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
-  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
-  const struct gkyl_array *aux5,  
+  const struct gkyl_range *update_rng, void *aux_inp, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
-  // Set arrays needed
-  // Assumes a particular order of the arrays
-  // TO DO: More intelligent way to do these aux field sets? (JJ: 09/08/22)
   if (vlasov->model_id == GKYL_MODEL_SR) {
-    gkyl_vlasov_sr_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_sr_auxfields) { .qmem = aux1, .p_over_gamma = aux2 });
+    struct gkyl_dg_vlasov_sr_auxfields *sr_inp = aux_inp;
+    gkyl_vlasov_sr_set_auxfields(vlasov->eqn_vlasov, *sr_inp);
   }
   else if (vlasov->model_id == GKYL_MODEL_PKPM) {
-    gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_pkpm_auxfields) { 
-        .bvar = aux1, .pkpm_prim = aux2, 
-        .pkpm_accel_vars = aux3, .g_dist_source = aux4});
+    struct gkyl_dg_vlasov_pkpm_auxfields *pkpm_inp = aux_inp;
+    gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, *pkpm_inp);
   }
   else {
-    gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_auxfields) { 
-        .field = aux1, .ext_field = aux3, 
-        .cot_vec = aux4, .alpha_geo = aux5 }); 
+    struct gkyl_dg_vlasov_auxfields *vlasov_inp = aux_inp;
+    gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, *vlasov_inp); 
   }
+
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
   vlasov->vlasov_tm += gkyl_time_diff_now_sec(wst);
@@ -110,31 +101,21 @@ gkyl_dg_updater_vlasov_release(gkyl_dg_updater_vlasov* vlasov)
 
 void
 gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
-  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
-  const struct gkyl_array *aux5,  
+  const struct gkyl_range *update_rng, void *aux_inp, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
-  // Set arrays needed
-  // Assumes a particular order of the arrays
-  // TO DO: More intelligent way to do these aux field sets? (JJ: 09/08/22)
   if (vlasov->model_id == GKYL_MODEL_SR) {
-    gkyl_vlasov_sr_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_sr_auxfields) { .qmem = aux1, .p_over_gamma = aux2 });
+    struct gkyl_dg_vlasov_sr_auxfields *sr_inp = aux_inp;
+    gkyl_vlasov_sr_set_auxfields(vlasov->eqn_vlasov, *sr_inp);
   }
   else if (vlasov->model_id == GKYL_MODEL_PKPM) {
-    gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_pkpm_auxfields) { 
-        .bvar = aux1, .pkpm_prim = aux2, 
-        .pkpm_accel_vars = aux3, .g_dist_source = aux4});
+    struct gkyl_dg_vlasov_pkpm_auxfields *pkpm_inp = aux_inp;
+    gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, *pkpm_inp);
   }
   else {
-    gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, 
-      (struct gkyl_dg_vlasov_auxfields) { 
-        .field = aux1, .ext_field = aux3, 
-        .cot_vec = aux4, .alpha_geo = aux5 }); 
+    struct gkyl_dg_vlasov_auxfields *vlasov_inp = aux_inp;
+    gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, *vlasov_inp); 
   }
 
   struct timespec wst = gkyl_wall_clock();
@@ -148,10 +129,7 @@ gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
 
 void
 gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
-  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
-  const struct gkyl_array *aux5,  
+  const struct gkyl_range *update_rng, void *aux_inp, 
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
