@@ -425,8 +425,8 @@ test_n2_array_send_recv_1d()
   gkyl_comm_state_release(comm, cstate);
   gkyl_array_release(arrA);
   gkyl_array_release(arrB);
-  gkyl_comm_release(comm);
   gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
 }
 
 TEST_LIST = {
