@@ -12,11 +12,21 @@
 // Forward declaration
 struct gkyl_comm;
 
+struct gkyl_comm_state;
+
 // Get local "rank"
 typedef int (*get_rank_t)(struct gkyl_comm *comm, int *rank);
 
 // Get number of ranks
 typedef int (*get_size_t)(struct gkyl_comm *comm, int *sz);
+
+// Send  @a array to @a dest process using @a tag.
+typedef int (*gkyl_array_send_t)(struct gkyl_array *array, int dest, int tag,
+  struct gkyl_comm *comm);
+
+// Receive  @a array from @a src process using @a tag.
+typedef int (*gkyl_array_irecv_t)(struct gkyl_array *array, int src, int tag,
+  struct gkyl_comm *comm, struct gkyl_comm_state *state);
 
 // "Reduce" all elements of @a type in array @a data and store output in @a out
 typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
@@ -46,12 +56,21 @@ typedef struct gkyl_comm* (*extend_comm_t)(const struct gkyl_comm *comm,
 // Barrier
 typedef int (*barrier_t)(struct gkyl_comm *comm);
 
+// Allocate/free state objects.
+typedef struct gkyl_comm_state* (*comm_state_new_t)();
+typedef void (*comm_state_release_t)(struct gkyl_comm_state *state);
+
+// Wait for a request.
+typedef void (*comm_state_wait_t)(struct gkyl_comm_state *state);
+
 // Structure holding data and function pointers to communicate various
 // Gkeyll objects across multi-region or multi-block domains
 struct gkyl_comm {
 
   get_rank_t get_rank; // get local rank function
   get_size_t get_size; // get number of ranks
+  gkyl_array_send_t gkyl_array_send; // send array.
+  gkyl_array_irecv_t gkyl_array_irecv; // recv array.
   all_reduce_t all_reduce; // all reduce function
   gkyl_array_sync_t gkyl_array_sync; // sync array
   gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
@@ -59,6 +78,10 @@ struct gkyl_comm {
 
   gkyl_array_write_t gkyl_array_write; // array output
   extend_comm_t extend_comm; // extend communcator
+
+  comm_state_new_t comm_state_new; // Allocate a new state object.
+  comm_state_release_t comm_state_release; // Free a state object.
+  comm_state_wait_t comm_state_wait; // Wait for a request to complete.
 
   struct gkyl_ref_count ref_count; // reference count
 };
@@ -87,6 +110,36 @@ static int
 gkyl_comm_get_size(struct gkyl_comm *comm, int *sz)
 {
   return comm->get_size(comm, sz);
+}
+
+/**
+ * Blocking send a gkyl array to another process.
+ * @param comm Communicator.
+ * @param array Array to send.
+ * @param dest MPI rank we are sending to.
+ * @param tag MPI tag.
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_array_send(struct gkyl_comm *comm, struct gkyl_array *array,
+  int dest, int tag)
+{
+  return comm->gkyl_array_send(array, dest, tag, comm);
+}
+
+/**
+ * Blocking recv a gkyl array from another process.
+ * @param comm Communicator.
+ * @param array Array to receive into.
+ * @param src MPI rank we are receiving from. 
+ * @param tag MPI tag.
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_array_irecv(struct gkyl_comm *comm, struct gkyl_array *array,
+  int src, int tag, struct gkyl_comm_state *state)
+{
+  return comm->gkyl_array_irecv(array, src, tag, comm, state);
 }
 
 /**
@@ -157,6 +210,34 @@ static int
 gkyl_comm_barrier(struct gkyl_comm *comm)
 {
   return comm->barrier(comm);
+}
+
+/**
+ * Create a new comm request/status pair.
+ * @return request/status struct.
+ */
+static struct gkyl_comm_state*
+gkyl_comm_state_new(struct gkyl_comm *comm)
+{
+  return comm->comm_state_new();
+}
+
+/**
+ * Free memory associate with a comm state object.
+ */
+static void
+gkyl_comm_state_release(struct gkyl_comm *comm, struct gkyl_comm_state *state)
+{
+  comm->comm_state_release(state);
+}
+
+/**
+ * Wait for a request to complete.
+ */
+static void
+gkyl_comm_state_wait(struct gkyl_comm *comm, struct gkyl_comm_state *state)
+{
+  comm->comm_state_wait(state);
 }
 
 /**
