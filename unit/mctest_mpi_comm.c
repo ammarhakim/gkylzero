@@ -373,7 +373,7 @@ test_n1_per_sync_2d()
 }
 
 void
-test_n2_array_send_recv_1d()
+test_n2_array_send_irecv_1d()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -423,6 +423,72 @@ test_n2_array_send_recv_1d()
   }
 
   gkyl_comm_state_release(comm, cstate);
+  gkyl_array_release(arrA);
+  gkyl_array_release(arrB);
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+}
+
+void
+test_n2_array_isend_irecv_2d()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 2) return;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 10, 20 });
+
+  int cuts[] = { 1, m_sz };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
+
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp,
+      .sync_corners = false,
+    }
+  );
+
+  double sendval = rank==0? 20005. : 30005.;
+  double recvval = rank==0? 30005. : 20005.;
+
+  // Assume the range is not decomposed. 
+  struct gkyl_array *arrA = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+  struct gkyl_array *arrB = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
+  gkyl_array_clear(arrA, sendval*(1-rank));
+  gkyl_array_clear(arrB, sendval*rank);
+
+  struct gkyl_array *recvbuff = rank==0? arrB : arrA;
+  struct gkyl_array *sendbuff = rank==0? arrA : arrB;
+
+  struct gkyl_comm_state *cstate_s = gkyl_comm_state_new(comm);
+  struct gkyl_comm_state *cstate_r = gkyl_comm_state_new(comm);
+  int tag = 13;
+  // Post irecv before send.
+  gkyl_comm_array_irecv(comm, recvbuff, (rank+1) % 2, tag, cstate_r);
+  gkyl_comm_array_isend(comm, sendbuff, (rank+1) % 2, tag, cstate_s);
+
+  // Do some other unnecessary work.
+  struct gkyl_array *tmp_arr = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+  gkyl_array_clear(tmp_arr, 13.);
+
+  gkyl_comm_state_wait(comm, cstate_r);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long idx = gkyl_range_idx(&range, iter.idx);
+    const double *f = gkyl_array_cfetch(recvbuff, idx);
+    TEST_CHECK( f[0] == recvval );
+  }
+
+  gkyl_comm_state_wait(comm, cstate_s);
+
+  gkyl_comm_state_release(comm, cstate_s);
+  gkyl_comm_state_release(comm, cstate_r);
   gkyl_array_release(arrA);
   gkyl_array_release(arrB);
   gkyl_rect_decomp_release(decomp);
@@ -542,7 +608,8 @@ TEST_LIST = {
     {"test_n4_sync_2d_use_corner", test_n4_sync_2d_use_corner},
     {"test_n2_sync_1x1v", test_n4_sync_1x1v },
     {"test_n1_per_sync_2d", test_n1_per_sync_2d },
-    {"test_n2_array_send_recv_1d", test_n2_array_send_recv_1d},
+    {"test_n2_array_send_irecv_1d", test_n2_array_send_irecv_1d},
+    {"test_n2_array_isend_irecv_2d", test_n2_array_isend_irecv_2d},
     {"test_n4_multicomm_2d", test_n4_multicomm_2d},
     {NULL, NULL},
 };

@@ -21,11 +21,17 @@ typedef int (*get_rank_t)(struct gkyl_comm *comm, int *rank);
 // Get number of ranks
 typedef int (*get_size_t)(struct gkyl_comm *comm, int *sz);
 
-// Send  @a array to @a dest process using @a tag.
+// Blocking send @a array to @a dest process using @a tag.
 typedef int (*gkyl_array_send_t)(struct gkyl_array *array, int dest, int tag,
   struct gkyl_comm *comm);
 
-// Receive  @a array from @a src process using @a tag.
+// Nonblocking send @a array to @a dest process using @a tag, and.
+// store the status of this comm in @a state.
+typedef int (*gkyl_array_isend_t)(struct gkyl_array *array, int dest, int tag,
+  struct gkyl_comm *comm, struct gkyl_comm_state *state);
+
+// Nonblocking receive @a array from @a src process using @a tag, and
+// store the status of this comm in @a state.
 typedef int (*gkyl_array_irecv_t)(struct gkyl_array *array, int src, int tag,
   struct gkyl_comm *comm, struct gkyl_comm_state *state);
 
@@ -77,8 +83,9 @@ struct gkyl_comm {
 
   get_rank_t get_rank; // get local rank function
   get_size_t get_size; // get number of ranks
-  gkyl_array_send_t gkyl_array_send; // send array.
-  gkyl_array_irecv_t gkyl_array_irecv; // recv array.
+  gkyl_array_send_t gkyl_array_send; // blocking send array.
+  gkyl_array_isend_t gkyl_array_isend; // nonblocking send array.
+  gkyl_array_irecv_t gkyl_array_irecv; // nonblocking recv array.
   all_reduce_t all_reduce; // all reduce function
   gkyl_array_sync_t gkyl_array_sync; // sync array
   gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
@@ -137,11 +144,28 @@ gkyl_comm_array_send(struct gkyl_comm *comm, struct gkyl_array *array,
 }
 
 /**
- * Blocking recv a gkyl array from another process.
+ * Nonblocking send a gkyl array to another process.
+ * @param comm Communicator.
+ * @param array Array to send.
+ * @param dest MPI rank we are sending to.
+ * @param tag MPI tag.
+ * @param state Comm state object to check (e.g. if comm finished).
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_array_isend(struct gkyl_comm *comm, struct gkyl_array *array,
+  int dest, int tag, struct gkyl_comm_state *state)
+{
+  return comm->gkyl_array_isend(array, dest, tag, comm, state);
+}
+
+/**
+ * Nonblocking recv a gkyl array from another process.
  * @param comm Communicator.
  * @param array Array to receive into.
  * @param src MPI rank we are receiving from. 
  * @param tag MPI tag.
+ * @param state Comm state object to check (e.g. if comm finished).
  * @return error code: 0 for success
  */
 static int
