@@ -495,6 +495,24 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   return ext_comm;
 }
 
+static struct gkyl_comm*
+split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+  int rank;
+  MPI_Comm_rank(mpi->mcomm, &rank);
+  MPI_Comm new_mcomm;
+  int ret = MPI_Comm_split(mpi->mcomm, color, rank, &new_mcomm);
+  assert(ret == MPI_SUCCESS);
+
+  struct gkyl_comm *newcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = new_mcomm,
+      .decomp = new_decomp,
+    }
+  );
+  return newcomm;
+}
+
 static struct gkyl_comm_state* comm_state_new()
 {
   struct gkyl_comm_state *state = gkyl_malloc(sizeof *state);
@@ -557,6 +575,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.gkyl_array_per_sync = array_per_sync;
   mpi->base.gkyl_array_write = array_write;
   mpi->base.extend_comm = extend_comm;
+  mpi->base.split_comm = split_comm;
   mpi->base.comm_state_new = comm_state_new;
   mpi->base.comm_state_release = comm_state_release;
   mpi->base.comm_state_wait = comm_state_wait;

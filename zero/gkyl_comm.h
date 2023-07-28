@@ -5,6 +5,7 @@
 #include <gkyl_elem_type.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>
+#include <gkyl_rect_decomp.h>
 
 // The return value of the functions is an error code. Success is
 // denoted by 0 and failure by other values.
@@ -48,10 +49,17 @@ typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_array *arr, const char *fname);
 
-// Create a new communcator that extends the communcator to work on a
+// Create a new communicator that extends the communcator to work on a
 // extended domain specified by erange
 typedef struct gkyl_comm* (*extend_comm_t)(const struct gkyl_comm *comm,
   const struct gkyl_range *erange);
+
+// Create a new communicator by splitting a comm, and choosing members
+// of new communicator according to the color rank. It can be used with
+// a new decomp object, or the same one used for the parent comm, depending
+// of the use case.
+typedef struct gkyl_comm* (*split_comm_t)(const struct gkyl_comm *comm,
+  int color, struct gkyl_rect_decomp *new_decomp);
 
 // Barrier
 typedef int (*barrier_t)(struct gkyl_comm *comm);
@@ -78,6 +86,7 @@ struct gkyl_comm {
 
   gkyl_array_write_t gkyl_array_write; // array output
   extend_comm_t extend_comm; // extend communcator
+  split_comm_t split_comm; // split communicator.
 
   comm_state_new_t comm_state_new; // Allocate a new state object.
   comm_state_release_t comm_state_release; // Free a state object.
@@ -244,7 +253,7 @@ gkyl_comm_state_wait(struct gkyl_comm *comm, struct gkyl_comm_state *state)
  * Write out grid and array data to file in .gkyl format so postgkyl
  * can understand it.
  *
- * @param comm Communcator
+ * @param comm Communicator
  * @param grid Grid object to write
  * @param range Range describing portion of the array to output.
  * @param arr Array object to write
@@ -265,15 +274,33 @@ gkyl_comm_array_write(struct gkyl_comm *comm,
  * communcator is extended by a tensor-product with erange). The
  * returned communcator must be freed by calling gkyl_comm_release.
  *
- * @param comm Communcator
- * @param arnage Range to extend by
- * @return Newly created communcator
+ * @param comm Communicator
+ * @param erange Range to extend by
+ * @return Newly created communicator
  */
 static struct gkyl_comm*
 gkyl_comm_extend_comm(const struct gkyl_comm *comm,
   const struct gkyl_range *erange)
 {
   return comm->extend_comm(comm, erange);
+}
+
+/**
+ * Create a new communcator that extends the communcator to work on a
+ * extended domain specified by erange. (Each range handled by the
+ * communcator is extended by a tensor-product with erange). The
+ * returned communcator must be freed by calling gkyl_comm_release.
+ *
+ * @param comm Communicator.
+ * @param color All ranks of same color will share a communicator.
+ * @param new_decomp Decomp object to associate with the new communicator.
+ * @return Newly created communicator
+ */
+static struct gkyl_comm*
+gkyl_comm_split_comm(const struct gkyl_comm *comm, int color,
+  struct gkyl_rect_decomp *new_decomp)
+{
+  return comm->split_comm(comm, color, new_decomp);
 }
 
 /**

@@ -429,6 +429,111 @@ test_n2_array_send_recv_1d()
   gkyl_comm_release(comm);
 }
 
+void
+test_n4_multicomm_2d()
+{
+  // Test the use of two gkyl_comm objects simultaneously, mimicing the case
+  // where one is used to decompose space and the other species.
+  // We sync across the conf communicator, and send/recv across the species
+  // comm.
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 4) return;
+
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 10, 20 });
+
+  int confcuts[] = { 2, 1 };
+  struct gkyl_rect_decomp *confdecomp = gkyl_rect_decomp_new_from_cuts(2, confcuts, &range);  
+  
+  struct gkyl_comm *worldcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = confdecomp,  // MF 2023/07/28: I think decomp doesn't matter
+                             // for worldcomm.
+    }
+  );
+
+  int worldrank;
+  gkyl_comm_get_rank(worldcomm, &worldrank);
+
+  int confcolor = floor(worldrank/confdecomp->ndecomp);
+  struct gkyl_comm *confcomm = gkyl_comm_split_comm(worldcomm, confcolor, confdecomp);
+  int confrank;
+  gkyl_comm_get_rank(confcomm, &confrank);
+
+  int speciescolor = worldrank % confdecomp->ndecomp;
+  struct gkyl_comm *speciescomm = gkyl_comm_split_comm(worldcomm, speciescolor, confdecomp);
+  int speciesrank;
+  gkyl_comm_get_rank(speciescomm, &speciesrank);
+
+  int nghost[] = { 1, 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&confdecomp->ranges[confrank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arrA = gkyl_array_new(GKYL_DOUBLE, 2, local_ext.volume);
+  struct gkyl_array *arrB = gkyl_array_new(GKYL_DOUBLE, 2, local_ext.volume);
+  gkyl_array_clear(arrA, 0.);
+  gkyl_array_clear(arrB, 0.);
+  struct gkyl_array *recvbuff = speciesrank==0? arrB : arrA;
+  struct gkyl_array *sendbuff = speciesrank==0? arrA : arrB;
+
+  gkyl_comm_barrier(worldcomm);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long idx = gkyl_range_idx(&local, iter.idx);
+    double *f = gkyl_array_fetch(sendbuff, idx);
+    f[0] = iter.idx[0]; f[1] = iter.idx[1];
+  }
+
+  // Sync sendbuff array and check results.
+  gkyl_comm_array_sync(confcomm, &local, &local_ext, sendbuff);
+
+  struct gkyl_range in_range; // interior, including ghost cells
+  gkyl_sub_range_intersect(&in_range, &local_ext, &range);
+  struct gkyl_range local_x, local_ext_x, local_y, local_ext_y;
+  gkyl_create_ranges(&confdecomp->ranges[confrank], (int[]) {1, 0}, &local_ext_x, &local_x);
+  gkyl_create_ranges(&confdecomp->ranges[confrank], (int[]) { 0, 1 }, &local_ext_y, &local_y);
+  gkyl_range_iter_init(&iter, &in_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long idx = gkyl_range_idx(&in_range, iter.idx);
+    const double *f = gkyl_array_cfetch(sendbuff, idx);
+    // exclude corners
+    if (gkyl_range_contains_idx(&local_ext_x, iter.idx) || gkyl_range_contains_idx(&local_ext_y, iter.idx)) {
+      TEST_CHECK( iter.idx[0] == f[0] );
+      TEST_CHECK( iter.idx[1] == f[1] );
+    }
+  }
+
+  // Now send/recv across species communicator and check results.
+  struct gkyl_comm_state *cstate = gkyl_comm_state_new(speciescomm);
+  int tag = 13;
+  // Post irecv before send.
+  gkyl_comm_array_irecv(speciescomm, recvbuff, (speciesrank+1) % 2, tag, cstate);
+  gkyl_comm_array_send(speciescomm, sendbuff, (speciesrank+1) % 2, tag);
+  gkyl_comm_state_wait(speciescomm, cstate);
+
+  gkyl_range_iter_init(&iter, &in_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long idx = gkyl_range_idx(&in_range, iter.idx);
+    const double *f = gkyl_array_cfetch(recvbuff, idx);
+    // exclude corners
+    if (gkyl_range_contains_idx(&local_ext_x, iter.idx) || gkyl_range_contains_idx(&local_ext_y, iter.idx)) {
+      TEST_CHECK( iter.idx[0] == f[0] );
+      TEST_CHECK( iter.idx[1] == f[1] );
+    }
+  }
+
+  gkyl_comm_state_release(speciescomm, cstate);
+  gkyl_array_release(arrA);
+  gkyl_array_release(arrB);
+  gkyl_rect_decomp_release(confdecomp);
+  gkyl_comm_release(speciescomm);
+  gkyl_comm_release(confcomm);
+  gkyl_comm_release(worldcomm);
+}
+  
 TEST_LIST = {
     {"test_1", test_1},
     {"test_n2", test_n2},
@@ -438,6 +543,7 @@ TEST_LIST = {
     {"test_n2_sync_1x1v", test_n4_sync_1x1v },
     {"test_n1_per_sync_2d", test_n1_per_sync_2d },
     {"test_n2_array_send_recv_1d", test_n2_array_send_recv_1d},
+    {"test_n4_multicomm_2d", test_n4_multicomm_2d},
     {NULL, NULL},
 };
 
