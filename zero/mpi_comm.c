@@ -115,6 +115,15 @@ array_send(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm)
 }
 
 static int
+array_isend(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
+{
+  size_t vol = array->esznc*array->size;
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  int ret = MPI_Isend(array->data, vol, g2_mpi_datatype[array->type], dest, tag, mpi->mcomm, &state->req); 
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
 array_irecv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
 {
   size_t vol = array->esznc*array->size;
@@ -569,6 +578,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.get_size = get_size;
   mpi->base.barrier = barrier;
   mpi->base.gkyl_array_send = array_send;
+  mpi->base.gkyl_array_isend = array_isend;
   mpi->base.gkyl_array_irecv = array_irecv;
   mpi->base.all_reduce = all_reduce;
   mpi->base.gkyl_array_sync = array_sync;
