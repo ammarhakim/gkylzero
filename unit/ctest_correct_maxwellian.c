@@ -5,7 +5,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_correct_maxwellian.h>
 #include <gkyl_mom_calc.h>
-#include <gkyl_mom_gyrokinetic.h>
+#include <gkyl_mom_vlasov.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
