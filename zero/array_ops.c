@@ -503,26 +503,22 @@ gkyl_array_copy_range_to_range(struct gkyl_array *out,
   // Setup linear counter offset for output range/array.
   int iloLocal_out[GKYL_MAX_DIM];
   int iloLocal_inp[GKYL_MAX_DIM];
-
   for (int d=0; d<out_range->ndim; ++d){
     iloLocal_out[d] = out_range->lower[d];
     iloLocal_inp[d] = inp_range->lower[d];
   }
-  long linIdxLo_out = gkyl_range_idx(out_range, iloLocal_out);
 
   struct gkyl_range_iter iter;
-  int iter_idx_shift[GKYL_MAX_DIM];
-  int iter_idx_out[GKYL_MAX_DIM];
+  int idx_out[GKYL_MAX_DIM];
   gkyl_range_iter_init(&iter, inp_range);
   while (gkyl_range_iter_next(&iter)) {
-    long copy_idx_inp = gkyl_range_idx(inp_range, iter.idx);
-    // iter.idx is a multi dimensional index of the present point
+    long linidx_inp = gkyl_range_idx(inp_range, iter.idx);
     for (int d=0; d<out_range->ndim; ++d){
-      iter_idx_shift[d] = iter.idx[d] - iloLocal_inp[d];
-      iter_idx_out[d] = iloLocal_out[d] + iter_idx_shift[d];
+      int idx_shift = iter.idx[d] - iloLocal_inp[d];
+      idx_out[d] = iloLocal_out[d] + idx_shift;
     }
-    long copy_idx_out = gkyl_range_idx(out_range, iter_idx_out);
-    memcpy(gkyl_array_fetch(out, copy_idx_out), gkyl_array_cfetch(inp, copy_idx_inp), inp->esznc);
+    long linidx_out = gkyl_range_idx(out_range, idx_out);
+    memcpy(gkyl_array_fetch(out, linidx_out), gkyl_array_cfetch(inp, linidx_inp), inp->esznc);
   }
   return out;
 }
