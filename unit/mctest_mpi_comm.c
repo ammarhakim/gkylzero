@@ -422,6 +422,8 @@ test_n2_array_send_irecv_1d()
     TEST_CHECK( f[0] == recvval );
   }
 
+  gkyl_comm_barrier(comm);
+
   gkyl_comm_state_release(comm, cstate);
   gkyl_array_release(arrA);
   gkyl_array_release(arrB);

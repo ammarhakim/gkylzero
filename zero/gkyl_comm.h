@@ -30,6 +30,10 @@ typedef int (*gkyl_array_send_t)(struct gkyl_array *array, int dest, int tag,
 typedef int (*gkyl_array_isend_t)(struct gkyl_array *array, int dest, int tag,
   struct gkyl_comm *comm, struct gkyl_comm_state *state);
 
+// Blocking receive @a array from @a src process using @a tag.
+typedef int (*gkyl_array_recv_t)(struct gkyl_array *array, int src, int tag,
+  struct gkyl_comm *comm);
+
 // Nonblocking receive @a array from @a src process using @a tag, and
 // store the status of this comm in @a state.
 typedef int (*gkyl_array_irecv_t)(struct gkyl_array *array, int src, int tag,
@@ -85,6 +89,7 @@ struct gkyl_comm {
   get_size_t get_size; // get number of ranks
   gkyl_array_send_t gkyl_array_send; // blocking send array.
   gkyl_array_isend_t gkyl_array_isend; // nonblocking send array.
+  gkyl_array_recv_t gkyl_array_recv; // blocking recv array.
   gkyl_array_irecv_t gkyl_array_irecv; // nonblocking recv array.
   all_reduce_t all_reduce; // all reduce function
   gkyl_array_sync_t gkyl_array_sync; // sync array
@@ -157,6 +162,21 @@ gkyl_comm_array_isend(struct gkyl_comm *comm, struct gkyl_array *array,
   int dest, int tag, struct gkyl_comm_state *state)
 {
   return comm->gkyl_array_isend(array, dest, tag, comm, state);
+}
+
+/**
+ * Blocking recv a gkyl array from another process.
+ * @param comm Communicator.
+ * @param array Array to receive into.
+ * @param src MPI rank we are receiving from. 
+ * @param tag MPI tag.
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_array_recv(struct gkyl_comm *comm, struct gkyl_array *array,
+  int src, int tag)
+{
+  return comm->gkyl_array_recv(array, src, tag, comm);
 }
 
 /**
