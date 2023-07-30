@@ -140,9 +140,6 @@ evalExtEmInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   fout[0] = Ex, fout[1] = Ey; fout[2] = Ez;
   // magnetic field
   fout[3] = Bx, fout[4] = By; fout[5] = Bz;
-
-  // correction potentials
-  fout[6] = 0.0; fout[7] = 0.0;
 }
 
 // map (r,theta) -> (x,y)
