@@ -39,7 +39,7 @@ struct gkyl_correct_gkmaxwellian
   gkyl_dg_bin_op_mem *weak_divide, *weak_multiply, *weak_multiply_confPhase; // memory for weak operators
 
   //double *err1, *err2;
-  //double *err1_cu, *err2_cu;
+  double *err1_cu, *err2_cu;
   struct gkyl_array *mvals1, *mvals2;
   struct gkyl_array *moms;
 };
@@ -84,8 +84,8 @@ gkyl_correct_gkmaxwellian_new(const struct gkyl_rect_grid *grid, const struct gk
     up->weak_multiply_confPhase = gkyl_dg_bin_op_mem_new(conf_local->volume, conf_basis->num_basis);
   }
 
-  //up->err1_cu = gkyl_cu_malloc(sizeof(double[1]));
-  //up->err2_cu = gkyl_cu_malloc(sizeof(double[1]));
+  up->err1_cu = gkyl_cu_malloc(sizeof(double[1]));
+  up->err2_cu = gkyl_cu_malloc(sizeof(double[1]));
   up->mvals1 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
   up->mvals2 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
 
@@ -96,9 +96,6 @@ gkyl_correct_gkmaxwellian_new(const struct gkyl_rect_grid *grid, const struct gk
 
 void gkyl_correct_gkmaxwellian_fix(gkyl_correct_gkmaxwellian *cmax, struct gkyl_array *fM, const struct gkyl_array *m0_corr, const struct gkyl_array *m1_corr, const struct gkyl_array *m2_corr, const struct gkyl_array *jacob_tot, const struct gkyl_array *bmag, double mass, double err_max, int iter_max, const struct gkyl_range *conf_local, const struct gkyl_range *phase_local, const struct gkyl_range *conf_local_ext, int poly_order, bool use_gpu)
 {
-  double* err1_cu = (double*) gkyl_cu_malloc(sizeof(double[1]));
-  double* err2_cu = (double*) gkyl_cu_malloc(sizeof(double[1]));
-
   // Make the maxwellian projection routine
   gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&cmax->grid, &cmax->conf_basis, &cmax->phase_basis, poly_order+1, use_gpu); 
 
@@ -162,15 +159,10 @@ void gkyl_correct_gkmaxwellian_fix(gkyl_correct_gkmaxwellian *cmax, struct gkyl_
     gkyl_array_scale_range(cmax->mvals1, cmax->grid.cellVolume, *conf_local);
     gkyl_array_scale_range(cmax->mvals2, cmax->grid.cellVolume, *conf_local);
     if (use_gpu) {
-      gkyl_array_reduce_range(err1_cu, cmax->mvals1, GKYL_SUM, *conf_local);
-      gkyl_array_reduce_range(err2_cu, cmax->mvals2, GKYL_SUM, *conf_local);
-      gkyl_cu_memcpy(err1, err1_cu, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-      gkyl_cu_memcpy(err2, err2_cu, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-/*    gkyl_array_reduce_range(cmax->err1_cu, cmax->mvals1, GKYL_SUM, *conf_local);
+      gkyl_array_reduce_range(cmax->err1_cu, cmax->mvals1, GKYL_SUM, *conf_local);
       gkyl_array_reduce_range(cmax->err2_cu, cmax->mvals2, GKYL_SUM, *conf_local);
-      gkyl_cu_memcpy(cmax->err1, cmax->err1_cu, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-      gkyl_cu_memcpy(cmax->err2, cmax->err2_cu, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-*/
+      gkyl_cu_memcpy(err1, cmax->err1_cu, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(err2, cmax->err2_cu, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
     } else {
       gkyl_array_reduce_range(err1, cmax->mvals1, GKYL_SUM, *conf_local);
       gkyl_array_reduce_range(err2, cmax->mvals2, GKYL_SUM, *conf_local);
@@ -207,8 +199,6 @@ void gkyl_correct_gkmaxwellian_fix(gkyl_correct_gkmaxwellian *cmax, struct gkyl_
     // Increment i
     i += 1;
   } // Main iteration loop ends
-  gkyl_cu_free(err1_cu);
-  gkyl_cu_free(err2_cu);
 }
 
 void
