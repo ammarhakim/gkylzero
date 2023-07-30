@@ -111,7 +111,7 @@ static inline double
 pulse2D(double n0, double Aphi0, double r, double z, double I, double a, double Lz, int num_extra_coils, double B0)
 {
   double Aphi = calcAphi(r, z, I, a, Lz, num_extra_coils, B0);
-  double n = n0*exp(-(r*Aphi - Aphi0)*(r*Aphi - Aphi0)/((1.0e3*Aphi0)*(1.0e3*Aphi0)));
+  double n = n0*exp(-(r*Aphi - Aphi0)*(r*Aphi - Aphi0)/((5.0e1*Aphi0)*(5.0e1*Aphi0)));
   return n;
 }
 
@@ -135,7 +135,7 @@ evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   int num_extra_coils = app->num_extra_coils;
   double B0 = app->B0; 
 
-  double Aphi0 = calcAphi(app->rmin, 0.0, I, a, Lz, num_extra_coils, B0);
+  double Aphi0 = app->rmin*calcAphi(app->rmin, 0.0, I, a, Lz, num_extra_coils, B0);
   double n = pulse2D(n0, Aphi0, r, z, I, a, Lz, num_extra_coils, B0);
 
   double Br = -(calcAphi(r, z+0.5*dz, I, a, Lz, num_extra_coils, B0) - calcAphi(r, z-0.5*dz, I, a, Lz, num_extra_coils, B0)) / dz;
@@ -178,7 +178,7 @@ evalIonInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   int num_extra_coils = app->num_extra_coils;
   double B0 = app->B0; 
 
-  double Aphi0 = calcAphi(app->rmin, 0.0, I, a, Lz, num_extra_coils, B0);
+  double Aphi0 = app->rmin*calcAphi(app->rmin, 0.0, I, a, Lz, num_extra_coils, B0);
   double n = pulse2D(n0, Aphi0, r, z, I, a, Lz, num_extra_coils, B0);
 
   double Br = -(calcAphi(r, z+0.5*dz, I, a, Lz, num_extra_coils, B0) - calcAphi(r, z-0.5*dz, I, a, Lz, num_extra_coils, B0)) / dz;
@@ -557,6 +557,9 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
+  int nframe = 10;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
@@ -572,7 +575,12 @@ main(int argc, char **argv)
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
-    gkyl_moment_app_calc_integrated_mom(app, tcurr);
+    // Only calculate the integrated moments every 10 steps
+    if (step % 10 == 0)
+      gkyl_moment_app_calc_integrated_mom(app, tcurr);
+
+    if (gkyl_tm_trigger_check_and_bump(&io_trig, tcurr))
+      gkyl_moment_app_write(app, tcurr, io_trig.curr-1);
     
     if (!status.success) {
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -584,7 +592,7 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_calc_integrated_mom(app, tcurr);
   gkyl_moment_app_write_integrated_mom(app);
     
   gkyl_moment_app_stat_write(app);
