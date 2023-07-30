@@ -59,11 +59,13 @@ evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double Er = -app->deltaPhi/log(app->rmax/app->rmin)/r;
   double ExB = Er/app->B0;
 
-  double rhoe = n0*massElc*exp(-(r-app->rmin)*(r-app->rmin)/app->sigma2r);
+  double n = n0*exp(-(r-app->rmin)*(r-app->rmin)/app->sigma2r);
+
+  double rhoe = n*massElc;
   double rhoeux = rhoe*ExB*sin(theta);
   double rhoeuy = -rhoe*ExB*cos(theta);
   double rhoeuz = 0.0;
-  double ere = n0*Te/(gasGamma-1) + 0.5*(rhoeux*rhoeux + rhoeuy*rhoeuy + rhoeuz*rhoeuz)/rhoe;
+  double ere = n*Te/(gasGamma-1) + 0.5*(rhoeux*rhoeux + rhoeuy*rhoeuy + rhoeuz*rhoeuz)/rhoe;
 
   fout[0] = rhoe;
   fout[1] = rhoeux; fout[2] = rhoeuy; fout[3] = rhoeuz;
@@ -85,11 +87,13 @@ evalIonInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double Er = -app->deltaPhi/log(app->rmax/app->rmin)/r;
   double ExB = Er/app->B0;
 
-  double rhoi = n0*massIon*exp(-(r-app->rmin)*(r-app->rmin)/app->sigma2r);
+  double n = n0*exp(-(r-app->rmin)*(r-app->rmin)/app->sigma2r);
+
+  double rhoi = n*massIon;
   double rhoiux = rhoi*ExB*sin(theta);
   double rhoiuy = -rhoi*ExB*cos(theta);
   double rhoiuz = 0.0;
-  double eri = n0*Ti/(gasGamma-1) + 0.5*(rhoiux*rhoiux + rhoiuy*rhoiuy + rhoiuz*rhoiuz)/rhoi;
+  double eri = n*Ti/(gasGamma-1) + 0.5*(rhoiux*rhoiux + rhoiuy*rhoiuy + rhoiuz*rhoiuz)/rhoi;
 
   fout[0] = rhoi;
   fout[1] = rhoiux; fout[2] = rhoiuy; fout[3] = rhoiuz;
