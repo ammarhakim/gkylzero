@@ -28,7 +28,7 @@ typedef struct gkyl_bc_twistshift gkyl_bc_twistshift;
  * @return New updater pointer.
  */
 struct gkyl_bc_twistshift* gkyl_bc_twistshift_new(int dir, int do_dir, int shift_dir, enum gkyl_edge_loc edge,
-  const struct gkyl_range *local_range_ext, const int *num_ghosts, const struct gkyl_basis *basis,
+  const struct gkyl_range *local_range_ext, const struct gkyl_range *local_range_extindir, const int *num_ghosts, const struct gkyl_basis *basis,
   const struct gkyl_rect_grid *grid, int cdim,
   const struct gkyl_array *yshift, const int *ndonors, const int *cells_do, bool use_gpu);
 
@@ -53,7 +53,7 @@ struct gkyl_bc_twistshift* gkyl_bc_twistshift_new(int dir, int do_dir, int shift
  */
 void gkyl_bc_twistshift_integral_xlimdg(struct gkyl_bc_twistshift *up,
   double sFac, const double *xLimLo, const double *xLimUp, double yLimLo, double yLimUp,
-  double dyDo, double yOff, const double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx);
+  double dyDo, double yOff, const double *ySh, int cellidx, int doidx);
 
 /**
  * Populate a matrix in mats corresponding to the x-cell with cellidx and
@@ -76,7 +76,7 @@ void gkyl_bc_twistshift_integral_xlimdg(struct gkyl_bc_twistshift *up,
  */
 void gkyl_bc_twistshift_integral_ylimdg(struct gkyl_bc_twistshift *up,
   double sFac, double xLimLo, double xLimUp, const double *yLimLo, const double *yLimUp,
-  double dyDo, double yOff, const double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx);
+  double dyDo, double yOff, const double *ySh, int cellidx, int doidx);
 
 /**
  * Populate a matrix in mats corresponding to the x-cell with cellidx and
@@ -92,7 +92,7 @@ void gkyl_bc_twistshift_integral_ylimdg(struct gkyl_bc_twistshift *up,
  * @param doidx Donor index.
  */
 void gkyl_bc_twistshift_integral_fullcelllimdg(struct gkyl_bc_twistshift *up,
-  double dyDo, double yOff, const double *ySh, struct gkyl_nmat *mats, int cellidx, int doidx);
+  double dyDo, double yOff, const double *ySh, int cellidx, int doidx);
 
 /**
  * Multiply the donor matrices by the donor cell dg coefficients
@@ -101,7 +101,7 @@ void gkyl_bc_twistshift_integral_fullcelllimdg(struct gkyl_bc_twistshift *up,
  * @param vecsdo nmat of donor vectors for all x grid cells and all donor cells
  * @param vecstar nmat of target vectors for all x grid cells
  */
-void gkyl_bc_twistshift_mv(struct gkyl_bc_twistshift *up, struct gkyl_nmat *matsdo, struct gkyl_array *fdo, struct gkyl_array *ftar);
+void gkyl_bc_twistshift_mv(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
  * Free memory associated with bc_twistshift updater.

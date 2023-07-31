@@ -73,6 +73,9 @@ struct gkyl_bc_twistshift {
   const int *ndonors;
   const int *cells_do; // y indices of donor cells for each x
   const struct gkyl_range *local_range_ext;
+  const struct gkyl_range *local_range_extindir; // subrange of local_range_ext with ghosts only in z direction
+  //struct gkyl_range *local_range_use;
+  struct gkyl_nmat *matsdo; //nmat of donor matrices
 };
 
 void gkyl_bc_twistshift_choose_kernels_cu(const struct gkyl_basis *basis, int cdim,
