@@ -362,7 +362,7 @@ create_ctx(void)
 
   double vAe = 0.5;
   double B0 = vAe*sqrt(mu0*n0*massElc);
-  double beta = 0.08;
+  double beta = 0.02;
   double vtElc = vAe*sqrt(beta/2.0);
 
   // ion velocities
@@ -385,20 +385,20 @@ create_ctx(void)
 
   // problem-specific parameters
   double a = 20.0*di; // Radius of current loops.
-  double I = 1000.0 * M_PI / mu0;  // Current carried by the loop; Huang2001prl.
+  double I = 4000.0 * M_PI / mu0;  // Current carried by the loop; Huang2001prl.
   int num_extra_coils = 1; // Number of extra coils above and below the z-ends.
 
   // domain size and simulation time
-  double rmin = (0.45/1.75)*a;
-  double rmax = (1.45/1.75)*a;
+  double rmin = 2.0*di;
+  double rmax = 18.0*di;
   int Nr = 64;
   double Lr = rmax - rmin;
   double dr = Lr/Nr;
   double sigma2r = (Lr/2.0)*(Lr/2.0);
-  double Lz = 3.0*a;
+  double Lz = 32.0*di;
   int Nz = 64;
   double dz = 2*Lz/Nz;
-  double tend = 1.0/omegaCi;
+  double tend = 4.0/omegaCi;
   
   // Get reference values so we know the mirror ratio and ExB mach number; computed at r = rmin, z = 0 and z = Lz
   double Br_center = -(calcAphi(rmin, 0.5*dz, I, a, Lz, num_extra_coils, B0) - calcAphi(rmin, -0.5*dz, I, a, Lz, num_extra_coils, B0)) / dz;
@@ -449,6 +449,13 @@ create_ctx(void)
     .Bmag_end = Bmag_end, 
   };
   return ctx;
+}
+
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) 
+    gkyl_moment_app_write(app, tcurr, iot->curr-1);
 }
 
 int
@@ -636,13 +643,13 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
-  int nframe = 10;
+  int nframe = 40;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_write(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
   gkyl_moment_app_calc_integrated_mom(app, tcurr);  
 
   // compute estimate of maximum stable time-step
@@ -657,9 +664,6 @@ main(int argc, char **argv)
     // Only calculate the integrated moments every 10 steps
     if (step % 10 == 0)
       gkyl_moment_app_calc_integrated_mom(app, tcurr);
-
-    if (gkyl_tm_trigger_check_and_bump(&io_trig, tcurr))
-      gkyl_moment_app_write(app, tcurr, io_trig.curr);
     
     if (!status.success) {
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -667,6 +671,8 @@ main(int argc, char **argv)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+
+    write_data(&io_trig, app, tcurr);
 
     step += 1;
   }
