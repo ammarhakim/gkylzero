@@ -5,7 +5,7 @@
 #include <gkyl_dg_eqn.h>
 
 // Types for various kernels
-typedef void (*diffusion_euler_iso_surf_t)(const double *w, const double *dx,
+typedef double (*diffusion_euler_iso_surf_t)(const double *w, const double *dx,
   const double* D, const double *uvarl, const double *uvarc, const double *uvarr,
   const double *statevecl, const double *statevecc, const double *statevecr,
   double* GKYL_RESTRICT out);
@@ -156,7 +156,7 @@ static const gkyl_dg_diffusion_euler_iso_surf_kern_list ser_surf_z_kernels[] = {
 void gkyl_diffusion_euler_iso_free(const struct gkyl_ref_count* ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn* eqn, int dir,
   const double* xcL, const double* xcC, const double* xcR,
   const double* dxL, const double* dxC, const double* dxR,
@@ -170,7 +170,7 @@ surf(const struct gkyl_dg_eqn* eqn, int dir,
   long cidx_c = gkyl_range_idx(&diffusion->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&diffusion->conf_range, idxR);
 
-  diffusion->surf[dir](xcC, dxC,
+  return diffusion->surf[dir](xcC, dxC,
     (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx_c),
     (const double*) gkyl_array_cfetch(diffusion->auxfields.u_i, cidx_l),
     (const double*) gkyl_array_cfetch(diffusion->auxfields.u_i, cidx_c),

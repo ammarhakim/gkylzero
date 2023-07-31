@@ -1,5 +1,5 @@
 #include <gkyl_maxwell_kernels.h> 
-GKYL_CU_DH void maxwell_surfx_3x_ser_p1(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double maxwell_surfx_3x_ser_p1(const gkyl_maxwell_inp *meq, const double *w, const double *dx, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
 { 
   const double c = meq->c, chi = meq->chi, gamma = meq->gamma; 
   const double c2 = c*c; 
@@ -261,5 +261,7 @@ GKYL_CU_DH void maxwell_surfx_3x_ser_p1(const gkyl_maxwell_inp *meq, const doubl
   outPs[5] += (incr_r[5]+incr_l[5])*dx1; 
   outPs[6] += (incr_r[6]+incr_l[6])*dx1; 
   outPs[7] += (incr_r[7]+incr_l[7])*dx1; 
+
+  return 0.;
 
 } 

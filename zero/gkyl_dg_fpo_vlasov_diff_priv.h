@@ -6,7 +6,7 @@
 // functions
 
 // Types for various kernels
-typedef void (*fpo_vlasov_diff_surf_t)(const double *w, const double *dx,
+typedef double (*fpo_vlasov_diff_surf_t)(const double *w, const double *dx,
   const double* g[27], const double *f[27],
   double* GKYL_RESTRICT out);
 
@@ -263,7 +263,7 @@ static const gkyl_dg_fpo_vlasov_diff_boundary_surf_kern_list ser_boundary_surf_z
 void gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count* ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
   long sz_dim, const int idx[27][GKYL_MAX_DIM], const double* qIn[27],
@@ -278,12 +278,13 @@ surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   }
 
   if (dir1 >= cdim && dir2 >= cdim) {
-    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dxc, g_d, qIn, qRhsOut);
+    return fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dxc, g_d, qIn, qRhsOut);
   }
+  return 0.;
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
   long sz_dim, const int idx[27][GKYL_MAX_DIM], const double* qIn[27],
@@ -300,6 +301,7 @@ boundary_surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   }
 
   if (dir1 >= cdim && dir2 >= cdim) {
-    fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dxc, g_d, qIn, qRhsOut);
+    return fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim](xc, dxc, g_d, qIn, qRhsOut);
   }
+  return 0.;
 }
