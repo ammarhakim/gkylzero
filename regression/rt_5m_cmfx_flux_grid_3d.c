@@ -166,22 +166,25 @@ frac2r(double frac, double rmin, double rmax, double z, double I, double a, doub
 void
 evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double r = xn[0], theta = xn[1], z = xn[2];
+  double frac = xn[0], theta = xn[1], z = xn[2];
   struct cmfx_ctx *app = ctx;
-
+  double rmin = app->rmin;
+  double rmax = app->rmax;
   double dr = app->dr;
   double dz = app->dz;
-
-  double gasGamma = app->gasGamma;
-  double massElc = app->massElc;
-  double Te = app->vtElc*app->vtElc*massElc;
-  double n0 = app->n0;
 
   double a = app->a; 
   double I = app->I; 
   double Lz = app->Lz; 
   int num_extra_coils = app->num_extra_coils;
   double B0 = app->B0; 
+
+  double r = frac2r(frac, rmin, rmax, z, I, a, Lz, num_extra_coils, B0);
+
+  double gasGamma = app->gasGamma;
+  double massElc = app->massElc;
+  double Te = app->vtElc*app->vtElc*massElc;
+  double n0 = app->n0;
 
   double Br = -(calcAphi(r, z+0.5*dz, I, a, Lz, num_extra_coils, B0) - calcAphi(r, z-0.5*dz, I, a, Lz, num_extra_coils, B0)) / dz;
   double Bz = (calcAphi(r+0.5*dr, z, I, a, Lz, num_extra_coils, B0) - calcAphi(r-0.5*dr, z, I, a, Lz, num_extra_coils, B0)) / dr 
@@ -192,11 +195,13 @@ evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   // Only component of E x B is theta component
   double ExB = Er*Bz/(Br*Br + Bz*Bz);
 
-  double rhoe = app->n0*massElc;
+  double n = n0*exp(-(r-app->rmin)*(r-app->rmin)/app->sigma2r);
+
+  double rhoe = n*massElc;
   double rhoeux = rhoe*ExB*sin(theta);
   double rhoeuy = -rhoe*ExB*cos(theta);
   double rhoeuz = 0.0;
-  double ere = app->n0*Te/(gasGamma-1) + 0.5*(rhoeux*rhoeux + rhoeuy*rhoeuy + rhoeuz*rhoeuz)/rhoe;
+  double ere = n*Te/(gasGamma-1) + 0.5*(rhoeux*rhoeux + rhoeuy*rhoeuy + rhoeuz*rhoeuz)/rhoe;
 
   fout[0] = rhoe;
   fout[1] = rhoeux; fout[2] = rhoeuy; fout[3] = rhoeuz;
@@ -206,22 +211,25 @@ evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 void
 evalIonInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double r = xn[0], theta = xn[1], z = xn[2];
+  double frac = xn[0], theta = xn[1], z = xn[2];
   struct cmfx_ctx *app = ctx;
-
+  double rmin = app->rmin;
+  double rmax = app->rmax;
   double dr = app->dr;
   double dz = app->dz;
-
-  double gasGamma = app->gasGamma;
-  double massIon = app->massIon;
-  double Ti = app->vtIon*app->vtIon*massIon;
-  double n0 = app->n0;
 
   double a = app->a; 
   double I = app->I; 
   double Lz = app->Lz; 
   int num_extra_coils = app->num_extra_coils;
   double B0 = app->B0; 
+
+  double r = frac2r(frac, rmin, rmax, z, I, a, Lz, num_extra_coils, B0);
+
+  double gasGamma = app->gasGamma;
+  double massIon = app->massIon;
+  double Ti = app->vtIon*app->vtIon*massIon;
+  double n0 = app->n0;
 
   double Br = -(calcAphi(r, z+0.5*dz, I, a, Lz, num_extra_coils, B0) - calcAphi(r, z-0.5*dz, I, a, Lz, num_extra_coils, B0)) / dz;
   double Bz = (calcAphi(r+0.5*dr, z, I, a, Lz, num_extra_coils, B0) - calcAphi(r-0.5*dr, z, I, a, Lz, num_extra_coils, B0)) / dr 
@@ -232,11 +240,13 @@ evalIonInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   // Only component of E x B is theta component
   double ExB = Er*Bz/(Br*Br + Bz*Bz);
 
-  double rhoi = app->n0*massIon;
+  double n = n0*exp(-(r-app->rmin)*(r-app->rmin)/app->sigma2r);
+
+  double rhoi = n*massIon;
   double rhoiux = rhoi*ExB*sin(theta);
   double rhoiuy = -rhoi*ExB*cos(theta);
   double rhoiuz = 0.0;
-  double eri = app->n0*Ti/(gasGamma-1) + 0.5*(rhoiux*rhoiux + rhoiuy*rhoiuy + rhoiuz*rhoiuz)/rhoi;
+  double eri = n*Ti/(gasGamma-1) + 0.5*(rhoiux*rhoiux + rhoiuy*rhoiuy + rhoiuz*rhoiuz)/rhoi;
 
   fout[0] = rhoi;
   fout[1] = rhoiux; fout[2] = rhoiuy; fout[3] = rhoiuz;
@@ -246,8 +256,20 @@ evalIonInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 void
 evalFieldInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double r = xn[0], theta = xn[1], z = xn[2];
+  double frac = xn[0], theta = xn[1], z = xn[2];
   struct cmfx_ctx *app = ctx;
+  double rmin = app->rmin;
+  double rmax = app->rmax;
+  double dr = app->dr;
+  double dz = app->dz;
+
+  double a = app->a; 
+  double I = app->I; 
+  double Lz = app->Lz; 
+  int num_extra_coils = app->num_extra_coils;
+  double B0 = app->B0; 
+
+  double r = frac2r(frac, rmin, rmax, z, I, a, Lz, num_extra_coils, B0);
 
   double Ex = 0.0;
   double Ey = 0.0;
@@ -269,9 +291,10 @@ evalFieldInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void
 evalExtEmInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double r = xn[0], theta = xn[1], z = xn[2];
+  double frac = xn[0], theta = xn[1], z = xn[2];
   struct cmfx_ctx *app = ctx;
-
+  double rmin = app->rmin;
+  double rmax = app->rmax;
   double dr = app->dr;
   double dz = app->dz;
 
@@ -280,6 +303,8 @@ evalExtEmInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double Lz = app->Lz; 
   int num_extra_coils = app->num_extra_coils;
   double B0 = app->B0; 
+
+  double r = frac2r(frac, rmin, rmax, z, I, a, Lz, num_extra_coils, B0);
 
   double Br = -(calcAphi(r, z+0.5*dz, I, a, Lz, num_extra_coils, B0) - calcAphi(r, z-0.5*dz, I, a, Lz, num_extra_coils, B0)) / dz;
   double Bx = Br*cos(theta);
@@ -366,14 +391,14 @@ create_ctx(void)
   // domain size and simulation time
   double rmin = (0.45/1.75)*a;
   double rmax = (1.45/1.75)*a;
-  int Nr = 32;
+  int Nr = 64;
   double Lr = rmax - rmin;
   double dr = Lr/Nr;
   double sigma2r = (Lr/2.0)*(Lr/2.0);
   double Lz = 3.0*a;
-  int Nz = 32;
+  int Nz = 64;
   double dz = 2*Lz/Nz;
-  double tend = 10.0/omegaCi;
+  double tend = 1.0/omegaCi;
   
   // Get reference values so we know the mirror ratio and ExB mach number; computed at r = rmin, z = 0 and z = Lz
   double Br_center = -(calcAphi(rmin, 0.5*dz, I, a, Lz, num_extra_coils, B0) - calcAphi(rmin, -0.5*dz, I, a, Lz, num_extra_coils, B0)) / dz;
@@ -536,8 +561,8 @@ main(int argc, char **argv)
     .name = "5m_cmfx_flux_grid_3d",
 
     .ndim = 3,
-    .lower = { ctx.rmin, 0.0, -ctx.Lz },
-    .upper = { ctx.rmax, 2.0*M_PI, ctx.Lz }, 
+    .lower = { 0.0, 0.0, -ctx.Lz },
+    .upper = { 1.0, 2.0*M_PI, ctx.Lz }, 
     .cells = { NX, NY, NZ },
 
     .mapc2p = mapc2p, // mapping of computational to physical space
@@ -634,7 +659,7 @@ main(int argc, char **argv)
       gkyl_moment_app_calc_integrated_mom(app, tcurr);
 
     if (gkyl_tm_trigger_check_and_bump(&io_trig, tcurr))
-      gkyl_moment_app_write(app, tcurr, io_trig.curr-1);
+      gkyl_moment_app_write(app, tcurr, io_trig.curr);
     
     if (!status.success) {
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
