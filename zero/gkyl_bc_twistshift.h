@@ -28,7 +28,7 @@ typedef struct gkyl_bc_twistshift gkyl_bc_twistshift;
  * @return New updater pointer.
  */
 struct gkyl_bc_twistshift* gkyl_bc_twistshift_new(int dir, int do_dir, int shift_dir, enum gkyl_edge_loc edge,
-  const struct gkyl_range *local_range_ext, const struct gkyl_range *local_range_extindir, const int *num_ghosts, const struct gkyl_basis *basis,
+  const struct gkyl_range *local_range_ext, const struct gkyl_range *local_range_update, const int *num_ghosts, const struct gkyl_basis *basis,
   const struct gkyl_rect_grid *grid, int cdim,
   const struct gkyl_array *yshift, const int *ndonors, const int *cells_do, bool use_gpu);
 
@@ -101,7 +101,7 @@ void gkyl_bc_twistshift_integral_fullcelllimdg(struct gkyl_bc_twistshift *up,
  * @param vecsdo nmat of donor vectors for all x grid cells and all donor cells
  * @param vecstar nmat of target vectors for all x grid cells
  */
-void gkyl_bc_twistshift_mv(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
+void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
  * Free memory associated with bc_twistshift updater.

@@ -5,7 +5,7 @@
 
 struct gkyl_bc_twistshift*
 gkyl_bc_twistshift_new(int dir, int do_dir, int shift_dir, enum gkyl_edge_loc edge,
-  const struct gkyl_range *local_range_ext, const struct gkyl_range *local_range_extindir, const int *num_ghosts, const struct gkyl_basis *basis,
+  const struct gkyl_range *local_range_ext, const struct gkyl_range *local_range_update, const int *num_ghosts, const struct gkyl_basis *basis,
   const struct gkyl_rect_grid *grid, int cdim,
   const struct gkyl_array *yshift, const int *ndonors, const int *cells_do, bool use_gpu) {
 
@@ -22,10 +22,9 @@ gkyl_bc_twistshift_new(int dir, int do_dir, int shift_dir, enum gkyl_edge_loc ed
   up->cells_do = cells_do;
   up->use_gpu = use_gpu;
   up->local_range_ext = local_range_ext;
-  up->local_range_extindir = local_range_extindir; // rename this range
+  up->local_range_update = local_range_update; // rename this range
 
-  // Choose the kernel that does the reflection/no reflection/partial
-  // reflection.
+  // Choose the kernels that do the subcell and full cell integrals
   up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_twistshift_kernels));
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -41,28 +40,53 @@ gkyl_bc_twistshift_new(int dir, int do_dir, int shift_dir, enum gkyl_edge_loc ed
 #endif
 
 
-  // allocate the donor nmat
-  int total_donors = 0;
-  for(int j = 0; j <grid->cells[1]; j++){
-    for(int i = 0; i< grid->cells[0]; i++){
-      total_donors +=ndonors[i];
-    }
-  }
-
+  // Allocate matrices and vectors, initialize if needed
   int total_donor_mats = 0;
-  for(int i = 0; i< grid->cells[0]; i++){
+  for(int i = 0; i<grid->cells[0]; i++)
     total_donor_mats +=ndonors[i];
-  }
-
   up->matsdo = gkyl_nmat_new(total_donor_mats, basis->num_basis, basis->num_basis);
-
-  // fill each matrix with 0
+  up->vecstar = gkyl_nmat_new(up->matsdo->num, up->matsdo->nr, 1);
+  up->vecsdo = gkyl_nmat_new(up->matsdo->num, up->matsdo->nr, 1);
   for (size_t n=0; n<up->matsdo->num; ++n) {
     struct gkyl_mat m = gkyl_nmat_get(up->matsdo, n);
     for (size_t j=0; j<up->matsdo->nc; ++j)
       for (size_t i=0; i<up->matsdo->nr; ++i)
         gkyl_mat_set(&m, i, j, 0.0);
   }
+
+
+  //create necessary ranges
+  up->yrange = gkyl_malloc(sizeof(struct gkyl_range));
+  up->xrange = gkyl_malloc(sizeof(struct gkyl_range));
+  // Create the deflated range only need to loop over the shift dir and extraneous dirs (vpar,mu)
+  // only need update on z ghost cells on one edge
+  up->remDir = (int*) gkyl_malloc(sizeof(int) * up->local_range_update->ndim);
+  for(int i=0;i<up->grid->ndim;i++)
+    up->remDir[i]=0; // keep all dirs by default
+  up->remDir[up->dir] = 1; // remove the bc dir (z)
+  up->remDir[up->do_dir] = 1; // remove the dir which the donors come from (x)
+  // Setup for deflated range for looping over x
+  up->remDir_do = (int*) gkyl_malloc(sizeof(int) * up->local_range_update->ndim);
+  for(int i=0;i<up->local_range_update->ndim;i++)
+    up->remDir_do[i]=1;
+  up->remDir_do[0] = 0; // keep x only
+  // choose locations in other dirs. Some will be reset in loop
+  up->locDir = (int*) gkyl_malloc(sizeof(int) * up->local_range_update->ndim);
+  up->locDir_do = (int*) gkyl_malloc(sizeof(int) * up->local_range_update->ndim);
+  for(int i=0;i<up->grid->ndim;i++){
+    up->locDir[i] = up->local_range_update->lower[i];
+    up->locDir_do[i]=up->local_range_update->lower[i];
+  }
+  if(up->edge == GKYL_LOWER_EDGE){
+    up->locDir[up->dir] = up->local_range_update->lower[up->dir];
+    up->locDir_do[up->dir] = up->local_range_update->upper[up->dir] - 1 ;
+  }
+  else if(up->edge == GKYL_UPPER_EDGE){
+    up->locDir[up->dir] = up->local_range_update->upper[up->dir];
+    up->locDir_do[up->dir] = up->local_range_update->lower[up->dir] + 1 ;
+  }
+  gkyl_range_deflate(up->yrange, up->local_range_update, up->remDir, up->locDir);
+
 
   return up;
 }
@@ -105,70 +129,34 @@ void gkyl_bc_twistshift_integral_fullcelllimdg(struct gkyl_bc_twistshift *up,
 
 
 
-void gkyl_bc_twistshift_mv(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
+void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
 {
-  struct gkyl_nmat *vecstar = gkyl_nmat_new(up->matsdo->num, up->matsdo->nr, 1);
-  struct gkyl_nmat *vecsdo = gkyl_nmat_new(up->matsdo->num, up->matsdo->nr, 1);
-
-  // Create the deflated range only need to loop over the shift dir and extraneous dirs (vpar,mu)
-  // only need update on z ghost cells on one edge
-  int remDir[up->grid->ndim];
-  for(int i=0;i<up->grid->ndim;i++)
-    remDir[i]=0; // keep all dirs by default
-  remDir[up->dir] = 1; // remove the bc dir (z)
-  remDir[up->do_dir] = 1; // remove the dir which the donors come from (x)
-
-  // Setup for deflated range for looping over x
-  int remDir_do[up->local_range_extindir->ndim];
-  for(int i=0;i<up->local_range_extindir->ndim;i++)
-    remDir_do[i]=1;
-  remDir_do[0] = 0; // keep x only
-  int locDir_do[up->local_range_extindir->ndim];
-
-  // choose locations in other dirs. Some will be reset in loop
-  int locDir[up->grid->ndim];
-  for(int i=0;i<up->grid->ndim;i++){
-    locDir[i] = up->local_range_extindir->lower[i];
-    locDir_do[i]=up->local_range_extindir->lower[i];
-  }
-  if(up->edge == GKYL_LOWER_EDGE){
-    locDir[up->dir] = up->local_range_extindir->lower[up->dir];
-    locDir_do[up->dir] = up->local_range_extindir->upper[up->dir] - 1 ;
-  }
-  else if(up->edge == GKYL_UPPER_EDGE){
-    locDir[up->dir] = up->local_range_extindir->upper[up->dir];
-    locDir_do[up->dir] = up->local_range_extindir->lower[up->dir] + 1 ;
-  }
-
-  struct gkyl_range update_range; //rename to y range
-  gkyl_range_deflate(&update_range, up->local_range_extindir, remDir, locDir);
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &update_range);
-  struct gkyl_range xrange;
+  gkyl_range_iter_init(&iter, up->yrange);
   struct gkyl_range_iter iterx;
   int lin_idx = 0;
-  int do_idx[up->local_range_extindir->ndim];
-  int tar_idx[up->local_range_extindir->ndim];
+  int do_idx[up->local_range_update->ndim];
+  int tar_idx[up->local_range_update->ndim];
   int lin_vecdo_idx = 0;
   int lin_tar_idx = 0;
 
   while (gkyl_range_iter_next(&iter)) {
-    locDir_do[up->shift_dir] = iter.idx[0];
-    gkyl_range_deflate(&xrange, up->local_range_extindir, remDir_do, locDir_do);
-    gkyl_range_iter_init(&iterx, &xrange);
+    up->locDir_do[up->shift_dir] = iter.idx[0];
+    gkyl_range_deflate(up->xrange, up->local_range_update, up->remDir_do, up->locDir_do);
+    gkyl_range_iter_init(&iterx, up->xrange);
     lin_vecdo_idx = 0;
     while (gkyl_range_iter_next(&iterx)) {
       for(int i = 0; i < up->ndonors[iterx.idx[0]-1];i++){
         //probably need to recalculate lin index here for 5d
         do_idx[up->do_dir] = iterx.idx[0];
         do_idx[up->shift_dir] = up->cells_do[lin_idx];
-        do_idx[up->dir] = locDir_do[up->dir];
+        do_idx[up->dir] = up->locDir_do[up->dir];
 
-        struct gkyl_mat gkyl_mat_itr = gkyl_nmat_get(vecsdo, lin_vecdo_idx);
-        long loc = gkyl_range_idx(up->local_range_extindir, do_idx);
+        struct gkyl_mat gkyl_mat_itr = gkyl_nmat_get(up->vecsdo, lin_vecdo_idx);
+        long loc = gkyl_range_idx(up->local_range_update, do_idx);
         const double *fdo_itr = gkyl_array_cfetch(fdo, loc);
-        for(int ib = 0; ib < vecsdo->nr; ib++){
+        for(int ib = 0; ib < up->vecsdo->nr; ib++){
           gkyl_mat_set(&gkyl_mat_itr, ib, 0, fdo_itr[ib]);
         }
         lin_idx += 1; 
@@ -176,23 +164,23 @@ void gkyl_bc_twistshift_mv(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo
       }
     }
 
-    gkyl_nmat_mv(1.0, 0.0, GKYL_NO_TRANS, up->matsdo, vecsdo, vecstar);
+    gkyl_nmat_mv(1.0, 0.0, GKYL_NO_TRANS, up->matsdo, up->vecsdo, up->vecstar);
 
-    gkyl_range_deflate(&xrange, up->local_range_extindir, remDir_do, locDir_do);
-    gkyl_range_iter_init(&iterx, &xrange);
+    gkyl_range_deflate(up->xrange, up->local_range_update, up->remDir_do, up->locDir_do);
+    gkyl_range_iter_init(&iterx, up->xrange);
     lin_tar_idx = 0;
     while (gkyl_range_iter_next(&iterx)) {
       tar_idx[up->do_dir] = iterx.idx[0];
       tar_idx[up->shift_dir] = iter.idx[0];
-      tar_idx[up->dir] = locDir[up->dir];
+      tar_idx[up->dir] = up->locDir[up->dir];
 
-      long loc = gkyl_range_idx(up->local_range_extindir, tar_idx);
+      long loc = gkyl_range_idx(up->local_range_update, tar_idx);
       double *ftar_itr = gkyl_array_fetch(ftar, loc);
       for(int n=0; n<ftar->ncomp; n++){
         ftar_itr[n] = 0.0;
       }
       for(int i = 0; i < up->ndonors[iterx.idx[0]-1]; i++){
-        struct gkyl_mat temp = gkyl_nmat_get(vecstar,lin_tar_idx);
+        struct gkyl_mat temp = gkyl_nmat_get(up->vecstar,lin_tar_idx);
         for(int n=0; n<up->matsdo->nr; n++){
           ftar_itr[n] += gkyl_mat_get(&temp, n, 0);
         }
@@ -201,8 +189,6 @@ void gkyl_bc_twistshift_mv(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo
     }
   }
 
-  gkyl_nmat_release(vecsdo);
-  gkyl_nmat_release(vecstar);
 }
 
 void gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up) {
@@ -212,6 +198,14 @@ void gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up) {
     gkyl_cu_free(up->kernels_cu);
 #endif
   gkyl_free(up->kernels);
-  gkyl_free(up);
+  gkyl_free(up->yrange);
+  gkyl_free(up->xrange);
+  gkyl_free(up->remDir);
+  gkyl_free(up->locDir);
+  gkyl_free(up->remDir_do);
+  gkyl_free(up->locDir_do);
   gkyl_nmat_release(up->matsdo);
+  gkyl_nmat_release(up->vecsdo);
+  gkyl_nmat_release(up->vecstar);
+  gkyl_free(up);
 }

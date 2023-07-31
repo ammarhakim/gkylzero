@@ -71,11 +71,18 @@ struct gkyl_bc_twistshift {
   struct gkyl_bc_twistshift_kernels *kernels_cu;  // device copy.
   const struct gkyl_rect_grid *grid;
   const int *ndonors;
-  const int *cells_do; // y indices of donor cells for each x
+  const int *cells_do; // y indices of donor cells for each x and y
+  int *remDir;
+  int *locDir;
+  int *remDir_do;
+  int *locDir_do;
   const struct gkyl_range *local_range_ext;
-  const struct gkyl_range *local_range_extindir; // subrange of local_range_ext with ghosts only in z direction
-  //struct gkyl_range *local_range_use;
-  struct gkyl_nmat *matsdo; //nmat of donor matrices
+  const struct gkyl_range *local_range_update;
+  struct gkyl_range *yrange;
+  struct gkyl_range *xrange;
+  struct gkyl_nmat *matsdo;
+  struct gkyl_nmat *vecsdo;
+  struct gkyl_nmat *vecstar;
 };
 
 void gkyl_bc_twistshift_choose_kernels_cu(const struct gkyl_basis *basis, int cdim,
