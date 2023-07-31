@@ -92,16 +92,13 @@ static inline double
 calcAphi(double r, double z, double I, double a, double Lz, int num_extra_coils, double B0)
 {
   double Aphi = 0.0;
-  // // Coils; iz=-1,1 are the two ends; other iz are extra coils.
-  // for (int iz = -num_extra_coils; iz <= -1; ++iz) {
-  //   Aphi = Aphi + calcAphiOneCoil(r, z, Lz*iz, I, a);
-  // }
-  // for (int iz = 1; iz <= num_extra_coils; ++iz)
-  //   Aphi = Aphi + calcAphiOneCoil(r, z, Lz*iz, I, a);
+  // Coils; iz=-1,1 are the two ends; other iz are extra coils.
+  for (int iz = -num_extra_coils; iz <= -1; ++iz)
+    Aphi = Aphi + calcAphiOneCoil(r, z, Lz*iz, I, a);
+  for (int iz = 1; iz <= num_extra_coils; ++iz)
+    Aphi = Aphi + calcAphiOneCoil(r, z, Lz*iz, I, a);
 
   // Uniform Bz0
-  Aphi = Aphi + calcAphiOneCoil(r, z, -Lz, I, a);
-  Aphi = Aphi + calcAphiOneCoil(r, z, Lz, I, a);
   Aphi = Aphi + 0.5*B0*r;
 
   return Aphi;
@@ -362,7 +359,7 @@ create_ctx(void)
 
   double vAe = 0.5;
   double B0 = vAe*sqrt(mu0*n0*massElc);
-  double beta = 0.02;
+  double beta = 0.08;
   double vtElc = vAe*sqrt(beta/2.0);
 
   // ion velocities
@@ -386,17 +383,17 @@ create_ctx(void)
   // problem-specific parameters
   double a = 20.0*di; // Radius of current loops.
   double I = 4000.0 * M_PI / mu0;  // Current carried by the loop; Huang2001prl.
-  int num_extra_coils = 1; // Number of extra coils above and below the z-ends.
+  int num_extra_coils = 2; // Number of extra coils above and below the z-ends.
 
   // domain size and simulation time
-  double rmin = 2.0*di;
-  double rmax = 18.0*di;
-  int Nr = 64;
+  double rmin = (0.45/1.75)*a;
+  double rmax = (1.45/1.75)*a;
+  int Nr = 32;
   double Lr = rmax - rmin;
   double dr = Lr/Nr;
   double sigma2r = (Lr/2.0)*(Lr/2.0);
-  double Lz = 32.0*di;
-  int Nz = 64;
+  double Lz = 3.0*a;
+  int Nz = 256;
   double dz = 2*Lz/Nz;
   double tend = 4.0/omegaCi;
   
