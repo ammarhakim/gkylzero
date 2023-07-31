@@ -501,22 +501,20 @@ gkyl_array_copy_range_to_range(struct gkyl_array *out,
 #endif
 
   // Setup linear counter offset for output range/array.
-  int iloLocal_out[GKYL_MAX_DIM];
-  int iloLocal_inp[GKYL_MAX_DIM];
+  int iloLocal_out[GKYL_MAX_DIM], iloLocal_inp[GKYL_MAX_DIM];
   for (int d=0; d<out_range->ndim; ++d){
     iloLocal_out[d] = out_range->lower[d];
     iloLocal_inp[d] = inp_range->lower[d];
   }
 
-  struct gkyl_range_iter iter;
   int idx_out[GKYL_MAX_DIM];
+  struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, inp_range);
   while (gkyl_range_iter_next(&iter)) {
+    for (int d=0; d<out_range->ndim; ++d)
+      idx_out[d] = iloLocal_out[d] + (iter.idx[d] - iloLocal_inp[d]);
+
     long linidx_inp = gkyl_range_idx(inp_range, iter.idx);
-    for (int d=0; d<out_range->ndim; ++d){
-      int idx_shift = iter.idx[d] - iloLocal_inp[d];
-      idx_out[d] = iloLocal_out[d] + idx_shift;
-    }
     long linidx_out = gkyl_range_idx(out_range, idx_out);
     memcpy(gkyl_array_fetch(out, linidx_out), gkyl_array_cfetch(inp, linidx_inp), inp->esznc);
   }
