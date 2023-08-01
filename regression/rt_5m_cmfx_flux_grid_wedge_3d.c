@@ -351,7 +351,7 @@ create_ctx(void)
 
   double massElc = 1.0; // electron mass
   double chargeElc = -1.0; // electron charge
-  double massIon = 1836.153; // ion mass
+  double massIon = 100.0; // ion mass
   double chargeIon = 1.0; // ion charge
 
   double Te_Ti = 1.0; // ratio of electron to ion temperature
@@ -382,7 +382,7 @@ create_ctx(void)
 
   // problem-specific parameters
   double a = 20.0*di; // Radius of current loops.
-  double I = 4000.0 * M_PI / mu0;  // Current carried by the loop; Huang2001prl.
+  double I = 1000.0 * M_PI / mu0;  // Current carried by the loop; Huang2001prl.
   int num_extra_coils = 2; // Number of extra coils above and below the z-ends.
 
   // domain size and simulation time
@@ -391,11 +391,11 @@ create_ctx(void)
   int Nr = 32;
   double Lr = rmax - rmin;
   double dr = Lr/Nr;
-  double sigma2r = (Lr/2.0)*(Lr/2.0);
+  double sigma2r = Lr*Lr/2.0;
   double Lz = 3.0*a;
-  int Nz = 256;
+  int Nz = 32;
   double dz = 2*Lz/Nz;
-  double tend = 2.0/omegaCi;
+  double tend = 100.0/omegaCi;
   
   // Get reference values so we know the mirror ratio and ExB mach number; computed at r = rmin, z = 0 and z = Lz
   double Br_center = -(calcAphi(rmin, 0.5*dz, I, a, Lz, num_extra_coils, B0) - calcAphi(rmin, -0.5*dz, I, a, Lz, num_extra_coils, B0)) / dz;
@@ -489,6 +489,8 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
 
+    .force_low_order_flux = true, // use Lax fluxes
+
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
     .bcy = { GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE }, 
   };
@@ -500,6 +502,8 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalIonInit,
     .ctx = &ctx,
+
+    .force_low_order_flux = true, // use Lax fluxes
 
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT }, 
     .bcy = { GKYL_SPECIES_WEDGE, GKYL_SPECIES_WEDGE }, 
@@ -643,7 +647,7 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
-  int nframe = 2;
+  int nframe = 10;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
