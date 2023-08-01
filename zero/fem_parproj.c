@@ -1,43 +1,11 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_parproj_priv.h>
 
-static long
-global_num_nodes(const int dim, const int poly_order, const enum gkyl_basis_type basis_type, const int parnum_cells)
+struct gkyl_fem_parproj*
+gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+  enum gkyl_fem_parproj_bc_type bctype, const struct gkyl_array *weight, bool use_gpu)
 {
-  if (dim==1) {
-    if (poly_order == 1) {
-      return fem_parproj_num_nodes_global_1x_ser_p1(parnum_cells);
-    } else if (poly_order == 2) {
-      return fem_parproj_num_nodes_global_1x_ser_p2(parnum_cells);
-    } else if (poly_order == 3) {
-      return fem_parproj_num_nodes_global_1x_ser_p3(parnum_cells);
-    }
-  } else if (dim==3) {
-    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      if (poly_order == 1) {
-        return fem_parproj_num_nodes_global_3x_ser_p1(parnum_cells);
-      } else if (poly_order == 2) {
-        return fem_parproj_num_nodes_global_3x_ser_p2(parnum_cells);
-      } else if (poly_order == 3) {
-        return fem_parproj_num_nodes_global_3x_ser_p3(parnum_cells);
-      }
-    } if (basis_type == GKYL_BASIS_MODAL_TENSOR) {
-      if (poly_order == 1) {
-        return fem_parproj_num_nodes_global_3x_tensor_p1(parnum_cells);
-      } else if (poly_order == 2) {
-        return fem_parproj_num_nodes_global_3x_tensor_p2(parnum_cells);
-      }
-    }
-  }
-  assert(false);  // Other dimensionalities not supported.
-  return -1;
-}
-
-gkyl_fem_parproj*
-gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  bool isparperiodic, bool isweighted, const struct gkyl_array *weight, bool use_gpu)
-{
-  gkyl_fem_parproj *up = gkyl_malloc(sizeof(gkyl_fem_parproj));
+  struct gkyl_fem_parproj *up = gkyl_malloc(sizeof(struct gkyl_fem_parproj));
 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_fem_parproj_kernels));
 #ifdef GKYL_HAVE_CUDA
@@ -51,31 +19,30 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   up->ndim = grid->ndim;
   up->grid = *grid;
-  up->num_basis  = basis.num_basis;
-  up->basis_type = basis.b_type;
-  up->poly_order = basis.poly_order;
+  up->num_basis  = basis->num_basis;
+  up->basis_type = basis->b_type;
+  up->poly_order = basis->poly_order;
   up->pardir = grid->ndim-1; // Assume parallel direction is always the last.
-  up->isperiodic = isparperiodic;
+  up->isperiodic = bctype == GKYL_FEM_PARPROJ_PERIODIC;
+  up->isdirichlet = bctype == GKYL_FEM_PARPROJ_DIRICHLET;
   up->use_gpu = use_gpu;
+
+  bool isweighted = false;
+  if (weight) isweighted = true;
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
 
   // Local and local-ext ranges for whole-grid arrays.
-  int ghost[PARPROJ_MAX_DIM];
+  int ghost[GKYL_MAX_CDIM];
   for (int d=0; d<up->ndim; d++) ghost[d] = 1;
   gkyl_create_grid_ranges(grid, ghost, &up->local_range_ext, &up->local_range);
 
   // Range of cells we'll solve apply the parallel projection
   // operator in, as a sub-range of up->local_range_ext.
-  int sublower[PARPROJ_MAX_DIM], subupper[PARPROJ_MAX_DIM];
+  int sublower[GKYL_MAX_CDIM], subupper[GKYL_MAX_CDIM];
   for (int d=0; d<up->ndim; d++) {
     sublower[d] = up->local_range.lower[d];
     subupper[d] = up->local_range.upper[d];
-  }
-  if (up->isperiodic) {
-    // Include ghost cells in parallel direction.
-    sublower[up->pardir] = up->local_range_ext.lower[up->pardir];
-    subupper[up->pardir] = up->local_range_ext.upper[up->pardir];
   }
   gkyl_sub_range_init(&up->solve_range, &up->local_range_ext, sublower, subupper);
 
@@ -98,25 +65,25 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
-  up->numnodes_global = global_num_nodes(up->ndim, up->poly_order, basis.b_type, up->par_range.volume);
+  up->numnodes_global = gkyl_fem_parproj_global_num_nodes(basis, up->isperiodic, up->par_range.volume);
 
   up->brhs = gkyl_array_new(GKYL_DOUBLE, 1, up->numnodes_global*up->perp_range.volume); // Global right side vector.
 
-  // Select weighted LHS kernel (not always used):
-  up->kernels->lhsker = fem_parproj_choose_lhs_kernel(up->ndim, basis.b_type, up->poly_order, isweighted);
-
   // Select local-to-global mapping kernel:
-  up->kernels->l2g = fem_parproj_choose_local2global_kernel(up->ndim, basis.b_type, up->poly_order);
+  fem_parproj_choose_local2global_kernel(basis, up->isperiodic, up->kernels->l2g);
+
+  // Select weighted LHS kernel (not always used):
+  fem_parproj_choose_lhs_kernel(basis, up->isdirichlet, isweighted, up->kernels->lhsker);
 
   // Select RHS source kernel:
-  up->kernels->srcker = fem_parproj_choose_srcstencil_kernel(up->ndim, basis.b_type, up->poly_order);
+  fem_parproj_choose_srcstencil_kernel(basis, up->isdirichlet, up->kernels->srcker);
 
   // Select kernel that fetches the solution:
-  up->kernels->solker = fem_parproj_choose_solstencil_kernel(up->ndim, basis.b_type, up->poly_order);
+  up->kernels->solker = fem_parproj_choose_solstencil_kernel(basis);
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    fem_parproj_choose_kernels_cu(&basis, up->isperiodic, up->kernels_cu);
+    fem_parproj_choose_kernels_cu(basis, up->isperiodic, up->kernels_cu);
 #endif
 
   // MF 2022/08/23: at the moment we only support weight=/1 for cdim=1. For
@@ -148,12 +115,14 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   while (gkyl_range_iter_next(&up->par_iter1d)) {
     long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
 
-    up->kernels->l2g(up->parnum_cells, paridx, up->globalidx);
+    int keri = up->par_iter1d.idx[0] == up->parnum_cells? 1 : 0;
+    up->kernels->l2g[keri](up->parnum_cells, paridx, up->globalidx);
 
-    const double *wgt_p = isweighted? gkyl_array_cfetch(weight, isparperiodic? paridx : paridx+1) : NULL;
+    const double *wgt_p = isweighted? gkyl_array_cfetch(weight, paridx+1) : NULL;
 
     // Apply the wgt*phi*basis stencil.
-    up->kernels->lhsker(wgt_p, up->globalidx, tri[0]);
+    keri = idx_to_inloup_ker(up->parnum_cells, up->par_iter1d.idx[0]);
+    up->kernels->lhsker[keri](wgt_p, up->globalidx, tri[0]);
   }
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
@@ -171,7 +140,7 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 }
 
 void
-gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin)
+gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc)
 {
 
 #ifdef GKYL_HAVE_CUDA
@@ -185,23 +154,32 @@ gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin)
 
   gkyl_array_clear(up->brhs, 0.0);
   double *brhs_p = gkyl_array_fetch(up->brhs, 0);
+  int ghost_idx[GKYL_MAX_CDIM] = {-1};
 
   gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
   while (gkyl_range_iter_next(&up->solve_iter)) {
 
+    int idx1d[] = {up->solve_iter.idx[up->pardir]};
+
     long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
     const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
 
-    int idx1d[] = {up->solve_iter.idx[up->ndim-1]};
+    for (int d=0; d<up->ndim-1; d++) ghost_idx[d] = up->solve_iter.idx[d];
+    ghost_idx[up->pardir] = idx1d[0] == up->parnum_cells? idx1d[0]+1 : idx1d[0]-1;
+    linidx = gkyl_range_idx(&up->local_range_ext, ghost_idx);
+    const double *phibc_p = up->isdirichlet? gkyl_array_cfetch(phibc, linidx) : NULL;
+
     long paridx = gkyl_range_idx(&up->par_range1d, idx1d);
-    up->kernels->l2g(up->parnum_cells, paridx, up->globalidx);
+    int keri = idx1d[0] == up->parnum_cells? 1 : 0;
+    up->kernels->l2g[keri](up->parnum_cells, paridx, up->globalidx);
 
     int idx2d[] = {up->perp_range2d.lower[0], up->perp_range2d.lower[0]};
     for (int d=0; d<up->ndim-1; d++) idx2d[d] = up->solve_iter.idx[d];
     long perpidx2d = gkyl_range_idx(&up->perp_range2d, idx2d);
     long perpProbOff = perpidx2d*up->numnodes_global;
 
-    up->kernels->srcker(rhsin_p, perpProbOff, up->globalidx, brhs_p);
+    keri = idx_to_inloup_ker(up->parnum_cells, idx1d[0]);
+    up->kernels->srcker[keri](rhsin_p, phibc_p, perpProbOff, up->globalidx, brhs_p);
 
   }
 
@@ -210,7 +188,7 @@ gkyl_fem_parproj_set_rhs(gkyl_fem_parproj* up, const struct gkyl_array *rhsin)
 }
 
 void
-gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
+gkyl_fem_parproj_solve(struct gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(phiout));
@@ -229,7 +207,8 @@ gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 
     int idx1d[] = {up->solve_iter.idx[up->ndim-1]};
     long paridx = gkyl_range_idx(&up->par_range1d, idx1d);
-    up->kernels->l2g(up->parnum_cells, paridx, up->globalidx);
+    int keri = idx1d[0] == up->parnum_cells? 1 : 0;
+    up->kernels->l2g[keri](up->parnum_cells, paridx, up->globalidx);
 
     int idx2d[] = {up->perp_range2d.lower[0], up->perp_range2d.lower[0]};
     for (int d=0; d<up->ndim-1; d++) idx2d[d] = up->solve_iter.idx[d];
@@ -242,7 +221,7 @@ gkyl_fem_parproj_solve(gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 
 }
 
-void gkyl_fem_parproj_release(gkyl_fem_parproj *up)
+void gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {

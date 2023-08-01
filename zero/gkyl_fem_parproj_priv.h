@@ -7,89 +7,228 @@
 #include <gkyl_cusolver_ops.h>
 #endif
 
-// Function pointer type for local-to-global mapping.
-typedef void (*local2global_t)(const int numCellsPar, const int parIdx,
-  long *globalIdxs);
+static long
+gkyl_fem_parproj_global_num_nodes(const struct gkyl_basis *basis, bool isperiodic, int parnum_cells)
+{
+  int dim = basis->ndim;
+  int poly_order = basis->poly_order;
+  enum gkyl_basis_type basis_type = basis->b_type;
 
-typedef struct { local2global_t kernels[3]; } local2global_kern_list;  // For use in kernel tables.
+  if (dim==1) {
+    if (poly_order == 1) {
+      return isperiodic? fem_parproj_num_nodes_global_1x_ser_p1_periodicx(parnum_cells)
+                       : fem_parproj_num_nodes_global_1x_ser_p1_nonperiodicx(parnum_cells);
+    } else if (poly_order == 2) {
+      return isperiodic? fem_parproj_num_nodes_global_1x_ser_p2_periodicx(parnum_cells)
+                       : fem_parproj_num_nodes_global_1x_ser_p2_nonperiodicx(parnum_cells);
+    }
+  } else if (dim==3) {
+    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+      if (poly_order == 1) {
+        return isperiodic? fem_parproj_num_nodes_global_3x_ser_p1_periodicz(parnum_cells)
+                         : fem_parproj_num_nodes_global_3x_ser_p1_nonperiodicz(parnum_cells);
+      } else if (poly_order == 2) {
+        return isperiodic? fem_parproj_num_nodes_global_3x_ser_p2_periodicz(parnum_cells)
+                         : fem_parproj_num_nodes_global_3x_ser_p2_nonperiodicz(parnum_cells);
+      }
+    }
+  }
+  assert(false);  // Other dimensionalities or basis not supported.
+  return -1;
+}
+
+// Function pointer type for local-to-global mapping.
+typedef void (*local2global_t)(int numCellsPar, int parIdx, long *globalIdxs);
+
+// For use in kernel tables.
+typedef struct { local2global_t kernels[2]; } local2global_kern_loc_list;
+typedef struct { local2global_kern_loc_list list[2]; } local2global_kern_bc_list;
+typedef struct { local2global_kern_bc_list list[2]; } local2global_kern_list;
 
 // Serendipity local-to-global kernels.
 GKYL_CU_D
 static const local2global_kern_list ser_loc2glob_list[] = {
-  { NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, fem_parproj_local_to_global_1x_ser_p1, fem_parproj_local_to_global_1x_ser_p2 },
-  { NULL, NULL, NULL }, // No 2D basis functions
-  { NULL, fem_parproj_local_to_global_3x_ser_p1, fem_parproj_local_to_global_3x_ser_p2 }
-};
-
-// Tensor product local-to-global kernels.
-GKYL_CU_D
-static const local2global_kern_list ten_loc2glob_list[] = {
-  { NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, fem_parproj_local_to_global_1x_tensor_p1, fem_parproj_local_to_global_1x_tensor_p2 },
-  { NULL, NULL, NULL }, // No 2D basis functions
-  { NULL, fem_parproj_local_to_global_3x_tensor_p1, fem_parproj_local_to_global_3x_tensor_p2 }
+  // 1x
+  {.list={ 
+          // periodicx
+          {.list={
+                  {fem_parproj_local_to_global_1x_ser_p1_inx_periodicx, fem_parproj_local_to_global_1x_ser_p1_upx_periodicx,}, 
+                  {fem_parproj_local_to_global_1x_ser_p2_inx_periodicx, fem_parproj_local_to_global_1x_ser_p2_upx_periodicx,}, 
+                 },
+          },
+          // nonperiodicx
+          {.list={ 
+                  {fem_parproj_local_to_global_1x_ser_p1_inx_nonperiodicx, fem_parproj_local_to_global_1x_ser_p1_upx_nonperiodicx,}, 
+                  {fem_parproj_local_to_global_1x_ser_p2_inx_nonperiodicx, fem_parproj_local_to_global_1x_ser_p2_upx_nonperiodicx,}, 
+                 },
+          },
+         }
+  },
+  // 2x
+  {.list={ 
+          {.list={{NULL, NULL,},{NULL, NULL,},},},
+          {.list={{NULL, NULL,},{NULL, NULL,},},},
+         }
+  },
+  // 3x
+  {.list={ 
+          // periodicz
+          {.list={
+                  {fem_parproj_local_to_global_3x_ser_p1_inz_periodicz, fem_parproj_local_to_global_3x_ser_p1_upz_periodicz,}, 
+                  {fem_parproj_local_to_global_3x_ser_p2_inz_periodicz, fem_parproj_local_to_global_3x_ser_p2_upz_periodicz,}, 
+                 },
+          },
+          // nonperiodicz
+          {.list={ 
+                  {fem_parproj_local_to_global_3x_ser_p1_inz_nonperiodicz, fem_parproj_local_to_global_3x_ser_p1_upz_nonperiodicz,}, 
+                  {fem_parproj_local_to_global_3x_ser_p2_inz_nonperiodicz, fem_parproj_local_to_global_3x_ser_p2_upz_nonperiodicz,}, 
+                 },
+          },
+         }
+  },
 };
 
 // Function pointer type for lhs kernels.
-typedef void (*lhsstencil_t)(const double *weight, const long *globalIdxs, gkyl_mat_triples *tri);
+typedef void (*lhsstencil_t)(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri);
 
-typedef struct { lhsstencil_t kernels[3]; } lhsstencil_kern_list;  // For use in kernel tables.
+// For use in kernel tables.
+typedef struct { lhsstencil_t kernels[3]; } lhsstencil_kern_loc_list;
+typedef struct { lhsstencil_kern_loc_list list[2]; } lhsstencil_kern_bc_list;
+typedef struct { lhsstencil_kern_bc_list list[2]; } lhsstencil_kern_list;
 
 // Serendipity unweighted lhs kernels.
-static const lhsstencil_kern_list ser_lhsstencil_list[] = {
-  { NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, fem_parproj_lhs_stencil_1x_ser_p1, fem_parproj_lhs_stencil_1x_ser_p2 },
-  { NULL, NULL, NULL }, // No 2D basis functions
-  { NULL, fem_parproj_lhs_stencil_3x_ser_p1, fem_parproj_lhs_stencil_3x_ser_p2 }
-};
-
-// Tensor product unweighted lhs kernels.
-static const lhsstencil_kern_list ten_lhsstencil_list[] = {
-  { NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, fem_parproj_lhs_stencil_1x_tensor_p1, fem_parproj_lhs_stencil_1x_tensor_p2 },
-  { NULL, NULL, NULL }, // No 2D basis functions
-  { NULL, fem_parproj_lhs_stencil_3x_tensor_p1, fem_parproj_lhs_stencil_3x_tensor_p2 }
+static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = {
+  // 1x
+  {.list={ 
+          // nondirichletx
+          {.list={
+                  {fem_parproj_lhs_stencil_noweight_1x_ser_p1_inx_nondirichletx, fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_nondirichletx, fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_nondirichletx,}, 
+                  {fem_parproj_lhs_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_nondirichletx, fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_nondirichletx,}, 
+                 },
+          },
+          // dirichletx
+          {.list={ 
+                  {fem_parproj_lhs_stencil_noweight_1x_ser_p1_inx_nondirichletx, fem_parproj_lhs_stencil_noweight_1x_ser_p1_lox_dirichletx, fem_parproj_lhs_stencil_noweight_1x_ser_p1_upx_dirichletx,}, 
+                  {fem_parproj_lhs_stencil_noweight_1x_ser_p2_inx_nondirichletx, fem_parproj_lhs_stencil_noweight_1x_ser_p2_lox_dirichletx, fem_parproj_lhs_stencil_noweight_1x_ser_p2_upx_dirichletx,}, 
+                 },
+          },
+         }
+  },
+  // 2x
+  {.list={ 
+          {.list={{NULL, NULL,},{NULL, NULL,},},},
+          {.list={{NULL, NULL,},{NULL, NULL,},},},
+         }
+  },
+  // 3x
+  {.list={ 
+          // nondirichletz
+          {.list={
+                  {fem_parproj_lhs_stencil_noweight_3x_ser_p1_inz_nondirichletz, fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_nondirichletz, fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_nondirichletz,}, 
+                  {fem_parproj_lhs_stencil_noweight_3x_ser_p2_inz_nondirichletz, fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_nondirichletz, fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_nondirichletz,}, 
+                 },
+          },
+          // dirichletz
+          {.list={ 
+                  {fem_parproj_lhs_stencil_noweight_3x_ser_p1_inz_nondirichletz, fem_parproj_lhs_stencil_noweight_3x_ser_p1_loz_dirichletz, fem_parproj_lhs_stencil_noweight_3x_ser_p1_upz_dirichletz,}, 
+                  {fem_parproj_lhs_stencil_noweight_3x_ser_p2_inz_nondirichletz, fem_parproj_lhs_stencil_noweight_3x_ser_p2_loz_dirichletz, fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_dirichletz,}, 
+                 },
+          },
+         }
+  },
 };
 
 // Serendipity weighted lhs kernels.
-static const lhsstencil_kern_list ser_wlhsstencil_list[] = {
-  { NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, fem_parproj_weighted_lhs_stencil_1x_ser_p1, fem_parproj_weighted_lhs_stencil_1x_ser_p2 },
-  { NULL, NULL, NULL }, // No 2D basis functions
-  { NULL, fem_parproj_weighted_lhs_stencil_3x_ser_p1, fem_parproj_weighted_lhs_stencil_3x_ser_p2 }
-};
-
-// Tensor product weighted lhs kernels.
-static const lhsstencil_kern_list ten_wlhsstencil_list[] = {
-  { NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, fem_parproj_weighted_lhs_stencil_1x_tensor_p1, fem_parproj_weighted_lhs_stencil_1x_tensor_p2 },
-  { NULL, NULL, NULL }, // No 2D basis functions
-  { NULL, fem_parproj_weighted_lhs_stencil_3x_tensor_p1, fem_parproj_weighted_lhs_stencil_3x_tensor_p2 }
+static const lhsstencil_kern_list ser_lhsstencil_list_weighted[] = {
+  // 1x
+  {.list={ 
+          // nondirichletx
+          {.list={
+                  {fem_parproj_lhs_stencil_weighted_1x_ser_p1_inx_nondirichletx, fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_nondirichletx, fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_nondirichletx,}, 
+                  {fem_parproj_lhs_stencil_weighted_1x_ser_p2_inx_nondirichletx, fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_nondirichletx, fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_nondirichletx,}, 
+                 },
+          },
+          // dirichletx
+          {.list={ 
+                  {fem_parproj_lhs_stencil_weighted_1x_ser_p1_inx_nondirichletx, fem_parproj_lhs_stencil_weighted_1x_ser_p1_lox_dirichletx, fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_dirichletx,}, 
+                  {fem_parproj_lhs_stencil_weighted_1x_ser_p2_inx_nondirichletx, fem_parproj_lhs_stencil_weighted_1x_ser_p2_lox_dirichletx, fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_dirichletx,}, 
+                 },
+          },
+         }
+  },
+  // 2x
+  {.list={ 
+          {.list={{NULL, NULL,},{NULL, NULL,},},},
+          {.list={{NULL, NULL,},{NULL, NULL,},},},
+         }
+  },
+  // 3x
+  {.list={ 
+          // nondirichletz
+          {.list={
+                  {fem_parproj_lhs_stencil_weighted_3x_ser_p1_inz_nondirichletz, fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_nondirichletz, fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_nondirichletz,}, 
+                  {fem_parproj_lhs_stencil_weighted_3x_ser_p2_inz_nondirichletz, fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_nondirichletz, fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_nondirichletz,}, 
+                 },
+          },
+          // dirichletz
+          {.list={ 
+                  {fem_parproj_lhs_stencil_weighted_3x_ser_p1_inz_nondirichletz, fem_parproj_lhs_stencil_weighted_3x_ser_p1_loz_dirichletz, fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_dirichletz,}, 
+                  {fem_parproj_lhs_stencil_weighted_3x_ser_p2_inz_nondirichletz, fem_parproj_lhs_stencil_weighted_3x_ser_p2_loz_dirichletz, fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_dirichletz,}, 
+                 },
+          },
+         }
+  },
 };
 
 // Function pointer type for rhs source kernels.
-typedef void (*srcstencil_t)(const double *rho, long nodeOff, const long *globalIdxs,
+typedef void (*srcstencil_t)(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs,
   double *bsrc);
 
-typedef struct { srcstencil_t kernels[3]; } srcstencil_kern_list;  // For use in kernel tables.
+typedef struct { srcstencil_t kernels[3]; } srcstencil_kern_loc_list;  // For use in kernel tables.
+typedef struct { srcstencil_kern_loc_list list[2]; } srcstencil_kern_bc_list;  // For use in kernel tables.
+typedef struct { srcstencil_kern_bc_list list[2]; } srcstencil_kern_list;  // For use in kernel tables.
 
 // Serendipity src kernels.
 GKYL_CU_D
 static const srcstencil_kern_list ser_srcstencil_list[] = {
-  { NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, fem_parproj_src_stencil_1x_ser_p1, fem_parproj_src_stencil_1x_ser_p2 },
-  { NULL, NULL, NULL }, // No 2D basis functions
-  { NULL, fem_parproj_src_stencil_3x_ser_p1, fem_parproj_src_stencil_3x_ser_p2 }
-};
-
-// Tensor product src kernels.
-GKYL_CU_D
-static const srcstencil_kern_list ten_srcstencil_list[] = {
-  { NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, fem_parproj_src_stencil_1x_tensor_p1, fem_parproj_src_stencil_1x_tensor_p2 },
-  { NULL, NULL, NULL }, // No 2D basis functions
-  { NULL, fem_parproj_src_stencil_3x_tensor_p1, fem_parproj_src_stencil_3x_tensor_p2 }
+  // 1x
+  {.list={
+          // nondirichletx
+          {.list={
+                  {fem_parproj_src_stencil_1x_ser_p1_inx_nondirichletx, fem_parproj_src_stencil_1x_ser_p1_lox_nondirichletx, fem_parproj_src_stencil_1x_ser_p1_upx_nondirichletx,},
+                  {fem_parproj_src_stencil_1x_ser_p2_inx_nondirichletx, fem_parproj_src_stencil_1x_ser_p2_lox_nondirichletx, fem_parproj_src_stencil_1x_ser_p2_upx_nondirichletx,},
+                 },
+          },
+          // dirichletx
+          {.list={
+                  {fem_parproj_src_stencil_1x_ser_p1_inx_nondirichletx, fem_parproj_src_stencil_1x_ser_p1_lox_dirichletx, fem_parproj_src_stencil_1x_ser_p1_upx_dirichletx,},
+                  {fem_parproj_src_stencil_1x_ser_p2_inx_nondirichletx, fem_parproj_src_stencil_1x_ser_p2_lox_dirichletx, fem_parproj_src_stencil_1x_ser_p2_upx_dirichletx,},
+                 },
+          },
+         }
+  },
+  // 2x
+  {.list={
+          {.list={{NULL, NULL,},{NULL, NULL,},},},
+          {.list={{NULL, NULL,},{NULL, NULL,},},},
+         }
+  },
+  // 3x
+  {.list={
+          // nondirichletz
+          {.list={
+                  {fem_parproj_src_stencil_3x_ser_p1_inz_nondirichletz, fem_parproj_src_stencil_3x_ser_p1_loz_nondirichletz, fem_parproj_src_stencil_3x_ser_p1_upz_nondirichletz,},
+                  {fem_parproj_src_stencil_3x_ser_p2_inz_nondirichletz, fem_parproj_src_stencil_3x_ser_p2_loz_nondirichletz, fem_parproj_src_stencil_3x_ser_p2_upz_nondirichletz,},
+                 },
+          },
+          // dirichletz
+          {.list={
+                  {fem_parproj_src_stencil_3x_ser_p1_inz_nondirichletz, fem_parproj_src_stencil_3x_ser_p1_loz_dirichletz, fem_parproj_src_stencil_3x_ser_p1_upz_dirichletz,},
+                  {fem_parproj_src_stencil_3x_ser_p2_inz_nondirichletz, fem_parproj_src_stencil_3x_ser_p2_loz_dirichletz, fem_parproj_src_stencil_3x_ser_p2_upz_dirichletz,},
+                 },
+          },
+         }
+  },
 };
 
 // Function pointer type for kernels that convert the solution from nodal to
@@ -102,28 +241,18 @@ typedef struct { solstencil_t kernels[3]; } solstencil_kern_list;  // For use in
 // Serendipity sol kernels.
 GKYL_CU_D
 static const solstencil_kern_list ser_solstencil_list[] = {
-  { NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, fem_parproj_sol_stencil_1x_ser_p1, fem_parproj_sol_stencil_1x_ser_p2 },
-  { NULL, NULL, NULL }, // No 2D basis functions
-  { NULL, fem_parproj_sol_stencil_3x_ser_p1, fem_parproj_sol_stencil_3x_ser_p2 }
-};
-
-// Tensor product sol kernels.
-GKYL_CU_D
-static const solstencil_kern_list ten_solstencil_list[] = {
-  { NULL, NULL, NULL }, // No 0D basis functions
-  { NULL, fem_parproj_sol_stencil_1x_tensor_p1, fem_parproj_sol_stencil_1x_tensor_p2 },
-  { NULL, NULL, NULL }, // No 2D basis functions
-  { NULL, fem_parproj_sol_stencil_3x_tensor_p1, fem_parproj_sol_stencil_3x_tensor_p2 }
+  { fem_parproj_sol_stencil_1x_ser_p1, fem_parproj_sol_stencil_1x_ser_p2 },
+  { NULL, NULL }, // No 2D basis functions
+  { fem_parproj_sol_stencil_3x_ser_p1, fem_parproj_sol_stencil_3x_ser_p2 }
 };
 
 // Struct containing pointers to the various kernels. Needed to create a similar struct on the GPU.
 struct gkyl_fem_parproj_kernels {
-  local2global_t l2g;  // Pointer to local-to-global kernel.
+  local2global_t l2g[2];  // Pointer to local-to-global kernel.
 
-  lhsstencil_t lhsker;  // Weighted LHS kernel.
+  lhsstencil_t lhsker[3];  // Weighted LHS kernel.
 
-  srcstencil_t srcker;  // RHS source kernel.
+  srcstencil_t srcker[3];  // RHS source kernel.
 
   solstencil_t solker;  // Kernel that takes the solution and converts it to modal.
 };
@@ -137,6 +266,7 @@ struct gkyl_fem_parproj {
   int pardir; // parallel (z) direction.
   int parnum_cells; // number of cells in parallel (z) direction.
   bool isperiodic; // =true if parallel direction is periodic.
+  bool isdirichlet; // =true if parallel direction has periodic BCs.
 
   struct gkyl_range local_range, local_range_ext;
   struct gkyl_range solve_range;
@@ -168,18 +298,24 @@ struct gkyl_fem_parproj {
   bool use_gpu;  
 };
 
+// "Choose Kernel" based on polyorder, stencil location and BCs.
+#define CK(lst,dim,bc,poly_order,loc) lst[dim-1].list[bc].list[poly_order-1].kernels[loc]
+
 void
 fem_parproj_choose_kernels_cu(const struct gkyl_basis* basis, bool isperiodic, struct gkyl_fem_parproj_kernels *kers);
 
 GKYL_CU_D
-static local2global_t
-fem_parproj_choose_local2global_kernel(int dim, int basis_type, int poly_order)
+static void
+fem_parproj_choose_local2global_kernel(const struct gkyl_basis *basis, bool isperiodic, local2global_t *l2gout)
 {
-  switch (basis_type) {
+  int bckey[1] = {-1};
+  bckey[0] = isperiodic? 0 : 1;
+
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_loc2glob_list[dim].kernels[poly_order];
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ten_loc2glob_list[dim].kernels[poly_order];
+      for (int k=0; k<2; k++)
+        l2gout[k] = CK(ser_loc2glob_list, basis->ndim, bckey[0], basis->poly_order, k);
+      break;
     default:
       assert(false);
       break;
@@ -187,14 +323,18 @@ fem_parproj_choose_local2global_kernel(int dim, int basis_type, int poly_order)
 }
 
 GKYL_CU_D
-static lhsstencil_t
-fem_parproj_choose_lhs_kernel(int dim, int basis_type, int poly_order, bool isweighted)
+static void 
+fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis, bool isdirichlet, bool isweighted, lhsstencil_t *lhsout)
 {
-  switch (basis_type) {
+  int bckey[1] = {-1};
+  bckey[0] = isdirichlet? 1 : 0;
+
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return isweighted? ser_wlhsstencil_list[dim].kernels[poly_order] : ser_lhsstencil_list[dim].kernels[poly_order]; 
-    case GKYL_BASIS_MODAL_TENSOR:
-      return isweighted? ten_wlhsstencil_list[dim].kernels[poly_order] : ten_lhsstencil_list[dim].kernels[poly_order];
+      for (int k=0; k<3; k++)
+        lhsout[k] = isweighted? CK(ser_lhsstencil_list_weighted, basis->ndim, bckey[0], basis->poly_order, k)
+                              : CK(ser_lhsstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k); 
+      break;
     default:
       assert(false);
       break;
@@ -202,14 +342,17 @@ fem_parproj_choose_lhs_kernel(int dim, int basis_type, int poly_order, bool iswe
 }
 
 GKYL_CU_D
-static srcstencil_t
-fem_parproj_choose_srcstencil_kernel(int dim, int basis_type, int poly_order)
+static void
+fem_parproj_choose_srcstencil_kernel(const struct gkyl_basis *basis, bool isdirichlet, srcstencil_t *srcout)
 {
-  switch (basis_type) {
+  int bckey[1] = {-1};
+  bckey[0] = isdirichlet? 1 : 0;
+
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_srcstencil_list[dim].kernels[poly_order];
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ten_srcstencil_list[dim].kernels[poly_order];
+      for (int k=0; k<3; k++)
+        srcout[k] = CK(ser_srcstencil_list, basis->ndim, bckey[0], basis->poly_order, k);
+      break;
     default:
       assert(false);
       break;
@@ -218,15 +361,26 @@ fem_parproj_choose_srcstencil_kernel(int dim, int basis_type, int poly_order)
 
 GKYL_CU_D
 static solstencil_t
-fem_parproj_choose_solstencil_kernel(int dim, int basis_type, int poly_order)
+fem_parproj_choose_solstencil_kernel(const struct gkyl_basis *basis)
 {
-  switch (basis_type) {
+  switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_solstencil_list[dim].kernels[poly_order];
-    case GKYL_BASIS_MODAL_TENSOR:
-      return ten_solstencil_list[dim].kernels[poly_order];
+      return ser_solstencil_list[basis->ndim-1].kernels[basis->poly_order-1];
     default:
       assert(false);
       break;
   }
+}
+
+GKYL_CU_DH
+static inline int idx_to_inloup_ker(int num_cells, int idx) {
+  // Return the index of the kernel (in the array of kernels) needed given the grid index.
+  // This function is for kernels that differentiate between lower, interior
+  // and upper cells.
+  int iout = 0;
+  if (idx == 1)
+    iout = 1;
+  else if (idx == num_cells)
+    iout = 2;
+  return iout;
 }
