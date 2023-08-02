@@ -334,13 +334,22 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
 {
   double sl = gkyl_ten_moment_max_abs_speed(ql);
   double sr = gkyl_ten_moment_max_abs_speed(qr);
+  double amax = fmax(sl, sr);
 
-  double *wv = &waves[0]; // single wave
-  for (int i=0; i<10; ++i)  wv[i] = delta[i];
+  double fl[10], fr[10];
+  gkyl_ten_moment_flux(ql, fl);
+  gkyl_ten_moment_flux(qr, fr);
 
-  s[0] = 0.5*(sl+sr);
+  double *w0 = &waves[0], *w1 = &waves[10];
+  for (int i=0; i<10; ++i) {
+    w0[i] = 0.5*((qr[i]-ql[i]) - (fr[i]-fl[i])/amax);
+    w1[i] = 0.5*((qr[i]-ql[i]) + (fr[i]-fl[i])/amax);
+  }
+
+  s[0] = -amax;
+  s[1] = amax;
   
-  return s[0];
+  return s[1];
 }
 
 static void
@@ -348,17 +357,13 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
-  double sl = gkyl_ten_moment_max_abs_speed(ql);
-  double sr = gkyl_ten_moment_max_abs_speed(qr);  
-  double amax = fmax(sl, sr);
-
-  double fl[10], fr[10];
-  gkyl_ten_moment_flux(ql, fl);
-  gkyl_ten_moment_flux(qr, fr);
+  const double *w0 = &waves[0], *w1 = &waves[10];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
 
   for (int i=0; i<10; ++i) {
-    amdq[i] = 0.5*(fr[i]-fl[i] - amax*(qr[i]-ql[i]));
-    apdq[i] = 0.5*(fr[i]-fl[i] + amax*(qr[i]-ql[i]));
+    amdq[i] = s0m*w0[i] + s1m*w1[i];
+    apdq[i] = s0p*w0[i] + s1p*w1[i];
   }
 }
 
