@@ -83,7 +83,7 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    fem_parproj_choose_kernels_cu(basis, up->isperiodic, up->kernels_cu);
+    fem_parproj_choose_kernels_cu(basis, up->isperiodic, up->isdirichlet, up->kernels_cu);
 #endif
 
   // MF 2022/08/23: at the moment we only support weight=/1 for cdim=1. For
@@ -146,8 +146,10 @@ gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *r
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(rhsin));
+    if (phibc)
+      assert(gkyl_array_is_cu_dev(phibc));
 
-    gkyl_fem_parproj_set_rhs_cu(up, rhsin);
+    gkyl_fem_parproj_set_rhs_cu(up, rhsin, phibc);
     return;
   }
 #endif
