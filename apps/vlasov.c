@@ -596,8 +596,8 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_field_calc_bvar(app, app->field, emin);  
   }
 
-  // Two separate loops over number of species to compute preliminary variables
-  // for certain equation objects and models.
+  // Two separate loops over number of species to compute needed auxiliary 
+  // quantities for certain equation objects and models.
   for (int i=0; i<app->num_species; ++i) {
     // Compute parallel-kinetic-perpendicular moment (pkpm) variables if present.
     // These are the coupling moments [rho, p_par, p_perp], the self-consistent
@@ -623,11 +623,12 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     vm_species_calc_pkpm_update_vars(app, &app->species[i], fin[i]); 
   }
 
-  // // compute primitive moments for fluid species evolution and coupling
-  // // Need to do this after collisions since p_perp_source depends on nu and nu*vth^2
-  // for (int i=0; i<app->num_fluid_species; ++i) {
-  //   vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
-  // }
+  // compute primitive moments for fluid species evolution
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    // If fluid species is PKPM, primitive variables already computed by kinetic species
+    if (app->fluid_species[i].eqn_id != GKYL_EQN_EULER_PKPM)
+      vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
+  }
 
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {

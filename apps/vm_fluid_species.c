@@ -44,32 +44,28 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   // initial pointers to primitive variables, pressure, and boolean array for if we are only using the cell average for primitive variables
   // For isothermal Euler, prim : (ux, uy, uz), p : (vth*rho)
   // For Euler, prim : (ux, uy, uz, T/m), p : (gamma - 1)*(E - 1/2 rho u^2)
-  // For PKPM, prim : [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
-  // p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
   f->prim = 0;
   f->p = 0;
   f->cell_avg_prim = 0;
 
   f->param = 0.0;
   // fluid solvers
-  if (f->info.vt) {
-    f->param = f->info.vt; // parameter for isothermal Euler is vt, thermal velocity
-    f->eqn_id = GKYL_EQN_ISO_EULER;
-    // allocate array to store primitive variables (ux, uy, uz) and pressure (vth*rho)
+  if (f->info.vt || f->info.gas_gamma) {
+    if (f->info.vt) {
+      f->param = f->info.vt; // parameter for isothermal Euler is vt, thermal velocity
+      f->eqn_id = GKYL_EQN_ISO_EULER;
+    }
+    else if (f->info.gas_gamma) {
+      f->param = f->info.gas_gamma; // parameter for Euler is gas_gamma, adiabatic index
+      f->eqn_id = GKYL_EQN_EULER;
+    }
+    // allocate array to store fluid velocity (ux, uy, uz) and pressure
+    // For isothermal Euler, p : (vth*rho)
+    // For Euler, p : (gamma - 1)*(E - 1/2 rho u^2)
     f->prim = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     f->p = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     // boolean array for if we are only using the cell average for primitive variables
     f->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
-  }
-  else if (f->info.gas_gamma) {
-    f->param = f->info.gas_gamma; // parameter for Euler is gas_gamma, adiabatic index
-    f->eqn_id = GKYL_EQN_EULER;
-    // allocate array to store primitive variables (ux, uy, uz, T/m) and pressure (gamma - 1)*(E - 1/2 rho u^2)
-    f->prim = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
-    f->p = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    // boolean array for if we are only using the cell average for primitive variables
-    f->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
-
     struct gkyl_dg_euler_auxfields aux_inp = {.u_i = f->prim, .p_ij = f->p};
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
       &app->local, f->eqn_id, f->param, &aux_inp, app->use_gpu);
@@ -274,29 +270,10 @@ void
 vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
   const struct gkyl_array *fluid)
 {
-  // gkyl_array_clear(fluid_species->prim, 0.0);
-  // gkyl_array_clear(fluid_species->p, 0.0); 
-  // if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-  //   gkyl_array_clear(fluid_species->pkpm_accel, 0.0);
-  //   gkyl_dg_calc_pkpm_vars_pressure(fluid_species->calc_pkpm_vars, &app->local_ext, 
-  //     app->field->bvar, fluid_species->pkpm_species->pkpm_moms.marr, 
-  //     fluid_species->p);
-  //   // Calculates both primitive and acceleration variables. Note acceleration variables
-  //   // require gradients, which are computed with either averaging or recovery
-  //   if (fluid_species->bc_is_absorb)
-  //     gkyl_dg_calc_pkpm_vars_advance(fluid_species->calc_pkpm_vars,
-  //       fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
-  //       fluid_species->p, fluid_species->pkpm_species->pkpm_div_ppar, 
-  //       fluid_species->cell_avg_prim, fluid_species->prim); 
-  //   else
-  //     gkyl_dg_calc_pkpm_vars_advance(fluid_species->calc_pkpm_vars_ext,
-  //       fluid_species->pkpm_species->pkpm_moms.marr, fluid, 
-  //       fluid_species->p, fluid_species->pkpm_species->pkpm_div_ppar, 
-  //       fluid_species->cell_avg_prim, fluid_species->prim); 
-  //   gkyl_dg_calc_pkpm_vars_accel(fluid_species->calc_pkpm_vars, &app->local, 
-  //     app->field->bvar, fluid_species->prim, fluid_species->pkpm_species->lbo.nu_sum, 
-  //     fluid_species->pkpm_accel); 
-  // }
+  gkyl_array_clear(fluid_species->prim, 0.0);
+  gkyl_array_clear(fluid_species->p, 0.0); 
+  // Once merged with main, can utilize dg_prim_vars_type infrastructure written for
+  // GPU hackathon (JJ : 08/03/23)
 }
 
 // Compute the RHS for fluid species update, returning maximum stable
