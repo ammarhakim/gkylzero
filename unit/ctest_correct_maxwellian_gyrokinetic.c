@@ -101,7 +101,10 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // Basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order==1)
+    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+  else
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Configuration space range
@@ -250,7 +253,7 @@ void test_1x1v(int poly_order, bool use_gpu)
      const double *m0corr = gkyl_array_cfetch(m0_corr_ho, linidx);
      const double *m1corr = gkyl_array_cfetch(m1_corr_ho, linidx);
      const double *m2corr = gkyl_array_cfetch(m2_corr_ho, linidx);
-     for (int m=0; m<basis.num_basis; m++) {
+     for (int m=0; m<confBasis.num_basis; m++) {
        TEST_CHECK( gkyl_compare(m0in[m], m0corr[m], 1e-12) );
        TEST_CHECK( gkyl_compare(m1in[m], m1corr[m], 1e-12) );
        TEST_CHECK( gkyl_compare(m2in[m], m2corr[m], 1e-12) );
@@ -330,7 +333,10 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Basis functions
   struct gkyl_basis basis, confBasis;
-  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  if (poly_order==1)
+    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  else
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Configuration space range
@@ -469,6 +475,7 @@ void test_1x2v(int poly_order, bool use_gpu)
     m1_corr_ho = m1_corr;
     m2_corr_ho = m2_corr;
   }
+
   // (4) compare the corrected moments with the input moments 
   for (int k=0; k<cells[0]; k++) {
      int idx[] = {k+1};
@@ -479,7 +486,7 @@ void test_1x2v(int poly_order, bool use_gpu)
      const double *m0corr = gkyl_array_cfetch(m0_corr_ho, linidx);
      const double *m1corr = gkyl_array_cfetch(m1_corr_ho, linidx);
      const double *m2corr = gkyl_array_cfetch(m2_corr_ho, linidx);
-     for (int m=0; m<basis.num_basis; m++) {
+     for (int m=0; m<confBasis.num_basis; m++) {
        TEST_CHECK( gkyl_compare(m0in[m], m0corr[m], 1e-12) );
        TEST_CHECK( gkyl_compare(m1in[m], m1corr[m], 1e-12) );
        TEST_CHECK( gkyl_compare(m2in[m], m2corr[m], 1e-12) );
@@ -518,10 +525,14 @@ void test_1x2v(int poly_order, bool use_gpu)
 
 // Run the test
 void test_1x1v_p1() {test_1x1v(1, true);}
+void test_1x1v_p2() {test_1x1v(2, true);}
 void test_1x2v_p1() {test_1x2v(1, true);}
+void test_1x2v_p2() {test_1x2v(2, true);}
 
 TEST_LIST = {
   {"test_1x1v_p1", test_1x1v_p1},
+  {"test_1x1v_p2", test_1x1v_p2},
   {"test_1x2v_p1", test_1x2v_p1},
+  {"test_1x2v_p2", test_1x2v_p2},
   {NULL, NULL},
 };
