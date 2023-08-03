@@ -39,18 +39,15 @@ static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_0v[] = {
 
 static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_2v[] = {
   {NULL, NULL, NULL,},
-  //{NULL, twistshift_xlimdg_3x2v_ser_p1_yshift_p1, NULL,}, //remove for now replace with null below
-  {NULL, NULL, NULL,},
+  {NULL, twistshift_xlimdg_3x2v_ser_p1_yshift_p1, NULL,},
 };
 static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_2v[] = {
   {NULL, NULL, NULL,},
-  //{NULL, twistshift_ylimdg_3x2v_ser_p1_yshift_p1, NULL,}, //remove for now replace with null below
-  {NULL, NULL, NULL,},
+  {NULL, twistshift_ylimdg_3x2v_ser_p1_yshift_p1, NULL,},
 };
 static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_2v[] = {
   {NULL, NULL, NULL,},
-  //{NULL, twistshift_fullcell_3x2v_ser_p1_yshift_p1, NULL,}, //remove for now replace with null below
-  {NULL, NULL, NULL,},
+  {NULL, twistshift_fullcell_3x2v_ser_p1_yshift_p1, NULL,},
 };
 
 struct gkyl_bc_twistshift_kernels {

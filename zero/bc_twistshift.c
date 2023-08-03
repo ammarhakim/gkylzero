@@ -142,22 +142,30 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
   int tar_idx[up->local_range_update->ndim];
   int lin_vecdo_idx = 0;
   int lin_tar_idx = 0;
-  int last_xidx = -1;
-  int last_yidx = -1;
+  int last_yidx = 0;
 
   while (gkyl_range_iter_next(&iter)) {
+    if(iter.idx[0] == last_yidx){
+      lin_idx = (iter.idx[0] - 1)*up->matsdo->num;
+    }
     up->locDir_do[up->shift_dir] = iter.idx[0];
+    if(up->local_range_update->ndim>3){
+      up->locDir_do[3] = iter.idx[1];
+      up->locDir_do[4] = iter.idx[2];
+    }
     gkyl_range_deflate(up->xrange, up->local_range_update, up->remDir_do, up->locDir_do);
     gkyl_range_iter_init(&iterx, up->xrange);
     lin_vecdo_idx = 0;
     while (gkyl_range_iter_next(&iterx)) {
       for(int i = 0; i < up->ndonors[iterx.idx[0]-1];i++){
-        printf("y index, x index, lin_idx, lin_vecdo_idx = %d %d %d %d\n", iter.idx[0], iterx.idx[0], lin_idx, lin_vecdo_idx);
-        //probably need to recalculate lin index here for 5d
         do_idx[up->do_dir] = iterx.idx[0];
         do_idx[up->shift_dir] = up->cells_do[lin_idx];
-        if(up->local_range_update->ndim>2)
+        if(up->local_range_update->ndim>2){
           do_idx[up->dir] = up->locDir_do[up->dir];
+          for(int i = up->dir + 1; i < up->local_range_update->ndim; i++){
+            do_idx[i] = iter.idx[i - (up->local_range_update->ndim - up->yrange->ndim)];
+          }
+        }
 
         struct gkyl_mat gkyl_mat_itr = gkyl_nmat_get(up->vecsdo, lin_vecdo_idx);
         long loc = gkyl_range_idx(up->local_range_update, do_idx);
@@ -165,12 +173,9 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
         for(int ib = 0; ib < up->vecsdo->nr; ib++){
           gkyl_mat_set(&gkyl_mat_itr, ib, 0, fdo_itr[ib]);
         }
-        if( (iter.idx[0] != last_yidx) && (iterx.idx[0] != last_xidx)){
-          lin_idx += 1; 
-          lin_vecdo_idx += 1;
-        }
+        lin_vecdo_idx += 1;
+        lin_idx += 1; 
       }
-      last_xidx = iterx.idx[0];
     }
 
     gkyl_nmat_mv(1.0, 0.0, GKYL_NO_TRANS, up->matsdo, up->vecsdo, up->vecstar);
@@ -181,8 +186,12 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
     while (gkyl_range_iter_next(&iterx)) {
       tar_idx[up->do_dir] = iterx.idx[0];
       tar_idx[up->shift_dir] = iter.idx[0];
-      if(up->local_range_update->ndim>2)
+      if(up->local_range_update->ndim>2){
         tar_idx[up->dir] = up->locDir[up->dir];
+        for(int i = up->dir + 1; i < up->local_range_update->ndim; i++){
+          tar_idx[i] = iter.idx[i - (up->local_range_update->ndim - up->yrange->ndim)];
+        }
+      }
 
       long loc = gkyl_range_idx(up->local_range_update, tar_idx);
       double *ftar_itr = gkyl_array_fetch(ftar, loc);
