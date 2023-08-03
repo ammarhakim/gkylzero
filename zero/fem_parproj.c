@@ -2,8 +2,9 @@
 #include <gkyl_fem_parproj_priv.h>
 
 struct gkyl_fem_parproj*
-gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  enum gkyl_fem_parproj_bc_type bctype, const struct gkyl_array *weight, bool use_gpu)
+gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_range *solve_range_ext, 
+  const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
+  const struct gkyl_array *weight, bool use_gpu)
 {
   struct gkyl_fem_parproj *up = gkyl_malloc(sizeof(struct gkyl_fem_parproj));
 
@@ -17,45 +18,34 @@ gkyl_fem_parproj_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->kernels_cu = up->kernels;
 #endif
 
-  up->ndim = grid->ndim;
-  up->grid = *grid;
+  up->solve_range = solve_range;
+  up->solve_range_ext = solve_range_ext;
+  up->ndim = solve_range->ndim;
   up->num_basis  = basis->num_basis;
   up->basis_type = basis->b_type;
   up->poly_order = basis->poly_order;
-  up->pardir = grid->ndim-1; // Assume parallel direction is always the last.
+  up->pardir = up->ndim-1; // Assume parallel direction is always the last.
   up->isperiodic = bctype == GKYL_FEM_PARPROJ_PERIODIC;
   up->isdirichlet = bctype == GKYL_FEM_PARPROJ_DIRICHLET;
   up->use_gpu = use_gpu;
 
+  up->globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
+
   bool isweighted = false;
   if (weight) isweighted = true;
 
-  up->globalidx = gkyl_malloc(sizeof(long[up->num_basis]));
-
-  // Local and local-ext ranges for whole-grid arrays.
-  int ghost[GKYL_MAX_CDIM];
-  for (int d=0; d<up->ndim; d++) ghost[d] = 1;
-  gkyl_create_grid_ranges(grid, ghost, &up->local_range_ext, &up->local_range);
-
-  // Range of cells we'll solve apply the parallel projection
-  // operator in, as a sub-range of up->local_range_ext.
+  // Range of parallel cells, as a sub-range of up->solve_range.
   int sublower[GKYL_MAX_CDIM], subupper[GKYL_MAX_CDIM];
   for (int d=0; d<up->ndim; d++) {
-    sublower[d] = up->local_range.lower[d];
-    subupper[d] = up->local_range.upper[d];
+    sublower[d] = up->solve_range->lower[d];
+    subupper[d] = up->solve_range->lower[d];
   }
-  gkyl_sub_range_init(&up->solve_range, &up->local_range_ext, sublower, subupper);
-
-  // Range of parallel cells, as a sub-range of up->solve_range.
-  for (int d=0; d<up->ndim; d++) {
-    sublower[d] = up->solve_range.lower[d];
-    subupper[d] = up->solve_range.lower[d];
-  }
-  subupper[up->pardir] = up->solve_range.upper[up->pardir];
-  gkyl_sub_range_init(&up->par_range, &up->solve_range, sublower, subupper);
+  subupper[up->pardir] = up->solve_range->upper[up->pardir];
+  gkyl_sub_range_init(&up->par_range, up->solve_range, sublower, subupper);
   up->parnum_cells = up->par_range.volume;
+
   // Range of perpendicular cells.
-  gkyl_range_shorten(&up->perp_range, &up->solve_range, up->pardir, 1);
+  gkyl_range_shorten(&up->perp_range, up->solve_range, up->pardir, 1);
 
   // 1D range of parallel cells.
   int lower1d[] = {up->par_range.lower[up->pardir]}, upper1d[] = {up->par_range.upper[up->pardir]};
@@ -158,17 +148,17 @@ gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *r
   double *brhs_p = gkyl_array_fetch(up->brhs, 0);
   int ghost_idx[GKYL_MAX_CDIM] = {-1};
 
-  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  gkyl_range_iter_init(&up->solve_iter, up->solve_range);
   while (gkyl_range_iter_next(&up->solve_iter)) {
 
     int idx1d[] = {up->solve_iter.idx[up->pardir]};
 
-    long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
+    long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
     const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
 
     for (int d=0; d<up->ndim-1; d++) ghost_idx[d] = up->solve_iter.idx[d];
     ghost_idx[up->pardir] = idx1d[0] == up->parnum_cells? idx1d[0]+1 : idx1d[0]-1;
-    linidx = gkyl_range_idx(&up->local_range_ext, ghost_idx);
+    linidx = gkyl_range_idx(up->solve_range_ext, ghost_idx);
     const double *phibc_p = up->isdirichlet? gkyl_array_cfetch(phibc, linidx) : NULL;
 
     long paridx = gkyl_range_idx(&up->par_range1d, idx1d);
@@ -201,10 +191,10 @@ gkyl_fem_parproj_solve(struct gkyl_fem_parproj* up, struct gkyl_array *phiout) {
 
   gkyl_superlu_solve(up->prob);
 
-  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  gkyl_range_iter_init(&up->solve_iter, up->solve_range);
   while (gkyl_range_iter_next(&up->solve_iter)) {
 
-    long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
+    long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
     double *phiout_p = gkyl_array_fetch(phiout, linidx);
 
     int idx1d[] = {up->solve_iter.idx[up->ndim-1]};
