@@ -68,16 +68,11 @@ vm_species_moment_calc(const struct vm_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin)
 {
-  if (sm->use_gpu)
-    gkyl_dg_updater_moment_advance_cu(sm->mcalc, &phase_rng, &conf_rng, 
-      sm->p_over_gamma, sm->gamma, sm->gamma_inv, 
-      sm->V_drift, sm->GammaV2, sm->GammaV_inv, 
-      fin, sm->marr);
-  else
-    gkyl_dg_updater_moment_advance(sm->mcalc, &phase_rng, &conf_rng, 
-      sm->p_over_gamma, sm->gamma, sm->gamma_inv, 
-      sm->V_drift, sm->GammaV2, sm->GammaV_inv, 
-      fin, sm->marr);
+  struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = sm->p_over_gamma, 
+    .gamma = sm->gamma, .gamma_inv = sm->gamma_inv, .V_drift = sm->V_drift, 
+    .GammaV2 = sm->GammaV2, .GammaV_inv = sm->GammaV_inv};
+  gkyl_dg_updater_moment_advance(sm->mcalc, &phase_rng, &conf_rng, 
+    &sr_inp, fin, sm->marr);
 }
 
 // release memory for moment data object

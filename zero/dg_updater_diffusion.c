@@ -24,10 +24,11 @@ gkyl_dg_updater_diffusion_new(const struct gkyl_rect_grid *grid,
 {
   gkyl_dg_updater_diffusion *up = gkyl_malloc(sizeof(gkyl_dg_updater_diffusion));
   up->diffusion_id = diffusion_id;
+  up->use_gpu = use_gpu;
   if (up->diffusion_id == GKYL_GEN_DIFFUSION)
-    up->eqn_diffusion = gkyl_dg_gen_diffusion_new(cbasis, conf_range, use_gpu);
+    up->eqn_diffusion = gkyl_dg_gen_diffusion_new(cbasis, conf_range, up->use_gpu);
   else 
-    up->eqn_diffusion = gkyl_dg_diffusion_new(cbasis, D, order, diffusion_id, use_gpu);
+    up->eqn_diffusion = gkyl_dg_diffusion_new(cbasis, D, order, diffusion_id, up->use_gpu);
 
   int cdim = cbasis->ndim;
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
@@ -37,7 +38,7 @@ gkyl_dg_updater_diffusion_new(const struct gkyl_rect_grid *grid,
   }
   int num_up_dirs = cdim;
 
-  up->up_diffusion = gkyl_hyper_dg_new(grid, cbasis, up->eqn_diffusion, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->up_diffusion = gkyl_hyper_dg_new(grid, cbasis, up->eqn_diffusion, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->diffusion_tm = 0.0;
 
@@ -55,10 +56,16 @@ gkyl_dg_updater_diffusion_advance(gkyl_dg_updater_diffusion *diffusion,
   if (diffusion->diffusion_id == GKYL_GEN_DIFFUSION) {
     gkyl_gen_diffusion_set_auxfields(diffusion->eqn_diffusion,
       (struct gkyl_dg_gen_diffusion_auxfields) { .Dij = Dij });
-    gkyl_hyper_dg_gen_stencil_advance(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
+    if (diffusion->use_gpu)
+      assert(false); // gen_stencil not yet implemented on device
+    else
+      gkyl_hyper_dg_gen_stencil_advance(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   else {
-    gkyl_hyper_dg_advance(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
+    if (diffusion->use_gpu)
+      gkyl_hyper_dg_advance_cu(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs); 
+    else
+      gkyl_hyper_dg_advance(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   diffusion->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -78,40 +85,3 @@ gkyl_dg_updater_diffusion_release(gkyl_dg_updater_diffusion* diffusion)
   gkyl_hyper_dg_release(diffusion->up_diffusion);
   gkyl_free(diffusion);
 }
-
-#ifdef GKYL_HAVE_CUDA
-
-void
-gkyl_dg_updater_diffusion_advance_cu(gkyl_dg_updater_diffusion *diffusion,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *Dij, const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
-{
-  struct timespec wst = gkyl_wall_clock();
-  // Set arrays needed and call the specific advance method required
-  if (diffusion->diffusion_id == GKYL_GEN_DIFFUSION) {
-    gkyl_gen_diffusion_set_auxfields(diffusion->eqn_diffusion,
-      (struct gkyl_dg_gen_diffusion_auxfields) { .Dij = Dij });
-    // hyper_dg_gen_stencil NOT YET IMPLEMENTED ON DEVICE
-    // gkyl_hyper_dg_gen_stencil_advance_cu(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
-  }
-  else {
-    gkyl_hyper_dg_advance_cu(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);    
-  }
-  diffusion->diffusion_tm += gkyl_time_diff_now_sec(wst);
-}
-
-#endif
-
-#ifndef GKYL_HAVE_CUDA
-
-void
-gkyl_dg_updater_diffusion_advance_cu(gkyl_dg_updater_diffusion *diffusion,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *Dij, const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
-{
-  assert(false);
-}
-
-#endif

@@ -26,15 +26,16 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
   enum gkyl_eqn_type eqn_id, double param, bool use_gpu)
 {
   gkyl_dg_updater_fluid *up = gkyl_malloc(sizeof(gkyl_dg_updater_fluid));
-
-  if (eqn_id == GKYL_EQN_ADVECTION)
-    up->eqn_fluid = gkyl_dg_advection_new(cbasis, conf_range, use_gpu);
-  else if (eqn_id == GKYL_EQN_EULER_PKPM)
-    up->eqn_fluid = gkyl_dg_euler_pkpm_new(cbasis, conf_range, use_gpu);
-  else if (eqn_id == GKYL_EQN_EULER)
-    up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, param, use_gpu);
-  else if (eqn_id == GKYL_EQN_ISO_EULER)
-    up->eqn_fluid = gkyl_dg_euler_iso_new(cbasis, conf_range, param, use_gpu);
+  up->eqn_id = eqn_id;
+  up->use_gpu = use_gpu;
+  if (up->eqn_id == GKYL_EQN_ADVECTION)
+    up->eqn_fluid = gkyl_dg_advection_new(cbasis, conf_range, up->use_gpu);
+  else if (up->eqn_id == GKYL_EQN_EULER_PKPM)
+    up->eqn_fluid = gkyl_dg_euler_pkpm_new(cbasis, conf_range, up->use_gpu);
+  else if (up->eqn_id == GKYL_EQN_EULER)
+    up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, param, up->use_gpu);
+  else if (up->eqn_id == GKYL_EQN_ISO_EULER)
+    up->eqn_fluid = gkyl_dg_euler_iso_new(cbasis, conf_range, param, up->use_gpu);
 
   int cdim = cbasis->ndim;
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
@@ -44,7 +45,7 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
   }
   int num_up_dirs = cdim;
 
-  up->up_fluid = gkyl_hyper_dg_new(grid, cbasis, up->eqn_fluid, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->up_fluid = gkyl_hyper_dg_new(grid, cbasis, up->eqn_fluid, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->fluid_tm = 0.0;
 
@@ -53,35 +54,32 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
 
 void
 gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
-  enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
-  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
-  const struct gkyl_array* GKYL_RESTRICT fIn,
+  const struct gkyl_range *update_rng, void *aux_inp, 
+  const struct gkyl_array* GKYL_RESTRICT fluidIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
-  // Set arrays needed
-  // Assumes a particular order of the arrays
-  // TO DO: More intelligent way to do these aux field sets? (JJ: 04/26/22)
-  if (eqn_id == GKYL_EQN_ADVECTION) {
-    gkyl_advection_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_advection_auxfields) { .u_i = aux1 });
+  if (fluid->eqn_id == GKYL_EQN_ADVECTION) {
+    struct gkyl_dg_advection_auxfields *adv_in = aux_inp;
+    gkyl_advection_set_auxfields(fluid->eqn_fluid, *adv_in);
   }
-  else if (eqn_id == GKYL_EQN_EULER_PKPM) {
-    // Pressure in PKPM is pre-computed div(P) for consistency with kinetic equation
-    gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_pkpm_auxfields) { .pkpm_prim = aux1, .p_ij = aux2, .vlasov_pkpm_moms = aux3 });
+  else if (fluid->eqn_id == GKYL_EQN_EULER_PKPM) {
+    struct gkyl_dg_euler_pkpm_auxfields *pkpm_inp = aux_inp;
+    gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid, *pkpm_inp);
   }
-  else if (eqn_id == GKYL_EQN_EULER) {
-    gkyl_euler_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_auxfields) { .u_i = aux1, .p_ij = aux2 });
+  else if (fluid->eqn_id == GKYL_EQN_EULER) {
+    struct gkyl_dg_euler_auxfields *euler_inp = aux_inp;
+    gkyl_euler_set_auxfields(fluid->eqn_fluid, *euler_inp);
   }
-  else if (eqn_id == GKYL_EQN_ISO_EULER) {
-    gkyl_euler_iso_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_iso_auxfields) { .u_i = aux1 });
+  else if (fluid->eqn_id == GKYL_EQN_ISO_EULER) {
+    struct gkyl_dg_euler_iso_auxfields *euler_iso_inp = aux_inp;
+    gkyl_euler_iso_set_auxfields(fluid->eqn_fluid, *euler_iso_inp);
   }
 
   struct timespec wst = gkyl_wall_clock();
-  gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fIn, cflrate, rhs);
+  if (fluid->use_gpu)
+    gkyl_hyper_dg_advance_cu(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
+  else
+    gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
   fluid->fluid_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -100,56 +98,3 @@ gkyl_dg_updater_fluid_release(gkyl_dg_updater_fluid* fluid)
   gkyl_hyper_dg_release(fluid->up_fluid);
   gkyl_free(fluid);
 }
-
-#ifdef GKYL_HAVE_CUDA
-
-void
-gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
-  enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
-  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
-  const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
-{
-  // Set arrays needed
-  // Assumes a particular order of the arrays
-  // TO DO: More intelligent way to do these aux field sets? (JJ: 04/26/22)
-  if (eqn_id == GKYL_EQN_ADVECTION) {
-    gkyl_advection_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_advection_auxfields) { .u_i = aux1 });
-  }
-  else if (eqn_id == GKYL_EQN_EULER_PKPM) {
-    // Pressure in PKPM is pre-computed div(P) for consistency with kinetic equation
-    gkyl_euler_pkpm_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_pkpm_auxfields) { .pkpm_prim = aux1, .p_ij = aux2, .vlasov_pkpm_moms = aux3 });
-  }
-  else if (eqn_id == GKYL_EQN_EULER) {
-    gkyl_euler_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_auxfields) { .u_i = aux1, .p_ij = aux2 });
-  }
-  else if (eqn_id == GKYL_EQN_ISO_EULER) {
-    gkyl_euler_iso_set_auxfields(fluid->eqn_fluid,
-      (struct gkyl_dg_euler_iso_auxfields) { .u_i = aux1 });
-  }
-
-  struct timespec wst = gkyl_wall_clock();
-  gkyl_hyper_dg_advance_cu(fluid->up_fluid, update_rng, fIn, cflrate, rhs);
-  fluid->fluid_tm += gkyl_time_diff_now_sec(wst);
-}
-
-#endif
-
-#ifndef GKYL_HAVE_CUDA
-
-void
-gkyl_dg_updater_fluid_advance_cu(gkyl_dg_updater_fluid *fluid,
-  enum gkyl_eqn_type eqn_id, const struct gkyl_range *update_rng,
-  const struct gkyl_array *aux1, const struct gkyl_array *aux2, 
-  const struct gkyl_array *aux3, const struct gkyl_array *aux4, 
-  const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
-{
-  assert(false);
-}
-
-#endif

@@ -50,7 +50,6 @@ gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
   up->m1icalc = gkyl_dg_updater_moment_new(grid, conf_basis,
       phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "M1i", 0, 1, use_gpu);
 
-
   up->num_ratio = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->num_vb = gkyl_array_new(GKYL_DOUBLE, vdim*conf_basis->num_basis, conf_local_ext_ncells);
   up->gamma = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
@@ -67,16 +66,16 @@ void gkyl_correct_mj_fix(gkyl_correct_mj *cmj, const struct gkyl_array *p_over_g
   // vdim
   int vdim = cmj->phase_basis.ndim - cmj->conf_basis.ndim;
 
+  // Set auxiliary fields for moment updates. 
+  struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = p_over_gamma, 
+    .gamma = 0, .gamma_inv = 0, .V_drift = 0, 
+    .GammaV2 = 0, .GammaV_inv = 0};  
 
   // compute the sr moments
   gkyl_dg_updater_moment_advance(cmj->m0calc, phase_local, conf_local,
-    0, 0, 0,
-    0, 0, 0,
-    fout, cmj->num_ratio);
+    &sr_inp, fout, cmj->num_ratio);
   gkyl_dg_updater_moment_advance(cmj->m1icalc, phase_local, conf_local,
-    p_over_gamma, 0, 0,
-    0, 0, 0,
-    fout, cmj->num_vb);
+    &sr_inp, fout, cmj->num_vb);
 
   // isolate vb by dividing N*vb by N
   for (int d=0; d<vdim; ++d){

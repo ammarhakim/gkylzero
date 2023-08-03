@@ -358,44 +358,27 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   gkyl_array_clear(fluid_species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  if (app->use_gpu) {
-    if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
-      gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->prim, fluid_species->p, 
-        fluid_species->pkpm_species->pkpm_moms.marr, 0, 
-        fluid, fluid_species->cflrate, rhs);
-    else if(fluid_species->eqn_id == GKYL_EQN_ADVECTION)
-      gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->app_advect, 0, 0, 0, 
-        fluid, fluid_species->cflrate, rhs);
-    else
-      gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->prim, fluid_species->p, 0, 0, 
-        fluid, fluid_species->cflrate, rhs);
-
-    if (fluid_species->has_diffusion)
-      gkyl_dg_updater_diffusion_advance_cu(fluid_species->diff_slvr, 
-        &app->local, fluid_species->Dij, fluid, fluid_species->cflrate, rhs);
+  if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
+    struct gkyl_dg_euler_pkpm_auxfields pkpm_inp = {.pkpm_prim = fluid_species->prim, 
+      .p_ij = fluid_species->p, .vlasov_pkpm_moms = fluid_species->pkpm_species->pkpm_moms.marr};
+    gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
+      &app->local, &pkpm_inp, fluid, fluid_species->cflrate, rhs);
+  }
+  else if(fluid_species->eqn_id == GKYL_EQN_ADVECTION) {
+    struct gkyl_dg_advection_auxfields adv_in = {.u_i = fluid_species->app_advect};
+    gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
+      &app->local, &adv_in, fluid, fluid_species->cflrate, rhs);
   }
   else {
-    if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
-      gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->prim, fluid_species->p, 
-        fluid_species->pkpm_species->pkpm_moms.marr, 0, 
-        fluid, fluid_species->cflrate, rhs);
-    else if(fluid_species->eqn_id == GKYL_EQN_ADVECTION)
-      gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->app_advect, 0, 0, 0, 
-        fluid, fluid_species->cflrate, rhs);
-    else
-      gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
-        &app->local, fluid_species->prim, fluid_species->p, 0, 0, 
-        fluid, fluid_species->cflrate, rhs);
-
-    if (fluid_species->has_diffusion)
-      gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, 
-        &app->local, fluid_species->Dij, fluid, fluid_species->cflrate, rhs);
+    struct gkyl_dg_euler_auxfields euler_inp = {.u_i = fluid_species->prim, 
+      .p_ij = fluid_species->p};
+    gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
+      &app->local, &euler_inp, fluid, fluid_species->cflrate, rhs);
   }
+
+  if (fluid_species->has_diffusion)
+    gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, 
+      &app->local, fluid_species->Dij, fluid, fluid_species->cflrate, rhs);
 
   // Accumulate source contribution if PKPM -> adds forces (E + u x B) to momentum equation RHS
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {

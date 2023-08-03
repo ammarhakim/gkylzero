@@ -56,7 +56,6 @@ gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
   up->m2calc = gkyl_dg_updater_moment_new(grid, conf_basis,
       phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "Pressure", 0, 1, use_gpu);
 
-
   up->num_ratio = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->num_vb = gkyl_array_new(GKYL_DOUBLE, vdim*conf_basis->num_basis, conf_local_ext_ncells);
   up->V_drift = gkyl_array_new(GKYL_DOUBLE, vdim*conf_basis->num_basis, conf_local_ext_ncells);
@@ -80,15 +79,16 @@ void gkyl_mj_moments_advance(gkyl_mj_moments *cmj, const struct gkyl_array *p_ov
   // vdim
   int vdim = cmj->phase_basis.ndim - cmj->conf_basis.ndim;
 
+  // Set auxiliary fields for moment updates. 
+  struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = p_over_gamma, 
+    .gamma = gamma, .gamma_inv = gamma_inv, .V_drift = cmj->V_drift, 
+    .GammaV2 = cmj->GammaV2, .GammaV_inv = cmj->Gamma_inv};  
+
   // compute the sr moments, lab frame <N> and <Nvb>
   gkyl_dg_updater_moment_advance(cmj->m0calc, phase_local, conf_local,
-    0, 0, 0,
-    0, 0, 0,
-    fout, cmj->num_ratio);
+    &sr_inp, fout, cmj->num_ratio);
   gkyl_dg_updater_moment_advance(cmj->m1icalc, phase_local, conf_local,
-    p_over_gamma, 0, 0,
-    0, 0, 0,
-    fout, cmj->num_vb);
+    &sr_inp, fout, cmj->num_vb);
 
   // (vb = <Nvb>/<N>) isolate vb by dividing <N*vb> by <N>
   gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->V_drift,
@@ -108,10 +108,7 @@ void gkyl_mj_moments_advance(gkyl_mj_moments *cmj, const struct gkyl_array *p_ov
 
   // compute the pressure moment (stationary frame)
   gkyl_dg_updater_moment_advance(cmj->m2calc, phase_local, conf_local,
-        p_over_gamma, gamma,
-        gamma_inv, cmj->V_drift,
-        cmj->GammaV2, cmj->Gamma_inv,
-        fout, cmj->pressure);
+    &sr_inp, fout, cmj->pressure);
 
   // (n = N/gamma) divide the number density by gamma, to account for the frame trans.
   gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->num_ratio,

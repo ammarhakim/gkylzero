@@ -64,11 +64,6 @@ void gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
-void gkyl_dg_updater_vlasov_advance_cu(gkyl_dg_updater_vlasov *vlasov,
-  const struct gkyl_range *update_rng, void *aux_inp, 
-  const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
-
 /**
  * Return total time spent in vlasov equation
  *

@@ -437,63 +437,32 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
   gkyl_array_clear(rhs, 0.0);
 
-  if (app->use_gpu) {
-    if (species->model_id == GKYL_MODEL_PKPM) {
-      // Calculate distrbution functions for coupling different Laguerre moments
-      gkyl_dg_calc_pkpm_dist_vars_mirror_force(species->calc_pkpm_dist_vars, 
-        &app->local, &species->local,
-        species->pkpm_fluid_species->prim, species->lbo.nu_prim_moms, species->pkpm_fluid_species->pkpm_accel, 
-        fin, species->F_k_p_1, 
-        species->g_dist_source, species->F_k_m_1);
+  if (species->model_id == GKYL_MODEL_PKPM) {
+    // Calculate distrbution functions for coupling different Laguerre moments
+    gkyl_dg_calc_pkpm_dist_vars_mirror_force(species->calc_pkpm_dist_vars, 
+      &app->local, &species->local, 
+      species->pkpm_fluid_species->prim, species->lbo.nu_prim_moms, species->pkpm_fluid_species->pkpm_accel, 
+      fin, species->F_k_p_1, 
+      species->g_dist_source, species->F_k_m_1);
 
-      struct gkyl_dg_vlasov_pkpm_auxfields pkpm_inp = {.bvar = app->field->bvar, 
-        .pkpm_prim = species->pkpm_fluid_species->prim, 
-        .pkpm_accel_vars = species->pkpm_fluid_species->pkpm_accel, 
-        .g_dist_source = species->g_dist_source};
-      gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, &pkpm_inp, 
-        fin, species->cflrate, rhs);
-    }
-    else if (species->model_id == GKYL_MODEL_SR) {
-      struct gkyl_dg_vlasov_sr_auxfields sr_inp = {.qmem = species->qmem, 
-        .p_over_gamma = species->p_over_gamma};
-      gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, &sr_inp, 
-        fin, species->cflrate, rhs);    
-    }
-    else {
-      struct gkyl_dg_vlasov_auxfields vlasov_inp = {.field = species->qmem, 
-        .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
-      gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, &vlasov_inp, 
-        fin, species->cflrate, rhs);          
-    }
+    struct gkyl_dg_vlasov_pkpm_auxfields pkpm_inp = {.bvar = app->field->bvar, 
+      .pkpm_prim = species->pkpm_fluid_species->prim, 
+      .pkpm_accel_vars = species->pkpm_fluid_species->pkpm_accel, 
+      .g_dist_source = species->g_dist_source};
+    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &pkpm_inp, 
+      fin, species->cflrate, rhs);
+  }
+  else if (species->model_id == GKYL_MODEL_SR) {
+    struct gkyl_dg_vlasov_sr_auxfields sr_inp = {.qmem = species->qmem, 
+      .p_over_gamma = species->p_over_gamma};
+    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &sr_inp, 
+      fin, species->cflrate, rhs);    
   }
   else {
-    if (species->model_id == GKYL_MODEL_PKPM) {
-      // Calculate distrbution functions for coupling different Laguerre moments
-      gkyl_dg_calc_pkpm_dist_vars_mirror_force(species->calc_pkpm_dist_vars, 
-        &app->local, &species->local, 
-        species->pkpm_fluid_species->prim, species->lbo.nu_prim_moms, species->pkpm_fluid_species->pkpm_accel, 
-        fin, species->F_k_p_1, 
-        species->g_dist_source, species->F_k_m_1);
-
-      struct gkyl_dg_vlasov_pkpm_auxfields pkpm_inp = {.bvar = app->field->bvar, 
-        .pkpm_prim = species->pkpm_fluid_species->prim, 
-        .pkpm_accel_vars = species->pkpm_fluid_species->pkpm_accel, 
-        .g_dist_source = species->g_dist_source};
-      gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &pkpm_inp, 
-        fin, species->cflrate, rhs);
-    }
-    else if (species->model_id == GKYL_MODEL_SR) {
-      struct gkyl_dg_vlasov_sr_auxfields sr_inp = {.qmem = species->qmem, 
-        .p_over_gamma = species->p_over_gamma};
-      gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &sr_inp, 
-        fin, species->cflrate, rhs);    
-    }
-    else {
-      struct gkyl_dg_vlasov_auxfields vlasov_inp = {.field = species->qmem, 
-        .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
-      gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &vlasov_inp, 
-        fin, species->cflrate, rhs);          
-    }
+    struct gkyl_dg_vlasov_auxfields vlasov_inp = {.field = species->qmem, 
+      .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
+    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &vlasov_inp, 
+      fin, species->cflrate, rhs);          
   }
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)

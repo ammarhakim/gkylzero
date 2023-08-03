@@ -21,6 +21,8 @@
 #include <gkyl_dg_calc_pkpm_vars.h>
 #include <gkyl_dg_calc_pkpm_dist_vars.h>
 #include <gkyl_dg_calc_sr_vars.h>
+#include <gkyl_dg_euler.h>
+#include <gkyl_dg_euler_pkpm.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_diffusion.h>

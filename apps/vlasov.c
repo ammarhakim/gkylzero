@@ -918,18 +918,11 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     // else
     //   gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
-    if (app->use_gpu) {
-      struct gkyl_dg_vlasov_auxfields vlasov_inp = {.field = species->qmem, 
-        .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
-      gkyl_dg_updater_vlasov_advance_cu(species->slvr, &species->local, &vlasov_inp, 
-        fin, species->cflrate, rhs);  
-    }
-    else {
-      struct gkyl_dg_vlasov_auxfields vlasov_inp = {.field = species->qmem, 
-        .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
-      gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &vlasov_inp, 
-        fin, species->cflrate, rhs); 
-    } 
+
+    struct gkyl_dg_vlasov_auxfields vlasov_inp = {.field = species->qmem, 
+      .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
+    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &vlasov_inp, 
+      fin, species->cflrate, rhs); 
   }
 }
 
