@@ -93,7 +93,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   skin_ghost_ranges_init(&app->skin_ghost, &app->local_ext, ghost);
 
   app->has_field = !vm->skip_field; // note inversion of truth value
-
+  app->calc_bvar = false; // by default, we do not need to calculate magnetic field unit vector & tensor
   if (app->has_field)
     app->field = vm_field_new(vm, app);
 
@@ -114,8 +114,12 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     app->fluid_species[i].info = vm->fluid_species[i];
 
   // initialize each species
-  for (int i=0; i<ns; ++i)
+  for (int i=0; i<ns; ++i) {
     vm_species_init(vm, app, &app->species[i]);
+    // check if any species model id is PKPM; if so we need magnetic field unit vector & tensor
+    if (app->species[i].model_id == GKYL_MODEL_PKPM)
+      app->calc_bvar = true;
+  }
 
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
@@ -205,6 +209,8 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
 
   struct timespec wtm = gkyl_wall_clock();
   vm_field_apply_ic(app, app->field, t0);
+  if (app->calc_bvar)
+    vm_field_calc_bvar(app, app->field, app->field->em); 
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
 
   vm_field_apply_bc(app, app->field, app->field->em);
@@ -336,9 +342,6 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     }
     if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
-    if (app->species[i].has_magB && frame == 0) {
-      gkyl_vlasov_app_write_magB(app, i, tm, frame);
-    }
   }
   for (int i=0; i<app->num_fluid_species; ++i)
     gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
@@ -418,7 +421,7 @@ gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double t
   vm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
 
   // Also compute the other PKPM variables from the distribution function
-  vm_species_calc_pkpm_vars(app, s, s->f, app->field->em);
+  vm_species_calc_pkpm_vars(app, s, s->f);
 
   const char *fmt = "%s-%s_pkpm_moms_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
@@ -448,26 +451,6 @@ gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, i
   else {
     gkyl_grid_sub_array_write(&app->species[sidx].grid_vel, &app->species[sidx].local_vel,
       app->species[sidx].p_over_gamma, fileNm);
-  }
-}
-
-void
-gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-{
-  const char *fmt = "%s-%s_magB_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
-
-  if (app->use_gpu) {
-    // copy data from device to host before writing it out
-    gkyl_array_copy(app->species[sidx].magB_host, app->species[sidx].magB);
-    gkyl_grid_sub_array_write(&app->grid, &app->local,
-      app->species[sidx].magB_host, fileNm);
-  }
-  else {
-    gkyl_grid_sub_array_write(&app->grid, &app->local,
-      app->species[sidx].magB, fileNm);
   }
 }
 
@@ -635,23 +618,23 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   double dtmin = DBL_MAX;
 
   // Compute external EM field or applied currents if present.
-  // Note: uses proj_on_basis so does copy to GPU every call if app->use_gpu = true.
+  // Also compute magnetic field unit vector and tensor if needed
+  // Note: external EM field and  applied currents use proj_on_basis 
+  // so does copy to GPU every call if app->use_gpu = true.
   if (app->has_field) {
     if (app->field->ext_em_evolve)
       vm_field_calc_ext_em(app, app->field, tcurr);
     if (app->field->app_current_evolve)
       vm_field_calc_app_current(app, app->field, tcurr); 
+    if (app->calc_bvar)
+      vm_field_calc_bvar(app, app->field, emin);  
   }
 
   // Compute parallel-kinetic-perpendicular moment (pkpm) kinetic species variables if present.
   // Need to do this first since fluid species primitive variables 
   // depend upon kinetic species variables (such as moments)
-  // Note: computes the relevant field quantities such as the magnetic
-  // field unit vector and unit tensor which are explicitly needed for
-  // the pkpm models (both non-relativistic and relativistic)
-  for (int i=0; i<app->num_species; ++i) {
-    vm_species_calc_pkpm_vars(app, &app->species[i], fin[i], emin);
-  }
+  for (int i=0; i<app->num_species; ++i) 
+    vm_species_calc_pkpm_vars(app, &app->species[i], fin[i]);
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {

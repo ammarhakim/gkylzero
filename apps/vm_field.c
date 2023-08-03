@@ -216,7 +216,9 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
     poly_order+1, 8, field->info.init, field->info.ctx);
 
-  gkyl_proj_on_basis_advance(proj, t0, &app->local, field->em_host);
+  // run updater; need to project onto extended range for ease of handling
+  // subsequent operations over extended range such as magnetic field unit vector computation
+  gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, field->em_host);
   gkyl_proj_on_basis_release(proj);
 
   if (app->use_gpu)
@@ -287,16 +289,8 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
     double qbyeps = s->info.charge/app->field->info.epsilon0; 
 
     if (s->model_id == GKYL_MODEL_PKPM) {
-      if (s->has_magB) {
-        gkyl_dg_mul_op_range(app->confBasis, 0, s->m1i_pkpm, 0,
-          fluidin[s->pkpm_fluid_index], 0, s->magB, &app->local);  
-        // Need to divide out the mass in pkpm model since we evolve momentum 
-        gkyl_array_scale_range(s->m1i_pkpm, 1.0/s->info.mass, app->local);
-      }
-      else {
-        // Need to divide out the mass in pkpm model since we evolve momentum
-        gkyl_array_set_range(s->m1i_pkpm, 1.0/s->info.mass, fluidin[s->pkpm_fluid_index], app->local);
-      }
+      // Need to divide out the mass in pkpm model since we evolve momentum
+      gkyl_array_set_range(s->m1i_pkpm, 1.0/s->info.mass, fluidin[s->pkpm_fluid_index], app->local);
       gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_pkpm, app->local);   
     }
     else {

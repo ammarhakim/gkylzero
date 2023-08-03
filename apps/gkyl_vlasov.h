@@ -90,11 +90,6 @@ struct gkyl_vlasov_species {
   // source to include
   struct gkyl_vlasov_source source;
 
-  // magnitude of B for Jacobian in field-line following coordinates
-  void *magB_ctx; // context for magnitude of B
-  // pointer to magnitude of B function
-  void (*magB)(double t, const double *xn, double *Bout, void *ctx);
-
   void *accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
   void (*accel)(double t, const double *xn, double *aout, void *ctx);
@@ -386,16 +381,6 @@ void gkyl_vlasov_app_write_species_coll_moms(gkyl_vlasov_app* app, int sidx, dou
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write magnitude of magnetic field to file.
- * 
- * @param app App object.
- * @param sidx Index of species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write fluid species data to file. If equation ID is PKPM, also writes pkpm variables.

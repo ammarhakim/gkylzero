@@ -183,7 +183,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->V_drift_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
   }
 
-  s->has_magB = false;
   s->m1i_pkpm = 0;
   s->pkpm_div_ppar = 0;
   if (s->model_id  == GKYL_MODEL_PKPM) {
@@ -202,33 +201,6 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // div(p_parallel b_hat), for use in total pressure force
     s->pkpm_div_ppar = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     s->calc_pkpm_dist_vars = gkyl_dg_calc_pkpm_dist_vars_new(&s->grid, &app->confBasis, app->use_gpu);
-
-    // setup magB if solving PKPM system along field-line 
-    if (s->info.magB) {
-      s->has_magB = true;
-      // Bmag is a scalar fields in configuration space
-      s->magB = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-      s->magB_host = s->magB;
-      if (app->use_gpu) {
-        s->magB_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-      }
-
-      gkyl_proj_on_basis *magB_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
-          .grid = &app->grid,
-          .basis = &app->confBasis,
-          .qtype = GKYL_GAUSS_LOBATTO_QUAD,
-          .num_quad = 8,
-          .num_ret_vals = 1,
-          .eval = s->info.magB,
-          .ctx = s->info.magB_ctx
-        }
-      );
-      gkyl_proj_on_basis_advance(magB_proj, 0.0, &app->local, s->magB_host);
-      gkyl_proj_on_basis_release(magB_proj);    
-      if (app->use_gpu) // note: magB_host is same as magB when not on GPUs
-        gkyl_array_copy(s->magB, s->magB_host);
-    }
   }
 
   // create solver
@@ -382,8 +354,8 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   vm_species_source_calc(app, species, t0);
 
   // compute pkpm variables if pkpm model
-  if (species->model_id == GKYL_MODEL_PKPM || species->model_id == GKYL_MODEL_SR_PKPM)
-    vm_species_calc_pkpm_vars(app, species, species->f, app->field->em);
+  if (species->model_id == GKYL_MODEL_PKPM)
+    vm_species_calc_pkpm_vars(app, species, species->f);
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
@@ -403,12 +375,11 @@ vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double t
 
 void
 vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, 
-  const struct gkyl_array *fin, const struct gkyl_array *em)
+  const struct gkyl_array *fin)
 {
   if (species->model_id == GKYL_MODEL_PKPM) {
     vm_species_moment_calc(&species->pkpm_moms, species->local_ext,
       app->local_ext, fin);
-    vm_field_calc_bvar(app, app->field, em);   
     gkyl_array_clear(species->pkpm_div_ppar, 0.0);
     gkyl_dg_calc_pkpm_dist_vars_div_ppar(species->calc_pkpm_dist_vars, 
         &app->local, &species->local, app->field->bvar, fin, species->pkpm_div_ppar);
@@ -648,12 +619,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->m1i_pkpm);
     gkyl_array_release(s->pkpm_div_ppar);
     gkyl_dg_calc_pkpm_dist_vars_release(s->calc_pkpm_dist_vars);
-    if (s->has_magB) {
-      gkyl_array_release(s->magB);
-      if (app->use_gpu) {
-        gkyl_array_release(s->magB_host);
-      }      
-    }
   }
   
   if (s->has_accel) {

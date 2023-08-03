@@ -228,11 +228,6 @@ struct vm_species {
 
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
-  
-  bool has_magB; // flag to indicate Vlasov equation solved along field line
-  struct gkyl_array *magB; // magnitude of magnetic field (J = 1/B)
-  // host copy for use in IO and projecting
-  struct gkyl_array *magB_host;
 
   enum gkyl_collision_id collision_id; // type of collisions
   struct vm_lbo_collisions lbo; // collisions object
@@ -413,6 +408,7 @@ struct gkyl_vlasov_app {
   struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
 
   bool has_field; // has field
+  bool calc_bvar; // boolean for if simulation needs magnetic field unit vector/tensor
   struct vm_field *field; // pointer to field object
 
   // species data
@@ -680,10 +676,8 @@ void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, dou
  * @param app Vlasov app object
  * @param species Species object
  * @param fin Input distribution function
- * @param em Input EM field (needed for bvar, and ExB and kappa_inv_b in relativistic pkpm)
  */
-void vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, 
-  const struct gkyl_array *fin, const struct gkyl_array *em);
+void vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin);
 
 /**
  * Compute RHS from species distribution function
