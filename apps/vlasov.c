@@ -137,6 +137,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       vm_species_source_init(app, &app->species[i], &app->species[i].src);
 
   // initialize each fluid species
+  // Fluid species must be initialized after kinetic species, as some fluid species couple
+  // to kinetic species and pointers are allocated by the kinetic species objects
   for (int i=0; i<nsf; ++i)
     vm_fluid_species_init(vm, app, &app->fluid_species[i]);
 
@@ -209,11 +211,15 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
 
   struct timespec wtm = gkyl_wall_clock();
   vm_field_apply_ic(app, app->field, t0);
-  if (app->calc_bvar)
-    vm_field_calc_bvar(app, app->field, app->field->em); 
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
 
   vm_field_apply_bc(app, app->field, app->field->em);
+  // bvar is computed over extended range, so if needed, calculate it after
+  // we apply BCs in the initialization step. Note that the apply_bc call
+  // may not apply BCs in the corner cells and the corner values will just
+  // be what comes from initializing the EM field over the extended range
+  if (app->calc_bvar)
+    vm_field_calc_bvar(app, app->field, app->field->em); 
 }
 
 void
@@ -268,21 +274,43 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
     struct vm_species *s = &app->species[i];
 
     struct timespec wst = gkyl_wall_clock();
-    if (s->model_id == GKYL_MODEL_SR) {
-      vm_species_moment_calc(&s->m0, s->local, app->local, s->f);
-      gkyl_calc_prim_vars_u_from_rhou(s->V_drift_mem, app->confBasis, &app->local, 
-        s->m0.marr, s->m1i.marr, s->V_drift); 
-      gkyl_calc_sr_vars_Gamma_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);
-    }
-    vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
-
-    // reduce to compute sum over whole domain, append to diagnostics
-    if (app->use_gpu) {
-      gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, app->local);
-      gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[2+GKYL_MAX_DIM]), GKYL_CU_MEMCPY_D2H);
+    if (s->model_id == GKYL_MODEL_PKPM) {
+      gkyl_array_clear(s->integ_pkpm_mom, 0.0);
+      // Compute the PKPM variables including moments and primitive variables
+      const struct gkyl_array *fluidin[app->num_fluid_species];
+      for (int i=0; i<app->num_fluid_species; ++i) 
+        fluidin[i] = app->fluid_species[i].fluid;
+      vm_species_calc_pkpm_vars(app, s, s->f, fluidin);
+      gkyl_dg_calc_pkpm_integrated_vars(s->calc_pkpm_vars, &app->local, 
+        s->pkpm_moms.marr, fluidin[s->pkpm_fluid_index], 
+        s->pkpm_prim, s->integ_pkpm_mom);
+      gkyl_array_scale_range(s->integ_pkpm_mom, app->grid.cellVolume, app->local);
+      if (app->use_gpu) {
+        gkyl_array_reduce_range(s->red_integ_diag, s->integ_pkpm_mom, GKYL_SUM, app->local);
+        gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[2+GKYL_MAX_DIM]), GKYL_CU_MEMCPY_D2H);
+      }
+      else { 
+        gkyl_array_reduce_range(avals, s->integ_pkpm_mom, GKYL_SUM, app->local);
+      }
     }
     else {
-      gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, app->local);
+      if (s->model_id == GKYL_MODEL_SR) {
+        // Compute the necessary factors to correctly integrate relativistic quantities such as:
+        // 1/Gamma = sqrt(1 - V_drift^2/c^2) where V_drift is computed from weak division: M0 * V_drift = M1i
+        vm_species_moment_calc(&s->m0, s->local, app->local, s->f);
+        gkyl_calc_prim_vars_u_from_rhou(s->V_drift_mem, app->confBasis, &app->local, 
+          s->m0.marr, s->m1i.marr, s->V_drift); 
+        gkyl_calc_sr_vars_Gamma_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);
+      }
+      vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
+      // reduce to compute sum over whole domain, append to diagnostics
+      if (app->use_gpu) {
+        gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, app->local);
+        gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[2+GKYL_MAX_DIM]), GKYL_CU_MEMCPY_D2H);
+      }
+      else {
+        gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, app->local);
+      }
     }
     gkyl_dynvec_append(s->integ_diag, tm, avals);
 
@@ -307,18 +335,6 @@ gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm)
 }
 
 void
-gkyl_vlasov_app_calc_integrated_fluid_vars(gkyl_vlasov_app* app, double tm)
-{
-  struct timespec wst = gkyl_wall_clock();
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    struct vm_fluid_species *f = &app->fluid_species[i];
-    vm_fluid_species_calc_int_diag(app, tm, f);
-  }
-  app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
-}
-
-void
 gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -334,17 +350,16 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_vlasov_app_write_species(app, i, tm, frame);
-    if (app->species[i].model_id == GKYL_MODEL_PKPM) {
-      gkyl_vlasov_app_write_species_pkpm_moms(app, i, tm, frame);
-      // Debugging tools (ONLY ON CPU)
-      // Writes out collisional quantities (nu_self, prim_moms, nu_prim_moms)
-      // gkyl_vlasov_app_write_species_coll_moms(app, i, tm, frame);
-    }
+    if (app->species[i].model_id == GKYL_MODEL_PKPM) 
+      gkyl_vlasov_app_write_species_pkpm(app, i, tm, frame);
     if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
   }
-  for (int i=0; i<app->num_fluid_species; ++i)
-    gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    // If fluid species is PKPM, fluid data already written out by kinetic species
+    if (app->fluid_species[i].eqn_id != GKYL_EQN_EULER_PKPM)
+      gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
+  }
 }
 
 void
@@ -386,52 +401,49 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
 }
 
 void
-gkyl_vlasov_app_write_species_coll_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame)
+gkyl_vlasov_app_write_species_pkpm(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  const char *fmt = "%s-%s_self_nu_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
-
-  gkyl_grid_sub_array_write(&app->grid, &app->local, 
-    app->species[sidx].lbo.self_nu, fileNm);
-
-  const char *fmt_vth = "%s-%s_vthsq_%d.gkyl";
-  int sz_vth = gkyl_calc_strlen(fmt_vth, app->name, app->species[sidx].info.name, frame);
-  char fileNm_vth[sz_vth+1]; // ensures no buffer overflow
-  snprintf(fileNm_vth, sizeof fileNm_vth, fmt_vth, app->name, app->species[sidx].info.name, frame);
-
-  gkyl_grid_sub_array_write(&app->grid, &app->local, 
-    app->species[sidx].lbo.prim_moms, fileNm_vth);
-
-  const char *fmt_nu_vth = "%s-%s_nu_vthsq_%d.gkyl";
-  int sz_nu_vth = gkyl_calc_strlen(fmt_nu_vth, app->name, app->species[sidx].info.name, frame);
-  char fileNm_nu_vth[sz_nu_vth+1]; // ensures no buffer overflow
-  snprintf(fileNm_nu_vth, sizeof fileNm_nu_vth, fmt_nu_vth, app->name, app->species[sidx].info.name, frame);
-
-  gkyl_grid_sub_array_write(&app->grid, &app->local, 
-    app->species[sidx].lbo.nu_prim_moms, fileNm_nu_vth);
-}
-
-void
-gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-{
-  // Since PKPM moments are one set of moments, just compute here in the write method before writing out
   struct vm_species *s = &app->species[sidx];
-  vm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
 
-  // Also compute the other PKPM variables from the distribution function
-  vm_species_calc_pkpm_vars(app, s, s->f);
-
+  // Construct the file handles for the three quantities (PKPM moments, PKPM fluid variables, PKPM update variables)
   const char *fmt = "%s-%s_pkpm_moms_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
 
-  if (app->use_gpu)
+  const char *fmt_fluid = "%s-%s_pkpm_fluid_%d.gkyl";
+  int sz_fluid = gkyl_calc_strlen(fmt_fluid, app->name, s->info.name, frame);
+  char fileNm_fluid[sz_fluid+1]; // ensures no buffer overflow
+  snprintf(fileNm_fluid, sizeof fileNm_fluid, fmt_fluid, app->name, s->info.name, frame);
+
+  const char *fmt_pkpm_vars = "%s-%s_pkpm_vars_%d.gkyl";
+  int sz_pkpm_vars = gkyl_calc_strlen(fmt_pkpm_vars, app->name, s->info.name, frame);
+  char fileNm_pkpm_vars[sz_pkpm_vars+1]; // ensures no buffer overflow
+  snprintf(fileNm_pkpm_vars, sizeof fileNm_pkpm_vars, fmt_pkpm_vars, app->name, s->info.name, frame);
+
+  // Compute the PKPM variables including moments and primitive variables 
+  // and construct arrays for writing out fluid and other pkpm variables.
+  vm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
+  const struct gkyl_array *fluidin[app->num_fluid_species];
+  for (int i=0; i<app->num_fluid_species; ++i) 
+    fluidin[i] = app->fluid_species[i].fluid;
+  vm_species_calc_pkpm_vars(app, s, s->f, fluidin);
+  vm_species_calc_pkpm_update_vars(app, s, s->f); 
+  gkyl_dg_calc_pkpm_vars_io(s->calc_pkpm_vars, &app->local, 
+    s->pkpm_moms.marr, fluidin[s->pkpm_fluid_index], 
+    s->pkpm_p_ij, s->pkpm_prim, 
+    s->pkpm_accel, s->fluid_io, s->pkpm_vars_io);
+
+  // copy data from device to host before writing it out
+  if (app->use_gpu) {
     gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
+    gkyl_array_copy(s->fluid_io_host, s->fluid_io);
+    gkyl_array_copy(s->pkpm_vars_io_host, s->pkpm_vars_io);
+  }
 
   gkyl_grid_sub_array_write(&app->grid, &app->local, s->pkpm_moms_diag.marr_host, fileNm);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, s->fluid_io_host, fileNm_fluid);
+  gkyl_grid_sub_array_write(&app->grid, &app->local, s->pkpm_vars_io_host, fileNm_pkpm_vars);
 }
 
 void
@@ -457,39 +469,16 @@ gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, i
 void
 gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  vm_fluid_species_io(app, &app->fluid_species[sidx]);
-
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[sidx].info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
-
   // copy data from device to host before writing it out
   if (app->use_gpu) 
-    gkyl_array_copy(app->fluid_species[sidx].fluid_io_host, app->fluid_species[sidx].fluid_io);
+    gkyl_array_copy(app->fluid_species[sidx].fluid_host, app->fluid_species[sidx].fluid);
 
   gkyl_grid_sub_array_write(&app->grid, &app->local,
-    app->fluid_species[sidx].fluid_io_host, fileNm);
-
-  // If equation ID is PKPM, also write pkpm variables (primitive and acceleration)
-  if (app->fluid_species[sidx].eqn_id == GKYL_EQN_EULER_PKPM)
-    gkyl_vlasov_app_write_fluid_species_pkpm_vars(app, sidx, tm, frame);
-}
-
-void
-gkyl_vlasov_app_write_fluid_species_pkpm_vars(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-{
-  const char *fmt = "%s-%s_pkpm_vars_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[sidx].info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[sidx].info.name, frame);
-
-  // copy data from device to host before writing it out
-  if (app->use_gpu)
-    gkyl_array_copy(app->fluid_species[sidx].pkpm_vars_io_host, app->fluid_species[sidx].pkpm_vars_io);
-
-  gkyl_grid_sub_array_write(&app->grid, &app->local,
-    app->fluid_species[sidx].pkpm_vars_io_host, fileNm);
+    app->fluid_species[sidx].fluid_host, fileNm);
 }
 
 void
@@ -560,29 +549,6 @@ gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app* app)
 }
 
 void
-gkyl_vlasov_app_write_integrated_fluid_vars(gkyl_vlasov_app* app)
-{
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    // write out diagnostic moments
-    const char *fmt = "%s-%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, app->fluid_species[i].info.name,
-      "imom");
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, app->fluid_species[i].info.name,
-      "imom");
-
-    if (app->fluid_species[i].is_first_integ_write_call) {
-      gkyl_dynvec_write(app->fluid_species[i].integ_diag, fileNm);
-      app->fluid_species[i].is_first_integ_write_call = false;
-    }
-    else {
-      gkyl_dynvec_awrite(app->fluid_species[i].integ_diag, fileNm);
-    }
-    gkyl_dynvec_clear(app->fluid_species[i].integ_diag);
-  }
-}
-
-void
 gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
 {
   // write out diagnostic moments
@@ -630,33 +596,38 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_field_calc_bvar(app, app->field, emin);  
   }
 
-  // Compute parallel-kinetic-perpendicular moment (pkpm) kinetic species variables if present.
-  // Need to do this first since fluid species primitive variables 
-  // depend upon kinetic species variables (such as moments)
-  for (int i=0; i<app->num_species; ++i) 
-    vm_species_calc_pkpm_vars(app, &app->species[i], fin[i]);
-
-  // compute necessary moments and boundary corrections for collisions
+  // Two separate loops over number of species to compute preliminary variables
+  // for certain equation objects and models.
   for (int i=0; i<app->num_species; ++i) {
+    // Compute parallel-kinetic-perpendicular moment (pkpm) variables if present.
+    // These are the coupling moments [rho, p_par, p_perp], the self-consistent
+    // pressure force (div(p_par b_hat)), and the primitive variables
+    vm_species_calc_pkpm_vars(app, &app->species[i], fin[i], fluidin);
+    // compute necessary moments and boundary corrections for collisions
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
   }
-
-  // compute necessary moments for cross-species collisions
-  // needs to be done after self-collisions moments, so separate loop over species
   for (int i=0; i<app->num_species; ++i) {
+    // compute necessary moments for cross-species collisions
+    // needs to be done after self-collisions moments, so separate loop over species
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
       && app->species[i].lbo.num_cross_collisions) {
       vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
+    // Finish computing parallel-kinetic-perpendicular moment (pkpm) variables if present.
+    // These are the update variables including the acceleration variables in the kinetic
+    // equation and the source distribution functions for Laguerre couplings.
+    // Needs to be done after all collisional moment computations for collisional sources
+    // in Laguerre couplings.
+    vm_species_calc_pkpm_update_vars(app, &app->species[i], fin[i]); 
   }
 
-  // compute primitive moments for fluid species evolution and coupling
-  // Need to do this after collisions since p_perp_source depends on nu and nu*vth^2
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
-  }
+  // // compute primitive moments for fluid species evolution and coupling
+  // // Need to do this after collisions since p_perp_source depends on nu and nu*vth^2
+  // for (int i=0; i<app->num_fluid_species; ++i) {
+  //   vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
+  // }
 
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
@@ -902,9 +873,7 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     //   gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
     gkyl_array_clear_range(rhs, 0.0, species->local);
 
-    struct gkyl_dg_vlasov_auxfields vlasov_inp = {.field = species->qmem, 
-      .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
-    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &vlasov_inp, 
+    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
       fin, species->cflrate, rhs); 
   }
 }

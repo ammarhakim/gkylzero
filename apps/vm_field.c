@@ -218,6 +218,8 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
 
   // run updater; need to project onto extended range for ease of handling
   // subsequent operations over extended range such as magnetic field unit vector computation
+  // This is needed to fill the corner cells as the corner cells may not be filled by
+  // boundary conditions and we cannot divide by 0 anywhere or the weak divisions will fail
   gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, field->em_host);
   gkyl_proj_on_basis_release(proj);
 

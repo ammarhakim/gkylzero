@@ -22,18 +22,27 @@ gkyl_dg_updater_vlasov*
 gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
-  enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu)
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id, void *aux_inp, bool use_gpu)
 {
   gkyl_dg_updater_vlasov *up = gkyl_malloc(sizeof(gkyl_dg_updater_vlasov));
   up->model_id = model_id;
   up->field_id = field_id;
   up->use_gpu = use_gpu;
-  if (up->model_id == GKYL_MODEL_SR)
+  if (up->model_id == GKYL_MODEL_SR) {
     up->eqn_vlasov = gkyl_dg_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, up->field_id, up->use_gpu);
-  else if (up->model_id == GKYL_MODEL_PKPM)
+    struct gkyl_dg_vlasov_sr_auxfields *sr_inp = aux_inp;
+    gkyl_vlasov_sr_set_auxfields(up->eqn_vlasov, *sr_inp);
+  }
+  else if (up->model_id == GKYL_MODEL_PKPM) {
     up->eqn_vlasov = gkyl_dg_vlasov_pkpm_new(cbasis, pbasis, conf_range, phase_range, up->use_gpu);
-  else
+    struct gkyl_dg_vlasov_pkpm_auxfields *pkpm_inp = aux_inp;
+    gkyl_vlasov_pkpm_set_auxfields(up->eqn_vlasov, *pkpm_inp);
+  }
+  else {
     up->eqn_vlasov = gkyl_dg_vlasov_new(cbasis, pbasis, conf_range, phase_range, up->model_id, up->field_id, up->use_gpu);
+    struct gkyl_dg_vlasov_auxfields *vlasov_inp = aux_inp;
+    gkyl_vlasov_set_auxfields(up->eqn_vlasov, *vlasov_inp); 
+  }
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
@@ -60,23 +69,9 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
 
 void
 gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
-  const struct gkyl_range *update_rng, void *aux_inp, 
-  const struct gkyl_array* GKYL_RESTRICT fIn,
+  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
-  if (vlasov->model_id == GKYL_MODEL_SR) {
-    struct gkyl_dg_vlasov_sr_auxfields *sr_inp = aux_inp;
-    gkyl_vlasov_sr_set_auxfields(vlasov->eqn_vlasov, *sr_inp);
-  }
-  else if (vlasov->model_id == GKYL_MODEL_PKPM) {
-    struct gkyl_dg_vlasov_pkpm_auxfields *pkpm_inp = aux_inp;
-    gkyl_vlasov_pkpm_set_auxfields(vlasov->eqn_vlasov, *pkpm_inp);
-  }
-  else {
-    struct gkyl_dg_vlasov_auxfields *vlasov_inp = aux_inp;
-    gkyl_vlasov_set_auxfields(vlasov->eqn_vlasov, *vlasov_inp); 
-  }
-
   struct timespec wst = gkyl_wall_clock();
   if (vlasov->use_gpu)
     gkyl_hyper_dg_advance_cu(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);

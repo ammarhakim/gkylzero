@@ -150,6 +150,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   s->V_drift = 0;
   s->GammaV2 = 0;
   s->GammaV_inv = 0;
+  // PKPM pointers
+  s->m1i_pkpm = 0;
+  s->pkpm_div_ppar = 0;
   if (s->model_id  == GKYL_MODEL_SR) {
     // Allocate special relativistic variables, p/gamma, gamma, & 1/gamma
     s->p_over_gamma = mkarr(app->use_gpu, vdim*app->velBasis.num_basis, s->local_vel.volume);
@@ -181,11 +184,14 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->V_drift_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
     else
       s->V_drift_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
-  }
 
-  s->m1i_pkpm = 0;
-  s->pkpm_div_ppar = 0;
-  if (s->model_id  == GKYL_MODEL_PKPM) {
+    struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, 
+      .p_over_gamma = s->p_over_gamma};
+    // create solver
+    s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
+      &app->local, &s->local_vel, &s->local, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+  }
+  else if (s->model_id  == GKYL_MODEL_PKPM) {
     // Get pointer to fluid species object for coupling
     s->pkpm_fluid_species = vm_find_fluid_species(app, s->info.pkpm_fluid_species);
     s->pkpm_fluid_index = vm_find_fluid_species_idx(app, s->info.pkpm_fluid_species);
@@ -198,14 +204,63 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
     // Current density for accumulating onto electric field
     s->m1i_pkpm = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-    // div(p_parallel b_hat), for use in total pressure force
-    s->pkpm_div_ppar = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-    s->calc_pkpm_dist_vars = gkyl_dg_calc_pkpm_dist_vars_new(&s->grid, &app->confBasis, app->use_gpu);
-  }
+    // div(p_par b_hat), for self-consistent total pressure force
+    s->pkpm_div_ppar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    // allocate array to store primitive moments : [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+    // and pressure p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
+    s->pkpm_prim = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
+    s->pkpm_p_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+    // boolean array for if we are only using the cell average for primitive variables
+    s->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
 
-  // create solver
-  s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
-    &app->local, &s->local_vel, &s->local, s->model_id, s->field_id, app->use_gpu);
+    // allocate array for pkpm acceleration variables, stored in pkpm_accel: 
+    // 0: div_b (divergence of magnetic field unit vector)
+    // 1: bb_grad_u (bb : grad(u))
+    // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+    // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - nu + nu rho vth^2/p_perp)
+    // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
+    s->pkpm_accel = mkarr(app->use_gpu, 5*app->confBasis.num_basis, app->local_ext.volume); 
+
+    // updater for computing pkpm variables 
+    // pressure, primitive variables, and acceleration variables
+    // also stores kernels for computing source terms, integrated variables
+    // Two instances, one over extended range and one over local range for ease of handling boundary conditions
+    s->calc_pkpm_vars_ext = gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local_ext, app->use_gpu);
+    s->calc_pkpm_vars = gkyl_dg_calc_pkpm_vars_new(&app->grid, &app->confBasis, &app->local, app->use_gpu); 
+    // updater for computing pkpm distribution function variables
+    // div(p_par b_hat) for self-consistent total pressure force and distribution function sources for
+    // Laguerre couplings and vperp characteristics 
+    s->calc_pkpm_dist_vars = gkyl_dg_calc_pkpm_dist_vars_new(&s->grid, &app->confBasis, app->use_gpu);
+
+    // allocate arrays for integrated quantities and I/O of fluid variables
+    // since these require kinetic species information, kinetic species handles integrations and I/O
+    // of fluid variables 
+    // array for storing integrated fluid variables in each cell
+    s->integ_pkpm_mom = mkarr(app->use_gpu, 9, app->local_ext.volume);
+    // arrays for I/O, fluid_io 
+    s->fluid_io = mkarr(app->use_gpu, 10*app->confBasis.num_basis, app->local_ext.volume);
+    s->pkpm_vars_io = mkarr(app->use_gpu, 10*app->confBasis.num_basis, app->local_ext.volume);
+    s->fluid_io_host = s->fluid_io;
+    s->pkpm_vars_io_host = s->pkpm_vars_io;
+    if (app->use_gpu) {
+      s->fluid_io_host = mkarr(false, 10*app->confBasis.num_basis, app->local_ext.volume);
+      s->pkpm_vars_io_host = mkarr(false, 10*app->confBasis.num_basis, app->local_ext.volume);
+    }
+    struct gkyl_dg_vlasov_pkpm_auxfields aux_inp = {.bvar = app->field->bvar, 
+      .pkpm_prim = s->pkpm_prim, 
+      .pkpm_accel_vars = s->pkpm_accel, 
+      .g_dist_source = s->g_dist_source};
+    // create solver
+    s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
+      &app->local, &s->local_vel, &s->local, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+  }
+  else {
+    struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, 
+      .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
+    // create solver
+    s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
+      &app->local, &s->local_vel, &s->local, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+  }
 
   // acquire equation object
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
@@ -227,11 +282,15 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   vm_species_moment_init(app, s, &s->integ_moms, "Integrated");
   if (app->use_gpu) {
     s->red_L2_f = gkyl_cu_malloc(sizeof(double));
+    // GKYL_MAX_DIM = 7, allocates a 9 component double
     s->red_integ_diag = gkyl_cu_malloc(sizeof(double[2+GKYL_MAX_DIM]));
   }
   // allocate dynamic-vector to store all-reduced integrated moments and f^2
   s->integ_L2_f = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-  s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  if (s->model_id  == GKYL_MODEL_PKPM)
+    s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 9);
+  else
+    s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   s->is_first_integ_L2_write_call = true;
   s->is_first_integ_write_call = true;
 
@@ -283,6 +342,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->upper_bc[dir] = bc[1];
     }
   }
+  // Certain operations fail if absorbing BCs used because absorbing BCs 
+  // means the mass density is 0 in the ghost cells (divide by zero)
+  s->bc_is_absorb = false;
   for (int d=0; d<app->cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
@@ -291,6 +353,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
     else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype = GKYL_BC_ABSORB;
+      s->bc_is_absorb = true;
     }
     else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) {
       if (s->model_id  == GKYL_MODEL_PKPM)
@@ -310,6 +373,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     }
     else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype = GKYL_BC_ABSORB;
+      s->bc_is_absorb = true;
     }
     else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) {
       if (s->model_id  == GKYL_MODEL_PKPM)
@@ -341,6 +405,8 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 
   // run updater; need to project onto extended range for ease of handling
   // subsequent operations over extended range such as primitive variable computations
+  // This is needed to fill the corner cells as the corner cells may not be filled by
+  // boundary conditions and we cannot divide by 0 anywhere or the weak divisions will fail
   gkyl_proj_on_basis_advance(proj, t0, &species->local_ext, species->f_host);
   gkyl_proj_on_basis_release(proj);    
 
@@ -352,10 +418,6 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 
   // we are pre-computing source for now as it is time-independent
   vm_species_source_calc(app, species, t0);
-
-  // compute pkpm variables if pkpm model
-  if (species->model_id == GKYL_MODEL_PKPM)
-    vm_species_calc_pkpm_vars(app, species, species->f);
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
@@ -375,15 +437,55 @@ vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double t
 
 void
 vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, 
-  const struct gkyl_array *fin)
+  const struct gkyl_array *fin, const struct gkyl_array *fluidin[])
 {
   if (species->model_id == GKYL_MODEL_PKPM) {
+    gkyl_array_clear(species->pkpm_div_ppar, 0.0);
+    gkyl_array_clear(species->pkpm_p_ij, 0.0);
+    gkyl_array_clear(species->pkpm_prim, 0.0);
+
+    // Compute rho, p_par, & p_perp
     vm_species_moment_calc(&species->pkpm_moms, species->local_ext,
       app->local_ext, fin);
-    gkyl_array_clear(species->pkpm_div_ppar, 0.0);
+    // Compute div(p_par b_hat) for consistent pressure force in vpar acceleration
     gkyl_dg_calc_pkpm_dist_vars_div_ppar(species->calc_pkpm_dist_vars, 
         &app->local, &species->local, app->field->bvar, fin, species->pkpm_div_ppar);
     gkyl_array_scale(species->pkpm_div_ppar, species->info.mass);
+    // Compute p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
+    gkyl_dg_calc_pkpm_vars_pressure(species->calc_pkpm_vars, &app->local_ext, 
+      app->field->bvar, species->pkpm_moms.marr, species->pkpm_p_ij);
+    // Compute primitive variables [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho div(p_par b_hat), T_perp/m, m/T_perp]
+    if (species->bc_is_absorb) {
+      gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars,
+        species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
+        species->pkpm_p_ij, species->pkpm_div_ppar, 
+        species->cell_avg_prim, species->pkpm_prim); 
+    }
+    else {
+      gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars_ext,
+        species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
+        species->pkpm_p_ij, species->pkpm_div_ppar, 
+        species->cell_avg_prim, species->pkpm_prim); 
+    }
+  }
+}
+
+void
+vm_species_calc_pkpm_update_vars(gkyl_vlasov_app *app, struct vm_species *species, 
+  const struct gkyl_array *fin)
+{
+  if (species->model_id == GKYL_MODEL_PKPM) {
+    gkyl_array_clear(species->pkpm_accel, 0.0);
+    gkyl_dg_calc_pkpm_vars_accel(species->calc_pkpm_vars, &app->local, 
+      app->field->bvar, species->pkpm_prim, species->lbo.nu_sum, 
+      species->pkpm_accel); 
+
+    // Calculate distrbution functions for coupling different Laguerre moments
+    gkyl_dg_calc_pkpm_dist_vars_mirror_force(species->calc_pkpm_dist_vars, 
+      &app->local, &species->local, 
+      species->pkpm_prim, species->lbo.nu_prim_moms, species->pkpm_accel, 
+      fin, species->F_k_p_1, 
+      species->g_dist_source, species->F_k_m_1);
   }
 }
 
@@ -393,7 +495,6 @@ double
 vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   const struct gkyl_array *fin, const struct gkyl_array *em, struct gkyl_array *rhs)
 {
-  gkyl_array_clear(species->cflrate, 0.0);
   if (species->field_id  == GKYL_FIELD_E_B) {
     double qbym = species->info.charge/species->info.mass;
     gkyl_array_set(species->qmem, qbym, em);
@@ -406,35 +507,11 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
       gkyl_array_accumulate(species->qmem, qbym, app->field->ext_em);
   }
 
+  gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  if (species->model_id == GKYL_MODEL_PKPM) {
-    // Calculate distrbution functions for coupling different Laguerre moments
-    gkyl_dg_calc_pkpm_dist_vars_mirror_force(species->calc_pkpm_dist_vars, 
-      &app->local, &species->local, 
-      species->pkpm_fluid_species->prim, species->lbo.nu_prim_moms, species->pkpm_fluid_species->pkpm_accel, 
-      fin, species->F_k_p_1, 
-      species->g_dist_source, species->F_k_m_1);
-
-    struct gkyl_dg_vlasov_pkpm_auxfields pkpm_inp = {.bvar = app->field->bvar, 
-      .pkpm_prim = species->pkpm_fluid_species->prim, 
-      .pkpm_accel_vars = species->pkpm_fluid_species->pkpm_accel, 
-      .g_dist_source = species->g_dist_source};
-    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &pkpm_inp, 
-      fin, species->cflrate, rhs);
-  }
-  else if (species->model_id == GKYL_MODEL_SR) {
-    struct gkyl_dg_vlasov_sr_auxfields sr_inp = {.qmem = species->qmem, 
-      .p_over_gamma = species->p_over_gamma};
-    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &sr_inp, 
-      fin, species->cflrate, rhs);    
-  }
-  else {
-    struct gkyl_dg_vlasov_auxfields vlasov_inp = {.field = species->qmem, 
-      .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
-    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, &vlasov_inp, 
-      fin, species->cflrate, rhs);          
-  }
+  gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
+    fin, species->cflrate, rhs);
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
@@ -618,6 +695,12 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->F_k_p_1);
     gkyl_array_release(s->m1i_pkpm);
     gkyl_array_release(s->pkpm_div_ppar);
+    gkyl_array_release(s->pkpm_prim);
+    gkyl_array_release(s->cell_avg_prim);
+    gkyl_array_release(s->pkpm_p_ij);
+    gkyl_array_release(s->pkpm_accel);
+    gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars);
+    gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars_ext);
     gkyl_dg_calc_pkpm_dist_vars_release(s->calc_pkpm_dist_vars);
   }
   

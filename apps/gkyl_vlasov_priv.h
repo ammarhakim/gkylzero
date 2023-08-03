@@ -172,12 +172,12 @@ struct vm_species {
 
   struct gkyl_array *L2_f; // L2 norm f^2
   struct vm_species_moment integ_moms; // integrated moments
-  double *red_L2_f; // for reduction on GPU
-  double *red_integ_diag; // for reduction on GPU
-  gkyl_dynvec integ_L2_f; // integrated moments reduced across grid
+  double *red_L2_f; // for reduction of integrated L^2 norm on GPU
+  double *red_integ_diag; // for reduction of integrated moments on GPU
+  gkyl_dynvec integ_L2_f; // integrated L^2 norm reduced across grid
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
-  bool is_first_integ_L2_write_call; // flag for int-moments dynvec written first time
-  bool is_first_integ_write_call; // flag for int-moments dynvec written first time
+  bool is_first_integ_L2_write_call; // flag for integrated L^2 norm dynvec written first time
+  bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
   enum gkyl_field_id field_id; // type of field equation 
   enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR)
@@ -199,17 +199,43 @@ struct vm_species {
 
   // Data for PKPM model
   struct vm_fluid_species *pkpm_fluid_species; // pointers to cross-species we collide with
-  int pkpm_fluid_index; // index of the fluid species being collided with as part of pkpm model
+  int pkpm_fluid_index; // index of the fluid species being collided with as part of PKPM model
                         // index corresponds to location in fluid_species array (size num_fluid_species)
-  struct gkyl_array *m1i_pkpm; // "M1i" in the pkpm model for use in current coupling
-                               // Used to copy over fluid variable from pkpm_fluid_species (first three components are momentum)
-  struct gkyl_array *pkpm_div_ppar; // div(p_parallel b_hat) used for computing total pressure force 
+  // PKPM distribution function variables
   struct gkyl_array *g_dist_source; // g_dist_source = [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)), 
                                     //                 (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0 ]
   struct gkyl_array *F_k_p_1; // k+1 distribution function (first NP components are F_2) 
   struct gkyl_array *F_k_m_1; // k-1 distribution function (first NP components are F_1)
-  struct gkyl_dg_calc_pkpm_dist_vars *calc_pkpm_dist_vars; // Updater to compute pkpm distribution function variables 
+
+  // PKPM variables
+  struct gkyl_array *m1i_pkpm; // "M1i" in the PKPM model for use in current coupling
+                               // Used to copy over fluid variables from pkpm fluid_species, which solves for [rho ux, rho uy, rho uz]
+  struct gkyl_array *pkpm_div_ppar; // div(p_parallel b_hat) used for computing self-consistent total pressure force 
+  struct gkyl_array *pkpm_prim; // [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+  struct gkyl_array *pkpm_p_ij; // (p_par - p_perp) b_i b_j + p_perp g_ij
+  struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
+                                    // Determined when constructing the matrix if rho < 0.0 at control points
+                                    // Equation systems such as pkpm check more variables (p_perp < 0.0)
+  struct gkyl_array *pkpm_accel; // Acceleration variables for PKPM, pkpm_accel:
+                                 // 0: div_b (divergence of magnetic field unit vector)
+                                 // 1: bb_grad_u (bb : grad(u))
+                                 // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
+                                 // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
+                                 // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
+  struct gkyl_array *integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
+  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater to compute PKPM variables (primitive and acceleration variables)
+  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars_ext; // Updater to compute PKPM variables (primitive and acceleration variables)
+                                                     // over extended range (used when BCs are not absorbing to minimize apply BCs calls)
+  struct gkyl_dg_calc_pkpm_dist_vars *calc_pkpm_dist_vars; // Updater to compute PKPM distribution function variables 
                                                            // div(p_parallel b_hat) and distribution function sources
+
+  // Pointers for io for PKPM fluid variables, handled by kinetic species because of fluid-kinetic coupling.
+  // For PKPM we construct the 10 moment conserved variables for ease of analysis 
+  // along with an array of the various update variables, primitive and acceleration
+  struct gkyl_array *fluid_io;
+  struct gkyl_array *fluid_io_host;
+  struct gkyl_array *pkpm_vars_io;
+  struct gkyl_array *pkpm_vars_io_host;
 
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
@@ -219,6 +245,8 @@ struct vm_species {
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
+  bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
+                     // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range 
 
   bool has_accel; // flag to indicate there is applied acceleration
   struct gkyl_array *accel; // applied acceleration
@@ -320,33 +348,11 @@ struct vm_fluid_species {
   // Pointers to primitive variables, pressure, and boolean array for if we are only using the cell average for primitive variables
   // For isothermal Euler, prim : (ux, uy, uz), p : (vth*rho)
   // For Euler, prim : (ux, uy, uz, T/m), p : (gamma - 1)*(E - 1/2 rho u^2)
-  // For PKPM, prim : [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
-  // p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
   struct gkyl_array *prim; 
   struct gkyl_array *p; 
   struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
                                     // Determined when constructing the matrix if rho < 0.0 at control points
-                                    // Equation systems such as pkpm check more variables (p_par, p_perp < 0.0)
 
-  // Pointers for io.
-  // For isothermal Euler and Euler, these are the same as the state variables
-  // For PKPM we construct the 10 moment conserved variables for ease of analysis 
-  // along with an array of the various update variables, primitive and acceleration
-  struct gkyl_array *fluid_io;
-  struct gkyl_array *fluid_io_host;
-  struct gkyl_array *pkpm_vars_io;
-  struct gkyl_array *pkpm_vars_io_host;
-
-  // pkpm variables
-  struct gkyl_array *pkpm_accel; // Acceleration variables for pkpm, pkpm_accel:
-                                 // 0: div_b (divergence of magnetic field unit vector)
-                                 // 1: bb_grad_u (bb : grad(u))
-                                 // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
-                                 // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
-                                 // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
-  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater to compute pkpm variables (primitive and acceleration variables)
-  struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars_ext; // Updater to compute pkpm variables (primitive and acceleration variables)
-                                                     // over extended range (used when BCs are not absorbing to minimize apply BCs calls)
   struct vm_species *pkpm_species; // pointer to coupling species in pkpm model
   int species_index; // index of the kinetic species being coupled to in pkpm model
                      // index corresponds to location in vm_species array (size num_species)
@@ -672,12 +678,27 @@ void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, dou
 
 /**
  * Compute parallel-kinetic-perpendicular-moment (pkpm) model variables
+ * These are the coupling moments [rho, p_par, p_perp], the self-consistent
+ * pressure force (div(p_par b_hat)), and the primitive variables
+ *
+ * @param app Vlasov app object
+ * @param species Species object
+ * @param fin Input distribution function
+ * @param fluidin Input fluid species array (size: num_fluid_species)
+ */
+void vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, 
+  const struct gkyl_array *fin, const struct gkyl_array *fluidin[]);
+
+/**
+ * Compute parallel-kinetic-perpendicular-moment (pkpm) model update variables
+ * These are the acceleration variables in the kinetic equation and 
+ * the source distribution functions for Laguerre couplings.
  *
  * @param app Vlasov app object
  * @param species Species object
  * @param fin Input distribution function
  */
-void vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin);
+void vm_species_calc_pkpm_update_vars(gkyl_vlasov_app *app, struct vm_species *species, const struct gkyl_array *fin);
 
 /**
  * Compute RHS from species distribution function
@@ -964,24 +985,6 @@ void vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fl
  * @param f Fluid Species to apply BCs
  */
 void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f);
-
-
-/**
- * Compute integrated fluid diagnostics
- *
- * @param app Vlasov app object
- * @param tm Time at which diagnostic is computed
- * @param fluid_species Pointer to fluid species
- */
-void vm_fluid_species_calc_int_diag(gkyl_vlasov_app *app, double tm, const struct vm_fluid_species *fluid_species);
-
-/**
- * Construct fluid io arrays.
- *
- * @param app Vlasov app object
- * @param fluid_species Pointer to fluid species
- */
-void vm_fluid_species_io(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species);
 
 /**
  * Release resources allocated by fluid species

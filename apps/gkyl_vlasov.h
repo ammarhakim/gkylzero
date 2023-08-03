@@ -308,14 +308,6 @@ void gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm);
 void gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm);
 
 /**
- * Calculate integrated fluid variables.
- *
- * @param tm Time at which integrated diagnostic are to be computed
- * @param app App object.
- */
-void gkyl_vlasov_app_calc_integrated_fluid_vars(gkyl_vlasov_app* app, double tm);
-
-/**
  * Calculate integrated field energy
  *
  * @param tm Time at which integrated diagnostic are to be computed
@@ -352,14 +344,21 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write pkpm moment data to file.
+ * Write pkpm auxiliar data to files. Includes:
+ * 1. PKPM moments [rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
+ * 2. PKPM fluid variables [rho, rho ux, rho uy, rho uz, 
+ * P_xx + rho ux^2, P_xy + rho ux uy, P_xz + rho ux uz,
+ * P_yy + rho uy^2, P_yz + rho uy uz, P_zz + rho uz^2]
+ * 3. PKPM variables, including primitive variables (ux, uy, uz, T_perp/m, m/T_perp) and 
+ * acceleration variables (div(b), 1/rho div(p_par b), T_perp/m div(b), bb : grad(u), and 
+ * vperp configuration space characteristics = bb : grad(u) - div(u) - 2 nu.
  * 
  * @param app App object.
  * @param sidx Index of fluid species to initialize.
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+void gkyl_vlasov_app_write_species_pkpm(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write collision auxiliary variables, including self_nu, prim_moms, and nu prim_moms.
@@ -393,18 +392,6 @@ void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double 
 void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write pkpm variables, including primitive variables (ux, uy, uz, T_perp/m, m/T_perp) and 
- * acceleration variables (div(b), 1/rho div(p_par b), T_perp/m div(b), bb : grad(u), and 
- * vperp configuration space characteristics = bb : grad(u) - div(u) - 2 nu.
- * 
- * @param app App object.
- * @param sidx Index of fluid species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_fluid_species_pkpm_vars(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
  * Write diagnostic moments for species to file.
  * 
  * @param app App object.
@@ -428,14 +415,6 @@ void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
  * @param app App object.
  */
 void gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app *app);
-
-/**
- * Write integrated fluid variables for fluid species to file. Integrated
- * fluid variables are appended to the same file.
- * 
- * @param app App object.
- */
-void gkyl_vlasov_app_write_integrated_fluid_vars(gkyl_vlasov_app *app);
 
 /**
  * Write field energy to file. Field energy data is appended to the
