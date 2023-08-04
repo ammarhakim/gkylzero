@@ -389,7 +389,7 @@ create_ctx(void)
   double Lz = 3.0*a;
   int Nz = 32;
   double dz = 2*Lz/Nz;
-  double tend = 1000.0/omegaCi;
+  double tend = 10.0/omegaCi;
   
   // Get reference values so we know the mirror ratio and ExB mach number; computed at r = rmin, z = 0 and z = Lz
   double Br_center = -(calcAphi(rmin, 0.5*dz, I, a, Lz, num_extra_coils, B0) - calcAphi(rmin, -0.5*dz, I, a, Lz, num_extra_coils, B0)) / dz;
@@ -560,7 +560,7 @@ main(int argc, char **argv)
   }
 
   struct gkyl_moment app_inp = {
-    .name = "5m_cmfx_flux_grid_3d",
+    .name = "iso_euler_cmfx_3d",
 
     .ndim = 3,
     .lower = { 0.0, 0.0, -ctx.Lz },
