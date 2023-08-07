@@ -258,9 +258,6 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
   if (app->use_gpu)
     gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
 
-  // compute primitive variables at t = 0
-  vm_fluid_species_prim_vars(app, fluid_species, fluid_species->fluid);
-
   // we are pre-computing source for now as it is time-independent
   vm_fluid_species_source_calc(app, fluid_species, t0);
 
