@@ -18,19 +18,24 @@ extern "C" {
 #define START_ID (threadIdx.x + blockIdx.x*blockDim.x)
 
 // NOTE: This is duplicated in dg_bin_ops_cu. Should be cleaned up 01/05/22
-static void
+static bool
 gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
 {
-  int volume = range.volume;
   int ndim = range.ndim;
-  // ac1 = size of last dimension of range (fastest moving dimension)
-  int ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
-  // CUDA Max block size in x is 2^31 - 1, Max block size in y is 2^16-1
-  // Thus, x block size should be bigger to avoid max block size limits
-  dimBlock->y = GKYL_MIN(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
-  dimGrid->y = gkyl_int_div_up(ncomp*ac1, dimBlock->y);
-  dimBlock->x = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ncomp*ac1);
-  dimGrid->x = gkyl_int_div_up(volume, ac1*dimBlock->x);
+  bool valid_range = true;
+  for (size_t d=0; d<ndim; d++) valid_range = valid_range && (range.lower[d] <= range.upper[d]);
+  if (valid_range) {
+    int volume = range.volume;
+    // ac1 = size of last dimension of range (fastest moving dimension)
+    int ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
+    // CUDA Max block size in x is 2^31 - 1, Max block size in y is 2^16-1
+    // Thus, x block size should be bigger to avoid max block size limits
+    dimBlock->y = GKYL_MIN(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
+    dimGrid->y = gkyl_int_div_up(ncomp*ac1, dimBlock->y);
+    dimBlock->x = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ncomp*ac1);
+    dimGrid->x = gkyl_int_div_up(volume, ac1*dimBlock->x);
+  }
+  return valid_range;
 }
 
 __global__ void
@@ -657,10 +662,11 @@ gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
   const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range)
 {
   dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *inp_range, out->ncomp);
+  bool good_inp_range = gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *inp_range, out->ncomp);
 
-  gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
-    inp->on_dev, *out_range, *inp_range);
+  if (good_inp_range)
+    gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
+      inp->on_dev, *out_range, *inp_range);
 }
 
 void 
