@@ -32,9 +32,7 @@ gkyl_correct_maxwellian_gyrokinetic *gkyl_correct_maxwellian_gyrokinetic_new(
  *
  * @param cmax Maxwellian-fix updater
  * @param fM Distribution function to fix (modified in-place)
- * @param m0_corr Desired number density
- * @param m1_corr Desired moment density
- * @param m2_corr Desired kinetic energy density
+ * @param moms_in Input moments
  * @param conf_local Local configuration space range
  * @param conf_local_ext Local extended configuration space range
  * @param phase_local Local phase-space range
@@ -43,7 +41,7 @@ gkyl_correct_maxwellian_gyrokinetic *gkyl_correct_maxwellian_gyrokinetic_new(
  */
 void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic *cmax,
   struct gkyl_array *fM, 
-  const struct gkyl_array *m0_corr, const struct gkyl_array *m1_corr, const struct gkyl_array *m2_corr,
+  const struct gkyl_array *moms_in,
   const struct gkyl_array *jacob_tot, const struct gkyl_array *bmag, double mass,
   double err_max, int iter_max,
   const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext, 
