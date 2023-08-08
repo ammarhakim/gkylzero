@@ -23,18 +23,16 @@ struct gkyl_correct_maxwellian_gyrokinetic
   struct gkyl_rect_grid grid;
   struct gkyl_basis conf_basis, phase_basis;
   
-  struct gkyl_array *m0, *m1, *m2;
-  struct gkyl_array *dm1, *dm2;
-  struct gkyl_array *ddm1, *ddm2;
-  struct gkyl_array *m0scl;
+  struct gkyl_array *m0_in, *m0, *m0scl;
+  struct gkyl_array *m12_in, *m12, *dm12, *ddm12;
+  struct gkyl_array *moms;
   
   gkyl_proj_maxwellian_on_basis *proj_maxwellian; // maxwellian projector
-  gkyl_mom_calc *m0calc, *m1calc, *m2calc; // moment calculators
+  gkyl_mom_calc *m0calc, *momsCalc; // moment calculators
   gkyl_dg_bin_op_mem *weak_divide, *weak_multiply, *weak_multiply_confPhase; // memory for weak operators
 
   double *err1_cu, *err2_cu;
   struct gkyl_array *mvals1, *mvals2;
-  struct gkyl_array *moms;
 };
 
 gkyl_correct_maxwellian_gyrokinetic *
@@ -48,26 +46,23 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const
   up->phase_basis = *phase_basis;
 
   // Allocate memory
-  up->m0scl = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
+  up->m0_in = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
   up->m0 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->m1 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->m2 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->dm1 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->dm2 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->ddm1 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->ddm2 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
+  up->m0scl = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
+  up->m12_in = mkarr(2*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
+  up->m12 = mkarr(2*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
+  up->dm12 = mkarr(2*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
+  up->ddm12 = mkarr(2*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
+  up->moms = mkarr(3*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
 
   up->proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(grid, conf_basis, phase_basis, poly_order+1, use_gpu); 
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_local, mass, "M0", use_gpu);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_local, mass, "M1", use_gpu);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_local, mass, "M2", use_gpu);
+  struct gkyl_mom_type *MOMS_t = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_local, mass, "ThreeMoments", use_gpu);
   gkyl_gyrokinetic_set_bmag(M0_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M1_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M2_t, bmag);
+  gkyl_gyrokinetic_set_bmag(MOMS_t, bmag);
   up->m0calc = gkyl_mom_calc_new(grid, M0_t, use_gpu);
-  up->m1calc = gkyl_mom_calc_new(grid, M1_t, use_gpu);
-  up->m2calc = gkyl_mom_calc_new(grid, M2_t, use_gpu); 
+  up->momsCalc = gkyl_mom_calc_new(grid, MOMS_t, use_gpu);
 
   if (use_gpu) {
     up->weak_divide = gkyl_dg_bin_op_mem_cu_dev_new(conf_local->volume, conf_basis->num_basis);
@@ -84,46 +79,34 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const
   up->mvals1 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
   up->mvals2 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
 
-  up->moms = mkarr(3*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-
   return up;
 }
 
-void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic *up, struct gkyl_array *fM, const struct gkyl_array *m0_corr, const struct gkyl_array *m1_corr, const struct gkyl_array *m2_corr, const struct gkyl_array *jacob_tot, const struct gkyl_array *bmag, double mass, double err_max, int iter_max, const struct gkyl_range *conf_local, const struct gkyl_range *phase_local, const struct gkyl_range *conf_local_ext, bool use_gpu)
+void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic *up, struct gkyl_array *fM, const struct gkyl_array *moms_in, const struct gkyl_array *jacob_tot, const struct gkyl_array *bmag, double mass, double err_max, int iter_max, const struct gkyl_range *conf_local, const struct gkyl_range *phase_local, const struct gkyl_range *conf_local_ext, bool use_gpu)
 {
   double err1[1], err2[1];
+  
+  // Decompose the input moments
+  gkyl_array_set_offset(up->m0_in, 1., moms_in, 0*up->conf_basis.num_basis);
+  gkyl_array_set_offset(up->m12_in, 1., moms_in, 1*up->conf_basis.num_basis);
 
   // Rescale the maxwellian
-  if (use_gpu) {
-    gkyl_mom_calc_advance_cu(up->m0calc, phase_local, conf_local, fM, up->m0);
-  } else {
-    gkyl_mom_calc_advance(up->m0calc, phase_local, conf_local, fM, up->m0);
-  }
-  gkyl_dg_div_op_range(up->weak_divide, up->conf_basis, 0, up->m0scl, 0, m0_corr, 0, up->m0, conf_local);
+  (use_gpu) ? gkyl_mom_calc_advance_cu(up->m0calc, phase_local, conf_local, fM, up->m0) : gkyl_mom_calc_advance(up->m0calc, phase_local, conf_local, fM, up->m0);
+  gkyl_dg_div_op_range(up->weak_divide, up->conf_basis, 0, up->m0scl, 0, up->m0_in, 0, up->m0, conf_local);
   gkyl_dg_mul_conf_phase_op_range(&up->conf_basis, &up->phase_basis, fM, up->m0scl, fM, conf_local, phase_local);
 
   // Calculate the moments
-  if (use_gpu) {
-    gkyl_mom_calc_advance_cu(up->m0calc, phase_local, conf_local, fM, up->m0);
-    gkyl_mom_calc_advance_cu(up->m1calc, phase_local, conf_local, fM, up->m1);
-    gkyl_mom_calc_advance_cu(up->m2calc, phase_local, conf_local, fM, up->m2);
-  } else {
-    gkyl_mom_calc_advance(up->m0calc, phase_local, conf_local, fM, up->m0);
-    gkyl_mom_calc_advance(up->m1calc, phase_local, conf_local, fM, up->m1);
-    gkyl_mom_calc_advance(up->m2calc, phase_local, conf_local, fM, up->m2);
-  }
+  (use_gpu) ? gkyl_mom_calc_advance_cu(up->momsCalc, phase_local, conf_local, fM, up->moms) : gkyl_mom_calc_advance(up->momsCalc, phase_local, conf_local, fM, up->moms);
+  gkyl_array_set_offset(up->m0, 1., up->moms, 0*up->conf_basis.num_basis);
+  gkyl_array_set_offset(up->m12, 1., up->moms, 1*up->conf_basis.num_basis);
 
   // Initialize the error
-  gkyl_array_clear(up->ddm1, 0.0);
-  gkyl_array_accumulate(up->ddm1, -1.0, up->m1);
-  gkyl_array_accumulate(up->ddm1, 1.0, m1_corr);
-
-  gkyl_array_clear(up->ddm2, 0.0);
-  gkyl_array_accumulate(up->ddm2, -1.0, up->m2);
-  gkyl_array_accumulate(up->ddm2, 1.0, m2_corr);
+  gkyl_array_clear(up->ddm12, 0.0);
+  gkyl_array_accumulate(up->ddm12, -1.0, up->m12);
+  gkyl_array_accumulate(up->ddm12, 1.0, up->m12_in);
   
-  gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals1, 0, up->ddm1, *conf_local);
-  gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals2, 0, up->ddm2, *conf_local);
+  gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals1, 0, up->ddm12, *conf_local);
+  gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals2, 1, up->ddm12, *conf_local);
   gkyl_array_scale_range(up->mvals1, up->grid.cellVolume, *conf_local);
   gkyl_array_scale_range(up->mvals2, up->grid.cellVolume, *conf_local);
   if (use_gpu) {
@@ -141,26 +124,18 @@ void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic
   while ((i<iter_max) && (err1[0]>err_max) || (err2[0]>err_max))
   {
     // Correct the moments
-    gkyl_array_clear(up->ddm1, 0.0);
-    gkyl_array_accumulate(up->ddm1, -1.0, up->m1);
-    gkyl_array_accumulate(up->ddm1, 1.0, m1_corr);
-    gkyl_array_accumulate(up->dm1, 1.0, up->ddm1);
-    gkyl_array_clear(up->m1, 0.0);
-    gkyl_array_accumulate(up->m1, 1.0, m1_corr);
-    gkyl_array_accumulate(up->m1, 1.0, up->dm1);
-
-    gkyl_array_clear(up->ddm2, 0.0);
-    gkyl_array_accumulate(up->ddm2, -1.0, up->m2);
-    gkyl_array_accumulate(up->ddm2, 1.0, m2_corr);
-    gkyl_array_accumulate(up->dm2, 1.0, up->ddm2);
-    gkyl_array_clear(up->m2, 0.0);
-    gkyl_array_accumulate(up->m2, 1.0, m2_corr);
-    gkyl_array_accumulate(up->m2, 1.0, up->dm2);
+    gkyl_array_clear(up->ddm12, 0.0);
+    gkyl_array_accumulate(up->ddm12, -1.0, up->m12);
+    gkyl_array_accumulate(up->ddm12, 1.0, up->m12_in);
+    gkyl_array_accumulate(up->dm12, 1.0, up->ddm12);
+    gkyl_array_clear(up->m12, 0.0);
+    gkyl_array_accumulate(up->m12, 1.0, up->m12_in);
+    gkyl_array_accumulate(up->m12, 1.0, up->dm12);
 
     gkyl_array_clear(up->mvals1, 0.0);
     gkyl_array_clear(up->mvals2, 0.0);
-    gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals1, 0, up->ddm1, *conf_local);
-    gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals2, 0, up->ddm1, *conf_local);
+    gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals1, 0, up->ddm12, *conf_local);
+    gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals2, 1, up->ddm12, *conf_local);
     gkyl_array_scale_range(up->mvals1, up->grid.cellVolume, *conf_local);
     gkyl_array_scale_range(up->mvals2, up->grid.cellVolume, *conf_local);
     if (use_gpu) {
@@ -176,30 +151,18 @@ void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic
     err2[0] = sqrt(err2[0]/up->grid.cellVolume/conf_local->volume); 
 
     // Project the maxwellian
-    // (1) proj_maxwellian expects the moments as a single array
-    struct gkyl_array *moms = mkarr(3*up->conf_basis.num_basis, conf_local_ext->volume, use_gpu);
-    gkyl_array_set_offset(moms, 1., up->m0, 0*up->conf_basis.num_basis);
-    gkyl_array_set_offset(moms, 1., up->m1, 1*up->conf_basis.num_basis);
-    gkyl_array_set_offset(moms, 1., up->m2, 2*up->conf_basis.num_basis);
-    gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, moms, bmag, jacob_tot, mass, fM);
+    gkyl_array_set_offset(up->moms, 1., up->m0, 0*up->conf_basis.num_basis);
+    gkyl_array_set_offset(up->moms, 1., up->m12, 1*up->conf_basis.num_basis);
+    gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, bmag, jacob_tot, mass, fM);
     // Rescale the maxwellian
-    if (use_gpu) {
-      gkyl_mom_calc_advance_cu(up->m0calc, phase_local, conf_local, fM, up->m0);
-    } else {
-      gkyl_mom_calc_advance(up->m0calc, phase_local, conf_local, fM, up->m0);
-    }
-    gkyl_dg_div_op_range(up->weak_divide, up->conf_basis, 0, up->m0scl, 0, m0_corr, 0, up->m0, conf_local);
+    (use_gpu) ? gkyl_mom_calc_advance_cu(up->m0calc, phase_local, conf_local, fM, up->m0) : gkyl_mom_calc_advance(up->m0calc, phase_local, conf_local, fM, up->m0);
+    gkyl_dg_div_op_range(up->weak_divide, up->conf_basis, 0, up->m0scl, 0, up->m0_in, 0, up->m0, conf_local);
     gkyl_dg_mul_conf_phase_op_range(&up->conf_basis, &up->phase_basis, fM, up->m0scl, fM, conf_local, phase_local);
     // Calculate the moments
-    if (use_gpu) {
-      gkyl_mom_calc_advance_cu(up->m0calc, phase_local, conf_local, fM, up->m0);
-      gkyl_mom_calc_advance_cu(up->m1calc, phase_local, conf_local, fM, up->m1);
-      gkyl_mom_calc_advance_cu(up->m2calc, phase_local, conf_local, fM, up->m2);
-    } else {
-      gkyl_mom_calc_advance(up->m0calc, phase_local, conf_local, fM, up->m0);
-      gkyl_mom_calc_advance(up->m1calc, phase_local, conf_local, fM, up->m1);
-      gkyl_mom_calc_advance(up->m2calc, phase_local, conf_local, fM, up->m2);
-    }
+    (use_gpu) ? gkyl_mom_calc_advance_cu(up->momsCalc, phase_local, conf_local, fM, up->moms) : gkyl_mom_calc_advance(up->momsCalc, phase_local, conf_local, fM, up->moms);
+    gkyl_array_set_offset(up->m0, 1., up->moms, 0*up->conf_basis.num_basis);
+    gkyl_array_set_offset(up->m12, 1., up->moms, 1*up->conf_basis.num_basis);
+    
     i += 1;
   } // Main iteration loop ends
 }
@@ -211,20 +174,18 @@ gkyl_correct_maxwellian_gyrokinetic_release(gkyl_correct_maxwellian_gyrokinetic*
     gkyl_cu_free(up->err1_cu);
     gkyl_cu_free(up->err2_cu);
   }
+  gkyl_array_release(up->m0_in);
   gkyl_array_release(up->m0);
-  gkyl_array_release(up->m1);
-  gkyl_array_release(up->m2);
-  gkyl_array_release(up->dm1);
-  gkyl_array_release(up->dm2);
-  gkyl_array_release(up->ddm1);
-  gkyl_array_release(up->ddm2);
   gkyl_array_release(up->m0scl);
+  gkyl_array_release(up->m12_in);
+  gkyl_array_release(up->m12);
+  gkyl_array_release(up->dm12);
+  gkyl_array_release(up->ddm12);
   gkyl_array_release(up->mvals1);
   gkyl_array_release(up->mvals2);
   gkyl_array_release(up->moms);
   gkyl_mom_calc_release(up->m0calc);
-  gkyl_mom_calc_release(up->m1calc);
-  gkyl_mom_calc_release(up->m2calc);
+  gkyl_mom_calc_release(up->momsCalc);
   gkyl_proj_maxwellian_on_basis_release(up->proj_maxwellian);
   gkyl_dg_bin_op_mem_release(up->weak_divide);
   gkyl_dg_bin_op_mem_release(up->weak_multiply);
