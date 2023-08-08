@@ -1,4 +1,4 @@
-#include "gkyl_mat.h"
+#include <gkyl_mat.h>
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_bc_twistshift_priv.h>
 #include <gkyl_array.h>
@@ -29,9 +29,9 @@ gkyl_bc_twistshift_new(int dir, int do_dir, int shift_dir, enum gkyl_edge_loc ed
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_twistshift_kernels));
-    gkyl_bc_twistshift_choose_kernel_cu(basis, cdim, up->kernels_cu);
+    gkyl_bc_twistshift_choose_kernels_cu(basis, cdim, up->kernels_cu);
   } else {
-    gkyl_bc_twistshift_choose_kernel(basis, cdim, up->kernels);
+    gkyl_bc_twistshift_choose_kernels(basis, cdim, up->kernels);
     up->kernels_cu = up->kernels;
   }
 #else
@@ -44,15 +44,27 @@ gkyl_bc_twistshift_new(int dir, int do_dir, int shift_dir, enum gkyl_edge_loc ed
   int total_donor_mats = 0;
   for(int i = 0; i<grid->cells[0]; i++)
     total_donor_mats +=ndonors[i];
-  up->matsdo = gkyl_nmat_new(total_donor_mats, basis->num_basis, basis->num_basis);
-  up->vecstar = gkyl_nmat_new(up->matsdo->num, up->matsdo->nr, 1);
-  up->vecsdo = gkyl_nmat_new(up->matsdo->num, up->matsdo->nr, 1);
-  for (size_t n=0; n<up->matsdo->num; ++n) {
-    struct gkyl_mat m = gkyl_nmat_get(up->matsdo, n);
-    for (size_t j=0; j<up->matsdo->nc; ++j)
-      for (size_t i=0; i<up->matsdo->nr; ++i)
+
+
+  up->matsdo_ho = gkyl_nmat_new(total_donor_mats, basis->num_basis, basis->num_basis);
+
+  for (size_t n=0; n<up->matsdo_ho->num; ++n) {
+    struct gkyl_mat m = gkyl_nmat_get(up->matsdo_ho, n);
+    for (size_t j=0; j<up->matsdo_ho->nc; ++j)
+      for (size_t i=0; i<up->matsdo_ho->nr; ++i)
         gkyl_mat_set(&m, i, j, 0.0);
   }
+#ifdef GKYL_HAVE_CUDA
+  up->matsdo = gkyl_nmat_cu_dev_new(total_donor_mats, basis->num_basis, basis->num_basis);
+  gkyl_nmat_copy(up->matsdo, up->matsdo_ho);
+  up->vecstar = gkyl_nmat_cu_dev_new(up->matsdo->num, up->matsdo->nr, 1);
+  up->vecsdo = gkyl_nmat_cu_dev_new(up->matsdo->num, up->matsdo->nr, 1);
+#else
+  up->matsdo = up->matsdo_ho;
+  up->vecstar = gkyl_nmat_new(up->matsdo->num, up->matsdo->nr, 1);
+  up->vecsdo = gkyl_nmat_new(up->matsdo->num, up->matsdo->nr, 1);
+#endif
+
 
 
   // Create necessary ranges
@@ -102,7 +114,7 @@ void gkyl_bc_twistshift_integral_xlimdg(struct gkyl_bc_twistshift *up,
     linidx += up->ndonors[i];
   
   linidx += doidx;
-  struct gkyl_mat tsmat = gkyl_nmat_get(up->matsdo, linidx);
+  struct gkyl_mat tsmat = gkyl_nmat_get(up->matsdo_ho, linidx);
   up->kernels->xlimdg(sFac, xLimLo, xLimUp, yLimLo, yLimUp, dyDo, yOff, ySh, &tsmat);
 }
 
@@ -114,7 +126,7 @@ void gkyl_bc_twistshift_integral_ylimdg(struct gkyl_bc_twistshift *up,
     linidx += up->ndonors[i];
   
   linidx += doidx;
-  struct gkyl_mat tsmat = gkyl_nmat_get(up->matsdo, linidx);
+  struct gkyl_mat tsmat = gkyl_nmat_get(up->matsdo_ho, linidx);
   up->kernels->ylimdg(sFac, xLimLo, xLimUp, yLimLo, yLimUp, dyDo, yOff, ySh, &tsmat);
 }
 
@@ -125,15 +137,19 @@ void gkyl_bc_twistshift_integral_fullcelllimdg(struct gkyl_bc_twistshift *up,
     linidx += up->ndonors[i];
   
   linidx += doidx;
-  struct gkyl_mat tsmat = gkyl_nmat_get(up->matsdo, linidx);
+  struct gkyl_mat tsmat = gkyl_nmat_get(up->matsdo_ho, linidx);
   up->kernels->fullcell(dyDo, yOff, ySh, &tsmat);
 }
 
-
+void gkyl_bc_twistshift_copy_matsdo(struct gkyl_bc_twistshift *up)
+{
+  #ifdef GKYL_HAVE_CUDA
+  gkyl_nmat_copy(up->matsdo, up->matsdo_ho);
+  #endif
+}
 
 void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
 {
-
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, up->yrange);
   struct gkyl_range_iter iterx;
@@ -170,9 +186,13 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
         struct gkyl_mat gkyl_mat_itr = gkyl_nmat_get(up->vecsdo, lin_vecdo_idx);
         long loc = gkyl_range_idx(up->local_range_update, do_idx);
         const double *fdo_itr = gkyl_array_cfetch(fdo, loc);
+        #ifdef GKYL_HAVE_CUDA
+        cudaMemcpy(gkyl_mat_itr.data, fdo_itr, up->vecsdo->nr*sizeof(double),GKYL_CU_MEMCPY_D2D);
+        #else
         for(int ib = 0; ib < up->vecsdo->nr; ib++){
           gkyl_mat_set(&gkyl_mat_itr, ib, 0, fdo_itr[ib]);
         }
+        #endif
         lin_vecdo_idx += 1;
         lin_idx += 1; 
       }
@@ -196,24 +216,32 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
       long loc = gkyl_range_idx(up->local_range_update, tar_idx);
       double *ftar_itr = gkyl_array_fetch(ftar, loc);
       for(int n=0; n<ftar->ncomp; n++){
-        ftar_itr[n] = 0.0;
+        #ifdef GKYL_HAVE_CUDA
+        gkyl_bc_twistshift_clear_cu(ftar_itr,n);
+        #else
+        ftar_itr[n] = 0;
+        #endif
       }
       for(int i = 0; i < up->ndonors[iterx.idx[0]-1]; i++){
         struct gkyl_mat temp = gkyl_nmat_get(up->vecstar,lin_tar_idx);
         for(int n=0; n<up->matsdo->nr; n++){
+          #ifdef GKYL_HAVE_CUDA
+          gkyl_bc_twistshift_inc_cu(ftar_itr, n, &temp);
+          #else
           ftar_itr[n] += gkyl_mat_get(&temp, n, 0);
+          #endif
         }
         lin_tar_idx +=1;
       }
     }
     last_yidx = iter.idx[0];
   }
-
 }
 
 void gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up) {
   // Release memory associated with this updater.
 #ifdef GKYL_HAVE_CUDA
+  gkyl_nmat_release(up->matsdo_ho);
   if (up->use_gpu)
     gkyl_cu_free(up->kernels_cu);
 #endif

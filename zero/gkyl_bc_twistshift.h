@@ -104,6 +104,30 @@ void gkyl_bc_twistshift_integral_fullcelllimdg(struct gkyl_bc_twistshift *up,
 void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
+ * Copy donor matrices to device if necessary
+ */
+void gkyl_bc_twistshift_copy_matsdo(struct gkyl_bc_twistshift *up);
+
+
+
+/**
+ * Increment target field by donor vector
+ * @param ftar target field at specific location
+ * @param n coefficient to increment
+ * @param mat donor vector
+ */
+
+void gkyl_bc_twistshift_inc_cu(double* ftar, int n, struct gkyl_mat* mat);
+
+/**
+ * Zero out target field
+ * @param ftar target field at specific location
+ * @param n coefficient to zero
+ */
+
+void gkyl_bc_twistshift_clear_cu(double* ftar, int n);
+
+/**
  * Free memory associated with bc_twistshift updater.
  *
  * @param up BC updater.
