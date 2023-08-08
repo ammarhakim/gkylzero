@@ -68,7 +68,7 @@ enum gkyl_eqn_type {
 enum gkyl_field_id {
   GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
   GKYL_FIELD_SR_E_B, // Maxwell (E, B) with special relativity
-  GKYL_FIELD_PHI, // Poisson (only phi)  
+  GKYL_FIELD_PHI, // Poisson (only phi)
   GKYL_FIELD_PHI_A, // Poisson with static B = curl(A) (phi, A)
   GKYL_FIELD_NULL, // no field is present
   GKYL_FIELD_SR_NULL // no field is present, special relativistic Vlasov
@@ -131,7 +131,7 @@ enum gkyl_field_bc_type {
 ffi.cdef [[
 /**
  * Time-trigger. Typical initialization is:
- * 
+ *
  * struct gkyl_tm_trigger tmt = { .dt = tend/nframe };
  */
 struct gkyl_tm_trigger {
@@ -179,7 +179,7 @@ ffi.cdef [[
 enum gkyl_mp_recon {
   GKYL_MP_U5 = 0, // upwind-biased 5th order (default)
   GKYL_MP_C2, // centered second-order
-  GKYL_MP_C4, // centered fourth-order  
+  GKYL_MP_C4, // centered fourth-order
   GKYL_MP_C6, // centered sixth-order
   GKYL_MP_U1, // upwind-biased 1st order
   GKYL_MP_U3, // upwind-biased 3rd order
@@ -228,7 +228,7 @@ struct gkyl_wv_euler_inp {
 
 /**
  * Create a new Euler equation object.
- * 
+ *
  * @param gas_gamma Gas adiabatic constant
  * @return Pointer to Euler equation object.
  */
@@ -236,7 +236,7 @@ struct gkyl_wv_eqn* gkyl_wv_euler_new(double gas_gamma);
 
 /**
  * Create a new Euler equation object.
- * 
+ *
  * @param inp Input parameters
  * @return Pointer to Euler equation object.
  */
@@ -244,7 +244,7 @@ struct gkyl_wv_eqn* gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp);
 
 /**
  * Create a new isothermal Euler equation object.
- * 
+ *
  * @param vt Thermal velocity
  * @return Pointer to isothermal Euler equation object.
  */
@@ -252,7 +252,7 @@ struct gkyl_wv_eqn* gkyl_wv_iso_euler_new(double vt);
 
 /**
  * Create a new maxwell equation object.
- * 
+ *
  * @param c_speed Speed of light
  * @param e_fact Factor of light-speed for electric field correction
  * @param b_fact Factor of light-speed for magnetic field correction
@@ -262,7 +262,7 @@ struct gkyl_wv_eqn* gkyl_wv_maxwell_new(double c, double e_fact, double b_fact);
 
 /**
  * Create a new SR Euler equation object.
- * 
+ *
  * @param gas_gamma Gas adiabatic constant
  * @return Pointer to SR Euler equation object.
  */
@@ -270,7 +270,7 @@ struct gkyl_wv_eqn* gkyl_wv_sr_euler_new(double gas_gamma);
 
 /**
  * Create a new advection equation object.
- * 
+ *
  * @param c advection speed
  * @return Pointer to Burgers equation object.
  */
@@ -284,7 +284,7 @@ struct gkyl_wv_ten_moment { struct gkyl_wv_eqn *eqn; };
 
 /**
  * Create a new Ten moment equation object.
- * 
+ *
  * @param k0 Closure parameter
  * @return Pointer to Ten moment equation object.
  */
@@ -390,7 +390,7 @@ struct gkyl_moment_field {
   bool is_ext_em_static; // flag to indicate if external field is time-independent
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
-  
+
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
   // pointer to boundary condition functions along x
@@ -404,7 +404,7 @@ struct gkyl_moment_field {
   void (*bcz_upper_func)(double t, int nc, const double *skin, double *ghost, void *ctx);
 };
 
-// Choices of schemes to use in the fluid solver 
+// Choices of schemes to use in the fluid solver
 enum gkyl_moment_scheme {
   GKYL_MOMENT_WAVE_PROP = 0, // default, 2nd-order FV
   GKYL_MOMENT_MP, // monotonicity-preserving Suresh-Huynh scheme
@@ -420,7 +420,7 @@ struct gkyl_range {
   int lower[GKYL_MAX_DIM]; // lower bound
   int upper[GKYL_MAX_DIM]; // upper bound (inclusive)
   long volume; // total volume of range
-    
+
   // do not access directly
   uint32_t flags; // Flags for internal use
   int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
@@ -493,7 +493,7 @@ struct gkyl_moment {
 struct gkyl_moment_stat {
   long nup; // calls to update
   double total_tm; // time for simulation (not including ICs)
-  
+
   long nfail; // number of failed time-steps
 
   //// wave_prop stuff
@@ -503,13 +503,13 @@ struct gkyl_moment_stat {
 
   //// stuff for MP-XX/SSP-RK schemes
   long nfeuler; // calls to forward-Euler method
-    
+
   long nstage_2_fail; // number of failed RK stage-2s
   long nstage_3_fail; // number of failed RK stage-3s
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
-  
+
   double init_species_tm; // time to initialize all species
   double init_field_tm; // time to initialize fields
 
@@ -567,7 +567,7 @@ void gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
 
 /**
  * Write field and species data to file.
- * 
+ *
  * @param app App object.
  * @param tm Time-stamp
  * @param frame Frame number
@@ -576,7 +576,7 @@ void gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame);
 
 /**
  * Write field data to file.
- * 
+ *
  * @param app App object.
  * @param tm Time-stamp
  * @param frame Frame number
@@ -585,7 +585,7 @@ void gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int fram
 
 /**
  * Write species data to file.
- * 
+ *
  * @param app App object.
  * @param sidx Index of species to write
  * @param tm Time-stamp
@@ -625,7 +625,7 @@ void gkyl_moment_app_stat_write(const gkyl_moment_app* app);
  * then the 'success' flag will be set to 0. At that point the calling
  * code must abort the simulation as this signals a catastrophic
  * failure and the simulation can't be safely continued.
- * 
+ *
  * @param app App object.
  * @param dt Suggested time-step to advance simulation
  * @return Status of update.
@@ -650,7 +650,7 @@ void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
 
 /**
  * Return simulation statistics.
- * 
+ *
  * @return Return statistics.
  */
 struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app *app);
@@ -719,7 +719,7 @@ local tm_trigger_mt = {
    end,
    __index = {
       checkAndBump = function(self, tcurr)
-	 return C.gkyl_tm_trigger_check_and_bump(self, tcurr) == 1
+    return C.gkyl_tm_trigger_check_and_bump(self, tcurr) == 1
       end
    }
 }
@@ -881,22 +881,22 @@ local species_mt = {
       s.equation = tbl.equation
 
       -- initial conditions
-      s.ctx = tbl.ctx 
+      s.ctx = tbl.ctx
       if tbl.cinit then
-	 -- use C function directly, if specified ...
-	 s.init = tbl.cinit
+         -- use C function directly, if specified ...
+         s.init = tbl.cinit
       else
-	 -- ... or use Lua function
-	 s.init = gkyl_eval_moment(tbl.init)
+         -- ... or use Lua function
+         s.init = gkyl_eval_moment(tbl.init)
       end
-      
+
       if tbl.app_accel then
          s.app_accel_func = gkyl_eval_applied(tbl.app_accel)
       end
 
       s.force_low_order_flux = false
       if tbl.force_low_order_flux then
-	 s.force_low_order_flux = tbl.force_low_order_flux
+         s.force_low_order_flux = tbl.force_low_order_flux
       end
 
       -- boundary conditions
@@ -1001,20 +1001,20 @@ local field_mt = {
 
       f.ctx = tbl.ctx -- no need for context
       if tbl.cinit then
-	 -- use C function directly, if specified ...
-	 f.init = tbl.cinit
+         -- use C function directly, if specified ...
+         f.init = tbl.cinit
       else
-	 -- ... or use Lua function
-	 f.init = gkyl_eval_field(tbl.init)
+         -- ... or use Lua function
+         f.init = gkyl_eval_field(tbl.init)
       end
-      
+
       if tbl.app_current then
          f.app_current_func = gkyl_eval_applied(tbl.app_current)
       end
 
       f.is_ext_em_static = false
       if tbl.is_ext_em_static then
-	 f.is_ext_em_static = tbl.is_ext_em_static
+         f.is_ext_em_static = tbl.is_ext_em_static
       end
       if tbl.ext_em_func then
          f.ext_em_func = gkyl_eval_ext_field(tbl.ext_em_func)
@@ -1075,13 +1075,13 @@ local app_mt = {
 
       -- first determine all species in system
       for k,v in pairs(tbl) do
-	 if ffi.istype(species_type, v) then
-	    v.name = k -- assign species name here
-	    table.insert(species, v)
-	 end
-	 if ffi.istype(field_type, v) then
-	    field = v -- only one field can be present
-	 end
+      if ffi.istype(species_type, v) then
+         v.name = k -- assign species name here
+         table.insert(species, v)
+      end
+         if ffi.istype(field_type, v) then
+            field = v -- only one field can be present
+         end
       end
       local num_species = #species
 
@@ -1094,7 +1094,7 @@ local app_mt = {
          local s, e = string.find(arg[0], ".lua")
          name = string.sub(arg[0], 1, s-1)
       end
-	 
+
       -- set values in input struct
       vm.name = name
       vm.ndim = #tbl.cells
@@ -1113,25 +1113,25 @@ local app_mt = {
 
       vm.scheme_type = C.GKYL_MOMENT_WAVE_PROP
       if tbl.scheme_type then
-	 vm.scheme_type = moment_scheme_tags[tbl.scheme_type]
+         vm.scheme_type = moment_scheme_tags[tbl.scheme_type]
       end
       if tbl.schemeType then
-	 vm.scheme_type = moment_scheme_tags[tbl.schemeType]
+         vm.scheme_type = moment_scheme_tags[tbl.schemeType]
       end
 
       vm.mp_recon = C.GKYL_MP_U5
       if tbl.mp_recon then
-	 vm.mp_recon = mp_recon_tags[tbl.mp_recon]
+         vm.mp_recon = mp_recon_tags[tbl.mp_recon]
       end
       if tbl.mpRecon then
-	 vm.mp_recon = mp_recon_tags[tbl.mpRecon]
+         vm.mp_recon = mp_recon_tags[tbl.mpRecon]
       end
 
       vm.skip_mp_limiter = pickBool(tbl.skipMpLimiter, false)
 
       vm.use_hybrid_flux_kep = false
       if tbl.useHybridFluxKep then
-	 vm.use_hybrid_flux_kep = tbl.useHybridFluxKep
+         vm.use_hybrid_flux_kep = tbl.useHybridFluxKep
       end
 
       -- mapc2p
@@ -1146,7 +1146,7 @@ local app_mt = {
       if tbl.periodicDirs then
          vm.num_periodic_dir = #tbl.periodicDirs
          for i=1, #tbl.periodicDirs do
-          vm.periodic_dirs[i-1] = tbl.periodicDirs[i]-1 -- note indexing transforms
+            vm.periodic_dirs[i-1] = tbl.periodicDirs[i]-1 -- note indexing transforms
          end
       end
 
@@ -1155,7 +1155,7 @@ local app_mt = {
       if tbl.skip_dirs then
          vm.num_skip_dirs = #tbl.skip_dirs
          for i=1, #tbl.skip_dirs do
-          vm.skip_dir[i-1] = tbl.skip_dir[i]
+            vm.skip_dir[i-1] = tbl.skip_dir[i]
          end
       end
 
@@ -1168,7 +1168,7 @@ local app_mt = {
       -- set field
       if field then
          vm.field = field
-      end      
+      end
 
       -- create new Moments app object
       local a = ffi.new(self)
@@ -1210,73 +1210,71 @@ local app_mt = {
          return C.gkyl_moment_update(self.app, dt)
       end,
       calcIntegratedMom = function(self, tcurr)
-	 return C.gkyl_moment_app_calc_integrated_mom(self.app, tcurr)
+         return C.gkyl_moment_app_calc_integrated_mom(self.app, tcurr)
       end,
       calcFieldEnergy = function(self, tcurr)
-	 return C.gkyl_moment_app_calc_field_energy(self.app, tcurr)
-      end,      
+         return C.gkyl_moment_app_calc_field_energy(self.app, tcurr)
+      end,
       run = function(self)
-	 
-	 local frame_trig = _M.TimeTrigger(self.tend/self.nframe)
+         local frame_trig = _M.TimeTrigger(self.tend/self.nframe)
 
-	 -- function to write data to file
-	 local function writeData(tcurr)
-	    if frame_trig:checkAndBump(tcurr) then
-	       self:write(tcurr, frame_trig.curr-1)
-	    end
-	 end
+         -- function to write data to file
+         local function writeData(tcurr)
+            if frame_trig:checkAndBump(tcurr) then
+               self:write(tcurr, frame_trig.curr-1)
+            end
+         end
 
-	 local p1_trig = _M.TimeTrigger(self.tend/10)
-	 -- log messages
-	 local function writeLogMessage(tcurr, step, dt)
-	    if p1_trig:checkAndBump(tcurr) then
-	       io.write(string.format(" Step %6d %.4e. Time-step  %.6e \n", step, tcurr, dt))
-	    end
-	 end
+         local p1_trig = _M.TimeTrigger(self.tend/10)
+         -- log messages
+         local function writeLogMessage(tcurr, step, dt)
+            if p1_trig:checkAndBump(tcurr) then
+               io.write(string.format(" Step %6d %.4e. Time-step  %.6e \n", step, tcurr, dt))
+            end
+         end
 
-	 io.write(string.format("Starting GkeyllZero simulation\n"))
-	 io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
+         io.write(string.format("Starting GkeyllZero simulation\n"))
+         io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
 
-	 local tinit0 = _M.time_now()
-	 self:init()
-	 io.write(string.format("  Initialization completed in %g sec\n", _M.time_now() - tinit0))
-	 
-	 self:calcIntegratedMom(0.0)
-	 self:calcFieldEnergy(0.0)
-	 writeData(0.0)
+         local tinit0 = _M.time_now()
+         self:init()
+         io.write(string.format("  Initialization completed in %g sec\n", _M.time_now() - tinit0))
 
-	 local tloop0 = _M.time_now()
-	 local tcurr, tend = 0.0, self.tend
-	 local dt = tend-tcurr
-	 local step = 1
-	 while tcurr < tend do
-	    local status = self:update(dt)
-	    tcurr = tcurr + status.dt_actual
+         self:calcIntegratedMom(0.0)
+         self:calcFieldEnergy(0.0)
+         writeData(0.0)
 
-	    if status.success == false then
-	       io.write(string.format("***** Simulation failed at step %5d at time %.6e\n", step, tcurr))
-	       break
-	    end
+         local tloop0 = _M.time_now()
+         local tcurr, tend = 0.0, self.tend
+         local dt = tend-tcurr
+         local step = 1
+         while tcurr < tend do
+            local status = self:update(dt)
+            tcurr = tcurr + status.dt_actual
 
-	    self:calcIntegratedMom(tcurr)
-	    self:calcFieldEnergy(tcurr)	    
+            if status.success == false then
+               io.write(string.format("***** Simulation failed at step %5d at time %.6e\n", step, tcurr))
+               break
+            end
 
-	    writeLogMessage(tcurr, step, status.dt_actual)
-	    writeData(tcurr)
+            self:calcIntegratedMom(tcurr)
+            self:calcFieldEnergy(tcurr)
 
-	    dt = math.min(status.dt_suggested, (tend-tcurr)*(1+1e-6))
-	    step = step + 1
-	 end
+            writeLogMessage(tcurr, step, status.dt_actual)
+            writeData(tcurr)
 
-	 C.gkyl_moment_app_write_integrated_mom(self.app)
-	 C.gkyl_moment_app_write_field_energy(self.app)
+            dt = math.min(status.dt_suggested, (tend-tcurr)*(1+1e-6))
+            step = step + 1
+         end
 
-	 local tloop1 = _M.time_now()
-	 
-	 io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
-	 io.write(string.format("Main loop took %g secs to complete\n", tloop1-tloop0))
-	 self:writeStat()
-	 
+         C.gkyl_moment_app_write_integrated_mom(self.app)
+         C.gkyl_moment_app_write_field_energy(self.app)
+
+         local tloop1 = _M.time_now()
+
+         io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
+         io.write(string.format("Main loop took %g secs to complete\n", tloop1-tloop0))
+         self:writeStat()
       end,
    }
 }
