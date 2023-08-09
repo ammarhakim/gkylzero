@@ -4,9 +4,8 @@
 #include <assert.h>
 
 struct gkyl_bc_sheath_gyrokinetic*
-gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_range_ext,
-  const int *num_ghosts, const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, int cdim,
-  double q2Dm, bool use_gpu)
+gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
+  const struct gkyl_rect_grid *grid, int cdim, double q2Dm, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -19,17 +18,6 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->q2Dm = q2Dm;
   up->basis = basis;
   up->grid = grid;
-
-  // Create the skin/ghost ranges.
-  gkyl_skin_ghost_ranges(&up->skin_r, &up->ghost_r, dir, edge, local_range_ext, num_ghosts);
-
-  // Need the configuration space range to index into phi.
-  int rlo[cdim], rup[cdim];
-  for (int d=0; d<cdim; d++) {
-    rlo[d] = local_range_ext->lower[d];
-    rup[d] = local_range_ext->upper[d];
-  }
-  gkyl_range_init(&up->conf_r, cdim, rlo, rup);
 
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
@@ -55,11 +43,12 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
 /* Modeled after gkyl_array_flip_copy_to_buffer_fn */
 void
 gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_array *distf)
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_bc_sheath_gyrokinetic_advance_cu(up, phi, phi_wall, distf);
+    gkyl_bc_sheath_gyrokinetic_advance_cu(up, phi, phi_wall, distf, skin_r, ghost_r, conf_r);
     return;
   }
 #endif
@@ -71,30 +60,30 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
   int vpar_dir = up->cdim;
   double dvpar = up->grid->dx[vpar_dir];
   double dvparD2 = dvpar*0.5;
-  int uplo = up->skin_r.upper[vpar_dir]+up->skin_r.lower[vpar_dir];
+  int uplo = skin_r->upper[vpar_dir]+skin_r->lower[vpar_dir];
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &up->skin_r);
+  gkyl_range_iter_init(&iter, skin_r);
   while (gkyl_range_iter_next(&iter)) {
 
-    gkyl_copy_int_arr(up->skin_r.ndim, iter.idx, fidx);
+    gkyl_copy_int_arr(skin_r->ndim, iter.idx, fidx);
     fidx[vpar_dir] = uplo - iter.idx[vpar_dir];
     // Turn this skin fidx into a ghost fidx.
-    fidx[up->dir] = up->ghost_r.lower[up->dir];
+    fidx[up->dir] = ghost_r->lower[up->dir];
 
     gkyl_rect_grid_cell_center(up->grid, iter.idx, xc);
     double vpar_c = xc[vpar_dir];
     double vparAbsSq_lo = vpar_c > 0.? pow(vpar_c-dvparD2,2) : pow(vpar_c+dvparD2,2);
     double vparAbsSq_up = vpar_c > 0.? pow(vpar_c+dvparD2,2) : pow(vpar_c-dvparD2,2);
 
-    long skin_loc = gkyl_range_idx(&up->skin_r, iter.idx);
-    long ghost_loc = gkyl_range_idx(&up->ghost_r, fidx);
+    long skin_loc = gkyl_range_idx(skin_r, iter.idx);
+    long ghost_loc = gkyl_range_idx(ghost_r, fidx);
 
     const double *inp = (const double*) gkyl_array_cfetch(distf, skin_loc);
     double *out = (double*) gkyl_array_fetch(distf, ghost_loc);
 
     for (int d=0; d<up->cdim; d++) cidx[d] = iter.idx[d]; 
-    long conf_loc = gkyl_range_idx(&up->conf_r, cidx);
+    long conf_loc = gkyl_range_idx(conf_r, cidx);
     const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
 

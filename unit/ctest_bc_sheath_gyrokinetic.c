@@ -42,10 +42,23 @@ test_bc_sheath_gyrokinetic(bool use_gpu)
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
+  // Create the skin/ghost ranges.
+  struct gkyl_range skin_r, ghost_r;
+  gkyl_skin_ghost_ranges(&skin_r, &ghost_r, dir, edge, &local_ext, ghost);
+
+  // Need the configuration space range to index into phi.
+  struct gkyl_range conf_r;
+  int rlo[cdim], rup[cdim];
+  for (int d=0; d<cdim; d++) {
+    rlo[d] = local_ext.lower[d];
+    rup[d] = local_ext.upper[d];
+  }
+  gkyl_range_init(&conf_r, cdim, rlo, rup);
+
   double q2Dm = 2.*charge/mass;
 
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    &local_ext, ghost, &basis, &grid, cdim, q2Dm, use_gpu);
+    &basis, &grid, cdim, q2Dm, use_gpu);
 
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
 }
