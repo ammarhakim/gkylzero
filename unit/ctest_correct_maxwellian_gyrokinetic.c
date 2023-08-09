@@ -191,8 +191,8 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_ic);
  
   // Create a Maxwellian with corrected moments
-  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, bmag, mass, poly_order, use_gpu);
-  gkyl_correct_maxwellian_gyrokinetic_fix(corr_max, fM, moms_in, jacob_tot, bmag, mass, err_max, iter_max, &confLocal, &local, &confLocal_ext, use_gpu);
+  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, bmag, jacob_tot, mass, use_gpu);
+  gkyl_correct_maxwellian_gyrokinetic_fix(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local, &confLocal_ext);
   gkyl_correct_maxwellian_gyrokinetic_release(corr_max);
   gkyl_array_clear(fM_ho, 0.0);
   if (use_gpu) {
@@ -221,22 +221,21 @@ void test_1x1v(int poly_order, bool use_gpu)
   }
   // (4) compare the correct moments with the input moments
   for (int k=0; k<cells[0]; k++) {
-     int idx[] = {k+1};
-     long linidx = gkyl_range_idx(&confLocal, idx);
-     const double *m0in = gkyl_array_cfetch(m0_in_ho, linidx);
-     const double *m1in = gkyl_array_cfetch(m1_in_ho, linidx);
-     const double *m2in = gkyl_array_cfetch(m2_in_ho, linidx);
-     const double *momsCorr = gkyl_array_cfetch(moms_corr_ho, linidx);
-     for (int m=0; m<confBasis.num_basis; m++) {
-       TEST_CHECK( gkyl_compare(m0in[m], momsCorr[m+0*confBasis.num_basis], 1e-12) );
-       TEST_CHECK( gkyl_compare(m1in[m], momsCorr[m+1*confBasis.num_basis], 1e-12) );
-       TEST_CHECK( gkyl_compare(m2in[m], momsCorr[m+2*confBasis.num_basis], 1e-12) );
-       TEST_MSG("Expected: %.13e, \t%.13e, \t%.13e, \tin cell (%d)", m0in[m], m1in[m], m2in[m], idx[0]);
-       TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", momsCorr[m+0*confBasis.num_basis], momsCorr[m+1*confBasis.num_basis], momsCorr[m+2*confBasis.num_basis]);
-     }
-   }
+    int idx[] = {k+1};
+    long linidx = gkyl_range_idx(&confLocal, idx);
+    const double *m0in = gkyl_array_cfetch(m0_in_ho, linidx);
+    const double *m1in = gkyl_array_cfetch(m1_in_ho, linidx);
+    const double *m2in = gkyl_array_cfetch(m2_in_ho, linidx);
+    const double *momsCorr = gkyl_array_cfetch(moms_corr_ho, linidx);
+    for (int m=0; m<confBasis.num_basis; m++) {
+      TEST_CHECK( gkyl_compare(m0in[m], momsCorr[m+0*confBasis.num_basis], 1e-12) );
+      TEST_CHECK( gkyl_compare(m1in[m], momsCorr[m+1*confBasis.num_basis], 1e-12) );
+      TEST_CHECK( gkyl_compare(m2in[m], momsCorr[m+2*confBasis.num_basis], 1e-12) );
+      TEST_MSG("Expected: %.13e, \t%.13e, \t%.13e, \tin cell (%d)", m0in[m], m1in[m], m2in[m], idx[0]);
+      TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", momsCorr[m+0*confBasis.num_basis], momsCorr[m+1*confBasis.num_basis], momsCorr[m+2*confBasis.num_basis]);
+    }
+  }
   
-
   // Release memory for moment data object
   gkyl_array_release(bmag);
   gkyl_array_release(jacob_tot);
@@ -392,8 +391,8 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_ic);
  
   // Create a Maxwellian with corrected moments
-  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, bmag, mass, poly_order, use_gpu);
-  gkyl_correct_maxwellian_gyrokinetic_fix(corr_max, fM, moms_in, jacob_tot, bmag, mass, err_max, iter_max, &confLocal, &local, &confLocal_ext, use_gpu);
+  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, bmag, jacob_tot, mass, use_gpu);
+  gkyl_correct_maxwellian_gyrokinetic_fix(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local, &confLocal_ext);
   gkyl_correct_maxwellian_gyrokinetic_release(corr_max);
   gkyl_array_clear(fM_ho, 0.0);
   if (use_gpu) {
@@ -422,20 +421,20 @@ void test_1x2v(int poly_order, bool use_gpu)
   }
   // (4) compare the correct moments with the input moments
   for (int k=0; k<cells[0]; k++) {
-     int idx[] = {k+1};
-     long linidx = gkyl_range_idx(&confLocal, idx);
-     const double *m0in = gkyl_array_cfetch(m0_in_ho, linidx);
-     const double *m1in = gkyl_array_cfetch(m1_in_ho, linidx);
-     const double *m2in = gkyl_array_cfetch(m2_in_ho, linidx);
-     const double *momsCorr = gkyl_array_cfetch(moms_corr_ho, linidx);
-     for (int m=0; m<confBasis.num_basis; m++) {
-       TEST_CHECK( gkyl_compare(m0in[m], momsCorr[m+0*confBasis.num_basis], 1e-12) );
-       TEST_CHECK( gkyl_compare(m1in[m], momsCorr[m+1*confBasis.num_basis], 1e-12) );
-       TEST_CHECK( gkyl_compare(m2in[m], momsCorr[m+2*confBasis.num_basis], 1e-12) );
-       TEST_MSG("Expected: %.13e, \t%.13e, \t%.13e, \tin cell (%d)", m0in[m], m1in[m], m2in[m], idx[0]);
-       TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", momsCorr[m+0*confBasis.num_basis], momsCorr[m+1*confBasis.num_basis], momsCorr[m+2*confBasis.num_basis]);
-     }
-   }
+    int idx[] = {k+1};
+    long linidx = gkyl_range_idx(&confLocal, idx);
+    const double *m0in = gkyl_array_cfetch(m0_in_ho, linidx);
+    const double *m1in = gkyl_array_cfetch(m1_in_ho, linidx);
+    const double *m2in = gkyl_array_cfetch(m2_in_ho, linidx);
+    const double *momsCorr = gkyl_array_cfetch(moms_corr_ho, linidx);
+    for (int m=0; m<confBasis.num_basis; m++) {
+      TEST_CHECK( gkyl_compare(m0in[m], momsCorr[m+0*confBasis.num_basis], 1e-12) );
+      TEST_CHECK( gkyl_compare(m1in[m], momsCorr[m+1*confBasis.num_basis], 1e-12) );
+      TEST_CHECK( gkyl_compare(m2in[m], momsCorr[m+2*confBasis.num_basis], 1e-12) );
+      TEST_MSG("Expected: %.13e, \t%.13e, \t%.13e, \tin cell (%d)", m0in[m], m1in[m], m2in[m], idx[0]);
+      TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", momsCorr[m+0*confBasis.num_basis], momsCorr[m+1*confBasis.num_basis], momsCorr[m+2*confBasis.num_basis]);
+    }
+  }
 
   // Release memory for moment data object
   gkyl_array_release(bmag);
