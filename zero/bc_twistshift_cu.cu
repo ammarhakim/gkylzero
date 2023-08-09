@@ -19,25 +19,25 @@ extern "C" {
 __global__ void
 gkyl_bc_twistshift_inc_cu_kernel(double* ftar, int n, double* matdata)
 {
-  ftar[n] += matdata[n];
+   ftar[START_ID] += matdata[START_ID];
 }
 
 
 __global__ void
 gkyl_bc_twistshift_clear_cu_kernel(double* ftar, int n)
 {
-  ftar[n] = 0.0;
+   ftar[START_ID] = 0.0;
 }
 
 
 void
 gkyl_bc_twistshift_inc_cu(double* ftar, int n, struct gkyl_mat* mat)
 {
-  gkyl_bc_twistshift_inc_cu_kernel<<<1,1>>>(ftar, n, mat->data);
+  gkyl_bc_twistshift_inc_cu_kernel<<<1,n>>>(ftar, n, mat->data);
 }
 
 void
 gkyl_bc_twistshift_clear_cu(double* ftar, int n)
 {
-  gkyl_bc_twistshift_clear_cu_kernel<<<1,1>>>(ftar, n);
+  gkyl_bc_twistshift_clear_cu_kernel<<<1,n>>>(ftar, n);
 }

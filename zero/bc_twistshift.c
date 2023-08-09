@@ -211,22 +211,22 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
 
       long loc = gkyl_range_idx(up->local_range_update, tar_idx);
       double *ftar_itr = gkyl_array_fetch(ftar, loc);
+      #ifdef GKYL_HAVE_CUDA
+      gkyl_bc_twistshift_clear_cu(ftar_itr,ftar->ncomp);
+      #else
       for(int n=0; n<ftar->ncomp; n++){
-        #ifdef GKYL_HAVE_CUDA
-        gkyl_bc_twistshift_clear_cu(ftar_itr,n);
-        #else
         ftar_itr[n] = 0;
-        #endif
       }
+      #endif
       for(int i = 0; i < up->ndonors[iterx.idx[0]-1]; i++){
         struct gkyl_mat temp = gkyl_nmat_get(up->vecstar,lin_tar_idx);
+        #ifdef GKYL_HAVE_CUDA
+        gkyl_bc_twistshift_inc_cu(ftar_itr, up->matsdo->nr, &temp);
+        #else
         for(int n=0; n<up->matsdo->nr; n++){
-          #ifdef GKYL_HAVE_CUDA
-          gkyl_bc_twistshift_inc_cu(ftar_itr, n, &temp);
-          #else
           ftar_itr[n] += gkyl_mat_get(&temp, n, 0);
-          #endif
         }
+        #endif
         lin_tar_idx +=1;
       }
     }

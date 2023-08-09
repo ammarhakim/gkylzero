@@ -377,6 +377,7 @@ cu_nmat_mm(double alpha, double beta, enum gkyl_mat_trans transa, struct gkyl_nm
   cublasStatus_t info;
 	info = cublasDgemmStridedBatched(cuh, transa, transb, C->nr, C->nc, k, &alpha, A->data, lda, sza.nr*sza.nc,
 		B->data, ldb, szb.nr*szb.nc, &beta, C->data, ldc, szc.nr*szc.nc, A->num);
+  cublasDestroy(cuh);
   #endif
 }
 
