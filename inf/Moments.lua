@@ -1596,6 +1596,14 @@ local app_mt = {
       run = function(self)
          local frame_trig = _M.TimeTrigger(self.tend/self.nframe)
 
+         local my_rank = 1
+         if GKYL_HAVE_MPI then
+            local MPI_COMM_WORLD = ffi.C.get_MPI_COMM_WORLD()
+            local nr = ffi.new("int[1]", 1)
+            ffi.C.MPI_Comm_rank(MPI_COMM_WORLD, nr)
+            my_rank = nr[0]
+         end
+
          -- function to write data to file
          local function writeData(tcurr)
             if frame_trig:checkAndBump(tcurr) then
@@ -1606,17 +1614,21 @@ local app_mt = {
          local p1_trig = _M.TimeTrigger(self.tend/10)
          -- log messages
          local function writeLogMessage(tcurr, step, dt)
-            if p1_trig:checkAndBump(tcurr) then
+            if p1_trig:checkAndBump(tcurr) and my_rank == 0 then
                io.write(string.format(" Step %6d %.4e. Time-step  %.6e \n", step, tcurr, dt))
             end
          end
 
-         io.write(string.format("Starting GkeyllZero simulation\n"))
-         io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
+         if my_rank == 0 then
+            io.write(string.format("Starting GkeyllZero simulation\n"))
+            io.write(string.format("  tstart: %.6e. tend: %.6e\n", 0.0, self.tend))
+         end
 
          local tinit0 = _M.time_now()
          self:init()
-         io.write(string.format("  Initialization completed in %g sec\n", _M.time_now() - tinit0))
+         if my_rank == 0 then
+            io.write(string.format("  Initialization completed in %g sec\n", _M.time_now() - tinit0))
+         end
 
          self:calcIntegratedMom(0.0)
          self:calcFieldEnergy(0.0)
@@ -1630,7 +1642,7 @@ local app_mt = {
             local status = self:update(dt)
             tcurr = tcurr + status.dt_actual
 
-            if status.success == false then
+            if status.success == false and my_rank == 0 then
                io.write(string.format("***** Simulation failed at step %5d at time %.6e\n", step, tcurr))
                break
             end
@@ -1649,8 +1661,10 @@ local app_mt = {
          C.gkyl_moment_app_write_field_energy(self.app)
 
          local tloop1 = _M.time_now()
-         io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
-         io.write(string.format("Main loop took %g secs to complete\n", tloop1-tloop0))
+         if my_rank == 0 then
+            io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
+            io.write(string.format("Main loop took %g secs to complete\n", tloop1-tloop0))
+         end
          self:writeStat()
       end,
    }
