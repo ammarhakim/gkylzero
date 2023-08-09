@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Defaults
-PREFIX=$HOME/gkylsoft
+PREFIX=$HOME/g0g2gpu/gkylsoft-amd
 
 # default build options
 CC=gcc
