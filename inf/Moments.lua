@@ -664,6 +664,347 @@ void gkyl_moment_app_release(gkyl_moment_app* app);
 
 ]]
 
+-- gkyl_elem_type.h
+ffi.cdef [[
+   struct gkyl_ref_count {
+      void (*free)(const struct gkyl_ref_count* );
+      int count;
+   };
+]]
+
+-- gkyl_elem_type.h
+ffi.cdef [[
+   // Type of element stored in array
+   enum gkyl_elem_type { GKYL_INT, GKYL_INT_64, GKYL_FLOAT, GKYL_DOUBLE, GKYL_USER };
+
+   // Array reduce operators
+   enum gkyl_array_op { GKYL_MIN, GKYL_MAX, GKYL_SUM };
+
+   // file types for raw IO of Gkeyll data
+   enum gkyl_file_type {
+      GKYL_FIELD_DATA_FILE,
+      GKYL_DYNVEC_DATA_FILE,
+      GKYL_MULTI_RANGE_DATA_FILE
+   };
+
+]]
+
+-- gkyl_array.h
+ffi.cdef [[
+   struct gkyl_array {
+      enum gkyl_elem_type type; // type of data stored in array
+      size_t elemsz, ncomp; // size of elements, number of 'components'
+      size_t size; // number of indices
+
+      size_t esznc; // elemsz*ncomp
+      void *data; // pointer to data
+      uint32_t flags;
+      struct gkyl_ref_count ref_count;
+
+      int nthreads, nblocks; // threads per block, number of blocks
+      struct gkyl_array *on_dev; // pointer to itself or device data
+      int iostream;
+    };
+]]
+
+
+-- mpi.h
+if GKYL_HAVE_MPI then
+   ffi.cdef [[
+      typedef struct MPI_Comm_type *MPI_Comm;
+      int MPI_Comm_rank(MPI_Comm comm, int *rank);
+      int MPI_Comm_size(MPI_Comm comm, int *size);
+      MPI_Comm get_MPI_COMM_WORLD();
+   ]]
+end
+
+-- gkyl_comm.h
+ffi.cdef [[
+
+   // Get local "rank"
+   typedef int (*get_rank_t)(struct gkyl_comm *comm, int *rank);
+
+   // Get number of ranks
+   typedef int (*get_size_t)(struct gkyl_comm *comm, int *sz);
+
+   // "Reduce" all elements of @a type in array @a data and store output in @a out
+   typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
+      enum gkyl_array_op op, int nelem, const void *inp, void *out);
+
+   // "Synchronize" @a array across the regions or blocks.
+   typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm,
+      const struct gkyl_range *local, const struct gkyl_range *local_ext,
+      struct gkyl_array *array);
+
+   // "Synchronize" @a array across the periodic directions
+   typedef int (*gkyl_array_per_sync_t)(struct gkyl_comm *comm,
+      const struct gkyl_range *local, const struct gkyl_range *local_ext,
+      int nper_dirs, const int *per_dirs,
+      struct gkyl_array *array);
+
+   // Write array to specified file
+   typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
+      const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+      const struct gkyl_array *arr, const char *fname);
+
+   // Create a new communcator that extends the communcator to work on a
+   // extended domain specified by erange
+   typedef struct gkyl_comm* (*extend_comm_t)(const struct gkyl_comm *comm,
+      const struct gkyl_range *erange);
+
+   // Barrier
+   typedef int (*barrier_t)(struct gkyl_comm *comm);
+
+   // Structure holding data and function pointers to communicate various
+   // Gkeyll objects across multi-region or multi-block domains
+   struct gkyl_comm {
+
+      get_rank_t get_rank; // get local rank function
+      get_size_t get_size; // get number of ranks
+      all_reduce_t all_reduce; // all reduce function
+      gkyl_array_sync_t gkyl_array_sync; // sync array
+      gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
+      barrier_t barrier; // barrier
+
+      gkyl_array_write_t gkyl_array_write; // array output
+      extend_comm_t extend_comm; // extend communcator
+
+      struct gkyl_ref_count ref_count; // reference count
+   };
+
+   /**
+    * Get rank of communicator.
+    *
+    * @param comm Communicator
+    * @param rank On output, the rank
+    * @return error code: 0 for success
+    */
+   static int
+   gkyl_comm_get_rank(struct gkyl_comm *comm, int *rank)
+   {
+      return comm->get_rank(comm, rank);
+   }
+
+   /**
+    * Get number of ranks in communcator
+    *
+    * @param comm Communicator
+    * @param rank On output, the rank
+    * @return error code: 0 for success
+    */
+   static int
+   gkyl_comm_get_size(struct gkyl_comm *comm, int *sz)
+   {
+      return comm->get_size(comm, sz);
+   }
+
+]]
+
+-- gkyl_null_comm.h
+ffi.cdef [[
+   // input to create new MPI communicator
+   struct gkyl_null_comm_inp {
+      bool use_gpu; // flag to use if this communicator is on GPUs
+      const struct gkyl_rect_decomp *decomp; // pre-computed decomposition
+      bool sync_corners; // should we sync corners?
+   };
+
+   /**
+    * Return a new "null" communicator, i.e. a communicator for a single
+    * core calculation. The communicator returned by this function can't
+    * be used to perform periodic sync operatons on arrays.
+    *
+    * @return New communicator
+    */
+   struct gkyl_comm *gkyl_null_comm_new(void);
+
+   /**
+    * Return a new "null" communicator, i.e. a communicator for a single
+    * core calculation.
+    *
+    * @param inp Input struct to use for initialization
+    * @return New communicator
+    */
+   struct gkyl_comm *gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp);
+
+]]
+
+-- gkyl_mpi_comm.h
+if GKYL_HAVE_MPI then
+   ffi.cdef [[
+      // input to create new MPI communicator
+      struct gkyl_mpi_comm_inp {
+         MPI_Comm mpi_comm; // MPI communicator to use
+         const struct gkyl_rect_decomp *decomp; // pre-computed decomposition
+         bool sync_corners; // should we sync corners?
+      };
+
+      /**
+      * Return a new MPI communicator. The methods in the communicator work
+      * on arrays defined on the decomp specified in the input. This
+      * contract is not checked (and can't be checked) and so the user of
+      * this object must ensure consistency of the arrays and the
+      * decomposition.
+      *
+      * @param inp Input struct to use for initialization
+      * @return New MPI communicator
+      */
+      struct gkyl_comm *gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp);
+   ]]
+end
+
+-- gkyl_rect_decomp.h
+ffi.cdef [[
+   // Decomposition object
+   struct gkyl_rect_decomp {
+      int ndim; // dimension of decomposition
+      int ndecomp; // number of sub-domains
+      struct gkyl_range parent_range; // range that was decomposed
+      struct gkyl_range *ranges; // decomposed ranges
+
+      struct gkyl_ref_count ref_count;
+   };
+
+   // List of neighbors
+   struct gkyl_rect_decomp_neigh {
+      int num_neigh; // number of neighbors
+      const int *neigh; // list of neighbors
+   };
+
+   /**
+    * Create a new decomposition of @a range, given @a cuts in each
+    * direction. The total number of decomposed ranges are product of all
+    * cuts. The decomposed ranges index independent of @a range,
+    * i.e. decomposed ranges are NOT sub-ranges of @a range.
+    *
+    * @param ndim Number of dimensions
+    * @param cuts Cuts in each direction.
+    * @param range Range to decompose
+    * @return Decomposition of @a range
+    */
+   struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts(int ndim,
+      const int cuts[], const struct gkyl_range *range);
+
+   /**
+    * Create a new decomposition from a given decomposition. The new
+    * decomposition extends each region by a tensor product with @a
+    * arange.
+    *
+    * @param arange Range to extend by
+    * @return New extended decomposition
+    */
+   struct gkyl_rect_decomp *gkyl_rect_decomp_extended_new(const struct gkyl_range *arange,
+      const struct gkyl_rect_decomp *decomp);
+
+   /**
+    * Acquire a pointer to the decomposition.
+    *
+    * @param decomp Decom to acquire pointer to
+    * @return New decomposition
+    */
+   struct gkyl_rect_decomp* gkyl_rect_decomp_acquire(const struct gkyl_rect_decomp *decomp);
+
+   /**
+    * Check if decomposition is  a valid covering of the range.
+    *
+    * NOTE: This function internally allocates memory over the complete
+    * parent range. This can be a problem if the parent range is huge.
+    *
+    * @param decomp Demposition to check
+    * @return true if this is a valid covering
+    */
+   bool gkyl_rect_decomp_check_covering(const struct gkyl_rect_decomp *decomp);
+
+   /**
+    * Compute the neighbor of range @a nidx. The returned object must be
+    * freed using the gkyl_rect_decomp_neigh_release call.
+    *
+    * @param decomp Decomposition object
+    * @param inc_corners If true, corner neighbors are also included
+    * @param nidx Index of range for which neighbor data is needed
+    * @return Neighbor list for range nidx
+    */
+   struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_neigh(
+      const struct gkyl_rect_decomp *decomp, bool inc_corners, int nidx);
+
+   /**
+    * Compute the periodic neighbor of range @a nidx in the specified
+    * direction. The returned object must be freed using the
+    * gkyl_rect_decomp_neigh_release call.
+    *
+    * @param decomp Decomposition object
+    * @param dir Direction to compute periodic neighbors
+    * @param inc_corners If true, corner neighbors are also included
+    * @param nidx Index of range for which neighbor data is needed
+    * @return Periodic neighbor list for range nidx
+    */
+   struct gkyl_rect_decomp_neigh* gkyl_rect_decomp_calc_periodic_neigh(
+      const struct gkyl_rect_decomp *decomp, int dir, bool inc_corners, int nidx);
+
+   /**
+    * Free neighbor memory
+    *
+    * @param ng Neighbor data to free
+    */
+   void gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng);
+
+   /**
+    * Compute cumulative offet of @a nidx range in the decomp. The
+    * cumulative offset is the global linear index of the first cell in
+    * the local range.
+    *
+    * @param decomp Decomposition object
+    * @param nidx Index of range for which offset is needed
+    * @return Offest of first cell in range[nidx]
+    */
+   long gkyl_rect_decomp_calc_offset(const struct gkyl_rect_decomp *decomp, int nidx);
+
+   /**
+    * Free decomposition.
+    *
+    * @param decomp Decomposition to free
+    */
+   void gkyl_rect_decomp_release(struct gkyl_rect_decomp *decomp);
+
+   // The functions below are utility functions to construct properly
+   // nested ranges that extend over the grid or over local ranges, given
+   // ghost cells.
+
+   /**
+    * Create range over global region given cells in each direction.
+    *
+    * @param ndim Grid dimension
+    * @param cells Number of cells in each direction
+    * @param range On output, global range
+    */
+   void gkyl_create_global_range(int ndim, const int *cells, struct gkyl_range *range);
+
+   /**
+    * Create range and extended ranges from grid and ghost-cell data. The
+    * range is a sub-range of the extended range.
+    *
+    * @param grid Grid to compute ranges for
+    * @param nghost Number of ghost-cells in each direction
+    * @param ext_range On output, extended range spanning grid+ghost-cells
+    * @param range On output, range spanning grid. Sub-range of ext_range.
+    */
+   void gkyl_create_grid_ranges(const struct gkyl_rect_grid *grid,
+      const int *nghost, struct gkyl_range *ext_range,
+      struct gkyl_range *range);
+
+   /**
+    * Create range and extended ranges from given range and ghost-cell
+    * data. The range is a sub-range of the extended range.
+    *
+    * @param inrange Input range to use
+    * @param nghost Number of ghost-cells in each direction
+    * @param ext_range On output, extended range spanning inrange+ghost-cells
+    * @param range On output, range same as inrange, but sub-range of ext_range.
+    */
+   void gkyl_create_ranges(const struct gkyl_range *inrange,
+      const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
+]]
+
 -- name to moment_scheme type
 local moment_scheme_tags = {
    ["wave_prop"] = C.GKYL_MOMENT_WAVE_PROP,
@@ -1111,6 +1452,43 @@ local app_mt = {
          vm.cfl_frac = tbl.cflFrac
       end
 
+      local MPI_COMM_WORLD = ffi.C.get_MPI_COMM_WORLD()
+
+      local nrank = ffi.new("int[1]", 1)
+      C.MPI_Comm_size(MPI_COMM_WORLD, nrank)
+
+      local cuts = ffi.new("int["..vm.ndim.."]")
+      for d=1, vm.ndim do
+         cuts[d-1] = tbl.cuts[d]
+      end
+
+      local globalr = ffi.new("struct gkyl_range")
+      C.gkyl_create_global_range(vm.ndim, vm.cells, globalr);
+      local decomp = ffi.new("struct gkyl_rect_decomp")
+      decomp = C.gkyl_rect_decomp_new_from_cuts(vm.ndim, cuts, globalr)
+
+      local comm = ffi.new("struct gkyl_comm")
+      if GKYL_HAVE_MPI then
+         local comm_inp = ffi.new("struct gkyl_mpi_comm_inp")
+         comm_inp.decomp = decomp
+         comm_inp.mpi_comm = ffi.C.get_MPI_COMM_WORLD()
+         comm = C.gkyl_mpi_comm_new(comm_inp)
+      else
+         local comm_inp = ffi.new("struct gkyl_null_comm_inp")
+         comm_inp.decomp = decomp
+         comm = C.gkyl_null_comm_inew(comm_inp)
+      end
+
+      local my_rank = ffi.new("int[1]")
+      comm.get_rank(comm, my_rank)
+      local comm_sz  = ffi.new("int[1]")
+      comm.get_size(comm, comm_sz)
+
+      local low_inp = ffi.new("struct gkyl_moment_low_inp")
+      low_inp.comm = comm
+      low_inp.local_range = decomp.ranges[my_rank[0]]
+      vm.low_inp = low_inp
+
       vm.scheme_type = C.GKYL_MOMENT_WAVE_PROP
       if tbl.scheme_type then
          vm.scheme_type = moment_scheme_tags[tbl.scheme_type]
@@ -1271,7 +1649,6 @@ local app_mt = {
          C.gkyl_moment_app_write_field_energy(self.app)
 
          local tloop1 = _M.time_now()
-
          io.write(string.format("Completed in %d steps (tend: %.6e). \n", step-1, tcurr))
          io.write(string.format("Main loop took %g secs to complete\n", tloop1-tloop0))
          self:writeStat()
