@@ -23,13 +23,6 @@ gkyl_bc_twistshift_inc_cu_kernel(double* ftar, int n, double* matdata)
    ftar[START_ID] += matdata[START_ID];
 }
 
-
-//__global__ void
-//gkyl_bc_twistshift_clear_cu_kernel(double* ftar, int n)
-//{
-//   ftar[START_ID] = 0.0;
-//}
-
 __global__ void
 gkyl_bc_twistshift_clear_cu_kernel(struct gkyl_array* ftar, long* locs, int num_locs)
 {
@@ -68,11 +61,6 @@ gkyl_bc_twistshift_clear_cu(struct gkyl_array* ftar, long* locs, int num_locs)
   gkyl_bc_twistshift_clear_cu_kernel<<<(num_threads+255)/256,256>>>(ftar->on_dev, locs, num_locs);
 }
 
-//void
-//gkyl_bc_twistshift_clear_cu(double* ftar, int n)
-//{
-//  gkyl_bc_twistshift_clear_cu_kernel<<<1,n>>>(ftar, n);
-//}
 
 void
 gkyl_bc_twistshift_set_vecsdo_cu(struct gkyl_array* fdo, long* locs, struct gkyl_nmat* vecsdo){

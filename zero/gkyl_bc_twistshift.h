@@ -121,14 +121,18 @@ void gkyl_bc_twistshift_inc_cu(double* ftar, int n, struct gkyl_mat* mat);
 
 /**
  * Zero out target field
- * @param ftar target field at specific location
- * @param n coefficient to zero
+ * @param ftar target array
+ * @param loc locations coefficient to zero
+ * @param num_locs number of locations coefficient to zero
  */
-
-//void gkyl_bc_twistshift_clear_cu(double* ftar, int n);
 void gkyl_bc_twistshift_clear_cu(struct gkyl_array* ftar, long* locs, int num_locs);
 
-
+/**
+ * Fill donor vecs from donor field
+ * @param fdo donor field
+ * @param locs donor locations
+ * @param vecsdo donor vectors
+ */
 void gkyl_bc_twistshift_set_vecsdo_cu(struct gkyl_array* fdo, long* locs, struct gkyl_nmat* vecsdo);
 
 /**
