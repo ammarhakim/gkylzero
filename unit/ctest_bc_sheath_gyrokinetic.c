@@ -58,7 +58,7 @@ test_bc_sheath_gyrokinetic(bool use_gpu)
   double q2Dm = 2.*charge/mass;
 
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    &basis, &grid, cdim, q2Dm, use_gpu);
+    &basis, &skin_r, &ghost_r, &grid, cdim, q2Dm, use_gpu);
 
   gkyl_bc_sheath_gyrokinetic_release(bcsheath);
 }
