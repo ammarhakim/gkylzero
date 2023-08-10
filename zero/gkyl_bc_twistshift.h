@@ -111,13 +111,16 @@ void gkyl_bc_twistshift_copy_matsdo(struct gkyl_bc_twistshift *up);
 
 
 /**
- * Increment target field by donor vector
+ * Increment target field by target vectors. Parallelized over x and dg coeff
  * @param ftar target field at specific location
- * @param n coefficient to increment
- * @param mat donor vector
+ * @param tar_locs target locations
+ * @param num_tar_locs number of target locations
+ * @param vecstar vectors to be accumulated into ftar
+ * @param ndonors_cum cumulative list of number of donors
+ * @param
  */
 
-void gkyl_bc_twistshift_inc_cu(double* ftar, int n, struct gkyl_mat* mat);
+void gkyl_bc_twistshift_inc_cu(const struct gkyl_array* ftar, long* tar_locs, int num_tar_locs, struct gkyl_nmat* vecstar, int* ndonors_cum);
 
 /**
  * Zero out target field

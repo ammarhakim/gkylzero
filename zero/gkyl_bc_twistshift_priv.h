@@ -68,11 +68,16 @@ struct gkyl_bc_twistshift {
   struct gkyl_bc_twistshift_kernels *kernels_cu;  // device copy.
   const struct gkyl_rect_grid *grid;
   const int *ndonors;
+  int *ndonors_cum_cu;
   const int *cells_do; // y indices of donor cells for each x and y
   int *remDir;
   int *locDir;
   int *remDir_do;
   int *locDir_do;
+  long *locs;
+  long *locs_cu;
+  long *tar_locs;
+  long *tar_locs_cu;
   const struct gkyl_range *local_range_ext;
   const struct gkyl_range *local_range_update;
   struct gkyl_range *yrange;
