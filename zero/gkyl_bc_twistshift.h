@@ -125,7 +125,11 @@ void gkyl_bc_twistshift_inc_cu(double* ftar, int n, struct gkyl_mat* mat);
  * @param n coefficient to zero
  */
 
-void gkyl_bc_twistshift_clear_cu(double* ftar, int n);
+//void gkyl_bc_twistshift_clear_cu(double* ftar, int n);
+void gkyl_bc_twistshift_clear_cu(struct gkyl_array* ftar, long* locs, int num_locs);
+
+
+void gkyl_bc_twistshift_set_vecsdo_cu(struct gkyl_array* fdo, long* locs, struct gkyl_nmat* vecsdo);
 
 /**
  * Free memory associated with bc_twistshift updater.

@@ -165,6 +165,14 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
     tar_idx[up->dir] = up->locDir[up->dir];
   }
 
+  // try to set up locs to parallelize
+  long locs[up->vecsdo->num];
+  long* locs_cu = gkyl_cu_malloc(up->vecsdo->num*sizeof(long));
+
+  long tar_locs[up->grid->cells[up->do_dir]];
+  long* tar_locs_cu = gkyl_cu_malloc(up->grid->cells[up->do_dir]*sizeof(long));
+
+
   while (gkyl_range_iter_next(&iter)) {
     if(iter.idx[0] == last_yidx){
       lin_idx = (iter.idx[0] - 1)*up->matsdo->num;
@@ -187,10 +195,9 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
 
         struct gkyl_mat gkyl_mat_itr = gkyl_nmat_get(up->vecsdo, lin_vecdo_idx);
         long loc = gkyl_range_idx(up->local_range_update, do_idx);
+        locs[lin_vecdo_idx] = loc;
+        #ifndef GKYL_HAVE_CUDA
         const double *fdo_itr = gkyl_array_cfetch(fdo, loc);
-        #ifdef GKYL_HAVE_CUDA
-        cudaMemcpy(gkyl_mat_itr.data, fdo_itr, up->vecsdo->nr*sizeof(double),GKYL_CU_MEMCPY_D2D);
-        #else
         for(int ib = 0; ib < up->vecsdo->nr; ib++){
           gkyl_mat_set(&gkyl_mat_itr, ib, 0, fdo_itr[ib]);
         }
@@ -199,21 +206,34 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
         lin_idx += 1; 
       }
     }
+    #ifdef GKYL_HAVE_CUDA
+    cudaMemcpy(locs_cu, locs, up->vecsdo->num*sizeof(long),GKYL_CU_MEMCPY_H2D);
+    gkyl_bc_twistshift_set_vecsdo_cu(fdo, locs_cu, up->vecsdo);
+    #endif
 
     gkyl_nmat_mv(1.0, 0.0, GKYL_NO_TRANS, up->matsdo, up->vecsdo, up->vecstar);
 
     gkyl_range_deflate(up->xrange, up->local_range_update, up->remDir_do, up->locDir_do);
     gkyl_range_iter_init(&iterx, up->xrange);
-    lin_tar_idx = 0;
     while (gkyl_range_iter_next(&iterx)) {
       tar_idx[up->do_dir] = iterx.idx[0];
       tar_idx[up->shift_dir] = iter.idx[0];
 
       long loc = gkyl_range_idx(up->local_range_update, tar_idx);
-      double *ftar_itr = gkyl_array_fetch(ftar, loc);
-      #ifdef GKYL_HAVE_CUDA
-      gkyl_bc_twistshift_clear_cu(ftar_itr,ftar->ncomp);
-      #else
+      tar_locs[iterx.idx[0]-1] = loc;
+    }
+
+    // clear the target outside of loop
+    #ifdef GKYL_HAVE_CUDA
+    cudaMemcpy(tar_locs_cu, tar_locs, up->grid->cells[up->do_dir]*sizeof(long),GKYL_CU_MEMCPY_H2D);
+    gkyl_bc_twistshift_clear_cu(fdo, tar_locs_cu, up->grid->cells[up->do_dir]);
+    #endif
+    gkyl_range_deflate(up->xrange, up->local_range_update, up->remDir_do, up->locDir_do);
+    gkyl_range_iter_init(&iterx, up->xrange);
+    lin_tar_idx = 0;
+    while (gkyl_range_iter_next(&iterx)) {
+      double *ftar_itr = gkyl_array_fetch(ftar, tar_locs[iterx.idx[0]-1]);
+      #ifndef GKYL_HAVE_CUDA
       for(int n=0; n<ftar->ncomp; n++){
         ftar_itr[n] = 0;
       }
