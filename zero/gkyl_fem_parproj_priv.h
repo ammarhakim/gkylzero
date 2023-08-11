@@ -258,7 +258,6 @@ struct gkyl_fem_parproj_kernels {
 };
 
 struct gkyl_fem_parproj {
-  struct gkyl_rect_grid grid;
   int ndim; // grid's number of dimensions.
   int num_basis; // number of basis functions.
   enum gkyl_basis_type basis_type;
@@ -268,17 +267,16 @@ struct gkyl_fem_parproj {
   bool isperiodic; // =true if parallel direction is periodic.
   bool isdirichlet; // =true if parallel direction has periodic BCs.
 
-  struct gkyl_range local_range, local_range_ext;
-  struct gkyl_range solve_range;
-  struct gkyl_range_iter solve_iter;
+  const struct gkyl_range *solve_range, *solve_range_ext;
   struct gkyl_range perp_range; // range of perpendicular cells.
-  struct gkyl_range_iter perp_iter;
   struct gkyl_range par_range; // range of parallel cells.
-  struct gkyl_range_iter par_iter;
-  struct gkyl_range par_range1d; // 1D range of parallel cells.
-  struct gkyl_range_iter par_iter1d;
   struct gkyl_range perp_range2d; // 2D range of perpendicular cells.
+  struct gkyl_range par_range1d; // 1D range of parallel cells.
+  struct gkyl_range_iter solve_iter;
+  struct gkyl_range_iter perp_iter;
+  struct gkyl_range_iter par_iter;
   struct gkyl_range_iter perp_iter2d;
+  struct gkyl_range_iter par_iter1d;
 
   int numnodes_local;
   long numnodes_global;

@@ -32,7 +32,9 @@ enum gkyl_fem_parproj_bc_type {
  * and \doteq implies weak equality with respect to the FEM basis.
  * Free using gkyl_fem_parproj_release method.
  *
- * @param grid Grid object
+ * @param solve_range Range in which to perform the projection operation.
+ * @param solve_range_ext solve_range with ghost cells (in z primarily) used
+ *                        for the Dirichlet BC case.
  * @param basis Basis functions of the DG field.
  * @param bctype Type of boundary condition (see gkyl_fem_parproj_bc_type).
  * @param weight multiplicative weight on left-side of the operator.
@@ -40,9 +42,9 @@ enum gkyl_fem_parproj_bc_type {
  * @return New updater pointer.
  */
 struct gkyl_fem_parproj* gkyl_fem_parproj_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  enum gkyl_fem_parproj_bc_type bctype, const struct gkyl_array *weight,
-  bool use_gpu);
+  const struct gkyl_range *solve_range, const struct gkyl_range *solve_range_ext,
+  const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
+  const struct gkyl_array *weight, bool use_gpu);
 
 /**
  * Set the multiplicative weight.
