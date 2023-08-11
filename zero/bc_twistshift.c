@@ -204,12 +204,12 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
         struct gkyl_mat gkyl_mat_itr = gkyl_nmat_get(up->vecsdo, lin_vecdo_idx);
         long loc = gkyl_range_idx(up->local_range_update, do_idx);
         up->locs[lin_vecdo_idx] = loc;
-        #ifndef GKYL_HAVE_CUDA
+#ifndef GKYL_HAVE_CUDA
         const double *fdo_itr = gkyl_array_cfetch(fdo, loc);
         for(int ib = 0; ib < up->vecsdo->nr; ib++){
           gkyl_mat_set(&gkyl_mat_itr, ib, 0, fdo_itr[ib]);
         }
-        #endif
+#endif
         lin_vecdo_idx += 1;
         lin_idx += 1; 
       }
@@ -255,7 +255,7 @@ void gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array
         lin_tar_idx +=1;
       }
     }
-    #endif
+#endif
     last_yidx = iter.idx[0];
   }
 }
