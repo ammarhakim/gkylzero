@@ -107,13 +107,12 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
 
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
 {
-  // Release memory associated with array_copy_func.
+  // Release memory associated with this updater.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_cu_free(up->kernels_cu);
   }
 #endif
   gkyl_free(up->kernels);
-  // Release updater memory.
   gkyl_free(up);
 }
