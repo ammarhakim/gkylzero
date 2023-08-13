@@ -171,6 +171,7 @@ main(int argc, char **argv)
   
   gkyl_vlasov_app_write(app, tcurr, 0);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  gkyl_vlasov_app_calc_field_energy(app, tcurr);
   gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
   gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
@@ -180,6 +181,7 @@ main(int argc, char **argv)
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
 
+    gkyl_vlasov_app_calc_field_energy(app, tcurr);
     gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
     gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
     
@@ -194,6 +196,7 @@ main(int argc, char **argv)
 
   gkyl_vlasov_app_write(app, tcurr, 1);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
+  gkyl_vlasov_app_write_field_energy(app);
   gkyl_vlasov_app_write_integrated_L2_f(app);
   gkyl_vlasov_app_write_integrated_mom(app);
   gkyl_vlasov_app_stat_write(app);

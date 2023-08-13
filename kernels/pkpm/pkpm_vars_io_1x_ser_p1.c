@@ -28,9 +28,9 @@ GKYL_CU_DH void pkpm_vars_io_1x_ser_p1(const double *vlasov_pkpm_moms, const dou
   const double *ux = &prim[0]; 
   const double *uy = &prim[2]; 
   const double *uz = &prim[4]; 
-  const double *pkpm_div_ppar = &prim[12]; 
-  const double *T_perp_over_m = &prim[14]; 
-  const double *T_perp_over_m_inv = &prim[16]; 
+  const double *pkpm_div_ppar = &prim[6]; 
+  const double *T_perp_over_m = &prim[8]; 
+  const double *T_perp_over_m_inv = &prim[10]; 
 
   const double *div_b = &pkpm_accel[0]; 
   const double *bb_grad_u = &pkpm_accel[2]; 

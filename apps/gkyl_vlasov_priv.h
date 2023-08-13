@@ -211,11 +211,15 @@ struct vm_species {
   struct gkyl_array *m1i_pkpm; // "M1i" in the PKPM model for use in current coupling
                                // Used to copy over fluid variables from pkpm fluid_species, which solves for [rho ux, rho uy, rho uz]
   struct gkyl_array *pkpm_div_ppar; // div(p_parallel b_hat) used for computing self-consistent total pressure force 
-  struct gkyl_array *pkpm_prim; // [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+  struct gkyl_array *pkpm_prim; // [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+  struct gkyl_array *pkpm_prim_surf; // Surface primitive variables. Ordered as:
+                                     // [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 3.0*Txx_xl/m, 3.0*Txx_xr/m, 
+                                     //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m, 
+                                     //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
   struct gkyl_array *pkpm_p_ij; // (p_par - p_perp) b_i b_j + p_perp g_ij
+  struct gkyl_array *pkpm_lax; // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
   struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
-                                    // Determined when constructing the matrix if rho < 0.0 at control points
-                                    // Equation systems such as pkpm check more variables (p_perp < 0.0)
+                                    // Determined when constructing the matrix if rho or p_perp < 0.0 at control points
   struct gkyl_array *pkpm_accel; // Acceleration variables for PKPM, pkpm_accel:
                                  // 0: div_b (divergence of magnetic field unit vector)
                                  // 1: bb_grad_u (bb : grad(u))

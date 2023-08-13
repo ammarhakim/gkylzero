@@ -206,12 +206,22 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->m1i_pkpm = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
     // div(p_par b_hat), for self-consistent total pressure force
     s->pkpm_div_ppar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    // allocate array to store primitive moments : [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
-    // and pressure p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
-    s->pkpm_prim = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
+    // allocate array to store primitive moments : [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+    // pressure p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
+    s->pkpm_prim = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
     s->pkpm_p_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
     // boolean array for if we are only using the cell average for primitive variables
     s->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
+
+    // Surface primitive variables. Ordered as:
+    // [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 3.0*Txx_xl/m, 3.0*Txx_xr/m, 
+    //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m, 
+    //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
+    int Ncomp_surf = 2*cdim*3+2*cdim;
+    int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
+    s->pkpm_prim_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf, app->local_ext.volume);
+    // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3*P_ii/rho)
+    s->pkpm_lax = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
 
     // allocate array for pkpm acceleration variables, stored in pkpm_accel: 
     // 0: div_b (divergence of magnetic field unit vector)
@@ -247,8 +257,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->pkpm_vars_io_host = mkarr(false, 10*app->confBasis.num_basis, app->local_ext.volume);
     }
     struct gkyl_dg_vlasov_pkpm_auxfields aux_inp = {.bvar = app->field->bvar, 
-      .pkpm_prim = s->pkpm_prim, 
-      .pkpm_accel_vars = s->pkpm_accel, 
+      .pkpm_prim = s->pkpm_prim, .pkpm_prim_surf = s->pkpm_prim_surf, 
+      .pkpm_accel_vars = s->pkpm_accel, .pkpm_lax = s->pkpm_lax, 
       .g_dist_source = s->g_dist_source};
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
@@ -443,6 +453,7 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
     gkyl_array_clear(species->pkpm_div_ppar, 0.0);
     gkyl_array_clear(species->pkpm_p_ij, 0.0);
     gkyl_array_clear(species->pkpm_prim, 0.0);
+    gkyl_array_clear(species->pkpm_prim_surf, 0.0);
 
     // Compute rho, p_par, & p_perp
     vm_species_moment_calc(&species->pkpm_moms, species->local_ext,
@@ -454,18 +465,26 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
     // Compute p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
     gkyl_dg_calc_pkpm_vars_pressure(species->calc_pkpm_vars, &app->local_ext, 
       app->field->bvar, species->pkpm_moms.marr, species->pkpm_p_ij);
-    // Compute primitive variables [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho div(p_par b_hat), T_perp/m, m/T_perp]
+    // Compute primitive variables in both the volume and on surfaces
     if (species->bc_is_absorb) {
       gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars,
         species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_p_ij, species->pkpm_div_ppar, 
-        species->cell_avg_prim, species->pkpm_prim); 
+        species->pkpm_div_ppar, species->cell_avg_prim, 
+        species->pkpm_prim); 
+      gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars, 
+        species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
+        species->pkpm_p_ij, species->cell_avg_prim, 
+        species->pkpm_prim_surf);
     }
     else {
       gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars_ext,
         species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_p_ij, species->pkpm_div_ppar, 
-        species->cell_avg_prim, species->pkpm_prim); 
+        species->pkpm_div_ppar, species->cell_avg_prim, 
+        species->pkpm_prim); 
+      gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars_ext, 
+        species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
+        species->pkpm_p_ij, species->cell_avg_prim, 
+        species->pkpm_prim_surf);
     }
   }
 }
@@ -476,9 +495,11 @@ vm_species_calc_pkpm_update_vars(gkyl_vlasov_app *app, struct vm_species *specie
 {
   if (species->model_id == GKYL_MODEL_PKPM) {
     gkyl_array_clear(species->pkpm_accel, 0.0);
+    gkyl_array_clear(species->pkpm_lax, 0.0);
     gkyl_dg_calc_pkpm_vars_accel(species->calc_pkpm_vars, &app->local, 
-      app->field->bvar, species->pkpm_prim, species->lbo.nu_sum, 
-      species->pkpm_accel); 
+      app->field->bvar, species->pkpm_prim_surf, 
+      species->pkpm_prim, species->lbo.nu_sum, 
+      species->pkpm_lax, species->pkpm_accel); 
 
     // Calculate distrbution functions for coupling different Laguerre moments
     gkyl_dg_calc_pkpm_dist_vars_mirror_force(species->calc_pkpm_dist_vars, 
@@ -696,8 +717,10 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->m1i_pkpm);
     gkyl_array_release(s->pkpm_div_ppar);
     gkyl_array_release(s->pkpm_prim);
-    gkyl_array_release(s->cell_avg_prim);
+    gkyl_array_release(s->pkpm_prim_surf);
     gkyl_array_release(s->pkpm_p_ij);
+    gkyl_array_release(s->pkpm_lax);
+    gkyl_array_release(s->cell_avg_prim);
     gkyl_array_release(s->pkpm_accel);
     gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars);
     gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars_ext);

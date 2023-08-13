@@ -30,16 +30,18 @@ void
 gkyl_euler_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.pkpm_prim)) {
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
     gkyl_euler_pkpm_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
 #endif
 
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
-  euler_pkpm->auxfields.pkpm_prim = auxin.pkpm_prim;
-  euler_pkpm->auxfields.p_ij = auxin.p_ij;
   euler_pkpm->auxfields.vlasov_pkpm_moms = auxin.vlasov_pkpm_moms;
+  euler_pkpm->auxfields.pkpm_prim = auxin.pkpm_prim;
+  euler_pkpm->auxfields.pkpm_prim_surf = auxin.pkpm_prim_surf;
+  euler_pkpm->auxfields.p_ij = auxin.p_ij;
+  euler_pkpm->auxfields.pkpm_lax = auxin.pkpm_lax;
 }
 
 struct gkyl_dg_eqn*
@@ -80,7 +82,7 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
       break;    
   }  
     
-  euler_pkpm->eqn.num_equations = 4;
+  euler_pkpm->eqn.num_equations = 3;
   euler_pkpm->eqn.surf_term = surf;
   euler_pkpm->eqn.boundary_surf_term = boundary_surf;
 
@@ -95,9 +97,11 @@ gkyl_dg_euler_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_range*
   // ensure non-NULL pointers 
   for (int i=0; i<cdim; ++i) assert(euler_pkpm->surf[i]);
 
-  euler_pkpm->auxfields.pkpm_prim = 0;  
-  euler_pkpm->auxfields.p_ij = 0;
   euler_pkpm->auxfields.vlasov_pkpm_moms = 0;  
+  euler_pkpm->auxfields.pkpm_prim = 0;  
+  euler_pkpm->auxfields.pkpm_prim_surf = 0;  
+  euler_pkpm->auxfields.p_ij = 0;
+  euler_pkpm->auxfields.pkpm_lax = 0;  
   euler_pkpm->conf_range = *conf_range;
   
   euler_pkpm->eqn.flags = 0;

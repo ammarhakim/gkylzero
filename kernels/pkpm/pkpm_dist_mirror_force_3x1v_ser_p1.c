@@ -16,8 +16,8 @@ GKYL_CU_DH void pkpm_dist_mirror_force_3x1v_ser_p1(const double *w, const double
   // F_k_m_1:       Output k-1 distribution function. F_1 expansion is the first NP coefficients. 
 
   const double dvpar = dxv[3], wvpar = w[3]; 
-  const double *T_perp_over_m = &pkpm_prim[56]; 
-  const double *T_perp_over_m_inv = &pkpm_prim[64]; 
+  const double *T_perp_over_m = &pkpm_prim[32]; 
+  const double *T_perp_over_m_inv = &pkpm_prim[40]; 
 
   const double *div_b = &pkpm_accel[0]; 
   const double *p_perp_source = &pkpm_accel[24]; 

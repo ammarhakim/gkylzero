@@ -108,8 +108,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // index in fluid_species struct of fluid species kinetic species is colliding with
     f->species_index = vm_find_species_idx(app, f->info.pkpm_species);
 
-    struct gkyl_dg_euler_pkpm_auxfields aux_inp = {.pkpm_prim = f->pkpm_species->pkpm_prim, 
-      .p_ij = f->pkpm_species->pkpm_p_ij, .vlasov_pkpm_moms = f->pkpm_species->pkpm_moms.marr};
+    struct gkyl_dg_euler_pkpm_auxfields aux_inp = {.vlasov_pkpm_moms = f->pkpm_species->pkpm_moms.marr, 
+      .pkpm_prim = f->pkpm_species->pkpm_prim, .pkpm_prim_surf = f->pkpm_species->pkpm_prim_surf, 
+      .p_ij = f->pkpm_species->pkpm_p_ij, .pkpm_lax = f->pkpm_species->pkpm_lax};
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
       &app->local, f->eqn_id, f->param, &aux_inp, app->use_gpu);
   }
@@ -260,7 +261,6 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
 
   // we are pre-computing source for now as it is time-independent
   vm_fluid_species_source_calc(app, fluid_species, t0);
-
 }
 
 void

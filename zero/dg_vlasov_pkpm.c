@@ -31,10 +31,7 @@ void
 gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.bvar) &&
-      gkyl_array_is_cu_dev(auxin.pkpm_prim) &&
-      gkyl_array_is_cu_dev(auxin.pkpm_accel_vars) &&
-      gkyl_array_is_cu_dev(auxin.g_dist_source)) {
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
     gkyl_vlasov_pkpm_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
@@ -43,6 +40,8 @@ gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vla
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
   vlasov_pkpm->auxfields.bvar = auxin.bvar;
   vlasov_pkpm->auxfields.pkpm_prim = auxin.pkpm_prim;
+  vlasov_pkpm->auxfields.pkpm_prim_surf = auxin.pkpm_prim_surf;
+  vlasov_pkpm->auxfields.pkpm_lax = auxin.pkpm_lax;
   vlasov_pkpm->auxfields.pkpm_accel_vars = auxin.pkpm_accel_vars;
   vlasov_pkpm->auxfields.g_dist_source = auxin.g_dist_source;
 }
@@ -119,6 +118,8 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 
   vlasov_pkpm->auxfields.bvar = 0;  
   vlasov_pkpm->auxfields.pkpm_prim = 0;
+  vlasov_pkpm->auxfields.pkpm_prim_surf = 0;
+  vlasov_pkpm->auxfields.pkpm_lax = 0;
   vlasov_pkpm->auxfields.pkpm_accel_vars = 0;
   vlasov_pkpm->auxfields.g_dist_source = 0;
   vlasov_pkpm->conf_range = *conf_range;

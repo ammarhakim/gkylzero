@@ -106,6 +106,9 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -128,7 +131,7 @@ main(int argc, char **argv)
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -6.0*ctx.vt},
     .upper = { 6.0*ctx.vt}, 
-    .cells = { 32 },
+    .cells = { NV },
 
     .ctx = &ctx,
     .init = evalDistFunc,
@@ -163,7 +166,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
-    .cells = { 32 },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.8,
@@ -195,6 +198,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
   gkyl_vlasov_app_calc_field_energy(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -203,6 +208,8 @@ main(int argc, char **argv)
     printf(" dt = %g\n", status.dt_actual);
     
     gkyl_vlasov_app_calc_field_energy(app, tcurr);
+    gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
@@ -216,6 +223,8 @@ main(int argc, char **argv)
   }
 
   gkyl_vlasov_app_write_field_energy(app);
+  gkyl_vlasov_app_write_integrated_L2_f(app);
+  gkyl_vlasov_app_write_integrated_mom(app);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics

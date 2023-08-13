@@ -9,11 +9,11 @@
 
 // Types for various kernels
 typedef void (*euler_pkpm_surf_t)(const double *w, const double *dx, 
-  const double *vlasov_pkpm_momsl, const double *vlasov_pkpm_momsc, const double *vlasov_pkpm_momsr, 
-  const double *pkpm_priml, const double *pkpm_primc, const double *pkpm_primr,
-  const double *p_ijl, const double *p_ijc, const double *p_ijr, 
-  const double *statevecl, const double *statevecc, const double *statevecr, 
-  double* GKYL_RESTRICT out);
+  const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_c, const double *vlasov_pkpm_moms_r, 
+  const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r,
+  const double *p_ij_l, const double *p_ij_c, const double *p_ij_r, 
+  const double *euler_pkpm_l, const double *euler_pkpm_c, const double *euler_pkpm_r, 
+  const double *pkpm_lax, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_euler_pkpm_vol_kern_list;
@@ -27,7 +27,7 @@ struct dg_euler_pkpm {
 };
 
 //
-// Serendipity volume kernels
+// Volume kernels
 // Need to be separated like this for GPU build
 //
 
@@ -187,18 +187,18 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_c = gkyl_range_idx(&euler_pkpm->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&euler_pkpm->conf_range, idxR);
 
-  // Note for surface moments from Vlasov equation, center index owns *left* edge
   euler_pkpm->surf[dir](xcC, dxC, 
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_l),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_c),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_r),
-    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx_l),
-    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx_c),
-    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim, cidx_r),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim_surf, cidx_l),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim_surf, cidx_c),
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_prim_surf, cidx_r),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_ij, cidx_l),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_ij, cidx_c),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.p_ij, cidx_r),
-    qInL, qInC, qInR, qRhsOut);
+    qInL, qInC, qInR, 
+    (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.pkpm_lax, cidx_c), qRhsOut);
 }
 
 GKYL_CU_D

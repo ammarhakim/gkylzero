@@ -28,9 +28,9 @@ GKYL_CU_DH void pkpm_vars_io_2x_tensor_p2(const double *vlasov_pkpm_moms, const 
   const double *ux = &prim[0]; 
   const double *uy = &prim[9]; 
   const double *uz = &prim[18]; 
-  const double *pkpm_div_ppar = &prim[54]; 
-  const double *T_perp_over_m = &prim[63]; 
-  const double *T_perp_over_m_inv = &prim[72]; 
+  const double *pkpm_div_ppar = &prim[27]; 
+  const double *T_perp_over_m = &prim[36]; 
+  const double *T_perp_over_m_inv = &prim[45]; 
 
   const double *div_b = &pkpm_accel[0]; 
   const double *bb_grad_u = &pkpm_accel[9]; 

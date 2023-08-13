@@ -23,15 +23,19 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
 
   up->conf_grid = *conf_grid;
   int nc = cbasis->num_basis;
-  enum gkyl_basis_type b_type = cbasis->b_type;
   int cdim = cbasis->ndim;
-  up->cdim = cdim;
   int poly_order = cbasis->poly_order;
+  int nc_surf = cbasis->num_basis/(poly_order+1); // *only valid for tensor bases for cdim > 1*
+  enum gkyl_basis_type b_type = cbasis->b_type;
+  up->cdim = cdim;
   up->poly_order = poly_order;
-  up->Ncomp = 9;
+  up->Ncomp = 6;
+  up->Ncomp_surf = 2*cdim*3+2*cdim;
 
   up->pkpm_set = choose_pkpm_set_kern(b_type, cdim, poly_order);
+  up->pkpm_surf_set = choose_pkpm_surf_set_kern(b_type, cdim, poly_order);
   up->pkpm_copy = choose_pkpm_copy_kern(b_type, cdim, poly_order);
+  up->pkpm_surf_copy = choose_pkpm_surf_copy_kern(b_type, cdim, poly_order);
   up->pkpm_pressure = choose_pkpm_pressure_kern(b_type, cdim, poly_order);
   up->pkpm_source = choose_pkpm_source_kern(b_type, cdim, poly_order);
   up->pkpm_int = choose_pkpm_int_kern(b_type, cdim, poly_order);
@@ -40,11 +44,19 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
   for (int d=0; d<cdim; ++d) 
     up->pkpm_accel[d] = choose_pkpm_accel_kern(d, b_type, cdim, poly_order);
 
-  // There are Ncomp more linear systems to be solved 
-  // 9 components: ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, div(p_par b)/rho, p_perp/rho, rho/p_perp
+  // There are Ncomp*range->volume linear systems to be solved 
+  // 6 components: ux, uy, uz, div(p_par b)/rho, p_perp/rho, rho/p_perp
   up->As = gkyl_nmat_new(up->Ncomp*mem_range->volume, nc, nc);
   up->xs = gkyl_nmat_new(up->Ncomp*mem_range->volume, nc, 1);
   up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
+
+  // There are Ncomp_surf*range->volume linear systems to be solved 
+  // Each linear system is nc_surf x nc_surf (only solved over the surface basis and only when poly_order and cdim > 1)
+  // 2*cdim*3+2*cdim components: ux, uy, uz (3 components) at the left and right of the cell (2 components) in each dimension (cdim components)
+  // Also solves for 3*Txx/m at the left and right x surfaces, 3*Tyy/m at the left and right y surfaces, and 3*Tzz/m at the left and right z surfaces
+  up->As_surf = gkyl_nmat_new(up->Ncomp_surf*mem_range->volume, nc_surf, nc_surf);
+  up->xs_surf = gkyl_nmat_new(up->Ncomp_surf*mem_range->volume, nc_surf, 1);
+  up->mem_surf = gkyl_nmat_linsolve_lu_new(up->As_surf->num, up->As_surf->nr);
 
   up->mem_range = *mem_range;
 
@@ -57,8 +69,8 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
 
 void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  const struct gkyl_array* p_ij, const struct gkyl_array* pkpm_div_ppar, 
-  struct gkyl_array* cell_avg_prim, struct gkyl_array* prim)
+  const struct gkyl_array* pkpm_div_ppar, struct gkyl_array* cell_avg_prim, 
+  struct gkyl_array* prim)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(prim)) {
@@ -78,13 +90,12 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
 
     const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
     const double *euler_pkpm_d = gkyl_array_cfetch(euler_pkpm, loc);
-    const double *p_ij_d = gkyl_array_cfetch(p_ij, loc);
     const double *pkpm_div_ppar_d = gkyl_array_cfetch(pkpm_div_ppar, loc);
 
     int* cell_avg_prim_d = gkyl_array_fetch(cell_avg_prim, loc);
 
     cell_avg_prim_d[0] = up->pkpm_set(count, up->As, up->xs, 
-      vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d, pkpm_div_ppar_d);
+      vlasov_pkpm_moms_d, euler_pkpm_d, pkpm_div_ppar_d);
 
     count += up->Ncomp;
   }
@@ -104,6 +115,56 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
     up->pkpm_copy(count, up->xs, prim_d);
 
     count += up->Ncomp;
+  }
+}
+
+void gkyl_dg_calc_pkpm_vars_surf_advance(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* cell_avg_prim, 
+  struct gkyl_array* prim_surf)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(prim)) {
+    return gkyl_dg_calc_pkpm_vars_surf_advance_cu(up, 
+      vlasov_pkpm_moms, euler_pkpm, 
+      p_ij, cell_avg_prim, prim);
+  }
+#endif
+
+  // First loop over mem_range for solving linear systems to compute surface primitive moments
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  long count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    const double *vlasov_pkpm_moms_d = gkyl_array_cfetch(vlasov_pkpm_moms, loc);
+    const double *euler_pkpm_d = gkyl_array_cfetch(euler_pkpm, loc);
+    const double *p_ij_d = gkyl_array_cfetch(p_ij, loc);
+    const int* cell_avg_prim_d = gkyl_array_cfetch(cell_avg_prim, loc);
+
+    up->pkpm_surf_set(count, up->As_surf, up->xs_surf, 
+      vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d, cell_avg_prim_d);
+
+    count += up->Ncomp_surf;
+  }
+
+  // Only need to solve the linear system if both poly_order and cdim > 1
+  if (up->poly_order > 1 && up->cdim > 1) {
+    bool status = gkyl_nmat_linsolve_lu_pa(up->mem_surf, up->As_surf, up->xs_surf);
+    assert(status);
+  }
+
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    double* prim_surf_d = gkyl_array_fetch(prim_surf, loc);
+
+    up->pkpm_surf_copy(count, up->xs_surf, prim_surf_d);
+
+    count += up->Ncomp_surf;
   }
 }
 
@@ -132,13 +193,14 @@ void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const st
 }
 
 void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* prim, const struct gkyl_array* nu, 
-  struct gkyl_array* pkpm_accel)
+  const struct gkyl_array* bvar, const struct gkyl_array* prim_surf, 
+  const struct gkyl_array* prim, const struct gkyl_array* nu, 
+  struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_accel)) {
     return gkyl_dg_calc_pkpm_vars_accel_cu(up, conf_range, 
-      bvar, prim, nu, pkpm_accel);
+      bvar, prim_surf, prim, nu, pkpm_lax, pkpm_accel);
   }
 #endif
 
@@ -152,10 +214,12 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
     long linc = gkyl_range_idx(conf_range, idxc);
 
     const double *bvar_c = gkyl_array_cfetch(bvar, linc);
-    const double *prim_c = gkyl_array_cfetch(prim, linc);
-    // Only need nu in center cell
+    const double *prim_surf_c = gkyl_array_cfetch(prim_surf, linc);
+    // Only need nu and the volume expansion of the primitive moments in center cell
+    const double *prim_d = gkyl_array_cfetch(prim, linc);
     const double *nu_d = gkyl_array_cfetch(nu, linc);
 
+    double *pkpm_lax_d = gkyl_array_fetch(pkpm_lax, linc);
     double *pkpm_accel_d = gkyl_array_fetch(pkpm_accel, linc);
 
     for (int dir=0; dir<cdim; ++dir) {
@@ -170,13 +234,14 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
       const double *bvar_l = gkyl_array_cfetch(bvar, linl);
       const double *bvar_r = gkyl_array_cfetch(bvar, linr);
 
-      const double *prim_l = gkyl_array_cfetch(prim, linl);
-      const double *prim_r = gkyl_array_cfetch(prim, linr);
+      const double *prim_surf_l = gkyl_array_cfetch(prim_surf, linl);
+      const double *prim_surf_r = gkyl_array_cfetch(prim_surf, linr);
 
       up->pkpm_accel[dir](up->conf_grid.dx, 
         bvar_l, bvar_c, bvar_r, 
-        prim_l, prim_c, prim_r, nu_d,
-        pkpm_accel_d);
+        prim_surf_l, prim_surf_c, prim_surf_r, 
+        prim_d, nu_d,
+        pkpm_lax_d, pkpm_accel_d);
     }
   }
 }

@@ -16,13 +16,15 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_euler_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *pkpm_prim, 
-  const struct gkyl_array *p_ij)
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *pkpm_prim, const struct gkyl_array *pkpm_prim_surf, 
+  const struct gkyl_array *p_ij, const struct gkyl_array *pkpm_lax)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   euler_pkpm->auxfields.vlasov_pkpm_moms = vlasov_pkpm_moms;
   euler_pkpm->auxfields.pkpm_prim = pkpm_prim;
+  euler_pkpm->auxfields.pkpm_prim_surf = pkpm_prim_surf;
   euler_pkpm->auxfields.p_ij = p_ij;
+  euler_pkpm->auxfields.pkpm_lax = pkpm_lax;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
@@ -38,7 +40,9 @@ dg_euler_pkpm_set_cu_dev_ptrs(struct dg_euler_pkpm* euler_pkpm, enum gkyl_basis_
 {
   euler_pkpm->auxfields.vlasov_pkpm_moms = 0; 
   euler_pkpm->auxfields.pkpm_prim = 0; 
+  euler_pkpm->auxfields.pkpm_prim_surf = 0; 
   euler_pkpm->auxfields.p_ij = 0;
+  euler_pkpm->auxfields.pkpm_lax = 0; 
   
   const gkyl_dg_euler_pkpm_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_pkpm_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;  
@@ -83,7 +87,7 @@ gkyl_dg_euler_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl
   struct dg_euler_pkpm *euler_pkpm = (struct dg_euler_pkpm*) gkyl_malloc(sizeof(struct dg_euler_pkpm));
 
   // set basic parameters
-  euler_pkpm->eqn.num_equations = 4;
+  euler_pkpm->eqn.num_equations = 3;
 
   euler_pkpm->conf_range = *conf_range;
 

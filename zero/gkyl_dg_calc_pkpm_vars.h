@@ -54,12 +54,31 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
  * @param pkpm_div_ppar Input array of div(p_parallel b_hat) for computing pressure force
  * @param cell_avg_prim Array for storing boolean value of whether rho, p_parallel, p_perp uses *only* cell averages 
  *                      to minimize positivity violations (default: false)
- * @param prim Output array of primitive moments [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+ * @param prim Output array of primitive moments [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
  */
 void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  const struct gkyl_array* p_ij, const struct gkyl_array* pkpm_div_ppar, 
-  struct gkyl_array* cell_avg_prim, struct gkyl_array* prim);
+  const struct gkyl_array* pkpm_div_ppar, struct gkyl_array* cell_avg_prim, 
+  struct gkyl_array* prim);
+
+/**
+ * Compute pkpm surface primitive moments.
+ * 2*cdim*3+2*cdim components: ux, uy, uz (3 components) at the left and right of the cell (2 components) in each dimension (cdim components)
+ * Also solves for 3*Txx/m at the left and right x surfaces, 3*Tyy/m at the left and right y surfaces, and 3*Tzz/m at the left and right z surfaces
+ *
+ * @param up Updater for computing pkpm variables 
+ * @param conf_range Configuration space range
+ * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp]
+ * @param euler_pkpm Input array of pkpm fluid variables [rho ux, rho uy, rho uz]
+ * @param p_ij Input pressure tensor p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
+ * @param cell_avg_prim Array for storing boolean value of whether rho, p_parallel, p_perp uses *only* cell averages 
+ *                      to minimize positivity violations (default: false)
+ * @param prim_surf Output array of surface primitive moments
+ */
+void gkyl_dg_calc_pkpm_vars_surf_advance(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* cell_avg_prim, 
+  struct gkyl_array* prim_surf);
 
 /**
  * Compute pkpm pressure p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
@@ -79,8 +98,10 @@ void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const st
  * @param up Updater for computing pkpm variables 
  * @param conf_range Configuration space range
  * @param bvar Input array of magnetic field unit vector and unit tensor
- * @param prim Input array of primitive moments [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+ * @param prim_surf Input array of surface expansions of primitive moments [u_i, 3.0*T_ii/m]
+ * @param prim Input array of volume expansion of primitive moments [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
  * @param nu Input array of collisionality
+ * @param pkpm_lax Output array of surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
  * @param pkpm_accel Output arrary of pkpm acceleration variables ordered as:
  *        0: div_b (divergence of magnetic field unit vector)
           1: bb_grad_u (bb : grad(u))
@@ -89,8 +110,9 @@ void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const st
           4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
  */
 void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* prim, const struct gkyl_array* nu, 
-  struct gkyl_array* pkpm_accel);
+  const struct gkyl_array* bvar, const struct gkyl_array* prim_surf, 
+  const struct gkyl_array* prim, const struct gkyl_array* nu, 
+  struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel);
 
 /**
  * Compute integrated PKPM variables (rho, p_parallel, p_perp, rhoux^2, rhouy^2, rhouz^2).
@@ -166,12 +188,18 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
   const struct gkyl_array* p_ij, const struct gkyl_array* pkpm_div_ppar, 
   struct gkyl_array* cell_avg_prim, struct gkyl_array* prim);
 
+void gkyl_dg_calc_pkpm_vars_surf_advance_cu(struct gkyl_dg_calc_pkpm_vars *up, 
+  const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
+  const struct gkyl_array* p_ij, const struct gkyl_array* cell_avg_prim, 
+  struct gkyl_array* prim_surf);
+
 void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij);
 
 void gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* prim, const struct gkyl_array* nu, 
-  struct gkyl_array* pkpm_accel);
+  const struct gkyl_array* bvar, const struct gkyl_array* prim_surf, 
+  const struct gkyl_array* prim, const struct gkyl_array* nu, 
+  struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel);
 
 void gkyl_dg_calc_pkpm_integrated_vars_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 

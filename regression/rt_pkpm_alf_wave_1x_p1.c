@@ -404,6 +404,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
   gkyl_vlasov_app_calc_field_energy(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -412,6 +414,8 @@ main(int argc, char **argv)
     printf(" dt = %g\n", status.dt_actual);
     
     gkyl_vlasov_app_calc_field_energy(app, tcurr);
+    gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
@@ -432,6 +436,8 @@ main(int argc, char **argv)
   }
 
   gkyl_vlasov_app_write_field_energy(app);
+  gkyl_vlasov_app_write_integrated_L2_f(app);
+  gkyl_vlasov_app_write_integrated_mom(app);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
