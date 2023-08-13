@@ -108,7 +108,7 @@ static const gkyl_dg_pkpm_surf_set_kern_list ser_pkpm_surf_set_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_pkpm_surf_set_kern_list ten_pkpm_surf_set_kernels[] = {
   { NULL, pkpm_vars_surf_set_1x_ser_p1, pkpm_vars_surf_set_1x_ser_p2 }, // 0
-  { NULL, pkpm_vars_surf_set_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_surf_set_2x_ser_p1, pkpm_vars_surf_set_2x_tensor_p2 }, // 1
   { NULL, pkpm_vars_surf_set_3x_ser_p1, NULL }, // 2
 };
 
@@ -140,7 +140,7 @@ static const gkyl_dg_pkpm_surf_copy_kern_list ser_pkpm_surf_copy_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_pkpm_surf_copy_kern_list ten_pkpm_surf_copy_kernels[] = {
   { NULL, pkpm_vars_surf_copy_1x_ser_p1, pkpm_vars_surf_copy_1x_ser_p2 }, // 0
-  { NULL, pkpm_vars_surf_copy_2x_ser_p1, NULL }, // 1
+  { NULL, pkpm_vars_surf_copy_2x_ser_p1, pkpm_vars_surf_copy_2x_tensor_p2 }, // 1
   { NULL, pkpm_vars_surf_copy_3x_ser_p1, NULL }, // 2
 };
 
