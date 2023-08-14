@@ -1,5 +1,5 @@
 #include <gkyl_dg_diffusion_kernels.h> 
-GKYL_CU_DH void dg_diffusion_pkpm_surfx_3x_ser_p1(const double* w, const double* dx, double D, 
+GKYL_CU_DH double dg_diffusion_pkpm_surfx_3x_ser_p1(const double* w, const double* dx, double D, 
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: Cell-center coordinates
@@ -16,7 +16,7 @@ GKYL_CU_DH void dg_diffusion_pkpm_surfx_3x_ser_p1(const double* w, const double*
   const double *q0l = &ql[0]; 
   const double *q0c = &qc[0]; 
   const double *q0r = &qr[0]; 
-  double *out0= &out[0]; 
+  double *out0 = &out[0]; 
 
   out0[0] += J*D*((-0.5412658773652741*q0r[1])+0.5412658773652741*q0l[1]+0.5625*q0r[0]+0.5625*q0l[0]-1.125*q0c[0]); 
   out0[1] += J*D*((-0.4375*q0r[1])-0.4375*q0l[1]-2.875*q0c[1]+0.5412658773652741*q0r[0]-0.5412658773652741*q0l[0]); 
@@ -30,7 +30,7 @@ GKYL_CU_DH void dg_diffusion_pkpm_surfx_3x_ser_p1(const double* w, const double*
   const double *q1l = &ql[8]; 
   const double *q1c = &qc[8]; 
   const double *q1r = &qr[8]; 
-  double *out1= &out[8]; 
+  double *out1 = &out[8]; 
 
   out1[0] += J*D*((-0.5412658773652741*q1r[1])+0.5412658773652741*q1l[1]+0.5625*q1r[0]+0.5625*q1l[0]-1.125*q1c[0]); 
   out1[1] += J*D*((-0.4375*q1r[1])-0.4375*q1l[1]-2.875*q1c[1]+0.5412658773652741*q1r[0]-0.5412658773652741*q1l[0]); 
@@ -44,7 +44,7 @@ GKYL_CU_DH void dg_diffusion_pkpm_surfx_3x_ser_p1(const double* w, const double*
   const double *q2l = &ql[16]; 
   const double *q2c = &qc[16]; 
   const double *q2r = &qr[16]; 
-  double *out2= &out[16]; 
+  double *out2 = &out[16]; 
 
   out2[0] += J*D*((-0.5412658773652741*q2r[1])+0.5412658773652741*q2l[1]+0.5625*q2r[0]+0.5625*q2l[0]-1.125*q2c[0]); 
   out2[1] += J*D*((-0.4375*q2r[1])-0.4375*q2l[1]-2.875*q2c[1]+0.5412658773652741*q2r[0]-0.5412658773652741*q2l[0]); 
@@ -54,5 +54,7 @@ GKYL_CU_DH void dg_diffusion_pkpm_surfx_3x_ser_p1(const double* w, const double*
   out2[5] += J*D*((-0.4375*q2r[5])-0.4375*q2l[5]-2.875*q2c[5]+0.5412658773652741*q2r[3]-0.5412658773652741*q2l[3]); 
   out2[6] += J*D*((-0.5412658773652741*q2r[7])+0.5412658773652741*q2l[7]+0.5625*q2r[6]+0.5625*q2l[6]-1.125*q2c[6]); 
   out2[7] += J*D*((-0.4375*q2r[7])-0.4375*q2l[7]-2.875*q2c[7]+0.5412658773652741*q2r[6]-0.5412658773652741*q2l[6]); 
+
+  return 0.;
 
 } 

@@ -17,8 +17,8 @@ gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
   fwrite(arr->data, arr->esznc*arr->size, 1, fp);
 }
 
-void
-gkyl_sub_array_write(const struct gkyl_range *range,
+static void
+gkyl_sub_array_write_priv(const struct gkyl_range *range,
   const struct gkyl_array *arr, FILE *fp)
 {
 #define _F(loc) gkyl_array_cfetch(arr, loc)
@@ -36,6 +36,15 @@ gkyl_sub_array_write(const struct gkyl_range *range,
     fwrite(_F(start), arr->esznc*skip.delta, 1, fp);
   }
 #undef _F
+}
+
+void
+gkyl_sub_array_write(const struct gkyl_range *range,
+  const struct gkyl_array *arr, FILE *fp)
+{ 
+  fwrite(&arr->esznc, sizeof(uint64_t), 1, fp);
+  fwrite(&range->volume, sizeof(uint64_t), 1, fp);
+  gkyl_sub_array_write_priv(range, arr, fp);
 }
 
 int
@@ -78,7 +87,7 @@ gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
     fp
   );
 
-  gkyl_sub_array_write(range, arr, fp);
+  gkyl_sub_array_write_priv(range, arr, fp);
   return errno;
 }
 
@@ -226,7 +235,8 @@ gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid, const char* fname)
       break;
     
     gkyl_rect_grid_read(grid, fp);
-    arr = gkyl_array_new_from_file(real_type, fp);
+    arr = gkyl_array_new_from_file(gkyl_array_code_to_data_type[real_type],
+      fp);
   }
   return arr;
 }

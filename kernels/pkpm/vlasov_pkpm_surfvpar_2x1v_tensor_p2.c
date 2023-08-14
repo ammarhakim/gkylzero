@@ -1,7 +1,7 @@
 #include <gkyl_vlasov_pkpm_kernels.h> 
 #include <gkyl_basis_tensor_3x_p2_surfx3_eval_quad.h> 
 #include <gkyl_basis_tensor_3x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_pkpm_surfvpar_2x1v_tensor_p2(const double *w, const double *dxv, const double *pkpm_accel_vars, 
+GKYL_CU_DH double vlasov_pkpm_surfvpar_2x1v_tensor_p2(const double *w, const double *dxv, const double *pkpm_accel_vars, 
      const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
@@ -461,5 +461,7 @@ GKYL_CU_DH void vlasov_pkpm_surfvpar_2x1v_tensor_p2(const double *w, const doubl
   out_G_1[24] += ((-1.58113883008419*Ghat_G_1_r[6])+1.58113883008419*Ghat_G_1_l[6]-1.58113883008419*Ghat_G_1_div_b_r[6]+1.58113883008419*Ghat_G_1_div_b_l[6])*dv1par; 
   out_G_1[25] += ((-1.58113883008419*Ghat_G_1_r[7])+1.58113883008419*Ghat_G_1_l[7]-1.58113883008419*Ghat_G_1_div_b_r[7]+1.58113883008419*Ghat_G_1_div_b_l[7])*dv1par; 
   out_G_1[26] += ((-1.58113883008419*Ghat_G_1_r[8])+1.58113883008419*Ghat_G_1_l[8]-1.58113883008419*Ghat_G_1_div_b_r[8]+1.58113883008419*Ghat_G_1_div_b_l[8])*dv1par; 
+
+  return 0.;
 
 } 

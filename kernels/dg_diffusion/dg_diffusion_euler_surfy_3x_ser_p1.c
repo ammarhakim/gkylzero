@@ -1,5 +1,5 @@
 #include <gkyl_dg_diffusion_kernels.h> 
-GKYL_CU_DH void dg_diffusion_euler_surfy_3x_ser_p1(const double* w, const double* dx, double D, 
+GKYL_CU_DH double dg_diffusion_euler_surfy_3x_ser_p1(const double* w, const double* dx, double D, 
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: Cell-center coordinates
@@ -16,7 +16,7 @@ GKYL_CU_DH void dg_diffusion_euler_surfy_3x_ser_p1(const double* w, const double
   const double *q0l = &ql[0]; 
   const double *q0c = &qc[0]; 
   const double *q0r = &qr[0]; 
-  double *out0= &out[0]; 
+  double *out0 = &out[0]; 
 
   out0[0] += J*D*((-0.5412658773652741*q0r[2])+0.5412658773652741*q0l[2]+0.5625*q0r[0]+0.5625*q0l[0]-1.125*q0c[0]); 
   out0[1] += J*D*((-0.5412658773652741*q0r[4])+0.5412658773652741*q0l[4]+0.5625*q0r[1]+0.5625*q0l[1]-1.125*q0c[1]); 
@@ -30,7 +30,7 @@ GKYL_CU_DH void dg_diffusion_euler_surfy_3x_ser_p1(const double* w, const double
   const double *q1l = &ql[8]; 
   const double *q1c = &qc[8]; 
   const double *q1r = &qr[8]; 
-  double *out1= &out[8]; 
+  double *out1 = &out[8]; 
 
   out1[0] += J*D*((-0.5412658773652741*q1r[2])+0.5412658773652741*q1l[2]+0.5625*q1r[0]+0.5625*q1l[0]-1.125*q1c[0]); 
   out1[1] += J*D*((-0.5412658773652741*q1r[4])+0.5412658773652741*q1l[4]+0.5625*q1r[1]+0.5625*q1l[1]-1.125*q1c[1]); 
@@ -44,7 +44,7 @@ GKYL_CU_DH void dg_diffusion_euler_surfy_3x_ser_p1(const double* w, const double
   const double *q2l = &ql[16]; 
   const double *q2c = &qc[16]; 
   const double *q2r = &qr[16]; 
-  double *out2= &out[16]; 
+  double *out2 = &out[16]; 
 
   out2[0] += J*D*((-0.5412658773652741*q2r[2])+0.5412658773652741*q2l[2]+0.5625*q2r[0]+0.5625*q2l[0]-1.125*q2c[0]); 
   out2[1] += J*D*((-0.5412658773652741*q2r[4])+0.5412658773652741*q2l[4]+0.5625*q2r[1]+0.5625*q2l[1]-1.125*q2c[1]); 
@@ -58,7 +58,7 @@ GKYL_CU_DH void dg_diffusion_euler_surfy_3x_ser_p1(const double* w, const double
   const double *q3l = &ql[24]; 
   const double *q3c = &qc[24]; 
   const double *q3r = &qr[24]; 
-  double *out3= &out[24]; 
+  double *out3 = &out[24]; 
 
   out3[0] += J*D*((-0.5412658773652741*q3r[2])+0.5412658773652741*q3l[2]+0.5625*q3r[0]+0.5625*q3l[0]-1.125*q3c[0]); 
   out3[1] += J*D*((-0.5412658773652741*q3r[4])+0.5412658773652741*q3l[4]+0.5625*q3r[1]+0.5625*q3l[1]-1.125*q3c[1]); 
@@ -72,7 +72,7 @@ GKYL_CU_DH void dg_diffusion_euler_surfy_3x_ser_p1(const double* w, const double
   const double *q4l = &ql[32]; 
   const double *q4c = &qc[32]; 
   const double *q4r = &qr[32]; 
-  double *out4= &out[32]; 
+  double *out4 = &out[32]; 
 
   out4[0] += J*D*((-0.5412658773652741*q4r[2])+0.5412658773652741*q4l[2]+0.5625*q4r[0]+0.5625*q4l[0]-1.125*q4c[0]); 
   out4[1] += J*D*((-0.5412658773652741*q4r[4])+0.5412658773652741*q4l[4]+0.5625*q4r[1]+0.5625*q4l[1]-1.125*q4c[1]); 
@@ -82,5 +82,7 @@ GKYL_CU_DH void dg_diffusion_euler_surfy_3x_ser_p1(const double* w, const double
   out4[5] += J*D*((-0.5412658773652741*q4r[7])+0.5412658773652741*q4l[7]+0.5625*q4r[5]+0.5625*q4l[5]-1.125*q4c[5]); 
   out4[6] += J*D*((-0.4375*q4r[6])-0.4375*q4l[6]-2.875*q4c[6]+0.5412658773652741*q4r[3]-0.5412658773652741*q4l[3]); 
   out4[7] += J*D*((-0.4375*q4r[7])-0.4375*q4l[7]-2.875*q4c[7]+0.5412658773652741*q4r[5]-0.5412658773652741*q4l[5]); 
+
+  return 0.;
 
 } 

@@ -493,7 +493,7 @@ void test_array_scale_by_cell()
   gkyl_array_release(s);
 }
 
-void test_array_shiftc0()
+void test_array_shiftc()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
 
@@ -503,15 +503,127 @@ void test_array_shiftc0()
     for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = i*2.0+k;
   }
 
-  gkyl_array_shiftc0(a1, s);
+  gkyl_array_shiftc(a1, s, 0);
 
-  TEST_CHECK( gkyl_compare(a1_d[0], 0*1.0+0-0.5, 1e-14) );
+  TEST_CHECK( gkyl_compare(a1_d[0], 0*1.0+0+s, 1e-14) );
   for (unsigned i=0; i<a1->size; ++i) {
     for (size_t k=1; k<a1->ncomp; ++k) 
       TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], i*2.0+k, 1e-14) );
   }
 
   gkyl_array_release(a1);
+
+  // Repeat the test but shifting another coefficient as well.
+  int shiftks[] = {0, 2};
+  int nks = sizeof(shiftks)/sizeof(shiftks[0]);
+
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 4, 8);
+  double *a2_d = a2->data;
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) a2_d[i*a2->ncomp+k] = i*2.0+k;
+  }
+
+  for (size_t l=0; l<nks; l++)
+    gkyl_array_shiftc(a2, s, shiftks[l]);
+
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      bool isshifted = false;
+      for (size_t l=0; l<nks; l++) {
+        if (shiftks[l]==k) {isshifted = true; break;}
+      }
+      if (isshifted)
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k+s, 1e-14) );
+      else
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a2);
+}
+
+void test_array_shiftc_range(bool on_gpu)
+{
+  int lower[] = {1}, upper[] = {10};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 1, lower, upper);
+
+  struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+  struct gkyl_array *a1 = a1_ho;
+  if (on_gpu) a1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, a1_ho->ncomp, a1_ho->size);
+
+  double s = -0.5;
+  double *a1_ho_d = a1_ho->data;
+  for (unsigned i=0; i<a1_ho->size; ++i)
+    for (size_t k=0; k<a1_ho->ncomp; ++k) a1_ho_d[i*a1_ho->ncomp+k] = i*2.0+k;
+
+  if (on_gpu) gkyl_array_copy(a1, a1_ho);
+
+  int lowerSub[] = {2}, upperSub[] = {6};
+  struct gkyl_range subrange;
+  gkyl_sub_range_init(&subrange, &range, lowerSub, upperSub);
+
+  gkyl_array_shiftc_range(a1, s, 0, subrange);
+
+  if (on_gpu) gkyl_array_copy(a1_ho, a1);
+
+  for (size_t k=1; k<a1_ho->ncomp; ++k) {
+    for (unsigned i=0; i<1; ++i)
+      TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+k], i*2.0+k, 1e-14) );
+    for (unsigned i=6; i<10; ++i)
+      TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+k], i*2.0+k, 1e-14) );
+  }
+  for (unsigned i=1; i<6; ++i)
+    TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+0], i*2.0+0+s, 1e-14) );
+
+  gkyl_array_release(a1_ho);
+  if (on_gpu) gkyl_array_release(a1);
+
+  // Repeat the test but shifting another coefficient as well.
+  int shiftks[] = {0, 2};
+  int nks = sizeof(shiftks)/sizeof(shiftks[0]);
+
+  lower[0] = 1;  upper[0] = 8;
+  struct gkyl_range range2;
+  gkyl_range_init(&range2, 1, lower, upper);
+
+  struct gkyl_array *a2_ho = gkyl_array_new(GKYL_DOUBLE, 4, range2.volume);
+  struct gkyl_array *a2 = a2_ho;
+  if (on_gpu) a2 = gkyl_array_cu_dev_new(GKYL_DOUBLE, a2_ho->ncomp, a2_ho->size);
+
+  double *a2_ho_d = a2_ho->data;
+  for (unsigned i=0; i<a2_ho->size; ++i) {
+    for (size_t k=0; k<a2_ho->ncomp; ++k) a2_ho_d[i*a2_ho->ncomp+k] = i*2.0+k;
+  }
+
+  if (on_gpu) gkyl_array_copy(a2, a2_ho);
+
+  for (size_t l=0; l<nks; l++)
+    gkyl_array_shiftc_range(a2, s, shiftks[l], subrange);
+
+  if (on_gpu) gkyl_array_copy(a2_ho, a2);
+
+  for (size_t k=0; k<a2_ho->ncomp; ++k) {
+    for (unsigned i=0; i<1; ++i)
+      TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], i*2.0+k, 1e-14) );
+    for (unsigned i=6; i<8; ++i)
+      TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], i*2.0+k, 1e-14) );
+  }
+  for (unsigned i=1; i<6; ++i) {
+    for (size_t k=0; k<a2_ho->ncomp; ++k) {
+      bool isshifted = false;
+      for (size_t l=0; l<nks; l++) {
+        if (shiftks[l]==k) {isshifted = true; break;}
+      }
+      if (isshifted)
+        TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], i*2.0+k+s, 1e-14) );
+      else
+        TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], i*2.0+k, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a2);
+  if (on_gpu) gkyl_array_release(a2);
 }
 
 void test_array_opcombine()
@@ -1031,7 +1143,6 @@ void test_rio_3()
     long idx = gkyl_range_idx(&sub_range, iter.idx);
     const double *rhs = gkyl_array_cfetch(arr, idx);
     const double *lhs = gkyl_array_cfetch(arr2, idx);
-    
     TEST_CHECK( lhs[0] == rhs[0] );
   }  
 
@@ -1076,8 +1187,8 @@ test_grid_array_rio_1()
   int err =
     gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
 
-  TEST_CHECK( err < 1 );
-
+  TEST_CHECK( err < 1 );  
+  
   if (err < 1) {
 
     TEST_CHECK( grid.ndim == grid2.ndim );
@@ -1134,6 +1245,8 @@ test_grid_array_rio_2()
 
   struct gkyl_rect_grid grid2;
   struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid2, "ctest_array_grid_array_2.gkyl");
+
+  TEST_CHECK( arr2->type == GKYL_DOUBLE );
 
   TEST_CHECK( grid.ndim == grid2.ndim );
   for (int d=0; d<grid.ndim; ++d) {
@@ -1883,7 +1996,7 @@ void test_cu_array_scale_by_cell()
   gkyl_array_release(s_cu);
 }
 
-void test_cu_array_shiftc0()
+void test_cu_array_shiftc()
 {
   double s = -0.5;
 
@@ -1900,7 +2013,7 @@ void test_cu_array_shiftc0()
   // copy host arrays to device
   gkyl_array_copy(a1_cu, a1);
 
-  gkyl_array_shiftc0(a1_cu, s);
+  gkyl_array_shiftc(a1_cu, s, 0);
 
   // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -1912,6 +2025,38 @@ void test_cu_array_shiftc0()
 
   gkyl_array_release(a1);
   gkyl_array_release(a1_cu);
+
+  // Repeat the test but shifting another coefficient as well.
+  int shiftks[] = {0, 2};
+  int nks = sizeof(shiftks)/sizeof(shiftks[0]);
+
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 4, 8);
+  struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, 8);
+  double *a2_d = a2->data;
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) a2_d[i*a2->ncomp+k] = i*2.0+k;
+  }
+  gkyl_array_copy(a2_cu, a2);
+
+  for (size_t l=0; l<nks; l++)
+    gkyl_array_shiftc(a2_cu, s, shiftks[l]);
+
+  gkyl_array_copy(a2, a2_cu);
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      bool isshifted = false;
+      for (size_t l=0; l<nks; l++) {
+        if (shiftks[l]==k) {isshifted = true; break;}
+      }
+      if (isshifted)
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k+s, 1e-14) );
+      else
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a2);
+  gkyl_array_release(a2_cu);
 }
 
 void test_cu_array_copy_buffer()
@@ -2157,6 +2302,14 @@ void test_cu_array_copy_range()
 
 #endif
 
+void test_array_shiftc_range_ho() {
+  test_array_shiftc_range(false);
+}
+
+void test_array_shiftc_range_dev() {
+  test_array_shiftc_range(true);
+}
+
 TEST_LIST = {
   { "array_0", test_array_0 },  
   { "array_base", test_array_base },
@@ -2174,7 +2327,8 @@ TEST_LIST = {
   { "array_set_offset_range", test_array_set_offset_range },
   { "array_scale", test_array_scale },
   { "array_scale_by_cell", test_array_scale_by_cell },
-  { "array_shiftc0", test_array_shiftc0 },
+  { "array_shiftc", test_array_shiftc },
+  { "array_shiftc_range", test_array_shiftc_range_ho },
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy_buffer", test_array_copy_buffer },
@@ -2207,7 +2361,8 @@ TEST_LIST = {
   { "cu_array_set_offset_range", test_cu_array_set_offset_range },
   { "cu_array_scale", test_cu_array_scale },
   { "cu_array_scale_by_cell", test_cu_array_scale_by_cell },
-  { "cu_array_shiftc0", test_cu_array_shiftc0 },
+  { "cu_array_shiftc", test_cu_array_shiftc },
+  { "cu_array_shiftc_range", test_array_shiftc_range_dev },
   { "cu_array_copy_buffer", test_cu_array_copy_buffer },
   { "cu_array_copy_buffer_fn", test_cu_array_copy_buffer_fn },
   { "cu_array_flip_copy_buffer_fn", test_cu_array_flip_copy_buffer_fn },

@@ -5,10 +5,10 @@
 #include <gkyl_lbo_vlasov_pkpm_kernels.h>
 
 // Types for various kernels
-typedef void (*lbo_vlasov_pkpm_diff_surf_t)(const double *w, const double *dxv,
+typedef double (*lbo_vlasov_pkpm_diff_surf_t)(const double *w, const double *dxv,
   const double *nuVtSq, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
-typedef void (*lbo_vlasov_pkpm_diff_boundary_surf_t)(const double *w, const double *dxv,
+typedef double (*lbo_vlasov_pkpm_diff_boundary_surf_t)(const double *w, const double *dxv,
   const double *nuVtSqSum,  const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
 
 
@@ -220,7 +220,7 @@ static const gkyl_dg_lbo_vlasov_pkpm_diff_boundary_surf_kern_list ten_boundary_s
 void gkyl_lbo_vlasov_pkpm_diff_free(const struct gkyl_ref_count* ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
@@ -235,13 +235,14 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double* nuVtSq_p = (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_diff->auxfields.nuVtSq, cidx);
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_pkpm_diff, nu_p, nuVtSq_p);
   if ((dir >= lbo_vlasov_pkpm_diff->cdim) && (noPrimMomCross)) {
-    lbo_vlasov_pkpm_diff->surf(xcC, dxC, 
+    return lbo_vlasov_pkpm_diff->surf(xcC, dxC, 
       nuVtSq_p, qInL, qInC, qInR, qRhsOut);
   }
+  return 0.;
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
@@ -256,8 +257,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* nuVtSq_p = (const double*) gkyl_array_cfetch(lbo_vlasov_pkpm_diff->auxfields.nuVtSq, cidx);
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_pkpm_diff, nu_p, nuVtSq_p);
   if ((dir >= lbo_vlasov_pkpm_diff->cdim) && (noPrimMomCross)) {
-    lbo_vlasov_pkpm_diff->boundary_surf(xcSkin, dxSkin, 
+    return lbo_vlasov_pkpm_diff->boundary_surf(xcSkin, dxSkin, 
       nuVtSq_p, edge, qInSkin, qInEdge, qRhsOut);
   }
+  return 0.;
 }
 

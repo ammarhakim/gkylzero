@@ -11,17 +11,17 @@
 #include <gkyl_vlasov.h>
 
 // Types for various kernels
-typedef void (*vlasov_pkpm_stream_surf_t)(const double *w, const double *dxv,
+typedef double (*vlasov_pkpm_stream_surf_t)(const double *w, const double *dxv,
   const double *bvar_l, const double *bvar_c, const double *bvar_r, 
   const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
   const double *fl, const double *fc, const double *fr, 
   const double *pkpm_lax, double* GKYL_RESTRICT out);
 
-typedef void (*vlasov_pkpm_accel_surf_t)(const double *w, const double *dxv, const double *pkpm_accel_vars, 
+typedef double (*vlasov_pkpm_accel_surf_t)(const double *w, const double *dxv, const double *pkpm_accel_vars, 
   const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 
-typedef void (*vlasov_pkpm_accel_boundary_surf_t)(const double *w, const double *dxv, const double *pkpm_accel_vars, 
+typedef double (*vlasov_pkpm_accel_boundary_surf_t)(const double *w, const double *dxv, const double *pkpm_accel_vars, 
   const double *g_dist_sourceEdge, const double *g_dist_sourceSkin, 
   const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
 
@@ -290,7 +290,7 @@ static const gkyl_dg_vlasov_pkpm_accel_boundary_surf_kern_list ten_accel_boundar
 void gkyl_vlasov_pkpm_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
@@ -304,7 +304,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   if (dir < vlasov_pkpm->cdim) {
     long cidx_l = gkyl_range_idx(&vlasov_pkpm->conf_range, idxL);
     long cidx_r = gkyl_range_idx(&vlasov_pkpm->conf_range, idxR);
-    vlasov_pkpm->stream_surf[dir]
+    return vlasov_pkpm->stream_surf[dir]
       (xcC, dxC, 
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx_l), 
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.bvar, cidx), 
@@ -318,7 +318,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   else {
     long pidx_l = gkyl_range_idx(&vlasov_pkpm->phase_range, idxL);
     long pidx_r = gkyl_range_idx(&vlasov_pkpm->phase_range, idxR);
-    vlasov_pkpm->accel_surf(xcC, dxC,
+    return vlasov_pkpm->accel_surf(xcC, dxC,
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx), 
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidx_l),
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidx),
@@ -328,7 +328,7 @@ surf(const struct gkyl_dg_eqn *eqn,
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
@@ -343,10 +343,11 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
     long cidx = gkyl_range_idx(&vlasov_pkpm->conf_range, idxSkin);
     long pidxSkin = gkyl_range_idx(&vlasov_pkpm->phase_range, idxSkin);
     long pidxEdge = gkyl_range_idx(&vlasov_pkpm->phase_range, idxEdge);
-    vlasov_pkpm->accel_boundary_surf(xcSkin, dxSkin,
+    return vlasov_pkpm->accel_boundary_surf(xcSkin, dxSkin,
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.pkpm_accel_vars, cidx), 
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidxEdge),
       (const double*) gkyl_array_cfetch(vlasov_pkpm->auxfields.g_dist_source, pidxSkin),
       edge, qInEdge, qInSkin, qRhsOut);
   }
+  return 0.;
 }

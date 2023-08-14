@@ -1,7 +1,3 @@
-#include "gkyl_dg_bin_ops.h"
-#include "gkyl_util.h"
-#include <assert.h>
-
 #include <gkyl_alloc.h>
 #include <gkyl_app.h>
 #include <gkyl_array.h>
@@ -12,6 +8,8 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_vlasov_priv.h>
+
+#include <assert.h>
 #include <time.h>
 
 // function to evaluate acceleration (this is needed as accel function
@@ -62,13 +60,25 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   // full phase space grid
   gkyl_rect_grid_init(&s->grid, pdim, lower, upper, cells);
-  gkyl_create_grid_ranges(&s->grid, ghost, &s->local_ext, &s->local);
-  
-  skin_ghost_ranges_init(&s->skin_ghost, &s->local_ext, ghost);
+  gkyl_create_grid_ranges(&s->grid, ghost, &s->global_ext, &s->global);
+
+  skin_ghost_ranges_init(&s->skin_ghost, &s->global_ext, ghost);  
   
   // velocity space grid
   gkyl_rect_grid_init(&s->grid_vel, vdim, lower_vel, upper_vel, cells_vel);
   gkyl_create_grid_ranges(&s->grid_vel, ghost_vel, &s->local_ext_vel, &s->local_vel);
+
+  for (int d=0; d<pdim; ++d)
+    s->nghost[d] = ghost[d];
+
+  // phase-space communicator
+  s->comm = gkyl_comm_extend_comm(app->comm, &s->local_vel);
+
+  // create local and local_ext from app local range
+  struct gkyl_range local;
+  // local = conf-local X local_vel
+  gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
+  gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
 
   // allocate buffer for applying periodic BCs
   long buff_sz = 0;
@@ -570,12 +580,16 @@ vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species *spec
 void
 vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f)
 {
+  struct timespec wst = gkyl_wall_clock();
+  
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext,
+    num_periodic_dir, app->periodic_dirs, f); 
+  
   int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
-  for (int d=0; d<num_periodic_dir; ++d) {
-    vm_species_apply_periodic_bc(app, species, app->periodic_dirs[d], f);
+  for (int d=0; d<num_periodic_dir; ++d)
     is_np_bc[app->periodic_dirs[d]] = 0;
-  }
+
   for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 
@@ -614,6 +628,10 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
       }      
     }
   }
+
+  gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, f);
+
+  app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
@@ -630,8 +648,10 @@ vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *spe
   else { 
     gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, species->local);
   }
+  double L2_global[1] = { 0.0 };
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, L2, L2_global);
   
-  gkyl_dynvec_append(species->integ_L2_f, tm, L2);
+  gkyl_dynvec_append(species->integ_L2_f, tm, L2_global);  
 }
 
 void
@@ -670,6 +690,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->bc_buffer);
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
+
+  gkyl_comm_release(s->comm);
 
   if (app->use_gpu)
     gkyl_array_release(s->f_host);

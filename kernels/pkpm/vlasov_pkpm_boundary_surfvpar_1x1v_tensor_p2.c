@@ -1,7 +1,7 @@
 #include <gkyl_vlasov_pkpm_kernels.h> 
 #include <gkyl_basis_tensor_2x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_tensor_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_pkpm_boundary_surfvpar_1x1v_tensor_p2(const double *w, const double *dxv, const double *pkpm_accel_vars, 
+GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_tensor_p2(const double *w, const double *dxv, const double *pkpm_accel_vars, 
      const double *g_dist_sourceEdge, const double *g_dist_sourceSkin, 
      const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
@@ -228,4 +228,7 @@ GKYL_CU_DH void vlasov_pkpm_boundary_surfvpar_1x1v_tensor_p2(const double *w, co
   out_G_1[8] += 1.58113883008419*Ghat_G_1_div_b[2]*dv1par+1.58113883008419*Ghat_G_1[2]*dv1par; 
 
   } 
+
+  return 0.;
+
 } 

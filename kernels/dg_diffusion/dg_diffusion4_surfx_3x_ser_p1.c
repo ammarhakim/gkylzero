@@ -1,5 +1,5 @@
 #include <gkyl_dg_diffusion_kernels.h> 
-GKYL_CU_DH void dg_diffusion4_surfx_3x_ser_p1(const double* w, const double* dx, double D, 
+GKYL_CU_DH double dg_diffusion4_surfx_3x_ser_p1(const double* w, const double* dx, double D, 
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: Cell-center coordinates
@@ -16,7 +16,7 @@ GKYL_CU_DH void dg_diffusion4_surfx_3x_ser_p1(const double* w, const double* dx,
   const double *q0l = &ql[0]; 
   const double *q0c = &qc[0]; 
   const double *q0r = &qr[0]; 
-  double *out0= &out[0]; 
+  double *out0 = &out[0]; 
 
   out0[0] += J*D*(1.623797632095822*q0r[1]-1.623797632095822*q0l[1]-0.9375*q0r[0]-0.9375*q0l[0]+1.875*q0c[0]); 
   out0[1] += J*D*(2.0625*q0r[1]+2.0625*q0l[1]+7.125*q0c[1]-1.623797632095822*q0r[0]+1.623797632095822*q0l[0]); 
@@ -26,5 +26,7 @@ GKYL_CU_DH void dg_diffusion4_surfx_3x_ser_p1(const double* w, const double* dx,
   out0[5] += J*D*(2.0625*q0r[5]+2.0625*q0l[5]+7.125*q0c[5]-1.623797632095822*q0r[3]+1.623797632095822*q0l[3]); 
   out0[6] += J*D*(1.623797632095822*q0r[7]-1.623797632095822*q0l[7]-0.9375*q0r[6]-0.9375*q0l[6]+1.875*q0c[6]); 
   out0[7] += J*D*(2.0625*q0r[7]+2.0625*q0l[7]+7.125*q0c[7]-1.623797632095822*q0r[6]+1.623797632095822*q0l[6]); 
+
+  return 0.;
 
 } 

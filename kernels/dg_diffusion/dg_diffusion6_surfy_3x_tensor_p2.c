@@ -1,5 +1,5 @@
 #include <gkyl_dg_diffusion_kernels.h> 
-GKYL_CU_DH void dg_diffusion6_surfy_3x_tensor_p2(const double* w, const double* dx, double D, 
+GKYL_CU_DH double dg_diffusion6_surfy_3x_tensor_p2(const double* w, const double* dx, double D, 
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: Cell-center coordinates
@@ -16,7 +16,7 @@ GKYL_CU_DH void dg_diffusion6_surfy_3x_tensor_p2(const double* w, const double* 
   const double *q0l = &ql[0]; 
   const double *q0c = &qc[0]; 
   const double *q0r = &qr[0]; 
-  double *out0= &out[0]; 
+  double *out0 = &out[0]; 
 
   out0[0] += J*D*(35.21807064562169*q0r[8]+35.21807064562169*q0l[8]-70.43614129124337*q0c[8]-34.09975027401226*q0r[2]+34.09975027401226*q0l[2]+19.6875*q0r[0]+19.6875*q0l[0]-39.375*q0c[0]); 
   out0[1] += J*D*(35.21807064562168*q0r[12]+35.21807064562168*q0l[12]-70.43614129124336*q0c[12]-34.09975027401226*q0r[4]+34.09975027401226*q0l[4]+19.6875*q0r[1]+19.6875*q0l[1]-39.375*q0c[1]); 
@@ -45,5 +45,7 @@ GKYL_CU_DH void dg_diffusion6_surfy_3x_tensor_p2(const double* w, const double* 
   out0[24] += J*D*(51.46831774920947*q0r[26]-51.46831774920947*q0l[26]-56.6015625*q0r[24]-56.6015625*q0l[24]-123.046875*q0c[24]+34.09975027401226*q0r[21]-34.09975027401226*q0l[21]); 
   out0[25] += J*D*((-3.1640625*q0r[25])-3.1640625*q0l[25]-141.328125*q0c[25]-12.2543613688594*q0r[19]+12.2543613688594*q0l[19]+12.57788237343632*q0r[15]+12.57788237343632*q0l[15]-25.15576474687263*q0c[15]); 
   out0[26] += J*D*((-3.1640625*q0r[26])-3.1640625*q0l[26]-141.328125*q0c[26]-12.2543613688594*q0r[24]+12.2543613688594*q0l[24]+12.57788237343632*q0r[21]+12.57788237343632*q0l[21]-25.15576474687264*q0c[21]); 
+
+  return 0.;
 
 } 

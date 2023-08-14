@@ -8,7 +8,7 @@
 // functions
 
 // Types for various kernels
-typedef void (*euler_pkpm_surf_t)(const double *w, const double *dx, 
+typedef double (*euler_pkpm_surf_t)(const double *w, const double *dx, 
   const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_c, const double *vlasov_pkpm_moms_r, 
   const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r,
   const double *p_ij_l, const double *p_ij_c, const double *p_ij_r, 
@@ -173,7 +173,7 @@ static const gkyl_dg_euler_pkpm_surf_kern_list ten_surf_z_kernels[] = {
 void gkyl_euler_pkpm_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
@@ -187,7 +187,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_c = gkyl_range_idx(&euler_pkpm->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&euler_pkpm->conf_range, idxR);
 
-  euler_pkpm->surf[dir](xcC, dxC, 
+  return euler_pkpm->surf[dir](xcC, dxC, 
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_l),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_c),
     (const double*) gkyl_array_cfetch(euler_pkpm->auxfields.vlasov_pkpm_moms, cidx_r),
@@ -202,13 +202,13 @@ surf(const struct gkyl_dg_eqn *eqn,
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
   const double*  dxEdge, const double* dxSkin,
   const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
-{
-  
+{ 
+  return 0.;
 }

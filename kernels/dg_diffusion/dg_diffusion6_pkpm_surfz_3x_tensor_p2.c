@@ -1,5 +1,5 @@
 #include <gkyl_dg_diffusion_kernels.h> 
-GKYL_CU_DH void dg_diffusion6_pkpm_surfz_3x_tensor_p2(const double* w, const double* dx, double D, 
+GKYL_CU_DH double dg_diffusion6_pkpm_surfz_3x_tensor_p2(const double* w, const double* dx, double D, 
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: Cell-center coordinates
@@ -16,7 +16,7 @@ GKYL_CU_DH void dg_diffusion6_pkpm_surfz_3x_tensor_p2(const double* w, const dou
   const double *q0l = &ql[0]; 
   const double *q0c = &qc[0]; 
   const double *q0r = &qr[0]; 
-  double *out0= &out[0]; 
+  double *out0 = &out[0]; 
 
   out0[0] += J*D*(35.21807064562169*q0r[9]+35.21807064562169*q0l[9]-70.43614129124337*q0c[9]-34.09975027401226*q0r[3]+34.09975027401226*q0l[3]+19.6875*q0r[0]+19.6875*q0l[0]-39.375*q0c[0]); 
   out0[1] += J*D*(35.21807064562168*q0r[15]+35.21807064562168*q0l[15]-70.43614129124336*q0c[15]-34.09975027401226*q0r[5]+34.09975027401226*q0l[5]+19.6875*q0r[1]+19.6875*q0l[1]-39.375*q0c[1]); 
@@ -49,7 +49,7 @@ GKYL_CU_DH void dg_diffusion6_pkpm_surfz_3x_tensor_p2(const double* w, const dou
   const double *q1l = &ql[27]; 
   const double *q1c = &qc[27]; 
   const double *q1r = &qr[27]; 
-  double *out1= &out[27]; 
+  double *out1 = &out[27]; 
 
   out1[0] += J*D*(35.21807064562169*q1r[9]+35.21807064562169*q1l[9]-70.43614129124337*q1c[9]-34.09975027401226*q1r[3]+34.09975027401226*q1l[3]+19.6875*q1r[0]+19.6875*q1l[0]-39.375*q1c[0]); 
   out1[1] += J*D*(35.21807064562168*q1r[15]+35.21807064562168*q1l[15]-70.43614129124336*q1c[15]-34.09975027401226*q1r[5]+34.09975027401226*q1l[5]+19.6875*q1r[1]+19.6875*q1l[1]-39.375*q1c[1]); 
@@ -82,7 +82,7 @@ GKYL_CU_DH void dg_diffusion6_pkpm_surfz_3x_tensor_p2(const double* w, const dou
   const double *q2l = &ql[54]; 
   const double *q2c = &qc[54]; 
   const double *q2r = &qr[54]; 
-  double *out2= &out[54]; 
+  double *out2 = &out[54]; 
 
   out2[0] += J*D*(35.21807064562169*q2r[9]+35.21807064562169*q2l[9]-70.43614129124337*q2c[9]-34.09975027401226*q2r[3]+34.09975027401226*q2l[3]+19.6875*q2r[0]+19.6875*q2l[0]-39.375*q2c[0]); 
   out2[1] += J*D*(35.21807064562168*q2r[15]+35.21807064562168*q2l[15]-70.43614129124336*q2c[15]-34.09975027401226*q2r[5]+34.09975027401226*q2l[5]+19.6875*q2r[1]+19.6875*q2l[1]-39.375*q2c[1]); 
@@ -111,5 +111,7 @@ GKYL_CU_DH void dg_diffusion6_pkpm_surfz_3x_tensor_p2(const double* w, const dou
   out2[24] += J*D*((-3.1640625*q2r[24])-3.1640625*q2l[24]-141.328125*q2c[24]-12.2543613688594*q2r[17]+12.2543613688594*q2l[17]+12.57788237343632*q2r[11]+12.57788237343632*q2l[11]-25.15576474687263*q2c[11]); 
   out2[25] += J*D*((-3.1640625*q2r[25])-3.1640625*q2l[25]-141.328125*q2c[25]-12.2543613688594*q2r[18]+12.2543613688594*q2l[18]+12.57788237343632*q2r[12]+12.57788237343632*q2l[12]-25.15576474687263*q2c[12]); 
   out2[26] += J*D*((-3.1640625*q2r[26])-3.1640625*q2l[26]-141.328125*q2c[26]-12.2543613688594*q2r[23]+12.2543613688594*q2l[23]+12.57788237343632*q2r[20]+12.57788237343632*q2l[20]-25.15576474687264*q2c[20]); 
+
+  return 0.;
 
 } 

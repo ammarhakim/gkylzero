@@ -1,5 +1,5 @@
 #include <gkyl_dg_diffusion_kernels.h> 
-GKYL_CU_DH void dg_diffusion4_euler_surfz_3x_tensor_p2(const double* w, const double* dx, double D, 
+GKYL_CU_DH double dg_diffusion4_euler_surfz_3x_tensor_p2(const double* w, const double* dx, double D, 
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: Cell-center coordinates
@@ -16,7 +16,7 @@ GKYL_CU_DH void dg_diffusion4_euler_surfz_3x_tensor_p2(const double* w, const do
   const double *q0l = &ql[0]; 
   const double *q0c = &qc[0]; 
   const double *q0r = &qr[0]; 
-  double *out0= &out[0]; 
+  double *out0 = &out[0]; 
 
   out0[0] += J*D*((-6.708203932499369*q0r[9])-6.708203932499369*q0l[9]+13.41640786499874*q0c[9]+8.11898816047911*q0r[3]-8.11898816047911*q0l[3]-4.6875*q0r[0]-4.6875*q0l[0]+9.375*q0c[0]); 
   out0[1] += J*D*((-6.708203932499369*q0r[15])-6.708203932499369*q0l[15]+13.41640786499874*q0c[15]+8.11898816047911*q0r[5]-8.11898816047911*q0l[5]-4.6875*q0r[1]-4.6875*q0l[1]+9.375*q0c[1]); 
@@ -49,7 +49,7 @@ GKYL_CU_DH void dg_diffusion4_euler_surfz_3x_tensor_p2(const double* w, const do
   const double *q1l = &ql[27]; 
   const double *q1c = &qc[27]; 
   const double *q1r = &qr[27]; 
-  double *out1= &out[27]; 
+  double *out1 = &out[27]; 
 
   out1[0] += J*D*((-6.708203932499369*q1r[9])-6.708203932499369*q1l[9]+13.41640786499874*q1c[9]+8.11898816047911*q1r[3]-8.11898816047911*q1l[3]-4.6875*q1r[0]-4.6875*q1l[0]+9.375*q1c[0]); 
   out1[1] += J*D*((-6.708203932499369*q1r[15])-6.708203932499369*q1l[15]+13.41640786499874*q1c[15]+8.11898816047911*q1r[5]-8.11898816047911*q1l[5]-4.6875*q1r[1]-4.6875*q1l[1]+9.375*q1c[1]); 
@@ -82,7 +82,7 @@ GKYL_CU_DH void dg_diffusion4_euler_surfz_3x_tensor_p2(const double* w, const do
   const double *q2l = &ql[54]; 
   const double *q2c = &qc[54]; 
   const double *q2r = &qr[54]; 
-  double *out2= &out[54]; 
+  double *out2 = &out[54]; 
 
   out2[0] += J*D*((-6.708203932499369*q2r[9])-6.708203932499369*q2l[9]+13.41640786499874*q2c[9]+8.11898816047911*q2r[3]-8.11898816047911*q2l[3]-4.6875*q2r[0]-4.6875*q2l[0]+9.375*q2c[0]); 
   out2[1] += J*D*((-6.708203932499369*q2r[15])-6.708203932499369*q2l[15]+13.41640786499874*q2c[15]+8.11898816047911*q2r[5]-8.11898816047911*q2l[5]-4.6875*q2r[1]-4.6875*q2l[1]+9.375*q2c[1]); 
@@ -115,7 +115,7 @@ GKYL_CU_DH void dg_diffusion4_euler_surfz_3x_tensor_p2(const double* w, const do
   const double *q3l = &ql[81]; 
   const double *q3c = &qc[81]; 
   const double *q3r = &qr[81]; 
-  double *out3= &out[81]; 
+  double *out3 = &out[81]; 
 
   out3[0] += J*D*((-6.708203932499369*q3r[9])-6.708203932499369*q3l[9]+13.41640786499874*q3c[9]+8.11898816047911*q3r[3]-8.11898816047911*q3l[3]-4.6875*q3r[0]-4.6875*q3l[0]+9.375*q3c[0]); 
   out3[1] += J*D*((-6.708203932499369*q3r[15])-6.708203932499369*q3l[15]+13.41640786499874*q3c[15]+8.11898816047911*q3r[5]-8.11898816047911*q3l[5]-4.6875*q3r[1]-4.6875*q3l[1]+9.375*q3c[1]); 
@@ -148,7 +148,7 @@ GKYL_CU_DH void dg_diffusion4_euler_surfz_3x_tensor_p2(const double* w, const do
   const double *q4l = &ql[108]; 
   const double *q4c = &qc[108]; 
   const double *q4r = &qr[108]; 
-  double *out4= &out[108]; 
+  double *out4 = &out[108]; 
 
   out4[0] += J*D*((-6.708203932499369*q4r[9])-6.708203932499369*q4l[9]+13.41640786499874*q4c[9]+8.11898816047911*q4r[3]-8.11898816047911*q4l[3]-4.6875*q4r[0]-4.6875*q4l[0]+9.375*q4c[0]); 
   out4[1] += J*D*((-6.708203932499369*q4r[15])-6.708203932499369*q4l[15]+13.41640786499874*q4c[15]+8.11898816047911*q4r[5]-8.11898816047911*q4l[5]-4.6875*q4r[1]-4.6875*q4l[1]+9.375*q4c[1]); 
@@ -177,5 +177,7 @@ GKYL_CU_DH void dg_diffusion4_euler_surfz_3x_tensor_p2(const double* w, const do
   out4[24] += J*D*((-0.65625*q4r[24])-0.65625*q4l[24]+40.6875*q4c[24]+4.720198453190289*q4r[17]-4.720198453190289*q4l[17]-4.192627457812105*q4r[11]-4.192627457812105*q4l[11]+8.38525491562421*q4c[11]); 
   out4[25] += J*D*((-0.65625*q4r[25])-0.65625*q4l[25]+40.6875*q4c[25]+4.720198453190289*q4r[18]-4.720198453190289*q4l[18]-4.192627457812105*q4r[12]-4.192627457812105*q4l[12]+8.38525491562421*q4c[12]); 
   out4[26] += J*D*((-0.65625*q4r[26])-0.65625*q4l[26]+40.6875*q4c[26]+4.720198453190289*q4r[23]-4.720198453190289*q4l[23]-4.192627457812106*q4r[20]-4.192627457812106*q4l[20]+8.385254915624213*q4c[20]); 
+
+  return 0.;
 
 } 

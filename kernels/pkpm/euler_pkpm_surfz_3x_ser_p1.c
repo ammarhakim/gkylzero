@@ -1,7 +1,7 @@
 #include <gkyl_euler_pkpm_kernels.h> 
 #include <gkyl_basis_ser_3x_p1_surfx3_eval_quad.h> 
 #include <gkyl_basis_ser_3x_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
+GKYL_CU_DH double euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
     const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_c, const double *vlasov_pkpm_moms_r,
     const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r,
     const double *p_ij_l, const double *p_ij_c, const double *p_ij_r,
@@ -184,5 +184,7 @@ GKYL_CU_DH void euler_pkpm_surfz_3x_ser_p1(const double *w, const double *dxv,
   outrhou2[5] += ((-0.3061862178478971*(flux_rho_r[2]*uz_surf_rl[3]+flux_rho_l[2]*uz_surf_lr[3]+flux_rho_r[2]*uz_surf_cr[3]+flux_rho_l[2]*uz_surf_cl[3]))+0.6123724356957944*(jump_rhouz_r[2]*pkpm_lax_r[3]+jump_rhouz_l[2]*pkpm_lax_l[3]+pkpm_lax_r[2]*jump_rhouz_r[3]+pkpm_lax_l[2]*jump_rhouz_l[3])-0.3061862178478971*((uz_surf_rl[2]+uz_surf_cr[2])*flux_rho_r[3]+(uz_surf_lr[2]+uz_surf_cl[2])*flux_rho_l[3]+flux_rho_r[0]*uz_surf_rl[1]+flux_rho_l[0]*uz_surf_lr[1]+flux_rho_r[0]*uz_surf_cr[1]+flux_rho_l[0]*uz_surf_cl[1])+0.6123724356957944*(jump_rhouz_r[0]*pkpm_lax_r[1]+jump_rhouz_l[0]*pkpm_lax_l[1]+pkpm_lax_r[0]*jump_rhouz_r[1]+pkpm_lax_l[0]*jump_rhouz_l[1])-0.3061862178478971*((uz_surf_rl[0]+uz_surf_cr[0])*flux_rho_r[1]+(uz_surf_lr[0]+uz_surf_cl[0])*flux_rho_l[1])-1.224744871391589*(avg_p_ij_z_r[1]+avg_p_ij_z_l[1]))*dx1; 
   outrhou2[6] += ((-0.3061862178478971*(flux_rho_r[1]*uz_surf_rl[3]+flux_rho_l[1]*uz_surf_lr[3]+flux_rho_r[1]*uz_surf_cr[3]+flux_rho_l[1]*uz_surf_cl[3]))+0.6123724356957944*(jump_rhouz_r[1]*pkpm_lax_r[3]+jump_rhouz_l[1]*pkpm_lax_l[3]+pkpm_lax_r[1]*jump_rhouz_r[3]+pkpm_lax_l[1]*jump_rhouz_l[3])-0.3061862178478971*((uz_surf_rl[1]+uz_surf_cr[1])*flux_rho_r[3]+(uz_surf_lr[1]+uz_surf_cl[1])*flux_rho_l[3]+flux_rho_r[0]*uz_surf_rl[2]+flux_rho_l[0]*uz_surf_lr[2]+flux_rho_r[0]*uz_surf_cr[2]+flux_rho_l[0]*uz_surf_cl[2])+0.6123724356957944*(jump_rhouz_r[0]*pkpm_lax_r[2]+jump_rhouz_l[0]*pkpm_lax_l[2]+pkpm_lax_r[0]*jump_rhouz_r[2]+pkpm_lax_l[0]*jump_rhouz_l[2])-0.3061862178478971*((uz_surf_rl[0]+uz_surf_cr[0])*flux_rho_r[2]+(uz_surf_lr[0]+uz_surf_cl[0])*flux_rho_l[2])-1.224744871391589*(avg_p_ij_z_r[2]+avg_p_ij_z_l[2]))*dx1; 
   outrhou2[7] += ((-0.3061862178478971*(flux_rho_r[0]*uz_surf_rl[3]+flux_rho_l[0]*uz_surf_lr[3]+flux_rho_r[0]*uz_surf_cr[3]+flux_rho_l[0]*uz_surf_cl[3]))+0.6123724356957944*(jump_rhouz_r[0]*pkpm_lax_r[3]+jump_rhouz_l[0]*pkpm_lax_l[3]+pkpm_lax_r[0]*jump_rhouz_r[3]+pkpm_lax_l[0]*jump_rhouz_l[3])-0.3061862178478971*((uz_surf_rl[0]+uz_surf_cr[0])*flux_rho_r[3]+(uz_surf_lr[0]+uz_surf_cl[0])*flux_rho_l[3])-1.224744871391589*(avg_p_ij_z_r[3]+avg_p_ij_z_l[3])-0.3061862178478971*(flux_rho_r[1]*uz_surf_rl[2]+flux_rho_l[1]*uz_surf_lr[2]+flux_rho_r[1]*uz_surf_cr[2]+flux_rho_l[1]*uz_surf_cl[2])+0.6123724356957944*(jump_rhouz_r[1]*pkpm_lax_r[2]+jump_rhouz_l[1]*pkpm_lax_l[2]+pkpm_lax_r[1]*jump_rhouz_r[2]+pkpm_lax_l[1]*jump_rhouz_l[2])-0.3061862178478971*((uz_surf_rl[1]+uz_surf_cr[1])*flux_rho_r[2]+(uz_surf_lr[1]+uz_surf_cl[1])*flux_rho_l[2]))*dx1; 
+
+  return 0.;
 
 } 

@@ -1,6 +1,6 @@
 #include <gkyl_euler_pkpm_kernels.h> 
 #include <gkyl_basis_ser_1x_p2_surfx1_eval_quad.h> 
-GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p2(const double *w, const double *dxv, 
+GKYL_CU_DH double euler_pkpm_surfx_1x_ser_p2(const double *w, const double *dxv, 
     const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_c, const double *vlasov_pkpm_moms_r,
     const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r,
     const double *p_ij_l, const double *p_ij_c, const double *p_ij_r,
@@ -116,5 +116,7 @@ GKYL_CU_DH void euler_pkpm_surfx_1x_ser_p2(const double *w, const double *dxv,
   outrhou2[0] += (0.7071067811865475*Ghat_rhouz_l-0.7071067811865475*Ghat_rhouz_r)*dx1; 
   outrhou2[1] += -1.224744871391589*(Ghat_rhouz_r+Ghat_rhouz_l)*dx1; 
   outrhou2[2] += (1.58113883008419*Ghat_rhouz_l-1.58113883008419*Ghat_rhouz_r)*dx1; 
+
+  return 0.;
 
 } 

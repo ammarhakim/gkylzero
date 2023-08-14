@@ -208,14 +208,17 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
 // apply BCs to EM field
 void
-moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
+moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
   const struct moment_field *field, struct gkyl_array *f)
 {
+  struct timespec wst = gkyl_wall_clock();
+  
   int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
-  for (int d=0; d<num_periodic_dir; ++d) {
-    moment_apply_periodic_bc(app, field->bc_buffer, app->periodic_dirs[d], f);
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
+    app->periodic_dirs, f);
+  
+  for (int d=0; d<num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
-  }
 
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
@@ -231,7 +234,9 @@ moment_field_apply_bc(const gkyl_moment_app *app, double tcurr,
           field->bc_buffer, d, field->lower_bc[d], field->upper_bc[d], f);
     }
 
-  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, app->nghost, f);
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+
+  app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);  
 }
 
 double
@@ -251,7 +256,7 @@ moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld)
 // update solution: initial solution is in fld->f[0] and updated
 // solution in fld->f[ndim]
 struct gkyl_update_status
-moment_field_update(const gkyl_moment_app *app,
+moment_field_update(gkyl_moment_app *app,
   const struct moment_field *fld, double tcurr, double dt)
 {
   int ndim = fld->ndim;

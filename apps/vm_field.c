@@ -1,15 +1,12 @@
-#include "gkyl_dg_bin_ops.h"
-#include "gkyl_dynvec.h"
-#include "gkyl_elem_type.h"
-#include <assert.h>
-#include <float.h>
-
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
+
+#include <assert.h>
+#include <float.h>
 #include <time.h>
 
 // function to evaluate external electromagnetic field (this is needed 
@@ -361,12 +358,16 @@ vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field,
 void
 vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f)
 {
+  struct timespec wst = gkyl_wall_clock();  
+  
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+    num_periodic_dir, app->periodic_dirs, f);
+  
   int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
-  for (int d=0; d<num_periodic_dir; ++d) {
-    vm_field_apply_periodic_bc(app, field, app->periodic_dirs[d], f);
+  for (int d=0; d<num_periodic_dir; ++d)
     is_np_bc[app->periodic_dirs[d]] = 0;
-  }
+
   for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 
@@ -395,6 +396,10 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
       }   
     }
   }
+
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+
+  app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
@@ -412,8 +417,11 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
   else { 
     gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, app->local);
   }
+
+  double energy_global[6] = { 0.0 };
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
   
-  gkyl_dynvec_append(field->integ_energy, tm, energy);
+  gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 }
 
 // release resources for field

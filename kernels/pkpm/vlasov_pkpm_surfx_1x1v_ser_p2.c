@@ -1,7 +1,7 @@
 #include <gkyl_vlasov_pkpm_kernels.h> 
 #include <gkyl_basis_ser_2x_p2_surfx1_eval_quad.h> 
 #include <gkyl_basis_ser_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p2(const double *w, const double *dxv, 
+GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_ser_p2(const double *w, const double *dxv, 
     const double *bvar_l, const double *bvar_c, const double *bvar_r, 
     const double *pkpm_prim_surf_l, const double *pkpm_prim_surf_c, const double *pkpm_prim_surf_r, 
     const double *fl, const double *fc, const double *fr, 
@@ -246,5 +246,7 @@ GKYL_CU_DH void vlasov_pkpm_surfx_1x1v_ser_p2(const double *w, const double *dxv
   out_G_1[5] += (0.7071067811865475*Ghat_G_1_u_l[2]-0.7071067811865475*Ghat_G_1_u_r[2])*dx1; 
   out_G_1[6] += (1.58113883008419*Ghat_G_1_u_l[1]-1.58113883008419*Ghat_G_1_u_r[1])*dx1; 
   out_G_1[7] += -1.224744871391589*(Ghat_G_1_u_r[2]+Ghat_G_1_u_l[2])*dx1; 
+
+  return 0.;
 
 } 
