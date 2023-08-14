@@ -254,6 +254,8 @@ void
 vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *em)
 {
+  struct timespec tm = gkyl_wall_clock();
+
   gkyl_array_clear(field->tot_em, 0.0);
   gkyl_array_set(field->tot_em, 1.0, em);
   if (field->has_ext_em) 
@@ -262,12 +264,16 @@ vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field,
   // unit vector and unit tensor are defined everywhere in the domain
   gkyl_dg_calc_em_vars_advance(field->calc_bvar, field->tot_em, 
     field->cell_avg_magB2, field->bvar);
+
+  app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
 void
 vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *em)
 {
+  struct timespec tm = gkyl_wall_clock();
+
   gkyl_array_clear(field->tot_em, 0.0);
   gkyl_array_set(field->tot_em, 1.0, em);
   if (field->has_ext_em) 
@@ -276,6 +282,8 @@ vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field,
   // so E x B velocity is defined everywhere in the domain 
   gkyl_dg_calc_em_vars_advance(field->calc_ExB, field->tot_em, 
     field->cell_avg_magB2, field->ExB);
+  
+  app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
 void

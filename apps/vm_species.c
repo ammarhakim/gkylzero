@@ -459,6 +459,7 @@ void
 vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species, 
   const struct gkyl_array *fin, const struct gkyl_array *fluidin[])
 {
+  struct timespec tm = gkyl_wall_clock();
   if (species->model_id == GKYL_MODEL_PKPM) {
     gkyl_array_clear(species->pkpm_div_ppar, 0.0);
     gkyl_array_clear(species->pkpm_p_ij, 0.0);
@@ -497,12 +498,14 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
         species->pkpm_prim_surf);
     }
   }
+  app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
 void
 vm_species_calc_pkpm_update_vars(gkyl_vlasov_app *app, struct vm_species *species, 
   const struct gkyl_array *fin)
 {
+  struct timespec tm = gkyl_wall_clock();
   if (species->model_id == GKYL_MODEL_PKPM) {
     gkyl_array_clear(species->pkpm_accel, 0.0);
     gkyl_array_clear(species->pkpm_lax, 0.0);
@@ -518,6 +521,7 @@ vm_species_calc_pkpm_update_vars(gkyl_vlasov_app *app, struct vm_species *specie
       fin, species->F_k_p_1, 
       species->g_dist_source, species->F_k_m_1);
   }
+  app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
 // Compute the RHS for species update, returning maximum stable

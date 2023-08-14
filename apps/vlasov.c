@@ -997,7 +997,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   enum {
     TOTAL_TM, INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM,
     SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, SPECIES_COLL_MOM_TM,
-    SPECIES_COL_TM, FIELD_RHS_TM, CURRENT_TM,
+    SPECIES_COL_TM, SPECIES_PKPM_VARS_TM, FIELD_RHS_TM, FIELD_EM_VARS_TM, CURRENT_TM,
     SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, MOM_TM, DIAG_TM, IO_TM,
     SPECIES_BC_TM, FIELD_BC_TM,
     D_END
@@ -1012,7 +1012,9 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     [FLUID_SPECIES_RHS_TM] = local->fluid_species_rhs_tm,
     [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
     [SPECIES_COL_TM] = local->species_coll_tm,
+    [SPECIES_PKPM_VARS_TM] = local->species_pkpm_vars_tm,
     [FIELD_RHS_TM] = local->field_rhs_tm,
+    [FIELD_EM_VARS_TM] = local->field_em_vars_tm,
     [CURRENT_TM] = local->current_tm,
     [SPECIES_OMEGA_CFL_TM] = local->species_omega_cfl_tm,
     [FIELD_OMEGA_CFL_TM] = local->field_omega_cfl_tm,
@@ -1034,7 +1036,9 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   global->fluid_species_rhs_tm = d_red_global[FLUID_SPECIES_RHS_TM];
   global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
   global->species_coll_tm = d_red_global[SPECIES_COL_TM];
+  global->species_pkpm_vars_tm = d_red_global[SPECIES_PKPM_VARS_TM];
   global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
+  global->field_em_vars_tm = d_red_global[FIELD_EM_VARS_TM];
   global->current_tm = d_red_global[CURRENT_TM];
   global->species_omega_cfl_tm = d_red_global[SPECIES_OMEGA_CFL_TM];
   global->field_omega_cfl_tm = d_red_global[FIELD_OMEGA_CFL_TM];
@@ -1122,6 +1126,8 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   gkyl_vlasov_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);
 
+  gkyl_vlasov_app_cout(app, fp, " species_pkpm_vars_tm : %lg,\n", stat.species_pkpm_vars_tm);
+
   gkyl_vlasov_app_cout(app, fp, " species_bc_tm : %lg,\n", stat.species_bc_tm);
   
   gkyl_vlasov_app_cout(app, fp, " fluid_species_rhs_tm : %lg,\n", stat.fluid_species_rhs_tm);
@@ -1130,6 +1136,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
     gkyl_vlasov_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
     gkyl_vlasov_app_cout(app, fp, " field_bc_tm : %lg,\n", stat.field_bc_tm);
     
+    gkyl_vlasov_app_cout(app, fp, " field_em_vars_tm : %lg,\n", stat.field_em_vars_tm);
     gkyl_vlasov_app_cout(app, fp, " current_tm : %lg,\n", stat.current_tm);
   }
 

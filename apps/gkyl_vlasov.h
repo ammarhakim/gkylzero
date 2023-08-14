@@ -233,10 +233,17 @@ struct gkyl_vlasov_stat {
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
 
+  double species_pkpm_vars_tm; // time to compute pkpm vars
+                               // These are the coupling moments [rho, p_par, p_perp], the self-consistent
+                               // pressure force (div(p_par b_hat)), and the primitive variables
+                               // along with the acceleration variables in the kinetic equation 
+                               // and the source distribution functions for Laguerre couplings.
+
   double species_bc_tm; // time to compute species BCs
   double field_bc_tm; // time to compute field
   
   double field_rhs_tm; // time to compute field RHS
+  double field_em_vars_tm; // time to compute EM auxiliary variables (e.g., bvar and E x B)
   double current_tm; // time to compute currents and accumulation
 
   long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
@@ -405,7 +412,8 @@ void gkyl_vlasov_app_write_species_coll_moms(gkyl_vlasov_app* app, int sidx, dou
 void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write fluid species data to file. If equation ID is PKPM, also writes pkpm variables.
+ * Write fluid species data to file. 
+ * Note: If fluid equation ID is PKPM, fluid write is handled by gkyl_vlasov_app_write_species_pkpm
  * 
  * @param app App object.
  * @param sidx Index of fluid species to initialize.
