@@ -565,13 +565,13 @@ gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
     int rank;
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
-      // write out diagnostic moments
+      // write out integrated diagnostic moments
       const char *fmt = "%s-%s-%s.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
         "imom");
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-      "imom");
+        "imom");
 
       if (app->species[i].is_first_integ_write_call) {
         gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
@@ -589,20 +589,26 @@ void
 gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app* app)
 {
   for (int i=0; i<app->num_species; ++i) {
-    // write out diagnostic moments
-    const char *fmt = "%s-%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-      "L2");
-    char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-      "L2");
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    if (rank == 0) {
+      // write out integrated L^2
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+        "L2");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+        "L2");
 
-    if (app->species[i].is_first_integ_L2_write_call) {
-      gkyl_dynvec_write(app->species[i].integ_L2_f, fileNm);
-      app->species[i].is_first_integ_L2_write_call = false;
-    }
-    else {
-      gkyl_dynvec_awrite(app->species[i].integ_L2_f, fileNm);
+      if (app->species[i].is_first_integ_L2_write_call) {
+        // write to a new file (this ensure previous output is removed)
+        gkyl_dynvec_write(app->species[i].integ_L2_f, fileNm);
+        app->species[i].is_first_integ_L2_write_call = false;
+      }
+      else {
+        // append to existing file
+        gkyl_dynvec_awrite(app->species[i].integ_L2_f, fileNm);
+      }
     }
     gkyl_dynvec_clear(app->species[i].integ_L2_f);
   }
