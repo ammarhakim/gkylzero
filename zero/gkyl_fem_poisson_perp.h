@@ -27,6 +27,7 @@ typedef struct gkyl_fem_poisson_perp gkyl_fem_poisson_perp;
  * DG field phi, after we've translated the FEM solution to DG.
  * Free using gkyl_fem_poisson_perp_release method.
  *
+ * @param solve_range Range in which to perform the projection operation.
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
  * @param bcs Boundary conditions.
@@ -36,8 +37,9 @@ typedef struct gkyl_fem_poisson_perp gkyl_fem_poisson_perp;
  * @return New updater pointer.
  */
 struct gkyl_fem_poisson_perp* gkyl_fem_poisson_perp_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
-  struct gkyl_array *epsilon, struct gkyl_array *kSq, bool use_gpu);
+  const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon,
+  struct gkyl_array *kSq, bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
