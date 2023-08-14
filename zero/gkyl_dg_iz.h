@@ -21,7 +21,7 @@ typedef struct gkyl_dg_iz gkyl_dg_iz;
  * Create new updater to calculate ionization temperature or reaction rate
  * @param grid Grid object needed for fmax
  * @param cbasis Configuration-space basis-functions
- * @param pbasis Phase-space basis-functions
+ * @param pbasis Phase-space basis-functions (GK)
  * @param conf_rng Configuration range
  * @param phase_rng Phase range
  * @param elem_charge Elementary charge value
@@ -59,12 +59,12 @@ struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gky
  * @param coll_iz Output reaction rate coefficient
  */
 
-void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
+void gkyl_dg_iz_coll_elc(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
   const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
 
-void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
+void gkyl_dg_iz_coll_elc_cu(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
   const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);

@@ -314,7 +314,7 @@ test_coll_iz(bool use_gpu)
     int iter = 1;
     for (int t=0; t<iter; ++t) {
       tm = gkyl_wall_clock();
-      gkyl_dg_iz_coll(coll_iz, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_cu);
+      gkyl_dg_iz_coll_elc(coll_iz, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_cu);
       tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
     }
     tm_tot = tm_tot/iter;
@@ -337,7 +337,7 @@ test_coll_iz(bool use_gpu)
     int iter = 1;
     for (int t=0; t<iter; ++t) {
       tm = gkyl_wall_clock();
-      gkyl_dg_iz_coll(coll_iz, moms_elc, moms_neut, bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate);
+      gkyl_dg_iz_coll_elc(coll_iz, moms_elc, moms_neut, bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate);
       tm_tot = tm_tot + gkyl_time_diff_now_sec(tm);
     }
     tm_tot = tm_tot/iter;
