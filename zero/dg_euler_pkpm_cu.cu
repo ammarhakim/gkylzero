@@ -32,7 +32,7 @@ void
 gkyl_euler_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin)
 {
   gkyl_euler_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.vlasov_pkpm_moms->on_dev, auxin.pkpm_prim->on_dev, 
-    auxin.p_ij->on_dev);
+    auxin.pkpm_prim_surf->on_dev, auxin.p_ij->on_dev, auxin.pkpm_lax->on_dev);
 }
 
 __global__ void static
