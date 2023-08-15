@@ -124,7 +124,7 @@ void gkyl_dg_calc_pkpm_vars_surf_advance(struct gkyl_dg_calc_pkpm_vars *up,
   struct gkyl_array* prim_surf)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(prim)) {
+  if (gkyl_array_is_cu_dev(prim_surf)) {
     return gkyl_dg_calc_pkpm_vars_surf_advance_cu(up, 
       vlasov_pkpm_moms, euler_pkpm, 
       p_ij, cell_avg_prim, prim_surf);

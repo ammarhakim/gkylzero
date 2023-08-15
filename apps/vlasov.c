@@ -806,10 +806,10 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fluidout[i] = app->fluid_species[i].fluid1;
         }
         forward_euler(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em : 0,
-	  fout, fluidout, app->has_field ? app->field->em1 : 0,
+          fout, fluidout, app->has_field ? app->field->em1 : 0,
           &st
         );
-	dt = st.dt_actual;
+        dt = st.dt_actual;
         state = RK_STAGE_2;
         break;
 
@@ -823,10 +823,10 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
         forward_euler(app, tcurr+dt, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-	  fout, fluidout, app->has_field ? app->field->emnew : 0,
+          fout, fluidout, app->has_field ? app->field->emnew : 0,
           &st
         );
-	if (st.dt_actual < dt) {
+        if (st.dt_actual < dt) {
 
           // collect stats
           double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
@@ -864,7 +864,7 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
         forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-	  fout, fluidout, app->has_field ? app->field->emnew : 0,
+          fout, fluidout, app->has_field ? app->field->emnew : 0,
           &st
         );
         if (st.dt_actual < dt) {
