@@ -178,13 +178,13 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   ser_2x_p1_inv(rho_xl, rho_inv_xl); 
   ser_2x_p1_inv(rho_xr, rho_inv_xr); 
   binop_mul_2d_ser_p1(rho_inv_xl, rhoux_xl, ux_xl); 
-  binop_mul_2d_ser_p1(rho_inv_xl, rhoux_xr, ux_xr); 
+  binop_mul_2d_ser_p1(rho_inv_xr, rhoux_xr, ux_xr); 
   binop_mul_2d_ser_p1(rho_inv_xl, rhouy_xl, uy_xl); 
-  binop_mul_2d_ser_p1(rho_inv_xl, rhouy_xr, uy_xr); 
+  binop_mul_2d_ser_p1(rho_inv_xr, rhouy_xr, uy_xr); 
   binop_mul_2d_ser_p1(rho_inv_xl, rhouz_xl, uz_xl); 
-  binop_mul_2d_ser_p1(rho_inv_xl, rhouz_xr, uz_xr); 
+  binop_mul_2d_ser_p1(rho_inv_xr, rhouz_xr, uz_xr); 
   binop_mul_2d_ser_p1(rho_inv_xl, Pxx_xl, Txx_xl); 
-  binop_mul_2d_ser_p1(rho_inv_xl, Pxx_xr, Txx_xr); 
+  binop_mul_2d_ser_p1(rho_inv_xr, Pxx_xr, Txx_xr); 
  
   double rhoux_yl[4] = {0.0}; 
   double rhoux_yr[4] = {0.0}; 
@@ -242,13 +242,13 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   ser_2x_p1_inv(rho_yl, rho_inv_yl); 
   ser_2x_p1_inv(rho_yr, rho_inv_yr); 
   binop_mul_2d_ser_p1(rho_inv_yl, rhoux_yl, ux_yl); 
-  binop_mul_2d_ser_p1(rho_inv_yl, rhoux_yr, ux_yr); 
+  binop_mul_2d_ser_p1(rho_inv_yr, rhoux_yr, ux_yr); 
   binop_mul_2d_ser_p1(rho_inv_yl, rhouy_yl, uy_yl); 
-  binop_mul_2d_ser_p1(rho_inv_yl, rhouy_yr, uy_yr); 
+  binop_mul_2d_ser_p1(rho_inv_yr, rhouy_yr, uy_yr); 
   binop_mul_2d_ser_p1(rho_inv_yl, rhouz_yl, uz_yl); 
-  binop_mul_2d_ser_p1(rho_inv_yl, rhouz_yr, uz_yr); 
+  binop_mul_2d_ser_p1(rho_inv_yr, rhouz_yr, uz_yr); 
   binop_mul_2d_ser_p1(rho_inv_yl, Pyy_yl, Tyy_yl); 
-  binop_mul_2d_ser_p1(rho_inv_yl, Pyy_yr, Tyy_yr); 
+  binop_mul_2d_ser_p1(rho_inv_yr, Pyy_yr, Tyy_yr); 
  
   double rhoux_zl[4] = {0.0}; 
   double rhoux_zr[4] = {0.0}; 
@@ -306,13 +306,13 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   ser_2x_p1_inv(rho_zl, rho_inv_zl); 
   ser_2x_p1_inv(rho_zr, rho_inv_zr); 
   binop_mul_2d_ser_p1(rho_inv_zl, rhoux_zl, ux_zl); 
-  binop_mul_2d_ser_p1(rho_inv_zl, rhoux_zr, ux_zr); 
+  binop_mul_2d_ser_p1(rho_inv_zr, rhoux_zr, ux_zr); 
   binop_mul_2d_ser_p1(rho_inv_zl, rhouy_zl, uy_zl); 
-  binop_mul_2d_ser_p1(rho_inv_zl, rhouy_zr, uy_zr); 
+  binop_mul_2d_ser_p1(rho_inv_zr, rhouy_zr, uy_zr); 
   binop_mul_2d_ser_p1(rho_inv_zl, rhouz_zl, uz_zl); 
-  binop_mul_2d_ser_p1(rho_inv_zl, rhouz_zr, uz_zr); 
+  binop_mul_2d_ser_p1(rho_inv_zr, rhouz_zr, uz_zr); 
   binop_mul_2d_ser_p1(rho_inv_zl, Pzz_zl, Tzz_zl); 
-  binop_mul_2d_ser_p1(rho_inv_zl, Pzz_zr, Tzz_zr); 
+  binop_mul_2d_ser_p1(rho_inv_zr, Pzz_zr, Tzz_zr); 
  
   } 
  

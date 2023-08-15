@@ -125,13 +125,13 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_ser_p1(int count, struct gkyl_nmat *A, str
   ser_1x_p1_inv(rho_xl, rho_inv_xl); 
   ser_1x_p1_inv(rho_xr, rho_inv_xr); 
   binop_mul_1d_ser_p1(rho_inv_xl, rhoux_xl, ux_xl); 
-  binop_mul_1d_ser_p1(rho_inv_xl, rhoux_xr, ux_xr); 
+  binop_mul_1d_ser_p1(rho_inv_xr, rhoux_xr, ux_xr); 
   binop_mul_1d_ser_p1(rho_inv_xl, rhouy_xl, uy_xl); 
-  binop_mul_1d_ser_p1(rho_inv_xl, rhouy_xr, uy_xr); 
+  binop_mul_1d_ser_p1(rho_inv_xr, rhouy_xr, uy_xr); 
   binop_mul_1d_ser_p1(rho_inv_xl, rhouz_xl, uz_xl); 
-  binop_mul_1d_ser_p1(rho_inv_xl, rhouz_xr, uz_xr); 
+  binop_mul_1d_ser_p1(rho_inv_xr, rhouz_xr, uz_xr); 
   binop_mul_1d_ser_p1(rho_inv_xl, Pxx_xl, Txx_xl); 
-  binop_mul_1d_ser_p1(rho_inv_xl, Pxx_xr, Txx_xr); 
+  binop_mul_1d_ser_p1(rho_inv_xr, Pxx_xr, Txx_xr); 
  
   double rhoux_yl[2] = {0.0}; 
   double rhoux_yr[2] = {0.0}; 
@@ -169,13 +169,13 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_ser_p1(int count, struct gkyl_nmat *A, str
   ser_1x_p1_inv(rho_yl, rho_inv_yl); 
   ser_1x_p1_inv(rho_yr, rho_inv_yr); 
   binop_mul_1d_ser_p1(rho_inv_yl, rhoux_yl, ux_yl); 
-  binop_mul_1d_ser_p1(rho_inv_yl, rhoux_yr, ux_yr); 
+  binop_mul_1d_ser_p1(rho_inv_yr, rhoux_yr, ux_yr); 
   binop_mul_1d_ser_p1(rho_inv_yl, rhouy_yl, uy_yl); 
-  binop_mul_1d_ser_p1(rho_inv_yl, rhouy_yr, uy_yr); 
+  binop_mul_1d_ser_p1(rho_inv_yr, rhouy_yr, uy_yr); 
   binop_mul_1d_ser_p1(rho_inv_yl, rhouz_yl, uz_yl); 
-  binop_mul_1d_ser_p1(rho_inv_yl, rhouz_yr, uz_yr); 
+  binop_mul_1d_ser_p1(rho_inv_yr, rhouz_yr, uz_yr); 
   binop_mul_1d_ser_p1(rho_inv_yl, Pyy_yl, Tyy_yl); 
-  binop_mul_1d_ser_p1(rho_inv_yl, Pyy_yr, Tyy_yr); 
+  binop_mul_1d_ser_p1(rho_inv_yr, Pyy_yr, Tyy_yr); 
  
   } 
  
