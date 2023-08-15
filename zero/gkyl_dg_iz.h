@@ -32,7 +32,7 @@ typedef struct gkyl_dg_iz gkyl_dg_iz;
 struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
   double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, 
-  bool is_gk, bool use_gpu); 
+  bool use_gpu); 
 
 /**
  * Create new ionization updater type object on NV-GPU: 
@@ -40,7 +40,7 @@ struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis
  */
 struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
-  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, bool is_gk); 
+  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion); 
 
 /**
  * Compute ionization collision term for use in neutral reactions. 
@@ -68,6 +68,25 @@ void gkyl_dg_iz_coll_elc_cu(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
   const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
+
+void gkyl_dg_iz_coll_ion(const struct gkyl_dg_iz *up,
+  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
+  struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
+
+void gkyl_dg_iz_coll_ion_cu(const struct gkyl_dg_iz *up,
+  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
+  struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
+
+void gkyl_dg_iz_coll_neut(const struct gkyl_dg_iz *up,
+  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut, const struct gkyl_array *distf_self,
+  struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
+
+void gkyl_dg_iz_coll_neut_cu(const struct gkyl_dg_iz *up,
+  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut, const struct gkyl_array *distf_self,
+  struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
+
 
 /**
  * Delete updater.

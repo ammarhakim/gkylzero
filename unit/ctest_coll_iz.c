@@ -250,7 +250,7 @@ test_coll_iz(bool use_gpu)
 
   // coll struct 
   struct gkyl_dg_iz *coll_iz = gkyl_dg_iz_new(&phaseGrid, &basis, &phaseBasis, &confRange, &phaseRange,
-    echarge, emass, GKYL_IZ_H, true, use_gpu); // might not need bool is_gk ...
+    echarge, emass, GKYL_IZ_H, use_gpu); // might not need bool is_gk ...
 
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);

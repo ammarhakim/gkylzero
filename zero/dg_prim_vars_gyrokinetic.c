@@ -33,7 +33,11 @@ gkyl_dg_prim_vars_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct 
   int poly_order = cbasis->poly_order;
 
   dg_prim_vars_gyrokinetic->pvt.cdim = cdim;
-  dg_prim_vars_gyrokinetic->pvt.vdim = vdim;
+  if (vdim > 2) {
+    vdim = 2; 
+    dg_prim_vars_gyrokinetic->pvt.vdim = 2;
+  }
+  else dg_prim_vars_gyrokinetic->pvt.vdim = vdim;
   dg_prim_vars_gyrokinetic->pvt.poly_order = poly_order;
   dg_prim_vars_gyrokinetic->pvt.num_config = cbasis->num_basis;
 
