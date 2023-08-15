@@ -86,7 +86,7 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
   gkyl_dg_calc_pkpm_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
     up->As->on_dev, up->xs->on_dev, conf_range,
     vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, 
-    p_ij->on_dev, pkpm_div_ppar->on_dev, cell_avg_prim->on_dev);
+    pkpm_div_ppar->on_dev, cell_avg_prim->on_dev);
 
   if (up->poly_order > 1) {
     bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);

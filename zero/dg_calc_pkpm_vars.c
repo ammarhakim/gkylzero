@@ -76,7 +76,7 @@ void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
   if (gkyl_array_is_cu_dev(prim)) {
     return gkyl_dg_calc_pkpm_vars_advance_cu(up, 
       vlasov_pkpm_moms, euler_pkpm, 
-      p_ij, pkpm_div_ppar, 
+      pkpm_div_ppar, 
       cell_avg_prim, prim);
   }
 #endif
@@ -127,7 +127,7 @@ void gkyl_dg_calc_pkpm_vars_surf_advance(struct gkyl_dg_calc_pkpm_vars *up,
   if (gkyl_array_is_cu_dev(prim)) {
     return gkyl_dg_calc_pkpm_vars_surf_advance_cu(up, 
       vlasov_pkpm_moms, euler_pkpm, 
-      p_ij, cell_avg_prim, prim);
+      p_ij, cell_avg_prim, prim_surf);
   }
 #endif
 
