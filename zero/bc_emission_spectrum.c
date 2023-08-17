@@ -16,9 +16,6 @@ gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, s
 #endif
   double xc[GKYL_MAX_DIM];
 
-  double mass = up->bc_param[0];
-  double charge = up->bc_param[1];
-
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, ghost_r);
   while (gkyl_range_iter_next(&iter)) {
@@ -28,7 +25,7 @@ gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, s
     
     gkyl_rect_grid_cell_center(grid, iter.idx, xc);
 
-    up->funcs->gamma(out, up->cdim, up->vdim, mass, charge, xc, up->sey_param);
+    up->funcs->gamma(out, up->cdim, up->vdim, xc, up->sey_param);
   }
 }
 

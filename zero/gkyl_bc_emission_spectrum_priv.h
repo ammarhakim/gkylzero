@@ -10,7 +10,7 @@
 
 typedef void (*emission_spectrum_func_t)(const double *inp, int cdim, int dir, enum gkyl_edge_loc edge, double xc[GKYL_MAX_DIM], const double *gain, double *weight);
 typedef double (*emission_spectrum_norm_func_t)(double *out, const double *flux, double *param, double effective_gamma);
-typedef void (*emission_spectrum_gamma_func_t)(double *out, int cdim, int vdim, double mass, double charge, double xc[GKYL_MAX_DIM], double *param);
+typedef void (*emission_spectrum_gamma_func_t)(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *param);
 
 struct gkyl_bc_emission_spectrum_funcs {
   emission_spectrum_func_t func;
@@ -66,15 +66,17 @@ gaussian_norm(double *out, const double *flux, double *param, double effective_g
 
 GKYL_CU_D
 static void
-furman_pivi_gamma(double *out, int cdim, int vdim, double mass, double charge, double xc[GKYL_MAX_DIM], double *param)
+furman_pivi_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *param)
 {
-  double gammahat_ts = param[0];
-  double Ehat_ts = param[1];
-  double t1 = param[2];
-  double t2 = param[3];
-  double t3 = param[4];
-  double t4 = param[5];
-  double s = param[6];
+  double mass = param[0];
+  double charge = param[1];
+  double gammahat_ts = param[2];
+  double Ehat_ts = param[3];
+  double t1 = param[4];
+  double t2 = param[5];
+  double t3 = param[6];
+  double t4 = param[7];
+  double s = param[8];
 
   double E = 0.0;
   double mu = 1.0; // currently hardcoded to normal, will add angular dependence later

@@ -47,12 +47,12 @@ gkyl_bc_emission_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *
 void
 gkyl_bc_emission_advance(const struct gkyl_bc_emission *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    gkyl_bc_emission_advance_cu(up, buff_arr, f_arr);
-    return;
-  }
-#endif
+/* #ifdef GKYL_HAVE_CUDA */
+/*   if (up->use_gpu) { */
+/*     gkyl_bc_emission_advance_cu(up, buff_arr, f_arr); */
+/*     return; */
+/*   } */
+/* #endif */
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &up->skin_r);
 

@@ -52,13 +52,10 @@ gkyl_bc_emission_spectrum_choose_func_cu(enum gkyl_bc_emission_spectrum_type bct
 }
 
 __global__ static void
-gkyl_bc_emission_spectrum_sey_calc_cu_ker(int cdim, int vdim, double *bc_param, double *sey_param, struct gkyl_rect_grid grid, const struct gkyl_range ghost_r, struct gkyl_array *gamma, struct gkyl_bc_emission_spectrum_funcs *funcs)
+gkyl_bc_emission_spectrum_sey_calc_cu_ker(int cdim, int vdim, double *sey_param, struct gkyl_rect_grid grid, const struct gkyl_range ghost_r, struct gkyl_array *gamma, struct gkyl_bc_emission_spectrum_funcs *funcs)
 {
   double xc[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM];
-
-  double mass = bc_param[0];
-  double charge = bc_param[1];
 
   for(unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x;
       linc < ghost_r.volume; linc += blockDim.x*gridDim.x) {
@@ -75,7 +72,7 @@ gkyl_bc_emission_spectrum_sey_calc_cu_ker(int cdim, int vdim, double *bc_param, 
     
     gkyl_rect_grid_cell_center(&grid, pidx, xc);
     
-    funcs->gamma(out, cdim, vdim, mass, charge, xc, sey_param);
+    funcs->gamma(out, cdim, vdim, xc, sey_param);
   }
 }
 
@@ -157,7 +154,7 @@ gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up
 {
   int nblocks = ghost_r->nblocks, nthreads = ghost_r->nthreads;
 
-  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->vdim, up->bc_param_cu, up->sey_param_cu, *grid, *ghost_r, gamma->on_dev, up->funcs_cu);
+  gkyl_bc_emission_spectrum_sey_calc_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->vdim, up->sey_param_cu, *grid, *ghost_r, gamma->on_dev, up->funcs_cu);
 }
 
 void
