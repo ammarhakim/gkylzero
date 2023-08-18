@@ -452,6 +452,7 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
   enum gkyl_basis_type b_type = cbasis->b_type;
   up->cdim = cdim;
   up->poly_order = poly_order;
+  up->mem_range = *mem_range;
   up->Ncomp = 6;
   up->Ncomp_surf = 2*cdim*3+2*cdim;
 
