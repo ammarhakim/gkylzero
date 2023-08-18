@@ -423,7 +423,7 @@ gkyl_dg_calc_pkpm_vars_io_cu(struct gkyl_dg_calc_pkpm_vars *up,
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 dg_calc_pkpm_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_vars *up, enum gkyl_basis_type b_type,
-  int cdim,int poly_order)
+  int cdim, int poly_order)
 {
   up->pkpm_set = choose_pkpm_set_kern(b_type, cdim, poly_order);
   up->pkpm_surf_set = choose_pkpm_surf_set_kern(b_type, cdim, poly_order);
@@ -465,9 +465,9 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
   // Each linear system is nc_surf x nc_surf (only solved over the surface basis and only when poly_order and cdim > 1)
   // 2*cdim*3+2*cdim components: ux, uy, uz (3 components) at the left and right of the cell (2 components) in each dimension (cdim components)
   // Also solves for 3*Txx/m at the left and right x surfaces, 3*Tyy/m at the left and right y surfaces, and 3*Tzz/m at the left and right y surfaces
-  up->As_surf = gkyl_nmat_new(up->Ncomp_surf*mem_range->volume, nc_surf, nc_surf);
-  up->xs_surf = gkyl_nmat_new(up->Ncomp_surf*mem_range->volume, nc_surf, 1);
-  up->mem_surf = gkyl_nmat_linsolve_lu_new(up->As_surf->num, up->As_surf->nr);
+  up->As_surf = gkyl_nmat_cu_dev_new(up->Ncomp_surf*mem_range->volume, nc_surf, nc_surf);
+  up->xs_surf = gkyl_nmat_cu_dev_new(up->Ncomp_surf*mem_range->volume, nc_surf, 1);
+  up->mem_surf = gkyl_nmat_linsolve_lu_cu_dev_new(up->As_surf->num, up->As_surf->nr);
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
