@@ -335,17 +335,21 @@ vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fluid_s
   gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
 }
 
-// Determine which directions are periodic and which directions are copy,
+// Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for fluid species
 void
 vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species, struct gkyl_array *f)
 {
+  struct timespec wst = gkyl_wall_clock();  
+  
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+    num_periodic_dir, app->periodic_dirs, f);
+  
   int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
-  for (int d=0; d<num_periodic_dir; ++d) {
-    vm_fluid_species_apply_periodic_bc(app, fluid_species, app->periodic_dirs[d], f);
+  for (int d=0; d<num_periodic_dir; ++d)
     is_np_bc[app->periodic_dirs[d]] = 0;
-  }
+
   for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 
@@ -380,6 +384,10 @@ vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *f
       }
     }
   }
+
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+
+  app->stat.fluid_species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // release resources for fluid species

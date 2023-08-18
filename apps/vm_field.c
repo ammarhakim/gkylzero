@@ -361,7 +361,7 @@ vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field,
   gkyl_array_copy_from_buffer(f, field->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
 }
 
-// Determine which directions are periodic and which directions are copy,
+// Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for EM fields
 void
 vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *f)

@@ -579,7 +579,7 @@ vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species *spec
   gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
 }
 
-// Determine which directions are periodic and which directions are copy,
+// Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
 void
 vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, struct gkyl_array *f)
