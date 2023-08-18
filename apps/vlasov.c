@@ -999,7 +999,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, SPECIES_COLL_MOM_TM,
     SPECIES_COL_TM, SPECIES_PKPM_VARS_TM, FIELD_RHS_TM, FIELD_EM_VARS_TM, CURRENT_TM,
     SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, MOM_TM, DIAG_TM, IO_TM,
-    SPECIES_BC_TM, FIELD_BC_TM,
+    SPECIES_BC_TM, FLUID_SPECIES_BC_TM, FIELD_BC_TM,
     D_END
   };
 
@@ -1022,6 +1022,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     [DIAG_TM] = local->diag_tm,
     [IO_TM] = local->io_tm,
     [SPECIES_BC_TM] = local->species_bc_tm,
+    [FLUID_SPECIES_BC_TM] = local->fluid_species_bc_tm,
     [FIELD_BC_TM] = local->field_bc_tm
   };
 
@@ -1046,6 +1047,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   global->diag_tm = d_red_global[DIAG_TM];
   global->io_tm = d_red_global[IO_TM];
   global->species_bc_tm = d_red_global[SPECIES_BC_TM];
+  global->fluid_species_bc_tm = d_red_global[FLUID_SPECIES_BC_TM];
   global->field_bc_tm = d_red_global[FIELD_BC_TM];
 
   // misc data needing reduction
@@ -1131,6 +1133,8 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   gkyl_vlasov_app_cout(app, fp, " species_bc_tm : %lg,\n", stat.species_bc_tm);
   
   gkyl_vlasov_app_cout(app, fp, " fluid_species_rhs_tm : %lg,\n", stat.fluid_species_rhs_tm);
+
+  gkyl_vlasov_app_cout(app, fp, " fluid_species_bc_tm : %lg,\n", stat.fluid_species_bc_tm);
 
   if (app->has_field) {
     gkyl_vlasov_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);

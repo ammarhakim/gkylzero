@@ -240,6 +240,7 @@ struct gkyl_vlasov_stat {
                                // and the source distribution functions for Laguerre couplings.
 
   double species_bc_tm; // time to compute species BCs
+  double fluid_species_bc_tm; // time to compute fluid species BCs
   double field_bc_tm; // time to compute field
   
   double field_rhs_tm; // time to compute field RHS
