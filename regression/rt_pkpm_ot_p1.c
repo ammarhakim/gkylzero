@@ -476,11 +476,11 @@ main(int argc, char **argv)
     gkyl_vlasov_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-
-    gkyl_vlasov_app_calc_field_energy(app, tcurr);
-    gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
-    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
-    
+    if (step % 100 == 0) {
+      gkyl_vlasov_app_calc_field_energy(app, tcurr);
+      gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+      gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+    }
     if (!status.success) {
       gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
@@ -498,7 +498,9 @@ main(int argc, char **argv)
 
     step += 1;
   }
-
+  gkyl_vlasov_app_calc_field_energy(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
   gkyl_vlasov_app_write_field_energy(app);
   gkyl_vlasov_app_write_integrated_L2_f(app);
   gkyl_vlasov_app_write_integrated_mom(app);
@@ -528,7 +530,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Species BCs took %g secs\n", stat.species_bc_tm);
   gkyl_vlasov_app_cout(app, stdout, "Fluid Species BCs took %g secs\n", stat.fluid_species_bc_tm);
   gkyl_vlasov_app_cout(app, stdout, "Field BCs took %g secs\n", stat.field_bc_tm);
-  
+
   gkyl_vlasov_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
