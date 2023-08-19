@@ -170,7 +170,7 @@ $(BUILD_DIR)/kernels/dg_diffusion/%.c.o : kernels/dg_diffusion/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/kernels/dg_gen_diffusion/%.c.o : kernels/dg_gen_diffusion/%.c
+$(BUILD_DIR)/kernels/dg_diffusion_gen/%.c.o : kernels/dg_diffusion_gen/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 

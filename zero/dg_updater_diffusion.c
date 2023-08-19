@@ -6,7 +6,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_diffusion.h>
 #include <gkyl_dg_diffusion_euler_iso.h>
-#include <gkyl_dg_gen_diffusion.h>
+#include <gkyl_dg_diffusion_gen.h>
 #include <gkyl_dg_updater_diffusion.h>
 #include <gkyl_dg_updater_diffusion_priv.h>
 #include <gkyl_hyper_dg.h>
@@ -28,7 +28,7 @@ gkyl_dg_updater_diffusion_new(const struct gkyl_rect_grid *grid,
   if (diffusion_id == GKYL_ISO_DIFFUSION)
     up->eqn_diffusion = gkyl_dg_diffusion_new(cbasis, conf_range, use_gpu);
   else if (diffusion_id == GKYL_ANISO_DIFFUSION)
-    up->eqn_diffusion = gkyl_dg_gen_diffusion_new(cbasis, conf_range, use_gpu);
+    up->eqn_diffusion = gkyl_dg_diffusion_gen_new(cbasis, conf_range, use_gpu);
   else if (diffusion_id == GKYL_EULER_ISO_DIFFUSION)
     up->eqn_diffusion = gkyl_dg_diffusion_euler_iso_new(cbasis, conf_range, use_gpu);
 
@@ -63,8 +63,8 @@ gkyl_dg_updater_diffusion_advance(gkyl_dg_updater_diffusion *diffusion,
     gkyl_hyper_dg_advance(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   else if (diffusion_id == GKYL_ANISO_DIFFUSION) {
-    gkyl_gen_diffusion_set_auxfields(diffusion->eqn_diffusion,
-      (struct gkyl_dg_gen_diffusion_auxfields) { .Dij = D });
+    gkyl_diffusion_gen_set_auxfields(diffusion->eqn_diffusion,
+      (struct gkyl_dg_diffusion_gen_auxfields) { .Dij = D });
     gkyl_hyper_dg_gen_stencil_advance(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   else if (diffusion_id == GKYL_EULER_ISO_DIFFUSION) {
@@ -109,8 +109,8 @@ gkyl_dg_updater_diffusion_advance_cu(gkyl_dg_updater_diffusion *diffusion,
     gkyl_hyper_dg_advance_cu(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
   else if (diffusion_id == GKYL_ANISO_DIFFUSION) {
-    gkyl_gen_diffusion_set_auxfields(diffusion->eqn_diffusion,
-      (struct gkyl_dg_gen_diffusion_auxfields) { .Dij = D });
+    gkyl_diffusion_gen_set_auxfields(diffusion->eqn_diffusion,
+      (struct gkyl_dg_diffusion_gen_auxfields) { .Dij = D });
     // hyper_dg_gen_stencil NOT YET IMPLEMENTED ON DEVICE
     // gkyl_hyper_dg_gen_stencil_advance_cu(diffusion->up_diffusion, update_rng, fIn, cflrate, rhs);
   }
