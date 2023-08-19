@@ -157,8 +157,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -6.0 * ctx.vte},
-    .upper = { 6.0 * ctx.vte}, 
+    .lower = { -8.0 * ctx.vte},
+    .upper = { 8.0 * ctx.vte}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -205,7 +205,6 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuIon,
-      .normNu = true,
     },    
 
     .num_diag_moments = 0,
