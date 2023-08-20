@@ -40,14 +40,6 @@ struct sr_gem_ctx {
   bool use_gpu;
 };
 
-// static inline double
-// maxwelljuttner3D(double n, double px, double py, double pz, double ux, double uy, double uz, double T, double K_2)
-// {
-//   double gamma = 1.0/sqrt(1 - ux*ux - uy*uy - uz*uz);
-//   // T is in units of m_e c^2
-//   return n/(4*M_PI*T*K_2)*exp(-(gamma/T)*(sqrt(1.0 + px*px + py*py + pz*pz) - ux*px - uy*py - uz*pz));
-// }
-
 static inline double
 maxwelljuttner3D(double n, double px, double py, double pz, double ux, double uy, double uz, double T, double K_2)
 {
@@ -243,7 +235,7 @@ create_ctx(void)
   double massIon = 1.0; // ion mass (positrons)
   double chargeIon = 1.0; // ion charge (positrons)
 
-  double sigma = 1.0; // B^2/(2*mu0*n_i m_i c^2) = 1.0
+  double sigma = 2.0; // B^2/(2*mu0*n_i m_i c^2) = 2.0
   // T_i = T_e = 0.04*m_e c^2 ~ 0.02 MeV
   double T_e = 0.04; // T_e/m_e c^2 = 0.04
   double T_i = 0.04; 
@@ -257,12 +249,13 @@ create_ctx(void)
   double vAi = sqrt(sigma/(sigma+1));
   double n0 = 1.0; // initial number density
 
-  // ion cyclotron frequency and gyroradius
+  // ion cyclotron frequency
   double omegaCi = chargeIon*tot_B/massIon;
-  double di = vAi/omegaCi;
+  // ion inertial length (normalized to upstream, non-drifting plasma)
+  double di = 1.0;
 
   // Layer width and perturbation
-  double w0 = 0.5*di;
+  double w0 = di;
   double psi0 = 0.1*tot_B*di;
 
   // noise levels for perturbation
@@ -272,9 +265,9 @@ create_ctx(void)
   double noise_index = -1.0; // spectral index of the noise
 
   // domain size and simulation time
-  double Lx = 8.0*M_PI*di;
-  double Ly = 4.0*M_PI*di;
-  double tend = 50.0/omegaCi;
+  double Lx = 32.0*M_PI*di;
+  double Ly = 16.0*M_PI*di;
+  double tend = 10.0/omegaCi;
   
   struct sr_gem_ctx ctx = {
     .epsilon0 = epsilon0,
