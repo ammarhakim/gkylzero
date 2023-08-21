@@ -156,6 +156,14 @@ gkyl_mat_triples_iter_new(const gkyl_mat_triples *tri)
   return iter;
 }
 
+void
+gkyl_mat_triples_iter_init(struct gkyl_mat_triples_iter *iter, const gkyl_mat_triples *tri)
+{
+  iter->is_first = true;
+  iter->nrem = csmap_triple_size(tri->triples);
+  iter->it_curr = csmap_triple_begin(&tri->triples);
+}
+
 bool
 gkyl_mat_triples_iter_next(gkyl_mat_triples_iter *iter)
 {
@@ -174,6 +182,20 @@ struct gkyl_mtriple
 gkyl_mat_triples_iter_at(const gkyl_mat_triples_iter *iter)
 {
   return iter->it_curr.ref->second;
+}
+
+void
+gkyl_mat_triples_clear(struct gkyl_mat_triples *tri, double val)
+{
+  gkyl_mat_triples_iter *iter = gkyl_mat_triples_iter_new(tri);
+  while (gkyl_mat_triples_iter_next(iter)) {
+    struct gkyl_mtriple mt = gkyl_mat_triples_iter_at(iter);
+
+    struct csmap_triple_value *mtm = csmap_triple_get_mut(&tri->triples,
+      (struct mat_idx) { .row = mt.row, .col = mt.col });
+    mtm->second.val = val;
+  }
+  gkyl_mat_triples_iter_release(iter);
 }
 
 void

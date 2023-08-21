@@ -34,10 +34,15 @@ static MPI_Op g2_mpi_op[] = {
 };
 
 // Receive data
-struct recv_info {
+struct comm_buff_stat {
   struct gkyl_range range;
   MPI_Request status;
   gkyl_mem_buff buff;
+};
+
+struct gkyl_comm_state {
+  MPI_Request req;
+  MPI_Status stat;
 };
 
 // Private struct wrapping MPI-specific code
@@ -55,9 +60,11 @@ struct mpi_comm {
   int is_on_edge[2][GKYL_MAX_DIM]; // flags to indicate if local range is on edge
   bool touches_any_edge; // true if this range touches any edge
 
-  int nrinfo; // number of elements in rinfo array
-  struct recv_info rinfo[MAX_RECV_NEIGH]; // info for recv data
-  gkyl_mem_buff sendb, recvb; // send/recv buffers
+  int nrecv; // number of elements in rinfo array
+  struct comm_buff_stat recv[MAX_RECV_NEIGH]; // info for recv data
+
+  int nsend; // number of elements in sinfo array
+  struct comm_buff_stat send[MAX_RECV_NEIGH]; // info for send data
 };
 
 static void
@@ -73,11 +80,11 @@ comm_free(const struct gkyl_ref_count *ref)
   for (int d=0; d<ndim; ++d)
     gkyl_rect_decomp_neigh_release(mpi->per_neigh[d]);
 
-  gkyl_mem_buff_release(mpi->sendb);
-  gkyl_mem_buff_release(mpi->recvb);
+  for (int i=0; i<MAX_RECV_NEIGH; ++i)
+    gkyl_mem_buff_release(mpi->recv[i].buff);
 
   for (int i=0; i<MAX_RECV_NEIGH; ++i)
-    gkyl_mem_buff_release(mpi->rinfo[i].buff);
+    gkyl_mem_buff_release(mpi->send[i].buff);
   
   gkyl_free(mpi);
 }
@@ -96,6 +103,43 @@ get_size(struct gkyl_comm *comm, int *sz)
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
   MPI_Comm_size(mpi->mcomm, sz);
   return 0;
+}
+
+static int
+array_send(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm)
+{
+  size_t vol = array->ncomp*array->size;
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  int ret = MPI_Send(array->data, vol, g2_mpi_datatype[array->type], dest, tag, mpi->mcomm); 
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
+array_isend(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
+{
+  size_t vol = array->ncomp*array->size;
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  int ret = MPI_Isend(array->data, vol, g2_mpi_datatype[array->type], dest, tag, mpi->mcomm, &state->req); 
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
+array_recv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm)
+{
+  size_t vol = array->ncomp*array->size;
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  MPI_Status stat;
+  int ret = MPI_Recv(array->data, vol, g2_mpi_datatype[array->type], src, tag, mpi->mcomm, &stat); 
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
+array_irecv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
+{
+  size_t vol = array->ncomp*array->size;
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  int ret = MPI_Irecv(array->data, vol, g2_mpi_datatype[array->type], src, tag, mpi->mcomm, &state->req); 
+  return ret == MPI_SUCCESS ? 0 : 1;
 }
 
 static int
@@ -123,43 +167,75 @@ array_sync(struct gkyl_comm *comm,
   for (int i=0; i<mpi->decomp->ndim; ++i)
     elo[i] = eup[i] = local_ext->upper[i]-local->upper[i];
 
+  int nridx = 0;
   int tag = MPI_BASE_TAG;
 
+    // post nonblocking recv to get data into ghost-cells  
   for (int n=0; n<mpi->neigh->num_neigh; ++n) {
     int nid = mpi->neigh->neigh[n];
-
-    // post nonblocking recv to get data into ghost-cells
-    struct gkyl_range recv_rgn;
-    int isrecv = gkyl_sub_range_intersect(&recv_rgn, local_ext, &mpi->decomp->ranges[nid]);
-    size_t recv_vol = array->esznc*recv_rgn.volume;
-
-    MPI_Request recv_req;
-    if (isrecv) {
-      if (gkyl_mem_buff_size(mpi->recvb) < recv_vol)
-        gkyl_mem_buff_resize(mpi->recvb, recv_vol);
-      MPI_Irecv(gkyl_mem_buff_data(mpi->recvb),
-        recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &recv_req);
-    }
-
-    // send skin-cell data to neighbors
-    struct gkyl_range neigh_ext;
-    gkyl_range_extend(&neigh_ext, &mpi->decomp->ranges[nid], elo, eup);
-    struct gkyl_range send_rgn;
-    int issend = gkyl_sub_range_intersect(&send_rgn, local, &neigh_ext);
-    size_t send_vol = array->esznc*send_rgn.volume;
-
-    if (issend) {
-      if (gkyl_mem_buff_size(mpi->sendb) < send_vol)
-        gkyl_mem_buff_resize(mpi->sendb, send_vol);
-      gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->sendb), array, send_rgn);
-      MPI_Send(gkyl_mem_buff_data(mpi->sendb), send_vol, MPI_CHAR, nid, tag, mpi->mcomm);
-    }
+    
+    int isrecv = gkyl_sub_range_intersect(
+      &mpi->recv[nridx].range, local_ext, &mpi->decomp->ranges[nid]);
+    size_t recv_vol = array->esznc*mpi->recv[nridx].range.volume;
 
     if (isrecv) {
-      MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
-      gkyl_array_copy_from_buffer(array, gkyl_mem_buff_data(mpi->recvb), recv_rgn);
+      if (gkyl_mem_buff_size(mpi->recv[nridx].buff) < recv_vol)
+        gkyl_mem_buff_resize(mpi->recv[nridx].buff, recv_vol);
+      
+      MPI_Irecv(gkyl_mem_buff_data(mpi->recv[nridx].buff),
+        recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->recv[nridx].status);
+
+      nridx += 1;
     }
   }
+
+  int nsidx = 0;
+  
+  // post non-blocking sends of skin-cell data to neighbors
+  for (int n=0; n<mpi->neigh->num_neigh; ++n) {
+    int nid = mpi->neigh->neigh[n];
+    
+    struct gkyl_range neigh_ext;
+    gkyl_range_extend(&neigh_ext, &mpi->decomp->ranges[nid], elo, eup);
+
+    int issend = gkyl_sub_range_intersect(
+      &mpi->send[nsidx].range, local, &neigh_ext);
+    size_t send_vol = array->esznc*mpi->send[nsidx].range.volume;
+
+    if (issend) {
+      if (gkyl_mem_buff_size(mpi->send[nsidx].buff) < send_vol)
+        gkyl_mem_buff_resize(mpi->send[nsidx].buff, send_vol);
+      
+      gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->send[nsidx].buff),
+        array, mpi->send[nsidx].range);
+      
+      MPI_Isend(gkyl_mem_buff_data(mpi->send[nsidx].buff),
+        send_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->send[nsidx].status);
+
+      nsidx += 1;
+    }
+  }
+
+  // complete send
+  for (int s=0; s<nsidx; ++s) {
+    int issend = mpi->send[s].range.volume;
+    if (issend)
+      MPI_Wait(&mpi->send[s].status, MPI_STATUS_IGNORE);
+  }
+
+  // complete recv, copying data into ghost-cells
+  for (int r=0; r<nridx; ++r) {
+    int isrecv = mpi->recv[r].range.volume;
+    if (isrecv) {
+      MPI_Wait(&mpi->recv[r].status, MPI_STATUS_IGNORE);
+      
+      gkyl_array_copy_from_buffer(array,
+        gkyl_mem_buff_data(mpi->recv[r].buff),
+        mpi->recv[r].range
+      );
+    }
+  }
+  
   return 0;
 }
 
@@ -213,24 +289,27 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
           gkyl_range_shift(&neigh_shift, &mpi->decomp->ranges[nid], delta);
 
           int isrecv = gkyl_sub_range_intersect(
-            &mpi->rinfo[nridx].range, local_ext, &neigh_shift);
-          size_t recv_vol = array->esznc*mpi->rinfo[nridx].range.volume;
+            &mpi->recv[nridx].range, local_ext, &neigh_shift);
+          size_t recv_vol = array->esznc*mpi->recv[nridx].range.volume;
 
           if (isrecv) {
-            if (gkyl_mem_buff_size(mpi->rinfo[nridx].buff) < recv_vol)
-              gkyl_mem_buff_resize(mpi->rinfo[nridx].buff, recv_vol);
+            if (gkyl_mem_buff_size(mpi->recv[nridx].buff) < recv_vol)
+              gkyl_mem_buff_resize(mpi->recv[nridx].buff, recv_vol);
 
             int tag = per_recv_tag(&mpi->dir_edge, dir, e);
-            MPI_Irecv(gkyl_mem_buff_data(mpi->rinfo[nridx].buff),
-              recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->rinfo[nridx].status);
+            MPI_Irecv(gkyl_mem_buff_data(mpi->recv[nridx].buff),
+              recv_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->recv[nridx].status);
+
+            nridx += 1;
           }
-          nridx += 1;
         }
       }
     }
   }
 
-  // send skin-cell data to neighbors
+  int nsidx = 0;  
+
+  // post non-blocking send skin-cell data to neighbors
   for (int i=0; i<nper_dirs; ++i) {
     int dir = per_dirs[i];
 
@@ -242,40 +321,54 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
         if (mpi->per_neigh[dir]->num_neigh == 1) { // really should  be a loop
           int nid = mpi->per_neigh[dir]->neigh[0];
 
-          struct gkyl_range neigh_shift, neigh_shift_ext, send_rgn;
+          struct gkyl_range neigh_shift, neigh_shift_ext;
           gkyl_range_shift(&neigh_shift, &mpi->decomp->ranges[nid], delta);
 
           gkyl_range_extend(&neigh_shift_ext, &neigh_shift, elo, eup);
-          int issend = gkyl_sub_range_intersect(&send_rgn, local, &neigh_shift_ext);
-          size_t send_vol = array->esznc*send_rgn.volume;
+          int issend = gkyl_sub_range_intersect(
+            &mpi->send[nsidx].range, local, &neigh_shift_ext);
+          
+          size_t send_vol = array->esznc*mpi->send[nsidx].range.volume;
 
           if (issend) {
-            if (gkyl_mem_buff_size(mpi->sendb) < send_vol)
-              gkyl_mem_buff_resize(mpi->sendb, send_vol);
-            gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->sendb), array, send_rgn);
+            if (gkyl_mem_buff_size(mpi->send[nsidx].buff) < send_vol)
+              gkyl_mem_buff_resize(mpi->send[nsidx].buff, send_vol);
+            
+            gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->send[nsidx].buff),
+              array, mpi->send[nsidx].range);
 
             int tag = per_send_tag(&mpi->dir_edge, dir, e);
-            MPI_Send(gkyl_mem_buff_data(mpi->sendb), send_vol, MPI_CHAR, nid, tag, mpi->mcomm);
+            MPI_Isend(gkyl_mem_buff_data(mpi->send[nsidx].buff),
+              send_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->send[nsidx].status);
+
+            nsidx += 1;
           }
         }
       }
     }
   }
 
+  // complete send
+  for (int s=0; s<nsidx; ++s) {
+    int issend = mpi->send[s].range.volume;
+    if (issend)
+      MPI_Wait(&mpi->send[s].status, MPI_STATUS_IGNORE);
+  }
+
   // complete recv, copying data into ghost-cells
   for (int r=0; r<nridx; ++r) {
-    int isrecv = mpi->rinfo[r].range.volume;
+    int isrecv = mpi->recv[r].range.volume;
     if (isrecv) {
-      MPI_Wait(&mpi->rinfo[r].status, MPI_STATUS_IGNORE);
+      MPI_Wait(&mpi->recv[r].status, MPI_STATUS_IGNORE);
       
       gkyl_array_copy_from_buffer(array,
-        gkyl_mem_buff_data(mpi->rinfo[r].buff),
-        mpi->rinfo[r].range
+        gkyl_mem_buff_data(mpi->recv[r].buff),
+        mpi->recv[r].range
       );
     }
   }
 
-  mpi->nrinfo = nridx > mpi->nrinfo ? nridx : mpi->nrinfo;
+  mpi->nrecv = nridx > mpi->nrecv ? nridx : mpi->nrecv;
   
   return 0;
 }
@@ -421,6 +514,40 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   return ext_comm;
 }
 
+static struct gkyl_comm*
+split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+  int rank;
+  MPI_Comm_rank(mpi->mcomm, &rank);
+  MPI_Comm new_mcomm;
+  int ret = MPI_Comm_split(mpi->mcomm, color, rank, &new_mcomm);
+  assert(ret == MPI_SUCCESS);
+
+  struct gkyl_comm *newcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = new_mcomm,
+      .decomp = new_decomp,
+    }
+  );
+  return newcomm;
+}
+
+static struct gkyl_comm_state* comm_state_new()
+{
+  struct gkyl_comm_state *state = gkyl_malloc(sizeof *state);
+  return state;
+}
+
+static void comm_state_release(struct gkyl_comm_state *state)
+{
+  gkyl_free(state);
+}
+
+void comm_state_wait(struct gkyl_comm_state *state)
+{
+  MPI_Wait(&state->req, &state->stat);
+}
+
 struct gkyl_comm*
 gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
 {
@@ -449,22 +576,30 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   }
   mpi->touches_any_edge = num_touches > 0 ? true : false;
   
-  mpi->sendb = gkyl_mem_buff_new(1024); // will be resized later
-  mpi->recvb = gkyl_mem_buff_new(1024);
-
-  mpi->nrinfo = 0;
+  mpi->nrecv = 0;
   for (int i=0; i<MAX_RECV_NEIGH; ++i)
-    mpi->rinfo[i].buff = gkyl_mem_buff_new(1024);
+    mpi->recv[i].buff = gkyl_mem_buff_new(16);
+
+  mpi->nsend = 0;
+  for (int i=0; i<MAX_RECV_NEIGH; ++i)
+    mpi->send[i].buff = gkyl_mem_buff_new(16);
   
   mpi->base.get_rank = get_rank;
   mpi->base.get_size = get_size;
   mpi->base.barrier = barrier;
+  mpi->base.gkyl_array_send = array_send;
+  mpi->base.gkyl_array_isend = array_isend;
+  mpi->base.gkyl_array_recv = array_recv;
+  mpi->base.gkyl_array_irecv = array_irecv;
   mpi->base.all_reduce = all_reduce;
   mpi->base.gkyl_array_sync = array_sync;
   mpi->base.gkyl_array_per_sync = array_per_sync;
   mpi->base.gkyl_array_write = array_write;
   mpi->base.extend_comm = extend_comm;
-
+  mpi->base.split_comm = split_comm;
+  mpi->base.comm_state_new = comm_state_new;
+  mpi->base.comm_state_release = comm_state_release;
+  mpi->base.comm_state_wait = comm_state_wait;
   mpi->base.ref_count = gkyl_ref_count_init(comm_free);
 
   return &mpi->base;

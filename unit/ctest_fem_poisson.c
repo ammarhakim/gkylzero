@@ -160,11 +160,11 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   }
   int dim = sizeof(lower)/sizeof(lower[0]);
 
-  // grids.
+  // Grids.
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
 
-  // basis functions.
+  // Basis functions.
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
@@ -174,7 +174,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
   skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
-  // projection updater for DG field.
+  // Projection updater for DG field.
   gkyl_proj_on_basis *projob;
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
@@ -190,18 +190,18 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
       poly_order+1, 1, evalFunc1x_dirichletx_neumannx, NULL);
   }
 
-  // create DG field we wish to make continuous.
+  // Create DG field we wish to make continuous.
   struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
-  // create array holding continuous field we'll compute.
+  // Create array holding continuous field we'll compute.
   struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
-  // device copies:
+  // Device copies:
   struct gkyl_array *rho_cu, *phi_cu;
   if (use_gpu) {
-    rho_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
-    phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
+    rho_cu  = mkarr_cu(basis.num_basis, localRange_ext.volume);
+    phi_cu  = mkarr_cu(basis.num_basis, localRange_ext.volume);
   }
 
-  // project distribution function on basis.
+  // Project the right-side source on the basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   struct gkyl_array *perbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   for (int d=0; d<dim; d++)
@@ -210,7 +210,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, NULL, NULL, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
@@ -242,7 +242,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     // Subtract the volume averaged sol from the sol.
     gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi, localRange);
     gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, localRange);
-    gkyl_array_shiftc0(phi, mavgfac*sol_avg[0]);
+    gkyl_array_shiftc(phi, mavgfac*sol_avg[0], 0);
 
     gkyl_free(sol_avg);
     gkyl_array_release(sol_cellavg);
@@ -530,7 +530,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
   skin_ghost_ranges_init(&skin_ghost, &localRange_ext, ghost);
 
-  // projection updater for DG field.
+  // Projection updater for DG field.
   gkyl_proj_on_basis *projob;
   if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.lo_type[1] == GKYL_POISSON_PERIODIC) {
     projob = gkyl_proj_on_basis_new(&grid, &basis,
@@ -565,18 +565,18 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
       poly_order+1, 1, evalFunc2x_dirichletx_neumannx_dirichlety, NULL);
   }
 
-  // create DG field we wish to make continuous.
+  // Create DG field we wish to make continuous.
   struct gkyl_array *rho = mkarr(basis.num_basis, localRange_ext.volume);
-  // create array holding continuous field we'll compute.
+  // Create array holding continuous field we'll compute.
   struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
-  // device copies:
+  // Device copies:
   struct gkyl_array *rho_cu, *phi_cu;
   if (use_gpu) {
     rho_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
     phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
   }
 
-  // project distribution function on basis.
+  // Project the right-side source on the basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   struct gkyl_array *perbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
   for (int d=0; d<dim; d++)
@@ -585,7 +585,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, NULL, NULL, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
@@ -617,7 +617,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     // Subtract the volume averaged sol from the sol.
     gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi, localRange);
     gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, localRange);
-    gkyl_array_shiftc0(phi, mavgfac*sol_avg[0]);
+    gkyl_array_shiftc(phi, mavgfac*sol_avg[0], 0);
 
     gkyl_free(sol_avg);
     gkyl_array_release(sol_cellavg);

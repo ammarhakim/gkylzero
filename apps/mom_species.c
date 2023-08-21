@@ -242,9 +242,11 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
 // apply BCs to species
 void
-moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
+moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
   const struct moment_species *sp, struct gkyl_array *f)
 {
+  struct timespec wst = gkyl_wall_clock();
+  
   int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
 
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
@@ -270,6 +272,8 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
     }
 
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+
+  app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // maximum stable time-step
@@ -293,7 +297,7 @@ moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *s
 // update solution: initial solution is in sp->f[0] and updated
 // solution in sp->f[ndim]
 struct gkyl_update_status
-moment_species_update(const gkyl_moment_app *app,
+moment_species_update(gkyl_moment_app *app,
   struct moment_species *sp, double tcurr, double dt)
 {
   int ndim = sp->ndim;
