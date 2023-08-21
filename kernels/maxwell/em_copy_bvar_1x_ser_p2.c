@@ -1,7 +1,7 @@
 #include <gkyl_mat.h> 
 #include <gkyl_maxwell_kernels.h> 
 #include <gkyl_basis_ser_1x_p2_sqrt_with_sign.h> 
-GKYL_CU_DH void em_copy_bvar_1x_ser_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_magB2, double* bvar) 
+GKYL_CU_DH void em_copy_bvar_1x_ser_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_magB2, double* GKYL_RESTRICT bvar) 
 { 
   // count:          Integer to indicate which matrix being fetched. 
   // x:              Input solution vector. 

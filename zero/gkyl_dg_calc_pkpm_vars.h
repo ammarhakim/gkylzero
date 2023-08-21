@@ -12,13 +12,12 @@ typedef struct gkyl_dg_calc_pkpm_vars gkyl_dg_calc_pkpm_vars;
  * Create new updater to compute pkpm variables needed in 
  * updates and used for diagnostics. Methods compute:
  * p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
- * prim : [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
- * pkpm_accel_vars : 0 : div_b (divergence of magnetic field unit vector)
+ * prim : [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+ * pkpm_accel_vars : 0 : p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
                      1 : bb_grad_u (bb : grad(u))
                      2 : p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
                      3 : p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2 nu)
-                     4 : p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
- * pkpm_int_vars : integrated PKPM variables (rho, p_parallel, p_perp, rhoux^2, rhouy^2, rhouz^2)
+ * pkpm_int_vars : integrated PKPM variables (rho, rhoux, rhouy, rhouz, rhoux^2, rhouy^2, rhouz^2, p_parallel, p_perp)
  * pkpm fluid source : Explicit source terms in momentum solve q/m rho (E_i + epsilon_ijk u_j B_k)
  * 
  * Updater also stores the kernels to compute pkpm source terms and pkpm integrated moments.
@@ -97,31 +96,31 @@ void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const st
  *
  * @param up Updater for computing pkpm variables 
  * @param conf_range Configuration space range
- * @param bvar Input array of magnetic field unit vector and unit tensor
  * @param prim_surf Input array of surface expansions of primitive moments [u_i, 3.0*T_ii/m]
  * @param prim Input array of volume expansion of primitive moments [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+ * @param bvar Input array of magnetic field unit vector and unit tensor
+ * @param div_b Input array of div(b)
  * @param nu Input array of collisionality
  * @param pkpm_lax Output array of surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
  * @param pkpm_accel Output arrary of pkpm acceleration variables ordered as:
- *        0: div_b (divergence of magnetic field unit vector)
+ *        0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
           1: bb_grad_u (bb : grad(u))
           2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
           3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2 nu)
-          4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
  */
 void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* prim_surf, 
-  const struct gkyl_array* prim, const struct gkyl_array* nu, 
+  const struct gkyl_array* prim_surf, const struct gkyl_array* prim, 
+  const struct gkyl_array* bvar, const struct gkyl_array* div_b, const struct gkyl_array* nu, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel);
 
 /**
- * Compute integrated PKPM variables (rho, p_parallel, p_perp, rhoux^2, rhouy^2, rhouz^2).
+ * Compute integrated PKPM variables (rho, rhoux, rhouy, rhouz, rhoux^2, rhouy^2, rhouz^2, p_parallel, p_perp).
  *
  * @param up Updater for computing pkpm variables 
  * @param conf_range Configuration space range
  * @param vlasov_pkpm_moms Input array of parallel-kinetic-perpendicular-moment kinetic moments [rho, p_parallel, p_perp]
  * @param euler_pkpm Input array of parallel-kinetic-perpendicular-moment fluid variables [rho ux, rho uy, rho uz]
- * @param prim Input array of primitive moments [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+ * @param prim Input array of primitive moments [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
  * @param int_pkpm_vars Output array of integrated variables (6 components)
  */
 void gkyl_dg_calc_pkpm_integrated_vars(struct gkyl_dg_calc_pkpm_vars *up, 
@@ -148,23 +147,21 @@ void gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up,
  * Construct PKPM variables for I/O. Computes the conserved fluid variables 
  * [rho, rho ux, rho uy, rho uz, Pxx + rho ux^2, Pxy + rho ux uy, Pxz + rho ux uz, Pyy + rho uy^2, Pyz + rho uy uz, Pzz + rho uz^2]
  * And copies the pkpm primitive and acceleration variables into an array for output
- * [ux, uy, uz, T_perp/m, m/T_perp, div(b), 1/rho div(p_par b), T_perp/m div(b), bb : grad(u), 
- *  vperp configuration space characteristics = bb : grad(u) - div(u) - 2 nu]
+ * [ux, uy, uz, T_perp/m, m/T_perp, 1/rho div(p_par b), T_perp/m div(b), bb : grad(u)]
  *
  * @param up Updater for computing pkpm variables 
  * @param conf_range Configuration space range
  * @param vlasov_pkpm_moms Input array of parallel-kinetic-perpendicular-moment kinetic moments [rho, p_parallel, p_perp]
  * @param euler_pkpm Input array of parallel-kinetic-perpendicular-moment fluid variables [rho ux, rho uy, rho uz]
  * @param p_ij Input pressure tensor p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
- * @param prim Input array of primitive moments [ux, uy, uz, 3*Txx/m, 3*Tyy/m, 3*Tzz/m, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+ * @param prim Input array of primitive moments [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
  * @param pkpm_accel Input arrary of pkpm acceleration variables ordered as:
- *        0: div_b (divergence of magnetic field unit vector)
+ *        0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
           1: bb_grad_u (bb : grad(u))
           2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
           3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2 nu)
-          4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
  * @param fluid_io Output array of conserved fluid variables (10 components)
- * @param pkpm_vars_io Output array of pkpm variables, primitive and acceleration (10 components)
+ * @param pkpm_vars_io Output array of pkpm variables, primitive and acceleration (8 components)
  */
 void gkyl_dg_calc_pkpm_vars_io(struct gkyl_dg_calc_pkpm_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_array* vlasov_pkpm_moms, 
@@ -197,8 +194,8 @@ void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up, const
   const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij);
 
 void gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* prim_surf, 
-  const struct gkyl_array* prim, const struct gkyl_array* nu, 
+  const struct gkyl_array* prim_surf, const struct gkyl_array* prim, 
+  const struct gkyl_array* bvar, const struct gkyl_array* div_b, const struct gkyl_array* nu, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel);
 
 void gkyl_dg_calc_pkpm_integrated_vars_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 

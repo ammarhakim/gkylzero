@@ -37,6 +37,7 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid,
   up->pkpm_copy = choose_pkpm_copy_kern(b_type, cdim, poly_order);
   up->pkpm_surf_copy = choose_pkpm_surf_copy_kern(b_type, cdim, poly_order);
   up->pkpm_pressure = choose_pkpm_pressure_kern(b_type, cdim, poly_order);
+  up->pkpm_p_force = choose_pkpm_p_force_kern(b_type, cdim, poly_order);
   up->pkpm_source = choose_pkpm_source_kern(b_type, cdim, poly_order);
   up->pkpm_int = choose_pkpm_int_kern(b_type, cdim, poly_order);
   up->pkpm_io = choose_pkpm_io_kern(b_type, cdim, poly_order);
@@ -193,14 +194,14 @@ void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up, const st
 }
 
 void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* prim_surf, 
-  const struct gkyl_array* prim, const struct gkyl_array* nu, 
+  const struct gkyl_array* prim_surf, const struct gkyl_array* prim, 
+  const struct gkyl_array* bvar, const struct gkyl_array* div_b, const struct gkyl_array* nu, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_accel)) {
     return gkyl_dg_calc_pkpm_vars_accel_cu(up, conf_range, 
-      bvar, prim_surf, prim, nu, pkpm_lax, pkpm_accel);
+      prim_surf, prim, bvar, div_b, nu, pkpm_lax, pkpm_accel);
   }
 #endif
 
@@ -213,14 +214,18 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
     gkyl_copy_int_arr(cdim, iter.idx, idxc);
     long linc = gkyl_range_idx(conf_range, idxc);
 
-    const double *bvar_c = gkyl_array_cfetch(bvar, linc);
     const double *prim_surf_c = gkyl_array_cfetch(prim_surf, linc);
-    // Only need nu and the volume expansion of the primitive moments in center cell
+  
     const double *prim_d = gkyl_array_cfetch(prim, linc);
+    const double *bvar_d = gkyl_array_cfetch(bvar, linc);
+    const double *div_b_d = gkyl_array_cfetch(div_b, linc);
     const double *nu_d = gkyl_array_cfetch(nu, linc);
 
     double *pkpm_lax_d = gkyl_array_fetch(pkpm_lax, linc);
     double *pkpm_accel_d = gkyl_array_fetch(pkpm_accel, linc);
+
+    // Compute T_perp/m div(b) and p_force
+    up->pkpm_p_force(prim_d, div_b_d, pkpm_accel_d);
 
     for (int dir=0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(cdim, iter.idx, idxl);
@@ -231,16 +236,12 @@ void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struc
       long linl = gkyl_range_idx(conf_range, idxl); 
       long linr = gkyl_range_idx(conf_range, idxr);
 
-      const double *bvar_l = gkyl_array_cfetch(bvar, linl);
-      const double *bvar_r = gkyl_array_cfetch(bvar, linr);
-
       const double *prim_surf_l = gkyl_array_cfetch(prim_surf, linl);
       const double *prim_surf_r = gkyl_array_cfetch(prim_surf, linr);
 
       up->pkpm_accel[dir](up->conf_grid.dx, 
-        bvar_l, bvar_c, bvar_r, 
         prim_surf_l, prim_surf_c, prim_surf_r, 
-        prim_d, nu_d,
+        prim_d, bvar_d, nu_d,
         pkpm_lax_d, pkpm_accel_d);
     }
   }

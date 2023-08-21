@@ -219,8 +219,8 @@ void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up, const
 
 __global__ void
 gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* prim_surf, 
-  const struct gkyl_array* prim, const struct gkyl_array* nu, 
+  const struct gkyl_array* prim_surf, const struct gkyl_array* prim, 
+  const struct gkyl_array* bvar, const struct gkyl_array* div_b, const struct gkyl_array* nu, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel)
 {
   int cdim = up->cdim;
@@ -238,14 +238,18 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct
     // linc will have jumps in it to jump over ghost cells
     long linc = gkyl_range_idx(&conf_range, idxc);
 
-    const double *bvar_c = (const double*) gkyl_array_cfetch(bvar, linc);
     const double *prim_surf_c = (const double*) gkyl_array_cfetch(prim_surf, linc);
-    // Only need nu and the volume expansion of the primitive moments in center cell
+
     const double *prim_d = (const double*) gkyl_array_cfetch(prim, linc);
+    const double *bvar_d = (const double*) gkyl_array_cfetch(bvar, linc);
+    const double *div_b_d = (const double*) gkyl_array_cfetch(div_b, linc);
     const double *nu_d = (const double*) gkyl_array_cfetch(nu, linc);
 
     double *pkpm_lax_d = (double*) gkyl_array_fetch(pkpm_lax, linc);
     double *pkpm_accel_d = (double*) gkyl_array_fetch(pkpm_accel, linc);
+
+    // Compute T_perp/m div(b) and p_force
+    up->pkpm_p_force(prim_d, div_b_d, pkpm_accel_d);
 
     for (int dir=0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(cdim, idxc, idxl);
@@ -256,16 +260,12 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct
       long linl = gkyl_range_idx(&conf_range, idxl); 
       long linr = gkyl_range_idx(&conf_range, idxr);
 
-      const double *bvar_l = (const double*) gkyl_array_cfetch(bvar, linl);
-      const double *bvar_r = (const double*) gkyl_array_cfetch(bvar, linr);
-
       const double *prim_surf_l = (const double*) gkyl_array_cfetch(prim_surf, linl);
       const double *prim_surf_r = (const double*) gkyl_array_cfetch(prim_surf, linr);
       
       up->pkpm_accel[dir](up->conf_grid.dx, 
-        bvar_l, bvar_c, bvar_r, 
         prim_surf_l, prim_surf_c, prim_surf_r, 
-        prim_d, nu_d,
+        prim_d, bvar_d, nu_d,
         pkpm_lax_d, pkpm_accel_d);
     }
   }
@@ -274,14 +274,15 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct
 // Host-side wrapper for pkpm acceleration variable calculations with recovery or averaging
 void
 gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* prim_surf, 
-  const struct gkyl_array* prim, const struct gkyl_array* nu, 
+  const struct gkyl_array* prim_surf, const struct gkyl_array* prim, 
+  const struct gkyl_array* bvar, const struct gkyl_array* div_b, const struct gkyl_array* nu, 
   struct gkyl_array* pkpm_lax, struct gkyl_array* pkpm_accel)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
   gkyl_dg_calc_pkpm_vars_accel_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, 
-    bvar->on_dev, prim_surf->on_dev, prim->on_dev, nu->on_dev, 
+    prim_surf->on_dev, prim->on_dev, 
+    bvar->on_dev, div_b->on_dev, nu->on_dev, 
     pkpm_lax->on_dev, pkpm_accel->on_dev);
 }
 
@@ -430,6 +431,7 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_vars *up, enum gkyl_b
   up->pkpm_copy = choose_pkpm_copy_kern(b_type, cdim, poly_order);
   up->pkpm_surf_copy = choose_pkpm_surf_copy_kern(b_type, cdim, poly_order);
   up->pkpm_pressure = choose_pkpm_pressure_kern(b_type, cdim, poly_order);
+  up->pkpm_p_force = choose_pkpm_p_force_kern(b_type, cdim, poly_order);
   up->pkpm_source = choose_pkpm_source_kern(b_type, cdim, poly_order);
   up->pkpm_int = choose_pkpm_int_kern(b_type, cdim, poly_order);
   up->pkpm_io = choose_pkpm_io_kern(b_type, cdim, poly_order);

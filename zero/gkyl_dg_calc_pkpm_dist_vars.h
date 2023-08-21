@@ -48,16 +48,16 @@ gkyl_dg_calc_pkpm_dist_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
  * @param up Updater for computing pkpm variables 
  * @param conf_range Range to index configuration space fields
  * @param phase_range Range to calculate mirror force distribution function 
- * @param pkpm_prim Input array of primitive moments [ux, uy, uz, pxx, pxy, pxz, pyy, pyz, pzz, T_perp/m = p_perp/rho, m/T_perp = rho/p_perp]
+ * @param pkpm_prim Input array of primitive moments [ux, uy, uz, 1/rho div(p_par b), T_perp/m, m/T_perp]
  *        This updater needs T_perp/m and m/T_perp
  * @param nu_vthsq Input array of nu*vth^2
+ * @param div_b Input array of div(b)
  * @param pkpm_accel_vars Input arrary of pkpm acceleration variables ordered as:
- *        0: div_b (divergence of magnetic field unit vector)
+ *        0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
           1: bb_grad_u (bb : grad(u))
           2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
           3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2 nu)
-          4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
-          This updater needs div_b and p_perp_source.
+          This updater p_perp_source.
  * @param fIn Input array of pkpm distribution functions: [F_0, T_perp/m G = T_perp/m (F_0 - F_1)]
  * @param F_k_p_1 Input array of k+1 distribution function. F_2 expansion is the first NP coefficients.
  * @param g_dist_source Output array: 2.0*(T_perp/m*G) + T_perp/m*(F_2 - F_0)
@@ -65,8 +65,8 @@ gkyl_dg_calc_pkpm_dist_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
  */
 void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array* pkpm_prim, 
-  const struct gkyl_array* nu_vthsq, const struct gkyl_array* pkpm_accel_vars, 
+  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* div_b, const struct gkyl_array* pkpm_accel_vars, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);
 
@@ -77,14 +77,16 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars
  * @param up Updater for computing pkpm variables 
  * @param conf_range Range to index configuration space fields
  * @param phase_range Range to index phase space fields
- * @param bvar Input array of magnetic field unit vector and unit tensor
+ * @param bvar_surf Input array of surface expansion of magnetic field unit vector and unit tensor
+ * @param bvar Input array of volume expansion of magnetic field unit vector and unit tensor
  * @param fIn Input array of pkpm distribution functions: [F_0, T_perp/m G = T_perp/m (F_0 - F_1)]
+ * @param max_b Input array of surface expansion of max(|b_i|) penalization
  * @param pkpm_div_ppar Output array of divergence of p_parallel b_hat
  */
 void gkyl_dg_calc_pkpm_dist_vars_div_ppar(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* fIn, 
-  struct gkyl_array* pkpm_div_ppar);
+  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, const struct gkyl_array* fIn, 
+  const struct gkyl_array* max_b, struct gkyl_array* pkpm_div_ppar);
 
 /**
  * Delete pointer to updater to compute pkpm variables.
@@ -99,13 +101,13 @@ void gkyl_dg_calc_pkpm_dist_vars_release(struct gkyl_dg_calc_pkpm_dist_vars *up)
 
 void gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array* pkpm_prim, 
-  const struct gkyl_array* nu_vthsq, const struct gkyl_array* pkpm_accel_vars, 
+  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* div_b, const struct gkyl_array* pkpm_accel_vars, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);
 
 void gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* fIn, 
-  struct gkyl_array* pkpm_div_ppar);
+  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, const struct gkyl_array* fIn, 
+  const struct gkyl_array* max_b, struct gkyl_array* pkpm_div_ppar);
 

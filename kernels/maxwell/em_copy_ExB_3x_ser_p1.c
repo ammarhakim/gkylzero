@@ -1,6 +1,6 @@
 #include <gkyl_mat.h> 
 #include <gkyl_maxwell_kernels.h> 
-GKYL_CU_DH void em_copy_ExB_3x_ser_p1(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_magB2, double* ExB) 
+GKYL_CU_DH void em_copy_ExB_3x_ser_p1(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_magB2, double* GKYL_RESTRICT ExB) 
 { 
   // count:          Integer to indicate which matrix being fetched. 
   // x:              Input solution vector. 

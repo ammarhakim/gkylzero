@@ -39,9 +39,12 @@ gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vla
 
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
   vlasov_pkpm->auxfields.bvar = auxin.bvar;
+  vlasov_pkpm->auxfields.bvar_surf = auxin.bvar_surf;
   vlasov_pkpm->auxfields.pkpm_prim = auxin.pkpm_prim;
   vlasov_pkpm->auxfields.pkpm_prim_surf = auxin.pkpm_prim_surf;
+  vlasov_pkpm->auxfields.max_b = auxin.max_b;
   vlasov_pkpm->auxfields.pkpm_lax = auxin.pkpm_lax;
+  vlasov_pkpm->auxfields.div_b = auxin.div_b;  
   vlasov_pkpm->auxfields.pkpm_accel_vars = auxin.pkpm_accel_vars;
   vlasov_pkpm->auxfields.g_dist_source = auxin.g_dist_source;
 }
@@ -117,9 +120,12 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   assert(vlasov_pkpm->accel_boundary_surf);
 
   vlasov_pkpm->auxfields.bvar = 0;  
+  vlasov_pkpm->auxfields.bvar_surf = 0;  
   vlasov_pkpm->auxfields.pkpm_prim = 0;
   vlasov_pkpm->auxfields.pkpm_prim_surf = 0;
+  vlasov_pkpm->auxfields.max_b = 0;
   vlasov_pkpm->auxfields.pkpm_lax = 0;
+  vlasov_pkpm->auxfields.div_b = 0;
   vlasov_pkpm->auxfields.pkpm_accel_vars = 0;
   vlasov_pkpm->auxfields.g_dist_source = 0;
   vlasov_pkpm->conf_range = *conf_range;

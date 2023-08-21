@@ -227,19 +227,18 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 3.0*Txx_xl/m, 3.0*Txx_xr/m, 
     //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m, 
     //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
-    int Ncomp_surf = 2*cdim*3+2*cdim;
+    int Ncomp_surf = 2*cdim*4;
     int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
     s->pkpm_prim_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf, app->local_ext.volume);
     // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3*P_ii/rho)
     s->pkpm_lax = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
 
     // allocate array for pkpm acceleration variables, stored in pkpm_accel: 
-    // 0: div_b (divergence of magnetic field unit vector)
+    // 0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
     // 1: bb_grad_u (bb : grad(u))
     // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
-    // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - nu + nu rho vth^2/p_perp)
-    // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
-    s->pkpm_accel = mkarr(app->use_gpu, 5*app->confBasis.num_basis, app->local_ext.volume); 
+    // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
+    s->pkpm_accel = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume); 
 
     // updater for computing pkpm variables 
     // pressure, primitive variables, and acceleration variables
@@ -259,16 +258,17 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->integ_pkpm_mom = mkarr(app->use_gpu, 9, app->local_ext.volume);
     // arrays for I/O, fluid_io 
     s->fluid_io = mkarr(app->use_gpu, 10*app->confBasis.num_basis, app->local_ext.volume);
-    s->pkpm_vars_io = mkarr(app->use_gpu, 10*app->confBasis.num_basis, app->local_ext.volume);
+    s->pkpm_vars_io = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
     s->fluid_io_host = s->fluid_io;
     s->pkpm_vars_io_host = s->pkpm_vars_io;
     if (app->use_gpu) {
       s->fluid_io_host = mkarr(false, 10*app->confBasis.num_basis, app->local_ext.volume);
-      s->pkpm_vars_io_host = mkarr(false, 10*app->confBasis.num_basis, app->local_ext.volume);
+      s->pkpm_vars_io_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
     }
-    struct gkyl_dg_vlasov_pkpm_auxfields aux_inp = {.bvar = app->field->bvar, 
+    struct gkyl_dg_vlasov_pkpm_auxfields aux_inp = {.bvar = app->field->bvar, .bvar_surf = app->field->bvar_surf, 
       .pkpm_prim = s->pkpm_prim, .pkpm_prim_surf = s->pkpm_prim_surf, 
-      .pkpm_accel_vars = s->pkpm_accel, .pkpm_lax = s->pkpm_lax, 
+      .max_b = app->field->max_b, .pkpm_lax = s->pkpm_lax, 
+      .div_b = app->field->div_b, .pkpm_accel_vars = s->pkpm_accel, 
       .g_dist_source = s->g_dist_source};
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
@@ -471,7 +471,9 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
       app->local_ext, fin);
     // Compute div(p_par b_hat) for consistent pressure force in vpar acceleration
     gkyl_dg_calc_pkpm_dist_vars_div_ppar(species->calc_pkpm_dist_vars, 
-        &app->local, &species->local, app->field->bvar, fin, species->pkpm_div_ppar);
+      &app->local, &species->local, 
+      app->field->bvar_surf, app->field->bvar, fin, 
+      app->field->max_b, species->pkpm_div_ppar);
     gkyl_array_scale(species->pkpm_div_ppar, species->info.mass);
     // Compute p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
     gkyl_dg_calc_pkpm_vars_pressure(species->calc_pkpm_vars, &app->local_ext, 
@@ -507,17 +509,17 @@ vm_species_calc_pkpm_update_vars(gkyl_vlasov_app *app, struct vm_species *specie
 {
   struct timespec tm = gkyl_wall_clock();
   if (species->model_id == GKYL_MODEL_PKPM) {
-    gkyl_array_clear(species->pkpm_accel, 0.0);
-    gkyl_array_clear(species->pkpm_lax, 0.0);
+    gkyl_array_clear(species->pkpm_accel, 0.0); // Incremented in each dimension, so clear beforehand
     gkyl_dg_calc_pkpm_vars_accel(species->calc_pkpm_vars, &app->local, 
-      app->field->bvar, species->pkpm_prim_surf, 
-      species->pkpm_prim, species->lbo.nu_sum, 
+      species->pkpm_prim_surf, species->pkpm_prim, 
+      app->field->bvar, app->field->div_b, species->lbo.nu_sum, 
       species->pkpm_lax, species->pkpm_accel); 
 
     // Calculate distrbution functions for coupling different Laguerre moments
     gkyl_dg_calc_pkpm_dist_vars_mirror_force(species->calc_pkpm_dist_vars, 
       &app->local, &species->local, 
-      species->pkpm_prim, species->lbo.nu_prim_moms, species->pkpm_accel, 
+      species->pkpm_prim, species->lbo.nu_prim_moms, 
+      app->field->div_b, species->pkpm_accel, 
       fin, species->F_k_p_1, 
       species->g_dist_source, species->F_k_m_1);
   }

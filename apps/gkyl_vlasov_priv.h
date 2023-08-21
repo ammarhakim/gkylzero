@@ -307,6 +307,9 @@ struct vm_field {
                                      // Determined when constructing the matrix if |B|^2 < 0.0 at control points
   struct gkyl_array *bvar; // magnetic field unit vector and tensor (diagnostic and for use in pkpm model)
   struct gkyl_array *ExB; // E x B velocity = E x B/|B|^2 (diagnostic and for use in relativistic pkpm model)
+  struct gkyl_array *bvar_surf; // Surface expansion magnetic field unit vector and tensor (for use in pkpm model)
+  struct gkyl_array *div_b; // Volume expansion of div(b) (for use in pkpm model)
+  struct gkyl_array *max_b; // max(|b_i|) penalization (for use in pkpm model)
   struct gkyl_dg_calc_em_vars *calc_bvar; // Updater to compute magnetic field unit vector and tensor
   struct gkyl_dg_calc_em_vars *calc_ExB; // Updater to compute ExB velocity
 

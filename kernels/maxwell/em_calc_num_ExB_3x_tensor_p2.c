@@ -1,7 +1,7 @@
 #include <gkyl_mat.h> 
 #include <gkyl_maxwell_kernels.h> 
 #include <gkyl_binop_mul_ser.h> 
-GKYL_CU_DH void em_calc_num_ExB_3x_tensor_p2(const double *em, double* out) 
+GKYL_CU_DH void em_calc_num_ExB_3x_tensor_p2(const double *em, double* GKYL_RESTRICT out) 
 { 
   // em:  Input electromagnetic fields. 
   // out: Output (E x B)_i (E x B velocity numerator) and B_i^2 (for denominator). 

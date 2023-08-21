@@ -40,7 +40,7 @@ gkyl_dg_calc_pkpm_dist_vars_new(const struct gkyl_rect_grid *phase_grid,
 void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_vthsq, 
-  const struct gkyl_array* pkpm_accel, 
+  const struct gkyl_array* div_b, const struct gkyl_array* pkpm_accel, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1)
 {
@@ -48,7 +48,7 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars
   if (gkyl_array_is_cu_dev(g_dist_source)) {
     return gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(up, 
       conf_range, phase_range, 
-      pkpm_prim, nu_vthsq, pkpm_accel, 
+      pkpm_prim, nu_vthsq, div_b, pkpm_accel, 
       fIn, F_k_p_1, g_dist_source, F_k_m_1);
   }
 #endif  
@@ -64,6 +64,7 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars
 
     const double *pkpm_prim_d = gkyl_array_cfetch(pkpm_prim, loc_conf);
     const double *nu_vthsq_d = gkyl_array_cfetch(nu_vthsq, loc_conf);
+    const double *div_b_d = gkyl_array_cfetch(div_b, loc_conf);
     const double *pkpm_accel_d = gkyl_array_cfetch(pkpm_accel, loc_conf);
     const double *fIn_d = gkyl_array_cfetch(fIn, loc_phase);
     const double *F_k_p_1_d = gkyl_array_cfetch(F_k_p_1, loc_phase);
@@ -72,15 +73,15 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars
     double *F_k_m_1_d = gkyl_array_fetch(F_k_m_1, loc_phase);
 
     up->pkpm_dist_mirror_force(xc, up->phase_grid.dx, 
-      pkpm_prim_d, nu_vthsq_d, pkpm_accel_d, 
+      pkpm_prim_d, nu_vthsq_d, div_b_d, pkpm_accel_d, 
       fIn_d, F_k_p_1_d, g_dist_source_d, F_k_m_1_d);
   }  
 }
 
 void gkyl_dg_calc_pkpm_dist_vars_div_ppar(struct gkyl_dg_calc_pkpm_dist_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array* bvar, const struct gkyl_array* fIn, 
-  struct gkyl_array* pkpm_div_ppar)
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, const struct gkyl_array* fIn, 
+  const struct gkyl_array* max_b, struct gkyl_array* pkpm_div_ppar)
 {
 // Check if more than one of the output arrays is on device? 
 // Probably a better way to do this (JJ: 11/16/22)
@@ -88,7 +89,8 @@ void gkyl_dg_calc_pkpm_dist_vars_div_ppar(struct gkyl_dg_calc_pkpm_dist_vars *up
   if (gkyl_array_is_cu_dev(pkpm_div_ppar)) {
     return gkyl_dg_calc_pkpm_dist_vars_div_ppar_cu(up, 
       conf_range, phase_range, 
-      bvar, fIn, pkpm_div_ppar);
+      bvar_surf, bvar, fIn, 
+      max_b, pkpm_div_ppar);
   }
 #endif
   int cdim = up->cdim;
@@ -104,8 +106,10 @@ void gkyl_dg_calc_pkpm_dist_vars_div_ppar(struct gkyl_dg_calc_pkpm_dist_vars *up
     long loc_conf_c = gkyl_range_idx(conf_range, idxc);
     long loc_phase_c = gkyl_range_idx(phase_range, idxc);
 
+    const double *bvar_surf_c = gkyl_array_cfetch(bvar_surf, loc_conf_c);
     const double *bvar_c = gkyl_array_cfetch(bvar, loc_conf_c);
     const double *f_c = gkyl_array_cfetch(fIn, loc_phase_c);
+    const double *max_b_c = gkyl_array_cfetch(max_b, loc_conf_c);
     double *pkpm_div_ppar_d = gkyl_array_fetch(pkpm_div_ppar, loc_conf_c);
     
     for (int dir=0; dir<cdim; ++dir) {
@@ -119,14 +123,15 @@ void gkyl_dg_calc_pkpm_dist_vars_div_ppar(struct gkyl_dg_calc_pkpm_dist_vars *up
       long loc_conf_r = gkyl_range_idx(conf_range, idxr);
       long loc_phase_r = gkyl_range_idx(phase_range, idxr);
 
-      const double *bvar_l = gkyl_array_cfetch(bvar, loc_conf_l);
+      const double *bvar_surf_l = gkyl_array_cfetch(bvar_surf, loc_conf_l);
       const double *f_l = gkyl_array_cfetch(fIn, loc_phase_l);
-      const double *bvar_r = gkyl_array_cfetch(bvar, loc_conf_r);
+      const double *bvar_surf_r = gkyl_array_cfetch(bvar_surf, loc_conf_r);
       const double *f_r = gkyl_array_cfetch(fIn, loc_phase_r);
 
       up->pkpm_dist_div_ppar[dir](xc, up->phase_grid.dx, 
-        bvar_l, bvar_c, bvar_r, f_l, f_c, f_r, 
-        pkpm_div_ppar_d);
+        bvar_surf_l, bvar_surf_c, bvar_surf_r, 
+        f_l, f_c, f_r, 
+        bvar_c, max_b_c, pkpm_div_ppar_d);
     }    
   }  
 }

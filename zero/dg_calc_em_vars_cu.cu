@@ -77,7 +77,7 @@ void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* out)
 {
   gkyl_array_clear(up->temp_var, 0.0);
-  struct gkyl_range conf_range = up->conf_range;
+  struct gkyl_range conf_range = up->mem_range;
   
   gkyl_dg_calc_em_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
     up->As->on_dev, up->xs->on_dev, conf_range,
@@ -91,6 +91,99 @@ void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up,
   gkyl_dg_calc_em_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
     up->xs->on_dev, conf_range,
     em->on_dev, cell_avg_magB2->on_dev, out->on_dev);
+}
+
+__global__ static void
+gkyl_dg_calc_em_vars_surf_set_cu_kernel(gkyl_dg_calc_em_vars* up, struct gkyl_range conf_range,
+  const struct gkyl_array* bvar, struct gkyl_array* bvar_surf)
+{
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < conf_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long loc = gkyl_range_idx(&conf_range, idx);
+
+    const double *bvar_d = (const double*) gkyl_array_cfetch(bvar, loc);
+    double *bvar_surf_d = (double*) gkyl_array_fetch(bvar_surf, loc);
+
+    up->em_surf_set(bvar_d, bvar_surf_d);
+  }
+}
+
+void gkyl_dg_calc_em_vars_surf_advance_cu(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* bvar, struct gkyl_array* bvar_surf)
+{
+  struct gkyl_range conf_range = up->mem_range;
+  
+  gkyl_dg_calc_em_vars_surf_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
+    conf_range, bvar->on_dev, bvar_surf->on_dev);
+}
+
+__global__ void
+gkyl_dg_calc_em_vars_div_b_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, 
+  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 
+  struct gkyl_array* max_b, struct gkyl_array* div_b)
+{
+  int cdim = up->cdim;
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < conf_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idxc);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long linc = gkyl_range_idx(&conf_range, idxc);
+
+    const double *bvar_surf_c = (const double*) gkyl_array_cfetch(bvar_surf, linc);
+    const double *bvar_d = (const double*) gkyl_array_cfetch(bvar, linc);
+
+    double *max_b_d = (double*) gkyl_array_fetch(max_b, linc);
+    double *div_b_d = (double*) gkyl_array_fetch(div_b, linc);
+
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, idxc, idxl);
+      gkyl_copy_int_arr(cdim, idxc, idxr);
+
+      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+
+      long linl = gkyl_range_idx(&conf_range, idxl); 
+      long linr = gkyl_range_idx(&conf_range, idxr);
+
+      const double *bvar_surf_l = (const double*) gkyl_array_cfetch(bvar_surf, linl);
+      const double *bvar_surf_r = (const double*) gkyl_array_cfetch(bvar_surf, linr);
+      
+      up->em_div_b[dir](up->conf_grid.dx, 
+        bvar_surf_l, bvar_surf_c, bvar_surf_r, 
+        bvar_d, max_b_d, div_b_d);
+    }
+  }
+}
+
+// Host-side wrapper for pkpm acceleration variable calculations with recovery or averaging
+void
+gkyl_dg_calc_em_vars_div_b_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
+  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 
+  struct gkyl_array* max_b, struct gkyl_array* div_b)
+{
+  int nblocks = conf_range->nblocks;
+  int nthreads = conf_range->nthreads;
+  gkyl_dg_calc_em_vars_div_b_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, 
+    bvar_surf->on_dev, bvar->on_dev, 
+    max_b->on_dev, div_b->on_dev);
 }
 
 // CUDA kernel to set device pointers to em vars kernel functions
@@ -108,22 +201,30 @@ dg_calc_em_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_em_vars *up, enum gkyl_basis
     up->em_calc_temp = choose_em_calc_BB_kern(b_type, cdim, poly_order);
     up->em_set = choose_em_set_bvar_kern(b_type, cdim, poly_order);
     up->em_copy = choose_em_copy_bvar_kern(b_type, cdim, poly_order);    
+    up->em_surf_set = choose_em_surf_set_bvar_kern(b_type, cdim, poly_order);
+    // Fetch the kernels in each direction
+    for (int d=0; d<cdim; ++d) 
+      up->em_div_b[d] = choose_em_div_b_kern(d, b_type, cdim, poly_order);       
   }
 }
 
 gkyl_dg_calc_em_vars*
 gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_range *conf_range, 
+  const struct gkyl_range *mem_range, 
   bool is_ExB)
 {
   struct gkyl_dg_calc_em_vars *up = (struct gkyl_dg_calc_em_vars*) gkyl_malloc(sizeof(gkyl_dg_calc_em_vars));
 
+  up->conf_grid = *conf_grid;
   int nc = cbasis->num_basis;
-  enum gkyl_basis_type b_type = cbasis->b_type;
   int cdim = cbasis->ndim;
+  enum gkyl_basis_type b_type = cbasis->b_type;
   int poly_order = cbasis->poly_order;
+  int nc_surf = cbasis->num_basis/(poly_order+1); // *only valid for tensor bases for cdim > 1*
+  up->cdim = cdim;
   up->poly_order = poly_order;
-  up->conf_range = *conf_range;
+
+  up->mem_range = *mem_range;
 
   if (is_ExB) 
     up->Ncomp = 3;
@@ -132,12 +233,12 @@ gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_basis* cbasis,
 
   // There are Ncomp more linear systems to be solved 
   // 6 components of bb and 3 components of E x B
-  up->As = gkyl_nmat_cu_dev_new(up->Ncomp*conf_range->volume, nc, nc);
-  up->xs = gkyl_nmat_cu_dev_new(up->Ncomp*conf_range->volume, nc, 1);
+  up->As = gkyl_nmat_cu_dev_new(up->Ncomp*mem_range->volume, nc, nc);
+  up->xs = gkyl_nmat_cu_dev_new(up->Ncomp*mem_range->volume, nc, 1);
   up->mem = gkyl_nmat_linsolve_lu_cu_dev_new(up->As->num, up->As->nr);
   // 6 component temporary variable for either storing B_i B_j (for computing bb) 
   // or (E x B)_i and B_i^2 (for computing E x B/|B|^2)
-  up->temp_var = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*nc, conf_range->volume);
+  up->temp_var = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*nc, mem_range->volume);
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);

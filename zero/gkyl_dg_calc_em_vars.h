@@ -2,8 +2,8 @@
 
 #include <gkyl_array.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_basis.h>
-#include <gkyl_dg_bin_ops.h>
 
 // Object type
 typedef struct gkyl_dg_calc_em_vars gkyl_dg_calc_em_vars;
@@ -16,8 +16,9 @@ typedef struct gkyl_dg_calc_em_vars gkyl_dg_calc_em_vars;
  * 2. ExB = E x B/|B|^2, the E x B velocity 
  * Free using gkyl_dg_calc_em_vars_release.
  *
+ * @param conf_grid Configuration space grid (for getting cell spacing and cell center)
  * @param cbasis Configuration space basis functions
- * @param conf_range Configuration space range to compute variables over
+ * @param mem_range Configuration space range to compute variables over
  * Note: This range sets the size of the bin_op memory and thus sets the
  * range over which the updater loops for the batched linear solves
  * @param is_ExB bool to determine if updater is for computing E x B velocity
@@ -25,8 +26,8 @@ typedef struct gkyl_dg_calc_em_vars gkyl_dg_calc_em_vars;
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_em_vars* 
-gkyl_dg_calc_em_vars_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_range *conf_range, 
+gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
   bool is_ExB, bool use_gpu);
 
 /**
@@ -34,8 +35,9 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_basis* cbasis,
  * NV-GPU. See new() method for documentation.
  */
 struct gkyl_dg_calc_em_vars* 
-gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_basis* cbasis, 
-  const struct gkyl_range *conf_range, bool is_ExB);
+gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_range *conf_range, 
+  bool is_ExB);
 
 /**
  * Compute either
@@ -58,6 +60,30 @@ void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* out);
 
 /**
+ * Compute surface expansion of bvar
+ *
+ * @param up Updater for computing pkpm variables 
+ * @param bvar Input array of volume expansion of bvar
+ * @param bvar_surf Output array of surface expansions of bvar
+ */
+void gkyl_dg_calc_em_vars_surf_advance(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* bvar, struct gkyl_array* bvar_surf);
+
+/**
+ * Compute div(b) and max(|b_i|) penalization
+ *
+ * @param up Updater for computing pkpm variables 
+ * @param conf_range Configuration space range
+ * @param bvar_surf Input array of surface expansions of bvar
+ * @param bvar Input array of volume expansion of bvar
+ * @param max_b Output array of max(|b_i|) penalization
+ * @param div_b Output array of div(b)
+ */
+void gkyl_dg_calc_em_vars_div_b(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
+  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 
+  struct gkyl_array* max_b, struct gkyl_array* div_b);
+
+/**
  * Delete pointer to updater to compute EM variables.
  *
  * @param up Updater to delete.
@@ -71,3 +97,9 @@ void gkyl_dg_calc_em_vars_release(struct gkyl_dg_calc_em_vars *up);
 void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* out);
 
+void gkyl_dg_calc_em_vars_surf_advance_cu(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* bvar, struct gkyl_array* bvar_surf);
+
+void gkyl_dg_calc_em_vars_div_b_cu(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
+  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 
+  struct gkyl_array* max_b, struct gkyl_array* div_b);
