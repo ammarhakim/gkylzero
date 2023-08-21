@@ -18,11 +18,10 @@ extern "C" {
 
 __global__ static void
 gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng,
-  const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq, const struct gkyl_dg_prim_vars_type *calc_prim_vars_neut_gk, 
+  const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq, const struct gkyl_dg_prim_vars_type *calc_prim_vars_neut_gk,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
   struct gkyl_array *vtSq_elc, struct gkyl_array *prim_vars_neut, struct gkyl_array *coef_iz, 
-  struct gkyl_array *M0q, struct gkyl_array *Teq, struct gkyl_array *ioniz_data, 
-  struct gkyl_array *coll_iz)
+  struct gkyl_array *M0q, struct gkyl_array *Teq, struct gkyl_array *ioniz_data)
 {
   int cidx[GKYL_MAX_CDIM];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -33,13 +32,69 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     const double *moms_elc_d = (const double*) gkyl_array_cfetch(moms_elc, loc);
     const double *moms_neut_d = (const double*) gkyl_array_cfetch(moms_neut, loc);
     const double *m0_elc_d = &moms_elc_d[0];
-    const double *m0_neut_d = &moms_neut_d[0];
 
     double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
     double *prim_vars_neut_d = (double*) gkyl_array_fetch(prim_vars_neut, loc);
     double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc); 
     calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d, vtSq_elc_d);
     calc_prim_vars_neut_gk->kernel(calc_prim_vars_neut_gk, cidx, moms_neut_d, prim_vars_neut_d);
+    //Find nearest neighbor for n, Te in ADAS interpolated data
+    double cell_av_fac = pow(1.0/sqrt(2.0),up->cdim);
+    double m0_elc_av = m0_elc_d[0]*cell_av_fac;
+    double temp_elc_av = vtSq_elc_d[0]*cell_av_fac*up->mass_elc/up->elem_charge;
+    double diff1 = 0;
+    double diff2 = 0;
+    int m0_idx, t_idx, q_idx;
+    int qtotal = up->resM0*up->resTe;
+    
+    if (log10(m0_elc_av) < up->minLogM0) m0_idx=0;
+    else if (log10(m0_elc_av) > up->maxLogM0) m0_idx=qtotal-1;
+    else {
+      m0_idx = (log10(m0_elc_av) - up->minLogM0)/(up->dlogM0);
+      double *M0q_1 = (double*) gkyl_array_fetch(M0q, m0_idx*up->resTe);
+      double *M0q_2 = (double*) gkyl_array_fetch(M0q, (1+m0_idx)*up->resTe);
+      diff1 = fabs(M0q_1[0]-log10(m0_elc_av));
+      diff2 = fabs(M0q_2[0]-log10(m0_elc_av));
+      if (diff1 > diff2) m0_idx += 1;
+    }
+
+    if (log10(temp_elc_av) < up->minLogTe) t_idx=0;
+    else if (log10(temp_elc_av) > up->maxLogTe) t_idx=up->resTe-1;
+    else {
+      t_idx = (log10(temp_elc_av) - up->minLogTe)/(up->dlogTe);
+      double *Teq_1 = (double*) gkyl_array_fetch(Teq, t_idx);
+      double *Teq_2 = (double*) gkyl_array_fetch(Teq, t_idx+1); 
+      diff1 = fabs(Teq_1[0]-log10(temp_elc_av));
+      diff2 = fabs(Teq_2[0]-log10(temp_elc_av));
+      if (diff1 > diff2) t_idx += 1;
+    }
+ 
+    q_idx = m0_idx*up->resTe + t_idx;
+    double *iz_dat_d = (double*) gkyl_array_fetch(ioniz_data, q_idx);
+    //printf("m0 %g Te %g iz_dat %g\n", m0_elc_av, temp_elc_av, iz_dat_d[0]);
+    coef_iz_d[0] = iz_dat_d[0]/cell_av_fac; 
+  }
+}
+
+__global__ static void
+gkyl_iz_react_rate_neut_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng,
+  const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq,
+  const struct gkyl_array *moms_elc,
+  struct gkyl_array *vtSq_elc, struct gkyl_array *prim_vars_neut, struct gkyl_array *coef_iz, 
+  struct gkyl_array *M0q, struct gkyl_array *Teq, struct gkyl_array *ioniz_data)
+{
+  int cidx[GKYL_MAX_CDIM];
+  for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
+      tid < conf_rng.volume; tid += blockDim.x*gridDim.x) {
+    gkyl_sub_range_inv_idx(&conf_rng, tid, cidx);
+    long loc = gkyl_range_idx(&conf_rng, cidx);
+
+    const double *moms_elc_d = (const double*) gkyl_array_cfetch(moms_elc, loc);
+    const double *m0_elc_d = &moms_elc_d[0];
+
+    double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
+    double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc); 
+    calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d, vtSq_elc_d);
     //Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1.0/sqrt(2.0),up->cdim);
     double m0_elc_av = m0_elc_d[0]*cell_av_fac;
@@ -91,8 +146,7 @@ void gkyl_dg_iz_coll_elc_cu(const struct gkyl_dg_iz *up,
     up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_neut_gk->on_dev, 
     moms_elc->on_dev, moms_neut->on_dev,
     up->vtSq_elc->on_dev, up->prim_vars_neut->on_dev, up->coef_iz->on_dev,
-    up->M0q->on_dev, up->Teq->on_dev, up->ioniz_data->on_dev,
-    coll_iz->on_dev);
+    up->M0q->on_dev, up->Teq->on_dev, up->ioniz_data->on_dev);
 
   // Calculate vt_sq_iz 
   gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, *up->conf_rng);
@@ -144,11 +198,10 @@ void gkyl_dg_iz_coll_ion_cu(const struct gkyl_dg_iz *up,
     up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_neut_gk->on_dev, 
     moms_elc->on_dev, moms_neut->on_dev,
     up->vtSq_elc->on_dev, up->prim_vars_neut->on_dev, up->coef_iz->on_dev,
-    up->M0q->on_dev, up->Teq->on_dev, up->ioniz_data->on_dev,
-    coll_iz->on_dev);
+    up->M0q->on_dev, up->Teq->on_dev, up->ioniz_data->on_dev);
 
   gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_elc,
-    up->prim_vars_neut, bmag, jacob_tot, up->mass_elc, up->coll_iz);
+    up->prim_vars_neut, bmag, jacob_tot, up->mass_elc, coll_iz);
 
    // coef_iz = ne*<v_e*sigma>
   gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_neut, up->conf_rng);
@@ -172,24 +225,19 @@ void gkyl_dg_iz_coll_ion_cu(const struct gkyl_dg_iz *up,
 
 void gkyl_dg_iz_coll_neut_cu(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
+  const struct gkyl_array *f_self,
   struct gkyl_array *coll_iz, struct gkyl_array *cflrate)
 {
-  // Set auxiliary variable (b_i) for computation of gk neut prim vars
-  gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_neut_gk, 
-    (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
 
-  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng,
-    up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_neut_gk->on_dev, 
-    moms_elc->on_dev, moms_neut->on_dev,
+  gkyl_iz_react_rate_neut_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng,
+    up->calc_prim_vars_elc_vtSq->on_dev, 
+    moms_elc->on_dev,
     up->vtSq_elc->on_dev, up->prim_vars_neut->on_dev, up->coef_iz->on_dev,
-    up->M0q->on_dev, up->Teq->on_dev, up->ioniz_data->on_dev,
-    coll_iz->on_dev);
+    up->M0q->on_dev, up->Teq->on_dev, up->ioniz_data->on_dev);
 
-  gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_elc,
-    up->prim_vars_neut, bmag, jacob_tot, up->mass_elc, up->coll_iz);
-
-   // coef_iz = ne*<v_e*sigma>
+  gkyl_array_set_range(coll_iz, -1.0, f_self, *up->phase_rng);
+    
+  // coef_iz = ne*<v_e*sigma>
   gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_neut, up->conf_rng);
   // coll_iz = coef_iz*coll_iz
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_iz, coll_iz,

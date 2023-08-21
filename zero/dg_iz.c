@@ -369,7 +369,7 @@ void gkyl_dg_iz_coll_neut(const struct gkyl_dg_iz *up,
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(coll_iz)) {
     return gkyl_dg_iz_coll_neut_cu(up, moms_elc, moms_neut, f_self, coll_iz, cflrate);
-  } 
+  }
 #endif
   
   struct gkyl_range_iter conf_iter, vel_iter;
@@ -415,7 +415,7 @@ void gkyl_dg_iz_coll_neut(const struct gkyl_dg_iz *up,
     else {
       t_idx = (log10(temp_elc_av) - up->minLogTe)/(up->dlogTe);
       double *Teq_1 = gkyl_array_fetch(up->Teq, t_idx);
-      double *Teq_2 = gkyl_array_fetch(up->Teq, t_idx+1); 
+      double *Teq_2 = gkyl_array_fetch(up->Teq, t_idx+1);
       diff1 = fabs(Teq_1[0]-log10(temp_elc_av));
       diff2 = fabs(Teq_2[0]-log10(temp_elc_av));
       if (diff1 > diff2) t_idx += 1;
@@ -424,7 +424,7 @@ void gkyl_dg_iz_coll_neut(const struct gkyl_dg_iz *up,
     q_idx = m0_idx*up->resTe + t_idx;
     double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, q_idx);
     //printf("m0 %g Te %g iz_dat %g\n", m0_elc_av, temp_elc_av, iz_dat_d[0]);
-    coef_iz_d[0] = iz_dat_d[0]/cell_av_fac;    
+    coef_iz_d[0] = iz_dat_d[0]/cell_av_fac;
   }
 
   // neut coll_iz = -f_n
