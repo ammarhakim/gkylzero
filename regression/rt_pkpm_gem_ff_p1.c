@@ -352,7 +352,7 @@ main(int argc, char **argv)
 #endif  
 
   // create global range
-  int cells[] = { NX, NX };
+  int cells[] = { NX, NY };
   struct gkyl_range globalr;
   gkyl_create_global_range(2, cells, &globalr);
   
