@@ -25,6 +25,8 @@ struct gkyl_moment_em_coupling_inp {
   // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
   // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
+
+  bool has_nT_sources;
 };
 
 // Object type
@@ -50,6 +52,7 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
  * @param update_rng Range on which to solve implicit time-centered update.
  * @param fluid Array of fluid variables (array size: nfluids)
  * @param app_accel Array of applied acceleration terms to fluid equations (for external forces)
+ * @param pr_hs Array of pressure tensor rhs for 10-moment gradient-based closure
  * @param em EM variables
  * @param app_current Applied current array (for external current driving)
  * @param ext_em External EM variables (for EM fields coming from external sources (coils, capacitors, etc.))
@@ -58,8 +61,9 @@ gkyl_moment_em_coupling* gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
 void gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double dt,
   const struct gkyl_range *update_rng, 
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], 
-  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *rhs[GKYL_MAX_SPECIES], 
-  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em);
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *pr_rhs[GKYL_MAX_SPECIES],
+  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em,
+  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES]);
 
 /**
  * Delete updater.
