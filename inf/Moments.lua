@@ -721,55 +721,98 @@ end
 -- gkyl_comm.h
 ffi.cdef [[
 
+   struct gkyl_comm_state;
+
    // Get local "rank"
    typedef int (*get_rank_t)(struct gkyl_comm *comm, int *rank);
 
    // Get number of ranks
    typedef int (*get_size_t)(struct gkyl_comm *comm, int *sz);
 
+   // Blocking send @a array to @a dest process using @a tag.
+   typedef int (*gkyl_array_send_t)(struct gkyl_array *array, int dest, int tag,
+     struct gkyl_comm *comm);
+
+   // Nonblocking send @a array to @a dest process using @a tag, and.
+   // store the status of this comm in @a state.
+   typedef int (*gkyl_array_isend_t)(struct gkyl_array *array, int dest, int tag,
+     struct gkyl_comm *comm, struct gkyl_comm_state *state);
+
+   // Blocking receive @a array from @a src process using @a tag.
+   typedef int (*gkyl_array_recv_t)(struct gkyl_array *array, int src, int tag,
+     struct gkyl_comm *comm);
+
+   // Nonblocking receive @a array from @a src process using @a tag, and
+   // store the status of this comm in @a state.
+   typedef int (*gkyl_array_irecv_t)(struct gkyl_array *array, int src, int tag,
+     struct gkyl_comm *comm, struct gkyl_comm_state *state);
+
    // "Reduce" all elements of @a type in array @a data and store output in @a out
    typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
-      enum gkyl_array_op op, int nelem, const void *inp, void *out);
+     enum gkyl_array_op op, int nelem, const void *inp, void *out);
 
    // "Synchronize" @a array across the regions or blocks.
    typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm,
-      const struct gkyl_range *local, const struct gkyl_range *local_ext,
-      struct gkyl_array *array);
+     const struct gkyl_range *local, const struct gkyl_range *local_ext,
+     struct gkyl_array *array);
 
    // "Synchronize" @a array across the periodic directions
    typedef int (*gkyl_array_per_sync_t)(struct gkyl_comm *comm,
-      const struct gkyl_range *local, const struct gkyl_range *local_ext,
-      int nper_dirs, const int *per_dirs,
-      struct gkyl_array *array);
+     const struct gkyl_range *local, const struct gkyl_range *local_ext,
+     int nper_dirs, const int *per_dirs,
+     struct gkyl_array *array);
 
    // Write array to specified file
    typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
-      const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
-      const struct gkyl_array *arr, const char *fname);
+     const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+     const struct gkyl_array *arr, const char *fname);
 
-   // Create a new communcator that extends the communcator to work on a
+   // Create a new communicator that extends the communcator to work on a
    // extended domain specified by erange
    typedef struct gkyl_comm* (*extend_comm_t)(const struct gkyl_comm *comm,
-      const struct gkyl_range *erange);
+     const struct gkyl_range *erange);
+
+   // Create a new communicator by splitting a comm, and choosing members
+   // of new communicator according to the color rank. It can be used with
+   // a new decomp object, or the same one used for the parent comm, depending
+   // of the use case.
+   typedef struct gkyl_comm* (*split_comm_t)(const struct gkyl_comm *comm,
+     int color, struct gkyl_rect_decomp *new_decomp);
 
    // Barrier
    typedef int (*barrier_t)(struct gkyl_comm *comm);
+
+   // Allocate/free state objects.
+   typedef struct gkyl_comm_state* (*comm_state_new_t)();
+   typedef void (*comm_state_release_t)(struct gkyl_comm_state *state);
+
+   // Wait for a request.
+   typedef void (*comm_state_wait_t)(struct gkyl_comm_state *state);
 
    // Structure holding data and function pointers to communicate various
    // Gkeyll objects across multi-region or multi-block domains
    struct gkyl_comm {
 
-      get_rank_t get_rank; // get local rank function
-      get_size_t get_size; // get number of ranks
-      all_reduce_t all_reduce; // all reduce function
-      gkyl_array_sync_t gkyl_array_sync; // sync array
-      gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
-      barrier_t barrier; // barrier
+     get_rank_t get_rank; // get local rank function
+     get_size_t get_size; // get number of ranks
+     gkyl_array_send_t gkyl_array_send; // blocking send array.
+     gkyl_array_isend_t gkyl_array_isend; // nonblocking send array.
+     gkyl_array_recv_t gkyl_array_recv; // blocking recv array.
+     gkyl_array_irecv_t gkyl_array_irecv; // nonblocking recv array.
+     all_reduce_t all_reduce; // all reduce function
+     gkyl_array_sync_t gkyl_array_sync; // sync array
+     gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
+     barrier_t barrier; // barrier
 
-      gkyl_array_write_t gkyl_array_write; // array output
-      extend_comm_t extend_comm; // extend communcator
+     gkyl_array_write_t gkyl_array_write; // array output
+     extend_comm_t extend_comm; // extend communcator
+     split_comm_t split_comm; // split communicator.
 
-      struct gkyl_ref_count ref_count; // reference count
+     comm_state_new_t comm_state_new; // Allocate a new state object.
+     comm_state_release_t comm_state_release; // Free a state object.
+     comm_state_wait_t comm_state_wait; // Wait for a request to complete.
+
+     struct gkyl_ref_count ref_count; // reference count
    };
 
    /**
@@ -1453,10 +1496,10 @@ local app_mt = {
       end
 
       local MPI_COMM_WORLD = nil
-      local nrank = ffi.new("int[1]", 1)
+      --local nrank = ffi.new("int[1]", 1)
       if GKYL_HAVE_MPI then
          MPI_COMM_WORLD = ffi.C.get_MPI_COMM_WORLD()
-         C.MPI_Comm_size(MPI_COMM_WORLD, nrank)
+         --C.MPI_Comm_size(MPI_COMM_WORLD, nrank)
       end
 
       local cuts = ffi.new("int["..vm.ndim.."]")
@@ -1471,7 +1514,7 @@ local app_mt = {
       end
 
       if GKYL_HAVE_MPI then
-         assert(nrank[0] == ncuts, "*** Number of ranks, " .. nrank[0] .. ", does not match total cuts, " .. ncuts .. "!")
+         --assert(nrank[0] == ncuts, "*** Number of ranks, " .. nrank[0] .. ", does not match total cuts, " .. ncuts .. "!")
       end
 
       local globalr = ffi.new("struct gkyl_range")
@@ -1499,6 +1542,7 @@ local app_mt = {
       local low_inp = ffi.new("struct gkyl_moment_low_inp")
       low_inp.comm = comm
       low_inp.local_range = decomp.ranges[my_rank[0]]
+      vm.has_low_inp = true
       vm.low_inp = low_inp
 
       vm.scheme_type = C.GKYL_MOMENT_WAVE_PROP
