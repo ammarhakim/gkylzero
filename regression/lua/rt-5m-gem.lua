@@ -54,19 +54,19 @@ local momentApp = Moments.App {
 
       -- initial conditions
       init = function (t, xn)
-	 local x, y = xn[1], xn[2]
+	      local x, y = xn[1], xn[2]
 
-	 local TeFrac = 1.0/(1.0 + TiOverTe)
-	 local sech2 = (1.0/math.cosh(y/lambda))^2
-	 local n = n0*(sech2 + nbOverN0)
-	 local Jz = -(B0/lambda)*sech2
-	 local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
+	      local TeFrac = 1.0/(1.0 + TiOverTe)
+	      local sech2 = (1.0/math.cosh(y/lambda))^2
+	      local n = n0*(sech2 + nbOverN0)
+	      local Jz = -(B0/lambda)*sech2
+	      local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
 
-	 local rhoe = n*elcMass
-	 local ezmom = (elcMass/elcCharge)*Jz*TeFrac
-	 local ere = n*Ttotal*TeFrac/(gasGamma-1) + 0.5*ezmom*ezmom/rhoe
+	      local rhoe = n*elcMass
+	      local ezmom = (elcMass/elcCharge)*Jz*TeFrac
+	      local ere = n*Ttotal*TeFrac/(gasGamma-1) + 0.5*ezmom*ezmom/rhoe
 
-	 return rhoe, 0.0, 0.0, ezmom, ere
+	      return rhoe, 0.0, 0.0, ezmom, ere
       end,
       bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
@@ -79,19 +79,19 @@ local momentApp = Moments.App {
 
       -- initial conditions
       init = function (t, xn)
-	 local x, y = xn[1], xn[2]
+	      local x, y = xn[1], xn[2]
 
-	 local TiFrac = TiOverTe/(1.0 + TiOverTe)
-	 local sech2 = (1.0/math.cosh(y/lambda))^2
-	 local n = n0*(sech2 + nbOverN0)
-	 local Jz = -(B0/lambda)*sech2
-	 local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
+	      local TiFrac = TiOverTe/(1.0 + TiOverTe)
+	      local sech2 = (1.0/math.cosh(y/lambda))^2
+	      local n = n0*(sech2 + nbOverN0)
+	      local Jz = -(B0/lambda)*sech2
+	      local Ttotal = plasmaBeta*(B0*B0)/2.0/n0
 
-	 local rhoi = n*ionMass
-	 local izmom = (ionMass/ionCharge)*Jz*TiFrac
-	 local eri = n*Ttotal*TiFrac/(gasGamma-1) + 0.5*izmom*izmom/rhoi
+	      local rhoi = n*ionMass
+	      local izmom = (ionMass/ionCharge)*Jz*TiFrac
+	      local eri = n*Ttotal*TiFrac/(gasGamma-1) + 0.5*izmom*izmom/rhoi
 
-	 return rhoi, 0.0, 0.0, izmom, eri
+	      return rhoi, 0.0, 0.0, izmom, eri
       end,
       bcy = { Moments.Species.bcWall, Moments.Species.bcWall },
    },
@@ -100,14 +100,14 @@ local momentApp = Moments.App {
       epsilon0 = 1.0, mu0 = 1.0,
 
       init = function (t, xn)
-	 local x, y = xn[1], xn[2]
+	      local x, y = xn[1], xn[2]
 
-	 local Bxb = B0 * math.tanh(y / lambda)
-	 local Bx = Bxb - psi0 *(math.pi / Ly) * math.cos(2 * math.pi * x / Lx) * math.sin(math.pi * y / Ly)
-	 local By = psi0 * (2 * math.pi / Lx) * math.sin(2 * math.pi * x / Lx) * math.cos(math.pi * y / Ly)
-	 local Bz = 0.0
+	      local Bxb = B0 * math.tanh(y / lambda)
+	      local Bx = Bxb - psi0 *(math.pi / Ly) * math.cos(2 * math.pi * x / Lx) * math.sin(math.pi * y / Ly)
+	      local By = psi0 * (2 * math.pi / Lx) * math.sin(2 * math.pi * x / Lx) * math.cos(math.pi * y / Ly)
+	      local Bz = 0.0
 
-	 return 0.0, 0.0, 0.0, Bx, By, Bz
+	      return 0.0, 0.0, 0.0, Bx, By, Bz
       end,
 
       bcy = { Moments.Field.bcReflect, Moments.Field.bcReflect },

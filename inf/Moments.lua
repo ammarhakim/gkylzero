@@ -1452,14 +1452,26 @@ local app_mt = {
          vm.cfl_frac = tbl.cflFrac
       end
 
-      local MPI_COMM_WORLD = ffi.C.get_MPI_COMM_WORLD()
-
+      local MPI_COMM_WORLD = nil
       local nrank = ffi.new("int[1]", 1)
-      C.MPI_Comm_size(MPI_COMM_WORLD, nrank)
+      if GKYL_HAVE_MPI then
+         MPI_COMM_WORLD = ffi.C.get_MPI_COMM_WORLD()
+         C.MPI_Comm_size(MPI_COMM_WORLD, nrank)
+      end
 
       local cuts = ffi.new("int["..vm.ndim.."]")
+      local ncuts = 1
       for d=1, vm.ndim do
-         cuts[d-1] = tbl.cuts[d]
+         if tbl.cuts then
+            cuts[d-1] = tbl.cuts[d]
+            ncuts = ncuts * tbl.cuts[d]
+         else
+            cuts[d-1] = 1
+         end
+      end
+
+      if GKYL_HAVE_MPI then
+         assert(nrank[0] == ncuts, "*** Number of ranks, " .. nrank[0] .. ", does not match total cuts, " .. ncuts .. "!")
       end
 
       local globalr = ffi.new("struct gkyl_range")
@@ -1596,7 +1608,7 @@ local app_mt = {
       run = function(self)
          local frame_trig = _M.TimeTrigger(self.tend/self.nframe)
 
-         local my_rank = 1
+         local my_rank = 0
          if GKYL_HAVE_MPI then
             local MPI_COMM_WORLD = ffi.C.get_MPI_COMM_WORLD()
             local nr = ffi.new("int[1]", 1)
