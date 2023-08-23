@@ -324,7 +324,7 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
     cells[i] = gkyl_range_shape(nrange, i);
   
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
 
   gkyl_grid_sub_array_write(&grid, nrange, nodes, nm);
 }
@@ -389,16 +389,76 @@ gkyl_gkgeom_mapc2p(const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp *inp
 }
 
 
+static inline void
+comp_to_phys(int ndim, const double *eta,
+  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
+  double* GKYL_RESTRICT xout)
+{
+  for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
+}
+
+void nodal_array_to_modal_array(struct gkyl_array *nodal_array, struct gkyl_array *modal_array, struct gkyl_range *update_range, struct gkyl_range *nrange, const struct gkyl_gkgeom_geo_inp *ginp){
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
+
+  int num_ret_vals = ginp->cgrid->ndim;
+  int num_basis = ginp->cbasis->num_basis;
+  //initialize the nodes
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ginp->cgrid->ndim, ginp->cbasis->num_basis);
+  ginp->cbasis->node_list(gkyl_array_fetch(nodes, 0));
+  double fnodal[num_basis]; // to store nodal function values
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+  int nidx[3];
+  long lin_nidx[num_basis];
+  
+  while (gkyl_range_iter_next(&iter)) {
+     gkyl_rect_grid_cell_center(ginp->cgrid, iter.idx, xc);
+
+    for (int i=0; i<num_basis; ++i) {
+      const double* temp  = gkyl_array_cfetch(nodes,i);
+      for( int j = 0; j < ginp->cgrid->ndim; j++){
+        nidx[j] = iter.idx[j] + (temp[j] + 1)/2 ;
+      }
+      lin_nidx[i] = gkyl_range_idx(nrange, nidx);
+    }
+
+    long lidx = gkyl_range_idx(update_range, iter.idx);
+    double *arr_p = gkyl_array_fetch(modal_array, lidx); // pointer to expansion in cell
+    double fao[num_basis*num_ret_vals];
+  
+    for (int i=0; i<num_basis; ++i) {
+      double* temp = gkyl_array_fetch(nodal_array, lin_nidx[i]);
+      for (int j=0; j<num_ret_vals; ++j) {
+        fao[i*num_ret_vals + j] = temp[j];
+      }
+    }
+
+    for (int i=0; i<num_ret_vals; ++i) {
+      // copy so nodal values for each return value are contiguous
+      // (recall that function can have more than one return value)
+      for (int k=0; k<num_basis; ++k)
+        fnodal[k] = fao[num_ret_vals*k+i];
+      // transform to modal expansion
+      ginp->cbasis->nodal_to_modal(fnodal, &arr_p[num_basis*i]);
+    }
+  }
+
+}
+
+
+
+
 
 void
 gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
-  const struct gkyl_gkgeom_geo_inp *inp, struct gkyl_array *mapc2p)
+  const struct gkyl_gkgeom_geo_inp *inp, struct gkyl_array *mapc2p, struct gkyl_range *conversion_range)
 {
   int poly_order = inp->cbasis->poly_order;
   int nodes[3] = { 1, 1, 1 };
   if (poly_order == 1)
     for (int d=0; d<inp->cgrid->ndim; ++d)
-      nodes[d] = inp->cgrid->cells[d]+1;
+      nodes[d] = inp->cgrid->cells[d]+3;
   if (poly_order == 2)
     for (int d=0; d<inp->cgrid->ndim; ++d)
       nodes[d] = 2*inp->cgrid->cells[d]+1;
@@ -410,18 +470,23 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, inp->cgrid->ndim, nodes);
   struct gkyl_array *mc2p = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim, nrange.volume);
-  printf("cgrid ndim  = %d", inp->cgrid->ndim);
+  printf("cgrid ndim  = %d\n", inp->cgrid->ndim);
+
+  printf("Checking the range volumes\n nrange.volume = %ld\n conversion_range.volume = %ld\n", nrange.volume, conversion_range->volume);
+
+  struct gkyl_array *mc2p_xyz = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim, nrange.volume);
 
   enum { TH_IDX, PH_IDX, AL_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX }; // arrangement of physical coordinates  
+  enum { X_IDX, Y_IDX, Zc_IDX }; // arrangement of cartesian coordinates
   
   double dtheta = inp->cgrid->dx[TH_IDX],
     dphi = inp->cgrid->dx[PH_IDX],
     dalpha = inp->cgrid->dx[AL_IDX];
   
-  double theta_lo = inp->cgrid->lower[TH_IDX],
-    phi_lo = inp->cgrid->lower[PH_IDX],
-    alpha_lo = inp->cgrid->lower[AL_IDX];
+  double theta_lo = inp->cgrid->lower[TH_IDX] - dtheta,
+    phi_lo = inp->cgrid->lower[PH_IDX] - dphi,
+    alpha_lo = inp->cgrid->lower[AL_IDX] - dalpha;
 
   double dx_fact = poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dphi *= dx_fact; dalpha *= dx_fact;
@@ -438,8 +503,10 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
 
   int cidx[3] = { 0 };
   
-  for(int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[PH_IDX]; ++ia){
-    //below is the original loop. Add an alpha loop outside
+  for(int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
+    cidx[AL_IDX] = ia;
+    double alpha_curr = alpha_lo + ia*dalpha;
+    // below is the original loop. Add an alpha loop outside
     for (int ip=nrange.lower[PH_IDX]; ip<=nrange.upper[PH_IDX]; ++ip) {
 
       double zmin = inp->zmin, zmax = inp->zmax;
@@ -449,56 +516,67 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
         true, true, arc_memo);
 
       double delta_arcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
-      printf("delta arcL = %g\n", delta_arcL);
       double delta_theta = delta_arcL*(2*M_PI/arcL);
-      printf("delta theta = %g\n", delta_theta);
 
       cidx[PH_IDX] = ip;
 
+
+      double arcL_curr = 0.0;
+      arcL_curr = (inp->cgrid->lower[TH_IDX] - dtheta + M_PI)/2/M_PI*arcL;
+      double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ;
       do {
         // set node coordinates of first node
         cidx[TH_IDX] = nrange.lower[TH_IDX];
         double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
-        mc2p_n[Z_IDX] = zmin;
-        double R[2] = { 0 }, dR[2] = { 0 };    
+        double R[2] = { 0 }, dR[2] = { 0 };
         int nr = R_psiZ(geo, psi_curr, zmin, 2, R, dR);
-        mc2p_n[R_IDX] = choose_closest(rclose, R, R);
+        double r_curr = choose_closest(rclose, R, R);
+        mc2p_n[Z_IDX] = zmin;
+        mc2p_n[R_IDX] = r_curr;
+        // convert to x,y,z
+        double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
+        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(alpha_curr);
+        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(alpha_curr);
+        mc2p_xyz_n[Zc_IDX] = mc2p_n[Z_IDX];
       } while(0);
 
       // set node coordinates of rest of nodes
-      double arcL_curr = 0.0;
-      arcL_curr = (inp->cgrid->lower[TH_IDX] + M_PI)/2/M_PI*arcL;
-      double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ;
-      printf("first node theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
+      // printf("first node theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
       for (int it=nrange.lower[TH_IDX]+1; it<nrange.upper[TH_IDX]; ++it) {
         arcL_curr += delta_arcL;
-        double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor
-        printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
+        double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
+        //printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
 
         arc_ctx.psi = psi_curr;
         arc_ctx.rclose = rclose;
         arc_ctx.zmin = zmin;
         arc_ctx.arcL = arcL_curr;
-        printf("setup the arc ctx\n");
 
         struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
           zmin, zmax, -arcL_curr, arcL-arcL_curr,
           geo->root_param.max_iter, 1e-10);
         double z_curr = res.res;
         ((gkyl_gkgeom *)geo)->stat.nroot_cont_calls += res.nevals;
-        printf("got z_curr\n");
 
         double R[2] = { 0 }, dR[2] = { 0 };
         int nr = R_psiZ(geo, psi_curr, z_curr, 2, R, dR);
         double r_curr = choose_closest(rclose, R, R);
-        printf("got r_curr\n");
 
         cidx[TH_IDX] = it;
         double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
         mc2p_n[Z_IDX] = z_curr;
         mc2p_n[R_IDX] = r_curr;
+
+        // convert to x,y,z
+        double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
+        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(alpha_curr);
+        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(alpha_curr);
+        mc2p_xyz_n[Zc_IDX] = mc2p_n[Z_IDX];
+        // printf("In middle nodes, ia,ip,it = %d,%d,%d\n alpha, psi, theta = %g,%g,%g\n R, Z, phi = %g, %g, %g\n X,Y,Z = %g,%g,%g\n", ia, ip, it, alpha_curr, psi_curr, theta_curr, r_curr, z_curr, alpha_curr, mc2p_xyz_n[X_IDX], mc2p_xyz_n[Y_IDX], mc2p_xyz_n[Zc_IDX]); 
       }
 
+      arcL_curr += delta_arcL;
+      theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ;
       do {
         // set node coordinates of last node
         cidx[TH_IDX] = nrange.upper[TH_IDX];
@@ -507,21 +585,33 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
         double R[2] = { 0 }, dR[2] = { 0 };    
         int nr = R_psiZ(geo, psi_curr, zmax, 2, R, dR);
         mc2p_n[R_IDX] = choose_closest(rclose, R, R);
+        // printf("r_curr, z_curr = %g, %g\n", mc2p_n[R_IDX], mc2p_n[Z_IDX]);
+
+        //do x,y,z
+        double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
+        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(alpha_curr);
+        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(alpha_curr);
+        mc2p_xyz_n[Zc_IDX] = mc2p_n[Z_IDX];
       } while (0);
-      arcL_curr += delta_arcL;
-      theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ;
-      printf("last node theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
+      // printf("last node theta_curr = %g, psicurr  = %g \n\n", theta_curr, psi_curr);
     }
     //end original loop
   }
 
   printf("trying to write nodal coords\n");
-  if (inp->write_node_coord_array)
+  char str1[50] = "xyz";
+  if (inp->write_node_coord_array){
     write_nodal_coordinates(inp->node_file_nm, &nrange, mc2p);
+    write_nodal_coordinates(strcat(str1, inp->node_file_nm), &nrange, mc2p_xyz);
+  }
   printf("done writing nodal coords\n");
+
+  nodal_array_to_modal_array(mc2p_xyz, mapc2p, conversion_range, &nrange, inp);
+  printf("converted to modal\n");
 
   gkyl_free(arc_memo);
   gkyl_array_release(mc2p);  
+  gkyl_array_release(mc2p_xyz);  
 }
 
 struct gkyl_gkgeom_stat

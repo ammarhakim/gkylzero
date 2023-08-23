@@ -155,8 +155,11 @@ test_1()
   int ccells[] = { 16, 16, 1 };
 
 
+
   struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+
+  printf("CGRID INFO:\n cgrid.lower = %g,%g,%g\n cgrid.upper = %g,%g,%g\n cgrid.dx= %g,%g,%g\n", cgrid.lower[0],cgrid.lower[1], cgrid.lower[2],cgrid.upper[0],cgrid.upper[1], cgrid.upper[2], cgrid.dx[0], cgrid.dx[1], cgrid.dx[2]);
 
   struct gkyl_range clocal, clocal_ext;
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
@@ -166,6 +169,7 @@ test_1()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
+
   struct gkyl_gkgeom_geo_inp ginp = {
     .cgrid = &cgrid,
     .cbasis = &cbasis,
@@ -174,8 +178,8 @@ test_1()
     .zmin = lower[1],
     .zmax = upper[1],
   
-    //.write_node_coord_array = true,
-    //.node_file_nm = "test_bmag.gkyl"
+    .write_node_coord_array = true,
+    .node_file_nm = "solovev3d_nodes.gkyl"
   }; 
 
 
@@ -186,24 +190,29 @@ test_1()
   struct gkyl_range_iter iter_c;
   gkyl_range_iter_init(&iter_c, &clocal);
   
-  while (gkyl_range_iter_next(&iter_c)) {
-    gkyl_rect_grid_cell_center(ginp.cgrid, iter_c.idx, xc);
+  //while (gkyl_range_iter_next(&iter_c)) {
+  //  gkyl_rect_grid_cell_center(ginp.cgrid, iter_c.idx, xc);
 
-    for (int i=0; i<ginp.cbasis->num_basis; ++i) {
-      comp_to_phys(ginp.cgrid->ndim, gkyl_array_cfetch(nodes, i),
-        ginp.cgrid->dx, xc, xmu);
-      //printf("xc = %g,%g ; xmu = %g,%g\n",xc[0],xc[1],xmu[0],xmu[1]);
-      //printf("xmu = %g,%g\n", xmu[0], xmu[1]);
-      //up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
-    }
-  }
+  //  for (int i=0; i<ginp.cbasis->num_basis; ++i) {
+  //    comp_to_phys(ginp.cgrid->ndim, gkyl_array_cfetch(nodes, i),
+  //      ginp.cgrid->dx, xc, xmu);
+  //    printf("xc = %g,%g ; xmu = %g,%g\n",xc[0],xc[1],xmu[0],xmu[1]);
+  //    printf("xmu = %g,%g\n", xmu[0], xmu[1]);
+  //    //up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
+  //  }
+  //}
 
 
 
   //Do Ammar's calcgeom
 
   struct gkyl_array *mapc2p_arr = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
-  //gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p_arr);
+  gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p_arr, &clocal_ext);
+
+
+  printf("writing mapc2p file from calcgeom\n");
+  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "solovev3d_mapc2pfile.gkyl");
+  printf("wrote mapc2p file\n");
 
   //make psi
   gkyl_eval_on_nodes *eval_psi = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psi, &sctx);
@@ -228,7 +237,7 @@ test_1()
 
   printf("calculating bmag \n");
   gkyl_calc_bmag *calculator = gkyl_calc_bmag_new(&cbasis, &rzbasis, &cgrid, &rzgrid, geo, &ginp, false);
-  gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, psidg, psibyrdg, psibyr2dg, bmagFld);
+  gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, psidg, psibyrdg, psibyr2dg, bmagFld, mapc2p_arr);
 
   char fileNm[1024];
   do{
@@ -240,22 +249,23 @@ test_1()
 
 
   //// write mapc2p and get metrics
-  printf("calculating mapc2p \n");
-  struct mapc2p_ctx *mctx = gkyl_malloc(sizeof(*mctx));
-  mctx->app = geo;
-  mctx->ginp = &ginp;
-  gkyl_eval_on_nodes *eval_mapc2p = gkyl_eval_on_nodes_new(&cgrid, &cbasis, 3, mapc2p, mctx);
-  struct gkyl_array *XYZ = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
-  struct gkyl_array *gFld = gkyl_array_new(GKYL_DOUBLE, 6*cbasis.num_basis, clocal_ext.volume);
-  gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &clocal_ext, XYZ);
+  //printf("calculating mapc2p \n");
+  //struct mapc2p_ctx *mctx = gkyl_malloc(sizeof(*mctx));
+  //mctx->app = geo;
+  //mctx->ginp = &ginp;
+  //gkyl_eval_on_nodes *eval_mapc2p = gkyl_eval_on_nodes_new(&cgrid, &cbasis, 3, mapc2p, mctx);
+  //struct gkyl_array *XYZ = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
+  //gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &clocal_ext, XYZ);
 
-  printf("writing rz file\n");
-  gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "solovev3d_rzfile.gkyl");
-  printf("wrote rz file\n");
+  //printf("writing rz file\n");
+  //gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "solovev3d_xyzfile.gkyl");
+  //printf("wrote rz file\n");
   
   printf("calculating metrics \n");
+  struct gkyl_array *gFld = gkyl_array_new(GKYL_DOUBLE, 6*cbasis.num_basis, clocal_ext.volume);
   gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, false);
-  gkyl_calc_metric_advance( mcalculator, &clocal, XYZ, gFld);
+  //gkyl_calc_metric_advance( mcalculator, &clocal, XYZ, gFld);
+  gkyl_calc_metric_advance( mcalculator, &clocal, mapc2p_arr, gFld);
   do{
     printf("writing the gij file \n");
     const char *fmt = "%s_g_ij.gkyl";

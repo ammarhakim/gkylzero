@@ -116,7 +116,7 @@ void gkyl_gkgeom_mapc2p(const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp
  * @param mapc2p On output, the DG representation of mapc2p
  */
 void gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
-  const struct gkyl_gkgeom_geo_inp *ginp, struct gkyl_array *mapc2p);
+  const struct gkyl_gkgeom_geo_inp *ginp, struct gkyl_array *mapc2p, struct gkyl_range *conversion_range);
 
 /**
  * Return cumulative statistics from geometry computations
