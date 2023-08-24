@@ -138,6 +138,7 @@ test_1()
       .rzbasis = &rzbasis,
       .psiRZ = psiRZ,
       .rzlocal = &rzlocal,
+      .B0 = sctx.B0,
 
       .quad_param = {  .eps = 1e-12 }
     }
@@ -237,7 +238,33 @@ test_1()
 
   printf("calculating bmag \n");
   gkyl_calc_bmag *calculator = gkyl_calc_bmag_new(&cbasis, &rzbasis, &cgrid, &rzgrid, geo, &ginp, false);
+  printf("allocated bmag calculator\n");
+
+  //printf("testing a fetch\n");
+  //struct gkyl_range_iter citer;
+  //gkyl_range_iter_init(&citer, &clocal_ext);
+  //citer.idx[0] = 0;
+  //citer.idx[1] = 0;
+  //citer.idx[2] = 0;
+  //printf("citer = %d,%d,%d\n", citer.idx[0], citer.idx[1], citer.idx[2]);
+
+  //long lidx = gkyl_range_idx(&clocal_ext, citer.idx);
+  //const double *mcoeffs = gkyl_array_cfetch(mapc2p_arr, lidx);
+  //
+
+  //printf("coeffs = ");
+  //for(int i = 0; i < cgrid.ndim; i++){
+  //  for(int j = 0; j < cbasis.num_basis; j++){
+  //    const double *temp = &mcoeffs[i*cbasis.num_basis];
+  //    printf(" %g ", temp[j] );
+  //  }
+  //}
+  //printf("\n");
+  //printf("done testing a fetch\n");
+
+
   gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, psidg, psibyrdg, psibyr2dg, bmagFld, mapc2p_arr);
+  printf("advanced bmag calculator\n");
 
   char fileNm[1024];
   do{

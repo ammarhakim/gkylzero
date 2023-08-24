@@ -20,6 +20,7 @@ struct gkyl_gkgeom_inp {
   const struct gkyl_basis *rzbasis; // basis functions for R,Z grid
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
   const struct gkyl_range *rzlocal; // local range over which psiRZ is defined
+  double B0; // Toroidal Field on axis
 
   // Parameters for root finder: leave unset to use defaults
   struct {

@@ -24,6 +24,7 @@ struct gkyl_gkgeom {
     double xc[2], double dx[2]);
 
   struct gkyl_gkgeom_stat stat; 
+  double B0;
 };
 
 // some helper functions
@@ -183,6 +184,41 @@ contour_func(double Z, void *ctx)
   return nr>0 ? sqrt(1+dRdZ*dRdZ) : 0.0;
 }
 
+static inline double
+phi_contour_func(double Z, void *ctx)
+{
+  struct contour_ctx *c = ctx;
+  c->ncall += 1;
+  double R[2] = { 0 }, dR[2] = { 0 };
+  
+  int nr = R_psiZ(c->geo, c->psi, Z, 2, R, dR);
+  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR);
+
+  struct gkyl_range_iter iter;
+  iter.idx[0] = fmin(c->geo->rzlocal.lower[0] + (int) floor((R[0] - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]), c->geo->rzlocal.upper[0]); // probaby should not just use R[0]
+  iter.idx[1] = fmin(c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]), c->geo->rzlocal.upper[1]);
+  long loc = gkyl_range_idx(&(c->geo->rzlocal), iter.idx);
+  const double *psih = gkyl_array_cfetch(c->geo->psiRZ, loc);
+
+  double xc[2];
+  gkyl_rect_grid_cell_center(&(c->geo->rzgrid), iter.idx, xc);
+  double x = (R[0]-xc[0])/(c->geo->rzgrid.dx[0]*0.5);
+  double y = (Z-xc[1])/(c->geo->rzgrid.dx[1]*0.5);
+
+  // if psi is polyorder 2 we can get grad psi
+  // in cylindrical coords it is grad psi = dpsi/dR Rhat + dpsi/dZ zhat
+  double dpsidx = 2.904737509655563*psih[7]*(y*y-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1]; 
+  double dpsidy =	5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(x*x-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
+  dpsidx = dpsidx*2.0/c->geo->rzgrid.dx[0];
+  dpsidy = dpsidy*2.0/c->geo->rzgrid.dx[1];
+  //printf("R[0] = %g\n", R[0]);
+  double grad_psi_mag = sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
+  //printf("grad_psi = %g\n", grad_psi_mag);
+  double result  = (1/R[0]/sqrt(dpsidx*dpsidx + dpsidy*dpsidy)) *sqrt(1+dRdZ*dRdZ) ;
+  //printf("integrand = %g\n", result);
+  return nr>0 ? result : 0.0;
+}
+
 // Integrates along a specified contour, optionally using a "memory"
 // of previously computed values, or storing computed values in
 // memory. The function basically breaks up the integral into a loop
@@ -247,6 +283,64 @@ integrate_psi_contour_memo(const gkyl_gkgeom *geo, double psi,
   return res;
 }
 
+static double
+integrate_phi_along_psi_contour_memo(const gkyl_gkgeom *geo, double psi,
+  double zmin, double zmax, double rclose,
+  bool use_memo, bool fill_memo, double *memo)
+{
+  struct contour_ctx ctx = {
+    .geo = geo,
+    .psi = psi,
+    .ncall = 0,
+    .last_R = rclose
+  };
+
+  int nlevels = geo->quad_param.max_level;
+  double eps = geo->quad_param.eps;
+  
+  double dz = geo->rzgrid.dx[1];
+  double zlo = geo->rzgrid.lower[1];
+  int izlo = geo->rzlocal.lower[1], izup = geo->rzlocal.upper[1];
+  
+  int ilo = get_idx(1, zmin, &geo->rzgrid, &geo->rzlocal);
+  int iup = get_idx(1, zmax, &geo->rzgrid, &geo->rzlocal);
+
+  double res = 0.0;
+  for (int i=ilo; i<=iup; ++i) {
+    double z1 = gkyl_median(zmin, zlo+(i-izlo)*dz, zlo+(i-izlo+1)*dz);
+    double z2 = gkyl_median(zmax, zlo+(i-izlo)*dz, zlo+(i-izlo+1)*dz);
+    
+    if (z1 < z2) {
+      if (use_memo) {
+        if (fill_memo) {
+          struct gkyl_qr_res res_local =
+            gkyl_dbl_exp(phi_contour_func, &ctx, z1, z2, nlevels, eps);
+          memo[i-izlo] = res_local.res;
+          res += res_local.res;
+        }
+        else {
+          if (z2-z1 == dz) {
+            res += memo[i-izlo];
+          }
+          else {
+            struct gkyl_qr_res res_local =
+              gkyl_dbl_exp(phi_contour_func, &ctx, z1, z2, nlevels, eps);
+            res += res_local.res;
+          }
+        }
+      }
+      else {
+        struct gkyl_qr_res res_local =
+          gkyl_dbl_exp(phi_contour_func, &ctx, z1, z2, nlevels, eps);
+        res += res_local.res;
+      }
+    }
+  }
+
+  ((gkyl_gkgeom *)geo)->stat.nquad_cont_calls += ctx.ncall;
+  return res;
+}
+
 // Function context to pass to root finder
 struct arc_length_ctx {
   const gkyl_gkgeom *geo;
@@ -267,10 +361,49 @@ arc_length_func(double Z, void *ctx)
   return ival;
 }
 
+// Function to calculate phi given alpha
+static inline double
+phi_func(double alpha_curr, double Z, void *ctx)
+{
+  struct arc_length_ctx *actx = ctx;
+  double *arc_memo = actx->arc_memo;
+  double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL;
+
+  //double ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
+
+  double ival = 0;
+  if(Z<0.0){
+    ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, 0.0, rclose, false, false, arc_memo);
+  }
+  else{
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, 0.0, Z, rclose, false, false, arc_memo);
+  }
+
+  // Now multiply by RBphi
+  double R[2] = {0};
+  double dR[2] = {0};
+  int nr = R_psiZ(actx->geo, psi, Z, 2, R, dR);
+  double Bphi = actx->geo->B0/R[0];
+  ival = ival*R[0]*Bphi;
+
+  // now keep in range 2pi
+  while(ival < -M_PI){
+    ival +=2*M_PI;
+  }
+  while(ival > M_PI){
+    ival -=2*M_PI;
+  }
+  return alpha_curr + ival;
+}
+
+
+
 gkyl_gkgeom*
 gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
 {
   struct gkyl_gkgeom *geo = gkyl_malloc(sizeof(*geo));
+
+  geo->B0 = inp->B0;
 
   geo->rzgrid = *inp->rzgrid;
   geo->psiRZ = gkyl_array_acquire(inp->psiRZ);
@@ -533,15 +666,26 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
         double r_curr = choose_closest(rclose, R, R);
         mc2p_n[Z_IDX] = zmin;
         mc2p_n[R_IDX] = r_curr;
+
+
+        // need to set the ctx for calculating phi
+        arc_ctx.psi = psi_curr;
+        arc_ctx.rclose = rclose;
+        arc_ctx.zmin = zmin;
+        arc_ctx.arcL = arcL_curr;
+
+        double phi_curr = phi_func(alpha_curr, zmin, &arc_ctx);
+        //printf("first node phi = %g\n", phi_curr);
         // convert to x,y,z
         double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
-        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(alpha_curr);
-        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(alpha_curr);
+        //phi_curr = alpha_curr;
+        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(phi_curr);
+        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(phi_curr);
         mc2p_xyz_n[Zc_IDX] = mc2p_n[Z_IDX];
       } while(0);
 
       // set node coordinates of rest of nodes
-      // printf("first node theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
+      //printf("first node theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
       for (int it=nrange.lower[TH_IDX]+1; it<nrange.upper[TH_IDX]; ++it) {
         arcL_curr += delta_arcL;
         double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
@@ -567,12 +711,19 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
         mc2p_n[Z_IDX] = z_curr;
         mc2p_n[R_IDX] = r_curr;
 
+
+        // Try calculating phi as a test
+        double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
+        //printf("middle node phi, alpha, theta, z  = %g %g %g %g\n", phi_curr, alpha_curr, theta_curr, z_curr);
+
         // convert to x,y,z
         double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
-        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(alpha_curr);
-        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(alpha_curr);
+        //phi_curr = alpha_curr;
+        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(phi_curr);
+        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(phi_curr);
         mc2p_xyz_n[Zc_IDX] = mc2p_n[Z_IDX];
         // printf("In middle nodes, ia,ip,it = %d,%d,%d\n alpha, psi, theta = %g,%g,%g\n R, Z, phi = %g, %g, %g\n X,Y,Z = %g,%g,%g\n", ia, ip, it, alpha_curr, psi_curr, theta_curr, r_curr, z_curr, alpha_curr, mc2p_xyz_n[X_IDX], mc2p_xyz_n[Y_IDX], mc2p_xyz_n[Zc_IDX]); 
+        
       }
 
       arcL_curr += delta_arcL;
@@ -587,27 +738,36 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
         mc2p_n[R_IDX] = choose_closest(rclose, R, R);
         // printf("r_curr, z_curr = %g, %g\n", mc2p_n[R_IDX], mc2p_n[Z_IDX]);
 
+        // need to set the arc ctx for phi
+        arc_ctx.psi = psi_curr;
+        arc_ctx.rclose = rclose;
+        arc_ctx.zmin = zmin;
+        arc_ctx.arcL = arcL_curr;
+        double phi_curr = phi_func(alpha_curr, zmax, &arc_ctx);
+        //printf("last node phi = %g\n", phi_curr);
+
         //do x,y,z
         double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
-        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(alpha_curr);
-        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(alpha_curr);
+        //phi_curr = alpha_curr;
+        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(phi_curr);
+        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(phi_curr);
         mc2p_xyz_n[Zc_IDX] = mc2p_n[Z_IDX];
       } while (0);
-      // printf("last node theta_curr = %g, psicurr  = %g \n\n", theta_curr, psi_curr);
+      //printf("last node theta_curr = %g, psicurr  = %g \n\n", theta_curr, psi_curr);
     }
     //end original loop
   }
 
-  printf("trying to write nodal coords\n");
+  //printf("trying to write nodal coords\n");
   char str1[50] = "xyz";
   if (inp->write_node_coord_array){
     write_nodal_coordinates(inp->node_file_nm, &nrange, mc2p);
     write_nodal_coordinates(strcat(str1, inp->node_file_nm), &nrange, mc2p_xyz);
   }
-  printf("done writing nodal coords\n");
+  //printf("done writing nodal coords\n");
 
   nodal_array_to_modal_array(mc2p_xyz, mapc2p, conversion_range, &nrange, inp);
-  printf("converted to modal\n");
+  //printf("converted to modal\n");
 
   gkyl_free(arc_memo);
   gkyl_array_release(mc2p);  
