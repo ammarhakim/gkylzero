@@ -97,7 +97,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   }
 #endif  
   double xc[GKYL_MAX_DIM];
-  int pidx[GKYL_MAX_DIM], fidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
+  int cidx[GKYL_MAX_CDIM], pidx[GKYL_MAX_DIM], fidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<conf_r->ndim; ++d) rem_dir[d] = 1;
 
   struct gkyl_range vel_r, vel_ghost_r;
@@ -109,7 +109,10 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_r, conf_iter.idx);
 
-    gkyl_range_deflate(&vel_r, skin_r, rem_dir, conf_iter.idx);
+    gkyl_copy_int_arr(conf_r->ndim, conf_iter.idx, cidx);
+    cidx[up->dir] = skin_r->lower[up->dir];
+
+    gkyl_range_deflate(&vel_r, skin_r, rem_dir, cidx);
     gkyl_range_deflate(&vel_ghost_r, ghost_r, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_r);
 
@@ -117,6 +120,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
 
     while (gkyl_range_iter_next(&vel_iter)) {
       copy_idx_arrays(conf_r->ndim, skin_r->ndim, conf_iter.idx, vel_iter.idx, pidx);
+      pidx[up->dir] = skin_r->lower[up->dir];
       gkyl_rect_grid_cell_center(grid, pidx, xc);
 
       long loc = gkyl_range_idx(&vel_r, vel_iter.idx);
