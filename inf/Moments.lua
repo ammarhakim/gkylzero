@@ -1547,8 +1547,8 @@ local app_mt = {
       local low_inp = ffi.new("struct gkyl_moment_low_inp")
       low_inp.comm = comm
       low_inp.local_range = decomp.ranges[my_rank[0]]
-      --vm.has_low_inp = true
-      --vm.low_inp = low_inp
+      vm.has_low_inp = true
+      vm.low_inp = low_inp
 
       vm.scheme_type = C.GKYL_MOMENT_WAVE_PROP
       if tbl.scheme_type then
