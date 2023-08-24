@@ -128,7 +128,8 @@ void gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum
   const struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
   struct gkyl_array *weight, struct gkyl_array *k,
   const struct gkyl_array *flux, struct gkyl_rect_grid *grid, struct gkyl_array *gamma,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r);
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r,
+  const struct gkyl_range *buff_r);
 
 void gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up,
   struct gkyl_array *gamma, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r);

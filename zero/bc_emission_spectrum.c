@@ -89,18 +89,19 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   const struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
   struct gkyl_array *weight, struct gkyl_array *k,
   const struct gkyl_array *flux, struct gkyl_rect_grid *grid, struct gkyl_array *gamma,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r)
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r,
+  const struct gkyl_range *buff_r)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    return gkyl_bc_emission_spectrum_advance_cu(up, f_skin, f_proj, f_buff, weight, k, flux, grid, gamma, skin_r, ghost_r, conf_r);
+    return gkyl_bc_emission_spectrum_advance_cu(up, f_skin, f_proj, f_buff, weight, k, flux, grid, gamma, skin_r, ghost_r, conf_r, buff_r);
   }
 #endif  
   double xc[GKYL_MAX_DIM];
   int cidx[GKYL_MAX_CDIM], pidx[GKYL_MAX_DIM], fidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<conf_r->ndim; ++d) rem_dir[d] = 1;
 
-  struct gkyl_range vel_r, vel_ghost_r;
+  struct gkyl_range vel_r, vel_ghost_r, vel_buff_r;
   struct gkyl_range_iter conf_iter, vel_iter;
 
   gkyl_array_clear_range(weight, 0.0, *conf_r);
@@ -114,6 +115,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
 
     gkyl_range_deflate(&vel_r, skin_r, rem_dir, cidx);
     gkyl_range_deflate(&vel_ghost_r, ghost_r, rem_dir, conf_iter.idx);
+    gkyl_range_deflate(&vel_buff_r, buff_r, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_r);
 
     double *w = gkyl_array_fetch(weight, midx);
@@ -138,7 +140,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
     double *out = gkyl_array_fetch(k, midx);
     
     up->funcs->norm(out, bflux, up->bc_param, effective_gamma);
-    gkyl_array_accumulate_range(f_buff, out[0], f_proj, vel_ghost_r);
+    gkyl_array_accumulate_range(f_buff, out[0], f_proj, vel_buff_r);
   }
 }
 

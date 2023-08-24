@@ -119,21 +119,21 @@ gkyl_bc_emission_spectrum_advance_cu_weight_ker(int cdim, int dir, enum gkyl_edg
 }
 
 __global__ static void
-gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(const struct gkyl_array *f_proj, struct gkyl_array *f_buff, struct gkyl_array *weight, struct gkyl_array *k, const struct gkyl_array *flux, const struct gkyl_range ghost_r, const struct gkyl_range conf_r, struct gkyl_bc_emission_spectrum_funcs *funcs, double *bc_param)
+gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(const struct gkyl_array *f_proj, struct gkyl_array *f_buff, struct gkyl_array *weight, struct gkyl_array *k, const struct gkyl_array *flux, const struct gkyl_range buff_r, const struct gkyl_range conf_r, struct gkyl_bc_emission_spectrum_funcs *funcs, double *bc_param)
 {
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
-      tid < ghost_r.volume; tid += blockDim.x*gridDim.x) {
+      tid < buff_r.volume; tid += blockDim.x*gridDim.x) {
     
-    gkyl_sub_range_inv_idx(&ghost_r, tid, pidx);
+    gkyl_sub_range_inv_idx(&buff_r, tid, pidx);
 
     // get conf-space linear index.
     for (unsigned int i = 0; i < conf_r.ndim; i++)
       cidx[i] = pidx[i];
     long lincC = gkyl_range_idx(&conf_r, cidx);
 
-    long lincP = gkyl_range_idx(&ghost_r, pidx);
+    long lincP = gkyl_range_idx(&buff_r, pidx);
     
     const double* inp = (const double*) gkyl_array_cfetch(f_proj, lincP);
     const double* w = (const double*) gkyl_array_cfetch(weight, lincC);
@@ -162,7 +162,8 @@ gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
   const struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
   struct gkyl_array *weight, struct gkyl_array *k,
   const struct gkyl_array *flux, struct gkyl_rect_grid *grid, struct gkyl_array *gamma,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r)
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r,
+  const struct gkyl_range *buff_r)
 {
   int nblocks = skin_r->nblocks, nthreads = skin_r->nthreads;
 
@@ -170,5 +171,5 @@ gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
 
   gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, up->edge, f_skin->on_dev, weight->on_dev, *grid, gamma->on_dev, *skin_r, *ghost_r, *conf_r, up->funcs_cu, up->bc_param_cu);
 
-  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(f_proj->on_dev, f_buff->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *ghost_r, *conf_r, up->funcs_cu, up->bc_param_cu);
+  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(f_proj->on_dev, f_buff->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *buff_r, *conf_r, up->funcs_cu, up->bc_param_cu);
 }
