@@ -359,6 +359,9 @@ struct gkyl_moment_species {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
+  // pointer to user-defined number density and temperature sources
+  void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
+  bool nT_source_set_only_once;
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
   // pointer to boundary condition functions along x
@@ -482,6 +485,8 @@ struct gkyl_moment {
   // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
   // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
+
+  bool has_nT_sources;
 
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
@@ -1496,10 +1501,10 @@ local app_mt = {
       end
 
       local MPI_COMM_WORLD = nil
-      --local nrank = ffi.new("int[1]", 1)
+      local nrank = ffi.new("int[1]", 1)
       if GKYL_HAVE_MPI then
          MPI_COMM_WORLD = ffi.C.get_MPI_COMM_WORLD()
-         --C.MPI_Comm_size(MPI_COMM_WORLD, nrank)
+         C.MPI_Comm_size(MPI_COMM_WORLD, nrank)
       end
 
       local cuts = ffi.new("int["..vm.ndim.."]")
@@ -1514,7 +1519,7 @@ local app_mt = {
       end
 
       if GKYL_HAVE_MPI then
-         --assert(nrank[0] == ncuts, "*** Number of ranks, " .. nrank[0] .. ", does not match total cuts, " .. ncuts .. "!")
+         assert(nrank[0] == ncuts, "*** Number of ranks, " .. nrank[0] .. ", does not match total cuts, " .. ncuts .. "!")
       end
 
       local globalr = ffi.new("struct gkyl_range")
@@ -1526,7 +1531,7 @@ local app_mt = {
       if GKYL_HAVE_MPI then
          local comm_inp = ffi.new("struct gkyl_mpi_comm_inp")
          comm_inp.decomp = decomp
-         comm_inp.mpi_comm = ffi.C.get_MPI_COMM_WORLD()
+         comm_inp.mpi_comm = MPI_COMM_WORLD
          comm = C.gkyl_mpi_comm_new(comm_inp)
       else
          local comm_inp = ffi.new("struct gkyl_null_comm_inp")
@@ -1542,8 +1547,8 @@ local app_mt = {
       local low_inp = ffi.new("struct gkyl_moment_low_inp")
       low_inp.comm = comm
       low_inp.local_range = decomp.ranges[my_rank[0]]
-      vm.has_low_inp = true
-      vm.low_inp = low_inp
+      --vm.has_low_inp = true
+      --vm.low_inp = low_inp
 
       vm.scheme_type = C.GKYL_MOMENT_WAVE_PROP
       if tbl.scheme_type then

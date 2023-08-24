@@ -41,7 +41,7 @@ local momentApp = Moments.App {
    upper = {Lx/2, Ly/2},
    cells = {64, 32},
 
-   cuts = {2, 2},
+   cuts = {1, 1},
 
    -- boundary conditions for configuration space
    periodicDirs = {1}, -- periodic directions
