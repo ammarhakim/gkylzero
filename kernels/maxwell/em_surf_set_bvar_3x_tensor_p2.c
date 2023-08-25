@@ -1,267 +1,2929 @@
+#include <gkyl_mat.h> 
 #include <gkyl_maxwell_kernels.h> 
-GKYL_CU_DH void em_surf_set_bvar_3x_tensor_p2(const double* bvar, double* GKYL_RESTRICT bvar_surf) 
+#include <gkyl_binop_mul_ser.h> 
+GKYL_CU_DH void em_surf_set_bvar_3x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *BB_surf, int* cell_avg_magB2_surf) 
 { 
-  // bvar:      Input volume expansion of b_i = B_i/|B| (first 3 components), b_i b_j = B_i B_j/|B|^2 (last 6 components). 
-  // bvar_surf: Output surface expansion of magnetic field unit vector and tensor in each direction. 
+  // count:   integer to indicate which matrix being fetched. 
+  // A:       preallocated LHS matrix. 
+  // rhs:     preallocated RHS vector. 
+  // BB_surf: Surface B_i B_j [BxBx_xl, BxBx_xr, ByBy_xl, ByBy_xr, BzBz_xl, BzBz_xr, BxBy_xl, BxBy_xr, BxBz_xl, BxBz_xr, 
+  //                           BxBx_yl, BxBx_yr, ByBy_yl, ByBy_yr, BzBz_yl, BzBz_yr, BxBy_yl, BxBy_yr, ByBz_yl, ByBz_yr, 
+  //                           BxBx_zl, BxBx_zr, ByBy_zl, ByBy_zr, BzBz_zl, BzBz_zr, BxBz_zl, BxBz_zr, ByBz_zl, ByBz_zr]. 
+  // cell_avg_magB2_surf:      Output flag for cell average if 1/|B|^2 at a surface only used cell averages. 
+
+  struct gkyl_mat A_bxbx_xl = gkyl_nmat_get(A, count); 
+  struct gkyl_mat A_bxbx_xr = gkyl_nmat_get(A, count+1); 
+  struct gkyl_mat A_bxby_xl = gkyl_nmat_get(A, count+2); 
+  struct gkyl_mat A_bxby_xr = gkyl_nmat_get(A, count+3); 
+  struct gkyl_mat A_bxbz_xl = gkyl_nmat_get(A, count+4); 
+  struct gkyl_mat A_bxbz_xr = gkyl_nmat_get(A, count+5); 
+  struct gkyl_mat rhs_bxbx_xl = gkyl_nmat_get(rhs, count); 
+  struct gkyl_mat rhs_bxbx_xr = gkyl_nmat_get(rhs, count+1); 
+  struct gkyl_mat rhs_bxby_xl = gkyl_nmat_get(rhs, count+2); 
+  struct gkyl_mat rhs_bxby_xr = gkyl_nmat_get(rhs, count+3); 
+  struct gkyl_mat rhs_bxbz_xl = gkyl_nmat_get(rhs, count+4); 
+  struct gkyl_mat rhs_bxbz_xr = gkyl_nmat_get(rhs, count+5); 
+  gkyl_mat_clear(&A_bxbx_xl, 0.0); gkyl_mat_clear(&rhs_bxbx_xl, 0.0); 
+  gkyl_mat_clear(&A_bxbx_xr, 0.0); gkyl_mat_clear(&rhs_bxbx_xr, 0.0); 
+  gkyl_mat_clear(&A_bxby_xl, 0.0); gkyl_mat_clear(&rhs_bxby_xl, 0.0); 
+  gkyl_mat_clear(&A_bxby_xr, 0.0); gkyl_mat_clear(&rhs_bxby_xr, 0.0); 
+  gkyl_mat_clear(&A_bxbz_xl, 0.0); gkyl_mat_clear(&rhs_bxbz_xl, 0.0); 
+  gkyl_mat_clear(&A_bxbz_xr, 0.0); gkyl_mat_clear(&rhs_bxbz_xr, 0.0); 
+  const double *Bx_sq_xl = &BB_surf[0]; 
+  const double *Bx_sq_xr = &BB_surf[9]; 
+  const double *By_sq_xl = &BB_surf[18]; 
+  const double *By_sq_xr = &BB_surf[27]; 
+  const double *Bz_sq_xl = &BB_surf[36]; 
+  const double *Bz_sq_xr = &BB_surf[45]; 
+  const double *B_x_B_y_xl = &BB_surf[54]; 
+  const double *B_x_B_y_xr = &BB_surf[63]; 
+  const double *B_x_B_z_xl = &BB_surf[72]; 
+  const double *B_x_B_z_xr = &BB_surf[81]; 
+  int *cell_avg_magB2_xl = &cell_avg_magB2_surf[0]; 
+  int *cell_avg_magB2_xr = &cell_avg_magB2_surf[1]; 
  
-  const double *bx = &bvar[0]; 
-  const double *by = &bvar[27]; 
-  const double *bz = &bvar[54]; 
-  const double *bxbx = &bvar[81]; 
-  const double *bxby = &bvar[108]; 
-  const double *bxbz = &bvar[135]; 
-  const double *byby = &bvar[162]; 
-  const double *bybz = &bvar[189]; 
-  const double *bzbz = &bvar[216]; 
+  struct gkyl_mat A_byby_yl = gkyl_nmat_get(A, count+6); 
+  struct gkyl_mat A_byby_yr = gkyl_nmat_get(A, count+7); 
+  struct gkyl_mat A_bxby_yl = gkyl_nmat_get(A, count+8); 
+  struct gkyl_mat A_bxby_yr = gkyl_nmat_get(A, count+9); 
+  struct gkyl_mat A_bybz_yl = gkyl_nmat_get(A, count+10); 
+  struct gkyl_mat A_bybz_yr = gkyl_nmat_get(A, count+11); 
+  struct gkyl_mat rhs_byby_yl = gkyl_nmat_get(rhs, count+6); 
+  struct gkyl_mat rhs_byby_yr = gkyl_nmat_get(rhs, count+7); 
+  struct gkyl_mat rhs_bxby_yl = gkyl_nmat_get(rhs, count+8); 
+  struct gkyl_mat rhs_bxby_yr = gkyl_nmat_get(rhs, count+9); 
+  struct gkyl_mat rhs_bybz_yl = gkyl_nmat_get(rhs, count+10); 
+  struct gkyl_mat rhs_bybz_yr = gkyl_nmat_get(rhs, count+11); 
+  gkyl_mat_clear(&A_byby_yl, 0.0); gkyl_mat_clear(&rhs_byby_yl, 0.0); 
+  gkyl_mat_clear(&A_byby_yr, 0.0); gkyl_mat_clear(&rhs_byby_yr, 0.0); 
+  gkyl_mat_clear(&A_bxby_yl, 0.0); gkyl_mat_clear(&rhs_bxby_yl, 0.0); 
+  gkyl_mat_clear(&A_bxby_yr, 0.0); gkyl_mat_clear(&rhs_bxby_yr, 0.0); 
+  gkyl_mat_clear(&A_bybz_yl, 0.0); gkyl_mat_clear(&rhs_bybz_yl, 0.0); 
+  gkyl_mat_clear(&A_bybz_yr, 0.0); gkyl_mat_clear(&rhs_bybz_yr, 0.0); 
+  const double *Bx_sq_yl = &BB_surf[90]; 
+  const double *Bx_sq_yr = &BB_surf[99]; 
+  const double *By_sq_yl = &BB_surf[108]; 
+  const double *By_sq_yr = &BB_surf[117]; 
+  const double *Bz_sq_yl = &BB_surf[126]; 
+  const double *Bz_sq_yr = &BB_surf[135]; 
+  const double *B_x_B_y_yl = &BB_surf[144]; 
+  const double *B_x_B_y_yr = &BB_surf[153]; 
+  const double *B_y_B_z_yl = &BB_surf[162]; 
+  const double *B_y_B_z_yr = &BB_surf[171]; 
+  int *cell_avg_magB2_yl = &cell_avg_magB2_surf[2]; 
+  int *cell_avg_magB2_yr = &cell_avg_magB2_surf[3]; 
  
-  double *bx_xl = &bvar_surf[0]; 
-  double *bx_xr = &bvar_surf[9]; 
-  double *bxbx_xl = &bvar_surf[18]; 
-  double *bxbx_xr = &bvar_surf[27]; 
-  double *bxby_xl = &bvar_surf[36]; 
-  double *bxby_xr = &bvar_surf[45]; 
-  double *bxbz_xl = &bvar_surf[54]; 
-  double *bxbz_xr = &bvar_surf[63]; 
+  struct gkyl_mat A_bzbz_zl = gkyl_nmat_get(A, count+12); 
+  struct gkyl_mat A_bzbz_zr = gkyl_nmat_get(A, count+13); 
+  struct gkyl_mat A_bxbz_zl = gkyl_nmat_get(A, count+14); 
+  struct gkyl_mat A_bxbz_zr = gkyl_nmat_get(A, count+15); 
+  struct gkyl_mat A_bybz_zl = gkyl_nmat_get(A, count+16); 
+  struct gkyl_mat A_bybz_zr = gkyl_nmat_get(A, count+17); 
+  struct gkyl_mat rhs_bzbz_zl = gkyl_nmat_get(rhs, count+12); 
+  struct gkyl_mat rhs_bzbz_zr = gkyl_nmat_get(rhs, count+13); 
+  struct gkyl_mat rhs_bxbz_zl = gkyl_nmat_get(rhs, count+14); 
+  struct gkyl_mat rhs_bxbz_zr = gkyl_nmat_get(rhs, count+15); 
+  struct gkyl_mat rhs_bybz_zl = gkyl_nmat_get(rhs, count+16); 
+  struct gkyl_mat rhs_bybz_zr = gkyl_nmat_get(rhs, count+17); 
+  gkyl_mat_clear(&A_bzbz_zl, 0.0); gkyl_mat_clear(&rhs_bzbz_zl, 0.0); 
+  gkyl_mat_clear(&A_bzbz_zr, 0.0); gkyl_mat_clear(&rhs_bzbz_zr, 0.0); 
+  gkyl_mat_clear(&A_bxbz_zl, 0.0); gkyl_mat_clear(&rhs_bxbz_zl, 0.0); 
+  gkyl_mat_clear(&A_bxbz_zr, 0.0); gkyl_mat_clear(&rhs_bxbz_zr, 0.0); 
+  gkyl_mat_clear(&A_bybz_zl, 0.0); gkyl_mat_clear(&rhs_bybz_zl, 0.0); 
+  gkyl_mat_clear(&A_bybz_zr, 0.0); gkyl_mat_clear(&rhs_bybz_zr, 0.0); 
+  const double *Bx_sq_zl = &BB_surf[180]; 
+  const double *Bx_sq_zr = &BB_surf[189]; 
+  const double *By_sq_zl = &BB_surf[198]; 
+  const double *By_sq_zr = &BB_surf[207]; 
+  const double *Bz_sq_zl = &BB_surf[216]; 
+  const double *Bz_sq_zr = &BB_surf[225]; 
+  const double *B_x_B_z_zl = &BB_surf[234]; 
+  const double *B_x_B_z_zr = &BB_surf[243]; 
+  const double *B_y_B_z_zl = &BB_surf[252]; 
+  const double *B_y_B_z_zr = &BB_surf[261]; 
+  int *cell_avg_magB2_zl = &cell_avg_magB2_surf[4]; 
+  int *cell_avg_magB2_zr = &cell_avg_magB2_surf[5]; 
  
-  bx_xl[0] = 1.58113883008419*bx[7]-1.224744871391589*bx[1]+0.7071067811865475*bx[0]; 
-  bx_xl[1] = 1.58113883008419*bx[11]-1.224744871391589*bx[4]+0.7071067811865475*bx[2]; 
-  bx_xl[2] = 1.58113883008419*bx[13]-1.224744871391589*bx[5]+0.7071067811865475*bx[3]; 
-  bx_xl[3] = 1.58113883008419*bx[17]-1.224744871391589*bx[10]+0.7071067811865475*bx[6]; 
-  bx_xl[4] = 1.58113883008419*bx[20]-1.224744871391589*bx[12]+0.7071067811865475*bx[8]; 
-  bx_xl[5] = 1.58113883008419*bx[21]-1.224744871391589*bx[15]+0.7071067811865475*bx[9]; 
-  bx_xl[6] = 1.58113883008419*bx[23]-1.224744871391589*bx[18]+0.7071067811865475*bx[14]; 
-  bx_xl[7] = 1.58113883008419*bx[24]-1.224744871391589*bx[19]+0.7071067811865475*bx[16]; 
-  bx_xl[8] = 1.58113883008419*bx[26]-1.224744871391589*bx[25]+0.7071067811865475*bx[22]; 
-  bxbx_xl[0] = 1.58113883008419*bxbx[7]-1.224744871391589*bxbx[1]+0.7071067811865475*bxbx[0]; 
-  bxbx_xl[1] = 1.58113883008419*bxbx[11]-1.224744871391589*bxbx[4]+0.7071067811865475*bxbx[2]; 
-  bxbx_xl[2] = 1.58113883008419*bxbx[13]-1.224744871391589*bxbx[5]+0.7071067811865475*bxbx[3]; 
-  bxbx_xl[3] = 1.58113883008419*bxbx[17]-1.224744871391589*bxbx[10]+0.7071067811865475*bxbx[6]; 
-  bxbx_xl[4] = 1.58113883008419*bxbx[20]-1.224744871391589*bxbx[12]+0.7071067811865475*bxbx[8]; 
-  bxbx_xl[5] = 1.58113883008419*bxbx[21]-1.224744871391589*bxbx[15]+0.7071067811865475*bxbx[9]; 
-  bxbx_xl[6] = 1.58113883008419*bxbx[23]-1.224744871391589*bxbx[18]+0.7071067811865475*bxbx[14]; 
-  bxbx_xl[7] = 1.58113883008419*bxbx[24]-1.224744871391589*bxbx[19]+0.7071067811865475*bxbx[16]; 
-  bxbx_xl[8] = 1.58113883008419*bxbx[26]-1.224744871391589*bxbx[25]+0.7071067811865475*bxbx[22]; 
-  bxby_xl[0] = 1.58113883008419*bxby[7]-1.224744871391589*bxby[1]+0.7071067811865475*bxby[0]; 
-  bxby_xl[1] = 1.58113883008419*bxby[11]-1.224744871391589*bxby[4]+0.7071067811865475*bxby[2]; 
-  bxby_xl[2] = 1.58113883008419*bxby[13]-1.224744871391589*bxby[5]+0.7071067811865475*bxby[3]; 
-  bxby_xl[3] = 1.58113883008419*bxby[17]-1.224744871391589*bxby[10]+0.7071067811865475*bxby[6]; 
-  bxby_xl[4] = 1.58113883008419*bxby[20]-1.224744871391589*bxby[12]+0.7071067811865475*bxby[8]; 
-  bxby_xl[5] = 1.58113883008419*bxby[21]-1.224744871391589*bxby[15]+0.7071067811865475*bxby[9]; 
-  bxby_xl[6] = 1.58113883008419*bxby[23]-1.224744871391589*bxby[18]+0.7071067811865475*bxby[14]; 
-  bxby_xl[7] = 1.58113883008419*bxby[24]-1.224744871391589*bxby[19]+0.7071067811865475*bxby[16]; 
-  bxby_xl[8] = 1.58113883008419*bxby[26]-1.224744871391589*bxby[25]+0.7071067811865475*bxby[22]; 
-  bxbz_xl[0] = 1.58113883008419*bxbz[7]-1.224744871391589*bxbz[1]+0.7071067811865475*bxbz[0]; 
-  bxbz_xl[1] = 1.58113883008419*bxbz[11]-1.224744871391589*bxbz[4]+0.7071067811865475*bxbz[2]; 
-  bxbz_xl[2] = 1.58113883008419*bxbz[13]-1.224744871391589*bxbz[5]+0.7071067811865475*bxbz[3]; 
-  bxbz_xl[3] = 1.58113883008419*bxbz[17]-1.224744871391589*bxbz[10]+0.7071067811865475*bxbz[6]; 
-  bxbz_xl[4] = 1.58113883008419*bxbz[20]-1.224744871391589*bxbz[12]+0.7071067811865475*bxbz[8]; 
-  bxbz_xl[5] = 1.58113883008419*bxbz[21]-1.224744871391589*bxbz[15]+0.7071067811865475*bxbz[9]; 
-  bxbz_xl[6] = 1.58113883008419*bxbz[23]-1.224744871391589*bxbz[18]+0.7071067811865475*bxbz[14]; 
-  bxbz_xl[7] = 1.58113883008419*bxbz[24]-1.224744871391589*bxbz[19]+0.7071067811865475*bxbz[16]; 
-  bxbz_xl[8] = 1.58113883008419*bxbz[26]-1.224744871391589*bxbz[25]+0.7071067811865475*bxbz[22]; 
+  double magB2_xl[9] = {0.0}; 
+  double magB2_xr[9] = {0.0}; 
+  double magB2_yl[9] = {0.0}; 
+  double magB2_yr[9] = {0.0}; 
+  double magB2_zl[9] = {0.0}; 
+  double magB2_zr[9] = {0.0}; 
+  magB2_xl[0] = Bx_sq_xl[0] + By_sq_xl[0] + Bz_sq_xl[0]; 
+  magB2_xr[0] = Bx_sq_xr[0] + By_sq_xr[0] + Bz_sq_xr[0]; 
+  magB2_yl[0] = Bx_sq_yl[0] + By_sq_yl[0] + Bz_sq_yl[0]; 
+  magB2_yr[0] = Bx_sq_yr[0] + By_sq_yr[0] + Bz_sq_yr[0]; 
+  magB2_zl[0] = Bx_sq_zl[0] + By_sq_zl[0] + Bz_sq_zl[0]; 
+  magB2_zr[0] = Bx_sq_zr[0] + By_sq_zr[0] + Bz_sq_zr[0]; 
+  magB2_xl[1] = Bx_sq_xl[1] + By_sq_xl[1] + Bz_sq_xl[1]; 
+  magB2_xr[1] = Bx_sq_xr[1] + By_sq_xr[1] + Bz_sq_xr[1]; 
+  magB2_yl[1] = Bx_sq_yl[1] + By_sq_yl[1] + Bz_sq_yl[1]; 
+  magB2_yr[1] = Bx_sq_yr[1] + By_sq_yr[1] + Bz_sq_yr[1]; 
+  magB2_zl[1] = Bx_sq_zl[1] + By_sq_zl[1] + Bz_sq_zl[1]; 
+  magB2_zr[1] = Bx_sq_zr[1] + By_sq_zr[1] + Bz_sq_zr[1]; 
+  magB2_xl[2] = Bx_sq_xl[2] + By_sq_xl[2] + Bz_sq_xl[2]; 
+  magB2_xr[2] = Bx_sq_xr[2] + By_sq_xr[2] + Bz_sq_xr[2]; 
+  magB2_yl[2] = Bx_sq_yl[2] + By_sq_yl[2] + Bz_sq_yl[2]; 
+  magB2_yr[2] = Bx_sq_yr[2] + By_sq_yr[2] + Bz_sq_yr[2]; 
+  magB2_zl[2] = Bx_sq_zl[2] + By_sq_zl[2] + Bz_sq_zl[2]; 
+  magB2_zr[2] = Bx_sq_zr[2] + By_sq_zr[2] + Bz_sq_zr[2]; 
+  magB2_xl[3] = Bx_sq_xl[3] + By_sq_xl[3] + Bz_sq_xl[3]; 
+  magB2_xr[3] = Bx_sq_xr[3] + By_sq_xr[3] + Bz_sq_xr[3]; 
+  magB2_yl[3] = Bx_sq_yl[3] + By_sq_yl[3] + Bz_sq_yl[3]; 
+  magB2_yr[3] = Bx_sq_yr[3] + By_sq_yr[3] + Bz_sq_yr[3]; 
+  magB2_zl[3] = Bx_sq_zl[3] + By_sq_zl[3] + Bz_sq_zl[3]; 
+  magB2_zr[3] = Bx_sq_zr[3] + By_sq_zr[3] + Bz_sq_zr[3]; 
+  magB2_xl[4] = Bx_sq_xl[4] + By_sq_xl[4] + Bz_sq_xl[4]; 
+  magB2_xr[4] = Bx_sq_xr[4] + By_sq_xr[4] + Bz_sq_xr[4]; 
+  magB2_yl[4] = Bx_sq_yl[4] + By_sq_yl[4] + Bz_sq_yl[4]; 
+  magB2_yr[4] = Bx_sq_yr[4] + By_sq_yr[4] + Bz_sq_yr[4]; 
+  magB2_zl[4] = Bx_sq_zl[4] + By_sq_zl[4] + Bz_sq_zl[4]; 
+  magB2_zr[4] = Bx_sq_zr[4] + By_sq_zr[4] + Bz_sq_zr[4]; 
+  magB2_xl[5] = Bx_sq_xl[5] + By_sq_xl[5] + Bz_sq_xl[5]; 
+  magB2_xr[5] = Bx_sq_xr[5] + By_sq_xr[5] + Bz_sq_xr[5]; 
+  magB2_yl[5] = Bx_sq_yl[5] + By_sq_yl[5] + Bz_sq_yl[5]; 
+  magB2_yr[5] = Bx_sq_yr[5] + By_sq_yr[5] + Bz_sq_yr[5]; 
+  magB2_zl[5] = Bx_sq_zl[5] + By_sq_zl[5] + Bz_sq_zl[5]; 
+  magB2_zr[5] = Bx_sq_zr[5] + By_sq_zr[5] + Bz_sq_zr[5]; 
+  magB2_xl[6] = Bx_sq_xl[6] + By_sq_xl[6] + Bz_sq_xl[6]; 
+  magB2_xr[6] = Bx_sq_xr[6] + By_sq_xr[6] + Bz_sq_xr[6]; 
+  magB2_yl[6] = Bx_sq_yl[6] + By_sq_yl[6] + Bz_sq_yl[6]; 
+  magB2_yr[6] = Bx_sq_yr[6] + By_sq_yr[6] + Bz_sq_yr[6]; 
+  magB2_zl[6] = Bx_sq_zl[6] + By_sq_zl[6] + Bz_sq_zl[6]; 
+  magB2_zr[6] = Bx_sq_zr[6] + By_sq_zr[6] + Bz_sq_zr[6]; 
+  magB2_xl[7] = Bx_sq_xl[7] + By_sq_xl[7] + Bz_sq_xl[7]; 
+  magB2_xr[7] = Bx_sq_xr[7] + By_sq_xr[7] + Bz_sq_xr[7]; 
+  magB2_yl[7] = Bx_sq_yl[7] + By_sq_yl[7] + Bz_sq_yl[7]; 
+  magB2_yr[7] = Bx_sq_yr[7] + By_sq_yr[7] + Bz_sq_yr[7]; 
+  magB2_zl[7] = Bx_sq_zl[7] + By_sq_zl[7] + Bz_sq_zl[7]; 
+  magB2_zr[7] = Bx_sq_zr[7] + By_sq_zr[7] + Bz_sq_zr[7]; 
+  magB2_xl[8] = Bx_sq_xl[8] + By_sq_xl[8] + Bz_sq_xl[8]; 
+  magB2_xr[8] = Bx_sq_xr[8] + By_sq_xr[8] + Bz_sq_xr[8]; 
+  magB2_yl[8] = Bx_sq_yl[8] + By_sq_yl[8] + Bz_sq_yl[8]; 
+  magB2_yr[8] = Bx_sq_yr[8] + By_sq_yr[8] + Bz_sq_yr[8]; 
+  magB2_zl[8] = Bx_sq_zl[8] + By_sq_zl[8] + Bz_sq_zl[8]; 
+  magB2_zr[8] = Bx_sq_zr[8] + By_sq_zr[8] + Bz_sq_zr[8]; 
+  // If |B|^2 < 0 at control points along a surface, only use cell average to get 1/|B|^2. 
+  // Each surface is checked independently. 
+  int cell_avg_xl = 0;
+  int cell_avg_xr = 0;
+  int cell_avg_yl = 0;
+  int cell_avg_yr = 0;
+  int cell_avg_zl = 0;
+  int cell_avg_zr = 0;
  
-  bx_xr[0] = 1.58113883008419*bx[7]+1.224744871391589*bx[1]+0.7071067811865475*bx[0]; 
-  bx_xr[1] = 1.58113883008419*bx[11]+1.224744871391589*bx[4]+0.7071067811865475*bx[2]; 
-  bx_xr[2] = 1.58113883008419*bx[13]+1.224744871391589*bx[5]+0.7071067811865475*bx[3]; 
-  bx_xr[3] = 1.58113883008419*bx[17]+1.224744871391589*bx[10]+0.7071067811865475*bx[6]; 
-  bx_xr[4] = 1.58113883008419*bx[20]+1.224744871391589*bx[12]+0.7071067811865475*bx[8]; 
-  bx_xr[5] = 1.58113883008419*bx[21]+1.224744871391589*bx[15]+0.7071067811865475*bx[9]; 
-  bx_xr[6] = 1.58113883008419*bx[23]+1.224744871391589*bx[18]+0.7071067811865475*bx[14]; 
-  bx_xr[7] = 1.58113883008419*bx[24]+1.224744871391589*bx[19]+0.7071067811865475*bx[16]; 
-  bx_xr[8] = 1.58113883008419*bx[26]+1.224744871391589*bx[25]+0.7071067811865475*bx[22]; 
-  bxbx_xr[0] = 1.58113883008419*bxbx[7]+1.224744871391589*bxbx[1]+0.7071067811865475*bxbx[0]; 
-  bxbx_xr[1] = 1.58113883008419*bxbx[11]+1.224744871391589*bxbx[4]+0.7071067811865475*bxbx[2]; 
-  bxbx_xr[2] = 1.58113883008419*bxbx[13]+1.224744871391589*bxbx[5]+0.7071067811865475*bxbx[3]; 
-  bxbx_xr[3] = 1.58113883008419*bxbx[17]+1.224744871391589*bxbx[10]+0.7071067811865475*bxbx[6]; 
-  bxbx_xr[4] = 1.58113883008419*bxbx[20]+1.224744871391589*bxbx[12]+0.7071067811865475*bxbx[8]; 
-  bxbx_xr[5] = 1.58113883008419*bxbx[21]+1.224744871391589*bxbx[15]+0.7071067811865475*bxbx[9]; 
-  bxbx_xr[6] = 1.58113883008419*bxbx[23]+1.224744871391589*bxbx[18]+0.7071067811865475*bxbx[14]; 
-  bxbx_xr[7] = 1.58113883008419*bxbx[24]+1.224744871391589*bxbx[19]+0.7071067811865475*bxbx[16]; 
-  bxbx_xr[8] = 1.58113883008419*bxbx[26]+1.224744871391589*bxbx[25]+0.7071067811865475*bxbx[22]; 
-  bxby_xr[0] = 1.58113883008419*bxby[7]+1.224744871391589*bxby[1]+0.7071067811865475*bxby[0]; 
-  bxby_xr[1] = 1.58113883008419*bxby[11]+1.224744871391589*bxby[4]+0.7071067811865475*bxby[2]; 
-  bxby_xr[2] = 1.58113883008419*bxby[13]+1.224744871391589*bxby[5]+0.7071067811865475*bxby[3]; 
-  bxby_xr[3] = 1.58113883008419*bxby[17]+1.224744871391589*bxby[10]+0.7071067811865475*bxby[6]; 
-  bxby_xr[4] = 1.58113883008419*bxby[20]+1.224744871391589*bxby[12]+0.7071067811865475*bxby[8]; 
-  bxby_xr[5] = 1.58113883008419*bxby[21]+1.224744871391589*bxby[15]+0.7071067811865475*bxby[9]; 
-  bxby_xr[6] = 1.58113883008419*bxby[23]+1.224744871391589*bxby[18]+0.7071067811865475*bxby[14]; 
-  bxby_xr[7] = 1.58113883008419*bxby[24]+1.224744871391589*bxby[19]+0.7071067811865475*bxby[16]; 
-  bxby_xr[8] = 1.58113883008419*bxby[26]+1.224744871391589*bxby[25]+0.7071067811865475*bxby[22]; 
-  bxbz_xr[0] = 1.58113883008419*bxbz[7]+1.224744871391589*bxbz[1]+0.7071067811865475*bxbz[0]; 
-  bxbz_xr[1] = 1.58113883008419*bxbz[11]+1.224744871391589*bxbz[4]+0.7071067811865475*bxbz[2]; 
-  bxbz_xr[2] = 1.58113883008419*bxbz[13]+1.224744871391589*bxbz[5]+0.7071067811865475*bxbz[3]; 
-  bxbz_xr[3] = 1.58113883008419*bxbz[17]+1.224744871391589*bxbz[10]+0.7071067811865475*bxbz[6]; 
-  bxbz_xr[4] = 1.58113883008419*bxbz[20]+1.224744871391589*bxbz[12]+0.7071067811865475*bxbz[8]; 
-  bxbz_xr[5] = 1.58113883008419*bxbz[21]+1.224744871391589*bxbz[15]+0.7071067811865475*bxbz[9]; 
-  bxbz_xr[6] = 1.58113883008419*bxbz[23]+1.224744871391589*bxbz[18]+0.7071067811865475*bxbz[14]; 
-  bxbz_xr[7] = 1.58113883008419*bxbz[24]+1.224744871391589*bxbz[19]+0.7071067811865475*bxbz[16]; 
-  bxbz_xr[8] = 1.58113883008419*bxbz[26]+1.224744871391589*bxbz[25]+0.7071067811865475*bxbz[22]; 
+  if (2.5*magB2_xl[8]-1.936491673103709*magB2_xl[7]-1.936491673103709*magB2_xl[6]+1.118033988749895*magB2_xl[5]+1.118033988749895*magB2_xl[4]+1.5*magB2_xl[3]-0.8660254037844386*magB2_xl[2]-0.8660254037844386*magB2_xl[1]+0.5*magB2_xl[0] < 0.0) cell_avg_xl = 1; 
+  if (2.5*magB2_xr[8]-1.936491673103709*magB2_xr[7]-1.936491673103709*magB2_xr[6]+1.118033988749895*magB2_xr[5]+1.118033988749895*magB2_xr[4]+1.5*magB2_xr[3]-0.8660254037844386*magB2_xr[2]-0.8660254037844386*magB2_xr[1]+0.5*magB2_xr[0] < 0.0) cell_avg_xr = 1; 
+  if (2.5*magB2_yl[8]-1.936491673103709*magB2_yl[7]-1.936491673103709*magB2_yl[6]+1.118033988749895*magB2_yl[5]+1.118033988749895*magB2_yl[4]+1.5*magB2_yl[3]-0.8660254037844386*magB2_yl[2]-0.8660254037844386*magB2_yl[1]+0.5*magB2_yl[0] < 0.0) cell_avg_yl = 1; 
+  if (2.5*magB2_yr[8]-1.936491673103709*magB2_yr[7]-1.936491673103709*magB2_yr[6]+1.118033988749895*magB2_yr[5]+1.118033988749895*magB2_yr[4]+1.5*magB2_yr[3]-0.8660254037844386*magB2_yr[2]-0.8660254037844386*magB2_yr[1]+0.5*magB2_yr[0] < 0.0) cell_avg_yr = 1; 
+  if (2.5*magB2_zl[8]-1.936491673103709*magB2_zl[7]-1.936491673103709*magB2_zl[6]+1.118033988749895*magB2_zl[5]+1.118033988749895*magB2_zl[4]+1.5*magB2_zl[3]-0.8660254037844386*magB2_zl[2]-0.8660254037844386*magB2_zl[1]+0.5*magB2_zl[0] < 0.0) cell_avg_zl = 1; 
+  if (2.5*magB2_zr[8]-1.936491673103709*magB2_zr[7]-1.936491673103709*magB2_zr[6]+1.118033988749895*magB2_zr[5]+1.118033988749895*magB2_zr[4]+1.5*magB2_zr[3]-0.8660254037844386*magB2_zr[2]-0.8660254037844386*magB2_zr[1]+0.5*magB2_zr[0] < 0.0) cell_avg_zr = 1; 
+  if ((-1.25*magB2_xl[8])+0.9682458365518543*magB2_xl[6]+1.118033988749895*magB2_xl[5]-0.5590169943749475*magB2_xl[4]-0.8660254037844386*magB2_xl[2]+0.5*magB2_xl[0] < 0.0) cell_avg_xl = 1; 
+  if ((-1.25*magB2_xr[8])+0.9682458365518543*magB2_xr[6]+1.118033988749895*magB2_xr[5]-0.5590169943749475*magB2_xr[4]-0.8660254037844386*magB2_xr[2]+0.5*magB2_xr[0] < 0.0) cell_avg_xr = 1; 
+  if ((-1.25*magB2_yl[8])+0.9682458365518543*magB2_yl[6]+1.118033988749895*magB2_yl[5]-0.5590169943749475*magB2_yl[4]-0.8660254037844386*magB2_yl[2]+0.5*magB2_yl[0] < 0.0) cell_avg_yl = 1; 
+  if ((-1.25*magB2_yr[8])+0.9682458365518543*magB2_yr[6]+1.118033988749895*magB2_yr[5]-0.5590169943749475*magB2_yr[4]-0.8660254037844386*magB2_yr[2]+0.5*magB2_yr[0] < 0.0) cell_avg_yr = 1; 
+  if ((-1.25*magB2_zl[8])+0.9682458365518543*magB2_zl[6]+1.118033988749895*magB2_zl[5]-0.5590169943749475*magB2_zl[4]-0.8660254037844386*magB2_zl[2]+0.5*magB2_zl[0] < 0.0) cell_avg_zl = 1; 
+  if ((-1.25*magB2_zr[8])+0.9682458365518543*magB2_zr[6]+1.118033988749895*magB2_zr[5]-0.5590169943749475*magB2_zr[4]-0.8660254037844386*magB2_zr[2]+0.5*magB2_zr[0] < 0.0) cell_avg_zr = 1; 
+  if (2.5*magB2_xl[8]+1.936491673103709*magB2_xl[7]-1.936491673103709*magB2_xl[6]+1.118033988749895*magB2_xl[5]+1.118033988749895*magB2_xl[4]-1.5*magB2_xl[3]-0.8660254037844386*magB2_xl[2]+0.8660254037844386*magB2_xl[1]+0.5*magB2_xl[0] < 0.0) cell_avg_xl = 1; 
+  if (2.5*magB2_xr[8]+1.936491673103709*magB2_xr[7]-1.936491673103709*magB2_xr[6]+1.118033988749895*magB2_xr[5]+1.118033988749895*magB2_xr[4]-1.5*magB2_xr[3]-0.8660254037844386*magB2_xr[2]+0.8660254037844386*magB2_xr[1]+0.5*magB2_xr[0] < 0.0) cell_avg_xr = 1; 
+  if (2.5*magB2_yl[8]+1.936491673103709*magB2_yl[7]-1.936491673103709*magB2_yl[6]+1.118033988749895*magB2_yl[5]+1.118033988749895*magB2_yl[4]-1.5*magB2_yl[3]-0.8660254037844386*magB2_yl[2]+0.8660254037844386*magB2_yl[1]+0.5*magB2_yl[0] < 0.0) cell_avg_yl = 1; 
+  if (2.5*magB2_yr[8]+1.936491673103709*magB2_yr[7]-1.936491673103709*magB2_yr[6]+1.118033988749895*magB2_yr[5]+1.118033988749895*magB2_yr[4]-1.5*magB2_yr[3]-0.8660254037844386*magB2_yr[2]+0.8660254037844386*magB2_yr[1]+0.5*magB2_yr[0] < 0.0) cell_avg_yr = 1; 
+  if (2.5*magB2_zl[8]+1.936491673103709*magB2_zl[7]-1.936491673103709*magB2_zl[6]+1.118033988749895*magB2_zl[5]+1.118033988749895*magB2_zl[4]-1.5*magB2_zl[3]-0.8660254037844386*magB2_zl[2]+0.8660254037844386*magB2_zl[1]+0.5*magB2_zl[0] < 0.0) cell_avg_zl = 1; 
+  if (2.5*magB2_zr[8]+1.936491673103709*magB2_zr[7]-1.936491673103709*magB2_zr[6]+1.118033988749895*magB2_zr[5]+1.118033988749895*magB2_zr[4]-1.5*magB2_zr[3]-0.8660254037844386*magB2_zr[2]+0.8660254037844386*magB2_zr[1]+0.5*magB2_zr[0] < 0.0) cell_avg_zr = 1; 
+  if ((-1.25*magB2_xl[8])+0.9682458365518543*magB2_xl[7]-0.5590169943749475*magB2_xl[5]+1.118033988749895*magB2_xl[4]-0.8660254037844386*magB2_xl[1]+0.5*magB2_xl[0] < 0.0) cell_avg_xl = 1; 
+  if ((-1.25*magB2_xr[8])+0.9682458365518543*magB2_xr[7]-0.5590169943749475*magB2_xr[5]+1.118033988749895*magB2_xr[4]-0.8660254037844386*magB2_xr[1]+0.5*magB2_xr[0] < 0.0) cell_avg_xr = 1; 
+  if ((-1.25*magB2_yl[8])+0.9682458365518543*magB2_yl[7]-0.5590169943749475*magB2_yl[5]+1.118033988749895*magB2_yl[4]-0.8660254037844386*magB2_yl[1]+0.5*magB2_yl[0] < 0.0) cell_avg_yl = 1; 
+  if ((-1.25*magB2_yr[8])+0.9682458365518543*magB2_yr[7]-0.5590169943749475*magB2_yr[5]+1.118033988749895*magB2_yr[4]-0.8660254037844386*magB2_yr[1]+0.5*magB2_yr[0] < 0.0) cell_avg_yr = 1; 
+  if ((-1.25*magB2_zl[8])+0.9682458365518543*magB2_zl[7]-0.5590169943749475*magB2_zl[5]+1.118033988749895*magB2_zl[4]-0.8660254037844386*magB2_zl[1]+0.5*magB2_zl[0] < 0.0) cell_avg_zl = 1; 
+  if ((-1.25*magB2_zr[8])+0.9682458365518543*magB2_zr[7]-0.5590169943749475*magB2_zr[5]+1.118033988749895*magB2_zr[4]-0.8660254037844386*magB2_zr[1]+0.5*magB2_zr[0] < 0.0) cell_avg_zr = 1; 
+  if (0.625*magB2_xl[8]-0.5590169943749475*magB2_xl[5]-0.5590169943749475*magB2_xl[4]+0.5*magB2_xl[0] < 0.0) cell_avg_xl = 1; 
+  if (0.625*magB2_xr[8]-0.5590169943749475*magB2_xr[5]-0.5590169943749475*magB2_xr[4]+0.5*magB2_xr[0] < 0.0) cell_avg_xr = 1; 
+  if (0.625*magB2_yl[8]-0.5590169943749475*magB2_yl[5]-0.5590169943749475*magB2_yl[4]+0.5*magB2_yl[0] < 0.0) cell_avg_yl = 1; 
+  if (0.625*magB2_yr[8]-0.5590169943749475*magB2_yr[5]-0.5590169943749475*magB2_yr[4]+0.5*magB2_yr[0] < 0.0) cell_avg_yr = 1; 
+  if (0.625*magB2_zl[8]-0.5590169943749475*magB2_zl[5]-0.5590169943749475*magB2_zl[4]+0.5*magB2_zl[0] < 0.0) cell_avg_zl = 1; 
+  if (0.625*magB2_zr[8]-0.5590169943749475*magB2_zr[5]-0.5590169943749475*magB2_zr[4]+0.5*magB2_zr[0] < 0.0) cell_avg_zr = 1; 
+  if ((-1.25*magB2_xl[8])-0.9682458365518543*magB2_xl[7]-0.5590169943749475*magB2_xl[5]+1.118033988749895*magB2_xl[4]+0.8660254037844386*magB2_xl[1]+0.5*magB2_xl[0] < 0.0) cell_avg_xl = 1; 
+  if ((-1.25*magB2_xr[8])-0.9682458365518543*magB2_xr[7]-0.5590169943749475*magB2_xr[5]+1.118033988749895*magB2_xr[4]+0.8660254037844386*magB2_xr[1]+0.5*magB2_xr[0] < 0.0) cell_avg_xr = 1; 
+  if ((-1.25*magB2_yl[8])-0.9682458365518543*magB2_yl[7]-0.5590169943749475*magB2_yl[5]+1.118033988749895*magB2_yl[4]+0.8660254037844386*magB2_yl[1]+0.5*magB2_yl[0] < 0.0) cell_avg_yl = 1; 
+  if ((-1.25*magB2_yr[8])-0.9682458365518543*magB2_yr[7]-0.5590169943749475*magB2_yr[5]+1.118033988749895*magB2_yr[4]+0.8660254037844386*magB2_yr[1]+0.5*magB2_yr[0] < 0.0) cell_avg_yr = 1; 
+  if ((-1.25*magB2_zl[8])-0.9682458365518543*magB2_zl[7]-0.5590169943749475*magB2_zl[5]+1.118033988749895*magB2_zl[4]+0.8660254037844386*magB2_zl[1]+0.5*magB2_zl[0] < 0.0) cell_avg_zl = 1; 
+  if ((-1.25*magB2_zr[8])-0.9682458365518543*magB2_zr[7]-0.5590169943749475*magB2_zr[5]+1.118033988749895*magB2_zr[4]+0.8660254037844386*magB2_zr[1]+0.5*magB2_zr[0] < 0.0) cell_avg_zr = 1; 
+  if (2.5*magB2_xl[8]-1.936491673103709*magB2_xl[7]+1.936491673103709*magB2_xl[6]+1.118033988749895*magB2_xl[5]+1.118033988749895*magB2_xl[4]-1.5*magB2_xl[3]+0.8660254037844386*magB2_xl[2]-0.8660254037844386*magB2_xl[1]+0.5*magB2_xl[0] < 0.0) cell_avg_xl = 1; 
+  if (2.5*magB2_xr[8]-1.936491673103709*magB2_xr[7]+1.936491673103709*magB2_xr[6]+1.118033988749895*magB2_xr[5]+1.118033988749895*magB2_xr[4]-1.5*magB2_xr[3]+0.8660254037844386*magB2_xr[2]-0.8660254037844386*magB2_xr[1]+0.5*magB2_xr[0] < 0.0) cell_avg_xr = 1; 
+  if (2.5*magB2_yl[8]-1.936491673103709*magB2_yl[7]+1.936491673103709*magB2_yl[6]+1.118033988749895*magB2_yl[5]+1.118033988749895*magB2_yl[4]-1.5*magB2_yl[3]+0.8660254037844386*magB2_yl[2]-0.8660254037844386*magB2_yl[1]+0.5*magB2_yl[0] < 0.0) cell_avg_yl = 1; 
+  if (2.5*magB2_yr[8]-1.936491673103709*magB2_yr[7]+1.936491673103709*magB2_yr[6]+1.118033988749895*magB2_yr[5]+1.118033988749895*magB2_yr[4]-1.5*magB2_yr[3]+0.8660254037844386*magB2_yr[2]-0.8660254037844386*magB2_yr[1]+0.5*magB2_yr[0] < 0.0) cell_avg_yr = 1; 
+  if (2.5*magB2_zl[8]-1.936491673103709*magB2_zl[7]+1.936491673103709*magB2_zl[6]+1.118033988749895*magB2_zl[5]+1.118033988749895*magB2_zl[4]-1.5*magB2_zl[3]+0.8660254037844386*magB2_zl[2]-0.8660254037844386*magB2_zl[1]+0.5*magB2_zl[0] < 0.0) cell_avg_zl = 1; 
+  if (2.5*magB2_zr[8]-1.936491673103709*magB2_zr[7]+1.936491673103709*magB2_zr[6]+1.118033988749895*magB2_zr[5]+1.118033988749895*magB2_zr[4]-1.5*magB2_zr[3]+0.8660254037844386*magB2_zr[2]-0.8660254037844386*magB2_zr[1]+0.5*magB2_zr[0] < 0.0) cell_avg_zr = 1; 
+  if ((-1.25*magB2_xl[8])-0.9682458365518543*magB2_xl[6]+1.118033988749895*magB2_xl[5]-0.5590169943749475*magB2_xl[4]+0.8660254037844386*magB2_xl[2]+0.5*magB2_xl[0] < 0.0) cell_avg_xl = 1; 
+  if ((-1.25*magB2_xr[8])-0.9682458365518543*magB2_xr[6]+1.118033988749895*magB2_xr[5]-0.5590169943749475*magB2_xr[4]+0.8660254037844386*magB2_xr[2]+0.5*magB2_xr[0] < 0.0) cell_avg_xr = 1; 
+  if ((-1.25*magB2_yl[8])-0.9682458365518543*magB2_yl[6]+1.118033988749895*magB2_yl[5]-0.5590169943749475*magB2_yl[4]+0.8660254037844386*magB2_yl[2]+0.5*magB2_yl[0] < 0.0) cell_avg_yl = 1; 
+  if ((-1.25*magB2_yr[8])-0.9682458365518543*magB2_yr[6]+1.118033988749895*magB2_yr[5]-0.5590169943749475*magB2_yr[4]+0.8660254037844386*magB2_yr[2]+0.5*magB2_yr[0] < 0.0) cell_avg_yr = 1; 
+  if ((-1.25*magB2_zl[8])-0.9682458365518543*magB2_zl[6]+1.118033988749895*magB2_zl[5]-0.5590169943749475*magB2_zl[4]+0.8660254037844386*magB2_zl[2]+0.5*magB2_zl[0] < 0.0) cell_avg_zl = 1; 
+  if ((-1.25*magB2_zr[8])-0.9682458365518543*magB2_zr[6]+1.118033988749895*magB2_zr[5]-0.5590169943749475*magB2_zr[4]+0.8660254037844386*magB2_zr[2]+0.5*magB2_zr[0] < 0.0) cell_avg_zr = 1; 
+  if (2.5*magB2_xl[8]+1.936491673103709*magB2_xl[7]+1.936491673103709*magB2_xl[6]+1.118033988749895*magB2_xl[5]+1.118033988749895*magB2_xl[4]+1.5*magB2_xl[3]+0.8660254037844386*magB2_xl[2]+0.8660254037844386*magB2_xl[1]+0.5*magB2_xl[0] < 0.0) cell_avg_xl = 1; 
+  if (2.5*magB2_xr[8]+1.936491673103709*magB2_xr[7]+1.936491673103709*magB2_xr[6]+1.118033988749895*magB2_xr[5]+1.118033988749895*magB2_xr[4]+1.5*magB2_xr[3]+0.8660254037844386*magB2_xr[2]+0.8660254037844386*magB2_xr[1]+0.5*magB2_xr[0] < 0.0) cell_avg_xr = 1; 
+  if (2.5*magB2_yl[8]+1.936491673103709*magB2_yl[7]+1.936491673103709*magB2_yl[6]+1.118033988749895*magB2_yl[5]+1.118033988749895*magB2_yl[4]+1.5*magB2_yl[3]+0.8660254037844386*magB2_yl[2]+0.8660254037844386*magB2_yl[1]+0.5*magB2_yl[0] < 0.0) cell_avg_yl = 1; 
+  if (2.5*magB2_yr[8]+1.936491673103709*magB2_yr[7]+1.936491673103709*magB2_yr[6]+1.118033988749895*magB2_yr[5]+1.118033988749895*magB2_yr[4]+1.5*magB2_yr[3]+0.8660254037844386*magB2_yr[2]+0.8660254037844386*magB2_yr[1]+0.5*magB2_yr[0] < 0.0) cell_avg_yr = 1; 
+  if (2.5*magB2_zl[8]+1.936491673103709*magB2_zl[7]+1.936491673103709*magB2_zl[6]+1.118033988749895*magB2_zl[5]+1.118033988749895*magB2_zl[4]+1.5*magB2_zl[3]+0.8660254037844386*magB2_zl[2]+0.8660254037844386*magB2_zl[1]+0.5*magB2_zl[0] < 0.0) cell_avg_zl = 1; 
+  if (2.5*magB2_zr[8]+1.936491673103709*magB2_zr[7]+1.936491673103709*magB2_zr[6]+1.118033988749895*magB2_zr[5]+1.118033988749895*magB2_zr[4]+1.5*magB2_zr[3]+0.8660254037844386*magB2_zr[2]+0.8660254037844386*magB2_zr[1]+0.5*magB2_zr[0] < 0.0) cell_avg_zr = 1; 
  
-  double *by_yl = &bvar_surf[72]; 
-  double *by_yr = &bvar_surf[81]; 
-  double *bxby_yl = &bvar_surf[90]; 
-  double *bxby_yr = &bvar_surf[99]; 
-  double *byby_yl = &bvar_surf[108]; 
-  double *byby_yr = &bvar_surf[117]; 
-  double *bybz_yl = &bvar_surf[126]; 
-  double *bybz_yr = &bvar_surf[135]; 
+  cell_avg_magB2_xl[0] = cell_avg_xl; 
+  cell_avg_magB2_xr[0] = cell_avg_xr; 
+  cell_avg_magB2_yl[0] = cell_avg_yl; 
+  cell_avg_magB2_yr[0] = cell_avg_yr; 
+  cell_avg_magB2_zl[0] = cell_avg_zl; 
+  cell_avg_magB2_zr[0] = cell_avg_zr; 
  
-  by_yl[0] = 1.58113883008419*by[8]-1.224744871391589*by[2]+0.7071067811865475*by[0]; 
-  by_yl[1] = 1.58113883008419*by[12]-1.224744871391589*by[4]+0.7071067811865475*by[1]; 
-  by_yl[2] = 1.58113883008419*by[14]-1.224744871391589*by[6]+0.7071067811865475*by[3]; 
-  by_yl[3] = 1.58113883008419*by[18]-1.224744871391589*by[10]+0.7071067811865475*by[5]; 
-  by_yl[4] = 1.58113883008419*by[20]-1.224744871391589*by[11]+0.7071067811865475*by[7]; 
-  by_yl[5] = 1.58113883008419*by[22]-1.224744871391589*by[16]+0.7071067811865475*by[9]; 
-  by_yl[6] = 1.58113883008419*by[23]-1.224744871391589*by[17]+0.7071067811865475*by[13]; 
-  by_yl[7] = 1.58113883008419*by[25]-1.224744871391589*by[19]+0.7071067811865475*by[15]; 
-  by_yl[8] = 1.58113883008419*by[26]-1.224744871391589*by[24]+0.7071067811865475*by[21]; 
-  bxby_yl[0] = 1.58113883008419*bxby[8]-1.224744871391589*bxby[2]+0.7071067811865475*bxby[0]; 
-  bxby_yl[1] = 1.58113883008419*bxby[12]-1.224744871391589*bxby[4]+0.7071067811865475*bxby[1]; 
-  bxby_yl[2] = 1.58113883008419*bxby[14]-1.224744871391589*bxby[6]+0.7071067811865475*bxby[3]; 
-  bxby_yl[3] = 1.58113883008419*bxby[18]-1.224744871391589*bxby[10]+0.7071067811865475*bxby[5]; 
-  bxby_yl[4] = 1.58113883008419*bxby[20]-1.224744871391589*bxby[11]+0.7071067811865475*bxby[7]; 
-  bxby_yl[5] = 1.58113883008419*bxby[22]-1.224744871391589*bxby[16]+0.7071067811865475*bxby[9]; 
-  bxby_yl[6] = 1.58113883008419*bxby[23]-1.224744871391589*bxby[17]+0.7071067811865475*bxby[13]; 
-  bxby_yl[7] = 1.58113883008419*bxby[25]-1.224744871391589*bxby[19]+0.7071067811865475*bxby[15]; 
-  bxby_yl[8] = 1.58113883008419*bxby[26]-1.224744871391589*bxby[24]+0.7071067811865475*bxby[21]; 
-  byby_yl[0] = 1.58113883008419*byby[8]-1.224744871391589*byby[2]+0.7071067811865475*byby[0]; 
-  byby_yl[1] = 1.58113883008419*byby[12]-1.224744871391589*byby[4]+0.7071067811865475*byby[1]; 
-  byby_yl[2] = 1.58113883008419*byby[14]-1.224744871391589*byby[6]+0.7071067811865475*byby[3]; 
-  byby_yl[3] = 1.58113883008419*byby[18]-1.224744871391589*byby[10]+0.7071067811865475*byby[5]; 
-  byby_yl[4] = 1.58113883008419*byby[20]-1.224744871391589*byby[11]+0.7071067811865475*byby[7]; 
-  byby_yl[5] = 1.58113883008419*byby[22]-1.224744871391589*byby[16]+0.7071067811865475*byby[9]; 
-  byby_yl[6] = 1.58113883008419*byby[23]-1.224744871391589*byby[17]+0.7071067811865475*byby[13]; 
-  byby_yl[7] = 1.58113883008419*byby[25]-1.224744871391589*byby[19]+0.7071067811865475*byby[15]; 
-  byby_yl[8] = 1.58113883008419*byby[26]-1.224744871391589*byby[24]+0.7071067811865475*byby[21]; 
-  bybz_yl[0] = 1.58113883008419*bybz[8]-1.224744871391589*bybz[2]+0.7071067811865475*bybz[0]; 
-  bybz_yl[1] = 1.58113883008419*bybz[12]-1.224744871391589*bybz[4]+0.7071067811865475*bybz[1]; 
-  bybz_yl[2] = 1.58113883008419*bybz[14]-1.224744871391589*bybz[6]+0.7071067811865475*bybz[3]; 
-  bybz_yl[3] = 1.58113883008419*bybz[18]-1.224744871391589*bybz[10]+0.7071067811865475*bybz[5]; 
-  bybz_yl[4] = 1.58113883008419*bybz[20]-1.224744871391589*bybz[11]+0.7071067811865475*bybz[7]; 
-  bybz_yl[5] = 1.58113883008419*bybz[22]-1.224744871391589*bybz[16]+0.7071067811865475*bybz[9]; 
-  bybz_yl[6] = 1.58113883008419*bybz[23]-1.224744871391589*bybz[17]+0.7071067811865475*bybz[13]; 
-  bybz_yl[7] = 1.58113883008419*bybz[25]-1.224744871391589*bybz[19]+0.7071067811865475*bybz[15]; 
-  bybz_yl[8] = 1.58113883008419*bybz[26]-1.224744871391589*bybz[24]+0.7071067811865475*bybz[21]; 
+  if (cell_avg_xl) { 
+  magB2_xl[1] = 0.0; 
+  magB2_xl[2] = 0.0; 
+  magB2_xl[3] = 0.0; 
+  magB2_xl[4] = 0.0; 
+  magB2_xl[5] = 0.0; 
+  magB2_xl[6] = 0.0; 
+  magB2_xl[7] = 0.0; 
+  magB2_xl[8] = 0.0; 
+  } 
  
-  by_yr[0] = 1.58113883008419*by[8]+1.224744871391589*by[2]+0.7071067811865475*by[0]; 
-  by_yr[1] = 1.58113883008419*by[12]+1.224744871391589*by[4]+0.7071067811865475*by[1]; 
-  by_yr[2] = 1.58113883008419*by[14]+1.224744871391589*by[6]+0.7071067811865475*by[3]; 
-  by_yr[3] = 1.58113883008419*by[18]+1.224744871391589*by[10]+0.7071067811865475*by[5]; 
-  by_yr[4] = 1.58113883008419*by[20]+1.224744871391589*by[11]+0.7071067811865475*by[7]; 
-  by_yr[5] = 1.58113883008419*by[22]+1.224744871391589*by[16]+0.7071067811865475*by[9]; 
-  by_yr[6] = 1.58113883008419*by[23]+1.224744871391589*by[17]+0.7071067811865475*by[13]; 
-  by_yr[7] = 1.58113883008419*by[25]+1.224744871391589*by[19]+0.7071067811865475*by[15]; 
-  by_yr[8] = 1.58113883008419*by[26]+1.224744871391589*by[24]+0.7071067811865475*by[21]; 
-  bxby_yr[0] = 1.58113883008419*bxby[8]+1.224744871391589*bxby[2]+0.7071067811865475*bxby[0]; 
-  bxby_yr[1] = 1.58113883008419*bxby[12]+1.224744871391589*bxby[4]+0.7071067811865475*bxby[1]; 
-  bxby_yr[2] = 1.58113883008419*bxby[14]+1.224744871391589*bxby[6]+0.7071067811865475*bxby[3]; 
-  bxby_yr[3] = 1.58113883008419*bxby[18]+1.224744871391589*bxby[10]+0.7071067811865475*bxby[5]; 
-  bxby_yr[4] = 1.58113883008419*bxby[20]+1.224744871391589*bxby[11]+0.7071067811865475*bxby[7]; 
-  bxby_yr[5] = 1.58113883008419*bxby[22]+1.224744871391589*bxby[16]+0.7071067811865475*bxby[9]; 
-  bxby_yr[6] = 1.58113883008419*bxby[23]+1.224744871391589*bxby[17]+0.7071067811865475*bxby[13]; 
-  bxby_yr[7] = 1.58113883008419*bxby[25]+1.224744871391589*bxby[19]+0.7071067811865475*bxby[15]; 
-  bxby_yr[8] = 1.58113883008419*bxby[26]+1.224744871391589*bxby[24]+0.7071067811865475*bxby[21]; 
-  byby_yr[0] = 1.58113883008419*byby[8]+1.224744871391589*byby[2]+0.7071067811865475*byby[0]; 
-  byby_yr[1] = 1.58113883008419*byby[12]+1.224744871391589*byby[4]+0.7071067811865475*byby[1]; 
-  byby_yr[2] = 1.58113883008419*byby[14]+1.224744871391589*byby[6]+0.7071067811865475*byby[3]; 
-  byby_yr[3] = 1.58113883008419*byby[18]+1.224744871391589*byby[10]+0.7071067811865475*byby[5]; 
-  byby_yr[4] = 1.58113883008419*byby[20]+1.224744871391589*byby[11]+0.7071067811865475*byby[7]; 
-  byby_yr[5] = 1.58113883008419*byby[22]+1.224744871391589*byby[16]+0.7071067811865475*byby[9]; 
-  byby_yr[6] = 1.58113883008419*byby[23]+1.224744871391589*byby[17]+0.7071067811865475*byby[13]; 
-  byby_yr[7] = 1.58113883008419*byby[25]+1.224744871391589*byby[19]+0.7071067811865475*byby[15]; 
-  byby_yr[8] = 1.58113883008419*byby[26]+1.224744871391589*byby[24]+0.7071067811865475*byby[21]; 
-  bybz_yr[0] = 1.58113883008419*bybz[8]+1.224744871391589*bybz[2]+0.7071067811865475*bybz[0]; 
-  bybz_yr[1] = 1.58113883008419*bybz[12]+1.224744871391589*bybz[4]+0.7071067811865475*bybz[1]; 
-  bybz_yr[2] = 1.58113883008419*bybz[14]+1.224744871391589*bybz[6]+0.7071067811865475*bybz[3]; 
-  bybz_yr[3] = 1.58113883008419*bybz[18]+1.224744871391589*bybz[10]+0.7071067811865475*bybz[5]; 
-  bybz_yr[4] = 1.58113883008419*bybz[20]+1.224744871391589*bybz[11]+0.7071067811865475*bybz[7]; 
-  bybz_yr[5] = 1.58113883008419*bybz[22]+1.224744871391589*bybz[16]+0.7071067811865475*bybz[9]; 
-  bybz_yr[6] = 1.58113883008419*bybz[23]+1.224744871391589*bybz[17]+0.7071067811865475*bybz[13]; 
-  bybz_yr[7] = 1.58113883008419*bybz[25]+1.224744871391589*bybz[19]+0.7071067811865475*bybz[15]; 
-  bybz_yr[8] = 1.58113883008419*bybz[26]+1.224744871391589*bybz[24]+0.7071067811865475*bybz[21]; 
+  if (cell_avg_xr) { 
+  magB2_xr[1] = 0.0; 
+  magB2_xr[2] = 0.0; 
+  magB2_xr[3] = 0.0; 
+  magB2_xr[4] = 0.0; 
+  magB2_xr[5] = 0.0; 
+  magB2_xr[6] = 0.0; 
+  magB2_xr[7] = 0.0; 
+  magB2_xr[8] = 0.0; 
+  } 
  
-  double *bz_zl = &bvar_surf[144]; 
-  double *bz_zr = &bvar_surf[153]; 
-  double *bxbz_zl = &bvar_surf[162]; 
-  double *bxbz_zr = &bvar_surf[171]; 
-  double *bybz_zl = &bvar_surf[180]; 
-  double *bybz_zr = &bvar_surf[189]; 
-  double *bzbz_zl = &bvar_surf[198]; 
-  double *bzbz_zr = &bvar_surf[207]; 
+  if (cell_avg_yl) { 
+  magB2_yl[1] = 0.0; 
+  magB2_yl[2] = 0.0; 
+  magB2_yl[3] = 0.0; 
+  magB2_yl[4] = 0.0; 
+  magB2_yl[5] = 0.0; 
+  magB2_yl[6] = 0.0; 
+  magB2_yl[7] = 0.0; 
+  magB2_yl[8] = 0.0; 
+  } 
  
-  bz_zl[0] = 1.58113883008419*bz[9]-1.224744871391589*bz[3]+0.7071067811865475*bz[0]; 
-  bz_zl[1] = 1.58113883008419*bz[15]-1.224744871391589*bz[5]+0.7071067811865475*bz[1]; 
-  bz_zl[2] = 1.58113883008419*bz[16]-1.224744871391589*bz[6]+0.7071067811865475*bz[2]; 
-  bz_zl[3] = 1.58113883008419*bz[19]-1.224744871391589*bz[10]+0.7071067811865475*bz[4]; 
-  bz_zl[4] = 1.58113883008419*bz[21]-1.224744871391589*bz[13]+0.7071067811865475*bz[7]; 
-  bz_zl[5] = 1.58113883008419*bz[22]-1.224744871391589*bz[14]+0.7071067811865475*bz[8]; 
-  bz_zl[6] = 1.58113883008419*bz[24]-1.224744871391589*bz[17]+0.7071067811865475*bz[11]; 
-  bz_zl[7] = 1.58113883008419*bz[25]-1.224744871391589*bz[18]+0.7071067811865475*bz[12]; 
-  bz_zl[8] = 1.58113883008419*bz[26]-1.224744871391589*bz[23]+0.7071067811865475*bz[20]; 
-  bxbz_zl[0] = 1.58113883008419*bxbz[9]-1.224744871391589*bxbz[3]+0.7071067811865475*bxbz[0]; 
-  bxbz_zl[1] = 1.58113883008419*bxbz[15]-1.224744871391589*bxbz[5]+0.7071067811865475*bxbz[1]; 
-  bxbz_zl[2] = 1.58113883008419*bxbz[16]-1.224744871391589*bxbz[6]+0.7071067811865475*bxbz[2]; 
-  bxbz_zl[3] = 1.58113883008419*bxbz[19]-1.224744871391589*bxbz[10]+0.7071067811865475*bxbz[4]; 
-  bxbz_zl[4] = 1.58113883008419*bxbz[21]-1.224744871391589*bxbz[13]+0.7071067811865475*bxbz[7]; 
-  bxbz_zl[5] = 1.58113883008419*bxbz[22]-1.224744871391589*bxbz[14]+0.7071067811865475*bxbz[8]; 
-  bxbz_zl[6] = 1.58113883008419*bxbz[24]-1.224744871391589*bxbz[17]+0.7071067811865475*bxbz[11]; 
-  bxbz_zl[7] = 1.58113883008419*bxbz[25]-1.224744871391589*bxbz[18]+0.7071067811865475*bxbz[12]; 
-  bxbz_zl[8] = 1.58113883008419*bxbz[26]-1.224744871391589*bxbz[23]+0.7071067811865475*bxbz[20]; 
-  bybz_zl[0] = 1.58113883008419*bybz[9]-1.224744871391589*bybz[3]+0.7071067811865475*bybz[0]; 
-  bybz_zl[1] = 1.58113883008419*bybz[15]-1.224744871391589*bybz[5]+0.7071067811865475*bybz[1]; 
-  bybz_zl[2] = 1.58113883008419*bybz[16]-1.224744871391589*bybz[6]+0.7071067811865475*bybz[2]; 
-  bybz_zl[3] = 1.58113883008419*bybz[19]-1.224744871391589*bybz[10]+0.7071067811865475*bybz[4]; 
-  bybz_zl[4] = 1.58113883008419*bybz[21]-1.224744871391589*bybz[13]+0.7071067811865475*bybz[7]; 
-  bybz_zl[5] = 1.58113883008419*bybz[22]-1.224744871391589*bybz[14]+0.7071067811865475*bybz[8]; 
-  bybz_zl[6] = 1.58113883008419*bybz[24]-1.224744871391589*bybz[17]+0.7071067811865475*bybz[11]; 
-  bybz_zl[7] = 1.58113883008419*bybz[25]-1.224744871391589*bybz[18]+0.7071067811865475*bybz[12]; 
-  bybz_zl[8] = 1.58113883008419*bybz[26]-1.224744871391589*bybz[23]+0.7071067811865475*bybz[20]; 
-  bzbz_zl[0] = 1.58113883008419*bzbz[9]-1.224744871391589*bzbz[3]+0.7071067811865475*bzbz[0]; 
-  bzbz_zl[1] = 1.58113883008419*bzbz[15]-1.224744871391589*bzbz[5]+0.7071067811865475*bzbz[1]; 
-  bzbz_zl[2] = 1.58113883008419*bzbz[16]-1.224744871391589*bzbz[6]+0.7071067811865475*bzbz[2]; 
-  bzbz_zl[3] = 1.58113883008419*bzbz[19]-1.224744871391589*bzbz[10]+0.7071067811865475*bzbz[4]; 
-  bzbz_zl[4] = 1.58113883008419*bzbz[21]-1.224744871391589*bzbz[13]+0.7071067811865475*bzbz[7]; 
-  bzbz_zl[5] = 1.58113883008419*bzbz[22]-1.224744871391589*bzbz[14]+0.7071067811865475*bzbz[8]; 
-  bzbz_zl[6] = 1.58113883008419*bzbz[24]-1.224744871391589*bzbz[17]+0.7071067811865475*bzbz[11]; 
-  bzbz_zl[7] = 1.58113883008419*bzbz[25]-1.224744871391589*bzbz[18]+0.7071067811865475*bzbz[12]; 
-  bzbz_zl[8] = 1.58113883008419*bzbz[26]-1.224744871391589*bzbz[23]+0.7071067811865475*bzbz[20]; 
+  if (cell_avg_yr) { 
+  magB2_yr[1] = 0.0; 
+  magB2_yr[2] = 0.0; 
+  magB2_yr[3] = 0.0; 
+  magB2_yr[4] = 0.0; 
+  magB2_yr[5] = 0.0; 
+  magB2_yr[6] = 0.0; 
+  magB2_yr[7] = 0.0; 
+  magB2_yr[8] = 0.0; 
+  } 
  
-  bz_zr[0] = 1.58113883008419*bz[9]+1.224744871391589*bz[3]+0.7071067811865475*bz[0]; 
-  bz_zr[1] = 1.58113883008419*bz[15]+1.224744871391589*bz[5]+0.7071067811865475*bz[1]; 
-  bz_zr[2] = 1.58113883008419*bz[16]+1.224744871391589*bz[6]+0.7071067811865475*bz[2]; 
-  bz_zr[3] = 1.58113883008419*bz[19]+1.224744871391589*bz[10]+0.7071067811865475*bz[4]; 
-  bz_zr[4] = 1.58113883008419*bz[21]+1.224744871391589*bz[13]+0.7071067811865475*bz[7]; 
-  bz_zr[5] = 1.58113883008419*bz[22]+1.224744871391589*bz[14]+0.7071067811865475*bz[8]; 
-  bz_zr[6] = 1.58113883008419*bz[24]+1.224744871391589*bz[17]+0.7071067811865475*bz[11]; 
-  bz_zr[7] = 1.58113883008419*bz[25]+1.224744871391589*bz[18]+0.7071067811865475*bz[12]; 
-  bz_zr[8] = 1.58113883008419*bz[26]+1.224744871391589*bz[23]+0.7071067811865475*bz[20]; 
-  bxbz_zr[0] = 1.58113883008419*bxbz[9]+1.224744871391589*bxbz[3]+0.7071067811865475*bxbz[0]; 
-  bxbz_zr[1] = 1.58113883008419*bxbz[15]+1.224744871391589*bxbz[5]+0.7071067811865475*bxbz[1]; 
-  bxbz_zr[2] = 1.58113883008419*bxbz[16]+1.224744871391589*bxbz[6]+0.7071067811865475*bxbz[2]; 
-  bxbz_zr[3] = 1.58113883008419*bxbz[19]+1.224744871391589*bxbz[10]+0.7071067811865475*bxbz[4]; 
-  bxbz_zr[4] = 1.58113883008419*bxbz[21]+1.224744871391589*bxbz[13]+0.7071067811865475*bxbz[7]; 
-  bxbz_zr[5] = 1.58113883008419*bxbz[22]+1.224744871391589*bxbz[14]+0.7071067811865475*bxbz[8]; 
-  bxbz_zr[6] = 1.58113883008419*bxbz[24]+1.224744871391589*bxbz[17]+0.7071067811865475*bxbz[11]; 
-  bxbz_zr[7] = 1.58113883008419*bxbz[25]+1.224744871391589*bxbz[18]+0.7071067811865475*bxbz[12]; 
-  bxbz_zr[8] = 1.58113883008419*bxbz[26]+1.224744871391589*bxbz[23]+0.7071067811865475*bxbz[20]; 
-  bybz_zr[0] = 1.58113883008419*bybz[9]+1.224744871391589*bybz[3]+0.7071067811865475*bybz[0]; 
-  bybz_zr[1] = 1.58113883008419*bybz[15]+1.224744871391589*bybz[5]+0.7071067811865475*bybz[1]; 
-  bybz_zr[2] = 1.58113883008419*bybz[16]+1.224744871391589*bybz[6]+0.7071067811865475*bybz[2]; 
-  bybz_zr[3] = 1.58113883008419*bybz[19]+1.224744871391589*bybz[10]+0.7071067811865475*bybz[4]; 
-  bybz_zr[4] = 1.58113883008419*bybz[21]+1.224744871391589*bybz[13]+0.7071067811865475*bybz[7]; 
-  bybz_zr[5] = 1.58113883008419*bybz[22]+1.224744871391589*bybz[14]+0.7071067811865475*bybz[8]; 
-  bybz_zr[6] = 1.58113883008419*bybz[24]+1.224744871391589*bybz[17]+0.7071067811865475*bybz[11]; 
-  bybz_zr[7] = 1.58113883008419*bybz[25]+1.224744871391589*bybz[18]+0.7071067811865475*bybz[12]; 
-  bybz_zr[8] = 1.58113883008419*bybz[26]+1.224744871391589*bybz[23]+0.7071067811865475*bybz[20]; 
-  bzbz_zr[0] = 1.58113883008419*bzbz[9]+1.224744871391589*bzbz[3]+0.7071067811865475*bzbz[0]; 
-  bzbz_zr[1] = 1.58113883008419*bzbz[15]+1.224744871391589*bzbz[5]+0.7071067811865475*bzbz[1]; 
-  bzbz_zr[2] = 1.58113883008419*bzbz[16]+1.224744871391589*bzbz[6]+0.7071067811865475*bzbz[2]; 
-  bzbz_zr[3] = 1.58113883008419*bzbz[19]+1.224744871391589*bzbz[10]+0.7071067811865475*bzbz[4]; 
-  bzbz_zr[4] = 1.58113883008419*bzbz[21]+1.224744871391589*bzbz[13]+0.7071067811865475*bzbz[7]; 
-  bzbz_zr[5] = 1.58113883008419*bzbz[22]+1.224744871391589*bzbz[14]+0.7071067811865475*bzbz[8]; 
-  bzbz_zr[6] = 1.58113883008419*bzbz[24]+1.224744871391589*bzbz[17]+0.7071067811865475*bzbz[11]; 
-  bzbz_zr[7] = 1.58113883008419*bzbz[25]+1.224744871391589*bzbz[18]+0.7071067811865475*bzbz[12]; 
-  bzbz_zr[8] = 1.58113883008419*bzbz[26]+1.224744871391589*bzbz[23]+0.7071067811865475*bzbz[20]; 
+  if (cell_avg_zl) { 
+  magB2_zl[1] = 0.0; 
+  magB2_zl[2] = 0.0; 
+  magB2_zl[3] = 0.0; 
+  magB2_zl[4] = 0.0; 
+  magB2_zl[5] = 0.0; 
+  magB2_zl[6] = 0.0; 
+  magB2_zl[7] = 0.0; 
+  magB2_zl[8] = 0.0; 
+  } 
+ 
+  if (cell_avg_zr) { 
+  magB2_zr[1] = 0.0; 
+  magB2_zr[2] = 0.0; 
+  magB2_zr[3] = 0.0; 
+  magB2_zr[4] = 0.0; 
+  magB2_zr[5] = 0.0; 
+  magB2_zr[6] = 0.0; 
+  magB2_zr[7] = 0.0; 
+  magB2_zr[8] = 0.0; 
+  } 
+ 
+  gkyl_mat_set(&rhs_bxbx_xl,0,0,Bx_sq_xl[0]); 
+  gkyl_mat_set(&rhs_bxbx_xr,0,0,Bx_sq_xr[0]); 
+  gkyl_mat_set(&rhs_bxby_xl,0,0,B_x_B_y_xl[0]); 
+  gkyl_mat_set(&rhs_bxby_xr,0,0,B_x_B_y_xr[0]); 
+  gkyl_mat_set(&rhs_bxbz_xl,0,0,B_x_B_z_xl[0]); 
+  gkyl_mat_set(&rhs_bxbz_xr,0,0,B_x_B_z_xr[0]); 
+ 
+  gkyl_mat_set(&rhs_byby_yl,0,0,By_sq_yl[0]); 
+  gkyl_mat_set(&rhs_byby_yr,0,0,By_sq_yr[0]); 
+  gkyl_mat_set(&rhs_bxby_yl,0,0,B_x_B_y_yl[0]); 
+  gkyl_mat_set(&rhs_bxby_yr,0,0,B_x_B_y_yr[0]); 
+  gkyl_mat_set(&rhs_bybz_yl,0,0,B_y_B_z_yl[0]); 
+  gkyl_mat_set(&rhs_bybz_yr,0,0,B_y_B_z_yr[0]); 
+ 
+  gkyl_mat_set(&rhs_bzbz_zl,0,0,Bz_sq_zl[0]); 
+  gkyl_mat_set(&rhs_bzbz_zr,0,0,Bz_sq_zr[0]); 
+  gkyl_mat_set(&rhs_bxbz_zl,0,0,B_x_B_z_zl[0]); 
+  gkyl_mat_set(&rhs_bxbz_zr,0,0,B_x_B_z_zr[0]); 
+  gkyl_mat_set(&rhs_bybz_zl,0,0,B_y_B_z_zl[0]); 
+  gkyl_mat_set(&rhs_bybz_zr,0,0,B_y_B_z_zr[0]); 
+ 
+  gkyl_mat_set(&rhs_bxbx_xl,1,0,Bx_sq_xl[1]); 
+  gkyl_mat_set(&rhs_bxbx_xr,1,0,Bx_sq_xr[1]); 
+  gkyl_mat_set(&rhs_bxby_xl,1,0,B_x_B_y_xl[1]); 
+  gkyl_mat_set(&rhs_bxby_xr,1,0,B_x_B_y_xr[1]); 
+  gkyl_mat_set(&rhs_bxbz_xl,1,0,B_x_B_z_xl[1]); 
+  gkyl_mat_set(&rhs_bxbz_xr,1,0,B_x_B_z_xr[1]); 
+ 
+  gkyl_mat_set(&rhs_byby_yl,1,0,By_sq_yl[1]); 
+  gkyl_mat_set(&rhs_byby_yr,1,0,By_sq_yr[1]); 
+  gkyl_mat_set(&rhs_bxby_yl,1,0,B_x_B_y_yl[1]); 
+  gkyl_mat_set(&rhs_bxby_yr,1,0,B_x_B_y_yr[1]); 
+  gkyl_mat_set(&rhs_bybz_yl,1,0,B_y_B_z_yl[1]); 
+  gkyl_mat_set(&rhs_bybz_yr,1,0,B_y_B_z_yr[1]); 
+ 
+  gkyl_mat_set(&rhs_bzbz_zl,1,0,Bz_sq_zl[1]); 
+  gkyl_mat_set(&rhs_bzbz_zr,1,0,Bz_sq_zr[1]); 
+  gkyl_mat_set(&rhs_bxbz_zl,1,0,B_x_B_z_zl[1]); 
+  gkyl_mat_set(&rhs_bxbz_zr,1,0,B_x_B_z_zr[1]); 
+  gkyl_mat_set(&rhs_bybz_zl,1,0,B_y_B_z_zl[1]); 
+  gkyl_mat_set(&rhs_bybz_zr,1,0,B_y_B_z_zr[1]); 
+ 
+  gkyl_mat_set(&rhs_bxbx_xl,2,0,Bx_sq_xl[2]); 
+  gkyl_mat_set(&rhs_bxbx_xr,2,0,Bx_sq_xr[2]); 
+  gkyl_mat_set(&rhs_bxby_xl,2,0,B_x_B_y_xl[2]); 
+  gkyl_mat_set(&rhs_bxby_xr,2,0,B_x_B_y_xr[2]); 
+  gkyl_mat_set(&rhs_bxbz_xl,2,0,B_x_B_z_xl[2]); 
+  gkyl_mat_set(&rhs_bxbz_xr,2,0,B_x_B_z_xr[2]); 
+ 
+  gkyl_mat_set(&rhs_byby_yl,2,0,By_sq_yl[2]); 
+  gkyl_mat_set(&rhs_byby_yr,2,0,By_sq_yr[2]); 
+  gkyl_mat_set(&rhs_bxby_yl,2,0,B_x_B_y_yl[2]); 
+  gkyl_mat_set(&rhs_bxby_yr,2,0,B_x_B_y_yr[2]); 
+  gkyl_mat_set(&rhs_bybz_yl,2,0,B_y_B_z_yl[2]); 
+  gkyl_mat_set(&rhs_bybz_yr,2,0,B_y_B_z_yr[2]); 
+ 
+  gkyl_mat_set(&rhs_bzbz_zl,2,0,Bz_sq_zl[2]); 
+  gkyl_mat_set(&rhs_bzbz_zr,2,0,Bz_sq_zr[2]); 
+  gkyl_mat_set(&rhs_bxbz_zl,2,0,B_x_B_z_zl[2]); 
+  gkyl_mat_set(&rhs_bxbz_zr,2,0,B_x_B_z_zr[2]); 
+  gkyl_mat_set(&rhs_bybz_zl,2,0,B_y_B_z_zl[2]); 
+  gkyl_mat_set(&rhs_bybz_zr,2,0,B_y_B_z_zr[2]); 
+ 
+  gkyl_mat_set(&rhs_bxbx_xl,3,0,Bx_sq_xl[3]); 
+  gkyl_mat_set(&rhs_bxbx_xr,3,0,Bx_sq_xr[3]); 
+  gkyl_mat_set(&rhs_bxby_xl,3,0,B_x_B_y_xl[3]); 
+  gkyl_mat_set(&rhs_bxby_xr,3,0,B_x_B_y_xr[3]); 
+  gkyl_mat_set(&rhs_bxbz_xl,3,0,B_x_B_z_xl[3]); 
+  gkyl_mat_set(&rhs_bxbz_xr,3,0,B_x_B_z_xr[3]); 
+ 
+  gkyl_mat_set(&rhs_byby_yl,3,0,By_sq_yl[3]); 
+  gkyl_mat_set(&rhs_byby_yr,3,0,By_sq_yr[3]); 
+  gkyl_mat_set(&rhs_bxby_yl,3,0,B_x_B_y_yl[3]); 
+  gkyl_mat_set(&rhs_bxby_yr,3,0,B_x_B_y_yr[3]); 
+  gkyl_mat_set(&rhs_bybz_yl,3,0,B_y_B_z_yl[3]); 
+  gkyl_mat_set(&rhs_bybz_yr,3,0,B_y_B_z_yr[3]); 
+ 
+  gkyl_mat_set(&rhs_bzbz_zl,3,0,Bz_sq_zl[3]); 
+  gkyl_mat_set(&rhs_bzbz_zr,3,0,Bz_sq_zr[3]); 
+  gkyl_mat_set(&rhs_bxbz_zl,3,0,B_x_B_z_zl[3]); 
+  gkyl_mat_set(&rhs_bxbz_zr,3,0,B_x_B_z_zr[3]); 
+  gkyl_mat_set(&rhs_bybz_zl,3,0,B_y_B_z_zl[3]); 
+  gkyl_mat_set(&rhs_bybz_zr,3,0,B_y_B_z_zr[3]); 
+ 
+  gkyl_mat_set(&rhs_bxbx_xl,4,0,Bx_sq_xl[4]); 
+  gkyl_mat_set(&rhs_bxbx_xr,4,0,Bx_sq_xr[4]); 
+  gkyl_mat_set(&rhs_bxby_xl,4,0,B_x_B_y_xl[4]); 
+  gkyl_mat_set(&rhs_bxby_xr,4,0,B_x_B_y_xr[4]); 
+  gkyl_mat_set(&rhs_bxbz_xl,4,0,B_x_B_z_xl[4]); 
+  gkyl_mat_set(&rhs_bxbz_xr,4,0,B_x_B_z_xr[4]); 
+ 
+  gkyl_mat_set(&rhs_byby_yl,4,0,By_sq_yl[4]); 
+  gkyl_mat_set(&rhs_byby_yr,4,0,By_sq_yr[4]); 
+  gkyl_mat_set(&rhs_bxby_yl,4,0,B_x_B_y_yl[4]); 
+  gkyl_mat_set(&rhs_bxby_yr,4,0,B_x_B_y_yr[4]); 
+  gkyl_mat_set(&rhs_bybz_yl,4,0,B_y_B_z_yl[4]); 
+  gkyl_mat_set(&rhs_bybz_yr,4,0,B_y_B_z_yr[4]); 
+ 
+  gkyl_mat_set(&rhs_bzbz_zl,4,0,Bz_sq_zl[4]); 
+  gkyl_mat_set(&rhs_bzbz_zr,4,0,Bz_sq_zr[4]); 
+  gkyl_mat_set(&rhs_bxbz_zl,4,0,B_x_B_z_zl[4]); 
+  gkyl_mat_set(&rhs_bxbz_zr,4,0,B_x_B_z_zr[4]); 
+  gkyl_mat_set(&rhs_bybz_zl,4,0,B_y_B_z_zl[4]); 
+  gkyl_mat_set(&rhs_bybz_zr,4,0,B_y_B_z_zr[4]); 
+ 
+  gkyl_mat_set(&rhs_bxbx_xl,5,0,Bx_sq_xl[5]); 
+  gkyl_mat_set(&rhs_bxbx_xr,5,0,Bx_sq_xr[5]); 
+  gkyl_mat_set(&rhs_bxby_xl,5,0,B_x_B_y_xl[5]); 
+  gkyl_mat_set(&rhs_bxby_xr,5,0,B_x_B_y_xr[5]); 
+  gkyl_mat_set(&rhs_bxbz_xl,5,0,B_x_B_z_xl[5]); 
+  gkyl_mat_set(&rhs_bxbz_xr,5,0,B_x_B_z_xr[5]); 
+ 
+  gkyl_mat_set(&rhs_byby_yl,5,0,By_sq_yl[5]); 
+  gkyl_mat_set(&rhs_byby_yr,5,0,By_sq_yr[5]); 
+  gkyl_mat_set(&rhs_bxby_yl,5,0,B_x_B_y_yl[5]); 
+  gkyl_mat_set(&rhs_bxby_yr,5,0,B_x_B_y_yr[5]); 
+  gkyl_mat_set(&rhs_bybz_yl,5,0,B_y_B_z_yl[5]); 
+  gkyl_mat_set(&rhs_bybz_yr,5,0,B_y_B_z_yr[5]); 
+ 
+  gkyl_mat_set(&rhs_bzbz_zl,5,0,Bz_sq_zl[5]); 
+  gkyl_mat_set(&rhs_bzbz_zr,5,0,Bz_sq_zr[5]); 
+  gkyl_mat_set(&rhs_bxbz_zl,5,0,B_x_B_z_zl[5]); 
+  gkyl_mat_set(&rhs_bxbz_zr,5,0,B_x_B_z_zr[5]); 
+  gkyl_mat_set(&rhs_bybz_zl,5,0,B_y_B_z_zl[5]); 
+  gkyl_mat_set(&rhs_bybz_zr,5,0,B_y_B_z_zr[5]); 
+ 
+  gkyl_mat_set(&rhs_bxbx_xl,6,0,Bx_sq_xl[6]); 
+  gkyl_mat_set(&rhs_bxbx_xr,6,0,Bx_sq_xr[6]); 
+  gkyl_mat_set(&rhs_bxby_xl,6,0,B_x_B_y_xl[6]); 
+  gkyl_mat_set(&rhs_bxby_xr,6,0,B_x_B_y_xr[6]); 
+  gkyl_mat_set(&rhs_bxbz_xl,6,0,B_x_B_z_xl[6]); 
+  gkyl_mat_set(&rhs_bxbz_xr,6,0,B_x_B_z_xr[6]); 
+ 
+  gkyl_mat_set(&rhs_byby_yl,6,0,By_sq_yl[6]); 
+  gkyl_mat_set(&rhs_byby_yr,6,0,By_sq_yr[6]); 
+  gkyl_mat_set(&rhs_bxby_yl,6,0,B_x_B_y_yl[6]); 
+  gkyl_mat_set(&rhs_bxby_yr,6,0,B_x_B_y_yr[6]); 
+  gkyl_mat_set(&rhs_bybz_yl,6,0,B_y_B_z_yl[6]); 
+  gkyl_mat_set(&rhs_bybz_yr,6,0,B_y_B_z_yr[6]); 
+ 
+  gkyl_mat_set(&rhs_bzbz_zl,6,0,Bz_sq_zl[6]); 
+  gkyl_mat_set(&rhs_bzbz_zr,6,0,Bz_sq_zr[6]); 
+  gkyl_mat_set(&rhs_bxbz_zl,6,0,B_x_B_z_zl[6]); 
+  gkyl_mat_set(&rhs_bxbz_zr,6,0,B_x_B_z_zr[6]); 
+  gkyl_mat_set(&rhs_bybz_zl,6,0,B_y_B_z_zl[6]); 
+  gkyl_mat_set(&rhs_bybz_zr,6,0,B_y_B_z_zr[6]); 
+ 
+  gkyl_mat_set(&rhs_bxbx_xl,7,0,Bx_sq_xl[7]); 
+  gkyl_mat_set(&rhs_bxbx_xr,7,0,Bx_sq_xr[7]); 
+  gkyl_mat_set(&rhs_bxby_xl,7,0,B_x_B_y_xl[7]); 
+  gkyl_mat_set(&rhs_bxby_xr,7,0,B_x_B_y_xr[7]); 
+  gkyl_mat_set(&rhs_bxbz_xl,7,0,B_x_B_z_xl[7]); 
+  gkyl_mat_set(&rhs_bxbz_xr,7,0,B_x_B_z_xr[7]); 
+ 
+  gkyl_mat_set(&rhs_byby_yl,7,0,By_sq_yl[7]); 
+  gkyl_mat_set(&rhs_byby_yr,7,0,By_sq_yr[7]); 
+  gkyl_mat_set(&rhs_bxby_yl,7,0,B_x_B_y_yl[7]); 
+  gkyl_mat_set(&rhs_bxby_yr,7,0,B_x_B_y_yr[7]); 
+  gkyl_mat_set(&rhs_bybz_yl,7,0,B_y_B_z_yl[7]); 
+  gkyl_mat_set(&rhs_bybz_yr,7,0,B_y_B_z_yr[7]); 
+ 
+  gkyl_mat_set(&rhs_bzbz_zl,7,0,Bz_sq_zl[7]); 
+  gkyl_mat_set(&rhs_bzbz_zr,7,0,Bz_sq_zr[7]); 
+  gkyl_mat_set(&rhs_bxbz_zl,7,0,B_x_B_z_zl[7]); 
+  gkyl_mat_set(&rhs_bxbz_zr,7,0,B_x_B_z_zr[7]); 
+  gkyl_mat_set(&rhs_bybz_zl,7,0,B_y_B_z_zl[7]); 
+  gkyl_mat_set(&rhs_bybz_zr,7,0,B_y_B_z_zr[7]); 
+ 
+  gkyl_mat_set(&rhs_bxbx_xl,8,0,Bx_sq_xl[8]); 
+  gkyl_mat_set(&rhs_bxbx_xr,8,0,Bx_sq_xr[8]); 
+  gkyl_mat_set(&rhs_bxby_xl,8,0,B_x_B_y_xl[8]); 
+  gkyl_mat_set(&rhs_bxby_xr,8,0,B_x_B_y_xr[8]); 
+  gkyl_mat_set(&rhs_bxbz_xl,8,0,B_x_B_z_xl[8]); 
+  gkyl_mat_set(&rhs_bxbz_xr,8,0,B_x_B_z_xr[8]); 
+ 
+  gkyl_mat_set(&rhs_byby_yl,8,0,By_sq_yl[8]); 
+  gkyl_mat_set(&rhs_byby_yr,8,0,By_sq_yr[8]); 
+  gkyl_mat_set(&rhs_bxby_yl,8,0,B_x_B_y_yl[8]); 
+  gkyl_mat_set(&rhs_bxby_yr,8,0,B_x_B_y_yr[8]); 
+  gkyl_mat_set(&rhs_bybz_yl,8,0,B_y_B_z_yl[8]); 
+  gkyl_mat_set(&rhs_bybz_yr,8,0,B_y_B_z_yr[8]); 
+ 
+  gkyl_mat_set(&rhs_bzbz_zl,8,0,Bz_sq_zl[8]); 
+  gkyl_mat_set(&rhs_bzbz_zr,8,0,Bz_sq_zr[8]); 
+  gkyl_mat_set(&rhs_bxbz_zl,8,0,B_x_B_z_zl[8]); 
+  gkyl_mat_set(&rhs_bxbz_zr,8,0,B_x_B_z_zr[8]); 
+  gkyl_mat_set(&rhs_bybz_zl,8,0,B_y_B_z_zl[8]); 
+  gkyl_mat_set(&rhs_bybz_zr,8,0,B_y_B_z_zr[8]); 
+ 
+  double temp_magB2_xl = 0.0; 
+  double temp_magB2_xr = 0.0; 
+  double temp_magB2_yl = 0.0; 
+  double temp_magB2_yr = 0.0; 
+  double temp_magB2_zl = 0.0; 
+  double temp_magB2_zr = 0.0; 
+  temp_magB2_xl = 0.5*magB2_xl[0]; 
+  gkyl_mat_set(&A_bxbx_xl,0,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,0,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,0,0,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[0]; 
+  gkyl_mat_set(&A_bxbx_xr,0,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,0,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,0,0,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[0]; 
+  gkyl_mat_set(&A_byby_yl,0,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,0,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,0,0,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[0]; 
+  gkyl_mat_set(&A_byby_yr,0,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,0,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,0,0,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[0]; 
+  gkyl_mat_set(&A_bzbz_zl,0,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,0,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,0,0,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[0]; 
+  gkyl_mat_set(&A_bzbz_zr,0,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,0,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,0,0,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,0,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,0,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,0,1,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,0,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,0,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,0,1,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,0,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,0,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,0,1,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,0,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,0,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,0,1,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,0,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,0,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,0,1,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,0,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,0,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,0,1,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,0,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,0,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,0,2,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,0,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,0,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,0,2,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,0,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,0,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,0,2,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,0,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,0,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,0,2,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,0,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,0,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,0,2,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,0,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,0,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,0,2,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,0,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,0,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,0,3,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,0,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,0,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,0,3,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,0,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,0,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,0,3,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,0,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,0,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,0,3,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,0,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,0,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,0,3,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,0,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,0,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,0,3,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[4]; 
+  gkyl_mat_set(&A_bxbx_xl,0,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,0,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,0,4,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[4]; 
+  gkyl_mat_set(&A_bxbx_xr,0,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,0,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,0,4,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[4]; 
+  gkyl_mat_set(&A_byby_yl,0,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,0,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,0,4,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[4]; 
+  gkyl_mat_set(&A_byby_yr,0,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,0,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,0,4,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[4]; 
+  gkyl_mat_set(&A_bzbz_zl,0,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,0,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,0,4,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[4]; 
+  gkyl_mat_set(&A_bzbz_zr,0,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,0,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,0,4,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[5]; 
+  gkyl_mat_set(&A_bxbx_xl,0,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,0,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,0,5,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[5]; 
+  gkyl_mat_set(&A_bxbx_xr,0,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,0,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,0,5,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[5]; 
+  gkyl_mat_set(&A_byby_yl,0,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,0,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,0,5,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[5]; 
+  gkyl_mat_set(&A_byby_yr,0,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,0,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,0,5,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[5]; 
+  gkyl_mat_set(&A_bzbz_zl,0,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,0,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,0,5,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[5]; 
+  gkyl_mat_set(&A_bzbz_zr,0,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,0,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,0,5,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[6]; 
+  gkyl_mat_set(&A_bxbx_xl,0,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,0,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,0,6,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[6]; 
+  gkyl_mat_set(&A_bxbx_xr,0,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,0,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,0,6,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[6]; 
+  gkyl_mat_set(&A_byby_yl,0,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,0,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,0,6,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[6]; 
+  gkyl_mat_set(&A_byby_yr,0,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,0,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,0,6,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[6]; 
+  gkyl_mat_set(&A_bzbz_zl,0,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,0,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,0,6,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[6]; 
+  gkyl_mat_set(&A_bzbz_zr,0,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,0,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,0,6,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[7]; 
+  gkyl_mat_set(&A_bxbx_xl,0,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,0,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,0,7,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[7]; 
+  gkyl_mat_set(&A_bxbx_xr,0,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,0,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,0,7,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[7]; 
+  gkyl_mat_set(&A_byby_yl,0,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,0,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,0,7,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[7]; 
+  gkyl_mat_set(&A_byby_yr,0,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,0,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,0,7,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[7]; 
+  gkyl_mat_set(&A_bzbz_zl,0,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,0,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,0,7,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[7]; 
+  gkyl_mat_set(&A_bzbz_zr,0,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,0,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,0,7,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[8]; 
+  gkyl_mat_set(&A_bxbx_xl,0,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,0,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,0,8,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[8]; 
+  gkyl_mat_set(&A_bxbx_xr,0,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,0,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,0,8,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[8]; 
+  gkyl_mat_set(&A_byby_yl,0,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,0,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,0,8,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[8]; 
+  gkyl_mat_set(&A_byby_yr,0,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,0,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,0,8,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[8]; 
+  gkyl_mat_set(&A_bzbz_zl,0,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,0,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,0,8,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[8]; 
+  gkyl_mat_set(&A_bzbz_zr,0,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,0,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,0,8,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,1,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,1,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,1,0,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,1,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,1,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,1,0,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,1,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,1,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,1,0,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,1,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,1,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,1,0,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,1,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,1,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,1,0,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,1,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,1,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,1,0,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[4]+0.5*magB2_xl[0]; 
+  gkyl_mat_set(&A_bxbx_xl,1,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,1,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,1,1,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[4]+0.5*magB2_xr[0]; 
+  gkyl_mat_set(&A_bxbx_xr,1,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,1,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,1,1,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[4]+0.5*magB2_yl[0]; 
+  gkyl_mat_set(&A_byby_yl,1,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,1,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,1,1,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[4]+0.5*magB2_yr[0]; 
+  gkyl_mat_set(&A_byby_yr,1,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,1,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,1,1,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[4]+0.5*magB2_zl[0]; 
+  gkyl_mat_set(&A_bzbz_zl,1,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,1,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,1,1,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[4]+0.5*magB2_zr[0]; 
+  gkyl_mat_set(&A_bzbz_zr,1,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,1,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,1,1,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,1,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,1,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,1,2,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,1,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,1,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,1,2,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,1,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,1,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,1,2,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,1,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,1,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,1,2,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,1,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,1,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,1,2,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,1,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,1,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,1,2,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[6]+0.5*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,1,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,1,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,1,3,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[6]+0.5*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,1,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,1,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,1,3,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[6]+0.5*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,1,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,1,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,1,3,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[6]+0.5*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,1,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,1,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,1,3,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[6]+0.5*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,1,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,1,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,1,3,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[6]+0.5*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,1,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,1,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,1,3,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,1,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,1,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,1,4,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,1,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,1,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,1,4,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,1,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,1,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,1,4,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,1,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,1,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,1,4,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,1,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,1,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,1,4,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,1,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,1,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,1,4,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5000000000000001*magB2_xl[7]; 
+  gkyl_mat_set(&A_bxbx_xl,1,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,1,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,1,5,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5000000000000001*magB2_xr[7]; 
+  gkyl_mat_set(&A_bxbx_xr,1,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,1,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,1,5,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5000000000000001*magB2_yl[7]; 
+  gkyl_mat_set(&A_byby_yl,1,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,1,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,1,5,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5000000000000001*magB2_yr[7]; 
+  gkyl_mat_set(&A_byby_yr,1,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,1,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,1,5,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5000000000000001*magB2_zl[7]; 
+  gkyl_mat_set(&A_bzbz_zl,1,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,1,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,1,5,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5000000000000001*magB2_zr[7]; 
+  gkyl_mat_set(&A_bzbz_zr,1,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,1,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,1,5,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,1,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,1,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,1,6,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,1,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,1,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,1,6,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,1,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,1,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,1,6,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,1,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,1,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,1,6,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,1,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,1,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,1,6,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,1,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,1,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,1,6,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[8]+0.5000000000000001*magB2_xl[5]; 
+  gkyl_mat_set(&A_bxbx_xl,1,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,1,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,1,7,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[8]+0.5000000000000001*magB2_xr[5]; 
+  gkyl_mat_set(&A_bxbx_xr,1,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,1,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,1,7,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[8]+0.5000000000000001*magB2_yl[5]; 
+  gkyl_mat_set(&A_byby_yl,1,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,1,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,1,7,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[8]+0.5000000000000001*magB2_yr[5]; 
+  gkyl_mat_set(&A_byby_yr,1,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,1,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,1,7,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[8]+0.5000000000000001*magB2_zl[5]; 
+  gkyl_mat_set(&A_bzbz_zl,1,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,1,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,1,7,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[8]+0.5000000000000001*magB2_zr[5]; 
+  gkyl_mat_set(&A_bzbz_zr,1,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,1,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,1,7,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[7]; 
+  gkyl_mat_set(&A_bxbx_xl,1,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,1,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,1,8,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[7]; 
+  gkyl_mat_set(&A_bxbx_xr,1,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,1,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,1,8,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[7]; 
+  gkyl_mat_set(&A_byby_yl,1,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,1,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,1,8,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[7]; 
+  gkyl_mat_set(&A_byby_yr,1,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,1,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,1,8,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[7]; 
+  gkyl_mat_set(&A_bzbz_zl,1,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,1,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,1,8,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[7]; 
+  gkyl_mat_set(&A_bzbz_zr,1,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,1,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,1,8,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,2,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,2,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,2,0,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,2,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,2,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,2,0,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,2,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,2,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,2,0,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,2,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,2,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,2,0,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,2,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,2,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,2,0,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,2,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,2,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,2,0,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,2,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,2,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,2,1,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,2,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,2,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,2,1,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,2,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,2,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,2,1,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,2,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,2,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,2,1,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,2,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,2,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,2,1,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,2,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,2,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,2,1,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[5]+0.5*magB2_xl[0]; 
+  gkyl_mat_set(&A_bxbx_xl,2,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,2,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,2,2,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[5]+0.5*magB2_xr[0]; 
+  gkyl_mat_set(&A_bxbx_xr,2,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,2,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,2,2,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[5]+0.5*magB2_yl[0]; 
+  gkyl_mat_set(&A_byby_yl,2,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,2,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,2,2,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[5]+0.5*magB2_yr[0]; 
+  gkyl_mat_set(&A_byby_yr,2,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,2,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,2,2,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[5]+0.5*magB2_zl[0]; 
+  gkyl_mat_set(&A_bzbz_zl,2,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,2,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,2,2,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[5]+0.5*magB2_zr[0]; 
+  gkyl_mat_set(&A_bzbz_zr,2,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,2,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,2,2,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[7]+0.5*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,2,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,2,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,2,3,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[7]+0.5*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,2,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,2,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,2,3,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[7]+0.5*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,2,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,2,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,2,3,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[7]+0.5*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,2,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,2,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,2,3,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[7]+0.5*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,2,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,2,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,2,3,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[7]+0.5*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,2,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,2,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,2,3,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5000000000000001*magB2_xl[6]; 
+  gkyl_mat_set(&A_bxbx_xl,2,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,2,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,2,4,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5000000000000001*magB2_xr[6]; 
+  gkyl_mat_set(&A_bxbx_xr,2,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,2,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,2,4,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5000000000000001*magB2_yl[6]; 
+  gkyl_mat_set(&A_byby_yl,2,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,2,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,2,4,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5000000000000001*magB2_yr[6]; 
+  gkyl_mat_set(&A_byby_yr,2,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,2,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,2,4,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5000000000000001*magB2_zl[6]; 
+  gkyl_mat_set(&A_bzbz_zl,2,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,2,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,2,4,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5000000000000001*magB2_zr[6]; 
+  gkyl_mat_set(&A_bzbz_zr,2,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,2,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,2,4,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,2,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,2,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,2,5,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,2,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,2,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,2,5,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,2,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,2,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,2,5,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,2,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,2,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,2,5,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,2,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,2,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,2,5,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,2,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,2,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,2,5,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[8]+0.5000000000000001*magB2_xl[4]; 
+  gkyl_mat_set(&A_bxbx_xl,2,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,2,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,2,6,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[8]+0.5000000000000001*magB2_xr[4]; 
+  gkyl_mat_set(&A_bxbx_xr,2,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,2,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,2,6,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[8]+0.5000000000000001*magB2_yl[4]; 
+  gkyl_mat_set(&A_byby_yl,2,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,2,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,2,6,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[8]+0.5000000000000001*magB2_yr[4]; 
+  gkyl_mat_set(&A_byby_yr,2,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,2,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,2,6,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[8]+0.5000000000000001*magB2_zl[4]; 
+  gkyl_mat_set(&A_bzbz_zl,2,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,2,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,2,6,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[8]+0.5000000000000001*magB2_zr[4]; 
+  gkyl_mat_set(&A_bzbz_zr,2,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,2,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,2,6,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,2,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,2,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,2,7,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,2,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,2,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,2,7,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,2,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,2,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,2,7,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,2,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,2,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,2,7,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,2,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,2,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,2,7,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,2,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,2,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,2,7,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[6]; 
+  gkyl_mat_set(&A_bxbx_xl,2,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,2,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,2,8,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[6]; 
+  gkyl_mat_set(&A_bxbx_xr,2,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,2,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,2,8,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[6]; 
+  gkyl_mat_set(&A_byby_yl,2,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,2,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,2,8,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[6]; 
+  gkyl_mat_set(&A_byby_yr,2,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,2,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,2,8,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[6]; 
+  gkyl_mat_set(&A_bzbz_zl,2,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,2,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,2,8,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[6]; 
+  gkyl_mat_set(&A_bzbz_zr,2,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,2,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,2,8,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,3,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,3,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,3,0,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,3,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,3,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,3,0,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,3,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,3,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,3,0,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,3,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,3,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,3,0,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,3,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,3,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,3,0,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,3,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,3,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,3,0,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[6]+0.5*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,3,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,3,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,3,1,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[6]+0.5*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,3,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,3,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,3,1,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[6]+0.5*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,3,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,3,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,3,1,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[6]+0.5*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,3,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,3,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,3,1,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[6]+0.5*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,3,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,3,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,3,1,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[6]+0.5*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,3,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,3,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,3,1,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[7]+0.5*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,3,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,3,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,3,2,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[7]+0.5*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,3,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,3,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,3,2,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[7]+0.5*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,3,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,3,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,3,2,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[7]+0.5*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,3,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,3,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,3,2,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[7]+0.5*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,3,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,3,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,3,2,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[7]+0.5*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,3,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,3,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,3,2,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4*magB2_xl[8]+0.4472135954999579*magB2_xl[5]+0.4472135954999579*magB2_xl[4]+0.5*magB2_xl[0]; 
+  gkyl_mat_set(&A_bxbx_xl,3,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,3,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,3,3,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4*magB2_xr[8]+0.4472135954999579*magB2_xr[5]+0.4472135954999579*magB2_xr[4]+0.5*magB2_xr[0]; 
+  gkyl_mat_set(&A_bxbx_xr,3,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,3,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,3,3,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4*magB2_yl[8]+0.4472135954999579*magB2_yl[5]+0.4472135954999579*magB2_yl[4]+0.5*magB2_yl[0]; 
+  gkyl_mat_set(&A_byby_yl,3,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,3,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,3,3,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4*magB2_yr[8]+0.4472135954999579*magB2_yr[5]+0.4472135954999579*magB2_yr[4]+0.5*magB2_yr[0]; 
+  gkyl_mat_set(&A_byby_yr,3,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,3,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,3,3,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4*magB2_zl[8]+0.4472135954999579*magB2_zl[5]+0.4472135954999579*magB2_zl[4]+0.5*magB2_zl[0]; 
+  gkyl_mat_set(&A_bzbz_zl,3,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,3,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,3,3,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4*magB2_zr[8]+0.4472135954999579*magB2_zr[5]+0.4472135954999579*magB2_zr[4]+0.5*magB2_zr[0]; 
+  gkyl_mat_set(&A_bzbz_zr,3,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,3,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,3,3,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,3,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,3,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,3,4,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,3,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,3,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,3,4,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,3,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,3,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,3,4,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,3,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,3,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,3,4,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,3,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,3,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,3,4,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,3,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,3,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,3,4,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,3,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,3,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,3,5,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,3,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,3,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,3,5,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,3,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,3,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,3,5,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,3,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,3,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,3,5,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,3,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,3,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,3,5,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,3,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,3,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,3,5,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4*magB2_xl[7]+0.447213595499958*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,3,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,3,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,3,6,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4*magB2_xr[7]+0.447213595499958*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,3,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,3,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,3,6,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4*magB2_yl[7]+0.447213595499958*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,3,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,3,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,3,6,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4*magB2_yr[7]+0.447213595499958*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,3,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,3,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,3,6,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4*magB2_zl[7]+0.447213595499958*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,3,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,3,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,3,6,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4*magB2_zr[7]+0.447213595499958*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,3,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,3,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,3,6,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4*magB2_xl[6]+0.447213595499958*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,3,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,3,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,3,7,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4*magB2_xr[6]+0.447213595499958*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,3,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,3,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,3,7,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4*magB2_yl[6]+0.447213595499958*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,3,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,3,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,3,7,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4*magB2_yr[6]+0.447213595499958*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,3,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,3,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,3,7,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4*magB2_zl[6]+0.447213595499958*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,3,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,3,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,3,7,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4*magB2_zr[6]+0.447213595499958*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,3,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,3,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,3,7,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,3,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,3,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,3,8,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,3,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,3,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,3,8,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,3,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,3,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,3,8,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,3,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,3,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,3,8,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,3,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,3,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,3,8,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,3,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,3,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,3,8,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[4]; 
+  gkyl_mat_set(&A_bxbx_xl,4,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,4,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,4,0,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[4]; 
+  gkyl_mat_set(&A_bxbx_xr,4,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,4,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,4,0,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[4]; 
+  gkyl_mat_set(&A_byby_yl,4,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,4,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,4,0,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[4]; 
+  gkyl_mat_set(&A_byby_yr,4,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,4,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,4,0,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[4]; 
+  gkyl_mat_set(&A_bzbz_zl,4,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,4,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,4,0,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[4]; 
+  gkyl_mat_set(&A_bzbz_zr,4,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,4,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,4,0,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,4,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,4,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,4,1,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,4,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,4,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,4,1,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,4,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,4,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,4,1,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,4,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,4,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,4,1,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,4,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,4,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,4,1,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,4,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,4,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,4,1,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5000000000000001*magB2_xl[6]; 
+  gkyl_mat_set(&A_bxbx_xl,4,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,4,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,4,2,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5000000000000001*magB2_xr[6]; 
+  gkyl_mat_set(&A_bxbx_xr,4,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,4,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,4,2,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5000000000000001*magB2_yl[6]; 
+  gkyl_mat_set(&A_byby_yl,4,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,4,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,4,2,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5000000000000001*magB2_yr[6]; 
+  gkyl_mat_set(&A_byby_yr,4,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,4,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,4,2,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5000000000000001*magB2_zl[6]; 
+  gkyl_mat_set(&A_bzbz_zl,4,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,4,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,4,2,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5000000000000001*magB2_zr[6]; 
+  gkyl_mat_set(&A_bzbz_zr,4,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,4,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,4,2,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,4,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,4,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,4,3,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,4,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,4,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,4,3,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,4,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,4,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,4,3,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,4,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,4,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,4,3,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,4,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,4,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,4,3,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,4,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,4,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,4,3,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.31943828249997*magB2_xl[4]+0.5*magB2_xl[0]; 
+  gkyl_mat_set(&A_bxbx_xl,4,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,4,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,4,4,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.31943828249997*magB2_xr[4]+0.5*magB2_xr[0]; 
+  gkyl_mat_set(&A_bxbx_xr,4,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,4,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,4,4,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.31943828249997*magB2_yl[4]+0.5*magB2_yl[0]; 
+  gkyl_mat_set(&A_byby_yl,4,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,4,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,4,4,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.31943828249997*magB2_yr[4]+0.5*magB2_yr[0]; 
+  gkyl_mat_set(&A_byby_yr,4,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,4,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,4,4,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.31943828249997*magB2_zl[4]+0.5*magB2_zl[0]; 
+  gkyl_mat_set(&A_bzbz_zl,4,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,4,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,4,4,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.31943828249997*magB2_zr[4]+0.5*magB2_zr[0]; 
+  gkyl_mat_set(&A_bzbz_zr,4,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,4,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,4,4,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[8]; 
+  gkyl_mat_set(&A_bxbx_xl,4,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,4,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,4,5,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[8]; 
+  gkyl_mat_set(&A_bxbx_xr,4,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,4,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,4,5,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[8]; 
+  gkyl_mat_set(&A_byby_yl,4,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,4,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,4,5,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[8]; 
+  gkyl_mat_set(&A_byby_yr,4,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,4,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,4,5,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[8]; 
+  gkyl_mat_set(&A_bzbz_zl,4,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,4,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,4,5,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[8]; 
+  gkyl_mat_set(&A_bzbz_zr,4,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,4,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,4,5,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.31943828249997*magB2_xl[6]+0.5000000000000001*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,4,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,4,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,4,6,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.31943828249997*magB2_xr[6]+0.5000000000000001*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,4,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,4,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,4,6,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.31943828249997*magB2_yl[6]+0.5000000000000001*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,4,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,4,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,4,6,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.31943828249997*magB2_yr[6]+0.5000000000000001*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,4,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,4,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,4,6,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.31943828249997*magB2_zl[6]+0.5000000000000001*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,4,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,4,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,4,6,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.31943828249997*magB2_zr[6]+0.5000000000000001*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,4,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,4,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,4,6,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[7]; 
+  gkyl_mat_set(&A_bxbx_xl,4,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,4,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,4,7,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[7]; 
+  gkyl_mat_set(&A_bxbx_xr,4,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,4,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,4,7,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[7]; 
+  gkyl_mat_set(&A_byby_yl,4,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,4,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,4,7,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[7]; 
+  gkyl_mat_set(&A_byby_yr,4,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,4,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,4,7,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[7]; 
+  gkyl_mat_set(&A_bzbz_zl,4,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,4,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,4,7,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[7]; 
+  gkyl_mat_set(&A_bzbz_zr,4,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,4,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,4,7,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.31943828249997*magB2_xl[8]+0.5*magB2_xl[5]; 
+  gkyl_mat_set(&A_bxbx_xl,4,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,4,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,4,8,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.31943828249997*magB2_xr[8]+0.5*magB2_xr[5]; 
+  gkyl_mat_set(&A_bxbx_xr,4,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,4,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,4,8,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.31943828249997*magB2_yl[8]+0.5*magB2_yl[5]; 
+  gkyl_mat_set(&A_byby_yl,4,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,4,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,4,8,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.31943828249997*magB2_yr[8]+0.5*magB2_yr[5]; 
+  gkyl_mat_set(&A_byby_yr,4,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,4,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,4,8,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.31943828249997*magB2_zl[8]+0.5*magB2_zl[5]; 
+  gkyl_mat_set(&A_bzbz_zl,4,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,4,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,4,8,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.31943828249997*magB2_zr[8]+0.5*magB2_zr[5]; 
+  gkyl_mat_set(&A_bzbz_zr,4,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,4,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,4,8,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[5]; 
+  gkyl_mat_set(&A_bxbx_xl,5,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,5,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,5,0,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[5]; 
+  gkyl_mat_set(&A_bxbx_xr,5,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,5,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,5,0,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[5]; 
+  gkyl_mat_set(&A_byby_yl,5,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,5,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,5,0,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[5]; 
+  gkyl_mat_set(&A_byby_yr,5,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,5,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,5,0,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[5]; 
+  gkyl_mat_set(&A_bzbz_zl,5,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,5,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,5,0,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[5]; 
+  gkyl_mat_set(&A_bzbz_zr,5,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,5,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,5,0,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5000000000000001*magB2_xl[7]; 
+  gkyl_mat_set(&A_bxbx_xl,5,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,5,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,5,1,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5000000000000001*magB2_xr[7]; 
+  gkyl_mat_set(&A_bxbx_xr,5,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,5,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,5,1,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5000000000000001*magB2_yl[7]; 
+  gkyl_mat_set(&A_byby_yl,5,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,5,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,5,1,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5000000000000001*magB2_yr[7]; 
+  gkyl_mat_set(&A_byby_yr,5,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,5,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,5,1,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5000000000000001*magB2_zl[7]; 
+  gkyl_mat_set(&A_bzbz_zl,5,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,5,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,5,1,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5000000000000001*magB2_zr[7]; 
+  gkyl_mat_set(&A_bzbz_zr,5,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,5,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,5,1,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,5,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,5,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,5,2,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,5,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,5,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,5,2,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,5,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,5,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,5,2,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,5,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,5,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,5,2,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,5,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,5,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,5,2,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,5,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,5,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,5,2,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,5,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,5,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,5,3,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,5,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,5,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,5,3,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,5,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,5,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,5,3,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,5,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,5,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,5,3,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,5,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,5,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,5,3,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,5,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,5,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,5,3,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[8]; 
+  gkyl_mat_set(&A_bxbx_xl,5,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,5,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,5,4,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[8]; 
+  gkyl_mat_set(&A_bxbx_xr,5,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,5,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,5,4,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[8]; 
+  gkyl_mat_set(&A_byby_yl,5,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,5,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,5,4,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[8]; 
+  gkyl_mat_set(&A_byby_yr,5,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,5,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,5,4,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[8]; 
+  gkyl_mat_set(&A_bzbz_zl,5,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,5,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,5,4,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[8]; 
+  gkyl_mat_set(&A_bzbz_zr,5,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,5,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,5,4,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.31943828249997*magB2_xl[5]+0.5*magB2_xl[0]; 
+  gkyl_mat_set(&A_bxbx_xl,5,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,5,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,5,5,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.31943828249997*magB2_xr[5]+0.5*magB2_xr[0]; 
+  gkyl_mat_set(&A_bxbx_xr,5,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,5,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,5,5,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.31943828249997*magB2_yl[5]+0.5*magB2_yl[0]; 
+  gkyl_mat_set(&A_byby_yl,5,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,5,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,5,5,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.31943828249997*magB2_yr[5]+0.5*magB2_yr[0]; 
+  gkyl_mat_set(&A_byby_yr,5,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,5,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,5,5,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.31943828249997*magB2_zl[5]+0.5*magB2_zl[0]; 
+  gkyl_mat_set(&A_bzbz_zl,5,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,5,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,5,5,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.31943828249997*magB2_zr[5]+0.5*magB2_zr[0]; 
+  gkyl_mat_set(&A_bzbz_zr,5,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,5,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,5,5,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[6]; 
+  gkyl_mat_set(&A_bxbx_xl,5,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,5,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,5,6,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[6]; 
+  gkyl_mat_set(&A_bxbx_xr,5,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,5,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,5,6,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[6]; 
+  gkyl_mat_set(&A_byby_yl,5,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,5,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,5,6,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[6]; 
+  gkyl_mat_set(&A_byby_yr,5,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,5,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,5,6,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[6]; 
+  gkyl_mat_set(&A_bzbz_zl,5,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,5,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,5,6,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[6]; 
+  gkyl_mat_set(&A_bzbz_zr,5,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,5,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,5,6,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.31943828249997*magB2_xl[7]+0.5000000000000001*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,5,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,5,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,5,7,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.31943828249997*magB2_xr[7]+0.5000000000000001*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,5,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,5,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,5,7,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.31943828249997*magB2_yl[7]+0.5000000000000001*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,5,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,5,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,5,7,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.31943828249997*magB2_yr[7]+0.5000000000000001*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,5,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,5,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,5,7,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.31943828249997*magB2_zl[7]+0.5000000000000001*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,5,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,5,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,5,7,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.31943828249997*magB2_zr[7]+0.5000000000000001*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,5,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,5,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,5,7,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.31943828249997*magB2_xl[8]+0.5*magB2_xl[4]; 
+  gkyl_mat_set(&A_bxbx_xl,5,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,5,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,5,8,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.31943828249997*magB2_xr[8]+0.5*magB2_xr[4]; 
+  gkyl_mat_set(&A_bxbx_xr,5,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,5,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,5,8,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.31943828249997*magB2_yl[8]+0.5*magB2_yl[4]; 
+  gkyl_mat_set(&A_byby_yl,5,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,5,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,5,8,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.31943828249997*magB2_yr[8]+0.5*magB2_yr[4]; 
+  gkyl_mat_set(&A_byby_yr,5,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,5,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,5,8,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.31943828249997*magB2_zl[8]+0.5*magB2_zl[4]; 
+  gkyl_mat_set(&A_bzbz_zl,5,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,5,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,5,8,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.31943828249997*magB2_zr[8]+0.5*magB2_zr[4]; 
+  gkyl_mat_set(&A_bzbz_zr,5,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,5,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,5,8,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[6]; 
+  gkyl_mat_set(&A_bxbx_xl,6,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,6,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,6,0,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[6]; 
+  gkyl_mat_set(&A_bxbx_xr,6,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,6,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,6,0,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[6]; 
+  gkyl_mat_set(&A_byby_yl,6,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,6,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,6,0,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[6]; 
+  gkyl_mat_set(&A_byby_yr,6,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,6,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,6,0,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[6]; 
+  gkyl_mat_set(&A_bzbz_zl,6,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,6,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,6,0,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[6]; 
+  gkyl_mat_set(&A_bzbz_zr,6,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,6,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,6,0,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,6,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,6,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,6,1,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,6,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,6,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,6,1,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,6,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,6,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,6,1,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,6,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,6,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,6,1,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,6,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,6,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,6,1,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,6,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,6,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,6,1,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[8]+0.5000000000000001*magB2_xl[4]; 
+  gkyl_mat_set(&A_bxbx_xl,6,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,6,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,6,2,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[8]+0.5000000000000001*magB2_xr[4]; 
+  gkyl_mat_set(&A_bxbx_xr,6,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,6,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,6,2,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[8]+0.5000000000000001*magB2_yl[4]; 
+  gkyl_mat_set(&A_byby_yl,6,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,6,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,6,2,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[8]+0.5000000000000001*magB2_yr[4]; 
+  gkyl_mat_set(&A_byby_yr,6,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,6,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,6,2,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[8]+0.5000000000000001*magB2_zl[4]; 
+  gkyl_mat_set(&A_bzbz_zl,6,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,6,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,6,2,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[8]+0.5000000000000001*magB2_zr[4]; 
+  gkyl_mat_set(&A_bzbz_zr,6,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,6,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,6,2,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4*magB2_xl[7]+0.447213595499958*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,6,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,6,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,6,3,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4*magB2_xr[7]+0.447213595499958*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,6,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,6,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,6,3,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4*magB2_yl[7]+0.447213595499958*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,6,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,6,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,6,3,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4*magB2_yr[7]+0.447213595499958*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,6,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,6,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,6,3,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4*magB2_zl[7]+0.447213595499958*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,6,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,6,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,6,3,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4*magB2_zr[7]+0.447213595499958*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,6,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,6,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,6,3,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.31943828249997*magB2_xl[6]+0.5000000000000001*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,6,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,6,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,6,4,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.31943828249997*magB2_xr[6]+0.5000000000000001*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,6,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,6,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,6,4,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.31943828249997*magB2_yl[6]+0.5000000000000001*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,6,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,6,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,6,4,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.31943828249997*magB2_yr[6]+0.5000000000000001*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,6,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,6,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,6,4,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.31943828249997*magB2_zl[6]+0.5000000000000001*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,6,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,6,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,6,4,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.31943828249997*magB2_zr[6]+0.5000000000000001*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,6,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,6,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,6,4,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[6]; 
+  gkyl_mat_set(&A_bxbx_xl,6,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,6,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,6,5,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[6]; 
+  gkyl_mat_set(&A_bxbx_xr,6,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,6,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,6,5,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[6]; 
+  gkyl_mat_set(&A_byby_yl,6,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,6,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,6,5,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[6]; 
+  gkyl_mat_set(&A_byby_yr,6,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,6,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,6,5,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[6]; 
+  gkyl_mat_set(&A_bzbz_zl,6,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,6,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,6,5,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[6]; 
+  gkyl_mat_set(&A_bzbz_zr,6,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,6,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,6,5,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.2857142857142857*magB2_xl[8]+0.4472135954999579*magB2_xl[5]+0.31943828249997*magB2_xl[4]+0.5*magB2_xl[0]; 
+  gkyl_mat_set(&A_bxbx_xl,6,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,6,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,6,6,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.2857142857142857*magB2_xr[8]+0.4472135954999579*magB2_xr[5]+0.31943828249997*magB2_xr[4]+0.5*magB2_xr[0]; 
+  gkyl_mat_set(&A_bxbx_xr,6,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,6,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,6,6,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.2857142857142857*magB2_yl[8]+0.4472135954999579*magB2_yl[5]+0.31943828249997*magB2_yl[4]+0.5*magB2_yl[0]; 
+  gkyl_mat_set(&A_byby_yl,6,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,6,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,6,6,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.2857142857142857*magB2_yr[8]+0.4472135954999579*magB2_yr[5]+0.31943828249997*magB2_yr[4]+0.5*magB2_yr[0]; 
+  gkyl_mat_set(&A_byby_yr,6,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,6,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,6,6,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.2857142857142857*magB2_zl[8]+0.4472135954999579*magB2_zl[5]+0.31943828249997*magB2_zl[4]+0.5*magB2_zl[0]; 
+  gkyl_mat_set(&A_bzbz_zl,6,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,6,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,6,6,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.2857142857142857*magB2_zr[8]+0.4472135954999579*magB2_zr[5]+0.31943828249997*magB2_zr[4]+0.5*magB2_zr[0]; 
+  gkyl_mat_set(&A_bzbz_zr,6,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,6,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,6,6,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,6,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,6,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,6,7,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,6,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,6,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,6,7,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,6,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,6,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,6,7,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,6,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,6,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,6,7,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,6,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,6,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,6,7,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,6,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,6,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,6,7,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.2857142857142857*magB2_xl[6]+0.447213595499958*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,6,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,6,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,6,8,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.2857142857142857*magB2_xr[6]+0.447213595499958*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,6,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,6,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,6,8,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.2857142857142857*magB2_yl[6]+0.447213595499958*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,6,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,6,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,6,8,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.2857142857142857*magB2_yr[6]+0.447213595499958*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,6,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,6,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,6,8,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.2857142857142857*magB2_zl[6]+0.447213595499958*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,6,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,6,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,6,8,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.2857142857142857*magB2_zr[6]+0.447213595499958*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,6,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,6,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,6,8,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[7]; 
+  gkyl_mat_set(&A_bxbx_xl,7,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,7,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,7,0,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[7]; 
+  gkyl_mat_set(&A_bxbx_xr,7,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,7,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,7,0,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[7]; 
+  gkyl_mat_set(&A_byby_yl,7,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,7,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,7,0,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[7]; 
+  gkyl_mat_set(&A_byby_yr,7,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,7,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,7,0,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[7]; 
+  gkyl_mat_set(&A_bzbz_zl,7,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,7,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,7,0,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[7]; 
+  gkyl_mat_set(&A_bzbz_zr,7,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,7,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,7,0,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[8]+0.5000000000000001*magB2_xl[5]; 
+  gkyl_mat_set(&A_bxbx_xl,7,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,7,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,7,1,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[8]+0.5000000000000001*magB2_xr[5]; 
+  gkyl_mat_set(&A_bxbx_xr,7,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,7,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,7,1,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[8]+0.5000000000000001*magB2_yl[5]; 
+  gkyl_mat_set(&A_byby_yl,7,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,7,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,7,1,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[8]+0.5000000000000001*magB2_yr[5]; 
+  gkyl_mat_set(&A_byby_yr,7,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,7,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,7,1,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[8]+0.5000000000000001*magB2_zl[5]; 
+  gkyl_mat_set(&A_bzbz_zl,7,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,7,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,7,1,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[8]+0.5000000000000001*magB2_zr[5]; 
+  gkyl_mat_set(&A_bzbz_zr,7,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,7,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,7,1,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,7,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,7,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,7,2,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,7,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,7,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,7,2,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,7,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,7,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,7,2,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,7,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,7,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,7,2,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,7,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,7,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,7,2,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,7,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,7,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,7,2,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4*magB2_xl[6]+0.447213595499958*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,7,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,7,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,7,3,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4*magB2_xr[6]+0.447213595499958*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,7,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,7,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,7,3,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4*magB2_yl[6]+0.447213595499958*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,7,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,7,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,7,3,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4*magB2_yr[6]+0.447213595499958*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,7,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,7,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,7,3,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4*magB2_zl[6]+0.447213595499958*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,7,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,7,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,7,3,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4*magB2_zr[6]+0.447213595499958*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,7,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,7,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,7,3,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4472135954999579*magB2_xl[7]; 
+  gkyl_mat_set(&A_bxbx_xl,7,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,7,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,7,4,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4472135954999579*magB2_xr[7]; 
+  gkyl_mat_set(&A_bxbx_xr,7,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,7,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,7,4,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4472135954999579*magB2_yl[7]; 
+  gkyl_mat_set(&A_byby_yl,7,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,7,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,7,4,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4472135954999579*magB2_yr[7]; 
+  gkyl_mat_set(&A_byby_yr,7,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,7,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,7,4,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4472135954999579*magB2_zl[7]; 
+  gkyl_mat_set(&A_bzbz_zl,7,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,7,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,7,4,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4472135954999579*magB2_zr[7]; 
+  gkyl_mat_set(&A_bzbz_zr,7,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,7,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,7,4,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.31943828249997*magB2_xl[7]+0.5000000000000001*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,7,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,7,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,7,5,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.31943828249997*magB2_xr[7]+0.5000000000000001*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,7,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,7,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,7,5,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.31943828249997*magB2_yl[7]+0.5000000000000001*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,7,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,7,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,7,5,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.31943828249997*magB2_yr[7]+0.5000000000000001*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,7,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,7,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,7,5,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.31943828249997*magB2_zl[7]+0.5000000000000001*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,7,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,7,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,7,5,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.31943828249997*magB2_zr[7]+0.5000000000000001*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,7,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,7,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,7,5,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,7,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,7,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,7,6,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,7,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,7,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,7,6,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,7,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,7,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,7,6,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,7,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,7,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,7,6,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,7,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,7,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,7,6,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,7,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,7,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,7,6,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.2857142857142857*magB2_xl[8]+0.31943828249997*magB2_xl[5]+0.4472135954999579*magB2_xl[4]+0.5*magB2_xl[0]; 
+  gkyl_mat_set(&A_bxbx_xl,7,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,7,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,7,7,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.2857142857142857*magB2_xr[8]+0.31943828249997*magB2_xr[5]+0.4472135954999579*magB2_xr[4]+0.5*magB2_xr[0]; 
+  gkyl_mat_set(&A_bxbx_xr,7,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,7,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,7,7,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.2857142857142857*magB2_yl[8]+0.31943828249997*magB2_yl[5]+0.4472135954999579*magB2_yl[4]+0.5*magB2_yl[0]; 
+  gkyl_mat_set(&A_byby_yl,7,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,7,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,7,7,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.2857142857142857*magB2_yr[8]+0.31943828249997*magB2_yr[5]+0.4472135954999579*magB2_yr[4]+0.5*magB2_yr[0]; 
+  gkyl_mat_set(&A_byby_yr,7,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,7,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,7,7,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.2857142857142857*magB2_zl[8]+0.31943828249997*magB2_zl[5]+0.4472135954999579*magB2_zl[4]+0.5*magB2_zl[0]; 
+  gkyl_mat_set(&A_bzbz_zl,7,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,7,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,7,7,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.2857142857142857*magB2_zr[8]+0.31943828249997*magB2_zr[5]+0.4472135954999579*magB2_zr[4]+0.5*magB2_zr[0]; 
+  gkyl_mat_set(&A_bzbz_zr,7,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,7,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,7,7,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.2857142857142857*magB2_xl[7]+0.447213595499958*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,7,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,7,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,7,8,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.2857142857142857*magB2_xr[7]+0.447213595499958*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,7,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,7,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,7,8,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.2857142857142857*magB2_yl[7]+0.447213595499958*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,7,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,7,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,7,8,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.2857142857142857*magB2_yr[7]+0.447213595499958*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,7,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,7,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,7,8,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.2857142857142857*magB2_zl[7]+0.447213595499958*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,7,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,7,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,7,8,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.2857142857142857*magB2_zr[7]+0.447213595499958*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,7,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,7,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,7,8,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.5*magB2_xl[8]; 
+  gkyl_mat_set(&A_bxbx_xl,8,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,8,0,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,8,0,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.5*magB2_xr[8]; 
+  gkyl_mat_set(&A_bxbx_xr,8,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,8,0,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,8,0,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.5*magB2_yl[8]; 
+  gkyl_mat_set(&A_byby_yl,8,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,8,0,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,8,0,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.5*magB2_yr[8]; 
+  gkyl_mat_set(&A_byby_yr,8,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,8,0,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,8,0,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.5*magB2_zl[8]; 
+  gkyl_mat_set(&A_bzbz_zl,8,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,8,0,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,8,0,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.5*magB2_zr[8]; 
+  gkyl_mat_set(&A_bzbz_zr,8,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,8,0,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,8,0,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[7]; 
+  gkyl_mat_set(&A_bxbx_xl,8,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,8,1,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,8,1,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[7]; 
+  gkyl_mat_set(&A_bxbx_xr,8,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,8,1,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,8,1,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[7]; 
+  gkyl_mat_set(&A_byby_yl,8,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,8,1,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,8,1,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[7]; 
+  gkyl_mat_set(&A_byby_yr,8,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,8,1,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,8,1,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[7]; 
+  gkyl_mat_set(&A_bzbz_zl,8,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,8,1,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,8,1,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[7]; 
+  gkyl_mat_set(&A_bzbz_zr,8,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,8,1,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,8,1,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.447213595499958*magB2_xl[6]; 
+  gkyl_mat_set(&A_bxbx_xl,8,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,8,2,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,8,2,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.447213595499958*magB2_xr[6]; 
+  gkyl_mat_set(&A_bxbx_xr,8,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,8,2,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,8,2,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.447213595499958*magB2_yl[6]; 
+  gkyl_mat_set(&A_byby_yl,8,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,8,2,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,8,2,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.447213595499958*magB2_yr[6]; 
+  gkyl_mat_set(&A_byby_yr,8,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,8,2,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,8,2,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.447213595499958*magB2_zl[6]; 
+  gkyl_mat_set(&A_bzbz_zl,8,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,8,2,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,8,2,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.447213595499958*magB2_zr[6]; 
+  gkyl_mat_set(&A_bzbz_zr,8,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,8,2,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,8,2,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.4*magB2_xl[3]; 
+  gkyl_mat_set(&A_bxbx_xl,8,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,8,3,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,8,3,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.4*magB2_xr[3]; 
+  gkyl_mat_set(&A_bxbx_xr,8,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,8,3,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,8,3,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.4*magB2_yl[3]; 
+  gkyl_mat_set(&A_byby_yl,8,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,8,3,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,8,3,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.4*magB2_yr[3]; 
+  gkyl_mat_set(&A_byby_yr,8,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,8,3,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,8,3,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.4*magB2_zl[3]; 
+  gkyl_mat_set(&A_bzbz_zl,8,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,8,3,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,8,3,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.4*magB2_zr[3]; 
+  gkyl_mat_set(&A_bzbz_zr,8,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,8,3,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,8,3,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.31943828249997*magB2_xl[8]+0.5*magB2_xl[5]; 
+  gkyl_mat_set(&A_bxbx_xl,8,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,8,4,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,8,4,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.31943828249997*magB2_xr[8]+0.5*magB2_xr[5]; 
+  gkyl_mat_set(&A_bxbx_xr,8,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,8,4,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,8,4,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.31943828249997*magB2_yl[8]+0.5*magB2_yl[5]; 
+  gkyl_mat_set(&A_byby_yl,8,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,8,4,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,8,4,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.31943828249997*magB2_yr[8]+0.5*magB2_yr[5]; 
+  gkyl_mat_set(&A_byby_yr,8,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,8,4,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,8,4,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.31943828249997*magB2_zl[8]+0.5*magB2_zl[5]; 
+  gkyl_mat_set(&A_bzbz_zl,8,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,8,4,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,8,4,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.31943828249997*magB2_zr[8]+0.5*magB2_zr[5]; 
+  gkyl_mat_set(&A_bzbz_zr,8,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,8,4,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,8,4,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.31943828249997*magB2_xl[8]+0.5*magB2_xl[4]; 
+  gkyl_mat_set(&A_bxbx_xl,8,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,8,5,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,8,5,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.31943828249997*magB2_xr[8]+0.5*magB2_xr[4]; 
+  gkyl_mat_set(&A_bxbx_xr,8,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,8,5,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,8,5,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.31943828249997*magB2_yl[8]+0.5*magB2_yl[4]; 
+  gkyl_mat_set(&A_byby_yl,8,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,8,5,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,8,5,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.31943828249997*magB2_yr[8]+0.5*magB2_yr[4]; 
+  gkyl_mat_set(&A_byby_yr,8,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,8,5,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,8,5,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.31943828249997*magB2_zl[8]+0.5*magB2_zl[4]; 
+  gkyl_mat_set(&A_bzbz_zl,8,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,8,5,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,8,5,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.31943828249997*magB2_zr[8]+0.5*magB2_zr[4]; 
+  gkyl_mat_set(&A_bzbz_zr,8,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,8,5,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,8,5,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.2857142857142857*magB2_xl[6]+0.447213595499958*magB2_xl[2]; 
+  gkyl_mat_set(&A_bxbx_xl,8,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,8,6,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,8,6,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.2857142857142857*magB2_xr[6]+0.447213595499958*magB2_xr[2]; 
+  gkyl_mat_set(&A_bxbx_xr,8,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,8,6,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,8,6,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.2857142857142857*magB2_yl[6]+0.447213595499958*magB2_yl[2]; 
+  gkyl_mat_set(&A_byby_yl,8,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,8,6,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,8,6,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.2857142857142857*magB2_yr[6]+0.447213595499958*magB2_yr[2]; 
+  gkyl_mat_set(&A_byby_yr,8,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,8,6,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,8,6,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.2857142857142857*magB2_zl[6]+0.447213595499958*magB2_zl[2]; 
+  gkyl_mat_set(&A_bzbz_zl,8,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,8,6,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,8,6,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.2857142857142857*magB2_zr[6]+0.447213595499958*magB2_zr[2]; 
+  gkyl_mat_set(&A_bzbz_zr,8,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,8,6,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,8,6,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.2857142857142857*magB2_xl[7]+0.447213595499958*magB2_xl[1]; 
+  gkyl_mat_set(&A_bxbx_xl,8,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,8,7,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,8,7,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.2857142857142857*magB2_xr[7]+0.447213595499958*magB2_xr[1]; 
+  gkyl_mat_set(&A_bxbx_xr,8,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,8,7,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,8,7,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.2857142857142857*magB2_yl[7]+0.447213595499958*magB2_yl[1]; 
+  gkyl_mat_set(&A_byby_yl,8,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,8,7,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,8,7,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.2857142857142857*magB2_yr[7]+0.447213595499958*magB2_yr[1]; 
+  gkyl_mat_set(&A_byby_yr,8,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,8,7,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,8,7,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.2857142857142857*magB2_zl[7]+0.447213595499958*magB2_zl[1]; 
+  gkyl_mat_set(&A_bzbz_zl,8,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,8,7,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,8,7,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.2857142857142857*magB2_zr[7]+0.447213595499958*magB2_zr[1]; 
+  gkyl_mat_set(&A_bzbz_zr,8,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,8,7,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,8,7,temp_magB2_zr); 
+ 
+  temp_magB2_xl = 0.2040816326530612*magB2_xl[8]+0.31943828249997*magB2_xl[5]+0.31943828249997*magB2_xl[4]+0.5*magB2_xl[0]; 
+  gkyl_mat_set(&A_bxbx_xl,8,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxby_xl,8,8,temp_magB2_xl); 
+  gkyl_mat_set(&A_bxbz_xl,8,8,temp_magB2_xl); 
+ 
+  temp_magB2_xr = 0.2040816326530612*magB2_xr[8]+0.31943828249997*magB2_xr[5]+0.31943828249997*magB2_xr[4]+0.5*magB2_xr[0]; 
+  gkyl_mat_set(&A_bxbx_xr,8,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxby_xr,8,8,temp_magB2_xr); 
+  gkyl_mat_set(&A_bxbz_xr,8,8,temp_magB2_xr); 
+ 
+  temp_magB2_yl = 0.2040816326530612*magB2_yl[8]+0.31943828249997*magB2_yl[5]+0.31943828249997*magB2_yl[4]+0.5*magB2_yl[0]; 
+  gkyl_mat_set(&A_byby_yl,8,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bxby_yl,8,8,temp_magB2_yl); 
+  gkyl_mat_set(&A_bybz_yl,8,8,temp_magB2_yl); 
+ 
+  temp_magB2_yr = 0.2040816326530612*magB2_yr[8]+0.31943828249997*magB2_yr[5]+0.31943828249997*magB2_yr[4]+0.5*magB2_yr[0]; 
+  gkyl_mat_set(&A_byby_yr,8,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bxby_yr,8,8,temp_magB2_yr); 
+  gkyl_mat_set(&A_bybz_yr,8,8,temp_magB2_yr); 
+ 
+  temp_magB2_zl = 0.2040816326530612*magB2_zl[8]+0.31943828249997*magB2_zl[5]+0.31943828249997*magB2_zl[4]+0.5*magB2_zl[0]; 
+  gkyl_mat_set(&A_bzbz_zl,8,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bxbz_zl,8,8,temp_magB2_zl); 
+  gkyl_mat_set(&A_bybz_zl,8,8,temp_magB2_zl); 
+ 
+  temp_magB2_zr = 0.2040816326530612*magB2_zr[8]+0.31943828249997*magB2_zr[5]+0.31943828249997*magB2_zr[4]+0.5*magB2_zr[0]; 
+  gkyl_mat_set(&A_bzbz_zr,8,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bxbz_zr,8,8,temp_magB2_zr); 
+  gkyl_mat_set(&A_bybz_zr,8,8,temp_magB2_zr); 
  
 } 
- 

@@ -77,6 +77,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   int cdim = app->cdim;
   int Ncomp_surf = 2*cdim*4;
   int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
+  f->cell_avg_magB2_surf = mk_int_arr(app->use_gpu, 2*cdim, app->local_ext.volume);
   f->bvar_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf, app->local_ext.volume);
   // Volume expansion of div(b)
   f->div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -277,7 +278,8 @@ vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field,
   // unit vector and unit tensor are defined everywhere in the domain
   gkyl_dg_calc_em_vars_advance(field->calc_bvar, field->tot_em, 
     field->cell_avg_magB2, field->bvar);
-  gkyl_dg_calc_em_vars_surf_advance(field->calc_bvar, field->bvar, field->bvar_surf);
+  gkyl_dg_calc_em_vars_surf_advance(field->calc_bvar, field->tot_em, 
+    field->cell_avg_magB2_surf, field->bvar_surf);
 
   // Compute div(b) and max_b = max(|b_i_l|, |b_i_r|)
   gkyl_array_clear(field->div_b, 0.0); // Incremented in each dimension, so clear beforehand
@@ -466,8 +468,10 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->em_energy);
   gkyl_dynvec_release(f->integ_energy);
 
+  gkyl_array_release(f->cell_avg_magB2);
   gkyl_array_release(f->bvar);
   gkyl_array_release(f->ExB);
+  gkyl_array_release(f->cell_avg_magB2_surf);
   gkyl_array_release(f->bvar_surf);
   gkyl_array_release(f->div_b);
   gkyl_array_release(f->max_b);
