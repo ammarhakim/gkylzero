@@ -68,7 +68,7 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
   up->mem_surf = gkyl_nmat_linsolve_lu_new(up->As_surf->num, up->As_surf->nr);
   // 5*cdim component temporary variable for storing Bx^2, By^2, Bz^2 and two components of B_i B_j at the surface
   // Temporary variables are computed at the left and right in each dimension (xl, xr, yl, yr, zl, & zr)
-  up->temp_var_surf = gkyl_array_new(GKYL_DOUBLE, 5*cdim*nc_surf, mem_range->volume); 
+  up->temp_var_surf = gkyl_array_new(GKYL_DOUBLE, 10*cdim*nc_surf, mem_range->volume); 
 
   up->mem_range = *mem_range;
 
