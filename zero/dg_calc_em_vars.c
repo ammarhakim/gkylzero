@@ -39,7 +39,7 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
   }
   else {
     up->Ncomp = 6;
-    up->Ncomp_surf = 2*cdim*4;
+    up->Ncomp_surf = 2*cdim*3; 
     up->em_calc_temp = choose_em_calc_BB_kern(b_type, cdim, poly_order);
     up->em_calc_surf_temp = choose_em_calc_surf_BB_kern(b_type, cdim, poly_order);
     up->em_set = choose_em_set_bvar_kern(b_type, cdim, poly_order);
@@ -62,7 +62,8 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
 
   // There are Ncomp_surf*range->volume linear systems to be solved 
   // Each linear system is nc_surf x nc_surf (only solved over the surface basis and only when poly_order and cdim > 1)
-  // 2*cdim*4: bx, bxbx, bxby, bxbz (xl and xr), by, byby, bxby, bybz (yl and yr), bz, bzbz, bxbz, bybz (zl and zr)  
+  // 2*cdim*3: bxbx, bxby, bxbz (xl and xr), byby, bxby, bybz (yl and yr), bzbz, bxbz, bybz (zl and zr)  
+  // bx (xl and xr), by (yl and yr), and bz (zl and zr) constructed during copy method with sqrt_with_sign
   up->As_surf = gkyl_nmat_new(up->Ncomp_surf*mem_range->volume, nc_surf, nc_surf);
   up->xs_surf = gkyl_nmat_new(up->Ncomp_surf*mem_range->volume, nc_surf, 1);
   up->mem_surf = gkyl_nmat_linsolve_lu_new(up->As_surf->num, up->As_surf->nr);
@@ -132,6 +133,8 @@ void gkyl_dg_calc_em_vars_surf_advance(struct gkyl_dg_calc_em_vars *up,
     return gkyl_dg_calc_em_vars_surf_advance_cu(up, em, cell_avg_magB2_surf, bvar_surf);
   }
 #endif
+  gkyl_array_clear(up->temp_var_surf, 0.0);
+
   // First loop over mem_range for setting matrices to solve linear systems 
   // to compute surface magnetic field unit tensor and vector
   struct gkyl_range_iter iter;

@@ -747,15 +747,13 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // complete update of distribution function
   for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, app->species[i].local),
-      1.0, fin[i], app->species[i].local);
+    gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
     vm_species_apply_bc(app, &app->species[i], fout[i]);
   }
 
   // complete update of fluid species
   for (int i=0; i<app->num_fluid_species; ++i) {
-    gkyl_array_accumulate_range(gkyl_array_scale_range(fluidout[i], dta, app->local),
-      1.0, fluidin[i], app->local);
+    gkyl_array_accumulate(gkyl_array_scale(fluidout[i], dta), 1.0, fluidin[i]);
     vm_fluid_species_apply_bc(app, &app->fluid_species[i], fluidout[i]);
   }
 
@@ -771,8 +769,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
     // complete update of field (even when field is static, it is
     // safest to do this accumulate as it ensure emout = emin)
-    gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, app->local),
-      1.0, emin, app->local);
+    gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
 
     vm_field_apply_bc(app, app->field, emout);
   }
