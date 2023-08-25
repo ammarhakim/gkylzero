@@ -82,7 +82,7 @@ main(int argc, char **argv)
     .lower = { -2 },
     .upper = { 2 },
     .cells = { 256 },
-    .poly_order = 1,
+    .poly_order = 2,
     .basis_type = app_args.basis_type,
 
     .num_periodic_dir = 1,

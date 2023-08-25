@@ -187,32 +187,32 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     &app->local, f->eqn_id, f->param, app->use_gpu);
 
   f->has_diffusion = false;
-  f->diffusion_id = GKYL_NO_DIFFUSION;
+  f->diffusion_id = GKYL_DIFFUSION_NONE;
   if (f->info.diffusion.D) {
     f->has_diffusion = true;
     // allocate array to store diffusion tensor
     int szD;
     if (f->info.diffusion.anisotropic) { // allocate space for mix terms {
-      f->diffusion_id = GKYL_ANISO_DIFFUSION;
+      f->diffusion_id = GKYL_DIFFUSION_GEN;
       szD = cdim*(cdim+1)/2;
     }
     else if (f->eqn_id == GKYL_EQN_ISO_EULER) {
-      f->diffusion_id = GKYL_EULER_ISO_DIFFUSION;
-      szD = 3;
+      f->diffusion_id = GKYL_DIFFUSION_DIAGONAL_VAR_EULER_ISO;
+      szD = cdim;
     }
     else if (f->eqn_id == GKYL_EQN_EULER) {
-      f->diffusion_id = GKYL_EULER_DIFFUSION;
-      szD = 4;
+      f->diffusion_id = GKYL_DIFFUSION_DIAGONAL_VAR_EULER;
+      szD = cdim;
     }
     else {
-      f->diffusion_id = GKYL_ISO_DIFFUSION;
+      f->diffusion_id = GKYL_DIFFUSION_DIAGONAL_VAR;
       szD = cdim;
     }
 
     f->D = mkarr(app->use_gpu, szD*app->confBasis.num_basis, app->local_ext.volume);
     f->D_host = f->D;
     if (app->use_gpu)
-      f->D_host = mkarr(false, cdim*app->confBasis.num_basis, app->local_ext.volume);
+      f->D_host = mkarr(false, szD*app->confBasis.num_basis, app->local_ext.volume);
 
     f->diff_ctx = (struct vm_eval_diffusion_ctx) {
       .diff_func = f->info.diffusion.D, .diff_ctx = f->info.diffusion.D_ctx
@@ -228,8 +228,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       }
     );
 
-    f->diff_slvr = gkyl_dg_updater_diffusion_new(&app->grid, &app->confBasis,
-      &app->local, f->diffusion_id, app->use_gpu);
+    f->diff_slvr = gkyl_dg_updater_diffusion_new(&app->grid, &app->confBasis, &app->confBasis,
+      f->diffusion_id, NULL, 2, &app->local, app->use_gpu);
   }
 
   // determine which directions are not periodic
@@ -447,10 +447,6 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
       gkyl_dg_updater_fluid_advance_cu(fluid_species->advect_slvr, fluid_species->eqn_id,
         &app->local, fluid_species->u, 0, 0, 
         fluid, fluid_species->cflrate, rhs);
-
-    if (fluid_species->has_diffusion)
-      gkyl_dg_updater_diffusion_advance_cu(fluid_species->diff_slvr, fluid_species->diffusion_id,
-        &app->local, fluid_species->D, fluid_species->u, fluid, fluid_species->cflrate, rhs);
   }
   else {
     if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM)
@@ -465,11 +461,11 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
       gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, fluid_species->eqn_id,
         &app->local, fluid_species->u, 0, 0, 
         fluid, fluid_species->cflrate, rhs);
-
-    if (fluid_species->has_diffusion)
-      gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, fluid_species->diffusion_id,
-        &app->local, fluid_species->D, fluid_species->u, fluid, fluid_species->cflrate, rhs);
   }
+
+  if (fluid_species->has_diffusion)
+    gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr,
+      &app->local, fluid_species->D, fluid, fluid_species->cflrate, rhs);
 
   // Accumulate source contribution if PKPM -> adds forces (E + u x B) to momentum equation RHS
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {

@@ -40,9 +40,7 @@ D(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *c
   struct sim_ctx *app = ctx;
   double x = xn[0];
   double mu = mu_val;
-  fout[1] = mu;
-  fout[2] = mu;
-  fout[3] = mu;
+  fout[0] = mu;
 }
 
 int

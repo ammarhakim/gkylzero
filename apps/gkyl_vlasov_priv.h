@@ -340,8 +340,8 @@ struct vm_fluid_species {
   struct gkyl_array *D; // array for diffusion tensor
   struct gkyl_array *D_host; // host copy of diffusion tensor
 
-  gkyl_dg_updater_fluid *advect_slvr; // Fluid equation solver
-  gkyl_dg_updater_diffusion *diff_slvr; // Fluid equation solver
+  struct gkyl_dg_updater_fluid *advect_slvr; // Fluid equation solver
+  struct gkyl_dg_updater_diffusion *diff_slvr; // Fluid equation solver
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_species_bc_type lower_bc[3], upper_bc[3];

@@ -4,8 +4,9 @@
 #include <gkyl_dg_eqn.h>
 
 struct gkyl_dg_updater_diffusion {
-  struct gkyl_dg_eqn *eqn_diffusion; // Equation object
-  struct gkyl_hyper_dg *up_diffusion; // solvers for specific diffusion equation
+  struct gkyl_dg_eqn *dgeqn; // Equation object.
+  struct gkyl_hyper_dg *hyperdg; // solvers for specific diffusion equation.
+  enum gkyl_diffusion_id diffid; // Type of diffusion model.
 
-  double diffusion_tm; // total time spent in computing diffusion equation
+  double diffusion_tm; // total time spent in computing diffusion equation.
 };
