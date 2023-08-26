@@ -17,31 +17,34 @@ void
 evalInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
-  if (x > -1 & x < 1 & y > -1 & y < 1) {
+  double x = xn[0], y = xn[1], z = xn[2];
+  if (x > -1 & x < 1 & y > -1 & y < 1 & z > -1 & z < 1)
     fout[0] = 1.0;
-  } else {
+  else
     fout[0] = 0.0;
-  }
 }
 
 void
 D(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
-  fout[0] = 1.0;
+  double x = xn[0], y = xn[1], z = xn[2];
+  fout[0] = 1.0;//x + 2.0;
   fout[1] = 1.0;
   fout[2] = 1.0;
+  fout[3] = 1.0;//y + 2.0;
+  fout[4] = 1.0;
+  fout[5] = 1.0;//z + 2.0;
 }
 
 void
 velocity(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sim_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
+  double x = xn[0], y = xn[1], z = xn[2];
   fout[0] = 0.0;
   fout[1] = 0.0;
+  fout[2] = 0.0;
 }
 
 struct sim_ctx
@@ -79,23 +82,23 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "rt-gen-diffusion-2x",
+    .name = "rt-diffusion-gen-3x",
 
-    .cdim = 2, .vdim = 0,
-    .lower = { -2, -2 },
-    .upper = { 2, 2 },
-    .cells = { 32, 32 },
+    .cdim = 3, .vdim = 0,
+    .lower = { -2, -2, -2 },
+    .upper = { 2, 2, 2 },
+    .cells = { 16, 16, 16 },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 2,
-    .periodic_dirs = { 0, 1 },
+    .num_periodic_dir = 3,
+    .periodic_dirs = { 0, 1, 2 },
 
     .num_species = 0,
     .species = { },
     .num_fluid_species = 1,
     .fluid_species = { f },
-    .cfl_frac = 0.5,
+    .cfl_frac = 0.9,
 
     .skip_field = true,
 
