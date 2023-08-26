@@ -101,7 +101,7 @@ void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* out);
 
 void gkyl_dg_calc_em_vars_surf_advance_cu(struct gkyl_dg_calc_em_vars *up, 
-  const struct gkyl_array* bvar, struct gkyl_array* bvar_surf);
+  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* bvar_surf);
 
 void gkyl_dg_calc_em_vars_div_b_cu(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 

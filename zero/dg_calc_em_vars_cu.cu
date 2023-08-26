@@ -125,7 +125,7 @@ gkyl_dg_calc_em_vars_surf_set_cu_kernel(gkyl_dg_calc_em_vars* up,
 }
 
 __global__ static void
-gkyl_dg_calc_em_vars_copy_cu_kernel(gkyl_dg_calc_em_vars* up, 
+gkyl_dg_calc_em_vars_surf_copy_cu_kernel(gkyl_dg_calc_em_vars* up, 
   struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* bvar_surf)
 {
