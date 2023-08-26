@@ -4,14 +4,17 @@
 #include <gkyl_basis_ser_2x_p1_inv.h> 
 GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
-  const double *p_ij, const int *cell_avg_prim) 
+  const double *p_ij_surf, const int *cell_avg_prim) 
 { 
   // count:            integer to indicate which matrix being fetched. 
   // A:                preallocated LHS matrix. 
   // rhs:              preallocated RHS vector. 
-  // vlasov_pkpm_moms: [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
-  // euler_pkpm:       [rho ux, rho uy, rho uz], Fluid input state vector.
-  // p_ij:             p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij.
+  // vlasov_pkpm_moms: Input [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
+  // euler_pkpm:       Input [rho ux, rho uy, rho uz], Fluid input state vector.
+  // p_ij_surf:        Input surface expansion of p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij.
+  //                   [Pxx_xl, Pxx_xr, Pxy_xl, Pxy_xr, Pxz_xl, Pxz_xr, 
+  //                    Pxy_yl, Pxy_yr, Pyy_yl, Pyy_yr, Pyz_yl, Pyz_yr, 
+  //                    Pxz_zl, Pxz_zr, Pyz_zl, Pyz_zr, Pzz_zl, Pzz_zr] 
   // cell_avg_prim:    Boolean array to determine if we only use cell averages when computing surface expansions.
 
   // For poly_order = 1, we can analytically invert the matrix and just store the solution 
@@ -68,9 +71,12 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   const double *rhouy = &euler_pkpm[8]; 
   const double *rhouz = &euler_pkpm[16]; 
   const double *rho = &vlasov_pkpm_moms[0]; 
-  const double *Pxx = &p_ij[0]; 
-  const double *Pyy = &p_ij[24]; 
-  const double *Pzz = &p_ij[40]; 
+  const double *Pxx_xl = &p_ij_surf[0]; 
+  const double *Pxx_xr = &p_ij_surf[4]; 
+  const double *Pyy_yl = &p_ij_surf[32]; 
+  const double *Pyy_yr = &p_ij_surf[36]; 
+  const double *Pzz_zl = &p_ij_surf[64]; 
+  const double *Pzz_zr = &p_ij_surf[68]; 
   double ux_xl[4] = {0.0}; 
   double ux_xr[4] = {0.0}; 
   double uy_xl[4] = {0.0}; 
@@ -103,24 +109,24 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   uy_xr[0] = rhouy[0]/rho[0]; 
   uz_xl[0] = rhouz[0]/rho[0]; 
   uz_xr[0] = rhouz[0]/rho[0]; 
-  Txx_xl[0] = 3.0*Pxx[0]/rho[0]; 
-  Txx_xr[0] = 3.0*Pxx[0]/rho[0]; 
+  Txx_xl[0] = Pxx_xl[0]/rho[0]; 
+  Txx_xr[0] = Pxx_xr[0]/rho[0]; 
   ux_yl[0] = rhoux[0]/rho[0]; 
   ux_yr[0] = rhoux[0]/rho[0]; 
   uy_yl[0] = rhouy[0]/rho[0]; 
   uy_yr[0] = rhouy[0]/rho[0]; 
   uz_yl[0] = rhouz[0]/rho[0]; 
   uz_yr[0] = rhouz[0]/rho[0]; 
-  Tyy_yl[0] = 3.0*Pyy[0]/rho[0]; 
-  Tyy_yr[0] = 3.0*Pyy[0]/rho[0]; 
+  Tyy_yl[0] = Pyy_yl[0]/rho[0]; 
+  Tyy_yr[0] = Pyy_yr[0]/rho[0]; 
   ux_zl[0] = rhoux[0]/rho[0]; 
   ux_zr[0] = rhoux[0]/rho[0]; 
   uy_zl[0] = rhouy[0]/rho[0]; 
   uy_zr[0] = rhouy[0]/rho[0]; 
   uz_zl[0] = rhouz[0]/rho[0]; 
   uz_zr[0] = rhouz[0]/rho[0]; 
-  Tzz_zl[0] = 3.0*Pzz[0]/rho[0]; 
-  Tzz_zr[0] = 3.0*Pzz[0]/rho[0]; 
+  Tzz_zl[0] = Pzz_zl[0]/rho[0]; 
+  Tzz_zr[0] = Pzz_zr[0]/rho[0]; 
   } else { 
   double rhoux_xl[4] = {0.0}; 
   double rhoux_xr[4] = {0.0}; 
@@ -132,8 +138,6 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   double rho_xr[4] = {0.0}; 
   double rho_inv_xl[4] = {0.0}; 
   double rho_inv_xr[4] = {0.0}; 
-  double Pxx_xl[4] = {0.0}; 
-  double Pxx_xr[4] = {0.0}; 
  
   rhoux_xl[0] = 0.7071067811865475*rhoux[0]-1.224744871391589*rhoux[1]; 
   rhoux_xl[1] = 0.7071067811865475*rhoux[2]-1.224744871391589*rhoux[4]; 
@@ -167,14 +171,6 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   rho_xr[1] = 1.224744871391589*rho[4]+0.7071067811865475*rho[2]; 
   rho_xr[2] = 1.224744871391589*rho[5]+0.7071067811865475*rho[3]; 
   rho_xr[3] = 1.224744871391589*rho[7]+0.7071067811865475*rho[6]; 
-  Pxx_xl[0] = 2.121320343559643*Pxx[0]-3.674234614174767*Pxx[1]; 
-  Pxx_xl[1] = 2.121320343559643*Pxx[2]-3.674234614174767*Pxx[4]; 
-  Pxx_xl[2] = 2.121320343559643*Pxx[3]-3.674234614174767*Pxx[5]; 
-  Pxx_xl[3] = 2.121320343559643*Pxx[6]-3.674234614174767*Pxx[7]; 
-  Pxx_xr[0] = 3.674234614174767*Pxx[1]+2.121320343559643*Pxx[0]; 
-  Pxx_xr[1] = 3.674234614174767*Pxx[4]+2.121320343559643*Pxx[2]; 
-  Pxx_xr[2] = 3.674234614174767*Pxx[5]+2.121320343559643*Pxx[3]; 
-  Pxx_xr[3] = 3.674234614174767*Pxx[7]+2.121320343559643*Pxx[6]; 
   ser_2x_p1_inv(rho_xl, rho_inv_xl); 
   ser_2x_p1_inv(rho_xr, rho_inv_xr); 
   binop_mul_2d_ser_p1(rho_inv_xl, rhoux_xl, ux_xl); 
@@ -196,8 +192,6 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   double rho_yr[4] = {0.0}; 
   double rho_inv_yl[4] = {0.0}; 
   double rho_inv_yr[4] = {0.0}; 
-  double Pyy_yl[4] = {0.0}; 
-  double Pyy_yr[4] = {0.0}; 
  
   rhoux_yl[0] = 0.7071067811865475*rhoux[0]-1.224744871391589*rhoux[2]; 
   rhoux_yl[1] = 0.7071067811865475*rhoux[1]-1.224744871391589*rhoux[4]; 
@@ -231,14 +225,6 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   rho_yr[1] = 1.224744871391589*rho[4]+0.7071067811865475*rho[1]; 
   rho_yr[2] = 1.224744871391589*rho[6]+0.7071067811865475*rho[3]; 
   rho_yr[3] = 1.224744871391589*rho[7]+0.7071067811865475*rho[5]; 
-  Pyy_yl[0] = 2.121320343559643*Pyy[0]-3.674234614174767*Pyy[2]; 
-  Pyy_yl[1] = 2.121320343559643*Pyy[1]-3.674234614174767*Pyy[4]; 
-  Pyy_yl[2] = 2.121320343559643*Pyy[3]-3.674234614174767*Pyy[6]; 
-  Pyy_yl[3] = 2.121320343559643*Pyy[5]-3.674234614174767*Pyy[7]; 
-  Pyy_yr[0] = 3.674234614174767*Pyy[2]+2.121320343559643*Pyy[0]; 
-  Pyy_yr[1] = 3.674234614174767*Pyy[4]+2.121320343559643*Pyy[1]; 
-  Pyy_yr[2] = 3.674234614174767*Pyy[6]+2.121320343559643*Pyy[3]; 
-  Pyy_yr[3] = 3.674234614174767*Pyy[7]+2.121320343559643*Pyy[5]; 
   ser_2x_p1_inv(rho_yl, rho_inv_yl); 
   ser_2x_p1_inv(rho_yr, rho_inv_yr); 
   binop_mul_2d_ser_p1(rho_inv_yl, rhoux_yl, ux_yl); 
@@ -260,8 +246,6 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   double rho_zr[4] = {0.0}; 
   double rho_inv_zl[4] = {0.0}; 
   double rho_inv_zr[4] = {0.0}; 
-  double Pzz_zl[4] = {0.0}; 
-  double Pzz_zr[4] = {0.0}; 
  
   rhoux_zl[0] = 0.7071067811865475*rhoux[0]-1.224744871391589*rhoux[3]; 
   rhoux_zl[1] = 0.7071067811865475*rhoux[1]-1.224744871391589*rhoux[5]; 
@@ -295,14 +279,6 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   rho_zr[1] = 1.224744871391589*rho[5]+0.7071067811865475*rho[1]; 
   rho_zr[2] = 1.224744871391589*rho[6]+0.7071067811865475*rho[2]; 
   rho_zr[3] = 1.224744871391589*rho[7]+0.7071067811865475*rho[4]; 
-  Pzz_zl[0] = 2.121320343559643*Pzz[0]-3.674234614174767*Pzz[3]; 
-  Pzz_zl[1] = 2.121320343559643*Pzz[1]-3.674234614174767*Pzz[5]; 
-  Pzz_zl[2] = 2.121320343559643*Pzz[2]-3.674234614174767*Pzz[6]; 
-  Pzz_zl[3] = 2.121320343559643*Pzz[4]-3.674234614174767*Pzz[7]; 
-  Pzz_zr[0] = 3.674234614174767*Pzz[3]+2.121320343559643*Pzz[0]; 
-  Pzz_zr[1] = 3.674234614174767*Pzz[5]+2.121320343559643*Pzz[1]; 
-  Pzz_zr[2] = 3.674234614174767*Pzz[6]+2.121320343559643*Pzz[2]; 
-  Pzz_zr[3] = 3.674234614174767*Pzz[7]+2.121320343559643*Pzz[4]; 
   ser_2x_p1_inv(rho_zl, rho_inv_zl); 
   ser_2x_p1_inv(rho_zr, rho_inv_zr); 
   binop_mul_2d_ser_p1(rho_inv_zl, rhoux_zl, ux_zl); 
@@ -322,8 +298,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_xr,0,0,uy_xr[0]); 
   gkyl_mat_set(&rhs_uz_xl,0,0,uz_xl[0]); 
   gkyl_mat_set(&rhs_uz_xr,0,0,uz_xr[0]); 
-  gkyl_mat_set(&rhs_Txx_xl,0,0,Txx_xl[0]); 
-  gkyl_mat_set(&rhs_Txx_xr,0,0,Txx_xr[0]); 
+  gkyl_mat_set(&rhs_Txx_xl,0,0,3.0*Txx_xl[0]); 
+  gkyl_mat_set(&rhs_Txx_xr,0,0,3.0*Txx_xr[0]); 
  
   gkyl_mat_set(&rhs_ux_yl,0,0,ux_yl[0]); 
   gkyl_mat_set(&rhs_ux_yr,0,0,ux_yr[0]); 
@@ -331,8 +307,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_yr,0,0,uy_yr[0]); 
   gkyl_mat_set(&rhs_uz_yl,0,0,uz_yl[0]); 
   gkyl_mat_set(&rhs_uz_yr,0,0,uz_yr[0]); 
-  gkyl_mat_set(&rhs_Tyy_yl,0,0,Tyy_yl[0]); 
-  gkyl_mat_set(&rhs_Tyy_yr,0,0,Tyy_yr[0]); 
+  gkyl_mat_set(&rhs_Tyy_yl,0,0,3.0*Tyy_yl[0]); 
+  gkyl_mat_set(&rhs_Tyy_yr,0,0,3.0*Tyy_yr[0]); 
  
   gkyl_mat_set(&rhs_ux_zl,0,0,ux_zl[0]); 
   gkyl_mat_set(&rhs_ux_zr,0,0,ux_zr[0]); 
@@ -340,8 +316,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_zr,0,0,uy_zr[0]); 
   gkyl_mat_set(&rhs_uz_zl,0,0,uz_zl[0]); 
   gkyl_mat_set(&rhs_uz_zr,0,0,uz_zr[0]); 
-  gkyl_mat_set(&rhs_Tzz_zl,0,0,Tzz_zl[0]); 
-  gkyl_mat_set(&rhs_Tzz_zr,0,0,Tzz_zr[0]); 
+  gkyl_mat_set(&rhs_Tzz_zl,0,0,3.0*Tzz_zl[0]); 
+  gkyl_mat_set(&rhs_Tzz_zr,0,0,3.0*Tzz_zr[0]); 
  
   gkyl_mat_set(&rhs_ux_xl,1,0,ux_xl[1]); 
   gkyl_mat_set(&rhs_ux_xr,1,0,ux_xr[1]); 
@@ -349,8 +325,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_xr,1,0,uy_xr[1]); 
   gkyl_mat_set(&rhs_uz_xl,1,0,uz_xl[1]); 
   gkyl_mat_set(&rhs_uz_xr,1,0,uz_xr[1]); 
-  gkyl_mat_set(&rhs_Txx_xl,1,0,Txx_xl[1]); 
-  gkyl_mat_set(&rhs_Txx_xr,1,0,Txx_xr[1]); 
+  gkyl_mat_set(&rhs_Txx_xl,1,0,3.0*Txx_xl[1]); 
+  gkyl_mat_set(&rhs_Txx_xr,1,0,3.0*Txx_xr[1]); 
  
   gkyl_mat_set(&rhs_ux_yl,1,0,ux_yl[1]); 
   gkyl_mat_set(&rhs_ux_yr,1,0,ux_yr[1]); 
@@ -358,8 +334,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_yr,1,0,uy_yr[1]); 
   gkyl_mat_set(&rhs_uz_yl,1,0,uz_yl[1]); 
   gkyl_mat_set(&rhs_uz_yr,1,0,uz_yr[1]); 
-  gkyl_mat_set(&rhs_Tyy_yl,1,0,Tyy_yl[1]); 
-  gkyl_mat_set(&rhs_Tyy_yr,1,0,Tyy_yr[1]); 
+  gkyl_mat_set(&rhs_Tyy_yl,1,0,3.0*Tyy_yl[1]); 
+  gkyl_mat_set(&rhs_Tyy_yr,1,0,3.0*Tyy_yr[1]); 
  
   gkyl_mat_set(&rhs_ux_zl,1,0,ux_zl[1]); 
   gkyl_mat_set(&rhs_ux_zr,1,0,ux_zr[1]); 
@@ -367,8 +343,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_zr,1,0,uy_zr[1]); 
   gkyl_mat_set(&rhs_uz_zl,1,0,uz_zl[1]); 
   gkyl_mat_set(&rhs_uz_zr,1,0,uz_zr[1]); 
-  gkyl_mat_set(&rhs_Tzz_zl,1,0,Tzz_zl[1]); 
-  gkyl_mat_set(&rhs_Tzz_zr,1,0,Tzz_zr[1]); 
+  gkyl_mat_set(&rhs_Tzz_zl,1,0,3.0*Tzz_zl[1]); 
+  gkyl_mat_set(&rhs_Tzz_zr,1,0,3.0*Tzz_zr[1]); 
  
   gkyl_mat_set(&rhs_ux_xl,2,0,ux_xl[2]); 
   gkyl_mat_set(&rhs_ux_xr,2,0,ux_xr[2]); 
@@ -376,8 +352,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_xr,2,0,uy_xr[2]); 
   gkyl_mat_set(&rhs_uz_xl,2,0,uz_xl[2]); 
   gkyl_mat_set(&rhs_uz_xr,2,0,uz_xr[2]); 
-  gkyl_mat_set(&rhs_Txx_xl,2,0,Txx_xl[2]); 
-  gkyl_mat_set(&rhs_Txx_xr,2,0,Txx_xr[2]); 
+  gkyl_mat_set(&rhs_Txx_xl,2,0,3.0*Txx_xl[2]); 
+  gkyl_mat_set(&rhs_Txx_xr,2,0,3.0*Txx_xr[2]); 
  
   gkyl_mat_set(&rhs_ux_yl,2,0,ux_yl[2]); 
   gkyl_mat_set(&rhs_ux_yr,2,0,ux_yr[2]); 
@@ -385,8 +361,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_yr,2,0,uy_yr[2]); 
   gkyl_mat_set(&rhs_uz_yl,2,0,uz_yl[2]); 
   gkyl_mat_set(&rhs_uz_yr,2,0,uz_yr[2]); 
-  gkyl_mat_set(&rhs_Tyy_yl,2,0,Tyy_yl[2]); 
-  gkyl_mat_set(&rhs_Tyy_yr,2,0,Tyy_yr[2]); 
+  gkyl_mat_set(&rhs_Tyy_yl,2,0,3.0*Tyy_yl[2]); 
+  gkyl_mat_set(&rhs_Tyy_yr,2,0,3.0*Tyy_yr[2]); 
  
   gkyl_mat_set(&rhs_ux_zl,2,0,ux_zl[2]); 
   gkyl_mat_set(&rhs_ux_zr,2,0,ux_zr[2]); 
@@ -394,8 +370,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_zr,2,0,uy_zr[2]); 
   gkyl_mat_set(&rhs_uz_zl,2,0,uz_zl[2]); 
   gkyl_mat_set(&rhs_uz_zr,2,0,uz_zr[2]); 
-  gkyl_mat_set(&rhs_Tzz_zl,2,0,Tzz_zl[2]); 
-  gkyl_mat_set(&rhs_Tzz_zr,2,0,Tzz_zr[2]); 
+  gkyl_mat_set(&rhs_Tzz_zl,2,0,3.0*Tzz_zl[2]); 
+  gkyl_mat_set(&rhs_Tzz_zr,2,0,3.0*Tzz_zr[2]); 
  
   gkyl_mat_set(&rhs_ux_xl,3,0,ux_xl[3]); 
   gkyl_mat_set(&rhs_ux_xr,3,0,ux_xr[3]); 
@@ -403,8 +379,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_xr,3,0,uy_xr[3]); 
   gkyl_mat_set(&rhs_uz_xl,3,0,uz_xl[3]); 
   gkyl_mat_set(&rhs_uz_xr,3,0,uz_xr[3]); 
-  gkyl_mat_set(&rhs_Txx_xl,3,0,Txx_xl[3]); 
-  gkyl_mat_set(&rhs_Txx_xr,3,0,Txx_xr[3]); 
+  gkyl_mat_set(&rhs_Txx_xl,3,0,3.0*Txx_xl[3]); 
+  gkyl_mat_set(&rhs_Txx_xr,3,0,3.0*Txx_xr[3]); 
  
   gkyl_mat_set(&rhs_ux_yl,3,0,ux_yl[3]); 
   gkyl_mat_set(&rhs_ux_yr,3,0,ux_yr[3]); 
@@ -412,8 +388,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_yr,3,0,uy_yr[3]); 
   gkyl_mat_set(&rhs_uz_yl,3,0,uz_yl[3]); 
   gkyl_mat_set(&rhs_uz_yr,3,0,uz_yr[3]); 
-  gkyl_mat_set(&rhs_Tyy_yl,3,0,Tyy_yl[3]); 
-  gkyl_mat_set(&rhs_Tyy_yr,3,0,Tyy_yr[3]); 
+  gkyl_mat_set(&rhs_Tyy_yl,3,0,3.0*Tyy_yl[3]); 
+  gkyl_mat_set(&rhs_Tyy_yr,3,0,3.0*Tyy_yr[3]); 
  
   gkyl_mat_set(&rhs_ux_zl,3,0,ux_zl[3]); 
   gkyl_mat_set(&rhs_ux_zr,3,0,ux_zr[3]); 
@@ -421,7 +397,7 @@ GKYL_CU_DH void pkpm_vars_surf_set_3x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_zr,3,0,uy_zr[3]); 
   gkyl_mat_set(&rhs_uz_zl,3,0,uz_zl[3]); 
   gkyl_mat_set(&rhs_uz_zr,3,0,uz_zr[3]); 
-  gkyl_mat_set(&rhs_Tzz_zl,3,0,Tzz_zl[3]); 
-  gkyl_mat_set(&rhs_Tzz_zr,3,0,Tzz_zr[3]); 
+  gkyl_mat_set(&rhs_Tzz_zl,3,0,3.0*Tzz_zl[3]); 
+  gkyl_mat_set(&rhs_Tzz_zr,3,0,3.0*Tzz_zr[3]); 
  
 } 

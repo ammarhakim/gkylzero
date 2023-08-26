@@ -223,13 +223,17 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // boolean array for if we are only using the cell average for primitive variables
     s->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
 
-    // Surface primitive variables. Ordered as:
+    int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
+    // Surface primitive variables (2*cdim*4 components). Ordered as:
     // [ux_xl, ux_xr, uy_xl, uy_xr, uz_xl, uz_xr, 3.0*Txx_xl/m, 3.0*Txx_xr/m, 
     //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m, 
     //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
-    int Ncomp_surf = 2*cdim*4;
-    int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
-    s->pkpm_prim_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf, app->local_ext.volume);
+    s->pkpm_prim_surf = mkarr(app->use_gpu, 2*cdim*4*Nbasis_surf, app->local_ext.volume);
+    // Surface pressure tensor (2*cdim*3 components). Ordered as:
+    // [Pxx_xl, Pxx_xr, Pxy_xl, Pxy_xr, Pxz_xl, Pxz_xr,
+    //  Pxy_yl, Pxy_yr, Pyy_yl, Pyy_yr, Pyz_yl, Pyz_yr,
+    //  Pxz_zl, Pxz_zr, Pyz_zl, Pyz_zr, Pzz_zl, Pzz_zr]
+    s->pkpm_p_ij_surf = mkarr(app->use_gpu, 2*cdim*3*Nbasis_surf, app->local_ext.volume);
     // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3*P_ii/rho)
     s->pkpm_lax = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
 
@@ -475,9 +479,10 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
       app->field->bvar_surf, app->field->bvar, fin, 
       app->field->max_b, species->pkpm_div_ppar);
     gkyl_array_scale(species->pkpm_div_ppar, species->info.mass);
-    // Compute p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij
+    // Compute p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij in the volume and at needed surfaces
     gkyl_dg_calc_pkpm_vars_pressure(species->calc_pkpm_vars, &app->local_ext, 
-      app->field->bvar, species->pkpm_moms.marr, species->pkpm_p_ij);
+      app->field->bvar, app->field->bvar_surf, species->pkpm_moms.marr, 
+      species->pkpm_p_ij, species->pkpm_p_ij_surf);
     // Compute primitive variables in both the volume and on surfaces
     if (species->bc_is_absorb) {
       gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars,
@@ -486,7 +491,7 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
         species->pkpm_prim); 
       gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars, 
         species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_p_ij, species->cell_avg_prim, 
+        species->pkpm_p_ij_surf, species->cell_avg_prim, 
         species->pkpm_prim_surf);
     }
     else {
@@ -496,7 +501,7 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
         species->pkpm_prim); 
       gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars_ext, 
         species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_p_ij, species->cell_avg_prim, 
+        species->pkpm_p_ij_surf, species->cell_avg_prim, 
         species->pkpm_prim_surf);
     }
   }
@@ -745,10 +750,11 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->m1i_pkpm);
     gkyl_array_release(s->pkpm_div_ppar);
     gkyl_array_release(s->pkpm_prim);
-    gkyl_array_release(s->pkpm_prim_surf);
     gkyl_array_release(s->pkpm_p_ij);
-    gkyl_array_release(s->pkpm_lax);
     gkyl_array_release(s->cell_avg_prim);
+    gkyl_array_release(s->pkpm_prim_surf);
+    gkyl_array_release(s->pkpm_p_ij_surf);
+    gkyl_array_release(s->pkpm_lax);
     gkyl_array_release(s->pkpm_accel);
     gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars);
     gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars_ext);

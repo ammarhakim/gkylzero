@@ -12,7 +12,8 @@ struct gkyl_dg_euler_pkpm_auxfields {
   const struct gkyl_array *vlasov_pkpm_moms;
   const struct gkyl_array *pkpm_prim;
   const struct gkyl_array *pkpm_prim_surf;
-  const struct gkyl_array *p_ij;
+  const struct gkyl_array *pkpm_p_ij;
+  const struct gkyl_array *pkpm_p_ij_surf;
   const struct gkyl_array *pkpm_lax;
 };
 

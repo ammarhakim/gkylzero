@@ -2,14 +2,17 @@
 #include <gkyl_euler_pkpm_kernels.h> 
 GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
-  const double *p_ij, const int *cell_avg_prim) 
+  const double *p_ij_surf, const int *cell_avg_prim) 
 { 
   // count:            integer to indicate which matrix being fetched. 
   // A:                preallocated LHS matrix. 
   // rhs:              preallocated RHS vector. 
   // vlasov_pkpm_moms: [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
   // euler_pkpm:       [rho ux, rho uy, rho uz], Fluid input state vector.
-  // p_ij:             p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij.
+  // p_ij_surf:        Input surface expansion of p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij.
+  //                   [Pxx_xl, Pxx_xr, Pxy_xl, Pxy_xr, Pxz_xl, Pxz_xr, 
+  //                    Pxy_yl, Pxy_yr, Pyy_yl, Pyy_yr, Pyz_yl, Pyz_yr, 
+  //                    Pxz_zl, Pxz_zr, Pyz_zl, Pyz_zr, Pzz_zl, Pzz_zr] 
   // cell_avg_prim:    Boolean array to determine if we only use cell averages when computing surface expansions.
 
   struct gkyl_mat A_ux_xl = gkyl_nmat_get(A, count); 
@@ -65,8 +68,10 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   const double *rhouy = &euler_pkpm[9]; 
   const double *rhouz = &euler_pkpm[18]; 
   const double *rho = &vlasov_pkpm_moms[0]; 
-  const double *Pxx = &p_ij[0]; 
-  const double *Pyy = &p_ij[27]; 
+  const double *Pxx_xl = &p_ij_surf[0]; 
+  const double *Pxx_xr = &p_ij_surf[3]; 
+  const double *Pyy_yl = &p_ij_surf[24]; 
+  const double *Pyy_yr = &p_ij_surf[27]; 
   double rho_xl[3] = {0.0}; 
   double rho_xr[3] = {0.0}; 
   rho_xl[0] = 1.58113883008419*rho[4]-1.224744871391589*rho[1]+0.7071067811865475*rho[0]; 
@@ -95,8 +100,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   gkyl_mat_set(&rhs_uy_xr,0,0,rhouy[0]); 
   gkyl_mat_set(&rhs_uz_xl,0,0,rhouz[0]); 
   gkyl_mat_set(&rhs_uz_xr,0,0,rhouz[0]); 
-  gkyl_mat_set(&rhs_Txx_xl,0,0,3.0*Pxx[0]); 
-  gkyl_mat_set(&rhs_Txx_xr,0,0,3.0*Pxx[0]); 
+  gkyl_mat_set(&rhs_Txx_xl,0,0,3.0*Pxx_xl[0]); 
+  gkyl_mat_set(&rhs_Txx_xr,0,0,3.0*Pxx_xr[0]); 
  
   gkyl_mat_set(&rhs_ux_yl,0,0,rhoux[0]); 
   gkyl_mat_set(&rhs_ux_yr,0,0,rhoux[0]); 
@@ -104,8 +109,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   gkyl_mat_set(&rhs_uy_yr,0,0,rhouy[0]); 
   gkyl_mat_set(&rhs_uz_yl,0,0,rhouz[0]); 
   gkyl_mat_set(&rhs_uz_yr,0,0,rhouz[0]); 
-  gkyl_mat_set(&rhs_Tyy_yl,0,0,3.0*Pyy[0]); 
-  gkyl_mat_set(&rhs_Tyy_yr,0,0,3.0*Pyy[0]); 
+  gkyl_mat_set(&rhs_Tyy_yl,0,0,3.0*Pyy_yl[0]); 
+  gkyl_mat_set(&rhs_Tyy_yr,0,0,3.0*Pyy_yr[0]); 
  
   rho_xl[1] = 0.0; 
   rho_xr[1] = 0.0; 
@@ -160,8 +165,6 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   double rhouy_xr[3] = {0.0}; 
   double rhouz_xl[3] = {0.0}; 
   double rhouz_xr[3] = {0.0}; 
-  double Pxx_xl[3] = {0.0}; 
-  double Pxx_xr[3] = {0.0}; 
  
   rhoux_xl[0] = 1.58113883008419*rhoux[4]-1.224744871391589*rhoux[1]+0.7071067811865475*rhoux[0]; 
   rhoux_xl[1] = 1.58113883008419*rhoux[6]-1.224744871391589*rhoux[3]+0.7071067811865475*rhoux[2]; 
@@ -181,20 +184,12 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   rhouz_xr[0] = 1.58113883008419*rhouz[4]+1.224744871391589*rhouz[1]+0.7071067811865475*rhouz[0]; 
   rhouz_xr[1] = 1.58113883008419*rhouz[6]+1.224744871391589*rhouz[3]+0.7071067811865475*rhouz[2]; 
   rhouz_xr[2] = 1.58113883008419*rhouz[8]+1.224744871391589*rhouz[7]+0.7071067811865475*rhouz[5]; 
-  Pxx_xl[0] = 4.743416490252569*Pxx[4]-3.674234614174767*Pxx[1]+2.121320343559642*Pxx[0]; 
-  Pxx_xl[1] = 4.743416490252569*Pxx[6]-3.674234614174766*Pxx[3]+2.121320343559642*Pxx[2]; 
-  Pxx_xl[2] = 4.743416490252571*Pxx[8]-3.674234614174768*Pxx[7]+2.121320343559643*Pxx[5]; 
-  Pxx_xr[0] = 4.743416490252569*Pxx[4]+3.674234614174767*Pxx[1]+2.121320343559642*Pxx[0]; 
-  Pxx_xr[1] = 4.743416490252569*Pxx[6]+3.674234614174766*Pxx[3]+2.121320343559642*Pxx[2]; 
-  Pxx_xr[2] = 4.743416490252571*Pxx[8]+3.674234614174768*Pxx[7]+2.121320343559643*Pxx[5]; 
   double rhoux_yl[3] = {0.0}; 
   double rhoux_yr[3] = {0.0}; 
   double rhouy_yl[3] = {0.0}; 
   double rhouy_yr[3] = {0.0}; 
   double rhouz_yl[3] = {0.0}; 
   double rhouz_yr[3] = {0.0}; 
-  double Pyy_yl[3] = {0.0}; 
-  double Pyy_yr[3] = {0.0}; 
  
   rhoux_yl[0] = 1.58113883008419*rhoux[5]-1.224744871391589*rhoux[2]+0.7071067811865475*rhoux[0]; 
   rhoux_yl[1] = 1.58113883008419*rhoux[7]-1.224744871391589*rhoux[3]+0.7071067811865475*rhoux[1]; 
@@ -214,12 +209,6 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   rhouz_yr[0] = 1.58113883008419*rhouz[5]+1.224744871391589*rhouz[2]+0.7071067811865475*rhouz[0]; 
   rhouz_yr[1] = 1.58113883008419*rhouz[7]+1.224744871391589*rhouz[3]+0.7071067811865475*rhouz[1]; 
   rhouz_yr[2] = 1.58113883008419*rhouz[8]+1.224744871391589*rhouz[6]+0.7071067811865475*rhouz[4]; 
-  Pyy_yl[0] = 4.743416490252569*Pyy[5]-3.674234614174767*Pyy[2]+2.121320343559642*Pyy[0]; 
-  Pyy_yl[1] = 4.743416490252569*Pyy[7]-3.674234614174766*Pyy[3]+2.121320343559642*Pyy[1]; 
-  Pyy_yl[2] = 4.743416490252571*Pyy[8]-3.674234614174768*Pyy[6]+2.121320343559643*Pyy[4]; 
-  Pyy_yr[0] = 4.743416490252569*Pyy[5]+3.674234614174767*Pyy[2]+2.121320343559642*Pyy[0]; 
-  Pyy_yr[1] = 4.743416490252569*Pyy[7]+3.674234614174766*Pyy[3]+2.121320343559642*Pyy[1]; 
-  Pyy_yr[2] = 4.743416490252571*Pyy[8]+3.674234614174768*Pyy[6]+2.121320343559643*Pyy[4]; 
  
   gkyl_mat_set(&rhs_ux_xl,0,0,rhoux_xl[0]); 
   gkyl_mat_set(&rhs_ux_xr,0,0,rhoux_xr[0]); 
@@ -227,8 +216,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   gkyl_mat_set(&rhs_uy_xr,0,0,rhouy_xr[0]); 
   gkyl_mat_set(&rhs_uz_xl,0,0,rhouz_xl[0]); 
   gkyl_mat_set(&rhs_uz_xr,0,0,rhouz_xr[0]); 
-  gkyl_mat_set(&rhs_Txx_xl,0,0,Pxx_xl[0]); 
-  gkyl_mat_set(&rhs_Txx_xr,0,0,Pxx_xr[0]); 
+  gkyl_mat_set(&rhs_Txx_xl,0,0,3.0*Pxx_xl[0]); 
+  gkyl_mat_set(&rhs_Txx_xr,0,0,3.0*Pxx_xr[0]); 
  
   gkyl_mat_set(&rhs_ux_yl,0,0,rhoux_yl[0]); 
   gkyl_mat_set(&rhs_ux_yr,0,0,rhoux_yr[0]); 
@@ -236,8 +225,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   gkyl_mat_set(&rhs_uy_yr,0,0,rhouy_yr[0]); 
   gkyl_mat_set(&rhs_uz_yl,0,0,rhouz_yl[0]); 
   gkyl_mat_set(&rhs_uz_yr,0,0,rhouz_yr[0]); 
-  gkyl_mat_set(&rhs_Tyy_yl,0,0,Pyy_yl[0]); 
-  gkyl_mat_set(&rhs_Tyy_yr,0,0,Pyy_yr[0]); 
+  gkyl_mat_set(&rhs_Tyy_yl,0,0,3.0*Pyy_yl[0]); 
+  gkyl_mat_set(&rhs_Tyy_yr,0,0,3.0*Pyy_yr[0]); 
  
   gkyl_mat_set(&rhs_ux_xl,1,0,rhoux_xl[1]); 
   gkyl_mat_set(&rhs_ux_xr,1,0,rhoux_xr[1]); 
@@ -245,8 +234,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   gkyl_mat_set(&rhs_uy_xr,1,0,rhouy_xr[1]); 
   gkyl_mat_set(&rhs_uz_xl,1,0,rhouz_xl[1]); 
   gkyl_mat_set(&rhs_uz_xr,1,0,rhouz_xr[1]); 
-  gkyl_mat_set(&rhs_Txx_xl,1,0,Pxx_xl[1]); 
-  gkyl_mat_set(&rhs_Txx_xr,1,0,Pxx_xr[1]); 
+  gkyl_mat_set(&rhs_Txx_xl,1,0,3.0*Pxx_xl[1]); 
+  gkyl_mat_set(&rhs_Txx_xr,1,0,3.0*Pxx_xr[1]); 
  
   gkyl_mat_set(&rhs_ux_yl,1,0,rhoux_yl[1]); 
   gkyl_mat_set(&rhs_ux_yr,1,0,rhoux_yr[1]); 
@@ -254,8 +243,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   gkyl_mat_set(&rhs_uy_yr,1,0,rhouy_yr[1]); 
   gkyl_mat_set(&rhs_uz_yl,1,0,rhouz_yl[1]); 
   gkyl_mat_set(&rhs_uz_yr,1,0,rhouz_yr[1]); 
-  gkyl_mat_set(&rhs_Tyy_yl,1,0,Pyy_yl[1]); 
-  gkyl_mat_set(&rhs_Tyy_yr,1,0,Pyy_yr[1]); 
+  gkyl_mat_set(&rhs_Tyy_yl,1,0,3.0*Pyy_yl[1]); 
+  gkyl_mat_set(&rhs_Tyy_yr,1,0,3.0*Pyy_yr[1]); 
  
   gkyl_mat_set(&rhs_ux_xl,2,0,rhoux_xl[2]); 
   gkyl_mat_set(&rhs_ux_xr,2,0,rhoux_xr[2]); 
@@ -263,8 +252,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   gkyl_mat_set(&rhs_uy_xr,2,0,rhouy_xr[2]); 
   gkyl_mat_set(&rhs_uz_xl,2,0,rhouz_xl[2]); 
   gkyl_mat_set(&rhs_uz_xr,2,0,rhouz_xr[2]); 
-  gkyl_mat_set(&rhs_Txx_xl,2,0,Pxx_xl[2]); 
-  gkyl_mat_set(&rhs_Txx_xr,2,0,Pxx_xr[2]); 
+  gkyl_mat_set(&rhs_Txx_xl,2,0,3.0*Pxx_xl[2]); 
+  gkyl_mat_set(&rhs_Txx_xr,2,0,3.0*Pxx_xr[2]); 
  
   gkyl_mat_set(&rhs_ux_yl,2,0,rhoux_yl[2]); 
   gkyl_mat_set(&rhs_ux_yr,2,0,rhoux_yr[2]); 
@@ -272,8 +261,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_2x_tensor_p2(int count, struct gkyl_nmat *A, 
   gkyl_mat_set(&rhs_uy_yr,2,0,rhouy_yr[2]); 
   gkyl_mat_set(&rhs_uz_yl,2,0,rhouz_yl[2]); 
   gkyl_mat_set(&rhs_uz_yr,2,0,rhouz_yr[2]); 
-  gkyl_mat_set(&rhs_Tyy_yl,2,0,Pyy_yl[2]); 
-  gkyl_mat_set(&rhs_Tyy_yr,2,0,Pyy_yr[2]); 
+  gkyl_mat_set(&rhs_Tyy_yl,2,0,3.0*Pyy_yl[2]); 
+  gkyl_mat_set(&rhs_Tyy_yr,2,0,3.0*Pyy_yr[2]); 
  
   } 
  

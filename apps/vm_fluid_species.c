@@ -110,7 +110,8 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 
     struct gkyl_dg_euler_pkpm_auxfields aux_inp = {.vlasov_pkpm_moms = f->pkpm_species->pkpm_moms.marr, 
       .pkpm_prim = f->pkpm_species->pkpm_prim, .pkpm_prim_surf = f->pkpm_species->pkpm_prim_surf, 
-      .p_ij = f->pkpm_species->pkpm_p_ij, .pkpm_lax = f->pkpm_species->pkpm_lax};
+      .pkpm_p_ij = f->pkpm_species->pkpm_p_ij, .pkpm_p_ij_surf = f->pkpm_species->pkpm_p_ij_surf, 
+      .pkpm_lax = f->pkpm_species->pkpm_lax};
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
       &app->local, f->eqn_id, f->param, &aux_inp, app->use_gpu);
   }

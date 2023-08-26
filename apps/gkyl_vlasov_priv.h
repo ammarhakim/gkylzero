@@ -221,15 +221,18 @@ struct vm_species {
                                      //  ux_yl, ux_yr, uy_yl, uy_yr, uz_yl, uz_yr, 3.0*Tyy_yl/m, 3.0*Tyy_yr/m, 
                                      //  ux_zl, ux_zr, uy_zl, uy_zr, uz_zl, uz_zr, 3.0*Tzz_zl/m, 3.0*Tzz_zr/m] 
   struct gkyl_array *pkpm_p_ij; // (p_par - p_perp) b_i b_j + p_perp g_ij
+  struct gkyl_array *pkpm_p_ij_surf; // (p_par - p_perp) b_i b_j + p_perp g_ij at needed surfaces
+                                     // [Pxx_xl, Pxx_xr, Pxy_xl, Pxy_xr, Pxz_xl, Pxz_xr,
+                                     //  Pxy_yl, Pxy_yr, Pyy_yl, Pyy_yr, Pyz_yl, Pyz_yr,
+                                     //  Pxz_zl, Pxz_zr, Pyz_zl, Pyz_zr, Pzz_zl, Pzz_zr]
   struct gkyl_array *pkpm_lax; // Surface expansion of Lax penalization lambda_i = |u_i| + sqrt(3.0*T_ii/m)
   struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
                                     // Determined when constructing the matrix if rho or p_perp < 0.0 at control points
   struct gkyl_array *pkpm_accel; // Acceleration variables for PKPM, pkpm_accel:
-                                 // 0: div_b (divergence of magnetic field unit vector)
+                                 // 0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
                                  // 1: bb_grad_u (bb : grad(u))
                                  // 2: p_force (total pressure forces in kinetic equation 1/rho div(p_parallel b_hat) - T_perp/m*div(b)
                                  // 3: p_perp_source (pressure source for higher Laguerre moments -> bb : grad(u) - div(u) - 2*nu)
-                                 // 4: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
   struct gkyl_array *integ_pkpm_mom; // integrated PKPM variables [rho, rho ux, rho uy, rho uz, rho ux^2, rho uy^2, rho uz^2, p_par, p_perp]
   struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars; // Updater to compute PKPM variables (primitive and acceleration variables)
   struct gkyl_dg_calc_pkpm_vars *calc_pkpm_vars_ext; // Updater to compute PKPM variables (primitive and acceleration variables)

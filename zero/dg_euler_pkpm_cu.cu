@@ -15,15 +15,17 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_euler_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *pkpm_prim, const struct gkyl_array *pkpm_prim_surf, 
-  const struct gkyl_array *p_ij, const struct gkyl_array *pkpm_lax)
+gkyl_euler_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *vlasov_pkpm_moms, 
+  const struct gkyl_array *pkpm_prim, const struct gkyl_array *pkpm_prim_surf, 
+  const struct gkyl_array *pkpm_p_ij, const struct gkyl_array *pkpm_p_ij_surf, 
+  const struct gkyl_array *pkpm_lax)
 {
   struct dg_euler_pkpm *euler_pkpm = container_of(eqn, struct dg_euler_pkpm, eqn);
   euler_pkpm->auxfields.vlasov_pkpm_moms = vlasov_pkpm_moms;
   euler_pkpm->auxfields.pkpm_prim = pkpm_prim;
   euler_pkpm->auxfields.pkpm_prim_surf = pkpm_prim_surf;
-  euler_pkpm->auxfields.p_ij = p_ij;
+  euler_pkpm->auxfields.pkpm_p_ij = pkpm_p_ij;
+  euler_pkpm->auxfields.pkpm_p_ij_surf = pkpm_p_ij_surf;
   euler_pkpm->auxfields.pkpm_lax = pkpm_lax;
 }
 
@@ -31,17 +33,20 @@ gkyl_euler_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
 void
 gkyl_euler_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_pkpm_auxfields auxin)
 {
-  gkyl_euler_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.vlasov_pkpm_moms->on_dev, auxin.pkpm_prim->on_dev, 
-    auxin.pkpm_prim_surf->on_dev, auxin.p_ij->on_dev, auxin.pkpm_lax->on_dev);
+  gkyl_euler_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.vlasov_pkpm_moms->on_dev, 
+    auxin.pkpm_prim->on_dev, auxin.pkpm_prim_surf->on_dev, 
+    auxin.pkpm_p_ij->on_dev, auxin.pkpm_p_ij_surf->on_dev, 
+    auxin.pkpm_lax->on_dev);
 }
 
 __global__ void static
 dg_euler_pkpm_set_cu_dev_ptrs(struct dg_euler_pkpm* euler_pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   euler_pkpm->auxfields.vlasov_pkpm_moms = 0; 
-  euler_pkpm->auxfields.pkpm_prim = 0; 
-  euler_pkpm->auxfields.pkpm_prim_surf = 0; 
-  euler_pkpm->auxfields.p_ij = 0;
+  euler_pkpm->auxfields.pkpm_prim = 0;
+  euler_pkpm->auxfields.pkpm_prim_surf = 0;  
+  euler_pkpm->auxfields.pkpm_p_ij = 0;
+  euler_pkpm->auxfields.pkpm_p_ij_surf = 0;
   euler_pkpm->auxfields.pkpm_lax = 0; 
   
   const gkyl_dg_euler_pkpm_vol_kern_list *vol_kernels;

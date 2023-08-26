@@ -4,7 +4,7 @@
 GKYL_CU_DH double euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
     const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_c, const double *vlasov_pkpm_moms_r,
     const double *prim_surf_l, const double *prim_surf_c, const double *prim_surf_r,
-    const double *p_ij_l, const double *p_ij_c, const double *p_ij_r,
+    const double *p_ij_surf_l, const double *p_ij_surf_c, const double *p_ij_surf_r,
     const double *euler_pkpm_l, const double *euler_pkpm_c, const double *euler_pkpm_r, 
     const double *pkpm_lax, double* GKYL_RESTRICT out) 
 { 
@@ -12,8 +12,11 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   // dxv[NDIM]:              Cell spacing.
   // vlasov_pkpm_moms_l/c/r: Input pkpm moments in left/center/right cells.
   // prim_surf_l/c/r:        Input surface primitive variables [u_i, 3*T_ii/m] in left/center/right cells in each direction.
-  // p_ij_l/c/r:             Input pressure tensor in left/center/right cells.
-  // euler_pkpm_l/c/r:       [rho ux, rho uy, rho uz], Fluid input state vector in left/center/right cells.
+  // p_ij_surf_l/c/r:        Input surface expansion of p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij.
+  //                         [Pxx_xl, Pxx_xr, Pxy_xl, Pxy_xr, Pxz_xl, Pxz_xr, 
+  //                          Pxy_yl, Pxy_yr, Pyy_yl, Pyy_yr, Pyz_yl, Pyz_yr, 
+  //                          Pxz_zl, Pxz_zr, Pyz_zl, Pyz_zr, Pzz_zl, Pzz_zr] 
+  // euler_pkpm_l/c/r:       Input [rho ux, rho uy, rho uz], Fluid input state vector in left/center/right cells.
   // pkpm_lax:               Surface expansion of pkpm Lax penalization: lambda_i = |u_i| + sqrt(3.0*T_ii/m).
   // out: Incremented output.
 
@@ -51,18 +54,21 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   const double *uy_surf_rl = &prim_surf_r[20]; 
   const double *uz_surf_rl = &prim_surf_r[24]; 
 
-  // Get p_ij in direction of update. 
-  const double *Pxy_l = &p_ij_l[4]; 
-  const double *Pyy_l = &p_ij_l[12]; 
-  const double *Pyz_l = &p_ij_l[16]; 
+  const double *P_surfx_lr = &p_ij_surf_l[14]; 
+  const double *P_surfy_lr = &p_ij_surf_l[18]; 
+  const double *P_surfz_lr = &p_ij_surf_l[22]; 
 
-  const double *Pxy_c = &p_ij_c[4]; 
-  const double *Pyy_c = &p_ij_c[12]; 
-  const double *Pyz_c = &p_ij_c[16]; 
+  const double *P_surfx_cl = &p_ij_surf_c[12]; 
+  const double *P_surfy_cl = &p_ij_surf_c[16]; 
+  const double *P_surfz_cl = &p_ij_surf_c[20]; 
 
-  const double *Pxy_r = &p_ij_r[4]; 
-  const double *Pyy_r = &p_ij_r[12]; 
-  const double *Pyz_r = &p_ij_r[16]; 
+  const double *P_surfx_cr = &p_ij_surf_c[14]; 
+  const double *P_surfy_cr = &p_ij_surf_c[18]; 
+  const double *P_surfz_cr = &p_ij_surf_c[22]; 
+
+  const double *P_surfx_rl = &p_ij_surf_r[12]; 
+  const double *P_surfy_rl = &p_ij_surf_r[16]; 
+  const double *P_surfz_rl = &p_ij_surf_r[20]; 
 
   const double *pkpm_lax_l = &pkpm_lax[4]; 
   const double *pkpm_lax_r = &pkpm_lax[6]; 
@@ -88,23 +94,19 @@ GKYL_CU_DH double euler_pkpm_surfy_2x_ser_p1(const double *w, const double *dxv,
   double jump_rhouz_l[2] = {0.0}; 
   double jump_rhouz_r[2] = {0.0}; 
 
-  avg_p_ij_x_l[0] = 0.6123724356957944*Pxy_l[2]-0.6123724356957944*Pxy_c[2]+0.3535533905932737*Pxy_l[0]+0.3535533905932737*Pxy_c[0]; 
-  avg_p_ij_x_l[1] = 0.6123724356957944*Pxy_l[3]-0.6123724356957944*Pxy_c[3]+0.3535533905932737*Pxy_l[1]+0.3535533905932737*Pxy_c[1]; 
+  avg_p_ij_x_l[0] = 0.5*(P_surfx_lr[0] + P_surfx_cl[0]); 
+  avg_p_ij_x_r[0] = 0.5*(P_surfx_cr[0] + P_surfx_rl[0]); 
+  avg_p_ij_y_l[0] = 0.5*(P_surfy_lr[0] + P_surfy_cl[0]); 
+  avg_p_ij_y_r[0] = 0.5*(P_surfy_cr[0] + P_surfy_rl[0]); 
+  avg_p_ij_z_l[0] = 0.5*(P_surfz_lr[0] + P_surfz_cl[0]); 
+  avg_p_ij_z_r[0] = 0.5*(P_surfz_cr[0] + P_surfz_rl[0]); 
 
-  avg_p_ij_x_r[0] = (-0.6123724356957944*Pxy_r[2])+0.6123724356957944*Pxy_c[2]+0.3535533905932737*Pxy_r[0]+0.3535533905932737*Pxy_c[0]; 
-  avg_p_ij_x_r[1] = (-0.6123724356957944*Pxy_r[3])+0.6123724356957944*Pxy_c[3]+0.3535533905932737*Pxy_r[1]+0.3535533905932737*Pxy_c[1]; 
-
-  avg_p_ij_y_l[0] = 0.6123724356957944*Pyy_l[2]-0.6123724356957944*Pyy_c[2]+0.3535533905932737*Pyy_l[0]+0.3535533905932737*Pyy_c[0]; 
-  avg_p_ij_y_l[1] = 0.6123724356957944*Pyy_l[3]-0.6123724356957944*Pyy_c[3]+0.3535533905932737*Pyy_l[1]+0.3535533905932737*Pyy_c[1]; 
-
-  avg_p_ij_y_r[0] = (-0.6123724356957944*Pyy_r[2])+0.6123724356957944*Pyy_c[2]+0.3535533905932737*Pyy_r[0]+0.3535533905932737*Pyy_c[0]; 
-  avg_p_ij_y_r[1] = (-0.6123724356957944*Pyy_r[3])+0.6123724356957944*Pyy_c[3]+0.3535533905932737*Pyy_r[1]+0.3535533905932737*Pyy_c[1]; 
-
-  avg_p_ij_z_l[0] = 0.6123724356957944*Pyz_l[2]-0.6123724356957944*Pyz_c[2]+0.3535533905932737*Pyz_l[0]+0.3535533905932737*Pyz_c[0]; 
-  avg_p_ij_z_l[1] = 0.6123724356957944*Pyz_l[3]-0.6123724356957944*Pyz_c[3]+0.3535533905932737*Pyz_l[1]+0.3535533905932737*Pyz_c[1]; 
-
-  avg_p_ij_z_r[0] = (-0.6123724356957944*Pyz_r[2])+0.6123724356957944*Pyz_c[2]+0.3535533905932737*Pyz_r[0]+0.3535533905932737*Pyz_c[0]; 
-  avg_p_ij_z_r[1] = (-0.6123724356957944*Pyz_r[3])+0.6123724356957944*Pyz_c[3]+0.3535533905932737*Pyz_r[1]+0.3535533905932737*Pyz_c[1]; 
+  avg_p_ij_x_l[1] = 0.5*(P_surfx_lr[1] + P_surfx_cl[1]); 
+  avg_p_ij_x_r[1] = 0.5*(P_surfx_cr[1] + P_surfx_rl[1]); 
+  avg_p_ij_y_l[1] = 0.5*(P_surfy_lr[1] + P_surfy_cl[1]); 
+  avg_p_ij_y_r[1] = 0.5*(P_surfy_cr[1] + P_surfy_rl[1]); 
+  avg_p_ij_z_l[1] = 0.5*(P_surfz_lr[1] + P_surfz_cl[1]); 
+  avg_p_ij_z_r[1] = 0.5*(P_surfz_cr[1] + P_surfz_rl[1]); 
 
   flux_rho_l[0] = 0.2165063509461096*uy_surf_lr[1]*rho_l[3]+0.2165063509461096*uy_surf_cl[1]*rho_l[3]-0.2165063509461096*uy_surf_lr[1]*rho_c[3]-0.2165063509461096*uy_surf_cl[1]*rho_c[3]+0.2165063509461096*uy_surf_lr[0]*rho_l[2]+0.2165063509461096*uy_surf_cl[0]*rho_l[2]-0.2165063509461096*uy_surf_lr[0]*rho_c[2]-0.2165063509461096*uy_surf_cl[0]*rho_c[2]+0.125*rho_l[1]*uy_surf_lr[1]+0.125*rho_c[1]*uy_surf_lr[1]+0.125*rho_l[1]*uy_surf_cl[1]+0.125*rho_c[1]*uy_surf_cl[1]+0.125*rho_l[0]*uy_surf_lr[0]+0.125*rho_c[0]*uy_surf_lr[0]+0.125*rho_l[0]*uy_surf_cl[0]+0.125*rho_c[0]*uy_surf_cl[0]; 
   flux_rho_l[1] = 0.2165063509461096*uy_surf_lr[0]*rho_l[3]+0.2165063509461096*uy_surf_cl[0]*rho_l[3]-0.2165063509461096*uy_surf_lr[0]*rho_c[3]-0.2165063509461096*uy_surf_cl[0]*rho_c[3]+0.2165063509461096*uy_surf_lr[1]*rho_l[2]+0.2165063509461096*uy_surf_cl[1]*rho_l[2]-0.2165063509461096*uy_surf_lr[1]*rho_c[2]-0.2165063509461096*uy_surf_cl[1]*rho_c[2]+0.125*rho_l[0]*uy_surf_lr[1]+0.125*rho_c[0]*uy_surf_lr[1]+0.125*rho_l[0]*uy_surf_cl[1]+0.125*rho_c[0]*uy_surf_cl[1]+0.125*uy_surf_lr[0]*rho_l[1]+0.125*uy_surf_cl[0]*rho_l[1]+0.125*uy_surf_lr[0]*rho_c[1]+0.125*uy_surf_cl[0]*rho_c[1]; 

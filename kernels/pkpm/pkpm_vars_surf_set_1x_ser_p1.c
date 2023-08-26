@@ -3,14 +3,17 @@
 #include <gkyl_binop_mul_ser.h> 
 GKYL_CU_DH void pkpm_vars_surf_set_1x_ser_p1(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
   const double *vlasov_pkpm_moms, const double *euler_pkpm, 
-  const double *p_ij, const int *cell_avg_prim) 
+  const double *p_ij_surf, const int *cell_avg_prim) 
 { 
   // count:            integer to indicate which matrix being fetched. 
   // A:                preallocated LHS matrix. 
   // rhs:              preallocated RHS vector. 
-  // vlasov_pkpm_moms: [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
-  // euler_pkpm:       [rho ux, rho uy, rho uz], Fluid input state vector.
-  // p_ij:             p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij.
+  // vlasov_pkpm_moms: Input [rho, p_parallel, p_perp], Moments computed from kinetic equation in pkpm model.
+  // euler_pkpm:       Input [rho ux, rho uy, rho uz], Fluid state vector.
+  // p_ij_surf:        Input surface expansion of p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij.
+  //                   [Pxx_xl, Pxx_xr, Pxy_xl, Pxy_xr, Pxz_xl, Pxz_xr, 
+  //                    Pxy_yl, Pxy_yr, Pyy_yl, Pyy_yr, Pyz_yl, Pyz_yr, 
+  //                    Pxz_zl, Pxz_zr, Pyz_zl, Pyz_zr, Pzz_zl, Pzz_zr] 
   // cell_avg_prim:    Boolean array to determine if we only use cell averages when computing surface expansions.
 
   // For poly_order = 1, we can analytically invert the matrix and just store the solution 
@@ -35,7 +38,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_1x_ser_p1(int count, struct gkyl_nmat *A, str
   const double *rhouy = &euler_pkpm[2]; 
   const double *rhouz = &euler_pkpm[4]; 
   const double *rho = &vlasov_pkpm_moms[0]; 
-  const double *Pxx = &p_ij[0]; 
+  const double *Pxx_xl = &p_ij_surf[0]; 
+  const double *Pxx_xr = &p_ij_surf[1]; 
   double ux_l = 0.0; 
   double ux_r = 0.0; 
   double uy_l = 0.0; 
@@ -52,8 +56,8 @@ GKYL_CU_DH void pkpm_vars_surf_set_1x_ser_p1(int count, struct gkyl_nmat *A, str
   uy_r = rhouy[0]/rho[0]; 
   uz_l = rhouz[0]/rho[0]; 
   uz_r = rhouz[0]/rho[0]; 
-  Txx_l = 3.0*Pxx[0]/rho[0]; 
-  Txx_r = 3.0*Pxx[0]/rho[0]; 
+  Txx_l = Pxx_xl[0]/rho[0]; 
+  Txx_r = Pxx_xr[0]/rho[0]; 
   } else { 
   double rhoux_l = 0.7071067811865475*rhoux[0]-1.224744871391589*rhoux[1]; 
   double rhoux_r = 1.224744871391589*rhoux[1]+0.7071067811865475*rhoux[0]; 
@@ -63,16 +67,16 @@ GKYL_CU_DH void pkpm_vars_surf_set_1x_ser_p1(int count, struct gkyl_nmat *A, str
   double rhouz_r = 1.224744871391589*rhouz[1]+0.7071067811865475*rhouz[0]; 
   double rho_l = 0.7071067811865475*rho[0]-1.224744871391589*rho[1]; 
   double rho_r = 1.224744871391589*rho[1]+0.7071067811865475*rho[0]; 
-  double Pxx_l = 0.7071067811865475*Pxx[0]-1.224744871391589*Pxx[1]; 
-  double Pxx_r = 1.224744871391589*Pxx[1]+0.7071067811865475*Pxx[0]; 
+  double Pxx_l = Pxx_xl[0]; 
+  double Pxx_r = Pxx_xr[0]; 
   ux_l = rhoux_l/rho_l; 
   ux_r = rhoux_r/rho_r; 
   uy_l = rhouy_l/rho_l; 
   uy_r = rhouy_r/rho_r; 
   uz_l = rhouz_l/rho_l; 
   uz_r = rhouz_r/rho_r; 
-  Txx_l = 3.0*Pxx_l/rho_l; 
-  Txx_r = 3.0*Pxx_r/rho_r; 
+  Txx_l = Pxx_xl[0]/rho_l; 
+  Txx_r = Pxx_xr[0]/rho_r; 
   } 
  
   gkyl_mat_set(&rhs_ux_l,0,0,ux_l); 
@@ -81,6 +85,6 @@ GKYL_CU_DH void pkpm_vars_surf_set_1x_ser_p1(int count, struct gkyl_nmat *A, str
   gkyl_mat_set(&rhs_uy_r,0,0,uy_r); 
   gkyl_mat_set(&rhs_uz_l,0,0,uz_l); 
   gkyl_mat_set(&rhs_uz_r,0,0,uz_r); 
-  gkyl_mat_set(&rhs_Txx_l,0,0,Txx_l); 
-  gkyl_mat_set(&rhs_Txx_r,0,0,Txx_r); 
+  gkyl_mat_set(&rhs_Txx_l,0,0,3.0*Txx_l); 
+  gkyl_mat_set(&rhs_Txx_r,0,0,3.0*Txx_r); 
 } 
