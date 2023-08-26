@@ -1,5 +1,5 @@
 #include <gkyl_mat.h> 
-#include <gkyl_euler_pkpm_kernels.h> 
+#include <gkyl_maxwell_kernels.h> 
 GKYL_CU_DH void em_surf_set_bvar_1x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *BB_surf, int* cell_avg_magB2_surf) 
 { 
   // count:   integer to indicate which matrix being fetched. 
