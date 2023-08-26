@@ -297,7 +297,7 @@ gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
   up->As_surf = gkyl_nmat_cu_dev_new(up->Ncomp_surf*mem_range->volume, nc_surf, nc_surf);
   up->xs_surf = gkyl_nmat_cu_dev_new(up->Ncomp_surf*mem_range->volume, nc_surf, 1);
   up->mem_surf = gkyl_nmat_linsolve_lu_cu_dev_new(up->As_surf->num, up->As_surf->nr);
-  // 5*cdim component temporary variable for storing Bx^2, By^2, Bz^2 and two components of B_i B_j at the surface
+  // 10*cdim component temporary variable for storing Bx^2, By^2, Bz^2 and two components of B_i B_j at the surface
   // Temporary variables are computed at the left and right in each dimension (xl, xr, yl, yr, zl, & zr)
   up->temp_var_surf = gkyl_array_cu_dev_new(GKYL_DOUBLE, 10*cdim*nc_surf, mem_range->volume); 
 
