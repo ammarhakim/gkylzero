@@ -25,7 +25,7 @@ gkyl_vlasov_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
   vlasov_pkpm->auxfields.bvar = bvar;
-  vlasov_pkpm->auxfields.bvar = bvar_surf;
+  vlasov_pkpm->auxfields.bvar_surf = bvar_surf;
   vlasov_pkpm->auxfields.pkpm_prim = pkpm_prim;
   vlasov_pkpm->auxfields.pkpm_prim_surf = pkpm_prim_surf;
   vlasov_pkpm->auxfields.max_b = max_b;
