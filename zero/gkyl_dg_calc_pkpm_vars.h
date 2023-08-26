@@ -192,11 +192,12 @@ void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
 
 void gkyl_dg_calc_pkpm_vars_surf_advance_cu(struct gkyl_dg_calc_pkpm_vars *up, 
   const struct gkyl_array* vlasov_pkpm_moms, const struct gkyl_array* euler_pkpm, 
-  const struct gkyl_array* p_ij, const struct gkyl_array* cell_avg_prim, 
+  const struct gkyl_array* p_ij_surf, const struct gkyl_array* cell_avg_prim, 
   struct gkyl_array* prim_surf);
 
 void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* vlasov_pkpm_moms, struct gkyl_array* p_ij);
+  const struct gkyl_array* bvar, const struct gkyl_array* bvar_surf, const struct gkyl_array* vlasov_pkpm_moms, 
+  struct gkyl_array* p_ij, struct gkyl_array* p_ij_surf);
 
 void gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* prim_surf, const struct gkyl_array* prim, 
