@@ -60,7 +60,6 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 #endif
   struct dg_vlasov_pkpm *vlasov_pkpm = gkyl_malloc(sizeof(struct dg_vlasov_pkpm));
 
-
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int poly_order = cbasis->poly_order;
 
