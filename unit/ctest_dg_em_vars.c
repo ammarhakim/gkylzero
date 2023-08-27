@@ -559,8 +559,8 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   // Create bvar and ExB updaters
   struct gkyl_dg_calc_em_vars *calc_bvar;
   struct gkyl_dg_calc_em_vars *calc_ExB;
-  calc_bvar = gkyl_dg_calc_em_vars_new(&basis, &local_ext, 0, use_gpu);
-  calc_ExB = gkyl_dg_calc_em_vars_new(&basis, &local_ext, 1, use_gpu);
+  calc_bvar = gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, 0, use_gpu);
+  calc_ExB = gkyl_dg_calc_em_vars_new(&grid, &basis, &local_ext, 1, use_gpu);
 
   struct timespec tm = gkyl_wall_clock();
 
