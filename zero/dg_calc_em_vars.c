@@ -181,7 +181,7 @@ void gkyl_dg_calc_em_vars_div_b(struct gkyl_dg_calc_em_vars *up, const struct gk
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(div_b)) {
-    return gkyl_dg_calc_em_vars_div_b_cu(up, conf_range, bvar, bvar_surf, max_b, div_b);
+    return gkyl_dg_calc_em_vars_div_b_cu(up, conf_range, bvar_surf, bvar, max_b, div_b);
   }
 #endif
   // Loop over configuration space range to compute div(b) and max(|b_i|) penalization

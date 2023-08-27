@@ -14,7 +14,7 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_dg_calc_em_vars_set_cu_kernel(gkyl_dg_calc_em_vars* up,
+gkyl_dg_calc_em_vars_set_cu_kernel(struct gkyl_dg_calc_em_vars* up,
   struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* temp_var)
 {
@@ -44,7 +44,7 @@ gkyl_dg_calc_em_vars_set_cu_kernel(gkyl_dg_calc_em_vars* up,
 }
 
 __global__ static void
-gkyl_dg_calc_em_vars_copy_cu_kernel(gkyl_dg_calc_em_vars* up, 
+gkyl_dg_calc_em_vars_copy_cu_kernel(struct gkyl_dg_calc_em_vars* up, 
   struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* out)
 {
@@ -94,7 +94,7 @@ void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up,
 }
 
 __global__ static void
-gkyl_dg_calc_em_vars_surf_set_cu_kernel(gkyl_dg_calc_em_vars* up,
+gkyl_dg_calc_em_vars_surf_set_cu_kernel(struct gkyl_dg_calc_em_vars* up,
   struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* temp_var_surf) 
 {
@@ -125,7 +125,7 @@ gkyl_dg_calc_em_vars_surf_set_cu_kernel(gkyl_dg_calc_em_vars* up,
 }
 
 __global__ static void
-gkyl_dg_calc_em_vars_surf_copy_cu_kernel(gkyl_dg_calc_em_vars* up, 
+gkyl_dg_calc_em_vars_surf_copy_cu_kernel(struct gkyl_dg_calc_em_vars* up, 
   struct gkyl_nmat *xs, struct gkyl_range conf_range,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* bvar_surf)
 {
@@ -157,6 +157,7 @@ gkyl_dg_calc_em_vars_surf_copy_cu_kernel(gkyl_dg_calc_em_vars* up,
 void gkyl_dg_calc_em_vars_surf_advance_cu(struct gkyl_dg_calc_em_vars *up, 
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* bvar_surf)
 {
+  gkyl_array_clear(up->temp_var_surf, 0.0);
   struct gkyl_range conf_range = up->mem_range;
   
   gkyl_dg_calc_em_vars_surf_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
