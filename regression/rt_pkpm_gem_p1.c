@@ -491,7 +491,6 @@ main(int argc, char **argv)
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
-    .nuHyp = 1.0e-3, 
     .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
     .diffusion = {.D = 1.0e-3, .order=4},
   };  
@@ -541,7 +540,6 @@ main(int argc, char **argv)
     .cells = { NX, NY },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
-    //.cfl_frac = 0.8,
     
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
@@ -553,6 +551,12 @@ main(int argc, char **argv)
     .field = field,
 
     .use_gpu = app_args.use_gpu,
+
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
 
   // create app object
