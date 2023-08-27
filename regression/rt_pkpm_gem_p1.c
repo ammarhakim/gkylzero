@@ -281,13 +281,13 @@ create_ctx(void)
   double n0 = 1.0; // initial number density
   double nbOverN0 = 0.2; // background number density
 
-  double vAe = 1.0/6.0;
+  double vAe = 1.0/4.0;
   double vAi = vAe/sqrt(massIon);
   double beta_elc = 1.0/6.0;
   // B0 has 1/sqrt(2) factor because B is equally subdivided between
   // guide field and in-plane field
   double B0 = vAe*sqrt(mu0*n0*massElc)/sqrt(2.0);  
-  double guide = B0;
+  double guide = 0.1*B0;
   double tot_B = sqrt(B0*B0 + guide*guide);
 
   double T_e = beta_elc*tot_B*tot_B/(2.0*mu0*n0);
@@ -301,10 +301,10 @@ create_ctx(void)
 
   // Layer width and perturbation
   double w0 = 0.5*di;
-  double psi0 = 0.1*tot_B*di;
+  double psi0 = 0.1*B0*di;
 
   // noise levels for perturbation
-  double noise_amp = 0.001*tot_B;
+  double noise_amp = 0.01*B0;
   int k_init = 1;            // first wave mode to perturb with noise, 1.0 correspond to box size
   int k_final = 20;          // last wave mode to perturb with noise
   double noise_index = -1.0; // spectral index of the noise
@@ -316,7 +316,7 @@ create_ctx(void)
   // domain size and simulation time
   double Lx = 8.0*M_PI*di;
   double Ly = 4.0*M_PI*di;
-  double tend = 37.0/omegaCi;
+  double tend = 20.0/omegaCi;
   
   struct pkpm_gem_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -393,8 +393,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -12.0 * ctx.vtElc},
-    .upper = { 12.0 * ctx.vtElc}, 
+    .lower = { -8.0 * ctx.vtElc},
+    .upper = { 8.0 * ctx.vtElc}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -429,8 +429,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -12.0 * ctx.vtIon},
-    .upper = { 12.0 * ctx.vtIon}, 
+    .lower = { -8.0 * ctx.vtIon},
+    .upper = { 8.0 * ctx.vtIon}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -488,26 +488,33 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 37;
+  int nframe = 20;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
+  gkyl_vlasov_app_calc_field_energy(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
-    printf("Taking time-step at t = %g ...", tcurr);
+    gkyl_vlasov_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
-    printf(" dt = %g\n", status.dt_actual);
-    
+    gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    if (step % 100 == 0) {
+      gkyl_vlasov_app_calc_field_energy(app, tcurr);
+      gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+      gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+    }
     if (!status.success) {
-      printf("** Update method failed! Aborting simulation ....\n");
+      gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
     if (status.dt_actual < ctx.min_dt) {
-      printf("** Time step crashing! Aborting simulation and writing out last output ....\n");
+      gkyl_vlasov_app_cout(app, stdout, "** Time step crashing! Aborting simulation and writing out last output ....\n");
       gkyl_vlasov_app_write(app, tcurr, 1000);
       gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1000);
       break;
@@ -519,7 +526,12 @@ main(int argc, char **argv)
 
     step += 1;
   }
-
+  gkyl_vlasov_app_calc_field_energy(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+  gkyl_vlasov_app_write_field_energy(app);
+  gkyl_vlasov_app_write_integrated_L2_f(app);
+  gkyl_vlasov_app_write_integrated_mom(app);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
@@ -542,6 +554,11 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm);
   gkyl_vlasov_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+
+  gkyl_vlasov_app_cout(app, stdout, "Species BCs took %g secs\n", stat.species_bc_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Fluid Species BCs took %g secs\n", stat.fluid_species_bc_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Field BCs took %g secs\n", stat.field_bc_tm);
+
   gkyl_vlasov_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
 
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
