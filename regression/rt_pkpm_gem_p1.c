@@ -1,9 +1,18 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
+
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#endif
+
 #include <rt_arg_parse.h>
 
 struct pkpm_gem_ctx {
@@ -365,6 +374,11 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Init(&argc, &argv);
+#endif
+
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 32);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
@@ -375,6 +389,65 @@ main(int argc, char **argv)
   }
      
   struct pkpm_gem_ctx ctx = create_ctx(); // context for init functions
+
+  int nrank = 1; // number of processors in simulation
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+#endif  
+
+  // create global range
+  int cells[] = { NX, NY };
+  struct gkyl_range globalr;
+  gkyl_create_global_range(2, cells, &globalr);
+  
+  // create decomposition
+  int cuts[] = { 1, 1 };
+#ifdef GKYL_HAVE_MPI  
+  if (app_args.use_mpi) {
+    cuts[0] = app_args.cuts[0];
+    cuts[1] = app_args.cuts[1];
+  }
+#endif 
+    
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(2, cuts, &globalr);
+
+  // construct communcator for use in app
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+  }
+  else
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .decomp = decomp,
+        .use_gpu = app_args.use_gpu        
+      }
+    );
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp,
+      .use_gpu = app_args.use_gpu      
+    }
+  );
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+  int comm_sz;
+  gkyl_comm_get_size(comm, &comm_sz);
+
+  int ncuts = cuts[0]*cuts[1];
+  if (ncuts != comm_sz) {
+    if (my_rank == 0)
+      fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
+    goto mpifinalize;
+  }
 
   // electron momentum                                                                                              
   struct gkyl_vlasov_fluid_species fluid_elc = {
@@ -564,8 +637,18 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  
   // simulation complete, free app
   gkyl_vlasov_app_release(app);
+
+  mpifinalize:
+  ;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif  
   
   return 0;
 }
