@@ -4,6 +4,7 @@
 #include <gkyl_ref_count.h>
 #include <gkyl_dg_diffusion_priv_kerdecl.h>
 #include <gkyl_dg_diffusion_priv_kerdecl_vlasov.h>
+#include <gkyl_dg_diffusion_priv_kerdecl_gyrokinetic.h>
 
 static inline int numeq_from_diffid(enum gkyl_diffusion_id diffusion_id) {
   // Number of equations based on diffusion id.
@@ -51,12 +52,16 @@ static inline int diffdirs_linidx(const bool *isdirdiff, int cdim) {
 // functions
 
 #define SURFKERIDX(cdim,vdim) cdim-1+vdim-1+GKYL_MIN(1,cdim-1)
+#define SURFKERIDXGK(cdim,vdim) (cdim-1+vdim-1)*2-(vdim-1)
 
 // Macro for choosing surface kernel for fluid diffusion.
 #define CKSURFFLUID(lst,diff_order,cdim,poly_order) lst[diff_order/2-1].list[SURFKERIDX(cdim,cdim)].kernels[poly_order-1]
 
 // Macro for choosing surface kernel for vlasov diffusion.
 #define CKSURFVLASOV(lst,diff_order,cdim,vdim,poly_order) lst[diff_order/2-1].list[SURFKERIDX(cdim,vdim)].kernels[poly_order-1]
+
+// Macro for choosing surface kernel for gyrokinetic diffusion.
+#define CKSURFGYROKINETIC(lst,diff_order,cdim,vdim,poly_order) lst[diff_order/2-1].list[SURFKERIDXGK(cdim,vdim)].kernels[poly_order-1]
 
 // Macro for choosing volume and surface kernels.
 #define CKVOL(lst,cdim,diff_order,poly_order,diffdir_linidx) lst[cdim-1].list[diff_order/2-1].list[poly_order-1].kernels[diffdir_linidx]

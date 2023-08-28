@@ -80,6 +80,22 @@ gkyl_dg_diffusion_new(const struct gkyl_basis *basis,
         assert(false);
         break;    
     } 
+  } else if ((diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_GYROKINETIC) || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_VAR_GYROKINETIC)) {
+    switch (cbasis->b_type) {
+      case GKYL_BASIS_MODAL_SERENDIPITY:
+        vol_kernels            = diffusion->const_coeff? ser_vol_kernels_constcoeff                        : ser_vol_kernels_varcoeff                       ;
+        surfx_kernels          = diffusion->const_coeff? ser_gyrokinetic_surfx_kernels_constcoeff          : ser_gyrokinetic_surfx_kernels_varcoeff         ;
+        surfy_kernels          = diffusion->const_coeff? ser_gyrokinetic_surfy_kernels_constcoeff          : ser_gyrokinetic_surfy_kernels_varcoeff         ;
+        surfz_kernels          = diffusion->const_coeff? ser_gyrokinetic_surfz_kernels_constcoeff          : ser_gyrokinetic_surfz_kernels_varcoeff         ;
+        boundary_surfx_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_surfx_kernels_constcoeff : ser_gyrokinetic_boundary_surfx_kernels_varcoeff;
+        boundary_surfy_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_surfy_kernels_constcoeff : ser_gyrokinetic_boundary_surfy_kernels_varcoeff;
+        boundary_surfz_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_surfz_kernels_constcoeff : ser_gyrokinetic_boundary_surfz_kernels_varcoeff;
+        break;
+  
+      default:
+        assert(false);
+        break;    
+    } 
   } else {
     switch (cbasis->b_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
