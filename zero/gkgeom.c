@@ -611,7 +611,7 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
 
   struct gkyl_array *mc2p_xyz = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim, nrange.volume);
 
-  enum { TH_IDX, PH_IDX, AL_IDX }; // arrangement of computational coordinates
+  enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX }; // arrangement of physical coordinates  
   enum { X_IDX, Y_IDX, Zc_IDX }; // arrangement of cartesian coordinates
   

@@ -163,9 +163,14 @@ test_1()
   //double cupper[] = { M_PI, 0.1, 1.0 };
 
   //double clower[] = { -2.5, 0.05263235294117646 + 0.000001, -0.1 };
-  double clower[] = { -2.5, 0.06, -0.01 };
-  double cupper[] = { 2.5, 0.1, 0.01 };
-  int ccells[] = { 32,32, 1 };
+  //double clower[] = { -2.5, 0.06, -0.01 };
+  //double cupper[] = { 2.5, 0.1, 0.01 };
+  //int ccells[] = { 32,32, 1 };
+
+
+  double clower[] = { 0.06, -0.01, -3.0};
+  double cupper[] = {0.1, 0.01, 3.0};
+  int ccells[] = { 32,1, 32 };
 
 
 
