@@ -5,6 +5,48 @@
 #include <gkyl_dg_diffusion_priv_kerdecl.h>
 #include <gkyl_dg_diffusion_priv_kerdecl_vlasov.h>
 
+static inline int numeq_from_diffid(enum gkyl_diffusion_id diffusion_id) {
+  // Number of equations based on diffusion id.
+  int num_equations = 1;
+  if ((diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_EULER) || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_VAR_EULER))
+    num_equations = 4;
+  else if ((diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_EULER_ISO) || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_VAR_EULER_ISO))
+    num_equations = 5;
+  if ((diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_PKPM) || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_VAR_PKPM))
+    num_equations = 3;
+  return num_equations;
+}
+
+static inline bool constcoeff_from_diffid(enum gkyl_diffusion_id diffusion_id) {
+  // Determine of diffusion coefficient is constant.
+  bool const_coeff = (   (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST)
+                      || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_EULER)
+                      || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_EULER_ISO)
+                      || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_VLASOV)
+                      || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_GYROKINETIC)
+                      || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_PKPM) );
+  return const_coeff;
+}
+
+static inline int diffdirs_linidx(const bool *isdirdiff, int cdim) {
+  // Compute the linear index into the array of volume kernels (one
+  // kernel for each combination of diffusive directions).
+  bool diff_in_dir[GKYL_MAX_CDIM];
+  if (isdirdiff)
+    for (size_t d=0; d<cdim; d++) diff_in_dir[d] = isdirdiff[d];
+  else
+    for (size_t d=0; d<cdim; d++) diff_in_dir[d] = true;
+
+  // Linear index into list of volume kernels.
+  int dirs_bin_key[] = {1,2,4,8,16,32}; // Binary: 000001, 000010, 000100, 001000, 010000, 100000.
+  int dirs_linidx = 0; // Binary 000000.
+  for (int d=0; d<cdim; d++) {
+     if (diff_in_dir[d]) dirs_linidx = dirs_linidx | dirs_bin_key[d];
+  }
+  dirs_linidx -= 1;
+  return dirs_linidx;
+}
+
 // private header for use in diffusion DG equation object creation
 // functions
 
@@ -64,3 +106,22 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
 }
 
 #undef _cfD
+
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Create a new diffusion equation object on the device.
+ *
+ * @param basis Basis functions of the equation system.
+ * @param cbasis Configuration space basis.
+ * @param diffusion_id Diffusion type (constant/varying & fluid/vlasov/etc).
+ * @param diff_in_dir Whether to apply diffusion in each direction.
+ * @param diff_order Diffusion order.
+ * @param conf_range Configuration space range (to index diff coefficient).
+ * @param use_gpu Whether to run on host or device.
+ * @return Pointer to diffusion equation object
+ */
+struct gkyl_dg_eqn*
+gkyl_dg_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
+  enum gkyl_diffusion_id diffusion_id, const bool *diff_in_dir, int diff_order,
+  const struct gkyl_range *conf_range);
+#endif

@@ -25,7 +25,7 @@ struct gkyl_dg_diffusion_auxfields {
  * @return Pointer to diffusion equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_diffusion_new(const struct gkyl_basis *basis, 
-  const struct gkyl_basis *cbasis, enum gkyl_diffusion_id diffusion_id, bool *diff_in_dir,
+  const struct gkyl_basis *cbasis, enum gkyl_diffusion_id diffusion_id, const bool *diff_in_dir,
   int diff_order, const struct gkyl_range *conf_range, bool use_gpu);
 
 /**

@@ -39,12 +39,12 @@ gkyl_diffusion_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffu
 
 struct gkyl_dg_eqn*
 gkyl_dg_diffusion_new(const struct gkyl_basis *basis,
-  const struct gkyl_basis *cbasis, enum gkyl_diffusion_id diffusion_id, bool *diff_in_dir,
+  const struct gkyl_basis *cbasis, enum gkyl_diffusion_id diffusion_id, const bool *diff_in_dir,
   int diff_order, const struct gkyl_range *conf_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_diffusion_cu_dev_new(diffusion_id, basis, cbasis, diff_in_dir, diff_order, conf_range);
+    return gkyl_dg_diffusion_cu_dev_new(basis, cbasis, diffusion_id, diff_in_dir, diff_order, conf_range);
 #endif
   
   struct dg_diffusion *diffusion = gkyl_malloc(sizeof(struct dg_diffusion));
@@ -53,20 +53,8 @@ gkyl_dg_diffusion_new(const struct gkyl_basis *basis,
   int vdim = basis->ndim - cdim;
   int poly_order = cbasis->poly_order;
 
-  int num_equations = 1;
-  if ((diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_EULER) || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_VAR_EULER))
-    num_equations = 4;
-  else if ((diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_EULER_ISO) || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_VAR_EULER_ISO))
-    num_equations = 5;
-  if ((diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_PKPM) || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_VAR_PKPM))
-    num_equations = 3;
-
-  diffusion->const_coeff = (   (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST)
-                            || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_EULER)
-                            || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_EULER_ISO)
-                            || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_VLASOV)
-                            || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_GYROKINETIC)
-                            || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_PKPM) );
+  int num_equations = numeq_from_diffid(diffusion_id);
+  diffusion->const_coeff = constcoeff_from_diffid(diffusion_id);
 
   const gkyl_dg_diffusion_vol_kern_list *vol_kernels;
   const gkyl_dg_diffusion_surf_kern_list *surfx_kernels;
@@ -112,18 +100,8 @@ gkyl_dg_diffusion_new(const struct gkyl_basis *basis,
 
   diffusion->num_equations = num_equations;
   diffusion->num_basis = basis->num_basis;
-  if (diff_in_dir)
-    for (size_t d=0; d<cdim; d++) diffusion->diff_in_dir[d] = diff_in_dir[d];
-  else
-    for (size_t d=0; d<cdim; d++) diffusion->diff_in_dir[d] = true;
 
-  // Linear index into list of volume kernels.
-  int dirs_bin_key[] = {1,2,4,8,16,32}; // Binary: 000001, 000010, 000100, 001000, 010000, 100000.
-  int dirs_linidx = 0; // Binary 000000.
-  for (int d=0; d<cdim; d++) {
-     if (diffusion->diff_in_dir[d]) dirs_linidx = dirs_linidx | dirs_bin_key[d];
-  }
-  dirs_linidx -= 1;
+  int dirs_linidx = diffdirs_linidx(diff_in_dir, cdim);
 
   diffusion->eqn.num_equations = num_equations;
   diffusion->eqn.surf_term = surf;
