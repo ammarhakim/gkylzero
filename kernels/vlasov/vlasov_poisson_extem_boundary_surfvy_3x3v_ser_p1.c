@@ -1,7 +1,7 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_ser_6x_p1_surfx5_eval_quad.h> 
 #include <gkyl_basis_ser_6x_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvy_3x3v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvy_3x3v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
   // dxv[NDIM]:   Cell spacing.
@@ -576,4 +576,6 @@ GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvy_3x3v_ser_p1(const double *w
   out[63] += -1.224744871391589*Ghat[31]*dv11; 
 
   } 
+  return 0.;
+
 } 

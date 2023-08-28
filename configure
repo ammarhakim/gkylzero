@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Defaults
-PREFIX=${HOME}/g0g2gpu/gkylsoft-amd
+PREFIX=${HOME}/gkylsoft
 
 # default build options
 CC=cc
@@ -157,11 +157,11 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       USE_MPI="$value"
       ;;       
-   --openmpi-inc)
+   --mpi-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
       MPI_INC="$value"
       ;;
-   --openmpi-lib)
+   --mpi-lib)
       [ -n "$value" ] || die "Missing value in flag $key."
       MPI_LIB="$value"
       ;;   

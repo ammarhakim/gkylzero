@@ -1,6 +1,6 @@
 #include <dg_euleriso_diffusion_kernels.h>
 
-GKYL_CU_DH void
+GKYL_CU_DH double
 dg_euleriso_diffusion_surfz_3x_ser_p1(const double* w, const double* dx,
   const double* D_in,
   const double* uvarl, const double* uvarc, const double* uvarr,
@@ -54,4 +54,6 @@ dg_euleriso_diffusion_surfz_3x_ser_p1(const double* w, const double* dx,
   out[29] += J*((-0.5412658773652741*uvaryr[7]*mu)+0.5412658773652741*uvaryl[7]*mu-0.4375*uvarzr[5]*mu-0.4375*uvarzl[5]*mu-2.875*uvarzc[5]*mu+0.5625*uvaryr[5]*mu+0.5625*uvaryl[5]*mu-1.125*uvaryc[5]*mu-0.4375*uvarxr[5]*mu-0.4375*uvarxl[5]*mu-2.875*uvarxc[5]*mu+0.5412658773652741*uvarxr[3]*mu-0.5412658773652741*uvarxl[3]*mu+0.5412658773652741*uvarzr[1]*mu-0.5412658773652741*uvarzl[1]*mu);
   out[30] += J*((-0.5412658773652741*uvarxr[7]*mu)+0.5412658773652741*uvarxl[7]*mu-0.4375*uvarzr[6]*mu-0.4375*uvarzl[6]*mu-2.875*uvarzc[6]*mu-0.4375*uvaryr[6]*mu-0.4375*uvaryl[6]*mu-2.875*uvaryc[6]*mu+0.5625*uvarxr[6]*mu+0.5625*uvarxl[6]*mu-1.125*uvarxc[6]*mu+0.5412658773652741*uvaryr[3]*mu-0.5412658773652741*uvaryl[3]*mu+0.5412658773652741*uvarzr[2]*mu-0.5412658773652741*uvarzl[2]*mu);
   out[31] += J*((-0.4375*uvarzr[7]*mu)-0.4375*uvarzl[7]*mu-2.875*uvarzc[7]*mu-0.4375*uvaryr[7]*mu-0.4375*uvaryl[7]*mu-2.875*uvaryc[7]*mu-0.4375*uvarxr[7]*mu-0.4375*uvarxl[7]*mu-2.875*uvarxc[7]*mu+0.5412658773652741*uvarxr[6]*mu-0.5412658773652741*uvarxl[6]*mu+0.5412658773652741*uvaryr[5]*mu-0.5412658773652741*uvaryl[5]*mu+0.5412658773652741*uvarzr[4]*mu-0.5412658773652741*uvarzl[4]*mu);
+  return 0.;
+
 }

@@ -8,7 +8,7 @@
 // functions
 
 // Types for various kernels
-typedef void (*gen_diffusion_surf_t)(const double *w, const double *dx,
+typedef double (*gen_diffusion_surf_t)(const double *w, const double *dx,
   const double* D, const double *q[27],
   double* GKYL_RESTRICT out);
 
@@ -172,7 +172,7 @@ static const gkyl_dg_gen_diffusion_surf_kern_list ser_surf_zz_kernels[] = {
 void gkyl_gen_diffusion_free(const struct gkyl_ref_count* ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
   long sz_dim, const int idx[27][GKYL_MAX_DIM], const double* qIn[27],
@@ -181,7 +181,7 @@ surf(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   struct dg_gen_diffusion* gen_diffusion = container_of(eqn, struct dg_gen_diffusion, eqn);
   long cidx = gkyl_range_idx(&gen_diffusion->conf_range, idxc);
   
-  gen_diffusion->surf[dir1][dir2](xc, dxc,
+  return gen_diffusion->surf[dir1][dir2](xc, dxc,
     (const double*) gkyl_array_cfetch(gen_diffusion->auxfields.Dij, cidx), 
     qIn, qRhsOut);
 }

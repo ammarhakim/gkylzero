@@ -1,5 +1,5 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
-GKYL_CU_DH void lbo_gyrokinetic_diff_boundary_surfmu_2x2v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_gyrokinetic_diff_boundary_surfmu_2x2v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
   // w[4]: Cell-center coordinates. 
   // dxv[4]: Cell spacing. 
@@ -266,4 +266,6 @@ GKYL_CU_DH void lbo_gyrokinetic_diff_boundary_surfmu_2x2v_ser_p1(const double *w
   out[21] += (vol_incr[21]+edgeSurf_incr[21]+boundSurf_incr[21])*rdvSq4; 
   out[22] += (vol_incr[22]+edgeSurf_incr[22]+boundSurf_incr[22])*rdvSq4; 
   out[23] += (vol_incr[23]+edgeSurf_incr[23]+boundSurf_incr[23])*rdvSq4; 
+  return 0.;
+
 } 

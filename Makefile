@@ -7,7 +7,7 @@ CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
 CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP
 LDFLAGS = 
-PREFIX ?= ${HOME}/g0g2gpu/gkylsoft-amd
+PREFIX ?= ${HOME}/gkylsoft
 
 # determine OS we are running on
 UNAME = $(shell uname)

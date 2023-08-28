@@ -8,7 +8,7 @@
 // functions
 
 // Types for various kernels
-typedef void (*diffusion_surf_t)(const double *w, const double *dx,
+typedef double (*diffusion_surf_t)(const double *w, const double *dx,
   const double* D, const double *ql, const double *qc, const double *qr,
   double* GKYL_RESTRICT out);
 
@@ -152,7 +152,7 @@ static const gkyl_dg_diffusion_surf_kern_list ser_surf_z_kernels[] = {
 void gkyl_diffusion_free(const struct gkyl_ref_count* ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn* eqn, int dir,
   const double* xcL, const double* xcC, const double* xcR, 
   const double* dxL, const double* dxC, const double* dxR,
@@ -164,18 +164,18 @@ surf(const struct gkyl_dg_eqn* eqn, int dir,
   
   long cidx = gkyl_range_idx(&diffusion->conf_range, idxC);
   
-  diffusion->surf[dir](xcC, dxC,
+  return diffusion->surf[dir](xcC, dxC,
     (const double*) gkyl_array_cfetch(diffusion->auxfields.D, cidx), 
     qInL, qInC, qInR, qRhsOut);
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   const double* xcEdge, const double* xcSkin,
   const double* dxEdge, const double* dxSkin,
   const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
-{
-  
+{ 
+  return 0.;
 }
