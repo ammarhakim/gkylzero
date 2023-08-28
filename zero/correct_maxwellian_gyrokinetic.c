@@ -24,7 +24,7 @@ struct gkyl_correct_maxwellian_gyrokinetic
   struct gkyl_rect_grid grid;
   struct gkyl_basis conf_basis, phase_basis;
 
-  struct gkyl_array *bmag, *jacob_tot;  
+  const struct gkyl_array *bmag, *jacob_tot;  
   struct gkyl_array *m0_in, *m0, *m0scl;
   struct gkyl_array *m12_in, *m12, *dm12, *ddm12;
   struct gkyl_array *moms;
@@ -47,17 +47,9 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const
   up->grid = *grid;
   up->conf_basis = *conf_basis;
   up->phase_basis = *phase_basis;
-
-  up->bmag = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->jacob_tot = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  if (use_gpu) {
-    gkyl_array_copy(up->bmag, bmag);
-    gkyl_array_copy(up->jacob_tot, jacob_tot);
-  } else {
-    up->bmag = bmag;
-    up->jacob_tot = jacob_tot;
-  }
-
+  up->bmag = bmag;
+  up->jacob_tot = jacob_tot;
+  
   // Allocate memory
   up->m0_in = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
   up->m0 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
@@ -187,8 +179,6 @@ gkyl_correct_maxwellian_gyrokinetic_release(gkyl_correct_maxwellian_gyrokinetic*
     gkyl_cu_free(up->err1_cu);
     gkyl_cu_free(up->err2_cu);
   }
-  gkyl_array_release(up->bmag);
-  gkyl_array_release(up->jacob_tot);
   gkyl_array_release(up->m0_in);
   gkyl_array_release(up->m0);
   gkyl_array_release(up->m0scl);
