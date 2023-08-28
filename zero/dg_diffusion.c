@@ -50,6 +50,7 @@ gkyl_dg_diffusion_new(const struct gkyl_basis *basis,
   struct dg_diffusion *diffusion = gkyl_malloc(sizeof(struct dg_diffusion));
 
   int cdim = cbasis->ndim;
+  int vdim = basis->ndim - cdim;
   int poly_order = cbasis->poly_order;
 
   int num_equations = 1;
@@ -75,20 +76,38 @@ gkyl_dg_diffusion_new(const struct gkyl_basis *basis,
   const gkyl_dg_diffusion_boundary_surf_kern_list *boundary_surfy_kernels;
   const gkyl_dg_diffusion_boundary_surf_kern_list *boundary_surfz_kernels; 
 
-  switch (cbasis->b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      vol_kernels            = diffusion->const_coeff? ser_vol_kernels_constcoeff            : ser_vol_kernels_varcoeff           ;
-      surfx_kernels          = diffusion->const_coeff? ser_surfx_kernels_constcoeff          : ser_surfx_kernels_varcoeff         ;
-      surfy_kernels          = diffusion->const_coeff? ser_surfy_kernels_constcoeff          : ser_surfy_kernels_varcoeff         ;
-      surfz_kernels          = diffusion->const_coeff? ser_surfz_kernels_constcoeff          : ser_surfz_kernels_varcoeff         ;
-      boundary_surfx_kernels = diffusion->const_coeff? ser_boundary_surfx_kernels_constcoeff : ser_boundary_surfx_kernels_varcoeff;
-      boundary_surfy_kernels = diffusion->const_coeff? ser_boundary_surfy_kernels_constcoeff : ser_boundary_surfy_kernels_varcoeff;
-      boundary_surfz_kernels = diffusion->const_coeff? ser_boundary_surfz_kernels_constcoeff : ser_boundary_surfz_kernels_varcoeff;
-      break;
-
-    default:
-      assert(false);
-      break;    
+  if ((diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_VLASOV) || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_VAR_VLASOV)) {
+    switch (cbasis->b_type) {
+      case GKYL_BASIS_MODAL_SERENDIPITY:
+        vol_kernels            = diffusion->const_coeff? ser_vol_kernels_constcoeff                   : ser_vol_kernels_varcoeff                  ;
+        surfx_kernels          = diffusion->const_coeff? ser_vlasov_surfx_kernels_constcoeff          : ser_vlasov_surfx_kernels_varcoeff         ;
+        surfy_kernels          = diffusion->const_coeff? ser_vlasov_surfy_kernels_constcoeff          : ser_vlasov_surfy_kernels_varcoeff         ;
+        surfz_kernels          = diffusion->const_coeff? ser_vlasov_surfz_kernels_constcoeff          : ser_vlasov_surfz_kernels_varcoeff         ;
+        boundary_surfx_kernels = diffusion->const_coeff? ser_vlasov_boundary_surfx_kernels_constcoeff : ser_vlasov_boundary_surfx_kernels_varcoeff;
+        boundary_surfy_kernels = diffusion->const_coeff? ser_vlasov_boundary_surfy_kernels_constcoeff : ser_vlasov_boundary_surfy_kernels_varcoeff;
+        boundary_surfz_kernels = diffusion->const_coeff? ser_vlasov_boundary_surfz_kernels_constcoeff : ser_vlasov_boundary_surfz_kernels_varcoeff;
+        break;
+  
+      default:
+        assert(false);
+        break;    
+    } 
+  } else {
+    switch (cbasis->b_type) {
+      case GKYL_BASIS_MODAL_SERENDIPITY:
+        vol_kernels            = diffusion->const_coeff? ser_vol_kernels_constcoeff            : ser_vol_kernels_varcoeff           ;
+        surfx_kernels          = diffusion->const_coeff? ser_surfx_kernels_constcoeff          : ser_surfx_kernels_varcoeff         ;
+        surfy_kernels          = diffusion->const_coeff? ser_surfy_kernels_constcoeff          : ser_surfy_kernels_varcoeff         ;
+        surfz_kernels          = diffusion->const_coeff? ser_surfz_kernels_constcoeff          : ser_surfz_kernels_varcoeff         ;
+        boundary_surfx_kernels = diffusion->const_coeff? ser_boundary_surfx_kernels_constcoeff : ser_boundary_surfx_kernels_varcoeff;
+        boundary_surfy_kernels = diffusion->const_coeff? ser_boundary_surfy_kernels_constcoeff : ser_boundary_surfy_kernels_varcoeff;
+        boundary_surfz_kernels = diffusion->const_coeff? ser_boundary_surfz_kernels_constcoeff : ser_boundary_surfz_kernels_varcoeff;
+        break;
+  
+      default:
+        assert(false);
+        break;    
+    } 
   } 
 
   diffusion->num_equations = num_equations;
@@ -112,19 +131,19 @@ gkyl_dg_diffusion_new(const struct gkyl_basis *basis,
 
   diffusion->eqn.vol_term = CKVOL(vol_kernels, cdim, diff_order, poly_order, dirs_linidx);
 
-  diffusion->surf[0] = CKSURF(surfx_kernels, diff_order, cdim, poly_order);
+  diffusion->surf[0] = CKSURF(surfx_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
   if (cdim>1)
-    diffusion->surf[1] = CKSURF(surfy_kernels, diff_order, cdim, poly_order);
+    diffusion->surf[1] = CKSURF(surfy_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
   if (cdim>2)
-    diffusion->surf[2] = CKSURF(surfz_kernels, diff_order, cdim, poly_order);
+    diffusion->surf[2] = CKSURF(surfz_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
 
-  diffusion->boundary_surf[0] = CKSURF(boundary_surfx_kernels, diff_order, cdim, poly_order);
+  diffusion->boundary_surf[0] = CKSURF(boundary_surfx_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
   if (cdim>1)
-    diffusion->boundary_surf[1] = CKSURF(boundary_surfy_kernels, diff_order, cdim, poly_order);
+    diffusion->boundary_surf[1] = CKSURF(boundary_surfy_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
   if (cdim>2)
-    diffusion->boundary_surf[2] = CKSURF(boundary_surfz_kernels, diff_order, cdim, poly_order);
+    diffusion->boundary_surf[2] = CKSURF(boundary_surfz_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
 
-  // ensure non-NULL pointers
+  // Ensure non-NULL pointers.
   for (int i=0; i<cdim; ++i) assert(diffusion->surf[i]);
 
   diffusion->auxfields.D = 0;
