@@ -79,6 +79,15 @@ psibyr2(double t, const double *xn, double *fout, void *ctx)
   fout[0] = fout[0]/R/R;
 }
 
+void
+bphi_func(double t, const double *xn, double *fout, void *ctx)
+{
+  struct solovev_ctx *s = ctx;
+  double B0 = s->B0, R0 = s->R0, k = s->k, q0 = s->q0;
+  double R = xn[0];
+  fout[0] = B0*R0/R;
+}
+
 
 void mapc2p(double t, const double *xn, double* fout, void *ctx)
 {
@@ -139,6 +148,7 @@ test_1()
       .psiRZ = psiRZ,
       .rzlocal = &rzlocal,
       .B0 = sctx.B0,
+      .R0 = sctx.R0,
 
       .quad_param = {  .eps = 1e-12 }
     }
@@ -151,9 +161,11 @@ test_1()
   // Computational grid: theta X psi X alpha (only 2D for now)
   //double clower[] = { -M_PI + 1e-10, 0.06, -1.0 };
   //double cupper[] = { M_PI, 0.1, 1.0 };
-  double clower[] = { -2.5, 0.06, -0.1 };
-  double cupper[] = { 2.5, 0.1, 0.1 };
-  int ccells[] = { 16, 16, 1 };
+
+  //double clower[] = { -2.5, 0.05263235294117646 + 0.000001, -0.1 };
+  double clower[] = { -2.5, 0.06, -0.01 };
+  double cupper[] = { 2.5, 0.1, 0.01 };
+  int ccells[] = { 32,32, 1 };
 
 
 
@@ -230,6 +242,11 @@ test_1()
   gkyl_eval_on_nodes_advance(eval_psibyr2, 0.0, &rzlocal_ext, psibyr2dg); //on ghosts with ext_range
   printf("made the psi arays\n");
 
+  gkyl_eval_on_nodes *eval_bphi= gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, bphi_func, &sctx);
+  struct gkyl_array* bphidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+  gkyl_eval_on_nodes_advance(eval_bphi, 0.0, &rzlocal_ext, bphidg); //on ghosts with ext_range
+  printf("made the Bphi array\n");
+
   //make bmag
   struct gkyl_array* bmagdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
 
@@ -263,8 +280,10 @@ test_1()
   //printf("done testing a fetch\n");
 
 
-  gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, psidg, psibyrdg, psibyr2dg, bmagFld, mapc2p_arr);
+  gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, psidg, psibyrdg, psibyr2dg, bphidg, bmagFld, mapc2p_arr);
   printf("advanced bmag calculator\n");
+
+
 
   char fileNm[1024];
   do{
@@ -272,6 +291,13 @@ test_1()
     const char *fmt = "%s_compbmag.gkyl";
     snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
+  } while (0);
+
+  do{
+    printf("writing the bphi file \n");
+    const char *fmt = "%s_bphi.gkyl";
+    snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+    gkyl_grid_sub_array_write(&rzgrid, &rzlocal, bphidg, fileNm);
   } while (0);
 
 
@@ -334,6 +360,14 @@ test_1()
       const char *fmt = "%s_gij.gkyl";
       snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, grFld, fileNm);
+    } while (0);
+
+
+    do{
+      printf("writing the b_i file \n");
+      const char *fmt = "%s_bi.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+      gkyl_grid_sub_array_write(&cgrid, &clocal, biFld, fileNm);
     } while (0);
 
 

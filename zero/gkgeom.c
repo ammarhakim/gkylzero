@@ -25,6 +25,7 @@ struct gkyl_gkgeom {
 
   struct gkyl_gkgeom_stat stat; 
   double B0;
+  double R0;
 };
 
 // some helper functions
@@ -383,7 +384,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
   double R[2] = {0};
   double dR[2] = {0};
   int nr = R_psiZ(actx->geo, psi, Z, 2, R, dR);
-  double Bphi = actx->geo->B0/R[0];
+  double Bphi = actx->geo->B0*actx->geo->R0/R[0];
   ival = ival*R[0]*Bphi;
 
   // now keep in range 2pi
@@ -404,6 +405,7 @@ gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
   struct gkyl_gkgeom *geo = gkyl_malloc(sizeof(*geo));
 
   geo->B0 = inp->B0;
+  geo->R0 = inp->R0;
 
   geo->rzgrid = *inp->rzgrid;
   geo->psiRZ = gkyl_array_acquire(inp->psiRZ);
@@ -645,6 +647,7 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
       double zmin = inp->zmin, zmax = inp->zmax;
 
       double psi_curr = phi_lo + ip*dphi;
+      printf("psi_curr = %g\n", psi_curr);
       double arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose,
         true, true, arc_memo);
 

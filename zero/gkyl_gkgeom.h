@@ -21,6 +21,7 @@ struct gkyl_gkgeom_inp {
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
   const struct gkyl_range *rzlocal; // local range over which psiRZ is defined
   double B0; // Toroidal Field on axis
+  double R0; // Axis
 
   // Parameters for root finder: leave unset to use defaults
   struct {

@@ -3,7 +3,7 @@
 #include <gkyl_calc_bmag_kernels.h>
 #include <assert.h>
 
-typedef void (*bmag_kernel)( const double **psibyr, const double *psibyr2, double *bmagout, double scale_factorR, double scale_factorZ);
+typedef void (*bmag_kernel)( const double **psibyr, const double *psibyr2, const double *bphi, double *bmagout, double scale_factorR, double scale_factorZ);
 
 typedef struct { bmag_kernel kernels[3]; } bmag_kernel_list;  // For use in kernel tables.
 

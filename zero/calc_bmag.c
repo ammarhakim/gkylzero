@@ -72,7 +72,7 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
 
 void
 gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext,
-     const struct gkyl_range *prange, const struct gkyl_range *prange_ext, struct gkyl_array *psidg, struct gkyl_array *psibyrdg, struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, struct gkyl_array* mapc2p)
+     const struct gkyl_range *prange, const struct gkyl_range *prange_ext, struct gkyl_array *psidg, struct gkyl_array *psibyrdg, struct gkyl_array *psibyr2dg, struct gkyl_array *bphidg, struct gkyl_array* bmag_compdg, struct gkyl_array* mapc2p)
 {
   //First Stage is use psidg, psibydg, psibyr2dg to create bmagdg = B(R,Z) continuous
   struct gkyl_array* bmagdg = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
@@ -84,6 +84,7 @@ gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange
     long loc = gkyl_range_idx(prange, iter.idx);
     double *bmag_i = gkyl_array_fetch(bmagdg, loc);
     double *psibyr2_i= gkyl_array_fetch(psibyr2dg, loc);
+    double *bphi_i= gkyl_array_fetch(bphidg, loc);
     psibyrall[0] = gkyl_array_cfetch(psibyrdg,loc);
     int count = 1;
     int idx_temp[2] = {iter.idx[0], iter.idx[1]};
@@ -99,7 +100,7 @@ gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange
     }
     double scale_factorR = 2.0/(up->pgrid->dx[0]);
     double scale_factorZ = 2.0/(up->pgrid->dx[1]);
-    up->kernel(psibyrall,psibyr2_i, bmag_i, scale_factorR, scale_factorZ);
+    up->kernel(psibyrall,psibyr2_i, bphi_i, bmag_i, scale_factorR, scale_factorZ);
   }
 
   //Second stage is to convert bmag into computational coordinates
