@@ -69,6 +69,71 @@ void test_range_shift()
   }
 }
 
+void test_range_iter_init_next()
+{
+  // Test 1D range
+  int lower1d[] = {1}, upper1d[] = {17};
+  struct gkyl_range range1d;
+  gkyl_range_init(&range1d, 1, lower1d, upper1d);
+
+  struct gkyl_range_iter iter1d;
+  gkyl_range_iter_init(&iter1d, &range1d);
+  int idx1d[] = {lower1d[0]-1};
+  while (gkyl_range_iter_next(&iter1d)) {
+    idx1d[0] += 1;
+    TEST_CHECK( iter1d.idx[0] == idx1d[0] );
+  }
+
+  // Test 2D range
+  int lower2d[] = {1,1}, upper2d[] = {17,6};
+  struct gkyl_range range2d;
+  gkyl_range_init(&range2d, 2, lower2d, upper2d);
+
+  struct gkyl_range_iter iter2d;
+  gkyl_range_iter_init(&iter2d, &range2d);
+  int linc = 0;
+  while (gkyl_range_iter_next(&iter2d)) {
+    // Assume row-major order.
+    int idx2d[2];
+    idx2d[0] = lower2d[0]+linc/(upper2d[1]-lower2d[1]+1);
+    idx2d[1] = linc+lower2d[1] - (idx2d[0]-1)*(upper2d[1]-lower2d[1]+1);
+    TEST_CHECK( iter2d.idx[0] == idx2d[0] );
+    TEST_CHECK( iter2d.idx[1] == idx2d[1] );
+    TEST_MSG("Expected: %d,%d | Got: %d,%d", iter2d.idx[0], iter2d.idx[1], idx2d[0], idx2d[1]);
+    linc += 1;
+  }
+
+  // Test that we can create 2D ranges with lower>upper.
+  int lower2d_empty0[] = {18,1}, upper2d_empty0[] = {17,6};
+  struct gkyl_range range2d_empty0;
+  gkyl_range_init(&range2d_empty0, 2, lower2d_empty0, upper2d_empty0);
+  struct gkyl_range_iter iter2d_empty0;
+  gkyl_range_iter_init(&iter2d_empty0, &range2d_empty0);
+  while (gkyl_range_iter_next(&iter2d_empty0)) TEST_CHECK(false); // Shouldn't be in here.
+
+  int lower2d_empty1[] = {28,1}, upper2d_empty1[] = {17,6};
+  struct gkyl_range range2d_empty1;
+  gkyl_range_init(&range2d_empty1, 2, lower2d_empty1, upper2d_empty1);
+  struct gkyl_range_iter iter2d_empty1;
+  gkyl_range_iter_init(&iter2d_empty1, &range2d_empty1);
+  while (gkyl_range_iter_next(&iter2d_empty1)) TEST_CHECK(false); // Shouldn't be in here.
+
+  int lower2d_empty2[] = {1,7}, upper2d_empty2[] = {17,6};
+  struct gkyl_range range2d_empty2;
+  gkyl_range_init(&range2d_empty2, 2, lower2d_empty2, upper2d_empty2);
+  struct gkyl_range_iter iter2d_empty2;
+  gkyl_range_iter_init(&iter2d_empty2, &range2d_empty2);
+  while (gkyl_range_iter_next(&iter2d_empty2)) TEST_CHECK(false); // Shouldn't be in here.
+
+  int lower2d_empty3[] = {1,27}, upper2d_empty3[] = {17,6};
+  struct gkyl_range range2d_empty3;
+  gkyl_range_init(&range2d_empty3, 2, lower2d_empty3, upper2d_empty3);
+  struct gkyl_range_iter iter2d_empty3;
+  gkyl_range_iter_init(&iter2d_empty3, &range2d_empty3);
+  while (gkyl_range_iter_next(&iter2d_empty3)) TEST_CHECK(false); // Shouldn't be in here.
+
+}
+
 void test_sub_range()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
@@ -999,6 +1064,7 @@ TEST_LIST = {
   { "range_shift", test_range_shift },
   { "range_shape",  test_range_shape },
   { "sub_range",  test_sub_range },
+  { "range_iter_init_next", test_range_iter_init_next},
   { "sub_sub_range",  test_sub_sub_range },
   { "sub_range_inv_idx",  test_sub_range_inv_idx },
   { "shorten", test_shorten },
