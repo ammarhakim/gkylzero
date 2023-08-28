@@ -756,6 +756,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_array_release(s->pkpm_p_ij_surf);
     gkyl_array_release(s->pkpm_lax);
     gkyl_array_release(s->pkpm_accel);
+    gkyl_array_release(s->integ_pkpm_mom);
+    gkyl_array_release(s->fluid_io);
+    gkyl_array_release(s->pkpm_vars_io);
     gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars);
     gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars_ext);
     gkyl_dg_calc_pkpm_dist_vars_release(s->calc_pkpm_dist_vars);
