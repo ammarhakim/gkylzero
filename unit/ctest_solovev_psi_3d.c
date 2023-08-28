@@ -345,6 +345,14 @@ test_1()
   printf("made the j calculator \n");
   gkyl_calc_derived_geo_advance( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld);
   
+
+  do{
+    printf("writing the  second comp bmag file \n");
+    const char *fmt = "%s_compbmag2.gkyl";
+    snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+    gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
+  } while (0);
+
     do{
       printf("writing the j file \n");
       const char *fmt = "%s_j.gkyl";

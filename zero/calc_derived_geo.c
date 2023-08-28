@@ -16,6 +16,7 @@ gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid
   up->grid = grid;
   up->use_gpu = use_gpu;
   up->kernel = derived_geo_choose_kernel(up->cdim, cbasis->b_type, up->poly_order);
+  up->adjustment_kernel = adjust_bmag_choose_kernel(up->cdim, cbasis->b_type, up->poly_order);
   return up;
 }
 
@@ -24,6 +25,43 @@ void
 gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange, struct gkyl_array *gFld, struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld, struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld)
 {
   struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, crange);
+  while (gkyl_range_iter_next(&iter)) {
+    //printf("iter.idx = %d,%d,%d\n", iter.idx[0],iter.idx[1],iter.idx[2]);
+    long loc = gkyl_range_idx(crange, iter.idx);
+    const double *gij = gkyl_array_cfetch(gFld, loc);
+    const double *bmag_i = gkyl_array_cfetch(bmagFld, loc);
+    double *j_i = gkyl_array_fetch(jFld, loc);
+    double *jinv_i = gkyl_array_fetch(jinvFld, loc);
+    double *grij = gkyl_array_fetch(grFld, loc);
+    double *bi_i = gkyl_array_fetch(biFld, loc);
+    double *cmag_i = gkyl_array_fetch(cmagFld, loc);
+    up->kernel(gij, bmag_i, j_i, jinv_i, grij, bi_i, cmag_i);
+    //printf("gij[1] = %g\n",gij[1]);
+    //printf("j[1] = %g\n",j_i[0]);
+  }
+
+  struct gkyl_range_iter cmag_iter;
+  gkyl_range_iter_init(&iter, crange);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(crange, iter.idx);
+    double *bmag_i = gkyl_array_fetch(bmagFld, loc); // bmag we want to change
+    const double *j_i = gkyl_array_cfetch(jFld, loc);
+    const double *gij_i = gkyl_array_cfetch(gFld, loc);
+    const double *gzz_i = &gij_i[5*up->cnum_basis];
+
+    cmag_iter.idx[0] = iter.idx[0];
+    for(int i = 1; i <up->cdim; i++)
+      cmag_iter.idx[i] = (crange->upper[i] - crange->lower[i])/2 + 1;
+    long cmag_loc = gkyl_range_idx(crange, cmag_iter.idx);
+
+    const double *cmag_i = gkyl_array_cfetch(cmagFld, cmag_loc); // cmag we want for yz plane
+    // now call a kernel that takes j, gzz, and cmag as inputs and calculates bmag
+    up->adjustment_kernel(cmag_i, gzz_i, j_i, bmag_i);
+
+  }
+
+  // recalculate the rest now
   gkyl_range_iter_init(&iter, crange);
   while (gkyl_range_iter_next(&iter)) {
     //printf("iter.idx = %d,%d,%d\n", iter.idx[0],iter.idx[1],iter.idx[2]);
