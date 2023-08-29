@@ -181,8 +181,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     else if (f->lower_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
-    f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
-      app->basis_on_dev.confBasis, f->em->ncomp, app->cdim, app->use_gpu);
+    f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
+      &app->skin_ghost.lower_skin[d], &app->skin_ghost.lower_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_FIELD_COPY)
@@ -194,8 +194,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     else if (f->upper_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
-    f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
-      app->basis_on_dev.confBasis, f->em->ncomp, app->cdim, app->use_gpu);
+    f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
+      &app->skin_ghost.upper_skin[d], &app->skin_ghost.upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
   }
 
   gkyl_dg_eqn_release(eqn);

@@ -21,7 +21,6 @@ extern "C" {
 static void
 gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
 {
-  int volume = range.volume;
   int ndim = range.ndim;
   // ac1 = size of last dimension of range (fastest moving dimension)
   int ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
@@ -30,7 +29,7 @@ gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_rang
   dimBlock->y = GKYL_MIN(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
   dimGrid->y = gkyl_int_div_up(ncomp*ac1, dimBlock->y);
   dimBlock->x = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ncomp*ac1);
-  dimGrid->x = gkyl_int_div_up(volume, ac1*dimBlock->x);
+  dimGrid->x = gkyl_int_div_up(range.volume, ac1*dimBlock->x);
 }
 
 __global__ void
@@ -656,11 +655,13 @@ void
 gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
   const struct gkyl_array *inp, struct gkyl_range *out_range, struct gkyl_range *inp_range)
 {
-  dim3 dimGrid, dimBlock;
-  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *inp_range, out->ncomp);
+  if (inp_range->volume > 0) {
+    dim3 dimGrid, dimBlock;
+    gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *inp_range, out->ncomp);
 
-  gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
-    inp->on_dev, *out_range, *inp_range);
+    gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
+      inp->on_dev, *out_range, *inp_range);
+  }
 }
 
 void 
@@ -689,23 +690,27 @@ void
 gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
   struct gkyl_range range, struct gkyl_array_copy_func *cf)
 {
-  int nblocks = range.nblocks;
-  int nthreads = range.nthreads;
+  if (range.volume > 0) {
+    int nblocks = range.nblocks;
+    int nthreads = range.nthreads;
 
-  gkyl_array_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(
-    data, arr->on_dev, range, cf);
+    gkyl_array_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(
+      data, arr->on_dev, range, cf);
+  }
 }
 
 void
 gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
   int dir, struct gkyl_range range, struct gkyl_array_copy_func *cf)
 {
-  int nblocks = range.nblocks;
-  int nthreads = range.nthreads;
+  if (range.volume > 0) {
+    int nblocks = range.nblocks;
+    int nthreads = range.nthreads;
 
-  struct gkyl_range buff_range;
-  gkyl_range_init(&buff_range, range.ndim, range.lower, range.upper);
+    struct gkyl_range buff_range;
+    gkyl_range_init(&buff_range, range.ndim, range.lower, range.upper);
   
-  gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data,
-    arr->on_dev, dir, range, buff_range, cf);
+    gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data,
+      arr->on_dev, dir, range, buff_range, cf);
+  }
 }

@@ -555,6 +555,7 @@ void test_range_deflate()
   struct gkyl_range range;
   gkyl_range_init(&range, 3, lower, upper);
 
+  // Remove last dimension.
   int remDir[] = {0, 0, 1}, locDir[] = {0, 0, lower[2]};
   struct gkyl_range defr;
   gkyl_range_deflate(&defr, &range, remDir, locDir);
@@ -570,13 +571,26 @@ void test_range_deflate()
   TEST_CHECK( defr.lower[1] == lower[1] );
   TEST_CHECK( defr.upper[1] == upper[1] );
 
-  int idx[3]; idx[2] = lower[2];
+  int idx[3]; idx[2] = locDir[2];
 
-  // loop over deflated region
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &defr);
-  while (gkyl_range_iter_next(&iter)) {
+  while (gkyl_range_iter_next(&iter)) {  // loop over deflated region.
     idx[0] = iter.idx[0]; idx[1] = iter.idx[1];
+    TEST_CHECK(
+      gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
+    );
+  }
+
+  // Remove first dimension.
+  remDir[0] = 1; remDir[1] = 0; remDir[2] = 0;
+  locDir[0] = 3; locDir[1] = 0; locDir[2] = 0;
+  gkyl_range_deflate(&defr, &range, remDir, locDir);
+
+  idx[0] = locDir[0];
+  gkyl_range_iter_init(&iter, &defr);
+  while (gkyl_range_iter_next(&iter)) {  // loop over deflated region
+    idx[1] = iter.idx[0]; idx[2] = iter.idx[1];
     TEST_CHECK(
       gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
     );
@@ -593,10 +607,9 @@ void test_range_deflate()
   TEST_CHECK( defr.lower[0] == lower[0] );
   TEST_CHECK( defr.upper[0] == upper[0] );
   
-  idx[1] = upper[1]; idx[2] = lower[2];
-  // loop over deflated region
+  idx[1] = locDir[1]; idx[2] = locDir[2];
   gkyl_range_iter_init(&iter, &defr);
-  while (gkyl_range_iter_next(&iter)) {
+  while (gkyl_range_iter_next(&iter)) {  // loop over deflated region
     idx[0] = iter.idx[0];
     TEST_CHECK(
       gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
@@ -612,9 +625,8 @@ void test_range_deflate()
   TEST_CHECK( defr.volume == 1 );
   
   idx[0] = 5; idx[1] = upper[1]; idx[2] = lower[2];
-  // loop over deflated region
   gkyl_range_iter_init(&iter, &defr);
-  while (gkyl_range_iter_next(&iter)) {
+  while (gkyl_range_iter_next(&iter)) {  // loop over deflated region
     TEST_CHECK(
       gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
     );

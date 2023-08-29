@@ -277,13 +277,13 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_PKPM_MOM_NO_SLIP;
     }
 
-    f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
-                                    app->basis_on_dev.confBasis, f->fluid->ncomp, app->cdim, app->use_gpu);
-    f->bc_u_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
-                                    app->basis_on_dev.confBasis, f->u->ncomp, app->cdim, app->use_gpu);
+    f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
+      &app->skin_ghost.lower_skin[d], &app->skin_ghost.lower_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
+    f->bc_u_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
+      &app->skin_ghost.lower_skin[d], &app->skin_ghost.lower_ghost[d], f->u->ncomp, app->cdim, app->use_gpu);
     if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM)
-      f->bc_p_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, &app->local_ext, ghost, bctype,
-                                      app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu);
+      f->bc_p_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
+        &app->skin_ghost.lower_skin[d], &app->skin_ghost.lower_ghost[d], f->p->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_SPECIES_COPY) {
@@ -300,13 +300,13 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_PKPM_MOM_NO_SLIP;
     }
 
-    f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
-                                    app->basis_on_dev.confBasis, f->fluid->ncomp, app->cdim, app->use_gpu);
-    f->bc_u_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
-                                    app->basis_on_dev.confBasis, f->u->ncomp, app->cdim, app->use_gpu);
+    f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
+      &app->skin_ghost.upper_skin[d], &app->skin_ghost.upper_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
+    f->bc_u_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
+      &app->skin_ghost.upper_skin[d], &app->skin_ghost.upper_ghost[d], f->u->ncomp, app->cdim, app->use_gpu);
     if (f->eqn_id == GKYL_EQN_EULER || f->eqn_id == GKYL_EQN_EULER_PKPM)
-      f->bc_p_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, &app->local_ext, ghost, bctype,
-                                      app->basis_on_dev.confBasis, f->p->ncomp, app->cdim, app->use_gpu);
+      f->bc_p_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
+        &app->skin_ghost.upper_skin[d], &app->skin_ghost.upper_ghost[d], f->p->ncomp, app->cdim, app->use_gpu);
   }
 }
 
