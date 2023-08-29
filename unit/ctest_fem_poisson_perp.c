@@ -440,7 +440,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
   gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol);
 
   // FEM poisson solver.
-  gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&grid, basis, &bcs, eps, NULL, use_gpu);
+  struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, eps, NULL, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
