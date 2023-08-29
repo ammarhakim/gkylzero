@@ -58,7 +58,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   }
   // Range of parallel cells.
   int sublower[GKYL_MAX_CDIM], subupper[GKYL_MAX_CDIM];
-  for (int d=0; d<PERP_DIM; d++) {
+  for (int d=0; d<up->ndim; d++) {
     sublower[d] = up->solve_range->lower[d];
     subupper[d] = up->solve_range->lower[d];
   }
