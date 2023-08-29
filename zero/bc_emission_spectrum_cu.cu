@@ -125,9 +125,9 @@ gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(const struct gkyl_array *f_p
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < buff_r.volume; tid += blockDim.x*gridDim.x) {
-    
-    gkyl_sub_range_inv_idx(&buff_r, tid, pidx);
 
+    gkyl_sub_range_inv_idx(&buff_r, tid, pidx);
+    
     // get conf-space linear index.
     for (unsigned int i = 0; i < conf_r.ndim; i++)
       cidx[i] = pidx[i];
@@ -140,10 +140,9 @@ gkyl_bc_emission_spectrum_advance_cu_accumulate_ker(const struct gkyl_array *f_p
     const double* bflux = (const double*) gkyl_array_cfetch(flux, lincC);
     double* fac = (double*) gkyl_array_fetch(k, lincC);
     double* out = (double*) gkyl_array_fetch(f_buff, lincP);
-
     double effective_gamma = w[0]/w[1];
     funcs->norm(fac, bflux, bc_param, effective_gamma);
-
+    
     for (int c=0; c<f_proj->ncomp; ++c)
       out[c] += fac[0]*inp[c];
   }
@@ -171,5 +170,8 @@ gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
 
   gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, up->edge, f_skin->on_dev, weight->on_dev, *grid, gamma->on_dev, *skin_r, *ghost_r, *conf_r, up->funcs_cu, up->bc_param_cu);
 
-  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(f_proj->on_dev, f_buff->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *buff_r, *conf_r, up->funcs_cu, up->bc_param_cu);
+  nblocks = buff_r->nblocks;
+  nthreads = buff_r->nthreads;
+
+  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(f_proj->on_dev, f_buff->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *ghost_r, *conf_r, up->funcs_cu, up->bc_param_cu);
 }
