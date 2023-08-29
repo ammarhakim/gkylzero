@@ -66,7 +66,6 @@ struct gkyl_bc_sheath_gyrokinetic {
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels;  // reflectedf kernel.
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels_cu;  // device copy.
   const struct gkyl_rect_grid *grid;
-  bool valid_range;
   const struct gkyl_range *skin_r, *ghost_r;
 };
 

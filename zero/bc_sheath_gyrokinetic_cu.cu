@@ -96,9 +96,10 @@ void
 gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r)
 {
-  int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
+  if (up->skin_r->volume > 0)
+    int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
 
-  if (up->valid_range)
     gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, *up->skin_r, *up->ghost_r,
       *conf_r, up->basis, *up->grid, up->q2Dm, phi->on_dev, phi_wall->on_dev, up->kernels_cu, distf->on_dev);
+  }
 }

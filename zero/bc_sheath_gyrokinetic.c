@@ -22,9 +22,6 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
 
-  up->valid_range = true;
-  for (size_t d=0; d<up->skin_r->ndim; d++) up->valid_range = up->valid_range && (up->skin_r->lower[d] <= up->skin_r->upper[d]);
-
   // Choose the kernel that does the reflection/no reflection/partial
   // reflection.
   up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));

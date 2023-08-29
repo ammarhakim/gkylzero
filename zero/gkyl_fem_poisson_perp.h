@@ -17,7 +17,6 @@
 // Object type
 typedef struct gkyl_fem_poisson_perp gkyl_fem_poisson_perp;
 
-
 /**
  * Create new updater to solve the Helmholtz problem
  *   - nabla . (epsilon * nabla phi) - kSq * phi = rho

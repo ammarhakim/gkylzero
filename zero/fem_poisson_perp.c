@@ -2,8 +2,6 @@
 #include <gkyl_fem_poisson_perp_priv.h>
 
 struct gkyl_fem_poisson_perp*
-//gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-//  struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon, struct gkyl_array *kSq, bool use_gpu)
 gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
   const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon,
   struct gkyl_array *kSq, bool use_gpu)
