@@ -10,6 +10,9 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     .nfluids = app->num_species,
     // if there is a field, need to update electric field too, otherwise just updating fluid
     .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
+    // linear ramping function for slowing turning on applied accelerations, E fields, or currents
+    .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
+    .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0,
   };
 
   for (int i=0; i<app->num_species; ++i)
@@ -109,7 +112,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   for (int i=0; i<app->num_species; ++i)
     rhs_const[i] = src->rhs[i];
 
-  gkyl_moment_em_coupling_advance(src->slvr, dt, &app->local,
+  gkyl_moment_em_coupling_advance(src->slvr, tcurr, dt, &app->local,
     fluids, app_accels, rhs_const, 
     app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em);
 
