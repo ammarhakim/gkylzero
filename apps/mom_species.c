@@ -212,6 +212,17 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->proj_app_accel = 0;
   if (mom_sp->app_accel_func)
     sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, 3, mom_sp->app_accel_func, sp->ctx);
+
+  sp->nT_source = mkarr(false, 2, app->local_ext.volume);
+  sp->nT_source_is_set = false;
+  sp->proj_nT_source = 0;
+  if (mom_sp->nT_source_func)
+  {
+    sp->proj_nT_source = gkyl_fv_proj_new(
+        &app->grid, 2, 2, mom_sp->nT_source_func, sp->ctx);
+    sp->nT_source_set_only_once = mom_sp->nT_source_set_only_once;
+  }
+
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
   // compute buffer size needed
@@ -393,6 +404,10 @@ moment_species_release(const struct moment_species *sp)
   gkyl_array_release(sp->app_accel);
   if (sp->proj_app_accel)
     gkyl_fv_proj_release(sp->proj_app_accel);
+
+  gkyl_array_release(sp->nT_source);
+  if (sp->proj_nT_source)
+    gkyl_fv_proj_release(sp->proj_nT_source);
 
   gkyl_array_release(sp->bc_buffer);
 
