@@ -66,14 +66,6 @@ struct vm_species_moment {
   bool use_gpu; // should we use GPU (if present)
   struct gkyl_dg_updater_moment *mcalc; // moment update
 
-  // Special relativistic Vlasov arrays
-  struct gkyl_array *p_over_gamma; // array for p/gamma (velocity) 
-  struct gkyl_array *gamma; // array for gamma = sqrt(1 + p^2) 
-  struct gkyl_array *gamma_inv; // array for gamma = 1.0/sqrt(1 + p^2) 
-  struct gkyl_array *V_drift; // bulk fluid velocity (computed from M0*V_drift = M1i with weak division)
-  struct gkyl_array *GammaV2; // Gamma^2 = 1/(1 - V_drift^2/c^2), Lorentz boost factor squared from bulk fluid velocity
-  struct gkyl_array *GammaV_inv; // Gamma_inv = sqrt(1 - V_drift^2/c^2), inverse Lorentz boost factor from bulk fluid velocity
-
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
 };

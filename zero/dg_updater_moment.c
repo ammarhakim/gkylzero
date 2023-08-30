@@ -29,8 +29,8 @@ struct gkyl_dg_updater_moment*
 gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  enum gkyl_model_id model_id, const char *mom, 
-  bool is_integrated, double mass, bool use_gpu)
+  enum gkyl_model_id model_id, void *aux_inp, 
+  const char *mom, bool is_integrated, double mass, bool use_gpu)
 {
   gkyl_dg_updater_moment *up = gkyl_malloc(sizeof(gkyl_dg_updater_moment));
   up->model_id = model_id;
@@ -40,6 +40,9 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
       up->type = gkyl_int_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, use_gpu);
     else
       up->type = gkyl_mom_vlasov_sr_new(cbasis, pbasis, conf_range, vel_range, mom, use_gpu);
+
+    struct gkyl_mom_vlasov_sr_auxfields *sr_inp = aux_inp;
+    gkyl_mom_vlasov_sr_set_auxfields(up->type, *sr_inp);
   }
   else if (up->model_id == GKYL_MODEL_PKPM) {
     up->type = gkyl_mom_vlasov_pkpm_new(cbasis, pbasis, mass, is_integrated, use_gpu);
@@ -61,16 +64,8 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_dg_updater_moment_advance(struct gkyl_dg_updater_moment *moment,
   const struct gkyl_range *update_phase_rng, const struct gkyl_range *update_conf_rng,
-  void *aux_inp, const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT mout)
-{
-  // Set arrays needed
-  // Assumes a particular order of the arrays
-  // TO DO: More intelligent way to do these aux field sets? (JJ: 09/08/22)
-  if (moment->model_id == GKYL_MODEL_SR) {
-    struct gkyl_mom_vlasov_sr_auxfields *sr_inp = aux_inp;
-    gkyl_mom_vlasov_sr_set_auxfields(moment->type, *sr_inp);
-  }
-  
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT mout)
+{  
   struct timespec wst = gkyl_wall_clock();
   if (moment->use_gpu)
     gkyl_mom_calc_advance_cu(moment->up_moment, update_phase_rng, update_conf_rng, fIn, mout);

@@ -25,8 +25,9 @@ struct gkyl_dg_updater_moment_tm {
  * @param conf_range Config space range
  * @param vel_range Velocity space range
  * @param model_id Enum identifier for model type (e.g., SR, PKPM, see gkyl_eqn_type.h)
- * @param is_integrated Boolean for if the moment is an integrated moment
+ * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param mom Name of moment
+ * @param is_integrated Boolean for if the moment is an integrated moment
  * @param mass Mass of species 
  * @param use_gpu Boolean to determine whether struct objects are on host or device
  * 
@@ -36,8 +37,8 @@ struct gkyl_dg_updater_moment*
 gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  enum gkyl_model_id model_id, const char *mom, 
-  bool is_integrated, double mass, bool use_gpu);
+  enum gkyl_model_id model_id, void *aux_inp, 
+  const char *mom, bool is_integrated, double mass, bool use_gpu);
 
 /**
  * Acquire moment object
@@ -68,14 +69,13 @@ gkyl_dg_updater_moment_num_mom(const struct gkyl_dg_updater_moment* moment);
  * @param moemnt moment updater object
  * @param update_phase_rng Phase space range on which to compute.
  * @param update_conf_rng Configuration space range on which to compute.
- * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param fIn Input to updater
  * @param mout Output moment
  */
 void
 gkyl_dg_updater_moment_advance(struct gkyl_dg_updater_moment *moment,
   const struct gkyl_range *update_phase_rng, const struct gkyl_range *update_conf_rng,
-  void *aux_inp, const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT mout);
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT mout);
 
 /**
  * Return total time spent in computing moments

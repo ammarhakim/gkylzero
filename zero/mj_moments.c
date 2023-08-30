@@ -18,9 +18,9 @@ struct gkyl_mj_moments
   struct gkyl_basis conf_basis, phase_basis;
 
   // struct gkyl_mom_calc *m0calc;
-  gkyl_dg_updater_moment *m0calc; 
-  gkyl_dg_updater_moment *m1icalc;
-  gkyl_dg_updater_moment *m2calc;
+  struct gkyl_dg_updater_moment *m0calc; 
+  struct gkyl_dg_updater_moment *m1icalc;
+  struct gkyl_dg_updater_moment *m2calc;
   struct gkyl_array *num_ratio; 
   struct gkyl_array *num_vb;  
   struct gkyl_array *V_drift;   
@@ -30,14 +30,16 @@ struct gkyl_mj_moments
   struct gkyl_array *pressure;
   struct gkyl_array *temperature;
 
-  gkyl_dg_bin_op_mem *mem;
+  struct gkyl_dg_bin_op_mem *mem;
 };
 
 gkyl_mj_moments *
 gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  long conf_local_ncells, long conf_local_ext_ncells, bool use_gpu)
+  long conf_local_ncells, long conf_local_ext_ncells, 
+  const struct gkyl_array *p_over_gamma, const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv, 
+  bool use_gpu)
 {
   gkyl_mj_moments *up = gkyl_malloc(sizeof(*up));
 
@@ -45,14 +47,6 @@ gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
   up->conf_basis = *conf_basis;
   up->phase_basis = *phase_basis;
   int vdim = up->phase_basis.ndim - up->conf_basis.ndim;
-
-  // updated moment calculator for sr N and N*vb moments
-  up->m0calc = gkyl_dg_updater_moment_new(grid, conf_basis,
-    phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "M0", 0, 1, use_gpu);
-  up->m1icalc = gkyl_dg_updater_moment_new(grid, conf_basis,
-    phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "M1i", 0, 1, use_gpu);
-  up->m2calc = gkyl_dg_updater_moment_new(grid, conf_basis,
-    phase_basis, conf_range, vel_range, GKYL_MODEL_SR, "Pressure", 0, 1, use_gpu);
 
   up->num_ratio = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->num_vb = gkyl_array_new(GKYL_DOUBLE, vdim * conf_basis->num_basis, conf_local_ext_ncells);
@@ -63,30 +57,33 @@ gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
   up->pressure = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->temperature = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, conf_basis->num_basis);
+
+  // Set auxiliary fields for moment updates. 
+  struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = p_over_gamma, 
+    .gamma = gamma, .gamma_inv = gamma_inv, .V_drift = up->V_drift, 
+    .GammaV2 = up->GammaV2, .GammaV_inv = up->Gamma_inv};  
+
+  // updated moment calculator for sr N and N*vb moments
+  up->m0calc = gkyl_dg_updater_moment_new(grid, conf_basis,
+    phase_basis, conf_range, vel_range, GKYL_MODEL_SR, &sr_inp, "M0", 0, 1, use_gpu);
+  up->m1icalc = gkyl_dg_updater_moment_new(grid, conf_basis,
+    phase_basis, conf_range, vel_range, GKYL_MODEL_SR, &sr_inp, "M1i", 0, 1, use_gpu);
+  up->m2calc = gkyl_dg_updater_moment_new(grid, conf_basis,
+    phase_basis, conf_range, vel_range, GKYL_MODEL_SR, &sr_inp, "Pressure", 0, 1, use_gpu);
   return up;
 }
 
 void 
-gkyl_mj_moments_advance(gkyl_mj_moments *cmj, const struct gkyl_array *p_over_gamma,
-  const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv,
+gkyl_mj_moments_advance(gkyl_mj_moments *cmj, 
   struct gkyl_array *fout,
-  struct gkyl_array *m0,
-  struct gkyl_array *m1i,
-  struct gkyl_array *m2,
+  struct gkyl_array *m0, struct gkyl_array *m1i, struct gkyl_array *m2,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local)
 {
   int vdim = cmj->phase_basis.ndim - cmj->conf_basis.ndim;
 
-  // Set auxiliary fields for moment updates. 
-  struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = p_over_gamma, 
-    .gamma = gamma, .gamma_inv = gamma_inv, .V_drift = cmj->V_drift, 
-    .GammaV2 = cmj->GammaV2, .GammaV_inv = cmj->Gamma_inv};  
-
   // compute the sr moments, lab frame <N> and <Nvb>
-  gkyl_dg_updater_moment_advance(cmj->m0calc, phase_local, conf_local,
-    &sr_inp, fout, cmj->num_ratio);
-  gkyl_dg_updater_moment_advance(cmj->m1icalc, phase_local, conf_local,
-    &sr_inp, fout, cmj->num_vb);
+  gkyl_dg_updater_moment_advance(cmj->m0calc, phase_local, conf_local, fout, cmj->num_ratio);
+  gkyl_dg_updater_moment_advance(cmj->m1icalc, phase_local, conf_local, fout, cmj->num_vb);
 
   // (vb = <Nvb>/<N>) isolate vb by dividing <N*vb> by <N>
   for (int d = 0; d < vdim; ++d)
@@ -106,8 +103,7 @@ gkyl_mj_moments_advance(gkyl_mj_moments *cmj, const struct gkyl_array *p_over_ga
     conf_local, cmj->V_drift, cmj->Gamma_inv);
 
   // compute the pressure moment (stationary frame)
-  gkyl_dg_updater_moment_advance(cmj->m2calc, phase_local, conf_local,
-    &sr_inp, fout, cmj->pressure);
+  gkyl_dg_updater_moment_advance(cmj->m2calc, phase_local, conf_local, fout, cmj->pressure);
 
   // (n = N/gamma) divide the number density by gamma, to account for the frame trans.
   gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->num_ratio,
