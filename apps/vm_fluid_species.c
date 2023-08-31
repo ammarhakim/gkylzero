@@ -284,8 +284,6 @@ void
 vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
   const struct gkyl_array *fluid)
 {
-  gkyl_array_clear(fluid_species->prim, 0.0);
-  gkyl_array_clear(fluid_species->p, 0.0); 
   // Once merged with main, can utilize dg_prim_vars_type infrastructure written for
   // GPU hackathon (JJ : 08/03/23)
 }
