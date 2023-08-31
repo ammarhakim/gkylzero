@@ -2,6 +2,7 @@
 // File: complete_elliptic_integral_first_kind.c                              //
 // Routine(s):                                                                //
 //    Complete_Elliptic_Integral_First_Kind                                   //
+// Adapted from http://www.mymathlib.com/functions/elliptic_integrals.html    //
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <elliptic_integral.h> 
