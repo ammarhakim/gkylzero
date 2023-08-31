@@ -28,18 +28,18 @@ typedef struct gkyl_bc_basic gkyl_bc_basic;
  *
  * @param dir Direction in which to apply BC.
  * @param edge Lower or upper edge at which to apply BC (see gkyl_edge_loc).
- * @param local_range_ext Local extended range.
- * @param num_ghosts Number of ghosts in each dimension.
  * @param bctype BC type (see gkyl_bc_basic_type).
  * @param basis Basis on which coefficients in array are expanded.
+ * @param skin_r Skin range.
+ * @param ghost_r Ghost range.
  * @param cdim Configuration space dimensions.
  * @param num_comp Number of components (DOFs) within a cell.
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_bc_basic* gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range* local_range_ext,
-  const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis, int num_comp, int cdim,
-  bool use_gpu);
+struct gkyl_bc_basic* gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, enum gkyl_bc_basic_type bctype,
+  const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, int num_comp, int cdim, bool use_gpu);
 
 /**
  * Advance boundary conditions *in special case where buffer is fixed in time*. 

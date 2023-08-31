@@ -34,17 +34,6 @@ eval_fun(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, v
   fout[3] = 0.0;
 }
 
-void
-D(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct sim_ctx *app = ctx;
-  double x = xn[0];
-  double mu = mu_val;
-  fout[1] = mu;
-  fout[2] = mu;
-  fout[3] = mu;
-}
-
 int
 main(int argc, char **argv)
 {
@@ -65,7 +54,7 @@ main(int argc, char **argv)
 
    .num_eqn = 4,
 
-   // .diffusion = {.D = D},
+   // .diffusion = {.D = mu_val},
 
    // .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
 

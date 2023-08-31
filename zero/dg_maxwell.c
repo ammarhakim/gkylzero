@@ -49,6 +49,15 @@ gkyl_dg_maxwell_new(const struct gkyl_basis* cbasis,
       surf_x_kernels = ser_surf_x_kernels;
       surf_y_kernels = ser_surf_y_kernels;
       surf_z_kernels = ser_surf_z_kernels;
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_x_kernels = ten_surf_x_kernels;
+      surf_y_kernels = ten_surf_y_kernels;
+      surf_z_kernels = ten_surf_z_kernels;
+      
       break;
 
     default:

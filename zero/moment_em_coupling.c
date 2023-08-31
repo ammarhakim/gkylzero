@@ -47,6 +47,8 @@ struct gkyl_moment_em_coupling {
   bool has_collision; // has collisions
   // normalized collision frequencies; nu_sr = nu_base[s][r] * rho_r
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
+
+  bool has_nT_sources;
 };
 
 // Rotate pressure tensor using magnetic field. See Wang
@@ -391,7 +393,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
 /***********************************************/
 
 static void
-user_source_euler_update(const gkyl_moment_em_coupling *mes,
+nT_source_euler_update(const gkyl_moment_em_coupling *mes,
             const int s,
             const double dt,
             double *q,
@@ -420,7 +422,7 @@ user_source_euler_update(const gkyl_moment_em_coupling *mes,
 }
 
 void
-user_source_update(
+nT_source_update(
   const gkyl_moment_em_coupling *mes,
   const double dt,
   double *qPtrs[],
@@ -430,7 +432,7 @@ user_source_update(
   {
     double *q = qPtrs[s];
     const double *S = sourcePtrs[s];
-    user_source_euler_update(mes, s, dt, q, q, S);
+    nT_source_euler_update(mes, s, dt, q, q, S);
   }
 }
 
@@ -448,7 +450,8 @@ static void
 fluid_source_update(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
   double* fluids[GKYL_MAX_SPECIES], 
   const double *app_accels[GKYL_MAX_SPECIES], const double *rhs_s[GKYL_MAX_SPECIES], 
-  double* em, const double* app_current, const double* ext_em)
+  double* em, const double* app_current, const double* ext_em,
+  const double *nT_source_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mes->nfluids;
   double keOld[GKYL_MAX_SPECIES];
@@ -529,6 +532,9 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
 
   if (mes->has_collision)
     collision_source_update(mes, dt, fluids);
+
+  if (mes->has_nT_sources)
+    nT_source_update(mes, dt, fluids, nT_source_s);
 }
 
 gkyl_moment_em_coupling*
@@ -564,6 +570,8 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
         up->nu_base[s][r] = inp.nu_base[s][r];
   }
 
+  up->has_nT_sources = inp.has_nT_sources;
+
   return up;
 }
 
@@ -571,13 +579,16 @@ void
 gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
   const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], 
-  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *rhs[GKYL_MAX_SPECIES],
-  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em)
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *pr_rhs[GKYL_MAX_SPECIES],
+  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em,
+  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES])
 {
   int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
   const double *app_accels[GKYL_MAX_SPECIES];
-  const double *rhs_s[GKYL_MAX_SPECIES];
+  // pressure tensor rhs for gradient-based closure
+  const double *pr_rhs_s[GKYL_MAX_SPECIES];
+  const double *nT_source_s[GKYL_MAX_SPECIES];
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -588,13 +599,15 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double tcurr
     for (int n=0; n<nfluids; ++n) {
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);
       app_accels[n] = gkyl_array_cfetch(app_accel[n], lidx);
-      rhs_s[n] = gkyl_array_cfetch(rhs[n], lidx);
+      pr_rhs_s[n] = gkyl_array_cfetch(pr_rhs[n], lidx);
+      nT_source_s[n] = gkyl_array_cfetch(nT_sources[n], lidx);
     }
 
-    fluid_source_update(mes, tcurr, dt, fluids, app_accels, rhs_s, 
+    fluid_source_update(mes, tcurr, dt, fluids, app_accels, pr_rhs_s, 
       gkyl_array_fetch(em, lidx),
       gkyl_array_cfetch(app_current, lidx),
-      gkyl_array_cfetch(ext_em, lidx)
+      gkyl_array_cfetch(ext_em, lidx),
+      nT_source_s
     );
   }
 }
