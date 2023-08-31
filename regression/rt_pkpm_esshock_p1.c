@@ -127,13 +127,14 @@ main(int argc, char **argv)
 
   struct esshock_ctx ctx = create_ctx(); // context for init functions
 
-  // electron Tperp                                                                                              
+  // electron momentum
   struct gkyl_vlasov_fluid_species fluid_elc = {
     .name = "fluid_elc",
     .num_eqn = 3,
     .pkpm_species = "elc",
     .ctx = &ctx,
     .init = evalFluidElc,
+    //.diffusion = {.D = 1.0e-5, .order=4},
   };  
   
   // electrons
@@ -159,13 +160,14 @@ main(int argc, char **argv)
     .num_diag_moments = 0,
   };
 
-  // ion Tperp                                                                                              
+  // ion momentum
   struct gkyl_vlasov_fluid_species fluid_ion = {
     .name = "fluid_ion",
     .num_eqn = 3,
     .pkpm_species = "ion",
     .ctx = &ctx,
     .init = evalFluidIon,
+    //.diffusion = {.D = 1.0e-5, .order=4},
   };  
   
   // ions
@@ -260,22 +262,30 @@ main(int argc, char **argv)
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
+  gkyl_vlasov_app_cout(app, stdout, "\n");
+  gkyl_vlasov_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  if (stat.nstage_2_fail > 0) {
+    gkyl_vlasov_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+  }  
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species PKPM Vars took %g secs\n", stat.species_pkpm_vars_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
+
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+
   // simulation complete, free app
   gkyl_vlasov_app_release(app);
-
-  printf("\n");
-  printf("Number of update calls %ld\n", stat.nup);
-  printf("Number of forward-Euler calls %ld\n", stat.nfeuler);
-  printf("Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
-  if (stat.nstage_2_fail > 0) {
-    printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
-  printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
-  printf("Updates took %g secs\n", stat.total_tm);
   
   return 0;
 }
