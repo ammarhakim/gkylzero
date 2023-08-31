@@ -55,7 +55,7 @@ static inline int diffdirs_linidx(const bool *isdirdiff, int cdim) {
 #define SURFKERIDXGK(cdim,vdim) (cdim-1+vdim-1)*2-(vdim-1)
 
 // Macro for choosing surface kernel for fluid diffusion.
-#define CKSURFFLUID(lst,diff_order,cdim,poly_order) lst[diff_order/2-1].list[SURFKERIDX(cdim,cdim)].kernels[poly_order-1]
+#define CKSURFCONF(lst,diff_order,cdim,poly_order) lst[diff_order/2-1].list[SURFKERIDX(cdim,cdim)].kernels[poly_order-1]
 
 // Macro for choosing surface kernel for vlasov diffusion.
 #define CKSURFVLASOV(lst,diff_order,cdim,vdim,poly_order) lst[diff_order/2-1].list[SURFKERIDX(cdim,vdim)].kernels[poly_order-1]
@@ -65,7 +65,7 @@ static inline int diffdirs_linidx(const bool *isdirdiff, int cdim) {
 
 // Macro for choosing volume and surface kernels.
 #define CKVOL(lst,cdim,diff_order,poly_order,diffdir_linidx) lst[cdim-1].list[diff_order/2-1].list[poly_order-1].kernels[diffdir_linidx]
-#define CKSURF(lst,diff_order,cdim,vdim,poly_order,diffid) ((diffid==GKYL_DIFFUSION_DIAGONAL_CONST_VLASOV) || (diffid==GKYL_DIFFUSION_DIAGONAL_VAR_VLASOV))? CKSURFVLASOV(lst,diff_order,cdim,vdim,poly_order) : CKSURFFLUID(lst,diff_order,cdim,poly_order)
+#define CKSURF(lst,diff_order,cdim,vdim,poly_order,diffid) ((diffid==GKYL_DIFFUSION_DIAGONAL_CONST_VLASOV) || (diffid==GKYL_DIFFUSION_DIAGONAL_VAR_VLASOV))? CKSURFVLASOV(lst,diff_order,cdim,vdim,poly_order) : (((diffid==GKYL_DIFFUSION_DIAGONAL_CONST_GYROKINETIC) || (diffid==GKYL_DIFFUSION_DIAGONAL_VAR_GYROKINETIC))? CKSURFGYROKINETIC(lst,diff_order,cdim,vdim,poly_order) : CKSURFCONF(lst,diff_order,cdim,poly_order))
 
 /**
  * Free diffusion equation object

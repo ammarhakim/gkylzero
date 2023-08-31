@@ -2,12 +2,14 @@
 #include <gkyl_fem_poisson_perp_priv.h>
 
 struct gkyl_fem_poisson_perp*
-gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon, struct gkyl_array *kSq, bool use_gpu)
+gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon,
+  struct gkyl_array *kSq, bool use_gpu)
 {
 
   struct gkyl_fem_poisson_perp *up = gkyl_malloc(sizeof(struct gkyl_fem_poisson_perp));
 
+  up->solve_range = solve_range;
   up->ndim = grid->ndim;
   up->grid = *grid;
   up->num_basis =  basis.num_basis;
@@ -38,24 +40,12 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
-  // Local and local-ext ranges for whole-grid arrays.
-  int ghost[GKYL_MAX_CDIM];
-  for (int d=0; d<up->ndim; d++) ghost[d] = 1;
-  gkyl_create_grid_ranges(grid, ghost, &up->local_range_ext, &up->local_range);
-
-  // Range of cells we'll solve Poisson in, as subrange of up->local_range_ext.
-  int sublower[GKYL_MAX_CDIM], subupper[GKYL_MAX_CDIM];
-  for (int d=0; d<up->ndim; d++) {
-    sublower[d] = up->local_range.lower[d];
-    subupper[d] = up->local_range.upper[d];
-  }
-  gkyl_sub_range_init(&up->solve_range, &up->local_range_ext, sublower, subupper);
-  for (int d=0; d<up->ndim; d++) up->num_cells[d] = up->solve_range.upper[d]-up->solve_range.lower[d]+1;
+  for (int d=0; d<up->ndim; d++) up->num_cells[d] = up->solve_range->upper[d]-up->solve_range->lower[d]+1;
 
   // 2D range of perpendicular cells.
-  gkyl_range_init(&up->perp_range2d, PERP_DIM, up->solve_range.lower, up->solve_range.upper);
+  gkyl_range_init(&up->perp_range2d, PERP_DIM, up->solve_range->lower, up->solve_range->upper);
   // 1D range of parallel cells.
-  int lower1d[] = {up->solve_range.lower[up->pardir]}, upper1d[] = {up->solve_range.upper[up->pardir]};
+  int lower1d[] = {up->solve_range->lower[up->pardir]}, upper1d[] = {up->solve_range->upper[up->pardir]};
   gkyl_range_init(&up->par_range1d, 1, lower1d, upper1d);
 
   // Range of perpendicular cells at each parallel location.
@@ -64,15 +54,16 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
   while (gkyl_range_iter_next(&up->par_iter1d)) {
     long paridx = gkyl_range_idx(&up->par_range1d, up->par_iter1d.idx);
     int removeDim[] = {0,0,1},  loc[] = {0,0,paridx};
-    gkyl_range_deflate(&up->perp_range[paridx], &up->solve_range, removeDim, loc);
+    gkyl_range_deflate(&up->perp_range[paridx], up->solve_range, removeDim, loc);
   }
   // Range of parallel cells.
-  for (int d=0; d<PERP_DIM; d++) {
-    sublower[d] = up->solve_range.lower[d];
-    subupper[d] = up->solve_range.lower[d];
+  int sublower[GKYL_MAX_CDIM], subupper[GKYL_MAX_CDIM];
+  for (int d=0; d<up->ndim; d++) {
+    sublower[d] = up->solve_range->lower[d];
+    subupper[d] = up->solve_range->lower[d];
   }
-  subupper[up->pardir] = up->solve_range.upper[up->pardir];
-  gkyl_sub_range_init(&up->par_range, &up->solve_range, sublower, subupper);
+  subupper[up->pardir] = up->solve_range->upper[up->pardir];
+  gkyl_sub_range_init(&up->par_range, up->solve_range, sublower, subupper);
 
   // Prepare for periodic domain case.
   for (int d=0; d<PERP_DIM; d++) {
@@ -91,13 +82,13 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
   if (up->isdomperiodic) {
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
-      up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
+      up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->solve_range->volume);
       up->rhs_avg_cu = (double*) gkyl_cu_malloc(sizeof(double));
     } else {
-      up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
+      up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->solve_range->volume);
     }
 #else
-    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
+    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->solve_range->volume);
 #endif
     up->rhs_avg = (double*) gkyl_malloc(sizeof(double));
     gkyl_array_clear(up->rhs_cellavg, 0.0);
@@ -203,7 +194,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_rect_grid *grid, const struct gkyl_b
       for (size_t d=0; d<PERP_DIM; d++) idx1[d] = up->perp_iter2d.idx[d];
       idx1[up->pardir] = up->par_iter1d.idx[0];
 
-      long linidx = gkyl_range_idx(&up->solve_range, idx1);
+      long linidx = gkyl_range_idx(up->solve_range, idx1);
 
       double *eps_p = gkyl_array_fetch(epsilon_ho, linidx);
       double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq_ho, linidx) : gkyl_array_fetch(kSq_ho,0);
@@ -244,7 +235,7 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
     // Subtract the volume averaged RHS from the RHS.
     gkyl_array_clear(up->rhs_cellavg, 0.0);
 
-    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, up->solve_range);
+    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
 
     gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
     while (gkyl_range_iter_next(&up->par_iter1d)) {
@@ -289,7 +280,7 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
       for (size_t d=0; d<PERP_DIM; d++) idx1[d] = up->perp_iter2d.idx[d];
       idx1[up->pardir] = up->par_iter1d.idx[0];
 
-      long linidx = gkyl_range_idx(&up->solve_range, idx1);
+      long linidx = gkyl_range_idx(up->solve_range, idx1);
 
       double *eps_p = gkyl_array_fetch(up->epsilon, linidx);
       double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
@@ -339,7 +330,7 @@ gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp *up, struct gkyl_array *phiout
       for (size_t d=0; d<PERP_DIM; d++) idx1[d] = up->perp_iter2d.idx[d];
       idx1[up->pardir] = up->par_iter1d.idx[0];
 
-      long linidx = gkyl_range_idx(&up->solve_range, idx1);
+      long linidx = gkyl_range_idx(up->solve_range, idx1);
 
       double *phiout_p = gkyl_array_fetch(phiout, linidx);
 

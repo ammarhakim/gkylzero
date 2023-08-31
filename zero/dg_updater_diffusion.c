@@ -5,7 +5,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_diffusion.h>
-#include <gkyl_dg_diffusion_euler_iso.h>
 #include <gkyl_dg_diffusion_gen.h>
 #include <gkyl_dg_updater_diffusion.h>
 #include <gkyl_dg_updater_diffusion_priv.h>

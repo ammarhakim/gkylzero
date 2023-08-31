@@ -14,18 +14,24 @@ typedef void (*vlasov_pkpm_self_prim_t)(struct gkyl_mat *A, struct gkyl_mat *rhs
 // for use in kernel tables
 typedef struct { vlasov_pkpm_self_prim_t kernels[3]; } gkyl_prim_lbo_vlasov_pkpm_self_kern_list;
 
-
-//
-// Serendipity basis kernels
-//
-
-// self-primitive moment kernel list
+// PKPM self-primitive moment kernel list (Serendipity basis)
 GKYL_CU_D
 static const gkyl_prim_lbo_vlasov_pkpm_self_kern_list ser_self_prim_kernels[] = {
   // 1x kernels
   { NULL, vlasov_pkpm_self_prim_moments_1x1v_ser_p1, vlasov_pkpm_self_prim_moments_1x1v_ser_p2 }, // 0
   // 2x kernels
-  { NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p1, vlasov_pkpm_self_prim_moments_2x1v_ser_p2 }, // 1
+  { NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p1, NULL }, // 1
+  // 3x kernels
+  { NULL, vlasov_pkpm_self_prim_moments_3x1v_ser_p1, NULL }, // 2
+};
+
+// PKPM self-primitive moment kernel list (Tensor basis)
+GKYL_CU_D
+static const gkyl_prim_lbo_vlasov_pkpm_self_kern_list ten_self_prim_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_pkpm_self_prim_moments_1x1v_ser_p1, vlasov_pkpm_self_prim_moments_1x1v_tensor_p2 }, // 0
+  // 2x kernels
+  { NULL, vlasov_pkpm_self_prim_moments_2x1v_ser_p1, vlasov_pkpm_self_prim_moments_2x1v_tensor_p2 }, // 1
   // 3x kernels
   { NULL, vlasov_pkpm_self_prim_moments_3x1v_ser_p1, NULL }, // 2
 };
@@ -34,7 +40,6 @@ struct prim_lbo_type_vlasov_pkpm {
   struct gkyl_prim_lbo_type prim; // Base object
   vlasov_pkpm_self_prim_t self_prim; // Self-primitive moments kernel
   struct gkyl_range conf_range; // configuration space range
-  struct gkyl_prim_lbo_vlasov_pkpm_auxfields auxfields; // Auxiliary fields.
 };
 
 /**

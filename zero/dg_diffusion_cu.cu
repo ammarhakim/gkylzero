@@ -55,6 +55,22 @@ dg_diffusion_set_cu_dev_ptrs(struct dg_diffusion *diffusion, enum gkyl_basis_typ
         assert(false);
         break;
     }
+  } else if ((diffusion_id == GKYL_DIFFUSION_DIAGONAL_CONST_GYROKINETIC) || (diffusion_id == GKYL_DIFFUSION_DIAGONAL_VAR_GYROKINETIC)) {
+    switch (cbasis->b_type) {
+      case GKYL_BASIS_MODAL_SERENDIPITY:
+        vol_kernels            = diffusion->const_coeff? ser_vol_kernels_constcoeff                        : ser_vol_kernels_varcoeff                       ;
+        surfx_kernels          = diffusion->const_coeff? ser_gyrokinetic_surfx_kernels_constcoeff          : ser_gyrokinetic_surfx_kernels_varcoeff         ;
+        surfy_kernels          = diffusion->const_coeff? ser_gyrokinetic_surfy_kernels_constcoeff          : ser_gyrokinetic_surfy_kernels_varcoeff         ;
+        surfz_kernels          = diffusion->const_coeff? ser_gyrokinetic_surfz_kernels_constcoeff          : ser_gyrokinetic_surfz_kernels_varcoeff         ;
+        boundary_surfx_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_surfx_kernels_constcoeff : ser_gyrokinetic_boundary_surfx_kernels_varcoeff;
+        boundary_surfy_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_surfy_kernels_constcoeff : ser_gyrokinetic_boundary_surfy_kernels_varcoeff;
+        boundary_surfz_kernels = diffusion->const_coeff? ser_gyrokinetic_boundary_surfz_kernels_constcoeff : ser_gyrokinetic_boundary_surfz_kernels_varcoeff;
+        break;
+
+      default:
+        assert(false);
+        break;
+    }
   } else {
     switch (cbasis->b_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -79,17 +95,17 @@ dg_diffusion_set_cu_dev_ptrs(struct dg_diffusion *diffusion, enum gkyl_basis_typ
 
   diffusion->eqn.vol_term = CKVOL(vol_kernels, cdim, diff_order, poly_order, diffdirs_linidx);
 
-  diffusion->surf[0] = CKSURF(surfx_kernels, diff_order, cdim, vdim, poly_order);
+  diffusion->surf[0] = CKSURF(surfx_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
   if (cdim>1)
-    diffusion->surf[1] = CKSURF(surfy_kernels, diff_order, cdim, vdim, poly_order);
+    diffusion->surf[1] = CKSURF(surfy_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
   if (cdim>2)
-    diffusion->surf[2] = CKSURF(surfz_kernels, diff_order, cdim, vdim, poly_order);
+    diffusion->surf[2] = CKSURF(surfz_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
 
-  diffusion->boundary_surf[0] = CKSURF(boundary_surfx_kernels, diff_order, cdim, vdim, poly_order);
+  diffusion->boundary_surf[0] = CKSURF(boundary_surfx_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
   if (cdim>1)
-    diffusion->boundary_surf[1] = CKSURF(boundary_surfy_kernels, diff_order, cdim, vdim, poly_order);
+    diffusion->boundary_surf[1] = CKSURF(boundary_surfy_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
   if (cdim>2)
-    diffusion->boundary_surf[2] = CKSURF(boundary_surfz_kernels, diff_order, cdim, vdim, poly_order);
+    diffusion->boundary_surf[2] = CKSURF(boundary_surfz_kernels, diff_order, cdim, vdim, poly_order, diffusion_id);
 }
 
 struct gkyl_dg_eqn*
@@ -114,6 +130,8 @@ gkyl_dg_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_b
   diffusion->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(diffusion->eqn.flags);
   diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_diffusion_free);
+
+  diffusion->D = D;
 
   // copy the host struct to device struct
   struct dg_diffusion* diffusion_cu = (struct dg_diffusion*) gkyl_cu_malloc(sizeof(struct dg_diffusion));

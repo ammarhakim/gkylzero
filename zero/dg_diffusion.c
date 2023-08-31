@@ -140,9 +140,6 @@ gkyl_dg_diffusion_new(const struct gkyl_basis *basis,
   // Ensure non-NULL pointers.
   for (int i=0; i<cdim; ++i) assert(diffusion->surf[i]);
 
-  diffusion->auxfields.D = 0;
-  diffusion->conf_range = *conf_range;
-
   diffusion->eqn.flags = 0;
   diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_diffusion_free);
   diffusion->eqn.on_dev = &diffusion->eqn;

@@ -53,11 +53,21 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double k = app->k0, alpha = app->perturb;
   double x = xn[0];
   double E_x = -alpha*sin(k*x)/k;
-  double B_x = 1.0;
   
   fout[0] = E_x; fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
   fout[6] = 0.0; fout[7] = 0.0;
+}
+
+void
+evalExtEmFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct pkpm_sheath_ctx *app = ctx;
+  double x = xn[0];
+  double B_x = 1.0;
+  
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
 }
 
 void
@@ -96,6 +106,9 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -118,7 +131,7 @@ main(int argc, char **argv)
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -6.0*ctx.vt},
     .upper = { 6.0*ctx.vt}, 
-    .cells = { 32 },
+    .cells = { NV },
 
     .ctx = &ctx,
     .init = evalDistFunc,
@@ -140,7 +153,10 @@ main(int argc, char **argv)
     .mgnErrorSpeedFactor = 0.0,
 
     .ctx = &ctx,
-    .init = evalFieldFunc
+    .init = evalFieldFunc,
+
+    .ext_em = evalExtEmFunc,
+    .ext_em_ctx = &ctx,
   };
 
   // VM app
@@ -150,7 +166,7 @@ main(int argc, char **argv)
     .cdim = 1, .vdim = 1,
     .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
-    .cells = { 32 },
+    .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
     .cfl_frac = 0.8,
@@ -182,6 +198,8 @@ main(int argc, char **argv)
   gkyl_vlasov_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
   gkyl_vlasov_app_calc_field_energy(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -190,6 +208,8 @@ main(int argc, char **argv)
     printf(" dt = %g\n", status.dt_actual);
     
     gkyl_vlasov_app_calc_field_energy(app, tcurr);
+    gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
@@ -203,26 +223,37 @@ main(int argc, char **argv)
   }
 
   gkyl_vlasov_app_write_field_energy(app);
+  gkyl_vlasov_app_write_integrated_L2_f(app);
+  gkyl_vlasov_app_write_integrated_mom(app);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
+  gkyl_vlasov_app_cout(app, stdout, "\n");
+  gkyl_vlasov_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  if (stat.nstage_2_fail > 0) {
+    gkyl_vlasov_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+  }  
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species PKPM Vars took %g secs\n", stat.species_pkpm_vars_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
+
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+
   // simulation complete, free app
   gkyl_vlasov_app_release(app);
-
-  printf("\n");
-  printf("Number of update calls %ld\n", stat.nup);
-  printf("Number of forward-Euler calls %ld\n", stat.nfeuler);
-  printf("Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
-  if (stat.nstage_2_fail > 0) {
-    printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
-  printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  printf("Updates took %g secs\n", stat.total_tm);
   
   return 0;
 }

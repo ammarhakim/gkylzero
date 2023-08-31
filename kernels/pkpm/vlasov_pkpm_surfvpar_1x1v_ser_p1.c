@@ -1,16 +1,20 @@
 #include <gkyl_vlasov_pkpm_kernels.h> 
 #include <gkyl_basis_hyb_1x1v_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_hyb_1x1v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double vlasov_pkpm_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double *pkpm_accel_vars, 
+GKYL_CU_DH double vlasov_pkpm_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, 
+     const double *div_b, const double *pkpm_accel_vars, 
      const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]:            Cell-center coordinates.
-  // dxv[NDIM]:          Cell spacing.
-  // pkpm_accel_vars:    pkpm acceleration variables
-  // g_dist_sourcel/c/r: 2.0*T_perp/m*(2.0*T_perp/m*G_1 + T_perp/m*(F_2 - F_0)) in left/center/right cells.
-  // fl/fc/fr:           Input Distribution function [F_0, T_perp/m G_1 = T_perp/m (F_0 - F_1)] in left/center/right cells.
-  // out:                Incremented distribution function in center cell.
+  // w[NDIM]:            Cell-center coordinates. 
+  // dxv[NDIM]:          Cell spacing. 
+  // div_b:              Input volume expansion of div(b). 
+  // pkpm_accel_vars:    Input pkpm acceleration variables [T_perp/m*div(b), bb:grad(u), p_force, p_perp_source]. 
+  // g_dist_sourcel/c/r: Input [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)), 
+  //                     (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0 ]. 
+  //                     in left/center/right cells. First input is mirror force source, second input is vperp characteristics source. 
+  // fl/fc/fr:           Input distribution functions [F_0, T_perp/m G_1 = T_perp/m (F_0 - F_1)] in left/center/right cells. 
+  // out:                Incremented output distribution functions in center cell. 
   const double dv1par = 2.0/dxv[1]; 
   const double dvpar = dxv[1], wvpar = w[1]; 
   const double *F_0l = &fl[0]; 
@@ -27,7 +31,6 @@ GKYL_CU_DH double vlasov_pkpm_surfvpar_1x1v_ser_p1(const double *w, const double
   const double *F_0_sourcer = &fr[6]; 
   const double *G_1_sourcer = &g_dist_sourcer[0]; 
 
-  const double *div_b = &pkpm_accel_vars[0]; 
   const double *bb_grad_u = &pkpm_accel_vars[2]; 
   const double *p_force = &pkpm_accel_vars[4]; 
 
