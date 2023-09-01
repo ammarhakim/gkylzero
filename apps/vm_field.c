@@ -135,7 +135,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   long buff_sz = 0;
   // compute buffer size needed
   for (int d=0; d<app->cdim; ++d) {
-    long vol = max(app->skin_ghost.lower_skin[d].volume, app->skin_ghost.upper_skin[d].volume);
+    long vol = GKYL_MAX(app->skin_ghost.lower_skin[d].volume, app->skin_ghost.upper_skin[d].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   f->bc_buffer = mkarr(app->use_gpu, 8*app->confBasis.num_basis, buff_sz);
