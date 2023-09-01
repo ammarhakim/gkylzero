@@ -366,6 +366,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->upper_bc[dir] = bc[1];
     }
   }
+
   // Certain operations fail if absorbing BCs used because absorbing BCs 
   // means the mass density is 0 in the ghost cells (divide by zero)
   s->bc_is_absorb = false;
@@ -389,8 +390,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_FIXED_FUNC;
     }
 
+    // Create local lower skin and ghost ranges
+    gkyl_skin_ghost_ranges(&s->lower_skin[d], &s->lower_ghost[d], d, GKYL_LOWER_EDGE, &s->local_ext, ghost);
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
-      &s->skin_ghost.lower_skin[d], &s->skin_ghost.lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+      &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
     // Upper BC updater. Copy BCs by default.
     if (s->upper_bc[d] == GKYL_SPECIES_COPY) {
       bctype = GKYL_BC_COPY;
@@ -409,8 +412,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_FIXED_FUNC;
     }
 
+    // Create local upper skin and ghost ranges
+    gkyl_skin_ghost_ranges(&s->upper_skin[d], &s->upper_ghost[d], d, GKYL_UPPER_EDGE, &s->local_ext, ghost);
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
-      &s->skin_ghost.upper_skin[d], &s->skin_ghost.upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+      &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
   }
 }
 

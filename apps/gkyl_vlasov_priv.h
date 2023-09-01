@@ -248,6 +248,11 @@ struct vm_species {
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
+  // To simplify BC application, store local skin and ghost ranges
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
   bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
                      // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range 
 
@@ -321,6 +326,11 @@ struct vm_field {
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
+  // To simplify BC application, store local skin and ghost ranges
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
   double* omegaCfl_ptr;
 };
@@ -371,6 +381,11 @@ struct vm_fluid_species {
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
+  // To simplify BC application, store local skin and ghost ranges
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
   bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
                      // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range 
 
