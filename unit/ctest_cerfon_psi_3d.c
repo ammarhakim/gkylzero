@@ -33,11 +33,17 @@ struct mapc2p_ctx{
    struct gkyl_gkgeom_geo_inp* ginp;
 };
 
-struct solovev_ctx {
-  double B0, R0, k, q0, Ztop;
+
+// Cerfon equilibrium
+struct cerfon_ctx {
+  double R0, psi_prefactor, B0;
 };
 
 static inline double sq(double x) { return x*x; }
+static inline double cub(double x) { return x*x*x; }
+static inline double qad(double x) { return x*x*x*x; }
+static inline double pen(double x) { return x*x*x*x*x; }
+static inline double hex(double x) { return x*x*x*x*x*x; }
 
 
 
@@ -55,10 +61,12 @@ comp_to_phys(int ndim, const double *eta,
 void
 psi(double t, const double *xn, double *fout, void *ctx)
 {
-  struct solovev_ctx *s = ctx;
-  double B0 = s->B0, R0 = s->R0, k = s->k, q0 = s->q0;
+  struct cerfon_ctx *s = ctx;
+  double R0 = s->R0, psi_prefactor = s->psi_prefactor;
   double R = xn[0], Z = xn[1];
-  fout[0] = B0*k/(2*sq(R0)*q0)*(sq(R)*sq(Z)/sq(k) + sq(sq(R) - sq(R0))/4);
+  double x = R/R0, y = Z/R0;
+
+  fout[0] = psi_prefactor*(0.00373804283369699*hex(x)*log(x) - 0.00574955335438162*hex(x) - 0.0448565140043639*qad(x)*sq(y)*log(x) + 0.0503044260840946*qad(x)*sq(y) + 0.017623348727471*qad(x)*log(x) + 0.0956643504553683*qad(x) + 0.0299043426695759*sq(x)*qad(y)*log(x) - 0.0160920841654771*sq(x)*qad(y) - 0.0704933949098842*sq(x)*sq(y)*log(x) + 0.0644725519961135*sq(x)*sq(y) - 7.00898484784405e-5*sq(x)*log(x) - 0.303766642191745*sq(x) - 0.00199362284463839*hex(y) + 0.0117488991516474*qad(y) + 7.00898484784405e-5*sq(y) + 0.0145368720253975);
 }
 
 
@@ -82,8 +90,8 @@ psibyr2(double t, const double *xn, double *fout, void *ctx)
 void
 bphi_func(double t, const double *xn, double *fout, void *ctx)
 {
-  struct solovev_ctx *s = ctx;
-  double B0 = s->B0, R0 = s->R0, k = s->k, q0 = s->q0;
+  struct cerfon_ctx *s = ctx;
+  double B0 = s->B0, R0 = s->R0;
   double R = xn[0];
   fout[0] = B0*R0/R;
 }
@@ -103,20 +111,13 @@ test_1()
   double cpu_time_used;
   start = clock();
 
-  struct solovev_ctx sctx = {
-    .B0 = 0.55, .R0 = 0.85, .k = 2, .q0 = 2, .Ztop = 1.5
-  };
 
-  double psi_sep = sctx.B0*sctx.k*sq(sctx.R0)/(8*sctx.q0);
-  printf("psi_sep = %lg\n", psi_sep);
+  struct cerfon_ctx sctx = {  .R0 = 2.5, .psi_prefactor = 1.0, .B0 = 0.55 };
+
   
-
   // create RZ grid
-  double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
-  // as ellipitical surfaces are exact, we only need 1 cell in each
-  // direction
+  double lower[] = { 0.01, -6.0 }, upper[] = { 6.0, 6.0 };
   int cells[] = { 64, 128 };
-
 
   struct gkyl_rect_grid rzgrid;
   gkyl_rect_grid_init(&rzgrid, 2, lower, upper, cells);
@@ -154,8 +155,19 @@ test_1()
     }
   );
 
-  double clower[] = { 0.06, -0.01, -3.0};
-  double cupper[] = {0.1, 0.01, 3.0};
+  // compute outboard SOL geometry
+  int npsi = 32, ntheta = 32;
+  double psi_min = 0.00001, psi_max = 1.2;
+  double dpsi = (psi_max-psi_min)/npsi;
+  double dtheta = M_PI/ntheta;
+  psi_min += dpsi;
+
+  psi_min = 0.03636363636363636; // This gives ghost node on psisep
+  printf("psimin = %g\n", psi_min);
+  
+  // Computational grid: theta X psi X alpha (only 2D for now)
+  double clower[] = { psi_min, -0.01, -3.0 };
+  double cupper[] = {psi_max, 0.01, 3.0 };
   int ccells[] = { 32,1, 32 };
 
 
@@ -183,7 +195,7 @@ test_1()
     .zmax = upper[1],
   
     .write_node_coord_array = true,
-    .node_file_nm = "solovev3d_nodes.gkyl"
+    .node_file_nm = "cerfon3d_nodes.gkyl"
   }; 
 
 
@@ -215,14 +227,14 @@ test_1()
 
 
   printf("writing mapc2p file from calcgeom\n");
-  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "solovev3d_mapc2pfile.gkyl");
+  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "cerfon3d_mapc2pfile.gkyl");
   printf("wrote mapc2p file\n");
 
   //make psi
   gkyl_eval_on_nodes *eval_psi = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psi, &sctx);
   struct gkyl_array* psidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   gkyl_eval_on_nodes_advance(eval_psi, 0.0, &rzlocal_ext, psidg); //on ghosts with ext_range
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "solovev3d_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "cerfon3d_psi.gkyl");
 
   gkyl_eval_on_nodes *eval_psibyr = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psibyr, &sctx);
   struct gkyl_array* psibyrdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -280,14 +292,14 @@ test_1()
   do{
     printf("writing the comp bmag file \n");
     const char *fmt = "%s_compbmag.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
   } while (0);
 
   do{
     printf("writing the bphi file \n");
     const char *fmt = "%s_bphi.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
     gkyl_grid_sub_array_write(&rzgrid, &rzlocal, bphidg, fileNm);
   } while (0);
 
@@ -302,7 +314,7 @@ test_1()
   //gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &clocal_ext, XYZ);
 
   //printf("writing rz file\n");
-  //gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "solovev3d_xyzfile.gkyl");
+  //gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "cerfon3d_xyzfile.gkyl");
   //printf("wrote rz file\n");
   
   printf("calculating metrics \n");
@@ -313,7 +325,7 @@ test_1()
   do{
     printf("writing the gij file \n");
     const char *fmt = "%s_g_ij.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
     gkyl_grid_sub_array_write(&cgrid, &clocal, gFld, fileNm);
   } while (0);
 
@@ -335,21 +347,21 @@ test_1()
   do{
     printf("writing the  second comp bmag file \n");
     const char *fmt = "%s_compbmag2.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
   } while (0);
 
     do{
       printf("writing the j file \n");
       const char *fmt = "%s_j.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, jFld, fileNm);
     } while (0);
 
     do{
       printf("writing the cmag file \n");
       const char *fmt = "%s_cmag.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, cmagFld, fileNm);
     } while (0);
  
@@ -357,7 +369,7 @@ test_1()
     do{
       printf("writing the g^ij file \n");
       const char *fmt = "%s_gij.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, grFld, fileNm);
     } while (0);
 
@@ -365,7 +377,7 @@ test_1()
     do{
       printf("writing the b_i file \n");
       const char *fmt = "%s_bi.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "solovev3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, biFld, fileNm);
     } while (0);
 
