@@ -24,7 +24,7 @@ struct dg_diffusion {
   int num_equations, num_basis;
 };
 
-#define _cfD(loc) diffusion->const_coeff? (const double *) gkyl_array_cfetch(diffusion->auxfields.D, 0) : (const double *) gkyl_array_cfetch(diffusion->auxfields.D, loc)
+#define _cfD(idx) diffusion->const_coeff? (const double *) gkyl_array_cfetch(diffusion->auxfields.D, 0) : (const double *) gkyl_array_cfetch(diffusion->auxfields.D, gkyl_range_idx(&diffusion->conf_range, idx))
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[7]; } gkyl_dg_diffusion_vol_kern_list_diffdir;
@@ -48,394 +48,339 @@ GKYL_CU_DH static double ker_dg_diffusion_order2_vol_1x_ser_p1_constcoeff_diffdi
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_1x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_1x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_1x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_1x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_1x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 1x 4th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_1x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_1x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_1x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_1x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_1x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_1x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 1x 6th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_1x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_1x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_1x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 2x 2nd order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p1_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p1_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 2x 4th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p1_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p1_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 2x 6th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_2x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_2x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_2x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_2x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_2x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_2x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_2x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_2x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_2x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 3x 2nd order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsxz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsxyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_constcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsxz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsxyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_constcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 3x 4th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsxz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsxyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_constcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsxz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsxyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_constcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 3x 6th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsxz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_constcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 
 // Volume kernel list.
@@ -510,394 +455,339 @@ GKYL_CU_DH static double ker_dg_diffusion_order2_vol_1x_ser_p1_varcoeff_diffdirs
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_1x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_1x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_1x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_1x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_1x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 1x 4th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_1x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_1x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_1x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_1x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_1x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_1x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 1x 6th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_1x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_1x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_1x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 2x 2nd order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p1_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p1_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_2x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_2x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_2x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 2x 4th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p1_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p1_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_2x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_2x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_2x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 2x 6th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_2x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_2x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_2x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_2x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_2x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_2x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_2x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_2x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_2x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 3x 2nd order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsxz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsxyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p1_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsxz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsxyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order2_vol_3x_ser_p2_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 3x 4th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsxz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsxyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p1_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsxz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsxyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order4_vol_3x_ser_p2_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 3x 6th order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsxz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 GKYL_CU_DH static double ker_dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
-  long cidx = gkyl_range_idx(&diffusion->conf_range, idx);
-  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsxyz(xc, dx, _cfD(cidx), qIn, qRhsOut);
+  return dg_diffusion_order6_vol_3x_ser_p2_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 
 // Volume kernel list.

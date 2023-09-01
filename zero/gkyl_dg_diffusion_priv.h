@@ -84,10 +84,9 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
   
   if (diffusion->diff_in_dir[dir]) {
-    long cidx = gkyl_range_idx(&diffusion->conf_range, idxC);
     for (size_t c=0; c<diffusion->num_equations; c++) {
       int off = c*diffusion->num_basis;
-      diffusion->surf[dir](xcC, dxC, _cfD(cidx), qInL+off, qInC+off, qInR+off, qRhsOut+off);
+      diffusion->surf[dir](xcC, dxC, _cfD(idxC), qInL+off, qInC+off, qInR+off, qRhsOut+off);
     }
   }
   return 0.;  // CFL frequency computed in volume term.
@@ -101,10 +100,9 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   struct dg_diffusion* diffusion = container_of(eqn, struct dg_diffusion, eqn);
   
   if (diffusion->diff_in_dir[dir]) {
-    long cidx = gkyl_range_idx(&diffusion->conf_range, idxSkin);
     for (size_t c=0; c<diffusion->num_equations; c++) {
       int off = c*diffusion->num_basis;
-      diffusion->boundary_surf[dir](xcSkin, dxSkin, _cfD(cidx), edge, qInSkin+off, qInEdge+off, qRhsOut+off);
+      diffusion->boundary_surf[dir](xcSkin, dxSkin, _cfD(idxSkin), edge, qInSkin+off, qInEdge+off, qRhsOut+off);
     }
   }
   return 0.;  // CFL frequency computed in volume term.
