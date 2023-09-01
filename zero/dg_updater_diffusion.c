@@ -27,22 +27,25 @@ gkyl_dg_updater_diffusion_new(const struct gkyl_rect_grid *grid,
 
   up->diffid = diffusion_id;
 
-  if (diffusion_id == GKYL_DIFFUSION_GEN)
-    up->dgeqn = gkyl_dg_diffusion_gen_new(cbasis, conf_range, use_gpu);
-  else 
-    up->dgeqn = gkyl_dg_diffusion_new(basis, cbasis, diffusion_id, diff_in_dir,
-                                      diff_order, conf_range, use_gpu);
-
   int cdim = cbasis->ndim;
-  int num_up_dirs = cdim;
+  bool is_dir_diffusive[GKYL_MAX_CDIM];
+  for (int d=0; d<cdim; d++) is_dir_diffusive[d] = diff_in_dir==NULL? true : diff_in_dir[d];
+
+  if (diffusion_id == GKYL_DIFFUSION_GEN) {
+    up->dgeqn = gkyl_dg_diffusion_gen_new(cbasis, conf_range, use_gpu);
+  } else {
+    up->dgeqn = gkyl_dg_diffusion_new(basis, cbasis, diffusion_id, is_dir_diffusive,
+                                      diff_order, conf_range, use_gpu);
+  }
+
+  int num_up_dirs = 0;
+  for (int d=0; d<cdim; d++) num_up_dirs += is_dir_diffusive[d]? 1 : 0;
   int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
+  int linc = 0;
   for (int d=0; d<cdim; ++d) {
-    if (diff_in_dir) {
-      if (diff_in_dir[d]) up_dirs[d] = d;
-    } else {
-      up_dirs[d] = d;
-    }
+    if (is_dir_diffusive[d]) up_dirs[linc] = d;
     zero_flux_flags[d] = 0;
+    linc += 1;
   }
 
   up->hyperdg = gkyl_hyper_dg_new(grid, cbasis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);

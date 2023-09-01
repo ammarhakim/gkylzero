@@ -117,7 +117,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   }
 
   f->has_diffusion = false;
-  f->diffD = 0;
+  f->diffD = NULL;
   f->diffusion_id = GKYL_DIFFUSION_NONE;
   if (f->info.diffusion.Dij) {
     f->has_diffusion = true;

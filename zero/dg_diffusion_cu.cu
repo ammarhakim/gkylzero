@@ -119,9 +119,10 @@ gkyl_dg_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_b
   int vdim = basis->ndim - cdim;
   int poly_order = cbasis->poly_order;
 
-  diffusion->const_coeff = constcoeff_from_diffid(diffusion_id);
   diffusion->num_equations = numeq_from_diffid(diffusion_id);
+  diffusion->const_coeff = constcoeff_from_diffid(diffusion_id);
   diffusion->num_basis = basis->num_basis;
+  for (int d=0; d<cdim; d++) diffusion->diff_in_dir[d] = diff_in_dir[d];
 
   int dirs_linidx = diffdirs_linidx(diff_in_dir, cdim);
 
