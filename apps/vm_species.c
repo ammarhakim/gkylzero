@@ -84,7 +84,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   long buff_sz = 0;
   // compute buffer size needed
   for (int d=0; d<cdim; ++d) {
-    long vol = s->skin_ghost.lower_skin[d].volume;
+    long vol = max(s->skin_ghost.lower_skin[d].volume, s->skin_ghost.upper_skin[d].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
 
