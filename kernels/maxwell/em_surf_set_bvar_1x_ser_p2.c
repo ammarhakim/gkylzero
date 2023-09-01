@@ -1,57 +1,36 @@
-#include <gkyl_mat.h> 
 #include <gkyl_maxwell_kernels.h> 
-GKYL_CU_DH void em_surf_set_bvar_1x_ser_p2(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *BB_surf, int* cell_avg_magB2_surf) 
+GKYL_CU_DH void em_surf_set_bvar_1x_ser_p2(const double* bvar, double* GKYL_RESTRICT bvar_surf) 
 { 
-  // count:   integer to indicate which matrix being fetched. 
-  // A:       preallocated LHS matrix. 
-  // rhs:     preallocated RHS vector. 
-  // BB_surf: Surface B_i B_j [BxBx_xl, BxBx_xr, ByBy_xl, ByBy_xr, BzBz_xl, BzBz_xr, BxBy_xl, BxBy_xr, BxBz_xl, BxBz_xr, 
-  //                           BxBx_yl, BxBx_yr, ByBy_yl, ByBy_yr, BzBz_yl, BzBz_yr, BxBy_yl, BxBy_yr, ByBz_yl, ByBz_yr, 
-  //                           BxBx_zl, BxBx_zr, ByBy_zl, ByBy_zr, BzBz_zl, BzBz_zr, BxBz_zl, BxBz_zr, ByBz_zl, ByBz_zr]. 
-  // cell_avg_magB2_surf:      Output flag for cell average if 1/|B|^2 at a surface only used cell averages. 
-
-  struct gkyl_mat rhs_bxbx_xl = gkyl_nmat_get(rhs, count); 
-  struct gkyl_mat rhs_bxbx_xr = gkyl_nmat_get(rhs, count+1); 
-  struct gkyl_mat rhs_bxby_xl = gkyl_nmat_get(rhs, count+2); 
-  struct gkyl_mat rhs_bxby_xr = gkyl_nmat_get(rhs, count+3); 
-  struct gkyl_mat rhs_bxbz_xl = gkyl_nmat_get(rhs, count+4); 
-  struct gkyl_mat rhs_bxbz_xr = gkyl_nmat_get(rhs, count+5); 
-  // Clear rhs for each component of surface magnetic field unit tensor and vector being solved for 
-  gkyl_mat_clear(&rhs_bxbx_xl, 0.0); 
-  gkyl_mat_clear(&rhs_bxbx_xr, 0.0); 
-  gkyl_mat_clear(&rhs_bxby_xl, 0.0); 
-  gkyl_mat_clear(&rhs_bxby_xr, 0.0); 
-  gkyl_mat_clear(&rhs_bxbz_xl, 0.0); 
-  gkyl_mat_clear(&rhs_bxbz_xr, 0.0); 
-  const double *Bx_sq_xl = &BB_surf[0]; 
-  const double *Bx_sq_xr = &BB_surf[1]; 
-  const double *By_sq_xl = &BB_surf[2]; 
-  const double *By_sq_xr = &BB_surf[3]; 
-  const double *Bz_sq_xl = &BB_surf[4]; 
-  const double *Bz_sq_xr = &BB_surf[5]; 
-  const double *B_x_B_y_xl = &BB_surf[6]; 
-  const double *B_x_B_y_xr = &BB_surf[7]; 
-  const double *B_x_B_z_xl = &BB_surf[8]; 
-  const double *B_x_B_z_xr = &BB_surf[9]; 
-  int *cell_avg_magB2_xl = &cell_avg_magB2_surf[0]; 
-  int *cell_avg_magB2_xr = &cell_avg_magB2_surf[1]; 
+  // bvar:      Input volume expansion of b_i = B_i/|B| (first 3 components), b_i b_j = B_i B_j/|B|^2 (last 6 components). 
+  // bvar_surf: Output surface expansion of magnetic field unit vector and tensor in each direction. 
  
-  double magB2_xl = Bx_sq_xl[0] + By_sq_xl[0] + Bz_sq_xl[0]; 
-  double magB2_xr = Bx_sq_xr[0] + By_sq_xr[0] + Bz_sq_xr[0]; 
+  const double *bx = &bvar[0]; 
+  const double *by = &bvar[3]; 
+  const double *bz = &bvar[6]; 
+  const double *bxbx = &bvar[9]; 
+  const double *bxby = &bvar[12]; 
+  const double *bxbz = &bvar[15]; 
+  const double *byby = &bvar[18]; 
+  const double *bybz = &bvar[21]; 
+  const double *bzbz = &bvar[24]; 
  
-  cell_avg_magB2_xl[0] = 0; 
-  cell_avg_magB2_xr[0] = 0; 
+  double *bx_xl = &bvar_surf[0]; 
+  double *bx_xr = &bvar_surf[1]; 
+  double *bxbx_xl = &bvar_surf[2]; 
+  double *bxbx_xr = &bvar_surf[3]; 
+  double *bxby_xl = &bvar_surf[4]; 
+  double *bxby_xr = &bvar_surf[5]; 
+  double *bxbz_xl = &bvar_surf[6]; 
+  double *bxbz_xr = &bvar_surf[7]; 
  
-  double bxbx_xl = Bx_sq_xl[0]/magB2_xl; 
-  double bxby_xl = B_x_B_y_xl[0]/magB2_xl; 
-  double bxbz_xl = B_x_B_z_xl[0]/magB2_xl; 
-  double bxbx_xr = Bx_sq_xr[0]/magB2_xr; 
-  double bxby_xr = B_x_B_y_xr[0]/magB2_xr; 
-  double bxbz_xr = B_x_B_z_xr[0]/magB2_xr; 
-  gkyl_mat_set(&rhs_bxbx_xl,0,0,bxbx_xl); 
-  gkyl_mat_set(&rhs_bxbx_xr,0,0,bxbx_xr); 
-  gkyl_mat_set(&rhs_bxby_xl,0,0,bxby_xl); 
-  gkyl_mat_set(&rhs_bxby_xr,0,0,bxby_xr); 
-  gkyl_mat_set(&rhs_bxbz_xl,0,0,bxbz_xl); 
-  gkyl_mat_set(&rhs_bxbz_xr,0,0,bxbz_xr); 
+  bx_xl[0] = 1.58113883008419*bx[2]-1.224744871391589*bx[1]+0.7071067811865475*bx[0]; 
+  bx_xr[0] = 1.58113883008419*bx[2]+1.224744871391589*bx[1]+0.7071067811865475*bx[0]; 
+  bxbx_xl[0] = 1.58113883008419*bxbx[2]-1.224744871391589*bxbx[1]+0.7071067811865475*bxbx[0]; 
+  bxbx_xr[0] = 1.58113883008419*bxbx[2]+1.224744871391589*bxbx[1]+0.7071067811865475*bxbx[0]; 
+  bxby_xl[0] = 1.58113883008419*bxby[2]-1.224744871391589*bxby[1]+0.7071067811865475*bxby[0]; 
+  bxby_xr[0] = 1.58113883008419*bxby[2]+1.224744871391589*bxby[1]+0.7071067811865475*bxby[0]; 
+  bxbz_xl[0] = 1.58113883008419*bxbz[2]-1.224744871391589*bxbz[1]+0.7071067811865475*bxbz[0]; 
+  bxbz_xr[0] = 1.58113883008419*bxbz[2]+1.224744871391589*bxbz[1]+0.7071067811865475*bxbz[0]; 
+ 
 } 
+ 

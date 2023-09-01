@@ -62,20 +62,17 @@ void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up,
 /**
  * Compute surface expansion of bvar
  *
- * @param up Updater for computing pkpm variables 
- * @param em                  Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
- * @param cell_avg_magB2_surf Array for storing boolean value of whether |B|^2 on the surface 
- *                            uses *only* cell averages (2*cdim components: xl, xr, yl, yr, zl, & zr)
- *                            to minimize positivity violations (default: false)
- * @param bvar_surf           Output array of surface expansions of bvar
+ * @param up Updater for computing em variables 
+ * @param bvar Input array of volume expansion of bvar
+ * @param bvar_surf Output array of surface expansions of bvar
  */
 void gkyl_dg_calc_em_vars_surf_advance(struct gkyl_dg_calc_em_vars *up, 
-  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* bvar_surf);
+  const struct gkyl_array* bvar, struct gkyl_array* bvar_surf);
 
 /**
  * Compute div(b) and max(|b_i|) penalization
  *
- * @param up Updater for computing pkpm variables 
+ * @param up Updater for computing em variables 
  * @param conf_range Configuration space range
  * @param bvar_surf Input array of surface expansions of bvar
  * @param bvar Input array of volume expansion of bvar
@@ -101,7 +98,7 @@ void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up,
   const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* out);
 
 void gkyl_dg_calc_em_vars_surf_advance_cu(struct gkyl_dg_calc_em_vars *up, 
-  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* bvar_surf);
+  const struct gkyl_array* bvar, struct gkyl_array* bvar_surf);
 
 void gkyl_dg_calc_em_vars_div_b_cu(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
   const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 
