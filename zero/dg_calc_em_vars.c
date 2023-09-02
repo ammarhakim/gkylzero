@@ -40,7 +40,6 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
     up->Ncomp = 6;
     up->em_calc_temp = choose_em_calc_BB_kern(b_type, cdim, poly_order);
     up->em_set = choose_em_set_bvar_kern(b_type, cdim, poly_order);
-    up->em_surf_set = choose_em_surf_set_bvar_kern(b_type, cdim, poly_order);
     up->em_copy = choose_em_copy_bvar_kern(b_type, cdim, poly_order);      
     // Fetch the kernels in each direction
     for (int d=0; d<cdim; ++d) 
@@ -64,11 +63,12 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
 }
 
 void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up, 
-  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* out)
+  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, 
+  struct gkyl_array* out, struct gkyl_array* out_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(out)) {
-    return gkyl_dg_calc_em_vars_advance_cu(up, em, cell_avg_magB2, out);
+    return gkyl_dg_calc_em_vars_advance_cu(up, em, cell_avg_magB2, out, out_surf);
   }
 #endif
   gkyl_array_clear(up->temp_var, 0.0);
@@ -101,30 +101,12 @@ void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up,
     const double *em_d = gkyl_array_cfetch(em, loc);
     int *cell_avg_magB2_d = gkyl_array_fetch(cell_avg_magB2, loc);
     double *out_d = gkyl_array_fetch(out, loc);
+    double *out_surf_d = gkyl_array_fetch(out_surf, loc);
 
-    up->em_copy(count, up->xs, em_d, cell_avg_magB2_d, out_d);
+    up->em_copy(count, up->xs, em_d, cell_avg_magB2_d, out_d, out_surf_d);
 
     count += up->Ncomp;
   }  
-}
-
-void gkyl_dg_calc_em_vars_surf_advance(struct gkyl_dg_calc_em_vars *up, 
-  const struct gkyl_array* bvar, struct gkyl_array* bvar_surf)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(bvar_surf)) {
-    return gkyl_dg_calc_em_vars_surf_advance_cu(up, bvar, bvar_surf);
-  }
-#endif
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &up->mem_range);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
-
-    const double *bvar_d = gkyl_array_cfetch(bvar, loc);
-    double *bvar_surf_d = gkyl_array_fetch(bvar_surf, loc);
-    up->em_surf_set(bvar_d, bvar_surf_d);
-  }
 }
 
 void gkyl_dg_calc_em_vars_div_b(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 

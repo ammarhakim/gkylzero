@@ -69,7 +69,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // ExB = E x B velocity, E x B/|B|^2
   f->cell_avg_magB2 = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
   f->bvar = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
-  f->ExB = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
   // Surface magnetic field vector organized as:
   // [bx_xl, bx_xr, bxbx_xl, bxbx_xr, bxby_xl, bxby_xr, bxbz_xl, bxbz_xr,
   //  by_yl, by_yr, bxby_yl, bxby_yr, byby_yl, byby_yr, bybz_yl, bybz_yr,
@@ -83,9 +82,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // Surface expansion of max b penalization for streaming in PKPM system max(|b_i_l|, |b_i_r|)
   f->max_b = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
 
-  // Create updaters for bvar and ExB
+  // Create updaters for bvar (needed by PKPM model)
   f->calc_bvar = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 0, app->use_gpu);
-  f->calc_ExB = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 1, app->use_gpu);
 
   f->has_ext_em = false;
   f->ext_em_evolve = false;
@@ -280,8 +278,7 @@ vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field,
   // Assumes magnetic field boundary conditions applied so magnetic field 
   // unit vector and unit tensor are defined everywhere in the domain
   gkyl_dg_calc_em_vars_advance(field->calc_bvar, field->tot_em, 
-    field->cell_avg_magB2, field->bvar);
-  gkyl_dg_calc_em_vars_surf_advance(field->calc_bvar, field->bvar, field->bvar_surf);
+    field->cell_avg_magB2, field->bvar, field->bvar_surf);
 
   // Compute div(b) and max_b = max(|b_i_l|, |b_i_r|)
   gkyl_array_clear(field->div_b, 0.0); // Incremented in each dimension, so clear beforehand
@@ -289,24 +286,6 @@ vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field,
     field->bvar_surf, field->bvar, 
     field->max_b, field->div_b); 
 
-  app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
-}
-
-void
-vm_field_calc_ExB(gkyl_vlasov_app *app, struct vm_field *field,
-  const struct gkyl_array *em)
-{
-  struct timespec tm = gkyl_wall_clock();
-
-  gkyl_array_clear(field->tot_em, 0.0);
-  gkyl_array_set(field->tot_em, 1.0, em);
-  if (field->has_ext_em) 
-    gkyl_array_accumulate(field->tot_em, 1.0, field->ext_em);
-  // Assumes electric field and magnetic field boundary conditions applied 
-  // so E x B velocity is defined everywhere in the domain 
-  gkyl_dg_calc_em_vars_advance(field->calc_ExB, field->tot_em, 
-    field->cell_avg_magB2, field->ExB);
-  
   app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
 }
 
@@ -472,12 +451,10 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 
   gkyl_array_release(f->cell_avg_magB2);
   gkyl_array_release(f->bvar);
-  gkyl_array_release(f->ExB);
   gkyl_array_release(f->bvar_surf);
   gkyl_array_release(f->div_b);
   gkyl_array_release(f->max_b);
   gkyl_dg_calc_em_vars_release(f->calc_bvar);
-  gkyl_dg_calc_em_vars_release(f->calc_ExB);
 
   if (f->has_ext_em) {
     gkyl_array_release(f->ext_em);

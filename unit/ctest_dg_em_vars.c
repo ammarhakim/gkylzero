@@ -529,7 +529,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
 
   // Create EM, bvar, and ExB arrays.
   struct gkyl_array *cell_avg_magB2;
-  struct gkyl_array *field, *bvar, *ExB, *analytic_bvar, *analytic_ExB;
+  struct gkyl_array *field, *bvar, *ExB, *bvar_surf, *analytic_bvar, *analytic_ExB;
   cell_avg_magB2 = mk_int_arr(1, local_ext.volume);
   field = mkarr(8*basis.num_basis, local_ext.volume);
   bvar = mkarr(9*basis.num_basis, local_ext.volume);
@@ -537,18 +537,23 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   analytic_bvar = mkarr(9*basis.num_basis, local_ext.volume);
   analytic_ExB = mkarr(3*basis.num_basis, local_ext.volume);
 
+  int Ncomp_surf = 2*ndim*4;
+  int Nbasis_surf = basis.num_basis/(basis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
+  bvar_surf = mkarr(Ncomp_surf*Nbasis_surf, local_ext.volume);
+
   // Project initial conditions and analytic solution
   gkyl_proj_on_basis_advance(proj_field, 0.0, &local_ext, field);
   gkyl_proj_on_basis_advance(proj_analytic_bvar, 0.0, &local_ext, analytic_bvar);
   gkyl_proj_on_basis_advance(proj_analytic_ExB, 0.0, &local_ext, analytic_ExB);
 
   struct gkyl_array *cell_avg_magB2_cu;
-  struct gkyl_array *field_cu, *bvar_cu, *ExB_cu;
+  struct gkyl_array *field_cu, *bvar_cu, *ExB_cu, *bvar_surf_cu;
   if (use_gpu) { // Create device copies
     cell_avg_magB2_cu  = gkyl_array_cu_dev_new(GKYL_INT, 1, local_ext.volume);
     field_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, 8*basis.num_basis, local_ext.volume);
     bvar_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*basis.num_basis, local_ext.volume);
     ExB_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, local_ext.volume);
+    bvar_surf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, Ncomp_surf*Nbasis_surf, local_ext.volume);
   }
 
   if (use_gpu) {
@@ -572,15 +577,16 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   // 3. For bvar, project diagonal components of bb onto quadrature points, evaluate square root point wise, 
   //    and project back onto modal basis using basis_sqrt to obtain b_i (see gkyl_basis_*_sqrt.h in kernels/basis/)
   if (use_gpu) {
-    gkyl_dg_calc_em_vars_advance(calc_bvar, field_cu, cell_avg_magB2_cu, bvar_cu);
-    gkyl_dg_calc_em_vars_advance(calc_ExB, field_cu, cell_avg_magB2_cu, ExB_cu);
+    // Advance also computed surface variables, but not currently testing surface variables JJ: 09/02/23
+    gkyl_dg_calc_em_vars_advance(calc_bvar, field_cu, cell_avg_magB2_cu, bvar_cu, bvar_surf_cu);
+    gkyl_dg_calc_em_vars_advance(calc_ExB, field_cu, cell_avg_magB2_cu, ExB_cu, bvar_surf_cu);
     // Copy host array to device.
     gkyl_array_copy(bvar, bvar_cu);
     gkyl_array_copy(ExB, ExB_cu);
   }
   else {
-    gkyl_dg_calc_em_vars_advance(calc_bvar, field, cell_avg_magB2, bvar);
-    gkyl_dg_calc_em_vars_advance(calc_ExB, field, cell_avg_magB2, ExB);
+    gkyl_dg_calc_em_vars_advance(calc_bvar, field, cell_avg_magB2, bvar, bvar_surf);
+    gkyl_dg_calc_em_vars_advance(calc_ExB, field, cell_avg_magB2, ExB, bvar_surf);
   }
 
   double em_tm = gkyl_time_diff_now_sec(tm);
@@ -884,6 +890,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   gkyl_array_release(cell_avg_magB2);
   gkyl_array_release(bvar);
   gkyl_array_release(ExB);
+  gkyl_array_release(bvar_surf);
   gkyl_array_release(analytic_bvar);
   gkyl_array_release(analytic_ExB);
 
@@ -903,6 +910,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_array_release(field_cu);
     gkyl_array_release(cell_avg_magB2_cu);
     gkyl_array_release(bvar_cu);
+    gkyl_array_release(bvar_surf_cu);
     gkyl_array_release(ExB_cu);
 
     gkyl_array_release(alt_bibj_cu);

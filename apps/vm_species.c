@@ -218,7 +218,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->pkpm_div_ppar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     // allocate array to store primitive moments : [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
     // pressure p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
-    s->pkpm_prim = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+    s->pkpm_prim = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
     s->pkpm_p_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
     // boolean array for if we are only using the cell average for primitive variables
     s->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
@@ -489,26 +489,16 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
       app->field->bvar, app->field->bvar_surf, species->pkpm_moms.marr, 
       species->pkpm_p_ij, species->pkpm_p_ij_surf);
     // Compute primitive variables in both the volume and on surfaces
-    if (species->bc_is_absorb) {
+    if (species->bc_is_absorb) 
       gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars,
         species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_div_ppar, species->cell_avg_prim, 
-        species->pkpm_prim); 
-      gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars, 
-        species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_p_ij_surf, species->cell_avg_prim, 
-        species->pkpm_prim_surf);
-    }
-    else {
+        species->pkpm_p_ij, species->pkpm_div_ppar, 
+        species->cell_avg_prim, species->pkpm_prim, species->pkpm_prim_surf); 
+    else 
       gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars_ext,
         species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_div_ppar, species->cell_avg_prim, 
-        species->pkpm_prim); 
-      gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars_ext, 
-        species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_p_ij_surf, species->cell_avg_prim, 
-        species->pkpm_prim_surf);
-    }
+        species->pkpm_p_ij, species->pkpm_div_ppar, 
+        species->cell_avg_prim, species->pkpm_prim, species->pkpm_prim_surf); 
   }
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
