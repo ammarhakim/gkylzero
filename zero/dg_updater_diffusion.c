@@ -48,7 +48,7 @@ gkyl_dg_updater_diffusion_new(const struct gkyl_rect_grid *grid,
     linc += 1;
   }
 
-  up->hyperdg = gkyl_hyper_dg_new(grid, cbasis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
 
   up->diffusion_tm = 0.0;
 
