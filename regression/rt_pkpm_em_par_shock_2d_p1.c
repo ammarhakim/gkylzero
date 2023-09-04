@@ -152,9 +152,19 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
   double x = xn[0], y = xn[1];
-  
+  double Lx = app->Lx;
+  double Ly = app->Ly;
+  double B0 = app->B0;
+  double noise_amp = app->noise_amp;
+  double noise_index = app->noise_index;
+  int k_init = app->k_init;
+  int k_final = app->k_final;
+
+  double noise[3] = {0.0};
+  noise_init(noise_amp, noise_index, k_init, k_final, Lx, Ly, x, y, noise);
+  // corresponding noise to Bx and By
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[3] = noise[0]; fout[4] = noise[1]; fout[5] = 0.0;
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
