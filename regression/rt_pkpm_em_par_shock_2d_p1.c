@@ -64,26 +64,51 @@ noise_init(double noise_amp, double noise_index, int k_init, int k_final, double
   noise[2] = noise_amp*noise[2]/sqrt(2.0*kdiff*kdiff/3.0);
 }
 
-static inline double sq(double x) { return x*x; }
+static inline double
+maxwellian(double n, double v, double temp, double mass)
+{
+  double v2 = v*v;
+  return n/sqrt(2.0*M_PI*temp/mass)*exp(-v2/(2.0*temp/mass));
+}
 
 void
 evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0], y = xn[1], v = xn[2];
-  double vt = app->vtElc, n0 = app->n0;
-  fout[0] = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
-  fout[1] = vt*vt*n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  double x = xn[0], y = xn[1], vx = xn[2];
+
+  double me = app->massElc;
+  double mi = app->massIon;
+  double T_e = app->T_e;
+  double T_i = app->T_i;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
+  double n0 = app->n0;
+  
+  double fv = maxwellian(n0, vx, T_e, me);
+    
+  fout[0] = fv;
+  fout[1] = T_e/me*fv;
 }
 
 void
 evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0], y = xn[1], v = xn[2];
-  double vt = app->vtIon, n0 = app->n0;
-  fout[0] = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
-  fout[1] = vt*vt*n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
+  double x = xn[0], y = xn[1], vx = xn[2];
+
+  double me = app->massElc;
+  double mi = app->massIon;
+  double T_e = app->T_e;
+  double T_i = app->T_i;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
+  double n0 = app->n0;
+  
+  double fv = maxwellian(n0, vx, T_i, mi);
+    
+  fout[0] = fv;
+  fout[1] = T_i/mi*fv;
 }
 
 void
