@@ -70,7 +70,7 @@ void
 evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  double x = xn[0], y = xn[1], v = xn[2];
   double vt = app->vtElc, n0 = app->n0;
   fout[0] = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   fout[1] = vt*vt*n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
@@ -80,7 +80,7 @@ void
 evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
+  double x = xn[0], y = xn[1], v = xn[2];
   double vt = app->vtIon, n0 = app->n0;
   fout[0] = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   fout[1] = vt*vt*n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
