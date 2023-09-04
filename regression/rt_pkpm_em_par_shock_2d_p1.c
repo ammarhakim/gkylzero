@@ -30,6 +30,7 @@ struct pkpm_em_par_shock_ctx {
   int k_final;
   double T_e;
   double T_i;
+  double uShock;
   double vtElc;
   double vtIon;
   double nuElc;
@@ -70,7 +71,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double vt = app->vte, n0 = app->n0;
+  double vt = app->vtElc, n0 = app->n0;
   fout[0] = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   fout[1] = vt*vt*n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
 }
@@ -80,7 +81,7 @@ evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
-  double vt = app->vti, n0 = app->n0;
+  double vt = app->vtIon, n0 = app->n0;
   fout[0] = n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
   fout[1] = vt*vt*n0/sqrt(2.0*M_PI*sq(vt))*(exp(-sq(v)/(2*sq(vt))));
 }
@@ -89,8 +90,8 @@ void
 evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0];
-  double vt = app->vte, vdrift = app->uShock, n0 = app->n0;
+  double x = xn[0], y = xn[1];
+  double vdrift = app->uShock, n0 = app->n0;
   double mass = app->massElc;
   double charge = app->chargeElc;
   double Lx = app->Lx;
@@ -113,8 +114,8 @@ void
 evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0];
-  double vt = app->vti, vdrift = app->uShock, n0 = app->n0;
+  double x = xn[0], y = xn[1];
+  double vdrift = app->uShock, n0 = app->n0;
   double mass = app->massIon;
   fout[0] = -n0*mass*vdrift;
   fout[1] = 0.0;
@@ -125,7 +126,7 @@ void
 evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0];
+  double x = xn[0], y = xn[1];
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
@@ -137,7 +138,7 @@ void
 evalExtEmFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0];
+  double x = xn[0], y = xn[1];
   double B_x = app->B0;
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
@@ -147,14 +148,14 @@ evalExtEmFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_gem_ctx *app = ctx;
+  struct pkpm_em_par_shock_ctx *app = ctx;
   fout[0] = app->nuElc;
 }
 
 void
 evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct pkpm_gem_ctx *app = ctx;
+  struct pkpm_em_par_shock_ctx *app = ctx;
   fout[0] = app->nuIon;
 }
 
@@ -183,7 +184,7 @@ create_ctx(void)
   double vAi = vAe/sqrt(massIon);
   double beta = 1.0;
 
-  double B0 = vAe*sqrt(mu0*n0*massElc)
+  double B0 = vAe*sqrt(mu0*n0*massElc);
   double T_e = beta*B0*B0/(2.0*mu0*n0);
   double T_i = T_e;
   double vtElc = sqrt(2.0*T_e/massElc);
@@ -227,6 +228,7 @@ create_ctx(void)
     .k_final = k_final,
     .vtElc = vtElc,
     .vtIon = vtIon,
+    .uShock = uShock,
     .nuElc = nuElc,
     .nuIon = nuIon,
     .Lx = Lx,
@@ -334,8 +336,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -6.0 * ctx.vte},
-    .upper = { 6.0 * ctx.vte}, 
+    .lower = { -6.0 * ctx.vtElc},
+    .upper = { 6.0 * ctx.vtElc}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -369,8 +371,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -16.0 * ctx.vti},
-    .upper = { 16.0 * ctx.vti}, 
+    .lower = { -16.0 * ctx.vtIon},
+    .upper = { 16.0 * ctx.vtIon}, 
     .cells = { VX },
 
     .ctx = &ctx,
