@@ -104,6 +104,15 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   fout[0] = 1.0e-4/sqrt(app->massIon)*(app->Te_Ti*sqrt(app->Te_Ti));
 }
 
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
+    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
+  }
+}
+
 struct esshock_ctx
 create_ctx(void)
 {
@@ -116,7 +125,7 @@ create_ctx(void)
     .vte = 1.0,
     .vti = ctx.vte/sqrt(ctx.Te_Ti*ctx.massIon),
     .cs = ctx.vte/sqrt(ctx.massIon),
-    .uShock = 2.0*ctx.cs,
+    .uShock = 2.5*ctx.cs,
     .Lx = 128.0,
     .n0 = 1.0
   };
@@ -251,12 +260,16 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = 100.0;
   double dt = tend-tcurr;
+  int nframe = 1;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
-  
-  gkyl_vlasov_app_write(app, tcurr, 0);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
+  gkyl_vlasov_app_calc_field_energy(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -264,17 +277,24 @@ main(int argc, char **argv)
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
     
+    gkyl_vlasov_app_calc_field_energy(app, tcurr);
+    gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
       break;
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
 
-  gkyl_vlasov_app_write(app, tcurr, 1);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
+  gkyl_vlasov_app_write_field_energy(app);
+  gkyl_vlasov_app_write_integrated_L2_f(app);
+  gkyl_vlasov_app_write_integrated_mom(app);
   gkyl_vlasov_app_stat_write(app);
 
   // fetch simulation statistics
