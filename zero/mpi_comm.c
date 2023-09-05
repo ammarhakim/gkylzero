@@ -40,6 +40,11 @@ struct comm_buff_stat {
   gkyl_mem_buff buff;
 };
 
+struct gkyl_comm_state {
+  MPI_Request req;
+  MPI_Status stat;
+};
+
 // Private struct wrapping MPI-specific code
 struct mpi_comm {
   struct gkyl_comm base; // base communicator
@@ -98,6 +103,43 @@ get_size(struct gkyl_comm *comm, int *sz)
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
   MPI_Comm_size(mpi->mcomm, sz);
   return 0;
+}
+
+static int
+array_send(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm)
+{
+  size_t vol = array->ncomp*array->size;
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  int ret = MPI_Send(array->data, vol, g2_mpi_datatype[array->type], dest, tag, mpi->mcomm); 
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
+array_isend(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
+{
+  size_t vol = array->ncomp*array->size;
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  int ret = MPI_Isend(array->data, vol, g2_mpi_datatype[array->type], dest, tag, mpi->mcomm, &state->req); 
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
+array_recv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm)
+{
+  size_t vol = array->ncomp*array->size;
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  MPI_Status stat;
+  int ret = MPI_Recv(array->data, vol, g2_mpi_datatype[array->type], src, tag, mpi->mcomm, &stat); 
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
+array_irecv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm, struct gkyl_comm_state *state)
+{
+  size_t vol = array->ncomp*array->size;
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  int ret = MPI_Irecv(array->data, vol, g2_mpi_datatype[array->type], src, tag, mpi->mcomm, &state->req); 
+  return ret == MPI_SUCCESS ? 0 : 1;
 }
 
 static int
@@ -472,6 +514,40 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   return ext_comm;
 }
 
+static struct gkyl_comm*
+split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+  int rank;
+  MPI_Comm_rank(mpi->mcomm, &rank);
+  MPI_Comm new_mcomm;
+  int ret = MPI_Comm_split(mpi->mcomm, color, rank, &new_mcomm);
+  assert(ret == MPI_SUCCESS);
+
+  struct gkyl_comm *newcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = new_mcomm,
+      .decomp = new_decomp,
+    }
+  );
+  return newcomm;
+}
+
+static struct gkyl_comm_state* comm_state_new()
+{
+  struct gkyl_comm_state *state = gkyl_malloc(sizeof *state);
+  return state;
+}
+
+static void comm_state_release(struct gkyl_comm_state *state)
+{
+  gkyl_free(state);
+}
+
+void comm_state_wait(struct gkyl_comm_state *state)
+{
+  MPI_Wait(&state->req, &state->stat);
+}
+
 struct gkyl_comm*
 gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
 {
@@ -511,12 +587,19 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.get_rank = get_rank;
   mpi->base.get_size = get_size;
   mpi->base.barrier = barrier;
+  mpi->base.gkyl_array_send = array_send;
+  mpi->base.gkyl_array_isend = array_isend;
+  mpi->base.gkyl_array_recv = array_recv;
+  mpi->base.gkyl_array_irecv = array_irecv;
   mpi->base.all_reduce = all_reduce;
   mpi->base.gkyl_array_sync = array_sync;
   mpi->base.gkyl_array_per_sync = array_per_sync;
   mpi->base.gkyl_array_write = array_write;
   mpi->base.extend_comm = extend_comm;
-
+  mpi->base.split_comm = split_comm;
+  mpi->base.comm_state_new = comm_state_new;
+  mpi->base.comm_state_release = comm_state_release;
+  mpi->base.comm_state_wait = comm_state_wait;
   mpi->base.ref_count = gkyl_ref_count_init(comm_free);
 
   return &mpi->base;

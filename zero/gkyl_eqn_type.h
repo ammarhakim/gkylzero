@@ -36,9 +36,10 @@ enum gkyl_model_id {
 enum gkyl_diffusion_id {
   GKYL_NO_DIFFUSION = 0, // No diffusion. This is default.
   GKYL_ISO_DIFFUSION, // Isotropic diffusion. 
-  GKYL_ANISO_DIFFUSION, // Anisotropic diffusion.
-  GKYL_EULER_ISO_DIFFUSION, // Diffusion in isothermal Euler equations (momentum equation)
-  GKYL_EULER_DIFFUSION, // Diffusion in Euler equations (momentum and energy equations)
+  GKYL_PKPM_DIFFUSION, // Isotropic diffusion in PKPM fluid equations (rhoux, rhouy, rhouz). 
+  GKYL_ISO_EULER_DIFFUSION, // Isotropic diffusion in isothermal Euler equations (rho, rhoux, rhouy, rhouz). 
+  GKYL_EULER_DIFFUSION, // Isotropic diffusion in Euler equations (rho, rhoux, rhouy, rhouz, Energy). 
+  GKYL_GEN_DIFFUSION, // General diffusion with diffusion tensor Dij.
 };
 
 // Identifiers for specific collision object types

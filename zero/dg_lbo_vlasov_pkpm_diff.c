@@ -72,6 +72,13 @@ gkyl_dg_lbo_vlasov_pkpm_diff_new(const struct gkyl_basis* cbasis, const struct g
       
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_vpar_kernels = ten_surf_vpar_kernels;
+      boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
+      
+      break;
+
     default:
       assert(false);
       break;    

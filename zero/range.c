@@ -71,7 +71,8 @@ void
 gkyl_range_init(struct gkyl_range *rng, int ndim,
   const int *lower, const int *upper)
 {
-  *rng = (struct gkyl_range) { };
+//  // MF 2023/07/07: commenting this out because it causes seg faults in g2.
+//  *rng = (struct gkyl_range) { };
   
   int is_zero_vol = 0;
   rng->ndim = ndim;
@@ -442,7 +443,7 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
-  iter->bumps_left = range_calc_split(range, iter->idx);
+  iter->bumps_left = range->volume > 0? range_calc_split(range, iter->idx) : 0;
   
   for (int i=0; i<range->ndim; ++i) {
     iter->lower[i] = range->lower[i];
@@ -456,7 +457,7 @@ gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
-  iter->bumps_left = range->volume;
+  iter->bumps_left = range->volume > 0? range_calc_split(range, iter->idx) : 0;
   
   for (int i=0; i<range->ndim; ++i) {
     iter->idx[i] = iter->lower[i] = range->lower[i];

@@ -1,11 +1,13 @@
 /* -*- c -*- */
 
-#include <gkylzero.h>
 #include <stdio.h>
 
 extern "C" {
-    int cu_array_test_and_flip_sign( struct gkyl_array *arr);
-    void set_array_copy_fn(struct gkyl_array_copy_func *fn);
+#include <gkyl_array_ops.h>
+#include <gkyl_util.h>
+#include <gkyl_alloc.h>
+  int cu_array_test_and_flip_sign( struct gkyl_array *arr);
+  void set_array_copy_fn(struct gkyl_array_copy_func *fn);
 }
 
 GKYL_CU_DH static void

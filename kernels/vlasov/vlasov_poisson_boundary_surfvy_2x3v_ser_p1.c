@@ -1,12 +1,12 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_hyb_2x3v_p1_surfx4_eval_quad.h> 
 #include <gkyl_basis_hyb_2x3v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, const double *dxv, const double *field, const double *ext_field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
   // dxv[NDIM]:   Cell spacing.
-  // fac_phi:     potential (scaled by appropriate factors).
-  // vecA:        vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
+  // field:       potential (scaled by appropriate factors).
+  // ext_field:   vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
   // edge:        Determines if the update is for the left edge (-1) or right edge (+1).
   // fSkin/fEdge: Input Distribution function in skin cell/last edge cell 
   // out:         Output distribution function in skin cell 
@@ -14,7 +14,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
   const double dv1 = dxv[2], wv1 = w[2]; 
   const double dv2 = dxv[3], wv2 = w[3]; 
   const double dv3 = dxv[4], wv3 = w[4]; 
-  const double *phi = &fac_phi[0]; 
+  const double *phi = &field[0]; 
   const double dx10 = 2/dxv[0]; 
   const double dx11 = 2/dxv[1]; 
   double alpha[32] = {0.0}; 
@@ -28,7 +28,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
 
   if (edge == -1) { 
 
-  if (alpha[0]-alpha[1] > 0) { 
+  if (0.25*alpha[0]-0.25*alpha[1] > 0) { 
     fUpwindQuad[0] = hyb_2x3v_p1_surfx4_eval_quad_node_0_r(fSkin); 
     fUpwindQuad[1] = hyb_2x3v_p1_surfx4_eval_quad_node_1_r(fSkin); 
     fUpwindQuad[2] = hyb_2x3v_p1_surfx4_eval_quad_node_2_r(fSkin); 
@@ -49,7 +49,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
     fUpwindQuad[7] = hyb_2x3v_p1_surfx4_eval_quad_node_7_l(fEdge); 
     fUpwindQuad[8] = hyb_2x3v_p1_surfx4_eval_quad_node_8_l(fEdge); 
   } 
-  if (alpha[0]-alpha[1] > 0) { 
+  if (0.25*alpha[0]-0.25*alpha[1] > 0) { 
     fUpwindQuad[9] = hyb_2x3v_p1_surfx4_eval_quad_node_9_r(fSkin); 
     fUpwindQuad[10] = hyb_2x3v_p1_surfx4_eval_quad_node_10_r(fSkin); 
     fUpwindQuad[11] = hyb_2x3v_p1_surfx4_eval_quad_node_11_r(fSkin); 
@@ -70,7 +70,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
     fUpwindQuad[16] = hyb_2x3v_p1_surfx4_eval_quad_node_16_l(fEdge); 
     fUpwindQuad[17] = hyb_2x3v_p1_surfx4_eval_quad_node_17_l(fEdge); 
   } 
-  if (alpha[0]-alpha[1] > 0) { 
+  if (0.25*alpha[0]-0.25*alpha[1] > 0) { 
     fUpwindQuad[18] = hyb_2x3v_p1_surfx4_eval_quad_node_18_r(fSkin); 
     fUpwindQuad[19] = hyb_2x3v_p1_surfx4_eval_quad_node_19_r(fSkin); 
     fUpwindQuad[20] = hyb_2x3v_p1_surfx4_eval_quad_node_20_r(fSkin); 
@@ -91,7 +91,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
     fUpwindQuad[25] = hyb_2x3v_p1_surfx4_eval_quad_node_25_l(fEdge); 
     fUpwindQuad[26] = hyb_2x3v_p1_surfx4_eval_quad_node_26_l(fEdge); 
   } 
-  if (alpha[0]-alpha[1] > 0) { 
+  if (0.25*alpha[0]-0.25*alpha[1] > 0) { 
     fUpwindQuad[27] = hyb_2x3v_p1_surfx4_eval_quad_node_27_r(fSkin); 
     fUpwindQuad[28] = hyb_2x3v_p1_surfx4_eval_quad_node_28_r(fSkin); 
     fUpwindQuad[29] = hyb_2x3v_p1_surfx4_eval_quad_node_29_r(fSkin); 
@@ -116,38 +116,38 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
   // Project tensor nodal quadrature basis back onto modal basis. 
   hyb_2x3v_p1_vdir_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
 
-  Ghat[0] = 0.25*(alpha[1]*fUpwind[1]+alpha[0]*fUpwind[0]); 
-  Ghat[1] = 0.25*(alpha[0]*fUpwind[1]+fUpwind[0]*alpha[1]); 
-  Ghat[2] = 0.25*(alpha[1]*fUpwind[5]+alpha[0]*fUpwind[2]); 
-  Ghat[3] = 0.25*(alpha[1]*fUpwind[6]+alpha[0]*fUpwind[3]); 
-  Ghat[4] = 0.25*(alpha[1]*fUpwind[8]+alpha[0]*fUpwind[4]); 
-  Ghat[5] = 0.25*(alpha[0]*fUpwind[5]+alpha[1]*fUpwind[2]); 
-  Ghat[6] = 0.25*(alpha[0]*fUpwind[6]+alpha[1]*fUpwind[3]); 
-  Ghat[7] = 0.25*(alpha[1]*fUpwind[11]+alpha[0]*fUpwind[7]); 
-  Ghat[8] = 0.25*(alpha[0]*fUpwind[8]+alpha[1]*fUpwind[4]); 
-  Ghat[9] = 0.25*(alpha[1]*fUpwind[12]+alpha[0]*fUpwind[9]); 
-  Ghat[10] = 0.25*(alpha[1]*fUpwind[13]+alpha[0]*fUpwind[10]); 
-  Ghat[11] = 0.25*(alpha[0]*fUpwind[11]+alpha[1]*fUpwind[7]); 
-  Ghat[12] = 0.25*(alpha[0]*fUpwind[12]+alpha[1]*fUpwind[9]); 
-  Ghat[13] = 0.25*(alpha[0]*fUpwind[13]+alpha[1]*fUpwind[10]); 
-  Ghat[14] = 0.25*(alpha[1]*fUpwind[15]+alpha[0]*fUpwind[14]); 
-  Ghat[15] = 0.25*(alpha[0]*fUpwind[15]+alpha[1]*fUpwind[14]); 
-  Ghat[16] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[17]+15.0*alpha[0]*fUpwind[16]); 
-  Ghat[17] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[17]+15.0*alpha[1]*fUpwind[16]); 
-  Ghat[18] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[20]+15.0*alpha[0]*fUpwind[18]); 
-  Ghat[19] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[21]+15.0*alpha[0]*fUpwind[19]); 
-  Ghat[20] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[20]+15.0*alpha[1]*fUpwind[18]); 
-  Ghat[21] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[21]+15.0*alpha[1]*fUpwind[19]); 
-  Ghat[22] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[23]+15.0*alpha[0]*fUpwind[22]); 
-  Ghat[23] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[23]+15.0*alpha[1]*fUpwind[22]); 
-  Ghat[24] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[25]+15.0*alpha[0]*fUpwind[24]); 
-  Ghat[25] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[25]+15.0*alpha[1]*fUpwind[24]); 
-  Ghat[26] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[28]+15.0*alpha[0]*fUpwind[26]); 
-  Ghat[27] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[29]+15.0*alpha[0]*fUpwind[27]); 
-  Ghat[28] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[28]+15.0*alpha[1]*fUpwind[26]); 
-  Ghat[29] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[29]+15.0*alpha[1]*fUpwind[27]); 
-  Ghat[30] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[31]+15.0*alpha[0]*fUpwind[30]); 
-  Ghat[31] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[31]+15.0*alpha[1]*fUpwind[30]); 
+  Ghat[0] = 0.25*alpha[1]*fUpwind[1]+0.25*alpha[0]*fUpwind[0]; 
+  Ghat[1] = 0.25*alpha[0]*fUpwind[1]+0.25*fUpwind[0]*alpha[1]; 
+  Ghat[2] = 0.25*alpha[1]*fUpwind[5]+0.25*alpha[0]*fUpwind[2]; 
+  Ghat[3] = 0.25*alpha[1]*fUpwind[6]+0.25*alpha[0]*fUpwind[3]; 
+  Ghat[4] = 0.25*alpha[1]*fUpwind[8]+0.25*alpha[0]*fUpwind[4]; 
+  Ghat[5] = 0.25*alpha[0]*fUpwind[5]+0.25*alpha[1]*fUpwind[2]; 
+  Ghat[6] = 0.25*alpha[0]*fUpwind[6]+0.25*alpha[1]*fUpwind[3]; 
+  Ghat[7] = 0.25*alpha[1]*fUpwind[11]+0.25*alpha[0]*fUpwind[7]; 
+  Ghat[8] = 0.25*alpha[0]*fUpwind[8]+0.25*alpha[1]*fUpwind[4]; 
+  Ghat[9] = 0.25*alpha[1]*fUpwind[12]+0.25*alpha[0]*fUpwind[9]; 
+  Ghat[10] = 0.25*alpha[1]*fUpwind[13]+0.25*alpha[0]*fUpwind[10]; 
+  Ghat[11] = 0.25*alpha[0]*fUpwind[11]+0.25*alpha[1]*fUpwind[7]; 
+  Ghat[12] = 0.25*alpha[0]*fUpwind[12]+0.25*alpha[1]*fUpwind[9]; 
+  Ghat[13] = 0.25*alpha[0]*fUpwind[13]+0.25*alpha[1]*fUpwind[10]; 
+  Ghat[14] = 0.25*alpha[1]*fUpwind[15]+0.25*alpha[0]*fUpwind[14]; 
+  Ghat[15] = 0.25*alpha[0]*fUpwind[15]+0.25*alpha[1]*fUpwind[14]; 
+  Ghat[16] = 0.2500000000000001*alpha[1]*fUpwind[17]+0.25*alpha[0]*fUpwind[16]; 
+  Ghat[17] = 0.25*alpha[0]*fUpwind[17]+0.2500000000000001*alpha[1]*fUpwind[16]; 
+  Ghat[18] = 0.2500000000000001*alpha[1]*fUpwind[20]+0.25*alpha[0]*fUpwind[18]; 
+  Ghat[19] = 0.2500000000000001*alpha[1]*fUpwind[21]+0.25*alpha[0]*fUpwind[19]; 
+  Ghat[20] = 0.25*alpha[0]*fUpwind[20]+0.2500000000000001*alpha[1]*fUpwind[18]; 
+  Ghat[21] = 0.25*alpha[0]*fUpwind[21]+0.2500000000000001*alpha[1]*fUpwind[19]; 
+  Ghat[22] = 0.2500000000000001*alpha[1]*fUpwind[23]+0.25*alpha[0]*fUpwind[22]; 
+  Ghat[23] = 0.25*alpha[0]*fUpwind[23]+0.2500000000000001*alpha[1]*fUpwind[22]; 
+  Ghat[24] = 0.2500000000000001*alpha[1]*fUpwind[25]+0.25*alpha[0]*fUpwind[24]; 
+  Ghat[25] = 0.25*alpha[0]*fUpwind[25]+0.2500000000000001*alpha[1]*fUpwind[24]; 
+  Ghat[26] = 0.2500000000000001*alpha[1]*fUpwind[28]+0.25*alpha[0]*fUpwind[26]; 
+  Ghat[27] = 0.2500000000000001*alpha[1]*fUpwind[29]+0.25*alpha[0]*fUpwind[27]; 
+  Ghat[28] = 0.25*alpha[0]*fUpwind[28]+0.2500000000000001*alpha[1]*fUpwind[26]; 
+  Ghat[29] = 0.25*alpha[0]*fUpwind[29]+0.2500000000000001*alpha[1]*fUpwind[27]; 
+  Ghat[30] = 0.2500000000000001*alpha[1]*fUpwind[31]+0.25*alpha[0]*fUpwind[30]; 
+  Ghat[31] = 0.25*alpha[0]*fUpwind[31]+0.2500000000000001*alpha[1]*fUpwind[30]; 
 
   out[0] += -0.7071067811865475*Ghat[0]*dv11; 
   out[1] += -0.7071067811865475*Ghat[1]*dv11; 
@@ -232,7 +232,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
 
   } else { 
 
-  if (alpha[0]-alpha[1] > 0) { 
+  if (0.25*alpha[0]-0.25*alpha[1] > 0) { 
     fUpwindQuad[0] = hyb_2x3v_p1_surfx4_eval_quad_node_0_r(fEdge); 
     fUpwindQuad[1] = hyb_2x3v_p1_surfx4_eval_quad_node_1_r(fEdge); 
     fUpwindQuad[2] = hyb_2x3v_p1_surfx4_eval_quad_node_2_r(fEdge); 
@@ -253,7 +253,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
     fUpwindQuad[7] = hyb_2x3v_p1_surfx4_eval_quad_node_7_l(fSkin); 
     fUpwindQuad[8] = hyb_2x3v_p1_surfx4_eval_quad_node_8_l(fSkin); 
   } 
-  if (alpha[0]-alpha[1] > 0) { 
+  if (0.25*alpha[0]-0.25*alpha[1] > 0) { 
     fUpwindQuad[9] = hyb_2x3v_p1_surfx4_eval_quad_node_9_r(fEdge); 
     fUpwindQuad[10] = hyb_2x3v_p1_surfx4_eval_quad_node_10_r(fEdge); 
     fUpwindQuad[11] = hyb_2x3v_p1_surfx4_eval_quad_node_11_r(fEdge); 
@@ -274,7 +274,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
     fUpwindQuad[16] = hyb_2x3v_p1_surfx4_eval_quad_node_16_l(fSkin); 
     fUpwindQuad[17] = hyb_2x3v_p1_surfx4_eval_quad_node_17_l(fSkin); 
   } 
-  if (alpha[0]-alpha[1] > 0) { 
+  if (0.25*alpha[0]-0.25*alpha[1] > 0) { 
     fUpwindQuad[18] = hyb_2x3v_p1_surfx4_eval_quad_node_18_r(fEdge); 
     fUpwindQuad[19] = hyb_2x3v_p1_surfx4_eval_quad_node_19_r(fEdge); 
     fUpwindQuad[20] = hyb_2x3v_p1_surfx4_eval_quad_node_20_r(fEdge); 
@@ -295,7 +295,7 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
     fUpwindQuad[25] = hyb_2x3v_p1_surfx4_eval_quad_node_25_l(fSkin); 
     fUpwindQuad[26] = hyb_2x3v_p1_surfx4_eval_quad_node_26_l(fSkin); 
   } 
-  if (alpha[0]-alpha[1] > 0) { 
+  if (0.25*alpha[0]-0.25*alpha[1] > 0) { 
     fUpwindQuad[27] = hyb_2x3v_p1_surfx4_eval_quad_node_27_r(fEdge); 
     fUpwindQuad[28] = hyb_2x3v_p1_surfx4_eval_quad_node_28_r(fEdge); 
     fUpwindQuad[29] = hyb_2x3v_p1_surfx4_eval_quad_node_29_r(fEdge); 
@@ -320,38 +320,38 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
   // Project tensor nodal quadrature basis back onto modal basis. 
   hyb_2x3v_p1_vdir_upwind_quad_to_modal(fUpwindQuad, fUpwind); 
 
-  Ghat[0] = 0.25*(alpha[1]*fUpwind[1]+alpha[0]*fUpwind[0]); 
-  Ghat[1] = 0.25*(alpha[0]*fUpwind[1]+fUpwind[0]*alpha[1]); 
-  Ghat[2] = 0.25*(alpha[1]*fUpwind[5]+alpha[0]*fUpwind[2]); 
-  Ghat[3] = 0.25*(alpha[1]*fUpwind[6]+alpha[0]*fUpwind[3]); 
-  Ghat[4] = 0.25*(alpha[1]*fUpwind[8]+alpha[0]*fUpwind[4]); 
-  Ghat[5] = 0.25*(alpha[0]*fUpwind[5]+alpha[1]*fUpwind[2]); 
-  Ghat[6] = 0.25*(alpha[0]*fUpwind[6]+alpha[1]*fUpwind[3]); 
-  Ghat[7] = 0.25*(alpha[1]*fUpwind[11]+alpha[0]*fUpwind[7]); 
-  Ghat[8] = 0.25*(alpha[0]*fUpwind[8]+alpha[1]*fUpwind[4]); 
-  Ghat[9] = 0.25*(alpha[1]*fUpwind[12]+alpha[0]*fUpwind[9]); 
-  Ghat[10] = 0.25*(alpha[1]*fUpwind[13]+alpha[0]*fUpwind[10]); 
-  Ghat[11] = 0.25*(alpha[0]*fUpwind[11]+alpha[1]*fUpwind[7]); 
-  Ghat[12] = 0.25*(alpha[0]*fUpwind[12]+alpha[1]*fUpwind[9]); 
-  Ghat[13] = 0.25*(alpha[0]*fUpwind[13]+alpha[1]*fUpwind[10]); 
-  Ghat[14] = 0.25*(alpha[1]*fUpwind[15]+alpha[0]*fUpwind[14]); 
-  Ghat[15] = 0.25*(alpha[0]*fUpwind[15]+alpha[1]*fUpwind[14]); 
-  Ghat[16] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[17]+15.0*alpha[0]*fUpwind[16]); 
-  Ghat[17] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[17]+15.0*alpha[1]*fUpwind[16]); 
-  Ghat[18] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[20]+15.0*alpha[0]*fUpwind[18]); 
-  Ghat[19] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[21]+15.0*alpha[0]*fUpwind[19]); 
-  Ghat[20] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[20]+15.0*alpha[1]*fUpwind[18]); 
-  Ghat[21] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[21]+15.0*alpha[1]*fUpwind[19]); 
-  Ghat[22] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[23]+15.0*alpha[0]*fUpwind[22]); 
-  Ghat[23] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[23]+15.0*alpha[1]*fUpwind[22]); 
-  Ghat[24] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[25]+15.0*alpha[0]*fUpwind[24]); 
-  Ghat[25] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[25]+15.0*alpha[1]*fUpwind[24]); 
-  Ghat[26] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[28]+15.0*alpha[0]*fUpwind[26]); 
-  Ghat[27] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[29]+15.0*alpha[0]*fUpwind[27]); 
-  Ghat[28] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[28]+15.0*alpha[1]*fUpwind[26]); 
-  Ghat[29] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[29]+15.0*alpha[1]*fUpwind[27]); 
-  Ghat[30] = 0.01666666666666667*(15.0*alpha[1]*fUpwind[31]+15.0*alpha[0]*fUpwind[30]); 
-  Ghat[31] = 0.01666666666666667*(15.0*alpha[0]*fUpwind[31]+15.0*alpha[1]*fUpwind[30]); 
+  Ghat[0] = 0.25*alpha[1]*fUpwind[1]+0.25*alpha[0]*fUpwind[0]; 
+  Ghat[1] = 0.25*alpha[0]*fUpwind[1]+0.25*fUpwind[0]*alpha[1]; 
+  Ghat[2] = 0.25*alpha[1]*fUpwind[5]+0.25*alpha[0]*fUpwind[2]; 
+  Ghat[3] = 0.25*alpha[1]*fUpwind[6]+0.25*alpha[0]*fUpwind[3]; 
+  Ghat[4] = 0.25*alpha[1]*fUpwind[8]+0.25*alpha[0]*fUpwind[4]; 
+  Ghat[5] = 0.25*alpha[0]*fUpwind[5]+0.25*alpha[1]*fUpwind[2]; 
+  Ghat[6] = 0.25*alpha[0]*fUpwind[6]+0.25*alpha[1]*fUpwind[3]; 
+  Ghat[7] = 0.25*alpha[1]*fUpwind[11]+0.25*alpha[0]*fUpwind[7]; 
+  Ghat[8] = 0.25*alpha[0]*fUpwind[8]+0.25*alpha[1]*fUpwind[4]; 
+  Ghat[9] = 0.25*alpha[1]*fUpwind[12]+0.25*alpha[0]*fUpwind[9]; 
+  Ghat[10] = 0.25*alpha[1]*fUpwind[13]+0.25*alpha[0]*fUpwind[10]; 
+  Ghat[11] = 0.25*alpha[0]*fUpwind[11]+0.25*alpha[1]*fUpwind[7]; 
+  Ghat[12] = 0.25*alpha[0]*fUpwind[12]+0.25*alpha[1]*fUpwind[9]; 
+  Ghat[13] = 0.25*alpha[0]*fUpwind[13]+0.25*alpha[1]*fUpwind[10]; 
+  Ghat[14] = 0.25*alpha[1]*fUpwind[15]+0.25*alpha[0]*fUpwind[14]; 
+  Ghat[15] = 0.25*alpha[0]*fUpwind[15]+0.25*alpha[1]*fUpwind[14]; 
+  Ghat[16] = 0.2500000000000001*alpha[1]*fUpwind[17]+0.25*alpha[0]*fUpwind[16]; 
+  Ghat[17] = 0.25*alpha[0]*fUpwind[17]+0.2500000000000001*alpha[1]*fUpwind[16]; 
+  Ghat[18] = 0.2500000000000001*alpha[1]*fUpwind[20]+0.25*alpha[0]*fUpwind[18]; 
+  Ghat[19] = 0.2500000000000001*alpha[1]*fUpwind[21]+0.25*alpha[0]*fUpwind[19]; 
+  Ghat[20] = 0.25*alpha[0]*fUpwind[20]+0.2500000000000001*alpha[1]*fUpwind[18]; 
+  Ghat[21] = 0.25*alpha[0]*fUpwind[21]+0.2500000000000001*alpha[1]*fUpwind[19]; 
+  Ghat[22] = 0.2500000000000001*alpha[1]*fUpwind[23]+0.25*alpha[0]*fUpwind[22]; 
+  Ghat[23] = 0.25*alpha[0]*fUpwind[23]+0.2500000000000001*alpha[1]*fUpwind[22]; 
+  Ghat[24] = 0.2500000000000001*alpha[1]*fUpwind[25]+0.25*alpha[0]*fUpwind[24]; 
+  Ghat[25] = 0.25*alpha[0]*fUpwind[25]+0.2500000000000001*alpha[1]*fUpwind[24]; 
+  Ghat[26] = 0.2500000000000001*alpha[1]*fUpwind[28]+0.25*alpha[0]*fUpwind[26]; 
+  Ghat[27] = 0.2500000000000001*alpha[1]*fUpwind[29]+0.25*alpha[0]*fUpwind[27]; 
+  Ghat[28] = 0.25*alpha[0]*fUpwind[28]+0.2500000000000001*alpha[1]*fUpwind[26]; 
+  Ghat[29] = 0.25*alpha[0]*fUpwind[29]+0.2500000000000001*alpha[1]*fUpwind[27]; 
+  Ghat[30] = 0.2500000000000001*alpha[1]*fUpwind[31]+0.25*alpha[0]*fUpwind[30]; 
+  Ghat[31] = 0.25*alpha[0]*fUpwind[31]+0.2500000000000001*alpha[1]*fUpwind[30]; 
 
   out[0] += 0.7071067811865475*Ghat[0]*dv11; 
   out[1] += 0.7071067811865475*Ghat[1]*dv11; 
@@ -435,4 +435,6 @@ GKYL_CU_DH void vlasov_poisson_boundary_surfvy_2x3v_ser_p1(const double *w, cons
   out[79] += -1.224744871391589*Ghat[31]*dv11; 
 
   } 
+  return 0.;
+
 } 

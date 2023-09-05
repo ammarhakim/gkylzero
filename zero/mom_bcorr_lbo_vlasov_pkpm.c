@@ -52,6 +52,12 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_bcorr_lbo_vlasov_pkpm_kernels = ser_mom_bcorr_lbo_vlasov_pkpm_kernels;
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      mom_bcorr_lbo_vlasov_pkpm_kernels = ten_mom_bcorr_lbo_vlasov_pkpm_kernels;
+      
       break;
 
     default:
