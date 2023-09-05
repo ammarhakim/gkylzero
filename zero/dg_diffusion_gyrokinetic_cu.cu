@@ -96,8 +96,6 @@ gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const s
   GKYL_SET_CU_ALLOC(diffusion->eqn.flags);
   diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_dg_diffusion_gyrokinetic_free);
 
-  diffusion->D = D;
-
   // copy the host struct to device struct
   struct dg_diffusion_gyrokinetic* diffusion_cu = (struct dg_diffusion_gyrokinetic*) gkyl_cu_malloc(sizeof(struct dg_diffusion_gyrokinetic));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct dg_diffusion_gyrokinetic), GKYL_CU_MEMCPY_H2D);

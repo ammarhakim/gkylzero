@@ -96,8 +96,6 @@ gkyl_dg_diffusion_fluid_cu_dev_new(const struct gkyl_basis *basis, bool is_diff_
   GKYL_SET_CU_ALLOC(diffusion->eqn.flags);
   diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_dg_diffusion_fluid_free);
 
-  diffusion->D = D;
-
   // copy the host struct to device struct
   struct dg_diffusion_fluid* diffusion_cu = (struct dg_diffusion_fluid*) gkyl_cu_malloc(sizeof(struct dg_diffusion_fluid));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct dg_diffusion_fluid), GKYL_CU_MEMCPY_H2D);

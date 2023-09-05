@@ -90,13 +90,11 @@ gkyl_dg_diffusion_vlasov_cu_dev_new(const struct gkyl_basis *basis, const struct
 
   int dirs_linidx = diffdirs_linidx(diff_in_dir, cdim);
 
-  diffusion->conf_range = *conf_range;
+  diffusion->diff_range = *diff_range;
 
   diffusion->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(diffusion->eqn.flags);
   diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_dg_diffusion_vlasov_free);
-
-  diffusion->D = D;
 
   // copy the host struct to device struct
   struct dg_diffusion_vlasov* diffusion_cu = (struct dg_diffusion_vlasov*) gkyl_cu_malloc(sizeof(struct dg_diffusion_vlasov));
