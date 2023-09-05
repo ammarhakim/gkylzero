@@ -43,7 +43,7 @@ gkyl_dg_diffusion_fluid_new(const struct gkyl_basis *basis, bool is_diff_const, 
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_diffusion_fluid_cu_dev_new(basis, is_diff_const, num_equations, diff_in_dir, diff_order);
+    return gkyl_dg_diffusion_fluid_cu_dev_new(basis, is_diff_const, num_equations, diff_in_dir, diff_order, diff_range);
 #endif
   
   struct dg_diffusion_fluid *diffusion = gkyl_malloc(sizeof(struct dg_diffusion_fluid));
