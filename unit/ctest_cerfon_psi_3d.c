@@ -97,13 +97,6 @@ bphi_func(double t, const double *xn, double *fout, void *ctx)
 }
 
 
-void mapc2p(double t, const double *xn, double* fout, void *ctx)
-{
-  struct mapc2p_ctx *gc = (struct mapc2p_ctx*) ctx;
-  //double RZ[2];
-  gkyl_gkgeom_mapc2p(gc->app, gc->ginp, xn, fout);
-}
-
 void
 test_1()
 {
@@ -157,17 +150,18 @@ test_1()
 
   // compute outboard SOL geometry
   int npsi = 32, ntheta = 32;
-  double psi_min = 0.00001, psi_max = 1.2;
+  double psi_min = 0.1, psi_max = 1.2;
   double dpsi = (psi_max-psi_min)/npsi;
   double dtheta = M_PI/ntheta;
   psi_min += dpsi;
 
-  psi_min = 0.03636363636363636; // This gives ghost node on psisep
+  psi_min = 0.03636363636363636; // This gives ghost node on psisep for 32 cells
+  //psi_min = 0.07058823529411765; // This gives ghost node on psisep for 16 cells
   printf("psimin = %g\n", psi_min);
   
   // Computational grid: theta X psi X alpha (only 2D for now)
-  double clower[] = { psi_min, -0.01, -3.0 };
-  double cupper[] = {psi_max, 0.01, 3.0 };
+  double clower[] = { psi_min, -0.01, -2.9 };
+  double cupper[] = {psi_max, 0.01, 2.9 };
   int ccells[] = { 32,1, 32 };
 
 

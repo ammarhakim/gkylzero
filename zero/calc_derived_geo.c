@@ -48,11 +48,11 @@ gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl
     double *bmag_i = gkyl_array_fetch(bmagFld, loc); // bmag we want to change
     const double *j_i = gkyl_array_cfetch(jFld, loc);
     const double *gij_i = gkyl_array_cfetch(gFld, loc);
-    const double *gzz_i = &gij_i[5*up->cnum_basis];
+    const double *gzz_i = &gij_i[(2*up->cdim - 1)*up->cnum_basis];
 
     cmag_iter.idx[0] = iter.idx[0];
     for(int i = 1; i <up->cdim; i++)
-      cmag_iter.idx[i] = (crange->upper[i] - crange->lower[i])/2 + 1;
+      cmag_iter.idx[i] = (crange->upper[i] - crange->lower[i])/2 + 1; // for using middle node
     long cmag_loc = gkyl_range_idx(crange, cmag_iter.idx);
 
     const double *cmag_i = gkyl_array_cfetch(cmagFld, cmag_loc); // cmag we want for yz plane
