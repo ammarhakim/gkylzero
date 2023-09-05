@@ -25,7 +25,6 @@ struct pkpm_em_par_shock_ctx {
   double n0;
   double B0;
   double noise_amp;
-  double noise_index;
   int k_init;
   int k_final;
   double T_e;
@@ -43,25 +42,23 @@ struct pkpm_em_par_shock_ctx {
 };
 
 static inline void
-noise_init(double noise_amp, double noise_index, int k_init, int k_final, double Lx, double Ly, double x, double y, double noise[3])
+noise_init(double noise_amp, int k_init, int k_final, double Lx, double Ly, double x, double y, double noise[3])
 {
   pcg64_random_t rng = gkyl_pcg64_init(0);
-  double kindex = (noise_index + 1.0) / 2.0;
-  double B_amp = 0.0; 
-  double B_phase = 0.0;
+  double kx = 2.0*M_PI/Lx;
+  double ky = 2.0*M_PI/Ly;
+  double rand_amp, rand_phase_x, rand_phase_y;
   for (int i = k_init; i < k_final; ++i) {
-    B_amp = gkyl_pcg64_rand_double(&rng);
-    B_phase = gkyl_pcg64_rand_double(&rng);
-
-    noise[0] -= 2.0*(2.0*M_PI/Ly)*(Lx/(i*2.0*M_PI))*B_amp*sin(2.0*M_PI*y/Ly)*(cos(2.0*M_PI*y/Ly)+1)*cos(i*2.0*M_PI*x/Lx +  2.0*M_PI*B_phase)*pow(i,kindex);
-    noise[1] += B_amp*(cos(2.0*M_PI*y/Ly) + 1.0)*(cos(2.0*M_PI*y/Ly) + 1.0)*sin(i*2.0*M_PI*x/Lx + 2.0*M_PI*B_phase)*pow(i,kindex);
-    noise[2] += (2.0*M_PI*i/Lx)*B_amp*(cos(2.0*M_PI*y/Ly) + 1.0)*(cos(2.0*M_PI*y/Ly) + 1.0)*cos(i*2.0*M_PI*x/Lx + 2*M_PI*B_phase)*pow(i,kindex) + 
-                 2.0*(2.0*M_PI/Ly)*(2.0*M_PI/Ly)*(Lx/(i*2.0*M_PI))*B_amp*(sin(2.0*M_PI*y/Ly)*sin(2.0*M_PI*y/Ly) - cos(2.0*M_PI*y/Ly)*(cos(2.0*M_PI*y/Ly)+1.0))*cos(i*2.0*M_PI*x/Lx +  2.*M_PI*B_phase)*pow(i,kindex);
+    for (int j = k_init; j < k_final; ++j) {
+      rand_amp = gkyl_pcg64_rand_double(&rng);
+      rand_phase_x = gkyl_pcg64_rand_double(&rng);
+      rand_phase_y = gkyl_pcg64_rand_double(&rng);
+      noise[0] += noise_amp*rand_amp*j*ky*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y);
+      noise[1] -= noise_amp*rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y);
+      noise[2] += noise_amp*rand_amp*(i*i*kx*kx*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y) + 
+                                      j*j*ky*ky*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y));
+    }
   }
-  double kdiff = floor(k_final) - floor(k_init) + 1.0;
-  noise[0] = noise_amp*noise[0]/sqrt(2.0*kdiff*kdiff/3.0);
-  noise[1] = noise_amp*noise[1]/sqrt(2.0*kdiff*kdiff/3.0);
-  noise[2] = noise_amp*noise[2]/sqrt(2.0*kdiff*kdiff/3.0);
 }
 
 static inline double
@@ -123,12 +120,11 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Ly = app->Ly;
   double B0 = app->B0;
   double noise_amp = app->noise_amp;
-  double noise_index = app->noise_index;
   int k_init = app->k_init;
   int k_final = app->k_final;
 
   double noise[3] = {0.0};
-  noise_init(noise_amp, noise_index, k_init, k_final, Lx, Ly, x, y, noise);
+  noise_init(noise_amp, k_init, k_final, Lx, Ly, x, y, noise);
 
   fout[0] = -n0*mass*vdrift;
   fout[1] = 0.0;
@@ -156,12 +152,11 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Ly = app->Ly;
   double B0 = app->B0;
   double noise_amp = app->noise_amp;
-  double noise_index = app->noise_index;
   int k_init = app->k_init;
   int k_final = app->k_final;
 
   double noise[3] = {0.0};
-  noise_init(noise_amp, noise_index, k_init, k_final, Lx, Ly, x, y, noise);
+  noise_init(noise_amp, k_init, k_final, Lx, Ly, x, y, noise);
   // corresponding noise to Bx and By
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = noise[0]; fout[4] = noise[1]; fout[5] = 0.0;
@@ -235,7 +230,6 @@ create_ctx(void)
   double noise_amp = 0.001*B0;
   int k_init = 1;            // first wave mode to perturb with noise, 1.0 correspond to box size
   int k_final = 32;          // last wave mode to perturb with noise
-  double noise_index = -1.0; // spectral index of the noise
 
   // collision frequencies
   double nuElc = 0.01*omegaCi;
@@ -258,7 +252,6 @@ create_ctx(void)
     .n0 = n0,
     .B0 = B0,
     .noise_amp = noise_amp,
-    .noise_index = noise_index,
     .k_init = k_init,
     .k_final = k_final,
     .vtElc = vtElc,
