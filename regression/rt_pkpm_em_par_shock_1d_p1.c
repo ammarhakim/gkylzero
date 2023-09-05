@@ -42,21 +42,17 @@ struct pkpm_em_par_shock_ctx {
 };
 
 static inline void
-noise_init(double noise_amp, int k_init, int k_final, double Lx, double Ly, double x, double y, double noise[3])
+noise_init(double noise_amp, int k_init, int k_final, double Lx,  double x, double noise[2])
 {
   pcg64_random_t rng = gkyl_pcg64_init(0);
   double kx = 2.0*M_PI/Lx;
-  double ky = 2.0*M_PI/Ly;
-  double rand_amp, rand_phase_x, rand_phase_y;
+  double rand_amp, rand_phase_x;
   for (int i = k_init; i < k_final; ++i) {
     for (int j = k_init; j < k_final; ++j) {
       rand_amp = gkyl_pcg64_rand_double(&rng);
       rand_phase_x = gkyl_pcg64_rand_double(&rng);
-      rand_phase_y = gkyl_pcg64_rand_double(&rng);
-      noise[0] += noise_amp*rand_amp*j*ky*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*cos(j*ky*y + 2.0*M_PI*rand_phase_y);
-      noise[1] -= noise_amp*rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y);
-      noise[2] += noise_amp*rand_amp*(i*i*kx*kx*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y) + 
-                                      j*j*ky*ky*sin(i*kx*x + 2.0*M_PI*rand_phase_x)*sin(j*ky*y + 2.0*M_PI*rand_phase_y));
+      noise[0] -= noise_amp*rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x);
+      noise[1] += noise_amp*rand_amp*(i*i*kx*kx*sin(i*kx*x + 2.0*M_PI*rand_phase_x));
     }
   }
 }
@@ -72,14 +68,13 @@ void
 evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0], y = xn[1], vx = xn[2];
+  double x = xn[0], vx = xn[1];
 
   double me = app->massElc;
   double mi = app->massIon;
   double T_e = app->T_e;
   double T_i = app->T_i;
   double Lx = app->Lx;
-  double Ly = app->Ly;
   double n0 = app->n0;
   
   double fv = maxwellian(n0, vx, T_e, me);
@@ -92,14 +87,13 @@ void
 evalDistFuncIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0], y = xn[1], vx = xn[2];
+  double x = xn[0], vx = xn[1];
 
   double me = app->massElc;
   double mi = app->massIon;
   double T_e = app->T_e;
   double T_i = app->T_i;
   double Lx = app->Lx;
-  double Ly = app->Ly;
   double n0 = app->n0;
   
   double fv = maxwellian(n0, vx, T_i, mi);
@@ -112,30 +106,29 @@ void
 evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
+  double x = xn[0];
   double vdrift = app->uShock, n0 = app->n0;
   double mass = app->massElc;
   double charge = app->chargeElc;
   double Lx = app->Lx;
-  double Ly = app->Ly;
   double B0 = app->B0;
   double noise_amp = app->noise_amp;
   int k_init = app->k_init;
   int k_final = app->k_final;
 
-  double noise[3] = {0.0};
-  noise_init(noise_amp, k_init, k_final, Lx, Ly, x, y, noise);
+  double noise[2] = {0.0};
+  noise_init(noise_amp, k_init, k_final, Lx, x, noise);
 
   fout[0] = -n0*mass*vdrift;
   fout[1] = 0.0;
-  fout[2] = mass*noise[2]/charge; // initial noise in Jz_elc to excite instabilities
+  fout[2] = mass*noise[1]/charge; // initial noise in Jz_elc to excite instabilities
 }
 
 void
 evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
+  double x = xn[0];
   double vdrift = app->uShock, n0 = app->n0;
   double mass = app->massIon;
   fout[0] = -n0*mass*vdrift;
@@ -147,19 +140,18 @@ void
 evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
+  double x = xn[0];
   double Lx = app->Lx;
-  double Ly = app->Ly;
   double B0 = app->B0;
   double noise_amp = app->noise_amp;
   int k_init = app->k_init;
   int k_final = app->k_final;
 
-  double noise[3] = {0.0};
-  noise_init(noise_amp, k_init, k_final, Lx, Ly, x, y, noise);
-  // corresponding noise to Bx and By
+  double noise[2] = {0.0};
+  noise_init(noise_amp, k_init, k_final, Lx, x, noise);
+  // corresponding noise to By
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
-  fout[3] = noise[0]; fout[4] = noise[1]; fout[5] = 0.0;
+  fout[3] = 0.0; fout[4] = noise[0]; fout[5] = 0.0;
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
@@ -168,7 +160,7 @@ void
 evalExtEmFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_em_par_shock_ctx *app = ctx;
-  double x = xn[0], y = xn[1];
+  double x = xn[0];
   double B_x = app->B0;
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
@@ -210,7 +202,7 @@ create_ctx(void)
   double chargeIon = 1.0; // ion charge
 
   double n0 = 1.0; // initial number density
-  double vAe = 1.0/8.0;
+  double vAe = 1.0/5.0;
   double vAi = vAe/sqrt(massIon);
   double beta = 1.0;
 
@@ -237,7 +229,6 @@ create_ctx(void)
 
   // domain size and simulation time
   double Lx = 2.0*M_PI*rhoi;
-  double Ly = 2.0*M_PI*rhoi;
   double tend = 10.0/omegaCi;
 
   struct pkpm_em_par_shock_ctx ctx = {
@@ -260,7 +251,6 @@ create_ctx(void)
     .nuElc = nuElc,
     .nuIon = nuIon,
     .Lx = Lx,
-    .Ly = Ly,
     .tend = tend,
     .min_dt = 1.0e-2, 
   };
@@ -278,7 +268,6 @@ main(int argc, char **argv)
 #endif
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 32);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
 
   if (app_args.trace_mem) {
@@ -295,21 +284,20 @@ main(int argc, char **argv)
 #endif  
 
   // create global range
-  int cells[] = { NX, NY };
+  int cells[] = { NX };
   struct gkyl_range globalr;
-  gkyl_create_global_range(2, cells, &globalr);
+  gkyl_create_global_range(1, cells, &globalr);
   
   // create decomposition
-  int cuts[] = { 1, 1 };
+  int cuts[] = { 1 };
 #ifdef GKYL_HAVE_MPI  
   if (app_args.use_mpi) {
     cuts[0] = app_args.cuts[0];
-    cuts[1] = app_args.cuts[1];
   }
 #endif 
     
   struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts(2, cuts, &globalr);
+    gkyl_rect_decomp_new_from_cuts(1, cuts, &globalr);
 
   // construct communcator for use in app
   struct gkyl_comm *comm;
@@ -340,7 +328,7 @@ main(int argc, char **argv)
   int comm_sz;
   gkyl_comm_get_size(comm, &comm_sz);
 
-  int ncuts = cuts[0]*cuts[1];
+  int ncuts = cuts[0];
   if (ncuts != comm_sz) {
     if (my_rank == 0)
       fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
@@ -364,8 +352,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -6.0 * ctx.vtElc},
-    .upper = { 6.0 * ctx.vtElc}, 
+    .lower = { -4.0 * ctx.vtElc},
+    .upper = { 4.0 * ctx.vtElc}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -433,17 +421,17 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "pkpm_em_par_shock_2d_p1",
+    .name = "pkpm_em_par_shock_1d_p1",
 
-    .cdim = 2, .vdim = 1,
-    .lower = { 0.0, -ctx.Ly/2.0 },
-    .upper = { ctx.Lx, ctx.Ly/2.0 },
-    .cells = { NX, NY },
+    .cdim = 1, .vdim = 1,
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
+    .cells = { NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
     .num_species = 2,
     .species = { elc, ion },
@@ -466,7 +454,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 1;
+  int nframe = 100;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
