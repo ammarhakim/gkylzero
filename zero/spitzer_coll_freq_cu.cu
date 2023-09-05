@@ -105,10 +105,10 @@ gkyl_spitzer_coll_freq_advance_cu_ker(const struct gkyl_range range,
 
     // Compute the Coulomb logarithm using cell-average values.
     double bmagAv = bmag_d[0]*cellav_fac;
-    double m0SelfAv    =    m0Self_d[0] < 0.? 1.e-14 : m0Self_d[0]*up->cellav_fac;
-    double vtSqSelfAv  =  vtSqSelf_d[0] < vtSqMinSelf?  vtSqMinSelf*up->cellav_fac  : vtSqSelf_d[0]*up->cellav_fac;
-    double m0OtherAv   =   m0Other_d[0] < 0.? 1.e-14 : m0Other_d[0]*up->cellav_fac;
-    double vtSqOtherAv = vtSqOther_d[0] < vtSqMinOther? vtSqMinOther*up->cellav_fac : vtSqOther_d[0]*up->cellav_fac;
+    double m0SelfAv    =    m0Self_d[0] < 0.? 1.e-14 : m0Self_d[0]*cellav_fac;
+    double vtSqSelfAv  =  vtSqSelf_d[0] < vtSqMinSelf?  vtSqMinSelf*cellav_fac  : vtSqSelf_d[0]*cellav_fac;
+    double m0OtherAv   =   m0Other_d[0] < 0.? 1.e-14 : m0Other_d[0]*cellav_fac;
+    double vtSqOtherAv = vtSqOther_d[0] < vtSqMinOther? vtSqMinOther*cellav_fac : vtSqOther_d[0]*cellav_fac;
 
     double omegaSqSumSelf  = m0SelfAv*pow(qSelf,2)/(eps0*mSelf)+pow(qSelf*bmagAv/mSelf,2);
     double omegaSqSumOther = m0OtherAv*pow(qOther,2)/(eps0*mOther)+pow(qOther*bmagAv/mOther,2);
