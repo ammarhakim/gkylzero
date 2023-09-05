@@ -48,12 +48,10 @@ noise_init(double noise_amp, int k_init, int k_final, double Lx,  double x, doub
   double kx = 2.0*M_PI/Lx;
   double rand_amp, rand_phase_x;
   for (int i = k_init; i < k_final; ++i) {
-    for (int j = k_init; j < k_final; ++j) {
-      rand_amp = gkyl_pcg64_rand_double(&rng);
-      rand_phase_x = gkyl_pcg64_rand_double(&rng);
-      noise[0] -= noise_amp*rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x);
-      noise[1] += noise_amp*rand_amp*(i*i*kx*kx*sin(i*kx*x + 2.0*M_PI*rand_phase_x));
-    }
+    rand_amp = gkyl_pcg64_rand_double(&rng);
+    rand_phase_x = gkyl_pcg64_rand_double(&rng);
+    noise[0] -= noise_amp*rand_amp*i*kx*cos(i*kx*x + 2.0*M_PI*rand_phase_x);
+    noise[1] += noise_amp*rand_amp*(i*i*kx*kx*sin(i*kx*x + 2.0*M_PI*rand_phase_x));
   }
 }
 
@@ -219,7 +217,7 @@ create_ctx(void)
   double rhoi = vtIon/omegaCi; // rhoi ~ 484 lambdaD at real mass ratio and vtElc/c = 1/8
 
   // noise levels for perturbation
-  double noise_amp = 0.001*B0;
+  double noise_amp = 1.0e-12;
   int k_init = 1;            // first wave mode to perturb with noise, 1.0 correspond to box size
   int k_final = 32;          // last wave mode to perturb with noise
 
@@ -228,7 +226,7 @@ create_ctx(void)
   double nuIon = 0.01*omegaCi/sqrt(massIon);
 
   // domain size and simulation time
-  double Lx = 2.0*M_PI*rhoi;
+  double Lx = 4.0*M_PI*rhoi;
   double tend = 10.0/omegaCi;
 
   struct pkpm_em_par_shock_ctx ctx = {
@@ -343,7 +341,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidElc,
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
-    .diffusion = {.D = 1.0e-5, .order=4},
+    //.diffusion = {.D = 1.0e-5, .order=4},
   };  
   
   // electrons
@@ -378,7 +376,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidIon,
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
-    .diffusion = {.D = 1.0e-5, .order=4},
+    //.diffusion = {.D = 1.0e-5, .order=4},
   };  
   
   // ions
@@ -454,7 +452,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 100;
+  int nframe = 1000;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
