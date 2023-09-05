@@ -75,6 +75,16 @@ gkyl_dg_diffusion_fluid_new(const struct gkyl_basis *basis, bool is_diff_const, 
       boundary_surfz_kernels = diffusion->const_coeff? ser_boundary_surfz_kernels_constcoeff : ser_boundary_surfz_kernels_varcoeff;
       break;
   
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels            = diffusion->const_coeff? tensor_vol_kernels_constcoeff            : tensor_vol_kernels_varcoeff           ;
+      surfx_kernels          = diffusion->const_coeff? tensor_surfx_kernels_constcoeff          : tensor_surfx_kernels_varcoeff         ;
+      surfy_kernels          = diffusion->const_coeff? tensor_surfy_kernels_constcoeff          : tensor_surfy_kernels_varcoeff         ;
+      surfz_kernels          = diffusion->const_coeff? tensor_surfz_kernels_constcoeff          : tensor_surfz_kernels_varcoeff         ;
+      boundary_surfx_kernels = diffusion->const_coeff? tensor_boundary_surfx_kernels_constcoeff : tensor_boundary_surfx_kernels_varcoeff;
+      boundary_surfy_kernels = diffusion->const_coeff? tensor_boundary_surfy_kernels_constcoeff : tensor_boundary_surfy_kernels_varcoeff;
+      boundary_surfz_kernels = diffusion->const_coeff? tensor_boundary_surfz_kernels_constcoeff : tensor_boundary_surfz_kernels_varcoeff;
+      break;
+  
     default:
       assert(false);
       break;    
