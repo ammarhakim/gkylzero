@@ -32,24 +32,6 @@ enum gkyl_model_id {
   GKYL_MODEL_SR_PKPM = 4,
 };
 
-// Identifiers for specific diffusion object types
-enum gkyl_diffusion_id {
-  GKYL_DIFFUSION_NONE = 0,  // No diffusion. This is default.
-  GKYL_DIFFUSION_GEN,       // General diffusion tensor.
-  GKYL_DIFFUSION_DIAGONAL_CONST,  // Diagonal const (hyper)diffusion for a scalar equation. 
-  GKYL_DIFFUSION_DIAGONAL_CONST_EULER,       // Euler.
-  GKYL_DIFFUSION_DIAGONAL_CONST_EULER_ISO,   // Isothermal Euler.
-  GKYL_DIFFUSION_DIAGONAL_CONST_VLASOV,      // Vlasov.
-  GKYL_DIFFUSION_DIAGONAL_CONST_GYROKINETIC, // Gyrokinetic.
-  GKYL_DIFFUSION_DIAGONAL_CONST_PKPM,        // PKPM.
-  GKYL_DIFFUSION_DIAGONAL_VAR,  // Diagonal spatially varying (hyper)diffusion for a scalar equation. 
-  GKYL_DIFFUSION_DIAGONAL_VAR_EULER,       // Euler.
-  GKYL_DIFFUSION_DIAGONAL_VAR_EULER_ISO,   // Isothermal Euler.
-  GKYL_DIFFUSION_DIAGONAL_VAR_VLASOV,      // Vlasov.
-  GKYL_DIFFUSION_DIAGONAL_VAR_GYROKINETIC, // Gyrokinetic.
-  GKYL_DIFFUSION_DIAGONAL_VAR_PKPM,        // PKPM.
-};
-
 // Identifiers for specific collision object types
 enum gkyl_collision_id {
   GKYL_NO_COLLISIONS = 0, // No collisions. This is default
