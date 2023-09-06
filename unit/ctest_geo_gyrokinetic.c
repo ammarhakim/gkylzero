@@ -4,7 +4,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
 #include <gkyl_eval_on_nodes.h>
-#include <gkyl_gkgeom.h>
+#include <gkyl_geo_gyrokinetic.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
@@ -57,7 +57,7 @@ ellip_unit(void)
 
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psiRZ, "ellip_psi.gkyl");
 
-  gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
+  gkyl_geo_gyrokinetic *geo = gkyl_geo_gyrokinetic_new(&(struct gkyl_geo_gyrokinetic_inp) {
       // psiRZ and related inputs
       .rzgrid = &rzgrid,
       .rzbasis = &rzbasis,
@@ -86,7 +86,7 @@ ellip_unit(void)
   
   do {
     double psi_ref = 6.0;
-    double arcL = gkyl_gkgeom_integrate_psi_contour(geo, psi_ref,
+    double arcL = gkyl_geo_gyrokinetic_integrate_psi_contour(geo, psi_ref,
       lower[1], upper[1], upper[0]);
 
     TEST_CHECK( gkyl_compare(8.382428377712543, arcL, 1e-12) );
@@ -95,14 +95,14 @@ ellip_unit(void)
 
   do {
     double psi_ref = 10.1;
-    double arcL = gkyl_gkgeom_integrate_psi_contour(geo, psi_ref,
+    double arcL = gkyl_geo_gyrokinetic_integrate_psi_contour(geo, psi_ref,
       lower[1], upper[1], upper[0]);
 
     TEST_CHECK( gkyl_compare(8.172574228918158, arcL, 1e-12) );
     
   } while(0);    
   
-  gkyl_gkgeom_release(geo);
+  gkyl_geo_gyrokinetic_release(geo);
   gkyl_array_release(psiRZ);
 }
 

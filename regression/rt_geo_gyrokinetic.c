@@ -2,7 +2,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
 #include <gkyl_eval_on_nodes.h>
-#include <gkyl_gkgeom.h>
+#include <gkyl_geo_gyrokinetic.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
@@ -64,7 +64,7 @@ cerforn_rt(void)
 
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psiRZ, "cerfon_psi.gkyl");
 
-  gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
+  gkyl_geo_gyrokinetic *geo = gkyl_geo_gyrokinetic_new(&(struct gkyl_geo_gyrokinetic_inp) {
       // psiRZ and related inputs
       .rzgrid = &rzgrid,
       .rzbasis = &rzbasis,
@@ -80,7 +80,7 @@ cerforn_rt(void)
   do {
     double psi = 0.060095, Z = -5.611532889;
     double R[2] = { 0.0 }, dR[2] = { 0.0 };
-    int nr = gkyl_gkgeom_R_psiZ(geo, psi, Z, 2, R, dR);
+    int nr = gkyl_geo_gyrokinetic_R_psiZ(geo, psi, Z, 2, R, dR);
     for (int i=0; i<nr; ++i)
       fprintf(stdout, " >> r[%d] R(%g,%g) = %g\n", i, psi, Z, R[i]);
   } while (0);
@@ -88,7 +88,7 @@ cerforn_rt(void)
   do {
     double psi = 0.060095, Z = 5.611532879;
     double R[2] = { 0.0 }, dR[2] = { 0.0 };
-    int nr = gkyl_gkgeom_R_psiZ(geo, psi, Z, 2, R, dR);
+    int nr = gkyl_geo_gyrokinetic_R_psiZ(geo, psi, Z, 2, R, dR);
     for (int i=0; i<nr; ++i)
       fprintf(stdout, " >> r[%d] R(%g,%g) = %g\n", i, psi, Z, R[i]);
   } while (0);  
@@ -96,10 +96,10 @@ cerforn_rt(void)
   // compute arc-length of various flux-surfaces
   do {
     double psi_ref = 1e-4; // close to the seperatrix
-    double arcL = gkyl_gkgeom_integrate_psi_contour(geo, psi_ref,
+    double arcL = gkyl_geo_gyrokinetic_integrate_psi_contour(geo, psi_ref,
       lower[1], upper[1], upper[0]);
 
-    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    struct gkyl_geo_gyrokinetic_stat stat = gkyl_geo_gyrokinetic_get_stat(geo);
     fprintf(stdout, "psi = %lg has arc-length %.10lg. Calls to contour func = %ld\n",
       psi_ref, arcL, stat.nquad_cont_calls-cum_nroots);
     
@@ -108,10 +108,10 @@ cerforn_rt(void)
 
   do {
     double psi_ref = 1.2;
-    double arcL = gkyl_gkgeom_integrate_psi_contour(geo, psi_ref,
+    double arcL = gkyl_geo_gyrokinetic_integrate_psi_contour(geo, psi_ref,
       lower[1], upper[1], upper[0]);
 
-    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    struct gkyl_geo_gyrokinetic_stat stat = gkyl_geo_gyrokinetic_get_stat(geo);
     fprintf(stdout, "psi = %lg has arc-length %.10lg. Calls to contour func = %ld\n",
       psi_ref, arcL, stat.nquad_cont_calls-cum_nroots);
 
@@ -144,7 +144,7 @@ cerforn_rt(void)
     gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
     struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
     
-    struct gkyl_gkgeom_geo_inp ginp = {
+    struct gkyl_geo_gyrokinetic_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
       .ftype = GKYL_SOL_DN,
@@ -156,9 +156,9 @@ cerforn_rt(void)
       .node_file_nm = "cerfon_out_sol_nod.gkyl"
     };
 
-    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p, &clocal_ext);
+    gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p, &clocal_ext);
     
-    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    struct gkyl_geo_gyrokinetic_stat stat = gkyl_geo_gyrokinetic_get_stat(geo);
     fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
       stat.nquad_cont_calls-cum_nroots, stat.nroot_cont_calls);
 
@@ -190,7 +190,7 @@ cerforn_rt(void)
     gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
     struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
     
-    struct gkyl_gkgeom_geo_inp ginp = {
+    struct gkyl_geo_gyrokinetic_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
       .ftype = GKYL_SOL_DN,
@@ -202,16 +202,16 @@ cerforn_rt(void)
       .node_file_nm = "cerfon_in_sol_nod.gkyl"
     };
 
-    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p, &clocal_ext);
+    gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p, &clocal_ext);
     
-    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    struct gkyl_geo_gyrokinetic_stat stat = gkyl_geo_gyrokinetic_get_stat(geo);
     fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
       stat.nquad_cont_calls-cum_nroots, stat.nroot_cont_calls);
 
     gkyl_array_release(mapc2p);
   } while(0);
 
-  gkyl_gkgeom_release(geo);
+  gkyl_geo_gyrokinetic_release(geo);
   gkyl_array_release(psiRZ);
 }
 
@@ -277,7 +277,7 @@ wham_rt(void)
 
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psiRZ, "wham_psi.gkyl");
 
-  gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
+  gkyl_geo_gyrokinetic *geo = gkyl_geo_gyrokinetic_new(&(struct gkyl_geo_gyrokinetic_inp) {
       // psiRZ and related inputs
       .rzgrid = &rzgrid,
       .rzbasis = &rzbasis,
@@ -315,7 +315,7 @@ wham_rt(void)
     gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
     struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
     
-    struct gkyl_gkgeom_geo_inp ginp = {
+    struct gkyl_geo_gyrokinetic_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
       .ftype = GKYL_SOL_DN,
@@ -327,16 +327,16 @@ wham_rt(void)
       .node_file_nm = "wham_out_sol_nod.gkyl"
     };
 
-    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p, &clocal_ext);
+    gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p, &clocal_ext);
     
-    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    struct gkyl_geo_gyrokinetic_stat stat = gkyl_geo_gyrokinetic_get_stat(geo);
     fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
       stat.nquad_cont_calls-cum_nroots, stat.nroot_cont_calls);
 
     gkyl_array_release(mapc2p);
   } while(0);
 
-  gkyl_gkgeom_release(geo);
+  gkyl_geo_gyrokinetic_release(geo);
   gkyl_array_release(psiRZ);
 }
 

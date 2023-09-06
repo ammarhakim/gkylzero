@@ -2,7 +2,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
-#include <gkyl_gkgeom.h>
+#include <gkyl_geo_gyrokinetic.h>
 #include <gkyl_math.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -10,7 +10,7 @@
 #include <math.h>
 #include <string.h>
 
-struct gkyl_gkgeom {
+struct gkyl_geo_gyrokinetic {
   struct gkyl_rect_grid rzgrid; // RZ grid on which psi(R,Z) is defined
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
   struct gkyl_range rzlocal; // local range over which psiRZ is defined
@@ -23,7 +23,7 @@ struct gkyl_gkgeom {
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
 
-  struct gkyl_gkgeom_stat stat; 
+  struct gkyl_geo_gyrokinetic_stat stat; 
   double B0;
   double R0;
 };
@@ -128,7 +128,7 @@ calc_RdR_p2(const double *psi, double psi0, double Z, double xc[2], double dx[2]
 // copied in the array R and dR. The calling function must ensure that
 // these arrays are big enough to hold all roots required
 static int
-R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots,
+R_psiZ(const gkyl_geo_gyrokinetic *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR)
 {
   int zcell = get_idx(1, Z, &geo->rzgrid, &geo->rzlocal);
@@ -166,7 +166,7 @@ R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots,
 
 // Function context to pass to coutour integration function
 struct contour_ctx {
-  const gkyl_gkgeom *geo;
+  const gkyl_geo_gyrokinetic *geo;
   double psi, last_R;
   long ncall;
 };
@@ -225,7 +225,7 @@ phi_contour_func(double Z, void *ctx)
 // well, discontinuous, and adaptive quadrature struggles with such
 // functions.
 static double
-integrate_psi_contour_memo(const gkyl_gkgeom *geo, double psi,
+integrate_psi_contour_memo(const gkyl_geo_gyrokinetic *geo, double psi,
   double zmin, double zmax, double rclose,
   bool use_memo, bool fill_memo, double *memo)
 {
@@ -278,12 +278,12 @@ integrate_psi_contour_memo(const gkyl_gkgeom *geo, double psi,
     }
   }
 
-  ((gkyl_gkgeom *)geo)->stat.nquad_cont_calls += ctx.ncall;
+  ((gkyl_geo_gyrokinetic *)geo)->stat.nquad_cont_calls += ctx.ncall;
   return res;
 }
 
 static double
-integrate_phi_along_psi_contour_memo(const gkyl_gkgeom *geo, double psi,
+integrate_phi_along_psi_contour_memo(const gkyl_geo_gyrokinetic *geo, double psi,
   double zmin, double zmax, double rclose,
   bool use_memo, bool fill_memo, double *memo)
 {
@@ -336,13 +336,13 @@ integrate_phi_along_psi_contour_memo(const gkyl_gkgeom *geo, double psi,
     }
   }
 
-  ((gkyl_gkgeom *)geo)->stat.nquad_cont_calls += ctx.ncall;
+  ((gkyl_geo_gyrokinetic *)geo)->stat.nquad_cont_calls += ctx.ncall;
   return res;
 }
 
 // Function context to pass to root finder
 struct arc_length_ctx {
-  const gkyl_gkgeom *geo;
+  const gkyl_geo_gyrokinetic *geo;
   double *arc_memo;
   double psi, rclose, zmin, arcL;
 };
@@ -397,10 +397,10 @@ phi_func(double alpha_curr, double Z, void *ctx)
 
 
 
-gkyl_gkgeom*
-gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
+gkyl_geo_gyrokinetic*
+gkyl_geo_gyrokinetic_new(const struct gkyl_geo_gyrokinetic_inp *inp)
 {
-  struct gkyl_gkgeom *geo = gkyl_malloc(sizeof(*geo));
+  struct gkyl_geo_gyrokinetic *geo = gkyl_malloc(sizeof(*geo));
 
   geo->B0 = inp->B0;
   geo->R0 = inp->R0;
@@ -425,13 +425,13 @@ gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp)
   else if (inp->rzbasis->poly_order == 2)
     geo->calc_roots = calc_RdR_p2;
 
-  geo->stat = (struct gkyl_gkgeom_stat) { };
+  geo->stat = (struct gkyl_geo_gyrokinetic_stat) { };
   
   return geo;
 }
 
 double
-gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi,
+gkyl_geo_gyrokinetic_integrate_psi_contour(const gkyl_geo_gyrokinetic *geo, double psi,
   double zmin, double zmax, double rclose)
 {
   return integrate_psi_contour_memo(geo, psi, zmin, zmax, rclose,
@@ -439,7 +439,7 @@ gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi,
 }
 
 int
-gkyl_gkgeom_R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots,
+gkyl_geo_gyrokinetic_R_psiZ(const gkyl_geo_gyrokinetic *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR)
 {
   return R_psiZ(geo, psi, Z, nmaxroots, R, dR);
@@ -465,7 +465,7 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 
 
 
-void nodal_array_to_modal_array(struct gkyl_array *nodal_array, struct gkyl_array *modal_array, struct gkyl_range *update_range, struct gkyl_range *nrange, const struct gkyl_gkgeom_geo_inp *ginp){
+void nodal_array_to_modal_array(struct gkyl_array *nodal_array, struct gkyl_array *modal_array, struct gkyl_range *update_range, struct gkyl_range *nrange, const struct gkyl_geo_gyrokinetic_geo_inp *ginp){
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
 
   int num_ret_vals = ginp->cgrid->ndim;
@@ -524,8 +524,8 @@ void nodal_array_to_modal_array(struct gkyl_array *nodal_array, struct gkyl_arra
 
 
 void
-gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
-  const struct gkyl_gkgeom_geo_inp *inp, struct gkyl_array *mapc2p, struct gkyl_range *conversion_range)
+gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
+  const struct gkyl_geo_gyrokinetic_geo_inp *inp, struct gkyl_array *mapc2p, struct gkyl_range *conversion_range)
 {
   int poly_order = inp->cbasis->poly_order;
   int nodes[3] = { 1, 1, 1 };
@@ -635,7 +635,7 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
           zmin, zmax, -arcL_curr, arcL-arcL_curr,
           geo->root_param.max_iter, 1e-10);
         double z_curr = res.res;
-        ((gkyl_gkgeom *)geo)->stat.nroot_cont_calls += res.nevals;
+        ((gkyl_geo_gyrokinetic *)geo)->stat.nroot_cont_calls += res.nevals;
 
         double R[2] = { 0 }, dR[2] = { 0 };
         int nr = R_psiZ(geo, psi_curr, z_curr, 2, R, dR);
@@ -701,14 +701,14 @@ gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
   gkyl_array_release(mc2p_xyz);  
 }
 
-struct gkyl_gkgeom_stat
-gkyl_gkgeom_get_stat(const gkyl_gkgeom *geo)
+struct gkyl_geo_gyrokinetic_stat
+gkyl_geo_gyrokinetic_get_stat(const gkyl_geo_gyrokinetic *geo)
 {
   return geo->stat;
 }
 
 void
-gkyl_gkgeom_release(gkyl_gkgeom *geo)
+gkyl_geo_gyrokinetic_release(gkyl_geo_gyrokinetic *geo)
 {
   gkyl_array_release(geo->psiRZ);
   gkyl_free(geo);

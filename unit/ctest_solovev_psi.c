@@ -16,18 +16,18 @@
 
 #include <gkyl_calc_bmag.h>
 #include <gkyl_calc_bmag_kernels.h>
-#include <gkyl_gkgeom.h>
+#include <gkyl_geo_gyrokinetic.h>
 
 
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_metric_kernels.h>
-#include <gkyl_gkgeom.h>
+#include <gkyl_geo_gyrokinetic.h>
 
 
 
 struct mapc2p_ctx{
-   struct gkyl_gkgeom* app;
-   struct gkyl_gkgeom_geo_inp* ginp;
+   struct gkyl_geo_gyrokinetic* app;
+   struct gkyl_geo_gyrokinetic_geo_inp* ginp;
 };
 
 struct solovev_ctx {
@@ -81,7 +81,7 @@ void mapc2p(double t, const double *xn, double* fout, void *ctx)
 {
   struct mapc2p_ctx *gc = (struct mapc2p_ctx*) ctx;
   //double RZ[2];
-  gkyl_gkgeom_mapc2p(gc->app, gc->ginp, xn, fout);
+  gkyl_geo_gyrokinetic_mapc2p(gc->app, gc->ginp, xn, fout);
 }
 
 void
@@ -125,7 +125,7 @@ test_1()
   //gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psiRZ, "test_bmag_psi.gkyl");
 
 
-  gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
+  gkyl_geo_gyrokinetic *geo = gkyl_geo_gyrokinetic_new(&(struct gkyl_geo_gyrokinetic_inp) {
       // psiRZ and related inputs
       .rzgrid = &rzgrid,
       .rzbasis = &rzbasis,
@@ -136,7 +136,7 @@ test_1()
     }
   );
 
-  //gkyl gkgeom *app = gkgeom_app_new(&inp);
+  //gkyl geo_gyrokinetic *app = geo_gyrokinetic_app_new(&inp);
 
   //basic_root_test(&inp, app);
 
@@ -159,7 +159,7 @@ test_1()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 2, cpoly_order);
 
-  struct gkyl_gkgeom_geo_inp ginp = {
+  struct gkyl_geo_gyrokinetic_geo_inp ginp = {
     .cgrid = &cgrid,
     .cbasis = &cbasis,
     .ftype = GKYL_SOL_DN,
@@ -196,7 +196,7 @@ test_1()
   //Do Ammar's calcgeom
 
   struct gkyl_array *mapc2p_arr = gkyl_array_new(GKYL_DOUBLE, 2*cbasis.num_basis, clocal_ext.volume);
-  gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p_arr);
+  gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p_arr);
 
   //make psi
   gkyl_eval_on_nodes *eval_psi = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psi, &sctx);
@@ -269,7 +269,7 @@ test_1()
   gkyl_array_release(psibyr2dg);
   gkyl_array_release(bmag_compdg);
   gkyl_array_release(bmagdg);
-  gkyl_gkgeom_release(geo);
+  gkyl_geo_gyrokinetic_release(geo);
 }
 
 TEST_LIST = {

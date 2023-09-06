@@ -3,10 +3,10 @@
 #include <stdbool.h>
 
 // Object type
-typedef struct gkyl_gkgeom gkyl_gkgeom;
+typedef struct gkyl_geo_gyrokinetic gkyl_geo_gyrokinetic;
 
 // Type of flux surface
-enum gkyl_gkgeom_type {
+enum gkyl_geo_gyrokinetic_type {
   GKYL_SOL_DN, // SOL of double-null configuration
   GKYL_SOL_SN, // SOL of single-null configuration
   GKYL_PF, // Private flux region
@@ -14,7 +14,7 @@ enum gkyl_gkgeom_type {
 };  
 
 // Inputs to create a new GK geometry creation object
-struct gkyl_gkgeom_inp {
+struct gkyl_geo_gyrokinetic_inp {
   // psiRZ and related inputs  
   const struct gkyl_rect_grid *rzgrid; // RZ grid on which psi(R,Z) is defined
   const struct gkyl_basis *rzbasis; // basis functions for R,Z grid
@@ -37,11 +37,11 @@ struct gkyl_gkgeom_inp {
 };
 
 // Inputs to create geometry for a specific computational grid
-struct gkyl_gkgeom_geo_inp {
+struct gkyl_geo_gyrokinetic_geo_inp {
   const struct gkyl_rect_grid *cgrid;
   const struct gkyl_basis *cbasis;
 
-  enum gkyl_gkgeom_type ftype; // type of geometry
+  enum gkyl_geo_gyrokinetic_type ftype; // type of geometry
   
   double rclose; // closest R to discrimate
   double zmin, zmax; // extents of Z for integration
@@ -51,7 +51,7 @@ struct gkyl_gkgeom_geo_inp {
 };
 
 // Some cumulative statistics
-struct gkyl_gkgeom_stat {
+struct gkyl_geo_gyrokinetic_stat {
   long nquad_cont_calls; // num calls from quadrature
   long nroot_cont_calls; // num calls from root-finder
 };  
@@ -63,7 +63,7 @@ struct gkyl_gkgeom_stat {
  * @param inp Input parameters
  * @param New GK geometry updater
  */
-gkyl_gkgeom *gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp);
+gkyl_geo_gyrokinetic *gkyl_geo_gyrokinetic_new(const struct gkyl_geo_gyrokinetic_inp *inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may
@@ -77,7 +77,7 @@ gkyl_gkgeom *gkyl_gkgeom_new(const struct gkyl_gkgeom_inp *inp);
  * @param R on output, R(psi,Z)
  * @param dR on output, dR/dZ
  */
-int gkyl_gkgeom_R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroots,
+int gkyl_geo_gyrokinetic_R_psiZ(const gkyl_geo_gyrokinetic *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR);
 
 /**
@@ -96,7 +96,7 @@ int gkyl_gkgeom_R_psiZ(const gkyl_gkgeom *geo, double psi, double Z, int nmaxroo
  *    contours
  * @return Length of contour
  */
-double gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi,
+double gkyl_geo_gyrokinetic_integrate_psi_contour(const gkyl_geo_gyrokinetic *geo, double psi,
   double zmin, double zmax, double rclose);
 
 /**
@@ -106,7 +106,7 @@ double gkyl_gkgeom_integrate_psi_contour(const gkyl_gkgeom *geo, double psi,
  * @param xn computational coordinates
  * @param ret physical coordinates
  */
-void gkyl_gkgeom_mapc2p(const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp *inp,
+void gkyl_geo_gyrokinetic_mapc2p(const gkyl_geo_gyrokinetic *geo, const struct gkyl_geo_gyrokinetic_geo_inp *inp,
     const double *xn, double *ret);
 
 /**
@@ -117,8 +117,8 @@ void gkyl_gkgeom_mapc2p(const gkyl_gkgeom *geo, const struct gkyl_gkgeom_geo_inp
  * @param ginp Input structure for creating mapc2p
  * @param mapc2p On output, the DG representation of mapc2p
  */
-void gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
-  const struct gkyl_gkgeom_geo_inp *ginp, struct gkyl_array *mapc2p, struct gkyl_range *conversion_range);
+void gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
+  const struct gkyl_geo_gyrokinetic_geo_inp *ginp, struct gkyl_array *mapc2p, struct gkyl_range *conversion_range);
 
 /**
  * Return cumulative statistics from geometry computations
@@ -126,11 +126,11 @@ void gkyl_gkgeom_calcgeom(const gkyl_gkgeom *geo,
  * @param geo Geometry object
  * @return Cumulative statistics
  */
-struct gkyl_gkgeom_stat gkyl_gkgeom_get_stat(const gkyl_gkgeom *geo);
+struct gkyl_geo_gyrokinetic_stat gkyl_geo_gyrokinetic_get_stat(const gkyl_geo_gyrokinetic *geo);
 
 /**
  * Delete updater.
  *
  * @param geo Geometry object to delete
  */
-void gkyl_gkgeom_release(gkyl_gkgeom *geo);
+void gkyl_geo_gyrokinetic_release(gkyl_geo_gyrokinetic *geo);

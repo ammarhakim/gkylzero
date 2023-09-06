@@ -4,7 +4,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_gkgeom.h>
+#include <gkyl_geo_gyrokinetic.h>
 
 // Object type
 typedef struct gkyl_calc_bmag gkyl_calc_bmag;
@@ -19,7 +19,7 @@ typedef struct bmag_ctx bmag_ctx;
  */
 gkyl_calc_bmag* 
 gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  struct gkyl_rect_grid *cgrid, struct gkyl_rect_grid *pgrid, const gkyl_gkgeom *app, const struct gkyl_gkgeom_geo_inp *ginp, bool use_gpu);
+  struct gkyl_rect_grid *cgrid, struct gkyl_rect_grid *pgrid, const gkyl_geo_gyrokinetic *app, const struct gkyl_geo_gyrokinetic_geo_inp *ginp, bool use_gpu);
 
 
 /**
