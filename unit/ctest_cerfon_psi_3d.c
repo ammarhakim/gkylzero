@@ -193,25 +193,6 @@ test_1()
   }; 
 
 
-  //check node coords
-  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ginp.cgrid->ndim, ginp.cbasis->num_basis);
-  ginp.cbasis->node_list(gkyl_array_fetch(nodes, 0));
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
-  struct gkyl_range_iter iter_c;
-  gkyl_range_iter_init(&iter_c, &clocal);
-  
-  //while (gkyl_range_iter_next(&iter_c)) {
-  //  gkyl_rect_grid_cell_center(ginp.cgrid, iter_c.idx, xc);
-
-  //  for (int i=0; i<ginp.cbasis->num_basis; ++i) {
-  //    comp_to_phys(ginp.cgrid->ndim, gkyl_array_cfetch(nodes, i),
-  //      ginp.cgrid->dx, xc, xmu);
-  //    printf("xc = %g,%g ; xmu = %g,%g\n",xc[0],xc[1],xmu[0],xmu[1]);
-  //    printf("xmu = %g,%g\n", xmu[0], xmu[1]);
-  //    //up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
-  //  }
-  //}
-
 
 
   //Do Ammar's calcgeom

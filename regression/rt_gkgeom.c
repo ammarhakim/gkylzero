@@ -10,7 +10,7 @@
 
 // Cerfon equilibrium
 struct cerfon_ctx {
-  double R0, psi_prefactor;
+  double R0, psi_prefactor, B0;
 };
 
 static inline double sq(double x) { return x*x; }
@@ -35,7 +35,7 @@ cerforn_rt(void)
 {
   fprintf(stdout, "---- Cerforn Double-Null Configuration\n");
   
-  struct cerfon_ctx ctx = {  .R0 = 2.5, .psi_prefactor = 1.0 };
+  struct cerfon_ctx ctx = {  .R0 = 2.5, .psi_prefactor = 1.0, .B0 = 0.0 };
   
   // create RZ grid
   double lower[] = { 0.01, -6.0 }, upper[] = { 6.0, 6.0 };
@@ -69,7 +69,8 @@ cerforn_rt(void)
       .rzgrid = &rzgrid,
       .rzbasis = &rzbasis,
       .psiRZ = psiRZ,
-      .rzlocal = &rzlocal
+      .rzlocal = &rzlocal,
+      .B0 = ctx.B0
     }
   );
 
@@ -123,14 +124,15 @@ cerforn_rt(void)
     double psi_min = 0.0001, psi_max = 1.2;
     double dpsi = (psi_max-psi_min)/npsi;
     double dtheta = M_PI/ntheta;
+    psi_min += dpsi;
   
-    // Computational grid: theta X psi X alpha (only 2D for now)
-    double clower[] = { -M_PI/2, psi_min };
-    double cupper[] = { M_PI/2, psi_max };
-    int ccells[] = { 16, 10 };
+    // Computational grid: psi X alpha X theta 
+    double clower[] = {psi_min, -0.01,  -4*M_PI/5};
+    double cupper[] = {psi_max, 0.01, 4*M_PI/5};
+    int ccells[] = { 10, 1, 16};
     
     struct gkyl_rect_grid cgrid;
-    gkyl_rect_grid_init(&cgrid, 2, clower, cupper, ccells);
+    gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
 
     // create mpc2p DG array
     struct gkyl_range clocal, clocal_ext;
@@ -139,8 +141,8 @@ cerforn_rt(void)
 
     int cpoly_order = 2;
     struct gkyl_basis cbasis;
-    gkyl_cart_modal_serendip(&cbasis, 2, cpoly_order);
-    struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 2*cbasis.num_basis, clocal_ext.volume);
+    gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+    struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
     
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
@@ -154,7 +156,7 @@ cerforn_rt(void)
       .node_file_nm = "cerfon_out_sol_nod.gkyl"
     };
 
-    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
+    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p, &clocal_ext);
     
     struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
     fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
@@ -168,14 +170,15 @@ cerforn_rt(void)
     int npsi = 2;
     double psi_min = 0.0001, psi_max = 0.01;
     double dpsi = (psi_max-psi_min)/npsi;
-  
-    // Computational grid: theta X psi X alpha (only 2D for now)
-    double clower[] = { -M_PI/2, psi_min };
-    double cupper[] = { M_PI/2, psi_max };
-    int ccells[] = { 16, npsi };
+    psi_min += dpsi;
+
+    // Computational grid: psi X alpha X theta 
+    double clower[] = {psi_min, -0.01,  -4*M_PI/5};
+    double cupper[] = {psi_max, 0.01, 4*M_PI/5};
+    int ccells[] = { npsi, 1, 16};
     
     struct gkyl_rect_grid cgrid;
-    gkyl_rect_grid_init(&cgrid, 2, clower, cupper, ccells);
+    gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
 
     // create mpc2p DG array
     struct gkyl_range clocal, clocal_ext;
@@ -184,8 +187,8 @@ cerforn_rt(void)
 
     int cpoly_order = 2;
     struct gkyl_basis cbasis;
-    gkyl_cart_modal_serendip(&cbasis, 2, cpoly_order);
-    struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 2*cbasis.num_basis, clocal_ext.volume);
+    gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+    struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
     
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
@@ -199,7 +202,7 @@ cerforn_rt(void)
       .node_file_nm = "cerfon_in_sol_nod.gkyl"
     };
 
-    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
+    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p, &clocal_ext);
     
     struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
     fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
@@ -279,7 +282,8 @@ wham_rt(void)
       .rzgrid = &rzgrid,
       .rzbasis = &rzbasis,
       .psiRZ = psiRZ,
-      .rzlocal = &rzlocal
+      .rzlocal = &rzlocal,
+      .B0 = 0.0
     }
   );
 
@@ -291,14 +295,15 @@ wham_rt(void)
     double psi_min = 0.001, psi_max = 0.02;
     double dpsi = (psi_max-psi_min)/npsi;
     double dtheta = M_PI/ntheta;
-  
-    // Computational grid: theta X psi X alpha (only 2D for now)
-    double clower[] = { -M_PI/2, psi_min };
-    double cupper[] = { M_PI/2, psi_max };
-    int ccells[] = { 16, 10 };
+    psi_min += dpsi;
+
+    // Computational grid: psi X alpha X theta 
+    double clower[] = {psi_min, -0.01,  -4*M_PI/5};
+    double cupper[] = {psi_max, 0.01, 4*M_PI/5};
+    int ccells[] = { npsi, 1, 16};
     
     struct gkyl_rect_grid cgrid;
-    gkyl_rect_grid_init(&cgrid, 2, clower, cupper, ccells);
+    gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
 
     // create mpc2p DG array
     struct gkyl_range clocal, clocal_ext;
@@ -307,8 +312,8 @@ wham_rt(void)
 
     int cpoly_order = 2;
     struct gkyl_basis cbasis;
-    gkyl_cart_modal_serendip(&cbasis, 2, cpoly_order);
-    struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 2*cbasis.num_basis, clocal_ext.volume);
+    gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+    struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
     
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
@@ -322,7 +327,7 @@ wham_rt(void)
       .node_file_nm = "wham_out_sol_nod.gkyl"
     };
 
-    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
+    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p, &clocal_ext);
     
     struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
     fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
