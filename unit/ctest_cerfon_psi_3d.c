@@ -313,10 +313,14 @@ test_1()
   struct gkyl_array *grFld = gkyl_array_new(GKYL_DOUBLE, 6*cbasis.num_basis, clocal_ext.volume);
   struct gkyl_array *biFld = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
   struct gkyl_array *cmagFld = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *jtotFld = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *jtotinvFld = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *bmaginvFld = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *bmaginvsqFld = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
   printf("created geo fields\n");
   gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&cbasis, &cgrid, false);
   printf("made the j calculator \n");
-  gkyl_calc_derived_geo_advance( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld);
+  gkyl_calc_derived_geo_advance( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld, jtotFld, jtotinvFld, bmaginvFld, bmaginvsqFld);
   
 
   do{
@@ -331,6 +335,13 @@ test_1()
       const char *fmt = "%s_j.gkyl";
       snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, jFld, fileNm);
+    } while (0);
+
+    do{
+      printf("writing the jtot file \n");
+      const char *fmt = "%s_jtot.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      gkyl_grid_sub_array_write(&cgrid, &clocal, jtotFld, fileNm);
     } while (0);
 
     do{

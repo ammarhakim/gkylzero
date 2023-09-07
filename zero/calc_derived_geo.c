@@ -22,7 +22,7 @@ gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid
 
 
 void
-gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange, struct gkyl_array *gFld, struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld, struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld)
+gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange, struct gkyl_array *gFld, struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld, struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld, struct gkyl_array *jtotFld, struct gkyl_array *jtotinvFld, struct gkyl_array *bmaginvFld, struct gkyl_array *bmaginvsqFld)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, crange);
@@ -36,7 +36,12 @@ gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl
     double *grij = gkyl_array_fetch(grFld, loc);
     double *bi_i = gkyl_array_fetch(biFld, loc);
     double *cmag_i = gkyl_array_fetch(cmagFld, loc);
-    up->kernel(gij, bmag_i, j_i, jinv_i, grij, bi_i, cmag_i);
+    double *jtot_i = gkyl_array_fetch(jtotFld, loc);
+    double *jtotinv_i = gkyl_array_fetch(jtotinvFld, loc);
+    double *bmaginv_i = gkyl_array_fetch(bmaginvFld, loc);
+    double *bmaginvsq_i = gkyl_array_fetch(bmaginvsqFld, loc);
+
+    up->kernel(gij, bmag_i, j_i, jinv_i, grij, bi_i, cmag_i, jtot_i, jtotinv_i, bmaginv_i, bmaginvsq_i);
     //printf("gij[1] = %g\n",gij[1]);
     //printf("j[1] = %g\n",j_i[0]);
   }
@@ -73,7 +78,12 @@ gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl
     double *grij = gkyl_array_fetch(grFld, loc);
     double *bi_i = gkyl_array_fetch(biFld, loc);
     double *cmag_i = gkyl_array_fetch(cmagFld, loc);
-    up->kernel(gij, bmag_i, j_i, jinv_i, grij, bi_i, cmag_i);
+
+    double *jtot_i = gkyl_array_fetch(jtotFld, loc);
+    double *jtotinv_i = gkyl_array_fetch(jtotinvFld, loc);
+    double *bmaginv_i = gkyl_array_fetch(bmaginvFld, loc);
+    double *bmaginvsq_i = gkyl_array_fetch(bmaginvsqFld, loc);
+    up->kernel(gij, bmag_i, j_i, jinv_i, grij, bi_i, cmag_i, jtot_i, jtotinv_i, bmaginv_i, bmaginvsq_i);
     //printf("gij[1] = %g\n",gij[1]);
     //printf("j[1] = %g\n",j_i[0]);
   }

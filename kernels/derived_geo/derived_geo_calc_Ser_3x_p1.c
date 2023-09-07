@@ -1,6 +1,6 @@
 #include "gkyl_calc_derived_geo_kernels.h"
 
-GKYL_CU_DH void derived_geo_3x_Ser_p1(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag) 
+GKYL_CU_DH void derived_geo_3x_Ser_p1(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *bmaginv, double *bmaginvsq) 
 { 
 const double *g11  = &gij[0 * 8];
 const double *g12  = &gij[1 * 8];
@@ -37,6 +37,10 @@ double J_n[8];
 double Jinv_n[8]; 
 double bmag_n[8]; 
 double cmag_n[8]; 
+double Jtot_n[8]; 
+double Jtotinv_n[8]; 
+double bmaginv_n[8]; 
+double bmaginvsq_n[8]; 
 double *g21_n = g12_n; 
 double *g31_n = g13_n; 
 double *g32_n = g23_n; 
@@ -145,6 +149,78 @@ Jinv_n[7] = 1.0/J_n[7];
   Jinv[5] = 0.1178511301977579*Jinv_n[7]-0.117851130197758*Jinv_n[6]+0.117851130197758*Jinv_n[5]-0.117851130197758*Jinv_n[4]-0.1178511301977579*Jinv_n[3]+0.1178511301977579*Jinv_n[2]-0.1178511301977579*Jinv_n[1]+0.1178511301977579*Jinv_n[0]; 
   Jinv[6] = 0.1178511301977579*Jinv_n[7]+0.117851130197758*Jinv_n[6]-0.1178511301977579*Jinv_n[5]-0.1178511301977579*Jinv_n[4]-0.1178511301977579*Jinv_n[3]-0.1178511301977579*Jinv_n[2]+0.1178511301977579*Jinv_n[1]+0.1178511301977579*Jinv_n[0]; 
   Jinv[7] = 0.0680413817439772*Jinv_n[7]-0.06804138174397721*Jinv_n[6]-0.06804138174397721*Jinv_n[5]+0.06804138174397721*Jinv_n[4]-0.06804138174397717*Jinv_n[3]+0.06804138174397717*Jinv_n[2]+0.06804138174397717*Jinv_n[1]-0.06804138174397717*Jinv_n[0]; 
+// Calculate Jtot at nodes 
+Jtot_n[0] = bmag_n[0]*J_n[0]; 
+Jtot_n[1] = bmag_n[1]*J_n[1]; 
+Jtot_n[2] = bmag_n[2]*J_n[2]; 
+Jtot_n[3] = bmag_n[3]*J_n[3]; 
+Jtot_n[4] = bmag_n[4]*J_n[4]; 
+Jtot_n[5] = bmag_n[5]*J_n[5]; 
+Jtot_n[6] = bmag_n[6]*J_n[6]; 
+Jtot_n[7] = bmag_n[7]*J_n[7]; 
+// Convert nodal to modal for Jtot 
+  Jtot[0] = 0.353553390593274*Jtot_n[7]+0.3535533905932739*Jtot_n[6]+0.3535533905932739*Jtot_n[5]+0.3535533905932739*Jtot_n[4]+0.3535533905932737*Jtot_n[3]+0.3535533905932737*Jtot_n[2]+0.3535533905932737*Jtot_n[1]+0.3535533905932737*Jtot_n[0]; 
+  Jtot[1] = 0.2041241452319316*Jtot_n[7]-0.2041241452319316*Jtot_n[6]+0.2041241452319316*Jtot_n[5]-0.2041241452319316*Jtot_n[4]+0.2041241452319315*Jtot_n[3]-0.2041241452319315*Jtot_n[2]+0.2041241452319315*Jtot_n[1]-0.2041241452319315*Jtot_n[0]; 
+  Jtot[2] = 0.2041241452319316*Jtot_n[7]+0.2041241452319316*Jtot_n[6]-0.2041241452319316*Jtot_n[5]-0.2041241452319316*Jtot_n[4]+0.2041241452319315*Jtot_n[3]+0.2041241452319315*Jtot_n[2]-0.2041241452319315*Jtot_n[1]-0.2041241452319315*Jtot_n[0]; 
+  Jtot[3] = 0.2041241452319315*Jtot_n[7]+0.2041241452319316*Jtot_n[6]+0.2041241452319316*Jtot_n[5]+0.2041241452319316*Jtot_n[4]-0.2041241452319315*Jtot_n[3]-0.2041241452319315*Jtot_n[2]-0.2041241452319315*Jtot_n[1]-0.2041241452319315*Jtot_n[0]; 
+  Jtot[4] = 0.117851130197758*Jtot_n[7]-0.117851130197758*Jtot_n[6]-0.117851130197758*Jtot_n[5]+0.117851130197758*Jtot_n[4]+0.1178511301977579*Jtot_n[3]-0.1178511301977579*Jtot_n[2]-0.1178511301977579*Jtot_n[1]+0.1178511301977579*Jtot_n[0]; 
+  Jtot[5] = 0.1178511301977579*Jtot_n[7]-0.117851130197758*Jtot_n[6]+0.117851130197758*Jtot_n[5]-0.117851130197758*Jtot_n[4]-0.1178511301977579*Jtot_n[3]+0.1178511301977579*Jtot_n[2]-0.1178511301977579*Jtot_n[1]+0.1178511301977579*Jtot_n[0]; 
+  Jtot[6] = 0.1178511301977579*Jtot_n[7]+0.117851130197758*Jtot_n[6]-0.1178511301977579*Jtot_n[5]-0.1178511301977579*Jtot_n[4]-0.1178511301977579*Jtot_n[3]-0.1178511301977579*Jtot_n[2]+0.1178511301977579*Jtot_n[1]+0.1178511301977579*Jtot_n[0]; 
+  Jtot[7] = 0.0680413817439772*Jtot_n[7]-0.06804138174397721*Jtot_n[6]-0.06804138174397721*Jtot_n[5]+0.06804138174397721*Jtot_n[4]-0.06804138174397717*Jtot_n[3]+0.06804138174397717*Jtot_n[2]+0.06804138174397717*Jtot_n[1]-0.06804138174397717*Jtot_n[0]; 
+// Calculate Jtotinv at nodes 
+Jtotinv_n[0] = 1/Jtot_n[0]; 
+Jtotinv_n[1] = 1/Jtot_n[1]; 
+Jtotinv_n[2] = 1/Jtot_n[2]; 
+Jtotinv_n[3] = 1/Jtot_n[3]; 
+Jtotinv_n[4] = 1/Jtot_n[4]; 
+Jtotinv_n[5] = 1/Jtot_n[5]; 
+Jtotinv_n[6] = 1/Jtot_n[6]; 
+Jtotinv_n[7] = 1/Jtot_n[7]; 
+// Convert nodal to modal for Jtotinv 
+  Jtotinv[0] = 0.353553390593274*Jtotinv_n[7]+0.3535533905932739*Jtotinv_n[6]+0.3535533905932739*Jtotinv_n[5]+0.3535533905932739*Jtotinv_n[4]+0.3535533905932737*Jtotinv_n[3]+0.3535533905932737*Jtotinv_n[2]+0.3535533905932737*Jtotinv_n[1]+0.3535533905932737*Jtotinv_n[0]; 
+  Jtotinv[1] = 0.2041241452319316*Jtotinv_n[7]-0.2041241452319316*Jtotinv_n[6]+0.2041241452319316*Jtotinv_n[5]-0.2041241452319316*Jtotinv_n[4]+0.2041241452319315*Jtotinv_n[3]-0.2041241452319315*Jtotinv_n[2]+0.2041241452319315*Jtotinv_n[1]-0.2041241452319315*Jtotinv_n[0]; 
+  Jtotinv[2] = 0.2041241452319316*Jtotinv_n[7]+0.2041241452319316*Jtotinv_n[6]-0.2041241452319316*Jtotinv_n[5]-0.2041241452319316*Jtotinv_n[4]+0.2041241452319315*Jtotinv_n[3]+0.2041241452319315*Jtotinv_n[2]-0.2041241452319315*Jtotinv_n[1]-0.2041241452319315*Jtotinv_n[0]; 
+  Jtotinv[3] = 0.2041241452319315*Jtotinv_n[7]+0.2041241452319316*Jtotinv_n[6]+0.2041241452319316*Jtotinv_n[5]+0.2041241452319316*Jtotinv_n[4]-0.2041241452319315*Jtotinv_n[3]-0.2041241452319315*Jtotinv_n[2]-0.2041241452319315*Jtotinv_n[1]-0.2041241452319315*Jtotinv_n[0]; 
+  Jtotinv[4] = 0.117851130197758*Jtotinv_n[7]-0.117851130197758*Jtotinv_n[6]-0.117851130197758*Jtotinv_n[5]+0.117851130197758*Jtotinv_n[4]+0.1178511301977579*Jtotinv_n[3]-0.1178511301977579*Jtotinv_n[2]-0.1178511301977579*Jtotinv_n[1]+0.1178511301977579*Jtotinv_n[0]; 
+  Jtotinv[5] = 0.1178511301977579*Jtotinv_n[7]-0.117851130197758*Jtotinv_n[6]+0.117851130197758*Jtotinv_n[5]-0.117851130197758*Jtotinv_n[4]-0.1178511301977579*Jtotinv_n[3]+0.1178511301977579*Jtotinv_n[2]-0.1178511301977579*Jtotinv_n[1]+0.1178511301977579*Jtotinv_n[0]; 
+  Jtotinv[6] = 0.1178511301977579*Jtotinv_n[7]+0.117851130197758*Jtotinv_n[6]-0.1178511301977579*Jtotinv_n[5]-0.1178511301977579*Jtotinv_n[4]-0.1178511301977579*Jtotinv_n[3]-0.1178511301977579*Jtotinv_n[2]+0.1178511301977579*Jtotinv_n[1]+0.1178511301977579*Jtotinv_n[0]; 
+  Jtotinv[7] = 0.0680413817439772*Jtotinv_n[7]-0.06804138174397721*Jtotinv_n[6]-0.06804138174397721*Jtotinv_n[5]+0.06804138174397721*Jtotinv_n[4]-0.06804138174397717*Jtotinv_n[3]+0.06804138174397717*Jtotinv_n[2]+0.06804138174397717*Jtotinv_n[1]-0.06804138174397717*Jtotinv_n[0]; 
+// Calculate bmaginv at nodes 
+bmaginv_n[0] = 1.0/bmag_n[0]; 
+bmaginv_n[1] = 1.0/bmag_n[1]; 
+bmaginv_n[2] = 1.0/bmag_n[2]; 
+bmaginv_n[3] = 1.0/bmag_n[3]; 
+bmaginv_n[4] = 1.0/bmag_n[4]; 
+bmaginv_n[5] = 1.0/bmag_n[5]; 
+bmaginv_n[6] = 1.0/bmag_n[6]; 
+bmaginv_n[7] = 1.0/bmag_n[7]; 
+// Convert nodal to modal for bmaginv 
+  bmaginv[0] = 0.353553390593274*bmaginv_n[7]+0.3535533905932739*bmaginv_n[6]+0.3535533905932739*bmaginv_n[5]+0.3535533905932739*bmaginv_n[4]+0.3535533905932737*bmaginv_n[3]+0.3535533905932737*bmaginv_n[2]+0.3535533905932737*bmaginv_n[1]+0.3535533905932737*bmaginv_n[0]; 
+  bmaginv[1] = 0.2041241452319316*bmaginv_n[7]-0.2041241452319316*bmaginv_n[6]+0.2041241452319316*bmaginv_n[5]-0.2041241452319316*bmaginv_n[4]+0.2041241452319315*bmaginv_n[3]-0.2041241452319315*bmaginv_n[2]+0.2041241452319315*bmaginv_n[1]-0.2041241452319315*bmaginv_n[0]; 
+  bmaginv[2] = 0.2041241452319316*bmaginv_n[7]+0.2041241452319316*bmaginv_n[6]-0.2041241452319316*bmaginv_n[5]-0.2041241452319316*bmaginv_n[4]+0.2041241452319315*bmaginv_n[3]+0.2041241452319315*bmaginv_n[2]-0.2041241452319315*bmaginv_n[1]-0.2041241452319315*bmaginv_n[0]; 
+  bmaginv[3] = 0.2041241452319315*bmaginv_n[7]+0.2041241452319316*bmaginv_n[6]+0.2041241452319316*bmaginv_n[5]+0.2041241452319316*bmaginv_n[4]-0.2041241452319315*bmaginv_n[3]-0.2041241452319315*bmaginv_n[2]-0.2041241452319315*bmaginv_n[1]-0.2041241452319315*bmaginv_n[0]; 
+  bmaginv[4] = 0.117851130197758*bmaginv_n[7]-0.117851130197758*bmaginv_n[6]-0.117851130197758*bmaginv_n[5]+0.117851130197758*bmaginv_n[4]+0.1178511301977579*bmaginv_n[3]-0.1178511301977579*bmaginv_n[2]-0.1178511301977579*bmaginv_n[1]+0.1178511301977579*bmaginv_n[0]; 
+  bmaginv[5] = 0.1178511301977579*bmaginv_n[7]-0.117851130197758*bmaginv_n[6]+0.117851130197758*bmaginv_n[5]-0.117851130197758*bmaginv_n[4]-0.1178511301977579*bmaginv_n[3]+0.1178511301977579*bmaginv_n[2]-0.1178511301977579*bmaginv_n[1]+0.1178511301977579*bmaginv_n[0]; 
+  bmaginv[6] = 0.1178511301977579*bmaginv_n[7]+0.117851130197758*bmaginv_n[6]-0.1178511301977579*bmaginv_n[5]-0.1178511301977579*bmaginv_n[4]-0.1178511301977579*bmaginv_n[3]-0.1178511301977579*bmaginv_n[2]+0.1178511301977579*bmaginv_n[1]+0.1178511301977579*bmaginv_n[0]; 
+  bmaginv[7] = 0.0680413817439772*bmaginv_n[7]-0.06804138174397721*bmaginv_n[6]-0.06804138174397721*bmaginv_n[5]+0.06804138174397721*bmaginv_n[4]-0.06804138174397717*bmaginv_n[3]+0.06804138174397717*bmaginv_n[2]+0.06804138174397717*bmaginv_n[1]-0.06804138174397717*bmaginv_n[0]; 
+// Calculate bmaginvsq at nodes 
+bmaginvsq_n[0] = bmaginv_n[0]*bmaginv_n[0]; 
+bmaginvsq_n[1] = bmaginv_n[1]*bmaginv_n[1]; 
+bmaginvsq_n[2] = bmaginv_n[2]*bmaginv_n[2]; 
+bmaginvsq_n[3] = bmaginv_n[3]*bmaginv_n[3]; 
+bmaginvsq_n[4] = bmaginv_n[4]*bmaginv_n[4]; 
+bmaginvsq_n[5] = bmaginv_n[5]*bmaginv_n[5]; 
+bmaginvsq_n[6] = bmaginv_n[6]*bmaginv_n[6]; 
+bmaginvsq_n[7] = bmaginv_n[7]*bmaginv_n[7]; 
+// Convert nodal to modal for bmaginvsq 
+  bmaginvsq[0] = 0.353553390593274*bmaginvsq_n[7]+0.3535533905932739*bmaginvsq_n[6]+0.3535533905932739*bmaginvsq_n[5]+0.3535533905932739*bmaginvsq_n[4]+0.3535533905932737*bmaginvsq_n[3]+0.3535533905932737*bmaginvsq_n[2]+0.3535533905932737*bmaginvsq_n[1]+0.3535533905932737*bmaginvsq_n[0]; 
+  bmaginvsq[1] = 0.2041241452319316*bmaginvsq_n[7]-0.2041241452319316*bmaginvsq_n[6]+0.2041241452319316*bmaginvsq_n[5]-0.2041241452319316*bmaginvsq_n[4]+0.2041241452319315*bmaginvsq_n[3]-0.2041241452319315*bmaginvsq_n[2]+0.2041241452319315*bmaginvsq_n[1]-0.2041241452319315*bmaginvsq_n[0]; 
+  bmaginvsq[2] = 0.2041241452319316*bmaginvsq_n[7]+0.2041241452319316*bmaginvsq_n[6]-0.2041241452319316*bmaginvsq_n[5]-0.2041241452319316*bmaginvsq_n[4]+0.2041241452319315*bmaginvsq_n[3]+0.2041241452319315*bmaginvsq_n[2]-0.2041241452319315*bmaginvsq_n[1]-0.2041241452319315*bmaginvsq_n[0]; 
+  bmaginvsq[3] = 0.2041241452319315*bmaginvsq_n[7]+0.2041241452319316*bmaginvsq_n[6]+0.2041241452319316*bmaginvsq_n[5]+0.2041241452319316*bmaginvsq_n[4]-0.2041241452319315*bmaginvsq_n[3]-0.2041241452319315*bmaginvsq_n[2]-0.2041241452319315*bmaginvsq_n[1]-0.2041241452319315*bmaginvsq_n[0]; 
+  bmaginvsq[4] = 0.117851130197758*bmaginvsq_n[7]-0.117851130197758*bmaginvsq_n[6]-0.117851130197758*bmaginvsq_n[5]+0.117851130197758*bmaginvsq_n[4]+0.1178511301977579*bmaginvsq_n[3]-0.1178511301977579*bmaginvsq_n[2]-0.1178511301977579*bmaginvsq_n[1]+0.1178511301977579*bmaginvsq_n[0]; 
+  bmaginvsq[5] = 0.1178511301977579*bmaginvsq_n[7]-0.117851130197758*bmaginvsq_n[6]+0.117851130197758*bmaginvsq_n[5]-0.117851130197758*bmaginvsq_n[4]-0.1178511301977579*bmaginvsq_n[3]+0.1178511301977579*bmaginvsq_n[2]-0.1178511301977579*bmaginvsq_n[1]+0.1178511301977579*bmaginvsq_n[0]; 
+  bmaginvsq[6] = 0.1178511301977579*bmaginvsq_n[7]+0.117851130197758*bmaginvsq_n[6]-0.1178511301977579*bmaginvsq_n[5]-0.1178511301977579*bmaginvsq_n[4]-0.1178511301977579*bmaginvsq_n[3]-0.1178511301977579*bmaginvsq_n[2]+0.1178511301977579*bmaginvsq_n[1]+0.1178511301977579*bmaginvsq_n[0]; 
+  bmaginvsq[7] = 0.0680413817439772*bmaginvsq_n[7]-0.06804138174397721*bmaginvsq_n[6]-0.06804138174397721*bmaginvsq_n[5]+0.06804138174397721*bmaginvsq_n[4]-0.06804138174397717*bmaginvsq_n[3]+0.06804138174397717*bmaginvsq_n[2]+0.06804138174397717*bmaginvsq_n[1]-0.06804138174397717*bmaginvsq_n[0]; 
 // Calculate g^ij at nodes without factor of 1/det
   gr11_n[0] = g22_n[0]*g33_n[0]-1.0*g23_n[0]*g32_n[0]; 
   gr11_n[1] = g22_n[1]*g33_n[1]-1.0*g23_n[1]*g32_n[1]; 
