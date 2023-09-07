@@ -5,11 +5,11 @@
 #include <gkyl_fpo_vlasov_kernels.h>
 
 // Types for various kernels
-typedef void (*fpo_vlasov_drag_surf_t)(const double *w, const double *dxv,
+typedef double (*fpo_vlasov_drag_surf_t)(const double *w, const double *dxv,
   const double *h, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
-typedef void (*fpo_vlasov_drag_boundary_surf_t)(const double *w, const double *dxv,
+typedef double (*fpo_vlasov_drag_boundary_surf_t)(const double *w, const double *dxv,
   const double *h, 
   const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
 
@@ -173,7 +173,7 @@ static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_v
 void gkyl_fpo_vlasov_drag_free(const struct gkyl_ref_count* ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
@@ -184,14 +184,15 @@ surf(const struct gkyl_dg_eqn *eqn,
   struct dg_fpo_vlasov_drag *fpo_vlasov_drag = container_of(eqn, struct dg_fpo_vlasov_drag, eqn);
   long pidx = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idxC);
   if (dir >= fpo_vlasov_drag->cdim) {
-    fpo_vlasov_drag->surf[dir-fpo_vlasov_drag->cdim](xcC, dxC, 
+    return fpo_vlasov_drag->surf[dir-fpo_vlasov_drag->cdim](xcC, dxC, 
       (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.h, pidx), 
       qInL, qInC, qInR, qRhsOut);
   }
+  return 0.;
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
@@ -202,9 +203,10 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   struct dg_fpo_vlasov_drag *fpo_vlasov_drag = container_of(eqn, struct dg_fpo_vlasov_drag, eqn);
   long pidx = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idxSkin);
   if (dir >= fpo_vlasov_drag->cdim) {
-    fpo_vlasov_drag->boundary_surf[dir-fpo_vlasov_drag->cdim](xcSkin, dxSkin, 
+    return fpo_vlasov_drag->boundary_surf[dir-fpo_vlasov_drag->cdim](xcSkin, dxSkin, 
       (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.h, pidx), 
       edge, qInSkin, qInEdge, qRhsOut);
   }
+  return 0.;
 }
 

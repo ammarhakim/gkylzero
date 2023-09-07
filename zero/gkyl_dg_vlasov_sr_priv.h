@@ -10,15 +10,15 @@
 #include <gkyl_util.h>
 
 // Types for various kernels
-typedef void (*vlasov_sr_stream_surf_t)(const double *w, const double *dxv,
+typedef double (*vlasov_sr_stream_surf_t)(const double *w, const double *dxv,
   const double *p_over_gamma, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
-typedef void (*vlasov_sr_accel_surf_t)(const double *w, const double *dxv,
+typedef double (*vlasov_sr_accel_surf_t)(const double *w, const double *dxv,
   const double *p_over_gamma, const double *qmem, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
-typedef void (*vlasov_sr_accel_boundary_surf_t)(const double *w, const double *dxv,
+typedef double (*vlasov_sr_accel_boundary_surf_t)(const double *w, const double *dxv,
   const double *p_over_gamma, const double *qmem, 
   const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
@@ -636,7 +636,7 @@ static const gkyl_dg_vlasov_sr_accel_boundary_surf_kern_list ser_accel_boundary_
 void gkyl_vlasov_sr_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
@@ -652,14 +652,14 @@ surf(const struct gkyl_dg_eqn *eqn,
   long vidx = gkyl_range_idx(&vlasov_sr->vel_range, idx_vel);
 
   if (dir < vlasov_sr->cdim) {
-    vlasov_sr->stream_surf[dir]
+    return vlasov_sr->stream_surf[dir]
       (xcC, dxC, 
         (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx), 
         qInL, qInC, qInR, qRhsOut);
   }
   else {
     long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idxC);
-    vlasov_sr->accel_surf[dir-vlasov_sr->cdim]
+    return vlasov_sr->accel_surf[dir-vlasov_sr->cdim]
       (xcC, dxC,
         (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx),
         vlasov_sr->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx) : 0,
@@ -668,7 +668,7 @@ surf(const struct gkyl_dg_eqn *eqn,
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
@@ -685,10 +685,11 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 
   if (dir >= vlasov_sr->cdim) {
     long cidx = gkyl_range_idx(&vlasov_sr->conf_range, idxSkin);
-    vlasov_sr->accel_boundary_surf[dir-vlasov_sr->cdim]
+    return vlasov_sr->accel_boundary_surf[dir-vlasov_sr->cdim]
       (xcSkin, dxSkin,
         (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.p_over_gamma, vidx),
         vlasov_sr->auxfields.qmem ? (const double*) gkyl_array_cfetch(vlasov_sr->auxfields.qmem, cidx) : 0,
         edge, qInEdge, qInSkin, qRhsOut);
   }
+  return 0.;
 }

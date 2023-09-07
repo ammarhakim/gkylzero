@@ -14,26 +14,26 @@
 
 struct gkyl_proj_mj_on_basis {
   struct gkyl_rect_grid grid;
-  int num_quad; // number of quadrature points to use in each direction
-  int cdim; // Configuration-space dimension
-  int pdim; // Phase-space dimension
+  int num_quad;
+  int cdim;
+  int pdim;
 
-  int num_conf_basis; // number of conf-space basis functions
-  int num_phase_basis; // number of phase-space basis functions
+  int num_conf_basis;
+  int num_phase_basis;
 
   // for quadrature in phase-space
-  int tot_quad; // total number of quadrature points
-  struct gkyl_array *ordinates; // ordinates for quadrature
-  struct gkyl_array *weights; // weights for quadrature
-  struct gkyl_array *basis_at_ords; // basis functions at ordinates
+  int tot_quad;
+  struct gkyl_array *ordinates; 
+  struct gkyl_array *weights;
+  struct gkyl_array *basis_at_ords;
 
   // for quadrature in conf space
-  int tot_conf_quad; // total number of quadrature points
-  struct gkyl_array *conf_ordinates; // conf-space ordinates for quadrature
-  struct gkyl_array *conf_weights; // weights for conf-space quadrature
-  struct gkyl_array *conf_basis_at_ords; // conf-space basis functions at ordinates
+  int tot_conf_quad;
+  struct gkyl_array *conf_ordinates;
+  struct gkyl_array *conf_weights;
+  struct gkyl_array *conf_basis_at_ords;
 
-  struct gkyl_dg_bin_op_mem *mem_for_div_op; // memory for weak division
+  struct gkyl_dg_bin_op_mem *mem_for_div_op;
 };
 
 // Sets ordinates, weights and basis functions at ords. Returns total
@@ -46,8 +46,6 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
   double ordinates1[num_quad], weights1[num_quad];
 
   if (num_quad <= gkyl_gauss_max) {
-    // use pre-computed values if possible (these are more accurate
-    // than computing them on the fly)
     memcpy(ordinates1, gkyl_gauss_ordinates[num_quad], sizeof(double[num_quad]));
     memcpy(weights1, gkyl_gauss_weights[num_quad], sizeof(double[num_quad]));
   }
@@ -60,7 +58,6 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad,
   for (int i=0; i<ndim; ++i) qshape[i] = num_quad;
   struct gkyl_range qrange;
   gkyl_range_init_from_shape(&qrange, ndim, qshape);
-
   int tot_quad = qrange.volume;
 
   // create ordinates and weights for multi-D quadrature
@@ -217,7 +214,6 @@ gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(const gkyl_proj_mj_on_basis *up
         for (int k=0; k<num_conf_basis; ++k)
           vel_fluid_frame_n += vel_fluid_frame_d[num_conf_basis*d+k]*b_ord[k];
         vel[n][d] = vel_fluid_frame_n;
-        //vel[n][d] = vel_fluid_frame_n/num[n];
       }
 
       // vth2

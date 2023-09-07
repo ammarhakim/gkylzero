@@ -1,7 +1,7 @@
 #include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_basis_gkhyb_3x2v_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_gkhyb_3x2v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void gyrokinetic_surfy_3x2v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double gyrokinetic_surfy_3x2v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
@@ -108,133 +108,184 @@ GKYL_CU_DH void gyrokinetic_surfy_3x2v_ser_p1(const double *w, const double *dxv
   alphaR[18] = (0.4330127018922194*BstarYdBmag[11]*hamil[32]*rdvpar2)/m_; 
   alphaR[20] = (0.4330127018922193*BstarYdBmag[18]*hamil[32]*rdvpar2)/m_; 
 
+  double cflFreq = 0.0;
   double fUpOrdL[24] = {0.};
-  if (alphaL[20]-1.0*alphaL[18]-1.0*alphaL[17]+alphaL[16]-1.118033988749897*alphaL[12]-1.5*alphaL[11]+1.118033988749897*alphaL[9]+1.118033988749897*alphaL[8]+1.5*alphaL[7]+1.5*alphaL[6]+1.118033988749897*alphaL[5]-1.118033988749897*alphaL[4]-1.5*alphaL[3]-1.118033988749897*alphaL[2]-1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  double alphaL_n = 0.;
+
+  alphaL_n = 0.2236067977499786*alphaL[20]-0.2236067977499786*alphaL[18]-0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]-0.25*alphaL[12]-0.3354101966249678*alphaL[11]+0.25*alphaL[9]+0.25*alphaL[8]+0.3354101966249678*alphaL[7]+0.3354101966249678*alphaL[6]+0.25*alphaL[5]-0.25*alphaL[4]-0.3354101966249678*alphaL[3]-0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[0] = gkhyb_3x2v_p1_surfx2_eval_quad_node_0_r(fl); 
   } else { 
     fUpOrdL[0] = gkhyb_3x2v_p1_surfx2_eval_quad_node_0_l(fc); 
   } 
-  if ((-1.0*alphaL[20])+alphaL[18]+alphaL[17]-1.0*alphaL[16]-0.8944271909999175*alphaL[12]+0.8944271909999175*alphaL[9]+0.8944271909999175*alphaL[8]+0.8944271909999175*alphaL[5]-0.8944271909999175*alphaL[4]-0.8944271909999175*alphaL[2]-0.8944271909999175*alphaL[1]+0.8944271909999175*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2795084971874732*alphaL[20])+0.2795084971874732*alphaL[18]+0.2795084971874732*alphaL[17]-0.2795084971874732*alphaL[16]-0.25*alphaL[12]+0.25*alphaL[9]+0.25*alphaL[8]+0.25*alphaL[5]-0.25*alphaL[4]-0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[1] = gkhyb_3x2v_p1_surfx2_eval_quad_node_1_r(fl); 
   } else { 
     fUpOrdL[1] = gkhyb_3x2v_p1_surfx2_eval_quad_node_1_l(fc); 
   } 
-  if (alphaL[20]-1.0*alphaL[18]-1.0*alphaL[17]+alphaL[16]-1.118033988749897*alphaL[12]+1.5*alphaL[11]+1.118033988749897*alphaL[9]+1.118033988749897*alphaL[8]-1.5*alphaL[7]-1.5*alphaL[6]+1.118033988749897*alphaL[5]-1.118033988749897*alphaL[4]+1.5*alphaL[3]-1.118033988749897*alphaL[2]-1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2236067977499786*alphaL[20]-0.2236067977499786*alphaL[18]-0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]-0.25*alphaL[12]+0.3354101966249678*alphaL[11]+0.25*alphaL[9]+0.25*alphaL[8]-0.3354101966249678*alphaL[7]-0.3354101966249678*alphaL[6]+0.25*alphaL[5]-0.25*alphaL[4]+0.3354101966249678*alphaL[3]-0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[2] = gkhyb_3x2v_p1_surfx2_eval_quad_node_2_r(fl); 
   } else { 
     fUpOrdL[2] = gkhyb_3x2v_p1_surfx2_eval_quad_node_2_l(fc); 
   } 
-  if (alphaL[20]-1.0*alphaL[18]-1.0*alphaL[17]+alphaL[16]+1.118033988749897*alphaL[12]-1.5*alphaL[11]-1.118033988749897*alphaL[9]-1.118033988749897*alphaL[8]+1.5*alphaL[7]+1.5*alphaL[6]+1.118033988749897*alphaL[5]+1.118033988749897*alphaL[4]-1.5*alphaL[3]-1.118033988749897*alphaL[2]-1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2236067977499786*alphaL[20]-0.2236067977499786*alphaL[18]-0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]+0.25*alphaL[12]-0.3354101966249678*alphaL[11]-0.25*alphaL[9]-0.25*alphaL[8]+0.3354101966249678*alphaL[7]+0.3354101966249678*alphaL[6]+0.25*alphaL[5]+0.25*alphaL[4]-0.3354101966249678*alphaL[3]-0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[3] = gkhyb_3x2v_p1_surfx2_eval_quad_node_3_r(fl); 
   } else { 
     fUpOrdL[3] = gkhyb_3x2v_p1_surfx2_eval_quad_node_3_l(fc); 
   } 
-  if ((-1.0*alphaL[20])+alphaL[18]+alphaL[17]-1.0*alphaL[16]+0.8944271909999175*alphaL[12]-0.8944271909999175*alphaL[9]-0.8944271909999175*alphaL[8]+0.8944271909999175*alphaL[5]+0.8944271909999175*alphaL[4]-0.8944271909999175*alphaL[2]-0.8944271909999175*alphaL[1]+0.8944271909999175*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2795084971874732*alphaL[20])+0.2795084971874732*alphaL[18]+0.2795084971874732*alphaL[17]-0.2795084971874732*alphaL[16]+0.25*alphaL[12]-0.25*alphaL[9]-0.25*alphaL[8]+0.25*alphaL[5]+0.25*alphaL[4]-0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[4] = gkhyb_3x2v_p1_surfx2_eval_quad_node_4_r(fl); 
   } else { 
     fUpOrdL[4] = gkhyb_3x2v_p1_surfx2_eval_quad_node_4_l(fc); 
   } 
-  if (alphaL[20]-1.0*alphaL[18]-1.0*alphaL[17]+alphaL[16]+1.118033988749897*alphaL[12]+1.5*alphaL[11]-1.118033988749897*alphaL[9]-1.118033988749897*alphaL[8]-1.5*alphaL[7]-1.5*alphaL[6]+1.118033988749897*alphaL[5]+1.118033988749897*alphaL[4]+1.5*alphaL[3]-1.118033988749897*alphaL[2]-1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2236067977499786*alphaL[20]-0.2236067977499786*alphaL[18]-0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]+0.25*alphaL[12]+0.3354101966249678*alphaL[11]-0.25*alphaL[9]-0.25*alphaL[8]-0.3354101966249678*alphaL[7]-0.3354101966249678*alphaL[6]+0.25*alphaL[5]+0.25*alphaL[4]+0.3354101966249678*alphaL[3]-0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[5] = gkhyb_3x2v_p1_surfx2_eval_quad_node_5_r(fl); 
   } else { 
     fUpOrdL[5] = gkhyb_3x2v_p1_surfx2_eval_quad_node_5_l(fc); 
   } 
-  if ((-1.0*alphaL[20])+alphaL[18]-1.0*alphaL[17]+alphaL[16]+1.118033988749897*alphaL[12]+1.5*alphaL[11]-1.118033988749897*alphaL[9]+1.118033988749897*alphaL[8]-1.5*alphaL[7]+1.5*alphaL[6]-1.118033988749897*alphaL[5]-1.118033988749897*alphaL[4]-1.5*alphaL[3]+1.118033988749897*alphaL[2]-1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2236067977499786*alphaL[20])+0.2236067977499786*alphaL[18]-0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]+0.25*alphaL[12]+0.3354101966249678*alphaL[11]-0.25*alphaL[9]+0.25*alphaL[8]-0.3354101966249678*alphaL[7]+0.3354101966249678*alphaL[6]-0.25*alphaL[5]-0.25*alphaL[4]-0.3354101966249678*alphaL[3]+0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[6] = gkhyb_3x2v_p1_surfx2_eval_quad_node_6_r(fl); 
   } else { 
     fUpOrdL[6] = gkhyb_3x2v_p1_surfx2_eval_quad_node_6_l(fc); 
   } 
-  if (alphaL[20]-1.0*alphaL[18]+alphaL[17]-1.0*alphaL[16]+0.8944271909999175*alphaL[12]-0.8944271909999175*alphaL[9]+0.8944271909999175*alphaL[8]-0.8944271909999175*alphaL[5]-0.8944271909999175*alphaL[4]+0.8944271909999175*alphaL[2]-0.8944271909999175*alphaL[1]+0.8944271909999175*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2795084971874732*alphaL[20]-0.2795084971874732*alphaL[18]+0.2795084971874732*alphaL[17]-0.2795084971874732*alphaL[16]+0.25*alphaL[12]-0.25*alphaL[9]+0.25*alphaL[8]-0.25*alphaL[5]-0.25*alphaL[4]+0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[7] = gkhyb_3x2v_p1_surfx2_eval_quad_node_7_r(fl); 
   } else { 
     fUpOrdL[7] = gkhyb_3x2v_p1_surfx2_eval_quad_node_7_l(fc); 
   } 
-  if ((-1.0*alphaL[20])+alphaL[18]-1.0*alphaL[17]+alphaL[16]+1.118033988749897*alphaL[12]-1.5*alphaL[11]-1.118033988749897*alphaL[9]+1.118033988749897*alphaL[8]+1.5*alphaL[7]-1.5*alphaL[6]-1.118033988749897*alphaL[5]-1.118033988749897*alphaL[4]+1.5*alphaL[3]+1.118033988749897*alphaL[2]-1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2236067977499786*alphaL[20])+0.2236067977499786*alphaL[18]-0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]+0.25*alphaL[12]-0.3354101966249678*alphaL[11]-0.25*alphaL[9]+0.25*alphaL[8]+0.3354101966249678*alphaL[7]-0.3354101966249678*alphaL[6]-0.25*alphaL[5]-0.25*alphaL[4]+0.3354101966249678*alphaL[3]+0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[8] = gkhyb_3x2v_p1_surfx2_eval_quad_node_8_r(fl); 
   } else { 
     fUpOrdL[8] = gkhyb_3x2v_p1_surfx2_eval_quad_node_8_l(fc); 
   } 
-  if ((-1.0*alphaL[20])+alphaL[18]-1.0*alphaL[17]+alphaL[16]-1.118033988749897*alphaL[12]+1.5*alphaL[11]+1.118033988749897*alphaL[9]-1.118033988749897*alphaL[8]-1.5*alphaL[7]+1.5*alphaL[6]-1.118033988749897*alphaL[5]+1.118033988749897*alphaL[4]-1.5*alphaL[3]+1.118033988749897*alphaL[2]-1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2236067977499786*alphaL[20])+0.2236067977499786*alphaL[18]-0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]-0.25*alphaL[12]+0.3354101966249678*alphaL[11]+0.25*alphaL[9]-0.25*alphaL[8]-0.3354101966249678*alphaL[7]+0.3354101966249678*alphaL[6]-0.25*alphaL[5]+0.25*alphaL[4]-0.3354101966249678*alphaL[3]+0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[9] = gkhyb_3x2v_p1_surfx2_eval_quad_node_9_r(fl); 
   } else { 
     fUpOrdL[9] = gkhyb_3x2v_p1_surfx2_eval_quad_node_9_l(fc); 
   } 
-  if (alphaL[20]-1.0*alphaL[18]+alphaL[17]-1.0*alphaL[16]-0.8944271909999175*alphaL[12]+0.8944271909999175*alphaL[9]-0.8944271909999175*alphaL[8]-0.8944271909999175*alphaL[5]+0.8944271909999175*alphaL[4]+0.8944271909999175*alphaL[2]-0.8944271909999175*alphaL[1]+0.8944271909999175*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2795084971874732*alphaL[20]-0.2795084971874732*alphaL[18]+0.2795084971874732*alphaL[17]-0.2795084971874732*alphaL[16]-0.25*alphaL[12]+0.25*alphaL[9]-0.25*alphaL[8]-0.25*alphaL[5]+0.25*alphaL[4]+0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[10] = gkhyb_3x2v_p1_surfx2_eval_quad_node_10_r(fl); 
   } else { 
     fUpOrdL[10] = gkhyb_3x2v_p1_surfx2_eval_quad_node_10_l(fc); 
   } 
-  if ((-1.0*alphaL[20])+alphaL[18]-1.0*alphaL[17]+alphaL[16]-1.118033988749897*alphaL[12]-1.5*alphaL[11]+1.118033988749897*alphaL[9]-1.118033988749897*alphaL[8]+1.5*alphaL[7]-1.5*alphaL[6]-1.118033988749897*alphaL[5]+1.118033988749897*alphaL[4]+1.5*alphaL[3]+1.118033988749897*alphaL[2]-1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2236067977499786*alphaL[20])+0.2236067977499786*alphaL[18]-0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]-0.25*alphaL[12]-0.3354101966249678*alphaL[11]+0.25*alphaL[9]-0.25*alphaL[8]+0.3354101966249678*alphaL[7]-0.3354101966249678*alphaL[6]-0.25*alphaL[5]+0.25*alphaL[4]+0.3354101966249678*alphaL[3]+0.25*alphaL[2]-0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[11] = gkhyb_3x2v_p1_surfx2_eval_quad_node_11_r(fl); 
   } else { 
     fUpOrdL[11] = gkhyb_3x2v_p1_surfx2_eval_quad_node_11_l(fc); 
   } 
-  if ((-1.0*alphaL[20])-1.0*alphaL[18]+alphaL[17]+alphaL[16]+1.118033988749897*alphaL[12]+1.5*alphaL[11]+1.118033988749897*alphaL[9]-1.118033988749897*alphaL[8]+1.5*alphaL[7]-1.5*alphaL[6]-1.118033988749897*alphaL[5]-1.118033988749897*alphaL[4]-1.5*alphaL[3]-1.118033988749897*alphaL[2]+1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2236067977499786*alphaL[20])-0.2236067977499786*alphaL[18]+0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]+0.25*alphaL[12]+0.3354101966249678*alphaL[11]+0.25*alphaL[9]-0.25*alphaL[8]+0.3354101966249678*alphaL[7]-0.3354101966249678*alphaL[6]-0.25*alphaL[5]-0.25*alphaL[4]-0.3354101966249678*alphaL[3]-0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[12] = gkhyb_3x2v_p1_surfx2_eval_quad_node_12_r(fl); 
   } else { 
     fUpOrdL[12] = gkhyb_3x2v_p1_surfx2_eval_quad_node_12_l(fc); 
   } 
-  if (alphaL[20]+alphaL[18]-1.0*alphaL[17]-1.0*alphaL[16]+0.8944271909999175*alphaL[12]+0.8944271909999175*alphaL[9]-0.8944271909999175*alphaL[8]-0.8944271909999175*alphaL[5]-0.8944271909999175*alphaL[4]-0.8944271909999175*alphaL[2]+0.8944271909999175*alphaL[1]+0.8944271909999175*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2795084971874732*alphaL[20]+0.2795084971874732*alphaL[18]-0.2795084971874732*alphaL[17]-0.2795084971874732*alphaL[16]+0.25*alphaL[12]+0.25*alphaL[9]-0.25*alphaL[8]-0.25*alphaL[5]-0.25*alphaL[4]-0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[13] = gkhyb_3x2v_p1_surfx2_eval_quad_node_13_r(fl); 
   } else { 
     fUpOrdL[13] = gkhyb_3x2v_p1_surfx2_eval_quad_node_13_l(fc); 
   } 
-  if ((-1.0*alphaL[20])-1.0*alphaL[18]+alphaL[17]+alphaL[16]+1.118033988749897*alphaL[12]-1.5*alphaL[11]+1.118033988749897*alphaL[9]-1.118033988749897*alphaL[8]-1.5*alphaL[7]+1.5*alphaL[6]-1.118033988749897*alphaL[5]-1.118033988749897*alphaL[4]+1.5*alphaL[3]-1.118033988749897*alphaL[2]+1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2236067977499786*alphaL[20])-0.2236067977499786*alphaL[18]+0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]+0.25*alphaL[12]-0.3354101966249678*alphaL[11]+0.25*alphaL[9]-0.25*alphaL[8]-0.3354101966249678*alphaL[7]+0.3354101966249678*alphaL[6]-0.25*alphaL[5]-0.25*alphaL[4]+0.3354101966249678*alphaL[3]-0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[14] = gkhyb_3x2v_p1_surfx2_eval_quad_node_14_r(fl); 
   } else { 
     fUpOrdL[14] = gkhyb_3x2v_p1_surfx2_eval_quad_node_14_l(fc); 
   } 
-  if ((-1.0*alphaL[20])-1.0*alphaL[18]+alphaL[17]+alphaL[16]-1.118033988749897*alphaL[12]+1.5*alphaL[11]-1.118033988749897*alphaL[9]+1.118033988749897*alphaL[8]+1.5*alphaL[7]-1.5*alphaL[6]-1.118033988749897*alphaL[5]+1.118033988749897*alphaL[4]-1.5*alphaL[3]-1.118033988749897*alphaL[2]+1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2236067977499786*alphaL[20])-0.2236067977499786*alphaL[18]+0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]-0.25*alphaL[12]+0.3354101966249678*alphaL[11]-0.25*alphaL[9]+0.25*alphaL[8]+0.3354101966249678*alphaL[7]-0.3354101966249678*alphaL[6]-0.25*alphaL[5]+0.25*alphaL[4]-0.3354101966249678*alphaL[3]-0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[15] = gkhyb_3x2v_p1_surfx2_eval_quad_node_15_r(fl); 
   } else { 
     fUpOrdL[15] = gkhyb_3x2v_p1_surfx2_eval_quad_node_15_l(fc); 
   } 
-  if (alphaL[20]+alphaL[18]-1.0*alphaL[17]-1.0*alphaL[16]-0.8944271909999175*alphaL[12]-0.8944271909999175*alphaL[9]+0.8944271909999175*alphaL[8]-0.8944271909999175*alphaL[5]+0.8944271909999175*alphaL[4]-0.8944271909999175*alphaL[2]+0.8944271909999175*alphaL[1]+0.8944271909999175*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2795084971874732*alphaL[20]+0.2795084971874732*alphaL[18]-0.2795084971874732*alphaL[17]-0.2795084971874732*alphaL[16]-0.25*alphaL[12]-0.25*alphaL[9]+0.25*alphaL[8]-0.25*alphaL[5]+0.25*alphaL[4]-0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[16] = gkhyb_3x2v_p1_surfx2_eval_quad_node_16_r(fl); 
   } else { 
     fUpOrdL[16] = gkhyb_3x2v_p1_surfx2_eval_quad_node_16_l(fc); 
   } 
-  if ((-1.0*alphaL[20])-1.0*alphaL[18]+alphaL[17]+alphaL[16]-1.118033988749897*alphaL[12]-1.5*alphaL[11]-1.118033988749897*alphaL[9]+1.118033988749897*alphaL[8]-1.5*alphaL[7]+1.5*alphaL[6]-1.118033988749897*alphaL[5]+1.118033988749897*alphaL[4]+1.5*alphaL[3]-1.118033988749897*alphaL[2]+1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2236067977499786*alphaL[20])-0.2236067977499786*alphaL[18]+0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]-0.25*alphaL[12]-0.3354101966249678*alphaL[11]-0.25*alphaL[9]+0.25*alphaL[8]-0.3354101966249678*alphaL[7]+0.3354101966249678*alphaL[6]-0.25*alphaL[5]+0.25*alphaL[4]+0.3354101966249678*alphaL[3]-0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[17] = gkhyb_3x2v_p1_surfx2_eval_quad_node_17_r(fl); 
   } else { 
     fUpOrdL[17] = gkhyb_3x2v_p1_surfx2_eval_quad_node_17_l(fc); 
   } 
-  if (alphaL[20]+alphaL[18]+alphaL[17]+alphaL[16]-1.118033988749897*alphaL[12]-1.5*alphaL[11]-1.118033988749897*alphaL[9]-1.118033988749897*alphaL[8]-1.5*alphaL[7]-1.5*alphaL[6]+1.118033988749897*alphaL[5]-1.118033988749897*alphaL[4]-1.5*alphaL[3]+1.118033988749897*alphaL[2]+1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2236067977499786*alphaL[20]+0.2236067977499786*alphaL[18]+0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]-0.25*alphaL[12]-0.3354101966249678*alphaL[11]-0.25*alphaL[9]-0.25*alphaL[8]-0.3354101966249678*alphaL[7]-0.3354101966249678*alphaL[6]+0.25*alphaL[5]-0.25*alphaL[4]-0.3354101966249678*alphaL[3]+0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[18] = gkhyb_3x2v_p1_surfx2_eval_quad_node_18_r(fl); 
   } else { 
     fUpOrdL[18] = gkhyb_3x2v_p1_surfx2_eval_quad_node_18_l(fc); 
   } 
-  if ((-1.0*alphaL[20])-1.0*alphaL[18]-1.0*alphaL[17]-1.0*alphaL[16]-0.8944271909999175*alphaL[12]-0.8944271909999175*alphaL[9]-0.8944271909999175*alphaL[8]+0.8944271909999175*alphaL[5]-0.8944271909999175*alphaL[4]+0.8944271909999175*alphaL[2]+0.8944271909999175*alphaL[1]+0.8944271909999175*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2795084971874732*alphaL[20])-0.2795084971874732*alphaL[18]-0.2795084971874732*alphaL[17]-0.2795084971874732*alphaL[16]-0.25*alphaL[12]-0.25*alphaL[9]-0.25*alphaL[8]+0.25*alphaL[5]-0.25*alphaL[4]+0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[19] = gkhyb_3x2v_p1_surfx2_eval_quad_node_19_r(fl); 
   } else { 
     fUpOrdL[19] = gkhyb_3x2v_p1_surfx2_eval_quad_node_19_l(fc); 
   } 
-  if (alphaL[20]+alphaL[18]+alphaL[17]+alphaL[16]-1.118033988749897*alphaL[12]+1.5*alphaL[11]-1.118033988749897*alphaL[9]-1.118033988749897*alphaL[8]+1.5*alphaL[7]+1.5*alphaL[6]+1.118033988749897*alphaL[5]-1.118033988749897*alphaL[4]+1.5*alphaL[3]+1.118033988749897*alphaL[2]+1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2236067977499786*alphaL[20]+0.2236067977499786*alphaL[18]+0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]-0.25*alphaL[12]+0.3354101966249678*alphaL[11]-0.25*alphaL[9]-0.25*alphaL[8]+0.3354101966249678*alphaL[7]+0.3354101966249678*alphaL[6]+0.25*alphaL[5]-0.25*alphaL[4]+0.3354101966249678*alphaL[3]+0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[20] = gkhyb_3x2v_p1_surfx2_eval_quad_node_20_r(fl); 
   } else { 
     fUpOrdL[20] = gkhyb_3x2v_p1_surfx2_eval_quad_node_20_l(fc); 
   } 
-  if (alphaL[20]+alphaL[18]+alphaL[17]+alphaL[16]+1.118033988749897*alphaL[12]-1.5*alphaL[11]+1.118033988749897*alphaL[9]+1.118033988749897*alphaL[8]-1.5*alphaL[7]-1.5*alphaL[6]+1.118033988749897*alphaL[5]+1.118033988749897*alphaL[4]-1.5*alphaL[3]+1.118033988749897*alphaL[2]+1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2236067977499786*alphaL[20]+0.2236067977499786*alphaL[18]+0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]+0.25*alphaL[12]-0.3354101966249678*alphaL[11]+0.25*alphaL[9]+0.25*alphaL[8]-0.3354101966249678*alphaL[7]-0.3354101966249678*alphaL[6]+0.25*alphaL[5]+0.25*alphaL[4]-0.3354101966249678*alphaL[3]+0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[21] = gkhyb_3x2v_p1_surfx2_eval_quad_node_21_r(fl); 
   } else { 
     fUpOrdL[21] = gkhyb_3x2v_p1_surfx2_eval_quad_node_21_l(fc); 
   } 
-  if ((-1.0*alphaL[20])-1.0*alphaL[18]-1.0*alphaL[17]-1.0*alphaL[16]+0.8944271909999175*alphaL[12]+0.8944271909999175*alphaL[9]+0.8944271909999175*alphaL[8]+0.8944271909999175*alphaL[5]+0.8944271909999175*alphaL[4]+0.8944271909999175*alphaL[2]+0.8944271909999175*alphaL[1]+0.8944271909999175*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = (-0.2795084971874732*alphaL[20])-0.2795084971874732*alphaL[18]-0.2795084971874732*alphaL[17]-0.2795084971874732*alphaL[16]+0.25*alphaL[12]+0.25*alphaL[9]+0.25*alphaL[8]+0.25*alphaL[5]+0.25*alphaL[4]+0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[22] = gkhyb_3x2v_p1_surfx2_eval_quad_node_22_r(fl); 
   } else { 
     fUpOrdL[22] = gkhyb_3x2v_p1_surfx2_eval_quad_node_22_l(fc); 
   } 
-  if (alphaL[20]+alphaL[18]+alphaL[17]+alphaL[16]+1.118033988749897*alphaL[12]+1.5*alphaL[11]+1.118033988749897*alphaL[9]+1.118033988749897*alphaL[8]+1.5*alphaL[7]+1.5*alphaL[6]+1.118033988749897*alphaL[5]+1.118033988749897*alphaL[4]+1.5*alphaL[3]+1.118033988749897*alphaL[2]+1.118033988749897*alphaL[1]+1.118033988749897*alphaL[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
+  alphaL_n = 0.2236067977499786*alphaL[20]+0.2236067977499786*alphaL[18]+0.2236067977499786*alphaL[17]+0.2236067977499786*alphaL[16]+0.25*alphaL[12]+0.3354101966249678*alphaL[11]+0.25*alphaL[9]+0.25*alphaL[8]+0.3354101966249678*alphaL[7]+0.3354101966249678*alphaL[6]+0.25*alphaL[5]+0.25*alphaL[4]+0.3354101966249678*alphaL[3]+0.25*alphaL[2]+0.25*alphaL[1]+0.25*alphaL[0];
+  if (alphaL_n > 0.) {
     fUpOrdL[23] = gkhyb_3x2v_p1_surfx2_eval_quad_node_23_r(fl); 
   } else { 
     fUpOrdL[23] = gkhyb_3x2v_p1_surfx2_eval_quad_node_23_l(fc); 
   } 
+  cflFreq = fmax(cflFreq, fabs(alphaL_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpL[24] = {0.};
   gkhyb_3x2v_p1_xdir_upwind_quad_to_modal(fUpOrdL, fUpL); 
 
-  double GhatL[48] = {0.}; 
+  double GhatL[24] = {0.}; 
   GhatL[0] = 0.25*alphaL[20]*fUpL[20]+0.25*alphaL[18]*fUpL[18]+0.25*alphaL[17]*fUpL[17]+0.25*alphaL[16]*fUpL[16]+0.25*alphaL[12]*fUpL[12]+0.25*alphaL[11]*fUpL[11]+0.25*alphaL[9]*fUpL[9]+0.25*alphaL[8]*fUpL[8]+0.25*alphaL[7]*fUpL[7]+0.25*alphaL[6]*fUpL[6]+0.25*alphaL[5]*fUpL[5]+0.25*alphaL[4]*fUpL[4]+0.25*alphaL[3]*fUpL[3]+0.25*alphaL[2]*fUpL[2]+0.25*alphaL[1]*fUpL[1]+0.25*alphaL[0]*fUpL[0]; 
   GhatL[1] = 0.2500000000000001*alphaL[18]*fUpL[20]+0.2500000000000001*fUpL[18]*alphaL[20]+0.2500000000000001*alphaL[16]*fUpL[17]+0.2500000000000001*fUpL[16]*alphaL[17]+0.25*alphaL[9]*fUpL[12]+0.25*fUpL[9]*alphaL[12]+0.25*alphaL[7]*fUpL[11]+0.25*fUpL[7]*alphaL[11]+0.25*alphaL[4]*fUpL[8]+0.25*fUpL[4]*alphaL[8]+0.25*alphaL[3]*fUpL[6]+0.25*fUpL[3]*alphaL[6]+0.25*alphaL[2]*fUpL[5]+0.25*fUpL[2]*alphaL[5]+0.25*alphaL[0]*fUpL[1]+0.25*fUpL[0]*alphaL[1]; 
   GhatL[2] = 0.2500000000000001*alphaL[17]*fUpL[20]+0.2500000000000001*fUpL[17]*alphaL[20]+0.2500000000000001*alphaL[16]*fUpL[18]+0.2500000000000001*fUpL[16]*alphaL[18]+0.25*alphaL[8]*fUpL[12]+0.25*fUpL[8]*alphaL[12]+0.25*alphaL[6]*fUpL[11]+0.25*fUpL[6]*alphaL[11]+0.25*alphaL[4]*fUpL[9]+0.25*fUpL[4]*alphaL[9]+0.25*alphaL[3]*fUpL[7]+0.25*fUpL[3]*alphaL[7]+0.25*alphaL[1]*fUpL[5]+0.25*fUpL[1]*alphaL[5]+0.25*alphaL[0]*fUpL[2]+0.25*fUpL[0]*alphaL[2]; 
@@ -261,132 +312,182 @@ GKYL_CU_DH void gyrokinetic_surfy_3x2v_ser_p1(const double *w, const double *dxv
   GhatL[23] = 0.159719141249985*alphaL[16]*fUpL[23]+0.25*alphaL[0]*fUpL[23]+0.159719141249985*alphaL[17]*fUpL[22]+0.2500000000000001*alphaL[1]*fUpL[22]+0.159719141249985*alphaL[18]*fUpL[21]+0.2500000000000001*alphaL[2]*fUpL[21]+0.2500000000000001*alphaL[4]*fUpL[20]+0.159719141249985*fUpL[19]*alphaL[20]+0.2500000000000001*fUpL[4]*alphaL[20]+0.25*alphaL[5]*fUpL[19]+0.25*alphaL[8]*fUpL[18]+0.25*fUpL[8]*alphaL[18]+0.25*alphaL[9]*fUpL[17]+0.25*fUpL[9]*alphaL[17]+0.2500000000000001*alphaL[12]*fUpL[16]+0.2500000000000001*fUpL[12]*alphaL[16]+0.223606797749979*alphaL[3]*fUpL[15]+0.223606797749979*alphaL[6]*fUpL[14]+0.223606797749979*alphaL[7]*fUpL[13]+0.223606797749979*fUpL[10]*alphaL[11]; 
 
   double fUpOrdR[24] = {0.};
-  if (alphaR[20]-1.0*alphaR[18]-1.0*alphaR[17]+alphaR[16]-1.118033988749897*alphaR[12]-1.5*alphaR[11]+1.118033988749897*alphaR[9]+1.118033988749897*alphaR[8]+1.5*alphaR[7]+1.5*alphaR[6]+1.118033988749897*alphaR[5]-1.118033988749897*alphaR[4]-1.5*alphaR[3]-1.118033988749897*alphaR[2]-1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  double alphaR_n = 0.;
+
+  alphaR_n = 0.2236067977499786*alphaR[20]-0.2236067977499786*alphaR[18]-0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]-0.25*alphaR[12]-0.3354101966249678*alphaR[11]+0.25*alphaR[9]+0.25*alphaR[8]+0.3354101966249678*alphaR[7]+0.3354101966249678*alphaR[6]+0.25*alphaR[5]-0.25*alphaR[4]-0.3354101966249678*alphaR[3]-0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[0] = gkhyb_3x2v_p1_surfx2_eval_quad_node_0_r(fc); 
   } else { 
     fUpOrdR[0] = gkhyb_3x2v_p1_surfx2_eval_quad_node_0_l(fr); 
   } 
-  if ((-1.0*alphaR[20])+alphaR[18]+alphaR[17]-1.0*alphaR[16]-0.8944271909999175*alphaR[12]+0.8944271909999175*alphaR[9]+0.8944271909999175*alphaR[8]+0.8944271909999175*alphaR[5]-0.8944271909999175*alphaR[4]-0.8944271909999175*alphaR[2]-0.8944271909999175*alphaR[1]+0.8944271909999175*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2795084971874732*alphaR[20])+0.2795084971874732*alphaR[18]+0.2795084971874732*alphaR[17]-0.2795084971874732*alphaR[16]-0.25*alphaR[12]+0.25*alphaR[9]+0.25*alphaR[8]+0.25*alphaR[5]-0.25*alphaR[4]-0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[1] = gkhyb_3x2v_p1_surfx2_eval_quad_node_1_r(fc); 
   } else { 
     fUpOrdR[1] = gkhyb_3x2v_p1_surfx2_eval_quad_node_1_l(fr); 
   } 
-  if (alphaR[20]-1.0*alphaR[18]-1.0*alphaR[17]+alphaR[16]-1.118033988749897*alphaR[12]+1.5*alphaR[11]+1.118033988749897*alphaR[9]+1.118033988749897*alphaR[8]-1.5*alphaR[7]-1.5*alphaR[6]+1.118033988749897*alphaR[5]-1.118033988749897*alphaR[4]+1.5*alphaR[3]-1.118033988749897*alphaR[2]-1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2236067977499786*alphaR[20]-0.2236067977499786*alphaR[18]-0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]-0.25*alphaR[12]+0.3354101966249678*alphaR[11]+0.25*alphaR[9]+0.25*alphaR[8]-0.3354101966249678*alphaR[7]-0.3354101966249678*alphaR[6]+0.25*alphaR[5]-0.25*alphaR[4]+0.3354101966249678*alphaR[3]-0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[2] = gkhyb_3x2v_p1_surfx2_eval_quad_node_2_r(fc); 
   } else { 
     fUpOrdR[2] = gkhyb_3x2v_p1_surfx2_eval_quad_node_2_l(fr); 
   } 
-  if (alphaR[20]-1.0*alphaR[18]-1.0*alphaR[17]+alphaR[16]+1.118033988749897*alphaR[12]-1.5*alphaR[11]-1.118033988749897*alphaR[9]-1.118033988749897*alphaR[8]+1.5*alphaR[7]+1.5*alphaR[6]+1.118033988749897*alphaR[5]+1.118033988749897*alphaR[4]-1.5*alphaR[3]-1.118033988749897*alphaR[2]-1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2236067977499786*alphaR[20]-0.2236067977499786*alphaR[18]-0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]+0.25*alphaR[12]-0.3354101966249678*alphaR[11]-0.25*alphaR[9]-0.25*alphaR[8]+0.3354101966249678*alphaR[7]+0.3354101966249678*alphaR[6]+0.25*alphaR[5]+0.25*alphaR[4]-0.3354101966249678*alphaR[3]-0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[3] = gkhyb_3x2v_p1_surfx2_eval_quad_node_3_r(fc); 
   } else { 
     fUpOrdR[3] = gkhyb_3x2v_p1_surfx2_eval_quad_node_3_l(fr); 
   } 
-  if ((-1.0*alphaR[20])+alphaR[18]+alphaR[17]-1.0*alphaR[16]+0.8944271909999175*alphaR[12]-0.8944271909999175*alphaR[9]-0.8944271909999175*alphaR[8]+0.8944271909999175*alphaR[5]+0.8944271909999175*alphaR[4]-0.8944271909999175*alphaR[2]-0.8944271909999175*alphaR[1]+0.8944271909999175*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2795084971874732*alphaR[20])+0.2795084971874732*alphaR[18]+0.2795084971874732*alphaR[17]-0.2795084971874732*alphaR[16]+0.25*alphaR[12]-0.25*alphaR[9]-0.25*alphaR[8]+0.25*alphaR[5]+0.25*alphaR[4]-0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[4] = gkhyb_3x2v_p1_surfx2_eval_quad_node_4_r(fc); 
   } else { 
     fUpOrdR[4] = gkhyb_3x2v_p1_surfx2_eval_quad_node_4_l(fr); 
   } 
-  if (alphaR[20]-1.0*alphaR[18]-1.0*alphaR[17]+alphaR[16]+1.118033988749897*alphaR[12]+1.5*alphaR[11]-1.118033988749897*alphaR[9]-1.118033988749897*alphaR[8]-1.5*alphaR[7]-1.5*alphaR[6]+1.118033988749897*alphaR[5]+1.118033988749897*alphaR[4]+1.5*alphaR[3]-1.118033988749897*alphaR[2]-1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2236067977499786*alphaR[20]-0.2236067977499786*alphaR[18]-0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]+0.25*alphaR[12]+0.3354101966249678*alphaR[11]-0.25*alphaR[9]-0.25*alphaR[8]-0.3354101966249678*alphaR[7]-0.3354101966249678*alphaR[6]+0.25*alphaR[5]+0.25*alphaR[4]+0.3354101966249678*alphaR[3]-0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[5] = gkhyb_3x2v_p1_surfx2_eval_quad_node_5_r(fc); 
   } else { 
     fUpOrdR[5] = gkhyb_3x2v_p1_surfx2_eval_quad_node_5_l(fr); 
   } 
-  if ((-1.0*alphaR[20])+alphaR[18]-1.0*alphaR[17]+alphaR[16]+1.118033988749897*alphaR[12]+1.5*alphaR[11]-1.118033988749897*alphaR[9]+1.118033988749897*alphaR[8]-1.5*alphaR[7]+1.5*alphaR[6]-1.118033988749897*alphaR[5]-1.118033988749897*alphaR[4]-1.5*alphaR[3]+1.118033988749897*alphaR[2]-1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2236067977499786*alphaR[20])+0.2236067977499786*alphaR[18]-0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]+0.25*alphaR[12]+0.3354101966249678*alphaR[11]-0.25*alphaR[9]+0.25*alphaR[8]-0.3354101966249678*alphaR[7]+0.3354101966249678*alphaR[6]-0.25*alphaR[5]-0.25*alphaR[4]-0.3354101966249678*alphaR[3]+0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[6] = gkhyb_3x2v_p1_surfx2_eval_quad_node_6_r(fc); 
   } else { 
     fUpOrdR[6] = gkhyb_3x2v_p1_surfx2_eval_quad_node_6_l(fr); 
   } 
-  if (alphaR[20]-1.0*alphaR[18]+alphaR[17]-1.0*alphaR[16]+0.8944271909999175*alphaR[12]-0.8944271909999175*alphaR[9]+0.8944271909999175*alphaR[8]-0.8944271909999175*alphaR[5]-0.8944271909999175*alphaR[4]+0.8944271909999175*alphaR[2]-0.8944271909999175*alphaR[1]+0.8944271909999175*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2795084971874732*alphaR[20]-0.2795084971874732*alphaR[18]+0.2795084971874732*alphaR[17]-0.2795084971874732*alphaR[16]+0.25*alphaR[12]-0.25*alphaR[9]+0.25*alphaR[8]-0.25*alphaR[5]-0.25*alphaR[4]+0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[7] = gkhyb_3x2v_p1_surfx2_eval_quad_node_7_r(fc); 
   } else { 
     fUpOrdR[7] = gkhyb_3x2v_p1_surfx2_eval_quad_node_7_l(fr); 
   } 
-  if ((-1.0*alphaR[20])+alphaR[18]-1.0*alphaR[17]+alphaR[16]+1.118033988749897*alphaR[12]-1.5*alphaR[11]-1.118033988749897*alphaR[9]+1.118033988749897*alphaR[8]+1.5*alphaR[7]-1.5*alphaR[6]-1.118033988749897*alphaR[5]-1.118033988749897*alphaR[4]+1.5*alphaR[3]+1.118033988749897*alphaR[2]-1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2236067977499786*alphaR[20])+0.2236067977499786*alphaR[18]-0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]+0.25*alphaR[12]-0.3354101966249678*alphaR[11]-0.25*alphaR[9]+0.25*alphaR[8]+0.3354101966249678*alphaR[7]-0.3354101966249678*alphaR[6]-0.25*alphaR[5]-0.25*alphaR[4]+0.3354101966249678*alphaR[3]+0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[8] = gkhyb_3x2v_p1_surfx2_eval_quad_node_8_r(fc); 
   } else { 
     fUpOrdR[8] = gkhyb_3x2v_p1_surfx2_eval_quad_node_8_l(fr); 
   } 
-  if ((-1.0*alphaR[20])+alphaR[18]-1.0*alphaR[17]+alphaR[16]-1.118033988749897*alphaR[12]+1.5*alphaR[11]+1.118033988749897*alphaR[9]-1.118033988749897*alphaR[8]-1.5*alphaR[7]+1.5*alphaR[6]-1.118033988749897*alphaR[5]+1.118033988749897*alphaR[4]-1.5*alphaR[3]+1.118033988749897*alphaR[2]-1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2236067977499786*alphaR[20])+0.2236067977499786*alphaR[18]-0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]-0.25*alphaR[12]+0.3354101966249678*alphaR[11]+0.25*alphaR[9]-0.25*alphaR[8]-0.3354101966249678*alphaR[7]+0.3354101966249678*alphaR[6]-0.25*alphaR[5]+0.25*alphaR[4]-0.3354101966249678*alphaR[3]+0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[9] = gkhyb_3x2v_p1_surfx2_eval_quad_node_9_r(fc); 
   } else { 
     fUpOrdR[9] = gkhyb_3x2v_p1_surfx2_eval_quad_node_9_l(fr); 
   } 
-  if (alphaR[20]-1.0*alphaR[18]+alphaR[17]-1.0*alphaR[16]-0.8944271909999175*alphaR[12]+0.8944271909999175*alphaR[9]-0.8944271909999175*alphaR[8]-0.8944271909999175*alphaR[5]+0.8944271909999175*alphaR[4]+0.8944271909999175*alphaR[2]-0.8944271909999175*alphaR[1]+0.8944271909999175*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2795084971874732*alphaR[20]-0.2795084971874732*alphaR[18]+0.2795084971874732*alphaR[17]-0.2795084971874732*alphaR[16]-0.25*alphaR[12]+0.25*alphaR[9]-0.25*alphaR[8]-0.25*alphaR[5]+0.25*alphaR[4]+0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[10] = gkhyb_3x2v_p1_surfx2_eval_quad_node_10_r(fc); 
   } else { 
     fUpOrdR[10] = gkhyb_3x2v_p1_surfx2_eval_quad_node_10_l(fr); 
   } 
-  if ((-1.0*alphaR[20])+alphaR[18]-1.0*alphaR[17]+alphaR[16]-1.118033988749897*alphaR[12]-1.5*alphaR[11]+1.118033988749897*alphaR[9]-1.118033988749897*alphaR[8]+1.5*alphaR[7]-1.5*alphaR[6]-1.118033988749897*alphaR[5]+1.118033988749897*alphaR[4]+1.5*alphaR[3]+1.118033988749897*alphaR[2]-1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2236067977499786*alphaR[20])+0.2236067977499786*alphaR[18]-0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]-0.25*alphaR[12]-0.3354101966249678*alphaR[11]+0.25*alphaR[9]-0.25*alphaR[8]+0.3354101966249678*alphaR[7]-0.3354101966249678*alphaR[6]-0.25*alphaR[5]+0.25*alphaR[4]+0.3354101966249678*alphaR[3]+0.25*alphaR[2]-0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[11] = gkhyb_3x2v_p1_surfx2_eval_quad_node_11_r(fc); 
   } else { 
     fUpOrdR[11] = gkhyb_3x2v_p1_surfx2_eval_quad_node_11_l(fr); 
   } 
-  if ((-1.0*alphaR[20])-1.0*alphaR[18]+alphaR[17]+alphaR[16]+1.118033988749897*alphaR[12]+1.5*alphaR[11]+1.118033988749897*alphaR[9]-1.118033988749897*alphaR[8]+1.5*alphaR[7]-1.5*alphaR[6]-1.118033988749897*alphaR[5]-1.118033988749897*alphaR[4]-1.5*alphaR[3]-1.118033988749897*alphaR[2]+1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2236067977499786*alphaR[20])-0.2236067977499786*alphaR[18]+0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]+0.25*alphaR[12]+0.3354101966249678*alphaR[11]+0.25*alphaR[9]-0.25*alphaR[8]+0.3354101966249678*alphaR[7]-0.3354101966249678*alphaR[6]-0.25*alphaR[5]-0.25*alphaR[4]-0.3354101966249678*alphaR[3]-0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[12] = gkhyb_3x2v_p1_surfx2_eval_quad_node_12_r(fc); 
   } else { 
     fUpOrdR[12] = gkhyb_3x2v_p1_surfx2_eval_quad_node_12_l(fr); 
   } 
-  if (alphaR[20]+alphaR[18]-1.0*alphaR[17]-1.0*alphaR[16]+0.8944271909999175*alphaR[12]+0.8944271909999175*alphaR[9]-0.8944271909999175*alphaR[8]-0.8944271909999175*alphaR[5]-0.8944271909999175*alphaR[4]-0.8944271909999175*alphaR[2]+0.8944271909999175*alphaR[1]+0.8944271909999175*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2795084971874732*alphaR[20]+0.2795084971874732*alphaR[18]-0.2795084971874732*alphaR[17]-0.2795084971874732*alphaR[16]+0.25*alphaR[12]+0.25*alphaR[9]-0.25*alphaR[8]-0.25*alphaR[5]-0.25*alphaR[4]-0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[13] = gkhyb_3x2v_p1_surfx2_eval_quad_node_13_r(fc); 
   } else { 
     fUpOrdR[13] = gkhyb_3x2v_p1_surfx2_eval_quad_node_13_l(fr); 
   } 
-  if ((-1.0*alphaR[20])-1.0*alphaR[18]+alphaR[17]+alphaR[16]+1.118033988749897*alphaR[12]-1.5*alphaR[11]+1.118033988749897*alphaR[9]-1.118033988749897*alphaR[8]-1.5*alphaR[7]+1.5*alphaR[6]-1.118033988749897*alphaR[5]-1.118033988749897*alphaR[4]+1.5*alphaR[3]-1.118033988749897*alphaR[2]+1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2236067977499786*alphaR[20])-0.2236067977499786*alphaR[18]+0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]+0.25*alphaR[12]-0.3354101966249678*alphaR[11]+0.25*alphaR[9]-0.25*alphaR[8]-0.3354101966249678*alphaR[7]+0.3354101966249678*alphaR[6]-0.25*alphaR[5]-0.25*alphaR[4]+0.3354101966249678*alphaR[3]-0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[14] = gkhyb_3x2v_p1_surfx2_eval_quad_node_14_r(fc); 
   } else { 
     fUpOrdR[14] = gkhyb_3x2v_p1_surfx2_eval_quad_node_14_l(fr); 
   } 
-  if ((-1.0*alphaR[20])-1.0*alphaR[18]+alphaR[17]+alphaR[16]-1.118033988749897*alphaR[12]+1.5*alphaR[11]-1.118033988749897*alphaR[9]+1.118033988749897*alphaR[8]+1.5*alphaR[7]-1.5*alphaR[6]-1.118033988749897*alphaR[5]+1.118033988749897*alphaR[4]-1.5*alphaR[3]-1.118033988749897*alphaR[2]+1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2236067977499786*alphaR[20])-0.2236067977499786*alphaR[18]+0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]-0.25*alphaR[12]+0.3354101966249678*alphaR[11]-0.25*alphaR[9]+0.25*alphaR[8]+0.3354101966249678*alphaR[7]-0.3354101966249678*alphaR[6]-0.25*alphaR[5]+0.25*alphaR[4]-0.3354101966249678*alphaR[3]-0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[15] = gkhyb_3x2v_p1_surfx2_eval_quad_node_15_r(fc); 
   } else { 
     fUpOrdR[15] = gkhyb_3x2v_p1_surfx2_eval_quad_node_15_l(fr); 
   } 
-  if (alphaR[20]+alphaR[18]-1.0*alphaR[17]-1.0*alphaR[16]-0.8944271909999175*alphaR[12]-0.8944271909999175*alphaR[9]+0.8944271909999175*alphaR[8]-0.8944271909999175*alphaR[5]+0.8944271909999175*alphaR[4]-0.8944271909999175*alphaR[2]+0.8944271909999175*alphaR[1]+0.8944271909999175*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2795084971874732*alphaR[20]+0.2795084971874732*alphaR[18]-0.2795084971874732*alphaR[17]-0.2795084971874732*alphaR[16]-0.25*alphaR[12]-0.25*alphaR[9]+0.25*alphaR[8]-0.25*alphaR[5]+0.25*alphaR[4]-0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[16] = gkhyb_3x2v_p1_surfx2_eval_quad_node_16_r(fc); 
   } else { 
     fUpOrdR[16] = gkhyb_3x2v_p1_surfx2_eval_quad_node_16_l(fr); 
   } 
-  if ((-1.0*alphaR[20])-1.0*alphaR[18]+alphaR[17]+alphaR[16]-1.118033988749897*alphaR[12]-1.5*alphaR[11]-1.118033988749897*alphaR[9]+1.118033988749897*alphaR[8]-1.5*alphaR[7]+1.5*alphaR[6]-1.118033988749897*alphaR[5]+1.118033988749897*alphaR[4]+1.5*alphaR[3]-1.118033988749897*alphaR[2]+1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2236067977499786*alphaR[20])-0.2236067977499786*alphaR[18]+0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]-0.25*alphaR[12]-0.3354101966249678*alphaR[11]-0.25*alphaR[9]+0.25*alphaR[8]-0.3354101966249678*alphaR[7]+0.3354101966249678*alphaR[6]-0.25*alphaR[5]+0.25*alphaR[4]+0.3354101966249678*alphaR[3]-0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[17] = gkhyb_3x2v_p1_surfx2_eval_quad_node_17_r(fc); 
   } else { 
     fUpOrdR[17] = gkhyb_3x2v_p1_surfx2_eval_quad_node_17_l(fr); 
   } 
-  if (alphaR[20]+alphaR[18]+alphaR[17]+alphaR[16]-1.118033988749897*alphaR[12]-1.5*alphaR[11]-1.118033988749897*alphaR[9]-1.118033988749897*alphaR[8]-1.5*alphaR[7]-1.5*alphaR[6]+1.118033988749897*alphaR[5]-1.118033988749897*alphaR[4]-1.5*alphaR[3]+1.118033988749897*alphaR[2]+1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2236067977499786*alphaR[20]+0.2236067977499786*alphaR[18]+0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]-0.25*alphaR[12]-0.3354101966249678*alphaR[11]-0.25*alphaR[9]-0.25*alphaR[8]-0.3354101966249678*alphaR[7]-0.3354101966249678*alphaR[6]+0.25*alphaR[5]-0.25*alphaR[4]-0.3354101966249678*alphaR[3]+0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[18] = gkhyb_3x2v_p1_surfx2_eval_quad_node_18_r(fc); 
   } else { 
     fUpOrdR[18] = gkhyb_3x2v_p1_surfx2_eval_quad_node_18_l(fr); 
   } 
-  if ((-1.0*alphaR[20])-1.0*alphaR[18]-1.0*alphaR[17]-1.0*alphaR[16]-0.8944271909999175*alphaR[12]-0.8944271909999175*alphaR[9]-0.8944271909999175*alphaR[8]+0.8944271909999175*alphaR[5]-0.8944271909999175*alphaR[4]+0.8944271909999175*alphaR[2]+0.8944271909999175*alphaR[1]+0.8944271909999175*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2795084971874732*alphaR[20])-0.2795084971874732*alphaR[18]-0.2795084971874732*alphaR[17]-0.2795084971874732*alphaR[16]-0.25*alphaR[12]-0.25*alphaR[9]-0.25*alphaR[8]+0.25*alphaR[5]-0.25*alphaR[4]+0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[19] = gkhyb_3x2v_p1_surfx2_eval_quad_node_19_r(fc); 
   } else { 
     fUpOrdR[19] = gkhyb_3x2v_p1_surfx2_eval_quad_node_19_l(fr); 
   } 
-  if (alphaR[20]+alphaR[18]+alphaR[17]+alphaR[16]-1.118033988749897*alphaR[12]+1.5*alphaR[11]-1.118033988749897*alphaR[9]-1.118033988749897*alphaR[8]+1.5*alphaR[7]+1.5*alphaR[6]+1.118033988749897*alphaR[5]-1.118033988749897*alphaR[4]+1.5*alphaR[3]+1.118033988749897*alphaR[2]+1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2236067977499786*alphaR[20]+0.2236067977499786*alphaR[18]+0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]-0.25*alphaR[12]+0.3354101966249678*alphaR[11]-0.25*alphaR[9]-0.25*alphaR[8]+0.3354101966249678*alphaR[7]+0.3354101966249678*alphaR[6]+0.25*alphaR[5]-0.25*alphaR[4]+0.3354101966249678*alphaR[3]+0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[20] = gkhyb_3x2v_p1_surfx2_eval_quad_node_20_r(fc); 
   } else { 
     fUpOrdR[20] = gkhyb_3x2v_p1_surfx2_eval_quad_node_20_l(fr); 
   } 
-  if (alphaR[20]+alphaR[18]+alphaR[17]+alphaR[16]+1.118033988749897*alphaR[12]-1.5*alphaR[11]+1.118033988749897*alphaR[9]+1.118033988749897*alphaR[8]-1.5*alphaR[7]-1.5*alphaR[6]+1.118033988749897*alphaR[5]+1.118033988749897*alphaR[4]-1.5*alphaR[3]+1.118033988749897*alphaR[2]+1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2236067977499786*alphaR[20]+0.2236067977499786*alphaR[18]+0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]+0.25*alphaR[12]-0.3354101966249678*alphaR[11]+0.25*alphaR[9]+0.25*alphaR[8]-0.3354101966249678*alphaR[7]-0.3354101966249678*alphaR[6]+0.25*alphaR[5]+0.25*alphaR[4]-0.3354101966249678*alphaR[3]+0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[21] = gkhyb_3x2v_p1_surfx2_eval_quad_node_21_r(fc); 
   } else { 
     fUpOrdR[21] = gkhyb_3x2v_p1_surfx2_eval_quad_node_21_l(fr); 
   } 
-  if ((-1.0*alphaR[20])-1.0*alphaR[18]-1.0*alphaR[17]-1.0*alphaR[16]+0.8944271909999175*alphaR[12]+0.8944271909999175*alphaR[9]+0.8944271909999175*alphaR[8]+0.8944271909999175*alphaR[5]+0.8944271909999175*alphaR[4]+0.8944271909999175*alphaR[2]+0.8944271909999175*alphaR[1]+0.8944271909999175*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = (-0.2795084971874732*alphaR[20])-0.2795084971874732*alphaR[18]-0.2795084971874732*alphaR[17]-0.2795084971874732*alphaR[16]+0.25*alphaR[12]+0.25*alphaR[9]+0.25*alphaR[8]+0.25*alphaR[5]+0.25*alphaR[4]+0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[22] = gkhyb_3x2v_p1_surfx2_eval_quad_node_22_r(fc); 
   } else { 
     fUpOrdR[22] = gkhyb_3x2v_p1_surfx2_eval_quad_node_22_l(fr); 
   } 
-  if (alphaR[20]+alphaR[18]+alphaR[17]+alphaR[16]+1.118033988749897*alphaR[12]+1.5*alphaR[11]+1.118033988749897*alphaR[9]+1.118033988749897*alphaR[8]+1.5*alphaR[7]+1.5*alphaR[6]+1.118033988749897*alphaR[5]+1.118033988749897*alphaR[4]+1.5*alphaR[3]+1.118033988749897*alphaR[2]+1.118033988749897*alphaR[1]+1.118033988749897*alphaR[0] > 0.) {
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
+  alphaR_n = 0.2236067977499786*alphaR[20]+0.2236067977499786*alphaR[18]+0.2236067977499786*alphaR[17]+0.2236067977499786*alphaR[16]+0.25*alphaR[12]+0.3354101966249678*alphaR[11]+0.25*alphaR[9]+0.25*alphaR[8]+0.3354101966249678*alphaR[7]+0.3354101966249678*alphaR[6]+0.25*alphaR[5]+0.25*alphaR[4]+0.3354101966249678*alphaR[3]+0.25*alphaR[2]+0.25*alphaR[1]+0.25*alphaR[0];
+  if (alphaR_n > 0.) {
     fUpOrdR[23] = gkhyb_3x2v_p1_surfx2_eval_quad_node_23_r(fc); 
   } else { 
     fUpOrdR[23] = gkhyb_3x2v_p1_surfx2_eval_quad_node_23_l(fr); 
   } 
+  cflFreq = fmax(cflFreq, fabs(alphaR_n)); 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
   double fUpR[24] = {0.};
   gkhyb_3x2v_p1_xdir_upwind_quad_to_modal(fUpOrdR, fUpR); 
 
-  double GhatR[48] = {0.}; 
+  double GhatR[24] = {0.}; 
   GhatR[0] = 0.25*alphaR[20]*fUpR[20]+0.25*alphaR[18]*fUpR[18]+0.25*alphaR[17]*fUpR[17]+0.25*alphaR[16]*fUpR[16]+0.25*alphaR[12]*fUpR[12]+0.25*alphaR[11]*fUpR[11]+0.25*alphaR[9]*fUpR[9]+0.25*alphaR[8]*fUpR[8]+0.25*alphaR[7]*fUpR[7]+0.25*alphaR[6]*fUpR[6]+0.25*alphaR[5]*fUpR[5]+0.25*alphaR[4]*fUpR[4]+0.25*alphaR[3]*fUpR[3]+0.25*alphaR[2]*fUpR[2]+0.25*alphaR[1]*fUpR[1]+0.25*alphaR[0]*fUpR[0]; 
   GhatR[1] = 0.2500000000000001*alphaR[18]*fUpR[20]+0.2500000000000001*fUpR[18]*alphaR[20]+0.2500000000000001*alphaR[16]*fUpR[17]+0.2500000000000001*fUpR[16]*alphaR[17]+0.25*alphaR[9]*fUpR[12]+0.25*fUpR[9]*alphaR[12]+0.25*alphaR[7]*fUpR[11]+0.25*fUpR[7]*alphaR[11]+0.25*alphaR[4]*fUpR[8]+0.25*fUpR[4]*alphaR[8]+0.25*alphaR[3]*fUpR[6]+0.25*fUpR[3]*alphaR[6]+0.25*alphaR[2]*fUpR[5]+0.25*fUpR[2]*alphaR[5]+0.25*alphaR[0]*fUpR[1]+0.25*fUpR[0]*alphaR[1]; 
   GhatR[2] = 0.2500000000000001*alphaR[17]*fUpR[20]+0.2500000000000001*fUpR[17]*alphaR[20]+0.2500000000000001*alphaR[16]*fUpR[18]+0.2500000000000001*fUpR[16]*alphaR[18]+0.25*alphaR[8]*fUpR[12]+0.25*fUpR[8]*alphaR[12]+0.25*alphaR[6]*fUpR[11]+0.25*fUpR[6]*alphaR[11]+0.25*alphaR[4]*fUpR[9]+0.25*fUpR[4]*alphaR[9]+0.25*alphaR[3]*fUpR[7]+0.25*fUpR[3]*alphaR[7]+0.25*alphaR[1]*fUpR[5]+0.25*fUpR[1]*alphaR[5]+0.25*alphaR[0]*fUpR[2]+0.25*fUpR[0]*alphaR[2]; 
@@ -460,5 +561,7 @@ GKYL_CU_DH void gyrokinetic_surfy_3x2v_ser_p1(const double *w, const double *dxv
   out[45] += (0.7071067811865475*GhatL[23]-0.7071067811865475*GhatR[23])*rdy2; 
   out[46] += ((-1.224744871391589*GhatR[22])-1.224744871391589*GhatL[22])*rdy2; 
   out[47] += ((-1.224744871391589*GhatR[23])-1.224744871391589*GhatL[23])*rdy2; 
+
+  return 3.0*rdy2*cflFreq; 
 
 } 

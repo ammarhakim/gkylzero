@@ -1,1 +1,2 @@
-./configure CC=cc
+export GKYLSOFT=$HOME/gkylsoft
+./configure CC=cc --prefix=$GKYLSOFT

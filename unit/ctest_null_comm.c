@@ -143,10 +143,10 @@ test_2d()
 
         const double  *f = gkyl_array_cfetch(arr, lidx);
 
-        printf("%d: idx(%d,%d) : (%d,%d) == (%g, %g)\n",
-          count++, iter.idx[0], iter.idx[1],
-          idx[0], idx[1],
-          f[0], f[1]);
+//        printf("%d: idx(%d,%d) : (%d,%d) == (%g, %g)\n",
+//          count++, iter.idx[0], iter.idx[1],
+//          idx[0], idx[1],
+//          f[0], f[1]);
         
         /* for (int n=0; n<local.ndim; ++n) */
         /*   TEST_CHECK( idx[n] == f[n] ); */

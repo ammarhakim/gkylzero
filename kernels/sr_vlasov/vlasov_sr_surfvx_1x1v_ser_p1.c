@@ -1,7 +1,7 @@
 #include <gkyl_vlasov_sr_kernels.h> 
 #include <gkyl_basis_ser_2x_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_ser_2x_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_sr_surfvx_1x1v_ser_p1(const double *w, const double *dxv, const double *p_over_gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_sr_surfvx_1x1v_ser_p1(const double *w, const double *dxv, const double *p_over_gamma, const double *qmem, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -64,5 +64,7 @@ GKYL_CU_DH void vlasov_sr_surfvx_1x1v_ser_p1(const double *w, const double *dxv,
   out[1] += (0.7071067811865475*Ghat_l[1]-0.7071067811865475*Ghat_r[1])*dv10; 
   out[2] += -1.224744871391589*(Ghat_r[0]+Ghat_l[0])*dv10; 
   out[3] += -1.224744871391589*(Ghat_r[1]+Ghat_l[1])*dv10; 
+
+  return 0.;
 
 } 

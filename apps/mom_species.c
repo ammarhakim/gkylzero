@@ -212,6 +212,17 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->proj_app_accel = 0;
   if (mom_sp->app_accel_func)
     sp->proj_app_accel = gkyl_fv_proj_new(&app->grid, 2, 3, mom_sp->app_accel_func, sp->ctx);
+
+  sp->nT_source = mkarr(false, 2, app->local_ext.volume);
+  sp->nT_source_is_set = false;
+  sp->proj_nT_source = 0;
+  if (mom_sp->nT_source_func)
+  {
+    sp->proj_nT_source = gkyl_fv_proj_new(
+        &app->grid, 2, 2, mom_sp->nT_source_func, sp->ctx);
+    sp->nT_source_set_only_once = mom_sp->nT_source_set_only_once;
+  }
+
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;
   // compute buffer size needed
@@ -231,9 +242,11 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
 // apply BCs to species
 void
-moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
+moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
   const struct moment_species *sp, struct gkyl_array *f)
 {
+  struct timespec wst = gkyl_wall_clock();
+  
   int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
 
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
@@ -259,6 +272,8 @@ moment_species_apply_bc(const gkyl_moment_app *app, double tcurr,
     }
 
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+
+  app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // maximum stable time-step
@@ -282,7 +297,7 @@ moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *s
 // update solution: initial solution is in sp->f[0] and updated
 // solution in sp->f[ndim]
 struct gkyl_update_status
-moment_species_update(const gkyl_moment_app *app,
+moment_species_update(gkyl_moment_app *app,
   struct moment_species *sp, double tcurr, double dt)
 {
   int ndim = sp->ndim;
@@ -389,6 +404,10 @@ moment_species_release(const struct moment_species *sp)
   gkyl_array_release(sp->app_accel);
   if (sp->proj_app_accel)
     gkyl_fv_proj_release(sp->proj_app_accel);
+
+  gkyl_array_release(sp->nT_source);
+  if (sp->proj_nT_source)
+    gkyl_fv_proj_release(sp->proj_nT_source);
 
   gkyl_array_release(sp->bc_buffer);
 

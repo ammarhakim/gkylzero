@@ -66,3 +66,93 @@ gkyl_vec3_cross(struct gkyl_vec3 a, struct gkyl_vec3 b)
     }
   };
 }
+
+// minmod(a,b,c, ...) returns min of all parameters are positive, max
+// of all parameters if all are negative, and zero otherwise.
+
+// minmod(x,y)
+static inline double
+gkyl_minmod_2(double x, double y)
+{
+  if (x>0 && y>0)
+    return fmin(x,y);
+  if (x<0 && y<0)
+    return fmax(x,y);
+  return 0.0;
+}
+
+// minmod(x,y,z,w)
+static inline double
+gkyl_minmod_4(double x, double y, double z, double w)
+{
+  if (x>0 && y>0 && z>0 && w>0)
+    return fmin(fmin(x,y),fmin(z,w));
+  if (x<0 && y<0 && z<0 && w<0)
+    return fmax(fmax(x,y),fmax(z,w));
+  return 0.0;
+}
+
+// median(x,y,z) returns the value between two others
+static inline double
+gkyl_median(double x, double y, double z)
+{
+  return x + gkyl_minmod_2(y-x,z-x);
+}
+
+// min(x,y,z)
+static inline double
+gkyl_min_3(double x, double y, double z)
+{
+  return fmin(x,fmin(y,z));
+}
+
+// max(x,y,z)
+static inline double
+gkyl_max_3(double x, double y, double z)
+{
+  return fmax(x,fmax(y,z));
+}
+
+// Result from numerical quadrature
+struct gkyl_qr_res {
+  double res; // result of quadrature
+  double error; // error estimate
+  int status; // 0 - success.
+  int nevals; // number of function evaluations
+  int nlevels; // number of levels
+};
+
+/**
+ * Integrate func(x,ctx) in interval [a,b], using maximum levels
+ * "n". Typical value of levels is 7. The status flag of the return
+ * struct is set to 1 if quadrature failed due to number of levels
+ * exceeded.
+ *
+ * @param func Function to integrate
+ * @param ctx Context to pass to function
+ * @param a Lower limit of interval
+ * @param b Upper limit of interval
+ * @param n Number of levels
+ * @param eps Error to compute integral
+ * @return Result of quadrature
+ */
+struct gkyl_qr_res gkyl_dbl_exp(double (*func)(double, void *), void *ctx,
+  double a, double b, int n, double eps);
+
+/**
+ * Compute single real root of a function using Ridders' method. See
+ * IEEE Tran. Circuit and Systems, vol CAS-26 No 11, Pg 976 1976. The
+ * root must be inside the interval specified.
+ *
+ * @param func Function to integrate
+ * @param ctx Context to pass to function
+ * @param x1 Lower limit of interval
+ * @param x2 Upper limit of interval
+ * @param f1 Function at x1
+ * @param f2 Function at x2
+ * @param max_iter Maximum number of iterations
+ * @param eps Desired error bound
+ * @return Result of root finder
+ */
+struct gkyl_qr_res gkyl_ridders(double (*func)(double,void*), void *ctx,
+  double x1, double x2, double f1, double f2, int max_iter, double eps);

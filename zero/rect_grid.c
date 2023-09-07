@@ -8,6 +8,9 @@ void
 gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
   const double *lower, const double *upper, const int *cells)
 {
+//  // MF 2023/07/07: commenting this out because it causes seg faults in g2.
+//  *grid = (struct gkyl_rect_grid) { };
+  
   grid->ndim = ndim;  
   grid->cellVolume = 1.0;
   for (int i=0; i<ndim; ++i) {

@@ -1,5 +1,5 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
-GKYL_CU_DH void lbo_gyrokinetic_diff_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_gyrokinetic_diff_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // m_: species mass.
   // bmag_inv: 1/(magnetic field magnitude). 
@@ -36,4 +36,7 @@ GKYL_CU_DH void lbo_gyrokinetic_diff_surfvpar_1x1v_ser_p1(const double *w, const
   out[3] += incr[3]*rdvSq4; 
   out[4] += incr[4]*rdvSq4; 
   out[5] += incr[5]*rdvSq4; 
+
+  return 0.;
+
 } 

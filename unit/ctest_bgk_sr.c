@@ -39,59 +39,65 @@ struct skin_ghost_ranges
 // Create ghost and skin sub-ranges given a parent range
 static void
 skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
-                       const struct gkyl_range *parent, const int *ghost)
+  const struct gkyl_range *parent, const int *ghost)
 {
   int ndim = parent->ndim;
 
-  for (int d = 0; d < ndim; ++d)
-  {
+  for (int d = 0; d < ndim; ++d){
     gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
-                           d, GKYL_LOWER_EDGE, parent, ghost);
+      d, GKYL_LOWER_EDGE, parent, ghost);
     gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
-                           d, GKYL_UPPER_EDGE, parent, ghost);
+      d, GKYL_UPPER_EDGE, parent, ghost);
   }
 }
 
-void eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
+void 
+eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1.0;
 }
 
-void eval_M1i_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
+void 
+eval_M1i_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 0.0;
 }
 
-void eval_M2_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
+void 
+eval_M2_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
   double x = xn[0];
   fout[0] = T;
 }
 
-void eval_M1i_1v(double t, const double *xn, double *restrict fout, void *ctx)
+void 
+eval_M1i_1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 0.5; // 0.5;
 }
 
-void eval_M2_1v(double t, const double *xn, double *restrict fout, void *ctx)
+void 
+eval_M2_1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
   double x = xn[0];
   fout[0] = T;
 }
 
-void eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
+void 
+eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 0.5;
   fout[1] = 0.25;
 }
 
-void eval_M2_2v(double t, const double *xn, double *restrict fout, void *ctx)
+void 
+eval_M2_2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double T = 1.0;
   double x = xn[0];
@@ -99,18 +105,18 @@ void eval_M2_2v(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 // waterbag distribution
-void evalFunc(double t, const double *xn, double *restrict fout, void *ctx)
+void 
+evalFunc(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1];
   fout[0] = 0.0;
   if (vx < 2.0 && vx > 0.0)
-  {
     fout[0] = 1.0;
-  }
 }
 
 // Collision distribution all phase space
-void evalFunc_nu(double t, const double *xn, double *restrict fout, void *ctx)
+void 
+evalFunc_nu(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1];
   // calculate nu, assumed constant
@@ -121,7 +127,8 @@ void evalFunc_nu(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 // Collision conf space
-void evalFunc_nu_conf(double t, const double *xn, double *restrict fout, void *ctx)
+void 
+evalFunc_nu_conf(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   // calculate nu, assumed constant
@@ -131,7 +138,8 @@ void evalFunc_nu_conf(double t, const double *xn, double *restrict fout, void *c
   fout[0] = nudt;
 }
 
-void test_1x1v(int poly_order)
+void 
+test_1x1v(int poly_order)
 {
   double lower[] = {0.1, -10.0}, upper[] = {1.0, 10.0};
   int cells[] = {2, 32}; // 1000
@@ -153,7 +161,7 @@ void test_1x1v(int poly_order)
 
   // velocity range
   int velGhost[] = {0};
-  struct gkyl_range velLocal, velLocal_ext; // local, local-ext conf-space ranges
+  struct gkyl_range velLocal, velLocal_ext;
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   // basis functions
@@ -163,15 +171,15 @@ void test_1x1v(int poly_order)
   gkyl_cart_modal_serendip(&velBasis, vdim, poly_order);
 
   int confGhost[] = {1};
-  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
+  struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
+  struct skin_ghost_ranges confSkin_ghost; 
   skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
   int ghost[] = {confGhost[0], 0};
-  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  struct gkyl_range local, local_ext; 
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
+  struct skin_ghost_ranges skin_ghost;
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
@@ -185,11 +193,11 @@ void test_1x1v(int poly_order)
   m2_original = mkarr(confBasis.num_basis, confLocal_ext.volume);
 
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-                                                       poly_order + 1, 1, eval_M0, NULL);
+    poly_order + 1, 1, eval_M0, NULL);
   gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-                                                        poly_order + 1, vdim, eval_M1i_1v, NULL);
+     poly_order + 1, vdim, eval_M1i_1v, NULL);
   gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-                                                       poly_order + 1, 1, eval_M2_1v, NULL);
+    poly_order + 1, 1, eval_M2_1v, NULL);
 
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
@@ -209,7 +217,7 @@ void test_1x1v(int poly_order)
 
   // Make GammaV2, GammaV, GammaV_inv
   gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
-                                p_over_gamma, gamma, gamma_inv);
+  p_over_gamma, gamma, gamma_inv);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -227,16 +235,16 @@ void test_1x1v(int poly_order)
 
   // projection updater to compute mj
   gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-                                                             &confBasis, &basis, poly_order + 1);
+    &confBasis, &basis, poly_order + 1);
 
   gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis,
-                                                         poly_order + 1, 1, evalFunc, NULL);
+    poly_order + 1, 1, evalFunc, NULL);
 
   gkyl_proj_on_basis *projnu = gkyl_proj_on_basis_new(&grid, &basis,
-                                                      poly_order + 1, 1, evalFunc_nu, NULL);
+    poly_order + 1, 1, evalFunc_nu, NULL);
 
   gkyl_proj_on_basis *projnu_conf = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-                                                           poly_order + 1, 1, evalFunc_nu_conf, NULL);
+    poly_order + 1, 1, evalFunc_nu_conf, NULL);
 
   // create the bgk operator structure
   gkyl_bgk_collisions *bgk_obj = gkyl_bgk_collisions_new(&confBasis, &basis, false);
@@ -245,8 +253,10 @@ void test_1x1v(int poly_order)
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf);
 
   // Create correction object and moments object
-  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
-  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, 
+    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
+    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
 
   // Compute the original moments (of f_waterbag), save them for later comparison
   gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf, m0, m1i, m2, &local, &confLocal);
@@ -265,11 +275,7 @@ void test_1x1v(int poly_order)
 
   // timeloop evolving partial_t(f) = -nu(f-f^mj)
   for (int i = 0; i < 301; ++i)
-  { // 1001
-
-    // printf("\n----------- ************************* ---------\n");
-    // printf("----------- Begining timeloop: T = %d ---------\n", i);
-    // printf("----------- ************************* ---------\n\n");
+  { 
 
     // write distribution function to file
     char fname[1024];
@@ -294,20 +300,19 @@ void test_1x1v(int poly_order)
     // calculate nu*f^mj,
     // gkyl_dg_mul_op_range(basis, 0, distf_mj, 0, nudt, 0, distf_mj, &local);
     gkyl_dg_mul_conf_phase_op_range(&confBasis, &basis,
-                                    distf_mj, nudt_conf, distf_mj, &confLocal, &local);
+      distf_mj, nudt_conf, distf_mj, &confLocal, &local);
 
     // calculate the BGK contribution
     gkyl_bgk_collisions_advance(bgk_obj,
-                                &confLocal, &local,
-                                nudt_conf, distf_mj, distf,
-                                bgk_out, cflfreq);
+      &confLocal, &local,
+      nudt_conf, distf_mj, distf,
+      bgk_out, cflfreq);
 
     // update f with the BGK operation (Forward Euler update)
     // f^j+1 = f^j + out;  out = -dt*nu*(f - f^mj)
     struct gkyl_range_iter piter;
     gkyl_range_iter_init(&piter, &local);
-    while (gkyl_range_iter_next(&piter))
-    {
+    while (gkyl_range_iter_next(&piter)){
       long ploc = gkyl_range_idx(&local, piter.idx);
       double *out_d = gkyl_array_fetch(bgk_out, ploc);
       double *fv = gkyl_array_fetch(distf, ploc);
@@ -315,29 +320,21 @@ void test_1x1v(int poly_order)
       // Add out_d to the evolving distribution function
       array_acc1(basis.num_basis, fv, 1., out_d);
     }
-
-    // Release the memory
   }
-  // end timeloop
   gkyl_correct_mj_release(corr_mj);
   gkyl_mj_moments_release(mj_moms);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.1656333899823638, -1.57246950256639e-17,
-                      0.146961492792848, -9.802279035466299e-18, 4.479617143823178e-17,
-                      0.05558727357585599, 4.814166767741567e-17, -1.575372718994952e-18};
+    0.146961492792848, -9.802279035466299e-18, 4.479617143823178e-17,
+    0.05558727357585599, 4.814166767741567e-17, -1.575372718994952e-18};
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){1, 16}));
 
   if (poly_order == 2)
-  {
     for (int i = 0; i < basis.num_basis; ++i)
-    {
-      // printf("%1.16g,\n", fv[i]);
-      // printf("fv[%d] = %1.16g\n",i,fv[i]);
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
-    }
-  }
+
 
   // release memory for moment data object
   gkyl_array_release(m0);
@@ -364,6 +361,6 @@ void test_1x1v(int poly_order)
 void test_1x1v_p2() { test_1x1v(2); }
 
 TEST_LIST = {
-    {"test_1x1v_p2", test_1x1v_p2},
-    {NULL, NULL},
+  {"test_1x1v_p2", test_1x1v_p2},
+  {NULL, NULL},
 };

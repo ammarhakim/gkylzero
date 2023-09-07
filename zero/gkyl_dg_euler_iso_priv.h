@@ -7,7 +7,7 @@
 #include <gkyl_dg_eqn.h>
 
 // Types for various kernels.
-typedef void (*euler_iso_surf_t)(const double *w, const double *dxv, double vth_,
+typedef double (*euler_iso_surf_t)(const double *w, const double *dxv, double vth_,
   const double *statevecl, const double *statevecc, const double *statevecr,
   const double *uvarl, const double *uvarc, const double *uvar, double* GKYL_RESTRICT out);
 
@@ -135,7 +135,7 @@ static const gkyl_dg_euler_iso_surf_kern_list ser_surf_z_kernels[] = {
 void gkyl_euler_iso_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR,
@@ -149,7 +149,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_c = gkyl_range_idx(&euler_iso->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&euler_iso->conf_range, idxR);
 
-  euler_iso->surf[dir](xcC, dxC, euler_iso->vth,
+  return euler_iso->surf[dir](xcC, dxC, euler_iso->vth,
     (const double*) gkyl_array_cfetch(euler_iso->auxfields.u_i, cidx_l),
     (const double*) gkyl_array_cfetch(euler_iso->auxfields.u_i, cidx_c),
     (const double*) gkyl_array_cfetch(euler_iso->auxfields.u_i, cidx_r),
@@ -157,13 +157,13 @@ surf(const struct gkyl_dg_eqn *eqn,
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
   const double*  dxEdge, const double* dxSkin,
   const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
-{
-  
+{ 
+  return 0.;
 }

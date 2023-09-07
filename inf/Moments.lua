@@ -28,7 +28,7 @@ end
 ffi.cdef [[
 
 // This needs to be enum to allow usage below
-enum { GKYL_MAX_SPECIES = 8 };
+enum { GKYL_MAX_SPECIES = 8, GKYL_MAX_DIM = 7 };
 
 /**
  * Set the global flag to turn on memory allocation/deallocation
@@ -411,6 +411,42 @@ enum gkyl_moment_scheme {
   GKYL_MOMENT_KEP // Kinetic-energy preserving scheme
 };
 
+/**
+ * Range object, representing an N-dimensional integer index
+ * set. Lower and upper limits are inclusive.
+ */
+struct gkyl_range {
+  int ndim; // number of dimension
+  int lower[GKYL_MAX_DIM]; // lower bound
+  int upper[GKYL_MAX_DIM]; // upper bound (inclusive)
+  long volume; // total volume of range
+    
+  // do not access directly
+  uint32_t flags; // Flags for internal use
+  int ilo[GKYL_MAX_DIM]; // for use in inverse indexer
+  long ac[GKYL_MAX_DIM+1]; // coefficients for indexing
+  long iac[GKYL_MAX_DIM+1]; // for use in sub-range inverse indexer
+  long linIdxZero; // linear index of {0,0,...}
+  int nsplit, tid; // number of splits, split ID
+
+  // FOR CUDA ONLY
+  int nthreads, nblocks; // CUDA kernel launch specifiers for range-based ops
+};
+
+// Forward declaration
+struct gkyl_comm;
+
+// Lower-level inputs: in general this does not need to be set by the
+// user. It is needed when the App is being created on a sub-range of
+// the global range, and is meant for use in higher-level drivers that
+// use MPI or other parallel mechanism.
+struct gkyl_moment_low_inp {
+  // local range over which App operates
+  struct gkyl_range local_range;
+  // communicator to used
+  struct gkyl_comm *comm;
+};
+
 // Top-level app parameters
 struct gkyl_moment {
   char name[128]; // name of app: used as output prefix
@@ -446,6 +482,11 @@ struct gkyl_moment {
   // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
   // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
+
+  // this should not be set by typical user-facing code but only by
+  // higher-level drivers
+  bool has_low_inp; // should one use low-level inputs?
+  struct gkyl_moment_low_inp low_inp; // low-level inputs
 };
 
 // Simulation statistics
@@ -468,13 +509,15 @@ struct gkyl_moment_stat {
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure
-    
+  
   double init_species_tm; // time to initialize all species
   double init_field_tm; // time to initialize fields
 
   double species_rhs_tm; // time to compute species collisionless RHS
-  
+  double species_bc_tm; // time to apply BCs
+
   double field_rhs_tm; // time to compute field RHS
+  double field_bc_tm; // time to apply BCs
 };
 
 // Object representing moments app

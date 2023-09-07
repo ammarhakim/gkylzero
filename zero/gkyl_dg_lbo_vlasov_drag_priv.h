@@ -5,11 +5,11 @@
 #include <gkyl_lbo_vlasov_kernels.h>
 
 // Types for various kernels
-typedef void (*lbo_vlasov_drag_surf_t)(const double *w, const double *dxv,
+typedef double (*lbo_vlasov_drag_surf_t)(const double *w, const double *dxv,
   const double *nuSum, const double *nuPrimMomsSum,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
-typedef void (*lbo_vlasov_drag_boundary_surf_t)(const double *w, const double *dxv,
+typedef double (*lbo_vlasov_drag_boundary_surf_t)(const double *w, const double *dxv,
   const double *nuSum, const double *nuPrimMomsSum,
   const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out);
 
@@ -385,7 +385,7 @@ static const gkyl_dg_lbo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_v
 void gkyl_lbo_vlasov_drag_free(const struct gkyl_ref_count* ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
@@ -401,13 +401,14 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if ((dir >= lbo_vlasov_drag->cdim) && (noPrimMomCross)) {
-    lbo_vlasov_drag->surf[dir-lbo_vlasov_drag->cdim](xcC, dxC, 
+    return lbo_vlasov_drag->surf[dir-lbo_vlasov_drag->cdim](xcC, dxC, 
       nuSum_p, nuPrimMomsSum_p, qInL, qInC, qInR, qRhsOut);
   }
+  return 0.;
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
@@ -423,8 +424,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* nuVtSqSum_p = &nuPrimMomsSum_p[lbo_vlasov_drag->vdim*lbo_vlasov_drag->num_cbasis];
   bool noPrimMomCross = checkPrimMomCross(lbo_vlasov_drag, nuSum_p, nuUSum_p, nuVtSqSum_p);
   if ((dir >= lbo_vlasov_drag->cdim) && (noPrimMomCross)) {
-    lbo_vlasov_drag->boundary_surf[dir-lbo_vlasov_drag->cdim](xcSkin, dxSkin, 
+    return lbo_vlasov_drag->boundary_surf[dir-lbo_vlasov_drag->cdim](xcSkin, dxSkin, 
       nuSum_p, nuPrimMomsSum_p, edge, qInSkin, qInEdge, qRhsOut);
   }
+  return 0.;
 }
 

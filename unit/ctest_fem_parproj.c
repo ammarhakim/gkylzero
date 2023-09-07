@@ -104,7 +104,7 @@ test_1x(int poly_order, const bool isperiodic, bool use_gpu)
   struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
   // create an array to use as the multiplicative weight.
   struct gkyl_array *wgt = mkarr(basis.num_basis, localRange_ext.volume);
-  gkyl_array_shiftc0(wgt, sqrt(2.)); // Sets wgt=1.
+  gkyl_array_shiftc(wgt, sqrt(2.), 0); // Sets wgt=1.
   // device copies:
   struct gkyl_array *rho_cu, *phi_cu;
   if (use_gpu) {
@@ -293,7 +293,7 @@ test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
   struct gkyl_array *phi = mkarr(basis.num_basis, localRange_ext.volume);
   // create an array to use as the multiplicative weight.
   struct gkyl_array *wgt = mkarr(basis.num_basis, localRange_ext.volume);
-  gkyl_array_shiftc0(wgt, 2.*sqrt(2.)); // Sets wgt=1.
+  gkyl_array_shiftc(wgt, 2.*sqrt(2.), 0); // Sets wgt=1.
   // device copies:
   struct gkyl_array *rho_cu, *phi_cu;
   if (use_gpu) {

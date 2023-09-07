@@ -12,6 +12,16 @@ static const uint64_t gkyl_array_data_type[] = {
   [GKYL_USER] = 32,
 };
 
+// mapping of code to datatype: MUST be consistent with the
+// gkyl_array_data_type array above
+static const int gkyl_array_code_to_data_type[] = {
+  [0] = GKYL_INT,
+  [1] = GKYL_FLOAT,
+  [2] = GKYL_DOUBLE,
+  [3] = GKYL_INT_64,
+  [32] = GKYL_USER
+};    
+
 // size in bytes for various data-types
 static const size_t gkyl_elem_type_size[] = {
   [GKYL_INT] = sizeof(int),

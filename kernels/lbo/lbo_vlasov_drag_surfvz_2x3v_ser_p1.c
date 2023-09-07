@@ -1,7 +1,7 @@
 #include <gkyl_lbo_vlasov_kernels.h> 
 #include <gkyl_basis_hyb_2x3v_p1_surfx5_eval_quad.h> 
 #include <gkyl_basis_hyb_2x3v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH void lbo_vlasov_drag_surfvz_2x3v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_drag_surfvz_2x3v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[5]: cell-center coordinates. 
   // dxv[5]: cell spacing. 
@@ -351,4 +351,7 @@ GKYL_CU_DH void lbo_vlasov_drag_surfvz_2x3v_ser_p1(const double *w, const double
   out[77] += 1.58113883008419*Ghat_r[13]*rdv2-1.58113883008419*Ghat_l[13]*rdv2; 
   out[78] += 1.58113883008419*Ghat_r[14]*rdv2-1.58113883008419*Ghat_l[14]*rdv2; 
   out[79] += 1.58113883008419*Ghat_r[15]*rdv2-1.58113883008419*Ghat_l[15]*rdv2; 
+
+  return 0.;
+
 } 

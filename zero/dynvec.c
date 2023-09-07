@@ -13,22 +13,6 @@
 /* Size by which vector grows each time it is reallocated */
 static const size_t DYNVEC_ALLOC_SZ = 1024;
 
-// code for array datatype for use in IO
-static const uint64_t array_data_type[] = {
-  [GKYL_INT] = 0,
-  [GKYL_FLOAT] = 1,
-  [GKYL_DOUBLE] = 2,
-  [GKYL_USER] = 32,
-};
-
-// size in bytes for various data-types
-static const size_t array_elem_size[] = {
-  [GKYL_INT] = sizeof(int),
-  [GKYL_FLOAT] = sizeof(float),
-  [GKYL_DOUBLE] = sizeof(double),
-  [GKYL_USER] = 1,
-};
-
 struct gkyl_dynvec_tag {
   enum gkyl_elem_type type; // type of data stored in vector
   size_t elemsz, ncomp; // size of elements, number of 'components'
@@ -57,7 +41,7 @@ gkyl_dynvec_new(enum gkyl_elem_type type, size_t ncomp)
 {
   struct gkyl_dynvec_tag *dv = gkyl_malloc(sizeof(struct gkyl_dynvec_tag));
   dv->type = type;
-  dv->elemsz = array_elem_size[type];
+  dv->elemsz = gkyl_elem_type_size[type];
   dv->ncomp = ncomp;
   dv->esznc = dv->elemsz*dv->ncomp;
   dv->csize = DYNVEC_ALLOC_SZ;
@@ -201,7 +185,7 @@ gkyl_dynvec_write_mode(const gkyl_dynvec vec,
     uint64_t meta_size = 0; // THIS WILL CHANGE ONCE METADATA IS EMBEDDED
     fwrite(&meta_size, sizeof(uint64_t), 1, fp);
     
-    uint64_t real_type = array_data_type[vec->type];
+    uint64_t real_type = gkyl_array_data_type[vec->type];
     fwrite(&real_type, sizeof(uint64_t), 1, fp);
 
     uint64_t esznc = vec->esznc, size = gkyl_dynvec_size(vec);
@@ -257,15 +241,16 @@ gkyl_dynvec_read_ncomp_1(FILE *fp, int *ncomp)
   // method
   fseek(fp, meta_size, SEEK_CUR);
 
-  uint64_t real_type = 0;
-  if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
+  uint64_t real_code = 0;
+  if (1 != fread(&real_code, sizeof(uint64_t), 1, fp))
     return false;
 
   uint64_t esznc;
   if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
     return false;
 
-  *ncomp = esznc/array_elem_size[real_type];
+  int real_type = gkyl_array_code_to_data_type[real_code];
+  *ncomp = esznc/gkyl_elem_type_size[real_type];
 
   return true;
 }
@@ -311,7 +296,7 @@ gkyl_dynvec_read_1(gkyl_dynvec vec, FILE *fp) {
   uint64_t real_type = 0;
   if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
     return false;
-  if (real_type != array_data_type[vec->type])
+  if (real_type != gkyl_array_data_type[vec->type])
     return false;
 
   uint64_t esznc, size;

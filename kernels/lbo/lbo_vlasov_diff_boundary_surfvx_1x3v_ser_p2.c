@@ -1,5 +1,5 @@
 #include <gkyl_lbo_vlasov_kernels.h> 
-GKYL_CU_DH void lbo_vlasov_diff_boundary_surfvx_1x3v_ser_p2(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_diff_boundary_surfvx_1x3v_ser_p2(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[4]: Cell-center coordinates. 
   // dxv[4]: Cell spacing. 
@@ -241,4 +241,7 @@ GKYL_CU_DH void lbo_vlasov_diff_boundary_surfvx_1x3v_ser_p2(const double *w, con
   out[45] += (vol_incr[45]+edgeSurf_incr[45]+boundSurf_incr[45])*rdvSq4; 
   out[46] += (vol_incr[46]+edgeSurf_incr[46]+boundSurf_incr[46])*rdvSq4; 
   out[47] += (vol_incr[47]+edgeSurf_incr[47]+boundSurf_incr[47])*rdvSq4; 
+
+  return 0.;
+
 } 

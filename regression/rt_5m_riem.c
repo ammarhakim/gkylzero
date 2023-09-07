@@ -97,6 +97,9 @@ main(int argc, char **argv)
     .init = evalIonInit,
   };  
 
+  bool has_collision = false;
+  double nu_base_ei = 0.5; // FIXME for test
+
   // VM app
   struct gkyl_moment app_inp = {
     .name = "5m_riem",
@@ -108,6 +111,15 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
+
+    .has_collision = has_collision,
+    // scaling factors for collision frequencies: nu_sr = nu_base_sr * rho_r
+    // the matrix must be symmetrix
+    .nu_base =
+    {
+      {0,          nu_base_ei}, // ee, ei
+      {nu_base_ei, 0         }  // ie, ii
+    },
 
     .field = {
       .epsilon0 = 1.0, .mu0 = 1.0,

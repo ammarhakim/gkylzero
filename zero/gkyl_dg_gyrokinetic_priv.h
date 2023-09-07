@@ -14,12 +14,12 @@
 typedef double (*gyrokinetic_step2_vol_t)(const double *w, const double *dxv, const double q_, const double m_,
   const double *apardot, const double *f, double* GKYL_RESTRICT out);
 
-typedef void (*gyrokinetic_surf_t)(const double *w, const double *dxv, const double q_, const double m_,
+typedef double (*gyrokinetic_surf_t)(const double *w, const double *dxv, const double q_, const double m_,
   const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi,
   const double *apar, const double *apardot, const double *fL, const double *fC, const double *fR,
   double* GKYL_RESTRICT out);
 
-typedef void (*gyrokinetic_boundary_surf_t)(const double *w, const double *dxv, const double q_,
+typedef double (*gyrokinetic_boundary_surf_t)(const double *w, const double *dxv, const double q_,
   const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i,
   const double *phi, const double *apar, const double *apardot, const int edge,
   const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
@@ -362,7 +362,7 @@ vol_step2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx,
 
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double* xcL, const double* xcC, const double* xcR,
@@ -375,7 +375,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   // Only in x,y,z,vpar directions.
   if (dir <= gyrokinetic->cdim) {
     long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idxC);
-    gyrokinetic->surf[dir](xcC, dxC, 
+    return gyrokinetic->surf[dir](xcC, dxC, 
       gyrokinetic->charge, gyrokinetic->mass,
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.bmag, cidx),
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.jacobtot_inv, cidx),
@@ -386,10 +386,11 @@ surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
       qInL, qInC, qInR, qRhsOut);
   }
+  return 0.;
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double* xcEdge, const double* xcSkin,
@@ -402,7 +403,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   // Only in x,y,z,vpar directions.
   if (dir <= gyrokinetic->cdim) {
     long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idxSkin);
-    gyrokinetic->boundary_surf[dir](xcSkin, dxSkin, 
+    return gyrokinetic->boundary_surf[dir](xcSkin, dxSkin, 
       gyrokinetic->charge, gyrokinetic->mass,
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.bmag, cidx),
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.jacobtot_inv, cidx),
@@ -413,4 +414,5 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
       edge, qInEdge, qInSkin, qRhsOut);
   }
+  return 0.;
 }

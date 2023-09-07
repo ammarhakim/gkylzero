@@ -8,7 +8,7 @@
 // functions
 
 // Types for various kernels
-typedef void (*advection_surf_t)(const double *w, const double *dx,
+typedef double (*advection_surf_t)(const double *w, const double *dx,
   const double *ul, const double *uc, const double *ur,
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
 
@@ -134,7 +134,7 @@ static const gkyl_dg_advection_surf_kern_list ser_surf_z_kernels[] = {
 void gkyl_advection_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
-static void
+static double
 surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
@@ -148,7 +148,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_c = gkyl_range_idx(&advection->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&advection->conf_range, idxR);
 
-  advection->surf[dir](xcC, dxC, 
+  return advection->surf[dir](xcC, dxC, 
     (const double*) gkyl_array_cfetch(advection->auxfields.u_i, cidx_l),
     (const double*) gkyl_array_cfetch(advection->auxfields.u_i, cidx_c),
     (const double*) gkyl_array_cfetch(advection->auxfields.u_i, cidx_r), 
@@ -156,7 +156,7 @@ surf(const struct gkyl_dg_eqn *eqn,
 }
 
 GKYL_CU_D
-static void
+static double
 boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
@@ -164,5 +164,5 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const int* idxEdge, const int* idxSkin, const int edge,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
-  
+  return 0.;
 }

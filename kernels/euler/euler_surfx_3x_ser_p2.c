@@ -1,7 +1,7 @@
 #include <gkyl_euler_kernels.h> 
 #include <gkyl_basis_ser_3x_p2_surfx1_eval_quad.h> 
 #include <gkyl_basis_ser_3x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void euler_surfx_3x_ser_p2(const double *w, const double *dxv, const double gas_gamma, const double *ul, const double *uc, const double *ur, const double *pl, const double *pc, const double *pr, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double euler_surfx_3x_ser_p2(const double *w, const double *dxv, const double gas_gamma, const double *ul, const double *uc, const double *ur, const double *pl, const double *pc, const double *pr, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -321,5 +321,7 @@ GKYL_CU_DH void euler_surfx_3x_ser_p2(const double *w, const double *dxv, const 
   outenergy[17] += 1.58113883008419*Ghat_energy_l[3]*dx1-1.58113883008419*Ghat_energy_r[3]*dx1; 
   outenergy[18] += (-1.224744871391589*Ghat_energy_r[6]*dx1)-1.224744871391589*Ghat_energy_l[6]*dx1; 
   outenergy[19] += (-1.224744871391589*Ghat_energy_r[7]*dx1)-1.224744871391589*Ghat_energy_l[7]*dx1; 
+
+  return 0.;
 
 } 

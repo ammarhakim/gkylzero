@@ -12,9 +12,11 @@ struct null_comm {
   struct gkyl_comm base; // base communicator
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
 
+  bool use_gpu; // flag to use if this communicator is on GPUs
   struct gkyl_range grange; // range to "hash" ghost layout
   cmap_l2sgr l2sgr; // map from long -> skin_ghost_ranges
-  gkyl_mem_buff pbuff; // buffer for periodic BCs
+
+  gkyl_mem_buff pbuff; // CUDA buffer for periodic BCs
 };
 
 static void
@@ -127,7 +129,8 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   // extend internal decomp object and create a new communicator
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, null_comm->decomp);
   struct gkyl_comm *ext_comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = ext_decomp
+      .decomp = ext_decomp,
+      .use_gpu = null_comm->use_gpu
     }
   );
   gkyl_rect_decomp_release(ext_decomp);
@@ -140,6 +143,7 @@ gkyl_null_comm_new(void)
 {
   struct null_comm *comm = gkyl_malloc(sizeof *comm);
 
+  comm->use_gpu = false;
   comm->l2sgr = cmap_l2sgr_init();
   comm->pbuff = gkyl_mem_buff_new(1);
   comm->decomp = 0;
@@ -168,8 +172,13 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   for (int d=0; d<inp->decomp->ndim; ++d) upper[d] = GKYL_MAX_NGHOST;
   gkyl_range_init(&comm->grange, inp->decomp->ndim, lower, upper);
 
+  comm->use_gpu = inp->use_gpu;
   comm->l2sgr = cmap_l2sgr_init();
-  comm->pbuff = gkyl_mem_buff_new(1024); // will be reallocated
+
+  if (comm->use_gpu)
+    comm->pbuff = gkyl_mem_buff_cu_new(1024); // will be reallocated
+  else
+    comm->pbuff = gkyl_mem_buff_new(1024); // will be reallocated
 
   comm->base.get_rank = get_rank;
   comm->base.get_size = get_size;

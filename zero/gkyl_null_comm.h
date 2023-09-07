@@ -6,13 +6,14 @@
 
 // input to create new MPI communicator
 struct gkyl_null_comm_inp {
+  bool use_gpu; // flag to use if this communicator is on GPUs  
   const struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   bool sync_corners; // should we sync corners?
 };
 
 /**
  * Return a new "null" communicator, i.e. a communicator for a single
- * core calculation. The communicator returned by this funciton can't
+ * core calculation. The communicator returned by this function can't
  * be used to perform periodic sync operatons on arrays.
  *
  * @return New communicator

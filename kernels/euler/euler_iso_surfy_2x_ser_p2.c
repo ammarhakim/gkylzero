@@ -1,7 +1,7 @@
 #include <gkyl_euler_kernels.h> 
 #include <gkyl_basis_ser_2x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_ser_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void euler_iso_surfy_2x_ser_p2(const double *w, const double *dxv, const double vth, const double *ul, const double *uc, const double *ur, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double euler_iso_surfy_2x_ser_p2(const double *w, const double *dxv, const double vth, const double *ul, const double *uc, const double *ur, const double *statevecl, const double *statevecc, const double *statevecr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -153,5 +153,7 @@ GKYL_CU_DH void euler_iso_surfy_2x_ser_p2(const double *w, const double *dxv, co
   outrhou2[5] += 1.58113883008419*Ghat_rhouz_l[0]*dx1-1.58113883008419*Ghat_rhouz_r[0]*dx1; 
   outrhou2[6] += (-1.224744871391589*Ghat_rhouz_r[2]*dx1)-1.224744871391589*Ghat_rhouz_l[2]*dx1; 
   outrhou2[7] += 1.58113883008419*Ghat_rhouz_l[1]*dx1-1.58113883008419*Ghat_rhouz_r[1]*dx1; 
+
+  return 0.;
 
 } 

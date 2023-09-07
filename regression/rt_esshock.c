@@ -142,12 +142,14 @@ main(int argc, char **argv)
   }
   else
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-        .decomp = decomp
+        .decomp = decomp,
+        .use_gpu = app_args.use_gpu
       }
     );
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-      .decomp = decomp
+      .decomp = decomp,
+      .use_gpu = app_args.use_gpu
     }
   );
 #endif
@@ -289,6 +291,9 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_vlasov_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
   gkyl_vlasov_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
+
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);

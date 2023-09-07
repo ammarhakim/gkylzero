@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_sr_kernels.h> 
-GKYL_CU_DH void vlasov_sr_surfy_2x3v_ser_p2(const double *w, const double *dxv, const double *p_over_gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_sr_surfy_2x3v_ser_p2(const double *w, const double *dxv, const double *p_over_gamma, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]:   Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
@@ -346,4 +346,6 @@ GKYL_CU_DH void vlasov_sr_surfy_2x3v_ser_p2(const double *w, const double *dxv, 
   out[109] += -1.224744871391589*(Ghat_r[45]+Ghat_l[45])*dx11; 
   out[110] += -1.224744871391589*(Ghat_r[46]+Ghat_l[46])*dx11; 
   out[111] += -1.224744871391589*(Ghat_r[47]+Ghat_l[47])*dx11; 
+
+  return 0.;
 } 

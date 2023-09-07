@@ -25,6 +25,9 @@ struct gkyl_moment_species {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
+  // pointer to user-defined number density and temperature sources
+  void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
+  bool nT_source_set_only_once;
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
   // pointer to boundary condition functions along x
@@ -124,6 +127,8 @@ struct gkyl_moment {
   // nu_rs=nu_base_rs/rho_r, and nu_base_sr=nu_base_rs
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 
+  bool has_nT_sources;
+
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
   bool has_low_inp; // should one use low-level inputs?
@@ -155,8 +160,10 @@ struct gkyl_moment_stat {
   double init_field_tm; // time to initialize fields
 
   double species_rhs_tm; // time to compute species collisionless RHS
-  
+  double species_bc_tm; // time to apply BCs
+
   double field_rhs_tm; // time to compute field RHS
+  double field_bc_tm; // time to apply BCs
 };
 
 // Object representing moments app

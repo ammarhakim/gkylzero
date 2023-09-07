@@ -1,7 +1,7 @@
 #include <gkyl_vlasov_pkpm_kernels.h> 
 #include <gkyl_basis_ser_3x_p2_surfx3_eval_quad.h> 
 #include <gkyl_basis_ser_3x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_pkpm_surfvpar_2x1v_ser_p2(const double *w, const double *dxv, const double *pkpm_accel_vars, 
+GKYL_CU_DH double vlasov_pkpm_surfvpar_2x1v_ser_p2(const double *w, const double *dxv, const double *pkpm_accel_vars, 
      const double *g_dist_sourcel, const double *g_dist_sourcec, const double *g_dist_sourcer, 
      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
@@ -436,5 +436,7 @@ GKYL_CU_DH void vlasov_pkpm_surfvpar_2x1v_ser_p2(const double *w, const double *
   out_G_1[17] += -1.224744871391589*(Ghat_G_1_r[6]+Ghat_G_1_l[6]+Ghat_G_1_div_b_r[6]+Ghat_G_1_div_b_l[6])*dv1par; 
   out_G_1[18] += -1.224744871391589*(Ghat_G_1_r[7]+Ghat_G_1_l[7]+Ghat_G_1_div_b_r[7]+Ghat_G_1_div_b_l[7])*dv1par; 
   out_G_1[19] += ((-1.58113883008419*Ghat_G_1_r[3])+1.58113883008419*Ghat_G_1_l[3]-1.58113883008419*Ghat_G_1_div_b_r[3]+1.58113883008419*Ghat_G_1_div_b_l[3])*dv1par; 
+
+  return 0.;
 
 } 
