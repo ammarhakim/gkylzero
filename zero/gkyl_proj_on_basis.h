@@ -35,10 +35,8 @@ struct gkyl_proj_on_basis_inp {
  * @param ctx Context for function evaluation. Can be NULL.
  * @return New updater pointer.
  */
-gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis,
-  int num_quad, int num_ret_vals,
-  evalf_t eval, void *ctx);
+struct gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *basis, int num_quad, int num_ret_vals, evalf_t eval, void *ctx);
 
 /**
  * Create new updater to project function on basis functions on a
@@ -47,7 +45,7 @@ gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
  * @param inp Input parameters
  * @return New updater pointer.
  */
-gkyl_proj_on_basis* gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp);
+struct gkyl_proj_on_basis* gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp);
 
 /**
  * Compute projection on basis. The update_rng MUST be a sub-range of
@@ -60,12 +58,39 @@ gkyl_proj_on_basis* gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp 
  * @param update_rng Range on which to run projection.
  * @param out Output array
  */
-void gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *pob,
+void gkyl_proj_on_basis_advance(const struct gkyl_proj_on_basis *pob,
   double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
+
+/**
+ * Perform the quadrature in the proj_on_basis procedure.
+ * Intended for systems that can't perform the whole procedure in _advance.
+ *
+ * @param up Project on basis updater.
+ * @param fun_at_ords Function evaluated at ordinates in one cell.
+ * @param f Output projected function in one cell.
+ */
+void gkyl_proj_on_basis_quad(const struct gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f);
+
+/**
+ * Return the total number of quadrature points/ordinates.
+ *
+ * @param up Project on basis updater.
+ * @return Number of ordinates.
+ */
+int gkyl_proj_on_basis_get_tot_quad(const struct gkyl_proj_on_basis *up);
+
+/**
+ * Get the coordinates of a given ordinate.
+ *
+ * @param up Project on basis updater.
+ * @param node Index indicate the desired node.
+ * @return Node coordinates.
+ */
+double* gkyl_proj_on_basis_fetch_ordinate(const struct gkyl_proj_on_basis *up, long node);
 
 /**
  * Delete updater.
  *
  * @param pob Updater to delete.
  */
-void gkyl_proj_on_basis_release(gkyl_proj_on_basis* pob);
+void gkyl_proj_on_basis_release(struct gkyl_proj_on_basis* pob);
