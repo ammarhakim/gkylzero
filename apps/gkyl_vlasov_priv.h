@@ -25,7 +25,8 @@
 #include <gkyl_dg_euler_pkpm.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
-#include <gkyl_dg_updater_diffusion.h>
+#include <gkyl_dg_updater_diffusion_fluid.h>
+#include <gkyl_dg_updater_diffusion_gen.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_vlasov.h>
@@ -371,8 +372,9 @@ struct vm_fluid_species {
   int species_index; // index of the kinetic species being coupled to in pkpm model
                      // index corresponds to location in vm_species array (size num_species)
 
-  gkyl_dg_updater_fluid *advect_slvr; // Fluid equation solver
-  gkyl_dg_updater_diffusion *diff_slvr; // Fluid equation solver
+  struct gkyl_dg_updater_fluid *advect_slvr; // Fluid equation solver
+  struct gkyl_dg_updater_diffusion_fluid *diff_slvr; // Fluid equation solver
+  struct gkyl_dg_updater_diffusion_gen *diff_slvr_gen;
 
   // boundary conditions on lower/upper edges in each direction  
   enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
@@ -389,9 +391,7 @@ struct vm_fluid_species {
 
   // fluid diffusion
   bool has_diffusion; // flag to indicate there is applied diffusion
-  struct gkyl_array *Dij; // array for diffusion tensor
-  struct gkyl_array *Dij_host; // host copy of diffusion tensor
-  enum gkyl_diffusion_id diffusion_id; // type of diffusion (e.g., isotropic vs. anisotropic)
+  struct gkyl_array *diffD; // array for diffusion tensor
 
   struct gkyl_array *integ_mom; // Integrated moments
   double *red_integ_diag; // for reduction on GPU
