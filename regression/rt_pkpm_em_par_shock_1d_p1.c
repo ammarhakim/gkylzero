@@ -214,7 +214,7 @@ create_ctx(void)
   // ion cyclotron frequency and gyroradius
   double omegaCi = chargeIon*B0/massIon;
   double di = vAi/omegaCi;
-  double rhoi = vtIon/omegaCi; // rhoi ~ 484 lambdaD at real mass ratio and vtElc/c = 1/8
+  double rhoi = vtIon/omegaCi; 
 
   // noise levels for perturbation
   double noise_amp = 1.0e-12;
@@ -226,8 +226,8 @@ create_ctx(void)
   double nuIon = 0.01*omegaCi/sqrt(massIon);
 
   // domain size and simulation time
-  double Lx = 4.0*M_PI*rhoi;
-  double tend = 10.0/omegaCi;
+  double Lx = 2.0*M_PI*rhoi;
+  double tend = 2.0/omegaCi;
 
   struct pkpm_em_par_shock_ctx ctx = {
     .epsilon0 = epsilon0,
@@ -341,7 +341,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidElc,
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
-    //.diffusion = {.D = 1.0e-5, .order=4},
+    .diffusion = {.D = 1.0e-3, .order=4},
   };  
   
   // electrons
@@ -376,7 +376,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidIon,
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
-    //.diffusion = {.D = 1.0e-5, .order=4},
+    .diffusion = {.D = 1.0e-3, .order=4},
   };  
   
   // ions
@@ -452,7 +452,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
-  int nframe = 1000;
+  int nframe = 20;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 

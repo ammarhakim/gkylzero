@@ -69,7 +69,7 @@ gkyl_mom_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_vlasov_pkpm->momt.num_phase = pbasis->num_basis;
 
   if (diag)
-    mom_vlasov_pkpm->momt.num_mom = 7; // rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
+    mom_vlasov_pkpm->momt.num_mom = 8; // rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp
   else
     mom_vlasov_pkpm->momt.num_mom = 3; // rho, p_par, p_perp
   mom_vlasov_pkpm->mass = mass;
