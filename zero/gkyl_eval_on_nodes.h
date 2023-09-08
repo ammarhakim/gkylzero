@@ -21,7 +21,7 @@ typedef struct gkyl_eval_on_nodes gkyl_eval_on_nodes;
  * @param ctx Context for function evaluation. Can be NULL.
  * @return New updater pointer.
  */
-struct gkyl_eval_on_nodes* gkyl_eval_on_nodes_new(
+gkyl_eval_on_nodes* gkyl_eval_on_nodes_new(
   const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   int num_ret_vals, evalf_t eval, void *ctx);
 
@@ -37,7 +37,7 @@ struct gkyl_eval_on_nodes* gkyl_eval_on_nodes_new(
  * @param update_rng Range on which to run eval.
  * @param out Output array
  */
-void gkyl_eval_on_nodes_advance(const struct gkyl_eval_on_nodes *up,
+void gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up,
   double tm, const struct gkyl_range *update_rng, struct gkyl_array *out);
 
 /**
@@ -47,7 +47,7 @@ void gkyl_eval_on_nodes_advance(const struct gkyl_eval_on_nodes *up,
  * @param fun_at_nodes Function evaluated at nodes in one cell.
  * @param f Modal coefficients of the function in one cell.
  */
-void gkyl_eval_on_nodes_nod2mod(const struct gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f);
+void gkyl_eval_on_nodes_nod2mod(const gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f);
 
 /**
  * Get the coordinates of a given node.
@@ -56,11 +56,11 @@ void gkyl_eval_on_nodes_nod2mod(const struct gkyl_eval_on_nodes *up, const struc
  * @param node Index indicate the desired node.
  * @return Node coordinates.
  */
-double* gkyl_eval_on_nodes_fetch_node(const struct gkyl_eval_on_nodes *up, long node);
+double* gkyl_eval_on_nodes_fetch_node(const gkyl_eval_on_nodes *up, long node);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_eval_on_nodes_release(struct gkyl_eval_on_nodes *up);
+void gkyl_eval_on_nodes_release(gkyl_eval_on_nodes *up);
