@@ -3,7 +3,7 @@
 #include <gkyl_calc_derived_geo_kernels.h>
 #include <assert.h>
 
-typedef void (*derived_geo_kernel)(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *bmaginv, double *bmaginvsq);
+typedef void (*derived_geo_kernel)(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *bmaginv, double *bmaginvsq, double *gxxJ, double *gxyJ, double *gyyJ);
 
 typedef void (*adjust_bmag_kernel)(const double *cmag, const double *gzz, const double *J, double *bmag);
 
