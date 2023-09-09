@@ -8,7 +8,7 @@
 #include <gkyl_range.h>
 
 struct gkyl_proj_on_basis {
-  struct gkyl_rect_grid grid;
+  const struct gkyl_rect_grid *grid;
   int num_quad; // number of quadrature points to use in each direction
   int num_ret_vals; // number of values returned by eval function
   evalf_t eval; // function to project
@@ -42,7 +42,7 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
 {
   struct gkyl_proj_on_basis *up = gkyl_malloc(sizeof(struct gkyl_proj_on_basis));
 
-  up->grid = *inp->grid;
+  up->grid = inp->grid;
   int num_quad = up->num_quad = inp->num_quad;
   int num_ret_vals = up->num_ret_vals = inp->num_ret_vals;
   up->eval = inp->eval;
@@ -168,11 +168,11 @@ gkyl_proj_on_basis_advance(const struct gkyl_proj_on_basis *up,
   gkyl_range_iter_init(&iter, update_range);
   
   while (gkyl_range_iter_next(&iter)) {
-    gkyl_rect_grid_cell_center(&up->grid, iter.idx, xc);
+    gkyl_rect_grid_cell_center(up->grid, iter.idx, xc);
 
     for (int i=0; i<tot_quad; ++i) {
-      comp_to_phys(up->grid.ndim, gkyl_array_cfetch(up->ordinates, i),
-        up->grid.dx, xc, xmu);
+      comp_to_phys(up->grid->ndim, gkyl_array_cfetch(up->ordinates, i),
+        up->grid->dx, xc, xmu);
       up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
     }
 
