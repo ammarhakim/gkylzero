@@ -35,8 +35,8 @@ gkyl_lbo_vlasov_pkpm_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, const str
 #endif
 
   struct dg_lbo_vlasov_pkpm_drag *lbo_vlasov_pkpm_drag = container_of(eqn, struct dg_lbo_vlasov_pkpm_drag, eqn);
-  lbo_vlasov_pkpm_drag->auxfields.nu = auxin.nu;
-  lbo_vlasov_pkpm_drag->auxfields.nuVtSq = auxin.nuVtSq;
+  lbo_vlasov_pkpm_drag->auxfields.nuSum = auxin.nuSum;
+  lbo_vlasov_pkpm_drag->auxfields.nuPrimMomsSum = auxin.nuPrimMomsSum;
 }
 
 struct gkyl_dg_eqn*
@@ -94,10 +94,11 @@ gkyl_dg_lbo_vlasov_pkpm_drag_new(const struct gkyl_basis* cbasis, const struct g
   assert(lbo_vlasov_pkpm_drag->surf);
   assert(lbo_vlasov_pkpm_drag->boundary_surf);
 
-  lbo_vlasov_pkpm_drag->auxfields.nu = 0;
-  lbo_vlasov_pkpm_drag->auxfields.nuVtSq = 0;
+  lbo_vlasov_pkpm_drag->auxfields.nuSum = 0;
+  lbo_vlasov_pkpm_drag->auxfields.nuPrimMomsSum = 0;
   lbo_vlasov_pkpm_drag->conf_range = *conf_range;
   lbo_vlasov_pkpm_drag->vMaxSq = pow(pgrid->upper[cdim],2);
+  lbo_vlasov_pkpm_drag->num_cbasis = cbasis->num_basis;
   
   lbo_vlasov_pkpm_drag->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(lbo_vlasov_pkpm_drag->eqn.flags);

@@ -16,6 +16,9 @@ GKYL_CU_DH void mom_vlasov_pkpm_1x1v_tensor_p2(const double *w, const double *dx
   out[6] += 1.414213562373095*G_1[0]*mass*volFact; 
   out[7] += 1.414213562373095*G_1[1]*mass*volFact; 
   out[8] += 1.414213562373095*G_1[4]*mass*volFact; 
+  out[9] += mass*volFact*(1.414213562373095*F_0[0]*wvpar+0.408248290463863*F_0[2]*dvpar); 
+  out[10] += mass*volFact*(1.414213562373095*F_0[1]*wvpar+0.408248290463863*F_0[3]*dvpar); 
+  out[11] += mass*volFact*(1.414213562373095*F_0[4]*wvpar+0.408248290463863*F_0[6]*dvpar); 
 } 
 GKYL_CU_DH void mom_vlasov_pkpm_diag_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, double mass, const double *f, double* GKYL_RESTRICT out) 
 { 

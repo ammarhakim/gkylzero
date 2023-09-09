@@ -40,8 +40,8 @@ gkyl_prim_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis,
   prim_vlasov_pkpm->prim.num_phase = pbasis->num_basis;
   prim_vlasov_pkpm->prim.self_prim = self_prim;
 
-  // kinetic equation is in local rest frame, so no flow
-  prim_vlasov_pkpm->prim.udim = 0;
+  // kinetic equation is in local rest frame, so no flow, but still have a flow correction
+  prim_vlasov_pkpm->prim.udim = 1;
 
   // choose kernel tables based on basis-function type
   const gkyl_prim_lbo_vlasov_pkpm_self_kern_list *self_prim_kernels;

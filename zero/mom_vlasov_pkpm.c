@@ -68,7 +68,7 @@ gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   }
   else {
     mom_vlasov_pkpm->momt.kernel = CK(mom_vlasov_pkpm_kernels, cdim, poly_order);
-    mom_vlasov_pkpm->momt.num_mom = 3; // rho, p_par, p_perp
+    mom_vlasov_pkpm->momt.num_mom = 4; // rho, p_par, p_perp, M1
   }
 
   mom_vlasov_pkpm->mass = mass;

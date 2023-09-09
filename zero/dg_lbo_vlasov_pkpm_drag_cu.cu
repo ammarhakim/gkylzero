@@ -12,23 +12,22 @@ extern "C" {
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
-// CUDA kernel to set pointer to nu (collisionality)
+// CUDA kernel to set pointer to nuSum and nuPrimMomsSum (collision frequency * primitive moments)
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *nu, const struct gkyl_array *nuVtSq)
+gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *nuSum, const struct gkyl_array *nuPrimMomsSum)
 {
   struct dg_lbo_vlasov_pkpm_drag *lbo_vlasov_pkpm_drag = container_of(eqn, struct dg_lbo_vlasov_pkpm_drag, eqn);
-  lbo_vlasov_pkpm_drag->auxfields.nu = nu;
-  lbo_vlasov_pkpm_drag->auxfields.nuVtSq = nuVtSq;
+  lbo_vlasov_pkpm_drag->auxfields.nuSum = nuSum;
+  lbo_vlasov_pkpm_drag->auxfields.nuPrimMomsSum = nuPrimMomsSum;
 }
 
-//// Host-side wrapper for device kernels setting nu.
+// Host-side wrapper for device kernels setting nuSum and nuPrimMomsSum.
 void
 gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields auxin)
 {
-  gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.nu->on_dev, auxin.nuVtSq->on_dev);
+  gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.nuSum->on_dev, auxin.nuPrimMomsSum->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and Vlasov PKPM LBO drag kernel function
@@ -37,8 +36,8 @@ __global__ static void
 dg_lbo_vlasov_pkpm_drag_set_cu_dev_ptrs(struct dg_lbo_vlasov_pkpm_drag *lbo_vlasov_pkpm_drag, enum gkyl_basis_type b_type,
   int cdim, int poly_order)
 {
-  lbo_vlasov_pkpm_drag->auxfields.nu = 0; 
-  lbo_vlasov_pkpm_drag->auxfields.nuVtSq = 0; 
+  lbo_vlasov_pkpm_drag->auxfields.nuSum = 0; 
+  lbo_vlasov_pkpm_drag->auxfields.nuPrimMomsSum = 0; 
 
   lbo_vlasov_pkpm_drag->eqn.surf_term = surf;
   lbo_vlasov_pkpm_drag->eqn.boundary_surf_term = boundary_surf;

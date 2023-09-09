@@ -58,7 +58,7 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const
   mom_bcorr->vBoundary[0] = vBoundary[0];
   mom_bcorr->vBoundary[1] = vBoundary[1];
   mom_bcorr->mass = mass;
-  mom_bcorr->momt.num_mom = 1; // number of moments
+  mom_bcorr->momt.num_mom = 2; // number of moments
 
   mom_bcorr->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_bcorr->momt.flags);

@@ -19,6 +19,10 @@ GKYL_CU_DH void mom_vlasov_pkpm_2x1v_ser_p1(const double *w, const double *dxv, 
   out[9] += 1.414213562373095*G_1[1]*mass*volFact; 
   out[10] += 1.414213562373095*G_1[2]*mass*volFact; 
   out[11] += 1.414213562373095*G_1[4]*mass*volFact; 
+  out[12] += mass*volFact*(1.414213562373095*F_0[0]*wvpar+0.408248290463863*F_0[3]*dvpar); 
+  out[13] += mass*volFact*(1.414213562373095*F_0[1]*wvpar+0.408248290463863*F_0[5]*dvpar); 
+  out[14] += mass*volFact*(1.414213562373095*F_0[2]*wvpar+0.408248290463863*F_0[6]*dvpar); 
+  out[15] += mass*volFact*(1.414213562373095*F_0[4]*wvpar+0.408248290463863*F_0[7]*dvpar); 
 } 
 GKYL_CU_DH void mom_vlasov_pkpm_diag_2x1v_ser_p1(const double *w, const double *dxv, const int *idx, double mass, const double *f, double* GKYL_RESTRICT out) 
 { 
