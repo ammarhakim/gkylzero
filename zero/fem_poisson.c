@@ -52,6 +52,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   } else {
     up->ishelmholtz = false;
     kSq_ho = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+    //kSq_ho = gkyl_array_new(GKYL_DOUBLE, 1, 10);
     gkyl_array_clear(kSq_ho, 0.);
   }
 
@@ -314,7 +315,7 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 #endif
 
   gkyl_free(up->globalidx);
-  gkyl_free(up->brhs);
+  gkyl_array_release(up->brhs);
   gkyl_free(up->kernels);
   gkyl_free(up);
 }
