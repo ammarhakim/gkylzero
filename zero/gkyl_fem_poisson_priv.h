@@ -659,8 +659,7 @@ struct gkyl_fem_poisson {
   double bcvals[GKYL_MAX_CDIM*2*3]; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
   double *bcvals_cu; // BC values, bc[0]*phi+bc[1]*d(phi)/dx=phi[3] at each boundary.
 
-  struct gkyl_range local_range, local_range_ext;
-  struct gkyl_range solve_range;
+  const struct gkyl_range *solve_range;
   struct gkyl_range_iter solve_iter;
 
   int numnodes_local;
@@ -861,3 +860,21 @@ fem_poisson_choose_sol_kernels(const struct gkyl_basis* basis)
       break;
   }
 }
+
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Assign the right-side vector on the device.
+ *
+ * @param up FEM poisson updater to run.
+ * @param rhsin DG field to set as RHS source.
+ * @param rhsin_cellavg Array w/ 1 component, same size as rhsin.
+ */
+void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson* up, struct gkyl_array *rhsin, struct gkyl_array *rhsin_cellavg);
+
+/**
+ * Solve the linear problem on the device.
+ *
+ * @param up FEM project updater to run.
+ */
+void gkyl_fem_poisson_solve_cu(gkyl_fem_poisson* up, struct gkyl_array *phiout);
+#endif
