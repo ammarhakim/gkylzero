@@ -12,9 +12,9 @@ static inline int diffdirs_linidx(const bool *isdirdiff, int cdim) {
   // kernel for each combination of diffusive directions).
   bool diff_in_dir[GKYL_MAX_CDIM];
   if (isdirdiff)
-    for (size_t d=0; d<cdim; d++) diff_in_dir[d] = isdirdiff[d];
+    for (int d=0; d<cdim; d++) diff_in_dir[d] = isdirdiff[d];
   else
-    for (size_t d=0; d<cdim; d++) diff_in_dir[d] = true;
+    for (int d=0; d<cdim; d++) diff_in_dir[d] = true;
 
   // Linear index into list of volume kernels.
   int dirs_bin_key[] = {1,2,4,8,16,32}; // Binary: 000001, 000010, 000100, 001000, 010000, 100000.
@@ -1946,7 +1946,7 @@ GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
   struct dg_diffusion_fluid* diffusion = container_of(eqn, struct dg_diffusion_fluid, eqn);
   
   if (diffusion->diff_in_dir[dir]) {
-    for (size_t c=0; c<diffusion->num_equations; c++) {
+    for (int c=0; c<diffusion->num_equations; c++) {
       int off = c*diffusion->num_basis;
       diffusion->surf[dir](xcC, dxC, _cfD(idxC), qInL+off, qInC+off, qInR+off, qRhsOut+off);
     }
@@ -1962,7 +1962,7 @@ GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn* eqn, int dir,
   struct dg_diffusion_fluid* diffusion = container_of(eqn, struct dg_diffusion_fluid, eqn);
   
   if (diffusion->diff_in_dir[dir]) {
-    for (size_t c=0; c<diffusion->num_equations; c++) {
+    for (int c=0; c<diffusion->num_equations; c++) {
       int off = c*diffusion->num_basis;
       diffusion->boundary_surf[dir](xcSkin, dxSkin, _cfD(idxSkin), edge, qInSkin+off, qInEdge+off, qRhsOut+off);
     }
