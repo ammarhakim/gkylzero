@@ -12,9 +12,9 @@ static inline int diffdirs_linidx(const bool *isdirdiff, int cdim) {
   // kernel for each combination of diffusive directions).
   bool diff_in_dir[GKYL_MAX_CDIM];
   if (isdirdiff)
-    for (size_t d=0; d<cdim; d++) diff_in_dir[d] = isdirdiff[d];
+    for (int d=0; d<cdim; d++) diff_in_dir[d] = isdirdiff[d];
   else
-    for (size_t d=0; d<cdim; d++) diff_in_dir[d] = true;
+    for (int d=0; d<cdim; d++) diff_in_dir[d] = true;
 
   // Linear index into list of volume kernels.
   int dirs_bin_key[] = {1,2,4,8,16,32}; // Binary: 000001, 000010, 000100, 001000, 010000, 100000.
