@@ -89,7 +89,8 @@ gkyl_dg_lbo_vlasov_pkpm_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
   lbo_vlasov_pkpm_drag->eqn.num_equations = 2;
   lbo_vlasov_pkpm_drag->conf_range = *conf_range;
   lbo_vlasov_pkpm_drag->vMaxSq = pow(pgrid->upper[cdim],2);
-
+  lbo_vlasov_pkpm_drag->num_cbasis = cbasis->num_basis;
+  
   lbo_vlasov_pkpm_drag->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(lbo_vlasov_pkpm_drag->eqn.flags);
   lbo_vlasov_pkpm_drag->eqn.ref_count = gkyl_ref_count_init(gkyl_lbo_vlasov_pkpm_drag_free);

@@ -28,7 +28,7 @@ gkyl_lbo_vlasov_pkpm_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, const str
 {
 
 #ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(auxin.nu) && gkyl_array_is_cu_dev(auxin.nuVtSq)) {
+ if (gkyl_array_is_cu_dev(auxin.nuSum) && gkyl_array_is_cu_dev(auxin.nuPrimMomsSum)) {
    gkyl_lbo_vlasov_pkpm_drag_set_auxfields_cu(eqn->on_dev, auxin);
    return;
  }
