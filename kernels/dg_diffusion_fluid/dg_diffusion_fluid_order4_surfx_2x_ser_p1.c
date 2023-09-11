@@ -21,24 +21,3 @@ GKYL_CU_DH double dg_diffusion_fluid_order4_surfx_2x_ser_p1_constcoeff(const dou
 
 }
 
-GKYL_CU_DH double dg_diffusion_fluid_order4_surfx_2x_ser_p1_varcoeff(const double *w, const double *dx, const double *coeff, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
-{
-  // w[NDIM]: Cell-center coordinate.
-  // dxv[NDIM]: Cell length.
-  // coeff: Diffusion coefficient.
-  // ql: Input field in the left cell.
-  // qc: Input field in the center cell.
-  // qr: Input field in the right cell.
-  // out: Incremented output.
-
-  const double Jfac = pow(2./dx[0],4.);
-
-  out[0] += -0.03125*((57.0*coeff[3]+25.98076211353316*coeff[2])*qr[3]+(57.0*coeff[3]-25.98076211353316*coeff[2])*ql[3]+66.0*coeff[3]*qc[3]+(25.98076211353316*ql[2]-25.98076211353316*qr[2])*coeff[3]-15.0*coeff[2]*qr[2]-15.0*coeff[2]*ql[2]+30.0*coeff[2]*qc[2]+(57.0*coeff[1]+25.98076211353316*coeff[0])*qr[1]+(57.0*coeff[1]-25.98076211353316*coeff[0])*ql[1]+66.0*coeff[1]*qc[1]+(25.98076211353316*ql[0]-25.98076211353316*qr[0])*coeff[1]-15.0*coeff[0]*qr[0]-15.0*coeff[0]*ql[0]+30.0*coeff[0]*qc[0])*Jfac; 
-  out[1] += -0.03125*((77.94228634059945*coeff[3]+33.0*coeff[2])*qr[3]+(33.0*coeff[2]-77.94228634059945*coeff[3])*ql[3]+114.0*coeff[2]*qc[3]+((-45.0*qr[2])-45.0*ql[2]+90.0*qc[2])*coeff[3]-25.98076211353316*coeff[2]*qr[2]+25.98076211353316*coeff[2]*ql[2]+(77.94228634059945*coeff[1]+33.0*coeff[0])*qr[1]+(33.0*coeff[0]-77.94228634059945*coeff[1])*ql[1]+114.0*coeff[0]*qc[1]+((-45.0*qr[0])-45.0*ql[0]+90.0*qc[0])*coeff[1]-25.98076211353316*coeff[0]*qr[0]+25.98076211353316*coeff[0]*ql[0])*Jfac; 
-  out[2] += -0.03125*((57.0*coeff[1]+25.98076211353316*coeff[0])*qr[3]+(57.0*coeff[1]-25.98076211353316*coeff[0])*ql[3]+66.0*coeff[1]*qc[3]+(57.0*qr[1]+57.0*ql[1]+66.0*qc[1]-25.98076211353316*qr[0]+25.98076211353316*ql[0])*coeff[3]+((-25.98076211353316*coeff[1])-15.0*coeff[0])*qr[2]+(25.98076211353316*coeff[1]-15.0*coeff[0])*ql[2]+30.0*coeff[0]*qc[2]+(25.98076211353316*qr[1]-25.98076211353316*ql[1]-15.0*qr[0]-15.0*ql[0]+30.0*qc[0])*coeff[2])*Jfac; 
-  out[3] += -0.03125*((77.94228634059945*coeff[1]+33.0*coeff[0])*qr[3]+(33.0*coeff[0]-77.94228634059945*coeff[1])*ql[3]+114.0*coeff[0]*qc[3]+(77.94228634059945*qr[1]-77.94228634059945*ql[1]-45.0*qr[0]-45.0*ql[0]+90.0*qc[0])*coeff[3]+((-45.0*coeff[1])-25.98076211353316*coeff[0])*qr[2]+(25.98076211353316*coeff[0]-45.0*coeff[1])*ql[2]+90.0*coeff[1]*qc[2]+(33.0*qr[1]+33.0*ql[1]+114.0*qc[1]-25.98076211353316*qr[0]+25.98076211353316*ql[0])*coeff[2])*Jfac; 
-
-  return 0.;
-
-}
-
