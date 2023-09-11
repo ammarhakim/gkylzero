@@ -138,7 +138,7 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
       break;
   }
   // 2) Copy from buffer to ghost.
-  gkyl_array_copy_from_buffer(f_arr, buff_arr->data, *up->ghost_r);
+  gkyl_array_copy_from_buffer(f_arr, buff_arr->data, &(*up->ghost_r));
 }
 
 void gkyl_bc_basic_release(struct gkyl_bc_basic *up)

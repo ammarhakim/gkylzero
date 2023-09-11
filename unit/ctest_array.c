@@ -689,7 +689,7 @@ void test_array_copy_buffer()
   gkyl_sub_range_init(&sub_range, &range, lower, upper);
 
   double *buff = gkyl_malloc(sizeof(double)*sub_range.volume);
-  gkyl_array_copy_to_buffer(buff, arr, sub_range);
+  gkyl_array_copy_to_buffer(buff, arr, &sub_range);
 
   long count = 0;
   gkyl_range_iter_init(&iter, &sub_range);
@@ -698,7 +698,7 @@ void test_array_copy_buffer()
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr, buff, sub_range);
+  gkyl_array_copy_from_buffer(arr, buff, &sub_range);
 
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -749,7 +749,7 @@ void test_array_copy_buffer_fn()
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr, buff, sub_range);
+  gkyl_array_copy_from_buffer(arr, buff, &sub_range);
 
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -800,7 +800,7 @@ void test_array_flip_copy_buffer_fn()
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr, buff, sub_range);
+  gkyl_array_copy_from_buffer(arr, buff, &sub_range);
 
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -892,7 +892,7 @@ void test_array_copy_split()
   long loc = 0;
   for (int tid=0; tid<num_split; ++tid) {
     struct gkyl_range sr = gkyl_range_split(&sub_range, num_split, tid);
-    gkyl_array_copy_to_buffer(buff+loc, arr, sr);
+    gkyl_array_copy_to_buffer(buff+loc, arr, &sr);
     
     loc += gkyl_range_split_len(&sr);
   }
@@ -908,7 +908,7 @@ void test_array_copy_split()
   for (int tid=0; tid<num_split; ++tid) {
     // copy back from buffer
     struct gkyl_range sr = gkyl_range_split(&sub_range, num_split, tid);
-    gkyl_array_copy_from_buffer(arr, buff+loc, sr);
+    gkyl_array_copy_from_buffer(arr, buff+loc, &sr);
     loc += gkyl_range_split_len(&sr);
   }
 
@@ -2085,11 +2085,11 @@ void test_cu_array_copy_buffer()
   gkyl_sub_range_init(&sub_range, &range, lower, upper);
 
   double *buff_cu = gkyl_cu_malloc(sizeof(double)*sub_range.volume);
-  gkyl_array_copy_to_buffer(buff_cu, arr_cu, sub_range);
+  gkyl_array_copy_to_buffer(buff_cu, arr_cu, &sub_range);
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
+  gkyl_array_copy_from_buffer(arr_cu, buff_cu, &sub_range);
 
   // copy from device and check if things are ok
   gkyl_array_copy(arr, arr_cu);
@@ -2139,7 +2139,7 @@ void test_cu_array_copy_buffer_fn()
   double *buff_cu = gkyl_cu_malloc(sizeof(double)*sub_range.volume);
   gkyl_array_copy_to_buffer_fn_cu(buff_cu, arr_cu, sub_range, fn);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
+  gkyl_array_copy_from_buffer(arr_cu, buff_cu, &sub_range);
 
   // copy from device and check if things are ok
   gkyl_array_copy(arr, arr_cu);
@@ -2190,7 +2190,7 @@ void test_cu_array_flip_copy_buffer_fn()
 
   gkyl_array_clear(arr_cu, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
+  gkyl_array_copy_from_buffer(arr_cu, buff_cu, &sub_range);
 
   gkyl_array_clear(arr, 0.0);  
   // copy from device and check if things are ok
@@ -2215,7 +2215,7 @@ void test_cu_array_flip_copy_buffer_fn()
 
   gkyl_array_clear(arr_cu, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
+  gkyl_array_copy_from_buffer(arr_cu, buff_cu, &sub_range);
 
   gkyl_array_clear(arr, 0.0);
   // copy from device and check if things are ok

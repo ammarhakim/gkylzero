@@ -579,11 +579,11 @@ void
 vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, struct gkyl_array *f)
 {
-  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, species->skin_ghost.lower_skin[dir]);
-  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
+  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &(species->skin_ghost.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &(species->skin_ghost.upper_ghost[dir]));
 
-  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, species->skin_ghost.upper_skin[dir]);
-  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
+  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &(species->skin_ghost.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &(species->skin_ghost.lower_ghost[dir]));
 }
 
 // Determine which directions are periodic and which directions are not periodic,

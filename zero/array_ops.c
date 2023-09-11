@@ -523,7 +523,7 @@ gkyl_array_copy_range_to_range(struct gkyl_array *out,
 
 void
 gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range)
+  struct gkyl_range *range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) { gkyl_array_copy_to_buffer_cu(data, arr, range); return; }
@@ -532,11 +532,11 @@ gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
 #define _F(loc) gkyl_array_cfetch(arr, loc)
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
+  gkyl_range_iter_init(&iter, range);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
-    long start = gkyl_range_idx(&range, iter.idx);
+    long start = gkyl_range_idx(range, iter.idx);
     memcpy(((char*) data) + arr->esznc*count++, _F(start), arr->esznc);
   }
 
@@ -545,7 +545,7 @@ gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
 
 void
 gkyl_array_copy_from_buffer(struct gkyl_array *arr,
-  const void *data, struct gkyl_range range)
+  const void *data, struct gkyl_range *range)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) { gkyl_array_copy_from_buffer_cu(arr, data, range); return; }
@@ -554,11 +554,11 @@ gkyl_array_copy_from_buffer(struct gkyl_array *arr,
 #define _F(loc) gkyl_array_fetch(arr, loc)
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
+  gkyl_range_iter_init(&iter, range);
 
   long count = 0;
   while (gkyl_range_iter_next(&iter)) {
-    long start = gkyl_range_idx(&range, iter.idx);
+    long start = gkyl_range_idx(range, iter.idx);
     memcpy(_F(start), ((char*) data) + arr->esznc*count++, arr->esznc);
   }
 
