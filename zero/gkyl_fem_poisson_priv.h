@@ -867,9 +867,8 @@ fem_poisson_choose_sol_kernels(const struct gkyl_basis* basis)
  *
  * @param up FEM poisson updater to run.
  * @param rhsin DG field to set as RHS source.
- * @param rhsin_cellavg Array w/ 1 component, same size as rhsin.
  */
-void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson* up, struct gkyl_array *rhsin, struct gkyl_array *rhsin_cellavg);
+void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson* up, struct gkyl_array *rhsin);
 
 /**
  * Solve the linear problem on the device.
