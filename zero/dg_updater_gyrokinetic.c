@@ -15,13 +15,13 @@ gkyl_dg_updater_gyrokinetic_acquire_eqn(const gkyl_dg_updater_gyrokinetic* gyrok
   return gkyl_dg_eqn_acquire(gyrokinetic->dgeqn);
 }
 
-gkyl_dg_updater_gyrokinetic*
+struct gkyl_dg_updater_gyrokinetic*
 gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
   enum gkyl_gkeqn_id eqn_id, double charge, double mass, bool use_gpu)
 {
-  gkyl_dg_updater_gyrokinetic *up = gkyl_malloc(sizeof(gkyl_dg_updater_gyrokinetic));
+  struct gkyl_dg_updater_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_gyrokinetic));
 
   up->use_gpu = use_gpu;
 
@@ -48,7 +48,7 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_dg_updater_gyrokinetic_advance(gkyl_dg_updater_gyrokinetic *up,
+gkyl_dg_updater_gyrokinetic_advance(struct gkyl_dg_updater_gyrokinetic *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag, const struct gkyl_array *jacobtot_inv,
   const struct gkyl_array *cmag, const struct gkyl_array *b_i,
@@ -73,7 +73,7 @@ gkyl_dg_updater_gyrokinetic_advance(gkyl_dg_updater_gyrokinetic *up,
 }
 
 void
-gkyl_dg_updater_gyrokinetic_release(gkyl_dg_updater_gyrokinetic* up)
+gkyl_dg_updater_gyrokinetic_release(struct gkyl_dg_updater_gyrokinetic* up)
 {
   gkyl_dg_eqn_release(up->dgeqn);
   gkyl_hyper_dg_release(up->hyperdg);

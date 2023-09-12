@@ -26,7 +26,7 @@ struct gkyl_dg_updater_bflux_gyrokinetic_tm {
  * 
  * @return New boundary flux updater object.
  */
-gkyl_dg_updater_bflux_gyrokinetic* gkyl_dg_updater_bflux_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
+struct gkyl_dg_updater_bflux_gyrokinetic* gkyl_dg_updater_bflux_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   int cdim, const gkyl_dg_updater_gyrokinetic *gyrokinetic, bool use_gpu);
 
 /**
@@ -40,11 +40,11 @@ gkyl_dg_updater_bflux_gyrokinetic* gkyl_dg_updater_bflux_gyrokinetic_new(const s
  * @param fIn Input to updater.
  * @param rhs RHS output.
  */
-void gkyl_dg_updater_bflux_gyrokinetic_advance(gkyl_dg_updater_bflux_gyrokinetic *up,
+void gkyl_dg_updater_bflux_gyrokinetic_advance(struct gkyl_dg_updater_bflux_gyrokinetic *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs);
 
-void gkyl_dg_updater_bflux_gyrokinetic_advance_cu(gkyl_dg_updater_bflux_gyrokinetic *up,
+void gkyl_dg_updater_bflux_gyrokinetic_advance_cu(struct gkyl_dg_updater_bflux_gyrokinetic *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs);
 
@@ -54,11 +54,11 @@ void gkyl_dg_updater_bflux_gyrokinetic_advance_cu(gkyl_dg_updater_bflux_gyrokine
  * @param up Boundary flux updater.
  * @return timers
  */
-struct gkyl_dg_updater_bflux_gyrokinetic_tm gkyl_dg_updater_bflux_gyrokinetic_get_tm(const gkyl_dg_updater_bflux_gyrokinetic *up);
+struct gkyl_dg_updater_bflux_gyrokinetic_tm gkyl_dg_updater_bflux_gyrokinetic_get_tm(const struct gkyl_dg_updater_bflux_gyrokinetic *up);
 
 /**
  * Delete updater.
  *
  * @param up Boundary flux updater.
  */
-void gkyl_dg_updater_bflux_gyrokinetic_release(gkyl_dg_updater_bflux_gyrokinetic* up);
+void gkyl_dg_updater_bflux_gyrokinetic_release(struct gkyl_dg_updater_bflux_gyrokinetic *up);

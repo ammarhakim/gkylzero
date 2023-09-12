@@ -48,6 +48,13 @@ gkyl_mom_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_vlasov_pkpm_kernels = ser_mom_vlasov_pkpm_kernels;
       mom_vlasov_pkpm_diag_kernels = ser_mom_vlasov_pkpm_diag_kernels;
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      mom_vlasov_pkpm_kernels = ten_mom_vlasov_pkpm_kernels;
+      mom_vlasov_pkpm_diag_kernels = ten_mom_vlasov_pkpm_diag_kernels;
+      
       break;
 
     default:

@@ -16,6 +16,8 @@ struct pkpm_sheath_ctx {
   double vti; // ion thermal velocity
   double Lx; // size of the box
   double n0; // initial number density
+  double tend;
+  double min_dt;
 };
 
 static inline double sq(double x) { return x*x; }
@@ -65,25 +67,35 @@ evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct pkpm_sheath_ctx *app = ctx;
   double x = xn[0];
+  
+  fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  fout[6] = 0.0; fout[7] = 0.0;
+}
+
+void
+evalExtEmFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct pkpm_sheath_ctx *app = ctx;
+  double x = xn[0];
   double B_x = 1.0;
   
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
   fout[3] = B_x; fout[4] = 0.0; fout[5] = 0.0;
-  fout[6] = 0.0; fout[7] = 0.0;
 }
 
 void
 evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_sheath_ctx *app = ctx;
-  fout[0] = 1.0e-4;
+  fout[0] = 1.0e-5;
 }
 
 void
 evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_sheath_ctx *app = ctx;
-  fout[0] = 1.0e-4/sqrt(app->massIon)*(app->Te_Ti*sqrt(app->Te_Ti));
+  fout[0] = 1.0e-5/sqrt(app->massIon)*(app->Te_Ti*sqrt(app->Te_Ti));
 }
 
 struct pkpm_sheath_ctx
@@ -98,9 +110,20 @@ create_ctx(void)
     .vte = 1.0,
     .vti = ctx.vte/sqrt(ctx.Te_Ti*ctx.massIon),
     .Lx = 128.0,
-    .n0 = 1.0
+    .n0 = 1.0,
+    .tend = 100.0,
+    .min_dt = 1.0e-4, 
   };
   return ctx;
+}
+
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
+    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
+  }
 }
 
 int
@@ -112,12 +135,12 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
   int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);  
 
   struct pkpm_sheath_ctx ctx = create_ctx(); // context for init functions
 
-  // electron Tperp                                                                                              
+  // electron momentum
   struct gkyl_vlasov_fluid_species fluid_elc = {
     .name = "fluid_elc",
     .num_eqn = 3,
@@ -125,6 +148,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidElc,
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
+    //.diffusion = {.D = 1.0e-5, .order=4},
   };  
   
   // electrons
@@ -133,8 +157,8 @@ main(int argc, char **argv)
     .model_id = GKYL_MODEL_PKPM,
     .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
-    .lower = { -6.0 * ctx.vte},
-    .upper = { 6.0 * ctx.vte}, 
+    .lower = { -8.0 * ctx.vte},
+    .upper = { 8.0 * ctx.vte}, 
     .cells = { VX },
 
     .ctx = &ctx,
@@ -145,13 +169,14 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNuElc,
+      .normNu = true,
     },    
 
     .num_diag_moments = 0,
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
   };
 
-  // ion Tperp                                                                                              
+  // ion momentum
   struct gkyl_vlasov_fluid_species fluid_ion = {
     .name = "fluid_ion",
     .num_eqn = 3,
@@ -159,6 +184,7 @@ main(int argc, char **argv)
     .ctx = &ctx,
     .init = evalFluidIon,
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
+    //.diffusion = {.D = 1.0e-5, .order=4},
   };  
   
   // ions
@@ -193,7 +219,10 @@ main(int argc, char **argv)
 
     .ctx = &ctx,
     .init = evalFieldFunc,
+    // Plasma EM field BCs are PEC, external field goes into conducting wall
     .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL }, 
+    .ext_em = evalExtEmFunc,
+    .ext_em_ctx = &ctx,
   };
 
   // VM app
@@ -206,7 +235,6 @@ main(int argc, char **argv)
     .cells = { NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
-    .cfl_frac = 0.8,
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
@@ -224,14 +252,15 @@ main(int argc, char **argv)
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 100.0;
+  double tcurr = 0.0, tend = ctx.tend;
   double dt = tend-tcurr;
+  int nframe = 1;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, tcurr);
-  
-  gkyl_vlasov_app_write(app, tcurr, 0);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  write_data(&io_trig, app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -243,34 +272,49 @@ main(int argc, char **argv)
       printf("** Update method failed! Aborting simulation ....\n");
       break;
     }
+    if (status.dt_actual < ctx.min_dt) {
+      printf("** Time step crashing! Aborting simulation and writing out last output ....\n");
+      gkyl_vlasov_app_write(app, tcurr, 1000);
+      gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1000);
+      break;
+    }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+
+    write_data(&io_trig, app, tcurr);
+
     step += 1;
   }
 
-  gkyl_vlasov_app_write(app, tcurr, 1);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
   gkyl_vlasov_app_stat_write(app);
-
+  
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
+  gkyl_vlasov_app_cout(app, stdout, "\n");
+  gkyl_vlasov_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  if (stat.nstage_2_fail > 0) {
+    gkyl_vlasov_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+  }  
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species PKPM Vars took %g secs\n", stat.species_pkpm_vars_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
+
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+
   // simulation complete, free app
   gkyl_vlasov_app_release(app);
-
-  printf("\n");
-  printf("Number of update calls %ld\n", stat.nup);
-  printf("Number of forward-Euler calls %ld\n", stat.nfeuler);
-  printf("Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
-  if (stat.nstage_2_fail > 0) {
-    printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }  
-  printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
-  printf("Updates took %g secs\n", stat.total_tm);
   
   return 0;
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #if defined(__GNUC__) || defined(__GNUG__)
-# include <xmmintrin.h>
+#include <xmmintrin.h>
 #endif
 
 #if defined(__clang__)

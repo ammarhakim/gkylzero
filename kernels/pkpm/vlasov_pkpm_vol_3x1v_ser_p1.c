@@ -1,26 +1,29 @@
 #include <gkyl_vlasov_pkpm_kernels.h> 
 GKYL_CU_DH double vlasov_pkpm_vol_3x1v_ser_p1(const double *w, const double *dxv, 
-  const double *bvar, const double *u_i, 
-  const double *pkpm_accel_vars, const double *g_dist_source, 
-  const double *f, double* GKYL_RESTRICT out) 
+  const double *bvar, const double *pkpm_prim, 
+  const double *div_b, const double *pkpm_accel_vars, 
+  const double *g_dist_source, const double *f, 
+  double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]:         Cell-center coordinates.
-  // dxv[NDIM]:       Cell spacing.
-  // bvar:            magnetic field unit vector (nine components; first three components, b_i, other six components, b_i b_j.) 
-  // u_i:             flow velocity  // pkpm_accel_vars: pkpm acceleration variables
-  // g_dist_source:   Input [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)),  
-  //                  (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + nu vth^2 F_0 ].
-  //                  First output is mirror force source, second output is vperp characteristics source.
-  // f:               Input distribution function [F_0, T_perp/m G = T_perp/m (F_0 - F_1)].
-  // out:             Incremented output.
+  // w[NDIM]:         Cell-center coordinates. 
+  // dxv[NDIM]:       Cell spacing. 
+  // bvar:            Input magnetic field unit vector and tensor (nine components; first three components, b_i, other six components, b_i b_j). 
+  // pkpm_prim:       Input primitive variables [ux, uy, uz, 1/rho div(p_par b), T_perp/m, m/T_perp]. 
+  // div_b:           Input volume expansion of div(b). 
+  // pkpm_accel_vars: Input pkpm acceleration variables [T_perp/m*div(b), bb:grad(u), p_force, p_perp_source]. 
+  // g_dist_source:   Input [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)), 
+  //                  (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0 ]. 
+  //                  First input is mirror force source, second input is vperp characteristics source. 
+  // f:               Input distribution functions [F_0, T_perp/m G = T_perp/m (F_0 - F_1)].
+  // out:             Incremented output distribution functions. 
   const double dx0 = 2.0/dxv[0]; 
   const double dx1 = 2.0/dxv[1]; 
   const double dx2 = 2.0/dxv[2]; 
   const double dv1par = 2.0/dxv[3]; 
   const double dvpar = dxv[3], wvpar = w[3]; 
-  const double *ux = &u_i[0]; 
-  const double *uy = &u_i[8]; 
-  const double *uz = &u_i[16]; 
+  const double *ux = &pkpm_prim[0]; 
+  const double *uy = &pkpm_prim[8]; 
+  const double *uz = &pkpm_prim[16]; 
   const double *bx = &bvar[0]; 
   const double *by = &bvar[8]; 
   const double *bz = &bvar[16]; 
@@ -30,10 +33,9 @@ GKYL_CU_DH double vlasov_pkpm_vol_3x1v_ser_p1(const double *w, const double *dxv
   const double *F_0_source = &f[24]; 
   const double *G_1_source = &g_dist_source[0]; 
   const double *G_1_vperp = &g_dist_source[24]; 
-  const double *div_b = &pkpm_accel_vars[0]; 
+  const double *p_perp_div_b = &pkpm_accel_vars[0]; 
   const double *bb_grad_u = &pkpm_accel_vars[8]; 
   const double *p_force = &pkpm_accel_vars[16]; 
-  const double *p_perp_div_b = &pkpm_accel_vars[32]; 
 
   double *out_F_0 = &out[0]; 
   double *out_G_1 = &out[24]; 

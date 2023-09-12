@@ -111,11 +111,13 @@ struct moment_field {
   struct gkyl_wv_eqn *maxwell; // pointer to Maxwell eqn obj
 
   struct gkyl_array *app_current; // arrays for applied currents
+  double t_ramp_curr; // linear ramp for turning on applied currents
   // pointer to projection operator for applied current function
   gkyl_fv_proj *proj_app_current;
 
   bool is_ext_em_static; // flag to indicate if external field is time-independent
   struct gkyl_array *ext_em; // array external fields
+  double t_ramp_E; // linear ramp for turning on external E field
   gkyl_fv_proj *proj_ext_em; // pointer to projection operator for external fields
   bool was_ext_em_computed; // flag to indicate if we already computed external EM field
 

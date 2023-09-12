@@ -254,12 +254,13 @@ test_1x1v(int poly_order)
 
   // Create correction object and moments object
   gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, 
-    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, 
+    p_over_gamma, gamma, gamma_inv, false);
   gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
 
   // Compute the original moments (of f_waterbag), save them for later comparison
-  gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf, m0, m1i, m2, &local, &confLocal);
+  gkyl_mj_moments_advance(mj_moms, distf, m0, m1i, m2, &local, &confLocal);
   gkyl_array_clear(m0_original, 0.0);
   gkyl_array_clear(m1i_original, 0.0);
   gkyl_array_clear(m2_original, 0.0);
@@ -286,7 +287,7 @@ test_1x1v(int poly_order)
     }
 
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)
-    gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf, m0, m1i, m2, &local, &confLocal);
+    gkyl_mj_moments_advance(mj_moms, distf, m0, m1i, m2, &local, &confLocal);
 
     // Update the dist_mj using the moments
     gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf_mj);
@@ -295,7 +296,7 @@ test_1x1v(int poly_order)
     // gkyl_correct_mj_fix_m0(corr_mj, p_over_gamma, distf_mj, m0, m1i, &local, &confLocal);
 
     // correct all moments
-    gkyl_correct_mj_fix(corr_mj, distf_mj, m0, m1i, m2, &local, &confLocal, poly_order, &confLocal_ext, &velLocal, &velBasis, &vel_grid);
+    gkyl_correct_mj_fix(corr_mj, distf_mj, m0, m1i, m2, &local, &confLocal, poly_order);
 
     // calculate nu*f^mj,
     // gkyl_dg_mul_op_range(basis, 0, distf_mj, 0, nudt, 0, distf_mj, &local);
@@ -354,6 +355,8 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_array_release(p_over_gamma);
+  gkyl_array_release(gamma);
+  gkyl_array_release(gamma_inv);
   gkyl_bgk_collisions_release(bgk_obj);
 }
 

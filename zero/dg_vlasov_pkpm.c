@@ -31,11 +31,7 @@ void
 gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.bvar) &&
-      gkyl_array_is_cu_dev(auxin.u_i) &&
-      gkyl_array_is_cu_dev(auxin.pkpm_accel_vars) &&
-      gkyl_array_is_cu_dev(auxin.g_dist_source) &&
-      gkyl_array_is_cu_dev(auxin.vth_sq)) {
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
     gkyl_vlasov_pkpm_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
@@ -43,10 +39,14 @@ gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vla
 
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
   vlasov_pkpm->auxfields.bvar = auxin.bvar;
-  vlasov_pkpm->auxfields.u_i = auxin.u_i;
+  vlasov_pkpm->auxfields.bvar_surf = auxin.bvar_surf;
+  vlasov_pkpm->auxfields.pkpm_prim = auxin.pkpm_prim;
+  vlasov_pkpm->auxfields.pkpm_prim_surf = auxin.pkpm_prim_surf;
+  vlasov_pkpm->auxfields.max_b = auxin.max_b;
+  vlasov_pkpm->auxfields.pkpm_lax = auxin.pkpm_lax;
+  vlasov_pkpm->auxfields.div_b = auxin.div_b;  
   vlasov_pkpm->auxfields.pkpm_accel_vars = auxin.pkpm_accel_vars;
   vlasov_pkpm->auxfields.g_dist_source = auxin.g_dist_source;
-  vlasov_pkpm->auxfields.vth_sq = auxin.vth_sq;
 }
 
 struct gkyl_dg_eqn*
@@ -59,7 +59,6 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   } 
 #endif
   struct dg_vlasov_pkpm *vlasov_pkpm = gkyl_malloc(sizeof(struct dg_vlasov_pkpm));
-
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int poly_order = cbasis->poly_order;
@@ -86,6 +85,16 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       accel_boundary_surf_vpar_kernels = ser_accel_boundary_surf_vpar_kernels;
       
       break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      stream_surf_x_kernels = ten_stream_surf_x_kernels;
+      stream_surf_y_kernels = ten_stream_surf_y_kernels;
+      stream_surf_z_kernels = ten_stream_surf_z_kernels;
+      accel_surf_vpar_kernels = ten_accel_surf_vpar_kernels;
+      accel_boundary_surf_vpar_kernels = ten_accel_boundary_surf_vpar_kernels;
+      
+      break;      
       
     default:
       assert(false);
@@ -110,10 +119,14 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   assert(vlasov_pkpm->accel_boundary_surf);
 
   vlasov_pkpm->auxfields.bvar = 0;  
-  vlasov_pkpm->auxfields.u_i = 0;
+  vlasov_pkpm->auxfields.bvar_surf = 0;  
+  vlasov_pkpm->auxfields.pkpm_prim = 0;
+  vlasov_pkpm->auxfields.pkpm_prim_surf = 0;
+  vlasov_pkpm->auxfields.max_b = 0;
+  vlasov_pkpm->auxfields.pkpm_lax = 0;
+  vlasov_pkpm->auxfields.div_b = 0;
   vlasov_pkpm->auxfields.pkpm_accel_vars = 0;
   vlasov_pkpm->auxfields.g_dist_source = 0;
-  vlasov_pkpm->auxfields.vth_sq = 0;  
   vlasov_pkpm->conf_range = *conf_range;
   vlasov_pkpm->phase_range = *phase_range;
 

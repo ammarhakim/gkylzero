@@ -11,8 +11,6 @@ struct sim_ctx {
   double Lx; // size of the box
 };
 
-static inline double sq(double x) { return x*x; }
-
 void
 evalInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -31,7 +29,8 @@ D(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *c
   struct sim_ctx *app = ctx;
   double x = xn[0], y = xn[1];
   fout[0] = x + 2.0;
-  fout[1] = y + 2.0;
+  fout[1] = 0.0;
+  fout[2] = y + 2.0;
 }
 
 void
@@ -73,7 +72,7 @@ main(int argc, char **argv)
     .init = evalInit,
 
     .advection = {.velocity = velocity, .velocity_ctx = 0},
-    .diffusion = {.D = D, .D_ctx = 0},
+    .diffusion = {.Dij = D, .Dij_ctx = 0},
   };  
 
   // VM app

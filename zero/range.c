@@ -469,7 +469,7 @@ gkyl_range_iter_init(struct gkyl_range_iter *iter,
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
-  iter->bumps_left = range_calc_split(range, iter->idx);
+  iter->bumps_left = range->volume > 0? range_calc_split(range, iter->idx) : 0;
   
   for (int i=0; i<range->ndim; ++i) {
     iter->lower[i] = range->lower[i];
@@ -483,7 +483,7 @@ gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
-  iter->bumps_left = range->volume;
+  iter->bumps_left = range->volume > 0? range_calc_split(range, iter->idx) : 0;
   
   for (int i=0; i<range->ndim; ++i) {
     iter->idx[i] = iter->lower[i] = range->lower[i];

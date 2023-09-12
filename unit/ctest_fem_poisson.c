@@ -201,6 +201,14 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     phi_cu  = mkarr_cu(basis.num_basis, localRange_ext.volume);
   }
 
+  struct gkyl_array *epsilon = use_gpu? mkarr_cu(basis.num_basis, localRange_ext.volume)
+                                      : mkarr(basis.num_basis, localRange_ext.volume);
+  gkyl_array_clear(epsilon, 0.);
+  gkyl_array_shiftc(epsilon, epsilon_0*pow(sqrt(2.),dim), 0);
+
+  // Only used in the fully periodic case.
+  struct gkyl_array *rho_cellavg = use_gpu? mkarr_cu(1, localRange_ext.volume) : mkarr(1, localRange_ext.volume);
+
   // Project the right-side source on the basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   struct gkyl_array *perbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
@@ -210,7 +218,7 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, NULL, NULL, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, epsilon, NULL, true, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
@@ -489,7 +497,9 @@ test_1x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   gkyl_fem_poisson_release(poisson);
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
+  gkyl_array_release(rho_cellavg);
   gkyl_array_release(phi);
+  gkyl_array_release(epsilon);
   if (use_gpu) {
     gkyl_array_release(rho_cu);
     gkyl_array_release(phi_cu);
@@ -576,6 +586,14 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     phi_cu = mkarr_cu(basis.num_basis, localRange_ext.volume);
   }
 
+  struct gkyl_array *epsilon = use_gpu? mkarr_cu(basis.num_basis, localRange_ext.volume)
+                                      : mkarr(basis.num_basis, localRange_ext.volume);
+  gkyl_array_clear(epsilon, 0.);
+  gkyl_array_shiftc(epsilon, epsilon_0*pow(sqrt(2.),dim), 0);
+
+  // Only used in the fully periodic case.
+  struct gkyl_array *rho_cellavg = use_gpu? mkarr_cu(1, localRange_ext.volume) : mkarr(1, localRange_ext.volume);
+
   // Project the right-side source on the basis.
   gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho);
   struct gkyl_array *perbuff = mkarr(basis.num_basis, skin_ghost.lower_skin[dim-1].volume);
@@ -585,7 +603,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   if (use_gpu) gkyl_array_copy(rho_cu, rho);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, epsilon_0, NULL, NULL, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, epsilon, NULL, true, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
@@ -2162,7 +2180,9 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   gkyl_fem_poisson_release(poisson);
   gkyl_proj_on_basis_release(projob);
   gkyl_array_release(rho);
+  gkyl_array_release(rho_cellavg);
   gkyl_array_release(phi);
+  gkyl_array_release(epsilon);
   if (use_gpu) {
     gkyl_array_release(rho_cu);
     gkyl_array_release(phi_cu);

@@ -178,6 +178,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   // allocate arrays for applied current/external fields
   fld->app_current = mkarr(false, 3, app->local_ext.volume);
+  fld->t_ramp_curr = mom_fld->t_ramp_curr ? mom_fld->t_ramp_curr : 0.0;
   fld->proj_app_current = 0;
   if (mom_fld->app_current_func)
     fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, 3, mom_fld->app_current_func, fld->ctx);
@@ -185,8 +186,9 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   
   fld->ext_em = mkarr(false, 6, app->local_ext.volume);
   fld->is_ext_em_static = mom_fld->is_ext_em_static;
-
   fld->was_ext_em_computed = false;
+
+  fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;
   fld->proj_ext_em = 0;
   if (mom_fld->ext_em_func)
     fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, 6, mom_fld->ext_em_func, fld->ctx);

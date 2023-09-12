@@ -1,17 +1,21 @@
 #include <gkyl_vlasov_pkpm_kernels.h> 
 #include <gkyl_basis_ser_2x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_ser_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, const double *dxv, const double *pkpm_accel_vars, 
+GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, const double *dxv, 
+     const double *div_b, const double *pkpm_accel_vars, 
      const double *g_dist_sourceEdge, const double *g_dist_sourceSkin, 
      const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
-  // w[NDIM]:                Cell-center coordinates.
-  // dxv[NDIM]:              Cell spacing.
-  // pkpm_accel_vars:        pkpm acceleration variables
-  // g_dist_sourceEdge/Skin: 2.0*T_perp/m*(2.0*T_perp/m*G_1 + T_perp/m*(F_2 - F_0)) in skin cell/last edge cell.
-  // edge:                   Determines if the update is for the left edge (-1) or right edge (+1).
-  // fSkin/fEdge:            Input Distribution function [F_0, T_perp G_1 = T_perp (F_1 - F_0)] in skin cell/last edge cell 
-  // out:                    Incremented distribution function in center cell.
+  // w[NDIM]:                Cell-center coordinates. 
+  // dxv[NDIM]:              Cell spacing. 
+  // div_b:                  Input volume expansion of div(b). 
+  // pkpm_accel_vars:        Input pkpm acceleration variables [T_perp/m*div(b), bb:grad(u), p_force, p_perp_source]. 
+  // g_dist_sourceEdge/Skin: Input [2.0*T_perp/m*(2.0*T_perp/m G + T_perp/m (F_2 - F_0)), 
+  //                         (-vpar div(b) + bb:grad(u) - div(u) - 2 nu) T_perp/m G + 2 nu vth^2 F_0 ]. 
+  //                         in skin cell/last edge cell. First input is mirror force source, second input is vperp characteristics source. 
+  // edge:                   Determines if the update is for the left edge (-1) or right edge (+1). 
+  // fSkin/fEdge:            Input distribution functions [F_0, T_perp/m G_1 = T_perp/m (F_0 - F_1)] in skin cell/last edge cell. 
+  // out:                    Incremented output distribution functions in center cell. 
   const double dv1par = 2.0/dxv[1]; 
   const double dvpar = dxv[1], wvpar = w[1]; 
   const double *F_0Skin = &fSkin[0]; 
@@ -22,7 +26,6 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, con
   const double *G_1_sourceSkin = &g_dist_sourceSkin[0]; 
   const double *F_0_sourceEdge = &fEdge[8]; 
   const double *G_1_sourceEdge = &g_dist_sourceEdge[0]; 
-  const double *div_b = &pkpm_accel_vars[0]; 
   const double *bb_grad_u = &pkpm_accel_vars[3]; 
   const double *p_force = &pkpm_accel_vars[6]; 
 

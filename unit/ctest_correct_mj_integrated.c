@@ -214,9 +214,9 @@ test_1x1v(int poly_order)
 
   // Create a MJ with corrected moments
   gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
   gkyl_correct_mj_fix(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
-    &local, &confLocal, poly_order, &confLocal_ext, &velLocal, &velBasis, &vel_grid);
+    &local, &confLocal, poly_order);
   gkyl_correct_mj_release(corr_mj);
 
   // Write the output
@@ -226,9 +226,9 @@ test_1x1v(int poly_order)
 
   // Correct the distribution function
   gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, 
-    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
-  gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, 
-    m0, m1i, m2, &local, &confLocal);
+    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, 
+    p_over_gamma, gamma, gamma_inv, false);
+  gkyl_mj_moments_advance(mj_moms, distf_mj, m0, m1i, m2, &local, &confLocal);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.4106556323526475, -8.940762710879627e-17,
@@ -253,6 +253,8 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_array_release(p_over_gamma);
+  gkyl_array_release(gamma);
+  gkyl_array_release(gamma_inv);
 }
 
 void 
@@ -346,16 +348,16 @@ test_1x2v(int poly_order)
 
   // Create a MJ with corrected moments
   gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
   gkyl_correct_mj_fix(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
-    &local, &confLocal, poly_order, &confLocal_ext, &velLocal, &velBasis, &vel_grid);
+    &local, &confLocal, poly_order);
   gkyl_correct_mj_release(corr_mj);
 
   // Correct the distribution function
   gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, 
-    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
-  gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, 
-    distf_mj, m0, m1i, m2, &local, &confLocal);
+    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, 
+    p_over_gamma, gamma, gamma_inv, false);
+  gkyl_mj_moments_advance(mj_moms, distf_mj, m0, m1i, m2, &local, &confLocal);
 
   // Write the output
   char fname[1024];
@@ -389,6 +391,8 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_array_release(p_over_gamma);
+  gkyl_array_release(gamma);
+  gkyl_array_release(gamma_inv);
 }
 
 void 
@@ -482,16 +486,16 @@ test_1x3v(int poly_order)
 
   // Create a MJ with corrected moments
   gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
   gkyl_correct_mj_fix(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
-    &local, &confLocal, poly_order, &confLocal_ext, &velLocal, &velBasis, &vel_grid);
+    &local, &confLocal, poly_order);
   gkyl_correct_mj_release(corr_mj);
 
   // Correct the distribution function
-  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, &basis, 
-    &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, false);
-  gkyl_mj_moments_advance(mj_moms, p_over_gamma, gamma, gamma_inv, distf_mj, 
-    m0, m1i, m2, &local, &confLocal);
+  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, 
+    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, 
+    p_over_gamma, gamma, gamma_inv, false);
+  gkyl_mj_moments_advance(mj_moms, distf_mj, m0, m1i, m2, &local, &confLocal);
 
   // Write the output
   char fname[1024];
@@ -534,6 +538,8 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_array_release(p_over_gamma);
+  gkyl_array_release(gamma);
+  gkyl_array_release(gamma_inv);
 }
 
 // special note, the p1 basis does not function

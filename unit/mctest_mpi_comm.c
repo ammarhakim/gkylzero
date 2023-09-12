@@ -5,7 +5,9 @@
 #include <math.h>
 #include <mpi.h>
 #include <stc/cstr.h>
-
+#include <gkyl_util.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_mpi_comm.h>
 
 void

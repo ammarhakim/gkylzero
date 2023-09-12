@@ -20,11 +20,11 @@ typedef struct gkyl_correct_mj gkyl_correct_mj;
  * @param conf_local_cells Number of cells in local config-space
  * @param conf_local_ext_cells Number of cells in local extended config-space
  */
-gkyl_correct_mj *gkyl_correct_mj_new(
-    const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
-    const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
-    const struct gkyl_range *vel_range,
-    long conf_local_ncells, long conf_local_ext_ncells, bool use_gpu);
+gkyl_correct_mj *gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, const struct gkyl_range *vel_range, 
+  const struct gkyl_array *p_over_gamma, const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv, 
+  bool use_gpu);
 
 /**
  * Fix the Maxwell-Juttner so that it's moments match desired m0 moment.
@@ -37,11 +37,10 @@ gkyl_correct_mj *gkyl_correct_mj_new(
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
  */
-void gkyl_correct_mj_fix_m0(gkyl_correct_mj *cmj, const struct gkyl_array *p_over_gamma,
-                            struct gkyl_array *fout,
-                            const struct gkyl_array *m0,
-                            const struct gkyl_array *m1i,
-                            const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
+void gkyl_correct_mj_fix_m0(gkyl_correct_mj *cmj, 
+  struct gkyl_array *fout,
+  const struct gkyl_array *m0, const struct gkyl_array *m1i,
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
 
 /**
  * Fix the Maxwell-Juttner so that it's moments match desired moments.
@@ -59,13 +58,10 @@ void gkyl_correct_mj_fix_m0(gkyl_correct_mj *cmj, const struct gkyl_array *p_ove
  * @param vel_grid Vel-Grid on which updater lives
  */
 void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
-                         struct gkyl_array *fout,
-                         const struct gkyl_array *m0,
-                         const struct gkyl_array *m1i,
-                         const struct gkyl_array *m2,
-                         const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
-                         int poly_order, const struct gkyl_range *conf_local_ext, const struct gkyl_range *velLocal,
-                         const struct gkyl_basis *vel_basis, const struct gkyl_rect_grid *vel_grid);
+  struct gkyl_array *fout,
+  const struct gkyl_array *m0, const struct gkyl_array *m1i, const struct gkyl_array *m2,
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
+  int poly_order);
 
 /**
  * Delete updater.

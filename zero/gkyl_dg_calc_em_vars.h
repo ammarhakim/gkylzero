@@ -2,69 +2,107 @@
 
 #include <gkyl_array.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_basis.h>
 
+// Object type
+typedef struct gkyl_dg_calc_em_vars gkyl_dg_calc_em_vars;
+
 /**
- * Compute the magnetic field unit vector (b_i = B_i/|B|, three components) 
- * and unit tensor (b_i b_j = B_i B_j/|B|^2, 6 components)
+ * Create new updater to compute EM variables needed in 
+ * updates and used for diagnostics. Supports:
+ * 1. bvar = [b_i (3 components), b_i b_j (6 components)],
+ * the magnetic field unit vector and unit tensor, b_i = B_i/|B|
+ * 2. ExB = E x B/|B|^2, the E x B velocity 
+ * Free using gkyl_dg_calc_em_vars_release.
+ *
+ * @param conf_grid Configuration space grid (for getting cell spacing and cell center)
+ * @param cbasis Configuration space basis functions
+ * @param mem_range Configuration space range to compute variables over
+ * Note: This range sets the size of the bin_op memory and thus sets the
+ * range over which the updater loops for the batched linear solves
+ * @param is_ExB bool to determine if updater is for computing E x B velocity
+ * @param use_gpu bool to determine if on GPU
+ * @return New updater pointer.
+ */
+struct gkyl_dg_calc_em_vars* 
+gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
+  bool is_ExB, bool use_gpu);
+
+/**
+ * Create new updater to compute EM variables on
+ * NV-GPU. See new() method for documentation.
+ */
+struct gkyl_dg_calc_em_vars* 
+gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_range *conf_range, 
+  bool is_ExB);
+
+/**
+ * Compute either
+ * 1. The magnetic field unit vector (b_i = B_i/|B|, three components) and unit tensor (b_i b_j = B_i B_j/|B|^2, 6 components) 
+ * 2. The ExB velocity (E x B/|B|^2, three components)
  * Note order of operations is designed to minimize aliasing errors
- * 1. Compute unit tensor (b_i b_j = B_i B_j/|B|^2, 6 components) first using basis_exp_sq and basis_inv
- *    (see gkyl_basis_*_exp_sq.h and gkyl_basis_*_inv.h in kernels/basis/)
- * 2. Project diagonal components onto quadrature points, evaluate square root point wise, 
+ * 1. Compute B_i B_j or numerator (E x B)_i and denominator (|B|^2) using weak multiplication 
+ * 2. Compute unit tensor (b_i b_j = B_i B_j/|B|^2, 6 components) or (E x B/|B|^2) using either
+ *    basis_inv operator (for p=1) or weak division (p>1)
+ * 3. For bvar, project diagonal components of bb onto quadrature points, evaluate square root point wise, 
  *    and project back onto modal basis using basis_sqrt to obtain b_i (see gkyl_basis_*_sqrt.h in kernels/basis/)
  *
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- * @param em Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
- * @param bvar Output array of magnetic field unit vector and unit tensor
+ * @param up             Updater for computing EM variables (contains range, pre-allocated memory, and pointers to kernels)
+ * @param em             Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
+ * @param cell_avg_magB2 Array for storing boolean value of whether |B|^2 uses *only* cell averages 
+ *                       to minimize positivity violations (default: false)
+ * @param out            Output array of either magnetic field unit vector and unit tensor or E x B velocity
  */
-void gkyl_calc_em_vars_bvar(struct gkyl_basis basis, const struct gkyl_range *range, 
-  const struct gkyl_array* em, struct gkyl_array* bvar);
+void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* out);
 
 /**
- * Compute the ExB velocity (E x B/|B|^2, 3 components)
+ * Compute surface expansion of bvar
  *
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- * @param em Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
- * @param ExB Output array of E x B velocity
+ * @param up Updater for computing pkpm variables 
+ * @param em                  Input array which contain EM fields (Ex, Ey, Ez, Bx, By, Bz)
+ * @param cell_avg_magB2_surf Array for storing boolean value of whether |B|^2 on the surface 
+ *                            uses *only* cell averages (2*cdim components: xl, xr, yl, yr, zl, & zr)
+ *                            to minimize positivity violations (default: false)
+ * @param bvar_surf           Output array of surface expansions of bvar
  */
-void gkyl_calc_em_vars_ExB(struct gkyl_basis basis, const struct gkyl_range *range, 
-  const struct gkyl_array* em, struct gkyl_array* ExB);
+void gkyl_dg_calc_em_vars_surf_advance(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* bvar_surf);
 
 /**
- * Compute b_hat/kappa, the magnetic field unit vector divided by the ExB velocity Lorentz boost factor
- * for use in the special relativistic parallel-kinetic-perpendicular-moment (pkpm) model
- * Used in both collisionless advection div ([p_parallel/gamma b_hat/kappa] f) 
- * and moments (J_parallel = int [p_parallel/gamma b_hat/kappa] f)
- * Note: 1/kappa = 1 - |E x B|^2/(c^2 |B|^4)
- * Note order of operations is designed to minimize aliasing errors
- * 1. Compute b_i^2 * (1 - |E x B|^2/(c^2 |B|^4)) using weak multiplication
- *    Note we have b_i^2 because we are storing the magnetic field unit tensor and we can
- *    obtain (E x B/|B|^2)^2 using basis_exp_sq (see gkyl_basis_*_exp_sq.h in kernels/basis/)
- * 2. Project onto quadrature points, evaluate square root point wise, 
- *    and project back onto modal basis using basis_sqrt (see gkyl_basis_*_sqrt.h in kernels/basis/)
+ * Compute div(b) and max(|b_i|) penalization
  *
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- * @param bvar Input array which contains magnetic field unit vector and unit tensor
- * @param ExB Input array which contain the E x B velocity
- * @param kappa_inv_b Output array of magnetic field unit vector 
- *                    divided by E x B velocity Lorentz boost factor b/kappa
+ * @param up Updater for computing pkpm variables 
+ * @param conf_range Configuration space range
+ * @param bvar_surf Input array of surface expansions of bvar
+ * @param bvar Input array of volume expansion of bvar
+ * @param max_b Output array of max(|b_i|) penalization
+ * @param div_b Output array of div(b)
  */
-void gkyl_calc_em_vars_pkpm_kappa_inv_b(struct gkyl_basis basis, const struct gkyl_range *range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* ExB, struct gkyl_array* kappa_inv_b);
+void gkyl_dg_calc_em_vars_div_b(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
+  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 
+  struct gkyl_array* max_b, struct gkyl_array* div_b);
+
+/**
+ * Delete pointer to updater to compute EM variables.
+ *
+ * @param up Updater to delete.
+ */
+void gkyl_dg_calc_em_vars_release(struct gkyl_dg_calc_em_vars *up);
 
 /**
  * Host-side wrappers for em vars operations on device
  */
 
-void gkyl_calc_em_vars_bvar_cu(struct gkyl_basis basis, const struct gkyl_range *range, 
-  const struct gkyl_array* em, struct gkyl_array* bvar);
+void gkyl_dg_calc_em_vars_advance_cu(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, struct gkyl_array* out);
 
-void gkyl_calc_em_vars_ExB_cu(struct gkyl_basis basis, const struct gkyl_range *range, 
-  const struct gkyl_array* em, struct gkyl_array* ExB);
+void gkyl_dg_calc_em_vars_surf_advance_cu(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2_surf, struct gkyl_array* bvar_surf);
 
-void gkyl_calc_em_vars_pkpm_kappa_inv_b_cu(struct gkyl_basis basis, const struct gkyl_range *range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* ExB, struct gkyl_array* kappa_inv_b);
-
+void gkyl_dg_calc_em_vars_div_b_cu(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
+  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 
+  struct gkyl_array* max_b, struct gkyl_array* div_b);

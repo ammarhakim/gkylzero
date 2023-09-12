@@ -100,7 +100,7 @@ fem_poisson_perp_choose_kernels_cu(const struct gkyl_basis* basis, const struct 
 
 __global__ void
 gkyl_fem_poisson_perp_set_rhs_kernel(struct gkyl_array *epsilon, const double *dx, double *rhs_global,
-  struct gkyl_array *rhs_local, struct gkyl_range range, struct gkyl_range par_range1d,
+  struct gkyl_array *rhs_local, const struct gkyl_range range, struct gkyl_range par_range1d,
   const double *bcvals, struct gkyl_fem_poisson_perp_kernels *kers, long numnodes_global)
 {
   int idx[GKYL_MAX_CDIM];  int idx0[GKYL_MAX_CDIM];  int num_cells[GKYL_MAX_CDIM];
@@ -141,7 +141,7 @@ gkyl_fem_poisson_perp_set_rhs_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *r
 {
   gkyl_cusolver_clear_rhs(up->prob_cu, 0);
   double *rhs_cu = gkyl_cusolver_get_rhs_ptr(up->prob_cu, 0);
-  gkyl_fem_poisson_perp_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev, up->dx_cu, rhs_cu, rhsin->on_dev, up->solve_range, up->par_range1d, up->bcvals_cu, up->kernels_cu, up->numnodes_global);
+  gkyl_fem_poisson_perp_set_rhs_kernel<<<rhsin->nblocks, rhsin->nthreads>>>(up->epsilon->on_dev, up->dx_cu, rhs_cu, rhsin->on_dev, *up->solve_range, up->par_range1d, up->bcvals_cu, up->kernels_cu, up->numnodes_global);
 }
 
 __global__ void
@@ -187,5 +187,5 @@ gkyl_fem_poisson_perp_solve_cu(struct gkyl_fem_poisson_perp *up, struct gkyl_arr
 
   double *x_cu = gkyl_cusolver_get_sol_ptr(up->prob_cu, 0);
 
-  gkyl_fem_poisson_perp_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global);
+  gkyl_fem_poisson_perp_get_sol_kernel<<<phiout->nblocks, phiout->nthreads>>>(phiout->on_dev, x_cu, *up->solve_range, up->par_range1d, up->kernels_cu, up->numnodes_global);
 }

@@ -26,6 +26,13 @@ set_cu_ptrs(struct mom_type_vlasov_pkpm *mom_vlasov_pkpm,
     case GKYL_BASIS_MODAL_SERENDIPITY:
       mom_vlasov_pkpm_kernels = ser_mom_vlasov_pkpm_kernels;
       mom_vlasov_pkpm_diag_kernels = ser_mom_vlasov_pkpm_diag_kernels;
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      mom_vlasov_pkpm_kernels = ten_mom_vlasov_pkpm_kernels;
+      mom_vlasov_pkpm_diag_kernels = ten_mom_vlasov_pkpm_diag_kernels;
+      
       break;
 
     default:

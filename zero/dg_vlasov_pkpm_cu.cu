@@ -17,16 +17,22 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_vlasov_pkpm_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *bvar, const struct gkyl_array *u_i, 
-  const struct gkyl_array *pkpm_accel_vars, const struct gkyl_array *g_dist_source, 
-  const struct gkyl_array *vth_sq)
+  const struct gkyl_array *bvar, const struct gkyl_array *bvar_surf, 
+  const struct gkyl_array *pkpm_prim, const struct gkyl_array *pkpm_prim_surf, 
+  const struct gkyl_array *max_b, const struct gkyl_array *pkpm_lax, 
+  const struct gkyl_array *div_b, const struct gkyl_array *pkpm_accel_vars, 
+  const struct gkyl_array *g_dist_source)
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = container_of(eqn, struct dg_vlasov_pkpm, eqn);
   vlasov_pkpm->auxfields.bvar = bvar;
-  vlasov_pkpm->auxfields.u_i = u_i;
+  vlasov_pkpm->auxfields.bvar_surf = bvar_surf;
+  vlasov_pkpm->auxfields.pkpm_prim = pkpm_prim;
+  vlasov_pkpm->auxfields.pkpm_prim_surf = pkpm_prim_surf;
+  vlasov_pkpm->auxfields.max_b = max_b;
+  vlasov_pkpm->auxfields.pkpm_lax = pkpm_lax;
+  vlasov_pkpm->auxfields.div_b = div_b;
   vlasov_pkpm->auxfields.pkpm_accel_vars = pkpm_accel_vars;
   vlasov_pkpm->auxfields.g_dist_source = g_dist_source;
-  vlasov_pkpm->auxfields.vth_sq = vth_sq;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
@@ -34,9 +40,11 @@ void
 gkyl_vlasov_pkpm_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
 {
   gkyl_vlasov_pkpm_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
-    auxin.bvar->on_dev, auxin.u_i->on_dev, 
-    auxin.pkpm_accel_vars->on_dev, auxin.g_dist_source->on_dev, 
-    auxin.vth_sq->on_dev);
+    auxin.bvar->on_dev, auxin.bvar_surf->on_dev, 
+    auxin.pkpm_prim->on_dev, auxin.pkpm_prim_surf->on_dev, 
+    auxin.max_b->on_dev, auxin.pkpm_lax->on_dev, 
+    auxin.div_b->on_dev, auxin.pkpm_accel_vars->on_dev, 
+    auxin.g_dist_source->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov_pkpm kernel function
@@ -46,11 +54,15 @@ dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_bas
   int cdim, int poly_order)
 {
   vlasov_pkpm->auxfields.bvar = 0;  
-  vlasov_pkpm->auxfields.u_i = 0;
+  vlasov_pkpm->auxfields.bvar_surf = 0;  
+  vlasov_pkpm->auxfields.pkpm_prim = 0;
+  vlasov_pkpm->auxfields.pkpm_prim_surf = 0;
+  vlasov_pkpm->auxfields.max_b = 0;
+  vlasov_pkpm->auxfields.pkpm_lax = 0;
+  vlasov_pkpm->auxfields.div_b = 0;
   vlasov_pkpm->auxfields.pkpm_accel_vars = 0;
   vlasov_pkpm->auxfields.g_dist_source = 0;
-  vlasov_pkpm->auxfields.vth_sq = 0;  
-  
+
   vlasov_pkpm->eqn.surf_term = surf;
   vlasov_pkpm->eqn.boundary_surf_term = boundary_surf;
 
@@ -69,6 +81,16 @@ dg_vlasov_pkpm_set_cu_dev_ptrs(struct dg_vlasov_pkpm *vlasov_pkpm, enum gkyl_bas
       accel_boundary_surf_vpar_kernels = ser_accel_boundary_surf_vpar_kernels;
       
       break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      stream_surf_x_kernels = ten_stream_surf_x_kernels;
+      stream_surf_y_kernels = ten_stream_surf_y_kernels;
+      stream_surf_z_kernels = ten_stream_surf_z_kernels;
+      accel_surf_vpar_kernels = ten_accel_surf_vpar_kernels;
+      accel_boundary_surf_vpar_kernels = ten_accel_boundary_surf_vpar_kernels;
+      
+      break;  
       
     default:
       assert(false);
@@ -94,7 +116,7 @@ gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis* cbasis, const struct gky
 {
   struct dg_vlasov_pkpm *vlasov_pkpm = (struct dg_vlasov_pkpm*) gkyl_malloc(sizeof(struct dg_vlasov_pkpm));
 
-  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
+  int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int poly_order = cbasis->poly_order;
 
   vlasov_pkpm->cdim = cdim;

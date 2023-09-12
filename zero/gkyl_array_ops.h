@@ -265,7 +265,7 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  * Copy buffer into region of array. The array must be preallocated.
  *
  * @param arr Array to copy into
- * @param data Output data buffer.
+ * @param data Input data buffer.
  * @param range Range specifying region to copy into
  */
 void gkyl_array_copy_from_buffer(struct gkyl_array *arr, const void *data,

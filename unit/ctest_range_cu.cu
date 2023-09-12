@@ -1,10 +1,12 @@
 /* -*- c -*- */
 
-#include <gkylzero.h>
 #include <stdio.h>
 
 extern "C" {
-    int cu_range_test(const struct gkyl_range rng);
+#include <gkyl_alloc.h>
+#include <gkyl_range.h>
+#include <gkyl_util.h>
+  int cu_range_test(const struct gkyl_range rng);
 }
 
 __global__

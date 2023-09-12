@@ -1,10 +1,12 @@
 /* -*- c -*- */
 
-#include <gkylzero.h>
 #include <stdio.h>
 
 extern "C" {
-    int cu_rect_grid_test(const struct gkyl_rect_grid grid);
+#include <gkyl_rect_grid.h>
+#include <gkyl_util.h>
+#include <gkyl_alloc.h>
+  int cu_rect_grid_test(const struct gkyl_rect_grid grid);
 }
 
 __global__
