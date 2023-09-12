@@ -173,5 +173,5 @@ gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
   nblocks = buff_r->nblocks;
   nthreads = buff_r->nthreads;
 
-  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(f_proj->on_dev, f_buff->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *ghost_r, *conf_r, up->funcs_cu, up->bc_param_cu);
+  gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(f_proj->on_dev, f_buff->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *buff_r, *conf_r, up->funcs_cu, up->bc_param_cu);
 }
