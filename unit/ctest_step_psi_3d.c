@@ -25,6 +25,7 @@
 #include <gkyl_calc_derived_geo.h>
 #include <gkyl_calc_derived_geo_kernels.h>
 #include <gkyl_geo_gyrokinetic.h>
+#include <elliptic_integral.h>
 
 
 
@@ -34,9 +35,9 @@ struct mapc2p_ctx{
 };
 
 
-// Cerfon equilibrium
-struct cerfon_ctx {
-  double R0, psi_prefactor, B0;
+// step equilibrium
+struct step_ctx {
+  double R0, B0;
 };
 
 static inline double sq(double x) { return x*x; }
@@ -58,15 +59,128 @@ comp_to_phys(int ndim, const double *eta,
 
 
 
+double Alist[24] = {1.098170000000000091e+00,  
+5.749690000000000190e+00,  
+5.254970000000000141e+00,  
+7.063550000000000217e+00,  
+1.000000000000000056e-01,  
+1.000000000000000056e-01,  
+1.000000000000000056e-01,  
+1.000000000000000056e-01,  
+1.199999999999999956e+00,  
+1.098170000000000091e+00,  
+5.749690000000000190e+00,  
+5.254970000000000141e+00,  
+7.063550000000000217e+00,  
+1.000000000000000056e-01,  
+1.000000000000000056e-01,  
+1.000000000000000056e-01,  
+1.000000000000000056e-01,  
+1.199999999999999956e+00,  
+2.339999999999999858e+00,  
+2.860000000000000320e+00,  
+2.600000000000000089e+00,  
+2.600000000000000089e+00,  
+2.600000000000000089e+00,  
+2.600000000000000089e+00};
+
+
+ double Zlist[24] = {6.067210000000000214e+00,
+ 8.385300000000000864e+00,
+ 5.380029999999999646e+00,
+ 1.933729999999999949e+00,
+ 2.000000000000000000e+00,
+ 0.000000000000000000e+00,
+ 7.500000000000000000e-01,
+ 9.000000000000000222e-01,
+ 8.000000000000000000e+00,
+ -6.067210000000000214e+00,
+ -8.385300000000000864e+00,
+ -5.380029999999999646e+00,
+ -1.933729999999999949e+00,
+ -2.000000000000000000e+00,
+ -0.000000000000000000e+00,
+ -7.500000000000000000e-01,
+ -9.000000000000000222e-01,
+ -8.000000000000000000e+00,
+ 0.000000000000000000e+00,
+ 0.000000000000000000e+00,
+ 2.600000000000000089e-01,
+ -2.600000000000000089e-01,
+ 0.000000000000000000e+00,
+ 0.000000000000000000e+00};
+
+ double current_list[24] = {2.733587001572373323e+06,
+ 2.576555680242971517e+06,
+ -4.769840006204952952e+05,
+ -5.848048038329290226e+06,
+ -6.272967875940668583e+07,
+ -9.374610126189786196e+07,
+ -5.444083807201912999e+07,
+ -4.781479151113666594e+07,
+ 2.885451375306561589e+06,
+ 2.733587001572373323e+06,
+ 2.576555680242971517e+06,
+ -4.769840006204952952e+05,
+ -5.848048038329290226e+06,
+ -6.272967875940668583e+07,
+ -9.374610126189786196e+07,
+ -5.444083807201912999e+07,
+ -4.781479151113666594e+07,
+ 2.885451375306561589e+06,
+ -2.886111956023474224e+06,
+ 2.886111956023474224e+06,
+ 6.830522162672655284e+07,
+ 6.830522162672655284e+07,
+ -1.366104432534531057e+08,
+ 1.650000000000000000e+07};
+
+
+
+
+
+double ellipk(double m){
+  return Complete_Elliptic_Integral_First_Kind( 'm', m );
+}
+double ellipe(double m){
+  return Complete_Elliptic_Integral_Second_Kind( 'm', m );
+}
+
+// input is spherical coords r,theta,a
+double Aphi_f(double r, double theta, double a){
+    double mu0 = 1.256e-6;
+    double ksq = 4*a*r*sin(theta)/(sq(a)+sq(r) + 2*a*r*sin(theta));
+    double fac1 = mu0/(4*M_PI);
+
+    double num2 = 4*a;
+    double denom2 = sqrt(sq(a) + sq(r) + 2*a*r*sin(theta));
+    double fac2 = num2/denom2;
+
+    double num3 = (2-ksq)*ellipk(ksq) - 2*ellipe(ksq);
+    double denom3 = ksq;
+    double fac3 = num3/denom3;
+
+    return fac1*fac2*fac3;
+}
+
 void
 psi(double t, const double *xn, double *fout, void *ctx)
 {
-  struct cerfon_ctx *s = ctx;
-  double R0 = s->R0, psi_prefactor = s->psi_prefactor;
+  struct step_ctx *s = ctx;
+  double R0 = s->R0;
   double R = xn[0], Z = xn[1];
-  double x = R/R0, y = Z/R0;
 
-  fout[0] = psi_prefactor*(0.00373804283369699*hex(x)*log(x) - 0.00574955335438162*hex(x) - 0.0448565140043639*qad(x)*sq(y)*log(x) + 0.0503044260840946*qad(x)*sq(y) + 0.017623348727471*qad(x)*log(x) + 0.0956643504553683*qad(x) + 0.0299043426695759*sq(x)*qad(y)*log(x) - 0.0160920841654771*sq(x)*qad(y) - 0.0704933949098842*sq(x)*sq(y)*log(x) + 0.0644725519961135*sq(x)*sq(y) - 7.00898484784405e-5*sq(x)*log(x) - 0.303766642191745*sq(x) - 0.00199362284463839*hex(y) + 0.0117488991516474*qad(y) + 7.00898484784405e-5*sq(y) + 0.0145368720253975);
+  double psiret = 0.0;
+
+  for(int i = 0; i<24; i++){
+    double zi = Z - Zlist[i];
+    double rs = sqrt(sq(R) + sq(zi));
+    double thetas = acos(zi/rs);
+    double Aphii = Aphi_f(rs,thetas,Alist[i]);
+    double psii = current_list[i]*Aphii*R;
+    psiret += psii;
+  }
+  fout[0] = psiret;
 }
 
 
@@ -90,7 +204,7 @@ psibyr2(double t, const double *xn, double *fout, void *ctx)
 void
 bphi_func(double t, const double *xn, double *fout, void *ctx)
 {
-  struct cerfon_ctx *s = ctx;
+  struct step_ctx *s = ctx;
   double B0 = s->B0, R0 = s->R0;
   double R = xn[0];
   fout[0] = B0*R0/R;
@@ -105,11 +219,11 @@ test_1()
   start = clock();
 
 
-  struct cerfon_ctx sctx = {  .R0 = 2.5, .psi_prefactor = 1.0, .B0 = 0.55 };
+  struct step_ctx sctx = {  .R0 = 2.6,  .B0 = 2.1 };
 
   
   // create RZ grid
-  double lower[] = { 0.01, -6.0 }, upper[] = { 6.0, 6.0 };
+  double lower[] = { 0.01, -7.5 }, upper[] = { 7.0, 7.4 };
   int cells[] = { 64, 128 };
 
   struct gkyl_rect_grid rzgrid;
@@ -159,10 +273,16 @@ test_1()
   //psi_min = 0.07058823529411765; // This gives ghost node on psisep for 16 cells
   printf("psimin = %g\n", psi_min);
   
+
+  double psiSep = 0.16804280010462858;
+  double psiSim = psiSep-0.013;
   // Computational grid: theta X psi X alpha (only 2D for now)
-  double clower[] = { psi_min, -0.01, -2.9 };
-  double cupper[] = {psi_max, 0.01, 2.9 };
-  int ccells[] = { 32,1, 32 };
+  //double clower[] = { psiSep-0.026, -0.01, -2.9 };
+  //double cupper[] = {psiSim, 0.01, 2.9 };
+
+  double clower[] = { psiSim-0.001, -0.01, -2.9 };
+  double cupper[] = {psiSim+0.001, 0.01, 2.9 };
+  int ccells[] = { 1,1, 64 };
 
 
 
@@ -189,7 +309,7 @@ test_1()
     .zmax = upper[1],
   
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon3d_nodes.gkyl"
+    .node_file_nm = "step3d_nodes.gkyl"
   }; 
 
 
@@ -202,14 +322,14 @@ test_1()
 
 
   printf("writing mapc2p file from calcgeom\n");
-  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "cerfon3d_mapc2pfile.gkyl");
+  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "step3d_mapc2pfile.gkyl");
   printf("wrote mapc2p file\n");
 
   //make psi
   gkyl_eval_on_nodes *eval_psi = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psi, &sctx);
   struct gkyl_array* psidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   gkyl_eval_on_nodes_advance(eval_psi, 0.0, &rzlocal_ext, psidg); //on ghosts with ext_range
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "cerfon3d_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "step3d_psi.gkyl");
 
   gkyl_eval_on_nodes *eval_psibyr = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psibyr, &sctx);
   struct gkyl_array* psibyrdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -267,14 +387,14 @@ test_1()
   do{
     printf("writing the comp bmag file \n");
     const char *fmt = "%s_compbmag.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "step3d");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
   } while (0);
 
   do{
     printf("writing the bphi file \n");
     const char *fmt = "%s_bphi.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "step3d");
     gkyl_grid_sub_array_write(&rzgrid, &rzlocal, bphidg, fileNm);
   } while (0);
 
@@ -289,7 +409,7 @@ test_1()
   //gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &clocal_ext, XYZ);
 
   //printf("writing rz file\n");
-  //gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "cerfon3d_xyzfile.gkyl");
+  //gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "step3d_xyzfile.gkyl");
   //printf("wrote rz file\n");
   
   printf("calculating metrics \n");
@@ -300,7 +420,7 @@ test_1()
   do{
     printf("writing the gij file \n");
     const char *fmt = "%s_g_ij.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "step3d");
     gkyl_grid_sub_array_write(&cgrid, &clocal, gFld, fileNm);
   } while (0);
 
@@ -329,28 +449,28 @@ test_1()
   do{
     printf("writing the  second comp bmag file \n");
     const char *fmt = "%s_compbmag2.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "step3d");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
   } while (0);
 
     do{
       printf("writing the j file \n");
       const char *fmt = "%s_j.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "step3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, jFld, fileNm);
     } while (0);
 
     do{
       printf("writing the jtot file \n");
       const char *fmt = "%s_jtot.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "step3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, jtotFld, fileNm);
     } while (0);
 
     do{
       printf("writing the cmag file \n");
       const char *fmt = "%s_cmag.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "step3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, cmagFld, fileNm);
     } while (0);
  
@@ -358,7 +478,7 @@ test_1()
     do{
       printf("writing the g^ij file \n");
       const char *fmt = "%s_gij.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "step3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, grFld, fileNm);
     } while (0);
 
@@ -366,7 +486,7 @@ test_1()
     do{
       printf("writing the b_i file \n");
       const char *fmt = "%s_bi.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "step3d");
       gkyl_grid_sub_array_write(&cgrid, &clocal, biFld, fileNm);
     } while (0);
 

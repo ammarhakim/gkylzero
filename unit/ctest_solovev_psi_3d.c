@@ -89,12 +89,12 @@ bphi_func(double t, const double *xn, double *fout, void *ctx)
 }
 
 
-void mapc2p(double t, const double *xn, double* fout, void *ctx)
-{
-  struct mapc2p_ctx *gc = (struct mapc2p_ctx*) ctx;
-  //double RZ[2];
-  gkyl_geo_gyrokinetic_mapc2p(gc->app, gc->ginp, xn, fout);
-}
+//void mapc2p(double t, const double *xn, double* fout, void *ctx)
+//{
+//  struct mapc2p_ctx *gc = (struct mapc2p_ctx*) ctx;
+//  //double RZ[2];
+//  gkyl_geo_gyrokinetic_mapc2p(gc->app, gc->ginp, xn, fout);
+//}
 
 void
 test_1()
@@ -326,10 +326,18 @@ test_1()
   struct gkyl_array *grFld = gkyl_array_new(GKYL_DOUBLE, 6*cbasis.num_basis, clocal_ext.volume);
   struct gkyl_array *biFld = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
   struct gkyl_array *cmagFld = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *jtotFld = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *jtotinvFld = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *bmaginvFld = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *bmaginvsqFld = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *gxxJ= gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *gxyJ= gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
+  struct gkyl_array *gyyJ= gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
   printf("created geo fields\n");
   gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&cbasis, &cgrid, false);
   printf("made the j calculator \n");
-  gkyl_calc_derived_geo_advance( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld);
+  //gkyl_calc_derived_geo_advance( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld);
+  gkyl_calc_derived_geo_advance( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld, jtotFld, jtotinvFld, bmaginvFld, bmaginvsqFld, gxxJ, gxyJ, gyyJ);
   
 
   do{
@@ -386,6 +394,14 @@ test_1()
   gkyl_array_release(jFld);
   gkyl_array_release(jinvFld);
   gkyl_array_release(biFld);
+
+  gkyl_array_release(jtotFld);
+  gkyl_array_release(jtotinvFld);
+  gkyl_array_release(bmaginvFld);
+  gkyl_array_release(bmaginvsqFld);
+  gkyl_array_release(gxxJ);
+  gkyl_array_release(gxyJ);
+  gkyl_array_release(gyyJ);
   gkyl_geo_gyrokinetic_release(geo);
 
   end = clock();

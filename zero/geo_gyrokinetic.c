@@ -29,10 +29,17 @@ struct gkyl_geo_gyrokinetic {
 };
 
 // some helper functions
-static inline double
-choose_closest(double ref, double R[2], double out[2])
+double
+choose_closest(double ref, double* R, double* out, int nr)
 {
-  return fabs(R[0]-ref) < fabs(R[1]-ref) ? out[0] : out[1];
+  //return fabs(R[0]-ref) < fabs(R[1]-ref) ? out[0] : out[1];
+  int imin = 0;
+  double min = fabs(R[0]-ref);
+  for(int i = 1; i< nr; i++){
+    if( fabs(R[i] - ref) < min)
+      imin = i;
+  }
+  return out[imin];
 }
 
 static inline double SQ(double x) { return x*x; }
@@ -177,10 +184,10 @@ contour_func(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
-  double R[2] = { 0 }, dR[2] = { 0 };
+  double R[4] = { 0 }, dR[4] = { 0 };
   
-  int nr = R_psiZ(c->geo, c->psi, Z, 2, R, dR);
-  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR);
+  int nr = R_psiZ(c->geo, c->psi, Z, 4, R, dR);
+  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR,nr);
   
   return nr>0 ? sqrt(1+dRdZ*dRdZ) : 0.0;
 }
@@ -190,11 +197,11 @@ phi_contour_func(double Z, void *ctx)
 {
   struct contour_ctx *c = ctx;
   c->ncall += 1;
-  double R[2] = { 0 }, dR[2] = { 0 };
+  double R[4] = { 0 }, dR[4] = { 0 };
   
-  int nr = R_psiZ(c->geo, c->psi, Z, 2, R, dR);
-  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR);
-  double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R);
+  int nr = R_psiZ(c->geo, c->psi, Z, 4, R, dR);
+  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR, nr);
+  double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
 
   struct gkyl_range_iter iter;
   iter.idx[0] = fmin(c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]), c->geo->rzlocal.upper[0]);
@@ -378,10 +385,10 @@ phi_func(double alpha_curr, double Z, void *ctx)
   }
 
   // Now multiply by RBphi
-  double R[2] = {0};
-  double dR[2] = {0};
-  int nr = R_psiZ(actx->geo, psi, Z, 2, R, dR);
-  double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R);
+  double R[4] = {0};
+  double dR[4] = {0};
+  int nr = R_psiZ(actx->geo, psi, Z, 4, R, dR);
+  double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double Bphi = actx->geo->B0*actx->geo->R0/r_curr;
   ival = ival*r_curr*Bphi;
 
@@ -471,7 +478,6 @@ void nodal_array_to_modal_array(struct gkyl_array *nodal_array, struct gkyl_arra
   int num_ret_vals = ginp->cgrid->ndim;
   int num_basis = ginp->cbasis->num_basis;
   int cpoly_order = ginp->cbasis->poly_order;
-  printf("converting to modal, numBasis = %d\n", num_basis);
   //initialize the nodes
   struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ginp->cgrid->ndim, ginp->cbasis->num_basis);
   ginp->cbasis->node_list(gkyl_array_fetch(nodes, 0));
@@ -601,9 +607,9 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
         // set node coordinates of first node
         cidx[TH_IDX] = nrange.lower[TH_IDX];
         double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
-        double R[2] = { 0 }, dR[2] = { 0 };
-        int nr = R_psiZ(geo, psi_curr, zmin, 2, R, dR);
-        double r_curr = choose_closest(rclose, R, R);
+        double R[4] = { 0 }, dR[4] = { 0 };
+        int nr = R_psiZ(geo, psi_curr, zmin, 4, R, dR);
+        double r_curr = choose_closest(rclose, R, R, nr);
         mc2p_n[Z_IDX] = zmin;
         mc2p_n[R_IDX] = r_curr;
 
@@ -637,9 +643,9 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
         double z_curr = res.res;
         ((gkyl_geo_gyrokinetic *)geo)->stat.nroot_cont_calls += res.nevals;
 
-        double R[2] = { 0 }, dR[2] = { 0 };
-        int nr = R_psiZ(geo, psi_curr, z_curr, 2, R, dR);
-        double r_curr = choose_closest(rclose, R, R);
+        double R[4] = { 0 }, dR[4] = { 0 };
+        int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+        double r_curr = choose_closest(rclose, R, R, nr);
 
         cidx[TH_IDX] = it;
         double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
@@ -663,9 +669,9 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
         cidx[TH_IDX] = nrange.upper[TH_IDX];
         double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
         mc2p_n[Z_IDX] = zmax;
-        double R[2] = { 0 }, dR[2] = { 0 };    
-        int nr = R_psiZ(geo, psi_curr, zmax, 2, R, dR);
-        mc2p_n[R_IDX] = choose_closest(rclose, R, R);
+        double R[4] = { 0 }, dR[4] = { 0 };    
+        int nr = R_psiZ(geo, psi_curr, zmax, 4, R, dR);
+        mc2p_n[R_IDX] = choose_closest(rclose, R, R, nr);
 
         // need to set the arc ctx for phi
         arc_ctx.psi = psi_curr;
