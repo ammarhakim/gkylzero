@@ -2648,6 +2648,7 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
   gkyl_array_release(eps);
   gkyl_array_release(phi);
   gkyl_array_release(phisol);
+  gkyl_array_release(rho);
   if (use_gpu) {
     gkyl_array_release(rho_cu);
     gkyl_array_release(phi_cu);
