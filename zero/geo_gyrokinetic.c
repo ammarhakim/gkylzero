@@ -627,7 +627,7 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
         mc2p_n[R_IDX] = r_curr;
 
 
-        double phi_curr = phi_func(alpha_curr, zmin, &arc_ctx);
+        double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
         // convert to x,y,z
         double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
         mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(phi_curr);
@@ -696,7 +696,7 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
         int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
         mc2p_n[R_IDX] = choose_closest(rclose, R, R, nr);
 
-        double phi_curr = phi_func(alpha_curr, zmax, &arc_ctx);
+        double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
 
         // do x,y,z
         double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
