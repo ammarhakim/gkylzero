@@ -37,6 +37,9 @@ gkyl_bc_emission_spectrum_set_cu_gamma_func_ptrs(enum gkyl_bc_emission_spectrum_
     case GKYL_BC_FURMAN_PIVI:
       funcs->gamma = furman_pivi_gamma;
       break;
+    case GKYL_BC_SCHOU:
+      funcs->gamma = schou_gamma;
+      break; 
     default:
       assert(false);
       break;

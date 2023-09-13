@@ -11,7 +11,8 @@ enum gkyl_bc_emission_spectrum_type {
   GKYL_BC_GAUSSIAN = 1};
 
 enum gkyl_bc_emission_spectrum_gamma_type {
-  GKYL_BC_FURMAN_PIVI = 0};
+  GKYL_BC_FURMAN_PIVI = 0,
+  GKYL_BC_SCHOU = 1};
 
 // Object type
 typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;

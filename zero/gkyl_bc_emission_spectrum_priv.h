@@ -90,6 +90,36 @@ furman_pivi_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], doub
   out[0] = gammahat*s*x/(s - 1 + pow(x, s));
 }
 
+GKYL_CU_D
+static void
+schou_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *param) // Ion impact model adapted from https://doi.org/10.1103/PhysRevB.22.2141
+{ // No angular dependence atm. Will have to add later
+
+  double mass = param[0];   
+  double charge = param[1];
+  double intWall = param[2];
+  double A2 = param[3];  // Note: Starts at 2 to match notation from source: https://doi.org/10.1093/jicru_os25.2.18
+  double A3 = param[4];
+  double A4 = param[5];
+  double A5 = param[6];
+  double nw = param[7];   // Number density of wall material in m^-3
+
+  double E = 0.0;   
+  for (int d=0; d<vdim; d++) {
+    E += 0.5*mass*xc[cdim+d]*xc[cdim+d]/fabs(charge)/1000;  // Calculate energy in keV
+  }
+
+  double Es = E*1.66053906660e-27/1.67262192369e-27;  // Scale energy by ratio of atomic mass unit to proton mass
+  double eps_low = A2*pow(Es,0.45);
+  double eps_high = 0.0;
+  if (Es != 0) { // Divide by zero error catching. If Es is not 0, then do the normal calculation.
+    eps_high = (A3/Es)*log(1+A4/Es+A5*Es);
+  }
+  double eps = eps_low*eps_high/(eps_low+eps_high);
+
+  out[0] =  eps*nw*fabs(charge)*intWall/1.0e19;
+}
+
 void
 gkyl_bc_emission_spectrum_choose_func_cu(enum gkyl_bc_emission_spectrum_type bctype,
   enum gkyl_bc_emission_spectrum_gamma_type gammatype, struct gkyl_bc_emission_spectrum_funcs *funcs);
@@ -116,6 +146,8 @@ bc_emission_spectrum_choose_gamma_func(enum gkyl_bc_emission_spectrum_gamma_type
   switch (gammatype) {
     case GKYL_BC_FURMAN_PIVI:
       return furman_pivi_gamma;
+    case GKYL_BC_SCHOU:
+      return schou_gamma;
     default:
       assert(false);
       break;
