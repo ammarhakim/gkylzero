@@ -224,5 +224,12 @@ main(int argc, char **argv)
   tm_tot = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
   printf("Avg time for fem_poisson_solve: %g [s]\n", tm_tot/inp.nloop);
   
+  gkyl_array_release(rho);
+  gkyl_array_release(phi);
+  gkyl_array_release(epsilon);
+  if (use_gpu)
+    gkyl_array_release(rho);
+  gkyl_fem_poisson_release(poisson);
+  
   return 0;
 }
