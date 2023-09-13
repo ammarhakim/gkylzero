@@ -51,10 +51,10 @@ gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl
   gkyl_range_iter_init(&iter, crange);
   while (gkyl_range_iter_next(&iter)) {
     long loc = gkyl_range_idx(crange, iter.idx);
-    double *bmag_i = gkyl_array_fetch(bmagFld, loc); // bmag we want to change
+    const double *bmag_i = gkyl_array_cfetch(bmagFld, loc); // bmag we want to change
     const double *j_i = gkyl_array_cfetch(jFld, loc);
-    const double *gij_i = gkyl_array_cfetch(gFld, loc);
-    const double *gzz_i = &gij_i[(2*up->cdim - 1)*up->cnum_basis];
+    double *gij_i = gkyl_array_fetch(gFld, loc);
+    double *gzz_i = &gij_i[(2*up->cdim - 1)*up->cnum_basis];
 
     cmag_iter.idx[0] = iter.idx[0];
     for(int i = 1; i <up->cdim; i++)
@@ -63,7 +63,7 @@ gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl
 
     const double *cmag_i = gkyl_array_cfetch(cmagFld, cmag_loc); // cmag we want for yz plane
     // now call a kernel that takes j, gzz, and cmag as inputs and calculates bmag
-    up->adjustment_kernel(cmag_i, gzz_i, j_i, bmag_i);
+    up->adjustment_kernel(cmag_i, gzz_i, j_i, bmag_i, gij_i);
 
   }
 
