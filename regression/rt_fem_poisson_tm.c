@@ -165,7 +165,7 @@ main(int argc, char **argv)
 
   // create epsilon array
   struct gkyl_array *epsilon = mkarr1(use_gpu, basis.num_basis, localRange_ext.volume);
-  gkyl_array_shiftc(epsilon, 1.0, 0);
+  gkyl_array_shiftc(epsilon, 1.0*pow(sqrt(2.),dim), 0);
   
   // set initial condition
   int nf = localRange_ext.volume*basis.num_basis;
