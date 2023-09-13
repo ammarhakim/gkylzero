@@ -607,16 +607,25 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
         // set node coordinates of first node
         cidx[TH_IDX] = nrange.lower[TH_IDX];
         double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
-        double R[4] = { 0 }, dR[4] = { 0 };
-        int nr = R_psiZ(geo, psi_curr, zmin, 4, R, dR);
-        double r_curr = choose_closest(rclose, R, R, nr);
-        mc2p_n[Z_IDX] = zmin;
-        mc2p_n[R_IDX] = r_curr;
 
         arc_ctx.psi = psi_curr;
         arc_ctx.rclose = rclose;
         arc_ctx.zmin = zmin;
         arc_ctx.arcL = arcL_curr;
+
+        // Here we actually need to search for z because we aren't starting from -pi
+        struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
+          zmin, zmax, -arcL_curr, arcL-arcL_curr,
+          geo->root_param.max_iter, 1e-10);
+        double z_curr = res.res;
+        ((gkyl_geo_gyrokinetic *)geo)->stat.nroot_cont_calls += res.nevals;
+        mc2p_n[Z_IDX] = z_curr;
+
+        double R[4] = { 0 }, dR[4] = { 0 };
+        int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+        double r_curr = choose_closest(rclose, R, R, nr);
+        mc2p_n[R_IDX] = r_curr;
+
 
         double phi_curr = phi_func(alpha_curr, zmin, &arc_ctx);
         // convert to x,y,z
@@ -668,19 +677,28 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
         // set node coordinates of last node
         cidx[TH_IDX] = nrange.upper[TH_IDX];
         double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
-        mc2p_n[Z_IDX] = zmax;
-        double R[4] = { 0 }, dR[4] = { 0 };    
-        int nr = R_psiZ(geo, psi_curr, zmax, 4, R, dR);
-        mc2p_n[R_IDX] = choose_closest(rclose, R, R, nr);
 
-        // need to set the arc ctx for phi
         arc_ctx.psi = psi_curr;
         arc_ctx.rclose = rclose;
         arc_ctx.zmin = zmin;
         arc_ctx.arcL = arcL_curr;
+
+        // Here we actually need to search for z because we aren't ending at pi necessarily
+        struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
+          zmin, zmax, -arcL_curr, arcL-arcL_curr,
+          geo->root_param.max_iter, 1e-10);
+        double z_curr = res.res;
+        ((gkyl_geo_gyrokinetic *)geo)->stat.nroot_cont_calls += res.nevals;
+        mc2p_n[Z_IDX] = z_curr;
+
+
+        double R[4] = { 0 }, dR[4] = { 0 };    
+        int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+        mc2p_n[R_IDX] = choose_closest(rclose, R, R, nr);
+
         double phi_curr = phi_func(alpha_curr, zmax, &arc_ctx);
 
-        //do x,y,z
+        // do x,y,z
         double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
         mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(phi_curr);
         mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(phi_curr);
