@@ -374,7 +374,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   gkyl_array_shiftc(eps, gyy*dg0norm, 2*basis.num_basis);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, 0, eps, NULL, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, eps, NULL, false, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)

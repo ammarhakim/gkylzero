@@ -17,7 +17,7 @@ typedef struct gkyl_ghost_surf_calc gkyl_ghost_surf_calc;
  * @param equation Equation object
  * @param use_gpu bool to determine if on GPU
  */
-gkyl_ghost_surf_calc* gkyl_ghost_surf_calc_new(const struct gkyl_rect_grid *grid,
+struct gkyl_ghost_surf_calc* gkyl_ghost_surf_calc_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_dg_eqn *equation, int cdim, bool use_gpu);
 
 /**
@@ -26,7 +26,7 @@ gkyl_ghost_surf_calc* gkyl_ghost_surf_calc_new(const struct gkyl_rect_grid *grid
  * @param grid_cu Grid object (on device)
  * @param equation Equation object
  */
-gkyl_ghost_surf_calc* gkyl_ghost_surf_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+struct gkyl_ghost_surf_calc* gkyl_ghost_surf_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_dg_eqn *equation, int cdim);
 
 /**

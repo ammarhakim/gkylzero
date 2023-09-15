@@ -56,6 +56,13 @@ struct moment_species {
   struct gkyl_array *app_accel; // array for applied acceleration/forces
   // pointer to projection operator for applied acceleration/forces function
   gkyl_fv_proj *proj_app_accel;
+
+  struct gkyl_array *nT_source; // array for num density and temperature sources
+  // projection func for num density and temperature sources
+  gkyl_fv_proj *proj_nT_source;
+  bool nT_source_set_only_once; // set by user
+  bool nT_source_is_set; // to be set at run time
+
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
   enum gkyl_eqn_type eqn_type;  // type ID of equation
@@ -104,11 +111,13 @@ struct moment_field {
   struct gkyl_wv_eqn *maxwell; // pointer to Maxwell eqn obj
 
   struct gkyl_array *app_current; // arrays for applied currents
+  double t_ramp_curr; // linear ramp for turning on applied currents
   // pointer to projection operator for applied current function
   gkyl_fv_proj *proj_app_current;
 
   bool is_ext_em_static; // flag to indicate if external field is time-independent
   struct gkyl_array *ext_em; // array external fields
+  double t_ramp_E; // linear ramp for turning on external E field
   gkyl_fv_proj *proj_ext_em; // pointer to projection operator for external fields
   bool was_ext_em_computed; // flag to indicate if we already computed external EM field
 
@@ -153,7 +162,9 @@ struct moment_coupling {
  // array for non-ideal variables (heat-flux tensor)  
   struct gkyl_array *non_ideal_vars[GKYL_MAX_SPECIES];
   // array for storing RHS of each species from non-ideal term updates (gradient-based closure)
-  struct gkyl_array  *rhs[GKYL_MAX_SPECIES]; 
+  struct gkyl_array  *pr_rhs[GKYL_MAX_SPECIES];
+  // array for storing RHS of number density and temperature source terms
+  struct gkyl_array  *nT_sources[GKYL_MAX_SPECIES];
 
   gkyl_moment_em_coupling *slvr; // source solver function
 };

@@ -18,11 +18,11 @@ struct gkyl_eval_on_nodes {
   struct gkyl_array *nodes; // local nodal coordinates
 };
 
-gkyl_eval_on_nodes*
+struct gkyl_eval_on_nodes*
 gkyl_eval_on_nodes_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   int num_ret_vals, evalf_t eval, void *ctx)
 {
-  gkyl_eval_on_nodes *up = gkyl_malloc(sizeof(gkyl_eval_on_nodes));
+  struct gkyl_eval_on_nodes *up = gkyl_malloc(sizeof(struct gkyl_eval_on_nodes));
 
   up->grid = *grid;
   up->num_ret_vals = num_ret_vals;
@@ -52,18 +52,40 @@ copy_double_arr(int n, const double* GKYL_RESTRICT inp, double* GKYL_RESTRICT ou
   for (int i=0; i<n; ++i) out[i] = inp[i];
 }
 
+double* gkyl_eval_on_nodes_fetch_node(const struct gkyl_eval_on_nodes *up, long node)
+{
+  return gkyl_array_fetch(up->nodes, node);
+}
+
 void
-gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up,
+gkyl_eval_on_nodes_nod2mod(const struct gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f)
+{
+  const double *fao = gkyl_array_cfetch(fun_at_nodes, 0); // pointer to values at nodes
+  
+  int num_ret_vals = up->num_ret_vals;
+  int num_basis = up->num_basis;
+  double fnodal[num_basis]; // to store nodal function values
+  for (int i=0; i<num_ret_vals; ++i) {
+    // copy so nodal values for each return value are contiguous
+    // (recall that function can have more than one return value)
+    for (int k=0; k<num_basis; ++k)
+      fnodal[k] = fao[num_ret_vals*k+i];
+
+    // transform to modal expansion
+    up->nodal_to_modal(fnodal, &f[num_basis*i]);
+  }
+}
+
+void
+gkyl_eval_on_nodes_advance(const struct gkyl_eval_on_nodes *up,
   double tm, const struct gkyl_range *update_range, struct gkyl_array *arr)
 {
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
 
   int num_ret_vals = up->num_ret_vals;
   int num_basis = up->num_basis;
-  struct gkyl_array *fun_at_ords = gkyl_array_new(GKYL_DOUBLE, num_ret_vals, num_basis);
+  struct gkyl_array *fun_at_nodes = gkyl_array_new(GKYL_DOUBLE, num_ret_vals, num_basis);
 
-  double fnodal[num_basis]; // to store nodal function values
-  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
   
@@ -73,30 +95,18 @@ gkyl_eval_on_nodes_advance(const gkyl_eval_on_nodes *up,
     for (int i=0; i<num_basis; ++i) {
       comp_to_phys(up->grid.ndim, gkyl_array_cfetch(up->nodes, i),
         up->grid.dx, xc, xmu);
-      up->eval(tm, xmu, gkyl_array_fetch(fun_at_ords, i), up->ctx);
+      up->eval(tm, xmu, gkyl_array_fetch(fun_at_nodes, i), up->ctx);
     }
 
     long lidx = gkyl_range_idx(update_range, iter.idx);
-
-    double *arr_p = gkyl_array_fetch(arr, lidx); // pointer to expansion in cell
-    const double *fao = gkyl_array_cfetch(fun_at_ords, 0); // pointer to values at nodes
-    
-    for (int i=0; i<num_ret_vals; ++i) {
-      // copy so nodal values for each return value are contiguous
-      // (recall that function can have more than one return value)
-      for (int k=0; k<num_basis; ++k)
-        fnodal[k] = fao[num_ret_vals*k+i];
-
-      // transform to modal expansion
-      up->nodal_to_modal(fnodal, &arr_p[num_basis*i]);
-    }
+    gkyl_eval_on_nodes_nod2mod(up, fun_at_nodes, gkyl_array_fetch(arr, lidx));
   }
 
-  gkyl_array_release(fun_at_ords);
+  gkyl_array_release(fun_at_nodes);
 }
 
 void
-gkyl_eval_on_nodes_release(gkyl_eval_on_nodes* up)
+gkyl_eval_on_nodes_release(struct gkyl_eval_on_nodes* up)
 {
   gkyl_array_release(up->nodes);
   gkyl_free(up);
