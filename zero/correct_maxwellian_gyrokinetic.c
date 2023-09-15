@@ -8,6 +8,7 @@
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_range.h>
 #include <math.h>
+#include <stdio.h>
 
 // Allocate cu_dev array
 static struct gkyl_array*
@@ -47,9 +48,11 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const
   up->grid = *grid;
   up->conf_basis = *conf_basis;
   up->phase_basis = *phase_basis;
-  up->bmag = bmag;
-  up->jacob_tot = jacob_tot;
-  
+  //up->bmag = bmag;
+  //up->jacob_tot = jacob_tot;
+  up->bmag = gkyl_array_acquire(bmag);
+  up->jacob_tot = gkyl_array_acquire(jacob_tot); 
+
   // Allocate memory
   up->m0_in = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
   up->m0 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
@@ -68,6 +71,8 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const
   gkyl_gyrokinetic_set_bmag(MOMS_t, bmag);
   up->m0calc = gkyl_mom_calc_new(grid, M0_t, use_gpu);
   up->momsCalc = gkyl_mom_calc_new(grid, MOMS_t, use_gpu);
+  gkyl_mom_type_release(M0_t);
+  gkyl_mom_type_release(MOMS_t);
 
   if (use_gpu) {
     up->weak_divide = gkyl_dg_bin_op_mem_cu_dev_new(conf_local->volume, conf_basis->num_basis);
@@ -80,17 +85,15 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const
     up->weak_multiply = gkyl_dg_bin_op_mem_new(conf_local->volume, conf_basis->num_basis);
     up->weak_multiply_confPhase = gkyl_dg_bin_op_mem_new(conf_local->volume, conf_basis->num_basis);
   }
-
-  up->mvals1 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->mvals2 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
+  up->mvals1 = mkarr(1, conf_local_ext->volume, use_gpu);
+  up->mvals2 = mkarr(1, conf_local_ext->volume, use_gpu);
 
   return up;
 }
 
-void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic *up, struct gkyl_array *fM, const struct gkyl_array *moms_in, double err_max, int iter_max, const struct gkyl_range *conf_local, const struct gkyl_range *phase_local, const struct gkyl_range *conf_local_ext)
+void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokinetic *up, struct gkyl_array *fM, const struct gkyl_array *moms_in, double err_max, int iter_max, const struct gkyl_range *conf_local, const struct gkyl_range *phase_local)
 {
   double err1[1], err2[1];
-  
   // Decompose the input moments
   gkyl_array_set_offset(up->m0_in, 1., moms_in, 0*up->conf_basis.num_basis);
   gkyl_array_set_offset(up->m12_in, 1., moms_in, 1*up->conf_basis.num_basis);
@@ -179,6 +182,8 @@ gkyl_correct_maxwellian_gyrokinetic_release(gkyl_correct_maxwellian_gyrokinetic*
     gkyl_cu_free(up->err1_cu);
     gkyl_cu_free(up->err2_cu);
   }
+  gkyl_array_release(up->bmag);        // added for test
+  gkyl_array_release(up->jacob_tot);   // added for test
   gkyl_array_release(up->m0_in);
   gkyl_array_release(up->m0);
   gkyl_array_release(up->m0scl);
