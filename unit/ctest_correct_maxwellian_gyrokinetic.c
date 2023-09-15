@@ -102,7 +102,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   // Basis functions
   struct gkyl_basis basis, confBasis;
   if (poly_order==1)
-    gkyl_cart_modal_hybrid(&basis, cdim, vdim);
+    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
   else
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
@@ -189,12 +189,10 @@ void test_1x1v(int poly_order, bool use_gpu)
   char fname_fM_ic[1024];
   sprintf(fname_fM_ic, "ctest_correct_maxwellian_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
   gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_ic);
- 
   // Create a Maxwellian with corrected moments
   gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, bmag, jacob_tot, mass, use_gpu);
-  gkyl_correct_maxwellian_gyrokinetic_fix(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local, &confLocal_ext);
+  gkyl_correct_maxwellian_gyrokinetic_advance(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local);
   gkyl_correct_maxwellian_gyrokinetic_release(corr_max);
-  gkyl_array_clear(fM_ho, 0.0);
   if (use_gpu) {
     gkyl_array_copy(fM_ho, fM);
   } else {
@@ -203,7 +201,6 @@ void test_1x1v(int poly_order, bool use_gpu)
   char fname_fM_corr[1024];
   sprintf(fname_fM_corr, "ctest_correct_maxwellian_%dx%dv_p%d_corr.gkyl", cdim, vdim, poly_order);
   gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_corr);
-
   // Calculate the corrected moments
   // (1) create the calculators
   struct gkyl_mom_type *MOMS_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "ThreeMoments", use_gpu);
@@ -211,9 +208,10 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_mom_calc *momsCalc = gkyl_mom_calc_new(&grid, MOMS_t, use_gpu);
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  struct gkyl_array *moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
+  struct gkyl_array *moms_corr_ho;
   if (use_gpu) { 
     gkyl_mom_calc_advance_cu(momsCalc, &local, &confLocal, fM, moms_corr); 
+    moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
   } else {
     gkyl_mom_calc_advance(momsCalc, &local, &confLocal, fM, moms_corr);
@@ -235,27 +233,33 @@ void test_1x1v(int poly_order, bool use_gpu)
       TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", momsCorr[m+0*confBasis.num_basis], momsCorr[m+1*confBasis.num_basis], momsCorr[m+2*confBasis.num_basis]);
     }
   }
-  
+ 
   // Release memory for moment data object
   gkyl_array_release(bmag);
   gkyl_array_release(jacob_tot);
-  gkyl_array_release(bmag_ho);
-  gkyl_array_release(jacob_tot_ho);
   gkyl_array_release(m0_in);
   gkyl_array_release(m1_in);
   gkyl_array_release(m2_in);
-  gkyl_array_release(m0_in_ho);
-  gkyl_array_release(m1_in_ho);
-  gkyl_array_release(m2_in_ho);
   gkyl_array_release(moms_in);
   gkyl_array_release(moms_corr);
-  gkyl_array_release(moms_corr_ho);
   gkyl_array_release(fM);
-  gkyl_array_release(fM_ho);
+  if (use_gpu) {
+    gkyl_array_release(bmag_ho);
+    gkyl_array_release(jacob_tot_ho);
+    gkyl_array_release(m0_in_ho);
+    gkyl_array_release(m1_in_ho);
+    gkyl_array_release(m2_in_ho);
+    gkyl_array_release(moms_corr_ho);
+    gkyl_array_release(fM_ho);
+  }
+  gkyl_proj_on_basis_release(proj_bmag);
+  gkyl_proj_on_basis_release(proj_jac);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
+  gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
   gkyl_mom_calc_release(momsCalc);
+  gkyl_mom_type_release(MOMS_t);
 }
 
 void eval_udrift_2v_gk(double t, const double *xn, double* restrict fout, void *ctx)
@@ -392,9 +396,8 @@ void test_1x2v(int poly_order, bool use_gpu)
  
   // Create a Maxwellian with corrected moments
   gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, bmag, jacob_tot, mass, use_gpu);
-  gkyl_correct_maxwellian_gyrokinetic_fix(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local, &confLocal_ext);
+  gkyl_correct_maxwellian_gyrokinetic_advance(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local);
   gkyl_correct_maxwellian_gyrokinetic_release(corr_max);
-  gkyl_array_clear(fM_ho, 0.0);
   if (use_gpu) {
     gkyl_array_copy(fM_ho, fM);
   } else {
@@ -411,9 +414,10 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_mom_calc *momsCalc = gkyl_mom_calc_new(&grid, MOMS_t, use_gpu);
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  struct gkyl_array *moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
+  struct gkyl_array *moms_corr_ho;
   if (use_gpu) { 
     gkyl_mom_calc_advance_cu(momsCalc, &local, &confLocal, fM, moms_corr); 
+    moms_corr_ho = mkarr(3*confBasis.num_basis, confLocal_ext.volume, false);
     gkyl_array_copy(moms_corr_ho, moms_corr); 
   } else {
     gkyl_mom_calc_advance(momsCalc, &local, &confLocal, fM, moms_corr);
@@ -439,35 +443,54 @@ void test_1x2v(int poly_order, bool use_gpu)
   // Release memory for moment data object
   gkyl_array_release(bmag);
   gkyl_array_release(jacob_tot);
-  gkyl_array_release(bmag_ho);
-  gkyl_array_release(jacob_tot_ho);
   gkyl_array_release(m0_in);
   gkyl_array_release(m1_in);
   gkyl_array_release(m2_in);
-  gkyl_array_release(m0_in_ho);
-  gkyl_array_release(m1_in_ho);
-  gkyl_array_release(m2_in_ho);
   gkyl_array_release(moms_in);
   gkyl_array_release(moms_corr);
-  gkyl_array_release(moms_corr_ho);
   gkyl_array_release(fM);
-  gkyl_array_release(fM_ho);
+  if (use_gpu) {
+    gkyl_array_release(bmag_ho);
+    gkyl_array_release(jacob_tot_ho);
+    gkyl_array_release(m0_in_ho);
+    gkyl_array_release(m1_in_ho);
+    gkyl_array_release(m2_in_ho);
+    gkyl_array_release(moms_corr_ho);
+    gkyl_array_release(fM_ho);
+  }
+  gkyl_proj_on_basis_release(proj_bmag);
+  gkyl_proj_on_basis_release(proj_jac);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1);
   gkyl_proj_on_basis_release(proj_m2);
+  gkyl_proj_maxwellian_on_basis_release(proj_maxwellian);
   gkyl_mom_calc_release(momsCalc);
+  gkyl_mom_type_release(MOMS_t);
 }
 
 // Run the test
-void test_1x1v_p1() {test_1x1v(1, true);}
-void test_1x1v_p2() {test_1x1v(2, true);}
-void test_1x2v_p1() {test_1x2v(1, true);}
-void test_1x2v_p2() {test_1x2v(2, true);}
+void test_1x1v_p1() {test_1x1v(1, false);}
+void test_1x1v_p2() {test_1x1v(2, false);}
+void test_1x2v_p1() {test_1x2v(1, false);}
+void test_1x2v_p2() {test_1x2v(2, false);}
+
+#ifdef GKYL_HAVE_CUDA
+void test_1x1v_p1_gpu() {test_1x1v(1, true);}
+void test_1x1v_p2_gpu() {test_1x1v(2, true);}
+void test_1x2v_p1_gpu() {test_1x2v(1, true);}
+void test_1x2v_p2_gpu() {test_1x2v(2, true);}
+#endif
 
 TEST_LIST = {
   {"test_1x1v_p1", test_1x1v_p1},
   {"test_1x1v_p2", test_1x1v_p2},
   {"test_1x2v_p1", test_1x2v_p1},
   {"test_1x2v_p2", test_1x2v_p2},
+#ifdef GKYL_HAVE_CUDA
+  {"test_1x1v_p1_gpu", test_1x1v_p1_gpu},
+  {"test_1x1v_p2_gpu", test_1x1v_p2_gpu},
+  {"test_1x2v_p1_gpu", test_1x2v_p1_gpu},
+  {"test_1x2v_p2_gpu", test_1x2v_p2_gpu},
+#endif
   {NULL, NULL},
 };
