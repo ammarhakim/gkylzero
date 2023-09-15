@@ -127,7 +127,7 @@ struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned 
  * @return out array
  */
 struct gkyl_array* gkyl_array_clear_range(struct gkyl_array *out, double val,
-  struct gkyl_range range);
+  const struct gkyl_range *range);
 
 /**
  * Compute out = out + a*inp over a range of indices.
@@ -139,7 +139,7 @@ struct gkyl_array* gkyl_array_clear_range(struct gkyl_array *out, double val,
  * @return out array
  */
 struct gkyl_array* gkyl_array_accumulate_range(struct gkyl_array *out,
-  double a, const struct gkyl_array *inp, struct gkyl_range range);
+  double a, const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
  * Compute out = out + a*inp[coff] where coff is a component-offset if
@@ -153,7 +153,7 @@ struct gkyl_array* gkyl_array_accumulate_range(struct gkyl_array *out,
  * @return out array
  */
 struct gkyl_array* gkyl_array_accumulate_offset_range(struct gkyl_array *out,
-  double a, const struct gkyl_array *inp, int coff, struct gkyl_range range);
+  double a, const struct gkyl_array *inp, int coff, const struct gkyl_range *range);
 
 /**
  * Set out = a*inp. Returns out.
@@ -165,7 +165,7 @@ struct gkyl_array* gkyl_array_accumulate_offset_range(struct gkyl_array *out,
  * @param range Range specifying region to set
  */
 struct gkyl_array* gkyl_array_set_range(struct gkyl_array *out,
-  double a, const struct gkyl_array *inp, struct gkyl_range range);
+  double a, const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
  * Set out = a*inp[coff] where coff is a component-offset if
@@ -179,7 +179,7 @@ struct gkyl_array* gkyl_array_set_range(struct gkyl_array *out,
  * @param range Range specifying region to set
  */
 struct gkyl_array* gkyl_array_set_offset_range(struct gkyl_array *out,
-  double a, const struct gkyl_array *inp, int coff, struct gkyl_range range);
+  double a, const struct gkyl_array *inp, int coff, const struct gkyl_range *range);
 
 /**
  * Scale out = a*ut. Returns out.
@@ -190,7 +190,7 @@ struct gkyl_array* gkyl_array_set_offset_range(struct gkyl_array *out,
  * @param range Range specifying region to scale
  */
 struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
-  double a, struct gkyl_range range);
+  double a, const struct gkyl_range *range);
 
 /**
  * Shift the k-th coefficient in every cell, out_k = a+out_k within
@@ -203,7 +203,7 @@ struct gkyl_array* gkyl_array_scale_range(struct gkyl_array *out,
  * @return out array.
  */
 struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
-  unsigned k, struct gkyl_range range);
+  unsigned k, const struct gkyl_range *range);
 
 /**
  * Copy out inp. Returns out.
@@ -214,7 +214,7 @@ struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
  * @return out array
  */
 struct gkyl_array* gkyl_array_copy_range(struct gkyl_array *out,
-  const struct gkyl_array *inp, struct gkyl_range range);
+  const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
  * Copy out inp over specified ranges. Returns out.
@@ -248,7 +248,7 @@ void gkyl_array_reduce(double *res, const struct gkyl_array *arr, enum gkyl_arra
  * @param range Range specifying region
  */
 void gkyl_array_reduce_range(double *res,
-  const struct gkyl_array *arr, enum gkyl_array_op op, struct gkyl_range range);
+  const struct gkyl_array *arr, enum gkyl_array_op op, const struct gkyl_range *range);
 
 /**
  * Copy region of array into a buffer. The buffer must be preallocated
@@ -259,7 +259,7 @@ void gkyl_array_reduce_range(double *res,
  * @param range Range specifying region to copy from
  */
 void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
-  struct gkyl_range *range);
+  const struct gkyl_range *range);
 
 /**
  * Copy buffer into region of array. The array must be preallocated.
@@ -269,7 +269,7 @@ void gkyl_array_copy_to_buffer(void *data, const struct gkyl_array *arr,
  * @param range Range specifying region to copy into
  */
 void gkyl_array_copy_from_buffer(struct gkyl_array *arr, const void *data,
-  struct gkyl_range *range);
+  const struct gkyl_range *range);
 
 /**
  * Copy region of array into a buffer, calling user-specified function
@@ -282,7 +282,7 @@ void gkyl_array_copy_from_buffer(struct gkyl_array *arr, const void *data,
  * @param cf Function pointer and context
  */
 void gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range, struct gkyl_array_copy_func *cf);
+  const struct gkyl_range *range, struct gkyl_array_copy_func *cf);
 
 /**
  * Copy region of array into a buffer, calling user-specified function
@@ -298,7 +298,7 @@ void gkyl_array_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
  * @param cf Function pointer and context
  */
 void gkyl_array_flip_copy_to_buffer_fn(void *data, const struct gkyl_array *arr,
-  int dir, struct gkyl_range range, struct gkyl_array_copy_func *cf);
+  int dir, const struct gkyl_range *range, struct gkyl_array_copy_func *cf);
 
 /**
  * Host-side wrappers for array operations
@@ -319,42 +319,42 @@ void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array
 
 void gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k);
 
-void gkyl_array_shiftc_range_cu(struct gkyl_array *out, double a, unsigned k, struct gkyl_range range);
+void gkyl_array_shiftc_range_cu(struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range);
 
 /**
  * Host-side wrappers for range-based array operations
  */
-void gkyl_array_clear_range_cu(struct gkyl_array *out, double val, struct gkyl_range range);
+void gkyl_array_clear_range_cu(struct gkyl_array *out, double val, const struct gkyl_range *range);
 
 void gkyl_array_accumulate_range_cu(struct gkyl_array *out,
-  double a, const struct gkyl_array* inp, struct gkyl_range range);
+  double a, const struct gkyl_array* inp, const struct gkyl_range *range);
 
 void gkyl_array_accumulate_offset_range_cu(struct gkyl_array *out,
-  double a, const struct gkyl_array* inp, int coff, struct gkyl_range range);
+  double a, const struct gkyl_array* inp, int coff, const struct gkyl_range *range);
 
 void gkyl_array_set_range_cu(struct gkyl_array *out,
-  double a, const struct gkyl_array* inp, struct gkyl_range range);
+  double a, const struct gkyl_array* inp, const struct gkyl_range *range);
 
 void gkyl_array_set_offset_range_cu(struct gkyl_array *out,
-  double a, const struct gkyl_array* inp, int coff, struct gkyl_range range);
+  double a, const struct gkyl_array* inp, int coff, const struct gkyl_range *range);
 
 void gkyl_array_scale_range_cu(struct gkyl_array *out,
-  double a, struct gkyl_range range);
+  double a, const struct gkyl_range *range);
 
 void gkyl_array_copy_range_cu(struct gkyl_array *out, const struct gkyl_array* inp, 
-  struct gkyl_range range);
+  const struct gkyl_range *range);
 
 void gkyl_array_copy_range_to_range_cu(struct gkyl_array *out, const struct gkyl_array* inp,
   struct gkyl_range *out_range, struct gkyl_range *inp_range);
 
 void gkyl_array_copy_to_buffer_cu(void *data, const struct gkyl_array *arr, 
-  struct gkyl_range range);
+  const struct gkyl_range *range);
 
 void gkyl_array_copy_from_buffer_cu(struct gkyl_array *arr, const void *data, 
-  struct gkyl_range range);
+  const struct gkyl_range *range);
 
 void gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
-  struct gkyl_range range, struct gkyl_array_copy_func *cf);
+  const struct gkyl_range *range, struct gkyl_array_copy_func *cf);
 
 void gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
-  int dir, struct gkyl_range range, struct gkyl_array_copy_func *cf);
+  int dir, const struct gkyl_range *range, struct gkyl_array_copy_func *cf);
