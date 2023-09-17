@@ -108,7 +108,7 @@ gkyl_bc_basic_buffer_fixed_func(const struct gkyl_bc_basic *up, struct gkyl_arra
 {
   if (up->bctype == GKYL_BC_FIXED_FUNC)
     gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
-                                 *up->skin_r, up->array_copy_func->on_dev);    
+                                 up->skin_r, up->array_copy_func->on_dev);    
 }
 
 void
@@ -125,13 +125,13 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
     case GKYL_BC_PKPM_MOM_REFLECT:
     case GKYL_BC_PKPM_MOM_NO_SLIP:
       gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr,
-                                   *up->skin_r, up->array_copy_func->on_dev);
+                                   up->skin_r, up->array_copy_func->on_dev);
       break;
 
     case GKYL_BC_REFLECT:
     case GKYL_BC_PKPM_SPECIES_REFLECT:
       gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->dir+up->cdim,
-                                        *up->skin_r, up->array_copy_func->on_dev);
+                                        up->skin_r, up->array_copy_func->on_dev);
       break;
 
     case GKYL_BC_FIXED_FUNC: // if BC is fixed func, do nothing, buffer already full

@@ -212,13 +212,13 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
     gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, up->solve_range);
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
-      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, &(up->solve_range));
       gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
     } else {
-      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, &(up->solve_range));
     }
 #else
-    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, &(up->solve_range));
 #endif
     gkyl_array_shiftc(rhsin, up->mavgfac*up->rhs_avg[0], 0);
   }

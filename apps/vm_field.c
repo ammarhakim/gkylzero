@@ -319,17 +319,17 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
 
     if (s->model_id == GKYL_MODEL_PKPM) {
       // Need to divide out the mass in pkpm model since we evolve momentum
-      gkyl_array_set_range(s->m1i_pkpm, 1.0/s->info.mass, fluidin[s->pkpm_fluid_index], app->local);
-      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_pkpm, app->local);   
+      gkyl_array_set_range(s->m1i_pkpm, 1.0/s->info.mass, fluidin[s->pkpm_fluid_index], &(app->local));
+      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_pkpm, &(app->local));   
     }
     else {
       vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
-      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, app->local);
+      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &(app->local));
     }
   } 
   // Accumulate applied current to electric field terms
   if (app->field->has_app_current)
-    gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, app->local);
+    gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, &(app->local));
 }
 
 // Compute the RHS for field update, returning maximum stable
@@ -351,7 +351,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
     else
       gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
     
-    gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, app->local);
+    gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &(app->local));
 
     app->stat.nfield_omega_cfl += 1;
     struct timespec tm = gkyl_wall_clock();
@@ -437,15 +437,15 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
 {
   for (int i=0; i<6; ++i)
     gkyl_dg_calc_l2_range(app->confBasis, i, field->em_energy, i, field->em, app->local);
-  gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, app->local);
+  gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, &(app->local));
   
   double energy[6] = { 0.0 };
   if (app->use_gpu) {
-    gkyl_array_reduce_range(field->em_energy_red, field->em_energy, GKYL_SUM, app->local);
+    gkyl_array_reduce_range(field->em_energy_red, field->em_energy, GKYL_SUM, &(app->local));
     gkyl_cu_memcpy(energy, field->em_energy_red, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
   }
   else { 
-    gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, app->local);
+    gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, &(app->local));
   }
 
   double energy_global[6] = { 0.0 };

@@ -22,7 +22,7 @@ gkyl_fv_proj_advance(const gkyl_fv_proj *pob,
 
   // from projections, compute cell average
   double denorm = 1.0/sqrt(pow(2, update_rng->ndim));
-  gkyl_array_scale_range(out, denorm, *update_rng);
+  gkyl_array_scale_range(out, denorm, update_rng);
 }
 
 void
