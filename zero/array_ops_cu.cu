@@ -648,7 +648,7 @@ gkyl_array_copy_range_cu(struct gkyl_array *out,
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, out->ncomp);
 
   gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
-    inp->on_dev, range, *range);
+    inp->on_dev, *range, *range);
 }
 
 void
