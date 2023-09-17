@@ -64,6 +64,18 @@ ifeq (${USE_MPI}, 1)
 	CFLAGS += -DGKYL_HAVE_MPI
 endif
 
+# Read LUA paths and flags if needed 
+USING_LUA =
+LUA_INC_DIR = zero # dummy
+LUA_LIB_DIR = .
+ifeq (${USE_LUA}, 1)
+	USING_LUA = yes
+	LUA_INC_DIR = ${LUA_INC}
+	LUA_LIB_DIR = 
+	LUA_LIBS = ${LUA_LIB}
+	CFLAGS += -DGKYL_HAVE_LUA
+endif
+
 # Build directory
 ifdef USING_NVCC
 	BUILD_DIR ?= cuda-build
@@ -96,7 +108,7 @@ INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sor
 INSTALL_HEADERS += $(shell ls minus/*.h)
 
 # all includes
-INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR}
+INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR}
 
 # Directories containing source code
 SRC_DIRS := minus zero apps kernels

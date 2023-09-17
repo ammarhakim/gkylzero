@@ -17,6 +17,11 @@ USE_MPI=
 MPI_INC=$PREFIX/openmpi/include
 MPI_LIB=$PREFIX/openmpi/lib/
 
+# Lua specific paths and flags (link to static library)
+USE_LUA=
+LUA_INC=$PREFIX/luajit/include
+LUA_LIB=$PREFIX/luajit/lib/libluajit-5.1.a
+
 OSTYPE=`uname -o`
 MACHINE=`uname -n`
 USER=`whoami`
@@ -60,6 +65,7 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
                            Default is $HOME/gkylsoft/
 
 --use-mpi                  [no] Build MPI-dependent code
+--use-lua                  [no] Build Lua dependent code
 
 Library Includes and Locations
 
@@ -71,6 +77,9 @@ Library Includes and Locations
 
 --mpi-inc                  Location of MPI headers
 --mpi-lib                  Location to MPI library
+
+--lua-inc                  Location of Lua headers
+--lua-lib                  Location to Lua library
 
 --cudamath-libdir          Full path to CUDA math libraries
 
@@ -164,6 +173,18 @@ do
    --mpi-lib)
       [ -n "$value" ] || die "Missing value in flag $key."
       MPI_LIB="$value"
+      ;;
+   --use-lua)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_LUA="$value"
+      ;;       
+   --lua-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LUA_INC="$value"
+      ;;
+   --lua-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LUA_LIB="$value"
       ;;   
    --cudamath-libdir)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -181,6 +202,13 @@ then
     USE_MPI=1
 else
     USE_MPI=
+fi
+
+if [ "$USE_LUA" = "yes" ]
+then
+    USE_LUA=1
+else
+    USE_LUA=
 fi
 
 # Write out config.mak
@@ -204,6 +232,10 @@ SUPERLU_LIB=$SUPERLU_LIB
 USE_MPI=$USE_MPI
 MPI_INC=$MPI_INC
 MPI_LIB=$MPI_LIB
+
+USE_LUA=$USE_LUA
+LUA_INC=$LUA_INC
+LUA_LIB=$LUA_LIB
 
 CUDAMATH_LIBDIR=$CUDAMATH_LIBDIR
 
