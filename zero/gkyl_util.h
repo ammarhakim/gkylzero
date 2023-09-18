@@ -44,6 +44,11 @@
 # define GKYL_MAX_SPECIES 8
 #endif
 
+// Maximum number of ghost cells in each direction
+#ifndef GKYL_MAX_NGHOST
+# define GKYL_MAX_NGHOST 8
+#endif
+
 // Default alignment boundary
 #ifndef GKYL_DEF_ALIGN
 # define GKYL_DEF_ALIGN 64
@@ -331,6 +336,22 @@ uint64_t gkyl_pcg64_rand_uint64(pcg64_random_t* rng);
  * @param rng Pointer to RNG
  * @return Uniformly distributed double in [0,1)
  */
-double gkyl_pcg64_rand_double(pcg64_random_t* rng);
+double gkyl_pcg64_rand_double(pcg64_random_t *rng);
+
+/**
+ * Check if file exists.
+ *
+ * @param fname Name of file
+ * @return true if file exists, false otherwise
+ */
+bool gkyl_check_file_exists(const char *fname);
+
+/**
+ * Get file size in bytes.
+ *
+ * @param fname Name of file
+ * @return file size in bytes
+ */
+int64_t gkyl_file_size(const char *fname);
 
 EXTERN_C_END

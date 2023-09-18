@@ -11,8 +11,10 @@ GKYL_CU_DH void vlasov_pkpm_self_prim_moments_1x1v_ser_p2(struct gkyl_mat *A, st
 
 GKYL_CU_DH void vlasov_pkpm_self_prim_moments_2x1v_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *vlasov_pkpm_moms, const double *boundary_corrections); 
 
-GKYL_CU_DH void vlasov_pkpm_self_prim_moments_2x1v_ser_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *vlasov_pkpm_moms, const double *boundary_corrections); 
-
 GKYL_CU_DH void vlasov_pkpm_self_prim_moments_3x1v_ser_p1(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *vlasov_pkpm_moms, const double *boundary_corrections); 
+
+GKYL_CU_DH void vlasov_pkpm_self_prim_moments_1x1v_tensor_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *vlasov_pkpm_moms, const double *boundary_corrections); 
+
+GKYL_CU_DH void vlasov_pkpm_self_prim_moments_2x1v_tensor_p2(struct gkyl_mat *A, struct gkyl_mat *rhs, const double *vlasov_pkpm_moms, const double *boundary_corrections); 
 
 EXTERN_C_END 

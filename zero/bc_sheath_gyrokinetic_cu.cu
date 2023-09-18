@@ -35,8 +35,8 @@ gkyl_bc_gksheath_choose_reflectedf_kernel_cu(const struct gkyl_basis *basis,
 }
 
 __global__ static void
-gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, struct gkyl_range skin_r, struct gkyl_range ghost_r,
-  struct gkyl_range conf_r, const struct gkyl_basis *basis, const struct gkyl_rect_grid grid,
+gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_range skin_r, const struct gkyl_range ghost_r,
+  const struct gkyl_range conf_r, const struct gkyl_basis *basis, const struct gkyl_rect_grid grid,
   double q2Dm, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall, struct gkyl_bc_sheath_gyrokinetic_kernels *kers, struct gkyl_array *distf)
 {
@@ -94,10 +94,12 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, struct gkyl_range s
 
 void
 gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_array *distf)
+  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r)
 {
-  int nblocks = up->skin_r.nblocks, nthreads = up->skin_r.nthreads;
+  if (up->skin_r->volume > 0) {
+    int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
 
-  gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, up->skin_r, up->ghost_r,
-    up->conf_r, up->basis, *up->grid, up->q2Dm, phi->on_dev, phi_wall->on_dev, up->kernels_cu, distf->on_dev);
+    gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, *up->skin_r, *up->ghost_r,
+      *conf_r, up->basis, *up->grid, up->q2Dm, phi->on_dev, phi_wall->on_dev, up->kernels_cu, distf->on_dev);
+  }
 }

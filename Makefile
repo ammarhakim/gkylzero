@@ -13,18 +13,18 @@ PREFIX ?= ${HOME}/gkylsoft
 UNAME = $(shell uname)
 
 # Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC = ${HOME}/gkylsoft/OpenBLAS/include
-LAPACK_LIB_DIR = ${HOME}/gkylsoft/OpenBLAS/lib
+LAPACK_INC = $(PREFIX)/OpenBLAS/include
+LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
 
 # SuperLU includes and librararies
-SUPERLU_INC = ${HOME}/gkylsoft/superlu/include
+SUPERLU_INC = $(PREFIX)/superlu/include
 ifeq ($(UNAME_S),Linux)
-	SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib64
-	SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib64/libsuperlu.a
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib64
+	SUPERLU_LIB = $(PREFIX)/superlu/lib64/libsuperlu.a
 else
-	SUPERLU_LIB_DIR = ${HOME}/gkylsoft/superlu/lib
-	SUPERLU_LIB = ${HOME}/gkylsoft/superlu/lib/libsuperlu.a
+	SUPERLU_LIB_DIR = $(PREFIX)/superlu/lib
+	SUPERLU_LIB = $(PREFIX)/superlu/lib/libsuperlu.a
 endif
 
 # Include config.mak file (if it exists) to overide defaults above
@@ -166,11 +166,19 @@ $(BUILD_DIR)/kernels/bin_op/%.c.o : kernels/bin_op/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/kernels/dg_diffusion/%.c.o : kernels/dg_diffusion/%.c
+$(BUILD_DIR)/kernels/dg_diffusion_fluid/%.c.o : kernels/dg_diffusion_fluid/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/kernels/dg_gen_diffusion/%.c.o : kernels/dg_gen_diffusion/%.c
+$(BUILD_DIR)/kernels/dg_diffusion_vlasov/%.c.o : kernels/dg_diffusion_vlasov/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/dg_diffusion_gyrokinetic/%.c.o : kernels/dg_diffusion_gyrokinetic/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/dg_diffusion_gen/%.c.o : kernels/dg_diffusion_gen/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
@@ -198,6 +206,10 @@ $(BUILD_DIR)/kernels/pkpm/%.c.o : kernels/pkpm/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/prim_vars/%.c.o : kernels/prim_vars/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/vlasov/%.c.o : kernels/vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
@@ -215,6 +227,10 @@ $(BUILD_DIR)/kernels/fem_poisson/%.c.o : kernels/fem_poisson/%.c
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/kernels/fem_parproj/%.c.o : kernels/fem_parproj/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/fem_poisson_perp/%.c.o : kernels/fem_poisson_perp/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 

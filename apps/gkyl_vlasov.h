@@ -3,9 +3,21 @@
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_range.h>
 #include <gkyl_util.h>
 
 #include <stdbool.h>
+
+// Lower-level inputs: in general this does not need to be set by the
+// user. It is needed when the App is being created on a sub-range of
+// the global range, and is meant for use in higher-level drivers that
+// use MPI or other parallel mechanism.
+struct gkyl_vm_low_inp {
+  // local range over which App operates
+  struct gkyl_range local_range;
+  // communicator to used
+  struct gkyl_comm *comm;
+};
 
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
@@ -14,8 +26,11 @@ struct gkyl_vlasov_collisions {
   void *ctx; // context for collision function
   // function for computing self-collision frequency
   void (*self_nu)(double t, const double *xn, double *fout, void *ctx);
-  // input constant collisionality
-  double const_nu;
+
+  // inputs for Spitzer collisionality
+  bool normNu; // Set to true if you want to rescale collision frequency
+  double nuFrac; // Parameter for rescaling collision frequency from SI values
+  double hbar; // Planck's constant/2 pi 
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -54,10 +69,11 @@ struct gkyl_vlasov_fluid_advection {
 
 // Parameters for fluid species diffusion
 struct gkyl_vlasov_fluid_diffusion {
-  bool anisotropic; // bool for whether the diffusion tensor is anisotropic
-  void* D_ctx; // context for applied diffusion function
-  // pointer to applied advection diffusion tensor function
-  void (*D)(double t, const double* xn, double* Dout, void* ctx);
+  double D; // constant diffusion coefficient
+  int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
+  void* Dij_ctx; // context for applied diffusion function if using general diffusion tensor
+  // pointer to applied diffusion function is using general diffusion tensor 
+  void (*Dij)(double t, const double* xn, double* Dout, void* ctx);
 };
 
 // Parameters for Vlasov species
@@ -85,11 +101,6 @@ struct gkyl_vlasov_species {
 
   // source to include
   struct gkyl_vlasov_source source;
-
-  // magnitude of B for Jacobian in field-line following coordinates
-  void *magB_ctx; // context for magnitude of B
-  // pointer to magnitude of B function
-  void (*magB)(double t, const double *xn, double *Bout, void *ctx);
 
   void *accel_ctx; // context for applied acceleration function
   // pointer to applied acceleration function
@@ -189,6 +200,11 @@ struct gkyl_vm {
   
   bool skip_field; // Skip field update or no field specified
   struct gkyl_vlasov_field field; // field object
+
+  // this should not be set by typical user-facing code but only by
+  // higher-level drivers
+  bool has_low_inp; // should one use low-level inputs?
+  struct gkyl_vm_low_inp low_inp; // low-level inputs  
 };
 
 // Simulation statistics
@@ -216,8 +232,19 @@ struct gkyl_vlasov_stat {
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
+
+  double species_pkpm_vars_tm; // time to compute pkpm vars
+                               // These are the coupling moments [rho, p_par, p_perp], the self-consistent
+                               // pressure force (div(p_par b_hat)), and the primitive variables
+                               // along with the acceleration variables in the kinetic equation 
+                               // and the source distribution functions for Laguerre couplings.
+
+  double species_bc_tm; // time to compute species BCs
+  double fluid_species_bc_tm; // time to compute fluid species BCs
+  double field_bc_tm; // time to compute field
   
   double field_rhs_tm; // time to compute field RHS
+  double field_em_vars_tm; // time to compute EM auxiliary variables (e.g., bvar and E x B)
   double current_tm; // time to compute currents and accumulation
 
   long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
@@ -231,6 +258,9 @@ struct gkyl_vlasov_stat {
 
   long ndiag; // calls to diagnostics
   double diag_tm; // time to compute diagnostics
+
+  long nio; // number of calls to IO
+  double io_tm; // time to perform IO
 };
 
 // Object representing Vlasov app
@@ -301,6 +331,14 @@ void gkyl_vlasov_app_calc_mom(gkyl_vlasov_app *app);
 void gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm);
 
 /**
+ * Calculate integrated L2 norm of the distribution function, f^2.
+ *
+ * @param tm Time at which integrated diagnostic are to be computed
+ * @param app App object.
+ */
+void gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm);
+
+/**
  * Calculate integrated field energy
  *
  * @param tm Time at which integrated diagnostic are to be computed
@@ -337,14 +375,32 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write pkpm moment data to file.
+ * Write pkpm auxiliar data to files. Includes:
+ * 1. PKPM moments [rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
+ * 2. PKPM fluid variables [rho, rho ux, rho uy, rho uz, 
+ * P_xx + rho ux^2, P_xy + rho ux uy, P_xz + rho ux uz,
+ * P_yy + rho uy^2, P_yz + rho uy uz, P_zz + rho uz^2]
+ * 3. PKPM variables, including primitive variables (ux, uy, uz, T_perp/m, m/T_perp) and 
+ * acceleration variables (div(b), 1/rho div(p_par b), T_perp/m div(b), bb : grad(u), and 
+ * vperp configuration space characteristics = bb : grad(u) - div(u) - 2 nu.
  * 
  * @param app App object.
  * @param sidx Index of fluid species to initialize.
  * @param tm Time-stamp
  * @param frame Frame number
  */
-void gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+void gkyl_vlasov_app_write_species_pkpm(gkyl_vlasov_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write collision auxiliary variables, including self_nu, prim_moms, and nu prim_moms.
+ * FOR DEBUGGING ONLY, DOES NOT WORK ON GPUS
+ * 
+ * @param app App object.
+ * @param sidx Index of fluid species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_vlasov_app_write_species_coll_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write species p/gamma to file.
@@ -357,17 +413,8 @@ void gkyl_vlasov_app_write_species_pkpm_moms(gkyl_vlasov_app* app, int sidx, dou
 void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write magnitude of magnetic field to file.
- * 
- * @param app App object.
- * @param sidx Index of species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write fluid species data to file.
+ * Write fluid species data to file. 
+ * Note: If fluid equation ID is PKPM, fluid write is handled by gkyl_vlasov_app_write_species_pkpm
  * 
  * @param app App object.
  * @param sidx Index of fluid species to initialize.
@@ -375,26 +422,6 @@ void gkyl_vlasov_app_write_magB(gkyl_vlasov_app* app, int sidx, double tm, int f
  * @param frame Frame number
  */
 void gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write velocity of fluid species data to file.
- * 
- * @param app App object.
- * @param sidx Index of fluid species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_fluid_u_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write pressure of fluid species data to file.
- * 
- * @param app App object.
- * @param sidx Index of fluid species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_fluid_p_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.
@@ -407,14 +434,22 @@ void gkyl_vlasov_app_write_mom(gkyl_vlasov_app *app, double tm, int frame);
 
 /**
  * Write integrated diagnostic moments for species to file. Integrated
- * moments are appened to the same file.
+ * moments are appended to the same file.
  * 
  * @param app App object.
  */
 void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
 
 /**
- * Write field energy to file. Field energy data is appened to the
+ * Write integrated L2 norm of the species distribution function to file. Integrated
+ * L2 norm is appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app *app);
+
+/**
+ * Write field energy to file. Field energy data is appended to the
  * same file.
  * 
  * @param app App object.
@@ -427,6 +462,18 @@ void gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app);
  * @param app App object.
  */
 void gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app);
+
+/**
+ * Write output to console: this is mainly for diagnostic messages the
+ * driver code wants to write to console. It accounts for parallel
+ * output by not messing up the console with messages from each rank.
+ *
+ * @param app App object
+ * @param fp File pointer for open file for output
+ * @param fmt Format string for console output
+ * @param argp Objects to write
+ */
+void gkyl_vlasov_app_cout(const gkyl_vlasov_app* app, FILE *fp, const char *fmt, ...);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too

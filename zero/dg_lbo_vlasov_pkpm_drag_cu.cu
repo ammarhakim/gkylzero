@@ -55,6 +55,13 @@ dg_lbo_vlasov_pkpm_drag_set_cu_dev_ptrs(struct dg_lbo_vlasov_pkpm_drag *lbo_vlas
       
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      vol_kernels = ten_vol_kernels;
+      surf_vpar_kernels = ten_surf_vpar_kernels;
+      boundary_surf_vpar_kernels = ten_boundary_surf_vpar_kernels;
+      
+      break;
+
     default:
       assert(false);
       break;    

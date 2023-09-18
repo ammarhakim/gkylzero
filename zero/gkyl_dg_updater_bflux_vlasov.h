@@ -28,7 +28,7 @@ struct gkyl_dg_updater_bflux_vlasov_tm {
  * 
  * @return New boundary flux updater object.
  */
-gkyl_dg_updater_bflux_vlasov* gkyl_dg_updater_bflux_vlasov_new(const struct gkyl_rect_grid *grid, 
+struct gkyl_dg_updater_bflux_vlasov* gkyl_dg_updater_bflux_vlasov_new(const struct gkyl_rect_grid *grid, 
   int cdim, const gkyl_dg_updater_vlasov *vlasov, bool use_gpu);
 
 /**
@@ -42,11 +42,11 @@ gkyl_dg_updater_bflux_vlasov* gkyl_dg_updater_bflux_vlasov_new(const struct gkyl
  * @param fIn Input to updater.
  * @param rhs RHS output.
  */
-void gkyl_dg_updater_bflux_vlasov_advance(gkyl_dg_updater_bflux_vlasov *up,
+void gkyl_dg_updater_bflux_vlasov_advance(struct gkyl_dg_updater_bflux_vlasov *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs);
 
-void gkyl_dg_updater_bflux_vlasov_advance_cu(gkyl_dg_updater_bflux_vlasov *up,
+void gkyl_dg_updater_bflux_vlasov_advance_cu(struct gkyl_dg_updater_bflux_vlasov *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT rhs);
 
@@ -56,11 +56,11 @@ void gkyl_dg_updater_bflux_vlasov_advance_cu(gkyl_dg_updater_bflux_vlasov *up,
  * @param up Boundary flux updater.
  * @return timers
  */
-struct gkyl_dg_updater_bflux_vlasov_tm gkyl_dg_updater_bflux_vlasov_get_tm(const gkyl_dg_updater_bflux_vlasov *up);
+struct gkyl_dg_updater_bflux_vlasov_tm gkyl_dg_updater_bflux_vlasov_get_tm(const struct gkyl_dg_updater_bflux_vlasov *up);
 
 /**
  * Delete updater.
  *
  * @param up Boundary flux updater.
  */
-void gkyl_dg_updater_bflux_vlasov_release(gkyl_dg_updater_bflux_vlasov* up);
+void gkyl_dg_updater_bflux_vlasov_release(struct gkyl_dg_updater_bflux_vlasov *up);

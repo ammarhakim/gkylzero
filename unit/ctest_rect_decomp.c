@@ -139,9 +139,22 @@ is_on_corner(int ndim, const int *idx, const int *shape)
   return isc;
 }
 static bool
+is_on_dir_edge(int ndim, int dir, const int *idx, const int *shape)
+{
+  if ((idx[dir] == 0) || (idx[dir] == shape[dir]-1)) { // on a face
+    for (int d=0; d<3; ++d) {
+      if (d != dir)
+        if ((idx[d] == 0) || (idx[d] == shape[d]-1))
+          return true;
+    }
+  }
+  return false;
+}
+static bool
 is_on_edge(int ndim, const int *idx, const int *shape)
 {
-  for (int i=0; i<ndim; ++i) {
+  for (int i=0; i<ndim; ++i)
+  {
     if ((idx[i] == 0) || (idx[i] == shape[i]-1)) { // on a face
       for (int d=0; d<3; ++d) {
         if (d != i)
@@ -320,17 +333,156 @@ test_rect_decomp_4d(void)
   gkyl_rect_decomp_release(decomp);
 }
 
+void
+test_rect_decomp_per_2d(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 2 }, (int[]) { 100, 100 });
+  
+  int cuts[] = { 3, 3 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
+
+  struct gkyl_range crange;
+  gkyl_range_init_from_shape(&crange, 2, cuts);  
+
+  struct gkyl_range_iter iter;
+
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+    
+    for (int d=0; d<range.ndim; ++d) {
+      struct gkyl_rect_decomp_neigh *neigh = gkyl_rect_decomp_calc_periodic_neigh(decomp,
+        d, false, gkyl_range_idx(&crange, iter.idx));
+
+      if (is_on_dir_edge(range.ndim, d, iter.idx, cuts)) {
+        TEST_CHECK( neigh->num_neigh == 1 );
+      }
+      
+      gkyl_rect_decomp_neigh_release(neigh);
+    }
+  }
+
+  gkyl_rect_decomp_release(decomp);
+}
+
+void
+test_rect_decomp_per_2d_2(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 2 }, (int[]) { 100, 100 });
+  
+  int cuts[] = { 1, 2 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
+
+  struct gkyl_range crange;
+  gkyl_range_init_from_shape(&crange, 2, cuts);  
+
+  struct gkyl_range_iter iter;
+
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+    
+    for (int d=0; d<range.ndim; ++d) {
+      struct gkyl_rect_decomp_neigh *neigh = gkyl_rect_decomp_calc_periodic_neigh(decomp,
+        d, false, gkyl_range_idx(&crange, iter.idx));
+
+      if (is_on_dir_edge(range.ndim, d, iter.idx, cuts)) {
+        TEST_CHECK( neigh->num_neigh == 1 );
+      }
+      
+      gkyl_rect_decomp_neigh_release(neigh);
+    }
+  }
+
+  gkyl_rect_decomp_release(decomp);
+}
+
+void
+test_rect_decomp_per_3d(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 3, (int[]) { 1, 1, 1 }, (int[]) { 100, 100, 100 });
+  
+  int cuts[] = { 3, 3, 3 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
+
+  struct gkyl_range crange;
+  gkyl_range_init_from_shape(&crange, range.ndim, cuts);
+
+  struct gkyl_range_iter iter;
+
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+    
+    for (int d=0; d<range.ndim; ++d) {
+      struct gkyl_rect_decomp_neigh *neigh = gkyl_rect_decomp_calc_periodic_neigh(decomp,
+        d, false, gkyl_range_idx(&crange, iter.idx));
+
+      if (is_on_dir_edge(range.ndim, d, iter.idx, cuts)) {
+        TEST_CHECK( neigh->num_neigh == 1 );
+      }
+      
+      gkyl_rect_decomp_neigh_release(neigh);
+    }
+  }
+
+  gkyl_rect_decomp_release(decomp);  
+}
+
+void
+test_rect_decomp_2d_2v(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 2 }, (int[]) { 100, 100 });
+  
+  int cuts[] = { 5, 6 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
+
+  TEST_CHECK( decomp->ndim == 2 );
+  TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1] );
+
+  struct gkyl_range vrange;
+  gkyl_range_init(&vrange, 2, (int[]) { 1, 2 }, (int[]) { 16, 16 });
+
+  struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(
+    &vrange, decomp);
+
+  TEST_CHECK( ext_decomp->ndim == 4 );
+  TEST_CHECK( ext_decomp->ndecomp == cuts[0]*cuts[1] );
+
+  TEST_CHECK( ext_decomp->parent_range.volume = decomp->parent_range.volume*vrange.volume );
+  for (int i=0; i<decomp->ndecomp; ++i)
+    TEST_CHECK( ext_decomp->ranges[i].volume == decomp->ranges[i].volume*vrange.volume );
+
+  for (int i=0; i<decomp->ndecomp; ++i) {
+    
+    for (int d=0; d<vrange.ndim; ++d) {
+      TEST_CHECK( ext_decomp->ranges[d].lower[range.ndim+d] == vrange.lower[d] );
+      TEST_CHECK( ext_decomp->ranges[d].upper[range.ndim+d] == vrange.upper[d] );
+    }
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_rect_decomp_release(ext_decomp);
+}
+
 TEST_LIST = {
   { "ranges_1d", test_ranges_1d },
   { "ranges_2d", test_ranges_2d },
   { "ranges_3d", test_ranges_3d },
 
   { "ranges_from_range_2d", test_ranges_from_range_2d },
-  { "ranges_from_range_3d", test_ranges_from_range_3d },
+  { "ranges_from_range_3d", test_ranges_from_range_3d },  
 
   { "rect_decomp_2d", test_rect_decomp_2d },
   { "rect_decomp_3d", test_rect_decomp_3d },
   { "rect_decomp_4d", test_rect_decomp_4d },
+
+  { "rect_decomp_per_2d", test_rect_decomp_per_2d },
+  { "rect_decomp_per_2d_2", test_rect_decomp_per_2d_2 },
+  { "rect_decomp_per_3d", test_rect_decomp_per_3d },
+
+  { "rect_decomp_2d_2v", test_rect_decomp_2d_2v },
   
   { NULL, NULL },
 };

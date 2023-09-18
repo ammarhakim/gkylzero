@@ -1,18 +1,18 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_ser_2x_p2_surfx2_eval_quad.h> 
 #include <gkyl_basis_ser_2x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double *fac_phi, const double *vecA, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv, const double *field, const double *ext_field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
   // dxv[NDIM]:   Cell spacing.
-  // fac_phi:     potential (scaled by appropriate factors).
-  // vecA:        vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
+  // field:       potential (scaled by appropriate factors).
+  // ext_field:   vector potential (scaled by appropriate factors). 
   // edge:        Determines if the update is for the left edge (-1) or right edge (+1).
   // fSkin/fEdge: Input Distribution function in skin cell/last edge cell 
   // out:         Output distribution function in skin cell 
   const double dv10 = 2/dxv[1]; 
   const double dv1 = dxv[1], wv1 = w[1]; 
-  const double *phi = &fac_phi[0]; 
+  const double *phi = &field[0]; 
   const double dx10 = 2/dxv[0]; 
   double alpha[3] = {0.0}; 
 
@@ -92,4 +92,6 @@ GKYL_CU_DH void vlasov_poisson_extem_boundary_surfvx_1x1v_ser_p2(const double *w
   out[7] += 1.58113883008419*Ghat[1]*dv10; 
 
   } 
+  return 0.;
+
 } 
