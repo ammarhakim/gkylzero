@@ -29,15 +29,16 @@ typedef struct gkyl_fem_poisson gkyl_fem_poisson;
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
  * @param bcs Boundary conditions.
- * @param epsilon_const Constant scalar value of the permittivity.
- * @param epsilon_var Spatially varying permittivity tensor.
+ * @param epsilon Permittivity tensor. Defined over the extended range.
  * @param kSq Squared wave number (factor multiplying phi in Helmholtz eq).
+ * @param is_epsilon_const =true if permittivity is constant in space.
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_fem_poisson* gkyl_fem_poisson_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
-  double epsilon_const, struct gkyl_array *epsilon_var, struct gkyl_array *kSq, bool use_gpu);
+  const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
+  struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon_var, struct gkyl_array *kSq, bool is_epsilon_const,
+  bool use_gpu);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field.
@@ -47,16 +48,12 @@ struct gkyl_fem_poisson* gkyl_fem_poisson_new(
  */
 void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin);
 
-void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin);
-
 /**
  * Solve the linear problem.
  *
  * @param up FEM project updater to run.
  */
 void gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout);
-
-void gkyl_fem_poisson_solve_cu(gkyl_fem_poisson* up, struct gkyl_array *phiout);
 
 /**
  * Delete updater.

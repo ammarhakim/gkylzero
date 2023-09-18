@@ -48,16 +48,12 @@ struct gkyl_fem_poisson_perp* gkyl_fem_poisson_perp_new(
  */
 void gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp* up, struct gkyl_array *rhsin);
 
-void gkyl_fem_poisson_perp_set_rhs_cu(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsin);
-
 /**
  * Solve the linear problem.
  *
  * @param up FEM project updater to run.
  */
 void gkyl_fem_poisson_perp_solve(gkyl_fem_poisson_perp* up, struct gkyl_array *phiout);
-
-void gkyl_fem_poisson_perp_solve_cu(gkyl_fem_poisson_perp* up, struct gkyl_array *phiout);
 
 /**
  * Delete updater.

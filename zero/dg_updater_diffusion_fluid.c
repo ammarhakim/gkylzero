@@ -24,11 +24,12 @@ gkyl_dg_updater_diffusion_fluid_new(const struct gkyl_rect_grid *grid,
   struct gkyl_dg_updater_diffusion_fluid *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_diffusion_fluid));
 
   int ndim = basis->ndim;
+  up->use_gpu = use_gpu;
   bool is_dir_diffusive[GKYL_MAX_CDIM];
   for (int d=0; d<ndim; d++) is_dir_diffusive[d] = diff_in_dir==NULL? true : diff_in_dir[d];
 
   up->dgeqn = gkyl_dg_diffusion_fluid_new(basis, is_diff_const, num_equations, is_dir_diffusive,
-                                          diff_order, diff_range, use_gpu);
+                                          diff_order, diff_range, up->use_gpu);
 
   int num_up_dirs = 0;
   for (int d=0; d<ndim; d++) num_up_dirs += is_dir_diffusive[d]? 1 : 0;
@@ -40,7 +41,7 @@ gkyl_dg_updater_diffusion_fluid_new(const struct gkyl_rect_grid *grid,
     linc += 1;
   }
 
-  up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->diffusion_tm = 0.0;
 

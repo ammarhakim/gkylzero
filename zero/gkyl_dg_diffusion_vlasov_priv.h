@@ -685,26 +685,6 @@ GKYL_CU_DH static double ker_dg_diffusion_vlasov_order2_vol_1x_ser_p2_varcoeff_d
   struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
   return dg_diffusion_vlasov_order2_vol_1x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
-// 1x 4th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_1x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_1x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_1x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_1x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-// 1x 6th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_1x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_1x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
 // 2x 2nd order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_vlasov_order2_vol_2x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
@@ -741,62 +721,6 @@ GKYL_CU_DH static double ker_dg_diffusion_vlasov_order2_vol_2x_ser_p2_varcoeff_d
 {
   struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
   return dg_diffusion_vlasov_order2_vol_2x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-// 2x 4th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_2x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_2x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_2x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_2x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_2x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_2x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-// 2x 6th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_2x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_2x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_2x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
 // 3x 2nd order diffusion.
 GKYL_CU_DH static double ker_dg_diffusion_vlasov_order2_vol_3x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
@@ -883,134 +807,6 @@ GKYL_CU_DH static double ker_dg_diffusion_vlasov_order2_vol_3x_ser_p2_varcoeff_d
   struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
   return dg_diffusion_vlasov_order2_vol_3x_ser_p2_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
 }
-// 3x 4th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-// 3x 6th order diffusion.
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsx(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsx(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsxy(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsxy(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsxz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsxz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsyz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
-GKYL_CU_DH static double ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsxyz(const struct gkyl_dg_eqn *eqn,
-  const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_diffusion_vlasov* diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
-  return dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsxyz(xc, dx, _cfD(idx), qIn, qRhsOut);
-}
 
 // Volume kernel list.
 GKYL_CU_D
@@ -1024,13 +820,13 @@ static const gkyl_dg_diffusion_vlasov_vol_kern_list ser_vol_kernels_varcoeff[] =
       },
       // 4th order diffusion.
       {.list={
-          {ker_dg_diffusion_vlasov_order4_vol_1x_ser_p1_varcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_vlasov_order4_vol_1x_ser_p2_varcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
       // 6th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_vlasov_order6_vol_1x_ser_p2_varcoeff_diffdirsx,NULL,NULL,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
     },
   },
@@ -1043,13 +839,13 @@ static const gkyl_dg_diffusion_vlasov_vol_kern_list ser_vol_kernels_varcoeff[] =
       },
       // 4th order diffusion.
       {.list={
-          {ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_varcoeff_diffdirsx,ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_varcoeff_diffdirsy,ker_dg_diffusion_vlasov_order4_vol_2x_ser_p1_varcoeff_diffdirsxy,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_varcoeff_diffdirsx,ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_varcoeff_diffdirsy,ker_dg_diffusion_vlasov_order4_vol_2x_ser_p2_varcoeff_diffdirsxy,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
       // 6th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_varcoeff_diffdirsx,ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_varcoeff_diffdirsy,ker_dg_diffusion_vlasov_order6_vol_2x_ser_p2_varcoeff_diffdirsxy,NULL,NULL,NULL,NULL},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
     },
   },
@@ -1062,13 +858,13 @@ static const gkyl_dg_diffusion_vlasov_vol_kern_list ser_vol_kernels_varcoeff[] =
       },
       // 4th order diffusion.
       {.list={
-          {ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsx,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsy,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsxy,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsz,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsxz,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsyz,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p1_varcoeff_diffdirsxyz},
-          {ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsx,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsy,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsxy,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsz,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsxz,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsyz,ker_dg_diffusion_vlasov_order4_vol_3x_ser_p2_varcoeff_diffdirsxyz},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
       // 6th order diffusion.
       {.list={
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},
-          {ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsx,ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsy,ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsxy,ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsz,ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsxz,ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsyz,ker_dg_diffusion_vlasov_order6_vol_3x_ser_p2_varcoeff_diffdirsxyz},},
+          {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
     },
   },
@@ -1088,22 +884,20 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfx_
   },
   // 4th order diffusion.
   {.list= {
-      { dg_diffusion_vlasov_order4_surfx_1x1v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_surfx_1x1v_ser_p2_varcoeff },
-      { dg_diffusion_vlasov_order4_surfx_1x2v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_surfx_1x2v_ser_p2_varcoeff },
-      { dg_diffusion_vlasov_order4_surfx_1x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_surfx_1x3v_ser_p2_varcoeff },
-      { dg_diffusion_vlasov_order4_surfx_2x2v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_surfx_2x2v_ser_p2_varcoeff },
-      { dg_diffusion_vlasov_order4_surfx_2x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_surfx_2x3v_ser_p2_varcoeff },
-//      { dg_diffusion_vlasov_order4_surfx_3x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_surfx_3x3v_ser_p2_varcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
       { NULL, NULL },},
   },
   // 6th order diffusion.
   {.list= {
-      { NULL, dg_diffusion_vlasov_order6_surfx_1x1v_ser_p2_varcoeff },
-      { NULL, dg_diffusion_vlasov_order6_surfx_1x2v_ser_p2_varcoeff },
-      { NULL, dg_diffusion_vlasov_order6_surfx_1x3v_ser_p2_varcoeff },
-      { NULL, dg_diffusion_vlasov_order6_surfx_2x2v_ser_p2_varcoeff },
-      { NULL, dg_diffusion_vlasov_order6_surfx_2x3v_ser_p2_varcoeff },
-//      { NULL, dg_diffusion_vlasov_order6_surfx_3x3v_ser_p2_varcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
       { NULL, NULL },},
   },
 };
@@ -1124,9 +918,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfy_
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_vlasov_order4_surfy_2x2v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_surfy_2x2v_ser_p2_varcoeff },
-      { dg_diffusion_vlasov_order4_surfy_2x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_surfy_2x3v_ser_p2_varcoeff },
-//      { dg_diffusion_vlasov_order4_surfy_3x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_surfy_3x3v_ser_p2_varcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },
       { NULL, NULL },},
   },
   // 6th order diffusion.
@@ -1134,9 +927,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfy_
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { NULL, dg_diffusion_vlasov_order6_surfy_2x2v_ser_p2_varcoeff },
-      { NULL, dg_diffusion_vlasov_order6_surfy_2x3v_ser_p2_varcoeff },
-//      { NULL, dg_diffusion_vlasov_order6_surfy_3x3v_ser_p2_varcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },
       { NULL, NULL },},
   },
 };
@@ -1159,7 +951,6 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfz_
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-//      { dg_diffusion_vlasov_order4_surfz_3x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_surfz_3x3v_ser_p2_varcoeff },},
       { NULL, NULL },},
   },
   // 6th order diffusion.
@@ -1169,7 +960,6 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_surf_kern_list ser_vlasov_surfz_
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-//      { NULL, dg_diffusion_vlasov_order6_surfz_3x3v_ser_p2_varcoeff },},
       { NULL, NULL },},
   },
 };
@@ -1188,22 +978,20 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list ser_vlas
   },
   // 4th order diffusion.
   {.list= {
-      { dg_diffusion_vlasov_order4_boundary_surfx_1x1v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_boundary_surfx_1x1v_ser_p2_varcoeff },
-      { dg_diffusion_vlasov_order4_boundary_surfx_1x2v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_boundary_surfx_1x2v_ser_p2_varcoeff },
-      { dg_diffusion_vlasov_order4_boundary_surfx_1x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_boundary_surfx_1x3v_ser_p2_varcoeff },
-      { dg_diffusion_vlasov_order4_boundary_surfx_2x2v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_boundary_surfx_2x2v_ser_p2_varcoeff },
-      { dg_diffusion_vlasov_order4_boundary_surfx_2x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_boundary_surfx_2x3v_ser_p2_varcoeff },
-//      { dg_diffusion_vlasov_order4_boundary_surfx_3x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_boundary_surfx_3x3v_ser_p2_varcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
       { NULL, NULL },},
   },
   // 6th order diffusion.
   {.list= {
-      { NULL, dg_diffusion_vlasov_order6_boundary_surfx_1x1v_ser_p2_varcoeff },
-      { NULL, dg_diffusion_vlasov_order6_boundary_surfx_1x2v_ser_p2_varcoeff },
-      { NULL, dg_diffusion_vlasov_order6_boundary_surfx_1x3v_ser_p2_varcoeff },
-      { NULL, dg_diffusion_vlasov_order6_boundary_surfx_2x2v_ser_p2_varcoeff },
-      { NULL, dg_diffusion_vlasov_order6_boundary_surfx_2x3v_ser_p2_varcoeff },
-//      { NULL, dg_diffusion_vlasov_order6_boundary_surfx_3x3v_ser_p2_varcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
+      { NULL, NULL },
       { NULL, NULL },},
   },
 };
@@ -1224,9 +1012,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list ser_vlas
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { dg_diffusion_vlasov_order4_boundary_surfy_2x2v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_boundary_surfy_2x2v_ser_p2_varcoeff },
-      { dg_diffusion_vlasov_order4_boundary_surfy_2x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_boundary_surfy_2x3v_ser_p2_varcoeff },
-//      { dg_diffusion_vlasov_order4_boundary_surfy_3x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_boundary_surfy_3x3v_ser_p2_varcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },
       { NULL, NULL },},
   },
   // 6th order diffusion.
@@ -1234,9 +1021,8 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list ser_vlas
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-      { NULL, dg_diffusion_vlasov_order6_boundary_surfy_2x2v_ser_p2_varcoeff },
-      { NULL, dg_diffusion_vlasov_order6_boundary_surfy_2x3v_ser_p2_varcoeff },
-//      { NULL, dg_diffusion_vlasov_order6_boundary_surfy_3x3v_ser_p2_varcoeff },},
+      { NULL, NULL },
+      { NULL, NULL },
       { NULL, NULL },},
   },
 };
@@ -1259,7 +1045,6 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list ser_vlas
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-//      { dg_diffusion_vlasov_order4_boundary_surfz_3x3v_ser_p1_varcoeff, dg_diffusion_vlasov_order4_boundary_surfz_3x3v_ser_p2_varcoeff },},
       { NULL, NULL },},
   },
   // 6th order diffusion.
@@ -1269,7 +1054,6 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list ser_vlas
       { NULL, NULL },
       { NULL, NULL },
       { NULL, NULL },
-//      { NULL, dg_diffusion_vlasov_order6_boundary_surfz_3x3v_ser_p2_varcoeff },},
       { NULL, NULL },},
   },
 };

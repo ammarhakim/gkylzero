@@ -82,13 +82,13 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   if (up->isdomperiodic) {
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
-      up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->solve_range->volume);
+      up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, epsilon->size);
       up->rhs_avg_cu = (double*) gkyl_cu_malloc(sizeof(double));
     } else {
-      up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->solve_range->volume);
+      up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
     }
 #else
-    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->solve_range->volume);
+    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
 #endif
     up->rhs_avg = (double*) gkyl_malloc(sizeof(double));
     gkyl_array_clear(up->rhs_cellavg, 0.0);

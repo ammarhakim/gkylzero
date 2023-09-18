@@ -543,7 +543,7 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
   for (int i=0; i<app->num_species; ++i) {
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
 
-      const char *fmt = "%s-%s-%s_%d.gkyl";
+      const char *fmt = "%s-%s_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
         app->species[i].info.diag_moments[m], frame);
       char fileNm[sz+1]; // ensures no buffer overflow
