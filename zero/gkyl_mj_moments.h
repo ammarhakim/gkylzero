@@ -20,11 +20,12 @@ typedef struct gkyl_mj_moments gkyl_mj_moments;
  * @param conf_local_cells Number of cells in local config-space
  * @param conf_local_ext_cells Number of cells in local extended config-space
  */
-gkyl_mj_moments *gkyl_mj_moments_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *vel_range,
-  long conf_local_ncells, long conf_local_ext_ncells, bool use_gpu);
+gkyl_mj_moments *gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+  long conf_local_ncells, long conf_local_ext_ncells, 
+  const struct gkyl_array *p_over_gamma, const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv, 
+  bool use_gpu);
 
 /**
  * Update the m0, m1, and m2 moments (n, vb, T) moments of an arbitary sr
@@ -41,12 +42,9 @@ gkyl_mj_moments *gkyl_mj_moments_new(
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
  */
-void gkyl_mj_moments_advance(gkyl_mj_moments *cmj, const struct gkyl_array *p_over_gamma,
-  const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv,
+void gkyl_mj_moments_advance(gkyl_mj_moments *cmj, 
   struct gkyl_array *fout,
-  struct gkyl_array *m0,
-  struct gkyl_array *m1i,
-  struct gkyl_array *m2,
+  struct gkyl_array *m0, struct gkyl_array *m1i, struct gkyl_array *m2,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
 
 /**

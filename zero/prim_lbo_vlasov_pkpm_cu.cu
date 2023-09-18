@@ -12,24 +12,6 @@ extern "C" {
 
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
-// CUDA kernel to set pointer to auxiliary fields.
-// This is required because eqn object lives on device,
-// and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void
-gkyl_prim_lbo_vlasov_pkpm_set_auxfields_cu_kernel(const struct gkyl_prim_lbo_type *prim, const struct gkyl_array *pvar)
-{
-  struct prim_lbo_type_vlasov_pkpm *prim_vlasov_pkpm = container_of(prim, struct prim_lbo_type_vlasov_pkpm, prim);
-  prim_vlasov_pkpm->auxfields.pvar = pvar;
-}
-
-// Host-side wrapper for set_auxfields_cu_kernel
-void
-gkyl_prim_lbo_vlasov_pkpm_set_auxfields_cu(const struct gkyl_prim_lbo_type *prim,
-  struct gkyl_prim_lbo_vlasov_pkpm_auxfields auxin)
-{
-  gkyl_prim_lbo_vlasov_pkpm_set_auxfields_cu_kernel<<<1,1>>>(prim, auxin.pvar->on_dev);
-}
-
 __global__ static void
 gkyl_prim_lbo_vlasov_pkpm_set_cu_dev_ptrs(struct prim_lbo_type_vlasov_pkpm *prim_vlasov_pkpm, 
   enum gkyl_basis_type b_type, int cdim, int poly_order)
@@ -42,6 +24,12 @@ gkyl_prim_lbo_vlasov_pkpm_set_cu_dev_ptrs(struct prim_lbo_type_vlasov_pkpm *prim
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       self_prim_kernels = ser_self_prim_kernels;
+
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      self_prim_kernels = ten_self_prim_kernels;
+      
       break;
 
     default:

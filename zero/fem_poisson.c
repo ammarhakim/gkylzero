@@ -2,8 +2,8 @@
 #include <gkyl_fem_poisson_priv.h>
 
 struct gkyl_fem_poisson*
-gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
-  struct gkyl_poisson_bc *bcs, double epsilon_const, struct gkyl_array *epsilon_var, struct gkyl_array *kSq, bool use_gpu)
+gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid, const struct gkyl_basis basis,
+  struct gkyl_poisson_bc *bcs, struct gkyl_array *epsilon, struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu)
 {
 
   struct gkyl_fem_poisson *up = gkyl_malloc(sizeof(struct gkyl_fem_poisson));
@@ -18,6 +18,7 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->kernels_cu = up->kernels;
 #endif
 
+  up->solve_range = solve_range;
   up->ndim = grid->ndim;
   up->grid = *grid;
   up->num_basis =  basis.num_basis;
@@ -26,21 +27,43 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   up->basis = basis;
   up->use_gpu = use_gpu;
 
-  if (epsilon_var) {
+  // Factor accounting for normalization when subtracting a constant from a
+  // DG field and the 1/N to properly compute the volume averaged RHS.
+  up->mavgfac = -pow(sqrt(2.),up->ndim)/up->solve_range->volume;
+
+  if (!is_epsilon_const) {
     up->isvareps = true;
-    up->epsilon  = epsilon_var;
+    up->epsilon  = epsilon;
   } else {
     up->isvareps = false;
-    // Create an array to hold epsilon.
+    // Create a small gkyl_array to hold the constant epsilon value.
+    double *eps_avg = (double*) gkyl_malloc(sizeof(double)); 
 #ifdef GKYL_HAVE_CUDA
     up->epsilon = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 1) : gkyl_array_new(GKYL_DOUBLE, 1, 1);
+    struct gkyl_array *eps_cellavg = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, epsilon->size)
+                                                : gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
+    gkyl_dg_calc_average_range(up->basis, 0, eps_cellavg, 0, epsilon, *up->solve_range);
+    if (up->use_gpu) {
+      double *eps_avg_cu = (double*) gkyl_cu_malloc(sizeof(double));
+      gkyl_array_reduce_range(eps_avg_cu, eps_cellavg, GKYL_SUM, *up->solve_range);
+      gkyl_cu_memcpy(eps_avg, eps_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_free(eps_avg_cu);
+    } else {
+      gkyl_array_reduce_range(eps_avg, eps_cellavg, GKYL_SUM, *up->solve_range);
+    }
 #else
     up->epsilon = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+    struct gkyl_array *eps_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
+
+    gkyl_dg_calc_average_range(up->basis, 0, eps_cellavg, 0, epsilon, *up->solve_range);
+    gkyl_array_reduce_range(eps_avg, eps_cellavg, GKYL_SUM, *up->solve_range);
 #endif
-    gkyl_array_shiftc(up->epsilon, epsilon_const, 0);
+    gkyl_array_shiftc(up->epsilon, eps_avg[0]/up->solve_range->volume, 0);
+    gkyl_array_release(eps_cellavg);
+    gkyl_free(eps_avg);
   }
 
-  // We assume epsilon_var and kSq live on the device, and we create a host-side
+  // We assume epsilon and kSq live on the device, and we create a host-side
   // copies temporarily to compute the LHS matrix. This also works for CPU solves.
   struct gkyl_array *epsilon_ho = gkyl_array_new(GKYL_DOUBLE, up->epsilon->ncomp, up->epsilon->size);
   gkyl_array_copy(epsilon_ho, up->epsilon);
@@ -51,25 +74,13 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
     gkyl_array_copy(kSq_ho, kSq);
   } else {
     up->ishelmholtz = false;
-    kSq_ho = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+    kSq_ho = gkyl_array_new(GKYL_DOUBLE, up->num_basis, 1);
     gkyl_array_clear(kSq_ho, 0.);
   }
 
   up->globalidx = gkyl_malloc(sizeof(long[up->num_basis])); // global index, one for each basis in a cell.
 
-  // Local and local-ext ranges for whole-grid arrays.
-  int ghost[GKYL_MAX_DIM];
-  for (int d=0; d<up->ndim; d++) ghost[d] = 1;
-  gkyl_create_grid_ranges(grid, ghost, &up->local_range_ext, &up->local_range);
-  // Range of cells we'll solve Poisson in, as
-  // a sub-range of up->local_range_ext.
-  int sublower[GKYL_MAX_CDIM], subupper[GKYL_MAX_CDIM];
-  for (int d=0; d<up->ndim; d++) {
-    sublower[d] = up->local_range.lower[d];
-    subupper[d] = up->local_range.upper[d];
-  }
-  gkyl_sub_range_init(&up->solve_range, &up->local_range_ext, sublower, subupper);
-  for (int d=0; d<up->ndim; d++) up->num_cells[d] = up->solve_range.upper[d]-up->solve_range.lower[d]+1;
+  for (int d=0; d<up->ndim; d++) up->num_cells[d] = up->solve_range->upper[d]-up->solve_range->lower[d]+1;
 
   // Prepare for periodic domain case.
   for (int d=0; d<up->ndim; d++) {
@@ -84,19 +95,16 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
   if (up->isdomperiodic) {
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
-      up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
-      up->rhs_avg_cu = (double*) gkyl_cu_malloc(sizeof(double)); 
+      up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, epsilon->size);
+      up->rhs_avg_cu = (double*) gkyl_cu_malloc(sizeof(double));
     } else {
-      up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
+      up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
     }
 #else
-    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->local_range_ext.volume);
+    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
 #endif
     up->rhs_avg = (double*) gkyl_malloc(sizeof(double)); 
     gkyl_array_clear(up->rhs_cellavg, 0.0);
-    // Factor accounting for normalization when subtracting a constant from a
-    // DG field and the 1/N to properly compute the volume averaged RHS.
-    up->mavgfac = -pow(sqrt(2.),up->ndim)/up->solve_range.volume;
   }
 
   // Pack BC values into a single array for easier use in kernels.
@@ -168,10 +176,10 @@ gkyl_fem_poisson_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) gkyl_mat_triples_set_rowmaj_order(tri[0]);
 #endif
-  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  gkyl_range_iter_init(&up->solve_iter, up->solve_range);
   int idx0[GKYL_MAX_CDIM];
   while (gkyl_range_iter_next(&up->solve_iter)) {
-    long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
+    long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
 
     double *eps_p = up->isvareps? gkyl_array_fetch(epsilon_ho, linidx) : gkyl_array_fetch(epsilon_ho,0);
     double *kSq_p = up->ishelmholtz? gkyl_array_fetch(kSq_ho, linidx) : gkyl_array_fetch(kSq_ho,0);
@@ -209,16 +217,16 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
   if (up->isdomperiodic && !(up->ishelmholtz)) {
     // Subtract the volume averaged RHS from the RHS.
     gkyl_array_clear(up->rhs_cellavg, 0.0);
-    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, up->solve_range);
+    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
-      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+      gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, *up->solve_range);
       gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
     } else {
-      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, *up->solve_range);
     }
 #else
-    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->solve_range);
+    gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, *up->solve_range);
 #endif
     gkyl_array_shiftc(rhsin, up->mavgfac*up->rhs_avg[0], 0);
   }
@@ -235,11 +243,11 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 
   gkyl_array_clear(up->brhs, 0.0);
 
-  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  gkyl_range_iter_init(&up->solve_iter, up->solve_range);
   int idx0[GKYL_MAX_CDIM];
   double *brhs_p = gkyl_array_fetch(up->brhs, 0);
   while (gkyl_range_iter_next(&up->solve_iter)) {
-    long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
+    long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
 
     double *eps_p = up->isvareps? gkyl_array_fetch(up->epsilon, linidx) : gkyl_array_fetch(up->epsilon,0);
     double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
@@ -273,9 +281,9 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson* up, struct gkyl_array *phiout) {
   gkyl_array_clear(phiout, 0.0);
 
   int idx0[GKYL_MAX_CDIM];
-  gkyl_range_iter_init(&up->solve_iter, &up->solve_range);
+  gkyl_range_iter_init(&up->solve_iter, up->solve_range);
   while (gkyl_range_iter_next(&up->solve_iter)) {
-    long linidx = gkyl_range_idx(&up->solve_range, up->solve_iter.idx);
+    long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
 
     double *phiout_p = gkyl_array_fetch(phiout, linidx);
 
@@ -314,7 +322,7 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 #endif
 
   gkyl_free(up->globalidx);
-  gkyl_free(up->brhs);
+  gkyl_array_release(up->brhs);
   gkyl_free(up->kernels);
   gkyl_free(up);
 }
