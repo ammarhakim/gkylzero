@@ -666,7 +666,7 @@ gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
 
 void 
 gkyl_array_copy_to_buffer_cu(void *data, 
-  const struct gkyl_array *arr, const const struct gkyl_range *range)
+  const struct gkyl_array *arr, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, arr->ncomp);
