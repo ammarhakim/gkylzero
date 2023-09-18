@@ -594,9 +594,9 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   for (int i=0; i<3; ++i) {
     gkyl_dg_mul_op_range(basis, i, bibj_check, i, bvar, i, bvar, &local);
   }
-  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 0*basis.num_basis, local);
-  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 1*basis.num_basis, local);
-  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 2*basis.num_basis, local);
+  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 0*basis.num_basis, &local);
+  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 1*basis.num_basis, &local);
+  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 2*basis.num_basis, &local);
 
   // Create intermediate arrays and dg_bin_op_memory to construct bvar
   // and ExB by the relevant sequence of operations
@@ -625,9 +625,9 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
         ctr += 1;
       }
     }
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0*basis.num_basis, local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3*basis.num_basis, local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5*basis.num_basis, local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0*basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3*basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5*basis.num_basis, &local);
 
     for (int i=0; i<6; ++i) {
       gkyl_dg_div_op_range(magB2_mem, basis, 3+i, alt_bibj_cu, i, int_BiBj, 0, magB2, &local);
@@ -642,7 +642,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_dg_mul_op_range(basis, 0, int_ExB1, 0, field_cu, 4, field_cu, &local);
     gkyl_dg_mul_op_range(basis, 0, int_ExB2, 1, field_cu, 3, field_cu, &local);
 
-    gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, local);
+    gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, &local);
     for (int i=0; i<3; ++i) {
       gkyl_dg_div_op_range(magB2_mem, basis, i, alt_ExB_cu, i, int_ExB1, 0, magB2, &local);
     }    
@@ -666,9 +666,9 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
         ctr += 1;
       }
     }
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0*basis.num_basis, local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3*basis.num_basis, local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5*basis.num_basis, local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0*basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3*basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5*basis.num_basis, &local);
 
     for (int i=0; i<6; ++i) {
       gkyl_dg_div_op_range(magB2_mem, basis, 3+i, alt_bibj, i, int_BiBj, 0, magB2, &local);
@@ -683,7 +683,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_dg_mul_op_range(basis, 2, int_ExB1, 0, field, 4, field, &local);
     gkyl_dg_mul_op_range(basis, 2, int_ExB2, 1, field, 3, field, &local);
 
-    gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, local);
+    gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, &local);
     for (int i=0; i<3; ++i) {
       gkyl_dg_div_op_range(magB2_mem, basis, i, alt_ExB, i, int_ExB1, 0, magB2, &local);
     }    
@@ -722,20 +722,20 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_dg_calc_l2_range(basis, i, alt_L2_ExB, i, alt_ExB_err, local);
   }
 
-  gkyl_array_scale_range(L2_bvar, grid.cellVolume, local);
-  gkyl_array_scale_range(L2_ExB, grid.cellVolume, local);
-  gkyl_array_scale_range(alt_L2_bvar, grid.cellVolume, local);
-  gkyl_array_scale_range(alt_L2_ExB, grid.cellVolume, local);
+  gkyl_array_scale_range(L2_bvar, grid.cellVolume, &local);
+  gkyl_array_scale_range(L2_ExB, grid.cellVolume, &local);
+  gkyl_array_scale_range(alt_L2_bvar, grid.cellVolume, &local);
+  gkyl_array_scale_range(alt_L2_ExB, grid.cellVolume, &local);
 
   double red_L2_bvar[9] = {0.0};
   double red_L2_ExB[3] = {0.0};
   double red_alt_L2_bvar[9] = {0.0};
   double red_alt_L2_ExB[3] = {0.0};
 
-  gkyl_array_reduce_range(red_L2_bvar, L2_bvar, GKYL_SUM, local);
-  gkyl_array_reduce_range(red_L2_ExB, L2_ExB, GKYL_SUM, local);
-  gkyl_array_reduce_range(red_alt_L2_bvar, alt_L2_bvar, GKYL_SUM, local);
-  gkyl_array_reduce_range(red_alt_L2_ExB, alt_L2_ExB, GKYL_SUM, local);
+  gkyl_array_reduce_range(red_L2_bvar, L2_bvar, GKYL_SUM, &local);
+  gkyl_array_reduce_range(red_L2_ExB, L2_ExB, GKYL_SUM, &local);
+  gkyl_array_reduce_range(red_alt_L2_bvar, alt_L2_bvar, GKYL_SUM, &local);
+  gkyl_array_reduce_range(red_alt_L2_ExB, alt_L2_ExB, GKYL_SUM, &local);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);

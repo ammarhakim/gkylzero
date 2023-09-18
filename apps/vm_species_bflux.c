@@ -21,8 +21,8 @@ vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
 {
   // zero ghost cells before calculation to ensure there's no residual data
   for (int j=0; j<app->cdim; ++j) {
-    gkyl_array_clear_range(rhs, 0.0, species->skin_ghost.lower_ghost[j]);
-    gkyl_array_clear_range(rhs, 0.0, species->skin_ghost.upper_ghost[j]);
+    gkyl_array_clear_range(rhs, 0.0, &(species->skin_ghost.lower_ghost[j]));
+    gkyl_array_clear_range(rhs, 0.0, &(species->skin_ghost.upper_ghost[j]));
   }
   // ghost cells of the rhs array are filled with the bflux
   // This is overwritten by the boundary conditions and is not being stored,

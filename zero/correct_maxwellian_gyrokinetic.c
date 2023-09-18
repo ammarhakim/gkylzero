@@ -120,16 +120,16 @@ void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic
   
   gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals1, 0, up->ddm12, *conf_local);
   gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals2, 1, up->ddm12, *conf_local);
-  gkyl_array_scale_range(up->mvals1, up->grid.cellVolume, *conf_local);
-  gkyl_array_scale_range(up->mvals2, up->grid.cellVolume, *conf_local);
+  gkyl_array_scale_range(up->mvals1, up->grid.cellVolume, conf_local);
+  gkyl_array_scale_range(up->mvals2, up->grid.cellVolume, conf_local);
   if (up->use_gpu) {
-    gkyl_array_reduce_range(up->err1_cu, up->mvals1, GKYL_SUM, *conf_local);
-    gkyl_array_reduce_range(up->err2_cu, up->mvals2, GKYL_SUM, *conf_local);
+    gkyl_array_reduce_range(up->err1_cu, up->mvals1, GKYL_SUM, conf_local);
+    gkyl_array_reduce_range(up->err2_cu, up->mvals2, GKYL_SUM, conf_local);
     gkyl_cu_memcpy(err1, up->err1_cu, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
     gkyl_cu_memcpy(err2, up->err2_cu, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
   } else {
-    gkyl_array_reduce_range(err1, up->mvals1, GKYL_SUM, *conf_local);
-    gkyl_array_reduce_range(err2, up->mvals2, GKYL_SUM, *conf_local);
+    gkyl_array_reduce_range(err1, up->mvals1, GKYL_SUM, conf_local);
+    gkyl_array_reduce_range(err2, up->mvals2, GKYL_SUM, conf_local);
   }
 
   // Main iteration loop
@@ -149,16 +149,16 @@ void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic
     gkyl_array_clear(up->mvals2, 0.0);
     gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals1, 0, up->ddm12, *conf_local);
     gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals2, 1, up->ddm12, *conf_local);
-    gkyl_array_scale_range(up->mvals1, up->grid.cellVolume, *conf_local);
-    gkyl_array_scale_range(up->mvals2, up->grid.cellVolume, *conf_local);
+    gkyl_array_scale_range(up->mvals1, up->grid.cellVolume, conf_local);
+    gkyl_array_scale_range(up->mvals2, up->grid.cellVolume, conf_local);
     if (up->use_gpu) {
-      gkyl_array_reduce_range(up->err1_cu, up->mvals1, GKYL_SUM, *conf_local);
-      gkyl_array_reduce_range(up->err2_cu, up->mvals2, GKYL_SUM, *conf_local);
+      gkyl_array_reduce_range(up->err1_cu, up->mvals1, GKYL_SUM, conf_local);
+      gkyl_array_reduce_range(up->err2_cu, up->mvals2, GKYL_SUM, conf_local);
       gkyl_cu_memcpy(err1, up->err1_cu, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
       gkyl_cu_memcpy(err2, up->err2_cu, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
     } else {
-      gkyl_array_reduce_range(err1, up->mvals1, GKYL_SUM, *conf_local);
-      gkyl_array_reduce_range(err2, up->mvals2, GKYL_SUM, *conf_local);
+      gkyl_array_reduce_range(err1, up->mvals1, GKYL_SUM, conf_local);
+      gkyl_array_reduce_range(err2, up->mvals2, GKYL_SUM, conf_local);
     }
     err1[0] = sqrt(err1[0]/up->grid.cellVolume/conf_local->volume); 
     err2[0] = sqrt(err2[0]/up->grid.cellVolume/conf_local->volume); 
