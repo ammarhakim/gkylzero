@@ -45,18 +45,18 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     gkyl_dg_calc_average_range(up->basis, 0, eps_cellavg, 0, epsilon, *up->solve_range);
     if (up->use_gpu) {
       double *eps_avg_cu = (double*) gkyl_cu_malloc(sizeof(double));
-      gkyl_array_reduce_range(eps_avg_cu, eps_cellavg, GKYL_SUM, *up->solve_range);
+      gkyl_array_reduce_range(eps_avg_cu, eps_cellavg, GKYL_SUM, up->solve_range);
       gkyl_cu_memcpy(eps_avg, eps_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
       gkyl_cu_free(eps_avg_cu);
     } else {
-      gkyl_array_reduce_range(eps_avg, eps_cellavg, GKYL_SUM, *up->solve_range);
+      gkyl_array_reduce_range(eps_avg, eps_cellavg, GKYL_SUM, up->solve_range);
     }
 #else
     up->epsilon = gkyl_array_new(GKYL_DOUBLE, 1, 1);
     struct gkyl_array *eps_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
 
     gkyl_dg_calc_average_range(up->basis, 0, eps_cellavg, 0, epsilon, *up->solve_range);
-    gkyl_array_reduce_range(eps_avg, eps_cellavg, GKYL_SUM, *up->solve_range);
+    gkyl_array_reduce_range(eps_avg, eps_cellavg, GKYL_SUM, up->solve_range);
 #endif
     gkyl_array_shiftc(up->epsilon, eps_avg[0]/up->solve_range->volume, 0);
     gkyl_array_release(eps_cellavg);
