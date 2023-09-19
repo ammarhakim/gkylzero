@@ -144,7 +144,7 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   // compute needed moments (if PKPM, moments already known from fluid couplings)
   if (species->model_id != GKYL_MODEL_PKPM) {
     vm_species_moment_calc(&lbo->moms, species->local, app->local, fin);
-    gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, app->local);
+    gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, &(app->local));
   }
   
   if (app->use_gpu) {
@@ -162,8 +162,8 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
         gkyl_array_clear(lbo->norm_nu, 0.0);
         gkyl_array_clear(lbo->self_nu, 0.0);
         // Get density information (and scale out mass factor in PKPM moments)
-        gkyl_array_set_range(lbo->m0, 1.0/species->info.mass, species->pkpm_moms.marr, app->local);
-        gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->prim_moms, lbo->m0, lbo->prim_moms, 1.0, lbo->norm_nu);
+        gkyl_array_set_range(lbo->m0, 1.0/species->info.mass, species->pkpm_moms.marr, &app->local);
+        gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->prim_moms, 0., lbo->m0, lbo->prim_moms, 0., 1.0, lbo->norm_nu);
         gkyl_dg_mul_op(app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
       }
     }
@@ -188,8 +188,8 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
         gkyl_array_clear(lbo->norm_nu, 0.0);
         gkyl_array_clear(lbo->self_nu, 0.0);
         // Get density information (and scale out mass factor in PKPM moments)
-        gkyl_array_set_range(lbo->m0, 1.0/species->info.mass, species->pkpm_moms.marr, app->local);
-        gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->prim_moms, lbo->m0, lbo->prim_moms, 1.0, lbo->norm_nu);
+        gkyl_array_set_range(lbo->m0, 1.0/species->info.mass, species->pkpm_moms.marr, &app->local);
+        gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->prim_moms, 0., lbo->m0, lbo->prim_moms, 0.0, 1.0, lbo->norm_nu);
         gkyl_dg_mul_op(app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
       }
     }

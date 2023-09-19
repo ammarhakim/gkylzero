@@ -555,7 +555,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
-  gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, species->local);
+  gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &(species->local));
 
   double omegaCfl_ho[1];
   if (app->use_gpu)
@@ -574,11 +574,11 @@ void
 vm_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_species *species,
   int dir, struct gkyl_array *f)
 {
-  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, species->skin_ghost.lower_skin[dir]);
-  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.upper_ghost[dir]);
+  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &(species->skin_ghost.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &(species->skin_ghost.upper_ghost[dir]));
 
-  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, species->skin_ghost.upper_skin[dir]);
-  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, species->skin_ghost.lower_ghost[dir]);
+  gkyl_array_copy_to_buffer(species->bc_buffer->data, f, &(species->skin_ghost.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(f, species->bc_buffer->data, &(species->skin_ghost.lower_ghost[dir]));
 }
 
 // Determine which directions are periodic and which directions are not periodic,
@@ -644,15 +644,15 @@ void
 vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species)
 {
   gkyl_dg_calc_l2_range(app->basis, 0, species->L2_f, 0, species->f, species->local);
-  gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, species->local);
+  gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &(species->local));
   
   double L2[1] = { 0.0 };
   if (app->use_gpu) {
-    gkyl_array_reduce_range(species->red_L2_f, species->L2_f, GKYL_SUM, species->local);
+    gkyl_array_reduce_range(species->red_L2_f, species->L2_f, GKYL_SUM, &(species->local));
     gkyl_cu_memcpy(L2, species->red_L2_f, sizeof(double), GKYL_CU_MEMCPY_D2H);
   }
   else { 
-    gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, species->local);
+    gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, &(species->local));
   }
   double L2_global[1] = { 0.0 };
   gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
