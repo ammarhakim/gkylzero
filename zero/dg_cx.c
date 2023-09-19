@@ -104,9 +104,9 @@ void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx, const struct gkyl_array 
   
   gkyl_dg_dot_product_op_range(*cx->basis, cx->m2_temp, cx->udrift_neut, cx->udrift_neut, cx->conf_rng); // u.u
   gkyl_dg_mul_op_range(*cx->basis, 0, cx->m2_temp, 0, cx->m2_temp, 0, moms_neut, cx->conf_rng); //u.u*m0
-  gkyl_array_accumulate_offset_range(cx->m2_temp, -1.0, moms_neut, (cx->vdim_vl+1)*cx->basis->num_basis, *cx->conf_rng); // u.u*m0 - m2
+  gkyl_array_accumulate_offset_range(cx->m2_temp, -1.0, moms_neut, (cx->vdim_vl+1)*cx->basis->num_basis, cx->conf_rng); // u.u*m0 - m2
   gkyl_dg_div_op_range(cx->mem, *cx->basis, 0, cx->vth_sq_neut, 0, cx->m2_temp, 0, moms_neut, cx->conf_rng); // (u.u*m0 - m2)/m0
-  gkyl_array_scale_range(cx->vth_sq_neut, -1/cx->vdim_vl, *cx->conf_rng); // (m2-u.u*m0)/(vdim*m0)
+  gkyl_array_scale_range(cx->vth_sq_neut, -1/cx->vdim_vl, cx->conf_rng); // (m2-u.u*m0)/(vdim*m0)
 
   // Calculate ion udrift and vt_sq
   for (int d=0; d<cx->vdim_vl; d+=1) {
@@ -116,9 +116,9 @@ void gkyl_dg_cx_react_rate(const struct gkyl_dg_cx *cx, const struct gkyl_array 
 
   gkyl_dg_dot_product_op_range(*cx->basis, cx->m2_temp, cx->udrift_ion, cx->udrift_ion, cx->conf_rng);
   gkyl_dg_mul_op_range(*cx->basis, 0, cx->m2_temp, 0, cx->m2_temp, 0, moms_ion, cx->conf_rng);
-  gkyl_array_accumulate_offset_range(cx->m2_temp, -1.0, moms_ion, (cx->vdim_vl+1)*cx->basis->num_basis, *cx->conf_rng); // u.u*m0 - m2
+  gkyl_array_accumulate_offset_range(cx->m2_temp, -1.0, moms_ion, (cx->vdim_vl+1)*cx->basis->num_basis, cx->conf_rng); // u.u*m0 - m2
   gkyl_dg_div_op_range(cx->mem, *cx->basis, 0, cx->vth_sq_ion, 0, cx->m2_temp, 0, moms_ion, cx->conf_rng); // (u.u*m0 - m2)/m0
-  gkyl_array_scale_range(cx->vth_sq_ion, -1/cx->vdim_vl, *cx->conf_rng); // (m2-u.u*m0)/(vdim*m0)
+  gkyl_array_scale_range(cx->vth_sq_ion, -1/cx->vdim_vl, cx->conf_rng); // (m2-u.u*m0)/(vdim*m0)
   
   gkyl_range_iter_init(&conf_iter, cx->conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {

@@ -48,7 +48,7 @@ gkyl_mom_calc_advance(const struct gkyl_mom_calc* calc,
   int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
-  gkyl_array_clear_range(mout, 0.0, *conf_rng);
+  gkyl_array_clear_range(mout, 0.0, conf_rng);
 
   // the outer loop is over configuration space cells; for each
   // config-space cell the inner loop walks over the velocity space
