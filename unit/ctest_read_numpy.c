@@ -15,19 +15,35 @@ struct gkyl_array *
 array_from_numpy(FILE *fp, long sz)
 {
   struct gkyl_array *arr
-    = gkyl_array_new(GKYL_DOUBLE, 1, sz);
-  double array[sz];
-  //long res_sz = fread(array, 1, sizeof(double[sz]), fp);
-  long res_sz = fread(arr->data, 1, sizeof(double[sz]), fp); //, sizeof(double[sz]), fp);
+    = gkyl_array_new(GKYL_DOUBLE, 2, sz);
+  //double array[2][sz];
+  //long res_sz = fread(array, 2, sizeof(double[2][sz]), fp);
+  long res_sz = fread(arr->data, 1, sizeof(double[2][sz]), fp); //, sizeof(double[sz]), fp);
 
-  if (res_sz != sizeof(double[sz])) {
+  if (res_sz != sizeof(double[2][sz])) {
     gkyl_array_release(arr);
     arr = 0;
   }
   /* for(int k=0;k<sz;k++) { */
-  /*   printf("%d:  %g\n",k, array[k]); */
+  /*   printf("0 %d:  %g\n",k, array[0][k]); */
+  /* } */
+  /* for(int k=0;k<sz;k++) { */
+  /*   printf("1 %d:  %g\n",k, array[1][k]); */
   /* } */
   return arr;
+}
+
+double * minmax_from_numpy(FILE *fp, long sz)
+{
+  double array[sz];
+  long res_sz = fread(array, 2, sizeof(double[sz]), fp);
+  double min = array[0];
+  double max = array[sz-1];
+  double *minmax = malloc(2);
+  minmax[0] = min;
+  minmax[1] = max;
+  
+  return minmax;
 }
 
 // 2d p=1
@@ -39,6 +55,16 @@ nodal_to_modal(const double *f, double *mv)
   mv[2] = 0.2886751345948129*(f[3]+f[2]-1.0*(f[1]+f[0]));
   mv[3] = 0.1666666666666667*(f[3]-1.0*(f[2]+f[1])+f[0]);
 }
+
+struct adas_field {
+  FILE *logData;
+  FILE *logT;
+  FILE *logN;
+  int cells[2];
+  int Zmax;
+  struct gkyl_array fld;
+  double *Eiz;
+};
 
 void
 create_dg_from_nodal(const struct gkyl_rect_grid *grid,
@@ -61,7 +87,9 @@ create_dg_from_nodal(const struct gkyl_rect_grid *grid,
       for (int i=0; i<2; ++i) {
         long nidx = gkyl_range_idx(range_nodal, (const int[]) { ix+i, iy+j } );
         const double *adas_n = gkyl_array_cfetch(adas_nodal, nidx);
-	//printf("%g\n",adas_n[0]);
+	const double *adas_z1 = &adas_n[0];
+	const double *adas_z2 = &adas_n[1];
+	//printf("%g Z=2\n",adas_z2[0]);
 	nv[count++] = adas_n[0];
       }
     }
@@ -81,13 +109,22 @@ int file_isreg(const char *path) {
 int
 main(int argc, char **argv)
 {
-  int NT = 29, NN = 24;
+
+  struct adas_field data;
+  data.Eiz = malloc(sizeof(double)*2);
+  static const double Eiz_loc[] = {1.0, 2.0};
+  memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
+  data.Eiz[0] = 1.0;
+  data.Eiz[1] = 2.0;
+  printf("%g, %g\n", data.Eiz[0], data.Eiz[1]);
+  
+  int NT = 30, NN = 24;
   long sz = NT*NN;
   double logTmin = -0.69897, logTmax = 4., logNmin = 7.69897+6., logNmax = 15.30103+6.;
 
   //read nodal data from numpy file
   //if(file_isreg("ioniz_h_Z1.dat")==1) printf("found file\n");
-  FILE *fp = fopen("ioniz_h_Z1.npy", "rb");
+  FILE *fp = fopen("ioniz_he.npy", "rb");
   
   struct gkyl_array *adas_nodal = array_from_numpy(fp, NT*NN);
   fclose(fp);
@@ -97,6 +134,12 @@ main(int argc, char **argv)
     return 0;
   }
 
+  double *minmax;
+  fp = fopen("logT_he.npy", "rb");
+  minmax = minmax_from_numpy(fp, NT);
+  //double logTmin = minmax[0], logTmax = minmax[1];
+  printf("%g %g\n", minmax[0], minmax[1]);
+  
   struct gkyl_range range_node;
   gkyl_range_init_from_shape(&range_node, 2, (int[]) { NT, NN } );
   

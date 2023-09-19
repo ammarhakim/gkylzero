@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -16,59 +17,91 @@
 #include <gkyl_dg_iz_priv.h>
 #include <gkyl_util.h>
 
-// Functions to extract ADAS data and interpolate
+// Functions to extract ADAS data and project onto DG data
+struct gkyl_array *
+array_from_numpy(FILE *fp, long sz, int Zmax)
+{
+  struct gkyl_array *arr
+    = gkyl_array_new(GKYL_DOUBLE, Zmax, sz);
 
-/* Calculate ionization rate coefficient.
- * If ne is out of bounds, use value at nearest ne given
- * If Te>Te_max, use value at highest Te
- * If Te<Te_min, set coefficient to 0
- * Inputs: atomic_data data - struct containing adas data
- *         double* te - array of temperatures to evaluate coefficient at
- *         double* ne - array of densities to evaluate coefficient at
- *         int charge_state - atomic charge state the ion started at
- *         int number - number of (te,ne) points to evaluate
- * 
- */
-void calc_ionization_coef(atomic_data data, struct gkyl_array* Teq, struct gkyl_array* M0q, int charge_state, int number, struct gkyl_array* ioniz_data){
-  int charge_state_index, *tooSmallTe;
-  double* result, *localte, *localne;
-  double minLogTe, maxLogTe, minLogNe, maxLogNe;
+  long res_sz = fread(arr->data, 1, sizeof(double[Zmax][sz]), fp); //, sizeof(double[sz]), fp);
 
-  //tooSmallTe = (int*)malloc(sizeof(int)*number);
-  minLogTe = data.logT[0];
-  minLogNe = data.logNe[0];
-  maxLogTe = data.logT[data.te_intervals-1];
-  maxLogNe = data.logNe[data.ne_intervals-1];
-
-  for(int i=0;i<number;i++){
-    double *M0q_d = gkyl_array_fetch(M0q, i);
-    double *Teq_d = gkyl_array_fetch(Teq, i);
-    //tooSmallTe[i]=1.;
-    if(Teq_d[0] > maxLogTe){
-      Teq_d[0] = maxLogTe;
-    }if(M0q_d[0] < minLogNe){
-      M0q_d[0] = minLogNe;
-    }else if(M0q_d[0] > maxLogNe){
-      M0q_d[0] = maxLogNe;
-    }
+  if (res_sz != sizeof(double[Zmax][sz])) {
+    gkyl_array_release(arr);
+    arr = 0;
   }
-  
-  charge_state_index = data.te_intervals * data.ne_intervals * charge_state;
-  bilinear_interp(data.logT,data.logNe,data.logData+charge_state_index,Teq,M0q,
-    data.te_intervals,data.ne_intervals,number,ioniz_data);
+  return arr;
+}
 
-  for(int i=0;i<number;i++){
-    //Multiplies by 0 if Te<Te_min
-    double *Teq_d = gkyl_array_fetch(Teq, i);
-    double *ioniz_data_d = gkyl_array_fetch(ioniz_data, i);
-    if(Teq_d[0] < minLogTe) ioniz_data_d[0] = 0.0;
+double * minmax_from_numpy(FILE *fp, long sz)
+{
+  double array[sz];
+  long res_sz = fread(array, 2, sizeof(double[sz]), fp);
+  double min = array[0];
+  double max = array[sz-1];
+  double *minmax = malloc(2);
+  minmax[0] = min;
+  minmax[1] = max;
+  
+  return minmax;
+}
+
+// 2d p=1
+static void
+nodal_to_modal(const double *f, double *mv)
+{
+  mv[0] = 0.5*(f[3]+f[2]+f[1]+f[0]);
+  mv[1] = 0.2886751345948129*(f[3]-1.0*f[2]+f[1]-1.0*f[0]);
+  mv[2] = 0.2886751345948129*(f[3]+f[2]-1.0*(f[1]+f[0]));
+  mv[3] = 0.1666666666666667*(f[3]-1.0*(f[2]+f[1])+f[0]);
+}
+
+void
+create_dg_from_nodal(const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range_nodal,  const struct gkyl_array *adas_nodal,
+  struct gkyl_array *adas_dg, int charge_state)
+{
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, grid->cells);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+
+  double nv[4];
+  int zi = charge_state - 1;
+  
+  while (gkyl_range_iter_next(&iter)) {
+
+    int ix = iter.idx[0], iy = iter.idx[1];
+    int count = 0;
+    for (int j=0; j<2; ++j) {
+      for (int i=0; i<2; ++i) {
+        long nidx = gkyl_range_idx(range_nodal, (const int[]) { ix+i, iy+j } );
+        const double *adas_n = gkyl_array_cfetch(adas_nodal, nidx);
+	const double *adas_z_n = &adas_n[zi]; // get data for charge state
+	nv[count++] = adas_n[0];
+      }
+    }
+    double *mv = gkyl_array_fetch(adas_dg, gkyl_range_idx(&range, iter.idx));
+    nodal_to_modal(nv, mv);
   }
 }
+
+struct adas_field {
+  FILE *logData;
+  FILE *logT;
+  FILE *logN;
+  int NT;
+  int NN; 
+  int Zmax;
+  struct gkyl_array fld;
+  double *Eiz;
+};
 
 struct gkyl_dg_iz*
 gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
-  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, bool use_gpu)
+	       double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, int charge_state, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -91,51 +124,89 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   up->elem_charge = elem_charge;
   up->mass_elc = mass_elc;
 
-  // Interpolate ADAS data
-  // Resolution, density and temp should be set in input file 
-  atomic_data h_ion;
-  h_ion = loadadf11("kernels/neutral/scd12_h.dat");
+  // Project ADAS data (H, He, Li)
+  struct adas_field data;
 
-  int resM0=50, resTe=100, qpoints=resM0*resTe;
-  double minM0 = 1e15, maxM0 = 1e20;
-  double minTe = 1.0, maxTe = 4e3;
-
-  up->minLogM0 = log10(minM0);
-  up->minLogTe = log10(minTe);    
-  up->maxLogM0 = log10(maxM0);
-  up->maxLogTe = log10(maxTe);
+  // Conditional to determine element
+  // Eiz values from Voronov 1997 (eV)
+  if (type_ion == GKYL_IZ_H) {
+    data.NT = 29;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_h.npy", "rb");
+    data.logT = fopen("adas-dat/logT_h.npy", "rb");
+    data.logN = fopen("adas-dat/logN_h.npy", "rb");	
+    data.Zmax = 1;
+    data.Eiz = malloc(sizeof(double)*data.Zmax);
+    static const double Eiz_loc[] = {13.6};
+    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
+  }
+  else if (type_ion == GKYL_IZ_HE) {
+    data.NT = 30;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_he.npy", "rb");
+    data.logT = fopen("adas-dat/logT_he.npy", "rb");
+    data.logN = fopen("adas-dat/logN_he.npy", "rb");
+    data.Zmax = 2;
+    data.Eiz = malloc(sizeof(double)*data.Zmax);
+    static const double Eiz_loc[] = {24.6, 54.4};
+    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
+  }
+  else if (type_ion == GKYL_IZ_LI) {
+    data.NT = 25;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_li.npy", "rb");
+    data.logT = fopen("adas-dat/logT_li.npy", "rb");
+    data.logN = fopen("adas-dat/logN_li.npy", "rb");
+    data.Zmax = 3;
+    data.Eiz = malloc(sizeof(double)*data.Zmax);
+    static const double Eiz_loc[] = {5.4, 75.6, 122.4};
+    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
+  }
+  else fprintf(stderr, "Incorrect ion type for ionization.");
   
-  double dlogM0 = (up->maxLogM0 - up->minLogM0)/(resM0-1);
-  double dlogTe = (up->maxLogTe - up->minLogTe)/(resTe-1);
-  up->resM0=resM0;
-  up->resTe=resTe;
-  up->dlogM0=dlogM0;
-  up->dlogTe=dlogTe;
+  long sz = data.NT*data.NN;
+  double *minmax;
 
-  up->M0q = gkyl_array_new(GKYL_DOUBLE, 1, qpoints);
-  up->Teq = gkyl_array_new(GKYL_DOUBLE, 1, qpoints);
-  up->ioniz_data = gkyl_array_new(GKYL_DOUBLE, 1, qpoints);
+  minmax = minmax_from_numpy(data.logT, data.NT);
+  fclose(data.logT);
+  double logTmin = minmax[0], logTmax = minmax[1];
+  minmax = minmax_from_numpy(data.logN, data.NN);
+  fclose(data.logN);
+  double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; // adjust for 1/cm^3 to 1/m^3 conversion
 
-  for(int i=0;i<resM0;i++){
-    for(int j=0;j<resTe;j++){
-      double *M0q_d = gkyl_array_fetch(up->M0q, i*resTe+j);
-      double *Teq_d = gkyl_array_fetch(up->Teq, i*resTe+j);
-      M0q_d[0] = up->minLogM0 + dlogM0*i;
-      Teq_d[0] = up->minLogTe + dlogTe*j;     
-    }
+  struct gkyl_array *adas_nodal = array_from_numpy(data.logData, sz, data.Zmax);
+  fclose(data.logData);
+
+  if (!adas_nodal) {
+    fprintf(stderr, "Unable to read data from nodal numpy file!\n");
+    return 0;
   }
 
-  up->E = 13.6; // need to add all E_iz data for different species and charge states
+  struct gkyl_range range_node;
+  gkyl_range_init_from_shape(&range_node, 2, (int[]) { data.NT, data.NN } );
+  
+  // allocate grid and DG array
+  struct gkyl_rect_grid tn_grid;
+  gkyl_rect_grid_init(&tn_grid, 2,
+    (double[]) { logTmin, logNmin},
+    (double []) { logTmax, logNmax},
+    (int[]) { data.NT-1, data.NN-1 }
+  );
 
-  calc_ionization_coef(h_ion, up->Teq, up->M0q, h_ion.Z-1, qpoints, up->ioniz_data);
+  struct gkyl_range adas_rng;
+  gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
+  
+  struct gkyl_basis adas_basis;
+  gkyl_cart_modal_serendip(&adas_basis, 2, 1);
+  
+  struct gkyl_array *adas_dg =
+    gkyl_array_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
 
-  for(int i=0;i<qpoints;i++){
-    double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, i);
-    double *M0q_d = gkyl_array_fetch(up->M0q, i);
-    double *Teq_d = gkyl_array_fetch(up->Teq, i);
-    /* printf("Te = %eeV, M0 = %em^-3, Ioniz. coef = %em^3/s\n", */
-    /* 	   pow(10,Teq_d[0]),pow(10,M0q_d[0]),iz_dat_d[0]); */
-  }
+  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
+
+  up->ioniz_data = adas_dg; 
+  
+  up->E = data.Eiz[charge_state-1];
   
   // allocate fields for prim mom calculation
   up->prim_vars_neut = gkyl_array_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); // elc, ion

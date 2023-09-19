@@ -11,7 +11,8 @@
 enum gkyl_dg_iz_type
 {
   GKYL_IZ_H, // Hydrogen plasma
-  GKYL_IZ_AR, // Argon plasma
+  GKYL_IZ_HE, // Helium plasma
+  GKYL_IZ_LI, // Lithium plasma
 };
 
 // Object type
@@ -31,7 +32,7 @@ typedef struct gkyl_dg_iz gkyl_dg_iz;
  */
 struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
-  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, 
+  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, int charge_state,
   bool use_gpu); 
 
 /**

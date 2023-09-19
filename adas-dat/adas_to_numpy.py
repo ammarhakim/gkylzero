@@ -204,16 +204,75 @@ def fetch_file(filename,loc):
 
 # 3d array is (Z, T, Ne)
 
+# Print out all the ADAS data to numpy files
 # Hydrogen
-Z = 1
-ioniz_h = adas_adf11("scd12_h.dat")
-ioniz_h_dat = ioniz_h.logdata[Z-1,:,:]-6.0
-print(ioniz_h_dat)
-print("logT", ioniz_h.logT)
-print("logN", ioniz_h.logNe)
-print(numpy.shape(ioniz_h_dat))
-ioniz_h_flat = numpy.ndarray.flatten(ioniz_h_dat)
-numpy.save("ioniz_h_Z1", ioniz_h_flat)
-numpy.save("logT_h", ioniz_h.logT)
-numpy.save("logN_h", ioniz_h.logT)
+Z=1
+ioniz_h_np = []
+recomb_h_np = []
+for zi in range(0,Z):
+    ioniz_h = adas_adf11("adas-dat-files/scd12_h.dat")
+    ioniz_h_dat = ioniz_h.logdata[zi,:,:]-6.0
+    ioniz_h_flat = numpy.ndarray.flatten(ioniz_h_dat)
+    ioniz_h_np.append(ioniz_h_flat)
 
+    recomb_h = adas_adf11("adas-dat-files/acd12_h.dat")
+    recomb_h_dat = recomb_h.logdata[zi,:,:]-6.0
+    recomb_h_flat = numpy.ndarray.flatten(recomb_h_dat)
+    recomb_h_np.append(recomb_h_flat)
+
+ioniz_h_np = numpy.array(ioniz_h_np)
+recomb_h_np = numpy.array(recomb_h_np)
+print('H flat shape', numpy.shape(ioniz_h_np))
+numpy.save("adas-dat-files/ioniz_h", ioniz_h_np)
+print('H 2d shape', numpy.shape(recomb_h_dat))
+numpy.save("adas-dat-files/recomb_h", recomb_h_np)
+numpy.save("adas-dat-files/logT_h", ioniz_h.logT)
+numpy.save("adas-dat-files/logN_h", ioniz_h.logNe)
+
+# Helium
+Z=2
+ioniz_he_np = []
+recomb_he_np = []
+for zi in range(0,Z):
+    ioniz_he = adas_adf11("adas-dat-files/scd96_he.dat")
+    ioniz_he_dat = ioniz_he.logdata[zi,:,:]-6.0
+    ioniz_he_flat = numpy.ndarray.flatten(ioniz_he_dat)
+    ioniz_he_np.append(ioniz_he_flat)
+
+    recomb_he = adas_adf11("adas-dat-files/acd96_he.dat")
+    recomb_he_dat = recomb_he.logdata[zi,:,:]-6.0
+    recomb_he_flat = numpy.ndarray.flatten(recomb_he_dat)
+    recomb_he_np.append(recomb_he_flat)
+
+ioniz_he_np = numpy.array(ioniz_he_np)
+recomb_he_np = numpy.array(recomb_he_np)
+print('He flat shape', numpy.shape(ioniz_he_np))
+numpy.save("adas-dat-files/ioniz_he", ioniz_he_np)
+print('He 2d shape', numpy.shape(recomb_he_dat))
+numpy.save("adas-dat-files/recomb_he", recomb_he_np)
+numpy.save("adas-dat-files/logT_he", ioniz_he.logT)
+numpy.save("adas-dat-files/logN_he", ioniz_he.logNe)
+
+# Lithium
+Z=3
+ioniz_li_np = []
+recomb_li_np = []
+for zi in range(0,Z):
+    ioniz_li = adas_adf11("adas-dat-files/scd96_li.dat")
+    ioniz_li_dat = ioniz_li.logdata[zi,:,:]-6.0
+    ioniz_li_flat = numpy.ndarray.flatten(ioniz_li_dat)
+    ioniz_li_np.append(ioniz_li_flat)
+
+    recomb_li = adas_adf11("adas-dat-files/acd96_li.dat")
+    recomb_li_dat = recomb_li.logdata[zi,:,:]-6.0
+    recomb_li_flat = numpy.ndarray.flatten(recomb_li_dat)
+    recomb_li_np.append(recomb_li_flat)
+
+ioniz_li_np = numpy.array(ioniz_li_np)
+recomb_li_np = numpy.array(recomb_li_np)
+print('Li flat shape', numpy.shape(ioniz_li_np))
+numpy.save("adas-dat-files/ioniz_li", ioniz_li_np)
+print('Li 2d shape', numpy.shape(recomb_li_dat))
+numpy.save("adas-dat-files/recomb_li", recomb_li_np)
+numpy.save("adas-dat-files/logT_li", ioniz_li.logT)
+numpy.save("adas-dat-files/logN_li", ioniz_li.logNe)
