@@ -134,7 +134,7 @@ void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic
 
   // Main iteration loop
   int i = 0;
-  while ((i<iter_max) && (err1[0]>err_max) || (err2[0]>err_max))
+  while ( ((i<iter_max) && (err1[0]>err_max)) || (err2[0]>err_max) )
   {
     // Correct the moments
     gkyl_array_clear(up->ddm12, 0.0);
