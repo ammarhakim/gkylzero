@@ -27,7 +27,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   long buff_sz = 0;
   // compute buffer size needed
   for (int d=0; d<app->cdim; ++d) {
-    long vol = app->skin_ghost.lower_skin[d].volume;
+    long vol = GKYL_MAX(app->skin_ghost.lower_skin[d].volume, app->skin_ghost.upper_skin[d].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   f->bc_buffer = mkarr(app->use_gpu, num_eqn*app->confBasis.num_basis, buff_sz);
@@ -117,19 +117,16 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   }
 
   f->has_diffusion = false;
-  f->Dij = 0;
-  f->Dij_host = 0;
-  f->diffusion_id = GKYL_NO_DIFFUSION;
+  f->diffD = NULL;
   if (f->info.diffusion.Dij) {
     f->has_diffusion = true;
     // allocate space for full diffusion tensor 
-    f->diffusion_id = GKYL_GEN_DIFFUSION;
     int szD = cdim*(cdim+1)/2;
 
-    f->Dij = mkarr(app->use_gpu, szD*app->confBasis.num_basis, app->local_ext.volume);
-    f->Dij_host = f->Dij;
+    f->diffD = mkarr(app->use_gpu, szD*app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *diffD_host = f->diffD;
     if (app->use_gpu)
-      f->Dij_host = mkarr(false, szD*app->confBasis.num_basis, app->local_ext.volume);
+      diffD_host = mkarr(false, szD*app->confBasis.num_basis, app->local_ext.volume);
 
     gkyl_proj_on_basis *diff_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &app->grid,
@@ -141,28 +138,44 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
         .ctx = f->info.diffusion.Dij_ctx
       }
     );
-    gkyl_proj_on_basis_advance(diff_proj, 0.0, &app->local_ext, f->Dij_host);
-    if (app->use_gpu) // note: Dij_host is same as Dij when not on GPUs
-      gkyl_array_copy(f->Dij, f->Dij_host);
+    gkyl_proj_on_basis_advance(diff_proj, 0.0, &app->local_ext, diffD_host);
+    if (app->use_gpu) {// note: diffD_host is same as diffD when not on GPUs
+      gkyl_array_copy(f->diffD, diffD_host);
+      gkyl_array_release(diffD_host);
+    }
     // Free projection object
     gkyl_proj_on_basis_release(diff_proj);
 
-    f->diff_slvr = gkyl_dg_updater_diffusion_new(&app->grid, &app->confBasis,
-      &app->local, 0.0, 0, f->diffusion_id, app->use_gpu);
+    f->diff_slvr_gen = gkyl_dg_updater_diffusion_gen_new(&app->grid, &app->confBasis,
+      &app->local, app->use_gpu);
   }
   else if (f->info.diffusion.D) {
     f->has_diffusion = true;
+    f->info.diffusion.order = f->info.diffusion.order<2? 2 : f->info.diffusion.order;
+    int num_eqn = 1;
     if (f->eqn_id == GKYL_EQN_ISO_EULER) 
-      f->diffusion_id = GKYL_ISO_EULER_DIFFUSION;
+      num_eqn = 4;
     else if (f->eqn_id == GKYL_EQN_EULER) 
-      f->diffusion_id = GKYL_EULER_DIFFUSION;
+      num_eqn = 5;
     else if (f->eqn_id == GKYL_EQN_EULER_PKPM) 
-      f->diffusion_id = GKYL_PKPM_DIFFUSION;
-    else 
-      f->diffusion_id = GKYL_ISO_DIFFUSION;
+      num_eqn = 3;
 
-    f->diff_slvr = gkyl_dg_updater_diffusion_new(&app->grid, &app->confBasis,
-      &app->local, f->info.diffusion.D, f->info.diffusion.order, f->diffusion_id, app->use_gpu);    
+    int szD = cdim;
+    f->diffD = mkarr(app->use_gpu, szD, 1);
+    struct gkyl_array *diffD_host = f->diffD;
+    if (app->use_gpu)
+      diffD_host = mkarr(false, szD, 1);
+    // Set diffusion coefficient in each direction to input value.
+    gkyl_array_clear(diffD_host, 0.);
+    for (int d=0; d<cdim; d++) gkyl_array_shiftc(diffD_host, f->info.diffusion.D, d);
+
+    if (app->use_gpu) {// note: diffD_host is same as diffD when not on GPUs
+      gkyl_array_copy(f->diffD, diffD_host);
+      gkyl_array_release(diffD_host);
+    }
+
+    f->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(&app->grid, &app->confBasis,
+      true, num_eqn, NULL, f->info.diffusion.order, &app->local, app->use_gpu);
   }
 
   // array for storing integrated moments in each cell
@@ -222,8 +235,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_PKPM_MOM_NO_SLIP;
     }
 
+    // Create local lower skin and ghost ranges
+    gkyl_skin_ghost_ranges(&f->lower_skin[d], &f->lower_ghost[d], d, GKYL_LOWER_EDGE, &app->local_ext, ghost);
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
-      &app->skin_ghost.lower_skin[d], &app->skin_ghost.lower_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
+      &f->lower_skin[d], &f->lower_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_SPECIES_COPY) {
@@ -240,8 +255,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_PKPM_MOM_NO_SLIP;
     }
 
+    // Create local upper skin and ghost ranges
+    gkyl_skin_ghost_ranges(&f->upper_skin[d], &f->upper_ghost[d], d, GKYL_UPPER_EDGE, &app->local_ext, ghost);
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
-      &app->skin_ghost.upper_skin[d], &app->skin_ghost.upper_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
+      &f->upper_skin[d], &f->upper_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
   }
 }
 
@@ -268,8 +285,6 @@ void
 vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
   const struct gkyl_array *fluid)
 {
-  gkyl_array_clear(fluid_species->prim, 0.0);
-  gkyl_array_clear(fluid_species->p, 0.0); 
   // Once merged with main, can utilize dg_prim_vars_type infrastructure written for
   // GPU hackathon (JJ : 08/03/23)
 }
@@ -290,9 +305,14 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
     &app->local, fluid, fluid_species->cflrate, rhs);
 
-  if (fluid_species->has_diffusion)
-    gkyl_dg_updater_diffusion_advance(fluid_species->diff_slvr, 
-      &app->local, fluid_species->Dij, fluid, fluid_species->cflrate, rhs);
+  if (fluid_species->has_diffusion) {
+    if (fluid_species->info.diffusion.Dij) 
+      gkyl_dg_updater_diffusion_gen_advance(fluid_species->diff_slvr_gen,
+        &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
+    else if (fluid_species->info.diffusion.D)
+      gkyl_dg_updater_diffusion_fluid_advance(fluid_species->diff_slvr,
+        &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
+  }
 
   // Accumulate source contribution if PKPM -> adds forces (E + u x B) to momentum equation RHS
   if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
@@ -310,7 +330,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
       fluid_species->pkpm_species->qmem, fluid_species->pkpm_species->pkpm_moms.marr, fluid, rhs);
   }
 
-  gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, app->local);
+  gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, &(app->local));
 
   double omegaCfl_ho[1];
   if (app->use_gpu)
@@ -329,11 +349,11 @@ void
 vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
   int dir, struct gkyl_array *f)
 {
-  gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, app->skin_ghost.lower_skin[dir]);
-  gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, &(app->skin_ghost.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, &(app->skin_ghost.upper_ghost[dir]));
 
-  gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, app->skin_ghost.upper_skin[dir]);
-  gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, &(app->skin_ghost.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, &(app->skin_ghost.lower_ghost[dir]));
 }
 
 // Determine which directions are periodic and which directions are not periodic,
@@ -403,12 +423,11 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
 
   gkyl_dg_updater_fluid_release(f->advect_slvr);
   if (f->has_diffusion) {
-    if (f->diffusion_id == GKYL_GEN_DIFFUSION) {
-      gkyl_array_release(f->Dij);
-      if (app->use_gpu)
-        gkyl_array_release(f->Dij_host);
-    }
-    gkyl_dg_updater_diffusion_release(f->diff_slvr);
+    gkyl_array_release(f->diffD);
+    if (f->info.diffusion.Dij)
+      gkyl_dg_updater_diffusion_gen_release(f->diff_slvr_gen);
+    else if (f->info.diffusion.D)
+      gkyl_dg_updater_diffusion_fluid_release(f->diff_slvr);
   }
 
   if (f->eqn_id == GKYL_EQN_ADVECTION) {

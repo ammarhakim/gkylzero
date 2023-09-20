@@ -46,8 +46,8 @@ static inline struct gkyl_array*
 array_combine(struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
   double c2, const struct gkyl_array *arr2, const struct gkyl_range rng)
 {
-  return gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng),
-    c2, arr2, rng);
+  return gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, &rng),
+    c2, arr2, &rng);
 }
 
 // Create ghost and skin sub-ranges given a parent range

@@ -33,12 +33,6 @@ GKYL_CU_DH void pkpm_vars_pressure_1x_ser_p2(const double *bvar, const double *b
   double *Pyz = &p_ij[12]; 
   double *Pzz = &p_ij[15]; 
 
-  const double *bxbx_xl = &bvar_surf[2]; 
-  const double *bxbx_xr = &bvar_surf[3]; 
-  const double *bxby_xl = &bvar_surf[4]; 
-  const double *bxby_xr = &bvar_surf[5]; 
-  const double *bxbz_xl = &bvar_surf[6]; 
-  const double *bxbz_xr = &bvar_surf[7]; 
   double *Pxx_xl = &p_ij_surf[0]; 
   double *Pxx_xr = &p_ij_surf[1]; 
   double *Pxy_xl = &p_ij_surf[2]; 
@@ -88,15 +82,11 @@ GKYL_CU_DH void pkpm_vars_pressure_1x_ser_p2(const double *bvar, const double *b
   Pyz[2] = DP_bybz[2]; 
   Pzz[2] = DP_bzbz[2] + p_perp[2]; 
  
-  double p_par_xl = 1.58113883008419*p_parallel[2]-1.224744871391589*p_parallel[1]+0.7071067811865475*p_parallel[0]; 
-  double p_par_xr = 1.58113883008419*p_parallel[2]+1.224744871391589*p_parallel[1]+0.7071067811865475*p_parallel[0]; 
-  double p_perp_xl = 1.58113883008419*p_perp[2]-1.224744871391589*p_perp[1]+0.7071067811865475*p_perp[0]; 
-  double p_perp_xr = 1.58113883008419*p_perp[2]+1.224744871391589*p_perp[1]+0.7071067811865475*p_perp[0]; 
-  Pxx_xl[0] = (p_par_xl - p_perp_xl)*bxbx_xl[0] + p_perp_xl; 
-  Pxx_xr[0] = (p_par_xr - p_perp_xr)*bxbx_xr[0] + p_perp_xr; 
-  Pxy_xl[0] = (p_par_xl - p_perp_xl)*bxby_xl[0]; 
-  Pxy_xr[0] = (p_par_xr - p_perp_xr)*bxby_xr[0]; 
-  Pxz_xl[0] = (p_par_xl - p_perp_xl)*bxbz_xl[0]; 
-  Pxz_xr[0] = (p_par_xr - p_perp_xr)*bxbz_xr[0]; 
+  Pxx_xl[0] = 1.58113883008419*Pxx[2]-1.224744871391589*Pxx[1]+0.7071067811865475*Pxx[0]; 
+  Pxx_xr[0] = 1.58113883008419*Pxx[2]+1.224744871391589*Pxx[1]+0.7071067811865475*Pxx[0]; 
+  Pxy_xl[0] = 1.58113883008419*Pxy[2]-1.224744871391589*Pxy[1]+0.7071067811865475*Pxy[0]; 
+  Pxy_xr[0] = 1.58113883008419*Pxy[2]+1.224744871391589*Pxy[1]+0.7071067811865475*Pxy[0]; 
+  Pxz_xl[0] = 1.58113883008419*Pxz[2]-1.224744871391589*Pxz[1]+0.7071067811865475*Pxz[0]; 
+  Pxz_xr[0] = 1.58113883008419*Pxz[2]+1.224744871391589*Pxz[1]+0.7071067811865475*Pxz[0]; 
  
 } 

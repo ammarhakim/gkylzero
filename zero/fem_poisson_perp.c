@@ -34,7 +34,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
     gkyl_array_copy(kSq_ho, kSq);
   } else {
     up->ishelmholtz = false;
-    kSq_ho = gkyl_array_new(GKYL_DOUBLE, 1, 1);
+    kSq_ho = gkyl_array_new(GKYL_DOUBLE, up->num_basis, 1);
     gkyl_array_clear(kSq_ho, 0.);
   }
 
@@ -82,13 +82,13 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
   if (up->isdomperiodic) {
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
-      up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->solve_range->volume);
+      up->rhs_cellavg = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, epsilon->size);
       up->rhs_avg_cu = (double*) gkyl_cu_malloc(sizeof(double));
     } else {
-      up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->solve_range->volume);
+      up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
     }
 #else
-    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, up->solve_range->volume);
+    up->rhs_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
 #endif
     up->rhs_avg = (double*) gkyl_malloc(sizeof(double));
     gkyl_array_clear(up->rhs_cellavg, 0.0);
@@ -243,15 +243,15 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
 
 #ifdef GKYL_HAVE_CUDA
       if (up->use_gpu) {
-        gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->perp_range[paridx]);
+        gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
         gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
       } else {
-        gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->perp_range[paridx]);
+        gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
       }
 #else
-      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->perp_range[paridx]);
+      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
 #endif
-      gkyl_array_shiftc_range(rhsin, up->mavgfac*up->rhs_avg[0], 0, up->perp_range[paridx]);
+      gkyl_array_shiftc_range(rhsin, up->mavgfac*up->rhs_avg[0], 0, &(up->perp_range[paridx]));
     }
   }
 
@@ -367,7 +367,7 @@ void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
   gkyl_superlu_prob_release(up->prob);
 #endif
 
-  gkyl_free(up->brhs);
+  gkyl_array_release(up->brhs);
   gkyl_free(up->kernels);
   gkyl_free(up->perp_range);
   gkyl_free(up->globalidx);

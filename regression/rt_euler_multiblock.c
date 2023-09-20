@@ -222,7 +222,7 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         
         // copy skin-cell data to buffer
         gkyl_array_copy_to_buffer(
-          bc_buffer->data, fld[i], bdata[i].skin_ghost.lower_skin[d]);
+          bc_buffer->data, fld[i], &(bdata[i].skin_ghost.lower_skin[d]));
 
         int tbid = te[0].bid, tdir = te[0].dir;
           
@@ -230,12 +230,12 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         switch (te[0].edge) {
           case GKYL_LOWER_POSITIVE:
           case GKYL_LOWER_NEGATIVE:
-            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, bdata[tbid].skin_ghost.lower_ghost[tdir]);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
             break;
 
           case GKYL_UPPER_POSITIVE:
           case GKYL_UPPER_NEGATIVE:
-            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, bdata[tbid].skin_ghost.upper_ghost[tdir]);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
             break;
 
           default:
@@ -250,7 +250,7 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         
         // copy skin-cell data to buffer
         gkyl_array_copy_to_buffer(
-          bc_buffer->data, fld[i], bdata[i].skin_ghost.upper_skin[d]);
+          bc_buffer->data, fld[i], &(bdata[i].skin_ghost.upper_skin[d]));
 
         int tbid = te[1].bid, tdir = te[1].dir;
           
@@ -258,12 +258,12 @@ sync_blocks(const struct gkyl_block_topo *btopo, const struct block_data bdata[]
         switch (te[1].edge) {
           case GKYL_LOWER_POSITIVE:
           case GKYL_LOWER_NEGATIVE:
-            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, bdata[tbid].skin_ghost.lower_ghost[tdir]);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
             break;
 
           case GKYL_UPPER_POSITIVE:
           case GKYL_UPPER_NEGATIVE:
-            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, bdata[tbid].skin_ghost.upper_ghost[tdir]);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer->data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
             break;
 
           default:

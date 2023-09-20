@@ -86,11 +86,11 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
 void
 apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const int dir, const struct skin_ghost_ranges sgr)
 {
-  gkyl_array_copy_to_buffer(buff->data, fld, sgr.lower_skin[dir]);
-  gkyl_array_copy_from_buffer(fld, buff->data, sgr.upper_ghost[dir]);
+  gkyl_array_copy_to_buffer(buff->data, fld,   &(sgr.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.upper_ghost[dir]));
 
-  gkyl_array_copy_to_buffer(buff->data, fld, sgr.upper_skin[dir]);
-  gkyl_array_copy_from_buffer(fld, buff->data, sgr.lower_ghost[dir]);
+  gkyl_array_copy_to_buffer(buff->data, fld,   &(sgr.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.lower_ghost[dir]));
 }
 
 void
@@ -174,7 +174,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
   gkyl_array_shiftc(kSqFld, kSq*dg0norm, 0);
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bcs, 0, eps, kSqFld, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bcs, eps, kSqFld, false, use_gpu);
 
   // Set the RHS source.
   if (use_gpu)
