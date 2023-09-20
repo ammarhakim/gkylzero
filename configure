@@ -19,7 +19,7 @@ MPI_LIB=$PREFIX/openmpi/lib/
 
 # Lua specific paths and flags (link to static library)
 USE_LUA=
-LUA_INC=$PREFIX/luajit/include
+LUA_INC=$PREFIX/luajit/include/luajit-2.1
 LUA_LIB=$PREFIX/luajit/lib/libluajit-5.1.a
 
 OSTYPE=`uname -o`

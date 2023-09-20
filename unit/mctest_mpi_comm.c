@@ -605,24 +605,24 @@ test_n4_multicomm_2d()
 }
   
 TEST_LIST = {
-    {"test_1", test_1},
-    {"test_n2", test_n2},
-    {"test_n2_sync_1d", test_n2_sync_1d},
-    {"test_n4_sync_2d_no_corner", test_n4_sync_2d_no_corner },
-    {"test_n4_sync_2d_use_corner", test_n4_sync_2d_use_corner},
-    {"test_n2_sync_1x1v", test_n4_sync_1x1v },
-    {"test_n1_per_sync_2d", test_n1_per_sync_2d },
-    {"test_n2_array_send_irecv_1d", test_n2_array_send_irecv_1d},
-    {"test_n2_array_isend_irecv_2d", test_n2_array_isend_irecv_2d},
-    {"test_n4_multicomm_2d", test_n4_multicomm_2d},
-    {NULL, NULL},
+  {"test_1", test_1},
+  {"test_n2", test_n2},
+  {"test_n2_sync_1d", test_n2_sync_1d},
+  {"test_n4_sync_2d_no_corner", test_n4_sync_2d_no_corner },
+  {"test_n4_sync_2d_use_corner", test_n4_sync_2d_use_corner},
+  {"test_n2_sync_1x1v", test_n4_sync_1x1v },
+  {"test_n1_per_sync_2d", test_n1_per_sync_2d },
+  {"test_n2_array_send_irecv_1d", test_n2_array_send_irecv_1d},
+  {"test_n2_array_isend_irecv_2d", test_n2_array_isend_irecv_2d},
+  {"test_n4_multicomm_2d", test_n4_multicomm_2d},
+  {NULL, NULL},
 };
 
 #else
 
 // nothing to test if not building with MPI
 TEST_LIST = {
-    {NULL, NULL},
+  {NULL, NULL},
 };
 
 #endif

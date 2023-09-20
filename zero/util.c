@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 
 #include <gkyl_util.h>
+#include <gkyl_alloc.h>
 
 int
 gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
@@ -183,4 +184,16 @@ gkyl_file_size(const char *fname)
   struct stat st;
   stat(fname, &st);
   return st.st_size;
+}
+
+char*
+gkyl_load_file(const char *fname, int64_t *sz)
+{
+  int64_t msz = gkyl_file_size(fname);
+  char *buff = gkyl_malloc(msz);
+  FILE *fp = fopen(fname, "r");
+  int n = fread(buff, msz, 1, fp);
+  *sz = msz;
+  fclose(fp);
+  return buff;
 }
