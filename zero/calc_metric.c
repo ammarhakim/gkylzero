@@ -15,7 +15,8 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid *gri
   up->poly_order = cbasis->poly_order;
   up->grid = grid;
   up->use_gpu = use_gpu;
-  up->kernel = metric_choose_kernel(up->cdim, cbasis->b_type, up->poly_order);
+  //up->kernel = metric_choose_kernel(up->cdim, cbasis->b_type, up->poly_order);
+  up->num_cells = up->grid->cells;
   return up;
 }
 
@@ -41,7 +42,11 @@ gkyl_calc_metric_advance(const gkyl_calc_metric *up, const struct gkyl_range *cr
         count = count+1;
       }
     }
-    up->kernel(xyz,gij);
+    int linker_idx = idx_to_inloup_ker(up->cdim, up->num_cells, iter.idx);
+    //up->kernel(xyz,gij);
+    printf("iter.idx = %d %d %d\n", iter.idx[0], iter.idx[1], iter.idx[2]);
+    printf(" lidx = %d \n", linker_idx);
+    metric_choose_kernel(linker_idx)(xyz,gij);
   }
 
   double scale_factor[up->cdim * (up->cdim+1)/2];
