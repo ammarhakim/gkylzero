@@ -84,7 +84,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   long buff_sz = 0;
   // compute buffer size needed
   for (int d=0; d<cdim; ++d) {
-    long vol = s->skin_ghost.lower_skin[d].volume;
+    long vol = GKYL_MAX(s->skin_ghost.lower_skin[d].volume, s->skin_ghost.upper_skin[d].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
 
@@ -206,9 +206,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->pkpm_fluid_species = vm_find_fluid_species(app, s->info.pkpm_fluid_species);
     s->pkpm_fluid_index = vm_find_fluid_species_idx(app, s->info.pkpm_fluid_species);
 
-    // pkpm moments for update (rho, p_par, p_perp)
+    // pkpm moments for update (rho, p_par, p_perp, M1)
     vm_species_moment_init(app, s, &s->pkpm_moms, "PKPM");
-    // pkpm moments for diagnostics (rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp)
+    // pkpm moments for diagnostics (rho, M1, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp)
     // For simplicity, is_integrated flag also used by PKPM to turn on diagnostics
     vm_species_moment_init(app, s, &s->pkpm_moms_diag, "Integrated");
 
@@ -218,7 +218,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->pkpm_div_ppar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     // allocate array to store primitive moments : [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
     // pressure p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
-    s->pkpm_prim = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+    s->pkpm_prim = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
     s->pkpm_p_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
     // boolean array for if we are only using the cell average for primitive variables
     s->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
@@ -366,6 +366,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->upper_bc[dir] = bc[1];
     }
   }
+
   // Certain operations fail if absorbing BCs used because absorbing BCs 
   // means the mass density is 0 in the ghost cells (divide by zero)
   s->bc_is_absorb = false;
@@ -389,8 +390,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_FIXED_FUNC;
     }
 
+    // Create local lower skin and ghost ranges
+    gkyl_skin_ghost_ranges(&s->lower_skin[d], &s->lower_ghost[d], d, GKYL_LOWER_EDGE, &s->local_ext, ghost);
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
-      &s->skin_ghost.lower_skin[d], &s->skin_ghost.lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+      &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
     // Upper BC updater. Copy BCs by default.
     if (s->upper_bc[d] == GKYL_SPECIES_COPY) {
       bctype = GKYL_BC_COPY;
@@ -409,8 +412,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       bctype = GKYL_BC_FIXED_FUNC;
     }
 
+    // Create local upper skin and ghost ranges
+    gkyl_skin_ghost_ranges(&s->upper_skin[d], &s->upper_ghost[d], d, GKYL_UPPER_EDGE, &s->local_ext, ghost);
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
-      &s->skin_ghost.upper_skin[d], &s->skin_ghost.upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+      &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
   }
 }
 
@@ -484,26 +489,16 @@ vm_species_calc_pkpm_vars(gkyl_vlasov_app *app, struct vm_species *species,
       app->field->bvar, app->field->bvar_surf, species->pkpm_moms.marr, 
       species->pkpm_p_ij, species->pkpm_p_ij_surf);
     // Compute primitive variables in both the volume and on surfaces
-    if (species->bc_is_absorb) {
+    if (species->bc_is_absorb) 
       gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars,
         species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_div_ppar, species->cell_avg_prim, 
-        species->pkpm_prim); 
-      gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars, 
-        species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_p_ij_surf, species->cell_avg_prim, 
-        species->pkpm_prim_surf);
-    }
-    else {
+        species->pkpm_p_ij, species->pkpm_div_ppar, 
+        species->cell_avg_prim, species->pkpm_prim, species->pkpm_prim_surf); 
+    else 
       gkyl_dg_calc_pkpm_vars_advance(species->calc_pkpm_vars_ext,
         species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_div_ppar, species->cell_avg_prim, 
-        species->pkpm_prim); 
-      gkyl_dg_calc_pkpm_vars_surf_advance(species->calc_pkpm_vars_ext, 
-        species->pkpm_moms.marr, fluidin[species->pkpm_fluid_index], 
-        species->pkpm_p_ij_surf, species->cell_avg_prim, 
-        species->pkpm_prim_surf);
-    }
+        species->pkpm_p_ij, species->pkpm_div_ppar, 
+        species->cell_avg_prim, species->pkpm_prim, species->pkpm_prim_surf); 
   }
   app->stat.species_pkpm_vars_tm += gkyl_time_diff_now_sec(tm);
 }
