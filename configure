@@ -14,13 +14,14 @@ LAPACK_LIB=$PREFIX/OpenBLAS/lib/libopenblas.a
 
 # MPI specific paths and flags
 USE_MPI=
-MPI_INC=$PREFIX/openmpi/include
-MPI_LIB=$PREFIX/openmpi/lib/
+CONF_MPI_INC_DIR=$PREFIX/openmpi/include
+CONF_MPI_LIB_DIR=$PREFIX/openmpi/lib/
 
 # Lua specific paths and flags (link to static library)
 USE_LUA=
-LUA_INC=$PREFIX/luajit/include/luajit-2.1
-LUA_LIB=$PREFIX/luajit/lib/libluajit-5.1.a
+CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1
+CONF_LUA_LIB_DIR=$PREFIX/luajit/lib/
+CONF_LUA_LIB=luajit-5.1
 
 OSTYPE=`uname -o`
 MACHINE=`uname -n`
@@ -168,11 +169,11 @@ do
       ;;       
    --mpi-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
-      MPI_INC="$value"
+      CONF_MPI_INC_DIR="$value"
       ;;
    --mpi-lib)
       [ -n "$value" ] || die "Missing value in flag $key."
-      MPI_LIB="$value"
+      CONF_MPI_LIB_DIR="$value"
       ;;
    --use-lua)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -180,11 +181,11 @@ do
       ;;       
    --lua-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
-      LUA_INC="$value"
+      CONF_LUA_INC_DIR="$value"
       ;;
    --lua-lib)
       [ -n "$value" ] || die "Missing value in flag $key."
-      LUA_LIB="$value"
+      CONF_LUA_LIB_DIR="$value"
       ;;   
    --cudamath-libdir)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -230,12 +231,13 @@ SUPERLU_INC=$SUPERLU_INC
 SUPERLU_LIB=$SUPERLU_LIB
 
 USE_MPI=$USE_MPI
-MPI_INC=$MPI_INC
-MPI_LIB=$MPI_LIB
+CONF_MPI_INC_DIR=$CONF_MPI_INC_DIR
+CONF_MPI_LIB_DIR=$CONF_MPI_LIB_DIR
 
 USE_LUA=$USE_LUA
-LUA_INC=$LUA_INC
-LUA_LIB=$LUA_LIB
+CONF_LUA_INC_DIR=$CONF_LUA_INC_DIR
+CONF_LUA_LIB_DIR=$CONF_LUA_LIB_DIR
+CONF_LUA_LIB=$CONF_LUA_LIB
 
 CUDAMATH_LIBDIR=$CUDAMATH_LIBDIR
 

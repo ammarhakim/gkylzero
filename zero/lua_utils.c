@@ -4,7 +4,7 @@ bool
 glua_tbl_has_key(lua_State *L, const char *key)
 {
   lua_getfield(L, -1, key);
-  bool has_key = lua_isnil(L, -1);
+  bool has_key = !lua_isnil(L, -1);
   lua_pop(L, 1);
   return has_key;  
 }
@@ -27,6 +27,17 @@ glua_tbl_get_integer(lua_State *L, const char *key, long def)
   lua_getfield(L, -1, key);
   if (!lua_isnil(L, -1) && lua_isnumber(L, -1))
     out = lua_tointeger(L, -1);
+  lua_pop(L, 1);
+  return out;
+}
+
+const char *
+glua_tbl_get_string(lua_State *L, const char *key, const char *def)
+{
+  const char *out = def;
+  lua_getfield(L, -1, key);
+  if (!lua_isnil(L, -1) && lua_isstring(L, -1))
+    out = lua_tostring(L, -1);
   lua_pop(L, 1);
   return out;
 }

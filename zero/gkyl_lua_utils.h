@@ -37,9 +37,20 @@ double glua_tbl_get_number(lua_State *L, const char *key, double def);
  * @param L Lua state
  * @param key Key
  * @param def Default value if key is not present in table
- * @return number corresponding to key, or def
+ * @return integer corresponding to key, or def
  */
 long glua_tbl_get_integer(lua_State *L, const char *key, long def);
+
+/**
+ * Return string from table, keyed by @a key. Table must be on top of
+ * the stack. If string does not exist, @a def is returned.
+ *
+ * @param L Lua state
+ * @param key Key
+ * @param def Default value if key is not present in table
+ * @return string corresponding to key, or def
+ */
+const char *glua_tbl_get_string(lua_State *L, const char *key, const char *def);
 
 /**
  * Run Lua code stored in @a str buffer. The size of the buffer is

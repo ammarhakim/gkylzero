@@ -58,8 +58,8 @@ MPI_INC_DIR = zero # dummy
 MPI_LIB_DIR = .
 ifeq (${USE_MPI}, 1)
 	USING_MPI = yes
-	MPI_INC_DIR = ${MPI_INC}
-	MPI_LIB_DIR = ${MPI_LIB}
+	MPI_INC_DIR = ${CONF_MPI_INC_DIR}
+	MPI_LIB_DIR = ${CONF_MPI_LIB_DIR}
 	MPI_LIBS = -lmpi
 	CFLAGS += -DGKYL_HAVE_MPI
 endif
@@ -70,9 +70,9 @@ LUA_INC_DIR = zero # dummy
 LUA_LIB_DIR = .
 ifeq (${USE_LUA}, 1)
 	USING_LUA = yes
-	LUA_INC_DIR = ${LUA_INC}
-	LUA_LIB_DIR = 
-	LUA_LIBS = ${LUA_LIB}
+	LUA_INC_DIR = ${CONF_LUA_INC_DIR}
+	LUA_LIB_DIR = ${CONF_LUA_LIB_DIR}
+	LUA_LIBS = -l${CONF_LUA_LIB}
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
 
@@ -134,7 +134,7 @@ ifdef USING_NVCC
 endif
 
 # List of link directories and libraries for unit and regression tests
-EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR}
+EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR}
 EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_LIBS} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
