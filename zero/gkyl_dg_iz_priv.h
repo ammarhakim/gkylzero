@@ -27,6 +27,8 @@ struct gkyl_dg_iz {
 
   double minLogM0, minLogTe, maxLogM0, maxLogTe;
 
+  enum gkyl_dg_iz_self type_self;
+
   struct gkyl_basis *cbasis;
   struct gkyl_basis *pbasis;
 

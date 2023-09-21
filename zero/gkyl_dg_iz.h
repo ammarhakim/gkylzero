@@ -15,6 +15,14 @@ enum gkyl_dg_iz_type
   GKYL_IZ_LI, // Lithium plasma
 };
 
+// Identifiers for self species to determine form of collision operator
+enum gkyl_dg_iz_self
+{
+  GKYL_IZ_ELC, // Hydrogen plasma
+  GKYL_IZ_ION, // Helium plasma
+  GKYL_IZ_NEUT, // Lithium plasma
+};
+
 // Object type
 typedef struct gkyl_dg_iz gkyl_dg_iz;
 
@@ -29,20 +37,20 @@ typedef struct gkyl_dg_iz gkyl_dg_iz;
  * @param mass_elc Mass of the electron value
  * @param type_ion Enum for type of ion for ionization (support H, He, Li)
  * @param charge_state Int for ion charge state
+ * @param type_self Enum for species type (electron, ion or neutral)
  * @param use_gpu Boolean for whether struct is on host or device
  */
 struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
-  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, int charge_state,
-  bool use_gpu); 
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
+  double mass_elc, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self, bool use_gpu); 
 
 /**
  * Create new ionization updater type object on NV-GPU: 
  * see new() method above for documentation.
  */
 struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
-  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, int charge_state); 
+  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
+  double mass_elc, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self); 
 
 /**
  * Compute ionization collision term for use in neutral reactions. 
@@ -61,33 +69,15 @@ struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gky
  * @param coll_iz Output reaction rate coefficient
  */
 
-void gkyl_dg_iz_coll_elc(const struct gkyl_dg_iz *up,
+void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
 
-void gkyl_dg_iz_coll_elc_cu(const struct gkyl_dg_iz *up,
+void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
-
-void gkyl_dg_iz_coll_ion(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
-  struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
-
-void gkyl_dg_iz_coll_ion_cu(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
-  struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
-
-void gkyl_dg_iz_coll_neut(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut, const struct gkyl_array *distf_self,
-  struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
-
-void gkyl_dg_iz_coll_neut_cu(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut, const struct gkyl_array *distf_self,
-  struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
 
 
 /**
