@@ -30,16 +30,16 @@ struct gkyl_dg_iz {
   struct gkyl_basis *cbasis;
   struct gkyl_basis *pbasis;
 
-  struct gkyl_array *M0q;
-  struct gkyl_array *Teq;
   struct gkyl_array *ioniz_data;
   struct gkyl_array *prim_vars_neut;
   struct gkyl_array *vtSq_elc;
   struct gkyl_array *vtSq_iz;
   struct gkyl_array *prim_vars_fmax; 
   struct gkyl_array *coef_iz;
-  struct gkyl_array *fmax_iz; 
-
+  struct gkyl_array *fmax_iz;
+  struct gkyl_range *adas_rng;
+  struct gkyl_basis *adas_basis;
+  
   struct gkyl_dg_prim_vars_type *calc_prim_vars_neut_gk;
   struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq;
 

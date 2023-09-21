@@ -27,7 +27,8 @@ typedef struct gkyl_dg_iz gkyl_dg_iz;
  * @param phase_rng Phase range
  * @param elem_charge Elementary charge value
  * @param mass_elc Mass of the electron value
- * @param type_ion Enum for type of ion for ionization (support H^+ and Ar^+)
+ * @param type_ion Enum for type of ion for ionization (support H, He, Li)
+ * @param charge_state Int for ion charge state
  * @param use_gpu Boolean for whether struct is on host or device
  */
 struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
@@ -41,7 +42,7 @@ struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis
  */
 struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
-  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion); 
+  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion, int charge_state); 
 
 /**
  * Compute ionization collision term for use in neutral reactions. 
@@ -62,22 +63,22 @@ struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gky
 
 void gkyl_dg_iz_coll_elc(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
 
 void gkyl_dg_iz_coll_elc_cu(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
 
 void gkyl_dg_iz_coll_ion(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
 
 void gkyl_dg_iz_coll_ion_cu(const struct gkyl_dg_iz *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *bhat_vec,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
 
 void gkyl_dg_iz_coll_neut(const struct gkyl_dg_iz *up,
