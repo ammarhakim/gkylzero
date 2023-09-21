@@ -43,6 +43,7 @@ bool glua_tbl_has_key(lua_State *L, const char *key);
  * @return number corresponding to key, or def
  */
 double glua_tbl_get_number(lua_State *L, const char *key, double def);
+double glua_tbl_iget_number(lua_State *L, long ket, double def);
 
 /**
  * Return integer from table, keyed by @a key. Table must be on top of
@@ -54,6 +55,7 @@ double glua_tbl_get_number(lua_State *L, const char *key, double def);
  * @return integer corresponding to key, or def
  */
 long glua_tbl_get_integer(lua_State *L, const char *key, long def);
+long glua_tbl_iget_integer(lua_State *L, long key, long def);
 
 /**
  * Return string from table, keyed by @a key. Table must be on top of
@@ -65,6 +67,7 @@ long glua_tbl_get_integer(lua_State *L, const char *key, long def);
  * @return string corresponding to key, or def
  */
 const char *glua_tbl_get_string(lua_State *L, const char *key, const char *def);
+const char *glua_tbl_iget_string(lua_State *L, long key, const char *def);
 
 /**
  * Fetches table named @a key from table on top of stack and pushes

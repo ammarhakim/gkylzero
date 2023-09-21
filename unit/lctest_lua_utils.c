@@ -71,7 +71,7 @@ test_2(void)
   lua_State *L = new_lua_State();
   
   const char *lcode1 =
-    "kvpairs = { tEnd = 101.1, nums = { 11, 12, 13, v = 2222 } }";
+    "kvpairs = { tEnd = 101.1, nums = { 11, 12, 13, v = 2222 }, names = { \"Vlasov\", \"Maxwell\"}  }";
   glua_run_lua(L, lcode1, strlen(lcode1), stderr);
 
   // push table on top of stack
@@ -82,9 +82,18 @@ test_2(void)
   with_lua_table(L, "nums") {
     TEST_CHECK( glua_tbl_has_key(L, "v") );
     TEST_CHECK( 2222 == glua_tbl_get_integer(L, "v", 0) );
-    
+
     TEST_CHECK( 3 == glua_objlen(L) );
+
+    for (int i=1; i<=glua_objlen(L); ++i)
+      TEST_CHECK( 10+i == glua_tbl_iget_integer(L, i, 0) );
   }
+
+  with_lua_table(L, "names") {
+    TEST_CHECK( 2 == glua_objlen(L) );
+    TEST_CHECK( strcmp("Vlasov", glua_tbl_iget_string(L, 1, "Einstein")) == 0 );
+    TEST_CHECK( strcmp("Maxwell", glua_tbl_iget_string(L, 2, "Einstein")) == 0 );
+  }  
 
   TEST_CHECK( glua_tbl_has_key(L, "tEnd") );
   TEST_CHECK( 101.1 == glua_tbl_get_number(L, "tEnd", 0.0) );
