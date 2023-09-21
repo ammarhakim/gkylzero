@@ -42,6 +42,13 @@ glua_tbl_get_string(lua_State *L, const char *key, const char *def)
   return out;
 }
 
+bool
+glua_tbl_get_tbl(lua_State *L, const char *key)
+{
+  lua_getfield(L, -1, key);
+  return !lua_isnil(L, -1) && lua_istable(L, -1);
+}
+
 int
 glua_run_lua(lua_State *L, const char *str, long sz, FILE *err)
 {

@@ -9,6 +9,20 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+// Gets a table with given name, pushing it on the stack. Table is
+// popped when the scope ends
+#define with_lua_table(L, tname)                              \
+    for (bool _break = glua_tbl_get_tbl(L, tname); _break;    \
+         _break = false, lua_pop(L, 1))
+
+/**
+ * Get lenght of object on top of stack. (Table size, string lenght
+ * and memory allocated)
+ *
+ * @return Lenght of object on top of stack.
+ */
+static inline size_t glua_objlen(lua_State *L) { return lua_objlen(L, -1); }
+
 /**
  * Check if table has specifed key in it. Table must be on top of the
  * stack
@@ -51,6 +65,17 @@ long glua_tbl_get_integer(lua_State *L, const char *key, long def);
  * @return string corresponding to key, or def
  */
 const char *glua_tbl_get_string(lua_State *L, const char *key, const char *def);
+
+/**
+ * Fetches table named @a key from table on top of stack and pushes
+ * that on stack. Returns false if no such table was found. You must
+ * pop the table youself once you are done with it.
+ *
+ * @param L Lua state.
+ * @param key Name of table to fetch
+ * @return true if table exists, false otherwise
+ */
+bool glua_tbl_get_tbl(lua_State *L, const char *key);    
 
 /**
  * Run Lua code stored in @a str buffer. The size of the buffer is
