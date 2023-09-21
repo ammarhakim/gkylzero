@@ -10,51 +10,10 @@ typedef struct { metric_kernel kernels[27]; } metric_kernel_list;  // For use in
 
 GKYL_CU_DH
 static const metric_kernel ser_metric_kernel_list[] = {
-  //gij_3x_Ser_p1,
-  //gij_lo1_3x_Ser_p1, gij_up1_3x_Ser_p1,
-  //gij_lo2_3x_Ser_p1, gij_up2_3x_Ser_p1,
-  //gij_lo3_3x_Ser_p1, gij_up3_3x_Ser_p1,
-
-  ////7
-  //gij_lo1_lo2_3x_Ser_p1, gij_lo1_up2_3x_Ser_p1, gij_up1_lo2_3x_Ser_p1, gij_up1_up2_3x_Ser_p1, 
-  //gij_lo1_lo3_3x_Ser_p1, gij_lo1_up3_3x_Ser_p1, gij_up1_lo3_3x_Ser_p1, gij_up1_up3_3x_Ser_p1, 
-  //gij_lo2_lo3_3x_Ser_p1, gij_lo2_up3_3x_Ser_p1, gij_up2_lo3_3x_Ser_p1, gij_up2_up3_3x_Ser_p1, 
-
-  ////19
-  //gij_lo1_lo2_lo3_3x_Ser_p1, gij_lo1_lo2_up3_3x_Ser_p1, gij_lo1_up2_lo3_3x_Ser_p1, gij_lo1_up2_up3_3x_Ser_p1, gij_up1_lo2_lo3_3x_Ser_p1, gij_up1_lo2_up3_3x_Ser_p1, gij_up1_up2_lo3_3x_Ser_p1, gij_up1_up2_up3_3x_Ser_p1
-
-  //// reorder
-  gij_3x_Ser_p1,
-  gij_lo1_3x_Ser_p1, gij_up1_3x_Ser_p1,
-  gij_lo2_3x_Ser_p1, gij_up2_3x_Ser_p1,
-  gij_lo1_lo2_3x_Ser_p1, gij_lo1_up2_3x_Ser_p1,
-
-  //7
-  gij_up1_lo2_3x_Ser_p1, gij_up1_up2_3x_Ser_p1,
-
-  //9
-  gij_lo3_3x_Ser_p1, gij_up3_3x_Ser_p1,
-  
-  //11  
-  gij_lo1_lo3_3x_Ser_p1, gij_lo1_up3_3x_Ser_p1,
-
-  // 13
-  gij_up1_lo3_3x_Ser_p1, gij_up1_up3_3x_Ser_p1, 
-
-  //15
-  gij_lo2_lo3_3x_Ser_p1, gij_lo2_up3_3x_Ser_p1,
-
-  //17
-  gij_up2_lo3_3x_Ser_p1, gij_up2_up3_3x_Ser_p1, 
-
-  //19
-  gij_lo1_lo2_lo3_3x_Ser_p1, gij_lo1_lo2_up3_3x_Ser_p1, gij_lo1_up2_lo3_3x_Ser_p1,
-
-  //22
-  gij_lo1_up2_up3_3x_Ser_p1, gij_up1_lo2_lo3_3x_Ser_p1,
-  //24
-  gij_up1_lo2_up3_3x_Ser_p1, gij_up1_up2_lo3_3x_Ser_p1, gij_up1_up2_up3_3x_Ser_p1
+gij_inx_iny_inz_3x_Ser_p1, gij_lox_iny_inz_3x_Ser_p1, gij_upx_iny_inz_3x_Ser_p1, gij_inx_loy_inz_3x_Ser_p1, gij_inx_upy_inz_3x_Ser_p1, gij_lox_loy_inz_3x_Ser_p1, gij_lox_upy_inz_3x_Ser_p1, gij_upx_loy_inz_3x_Ser_p1, gij_upx_upy_inz_3x_Ser_p1, gij_inx_iny_loz_3x_Ser_p1, gij_inx_iny_upz_3x_Ser_p1, gij_lox_iny_loz_3x_Ser_p1, gij_lox_iny_upz_3x_Ser_p1, gij_upx_iny_loz_3x_Ser_p1, gij_upx_iny_upz_3x_Ser_p1, gij_inx_loy_loz_3x_Ser_p1, gij_inx_loy_upz_3x_Ser_p1, gij_inx_upy_loz_3x_Ser_p1, gij_inx_upy_upz_3x_Ser_p1, gij_lox_loy_loz_3x_Ser_p1, gij_lox_loy_upz_3x_Ser_p1, gij_lox_upy_loz_3x_Ser_p1, gij_lox_upy_upz_3x_Ser_p1, gij_upx_loy_loz_3x_Ser_p1, gij_upx_loy_upz_3x_Ser_p1, gij_upx_upy_loz_3x_Ser_p1, gij_upx_upy_upz_3x_Ser_p1
 };
+
+
 
 struct gkyl_calc_metric {
   unsigned cdim; // Configuration-space dimension.
