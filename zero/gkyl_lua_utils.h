@@ -78,7 +78,7 @@ const char *glua_tbl_iget_string(lua_State *L, long key, const char *def);
  * @param key Name of table to fetch
  * @return true if table exists, false otherwise
  */
-bool glua_tbl_get_tbl(lua_State *L, const char *key);    
+bool glua_tbl_get_tbl(lua_State *L, const char *key);
 
 /**
  * Run Lua code stored in @a str buffer. The size of the buffer is

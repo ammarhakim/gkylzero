@@ -87,7 +87,12 @@ test_2(void)
 
     for (int i=1; i<=glua_objlen(L); ++i)
       TEST_CHECK( 10+i == glua_tbl_iget_integer(L, i, 0) );
+
+    for (int i=1; i<=glua_objlen(L); ++i)
+      TEST_CHECK( 10+i == glua_tbl_iget_number(L, i, 0) );
   }
+
+  TEST_CHECK( glua_tbl_has_key(L, "names") );
 
   with_lua_table(L, "names") {
     TEST_CHECK( 2 == glua_objlen(L) );
