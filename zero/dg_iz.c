@@ -16,6 +16,7 @@
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_iz_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_array_rio.h>
 
 // Functions to extract ADAS data and project onto DG data
 struct gkyl_array *
@@ -36,7 +37,7 @@ array_from_numpy(FILE *fp, long sz, int Zmax)
 double * minmax_from_numpy(FILE *fp, long sz)
 {
   double array[sz];
-  long res_sz = fread(array, 2, sizeof(double[sz]), fp);
+  long res_sz = fread(array, 1, sizeof(double[sz]), fp);
   double min = array[0];
   double max = array[sz-1];
   double *minmax = malloc(2);
@@ -91,8 +92,8 @@ struct adas_field {
   FILE *logData;
   FILE *logT;
   FILE *logN;
-  int NT;
-  int NN; 
+  long NT;
+  long NN; 
   int Zmax;
   struct gkyl_array fld;
   double *Eiz;
@@ -110,7 +111,6 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
 #endif
   gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
 
-  printf("\nHELLO WORLD!");
   int cdim = cbasis->ndim;
   int pdim = pbasis->ndim;
   int poly_order = cbasis->poly_order;
@@ -131,12 +131,11 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   // Conditional to determine element
   // Eiz values from Voronov 1997 (eV)
   if (type_ion == GKYL_IZ_H) {
-    printf("H ions");
     data.NT = 29;
     data.NN = 24;
     data.logData = fopen("adas-dat/ioniz_h.npy", "rb");
     data.logT = fopen("adas-dat/logT_h.npy", "rb");
-    data.logN = fopen("adas-dat/logN_h.npy", "rb");	
+    data.logN = fopen("adas-dat/logN_h.npy", "rb");
     data.Zmax = 1;
     data.Eiz = malloc(sizeof(double)*data.Zmax);
     static const double Eiz_loc[] = {13.6};
@@ -169,18 +168,21 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   long sz = data.NT*data.NN;
   double *minmax;
 
+  if (data.logT == NULL) fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file.");
+  if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file.");
+  if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'ioniz_<elem>.npy' file.");
   minmax = minmax_from_numpy(data.logT, data.NT);
   fclose(data.logT);
   double logTmin = minmax[0], logTmax = minmax[1];
   minmax = minmax_from_numpy(data.logN, data.NN);
   fclose(data.logN);
-  double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; // adjust for 1/cm^3 to 1/m^3 conversion
-
+  double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
+  
   struct gkyl_array *adas_nodal = array_from_numpy(data.logData, sz, data.Zmax);
   fclose(data.logData);
 
   if (!adas_nodal) {
-    fprintf(stderr, "Unable to read data from nodal numpy file!\n");
+    fprintf(stderr, "Unable to read data from adas nodal numpy file!\n");
     return 0;
   }
 
@@ -196,6 +198,8 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   );
 
   struct gkyl_range adas_rng;
+  //int ghost[] = { 0, 0 };
+  //gkyl_create_grid_ranges(&tn_grid, ghost, &adas_rng_ext, &adas_rng);
   gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
   
   struct gkyl_basis adas_basis;
@@ -205,9 +209,10 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
     gkyl_array_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
 
   create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
+  //gkyl_grid_sub_array_write(&tn_grid, &adas_rng, adas_dg, "adas_dg.gkyl");
 
   // ADAS data pointers
-  up->ioniz_data = adas_dg; 
+  up->ioniz_data = adas_dg;
   up->E = data.Eiz[charge_state-1];
   up->minLogM0 = logNmin;
   up->minLogTe = logTmin;
@@ -217,19 +222,19 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   up->dlogM0 = tn_grid.dx[1];
   up->resTe = tn_grid.cells[0];
   up->resM0 = tn_grid.cells[1];
-  up->adas_rng = &adas_rng;
-  up->adas_basis = &adas_basis;
+  up->adas_rng = adas_rng;
+  up->adas_basis = adas_basis;
   
   // allocate fields for prim mom calculation
   up->prim_vars_neut = gkyl_array_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); // elc, ion
   up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); // all
   up->vtSq_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // elc
   up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);  //elc
-  up->coef_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // all 
+  up->coef_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // all
   up->fmax_iz = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, up->phase_rng->volume); // elc, ion
 
   up->calc_prim_vars_neut_gk = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "prim", use_gpu); // elc, ion
-  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu); // all 
+  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu); // all
   
   up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, use_gpu); // elc, ion
 
@@ -251,15 +256,13 @@ void gkyl_dg_iz_coll_elc(const struct gkyl_dg_iz *up,
   // Set auxiliary variable (b_i) for computation of upar
   gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_neut_gk, 
     (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
-  
+
   struct gkyl_range_iter conf_iter, vel_iter;
   int rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<up->conf_rng->ndim; ++d) rem_dir[d] = 1;
-
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
-
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     const double *moms_neut_d = gkyl_array_cfetch(moms_neut, loc);
     const double *m0_elc_d = &moms_elc_d[0];
@@ -271,7 +274,7 @@ void gkyl_dg_iz_coll_elc(const struct gkyl_dg_iz *up,
 
     up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
     up->calc_prim_vars_neut_gk->kernel(up->calc_prim_vars_neut_gk, conf_iter.idx,
-				       moms_neut_d, prim_vars_neut_d);
+  				       moms_neut_d, prim_vars_neut_d);
 
     //Find cell containing value of n,T
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
@@ -282,26 +285,24 @@ void gkyl_dg_iz_coll_elc(const struct gkyl_dg_iz *up,
     double cell_val_t;
     double cell_val_m0;
     int m0_idx, t_idx;
-    int grid_idx[2];
     double cell_vals_2d[2];
+    double cell_center; 
 
     if (log_Te_av < up->minLogTe) t_idx=1;
     else if (log_Te_av > up->maxLogTe) t_idx=up->resTe;
     else t_idx = (log_Te_av - up->minLogTe)/(up->dlogTe)+1;
-    cell_vals_2d[0] = 2.0*(log_Te_av/up->dlogTe - (t_idx) + 0.5); // Te value on cell interval
+    cell_center = (t_idx - 0.5)*up->dlogTe + up->minLogTe;
+    cell_vals_2d[0] = 2.0*(log_Te_av - cell_center)/up->dlogTe; // Te value on cell interval
       
     if (log_m0_av < up->minLogM0) m0_idx=1;
     else if (log_m0_av > up->maxLogM0) m0_idx=up->resM0;
     else m0_idx = (log_m0_av - up->minLogM0)/(up->dlogM0)+1;
-    cell_vals_2d[1] = 2.0*(log_m0_av/up->dlogM0 - (m0_idx) + 0.5); // M0 value on cell interval
+    cell_center = (m0_idx - 0.5)*up->dlogM0 + up->minLogM0;
+    cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
     
-    grid_idx[0] = t_idx;
-    grid_idx[1] = m0_idx;
-    long loc_tn = gkyl_range_idx(up->adas_rng, grid_idx);
-    double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, loc_tn);
-        
-    //printf("m0 %g Te %g iz_dat %g\n", m0_elc_av, temp_elc_av, iz_dat_d[0]);
-    coef_iz_d[0] = up->adas_basis->eval_expand(cell_vals_2d, iz_dat_d)/cell_av_fac;
+    double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
+    double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
+    coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
   }
 
   // Calculate vt_sq_iz 
