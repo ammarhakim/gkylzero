@@ -35,6 +35,21 @@ void test_grid_2d()
     }
 }
 
+void test_find_cell(){
+  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
+  int cells[] = {20, 20};
+  double point[] = {2.0, 2.0};
+  bool pickLower = false;
+  const int *knownIdx[2] = {NULL, NULL};
+  int *cellIdx;
+  struct gkyl_rect_grid grid;
+  printf("Start test_find_cell\n");
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+  cellIdx = gkyl_find_cell(&grid, point, pickLower, knownIdx);
+  TEST_CHECK(false);
+  printf("End test_find_cell\n");
+}
+
 void test_grid_io()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
@@ -79,6 +94,7 @@ void test_cu_grid_2d()
 
 TEST_LIST = {
   { "grid_2d", test_grid_2d },
+  { "grid_find_cell", test_find_cell },
   { "grid_io", test_grid_io },
 #ifdef GKYL_HAVE_CUDA
   { "cu_grid_2d", test_cu_grid_2d },

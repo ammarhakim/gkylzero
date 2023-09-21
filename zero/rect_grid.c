@@ -3,6 +3,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_range.h>
 
 void
 gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
@@ -20,6 +21,35 @@ gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
     grid->dx[i] = (upper[i]-lower[i])/cells[i];
     grid->cellVolume *= grid->dx[i];
   }
+}
+
+int* gkyl_find_cell(struct gkyl_rect_grid *grid, const double *point, bool pickLower, const int **knownIdx){
+  int *cellIdx;
+  int nDim = grid->ndim;
+  int searchNum = 0;
+  int *searchDim;
+  int *dimTrans[1];
+  bool allLessEq = true;
+  struct gkyl_range iStart, iEnd, iMid, iNew;
+  
+  printf("Start gkyl_find_cell\n");
+  cellIdx = (int*)malloc(nDim*sizeof(int));
+  searchDim = (int*)malloc(nDim*sizeof(int));
+  dimTrans[1] = (int*)malloc(nDim*sizeof(int));
+
+  for(int d=0; d<nDim; d++){
+    if(knownIdx[d]==NULL){
+      searchDim[searchNum] = d;
+      dimTrans[d] = searchNum;
+      searchNum = searchNum + 1;
+    }else{
+      dimTrans[d] = NULL;
+    }
+    printf("searchDim[d]: %i, dimTrans[d]: %i, searchNum: %i\n",searchDim[searchNum-1], dimTrans[d], searchNum);
+  }
+
+  printf("End gkyl_find_cell\n");
+  return cellIdx;
 }
 
 void

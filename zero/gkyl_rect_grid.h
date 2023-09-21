@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include <gkyl_util.h>
+#include <gkyl_range.h>
 
 /**
  * Rectangular grid object.
@@ -28,6 +29,17 @@ struct gkyl_rect_grid {
  */
 void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
   const double *lower, const double *upper, const int *cells);
+
+/**
+ * Find cell indecies of point
+ *
+ * @param grid Grid object
+ * @param point The point to find the cell incecies at
+ * @param pickLower
+ * @param knownIdx Any known indecies of where the point is
+ * @return Pointer to cell indecies 
+ */
+int* gkyl_find_cell(struct gkyl_rect_grid *grid, const double *point, bool pickLower,const int **knownIdx);
 
 /**
  * Get cell-center coordinates. Note that idx is a 1-based cell index,
