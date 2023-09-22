@@ -56,6 +56,8 @@ test_1(void)
     TEST_CHECK( strcmp("periodic", glua_tbl_get_string(L, "bc", "N")) == 0 );
   }
 
+  TEST_CHECK( 0 == lua_gettop(L) );
+
   lua_close(L);
 }
 
