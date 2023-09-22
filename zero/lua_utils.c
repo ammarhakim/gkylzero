@@ -100,6 +100,13 @@ glua_tbl_get_tbl(lua_State *L, const char *key)
   return !lua_isnil(L, -1) && lua_istable(L, -1);
 }
 
+bool
+glua_tbl_get_func(lua_State *L, const char *key)
+{
+  lua_getfield(L, -1, key);
+  return !lua_isnil(L, -1) && lua_isfunction(L, -1);
+}
+
 int
 glua_run_lua(lua_State *L, const char *str, long sz, FILE *err)
 {

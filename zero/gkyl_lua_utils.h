@@ -9,14 +9,21 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-// Gets a table with given name, pushing it on the stack. Table is
-// popped when the scope ends
-#define with_lua_table(L, tname)                              \
+// Gets a table with given name from a table, pushing it on the
+// stack. Table is popped when the scope ends
+#define with_lua_tbl_tbl(L, tname)                            \
     for (bool _break = glua_tbl_get_tbl(L, tname); _break;    \
          _break = false, lua_pop(L, 1))
 
+// This macro pushes the named global on the stack and restores the
+// stack when the scope is complete.
+#define with_lua_global(L, name)                                        \
+    for (bool _break = (lua_getglobal(L, name), !lua_isnil(L,-1)), _isfun = lua_isfunction(L,-1); \
+         _break;                                                        \
+         _break = false, _isfun ? 0 : lua_pop(L, 1))
+
 /**
- * Get lenght of object on top of stack. (Table size, string lenght
+ * Get length of object on top of stack. (Table size, string length
  * and memory allocated)
  *
  * @return Lenght of object on top of stack.
@@ -33,6 +40,9 @@ static inline size_t glua_objlen(lua_State *L) { return lua_objlen(L, -1); }
  */
 bool glua_tbl_has_key(lua_State *L, const char *key);
 
+// In the following table access methods, the get_XYZ methods take a
+// string as a key while the iget_XYZ takes a integer index as key.
+
 /**
  * Return number from table, keyed by @a key. Table must be on top of
  * the stack. If number does not exist, @a def is returned.
@@ -43,7 +53,7 @@ bool glua_tbl_has_key(lua_State *L, const char *key);
  * @return number corresponding to key, or def
  */
 double glua_tbl_get_number(lua_State *L, const char *key, double def);
-double glua_tbl_iget_number(lua_State *L, long ket, double def);
+double glua_tbl_iget_number(lua_State *L, long key, double def);
 
 /**
  * Return integer from table, keyed by @a key. Table must be on top of
@@ -79,6 +89,16 @@ const char *glua_tbl_iget_string(lua_State *L, long key, const char *def);
  * @return true if table exists, false otherwise
  */
 bool glua_tbl_get_tbl(lua_State *L, const char *key);
+
+/**
+ * Fetches function named @a key from table on top of stack and pushes
+ * that on stack. Returns false if no such function was found.
+ *
+ * @param L Lua state.
+ * @param key Name of function to fetch
+ * @return true if function exists, false otherwise 
+ */
+bool glua_tbl_get_func(lua_State *L, const char *key);
 
 /**
  * Run Lua code stored in @a str buffer. The size of the buffer is

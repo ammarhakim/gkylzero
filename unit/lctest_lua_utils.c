@@ -27,41 +27,35 @@ test_1(void)
     "nums = { 0.5, 10.5, 20.5, 30.5 }";
   glua_run_lua(L, lcode2, strlen(lcode2), stderr);
 
+  TEST_CHECK( 0 == lua_gettop(L) );
+  with_lua_global(L, "kvpairs") {
+    TEST_CHECK( 1 == lua_gettop(L) );
+  }
+  TEST_CHECK( 0 == lua_gettop(L) );
+
   // push table on top of stack
-  lua_getglobal(L, "kvpairs");
+  with_lua_global(L, "kvpairs") {
 
-  TEST_CHECK( 0 == glua_objlen(L) );
+    TEST_CHECK( 0 == glua_objlen(L) );
 
-  TEST_CHECK( glua_tbl_has_key(L, "x1") );
-  TEST_CHECK( glua_tbl_has_key(L, "x3") == false );
+    TEST_CHECK( glua_tbl_has_key(L, "x1") );
+    TEST_CHECK( glua_tbl_has_key(L, "x3") == false );
   
-  TEST_CHECK( 25.5 == glua_tbl_get_number(L, "x1", 0.0) );
-  TEST_CHECK( 32.5 == glua_tbl_get_number(L, "x2", 0.0) );
-  TEST_CHECK( 12.5 == glua_tbl_get_number(L, "x3", 12.5) );
+    TEST_CHECK( 25.5 == glua_tbl_get_number(L, "x1", 0.0) );
+    TEST_CHECK( 32.5 == glua_tbl_get_number(L, "x2", 0.0) );
+    TEST_CHECK( 12.5 == glua_tbl_get_number(L, "x3", 12.5) );
 
-  TEST_CHECK( glua_tbl_has_key(L, "n1") );
-  TEST_CHECK( glua_tbl_has_key(L, "n3") == false );  
+    TEST_CHECK( glua_tbl_has_key(L, "n1") );
+    TEST_CHECK( glua_tbl_has_key(L, "n3") == false );  
+    
+    TEST_CHECK( 2345 == glua_tbl_get_integer(L, "n1", 0) );
+    TEST_CHECK( 1234 == glua_tbl_get_integer(L, "n2", 0) );
+    TEST_CHECK( 7890 == glua_tbl_get_integer(L, "n3", 7890) );
+    
+    TEST_CHECK( glua_tbl_has_key(L, "bc") );
+    TEST_CHECK( strcmp("periodic", glua_tbl_get_string(L, "bc", "N")) == 0 );
+  }
 
-  TEST_CHECK( 2345 == glua_tbl_get_integer(L, "n1", 0) );
-  TEST_CHECK( 1234 == glua_tbl_get_integer(L, "n2", 0) );
-  TEST_CHECK( 7890 == glua_tbl_get_integer(L, "n3", 7890) );
-
-  TEST_CHECK( glua_tbl_has_key(L, "bc") );
-  TEST_CHECK( strcmp("periodic", glua_tbl_get_string(L, "bc", "N")) == 0 );
-
-  lua_pop(L, 1);
-
-  /* // push table on top of stack */
-  /* lua_getglobal(L, "nums"); */
-
-  /* TEST_CHECK( 4 == glua_objlen(L) ); */
-
-  /* lua_pushinteger(L, 2); */
-  /* lua_gettable(L, -2); */
-  /* double v = lua_tonumber(L, -1); */
-  /* lua_pop(L, 1); */
-  /* printf("Num %lg\n", v); */
-  
   lua_close(L);
 }
 
@@ -74,41 +68,126 @@ test_2(void)
     "kvpairs = { tEnd = 101.1, nums = { 11, 12, 13, v = 2222 }, names = { \"Vlasov\", \"Maxwell\"}  }";
   glua_run_lua(L, lcode1, strlen(lcode1), stderr);
 
-  // push table on top of stack
-  lua_getglobal(L, "kvpairs");
-  
-  TEST_CHECK( glua_tbl_has_key(L, "nums") );
+  with_lua_global(L, "kvpairs") {
 
-  with_lua_table(L, "nums") {
-    TEST_CHECK( glua_tbl_has_key(L, "v") );
-    TEST_CHECK( 2222 == glua_tbl_get_integer(L, "v", 0) );
+    with_lua_tbl_tbl(L, "nums") {
+      TEST_CHECK(glua_tbl_has_key(L, "v"));
+      TEST_CHECK(2222 == glua_tbl_get_integer(L, "v", 0));
 
-    TEST_CHECK( 3 == glua_objlen(L) );
+      TEST_CHECK(3 == glua_objlen(L));
 
-    for (int i=1; i<=glua_objlen(L); ++i)
-      TEST_CHECK( 10+i == glua_tbl_iget_integer(L, i, 0) );
+      for (int i = 1; i <= glua_objlen(L); ++i)
+        TEST_CHECK(10 + i == glua_tbl_iget_integer(L, i, 0));
 
-    for (int i=1; i<=glua_objlen(L); ++i)
-      TEST_CHECK( 10+i == glua_tbl_iget_number(L, i, 0) );
+      for (int i = 1; i <= glua_objlen(L); ++i)
+        TEST_CHECK(10 + i == glua_tbl_iget_number(L, i, 0));
+    }
+
+    TEST_CHECK(glua_tbl_has_key(L, "names"));
+
+    with_lua_tbl_tbl(L, "names") {
+      TEST_CHECK(2 == glua_objlen(L));
+      TEST_CHECK(strcmp("Vlasov", glua_tbl_iget_string(L, 1, "Einstein")) == 0);
+      TEST_CHECK(strcmp("Maxwell", glua_tbl_iget_string(L, 2, "Einstein")) == 0);
+    }
+
+    TEST_CHECK(glua_tbl_has_key(L, "tEnd"));
+    TEST_CHECK(101.1 == glua_tbl_get_number(L, "tEnd", 0.0));
   }
 
-  TEST_CHECK( glua_tbl_has_key(L, "names") );
+  lua_close(L);
+}
 
-  with_lua_table(L, "names") {
-    TEST_CHECK( 2 == glua_objlen(L) );
-    TEST_CHECK( strcmp("Vlasov", glua_tbl_iget_string(L, 1, "Einstein")) == 0 );
-    TEST_CHECK( strcmp("Maxwell", glua_tbl_iget_string(L, 2, "Einstein")) == 0 );
-  }  
+void
+test_3(void)
+{
+  lua_State *L = new_lua_State();
 
-  TEST_CHECK( glua_tbl_has_key(L, "tEnd") );
-  TEST_CHECK( 101.1 == glua_tbl_get_number(L, "tEnd", 0.0) );
+  const char *lcode1 =
+    "function mysq(x) return x*x end";
+  glua_run_lua(L, lcode1, strlen(lcode1), stderr);
 
-  lua_close(L);  
+  TEST_CHECK( 0 == lua_gettop(L) );
+  
+  with_lua_global(L, "mysq") {
+    lua_pushnumber(L, 2.5);
+    if (lua_pcall(L, 1, 1, 0)) {
+      // signal error condition
+    }
+    else {
+      double res = lua_tonumber(L, -1);
+      TEST_CHECK( 2.5*2.5 == res );
+      lua_pop(L, 1);
+    }
+  }
+
+  TEST_CHECK( 0 == lua_gettop(L) );
+
+  const char *lcode2 = "kvpairs = { sq = function(x) return x*x end, x = 10.5 } ";
+  glua_run_lua(L, lcode2, strlen(lcode2), stderr);
+
+  with_lua_global(L, "kvpairs") {
+
+    if (glua_tbl_get_func(L, "sq")) {
+      lua_pushnumber(L, 3.5);
+      if (lua_pcall(L, 1, 1, 0)) {
+        // signal error condition
+      }
+      else {
+        double res = lua_tonumber(L, -1);
+        TEST_CHECK( 3.5*3.5 == res );
+        lua_pop(L, 1);
+      }
+    }
+  }
+
+  TEST_CHECK( 0 == lua_gettop(L) );  
+
+  lua_close(L);
+}
+
+void
+test_4(void)
+{
+  /* lua_State *L = new_lua_State(); */
+  
+  /* const char *lcode1 = */
+  /*   "kvpairs = { tEnd = 101.1, nums = { 11, 12, 13, v = 2222 }, names = { \"Vlasov\", \"Maxwell\"}  }"; */
+  /* glua_run_lua(L, lcode1, strlen(lcode1), stderr); */
+
+  /* TEST_CHECK( 0 == lua_gettop(L) ); */
+
+  /* with_lua_global(L, "kvpairs") { */
+  /*   printf("Stack top: %d\n", lua_gettop(L)); */
+
+  /*   lua_pushnil(L); // initial key is nil */
+    
+  /*   while (lua_next(L, -2) != 0) { */
+  /*     // key at -2 and value at -1 */
+      
+  /*     printf("-> Stack top: %d\n", lua_gettop(L)); */
+  /*     printf("%s - %s\n", */
+  /*       lua_typename(L, lua_type(L,-2)), */
+  /*       lua_typename(L, lua_type(L,-1))); */
+      
+  /*     if (lua_type(L,-2) == LUA_TSTRING) { */
+  /*       const char *key = lua_tolstring(L, -2, 0); */
+  /*       printf("--> key is '%s'\n", key); */
+  /*     } */
+  /*     lua_pop(L, 1); */
+  /*   } */
+  /* } */
+
+  /* TEST_CHECK( 0 == lua_gettop(L) ); */
+
+  /* lua_close(L); */
+
 }
 
 TEST_LIST = {
   { "test_1", test_1 },
   { "test_2", test_2 },
+  { "test_3", test_3 },
   {NULL, NULL},
 };
 
