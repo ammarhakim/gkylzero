@@ -1,30 +1,6 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-// list of valid moment names
-static const char *const valid_moment_names[] = {
-  "M0",
-  "M1i",
-  "M2ij",
-  "M2",
-  "M3i",
-  "M3ijk",
-  "FiveMoments",
-  "Integrated", // this is an internal flag, not for passing to moment type
-  "PKPM", // internal flag for pkpm model which doesn't take a moment name
-};
-
-// check if name of moment is valid or not
-static bool
-is_moment_name_valid(const char *nm)
-{
-  int n = sizeof(valid_moment_names)/sizeof(valid_moment_names[0]);
-  for (int i=0; i<n; ++i)
-    if (strcmp(valid_moment_names[i], nm) == 0)
-      return 1;
-  return 0;
-}
-
 // initialize species moment object
 void
 vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
