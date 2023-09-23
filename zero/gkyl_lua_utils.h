@@ -16,7 +16,10 @@
          _break = false, lua_pop(L, 1))
 
 // This macro pushes the named global on the stack and restores the
-// stack when the scope is complete.
+// stack when the scope is complete. If the global is a function it is
+// not popped on scope exit. This is not a problem if the function is
+// used inside the scope. If you do not use it, then you must call an
+// explict pop yourself.
 #define with_lua_global(L, name)                                        \
     for (bool _break = (lua_getglobal(L, name), !lua_isnil(L,-1)), _isfun = lua_isfunction(L,-1); \
          _break;                                                        \

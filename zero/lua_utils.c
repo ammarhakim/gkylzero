@@ -1,18 +1,5 @@
 #include <gkyl_lua_utils.h>
 
-// This macro and the following two functions make some code less
-// repetitive
-#define glua_getfield(L, key)                                           \
-    _Generic((key),                                                     \
-      const char *: glua_getfield_str,                                  \
-      long: glua_getfield_int)                                          \
-    (L, key)
-
-static inline void
-glua_getfield_str(lua_State *L, const char *key)
-{
-  lua_getfield(L, -1, key);
-}
 static inline void
 glua_getfield_int(lua_State *L, long key)
 {
@@ -49,7 +36,6 @@ glua_tbl_iget_number(lua_State *L, long key, double def)
   lua_pop(L, 1);
   return out;
 }
-
 
 long
 glua_tbl_get_integer(lua_State *L, const char *key, long def)
