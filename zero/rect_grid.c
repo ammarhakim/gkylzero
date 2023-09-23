@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdint.h>
+#include <math.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_rect_grid.h>
@@ -29,15 +30,15 @@ int* gkyl_find_cell(struct gkyl_rect_grid *grid, const double *point, bool pickL
   int searchNum = 0;
   int *searchDim, *idxOut;
   int *dimTrans[GKYL_MAX_DIM];
+  int plusminus[2] = {-1,1};
   bool allLessEq = true;
-  int *iStart, *iEnd, *iMid, *iNew, *cells;
+  int *iStart, *iEnd, *iMid, *iNew, *cells, *lowHighCellIdx;
   double lowerInDir[nDim], upperInDir[nDim];
   
   printf("Start gkyl_find_cell\n");
   cellIdx = (int*)malloc(nDim*sizeof(int));
   searchDim = (int*)malloc(nDim*sizeof(int));
-  //lowerInDir = (int*)malloc(nDim*sizeof(int));
-  //upperInDir = (int*)malloc(nDim*sizeof(int));
+  lowHighCellIdx = (int*)malloc(2*nDim*sizeof(int));
   for(int d=0; d<nDim; d++){
     dimTrans[d] = (int*)malloc(1*sizeof(int));
     if(knownIdx[d]==NULL){
@@ -83,12 +84,36 @@ int* gkyl_find_cell(struct gkyl_rect_grid *grid, const double *point, bool pickL
     if(isInCell(grid, point, iMid, dimTrans, knownIdx)){
       //Check if neighboring cells also contain this point.
       //TO DO...
-
-      for(int d=0; d<searchNum; d++){
-	cellIdx[searchDim[d]] = iMid[d];
-        //cellIdx[d] = knownIdx[d]==NULL ? idxOut[dimTrans[d]] : knownIdx[d];
-	//printf("d=%i,mid=%i,idx=%i\n",d,iMid[d],cellIdx[d]);
+      for(int k=0; k<nDim; k++){
+	iNew[k] = iMid[k];
+	lowHighCellIdx[k] = iMid[k];
+	lowHighCellIdx[nDim+k] = iMid[k];
       }
+      for(int i=0; i<searchNum; i++){	
+	for(int j=0; j<2; j++){
+	  iNew[i] = fmax(fmin(iMid[i] + plusminus[j],cells[i]),0);
+	  if(isInCell(grid, point, iNew, dimTrans, knownIdx)){
+	    printf("iMid[%i]=%i, iNew[%i]=%i, lowHigh[%i]=%i\n",i,iMid[i],i,iNew[i],j*nDim+searchDim[i],lowHighCellIdx[j*nDim+searchDim[i]]);
+	    lowHighCellIdx[j*nDim+searchDim[i]] = iNew[i];	    
+	  }
+	}
+	iNew[i] = iMid[i];
+      }
+
+      if(pickLower){
+	for(int d=0; d<searchNum; d++){
+	  cellIdx[searchDim[d]] = lowHighCellIdx[searchDim[d]];
+	  //cellIdx[d] = knownIdx[d]==NULL ? idxOut[dimTrans[d]] : knownIdx[d];
+	  //printf("d=%i,mid=%i,idx=%i\n",d,iMid[d],cellIdx[d]);
+	}
+      }else{
+	for(int d=0; d<searchNum; d++){
+	  printf("searchdim[%i]=%i, lowHighCellIdx[%i]=%i\n",d,searchDim[d],nDim+searchDim[d],lowHighCellIdx[nDim+searchDim[d]]);
+	  cellIdx[searchDim[d]] = lowHighCellIdx[nDim+searchDim[d]];
+	  //cellIdx[d] = knownIdx[d]==NULL ? idxOut[dimTrans[d]] : knownIdx[d];
+	  //printf("d=%i,mid=%i,idx=%i\n",d,iMid[d],cellIdx[d]);
+	}
+      }	        
       break;
     }else{
       InDir(grid, iMid, dimTrans, knownIdx, lowerInDir, upperInDir);
@@ -128,12 +153,12 @@ bool isInCell(const struct gkyl_rect_grid *grid, const double *pIn, int *iIn, in
   }
   InDir(grid, iIn, dimTrans, knownIdx, lowerInDir, upperInDir);
   for(int d=0;d<nDim; d++){
-    printf("lowerInDir[%i] = %f \n",d,lowerInDir[d]);
+    // printf("lowerInDir[%i] = %f \n",d,lowerInDir[d]);
   }
   for(int d=0; d<nDim; d++){
-    printf("d=%i, point[%i] = %f\n",d,d,pIn[d]);
-    printf("lowerInDir[%i] = %f ",d,lowerInDir[d]);
-    printf("upperInDir[%i] = %f\n",d,upperInDir[d]);
+    // printf("d=%i, point[%i] = %f\n",d,d,pIn[d]);
+    //printf("lowerInDir[%i] = %f ",d,lowerInDir[d]);
+    // printf("upperInDir[%i] = %f\n",d,upperInDir[d]);
     if(lowerInDir[d]-eps>pIn[d] || upperInDir[d]+eps<pIn[d]){
       inCell = false;
       break;
@@ -152,19 +177,19 @@ void InDir(const struct gkyl_rect_grid *grid, int *iIn, int *dimTrans[1], const 
   lower = grid -> lower;
   for(int d=0; d<nDim; d++){
     checkIdx = knownIdx[d]==NULL ? iIn[*dimTrans[d]] : *knownIdx[d];
-    printf("lowerInDir before calc: %f\n",lowerInDir[d]);
+    //printf("lowerInDir before calc: %f\n",lowerInDir[d]);
     lowerInDir[d] = lower[d]+(checkIdx-1)*dx[d];
     testarr[d] = lower[d]+(checkIdx-1)*dx[d];
     upperInDir[d] = lower[d]+(checkIdx)*dx[d];
-    printf("d=%i, checkIDx= %i\n",d,checkIdx);
-    printf("lower[%i]=%f, dx[%i]=%f\n",d,lower[d],d,dx[d]);
-    printf("lowerInDir[d]=%f, calc:%f upperInDir[d]=%f\n", lowerInDir[d],lower[d]+(checkIdx-1)*dx[d],upperInDir[d]);
-    printf("all lowerindir %f,%f,%f,%f\n",lowerInDir[0],lowerInDir[1],lowerInDir[2],lowerInDir[3]);
-    printf("all testarr %f,%f,%f,%f\n",testarr[0],testarr[1],testarr[2],testarr[3]);
+    // printf("d=%i, checkIDx= %i\n",d,checkIdx);
+    // printf("lower[%i]=%f, dx[%i]=%f\n",d,lower[d],d,dx[d]);
+    // printf("lowerInDir[d]=%f, calc:%f upperInDir[d]=%f\n", lowerInDir[d],lower[d]+(checkIdx-1)*dx[d],upperInDir[d]);
+    // printf("all lowerindir %f,%f,%f,%f\n",lowerInDir[0],lowerInDir[1],lowerInDir[2],lowerInDir[3]);
+    // printf("all testarr %f,%f,%f,%f\n",testarr[0],testarr[1],testarr[2],testarr[3]);
   }
   for(int d=0;d<nDim; d++){
-    printf("lowerInDir[%i] = %f ",d,lowerInDir[d]);
-    printf("testarr[%i] = %f \n",d,testarr[d]);
+    // printf("lowerInDir[%i] = %f ",d,lowerInDir[d]);
+    // printf("testarr[%i] = %f \n",d,testarr[d]);
   }
 }
 
