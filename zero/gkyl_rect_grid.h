@@ -4,7 +4,6 @@
 #include <stdbool.h>
 
 #include <gkyl_util.h>
-#include <gkyl_range.h>
 
 /**
  * Rectangular grid object.

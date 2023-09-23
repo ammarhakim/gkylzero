@@ -36,17 +36,37 @@ void test_grid_2d()
 }
 
 void test_find_cell(){
-  double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
-  int cells[] = {20, 20};
-  double point[] = {2.0, 2.0};
+  double lower[] = {0.0, 0.0, 0.0}, upper[] = {5.0, 5.0, 10.0};
+  double lower2[] = {0.0, 1.0, 3.2, 7.1}, upper2[] = {5.1, 5.0, 22.0, 8.2};
+  int cells[] = {5, 5, 10};
+  int cells2[] = {10, 11, 20, 3};
+  double point[] = {2.5, 0.1, 4.1};
+  double point2[] = {2.01, 3.1, 4.1, 8.05};
   bool pickLower = false;
-  const int *knownIdx[2] = {NULL, NULL};
+  int idx = 1;
+  const int *ptr = &idx;
+  const int *knownIdx[3] = {NULL, ptr, NULL};
+  const int *knownIdx2[4] = {NULL, NULL, NULL, NULL};
   int *cellIdx;
+  int correctIdx[3]={3,idx,5};
+  int correctIdx2[4]={4,6,1,3};//Got 6,9,2,6
   struct gkyl_rect_grid grid;
-  printf("Start test_find_cell\n");
-  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+  struct gkyl_rect_grid grid2;
+  
+  printf("\nStart test_find_cell\n");
+  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
   cellIdx = gkyl_find_cell(&grid, point, pickLower, knownIdx);
-  TEST_CHECK(false);
+  for(int i=0;i<3;i++){
+    printf("i=%i, cellIdx[i]=%i\n",i,cellIdx[i]);
+    TEST_CHECK( cellIdx[i]==correctIdx[i]);
+  }
+
+  gkyl_rect_grid_init(&grid2, 4, lower2, upper2, cells2);
+  cellIdx = gkyl_find_cell(&grid2, point2, pickLower, knownIdx2);
+  for(int i=0;i<4;i++){
+    printf("i=%i, cellIdx[i]=%i\n",i,cellIdx[i]);
+    TEST_CHECK( cellIdx[i]==correctIdx2[i]);
+  }
   printf("End test_find_cell\n");
 }
 
