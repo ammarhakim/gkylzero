@@ -28,6 +28,11 @@ test_1(void)
   glua_run_lua(L, lcode2, strlen(lcode2), stderr);
 
   TEST_CHECK( 0 == lua_gettop(L) );
+  with_lua_global(L, "does-not-exist") {
+    TEST_CHECK( false );
+  }
+  TEST_CHECK( 0 == lua_gettop(L) );  
+
   with_lua_global(L, "kvpairs") {
     TEST_CHECK( 1 == lua_gettop(L) );
   }

@@ -172,6 +172,14 @@ vm_app_new(lua_State *L)
 {
   struct vlasov_app_lw *app_lw = gkyl_malloc(sizeof(*app_lw));
 
+  // The output prefix to use is stored in the global
+  // GKYL_OUT_PREFIX. If this is not found then "g0-vlasov" is used.
+  const char *sim_name = "g0-vlasov";
+  with_lua_global(L, "GKYL_OUT_PREFIX") {
+    if (lua_isstring(L, -1))
+      sim_name = lua_tostring(L, -1);
+  }
+  
   // initialize app using table inputs (table is on top of stack)
 
   app_lw->tstart = glua_tbl_get_number(L, "tStart", 0.0);
@@ -180,6 +188,7 @@ vm_app_new(lua_State *L)
 
   struct gkyl_vm vm = { }; // input table for app
 
+  strcpy(vm.name, sim_name);
   int cdim = 0;
   with_lua_tbl_tbl(L, "cells") {
     vm.cdim = cdim = glua_objlen(L);
@@ -233,6 +242,54 @@ vm_app_new(lua_State *L)
   return 1;
 }
 
+// Apply initial conditions
+static int
+vm_app_apply_ic(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  double t0 = luaL_optnumber(L, 2, app_lw->tstart);
+  gkyl_vlasov_app_apply_ic(app_lw->app, t0);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Write solution to file
+static int
+vm_app_write(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  double tm = luaL_checknumber(L, 2);
+  int frame = luaL_checkinteger(L, 3);
+  gkyl_vlasov_app_write(app_lw->app, tm, frame);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Write simulation statistics to JSON
+static int
+vm_app_stat_write(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  gkyl_vlasov_app_stat_write(app_lw->app);
+
+  lua_pushboolean(L, status);
+  return 1;  
+}
+
 // Run simulation
 static int
 vm_app_run(lua_State *L)
@@ -272,6 +329,8 @@ static struct luaL_Reg vm_app_ctor[] = {
 // App methods
 static struct luaL_Reg vm_app_funcs[] = {
   { "run", vm_app_run },
+  { "write", vm_app_write },
+  { "stat_write", vm_app_stat_write },
   { 0, 0 }
 };
 

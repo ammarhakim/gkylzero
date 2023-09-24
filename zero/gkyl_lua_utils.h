@@ -21,7 +21,7 @@
 // used inside the scope. If you do not use it, then you must call an
 // explict pop yourself.
 #define with_lua_global(L, name)                                        \
-    for (bool _break = (lua_getglobal(L, name), !lua_isnil(L,-1)), _isfun = lua_isfunction(L,-1); \
+    for (bool _break = (lua_getglobal(L, name), (lua_isnil(L,-1) ? (lua_pop(L, 1), false) : true)), _isfun = lua_isfunction(L,-1); \
          _break;                                                        \
          _break = false, _isfun ? 0 : lua_pop(L, 1))
 
