@@ -13,7 +13,7 @@
 #include <string.h>
 
 // Check and fetch user-data based on metatable name
-#define check_meta(L, mnm) luaL_checkudata(L, 1, mnm)
+#define CHECK_UDATA(L, mnm) luaL_checkudata(L, 1, mnm)
 
 // For debugging
 #define trace_stack_top(L, fnm) do { \
@@ -35,6 +35,12 @@ get_basis_type(const char *bnm)
   return GKYL_BASIS_MODAL_SERENDIPITY;
 }
 
+// Magic IDs for use in distinguishing various species and field types
+enum vlasov_magic_ids {
+  VLASOV_SPECIES_DEFAULT = 100, // non-relativistic kinetic species
+  VLASOV_FIELD_DEFAULT, // Maxwell equations
+};
+
 /* *****************/
 /* Species methods */
 /* *****************/
@@ -44,16 +50,21 @@ get_basis_type(const char *bnm)
 
 // Lua userdata object for constructing species input
 struct vlasov_species_lw {
+  int magic; // this must be first element in the struct
+  
   struct gkyl_vlasov_species vm_species; // input struct to construct species
   int vdim; // velocity dimensions
   bool evolve; // is this species evolved?
+  int init_ref; // Lua registery reference to initilization function
 };
 
 static int
 vm_species_new(lua_State *L)
 {
   int vdim  = 0;
-  struct gkyl_vlasov_species vm_species;
+  struct gkyl_vlasov_species vm_species = { };
+
+  vm_species.model_id = GKYL_MODEL_DEFAULT;
   
   vm_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   vm_species.mass = glua_tbl_get_number(L, "mass", 1.0);
@@ -88,14 +99,22 @@ vm_species_new(lua_State *L)
     vm_species.num_diag_moments = n;
   }
 
+  int init_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "init"))
+    init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  else
+    return luaL_error(L, "Species must have an \"init\" function for initial conditions!");
+  
   struct vlasov_species_lw *vms_lw = lua_newuserdata(L, sizeof(*vms_lw));
+  vms_lw->magic = VLASOV_SPECIES_DEFAULT;
   vms_lw->vdim = vdim;
   vms_lw->evolve = evolve;
+  vms_lw->init_ref = init_ref;
   vms_lw->vm_species = vm_species;
   
   // set metatable
   luaL_getmetatable(L, VLASOV_SPECIES_METATABLE_NM);
-  lua_setmetatable(L, -2);  
+  lua_setmetatable(L, -2);
   
   return 1;
 }
@@ -119,6 +138,33 @@ struct vlasov_app_lw {
   double tstart, tend; // start and end times of simulation
   int nframes; // number of data frames to write
 };
+
+// Gets all species objects from the App table, which must on top of
+// the stack. The number of species is returned and the appropriate
+// pointers set in the species pointer array.
+static int
+get_species_inp(lua_State *L, struct vlasov_species_lw *species[GKYL_MAX_SPECIES])
+{
+  enum { TKEY = -2, TVAL = -1};
+  
+  int curr = 0;
+  lua_pushnil(L); // initial key is nil
+  while (lua_next(L, TKEY) != 0) {
+    // key at TKEY and value at TVAL
+    if (lua_type(L, TVAL) == LUA_TUSERDATA) {
+      struct vlasov_species_lw *vms = lua_touserdata(L, TVAL);
+      if (vms->magic == VLASOV_SPECIES_DEFAULT) {      
+        if (lua_type(L,TKEY) == LUA_TSTRING) {
+          const char *key = lua_tolstring(L, TKEY, 0);
+          strcpy(vms->vm_species.name, key);
+        }
+        species[curr++] = vms;
+      }
+    }
+    lua_pop(L, 1);
+  }
+  return curr;
+}
 
 // Create top-level App object
 static int
@@ -168,6 +214,12 @@ vm_app_new(lua_State *L)
     }
   }
 
+  struct vlasov_species_lw *species[GKYL_MAX_SPECIES];
+  // set all species input
+  vm.num_species = get_species_inp(L, species);
+  for (int s=0; s<vm.num_species; ++s)
+    vm.species[s] = species[s]->vm_species;
+
   app_lw->app = gkyl_vlasov_app_new(&vm);
   
   // create Lua userdata ...
@@ -187,7 +239,7 @@ vm_app_run(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = check_meta(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   printf("Running simulation from %g to %g with %d frames!\n",
@@ -202,7 +254,7 @@ vm_app_run(lua_State *L)
 static int
 vm_app_gc(lua_State *L)
 {
-  struct vlasov_app_lw **l_app_lw = check_meta(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   gkyl_vlasov_app_release(app_lw->app);
