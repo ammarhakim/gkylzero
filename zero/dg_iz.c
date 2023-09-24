@@ -16,7 +16,6 @@
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_iz_priv.h>
 #include <gkyl_util.h>
-#include <gkyl_array_rio.h>
 
 // Functions to extract ADAS data and project onto DG data
 struct gkyl_array *

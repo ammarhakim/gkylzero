@@ -2,10 +2,6 @@
 
 // Private header, not for direct use in user code
 
-// header files for ADAS data
-#include "bilinear_interp.h"
-#include "adf11.h"
-
 // Primary struct in this updater.
 struct gkyl_dg_iz {
   struct gkyl_rect_grid *grid; // conf grid object
