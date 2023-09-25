@@ -280,7 +280,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   }
   else {
     struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, 
-      .ext_field = 0, .cot_vec = 0, .alpha_geo = 0};
+      .cot_vec = 0, .alpha_geo = 0};
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, s->model_id, s->field_id, &aux_inp, app->use_gpu);
