@@ -243,7 +243,7 @@ struct vlasov_app_lw {
   struct lua_func_ctx field_func_ctx; // function context for field
   
   double tstart, tend; // start and end times of simulation
-  int nframes; // number of data frames to write
+  int nframe; // number of data frames to write
 };
 
 // Gets all species objects from the App table, which must on top of
@@ -294,7 +294,7 @@ vm_app_new(lua_State *L)
 
   app_lw->tstart = glua_tbl_get_number(L, "tStart", 0.0);
   app_lw->tend = glua_tbl_get_number(L, "tEnd", 1.0);
-  app_lw->nframes = glua_tbl_get_integer(L, "nFrame", 1);
+  app_lw->nframe = glua_tbl_get_integer(L, "nFrame", 1);
 
   struct gkyl_vm vm = { }; // input table for app
 
@@ -427,20 +427,67 @@ vm_app_stat_write(lua_State *L)
   return 1;  
 }
 
+// Write data from simulation to file
+static void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
+    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
+    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
+  }
+}
+
 // Run simulation. () -> bool
 static int
 vm_app_run(lua_State *L)
 {
-  bool status = true;
+  bool ret_status = true;
 
   struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
+  struct gkyl_vlasov_app *app = app_lw->app;
 
-  printf("Running simulation from %g to %g with %d frames!\n",
-    app_lw->tstart, app_lw->tend, app_lw->nframes
-  );  
+  double tcurr = app_lw->tstart;
+  double tend = app_lw->tend;
+  double dt = tend-tcurr;  
 
-  lua_pushboolean(L, status);
+  int nframe = app_lw->nframe;
+
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
+
+  // initialize simulation
+  gkyl_vlasov_app_apply_ic(app, tcurr);
+  write_data(&io_trig, app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+  gkyl_vlasov_app_calc_field_energy(app, tcurr);
+
+  long step = 1, num_steps = INT_MAX;
+  while ((tcurr < tend) && (step <= num_steps)) {
+    gkyl_vlasov_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
+    struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
+    gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+
+    gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+    gkyl_vlasov_app_calc_field_energy(app, tcurr);    
+    
+    if (!status.success) {
+      ret_status = false;
+      gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
+      break;
+    }
+    tcurr += status.dt_actual;
+    dt = status.dt_suggested;
+    write_data(&io_trig, app, tcurr);
+
+    step += 1;
+  }
+
+  gkyl_vlasov_app_stat_write(app);
+  gkyl_vlasov_app_write_integrated_mom(app);
+  gkyl_vlasov_app_write_field_energy(app);
+
+  lua_pushboolean(L, ret_status);
   return 1;
 }
 
