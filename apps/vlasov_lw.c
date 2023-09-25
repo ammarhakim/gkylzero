@@ -41,6 +41,41 @@ enum vlasov_magic_ids {
   VLASOV_FIELD_DEFAULT, // Maxwell equations
 };
 
+// Used in call back passed to the initial conditions
+struct lua_func_ctx {
+  int func_ref; // reference to Lua function in registery
+  int ndim, nret; // dimensions of function, number of return values
+  lua_State *L; // Lua state
+};
+
+static void
+eval_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct lua_func_ctx *fr = ctx;
+  lua_State *L = fr->L;
+
+  int ndim = fr->ndim;
+  int nret = fr->nret;
+  lua_rawgeti(L, LUA_REGISTRYINDEX, fr->func_ref);
+  lua_pushnumber(L, t);
+  lua_createtable(L, 2, 0);
+
+  for (int i=0; i<ndim; ++i) {
+    lua_pushnumber(L, xn[i]);
+    lua_rawseti(L, -2, i+1); 
+  }
+
+  if (lua_pcall(L, 2, nret, 0)) {
+    const char* ret = lua_tostring(L, -1);
+    luaL_error(L, "*** eval_ic ERROR: %s\n", ret);
+  }
+
+  for (int i=nret-1; i>=0; --i) { // need to fetch in reverse order
+    fout[i] = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+  }
+}
+
 /* *****************/
 /* Species methods */
 /* *****************/
@@ -55,11 +90,11 @@ struct vlasov_species_lw {
   struct gkyl_vlasov_species vm_species; // input struct to construct species
   int vdim; // velocity dimensions
   bool evolve; // is this species evolved?
-  int init_ref; // Lua registery reference to initilization function
+  struct lua_func_ctx init_ref; // Lua registery reference to initilization function
 };
 
 static int
-vm_species_new(lua_State *L)
+vlasov_species_lw_new(lua_State *L)
 {
   int vdim  = 0;
   struct gkyl_vlasov_species vm_species = { };
@@ -109,8 +144,14 @@ vm_species_new(lua_State *L)
   vms_lw->magic = VLASOV_SPECIES_DEFAULT;
   vms_lw->vdim = vdim;
   vms_lw->evolve = evolve;
-  vms_lw->init_ref = init_ref;
   vms_lw->vm_species = vm_species;
+
+  vms_lw->init_ref = (struct lua_func_ctx) {
+    .func_ref = init_ref,
+    .ndim = 0, // this will be set later
+    .nret = 1,
+    .L = L,
+  };
   
   // set metatable
   luaL_getmetatable(L, VLASOV_SPECIES_METATABLE_NM);
@@ -121,7 +162,70 @@ vm_species_new(lua_State *L)
 
 // Species constructor
 static struct luaL_Reg vm_species_ctor[] = {
-  { "new",  vm_species_new },
+  {"new", vlasov_species_lw_new},
+  {0, 0}
+};
+
+/* *****************/
+/* Field methods */
+/* *****************/
+
+// Metatable name for field input struct
+#define VLASOV_FIELD_METATABLE_NM "GkeyllZero.Vlasov.Field"
+
+// Lua userdata object for constructing field input
+struct vlasov_field_lw {
+  int magic; // this must be first element in the struct
+  
+  struct gkyl_vlasov_field vm_field; // input struct to construct field
+  bool evolve; // is this field evolved?
+  struct lua_func_ctx init_ref; // Lua registery reference to initilization function
+};
+
+static int
+vlasov_field_lw_new(lua_State *L)
+{
+  int vdim  = 0;
+  struct gkyl_vlasov_field vm_field = { };
+
+  vm_field.field_id = GKYL_FIELD_E_B;  
+  
+  vm_field.epsilon0 = glua_tbl_get_number(L, "epsilon0", 1.0);
+  vm_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
+  vm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
+  vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+
+  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+
+  int init_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "init"))
+    init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  else
+    return luaL_error(L, "Field must have an \"init\" function for initial conditions!");
+
+  struct vlasov_field_lw *vmf_lw = lua_newuserdata(L, sizeof(*vmf_lw));
+
+  vmf_lw->magic = VLASOV_FIELD_DEFAULT;
+  vmf_lw->evolve = evolve;
+  vmf_lw->vm_field = vm_field;
+  
+  vmf_lw->init_ref = (struct lua_func_ctx) {
+    .func_ref = init_ref,
+    .ndim = 0, // this will be set later
+    .nret = 6,
+    .L = L,
+  };  
+  
+  // set metatable
+  luaL_getmetatable(L, VLASOV_FIELD_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Species constructor
+static struct luaL_Reg vm_field_ctor[] = {
+  { "new",  vlasov_field_lw_new },
   { 0, 0 }
 };
 
@@ -135,6 +239,9 @@ static struct luaL_Reg vm_species_ctor[] = {
 // Lua userdata object for holding Vlasov app and run parameters
 struct vlasov_app_lw {
   gkyl_vlasov_app *app; // Vlasov app object
+  struct lua_func_ctx species_func_ctx[GKYL_MAX_SPECIES]; // function context for each species
+  struct lua_func_ctx field_func_ctx; // function context for field
+  
   double tstart, tend; // start and end times of simulation
   int nframes; // number of data frames to write
 };
@@ -143,7 +250,7 @@ struct vlasov_app_lw {
 // the stack. The number of species is returned and the appropriate
 // pointers set in the species pointer array.
 static int
-get_species_inp(lua_State *L, struct vlasov_species_lw *species[GKYL_MAX_SPECIES])
+get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_MAX_SPECIES])
 {
   enum { TKEY = -2, TVAL = -1};
   
@@ -153,7 +260,10 @@ get_species_inp(lua_State *L, struct vlasov_species_lw *species[GKYL_MAX_SPECIES
     // key at TKEY and value at TVAL
     if (lua_type(L, TVAL) == LUA_TUSERDATA) {
       struct vlasov_species_lw *vms = lua_touserdata(L, TVAL);
-      if (vms->magic == VLASOV_SPECIES_DEFAULT) {      
+      if (vms->magic == VLASOV_SPECIES_DEFAULT) {
+        
+        vms->init_ref.ndim = cdim + vms->vdim;
+        
         if (lua_type(L,TKEY) == LUA_TSTRING) {
           const char *key = lua_tolstring(L, TKEY, 0);
           strcpy(vms->vm_species.name, key);
@@ -208,7 +318,6 @@ vm_app_new(lua_State *L)
 
   vm.poly_order = glua_tbl_get_integer(L, "polyOrder", 1);
 
-  vm.vdim = 1;
   vm.basis_type = get_basis_type(
     glua_tbl_get_string(L, "basis", "serendipity")
   );
@@ -225,10 +334,38 @@ vm_app_new(lua_State *L)
 
   struct vlasov_species_lw *species[GKYL_MAX_SPECIES];
   // set all species input
-  vm.num_species = get_species_inp(L, species);
-  for (int s=0; s<vm.num_species; ++s)
+  vm.num_species = get_species_inp(L, cdim, species);
+  for (int s=0; s<vm.num_species; ++s) {
     vm.species[s] = species[s]->vm_species;
+    vm.vdim = species[s]->vdim;
+    
+    // copy info about init function calling ctx ...
+    app_lw->species_func_ctx[s] = species[s]->init_ref;
+    // ... see the IC function
+    vm.species[s].init = eval_ic;
+    vm.species[s].ctx = &app_lw->species_func_ctx[s];
+  }
 
+  // set field input
+  vm.skip_field = true;
+  with_lua_tbl_key(L, "field") {
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      struct vlasov_field_lw *vmf = lua_touserdata(L, -1);
+      if (vmf->magic == VLASOV_FIELD_DEFAULT) {
+
+        vmf->init_ref.ndim = cdim;
+
+        vm.field = vmf->vm_field;
+        vm.skip_field = !vmf->evolve;
+
+        app_lw->field_func_ctx = vmf->init_ref;
+
+        vm.field.init = eval_ic;
+        vm.field.ctx = &app_lw->field_func_ctx;
+      }
+    }
+  }
+  
   app_lw->app = gkyl_vlasov_app_new(&vm);
   
   // create Lua userdata ...
@@ -242,7 +379,7 @@ vm_app_new(lua_State *L)
   return 1;
 }
 
-// Apply initial conditions
+// Apply initial conditions. (time) -> bool
 static int
 vm_app_apply_ic(lua_State *L)
 {
@@ -258,7 +395,7 @@ vm_app_apply_ic(lua_State *L)
   return 1;
 }
 
-// Write solution to file
+// Write solution to file (time, frame) -> bool
 static int
 vm_app_write(lua_State *L)
 {
@@ -275,7 +412,7 @@ vm_app_write(lua_State *L)
   return 1;
 }
 
-// Write simulation statistics to JSON
+// Write simulation statistics to JSON. () -> bool
 static int
 vm_app_stat_write(lua_State *L)
 {
@@ -290,7 +427,7 @@ vm_app_stat_write(lua_State *L)
   return 1;  
 }
 
-// Run simulation
+// Run simulation. () -> bool
 static int
 vm_app_run(lua_State *L)
 {
@@ -329,6 +466,7 @@ static struct luaL_Reg vm_app_ctor[] = {
 // App methods
 static struct luaL_Reg vm_app_funcs[] = {
   { "run", vm_app_run },
+  { "apply_ic", vm_app_apply_ic },
   { "write", vm_app_write },
   { "stat_write", vm_app_stat_write },
   { 0, 0 }
@@ -357,7 +495,13 @@ app_openlibs(lua_State *L)
   do {
     luaL_newmetatable(L, VLASOV_SPECIES_METATABLE_NM);
     luaL_register(L, "Plasma.Species", vm_species_ctor);
-  } while (0);  
+  } while (0);
+
+  // Register Field input struct
+  do {
+    luaL_newmetatable(L, VLASOV_FIELD_METATABLE_NM);
+    luaL_register(L, "Plasma.Field", vm_field_ctor);
+  } while (0);
 }
 
 void

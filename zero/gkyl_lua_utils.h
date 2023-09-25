@@ -15,6 +15,12 @@
     for (bool _break = glua_tbl_get_tbl(L, tname); _break;    \
          _break = false, lua_pop(L, 1))
 
+// Pushes the value associated with key on stack, popping it when the scope exits
+#define with_lua_tbl_key(L, key)                                        \
+    for (bool _break = (lua_getfield(L, -1, key), (lua_isnil(L,-1) ? (lua_pop(L, 1), false) : true)); \
+         _break;                                                        \
+         _break = false, lua_pop(L, 1))
+
 // This macro pushes the named global on the stack and restores the
 // stack when the scope is complete. If the global is a function it is
 // not popped on scope exit. This is not a problem if the function is

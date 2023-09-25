@@ -53,12 +53,21 @@ test_1(void)
     TEST_CHECK( glua_tbl_has_key(L, "n1") );
     TEST_CHECK( glua_tbl_has_key(L, "n3") == false );  
     
+    TEST_CHECK( glua_tbl_has_key(L, "bc") );
+    TEST_CHECK( strcmp("periodic", glua_tbl_get_string(L, "bc", "N")) == 0 );
+
+    with_lua_tbl_key(L, "bc") {
+      const char *val = lua_tostring(L, -1);
+      TEST_CHECK( strcmp("periodic", val) == 0 );
+    }
+
+    with_lua_tbl_key(L, "does-not-exist") {
+      TEST_CHECK( false );
+    }
+
     TEST_CHECK( 2345 == glua_tbl_get_integer(L, "n1", 0) );
     TEST_CHECK( 1234 == glua_tbl_get_integer(L, "n2", 0) );
     TEST_CHECK( 7890 == glua_tbl_get_integer(L, "n3", 7890) );
-    
-    TEST_CHECK( glua_tbl_has_key(L, "bc") );
-    TEST_CHECK( strcmp("periodic", glua_tbl_get_string(L, "bc", "N")) == 0 );
   }
 
   TEST_CHECK( 0 == lua_gettop(L) );
@@ -111,7 +120,7 @@ test_3(void)
   lua_State *L = new_lua_State();
 
   const char *lcode1 =
-    "function mysq(x) return x*x end";
+    "function mysq(x) return x*x end; function twov(x) return x, 2*x end";
   glua_run_lua(L, lcode1, strlen(lcode1), stderr);
 
   TEST_CHECK( 0 == lua_gettop(L) );
@@ -127,6 +136,23 @@ test_3(void)
       lua_pop(L, 1);
     }
   }
+
+  with_lua_global(L, "twov") {
+    lua_pushnumber(L, 2.5);
+    if (lua_pcall(L, 1, 2, 0)) {
+      // signal error condition
+    }
+    else {
+      // returned values are accessed in reverse order
+      double r2 = lua_tonumber(L, -1);
+      TEST_CHECK( 2*2.5 == r2 );
+      lua_pop(L, 1);
+
+      double r1 = lua_tonumber(L, -1);
+      TEST_CHECK( 2.5 == r1 );
+      lua_pop(L, 1);
+    }
+  }  
 
   TEST_CHECK( 0 == lua_gettop(L) );
 
