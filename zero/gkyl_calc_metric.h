@@ -16,7 +16,7 @@ typedef struct gkyl_calc_metric gkyl_calc_metric;
  * @return New updater pointer.
  */
 gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
-  struct gkyl_rect_grid *grid, bool use_gpu);
+  struct gkyl_rect_grid *grid, int *bcs, bool use_gpu);
 
 /**
  * Advance calc_metric (compute the metric coefficients).

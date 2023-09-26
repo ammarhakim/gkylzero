@@ -7,7 +7,7 @@
 #include <gkyl_array_ops_priv.h>
 
 gkyl_calc_metric*
-gkyl_calc_metric_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid, bool use_gpu)
+gkyl_calc_metric_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid, int *bcs, bool use_gpu)
 {
   gkyl_calc_metric *up = gkyl_malloc(sizeof(gkyl_calc_metric));
   up->cdim = cbasis->ndim;
@@ -15,8 +15,10 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid *gri
   up->poly_order = cbasis->poly_order;
   up->grid = grid;
   up->use_gpu = use_gpu;
-  //up->kernel = metric_choose_kernel(up->cdim, cbasis->b_type, up->poly_order);
   up->num_cells = up->grid->cells;
+  up->bcs = bcs;
+  up->kernels = metric_choose_kernel(up->cdim, up->poly_order, up->bcs);
+
   return up;
 }
 
@@ -43,9 +45,8 @@ gkyl_calc_metric_advance(const gkyl_calc_metric *up, const struct gkyl_range *cr
       }
     }
     int linker_idx = idx_to_inloup_ker(up->cdim, up->num_cells, iter.idx);
-    //up->kernel(xyz,gij);
-
-    metric_choose_kernel(linker_idx)(xyz,gij);
+    //linker_idx = 0; // to always use two sided
+    up->kernels.kernels[linker_idx](xyz,gij);
   }
 
   double scale_factor[up->cdim * (up->cdim+1)/2];
