@@ -36,9 +36,11 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
  * @param point The point to find the cell incecies at
  * @param pickLower
  * @param knownIdx Any known indecies of where the point is
- * @return Pointer to cell indecies 
+ * @param cellIdx Pointer to cell indecies
+ * Asserts: point lies within cell(s) specified by knownIdx (if specified). 
  */
-int* gkyl_find_cell(struct gkyl_rect_grid *grid, const double *point, bool pickLower,const int **knownIdx);
+void gkyl_rect_grid_find_cell(struct gkyl_rect_grid *grid, const double *point,
+			      bool pickLower,const int **knownIdx, int *cellIdx);
 
 /**
  * Get cell-center coordinates. Note that idx is a 1-based cell index,
