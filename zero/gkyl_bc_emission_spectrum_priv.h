@@ -65,6 +65,15 @@ gaussian_norm(double *out, const double *flux, double *param, double effective_g
 }
 
 GKYL_CU_D
+static double
+maxwellian_norm(double *out, const double *flux, double *param, double effective_gamma)
+{
+  double vt = param[2];
+  
+  out[0] = effective_gamma*flux[0]/(vt*vt);
+}
+
+GKYL_CU_D
 static void
 furman_pivi_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *param)
 {
@@ -133,6 +142,8 @@ bc_emission_spectrum_choose_norm_func(enum gkyl_bc_emission_spectrum_type bctype
       return chung_everhart_norm;
     case GKYL_BC_GAUSSIAN:
       return gaussian_norm;
+    case GKYL_BC_MAXWELLIAN:
+      return maxwellian_norm;
     default:
       assert(false);
       break;

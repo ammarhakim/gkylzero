@@ -8,7 +8,8 @@
 // BC types in this updater.
 enum gkyl_bc_emission_spectrum_type {
   GKYL_BC_CHUNG_EVERHART = 0,
-  GKYL_BC_GAUSSIAN = 1};
+  GKYL_BC_GAUSSIAN = 1,
+  GKYL_BC_MAXWELLIAN = 2};
 
 enum gkyl_bc_emission_spectrum_gamma_type {
   GKYL_BC_FURMAN_PIVI = 0,

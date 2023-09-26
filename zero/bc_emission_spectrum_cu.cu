@@ -22,6 +22,9 @@ gkyl_bc_emission_spectrum_set_cu_norm_func_ptrs(enum gkyl_bc_emission_spectrum_t
     case GKYL_BC_GAUSSIAN:
       funcs->norm = gaussian_norm;
       break;
+    case GKYL_BC_MAXWELLIAN:
+      funcs->norm = maxwellian_norm;
+      break;
     default:
       assert(false);
       break;
