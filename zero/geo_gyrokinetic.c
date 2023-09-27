@@ -597,7 +597,7 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
   for(int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia*dalpha;
-    //printf("alpha_curr = %g\n", alpha_curr);
+    printf("alpha_curr = %g\n", alpha_curr);
     for (int ip=nrange.lower[PH_IDX]; ip<=nrange.upper[PH_IDX]; ++ip) {
 
       double zmin = inp->zmin, zmax = inp->zmax;
