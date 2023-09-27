@@ -11,17 +11,17 @@ extern "C" {
 #include <gkyl_array_ops.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_iz.h>
-#include <gkyl_dg_iz_priv.h>
+#include <gkyl_dg_recomb.h>
+#include <gkyl_dg_recomb_priv.h>
 #include <gkyl_util.h>
 }
 
 __global__ static void
-gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng, const struct gkyl_basis adas_basis,
+gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng, const struct gkyl_basis adas_basis,
   const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq, const struct gkyl_dg_prim_vars_type *calc_prim_vars_donor_gk,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_donor,
-  struct gkyl_array *vtSq_elc, struct gkyl_array *prim_vars_donor, struct gkyl_array *coef_iz,
-  struct gkyl_array *ioniz_data)
+  struct gkyl_array *vtSq_elc, struct gkyl_array *prim_vars_donor, struct gkyl_array *coef_recomb,
+  struct gkyl_array *recomb_data)
 {
   int cidx[GKYL_MAX_CDIM];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -33,12 +33,12 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     const double *m0_elc_d = &moms_elc_d[0];
 
     double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
-    double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc);
+    double *coef_recomb_d = (double*) gkyl_array_fetch(coef_recomb, loc);
     
     calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d,
 				    vtSq_elc_d);
 
-    if ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION)) {
+    if ((up->type_self == GKYL_RECOMB_ELC) || (up->type_self == GKYL_RECOMB_ION)) {
       const double *moms_donor_d = (const double*) gkyl_array_cfetch(moms_donor, loc);
       double *prim_vars_donor_d = (double*) gkyl_array_fetch(prim_vars_donor, loc);
       calc_prim_vars_donor_gk->kernel(calc_prim_vars_donor_gk, cidx,
@@ -69,66 +69,66 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     cell_center = (m0_idx - 0.5)*up->dlogM0 + up->minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
  
-    double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&adas_rng, (int[2]) {t_idx,m0_idx}));
-    double adas_eval = adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
-    coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+    double *recomb_dat_d = gkyl_array_fetch(up->recomb_data, gkyl_range_idx(&adas_rng, (int[2]) {t_idx,m0_idx}));
+    double adas_eval = adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
+    coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
   }
 }
 
-void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
+void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_donor,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
-  const struct gkyl_array *f_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate)
+  const struct gkyl_array *f_self, struct gkyl_array *coll_recomb, struct gkyl_array *cflrate)
 {
-  if ((up->all_gk==false) && ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION))) {
+  if ((up->all_gk==false) && ((up->type_self == GKYL_RECOMB_ELC) || (up->type_self == GKYL_RECOMB_ION))) {
     // Set auxiliary variable (b_i) for computation of gk neut prim vars
     gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_donor_gk, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   }
 
-  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng, up->adas_basis,
+  gkyl_recomb_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng, up->adas_basis,
     up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_donor->on_dev, 
     moms_elc->on_dev, moms_donor->on_dev,
-    up->vtSq_elc->on_dev, up->prim_vars_donor->on_dev, up->coef_iz->on_dev,
-    up->ioniz_data->on_dev);
+    up->vtSq_elc->on_dev, up->prim_vars_donor->on_dev, up->coef_recomb->on_dev,
+    up->recomb_data->on_dev);
 
-  if (up->type_self == GKYL_IZ_ELC) {
-    // Calculate vt_sq_iz
-    gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, *up->conf_rng);
-    gkyl_array_scale_range(up->vtSq_iz, 1/2.0, *up->conf_rng);
-    gkyl_array_shiftc(up->vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
+  if (up->type_self == GKYL_RECOMB_ELC) {
+    // Calculate vt_sq_recomb
+    gkyl_array_copy_range(up->vtSq_recomb, up->vtSq_elc, *up->conf_rng);
+    gkyl_array_scale_range(up->vtSq_recomb, 1/2.0, *up->conf_rng);
+    gkyl_array_shiftc(up->vtSq_recomb, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
 
     // Set fmax moments
     gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->prim_vars_donor, 0, *up->conf_rng);
-    gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, *up->conf_rng);
+    gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_recomb, up->cbasis->num_basis, *up->conf_rng);
 
     // Proj maxwellian on basis
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_elc,
-					     up->prim_vars_fmax, bmag, jacob_tot, up->mass_elc, up->fmax_iz);
+					     up->prim_vars_fmax, bmag, jacob_tot, up->mass_elc, up->fmax_recomb);
 
     // copy, scale and accumulate
-    gkyl_array_set_range(coll_iz, 2.0, up->fmax_iz, *up->phase_rng);
-    gkyl_array_accumulate_range(coll_iz, -1.0, f_self, *up->phase_rng);
+    gkyl_array_set_range(coll_recomb, 2.0, up->fmax_recomb, *up->phase_rng);
+    gkyl_array_accumulate_range(coll_recomb, -1.0, f_self, *up->phase_rng);
   
     // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_donor, up->conf_rng);
+    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_recomb, 0, up->coef_recomb, 0, moms_donor, up->conf_rng);
   }
-  else if (up->type_self == GKYL_IZ_ION) {
+  else if (up->type_self == GKYL_RECOMB_ION) {
     // Proj maxwellian on basis (doesn't assume same phase grid, even if GK)
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_donor,
-					     up->prim_vars_donor, bmag, jacob_tot, up->mass_elc, coll_iz);
+					     up->prim_vars_donor, bmag, jacob_tot, up->mass_elc, coll_recomb);
     // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
+    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_recomb, 0, up->coef_recomb, 0, moms_elc, up->conf_rng);
   }
-  else if (up->type_self == GKYL_IZ_DONOR) {
-    // neut coll_iz = -f_n
-    gkyl_array_set_range(coll_iz, -1.0, f_self, *up->phase_rng);
+  else if (up->type_self == GKYL_RECOMB_DONOR) {
+    // neut coll_recomb = -f_n
+    gkyl_array_set_range(coll_recomb, -1.0, f_self, *up->phase_rng);
     // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
+    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_recomb, 0, up->coef_recomb, 0, moms_elc, up->conf_rng);
   }
 
-  // coll_iz = n_n*coef_iz*coll_iz
-  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_iz, coll_iz,
+  // coll_recomb = n_n*coef_recomb*coll_recomb
+  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_recomb, coll_recomb,
 				    up->conf_rng, up->phase_rng);
   
   
@@ -146,20 +146,23 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
   /* } */
 }
 
-struct gkyl_dg_iz*
-gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
+struct gkyl_dg_recomb*
+gkyl_dg_recomb_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
-  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion,
-  int charge_state, enum gkyl_dg_iz_self type_self, bool all_gk)
+  double elem_charge, double mass_elc, enum gkyl_dg_recomb_type type_ion,
+  int charge_state, enum gkyl_dg_recomb_self type_self, bool all_gk)
 {
-  gkyl_dg_iz *up = (struct gkyl_dg_iz*) gkyl_malloc(sizeof(struct gkyl_dg_iz));
+  gkyl_dg_recomb *up = (struct gkyl_dg_recomb*) gkyl_malloc(srecombeof(struct gkyl_dg_recomb));
 
   int cdim = cbasis->ndim;
   int pdim = pbasis->ndim;
+  int vdim = 1; //HARDCODED. FIX THIS.
+  
   int poly_order = cbasis->poly_order;
   up->cbasis = cbasis;
   up->pbasis = pbasis;
   up->cdim = cdim;
+  up->vdim = vdim; 
   up->use_gpu = true;
   up->conf_rng = conf_rng;
   up->phase_rng = phase_rng; 
@@ -186,13 +189,13 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
   up->dlogM0=dlogM0;
   up->dlogTe=dlogTe;
   
-  up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, qpoints);
+  up->recomb_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, qpoints);
 
   up->E = 13.6;
 
   // ADAS data pointers
-  up->ioniz_data = adas_dg;
-  up->E = data.Eiz[charge_state-1];
+  up->recomb_data = adas_dg;
+  up->E = data.Erecomb[charge_state-1];
   up->minLogM0 = logNmin;
   up->minLogTe = logTmin;
   up->maxLogM0 = logNmax;
@@ -208,10 +211,10 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
   // allocate fields for prim mom calculation
   up->prim_vars_donor = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); // elc, ion 
   up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); // all
-  up->vtSq_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // elc
+  up->vtSq_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // elc
   up->prim_vars_fmax = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);  //elc
-  up->coef_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // all
-  up->fmax_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, pbasis->num_basis, up->phase_rng->volume); // elc
+  up->coef_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // all
+  up->fmax_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, pbasis->num_basis, up->phase_rng->volume); // elc
 
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", true); // all
   if (up->all_gk) up->calc_prim_vars_donor = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "prim", true);
@@ -220,8 +223,8 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
   up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, true); // elc, ion
 
   // copy the host struct to device struct
-  struct gkyl_dg_iz *up_cu = (struct gkyl_dg_iz*) gkyl_cu_malloc(sizeof(struct gkyl_dg_iz));
-  gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_dg_iz), GKYL_CU_MEMCPY_H2D);
+  struct gkyl_dg_recomb *up_cu = (struct gkyl_dg_recomb*) gkyl_cu_malloc(srecombeof(struct gkyl_dg_recomb));
+  gkyl_cu_memcpy(up_cu, up, srecombeof(struct gkyl_dg_recomb), GKYL_CU_MEMCPY_H2D);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

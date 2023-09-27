@@ -62,7 +62,7 @@ struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gky
  *
  * @param iz Ionization object.
  * @param moms_elc Input electron moments
- * @param moms_neut Input neutral moments
+ * @param moms_donor Input neutral moments
  * @param bmag Magnetic field used for GK fmax 
  * @param jacob_tot Total Jacobian used for GK fmax
  * @param bhat_vec Unit bmag vector in Cartesian (X,Y,Z) components
@@ -71,12 +71,12 @@ struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gky
  */
 
 void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
+  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_donor,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
 
 void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_neut,
+  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_donor,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
 
