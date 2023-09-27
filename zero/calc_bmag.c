@@ -108,7 +108,7 @@ gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange
   ctx->grid = up->pgrid;
   ctx->cgrid = up->cgrid;
   ctx->range = prange;
-  ctx->crange = crange_ext;
+  ctx->crange = crange;
   ctx->bmagdg = bmagdg;
   ctx->basis = up->pbasis;
   ctx->cbasis = up->cbasis;
@@ -116,7 +116,7 @@ gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange
   ctx->ginp = up->ginp;
   ctx->mapc2p = mapc2p;
   gkyl_eval_on_nodes *eval_bmag_comp = gkyl_eval_on_nodes_new(up->cgrid, up->cbasis, 1, bmag_comp, ctx);
-  gkyl_eval_on_nodes_advance(eval_bmag_comp, 0.0, crange_ext, bmag_compdg); //on ghosts with ext_range
+  gkyl_eval_on_nodes_advance(eval_bmag_comp, 0.0, crange, bmag_compdg); //on ghosts with ext_range
 }
 
 void

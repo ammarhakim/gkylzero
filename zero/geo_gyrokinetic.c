@@ -494,8 +494,12 @@ void nodal_array_to_modal_array(struct gkyl_array *nodal_array, struct gkyl_arra
     for (int i=0; i<num_basis; ++i) {
       const double* temp  = gkyl_array_cfetch(nodes,i);
       for( int j = 0; j < ginp->cgrid->ndim; j++){
-        if(cpoly_order==1)
-          nidx[j] = iter.idx[j] + (temp[j] + 1)/2 ;
+        if(cpoly_order==1){
+          if(j==1 && ginp->bcs[1]==1) // this conversion is valid if ghost cells are included
+            nidx[j] = iter.idx[j] + (temp[j]+1)/2 ;
+          else // otherwise this conversion is valid
+            nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
+        }
         if (cpoly_order==2)
           nidx[j] = 2*iter.idx[j] + (temp[j] + 1) ;
       }
@@ -535,12 +539,18 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
 {
   int poly_order = inp->cbasis->poly_order;
   int nodes[3] = { 1, 1, 1 };
-  if (poly_order == 1)
+  if (poly_order == 1){
     for (int d=0; d<inp->cgrid->ndim; ++d)
-      nodes[d] = inp->cgrid->cells[d]+2 + 1;
-  if (poly_order == 2)
+      nodes[d] = inp->cgrid->cells[d] + 1;
+    if(inp->bcs[1]==1)
+      nodes[1] += 2; // specically alpha gets ghosts if nonperiodic in y
+  }
+                   
+  if (poly_order == 2){
     for (int d=0; d<inp->cgrid->ndim; ++d)
-      nodes[d] = 2*(inp->cgrid->cells[d]+2) + 1;
+      nodes[d] = 2*(inp->cgrid->cells[d]) + 1;
+    nodes[1] += 4; // specically alpha gets ghosts
+  }
 
   for(int d=0; d<inp->cgrid->ndim; d++){
     printf("d[%d] = %d\n", d, nodes[d]);
@@ -563,9 +573,11 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
     dphi = inp->cgrid->dx[PH_IDX],
     dalpha = inp->cgrid->dx[AL_IDX];
   
-  double theta_lo = inp->cgrid->lower[TH_IDX] - dtheta,
-    phi_lo = inp->cgrid->lower[PH_IDX] - dphi,
-    alpha_lo = inp->cgrid->lower[AL_IDX] - dalpha;
+  double theta_lo = inp->cgrid->lower[TH_IDX],
+    phi_lo = inp->cgrid->lower[PH_IDX],
+    alpha_lo = inp->cgrid->lower[AL_IDX];
+  if(inp->bcs[1]==1)
+    alpha_lo -= dalpha;
 
   double dx_fact = poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dphi *= dx_fact; dalpha *= dx_fact;
@@ -585,12 +597,13 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
   for(int ia=nrange.lower[AL_IDX]; ia<=nrange.upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     double alpha_curr = alpha_lo + ia*dalpha;
+    //printf("alpha_curr = %g\n", alpha_curr);
     for (int ip=nrange.lower[PH_IDX]; ip<=nrange.upper[PH_IDX]; ++ip) {
 
       double zmin = inp->zmin, zmax = inp->zmax;
 
       double psi_curr = phi_lo + ip*dphi;
-      printf("psi_curr = %g\n", psi_curr);
+      //printf("psi_curr = %g\n", psi_curr);
       double arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose,
         true, true, arc_memo);
 
@@ -715,10 +728,10 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
     write_nodal_coordinates(inp->node_file_nm, &nrange, mc2p);
     write_nodal_coordinates(strcat(str1, inp->node_file_nm), &nrange, mc2p_xyz);
   }
-  //printf("done writing nodal coords\n");
+  printf("done writing nodal coords\n");
 
   nodal_array_to_modal_array(mc2p_xyz, mapc2p, conversion_range, &nrange, inp);
-  //printf("converted to modal\n");
+  printf("converted to modal\n");
 
   gkyl_free(arc_memo);
   gkyl_array_release(mc2p);  

@@ -8,6 +8,7 @@
 #include <acutest.h>
 #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -26,6 +27,50 @@
 #include <gkyl_calc_derived_geo_kernels.h>
 #include <gkyl_geo_gyrokinetic.h>
 
+
+// Helper Functions
+
+// allocate array (filled with zeros)
+static struct gkyl_array*
+mkarr(long nc, long size)
+{
+  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
+struct skin_ghost_ranges {
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+};
+
+// Create ghost and skin sub-ranges given a parent range
+static void
+skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
+  const struct gkyl_range *parent, const int *ghost)
+{
+  int ndim = parent->ndim;
+
+  for (int d=0; d<ndim; ++d) {
+    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
+      d, GKYL_LOWER_EDGE, parent, ghost);
+    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
+      d, GKYL_UPPER_EDGE, parent, ghost);
+  }
+}
+
+// Apply periodic BCs along direction
+void
+apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const int dir, const struct skin_ghost_ranges sgr)
+{
+  gkyl_array_copy_to_buffer(buff->data, fld, &(sgr.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.upper_ghost[dir]));
+
+  gkyl_array_copy_to_buffer(buff->data, fld, &(sgr.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.lower_ghost[dir]));
+}
 
 
 struct mapc2p_ctx{
@@ -173,9 +218,27 @@ test_1()
 
   printf("CGRID INFO:\n cgrid.lower = %g,%g,%g\n cgrid.upper = %g,%g,%g\n cgrid.dx= %g,%g,%g\n", cgrid.lower[0],cgrid.lower[1], cgrid.lower[2],cgrid.upper[0],cgrid.upper[1], cgrid.upper[2], cgrid.dx[0], cgrid.dx[1], cgrid.dx[2]);
 
-  struct gkyl_range clocal, clocal_ext;
+  struct gkyl_range clocal, clocal_ext, conversion_range;
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+
+  // BCs, 0 is periodic, 1 is nonperiodic
+  int bcs[3] = {1,1,1};
+
+  // calcgeom will go into the ghost y cells based on bc. If bc[1]=1 we use ghosts.
+  // Need to pass appropriate conversion to modal range depending on the bcs
+  if(bcs[1]==1){
+    int sublower[3] = {clocal.lower[0], clocal_ext.lower[1], clocal.lower[2]};
+    int subupper[3] = {clocal.upper[0], clocal_ext.upper[1], clocal.upper[2]};
+    gkyl_sub_range_init(&conversion_range, &clocal_ext, sublower, subupper);
+  }
+  else{
+    conversion_range = clocal;
+  }
+
+
+  printf("clocal ext in y lower = %d, %d, %d\n", conversion_range.lower[0], conversion_range.lower[1], conversion_range.lower[2]);
+  printf("clocal ext in y upper = %d, %d, %d\n", conversion_range.upper[0], conversion_range.upper[1], conversion_range.upper[2]);
 
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
@@ -184,6 +247,7 @@ test_1()
 
   struct gkyl_geo_gyrokinetic_geo_inp ginp = {
     .cgrid = &cgrid,
+    .bcs = bcs,
     .cbasis = &cbasis,
     .ftype = GKYL_SOL_DN,
     .rclose = upper[0],
@@ -200,7 +264,17 @@ test_1()
   //Do Ammar's calcgeom
 
   struct gkyl_array *mapc2p_arr = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
-  gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p_arr, &clocal_ext);
+  gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p_arr, &conversion_range);
+
+  // sync in periodic dirs (y)
+  struct skin_ghost_ranges skin_ghost; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost, &clocal_ext, cnghost);
+  for(int i = 0; i<3; i++){
+    if(bcs[i]==0){
+      struct gkyl_array *perbuff = mkarr(3*cbasis.num_basis, skin_ghost.lower_skin[i].volume);
+      apply_periodic_bc(perbuff, mapc2p_arr, i, skin_ghost);
+    }
+  }
 
 
   printf("writing mapc2p file from calcgeom\n");
@@ -296,7 +370,9 @@ test_1()
   
   printf("calculating metrics \n");
   struct gkyl_array *gFld = gkyl_array_new(GKYL_DOUBLE, 6*cbasis.num_basis, clocal_ext.volume);
-  gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, false);
+
+
+  gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, bcs, false);
   //gkyl_calc_metric_advance( mcalculator, &clocal, XYZ, gFld);
   gkyl_calc_metric_advance( mcalculator, &clocal, mapc2p_arr, gFld);
   do{
