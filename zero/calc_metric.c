@@ -19,7 +19,7 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid *gri
   up->bcs = gkyl_malloc((up->cdim)*sizeof(int));
   for(int i=0; i<up->cdim; i++)
     up->bcs[i] = bcs[i];
-  up->bcs[1] = 0; // To always use the periodic stencil (same as stencil using ghost cells
+  up->bcs[1] = 0; // To always use the periodic stencil (same as inner cell stencil when using ghost cells)
   up->kernels = metric_choose_kernel(up->cdim, up->poly_order, up->bcs);
 
   return up;
