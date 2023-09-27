@@ -20,7 +20,7 @@ enum gkyl_dg_recomb_self
 {
   GKYL_RECOMB_ELC, // Electron species
   GKYL_RECOMB_ION, // Resulting ion species (increases charge state)
-  GKYL_RECOMB_NEUT, // Reacting species (donates electron)
+  GKYL_RECOMB_DONOR, // Reacting species (donates electron)
 };
 
 // Object type
@@ -37,7 +37,7 @@ typedef struct gkyl_dg_recomb gkyl_dg_recomb;
  * @param mass_elc Mass of the electron value
  * @param type_ion Enum for type of ion for ionrecombation (support H, He, Li)
  * @param charge_state Int for ion charge state
- * @param type_self Enum for species type (electron, ion or neutral)
+ * @param type_self Enum for species type (electron, ion or donorral)
  * @param all_gk Boolean to indicate if all 3 species are gyrokinetic
  * @param use_gpu Boolean for whether struct is on host or device
  */
@@ -56,7 +56,7 @@ struct gkyl_dg_recomb* gkyl_dg_recomb_cu_dev_new(struct gkyl_rect_grid* grid, st
   int charge_state, enum gkyl_dg_recomb_self type_self, bool all_gk); 
 
 /**
- * Compute ionrecombation collision term for use in neutral reactions. 
+ * Compute ionrecombation collision term for use in donorral reactions. 
  * The update_rng MUST be a sub-range of the
  * range on which the array is defined.  That is, it must be either
  * the same range as the array range, or one created using the
@@ -64,14 +64,13 @@ struct gkyl_dg_recomb* gkyl_dg_recomb_cu_dev_new(struct gkyl_rect_grid* grid, st
  *
  * @param recomb Ionrecombation object.
  * @param moms_elc Input electron moments
- * @param moms_neut Input neutral moments
+ * @param moms_donor Input donorral moments
  * @param bmag Magnetic field used for GK fmax 
  * @param jacob_tot Total Jacobian used for GK fmax
  * @param b_i Unit bmag vector in Cartesian (X,Y,Z) components
  * @param distf_self Species self distribution function
  * @param coll_recomb Output reaction rate coefficient
  */
-
 void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion,
   const struct gkyl_array *b_i, const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot,

@@ -1,13 +1,11 @@
-#pragma once
-
-#include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <gkyl_array.h>
-#include <gkyl_util.h>
+#include <gkyl_range.h>
 
 // Functions to extract ADAS data and project onto DG data
-struct gkyl_array *
+GKYL_CU_DH
+static inline struct gkyl_array *
 array_from_numpy(FILE *fp, long sz, int Zmax)
 {
   struct gkyl_array *arr
@@ -22,7 +20,8 @@ array_from_numpy(FILE *fp, long sz, int Zmax)
   return arr;
 }
 
-double * minmax_from_numpy(FILE *fp, long sz)
+GKYL_CU_DH
+static inline double * minmax_from_numpy(FILE *fp, long sz)
 {
   double array[sz];
   long res_sz = fread(array, 1, sizeof(double[sz]), fp);
@@ -36,7 +35,8 @@ double * minmax_from_numpy(FILE *fp, long sz)
 }
 
 // 2d p=1
-static void
+GKYL_CU_DH
+static inline void
 nodal_to_modal(const double *f, double *mv)
 {
   mv[0] = 0.5*(f[3]+f[2]+f[1]+f[0]);
@@ -45,7 +45,15 @@ nodal_to_modal(const double *f, double *mv)
   mv[3] = 0.1666666666666667*(f[3]-1.0*(f[2]+f[1])+f[0]);
 }
 
-void
+/**
+ * @param grid
+ * @param range_nodal
+ * @param adas_nodal
+ * @param adas_dg
+ * @param charge_state
+ **/
+GKYL_CU_DH
+static inline void
 create_dg_from_nodal(const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range_nodal,  const struct gkyl_array *adas_nodal,
   struct gkyl_array *adas_dg, int charge_state)
