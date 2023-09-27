@@ -4,7 +4,6 @@
 #include <gkyl_range.h>
 
 // Functions to extract ADAS data and project onto DG data
-GKYL_CU_DH
 static inline struct gkyl_array *
 array_from_numpy(FILE *fp, long sz, int Zmax)
 {
@@ -20,7 +19,6 @@ array_from_numpy(FILE *fp, long sz, int Zmax)
   return arr;
 }
 
-GKYL_CU_DH
 static inline double * minmax_from_numpy(FILE *fp, long sz)
 {
   double array[sz];
@@ -35,7 +33,6 @@ static inline double * minmax_from_numpy(FILE *fp, long sz)
 }
 
 // 2d p=1
-GKYL_CU_DH
 static inline void
 nodal_to_modal(const double *f, double *mv)
 {
@@ -52,7 +49,7 @@ nodal_to_modal(const double *f, double *mv)
  * @param adas_dg
  * @param charge_state
  **/
-GKYL_CU_DH
+
 static inline void
 create_dg_from_nodal(const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range_nodal,  const struct gkyl_array *adas_nodal,

@@ -152,7 +152,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   up->coef_recomb = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // all
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu); // all
 
-  if (type_self == GKYL_RECOMB_NEUT) {
+  if (type_self == GKYL_RECOMB_RECVR) {
     if (up->all_gk==false) {
       up->calc_prim_vars_ion_udrift = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "u_par_i", use_gpu);
       up->calc_prim_vars_ion_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu);
@@ -180,7 +180,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     return gkyl_dg_recomb_coll_cu(up, moms_elc, moms_ions, b_i, f_self, coll_recomb, cflrate);
   } 
 #endif
-  if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_NEUT)) {
+  if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
     // Set auxiliary variable (b_i) for computation of udrift_i
     gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_ion_udrift, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
@@ -227,7 +227,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
     coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
 
-    if ((up->all_gk==false) && (up->type_self == GKYL_RECOMB_NEUT)) {
+    if ((up->all_gk==false) && (up->type_self == GKYL_RECOMB_RECVR)) {
       const double *moms_ion_d = gkyl_array_cfetch(moms_ion, loc);
       double *udrift_ion_d = gkyl_array_fetch(up->udrift_ion, loc);
       double *vtSq_ion_d = gkyl_array_fetch(up->vtSq_ion, loc);
@@ -241,7 +241,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     }
   }
 
-  if (up->type_self == GKYL_RECOMB_NEUT) {
+  if (up->type_self == GKYL_RECOMB_RECVR) {
     if (up->all_gk) {
       gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion, bmag, jacob_tot, up->mass_self, coll_recomb);
     }
