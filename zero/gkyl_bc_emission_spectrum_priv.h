@@ -129,6 +129,15 @@ schou_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *pa
   out[0] =  eps*nw*fabs(charge)*intWall/1.0e19;
 }
 
+GKYL_CU_D
+static void
+constant_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *param)
+{
+  double gain = param[2];
+
+  out[0] = gain;
+}
+
 void
 gkyl_bc_emission_spectrum_choose_func_cu(enum gkyl_bc_emission_spectrum_type bctype,
   enum gkyl_bc_emission_spectrum_gamma_type gammatype, struct gkyl_bc_emission_spectrum_funcs *funcs);
@@ -159,6 +168,8 @@ bc_emission_spectrum_choose_gamma_func(enum gkyl_bc_emission_spectrum_gamma_type
       return furman_pivi_gamma;
     case GKYL_BC_SCHOU:
       return schou_gamma;
+    case GKYL_BC_CONSTANT:
+      return constant_gamma;
     default:
       assert(false);
       break;
