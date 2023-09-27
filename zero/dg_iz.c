@@ -16,8 +16,7 @@
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_iz_priv.h>
 #include <gkyl_util.h>
-#include <gkyl_adas_field.h>
-#include <gkyl_read_adas.h>
+#include <gkyl_read_adas_priv.h>
 
 struct gkyl_dg_iz*
 gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,

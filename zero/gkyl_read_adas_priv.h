@@ -3,6 +3,18 @@
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 
+typedef struct adas_field {
+  FILE *logData;
+  FILE *logT;
+  FILE *logN;
+  long NT;
+  long NN; 
+  int Zmax;
+  struct gkyl_array fld;
+  double *Eiz;
+} adas_field;
+
+
 // Functions to extract ADAS data and project onto DG data
 static inline struct gkyl_array *
 array_from_numpy(FILE *fp, long sz, int Zmax)

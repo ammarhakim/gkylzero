@@ -16,8 +16,7 @@
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_recomb_priv.h>
 #include <gkyl_util.h>
-#include <gkyl_adas_field.h>
-#include <gkyl_read_adas.h>
+#include <gkyl_read_adas_priv.h>
 
 // FIX MASS FOR PMOB ETC
 struct gkyl_dg_recomb*
