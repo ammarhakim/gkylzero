@@ -254,9 +254,11 @@ gkyl_superlu_prob_release(struct gkyl_superlu_prob *prob)
 {
   SUPERLU_FREE (prob->rhs);
   SUPERLU_FREE (prob->perm_c);
+  
   for (size_t k=0; k<prob->nprob; k++) {
     SUPERLU_FREE (prob->perm_r[k]);
     Destroy_CompCol_Matrix(prob->A[k]);
+    gkyl_free(prob->A[k]);
 
     if (prob->assigned_rhs)
       Destroy_SuperMatrix_Store(prob->B[k]);
@@ -265,6 +267,10 @@ gkyl_superlu_prob_release(struct gkyl_superlu_prob *prob)
       Destroy_SuperNode_Matrix(prob->L[k]);
       Destroy_CompCol_Matrix(prob->U[k]);
     }
+
+    gkyl_free(prob->B[k]);
+    gkyl_free(prob->L[k]);
+    gkyl_free(prob->U[k]);
   }
   StatFree(&prob->stat);
   gkyl_free(prob->A);

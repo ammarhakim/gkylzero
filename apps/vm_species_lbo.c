@@ -46,18 +46,19 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     lbo->nu_init = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_array_copy(lbo->nu_init, lbo->self_nu);
   }
+  // Allocate needed arrays (boundary corrections, primitive moments, and nu*primitive moments)
+  lbo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+
+  lbo->prim_moms = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+  lbo->nu_prim_moms = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+  lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
   lbo->model_id = GKYL_MODEL_DEFAULT;
   if (s->model_id == GKYL_MODEL_PKPM) {
     lbo->model_id = GKYL_MODEL_PKPM;
-    // Only energy corrections for pkpm model
-    lbo->boundary_corrections = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);   
-    lbo->prim_moms = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    lbo->nu_prim_moms = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    // Allocate m0 for PKPM in case it's needed for rescaling collision frequency by local density
-    lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
-    // edge of velocity space corrections to *only* energy (in PKPM model)
+    // edge of velocity space corrections to momentum and energy 
+    // Note: PKPM model still has a momentum correction to insure M1 = 0 from collisions
     lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_pkpm_new(&s->grid, 
       &app->confBasis, &app->basis, v_bounds, s->info.mass, app->use_gpu);
     // primitive moment calculators
@@ -65,12 +66,6 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
       &app->confBasis, &app->basis, &app->local, app->use_gpu);
   }
   else {
-    lbo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
-
-    lbo->prim_moms = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
-    lbo->nu_prim_moms = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
-    lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-      
     // allocate moments needed for LBO update
     vm_species_moment_init(app, s, &lbo->moms, "FiveMoments");
 
@@ -149,12 +144,10 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   // compute needed moments (if PKPM, moments already known from fluid couplings)
   if (species->model_id != GKYL_MODEL_PKPM) {
     vm_species_moment_calc(&lbo->moms, species->local, app->local, fin);
-    gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, app->local);
+    gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, &(app->local));
   }
   
   if (app->use_gpu) {
-    wst = gkyl_wall_clock();
-
     // construct boundary corrections
     gkyl_mom_calc_bcorr_advance_cu(lbo->bcorr_calc,
       &species->local, &app->local, fin, lbo->boundary_corrections);
@@ -165,32 +158,22 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
       gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, &app->local, 
         species->pkpm_moms.marr, lbo->boundary_corrections,
         lbo->prim_moms);
-      // PKPM model only has vth^2
       if (lbo->normNu) {
         gkyl_array_clear(lbo->norm_nu, 0.0);
         gkyl_array_clear(lbo->self_nu, 0.0);
         // Get density information (and scale out mass factor in PKPM moments)
-        gkyl_array_set_range(lbo->m0, 1.0/species->info.mass, species->pkpm_moms.marr, app->local);
-        gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->prim_moms, lbo->m0, lbo->prim_moms, 1.0, lbo->norm_nu);
+        gkyl_array_set_range(lbo->m0, 1.0/species->info.mass, species->pkpm_moms.marr, &app->local);
+        gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->prim_moms, 0., lbo->m0, lbo->prim_moms, 0., 1.0, lbo->norm_nu);
         gkyl_dg_mul_op(app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
       }
-      gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_prim_moms, 0, lbo->prim_moms, 0, lbo->self_nu);
     }
     else {
       gkyl_prim_lbo_calc_advance_cu(lbo->coll_pcalc, &app->local, 
         lbo->moms.marr, lbo->boundary_corrections,
         lbo->prim_moms);
-
-      for (int d=0; d<app->vdim; d++)
-        gkyl_dg_mul_op(app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
-      gkyl_dg_mul_op(app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu);
     }  
-
-    app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
   } 
   else {
-    wst = gkyl_wall_clock();
-    
     // construct boundary corrections
     gkyl_mom_calc_bcorr_advance(lbo->bcorr_calc,
       &species->local, &app->local, fin, lbo->boundary_corrections);
@@ -201,29 +184,26 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
       gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
         species->pkpm_moms.marr, lbo->boundary_corrections,
         lbo->prim_moms);
-      // PKPM model only has vth^2
       if (lbo->normNu) {
         gkyl_array_clear(lbo->norm_nu, 0.0);
         gkyl_array_clear(lbo->self_nu, 0.0);
         // Get density information (and scale out mass factor in PKPM moments)
-        gkyl_array_set_range(lbo->m0, 1.0/species->info.mass, species->pkpm_moms.marr, app->local);
-        gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->prim_moms, lbo->m0, lbo->prim_moms, 1.0, lbo->norm_nu);
+        gkyl_array_set_range(lbo->m0, 1.0/species->info.mass, species->pkpm_moms.marr, &app->local);
+        gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->prim_moms, 0., lbo->m0, lbo->prim_moms, 0.0, 1.0, lbo->norm_nu);
         gkyl_dg_mul_op(app->confBasis, 0, lbo->self_nu, 0, lbo->nu_init, 0, lbo->norm_nu);
       }
-      gkyl_dg_mul_op(app->confBasis, 0, lbo->nu_prim_moms, 0, lbo->prim_moms, 0, lbo->self_nu);
     }
     else {
       gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
         lbo->moms.marr, lbo->boundary_corrections,
         lbo->prim_moms);
-
-      for (int d=0; d<app->vdim; d++)
-        gkyl_dg_mul_op(app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
-      gkyl_dg_mul_op(app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu);
     }  
-
-    app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
   }
+  for (int d=0; d<app->vdim; d++)
+    gkyl_dg_mul_op(app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
+  gkyl_dg_mul_op(app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu);
+  
+  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
 // computes moments from cross-species collisions

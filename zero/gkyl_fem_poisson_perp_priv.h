@@ -511,3 +511,20 @@ fem_poisson_perp_choose_sol_kernels(const struct gkyl_basis* basis)
       break;
   }
 }
+
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Assign the right-side vector on the device.
+ *
+ * @param up FEM poisson updater to run.
+ * @param rhsin DG field to set as RHS source.
+ */
+void gkyl_fem_poisson_perp_set_rhs_cu(gkyl_fem_poisson_perp* up, struct gkyl_array *rhsin);
+
+/**
+ * Solve the linear problemon the device.
+ *
+ * @param up FEM project updater to run.
+ */
+void gkyl_fem_poisson_perp_solve_cu(gkyl_fem_poisson_perp* up, struct gkyl_array *phiout);
+#endif

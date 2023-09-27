@@ -21,7 +21,7 @@ struct gkyl_proj_on_basis {
   struct gkyl_array *basis_at_ords; // basis functions at ordinates
 };
 
-gkyl_proj_on_basis*
+struct gkyl_proj_on_basis*
 gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   int num_quad, int num_ret_vals, evalf_t eval, void *ctx)
 {
@@ -37,10 +37,10 @@ gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid, const struct gkyl_basi
   );
 }
 
-gkyl_proj_on_basis*
+struct gkyl_proj_on_basis*
 gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
 {
-  gkyl_proj_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_on_basis));
+  struct gkyl_proj_on_basis *up = gkyl_malloc(sizeof(struct gkyl_proj_on_basis));
 
   up->grid = *inp->grid;
   int num_quad = up->num_quad = inp->num_quad;
@@ -109,6 +109,16 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
   return up;
 }
 
+int gkyl_proj_on_basis_get_tot_quad(const struct gkyl_proj_on_basis *up)
+{
+  return up->tot_quad;
+}
+
+double* gkyl_proj_on_basis_fetch_ordinate(const struct gkyl_proj_on_basis *up, long node)
+{
+  return gkyl_array_fetch(up->ordinates, node);
+}
+
 static inline void
 comp_to_phys(int ndim, const double *eta,
   const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
@@ -117,8 +127,8 @@ comp_to_phys(int ndim, const double *eta,
   for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
 }
 
-static void
-proj_on_basis(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
+void
+gkyl_proj_on_basis_quad(const struct gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
 {
   int num_basis = up->num_basis;
   int tot_quad = up->tot_quad;
@@ -145,7 +155,7 @@ proj_on_basis(const gkyl_proj_on_basis *up, const struct gkyl_array *fun_at_ords
 }
 
 void
-gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *up,
+gkyl_proj_on_basis_advance(const struct gkyl_proj_on_basis *up,
   double tm, const struct gkyl_range *update_range, struct gkyl_array *arr)
 {
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
@@ -167,14 +177,14 @@ gkyl_proj_on_basis_advance(const gkyl_proj_on_basis *up,
     }
 
     long lidx = gkyl_range_idx(update_range, iter.idx);
-    proj_on_basis(up, fun_at_ords, gkyl_array_fetch(arr, lidx));
+    gkyl_proj_on_basis_quad(up, fun_at_ords, gkyl_array_fetch(arr, lidx));
   }
 
   gkyl_array_release(fun_at_ords);
 }
 
 void
-gkyl_proj_on_basis_release(gkyl_proj_on_basis* up)
+gkyl_proj_on_basis_release(struct gkyl_proj_on_basis* up)
 {
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);

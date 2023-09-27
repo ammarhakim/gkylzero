@@ -55,11 +55,13 @@ struct gkyl_moment_field {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
   // pointer to applied current function
   void (*app_current_func)(double t, const double *xn, double *fout, void *ctx);
-
+  double t_ramp_curr; // linear ramp for turning on applied currents
+  
   bool is_ext_em_static; // flag to indicate if external field is time-independent
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
-  
+  double t_ramp_E; // linear ramp for turning on external E field
+
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
   // pointer to boundary condition functions along x
