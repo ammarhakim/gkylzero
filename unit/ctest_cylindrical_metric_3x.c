@@ -113,7 +113,7 @@ struct gkyl_array *gFld = gkyl_array_new(GKYL_DOUBLE, 6*basis.num_basis, ext_ran
 gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &range, XYZ);
 
 // sync in periodic dirs (y)
-int bcs[3] = {1,1,1};
+int bcs[3] = {1,0,1};
 struct skin_ghost_ranges skin_ghost; // skin/ghost.
 skin_ghost_ranges_init(&skin_ghost, &ext_range, nghost);
 for(int i = 0; i<3; i++){
