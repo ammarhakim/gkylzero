@@ -24,19 +24,19 @@ gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
   }
 }
 
+GKYL_CU_DH
 void gkyl_rect_grid_find_cell(struct gkyl_rect_grid *grid, const double *point, bool pickLower, const int **knownIdx, int *cellIdx){
   int nDim = grid->ndim;
   int searchNum = 0;
-  int *searchDim, *idxOut;
+  int searchDim[GKYL_MAX_DIM], *idxOut;
   int *dimTrans[GKYL_MAX_DIM];
   int plusminus[2] = {-1,1};
   bool allLessEq = true;
-  int *iStart, *iEnd, *iMid, *iNew, *cells, *lowHighCellIdx;
+  int iStart[GKYL_MAX_DIM], iEnd[GKYL_MAX_DIM], iMid[GKYL_MAX_DIM], iNew[GKYL_MAX_DIM];
+  int *cells, lowHighCellIdx[2*GKYL_MAX_DIM];
   double lowerInDir[nDim], upperInDir[nDim];
   double low, high;
   
-  searchDim = (int*)malloc(nDim*sizeof(int));
-  lowHighCellIdx = (int*)malloc(2*nDim*sizeof(int));
   for(int d=0; d<nDim; d++){
     dimTrans[d] = (int*)malloc(1*sizeof(int));
     if(knownIdx[d]==NULL){
@@ -52,10 +52,6 @@ void gkyl_rect_grid_find_cell(struct gkyl_rect_grid *grid, const double *point, 
     }
   }
 
-  iStart = (int*)malloc(searchNum*sizeof(int));
-  iEnd = (int*)malloc(searchNum*sizeof(int));
-  iMid = (int*)malloc(searchNum*sizeof(int));
-  iNew = (int*)malloc(searchNum*sizeof(int));
   cells = grid -> cells;
   for(int d=0; d<searchNum; d++){
     iStart[d] = 1;
@@ -119,6 +115,7 @@ void gkyl_rect_grid_find_cell(struct gkyl_rect_grid *grid, const double *point, 
 
 }
 
+GKYL_CU_DH
 bool isInCell(const struct gkyl_rect_grid *grid, const double *pIn, int *iIn, int *dimTrans[1], const int **knownIdx){
   double eps = 1.0e-14;
   int checkIdx;
@@ -141,6 +138,7 @@ bool isInCell(const struct gkyl_rect_grid *grid, const double *pIn, int *iIn, in
   return inCell;
 }
 
+GKYL_CU_DH
 void InDir(const struct gkyl_rect_grid *grid, int *iIn, int *dimTrans[1], const int **knownIdx, double lowerInDir[], double upperInDir[]){
   int nDim, checkIdx;
   const double *dx, *lower;
