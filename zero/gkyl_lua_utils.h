@@ -35,7 +35,7 @@
  * Get length of object on top of stack. (Table size, string length
  * and memory allocated)
  *
- * @return Lenght of object on top of stack.
+ * @return Length of object on top of stack.
  */
 static inline size_t glua_objlen(lua_State *L) { return lua_objlen(L, -1); }
 

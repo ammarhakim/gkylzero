@@ -395,7 +395,104 @@ vm_app_apply_ic(lua_State *L)
   return 1;
 }
 
-// Write solution to file (time, frame) -> bool
+// Apply initial conditions to field. (time) -> bool
+static int
+vm_app_apply_ic_field(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  double t0 = luaL_optnumber(L, 2, app_lw->tstart);
+  gkyl_vlasov_app_apply_ic_field(app_lw->app, t0);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Apply initial conditions to species. (sidx, time) -> bool
+static int
+vm_app_apply_ic_species(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  int sidx = luaL_checkinteger(L, 2);
+  double t0 = luaL_optnumber(L, 3, app_lw->tstart);
+  gkyl_vlasov_app_apply_ic_species(app_lw->app, sidx, t0);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Compute diagnostic moments. () -> bool
+static int
+vm_app_calc_mom(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  gkyl_vlasov_app_calc_mom(app_lw->app);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Compute integrated moments. (tm) -> bool
+static int
+vm_app_calc_integrated_mom(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  double tm = luaL_checknumber(L, 2);
+  gkyl_vlasov_app_calc_integrated_mom(app_lw->app, tm);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Compute integrated L2 norm of distribution function. (tm) -> bool
+static int
+vm_app_calc_integrated_L2_f(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  double tm = luaL_checknumber(L, 2);
+  gkyl_vlasov_app_calc_integrated_L2_f(app_lw->app, tm);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Compute integrated field energy (L2 norm of each field
+// component). (tm) -> bool
+static int
+vm_app_calc_field_energy(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  double tm = luaL_checknumber(L, 2);
+  gkyl_vlasov_app_calc_field_energy(app_lw->app, tm);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Write solution (field and species) to file (time, frame) -> bool
 static int
 vm_app_write(lua_State *L)
 {
@@ -407,6 +504,103 @@ vm_app_write(lua_State *L)
   double tm = luaL_checknumber(L, 2);
   int frame = luaL_checkinteger(L, 3);
   gkyl_vlasov_app_write(app_lw->app, tm, frame);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Write field to file (time, frame) -> bool
+static int
+vm_app_write_field(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  double tm = luaL_checknumber(L, 2);
+  int frame = luaL_checkinteger(L, 3);
+  gkyl_vlasov_app_write_field(app_lw->app, tm, frame);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Write species solution to file (sidx, time, frame) -> bool
+static int
+vm_app_write_species(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  int sidx = luaL_checkinteger(L, 2);
+  double tm = luaL_checknumber(L, 3);
+  int frame = luaL_checkinteger(L, 4);
+  gkyl_vlasov_app_write_species(app_lw->app, sidx, tm, frame);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Write diagnostic moments to file (time, frame) -> bool
+static int
+vm_app_write_mom(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  double tm = luaL_checknumber(L, 2);
+  int frame = luaL_checkinteger(L, 3);
+  gkyl_vlasov_app_write_mom(app_lw->app, tm, frame);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Write integrated moments to file () -> bool
+static int
+vm_app_write_integrated_mom(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  gkyl_vlasov_app_write_integrated_mom(app_lw->app);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Write integrated L2 norm of f to file () -> bool
+static int
+vm_app_write_integrated_L2_f(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  gkyl_vlasov_app_write_integrated_L2_f(app_lw->app);
+
+  lua_pushboolean(L, status);  
+  return 1;
+}
+
+// Write integrated field energy to file () -> bool
+static int
+vm_app_write_field_energy(lua_State *L)
+{
+  bool status = true;
+
+  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw *app_lw = *l_app_lw;
+
+  gkyl_vlasov_app_write_field_energy(app_lw->app);
 
   lua_pushboolean(L, status);  
   return 1;
@@ -437,7 +631,7 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
   }
 }
 
-// Run simulation. () -> bool
+// Run simulation. (num_steps) -> bool. num_steps is optional
 static int
 vm_app_run(lua_State *L)
 {
@@ -449,7 +643,8 @@ vm_app_run(lua_State *L)
 
   double tcurr = app_lw->tstart;
   double tend = app_lw->tend;
-  double dt = tend-tcurr;  
+  double dt = tend-tcurr;
+  long num_steps = luaL_optinteger(L, 2, INT_MAX);
 
   int nframe = app_lw->nframe;
 
@@ -462,7 +657,7 @@ vm_app_run(lua_State *L)
   gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
   gkyl_vlasov_app_calc_field_energy(app, tcurr);
 
-  long step = 1, num_steps = INT_MAX;
+  long step = 1;
   while ((tcurr < tend) && (step <= num_steps)) {
     gkyl_vlasov_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
@@ -512,10 +707,22 @@ static struct luaL_Reg vm_app_ctor[] = {
 
 // App methods
 static struct luaL_Reg vm_app_funcs[] = {
-  { "run", vm_app_run },
   { "apply_ic", vm_app_apply_ic },
+  { "apply_ic_field", vm_app_apply_ic_field },
+  { "apply_ic_species", vm_app_apply_ic_species },
+  { "calc_mom", vm_app_calc_mom },
+  { "calc_integrated_mom", vm_app_calc_integrated_mom },
+  { "calc_integrated_L2_f", vm_app_calc_integrated_L2_f },
+  { "calc_field_energy", vm_app_calc_field_energy },
   { "write", vm_app_write },
+  { "write_field", vm_app_write_field },
+  { "write_species", vm_app_write_species },
+  { "write_mom", vm_app_write_mom },
+  { "write_integrated_mom", vm_app_write_integrated_mom },
+  { "write_integrated_L2_f", vm_app_write_integrated_L2_f },
+  { "write_field_energy", vm_app_write_field_energy },
   { "stat_write", vm_app_stat_write },
+  { "run", vm_app_run },
   { 0, 0 }
 };
 
@@ -534,20 +741,20 @@ app_openlibs(lua_State *L)
     lua_setfield(L, -2, "__index");
     luaL_register(L, NULL, vm_app_funcs);
     
-    luaL_register(L, "Plasma.App", vm_app_ctor);
+    luaL_register(L, "G0.Vlasov.App", vm_app_ctor);
     
   } while (0);
 
   // Register Species input struct
   do {
     luaL_newmetatable(L, VLASOV_SPECIES_METATABLE_NM);
-    luaL_register(L, "Plasma.Species", vm_species_ctor);
+    luaL_register(L, "G0.Vlasov.Species", vm_species_ctor);
   } while (0);
 
   // Register Field input struct
   do {
     luaL_newmetatable(L, VLASOV_FIELD_METATABLE_NM);
-    luaL_register(L, "Plasma.Field", vm_field_ctor);
+    luaL_register(L, "G0.Vlasov.Field", vm_field_ctor);
   } while (0);
 }
 
