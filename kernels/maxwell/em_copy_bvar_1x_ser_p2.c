@@ -1,13 +1,14 @@
 #include <gkyl_mat.h> 
 #include <gkyl_maxwell_kernels.h> 
 #include <gkyl_basis_ser_1x_p2_sqrt_with_sign.h> 
-GKYL_CU_DH void em_copy_bvar_1x_ser_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_magB2, double* GKYL_RESTRICT bvar) 
+GKYL_CU_DH void em_copy_bvar_1x_ser_p2(int count, struct gkyl_nmat *x, const double *em, int* cell_avg_magB2, 
+    double* GKYL_RESTRICT bvar, double* GKYL_RESTRICT bvar_surf) 
 { 
   // count:          Integer to indicate which matrix being fetched. 
   // x:              Input solution vector. 
   // em:             Input electromagnetic fields. 
   // cell_avg_magB2: Input flag for cell average if 1/|B|^2 only used cell averages. 
-  // bvar:           Output b_i = B_i/|B| (first 3 components), b_i b_j = B_i B_j/|B|^2 (last 6 components). 
+  // bvar:           Output volume expansion of b_i = B_i/|B| (first 3 components), b_i b_j = B_i B_j/|B|^2 (last 6 components). 
  
   struct gkyl_mat x_bxbx = gkyl_nmat_get(x, count); 
   struct gkyl_mat x_bxby = gkyl_nmat_get(x, count+1); 
@@ -80,5 +81,23 @@ GKYL_CU_DH void em_copy_bvar_1x_ser_p2(int count, struct gkyl_nmat *x, const dou
   ser_1x_p2_sqrt_with_sign(B_x, bxbx, bx); 
   ser_1x_p2_sqrt_with_sign(B_y, byby, by); 
   ser_1x_p2_sqrt_with_sign(B_z, bzbz, bz); 
+  double *bx_xl = &bvar_surf[0]; 
+  double *bx_xr = &bvar_surf[1]; 
+  double *bxbx_xl = &bvar_surf[2]; 
+  double *bxbx_xr = &bvar_surf[3]; 
+  double *bxby_xl = &bvar_surf[4]; 
+  double *bxby_xr = &bvar_surf[5]; 
+  double *bxbz_xl = &bvar_surf[6]; 
+  double *bxbz_xr = &bvar_surf[7]; 
+ 
+  bx_xl[0] = 1.58113883008419*bx[2]-1.224744871391589*bx[1]+0.7071067811865475*bx[0]; 
+  bx_xr[0] = 1.58113883008419*bx[2]+1.224744871391589*bx[1]+0.7071067811865475*bx[0]; 
+  bxbx_xl[0] = 1.58113883008419*bxbx[2]-1.224744871391589*bxbx[1]+0.7071067811865475*bxbx[0]; 
+  bxbx_xr[0] = 1.58113883008419*bxbx[2]+1.224744871391589*bxbx[1]+0.7071067811865475*bxbx[0]; 
+  bxby_xl[0] = 1.58113883008419*bxby[2]-1.224744871391589*bxby[1]+0.7071067811865475*bxby[0]; 
+  bxby_xr[0] = 1.58113883008419*bxby[2]+1.224744871391589*bxby[1]+0.7071067811865475*bxby[0]; 
+  bxbz_xl[0] = 1.58113883008419*bxbz[2]-1.224744871391589*bxbz[1]+0.7071067811865475*bxbz[0]; 
+  bxbz_xr[0] = 1.58113883008419*bxbz[2]+1.224744871391589*bxbz[1]+0.7071067811865475*bxbz[0]; 
+ 
 } 
  

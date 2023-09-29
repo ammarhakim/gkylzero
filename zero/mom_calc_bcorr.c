@@ -54,7 +54,7 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
   enum gkyl_vel_edge edge;
   
   for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
-  gkyl_array_clear_range(out, 0.0, *conf_rng);
+  gkyl_array_clear_range(out, 0.0, conf_rng);
 
   // outer loop is over configuration space cells; for each
   // config-space cell inner loop walks over the edges of velocity

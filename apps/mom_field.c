@@ -298,7 +298,7 @@ moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
     fld->cflrate, rhs);
 
   double omegaCfl[1];
-  gkyl_array_reduce_range(omegaCfl, fld->cflrate, GKYL_MAX, app->local);
+  gkyl_array_reduce_range(omegaCfl, fld->cflrate, GKYL_MAX, &(app->local));
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(tm);
   

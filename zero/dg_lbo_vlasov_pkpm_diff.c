@@ -28,15 +28,15 @@ gkyl_lbo_vlasov_pkpm_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, const str
 {
 
 #ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(auxin.nu) && gkyl_array_is_cu_dev(auxin.nuVtSq)) {
+ if (gkyl_array_is_cu_dev(auxin.nuSum) && gkyl_array_is_cu_dev(auxin.nuPrimMomsSum)) {
    gkyl_lbo_vlasov_pkpm_diff_set_auxfields_cu(eqn->on_dev, auxin);
    return;
  }
 #endif
 
   struct dg_lbo_vlasov_pkpm_diff *lbo_vlasov_pkpm_diff = container_of(eqn, struct dg_lbo_vlasov_pkpm_diff, eqn);
-  lbo_vlasov_pkpm_diff->auxfields.nu = auxin.nu;
-  lbo_vlasov_pkpm_diff->auxfields.nuVtSq = auxin.nuVtSq;
+  lbo_vlasov_pkpm_diff->auxfields.nuSum = auxin.nuSum;
+  lbo_vlasov_pkpm_diff->auxfields.nuPrimMomsSum = auxin.nuPrimMomsSum;
 }
 
 struct gkyl_dg_eqn*
@@ -94,10 +94,11 @@ gkyl_dg_lbo_vlasov_pkpm_diff_new(const struct gkyl_basis* cbasis, const struct g
   assert(lbo_vlasov_pkpm_diff->surf);
   assert(lbo_vlasov_pkpm_diff->boundary_surf);
 
-  lbo_vlasov_pkpm_diff->auxfields.nu = 0;
-  lbo_vlasov_pkpm_diff->auxfields.nuVtSq = 0;
+  lbo_vlasov_pkpm_diff->auxfields.nuSum = 0;
+  lbo_vlasov_pkpm_diff->auxfields.nuPrimMomsSum = 0;
   lbo_vlasov_pkpm_diff->conf_range = *conf_range;
   lbo_vlasov_pkpm_diff->vMaxSq = pow(pgrid->upper[cdim],2);
+  lbo_vlasov_pkpm_diff->num_cbasis = cbasis->num_basis;
 
   lbo_vlasov_pkpm_diff->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(lbo_vlasov_pkpm_diff->eqn.flags);

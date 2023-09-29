@@ -54,7 +54,7 @@ gkyl_prim_lbo_calc_advance(struct gkyl_prim_lbo_calc* calc,
     calc->is_first = false;
   }
 
-  gkyl_array_clear_range(prim_moms_out, 0.0, *conf_rng);
+  gkyl_array_clear_range(prim_moms_out, 0.0, conf_rng);
 
   // loop over configuration space cells.
   gkyl_range_iter_init(&conf_iter, conf_rng);

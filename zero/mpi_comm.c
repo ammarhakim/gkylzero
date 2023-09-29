@@ -207,7 +207,7 @@ array_sync(struct gkyl_comm *comm,
         gkyl_mem_buff_resize(mpi->send[nsidx].buff, send_vol);
       
       gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->send[nsidx].buff),
-        array, mpi->send[nsidx].range);
+        array, &(mpi->send[nsidx].range));
       
       MPI_Isend(gkyl_mem_buff_data(mpi->send[nsidx].buff),
         send_vol, MPI_CHAR, nid, tag, mpi->mcomm, &mpi->send[nsidx].status);
@@ -231,7 +231,7 @@ array_sync(struct gkyl_comm *comm,
       
       gkyl_array_copy_from_buffer(array,
         gkyl_mem_buff_data(mpi->recv[r].buff),
-        mpi->recv[r].range
+        &(mpi->recv[r].range)
       );
     }
   }
@@ -335,7 +335,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
               gkyl_mem_buff_resize(mpi->send[nsidx].buff, send_vol);
             
             gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->send[nsidx].buff),
-              array, mpi->send[nsidx].range);
+              array, &(mpi->send[nsidx].range));
 
             int tag = per_send_tag(&mpi->dir_edge, dir, e);
             MPI_Isend(gkyl_mem_buff_data(mpi->send[nsidx].buff),
@@ -363,7 +363,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
       
       gkyl_array_copy_from_buffer(array,
         gkyl_mem_buff_data(mpi->recv[r].buff),
-        mpi->recv[r].range
+        &(mpi->recv[r].range)
       );
     }
   }
