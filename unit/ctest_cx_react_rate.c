@@ -113,7 +113,7 @@ test_cx_react_rate()
   gkyl_proj_on_basis_advance(projOnes, 0.0, &confRange, b_hat);
 
   gkyl_dg_mul_op_range(basis, 0, m2_temp, 0, uIon, 0, uIon, &confRange);
-  gkyl_array_accumulate_range(m2_temp, 1.0, vtSqIon, confRange);
+  gkyl_array_accumulate_range(m2_temp, 1.0, vtSqIon, &confRange);
   gkyl_dg_mul_op_range(basis, 0, m2_temp, 0, m2_temp, 0, m0, &confRange);
 
   gkyl_array_set_offset(moms_ion, 1.0, m0, 0);
@@ -122,7 +122,7 @@ test_cx_react_rate()
   gkyl_array_set_offset(moms_ion, 1.0, m2_temp, 2*basis.num_basis);
 
   gkyl_dg_mul_op_range(basis, 0, m2_temp, 0, uNeut, 0, uNeut, &confRange);
-  gkyl_array_accumulate_range(m2_temp, 1.0, vtSqNeut, confRange);
+  gkyl_array_accumulate_range(m2_temp, 1.0, vtSqNeut, &confRange);
   gkyl_dg_mul_op_range(basis, 0, m2_temp, 0, m2_temp, 0, m0, &confRange); 
 
   gkyl_array_set_offset(moms_neut, 1.0, m0, 0);

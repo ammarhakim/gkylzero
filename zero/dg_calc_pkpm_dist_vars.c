@@ -39,7 +39,7 @@ gkyl_dg_calc_pkpm_dist_vars_new(const struct gkyl_rect_grid *phase_grid,
 
 void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_prim_moms_sum, 
   const struct gkyl_array* div_b, const struct gkyl_array* pkpm_accel, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1)
@@ -48,7 +48,7 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars
   if (gkyl_array_is_cu_dev(g_dist_source)) {
     return gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(up, 
       conf_range, phase_range, 
-      pkpm_prim, nu_vthsq, div_b, pkpm_accel, 
+      pkpm_prim, nu_prim_moms_sum, div_b, pkpm_accel, 
       fIn, F_k_p_1, g_dist_source, F_k_m_1);
   }
 #endif  
@@ -63,7 +63,7 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars
     long loc_phase = gkyl_range_idx(phase_range, iter.idx);
 
     const double *pkpm_prim_d = gkyl_array_cfetch(pkpm_prim, loc_conf);
-    const double *nu_vthsq_d = gkyl_array_cfetch(nu_vthsq, loc_conf);
+    const double *nu_prim_moms_sum_d = gkyl_array_cfetch(nu_prim_moms_sum, loc_conf);
     const double *div_b_d = gkyl_array_cfetch(div_b, loc_conf);
     const double *pkpm_accel_d = gkyl_array_cfetch(pkpm_accel, loc_conf);
     const double *fIn_d = gkyl_array_cfetch(fIn, loc_phase);
@@ -73,7 +73,7 @@ void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars
     double *F_k_m_1_d = gkyl_array_fetch(F_k_m_1, loc_phase);
 
     up->pkpm_dist_mirror_force(xc, up->phase_grid.dx, 
-      pkpm_prim_d, nu_vthsq_d, div_b_d, pkpm_accel_d, 
+      pkpm_prim_d, nu_prim_moms_sum_d, div_b_d, pkpm_accel_d, 
       fIn_d, F_k_p_1_d, g_dist_source_d, F_k_m_1_d);
   }  
 }

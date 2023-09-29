@@ -256,7 +256,7 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
   // labels for three cells to left, three cells to right of edge:
   enum { I3M, I2M, IM, IP, I2P, I3P };
 
-  gkyl_array_clear_range(rhs, 0.0, *update_range);
+  gkyl_array_clear_range(rhs, 0.0, update_range);
   
   // outer loop is over direction: the RHS is updated direction
   // by direction

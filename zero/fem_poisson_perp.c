@@ -243,15 +243,15 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
 
 #ifdef GKYL_HAVE_CUDA
       if (up->use_gpu) {
-        gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->perp_range[paridx]);
+        gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
         gkyl_cu_memcpy(up->rhs_avg, up->rhs_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
       } else {
-        gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->perp_range[paridx]);
+        gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
       }
 #else
-      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, up->perp_range[paridx]);
+      gkyl_array_reduce_range(up->rhs_avg, up->rhs_cellavg, GKYL_SUM, &(up->perp_range[paridx]));
 #endif
-      gkyl_array_shiftc_range(rhsin, up->mavgfac*up->rhs_avg[0], 0, up->perp_range[paridx]);
+      gkyl_array_shiftc_range(rhsin, up->mavgfac*up->rhs_avg[0], 0, &(up->perp_range[paridx]));
     }
   }
 

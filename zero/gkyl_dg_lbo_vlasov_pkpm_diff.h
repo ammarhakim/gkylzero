@@ -8,8 +8,8 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields { 
-  const struct gkyl_array *nu;
-  const struct gkyl_array *nuVtSq;
+  const struct gkyl_array *nuSum;
+  const struct gkyl_array *nuPrimMomsSum;
 };
 
 /**

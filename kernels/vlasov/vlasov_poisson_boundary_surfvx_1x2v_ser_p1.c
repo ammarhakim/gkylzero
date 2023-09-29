@@ -1,12 +1,11 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_hyb_1x2v_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_hyb_1x2v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double vlasov_poisson_boundary_surfvx_1x2v_ser_p1(const double *w, const double *dxv, const double *field, const double *ext_field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_boundary_surfvx_1x2v_ser_p1(const double *w, const double *dxv, const double *field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
   // dxv[NDIM]:   Cell spacing.
   // field:       potential (scaled by appropriate factors).
-  // ext_field:   vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
   // edge:        Determines if the update is for the left edge (-1) or right edge (+1).
   // fSkin/fEdge: Input Distribution function in skin cell/last edge cell 
   // out:         Output distribution function in skin cell 

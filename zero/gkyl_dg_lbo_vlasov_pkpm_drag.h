@@ -8,14 +8,16 @@
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields {
-  const struct gkyl_array *nu;
-  const struct gkyl_array *nuVtSq;
+  const struct gkyl_array *nuSum;
+  const struct gkyl_array *nuPrimMomsSum;
 };
 
 /**
  * Create a new LBO drag term equation object for Vlasov equation in 
  * parallel-kinetic-perpendicular-moment (pkpm) model.
- * Note that pkpm model is in local rest frame so drag term is only div_v(v f).
+ * Note that pkpm model is in local rest frame but drag term requires
+ * correction div((v - M1_corr)f) to insure momentum conservation and 
+ * no spurious flow generation
  *
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis functions

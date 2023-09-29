@@ -124,10 +124,10 @@ test_1x(int poly_order, bool use_gpu)
   gkyl_spitzer_coll_freq *spitz_up = gkyl_spitzer_coll_freq_new(&basis, poly_order+1, nufrac, epsilon_0, hbar, use_gpu);
 
   if (use_gpu) {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs_cu, m0r_cu, vtsqr_cu, norm_nu, nu_cu);
+    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs_cu, 0., m0r_cu, vtsqr_cu, 0., norm_nu, nu_cu);
     gkyl_array_copy(nu, nu_cu);
   } else {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs, m0r, vtsqr, norm_nu, nu);
+    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs, 0., m0r, vtsqr, 0., norm_nu, nu);
   }
 
   // Project expected collision frequency and compare.
@@ -271,10 +271,10 @@ test_2x(int poly_order, bool use_gpu)
   gkyl_spitzer_coll_freq *spitz_up = gkyl_spitzer_coll_freq_new(&basis, poly_order+1, nufrac, epsilon_0, hbar, use_gpu);
 
   if (use_gpu) {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs_cu, m0r_cu, vtsqr_cu, norm_nu, nu_cu);
+    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs_cu, 0., m0r_cu, vtsqr_cu, 0., norm_nu, nu_cu);
     gkyl_array_copy(nu, nu_cu);
   } else {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs, m0r, vtsqr, norm_nu, nu);
+    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs, 0., m0r, vtsqr, 0., norm_nu, nu);
   }
 
   // Project expected collision frequency and compare.
@@ -420,10 +420,10 @@ test_3x(int poly_order, bool use_gpu)
   gkyl_spitzer_coll_freq *spitz_up = gkyl_spitzer_coll_freq_new(&basis, poly_order+1, nufrac, epsilon_0, hbar, use_gpu);
 
   if (use_gpu) {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs_cu, m0r_cu, vtsqr_cu, norm_nu, nu_cu);
+    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs_cu, 0., m0r_cu, vtsqr_cu, 0., norm_nu, nu_cu);
     gkyl_array_copy(nu, nu_cu);
   } else {
-    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs, m0r, vtsqr, norm_nu, nu);
+    gkyl_spitzer_coll_freq_advance_normnu(spitz_up, &local, vtsqs, 0., m0r, vtsqr, 0., norm_nu, nu);
   }
 
   // Project expected collision frequency and compare.

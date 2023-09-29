@@ -19,12 +19,10 @@ typedef double (*vlasov_stream_boundary_surf_t)(const double *w, const double *d
   const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_accel_surf_t)(const double *w, const double *dxv,
-  const double *field, const double *ext_field, 
-  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
+  const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_accel_boundary_surf_t)(const double *w, const double *dxv,
-  const double *field, const double *ext_field, 
-  const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
+  const double *field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -378,7 +376,6 @@ kernel_vlasov_poisson_extem_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_1x1v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -392,7 +389,6 @@ kernel_vlasov_poisson_extem_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_1x1v_ser_p2(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -406,7 +402,6 @@ kernel_vlasov_poisson_extem_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_1x2v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -420,7 +415,6 @@ kernel_vlasov_poisson_extem_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_1x2v_ser_p2(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -434,7 +428,6 @@ kernel_vlasov_poisson_extem_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_1x3v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -448,7 +441,6 @@ kernel_vlasov_poisson_extem_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_1x3v_ser_p2(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -462,7 +454,6 @@ kernel_vlasov_poisson_extem_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_2x2v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -476,7 +467,6 @@ kernel_vlasov_poisson_extem_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_2x2v_ser_p2(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -490,7 +480,6 @@ kernel_vlasov_poisson_extem_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_2x3v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -504,7 +493,6 @@ kernel_vlasov_poisson_extem_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_2x3v_ser_p2(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -518,7 +506,6 @@ kernel_vlasov_poisson_extem_vol_3x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const
   long cidx = gkyl_range_idx(&vlasov->conf_range, idx);
   return vlasov_poisson_extem_vol_3x3v_ser_p1(xc, dx,
     (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx), 
     qIn, qRhsOut);
 }
 
@@ -1109,7 +1096,6 @@ surf(const struct gkyl_dg_eqn *eqn,
     return vlasov->accel_surf[dir-vlasov->cdim]
       (xcC, dxC,
         vlasov->auxfields.field ? (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx) : 0,
-        vlasov->auxfields.ext_field ? (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx) : 0,
         qInL, qInC, qInR, qRhsOut);
   }
 }
@@ -1136,7 +1122,6 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
     return vlasov->accel_boundary_surf[dir-vlasov->cdim]
       (xcSkin, dxSkin,
         vlasov->auxfields.field ? (const double*) gkyl_array_cfetch(vlasov->auxfields.field, cidx) : 0,
-        vlasov->auxfields.ext_field ? (const double*) gkyl_array_cfetch(vlasov->auxfields.ext_field, cidx) : 0,
         edge, qInEdge, qInSkin, qRhsOut);
   }
   return 0.;

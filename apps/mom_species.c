@@ -359,7 +359,7 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
       species->cflrate, rhs);
 
   double omegaCfl[1];
-  gkyl_array_reduce_range(omegaCfl, species->cflrate, GKYL_MAX, app->local);
+  gkyl_array_reduce_range(omegaCfl, species->cflrate, GKYL_MAX, &(app->local));
 
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
   

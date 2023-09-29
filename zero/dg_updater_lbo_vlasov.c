@@ -60,9 +60,9 @@ gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
   // Set arrays needed
   if (lbo->model_id == GKYL_MODEL_PKPM) {
     gkyl_lbo_vlasov_pkpm_drag_set_auxfields(lbo->coll_drag,
-      (struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields) { .nu = nu_sum, .nuVtSq = nu_prim_moms });
+      (struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields) { .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms });
     gkyl_lbo_vlasov_pkpm_diff_set_auxfields(lbo->coll_diff,
-      (struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields) { .nu = nu_sum, .nuVtSq = nu_prim_moms });
+      (struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields) { .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms });
   }
   else {
     gkyl_lbo_vlasov_drag_set_auxfields(lbo->coll_drag,
@@ -111,9 +111,9 @@ gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
   // Set arrays needed
   if (lbo->model_id == GKYL_MODEL_PKPM) {
     gkyl_lbo_vlasov_pkpm_drag_set_auxfields(lbo->coll_drag,
-      (struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields) { .nu = nu_sum, .nuVtSq = nu_prim_moms });
+      (struct gkyl_dg_lbo_vlasov_pkpm_drag_auxfields) { .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms });
     gkyl_lbo_vlasov_pkpm_diff_set_auxfields(lbo->coll_diff,
-      (struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields) { .nu = nu_sum, .nuVtSq = nu_prim_moms });
+      (struct gkyl_dg_lbo_vlasov_pkpm_diff_auxfields) { .nuSum = nu_sum, .nuPrimMomsSum = nu_prim_moms });
   }
   else {
     gkyl_lbo_vlasov_drag_set_auxfields(lbo->coll_drag,

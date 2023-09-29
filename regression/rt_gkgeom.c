@@ -236,7 +236,7 @@ psi_wham(double t, const double *xn, double *fout, void *ctx)
 }
 
 void
-wham_rt(void)
+wham_2l_rt(void)
 {
   fprintf(stdout, "---- WHAM Configuration\n");
   
@@ -335,11 +335,93 @@ wham_rt(void)
   gkyl_array_release(psiRZ);
 }
 
+void
+wham_beta0_rt(void)
+{
+  fprintf(stdout, "---- WHAM beta-0 Configuration\n");
+  
+  struct gkyl_rect_grid rzgrid;
+  struct gkyl_array *psiRZ =
+    gkyl_grid_array_new_from_file(&rzgrid, "psi_dg.gkyl");
+
+  // RZ ranges
+  struct gkyl_range rzlocal, rzlocal_ext;
+  int nghost[GKYL_MAX_CDIM] = { 0, 0 };
+  gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);  
+  
+  // RZ basis function
+  int rzpoly_order = 2;
+  struct gkyl_basis rzbasis;
+  gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);  
+  
+  gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp) {
+      // psiRZ and related inputs
+      .rzgrid = &rzgrid,
+      .rzbasis = &rzbasis,
+      .psiRZ = psiRZ,
+      .rzlocal = &rzlocal
+    }
+  );
+
+  int cum_nroots = 0;
+
+  do {
+    // compute outboard SOL geometry
+    int npsi = 10, ntheta = 16;
+    //double psi_min = 1.0e-4, psi_max = 3.16726875e-03;
+    double psi_min = 0.0e-6, psi_max = 3.16726875e-03;    
+    double dpsi = (psi_max-psi_min)/npsi;
+    double dtheta = M_PI/ntheta;
+  
+    // Computational grid: theta X psi X alpha (only 2D for now)
+    double clower[] = { -M_PI/2, psi_min };
+    double cupper[] = { M_PI/2, psi_max };
+    int ccells[] = { 16, 10 };
+    
+    struct gkyl_rect_grid cgrid;
+    gkyl_rect_grid_init(&cgrid, 2, clower, cupper, ccells);
+
+    // create mpc2p DG array
+    struct gkyl_range clocal, clocal_ext;
+    gkyl_create_grid_ranges(&cgrid, (int[]) { 0, 0, 0 },
+      &clocal_ext, &clocal);
+
+    int cpoly_order = 2;
+    struct gkyl_basis cbasis;
+    gkyl_cart_modal_serendip(&cbasis, 2, cpoly_order);
+    struct gkyl_array *mapc2p = gkyl_array_new(GKYL_DOUBLE, 2*cbasis.num_basis, clocal_ext.volume);
+    
+    struct gkyl_gkgeom_geo_inp ginp = {
+      .cgrid = &cgrid,
+      .cbasis = &cbasis,
+      .ftype = GKYL_SOL_DN,
+      .rclose = rzgrid.upper[0],
+      .zmin = -2.0, //rzgrid.lower[1],
+      .zmax = 2.0, //rzgrid.upper[1],
+    
+      .write_node_coord_array = true,
+      .node_file_nm = "wham_out_sol_nod.gkyl"
+    };
+
+    gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
+    
+    struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
+    fprintf(stdout, "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
+      stat.nquad_cont_calls-cum_nroots, stat.nroot_cont_calls);
+
+    gkyl_array_release(mapc2p);
+  } while(0);
+
+  gkyl_gkgeom_release(geo);
+  gkyl_array_release(psiRZ);  
+}
+
 int
 main(int argc, char **argcv)
 {
   cerforn_rt();
-  wham_rt();
+  wham_2l_rt();
+  //wham_beta0_rt();
   
   return 0;
 }

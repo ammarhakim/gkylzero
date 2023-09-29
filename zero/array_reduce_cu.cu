@@ -91,11 +91,11 @@ gkyl_array_reduce_max_cu(double *out_d, const struct gkyl_array* inp)
 }
 
 void
-gkyl_array_reduce_range_max_cu(double *out_d, const struct gkyl_array* inp, struct gkyl_range range)
+gkyl_array_reduce_range_max_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_range *range)
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
-  int nblocks = gkyl_int_div_up(range.volume, nthreads);
-  arrayMax_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, range, out_d);
+  int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  arrayMax_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, *range, out_d);
   // device synchronize required because out_d may be host pinned memory
   cudaDeviceSynchronize();
 }
@@ -182,11 +182,11 @@ gkyl_array_reduce_min_cu(double *out_d, const struct gkyl_array* inp)
 }
 
 void
-gkyl_array_reduce_range_min_cu(double *out_d, const struct gkyl_array* inp, struct gkyl_range range)
+gkyl_array_reduce_range_min_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_range *range)
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
-  int nblocks = gkyl_int_div_up(range.volume, nthreads);
-  arrayMin_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, range, out_d);
+  int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  arrayMin_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, *range, out_d);
   // device synchronize required because out_d may be host pinned memory
   cudaDeviceSynchronize();
 }
@@ -260,11 +260,11 @@ gkyl_array_reduce_sum_cu(double *out_d, const struct gkyl_array* inp)
 }
 
 void
-gkyl_array_reduce_range_sum_cu(double *out_d, const struct gkyl_array* inp, struct gkyl_range range)
+gkyl_array_reduce_range_sum_cu(double *out_d, const struct gkyl_array* inp, const struct gkyl_range *range)
 {
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
-  int nblocks = gkyl_int_div_up(range.volume, nthreads);
-  arraySum_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, range, out_d);
+  int nblocks = gkyl_int_div_up(range->volume, nthreads);
+  arraySum_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, *range, out_d);
   // device synchronize required because out_d may be host pinned memory
   cudaDeviceSynchronize();
 }

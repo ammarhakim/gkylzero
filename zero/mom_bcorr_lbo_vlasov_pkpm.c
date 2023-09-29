@@ -66,7 +66,7 @@ gkyl_mom_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_basis* cbasis, const struct
   }
 
   mom_bcorr->momt.kernel = CK(mom_bcorr_lbo_vlasov_pkpm_kernels, cdim, poly_order);
-  mom_bcorr->momt.num_mom = 1;
+  mom_bcorr->momt.num_mom = 2;
 
   mom_bcorr->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flags);

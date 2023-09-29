@@ -229,14 +229,14 @@ void test_bc(int cdim, int vdim, int poly_order, char *boundary_type, bool useGP
 
       // Flip the skin value in velocity space to apply reflect BC to skin cell
       gkyl_array_flip_copy_to_buffer_fn(bc_buffer->data, distf_flip, cdim+d,
-        skin_ghost.lower_skin[d], &(struct gkyl_array_copy_func) 
+        &(skin_ghost.lower_skin[d]), &(struct gkyl_array_copy_func) 
         { .func = buffer_fn, .ctx = 0 });
-      gkyl_array_copy_from_buffer(distf_flip, bc_buffer->data, skin_ghost.lower_skin[d]);
+      gkyl_array_copy_from_buffer(distf_flip, bc_buffer->data, &(skin_ghost.lower_skin[d]));
 
       gkyl_array_flip_copy_to_buffer_fn(bc_buffer->data, distf_flip, cdim+d,
-        skin_ghost.upper_skin[d], &(struct gkyl_array_copy_func)
+       &( skin_ghost.upper_skin[d]), &(struct gkyl_array_copy_func)
         { .func = buffer_fn, .ctx = 0 });
-      gkyl_array_copy_from_buffer(distf_flip, bc_buffer->data, skin_ghost.upper_skin[d]);
+      gkyl_array_copy_from_buffer(distf_flip, bc_buffer->data, &(skin_ghost.upper_skin[d]));
     }
     while (gkyl_range_iter_next(&iter)) {
       // Find the index and value of f at the ghost and adjacent skin cells

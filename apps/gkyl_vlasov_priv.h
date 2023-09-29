@@ -249,6 +249,11 @@ struct vm_species {
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
+  // To simplify BC application, store local skin and ghost ranges
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
   bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
                      // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range 
 
@@ -302,15 +307,10 @@ struct vm_field {
   struct gkyl_array *cell_avg_magB2; // Integer array for whether |B|^2 *only* uses cell averages for weak division
                                      // Determined when constructing the matrix if |B|^2 < 0.0 at control points
   struct gkyl_array *bvar; // magnetic field unit vector and tensor (diagnostic and for use in pkpm model)
-  struct gkyl_array *ExB; // E x B velocity = E x B/|B|^2 (diagnostic and for use in relativistic pkpm model)
-  struct gkyl_array *cell_avg_magB2_surf; // Integer array for whether |B|^2 *only* uses cell averages for weak division on a surface
-                                          // 2*cdim components, defined on each individual surface (xl, xr, yl, yr, zl, & zr)
-                                          // Determined when constructing the matrix if |B|^2 < 0.0 at control points
   struct gkyl_array *bvar_surf; // Surface expansion magnetic field unit vector and tensor (for use in pkpm model)
   struct gkyl_array *div_b; // Volume expansion of div(b) (for use in pkpm model)
   struct gkyl_array *max_b; // max(|b_i|) penalization (for use in pkpm model)
   struct gkyl_dg_calc_em_vars *calc_bvar; // Updater to compute magnetic field unit vector and tensor
-  struct gkyl_dg_calc_em_vars *calc_ExB; // Updater to compute ExB velocity
 
   gkyl_hyper_dg *slvr; // Maxwell solver
 
@@ -325,6 +325,11 @@ struct vm_field {
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
+  // To simplify BC application, store local skin and ghost ranges
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
   double* omegaCfl_ptr;
 };
@@ -376,6 +381,11 @@ struct vm_fluid_species {
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
+  // To simplify BC application, store local skin and ghost ranges
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
   bool bc_is_absorb; // boolean for absorbing BCs since 1/rho is undefined in absorbing BCs
                      // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range 
 

@@ -55,7 +55,7 @@ test_1()
 
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, ext_range.volume);
 
-  gkyl_array_clear_range(distf, 1.0, range);
+  gkyl_array_clear_range(distf, 1.0, &range);
 
   // check if ghost-cells on left/right edges of domain are 0.0
   double *data = distf->data;
@@ -113,7 +113,7 @@ test_2()
   struct gkyl_array *distf = gkyl_array_new(GKYL_DOUBLE, 1, ext_range.volume);
 
   // clear interior of array
-  gkyl_array_clear_range(distf, 1.0, range);
+  gkyl_array_clear_range(distf, 1.0, &range);
 
   // check if only interior is cleared
   struct gkyl_range_iter iter;
@@ -186,7 +186,7 @@ test_3()
 
   // clear interior of array
   gkyl_array_clear(distf, 0.0);
-  gkyl_array_clear_range(distf, 1.0, range);
+  gkyl_array_clear_range(distf, 1.0, &range);
 
   // check if only interior is cleared
   struct gkyl_range_iter iter;
@@ -224,7 +224,7 @@ test_3()
   /** apply BCs on restricted range: test 2 */
 
   gkyl_array_clear(distf, 0.0);
-  gkyl_array_clear_range(distf, 1.0, range);
+  gkyl_array_clear_range(distf, 1.0, &range);
   
   gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 2, 1 }, (int []) { 8, 4 });
 
@@ -249,7 +249,7 @@ test_3()
   /** apply BCs on restricted range: test 3 */
 
   gkyl_array_clear(distf, 0.0);
-  gkyl_array_clear_range(distf, 1.0, range);
+  gkyl_array_clear_range(distf, 1.0, &range);
   
   gkyl_sub_range_init(&sub_range, &ext_range, (int []) { 2, 2 }, (int []) { 8, 4 });
 

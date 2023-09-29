@@ -1,12 +1,15 @@
 #include <gkyl_lbo_vlasov_pkpm_kernels.h> 
-GKYL_CU_DH double lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p1(const double *w, const double *dxv, const double *nuVtSq, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  // w[3]:         cell-center coordinates. 
-  // dxv[3]:       cell spacing. 
-  // nuVtSqSum[4]: Sum of thermal speeds squared time their respective collisionalities. 
+  // w[NDIM]:       Cell-center coordinates. 
+  // dxv[NDIM]:     Cell spacing. 
+  // nuSum:         Collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum: Sum of bulk velocities and thermal speeds (squared) times their respective collisionalities. 
   // fl/fc/fr:      Input Distribution function [F_0, T_perp G = T_perp (F_1 - F_0)] in left/center/right cells 
-  // out:           Incremented distribution function in cell 
+  // out:           Incremented distribution functions in center cell. 
   double rdvSq4 = 4.0/(dxv[2]*dxv[2]); 
+  const double *nuVtSqSum = &nuPrimMomsSum[4];
+
   const double *F_0l = &fl[0]; 
   const double *G_1l = &fl[12]; 
   const double *F_0c = &fc[0]; 
@@ -45,30 +48,30 @@ GKYL_CU_DH double lbo_vlasov_pkpm_diff_surfvpar_2x1v_ser_p1(const double *w, con
   G_1_xx[10] = (-0.140625*G_1r[10])-0.140625*G_1l[10]-6.28125*G_1c[10]-0.3025768239224544*G_1r[6]+0.3025768239224544*G_1l[6]+0.4192627457812105*G_1r[2]+0.4192627457812105*G_1l[2]-0.8385254915624211*G_1c[2]; 
   G_1_xx[11] = (-0.140625*G_1r[11])-0.140625*G_1l[11]-6.28125*G_1c[11]-0.3025768239224545*G_1r[7]+0.3025768239224545*G_1l[7]+0.4192627457812106*G_1r[4]+0.4192627457812106*G_1l[4]-0.8385254915624212*G_1c[4]; 
 
-  incr_F_0[0] = 0.5*nuVtSq[3]*F_0_xx[4]+0.5*F_0_xx[2]*nuVtSq[2]+0.5*F_0_xx[1]*nuVtSq[1]+0.5*F_0_xx[0]*nuVtSq[0]; 
-  incr_F_0[1] = 0.5*nuVtSq[2]*F_0_xx[4]+0.5*F_0_xx[2]*nuVtSq[3]+0.5*F_0_xx[0]*nuVtSq[1]+0.5*nuVtSq[0]*F_0_xx[1]; 
-  incr_F_0[2] = 0.5*nuVtSq[1]*F_0_xx[4]+0.5*F_0_xx[1]*nuVtSq[3]+0.5*F_0_xx[0]*nuVtSq[2]+0.5*nuVtSq[0]*F_0_xx[2]; 
-  incr_F_0[3] = 0.5*nuVtSq[3]*F_0_xx[7]+0.5*nuVtSq[2]*F_0_xx[6]+0.5*nuVtSq[1]*F_0_xx[5]+0.5*nuVtSq[0]*F_0_xx[3]; 
-  incr_F_0[4] = 0.5*nuVtSq[0]*F_0_xx[4]+0.5*F_0_xx[0]*nuVtSq[3]+0.5*F_0_xx[1]*nuVtSq[2]+0.5*nuVtSq[1]*F_0_xx[2]; 
-  incr_F_0[5] = 0.5*nuVtSq[2]*F_0_xx[7]+0.5*nuVtSq[3]*F_0_xx[6]+0.5*nuVtSq[0]*F_0_xx[5]+0.5*nuVtSq[1]*F_0_xx[3]; 
-  incr_F_0[6] = 0.5*nuVtSq[1]*F_0_xx[7]+0.5*nuVtSq[0]*F_0_xx[6]+0.5*nuVtSq[3]*F_0_xx[5]+0.5*nuVtSq[2]*F_0_xx[3]; 
-  incr_F_0[7] = 0.5*nuVtSq[0]*F_0_xx[7]+0.5*nuVtSq[1]*F_0_xx[6]+0.5*nuVtSq[2]*F_0_xx[5]+0.5*F_0_xx[3]*nuVtSq[3]; 
-  incr_F_0[8] = 0.5*nuVtSq[3]*F_0_xx[11]+0.5000000000000001*nuVtSq[2]*F_0_xx[10]+0.5000000000000001*nuVtSq[1]*F_0_xx[9]+0.5*nuVtSq[0]*F_0_xx[8]; 
-  incr_F_0[9] = 0.5000000000000001*nuVtSq[2]*F_0_xx[11]+0.5*nuVtSq[3]*F_0_xx[10]+0.5*nuVtSq[0]*F_0_xx[9]+0.5000000000000001*nuVtSq[1]*F_0_xx[8]; 
-  incr_F_0[10] = 0.5000000000000001*nuVtSq[1]*F_0_xx[11]+0.5*nuVtSq[0]*F_0_xx[10]+0.5*nuVtSq[3]*F_0_xx[9]+0.5000000000000001*nuVtSq[2]*F_0_xx[8]; 
-  incr_F_0[11] = 0.5*nuVtSq[0]*F_0_xx[11]+0.5000000000000001*nuVtSq[1]*F_0_xx[10]+0.5000000000000001*nuVtSq[2]*F_0_xx[9]+0.5*nuVtSq[3]*F_0_xx[8]; 
-  incr_G_1[0] = 0.5*nuVtSq[3]*G_1_xx[4]+0.5*G_1_xx[2]*nuVtSq[2]+0.5*G_1_xx[1]*nuVtSq[1]+0.5*G_1_xx[0]*nuVtSq[0]; 
-  incr_G_1[1] = 0.5*nuVtSq[2]*G_1_xx[4]+0.5*G_1_xx[2]*nuVtSq[3]+0.5*G_1_xx[0]*nuVtSq[1]+0.5*nuVtSq[0]*G_1_xx[1]; 
-  incr_G_1[2] = 0.5*nuVtSq[1]*G_1_xx[4]+0.5*G_1_xx[1]*nuVtSq[3]+0.5*G_1_xx[0]*nuVtSq[2]+0.5*nuVtSq[0]*G_1_xx[2]; 
-  incr_G_1[3] = 0.5*nuVtSq[3]*G_1_xx[7]+0.5*nuVtSq[2]*G_1_xx[6]+0.5*nuVtSq[1]*G_1_xx[5]+0.5*nuVtSq[0]*G_1_xx[3]; 
-  incr_G_1[4] = 0.5*nuVtSq[0]*G_1_xx[4]+0.5*G_1_xx[0]*nuVtSq[3]+0.5*G_1_xx[1]*nuVtSq[2]+0.5*nuVtSq[1]*G_1_xx[2]; 
-  incr_G_1[5] = 0.5*nuVtSq[2]*G_1_xx[7]+0.5*nuVtSq[3]*G_1_xx[6]+0.5*nuVtSq[0]*G_1_xx[5]+0.5*nuVtSq[1]*G_1_xx[3]; 
-  incr_G_1[6] = 0.5*nuVtSq[1]*G_1_xx[7]+0.5*nuVtSq[0]*G_1_xx[6]+0.5*nuVtSq[3]*G_1_xx[5]+0.5*nuVtSq[2]*G_1_xx[3]; 
-  incr_G_1[7] = 0.5*nuVtSq[0]*G_1_xx[7]+0.5*nuVtSq[1]*G_1_xx[6]+0.5*nuVtSq[2]*G_1_xx[5]+0.5*G_1_xx[3]*nuVtSq[3]; 
-  incr_G_1[8] = 0.5*nuVtSq[3]*G_1_xx[11]+0.5000000000000001*nuVtSq[2]*G_1_xx[10]+0.5000000000000001*nuVtSq[1]*G_1_xx[9]+0.5*nuVtSq[0]*G_1_xx[8]; 
-  incr_G_1[9] = 0.5000000000000001*nuVtSq[2]*G_1_xx[11]+0.5*nuVtSq[3]*G_1_xx[10]+0.5*nuVtSq[0]*G_1_xx[9]+0.5000000000000001*nuVtSq[1]*G_1_xx[8]; 
-  incr_G_1[10] = 0.5000000000000001*nuVtSq[1]*G_1_xx[11]+0.5*nuVtSq[0]*G_1_xx[10]+0.5*nuVtSq[3]*G_1_xx[9]+0.5000000000000001*nuVtSq[2]*G_1_xx[8]; 
-  incr_G_1[11] = 0.5*nuVtSq[0]*G_1_xx[11]+0.5000000000000001*nuVtSq[1]*G_1_xx[10]+0.5000000000000001*nuVtSq[2]*G_1_xx[9]+0.5*nuVtSq[3]*G_1_xx[8]; 
+  incr_F_0[0] = 0.5*nuVtSqSum[3]*F_0_xx[4]+0.5*F_0_xx[2]*nuVtSqSum[2]+0.5*F_0_xx[1]*nuVtSqSum[1]+0.5*F_0_xx[0]*nuVtSqSum[0]; 
+  incr_F_0[1] = 0.5*nuVtSqSum[2]*F_0_xx[4]+0.5*F_0_xx[2]*nuVtSqSum[3]+0.5*F_0_xx[0]*nuVtSqSum[1]+0.5*nuVtSqSum[0]*F_0_xx[1]; 
+  incr_F_0[2] = 0.5*nuVtSqSum[1]*F_0_xx[4]+0.5*F_0_xx[1]*nuVtSqSum[3]+0.5*F_0_xx[0]*nuVtSqSum[2]+0.5*nuVtSqSum[0]*F_0_xx[2]; 
+  incr_F_0[3] = 0.5*nuVtSqSum[3]*F_0_xx[7]+0.5*nuVtSqSum[2]*F_0_xx[6]+0.5*nuVtSqSum[1]*F_0_xx[5]+0.5*nuVtSqSum[0]*F_0_xx[3]; 
+  incr_F_0[4] = 0.5*nuVtSqSum[0]*F_0_xx[4]+0.5*F_0_xx[0]*nuVtSqSum[3]+0.5*F_0_xx[1]*nuVtSqSum[2]+0.5*nuVtSqSum[1]*F_0_xx[2]; 
+  incr_F_0[5] = 0.5*nuVtSqSum[2]*F_0_xx[7]+0.5*nuVtSqSum[3]*F_0_xx[6]+0.5*nuVtSqSum[0]*F_0_xx[5]+0.5*nuVtSqSum[1]*F_0_xx[3]; 
+  incr_F_0[6] = 0.5*nuVtSqSum[1]*F_0_xx[7]+0.5*nuVtSqSum[0]*F_0_xx[6]+0.5*nuVtSqSum[3]*F_0_xx[5]+0.5*nuVtSqSum[2]*F_0_xx[3]; 
+  incr_F_0[7] = 0.5*nuVtSqSum[0]*F_0_xx[7]+0.5*nuVtSqSum[1]*F_0_xx[6]+0.5*nuVtSqSum[2]*F_0_xx[5]+0.5*F_0_xx[3]*nuVtSqSum[3]; 
+  incr_F_0[8] = 0.5*nuVtSqSum[3]*F_0_xx[11]+0.5000000000000001*nuVtSqSum[2]*F_0_xx[10]+0.5000000000000001*nuVtSqSum[1]*F_0_xx[9]+0.5*nuVtSqSum[0]*F_0_xx[8]; 
+  incr_F_0[9] = 0.5000000000000001*nuVtSqSum[2]*F_0_xx[11]+0.5*nuVtSqSum[3]*F_0_xx[10]+0.5*nuVtSqSum[0]*F_0_xx[9]+0.5000000000000001*nuVtSqSum[1]*F_0_xx[8]; 
+  incr_F_0[10] = 0.5000000000000001*nuVtSqSum[1]*F_0_xx[11]+0.5*nuVtSqSum[0]*F_0_xx[10]+0.5*nuVtSqSum[3]*F_0_xx[9]+0.5000000000000001*nuVtSqSum[2]*F_0_xx[8]; 
+  incr_F_0[11] = 0.5*nuVtSqSum[0]*F_0_xx[11]+0.5000000000000001*nuVtSqSum[1]*F_0_xx[10]+0.5000000000000001*nuVtSqSum[2]*F_0_xx[9]+0.5*nuVtSqSum[3]*F_0_xx[8]; 
+  incr_G_1[0] = 0.5*nuVtSqSum[3]*G_1_xx[4]+0.5*G_1_xx[2]*nuVtSqSum[2]+0.5*G_1_xx[1]*nuVtSqSum[1]+0.5*G_1_xx[0]*nuVtSqSum[0]; 
+  incr_G_1[1] = 0.5*nuVtSqSum[2]*G_1_xx[4]+0.5*G_1_xx[2]*nuVtSqSum[3]+0.5*G_1_xx[0]*nuVtSqSum[1]+0.5*nuVtSqSum[0]*G_1_xx[1]; 
+  incr_G_1[2] = 0.5*nuVtSqSum[1]*G_1_xx[4]+0.5*G_1_xx[1]*nuVtSqSum[3]+0.5*G_1_xx[0]*nuVtSqSum[2]+0.5*nuVtSqSum[0]*G_1_xx[2]; 
+  incr_G_1[3] = 0.5*nuVtSqSum[3]*G_1_xx[7]+0.5*nuVtSqSum[2]*G_1_xx[6]+0.5*nuVtSqSum[1]*G_1_xx[5]+0.5*nuVtSqSum[0]*G_1_xx[3]; 
+  incr_G_1[4] = 0.5*nuVtSqSum[0]*G_1_xx[4]+0.5*G_1_xx[0]*nuVtSqSum[3]+0.5*G_1_xx[1]*nuVtSqSum[2]+0.5*nuVtSqSum[1]*G_1_xx[2]; 
+  incr_G_1[5] = 0.5*nuVtSqSum[2]*G_1_xx[7]+0.5*nuVtSqSum[3]*G_1_xx[6]+0.5*nuVtSqSum[0]*G_1_xx[5]+0.5*nuVtSqSum[1]*G_1_xx[3]; 
+  incr_G_1[6] = 0.5*nuVtSqSum[1]*G_1_xx[7]+0.5*nuVtSqSum[0]*G_1_xx[6]+0.5*nuVtSqSum[3]*G_1_xx[5]+0.5*nuVtSqSum[2]*G_1_xx[3]; 
+  incr_G_1[7] = 0.5*nuVtSqSum[0]*G_1_xx[7]+0.5*nuVtSqSum[1]*G_1_xx[6]+0.5*nuVtSqSum[2]*G_1_xx[5]+0.5*G_1_xx[3]*nuVtSqSum[3]; 
+  incr_G_1[8] = 0.5*nuVtSqSum[3]*G_1_xx[11]+0.5000000000000001*nuVtSqSum[2]*G_1_xx[10]+0.5000000000000001*nuVtSqSum[1]*G_1_xx[9]+0.5*nuVtSqSum[0]*G_1_xx[8]; 
+  incr_G_1[9] = 0.5000000000000001*nuVtSqSum[2]*G_1_xx[11]+0.5*nuVtSqSum[3]*G_1_xx[10]+0.5*nuVtSqSum[0]*G_1_xx[9]+0.5000000000000001*nuVtSqSum[1]*G_1_xx[8]; 
+  incr_G_1[10] = 0.5000000000000001*nuVtSqSum[1]*G_1_xx[11]+0.5*nuVtSqSum[0]*G_1_xx[10]+0.5*nuVtSqSum[3]*G_1_xx[9]+0.5000000000000001*nuVtSqSum[2]*G_1_xx[8]; 
+  incr_G_1[11] = 0.5*nuVtSqSum[0]*G_1_xx[11]+0.5000000000000001*nuVtSqSum[1]*G_1_xx[10]+0.5000000000000001*nuVtSqSum[2]*G_1_xx[9]+0.5*nuVtSqSum[3]*G_1_xx[8]; 
 
   out_F_0[0] += incr_F_0[0]*rdvSq4; 
   out_F_0[1] += incr_F_0[1]*rdvSq4; 

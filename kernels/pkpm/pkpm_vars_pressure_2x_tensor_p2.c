@@ -33,12 +33,6 @@ GKYL_CU_DH void pkpm_vars_pressure_2x_tensor_p2(const double *bvar, const double
   double *Pyz = &p_ij[36]; 
   double *Pzz = &p_ij[45]; 
 
-  const double *bxbx_xl = &bvar_surf[6]; 
-  const double *bxbx_xr = &bvar_surf[9]; 
-  const double *bxby_xl = &bvar_surf[12]; 
-  const double *bxby_xr = &bvar_surf[15]; 
-  const double *bxbz_xl = &bvar_surf[18]; 
-  const double *bxbz_xr = &bvar_surf[21]; 
   double *Pxx_xl = &p_ij_surf[0]; 
   double *Pxx_xr = &p_ij_surf[3]; 
   double *Pxy_xl = &p_ij_surf[6]; 
@@ -46,12 +40,6 @@ GKYL_CU_DH void pkpm_vars_pressure_2x_tensor_p2(const double *bvar, const double
   double *Pxz_xl = &p_ij_surf[12]; 
   double *Pxz_xr = &p_ij_surf[15]; 
 
-  const double *byby_yl = &bvar_surf[30]; 
-  const double *byby_yr = &bvar_surf[33]; 
-  const double *bxby_yl = &bvar_surf[36]; 
-  const double *bxby_yr = &bvar_surf[39]; 
-  const double *bybz_yl = &bvar_surf[42]; 
-  const double *bybz_yr = &bvar_surf[45]; 
   double *Pxy_yl = &p_ij_surf[18]; 
   double *Pxy_yr = &p_ij_surf[21]; 
   double *Pyy_yl = &p_ij_surf[24]; 
@@ -143,131 +131,44 @@ GKYL_CU_DH void pkpm_vars_pressure_2x_tensor_p2(const double *bvar, const double
   Pyz[8] = DP_bybz[8]; 
   Pzz[8] = DP_bzbz[8] + p_perp[8]; 
  
-  double p_par_xl[3] = {0.0}; 
-  double p_par_xr[3] = {0.0}; 
-  double p_par_yl[3] = {0.0}; 
-  double p_par_yr[3] = {0.0}; 
+  Pxx_xl[0] = 1.58113883008419*Pxx[4]-1.224744871391589*Pxx[1]+0.7071067811865475*Pxx[0]; 
+  Pxx_xl[1] = 1.58113883008419*Pxx[6]-1.224744871391589*Pxx[3]+0.7071067811865475*Pxx[2]; 
+  Pxx_xl[2] = 1.58113883008419*Pxx[8]-1.224744871391589*Pxx[7]+0.7071067811865475*Pxx[5]; 
+  Pxy_xl[0] = 1.58113883008419*Pxy[4]-1.224744871391589*Pxy[1]+0.7071067811865475*Pxy[0]; 
+  Pxy_xl[1] = 1.58113883008419*Pxy[6]-1.224744871391589*Pxy[3]+0.7071067811865475*Pxy[2]; 
+  Pxy_xl[2] = 1.58113883008419*Pxy[8]-1.224744871391589*Pxy[7]+0.7071067811865475*Pxy[5]; 
+  Pxz_xl[0] = 1.58113883008419*Pxz[4]-1.224744871391589*Pxz[1]+0.7071067811865475*Pxz[0]; 
+  Pxz_xl[1] = 1.58113883008419*Pxz[6]-1.224744871391589*Pxz[3]+0.7071067811865475*Pxz[2]; 
+  Pxz_xl[2] = 1.58113883008419*Pxz[8]-1.224744871391589*Pxz[7]+0.7071067811865475*Pxz[5]; 
  
-  double p_perp_xl[3] = {0.0}; 
-  double p_perp_xr[3] = {0.0}; 
-  double p_perp_yl[3] = {0.0}; 
-  double p_perp_yr[3] = {0.0}; 
+  Pxx_xr[0] = 1.58113883008419*Pxx[4]+1.224744871391589*Pxx[1]+0.7071067811865475*Pxx[0]; 
+  Pxx_xr[1] = 1.58113883008419*Pxx[6]+1.224744871391589*Pxx[3]+0.7071067811865475*Pxx[2]; 
+  Pxx_xr[2] = 1.58113883008419*Pxx[8]+1.224744871391589*Pxx[7]+0.7071067811865475*Pxx[5]; 
+  Pxy_xr[0] = 1.58113883008419*Pxy[4]+1.224744871391589*Pxy[1]+0.7071067811865475*Pxy[0]; 
+  Pxy_xr[1] = 1.58113883008419*Pxy[6]+1.224744871391589*Pxy[3]+0.7071067811865475*Pxy[2]; 
+  Pxy_xr[2] = 1.58113883008419*Pxy[8]+1.224744871391589*Pxy[7]+0.7071067811865475*Pxy[5]; 
+  Pxz_xr[0] = 1.58113883008419*Pxz[4]+1.224744871391589*Pxz[1]+0.7071067811865475*Pxz[0]; 
+  Pxz_xr[1] = 1.58113883008419*Pxz[6]+1.224744871391589*Pxz[3]+0.7071067811865475*Pxz[2]; 
+  Pxz_xr[2] = 1.58113883008419*Pxz[8]+1.224744871391589*Pxz[7]+0.7071067811865475*Pxz[5]; 
  
-  p_par_xl[0] = 1.58113883008419*p_parallel[4]-1.224744871391589*p_parallel[1]+0.7071067811865475*p_parallel[0]; 
-  p_par_xl[1] = 1.58113883008419*p_parallel[6]-1.224744871391589*p_parallel[3]+0.7071067811865475*p_parallel[2]; 
-  p_par_xl[2] = 1.58113883008419*p_parallel[8]-1.224744871391589*p_parallel[7]+0.7071067811865475*p_parallel[5]; 
-  p_par_xr[0] = 1.58113883008419*p_parallel[4]+1.224744871391589*p_parallel[1]+0.7071067811865475*p_parallel[0]; 
-  p_par_xr[1] = 1.58113883008419*p_parallel[6]+1.224744871391589*p_parallel[3]+0.7071067811865475*p_parallel[2]; 
-  p_par_xr[2] = 1.58113883008419*p_parallel[8]+1.224744871391589*p_parallel[7]+0.7071067811865475*p_parallel[5]; 
-  p_perp_xl[0] = 1.58113883008419*p_perp[4]-1.224744871391589*p_perp[1]+0.7071067811865475*p_perp[0]; 
-  p_perp_xl[1] = 1.58113883008419*p_perp[6]-1.224744871391589*p_perp[3]+0.7071067811865475*p_perp[2]; 
-  p_perp_xl[2] = 1.58113883008419*p_perp[8]-1.224744871391589*p_perp[7]+0.7071067811865475*p_perp[5]; 
-  p_perp_xr[0] = 1.58113883008419*p_perp[4]+1.224744871391589*p_perp[1]+0.7071067811865475*p_perp[0]; 
-  p_perp_xr[1] = 1.58113883008419*p_perp[6]+1.224744871391589*p_perp[3]+0.7071067811865475*p_perp[2]; 
-  p_perp_xr[2] = 1.58113883008419*p_perp[8]+1.224744871391589*p_perp[7]+0.7071067811865475*p_perp[5]; 
+  Pxy_yl[0] = 1.58113883008419*Pxy[5]-1.224744871391589*Pxy[2]+0.7071067811865475*Pxy[0]; 
+  Pxy_yl[1] = 1.58113883008419*Pxy[7]-1.224744871391589*Pxy[3]+0.7071067811865475*Pxy[1]; 
+  Pxy_yl[2] = 1.58113883008419*Pxy[8]-1.224744871391589*Pxy[6]+0.7071067811865475*Pxy[4]; 
+  Pyy_yl[0] = 1.58113883008419*Pyy[5]-1.224744871391589*Pyy[2]+0.7071067811865475*Pyy[0]; 
+  Pyy_yl[1] = 1.58113883008419*Pyy[7]-1.224744871391589*Pyy[3]+0.7071067811865475*Pyy[1]; 
+  Pyy_yl[2] = 1.58113883008419*Pyy[8]-1.224744871391589*Pyy[6]+0.7071067811865475*Pyy[4]; 
+  Pyz_yl[0] = 1.58113883008419*Pyz[5]-1.224744871391589*Pyz[2]+0.7071067811865475*Pyz[0]; 
+  Pyz_yl[1] = 1.58113883008419*Pyz[7]-1.224744871391589*Pyz[3]+0.7071067811865475*Pyz[1]; 
+  Pyz_yl[2] = 1.58113883008419*Pyz[8]-1.224744871391589*Pyz[6]+0.7071067811865475*Pyz[4]; 
  
-  p_par_yl[0] = 1.58113883008419*p_parallel[5]-1.224744871391589*p_parallel[2]+0.7071067811865475*p_parallel[0]; 
-  p_par_yl[1] = 1.58113883008419*p_parallel[7]-1.224744871391589*p_parallel[3]+0.7071067811865475*p_parallel[1]; 
-  p_par_yl[2] = 1.58113883008419*p_parallel[8]-1.224744871391589*p_parallel[6]+0.7071067811865475*p_parallel[4]; 
-  p_par_yr[0] = 1.58113883008419*p_parallel[5]+1.224744871391589*p_parallel[2]+0.7071067811865475*p_parallel[0]; 
-  p_par_yr[1] = 1.58113883008419*p_parallel[7]+1.224744871391589*p_parallel[3]+0.7071067811865475*p_parallel[1]; 
-  p_par_yr[2] = 1.58113883008419*p_parallel[8]+1.224744871391589*p_parallel[6]+0.7071067811865475*p_parallel[4]; 
-  p_perp_yl[0] = 1.58113883008419*p_perp[5]-1.224744871391589*p_perp[2]+0.7071067811865475*p_perp[0]; 
-  p_perp_yl[1] = 1.58113883008419*p_perp[7]-1.224744871391589*p_perp[3]+0.7071067811865475*p_perp[1]; 
-  p_perp_yl[2] = 1.58113883008419*p_perp[8]-1.224744871391589*p_perp[6]+0.7071067811865475*p_perp[4]; 
-  p_perp_yr[0] = 1.58113883008419*p_perp[5]+1.224744871391589*p_perp[2]+0.7071067811865475*p_perp[0]; 
-  p_perp_yr[1] = 1.58113883008419*p_perp[7]+1.224744871391589*p_perp[3]+0.7071067811865475*p_perp[1]; 
-  p_perp_yr[2] = 1.58113883008419*p_perp[8]+1.224744871391589*p_perp[6]+0.7071067811865475*p_perp[4]; 
- 
-  double DP_xl[3] = {0.0}; 
-  double DP_xr[3] = {0.0}; 
-  double DP_yl[3] = {0.0}; 
-  double DP_yr[3] = {0.0}; 
- 
-  DP_xl[0] = p_par_xl[0] - p_perp_xl[0]; 
-  DP_xr[0] = p_par_xr[0] - p_perp_xr[0]; 
-  DP_yl[0] = p_par_yl[0] - p_perp_yl[0]; 
-  DP_yr[0] = p_par_yr[0] - p_perp_yr[0]; 
-  DP_xl[1] = p_par_xl[1] - p_perp_xl[1]; 
-  DP_xr[1] = p_par_xr[1] - p_perp_xr[1]; 
-  DP_yl[1] = p_par_yl[1] - p_perp_yl[1]; 
-  DP_yr[1] = p_par_yr[1] - p_perp_yr[1]; 
-  DP_xl[2] = p_par_xl[2] - p_perp_xl[2]; 
-  DP_xr[2] = p_par_xr[2] - p_perp_xr[2]; 
-  DP_yl[2] = p_par_yl[2] - p_perp_yl[2]; 
-  DP_yr[2] = p_par_yr[2] - p_perp_yr[2]; 
-  // DP b_i b_j at lower x surface. 
-  double DP_bxbx_xl[3] = {0.0}; 
-  double DP_bxby_xl[3] = {0.0}; 
-  double DP_bxbz_xl[3] = {0.0}; 
-  binop_mul_1d_ser_p2(DP_xl, bxbx_xl, DP_bxbx_xl); 
-  binop_mul_1d_ser_p2(DP_xl, bxby_xl, DP_bxby_xl); 
-  binop_mul_1d_ser_p2(DP_xl, bxbz_xl, DP_bxbz_xl); 
- 
-  // DP b_i b_j at upper x surface. 
-  double DP_bxbx_xr[3] = {0.0}; 
-  double DP_bxby_xr[3] = {0.0}; 
-  double DP_bxbz_xr[3] = {0.0}; 
-  binop_mul_1d_ser_p2(DP_xr, bxbx_xr, DP_bxbx_xr); 
-  binop_mul_1d_ser_p2(DP_xr, bxby_xr, DP_bxby_xr); 
-  binop_mul_1d_ser_p2(DP_xr, bxbz_xr, DP_bxbz_xr); 
- 
-  // DP b_i b_j at lower y surface. 
-  double DP_bxby_yl[3] = {0.0}; 
-  double DP_byby_yl[3] = {0.0}; 
-  double DP_bybz_yl[3] = {0.0}; 
-  binop_mul_1d_ser_p2(DP_yl, bxby_yl, DP_bxby_yl); 
-  binop_mul_1d_ser_p2(DP_yl, byby_yl, DP_byby_yl); 
-  binop_mul_1d_ser_p2(DP_yl, bybz_yl, DP_bybz_yl); 
- 
-  // DP b_i b_j at upper y surface. 
-  double DP_bxby_yr[3] = {0.0}; 
-  double DP_byby_yr[3] = {0.0}; 
-  double DP_bybz_yr[3] = {0.0}; 
-  binop_mul_1d_ser_p2(DP_yr, bxby_yr, DP_bxby_yr); 
-  binop_mul_1d_ser_p2(DP_yr, byby_yr, DP_byby_yr); 
-  binop_mul_1d_ser_p2(DP_yr, bybz_yr, DP_bybz_yr); 
- 
-  Pxx_xl[0] = DP_bxbx_xl[0] + p_perp_xl[0]; 
-  Pxx_xr[0] = DP_bxbx_xr[0] + p_perp_xr[0]; 
-  Pxy_xl[0] = DP_bxby_xl[0]; 
-  Pxy_xr[0] = DP_bxby_xr[0]; 
-  Pxz_xl[0] = DP_bxbz_xl[0]; 
-  Pxz_xr[0] = DP_bxbz_xr[0]; 
- 
-  Pxy_yl[0] = DP_bxby_yl[0]; 
-  Pxy_yr[0] = DP_bxby_yr[0]; 
-  Pyy_yl[0] = DP_byby_yl[0] + p_perp_yl[0]; 
-  Pyy_yr[0] = DP_byby_yr[0] + p_perp_yr[0]; 
-  Pyz_yl[0] = DP_bybz_yl[0]; 
-  Pyz_yr[0] = DP_bybz_yr[0]; 
- 
-  Pxx_xl[1] = DP_bxbx_xl[1] + p_perp_xl[1]; 
-  Pxx_xr[1] = DP_bxbx_xr[1] + p_perp_xr[1]; 
-  Pxy_xl[1] = DP_bxby_xl[1]; 
-  Pxy_xr[1] = DP_bxby_xr[1]; 
-  Pxz_xl[1] = DP_bxbz_xl[1]; 
-  Pxz_xr[1] = DP_bxbz_xr[1]; 
- 
-  Pxy_yl[1] = DP_bxby_yl[1]; 
-  Pxy_yr[1] = DP_bxby_yr[1]; 
-  Pyy_yl[1] = DP_byby_yl[1] + p_perp_yl[1]; 
-  Pyy_yr[1] = DP_byby_yr[1] + p_perp_yr[1]; 
-  Pyz_yl[1] = DP_bybz_yl[1]; 
-  Pyz_yr[1] = DP_bybz_yr[1]; 
- 
-  Pxx_xl[2] = DP_bxbx_xl[2] + p_perp_xl[2]; 
-  Pxx_xr[2] = DP_bxbx_xr[2] + p_perp_xr[2]; 
-  Pxy_xl[2] = DP_bxby_xl[2]; 
-  Pxy_xr[2] = DP_bxby_xr[2]; 
-  Pxz_xl[2] = DP_bxbz_xl[2]; 
-  Pxz_xr[2] = DP_bxbz_xr[2]; 
- 
-  Pxy_yl[2] = DP_bxby_yl[2]; 
-  Pxy_yr[2] = DP_bxby_yr[2]; 
-  Pyy_yl[2] = DP_byby_yl[2] + p_perp_yl[2]; 
-  Pyy_yr[2] = DP_byby_yr[2] + p_perp_yr[2]; 
-  Pyz_yl[2] = DP_bybz_yl[2]; 
-  Pyz_yr[2] = DP_bybz_yr[2]; 
+  Pxy_yr[0] = 1.58113883008419*Pxy[5]+1.224744871391589*Pxy[2]+0.7071067811865475*Pxy[0]; 
+  Pxy_yr[1] = 1.58113883008419*Pxy[7]+1.224744871391589*Pxy[3]+0.7071067811865475*Pxy[1]; 
+  Pxy_yr[2] = 1.58113883008419*Pxy[8]+1.224744871391589*Pxy[6]+0.7071067811865475*Pxy[4]; 
+  Pyy_yr[0] = 1.58113883008419*Pyy[5]+1.224744871391589*Pyy[2]+0.7071067811865475*Pyy[0]; 
+  Pyy_yr[1] = 1.58113883008419*Pyy[7]+1.224744871391589*Pyy[3]+0.7071067811865475*Pyy[1]; 
+  Pyy_yr[2] = 1.58113883008419*Pyy[8]+1.224744871391589*Pyy[6]+0.7071067811865475*Pyy[4]; 
+  Pyz_yr[0] = 1.58113883008419*Pyz[5]+1.224744871391589*Pyz[2]+0.7071067811865475*Pyz[0]; 
+  Pyz_yr[1] = 1.58113883008419*Pyz[7]+1.224744871391589*Pyz[3]+0.7071067811865475*Pyz[1]; 
+  Pyz_yr[2] = 1.58113883008419*Pyz[8]+1.224744871391589*Pyz[6]+0.7071067811865475*Pyz[4]; 
  
 } 

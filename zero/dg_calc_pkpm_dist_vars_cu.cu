@@ -16,7 +16,7 @@ extern "C" {
 __global__ void
 gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
-  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_prim_moms_sum, 
   const struct gkyl_array* div_b, const struct gkyl_array* pkpm_accel, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1)
@@ -39,7 +39,7 @@ gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel(struct gkyl_dg_calc_pkpm_dist
     long loc_phase = gkyl_range_idx(&phase_range, idx);
 
     const double *pkpm_prim_d = (const double*) gkyl_array_cfetch(pkpm_prim, loc_conf);
-    const double *nu_vthsq_d = (const double*) gkyl_array_cfetch(nu_vthsq, loc_conf);
+    const double *nu_prim_moms_sum_d = (const double*) gkyl_array_cfetch(nu_prim_moms_sum, loc_conf);
     const double *div_b_d = (const double*) gkyl_array_cfetch(div_b, loc_conf);
     const double *pkpm_accel_d = (const double*) gkyl_array_cfetch(pkpm_accel, loc_conf);
     const double *fIn_d = (const double*) gkyl_array_cfetch(fIn, loc_phase);
@@ -49,7 +49,7 @@ gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel(struct gkyl_dg_calc_pkpm_dist
     double *F_k_m_1_d = (double*) gkyl_array_fetch(F_k_m_1, loc_phase);
 
     up->pkpm_dist_mirror_force(xc, up->phase_grid.dx, 
-      pkpm_prim_d, nu_vthsq_d, div_b_d, pkpm_accel_d, 
+      pkpm_prim_d, nu_prim_moms_sum_d, div_b_d, pkpm_accel_d, 
       fIn_d, F_k_p_1_d, g_dist_source_d, F_k_m_1_d);
   }  
 }
@@ -57,7 +57,7 @@ gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel(struct gkyl_dg_calc_pkpm_dist
 void 
 gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_prim_moms_sum, 
   const struct gkyl_array* div_b, const struct gkyl_array* pkpm_accel, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1)
@@ -66,7 +66,7 @@ gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(struct gkyl_dg_calc_pkpm_dist_vars *
   int nthreads = phase_range->nthreads;
   gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
     *conf_range, *phase_range, 
-    pkpm_prim->on_dev, nu_vthsq->on_dev, 
+    pkpm_prim->on_dev, nu_prim_moms_sum->on_dev, 
     div_b->on_dev, pkpm_accel->on_dev, 
     fIn->on_dev, F_k_p_1->on_dev, 
     g_dist_source->on_dev, F_k_m_1->on_dev);

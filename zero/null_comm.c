@@ -68,11 +68,11 @@ static void
 apply_periodic_bc(const struct skin_ghost_ranges *sgr, char *data,
   int dir, struct gkyl_array *f)
 {
-  gkyl_array_copy_to_buffer(data, f, sgr->lower_skin[dir]);
-  gkyl_array_copy_from_buffer(f, data, sgr->upper_ghost[dir]);
+  gkyl_array_copy_to_buffer(data, f, &(sgr->lower_skin[dir]));
+  gkyl_array_copy_from_buffer(f, data, &(sgr->upper_ghost[dir]));
 
-  gkyl_array_copy_to_buffer(data, f, sgr->upper_skin[dir]);
-  gkyl_array_copy_from_buffer(f, data, sgr->lower_ghost[dir]);
+  gkyl_array_copy_to_buffer(data, f, &(sgr->upper_skin[dir]));
+  gkyl_array_copy_from_buffer(f, data, &(sgr->lower_ghost[dir]));
 }
 
 static int

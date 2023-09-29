@@ -27,7 +27,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   long buff_sz = 0;
   // compute buffer size needed
   for (int d=0; d<app->cdim; ++d) {
-    long vol = app->skin_ghost.lower_skin[d].volume;
+    long vol = GKYL_MAX(app->skin_ghost.lower_skin[d].volume, app->skin_ghost.upper_skin[d].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   f->bc_buffer = mkarr(app->use_gpu, num_eqn*app->confBasis.num_basis, buff_sz);
@@ -235,8 +235,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_PKPM_MOM_NO_SLIP;
     }
 
+    // Create local lower skin and ghost ranges
+    gkyl_skin_ghost_ranges(&f->lower_skin[d], &f->lower_ghost[d], d, GKYL_LOWER_EDGE, &app->local_ext, ghost);
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
-      &app->skin_ghost.lower_skin[d], &app->skin_ghost.lower_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
+      &f->lower_skin[d], &f->lower_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_SPECIES_COPY) {
@@ -253,8 +255,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_PKPM_MOM_NO_SLIP;
     }
 
+    // Create local upper skin and ghost ranges
+    gkyl_skin_ghost_ranges(&f->upper_skin[d], &f->upper_ghost[d], d, GKYL_UPPER_EDGE, &app->local_ext, ghost);
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
-      &app->skin_ghost.upper_skin[d], &app->skin_ghost.upper_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
+      &f->upper_skin[d], &f->upper_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
   }
 }
 
@@ -326,7 +330,7 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
       fluid_species->pkpm_species->qmem, fluid_species->pkpm_species->pkpm_moms.marr, fluid, rhs);
   }
 
-  gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, app->local);
+  gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, &(app->local));
 
   double omegaCfl_ho[1];
   if (app->use_gpu)
@@ -345,11 +349,11 @@ void
 vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
   int dir, struct gkyl_array *f)
 {
-  gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, app->skin_ghost.lower_skin[dir]);
-  gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, &(app->skin_ghost.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, &(app->skin_ghost.upper_ghost[dir]));
 
-  gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, app->skin_ghost.upper_skin[dir]);
-  gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, &(app->skin_ghost.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, &(app->skin_ghost.lower_ghost[dir]));
 }
 
 // Determine which directions are periodic and which directions are not periodic,

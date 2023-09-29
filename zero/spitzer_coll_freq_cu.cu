@@ -9,7 +9,8 @@ extern "C" {
 
 GKYL_CU_D void
 calc_nu_cu(const struct gkyl_array* GKYL_RESTRICT basis_at_ords, const struct gkyl_array* GKYL_RESTRICT weights,
-  const double* vtSqSelf_d, const double* GKYL_RESTRICT m0Other_d, const double* vtSqOther_d, double normNu, long linidx,
+  const double* vtSqSelf_d, double vtSqMinSelf, const double* GKYL_RESTRICT m0Other_d,
+  const double* vtSqOther_d, double vtSqMinOther, double normNu, long linidx,
   struct gkyl_array* GKYL_RESTRICT nuOut)
 {
   // Perform the multiplication of normNu*n_r/(v_ts^2+v_tr^2)^(3/2) via
@@ -36,8 +37,18 @@ calc_nu_cu(const struct gkyl_array* GKYL_RESTRICT basis_at_ords, const struct gk
       vtSqOther_q += vtSqOther_d[k]*b_ord[k];
     }
 
-    double nu_o = ((m0Other_q>0.) && (vtSqSelf_q>0.) && (vtSqOther_q>0.)) ?
-      normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqOther_q),3) : 1.e-14;
+    double nu_o;
+    if (m0Other_q<0.) {
+      nu_o = 0.;
+    } else if ((vtSqSelf_q < vtSqMinSelf) && (vtSqOther_q < vtSqMinOther)) {
+      nu_o = normNu*m0Other_q/pow(sqrt(vtSqMinSelf+vtSqMinOther),3);
+    } else if (vtSqSelf_q < vtSqMinSelf) {
+      nu_o = normNu*m0Other_q/pow(sqrt(vtSqMinSelf+vtSqOther_q),3);
+    } else if (vtSqOther_q < vtSqMinOther) {
+      nu_o = normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqMinOther),3);
+    } else {
+      nu_o = normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqOther_q),3);
+    }
 
     double tmp = w_d[n]*nu_o;
     for (int k=0; k<num_basis; ++k)
@@ -49,8 +60,8 @@ calc_nu_cu(const struct gkyl_array* GKYL_RESTRICT basis_at_ords, const struct gk
 __global__ static void
 gkyl_spitzer_coll_freq_advance_normnu_cu_ker(const struct gkyl_range range,
   const struct gkyl_array* GKYL_RESTRICT basis_at_ords, const struct gkyl_array* GKYL_RESTRICT weights,
-  const struct gkyl_array* vtSqSelf, const struct gkyl_array* GKYL_RESTRICT m0Other,
-  const struct gkyl_array* vtSqOther, double normNu, struct gkyl_array* GKYL_RESTRICT nuOut)
+  const struct gkyl_array* vtSqSelf, double vtSqMinSelf, const struct gkyl_array* GKYL_RESTRICT m0Other,
+  const struct gkyl_array* vtSqOther, double vtSqMinOther, double normNu, struct gkyl_array* GKYL_RESTRICT nuOut)
 {
   int idx[3];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -63,7 +74,7 @@ gkyl_spitzer_coll_freq_advance_normnu_cu_ker(const struct gkyl_range range,
     const double *m0Other_d = (const double *) gkyl_array_cfetch(m0Other, linidx);
     const double *vtSqOther_d = (const double *) gkyl_array_cfetch(vtSqOther, linidx);
 
-    calc_nu_cu(basis_at_ords, weights, vtSqSelf_d, m0Other_d, vtSqOther_d, normNu, linidx, nuOut);
+    calc_nu_cu(basis_at_ords, weights, vtSqSelf_d, vtSqMinSelf, m0Other_d, vtSqOther_d, vtSqMinOther, normNu, linidx, nuOut);
   }
 }
 
@@ -72,8 +83,8 @@ gkyl_spitzer_coll_freq_advance_cu_ker(const struct gkyl_range range,
   const struct gkyl_array* GKYL_RESTRICT basis_at_ords, const struct gkyl_array* GKYL_RESTRICT weights,
   double nufraceps0_fac, double cellav_fac, double r4pieps0_fac, double hbar_fac, double eps0,
   const struct gkyl_array* GKYL_RESTRICT bmag,
-  double qSelf, double mSelf, const struct gkyl_array* m0Self, const struct gkyl_array* vtSqSelf,
-  double qOther, double mOther, const struct gkyl_array* m0Other, const struct gkyl_array* vtSqOther,
+  double qSelf, double mSelf, const struct gkyl_array* m0Self, const struct gkyl_array* vtSqSelf, double vtSqMinSelf,
+  double qOther, double mOther, const struct gkyl_array* m0Other, const struct gkyl_array* vtSqOther, double vtSqMinOther,
   struct gkyl_array* GKYL_RESTRICT nuOut)
 {
   double mReduced = 1./(1./mSelf+1./mOther);
@@ -94,10 +105,10 @@ gkyl_spitzer_coll_freq_advance_cu_ker(const struct gkyl_range range,
 
     // Compute the Coulomb logarithm using cell-average values.
     double bmagAv = bmag_d[0]*cellav_fac;
-    double m0SelfAv = m0Self_d[0]*cellav_fac;
-    double vtSqSelfAv = vtSqSelf_d[0]*cellav_fac;
-    double m0OtherAv = m0Other_d[0]*cellav_fac;
-    double vtSqOtherAv = vtSqOther_d[0]*cellav_fac;
+    double m0SelfAv    =    m0Self_d[0] < 0.? 1.e-14 : m0Self_d[0]*cellav_fac;
+    double vtSqSelfAv  =  vtSqSelf_d[0] < vtSqMinSelf?  vtSqMinSelf*cellav_fac  : vtSqSelf_d[0]*cellav_fac;
+    double m0OtherAv   =   m0Other_d[0] < 0.? 1.e-14 : m0Other_d[0]*cellav_fac;
+    double vtSqOtherAv = vtSqOther_d[0] < vtSqMinOther? vtSqMinOther*cellav_fac : vtSqOther_d[0]*cellav_fac;
 
     double omegaSqSumSelf  = m0SelfAv*pow(qSelf,2)/(eps0*mSelf)+pow(qSelf*bmagAv/mSelf,2);
     double omegaSqSumOther = m0OtherAv*pow(qOther,2)/(eps0*mOther)+pow(qOther*bmagAv/mOther,2);
@@ -117,27 +128,27 @@ gkyl_spitzer_coll_freq_advance_cu_ker(const struct gkyl_range range,
     // Normalized nu (nu missing density and temperature factors).
     double normNu = timeConstFac*logLambda;
 
-    calc_nu_cu(basis_at_ords, weights, vtSqSelf_d, m0Other_d, vtSqOther_d, normNu, linidx, nuOut);
+    calc_nu_cu(basis_at_ords, weights, vtSqSelf_d, vtSqMinSelf, m0Other_d, vtSqOther_d, vtSqMinOther, normNu, linidx, nuOut);
   }
 }
 
 void
 gkyl_spitzer_coll_freq_advance_normnu_cu(const gkyl_spitzer_coll_freq *up,
-  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf,
-  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther,
+  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
+  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
   double normNu, struct gkyl_array *nuOut)
 {
   int nblocks = range->nblocks, nthreads = range->nthreads;
   gkyl_spitzer_coll_freq_advance_normnu_cu_ker<<<nblocks, nthreads>>>
-    (*range, up->basis_at_ords->on_dev, up->weights->on_dev,
-     vtSqSelf->on_dev, m0Other->on_dev, vtSqOther->on_dev, normNu, nuOut->on_dev);
+    (*range, up->basis_at_ords->on_dev, up->weights->on_dev, vtSqSelf->on_dev, vtSqMinSelf,
+     m0Other->on_dev, vtSqOther->on_dev, vtSqMinOther, normNu, nuOut->on_dev);
 }
 
 void
 gkyl_spitzer_coll_freq_advance_cu(const gkyl_spitzer_coll_freq *up,
   const struct gkyl_range *range, const struct gkyl_array *bmag,
-  double qSelf, double mSelf, const struct gkyl_array *m0Self, const struct gkyl_array *vtSqSelf,
-  double qOther, double mOther, const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther,
+  double qSelf, double mSelf, const struct gkyl_array *m0Self, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
+  double qOther, double mOther, const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
   struct gkyl_array *nuOut)
 {
   int nblocks = range->nblocks, nthreads = range->nthreads;
@@ -145,6 +156,6 @@ gkyl_spitzer_coll_freq_advance_cu(const gkyl_spitzer_coll_freq *up,
     (*range, up->basis_at_ords->on_dev, up->weights->on_dev,
      up->nufraceps0_fac, up->cellav_fac, up->r4pieps0_fac, up->hbar_fac, up->eps0,
      bmag->on_dev,
-     qSelf, mSelf, m0Self->on_dev, vtSqSelf->on_dev,
-     qOther, mOther, m0Other->on_dev, vtSqOther->on_dev, nuOut->on_dev);
+     qSelf, mSelf, m0Self->on_dev, vtSqSelf->on_dev, vtSqMinSelf,
+     qOther, mOther, m0Other->on_dev, vtSqOther->on_dev, vtSqMinOther, nuOut->on_dev);
 }

@@ -41,11 +41,11 @@ void
 moment_apply_periodic_bc(const gkyl_moment_app *app, struct gkyl_array *bc_buffer,
   int dir, struct gkyl_array *f)
 {
-  gkyl_array_copy_to_buffer(bc_buffer->data, f, app->skin_ghost.lower_skin[dir]);
-  gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  gkyl_array_copy_to_buffer(bc_buffer->data, f,   &(app->skin_ghost.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.upper_ghost[dir]));
 
-  gkyl_array_copy_to_buffer(bc_buffer->data, f, app->skin_ghost.upper_skin[dir]);
-  gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  gkyl_array_copy_to_buffer(bc_buffer->data, f,   &(app->skin_ghost.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.lower_ghost[dir]));
 }
 
 void
@@ -97,9 +97,9 @@ moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
   struct gkyl_array *f)
 {
   gkyl_wv_apply_bc_to_buff(lo, tcurr, update_rng, f, bc_buffer->data);
-  gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.upper_ghost[dir]));
 
   gkyl_wv_apply_bc_to_buff(up, tcurr, update_rng, f, bc_buffer->data);
-  gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.lower_ghost[dir]));
 }
 

@@ -62,7 +62,7 @@ gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
   }
   enum gkyl_vel_edge edge;
   
-  gkyl_array_clear_range(out, 0.0, *conf_rng);
+  gkyl_array_clear_range(out, 0.0, conf_rng);
   
   for(int d=0; d<phase_rng->ndim - conf_rng->ndim; ++d) {
     

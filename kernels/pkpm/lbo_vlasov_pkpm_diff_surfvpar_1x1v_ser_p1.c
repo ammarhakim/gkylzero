@@ -1,12 +1,15 @@
 #include <gkyl_lbo_vlasov_pkpm_kernels.h> 
-GKYL_CU_DH double lbo_vlasov_pkpm_diff_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double *nuVtSq, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_pkpm_diff_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  // w[2]:         cell-center coordinates. 
-  // dxv[2]:       cell spacing. 
-  // nuVtSqSum[2]: Sum of thermal speeds squared time their respective collisionalities. 
+  // w[NDIM]:       Cell-center coordinates. 
+  // dxv[NDIM]:     Cell spacing. 
+  // nuSum:         Collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum: Sum of bulk velocities and thermal speeds (squared) times their respective collisionalities. 
   // fl/fc/fr:      Input Distribution function [F_0, T_perp G = T_perp (F_1 - F_0)] in left/center/right cells 
-  // out:           Incremented distribution function in cell 
+  // out:           Incremented distribution functions in center cell. 
   double rdvSq4 = 4.0/(dxv[1]*dxv[1]); 
+  const double *nuVtSqSum = &nuPrimMomsSum[2];
+
   const double *F_0l = &fl[0]; 
   const double *G_1l = &fl[6]; 
   const double *F_0c = &fc[0]; 
@@ -33,18 +36,18 @@ GKYL_CU_DH double lbo_vlasov_pkpm_diff_surfvpar_1x1v_ser_p1(const double *w, con
   G_1_xx[4] = (-0.140625*G_1r[4])-0.140625*G_1l[4]-6.28125*G_1c[4]-0.3025768239224545*G_1r[2]+0.3025768239224545*G_1l[2]+0.4192627457812106*G_1r[0]+0.4192627457812106*G_1l[0]-0.8385254915624212*G_1c[0]; 
   G_1_xx[5] = (-0.140625*G_1r[5])-0.140625*G_1l[5]-6.28125*G_1c[5]-0.3025768239224544*G_1r[3]+0.3025768239224544*G_1l[3]+0.4192627457812105*G_1r[1]+0.4192627457812105*G_1l[1]-0.8385254915624211*G_1c[1]; 
 
-  incr_F_0[0] = 0.7071067811865475*F_0_xx[1]*nuVtSq[1]+0.7071067811865475*F_0_xx[0]*nuVtSq[0]; 
-  incr_F_0[1] = 0.7071067811865475*F_0_xx[0]*nuVtSq[1]+0.7071067811865475*nuVtSq[0]*F_0_xx[1]; 
-  incr_F_0[2] = 0.7071067811865475*nuVtSq[1]*F_0_xx[3]+0.7071067811865475*nuVtSq[0]*F_0_xx[2]; 
-  incr_F_0[3] = 0.7071067811865475*nuVtSq[0]*F_0_xx[3]+0.7071067811865475*nuVtSq[1]*F_0_xx[2]; 
-  incr_F_0[4] = 0.7071067811865475*nuVtSq[1]*F_0_xx[5]+0.7071067811865475*nuVtSq[0]*F_0_xx[4]; 
-  incr_F_0[5] = 0.7071067811865475*nuVtSq[0]*F_0_xx[5]+0.7071067811865475*nuVtSq[1]*F_0_xx[4]; 
-  incr_G_1[0] = 0.7071067811865475*G_1_xx[1]*nuVtSq[1]+0.7071067811865475*G_1_xx[0]*nuVtSq[0]; 
-  incr_G_1[1] = 0.7071067811865475*G_1_xx[0]*nuVtSq[1]+0.7071067811865475*nuVtSq[0]*G_1_xx[1]; 
-  incr_G_1[2] = 0.7071067811865475*nuVtSq[1]*G_1_xx[3]+0.7071067811865475*nuVtSq[0]*G_1_xx[2]; 
-  incr_G_1[3] = 0.7071067811865475*nuVtSq[0]*G_1_xx[3]+0.7071067811865475*nuVtSq[1]*G_1_xx[2]; 
-  incr_G_1[4] = 0.7071067811865475*nuVtSq[1]*G_1_xx[5]+0.7071067811865475*nuVtSq[0]*G_1_xx[4]; 
-  incr_G_1[5] = 0.7071067811865475*nuVtSq[0]*G_1_xx[5]+0.7071067811865475*nuVtSq[1]*G_1_xx[4]; 
+  incr_F_0[0] = 0.7071067811865475*F_0_xx[1]*nuVtSqSum[1]+0.7071067811865475*F_0_xx[0]*nuVtSqSum[0]; 
+  incr_F_0[1] = 0.7071067811865475*F_0_xx[0]*nuVtSqSum[1]+0.7071067811865475*nuVtSqSum[0]*F_0_xx[1]; 
+  incr_F_0[2] = 0.7071067811865475*nuVtSqSum[1]*F_0_xx[3]+0.7071067811865475*nuVtSqSum[0]*F_0_xx[2]; 
+  incr_F_0[3] = 0.7071067811865475*nuVtSqSum[0]*F_0_xx[3]+0.7071067811865475*nuVtSqSum[1]*F_0_xx[2]; 
+  incr_F_0[4] = 0.7071067811865475*nuVtSqSum[1]*F_0_xx[5]+0.7071067811865475*nuVtSqSum[0]*F_0_xx[4]; 
+  incr_F_0[5] = 0.7071067811865475*nuVtSqSum[0]*F_0_xx[5]+0.7071067811865475*nuVtSqSum[1]*F_0_xx[4]; 
+  incr_G_1[0] = 0.7071067811865475*G_1_xx[1]*nuVtSqSum[1]+0.7071067811865475*G_1_xx[0]*nuVtSqSum[0]; 
+  incr_G_1[1] = 0.7071067811865475*G_1_xx[0]*nuVtSqSum[1]+0.7071067811865475*nuVtSqSum[0]*G_1_xx[1]; 
+  incr_G_1[2] = 0.7071067811865475*nuVtSqSum[1]*G_1_xx[3]+0.7071067811865475*nuVtSqSum[0]*G_1_xx[2]; 
+  incr_G_1[3] = 0.7071067811865475*nuVtSqSum[0]*G_1_xx[3]+0.7071067811865475*nuVtSqSum[1]*G_1_xx[2]; 
+  incr_G_1[4] = 0.7071067811865475*nuVtSqSum[1]*G_1_xx[5]+0.7071067811865475*nuVtSqSum[0]*G_1_xx[4]; 
+  incr_G_1[5] = 0.7071067811865475*nuVtSqSum[0]*G_1_xx[5]+0.7071067811865475*nuVtSqSum[1]*G_1_xx[4]; 
 
   out_F_0[0] += incr_F_0[0]*rdvSq4; 
   out_F_0[1] += incr_F_0[1]*rdvSq4; 

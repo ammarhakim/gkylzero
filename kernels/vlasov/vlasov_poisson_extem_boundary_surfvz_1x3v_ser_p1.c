@@ -1,12 +1,11 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_hyb_1x3v_p1_surfx4_eval_quad.h> 
 #include <gkyl_basis_hyb_1x3v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvz_1x3v_ser_p1(const double *w, const double *dxv, const double *field, const double *ext_field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvz_1x3v_ser_p1(const double *w, const double *dxv, const double *field, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
   // w:           Cell-center coordinates.
   // dxv[NDIM]:   Cell spacing.
-  // field:       potential (scaled by appropriate factors).
-  // ext_field:   vector potential (scaled by appropriate factors). 
+  // field:       potentials, including external (scaled by appropriate factors).
   // edge:        Determines if the update is for the left edge (-1) or right edge (+1).
   // fSkin/fEdge: Input Distribution function in skin cell/last edge cell 
   // out:         Output distribution function in skin cell 
@@ -16,9 +15,9 @@ GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvz_1x3v_ser_p1(const double 
   const double dv3 = dxv[3], wv3 = w[3]; 
   const double *phi = &field[0]; 
   const double dx10 = 2/dxv[0]; 
-  const double *A0 = &ext_field[0]; 
-  const double *A1 = &ext_field[2]; 
-  const double *A2 = &ext_field[4]; 
+  const double *A0 = &field[2]; 
+  const double *A1 = &field[4]; 
+  const double *A2 = &field[6]; 
   double alpha[16] = {0.0}; 
 
   alpha[0] = -3.464101615137754*A2[1]*dx10*wv1; 

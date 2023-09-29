@@ -149,21 +149,21 @@ void gkyl_dg_iz_coll_elc_cu(const struct gkyl_dg_iz *up,
     up->M0q->on_dev, up->Teq->on_dev, up->ioniz_data->on_dev);
 
   // Calculate vt_sq_iz 
-  gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, *up->conf_rng);
-  gkyl_array_scale_range(up->vtSq_iz, 1/2.0, *up->conf_rng);
+  gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, up->conf_rng);
+  gkyl_array_scale_range(up->vtSq_iz, 1/2.0, up->conf_rng);
   gkyl_array_shiftc(up->vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
 
   // Set fmax moments
-  gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->prim_vars_neut, 0, *up->conf_rng);
-  gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, *up->conf_rng);
+  gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->prim_vars_neut, 0, up->conf_rng);
+  gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, up->conf_rng);
 
   // POM
   gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_elc,
     up->prim_vars_fmax, bmag, jacob_tot, up->mass_elc, up->fmax_iz);
 
   // copy, scale and accumulate
-  gkyl_array_set_range(coll_iz, 2.0, up->fmax_iz, *up->phase_rng);
-  gkyl_array_accumulate_range(coll_iz, -1.0, f_self, *up->phase_rng);
+  gkyl_array_set_range(coll_iz, 2.0, up->fmax_iz, up->phase_rng);
+  gkyl_array_accumulate_range(coll_iz, -1.0, f_self, up->phase_rng);
   
   // weak multiply
   gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_neut, up->conf_rng);
@@ -235,7 +235,7 @@ void gkyl_dg_iz_coll_neut_cu(const struct gkyl_dg_iz *up,
     up->vtSq_elc->on_dev, up->prim_vars_neut->on_dev, up->coef_iz->on_dev,
     up->M0q->on_dev, up->Teq->on_dev, up->ioniz_data->on_dev);
 
-  gkyl_array_set_range(coll_iz, -1.0, f_self, *up->phase_rng);
+  gkyl_array_set_range(coll_iz, -1.0, f_self, up->phase_rng);
     
   // coef_iz = ne*<v_e*sigma>
   gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_neut, up->conf_rng);

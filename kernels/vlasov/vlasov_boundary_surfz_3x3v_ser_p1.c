@@ -674,6 +674,6 @@ GKYL_CU_DH double vlasov_boundary_surfz_3x3v_ser_p1(const double *w, const doubl
   out[159] += -1.224744871391589*Ghat[79]*dx12; 
 
   } 
-
   return 0.;
+
 } 

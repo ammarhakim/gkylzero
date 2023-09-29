@@ -473,8 +473,8 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
     for (int kIdx=0; kIdx<cells[2]; kIdx++) {
       struct gkyl_range perp_range;
       gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
-      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, perp_range);
-      gkyl_array_shiftc_range(phi, mavgfac*sol_avg[0]/perp_range.volume, 0, perp_range);
+      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
+      gkyl_array_shiftc_range(phi, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
     }
     // Now do the same to the analytic solution.
     gkyl_array_clear(sol_cellavg, 0.0);
@@ -482,8 +482,8 @@ test_fem_poisson_perp_consteps(int poly_order, const int *cells, struct gkyl_poi
     for (int kIdx=0; kIdx<cells[2]; kIdx++) {
       struct gkyl_range perp_range;
       gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
-      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, perp_range);
-      gkyl_array_shiftc_range(phisol, mavgfac*sol_avg[0]/perp_range.volume, 0, perp_range);
+      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
+      gkyl_array_shiftc_range(phisol, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
     }
     gkyl_free(sol_avg);
     gkyl_array_release(sol_cellavg);

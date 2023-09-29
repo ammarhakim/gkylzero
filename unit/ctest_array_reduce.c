@@ -73,7 +73,7 @@ void test_cu_array_reduce_range_1d_max()
   gkyl_sub_range_init(&subrange, &range, sublower, subupper);
 
   // Component-wise reduce array on range
-  gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, range);
+  gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, &range);
   // Copy to host and check values.
   gkyl_cu_memcpy(a1max, a1max_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
   for (unsigned k=0; k<numComp; ++k) {
@@ -82,7 +82,7 @@ void test_cu_array_reduce_range_1d_max()
 
   // Component-wise reduce array on subrange
   gkyl_cu_memset(a1max_cu, 0, sizeof(double)*numComp);
-  gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, subrange);
+  gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, &subrange);
 
   // Copy to host and check values.
   gkyl_cu_memcpy(a1max, a1max_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
@@ -135,16 +135,16 @@ void test_cu_array_reduce_range_2d_max()
   gkyl_cu_memset(b1max_cu, 0, sizeof(double)*1);
 
   // Component-wise reduce array on range
-  gkyl_array_reduce_range(b1max_cu, b1_cu, GKYL_MAX, range_ext);
+  gkyl_array_reduce_range(b1max_cu, b1_cu, GKYL_MAX, &range_ext);
   // Copy to host and check values.
   gkyl_cu_memcpy(b1max, b1max_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
   TEST_CHECK( gkyl_compare(b1max[0], (double)(1000+numCells-1), 1e-14) );
 
   // Component-wise reduce array on subrange
   gkyl_cu_memset(a1max_cu, 0, sizeof(double)*numComp);
-  gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, range);
+  gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, &range);
 
-  gkyl_array_reduce_range(a1max_correct, a1, GKYL_MAX, range);
+  gkyl_array_reduce_range(a1max_correct, a1, GKYL_MAX, &range);
 
   // Copy to host and check values.
   gkyl_cu_memcpy(a1max, a1max_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
@@ -211,7 +211,7 @@ test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
   struct timespec tm = gkyl_wall_clock();
 
   for (int i=0; i<100; ++i)
-    gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, range);
+    gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, &range);
   double red_tm = gkyl_time_diff_now_sec(tm);
 
   printf("100 reductions on (%d,%d,%d,%d) took %g sec\n", NX, NY, VX, VY,

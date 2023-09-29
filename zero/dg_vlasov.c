@@ -36,7 +36,6 @@ gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_a
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->auxfields.field = auxin.field; // q/m*(E,B) for Maxwell's, q/m*phi for Poisson's (gradient calculated in kernel)
-  vlasov->auxfields.ext_field = auxin.ext_field; // constant q/m*A for Poisson's (curl calculated in kernel)
   vlasov->auxfields.cot_vec = auxin.cot_vec; // cotangent vectors (e^i) used in volume term if general geometry enabled
   vlasov->auxfields.alpha_geo = auxin.alpha_geo; // alpha^i (e^i . alpha) used in surface term if general geometry enabled
 }
@@ -225,7 +224,6 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   }
 
   vlasov->auxfields.field = 0;
-  vlasov->auxfields.ext_field = 0;
   vlasov->auxfields.cot_vec = 0;
   vlasov->auxfields.alpha_geo = 0;
   vlasov->conf_range = *conf_range;
