@@ -17,8 +17,8 @@
 
 // For debugging
 #define trace_stack_top(L, fnm) do { \
-      printf("Inside function %s\n", fnm);                              \
-      printf("--> Top of stack is %s\n", lua_typename(L, lua_type(L, -1))); \
+      fprintf(stdout, "Inside function %s\n", fnm);                              \
+      fprintf(stdout, "--> Top of stack is %s\n", lua_typename(L, lua_type(L, -1))); \
     } while (0);
 
 // Get basis type from string
@@ -58,7 +58,7 @@ eval_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
   int nret = fr->nret;
   lua_rawgeti(L, LUA_REGISTRYINDEX, fr->func_ref);
   lua_pushnumber(L, t);
-  lua_createtable(L, 2, 0);
+  lua_createtable(L, GKYL_MAX_DIM, 0);
 
   for (int i=0; i<ndim; ++i) {
     lua_pushnumber(L, xn[i]);
@@ -339,9 +339,7 @@ vm_app_new(lua_State *L)
     vm.species[s] = species[s]->vm_species;
     vm.vdim = species[s]->vdim;
     
-    // copy info about init function calling ctx ...
     app_lw->species_func_ctx[s] = species[s]->init_ref;
-    // ... see the IC function
     vm.species[s].init = eval_ic;
     vm.species[s].ctx = &app_lw->species_func_ctx[s];
   }
@@ -359,7 +357,6 @@ vm_app_new(lua_State *L)
         vm.skip_field = !vmf->evolve;
 
         app_lw->field_func_ctx = vmf->init_ref;
-
         vm.field.init = eval_ic;
         vm.field.ctx = &app_lw->field_func_ctx;
       }
