@@ -207,9 +207,12 @@ test_1()
   psi_max = 0.7;
   
   // Computational grid: theta X psi X alpha (only 2D for now)
-  double clower[] = { psi_min, -0.3, -2.9 };
-  double cupper[] = {psi_max, 0.3, 2.9 };
-  int ccells[] = { 3, 3, 32 };
+  //double clower[] = { psi_min, -0.3, -2.9 };
+  //double cupper[] = {psi_max, 0.3, 2.9 };
+
+  double clower[] = { psi_min, -M_PI, -2.9 };
+  double cupper[] = {psi_max, M_PI, 2.9 };
+  int ccells[] = { 16, 3, 32 };
 
 
 
@@ -223,7 +226,7 @@ test_1()
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
 
   // BCs, 0 is periodic, 1 is nonperiodic
-  int bcs[3] = {1,1,1};
+  int bcs[3] = {1,0,1};
 
   // calcgeom will go into the ghost y cells based on bc. If bc[1]=1 we use ghosts.
   // Need to pass appropriate conversion to modal range depending on the bcs

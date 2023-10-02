@@ -7,7 +7,7 @@
 #include <gkyl_array_ops_priv.h>
 
 gkyl_calc_metric*
-gkyl_calc_metric_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid, const int *bcs, bool use_gpu)
+gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, const int *bcs, bool use_gpu)
 {
   gkyl_calc_metric *up = gkyl_malloc(sizeof(gkyl_calc_metric));
   up->cdim = cbasis->ndim;

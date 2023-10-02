@@ -9,7 +9,7 @@
 
 gkyl_calc_bmag*
 gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  struct gkyl_rect_grid *cgrid, struct gkyl_rect_grid *pgrid, const gkyl_geo_gyrokinetic *app, const struct gkyl_geo_gyrokinetic_geo_inp *ginp, bool use_gpu)
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const gkyl_geo_gyrokinetic *app, const struct gkyl_geo_gyrokinetic_geo_inp *ginp, bool use_gpu)
 {
   gkyl_calc_bmag *up = gkyl_malloc(sizeof(gkyl_calc_bmag));
   up->cbasis = cbasis;
@@ -32,7 +32,7 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
   struct gkyl_range_iter citer;
   gkyl_range_iter_init(&iter, gc->crange);
   for(int i = 0; i < gc->cgrid->ndim; i++){
-    citer.idx[i] = fmin(gc->crange->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i] - gc->cgrid->dx[i]) )/gc->cgrid->dx[i]), gc->crange->upper[i]);
+    citer.idx[i] = fmin(gc->crange->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]), gc->crange->upper[i]);
   }
 
   long lidx = gkyl_range_idx(gc->crange, citer.idx);

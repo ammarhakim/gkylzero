@@ -125,10 +125,10 @@ struct gkyl_calc_metric {
   unsigned cdim; // Configuration-space dimension.
   unsigned cnum_basis; // Number of conf-space basis functions.
   unsigned poly_order; // Polynomial order of the basis.
-  struct gkyl_rect_grid* grid;
+  const struct gkyl_rect_grid* grid;
   bool use_gpu;
   metric_kernel_loc_list kernels;
-  int *num_cells;
+  const int *num_cells;
   int *bcs;
 };
 

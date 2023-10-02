@@ -16,7 +16,7 @@ typedef struct gkyl_calc_derived_geo gkyl_calc_derived_geo;
  * @return New updater pointer.
  */
 gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis,
-  struct gkyl_rect_grid *grid, bool use_gpu);
+  const struct gkyl_rect_grid *grid, bool use_gpu);
 
 /**
  * Advance calc_derived_geo (compute the derived_geo coefficients).

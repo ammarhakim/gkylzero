@@ -31,7 +31,7 @@ struct gkyl_calc_derived_geo{
   unsigned cdim; // Configuration-space dimension.
   unsigned cnum_basis; // Number of conf-space basis functions.
   unsigned poly_order; // Polynomial order of the basis.
-  struct gkyl_rect_grid* grid;
+  const struct gkyl_rect_grid* grid;
   bool use_gpu;
   derived_geo_kernel kernel;
   adjust_bmag_kernel adjustment_kernel;

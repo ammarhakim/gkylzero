@@ -7,7 +7,7 @@
 #include <gkyl_array_ops_priv.h>
 
 gkyl_calc_derived_geo*
-gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid, bool use_gpu)
+gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu)
 {
   gkyl_calc_derived_geo *up = gkyl_malloc(sizeof(gkyl_calc_derived_geo));
   up->cdim = cbasis->ndim;
