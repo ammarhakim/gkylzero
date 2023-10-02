@@ -104,7 +104,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   struct gkyl_range vel_r, vel_ghost_r, vel_buff_r;
   struct gkyl_range_iter conf_iter, vel_iter;
 
-  gkyl_array_clear_range(weight, 0.0, *conf_r);
+  gkyl_array_clear_range(weight, 0.0, conf_r);
 
   gkyl_range_iter_init(&conf_iter, conf_r);
   while (gkyl_range_iter_next(&conf_iter)) {
@@ -140,7 +140,7 @@ gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
     double *out = gkyl_array_fetch(k, midx);
     
     up->funcs->norm(out, bflux, up->bc_param, effective_gamma);
-    gkyl_array_accumulate_range(f_buff, out[0], f_proj, vel_buff_r);
+    gkyl_array_accumulate_range(f_buff, out[0], f_proj, &vel_buff_r);
   }
 }
 

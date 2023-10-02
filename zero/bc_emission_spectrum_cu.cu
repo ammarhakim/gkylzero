@@ -9,7 +9,7 @@ extern "C" {
 // start ID for use in various loops
 #define START_ID (threadIdx.x + blockIdx.x*blockDim.x)
 
-// CUDA kernel to set device pointers to kernel that computes the reflected f.
+// CUDA kernel to set device pointers to function for normalization coefficient calculation.
 __global__ static void
 gkyl_bc_emission_spectrum_set_cu_norm_func_ptrs(enum gkyl_bc_emission_spectrum_type bctype,
   struct gkyl_bc_emission_spectrum_funcs *funcs)
@@ -31,7 +31,7 @@ gkyl_bc_emission_spectrum_set_cu_norm_func_ptrs(enum gkyl_bc_emission_spectrum_t
   }
 };
 
-// CUDA kernel to set device pointers to kernel that computes the reflected f.
+// CUDA kernel to set device pointers to function for SEY calculation.
 __global__ static void
 gkyl_bc_emission_spectrum_set_cu_gamma_func_ptrs(enum gkyl_bc_emission_spectrum_gamma_type gammatype,
   struct gkyl_bc_emission_spectrum_funcs *funcs)
@@ -175,12 +175,14 @@ gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
 {
   int nblocks = skin_r->nblocks, nthreads = skin_r->nthreads;
 
-  gkyl_array_clear_range(weight, 0.0, *conf_r);
+  gkyl_array_clear_range(weight, 0.0, conf_r);
 
+  // Calculate weighted mean numerator and denominator
   gkyl_bc_emission_spectrum_advance_cu_weight_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, up->edge, f_skin->on_dev, weight->on_dev, *grid, gamma->on_dev, *skin_r, *ghost_r, *conf_r, up->funcs_cu, up->bc_param_cu);
 
   nblocks = buff_r->nblocks;
   nthreads = buff_r->nthreads;
 
+  // Finish weighted mean calculation and accumulate to buffer
   gkyl_bc_emission_spectrum_advance_cu_accumulate_ker<<<nblocks, nthreads>>>(f_proj->on_dev, f_buff->on_dev, weight->on_dev, k->on_dev, flux->on_dev, *buff_r, *conf_r, up->funcs_cu, up->bc_param_cu);
 }
