@@ -18,6 +18,7 @@ struct gkyl_bc_emission_spectrum_funcs {
   emission_spectrum_gamma_func_t gamma;
 };
 
+// Primary struct for the updater
 struct gkyl_bc_emission_spectrum {
   int dir, cdim, vdim;
   enum gkyl_edge_loc edge;
@@ -31,6 +32,7 @@ struct gkyl_bc_emission_spectrum {
   bool use_gpu;
 };
 
+// Function to calculate the weighted mean of the SE yield
 GKYL_CU_D
 static void
 bc_weighted_gamma(const double *inp, int cdim, int dir, enum gkyl_edge_loc edge, double xc[GKYL_MAX_DIM], const double *gain, double *weight)
@@ -41,9 +43,11 @@ bc_weighted_gamma(const double *inp, int cdim, int dir, enum gkyl_edge_loc edge,
   }
 }
 
+// Chung-Everhart normalization factor
 GKYL_CU_D
 static double
 chung_everhart_norm(double *out, const double *flux, double *param, double effective_gamma)
+  
 {
   double phi = param[2];
   double mass = param[0];
@@ -52,6 +56,7 @@ chung_everhart_norm(double *out, const double *flux, double *param, double effec
   out[0] = 6.0*effective_gamma*flux[0]*phi*phi*mass/fabs(charge);
 }
 
+// Gaussian normalization factor
 GKYL_CU_D
 static double
 gaussian_norm(double *out, const double *flux, double *param, double effective_gamma)
@@ -64,6 +69,7 @@ gaussian_norm(double *out, const double *flux, double *param, double effective_g
   out[0] = effective_gamma*flux[0]*mass/(sqrt(2.0*M_PI)*E_0*tau*exp(tau*tau/2.0)*fabs(charge));
 }
 
+// Maxwellian normalization factor
 GKYL_CU_D
 static double
 maxwellian_norm(double *out, const double *flux, double *param, double effective_gamma)
@@ -73,9 +79,10 @@ maxwellian_norm(double *out, const double *flux, double *param, double effective
   out[0] = effective_gamma*flux[0]/(vt*vt);
 }
 
+// Furman-Pivi SEY calculation
 GKYL_CU_D
 static void
-furman_pivi_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *param)
+furman_pivi_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *param) // Electron impact model adapted from https://link.aps.org/doi/10.1103/PhysRevSTAB.5.124404
 {
   double mass = param[0];
   double charge = param[1];
@@ -99,6 +106,7 @@ furman_pivi_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], doub
   out[0] = gammahat*s*x/(s - 1 + pow(x, s));
 }
 
+// Schou SEY calculation
 GKYL_CU_D
 static void
 schou_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *param) // Ion impact model adapted from https://doi.org/10.1103/PhysRevB.22.2141
@@ -129,6 +137,7 @@ schou_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *pa
   out[0] =  eps*nw*fabs(charge)*intWall/1.0e19;
 }
 
+// Fixed constant SEY
 GKYL_CU_D
 static void
 constant_gamma(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *param)
@@ -178,6 +187,23 @@ bc_emission_spectrum_choose_gamma_func(enum gkyl_bc_emission_spectrum_gamma_type
 
 #ifdef GKYL_HAVE_CUDA
 
+/**
+ * CUDA device function to set up function to apply boundary conditions.
+ *
+ * @param up BC updater
+ * @param f_skin Skin cell distribution
+ * @param f_proj Projected spectrum distribution
+ * @param f_buff Distribution buffer array
+ * @param weight Weighting coefficients
+ * @param k Normalization factor
+ * @param flux Flux into boundary
+ * @param grid Domain grid
+ * @param gamma SE yield values on incoming ghost space
+ * @param skin_r Incoming skin space range
+ * @param ghost_r Incoming ghost space range
+ * @param conf_r Configuration space range
+ * @param buff_r Buffer array range
+ */
 void gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum *up,
   const struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
   struct gkyl_array *weight, struct gkyl_array *k,
@@ -185,6 +211,14 @@ void gkyl_bc_emission_spectrum_advance_cu(const struct gkyl_bc_emission_spectrum
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r,
   const struct gkyl_range *buff_r);
 
+/**
+ * CUDA device function to set up function to calculate SEY
+ *
+ * @param up BC updater
+ * @param grid Domain grid
+ * @param gamma SE yield values on incoming ghost space
+ * @param ghost_r Incoming ghost space range
+ */
 void gkyl_bc_emission_spectrum_sey_calc_cu(const struct gkyl_bc_emission_spectrum *up,
   struct gkyl_array *gamma, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r);
 

@@ -20,30 +20,38 @@ enum gkyl_bc_emission_spectrum_gamma_type {
 typedef struct gkyl_bc_emission_spectrum gkyl_bc_emission_spectrum;
 
 /**
- * Create a new updater to apply conducting sheath BCs in gyrokinetics.
+ * Create a new updater to apply emitting wall spectrum boundary conditions.
  *
- * @param grid cartesian grid dynamic field is defined on.
  * @param dir Direction in which to apply BC.
  * @param edge Lower or upper edge at which to apply BC (emission_spectrum gkyl_edge_loc).
- * @param local_conf_range_ext Local extended configuration range.
- * @param local_range_ext Local extended phase range.
- * @param num_ghosts Number of ghosts in each dimension.
- * @param bctype BC type (see gkyl_bc_emission_spectrum_type).
- * @param cbasis Configuration basis on which coefficients in array are expanded
- * @param basis Basis on which coefficients in array are expanded (a device pointer if use_gpu=true).
+ * @param bctype BC spectrum type (see gkyl_bc_emission_spectrum_type).
+ * @param gammatype SE yield type (see gkyl_bc_emission_spectrum_type).
+ * @param bc_param Parameters used for calculating BC spectrum.
+ * @param sey_param Parameters used for calculating SE yield.
  * @param cdim Configuration space dimensions.
  * @param vdim Velocity space dimensions.
- * @param bc_param Parameters used for calculating BCs.
- * @param gain Array of secondary electron gain values at the cell centers.
- * @param elastic Array of elastic backscattering gain values at the cell centers.
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_bc_emission_spectrum* gkyl_bc_emission_spectrum_new(int dir, enum gkyl_edge_loc edge,
-  enum gkyl_bc_emission_spectrum_type bctype,
-  enum gkyl_bc_emission_spectrum_gamma_type gammatype,
+  enum gkyl_bc_emission_spectrum_type bctype, enum gkyl_bc_emission_spectrum_gamma_type gammatype,
   double *bc_param, double *sey_param, int cdim, int vdim, bool use_gpu);
 
+/**
+ * @param up BC updater
+ * @param f_skin Skin cell distribution
+ * @param f_proj Projected spectrum distribution
+ * @param f_buff Distribution buffer array
+ * @param weight Weighting coefficients
+ * @param k Normalization factor
+ * @param flux Flux into boundary
+ * @param grid Domain grid
+ * @param gamma SE yield values on incoming ghost space
+ * @param skin_r Incoming skin space range
+ * @param ghost_r Incoming ghost space range
+ * @param conf_r Configuration space range
+ * @param buff_r Buffer array range
+ */
 void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *up,
   const struct gkyl_array *f_skin, const struct gkyl_array *f_proj, struct gkyl_array *f_buff,
   struct gkyl_array *weight, struct gkyl_array *k,
@@ -51,7 +59,14 @@ void gkyl_bc_emission_spectrum_advance(const struct gkyl_bc_emission_spectrum *u
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_range *conf_r,
   const struct gkyl_range *buff_r);
 
-void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up, struct gkyl_array *gamma, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r);
+/**
+ * @param up BC updater
+ * @param grid Domain grid
+ * @param gamma SE yield values on incoming ghost space
+ * @param ghost_r Incoming ghost space range
+ */
+void gkyl_bc_emission_spectrum_sey_calc(const struct gkyl_bc_emission_spectrum *up,
+  struct gkyl_array *gamma, struct gkyl_rect_grid *grid, const struct gkyl_range *ghost_r);
 
 /**
  * Free memory associated with bc_emission_spectrum updater.

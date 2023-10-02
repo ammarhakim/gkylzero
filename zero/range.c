@@ -385,8 +385,8 @@ gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   }
 }
 
-// CHANGE NEEDED - Number of cells in the positive and negative directions
-// is assumed to be the same, half of the cells in that dimension. Need to
+// KB - Number of cells in the positive and negative directions
+// is assumed to be the same symmetrically, half of the cells in that dimension. Need to
 // do this more rigorously.
 void
 gkyl_pos_neg_ranges(struct gkyl_range *pos, struct gkyl_range *neg,
