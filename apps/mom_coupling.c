@@ -43,20 +43,11 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     src->non_ideal_cflrate[n] = mkarr(false, 1, app->local_ext.volume); 
   }
 
-  // create grid and ranges for non-ideal variables (grid is in computational space)
-  // this grid is the grid of node values
-  int ghost[3] = { 2, 2, 2 };
-  double non_ideal_lower[3] = {0.0};
-  double non_ideal_upper[3] = {0.0};
-  int non_ideal_cells[3] = {0};
-  // non-ideal terms (e.g., heat flux tensor) grid has one "extra" cell and is half a grid cell larger past the lower and upper domain
-  for (int d=0; d<app->ndim; ++d) {
-    non_ideal_lower[d] = app->grid.lower[d] - (app->grid.upper[d]-app->grid.lower[d])/(2.0* (double) app->grid.cells[d]);
-    non_ideal_upper[d] = app->grid.upper[d] + (app->grid.upper[d]-app->grid.lower[d])/(2.0* (double) app->grid.cells[d]);
-    non_ideal_cells[d] = app->grid.cells[d] + 1;
-  }
-  gkyl_rect_grid_init(&src->non_ideal_grid, app->ndim, non_ideal_lower, non_ideal_upper, non_ideal_cells);
-  gkyl_create_grid_ranges(&app->grid, ghost, &src->non_ideal_local_ext, &src->non_ideal_local);
+  int ghost[3] = { 1, 1, 1 };
+  // create non-ideal local extended range from local range
+  // has one additional cell in each direction because non-ideal variables are stored at cell vertices
+  gkyl_create_ranges(&app->local, ghost, &src->non_ideal_local_ext, &src->non_ideal_local);
+
   // In Gradient-closure case, non-ideal variables are 10 heat flux tensor components
   for (int n=0;  n<app->num_species; ++n) 
     src->non_ideal_vars[n] = mkarr(false, 10, src->non_ideal_local_ext.volume);
@@ -93,8 +84,10 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     app_accels[i] = app->species[i].app_accel;
 
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
+      // non-ideal variables defined on an extended range with one additional "cell" in each direction
+      // this additional cell accounts for the fact that non-ideal variables are stored at cell vertices
       gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], 
-        &src->non_ideal_local, &app->local, 
+        &src->non_ideal_local_ext, &app->local, 
         app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]], 
         src->non_ideal_cflrate[i], src->non_ideal_vars[i], src->pr_rhs[i]);
     }

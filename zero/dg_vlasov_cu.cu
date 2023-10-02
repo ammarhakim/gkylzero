@@ -14,12 +14,10 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *field, const struct gkyl_array *ext_field, 
-  const struct gkyl_array *cot_vec, const struct gkyl_array *alpha_geo)
+  const struct gkyl_array *field, const struct gkyl_array *cot_vec, const struct gkyl_array *alpha_geo)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
   vlasov->auxfields.field = field; // q/m*(E,B) for Maxwell's, q/m*phi for Poisson's (gradient calculated in kernel)
-  vlasov->auxfields.ext_field = ext_field; // constant q/m*A for Poisson's (curl calculated in kernel)
   vlasov->auxfields.cot_vec = cot_vec; // cotangent vectors (e^i) used in volume term if general geometry enabled
   vlasov->auxfields.alpha_geo = alpha_geo; // alpha^i (e^i . alpha) used in surface term if general geometry enabled
 }
@@ -29,7 +27,6 @@ void
 gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
   gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.field->on_dev,
-    auxin.ext_field ? auxin.ext_field->on_dev : 0,
     auxin.cot_vec ? auxin.cot_vec->on_dev : 0,
     auxin.alpha_geo ? auxin.alpha_geo->on_dev : 0);
 }
@@ -42,7 +39,6 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
   enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   vlasov->auxfields.field = 0;
-  vlasov->auxfields.ext_field = 0;
   vlasov->auxfields.cot_vec = 0;
   vlasov->auxfields.alpha_geo = 0;
 

@@ -529,7 +529,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
 
   // Create EM, bvar, and ExB arrays.
   struct gkyl_array *cell_avg_magB2;
-  struct gkyl_array *field, *bvar, *ExB, *analytic_bvar, *analytic_ExB;
+  struct gkyl_array *field, *bvar, *ExB, *bvar_surf, *analytic_bvar, *analytic_ExB;
   cell_avg_magB2 = mk_int_arr(1, local_ext.volume);
   field = mkarr(8*basis.num_basis, local_ext.volume);
   bvar = mkarr(9*basis.num_basis, local_ext.volume);
@@ -537,18 +537,23 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   analytic_bvar = mkarr(9*basis.num_basis, local_ext.volume);
   analytic_ExB = mkarr(3*basis.num_basis, local_ext.volume);
 
+  int Ncomp_surf = 2*ndim*4;
+  int Nbasis_surf = basis.num_basis/(basis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
+  bvar_surf = mkarr(Ncomp_surf*Nbasis_surf, local_ext.volume);
+
   // Project initial conditions and analytic solution
   gkyl_proj_on_basis_advance(proj_field, 0.0, &local_ext, field);
   gkyl_proj_on_basis_advance(proj_analytic_bvar, 0.0, &local_ext, analytic_bvar);
   gkyl_proj_on_basis_advance(proj_analytic_ExB, 0.0, &local_ext, analytic_ExB);
 
   struct gkyl_array *cell_avg_magB2_cu;
-  struct gkyl_array *field_cu, *bvar_cu, *ExB_cu;
+  struct gkyl_array *field_cu, *bvar_cu, *ExB_cu, *bvar_surf_cu;
   if (use_gpu) { // Create device copies
     cell_avg_magB2_cu  = gkyl_array_cu_dev_new(GKYL_INT, 1, local_ext.volume);
     field_cu  = gkyl_array_cu_dev_new(GKYL_DOUBLE, 8*basis.num_basis, local_ext.volume);
     bvar_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*basis.num_basis, local_ext.volume);
     ExB_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, local_ext.volume);
+    bvar_surf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, Ncomp_surf*Nbasis_surf, local_ext.volume);
   }
 
   if (use_gpu) {
@@ -572,15 +577,16 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   // 3. For bvar, project diagonal components of bb onto quadrature points, evaluate square root point wise, 
   //    and project back onto modal basis using basis_sqrt to obtain b_i (see gkyl_basis_*_sqrt.h in kernels/basis/)
   if (use_gpu) {
-    gkyl_dg_calc_em_vars_advance(calc_bvar, field_cu, cell_avg_magB2_cu, bvar_cu);
-    gkyl_dg_calc_em_vars_advance(calc_ExB, field_cu, cell_avg_magB2_cu, ExB_cu);
+    // Advance also computed surface variables, but not currently testing surface variables JJ: 09/02/23
+    gkyl_dg_calc_em_vars_advance(calc_bvar, field_cu, cell_avg_magB2_cu, bvar_cu, bvar_surf_cu);
+    gkyl_dg_calc_em_vars_advance(calc_ExB, field_cu, cell_avg_magB2_cu, ExB_cu, bvar_surf_cu);
     // Copy host array to device.
     gkyl_array_copy(bvar, bvar_cu);
     gkyl_array_copy(ExB, ExB_cu);
   }
   else {
-    gkyl_dg_calc_em_vars_advance(calc_bvar, field, cell_avg_magB2, bvar);
-    gkyl_dg_calc_em_vars_advance(calc_ExB, field, cell_avg_magB2, ExB);
+    gkyl_dg_calc_em_vars_advance(calc_bvar, field, cell_avg_magB2, bvar, bvar_surf);
+    gkyl_dg_calc_em_vars_advance(calc_ExB, field, cell_avg_magB2, ExB, bvar_surf);
   }
 
   double em_tm = gkyl_time_diff_now_sec(tm);
@@ -594,9 +600,9 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   for (int i=0; i<3; ++i) {
     gkyl_dg_mul_op_range(basis, i, bibj_check, i, bvar, i, bvar, &local);
   }
-  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 0*basis.num_basis, local);
-  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 1*basis.num_basis, local);
-  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 2*basis.num_basis, local);
+  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 0*basis.num_basis, &local);
+  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 1*basis.num_basis, &local);
+  gkyl_array_accumulate_offset_range(b_dot_b, 1.0, bibj_check, 2*basis.num_basis, &local);
 
   // Create intermediate arrays and dg_bin_op_memory to construct bvar
   // and ExB by the relevant sequence of operations
@@ -625,9 +631,9 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
         ctr += 1;
       }
     }
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0*basis.num_basis, local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3*basis.num_basis, local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5*basis.num_basis, local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0*basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3*basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5*basis.num_basis, &local);
 
     for (int i=0; i<6; ++i) {
       gkyl_dg_div_op_range(magB2_mem, basis, 3+i, alt_bibj_cu, i, int_BiBj, 0, magB2, &local);
@@ -642,7 +648,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_dg_mul_op_range(basis, 0, int_ExB1, 0, field_cu, 4, field_cu, &local);
     gkyl_dg_mul_op_range(basis, 0, int_ExB2, 1, field_cu, 3, field_cu, &local);
 
-    gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, local);
+    gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, &local);
     for (int i=0; i<3; ++i) {
       gkyl_dg_div_op_range(magB2_mem, basis, i, alt_ExB_cu, i, int_ExB1, 0, magB2, &local);
     }    
@@ -666,9 +672,9 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
         ctr += 1;
       }
     }
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0*basis.num_basis, local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3*basis.num_basis, local);
-    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5*basis.num_basis, local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 0*basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 3*basis.num_basis, &local);
+    gkyl_array_accumulate_offset_range(magB2, 1.0, int_BiBj, 5*basis.num_basis, &local);
 
     for (int i=0; i<6; ++i) {
       gkyl_dg_div_op_range(magB2_mem, basis, 3+i, alt_bibj, i, int_BiBj, 0, magB2, &local);
@@ -683,7 +689,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_dg_mul_op_range(basis, 2, int_ExB1, 0, field, 4, field, &local);
     gkyl_dg_mul_op_range(basis, 2, int_ExB2, 1, field, 3, field, &local);
 
-    gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, local);
+    gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, &local);
     for (int i=0; i<3; ++i) {
       gkyl_dg_div_op_range(magB2_mem, basis, i, alt_ExB, i, int_ExB1, 0, magB2, &local);
     }    
@@ -722,20 +728,20 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_dg_calc_l2_range(basis, i, alt_L2_ExB, i, alt_ExB_err, local);
   }
 
-  gkyl_array_scale_range(L2_bvar, grid.cellVolume, local);
-  gkyl_array_scale_range(L2_ExB, grid.cellVolume, local);
-  gkyl_array_scale_range(alt_L2_bvar, grid.cellVolume, local);
-  gkyl_array_scale_range(alt_L2_ExB, grid.cellVolume, local);
+  gkyl_array_scale_range(L2_bvar, grid.cellVolume, &local);
+  gkyl_array_scale_range(L2_ExB, grid.cellVolume, &local);
+  gkyl_array_scale_range(alt_L2_bvar, grid.cellVolume, &local);
+  gkyl_array_scale_range(alt_L2_ExB, grid.cellVolume, &local);
 
   double red_L2_bvar[9] = {0.0};
   double red_L2_ExB[3] = {0.0};
   double red_alt_L2_bvar[9] = {0.0};
   double red_alt_L2_ExB[3] = {0.0};
 
-  gkyl_array_reduce_range(red_L2_bvar, L2_bvar, GKYL_SUM, local);
-  gkyl_array_reduce_range(red_L2_ExB, L2_ExB, GKYL_SUM, local);
-  gkyl_array_reduce_range(red_alt_L2_bvar, alt_L2_bvar, GKYL_SUM, local);
-  gkyl_array_reduce_range(red_alt_L2_ExB, alt_L2_ExB, GKYL_SUM, local);
+  gkyl_array_reduce_range(red_L2_bvar, L2_bvar, GKYL_SUM, &local);
+  gkyl_array_reduce_range(red_L2_ExB, L2_ExB, GKYL_SUM, &local);
+  gkyl_array_reduce_range(red_alt_L2_bvar, alt_L2_bvar, GKYL_SUM, &local);
+  gkyl_array_reduce_range(red_alt_L2_ExB, alt_L2_ExB, GKYL_SUM, &local);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
@@ -884,6 +890,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
   gkyl_array_release(cell_avg_magB2);
   gkyl_array_release(bvar);
   gkyl_array_release(ExB);
+  gkyl_array_release(bvar_surf);
   gkyl_array_release(analytic_bvar);
   gkyl_array_release(analytic_ExB);
 
@@ -903,6 +910,7 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_array_release(field_cu);
     gkyl_array_release(cell_avg_magB2_cu);
     gkyl_array_release(bvar_cu);
+    gkyl_array_release(bvar_surf_cu);
     gkyl_array_release(ExB_cu);
 
     gkyl_array_release(alt_bibj_cu);

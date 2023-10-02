@@ -50,7 +50,7 @@ gkyl_dg_calc_pkpm_dist_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
  * @param phase_range Range to calculate mirror force distribution function 
  * @param pkpm_prim Input array of primitive moments [ux, uy, uz, 1/rho div(p_par b), T_perp/m, m/T_perp]
  *        This updater needs T_perp/m and m/T_perp
- * @param nu_vthsq Input array of nu*vth^2
+ * @param nu_prim_moms_sum Input array of nu*primitive moments, summed over self and cross collisions (needed for nu*vth^2)
  * @param div_b Input array of div(b)
  * @param pkpm_accel_vars Input arrary of pkpm acceleration variables ordered as:
  *        0: p_perp_div_b (p_perp/rho*div(b) = T_perp/m*div(b))
@@ -65,7 +65,7 @@ gkyl_dg_calc_pkpm_dist_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
  */
 void gkyl_dg_calc_pkpm_dist_vars_mirror_force(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_prim_moms_sum, 
   const struct gkyl_array* div_b, const struct gkyl_array* pkpm_accel_vars, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);
@@ -101,7 +101,7 @@ void gkyl_dg_calc_pkpm_dist_vars_release(struct gkyl_dg_calc_pkpm_dist_vars *up)
 
 void gkyl_dg_calc_pkpm_dist_vars_mirror_force_cu(struct gkyl_dg_calc_pkpm_dist_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_vthsq, 
+  const struct gkyl_array* pkpm_prim, const struct gkyl_array* nu_prim_moms_sum, 
   const struct gkyl_array* div_b, const struct gkyl_array* pkpm_accel_vars, 
   const struct gkyl_array* fIn, const struct gkyl_array* F_k_p_1,
   struct gkyl_array* g_dist_source, struct gkyl_array* F_k_m_1);

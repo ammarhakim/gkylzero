@@ -267,19 +267,16 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
   }
   else if (up->type_self == GKYL_IZ_DONOR) {
-    printf("\n1");
     // neut coll_iz = -f_n
     gkyl_array_set_range(coll_iz, -1.0, f_self, *up->phase_rng);
-    printf("\n2");
+
     // weak multiply
     gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
-    printf("\n3");
   }
 
   // coll_iz = n_n*coef_iz*coll_iz
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_iz, coll_iz,
 				    up->conf_rng, up->phase_rng);
-  printf("\n4");
   
   // cfl calculation
   //struct gkyl_range vel_rng;

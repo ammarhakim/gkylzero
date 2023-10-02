@@ -9,7 +9,7 @@ GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p1(const double *w, const double *dxv
   const double *g_dist_source, const double *f, 
   double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_ser_p1(const double *w, const double *dxv, 
-  const double *pkpm_prim, const double *nu_vthsq, 
+  const double *pkpm_prim, const double *nu_prim_moms_sum, 
   const double *div_b, const double *pkpm_accel_vars, 
   const double *f, const double *F_k_p_1, 
   double* GKYL_RESTRICT g_dist_source, double* GKYL_RESTRICT F_k_m_1); 
@@ -37,7 +37,7 @@ GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p2(const double *w, const double *dxv
   const double *g_dist_source, const double *f, 
   double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_ser_p2(const double *w, const double *dxv, 
-  const double *pkpm_prim, const double *nu_vthsq, 
+  const double *pkpm_prim, const double *nu_prim_moms_sum, 
   const double *div_b, const double *pkpm_accel_vars, 
   const double *f, const double *F_k_p_1, 
   double* GKYL_RESTRICT g_dist_source, double* GKYL_RESTRICT F_k_m_1); 
@@ -65,7 +65,7 @@ GKYL_CU_DH double vlasov_pkpm_vol_2x1v_ser_p1(const double *w, const double *dxv
   const double *g_dist_source, const double *f, 
   double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_2x1v_ser_p1(const double *w, const double *dxv, 
-  const double *pkpm_prim, const double *nu_vthsq, 
+  const double *pkpm_prim, const double *nu_prim_moms_sum, 
   const double *div_b, const double *pkpm_accel_vars, 
   const double *f, const double *F_k_p_1, 
   double* GKYL_RESTRICT g_dist_source, double* GKYL_RESTRICT F_k_m_1); 
@@ -102,7 +102,7 @@ GKYL_CU_DH double vlasov_pkpm_vol_2x1v_ser_p2(const double *w, const double *dxv
   const double *g_dist_source, const double *f, 
   double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_2x1v_ser_p2(const double *w, const double *dxv, 
-  const double *pkpm_prim, const double *nu_vthsq, 
+  const double *pkpm_prim, const double *nu_prim_moms_sum, 
   const double *div_b, const double *pkpm_accel_vars, 
   const double *f, const double *F_k_p_1, 
   double* GKYL_RESTRICT g_dist_source, double* GKYL_RESTRICT F_k_m_1); 
@@ -139,7 +139,7 @@ GKYL_CU_DH double vlasov_pkpm_vol_3x1v_ser_p1(const double *w, const double *dxv
   const double *g_dist_source, const double *f, 
   double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_3x1v_ser_p1(const double *w, const double *dxv, 
-  const double *pkpm_prim, const double *nu_vthsq, 
+  const double *pkpm_prim, const double *nu_prim_moms_sum, 
   const double *div_b, const double *pkpm_accel_vars, 
   const double *f, const double *F_k_p_1, 
   double* GKYL_RESTRICT g_dist_source, double* GKYL_RESTRICT F_k_m_1); 
@@ -185,7 +185,7 @@ GKYL_CU_DH double vlasov_pkpm_vol_3x1v_ser_p2(const double *w, const double *dxv
   const double *g_dist_source, const double *f, 
   double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_3x1v_ser_p2(const double *w, const double *dxv, 
-  const double *pkpm_prim, const double *nu_vthsq, 
+  const double *pkpm_prim, const double *nu_prim_moms_sum, 
   const double *div_b, const double *pkpm_accel_vars, 
   const double *f, const double *F_k_p_1, 
   double* GKYL_RESTRICT g_dist_source, double* GKYL_RESTRICT F_k_m_1); 
@@ -231,7 +231,7 @@ GKYL_CU_DH double vlasov_pkpm_vol_1x1v_tensor_p2(const double *w, const double *
   const double *g_dist_source, const double *f, 
   double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_1x1v_tensor_p2(const double *w, const double *dxv, 
-  const double *pkpm_prim, const double *nu_vthsq, 
+  const double *pkpm_prim, const double *nu_prim_moms_sum, 
   const double *div_b, const double *pkpm_accel_vars, 
   const double *f, const double *F_k_p_1, 
   double* GKYL_RESTRICT g_dist_source, double* GKYL_RESTRICT F_k_m_1); 
@@ -259,7 +259,7 @@ GKYL_CU_DH double vlasov_pkpm_vol_2x1v_tensor_p2(const double *w, const double *
   const double *g_dist_source, const double *f, 
   double* GKYL_RESTRICT out); 
 GKYL_CU_DH void pkpm_dist_mirror_force_2x1v_tensor_p2(const double *w, const double *dxv, 
-  const double *pkpm_prim, const double *nu_vthsq, 
+  const double *pkpm_prim, const double *nu_prim_moms_sum, 
   const double *div_b, const double *pkpm_accel_vars, 
   const double *f, const double *F_k_p_1, 
   double* GKYL_RESTRICT g_dist_source, double* GKYL_RESTRICT F_k_m_1); 

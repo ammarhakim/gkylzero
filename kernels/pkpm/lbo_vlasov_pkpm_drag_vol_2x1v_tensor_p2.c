@@ -1,37 +1,40 @@
 #include <gkyl_lbo_vlasov_pkpm_kernels.h> 
-GKYL_CU_DH double lbo_vlasov_pkpm_drag_vol_2x1v_tensor_p2(const double *w, const double *dxv, const double *nu, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_pkpm_drag_vol_2x1v_tensor_p2(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const double *f, double* GKYL_RESTRICT out) 
 { 
-  // w[3]:   Cell-center coordinates. 
-  // dxv[3]: Cell spacing. 
-  // nu:      collisionality. 
-  // f:       Input distribution function.
-  // out:     Incremented output 
+  // w[NDIM]:       Cell-center coordinates. 
+  // dxv[NDIM]:     Cell spacing. 
+  // nuSum:         Collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum: Sum of bulk velocities and thermal speeds (squared) times their respective collisionalities. 
+  // f:             Input distribution functions [F_0, T_perp/m G_1 = T_perp/m (F_0 - F_1)].
+  // out:           Incremented output distribution functions. 
   const double rdvpar = 2.0/dxv[2]; 
   const double dvpar = dxv[2], wvpar = w[2]; 
   const double *F_0 = &f[0]; 
   const double *G_1 = &f[27]; 
   double *out_F_0 = &out[0]; 
   double *out_G_1 = &out[27]; 
+
+  const double *sumNuUPar = &nuPrimMomsSum[0]; 
+
   double alphaDrag[27]; 
-  // Expand rdvpar*(nu*vx) in phase basis.
-  alphaDrag[0] = -1.414213562373095*nu[0]*rdvpar*wvpar; 
-  alphaDrag[1] = -1.414213562373095*nu[1]*rdvpar*wvpar; 
-  alphaDrag[2] = -1.414213562373095*nu[2]*rdvpar*wvpar; 
-  alphaDrag[3] = -0.408248290463863*nu[0]*dvpar*rdvpar; 
-  alphaDrag[4] = -1.414213562373095*nu[3]*rdvpar*wvpar; 
-  alphaDrag[5] = -0.408248290463863*nu[1]*dvpar*rdvpar; 
-  alphaDrag[6] = -0.408248290463863*nu[2]*dvpar*rdvpar; 
-  alphaDrag[7] = -1.414213562373095*nu[4]*rdvpar*wvpar; 
-  alphaDrag[8] = -1.414213562373095*nu[5]*rdvpar*wvpar; 
-  alphaDrag[10] = -0.408248290463863*nu[3]*dvpar*rdvpar; 
-  alphaDrag[11] = -1.414213562373095*nu[6]*rdvpar*wvpar; 
-  alphaDrag[12] = -1.414213562373095*nu[7]*rdvpar*wvpar; 
-  alphaDrag[13] = -0.408248290463863*nu[4]*dvpar*rdvpar; 
-  alphaDrag[14] = -0.408248290463863*nu[5]*dvpar*rdvpar; 
-  alphaDrag[17] = -0.408248290463863*nu[6]*dvpar*rdvpar; 
-  alphaDrag[18] = -0.408248290463863*nu[7]*dvpar*rdvpar; 
-  alphaDrag[20] = -1.414213562373095*nu[8]*rdvpar*wvpar; 
-  alphaDrag[23] = -0.408248290463863*nu[8]*dvpar*rdvpar; 
+  alphaDrag[0] = rdvpar*(1.414213562373095*sumNuUPar[0]-1.414213562373095*nuSum[0]*wvpar); 
+  alphaDrag[1] = rdvpar*(1.414213562373095*sumNuUPar[1]-1.414213562373095*nuSum[1]*wvpar); 
+  alphaDrag[2] = rdvpar*(1.414213562373095*sumNuUPar[2]-1.414213562373095*nuSum[2]*wvpar); 
+  alphaDrag[3] = -0.408248290463863*nuSum[0]*dvpar*rdvpar; 
+  alphaDrag[4] = rdvpar*(1.414213562373095*sumNuUPar[3]-1.414213562373095*nuSum[3]*wvpar); 
+  alphaDrag[5] = -0.408248290463863*nuSum[1]*dvpar*rdvpar; 
+  alphaDrag[6] = -0.408248290463863*nuSum[2]*dvpar*rdvpar; 
+  alphaDrag[7] = rdvpar*(1.414213562373095*sumNuUPar[4]-1.414213562373095*nuSum[4]*wvpar); 
+  alphaDrag[8] = rdvpar*(1.414213562373095*sumNuUPar[5]-1.414213562373095*nuSum[5]*wvpar); 
+  alphaDrag[10] = -0.408248290463863*nuSum[3]*dvpar*rdvpar; 
+  alphaDrag[11] = rdvpar*(1.414213562373095*sumNuUPar[6]-1.414213562373095*nuSum[6]*wvpar); 
+  alphaDrag[12] = rdvpar*(1.414213562373095*sumNuUPar[7]-1.414213562373095*nuSum[7]*wvpar); 
+  alphaDrag[13] = -0.408248290463863*nuSum[4]*dvpar*rdvpar; 
+  alphaDrag[14] = -0.408248290463863*nuSum[5]*dvpar*rdvpar; 
+  alphaDrag[17] = -0.408248290463863*nuSum[6]*dvpar*rdvpar; 
+  alphaDrag[18] = -0.408248290463863*nuSum[7]*dvpar*rdvpar; 
+  alphaDrag[20] = rdvpar*(1.414213562373095*sumNuUPar[8]-1.414213562373095*nuSum[8]*wvpar); 
+  alphaDrag[23] = -0.408248290463863*nuSum[8]*dvpar*rdvpar; 
 
   out_F_0[3] += 0.6123724356957944*F_0[23]*alphaDrag[23]+0.6123724356957944*F_0[20]*alphaDrag[20]+0.6123724356957944*F_0[18]*alphaDrag[18]+0.6123724356957944*F_0[17]*alphaDrag[17]+0.6123724356957944*F_0[14]*alphaDrag[14]+0.6123724356957944*F_0[13]*alphaDrag[13]+0.6123724356957944*F_0[12]*alphaDrag[12]+0.6123724356957944*F_0[11]*alphaDrag[11]+0.6123724356957944*F_0[10]*alphaDrag[10]+0.6123724356957944*F_0[8]*alphaDrag[8]+0.6123724356957944*F_0[7]*alphaDrag[7]+0.6123724356957944*F_0[6]*alphaDrag[6]+0.6123724356957944*F_0[5]*alphaDrag[5]+0.6123724356957944*F_0[4]*alphaDrag[4]+0.6123724356957944*F_0[3]*alphaDrag[3]+0.6123724356957944*F_0[2]*alphaDrag[2]+0.6123724356957944*F_0[1]*alphaDrag[1]+0.6123724356957944*F_0[0]*alphaDrag[0]; 
   out_F_0[5] += 0.5477225575051661*F_0[18]*alphaDrag[23]+0.5477225575051661*alphaDrag[18]*F_0[23]+0.5477225575051661*F_0[12]*alphaDrag[20]+0.5477225575051661*alphaDrag[12]*F_0[20]+0.6123724356957944*F_0[14]*alphaDrag[18]+0.6123724356957944*alphaDrag[14]*F_0[18]+0.5477225575051661*F_0[10]*alphaDrag[17]+0.5477225575051661*alphaDrag[10]*F_0[17]+0.5477225575051661*F_0[5]*alphaDrag[13]+0.5477225575051661*alphaDrag[5]*F_0[13]+0.6123724356957944*F_0[8]*alphaDrag[12]+0.6123724356957944*alphaDrag[8]*F_0[12]+0.5477225575051661*F_0[4]*alphaDrag[11]+0.5477225575051661*alphaDrag[4]*F_0[11]+0.6123724356957944*F_0[6]*alphaDrag[10]+0.6123724356957944*alphaDrag[6]*F_0[10]+0.5477225575051661*F_0[1]*alphaDrag[7]+0.5477225575051661*alphaDrag[1]*F_0[7]+0.6123724356957944*F_0[3]*alphaDrag[5]+0.6123724356957944*alphaDrag[3]*F_0[5]+0.6123724356957944*F_0[2]*alphaDrag[4]+0.6123724356957944*alphaDrag[2]*F_0[4]+0.6123724356957944*F_0[0]*alphaDrag[1]+0.6123724356957944*alphaDrag[0]*F_0[1]; 

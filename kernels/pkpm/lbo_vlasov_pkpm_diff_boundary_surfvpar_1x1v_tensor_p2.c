@@ -1,12 +1,15 @@
 #include <gkyl_lbo_vlasov_pkpm_kernels.h> 
-GKYL_CU_DH double lbo_vlasov_pkpm_diff_boundary_surfvpar_1x1v_tensor_p2(const double *w, const double *dxv, const double *nuVtSq, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_vlasov_pkpm_diff_boundary_surfvpar_1x1v_tensor_p2(const double *w, const double *dxv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
-  // w[2]:         Cell-center coordinates. 
-  // dxv[2]:       Cell spacing. 
-  // nuVtSq[3]:    Thermal speeds squared times collisionality. 
-  // fSkin/fEdge: Input Distribution function [F_0, T_perp G = T_perp (F_1 - F_0)] in skin cell/last edge cell 
-  // out:         Incremented distribution function in cell 
+  // w[NDIM]:       Cell-center coordinates. 
+  // dxv[NDIM]:     Cell spacing. 
+  // nuSum:         Collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum: Sum of bulk velocities and thermal speeds (squared) times their respective collisionalities. 
+  // fSkin/fEdge:   Input distribution functions [F_0, T_perp G = T_perp (F_1 - F_0)] in skin cell/last edge cell. 
+  // out:           Incremented distribution functions in skin cell. 
   double rdvSq4 = 4.0/(dxv[1]*dxv[1]); 
+  const double *nuVtSqSum = &nuPrimMomsSum[3];
+
   const double *F_0Skin = &fSkin[0]; 
   const double *G_1Skin = &fSkin[9]; 
   const double *F_0Edge = &fEdge[0]; 
@@ -16,12 +19,12 @@ GKYL_CU_DH double lbo_vlasov_pkpm_diff_boundary_surfvpar_1x1v_tensor_p2(const do
 
   double vol_incr_F_0[9] = {0.0}; 
   double vol_incr_G_1[9] = {0.0}; 
-  vol_incr_F_0[5] = 4.743416490252569*nuVtSq[2]*F_0Skin[4]*rdvSq4+4.743416490252569*F_0Skin[1]*nuVtSq[1]*rdvSq4+4.743416490252569*F_0Skin[0]*nuVtSq[0]*rdvSq4; 
-  vol_incr_F_0[7] = 4.242640687119286*nuVtSq[1]*F_0Skin[4]*rdvSq4+4.242640687119286*F_0Skin[1]*nuVtSq[2]*rdvSq4+4.743416490252569*F_0Skin[0]*nuVtSq[1]*rdvSq4+4.743416490252569*nuVtSq[0]*F_0Skin[1]*rdvSq4; 
-  vol_incr_F_0[8] = 3.030457633656632*nuVtSq[2]*F_0Skin[4]*rdvSq4+4.743416490252569*nuVtSq[0]*F_0Skin[4]*rdvSq4+4.743416490252569*F_0Skin[0]*nuVtSq[2]*rdvSq4+4.242640687119286*F_0Skin[1]*nuVtSq[1]*rdvSq4; 
-  vol_incr_G_1[5] = 4.743416490252569*nuVtSq[2]*G_1Skin[4]*rdvSq4+4.743416490252569*G_1Skin[1]*nuVtSq[1]*rdvSq4+4.743416490252569*G_1Skin[0]*nuVtSq[0]*rdvSq4; 
-  vol_incr_G_1[7] = 4.242640687119286*nuVtSq[1]*G_1Skin[4]*rdvSq4+4.242640687119286*G_1Skin[1]*nuVtSq[2]*rdvSq4+4.743416490252569*G_1Skin[0]*nuVtSq[1]*rdvSq4+4.743416490252569*nuVtSq[0]*G_1Skin[1]*rdvSq4; 
-  vol_incr_G_1[8] = 3.030457633656632*nuVtSq[2]*G_1Skin[4]*rdvSq4+4.743416490252569*nuVtSq[0]*G_1Skin[4]*rdvSq4+4.743416490252569*G_1Skin[0]*nuVtSq[2]*rdvSq4+4.242640687119286*G_1Skin[1]*nuVtSq[1]*rdvSq4; 
+  vol_incr_F_0[5] = 4.743416490252569*nuVtSqSum[2]*F_0Skin[4]*rdvSq4+4.743416490252569*F_0Skin[1]*nuVtSqSum[1]*rdvSq4+4.743416490252569*F_0Skin[0]*nuVtSqSum[0]*rdvSq4; 
+  vol_incr_F_0[7] = 4.242640687119286*nuVtSqSum[1]*F_0Skin[4]*rdvSq4+4.242640687119286*F_0Skin[1]*nuVtSqSum[2]*rdvSq4+4.743416490252569*F_0Skin[0]*nuVtSqSum[1]*rdvSq4+4.743416490252569*nuVtSqSum[0]*F_0Skin[1]*rdvSq4; 
+  vol_incr_F_0[8] = 3.030457633656632*nuVtSqSum[2]*F_0Skin[4]*rdvSq4+4.743416490252569*nuVtSqSum[0]*F_0Skin[4]*rdvSq4+4.743416490252569*F_0Skin[0]*nuVtSqSum[2]*rdvSq4+4.242640687119286*F_0Skin[1]*nuVtSqSum[1]*rdvSq4; 
+  vol_incr_G_1[5] = 4.743416490252569*nuVtSqSum[2]*G_1Skin[4]*rdvSq4+4.743416490252569*G_1Skin[1]*nuVtSqSum[1]*rdvSq4+4.743416490252569*G_1Skin[0]*nuVtSqSum[0]*rdvSq4; 
+  vol_incr_G_1[7] = 4.242640687119286*nuVtSqSum[1]*G_1Skin[4]*rdvSq4+4.242640687119286*G_1Skin[1]*nuVtSqSum[2]*rdvSq4+4.743416490252569*G_1Skin[0]*nuVtSqSum[1]*rdvSq4+4.743416490252569*nuVtSqSum[0]*G_1Skin[1]*rdvSq4; 
+  vol_incr_G_1[8] = 3.030457633656632*nuVtSqSum[2]*G_1Skin[4]*rdvSq4+4.743416490252569*nuVtSqSum[0]*G_1Skin[4]*rdvSq4+4.743416490252569*G_1Skin[0]*nuVtSqSum[2]*rdvSq4+4.242640687119286*G_1Skin[1]*nuVtSqSum[1]*rdvSq4; 
 
   double temp_F_0_diff[9] = {0.0}; 
   double temp_F_0_edge[9] = {0.0}; 
@@ -67,43 +70,43 @@ GKYL_CU_DH double lbo_vlasov_pkpm_diff_boundary_surfvpar_1x1v_tensor_p2(const do
   temp_G_1_edge[7] = (-7.5*G_1Skin[7])+5.809475019311126*G_1Skin[3]-3.354101966249684*G_1Skin[1]; 
   temp_G_1_edge[8] = (-7.5*G_1Skin[8])+5.809475019311126*G_1Skin[6]-3.354101966249685*G_1Skin[4]; 
 
-  diff_F_0_incr[0] = 0.7071067811865475*nuVtSq[2]*temp_F_0_diff[4]+0.7071067811865475*nuVtSq[1]*temp_F_0_diff[1]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[0]; 
-  diff_F_0_incr[1] = 0.6324555320336759*nuVtSq[1]*temp_F_0_diff[4]+0.6324555320336759*temp_F_0_diff[1]*nuVtSq[2]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[1]+0.7071067811865475*temp_F_0_diff[0]*nuVtSq[1]; 
-  diff_F_0_incr[2] = 0.7071067811865475*nuVtSq[2]*temp_F_0_diff[6]+0.7071067811865475*nuVtSq[1]*temp_F_0_diff[3]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[2]; 
-  diff_F_0_incr[3] = 0.632455532033676*nuVtSq[1]*temp_F_0_diff[6]+0.6324555320336759*nuVtSq[2]*temp_F_0_diff[3]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[3]+0.7071067811865475*nuVtSq[1]*temp_F_0_diff[2]; 
-  diff_F_0_incr[4] = 0.4517539514526256*nuVtSq[2]*temp_F_0_diff[4]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[4]+0.7071067811865475*temp_F_0_diff[0]*nuVtSq[2]+0.6324555320336759*nuVtSq[1]*temp_F_0_diff[1]; 
-  diff_F_0_incr[5] = 0.7071067811865475*nuVtSq[2]*temp_F_0_diff[8]+0.7071067811865475*nuVtSq[1]*temp_F_0_diff[7]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[5]; 
-  diff_F_0_incr[6] = 0.4517539514526256*nuVtSq[2]*temp_F_0_diff[6]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[6]+0.632455532033676*nuVtSq[1]*temp_F_0_diff[3]+0.7071067811865475*nuVtSq[2]*temp_F_0_diff[2]; 
-  diff_F_0_incr[7] = 0.632455532033676*nuVtSq[1]*temp_F_0_diff[8]+0.6324555320336759*nuVtSq[2]*temp_F_0_diff[7]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[7]+0.7071067811865475*nuVtSq[1]*temp_F_0_diff[5]; 
-  diff_F_0_incr[8] = 0.4517539514526256*nuVtSq[2]*temp_F_0_diff[8]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[8]+0.632455532033676*nuVtSq[1]*temp_F_0_diff[7]+0.7071067811865475*nuVtSq[2]*temp_F_0_diff[5]; 
-  diff_G_1_incr[0] = 0.7071067811865475*nuVtSq[2]*temp_G_1_diff[4]+0.7071067811865475*nuVtSq[1]*temp_G_1_diff[1]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[0]; 
-  diff_G_1_incr[1] = 0.6324555320336759*nuVtSq[1]*temp_G_1_diff[4]+0.6324555320336759*temp_G_1_diff[1]*nuVtSq[2]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[1]+0.7071067811865475*temp_G_1_diff[0]*nuVtSq[1]; 
-  diff_G_1_incr[2] = 0.7071067811865475*nuVtSq[2]*temp_G_1_diff[6]+0.7071067811865475*nuVtSq[1]*temp_G_1_diff[3]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[2]; 
-  diff_G_1_incr[3] = 0.632455532033676*nuVtSq[1]*temp_G_1_diff[6]+0.6324555320336759*nuVtSq[2]*temp_G_1_diff[3]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[3]+0.7071067811865475*nuVtSq[1]*temp_G_1_diff[2]; 
-  diff_G_1_incr[4] = 0.4517539514526256*nuVtSq[2]*temp_G_1_diff[4]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[4]+0.7071067811865475*temp_G_1_diff[0]*nuVtSq[2]+0.6324555320336759*nuVtSq[1]*temp_G_1_diff[1]; 
-  diff_G_1_incr[5] = 0.7071067811865475*nuVtSq[2]*temp_G_1_diff[8]+0.7071067811865475*nuVtSq[1]*temp_G_1_diff[7]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[5]; 
-  diff_G_1_incr[6] = 0.4517539514526256*nuVtSq[2]*temp_G_1_diff[6]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[6]+0.632455532033676*nuVtSq[1]*temp_G_1_diff[3]+0.7071067811865475*nuVtSq[2]*temp_G_1_diff[2]; 
-  diff_G_1_incr[7] = 0.632455532033676*nuVtSq[1]*temp_G_1_diff[8]+0.6324555320336759*nuVtSq[2]*temp_G_1_diff[7]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[7]+0.7071067811865475*nuVtSq[1]*temp_G_1_diff[5]; 
-  diff_G_1_incr[8] = 0.4517539514526256*nuVtSq[2]*temp_G_1_diff[8]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[8]+0.632455532033676*nuVtSq[1]*temp_G_1_diff[7]+0.7071067811865475*nuVtSq[2]*temp_G_1_diff[5]; 
+  diff_F_0_incr[0] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_diff[4]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_diff[1]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[0]; 
+  diff_F_0_incr[1] = 0.6324555320336759*nuVtSqSum[1]*temp_F_0_diff[4]+0.6324555320336759*temp_F_0_diff[1]*nuVtSqSum[2]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[1]+0.7071067811865475*temp_F_0_diff[0]*nuVtSqSum[1]; 
+  diff_F_0_incr[2] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_diff[6]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_diff[3]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[2]; 
+  diff_F_0_incr[3] = 0.632455532033676*nuVtSqSum[1]*temp_F_0_diff[6]+0.6324555320336759*nuVtSqSum[2]*temp_F_0_diff[3]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[3]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_diff[2]; 
+  diff_F_0_incr[4] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_diff[4]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[4]+0.7071067811865475*temp_F_0_diff[0]*nuVtSqSum[2]+0.6324555320336759*nuVtSqSum[1]*temp_F_0_diff[1]; 
+  diff_F_0_incr[5] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_diff[8]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_diff[7]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[5]; 
+  diff_F_0_incr[6] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_diff[6]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[6]+0.632455532033676*nuVtSqSum[1]*temp_F_0_diff[3]+0.7071067811865475*nuVtSqSum[2]*temp_F_0_diff[2]; 
+  diff_F_0_incr[7] = 0.632455532033676*nuVtSqSum[1]*temp_F_0_diff[8]+0.6324555320336759*nuVtSqSum[2]*temp_F_0_diff[7]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[7]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_diff[5]; 
+  diff_F_0_incr[8] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_diff[8]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[8]+0.632455532033676*nuVtSqSum[1]*temp_F_0_diff[7]+0.7071067811865475*nuVtSqSum[2]*temp_F_0_diff[5]; 
+  diff_G_1_incr[0] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_diff[4]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_diff[1]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[0]; 
+  diff_G_1_incr[1] = 0.6324555320336759*nuVtSqSum[1]*temp_G_1_diff[4]+0.6324555320336759*temp_G_1_diff[1]*nuVtSqSum[2]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[1]+0.7071067811865475*temp_G_1_diff[0]*nuVtSqSum[1]; 
+  diff_G_1_incr[2] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_diff[6]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_diff[3]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[2]; 
+  diff_G_1_incr[3] = 0.632455532033676*nuVtSqSum[1]*temp_G_1_diff[6]+0.6324555320336759*nuVtSqSum[2]*temp_G_1_diff[3]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[3]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_diff[2]; 
+  diff_G_1_incr[4] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_diff[4]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[4]+0.7071067811865475*temp_G_1_diff[0]*nuVtSqSum[2]+0.6324555320336759*nuVtSqSum[1]*temp_G_1_diff[1]; 
+  diff_G_1_incr[5] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_diff[8]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_diff[7]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[5]; 
+  diff_G_1_incr[6] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_diff[6]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[6]+0.632455532033676*nuVtSqSum[1]*temp_G_1_diff[3]+0.7071067811865475*nuVtSqSum[2]*temp_G_1_diff[2]; 
+  diff_G_1_incr[7] = 0.632455532033676*nuVtSqSum[1]*temp_G_1_diff[8]+0.6324555320336759*nuVtSqSum[2]*temp_G_1_diff[7]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[7]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_diff[5]; 
+  diff_G_1_incr[8] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_diff[8]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[8]+0.632455532033676*nuVtSqSum[1]*temp_G_1_diff[7]+0.7071067811865475*nuVtSqSum[2]*temp_G_1_diff[5]; 
 
-  edge_F_0_incr[0] = 0.7071067811865475*nuVtSq[2]*temp_F_0_edge[4]+0.7071067811865475*nuVtSq[1]*temp_F_0_edge[1]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[0]; 
-  edge_F_0_incr[1] = 0.6324555320336759*nuVtSq[1]*temp_F_0_edge[4]+0.6324555320336759*temp_F_0_edge[1]*nuVtSq[2]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[1]+0.7071067811865475*temp_F_0_edge[0]*nuVtSq[1]; 
-  edge_F_0_incr[2] = 0.7071067811865475*nuVtSq[2]*temp_F_0_edge[6]+0.7071067811865475*nuVtSq[1]*temp_F_0_edge[3]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[2]; 
-  edge_F_0_incr[3] = 0.632455532033676*nuVtSq[1]*temp_F_0_edge[6]+0.6324555320336759*nuVtSq[2]*temp_F_0_edge[3]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[3]+0.7071067811865475*nuVtSq[1]*temp_F_0_edge[2]; 
-  edge_F_0_incr[4] = 0.4517539514526256*nuVtSq[2]*temp_F_0_edge[4]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[4]+0.7071067811865475*temp_F_0_edge[0]*nuVtSq[2]+0.6324555320336759*nuVtSq[1]*temp_F_0_edge[1]; 
-  edge_F_0_incr[5] = 0.7071067811865475*nuVtSq[2]*temp_F_0_edge[8]+0.7071067811865475*nuVtSq[1]*temp_F_0_edge[7]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[5]; 
-  edge_F_0_incr[6] = 0.4517539514526256*nuVtSq[2]*temp_F_0_edge[6]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[6]+0.632455532033676*nuVtSq[1]*temp_F_0_edge[3]+0.7071067811865475*nuVtSq[2]*temp_F_0_edge[2]; 
-  edge_F_0_incr[7] = 0.632455532033676*nuVtSq[1]*temp_F_0_edge[8]+0.6324555320336759*nuVtSq[2]*temp_F_0_edge[7]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[7]+0.7071067811865475*nuVtSq[1]*temp_F_0_edge[5]; 
-  edge_F_0_incr[8] = 0.4517539514526256*nuVtSq[2]*temp_F_0_edge[8]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[8]+0.632455532033676*nuVtSq[1]*temp_F_0_edge[7]+0.7071067811865475*nuVtSq[2]*temp_F_0_edge[5]; 
-  edge_G_1_incr[0] = 0.7071067811865475*nuVtSq[2]*temp_G_1_edge[4]+0.7071067811865475*nuVtSq[1]*temp_G_1_edge[1]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[0]; 
-  edge_G_1_incr[1] = 0.6324555320336759*nuVtSq[1]*temp_G_1_edge[4]+0.6324555320336759*temp_G_1_edge[1]*nuVtSq[2]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[1]+0.7071067811865475*temp_G_1_edge[0]*nuVtSq[1]; 
-  edge_G_1_incr[2] = 0.7071067811865475*nuVtSq[2]*temp_G_1_edge[6]+0.7071067811865475*nuVtSq[1]*temp_G_1_edge[3]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[2]; 
-  edge_G_1_incr[3] = 0.632455532033676*nuVtSq[1]*temp_G_1_edge[6]+0.6324555320336759*nuVtSq[2]*temp_G_1_edge[3]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[3]+0.7071067811865475*nuVtSq[1]*temp_G_1_edge[2]; 
-  edge_G_1_incr[4] = 0.4517539514526256*nuVtSq[2]*temp_G_1_edge[4]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[4]+0.7071067811865475*temp_G_1_edge[0]*nuVtSq[2]+0.6324555320336759*nuVtSq[1]*temp_G_1_edge[1]; 
-  edge_G_1_incr[5] = 0.7071067811865475*nuVtSq[2]*temp_G_1_edge[8]+0.7071067811865475*nuVtSq[1]*temp_G_1_edge[7]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[5]; 
-  edge_G_1_incr[6] = 0.4517539514526256*nuVtSq[2]*temp_G_1_edge[6]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[6]+0.632455532033676*nuVtSq[1]*temp_G_1_edge[3]+0.7071067811865475*nuVtSq[2]*temp_G_1_edge[2]; 
-  edge_G_1_incr[7] = 0.632455532033676*nuVtSq[1]*temp_G_1_edge[8]+0.6324555320336759*nuVtSq[2]*temp_G_1_edge[7]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[7]+0.7071067811865475*nuVtSq[1]*temp_G_1_edge[5]; 
-  edge_G_1_incr[8] = 0.4517539514526256*nuVtSq[2]*temp_G_1_edge[8]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[8]+0.632455532033676*nuVtSq[1]*temp_G_1_edge[7]+0.7071067811865475*nuVtSq[2]*temp_G_1_edge[5]; 
+  edge_F_0_incr[0] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_edge[4]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_edge[1]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[0]; 
+  edge_F_0_incr[1] = 0.6324555320336759*nuVtSqSum[1]*temp_F_0_edge[4]+0.6324555320336759*temp_F_0_edge[1]*nuVtSqSum[2]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[1]+0.7071067811865475*temp_F_0_edge[0]*nuVtSqSum[1]; 
+  edge_F_0_incr[2] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_edge[6]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_edge[3]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[2]; 
+  edge_F_0_incr[3] = 0.632455532033676*nuVtSqSum[1]*temp_F_0_edge[6]+0.6324555320336759*nuVtSqSum[2]*temp_F_0_edge[3]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[3]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_edge[2]; 
+  edge_F_0_incr[4] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_edge[4]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[4]+0.7071067811865475*temp_F_0_edge[0]*nuVtSqSum[2]+0.6324555320336759*nuVtSqSum[1]*temp_F_0_edge[1]; 
+  edge_F_0_incr[5] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_edge[8]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_edge[7]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[5]; 
+  edge_F_0_incr[6] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_edge[6]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[6]+0.632455532033676*nuVtSqSum[1]*temp_F_0_edge[3]+0.7071067811865475*nuVtSqSum[2]*temp_F_0_edge[2]; 
+  edge_F_0_incr[7] = 0.632455532033676*nuVtSqSum[1]*temp_F_0_edge[8]+0.6324555320336759*nuVtSqSum[2]*temp_F_0_edge[7]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[7]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_edge[5]; 
+  edge_F_0_incr[8] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_edge[8]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[8]+0.632455532033676*nuVtSqSum[1]*temp_F_0_edge[7]+0.7071067811865475*nuVtSqSum[2]*temp_F_0_edge[5]; 
+  edge_G_1_incr[0] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_edge[4]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_edge[1]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[0]; 
+  edge_G_1_incr[1] = 0.6324555320336759*nuVtSqSum[1]*temp_G_1_edge[4]+0.6324555320336759*temp_G_1_edge[1]*nuVtSqSum[2]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[1]+0.7071067811865475*temp_G_1_edge[0]*nuVtSqSum[1]; 
+  edge_G_1_incr[2] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_edge[6]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_edge[3]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[2]; 
+  edge_G_1_incr[3] = 0.632455532033676*nuVtSqSum[1]*temp_G_1_edge[6]+0.6324555320336759*nuVtSqSum[2]*temp_G_1_edge[3]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[3]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_edge[2]; 
+  edge_G_1_incr[4] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_edge[4]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[4]+0.7071067811865475*temp_G_1_edge[0]*nuVtSqSum[2]+0.6324555320336759*nuVtSqSum[1]*temp_G_1_edge[1]; 
+  edge_G_1_incr[5] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_edge[8]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_edge[7]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[5]; 
+  edge_G_1_incr[6] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_edge[6]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[6]+0.632455532033676*nuVtSqSum[1]*temp_G_1_edge[3]+0.7071067811865475*nuVtSqSum[2]*temp_G_1_edge[2]; 
+  edge_G_1_incr[7] = 0.632455532033676*nuVtSqSum[1]*temp_G_1_edge[8]+0.6324555320336759*nuVtSqSum[2]*temp_G_1_edge[7]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[7]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_edge[5]; 
+  edge_G_1_incr[8] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_edge[8]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[8]+0.632455532033676*nuVtSqSum[1]*temp_G_1_edge[7]+0.7071067811865475*nuVtSqSum[2]*temp_G_1_edge[5]; 
 
 
   } else { 
@@ -140,43 +143,43 @@ GKYL_CU_DH double lbo_vlasov_pkpm_diff_boundary_surfvpar_1x1v_tensor_p2(const do
   temp_G_1_edge[7] = (-7.5*G_1Skin[7])-5.809475019311126*G_1Skin[3]-3.354101966249684*G_1Skin[1]; 
   temp_G_1_edge[8] = (-7.5*G_1Skin[8])-5.809475019311126*G_1Skin[6]-3.354101966249685*G_1Skin[4]; 
 
-  diff_F_0_incr[0] = 0.7071067811865475*nuVtSq[2]*temp_F_0_diff[4]+0.7071067811865475*nuVtSq[1]*temp_F_0_diff[1]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[0]; 
-  diff_F_0_incr[1] = 0.6324555320336759*nuVtSq[1]*temp_F_0_diff[4]+0.6324555320336759*temp_F_0_diff[1]*nuVtSq[2]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[1]+0.7071067811865475*temp_F_0_diff[0]*nuVtSq[1]; 
-  diff_F_0_incr[2] = 0.7071067811865475*nuVtSq[2]*temp_F_0_diff[6]+0.7071067811865475*nuVtSq[1]*temp_F_0_diff[3]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[2]; 
-  diff_F_0_incr[3] = 0.632455532033676*nuVtSq[1]*temp_F_0_diff[6]+0.6324555320336759*nuVtSq[2]*temp_F_0_diff[3]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[3]+0.7071067811865475*nuVtSq[1]*temp_F_0_diff[2]; 
-  diff_F_0_incr[4] = 0.4517539514526256*nuVtSq[2]*temp_F_0_diff[4]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[4]+0.7071067811865475*temp_F_0_diff[0]*nuVtSq[2]+0.6324555320336759*nuVtSq[1]*temp_F_0_diff[1]; 
-  diff_F_0_incr[5] = 0.7071067811865475*nuVtSq[2]*temp_F_0_diff[8]+0.7071067811865475*nuVtSq[1]*temp_F_0_diff[7]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[5]; 
-  diff_F_0_incr[6] = 0.4517539514526256*nuVtSq[2]*temp_F_0_diff[6]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[6]+0.632455532033676*nuVtSq[1]*temp_F_0_diff[3]+0.7071067811865475*nuVtSq[2]*temp_F_0_diff[2]; 
-  diff_F_0_incr[7] = 0.632455532033676*nuVtSq[1]*temp_F_0_diff[8]+0.6324555320336759*nuVtSq[2]*temp_F_0_diff[7]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[7]+0.7071067811865475*nuVtSq[1]*temp_F_0_diff[5]; 
-  diff_F_0_incr[8] = 0.4517539514526256*nuVtSq[2]*temp_F_0_diff[8]+0.7071067811865475*nuVtSq[0]*temp_F_0_diff[8]+0.632455532033676*nuVtSq[1]*temp_F_0_diff[7]+0.7071067811865475*nuVtSq[2]*temp_F_0_diff[5]; 
-  diff_G_1_incr[0] = 0.7071067811865475*nuVtSq[2]*temp_G_1_diff[4]+0.7071067811865475*nuVtSq[1]*temp_G_1_diff[1]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[0]; 
-  diff_G_1_incr[1] = 0.6324555320336759*nuVtSq[1]*temp_G_1_diff[4]+0.6324555320336759*temp_G_1_diff[1]*nuVtSq[2]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[1]+0.7071067811865475*temp_G_1_diff[0]*nuVtSq[1]; 
-  diff_G_1_incr[2] = 0.7071067811865475*nuVtSq[2]*temp_G_1_diff[6]+0.7071067811865475*nuVtSq[1]*temp_G_1_diff[3]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[2]; 
-  diff_G_1_incr[3] = 0.632455532033676*nuVtSq[1]*temp_G_1_diff[6]+0.6324555320336759*nuVtSq[2]*temp_G_1_diff[3]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[3]+0.7071067811865475*nuVtSq[1]*temp_G_1_diff[2]; 
-  diff_G_1_incr[4] = 0.4517539514526256*nuVtSq[2]*temp_G_1_diff[4]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[4]+0.7071067811865475*temp_G_1_diff[0]*nuVtSq[2]+0.6324555320336759*nuVtSq[1]*temp_G_1_diff[1]; 
-  diff_G_1_incr[5] = 0.7071067811865475*nuVtSq[2]*temp_G_1_diff[8]+0.7071067811865475*nuVtSq[1]*temp_G_1_diff[7]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[5]; 
-  diff_G_1_incr[6] = 0.4517539514526256*nuVtSq[2]*temp_G_1_diff[6]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[6]+0.632455532033676*nuVtSq[1]*temp_G_1_diff[3]+0.7071067811865475*nuVtSq[2]*temp_G_1_diff[2]; 
-  diff_G_1_incr[7] = 0.632455532033676*nuVtSq[1]*temp_G_1_diff[8]+0.6324555320336759*nuVtSq[2]*temp_G_1_diff[7]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[7]+0.7071067811865475*nuVtSq[1]*temp_G_1_diff[5]; 
-  diff_G_1_incr[8] = 0.4517539514526256*nuVtSq[2]*temp_G_1_diff[8]+0.7071067811865475*nuVtSq[0]*temp_G_1_diff[8]+0.632455532033676*nuVtSq[1]*temp_G_1_diff[7]+0.7071067811865475*nuVtSq[2]*temp_G_1_diff[5]; 
+  diff_F_0_incr[0] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_diff[4]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_diff[1]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[0]; 
+  diff_F_0_incr[1] = 0.6324555320336759*nuVtSqSum[1]*temp_F_0_diff[4]+0.6324555320336759*temp_F_0_diff[1]*nuVtSqSum[2]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[1]+0.7071067811865475*temp_F_0_diff[0]*nuVtSqSum[1]; 
+  diff_F_0_incr[2] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_diff[6]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_diff[3]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[2]; 
+  diff_F_0_incr[3] = 0.632455532033676*nuVtSqSum[1]*temp_F_0_diff[6]+0.6324555320336759*nuVtSqSum[2]*temp_F_0_diff[3]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[3]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_diff[2]; 
+  diff_F_0_incr[4] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_diff[4]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[4]+0.7071067811865475*temp_F_0_diff[0]*nuVtSqSum[2]+0.6324555320336759*nuVtSqSum[1]*temp_F_0_diff[1]; 
+  diff_F_0_incr[5] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_diff[8]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_diff[7]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[5]; 
+  diff_F_0_incr[6] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_diff[6]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[6]+0.632455532033676*nuVtSqSum[1]*temp_F_0_diff[3]+0.7071067811865475*nuVtSqSum[2]*temp_F_0_diff[2]; 
+  diff_F_0_incr[7] = 0.632455532033676*nuVtSqSum[1]*temp_F_0_diff[8]+0.6324555320336759*nuVtSqSum[2]*temp_F_0_diff[7]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[7]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_diff[5]; 
+  diff_F_0_incr[8] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_diff[8]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_diff[8]+0.632455532033676*nuVtSqSum[1]*temp_F_0_diff[7]+0.7071067811865475*nuVtSqSum[2]*temp_F_0_diff[5]; 
+  diff_G_1_incr[0] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_diff[4]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_diff[1]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[0]; 
+  diff_G_1_incr[1] = 0.6324555320336759*nuVtSqSum[1]*temp_G_1_diff[4]+0.6324555320336759*temp_G_1_diff[1]*nuVtSqSum[2]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[1]+0.7071067811865475*temp_G_1_diff[0]*nuVtSqSum[1]; 
+  diff_G_1_incr[2] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_diff[6]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_diff[3]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[2]; 
+  diff_G_1_incr[3] = 0.632455532033676*nuVtSqSum[1]*temp_G_1_diff[6]+0.6324555320336759*nuVtSqSum[2]*temp_G_1_diff[3]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[3]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_diff[2]; 
+  diff_G_1_incr[4] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_diff[4]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[4]+0.7071067811865475*temp_G_1_diff[0]*nuVtSqSum[2]+0.6324555320336759*nuVtSqSum[1]*temp_G_1_diff[1]; 
+  diff_G_1_incr[5] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_diff[8]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_diff[7]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[5]; 
+  diff_G_1_incr[6] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_diff[6]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[6]+0.632455532033676*nuVtSqSum[1]*temp_G_1_diff[3]+0.7071067811865475*nuVtSqSum[2]*temp_G_1_diff[2]; 
+  diff_G_1_incr[7] = 0.632455532033676*nuVtSqSum[1]*temp_G_1_diff[8]+0.6324555320336759*nuVtSqSum[2]*temp_G_1_diff[7]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[7]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_diff[5]; 
+  diff_G_1_incr[8] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_diff[8]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_diff[8]+0.632455532033676*nuVtSqSum[1]*temp_G_1_diff[7]+0.7071067811865475*nuVtSqSum[2]*temp_G_1_diff[5]; 
 
-  edge_F_0_incr[0] = 0.7071067811865475*nuVtSq[2]*temp_F_0_edge[4]+0.7071067811865475*nuVtSq[1]*temp_F_0_edge[1]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[0]; 
-  edge_F_0_incr[1] = 0.6324555320336759*nuVtSq[1]*temp_F_0_edge[4]+0.6324555320336759*temp_F_0_edge[1]*nuVtSq[2]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[1]+0.7071067811865475*temp_F_0_edge[0]*nuVtSq[1]; 
-  edge_F_0_incr[2] = 0.7071067811865475*nuVtSq[2]*temp_F_0_edge[6]+0.7071067811865475*nuVtSq[1]*temp_F_0_edge[3]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[2]; 
-  edge_F_0_incr[3] = 0.632455532033676*nuVtSq[1]*temp_F_0_edge[6]+0.6324555320336759*nuVtSq[2]*temp_F_0_edge[3]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[3]+0.7071067811865475*nuVtSq[1]*temp_F_0_edge[2]; 
-  edge_F_0_incr[4] = 0.4517539514526256*nuVtSq[2]*temp_F_0_edge[4]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[4]+0.7071067811865475*temp_F_0_edge[0]*nuVtSq[2]+0.6324555320336759*nuVtSq[1]*temp_F_0_edge[1]; 
-  edge_F_0_incr[5] = 0.7071067811865475*nuVtSq[2]*temp_F_0_edge[8]+0.7071067811865475*nuVtSq[1]*temp_F_0_edge[7]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[5]; 
-  edge_F_0_incr[6] = 0.4517539514526256*nuVtSq[2]*temp_F_0_edge[6]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[6]+0.632455532033676*nuVtSq[1]*temp_F_0_edge[3]+0.7071067811865475*nuVtSq[2]*temp_F_0_edge[2]; 
-  edge_F_0_incr[7] = 0.632455532033676*nuVtSq[1]*temp_F_0_edge[8]+0.6324555320336759*nuVtSq[2]*temp_F_0_edge[7]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[7]+0.7071067811865475*nuVtSq[1]*temp_F_0_edge[5]; 
-  edge_F_0_incr[8] = 0.4517539514526256*nuVtSq[2]*temp_F_0_edge[8]+0.7071067811865475*nuVtSq[0]*temp_F_0_edge[8]+0.632455532033676*nuVtSq[1]*temp_F_0_edge[7]+0.7071067811865475*nuVtSq[2]*temp_F_0_edge[5]; 
-  edge_G_1_incr[0] = 0.7071067811865475*nuVtSq[2]*temp_G_1_edge[4]+0.7071067811865475*nuVtSq[1]*temp_G_1_edge[1]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[0]; 
-  edge_G_1_incr[1] = 0.6324555320336759*nuVtSq[1]*temp_G_1_edge[4]+0.6324555320336759*temp_G_1_edge[1]*nuVtSq[2]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[1]+0.7071067811865475*temp_G_1_edge[0]*nuVtSq[1]; 
-  edge_G_1_incr[2] = 0.7071067811865475*nuVtSq[2]*temp_G_1_edge[6]+0.7071067811865475*nuVtSq[1]*temp_G_1_edge[3]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[2]; 
-  edge_G_1_incr[3] = 0.632455532033676*nuVtSq[1]*temp_G_1_edge[6]+0.6324555320336759*nuVtSq[2]*temp_G_1_edge[3]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[3]+0.7071067811865475*nuVtSq[1]*temp_G_1_edge[2]; 
-  edge_G_1_incr[4] = 0.4517539514526256*nuVtSq[2]*temp_G_1_edge[4]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[4]+0.7071067811865475*temp_G_1_edge[0]*nuVtSq[2]+0.6324555320336759*nuVtSq[1]*temp_G_1_edge[1]; 
-  edge_G_1_incr[5] = 0.7071067811865475*nuVtSq[2]*temp_G_1_edge[8]+0.7071067811865475*nuVtSq[1]*temp_G_1_edge[7]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[5]; 
-  edge_G_1_incr[6] = 0.4517539514526256*nuVtSq[2]*temp_G_1_edge[6]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[6]+0.632455532033676*nuVtSq[1]*temp_G_1_edge[3]+0.7071067811865475*nuVtSq[2]*temp_G_1_edge[2]; 
-  edge_G_1_incr[7] = 0.632455532033676*nuVtSq[1]*temp_G_1_edge[8]+0.6324555320336759*nuVtSq[2]*temp_G_1_edge[7]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[7]+0.7071067811865475*nuVtSq[1]*temp_G_1_edge[5]; 
-  edge_G_1_incr[8] = 0.4517539514526256*nuVtSq[2]*temp_G_1_edge[8]+0.7071067811865475*nuVtSq[0]*temp_G_1_edge[8]+0.632455532033676*nuVtSq[1]*temp_G_1_edge[7]+0.7071067811865475*nuVtSq[2]*temp_G_1_edge[5]; 
+  edge_F_0_incr[0] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_edge[4]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_edge[1]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[0]; 
+  edge_F_0_incr[1] = 0.6324555320336759*nuVtSqSum[1]*temp_F_0_edge[4]+0.6324555320336759*temp_F_0_edge[1]*nuVtSqSum[2]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[1]+0.7071067811865475*temp_F_0_edge[0]*nuVtSqSum[1]; 
+  edge_F_0_incr[2] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_edge[6]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_edge[3]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[2]; 
+  edge_F_0_incr[3] = 0.632455532033676*nuVtSqSum[1]*temp_F_0_edge[6]+0.6324555320336759*nuVtSqSum[2]*temp_F_0_edge[3]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[3]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_edge[2]; 
+  edge_F_0_incr[4] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_edge[4]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[4]+0.7071067811865475*temp_F_0_edge[0]*nuVtSqSum[2]+0.6324555320336759*nuVtSqSum[1]*temp_F_0_edge[1]; 
+  edge_F_0_incr[5] = 0.7071067811865475*nuVtSqSum[2]*temp_F_0_edge[8]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_edge[7]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[5]; 
+  edge_F_0_incr[6] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_edge[6]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[6]+0.632455532033676*nuVtSqSum[1]*temp_F_0_edge[3]+0.7071067811865475*nuVtSqSum[2]*temp_F_0_edge[2]; 
+  edge_F_0_incr[7] = 0.632455532033676*nuVtSqSum[1]*temp_F_0_edge[8]+0.6324555320336759*nuVtSqSum[2]*temp_F_0_edge[7]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[7]+0.7071067811865475*nuVtSqSum[1]*temp_F_0_edge[5]; 
+  edge_F_0_incr[8] = 0.4517539514526256*nuVtSqSum[2]*temp_F_0_edge[8]+0.7071067811865475*nuVtSqSum[0]*temp_F_0_edge[8]+0.632455532033676*nuVtSqSum[1]*temp_F_0_edge[7]+0.7071067811865475*nuVtSqSum[2]*temp_F_0_edge[5]; 
+  edge_G_1_incr[0] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_edge[4]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_edge[1]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[0]; 
+  edge_G_1_incr[1] = 0.6324555320336759*nuVtSqSum[1]*temp_G_1_edge[4]+0.6324555320336759*temp_G_1_edge[1]*nuVtSqSum[2]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[1]+0.7071067811865475*temp_G_1_edge[0]*nuVtSqSum[1]; 
+  edge_G_1_incr[2] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_edge[6]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_edge[3]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[2]; 
+  edge_G_1_incr[3] = 0.632455532033676*nuVtSqSum[1]*temp_G_1_edge[6]+0.6324555320336759*nuVtSqSum[2]*temp_G_1_edge[3]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[3]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_edge[2]; 
+  edge_G_1_incr[4] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_edge[4]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[4]+0.7071067811865475*temp_G_1_edge[0]*nuVtSqSum[2]+0.6324555320336759*nuVtSqSum[1]*temp_G_1_edge[1]; 
+  edge_G_1_incr[5] = 0.7071067811865475*nuVtSqSum[2]*temp_G_1_edge[8]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_edge[7]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[5]; 
+  edge_G_1_incr[6] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_edge[6]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[6]+0.632455532033676*nuVtSqSum[1]*temp_G_1_edge[3]+0.7071067811865475*nuVtSqSum[2]*temp_G_1_edge[2]; 
+  edge_G_1_incr[7] = 0.632455532033676*nuVtSqSum[1]*temp_G_1_edge[8]+0.6324555320336759*nuVtSqSum[2]*temp_G_1_edge[7]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[7]+0.7071067811865475*nuVtSqSum[1]*temp_G_1_edge[5]; 
+  edge_G_1_incr[8] = 0.4517539514526256*nuVtSqSum[2]*temp_G_1_edge[8]+0.7071067811865475*nuVtSqSum[0]*temp_G_1_edge[8]+0.632455532033676*nuVtSqSum[1]*temp_G_1_edge[7]+0.7071067811865475*nuVtSqSum[2]*temp_G_1_edge[5]; 
 
   } 
 
