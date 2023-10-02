@@ -246,8 +246,8 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     }
     else {
       // Set fmax moments
-      gkyl_array_set_offset_range(up->prim_vars_ion, 1., up->udrift_ion, 0, *up->conf_rng);
-      gkyl_array_set_offset_range(up->prim_vars_ion, 1., up->vtSq_ion, (up->vdim)*up->cbasis->num_basis, *up->conf_rng);
+      gkyl_array_set_offset_range(up->prim_vars_ion, 1., up->udrift_ion, 0, up->conf_rng);
+      gkyl_array_set_offset_range(up->prim_vars_ion, 1., up->vtSq_ion, (up->vdim)*up->cbasis->num_basis, up->conf_rng);
       
       // Proj maxwellian on basis
       gkyl_proj_maxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion,
@@ -257,7 +257,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
   }
   else {
     // copy and weak mult
-    gkyl_array_set_range(coll_recomb, -1.0, f_self, *up->phase_rng);
+    gkyl_array_set_range(coll_recomb, -1.0, f_self, up->phase_rng);
   }
 
   gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_recomb, 0, up->coef_recomb, 0, moms_elc, up->conf_rng);
