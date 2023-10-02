@@ -11,6 +11,7 @@
 #include <gkyl_dg_prim_vars_transform_vlasov_gk.h>
 #include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_iz.h>
@@ -21,12 +22,12 @@
 struct gkyl_dg_iz*
 gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-  double mass_elc, enum gkyl_dg_iz_type type_ion, int charge_state,
+  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state,
   enum gkyl_dg_iz_self type_self, bool all_gk, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_iz_cu_dev_new(grid, cbasis, pbasis, conf_rng, phase_rng, elem_charge, mass_elc, type_ion, charge_state, type_self, all_gk);
+    return gkyl_dg_iz_cu_dev_new(grid, cbasis, pbasis, conf_rng, phase_rng, elem_charge, mass_elc, mass_ion, type_ion, charge_state, type_self, all_gk);
   } 
 #endif
   gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
@@ -45,6 +46,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   
   up->elem_charge = elem_charge;
   up->mass_elc = mass_elc;
+  up->mass_ion = mass_ion;
 
   up->type_self = type_self;
   
@@ -77,7 +79,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   }
   else if (type_ion == GKYL_IZ_LI) {
     data.NT = 25;
-    data.NN = 24;
+    data.NN = 16;
     data.logData = fopen("adas-dat/ioniz_li.npy", "rb");
     data.logT = fopen("adas-dat/logT_li.npy", "rb");
     data.logN = fopen("adas-dat/logN_li.npy", "rb");
@@ -199,10 +201,10 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
 					moms_elc_d, vtSq_elc_d);
 
     if ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION)) {
-	const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
-	//const double *m0_donor_d = &moms_donor_d[0];
-	double *prim_vars_donor_d = gkyl_array_fetch(up->prim_vars_donor, loc);
-	up->calc_prim_vars_donor->kernel(up->calc_prim_vars_donor, conf_iter.idx,
+      const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
+      //const double *m0_donor_d = &moms_donor_d[0];
+      double *prim_vars_donor_d = gkyl_array_fetch(up->prim_vars_donor, loc);
+      up->calc_prim_vars_donor->kernel(up->calc_prim_vars_donor, conf_iter.idx,
 					   moms_donor_d, prim_vars_donor_d);
     }
 
@@ -258,22 +260,26 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   }
   else if (up->type_self == GKYL_IZ_ION) {
     // Proj maxwellian on basis (doesn't assume same phase grid, even if GK)
-    // FIX MASS --> ION MASS
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_donor,
-					     up->prim_vars_donor, bmag, jacob_tot, up->mass_elc, coll_iz);
+					     up->prim_vars_donor, bmag, jacob_tot, up->mass_ion, coll_iz);
+
     // weak multiply
     gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
   }
   else if (up->type_self == GKYL_IZ_DONOR) {
+    printf("\n1");
     // neut coll_iz = -f_n
     gkyl_array_set_range(coll_iz, -1.0, f_self, *up->phase_rng);
+    printf("\n2");
     // weak multiply
     gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
+    printf("\n3");
   }
 
   // coll_iz = n_n*coef_iz*coll_iz
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_iz, coll_iz,
 				    up->conf_rng, up->phase_rng);
+  printf("\n4");
   
   // cfl calculation
   //struct gkyl_range vel_rng;
@@ -311,7 +317,7 @@ gkyl_dg_iz_release(struct gkyl_dg_iz* up)
 struct gkyl_dg_iz*
 gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-		      double mass_elc, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self, bool all_gk)
+  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self, bool all_gk)
 {
   assert(false);
   return 0;

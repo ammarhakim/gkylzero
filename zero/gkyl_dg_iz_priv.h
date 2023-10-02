@@ -15,6 +15,7 @@ struct gkyl_dg_iz {
   
   double elem_charge; // elementary charge value
   double mass_elc; // mass of the electron
+  double mass_ion; 
 
   int resM0;
   int resTe;

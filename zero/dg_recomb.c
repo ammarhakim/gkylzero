@@ -34,7 +34,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
 
   int cdim = cbasis->ndim;
   int pdim = pbasis->ndim;
-  int vdim = 1; // HARDCODED FOR NOW
+  int vdim = pdim - cdim;
   
   int poly_order = cbasis->poly_order;
   up->cbasis = cbasis;
