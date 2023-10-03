@@ -81,6 +81,46 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
     data.logN = fopen("adas-dat/logN_li.npy", "rb");
     data.Zmax = 3;
   }
+  else if (type_ion == GKYL_RECOMB_BE) {
+    data.NT = 25;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_be.npy", "rb");
+    data.logT = fopen("adas-dat/logT_be.npy", "rb");
+    data.logN = fopen("adas-dat/logN_be.npy", "rb");
+    data.Zmax = 4;
+  }
+  else if (type_ion == GKYL_RECOMB_B) {
+    data.NT = 48;
+    data.NN = 26;
+    data.logData = fopen("adas-dat/ioniz_b.npy", "rb");
+    data.logT = fopen("adas-dat/logT_b.npy", "rb");
+    data.logN = fopen("adas-dat/logN_b.npy", "rb");
+    data.Zmax = 5;
+  }
+  else if (type_ion == GKYL_RECOMB_C) {
+    data.NT = 30;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_c.npy", "rb");
+    data.logT = fopen("adas-dat/logT_c.npy", "rb");
+    data.logN = fopen("adas-dat/logN_c.npy", "rb");
+    data.Zmax = 6;
+  }
+  else if (type_ion == GKYL_RECOMB_N) {
+    data.NT = 30;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_n.npy", "rb");
+    data.logT = fopen("adas-dat/logT_n.npy", "rb");
+    data.logN = fopen("adas-dat/logN_n.npy", "rb");
+    data.Zmax = 7;
+  }
+  else if (type_ion == GKYL_RECOMB_O) {
+    data.NT = 30;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_o.npy", "rb");
+    data.logT = fopen("adas-dat/logT_o.npy", "rb");
+    data.logN = fopen("adas-dat/logN_o.npy", "rb");
+    data.Zmax = 8;
+  }
   else fprintf(stderr, "Incorrect ion type for recombination.");
   
   long sz = data.NT*data.NN;

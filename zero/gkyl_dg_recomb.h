@@ -13,6 +13,11 @@ enum gkyl_dg_recomb_type
   GKYL_RECOMB_H, // Hydrogen plasma
   GKYL_RECOMB_HE, // Helium plasma
   GKYL_RECOMB_LI, // Lithium plasma
+  GKYL_RECOMB_BE, // Beryllium ions
+  GKYL_RECOMB_B,  // Boron ions
+  GKYL_RECOMB_C,  // Carbon ions
+  GKYL_RECOMB_N,  // Nitrogen ions
+  GKYL_RECOMB_O,  // Oxygen ions
 };
 
 // Identifiers for self species to determine form of collision operator

@@ -10,9 +10,14 @@
 // Identifiers for different ionization types
 enum gkyl_dg_iz_type
 {
-  GKYL_IZ_H, // Hydrogen plasma
-  GKYL_IZ_HE, // Helium plasma
-  GKYL_IZ_LI, // Lithium plasma
+  GKYL_IZ_H,  // Hydrogen ions
+  GKYL_IZ_HE, // Helium ions
+  GKYL_IZ_LI, // Lithium ions
+  GKYL_IZ_BE, // Beryllium ions
+  GKYL_IZ_B,  // Boron ions
+  GKYL_IZ_C,  // Carbon ions
+  GKYL_IZ_N,  // Nitrogen ions
+  GKYL_IZ_O,  // Oxygen ions
 };
 
 // Identifiers for self species to determine form of collision operator

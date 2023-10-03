@@ -204,6 +204,38 @@ def fetch_file(filename,loc):
 
 # 3d array is (Z, T, Ne)
 
+def write_files(elem_array, file_num):
+
+    for i in range(len(elem_array)):
+        name = elem_array[i][0]
+        num = file_num[elem_array[i][1]]
+        print(name, num)
+        ioniz_np = []
+        recomb_np = []
+        for zi in range(0,i+1):
+            ioniz = adas_adf11("scd%s_%s.dat"%(num,name))
+            ioniz_dat = ioniz.logdata[zi,:,:]-6.0
+            ioniz_flat = numpy.ndarray.flatten(ioniz_dat)
+            ioniz_np.append(ioniz_flat)
+            
+            recomb = adas_adf11("acd%s_%s.dat"%(num,name))
+            recomb_dat = recomb.logdata[zi,:,:]-6.0
+            recomb_flat = numpy.ndarray.flatten(recomb_dat)
+            recomb_np.append(recomb_flat)
+        print('2d shape', numpy.shape(recomb_dat))
+        ioniz_np = numpy.array(ioniz_np)
+        recomb_np = numpy.array(recomb_np)
+        ioniz_np.tofile("ioniz_%s.npy"%name)
+        recomb_np.tofile("recomb_%s.npy"%name)
+        ioniz.logT.tofile("logT_%s.npy"%name)
+        ioniz.logNe.tofile("logN_%s.npy"%name)
+
+file_num = ['12','96','89']
+elem = [['h',0],['he',1],['li',1],['be',1],['b',2],['c',1],['n',1],['o',1]]
+
+write_files(elem, file_num)
+
+exit()
 # Print out all the ADAS data to numpy files
 # Hydrogen
 Z=1
@@ -222,12 +254,11 @@ for zi in range(0,Z):
 
 ioniz_h_np = numpy.array(ioniz_h_np)
 recomb_h_np = numpy.array(recomb_h_np)
-print('H flat shape', numpy.shape(ioniz_h_np))
-numpy.save("ioniz_h", ioniz_h_np)
 print('H 2d shape', numpy.shape(recomb_h_dat))
-numpy.save("recomb_h", recomb_h_np)
-numpy.save("logT_h", ioniz_h.logT)
-numpy.save("logN_h", ioniz_h.logNe)
+ioniz_h_np.tofile("ioniz_h.npy")
+recomb_h_np.tofile("recomb_h.npy")
+ioniz_h.logT.tofile("logT_h.npy")
+ioniz_h.logNe.tofile("logN_h.npy")
 
 # Helium
 Z=2
@@ -246,12 +277,11 @@ for zi in range(0,Z):
 
 ioniz_he_np = numpy.array(ioniz_he_np)
 recomb_he_np = numpy.array(recomb_he_np)
-print('He flat shape', numpy.shape(ioniz_he_np))
-numpy.save("ioniz_he", ioniz_he_np)
-print('He 2d shape', numpy.shape(recomb_he_dat))
-numpy.save("recomb_he", recomb_he_np)
-numpy.save("logT_he", ioniz_he.logT)
-numpy.save("logN_he", ioniz_he.logNe)
+# print('He 2d shape', numpy.shape(recomb_he_dat))
+ioniz_he_np.tofile("ioniz_he.npy")
+recomb_he_np.tofile("recomb_he.npy")
+ioniz_he.logT.tofile("logT_he.npy")
+ioniz_he.logNe.tofile("logN_he.npy")
 
 # Lithium
 Z=3
@@ -270,9 +300,8 @@ for zi in range(0,Z):
 
 ioniz_li_np = numpy.array(ioniz_li_np)
 recomb_li_np = numpy.array(recomb_li_np)
-print('Li flat shape', numpy.shape(ioniz_li_np))
-numpy.save("ioniz_li", ioniz_li_np)
-print('Li 2d shape', numpy.shape(recomb_li_dat))
-numpy.save("recomb_li", recomb_li_np)
-numpy.save("logT_li", ioniz_li.logT)
-numpy.save("logN_li", ioniz_li.logNe)
+# print('Li 2d shape', numpy.shape(recomb_li_dat))
+ioniz_li_np.tofile("ioniz_li.npy")
+recomb_li_np.tofile("recomb_li.npy")
+ioniz_li.logT.tofile("logT_li.npy")
+ioniz_li.logNe.tofile("logN_li.npy")

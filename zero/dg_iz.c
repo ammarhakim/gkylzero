@@ -88,6 +88,61 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
     static const double Eiz_loc[] = {5.4, 75.6, 122.4};
     memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
   }
+  else if (type_ion == GKYL_IZ_BE) {
+    data.NT = 25;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_be.npy", "rb");
+    data.logT = fopen("adas-dat/logT_be.npy", "rb");
+    data.logN = fopen("adas-dat/logN_be.npy", "rb");
+    data.Zmax = 4;
+    data.Eiz = malloc(sizeof(double)*data.Zmax);
+    static const double Eiz_loc[] = {9.3, 18.2, 153.9, 217.7};
+    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
+  }
+  else if (type_ion == GKYL_IZ_B) {
+    data.NT = 48;
+    data.NN = 26;
+    data.logData = fopen("adas-dat/ioniz_b.npy", "rb");
+    data.logT = fopen("adas-dat/logT_b.npy", "rb");
+    data.logN = fopen("adas-dat/logN_b.npy", "rb");
+    data.Zmax = 5;
+    data.Eiz = malloc(sizeof(double)*data.Zmax);
+    static const double Eiz_loc[] = {8.3, 25.2, 37.9, 259.4, 340.2};
+    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
+  }
+  else if (type_ion == GKYL_IZ_C) {
+    data.NT = 30;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_c.npy", "rb");
+    data.logT = fopen("adas-dat/logT_c.npy", "rb");
+    data.logN = fopen("adas-dat/logN_c.npy", "rb");
+    data.Zmax = 6;
+    data.Eiz = malloc(sizeof(double)*data.Zmax);
+    static const double Eiz_loc[] = {11.3, 24.4, 47.9, 64.5, 392.1, 490.0};
+    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
+  }
+  else if (type_ion == GKYL_IZ_N) {
+    data.NT = 30;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_n.npy", "rb");
+    data.logT = fopen("adas-dat/logT_n.npy", "rb");
+    data.logN = fopen("adas-dat/logN_n.npy", "rb");
+    data.Zmax = 7;
+    data.Eiz = malloc(sizeof(double)*data.Zmax);
+    static const double Eiz_loc[] = {14.5, 29.6, 47.5, 77.5, 97.9, 552.1, 667.0};
+    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
+  }
+  else if (type_ion == GKYL_IZ_O) {
+    data.NT = 30;
+    data.NN = 24;
+    data.logData = fopen("adas-dat/ioniz_o.npy", "rb");
+    data.logT = fopen("adas-dat/logT_o.npy", "rb");
+    data.logN = fopen("adas-dat/logN_o.npy", "rb");
+    data.Zmax = 8;
+    data.Eiz = malloc(sizeof(double)*data.Zmax);
+    static const double Eiz_loc[] = {13.6, 35.1, 54.9, 77.4, 113.9, 138.1, 739.3, 871.4};
+    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
+  }
   else fprintf(stderr, "Incorrect ion type for ionization.");
   
   long sz = data.NT*data.NN;
