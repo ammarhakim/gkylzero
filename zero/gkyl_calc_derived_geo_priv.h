@@ -5,7 +5,7 @@
 
 typedef void (*derived_geo_kernel)(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *bmaginv, double *bmaginvsq, double *gxxJ, double *gxyJ, double *gyyJ);
 
-typedef void (*adjust_bmag_kernel)(double cmag, double *gzz, const double *J, const double *bmag, double *gij);
+typedef void (*adjust_bmag_kernel)(const double *cmag, double *gzz, const double *J, const double *bmag, double *gij);
 
 typedef struct { derived_geo_kernel kernels[3]; } derived_geo_kernel_list;  // For use in kernel tables.
 
@@ -32,7 +32,6 @@ struct gkyl_calc_derived_geo{
   unsigned cnum_basis; // Number of conf-space basis functions.
   unsigned poly_order; // Polynomial order of the basis.
   const struct gkyl_rect_grid* grid;
-  const struct gkyl_basis* cbasis;
   bool use_gpu;
   derived_geo_kernel kernel;
   adjust_bmag_kernel adjustment_kernel;

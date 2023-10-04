@@ -10,7 +10,6 @@ gkyl_calc_derived_geo*
 gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu)
 {
   gkyl_calc_derived_geo *up = gkyl_malloc(sizeof(gkyl_calc_derived_geo));
-  up->cbasis = cbasis;
   up->cdim = cbasis->ndim;
   up->cnum_basis = cbasis->num_basis;
   up->poly_order = cbasis->poly_order;
@@ -61,23 +60,10 @@ gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl
     for(int i = 1; i <up->cdim; i++)
       cmag_iter.idx[i] = (crange->upper[i] - crange->lower[i])/2 + 1; // for using middle node
     long cmag_loc = gkyl_range_idx(crange, cmag_iter.idx);
+
     const double *cmag_i = gkyl_array_cfetch(cmagFld, cmag_loc); // cmag we want for yz plane
-
-
-    const double *coeffs = gkyl_array_cfetch(cmagFld, cmag_loc);
-
-    double cxc[up->grid->ndim];
-    double xyz[up->grid->ndim];
-    gkyl_rect_grid_cell_center(up->grid, cmag_iter.idx, cxc);
-    for(int i = 0; i < up->grid->ndim; i++){
-      //xyz[i] = (xn[i]-cxc[i])/(up->grid->dx[i]*0.5);
-      xyz[i] = 0; // eval at cell center
-    }
-    double cmag_value = up->cbasis->eval_expand(xyz, coeffs);
-
     // now call a kernel that takes j, gzz, and cmag as inputs and calculates bmag
-    //up->adjustment_kernel(cmag_i, gzz_i, j_i, bmag_i, gij_i);
-    up->adjustment_kernel(cmag_value, gzz_i, j_i, bmag_i, gij_i);
+    up->adjustment_kernel(cmag_i, gzz_i, j_i, bmag_i, gij_i);
 
   }
 
