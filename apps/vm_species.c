@@ -197,9 +197,12 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
     struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, 
       .p_over_gamma = s->p_over_gamma};
+
+    const bool is_zero_flux[GKYL_MAX_DIM] = {false};
+
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
-      &app->local, &s->local_vel, &s->local, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+      &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   }
   else if (s->model_id  == GKYL_MODEL_PKPM) {
     // Get pointer to fluid species object for coupling
@@ -274,16 +277,22 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       .max_b = app->field->max_b, .pkpm_lax = s->pkpm_lax, 
       .div_b = app->field->div_b, .pkpm_accel_vars = s->pkpm_accel, 
       .g_dist_source = s->g_dist_source};
+
+    const bool is_zero_flux[GKYL_MAX_DIM] = {false};
+
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
-      &app->local, &s->local_vel, &s->local, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+      &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   }
   else {
     struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, 
       .cot_vec = 0, .alpha_geo = 0};
+
+    const bool is_zero_flux[GKYL_MAX_DIM] = {false};
+
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
-      &app->local, &s->local_vel, &s->local, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+      &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   }
 
   // acquire equation object
