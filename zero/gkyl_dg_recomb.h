@@ -69,7 +69,7 @@ struct gkyl_dg_recomb* gkyl_dg_recomb_cu_dev_new(struct gkyl_rect_grid* grid, st
  *
  * @param recomb Ionrecombation object.
  * @param moms_elc Input electron moments
- * @param moms_neut Input neutral moments
+ * @param moms_ion Input ion moments
  * @param bmag Magnetic field used for GK fmax 
  * @param jacob_tot Total Jacobian used for GK fmax
  * @param b_i Unit bmag vector in Cartesian (X,Y,Z) components
@@ -78,12 +78,12 @@ struct gkyl_dg_recomb* gkyl_dg_recomb_cu_dev_new(struct gkyl_rect_grid* grid, st
  */
 void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *b_i, const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i, 
   const struct gkyl_array *f_self, struct gkyl_array *coll_recomb, struct gkyl_array *cflrate);
 
 void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *b_i, const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *f_self, struct gkyl_array *coll_recomb, struct gkyl_array *cflrate);
 /**
  * Delete updater.

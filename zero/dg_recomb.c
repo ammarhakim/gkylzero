@@ -17,6 +17,7 @@
 #include <gkyl_dg_recomb_priv.h>
 #include <gkyl_util.h>
 #include <gkyl_read_adas_priv.h>
+#include <gkyl_array_rio.h>
 
 // FIX MASS FOR PMOB ETC
 struct gkyl_dg_recomb*
@@ -53,7 +54,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   
   up->type_self = type_self;
   
-  // Project ADAS data (H, He, Li)
+  // Project ADAS data
   struct adas_field data;
 
   // Conditional to determine element
@@ -75,7 +76,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   }
   else if (type_ion == GKYL_RECOMB_LI) {
     data.NT = 25;
-    data.NN = 24;
+    data.NN = 16;
     data.logData = fopen("adas-dat/recomb_li.npy", "rb");
     data.logT = fopen("adas-dat/logT_li.npy", "rb");
     data.logN = fopen("adas-dat/logN_li.npy", "rb");
@@ -84,7 +85,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   else if (type_ion == GKYL_RECOMB_BE) {
     data.NT = 25;
     data.NN = 24;
-    data.logData = fopen("adas-dat/ioniz_be.npy", "rb");
+    data.logData = fopen("adas-dat/recomb_be.npy", "rb");
     data.logT = fopen("adas-dat/logT_be.npy", "rb");
     data.logN = fopen("adas-dat/logN_be.npy", "rb");
     data.Zmax = 4;
@@ -92,7 +93,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   else if (type_ion == GKYL_RECOMB_B) {
     data.NT = 48;
     data.NN = 26;
-    data.logData = fopen("adas-dat/ioniz_b.npy", "rb");
+    data.logData = fopen("adas-dat/recomb_b.npy", "rb");
     data.logT = fopen("adas-dat/logT_b.npy", "rb");
     data.logN = fopen("adas-dat/logN_b.npy", "rb");
     data.Zmax = 5;
@@ -100,7 +101,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   else if (type_ion == GKYL_RECOMB_C) {
     data.NT = 30;
     data.NN = 24;
-    data.logData = fopen("adas-dat/ioniz_c.npy", "rb");
+    data.logData = fopen("adas-dat/recomb_c.npy", "rb");
     data.logT = fopen("adas-dat/logT_c.npy", "rb");
     data.logN = fopen("adas-dat/logN_c.npy", "rb");
     data.Zmax = 6;
@@ -108,7 +109,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   else if (type_ion == GKYL_RECOMB_N) {
     data.NT = 30;
     data.NN = 24;
-    data.logData = fopen("adas-dat/ioniz_n.npy", "rb");
+    data.logData = fopen("adas-dat/recomb_n.npy", "rb");
     data.logT = fopen("adas-dat/logT_n.npy", "rb");
     data.logN = fopen("adas-dat/logN_n.npy", "rb");
     data.Zmax = 7;
@@ -116,7 +117,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   else if (type_ion == GKYL_RECOMB_O) {
     data.NT = 30;
     data.NN = 24;
-    data.logData = fopen("adas-dat/ioniz_o.npy", "rb");
+    data.logData = fopen("adas-dat/recomb_o.npy", "rb");
     data.logT = fopen("adas-dat/logT_o.npy", "rb");
     data.logN = fopen("adas-dat/logN_o.npy", "rb");
     data.Zmax = 8;
@@ -149,7 +150,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
 
   struct gkyl_range range_node;
   gkyl_range_init_from_shape(&range_node, 2, (int[]) { data.NT, data.NN } );
-  
+
   // allocate grid and DG array
   struct gkyl_rect_grid tn_grid;
   gkyl_rect_grid_init(&tn_grid, 2,
@@ -157,21 +158,20 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
     (double []) { logTmax, logNmax},
     (int[]) { data.NT-1, data.NN-1 }
   );
-
+  
   struct gkyl_range adas_rng;
   //int ghost[] = { 0, 0 };
   //gkyl_create_grid_ranges(&tn_grid, ghost, &adas_rng_ext, &adas_rng);
   gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
-  
+
   struct gkyl_basis adas_basis;
   gkyl_cart_modal_serendip(&adas_basis, 2, 1);
-  
+
   struct gkyl_array *adas_dg =
     gkyl_array_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
 
   // "duplicate symbol" error
   create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
-  //gkyl_grid_sub_array_write(&tn_grid, &adas_rng, adas_dg, "adas_dg.gkyl");
 
   // ADAS data pointers
   up->recomb_data = adas_dg;
@@ -187,23 +187,21 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   up->adas_basis = adas_basis;
   
   // allocate fields for prim mom calculation
-  up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); // all
-  up->coef_recomb = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // all
-  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu); // all
+  up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
+  up->coef_recomb = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  
+  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu); 
 
-  if (type_self == GKYL_RECOMB_RECVR) {
-    if (up->all_gk==false) {
-      up->calc_prim_vars_ion_udrift = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "u_par_i", use_gpu);
-      up->calc_prim_vars_ion_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu);
-
-      up->udrift_ion = gkyl_array_new(GKYL_DOUBLE, vdim*cbasis->num_basis, up->conf_rng->volume);
-      up->vtSq_ion = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
-      up->prim_vars_ion = gkyl_array_new(GKYL_DOUBLE, (vdim+1)*cbasis->num_basis, up->conf_rng->volume);
-    }
-    
-    up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, use_gpu);
-  }
+  // only for Vlasov neutral species
+  up->calc_prim_vars_ion_udrift = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "u_par_i", use_gpu);
+  up->calc_prim_vars_ion_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu);
   
+  up->udrift_ion = gkyl_array_new(GKYL_DOUBLE, vdim*cbasis->num_basis, up->conf_rng->volume);
+  up->vtSq_ion = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
+  up->prim_vars_ion = gkyl_array_new(GKYL_DOUBLE, (vdim+1)*cbasis->num_basis, up->conf_rng->volume);
+
+  // only for receiver species
+  up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, use_gpu);
+
   up->on_dev = up; // CPU eqn obj points to itself
 
   return up;
@@ -211,7 +209,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
 
 void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *b_i, const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot,
+  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
   const struct gkyl_array *f_self, struct gkyl_array *coll_recomb, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA

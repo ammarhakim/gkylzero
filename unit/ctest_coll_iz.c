@@ -233,7 +233,7 @@ test_coll_iz_h(bool use_gpu)
 
   // for gk grids 
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
-  double lower_ion[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_ion[] = {2.0,2.0,2.0,vmax_elc,mumax_ion};
+  double lower_ion[] = {-2.0,-2.0,-2.0,vmin_ion,0.0}, upper_ion[] = {2.0,2.0,2.0,vmax_ion,mumax_ion};
   int ghost_gk[] = {0, 0, 0, 0, 0};
   int cells_gk[] = {16, 16, 16, 8, 4};
 
@@ -422,22 +422,22 @@ test_coll_iz_h(bool use_gpu)
 			  9.1145294504346216e-17,  4.2716608578520873e-19, -1.7617649270258086e-15,
 			  -4.5195669650326138e-16, -4.5195669650326138e-16,  8.5785153401928629e-16};
 
-  double p1_vals_ion[] = {1.2314975595471257e-03,  6.9979277174233113e-20, -1.1009416236224849e-20,
-			  -1.1009416236224849e-20,  1.6522273543634804e-03, -1.0609047670434081e-03,
-			  3.3575557862742525e-20,  2.9484930469004131e-20, 2.9484930469004131e-20,
-			  -5.3906136492367043e-20, -2.8938363200141306e-20, -2.8938363200141300e-20,
-			  -4.9187642772042259e-20, -4.7182506789093004e-20,  2.5624931833888169e-20,
-			  -1.4233531060575831e-03, -1.1009416236224849e-20,  3.0878656516073780e-20,
-			  9.7014665796623719e-22,  2.5396511583997190e-20, -1.2783923460551677e-20,
-			  -1.1781355469077044e-20, -1.1781355469077044e-20,  3.6943866862544523e-20,
-			  3.4187996719714861e-22,  3.4187996719714574e-22, -4.0915717585600941e-20,
-			  2.5624931833888169e-20, -5.1189006858594958e-20, -2.5423563445698907e-20,
-			  -2.5423563445698904e-20,  3.4187996719714710e-22,  1.1014849029089874e-03,
-			  -2.7860070658987940e-20, -6.2420394922373991e-21, -6.2420394922373976e-21,
-			  -9.4890207070505537e-04,  1.4768153922788304e-20,  1.3031007006461894e-20,
-			  5.8199646589058419e-22, -5.5962699604718311e-20,  1.4794944257300345e-20,
-			  1.4794944257300345e-20, -2.5109859221355100e-20, -2.7050637737504616e-20,
-			  -9.8736754622405808e-21, -9.8736754622405808e-21,  7.3032868130234530e-21};
+  double p1_vals_ion[] = {6.0136474363708623e+07,  3.2064301630171979e-10, -1.8565299152428219e-09,
+			  -6.0570764407789609e-10,  8.3576702187810987e+06, -5.1806089123801298e+07,
+			  2.8222875586315712e-09, 4.8287882169437475e-10,  4.8287882169437475e-10,
+			  2.0472687401060010e-09,  1.1570178767292057e-10,  1.9919351944203088e-09,
+			  3.4611839236930172e-09,  5.3367646943141775e-09,  5.3367646943141775e-09,
+			  -7.1999267134092050e+06, -6.0570764407789609e-10,  4.1828177034791418e-10,
+			  2.6699177901041736e-10,  1.9745342021115280e-11, -1.5421051609666856e-09,
+			  -6.0431477565610552e-10, -6.0431477565610563e-10, -5.0164525626716406e-10,
+			  1.3352650343934799e-09,  8.4442763228554184e-11, -1.3154464931638150e-10,
+			  3.3347560965447498e-10, -1.7622242733005421e-10, -4.5889832050750040e-11,
+			  -4.5889832050750047e-11,  8.4442763228554184e-11, -1.6891750936774116e+06,
+			  6.2269932920488623e-11, -7.4936579198133358e-12, -7.4936579198133423e-12,
+			  1.4551826719919532e+06, -1.6543240608186146e-10, -1.3485507070008304e-10,
+			  -2.8531743029089381e-10,  5.6714153091620196e-10, -4.2365841266130257e-10,
+			  -1.0490695482437653e-09, -1.0427773531830465e-10,  1.9674008170038323e-10,
+			  1.7039846159847806e-10,  1.7039846159847808e-10,  1.4405684149657291e-10};
 
   double p1_vals_neut[] = {-4.6069610426637011e+09,  5.3662813205196892e-07, -5.7742406785171177e-07,
 			   -2.5721356643349079e-07, -2.2048493689564290e+09, -2.2048493689564295e+09,
@@ -497,21 +497,21 @@ test_coll_iz_h(bool use_gpu)
   const double *pv_e = gkyl_array_cfetch(coll_iz_elc, gkyl_range_idx(&phaseRange_elc, (int[5]) { 1, 1, 1, 4, 2}));
   // compare with output from: "pgkyl ctest_coll_iz_h_elc.gkyl sel --z0 0 --z1 0 --z2 0 --z3 3 --z4 1 pr"
 
-  for (int i=0; i<basis.num_basis; ++i) {
+  for (int i=0; i<phaseBasis_gk.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(p1_vals_elc[i], pv_e[i], 1e-12) );
   }
 
   const double *pv_i = gkyl_array_cfetch(coll_iz_ion, gkyl_range_idx(&phaseRange_ion, (int[5]) { 1, 1, 1, 4, 2}));
   // compare with output from: "pgkyl ctest_coll_iz_h_ion.gkyl sel --z0 0 --z1 0 --z2 0 --z3 3 --z4 1 pr"
 
-  for (int i=0; i<basis.num_basis; ++i) {
+  for (int i=0; i<phaseBasis_gk.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(p1_vals_ion[i], pv_i[i], 1e-12) );
   }
 
   const double *pv_n = gkyl_array_cfetch(coll_iz_neut, gkyl_range_idx(&phaseRange_vl, (int[6]) { 1, 1, 1, 2, 2, 2}));
   // compare with output from: "pgkyl ctest_coll_iz_h_neut.gkyl sel --z0 0 --z1 0 --z2 0 --z3 1 --z4 1 --z5 1 pr"
 
-  for (int i=0; i<basis.num_basis; ++i) {
+  for (int i=0; i<phaseBasis_vl.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(p1_vals_neut[i], pv_n[i], 1e-12) );
   }
   
@@ -549,7 +549,7 @@ test_coll_iz_all_gk_li(bool use_gpu)
   int pdim = cdim + vdim;
 
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
-  double lower_ion[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_ion[] = {2.0,2.0,2.0,vmax_elc,mumax_ion};
+  double lower_ion[] = {-2.0,-2.0,-2.0,vmin_ion,0.0}, upper_ion[] = {2.0,2.0,2.0,vmax_ion,mumax_ion};
   int ghost[] = {0, 0, 0, 0, 0, 0};
   int cells[] = {2, 2, 2, 16, 8};
 
@@ -717,52 +717,52 @@ test_coll_iz_all_gk_li(bool use_gpu)
 			  6.3657710517723692e-15,  8.4622474551621719e-15,  8.2496021962977040e-15,
 			  8.5227962668457375e-15, 8.5227962668457375e-15, -1.6800794278136792e-16};  
 
-  double p1_vals_ion[] = {7.8847429822367215e-06,  8.0431343053181729e-23, -4.7365650137272481e-22,
-			  6.3602811860259312e-23,  1.0578492776037441e-05, -4.5049172043495739e-06,
-			  3.4906099966967385e-22,  7.2017077456720538e-23,  7.2017077456720538e-23,
-			  1.8618214903747978e-22, -9.5651863794261156e-23, -9.5651863794261156e-23,
-			  -2.6850089569144584e-22, -1.0540547149281407e-22, -3.8248057338691035e-23,
-			  -6.0439806611603731e-06,  6.3602811860259301e-23,  2.8733048381119062e-22,
-			  9.5839310008464703e-23,  2.6332063185124598e-22,  1.2876092504620994e-25,
-			  1.4519058870239101e-23,  1.4519058870239101e-23, -4.1627440249527019e-22,
-			  3.8004233783069415e-23,  3.8004233783069421e-23, -1.9680019856797196e-22,
-			  -3.8248057338691035e-23, -1.8081123941331342e-22, -7.1403502815121980e-23,
-			  -7.1403502815121980e-23,  3.8004233783069427e-23,  7.0523285173582935e-06,
-			  4.4809284579281703e-23,  4.2830758105820172e-22, -1.0895173217478237e-22,
-			  -4.0293204407735826e-06,  1.7871189934500148e-22,  5.1051116809850872e-23,
-			  1.5261166512608795e-22,  1.0290500736234146e-22,  1.1446716118501738e-22,
-			  4.7309747030894355e-23,  5.7705162582946365e-23, -6.6225168650544856e-23,
-			  7.3870736569039130e-23,  7.3870736569039130e-23,  1.2494399326254047e-23};
+  double p1_vals_ion[] = {1.6670249545888491e+04, -3.2417594348322014e-13, -9.2770344417926952e-13,
+			  -6.2386751751611901e-14,  5.9636588465764521e+02, -9.5244821738970531e+03,
+			  2.5270185146855172e-13,  2.3937699859641281e-13,  2.3937699859641281e-13,
+			  1.0785813614986634e-13, -6.1032275456172119e-15, -6.1032275456172127e-15,
+			  -7.0135428465832752e-13, -6.8092299440848366e-14, -6.8092299440848353e-14,
+			  -3.4073132630117146e+02, -6.2386751751611901e-14,  1.5487523743201235e-14,
+			  4.6921480987920046e-15, -4.7156688232485811e-14, -1.2447648970655591e-13,
+			  4.7935054164240818e-14,  4.7935054164240812e-14, -6.2752950681203300e-14,
+			  1.4316773372550237e-15,  1.4316773372550249e-15,  8.6267384861047899e-14,
+			  -6.8092299440848353e-14, -1.0904114349925496e-14, -4.7362185063352344e-15,
+			  -4.7362185063352352e-15,  1.4316773372550249e-15, -1.4575101249911003e+02,
+			  1.0988812099679773e-13,  2.5333708527487868e-15,  2.5333708527487845e-15,
+			  8.3274273522654596e+01, -1.4070439703451535e-14, -1.1432064553296630e-14,
+			  2.0155883740287529e-14, -6.8403023299617067e-14, -1.4352759840810866e-13,
+			  6.9185032983427534e-16, -8.7936894031417234e-15, 2.8434502997949620e-14,
+			  2.6927077628189564e-14,  2.6927077628189560e-14, -1.0635209926056232e-14};
 
-  double p1_vals_donor[] = {-7.8847429822367215e-06, -8.0431343053181729e-23,  4.7365650137272481e-22,
-			    -6.3602811860259312e-23, -1.0578492776037441e-05,  4.5049172043495739e-06,
-			    -3.4906099966967385e-22, -7.2017077456720538e-23, -7.2017077456720538e-23,
-			    -1.8618214903747978e-22,  9.5651863794261156e-23,  9.5651863794261156e-23,
-			    2.6850089569144584e-22,  1.0540547149281407e-22,  3.8248057338691035e-23,
-			    6.0439806611603731e-06, -6.3602811860259301e-23, -2.8733048381119062e-22,
-			    -9.5839310008464703e-23, -2.6332063185124598e-22, -1.2876092504620994e-25,
-			    -1.4519058870239101e-23, -1.4519058870239101e-23,  4.1627440249527019e-22,
-			    -3.8004233783069415e-23, -3.8004233783069421e-23,  1.9680019856797196e-22,
-			    3.8248057338691035e-23,  1.8081123941331342e-22,  7.1403502815121980e-23,
-			    7.1403502815121980e-23, -3.8004233783069427e-23, -7.0523285173582935e-06,
-			    -4.4809284579281703e-23, -4.2830758105820172e-22,  1.0895173217478237e-22,
-			    4.0293204407735826e-06, -1.7871189934500148e-22, -5.1051116809850872e-23,
-			    -1.5261166512608795e-22, -1.0290500736234146e-22, -1.1446716118501738e-22,
-			    -4.7309747030894355e-23, -5.7705162582946365e-23,  6.6225168650544856e-23,
-			    -7.3870736569039130e-23, -7.3870736569039130e-23, -1.2494399326254047e-23};
+  double p1_vals_donor[] = {-1.6670249545888491e+04,  3.2417594348322014e-13,  9.2770344417926952e-13,
+			    6.2386751751611901e-14, -5.9636588465764521e+02, 9.5244821738970531e+03,
+			    -2.5270185146855172e-13, -2.3937699859641281e-13, -2.3937699859641281e-13,
+			    -1.0785813614986634e-13,  6.1032275456172119e-15,  6.1032275456172127e-15,
+			    7.0135428465832752e-13,  6.8092299440848366e-14,  6.8092299440848353e-14,
+			    3.4073132630117146e+02,  6.2386751751611901e-14, -1.5487523743201235e-14,
+			    -4.6921480987920046e-15,  4.7156688232485811e-14,  1.2447648970655591e-13,
+			    -4.7935054164240818e-14, -4.7935054164240812e-14,  6.2752950681203300e-14,
+			    -1.4316773372550237e-15, -1.4316773372550249e-15, -8.6267384861047899e-14,
+			    6.8092299440848353e-14,  1.0904114349925496e-14,  4.7362185063352344e-15,
+			    4.7362185063352352e-15, -1.4316773372550249e-15,  1.4575101249911003e+02,
+			    -1.0988812099679773e-13, -2.5333708527487868e-15, -2.5333708527487845e-15,
+			    -8.3274273522654596e+01,  1.4070439703451535e-14,  1.1432064553296630e-14,
+			    -2.0155883740287529e-14,  6.8403023299617067e-14,  1.4352759840810866e-13,
+			    -6.9185032983427534e-16,  8.7936894031417234e-15, -2.8434502997949620e-14,
+			    -2.6927077628189564e-14, -2.6927077628189560e-14, 1.0635209926056232e-14};
     
   const double *pv_elc = gkyl_array_cfetch(coll_iz_elc, gkyl_range_idx(&phaseRange_elc, (int[5]) { 1, 1, 1, 8, 1}));
-  for (int i=0; i<basis.num_basis; ++i) {
+  for (int i=0; i<phaseBasis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(p1_vals_elc[i], pv_elc[i], 1e-30) );
   }
 
   const double *pv_ion = gkyl_array_cfetch(coll_iz_ion, gkyl_range_idx(&phaseRange_ion, (int[5]) { 1, 1, 1, 8, 1}));
-  for (int i=0; i<basis.num_basis; ++i) {
+  for (int i=0; i<phaseBasis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(p1_vals_ion[i], pv_ion[i], 1e-30) );
   }
   
   const double *pv_donor = gkyl_array_cfetch(coll_iz_donor, gkyl_range_idx(&phaseRange_ion, (int[5]) { 1, 1, 1, 8, 1}));
-  for (int i=0; i<basis.num_basis; ++i) {
+  for (int i=0; i<phaseBasis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(p1_vals_donor[i], pv_donor[i], 1e-30) );
   }
   
@@ -784,15 +784,78 @@ test_coll_iz_all_gk_li(bool use_gpu)
   gkyl_dg_iz_release(coll_iz_up_donor);
 }
 
+void
+test_coll_iz_init_elem(bool use_gpu)
+{
+  int charge_state = 0; // charge state of reacting species
+  bool all_gk = false;
+  // use vt = 40 eV for all grids
+  double vmax_elc = 4*sqrt(40*echarge/emass);
+  double vmin_elc = -vmax_elc;
+  double mumax_elc = 12*40*echarge/(2*B0);
+  int poly_order = 1;
+  int cdim = 3, vdim_gk = 2;
+  int pdim_gk = cdim + vdim_gk;
+  double imass = h_ion_mass;
+
+  // for gk grids 
+  double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
+  int ghost_gk[] = {0, 0, 0, 0, 0};
+  int cells_gk[] = {16, 16, 16, 8, 4};
+
+  struct gkyl_rect_grid confGrid;
+  struct gkyl_range confRange, confRange_ext;
+  gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells_gk);
+  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange, &confRange);
+
+  // elc phase grid
+  struct gkyl_rect_grid phaseGrid_elc;
+  struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
+  gkyl_rect_grid_init(&phaseGrid_elc, pdim_gk, lower_elc, upper_elc, cells_gk);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost_gk, &phaseRange_elc, &phaseRange_elc);
+
+  // basis functions
+  struct gkyl_basis  phaseBasis_gk, basis; // phase-space, conf-space basis
+
+  /* Force hybrid basis (p=2 in velocity space). */
+  gkyl_cart_modal_gkhybrid(&phaseBasis_gk, cdim, vdim_gk);
+  gkyl_cart_modal_serendip(&basis, cdim, poly_order);
+
+  // coll struct.
+  struct gkyl_dg_iz *coll_iz_up_he = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
+    echarge, emass, imass, GKYL_IZ_HE, charge_state, GKYL_IZ_ELC, all_gk, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_be = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
+    echarge, emass, imass, GKYL_IZ_BE, charge_state, GKYL_IZ_ELC, all_gk, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_b = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
+    echarge, emass, imass, GKYL_IZ_B, charge_state, GKYL_IZ_ELC, all_gk, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_c = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
+    echarge, emass, imass, GKYL_IZ_C, charge_state, GKYL_IZ_ELC, all_gk, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_n = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
+    echarge, emass, imass, GKYL_IZ_N, charge_state, GKYL_IZ_ELC, all_gk, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_o = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
+    echarge, emass, imass, GKYL_IZ_O, charge_state, GKYL_IZ_ELC, all_gk, use_gpu);
+
+  gkyl_dg_iz_release(coll_iz_up_he);
+  gkyl_dg_iz_release(coll_iz_up_be);
+  gkyl_dg_iz_release(coll_iz_up_b);
+  gkyl_dg_iz_release(coll_iz_up_c);
+  gkyl_dg_iz_release(coll_iz_up_n);
+  gkyl_dg_iz_release(coll_iz_up_o);
+
+}
+  
 void prim_vars_gk_3x() { test_prim_vars_gk_3x(false); }
 void prim_vars_vlasov_3x() { test_prim_vars_vlasov_3x(false); }
 void coll_iz_h() { test_coll_iz_h(false); }
 void coll_iz_all_gk_li() { test_coll_iz_all_gk_li(false); }
+void coll_iz_init_elem() { test_coll_iz_init_elem(false); }
 
 #ifdef GKYL_HAVE_CUDA
 void prim_vars_gk_3x_gpu() { test_prim_vars_gk_3x(true); }
 void prim_vars_vlasov_3x_gpu() { test_prim_vars_vlasov_3x(true); }
 void coll_iz_h_gpu() { test_coll_iz_h(true); }
+void coll_iz_all_gk_li_gpu() { test_coll_iz_all_gk_li(true); }
+void coll_iz_init_elem_gpu() { test_coll_iz_init_elem(true); }
 #endif
 
 TEST_LIST = {
@@ -800,6 +863,7 @@ TEST_LIST = {
   { "prim_vars_vlasov_3x", prim_vars_vlasov_3x },
   { "coll_iz_h", coll_iz_h },
   { "coll_iz_all_gk_li", coll_iz_all_gk_li },
+  { "coll_iz_init_elem", coll_iz_init_elem },
 #ifdef GKYL_HAVE_CUDA
   { "coll_iz_h_gpu", coll_iz_h_gpu },
 #endif  
