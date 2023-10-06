@@ -193,7 +193,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
 
   // ADAS data pointers
   up->ioniz_data = adas_dg;
-  up->E = data.Eiz[charge_state-1];
+  up->E = data.Eiz[charge_state];
   up->minLogM0 = logNmin;
   up->minLogTe = logTmin;
   up->maxLogM0 = logNmax;

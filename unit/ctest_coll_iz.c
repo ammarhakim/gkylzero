@@ -218,7 +218,7 @@ test_prim_vars_vlasov_3x(bool use_gpu)
 void
 test_coll_iz_h(bool use_gpu)
 {
-  int charge_state = 1;
+  int charge_state = 0; // charge state of reacting species
   bool all_gk = false;
   // use vt = 40 eV for all grids
   double vmax_elc = 4*sqrt(40*echarge/emass);
@@ -535,7 +535,7 @@ test_coll_iz_h(bool use_gpu)
 void
 test_coll_iz_all_gk_li(bool use_gpu)
 {
-  int charge_state = 2;
+  int charge_state = 1; // charge state of reacting species
   bool all_gk = true;
   // use vt = 40 eV for all grids
   double vmax_elc = 4*sqrt(40*echarge/emass);
