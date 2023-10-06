@@ -188,7 +188,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   struct gkyl_array *adas_dg =
     gkyl_array_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
 
-  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
+  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state+1);
   //gkyl_grid_sub_array_write(&tn_grid, &adas_rng, adas_dg, "adas_dg.gkyl");
 
   // ADAS data pointers
