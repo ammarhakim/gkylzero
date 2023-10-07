@@ -26,7 +26,6 @@
 #include <gkyl_calc_derived_geo.h>
 #include <gkyl_calc_derived_geo_kernels.h>
 #include <gkyl_geo_gyrokinetic.h>
-#include <elliptic_integral.h>
 
 
 // Helper Functions
@@ -79,10 +78,8 @@ struct mapc2p_ctx{
    struct gkyl_geo_gyrokinetic_geo_inp* ginp;
 };
 
-
-// step equilibrium
-struct step_ctx {
-  double R0, B0;
+struct solovev_ctx {
+  double B0, R0, k, q0, Ztop;
 };
 
 static inline double sq(double x) { return x*x; }
@@ -102,130 +99,13 @@ comp_to_phys(int ndim, const double *eta,
 }
 
 
-
-
-double Alist[24] = {1.098170000000000091e+00,  
-5.749690000000000190e+00,  
-5.254970000000000141e+00,  
-7.063550000000000217e+00,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.199999999999999956e+00,  
-1.098170000000000091e+00,  
-5.749690000000000190e+00,  
-5.254970000000000141e+00,  
-7.063550000000000217e+00,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.199999999999999956e+00,  
-2.339999999999999858e+00,  
-2.860000000000000320e+00,  
-2.600000000000000089e+00,  
-2.600000000000000089e+00,  
-2.600000000000000089e+00,  
-2.600000000000000089e+00};
-
-
- double Zlist[24] = {6.067210000000000214e+00,
- 8.385300000000000864e+00,
- 5.380029999999999646e+00,
- 1.933729999999999949e+00,
- 2.000000000000000000e+00,
- 0.000000000000000000e+00,
- 7.500000000000000000e-01,
- 9.000000000000000222e-01,
- 8.000000000000000000e+00,
- -6.067210000000000214e+00,
- -8.385300000000000864e+00,
- -5.380029999999999646e+00,
- -1.933729999999999949e+00,
- -2.000000000000000000e+00,
- -0.000000000000000000e+00,
- -7.500000000000000000e-01,
- -9.000000000000000222e-01,
- -8.000000000000000000e+00,
- 0.000000000000000000e+00,
- 0.000000000000000000e+00,
- 2.600000000000000089e-01,
- -2.600000000000000089e-01,
- 0.000000000000000000e+00,
- 0.000000000000000000e+00};
-
- double current_list[24] = {2.733587001572373323e+06,
- 2.576555680242971517e+06,
- -4.769840006204952952e+05,
- -5.848048038329290226e+06,
- -6.272967875940668583e+07,
- -9.374610126189786196e+07,
- -5.444083807201912999e+07,
- -4.781479151113666594e+07,
- 2.885451375306561589e+06,
- 2.733587001572373323e+06,
- 2.576555680242971517e+06,
- -4.769840006204952952e+05,
- -5.848048038329290226e+06,
- -6.272967875940668583e+07,
- -9.374610126189786196e+07,
- -5.444083807201912999e+07,
- -4.781479151113666594e+07,
- 2.885451375306561589e+06,
- -2.886111956023474224e+06,
- 2.886111956023474224e+06,
- 6.830522162672655284e+07,
- 6.830522162672655284e+07,
- -1.366104432534531057e+08,
- 1.650000000000000000e+07};
-
-
-
-
-
-double ellipk(double m){
-  return Complete_Elliptic_Integral_First_Kind( 'm', m );
-}
-double ellipe(double m){
-  return Complete_Elliptic_Integral_Second_Kind( 'm', m );
-}
-
-// input is spherical coords r,theta,a
-double Aphi_f(double r, double theta, double a){
-    double mu0 = 1.256e-6;
-    double ksq = 4*a*r*sin(theta)/(sq(a)+sq(r) + 2*a*r*sin(theta));
-    double fac1 = mu0/(4*M_PI);
-
-    double num2 = 4*a;
-    double denom2 = sqrt(sq(a) + sq(r) + 2*a*r*sin(theta));
-    double fac2 = num2/denom2;
-
-    double num3 = (2-ksq)*ellipk(ksq) - 2*ellipe(ksq);
-    double denom3 = ksq;
-    double fac3 = num3/denom3;
-
-    return fac1*fac2*fac3;
-}
-
 void
 psi(double t, const double *xn, double *fout, void *ctx)
 {
-  struct step_ctx *s = ctx;
-  double R0 = s->R0;
+  struct solovev_ctx *s = ctx;
+  double B0 = s->B0, R0 = s->R0, k = s->k, q0 = s->q0;
   double R = xn[0], Z = xn[1];
-
-  double psiret = 0.0;
-
-  for(int i = 0; i<24; i++){
-    double zi = Z - Zlist[i];
-    double rs = sqrt(sq(R) + sq(zi));
-    double thetas = acos(zi/rs);
-    double Aphii = Aphi_f(rs,thetas,Alist[i]);
-    double psii = current_list[i]*Aphii*R;
-    psiret += psii;
-  }
-  fout[0] = psiret;
+  fout[0] = B0*k/(2*sq(R0)*q0)*(sq(R)*sq(Z)/sq(k) + sq(sq(R) - sq(R0))/4);
 }
 
 
@@ -249,11 +129,12 @@ psibyr2(double t, const double *xn, double *fout, void *ctx)
 void
 bphi_func(double t, const double *xn, double *fout, void *ctx)
 {
-  struct step_ctx *s = ctx;
-  double B0 = s->B0, R0 = s->R0;
+  struct solovev_ctx *s = ctx;
+  double B0 = s->B0, R0 = s->R0, k = s->k, q0 = s->q0;
   double R = xn[0];
   fout[0] = B0*R0/R;
 }
+
 
 
 void
@@ -264,11 +145,13 @@ test_1()
   start = clock();
 
 
-  struct step_ctx sctx = {  .R0 = 2.6,  .B0 = 2.1 };
+  struct solovev_ctx sctx = {
+    .B0 = 0.55, .R0 = 0.85, .k = 2, .q0 = 2, .Ztop = 1.5
+  };
 
   
   // create RZ grid
-  double lower[] = { 0.01, -7.5 }, upper[] = { 7.0, 7.4 };
+  double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
   int cells[] = { 64, 128 };
 
   struct gkyl_rect_grid rzgrid;
@@ -307,18 +190,14 @@ test_1()
     }
   );
 
-  // compute outboard SOL geometry
-  
+  double xsep[2] = {0.0,0.0};
+  double psisep[1] ;
+  psi(0.0,xsep,psisep, &sctx);
+  printf("psisep = %g\n", psisep[0]);
 
-  double psiSep = 0.16804280010462858;
-  double psiSim = psiSep-0.013;
-  // Computational grid: theta X psi X alpha (only 2D for now)
-  //double clower[] = { psiSep-0.026, -0.01, -2.9 };
-  //double cupper[] = {psiSim, 0.01, 2.9 };
-
-  double clower[] = { psiSim-0.01, -0.01, -2.9 };
-  double cupper[] = {psiSim+0.01, 0.01, 2.9 };
-  int ccells[] = { 1,1, 512 };
+  double clower[] = { 1.0*psisep[0], -M_PI, -3.1};
+  double cupper[] = {1.7*psisep[0], M_PI, 3.1};
+  int ccells[] = { 16, 3, 128 };
 
 
 
@@ -332,7 +211,7 @@ test_1()
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
 
   // BCs, 0 is periodic, 1 is nonperiodic
-  int bcs[3] = {1,1,1};
+  int bcs[3] = {1,0,1};
 
   // calcgeom will go into the ghost y cells based on bc. If bc[1]=1 we use ghosts.
   // Need to pass appropriate conversion to modal range depending on the bcs
@@ -342,8 +221,15 @@ test_1()
     gkyl_sub_range_init(&conversion_range, &clocal_ext, sublower, subupper);
   }
   else{
-    conversion_range = clocal;
+    //conversion_range = clocal;
+    int sublower[3] = {clocal.lower[0], clocal.lower[1], clocal.lower[2]};
+    int subupper[3] = {clocal.upper[0], clocal.upper[1], clocal.upper[2]};
+    gkyl_sub_range_init(&conversion_range, &clocal_ext, sublower, subupper);
   }
+
+
+  printf("clocal ext in y lower = %d, %d, %d\n", conversion_range.lower[0], conversion_range.lower[1], conversion_range.lower[2]);
+  printf("clocal ext in y upper = %d, %d, %d\n", conversion_range.upper[0], conversion_range.upper[1], conversion_range.upper[2]);
 
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
@@ -360,7 +246,7 @@ test_1()
     .zmax = upper[1],
   
     .write_node_coord_array = true,
-    .node_file_nm = "step3d_nodes.gkyl"
+    .node_file_nm = "solovevperiodic_nodes.gkyl"
   }; 
 
 
@@ -369,7 +255,7 @@ test_1()
   //Do Ammar's calcgeom
 
   struct gkyl_array *mapc2p_arr = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
-  gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p_arr, &clocal_ext);
+  gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p_arr, &conversion_range);
 
   // sync in periodic dirs (y)
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
@@ -383,14 +269,14 @@ test_1()
 
 
   printf("writing mapc2p file from calcgeom\n");
-  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "step3d_mapc2pfile.gkyl");
+  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "solovevperiodic_mapc2pfile.gkyl");
   printf("wrote mapc2p file\n");
 
   //make psi
   gkyl_eval_on_nodes *eval_psi = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psi, &sctx);
   struct gkyl_array* psidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   gkyl_eval_on_nodes_advance(eval_psi, 0.0, &rzlocal_ext, psidg); //on ghosts with ext_range
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "step3d_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "solovevperiodic_psi.gkyl");
 
   gkyl_eval_on_nodes *eval_psibyr = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psibyr, &sctx);
   struct gkyl_array* psibyrdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -448,14 +334,14 @@ test_1()
   do{
     printf("writing the comp bmag file \n");
     const char *fmt = "%s_compbmag.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "step3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
   } while (0);
 
   do{
     printf("writing the bphi file \n");
     const char *fmt = "%s_bphi.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "step3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
     gkyl_grid_sub_array_write(&rzgrid, &rzlocal, bphidg, fileNm);
   } while (0);
 
@@ -470,18 +356,23 @@ test_1()
   //gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &clocal_ext, XYZ);
 
   //printf("writing rz file\n");
-  //gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "step3d_xyzfile.gkyl");
+  //gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "solovevperiodic_xyzfile.gkyl");
   //printf("wrote rz file\n");
   
   printf("calculating metrics \n");
   struct gkyl_array *gFld = gkyl_array_new(GKYL_DOUBLE, 6*cbasis.num_basis, clocal_ext.volume);
+
+  
+    
+  printf("creating\n");
   gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, bcs, false);
   //gkyl_calc_metric_advance( mcalculator, &clocal, XYZ, gFld);
+  printf("advancing\n");
   gkyl_calc_metric_advance( mcalculator, &clocal, mapc2p_arr, gFld);
   do{
     printf("writing the gij file \n");
     const char *fmt = "%s_g_ij.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "step3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
     gkyl_grid_sub_array_write(&cgrid, &clocal, gFld, fileNm);
   } while (0);
 
@@ -509,48 +400,94 @@ test_1()
 
   do{
     printf("writing the  second comp bmag file \n");
-    const char *fmt = "%s_compbmag2.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "step3d");
+    const char *fmt = "%s_beforemod_compbmag2.gkyl";
+    snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
   } while (0);
 
     do{
       printf("writing the j file \n");
-      const char *fmt = "%s_j.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "step3d");
+      const char *fmt = "%s_beforemod_j.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
       gkyl_grid_sub_array_write(&cgrid, &clocal, jFld, fileNm);
     } while (0);
 
     do{
       printf("writing the jtot file \n");
-      const char *fmt = "%s_jtot.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "step3d");
+      const char *fmt = "%s_beforemod_jtot.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
       gkyl_grid_sub_array_write(&cgrid, &clocal, jtotFld, fileNm);
     } while (0);
 
     do{
       printf("writing the cmag file \n");
-      const char *fmt = "%s_cmag.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "step3d");
+      const char *fmt = "%s_beforemod_cmag.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
       gkyl_grid_sub_array_write(&cgrid, &clocal, cmagFld, fileNm);
     } while (0);
  
   
     do{
       printf("writing the g^ij file \n");
-      const char *fmt = "%s_gij.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "step3d");
+      const char *fmt = "%s_beforemod_gij.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
       gkyl_grid_sub_array_write(&cgrid, &clocal, grFld, fileNm);
     } while (0);
 
 
     do{
       printf("writing the b_i file \n");
-      const char *fmt = "%s_bi.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "step3d");
+      const char *fmt = "%s_beforemod_bi.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
       gkyl_grid_sub_array_write(&cgrid, &clocal, biFld, fileNm);
     } while (0);
 
+  gkyl_calc_derived_geo_advance_modification( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld, jtotFld, jtotinvFld, bmaginvFld, bmaginvsqFld, gxxJ, gxyJ, gyyJ);
+  gkyl_calc_derived_geo_advance( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld, jtotFld, jtotinvFld, bmaginvFld, bmaginvsqFld, gxxJ, gxyJ, gyyJ);
+
+  do{
+    printf("writing the  second comp bmag file \n");
+    const char *fmt = "%s_aftermod_compbmag2.gkyl";
+    snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
+    gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
+  } while (0);
+
+    do{
+      printf("writing the j file \n");
+      const char *fmt = "%s_aftermod_j.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
+      gkyl_grid_sub_array_write(&cgrid, &clocal, jFld, fileNm);
+    } while (0);
+
+    do{
+      printf("writing the jtot file \n");
+      const char *fmt = "%s_aftermod_jtot.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
+      gkyl_grid_sub_array_write(&cgrid, &clocal, jtotFld, fileNm);
+    } while (0);
+
+    do{
+      printf("writing the cmag file \n");
+      const char *fmt = "%s_aftermod_cmag.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
+      gkyl_grid_sub_array_write(&cgrid, &clocal, cmagFld, fileNm);
+    } while (0);
+ 
+  
+    do{
+      printf("writing the g^ij file \n");
+      const char *fmt = "%s_aftermod_gij.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
+      gkyl_grid_sub_array_write(&cgrid, &clocal, grFld, fileNm);
+    } while (0);
+
+
+    do{
+      printf("writing the b_i file \n");
+      const char *fmt = "%s_aftermod_bi.gkyl";
+      snprintf(fileNm, sizeof fileNm, fmt, "solovevperiodic");
+      gkyl_grid_sub_array_write(&cgrid, &clocal, biFld, fileNm);
+    } while (0);
 
 
 

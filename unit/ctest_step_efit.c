@@ -28,6 +28,9 @@
 #include <gkyl_geo_gyrokinetic.h>
 #include <elliptic_integral.h>
 
+#include <gkyl_efit.h>
+#include <gkyl_efit_priv.h>
+
 
 // Helper Functions
 
@@ -268,37 +271,52 @@ test_1()
 
   
   // create RZ grid
-  double lower[] = { 0.01, -7.5 }, upper[] = { 7.0, 7.4 };
-  int cells[] = { 64, 128 };
+  //double lower[] = { 0.01, -7.5 }, upper[] = { 7.0, 7.4 };
+  //int cells[] = { 64, 128 };
 
-  struct gkyl_rect_grid rzgrid;
-  gkyl_rect_grid_init(&rzgrid, 2, lower, upper, cells);
+  //struct gkyl_rect_grid rzgrid;
+  //gkyl_rect_grid_init(&rzgrid, 2, lower, upper, cells);
 
   // RZ ranges
-  struct gkyl_range rzlocal, rzlocal_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
-  gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);
+  //struct gkyl_range rzlocal, rzlocal_ext;
+  //int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  //gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);
 
+  //// RZ basis function
+  //int rzpoly_order = 2;
+  //struct gkyl_basis rzbasis;
+  //gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
+
+  // allocate psiRZ array, initialize and write it to file
+  //struct gkyl_array *psiRZ = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+  //
+  //gkyl_eval_on_nodes *eon = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, &psi, &sctx);
+  //gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
+  //gkyl_eval_on_nodes_release(eon);
+
+  char* filepath = "/home/akash/test_cio/AH_PI4_P5.geqdsk";
   // RZ basis function
-  int rzpoly_order = 2;
+
+  int rzpoly_order = 1;
   struct gkyl_basis rzbasis;
   gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
 
-  // allocate psiRZ array, initialize and write it to file
-  struct gkyl_array *psiRZ = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-  
-  gkyl_eval_on_nodes *eon = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, &psi, &sctx);
-  gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
-  gkyl_eval_on_nodes_release(eon);
+  struct gkyl_rect_grid rzgrid;
+ 
+  struct gkyl_range rzlocal, rzlocal_ext;
 
-  //gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psiRZ, "test_bmag_psi.gkyl");
+  struct gkyl_efit* efit = gkyl_efit_new(filepath, &rzbasis, &rzgrid, &rzlocal, &rzlocal_ext, false);
+
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psizr, "efit_psi.gkyl");
+  
+
 
 
   gkyl_geo_gyrokinetic *geo = gkyl_geo_gyrokinetic_new(&(struct gkyl_geo_gyrokinetic_inp) {
       // psiRZ and related inputs
       .rzgrid = &rzgrid,
       .rzbasis = &rzbasis,
-      .psiRZ = psiRZ,
+      .psiRZ = efit->psizr,
       .rzlocal = &rzlocal,
       .B0 = sctx.B0,
       .R0 = sctx.R0,
@@ -310,15 +328,17 @@ test_1()
   // compute outboard SOL geometry
   
 
-  double psiSep = 0.16804280010462858;
+  double psiSep = 0.159;
   double psiSim = psiSep-0.013;
   // Computational grid: theta X psi X alpha (only 2D for now)
   //double clower[] = { psiSep-0.026, -0.01, -2.9 };
   //double cupper[] = {psiSim, 0.01, 2.9 };
+  printf("psi_min = %g\n", psiSim-0.01);
+  printf("psi_max = %g\n", psiSim+0.01);
 
   double clower[] = { psiSim-0.01, -0.01, -2.9 };
   double cupper[] = {psiSim+0.01, 0.01, 2.9 };
-  int ccells[] = { 1,1, 512 };
+  int ccells[] = { 3,3, 32 };
 
 
 
@@ -355,9 +375,13 @@ test_1()
     .bcs = bcs,
     .cbasis = &cbasis,
     .ftype = GKYL_SOL_DN,
-    .rclose = upper[0],
-    .zmin = lower[1],
-    .zmax = upper[1],
+    //.rclose = efit->rmax,
+    //.zmin = efit->zmin,
+    //.zmax = efit->zmax,
+
+    .rclose = efit->rmax,
+    .zmin = -7.0,
+    .zmax = 7.0,
   
     .write_node_coord_array = true,
     .node_file_nm = "step3d_nodes.gkyl"
