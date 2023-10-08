@@ -267,7 +267,6 @@ test_1()
   start = clock();
 
 
-  struct step_ctx sctx = {  .R0 = 2.6,  .B0 = 2.1 };
 
   
   // create RZ grid
@@ -297,7 +296,7 @@ test_1()
   char* filepath = "/home/akash/test_cio/AH_PI4_P5.geqdsk";
   // RZ basis function
 
-  int rzpoly_order = 1;
+  int rzpoly_order = 2;
   struct gkyl_basis rzbasis;
   gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
 
@@ -308,6 +307,9 @@ test_1()
   struct gkyl_efit* efit = gkyl_efit_new(filepath, &rzbasis, &rzgrid, &rzlocal, &rzlocal_ext, false);
 
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psizr, "efit_psi.gkyl");
+
+  //struct step_ctx sctx = {  .R0 = 2.6,  .B0 = 2.1 };
+  struct step_ctx sctx = {  .R0 = efit->rcentr,  .B0 = efit->bcentr };
   
 
 
@@ -328,17 +330,12 @@ test_1()
   // compute outboard SOL geometry
   
 
-  double psiSep = 0.159;
-  double psiSim = psiSep-0.013;
-  // Computational grid: theta X psi X alpha (only 2D for now)
-  //double clower[] = { psiSep-0.026, -0.01, -2.9 };
-  //double cupper[] = {psiSim, 0.01, 2.9 };
-  printf("psi_min = %g\n", psiSim-0.01);
-  printf("psi_max = %g\n", psiSim+0.01);
+  double psiSep = 1.50982;
 
-  double clower[] = { psiSim-0.01, -0.01, -2.9 };
-  double cupper[] = {psiSim+0.01, 0.01, 2.9 };
-  int ccells[] = { 3,3, 32 };
+  double clower[] = { 1.3, -0.01, -3.14 };
+  double cupper[] = {1.5, 0.01, 3.14 };
+
+  int ccells[] = { 3, 3, 32 };
 
 
 
@@ -380,8 +377,8 @@ test_1()
     //.zmax = efit->zmax,
 
     .rclose = efit->rmax,
-    .zmin = -7.0,
-    .zmax = 7.0,
+    .zmin = -7.5,
+    .zmax = 7.5,
   
     .write_node_coord_array = true,
     .node_file_nm = "step3d_nodes.gkyl"
@@ -411,19 +408,19 @@ test_1()
   printf("wrote mapc2p file\n");
 
   //make psi
-  gkyl_eval_on_nodes *eval_psi = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psi, &sctx);
-  struct gkyl_array* psidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-  gkyl_eval_on_nodes_advance(eval_psi, 0.0, &rzlocal_ext, psidg); //on ghosts with ext_range
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "step3d_psi.gkyl");
+  //gkyl_eval_on_nodes *eval_psi = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psi, &sctx);
+  //struct gkyl_array* psidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+  //gkyl_eval_on_nodes_advance(eval_psi, 0.0, &rzlocal_ext, psidg); //on ghosts with ext_range
+  //gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "step3d_psi.gkyl");
 
-  gkyl_eval_on_nodes *eval_psibyr = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psibyr, &sctx);
-  struct gkyl_array* psibyrdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-  gkyl_eval_on_nodes_advance(eval_psibyr, 0.0, &rzlocal_ext, psibyrdg); //on ghosts with ext_range
-                                                                       //
-  gkyl_eval_on_nodes *eval_psibyr2 = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psibyr2, &sctx);
-  struct gkyl_array* psibyr2dg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-  gkyl_eval_on_nodes_advance(eval_psibyr2, 0.0, &rzlocal_ext, psibyr2dg); //on ghosts with ext_range
-  printf("made the psi arays\n");
+  //gkyl_eval_on_nodes *eval_psibyr = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psibyr, &sctx);
+  //struct gkyl_array* psibyrdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+  //gkyl_eval_on_nodes_advance(eval_psibyr, 0.0, &rzlocal_ext, psibyrdg); //on ghosts with ext_range
+  //                                                                     //
+  //gkyl_eval_on_nodes *eval_psibyr2 = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psibyr2, &sctx);
+  //struct gkyl_array* psibyr2dg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+  //gkyl_eval_on_nodes_advance(eval_psibyr2, 0.0, &rzlocal_ext, psibyr2dg); //on ghosts with ext_range
+  //printf("made the psi arays\n");
 
   gkyl_eval_on_nodes *eval_bphi= gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, bphi_func, &sctx);
   struct gkyl_array* bphidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -440,30 +437,7 @@ test_1()
   gkyl_calc_bmag *calculator = gkyl_calc_bmag_new(&cbasis, &rzbasis, &cgrid, &rzgrid, geo, &ginp, false);
   printf("allocated bmag calculator\n");
 
-  //printf("testing a fetch\n");
-  //struct gkyl_range_iter citer;
-  //gkyl_range_iter_init(&citer, &clocal_ext);
-  //citer.idx[0] = 0;
-  //citer.idx[1] = 0;
-  //citer.idx[2] = 0;
-  //printf("citer = %d,%d,%d\n", citer.idx[0], citer.idx[1], citer.idx[2]);
-
-  //long lidx = gkyl_range_idx(&clocal_ext, citer.idx);
-  //const double *mcoeffs = gkyl_array_cfetch(mapc2p_arr, lidx);
-  //
-
-  //printf("coeffs = ");
-  //for(int i = 0; i < cgrid.ndim; i++){
-  //  for(int j = 0; j < cbasis.num_basis; j++){
-  //    const double *temp = &mcoeffs[i*cbasis.num_basis];
-  //    printf(" %g ", temp[j] );
-  //  }
-  //}
-  //printf("\n");
-  //printf("done testing a fetch\n");
-
-
-  gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, psidg, psibyrdg, psibyr2dg, bphidg, bmagFld, mapc2p_arr);
+  gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, efit->psizr, efit->psibyrzr, efit->psibyr2zr, bphidg, bmagFld, mapc2p_arr);
   printf("advanced bmag calculator\n");
 
 
@@ -583,9 +557,9 @@ test_1()
 
 
   //gkyl_array_release(RZ);
-  gkyl_array_release(psidg);
-  gkyl_array_release(psibyrdg);
-  gkyl_array_release(psibyr2dg);
+  //gkyl_array_release(psidg);
+  //gkyl_array_release(psibyrdg);
+  //gkyl_array_release(psibyr2dg);
   gkyl_array_release(bmagFld);
   gkyl_array_release(bmagdg);
   gkyl_array_release(cmagFld);

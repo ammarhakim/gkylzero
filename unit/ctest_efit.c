@@ -20,7 +20,7 @@ void test_1(){
   char* filepath = "/home/akash/test_cio/AH_PI4_P5.geqdsk";
   // RZ basis function
 
-  int rzpoly_order = 1;
+  int rzpoly_order = 2;
   struct gkyl_basis rzbasis;
   gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
 

@@ -98,19 +98,27 @@ gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
   // zmaxis,xdum,sibry,xdum,xdum;
   double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
 
-  status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &rdim, &zdim, &rcentr, &rleft, &zmid, & rmaxis, &zmaxis, &simag, &sibry, &bcentr, & current, &simag, &xdum, &rmaxis, &xdum, & zmaxis, &xdum, &sibry, &xdum, &xdum);
+  status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
 
-  printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%g sibry=%g bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", rdim, zdim, rcentr, rleft, zmid,  rmaxis, zmaxis, simag, sibry, bcentr,  current, simag, rmaxis,  zmaxis, sibry);
+  printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%g sibry=%g bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", up->rdim, up->zdim, up->rcentr, up->rleft, up->zmid, up-> rmaxis, up->zmaxis, up->simag, up->sibry, up->bcentr, up-> current, up->simag, up->rmaxis, up-> zmaxis, up->sibry);
 
 
   // Now we need to make the grid
-  up->zmin = zmid - zdim/2;
-  up->zmax = zmid + zdim/2;
-  up->rmin = rleft;
-  up->rmax = rleft+rdim;
+  up->zmin = up->zmid - up->zdim/2;
+  up->zmax = up->zmid + up->zdim/2;
+  up->rmin = up->rleft;
+  up->rmax = up->rleft+up->rdim;
   double rzlower[2] = {up->rmin, up->zmin };
   double rzupper[2] = {up->rmax, up->zmax};
-  int cells[2] = {up->nr, up->nz};
+  int cells[2];
+  if(up->rzbasis->poly_order==1){
+    cells[0] = up->nr-1;
+    cells[1]= up->nz-1;
+  }
+  if(up->rzbasis->poly_order==2){
+    cells[0] = (up->nr-1)/2;
+    cells[1] = (up->nz-1)/2;
+  }
   gkyl_rect_grid_init(up->rzgrid, 2, rzlower, rzupper, cells);
 
 
@@ -127,15 +135,27 @@ gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, up->rzgrid->ndim, node_nums);
   struct gkyl_array *psizr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  struct gkyl_array *psibyrzr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
+  struct gkyl_array *psibyr2zr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
 
   // Now lets loop through
+  // Not only do we want psi at the nodes, we also want psi/R and psi/R^2 so we can use them for the magnetc field
+  double R = up->rmin;
+  double dR = up->rmin/rdim;
   int idx[2];
   for(int ir = 0; ir < up->nr; ir++){
     idx[1] = ir;
+    R = up->rmin+ir*dR;
     for(int iz = 0; iz < up->nz; iz++){
       idx[0] = iz;
+      // set psi
       double *psi_n = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, idx));
       status = fscanf(ptr,"%lf", psi_n);
+      // set psibyr and psibyr2
+      double *psibyr_n = gkyl_array_fetch(psibyrzr_n, gkyl_range_idx(&nrange, idx));
+      double *psibyr2_n = gkyl_array_fetch(psibyr2zr_n, gkyl_range_idx(&nrange, idx));
+      psibyr_n[0] = psi_n[0]/R;
+      psibyr2_n[0] = psi_n[0]/R/R;
 
     }
   }
@@ -144,14 +164,27 @@ gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
 
   // Now we need to create a range for the modal array up->psizr
   // Then we can loop through it with a nodal->modal conversion function
-  int nghost[GKYL_MAX_CDIM] = { 0, 0 };
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
   gkyl_create_grid_ranges(up->rzgrid, nghost, up->rzlocal_ext, up->rzlocal);
 
 
 
-  up->psizr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal->volume);
+  up->psizr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
   nodal_array_to_modal_psi(psizr_n, up->psizr, up->rzlocal, &nrange, up->rzbasis, up->rzgrid, 1);
+
+  up->psibyrzr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
+  nodal_array_to_modal_psi(psibyrzr_n, up->psibyrzr, up->rzlocal, &nrange, up->rzbasis, up->rzgrid, 1);
+
+  up->psibyr2zr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
+  nodal_array_to_modal_psi(psibyr2zr_n, up->psibyr2zr, up->rzlocal, &nrange, up->rzbasis, up->rzgrid, 1);
   
   return up;
 }
 
+
+void gkyl_efit_release(gkyl_efit* up){
+  gkyl_array_release(up->psizr);
+  gkyl_array_release(up->psibyrzr);
+  gkyl_array_release(up->psibyr2zr);
+  gkyl_free(up);
+}
