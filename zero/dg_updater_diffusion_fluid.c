@@ -19,7 +19,8 @@ gkyl_dg_updater_diffusion_fluid_acquire_eqn(const struct gkyl_dg_updater_diffusi
 struct gkyl_dg_updater_diffusion_fluid*
 gkyl_dg_updater_diffusion_fluid_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, bool is_diff_const, int num_equations,
-  bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, bool use_gpu)
+  const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
+  const bool *is_zero_flux_dir, bool use_gpu)
 {
   struct gkyl_dg_updater_diffusion_fluid *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_diffusion_fluid));
 
@@ -37,8 +38,9 @@ gkyl_dg_updater_diffusion_fluid_new(const struct gkyl_rect_grid *grid,
   int linc = 0;
   for (int d=0; d<ndim; ++d) {
     if (is_dir_diffusive[d]) up_dirs[linc] = d;
-    zero_flux_flags[d] = 0;
     linc += 1;
+
+    zero_flux_flags[d] = is_zero_flux_dir[d]? 1 : 0;
   }
 
   up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);

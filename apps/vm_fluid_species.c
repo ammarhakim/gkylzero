@@ -174,8 +174,10 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       gkyl_array_release(diffD_host);
     }
 
+    const bool is_zero_flux[GKYL_MAX_CDIM] = {false};
+
     f->diff_slvr = gkyl_dg_updater_diffusion_fluid_new(&app->grid, &app->confBasis,
-      true, num_eqn, NULL, f->info.diffusion.order, &app->local, app->use_gpu);
+      true, num_eqn, NULL, f->info.diffusion.order, &app->local, is_zero_flux, app->use_gpu);
   }
 
   // array for storing integrated moments in each cell
