@@ -3,8 +3,7 @@ import os
 import shutil
 import sys
 
-HOME = os.environ["HOME"]
-adas_data_dir = HOME + "/gkylzero/adas-dat"
+adas_data_dir = "."
 
 #if arg =atomic element symbol, attempt to download that set
 #if arg =adf11 filename, attempt to download that file

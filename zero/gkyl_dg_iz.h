@@ -90,6 +90,6 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
 /**
  * Delete updater.
  *
- * @param iz Updater to delete.
+ * @param up Updater to delete.
  */
-void gkyl_dg_iz_release(gkyl_dg_iz *iz);
+void gkyl_dg_iz_release(gkyl_dg_iz *up);
