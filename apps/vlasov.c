@@ -839,13 +839,13 @@ rk3(gkyl_vlasov_app* app, double dt0)
         } else {
           for (int i=0; i<app->num_species; ++i)
             array_combine(app->species[i].f1,
-              3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, app->species[i].local_ext);
+              3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
           for (int i=0; i<app->num_fluid_species; ++i)
             array_combine(app->fluid_species[i].fluid1,
-              3.0/4.0, app->fluid_species[i].fluid, 1.0/4.0, app->fluid_species[i].fluidnew, app->local_ext);
+              3.0/4.0, app->fluid_species[i].fluid, 1.0/4.0, app->fluid_species[i].fluidnew, &app->local_ext);
           if (app->has_field)
             array_combine(app->field->em1,
-              3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew, app->local_ext);
+              3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew, &app->local_ext);
 
           state = RK_STAGE_3;
         }
@@ -881,18 +881,18 @@ rk3(gkyl_vlasov_app* app, double dt0)
         else {
           for (int i=0; i<app->num_species; ++i) {
             array_combine(app->species[i].f1,
-              1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, app->species[i].local_ext);
-            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &(app->species[i].local_ext));
+              1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
+            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
           }
           for (int i=0; i<app->num_fluid_species; ++i) {
             array_combine(app->fluid_species[i].fluid1,
-              1.0/3.0, app->fluid_species[i].fluid, 2.0/3.0, app->fluid_species[i].fluidnew, app->local_ext);
-            gkyl_array_copy_range(app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &(app->local_ext));
+              1.0/3.0, app->fluid_species[i].fluid, 2.0/3.0, app->fluid_species[i].fluidnew, &app->local_ext);
+            gkyl_array_copy_range(app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &app->local_ext);
           }
           if (app->has_field) {
             array_combine(app->field->em1,
-              1.0/3.0, app->field->em, 2.0/3.0, app->field->emnew, app->local_ext);
-            gkyl_array_copy_range(app->field->em, app->field->em1, &(app->local_ext));
+              1.0/3.0, app->field->em, 2.0/3.0, app->field->emnew, &app->local_ext);
+            gkyl_array_copy_range(app->field->em, app->field->em1, &app->local_ext);
           }
 
           state = RK_COMPLETE;
@@ -941,12 +941,7 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     const struct gkyl_array *fin = species->f;
     struct gkyl_array *rhs = species->f1;
 
-    // if (app->use_gpu)
-    //   gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
-    // else
-    //   gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
-    gkyl_array_clear_range(rhs, 0.0, &(species->local));
-
+    gkyl_array_clear(rhs, 0.0);
     gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
       fin, species->cflrate, rhs); 
   }

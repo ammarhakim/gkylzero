@@ -144,7 +144,7 @@ vm_species_lbo_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   // compute needed moments (if PKPM, moments already known from fluid couplings)
   if (species->model_id != GKYL_MODEL_PKPM) {
     vm_species_moment_calc(&lbo->moms, species->local, app->local, fin);
-    gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, &(app->local));
+    gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, &app->local);
   }
   
   if (app->use_gpu) {

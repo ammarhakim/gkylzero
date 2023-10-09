@@ -146,24 +146,26 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   else 
     s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
-  // allocate array to store q/m*(E,B) or potential depending on equation system
-  s->qmem = 0;
-  if (s->field_id  == GKYL_FIELD_E_B)
+  // allocate array to store q/m*(E,B) or potentials (phi, A) depending on equation system
+  if (s->field_id == GKYL_FIELD_E_B)
     s->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  else
+    s->qmem = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
 
-  // allocate array to store relativistic variables if present
-  // Since p/gamma, gamma, gamma_inv are a geometric quantities, can pre-compute it here
-  s->p_over_gamma = 0;
-  s->gamma = 0;
-  s->gamma_inv = 0;
-  // V_drift, GammaV2, GammaV_inv are derived quantities from the bulk fluid velocity
-  s->V_drift = 0;
-  s->GammaV2 = 0;
-  s->GammaV_inv = 0;
-  // PKPM pointers
-  s->m1i_pkpm = 0;
-  s->pkpm_div_ppar = 0;
   if (s->model_id  == GKYL_MODEL_SR) {
+    // allocate data for momentum (for use in current accumulation)
+    vm_species_moment_init(app, s, &s->m1i, "M1i");
+    // allocate date for density (for use in charge density accumulation)
+    vm_species_moment_init(app, s, &s->m0, "M0");
+    // allocate data for integrated moments
+    vm_species_moment_init(app, s, &s->integ_moms, "Integrated");
+
+    int ndm = s->info.num_diag_moments;
+    // allocate data for diagnostic moments
+    s->moms = gkyl_malloc(sizeof(struct vm_species_moment[ndm]));
+    for (int m=0; m<ndm; ++m)
+      vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
+
     // Allocate special relativistic variables, p/gamma, gamma, & 1/gamma
     s->p_over_gamma = mkarr(app->use_gpu, vdim*app->velBasis.num_basis, s->local_vel.volume);
     s->p_over_gamma_host = s->p_over_gamma;
@@ -195,11 +197,10 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     else
       s->V_drift_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
 
-    struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, 
-      .p_over_gamma = s->p_over_gamma};
+    // by default, we do not have zero-flux boundary conditions in any direction
+    bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
-    const bool is_zero_flux[GKYL_MAX_DIM] = {false};
-
+    struct gkyl_dg_vlasov_sr_auxfields aux_inp = {.qmem = s->qmem, .p_over_gamma = s->p_over_gamma};
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
@@ -272,24 +273,37 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       s->fluid_io_host = mkarr(false, 10*app->confBasis.num_basis, app->local_ext.volume);
       s->pkpm_vars_io_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
     }
+
+    // by default, we do not have zero-flux boundary conditions in any direction
+    bool is_zero_flux[GKYL_MAX_DIM] = {false};
+
     struct gkyl_dg_vlasov_pkpm_auxfields aux_inp = {.bvar = app->field->bvar, .bvar_surf = app->field->bvar_surf, 
       .pkpm_prim = s->pkpm_prim, .pkpm_prim_surf = s->pkpm_prim_surf, 
       .max_b = app->field->max_b, .pkpm_lax = s->pkpm_lax, 
       .div_b = app->field->div_b, .pkpm_accel_vars = s->pkpm_accel, 
       .g_dist_source = s->g_dist_source};
-
-    const bool is_zero_flux[GKYL_MAX_DIM] = {false};
-
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   }
   else {
-    struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, 
-      .cot_vec = 0, .alpha_geo = 0};
+    // allocate data for momentum (for use in current accumulation)
+    vm_species_moment_init(app, s, &s->m1i, "M1i");
+    // allocate date for density (for use in charge density accumulation)
+    vm_species_moment_init(app, s, &s->m0, "M0");
+    // allocate data for integrated moments
+    vm_species_moment_init(app, s, &s->integ_moms, "Integrated");
 
-    const bool is_zero_flux[GKYL_MAX_DIM] = {false};
+    int ndm = s->info.num_diag_moments;
+    // allocate data for diagnostic moments
+    s->moms = gkyl_malloc(sizeof(struct vm_species_moment[ndm]));
+    for (int m=0; m<ndm; ++m)
+      vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
+    // by default, we do not have zero-flux boundary conditions in any direction
+    bool is_zero_flux[GKYL_MAX_DIM] = {false};
+
+    struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, .cot_vec = 0, .alpha_geo = 0};
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
@@ -297,22 +311,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
   // acquire equation object
   s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
-  
-  // allocate data for momentum (for use in current accumulation)
-  vm_species_moment_init(app, s, &s->m1i, "M1i");
-  // allocate date for density (for use in charge density accumulation)
-  vm_species_moment_init(app, s, &s->m0, "M0");
-
-  int ndm = s->info.num_diag_moments;
-  // allocate data for diagnostic moments
-  s->moms = gkyl_malloc(sizeof(struct vm_species_moment[ndm]));
-  for (int m=0; m<ndm; ++m)
-    vm_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
   // array for storing f^2 in each cell
   s->L2_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
-  // allocate data for integrated moments
-  vm_species_moment_init(app, s, &s->integ_moms, "Integrated");
   if (app->use_gpu) {
     s->red_L2_f = gkyl_cu_malloc(sizeof(double));
     // GKYL_MAX_DIM = 7, allocates a 9 component double
@@ -564,7 +565,7 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
-  gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &(species->local));
+  gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
 
   double omegaCfl_ho[1];
   if (app->use_gpu)
@@ -653,15 +654,15 @@ void
 vm_species_calc_L2(gkyl_vlasov_app *app, double tm, const struct vm_species *species)
 {
   gkyl_dg_calc_l2_range(app->basis, 0, species->L2_f, 0, species->f, species->local);
-  gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &(species->local));
+  gkyl_array_scale_range(species->L2_f, species->grid.cellVolume, &species->local);
   
   double L2[1] = { 0.0 };
   if (app->use_gpu) {
-    gkyl_array_reduce_range(species->red_L2_f, species->L2_f, GKYL_SUM, &(species->local));
+    gkyl_array_reduce_range(species->red_L2_f, species->L2_f, GKYL_SUM, &species->local);
     gkyl_cu_memcpy(L2, species->red_L2_f, sizeof(double), GKYL_CU_MEMCPY_D2H);
   }
   else { 
-    gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, &(species->local));
+    gkyl_array_reduce_range(L2, species->L2_f, GKYL_SUM, &species->local);
   }
   double L2_global[1] = { 0.0 };
   gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, L2, L2_global);
@@ -710,27 +711,19 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 
   if (app->use_gpu)
     gkyl_array_release(s->f_host);
-  
-  // release moment data
-  vm_species_moment_release(app, &s->m1i);
-  vm_species_moment_release(app, &s->m0);
-  for (int i=0; i<s->info.num_diag_moments; ++i)
-    vm_species_moment_release(app, &s->moms[i]);
-  gkyl_free(s->moms);
-  vm_species_moment_release(app, &s->integ_moms);
 
-  gkyl_array_release(s->L2_f);
-  gkyl_dynvec_release(s->integ_L2_f);
-  gkyl_dynvec_release(s->integ_diag);
-
-  gkyl_dg_eqn_release(s->eqn_vlasov);
-  gkyl_dg_updater_vlasov_release(s->slvr);
-
+  gkyl_array_release(s->qmem);
   // Release arrays for different types of Vlasov equations
-  if (s->field_id  == GKYL_FIELD_E_B)
-    gkyl_array_release(s->qmem);
-
   if (s->model_id  == GKYL_MODEL_SR) {
+    // release moment data
+    vm_species_moment_release(app, &s->m1i);
+    vm_species_moment_release(app, &s->m0);
+    for (int i=0; i<s->info.num_diag_moments; ++i)
+      vm_species_moment_release(app, &s->moms[i]);
+    gkyl_free(s->moms);
+    vm_species_moment_release(app, &s->integ_moms);
+
+    // release relativistic arrays data
     gkyl_array_release(s->p_over_gamma);
     gkyl_array_release(s->gamma);
     gkyl_array_release(s->gamma_inv);
@@ -745,9 +738,11 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_dg_bin_op_mem_release(s->V_drift_mem);
   }
   if (s->model_id == GKYL_MODEL_PKPM) {
+    // release moment data
     vm_species_moment_release(app, &s->pkpm_moms);
     vm_species_moment_release(app, &s->pkpm_moms_diag);
 
+    // release pkpm arrays data and updaters
     gkyl_array_release(s->g_dist_source);
     gkyl_array_release(s->F_k_m_1);
     gkyl_array_release(s->F_k_p_1);
@@ -767,6 +762,22 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_dg_calc_pkpm_vars_release(s->calc_pkpm_vars_ext);
     gkyl_dg_calc_pkpm_dist_vars_release(s->calc_pkpm_dist_vars);
   }
+  else {
+    // release moment data
+    vm_species_moment_release(app, &s->m1i);
+    vm_species_moment_release(app, &s->m0);
+    for (int i=0; i<s->info.num_diag_moments; ++i)
+      vm_species_moment_release(app, &s->moms[i]);
+    gkyl_free(s->moms);
+    vm_species_moment_release(app, &s->integ_moms);    
+  }
+
+  gkyl_dg_eqn_release(s->eqn_vlasov);
+  gkyl_dg_updater_vlasov_release(s->slvr);
+
+  gkyl_array_release(s->L2_f);
+  gkyl_dynvec_release(s->integ_L2_f);
+  gkyl_dynvec_release(s->integ_diag);
   
   if (s->has_accel) {
     gkyl_array_release(s->accel);
