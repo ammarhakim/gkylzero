@@ -141,13 +141,13 @@ gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
   // Now lets loop through
   // Not only do we want psi at the nodes, we also want psi/R and psi/R^2 so we can use them for the magnetc field
   double R = up->rmin;
-  double dR = up->rmin/up->rdim;
+  double dR = up->rdim/(up->nr-1);
   int idx[2];
-  for(int ir = 0; ir < up->nr; ir++){
-    idx[1] = ir;
-    R = up->rmin+ir*dR;
-    for(int iz = 0; iz < up->nz; iz++){
-      idx[0] = iz;
+  for(int iz = 0; iz < up->nz; iz++){
+    idx[1] = iz;
+    for(int ir = 0; ir < up->nr; ir++){
+      R = up->rmin+ir*dR;
+      idx[0] = ir;
       // set psi
       double *psi_n = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, idx));
       status = fscanf(ptr,"%lf", psi_n);
@@ -156,7 +156,6 @@ gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
       double *psibyr2_n = gkyl_array_fetch(psibyr2zr_n, gkyl_range_idx(&nrange, idx));
       psibyr_n[0] = psi_n[0]/R;
       psibyr2_n[0] = psi_n[0]/R/R;
-
     }
   }
   // We filled psizr_nodal
