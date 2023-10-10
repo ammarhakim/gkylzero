@@ -17,7 +17,7 @@
 
 
 void test_1(){
-  char* filepath = "/home/akash/test_cio/AH_PI4_P5.geqdsk";
+  char* filepath = "./efit_data/input.geqdsk";
   // RZ basis function
 
   int rzpoly_order = 2;
@@ -31,6 +31,8 @@ void test_1(){
   struct gkyl_efit* efit = gkyl_efit_new(filepath, &rzbasis, &rzgrid, &rzlocal, &rzlocal_ext, false);
 
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psizr, "efit_psi.gkyl");
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyrzr, "efit_psibyr.gkyl");
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyr2zr, "efit_psibyr2.gkyl");
 
 
 

@@ -307,9 +307,12 @@ test_1()
   struct gkyl_efit* efit = gkyl_efit_new(filepath, &rzbasis, &rzgrid, &rzlocal, &rzlocal_ext, false);
 
   gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psizr, "efit_psi.gkyl");
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyrzr, "efit_psibyr.gkyl");
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyr2zr, "efit_psibyr2.gkyl");
 
   //struct step_ctx sctx = {  .R0 = 2.6,  .B0 = 2.1 };
   struct step_ctx sctx = {  .R0 = efit->rcentr,  .B0 = efit->bcentr };
+  printf("rcentr, bcentr = %g, %g",efit->rcentr,efit->bcentr);
   
 
 
@@ -333,9 +336,9 @@ test_1()
   double psiSep = 1.50982;
 
   double clower[] = { 1.3, -0.01, -3.14 };
-  double cupper[] = {1.5, 0.01, 3.14 };
+  double cupper[] = {1.508, 0.01, 3.14 };
 
-  int ccells[] = { 3, 3, 32 };
+  int ccells[] = { 3, 3, 128 };
 
 
 
@@ -424,7 +427,7 @@ test_1()
 
   gkyl_eval_on_nodes *eval_bphi= gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, bphi_func, &sctx);
   struct gkyl_array* bphidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-  gkyl_eval_on_nodes_advance(eval_bphi, 0.0, &rzlocal_ext, bphidg); //on ghosts with ext_range
+  //gkyl_eval_on_nodes_advance(eval_bphi, 0.0, &rzlocal_ext, bphidg); //on ghosts with ext_range
   printf("made the Bphi array\n");
 
   //make bmag

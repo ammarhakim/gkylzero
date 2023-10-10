@@ -96,11 +96,11 @@ gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
   // rmaxis,zmaxis,simag,sibry,bcentr;
   // current,simag,xdum,rmaxis,xdum;
   // zmaxis,xdum,sibry,xdum,xdum;
-  double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
+  //double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
 
   status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
 
-  printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%g sibry=%g bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", up->rdim, up->zdim, up->rcentr, up->rleft, up->zmid, up-> rmaxis, up->zmaxis, up->simag, up->sibry, up->bcentr, up-> current, up->simag, up->rmaxis, up-> zmaxis, up->sibry);
+  printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%g sibry=%g bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", up->rdim, up->zdim, up->rcentr, up->rleft, up->zmid, up->rmaxis, up->zmaxis, up->simag, up->sibry, up->bcentr, up-> current, up->simag, up->rmaxis, up-> zmaxis, up->sibry);
 
 
   // Now we need to make the grid
@@ -141,7 +141,7 @@ gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
   // Now lets loop through
   // Not only do we want psi at the nodes, we also want psi/R and psi/R^2 so we can use them for the magnetc field
   double R = up->rmin;
-  double dR = up->rmin/rdim;
+  double dR = up->rmin/up->rdim;
   int idx[2];
   for(int ir = 0; ir < up->nr; ir++){
     idx[1] = ir;
@@ -151,11 +151,15 @@ gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
       // set psi
       double *psi_n = gkyl_array_fetch(psizr_n, gkyl_range_idx(&nrange, idx));
       status = fscanf(ptr,"%lf", psi_n);
+      printf("psi_n = %g\n", psi_n[0]);
       // set psibyr and psibyr2
       double *psibyr_n = gkyl_array_fetch(psibyrzr_n, gkyl_range_idx(&nrange, idx));
       double *psibyr2_n = gkyl_array_fetch(psibyr2zr_n, gkyl_range_idx(&nrange, idx));
+      printf("psi_n,R = %g, %g\n", psi_n[0],R);
       psibyr_n[0] = psi_n[0]/R;
       psibyr2_n[0] = psi_n[0]/R/R;
+      printf("psibyr_n = %g\n", psibyr_n[0]);
+      printf("psibyr2_n = %g\n", psibyr2_n[0]);
 
     }
   }
