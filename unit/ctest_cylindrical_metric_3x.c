@@ -106,14 +106,29 @@ gkyl_eval_on_nodes *eval_metric = gkyl_eval_on_nodes_new(&grid, &basis, 6, exact
 struct gkyl_array *gFldExact = gkyl_array_new(GKYL_DOUBLE, 6*basis.num_basis, ext_range.volume);
 gkyl_eval_on_nodes_advance(eval_metric, 0.0, &ext_range, gFldExact);
 
+
+int bcs[3] = {1,1,1};
+// Need to pass appropriate range to eval mapc2p depending on bcsbcs
+struct gkyl_range conversion_range;
+if(bcs[1]==1){
+  int sublower[3] = {range.lower[0], ext_range.lower[1], range.lower[2]};
+  int subupper[3] = {range.upper[0], ext_range.upper[1], range.upper[2]};
+  gkyl_sub_range_init(&conversion_range, &ext_range, sublower, subupper);
+}
+else{
+  conversion_range = range;
+  //int sublower[3] = {range.lower[0], range.lower[1], range.lower[2]};
+  //int subupper[3] = {range.upper[0], range.upper[1], range.upper[2]};
+  //gkyl_sub_range_init(&conversion_range, &ext_range, sublower, subupper);
+}
+
 //calculate the metrics with recovery method
 gkyl_eval_on_nodes *eval_mapc2p = gkyl_eval_on_nodes_new(&grid, &basis, 3, mapc2p, 0);
 struct gkyl_array *XYZ = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, ext_range.volume);
 struct gkyl_array *gFld = gkyl_array_new(GKYL_DOUBLE, 6*basis.num_basis, ext_range.volume);
-gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &range, XYZ);
+gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &conversion_range, XYZ);
 
 // sync in periodic dirs (y)
-int bcs[3] = {1,0,1};
 struct skin_ghost_ranges skin_ghost; // skin/ghost.
 skin_ghost_ranges_init(&skin_ghost, &ext_range, nghost);
 for(int i = 0; i<3; i++){
