@@ -7,32 +7,90 @@
 typedef void (*deflate_geo_kernel)(const double *fld, double* deflated_fld);
 
 
-typedef struct { deflate_geo_kernel kernels[3]; } deflate_geo_kernel_list;  // For use in kernel tables.
+typedef struct { deflate_geo_kernel kernels[3]; } deflate_geo_kernel_list;
+typedef struct { deflate_geo_kernel_list list[4]; } deflate_geo_kernel_remy_list;
+typedef struct { deflate_geo_kernel_remy_list list[2]; } deflate_geo_kernel_remx_list;
 
+
+//GKYL_CU_DH
+//static const deflate_geo_kernel_list ser_deflate_geo_kernel_list[] = {
+//  { NULL, deflate_geo_2x_ser_p1_remx, deflate_geo_2x_ser_p2_remx}, 
+//  { NULL, deflate_geo_2x_ser_p1_remy, deflate_geo_2x_ser_p2_remy},
+//  { NULL, deflate_geo_1x_ser_p1_remxy, deflate_geo_1x_ser_p2_remxy},
+//};
 
 GKYL_CU_DH
-static const deflate_geo_kernel_list ser_deflate_geo_kernel_list[] = {
-  { NULL, NULL, NULL }, // 0x No 0D basis functions
-  { NULL, deflate_geo_1x_Ser_p1, deflate_geo_Ser_1x_p2}, // 1x Not tested yet
-  { NULL, deflate_geo_2x_Ser_p1, deflate_geo_Ser_2x_p2}, // 1x Not tested yet
-  { NULL, NULL, NULL} // don't need for 3x
+static const deflate_geo_kernel_remx_list ser_deflate_geo_kernel_rem_list[] = {
+// remove x
+// don't remove x
+{ .list = {
+    // don't remove y 
+    { .list = {
+        {NULL, NULL, NULL},
+        {NULL, NULL, NULL},
+        {NULL, NULL, NULL},
+        {NULL, NULL, NULL}
+      }
+    },
+
+    // remove y 
+    { .list = {
+      {NULL, NULL, NULL},
+      {NULL, NULL, NULL},
+      {NULL, deflate_geo_2x_ser_p1_remy, deflate_geo_2x_ser_p2_remy},
+      {NULL, NULL, NULL}
+      }
+    },
+
+
+    }
+  },
+{ .list = {
+    // don't remove y 
+    { .list = {
+        {NULL, NULL, NULL},
+        {NULL, NULL, NULL},
+        {NULL, deflate_geo_2x_ser_p1_remx, deflate_geo_2x_ser_p2_remx},
+        {NULL, NULL, NULL}
+      }
+    },
+
+    // remove y 
+    { .list = {
+      {NULL, NULL, NULL},
+      {NULL, deflate_geo_1x_ser_p1_remxy, deflate_geo_1x_ser_p2_remxy},
+      {NULL, NULL, NULL},
+      {NULL, NULL, NULL}
+      }
+    },
+
+
+    }
+  },
+
+
 };
+
 
 struct gkyl_deflate_geo{
   const struct gkyl_basis *basis;
   const struct gkyl_basis *deflated_basis;
   const struct gkyl_rect_grid* grid;
   const struct gkyl_rect_grid* deflated_grid;
+  deflate_geo_kernel kernel;
+  int *rem_dirs;
   bool use_gpu;
 };
 
 GKYL_CU_DH
 static deflate_geo_kernel
-deflate_geo_choose_kernel(int dim, int basis_type, int poly_order)
+deflate_geo_choose_kernel(const int *rem_dirs, const int cdim, const int basis_type, const int poly_order)
 {
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_deflate_geo_kernel_list[dim].kernels[poly_order];
+      //return ser_deflate_geo_kernel_rem_list.list[rem_dirs[0]].list[rem_dirs[1]].kernels[poly_order];
+      return ser_deflate_geo_kernel_rem_list[rem_dirs[0]].list[rem_dirs[1]].list[cdim].kernels[poly_order];
+
     default:
       assert(false);
       break;

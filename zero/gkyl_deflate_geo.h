@@ -15,9 +15,10 @@ typedef struct gkyl_deflate_geo gkyl_deflate_geo;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_deflate_geo* gkyl_deflate_geo_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *deflated_grid, bool use_gpu);
 
+
+gkyl_deflate_geo* gkyl_deflate_geo_new(const struct gkyl_basis *cbasis,const struct gkyl_basis *deflated_cbasis,
+  const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *deflated_grid, const int *rem_dirs, bool use_gpu);
 /**
  * Advance deflate_geo (compute the derived_geo coefficients).
  *
@@ -27,8 +28,8 @@ gkyl_deflate_geo* gkyl_deflate_geo_new(const struct gkyl_basis *cbasis,
  * @param jFld output field where jacobian will be placed
  */
 
-void gkyl_deflate_geo_advance(const gkyl_deflate_geo *up, const struct gkyl_range *crange,
-    const struct gkyl_array *field, struct gkyl_array *deflated_field);
+
+void gkyl_deflate_geo_advance(const gkyl_deflate_geo *up, const struct gkyl_range *range, const struct gkyl_range* deflated_range, const struct gkyl_array *field, struct gkyl_array *deflated_field, int ncomp);
 
 /**
  * Delete updater.
