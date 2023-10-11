@@ -21,7 +21,6 @@ typedef struct { deflate_geo_kernel_remy_list list[2]; } deflate_geo_kernel_remx
 
 GKYL_CU_DH
 static const deflate_geo_kernel_remx_list ser_deflate_geo_kernel_rem_list[] = {
-// remove x
 // don't remove x
 { .list = {
     // don't remove y 
@@ -45,6 +44,7 @@ static const deflate_geo_kernel_remx_list ser_deflate_geo_kernel_rem_list[] = {
 
     }
   },
+// remove x
 { .list = {
     // don't remove y 
     { .list = {
