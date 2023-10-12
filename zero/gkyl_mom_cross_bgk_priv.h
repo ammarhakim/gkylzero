@@ -15,7 +15,7 @@
 typedef void (*gyrokinetic_mom_cross_bgk_t)(const double beta, 
   const double m_self, const double *moms_self, 
   const double m_other, const double *moms_other, 
-  const double nu_sr, const double nu_rs, double *moms_cross);
+  const double *nu_sr, const double *nu_rs, double *moms_cross);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -46,7 +46,16 @@ static gyrokinetic_mom_cross_bgk_t
 choose_mom_cross_bgk_gyrokinetic_kern(int cdim, int vdim, int poly_order){
   return ser_mom_cross_gyrokinetic_list[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
+/*
+static gyrokinetic_mom_cross_bgk_t
+choose_mom_cross_bgk_gyrokinetic_kern_cu(int cdim, int vdim, int poly_order){
+  return ser_mom_cross_gyrokinetic_list[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+}
+*/
 
+// Primary struct in this updater
 struct gkyl_mom_cross_bgk_gyrokinetic {
+  bool use_gpu;
   gyrokinetic_mom_cross_bgk_t mom_cross_calc; // a pointer to cross moments kernel
+  //gyrokinetic_mom_cross_bgk_t mom_cross_calc_cu; // device copy
 };
