@@ -5,7 +5,7 @@
 
 typedef void (*derived_geo_kernel)(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *bmaginv, double *bmaginvsq, double *gxxJ, double *gxyJ, double *gyyJ);
 
-typedef void (*adjust_bmag_kernel)(const double *cmag, double *gzz, const double *J, const double *bmag, double *gij);
+typedef void (*adjust_bmag_kernel)(const double *cmag, const double *cmag_ref, double *gzz, const double *J, const double *bmag, double *gij);
 
 typedef struct { derived_geo_kernel kernels[3]; } derived_geo_kernel_list;  // For use in kernel tables.
 
@@ -24,7 +24,7 @@ static const adjust_bmag_kernel_list ser_adjust_bmag_kernel_list[] = {
   { NULL, NULL, NULL }, // 0x No 0D basis functions
   { NULL, NULL, NULL}, // 1x Not tested yet
   { NULL, NULL, NULL}, // 2x Not tested yet
-  { NULL, adjust_bmag_3x_Ser_p1, adjust_bmag_3x_Ser_p2}
+  { NULL, adjust_gzz_3x_Ser_p1, adjust_gzz_3x_Ser_p2}
 };
 
 struct gkyl_calc_derived_geo{

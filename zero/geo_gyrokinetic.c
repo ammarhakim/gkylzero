@@ -603,7 +603,7 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
       double zmin = inp->zmin, zmax = inp->zmax;
 
       double psi_curr = phi_lo + ip*dphi;
-      printf("psi_curr = %g\n", psi_curr);
+      //printf("psi_curr = %g\n", psi_curr);
       double arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose,
         true, true, arc_memo);
 
@@ -652,7 +652,7 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
       for (int it=nrange.lower[TH_IDX]+1; it<nrange.upper[TH_IDX]; ++it) {
         arcL_curr += delta_arcL;
         double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
-        printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
+        //printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
 
         arc_ctx.psi = psi_curr;
         arc_ctx.rclose = rclose;
