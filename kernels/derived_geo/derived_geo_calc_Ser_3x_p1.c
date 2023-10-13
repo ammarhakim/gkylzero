@@ -610,7 +610,7 @@ GKYL_CU_DH void adjust_gzz_3x_Ser_p1(const double *cmag, const double *cmag_ref,
   J_n[7] = 1.837117307087383*J[7]+1.060660171779821*J[6]+1.060660171779821*J[5]+1.060660171779821*J[4]+0.6123724356957944*J[3]+0.6123724356957944*J[2]+0.6123724356957944*J[1]+0.3535533905932737*J[0]; 
   bool adjustment = false; 
   for (int i = 0; i <8; i++){ 
-    if (fabs(cmag_n[i] -cmag_ref_n[i])>1e-12){  
+    if (fabs(cmag_n[i] - cmag_ref_n[i])>1e-5){  
       adjustment = true; 
     } 
   } 
@@ -621,7 +621,7 @@ double Bsq_n[8];
 double Csq_n[8]; 
 for(int i = 0; i <8; i++){ 
 Bsq_n[i] = bmag_n[i]*bmag_n[i]; 
-Csq_n[i] = cmag_n[i]*cmag_n[i]; 
+Csq_n[i] = cmag_ref_n[i]*cmag_ref_n[i]; 
 } 
 // Calculate gzz at nodes 
   gzz_n[0] = (Bsq_n[0]*((g11_n[0]*g23_n[0]-1.0*g13_n[0]*g21_n[0])*g32_n[0]+(g13_n[0]*g22_n[0]-1.0*g12_n[0]*g23_n[0])*g31_n[0]))/(Bsq_n[0]*g11_n[0]*g22_n[0]-1.0*(Bsq_n[0]*g12_n[0]*g21_n[0]+Csq_n[0])); 
