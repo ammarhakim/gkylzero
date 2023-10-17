@@ -81,7 +81,7 @@ struct gkyl_vlasov_species {
   char name[128]; // species name
 
   enum gkyl_model_id model_id; // type of model 
-                               // (e.g., SR, general geometry, PKPM, see gkyl_eqn_type.h)
+                               // (e.g., SR, general geometry, see gkyl_eqn_type.h)
 
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
@@ -93,8 +93,6 @@ struct gkyl_vlasov_species {
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
-
-  char pkpm_fluid_species[128]; // names of fluid species for PKPM model
 
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
@@ -164,9 +162,6 @@ struct gkyl_vlasov_fluid_species {
 
   // source term
   struct gkyl_vlasov_fluid_source source;
-
-  // gkyl_eqn_type eqn_id = GKYL_EQN_EULER_PKPM
-  char pkpm_species[128]; // names of species to for pkpm coupling
   
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;
@@ -233,18 +228,11 @@ struct gkyl_vlasov_stat {
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms
   double species_coll_tm; // total time for collision updater (excluded moments)
 
-  double species_pkpm_vars_tm; // time to compute pkpm vars
-                               // These are the coupling moments [rho, p_par, p_perp], the self-consistent
-                               // pressure force (div(p_par b_hat)), and the primitive variables
-                               // along with the acceleration variables in the kinetic equation 
-                               // and the source distribution functions for Laguerre couplings.
-
   double species_bc_tm; // time to compute species BCs
   double fluid_species_bc_tm; // time to compute fluid species BCs
   double field_bc_tm; // time to compute field
   
   double field_rhs_tm; // time to compute field RHS
-  double field_em_vars_tm; // time to compute EM auxiliary variables (e.g., bvar and E x B)
   double current_tm; // time to compute currents and accumulation
 
   long nspecies_omega_cfl; // number of times CFL-omega all-reduce is called
@@ -375,34 +363,6 @@ void gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame);
 void gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame);
 
 /**
- * Write pkpm auxiliar data to files. Includes:
- * 1. PKPM moments [rho, p_par, p_perp, q_par, q_perp, r_parpar, r_parperp]
- * 2. PKPM fluid variables [rho, rho ux, rho uy, rho uz, 
- * P_xx + rho ux^2, P_xy + rho ux uy, P_xz + rho ux uz,
- * P_yy + rho uy^2, P_yz + rho uy uz, P_zz + rho uz^2]
- * 3. PKPM variables, including primitive variables (ux, uy, uz, T_perp/m, m/T_perp) and 
- * acceleration variables (div(b), 1/rho div(p_par b), T_perp/m div(b), bb : grad(u), and 
- * vperp configuration space characteristics = bb : grad(u) - div(u) - 2 nu.
- * 
- * @param app App object.
- * @param sidx Index of fluid species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_species_pkpm(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
- * Write collision auxiliary variables, including self_nu, prim_moms, and nu prim_moms.
- * FOR DEBUGGING ONLY, DOES NOT WORK ON GPUS
- * 
- * @param app App object.
- * @param sidx Index of fluid species to initialize.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_vlasov_app_write_species_coll_moms(gkyl_vlasov_app* app, int sidx, double tm, int frame);
-
-/**
  * Write species p/gamma to file.
  * 
  * @param app App object.
@@ -414,7 +374,6 @@ void gkyl_vlasov_app_write_species_gamma(gkyl_vlasov_app* app, int sidx, double 
 
 /**
  * Write fluid species data to file. 
- * Note: If fluid equation ID is PKPM, fluid write is handled by gkyl_vlasov_app_write_species_pkpm
  * 
  * @param app App object.
  * @param sidx Index of fluid species to initialize.

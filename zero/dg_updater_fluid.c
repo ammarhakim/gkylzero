@@ -8,7 +8,6 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_euler_iso.h>
-#include <gkyl_dg_euler_pkpm.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_fluid_priv.h>
 #include <gkyl_hyper_dg.h>
@@ -32,11 +31,6 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
     up->eqn_fluid = gkyl_dg_advection_new(cbasis, conf_range, up->use_gpu);
     struct gkyl_dg_advection_auxfields *adv_in = aux_inp;
     gkyl_advection_set_auxfields(up->eqn_fluid, *adv_in);
-  }
-  else if (up->eqn_id == GKYL_EQN_EULER_PKPM) {
-    up->eqn_fluid = gkyl_dg_euler_pkpm_new(cbasis, conf_range, up->use_gpu);
-    struct gkyl_dg_euler_pkpm_auxfields *pkpm_inp = aux_inp;
-    gkyl_euler_pkpm_set_auxfields(up->eqn_fluid, *pkpm_inp);
   }
   else if (up->eqn_id == GKYL_EQN_EULER) {
     up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, param, up->use_gpu);

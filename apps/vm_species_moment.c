@@ -11,7 +11,6 @@ static const char *const valid_moment_names[] = {
   "M3ijk",
   "FiveMoments",
   "Integrated", // this is an internal flag, not for passing to moment type
-  "PKPM", // internal flag for pkpm model which doesn't take a moment name
 };
 
 // check if name of moment is valid or not
@@ -32,9 +31,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 {
   assert(is_moment_name_valid(nm));
 
-  // For simplicity, is_integrated flag also used by PKPM to turn on diagnostics
   bool is_integrated = strcmp(nm, "Integrated") == 0;
-  sm->use_gpu = app->use_gpu;
 
   if (s->model_id == GKYL_MODEL_SR) {
     struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = s->p_over_gamma, 
@@ -42,29 +39,28 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .GammaV2 = s->GammaV2, .GammaV_inv = s->GammaV_inv};
     sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
       &app->basis, &app->local, &s->local_vel, s->model_id, &sr_inp, 
-      nm, is_integrated, s->info.mass, sm->use_gpu);
+      nm, is_integrated, s->info.mass, app->use_gpu);
   }
   else {
     // No auxiliary fields for moments if not SR 
     sm->mcalc = gkyl_dg_updater_moment_new(&s->grid, &app->confBasis, 
       &app->basis, &app->local, &s->local_vel, s->model_id, 0, 
-      nm, is_integrated, s->info.mass, sm->use_gpu);    
+      nm, is_integrated, s->info.mass, app->use_gpu);    
   }
 
   int num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
 
-  // Using the is_integrated flag as a temporary bool for handling PKPM diagnostics so check that we are *not* PKPM
-  if (is_integrated && s->model_id != GKYL_MODEL_PKPM) {
-    sm->marr = mkarr(sm->use_gpu, num_mom, app->local_ext.volume);
+  if (is_integrated) {
+    sm->marr = mkarr(app->use_gpu, num_mom, app->local_ext.volume);
     sm->marr_host = sm->marr;
-    if (sm->use_gpu)
+    if (app->use_gpu)
       sm->marr_host = mkarr(false, num_mom, app->local_ext.volume);      
   }
   else {
-    sm->marr = mkarr(sm->use_gpu, num_mom*app->confBasis.num_basis,
+    sm->marr = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis,
       app->local_ext.volume);
     sm->marr_host = sm->marr;
-    if (sm->use_gpu)
+    if (app->use_gpu)
       sm->marr_host = mkarr(false, num_mom*app->confBasis.num_basis,
         app->local_ext.volume);
   }

@@ -23,15 +23,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   if (app->use_gpu)
     f->fluid_host = mkarr(false, num_eqn*app->confBasis.num_basis, app->local_ext.volume);
 
-  // allocate buffer for applying BCs
-  long buff_sz = 0;
-  // compute buffer size needed
-  for (int d=0; d<app->cdim; ++d) {
-    long vol = GKYL_MAX(app->skin_ghost.lower_skin[d].volume, app->skin_ghost.upper_skin[d].volume);
-    buff_sz = buff_sz > vol ? buff_sz : vol;
-  }
-  f->bc_buffer = mkarr(app->use_gpu, num_eqn*app->confBasis.num_basis, buff_sz);
-
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
   if (app->use_gpu)
@@ -101,20 +92,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
       &app->local, f->eqn_id, f->param, &aux_inp, app->use_gpu);
   }
-  else {
-    f->eqn_id = GKYL_EQN_EULER_PKPM;
-
-    f->pkpm_species = vm_find_species(app, f->info.pkpm_species);
-    // index in fluid_species struct of fluid species kinetic species is colliding with
-    f->species_index = vm_find_species_idx(app, f->info.pkpm_species);
-
-    struct gkyl_dg_euler_pkpm_auxfields aux_inp = {.vlasov_pkpm_moms = f->pkpm_species->pkpm_moms.marr, 
-      .pkpm_prim = f->pkpm_species->pkpm_prim, .pkpm_prim_surf = f->pkpm_species->pkpm_prim_surf, 
-      .pkpm_p_ij = f->pkpm_species->pkpm_p_ij, .pkpm_p_ij_surf = f->pkpm_species->pkpm_p_ij_surf, 
-      .pkpm_lax = f->pkpm_species->pkpm_lax};
-    f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
-      &app->local, f->eqn_id, f->param, &aux_inp, app->use_gpu);
-  }
 
   f->has_diffusion = false;
   f->diffD = NULL;
@@ -157,8 +134,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       num_eqn = 4;
     else if (f->eqn_id == GKYL_EQN_EULER) 
       num_eqn = 5;
-    else if (f->eqn_id == GKYL_EQN_EULER_PKPM) 
-      num_eqn = 3;
 
     int szD = cdim;
     f->diffD = mkarr(app->use_gpu, szD, 1);
@@ -213,9 +188,14 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     }
   }
 
-  int ghost[GKYL_MAX_DIM] = {0.0};
-  for (int d=0; d<app->cdim; ++d)
-    ghost[d] = 1;
+  // allocate buffer for applying BCs 
+  long buff_sz = 0;
+  // compute buffer size needed
+  for (int dir=0; dir<app->cdim; ++dir) {
+    long vol = GKYL_MAX(app->lower_skin[dir].volume, app->upper_skin[dir].volume);
+    buff_sz = buff_sz > vol ? buff_sz : vol;
+  }
+  f->bc_buffer = mkarr(app->use_gpu, num_eqn*app->confBasis.num_basis, buff_sz);
 
   // Certain operations fail if absorbing BCs used because absorbing BCs 
   // means the mass density is 0 in the ghost cells (divide by zero)
@@ -230,17 +210,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_ABSORB;
       f->bc_is_absorb = true;
     }
-    else if (f->lower_bc[d] == GKYL_SPECIES_REFLECT && f->eqn_id == GKYL_EQN_EULER_PKPM) {
-      bctype = GKYL_BC_PKPM_MOM_REFLECT;
-    }
-    else if (f->lower_bc[d] == GKYL_SPECIES_NO_SLIP && f->eqn_id == GKYL_EQN_EULER_PKPM) {
-      bctype = GKYL_BC_PKPM_MOM_NO_SLIP;
-    }
 
-    // Create local lower skin and ghost ranges
-    gkyl_skin_ghost_ranges(&f->lower_skin[d], &f->lower_ghost[d], d, GKYL_LOWER_EDGE, &app->local_ext, ghost);
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
-      &f->lower_skin[d], &f->lower_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
+      &app->lower_skin[d], &app->lower_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_SPECIES_COPY) {
@@ -250,17 +222,9 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_ABSORB;
       f->bc_is_absorb = true;
     }
-    else if (f->upper_bc[d] == GKYL_SPECIES_REFLECT && f->eqn_id == GKYL_EQN_EULER_PKPM) {
-      bctype = GKYL_BC_PKPM_MOM_REFLECT;
-    }
-    else if (f->upper_bc[d] == GKYL_SPECIES_NO_SLIP && f->eqn_id == GKYL_EQN_EULER_PKPM) {
-      bctype = GKYL_BC_PKPM_MOM_NO_SLIP;
-    }
 
-    // Create local upper skin and ghost ranges
-    gkyl_skin_ghost_ranges(&f->upper_skin[d], &f->upper_ghost[d], d, GKYL_UPPER_EDGE, &app->local_ext, ghost);
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
-      &f->upper_skin[d], &f->upper_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
+      &app->upper_skin[d], &app->upper_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
   }
 }
 
@@ -316,22 +280,6 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
         &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
   }
 
-  // Accumulate source contribution if PKPM -> adds forces (E + u x B) to momentum equation RHS
-  if (fluid_species->eqn_id == GKYL_EQN_EULER_PKPM) {
-    double qbym = fluid_species->pkpm_species->info.charge/fluid_species->pkpm_species->info.mass;
-    gkyl_array_set(fluid_species->pkpm_species->qmem, qbym, em);
-
-    // Accumulate applied acceleration and/or q/m*(external electromagnetic)
-    // fields onto qmem to get the total acceleration
-    if (fluid_species->pkpm_species->has_accel)
-      gkyl_array_accumulate(fluid_species->pkpm_species->qmem, 1.0, fluid_species->pkpm_species->accel);
-    if (app->field->has_ext_em)
-      gkyl_array_accumulate(fluid_species->pkpm_species->qmem, qbym, app->field->ext_em);
-
-    gkyl_dg_calc_pkpm_vars_source(fluid_species->pkpm_species->calc_pkpm_vars, &app->local, 
-      fluid_species->pkpm_species->qmem, fluid_species->pkpm_species->pkpm_moms.marr, fluid, rhs);
-  }
-
   gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, &app->local);
 
   double omegaCfl_ho[1];
@@ -344,18 +292,6 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(wst);
 
   return app->cfl/omegaCfl;
-}
-
-// Apply periodic BCs on fluid species
-void
-vm_fluid_species_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_fluid_species *fluid_species,
-  int dir, struct gkyl_array *f)
-{
-  gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, &(app->skin_ghost.lower_skin[dir]));
-  gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, &(app->skin_ghost.upper_ghost[dir]));
-
-  gkyl_array_copy_to_buffer(fluid_species->bc_buffer->data, f, &(app->skin_ghost.upper_skin[dir]));
-  gkyl_array_copy_from_buffer(f, fluid_species->bc_buffer->data, &(app->skin_ghost.lower_ghost[dir]));
 }
 
 // Determine which directions are periodic and which directions are not periodic,
