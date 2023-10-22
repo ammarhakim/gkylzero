@@ -384,7 +384,7 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
   int poly_order = app->poly_order;
   gkyl_proj_on_basis *proj_dist;
   proj_dist = gkyl_proj_on_basis_new(&species->grid, &app->basis,
-    poly_order+1, 2, species->info.init_dist, species->info.ctx);
+    8, 2, species->info.init_dist, species->info.ctx);
   gkyl_proj_on_basis *proj_fluid;
   proj_fluid = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
     poly_order+1, 3, species->info.init_fluid, species->info.ctx);
@@ -561,7 +561,7 @@ pkpm_species_apply_bc(gkyl_pkpm_app *app, const struct pkpm_species *species,
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
   gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext,
     num_periodic_dir, app->periodic_dirs, f); 
-  gkyl_comm_array_per_sync(species->comm, &app->local, &app->local_ext,
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, app->periodic_dirs, fluid); 
 
   int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
