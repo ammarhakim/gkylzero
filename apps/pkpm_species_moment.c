@@ -7,7 +7,7 @@ pkpm_species_moment_init(struct gkyl_pkpm_app *app, struct pkpm_species *s,
   struct pkpm_species_moment *sm, bool is_diag)
 {
   sm->mcalc = gkyl_dg_updater_moment_pkpm_new(&s->grid, &app->confBasis, 
-    &app->basis, &app->local, &s->local_vel, 0, s->info.mass, app->use_gpu);    
+    &app->basis, &app->local, &s->local_vel, s->info.mass, is_diag, app->use_gpu);    
   int num_mom = gkyl_dg_updater_moment_pkpm_num_mom(sm->mcalc);
 
   sm->marr = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);

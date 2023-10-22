@@ -22,7 +22,7 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *phase_grid,
   up->coll_drag = gkyl_dg_lbo_vlasov_drag_new(conf_basis, phase_basis, conf_range, phase_grid, use_gpu);
   gkyl_lbo_vlasov_drag_set_auxfields(up->coll_drag, *drag_inp);
   up->coll_diff = gkyl_dg_lbo_vlasov_diff_new(conf_basis, phase_basis, conf_range, phase_grid, use_gpu);
-  gkyl_lbo_vlasov_diff_set_auxfields(up->coll_drag, *diff_inp);
+  gkyl_lbo_vlasov_diff_set_auxfields(up->coll_diff, *diff_inp);
 
   int cdim = conf_basis->ndim, pdim = phase_basis->ndim;
   int vdim = pdim-cdim;

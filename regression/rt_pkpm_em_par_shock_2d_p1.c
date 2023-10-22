@@ -4,7 +4,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_vlasov.h>
+#include <gkyl_pkpm.h>
 
 #include <gkyl_null_comm.h>
 
@@ -190,12 +190,10 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 }
 
 void
-write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double tcurr)
+write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double tcurr)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
-    gkyl_vlasov_app_write(app, tcurr, iot->curr-1);
-    gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, iot->curr-1);
-  }
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) 
+    gkyl_pkpm_app_write(app, tcurr, iot->curr-1);
 }
 
 struct pkpm_em_par_shock_ctx
@@ -347,29 +345,17 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // electron momentum
-  struct gkyl_vlasov_fluid_species fluid_elc = {
-    .name = "fluid_elc",
-    .num_eqn = 3,
-    .pkpm_species = "elc",
-    .ctx = &ctx,
-    .init = evalFluidElc,
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
-    .diffusion = {.D = 1.0e-5, .order=4},
-  };  
-  
   // electrons
-  struct gkyl_vlasov_species elc = {
+  struct gkyl_pkpm_species elc = {
     .name = "elc",
-    .model_id = GKYL_MODEL_PKPM,
-    .pkpm_fluid_species = "fluid_elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -6.0 * ctx.vtElc},
     .upper = { 6.0 * ctx.vtElc}, 
     .cells = { VX },
 
     .ctx = &ctx,
-    .init = evalDistFuncElc,
+    .init_dist = evalDistFuncElc,
+    .init_fluid = evalFluidElc,
 
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -378,33 +364,21 @@ main(int argc, char **argv)
       .self_nu = evalNuElc,
     },    
 
-    .num_diag_moments = 0,
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
-  };
-
-  // ion momentum
-  struct gkyl_vlasov_fluid_species fluid_ion = {
-    .name = "fluid_ion",
-    .num_eqn = 3,
-    .pkpm_species = "ion",
-    .ctx = &ctx,
-    .init = evalFluidIon,
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
     .diffusion = {.D = 1.0e-5, .order=4},
-  };  
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
+  }; 
   
   // ions
-  struct gkyl_vlasov_species ion = {
+  struct gkyl_pkpm_species ion = {
     .name = "ion",
-    .model_id = GKYL_MODEL_PKPM,
-    .pkpm_fluid_species = "fluid_ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -16.0 * ctx.vtIon},
     .upper = { 16.0 * ctx.vtIon}, 
     .cells = { VX },
 
     .ctx = &ctx,
-    .init = evalDistFuncIon,
+    .init_dist = evalDistFuncIon,
+    .init_fluid = evalFluidIon,
 
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -413,12 +387,12 @@ main(int argc, char **argv)
       .self_nu = evalNuIon,
     },    
 
-    .num_diag_moments = 0,
+    .diffusion = {.D = 1.0e-5, .order=4},
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
   };
 
   // field
-  struct gkyl_vlasov_field field = {
+  struct gkyl_pkpm_field field = {
     .epsilon0 = 1.0, .mu0 = 1.0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
@@ -431,8 +405,8 @@ main(int argc, char **argv)
     .ext_em_ctx = &ctx,
   };
 
-  // VM app
-  struct gkyl_vm vm = {
+  // pkpm app
+  struct gkyl_pkpm pkpm = {
     .name = "pkpm_em_par_shock_2d_p1",
 
     .cdim = 2, .vdim = 1,
@@ -447,8 +421,6 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
-    .num_fluid_species = 2,
-    .fluid_species = { fluid_elc, fluid_ion },
     .field = field,
 
     .use_gpu = app_args.use_gpu,
@@ -461,7 +433,7 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
+  gkyl_pkpm_app *app = gkyl_pkpm_app_new(&pkpm);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;
@@ -471,30 +443,29 @@ main(int argc, char **argv)
   struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
   // initialize simulation
-  gkyl_vlasov_app_apply_ic(app, tcurr);
+  gkyl_pkpm_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
-  gkyl_vlasov_app_calc_field_energy(app, tcurr);
-  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
-  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+  gkyl_pkpm_app_calc_field_energy(app, tcurr);
+  gkyl_pkpm_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_pkpm_app_calc_integrated_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
-    gkyl_vlasov_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
-    struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
-    gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    gkyl_pkpm_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
+    struct gkyl_update_status status = gkyl_pkpm_update(app, dt);
+    gkyl_pkpm_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     if (step % 100 == 0) {
-      gkyl_vlasov_app_calc_field_energy(app, tcurr);
-      gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
-      gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+      gkyl_pkpm_app_calc_field_energy(app, tcurr);
+      gkyl_pkpm_app_calc_integrated_L2_f(app, tcurr);
+      gkyl_pkpm_app_calc_integrated_mom(app, tcurr);
     }
     if (!status.success) {
-      gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
+      gkyl_pkpm_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
     if (status.dt_actual < ctx.min_dt) {
-      gkyl_vlasov_app_cout(app, stdout, "** Time step crashing! Aborting simulation and writing out last output ....\n");
-      gkyl_vlasov_app_write(app, tcurr, 1000);
-      gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1000);
+      gkyl_pkpm_app_cout(app, stdout, "** Time step crashing! Aborting simulation and writing out last output ....\n");
+      gkyl_pkpm_app_write(app, tcurr, 1000);
       break;
     }
     tcurr += status.dt_actual;
@@ -504,49 +475,49 @@ main(int argc, char **argv)
 
     step += 1;
   }
-  gkyl_vlasov_app_calc_field_energy(app, tcurr);
-  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
-  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
-  gkyl_vlasov_app_write_field_energy(app);
-  gkyl_vlasov_app_write_integrated_L2_f(app);
-  gkyl_vlasov_app_write_integrated_mom(app);
-  gkyl_vlasov_app_stat_write(app);
+  gkyl_pkpm_app_calc_field_energy(app, tcurr);
+  gkyl_pkpm_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_pkpm_app_calc_integrated_mom(app, tcurr);
+  gkyl_pkpm_app_write_field_energy(app);
+  gkyl_pkpm_app_write_integrated_L2_f(app);
+  gkyl_pkpm_app_write_integrated_mom(app);
+  gkyl_pkpm_app_stat_write(app);
 
   // fetch simulation statistics
-  struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
+  struct gkyl_pkpm_stat stat = gkyl_pkpm_app_stat(app);
 
-  gkyl_vlasov_app_cout(app, stdout, "\n");
-  gkyl_vlasov_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-  gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  gkyl_pkpm_app_cout(app, stdout, "\n");
+  gkyl_pkpm_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_pkpm_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_vlasov_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_vlasov_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+    gkyl_pkpm_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_pkpm_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
-  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species PKPM Vars took %g secs\n", stat.species_pkpm_vars_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_vlasov_app_cout(app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_pkpm_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Species PKPM Vars took %g secs\n", stat.species_pkpm_vars_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_pkpm_app_cout(app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Species BCs took %g secs\n", stat.species_bc_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Fluid Species BCs took %g secs\n", stat.fluid_species_bc_tm);
-  gkyl_vlasov_app_cout(app, stdout, "Field BCs took %g secs\n", stat.field_bc_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Species BCs took %g secs\n", stat.species_bc_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Fluid Species BCs took %g secs\n", stat.fluid_species_bc_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Field BCs took %g secs\n", stat.field_bc_tm);
   
-  gkyl_vlasov_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
 
-  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
-  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_pkpm_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   
   // simulation complete, free app
-  gkyl_vlasov_app_release(app);
+  gkyl_pkpm_app_release(app);
 
   mpifinalize:
   ;
