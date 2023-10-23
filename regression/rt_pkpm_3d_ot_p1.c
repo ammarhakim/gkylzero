@@ -377,7 +377,6 @@ main(int argc, char **argv)
     .cells = { NX, NX, 5*NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
-    //.cfl_frac = 0.8,
     
     .num_periodic_dir = 3,
     .periodic_dirs = { 0, 1, 2 },

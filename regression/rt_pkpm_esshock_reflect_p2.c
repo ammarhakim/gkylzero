@@ -53,7 +53,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double vt = app->vte, vdrift = app->uShock, n0 = app->n0;
   double mass = app->massElc;
 
-  fout[0] = -n0*mass*vdrift;
+  fout[0] = -n0*mass*vdrift*tanh(x);
   fout[1] = 0.0;
   fout[2] = 0.0;
 }
@@ -66,7 +66,7 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double vt = app->vti, vdrift = app->uShock, n0 = app->n0;
   double mass = app->massIon;
 
-  fout[0] = -n0*mass*vdrift;
+  fout[0] = -n0*mass*vdrift*tanh(x);
   fout[1] = 0.0;
   fout[2] = 0.0;
 }
@@ -214,7 +214,6 @@ main(int argc, char **argv)
     .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
-    .cfl_frac = 0.8,
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
