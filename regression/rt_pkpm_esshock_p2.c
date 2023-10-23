@@ -52,6 +52,7 @@ evalFluidElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0];
   double vt = app->vte, vdrift = app->uShock, n0 = app->n0;
   double mass = app->massElc;
+  // flow velocity initialized as a tanh function to avoid issues with large du/dx at t=0
   fout[0] = -n0*mass*vdrift*tanh(x);
   fout[1] = 0.0;
   fout[2] = 0.0;
@@ -64,6 +65,7 @@ evalFluidIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0];
   double vt = app->vti, vdrift = app->uShock, n0 = app->n0;
   double mass = app->massIon;
+  // flow velocity initialized as a tanh function to avoid issues with large du/dx at t=0
   fout[0] = -n0*mass*vdrift*tanh(x);
   fout[1] = 0.0;
   fout[2] = 0.0;
@@ -138,7 +140,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 256);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 32);  
+  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 48);  
 
   struct esshock_ctx ctx = create_ctx(); // context for init functions
   
@@ -169,8 +171,8 @@ main(int argc, char **argv)
   struct gkyl_pkpm_species ion = {
     .name = "ion",
     .charge = ctx.chargeIon, .mass = ctx.massIon,
-    .lower = { -16.0 * ctx.vti},
-    .upper = { 16.0 * ctx.vti}, 
+    .lower = { -24.0 * ctx.vti},
+    .upper = { 24.0 * ctx.vti}, 
     .cells = { VX },
 
     .ctx = &ctx,
