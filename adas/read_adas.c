@@ -12,7 +12,7 @@
 
 void
 read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const char *base) {
-  char *fname[4000];
+  char fname[4000];
   if (type_ion == GKYL_IZ_H) {
     strcpy(fname, base);
     data->NT = 29, data->NN = 24;
