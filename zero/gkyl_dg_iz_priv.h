@@ -1,5 +1,7 @@
 #pragma once
 
+#include <read_adas.h>
+
 // Private header, not for direct use in user code
 
 // Primary struct in this updater.

@@ -13,6 +13,7 @@ extern "C" {
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_iz_priv.h>
+#include <gkyl_read_adas_priv.h>
 #include <gkyl_util.h>
 }
 
@@ -160,39 +161,71 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
   up->cbasis = cbasis;
   up->pbasis = pbasis;
   up->cdim = cdim;
-  up->use_gpu = true;
+  up->use_gpu = use_gpu;
   up->conf_rng = conf_rng;
-  up->phase_rng = phase_rng; 
+  up->phase_rng = phase_rng;
   up->grid = grid;
   up->all_gk = all_gk;
   
   up->elem_charge = elem_charge;
   up->mass_elc = mass_elc;
+  up->mass_ion = mass_ion;
 
-  // access adas data
-  int resM0=50, resTe=100, qpoints=resM0*resTe;
-  double minM0 = 1e15, maxM0 = 1e20;
-  double minTe = 1.0, maxTe = 4e3;
-
-  up->minLogM0 = log10(minM0);
-  up->minLogTe = log10(minTe);    
-  up->maxLogM0 = log10(maxM0);
-  up->maxLogTe = log10(maxTe);
+  up->type_self = type_self;
   
-  double dlogM0 = (up->maxLogM0 - up->minLogM0)/(resM0-1);
-  double dlogTe = (up->maxLogTe - up->minLogTe)/(resTe-1);
-  up->resM0=resM0;
-  up->resTe=resTe;
-  up->dlogM0=dlogM0;
-  up->dlogTe=dlogTe;
-  
-  up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, qpoints);
+  // Project ADAS data (H, He, Li)
+  struct adas_field data;
 
-  up->E = 13.6;
+  read_adas_field_iz(type_ion, data);
+  
+  long sz = data.NT*data.NN;
+  double *minmax;
+
+  if (data.logT == NULL) fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file.");
+  if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file.");
+  if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'ioniz_<elem>.npy' file.");
+  minmax = minmax_from_numpy(data.logT, data.NT);
+  fclose(data.logT);
+  double logTmin = minmax[0], logTmax = minmax[1];
+  minmax = minmax_from_numpy(data.logN, data.NN);
+  fclose(data.logN);
+  double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
+
+  struct gkyl_array *adas_nodal = array_from_numpy(data.logData, sz, data.Zmax);
+  fclose(data.logData);
+
+  if (!adas_nodal) {
+    fprintf(stderr, "Unable to read data from adas nodal numpy file!\n");
+    return 0;
+  }
+
+  struct gkyl_range range_node;
+  gkyl_range_init_from_shape(&range_node, 2, (int[]) { data.NT, data.NN } );
+
+  // allocate grid and DG array
+  struct gkyl_rect_grid tn_grid;
+  gkyl_rect_grid_init(&tn_grid, 2,
+    (double[]) { logTmin, logNmin},
+    (double []) { logTmax, logNmax},
+    (int[]) { data.NT-1, data.NN-1 }
+  );
+
+  struct gkyl_range adas_rng;
+  //int ghost[] = { 0, 0 };
+  //gkyl_create_grid_ranges(&tn_grid, ghost, &adas_rng_ext, &adas_rng);
+  gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
+
+  struct gkyl_basis adas_basis;
+  gkyl_cart_modal_serendip(&adas_basis, 2, 1);
+
+  struct gkyl_array *adas_dg = gkyl_array_cu_dev_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
+
+  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state+1);
+  //gkyl_grid_sub_array_write(&tn_grid, &adas_rng, adas_dg, "adas_dg.gkyl");
 
   // ADAS data pointers
   up->ioniz_data = adas_dg;
-  up->E = data.Eiz[charge_state-1];
+  up->E = data.Eiz[charge_state];
   up->minLogM0 = logNmin;
   up->minLogTe = logTmin;
   up->maxLogM0 = logNmax;
@@ -203,21 +236,19 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
   up->resM0 = tn_grid.cells[1];
   up->adas_rng = adas_rng;
   up->adas_basis = adas_basis;
-  //end access adas data 
 
   // allocate fields for prim mom calculation
-  up->prim_vars_donor = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); // elc, ion 
-  up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); // all
-  up->vtSq_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // elc
-  up->prim_vars_fmax = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);  //elc
-  up->coef_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // all
-  up->fmax_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, pbasis->num_basis, up->phase_rng->volume); // elc
+  up->prim_vars_donor = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);
+  up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
+  up->vtSq_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); 
+  up->prim_vars_fmax = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); 
+  up->coef_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
 
-  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", true); // all
+  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", true);
   if (up->all_gk) up->calc_prim_vars_donor = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "prim", true);
-  else up->calc_prim_vars_donor = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "prim", true); // for Vlasov donor
+  else up->calc_prim_vars_donor = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "prim", true);
   
-  up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, true); // elc, ion
+  up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, true);
 
   // copy the host struct to device struct
   struct gkyl_dg_iz *up_cu = (struct gkyl_dg_iz*) gkyl_cu_malloc(sizeof(struct gkyl_dg_iz));

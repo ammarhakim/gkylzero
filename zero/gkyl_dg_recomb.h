@@ -49,7 +49,7 @@ typedef struct gkyl_dg_recomb gkyl_dg_recomb;
 struct gkyl_dg_recomb* gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis,
   struct gkyl_basis* pbasis, const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
   double elem_charge, double mass_elc, double mass_self, enum gkyl_dg_recomb_type type_ion,
-  int charge_state, enum gkyl_dg_recomb_self type_self, bool all_gk, bool use_gpu); 
+  int charge_state, enum gkyl_dg_recomb_self type_self, bool all_gk, const char *base, bool use_gpu); 
 
 /**
  * Create new ionrecombation updater type object on NV-GPU: 
@@ -58,7 +58,7 @@ struct gkyl_dg_recomb* gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gk
 struct gkyl_dg_recomb* gkyl_dg_recomb_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis,
   struct gkyl_basis* pbasis, const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
   double elem_charge, double mass_elc, double mass_self, enum gkyl_dg_recomb_type type_ion,
-  int charge_state, enum gkyl_dg_recomb_self type_self, bool all_gk); 
+  int charge_state, enum gkyl_dg_recomb_self type_self, bool all_gk, const char *base); 
 
 /**
  * Compute ionrecombation collision term for use in neutral reactions. 

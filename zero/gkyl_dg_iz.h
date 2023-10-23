@@ -50,7 +50,7 @@ typedef struct gkyl_dg_iz gkyl_dg_iz;
 struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
   double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self,
-  bool all_gk, bool use_gpu); 
+  bool all_gk, const char *base, bool use_gpu); 
 
 /**
  * Create new ionization updater type object on NV-GPU: 
@@ -58,7 +58,7 @@ struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis
  */
 struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self, bool all_gk); 
+  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self, bool all_gk, const char *base); 
 
 /**
  * Compute ionization collision term for use in neutral reactions. 

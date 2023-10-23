@@ -17,17 +17,16 @@
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_iz_priv.h>
 #include <gkyl_util.h>
-#include <gkyl_read_adas_priv.h>
 
 struct gkyl_dg_iz*
 gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
   double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state,
-  enum gkyl_dg_iz_self type_self, bool all_gk, bool use_gpu)
+  enum gkyl_dg_iz_self type_self, bool all_gk, const char *base, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_iz_cu_dev_new(grid, cbasis, pbasis, conf_rng, phase_rng, elem_charge, mass_elc, mass_ion, type_ion, charge_state, type_self, all_gk);
+    return gkyl_dg_iz_cu_dev_new(grid, cbasis, pbasis, conf_rng, phase_rng, elem_charge, mass_elc, mass_ion, type_ion, charge_state, type_self, all_gk, base);
   } 
 #endif
   gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
@@ -53,104 +52,14 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   // Project ADAS data (H, He, Li)
   struct adas_field data;
 
-  // Conditional to determine element
-  // Eiz values from Voronov 1997 (eV)
-  if (type_ion == GKYL_IZ_H) {
-    data.NT = 29;
-    data.NN = 24;
-    data.logData = fopen("/Users/bernard/gkylzero/adas-dat/ioniz_h.npy", "rb");
-    data.logT = fopen("/Users/bernard/gkylzero/adas-dat/logT_h.npy", "rb");
-    data.logN = fopen("/Users/bernard/gkylzero/adas-dat/logN_h.npy", "rb");
-    data.Zmax = 1;
-    data.Eiz = malloc(sizeof(double)*data.Zmax);
-    static const double Eiz_loc[] = {13.6};
-    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
-  }
-  else if (type_ion == GKYL_IZ_HE) {
-    data.NT = 30;
-    data.NN = 24;
-    data.logData = fopen("/Users/bernard/gkylzero/adas-dat/ioniz_he.npy", "rb");
-    data.logT = fopen("/Users/bernard/gkylzero/adas-dat/logT_he.npy", "rb");
-    data.logN = fopen("/Users/bernard/gkylzero/adas-dat/logN_he.npy", "rb");
-    data.Zmax = 2;
-    data.Eiz = malloc(sizeof(double)*data.Zmax);
-    static const double Eiz_loc[] = {24.6, 54.4};
-    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
-  }
-  else if (type_ion == GKYL_IZ_LI) {
-    data.NT = 25;
-    data.NN = 16;
-    data.logData = fopen("/Users/bernard/gkylzero/adas-dat/ioniz_li.npy", "rb");
-    data.logT = fopen("/Users/bernard/gkylzero/adas-dat/logT_li.npy", "rb");
-    data.logN = fopen("/Users/bernard/gkylzero/adas-dat/logN_li.npy", "rb");
-    data.Zmax = 3;
-    data.Eiz = malloc(sizeof(double)*data.Zmax);
-    static const double Eiz_loc[] = {5.4, 75.6, 122.4};
-    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
-  }
-  else if (type_ion == GKYL_IZ_BE) {
-    data.NT = 25;
-    data.NN = 24;
-    data.logData = fopen("/Users/bernard/gkylzero/adas-dat/ioniz_be.npy", "rb");
-    data.logT = fopen("/Users/bernard/gkylzero/adas-dat/logT_be.npy", "rb");
-    data.logN = fopen("/Users/bernard/gkylzero/adas-dat/logN_be.npy", "rb");
-    data.Zmax = 4;
-    data.Eiz = malloc(sizeof(double)*data.Zmax);
-    static const double Eiz_loc[] = {9.3, 18.2, 153.9, 217.7};
-    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
-  }
-  else if (type_ion == GKYL_IZ_B) {
-    data.NT = 48;
-    data.NN = 26;
-    data.logData = fopen("/Users/bernard/gkylzero/adas-dat/ioniz_b.npy", "rb");
-    data.logT = fopen("adas-dat/logT_b.npy", "rb");
-    data.logN = fopen("adas-dat/logN_b.npy", "rb");
-    data.Zmax = 5;
-    data.Eiz = malloc(sizeof(double)*data.Zmax);
-    static const double Eiz_loc[] = {8.3, 25.2, 37.9, 259.4, 340.2};
-    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
-  }
-  else if (type_ion == GKYL_IZ_C) {
-    data.NT = 30;
-    data.NN = 24;
-    data.logData = fopen("/Users/bernard/gkylzero/adas-dat/ioniz_c.npy", "rb");
-    data.logT = fopen("/Users/bernard/gkylzero/adas-dat/logT_c.npy", "rb");
-    data.logN = fopen("/Users/bernard/gkylzero/adas-dat/logN_c.npy", "rb");
-    data.Zmax = 6;
-    data.Eiz = malloc(sizeof(double)*data.Zmax);
-    static const double Eiz_loc[] = {11.3, 24.4, 47.9, 64.5, 392.1, 490.0};
-    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
-  }
-  else if (type_ion == GKYL_IZ_N) {
-    data.NT = 30;
-    data.NN = 24;
-    data.logData = fopen("/Users/bernard/gkylzero/adas-dat/ioniz_n.npy", "rb");
-    data.logT = fopen("/Users/bernard/gkylzero/adas-dat/logT_n.npy", "rb");
-    data.logN = fopen("/Users/bernard/gkylzero/adas-dat/logN_n.npy", "rb");
-    data.Zmax = 7;
-    data.Eiz = malloc(sizeof(double)*data.Zmax);
-    static const double Eiz_loc[] = {14.5, 29.6, 47.5, 77.5, 97.9, 552.1, 667.0};
-    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
-  }
-  else if (type_ion == GKYL_IZ_O) {
-    data.NT = 30;
-    data.NN = 24;
-    data.logData = fopen("/Users/bernard/gkylzero/adas-dat/ioniz_o.npy", "rb");
-    data.logT = fopen("/Users/bernard/gkylzero/adas-dat/logT_o.npy", "rb");
-    data.logN = fopen("/Users/bernard/gkylzero/adas-dat/logN_o.npy", "rb");
-    data.Zmax = 8;
-    data.Eiz = malloc(sizeof(double)*data.Zmax);
-    static const double Eiz_loc[] = {13.6, 35.1, 54.9, 77.4, 113.9, 138.1, 739.3, 871.4};
-    memcpy(data.Eiz, Eiz_loc, sizeof(Eiz_loc));
-  }
-  else fprintf(stderr, "Incorrect ion type for ionization.");
+  read_adas_field_iz(type_ion, &data, base);
   
   long sz = data.NT*data.NN;
   double *minmax;
 
-  if (data.logT == NULL) fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file.");
-  if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file.");
-  if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'ioniz_<elem>.npy' file.");
+  if (data.logT == NULL) fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file. ");
+  if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file. ");
+  if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'ioniz_<elem>.npy' file. ");
   minmax = minmax_from_numpy(data.logT, data.NT);
   fclose(data.logT);
   double logTmin = minmax[0], logTmax = minmax[1];
@@ -206,7 +115,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   up->adas_basis = adas_basis;
   
   // allocate fields for prim mom calculation
-  up->prim_vars_donor = gkyl_array_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); // elc, ion 
+  up->prim_vars_donor = gkyl_array_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); // elc, ion
   up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); // all
   up->vtSq_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // elc
   up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);  //elc
@@ -285,10 +194,17 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     else m0_idx = (log_m0_av - up->minLogM0)/(up->dlogM0)+1;
     cell_center = (m0_idx - 0.5)*up->dlogM0 + up->minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
-    
-    double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
-    double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
-    coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+
+    //if ((up->E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
+    if  (m0_elc_av <= 0.) {
+      printf("m0 elc ZERO ");
+      coef_iz_d[0] = 0.0; 
+    }
+    else {
+      double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
+      double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
+      coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+    }
   }
 
   if (up->type_self == GKYL_IZ_ELC) {
@@ -301,12 +217,12 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->prim_vars_donor, 0, up->conf_rng);
     gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, up->conf_rng);
 
-    // Proj maxwellian on basis 
+    // Proj maxwellian on basis
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_elc,
     					     up->prim_vars_fmax, bmag, jacob_tot, up->mass_elc, coll_iz);
     
     // copy, scale and accumulate
-    gkyl_array_scale_range(coll_iz, 2.0, up->phase_rng);    
+    gkyl_array_scale_range(coll_iz, 2.0, up->phase_rng);
     gkyl_array_accumulate_range(coll_iz, -1.0, f_self, up->phase_rng);
   
     // weak multiply
@@ -367,7 +283,7 @@ gkyl_dg_iz_release(struct gkyl_dg_iz* up)
 struct gkyl_dg_iz*
 gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self, bool all_gk)
+  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self, bool all_gk, const char *base)
 {
   assert(false);
   return 0;

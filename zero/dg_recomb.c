@@ -16,19 +16,17 @@
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_recomb_priv.h>
 #include <gkyl_util.h>
-#include <gkyl_read_adas_priv.h>
-#include <gkyl_array_rio.h>
 
 // FIX MASS FOR PMOB ETC
 struct gkyl_dg_recomb*
 gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
   double mass_elc, double mass_self, enum gkyl_dg_recomb_type type_ion, int charge_state,
-  enum gkyl_dg_recomb_self type_self, bool all_gk, bool use_gpu)
+  enum gkyl_dg_recomb_self type_self, bool all_gk, const char *base, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_recomb_cu_dev_new(grid, cbasis, pbasis, conf_rng, phase_rng, elem_charge, mass_elc, type_ion, charge_state);
+    return gkyl_dg_recomb_cu_dev_new(grid, cbasis, pbasis, conf_rng, phase_rng, elem_charge, mass_elc, type_ion, charge_state, type_self, all_gk, base);
   } 
 #endif
   gkyl_dg_recomb *up = gkyl_malloc(sizeof(struct gkyl_dg_recomb));
@@ -57,72 +55,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   // Project ADAS data
   struct adas_field data;
 
-  // Conditional to determine element
-  if (type_ion == GKYL_RECOMB_H) {
-    data.NT = 29;
-    data.NN = 24;
-    data.logData = fopen("adas-dat/recomb_h.npy", "rb");
-    data.logT = fopen("adas-dat/logT_h.npy", "rb");
-    data.logN = fopen("adas-dat/logN_h.npy", "rb");
-    data.Zmax = 1;
-  }
-  else if (type_ion == GKYL_RECOMB_HE) {
-    data.NT = 30;
-    data.NN = 24;
-    data.logData = fopen("adas-dat/recomb_he.npy", "rb");
-    data.logT = fopen("adas-dat/logT_he.npy", "rb");
-    data.logN = fopen("adas-dat/logN_he.npy", "rb");
-    data.Zmax = 2;
-  }
-  else if (type_ion == GKYL_RECOMB_LI) {
-    data.NT = 25;
-    data.NN = 16;
-    data.logData = fopen("adas-dat/recomb_li.npy", "rb");
-    data.logT = fopen("adas-dat/logT_li.npy", "rb");
-    data.logN = fopen("adas-dat/logN_li.npy", "rb");
-    data.Zmax = 3;
-  }
-  else if (type_ion == GKYL_RECOMB_BE) {
-    data.NT = 25;
-    data.NN = 24;
-    data.logData = fopen("adas-dat/recomb_be.npy", "rb");
-    data.logT = fopen("adas-dat/logT_be.npy", "rb");
-    data.logN = fopen("adas-dat/logN_be.npy", "rb");
-    data.Zmax = 4;
-  }
-  else if (type_ion == GKYL_RECOMB_B) {
-    data.NT = 48;
-    data.NN = 26;
-    data.logData = fopen("adas-dat/recomb_b.npy", "rb");
-    data.logT = fopen("adas-dat/logT_b.npy", "rb");
-    data.logN = fopen("adas-dat/logN_b.npy", "rb");
-    data.Zmax = 5;
-  }
-  else if (type_ion == GKYL_RECOMB_C) {
-    data.NT = 30;
-    data.NN = 24;
-    data.logData = fopen("adas-dat/recomb_c.npy", "rb");
-    data.logT = fopen("adas-dat/logT_c.npy", "rb");
-    data.logN = fopen("adas-dat/logN_c.npy", "rb");
-    data.Zmax = 6;
-  }
-  else if (type_ion == GKYL_RECOMB_N) {
-    data.NT = 30;
-    data.NN = 24;
-    data.logData = fopen("adas-dat/recomb_n.npy", "rb");
-    data.logT = fopen("adas-dat/logT_n.npy", "rb");
-    data.logN = fopen("adas-dat/logN_n.npy", "rb");
-    data.Zmax = 7;
-  }
-  else if (type_ion == GKYL_RECOMB_O) {
-    data.NT = 30;
-    data.NN = 24;
-    data.logData = fopen("adas-dat/recomb_o.npy", "rb");
-    data.logT = fopen("adas-dat/logT_o.npy", "rb");
-    data.logN = fopen("adas-dat/logN_o.npy", "rb");
-    data.Zmax = 8;
-  }
-  else fprintf(stderr, "Incorrect ion type for recombination.");
+  read_adas_field_recomb(type_ion, &data, base);
   
   long sz = data.NT*data.NN;
   double *minmax;
@@ -341,7 +274,7 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
 struct gkyl_dg_recomb*
 gkyl_dg_recomb_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
   const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge, double mass_elc,
-  double mass_self, enum gkyl_dg_recomb_type type_ion, int charge_state, enum gkyl_dg_recomb_self type_self, bool all_gk)
+  double mass_self, enum gkyl_dg_recomb_type type_ion, int charge_state, enum gkyl_dg_recomb_self type_self, bool all_gk, const char *base)
 {
   assert(false);
   return 0;
