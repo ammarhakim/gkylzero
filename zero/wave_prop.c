@@ -365,9 +365,12 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
               s[mw] *= lenr; // rescale speeds
 
             // compute fluctuations in local coordinates
-            // TODO: This should be ffluct when using f-waves
-            gkyl_wv_eqn_qfluct(wv->equation, ftype, ql_local, qr_local,
-              waves_local, s, amdq_local, apdq_local);
+            if (wv->split_type == GKYL_WAVE_QWAVE)
+              gkyl_wv_eqn_qfluct(wv->equation, ftype, ql_local, qr_local,
+                waves_local, s, amdq_local, apdq_local);
+            else
+              gkyl_wv_eqn_ffluct(wv->equation, ftype, ql_local, qr_local,
+                waves_local, s, amdq_local, apdq_local);
         
             double *waves = gkyl_array_fetch(wv->waves, sidx);
             for (int mw=0; mw<mwaves; ++mw)
@@ -389,8 +392,14 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           cfla = calc_cfla(mwaves, cfla, dtdx/cg->kappa, s);
         }
 
-        if (cfla > cflm) { // check time-step before any updates are performed
+        if (cfla > cflm) // check time-step before any updates are performed
           is_cfl_violated = 1.0;
+
+        // all reduce of is_cfl_violated
+        double is_cfl_violated_global = 0;
+        gkyl_comm_all_reduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 1, &is_cfl_violated, &is_cfl_violated_global);
+        
+        if (is_cfl_violated_global > 0) {
           // we need to use this goto to jump out of this deep loop to
           // avoid potential problems with taking too large a
           // time-step
