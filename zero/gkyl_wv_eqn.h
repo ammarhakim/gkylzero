@@ -64,6 +64,7 @@ struct gkyl_wv_eqn {
   
   wv_waves_t waves_func; // function to compute waves and speeds
   wv_qfluct_t qfluct_func; // function to compute q-fluctuations
+  wv_qfluct_t ffluct_func; // function to compute f-fluctuations
   wv_flux_jump_t flux_jump; // function to compute jump in flux
   
   wv_check_inv check_inv_func; // function to check invariant domains

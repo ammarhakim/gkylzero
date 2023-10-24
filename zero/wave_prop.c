@@ -23,6 +23,8 @@ struct gkyl_wave_prop {
   bool force_low_order_flux; // only use Lax flux
   bool check_inv_domain; // flag to indicate if invariant domains are checked
 
+  enum gkyl_wave_split_type split_type; // type of splitting to use
+
   struct gkyl_wave_geom *geom; // geometry object
   struct gkyl_comm *comm; // communcator
   
@@ -111,6 +113,8 @@ gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
   up->force_low_order_flux = winp->force_low_order_flux;
   up->check_inv_domain = winp->check_inv_domain;
 
+  up->split_type = winp->split_type;
+
   int nghost[3] = { 2, 2, 2 };
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&up->grid, nghost, &ext_range, &range);
@@ -186,10 +190,22 @@ wave_rescale(int meqn, double fact, double *w)
 }
 
 static inline void
-calc_second_order_flux(int meqn, double dtdx, double s,
+calc_second_order_qflux(int meqn, double dtdx, double s,
   const double *waves, double * GKYL_RESTRICT flux2)
 {
   double sfact = 0.5*fabs(s)*(1-fabs(s)*dtdx);
+  for (int i=0; i<meqn; ++i)
+    flux2[i] += sfact*waves[i];
+}
+
+// this is the sign function for doubles
+static inline int sign_double(double val) { return (0.0 < val) - (val < 0.0); }
+
+static inline void
+calc_second_order_fflux(int meqn, double dtdx, double s,
+  const double *waves, double * GKYL_RESTRICT flux2)
+{
+  double sfact = 0.5*sign_double(s)*(1-fabs(s)*dtdx);
   for (int i=0; i<meqn; ++i)
     flux2[i] += sfact*waves[i];
 }
@@ -251,6 +267,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double is_cfl_violated = 0.0; // delibrately a double
   
   double ql_local[meqn], qr_local[meqn];
+  double fjump_local[meqn];
   double waves_local[meqn*mwaves];
   double amdq_local[meqn], apdq_local[meqn];
   double delta[meqn];
@@ -334,7 +351,10 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinl, ql_local);
             wv->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
 
-            calc_jump(meqn, ql_local, qr_local, delta);
+            if (wv->split_type == GKYL_WAVE_QWAVE)
+              calc_jump(meqn, ql_local, qr_local, delta);
+            else
+              gkyl_wv_eqn_flux_jump(wv->equation, ql_local, qr_local, delta);
           
             double my_max_speed = gkyl_wv_eqn_waves(wv->equation, ftype, delta,
               ql_local, qr_local, waves_local, s);
@@ -345,6 +365,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
               s[mw] *= lenr; // rescale speeds
 
             // compute fluctuations in local coordinates
+            // TODO: This should be ffluct when using f-waves
             gkyl_wv_eqn_qfluct(wv->equation, ftype, ql_local, qr_local,
               waves_local, s, amdq_local, apdq_local);
         
@@ -419,8 +440,14 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
             double kappar = cg->kappa;
 
-            for (int mw=0; mw<mwaves; ++mw)
-              calc_second_order_flux(meqn, dtdx/(0.5*(kappal+kappar)), s[mw], &waves[mw*meqn], flux2);
+            if (wv->split_type == GKYL_WAVE_QWAVE) {
+              for (int mw=0; mw<mwaves; ++mw)
+                calc_second_order_qflux(meqn, dtdx/(0.5*(kappal+kappar)), s[mw], &waves[mw*meqn], flux2);
+            }
+            else {
+              for (int mw=0; mw<mwaves; ++mw)
+                calc_second_order_fflux(meqn, dtdx/(0.5*(kappal+kappar)), s[mw], &waves[mw*meqn], flux2);
+            }
 
             kappal = kappar;
           }

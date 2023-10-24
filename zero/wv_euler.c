@@ -232,7 +232,6 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 {
   double avg[4];
   roe_avg(eqn, ql, qr, avg);
-
   return proj_onto_euler_eigvect(eqn, delta, avg, waves, s);
 }
 
