@@ -30,9 +30,6 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   else if (app->scheme_type == GKYL_MOMENT_KEP)
     app->update_func = moment_update_ssp_rk3;
 
-  if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
-    app->split_type = mom->split_type;
-  
   int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
   if (mom->scheme_type != GKYL_MOMENT_WAVE_PROP)
     for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme and KEP

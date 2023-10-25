@@ -58,6 +58,7 @@ main(int argc, char **argv)
     .equation = coldf,
     .evolve = 1,
     .init = evalColdInit,
+    .split_type = GKYL_WAVE_FWAVE,    
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
@@ -72,7 +73,6 @@ main(int argc, char **argv)
     .cells = { NX },
 
     .cfl_frac = 0.9,
-    .split_type = GKYL_WAVE_FWAVE,
 
     .num_species = 1,
     .species = { fluid },

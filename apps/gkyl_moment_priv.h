@@ -70,7 +70,6 @@ struct moment_species {
   struct gkyl_wv_eqn *equation; // equation object
 
   enum gkyl_moment_scheme scheme_type; // scheme to update equations
-  enum gkyl_wave_split_type split_type; // edge splitting to use
 
   // 
   // solvers and data to update fluid equations
