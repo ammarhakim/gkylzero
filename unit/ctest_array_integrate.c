@@ -62,24 +62,35 @@ void test_1x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
 
   // create distribution function array
   struct gkyl_array *distf = mkarr(nc*basis.num_basis, local_ext.volume, use_gpu);
+  struct gkyl_array *distf_ho = use_gpu? mkarr(nc*basis.num_basis, local_ext.volume, false) : distf;
 
   // project distribution function on basis
-  gkyl_proj_on_basis_advance(projf, 0.0, &local, distf);
+  gkyl_proj_on_basis_advance(projf, 0.0, &local, distf_ho);
+  if (use_gpu) gkyl_array_copy(distf, distf_ho);
+
   if (integ_op == GKYL_ARRAY_INTEGRATE_OP_ABS)
     gkyl_array_scale(distf, -1.);
 
   // integrate distribution function.
   struct gkyl_array_integrate *integ_up = gkyl_array_integrate_new(&grid, &basis, nc, integ_op, use_gpu);
 
-  double fint[nc];
+  double *fint = use_gpu? gkyl_cu_malloc(nc*sizeof(double)) : gkyl_malloc(nc*sizeof(double));
   gkyl_array_integrate_advance(integ_up, distf, 1., &local, fint);
 
   gkyl_array_integrate_release(integ_up);
 
-  TEST_CHECK( gkyl_compare( 1.0, fint[0], 1e-12) );
+  double *fint_ho = gkyl_malloc(nc*sizeof(double));
+  if (use_gpu)
+    gkyl_cu_memcpy(fint_ho, fint, nc*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(fint_ho, fint, nc*sizeof(double));
+
+  TEST_CHECK( gkyl_compare( 1.0, fint_ho[0], 1e-12) );
 
   gkyl_array_release(distf);
   gkyl_proj_on_basis_release(projf);
+  gkyl_free(fint_ho);
+  gkyl_free(fint);
 }
 
 void evalFunc_1x_nc3_op_none(double t, const double *xn, double* restrict fout, void *ctx)
@@ -128,26 +139,37 @@ void test_1x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
 
   // create distribution function array
   struct gkyl_array *distf = mkarr(nc*basis.num_basis, local_ext.volume, use_gpu);
+  struct gkyl_array *distf_ho = use_gpu? mkarr(nc*basis.num_basis, local_ext.volume, false) : distf;
 
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projf, 0.0, &local, distf);
+  if (use_gpu) gkyl_array_copy(distf, distf_ho);
+
   if (integ_op == GKYL_ARRAY_INTEGRATE_OP_ABS)
     gkyl_array_scale(distf, -1.);
 
   // integrate distribution function.
   struct gkyl_array_integrate *integ_up = gkyl_array_integrate_new(&grid, &basis, nc, integ_op, use_gpu);
 
-  double fint[nc];
+  double *fint = use_gpu? gkyl_cu_malloc(nc*sizeof(double)) : gkyl_malloc(nc*sizeof(double));
   gkyl_array_integrate_advance(integ_up, distf, 1., &local, fint);
 
   gkyl_array_integrate_release(integ_up);
 
-  TEST_CHECK( gkyl_compare( 1.0, fint[0], 1e-12) );
-  TEST_CHECK( gkyl_compare( integ_op == GKYL_ARRAY_INTEGRATE_OP_SQ? 1.5*1.5 : 1.5, fint[1], 1e-12) );
-  TEST_CHECK( gkyl_compare( integ_op == GKYL_ARRAY_INTEGRATE_OP_SQ? 2.5*2.5 : 2.5, fint[2], 1e-12) );
+  double *fint_ho = gkyl_malloc(nc*sizeof(double));
+  if (use_gpu)
+    gkyl_cu_memcpy(fint_ho, fint, nc*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(fint_ho, fint, nc*sizeof(double));
+
+  TEST_CHECK( gkyl_compare( 1.0, fint_ho[0], 1e-12) );
+  TEST_CHECK( gkyl_compare( integ_op == GKYL_ARRAY_INTEGRATE_OP_SQ? 1.5*1.5 : 1.5, fint_ho[1], 1e-12) );
+  TEST_CHECK( gkyl_compare( integ_op == GKYL_ARRAY_INTEGRATE_OP_SQ? 2.5*2.5 : 2.5, fint_ho[2], 1e-12) );
 
   gkyl_array_release(distf);
   gkyl_proj_on_basis_release(projf);
+  gkyl_free(fint_ho);
+  gkyl_free(fint);
 }
 
 void evalFunc_2x_nc1_op_none(double t, const double *xn, double* restrict fout, void *ctx)
@@ -192,24 +214,35 @@ void test_2x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
 
   // create distribution function array
   struct gkyl_array *distf = mkarr(nc*basis.num_basis, local_ext.volume, use_gpu);
+  struct gkyl_array *distf_ho = use_gpu? mkarr(nc*basis.num_basis, local_ext.volume, false) : distf;
 
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projf, 0.0, &local, distf);
+  if (use_gpu) gkyl_array_copy(distf, distf_ho);
+
   if (integ_op == GKYL_ARRAY_INTEGRATE_OP_ABS)
     gkyl_array_scale(distf, -1.);
 
   // integrate distribution function.
   struct gkyl_array_integrate *integ_up = gkyl_array_integrate_new(&grid, &basis, nc, integ_op, use_gpu);
 
-  double fint[nc];
+  double *fint = use_gpu? gkyl_cu_malloc(nc*sizeof(double)) : gkyl_malloc(nc*sizeof(double));
   gkyl_array_integrate_advance(integ_up, distf, 1., &local, fint);
 
   gkyl_array_integrate_release(integ_up);
 
-  TEST_CHECK( gkyl_compare( 1.0, fint[0], 1e-12) );
+  double *fint_ho = gkyl_malloc(nc*sizeof(double));
+  if (use_gpu)
+    gkyl_cu_memcpy(fint_ho, fint, nc*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(fint_ho, fint, nc*sizeof(double));
+
+  TEST_CHECK( gkyl_compare( 1.0, fint_ho[0], 1e-12) );
 
   gkyl_array_release(distf);
   gkyl_proj_on_basis_release(projf);
+  gkyl_free(fint_ho);
+  gkyl_free(fint);
 }
 
 void evalFunc_2x_nc3_op_none(double t, const double *xn, double* restrict fout, void *ctx)
@@ -258,29 +291,40 @@ void test_2x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
 
   // create distribution function array
   struct gkyl_array *distf = mkarr(nc*basis.num_basis, local_ext.volume, use_gpu);
+  struct gkyl_array *distf_ho = use_gpu? mkarr(nc*basis.num_basis, local_ext.volume, false) : distf;
 
   // project distribution function on basis
   gkyl_proj_on_basis_advance(projf, 0.0, &local, distf);
+  if (use_gpu) gkyl_array_copy(distf, distf_ho);
+
   if (integ_op == GKYL_ARRAY_INTEGRATE_OP_ABS)
     gkyl_array_scale(distf, -1.);
 
   // integrate distribution function.
   struct gkyl_array_integrate *integ_up = gkyl_array_integrate_new(&grid, &basis, nc, integ_op, use_gpu);
 
-  double fint[nc];
+  double *fint = use_gpu? gkyl_cu_malloc(nc*sizeof(double)) : gkyl_malloc(nc*sizeof(double));
   gkyl_array_integrate_advance(integ_up, distf, 1., &local, fint);
 
   gkyl_array_integrate_release(integ_up);
 
-  TEST_CHECK( gkyl_compare( 1.0, fint[0], 1e-12) );
-  TEST_CHECK( gkyl_compare( integ_op == GKYL_ARRAY_INTEGRATE_OP_SQ? 1.5*1.5 : 1.5, fint[1], 1e-12) );
-  TEST_CHECK( gkyl_compare( integ_op == GKYL_ARRAY_INTEGRATE_OP_SQ? 2.5*2.5 : 2.5, fint[2], 1e-12) );
+  double *fint_ho = gkyl_malloc(nc*sizeof(double));
+  if (use_gpu)
+    gkyl_cu_memcpy(fint_ho, fint, nc*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  else
+    memcpy(fint_ho, fint, nc*sizeof(double));
+
+  TEST_CHECK( gkyl_compare( 1.0, fint_ho[0], 1e-12) );
+  TEST_CHECK( gkyl_compare( integ_op == GKYL_ARRAY_INTEGRATE_OP_SQ? 1.5*1.5 : 1.5, fint_ho[1], 1e-12) );
+  TEST_CHECK( gkyl_compare( integ_op == GKYL_ARRAY_INTEGRATE_OP_SQ? 2.5*2.5 : 2.5, fint_ho[2], 1e-12) );
 
   gkyl_array_release(distf);
   gkyl_proj_on_basis_release(projf);
+  gkyl_free(fint_ho);
+  gkyl_free(fint);
 }
 
-void test_1x()
+void test_1x_cpu()
 {
   // p=1
   test_1x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_NONE, 1, false);
@@ -301,7 +345,7 @@ void test_1x()
   test_1x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_SQ, 2, false);
 }
 
-void test_2x()
+void test_2x_cpu()
 {
   // p=1
   test_2x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_NONE, 1, false);
@@ -322,12 +366,56 @@ void test_2x()
   test_2x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_SQ, 2, false);
 }
 
-TEST_LIST = {
-  { "test_1x", test_1x },
-  { "test_2x", test_2x },
 #ifdef GKYL_HAVE_CUDA
-//  { "test_1x_gpu", test_1x_gpu },
-//  { "test_2x_gpu", test_2x_gpu },
+void test_1x_gpu()
+{
+  // p=1
+  test_1x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_NONE, 1, true);
+  test_1x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_ABS, 1, true);
+  test_1x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_SQ, 1, true);
+
+  test_1x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_NONE, 1, true);
+  test_1x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_ABS, 1, true);
+  test_1x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_SQ, 1, true);
+
+  // p=2
+  test_1x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_NONE, 2, true);
+  test_1x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_ABS, 2, true);
+  test_1x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_SQ, 2, true);
+
+  test_1x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_NONE, 2, true);
+  test_1x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_ABS, 2, true);
+  test_1x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_SQ, 2, true);
+}
+
+void test_2x_gpu()
+{
+  // p=1
+  test_2x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_NONE, 1, true);
+  test_2x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_ABS, 1, true);
+  test_2x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_SQ, 1, true);
+
+  test_2x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_NONE, 1, true);
+  test_2x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_ABS, 1, true);
+  test_2x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_SQ, 1, true);
+
+  // p=2
+  test_2x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_NONE, 2, true);
+  test_2x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_ABS, 2, true);
+  test_2x_nc1_op(GKYL_ARRAY_INTEGRATE_OP_SQ, 2, true);
+
+  test_2x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_NONE, 2, true);
+  test_2x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_ABS, 2, true);
+  test_2x_nc3_op(GKYL_ARRAY_INTEGRATE_OP_SQ, 2, true);
+}
+#endif
+
+TEST_LIST = {
+  { "test_1x_cpu", test_1x_cpu },
+  { "test_2x_cpu", test_2x_cpu },
+#ifdef GKYL_HAVE_CUDA
+  { "test_1x_gpu", test_1x_gpu },
+  { "test_2x_gpu", test_2x_gpu },
 #endif
   { NULL, NULL },
 };
