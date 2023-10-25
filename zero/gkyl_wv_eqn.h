@@ -64,6 +64,7 @@ struct gkyl_wv_eqn {
   
   wv_waves_t waves_func; // function to compute waves and speeds
   wv_qfluct_t qfluct_func; // function to compute q-fluctuations
+  wv_qfluct_t ffluct_func; // function to compute f-fluctuations
   wv_flux_jump_t flux_jump; // function to compute jump in flux
   
   wv_check_inv check_inv_func; // function to check invariant domains
@@ -144,6 +145,18 @@ gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   double *amdq, double *apdq)
 {
   eqn->qfluct_func(eqn, type, ql, qr, waves, speeds, amdq, apdq);
+}
+
+/**
+ * See signature for gkyl_wv_eqn_qfluct. This function computes the
+ * fluctuations using f-waves rather than q-waves.
+ */
+inline void
+gkyl_wv_eqn_ffluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *speeds,
+  double *amdq, double *apdq)
+{
+  eqn->ffluct_func(eqn, type, ql, qr, waves, speeds, amdq, apdq);
 }
 
 /**

@@ -354,4 +354,14 @@ bool gkyl_check_file_exists(const char *fname);
  */
 int64_t gkyl_file_size(const char *fname);
 
+/**
+ * Read contents of file into a character buffer. The returned buffer
+ * must be freed using gkyl_free.
+ *
+ * @param fname Name of file
+ * @param sz On return this has the size of data read
+ * @return Data in file as a char array.
+ */
+char* gkyl_load_file(const char *fname, int64_t *sz);
+
 EXTERN_C_END
