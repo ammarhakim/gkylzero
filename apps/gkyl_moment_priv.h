@@ -70,6 +70,8 @@ struct moment_species {
   struct gkyl_wv_eqn *equation; // equation object
 
   enum gkyl_moment_scheme scheme_type; // scheme to update equations
+
+  // 
   // solvers and data to update fluid equations
   union {
     struct {
@@ -181,6 +183,8 @@ struct gkyl_moment_app {
   double cfl; // CFL number
 
   enum gkyl_moment_scheme scheme_type; // scheme to use
+  enum gkyl_wave_split_type split_type; // edge splitting to use  
+  // 
   enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
  // should shock-hybrid scheme be used when using KEP?  
   bool use_hybrid_flux_kep;

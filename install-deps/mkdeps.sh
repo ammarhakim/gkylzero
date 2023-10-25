@@ -16,6 +16,7 @@ BUILD_SUPERLU=no
 BUILD_SUPERLU_DIST=no
 BUILD_SUPERLU_DIST_GPU=no
 BUILD_OPENMPI=no
+BUILD_LUAJIT=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -54,6 +55,7 @@ The following flags specify the libraries to build.
 --build-superlu_dist        [no] Should we build SuperLU (parallel)
 --enable-superlu_gpu        [no] Build GPUs lib for SuperLU (needs --build-superlu_dist=yes)
 --build-openmpi             [no] Should we build OpenMPI?
+--build-luajit              [no] Should we build LuaJIT?
 
 EOF
 }
@@ -146,6 +148,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_OPENMPI="$value"
       ;;   
+   --build-luajit)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_LUAJIT="$value"
+      ;;   
    *)
       die "Error: Unknown flag: $1"
       ;;
@@ -217,9 +223,18 @@ build_openmpi() {
     fi
 }
 
+build_luajit() {
+    if [ "$BUILD_LUAJIT" = "yes" ]
+    then    
+	echo "Building Luajit"
+	./build-luajit.sh
+    fi
+}
+
 echo "Installations will be in  $PREFIX"
 
 build_openmpi
+build_luajit
 build_openblas
 build_superlu
 build_superlu_dist

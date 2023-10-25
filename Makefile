@@ -58,10 +58,22 @@ MPI_INC_DIR = zero # dummy
 MPI_LIB_DIR = .
 ifeq (${USE_MPI}, 1)
 	USING_MPI = yes
-	MPI_INC_DIR = ${MPI_INC}
-	MPI_LIB_DIR = ${MPI_LIB}
+	MPI_INC_DIR = ${CONF_MPI_INC_DIR}
+	MPI_LIB_DIR = ${CONF_MPI_LIB_DIR}
 	MPI_LIBS = -lmpi
 	CFLAGS += -DGKYL_HAVE_MPI
+endif
+
+# Read LUA paths and flags if needed 
+USING_LUA =
+LUA_INC_DIR = zero # dummy
+LUA_LIB_DIR = .
+ifeq (${USE_LUA}, 1)
+	USING_LUA = yes
+	LUA_INC_DIR = ${CONF_LUA_INC_DIR}
+	LUA_LIB_DIR = ${CONF_LUA_LIB_DIR}
+	LUA_LIBS = -l${CONF_LUA_LIB}
+	CFLAGS += -DGKYL_HAVE_LUA
 endif
 
 # Build directory
@@ -96,7 +108,7 @@ INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sor
 INSTALL_HEADERS += $(shell ls minus/*.h)
 
 # all includes
-INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR}
+INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR}
 
 # Directories containing source code
 SRC_DIRS := minus zero apps kernels
@@ -105,6 +117,7 @@ SRC_DIRS := minus zero apps kernels
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
 UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
 MPI_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/mctest_*.c))
+LUA_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/lctest_*.c))
 
 # list of includes from kernels
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
@@ -121,8 +134,8 @@ ifdef USING_NVCC
 endif
 
 # List of link directories and libraries for unit and regression tests
-EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR}
-EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_LIBS} -lm -lpthread
+EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR}
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_LIBS} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
 
@@ -270,7 +283,7 @@ $(ZERO_SH_INSTALL_LIB): $(OBJS)
 all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
 
 # Explicit targets to build unit and regression tests
-unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ## Build unit tests
+unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
 regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ## Build regression tests
 
 .PHONY: check mpicheck
@@ -293,6 +306,7 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	cp ${INSTALL_HEADERS} ${PREFIX}/gkylzero/include
 	./minus/gengkylzeroh.sh > ${PREFIX}/gkylzero/include/gkylzero.h
 # libraries
+	strip ${ZERO_SH_INSTALL_LIB}
 	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
 # Examples
 	test -e config.mak && cp -f config.mak ${PREFIX}/gkylzero/share/config.mak || echo "No config.mak"

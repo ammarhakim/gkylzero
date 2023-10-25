@@ -195,6 +195,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 void
 vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
 {
+  if (!app->has_field) return;
+  
   int poly_order = app->poly_order;
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
     poly_order+1, 8, field->info.init, field->info.ctx);
