@@ -12,3 +12,7 @@ struct gkyl_dg_updater_moment {
 
   double moment_tm; // total time spent in computing moment
 };
+
+struct gkyl_dg_updater_moment_tm {
+  double moment_tm; // time for moment updates
+};

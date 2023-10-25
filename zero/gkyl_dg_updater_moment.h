@@ -6,13 +6,11 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
-// Object type
+// Object type (defined in gkyl_dg_updater_moment_priv.h)
 typedef struct gkyl_dg_updater_moment gkyl_dg_updater_moment;
 
-// return type for drag and diffusion timers
-struct gkyl_dg_updater_moment_tm {
-  double moment_tm; // time for moment updates
-};
+// return type for moment timers (defined in gkyl_dg_updater_moment_priv.h)
+typedef struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_tm;
 
 /**
  * Create new updater to compute moments of distribution function.
