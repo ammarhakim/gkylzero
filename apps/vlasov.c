@@ -314,6 +314,7 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
       // Compute the necessary factors to correctly integrate relativistic quantities such as:
       // 1/Gamma = sqrt(1 - V_drift^2/c^2) where V_drift is computed from weak division: M0 * V_drift = M1i
       vm_species_moment_calc(&s->m0, s->local, app->local, s->f);
+      vm_species_moment_calc(&s->m1i, s->local, app->local, s->f);
       gkyl_calc_prim_vars_u_from_rhou(s->V_drift_mem, app->confBasis, &app->local, 
         s->m0.marr, s->m1i.marr, s->V_drift); 
       gkyl_calc_sr_vars_Gamma_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);

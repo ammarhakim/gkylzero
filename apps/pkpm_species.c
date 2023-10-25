@@ -134,11 +134,13 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   s->m1i_pkpm = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
   // div(p_par b_hat), for self-consistent total pressure force
   s->pkpm_div_ppar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  // allocate array to store primitive moments : [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp]
+  // allocate array to store primitive moments : 
+  // [ux, uy, uz, 1/rho*div(p_par b), T_perp/m, m/T_perp, 3*T_xx/m, 3*T_yy/m, 3*T_zz/m]
   // pressure p_ij : (p_par - p_perp) b_i b_j + p_perp g_ij
   s->pkpm_prim = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
   s->pkpm_p_ij = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
-  // boolean array for if we are only using the cell average for primitive variables
+  // boolean array for primitive variables [rho, p_par, p_perp] is negative at control points
+  // *only used for diagnostic purposes*
   s->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
 
   int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
@@ -173,12 +175,12 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // Laguerre couplings and vperp characteristics 
   s->calc_pkpm_dist_vars = gkyl_dg_calc_pkpm_dist_vars_new(&s->grid, &app->confBasis, app->use_gpu);
 
-  // allocate arrays for integrated quantities and I/O of fluid variables
-  // since these require kinetic species information, kinetic species handles integrations and I/O
-  // of fluid variables 
   // array for storing integrated fluid variables in each cell
+  // integ_pkpm_mom : integral[rho, rhoux, rhouy, rhouz, rhoux^2, rhouy^2, rhouz^2, p_par, p_perp]
   s->integ_pkpm_mom = mkarr(app->use_gpu, 9, app->local_ext.volume);
-  // arrays for I/O, fluid_io 
+  // arrays for I/O, fluid_io and pkpm_vars_io
+  // fluid_io : [rho, rhoux, rhouy, rhouz, P_xx+rhoux^2, P_xy+rhouxuy, P_xz+rhouxuz, P_yy+rhouy^2, P_yz+rhouyuz, P_zz+rhouz^2]
+  // pkpm_vars_io : [ux, uy, uz, T_perp/m, m/T_perp, 1/rho div(p_par b), p_perp/rho div(b), bb : grad(u)]
   s->fluid_io = mkarr(app->use_gpu, 10*app->confBasis.num_basis, app->local_ext.volume);
   s->pkpm_vars_io = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
   s->fluid_io_host = s->fluid_io;
@@ -206,14 +208,13 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     &app->local, &s->local_vel, &s->local, 
     is_zero_flux, &vlasov_pkpm_inp, &euler_pkpm_inp, app->use_gpu);
 
-  // array for storing f^2 in each cell
+  // array for storing F_0^2 (0th Laguerre coefficient) in each cell
   s->L2_f = mkarr(app->use_gpu, 1, s->local_ext.volume);
   if (app->use_gpu) {
     s->red_L2_f = gkyl_cu_malloc(sizeof(double));
-    // GKYL_MAX_DIM = 7, allocates a 9 component double
     s->red_integ_diag = gkyl_cu_malloc(sizeof(double[9]));
   }
-  // allocate dynamic-vector to store all-reduced integrated moments and f^2
+  // allocate dynamic-vector to store all-reduced integrated moments and F_0^2
   s->integ_L2_f = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 9);
   s->is_first_integ_L2_write_call = true;
@@ -374,7 +375,6 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
     // Momentum non-periodic upper boundary conditions
     s->bc_up_fluid[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype_fluid, app->basis_on_dev.confBasis,
       &app->upper_skin[d], &app->upper_ghost[d], s->fluid->ncomp, app->cdim, app->use_gpu);
-
   }
 }
 

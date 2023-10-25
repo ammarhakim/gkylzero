@@ -209,7 +209,7 @@ gkyl_pkpm_app_apply_ic_field(gkyl_pkpm_app* app, double t0)
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
 
   pkpm_field_apply_bc(app, app->field, app->field->em);
-  // bvar is computed over extended range, so if needed, calculate it after
+  // bvar is computed over extended range, so calculate it after
   // we apply BCs in the initialization step. Note that the apply_bc call
   // may not apply BCs in the corner cells and the corner values will just
   // be what comes from initializing the EM field over the extended range
@@ -238,9 +238,6 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app* app, double tm)
 
   for (int i=0; i<app->num_species; ++i) {
     struct pkpm_species *s = &app->species[i];
-
-    struct timespec wst = gkyl_wall_clock();
-
     gkyl_array_clear(s->integ_pkpm_mom, 0.0);
 
     pkpm_species_calc_pkpm_vars(app, s, s->f, s->fluid);
@@ -258,13 +255,10 @@ gkyl_pkpm_app_calc_integrated_mom(gkyl_pkpm_app* app, double tm)
 
     gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 9, avals, avals_global);
     gkyl_dynvec_append(s->integ_diag, tm, avals_global);
-
-    app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
-    app->stat.nmom += 1;
   }
 
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
+  app->stat.ndiag += app->num_species;
 }
 
 void
@@ -276,7 +270,7 @@ gkyl_pkpm_app_calc_integrated_L2_f(gkyl_pkpm_app* app, double tm)
     pkpm_species_calc_L2(app, tm, s);
   }
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.ndiag += 1;
+  app->stat.ndiag += app->num_species;
 }
 
 void
@@ -482,7 +476,6 @@ forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
   double dtmin = DBL_MAX;
 
   // Compute external EM field or applied currents if present.
-  // Also compute magnetic field unit vector and tensor if needed
   // Note: external EM field and  applied currents use proj_on_basis 
   // so does copy to GPU every call if app->use_gpu = true.
   if (app->has_field) {
@@ -490,14 +483,14 @@ forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
       pkpm_field_calc_ext_em(app, app->field, tcurr);
     if (app->field->app_current_evolve)
       pkpm_field_calc_app_current(app, app->field, tcurr); 
-
+    // Also compute magnetic field unit vector and tensor,
+    // div(b) and div(b) at quadrature points for update
     pkpm_field_calc_bvar(app, app->field, emin);  
   }
 
-  // Two separate loops over number of species to compute needed auxiliary 
-  // quantities for certain equation objects and models.
+  // Two separate loops over number of species to compute needed auxiliary quantities.
   for (int i=0; i<app->num_species; ++i) {
-    // Compute parallel-kinetic-perpendicular moment (pkpm) variables if present.
+    // Compute parallel-kinetic-perpendicular moment (pkpm) variables.
     // These are the coupling moments [rho, p_par, p_perp], the self-consistent
     // pressure force (div(p_par b_hat)), and the primitive variables
     pkpm_species_calc_pkpm_vars(app, &app->species[i], fin[i], fluidin[i]);
@@ -513,7 +506,7 @@ forward_euler(gkyl_pkpm_app* app, double tcurr, double dt,
       && app->species[i].lbo.num_cross_collisions) {
       pkpm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
-    // Finish computing parallel-kinetic-perpendicular moment (pkpm) variables if present.
+    // Finish computing parallel-kinetic-perpendicular moment (pkpm) variables.
     // These are the update variables including the acceleration variables in the kinetic
     // equation and the source distribution functions for Laguerre couplings.
     // Needs to be done after all collisional moment computations for collisional sources
@@ -767,7 +760,7 @@ comm_reduce_app_stat(const gkyl_pkpm_app* app,
     TOTAL_TM, INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM,
     SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, SPECIES_COLL_MOM_TM,
     SPECIES_COL_TM, SPECIES_PKPM_VARS_TM, FIELD_RHS_TM, FIELD_EM_VARS_TM, CURRENT_TM,
-    SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, MOM_TM, DIAG_TM, IO_TM,
+    SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, DIAG_TM, IO_TM,
     SPECIES_BC_TM, FLUID_SPECIES_BC_TM, FIELD_BC_TM,
     D_END
   };
@@ -787,7 +780,6 @@ comm_reduce_app_stat(const gkyl_pkpm_app* app,
     [CURRENT_TM] = local->current_tm,
     [SPECIES_OMEGA_CFL_TM] = local->species_omega_cfl_tm,
     [FIELD_OMEGA_CFL_TM] = local->field_omega_cfl_tm,
-    [MOM_TM] = local->mom_tm,
     [DIAG_TM] = local->diag_tm,
     [IO_TM] = local->io_tm,
     [SPECIES_BC_TM] = local->species_bc_tm,
@@ -812,7 +804,6 @@ comm_reduce_app_stat(const gkyl_pkpm_app* app,
   global->current_tm = d_red_global[CURRENT_TM];
   global->species_omega_cfl_tm = d_red_global[SPECIES_OMEGA_CFL_TM];
   global->field_omega_cfl_tm = d_red_global[FIELD_OMEGA_CFL_TM];
-  global->mom_tm = d_red_global[MOM_TM];
   global->diag_tm = d_red_global[DIAG_TM];
   global->io_tm = d_red_global[IO_TM];
   global->species_bc_tm = d_red_global[SPECIES_BC_TM];
@@ -912,9 +903,6 @@ gkyl_pkpm_app_stat_write(gkyl_pkpm_app* app)
     gkyl_pkpm_app_cout(app, fp, " field_em_vars_tm : %lg,\n", stat.field_em_vars_tm);
     gkyl_pkpm_app_cout(app, fp, " current_tm : %lg,\n", stat.current_tm);
   }
-
-  gkyl_pkpm_app_cout(app, fp, " nmom : %ld,\n", stat.nmom);
-  gkyl_pkpm_app_cout(app, fp, " mom_tm : %lg\n", stat.mom_tm);
 
   gkyl_pkpm_app_cout(app, fp, " ndiag : %ld,\n", stat.ndiag);
   gkyl_pkpm_app_cout(app, fp, " diag_tm : %lg\n", stat.diag_tm);
