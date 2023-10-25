@@ -88,14 +88,13 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 
   double *wv = 0;
 
-  if ((ul < 0) && (0 < ur)) {
-    // vacuum intermediate state will be formed
-    coldfluid_flux(qr, f);
-    
+  if ((ul < 0) && (0 < ur)) { // vacuum intermediate state will be formed
+    coldfluid_flux(ql, f);
     wv = &waves[0];
     for(int m=0; m<4; ++m) wv[m] = -f[m];
     s[0] = ul;
 
+    coldfluid_flux(qr, f);
     wv = &waves[4];
     for(int m=0; m<4; ++m) wv[m] = f[m];
     s[1] = ur;
