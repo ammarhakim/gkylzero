@@ -1,3 +1,5 @@
+#ifdef GKYL_HAVE_LUA
+
 #include <gkyl_lua_utils.h>
 
 static inline void
@@ -104,3 +106,5 @@ glua_run_lua(lua_State *L, const char *str, long sz, FILE *err)
   }
   return 0;
 }
+
+#endif
