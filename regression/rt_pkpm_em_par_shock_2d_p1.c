@@ -353,7 +353,8 @@ main(int argc, char **argv)
     .upper = { 6.0 * ctx.vtElc}, 
     .cells = { VX },
 
-    .ctx = &ctx,
+    .ctx_dist = &ctx,
+    .ctx_fluid = &ctx,
     .init_dist = evalDistFuncElc,
     .init_fluid = evalFluidElc,
 
@@ -376,7 +377,8 @@ main(int argc, char **argv)
     .upper = { 16.0 * ctx.vtIon}, 
     .cells = { VX },
 
-    .ctx = &ctx,
+    .ctx_dist = &ctx,
+    .ctx_fluid = &ctx,
     .init_dist = evalDistFuncIon,
     .init_fluid = evalFluidIon,
 

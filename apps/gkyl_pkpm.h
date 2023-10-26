@@ -56,7 +56,8 @@ struct gkyl_pkpm_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
-  void *ctx; // context for initial condition init function
+  void *ctx_dist; // context for initial condition init function
+  void *ctx_fluid; // context for initial condition init function
   // pointer to initialization distribution function
   void (*init_dist)(double t, const double *xn, double *fout, void *ctx);
   // pointer to initialization momentum 

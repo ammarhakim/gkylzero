@@ -4,6 +4,7 @@
 void 
 pkpm_species_lbo_init(struct gkyl_pkpm_app *app, struct pkpm_species *s, struct pkpm_lbo_collisions *lbo)
 {
+  printf("I am initializing collisions\n");
   int cdim = app->cdim, vdim = app->vdim;
   double v_bounds[2*GKYL_MAX_DIM];
   for (int d=0; d<vdim; ++d) {

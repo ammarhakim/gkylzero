@@ -242,6 +242,7 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // determine collision type to use in PKPM update
   s->collision_id = s->info.collisions.collision_id;
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
+    printf("I am about to call LBO init\n");
     pkpm_species_lbo_init(app, s, &s->lbo);
   }
 
@@ -384,10 +385,10 @@ pkpm_species_apply_ic(gkyl_pkpm_app *app, struct pkpm_species *species, double t
   int poly_order = app->poly_order;
   gkyl_proj_on_basis *proj_dist;
   proj_dist = gkyl_proj_on_basis_new(&species->grid, &app->basis,
-    8, 2, species->info.init_dist, species->info.ctx);
+    8, 2, species->info.init_dist, species->info.ctx_dist);
   gkyl_proj_on_basis *proj_fluid;
   proj_fluid = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-    poly_order+1, 3, species->info.init_fluid, species->info.ctx);
+    poly_order+1, 3, species->info.init_fluid, species->info.ctx_fluid);
 
   // run updaters; need to project onto extended range for ease of handling
   // subsequent operations over extended range such as primitive variable computations

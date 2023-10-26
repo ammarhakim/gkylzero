@@ -69,7 +69,8 @@ main(int argc, char **argv)
     .upper = { 6.0 }, 
     .cells = { VX },
 
-    .ctx = 0,
+    .ctx_dist = 0,
+    .ctx_fluid = 0,
     .init_dist = evalDistFuncElc,
     .init_fluid = evalFluidElc,
 

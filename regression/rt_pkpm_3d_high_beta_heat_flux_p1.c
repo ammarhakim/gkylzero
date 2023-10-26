@@ -203,7 +203,8 @@ main(int argc, char **argv)
     .upper = { 4.0 * ctx.vtElc}, 
     .cells = { VX },
 
-    .ctx = &ctx,
+    .ctx_dist = &ctx,
+    .ctx_fluid = &ctx,
     .init_dist = evalDistFuncElc,
     .init_fluid = evalFluidElc,
 

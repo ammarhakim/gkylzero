@@ -100,7 +100,8 @@ main(int argc, char **argv)
     .upper = { 6.0*ctx.vt}, 
     .cells = { NV },
 
-    .ctx = &ctx,
+    .ctx_dist = &ctx,
+    .ctx_fluid = &ctx,
     .init_dist = evalDistFunc,
     .init_fluid = evalFluidFunc,
 
