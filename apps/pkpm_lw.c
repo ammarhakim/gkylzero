@@ -95,6 +95,7 @@ struct pkpm_collisions_lw {
 static int
 pkpm_collisions_lw_new(lua_State *L)
 {
+  printf("Inside pkpm_collisions_lw_new\n");
   struct gkyl_pkpm_collisions pkpm_collisions = { };
 
   pkpm_collisions.collision_id = GKYL_LBO_COLLISIONS;  
@@ -153,6 +154,7 @@ struct pkpm_species_lw {
 static int
 pkpm_species_lw_new(lua_State *L)
 {
+  printf("Inside pkpm_species_lw_new\n");
   int vdim  = 0;
   struct gkyl_pkpm_species pkpm_species = { };
 
@@ -190,6 +192,16 @@ pkpm_species_lw_new(lua_State *L)
     init_fluid_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   else
     return luaL_error(L, "Species must have an \"init_fluid\" function for initial conditions!");
+
+  struct pkpm_collisions_lw *pkpmc = 0;
+  with_lua_tbl_key(L, "collisions") {
+    printf(".. Reading collisions ....\n");
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      struct pkpm_collisions_lw *my_pkpmc = lua_touserdata(L, -1);
+      if (my_pkpmc->magic == PKPM_COLLISIONS_DEFAULT)
+        pkpmc = my_pkpmc;
+    }
+  }  
   
   struct pkpm_species_lw *pkpms_lw = lua_newuserdata(L, sizeof(*pkpms_lw));
   pkpms_lw->magic = PKPM_SPECIES_DEFAULT;
@@ -211,15 +223,8 @@ pkpm_species_lw_new(lua_State *L)
     .L = L,
   };
 
-  with_lua_tbl_key(L, "collisions") {
-    if (lua_type(L, -1) == LUA_TUSERDATA) {
-      struct pkpm_collisions_lw *pkpmc = lua_touserdata(L, -1);
-      if (pkpmc->magic == PKPM_COLLISIONS_DEFAULT) {
-        pkpms_lw->collisions_lw = pkpmc;
-      }
-    }
-  }
-  
+  pkpms_lw->collisions_lw = pkpmc;
+   
   // set metatable
   luaL_getmetatable(L, PKPM_SPECIES_METATABLE_NM);
   lua_setmetatable(L, -2);
@@ -417,6 +422,8 @@ pkpm_app_new(lua_State *L)
     pkpm.species[s].init_fluid = eval_ic;
     pkpm.species[s].ctx_dist = &app_lw->species_dist_func_ctx[s];
     pkpm.species[s].ctx_fluid = &app_lw->species_fluid_func_ctx[s];
+
+    pkpm.species[s].collisions = species[s]->collisions_lw->pkpm_collisions;
 
     // get context for (self) collision frequency
     app_lw->collisions_func_ctx[s] = species[s]->collisions_lw->init_ref;
