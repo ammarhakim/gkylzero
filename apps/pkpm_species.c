@@ -242,7 +242,6 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   // determine collision type to use in PKPM update
   s->collision_id = s->info.collisions.collision_id;
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
-    printf("I am about to call LBO init\n");
     pkpm_species_lbo_init(app, s, &s->lbo);
   }
 

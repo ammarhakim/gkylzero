@@ -95,7 +95,6 @@ struct pkpm_collisions_lw {
 static int
 pkpm_collisions_lw_new(lua_State *L)
 {
-  printf("Inside pkpm_collisions_lw_new\n");
   struct gkyl_pkpm_collisions pkpm_collisions = { };
 
   pkpm_collisions.collision_id = GKYL_LBO_COLLISIONS;  
@@ -154,7 +153,6 @@ struct pkpm_species_lw {
 static int
 pkpm_species_lw_new(lua_State *L)
 {
-  printf("Inside pkpm_species_lw_new\n");
   int vdim  = 0;
   struct gkyl_pkpm_species pkpm_species = { };
 
@@ -195,7 +193,6 @@ pkpm_species_lw_new(lua_State *L)
 
   struct pkpm_collisions_lw *pkpmc = 0;
   with_lua_tbl_key(L, "collisions") {
-    printf(".. Reading collisions ....\n");
     if (lua_type(L, -1) == LUA_TUSERDATA) {
       struct pkpm_collisions_lw *my_pkpmc = lua_touserdata(L, -1);
       if (my_pkpmc->magic == PKPM_COLLISIONS_DEFAULT)
