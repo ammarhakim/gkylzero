@@ -5,8 +5,7 @@
 struct gkyl_efit{
   const struct gkyl_basis *rzbasis;
   bool use_gpu;
-  FILE *fp;
-  char* filepath;
+  const char* filepath;
   int nr, nz;
   double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
   double rmin, rmax, zmin, zmax;

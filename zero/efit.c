@@ -72,7 +72,7 @@ void nodal_array_to_modal_psi(const struct gkyl_array *nodal_array, struct gkyl_
 
 
 
-gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis, bool use_gpu)
+gkyl_efit* gkyl_efit_new(const char *filepath, const struct gkyl_basis *rzbasis, bool use_gpu)
 {
 
   gkyl_efit *up = gkyl_malloc(sizeof(gkyl_efit));
