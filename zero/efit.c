@@ -72,18 +72,18 @@ void nodal_array_to_modal_psi(const struct gkyl_array *nodal_array, struct gkyl_
 
 
 
-gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
-  struct gkyl_rect_grid *rzgrid, struct gkyl_range *rzlocal, struct gkyl_range *rzlocal_ext, bool use_gpu)
+gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis, bool use_gpu)
 {
 
   gkyl_efit *up = gkyl_malloc(sizeof(gkyl_efit));
   up->rzbasis = rzbasis;
-  up->rzgrid = rzgrid;
-  up->rzlocal = rzlocal;
-  up->rzlocal_ext = rzlocal_ext;
+  //up->rzgrid = rzgrid;
+  //up->rzlocal = rzlocal;
+  //up->rzlocal_ext = rzlocal_ext;
   up->use_gpu = use_gpu;
+  up->filepath = filepath;
 
-  FILE *ptr = fopen(filepath,"r");
+  FILE *ptr = fopen(up->filepath,"r");
   size_t status;
 
   // Get the dimensions
@@ -102,38 +102,65 @@ gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
 
   printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%g sibry=%g bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", up->rdim, up->zdim, up->rcentr, up->rleft, up->zmid, up->rmaxis, up->zmaxis, up->simag, up->sibry, up->bcentr, up-> current, up->simag, up->rmaxis, up-> zmaxis, up->sibry);
 
+  fclose(ptr);
+
 
   // Now we need to make the grid
   up->zmin = up->zmid - up->zdim/2;
   up->zmax = up->zmid + up->zdim/2;
   up->rmin = up->rleft;
   up->rmax = up->rleft+up->rdim;
-  double rzlower[2] = {up->rmin, up->zmin };
-  double rzupper[2] = {up->rmax, up->zmax};
-  int cells[2];
+
+  up->rzlower = gkyl_malloc(2*sizeof(double));
+  up->rzupper = gkyl_malloc(2*sizeof(double));
+  up->rzcells = gkyl_malloc(2*sizeof(double));
+  up->rzghost = gkyl_malloc(2*sizeof(double));
+
+  up->rzlower[0] = up->rmin;
+  up->rzlower[1] = up->zmin;
+  up->rzupper[0] = up->rmax;
+  up->rzupper[1] = up->zmax;
+  up->rzghost[0] = 1;
+  up->rzghost[1] = 1;
+
   if(up->rzbasis->poly_order==1){
-    cells[0] = up->nr-1;
-    cells[1]= up->nz-1;
+    up->rzcells[0] = up->nr-1;
+    up->rzcells[1]= up->nz-1;
   }
   if(up->rzbasis->poly_order==2){
-    cells[0] = (up->nr-1)/2;
-    cells[1] = (up->nz-1)/2;
+    up->rzcells[0] = (up->nr-1)/2;
+    up->rzcells[1] = (up->nz-1)/2;
   }
-  gkyl_rect_grid_init(up->rzgrid, 2, rzlower, rzupper, cells);
+
+  return up;
+}
+
+void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl_range* rzlocal, struct gkyl_range* rzlocal_ext, struct gkyl_array* psizr, struct gkyl_array* psibyrzr,struct gkyl_array* psibyr2zr)
+{
+  // Do this in g2 now
+  //gkyl_rect_grid_init(up->rzgrid, 2, rzlower, rzupper, cells);
+
+  // Skip all the dummy args we already read
+  FILE *ptr = fopen(up->filepath,"r");
+  size_t status;
+  int idummy;
+  double ddummy;
+
+  status = fscanf(ptr,"%d%d", &idummy, &idummy);
+  status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy);
 
 
   // Now we 4 of the 1d arrays, all of length nr :
   // fpol, pres, ffprim, pprime
   // I don't actually care about these so just read 4*nr times
-  double dummy;
   for(int i = 0; i<4*up->nr; i++){
-    status = fscanf(ptr, "%lf", &dummy);
+    status = fscanf(ptr, "%lf", &ddummy);
   }
 
   // Now we are gonna wanna read psi
   int node_nums[2] = {up->nr, up->nz};
   struct gkyl_range nrange;
-  gkyl_range_init_from_shape(&nrange, up->rzgrid->ndim, node_nums);
+  gkyl_range_init_from_shape(&nrange, rzgrid->ndim, node_nums);
   struct gkyl_array *psizr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   struct gkyl_array *psibyrzr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   struct gkyl_array *psibyr2zr_n = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
@@ -161,29 +188,32 @@ gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
   // We filled psizr_nodal
   fclose(ptr);
 
+  // Do the ranges in g2
   // Now we need to create a range for the modal array up->psizr
   // Then we can loop through it with a nodal->modal conversion function
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
-  gkyl_create_grid_ranges(up->rzgrid, nghost, up->rzlocal_ext, up->rzlocal);
+  //int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  //gkyl_create_grid_ranges(rzgrid, nghost, rzlocal_ext, rzlocal);
 
 
 
-  up->psizr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
-  nodal_array_to_modal_psi(psizr_n, up->psizr, up->rzlocal, &nrange, up->rzbasis, up->rzgrid, 1);
+  // Allocate these in g2 now
+  //up->psizr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
+  //up->psibyrzr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
+  //up->psibyr2zr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
 
-  up->psibyrzr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
-  nodal_array_to_modal_psi(psibyrzr_n, up->psibyrzr, up->rzlocal, &nrange, up->rzbasis, up->rzgrid, 1);
-
-  up->psibyr2zr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
-  nodal_array_to_modal_psi(psibyr2zr_n, up->psibyr2zr, up->rzlocal, &nrange, up->rzbasis, up->rzgrid, 1);
-  
-  return up;
+  nodal_array_to_modal_psi(psizr_n, psizr, rzlocal, &nrange, up->rzbasis, rzgrid, 1);
+  nodal_array_to_modal_psi(psibyrzr_n, psibyrzr, rzlocal, &nrange, up->rzbasis, rzgrid, 1);
+  nodal_array_to_modal_psi(psibyr2zr_n, psibyr2zr, rzlocal, &nrange, up->rzbasis, rzgrid, 1);
 }
 
 
 void gkyl_efit_release(gkyl_efit* up){
-  gkyl_array_release(up->psizr);
-  gkyl_array_release(up->psibyrzr);
-  gkyl_array_release(up->psibyr2zr);
+  //gkyl_array_release(up->psizr);
+  //gkyl_array_release(up->psibyrzr);
+  //gkyl_array_release(up->psibyr2zr);
+  gkyl_free(up->rzlower);
+  gkyl_free(up->rzupper);
+  gkyl_free(up->rzcells);
+  gkyl_free(up->rzghost);
   gkyl_free(up);
 }

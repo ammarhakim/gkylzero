@@ -25,14 +25,28 @@ void test_1(){
   gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
 
   struct gkyl_rect_grid rzgrid;
- 
   struct gkyl_range rzlocal, rzlocal_ext;
 
-  struct gkyl_efit* efit = gkyl_efit_new(filepath, &rzbasis, &rzgrid, &rzlocal, &rzlocal_ext, false);
+  struct gkyl_efit* efit = gkyl_efit_new(filepath, &rzbasis, false);
 
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psizr, "efit_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyrzr, "efit_psibyr.gkyl");
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyr2zr, "efit_psibyr2.gkyl");
+  gkyl_rect_grid_init(&rzgrid, 2, efit->rzlower, efit->rzupper, efit->rzcells);
+  gkyl_create_grid_ranges(&rzgrid, efit->rzghost, &rzlocal_ext, &rzlocal);
+
+
+  struct gkyl_array* psizr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+  struct gkyl_array* psibyrzr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+  struct gkyl_array* psibyr2zr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+
+
+  gkyl_efit_advance(efit, &rzgrid, &rzlocal, &rzlocal_ext, psizr, psibyrzr, psibyr2zr);
+
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psizr, "efit_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psibyrzr, "efit_psibyr.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psibyr2zr, "efit_psibyr2.gkyl");
+
+  gkyl_array_release(psizr);
+  gkyl_array_release(psibyrzr);
+  gkyl_array_release(psibyr2zr);
 
 
 

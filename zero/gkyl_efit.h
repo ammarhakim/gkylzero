@@ -9,14 +9,27 @@
 typedef struct gkyl_efit gkyl_efit;
 
 /**
- * Create new updater to compute the derived_geo coefficients
+ * Create new updater to project psi, psi/R, psi/R^2
+ * new method fills info to contruct a grid
  *
  * @param rzbasis Basis object 
  * @param rz grid to be filled from efit
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis,
-  struct gkyl_rect_grid *rzgrid, struct gkyl_range *rzlocal, struct gkyl_range *rzlocal_ext, bool use_gpu);
+gkyl_efit* gkyl_efit_new(char *filepath, const struct gkyl_basis *rzbasis, bool use_gpu);
+
+
+
+/**
+ * Project psi, psi/R, psi/R^2
+ *
+ * @param rzbasis Basis object 
+ * @param rz grid to be filled from efit
+ * @param use_gpu boolean indicating whether to use the GPU.
+ * @return New updater pointer.
+ */
+
+void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl_range* rzlocal, struct gkyl_range* rzlocal_ext, struct gkyl_array* psizr, struct gkyl_array* psibyrzr,struct gkyl_array* psibyr2zr);
 
 void gkyl_efit_release(gkyl_efit* up);

@@ -293,22 +293,29 @@ test_1()
   //gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
   //gkyl_eval_on_nodes_release(eon);
 
-  char* filepath = "/home/akash/test_cio/AH_PI4_P5.geqdsk";
+  char* filepath = "./efit_data/input.geqdsk";
   // RZ basis function
-
   int rzpoly_order = 2;
   struct gkyl_basis rzbasis;
   gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
-
   struct gkyl_rect_grid rzgrid;
- 
   struct gkyl_range rzlocal, rzlocal_ext;
 
-  struct gkyl_efit* efit = gkyl_efit_new(filepath, &rzbasis, &rzgrid, &rzlocal, &rzlocal_ext, false);
+  struct gkyl_efit* efit = gkyl_efit_new(filepath, &rzbasis, false);
+  printf("made new\n");
+  gkyl_rect_grid_init(&rzgrid, 2, efit->rzlower, efit->rzupper, efit->rzcells);
+  printf("made grid\n");
+  gkyl_create_grid_ranges(&rzgrid, efit->rzghost, &rzlocal_ext, &rzlocal);
+  printf("made ranges\n");
+  struct gkyl_array* psizr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+  struct gkyl_array* psibyrzr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+  struct gkyl_array* psibyr2zr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
+  printf("mads psi arrays\n");
+  gkyl_efit_advance(efit, &rzgrid, &rzlocal, &rzlocal_ext, psizr, psibyrzr, psibyr2zr);
 
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psizr, "efit_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyrzr, "efit_psibyr.gkyl");
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyr2zr, "efit_psibyr2.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psizr, "efit_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psibyrzr, "efit_psibyr.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psibyr2zr, "efit_psibyr2.gkyl");
 
   //struct step_ctx sctx = {  .R0 = 2.6,  .B0 = 2.1 };
   struct step_ctx sctx = {  .R0 = efit->rcentr,  .B0 = efit->bcentr };
@@ -321,7 +328,7 @@ test_1()
       // psiRZ and related inputs
       .rzgrid = &rzgrid,
       .rzbasis = &rzbasis,
-      .psiRZ = efit->psizr,
+      .psiRZ = psizr,
       .rzlocal = &rzlocal,
       .B0 = sctx.B0,
       .R0 = sctx.R0,
@@ -335,10 +342,10 @@ test_1()
 
   double psiSep = 1.50982;
 
-  double clower[] = { 1.3, -0.01, -3.14 };
-  double cupper[] = {1.508, 0.01, 3.14 };
+  double clower[] = { 0.934, -0.01, -3.14/32 };
+  double cupper[] = {1.4688, 0.01, 3.14/32 };
 
-  int ccells[] = { 3, 3, 128 };
+  int ccells[] = { 3, 1, 128/32 };
 
 
 
@@ -440,7 +447,7 @@ test_1()
   gkyl_calc_bmag *calculator = gkyl_calc_bmag_new(&cbasis, &rzbasis, &cgrid, &rzgrid, geo, &ginp, false);
   printf("allocated bmag calculator\n");
 
-  gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, efit->psizr, efit->psibyrzr, efit->psibyr2zr, bphidg, bmagFld, mapc2p_arr);
+  gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, psizr, psibyrzr, psibyr2zr, bphidg, bmagFld, mapc2p_arr);
   printf("advanced bmag calculator\n");
 
 
@@ -560,9 +567,9 @@ test_1()
 
 
   //gkyl_array_release(RZ);
-  //gkyl_array_release(psidg);
-  //gkyl_array_release(psibyrdg);
-  //gkyl_array_release(psibyr2dg);
+  gkyl_array_release(psizr);
+  gkyl_array_release(psibyrzr);
+  gkyl_array_release(psibyr2zr);
   gkyl_array_release(bmagFld);
   gkyl_array_release(bmagdg);
   gkyl_array_release(cmagFld);
