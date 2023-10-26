@@ -306,7 +306,7 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	cp ${INSTALL_HEADERS} ${PREFIX}/gkylzero/include
 	./minus/gengkylzeroh.sh > ${PREFIX}/gkylzero/include/gkylzero.h
 # libraries
-	strip ${ZERO_SH_INSTALL_LIB}
+	strip -u ${ZERO_SH_INSTALL_LIB}
 	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
 # Examples
 	test -e config.mak && cp -f config.mak ${PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
