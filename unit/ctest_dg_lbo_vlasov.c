@@ -83,14 +83,6 @@ test_1x1v_p2()
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  // initialize hyper_dg slvr
-  int up_dirs[] = {1};
-  int zero_flux_flags[] = {1};
-
-  gkyl_dg_updater_collisions *slvr;
-  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, false);
-  
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
 
@@ -113,12 +105,22 @@ test_1x1v_p2()
   gkyl_array_set_offset(nuPrimMomsSum, 1.0, nuUSum, 0);
   gkyl_array_set_offset(nuPrimMomsSum, 1.0, nuVtSqSum, vdim*confBasis.num_basis);
 
+  // initialize hyper_dg slvr
+  int up_dirs[] = {1};
+  int zero_flux_flags[] = {1};
+
+  gkyl_dg_updater_collisions *slvr;
+  // LBO updater
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
+  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, false);
+
   // run hyper_dg_advance
   int nrep = 10;
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, nuSum, nuPrimMomsSum, fin, cflrate, rhs);
+    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell
@@ -201,14 +203,6 @@ test_1x2v_p2()
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  // initialize hyper_dg slvr
-  int up_dirs[] = {1, 2};
-  int zero_flux_flags[] = {1, 1};
-
-  gkyl_dg_updater_collisions *slvr;
-  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, false);
-  
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x2v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
 
@@ -231,13 +225,23 @@ test_1x2v_p2()
   gkyl_array_set_offset(nuPrimMomsSum, 1.0, nuUSum, 0);
   gkyl_array_set_offset(nuPrimMomsSum, 1.0, nuVtSqSum, vdim*confBasis.num_basis);
 
+  // initialize hyper_dg slvr
+  int up_dirs[] = {1, 2};
+  int zero_flux_flags[] = {1, 1};
+
+  gkyl_dg_updater_collisions *slvr;
+  // LBO updater
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
+  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, false);
+
   // run hyper_dg_advance
   int nrep = 10;
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
     
-    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, nuSum, nuPrimMomsSum, fin, cflrate, rhs);
+    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell
@@ -347,14 +351,6 @@ test_1x1v_p2_cu()
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  // initialize hyper_dg slvr
-  int up_dirs[] = {1};
-  int zero_flux_flags[] = {1};
-
-  gkyl_dg_updater_collisions *slvr;
-  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, true);
-  
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
 
@@ -383,6 +379,16 @@ test_1x1v_p2_cu()
 
   gkyl_array_copy(fin_cu, fin);
   gkyl_array_copy(nuSum_cu, nuSum);
+
+  // initialize hyper_dg slvr
+  int up_dirs[] = {1};
+  int zero_flux_flags[] = {1};
+
+  gkyl_dg_updater_collisions *slvr;
+  // LBO updater
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
+  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, true);
   
   // run hyper_dg_advance
   int nrep = 10;
@@ -390,7 +396,7 @@ test_1x1v_p2_cu()
     gkyl_array_clear(rhs_cu, 0.0);
     gkyl_array_clear(cflrate_cu, 0.0);
     gkyl_dg_updater_lbo_vlasov_advance_cu(slvr, &phaseRange,
-      nuSum_cu, nuPrimMomsSum_cu, fin_cu, cflrate_cu, rhs_cu);
+      fin_cu, cflrate_cu, rhs_cu);
   }
   gkyl_array_copy(rhs, rhs_cu);
 
@@ -477,14 +483,6 @@ test_1x2v_p2_cu()
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  // initialize hyper_dg slvr
-  int up_dirs[] = {1, 2};
-  int zero_flux_flags[] = {1, 1};
-
-  gkyl_dg_updater_collisions *slvr;
-  enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
-  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, true);
-   
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x2v, NULL);
   gkyl_proj_on_basis *projNu = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, nu_prof, NULL);
 
@@ -514,6 +512,16 @@ test_1x2v_p2_cu()
   gkyl_array_set_offset(nuPrimMomsSum_cu, 1.0, nuUSum_cu, 0);
   gkyl_array_set_offset(nuPrimMomsSum_cu, 1.0, nuVtSqSum_cu, vdim*confBasis.num_basis);
 
+  // initialize hyper_dg slvr
+  int up_dirs[] = {1, 2};
+  int zero_flux_flags[] = {1, 1};
+
+  gkyl_dg_updater_collisions *slvr;
+  // LBO updater
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
+  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, true);
+
   // run hyper_dg_advance
   int nrep = 10;
   for(int n=0; n<nrep; n++) {
@@ -521,7 +529,7 @@ test_1x2v_p2_cu()
     gkyl_array_clear(cflrate_cu, 0.0);
     
     gkyl_dg_updater_lbo_vlasov_advance_cu(slvr, &phaseRange,
-      nuSum_cu, nuPrimMomsSum_cu, fin_cu, cflrate_cu, rhs_cu);
+      fin_cu, cflrate_cu, rhs_cu);
   }
   gkyl_array_copy(rhs, rhs_cu);
     
