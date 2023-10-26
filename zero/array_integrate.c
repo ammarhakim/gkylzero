@@ -7,6 +7,11 @@ struct gkyl_array_integrate*
 gkyl_array_integrate_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
   int num_comp, enum gkyl_array_integrate_op op, bool use_gpu)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    return gkyl_array_integrate_cu_dev_new(grid, basis, num_comp, op);
+#endif
+
   // Allocate space for new updater.
   struct gkyl_array_integrate *up = gkyl_malloc(sizeof(struct gkyl_array_integrate));
 
@@ -26,21 +31,7 @@ gkyl_array_integrate_new(const struct gkyl_rect_grid *grid, const struct gkyl_ba
   }
 
   // Choose the kernel that performs the desired operation within the integral.
-  up->kernels = gkyl_malloc(sizeof(struct gkyl_array_integrate_kernels));
-#ifdef GKYL_HAVE_CUDA
-  if (use_gpu) {
-    up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_array_integrate_kernels));
-    gkyl_array_integrate_choose_kernel_cu(op, up->kernels_cu);
-  } else {
-    gkyl_array_integrate_choose_kernel(op, up->kernels);
-    assert(up->kernels->intker);
-    up->kernels_cu = up->kernels;
-  }
-#else
-  gkyl_array_integrate_choose_kernel(op, up->kernels);
-  assert(up->kernels->intker);
-  up->kernels_cu = up->kernels;
-#endif
+  gkyl_array_integrate_choose_kernel(op, up);
 
   return up;
 }
@@ -50,7 +41,7 @@ void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_ar
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_array_integrate_advance_cu(up, arr, weight, out);
+    gkyl_array_integrate_advance_cu(up, arr, weight, range, out);
     return;
   }
 #endif
@@ -64,7 +55,7 @@ void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_ar
     long linidx = gkyl_range_idx(range, iter.idx);
     const double *arr_d = (const double*) gkyl_array_cfetch(arr, linidx);
 
-    up->kernels->intker(up->vol, up->num_comp, up->num_basis, arr_d, out);
+    up->kernel(up->vol, up->num_comp, up->num_basis, arr_d, out);
   }
 
   for (int k=0; k<up->num_comp; k++) out[k] *= weight;
@@ -75,8 +66,7 @@ void gkyl_array_integrate_release(gkyl_array_integrate *up)
   // Release memory associated with this updater.
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    gkyl_cu_free(up->kernels_cu);
+    gkyl_cu_free(up->on_dev);
 #endif
-  gkyl_free(up->kernels);
   gkyl_free(up);
 }

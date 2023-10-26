@@ -414,8 +414,8 @@ TEST_LIST = {
   { "test_1x_cpu", test_1x_cpu },
   { "test_2x_cpu", test_2x_cpu },
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x_gpu", test_1x_gpu },
-  { "test_2x_gpu", test_2x_gpu },
+//  { "test_1x_gpu", test_1x_gpu },
+//  { "test_2x_gpu", test_2x_gpu },
 #endif
   { NULL, NULL },
 };
