@@ -395,7 +395,7 @@ test_1x1v_p2_cu()
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs_cu, 0.0);
     gkyl_array_clear(cflrate_cu, 0.0);
-    gkyl_dg_updater_lbo_vlasov_advance_cu(slvr, &phaseRange,
+    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange,
       fin_cu, cflrate_cu, rhs_cu);
   }
   gkyl_array_copy(rhs, rhs_cu);
@@ -528,7 +528,7 @@ test_1x2v_p2_cu()
     gkyl_array_clear(rhs_cu, 0.0);
     gkyl_array_clear(cflrate_cu, 0.0);
     
-    gkyl_dg_updater_lbo_vlasov_advance_cu(slvr, &phaseRange,
+    gkyl_dg_updater_lbo_vlasov_advance(slvr, &phaseRange,
       fin_cu, cflrate_cu, rhs_cu);
   }
   gkyl_array_copy(rhs, rhs_cu);
