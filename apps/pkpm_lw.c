@@ -89,7 +89,7 @@ struct pkpm_collisions_lw {
   int magic; // this must be first element in the struct
   
   struct gkyl_pkpm_collisions pkpm_collisions; // input struct to construct collisions
-  struct lua_func_ctx init_ref; // Lua registery reference to initilization function for (self) collision frequency
+  struct lua_func_ctx init_nu_ref; // Lua registery reference to initilization function for (self) collision frequency
 };
 
 static int
@@ -99,19 +99,19 @@ pkpm_collisions_lw_new(lua_State *L)
 
   pkpm_collisions.collision_id = GKYL_LBO_COLLISIONS;  
 
-  int init_ref = LUA_NOREF;
+  int init_nu_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "self_nu"))
-    init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    init_nu_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   else
     return luaL_error(L, "Collisions must have an \"self_nu\" function for collision frequency!");
 
-  struct pkpm_collisions_lw *pkpmc_lw = lua_newuserdata(L, sizeof(*pkpmc_lw));
+  struct pkpm_collisions_lw *pkpm_c_lw = lua_newuserdata(L, sizeof(*pkpm_c_lw));
 
-  pkpmc_lw->magic = PKPM_COLLISIONS_DEFAULT;
-  pkpmc_lw->pkpm_collisions = pkpm_collisions;
+  pkpm_c_lw->magic = PKPM_COLLISIONS_DEFAULT;
+  pkpm_c_lw->pkpm_collisions = pkpm_collisions;
   
-  pkpmc_lw->init_ref = (struct lua_func_ctx) {
-    .func_ref = init_ref,
+  pkpm_c_lw->init_nu_ref = (struct lua_func_ctx) {
+    .func_ref = init_nu_ref,
     .ndim = 0, // this will be set later
     .nret = 1,
     .L = L,
@@ -191,36 +191,36 @@ pkpm_species_lw_new(lua_State *L)
   else
     return luaL_error(L, "Species must have an \"init_fluid\" function for initial conditions!");
 
-  struct pkpm_collisions_lw *pkpmc = 0;
+  struct pkpm_collisions_lw *pkpm_c_lw = 0;
   with_lua_tbl_key(L, "collisions") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
-      struct pkpm_collisions_lw *my_pkpmc = lua_touserdata(L, -1);
-      if (my_pkpmc->magic == PKPM_COLLISIONS_DEFAULT)
-        pkpmc = my_pkpmc;
+      struct pkpm_collisions_lw *input_pkpm_collisions_lw = lua_touserdata(L, -1);
+      if (input_pkpm_collisions_lw->magic == PKPM_COLLISIONS_DEFAULT)
+        pkpm_c_lw = input_pkpm_collisions_lw;
     }
   }  
   
-  struct pkpm_species_lw *pkpms_lw = lua_newuserdata(L, sizeof(*pkpms_lw));
-  pkpms_lw->magic = PKPM_SPECIES_DEFAULT;
-  pkpms_lw->vdim = vdim;
-  pkpms_lw->evolve = evolve;
-  pkpms_lw->pkpm_species = pkpm_species;
+  struct pkpm_species_lw *pkpm_s_lw = lua_newuserdata(L, sizeof(*pkpm_s_lw));
+  pkpm_s_lw->magic = PKPM_SPECIES_DEFAULT;
+  pkpm_s_lw->vdim = vdim;
+  pkpm_s_lw->evolve = evolve;
+  pkpm_s_lw->pkpm_species = pkpm_species;
 
-  pkpms_lw->init_dist_ref = (struct lua_func_ctx) {
+  pkpm_s_lw->init_dist_ref = (struct lua_func_ctx) {
     .func_ref = init_dist_ref,
     .ndim = 0, // this will be set later
     .nret = 2,
     .L = L,
   };
 
-  pkpms_lw->init_fluid_ref = (struct lua_func_ctx) {
+  pkpm_s_lw->init_fluid_ref = (struct lua_func_ctx) {
     .func_ref = init_fluid_ref,
     .ndim = 0, // this will be set later
     .nret = 3,
     .L = L,
   };
 
-  pkpms_lw->collisions_lw = pkpmc;
+  pkpm_s_lw->collisions_lw = pkpm_c_lw;
    
   // set metatable
   luaL_getmetatable(L, PKPM_SPECIES_METATABLE_NM);
@@ -272,13 +272,13 @@ pkpm_field_lw_new(lua_State *L)
   else
     return luaL_error(L, "Field must have an \"init\" function for initial conditions!");
 
-  struct pkpm_field_lw *pkpmf_lw = lua_newuserdata(L, sizeof(*pkpmf_lw));
+  struct pkpm_field_lw *pkpm_f_lw = lua_newuserdata(L, sizeof(*pkpm_f_lw));
 
-  pkpmf_lw->magic = PKPM_FIELD_DEFAULT;
-  pkpmf_lw->evolve = evolve;
-  pkpmf_lw->pkpm_field = pkpm_field;
+  pkpm_f_lw->magic = PKPM_FIELD_DEFAULT;
+  pkpm_f_lw->evolve = evolve;
+  pkpm_f_lw->pkpm_field = pkpm_field;
   
-  pkpmf_lw->init_ref = (struct lua_func_ctx) {
+  pkpm_f_lw->init_ref = (struct lua_func_ctx) {
     .func_ref = init_ref,
     .ndim = 0, // this will be set later
     .nret = 6,
@@ -310,7 +310,7 @@ struct pkpm_app_lw {
   gkyl_pkpm_app *app; // PKPM app object
   struct lua_func_ctx species_dist_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' distribution function
   struct lua_func_ctx species_fluid_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' momentum
-  struct lua_func_ctx collisions_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' collision frequency
+  struct lua_func_ctx collisions_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' (self) collision frequency
   struct lua_func_ctx field_func_ctx; // function context for field
   
   double tstart, tend; // start and end times of simulation
@@ -321,7 +321,7 @@ struct pkpm_app_lw {
 // the stack. The number of species is returned and the appropriate
 // pointers set in the species pointer array.
 static int
-get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX_SPECIES])
+get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *pkpm_s_lw[GKYL_MAX_SPECIES])
 {
   enum { TKEY = -2, TVAL = -1};
   
@@ -330,18 +330,18 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *species[GKYL_MAX
   while (lua_next(L, TKEY) != 0) {
     // key at TKEY and value at TVAL
     if (lua_type(L, TVAL) == LUA_TUSERDATA) {
-      struct pkpm_species_lw *pkpms = lua_touserdata(L, TVAL);
-      if (pkpms->magic == PKPM_SPECIES_DEFAULT) {
+      struct pkpm_species_lw *input_pkpm_species_lw = lua_touserdata(L, TVAL);
+      if (input_pkpm_species_lw->magic == PKPM_SPECIES_DEFAULT) {
         
-        pkpms->init_dist_ref.ndim = cdim + pkpms->vdim;
-        pkpms->init_fluid_ref.ndim = cdim;
-        pkpms->collisions_lw->init_ref.ndim = cdim;
+        input_pkpm_species_lw->init_dist_ref.ndim = cdim + input_pkpm_species_lw->vdim;
+        input_pkpm_species_lw->init_fluid_ref.ndim = cdim;
+        input_pkpm_species_lw->collisions_lw->init_nu_ref.ndim = cdim;
         
         if (lua_type(L,TKEY) == LUA_TSTRING) {
           const char *key = lua_tolstring(L, TKEY, 0);
-          strcpy(pkpms->pkpm_species.name, key);
+          strcpy(input_pkpm_species_lw->pkpm_species.name, key);
         }
-        species[curr++] = pkpms;
+        pkpm_s_lw[curr++] = input_pkpm_species_lw;
       }
     }
     lua_pop(L, 1);
@@ -405,25 +405,26 @@ pkpm_app_new(lua_State *L)
     }
   }
 
-  struct pkpm_species_lw *species[GKYL_MAX_SPECIES];
+  struct pkpm_species_lw *pkpm_s_lw[GKYL_MAX_SPECIES];
   // set all species input
-  pkpm.num_species = get_species_inp(L, cdim, species);
+  pkpm.num_species = get_species_inp(L, cdim, pkpm_s_lw);
   for (int s=0; s<pkpm.num_species; ++s) {
-    pkpm.species[s] = species[s]->pkpm_species;
-    pkpm.vdim = species[s]->vdim;
+    pkpm.species[s] = pkpm_s_lw[s]->pkpm_species;
+    pkpm.vdim = pkpm_s_lw[s]->vdim;
     
-    // get context from distribution functions and momentum
-    app_lw->species_dist_func_ctx[s] = species[s]->init_dist_ref;
-    app_lw->species_fluid_func_ctx[s] = species[s]->init_fluid_ref;
+    // get context for distribution functions and momentum
+    app_lw->species_dist_func_ctx[s] = pkpm_s_lw[s]->init_dist_ref;
+    app_lw->species_fluid_func_ctx[s] = pkpm_s_lw[s]->init_fluid_ref;
     pkpm.species[s].init_dist = eval_ic;
     pkpm.species[s].init_fluid = eval_ic;
     pkpm.species[s].ctx_dist = &app_lw->species_dist_func_ctx[s];
     pkpm.species[s].ctx_fluid = &app_lw->species_fluid_func_ctx[s];
 
-    pkpm.species[s].collisions = species[s]->collisions_lw->pkpm_collisions;
-
+    // assign the App's species object collision struct to user input collision struct 
+    // Note: user input collision struct initialized in pkpm_species_lw_new as part of species' initialization
+    pkpm.species[s].collisions = pkpm_s_lw[s]->collisions_lw->pkpm_collisions;
     // get context for (self) collision frequency
-    app_lw->collisions_func_ctx[s] = species[s]->collisions_lw->init_ref;
+    app_lw->collisions_func_ctx[s] = pkpm_s_lw[s]->collisions_lw->init_nu_ref;
     pkpm.species[s].collisions.self_nu = eval_ic;
     pkpm.species[s].collisions.ctx = &app_lw->collisions_func_ctx[s];
   }
@@ -432,14 +433,14 @@ pkpm_app_new(lua_State *L)
   pkpm.skip_field = true;
   with_lua_tbl_key(L, "field") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
-      struct pkpm_field_lw *pkpmf = lua_touserdata(L, -1);
-      if (pkpmf->magic == PKPM_FIELD_DEFAULT) {
-        pkpmf->init_ref.ndim = cdim;
+      struct pkpm_field_lw *pkpm_f_lw = lua_touserdata(L, -1);
+      if (pkpm_f_lw->magic == PKPM_FIELD_DEFAULT) {
+        pkpm_f_lw->init_ref.ndim = cdim;
 
-        pkpm.field = pkpmf->pkpm_field;
-        pkpm.skip_field = !pkpmf->evolve;
+        pkpm.field = pkpm_f_lw->pkpm_field;
+        pkpm.skip_field = !pkpm_f_lw->evolve;
 
-        app_lw->field_func_ctx = pkpmf->init_ref;
+        app_lw->field_func_ctx = pkpm_f_lw->init_ref;
         pkpm.field.init = eval_ic;
         pkpm.field.ctx = &app_lw->field_func_ctx;
       }
