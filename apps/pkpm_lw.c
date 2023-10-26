@@ -40,6 +40,7 @@ enum pkpm_magic_ids {
   PKPM_SPECIES_DEFAULT = 100, // non-relativistic PKPM model
   PKPM_FIELD_DEFAULT, // Maxwell equations
   PKPM_COLLISIONS_DEFAULT, // LBO Collisions
+  PKPM_DIFFUSION_DEFAULT, // Diffusion operator
 };
 
 // Used in call back passed to the initial conditions
@@ -76,6 +77,46 @@ eval_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
     lua_pop(L, 1);
   }
 }
+
+/* *****************/
+/* Diffusion methods */
+/* *****************/
+
+// Metatable name for field input struct
+#define PKPM_DIFFUSION_METATABLE_NM "GkeyllZero.PKPM.Diffusion"
+
+// Lua userdata object for constructing field input
+struct pkpm_diffusion_lw {
+  int magic; // this must be first element in the struct
+  
+  struct gkyl_pkpm_fluid_diffusion pkpm_diffusion; // input struct to construct diffusion operator
+};
+
+static int
+pkpm_diffusion_lw_new(lua_State *L)
+{
+  struct gkyl_pkpm_fluid_diffusion pkpm_diffusion = { };
+
+  pkpm_diffusion.D = glua_tbl_get_number(L, "D", 0.0);
+  pkpm_diffusion.order = glua_tbl_get_integer(L, "order", 2);
+
+  struct pkpm_diffusion_lw *pkpm_d_lw = lua_newuserdata(L, sizeof(*pkpm_d_lw));
+
+  pkpm_d_lw->magic = PKPM_DIFFUSION_DEFAULT;
+  pkpm_d_lw->pkpm_diffusion = pkpm_diffusion;
+  
+  // set metatable
+  luaL_getmetatable(L, PKPM_DIFFUSION_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Species constructor
+static struct luaL_Reg pkpm_diffusion_ctor[] = {
+  { "new",  pkpm_diffusion_lw_new },
+  { 0, 0 }
+};
 
 /* *****************/
 /* Collisions methods */
@@ -143,11 +184,12 @@ struct pkpm_species_lw {
   
   struct gkyl_pkpm_species pkpm_species; // input struct to construct species
   int vdim; // velocity dimensions
-  bool evolve; // is this species evolved?
   struct lua_func_ctx init_dist_ref; // Lua registery reference to initilization distribution function
   struct lua_func_ctx init_fluid_ref; // Lua registery reference to initilization momentum
+  struct lua_func_ctx app_accel_ref; // Lua registery reference to external acceleration
 
   struct pkpm_collisions_lw *collisions_lw; // pointer to Lua collisions table
+  struct pkpm_diffusion_lw *diffusion_lw; // pointer to Lua diffusion table
 };
 
 static int
@@ -177,20 +219,28 @@ pkpm_species_lw_new(lua_State *L)
       pkpm_species.upper[d] = glua_tbl_iget_number(L, d+1, 0);
   }
 
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
-
+  // Register initial conditions for distribution functions
   int init_dist_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init_dist"))
     init_dist_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   else
     return luaL_error(L, "Species must have an \"init_dist\" function for initial conditions!");
 
+  // Register initial conditions for momentum
   int init_fluid_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init_fluid"))
     init_fluid_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   else
     return luaL_error(L, "Species must have an \"init_fluid\" function for initial conditions!");
 
+  // Register applied acceleration (if present)
+  int app_accel_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "app_accel"))
+    app_accel_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  // By default, applied acceleration is not time dependent
+  pkpm_species.app_accel_evolve = glua_tbl_get_integer(L, "app_accel_evolve", false);
+
+  // Fetch user input table for collision operator 
   struct pkpm_collisions_lw *pkpm_c_lw = 0;
   with_lua_tbl_key(L, "collisions") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
@@ -199,11 +249,21 @@ pkpm_species_lw_new(lua_State *L)
         pkpm_c_lw = input_pkpm_collisions_lw;
     }
   }  
+
+  // Fetch user input table for diffusion operator 
+  struct pkpm_diffusion_lw *pkpm_d_lw = 0;
+  with_lua_tbl_key(L, "diffusion") {
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      struct pkpm_diffusion_lw *input_pkpm_diffusion_lw = lua_touserdata(L, -1);
+      if (input_pkpm_diffusion_lw->magic == PKPM_DIFFUSION_DEFAULT)
+        pkpm_d_lw = input_pkpm_diffusion_lw;
+    }
+  }  
   
+  // Create species lua wrapper struct from inputs
   struct pkpm_species_lw *pkpm_s_lw = lua_newuserdata(L, sizeof(*pkpm_s_lw));
   pkpm_s_lw->magic = PKPM_SPECIES_DEFAULT;
   pkpm_s_lw->vdim = vdim;
-  pkpm_s_lw->evolve = evolve;
   pkpm_s_lw->pkpm_species = pkpm_species;
 
   pkpm_s_lw->init_dist_ref = (struct lua_func_ctx) {
@@ -220,7 +280,16 @@ pkpm_species_lw_new(lua_State *L)
     .L = L,
   };
 
+  pkpm_s_lw->app_accel_ref = (struct lua_func_ctx) {
+    .func_ref = app_accel_ref,
+    .ndim = 0, // this will be set later
+    .nret = 3,
+    .L = L,
+  };
+
   pkpm_s_lw->collisions_lw = pkpm_c_lw;
+
+  pkpm_s_lw->diffusion_lw = pkpm_d_lw;
    
   // set metatable
   luaL_getmetatable(L, PKPM_SPECIES_METATABLE_NM);
@@ -247,8 +316,9 @@ struct pkpm_field_lw {
   int magic; // this must be first element in the struct
   
   struct gkyl_pkpm_field pkpm_field; // input struct to construct field
-  bool evolve; // is this field evolved?
   struct lua_func_ctx init_ref; // Lua registery reference to initilization function
+  struct lua_func_ctx ext_em_ref; // Lua registery reference to external EM fields
+  struct lua_func_ctx app_current_ref; // Lua registery reference to applied currents
 };
 
 static int
@@ -264,7 +334,8 @@ pkpm_field_lw_new(lua_State *L)
   pkpm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   pkpm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
 
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  // By default, EM fields are not static
+  pkpm_field.is_static = glua_tbl_get_integer(L, "is_static", false);
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init"))
@@ -272,10 +343,21 @@ pkpm_field_lw_new(lua_State *L)
   else
     return luaL_error(L, "Field must have an \"init\" function for initial conditions!");
 
+  int ext_em_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "ext_em"))
+    ext_em_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  // By default, external EM fields are not time dependent
+  pkpm_field.ext_em_evolve = glua_tbl_get_integer(L, "ext_em_evolve", false);
+
+  int app_current_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "app_current"))
+    app_current_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  // By default, applied currents are not time dependent
+  pkpm_field.app_current_evolve = glua_tbl_get_integer(L, "app_current_evolve", false);
+
   struct pkpm_field_lw *pkpm_f_lw = lua_newuserdata(L, sizeof(*pkpm_f_lw));
 
   pkpm_f_lw->magic = PKPM_FIELD_DEFAULT;
-  pkpm_f_lw->evolve = evolve;
   pkpm_f_lw->pkpm_field = pkpm_field;
   
   pkpm_f_lw->init_ref = (struct lua_func_ctx) {
@@ -284,7 +366,21 @@ pkpm_field_lw_new(lua_State *L)
     .nret = 6,
     .L = L,
   };  
-  
+
+  pkpm_f_lw->ext_em_ref = (struct lua_func_ctx) {
+    .func_ref = ext_em_ref,
+    .ndim = 0, // this will be set later
+    .nret = 6,
+    .L = L,
+  };  
+
+  pkpm_f_lw->app_current_ref = (struct lua_func_ctx) {
+    .func_ref = app_current_ref,
+    .ndim = 0, // this will be set later
+    .nret = 3,
+    .L = L,
+  };  
+
   // set metatable
   luaL_getmetatable(L, PKPM_FIELD_METATABLE_NM);
   lua_setmetatable(L, -2);
@@ -310,8 +406,12 @@ struct pkpm_app_lw {
   gkyl_pkpm_app *app; // PKPM app object
   struct lua_func_ctx species_dist_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' distribution function
   struct lua_func_ctx species_fluid_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' momentum
+  struct lua_func_ctx app_accel_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' applied acceleration (if present)
   struct lua_func_ctx collisions_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' (self) collision frequency
-  struct lua_func_ctx field_func_ctx; // function context for field
+
+  struct lua_func_ctx field_func_ctx; // function context for EM field initial conditions
+  struct lua_func_ctx ext_em_func_ctx; // function context for external EM field (if present)
+  struct lua_func_ctx app_current_func_ctx; // function context for applied currents (if present)
   
   double tstart, tend; // start and end times of simulation
   int nframe; // number of data frames to write
@@ -420,6 +520,11 @@ pkpm_app_new(lua_State *L)
     pkpm.species[s].ctx_dist = &app_lw->species_dist_func_ctx[s];
     pkpm.species[s].ctx_fluid = &app_lw->species_fluid_func_ctx[s];
 
+    // get context for applied acceleration
+    app_lw->app_accel_func_ctx[s] = pkpm_s_lw[s]->app_accel_ref;
+    pkpm.species[s].accel = eval_ic;
+    pkpm.species[s].accel_ctx = &app_lw->app_accel_func_ctx[s];
+
     // assign the App's species object collision struct to user input collision struct 
     // Note: user input collision struct initialized in pkpm_species_lw_new as part of species' initialization
     pkpm.species[s].collisions = pkpm_s_lw[s]->collisions_lw->pkpm_collisions;
@@ -427,6 +532,10 @@ pkpm_app_new(lua_State *L)
     app_lw->collisions_func_ctx[s] = pkpm_s_lw[s]->collisions_lw->init_nu_ref;
     pkpm.species[s].collisions.self_nu = eval_ic;
     pkpm.species[s].collisions.ctx = &app_lw->collisions_func_ctx[s];
+
+    // assign the App's species object diffusion struct to user input diffusion struct 
+    // Note: user input diffusion struct initialized in pkpm_species_lw_new as part of species' initialization
+    pkpm.species[s].diffusion = pkpm_s_lw[s]->diffusion_lw->pkpm_diffusion;
   }
 
   // set field input
@@ -438,11 +547,19 @@ pkpm_app_new(lua_State *L)
         pkpm_f_lw->init_ref.ndim = cdim;
 
         pkpm.field = pkpm_f_lw->pkpm_field;
-        pkpm.skip_field = !pkpm_f_lw->evolve;
+        pkpm.skip_field = false; // if field object is present, we are updating the fields
 
         app_lw->field_func_ctx = pkpm_f_lw->init_ref;
         pkpm.field.init = eval_ic;
         pkpm.field.ctx = &app_lw->field_func_ctx;
+
+        app_lw->ext_em_func_ctx = pkpm_f_lw->ext_em_ref;
+        pkpm.field.ext_em = eval_ic;
+        pkpm.field.ext_em_ctx = &app_lw->ext_em_func_ctx;
+
+        app_lw->app_current_func_ctx = pkpm_f_lw->app_current_ref;
+        pkpm.field.app_current = eval_ic;
+        pkpm.field.app_current_ctx = &app_lw->app_current_func_ctx;
       }
     }
   }
@@ -819,6 +936,12 @@ app_openlibs(lua_State *L)
   do {
     luaL_newmetatable(L, PKPM_COLLISIONS_METATABLE_NM);
     luaL_register(L, "G0.PKPM.Collisions", pkpm_collisions_ctor);
+  } while (0);
+
+  // Register Diffusion input struct
+  do {
+    luaL_newmetatable(L, PKPM_DIFFUSION_METATABLE_NM);
+    luaL_register(L, "G0.PKPM.Diffusion", pkpm_diffusion_ctor);
   } while (0);
 
   // Register Field input struct
