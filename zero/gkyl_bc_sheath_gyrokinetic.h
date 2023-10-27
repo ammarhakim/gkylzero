@@ -27,10 +27,7 @@ struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum 
   const struct gkyl_rect_grid *grid, int cdim, double q2Dm, bool use_gpu);
 
 /**
- * Create new updater to apply basic BCs to a field
- * in a gkyl_array. Basic BCs are those in which the
- * ghost cell depends solely on the skin cell next to it
- * via a function of type array_copy_func_t (e.g. absorb, reflect).
+ * Apply the sheath BC with the bc_sheath_gyrokinetic object.
  *
  * @param up BC updater.
  * @param phi Electrostatic potential.
