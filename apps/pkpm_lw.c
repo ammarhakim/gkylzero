@@ -186,10 +186,12 @@ struct pkpm_species_lw {
   int vdim; // velocity dimensions
   struct lua_func_ctx init_dist_ref; // Lua registery reference to initilization distribution function
   struct lua_func_ctx init_fluid_ref; // Lua registery reference to initilization momentum
-  struct lua_func_ctx app_accel_ref; // Lua registery reference to external acceleration
+  struct lua_func_ctx app_accel_ref; // Lua registery reference to applied acceleration
+  bool has_app_accel; // Boolean if applied acceleration exists for later initialization
 
   struct pkpm_collisions_lw *collisions_lw; // pointer to Lua collisions table
   struct pkpm_diffusion_lw *diffusion_lw; // pointer to Lua diffusion table
+  bool has_diffusion; // Boolean if diffusion exists for later initialization
 };
 
 static int
@@ -235,8 +237,11 @@ pkpm_species_lw_new(lua_State *L)
 
   // Register applied acceleration (if present)
   int app_accel_ref = LUA_NOREF;
-  if (glua_tbl_get_func(L, "app_accel"))
+  bool has_app_accel = false;
+  if (glua_tbl_get_func(L, "app_accel")) {
     app_accel_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_app_accel = true;
+  }
   // By default, applied acceleration is not time dependent
   pkpm_species.app_accel_evolve = glua_tbl_get_integer(L, "app_accel_evolve", false);
 
@@ -252,11 +257,14 @@ pkpm_species_lw_new(lua_State *L)
 
   // Fetch user input table for diffusion operator 
   struct pkpm_diffusion_lw *pkpm_d_lw = 0;
+  bool has_diffusion = false;
   with_lua_tbl_key(L, "diffusion") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
       struct pkpm_diffusion_lw *input_pkpm_diffusion_lw = lua_touserdata(L, -1);
-      if (input_pkpm_diffusion_lw->magic == PKPM_DIFFUSION_DEFAULT)
+      if (input_pkpm_diffusion_lw->magic == PKPM_DIFFUSION_DEFAULT) {
         pkpm_d_lw = input_pkpm_diffusion_lw;
+        has_diffusion = true;
+      }
     }
   }  
   
@@ -286,10 +294,12 @@ pkpm_species_lw_new(lua_State *L)
     .nret = 3,
     .L = L,
   };
+  pkpm_s_lw->has_app_accel = has_app_accel;
 
   pkpm_s_lw->collisions_lw = pkpm_c_lw;
 
   pkpm_s_lw->diffusion_lw = pkpm_d_lw;
+  pkpm_s_lw->has_diffusion = has_diffusion;
    
   // set metatable
   luaL_getmetatable(L, PKPM_SPECIES_METATABLE_NM);
@@ -318,7 +328,9 @@ struct pkpm_field_lw {
   struct gkyl_pkpm_field pkpm_field; // input struct to construct field
   struct lua_func_ctx init_ref; // Lua registery reference to initilization function
   struct lua_func_ctx ext_em_ref; // Lua registery reference to external EM fields
+  bool has_ext_em; // Boolean if external EM field exists for later initialization
   struct lua_func_ctx app_current_ref; // Lua registery reference to applied currents
+  bool has_app_current; // Boolean if applied currents exist for later initialization
 };
 
 static int
@@ -344,14 +356,20 @@ pkpm_field_lw_new(lua_State *L)
     return luaL_error(L, "Field must have an \"init\" function for initial conditions!");
 
   int ext_em_ref = LUA_NOREF;
-  if (glua_tbl_get_func(L, "ext_em"))
+  bool has_ext_em = false;
+  if (glua_tbl_get_func(L, "ext_em")) {
     ext_em_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_ext_em = true;
+  }
   // By default, external EM fields are not time dependent
   pkpm_field.ext_em_evolve = glua_tbl_get_integer(L, "ext_em_evolve", false);
 
   int app_current_ref = LUA_NOREF;
-  if (glua_tbl_get_func(L, "app_current"))
+  bool has_app_current = false;
+  if (glua_tbl_get_func(L, "app_current")) {
     app_current_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_app_current = true;
+  }
   // By default, applied currents are not time dependent
   pkpm_field.app_current_evolve = glua_tbl_get_integer(L, "app_current_evolve", false);
 
@@ -373,6 +391,7 @@ pkpm_field_lw_new(lua_State *L)
     .nret = 6,
     .L = L,
   };  
+  pkpm_f_lw->has_ext_em = has_ext_em;
 
   pkpm_f_lw->app_current_ref = (struct lua_func_ctx) {
     .func_ref = app_current_ref,
@@ -380,6 +399,7 @@ pkpm_field_lw_new(lua_State *L)
     .nret = 3,
     .L = L,
   };  
+  pkpm_f_lw->has_app_current = has_app_current;
 
   // set metatable
   luaL_getmetatable(L, PKPM_FIELD_METATABLE_NM);
@@ -435,6 +455,8 @@ get_species_inp(lua_State *L, int cdim, struct pkpm_species_lw *pkpm_s_lw[GKYL_M
         
         input_pkpm_species_lw->init_dist_ref.ndim = cdim + input_pkpm_species_lw->vdim;
         input_pkpm_species_lw->init_fluid_ref.ndim = cdim;
+        if (input_pkpm_species_lw->has_app_accel)
+          input_pkpm_species_lw->app_accel_ref.ndim = cdim;
         input_pkpm_species_lw->collisions_lw->init_nu_ref.ndim = cdim;
         
         if (lua_type(L,TKEY) == LUA_TSTRING) {
@@ -520,10 +542,12 @@ pkpm_app_new(lua_State *L)
     pkpm.species[s].ctx_dist = &app_lw->species_dist_func_ctx[s];
     pkpm.species[s].ctx_fluid = &app_lw->species_fluid_func_ctx[s];
 
-    // get context for applied acceleration
-    app_lw->app_accel_func_ctx[s] = pkpm_s_lw[s]->app_accel_ref;
-    pkpm.species[s].accel = eval_ic;
-    pkpm.species[s].accel_ctx = &app_lw->app_accel_func_ctx[s];
+    // get context for species' applied acceleration if they exist
+    if (pkpm_s_lw[s]->has_app_accel) {
+      app_lw->app_accel_func_ctx[s] = pkpm_s_lw[s]->app_accel_ref;
+      pkpm.species[s].accel = eval_ic;
+      pkpm.species[s].accel_ctx = &app_lw->app_accel_func_ctx[s];
+    }
 
     // assign the App's species object collision struct to user input collision struct 
     // Note: user input collision struct initialized in pkpm_species_lw_new as part of species' initialization
@@ -535,7 +559,8 @@ pkpm_app_new(lua_State *L)
 
     // assign the App's species object diffusion struct to user input diffusion struct 
     // Note: user input diffusion struct initialized in pkpm_species_lw_new as part of species' initialization
-    pkpm.species[s].diffusion = pkpm_s_lw[s]->diffusion_lw->pkpm_diffusion;
+    if (pkpm_s_lw[s]->has_diffusion)
+      pkpm.species[s].diffusion = pkpm_s_lw[s]->diffusion_lw->pkpm_diffusion;
   }
 
   // set field input
@@ -553,13 +578,20 @@ pkpm_app_new(lua_State *L)
         pkpm.field.init = eval_ic;
         pkpm.field.ctx = &app_lw->field_func_ctx;
 
-        app_lw->ext_em_func_ctx = pkpm_f_lw->ext_em_ref;
-        pkpm.field.ext_em = eval_ic;
-        pkpm.field.ext_em_ctx = &app_lw->ext_em_func_ctx;
-
-        app_lw->app_current_func_ctx = pkpm_f_lw->app_current_ref;
-        pkpm.field.app_current = eval_ic;
-        pkpm.field.app_current_ctx = &app_lw->app_current_func_ctx;
+        // get context for external EM fields if they exist
+        if (pkpm_f_lw->has_ext_em) {
+          pkpm_f_lw->ext_em_ref.ndim = cdim;
+          app_lw->ext_em_func_ctx = pkpm_f_lw->ext_em_ref;
+          pkpm.field.ext_em = eval_ic;
+          pkpm.field.ext_em_ctx = &app_lw->ext_em_func_ctx;
+        }
+        // get context for applied currents if they exist
+        if (pkpm_f_lw->has_app_current) {
+          pkpm_f_lw->app_current_ref.ndim = cdim;
+          app_lw->app_current_func_ctx = pkpm_f_lw->app_current_ref;
+          pkpm.field.app_current = eval_ic;
+          pkpm.field.app_current_ctx = &app_lw->app_current_func_ctx;
+        }
       }
     }
   }
