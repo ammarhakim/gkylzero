@@ -7,19 +7,19 @@
 #include <gkyl_array_integrate.h>
 #include <assert.h>
 
-GKYL_CU_DH void gkyl_array_integrate_op_none_ker(double vol, int num_comp, int num_basis, const double *arr, double *out)
+GKYL_CU_DH static void gkyl_array_integrate_op_none_ker(double vol, int num_comp, int num_basis, const double *arr, double *out)
 {
   for (unsigned c=0; c<num_comp; ++c)
     out[c] += arr[c*num_basis]*vol;
 }
 
-GKYL_CU_DH void gkyl_array_integrate_op_abs_ker(double vol, int num_comp, int num_basis, const double *arr, double *out)
+GKYL_CU_DH static void gkyl_array_integrate_op_abs_ker(double vol, int num_comp, int num_basis, const double *arr, double *out)
 {
   for (unsigned c=0; c<num_comp; ++c)
     out[c] += fabs(arr[c*num_basis])*vol;
 }
 
-GKYL_CU_DH void gkyl_array_integrate_op_sq_ker(double vol, int num_comp, int num_basis, const double *arr, double *out)
+GKYL_CU_DH static void gkyl_array_integrate_op_sq_ker(double vol, int num_comp, int num_basis, const double *arr, double *out)
 {
   for (unsigned c=0; c<num_comp; ++c) {
     for (unsigned b=0; b<num_basis; ++b)
@@ -51,7 +51,7 @@ struct gkyl_array_integrate {
   struct gkyl_array_integrate *on_dev;  // Pointer to itself on device.
 };
 
-GKYL_CU_D
+GKYL_CU_D static
 void gkyl_array_integrate_choose_kernel(enum gkyl_array_integrate_op op, struct gkyl_array_integrate *up)
 {
   up->kernel = gkyl_array_integrate_ker_list.kernels[op];

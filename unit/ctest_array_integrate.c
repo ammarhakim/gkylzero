@@ -90,7 +90,10 @@ void test_1x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
   gkyl_array_release(distf);
   gkyl_proj_on_basis_release(projf);
   gkyl_free(fint_ho);
-  gkyl_free(fint);
+  if (use_gpu)
+    gkyl_cu_free(fint);
+  else
+    gkyl_free(fint);
 }
 
 void evalFunc_1x_nc3_op_none(double t, const double *xn, double* restrict fout, void *ctx)
@@ -142,7 +145,7 @@ void test_1x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
   struct gkyl_array *distf_ho = use_gpu? mkarr(nc*basis.num_basis, local_ext.volume, false) : distf;
 
   // project distribution function on basis
-  gkyl_proj_on_basis_advance(projf, 0.0, &local, distf);
+  gkyl_proj_on_basis_advance(projf, 0.0, &local, distf_ho);
   if (use_gpu) gkyl_array_copy(distf, distf_ho);
 
   if (integ_op == GKYL_ARRAY_INTEGRATE_OP_ABS)
@@ -169,7 +172,10 @@ void test_1x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
   gkyl_array_release(distf);
   gkyl_proj_on_basis_release(projf);
   gkyl_free(fint_ho);
-  gkyl_free(fint);
+  if (use_gpu)
+    gkyl_cu_free(fint);
+  else
+    gkyl_free(fint);
 }
 
 void evalFunc_2x_nc1_op_none(double t, const double *xn, double* restrict fout, void *ctx)
@@ -217,7 +223,7 @@ void test_2x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
   struct gkyl_array *distf_ho = use_gpu? mkarr(nc*basis.num_basis, local_ext.volume, false) : distf;
 
   // project distribution function on basis
-  gkyl_proj_on_basis_advance(projf, 0.0, &local, distf);
+  gkyl_proj_on_basis_advance(projf, 0.0, &local, distf_ho);
   if (use_gpu) gkyl_array_copy(distf, distf_ho);
 
   if (integ_op == GKYL_ARRAY_INTEGRATE_OP_ABS)
@@ -242,7 +248,10 @@ void test_2x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
   gkyl_array_release(distf);
   gkyl_proj_on_basis_release(projf);
   gkyl_free(fint_ho);
-  gkyl_free(fint);
+  if (use_gpu)
+    gkyl_cu_free(fint);
+  else
+    gkyl_free(fint);
 }
 
 void evalFunc_2x_nc3_op_none(double t, const double *xn, double* restrict fout, void *ctx)
@@ -294,7 +303,7 @@ void test_2x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
   struct gkyl_array *distf_ho = use_gpu? mkarr(nc*basis.num_basis, local_ext.volume, false) : distf;
 
   // project distribution function on basis
-  gkyl_proj_on_basis_advance(projf, 0.0, &local, distf);
+  gkyl_proj_on_basis_advance(projf, 0.0, &local, distf_ho);
   if (use_gpu) gkyl_array_copy(distf, distf_ho);
 
   if (integ_op == GKYL_ARRAY_INTEGRATE_OP_ABS)
@@ -321,7 +330,10 @@ void test_2x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
   gkyl_array_release(distf);
   gkyl_proj_on_basis_release(projf);
   gkyl_free(fint_ho);
-  gkyl_free(fint);
+  if (use_gpu)
+    gkyl_cu_free(fint);
+  else
+    gkyl_free(fint);
 }
 
 void test_1x_cpu()
@@ -414,8 +426,8 @@ TEST_LIST = {
   { "test_1x_cpu", test_1x_cpu },
   { "test_2x_cpu", test_2x_cpu },
 #ifdef GKYL_HAVE_CUDA
-//  { "test_1x_gpu", test_1x_gpu },
-//  { "test_2x_gpu", test_2x_gpu },
+  { "test_1x_gpu", test_1x_gpu },
+  { "test_2x_gpu", test_2x_gpu },
 #endif
   { NULL, NULL },
 };

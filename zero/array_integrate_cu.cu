@@ -88,7 +88,7 @@ array_integrate_blockRedAtomic_cub(const struct gkyl_array_integrate *up,
 void gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl_array *arr,
   double weight, const struct gkyl_range *range, double *out)
 {
-  for (int k=0; k<up->num_comp; k++) out[k] = 0;
+  gkyl_cu_memset(out, 0, up->num_comp*sizeof(double));
 
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
