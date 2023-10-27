@@ -22,7 +22,7 @@ struct gkyl_correct_maxwellian_gyrokinetic
 {
   bool use_gpu;
   double mass;
-  struct gkyl_rect_grid grid;
+  struct gkyl_rect_grid grid, conf_grid;
   struct gkyl_basis conf_basis, phase_basis;
 
   const struct gkyl_array *bmag, *jacob_tot;  
@@ -39,15 +39,16 @@ struct gkyl_correct_maxwellian_gyrokinetic
 };
 
 gkyl_correct_maxwellian_gyrokinetic *
-gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext, const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass, bool use_gpu)
+gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext, const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass, bool use_gpu)
 {
   gkyl_correct_maxwellian_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
   up->use_gpu = use_gpu;
   up->mass = mass;
   up->grid = *grid;
-  up->conf_basis = *conf_basis;
+  up->conf_grid = *conf_grid;
   up->phase_basis = *phase_basis;
+  up->conf_basis = *conf_basis;
   //up->bmag = bmag;
   //up->jacob_tot = jacob_tot;
   up->bmag = gkyl_array_acquire(bmag);
@@ -115,8 +116,8 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
   
   gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals1, 0, up->ddm12, *conf_local);
   gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals2, 1, up->ddm12, *conf_local);
-  gkyl_array_scale_range(up->mvals1, up->grid.cellVolume, conf_local);
-  gkyl_array_scale_range(up->mvals2, up->grid.cellVolume, conf_local);
+  gkyl_array_scale_range(up->mvals1, up->conf_grid.cellVolume, conf_local);
+  gkyl_array_scale_range(up->mvals2, up->conf_grid.cellVolume, conf_local);
   if (up->use_gpu) {
     gkyl_array_reduce_range(up->err1_cu, up->mvals1, GKYL_SUM, conf_local);
     gkyl_array_reduce_range(up->err2_cu, up->mvals2, GKYL_SUM, conf_local);
@@ -126,10 +127,10 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     gkyl_array_reduce_range(err1, up->mvals1, GKYL_SUM, conf_local);
     gkyl_array_reduce_range(err2, up->mvals2, GKYL_SUM, conf_local);
   }
-
+  
   // Main iteration loop
   int i = 0;
-  while ( ((i<iter_max) && (err1[0]>err_max)) || (err2[0]>err_max) )
+  while ( (i<iter_max) && ((err1[0]>err_max) || (err2[0]>err_max)) )
   {
     // Correct the moments
     gkyl_array_clear(up->ddm12, 0.0);
@@ -144,8 +145,8 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     gkyl_array_clear(up->mvals2, 0.0);
     gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals1, 0, up->ddm12, *conf_local);
     gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals2, 1, up->ddm12, *conf_local);
-    gkyl_array_scale_range(up->mvals1, up->grid.cellVolume, conf_local);
-    gkyl_array_scale_range(up->mvals2, up->grid.cellVolume, conf_local);
+    gkyl_array_scale_range(up->mvals1, up->conf_grid.cellVolume, conf_local);
+    gkyl_array_scale_range(up->mvals2, up->conf_grid.cellVolume, conf_local);
     if (up->use_gpu) {
       gkyl_array_reduce_range(up->err1_cu, up->mvals1, GKYL_SUM, conf_local);
       gkyl_array_reduce_range(up->err2_cu, up->mvals2, GKYL_SUM, conf_local);
@@ -155,8 +156,9 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
       gkyl_array_reduce_range(err1, up->mvals1, GKYL_SUM, conf_local);
       gkyl_array_reduce_range(err2, up->mvals2, GKYL_SUM, conf_local);
     }
-    err1[0] = sqrt(err1[0]/up->grid.cellVolume/conf_local->volume); 
-    err2[0] = sqrt(err2[0]/up->grid.cellVolume/conf_local->volume); 
+    err1[0] = sqrt(err1[0]/up->conf_grid.cellVolume/conf_local->volume); 
+    err2[0] = sqrt(err2[0]/up->conf_grid.cellVolume/conf_local->volume); 
+    //printf("err1=%10.8e, err2=%10.8e\n", err1[0], err2[0]);
 
     // Project the maxwellian
     gkyl_array_set_offset(up->moms, 1., up->m0, 0*up->conf_basis.num_basis);
