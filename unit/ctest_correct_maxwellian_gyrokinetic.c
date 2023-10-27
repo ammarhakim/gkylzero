@@ -56,23 +56,26 @@ void eval_jacob_tot(double t, const double *xn, double* restrict fout, void *ctx
 void eval_bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x);
+  fout[0] = 0.5;
 }
 void eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 1.0;
+  fout[0] = 1.0e19;
 }
 void eval_M1(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 0.5;
+  double n = 1.0e19, vt = sqrt(10*1.602e-19/9.1e-31);
+  fout[0] = n*0.5*sqrt(1/2000)*vt;
 }
 void eval_M2(double t, const double *xn, double* restrict fout, void *ctx)
 { 
-  double n = 1.0, vtsq = 1.0, ux = 0.5;
   double x = xn[0];
-  fout[0] = n*vtsq + n*ux*ux;
+  double n = 1.0e19, vtsq = 10*1.602e-19/9.1e-31;
+  double M1[1];
+  eval_M1(t, xn, M1, ctx);
+  fout[0] = n*vtsq + M1[0]*M1[0]/n;
 }
 void eval_vtsq(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -83,16 +86,16 @@ void eval_vtsq(double t, const double *xn, double* restrict fout, void *ctx)
 
 void test_1x1v(int poly_order, bool use_gpu)
 {
-  double mass = 1.0;
+  double mass = 9.1e-31;
   double err_max = 1e-14, iter_max = 50;
-  double lower[] = {-0.5, -5.0}, upper[] = {0.5, 5.0};
+  double vt = sqrt(10*1.602e-19/9.1e-31);
+  double lower[] = {-0.5, -5.0*vt}, upper[] = {0.5, 5.0*vt};
   int cells[] = {2, 32};
   int vdim = 1, cdim = 1;
   int ndim = cdim + vdim;
-
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
   int confCells[] = {cells[0]};
-
+  
   // Grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -141,7 +144,7 @@ void test_1x1v(int poly_order, bool use_gpu)
     bmag = bmag_ho;
     jacob_tot = jacob_tot_ho;
   }
-
+  
   // Create correct moment arrays
   struct gkyl_array *m0_in_ho, *m1_in_ho, *m2_in_ho;
   m0_in_ho = mkarr(confBasis.num_basis, confLocal_ext.volume, false);
@@ -190,8 +193,11 @@ void test_1x1v(int poly_order, bool use_gpu)
   sprintf(fname_fM_ic, "ctest_correct_maxwellian_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
   gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_ic);
   // Create a Maxwellian with corrected moments
+  printf("flag 0\n");
   gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, bmag, jacob_tot, mass, use_gpu);
+  printf("flag 1\n");
   gkyl_correct_maxwellian_gyrokinetic_advance(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local);
+  printf("flag 2\n");
   gkyl_correct_maxwellian_gyrokinetic_release(corr_max);
   if (use_gpu) {
     gkyl_array_copy(fM_ho, fM);
@@ -226,6 +232,7 @@ void test_1x1v(int poly_order, bool use_gpu)
     const double *m2in = gkyl_array_cfetch(m2_in_ho, linidx);
     const double *momsCorr = gkyl_array_cfetch(moms_corr_ho, linidx);
     for (int m=0; m<confBasis.num_basis; m++) {
+      printf("m=%d\n", m);
       TEST_CHECK( gkyl_compare(m0in[m], momsCorr[m+0*confBasis.num_basis], 1e-12) );
       TEST_CHECK( gkyl_compare(m1in[m], momsCorr[m+1*confBasis.num_basis], 1e-12) );
       TEST_CHECK( gkyl_compare(m2in[m], momsCorr[m+2*confBasis.num_basis], 1e-12) );
