@@ -13,8 +13,9 @@ typedef struct gkyl_correct_maxwellian_gyrokinetic gkyl_correct_maxwellian_gyrok
  * moments.
  *
  * @param grid Grid on which updater lives
- * @param conf_basis Conf space basis functions
+ * @param conf_grid Conf grid on which updater lives
  * @param phase_basis Phase space basis functions
+ * @param conf_basis Conf space basis functions
  * @param conf_local Local configuration space range
  * @param conf_local_ext Local extended configuration space range
  * @param bmag Magnetic field
@@ -23,8 +24,8 @@ typedef struct gkyl_correct_maxwellian_gyrokinetic gkyl_correct_maxwellian_gyrok
  * @param use_gpu Bool to determine if on GPU
  */
 gkyl_correct_maxwellian_gyrokinetic *gkyl_correct_maxwellian_gyrokinetic_new(
-  const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *conf_grid, 
+  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, 
   const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass, bool use_gpu);
 
