@@ -161,6 +161,10 @@ test_3(void)
 
   with_lua_global(L, "kvpairs") {
 
+    if (glua_tbl_get_func(L, "no_sq")) {
+      TEST_CHECK(false);
+    }
+
     if (glua_tbl_get_func(L, "sq")) {
       lua_pushnumber(L, 3.5);
       if (lua_pcall(L, 1, 1, 0)) {
