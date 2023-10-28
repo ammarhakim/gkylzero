@@ -51,7 +51,7 @@ main(int argc, char **argv)
   }
 
   // equation object
-  struct gkyl_wv_eqn *coldf = gkyl_wv_coldfluid_new();
+  struct gkyl_wv_eqn *coldf = gkyl_wv_cold_sr_fluid_new();
 
   struct gkyl_moment_species fluid = {
     .name = "cold",
@@ -66,7 +66,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_moment app_inp = {
-    .name = "coldfluid_clouda",
+    .name = "cold_sr_fluid_clouda",
 
     .ndim = 1,
     .lower = { -5.0 },
