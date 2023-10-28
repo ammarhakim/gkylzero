@@ -17,8 +17,9 @@ struct wv_cold_sr_fluid {
 void
 cold_sr_fluid_flux(const double q[5], double flux[5])
 {
-  // TODO: 1. Assumes normalized by c?, 2. Select either Vx, Vy, Vz?
-  double Vx = q[NUX]/sqrt(q[0]^2 + (q[NUX]^2 + q[NUY]^2 + q[NUZ]^2)); // Vx = NUx/(N^2 + NU^2/c^2) 
+  // TODO: 1. Assumes normalized by c?
+  // Vx = NUx/(N^2 + NU^2/c^2) 
+  double Vx = q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])); 
   flux[0] = q[0]*Vx; // N*Vx
   flux[NUX] = q[NUX]*Vx; // N*Ux*Vx
   flux[NUY] = q[NUY]*Vx; // N*Uy*Vx
@@ -31,7 +32,8 @@ cold_sr_fluid_cons_to_diag(const struct gkyl_wv_sr_eqn *eqn,
 {
   // density and moment is copied as-is
   for (int i=0; i<4; ++i) diag[i] = qin[i];
-  double ke = sqrt(qin[0]^2 + (qin[1]^2 + qin[2]^2 + qin[3]^2))/qin[0] - 1.0; // Ke-sr density (gamma-1)
+  // Ke-sr density (gamma-1)
+  double ke = sqrt(qin[0]*qin[0] + (qin[1]*qin[1] + qin[2]*qin[2] + qin[3]*qin[3]))/qin[0] - 1.0; 
   diag[4] = ke;
 }
 
@@ -66,29 +68,29 @@ wave_roe_sr(const struct gkyl_wv_sr_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   double f[4];
-  double ur = qr[NUX]/qr[0], ul = ql[NUX]/ql[0];
+  double vl = ql[NUX]/sqrt(ql[0]*ql[0] + (ql[NUX]*ql[NUX] + ql[NUY]*ql[NUY] + ql[NUZ]*ql[NUZ]));
+  double vr = qr[NUX]/sqrt(qr[0]*qr[0] + (qr[NUX]*qr[NUX] + qr[NUY]*qr[NUY] + qr[NUZ]*qr[NUZ])); 
 
   double *wv = 0;
 
   // corrective term
-  if ((ul < 0) && (0 < ur)) { // vacuum intermediate state will be formed
+  if ((vl < 0) && (0 < vr)) { // vacuum intermediate state will be formed
     cold_sr_fluid_flux(ql, f);
     wv = &waves[0];
     for(int m=0; m<4; ++m) wv[m] = -f[m];
-    s[0] = ul;
+    s[0] = vl;
 
     cold_sr_fluid_flux(qr, f);
     wv = &waves[4];
     for(int m=0; m<4; ++m) wv[m] = f[m];
-    s[1] = ur;
+    s[1] = vr;
   }
   else {
     // no vacuum state
     double rl = ql[0];
     double rr = qr[0];
-    double vel;
     // compute Roe averaged speed
-    vel = compute_sr_roe_avereged_velocity(ql,qr);
+    double vel = compute_sr_roe_avereged_velocity(ql,qr);
             
     if(vel<0) {
       wv = &waves[0];
@@ -164,16 +166,17 @@ ffluct_roe(const struct gkyl_wv_sr_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 static double
-flux_jump(const struct gkyl_wv_sr_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+flux_jump_sr(const struct gkyl_wv_sr_eqn *eqn, const double *ql, const double *qr, double *flux_jump_sr)
 {
   double fr[4], fl[4];
   cold_sr_fluid_flux(ql, fl);
   cold_sr_fluid_flux(qr, fr);
 
-  for (int m=0; m<4; ++m) flux_jump[m] = fr[m]-fl[m];
+  for (int m=0; m<4; ++m) flux_jump_sr[m] = fr[m]-fl[m];
 
-  double amaxl = ql[NUX]/ql[0];
-  double amaxr = qr[NUX]/qr[0];
+ // Vn = NUn/(N^2 + NU^2/c^2)
+  double amaxl = ql[NUX]/sqrt(ql[0]*ql[0] + (ql[NUX]*ql[NUX] + ql[NUY]*ql[NUY] + ql[NUZ]*ql[NUZ]));
+  double amaxr = qr[NUX]/sqrt(qr[0]*qr[0] + (qr[NUX]*qr[NUX] + qr[NUY]*qr[NUY] + qr[NUZ]*qr[NUZ])); 
 
   return fmax(amaxl, amaxr);
 }
@@ -185,10 +188,10 @@ check_inv(const struct gkyl_wv_sr_eqn *eqn, const double *q)
 }
 
 static double
-max_speed(const struct gkyl_wv_sr_eqn *eqn, const double *q)
+max_speed_sr(const struct gkyl_wv_sr_eqn *eqn, const double *q)
 {
   const struct wv_cold_sr_fluid *cold_sr_fluid = container_of(eqn, struct wv_cold_sr_fluid, eqn);
-  return fabs(q[NUX]/q[0]);
+  return fabs(q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])));
 }
 
 struct gkyl_wv_sr_eqn*
@@ -204,10 +207,10 @@ gkyl_wv_cold_sr_fluid_new(void)
   cold_sr_fluid->eqn.waves_func = wave_roe_sr;
   cold_sr_fluid->eqn.qfluct_func = qfluct_roe;
   cold_sr_fluid->eqn.ffluct_func = ffluct_roe;
-  cold_sr_fluid->eqn.flux_jump = flux_jump;
+  cold_sr_fluid->eqn.flux_jump_sr = flux_jump_sr;
   
   cold_sr_fluid->eqn.check_inv_func = check_inv;
-  cold_sr_fluid->eqn.max_speed_func = max_speed;
+  cold_sr_fluid->eqn.max_speed_sr_func = max_speed_sr;
 
   cold_sr_fluid->eqn.rotate_to_local_func = rot_to_local;
   cold_sr_fluid->eqn.rotate_to_global_func = rot_to_global;
