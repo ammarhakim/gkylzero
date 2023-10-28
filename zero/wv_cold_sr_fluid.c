@@ -86,10 +86,11 @@ wave_roe_sr(const struct gkyl_wv_sr_eqn *eqn, enum gkyl_wv_flux_type type,
     // no vacuum state
     double rl = ql[0];
     double rr = qr[0];
+    double vel;
     // compute Roe averaged speed
-    double Vx_hat = compute_sr_roe_avereged_velocity(ql,qr,uav);
+    vel = compute_sr_roe_avereged_velocity(ql,qr);
             
-    if(uav<0) {
+    if(vel<0) {
       wv = &waves[0];
       for(int m=0; m<4; ++m)
         wv[m] = delta[m];
@@ -107,8 +108,8 @@ wave_roe_sr(const struct gkyl_wv_sr_eqn *eqn, enum gkyl_wv_flux_type type,
       for(int m=0; m<4; ++m)
         wv[m] = delta[m];
     }
-    s[0] = uav;
-    s[1] = uav;
+    s[0] = vel;
+    s[1] = vel;
   }
 
   return fmax(fabs(s[0]), fabs(s[1]));

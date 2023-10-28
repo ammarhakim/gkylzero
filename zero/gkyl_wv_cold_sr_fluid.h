@@ -90,6 +90,23 @@ const double ur[3], const double ul[3], double j_inv_fx[3])
 
 
 /**
+ * Compute the primitive variables (N,NU) -> (N,U)
+ * 
+ * @param q conserved quantity vector 
+ * @param r desnity (output)
+ * @param u momentum (output)
+ */
+static inline void
+isolate_prims(const double q[4], double r, double u[3])
+{
+  r = q[0];
+  u[0] = q[1]/q[0];
+  u[1] = q[2]/q[0];
+  u[2] = q[3]/q[0];
+}
+
+
+/**
  * Compute the roe-averaged velocity for the sr-cold fluid equations, solved via
  * newton method.
  * 
@@ -98,10 +115,9 @@ const double ur[3], const double ul[3], double j_inv_fx[3])
  *
  * @param ql Conserved variables (left)
  * @param qr Conserved variables (right)
- * @param v final roe-averged speed along the direction of prop. (output)
  */
-static inline void
-compute_sr_roe_avereged_velocity(const double ql[4], const double qr[4], double v) 
+static double
+compute_sr_roe_avereged_velocity(const double ql[4], const double qr[4]) 
 {
   double error = 1.; 
   double tol = 1.e-12;
@@ -144,4 +160,7 @@ compute_sr_roe_avereged_velocity(const double ql[4], const double qr[4], double 
     // If rho is zero then it doesn't matter what the velocities are so we set them to zero
     v = 0.0;
   }
+
+  // Return the velocity
+  return v;
 }
