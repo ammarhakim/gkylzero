@@ -29,10 +29,10 @@ case_1(double Ux, void *ctx)
   double c = constants[8];
 
   // Compute values with old u0
-  double Vx = (-Ux*a - Ax)/(Ux*dp + Bx);
+  //double Vx = (-Ux*a - Ax)/(Ux*dp + Bx);
 
   // Eval of the function
-  return Vx -  Ux / sqrt(1.0 + (Ux*Ux)/(c*c));
+  return pow((Ux*a + Ax),2)*(1.0 + pow(Ux/c,2)) - pow(Ux,2)*pow(Ux*dp + Bx,2);//Vx -  Ux / sqrt(1.0 + (Ux*Ux)/(c*c));
 }
 
 // Params: //(Uz,a,Ay,dp,By,Ax,Bx,Az,Bz,c)
@@ -145,10 +145,10 @@ compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr
   // If density is zero on either side
   } else if (qr[0] == 0.0 && ql[0] == 0.0) {
     v_result = 0.0;
-  } else if (qr[0] == 0.0) {
-    v_result = uLx/sqrt(1.0 + (uLx*uLx + uLy*uLy + uLz*uLz));
-  } else if (ql[0] == 0.0) {
-    v_result = uRx/sqrt(1.0 + (uRx*uRx + uRy*uRy + uRz*uRz));
+  //} else if (qr[0] == 0.0) {
+  //  v_result = uLx/sqrt(1.0 + (uLx*uLx + uLy*uLy + uLz*uLz));
+  //} else if (ql[0] == 0.0) {
+  //  v_result = uRx/sqrt(1.0 + (uRx*uRx + uRy*uRy + uRz*uRz));
 
   } else {
     // Compute the constants:
@@ -175,7 +175,15 @@ compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr
       double f1 = case_1(x1, consts), f2 = case_1(x2, consts);
       struct gkyl_qr_res res = gkyl_ridders(case_1, consts, x1, x2, f1, f2, 100, 1e-12);
       double Ux = res.res;
-      v_result = (-Ux*a - Ax)/(Ux*dp + Bx);
+      if (fabs(x2 - x1) > 1e-8){ // critical for valid intervals!
+        v_result = Ux/sqrt(1.0 + Ux*Ux/(c*c)); //(-Ux*a - Ax)/(Ux*dp + Bx);
+      } else {
+        v_result = 0.5*(uLx + uRx);
+      }
+
+      if (isnan(v_result)) {
+        printf("The value is NaN.\n");
+      }
 
     // Case 2: Ux /= 0, Uy == 0, Uz /= 0,
     } else if (uLy == 0.0 && uRy == 0.0){
