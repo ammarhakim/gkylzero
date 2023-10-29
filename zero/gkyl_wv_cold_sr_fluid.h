@@ -183,6 +183,8 @@ compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr
 
       if (isnan(v_result)) {
         printf("The value is NaN.\n");
+        double Ux_res = (sqrt(rhoL)*uLx + sqrt(rhoR)*uRx)/(sqrt(rhoL)+sqrt(rhoR));
+        v_result = Ux/sqrt(1.0 + Ux*Ux/(c*c));
       }
 
     // Case 2: Ux /= 0, Uy == 0, Uz /= 0,
