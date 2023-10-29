@@ -126,6 +126,7 @@ compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr
 
   // speed of light
   double c = 1.0;
+  double v_result;
 
   // Isolate varaibles (right/left)
   double rhoR = qr[0];
@@ -137,67 +138,85 @@ compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr
   double uLy = ql[2]/ql[0];
   double uLz = ql[3]/ql[0];
 
-  // Compute the constants:
-  double vLx = uLx/sqrt(1.0 + (uLx*uLx + uLy*uLy + uLz*uLz)/(c*c));
-  double vRx = uRx/sqrt(1.0 + (uRx*uRx + uRy*uRy + uRz*uRz)/(c*c));
-  double dp = rhoR - rhoL;
-  double a = rhoL*vLx - rhoR*vRx;
-  double Ax = - rhoL*vLx*uLx + rhoR*vRx*uRx;
-  double Ay = - rhoL*vLx*uLy + rhoR*vRx*uRy;
-  double Az = - rhoL*vLx*uLz + rhoR*vRx*uRz;
-  double Bx = rhoL*uLx - rhoR*uRx;
-  double By = rhoL*uLy - rhoR*uRy;
-  double Bz = rhoL*uLz - rhoR*uRz;
-  double consts[] = {a,Ay,dp,By,Ax,Bx,Az,Bz,c};
-  double x1, x2;
-  double v_result;
+  // if left = right then return the left values
+  if (qr[0] == ql[0] && qr[1] == ql[1] && qr[2] == ql[2] && qr[3] == ql[3]) {
+    v_result = uLx/sqrt(1.0 + (uLx*uLx + uLy*uLy + uLz*uLz));
 
-  //Case 1: Ux /= 0, Uy == 0, Uz == 0, 
-  if (uLz == 0.0 && uRz == 0.0 && uLy == 0.0 && uRy == 0.0) {
-
-    // Compute Ridders, case 1
-    (uLx > uRx) ? (x2 = uLx, x1 = uRx) : (x1 = uLx, x2 = uRx);
-    double f1 = case_1(x1, consts), f2 = case_1(x2, consts);
-    struct gkyl_qr_res res = gkyl_ridders(case_1, consts, x1, x2, f1, f2, 100, 1e-12);
-    double Ux = res.res;
-    v_result = (-Ux*a - Ax)/(Ux*dp + Bx);
-
-  // Case 2: Ux /= 0, Uy == 0, Uz /= 0,
-  } else if (uLy == 0.0 && uRy == 0.0){
-
-    // Compute Ridders, case 2
-    (uLz > uRz) ? (x2 = uLz, x1 = uRz) : (x1 = uLz, x2 = uRz);
-    double f1 = case_2(x1, consts), f2 = case_2(x2, consts);
-    struct gkyl_qr_res res = gkyl_ridders(case_2, consts, x1, x2, f1, f2, 100, 1e-12);
-    double Uz = res.res;
-    v_result = (-Uz*a - Az)/(Uz*dp + Bz);
-
-  // Case 3: Ux /= 0, Uy /= 0, Uz == 0,
-  } else if (uLz == 0.0 && uRz == 0.0){
-
-    // Compute Ridders, case 3
-    (uLy > uRy) ? (x2 = uLy, x1 = uRy) : (x1 = uLy, x2 = uRy);
-    double f1 = case_3(x1, consts), f2 = case_3(x2, consts);
-    struct gkyl_qr_res res = gkyl_ridders(case_3, consts, x1, x2, f1, f2, 100, 1e-12);
-    double Uy = res.res;
-    v_result = (-Uy*a - Ay)/(Uy*dp + By);
-
-  //Case 4: Ux /= 0, Uy /= 0, Uz /= 0,
-  } else if (((uRx != 0.0 ) || (uLx != 0.0 )) && ((uRy != 0.0 ) || (uLy != 0.0 )) && ((uRz != 0.0 ) || (uLz != 0.0 ))) {
-
-    // Compute Ridders, case 4
-    (uLy > uRy) ? (x2 = uLy, x1 = uRy) : (x1 = uLy, x2 = uRy);
-    double f1 = case_4(x1, consts), f2 = case_4(x2, consts);
-    struct gkyl_qr_res res = gkyl_ridders(case_4, consts, x1, x2, f1, f2, 100, 1e-12);
-    double Uy = res.res;
-    v_result = (-Uy*a - Ay)/(Uy*dp + By);
+  // If density is zero on either side
+  } else if (qr[0] == 0.0 && ql[0] == 0.0) {
+    v_result = 0.0;
+  } else if (qr[0] == 0.0) {
+    v_result = uLx/sqrt(1.0 + (uLx*uLx + uLy*uLy + uLz*uLz));
+  } else if (ql[0] == 0.0) {
+    v_result = uRx/sqrt(1.0 + (uRx*uRx + uRy*uRy + uRz*uRz));
 
   } else {
+    // Compute the constants:
+    double vLx = uLx/sqrt(1.0 + (uLx*uLx + uLy*uLy + uLz*uLz)/(c*c));
+    double vRx = uRx/sqrt(1.0 + (uRx*uRx + uRy*uRy + uRz*uRz)/(c*c));
+    double dp = rhoR - rhoL;
+    double a = rhoL*vLx - rhoR*vRx;
+    double Ax = - rhoL*vLx*uLx + rhoR*vRx*uRx;
+    double Ay = - rhoL*vLx*uLy + rhoR*vRx*uRy;
+    double Az = - rhoL*vLx*uLz + rhoR*vRx*uRz;
+    double Bx = rhoL*uLx - rhoR*uRx;
+    double By = rhoL*uLy - rhoR*uRy;
+    double Bz = rhoL*uLz - rhoR*uRz;
+    double consts[] = {a,Ay,dp,By,Ax,Bx,Az,Bz,c};
+    double x1, x2;
+  
 
-    //Return 0 if the cases all fail
-    v_result = 0.0;
+    //Case 1: Ux /= 0, Uy == 0, Uz == 0, 
+    if (uLz == 0.0 && uRz == 0.0 && uLy == 0.0 && uRy == 0.0 && (dp != 0.0 || Bx != 0.0 )) {
 
-  } // end cases
+      // Compute Ridders, case 1
+      printf("Case 1: "); 
+      (uLx > uRx) ? (x2 = uLx, x1 = uRx) : (x1 = uLx, x2 = uRx);
+      double f1 = case_1(x1, consts), f2 = case_1(x2, consts);
+      struct gkyl_qr_res res = gkyl_ridders(case_1, consts, x1, x2, f1, f2, 100, 1e-12);
+      double Ux = res.res;
+      v_result = (-Ux*a - Ax)/(Ux*dp + Bx);
+
+    // Case 2: Ux /= 0, Uy == 0, Uz /= 0,
+    } else if (uLy == 0.0 && uRy == 0.0){
+
+      // Compute Ridders, case 2
+      printf("Case 2: ");
+      (uLz > uRz) ? (x2 = uLz, x1 = uRz) : (x1 = uLz, x2 = uRz);
+      double f1 = case_2(x1, consts), f2 = case_2(x2, consts);
+      struct gkyl_qr_res res = gkyl_ridders(case_2, consts, x1, x2, f1, f2, 100, 1e-12);
+      double Uz = res.res;
+      v_result = (-Uz*a - Az)/(Uz*dp + Bz);
+
+    // Case 3: Ux /= 0, Uy /= 0, Uz == 0,
+    } else if (uLz == 0.0 && uRz == 0.0){
+
+      // Compute Ridders, case 3
+      printf("Case 3: ");
+      (uLy > uRy) ? (x2 = uLy, x1 = uRy) : (x1 = uLy, x2 = uRy);
+      double f1 = case_3(x1, consts), f2 = case_3(x2, consts);
+      struct gkyl_qr_res res = gkyl_ridders(case_3, consts, x1, x2, f1, f2, 100, 1e-12);
+      double Uy = res.res;
+      v_result = (-Uy*a - Ay)/(Uy*dp + By);
+
+    //Case 4: Ux /= 0, Uy /= 0, Uz /= 0,
+    } else if (((uRx != 0.0 ) || (uLx != 0.0 )) && ((uRy != 0.0 ) || (uLy != 0.0 )) && ((uRz != 0.0 ) || (uLz != 0.0 ))) {
+
+      // Compute Ridders, case 4
+      printf("Case 4: ");
+      (uLy > uRy) ? (x2 = uLy, x1 = uRy) : (x1 = uLy, x2 = uRy);
+      double f1 = case_4(x1, consts), f2 = case_4(x2, consts);
+      struct gkyl_qr_res res = gkyl_ridders(case_4, consts, x1, x2, f1, f2, 100, 1e-12);
+      double Uy = res.res;
+      v_result = (-Uy*a - Ay)/(Uy*dp + By);
+
+    } else {
+
+      //Return 0 if the cases all fail
+      v_result = 0.0;
+
+    } // end cases
+  }
 
   return v_result;
 }

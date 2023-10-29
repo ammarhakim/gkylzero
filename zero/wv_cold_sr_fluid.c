@@ -1,7 +1,7 @@
 #include <math.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_wv_coldfluid.h>
+//#include <gkyl_wv_coldfluid.h>
 #include <gkyl_wv_cold_sr_fluid.h>
 
 #define NUX 1
@@ -95,7 +95,7 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   double *wv = 0;
 
   // corrective term
-  if ((vl < 0) && (0 < vr)) { // vacuum intermediate state will be formed
+  if ((vl < 0.0) && (0.0 < vr)) { // vacuum intermediate state will be formed
     cold_sr_fluid_flux(ql, f);
     wv = &waves[0];
     for(int m=0; m<4; ++m) wv[m] = -f[m];
@@ -112,6 +112,7 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     double rr = qr[0];
     // compute Roe averaged speed
     double vel = compute_sr_roe_averaged_velocity_via_ridders(ql,qr);
+    printf("vL: %1.16f, vs %1.16f, vR: %1.16f\n",vl,vel,vr);
             
     if(vel<0) {
       wv = &waves[0];

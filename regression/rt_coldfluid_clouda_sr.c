@@ -16,14 +16,14 @@ evalColdInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 
   if((-2<xcell) && (xcell<-1)) {
     rho = 2.0;
-    u = 1.0;
+    u = 0.01;
   }
   else if((1<xcell) && (xcell<5)) {
     rho = 1.0;
-    u = -1.0;
+    u = -0.01;
   }
   else {
-    rho = 1e-20; // rho = 0 (note small value)
+    rho = 1e-10; // rho = 0 (note small value)
     u = 0.0;
   }  
 
@@ -59,7 +59,8 @@ main(int argc, char **argv)
     .equation = coldf,
     .evolve = 1,
     .init = evalColdInit,
-    .split_type = GKYL_WAVE_FWAVE,    
+    .split_type = GKYL_WAVE_FWAVE,  
+    .limiter = GKYL_MIN_MOD,  
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
@@ -83,9 +84,9 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 2.0;
+  double tcurr = 0.0, tend = 200.0;
 
-  int nframe = 10;
+  int nframe = 1000;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = (tend-tcurr)/nframe };
 
