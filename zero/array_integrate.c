@@ -18,30 +18,44 @@ gkyl_array_integrate_new(const struct gkyl_rect_grid *grid, const struct gkyl_ba
   up->num_basis = basis->num_basis;
   up->num_comp = num_comp;
   up->use_gpu = use_gpu;
+  for (int d=0; d<grid->ndim; ++d) up->dxSq[d] = grid->dx[d]*grid->dx[d];
+
+  assert(basis->poly_order > 0); // Need to check normalization for p=0.
 
   int ndim = basis->ndim;
   up->vol = 1.0;
-  if (basis->poly_order > 0) {
+  if (op == GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ) {
+    for (unsigned d=0; d<ndim; ++d)
+      up->vol *= (1./(2.*grid->dx[d]));
+    up->vol *= 12.;
+  } else if (op == GKYL_ARRAY_INTEGRATE_OP_GRADPERP_SQ) {
+    assert(ndim > 1);
+    for (unsigned d=0; d<ndim; ++d)
+      up->vol *= grid->dx[d]/2.;
+    for (unsigned d=0; d<2; ++d)
+      up->vol *= 1./(grid->dx[d]*grid->dx[d]);
+    up->vol *= 12.;
+  } else if (op == GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ) {
+    assert(ndim > 1);
+    for (unsigned d=0; d<ndim; ++d)
+      up->vol *= (grid->dx[d])/2.;
+  } else {
     for (unsigned d=0; d<ndim; ++d)
       up->vol *= op == GKYL_ARRAY_INTEGRATE_OP_SQ? grid->dx[d]/2.0 : grid->dx[d]/sqrt(2.0);
-  } else {
-    // for polyOrder = 0 no normalization is applied.
-    for (unsigned d=0; d<ndim; ++d)
-      up->vol *= grid->dx[d];
   }
 
   // Choose the kernel that performs the desired operation within the integral.
-  gkyl_array_integrate_choose_kernel(op, up);
+  gkyl_array_integrate_choose_kernel(op, basis, up);
 
   return up;
 }
 
-void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_array *arr,
-  double weight, const struct gkyl_range *range, double *out)
+void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_array *fin,
+  double factor, const struct gkyl_array *weight, const struct gkyl_range *range, double *out)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_array_integrate_advance_cu(up, arr, weight, range, out);
+    gkyl_array_integrate_advance_cu(up, fin, factor, weight, range, out);
     return;
   }
 #endif
@@ -53,12 +67,13 @@ void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_ar
   while (gkyl_range_iter_next(&iter)) {
 
     long linidx = gkyl_range_idx(range, iter.idx);
-    const double *arr_d = (const double*) gkyl_array_cfetch(arr, linidx);
+    const double *fin_d = (const double*) gkyl_array_cfetch(fin, linidx);
+    const double *wei_d = weight == NULL? NULL : (const double*) gkyl_array_cfetch(weight, linidx);
 
-    up->kernel(up->vol, up->num_comp, up->num_basis, arr_d, out);
+    up->kernel(up->dxSq, up->vol, up->num_comp, up->num_basis, wei_d, fin_d, out);
   }
 
-  for (int k=0; k<up->num_comp; k++) out[k] *= weight;
+  for (int k=0; k<up->num_comp; k++) out[k] *= factor;
 }
 
 void gkyl_array_integrate_release(gkyl_array_integrate *up)
