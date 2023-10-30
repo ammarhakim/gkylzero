@@ -580,7 +580,7 @@ v_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, va_list
 {
   int rank, r = 0;
   gkyl_comm_get_rank(app->comm, &rank);
-  if (rank == 0)
+  if ((rank == 0) && fp)
     vfprintf(fp, fmt, argp);
 }
 

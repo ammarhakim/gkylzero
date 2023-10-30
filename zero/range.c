@@ -410,7 +410,7 @@ gkyl_sub_range_intersect(struct gkyl_range* irng,
     up[d] = r1->upper[d] < r2->upper[d] ? r1->upper[d] : r2->upper[d];
   }
   
-  long vol = calc_volume_safely(ndim, lo, up);
+  long vol = irng->volume = calc_volume_safely(ndim, lo, up);
   if (vol > 0)
     gkyl_sub_range_init(irng, r1, lo, up);
   else
