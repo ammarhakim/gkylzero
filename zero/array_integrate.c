@@ -38,7 +38,7 @@ gkyl_array_integrate_new(const struct gkyl_rect_grid *grid, const struct gkyl_ba
   } else if (op == GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ) {
     assert(ndim > 1);
     for (unsigned d=0; d<ndim; ++d)
-      up->vol *= (grid->dx[d])/2.;
+      up->vol *= grid->dx[d]/2.;
   } else {
     for (unsigned d=0; d<ndim; ++d)
       up->vol *= op == GKYL_ARRAY_INTEGRATE_OP_SQ? grid->dx[d]/2.0 : grid->dx[d]/sqrt(2.0);

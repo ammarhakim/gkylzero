@@ -247,6 +247,7 @@ void test_2x_nc1_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
   TEST_CHECK( gkyl_compare( 1.0, fint_ho[0], 1e-12) );
 
   gkyl_array_release(distf);
+  if (use_gpu) gkyl_array_release(distf_ho);
   gkyl_proj_on_basis_release(projf);
   gkyl_free(fint_ho);
   if (use_gpu)
@@ -329,6 +330,7 @@ void test_2x_nc3_op(enum gkyl_array_integrate_op integ_op, int poly_order, bool 
   TEST_CHECK( gkyl_compare( integ_op == GKYL_ARRAY_INTEGRATE_OP_SQ? 2.5*2.5 : 2.5, fint_ho[2], 1e-12) );
 
   gkyl_array_release(distf);
+  if (use_gpu) gkyl_array_release(distf_ho);
   gkyl_proj_on_basis_release(projf);
   gkyl_free(fint_ho);
   if (use_gpu)
@@ -387,7 +389,7 @@ void test_1x_op_gradsq(int poly_order, bool use_gpu)
   else
     memcpy(fint_ho, fint, nc*sizeof(double));
 
-  double *arr = gkyl_array_fetch(distf,1);
+  double *arr = gkyl_array_fetch(distf_ho,1);
   double volFac = grid.dx[0]/2.;
   double dx0Sq = pow(grid.dx[0],2);
   if (poly_order == 1)
@@ -398,6 +400,7 @@ void test_1x_op_gradsq(int poly_order, bool use_gpu)
     assert(false);
 
   gkyl_array_release(distf);
+  if (use_gpu) gkyl_array_release(distf_ho);
   gkyl_proj_on_basis_release(projf);
   gkyl_free(fint_ho);
   if (use_gpu)
@@ -467,6 +470,7 @@ void test_2x_op_gradsq(int poly_order, bool use_gpu)
     assert(false);
 
   gkyl_array_release(distf);
+  if (use_gpu) gkyl_array_release(distf_ho);
   gkyl_proj_on_basis_release(projf);
   gkyl_free(fint_ho);
   if (use_gpu)

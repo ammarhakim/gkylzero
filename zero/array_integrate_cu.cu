@@ -49,13 +49,15 @@ gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid, const struct 
     up->vol *= 12.;
   } else if (op == GKYL_ARRAY_INTEGRATE_OP_GRADPERP_SQ) {
     assert(ndim > 1);
+    for (unsigned d=0; d<ndim; ++d)
+      up->vol *= grid->dx[d]/2.;
     for (unsigned d=0; d<2; ++d)
-      up->vol *= (1./(2.*grid->dx[d]));
+      up->vol *= 1./(grid->dx[d]*grid->dx[d]);
     up->vol *= 12.;
   } else if (op == GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ) {
     assert(ndim > 1);
-    for (unsigned d=0; d<2; ++d)
-      up->vol *= (grid->dx[d])/2.;
+    for (unsigned d=0; d<ndim; ++d)
+      up->vol *= grid->dx[d]/2.;
   } else {
     for (unsigned d=0; d<ndim; ++d)
       up->vol *= op == GKYL_ARRAY_INTEGRATE_OP_SQ? grid->dx[d]/2.0 : grid->dx[d]/sqrt(2.0);
@@ -75,7 +77,7 @@ gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid, const struct 
 
 template <unsigned int BLOCKSIZE>
 __global__ void
-array_integrate_blockRedAtomic_cub(const struct gkyl_array_integrate *up, const struct gkyl_array *inp,
+array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct gkyl_array *inp,
   double factor, const struct gkyl_array *weight, const struct gkyl_range range, double *out)
 {
   unsigned long linc = blockIdx.x*blockDim.x + threadIdx.x;
@@ -90,7 +92,7 @@ array_integrate_blockRedAtomic_cub(const struct gkyl_array_integrate *up, const 
   gkyl_sub_range_inv_idx(&range, linc, idx);
   long start = gkyl_range_idx(&range, idx);
   const double *fptr = (const double*) gkyl_array_cfetch(inp, start);
-  const double *wptr = (const double*) gkyl_array_cfetch(weight, start);
+  const double *wptr = weight == NULL? NULL : (const double*) gkyl_array_cfetch(weight, start);
 
   double outLocal[10]; // Set to max of 10 (e.g. heat flux tensor).
   for (unsigned int k=0; k<up->num_comp; ++k)
@@ -116,7 +118,8 @@ void gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl
 
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
-  array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, factor, weight->on_dev, *range, out);
+  const struct gkyl_array *win = weight == NULL? NULL : weight->on_dev;
+  array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, factor, win, *range, out);
   // device synchronize required because out may be host pinned memory
   cudaDeviceSynchronize();
 }
