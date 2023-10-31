@@ -143,6 +143,7 @@ enum gkyl_cu_memcpy_kind {
 
 #define GKYL_MIN(x,y) ((x)<(y) ? (x) : (y))
 #define GKYL_MAX(x,y) ((x)>(y) ? (x) : (y))
+#define GKYL_SGN(b) (((b)>=0.) ? 1.0 : -1.0)
 
 EXTERN_C_BEG
 

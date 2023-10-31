@@ -222,7 +222,8 @@ struct gkyl_vlasov_stat {
 
   double species_rhs_tm; // time to compute species collisionless RHS
   double fluid_species_rhs_tm; // time to compute fluid species RHS
-  
+  double fluid_species_vars_tm; // time to compute fluid variables (flow velocity and pressure)
+    
   double species_coll_mom_tm; // time needed to compute various moments needed in LBO
   double species_lbo_coll_drag_tm[GKYL_MAX_SPECIES]; // time to compute LBO drag terms
   double species_lbo_coll_diff_tm[GKYL_MAX_SPECIES]; // time to compute LBO diffusion terms

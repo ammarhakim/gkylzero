@@ -18,6 +18,7 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
+#include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_maxwell.h>
@@ -315,12 +316,17 @@ struct vm_fluid_species {
     };
     // Euler/Isothermal Euler
     struct {
-      // For isothermal Euler, prim : (ux, uy, uz), p : (vth*rho)
-      // For Euler, prim : (ux, uy, uz, T/m), p : (gamma - 1)*(E - 1/2 rho u^2)
-      struct gkyl_array *prim; 
+      // For isothermal Euler, u : (ux, uy, uz), p : (vth*rho)
+      // For Euler, u : (ux, uy, uz, T/m), p : (gamma - 1)*(E - 1/2 rho u^2)
+      struct gkyl_array *u; 
       struct gkyl_array *p; 
       struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
                                         // Determined when constructing the matrix if rho < 0.0 at control points
+      struct gkyl_array *u_surf; 
+      struct gkyl_array *p_surf;
+      struct gkyl_dg_calc_fluid_vars *calc_fluid_vars; // Updater to compute fluid variables (flow velocity and pressure)
+      struct gkyl_dg_calc_fluid_vars *calc_fluid_vars_ext; // Updater to compute fluid variables (flow velocity and pressure)
+                                                           // over extended range (used when BCs are not absorbing to minimize apply BCs calls) 
     };
   };
 
@@ -859,6 +865,16 @@ void vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fl
  */
 void vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
   const struct gkyl_array *fluid);
+
+/**
+ * Limit slopes of solution of fluid variables
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Pointer to fluid species (where primitive variables are stored)
+ * @param fluid Input (and Output after limiting) array fluid species
+ */
+void vm_fluid_species_limiter(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
+  struct gkyl_array *fluid);
 
 /**
  * Compute RHS from fluid species equations

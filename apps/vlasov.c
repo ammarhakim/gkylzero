@@ -56,14 +56,16 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
       if (poly_order > 1) {
-        gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-        if (vdim > 0)
+        if (vdim > 0) {
+          gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
           gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
+        }
       } else if (poly_order == 1) {
-        /* Force hybrid basis (p=2 in velocity space). */
-        gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
-        if (vdim > 0)
+        if (vdim > 0) {
+          /* Force hybrid basis (p=2 in velocity space). */
+          gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
           gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
+        }
       }
 
       if (app->use_gpu) {
@@ -602,7 +604,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     }
   }
 
-  // compute primitive moments for fluid species evolution
+  // Limit fluid solution and compute primitive moments for fluid species evolution
   for (int i=0; i<app->num_fluid_species; ++i) 
     vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
 
@@ -704,6 +706,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fout[i] = app->species[i].f1;
         }
         for (int i=0; i<app->num_fluid_species; ++i) {
+          // Limit fluid species solution
+          vm_fluid_species_limiter(app, &app->fluid_species[i], app->fluid_species[i].fluid);
           fluidin[i] = app->fluid_species[i].fluid;
           fluidout[i] = app->fluid_species[i].fluid1;
         }
@@ -721,6 +725,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_fluid_species; ++i) {
+          // Limit fluid species solution
+          vm_fluid_species_limiter(app, &app->fluid_species[i], app->fluid_species[i].fluid1);
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
@@ -762,6 +768,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_fluid_species; ++i) {
+          // Limit fluid species solution
+          vm_fluid_species_limiter(app, &app->fluid_species[i], app->fluid_species[i].fluid1);
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
@@ -893,8 +901,8 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
 
   enum {
     TOTAL_TM, INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM,
-    SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, SPECIES_COLL_MOM_TM,
-    SPECIES_COL_TM, FIELD_RHS_TM, CURRENT_TM,
+    SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, FLUID_SPECIES_VARS_TM, 
+    SPECIES_COLL_MOM_TM, SPECIES_COL_TM, FIELD_RHS_TM, CURRENT_TM,
     SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, MOM_TM, DIAG_TM, IO_TM,
     SPECIES_BC_TM, FLUID_SPECIES_BC_TM, FIELD_BC_TM,
     D_END
@@ -907,6 +915,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     [INIT_FIELD_TM] = local->field_rhs_tm,
     [SPECIES_RHS_TM] = local->species_rhs_tm,
     [FLUID_SPECIES_RHS_TM] = local->fluid_species_rhs_tm,
+    [FLUID_SPECIES_VARS_TM] = local->fluid_species_vars_tm,
     [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
     [SPECIES_COL_TM] = local->species_coll_tm,
     [FIELD_RHS_TM] = local->field_rhs_tm,
@@ -930,6 +939,7 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   global->field_rhs_tm = d_red_global[INIT_FIELD_TM];
   global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
   global->fluid_species_rhs_tm = d_red_global[FLUID_SPECIES_RHS_TM];
+  global->fluid_species_vars_tm = d_red_global[FLUID_SPECIES_VARS_TM];
   global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
   global->species_coll_tm = d_red_global[SPECIES_COL_TM];
   global->field_rhs_tm = d_red_global[FIELD_RHS_TM];

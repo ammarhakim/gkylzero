@@ -40,23 +40,3 @@ void gkyl_calc_prim_vars_u_from_statevec(gkyl_dg_bin_op_mem *mem, struct gkyl_ba
  */
 void gkyl_calc_prim_vars_u_from_rhou(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis, const struct gkyl_range *range,
   const struct gkyl_array* rho, const struct gkyl_array* rhou, struct gkyl_array* u_i);
-
-/**
- * Compute pressure from state vector which contains density, momentum, and energy.
- * Data always organized such that density is 0th component of statevec, momentum is 
- * 1st, 2nd, and 3rd component of statevec, and energy is 4th component of statevec.
- * Note: Pressure computation requires computation of u, bulk flow velocity.
- * Examples include: 
- * Euler state vector [rho, rhoux, rhouy, rhouz, E],
- * Nonrelativistic Vlasov Five Moments array [M0, M1i, M2]
- *
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- * @param p_fac Factor for obtaining pressure (gas_gamma for Euler)
- * @param u_i Input array of bulk flow velocity
- * @param statevec Input state vector which contains density, momentum, and energy
- * @param p_ij Output array of pressure (scalar pressure)
- */
-void gkyl_calc_prim_vars_p_from_statevec(struct gkyl_basis basis, const struct gkyl_range *range,
-  const double p_fac, const struct gkyl_array* u_i, const struct gkyl_array* statevec, 
-  struct gkyl_array* p_ij);
