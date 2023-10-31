@@ -614,42 +614,10 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
 
 
       double arcL_curr = 0.0;
-      arcL_curr = (theta_lo + M_PI)/2/M_PI*arcL;
+      arcL_curr = (theta_lo + M_PI)/2/M_PI*arcL - delta_arcL;
       double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ;
-      do {
-        // set node coordinates of first node
-        cidx[TH_IDX] = nrange.lower[TH_IDX];
-        double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
-
-        arc_ctx.psi = psi_curr;
-        arc_ctx.rclose = rclose;
-        arc_ctx.zmin = zmin;
-        arc_ctx.arcL = arcL_curr;
-
-        // Here we actually need to search for z because we aren't starting from -pi
-        struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
-          zmin, zmax, -arcL_curr, arcL-arcL_curr,
-          geo->root_param.max_iter, 1e-10);
-        double z_curr = res.res;
-        ((gkyl_geo_gyrokinetic *)geo)->stat.nroot_cont_calls += res.nevals;
-        mc2p_n[Z_IDX] = z_curr;
-
-        double R[4] = { 0 }, dR[4] = { 0 };
-        int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
-        double r_curr = choose_closest(rclose, R, R, nr);
-        mc2p_n[R_IDX] = r_curr;
-
-
-        double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
-        // convert to x,y,z
-        double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
-        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(phi_curr);
-        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(phi_curr);
-        mc2p_xyz_n[Zc_IDX] = mc2p_n[Z_IDX];
-      } while(0);
-
-      // set node coordinates of rest of nodes
-      for (int it=nrange.lower[TH_IDX]+1; it<nrange.upper[TH_IDX]; ++it) {
+      // set node coordinates
+      for (int it=nrange.lower[TH_IDX]; it<nrange.upper[TH_IDX]+1; ++it) {
         arcL_curr += delta_arcL;
         double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
         //printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
@@ -683,46 +651,9 @@ gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
         mc2p_xyz_n[Zc_IDX] = mc2p_n[Z_IDX];
         
       }
-
-      arcL_curr += delta_arcL;
-      theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ;
-      do {
-        // set node coordinates of last node
-        cidx[TH_IDX] = nrange.upper[TH_IDX];
-        double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(&nrange, cidx));
-
-        arc_ctx.psi = psi_curr;
-        arc_ctx.rclose = rclose;
-        arc_ctx.zmin = zmin;
-        arc_ctx.arcL = arcL_curr;
-
-        // Here we actually need to search for z because we aren't ending at pi necessarily
-        struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
-          zmin, zmax, -arcL_curr, arcL-arcL_curr,
-          geo->root_param.max_iter, 1e-10);
-        double z_curr = res.res;
-        ((gkyl_geo_gyrokinetic *)geo)->stat.nroot_cont_calls += res.nevals;
-        mc2p_n[Z_IDX] = z_curr;
-
-
-        double R[4] = { 0 }, dR[4] = { 0 };    
-        int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
-        mc2p_n[R_IDX] = choose_closest(rclose, R, R, nr);
-
-        double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
-
-        // do x,y,z
-        double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(&nrange, cidx));
-        mc2p_xyz_n[X_IDX] = mc2p_n[R_IDX]*cos(phi_curr);
-        mc2p_xyz_n[Y_IDX] = mc2p_n[R_IDX]*sin(phi_curr);
-        mc2p_xyz_n[Zc_IDX] = mc2p_n[Z_IDX];
-      } while (0);
-      //printf("last node theta_curr = %g, psicurr  = %g \n\n", theta_curr, psi_curr);
     }
-    //end original loop
   }
 
-  //printf("trying to write nodal coords\n");
   char str1[50] = "xyz";
   if (inp->write_node_coord_array){
     write_nodal_coordinates(inp->node_file_nm, &nrange, mc2p);
