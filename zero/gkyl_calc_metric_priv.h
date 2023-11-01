@@ -127,9 +127,12 @@ struct gkyl_calc_metric {
   unsigned poly_order; // Polynomial order of the basis.
   const struct gkyl_rect_grid* grid;
   bool use_gpu;
-  metric_kernel_loc_list kernels;
+  //metric_kernel_loc_list kernels;
   const int *num_cells;
   int *bcs;
+  int *geo_bcs;
+  struct gkyl_array* gFld_nodal;
+  const struct gkyl_basis* cbasis;
 };
 
 

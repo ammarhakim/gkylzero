@@ -27,8 +27,12 @@ gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
  * @param gFld output field where metric coefficients will be placed
  */
 
-void gkyl_calc_metric_advance(const gkyl_calc_metric *up, const struct gkyl_range *crange,
-    struct gkyl_array *XYZ, struct gkyl_array *gFld);
+//void gkyl_calc_metric_advance(const gkyl_calc_metric *up, const struct gkyl_range *crange,
+//    struct gkyl_array *XYZ, struct gkyl_array *gFld);
+
+
+void gkyl_calc_metric_advance_nodal(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_xyz_nodal_fd, double *dzc);
+void gkyl_calc_metric_advance_modal(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *gFld, struct gkyl_range *update_range);
 
 /**
  * Delete updater.

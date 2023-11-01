@@ -2,8 +2,45 @@
 
 #include <stdbool.h>
 
+#include <gkyl_math.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
+
+#include <math.h>
+#include <string.h>
+
 // Object type
 typedef struct gkyl_geo_gyrokinetic gkyl_geo_gyrokinetic;
+
+
+// Some cumulative statistics
+struct gkyl_geo_gyrokinetic_stat {
+  long nquad_cont_calls; // num calls from quadrature
+  long nroot_cont_calls; // num calls from root-finder
+};  
+
+struct gkyl_geo_gyrokinetic {
+  struct gkyl_rect_grid rzgrid; // RZ grid on which psi(R,Z) is defined
+  const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
+  struct gkyl_range rzlocal; // local range over which psiRZ is defined
+  int num_rzbasis; // number of basis functions in RZ
+
+  struct { int max_iter; double eps; } root_param;
+  struct { int max_level; double eps; } quad_param;
+
+  // pointer to root finder (depends on polyorder)
+  struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
+    double xc[2], double dx[2]);
+
+  struct gkyl_geo_gyrokinetic_stat stat; 
+  double B0;
+  double R0;
+  struct gkyl_array* mc2p_xyz_nodal_fd;
+  struct gkyl_range* nrange;
+  double* dzc;
+};
+
+
 
 // Type of flux surface
 enum gkyl_geo_gyrokinetic_type {
@@ -51,11 +88,6 @@ struct gkyl_geo_gyrokinetic_geo_inp {
   const char *node_file_nm; // name of nodal coordinate file
 };
 
-// Some cumulative statistics
-struct gkyl_geo_gyrokinetic_stat {
-  long nquad_cont_calls; // num calls from quadrature
-  long nroot_cont_calls; // num calls from root-finder
-};  
 
 /**
  * Create new updater to compute the geometry (mapc2p) needed in GK
@@ -118,7 +150,7 @@ void gkyl_geo_gyrokinetic_mapc2p(const gkyl_geo_gyrokinetic *geo, const struct g
  * @param ginp Input structure for creating mapc2p
  * @param mapc2p On output, the DG representation of mapc2p
  */
-void gkyl_geo_gyrokinetic_calcgeom(const gkyl_geo_gyrokinetic *geo,
+void gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   const struct gkyl_geo_gyrokinetic_geo_inp *ginp, struct gkyl_array *mapc2p, struct gkyl_range *conversion_range);
 
 /**

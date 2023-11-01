@@ -342,10 +342,13 @@ test_1()
 
   double psiSep = 1.50982;
 
-  double clower[] = { 0.934, -0.01, -3.14/32 };
-  double cupper[] = {1.4688, 0.01, 3.14/32 };
+  //double clower[] = { 0.934, -0.01, -3.14 };
+  //double cupper[] = {1.4688, 0.01, 3.14 };
 
-  int ccells[] = { 3, 1, 128/32 };
+  double clower[] = { 0.934, -0.01, -3.14 };
+  double cupper[] = {1.4688, 0.01, 3.14 };
+
+  int ccells[] = { 3, 1, 128 };
 
 
 
@@ -387,8 +390,8 @@ test_1()
     //.zmax = efit->zmax,
 
     .rclose = efit->rmax,
-    .zmin = -7.5,
-    .zmax = 7.5,
+    .zmin = -8.3,
+    .zmax = 8.3,
   
     .write_node_coord_array = true,
     .node_file_nm = "step3d_nodes.gkyl"
@@ -400,7 +403,7 @@ test_1()
   //Do Ammar's calcgeom
 
   struct gkyl_array *mapc2p_arr = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
-  gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p_arr, &clocal_ext);
+  gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p_arr, &conversion_range);
 
   // sync in periodic dirs (y)
   struct skin_ghost_ranges skin_ghost; // skin/ghost.
