@@ -1,3 +1,4 @@
+#include "gkyl_eval_on_nodes.h"
 #include <math.h>
 #include <string.h>
 
@@ -18,8 +19,9 @@ static inline double eval_fpo_h(double gamma_q, double den_q,
 }
 
 static inline double eval_fpo_g(double gamma_q, double den_q, double rel_speed_q, 
-  double rel_speedsq_q, double sqrt2temp_over_m_q) 
+  double sqrt2temp_over_m_q) 
 {
+  double rel_speedsq_q = pow(rel_speed_q, 2);
   return  gamma_q*den_q*sqrt2temp_over_m_q*
     (1.0/(sqrt(GKYL_PI))*exp(-rel_speedsq_q/pow(sqrt2temp_over_m_q, 2)) + 
     erf(rel_speed_q/sqrt2temp_over_m_q)*(sqrt2temp_over_m_q/(2.0*rel_speed_q) + 
@@ -27,8 +29,9 @@ static inline double eval_fpo_g(double gamma_q, double den_q, double rel_speed_q
 }
 
 static inline double eval_fpo_dhdv(double gamma_q, double den_q, 
-  double rel_vel_in_dir_q, double rel_speedsq_q, double sqrt2temp_over_m_q, double rel_speed_q) 
+  double rel_vel_in_dir_q, double sqrt2temp_over_m_q, double rel_speed_q) 
 {
+  double rel_speedsq_q = pow(rel_speed_q, 2);
   return gamma_q*den_q*rel_vel_in_dir_q * (
     2.0*exp(-rel_speedsq_q/pow(sqrt2temp_over_m_q,2))/(sqrt(GKYL_PI)*sqrt2temp_over_m_q*rel_speedsq_q) -
     erf(rel_speed_q/sqrt2temp_over_m_q)/pow(rel_speedsq_q, 1.5)
@@ -36,22 +39,34 @@ static inline double eval_fpo_dhdv(double gamma_q, double den_q,
 }
 
 static inline double eval_fpo_dgdv(double gamma_q, double den_q, double rel_vel_in_dir_q,
-  double rel_speedsq_q, double sqrt2temp_over_m_q, double rel_speed_q) {
+  double sqrt2temp_over_m_q, double rel_speed_q) {
+  double rel_speedsq_q = pow(rel_speed_q,2);
   return gamma_q*den_q*rel_vel_in_dir_q * (
-    exp(-rel_speedsq_q/pow(sqrt2temp_over_m_q,2))*pow(sqrt2temp_over_m_q, 2)/(sqrt(GKYL_PI)*rel_speedsq_q) -
+    exp(-rel_speedsq_q/pow(sqrt2temp_over_m_q,2))*sqrt2temp_over_m_q/(sqrt(GKYL_PI)*rel_speedsq_q) -
     erf(rel_speed_q/sqrt2temp_over_m_q)*(pow(sqrt2temp_over_m_q,2)/(2.0*pow(rel_speed_q,3)) - 1.0/rel_speed_q)
   );
 }
 
-static inline double eval_fpo_d2gdv2(double gamma_q, double den_q, double rel_vel_in_dir_q,
-  double rel_speedsq_q, double sqrt2temp_over_m_q, double rel_speed_q) {
+static inline double eval_fpo_d2gdv2(double gamma_q, double den_q, 
+  double rel_vel_in_dir_q, double sqrt2temp_over_m_q, double rel_speed_q) {
+  double rel_speedsq_q = pow(rel_speed_q,2);
   return gamma_q*den_q*(exp(-rel_speedsq_q/pow(sqrt2temp_over_m_q,2))/sqrt(GKYL_PI)*(sqrt2temp_over_m_q/rel_speedsq_q - 
     pow(rel_vel_in_dir_q,2)*2.0*sqrt2temp_over_m_q*(1.0/pow(rel_speedsq_q, 2) +
     1.0/(pow(sqrt2temp_over_m_q,2)*rel_speedsq_q) + (pow(sqrt2temp_over_m_q,2) - 
     2.0*rel_speedsq_q)/(2.0*pow(sqrt2temp_over_m_q,2)*pow(rel_speedsq_q, 2)))) +
-    erf(rel_speed_q/sqrt2temp_over_m_q)*(pow(rel_vel_in_dir_q, 2)*
+    erf(rel_speed_q/sqrt2temp_over_m_q)*(pow(rel_vel_in_dir_q,2)*
     (3.0*pow(sqrt2temp_over_m_q,2)-2.0*rel_speedsq_q)/(2.0*pow(rel_speed_q, 5)) - 
     pow(sqrt2temp_over_m_q, 2)/(2.0*pow(rel_speed_q, 3)) + 1.0/rel_speed_q));
+}
+
+static inline double eval_fpo_d2gdv2_cross(double gamma_q, double den_q,
+  double rel_vel_in_dir1_q, double rel_vel_in_dir2_q, double rel_speed_q,
+  double sqrt2temp_over_m_q) {
+  double rel_speedsq_q = pow(rel_speed_q,2);
+  return gamma_q*den_q*rel_vel_in_dir1_q*rel_vel_in_dir2_q/pow(rel_speedsq_q,2)*(
+    erf(rel_speed_q/sqrt2temp_over_m_q)*(3.0*pow(sqrt2temp_over_m_q,2)-2.0*rel_speedsq_q)/(2.0*rel_speed_q) -
+    3.0*exp(-rel_speedsq_q/pow(sqrt2temp_over_m_q,2))*sqrt2temp_over_m_q/sqrt(GKYL_PI)
+  );
 }
 
 // create range to loop over quadrature points.
@@ -195,6 +210,21 @@ proj_on_surf_basis(const gkyl_proj_maxwellian_pots_on_basis *up, int offset, con
   }
 }
 
+static void
+eval_on_nodes_nod2mod(int num_ret_vals, const struct gkyl_basis *basis, const struct gkyl_array *fun_at_nodes, double *f) {
+  const double *fao = gkyl_array_cfetch(fun_at_nodes, 0);
+
+  int num_basis = basis->num_basis;
+  double fnodal[num_basis];
+  for (int i=0; i<num_ret_vals; ++i) {
+    for (int k=0; k<num_basis; ++k) {
+      fnodal[k] = fao[num_ret_vals*k+i];
+    }
+
+    basis->nodal_to_modal(fnodal, &f[num_basis*i]);
+  }
+}
+
 gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, const struct gkyl_basis *surf_basis,
   int num_quad) 
@@ -205,9 +235,14 @@ gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const
   up->pdim = phase_basis->ndim;
   up->num_quad = num_quad;
 
+  up->surf_basis = surf_basis;
+
   up->num_conf_basis = conf_basis->num_basis;
   up->num_phase_basis = phase_basis->num_basis;
   up->num_surf_basis = surf_basis->num_basis;
+
+  up->surf_nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim-1, surf_basis->num_basis);
+  surf_basis->node_list(gkyl_array_fetch(up->surf_nodes, 0));
 
   bool use_gpu = false;
 
@@ -265,6 +300,7 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
 
   int tot_conf_quad = up->tot_conf_quad;
   int num_conf_basis = up->num_conf_basis;
+  int num_surf_basis = up->num_surf_basis;
 
   struct gkyl_range vel_range;
   struct gkyl_range_iter conf_iter, vel_iter;
@@ -276,7 +312,7 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
   double den[tot_conf_quad], udrift[tot_conf_quad][vdim], temp[tot_conf_quad], gamma_ev[tot_conf_quad];
   double sqrt2temp_over_m[tot_conf_quad]; 
 
-  // Outer loop over configuration space cells
+  // Loop over configuration space cells for quad integration of moments
   gkyl_range_iter_init(&conf_iter, conf_range);
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_range, conf_iter.idx);
@@ -318,8 +354,9 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
 
       sqrt2temp_over_m[n] = sqrt(2.0*vtsq);
     }
-    
-    // Inner loop over velocity space
+  
+      
+ 
     gkyl_range_deflate(&vel_range, phase_range, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_range);
     while (gkyl_range_iter_next(&vel_iter)) {
@@ -328,55 +365,78 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
       
       struct gkyl_range_iter qiter;
       gkyl_range_iter_init(&qiter, &up->phase_qrange);
-
+  
       long lidx = gkyl_range_idx(&vel_range, vel_iter.idx);
-
+  
       // Compute potentials at phase space quadrature nodes
       while (gkyl_range_iter_next(&qiter)) {
         int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
         int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
-
+  
         comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx), up->grid.dx, xc, xmu);
-
+  
         double rel_speedsq_q = 0.0;
         for (int d=0; d<vdim; ++d)
           rel_speedsq_q += pow(udrift[cqidx][d]-xmu[cdim+d],2);
-
+  
         // Retrieve values of necessary quantities at quadrature node
         double rel_speed_q = sqrt(rel_speedsq_q);
         double den_q = den[cqidx];
         double temp_q = temp[cqidx];
         double gamma_q = gamma_d[0];
         double sqrt2temp_over_m_q = sqrt2temp_over_m[cqidx];
-
+  
         // Compute H and G at quadrature node
         double *fpo_h_q = gkyl_array_fetch(up->fpo_h_at_ords, pqidx);
         double *fpo_g_q = gkyl_array_fetch(up->fpo_g_at_ords, pqidx);
-
+  
         fpo_h_q[0] = eval_fpo_h(gamma_q, den_q, rel_speed_q, sqrt2temp_over_m_q); 
-
-        fpo_g_q[0] = eval_fpo_g(gamma_q, den_q, rel_speed_q, rel_speedsq_q, sqrt2temp_over_m_q);
+  
+        fpo_g_q[0] = eval_fpo_g(gamma_q, den_q, rel_speed_q, sqrt2temp_over_m_q);
       }
-
+  
+      struct gkyl_array *fpo_g_at_nodes = gkyl_array_new(GKYL_DOUBLE, 1, num_surf_basis);
+  
       // Check if we're at a velocity space boundary in each velocity direction
       for (int d=0; d<vdim; ++d) {
         int dir = d + cdim;
-
-        if (pidx[dir] == vel_range.lower[d] || pidx[dir] == vel_range.upper[d]) {
-          // For indexing into surface expansion arrays:
-          int offset_idx = pidx[dir] == vel_range.lower[d] ? 0 : 3;
-
+  
+        if (pidx[dir] == vel_range.lower[d] || pidx[dir] == vel_range.upper[d]) { 
           // Velocity value at boundary for surface expansion
-          int vmax = pidx[dir] == vel_range.lower[d] ? up->grid.lower[dir] : up->grid.upper[dir];
-
+          int vmax = pidx[dir] == vel_range.lower[d] ? up->grid.lower[dir] : up->grid.upper[dir]; 
+  
+          for (int i=0; i<num_surf_basis; ++i) {
+            comp_to_phys(pdim, gkyl_array_cfetch(up->surf_nodes, i), up->grid.dx, xc, xmu);
+  
+            xmu[dir] = vmax;
+            double rel_speedsq_n = 0.0;
+            for (int d=0; d<vdim; ++d)
+              rel_speedsq_n += pow(xmu[cdim+d]-udrift[0][d], 2);
+  
+            double rel_vel_in_dir_n = xmu[dir]-udrift[0][d];
+            double rel_speed_n = sqrt(rel_speedsq_n);
+            double den_n = den[0];
+            double temp_n = temp[0];
+            double gamma_n = gamma_d[0];
+            double sqrt2temp_over_m_n = sqrt2temp_over_m[0];
+  
+            double* fpo_g_at_nodes_n = gkyl_array_fetch(fpo_g_at_nodes, i);
+  
+            fpo_g_at_nodes_n[0] = eval_fpo_g(gamma_n, den_n, rel_speed_n, sqrt2temp_over_m_n);
+          }
+          
+          double *fpo_dgdv_surf_n = gkyl_array_fetch(fpo_dgdv_surf, lidx);
+          eval_on_nodes_nod2mod(1, up->surf_basis, fpo_g_at_nodes, &fpo_dgdv_surf_n[d*num_surf_basis]);
+  
           struct gkyl_range_iter surf_qiter;
           gkyl_range_iter_init(&surf_qiter, &up->surf_qrange);
-
-          // Iterate over surface quadrature points
+  
+          // Iterate over surface quadrature points to calculate:
+          // H, G, dH/dv, dG/dv
           while (gkyl_range_iter_next(&surf_qiter)) {
             int surf_qidx = gkyl_range_idx(&up->surf_qrange, surf_qiter.idx);
             int surf_cqidx = gkyl_range_idx(&up->conf_qrange, surf_qiter.idx);
-
+  
             // Have to map pdim-1 surface quadrature index to pdim phase quadrature index
             // to get correct phase space variables.
             int edge_idx = pidx[dir] == vel_range.lower[d] ? 0 : up->num_quad-1;
@@ -384,12 +444,12 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
             edge_idx_to_phase_idx(pdim, dir, surf_qiter.idx, edge_idx, phase_idx);
             int phase_lidx = gkyl_range_idx(&up->phase_qrange, phase_idx);
             comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, phase_lidx), up->grid.dx, xc, xmu);
-
+  
             xmu[dir] = vmax;
             double rel_speedsq_q = 0.0;
             for (int d=0; d<vdim; ++d)
               rel_speedsq_q += pow(xmu[cdim+d]-udrift[surf_cqidx][d],2);
-
+  
             // Retrieve values of necessary quantities at quadrature node
             double rel_vel_in_dir_q = xmu[dir]-udrift[surf_cqidx][d];
             double rel_speed_q = sqrt(rel_speedsq_q);
@@ -397,7 +457,7 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
             double temp_q = temp[surf_cqidx];
             double gamma_q = gamma_d[0];
             double sqrt2temp_over_m_q = sqrt2temp_over_m[surf_cqidx];
-
+  
             double *fpo_h_at_surf_ords_q = gkyl_array_fetch(up->fpo_h_at_surf_ords, surf_qidx);
             double *fpo_g_at_surf_ords_q = gkyl_array_fetch(up->fpo_g_at_surf_ords, surf_qidx);
             double *fpo_dhdv_at_surf_ords_q = gkyl_array_fetch(up->fpo_dhdv_at_surf_ords, surf_qidx);
@@ -405,30 +465,77 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
             double *fpo_d2gdv2_at_surf_ords_q = gkyl_array_fetch(up->fpo_d2gdv2_at_surf_ords, surf_qidx);
            
             fpo_h_at_surf_ords_q[0] = eval_fpo_h(gamma_q, den_q, rel_speed_q, sqrt2temp_over_m_q); 
-
-            fpo_g_at_surf_ords_q[0] = eval_fpo_g(gamma_q, den_q, rel_speed_q, rel_speedsq_q, sqrt2temp_over_m_q);
-
+  
+            fpo_g_at_surf_ords_q[0] = eval_fpo_g(gamma_q, den_q, rel_speed_q, sqrt2temp_over_m_q);
+  
             fpo_dhdv_at_surf_ords_q[0] = eval_fpo_dhdv(gamma_q, den_q, rel_vel_in_dir_q, 
-              rel_speedsq_q, sqrt2temp_over_m_q, rel_speed_q); 
-
-            // For now, just dg/dv in normal direction
+              sqrt2temp_over_m_q, rel_speed_q); 
+  
             fpo_dgdv_at_surf_ords_q[0] = eval_fpo_dgdv(gamma_q, den_q, rel_vel_in_dir_q, 
-              rel_speedsq_q, sqrt2temp_over_m_q, rel_speed_q);
-
-            fpo_d2gdv2_at_surf_ords_q[0] = eval_fpo_d2gdv2(gamma_q, den_q, rel_vel_in_dir_q, 
-              rel_speedsq_q, sqrt2temp_over_m_q, rel_speed_q);
+              sqrt2temp_over_m_q, rel_speed_q);
           }
+  
+          // Iterate over second velocity space direction to calculate d2G/dv2
+          for (int d2=0; d2<vdim; ++d2) {
+            int dir2 = d2 + cdim;
+            // Iterating over velocity space direction pairs within a phase space cell
+            // relevant constants are defined at quadrature nodes?
+            // int num_surf_basis = up->num_surf_basis;
+            // struct gkyl_array *fpo_g_at_nodes = gkyl_array_new(GKYL_DOUBLE, 1, num_surf_basis);
+  
+            gkyl_range_iter_init(&surf_qiter, &up->surf_qrange);
+            while (gkyl_range_iter_next(&surf_qiter)) {
+              int surf_qidx = gkyl_range_idx(&up->surf_qrange, surf_qiter.idx);
+              int surf_cqidx = gkyl_range_idx(&up->conf_qrange, surf_qiter.idx);
+  
+              // Have to map pdim-1 surface quadrature index to pdim phase quadrature index
+              // to get correct phase space variables.
+              int edge_idx = pidx[dir] == vel_range.lower[d] ? 0 : up->num_quad-1;
+              int phase_idx[GKYL_MAX_DIM];
+              edge_idx_to_phase_idx(pdim, dir, surf_qiter.idx, edge_idx, phase_idx);
+              int phase_lidx = gkyl_range_idx(&up->phase_qrange, phase_idx);
+              comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, phase_lidx), up->grid.dx, xc, xmu);
+  
+              xmu[dir] = vmax;
+              double rel_speedsq_q = 0.0;
+              for (int d=0; d<vdim; ++d)
+                rel_speedsq_q += pow(xmu[cdim+d]-udrift[surf_cqidx][d],2);
+  
+              // Retrieve values of necessary quantities at quadrature node
+              double rel_vel_in_dir1_q = xmu[dir]-udrift[surf_cqidx][d];
+              double rel_vel_in_dir2_q = xmu[dir2]-udrift[surf_cqidx][d2];
+              double rel_speed_q = sqrt(rel_speedsq_q);
+              double den_q = den[surf_cqidx];
+              double temp_q = temp[surf_cqidx];
+              double gamma_q = gamma_d[0];
+              double sqrt2temp_over_m_q = sqrt2temp_over_m[surf_cqidx];
+  
+              double *fpo_d2gdv2_at_surf_ords_q = gkyl_array_fetch(up->fpo_d2gdv2_at_surf_ords, surf_qidx);
+  
+              if (d == d2) {
+                fpo_d2gdv2_at_surf_ords_q[0] = eval_fpo_d2gdv2(gamma_q, den_q, 
+                  rel_vel_in_dir1_q, 
+                  sqrt2temp_over_m_q, rel_speed_q);
+              }
+              else {
+                fpo_d2gdv2_at_surf_ords_q[0] = eval_fpo_d2gdv2_cross(gamma_q, den_q,
+                  rel_vel_in_dir1_q, rel_vel_in_dir2_q, rel_speed_q, sqrt2temp_over_m_q); 
+              }
+            }
+            proj_on_surf_basis(up, d*vdim+d2, up->fpo_d2gdv2_at_surf_ords, gkyl_array_fetch(fpo_d2gdv2_surf, lidx));
+          }
+  
           // Project surface expansions onto surface basis
-          proj_on_surf_basis(up, offset_idx+d, up->fpo_h_at_surf_ords, gkyl_array_fetch(fpo_h_surf, lidx));
-          proj_on_surf_basis(up, offset_idx+d, up->fpo_g_at_surf_ords, gkyl_array_fetch(fpo_g_surf, lidx));
-          proj_on_surf_basis(up, offset_idx+d, up->fpo_dhdv_at_surf_ords, gkyl_array_fetch(fpo_dhdv_surf, lidx));
-          proj_on_surf_basis(up, offset_idx+d, up->fpo_dgdv_at_surf_ords, gkyl_array_fetch(fpo_dgdv_surf, lidx));
-          proj_on_surf_basis(up, offset_idx+d, up->fpo_d2gdv2_at_surf_ords, gkyl_array_fetch(fpo_d2gdv2_surf, lidx));
+          proj_on_surf_basis(up, d, up->fpo_h_at_surf_ords, gkyl_array_fetch(fpo_h_surf, lidx));
+          proj_on_surf_basis(up, d, up->fpo_g_at_surf_ords, gkyl_array_fetch(fpo_g_surf, lidx));
+          proj_on_surf_basis(up, d, up->fpo_dhdv_at_surf_ords, gkyl_array_fetch(fpo_dhdv_surf, lidx));
+          // proj_on_surf_basis(up, d, up->fpo_dgdv_at_surf_ords, gkyl_array_fetch(fpo_dgdv_surf, lidx))    
         }
       } 
       // Project potentials onto basis
       proj_on_basis(up, up->fpo_h_at_ords, gkyl_array_fetch(fpo_h, lidx));
       proj_on_basis(up, up->fpo_g_at_ords, gkyl_array_fetch(fpo_g, lidx));
+      gkyl_array_release(fpo_g_at_nodes);
     }
   }
 }
