@@ -60,7 +60,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalColdInit,
     .split_type = GKYL_WAVE_FWAVE,  
-    .limiter = GKYL_MIN_MOD,  
+    //.limiter = GKYL_MIN_MOD,  
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };

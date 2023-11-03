@@ -126,7 +126,7 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     else {
       wv = &waves[0];
       for(int m=0; m<4; ++m)
-        wv[m] = 0;
+        wv[m] = 0.0;
 
       wv = &waves[4];
       for(int m=0; m<4; ++m)
