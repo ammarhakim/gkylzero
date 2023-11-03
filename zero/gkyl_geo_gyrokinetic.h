@@ -76,7 +76,6 @@ struct gkyl_geo_gyrokinetic_inp {
 // Inputs to create geometry for a specific computational grid
 struct gkyl_geo_gyrokinetic_geo_inp {
   const struct gkyl_rect_grid *cgrid;
-  int* bcs;
   const struct gkyl_basis *cbasis;
 
   enum gkyl_geo_gyrokinetic_type ftype; // type of geometry

@@ -477,9 +477,6 @@ void nodal_array_to_modal_array(struct gkyl_array *nodal_array, struct gkyl_arra
       const double* temp  = gkyl_array_cfetch(nodes,i);
       for( int j = 0; j < ginp->cgrid->ndim; j++){
         if(cpoly_order==1){
-          if(j==1 && ginp->bcs[1]==1) // this conversion is valid if ghost cells are included
-            nidx[j] = iter.idx[j] + (temp[j]+1)/2 ;
-          else // otherwise this conversion is valid
             nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
         }
         if (cpoly_order==2)
@@ -524,8 +521,6 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   if (poly_order == 1){
     for (int d=0; d<inp->cgrid->ndim; ++d)
       nodes[d] = inp->cgrid->cells[d] + 1;
-    if(inp->bcs[1]==1)
-      nodes[1] += 2; // specically alpha gets ghosts if nonperiodic in y
   }
                    
   if (poly_order == 2){
@@ -558,8 +553,6 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   double theta_lo = inp->cgrid->lower[TH_IDX],
     phi_lo = inp->cgrid->lower[PH_IDX],
     alpha_lo = inp->cgrid->lower[AL_IDX];
-  if(inp->bcs[1]==1)
-    alpha_lo -= dalpha;
 
   double dx_fact = poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;

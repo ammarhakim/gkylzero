@@ -7,7 +7,7 @@
 #include <gkyl_array_ops_priv.h>
 
 gkyl_calc_metric*
-gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, const int *bcs, bool use_gpu)
+gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu)
 {
   gkyl_calc_metric *up = gkyl_malloc(sizeof(gkyl_calc_metric));
   up->cbasis = cbasis;
@@ -17,14 +17,6 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_gri
   up->grid = grid;
   up->use_gpu = use_gpu;
   up->num_cells = up->grid->cells;
-  up->bcs = gkyl_malloc((up->cdim)*sizeof(int));
-  up->geo_bcs = gkyl_malloc((up->cdim)*sizeof(int));
-  for(int i=0; i<up->cdim; i++){
-    up->bcs[i] = bcs[i];
-    up->geo_bcs[i] = bcs[i];
-  }
-  up->bcs[1] = 0; // Always use ghost cells in y for now
-
   return up;
 }
 
@@ -129,13 +121,10 @@ void gkyl_calc_metric_advance_modal(gkyl_calc_metric *up, struct gkyl_range *nra
       const double* temp  = gkyl_array_cfetch(nodes,i);
       for( int j = 0; j < up->grid->ndim; j++){
         if(cpoly_order==1){
-          if(j==1 && up->geo_bcs[1]==1) // this conversion is valid if ghost cells are included
-            nidx[j] = iter.idx[j] + (temp[j]+1)/2 ;
-          else // otherwise this conversion is valid
             nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
         }
         if (cpoly_order==2)
-          nidx[j] = 2*iter.idx[j] + (temp[j] + 1) ; // add another line for if other bcs are used. Done correctly in efit.c
+          nidx[j] = 2*iter.idx[j] + (temp[j] + 1) ;
       }
       lin_nidx[i] = gkyl_range_idx(nrange, nidx);
     }
@@ -167,7 +156,5 @@ void gkyl_calc_metric_advance_modal(gkyl_calc_metric *up, struct gkyl_range *nra
 void
 gkyl_calc_metric_release(gkyl_calc_metric* up)
 {
-  gkyl_free(up->bcs);
-  gkyl_free(up->geo_bcs);
   gkyl_free(up);
 }

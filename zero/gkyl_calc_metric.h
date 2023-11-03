@@ -18,7 +18,7 @@ typedef struct gkyl_calc_metric gkyl_calc_metric;
  * @return New updater pointer.
  */
 gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_rect_grid *grid, const int *bcs, bool use_gpu);
+  const struct gkyl_rect_grid *grid, bool use_gpu);
 
 /**
  * Use finite differences to calculate metric coefficients at nodes

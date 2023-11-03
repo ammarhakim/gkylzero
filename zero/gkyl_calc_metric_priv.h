@@ -11,8 +11,6 @@ struct gkyl_calc_metric {
   const struct gkyl_rect_grid* grid;
   bool use_gpu;
   const int *num_cells;
-  int *bcs;
-  int *geo_bcs;
   struct gkyl_array* gFld_nodal;
   const struct gkyl_basis* cbasis;
 };
