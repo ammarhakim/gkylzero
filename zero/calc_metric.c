@@ -39,27 +39,8 @@ void gkyl_calc_metric_advance_nodal(gkyl_calc_metric *up, struct gkyl_range *nra
   enum { X_IDX, Y_IDX, Zc_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
-    for(int ia_delta = 0; ia_delta < 3; ia_delta++){
       for (int ip=nrange->lower[PH_IDX]; ip<=nrange->upper[PH_IDX]; ++ip) {
-        int ip_delta_max = 3;
-        if(ia_delta != 0)
-          ip_delta_max = 1;
-        for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
           for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
-            int it_delta_max = 3;
-            if(ia_delta != 0 || ip_delta != 0 )
-              it_delta_max = 1;
-            for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
-              int lidx_xyz = 0; // need to figure out how to map this
-              if (ip_delta != 0){
-                lidx_xyz = 3 + 3*(ip_delta-1);
-              }
-              if (ia_delta != 0){
-                lidx_xyz = 9 + 3*(ia_delta-1);
-              }
-              if (ia_delta != 0){
-                lidx_xyz = 15 + 3*(it_delta-1);
-              }
               cidx[PH_IDX] = ip;
               cidx[AL_IDX] = ia;
               cidx[TH_IDX] = it;
@@ -89,9 +70,6 @@ void gkyl_calc_metric_advance_nodal(gkyl_calc_metric *up, struct gkyl_range *nra
               //printf("g22 = %g\n",gFld_n[3]);
               //printf("g23 = %g\n",gFld_n[4]);
               //printf("g33 = %g\n",gFld_n[5]);
-            }
-          }
-        }
       }
     }
   }
@@ -208,5 +186,6 @@ void
 gkyl_calc_metric_release(gkyl_calc_metric* up)
 {
   gkyl_free(up->bcs);
+  gkyl_free(up->geo_bcs);
   gkyl_free(up);
 }

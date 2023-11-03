@@ -575,9 +575,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   dtheta *= dx_fact; dphi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
-  double delta_alpha = dalpha*1e-3;
-  double delta_phi = dphi*1e-3;
-  double delta_theta = dtheta*1e-3;
+  double delta_alpha = dalpha*1e-2;
+  double delta_phi = dphi*1e-2;
+  double delta_theta = dtheta*1e-2;
   geo->dzc = gkyl_malloc(3*sizeof(double));
   geo->dzc[0] = delta_phi;
   geo->dzc[1] = delta_alpha;
@@ -623,7 +623,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
           double arcL_curr = 0.0;
           //arcL_curr = (theta_lo + M_PI)/2/M_PI*arcL - delta_arcL;
           double arcL_lo = (theta_lo + M_PI)/2/M_PI*arcL;
-          double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ;
+          //double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ;
           // set node coordinates
           for (int it=geo->nrange->lower[TH_IDX]; it<=geo->nrange->upper[TH_IDX]; ++it) {
             //printf("it = %d\n", it);
@@ -633,7 +633,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               it_delta_max = 1;
             for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
               //int it_delta=0;
-              arcL_curr = arcL_lo + it*delta_arcL + modifiers[it_delta]*delta_theta;
+              arcL_curr = arcL_lo + it*delta_arcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
               //printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
 

@@ -202,7 +202,7 @@ test_1()
 
   double clower[] = { 0.06, -0.1, -2.5};
   double cupper[] = {0.1, 0.1, 2.5};
-  int ccells[] = { 16,1, 32 };
+  int ccells[] = { 16,1, 16 };
 
 
 
@@ -414,7 +414,6 @@ test_1()
   printf("created geo fields\n");
   gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&cbasis, &cgrid, false);
   printf("made the j calculator \n");
-  //gkyl_calc_derived_geo_advance( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld);
   gkyl_calc_derived_geo_advance( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld, jtotFld, jtotinvFld, bmaginvFld, bmaginvsqFld, gxxJ, gxyJ, gyyJ);
   
 
