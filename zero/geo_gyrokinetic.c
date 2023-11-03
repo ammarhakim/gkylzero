@@ -588,6 +588,10 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   for(int ia=geo->nrange->lower[AL_IDX]; ia<=geo->nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     for(int ia_delta = 0; ia_delta < 3; ia_delta++){
+      if(ia == geo->nrange->lower[AL_IDX] && ia_delta == 1)
+        continue; // want to use one sided stencils at edge
+      if(ia == geo->nrange->upper[AL_IDX] && ia_delta == 2)
+        continue; // want to use one sided stencils at edge
       double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
       printf("alpha_curr = %g\n", alpha_curr);
       for (int ip=geo->nrange->lower[PH_IDX]; ip<=geo->nrange->upper[PH_IDX]; ++ip) {
@@ -595,6 +599,10 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
         if(ia_delta != 0)
           ip_delta_max = 1;
         for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
+          if(ip == geo->nrange->lower[PH_IDX] && ip_delta == 1)
+            continue; // want to use one sided stencils at edge
+          if(ip == geo->nrange->upper[PH_IDX] && ip_delta == 2)
+            continue; // want to use one sided stencils at edge
           double zmin = inp->zmin, zmax = inp->zmax;
           double psi_curr = phi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
           //printf("psi_curr = %g\n", psi_curr);
@@ -611,6 +619,10 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             if(ia_delta != 0 || ip_delta != 0 )
               it_delta_max = 1;
             for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
+              if(it == geo->nrange->lower[TH_IDX] && it_delta == 1)
+                continue; // want to use one sided stencils at edge
+              if(it == geo->nrange->upper[TH_IDX] && it_delta == 2)
+                continue; // want to use one sided stencils at edge
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
               //printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);

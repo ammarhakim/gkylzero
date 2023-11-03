@@ -44,15 +44,57 @@ void gkyl_calc_metric_advance_nodal(gkyl_calc_metric *up, struct gkyl_range *nra
               cidx[TH_IDX] = it;
               const double *mc2p_n = gkyl_array_cfetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
               double dxdz[3][3];
-              dxdz[0][0] = -(mc2p_n[3 +X_IDX] -   mc2p_n[6+X_IDX])/2/dzc[0];
-              dxdz[0][1] = -(mc2p_n[9 +X_IDX] -  mc2p_n[12+X_IDX])/2/dzc[1];
-              dxdz[0][2] = -(mc2p_n[15 +X_IDX] - mc2p_n[18+X_IDX])/2/dzc[2];
-              dxdz[1][0] = -(mc2p_n[3 +Y_IDX] -   mc2p_n[6+Y_IDX])/2/dzc[0];
-              dxdz[1][1] = -(mc2p_n[9 +Y_IDX] -  mc2p_n[12+Y_IDX])/2/dzc[1];
-              dxdz[1][2] = -(mc2p_n[15 +Y_IDX] - mc2p_n[18+Y_IDX])/2/dzc[2];
-              dxdz[2][0] = -(mc2p_n[3 +Z_IDX] -   mc2p_n[6+Z_IDX])/2/dzc[0];
-              dxdz[2][1] = -(mc2p_n[9 +Z_IDX] -  mc2p_n[12+Z_IDX])/2/dzc[1];
-              dxdz[2][2] = -(mc2p_n[15 +Z_IDX] - mc2p_n[18+Z_IDX])/2/dzc[2];
+
+              if(ip==nrange->lower[PH_IDX]){
+                dxdz[0][0] = -(mc2p_n[X_IDX] -   mc2p_n[6+X_IDX])/dzc[0];
+                dxdz[1][0] = -(mc2p_n[Y_IDX] -   mc2p_n[6+Y_IDX])/dzc[0];
+                dxdz[2][0] = -(mc2p_n[Z_IDX] -   mc2p_n[6+Z_IDX])/dzc[0];
+              }
+              else if(ip==nrange->upper[PH_IDX]){
+                dxdz[0][0] = (mc2p_n[X_IDX] -   mc2p_n[3+X_IDX])/dzc[0];
+                dxdz[1][0] = (mc2p_n[Y_IDX] -   mc2p_n[3+Y_IDX])/dzc[0];
+                dxdz[2][0] = (mc2p_n[Z_IDX] -   mc2p_n[3+Z_IDX])/dzc[0];
+              }
+              else{
+                dxdz[0][0] = -(mc2p_n[3 +X_IDX] -   mc2p_n[6+X_IDX])/2/dzc[0];
+                dxdz[1][0] = -(mc2p_n[3 +Y_IDX] -   mc2p_n[6+Y_IDX])/2/dzc[0];
+                dxdz[2][0] = -(mc2p_n[3 +Z_IDX] -   mc2p_n[6+Z_IDX])/2/dzc[0];
+              }
+
+
+              if(ia==nrange->lower[AL_IDX]){
+                dxdz[0][1] = -(mc2p_n[X_IDX] -  mc2p_n[12+X_IDX])/dzc[1];
+                dxdz[1][1] = -(mc2p_n[Y_IDX] -  mc2p_n[12+Y_IDX])/dzc[1];
+                dxdz[2][1] = -(mc2p_n[Z_IDX] -  mc2p_n[12+Z_IDX])/dzc[1];
+              }
+              else if(ia==nrange->upper[AL_IDX]){
+                dxdz[0][1] = (mc2p_n[X_IDX] -  mc2p_n[9+X_IDX])/dzc[1];
+                dxdz[1][1] = (mc2p_n[Y_IDX] -  mc2p_n[9+Y_IDX])/dzc[1];
+                dxdz[2][1] = (mc2p_n[Z_IDX] -  mc2p_n[9+Z_IDX])/dzc[1];
+              }
+              else{
+                dxdz[0][1] = -(mc2p_n[9 +X_IDX] -  mc2p_n[12+X_IDX])/2/dzc[1];
+                dxdz[1][1] = -(mc2p_n[9 +Y_IDX] -  mc2p_n[12+Y_IDX])/2/dzc[1];
+                dxdz[2][1] = -(mc2p_n[9 +Z_IDX] -  mc2p_n[12+Z_IDX])/2/dzc[1];
+              }
+
+              if(it==nrange->lower[TH_IDX]){
+                dxdz[0][2] = -(mc2p_n[X_IDX] - mc2p_n[18+X_IDX])/dzc[2];
+                dxdz[1][2] = -(mc2p_n[Y_IDX] - mc2p_n[18+Y_IDX])/dzc[2];
+                dxdz[2][2] = -(mc2p_n[Z_IDX] - mc2p_n[18+Z_IDX])/dzc[2];
+              }
+              else if(it==nrange->upper[TH_IDX]){
+                dxdz[0][2] = (mc2p_n[X_IDX] - mc2p_n[15+X_IDX])/dzc[2];
+                dxdz[1][2] = (mc2p_n[Y_IDX] - mc2p_n[15+Y_IDX])/dzc[2];
+                dxdz[2][2] = (mc2p_n[Z_IDX] - mc2p_n[15+Z_IDX])/dzc[2];
+              }
+              else{
+                dxdz[0][2] = -(mc2p_n[15 +X_IDX] - mc2p_n[18+X_IDX])/2/dzc[2];
+                dxdz[1][2] = -(mc2p_n[15 +Y_IDX] - mc2p_n[18+Y_IDX])/2/dzc[2];
+                dxdz[2][2] = -(mc2p_n[15 +Z_IDX] - mc2p_n[18+Z_IDX])/2/dzc[2];
+              }
+
+
               double *gFld_n= gkyl_array_fetch(up->gFld_nodal, gkyl_range_idx(nrange, cidx));
               gFld_n[0] = calc_metric(dxdz, 1, 1); 
               gFld_n[1] = calc_metric(dxdz, 1, 2); 
