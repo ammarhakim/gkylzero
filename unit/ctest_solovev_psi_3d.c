@@ -386,7 +386,7 @@ test_1()
   //gkyl_calc_metric_advance( mcalculator, &clocal, XYZ, gFld);
   //gkyl_calc_metric_advance( mcalculator, &clocal, mapc2p_arr, gFld);
 
-  gkyl_calc_metric_advance_nodal(mcalculator, geo->nrange, geo->mc2p_xyz_nodal_fd, geo->dzc);
+  gkyl_calc_metric_advance_nodal(mcalculator, geo->nrange, geo->mc2p_nodal_fd, geo->dzc);
   gkyl_calc_metric_advance_modal(mcalculator, geo->nrange, gFld, &conversion_range);
   do{
     printf("writing the gij file \n");

@@ -543,26 +543,16 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   gkyl_range_init_from_shape(geo->nrange, inp->cgrid->ndim, nodes);
   printf("nrange lower = %d %d %d\n", geo->nrange->lower[0], geo->nrange->lower[1], geo->nrange->lower[2]);
   printf("nrange upper = %d %d %d\n", geo->nrange->upper[0], geo->nrange->upper[1], geo->nrange->upper[2]);
-  struct gkyl_array *mc2p = gkyl_array_new(GKYL_DOUBLE, 2*7, geo->nrange->volume);
   printf("cgrid ndim  = %d\n", inp->cgrid->ndim);
-
   printf("Checking the range volumes\n nrange.volume = %ld\n conversion_range.volume = %ld\n", geo->nrange->volume, conversion_range->volume);
-
-  //struct gkyl_array *mc2p_xyz = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim*7, nrange.volume);
-
-  geo->mc2p_xyz_nodal_fd = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim*7, geo->nrange->volume);
-  struct gkyl_array *mc2p_xyz = geo->mc2p_xyz_nodal_fd;
-
-
-  struct gkyl_array *mc2p_xyz_one = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim, geo->nrange->volume);
-  struct gkyl_array *mc2p_one= gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim, geo->nrange->volume);
+  geo->mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim*7, geo->nrange->volume);
+  struct gkyl_array *mc2p = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim, geo->nrange->volume);
 
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
-  enum { R_IDX, Z_IDX }; // arrangement of physical coordinates  
-  enum { X_IDX, Y_IDX, Zc_IDX }; // arrangement of cartesian coordinates
+  enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   
   double dtheta = inp->cgrid->dx[TH_IDX],
-    dphi = inp->cgrid->dx[PH_IDX],
+    dpsi = inp->cgrid->dx[PH_IDX],
     dalpha = inp->cgrid->dx[AL_IDX];
   
   double theta_lo = inp->cgrid->lower[TH_IDX],
@@ -572,14 +562,14 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
     alpha_lo -= dalpha;
 
   double dx_fact = poly_order == 1 ? 1 : 0.5;
-  dtheta *= dx_fact; dphi *= dx_fact; dalpha *= dx_fact;
+  dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
   double delta_alpha = dalpha*1e-2;
-  double delta_phi = dphi*1e-2;
+  double delta_psi = dpsi*1e-2;
   double delta_theta = dtheta*1e-2;
   geo->dzc = gkyl_malloc(3*sizeof(double));
-  geo->dzc[0] = delta_phi;
+  geo->dzc[0] = delta_psi;
   geo->dzc[1] = delta_alpha;
   geo->dzc[2] = delta_theta;
   int modifiers[3] = {0, -1, 1};
@@ -595,48 +585,35 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   };
 
   int cidx[3] = { 0 };
-  
   for(int ia=geo->nrange->lower[AL_IDX]; ia<=geo->nrange->upper[AL_IDX]; ++ia){
-    //printf("ia = %d\n", ia);
     cidx[AL_IDX] = ia;
     for(int ia_delta = 0; ia_delta < 3; ia_delta++){
-      //int ia_delta = 0;
       double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
       printf("alpha_curr = %g\n", alpha_curr);
       for (int ip=geo->nrange->lower[PH_IDX]; ip<=geo->nrange->upper[PH_IDX]; ++ip) {
-
-        //printf("ip = %d\n", ip);
         int ip_delta_max = 3;
         if(ia_delta != 0)
           ip_delta_max = 1;
         for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
-          //int ip_delta = 0;
           double zmin = inp->zmin, zmax = inp->zmax;
-          double psi_curr = phi_lo + ip*dphi + modifiers[ip_delta]*delta_phi;
+          double psi_curr = phi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
           //printf("psi_curr = %g\n", psi_curr);
           double arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose,
             true, true, arc_memo);
-          double delta_arcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
-          //double delta_theta = delta_arcL*(2*M_PI/arcL);
+          double darcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
           cidx[PH_IDX] = ip;
 
           double arcL_curr = 0.0;
-          //arcL_curr = (theta_lo + M_PI)/2/M_PI*arcL - delta_arcL;
           double arcL_lo = (theta_lo + M_PI)/2/M_PI*arcL;
-          //double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ;
           // set node coordinates
           for (int it=geo->nrange->lower[TH_IDX]; it<=geo->nrange->upper[TH_IDX]; ++it) {
-            //printf("it = %d\n", it);
-            //arcL_curr += delta_arcL;
             int it_delta_max = 3;
             if(ia_delta != 0 || ip_delta != 0 )
               it_delta_max = 1;
             for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
-              //int it_delta=0;
-              arcL_curr = arcL_lo + it*delta_arcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
+              arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
               //printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
-
               arc_ctx.psi = psi_curr;
               arc_ctx.rclose = rclose;
               arc_ctx.zmin = zmin;
@@ -650,45 +627,27 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
               cidx[TH_IDX] = it;
-              double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(geo->nrange, cidx));
-              double *mc2p_one_n = gkyl_array_fetch(mc2p_one, gkyl_range_idx(geo->nrange, cidx));
-              int lidx_rz = 0; // need to figure out how to map this
-              int lidx_xyz = 0; // need to figure out how to map this
-              if (ip_delta != 0){
-                lidx_rz = 2 + 2*(ip_delta-1);
-                lidx_xyz = 3 + 3*(ip_delta-1);
-              }
-              if (ia_delta != 0){
-                lidx_rz = 6 + 2*(ia_delta-1);
-                lidx_xyz = 9 + 3*(ia_delta-1);
-              }
-              if (it_delta != 0){
-                lidx_rz = 10 + 2*(it_delta-1);
-                lidx_xyz = 15 + 3*(it_delta-1);
-              }
 
-              //printf("idelta = %d %d %d\n", ia_delta, ip_delta, it_delta);
-              //printf("lidx_rz = %d\n", lidx_rz);
-              //printf("lidx_xyz = %d\n", lidx_xyz);
-              mc2p_n[lidx_rz +Z_IDX] = z_curr;
-              mc2p_n[lidx_rz +R_IDX] = r_curr;
+              int lidx = 0;
+              if (ip_delta != 0)
+                lidx = 3 + 3*(ip_delta-1);
+              if (ia_delta != 0)
+                lidx = 9 + 3*(ia_delta-1);
+              if (it_delta != 0)
+                lidx = 15 + 3*(it_delta-1);
 
-              if(ip_delta==0 && ia_delta==0 && it_delta==0){
-                mc2p_one_n[Z_IDX] = z_curr;
-                mc2p_one_n[R_IDX] = r_curr;
-              }
               double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
               // convert to x,y,z
-              double *mc2p_xyz_n = gkyl_array_fetch(mc2p_xyz, gkyl_range_idx(geo->nrange, cidx));
-              double *mc2p_xyz_one_n = gkyl_array_fetch(mc2p_xyz_one, gkyl_range_idx(geo->nrange, cidx));
-              mc2p_xyz_n[lidx_xyz+X_IDX] = mc2p_n[lidx_rz+R_IDX]*cos(phi_curr);
-              mc2p_xyz_n[lidx_xyz+Y_IDX] = mc2p_n[lidx_rz+R_IDX]*sin(phi_curr);
-              mc2p_xyz_n[lidx_xyz+Zc_IDX] = mc2p_n[lidx_rz+Z_IDX];
+              double *mc2p_fd_n = gkyl_array_fetch(geo->mc2p_nodal_fd, gkyl_range_idx(geo->nrange, cidx));
+              double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(geo->nrange, cidx));
+              mc2p_fd_n[lidx+X_IDX] = r_curr*cos(phi_curr);
+              mc2p_fd_n[lidx+Y_IDX] = r_curr*sin(phi_curr);
+              mc2p_fd_n[lidx+Z_IDX] = z_curr;
 
               if(ip_delta==0 && ia_delta==0 && it_delta==0){
-                mc2p_xyz_one_n[X_IDX] = mc2p_one_n[R_IDX]*cos(phi_curr);
-                mc2p_xyz_one_n[Y_IDX] = mc2p_one_n[R_IDX]*sin(phi_curr);
-                mc2p_xyz_one_n[Zc_IDX] = mc2p_one_n[Z_IDX];
+                mc2p_n[X_IDX] = r_curr*cos(phi_curr);
+                mc2p_n[Y_IDX] = r_curr*sin(phi_curr);
+                mc2p_n[Z_IDX] = z_curr;
               }
             }
           }
@@ -696,24 +655,18 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
       }
     }
   }
+  nodal_array_to_modal_array(mc2p, mapc2p, conversion_range, geo->nrange, inp);
 
   char str1[50] = "xyz";
   char str2[50] = "allxyz";
   char str3[50] = "all";
   if (inp->write_node_coord_array){
-    write_nodal_coordinates(inp->node_file_nm, geo->nrange, mc2p_one);
-    write_nodal_coordinates(strcat(str1, inp->node_file_nm), geo->nrange, mc2p_xyz_one);
-    write_nodal_coordinates(strcat(str2, inp->node_file_nm), geo->nrange, geo->mc2p_xyz_nodal_fd);
+    write_nodal_coordinates(strcat(str1, inp->node_file_nm), geo->nrange, mc2p);
+    write_nodal_coordinates(strcat(str2, inp->node_file_nm), geo->nrange, geo->mc2p_nodal_fd);
     write_nodal_coordinates(strcat(str3, inp->node_file_nm), geo->nrange, mc2p);
   }
-  printf("done writing nodal coords\n");
-
-  nodal_array_to_modal_array(mc2p_xyz_one, mapc2p, conversion_range, geo->nrange, inp);
-  printf("converted to modal\n");
-
   gkyl_free(arc_memo);
   gkyl_array_release(mc2p);  
-  //gkyl_array_release(mc2p_xyz);  
 }
 
 
@@ -727,6 +680,6 @@ void
 gkyl_geo_gyrokinetic_release(gkyl_geo_gyrokinetic *geo)
 {
   gkyl_array_release(geo->psiRZ);
-  gkyl_array_release(geo->mc2p_xyz_nodal_fd);
+  gkyl_array_release(geo->mc2p_nodal_fd);
   gkyl_free(geo);
 }

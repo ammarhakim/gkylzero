@@ -35,7 +35,7 @@ struct gkyl_geo_gyrokinetic {
   struct gkyl_geo_gyrokinetic_stat stat; 
   double B0;
   double R0;
-  struct gkyl_array* mc2p_xyz_nodal_fd;
+  struct gkyl_array* mc2p_nodal_fd;
   struct gkyl_range* nrange;
   double* dzc;
 };
