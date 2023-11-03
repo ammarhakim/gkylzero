@@ -28,18 +28,7 @@ gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
  * @param mc2p_nodal_fd nodal array containing cartesian coordinates at nodes and nearby nodes used for FD
  * @param gFld output field where metric coefficients will be placed
  */
-void gkyl_calc_metric_advance_nodal(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc);
-
-/**
- * Convert nodal metrics to modal
- *
- * @param up calc_metric updater object.
- * @param nrange nodal range.
- * @param gFld output field where metric coefficients will be placed
- * @param update_range - range in which to calculate metrics
- */
-
-void gkyl_calc_metric_advance_modal(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *gFld, struct gkyl_range *update_range);
+void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_range *update_range);
 
 /**
  * Delete updater.

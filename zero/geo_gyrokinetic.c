@@ -6,6 +6,7 @@
 #include <gkyl_math.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_nodal_ops.h>
 
 #include <math.h>
 #include <string.h>
@@ -452,66 +453,6 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 }
 
 
-
-
-void nodal_array_to_modal_array(struct gkyl_array *nodal_array, struct gkyl_array *modal_array, struct gkyl_range *update_range, struct gkyl_range *nrange, const struct gkyl_geo_gyrokinetic_geo_inp *ginp){
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
-
-  int num_ret_vals = ginp->cgrid->ndim;
-  int num_basis = ginp->cbasis->num_basis;
-  int cpoly_order = ginp->cbasis->poly_order;
-  //initialize the nodes
-  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ginp->cgrid->ndim, ginp->cbasis->num_basis);
-  ginp->cbasis->node_list(gkyl_array_fetch(nodes, 0));
-  double fnodal[num_basis]; // to store nodal function values
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, update_range);
-  int nidx[3];
-  long lin_nidx[num_basis];
-  
-  while (gkyl_range_iter_next(&iter)) {
-     gkyl_rect_grid_cell_center(ginp->cgrid, iter.idx, xc);
-
-    for (int i=0; i<num_basis; ++i) {
-      const double* temp  = gkyl_array_cfetch(nodes,i);
-      for( int j = 0; j < ginp->cgrid->ndim; j++){
-        if(cpoly_order==1){
-            nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
-        }
-        if (cpoly_order==2)
-          nidx[j] = 2*iter.idx[j] + (temp[j] + 1) ;
-      }
-      lin_nidx[i] = gkyl_range_idx(nrange, nidx);
-    }
-
-    long lidx = gkyl_range_idx(update_range, iter.idx);
-    double *arr_p = gkyl_array_fetch(modal_array, lidx); // pointer to expansion in cell
-    double fao[num_basis*num_ret_vals];
-  
-    for (int i=0; i<num_basis; ++i) {
-      double* temp = gkyl_array_fetch(nodal_array, lin_nidx[i]);
-      for (int j=0; j<num_ret_vals; ++j) {
-        fao[i*num_ret_vals + j] = temp[j];
-      }
-    }
-
-    for (int i=0; i<num_ret_vals; ++i) {
-      // copy so nodal values for each return value are contiguous
-      // (recall that function can have more than one return value)
-      for (int k=0; k<num_basis; ++k)
-        fnodal[k] = fao[num_ret_vals*k+i];
-      // transform to modal expansion
-      ginp->cbasis->nodal_to_modal(fnodal, &arr_p[num_basis*i]);
-    }
-  }
-
-}
-
-
-
-
-
 void
 gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   const struct gkyl_geo_gyrokinetic_geo_inp *inp, struct gkyl_array *mapc2p, struct gkyl_range *conversion_range)
@@ -660,7 +601,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
       }
     }
   }
-  nodal_array_to_modal_array(mc2p, mapc2p, conversion_range, geo->nrange, inp);
+  gkyl_nodal_ops_n2m(inp->cbasis, inp->cgrid, geo->nrange, conversion_range, 3, mc2p, mapc2p);
 
   char str1[50] = "xyz";
   char str2[50] = "allxyz";
