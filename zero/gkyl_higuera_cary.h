@@ -6,13 +6,13 @@
  * Computes the update of du/dt = q/m (E + v x B) using the Higuera and Cary
  * algorithm
  * 
- * @param u inital momentum
+ * @param u inital momentum and (output)
  * @param q species charge
  * @param m species mass
  * @param dt timestep size
  * @param c speed of light
  * @param E electric field (required at the half-timestep)
- * @param B mangetic field (required at the half-timestep)
+ * @param B magnetic field (required at the half-timestep)
  */
 static inline void
 higuera_cary_push(double u[3], const double q, const double m, const double dt,
