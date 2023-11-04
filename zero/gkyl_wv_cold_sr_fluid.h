@@ -28,15 +28,16 @@ struct gkyl_wv_eqn* gkyl_wv_cold_sr_fluid_new(void);
  * @param ur momentum (right)
  * @param ul momentum (left)
  * @param j_inv_fx final computation of the inv. jacobian and F(U) (output)
+ * @param c speed of light
+ * 
  */
 static inline void
 j_inverse_times_fx(const double u[3], const double rr, const double rl, 
-const double ur[3], const double ul[3], double j_inv_fx[3])
+const double ur[3], const double ul[3], double j_inv_fx[3], const double c)
 {
 
   // save temporary variables
   double fx[3];
-  double c = 1.0; // assumed, so it can be changed later without redoing the eqs.
   double gamma = sqrt(1.0 + (u[0]*u[0] + u[1]*u[1] + u[2]*u[2])/c*c);
   double gammal = sqrt(1.0 + (ul[0]*ul[0] + ul[1]*ul[1] + ul[2]*ul[2])/c*c);
   double gammar = sqrt(1.0 + (ur[0]*ur[0] + ur[1]*ur[1] + ur[2]*ur[2])/c*c);
@@ -124,9 +125,10 @@ isolate_prims(const double q[4], double r, double u[3])
  *
  * @param ql Conserved variables (left)
  * @param qr Conserved variables (right)
+ * @param c Speed of light 
  */
 static double
-compute_sr_roe_avereged_velocity(const double ql[4], const double qr[4]) 
+compute_sr_roe_avereged_velocity(const double ql[4], const double qr[4], const double c) 
 {
   double error = 1.; 
   double tol = 1.e-12;
@@ -160,7 +162,7 @@ compute_sr_roe_avereged_velocity(const double ql[4], const double qr[4])
       u0[m] = (sqrt(rl)*ul[m] + sqrt(rr)*ur[m])/(sqrt(rl)+sqrt(rr)); 
     
     while (error > tol || iter < 10) {
-      j_inverse_times_fx(u0,rr,rl,ur,ul,j_inv_fx);
+      j_inverse_times_fx(u0,rr,rl,ur,ul,j_inv_fx,c);
       //for(int m=0; m<3; ++m) printf("DIAG: %1.16e ",j_inv_fx[m]);
       //printf("\n");
       error = 0.0;
@@ -288,13 +290,13 @@ case_4(double Uy, void *ctx)
  *
  * @param ql Conserved variables (left)
  * @param qr Conserved variables (right)
+ * @param c speed of light
  */
 static double
-compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr[4]) 
+compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr[4], const double c) 
 {
 
   // speed of light
-  double c = 1.0;
   double v_result;
 
   // Isolate varaibles (right/left)
@@ -339,41 +341,29 @@ compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr
     // Division out by rhoL (doesn't effect the equations)
     double consts[] = {a,Ay,dp,By,Ax,Bx,Az,Bz,c};
     double x1, x2;
+    double v_result_default;
   
 
     //Case 1: Ux /= 0, Uy == 0, Uz == 0, 
     if (uLz == 0.0 && uRz == 0.0 && uLy == 0.0 && uRy == 0.0 && (dp != 0.0 || Bx != 0.0 )) {
 
       // Compute Ridders, case 1
-      printf("Case 1: "); 
+      //printf("Case 1: "); 
       (uLx > uRx) ? (x2 = uLx, x1 = uRx) : (x1 = uLx, x2 = uRx);
       double f1 = case_1(x1, consts), f2 = case_1(x2, consts);
       struct gkyl_qr_res res = gkyl_ridders(case_1, consts, x1, x2, f1, f2, 100, 1e-12);
       double Ux = res.res;
       v_result = Ux/sqrt(1.0 + Ux*Ux/(c*c));
 
-      if (isnan(v_result) || !isfinite(v_result)) {
-        double old_result = v_result;
-        v_result = compute_sr_roe_avereged_velocity(ql, qr);
-        printf("v_result: %1.16f fails to pass, retrying Newton: %1.16f \n",old_result,v_result);
-
-        // If everything fails, its usualy because the tolerance is too low
-        if (isnan(v_result) || !isfinite(v_result)) {
-          printf("(***) Defaulting to avg: pl %1.16e, pr %1.16e, ulx %1.16e, urx %1.16e\n",rhoL,rhoR,uLx,uRx);
-          Ux = 0.5*(uLx + uRx); 
-          v_result = Ux/sqrt(1.0 + Ux*Ux/(c*c));
-        }
-        
-        //printf("The value is NaN.\n");
-        //double Ux_res = (sqrt(rhoL)*uLx + sqrt(rhoR)*uRx)/(sqrt(rhoL)+sqrt(rhoR));
-        //v_result = Ux/sqrt(1.0 + Ux*Ux/(c*c));
-      }
+      // Compute a default result if all other methods fail
+      Ux = 0.5*(uLx + uRx); 
+      v_result_default = Ux/sqrt(1.0 + Ux*Ux/(c*c));
 
     // Case 2: Ux /= 0, Uy == 0, Uz /= 0,
     } else if (uLy == 0.0 && uRy == 0.0 && (dp != 0.0 || Bx != 0.0 || Bz != 0.0)){
 
       // Compute Ridders, case 2
-      printf("Case 2: ");
+      //printf("Case 2: ");
       (uLz > uRz) ? (x2 = uLz, x1 = uRz) : (x1 = uLz, x2 = uRz);
       double f1 = case_2(x1, consts), f2 = case_2(x2, consts);
       struct gkyl_qr_res res = gkyl_ridders(case_2, consts, x1, x2, f1, f2, 100, 1e-12);
@@ -381,10 +371,10 @@ compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr
       v_result = (-Uz*a - Az)/(Uz*dp + Bz);
 
     // Case 3: Ux /= 0, Uy /= 0, Uz == 0,
-    } else if (uLz == 0.0 && uRz == 0.0){
+    } else if (uLz == 0.0 && uRz == 0.0 && (dp != 0.0 || Bx != 0.0 || By != 0.0)){
 
       // Compute Ridders, case 3
-      printf("Case 3: ");
+      //printf("Case 3: ");
       (uLy > uRy) ? (x2 = uLy, x1 = uRy) : (x1 = uLy, x2 = uRy);
       double f1 = case_3(x1, consts), f2 = case_3(x2, consts);
       struct gkyl_qr_res res = gkyl_ridders(case_3, consts, x1, x2, f1, f2, 100, 1e-12);
@@ -392,10 +382,10 @@ compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr
       v_result = (-Uy*a - Ay)/(Uy*dp + By);
 
     //Case 4: Ux /= 0, Uy /= 0, Uz /= 0,
-    } else if (((uRx != 0.0 ) || (uLx != 0.0 )) && ((uRy != 0.0 ) || (uLy != 0.0 )) && ((uRz != 0.0 ) || (uLz != 0.0 ))) {
+    } else if (((uRx != 0.0 ) || (uLx != 0.0 )) && ((uRy != 0.0 ) || (uLy != 0.0 )) && ((uRz != 0.0 ) || (uLz != 0.0 )) && (dp != 0.0 || Bx != 0.0 || By != 0.0 || Bz != 0.0)) {
 
       // Compute Ridders, case 4
-      printf("Case 4: ");
+      //printf("Case 4: ");
       (uLy > uRy) ? (x2 = uLy, x1 = uRy) : (x1 = uLy, x2 = uRy);
       double f1 = case_4(x1, consts), f2 = case_4(x2, consts);
       struct gkyl_qr_res res = gkyl_ridders(case_4, consts, x1, x2, f1, f2, 100, 1e-12);
@@ -408,6 +398,25 @@ compute_sr_roe_averaged_velocity_via_ridders(const double ql[4], const double qr
       v_result = 0.0;
 
     } // end cases
+
+
+    // if the Ridders fails to converge, run a newton method
+    // if both methods fail, then take a central averge
+    if (isnan(v_result) || !isfinite(v_result)) {
+      double old_result = v_result;
+      v_result = compute_sr_roe_avereged_velocity(ql, qr, c);
+      //printf("v_result: %1.16f fails to pass, retrying Newton: %1.16f \n",old_result,v_result);
+
+      // If everything fails, its usualy because the tolerance is too low
+      if (isnan(v_result) || !isfinite(v_result)) {
+        //printf("(***) Defaulting to avg: pl %1.16e, pr %1.16e, ulx %1.16e, urx %1.16e\n",rhoL,rhoR,uLx,uRx);
+        v_result = v_result_default;
+      }
+
+      //printf("The value is NaN.\n");
+      //double Ux_res = (sqrt(rhoL)*uLx + sqrt(rhoR)*uRx)/(sqrt(rhoL)+sqrt(rhoR));
+      //v_result = Ux/sqrt(1.0 + Ux*Ux/(c*c));
+    }
   }
 
   return v_result;

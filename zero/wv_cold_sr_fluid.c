@@ -1,7 +1,6 @@
 #include <math.h>
 
 #include <gkyl_alloc.h>
-//#include <gkyl_wv_coldfluid.h>
 #include <gkyl_wv_cold_sr_fluid.h>
 
 #define NUX 1
@@ -17,9 +16,9 @@ struct wv_cold_sr_fluid {
 void
 cold_sr_fluid_flux(const double q[5], double flux[5])
 {
-  // TODO: 1. Assumes normalized by c?
   // Vx = NUx/(N^2 + NU^2/c^2) 
-  double Vx = q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])); 
+  const double c = 299792458.0;
+  double Vx = q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])/(c*c)); 
   flux[0] = q[0]*Vx; // N*Vx
   flux[NUX] = q[NUX]*Vx; // N*Ux*Vx
   flux[NUY] = q[NUY]*Vx; // N*Uy*Vx
@@ -33,7 +32,8 @@ cold_sr_fluid_cons_to_diag(const struct gkyl_wv_eqn *eqn,
   // density and moment is copied as-is
   for (int i=0; i<4; ++i) diag[i] = qin[i];
   // Ke-sr density (gamma-1)
-  double ke = sqrt(qin[0]*qin[0] + (qin[1]*qin[1] + qin[2]*qin[2] + qin[3]*qin[3]))/qin[0] - 1.0; 
+  const double c = 299792458.0;
+  double ke = sqrt(qin[0]*qin[0] + (qin[1]*qin[1] + qin[2]*qin[2] + qin[3]*qin[3])/(c*c))/qin[0] - 1.0; 
   diag[4] = ke;
 }
 
@@ -89,8 +89,9 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   double f[4];
-  double vl = ql[NUX]/sqrt(ql[0]*ql[0] + (ql[NUX]*ql[NUX] + ql[NUY]*ql[NUY] + ql[NUZ]*ql[NUZ]));
-  double vr = qr[NUX]/sqrt(qr[0]*qr[0] + (qr[NUX]*qr[NUX] + qr[NUY]*qr[NUY] + qr[NUZ]*qr[NUZ])); 
+  const double c = 299792458.0;
+  double vl = ql[NUX]/sqrt(ql[0]*ql[0] + (ql[NUX]*ql[NUX] + ql[NUY]*ql[NUY] + ql[NUZ]*ql[NUZ])/(c*c));
+  double vr = qr[NUX]/sqrt(qr[0]*qr[0] + (qr[NUX]*qr[NUX] + qr[NUY]*qr[NUY] + qr[NUZ]*qr[NUZ])/(c*c)); 
 
   double *wv = 0;
 
@@ -111,8 +112,8 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     double rl = ql[0];
     double rr = qr[0];
     // compute Roe averaged speed
-    double vel = compute_sr_roe_averaged_velocity_via_ridders(ql,qr);
-    printf("vL: %1.16f, vs %1.16f, vR: %1.16f\n",vl,vel,vr);
+    double vel = compute_sr_roe_averaged_velocity_via_ridders(ql,qr,c);
+    //printf("vL: %1.16f, vs %1.16f, vR: %1.16f\n",vl,vel,vr);
             
     if(vel<0) {
       wv = &waves[0];
@@ -197,8 +198,9 @@ flux_jump_sr(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, 
   for (int m=0; m<4; ++m) flux_jump_sr[m] = fr[m]-fl[m];
 
  // Vn = NUn/(N^2 + NU^2/c^2)
-  double amaxl = ql[NUX]/sqrt(ql[0]*ql[0] + (ql[NUX]*ql[NUX] + ql[NUY]*ql[NUY] + ql[NUZ]*ql[NUZ]));
-  double amaxr = qr[NUX]/sqrt(qr[0]*qr[0] + (qr[NUX]*qr[NUX] + qr[NUY]*qr[NUY] + qr[NUZ]*qr[NUZ])); 
+  const double c = 299792458.0;
+  double amaxl = ql[NUX]/sqrt(ql[0]*ql[0] + (ql[NUX]*ql[NUX] + ql[NUY]*ql[NUY] + ql[NUZ]*ql[NUZ])/(c*c));
+  double amaxr = qr[NUX]/sqrt(qr[0]*qr[0] + (qr[NUX]*qr[NUX] + qr[NUY]*qr[NUY] + qr[NUZ]*qr[NUZ])/(c*c)); 
 
   return fmax(amaxl, amaxr);
 }
@@ -213,7 +215,8 @@ static double
 max_speed_sr(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_cold_sr_fluid *cold_sr_fluid = container_of(eqn, struct wv_cold_sr_fluid, eqn);
-  return fabs(q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])));
+  const double c = 299792458.0;
+  return fabs(q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])/(c*c)));
 }
 
 struct gkyl_wv_eqn*
