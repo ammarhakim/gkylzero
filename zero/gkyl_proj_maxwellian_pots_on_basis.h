@@ -22,7 +22,7 @@ typedef struct gkyl_proj_maxwellian_pots_on_basis gkyl_proj_maxwellian_pots_on_b
 gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(
     const struct gkyl_rect_grid *grid,
     const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-    const struct gkyl_basis *surf_basis, int num_quad);
+    const struct gkyl_basis *surf_basis);
 
 /**
  * @param mpob Project on basis updater to run
@@ -41,10 +41,11 @@ gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(
 */
 void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_on_basis *up,
     const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-    const struct gkyl_array *moms, const struct gkyl_array *gamma, const double mass,
+    const struct gkyl_array* m0, const struct gkyl_array* u_drift, const struct gkyl_array* vtsq,
+    const struct gkyl_array *gamma, const double mass,
     struct gkyl_array *fpo_h, struct gkyl_array *fpo_g,
     struct gkyl_array *fpo_h_surf, struct gkyl_array *fpo_g_surf,
-    struct gkyl_array *fpo_dhdv_surf, struct gkyl_array *fpo_dgdv_surf, struct gkyl_array *fpo_d2gdv2_surf);
+    struct gkyl_array *fpo_dhdv_surf, struct gkyl_array *fpo_d2gdv2_surf);
 
 /**
  * Delete updater.
