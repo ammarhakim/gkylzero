@@ -83,7 +83,7 @@ gkyl_ridders(double (*func)(double,void*), void *ctx,
   double xl, double xr, double fl, double fr, int max_iter, double eps)
 {
   double x0 = xl, x2 = xr, f0 = fl, f2 = fr;
-  double res = DBL_MAX;
+  double res = DBL_MAX, err = DBL_MAX;
 
   int nev = 0, nitr = 0, iterating = 1;
   while (iterating && nitr <= max_iter) {
@@ -95,7 +95,10 @@ gkyl_ridders(double (*func)(double,void*), void *ctx,
     double x3 = x1 + dsign(f0)*f1*d/sqrt(W);
     double f3 = func(x3, ctx); nev += 1;
 
-    if (fabs(res-x3) < eps) iterating = 0;
+    if (fabs(res-x3) < eps) {
+      err = fabs(res-x3);
+      iterating = 0;
+    }
     res = x3;
 
     if (f3*f0 < 0) {
@@ -117,7 +120,7 @@ gkyl_ridders(double (*func)(double,void*), void *ctx,
   }
   
   return (struct gkyl_qr_res) {
-    .error = fabs(xr-xl),
+    .error = err,
     .res = res,
     .nevals = nev,
     .status = nitr>max_iter ? 1 : 0,
