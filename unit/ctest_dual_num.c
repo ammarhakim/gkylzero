@@ -60,11 +60,21 @@ void test_basic(void)
   res = gdn_sqrt(x1);
   TEST_CHECK( cmp_dn(res, gdn_new(sqrt(x10), 0.5/sqrt(x10))) );
 
+  res = gdn_cos(x1);
+  TEST_CHECK( cmp_dn(res, gdn_new(cos(x10), -sin(x10))) );
+
+  res = gdn_sin(x1);
+  TEST_CHECK( cmp_dn(res, gdn_new(sin(x10), cos(x10))) );
+
+  res = gdn_tan(x1);
+  TEST_CHECK( res.x[0] == tan(x10) );
+  TEST_CHECK( gkyl_compare_double(res.x[1], 1/(cos(x10)*cos(x10)), 1e-15) );
+
   res = func_1(x1);
   TEST_CHECK( cmp_dn(res, gdn_new(func_1_0(x10), func_1_1(x10))) );
 }
 
-// for testing root finding
+// for testing 1D mapc2p determine by its inverse mapping
 struct inv_map_ctx { double s0; };
 
 static inline struct gkyl_dn
@@ -82,7 +92,7 @@ inv_mapc2p(double x, void *ctx)
   return gdn_inv_mapc2p(gdn_new0(x),ctx).x[0];
 }
 
-void test_root(void)
+void test_inv_mapc2p(void)
 {
   struct inv_map_ctx imctx = { 0.75 };
   double xl = 0.0, xr = 5.0;
@@ -98,11 +108,46 @@ void test_root(void)
   // at the root
   
   TEST_CHECK( gkyl_compare_double(root.res, 3.5625, 1e-14) );
-  TEST_CHECK( gkyl_compare_double(1/res.x[1], 5.5, 1e-14) );  
+  TEST_CHECK( gkyl_compare_double(1/res.x[1], 5.5, 1e-14) );
+}
+
+static void
+mapc2p(const struct gkyl_dn xc[2], struct gkyl_dn xp[2])
+{
+  // mapping from r,theta -> x,y
+  xp[0] = gdn_mul(xc[0], gdn_cos(xc[1]));
+  xp[1] = gdn_mul(xc[0], gdn_sin(xc[1]));
+}
+
+void test_mapc2p(void)
+{
+  double r = 1.5, theta = M_PI/3;
+  struct gkyl_dn xc[2], xp[2];
+
+  // compute gradient wrt r (notice new0 used for theta)
+  xc[0] = gdn_new1(r); xc[1] = gdn_new0(theta);
+  mapc2p(xc, xp);
+
+  TEST_CHECK( xp[0].x[0] == r*cos(theta) );
+  TEST_CHECK( xp[1].x[0] == r*sin(theta) );
+
+  TEST_CHECK( xp[0].x[1] == cos(theta) );
+  TEST_CHECK( xp[1].x[1] == sin(theta) );
+
+  // compute gradient wrt theta (notice new0 used for r)
+  xc[0] = gdn_new0(r); xc[1] = gdn_new1(theta);
+  mapc2p(xc, xp);
+
+  TEST_CHECK( xp[0].x[0] == r*cos(theta) );
+  TEST_CHECK( xp[1].x[0] == r*sin(theta) );
+
+  TEST_CHECK( xp[0].x[1] == -r*sin(theta) );
+  TEST_CHECK( xp[1].x[1] == r*cos(theta) );
 }
 
 TEST_LIST = {
   { "test_basic", test_basic },
-  { "test_root", test_root },
+  { "test_inv_mapc2p", test_inv_mapc2p },
+  { "test_mapc2p", test_mapc2p },  
   { NULL, NULL },  
 };

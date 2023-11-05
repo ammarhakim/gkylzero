@@ -6,6 +6,15 @@
 // Dual or hyperreal number
 struct gkyl_dn { double x[2]; };
 
+/**
+   Use the new0 constructor to create a real number and new1 to create
+   a dual-number initialized for taking derivatives.
+
+   Basic operators: neg, add, sadd, sub, ssub, mul, smul, div, sdiv
+   
+   Functions: sq, cube, npow, sqrt, sin, cos, tan
+*/
+
 // Construct new dual numbers
 GKYL_CU_DH
 static inline struct gkyl_dn
@@ -27,10 +36,6 @@ gdn_new1(double x0)
 {
   return (struct gkyl_dn) { x0, 1.0 };
 }
-
-// Basic operators:
-// 
-// neg, add, sadd, sub, ssub, mul, smul, div, sdiv
 
 GKYL_CU_DH
 static inline struct gkyl_dn
@@ -108,9 +113,6 @@ gdn_sdiv(double s, struct gkyl_dn d1)
   return gdn_smul(s, gdn_inv(d1));
 }
 
-// Functions
-// 
-// sq, cube, npow, sqrt
 
 GKYL_CU_DH
 static inline struct gkyl_dn
@@ -140,4 +142,25 @@ gdn_sqrt(struct gkyl_dn d1)
 {
   double sx = sqrt(d1.x[0]);
   return (struct gkyl_dn) { sx, d1.x[1]*0.5/sx  };
+}
+
+GKYL_CU_DH
+static inline struct gkyl_dn
+gdn_sin(struct gkyl_dn d1)
+{
+  return (struct gkyl_dn) { sin(d1.x[0]), d1.x[1]*cos(d1.x[0]) };
+}
+
+GKYL_CU_DH
+static inline struct gkyl_dn
+gdn_cos(struct gkyl_dn d1)
+{
+  return (struct gkyl_dn) { cos(d1.x[0]), -d1.x[1]*sin(d1.x[0]) };
+}
+
+GKYL_CU_DH
+static inline struct gkyl_dn
+gdn_tan(struct gkyl_dn d1)
+{
+  return gdn_div(gdn_sin(d1), gdn_cos(d1));
 }
