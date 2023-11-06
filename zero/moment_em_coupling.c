@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+//#include <gkyl_higuera_cary.h>
 #include <gkyl_moment_em_coupling.h>
 #include <gkyl_mat.h>
 
@@ -380,7 +381,98 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
   gkyl_mat_release(rhs);
 }
 
-/***********************************************/
+
+static inline void
+higuera_cary_push(double u[3], const double q, const double m, const double dt,
+const double c, const double E[3], const double B[3])
+{
+  const double qmdt = q*0.5*dt/m;
+  const double E_0 = qmdt*E[0];
+  const double E_1 = qmdt*E[1];
+  const double E_2 = qmdt*E[2];
+  const double B_0 = qmdt*B[0];
+  const double B_1 = qmdt*B[1];
+  const double B_2 = qmdt*B[2];
+
+  const double u_0_minus = u[0] + E_0;
+  const double u_1_minus = u[1] + E_1;
+  const double u_2_minus = u[2] + E_2;
+
+  const double u_star = u_0_minus*(B_0/c) + u_1_minus*(B_1/c) + u_2_minus*(B_2/c); 
+  const double gamma_minus = sqrt(1 + (u_0_minus*u_0_minus + u_1_minus*u_1_minus + u_2_minus*u_2_minus)/(c*c)); 
+  const double dot_tau_tau = (B_0*B_0 + B_1*B_1 + B_2*B_2); 
+  const double sigma = gamma_minus*gamma_minus - dot_tau_tau; 
+  const double gamma_new = sqrt(  0.5*(   sigma + sqrt( sigma*sigma + 4*(dot_tau_tau + u_star*u_star ) ) )  ); 
+
+  const double t_0 = B_0/gamma_new; 
+  const double t_1 = B_1/gamma_new; 
+  const double t_2 = B_2/gamma_new; 
+  const double s = 1/(1+(t_0*t_0 + t_1*t_1 + t_2*t_2)); 
+
+  const double umt = u_0_minus*t_0 + u_1_minus*t_1 + u_2_minus*t_2;
+  const double u_0_plus = s*( u_0_minus + umt*t_0 + (u_1_minus*t_2 - u_2_minus*t_1));
+  const double u_1_plus = s*( u_1_minus + umt*t_1 + (u_2_minus*t_0 - u_0_minus*t_2));
+  const double u_2_plus = s*( u_2_minus + umt*t_2 + (u_0_minus*t_1 - u_1_minus*t_0));
+  u[0] = u_0_plus + E_0 + (u_1_plus*t_2 - u_2_plus*t_1);
+  u[1] = u_1_plus + E_1 + (u_2_plus*t_0 - u_0_plus*t_2);
+  u[2] = u_2_plus + E_2 + (u_0_plus*t_1 - u_1_plus*t_0);
+}
+
+
+static inline void
+higuera_cary_update(const gkyl_moment_em_coupling *mes, double tcurr, double dt, 
+  double *fluids[GKYL_MAX_SPECIES], const double *app_accels[GKYL_MAX_SPECIES],
+  double *em, const double *app_current, const double *ext_em)
+{
+  int nfluids = mes->nfluids;
+  double epsilon0 = mes->epsilon0;
+  // TODO: hand correct mu0 from gkyl_moment_field structure
+  double mu0 = 12.56637061435917295385057353311801153679e-7; //mes->mu0;
+  double b[3] = { 0.0, 0.0, 0.0 };
+  double Bx = em[BX] + ext_em[BX];
+  double By = em[BY] + ext_em[BY];
+  double Bz = em[BZ] + ext_em[BZ];
+  double e[3] = { 0.0, 0.0, 0.0 };
+  double Ex = em[EX] + ext_em[EX];
+  double Ey = em[EY] + ext_em[EY];
+  double Ez = em[EZ] + ext_em[EZ];
+
+  // get magnetic/electric field unit vector 
+  b[0] = Bx, b[1] = By, b[2] = Bz;
+  e[0] = Ex, e[1] = Ey, e[2] = Ez;
+
+  // compute c
+  double c = 1.0/sqrt(mu0*epsilon0);
+
+  // update per species:
+  for (int n=0; n < nfluids; ++n) {
+
+    const double q = mes->param[n].charge;
+    const double m = mes->param[n].mass;
+
+    // grab the conserved variables
+    double *f = fluids[n];
+
+    // grab the density first
+    double N = f[RHO];
+
+    // only run H&C when there is a positive density
+    if (N <= 0.0){
+      // assign the current values of u
+      double u[3] = { f[MX]/N, f[MY]/N, f[MZ]/N };
+
+      // push the individual fluid elements:
+      higuera_cary_push(u, q, m, dt, c, e, b);
+
+      // convert back to conserved variables
+      f[MX] = u[0]*N;
+      f[MY] = u[1]*N;
+      f[MZ] = u[2]*N;
+    }
+  }
+}
+
+/***********************************************/ 
 /* user-defined density and temperature source */
 /***********************************************/
 
@@ -495,11 +587,18 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
     }
   }
 
+  // If any of the fluids are cold-relativistic, we run H&C em-source
+  bool rel_fluids = 0;
+  for (int n=0; n < nfluids; ++n) 
+    rel_fluids = rel_fluids || (mes->param[n].type == GKYL_EQN_COLDFLUID_SR); 
+
   // Update momentum and electric field using time-centered implicit solve.
   // If permittivity of free-space is non-zero, EM fields exist and electric
   // field is updated, otherwise just update momentum
-  if (mes->is_charged_species)
+  if ((mes->is_charged_species) && (!rel_fluids))
     em_source_update(mes, tcurr, dt, fluids, app_accels, em, app_current, ext_em);
+  else if (rel_fluids)
+    higuera_cary_update(mes, tcurr, dt, fluids, app_accels, em, app_current, ext_em);
   else
     neut_source_update(mes, tcurr, dt, fluids, app_accels);
 

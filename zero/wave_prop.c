@@ -10,6 +10,7 @@
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_eqn.h>
 
 struct gkyl_wave_prop {
   struct gkyl_rect_grid grid; // grid object

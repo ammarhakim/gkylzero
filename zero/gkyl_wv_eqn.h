@@ -151,7 +151,7 @@ gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
  * See signature for gkyl_wv_eqn_qfluct. This function computes the
  * fluctuations using f-waves rather than q-waves.
  */
-inline void
+static inline void
 gkyl_wv_eqn_ffluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq)

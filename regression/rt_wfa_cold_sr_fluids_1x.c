@@ -56,8 +56,11 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
 
   //Laser amplitude (t + dt/2.0)
   const double ad_hoc_factor = 16.0*10*2.4e5;
-  if (xn[0]<position)
-    fout[1] = ad_hoc_factor*sin(2*pi*c*t/wavelength)*(2.0/(mu_0*c))*E_max * exp(- pow((t - profile_t_peak),2) / pow(profile_duration,2));
+  if (xn[0]<position){
+    fout[1] = ad_hoc_factor*sin(2.0*pi*c*t/wavelength)*(2.0/(mu_0*c))*E_max * exp(- pow((t - profile_t_peak),2) / pow(profile_duration,2));
+    fout[0] = 0.0;
+    fout[2] = 0.0;
+  }
 }
 
 void
