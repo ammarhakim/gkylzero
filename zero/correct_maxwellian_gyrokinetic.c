@@ -35,7 +35,7 @@ struct gkyl_correct_maxwellian_gyrokinetic
   gkyl_dg_bin_op_mem *weak_divide, *weak_multiply, *weak_multiply_confPhase; // memory for weak operators
 
   double *err1_cu, *err2_cu;
-  struct gkyl_array *mvals1, *mvals2;
+  struct gkyl_array *mvals, *mvals1, *mvals2;
 };
 
 gkyl_correct_maxwellian_gyrokinetic *
@@ -86,6 +86,7 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const
     up->weak_multiply = gkyl_dg_bin_op_mem_new(conf_local->volume, conf_basis->num_basis);
     up->weak_multiply_confPhase = gkyl_dg_bin_op_mem_new(conf_local->volume, conf_basis->num_basis);
   }
+  up->mvals = mkarr(3, conf_local_ext->volume, use_gpu);
   up->mvals1 = mkarr(1, conf_local_ext->volume, use_gpu);
   up->mvals2 = mkarr(1, conf_local_ext->volume, use_gpu);
 
@@ -94,7 +95,8 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const
 
 void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokinetic *up, struct gkyl_array *fM, const struct gkyl_array *moms_in, double err_max, int iter_max, const struct gkyl_range *conf_local, const struct gkyl_range *phase_local)
 {
-  double err1[1], err2[1];
+  double epsilon = 0.01;
+  double err1[1], err2[1], mean[3];
   // Decompose the input moments
   gkyl_array_set_offset(up->m0_in, 1., moms_in, 0*up->conf_basis.num_basis);
   gkyl_array_set_offset(up->m12_in, 1., moms_in, 1*up->conf_basis.num_basis);
@@ -113,7 +115,20 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
   gkyl_array_clear(up->ddm12, 0.0);
   gkyl_array_accumulate(up->ddm12, -1.0, up->m12);
   gkyl_array_accumulate(up->ddm12, 1.0, up->m12_in);
-  
+  // Calculate the average
+  gkyl_array_clear(up->mvals, 0.0);
+  gkyl_dg_calc_average_range(up->conf_basis, 0, up->mvals, 0, moms_in, *conf_local);
+  gkyl_dg_calc_average_range(up->conf_basis, 1, up->mvals, 1, moms_in, *conf_local);
+  gkyl_dg_calc_average_range(up->conf_basis, 2, up->mvals, 2, moms_in, *conf_local);
+  gkyl_array_reduce_range(mean, up->mvals, GKYL_SUM, conf_local);
+  for (int j=0; j<3; j++) {
+    mean[j] = mean[j] / conf_local->volume;
+  }
+  mean[1] = epsilon * sqrt((mean[2]-mean[1]*mean[1]/mean[0])/mean[0])*mean[0];
+  printf("M1_ave=%10.8e, M2_ave=%10.8e\n", mean[1], mean[2]);
+  // Calculate the absolute error
+  gkyl_array_clear(up->mvals1, 0.0);
+  gkyl_array_clear(up->mvals2, 0.0);
   gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals1, 0, up->ddm12, *conf_local);
   gkyl_dg_calc_l2_range(up->conf_basis, 0, up->mvals2, 1, up->ddm12, *conf_local);
   gkyl_array_scale_range(up->mvals1, up->conf_grid.cellVolume, conf_local);
@@ -127,7 +142,9 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     gkyl_array_reduce_range(err1, up->mvals1, GKYL_SUM, conf_local);
     gkyl_array_reduce_range(err2, up->mvals2, GKYL_SUM, conf_local);
   }
-  
+  err1[0] = sqrt(err1[0]/up->conf_grid.cellVolume/conf_local->volume) / mean[1]; 
+  err2[0] = sqrt(err2[0]/up->conf_grid.cellVolume/conf_local->volume) / mean[2]; 
+
   // Main iteration loop
   int i = 0;
   while ( (i<iter_max) && ((err1[0]>err_max) || (err2[0]>err_max)) )
@@ -156,9 +173,9 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
       gkyl_array_reduce_range(err1, up->mvals1, GKYL_SUM, conf_local);
       gkyl_array_reduce_range(err2, up->mvals2, GKYL_SUM, conf_local);
     }
-    err1[0] = sqrt(err1[0]/up->conf_grid.cellVolume/conf_local->volume); 
-    err2[0] = sqrt(err2[0]/up->conf_grid.cellVolume/conf_local->volume); 
-    //printf("err1=%10.8e, err2=%10.8e\n", err1[0], err2[0]);
+    err1[0] = sqrt(err1[0]/up->conf_grid.cellVolume/conf_local->volume) / mean[1]; 
+    err2[0] = sqrt(err2[0]/up->conf_grid.cellVolume/conf_local->volume) / mean[2]; 
+    printf("err1=%10.8e, err2=%10.8e\n", err1[0], err2[0]);
 
     // Project the maxwellian
     gkyl_array_set_offset(up->moms, 1., up->m0, 0*up->conf_basis.num_basis);
@@ -174,6 +191,7 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     gkyl_array_set_offset(up->m12, 1., up->moms, 1*up->conf_basis.num_basis);
     
     i += 1;
+    printf("Iteration=%d\n", i);
   } // Main iteration loop ends
 }
 
