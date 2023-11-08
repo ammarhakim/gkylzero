@@ -590,7 +590,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
-              printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
+              //printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
               arc_ctx.psi = psi_curr;
               arc_ctx.rclose = rclose;
               arc_ctx.zmin = zmin;
@@ -602,9 +602,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               ((gkyl_geo_gyrokinetic *)geo)->stat.nroot_cont_calls += res.nevals;
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
-              printf("nr = %d\n", nr);
+              //printf("nr = %d\n", nr);
               double r_curr = choose_closest(rclose, R, R, nr);
-              printf("rcurr, zcurr = %g, %g\n\n", r_curr, z_curr);
+              //printf("rcurr, zcurr = %g, %g\n\n", r_curr, z_curr);
               cidx[TH_IDX] = it;
 
               int lidx = 0;
