@@ -121,14 +121,14 @@ static int
 R_psiZ(const gkyl_geo_gyrokinetic *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR)
 {
-  int zcell = get_idx(1, Z, &geo->rzgrid, &geo->rzlocal);
+  int zcell = get_idx(1, Z, geo->rzgrid, geo->rzlocal);
 
   int sidx = 0;
   int idx[2] = { 0, zcell };
-  double dx[2] = { geo->rzgrid.dx[0], geo->rzgrid.dx[1] };
+  double dx[2] = { geo->rzgrid->dx[0], geo->rzgrid->dx[1] };
   
   struct gkyl_range rangeR;
-  gkyl_range_deflate(&rangeR, &geo->rzlocal, (int[]) { 0, 1 }, (int[]) { 0, zcell });
+  gkyl_range_deflate(&rangeR, geo->rzlocal, (int[]) { 0, 1 }, (int[]) { 0, zcell });
 
   struct gkyl_range_iter riter;
   gkyl_range_iter_init(&riter, &rangeR);
@@ -140,7 +140,7 @@ R_psiZ(const gkyl_geo_gyrokinetic *geo, double psi, double Z, int nmaxroots,
 
     double xc[2];
     idx[0] = riter.idx[0];
-    gkyl_rect_grid_cell_center(&geo->rzgrid, idx, xc);
+    gkyl_rect_grid_cell_center(geo->rzgrid, idx, xc);
 
     struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx);
     
@@ -187,22 +187,22 @@ phi_contour_func(double Z, void *ctx)
   double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
 
   struct gkyl_range_iter iter;
-  iter.idx[0] = fmin(c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]), c->geo->rzlocal.upper[0]);
-  iter.idx[1] = fmin(c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]), c->geo->rzlocal.upper[1]);
-  long loc = gkyl_range_idx(&(c->geo->rzlocal), iter.idx);
+  iter.idx[0] = fmin(c->geo->rzlocal->lower[0] + (int) floor((r_curr - c->geo->rzgrid->lower[0])/c->geo->rzgrid->dx[0]), c->geo->rzlocal->upper[0]);
+  iter.idx[1] = fmin(c->geo->rzlocal->lower[1] + (int) floor((Z - c->geo->rzgrid->lower[1])/c->geo->rzgrid->dx[1]), c->geo->rzlocal->upper[1]);
+  long loc = gkyl_range_idx((c->geo->rzlocal), iter.idx);
   const double *psih = gkyl_array_cfetch(c->geo->psiRZ, loc);
 
   double xc[2];
-  gkyl_rect_grid_cell_center(&(c->geo->rzgrid), iter.idx, xc);
-  double x = (r_curr-xc[0])/(c->geo->rzgrid.dx[0]*0.5);
-  double y = (Z-xc[1])/(c->geo->rzgrid.dx[1]*0.5);
+  gkyl_rect_grid_cell_center((c->geo->rzgrid), iter.idx, xc);
+  double x = (r_curr-xc[0])/(c->geo->rzgrid->dx[0]*0.5);
+  double y = (Z-xc[1])/(c->geo->rzgrid->dx[1]*0.5);
 
   // if psi is polyorder 2 we can get grad psi
   // in cylindrical coords it is grad psi = dpsi/dR Rhat + dpsi/dZ zhat
   double dpsidx = 2.904737509655563*psih[7]*(y*y-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1]; 
   double dpsidy =	5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(x*x-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
-  dpsidx = dpsidx*2.0/c->geo->rzgrid.dx[0];
-  dpsidy = dpsidy*2.0/c->geo->rzgrid.dx[1];
+  dpsidx = dpsidx*2.0/c->geo->rzgrid->dx[0];
+  dpsidy = dpsidy*2.0/c->geo->rzgrid->dx[1];
   double grad_psi_mag = sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
   double result  = (1/r_curr/sqrt(dpsidx*dpsidx + dpsidy*dpsidy)) *sqrt(1+dRdZ*dRdZ) ;
   return nr>0 ? result : 0.0;
@@ -229,12 +229,12 @@ integrate_psi_contour_memo(const gkyl_geo_gyrokinetic *geo, double psi,
   int nlevels = geo->quad_param.max_level;
   double eps = geo->quad_param.eps;
   
-  double dz = geo->rzgrid.dx[1];
-  double zlo = geo->rzgrid.lower[1];
-  int izlo = geo->rzlocal.lower[1], izup = geo->rzlocal.upper[1];
+  double dz = geo->rzgrid->dx[1];
+  double zlo = geo->rzgrid->lower[1];
+  int izlo = geo->rzlocal->lower[1], izup = geo->rzlocal->upper[1];
   
-  int ilo = get_idx(1, zmin, &geo->rzgrid, &geo->rzlocal);
-  int iup = get_idx(1, zmax, &geo->rzgrid, &geo->rzlocal);
+  int ilo = get_idx(1, zmin, geo->rzgrid, geo->rzlocal);
+  int iup = get_idx(1, zmax, geo->rzgrid, geo->rzlocal);
 
   double res = 0.0;
   for (int i=ilo; i<=iup; ++i) {
@@ -287,12 +287,12 @@ integrate_phi_along_psi_contour_memo(const gkyl_geo_gyrokinetic *geo, double psi
   int nlevels = geo->quad_param.max_level;
   double eps = geo->quad_param.eps;
   
-  double dz = geo->rzgrid.dx[1];
-  double zlo = geo->rzgrid.lower[1];
-  int izlo = geo->rzlocal.lower[1], izup = geo->rzlocal.upper[1];
+  double dz = geo->rzgrid->dx[1];
+  double zlo = geo->rzgrid->lower[1];
+  int izlo = geo->rzlocal->lower[1], izup = geo->rzlocal->upper[1];
   
-  int ilo = get_idx(1, zmin, &geo->rzgrid, &geo->rzlocal);
-  int iup = get_idx(1, zmax, &geo->rzgrid, &geo->rzlocal);
+  int ilo = get_idx(1, zmin, geo->rzgrid, geo->rzlocal);
+  int iup = get_idx(1, zmax, geo->rzgrid, geo->rzlocal);
 
   double res = 0.0;
   for (int i=ilo; i<=iup; ++i) {
@@ -395,10 +395,11 @@ gkyl_geo_gyrokinetic_new(const struct gkyl_geo_gyrokinetic_inp *inp)
   geo->B0 = inp->B0;
   geo->R0 = inp->R0;
 
-  geo->rzgrid = *inp->rzgrid;
+  geo->rzgrid = inp->rzgrid;
   geo->psiRZ = gkyl_array_acquire(inp->psiRZ);
   geo->num_rzbasis = inp->rzbasis->num_basis;
-  memcpy(&geo->rzlocal, inp->rzlocal, sizeof(struct gkyl_range));
+  //memcpy(&geo->rzlocal, inp->rzlocal, sizeof(struct gkyl_range));
+  geo->rzlocal = inp->rzlocal;
 
   geo->root_param.eps =
     inp->root_param.eps > 0 ? inp->root_param.eps : 1e-10;
@@ -499,9 +500,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
-  double delta_alpha = dalpha*1e-2;
-  double delta_psi = dpsi*1e-2;
-  double delta_theta = dtheta*1e-2;
+  double delta_alpha = dalpha*1e-3;
+  double delta_psi = dpsi*1e-3;
+  double delta_theta = dtheta*1e-3;
   geo->dzc = gkyl_malloc(3*sizeof(double));
   geo->dzc[0] = delta_psi;
   geo->dzc[1] = delta_alpha;
@@ -510,7 +511,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
   double rclose = inp->rclose;
 
-  int nzcells = geo->rzgrid.cells[1];
+  int nzcells = geo->rzgrid->cells[1];
   double *arc_memo = gkyl_malloc(sizeof(double[nzcells]));
 
   struct arc_length_ctx arc_ctx = {
@@ -589,7 +590,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
-              //printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
+              printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
               arc_ctx.psi = psi_curr;
               arc_ctx.rclose = rclose;
               arc_ctx.zmin = zmin;
@@ -601,7 +602,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               ((gkyl_geo_gyrokinetic *)geo)->stat.nroot_cont_calls += res.nevals;
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+              printf("nr = %d\n", nr);
               double r_curr = choose_closest(rclose, R, R, nr);
+              printf("rcurr, zcurr = %g, %g\n\n", r_curr, z_curr);
               cidx[TH_IDX] = it;
 
               int lidx = 0;

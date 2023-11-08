@@ -20,9 +20,9 @@ struct gkyl_geo_gyrokinetic_stat {
 };  
 
 struct gkyl_geo_gyrokinetic {
-  struct gkyl_rect_grid rzgrid; // RZ grid on which psi(R,Z) is defined
+  const struct gkyl_rect_grid* rzgrid; // RZ grid on which psi(R,Z) is defined
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
-  struct gkyl_range rzlocal; // local range over which psiRZ is defined
+  const struct gkyl_range* rzlocal; // local range over which psiRZ is defined
   int num_rzbasis; // number of basis functions in RZ
 
   struct { int max_iter; double eps; } root_param;

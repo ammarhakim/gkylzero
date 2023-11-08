@@ -154,9 +154,10 @@ test_1()
       .quad_param = {  .eps = 1e-12 }
     }
   );
+  printf("made new sruct\n");
 
-  double clower[] = { 0.06, -0.1, -2.5};
-  double cupper[] = {0.1, 0.1, 2.5};
+  double clower[] = { 0.06, -0.1, -3.14};
+  double cupper[] = {0.1, 0.1, 3.14};
   int ccells[] = { 16,1, 16 };
 
 
@@ -169,6 +170,7 @@ test_1()
   struct gkyl_range clocal, clocal_ext;
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+  printf("created grd ranges\n");
 
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
@@ -187,13 +189,15 @@ test_1()
     .node_file_nm = "solovev3d_nodes.gkyl"
   }; 
 
+  printf("created geo inp\n");
 
   //check node coords
-  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ginp.cgrid->ndim, ginp.cbasis->num_basis);
-  ginp.cbasis->node_list(gkyl_array_fetch(nodes, 0));
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
-  struct gkyl_range_iter iter_c;
-  gkyl_range_iter_init(&iter_c, &clocal);
+  //struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, ginp.cgrid->ndim, ginp.cbasis->num_basis);
+  //printf("made nodes\n");
+  //ginp.cbasis->node_list(gkyl_array_fetch(nodes, 0));
+  //double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
+  //struct gkyl_range_iter iter_c;
+  //gkyl_range_iter_init(&iter_c, &clocal);
   
   //while (gkyl_range_iter_next(&iter_c)) {
   //  gkyl_rect_grid_cell_center(ginp.cgrid, iter_c.idx, xc);
@@ -210,7 +214,7 @@ test_1()
 
 
   //Do Ammar's calcgeom
-
+  printf("about to do calcgeom\n");
   struct gkyl_array *mapc2p_arr = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
   gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p_arr, &clocal_ext);
 
