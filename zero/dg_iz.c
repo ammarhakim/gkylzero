@@ -156,6 +156,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];
+    printf("%g\n", m0_elc_d[0]);
 
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
     double *coef_iz_d = gkyl_array_fetch(up->coef_iz, loc);
@@ -195,12 +196,13 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     cell_center = (m0_idx - 0.5)*up->dlogM0 + up->minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
 
-    //if ((up->E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
-    if  (m0_elc_av <= 0.) {
-      printf("m0 elc ZERO ");
+    if ((up->E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
+    //if  (m0_elc_av <= 0.) {
+      printf("some value ZERO ");
       coef_iz_d[0] = 0.0; 
     }
     else {
+      printf("non-zero iz coeff ");
       double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
@@ -209,7 +211,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
 
   if (up->type_self == GKYL_IZ_ELC) {
     // Calculate vt_sq_iz
-    gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, up->conf_rng);
+    gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, up->conf_rng);  //CHECK, possible error g0-merge??
     gkyl_array_scale_range(up->vtSq_iz, 1/2.0, up->conf_rng);
     gkyl_array_shiftc(up->vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
 
