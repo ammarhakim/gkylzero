@@ -115,6 +115,7 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   up->adas_basis = adas_basis;
   
   // allocate fields for prim mom calculation
+  // Try allocating these at g2 level...
   up->prim_vars_donor = gkyl_array_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); // elc, ion
   up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); // all
   up->vtSq_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // elc
@@ -197,7 +198,6 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
 
     if ((up->E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
-    //if  (m0_elc_av <= 0.) {
       printf("some value ZERO ");
       coef_iz_d[0] = 0.0; 
     }
@@ -206,6 +206,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
       double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+      printf("%g\n", coef_iz_d[0]);
     }
   }
 
