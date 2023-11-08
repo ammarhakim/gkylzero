@@ -19,6 +19,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   app->tcurr = 0.0; // reset on init
 
   app->scheme_type = mom->scheme_type;
+  
   app->mp_recon = mom->mp_recon;
   app->use_hybrid_flux_kep = mom->use_hybrid_flux_kep;
   
