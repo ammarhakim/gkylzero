@@ -166,3 +166,7 @@ struct gkyl_geo_gyrokinetic_stat gkyl_geo_gyrokinetic_get_stat(const gkyl_geo_gy
  * @param geo Geometry object to delete
  */
 void gkyl_geo_gyrokinetic_release(gkyl_geo_gyrokinetic *geo);
+
+struct gkyl_range* gkyl_geo_gyrokinetic_get_nrange(gkyl_geo_gyrokinetic* geo);
+struct gkyl_array* gkyl_geo_gyrokinetic_get_mc2p_nodal_fd(gkyl_geo_gyrokinetic* geo);
+double* gkyl_geo_gyrokinetic_get_dzc(gkyl_geo_gyrokinetic* geo);

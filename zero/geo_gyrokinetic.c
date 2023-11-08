@@ -481,7 +481,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   printf("nrange upper = %d %d %d\n", geo->nrange->upper[0], geo->nrange->upper[1], geo->nrange->upper[2]);
   printf("cgrid ndim  = %d\n", inp->cgrid->ndim);
   printf("Checking the range volumes\n nrange.volume = %ld\n conversion_range.volume = %ld\n", geo->nrange->volume, conversion_range->volume);
-  geo->mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim*7, geo->nrange->volume);
+  geo->mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim*13, geo->nrange->volume);
   struct gkyl_array *mc2p = gkyl_array_new(GKYL_DOUBLE, inp->cgrid->ndim, geo->nrange->volume);
 
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
@@ -506,7 +506,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   geo->dzc[0] = delta_psi;
   geo->dzc[1] = delta_alpha;
   geo->dzc[2] = delta_theta;
-  int modifiers[3] = {0, -1, 1};
+  int modifiers[5] = {0, -1, 1, -2, 2};
 
   double rclose = inp->rclose;
 
@@ -521,22 +521,41 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   int cidx[3] = { 0 };
   for(int ia=geo->nrange->lower[AL_IDX]; ia<=geo->nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
-    for(int ia_delta = 0; ia_delta < 3; ia_delta++){
-      if(ia == geo->nrange->lower[AL_IDX] && ia_delta == 1)
-        continue; // want to use one sided stencils at edge
-      if(ia == geo->nrange->upper[AL_IDX] && ia_delta == 2)
-        continue; // want to use one sided stencils at edge
+    for(int ia_delta = 0; ia_delta < 5; ia_delta++){
+      if(ia == geo->nrange->lower[AL_IDX]){
+        if(ia_delta == 1 || ia_delta == 3)
+          continue; // want to use one sided stencils at edge
+      }
+      else if(ia == geo->nrange->upper[AL_IDX]){
+          if(ia_delta == 2 || ia_delta == 4)
+            continue; // want to use one sided stencils at edge
+      }
+      else{ //interior
+        if( ia_delta == 3 || ia_delta == 4)
+          continue; //dont do two away
+      }
+
       double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
       printf("alpha_curr = %g\n", alpha_curr);
+
       for (int ip=geo->nrange->lower[PH_IDX]; ip<=geo->nrange->upper[PH_IDX]; ++ip) {
-        int ip_delta_max = 3;
+        int ip_delta_max = 5;
         if(ia_delta != 0)
           ip_delta_max = 1;
         for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
-          if(ip == geo->nrange->lower[PH_IDX] && ip_delta == 1)
-            continue; // want to use one sided stencils at edge
-          if(ip == geo->nrange->upper[PH_IDX] && ip_delta == 2)
-            continue; // want to use one sided stencils at edge
+          if(ip == geo->nrange->lower[PH_IDX]){
+            if(ip_delta == 1 || ip_delta == 3)
+              continue; // want to use one sided stencils at edge
+          }
+          else if(ip == geo->nrange->upper[PH_IDX]){
+            if(ip_delta == 2 || ip_delta == 4)
+              continue; // want to use one sided stencils at edge
+          }
+          else{ // interior 
+            if( ip_delta == 3 || ip_delta == 4)
+              continue; //dont do two away
+          }
+
           double zmin = inp->zmin, zmax = inp->zmax;
           double psi_curr = phi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
           //printf("psi_curr = %g\n", psi_curr);
@@ -547,16 +566,27 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
           double arcL_curr = 0.0;
           double arcL_lo = (theta_lo + M_PI)/2/M_PI*arcL;
+
           // set node coordinates
           for (int it=geo->nrange->lower[TH_IDX]; it<=geo->nrange->upper[TH_IDX]; ++it) {
-            int it_delta_max = 3;
+            int it_delta_max = 5;
             if(ia_delta != 0 || ip_delta != 0 )
               it_delta_max = 1;
             for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
-              if(it == geo->nrange->lower[TH_IDX] && it_delta == 1)
-                continue; // want to use one sided stencils at edge
-              if(it == geo->nrange->upper[TH_IDX] && it_delta == 2)
-                continue; // want to use one sided stencils at edge
+              if(it == geo->nrange->lower[TH_IDX]){
+                if(it_delta == 1 || it_delta == 3)
+                  continue; // want to use one sided stencils at edge
+              }
+              else if(it == geo->nrange->upper[TH_IDX]){
+                if(it_delta == 2 || it_delta == 4)
+                  continue; // want to use one sided stencils at edge
+              }
+              else{
+                if( it_delta == 3 || it_delta == 4)
+                  continue; //dont do two away
+              }
+
+
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
               //printf("theta_curr = %g, psicurr  = %g \n", theta_curr, psi_curr);
@@ -578,9 +608,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               if (ip_delta != 0)
                 lidx = 3 + 3*(ip_delta-1);
               if (ia_delta != 0)
-                lidx = 9 + 3*(ia_delta-1);
+                lidx = 15 + 3*(ia_delta-1);
               if (it_delta != 0)
-                lidx = 15 + 3*(it_delta-1);
+                lidx = 27 + 3*(it_delta-1);
 
               double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
               // convert to x,y,z
@@ -628,4 +658,17 @@ gkyl_geo_gyrokinetic_release(gkyl_geo_gyrokinetic *geo)
   gkyl_array_release(geo->psiRZ);
   gkyl_array_release(geo->mc2p_nodal_fd);
   gkyl_free(geo);
+}
+
+
+struct gkyl_range* gkyl_geo_gyrokinetic_get_nrange(gkyl_geo_gyrokinetic* geo){
+  return geo->nrange;
+}
+
+struct gkyl_array* gkyl_geo_gyrokinetic_get_mc2p_nodal_fd(gkyl_geo_gyrokinetic* geo){
+  return geo->mc2p_nodal_fd;
+}
+
+double* gkyl_geo_gyrokinetic_get_dzc(gkyl_geo_gyrokinetic* geo){
+  return geo->dzc;
 }

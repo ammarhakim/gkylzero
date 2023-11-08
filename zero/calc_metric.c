@@ -39,14 +39,20 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, s
               double dxdz[3][3];
 
               if(ip==nrange->lower[PH_IDX]){
-                dxdz[0][0] = -(mc2p_n[X_IDX] -   mc2p_n[6+X_IDX])/dzc[0];
-                dxdz[1][0] = -(mc2p_n[Y_IDX] -   mc2p_n[6+Y_IDX])/dzc[0];
-                dxdz[2][0] = -(mc2p_n[Z_IDX] -   mc2p_n[6+Z_IDX])/dzc[0];
+                dxdz[0][0] = (-3*mc2p_n[X_IDX] + 4*mc2p_n[6+X_IDX] - mc2p_n[12+X_IDX] )/dzc[0]/2;
+                dxdz[1][0] = (-3*mc2p_n[Y_IDX] + 4*mc2p_n[6+Y_IDX] - mc2p_n[12+Y_IDX] )/dzc[0]/2;
+                dxdz[2][0] = (-3*mc2p_n[Z_IDX] + 4*mc2p_n[6+Z_IDX] - mc2p_n[12+Z_IDX] )/dzc[0]/2;
+                //dxdz[0][0] = -(mc2p_n[X_IDX] -   mc2p_n[6+X_IDX])/dzc[0];
+                //dxdz[1][0] = -(mc2p_n[Y_IDX] -   mc2p_n[6+Y_IDX])/dzc[0];
+                //dxdz[2][0] = -(mc2p_n[Z_IDX] -   mc2p_n[6+Z_IDX])/dzc[0];
               }
               else if(ip==nrange->upper[PH_IDX]){
-                dxdz[0][0] = (mc2p_n[X_IDX] -   mc2p_n[3+X_IDX])/dzc[0];
-                dxdz[1][0] = (mc2p_n[Y_IDX] -   mc2p_n[3+Y_IDX])/dzc[0];
-                dxdz[2][0] = (mc2p_n[Z_IDX] -   mc2p_n[3+Z_IDX])/dzc[0];
+                dxdz[0][0] = (3*mc2p_n[X_IDX] - 4*mc2p_n[3+X_IDX] + mc2p_n[9+X_IDX] )/dzc[0]/2;
+                dxdz[1][0] = (3*mc2p_n[Y_IDX] - 4*mc2p_n[3+Y_IDX] + mc2p_n[9+Y_IDX] )/dzc[0]/2;
+                dxdz[2][0] = (3*mc2p_n[Z_IDX] - 4*mc2p_n[3+Z_IDX] + mc2p_n[9+Z_IDX] )/dzc[0]/2;
+                //dxdz[0][0] = (mc2p_n[X_IDX] -   mc2p_n[3+X_IDX])/dzc[0];
+                //dxdz[1][0] = (mc2p_n[Y_IDX] -   mc2p_n[3+Y_IDX])/dzc[0];
+                //dxdz[2][0] = (mc2p_n[Z_IDX] -   mc2p_n[3+Z_IDX])/dzc[0];
               }
               else{
                 dxdz[0][0] = -(mc2p_n[3 +X_IDX] -   mc2p_n[6+X_IDX])/2/dzc[0];
@@ -56,35 +62,47 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, s
 
 
               if(ia==nrange->lower[AL_IDX]){
-                dxdz[0][1] = -(mc2p_n[X_IDX] -  mc2p_n[12+X_IDX])/dzc[1];
-                dxdz[1][1] = -(mc2p_n[Y_IDX] -  mc2p_n[12+Y_IDX])/dzc[1];
-                dxdz[2][1] = -(mc2p_n[Z_IDX] -  mc2p_n[12+Z_IDX])/dzc[1];
+                dxdz[0][1] = (-3*mc2p_n[X_IDX] +  4*mc2p_n[18+X_IDX] -  mc2p_n[24+X_IDX])/dzc[1]/2;
+                dxdz[1][1] = (-3*mc2p_n[Y_IDX] +  4*mc2p_n[18+Y_IDX] -  mc2p_n[24+Y_IDX])/dzc[1]/2;
+                dxdz[2][1] = (-3*mc2p_n[Z_IDX] +  4*mc2p_n[18+Z_IDX] -  mc2p_n[24+Z_IDX])/dzc[1]/2;
+                //dxdz[0][1] = -(mc2p_n[X_IDX] -  mc2p_n[12+X_IDX])/dzc[1];
+                //dxdz[1][1] = -(mc2p_n[Y_IDX] -  mc2p_n[12+Y_IDX])/dzc[1];
+                //dxdz[2][1] = -(mc2p_n[Z_IDX] -  mc2p_n[12+Z_IDX])/dzc[1];
               }
               else if(ia==nrange->upper[AL_IDX]){
-                dxdz[0][1] = (mc2p_n[X_IDX] -  mc2p_n[9+X_IDX])/dzc[1];
-                dxdz[1][1] = (mc2p_n[Y_IDX] -  mc2p_n[9+Y_IDX])/dzc[1];
-                dxdz[2][1] = (mc2p_n[Z_IDX] -  mc2p_n[9+Z_IDX])/dzc[1];
+                dxdz[0][1] = (3*mc2p_n[X_IDX] -  4*mc2p_n[15+X_IDX] +  mc2p_n[21+X_IDX] )/dzc[1]/2;
+                dxdz[1][1] = (3*mc2p_n[Y_IDX] -  4*mc2p_n[15+Y_IDX] +  mc2p_n[21+Y_IDX] )/dzc[1]/2;
+                dxdz[2][1] = (3*mc2p_n[Z_IDX] -  4*mc2p_n[15+Z_IDX] +  mc2p_n[21+Z_IDX] )/dzc[1]/2;
+                //dxdz[0][1] = (mc2p_n[X_IDX] -  mc2p_n[9+X_IDX])/dzc[1];
+                //dxdz[1][1] = (mc2p_n[Y_IDX] -  mc2p_n[9+Y_IDX])/dzc[1];
+                //dxdz[2][1] = (mc2p_n[Z_IDX] -  mc2p_n[9+Z_IDX])/dzc[1];
               }
               else{
-                dxdz[0][1] = -(mc2p_n[9 +X_IDX] -  mc2p_n[12+X_IDX])/2/dzc[1];
-                dxdz[1][1] = -(mc2p_n[9 +Y_IDX] -  mc2p_n[12+Y_IDX])/2/dzc[1];
-                dxdz[2][1] = -(mc2p_n[9 +Z_IDX] -  mc2p_n[12+Z_IDX])/2/dzc[1];
+                dxdz[0][1] = -(mc2p_n[15 +X_IDX] -  mc2p_n[18 +X_IDX])/2/dzc[1];
+                dxdz[1][1] = -(mc2p_n[15 +Y_IDX] -  mc2p_n[18 +Y_IDX])/2/dzc[1];
+                dxdz[2][1] = -(mc2p_n[15 +Z_IDX] -  mc2p_n[18 +Z_IDX])/2/dzc[1];
               }
 
               if(it==nrange->lower[TH_IDX]){
-                dxdz[0][2] = -(mc2p_n[X_IDX] - mc2p_n[18+X_IDX])/dzc[2];
-                dxdz[1][2] = -(mc2p_n[Y_IDX] - mc2p_n[18+Y_IDX])/dzc[2];
-                dxdz[2][2] = -(mc2p_n[Z_IDX] - mc2p_n[18+Z_IDX])/dzc[2];
+                dxdz[0][2] = (-3*mc2p_n[X_IDX] + 4*mc2p_n[30+X_IDX] - mc2p_n[36+X_IDX])/dzc[2]/2;
+                dxdz[1][2] = (-3*mc2p_n[Y_IDX] + 4*mc2p_n[30+Y_IDX] - mc2p_n[36+Y_IDX])/dzc[2]/2;
+                dxdz[2][2] = (-3*mc2p_n[Z_IDX] + 4*mc2p_n[30+Z_IDX] - mc2p_n[36+Z_IDX])/dzc[2]/2;
+                //dxdz[0][2] = -(mc2p_n[X_IDX] - mc2p_n[18+X_IDX])/dzc[2];
+                //dxdz[1][2] = -(mc2p_n[Y_IDX] - mc2p_n[18+Y_IDX])/dzc[2];
+                //dxdz[2][2] = -(mc2p_n[Z_IDX] - mc2p_n[18+Z_IDX])/dzc[2];
               }
               else if(it==nrange->upper[TH_IDX]){
-                dxdz[0][2] = (mc2p_n[X_IDX] - mc2p_n[15+X_IDX])/dzc[2];
-                dxdz[1][2] = (mc2p_n[Y_IDX] - mc2p_n[15+Y_IDX])/dzc[2];
-                dxdz[2][2] = (mc2p_n[Z_IDX] - mc2p_n[15+Z_IDX])/dzc[2];
+                dxdz[0][2] = (3*mc2p_n[X_IDX] - 4*mc2p_n[27+X_IDX] + mc2p_n[33+X_IDX] )/dzc[2]/2;
+                dxdz[1][2] = (3*mc2p_n[Y_IDX] - 4*mc2p_n[27+Y_IDX] + mc2p_n[33+Y_IDX] )/dzc[2]/2;
+                dxdz[2][2] = (3*mc2p_n[Z_IDX] - 4*mc2p_n[27+Z_IDX] + mc2p_n[33+Z_IDX] )/dzc[2]/2;
+                //dxdz[0][2] = (mc2p_n[X_IDX] - mc2p_n[15+X_IDX])/dzc[2];
+                //dxdz[1][2] = (mc2p_n[Y_IDX] - mc2p_n[15+Y_IDX])/dzc[2];
+                //dxdz[2][2] = (mc2p_n[Z_IDX] - mc2p_n[15+Z_IDX])/dzc[2];
               }
               else{
-                dxdz[0][2] = -(mc2p_n[15 +X_IDX] - mc2p_n[18+X_IDX])/2/dzc[2];
-                dxdz[1][2] = -(mc2p_n[15 +Y_IDX] - mc2p_n[18+Y_IDX])/2/dzc[2];
-                dxdz[2][2] = -(mc2p_n[15 +Z_IDX] - mc2p_n[18+Z_IDX])/2/dzc[2];
+                dxdz[0][2] = -(mc2p_n[27 +X_IDX] - mc2p_n[30 +X_IDX])/2/dzc[2];
+                dxdz[1][2] = -(mc2p_n[27 +Y_IDX] - mc2p_n[30 +Y_IDX])/2/dzc[2];
+                dxdz[2][2] = -(mc2p_n[27 +Z_IDX] - mc2p_n[30 +Z_IDX])/2/dzc[2];
               }
 
 
