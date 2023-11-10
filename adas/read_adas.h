@@ -36,18 +36,15 @@ array_from_numpy(FILE *fp, long sz, int Zmax)
   return arr;
 }
 
-static inline double *
-minmax_from_numpy(FILE *fp, long sz)
+static inline void
+minmax_from_numpy(FILE *fp, long sz, double minmax[2])
 {
   double array[sz];
   long res_sz = fread(array, 1, sizeof(double[sz]), fp);
   double min = array[0];
   double max = array[sz-1];
-  double *minmax = malloc(2);
   minmax[0] = min;
   minmax[1] = max;
-  
-  return minmax;
 }
 
 // 2d p=1

@@ -58,17 +58,17 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   read_adas_field_recomb(type_ion, &data, base);
   
   long sz = data.NT*data.NN;
-  double *minmax;
+  double minmax[2];
 
   if (data.logT == NULL) fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file.");
   if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file.");
   if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'recomb_<elem>.npy' file.");
 
   // "duplicate symbol" error
-  minmax = minmax_from_numpy(data.logT, data.NT);
+  minmax_from_numpy(data.logT, data.NT, minmax);
   fclose(data.logT);
   double logTmin = minmax[0], logTmax = minmax[1];
-  minmax = minmax_from_numpy(data.logN, data.NN);
+  minmax_from_numpy(data.logN, data.NN, minmax);
   fclose(data.logN);
   double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
 

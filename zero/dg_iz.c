@@ -55,15 +55,15 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   read_adas_field_iz(type_ion, &data, base);
   
   long sz = data.NT*data.NN;
-  double *minmax;
+  double minmax[2];
 
   if (data.logT == NULL) fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file. ");
   if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file. ");
   if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'ioniz_<elem>.npy' file. ");
-  minmax = minmax_from_numpy(data.logT, data.NT);
+  minmax_from_numpy(data.logT, data.NT, minmax);
   fclose(data.logT);
   double logTmin = minmax[0], logTmax = minmax[1];
-  minmax = minmax_from_numpy(data.logN, data.NN);
+  minmax_from_numpy(data.logN, data.NN, minmax);
   fclose(data.logN);
   double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
 
@@ -157,7 +157,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];
-    printf("%g\n", m0_elc_d[0]);
+    //printf("%g\n", m0_elc_d[0]);
 
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
     double *coef_iz_d = gkyl_array_fetch(up->coef_iz, loc);
@@ -198,15 +198,15 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
 
     if ((up->E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
-      printf("some value ZERO ");
+      //printf("some value ZERO ");
       coef_iz_d[0] = 0.0; 
     }
     else {
-      printf("non-zero iz coeff ");
+      //printf("non-zero iz coeff ");
       double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
-      printf("%g\n", coef_iz_d[0]);
+      //printf("%g\n", coef_iz_d[0]);
     }
   }
 
