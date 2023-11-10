@@ -11,6 +11,12 @@ cmp_dn(struct gkyl_dn x, struct gkyl_dn xcmp)
   return (x.x[0] == xcmp.x[0]) && (x.x[1] == xcmp.x[1]);
 }
 
+static inline bool
+cmp_dn2(struct gkyl_dn2 x, struct gkyl_dn2 xcmp)
+{
+  return (x.x[0] == xcmp.x[0]) && (x.x[1] == xcmp.x[1]) && (x.x[2] == xcmp.x[2]);
+}
+
 static void
 show_dn(FILE *fp, const char *msg, struct gkyl_dn d1)
 {
@@ -72,6 +78,68 @@ void test_basic(void)
 
   res = func_1(x1);
   TEST_CHECK( cmp_dn(res, gdn_new(func_1_0(x10), func_1_1(x10))) );
+}
+
+void test_basic2(void)
+{
+  double x10 = 2.5;
+  struct gkyl_dn2 x1 = gdn2_new(x10, 1.0, 2.0);
+
+  struct gkyl_dn2 res = { };
+
+  res = gdn2_sq(x1);
+  TEST_CHECK( cmp_dn2(res, gdn2_new(x10*x10, 2*x10, 2.0*2*x10)) );
+
+  res = gdn2_cube(x1);
+  TEST_CHECK( cmp_dn2(res, gdn2_new(x10*x10*x10, 3*x10*x10, 2.0*3*x10*x10)) );
+
+  res = gdn2_npow(x1, 5);
+  TEST_CHECK( cmp_dn2(res, gdn2_new(pow(x10,5), 5*pow(x10,4), 2.0*5*pow(x10,4))) );
+
+  res = gdn2_sqrt(x1);
+  TEST_CHECK( cmp_dn2(res, gdn2_new(sqrt(x10), 0.5/sqrt(x10), 2.0*0.5/sqrt(x10))) );
+
+  res = gdn2_cos(x1);
+  TEST_CHECK( cmp_dn2(res, gdn2_new(cos(x10), -sin(x10), -2.0*sin(x10))) );
+
+  res = gdn2_sin(x1);
+  TEST_CHECK( cmp_dn2(res, gdn2_new(sin(x10), cos(x10), 2.0*cos(x10))) );
+
+  res = gdn2_tan(x1);
+  TEST_CHECK( res.x[0] == tan(x10) );
+  TEST_CHECK( gkyl_compare_double(res.x[1], 1/(cos(x10)*cos(x10)), 1e-15) );
+  TEST_CHECK( gkyl_compare_double(res.x[2], 2.0/(cos(x10)*cos(x10)), 1e-15)  );
+}
+
+static struct gkyl_dn2
+fxy( struct gkyl_dn2 x, struct gkyl_dn2 y)
+{
+  // cos(x/y)
+  return gdn2_cos( gdn2_div(x,y) );
+}
+
+static struct gkyl_dn2
+psixy( struct gkyl_dn2 x, struct gkyl_dn2 y)
+{
+  // sqrt(x^2 + y^2)
+  return gdn2_sqrt( gdn2_add(gdn2_sq(x), gdn2_sq(y)) );
+}
+
+void test_xy(void)
+{
+  struct gkyl_dn2 x = gdn2_new10(2.5), y = gdn2_new01(1.5);
+  struct gkyl_dn2 res = { };
+
+  res = fxy(x, y);
+  TEST_CHECK( gkyl_compare_double(res.x[0], cos(x.x[0]/y.x[0]), 1e-14) );
+  TEST_CHECK( gkyl_compare_double(res.x[1], -sin(x.x[0]/y.x[0])/y.x[0], 1e-14) );
+  TEST_CHECK( gkyl_compare_double(res.x[2], x.x[0]*sin(x.x[0]/y.x[0])/(y.x[0]*y.x[0]), 1e-14) );
+
+  double psi0 = sqrt(x.x[0]*x.x[0] + y.x[0]*y.x[0]);
+  res = psixy(x, y);
+  TEST_CHECK( gkyl_compare_double(res.x[0], psi0, 1e-14) );
+  TEST_CHECK( gkyl_compare_double(res.x[1], x.x[0]/psi0, 1e-14) );
+  TEST_CHECK( gkyl_compare_double(res.x[2], y.x[0]/psi0, 1e-14) );
 }
 
 // for testing 1D mapc2p determine by its inverse mapping
@@ -147,6 +215,8 @@ void test_mapc2p(void)
 
 TEST_LIST = {
   { "test_basic", test_basic },
+  { "test_basic2", test_basic2 },
+  { "test_xy", test_xy },
   { "test_inv_mapc2p", test_inv_mapc2p },
   { "test_mapc2p", test_mapc2p },  
   { NULL, NULL },  
