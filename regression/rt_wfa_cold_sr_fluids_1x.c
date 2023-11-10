@@ -49,6 +49,13 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
   const double profile_t_peak = 30.e-15;    // Time at which the laser reaches its peak (in s)
   const double wavelength = 0.8e-6;         // The wavelength of the laser (in m)
 
+  // compute last edge
+  double xupper = 120.0e-6;
+  double xlower = -1.10e-6;
+  double nx = 10240.0;
+  double dx = (xupper - xlower)/nx;
+  double xLastEdge = xlower+dx;
+
   // constants
   const double c = 299792458.0;
   const double pi = 3.14159265358979311599796346854;
@@ -56,9 +63,13 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
 
   //Laser amplitude (t + dt/2.0)
   const double ad_hoc_factor = 16.0*10*2.4e5;
-  if (xn[0]<position){
-    fout[1] = ad_hoc_factor*sin(2.0*pi*c*t/wavelength)*(2.0/(mu_0*c))*E_max * exp(- pow((t - profile_t_peak),2) / pow(profile_duration,2));
+  if (xn[0]<=xLastEdge && xn[0]>=(xLastEdge-dx)){
     fout[0] = 0.0;
+    fout[1] = ad_hoc_factor*sin(2.0*pi*c*t/wavelength)*(2.0/(mu_0*c))*E_max * exp(- pow((t - profile_t_peak),2) / pow(profile_duration,2));
+    fout[2] = 0.0;
+  } else {
+    fout[0] = 0.0;
+    fout[1] = 0.0;
     fout[2] = 0.0;
   }
 }
@@ -94,6 +105,7 @@ main(int argc, char **argv)
     .evolve = 1,
     .init = evalColdInit,
 
+    //.bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
@@ -102,7 +114,7 @@ main(int argc, char **argv)
     .name = "cold_sr_fluid_wfa",
 
     .ndim = 1,
-    .lower = { -1.10e-6 },
+    .lower = { -30.10e-6 },
     .upper = { 120.0e-6 }, 
     .cells = { NX },
 
@@ -117,8 +129,10 @@ main(int argc, char **argv)
       .evolve = 1,
       .init = evalFieldInit,
       .app_current_func = evalAppCurrent,
+      .use_explicit_em_coupling = 1,
 
-      .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL }
+      //.bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
+      .bcx = { GKYL_FIELD_COPY, GKYL_FIELD_COPY },
     }
   };
 
@@ -128,7 +142,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend = 1.0e-12;
 
-  int nframe = 1000;
+  int nframe = 100;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = (tend-tcurr)/nframe };
 

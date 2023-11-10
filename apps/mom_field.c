@@ -187,6 +187,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   
   fld->ext_em = mkarr(false, 6, app->local_ext.volume);
   fld->is_ext_em_static = mom_fld->is_ext_em_static;
+  fld->use_explicit_em_coupling = mom_fld->use_explicit_em_coupling;
   fld->was_ext_em_computed = false;
 
   fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;

@@ -1,6 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
-//#include <gkyl_higuera_cary.h>
+#include <gkyl_fv_proj.h>
 #include <gkyl_moment_em_coupling.h>
 #include <gkyl_mat.h>
 
@@ -46,6 +46,7 @@ struct gkyl_moment_em_coupling {
   double t_ramp_curr; // ramp up time for applied current
 
   bool has_collision; // has collisions
+  bool use_rel; // has relativity 
   // normalized collision frequencies; nu_sr = nu_base[s][r] * rho_r
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 
@@ -418,6 +419,95 @@ const double c, const double E[3], const double B[3])
   u[2] = u_2_plus + E_2 + (u_0_plus*t_1 - u_1_plus*t_0);
 }
 
+static inline void
+update_euler(double f_euler_update[3], 
+ double En[3], const double tcurr, const double dt, const double eps0,
+ const gkyl_moment_em_coupling *mes, double *fluids[GKYL_MAX_SPECIES], 
+ const double *app_current, const double c)
+{
+
+  int nfluids = mes->nfluids;
+
+  // update per species:
+  for (int n=0; n < nfluids; ++n) {
+
+    const double q = mes->param[n].charge;
+
+    // grab the conserved variables
+    double *f = fluids[n];
+
+    // grab the density first
+    double N = f[RHO];
+
+    // init have only the external current at the current time/step
+    f_euler_update[0] = En[0] + dt*( -(1/eps0)*(app_current[0]) );
+    f_euler_update[1] = En[1] + dt*( -(1/eps0)*(app_current[1]) );
+    f_euler_update[2] = En[2] + dt*( -(1/eps0)*(app_current[2]) );
+
+    // only run update when there is a positive density
+    if (N > 0.0){
+
+      // assign the current values of u
+      double u[3] = { f[MX]/N, f[MY]/N, f[MZ]/N };
+      double gamma = sqrt(1.0 + (u[0]*u[0]+u[1]*u[1]+u[2]*u[2])/(c*c) );
+      double v[3] = { u[0]/gamma, u[1]/gamma, u[2]/gamma };
+
+      // update with each species
+      f_euler_update[0] += dt*( -(1/eps0)*q*N*v[0] );
+      f_euler_update[1] += dt*( -(1/eps0)*q*N*v[1] );
+      f_euler_update[2] += dt*( -(1/eps0)*q*N*v[2] );
+    }
+  }
+}
+
+
+static inline void
+e_field_source(const gkyl_moment_em_coupling *mes, double tcurr, double dt, 
+  double *fluids[GKYL_MAX_SPECIES], double *em, const double *app_current, 
+  const double *app_curr_s1, const double *app_curr_s2, const double *ext_em)
+{
+  double epsilon0 = mes->epsilon0;
+  double mu0 = 12.56637061435917295385057353311801153679e-7; //mes->mu0;
+  double e[3] = { 0.0, 0.0, 0.0 };
+  double Ex = em[EX];
+  double Ey = em[EY];
+  double Ez = em[EZ];
+
+  // get magnetic/electric field unit vector
+  e[0] = Ex, e[1] = Ey, e[2] = Ez;
+
+  // compute c
+  double c = 1.0/sqrt(mu0*epsilon0);
+  double f_euler_update[3], f1[3], f2[3];
+
+  // compute f1
+  struct gkyl_array *app_curr;
+  //gkyl_fv_proj_advance(proj_app_curr, tcurr, sub_range, app_curr);
+  update_euler(f_euler_update, e, tcurr, dt, epsilon0, mes, fluids, app_current, c);
+  f1[0] = f_euler_update[0];
+  f1[1] = f_euler_update[1];
+  f1[2] = f_euler_update[2];
+
+  // compute f2
+  //gkyl_fv_proj_advance(proj_app_curr, tcurr + dt, sub_range, app_curr);
+  update_euler(f_euler_update, f1, tcurr + dt, dt, epsilon0, mes, fluids, app_curr_s1, c);
+  f2[0] = (0.75)*e[0] + (0.25)*f_euler_update[0];
+  f2[1] = (0.75)*e[1] + (0.25)*f_euler_update[1];
+  f2[2] = (0.75)*e[2] + (0.25)*f_euler_update[2];
+
+  // update f^{n+1}
+  //gkyl_fv_proj_advance(proj_app_curr, tcurr + dt/2.0, sub_range, app_curr);
+  update_euler(f_euler_update, f2, tcurr + dt/2.0, dt, epsilon0, mes, fluids, app_curr_s2, c);
+  em[EX] = (1.0/3.0)*e[0] + (2.0/3.0)*f_euler_update[0];
+  em[EY] = (1.0/3.0)*e[1] + (2.0/3.0)*f_euler_update[1];
+  em[EZ] = (1.0/3.0)*e[2] + (2.0/3.0)*f_euler_update[2];
+
+  // diagnostic:
+  if ((em[EX] != 0.0) || (em[EY] != 0.0) || (em[EZ] != 0.0)){
+    printf("");
+  }
+}
+
 
 static inline void
 higuera_cary_update(const gkyl_moment_em_coupling *mes, double tcurr, double dt, 
@@ -457,7 +547,7 @@ higuera_cary_update(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
     double N = f[RHO];
 
     // only run H&C when there is a positive density
-    if (N <= 0.0){
+    if (N > 0.0){
       // assign the current values of u
       double u[3] = { f[MX]/N, f[MY]/N, f[MZ]/N };
 
@@ -518,6 +608,29 @@ nT_source_update(
     const double *S = sourcePtrs[s];
     nT_source_euler_update(mes, s, dt, q, q, S);
   }
+}
+
+
+/***********************************************/
+/* update all Relativistic sources in one call */
+/***********************************************/
+
+
+// Update the
+static void
+fluid_source_update_sr(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
+  double* fluids[GKYL_MAX_SPECIES], 
+  const double *app_accels[GKYL_MAX_SPECIES], 
+  double* em, const double* app_current, const double* app_curr_s1, 
+  const double* app_curr_s2, const double* ext_em)
+{
+
+  // Update momentum and electric field using time-centered implicit solve.
+  // If permittivity of free-space is non-zero, EM fields exist and electric
+  // field is updated, otherwise just update momentum
+  higuera_cary_update(mes, tcurr, dt, fluids, app_accels, em, app_current, ext_em);
+  e_field_source(mes, tcurr, dt, fluids, em, app_current, app_curr_s1, app_curr_s2, ext_em);
+
 }
 
 /**********************************/
@@ -587,18 +700,11 @@ fluid_source_update(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
     }
   }
 
-  // If any of the fluids are cold-relativistic, we run H&C em-source
-  bool rel_fluids = 0;
-  for (int n=0; n < nfluids; ++n) 
-    rel_fluids = rel_fluids || (mes->param[n].type == GKYL_EQN_COLDFLUID_SR); 
-
   // Update momentum and electric field using time-centered implicit solve.
   // If permittivity of free-space is non-zero, EM fields exist and electric
   // field is updated, otherwise just update momentum
-  if ((mes->is_charged_species) && (!rel_fluids))
+  if (mes->is_charged_species)
     em_source_update(mes, tcurr, dt, fluids, app_accels, em, app_current, ext_em);
-  else if (rel_fluids)
-    higuera_cary_update(mes, tcurr, dt, fluids, app_accels, em, app_current, ext_em);
   else
     neut_source_update(mes, tcurr, dt, fluids, app_accels);
 
@@ -636,6 +742,7 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   up->grid = *(inp.grid);
   up->ndim = up->grid.ndim;
   up->nfluids = inp.nfluids;
+  up->use_rel = inp.use_rel;
   for (int n=0; n<inp.nfluids; ++n) up->param[n] = inp.param[n];
 
   up->is_charged_species = false;
@@ -666,8 +773,66 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   return up;
 }
 
+// CASES ABOVE THIS:
+// ADD IMPLICIT TO THIS FUNCTION
+// ADD A NEW FUNCTION FOR EXPLICIT (THAT HANDS PROJ_APP_CURR)
+
 void
-gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
+gkyl_moment_em_coupling_explicit_advance(gkyl_moment_em_coupling *mes, double tcurr, double dt,
+  const struct gkyl_range *update_range,
+  struct gkyl_array *fluid[GKYL_MAX_SPECIES], 
+  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *pr_rhs[GKYL_MAX_SPECIES],
+  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em,
+  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj *proj_app_curr)
+{
+  int nfluids = mes->nfluids;
+  double *fluids[GKYL_MAX_SPECIES];
+  const double *app_accels[GKYL_MAX_SPECIES];
+  // pressure tensor rhs for gradient-based closure
+  const double *pr_rhs_s[GKYL_MAX_SPECIES];
+  const double *nT_source_s[GKYL_MAX_SPECIES];
+
+  // current projections for explicit source updates via SSP-RK3 steps  
+  struct gkyl_array *app_curr_stage1;
+  struct gkyl_array *app_curr_stage2;
+  app_curr_stage1 = gkyl_array_new(GKYL_DOUBLE, 3, update_range->volume);
+  app_curr_stage2 = gkyl_array_new(GKYL_DOUBLE, 3, update_range->volume);
+  if (proj_app_curr) {
+    gkyl_fv_proj_advance(proj_app_curr, tcurr + dt, update_range, app_curr_stage1);
+    gkyl_fv_proj_advance(proj_app_curr, tcurr + dt/2.0, update_range, app_curr_stage2);
+  }
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+  while (gkyl_range_iter_next(&iter)) {
+    
+    long lidx = gkyl_range_idx(update_range, iter.idx);
+    
+    for (int n=0; n<nfluids; ++n) {
+      fluids[n] = gkyl_array_fetch(fluid[n], lidx);
+      app_accels[n] = gkyl_array_cfetch(app_accel[n], lidx);
+      pr_rhs_s[n] = gkyl_array_cfetch(pr_rhs[n], lidx);
+      nT_source_s[n] = gkyl_array_cfetch(nT_sources[n], lidx);
+    }
+
+    if (mes->use_rel)
+      fluid_source_update_sr(mes, tcurr, dt, fluids, app_accels, 
+        gkyl_array_fetch(em, lidx),
+        gkyl_array_cfetch(app_current, lidx),
+        gkyl_array_cfetch(app_curr_stage1, lidx),
+        gkyl_array_cfetch(app_curr_stage2, lidx),
+        gkyl_array_cfetch(ext_em, lidx)
+      );
+  }
+
+  // Release the temporary arrays
+  gkyl_array_release(app_curr_stage1);
+  gkyl_array_release(app_curr_stage2);
+}
+
+
+void
+gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
   const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], 
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *pr_rhs[GKYL_MAX_SPECIES],
@@ -685,7 +850,7 @@ gkyl_moment_em_coupling_advance(const gkyl_moment_em_coupling *mes, double tcurr
   gkyl_range_iter_init(&iter, update_range);
   while (gkyl_range_iter_next(&iter)) {
     
-    long lidx = gkyl_range_idx(update_range, iter.idx);
+    long lidx = gkyl_range_idx(update_range, iter.idx); 
     
     for (int n=0; n<nfluids; ++n) {
       fluids[n] = gkyl_array_fetch(fluid[n], lidx);
