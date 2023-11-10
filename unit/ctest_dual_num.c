@@ -125,6 +125,22 @@ psixy( struct gkyl_dn2 x, struct gkyl_dn2 y)
   return gdn2_sqrt( gdn2_add(gdn2_sq(x), gdn2_sq(y)) );
 }
 
+static struct gkyl_dn2
+custom_xy( struct gkyl_dn2 x, struct gkyl_dn2 y)
+{
+  // example of custom function of x,y
+  
+  double g0 = (x.x[0]*x.x[0])/(y.x[0]*y.x[0]);
+  double g0x = 2.0*x.x[0]/(y.x[0]*y.x[0]);
+  double g0y = -2.0*(x.x[0]*x.x[0])/(y.x[0]*y.x[0]*y.x[0]);
+  
+  return (struct gkyl_dn2) {
+    g0,
+    x.x[1]*g0x + y.x[1]*g0y,
+    x.x[2]*g0x + y.x[2]*g0y
+  };
+}
+
 void test_xy(void)
 {
   struct gkyl_dn2 x = gdn2_new10(2.5), y = gdn2_new01(1.5);
@@ -140,6 +156,14 @@ void test_xy(void)
   TEST_CHECK( gkyl_compare_double(res.x[0], psi0, 1e-14) );
   TEST_CHECK( gkyl_compare_double(res.x[1], x.x[0]/psi0, 1e-14) );
   TEST_CHECK( gkyl_compare_double(res.x[2], y.x[0]/psi0, 1e-14) );
+
+  double cus0 = cos(x.x[0]*x.x[0]/(y.x[0]*y.x[0]));
+  double cusx = -2.0*x.x[0]*sin(x.x[0]*x.x[0]/(y.x[0]*y.x[0]))/(y.x[0]*y.x[0]);
+  double cusy = 2.0*x.x[0]*x.x[0]*sin(x.x[0]*x.x[0]/(y.x[0]*y.x[0]))/(y.x[0]*y.x[0]*y.x[0]);
+  res = gdn2_cos( custom_xy(x, y) );
+  TEST_CHECK( gkyl_compare_double(res.x[0], cus0, 1e-14) );
+  TEST_CHECK( gkyl_compare_double(res.x[1], cusx, 1e-14) );
+  TEST_CHECK( gkyl_compare_double(res.x[2], cusy, 1e-14) );
 }
 
 // for testing 1D mapc2p determine by its inverse mapping
@@ -213,11 +237,38 @@ void test_mapc2p(void)
   TEST_CHECK( xp[1].x[1] == r*cos(theta) );
 }
 
+static void
+mapc2p_2(const struct gkyl_dn2 xc[2], struct gkyl_dn2 xp[2])
+{
+  // mapping from r,theta -> x,y
+  xp[0] = gdn2_mul(xc[0], gdn2_cos(xc[1]));
+  xp[1] = gdn2_mul(xc[0], gdn2_sin(xc[1]));
+}
+
+void test_mapc2p_2(void)
+{
+  double r = 1.5, theta = M_PI/3;
+  struct gkyl_dn2 xc[2], xp[2];
+
+  // compute gradients
+  xc[0] = gdn2_new10(r); xc[1] = gdn2_new01(theta);
+  mapc2p_2(xc, xp);
+
+  TEST_CHECK( xp[0].x[0] == r*cos(theta) );
+  TEST_CHECK( xp[0].x[1] == cos(theta) );
+  TEST_CHECK( xp[0].x[2] == -r*sin(theta) );
+
+  TEST_CHECK( xp[1].x[0] == r*sin(theta) );
+  TEST_CHECK( xp[1].x[1] == sin(theta) );
+  TEST_CHECK( xp[1].x[2] == r*cos(theta) );
+}
+
 TEST_LIST = {
   { "test_basic", test_basic },
   { "test_basic2", test_basic2 },
   { "test_xy", test_xy },
   { "test_inv_mapc2p", test_inv_mapc2p },
-  { "test_mapc2p", test_mapc2p },  
+  { "test_mapc2p", test_mapc2p },
+  { "test_mapc2p_2", test_mapc2p_2 },
   { NULL, NULL },  
 };
