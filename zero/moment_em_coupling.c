@@ -39,6 +39,7 @@ struct gkyl_moment_em_coupling {
 
   bool is_charged_species; 
   double epsilon0; // permittivity of free space
+  double mu0; // permeability of free space
 
   bool ramp_app_E;
   double t_ramp_E; // ramp up time for external electric field
@@ -467,7 +468,7 @@ e_field_source(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
   const double *app_curr_s1, const double *app_curr_s2, const double *ext_em)
 {
   double epsilon0 = mes->epsilon0;
-  double mu0 = 12.56637061435917295385057353311801153679e-7; //mes->mu0;
+  double mu0 = mes->mu0;
   double e[3] = { 0.0, 0.0, 0.0 };
   double Ex = em[EX];
   double Ey = em[EY];
@@ -501,11 +502,6 @@ e_field_source(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
   em[EX] = (1.0/3.0)*e[0] + (2.0/3.0)*f_euler_update[0];
   em[EY] = (1.0/3.0)*e[1] + (2.0/3.0)*f_euler_update[1];
   em[EZ] = (1.0/3.0)*e[2] + (2.0/3.0)*f_euler_update[2];
-
-  // diagnostic:
-  if ((em[EX] != 0.0) || (em[EY] != 0.0) || (em[EZ] != 0.0)){
-    printf("");
-  }
 }
 
 
@@ -516,8 +512,7 @@ higuera_cary_update(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
 {
   int nfluids = mes->nfluids;
   double epsilon0 = mes->epsilon0;
-  // TODO: hand correct mu0 from gkyl_moment_field structure
-  double mu0 = 12.56637061435917295385057353311801153679e-7; //mes->mu0;
+  double mu0 = mes->mu0;
   double b[3] = { 0.0, 0.0, 0.0 };
   double Bx = em[BX] + ext_em[BX];
   double By = em[BY] + ext_em[BY];
@@ -747,6 +742,7 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
   up->is_charged_species = false;
   up->epsilon0 = inp.epsilon0;
+  up->mu0 = inp.mu0;
   if (up->epsilon0 != 0.0) 
     up->is_charged_species = true;
 
