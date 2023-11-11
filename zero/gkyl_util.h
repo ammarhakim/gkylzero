@@ -44,6 +44,11 @@
 # define GKYL_MAX_SPECIES 8
 #endif
 
+// Maximum number of supported charge states
+#ifndef GKYL_MAX_CHARGE_STATE
+# define GKYL_MAX_CHARGE_STATE 10
+#endif
+
 // Maximum number of ghost cells in each direction
 #ifndef GKYL_MAX_NGHOST
 # define GKYL_MAX_NGHOST 8

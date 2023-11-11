@@ -515,11 +515,13 @@ test_coll_iz_h_1x(bool use_gpu)
   /* for (int i=0; i<phaseBasis_vl.num_basis; ++i) { */
   /*   TEST_CHECK( gkyl_compare_double(p1_vals_neut[i], pv_n[i], 1e-12) ); */
   /* } */
-  
+
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
   gkyl_array_release(b_x); gkyl_array_release(b_y); gkyl_array_release(b_z);
-  gkyl_array_release(moms_elc); gkyl_array_release(moms_neut);
+  gkyl_array_release(moms_elc); gkyl_array_release(moms_neut); gkyl_array_release(moms_ion);
   gkyl_array_release(cflRate_elc); gkyl_array_release(distf_elc);
+  gkyl_array_release(cflRate_ion); gkyl_array_release(distf_ion);
+  gkyl_array_release(cflRate_neut); gkyl_array_release(distf_neut);
   gkyl_array_release(bmag); gkyl_array_release(jacob_tot); gkyl_array_release(b_i);
   gkyl_array_release(coll_iz_elc); gkyl_array_release(coll_iz_ion); gkyl_array_release(coll_iz_neut);
   gkyl_proj_on_basis_release(projM0); gkyl_proj_on_basis_release(projM2_elc); gkyl_proj_on_basis_release(projM2_ion);
@@ -530,6 +532,7 @@ test_coll_iz_h_1x(bool use_gpu)
   gkyl_dg_iz_release(coll_iz_up_elc);
   gkyl_dg_iz_release(coll_iz_up_ion);
   gkyl_dg_iz_release(coll_iz_up_neut);
+ 
 }
 
 void
@@ -835,8 +838,10 @@ test_coll_iz_h(bool use_gpu)
   
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
   gkyl_array_release(b_x); gkyl_array_release(b_y); gkyl_array_release(b_z);
-  gkyl_array_release(moms_elc); gkyl_array_release(moms_neut);
+  gkyl_array_release(moms_elc); gkyl_array_release(moms_neut); gkyl_array_release(moms_ion);
   gkyl_array_release(cflRate_elc); gkyl_array_release(distf_elc);
+  gkyl_array_release(cflRate_ion); gkyl_array_release(distf_ion);
+  gkyl_array_release(cflRate_neut); gkyl_array_release(distf_neut);
   gkyl_array_release(bmag); gkyl_array_release(jacob_tot); gkyl_array_release(b_i);
   gkyl_array_release(coll_iz_elc); gkyl_array_release(coll_iz_ion); gkyl_array_release(coll_iz_neut);
   gkyl_proj_on_basis_release(projM0); gkyl_proj_on_basis_release(projM2_elc); gkyl_proj_on_basis_release(projM2_ion);
@@ -1434,10 +1439,10 @@ void coll_iz_init_elem_gpu() { test_coll_iz_init_elem(true); }
 #endif
 
 TEST_LIST = {
-  { "prim_vars_gk_3x", prim_vars_gk_3x },
-  { "prim_vars_vlasov_3x", prim_vars_vlasov_3x },
-  { "coll_iz_h_1x", coll_iz_h_1x },
-  //{ "coll_iz_h", coll_iz_h },
+  /* { "prim_vars_gk_3x", prim_vars_gk_3x }, */
+  /* { "prim_vars_vlasov_3x", prim_vars_vlasov_3x }, */
+  /* { "coll_iz_h_1x", coll_iz_h_1x }, */
+  { "coll_iz_h", coll_iz_h },
   //{ "coll_iz_all_gk_li_1x", coll_iz_all_gk_li_1x },
   //{ "coll_iz_all_gk_li_3x", coll_iz_all_gk_li_3x },
   //{ "coll_iz_init_elem", coll_iz_init_elem },

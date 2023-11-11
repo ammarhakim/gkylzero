@@ -73,7 +73,8 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
 
   // "duplicate symbol" error
-  struct gkyl_array *adas_nodal = array_from_numpy(data.logData, sz, data.Zmax);
+  struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, data.Zmax, sz);
+  array_from_numpy(data.logData, sz, data.Zmax, adas_nodal);
   fclose(data.logData);
 
   if (!adas_nodal) {
@@ -137,6 +138,7 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
 
   up->on_dev = up; // CPU eqn obj points to itself
 
+  gkyl_array_release(adas_nodal);
   return up;
 }
 

@@ -26,9 +26,7 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     strcat(fname, "/adas/logN_h.npy");
     data->logN = fopen(fname, "rb");    
     data->Zmax = 1;
-    data->Eiz = malloc(sizeof(double)*data->Zmax);
-    static const double Eiz_loc[] = {13.6};
-    memcpy(data->Eiz, Eiz_loc, sizeof(Eiz_loc));
+    data->Eiz[0] = 13.6; 
   }
   else if (type_ion == GKYL_IZ_HE) {
     data->NT = 30;
@@ -43,9 +41,8 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     strcat(fname, "/adas/logN_he.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 2;
-    data->Eiz = malloc(sizeof(double)*data->Zmax);
-    static const double Eiz_loc[] = {24.6, 54.4};
-    memcpy(data->Eiz, Eiz_loc, sizeof(Eiz_loc));
+    data->Eiz[0] = 24.6;
+    data->Eiz[1] = 54.4;
   }
   else if (type_ion == GKYL_IZ_LI) {
     data->NT = 25;
@@ -60,9 +57,9 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     strcat(fname, "/adas/logN_li.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 3;
-    data->Eiz = malloc(sizeof(double)*data->Zmax);
-    static const double Eiz_loc[] = {5.4, 75.6, 122.4};
-    memcpy(data->Eiz, Eiz_loc, sizeof(Eiz_loc));
+    data->Eiz[0] = 5.4;
+    data->Eiz[1] = 75.6;
+    data->Eiz[2] = 122.4;
   }
   else if (type_ion == GKYL_IZ_BE) {
     data->NT = 25;
@@ -77,9 +74,10 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     strcat(fname, "/adas/logN_be.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 4;
-    data->Eiz = malloc(sizeof(double)*data->Zmax);
-    static const double Eiz_loc[] = {9.3, 18.2, 153.9, 217.7};
-    memcpy(data->Eiz, Eiz_loc, sizeof(Eiz_loc));
+    data->Eiz[0] = 9.3;
+    data->Eiz[1] = 18.2;
+    data->Eiz[3] = 153.9;
+    data->Eiz[4] = 217.7;
   }
   else if (type_ion == GKYL_IZ_B) {
     data->NT = 48;
@@ -94,9 +92,11 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     strcat(fname, "/adas/logN_b.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 5;
-    data->Eiz = malloc(sizeof(double)*data->Zmax);
-    static const double Eiz_loc[] = {8.3, 25.2, 37.9, 259.4, 340.2};
-    memcpy(data->Eiz, Eiz_loc, sizeof(Eiz_loc));
+    data->Eiz[0] = 8.3;
+    data->Eiz[1] = 25.2;
+    data->Eiz[2] = 37.9;
+    data->Eiz[3] = 259.4;
+    data->Eiz[5] = 340.2;
   }
   else if (type_ion == GKYL_IZ_C) {
     data->NT = 30;
@@ -111,9 +111,12 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     strcat(fname, "/adas/logN_c.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 6;
-    data->Eiz = malloc(sizeof(double)*data->Zmax);
-    static const double Eiz_loc[] = {11.3, 24.4, 47.9, 64.5, 392.1, 490.0};
-    memcpy(data->Eiz, Eiz_loc, sizeof(Eiz_loc));
+    data->Eiz[0] = 11.3;
+    data->Eiz[1] = 24.4;
+    data->Eiz[2] = 47.9;
+    data->Eiz[3] = 64.5;
+    data->Eiz[4] = 392.1;
+    data->Eiz[5] = 490.0;
   }
   else if (type_ion == GKYL_IZ_N) {
     data->NT = 30;
@@ -128,9 +131,13 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     strcat(fname, "/adas/logN_n.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 7;
-    data->Eiz = malloc(sizeof(double)*data->Zmax);
-    static const double Eiz_loc[] = {14.5, 29.6, 47.5, 77.5, 97.9, 552.1, 667.0};
-    memcpy(data->Eiz, Eiz_loc, sizeof(Eiz_loc));
+    data->Eiz[0] = 14.5;
+    data->Eiz[1] = 29.6;
+    data->Eiz[2] = 47.5;
+    data->Eiz[3] = 77.5;
+    data->Eiz[4] = 97.9;
+    data->Eiz[5] = 552.1;
+    data->Eiz[6] = 667.0;
   }
   else if (type_ion == GKYL_IZ_O) {
     data->NT = 30;
@@ -145,9 +152,14 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     strcat(fname, "/adas/logN_o.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 8;
-    data->Eiz = malloc(sizeof(double)*data->Zmax);
-    static const double Eiz_loc[] = {13.6, 35.1, 54.9, 77.4, 113.9, 138.1, 739.3, 871.4};
-    memcpy(data->Eiz, Eiz_loc, sizeof(Eiz_loc));
+    data->Eiz[0] = 13.6;
+    data->Eiz[1] = 35.1;
+    data->Eiz[2] = 54.9;
+    data->Eiz[3] = 77.4;
+    data->Eiz[4] = 113.9;
+    data->Eiz[5] = 138.1;
+    data->Eiz[6] = 739.3;
+    data->Eiz[6] = 871.4;
   }
   else fprintf(stderr, "Incorrect ion type for ionization.");
 }

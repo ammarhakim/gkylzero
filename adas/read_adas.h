@@ -8,6 +8,7 @@
 #include <gkyl_range.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_recomb.h>
+#include <gkyl_util.h>
 
 typedef struct adas_field {
   FILE *logData;
@@ -17,23 +18,14 @@ typedef struct adas_field {
   long NN; 
   int Zmax;
   struct gkyl_array fld;
-  double *Eiz;
+  double Eiz[GKYL_MAX_CHARGE_STATE];
 } adas_field;
 
 // Functions to extract ADAS data and project onto DG data
-static inline struct gkyl_array *
-array_from_numpy(FILE *fp, long sz, int Zmax)
+static inline void
+array_from_numpy(FILE *fp, long sz, int Zmax, struct gkyl_array *arr)
 {
-  struct gkyl_array *arr
-    = gkyl_array_new(GKYL_DOUBLE, Zmax, sz);
-
-  long res_sz = fread(arr->data, 1, sizeof(double[Zmax][sz]), fp); //, sizeof(double[sz]), fp);
-
-  if (res_sz != sizeof(double[Zmax][sz])) {
-    gkyl_array_release(arr);
-    arr = 0;
-  }
-  return arr;
+  long res_sz = fread(arr->data, 1, sizeof(double[Zmax][sz]), fp);
 }
 
 static inline void
