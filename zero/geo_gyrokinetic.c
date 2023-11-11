@@ -500,9 +500,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
-  double delta_alpha = dalpha*1e-3;
-  double delta_psi = dpsi*1e-3;
-  double delta_theta = dtheta*1e-3;
+  double delta_alpha = dalpha*1e-6;
+  double delta_psi = dpsi*1e-6;
+  double delta_theta = dtheta*1e-6;
   geo->dzc = gkyl_malloc(3*sizeof(double));
   geo->dzc[0] = delta_psi;
   geo->dzc[1] = delta_alpha;
@@ -559,7 +559,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
           double zmin = inp->zmin, zmax = inp->zmax;
           double psi_curr = phi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
-          //printf("psi_curr = %g\n", psi_curr);
+          printf("psi_curr = %g\n", psi_curr);
           double arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose,
             true, true, arc_memo);
           double darcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;

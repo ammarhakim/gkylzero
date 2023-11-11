@@ -156,9 +156,9 @@ test_1()
   );
   printf("made new sruct\n");
 
-  double clower[] = { 0.06, -0.1, -3.14};
-  double cupper[] = {0.1, 0.1, 3.14};
-  int ccells[] = { 16,1, 16 };
+  double clower[] = { 0.06, -0.01, -3.14};
+  double cupper[] = {0.1, 0.01, 3.14};
+  int ccells[] = { 36,4, 12 };
 
 
 
