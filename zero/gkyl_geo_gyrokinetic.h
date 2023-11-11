@@ -81,6 +81,8 @@ struct gkyl_geo_gyrokinetic_geo_inp {
   enum gkyl_geo_gyrokinetic_type ftype; // type of geometry
   
   double rclose; // closest R to discrimate
+  double rleft; // closest R to discrimate
+  double rright; // closest R to discrimate
   double zmin, zmax; // extents of Z for integration
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written

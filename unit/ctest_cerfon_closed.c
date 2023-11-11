@@ -159,9 +159,9 @@ test_1()
 
   psi_min = 0.03636363636363636; // This gives ghost node on psisep for 32 cells
   //psi_min = 0.07058823529411765; // This gives ghost node on psisep for 16 cells
-  psi_min = 1e-1; //arbitrary
+  psi_min = -0.2; //arbitrary
   printf("psimin = %g\n", psi_min);
-  psi_max = 0.2;
+  psi_max = -0.15;
   
   // Computational grid: theta X psi X alpha (only 2D for now)
   //double clower[] = { psi_min, -0.3, -2.9 };
@@ -169,7 +169,7 @@ test_1()
 
   double clower[] = { psi_min, -0.01, -3.0 };
   double cupper[] = {psi_max, 0.01, 3.0 };
-  int ccells[] = { 3, 1, 32 };
+  int ccells[] = { 2, 1, 16 };
 
 
 
@@ -196,15 +196,15 @@ test_1()
   struct gkyl_geo_gyrokinetic_geo_inp ginp = {
     .cgrid = &cgrid,
     .cbasis = &cbasis,
-    .ftype = GKYL_SOL_DN,
+    .ftype = GKYL_CORE,
     .rclose = upper[0],
-    .rright= upper[0],
-    .rleft= lower[0],
-    .zmin = lower[1],
-    .zmax = upper[1],
+    .rright = upper[0],
+    .rleft = lower[0],
+    .zmin = -4.0,
+    .zmax = 4.0,
   
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon3d_nodes.gkyl"
+    .node_file_nm = "cerfonclosed_nodes.gkyl"
   }; 
 
 
@@ -216,14 +216,14 @@ test_1()
   gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p_arr, &conversion_range);
 
   printf("writing mapc2p file from calcgeom\n");
-  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "cerfon3d_mapc2pfile.gkyl");
+  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "cerfonclosed_mapc2pfile.gkyl");
   printf("wrote mapc2p file\n");
 
   //make psi
   gkyl_eval_on_nodes *eval_psi = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psi, &sctx);
   struct gkyl_array* psidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   gkyl_eval_on_nodes_advance(eval_psi, 0.0, &rzlocal_ext, psidg); //on ghosts with ext_range
-  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "cerfon3d_psi.gkyl");
+  gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "cerfonclosed_psi.gkyl");
 
   gkyl_eval_on_nodes *eval_psibyr = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psibyr, &sctx);
   struct gkyl_array* psibyrdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -249,29 +249,6 @@ test_1()
   gkyl_calc_bmag *calculator = gkyl_calc_bmag_new(&cbasis, &rzbasis, &cgrid, &rzgrid, geo, &ginp, false);
   printf("allocated bmag calculator\n");
 
-  //printf("testing a fetch\n");
-  //struct gkyl_range_iter citer;
-  //gkyl_range_iter_init(&citer, &clocal_ext);
-  //citer.idx[0] = 0;
-  //citer.idx[1] = 0;
-  //citer.idx[2] = 0;
-  //printf("citer = %d,%d,%d\n", citer.idx[0], citer.idx[1], citer.idx[2]);
-
-  //long lidx = gkyl_range_idx(&clocal_ext, citer.idx);
-  //const double *mcoeffs = gkyl_array_cfetch(mapc2p_arr, lidx);
-  //
-
-  //printf("coeffs = ");
-  //for(int i = 0; i < cgrid.ndim; i++){
-  //  for(int j = 0; j < cbasis.num_basis; j++){
-  //    const double *temp = &mcoeffs[i*cbasis.num_basis];
-  //    printf(" %g ", temp[j] );
-  //  }
-  //}
-  //printf("\n");
-  //printf("done testing a fetch\n");
-
-
   gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, psidg, psibyrdg, psibyr2dg, bphidg, bmagFld, mapc2p_arr);
   printf("advanced bmag calculator\n");
 
@@ -281,31 +258,17 @@ test_1()
   do{
     printf("writing the comp bmag file \n");
     const char *fmt = "%s_compbmag.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "cerfonclosed");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
   } while (0);
 
   do{
     printf("writing the bphi file \n");
     const char *fmt = "%s_bphi.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "cerfonclosed");
     gkyl_grid_sub_array_write(&rzgrid, &rzlocal, bphidg, fileNm);
   } while (0);
 
-
-  //// write mapc2p and get metrics
-  //printf("calculating mapc2p \n");
-  //struct mapc2p_ctx *mctx = gkyl_malloc(sizeof(*mctx));
-  //mctx->app = geo;
-  //mctx->ginp = &ginp;
-  //gkyl_eval_on_nodes *eval_mapc2p = gkyl_eval_on_nodes_new(&cgrid, &cbasis, 3, mapc2p, mctx);
-  //struct gkyl_array *XYZ = gkyl_array_new(GKYL_DOUBLE, 3*cbasis.num_basis, clocal_ext.volume);
-  //gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &clocal_ext, XYZ);
-
-  //printf("writing rz file\n");
-  //gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "cerfon3d_xyzfile.gkyl");
-  //printf("wrote rz file\n");
-  
   printf("calculating metrics \n");
   struct gkyl_array *gFld = gkyl_array_new(GKYL_DOUBLE, 6*cbasis.num_basis, clocal_ext.volume);
 
@@ -313,15 +276,13 @@ test_1()
     
   printf("creating\n");
   gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, false);
-  //gkyl_calc_metric_advance( mcalculator, &clocal, XYZ, gFld);
   printf("advancing\n");
-  //gkyl_calc_metric_advance( mcalculator, &clocal, mapc2p_arr, gFld);
   gkyl_calc_metric_advance(mcalculator, geo->nrange, geo->mc2p_nodal_fd, geo->dzc, gFld, &conversion_range);
 
   do{
     printf("writing the gij file \n");
     const char *fmt = "%s_g_ij.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "cerfonclosed");
     gkyl_grid_sub_array_write(&cgrid, &clocal, gFld, fileNm);
   } while (0);
 
@@ -350,28 +311,28 @@ test_1()
   do{
     printf("writing the  second comp bmag file \n");
     const char *fmt = "%s_compbmag2.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+    snprintf(fileNm, sizeof fileNm, fmt, "cerfonclosed");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
   } while (0);
 
     do{
       printf("writing the j file \n");
       const char *fmt = "%s_j.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "cerfonclosed");
       gkyl_grid_sub_array_write(&cgrid, &clocal, jFld, fileNm);
     } while (0);
 
     do{
       printf("writing the jtot file \n");
       const char *fmt = "%s_jtot.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "cerfonclosed");
       gkyl_grid_sub_array_write(&cgrid, &clocal, jtotFld, fileNm);
     } while (0);
 
     do{
       printf("writing the cmag file \n");
       const char *fmt = "%s_cmag.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "cerfonclosed");
       gkyl_grid_sub_array_write(&cgrid, &clocal, cmagFld, fileNm);
     } while (0);
  
@@ -379,7 +340,7 @@ test_1()
     do{
       printf("writing the g^ij file \n");
       const char *fmt = "%s_gij.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "cerfonclosed");
       gkyl_grid_sub_array_write(&cgrid, &clocal, grFld, fileNm);
     } while (0);
 
@@ -387,7 +348,7 @@ test_1()
     do{
       printf("writing the b_i file \n");
       const char *fmt = "%s_bi.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+      snprintf(fileNm, sizeof fileNm, fmt, "cerfonclosed");
       gkyl_grid_sub_array_write(&cgrid, &clocal, biFld, fileNm);
     } while (0);
 
@@ -398,7 +359,7 @@ test_1()
 
 
 
-  //gkyl_array_release(RZ);
+  gkyl_array_release(mapc2p_arr);
   gkyl_array_release(psidg);
   gkyl_array_release(psibyrdg);
   gkyl_array_release(psibyr2dg);
