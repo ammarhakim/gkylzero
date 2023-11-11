@@ -50,11 +50,12 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
   const double wavelength = 0.8e-6;         // The wavelength of the laser (in m)
 
   // compute last edge
-  double xupper = 120.0e-6;
-  double xlower = -1.10e-6;
-  double nx = 10240.0;
+  double xupper = 240.0e-6;
+  double xlaser = -1.0e-6;
+  double xlower = -30.0e-6;
+  double nx = 20480.0;
   double dx = (xupper - xlower)/nx;
-  double xLastEdge = xlower+dx;
+  double xLastEdge = xlaser+dx;
 
   // constants
   const double c = 299792458.0;
@@ -86,7 +87,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 10240);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 20480);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -115,7 +116,7 @@ main(int argc, char **argv)
 
     .ndim = 1,
     .lower = { -30.10e-6 },
-    .upper = { 120.0e-6 }, 
+    .upper = { 240.0e-6 }, 
     .cells = { NX },
 
     .cfl_frac = 0.9,
