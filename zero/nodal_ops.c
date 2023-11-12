@@ -1,6 +1,6 @@
 #include <gkyl_nodal_ops.h>
 
-void gkyl_nodal_ops_n2m(const struct gkyl_basis* cbasis, const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, const struct gkyl_array* nodal_fld, struct gkyl_array *modal_fld){
+void gkyl_nodal_ops_n2m(const struct gkyl_basis* cbasis, const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, const struct gkyl_array* nodal_fld, struct gkyl_array *modal_fld, const int *bcs){
   double xc[GKYL_MAX_DIM];
   int num_basis = cbasis->num_basis;
   int cpoly_order = cbasis->poly_order;
@@ -20,10 +20,13 @@ void gkyl_nodal_ops_n2m(const struct gkyl_basis* cbasis, const struct gkyl_rect_
       const double* temp  = gkyl_array_cfetch(nodes,i);
       for( int j = 0; j < grid->ndim; j++){
         if(cpoly_order==1){
-            nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
+            if(j==1 && bcs[1]==1) // this conversion is valid if ghost cells are included. Only usign for y
+              nidx[j] = iter.idx[j] + (temp[j]+1)/2 ;
+            else
+              nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
         }
         if (cpoly_order==2)
-          nidx[j] = 2*iter.idx[j] + (temp[j] + 1) ;
+          nidx[j] = 2*iter.idx[j] + (temp[j] + 1) ; // need ghost cell version of this too
       }
       lin_nidx[i] = gkyl_range_idx(nrange, nidx);
     }

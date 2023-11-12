@@ -337,7 +337,9 @@ struct arc_length_ctx {
   double psi, rclose, zmin, arcL;
   double rleft, rright, zmax;
   double arcL_right; // this is for when we need to switch sides
+  double phi_right; // this is for when we need to switch sides
   bool right;
+  enum gkyl_geo_gyrokinetic_type ftype; // type of geometry
 };
 
 
@@ -371,11 +373,16 @@ phi_func(double alpha_curr, double Z, void *ctx)
 
   // Using convention from Noah Mandell's thesis Eq 5.104 phi = alpha at midplane
   double ival = 0;
-  if(Z<0.0){
-    ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, 0.0, rclose, false, false, arc_memo);
+  if(actx->ftype==GKYL_SOL_DN || actx->right==true){
+    if(Z<0.0){
+      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, 0.0, rclose, false, false, arc_memo);
+    }
+    else{
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, 0.0, Z, rclose, false, false, arc_memo);
+    }
   }
-  else{
-    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, 0.0, Z, rclose, false, false, arc_memo);
+  else if(actx->ftype==GKYL_CORE && actx->right==false){
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo) + actx->phi_right;
   }
 
   // Now multiply by RBphi
@@ -474,6 +481,8 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   if (poly_order == 1){
     for (int d=0; d<inp->cgrid->ndim; ++d)
       nodes[d] = inp->cgrid->cells[d] + 1;
+    if(inp->bcs[1]==1)
+      nodes[1] += 2; // specically alpha gets ghosts if nonperiodic in y
   }
                    
   if (poly_order == 2){
@@ -506,6 +515,8 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   double theta_lo = inp->cgrid->lower[TH_IDX],
     phi_lo = inp->cgrid->lower[PH_IDX],
     alpha_lo = inp->cgrid->lower[AL_IDX];
+  if(inp->bcs[1]==1)
+    alpha_lo -= dalpha;
 
   double dx_fact = poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
@@ -530,13 +541,14 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
-    .arc_memo = arc_memo
+    .arc_memo = arc_memo,
+    .ftype = inp->ftype
   };
 
   int cidx[3] = { 0 };
   for(int ia=geo->nrange->lower[AL_IDX]; ia<=geo->nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
-    for(int ia_delta = 0; ia_delta < 5; ia_delta++){
+    for(int ia_delta = 0; ia_delta < 5; ia_delta++){ // should be <5
       if(ia == geo->nrange->lower[AL_IDX]){
         if(ia_delta == 1 || ia_delta == 3)
           continue; // want to use one sided stencils at edge
@@ -554,7 +566,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
       printf("alpha_curr = %g\n", alpha_curr);
 
       for (int ip=geo->nrange->lower[PH_IDX]; ip<=geo->nrange->upper[PH_IDX]; ++ip) {
-        int ip_delta_max = 5;
+        int ip_delta_max = 5;// should be 5
         if(ia_delta != 0)
           ip_delta_max = 1;
         for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
@@ -577,6 +589,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
           double arcL, darcL, arcL_curr, arcL_lo;
           double arcL_l, arcL_r;
+          double phi_r;
 
           if(inp->ftype == GKYL_CORE){
             //Find the turning point
@@ -608,6 +621,13 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             arcL = arcL_l + arcL_r;
             printf("arcL total, L, R = %g, %g, %g\n", arcL, arcL_l, arcL_r);
             darcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
+
+            arc_ctx.right = true;
+            arc_ctx.rclose = rright;
+            arc_ctx.psi = psi_curr;
+            phi_r = phi_func(alpha_curr, zmax, &arc_ctx);
+            arc_ctx.phi_right = phi_r;
+            printf("phi right = %g\n", phi_r);
           }
           else if(inp->ftype==GKYL_SOL_DN){
             arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);
@@ -623,7 +643,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
           arc_ctx.right = true;
           // set node coordinates
           for (int it=geo->nrange->lower[TH_IDX]; it<=geo->nrange->upper[TH_IDX]; ++it) {
-            int it_delta_max = 5;
+            int it_delta_max = 5; // should be 5
             if(ia_delta != 0 || ip_delta != 0 )
               it_delta_max = 1;
             for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
@@ -643,9 +663,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
-              printf("  it, theta_curr, arcL_curr = %d, %g %g\n", it, theta_curr, arcL_curr);
-              printf("  left and right arcL = %g %g\n", arcL_l, arcL_r);
-              printf("  rclose = %g\n", rclose);
+              //printf("  it, theta_curr, arcL_curr = %d, %g %g\n", it, theta_curr, arcL_curr);
+              //printf("  left and right arcL = %g %g\n", arcL_l, arcL_r);
+              //printf("  rclose = %g\n", rclose);
               arc_ctx.psi = psi_curr;
               arc_ctx.rclose = rclose;
               arc_ctx.zmin = zmin;
@@ -705,7 +725,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
       }
     }
   }
-  gkyl_nodal_ops_n2m(inp->cbasis, inp->cgrid, geo->nrange, conversion_range, 3, mc2p, mapc2p);
+  gkyl_nodal_ops_n2m(inp->cbasis, inp->cgrid, geo->nrange, conversion_range, 3, mc2p, mapc2p, inp->bcs);
 
   char str1[50] = "xyz";
   char str2[50] = "allxyz";

@@ -169,7 +169,7 @@ test_1()
 
   double clower[] = { psi_min, -0.01, -3.0 };
   double cupper[] = {psi_max, 0.01, 3.0 };
-  int ccells[] = { 2, 1, 16 };
+  int ccells[] = { 2, 1, 32 };
 
 
 
@@ -182,7 +182,19 @@ test_1()
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
 
-  conversion_range = clocal;
+  // BCs, 0 is periodic, 1 is nonperiodic
+  int bcs[3] = {1,1,1};
+
+  // calcgeom will go into the ghost y cells based on bc. If bc[1]=1 we use ghosts.
+  // Need to pass appropriate conversion to modal range depending on the bcs
+  if(bcs[1]==1){
+    int sublower[3] = {clocal.lower[0], clocal_ext.lower[1], clocal.lower[2]};
+    int subupper[3] = {clocal.upper[0], clocal_ext.upper[1], clocal.upper[2]};
+    gkyl_sub_range_init(&conversion_range, &clocal_ext, sublower, subupper);
+  }
+  else{
+    conversion_range = clocal;
+  }
 
 
   printf("clocal ext in y lower = %d, %d, %d\n", conversion_range.lower[0], conversion_range.lower[1], conversion_range.lower[2]);
@@ -195,6 +207,7 @@ test_1()
 
   struct gkyl_geo_gyrokinetic_geo_inp ginp = {
     .cgrid = &cgrid,
+    .bcs = bcs,
     .cbasis = &cbasis,
     .ftype = GKYL_CORE,
     .rclose = upper[0],
@@ -275,8 +288,9 @@ test_1()
   
     
   printf("creating\n");
-  gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, false);
+  gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, bcs, false);
   printf("advancing\n");
+  //gkyl_calc_metric_advance( mcalculator, &clocal, mapc2p_arr, gFld);
   gkyl_calc_metric_advance(mcalculator, geo->nrange, geo->mc2p_nodal_fd, geo->dzc, gFld, &conversion_range);
 
   do{
