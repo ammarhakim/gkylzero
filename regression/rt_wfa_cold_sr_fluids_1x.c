@@ -52,7 +52,7 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
   // compute last edge
   double xupper = 240.0e-6;
   double xlaser = -1.0e-6;
-  double xlower = -30.0e-6;
+  double xlower = -60.0e-6;
   double nx = 20480.0;
   double dx = (xupper - xlower)/nx;
   double xLastEdge = xlaser+dx;
@@ -115,7 +115,7 @@ main(int argc, char **argv)
     .name = "cold_sr_fluid_wfa",
 
     .ndim = 1,
-    .lower = { -30.10e-6 },
+    .lower = { -60.0e-6 },
     .upper = { 240.0e-6 }, 
     .cells = { NX },
 

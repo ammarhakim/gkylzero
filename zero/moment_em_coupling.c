@@ -822,8 +822,8 @@ gkyl_moment_em_coupling_explicit_advance(gkyl_moment_em_coupling *mes, double tc
   }
 
   // Release the temporary arrays
-  gkyl_array_release(app_curr_stage1);
-  gkyl_array_release(app_curr_stage2);
+  //gkyl_array_release(app_curr_stage1);
+  //gkyl_array_release(app_curr_stage2);
 }
 
 
