@@ -28,37 +28,35 @@ enum gkyl_dg_iz_self
   GKYL_IZ_DONOR = 2, // Reacting species (donates electron)
 };
 
+struct gkyl_dg_iz_inp {
+  const struct gkyl_rect_grid* grid; // Grid object needed for fmax
+  struct gkyl_basis* cbasis; // Configuration-space basis-functions
+  struct gkyl_basis* pbasis; // Phase-space basis-functions
+  const struct gkyl_range *conf_rng; // Configuration range
+  const struct gkyl_range *phase_rng; // Phase range
+  double mass_ion; // Mass of the ion 
+  enum gkyl_dg_iz_type type_ion; // Enum for type of ion for ionization (H thru 0)
+  int charge_state; // Ion charge state
+  enum gkyl_dg_iz_self type_self; // Species type (ion, electron or donor)
+  bool all_gk; // To indicate if all 3 interacting species are GK or not
+  const char* base; // File path to locate adas data
+};
+
 // Object type
 typedef struct gkyl_dg_iz gkyl_dg_iz;
 
 /**
  * Create new updater to calculate ionization temperature or reaction rate
- * @param grid Grid object needed for fmax
- * @param cbasis Configuration-space basis-functions
- * @param pbasis Phase-space basis-functions (GK)
- * @param conf_rng Configuration range
- * @param phase_rng Phase range
- * @param elem_charge Elementary charge value
- * @param mass_elc Mass of the electron 
- * @param mass_elc Mass of the ion
- * @param type_ion Enum for type of ion for ionization (support H, He, Li)
- * @param charge_state Int for ion charge state
- * @param type_self Enum for species type (electron, ion or neutral)
- * @param all_gk Boolean to indicate if all 3 species are gyrokinetic
+ * @param gkyl_dg_iz_inp
  * @param use_gpu Boolean for whether struct is on host or device
  */
-struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self,
-  bool all_gk, const char *base, bool use_gpu); 
+struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_dg_iz_inp inp, bool use_gpu); 
 
 /**
  * Create new ionization updater type object on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self, bool all_gk, const char *base); 
+struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp inp);
 
 /**
  * Compute ionization collision term for use in neutral reactions. 

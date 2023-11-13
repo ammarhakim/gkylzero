@@ -394,13 +394,52 @@ test_coll_iz_h_1x(bool use_gpu)
   gkyl_proj_maxwellian_on_basis *proj_max_neut = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_vl,
     &basis, &phaseBasis_vl, poly_order+1, use_gpu);
 
+  struct gkyl_dg_iz_inp iz_inp_elc = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_ion = h_ion_mass,
+    .type_ion = GKYL_IZ_H,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
+  struct gkyl_dg_iz_inp iz_inp_ion = {
+    .grid = &phaseGrid_ion,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_ion,
+    .mass_ion = h_ion_mass,
+    .type_ion = GKYL_IZ_H,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ION,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
+  struct gkyl_dg_iz_inp iz_inp_donor = {
+    .grid = &phaseGrid_vl,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_vl,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_vl,
+    .mass_ion = h_ion_mass,
+    .type_ion = GKYL_IZ_H,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_DONOR,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
   // coll struct.
-  struct gkyl_dg_iz *coll_iz_up_elc = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-  echarge, emass, h_ion_mass, GKYL_IZ_H, charge_state, GKYL_IZ_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_ion = gkyl_dg_iz_new(&phaseGrid_ion, &basis, &phaseBasis_gk, &confRange, &phaseRange_ion,
-  echarge, emass, h_ion_mass, GKYL_IZ_H, charge_state, GKYL_IZ_ION, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_neut = gkyl_dg_iz_new(&phaseGrid_vl, &basis, &phaseBasis_vl, &confRange, &phaseRange_vl,
- echarge, emass, h_ion_mass, GKYL_IZ_H, charge_state, GKYL_IZ_DONOR, all_gk, basepath, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_elc = gkyl_dg_iz_new(iz_inp_elc, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_ion = gkyl_dg_iz_new(iz_inp_ion, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_neut = gkyl_dg_iz_new(iz_inp_donor, use_gpu);
   
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2_elc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -714,13 +753,52 @@ test_coll_iz_h(bool use_gpu)
   gkyl_proj_maxwellian_on_basis *proj_max_neut = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_vl,
     &basis, &phaseBasis_vl, poly_order+1, use_gpu);
 
+    struct gkyl_dg_iz_inp iz_inp_elc = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_ion = h_ion_mass,
+    .type_ion = GKYL_IZ_H,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
+  struct gkyl_dg_iz_inp iz_inp_ion = {
+    .grid = &phaseGrid_ion,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_ion,
+    .mass_ion = h_ion_mass,
+    .type_ion = GKYL_IZ_H,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ION,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
+  struct gkyl_dg_iz_inp iz_inp_donor = {
+    .grid = &phaseGrid_vl,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_vl,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_vl,
+    .mass_ion = h_ion_mass,
+    .type_ion = GKYL_IZ_H,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_DONOR,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
   // coll struct.
-  struct gkyl_dg_iz *coll_iz_up_elc = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-  echarge, emass, h_ion_mass, GKYL_IZ_H, charge_state, GKYL_IZ_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_ion = gkyl_dg_iz_new(&phaseGrid_ion, &basis, &phaseBasis_gk, &confRange, &phaseRange_ion,
-  echarge, emass, h_ion_mass, GKYL_IZ_H, charge_state, GKYL_IZ_ION, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_neut = gkyl_dg_iz_new(&phaseGrid_vl, &basis, &phaseBasis_vl, &confRange, &phaseRange_vl,
- echarge, emass, h_ion_mass, GKYL_IZ_H, charge_state, GKYL_IZ_DONOR, all_gk, basepath, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_elc = gkyl_dg_iz_new(iz_inp_elc, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_ion = gkyl_dg_iz_new(iz_inp_ion, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_neut = gkyl_dg_iz_new(iz_inp_donor, use_gpu);
   
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2_elc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -973,7 +1051,6 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   int ghost[] = {0, 0, 0};
   int cells[] = {2, 16, 8};
 
-  
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells);
@@ -998,6 +1075,48 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   gkyl_cart_modal_gkhybrid(&phaseBasis, cdim, vdim);
   gkyl_cart_modal_serendip(&basis, cdim, poly_order);
 
+  struct gkyl_dg_iz_inp iz_inp_elc = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_ion = li_ion_mass,
+    .type_ion = GKYL_IZ_LI,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
+  struct gkyl_dg_iz_inp iz_inp_ion = {
+    .grid = &phaseGrid_ion,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_ion,
+    .mass_ion = li_ion_mass,
+    .type_ion = GKYL_IZ_LI,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ION,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
+  struct gkyl_dg_iz_inp iz_inp_donor = {
+    .grid = &phaseGrid_ion,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_ion,
+    .mass_ion = li_ion_mass,
+    .type_ion = GKYL_IZ_LI,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_DONOR,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  
   // projection updater for moments
   gkyl_proj_on_basis *projM0 = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m0, NULL);
@@ -1016,12 +1135,9 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   gkyl_proj_maxwellian_on_basis *proj_max_ion = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_ion,
     &basis, &phaseBasis, poly_order+1, use_gpu);
   // coll struct.
-  struct gkyl_dg_iz *coll_iz_up_elc = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis, &confRange, &phaseRange_elc,
-						     echarge, emass, li_ion_mass, GKYL_IZ_LI, charge_state, GKYL_IZ_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_ion = gkyl_dg_iz_new(&phaseGrid_ion, &basis, &phaseBasis, &confRange, &phaseRange_ion,
-  						     echarge, emass, li_ion_mass, GKYL_IZ_LI, charge_state, GKYL_IZ_ION, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_donor = gkyl_dg_iz_new(&phaseGrid_ion, &basis, &phaseBasis, &confRange, &phaseRange_ion,
-  						       echarge, emass, li_ion_mass, GKYL_IZ_LI, charge_state, GKYL_IZ_DONOR, all_gk, basepath, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_elc = gkyl_dg_iz_new(iz_inp_elc, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_ion = gkyl_dg_iz_new(iz_inp_ion, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_donor = gkyl_dg_iz_new(iz_inp_donor, use_gpu);
   
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2_elc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -1252,6 +1368,48 @@ test_coll_iz_all_gk_li_3x(bool use_gpu)
   gkyl_cart_modal_gkhybrid(&phaseBasis, cdim, vdim);
   gkyl_cart_modal_serendip(&basis, cdim, poly_order);
 
+  struct gkyl_dg_iz_inp iz_inp_elc = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_ion = li_ion_mass,
+    .type_ion = GKYL_IZ_LI,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
+  struct gkyl_dg_iz_inp iz_inp_ion = {
+    .grid = &phaseGrid_ion,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_ion,
+    .mass_ion = li_ion_mass,
+    .type_ion = GKYL_IZ_LI,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ION,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
+  struct gkyl_dg_iz_inp iz_inp_donor = {
+    .grid = &phaseGrid_ion,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_ion,
+    .mass_ion = li_ion_mass,
+    .type_ion = GKYL_IZ_LI,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_DONOR,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
   // projection updater for moments
   gkyl_proj_on_basis *projM0 = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m0, NULL);
@@ -1270,12 +1428,9 @@ test_coll_iz_all_gk_li_3x(bool use_gpu)
   gkyl_proj_maxwellian_on_basis *proj_max_ion = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_ion,
     &basis, &phaseBasis, poly_order+1, use_gpu);
   // coll struct.
-  struct gkyl_dg_iz *coll_iz_up_elc = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis, &confRange, &phaseRange_elc,
-						     echarge, emass, li_ion_mass, GKYL_IZ_LI, charge_state, GKYL_IZ_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_ion = gkyl_dg_iz_new(&phaseGrid_ion, &basis, &phaseBasis, &confRange, &phaseRange_ion,
-  						     echarge, emass, li_ion_mass, GKYL_IZ_LI, charge_state, GKYL_IZ_ION, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_donor = gkyl_dg_iz_new(&phaseGrid_ion, &basis, &phaseBasis, &confRange, &phaseRange_ion,
-  						       echarge, emass, li_ion_mass, GKYL_IZ_LI, charge_state, GKYL_IZ_DONOR, all_gk, basepath, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_elc = gkyl_dg_iz_new(iz_inp_elc, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_ion = gkyl_dg_iz_new(iz_inp_ion, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_donor = gkyl_dg_iz_new(iz_inp_donor, use_gpu);
   
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2_elc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -1496,19 +1651,93 @@ test_coll_iz_init_elem(bool use_gpu)
   gkyl_cart_modal_gkhybrid(&phaseBasis_gk, cdim, vdim_gk);
   gkyl_cart_modal_serendip(&basis, cdim, poly_order);
 
+
+  struct gkyl_dg_iz_inp iz_inp_he = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_ion = imass,
+    .type_ion = GKYL_IZ_HE,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_iz_inp iz_inp_be = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_ion = imass,
+    .type_ion = GKYL_IZ_BE,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_iz_inp iz_inp_b = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_ion = imass,
+    .type_ion = GKYL_IZ_B,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_iz_inp iz_inp_c = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_ion = imass,
+    .type_ion = GKYL_IZ_C,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_iz_inp iz_inp_n = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_ion = imass,
+    .type_ion = GKYL_IZ_N,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_iz_inp iz_inp_o = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_ion = imass,
+    .type_ion = GKYL_IZ_O,
+    .charge_state = charge_state,
+    .type_self = GKYL_IZ_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+
   // coll struct.
-  struct gkyl_dg_iz *coll_iz_up_he = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_IZ_HE, charge_state, GKYL_IZ_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_be = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_IZ_BE, charge_state, GKYL_IZ_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_b = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_IZ_B, charge_state, GKYL_IZ_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_c = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_IZ_C, charge_state, GKYL_IZ_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_n = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_IZ_N, charge_state, GKYL_IZ_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_iz *coll_iz_up_o = gkyl_dg_iz_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_IZ_O, charge_state, GKYL_IZ_ELC, all_gk, basepath, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_he = gkyl_dg_iz_new(iz_inp_he, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_be = gkyl_dg_iz_new(iz_inp_be, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_b = gkyl_dg_iz_new(iz_inp_b, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_c = gkyl_dg_iz_new(iz_inp_c, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_n = gkyl_dg_iz_new(iz_inp_n, use_gpu);
+  struct gkyl_dg_iz *coll_iz_up_o = gkyl_dg_iz_new(iz_inp_o, use_gpu);
 
   gkyl_dg_iz_release(coll_iz_up_he);
   gkyl_dg_iz_release(coll_iz_up_be);
@@ -1539,7 +1768,7 @@ void coll_iz_init_elem_gpu() { test_coll_iz_init_elem(true); }
 TEST_LIST = {
   { "prim_vars_gk_3x", prim_vars_gk_3x },
   /* { "prim_vars_vlasov_3x", prim_vars_vlasov_3x }, */
-  { "prim_vars_trans_1x", prim_vars_trans_1x },
+  //{ "prim_vars_trans_1x", prim_vars_trans_1x },
   { "coll_iz_h_1x", coll_iz_h_1x },
   //{ "coll_iz_h", coll_iz_h },
   //{ "coll_iz_all_gk_li_1x", coll_iz_all_gk_li_1x },

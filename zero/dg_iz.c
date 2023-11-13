@@ -11,43 +11,44 @@
 #include <gkyl_dg_prim_vars_transform_vlasov_gk.h>
 #include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_array_rio.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_iz_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_const.h>
 
 struct gkyl_dg_iz*
-gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state,
-  enum gkyl_dg_iz_self type_self, bool all_gk, const char *base, bool use_gpu)
+gkyl_dg_iz_new(struct gkyl_dg_iz_inp inp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_iz_cu_dev_new(grid, cbasis, pbasis, conf_rng, phase_rng, elem_charge, mass_elc, mass_ion, type_ion, charge_state, type_self, all_gk, base);
+    return gkyl_dg_iz_cu_dev_new(inp);
   } 
 #endif
   gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
 
-  int cdim = cbasis->ndim;
-  int pdim = pbasis->ndim;
-  int poly_order = cbasis->poly_order;
-  up->cbasis = cbasis;
-  up->pbasis = pbasis;
+  up->grid = (inp.grid);
+  up->cbasis = (inp.cbasis);
+  up->pbasis = (inp.pbasis);
+  up->conf_rng = (inp.conf_rng);
+  up->phase_rng = (inp.phase_rng);
+  up->mass_ion = inp.mass_ion;
+  up->type_self = inp.type_self;
+  up->all_gk = inp.all_gk;
+
+  const char *base = (inp.base);
+  int charge_state = inp.charge_state;
+  enum gkyl_dg_iz_type type_ion = inp.type_ion;
+  
+  int cdim = up->cbasis->ndim;
+  int pdim = up->pbasis->ndim;
+  int poly_order = up->cbasis->poly_order;
   up->cdim = cdim;
   up->use_gpu = use_gpu;
-  up->conf_rng = conf_rng;
-  up->phase_rng = phase_rng;
-  up->grid = grid;
-  up->all_gk = all_gk;
-  
-  up->elem_charge = elem_charge;
-  up->mass_elc = mass_elc;
-  up->mass_ion = mass_ion;
 
-  up->type_self = type_self;
+  up->elem_charge = GKYL_ELEMENTARY_CHARGE;
+  up->mass_elc = GKYL_ELECTRON_MASS;
   
   // Project ADAS data (H, He, Li)
   struct adas_field data;
@@ -117,17 +118,17 @@ gkyl_dg_iz_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gk
   
   // allocate fields for prim mom calculation
   // Try allocating these at g2 level...
-  up->prim_vars_donor = gkyl_array_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); // elc, ion
-  up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); // all
-  up->vtSq_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // elc
-  up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);  //elc
-  up->coef_iz = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // all
+  up->prim_vars_donor = gkyl_array_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume); // elc, ion
+  up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume); // all
+  up->vtSq_iz = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);  // elc
+  up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume);  //elc
+  up->coef_iz = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);  // all
 
-  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu); // all
-  if (up->all_gk) up->calc_prim_vars_donor = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "prim", use_gpu);
-  else up->calc_prim_vars_donor = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "prim", use_gpu); // for Vlasov donor
+  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); // all
+  if (up->all_gk) up->calc_prim_vars_donor = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "prim", use_gpu);
+  else up->calc_prim_vars_donor = gkyl_dg_prim_vars_transform_vlasov_gk_new(up->cbasis, up->pbasis, up->conf_rng, "prim", use_gpu); // for Vlasov donor
   
-  up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, use_gpu); // elc, ion
+  up->proj_max = gkyl_proj_maxwellian_on_basis_new(up->grid, up->cbasis, up->pbasis, poly_order+1, use_gpu); // elc, ion
   
   up->on_dev = up; // CPU eqn obj points to itself
 
@@ -172,8 +173,8 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
       //const double *m0_donor_d = &moms_donor_d[0];
       double *prim_vars_donor_d = gkyl_array_fetch(up->prim_vars_donor, loc);
       up->calc_prim_vars_donor->kernel(up->calc_prim_vars_donor, conf_iter.idx,
-					   moms_donor_d, prim_vars_donor_d);
-    }
+    					   moms_donor_d, prim_vars_donor_d);
+    } 
 
     //Find cell containing value of n,T
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
@@ -185,7 +186,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     double cell_val_m0;
     int m0_idx, t_idx;
     double cell_vals_2d[2];
-    double cell_center; 
+    double cell_center;
 
     if (log_Te_av < up->minLogTe) t_idx=1;
     else if (log_Te_av > up->maxLogTe) t_idx=up->resTe;
@@ -201,7 +202,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
 
     if ((up->E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
       //printf("some value ZERO ");
-      coef_iz_d[0] = 0.0; 
+      coef_iz_d[0] = 0.0;
     }
     else {
       //printf("non-zero iz coeff ");
@@ -249,7 +250,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
   }
 
-  // coll_iz = n_n*coef_iz*coll_iz
+  /* // coll_iz = n_n*coef_iz*coll_iz */
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_iz, coll_iz,
   				    up->conf_rng, up->phase_rng);
   
@@ -286,9 +287,7 @@ gkyl_dg_iz_release(struct gkyl_dg_iz* up)
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_iz*
-gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-  double mass_elc, double mass_ion, enum gkyl_dg_iz_type type_ion, int charge_state, enum gkyl_dg_iz_self type_self, bool all_gk, const char *base)
+gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp inp)
 {
   assert(false);
   return 0;
