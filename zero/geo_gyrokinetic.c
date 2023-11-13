@@ -665,8 +665,18 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
           rclose = rright;
           arc_ctx.arcL_right = 0.0;
           arc_ctx.right = true;
+          bool switch_sides = false;
+          double ridders_min, ridders_max;
           // set node coordinates
           for (int it=geo->nrange->lower[TH_IDX]; it<=geo->nrange->upper[TH_IDX]; ++it) {
+            if(switch_sides){
+              rclose = rleft;
+              arc_ctx.arcL_right = arcL_r;
+              arc_ctx.right = false;
+              arc_ctx.rclose = rclose;
+              ridders_min = arcL - arcL_curr;
+              ridders_max = -arcL_curr + arc_ctx.arcL_right;
+            }
             int it_delta_max = 5; // should be 5
             if(ia_delta != 0 || ip_delta != 0 )
               it_delta_max = 1;
@@ -695,7 +705,6 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               arc_ctx.zmin = zmin;
               arc_ctx.zmax = zmax;
               arc_ctx.arcL = arcL_curr;
-              double ridders_min, ridders_max;
               if(arc_ctx.right){
                 ridders_min = -arcL_curr;
                 ridders_max = arcL-arcL_curr;
@@ -711,15 +720,13 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               ((gkyl_geo_gyrokinetic *)geo)->stat.nroot_cont_calls += res.nevals;
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
-              if ( (inp->ftype==GKYL_CORE) && (fabs(z_curr-zmax) < 1e-3) ){
-                rclose = rleft;
-                arc_ctx.arcL_right = arcL_r;
-                arc_ctx.right = false;
-                arc_ctx.rclose = rclose;
+              double r_curr = choose_closest(rclose, R, R, nr);
+              printf("rcurr, zcurr = %g, %g\n\n", r_curr, z_curr);
+
+              if ( (inp->ftype==GKYL_CORE) && (fabs(z_curr-zmax) < 1e-2) ){ // we have reached the top. Start looking on other side
+                switch_sides=true;
               }
                 
-              double r_curr = choose_closest(rclose, R, R, nr);
-              //printf("rcurr, zcurr = %g, %g\n\n", r_curr, z_curr);
               cidx[TH_IDX] = it;
 
               int lidx = 0;
@@ -731,6 +738,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                 lidx = 27 + 3*(it_delta-1);
 
               double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
+              printf("ip,ia,it = %d, %d, %d\n", ip, ia, it);
+              printf("deltas : ip,ia,it = %d, %d, %d\n", ip_delta, ia_delta, it_delta);
+              printf("PHICURR = %g\n", phi_curr);
               // convert to x,y,z
               double *mc2p_fd_n = gkyl_array_fetch(geo->mc2p_nodal_fd, gkyl_range_idx(geo->nrange, cidx));
               double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(geo->nrange, cidx));

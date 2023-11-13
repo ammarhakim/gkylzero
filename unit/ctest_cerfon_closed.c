@@ -167,9 +167,9 @@ test_1()
   //double clower[] = { psi_min, -0.3, -2.9 };
   //double cupper[] = {psi_max, 0.3, 2.9 };
 
-  double clower[] = { psi_min, -0.01, -3.0 };
-  double cupper[] = {psi_max, 0.01, 3.0 };
-  int ccells[] = { 2, 1, 32 };
+  double clower[] = { psi_min, -0.01, -3.14 };
+  double cupper[] = {psi_max, 0.01, 3.14 };
+  int ccells[] = { 2, 1, 16 };
 
 
 
@@ -291,6 +291,7 @@ test_1()
   gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, bcs, false);
   printf("advancing\n");
   //gkyl_calc_metric_advance( mcalculator, &clocal, mapc2p_arr, gFld);
+  printf("DZC = %g, %g, %g\n", geo->dzc[0],  geo->dzc[1],  geo->dzc[2]);
   gkyl_calc_metric_advance(mcalculator, geo->nrange, geo->mc2p_nodal_fd, geo->dzc, gFld, &conversion_range);
 
   do{
