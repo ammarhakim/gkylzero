@@ -585,7 +585,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
           double zmin = inp->zmin, zmax = inp->zmax;
           double psi_curr = phi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
-          printf("psi_curr = %g\n", psi_curr);
+          //printf("psi_curr = %g\n", psi_curr);
 
           double arcL, darcL, arcL_curr, arcL_lo;
           double arcL_l, arcL_r;

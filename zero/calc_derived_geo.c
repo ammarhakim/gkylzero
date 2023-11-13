@@ -47,6 +47,7 @@ gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl
     up->kernel(gij, bmag_i, j_i, jinv_i, grij, bi_i, cmag_i, jtot_i, jtotinv_i, bmaginv_i, bmaginvsq_i, gxxJ_i, gxyJ_i, gyyJ_i);
   }
 
+  // Below is the correction to g_zz for cmag = const.
   //struct gkyl_range_iter cmag_iter;
   //gkyl_range_iter_init(&iter, crange);
   //while (gkyl_range_iter_next(&iter)) {

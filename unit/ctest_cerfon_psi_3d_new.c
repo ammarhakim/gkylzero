@@ -159,9 +159,9 @@ test_1()
 
   psi_min = 0.03636363636363636; // This gives ghost node on psisep for 32 cells
   //psi_min = 0.07058823529411765; // This gives ghost node on psisep for 16 cells
-  psi_min = 0.1; //arbitrary
+  psi_min = 0.2; //arbitrary
   printf("psimin = %g\n", psi_min);
-  psi_max = 0.2;
+  psi_max = 0.3;
   
   // Computational grid: theta X psi X alpha (only 2D for now)
   //double clower[] = { psi_min, -0.3, -2.9 };
@@ -184,7 +184,7 @@ test_1()
 
 
   // BCs, 0 is periodic, 1 is nonperiodic
-  int bcs[3] = {1,1,1};
+  int bcs[3] = {1,0,1};
 
   // calcgeom will go into the ghost y cells based on bc. If bc[1]=1 we use ghosts.
   // Need to pass appropriate conversion to modal range depending on the bcs
@@ -358,6 +358,13 @@ test_1()
   gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&cbasis, &cgrid, false);
   printf("made the j calculator \n");
   gkyl_calc_derived_geo_advance( jcalculator, &clocal, gFld, bmagFld, jFld, jinvFld, grFld, biFld, cmagFld, jtotFld, jtotinvFld, bmaginvFld, bmaginvsqFld, gxxJ, gxyJ, gyyJ);
+
+  do{
+    printf("writing the gij file after mod\n");
+    const char *fmt = "%s_g_ij2.gkyl";
+    snprintf(fileNm, sizeof fileNm, fmt, "cerfon3d");
+    gkyl_grid_sub_array_write(&cgrid, &clocal, gFld, fileNm);
+  } while (0);
   
 
   do{

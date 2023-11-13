@@ -183,7 +183,7 @@ test_1()
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
 
   // BCs, 0 is periodic, 1 is nonperiodic
-  int bcs[3] = {1,1,1};
+  int bcs[3] = {1,0,1};
 
   // calcgeom will go into the ghost y cells based on bc. If bc[1]=1 we use ghosts.
   // Need to pass appropriate conversion to modal range depending on the bcs

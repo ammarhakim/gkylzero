@@ -25,8 +25,12 @@ void gkyl_nodal_ops_n2m(const struct gkyl_basis* cbasis, const struct gkyl_rect_
             else
               nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
         }
-        if (cpoly_order==2)
-          nidx[j] = 2*iter.idx[j] + (temp[j] + 1) ; // need ghost cell version of this too
+        if (cpoly_order==2){
+            if(j==1 && bcs[1]==1) // this conversion is valid if ghost cells are included. Only usign for y
+              nidx[j] = 2*iter.idx[j] + (temp[j]+1) ;
+            else
+              nidx[j] = 2*(iter.idx[j]-1) + (temp[j]+1) ;
+        }
       }
       lin_nidx[i] = gkyl_range_idx(nrange, nidx);
     }
