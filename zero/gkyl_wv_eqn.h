@@ -61,12 +61,12 @@ struct gkyl_wv_eqn {
   int num_equations; // number of equations in system
   int num_waves; // number of waves in system
   int num_diag; // number of diagnostic variables
-  
+
   wv_waves_t waves_func; // function to compute waves and speeds
   wv_qfluct_t qfluct_func; // function to compute q-fluctuations
   wv_qfluct_t ffluct_func; // function to compute f-fluctuations
   wv_flux_jump_t flux_jump; // function to compute jump in flux
-  
+
   wv_check_inv check_inv_func; // function to check invariant domains
   wv_max_speed_t max_speed_func; // function to compute max-speed
   wv_rotate_to_local rotate_to_local_func; // function to rotate to local frame
@@ -79,7 +79,7 @@ struct gkyl_wv_eqn {
   wv_bc_func_t no_slip_bc_func; // function to apply no-slip BC
 
   wv_cons_to_diag cons_to_diag; // function for diagnostic variables
-  
+
   struct gkyl_ref_count ref_count; // reference count
 };
 
@@ -114,11 +114,11 @@ gkyl_default_cons_to_diag(const struct gkyl_wv_eqn *eqn,
  * @param delta Jump across interface to split
  * @param ql Conserved variables on left of interface
  * @param qr Conserved variables on right of interface
- * @param waves On output, waves 
+ * @param waves On output, waves
  * @param speeds On output wave speeds[num_wave]
  * @return Maximum wave speed.
  */
-inline double
+static inline double
 gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *speeds)
 {
@@ -139,7 +139,7 @@ gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
  * @param amdq On output, the left-going fluctuations.
  * @param apdq On output, the right-going fluctuations.
  */
-inline void
+static inline void
 gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq)
@@ -151,7 +151,7 @@ gkyl_wv_eqn_qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
  * See signature for gkyl_wv_eqn_qfluct. This function computes the
  * fluctuations using f-waves rather than q-waves.
  */
-inline void
+static inline void
 gkyl_wv_eqn_ffluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq)
@@ -168,7 +168,7 @@ gkyl_wv_eqn_ffluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
  * @param flux_jump Jump in flux (F(qr)-F(ql))
  * @return Maximum wave speed for states qr and ql.
  */
-inline double
+static inline double
 gkyl_wv_eqn_flux_jump(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, double *flux_jump)
 {
@@ -185,7 +185,7 @@ gkyl_wv_eqn_flux_jump(const struct gkyl_wv_eqn *eqn,
  * @param q Conserved variables
  * @return maximum wave-speed in direction 'dir'
  */
-inline double
+static inline double
 gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   return eqn->max_speed_func(eqn, q);
@@ -201,7 +201,7 @@ gkyl_wv_eqn_max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
  * @param qglobal State vector in global coordinates
  * @param qlocal State vector in local coordinates
  */
-inline void
+static inline void
 gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn* eqn,
   const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
@@ -219,7 +219,7 @@ gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn* eqn,
  * @param qlocal State vector in local coordinates
  * @param qglobal State vector in local coordinates
  */
-inline void
+static inline void
 gkyl_wv_eqn_rotate_to_global(const struct gkyl_wv_eqn* eqn,
   const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
