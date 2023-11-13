@@ -662,21 +662,10 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
           cidx[PH_IDX] = ip;
           arcL_curr = 0.0;
           arcL_lo = (theta_lo + M_PI)/2/M_PI*arcL;
-          rclose = rright;
           arc_ctx.arcL_right = 0.0;
-          arc_ctx.right = true;
-          bool switch_sides = false;
           double ridders_min, ridders_max;
           // set node coordinates
           for (int it=geo->nrange->lower[TH_IDX]; it<=geo->nrange->upper[TH_IDX]; ++it) {
-            if(switch_sides){
-              rclose = rleft;
-              arc_ctx.arcL_right = arcL_r;
-              arc_ctx.right = false;
-              arc_ctx.rclose = rclose;
-              ridders_min = arcL - arcL_curr;
-              ridders_max = -arcL_curr + arc_ctx.arcL_right;
-            }
             int it_delta_max = 5; // should be 5
             if(ia_delta != 0 || ip_delta != 0 )
               it_delta_max = 1;
@@ -693,13 +682,18 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                 if( it_delta == 3 || it_delta == 4)
                   continue; //dont do two away
               }
-
-
+              rclose = rright;
+              arc_ctx.right = true;
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
               //printf("  it, theta_curr, arcL_curr = %d, %g %g\n", it, theta_curr, arcL_curr);
               //printf("  left and right arcL = %g %g\n", arcL_l, arcL_r);
               //printf("  rclose = %g\n", rclose);
+              if((inp->ftype==GKYL_CORE) && (arcL_curr > arcL_r)){
+                rclose = rleft;
+                arc_ctx.arcL_right = arcL_r;
+                arc_ctx.right = false;
+              }
               arc_ctx.psi = psi_curr;
               arc_ctx.rclose = rclose;
               arc_ctx.zmin = zmin;
@@ -723,12 +717,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               double r_curr = choose_closest(rclose, R, R, nr);
               printf("rcurr, zcurr = %g, %g\n\n", r_curr, z_curr);
 
-              if ( (inp->ftype==GKYL_CORE) && (fabs(z_curr-zmax) < 1e-2) ){ // we have reached the top. Start looking on other side
-                switch_sides=true;
-              }
-                
               cidx[TH_IDX] = it;
-
               int lidx = 0;
               if (ip_delta != 0)
                 lidx = 3 + 3*(ip_delta-1);
