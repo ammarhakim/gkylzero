@@ -11,6 +11,15 @@
 #include <math.h>
 #include <string.h>
 
+
+struct drdz_func_ctx{
+  const gkyl_geo_gyrokinetic *geo;
+  double *R;
+  double *dR;
+  double psi, rclose;
+  int nmaxroots;
+};
+
 // some helper functions
 double
 choose_closest(double ref, double* R, double* out, int nr)
@@ -152,6 +161,18 @@ R_psiZ(const gkyl_geo_gyrokinetic *geo, double psi, double Z, int nmaxroots,
       }
   }
   return sidx;
+}
+
+
+double dRdZ_wrapper(double Z, void *ctx){
+  struct drdz_func_ctx *c = ctx;
+  int nr = R_psiZ(c->geo, c->psi, Z, c->nmaxroots, c->R, c->dR);
+  if(nr==0){
+    return Z/fabs(Z)*1e6;
+  }
+  else{
+    return 1.0/choose_closest(c->rclose, c->R, c->dR, nr);
+  }
 }
 
 // Function context to pass to coutour integration function
@@ -593,23 +614,26 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
           if(inp->ftype == GKYL_CORE){
             //Find the turning point
-            while(true){
-              double R[4], dR[4];
-              int nr = R_psiZ(geo, psi_curr, zmin, 4, R, dR);
-              //printf("nr = %d\n", nr);
-              if(nr!=0 )
-                break;
-              zmin+=1e-5;
-            }
-            while(true){
-              double R[4], dR[4];
-              int nr = R_psiZ(geo, psi_curr, zmax, 4, R, dR);
-              //printf("nr = %d\n", nr);
-              if(nr!=0 )
-                break;
-              zmax-=1e-5;
-            }
-            //printf("found zmin, zmax = %g, %g\n", zmin, zmax);
+            double R[4], dR[4];
+            struct drdz_func_ctx drdz_ctx = {
+              .geo = geo,
+              .dR = dR,
+              .R = R,
+              .nmaxroots = 4,
+              .psi = psi_curr,
+              .rclose = rright
+            };
+            int nr = R_psiZ(geo, psi_curr, 0.3, 4, R, dR);
+            double fa = dRdZ_wrapper(1e-5, &drdz_ctx);
+            nr = R_psiZ(geo, psi_curr, zmax, 4, R, dR);
+            double fb = dRdZ_wrapper(zmax, &drdz_ctx);
+            struct gkyl_qr_res res = gkyl_ridders(dRdZ_wrapper, &drdz_ctx,
+                1e-5, zmax, fa, fb,
+                geo->root_param.max_iter, 1e-10);
+            double z_turn= res.res;
+            zmax = z_turn;
+            zmin = -z_turn;
+            printf("found zmin, zmax = %g, %g\n", zmin, zmax);
             // Done finding turning point
 
             arcL_r = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rright,
