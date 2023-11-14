@@ -682,8 +682,10 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                 if( it_delta == 3 || it_delta == 4)
                   continue; //dont do two away
               }
-              rclose = rright;
-              arc_ctx.right = true;
+              if(inp->ftype==GKYL_CORE){
+                rclose = rright;
+                arc_ctx.right = true;
+              }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; // this is wrong need total arcL factor. Edit: 8/23 AS Not sure about this comment, shold have put a date in original. Seems to work fine.
               //printf("  it, theta_curr, arcL_curr = %d, %g %g\n", it, theta_curr, arcL_curr);
