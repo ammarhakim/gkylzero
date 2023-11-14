@@ -647,11 +647,11 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             darcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
 
             arc_ctx.right = true;
+            arc_ctx.phi_right = 0.0;
             arc_ctx.rclose = rright;
             arc_ctx.psi = psi_curr;
             phi_r = phi_func(alpha_curr, zmax, &arc_ctx);
-            arc_ctx.phi_right = phi_r;
-            printf("phi right = %g\n", phi_r);
+            arc_ctx.phi_right = phi_r - alpha_curr; // otherwise alpha will get added on twice
           }
           else if(inp->ftype==GKYL_SOL_DN){
             arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);
@@ -717,7 +717,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
-              printf("rcurr, zcurr = %g, %g\n\n", r_curr, z_curr);
+              //printf("rcurr, zcurr = %g, %g\n\n", r_curr, z_curr);
 
               cidx[TH_IDX] = it;
               int lidx = 0;
@@ -729,9 +729,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                 lidx = 27 + 3*(it_delta-1);
 
               double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
-              printf("ip,ia,it = %d, %d, %d\n", ip, ia, it);
-              printf("deltas : ip,ia,it = %d, %d, %d\n", ip_delta, ia_delta, it_delta);
-              printf("PHICURR = %g\n", phi_curr);
+              //printf("ip,ia,it = %d, %d, %d\n", ip, ia, it);
+              //printf("deltas : ip,ia,it = %d, %d, %d\n", ip_delta, ia_delta, it_delta);
+              //printf("PHICURR = %g\n", phi_curr);
               // convert to x,y,z
               double *mc2p_fd_n = gkyl_array_fetch(geo->mc2p_nodal_fd, gkyl_range_idx(geo->nrange, cidx));
               double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(geo->nrange, cidx));
