@@ -81,10 +81,11 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  double *waves, double *s)
 {
   double f[4];
-  double ur = qr[RHOU]/qr[0], ul = ql[RHOU]/ql[0];
+  double ur = vr[1], ul = vl[1];
 
   double *wv = 0;
 
@@ -101,8 +102,8 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
   else {
     // no vacuum state
-    double rl = ql[0];
-    double rr = qr[0];
+    double rl = vl[0];
+    double rr = vr[0];
     // compute Roe averaged speed
     double uav = (sqrt(rl)*ul + sqrt(rr)*ur)/(sqrt(rl)+sqrt(rr));
             
@@ -179,6 +180,15 @@ ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
 }
 
+static void
+prim_vars(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *vl, double *vr)
+{
+  vl[0] = ql[0], vr[0] = qr[0];
+  vl[1] = ql[1]/ql[0], vr[1] = qr[1]/qr[0]; 
+  vl[2] = ql[2]/ql[0], vr[2] = qr[2]/qr[0]; 
+  vl[3] = ql[3]/ql[0], vr[3] = qr[3]/qr[0];
+}
+
 static double
 flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
@@ -220,11 +230,11 @@ gkyl_wv_coldfluid_new(void)
   coldfluid->eqn.waves_func = wave_roe;
   coldfluid->eqn.qfluct_func = qfluct_roe;
   coldfluid->eqn.ffluct_func = ffluct_roe;
+  coldfluid->eqn.prim_vars_func = prim_vars;
+
   coldfluid->eqn.flux_jump = flux_jump;
-  
   coldfluid->eqn.check_inv_func = check_inv;
   coldfluid->eqn.max_speed_func = max_speed;
-
   coldfluid->eqn.rotate_to_local_func = rot_to_local;
   coldfluid->eqn.rotate_to_global_func = rot_to_global;
 

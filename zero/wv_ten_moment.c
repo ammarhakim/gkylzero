@@ -171,12 +171,9 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  double *waves, double *s)
 {
-  double vl[10], vr[10];
-  gkyl_ten_moment_primitive(ql, vl);
-  gkyl_ten_moment_primitive(qr, vr);
-
   // compute Roe averages
   double sqrl = sqrt(vl[0]), sqrr = sqrt(vr[0]);
   double sqr1 = 1/(sqrl+sqrr);
@@ -330,7 +327,8 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
 // Waves and speeds using Lax fluxes
 static double
 wave_lax(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  double *waves, double *s)
 {
   double sl = gkyl_ten_moment_max_abs_speed(ql);
   double sr = gkyl_ten_moment_max_abs_speed(qr);
@@ -369,12 +367,13 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
 
 static double
 wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
-    return wave_roe(eqn, delta, ql, qr, waves, s);
+    return wave_roe(eqn, delta, ql, qr, vl, vr, waves, s);
   else
-    return wave_lax(eqn, delta, ql, qr, waves, s);
+    return wave_lax(eqn, delta, ql, qr, vl, vr, waves, s);
 
   return 0.0; // can't happen
 }
@@ -388,6 +387,13 @@ qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
   else
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+static void
+prim_vars(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *vl, double *vr)
+{
+  gkyl_ten_moment_primitive(ql, vl);
+  gkyl_ten_moment_primitive(qr, vr);
 }
 
 static bool
@@ -424,6 +430,8 @@ gkyl_wv_ten_moment_new(double k0)
   
   ten_moment->eqn.waves_func = wave;
   ten_moment->eqn.qfluct_func = qfluct;
+  ten_moment->eqn.prim_vars_func = prim_vars;
+
   ten_moment->eqn.check_inv_func = check_inv;
   ten_moment->eqn.max_speed_func = max_speed;
   ten_moment->eqn.rotate_to_local_func = rot_to_local;

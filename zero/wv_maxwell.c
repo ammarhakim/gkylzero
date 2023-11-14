@@ -91,7 +91,8 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  double *waves, double *s)
 {
   const struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
 
@@ -204,6 +205,12 @@ qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   /* amdq[7] = ((qr[3]-ql[3])/2-(qr[7]-ql[7])/(2*c))*c2*b_fact; */
 }
 
+static void
+prim_vars(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *vl, double *vr)
+{
+  // no primitive variables for Maxwell's equations, so do nothing
+}
+
 static double
 flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
@@ -258,8 +265,9 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact)
   
   maxwell->eqn.waves_func = wave;
   maxwell->eqn.qfluct_func = qfluct;
+  maxwell->eqn.prim_vars_func = prim_vars;
+
   maxwell->eqn.flux_jump = flux_jump;
-  
   maxwell->eqn.check_inv_func = check_inv;
   maxwell->eqn.max_speed_func = max_speed;
   maxwell->eqn.rotate_to_local_func = rot_to_local;

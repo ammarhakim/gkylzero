@@ -83,7 +83,8 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  double *waves, double *s)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   double vt = iso_euler->vt;
@@ -150,7 +151,8 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
 // Waves and speeds using Lax fluxes
 static double
 wave_lax(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  double *waves, double *s)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   double vt = iso_euler->vt;
@@ -192,12 +194,13 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
 
 static double
 wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
-    return wave_roe(eqn, delta, ql, qr, waves, s);
+    return wave_roe(eqn, delta, ql, qr, vl, vr, waves, s);
   else
-    return wave_lax(eqn, delta, ql, qr, waves, s);
+    return wave_lax(eqn, delta, ql, qr, vl, vr, waves, s);
 
   return 0.0; // can't happen
 }
@@ -211,6 +214,15 @@ qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
   else
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+}
+
+static void
+prim_vars(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *vl, double *vr)
+{
+  vl[0] = ql[0], vr[0] = qr[0];
+  vl[1] = ql[1]/ql[0], vr[1] = qr[1]/qr[0]; 
+  vl[2] = ql[2]/ql[0], vr[2] = qr[2]/qr[0]; 
+  vl[3] = ql[3]/ql[0], vr[3] = qr[3]/qr[0];
 }
 
 static bool
@@ -239,7 +251,8 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->vt = vt;
   iso_euler->eqn.waves_func = wave;
   iso_euler->eqn.qfluct_func = qfluct;
-  
+  iso_euler->eqn.prim_vars_func = prim_vars;
+
   iso_euler->eqn.check_inv_func = check_inv;
   iso_euler->eqn.max_speed_func = max_speed;
   
