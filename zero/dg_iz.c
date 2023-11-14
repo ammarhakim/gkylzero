@@ -19,7 +19,7 @@
 #include <gkyl_const.h>
 
 struct gkyl_dg_iz*
-gkyl_dg_iz_new(struct gkyl_dg_iz_inp inp, bool use_gpu)
+gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -28,18 +28,18 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp inp, bool use_gpu)
 #endif
   gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
 
-  up->grid = (inp.grid);
-  up->cbasis = (inp.cbasis);
-  up->pbasis = (inp.pbasis);
-  up->conf_rng = (inp.conf_rng);
-  up->phase_rng = (inp.phase_rng);
-  up->mass_ion = inp.mass_ion;
-  up->type_self = inp.type_self;
-  up->all_gk = inp.all_gk;
+  up->grid = inp->grid;
+  up->cbasis = inp->cbasis;
+  up->pbasis = inp->pbasis;
+  up->conf_rng = inp->conf_rng;
+  up->phase_rng = inp->phase_rng;
+  up->mass_ion = inp->mass_ion;
+  up->type_self = inp->type_self;
+  up->all_gk = inp->all_gk;
 
-  const char *base = (inp.base);
-  int charge_state = inp.charge_state;
-  enum gkyl_dg_iz_type type_ion = inp.type_ion;
+  const char *base = inp->base;
+  int charge_state = inp->charge_state;
+  enum gkyl_dg_iz_type type_ion = inp->type_ion;
   
   int cdim = up->cbasis->ndim;
   int pdim = up->pbasis->ndim;
@@ -122,6 +122,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp inp, bool use_gpu)
   up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume); // all
   up->vtSq_iz = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);  // elc
   up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume);  //elc
+  up->coef_m0 = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
   up->coef_iz = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);  // all
 
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); // all
@@ -160,6 +161,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];
+    const double *coef_m0_d = gkyl_array_cfetch(up->coef_m0, loc);
     //printf("%g\n", m0_elc_d[0]);
 
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
@@ -168,13 +170,15 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx,
 					moms_elc_d, vtSq_elc_d);
 
-    if ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION)) {
-      const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
-      //const double *m0_donor_d = &moms_donor_d[0];
-      double *prim_vars_donor_d = gkyl_array_fetch(up->prim_vars_donor, loc);
-      up->calc_prim_vars_donor->kernel(up->calc_prim_vars_donor, conf_iter.idx,
-    					   moms_donor_d, prim_vars_donor_d);
-    } 
+    const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
+    const double *m0_donor_d = &moms_donor_d[0];
+    double *prim_vars_donor_d = gkyl_array_fetch(up->prim_vars_donor, loc);
+    up->calc_prim_vars_donor->kernel(up->calc_prim_vars_donor, conf_iter.idx,
+				     moms_donor_d, prim_vars_donor_d);
+
+    // set density to multiply reaction_rate*coll_iz
+    if (up->type_self == GKYL_IZ_ELC) coef_m0_d = m0_donor_d;
+    else coef_m0_d = m0_elc_d; 
 
     //Find cell containing value of n,T
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
@@ -201,18 +205,15 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
 
     if ((up->E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
-      //printf("some value ZERO ");
       coef_iz_d[0] = 0.0;
     }
     else {
-      //printf("non-zero iz coeff ");
       double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
-      //printf("%g\n", coef_iz_d[0]);
     }
   }
-
+  
   if (up->type_self == GKYL_IZ_ELC) {
     // Calculate vt_sq_iz
     gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, up->conf_rng);  //CHECK, possible error g0-merge??
@@ -232,22 +233,22 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     gkyl_array_accumulate_range(coll_iz, -1.0, f_self, up->phase_rng);
   
     // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_donor, up->conf_rng);
+    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, up->coef_m0, up->conf_rng);
   }
   else if (up->type_self == GKYL_IZ_ION) {
     // Proj maxwellian on basis (doesn't assume same phase grid, even if GK)
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_donor,
-  					     up->prim_vars_donor, bmag, jacob_tot, up->mass_ion, coll_iz);
+    					     up->prim_vars_donor, bmag, jacob_tot, up->mass_ion, coll_iz);
 
     // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
+    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, up->coef_m0, up->conf_rng);
   }
   else if (up->type_self == GKYL_IZ_DONOR) {
     // neut coll_iz = -f_n
     gkyl_array_set_range(coll_iz, -1.0, f_self, up->phase_rng);
 
     // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
+    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, up->coef_m0, up->conf_rng);
   }
 
   /* // coll_iz = n_n*coef_iz*coll_iz */
@@ -277,6 +278,7 @@ gkyl_dg_iz_release(struct gkyl_dg_iz* up)
   gkyl_array_release(up->vtSq_elc);
   gkyl_array_release(up->vtSq_iz);
   gkyl_array_release(up->prim_vars_fmax);
+  gkyl_array_release(up->coef_m0);
   gkyl_array_release(up->coef_iz);
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_donor);
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc_vtSq);
@@ -287,7 +289,7 @@ gkyl_dg_iz_release(struct gkyl_dg_iz* up)
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_iz*
-gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp inp)
+gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp)
 {
   assert(false);
   return 0;

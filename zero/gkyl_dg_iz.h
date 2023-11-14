@@ -50,13 +50,13 @@ typedef struct gkyl_dg_iz gkyl_dg_iz;
  * @param gkyl_dg_iz_inp
  * @param use_gpu Boolean for whether struct is on host or device
  */
-struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_dg_iz_inp inp, bool use_gpu); 
+struct gkyl_dg_iz* gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu); 
 
 /**
  * Create new ionization updater type object on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp inp);
+struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp);
 
 /**
  * Compute ionization collision term for use in neutral reactions. 

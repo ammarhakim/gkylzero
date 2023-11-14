@@ -36,7 +36,8 @@ struct gkyl_dg_iz {
   struct gkyl_array *prim_vars_donor;
   struct gkyl_array *vtSq_elc;
   struct gkyl_array *vtSq_iz;
-  struct gkyl_array *prim_vars_fmax; 
+  struct gkyl_array *prim_vars_fmax;
+  struct gkyl_array *coef_m0;
   struct gkyl_array *coef_iz;
   struct gkyl_range adas_rng;
   struct gkyl_basis adas_basis;
