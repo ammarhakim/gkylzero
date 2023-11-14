@@ -138,13 +138,51 @@ test_coll_recomb_h(bool use_gpu)
   gkyl_proj_maxwellian_on_basis *proj_max_neut = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_vl,
     &basis, &phaseBasis_vl, poly_order+1, use_gpu);
 
+
+  struct gkyl_dg_recomb_inp rec_inp_elc = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_self = emass,
+    .type_ion = GKYL_RECOMB_H,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_recomb_inp rec_inp_ion = {
+    .grid = &phaseGrid_ion,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_ion,
+    .mass_self = h_ion_mass,
+    .type_ion = GKYL_RECOMB_H,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_ION,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_recomb_inp rec_inp_rcvr = {
+    .grid = &phaseGrid_vl,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_vl,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_vl,
+    .mass_self = h_ion_mass,
+    .type_ion = GKYL_RECOMB_H,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_RECVR,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  
   // coll struct.
-  struct gkyl_dg_recomb *coll_recomb_up_elc = gkyl_dg_recomb_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-  echarge, emass, emass, GKYL_RECOMB_H, charge_state, GKYL_RECOMB_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_ion = gkyl_dg_recomb_new(&phaseGrid_ion, &basis, &phaseBasis_gk, &confRange, &phaseRange_ion,
-  echarge, emass, h_ion_mass, GKYL_RECOMB_H, charge_state, GKYL_RECOMB_ION, all_gk, basepath, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_neut = gkyl_dg_recomb_new(&phaseGrid_vl, &basis, &phaseBasis_vl, &confRange, &phaseRange_vl,
-  echarge, emass, h_ion_mass, GKYL_RECOMB_H, charge_state, GKYL_RECOMB_RECVR, all_gk, basepath, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_elc = gkyl_dg_recomb_new(rec_inp_elc, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_ion = gkyl_dg_recomb_new(rec_inp_ion, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_neut = gkyl_dg_recomb_new(rec_inp_rcvr, use_gpu);
   
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2_elc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -359,8 +397,10 @@ test_coll_recomb_h(bool use_gpu)
   
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
   gkyl_array_release(b_x); gkyl_array_release(b_y); gkyl_array_release(b_z);
-  gkyl_array_release(moms_elc); gkyl_array_release(moms_neut);
+  gkyl_array_release(moms_elc); gkyl_array_release(moms_neut); gkyl_array_release(moms_ion);
   gkyl_array_release(cflRate_elc); gkyl_array_release(distf_elc);
+  gkyl_array_release(cflRate_ion); gkyl_array_release(distf_ion);
+  gkyl_array_release(cflRate_neut); gkyl_array_release(distf_neut);
   gkyl_array_release(bmag); gkyl_array_release(jacob_tot); gkyl_array_release(b_i);
   gkyl_array_release(coll_recomb_elc); gkyl_array_release(coll_recomb_ion); gkyl_array_release(coll_recomb_neut);
   gkyl_proj_on_basis_release(projM0); gkyl_proj_on_basis_release(projM2_elc); gkyl_proj_on_basis_release(projM2_ion);
@@ -437,13 +477,51 @@ test_coll_recomb_all_gk_li(bool use_gpu)
     &basis, &phaseBasis, poly_order+1, use_gpu);
   gkyl_proj_maxwellian_on_basis *proj_max_ion = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_ion,
     &basis, &phaseBasis, poly_order+1, use_gpu);
+
+  struct gkyl_dg_recomb_inp rec_inp_elc = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_self = emass,
+    .type_ion = GKYL_RECOMB_LI,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_recomb_inp rec_inp_ion = {
+    .grid = &phaseGrid_ion,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_ion,
+    .mass_self = li_ion_mass,
+    .type_ion = GKYL_RECOMB_LI,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_ION,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_recomb_inp rec_inp_rcvr = {
+    .grid = &phaseGrid_ion,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_ion,
+    .mass_self = li_ion_mass,
+    .type_ion = GKYL_RECOMB_LI,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_RECVR,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  
   // coll struct.
-  struct gkyl_dg_recomb *coll_recomb_up_elc = gkyl_dg_recomb_new(&phaseGrid_elc, &basis, &phaseBasis, &confRange, &phaseRange_elc,
-						     echarge, emass, li_ion_mass, GKYL_RECOMB_LI, charge_state, GKYL_RECOMB_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_ion = gkyl_dg_recomb_new(&phaseGrid_ion, &basis, &phaseBasis, &confRange, &phaseRange_ion,
-  						     echarge, emass, li_ion_mass, GKYL_RECOMB_LI, charge_state, GKYL_RECOMB_ION, all_gk, basepath, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_recvr = gkyl_dg_recomb_new(&phaseGrid_ion, &basis, &phaseBasis, &confRange, &phaseRange_ion,
-  						       echarge, emass, li_ion_mass, GKYL_RECOMB_LI, charge_state, GKYL_RECOMB_RECVR, all_gk, basepath, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_elc = gkyl_dg_recomb_new(rec_inp_elc, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_ion = gkyl_dg_recomb_new(rec_inp_ion, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_recvr = gkyl_dg_recomb_new(rec_inp_rcvr, use_gpu);
   
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2_elc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -660,19 +738,92 @@ test_coll_recomb_init_elem(bool use_gpu)
   gkyl_cart_modal_gkhybrid(&phaseBasis_gk, cdim, vdim_gk);
   gkyl_cart_modal_serendip(&basis, cdim, poly_order);
 
+  struct gkyl_dg_recomb_inp rec_inp_he = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_self = emass,
+    .type_ion = GKYL_RECOMB_HE,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_recomb_inp rec_inp_be = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_self = emass,
+    .type_ion = GKYL_RECOMB_BE,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_recomb_inp rec_inp_b = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_self = emass,
+    .type_ion = GKYL_RECOMB_B,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_recomb_inp rec_inp_c = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_self = emass,
+    .type_ion = GKYL_RECOMB_C,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_recomb_inp rec_inp_n = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_self = emass,
+    .type_ion = GKYL_RECOMB_N,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+  struct gkyl_dg_recomb_inp rec_inp_o = {
+    .grid = &phaseGrid_elc,
+    .cbasis = &basis,
+    .pbasis = &phaseBasis_gk,
+    .conf_rng = &confRange,
+    .phase_rng = &phaseRange_elc,
+    .mass_self = emass,
+    .type_ion = GKYL_RECOMB_O,
+    .charge_state = charge_state,
+    .type_self = GKYL_RECOMB_ELC,
+    .all_gk = all_gk,
+    .base = basepath,
+  };
+    
   // coll struct.
-  struct gkyl_dg_recomb *coll_recomb_up_he = gkyl_dg_recomb_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_RECOMB_HE, charge_state, GKYL_RECOMB_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_be = gkyl_dg_recomb_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_RECOMB_BE, charge_state, GKYL_RECOMB_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_b = gkyl_dg_recomb_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_RECOMB_B, charge_state, GKYL_RECOMB_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_c = gkyl_dg_recomb_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_RECOMB_C, charge_state, GKYL_RECOMB_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_n = gkyl_dg_recomb_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_RECOMB_N, charge_state, GKYL_RECOMB_ELC, all_gk, basepath, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_o = gkyl_dg_recomb_new(&phaseGrid_elc, &basis, &phaseBasis_gk, &confRange, &phaseRange_elc,
-    echarge, emass, imass, GKYL_RECOMB_O, charge_state, GKYL_RECOMB_ELC, all_gk, basepath, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_he = gkyl_dg_recomb_new(rec_inp_he, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_be = gkyl_dg_recomb_new(rec_inp_be, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_b = gkyl_dg_recomb_new(rec_inp_b, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_c = gkyl_dg_recomb_new(rec_inp_c, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_n = gkyl_dg_recomb_new(rec_inp_n, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_o = gkyl_dg_recomb_new(rec_inp_o, use_gpu);
 
   gkyl_dg_recomb_release(coll_recomb_up_he);
   gkyl_dg_recomb_release(coll_recomb_up_be);

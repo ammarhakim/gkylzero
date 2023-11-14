@@ -16,41 +16,42 @@
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_recomb_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_const.h>
 
 // FIX MASS FOR PMOB ETC
 struct gkyl_dg_recomb*
-gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge,
-  double mass_elc, double mass_self, enum gkyl_dg_recomb_type type_ion, int charge_state,
-  enum gkyl_dg_recomb_self type_self, bool all_gk, const char *base, bool use_gpu)
+gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp inp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_recomb_cu_dev_new(grid, cbasis, pbasis, conf_rng, phase_rng, elem_charge, mass_elc, type_ion, charge_state, type_self, all_gk, base);
+    return gkyl_dg_recomb_cu_dev_new(inp);
   } 
 #endif
   gkyl_dg_recomb *up = gkyl_malloc(sizeof(struct gkyl_dg_recomb));
 
-  int cdim = cbasis->ndim;
-  int pdim = pbasis->ndim;
-  int vdim = pdim - cdim;
+  up->cbasis = inp.cbasis;
+  up->pbasis = inp.pbasis;
+  up->conf_rng = inp.conf_rng;
+  up->phase_rng = inp.phase_rng;
+  up->grid = inp.grid;
+  up->mass_self = inp.mass_self;
+  up->type_self = inp.type_self;
+  up->all_gk = inp.all_gk;
   
-  int poly_order = cbasis->poly_order;
-  up->cbasis = cbasis;
-  up->pbasis = pbasis;
+  int cdim = up->cbasis->ndim;
+  int pdim = up->pbasis->ndim;
+  int vdim = pdim - cdim;
+  int poly_order = up->cbasis->poly_order;
   up->cdim = cdim;
   up->vdim = vdim;
   up->use_gpu = use_gpu;
-  up->conf_rng = conf_rng;
-  up->phase_rng = phase_rng;
-  up->grid = grid;
-  up->all_gk = all_gk;
-
-  up->elem_charge = elem_charge;
-  up->mass_elc = mass_elc;
-  up->mass_self = mass_self;
   
-  up->type_self = type_self;
+  up->elem_charge = GKYL_ELEMENTARY_CHARGE;
+  up->mass_elc = GKYL_ELECTRON_MASS;
+
+  const char *base = inp.base;
+  int charge_state = inp.charge_state;
+  enum gkyl_dg_recomb_type type_ion = inp.type_ion;
   
   // Project ADAS data
   struct adas_field data;
@@ -121,20 +122,21 @@ gkyl_dg_recomb_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struc
   up->adas_basis = adas_basis;
   
   // allocate fields for prim mom calculation
-  up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
-  up->coef_recomb = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  
-  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu); 
+  up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+  up->coef_recomb = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+  up->coef_m0 = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); 
 
   // only for Vlasov neutral species
-  up->calc_prim_vars_ion_udrift = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "u_par_i", use_gpu);
-  up->calc_prim_vars_ion_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", use_gpu);
+  up->calc_prim_vars_ion_udrift = gkyl_dg_prim_vars_transform_vlasov_gk_new(up->cbasis, up->pbasis, up->conf_rng, "u_par_i", use_gpu);
+  up->calc_prim_vars_ion_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu);
   
-  up->udrift_ion = gkyl_array_new(GKYL_DOUBLE, vdim*cbasis->num_basis, up->conf_rng->volume);
-  up->vtSq_ion = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
-  up->prim_vars_ion = gkyl_array_new(GKYL_DOUBLE, (vdim+1)*cbasis->num_basis, up->conf_rng->volume);
+  up->udrift_ion = gkyl_array_new(GKYL_DOUBLE, vdim*up->cbasis->num_basis, up->conf_rng->volume);
+  up->vtSq_ion = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+  up->prim_vars_ion = gkyl_array_new(GKYL_DOUBLE, (vdim+1)*up->cbasis->num_basis, up->conf_rng->volume);
 
   // only for receiver species
-  up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, use_gpu);
+  up->proj_max = gkyl_proj_maxwellian_on_basis_new(up->grid, up->cbasis, up->pbasis, poly_order+1, use_gpu);
 
   up->on_dev = up; // CPU eqn obj points to itself
 
@@ -165,8 +167,10 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
-    const double *m0_elc_d = &moms_elc_d[0];
-
+    const double *m0_elc_d = &moms_elc_d[0];    
+    const double *coef_m0_d = gkyl_array_cfetch(up->coef_m0, loc);
+    coef_m0_d = m0_elc_d;
+    
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
     double *coef_recomb_d = gkyl_array_fetch(up->coef_recomb, loc);
     up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
@@ -233,7 +237,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     gkyl_array_set_range(coll_recomb, -1.0, f_self, up->phase_rng);
   }
 
-  gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_recomb, 0, up->coef_recomb, 0, moms_elc, up->conf_rng);
+  gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_recomb, 0, up->coef_recomb, 0, up->coef_m0, up->conf_rng);
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_recomb, coll_recomb,
 				    up->conf_rng, up->phase_rng);
   
@@ -257,6 +261,7 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
 {
   gkyl_array_release(up->recomb_data);
   gkyl_array_release(up->vtSq_elc);
+  gkyl_array_release(up->coef_m0);
   gkyl_array_release(up->coef_recomb);
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc_vtSq);
 
@@ -274,9 +279,7 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_recomb*
-gkyl_dg_recomb_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, double elem_charge, double mass_elc,
-  double mass_self, enum gkyl_dg_recomb_type type_ion, int charge_state, enum gkyl_dg_recomb_self type_self, bool all_gk, const char *base)
+gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp inp)
 {
   assert(false);
   return 0;

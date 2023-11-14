@@ -6,7 +6,7 @@
 
 // Primary struct in this updater.
 struct gkyl_dg_recomb {
-  struct gkyl_rect_grid *grid; // conf grid object
+  const struct gkyl_rect_grid *grid; // conf grid object
   int cdim; // number of configuration space dimensions
   int poly_order; // polynomial order of DG basis
 
@@ -36,6 +36,7 @@ struct gkyl_dg_recomb {
   
   struct gkyl_array *recomb_data;
   struct gkyl_array *vtSq_elc;
+  struct gkyl_array *coef_m0;
   struct gkyl_array *coef_recomb;
   struct gkyl_array *prim_vars_ion;
   struct gkyl_array *udrift_ion;
