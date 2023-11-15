@@ -20,7 +20,7 @@
 
 // FIX MASS FOR PMOB ETC
 struct gkyl_dg_recomb*
-gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp inp, bool use_gpu)
+gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -29,14 +29,14 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp inp, bool use_gpu)
 #endif
   gkyl_dg_recomb *up = gkyl_malloc(sizeof(struct gkyl_dg_recomb));
 
-  up->cbasis = inp.cbasis;
-  up->pbasis = inp.pbasis;
-  up->conf_rng = inp.conf_rng;
-  up->phase_rng = inp.phase_rng;
-  up->grid = inp.grid;
-  up->mass_self = inp.mass_self;
-  up->type_self = inp.type_self;
-  up->all_gk = inp.all_gk;
+  up->cbasis = inp->cbasis;
+  up->pbasis = inp->pbasis;
+  up->conf_rng = inp->conf_rng;
+  up->phase_rng = inp->phase_rng;
+  up->grid = inp->grid;
+  up->mass_self = inp->mass_self;
+  up->type_self = inp->type_self;
+  up->all_gk = inp->all_gk;
   
   int cdim = up->cbasis->ndim;
   int pdim = up->pbasis->ndim;
@@ -49,9 +49,9 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp inp, bool use_gpu)
   up->elem_charge = GKYL_ELEMENTARY_CHARGE;
   up->mass_elc = GKYL_ELECTRON_MASS;
 
-  const char *base = inp.base;
-  int charge_state = inp.charge_state;
-  enum gkyl_dg_recomb_type type_ion = inp.type_ion;
+  const char *base = inp->base;
+  int charge_state = inp->charge_state;
+  enum gkyl_dg_recomb_type type_ion = inp->type_ion;
   
   // Project ADAS data
   struct adas_field data;
@@ -279,7 +279,7 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_dg_recomb*
-gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp inp)
+gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp *inp)
 {
   assert(false);
   return 0;

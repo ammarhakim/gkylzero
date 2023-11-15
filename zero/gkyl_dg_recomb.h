@@ -51,13 +51,13 @@ typedef struct gkyl_dg_recomb gkyl_dg_recomb;
  * @param gkyl_dg_recomb_inp
  * @param use_gpu Boolean for whether struct is on host or device
  */
-struct gkyl_dg_recomb* gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp inp, bool use_gpu); 
+struct gkyl_dg_recomb* gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu); 
 
 /**
  * Create new ionrecombation updater type object on NV-GPU: 
  * see new() method above for documentation.
  */
-struct gkyl_dg_recomb* gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp inp); 
+struct gkyl_dg_recomb* gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp *inp); 
 
 /**
  * Compute ionrecombation collision term for use in neutral reactions. 
