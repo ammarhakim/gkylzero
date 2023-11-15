@@ -168,8 +168,8 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];    
-    const double *coef_m0_d = gkyl_array_cfetch(up->coef_m0, loc);
-    coef_m0_d = m0_elc_d;
+    double *coef_m0_d = gkyl_array_fetch(up->coef_m0, loc);
+    for (int i=0; i<up->cbasis->num_basis; ++i) coef_m0_d[i] = m0_elc_d[i];
     
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
     double *coef_recomb_d = gkyl_array_fetch(up->coef_recomb, loc);
@@ -236,7 +236,8 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     // copy and weak mult
     gkyl_array_set_range(coll_recomb, -1.0, f_self, up->phase_rng);
   }
-
+  
+  //gkyl_array_set_range(up->coef_m0, 1.0, moms_elc, up->conf_rng);
   gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_recomb, 0, up->coef_recomb, 0, up->coef_m0, up->conf_rng);
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_recomb, coll_recomb,
 				    up->conf_rng, up->phase_rng);
