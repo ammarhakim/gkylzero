@@ -230,7 +230,6 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
       gkyl_proj_maxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion,
 					     up->prim_vars_ion, coll_recomb);
     }
-
   }
   else {
     // copy and weak mult
@@ -238,9 +237,11 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
   }
   
   //gkyl_array_set_range(up->coef_m0, 1.0, moms_elc, up->conf_rng);
-  gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_recomb, 0, up->coef_recomb, 0, up->coef_m0, up->conf_rng);
+  //gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_recomb, 0, up->coef_recomb, 0, up->coef_m0, up->conf_rng);
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_recomb, coll_recomb,
-				    up->conf_rng, up->phase_rng);
+				  up->conf_rng, up->phase_rng);
+  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_m0, coll_recomb,
+				  up->conf_rng, up->phase_rng);
   
   // cfl calculation
   //struct gkyl_range vel_rng;

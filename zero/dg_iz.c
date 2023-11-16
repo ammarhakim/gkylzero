@@ -171,7 +171,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx,
 					moms_elc_d, vtSq_elc_d);
 
-    if ( (up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ELC) ) {
+    if ( (up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION) ) {
       const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
       const double *m0_donor_d = &moms_donor_d[0];
       double *prim_vars_donor_d = gkyl_array_fetch(up->prim_vars_donor, loc);
@@ -217,8 +217,9 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
   }
   
   if (up->type_self == GKYL_IZ_ELC) {
+     
     // Calculate vt_sq_iz
-    gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, up->conf_rng);  //CHECK, possible error g0-merge??
+    gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, up->conf_rng);
     gkyl_array_scale_range(up->vtSq_iz, 1/2.0, up->conf_rng);
     gkyl_array_shiftc(up->vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
 
@@ -234,32 +235,21 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     gkyl_array_scale_range(coll_iz, 2.0, up->phase_rng);
     gkyl_array_accumulate_range(coll_iz, -1.0, f_self, up->phase_rng);
 
-    // test
-    gkyl_array_set_range(coll_iz, 1.0, f_self, up->phase_rng);
-  
-    // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, up->coef_m0, up->conf_rng);
   }
   else if (up->type_self == GKYL_IZ_ION) {
     // Proj maxwellian on basis (doesn't assume same phase grid, even if GK)
-    gkyl_array_set_range(up->coef_m0, 1.0, moms_elc, up->conf_rng);
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_donor,
     					     up->prim_vars_donor, bmag, jacob_tot, up->mass_ion, coll_iz);
-
-    // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, up->coef_m0, up->conf_rng);
   }
   else if (up->type_self == GKYL_IZ_DONOR) {
     // neut coll_iz = -f_n
-    gkyl_array_set_range(up->coef_m0, 1.0, moms_elc, up->conf_rng);
     gkyl_array_set_range(coll_iz, -1.0, f_self, up->phase_rng);
-
-    // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, up->coef_m0, up->conf_rng);
   }
 
-  // coll_iz = n_n*coef_iz*coll_iz
+  // coll_iz = coef_iz*coll_iz
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_iz, coll_iz,
+  				    up->conf_rng, up->phase_rng);
+  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_m0, coll_iz,
   				    up->conf_rng, up->phase_rng);
   
   // cfl calculation
