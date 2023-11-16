@@ -83,7 +83,8 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 }
 
 
-// Waves and speeds using Roe averaging, correction term
+// Waves and speeds using Roe averaging
+// corrective terms
 static double
 wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
@@ -111,8 +112,9 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     // no vacuum state
     double rl = ql[0];
     double rr = qr[0];
+    double u_diag[3];
     // compute Roe averaged speed
-    double vel = compute_sr_roe_averaged_velocity_via_ridders(ql,qr,c);
+    double vel = compute_sr_roe_averaged_velocity_via_ridders(ql,qr,c,u_diag);
     //printf("vL: %1.16f, vs %1.16f, vR: %1.16f\n",vl,vel,vr);
             
     if(vel<0) {
@@ -161,6 +163,7 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
 }
 
+// First order solve
 static void
 ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,

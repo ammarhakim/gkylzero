@@ -769,10 +769,6 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   return up;
 }
 
-// CASES ABOVE THIS:
-// ADD IMPLICIT TO THIS FUNCTION
-// ADD A NEW FUNCTION FOR EXPLICIT (THAT HANDS PROJ_APP_CURR)
-
 void
 gkyl_moment_em_coupling_explicit_advance(gkyl_moment_em_coupling *mes, double tcurr, double dt,
   const struct gkyl_range *update_range,
@@ -822,8 +818,8 @@ gkyl_moment_em_coupling_explicit_advance(gkyl_moment_em_coupling *mes, double tc
   }
 
   // Release the temporary arrays
-  //gkyl_array_release(app_curr_stage1);
-  //gkyl_array_release(app_curr_stage2);
+  gkyl_array_release(app_curr_stage1);
+  gkyl_array_release(app_curr_stage2);
 }
 
 

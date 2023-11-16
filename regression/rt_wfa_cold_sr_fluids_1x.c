@@ -50,10 +50,10 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
   const double wavelength = 0.8e-6;         // The wavelength of the laser (in m)
 
   // compute last edge
-  double xupper = 240.0e-6;
+  double xupper = 120.0e-6;
   double xlaser = -1.0e-6;
-  double xlower = -60.0e-6;
-  double nx = 20480.0;
+  double xlower = -30.0e-6;
+  double nx = 10240.0;
   double dx = (xupper - xlower)/nx;
   double xLastEdge = xlaser+dx;
 
@@ -87,7 +87,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 20480);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 10240);
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -105,6 +105,7 @@ main(int argc, char **argv)
     .split_type = GKYL_WAVE_FWAVE,
     .evolve = 1,
     .init = evalColdInit,
+    //.limiter = GKYL_ZERO, // First order test
 
     //.bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
@@ -115,8 +116,8 @@ main(int argc, char **argv)
     .name = "cold_sr_fluid_wfa",
 
     .ndim = 1,
-    .lower = { -60.0e-6 },
-    .upper = { 240.0e-6 }, 
+    .lower = { -30.0e-6 },
+    .upper = { 120.0e-6 }, 
     .cells = { NX },
 
     .cfl_frac = 0.9,
@@ -141,9 +142,9 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = 1.0e-12;
+  double tcurr = 0.0, tend = 5.e-13; //5.0e-13;
 
-  int nframe = 100;
+  int nframe = 5;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = (tend-tcurr)/nframe };
 
