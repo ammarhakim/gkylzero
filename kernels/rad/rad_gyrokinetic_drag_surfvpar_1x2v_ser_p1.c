@@ -13,16 +13,16 @@ GKYL_CU_DH double rad_gyrokinetic_drag_surfvpar_1x2v_ser_p1(const double *w, con
   double Ghat_r[4] = {0.0}; 
   double Ghat_l[4] = {0.0}; 
   double alphaDrSurf_l[4] = {0.0}; 
-  alphaDrSurf_l[0] = 1.1180339887498951*nI[1]*nuField[9]+1.118033988749895*nI[0]*nuField[8]-0.8660254037844386*nI[1]*nuField[4]-0.8660254037844386*nI[0]*nuField[2]+0.5*nI[1]*nuField[1]+0.5*nI[0]*nuField[0]; 
-  alphaDrSurf_l[1] = 1.1180339887498951*nI[0]*nuField[9]+1.118033988749895*nI[1]*nuField[8]-0.8660254037844386*nI[0]*nuField[4]-0.8660254037844386*nI[1]*nuField[2]+0.5*nI[0]*nuField[1]+0.5*nuField[0]*nI[1]; 
-  alphaDrSurf_l[2] = 1.118033988749895*nI[1]*nuField[11]+1.1180339887498951*nI[0]*nuField[10]-0.8660254037844386*nI[1]*nuField[7]-0.8660254037844386*nI[0]*nuField[6]+0.5*nI[1]*nuField[5]+0.5*nI[0]*nuField[3]; 
-  alphaDrSurf_l[3] = 1.118033988749895*nI[0]*nuField[11]+1.1180339887498951*nI[1]*nuField[10]-0.8660254037844386*nI[0]*nuField[7]-0.8660254037844386*nI[1]*nuField[6]+0.5*nI[0]*nuField[5]+0.5*nI[1]*nuField[3]; 
+  alphaDrSurf_l[0] = 1.118033988749895*nI[1]*nuField[9]+1.118033988749895*nI[0]*nuField[8]-0.8660254037844386*nI[1]*nuField[4]-0.8660254037844386*nI[0]*nuField[2]+0.5*nI[1]*nuField[1]+0.5*nI[0]*nuField[0]; 
+  alphaDrSurf_l[1] = 1.118033988749895*nI[0]*nuField[9]+1.118033988749895*nI[1]*nuField[8]-0.8660254037844386*nI[0]*nuField[4]-0.8660254037844386*nI[1]*nuField[2]+0.5*nI[0]*nuField[1]+0.5*nuField[0]*nI[1]; 
+  alphaDrSurf_l[2] = 1.118033988749895*nI[1]*nuField[11]+1.118033988749895*nI[0]*nuField[10]-0.8660254037844386*nI[1]*nuField[7]-0.8660254037844386*nI[0]*nuField[6]+0.5*nI[1]*nuField[5]+0.5*nI[0]*nuField[3]; 
+  alphaDrSurf_l[3] = 1.118033988749895*nI[0]*nuField[11]+1.118033988749895*nI[1]*nuField[10]-0.8660254037844386*nI[0]*nuField[7]-0.8660254037844386*nI[1]*nuField[6]+0.5*nI[0]*nuField[5]+0.5*nI[1]*nuField[3]; 
 
   double alphaDrSurf_r[4] = {0.0}; 
-  alphaDrSurf_r[0] = 1.1180339887498951*nI[1]*nuField[9]+1.118033988749895*nI[0]*nuField[8]+0.8660254037844386*nI[1]*nuField[4]+0.8660254037844386*nI[0]*nuField[2]+0.5*nI[1]*nuField[1]+0.5*nI[0]*nuField[0]; 
-  alphaDrSurf_r[1] = 1.1180339887498951*nI[0]*nuField[9]+1.118033988749895*nI[1]*nuField[8]+0.8660254037844386*nI[0]*nuField[4]+0.8660254037844386*nI[1]*nuField[2]+0.5*nI[0]*nuField[1]+0.5*nuField[0]*nI[1]; 
-  alphaDrSurf_r[2] = 1.118033988749895*nI[1]*nuField[11]+1.1180339887498951*nI[0]*nuField[10]+0.8660254037844386*nI[1]*nuField[7]+0.8660254037844386*nI[0]*nuField[6]+0.5*nI[1]*nuField[5]+0.5*nI[0]*nuField[3]; 
-  alphaDrSurf_r[3] = 1.118033988749895*nI[0]*nuField[11]+1.1180339887498951*nI[1]*nuField[10]+0.8660254037844386*nI[0]*nuField[7]+0.8660254037844386*nI[1]*nuField[6]+0.5*nI[0]*nuField[5]+0.5*nI[1]*nuField[3]; 
+  alphaDrSurf_r[0] = 1.118033988749895*nI[1]*nuField[9]+1.118033988749895*nI[0]*nuField[8]+0.8660254037844386*nI[1]*nuField[4]+0.8660254037844386*nI[0]*nuField[2]+0.5*nI[1]*nuField[1]+0.5*nI[0]*nuField[0]; 
+  alphaDrSurf_r[1] = 1.118033988749895*nI[0]*nuField[9]+1.118033988749895*nI[1]*nuField[8]+0.8660254037844386*nI[0]*nuField[4]+0.8660254037844386*nI[1]*nuField[2]+0.5*nI[0]*nuField[1]+0.5*nuField[0]*nI[1]; 
+  alphaDrSurf_r[2] = 1.118033988749895*nI[1]*nuField[11]+1.118033988749895*nI[0]*nuField[10]+0.8660254037844386*nI[1]*nuField[7]+0.8660254037844386*nI[0]*nuField[6]+0.5*nI[1]*nuField[5]+0.5*nI[0]*nuField[3]; 
+  alphaDrSurf_r[3] = 1.118033988749895*nI[0]*nuField[11]+1.118033988749895*nI[1]*nuField[10]+0.8660254037844386*nI[0]*nuField[7]+0.8660254037844386*nI[1]*nuField[6]+0.5*nI[0]*nuField[5]+0.5*nI[1]*nuField[3]; 
 
   Ghat_l[0] = 0.08333333333333333*(9.48683298050514*(alphaDrSurf_l[3]*fc[11]+alphaDrSurf_l[2]*fc[10]+alphaDrSurf_l[1]*fc[9]+alphaDrSurf_l[0]*fc[8])-7.348469228349534*(alphaDrSurf_l[3]*fc[7]+alphaDrSurf_l[2]*fc[6])+4.242640687119286*alphaDrSurf_l[3]*fc[5]-7.348469228349534*alphaDrSurf_l[1]*fc[4]+4.242640687119286*alphaDrSurf_l[2]*fc[3]-7.348469228349534*alphaDrSurf_l[0]*fc[2]+4.242640687119286*(alphaDrSurf_l[1]*fc[1]+alphaDrSurf_l[0]*fc[0])); 
   Ghat_l[1] = 0.08333333333333333*(9.48683298050514*(alphaDrSurf_l[2]*fc[11]+alphaDrSurf_l[3]*fc[10]+alphaDrSurf_l[0]*fc[9]+alphaDrSurf_l[1]*fc[8])-7.348469228349534*(alphaDrSurf_l[2]*fc[7]+alphaDrSurf_l[3]*fc[6])+4.242640687119286*alphaDrSurf_l[2]*fc[5]-7.348469228349534*alphaDrSurf_l[0]*fc[4]+4.242640687119286*alphaDrSurf_l[3]*fc[3]-7.348469228349534*alphaDrSurf_l[1]*fc[2]+4.242640687119286*(alphaDrSurf_l[0]*fc[1]+fc[0]*alphaDrSurf_l[1])); 
@@ -42,10 +42,10 @@ GKYL_CU_DH double rad_gyrokinetic_drag_surfvpar_1x2v_ser_p1(const double *w, con
   out[5] += (0.7071067811865475*Ghat_r[3]-0.7071067811865475*Ghat_l[3])*rdv2; 
   out[6] += 1.224744871391589*(Ghat_r[2]+Ghat_l[2])*rdv2; 
   out[7] += 1.224744871391589*(Ghat_r[3]+Ghat_l[3])*rdv2; 
-  out[8] += (1.5811388300841895*Ghat_r[0]-1.5811388300841895*Ghat_l[0])*rdv2; 
-  out[9] += (1.5811388300841898*Ghat_r[1]-1.5811388300841898*Ghat_l[1])*rdv2; 
-  out[10] += (1.5811388300841898*Ghat_r[2]-1.5811388300841898*Ghat_l[2])*rdv2; 
-  out[11] += (1.5811388300841895*Ghat_r[3]-1.5811388300841895*Ghat_l[3])*rdv2; 
+  out[8] += (1.58113883008419*Ghat_r[0]-1.58113883008419*Ghat_l[0])*rdv2; 
+  out[9] += (1.58113883008419*Ghat_r[1]-1.58113883008419*Ghat_l[1])*rdv2; 
+  out[10] += (1.58113883008419*Ghat_r[2]-1.58113883008419*Ghat_l[2])*rdv2; 
+  out[11] += (1.58113883008419*Ghat_r[3]-1.58113883008419*Ghat_l[3])*rdv2; 
 
   return 0.;
 

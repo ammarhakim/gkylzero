@@ -31,6 +31,7 @@ gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_range *conf_range, const struct gkyl_array *bmag,
   const struct gkyl_array *fit_params, bool use_gpu);
 
+
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
  * range on which the array is defined. That is, it must be either the
