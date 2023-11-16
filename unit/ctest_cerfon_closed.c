@@ -146,7 +146,7 @@ test_1()
       .B0 = sctx.B0,
       .R0 = sctx.R0,
 
-      .quad_param = {  .eps = 1e-12 }
+      .quad_param = {  .eps = 1e-10 }
     }
   );
 
@@ -161,7 +161,7 @@ test_1()
   //psi_min = 0.07058823529411765; // This gives ghost node on psisep for 16 cells
   psi_min = -0.2; //arbitrary
   printf("psimin = %g\n", psi_min);
-  psi_max = -0.19;
+  psi_max = -0.1;
   
   // Computational grid: theta X psi X alpha (only 2D for now)
   //double clower[] = { psi_min, -0.3, -2.9 };
