@@ -300,10 +300,10 @@ test_1()
   //double clower[] = { 0.934, -0.01, -3.14 };
   //double cupper[] = {1.4688, 0.01, 3.14 };
 
-  double clower[] = { 1.4, -0.01, 0.0 };
+  double clower[] = { 1.4, -0.01, -3.14 };
   double cupper[] = {1.45, 0.01, 3.14 };
 
-  int ccells[] = { 1, 1, 64 };
+  int ccells[] = { 1, 1, 32 };
 
 
 
@@ -316,8 +316,19 @@ test_1()
   int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
 
+  // BCs, 0 is periodic, 1 is nonperiodic
+  int bcs[3] = {1,0,1};
 
-  conversion_range = clocal;
+  // calcgeom will go into the ghost y cells based on bc. If bc[1]=1 we use ghosts.
+  // Need to pass appropriate conversion to modal range depending on the bcs
+  if(bcs[1]==1){
+    int sublower[3] = {clocal.lower[0], clocal_ext.lower[1], clocal.lower[2]};
+    int subupper[3] = {clocal.upper[0], clocal_ext.upper[1], clocal.upper[2]};
+    gkyl_sub_range_init(&conversion_range, &clocal_ext, sublower, subupper);
+  }
+  else{
+    conversion_range = clocal;
+  }
 
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
@@ -328,6 +339,7 @@ test_1()
     .cgrid = &cgrid,
     .cbasis = &cbasis,
     .ftype = GKYL_SOL_DN,
+    .bcs = bcs,
     //.rclose = efit->rmax,
     //.zmin = efit->zmin,
     //.zmax = efit->zmax,
@@ -418,8 +430,12 @@ test_1()
   
   printf("calculating metrics \n");
   struct gkyl_array *gFld = gkyl_array_new(GKYL_DOUBLE, 6*cbasis.num_basis, clocal_ext.volume);
-  gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, false);
-  gkyl_calc_metric_advance(mcalculator, geo->nrange, geo->mc2p_nodal_fd, geo->dzc, gFld, &clocal);
+  printf("creating\n");
+  gkyl_calc_metric *mcalculator = gkyl_calc_metric_new(&cbasis, &cgrid, bcs, false);
+  printf("advancing\n");
+  //gkyl_calc_metric_advance( mcalculator, &clocal, mapc2p_arr, gFld);
+  gkyl_calc_metric_advance(mcalculator, geo->nrange, geo->mc2p_nodal_fd, geo->dzc, gFld, &conversion_range);
+
   do{
     printf("writing the gij file \n");
     const char *fmt = "%s_g_ij.gkyl";

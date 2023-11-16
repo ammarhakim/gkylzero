@@ -146,7 +146,7 @@ test_1()
       .B0 = sctx.B0,
       .R0 = sctx.R0,
 
-      .quad_param = {  .eps = 1e-12 }
+      .quad_param = {  .eps = 1e-10 }
     }
   );
 

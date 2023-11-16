@@ -159,17 +159,17 @@ test_1()
 
   psi_min = 0.03636363636363636; // This gives ghost node on psisep for 32 cells
   //psi_min = 0.07058823529411765; // This gives ghost node on psisep for 16 cells
-  psi_min = -0.2; //arbitrary
+  psi_min = -0.02; //arbitrary
   printf("psimin = %g\n", psi_min);
-  psi_max = -0.1;
+  psi_max = -0.01;
   
   // Computational grid: theta X psi X alpha (only 2D for now)
   //double clower[] = { psi_min, -0.3, -2.9 };
   //double cupper[] = {psi_max, 0.3, 2.9 };
 
-  double clower[] = { psi_min, -0.2, -M_PI+1e-5 };
-  double cupper[] = {psi_max, 0.2, M_PI-1e-5 };
-  int ccells[] = { 2, 2, 64 };
+  double clower[] = { psi_min, -0.01, -M_PI+1e-14 };
+  double cupper[] = {psi_max, 0.01, M_PI-1e-14 };
+  int ccells[] = { 4, 2, 16 };
 
 
 
