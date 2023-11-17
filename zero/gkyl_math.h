@@ -122,6 +122,20 @@ struct gkyl_qr_res {
   int nlevels; // number of levels
 };
 
+// polynomial order for low-order polynomial
+enum gkyl_lo_poly_order {
+  GKYL_LO_POLY_2 = 2,
+  GKYL_LO_POLY_3,
+  GKYL_LO_POLY_4,  
+};  
+
+// Polynomial roots for low-order polynomials (upto 4th order)
+struct gkyl_lo_poly_roots {
+  double rpart[4], impart[4]; // real and imaginary part of roots
+  double err[4]; // estimated error for each root
+  int niter; // number of iterations
+};  
+
 /**
  * Integrate func(x,ctx) in interval [a,b], using maximum levels
  * "n". Typical value of levels is 7. The status flag of the return
@@ -142,7 +156,8 @@ struct gkyl_qr_res gkyl_dbl_exp(double (*func)(double, void *), void *ctx,
 /**
  * Compute single real root of a function using Ridders' method. See
  * IEEE Tran. Circuit and Systems, vol CAS-26 No 11, Pg 976 1976. The
- * root must be inside the interval specified.
+ * root must be inside the interval specified, and there must only be
+ * one such root in the interval.
  *
  * @param func Function to integrate
  * @param ctx Context to pass to function
@@ -156,3 +171,20 @@ struct gkyl_qr_res gkyl_dbl_exp(double (*func)(double, void *), void *ctx,
  */
 struct gkyl_qr_res gkyl_ridders(double (*func)(double,void*), void *ctx,
   double x1, double x2, double f1, double f2, int max_iter, double eps);
+
+/**
+ * Compute all roots of the low-order polynomial with monomial
+ * coefficients given by @a coeff. The leading coefficient is always
+ * assumed be 1.0 and so the coeff[i] give the coefficient for the
+ * monomial x^i. For example for the quartic:
+ *
+ * p(x) = x^4 + 2 x^3 + 4
+ *
+ * coeff[4] = { 4.0, 0.0, 0.0, 2.0 };
+ *
+ * @param order Order of polynomial
+ * @param coeff Coefficients of the polynomial
+ * @return Roots of the polynomial
+ */
+struct gkyl_lo_poly_roots gkyl_calc_lo_poly_roots(enum gkyl_lo_poly_order order,
+  double coeff[4]);
