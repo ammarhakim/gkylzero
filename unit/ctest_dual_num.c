@@ -128,7 +128,7 @@ psixy( struct gkyl_dn2 x, struct gkyl_dn2 y)
 static struct gkyl_dn2
 custom_xy( struct gkyl_dn2 x, struct gkyl_dn2 y)
 {
-  // example of custom function of x,y
+  // example of custom function of x,y with hand-computed gradient
   
   double g0 = (x.x[0]*x.x[0])/(y.x[0]*y.x[0]);
   double g0x = 2.0*x.x[0]/(y.x[0]*y.x[0]);
@@ -157,10 +157,11 @@ void test_xy(void)
   TEST_CHECK( gkyl_compare_double(res.x[1], x.x[0]/psi0, 1e-14) );
   TEST_CHECK( gkyl_compare_double(res.x[2], y.x[0]/psi0, 1e-14) );
 
+  res = gdn2_cos( custom_xy(x, y) ); // cos of custom defined function
+  
   double cus0 = cos(x.x[0]*x.x[0]/(y.x[0]*y.x[0]));
   double cusx = -2.0*x.x[0]*sin(x.x[0]*x.x[0]/(y.x[0]*y.x[0]))/(y.x[0]*y.x[0]);
   double cusy = 2.0*x.x[0]*x.x[0]*sin(x.x[0]*x.x[0]/(y.x[0]*y.x[0]))/(y.x[0]*y.x[0]*y.x[0]);
-  res = gdn2_cos( custom_xy(x, y) );
   TEST_CHECK( gkyl_compare_double(res.x[0], cus0, 1e-14) );
   TEST_CHECK( gkyl_compare_double(res.x[1], cusx, 1e-14) );
   TEST_CHECK( gkyl_compare_double(res.x[2], cusy, 1e-14) );
@@ -250,7 +251,7 @@ void test_mapc2p_2(void)
   double r = 1.5, theta = M_PI/3;
   struct gkyl_dn2 xc[2], xp[2];
 
-  // compute gradients
+  // compute function and gradients
   xc[0] = gdn2_new10(r); xc[1] = gdn2_new01(theta);
   mapc2p_2(xc, xp);
 
