@@ -30,7 +30,7 @@ gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *prange,
   const struct gkyl_array *bmag,
-  const struct gkyl_array *fit_params, bool use_gpu);
+  const struct gkyl_array *fit_params, const struct gkyl_array *vnu, const struct gkyl_array *vsqnu, bool use_gpu);
 
 
 /**
@@ -49,6 +49,8 @@ gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid,
 void gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *rad,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nI,
+  const struct gkyl_array *vnu,
+  const struct gkyl_array *vsqnu,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 

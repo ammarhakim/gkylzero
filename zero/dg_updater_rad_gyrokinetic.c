@@ -13,12 +13,12 @@
 // Done first pass
 struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-				    const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, const struct gkyl_range *prange, const struct gkyl_array *bmag, const struct gkyl_array *fit_params, bool use_gpu)
+				    const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, const struct gkyl_range *prange, const struct gkyl_array *bmag, const struct gkyl_array *fit_params, const struct gkyl_array *vnu, const struct gkyl_array *vsqnu, bool use_gpu)
 {
   printf("Before allocation\n");
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
   printf("Before coll creation\n");
-  up->coll_drag = gkyl_dg_rad_gyrokinetic_drag_new(cbasis, pbasis, conf_range, prange, grid, bmag, fit_params, use_gpu);
+  up->coll_drag = gkyl_dg_rad_gyrokinetic_drag_new(cbasis, pbasis, conf_range, prange, grid, bmag, fit_params, vnu, vsqnu, use_gpu);
   printf("After coll creation\n");
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
@@ -40,15 +40,23 @@ void
 gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *rad,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *nI,
+  const struct gkyl_array *vnu,
+  const struct gkyl_array *vsqnu,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   printf("In updater rad advance\n");
   // Set arrays needed
   gkyl_rad_gyrokinetic_drag_set_auxfields(rad->coll_drag,
-   (struct gkyl_dg_rad_gyrokinetic_drag_auxfields) { .nI = nI });
+					  (struct gkyl_dg_rad_gyrokinetic_drag_auxfields) { .nI = nI, .vnu = vnu, .vsqnu = vsqnu, .bmag = nI});
   printf("Aux fields set(updater-advance)\n");
+  const double *a = (const double*) gkyl_array_cfetch(nI,0);
+  printf("After a (update), a[0]=%f\n",a[0]);
+  const double *b = (const double*) gkyl_array_cfetch(vnu,0);
+  printf("After b (update), b[0]=%f\n",b[0]);
+
   gkyl_hyper_dg_advance(rad->drag, update_rng, fIn, cflrate, rhs);
+
   printf("After hyper advance (updater-advance)\n");
 }
 

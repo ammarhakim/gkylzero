@@ -122,9 +122,12 @@ test_1x1v_p2()
   printf("Before dg updater\n");
   //  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, false);
  
-
+  //Initilize vnu and vsqnu
+  struct gkyl_array *vnu = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
+  struct gkyl_array *vsqnu = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange.volume);
+  
   printf("int %d\n",phaseRange.ndim);
-  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange,  &phaseRange, bmag, fit_params, false);
+  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange,  &phaseRange, bmag, fit_params, vnu, vsqnu, false);
    // printf("Created vlasov updater\n");
   
   
@@ -152,7 +155,7 @@ test_1x1v_p2()
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &phaseRange, nI, fin, cflrate, rhs);
+    gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &phaseRange, nI, vnu, vsqnu, fin, cflrate, rhs);
     printf("After updater advance, n=%i\n",n);
   }
 

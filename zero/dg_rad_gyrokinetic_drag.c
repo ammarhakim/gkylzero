@@ -51,7 +51,7 @@ gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
  */
 struct gkyl_dg_eqn*
 gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-				 const struct gkyl_range* conf_range, const struct gkyl_range *prange, const struct gkyl_rect_grid *pgrid, const struct gkyl_array *bmag, const struct gkyl_array *fit_params, bool use_gpu)
+				 const struct gkyl_range* conf_range, const struct gkyl_range *prange, const struct gkyl_rect_grid *pgrid, const struct gkyl_array *bmag, const struct gkyl_array *fit_params,  struct gkyl_array *vnu, struct gkyl_array *vsqnu,  bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -133,15 +133,16 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   vnu_params.conf_range = conf_range;
   printf("assigned vnu_params, vnu_params.cdim=%i\n",vnu_params.cdim);
   struct gkyl_array *vnu_temp = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, prange->volume);
-  double *vnu_arr = vnu_temp->data;
-  gkyl_array_clear(vnu_temp,1.2);
+  //double *vnu_arr = vnu_temp->data;
+  double *vnu_arr = vnu->data;
+  gkyl_array_clear(vnu,1.2);
   for (int i=0; i<32; i++){
     printf("i=%i, vnu[%i]=%e\n",i,i,vnu_arr[i]);
   }
   
   printf("Now do eval on nodes\n");
   gkyl_eval_on_nodes *evnu = gkyl_eval_on_nodes_new(pgrid, pbasis, 1, &vnu_calc, &vnu_params);
-  gkyl_eval_on_nodes_advance(evnu, 0.0, prange, vnu_temp);//Not on ghosts?
+  gkyl_eval_on_nodes_advance(evnu, 0.0, prange, vnu);//Not on ghosts?
   /*fr (int i=0; i<32; i++){
     printf("i=%i, vnu[%i]=%e\n",i,i,vnu_arr[i]);
     }*/
@@ -152,13 +153,13 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   rad_gyrokinetic_drag->auxfields.vnu = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, prange->volume);
   // gkyl_array_release(vnu_temp);
 
-  struct gkyl_array *vsqnu_temp = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, prange->volume);
+  // struct gkyl_array *vsqnu_temp = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, prange->volume);
   if (vdim>1) {
 
     gkyl_eval_on_nodes *evsqnu = gkyl_eval_on_nodes_new(pgrid, pbasis, 1, &vsqnu_calc, &vnu_params);
-    gkyl_eval_on_nodes_advance(evsqnu, 0.0, prange, vsqnu_temp);//Not on ghosts?
+    gkyl_eval_on_nodes_advance(evsqnu, 0.0, prange, vsqnu);//Not on ghosts?
     gkyl_eval_on_nodes_release(evsqnu);
-    rad_gyrokinetic_drag->auxfields.vsqnu = vsqnu_temp;
+    //rad_gyrokinetic_drag->auxfields.vsqnu = vsqnu_temp;
     /*    double *vsqnu_arr = vsqnu_temp->data;
     for (int i=0; i<32; i++){
       printf("i=%i, vsqnu[%i]=%e\n",i,i,vsqnu_arr[i]);
@@ -176,6 +177,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   printf("int %d\n",rad_gyrokinetic_drag->prange.ndim);
   printf("int %d\n",rad_gyrokinetic_drag->conf_range.ndim);
 
+  //  vsqnu->data = vnu_temp->data
   //  gkyl_rad_gyrokinetic_drag_set_auxfields(&rad_gyrokinetic_drag->eqn, 
   //					  (struct gkyl_dg_rad_gyrokinetic_drag_auxfields) { .vnu = vnu_temp, .vsqnu=vsqnu_temp });
   return &rad_gyrokinetic_drag->eqn;

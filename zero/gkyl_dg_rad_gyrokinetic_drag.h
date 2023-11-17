@@ -27,7 +27,7 @@ struct gkyl_dg_rad_gyrokinetic_drag_auxfields {
  * @return Pointer to RAD equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-						     const struct gkyl_range* conf_range, const struct gkyl_range *prange, const struct gkyl_rect_grid *pgrid, const struct gkyl_array *bmag, const struct gkyl_array *fit_params, bool use_gpu);
+						     const struct gkyl_range* conf_range, const struct gkyl_range *prange, const struct gkyl_rect_grid *pgrid, const struct gkyl_array *bmag, const struct gkyl_array *fit_params, struct gkyl_array *vnu, struct gkyl_array *vsqnu, bool use_gpu);
 
 /**
  * TO DO: Create a new RAD equation object that lives on NV-GPU
