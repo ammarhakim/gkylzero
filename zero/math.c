@@ -173,7 +173,7 @@ check_converged3(double complex c1, double complex c2, double complex c3, double
   return (err[0]+err[1]+err[2])/3.0 < eps;
 }
 
-// roots of a quartic polynomial
+// roots of a cubic polynomial (Durand-Kerner method)
 static struct gkyl_lo_poly_roots
 cubic_poly_roots(double coeff[4])
 {
@@ -228,7 +228,7 @@ check_converged4(double complex c1, double complex c2, double complex c3, double
   return (err[0]+err[1]+err[2]+err[3])/4.0 < eps;
 }
 
-// roots of a quartic polynomial
+// roots of a quartic polynomial (Durand-Kerner method)
 static struct gkyl_lo_poly_roots
 quart_poly_roots(double coeff[4])
 {
