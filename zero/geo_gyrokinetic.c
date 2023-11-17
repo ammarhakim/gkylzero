@@ -20,8 +20,10 @@ choose_closest(double ref, double* R, double* out, int nr)
   int imin = 0;
   double min = fabs(R[0]-ref);
   for(int i = 1; i< nr; i++){
-    if( fabs(R[i] - ref) < min)
+    if( fabs(R[i] - ref) < min){
       imin = i;
+      min = fabs(R[i] - ref);
+    }
   }
   return out[imin];
 }
