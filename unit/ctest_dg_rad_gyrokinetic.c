@@ -11,7 +11,8 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
-#include <gkyl_dg_updater_lbo_vlasov.h>
+#include <gkyl_mom_gyrokinetic.h>
+#include <gkyl_const.h>
 #include <gkyl_array_rio.h>
 #include <math.h>
 
@@ -39,19 +40,22 @@ void ni_prof(double t, const double *xn, double* restrict fout, void *ctx)
   fout[0] = 1.0;
 }
 
+// May need some velocity transformation of vperp
 void maxwellian1x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   double vx = xn[1];
-  double vy  = xn[2];
-  fout[0] = 1.0/(2*M_PI)*exp(-(pow(vx, 2) + pow(vy, 2))/2);
+  double vy = xn[2];
+  double *te = ctx;
+  fout[0] = 1.0/(2*M_PI)*exp(-(pow(vx, 2) + pow(vy, 2))/(2*te[0]));
 }
 
 void maxwellian1x1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
   double vx = xn[1];
-  fout[0] = 1.0/sqrt(2*M_PI)*exp(-(pow(vx, 2))/2);
+  double *te = ctx;
+  fout[0] = 1.0/sqrt(2*M_PI)*exp(-(pow(vx, 2))/(2*te[0]));
 }
 
 void
@@ -61,10 +65,12 @@ test_1x1v_p2()
   // rad specific variables
   //double *b = {1.0, 1.0};
   //double *data = {0.16, 8000.1, 0.9, -3.9, 3.1}; // H fit params
-    struct gkyl_array *fit_params = gkyl_array_new(GKYL_DOUBLE, 1, 5);
+  struct gkyl_array *fit_params = gkyl_array_new(GKYL_DOUBLE, 1, 5);
   struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, 1, 2);
+  double *te = (double*) malloc(sizeof(double)*1);
   double *data = fit_params->data;
   double *b = bmag->data;
+  te[0]=30;
   b[0]=1;
   b[1]=1;
   data[0]=0.16;
@@ -113,17 +119,17 @@ test_1x1v_p2()
 
   gkyl_dg_updater_collisions *slvr;
   enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
-   printf("Before dg updater\n");
-   //  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, false);
+  printf("Before dg updater\n");
+  //  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, false);
  
 
- 
-   slvr = gkyl_dg_updater_rad_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange,  bmag, fit_params, false);
+  printf("int %d\n",phaseRange.ndim);
+  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange,  &phaseRange, bmag, fit_params, false);
    // printf("Created vlasov updater\n");
   
-    //  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange,  false);
+  
   printf("After dg updater (ctest)\n");
-  gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, NULL);
+  gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, te);
   gkyl_proj_on_basis *projNi = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, ni_prof, NULL);
   printf("After projection (ctest)\n");
   struct gkyl_array *cflrate, *rhs, *fin, *nI;
@@ -150,6 +156,9 @@ test_1x1v_p2()
     printf("After updater advance, n=%i\n",n);
   }
 
+  // Take 2nd moment of f to find energy
+  //struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, GKYL_ELECTRON_MASS, "M2", false);
+  
   // get linear index of first non-ghost cell
   // 1-indexed for interfacing with G2 Lua layer
   int idx[] = {1, 1, 1, 1, 1};
