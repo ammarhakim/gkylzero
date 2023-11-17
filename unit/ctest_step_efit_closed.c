@@ -300,10 +300,10 @@ test_1()
   //double clower[] = { 0.934, -0.01, -3.14 };
   //double cupper[] = {1.4688, 0.01, 3.14 };
 
-  double clower[] = { 2.0, -0.01, -2.00 };
-  double cupper[] = {2.1, 0.01, 0.0 };
+  double clower[] = { psiSep, -0.01, -3.14 };
+  double cupper[] = {2.1, 0.01, 3.14 };
 
-  int ccells[] = { 1, 1, 24 };
+  int ccells[] = { 1, 1, 63 };
 
 
 
@@ -346,8 +346,8 @@ test_1()
     .rclose = efit->rmax,
     .rleft= efit->rmin,
     .rright= efit->rmax,
-    .zmin = -5.5,
-    .zmax = 5.5,
+    .zmin = -6.168,
+    .zmax = 6.168,
   
     .write_node_coord_array = true,
     .node_file_nm = "stepclosed_nodes.gkyl"
@@ -518,6 +518,7 @@ test_1()
 
 
   //gkyl_array_release(RZ);
+  gkyl_efit_release(efit);
   gkyl_array_release(psizr);
   gkyl_array_release(psibyrzr);
   gkyl_array_release(psibyr2zr);

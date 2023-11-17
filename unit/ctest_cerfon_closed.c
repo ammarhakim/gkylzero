@@ -159,17 +159,22 @@ test_1()
 
   psi_min = 0.03636363636363636; // This gives ghost node on psisep for 32 cells
   //psi_min = 0.07058823529411765; // This gives ghost node on psisep for 16 cells
-  psi_min = -0.02; //arbitrary
+  psi_min = -0.1; //arbitrary
   printf("psimin = %g\n", psi_min);
   psi_max = -0.01;
   
   // Computational grid: theta X psi X alpha (only 2D for now)
   //double clower[] = { psi_min, -0.3, -2.9 };
   //double cupper[] = {psi_max, 0.3, 2.9 };
+  double x_sep = 0.6997;
+  double y_sep = 1.7160000000000002;
+  double R_sep = x_sep*sctx.R0;
+  double Z_sep = y_sep*sctx.R0;
 
-  double clower[] = { psi_min, -0.01, -M_PI+1e-14 };
-  double cupper[] = {psi_max, 0.01, M_PI-1e-14 };
-  int ccells[] = { 4, 2, 16 };
+
+  double clower[] = { psi_min, -0.2, -M_PI+1e-14 };
+  double cupper[] = {psi_max, 0.2, M_PI-1e-14 };
+  int ccells[] = { 4, 2, 64 };
 
 
 
@@ -213,8 +218,8 @@ test_1()
     .rclose = upper[0],
     .rright = upper[0],
     .rleft = lower[0],
-    .zmin = -4.0,
-    .zmax = 4.0,
+    .zmin = -Z_sep,
+    .zmax = Z_sep,
   
     .write_node_coord_array = true,
     .node_file_nm = "cerfonclosed_nodes.gkyl"

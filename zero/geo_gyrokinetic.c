@@ -524,9 +524,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
-  double delta_alpha = dalpha*1e-2;
-  double delta_psi = dpsi*1e-2;
-  double delta_theta = dtheta*1e-2;
+  double delta_alpha = dalpha*1e-4;
+  double delta_psi = dpsi*1e-4;
+  double delta_theta = dtheta*1e-4;
   geo->dzc = gkyl_malloc(3*sizeof(double));
   geo->dzc[0] = delta_psi;
   geo->dzc[1] = delta_alpha;
