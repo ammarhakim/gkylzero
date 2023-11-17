@@ -282,6 +282,7 @@ struct vm_species {
                      // If BCs are *not* absorbing, primitive variables can be calculated on *extended* range 
 
   bool has_accel; // flag to indicate there is applied acceleration
+  bool accel_evolve; // flag to indicate applied acceleration is time dependent
   struct gkyl_array *accel; // applied acceleration
   struct gkyl_array *accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *accel_proj; // projector for acceleration
