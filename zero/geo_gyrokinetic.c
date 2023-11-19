@@ -343,6 +343,7 @@ struct arc_length_ctx {
   double arcL_right; // this is for when we need to switch sides
   double phi_right; // this is for when we need to switch sides
   bool right;
+  double zmaxis;
   enum gkyl_geo_gyrokinetic_type ftype; // type of geometry
 };
 
@@ -378,11 +379,11 @@ phi_func(double alpha_curr, double Z, void *ctx)
   // Using convention from Noah Mandell's thesis Eq 5.104 phi = alpha at midplane
   double ival = 0;
   if(actx->ftype==GKYL_SOL_DN || actx->right==true){
-    if(Z<0.0){
-      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, 0.0, rclose, false, false, arc_memo);
+    if(Z<actx->zmaxis){
+      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     }
     else{
-      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, 0.0, Z, rclose, false, false, arc_memo);
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
     }
   }
   else if(actx->ftype==GKYL_CORE && actx->right==false){
@@ -527,7 +528,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
   // used for finite differences 
   double delta_alpha = dalpha*1e-4;
-  double delta_psi = dpsi*1e-4;
+  double delta_psi = dpsi*1e-8;
   double delta_theta = dtheta*1e-4;
   geo->dzc = gkyl_malloc(3*sizeof(double));
   geo->dzc[0] = delta_psi;
@@ -546,7 +547,8 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
     .arc_memo = arc_memo,
-    .ftype = inp->ftype
+    .ftype = inp->ftype,
+    .zmaxis = inp->zmaxis
   };
 
   int cidx[3] = { 0 };
@@ -607,7 +609,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
               //printf("zlo, zup nlo = %g, %g, %d\n",zlo,zup, nlo);
               if(nlo==2){
-                if(fabs(zlo-zup)<1e-12){
+                if(fabs(zlo-zup)<1e-14){
                   printf("terminating, nlo = %d\n", nlo); 
                   zmax = zlo;
                   break;
@@ -620,7 +622,34 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                 zlo = zlo_last;
               }
             }
-            zmin = -zmax;
+            for(int i =0; i<4; i++){
+              R[i] = 0.0;
+              dR[i] = 0.0;
+            }
+            // lower one
+            int nup = 0;
+            double zup_last;
+            zup = -0.01;
+            zlo=zmin;
+            zup_last = zup;
+            while(true){
+              int nup = R_psiZ(geo, psi_curr, zup, 4, R, dR);
+              //printf("zlo, zup nlo = %g, %g, %d\n",zlo,zup, nlo);
+              if(nup==2){
+                if(fabs(zlo-zup)<1e-14){
+                  printf("terminating, nup = %d\n", nup); 
+                  zmin = zup;
+                  break;
+                }
+                zup_last = zup;
+                zup = (zlo+zup)/2;
+              }
+              if(nup==0){
+                zlo = zup;
+                zup = zup_last;
+              }
+            }
+            //end lower one
             printf("found zmin, zmax = %g, %g\n", zmin, zmax);
             printf("psi_curr, Z = %g, %1.16f\n", psi_curr, zlo);
             nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);

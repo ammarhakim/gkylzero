@@ -301,9 +301,9 @@ test_1()
   //double cupper[] = {1.4688, 0.01, 3.14 };
 
   double clower[] = { psiSep, -0.01, -3.14 };
-  double cupper[] = {2.1, 0.01, 3.14 };
+  double cupper[] = {1.52, 0.01, 3.14 };
 
-  int ccells[] = { 1, 1, 63 };
+  int ccells[] = { 1, 1, 32 };
 
 
 
@@ -348,6 +348,7 @@ test_1()
     .rright= efit->rmax,
     .zmin = -6.168,
     .zmax = 6.168,
+    .zmaxis = -4.84614e-07,
   
     .write_node_coord_array = true,
     .node_file_nm = "stepclosed_nodes.gkyl"

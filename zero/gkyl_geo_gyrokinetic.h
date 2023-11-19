@@ -46,7 +46,8 @@ struct gkyl_geo_gyrokinetic {
 enum gkyl_geo_gyrokinetic_type {
   GKYL_SOL_DN, // SOL of double-null configuration
   GKYL_SOL_SN, // SOL of single-null configuration
-  GKYL_PF, // Private flux region
+  GKYL_PF_UP, // Private flux region at top
+  GKYL_PF_LO, // Private flux region at bottom
   GKYL_CORE // Core (closed flux-surface)
 };  
 
@@ -85,6 +86,7 @@ struct gkyl_geo_gyrokinetic_geo_inp {
   double rleft; // closest R to discrimate
   double rright; // closest R to discrimate
   double zmin, zmax; // extents of Z for integration
+  double zmaxis; // z of magnetic axis
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written
   const char *node_file_nm; // name of nodal coordinate file
