@@ -358,7 +358,7 @@ arc_length_func(double Z, void *ctx)
   double zmax = actx->zmax;
   double ival = 0.0;
   //double ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL;
-  if(actx->right==true){
+  if(actx->right==true || actx->ftype == GKYL_SOL_DN){
     ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo) - arcL;
   }
   else{
@@ -378,16 +378,28 @@ phi_func(double alpha_curr, double Z, void *ctx)
 
   // Using convention from Noah Mandell's thesis Eq 5.104 phi = alpha at midplane
   double ival = 0;
-  if(actx->ftype==GKYL_SOL_DN || actx->right==true){
-    if(Z<actx->zmaxis){
+  double addon = 0.0;
+  if(actx->ftype==GKYL_SOL_DN || (actx->right==true && actx->ftype==GKYL_CORE)){
+    if(Z<actx->zmaxis)
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
-    }
-    else{
+    else
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
-    }
   }
   else if(actx->ftype==GKYL_CORE && actx->right==false){
-      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo) + actx->phi_right;
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);// + actx->phi_right;
+    addon = actx->phi_right;
+  }
+  else if(actx->ftype==GKYL_PF_LO){
+    if(actx->right==true){
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, Z, rclose, false, false, arc_memo);
+    }
+    else{
+      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);// + actx->phi_right;
+      addon = actx->phi_right;
+    }
+  }
+  else if(actx->ftype==GKYL_PF_UP){
+    ival = 0.0; //not yet implemented
   }
 
   // Now multiply by RBphi
@@ -405,7 +417,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
   while(ival > M_PI){
     ival -=2*M_PI;
   }
-  return alpha_curr + ival;
+  return alpha_curr + ival + addon;
 }
 
 
@@ -609,7 +621,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
               //printf("zlo, zup nlo = %g, %g, %d\n",zlo,zup, nlo);
               if(nlo==2){
-                if(fabs(zlo-zup)<1e-14){
+                if(fabs(zlo-zup)<1e-12){
                   printf("terminating, nlo = %d\n", nlo); 
                   zmax = zlo;
                   break;
@@ -636,7 +648,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               int nup = R_psiZ(geo, psi_curr, zup, 4, R, dR);
               //printf("zlo, zup nlo = %g, %g, %d\n",zlo,zup, nlo);
               if(nup==2){
-                if(fabs(zlo-zup)<1e-14){
+                if(fabs(zlo-zup)<1e-12){
                   printf("terminating, nup = %d\n", nup); 
                   zmin = zup;
                   break;
@@ -673,9 +685,59 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             arc_ctx.phi_right = phi_r - alpha_curr; // otherwise alpha will get added on twice
             printf("phi right = %g\n", arc_ctx.phi_right);
           }
+          else if(inp->ftype == GKYL_PF_LO){
+            //Find the  upper turning point
+            int nlo = 0;
+            double zlo, zup, zlo_last;
+            zlo = zmin;
+            zup=zmax;
+            zlo_last = zlo;
+            double R[4], dR[4];
+            while(true){
+              int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
+              if(nlo>=2){
+                if(fabs(zlo-zup)<1e-12){
+                  printf("terminating, nlo = %d\n", nlo); 
+                  zmax = zlo;
+                  break;
+                }
+                zlo_last = zlo;
+                zlo = (zlo+zup)/2;
+              }
+              if(nlo<2){
+                zup = zlo;
+                zlo = zlo_last;
+              }
+            }
+            printf("found zmin, zmax = %g, %g\n", zmin, zmax);
+            printf("psi_curr, Z = %g, %1.16f\n", psi_curr, zlo);
+            nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
+            printf("nlo = %d\n", nlo);
+            // Done finding turning point
+            arcL_r = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rright,
+              true, true, arc_memo);
+            arc_ctx.arcL_right = arcL_r;
+            arc_ctx.right = false;
+            arcL_l = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rleft,
+              true, true, arc_memo);
+            arcL = arcL_l + arcL_r;
+            printf("arcL total, L, R = %g, %g, %g\n", arcL, arcL_l, arcL_r);
+            darcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
+
+            arc_ctx.right = true;
+            arc_ctx.phi_right = 0.0;
+            arc_ctx.rclose = rright;
+            arc_ctx.psi = psi_curr;
+            arc_ctx.zmin = zmin;
+            phi_r = phi_func(alpha_curr, zmax, &arc_ctx);
+            arc_ctx.phi_right = phi_r - alpha_curr; // otherwise alpha will get added on twice
+            printf("phi right = %g\n", arc_ctx.phi_right);
+          }
           else if(inp->ftype==GKYL_SOL_DN){
+            arc_ctx.phi_right = 0.0;
             arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);
             darcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
+            printf("SOL_DN, arcL = %g\n", arcL);
           }
 
           // at the beginning of each theta loop we need to reset things
@@ -702,7 +764,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                 if( it_delta == 3 || it_delta == 4)
                   continue; //dont do two away
               }
-              if(inp->ftype==GKYL_CORE){
+              if(inp->ftype==GKYL_CORE || inp->ftype==GKYL_PF_LO){
                 rclose = rright;
                 arc_ctx.right = true;
               }
@@ -711,7 +773,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               //printf("  it, theta_curr, arcL_curr = %d, %g %g\n", it, theta_curr, arcL_curr);
               //printf("  left and right arcL = %g %g\n", arcL_l, arcL_r);
               //printf("  rclose = %g\n", rclose);
-              if((inp->ftype==GKYL_CORE) && (arcL_curr > arcL_r)){
+              if((inp->ftype==GKYL_CORE || inp->ftype==GKYL_PF_LO) && (arcL_curr > arcL_r)){
                 rclose = rleft;
                 arc_ctx.arcL_right = arcL_r;
                 arc_ctx.right = false;
@@ -721,7 +783,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               arc_ctx.zmin = zmin;
               arc_ctx.zmax = zmax;
               arc_ctx.arcL = arcL_curr;
-              if(arc_ctx.right){
+              if(arc_ctx.right || arc_ctx.ftype==GKYL_SOL_DN){
                 ridders_min = -arcL_curr;
                 ridders_max = arcL-arcL_curr;
               }

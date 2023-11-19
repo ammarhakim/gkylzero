@@ -1,3 +1,4 @@
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,165 +45,7 @@ struct step_ctx {
 };
 
 static inline double sq(double x) { return x*x; }
-static inline double cub(double x) { return x*x*x; }
-static inline double qad(double x) { return x*x*x*x; }
-static inline double pen(double x) { return x*x*x*x*x; }
-static inline double hex(double x) { return x*x*x*x*x*x; }
 
-
-
-static inline void
-comp_to_phys(int ndim, const double *eta,
-  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
-  double* GKYL_RESTRICT xout)
-{
-  for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
-}
-
-
-
-
-double Alist[24] = {1.098170000000000091e+00,  
-5.749690000000000190e+00,  
-5.254970000000000141e+00,  
-7.063550000000000217e+00,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.199999999999999956e+00,  
-1.098170000000000091e+00,  
-5.749690000000000190e+00,  
-5.254970000000000141e+00,  
-7.063550000000000217e+00,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.000000000000000056e-01,  
-1.199999999999999956e+00,  
-2.339999999999999858e+00,  
-2.860000000000000320e+00,  
-2.600000000000000089e+00,  
-2.600000000000000089e+00,  
-2.600000000000000089e+00,  
-2.600000000000000089e+00};
-
-
- double Zlist[24] = {6.067210000000000214e+00,
- 8.385300000000000864e+00,
- 5.380029999999999646e+00,
- 1.933729999999999949e+00,
- 2.000000000000000000e+00,
- 0.000000000000000000e+00,
- 7.500000000000000000e-01,
- 9.000000000000000222e-01,
- 8.000000000000000000e+00,
- -6.067210000000000214e+00,
- -8.385300000000000864e+00,
- -5.380029999999999646e+00,
- -1.933729999999999949e+00,
- -2.000000000000000000e+00,
- -0.000000000000000000e+00,
- -7.500000000000000000e-01,
- -9.000000000000000222e-01,
- -8.000000000000000000e+00,
- 0.000000000000000000e+00,
- 0.000000000000000000e+00,
- 2.600000000000000089e-01,
- -2.600000000000000089e-01,
- 0.000000000000000000e+00,
- 0.000000000000000000e+00};
-
- double current_list[24] = {2.733587001572373323e+06,
- 2.576555680242971517e+06,
- -4.769840006204952952e+05,
- -5.848048038329290226e+06,
- -6.272967875940668583e+07,
- -9.374610126189786196e+07,
- -5.444083807201912999e+07,
- -4.781479151113666594e+07,
- 2.885451375306561589e+06,
- 2.733587001572373323e+06,
- 2.576555680242971517e+06,
- -4.769840006204952952e+05,
- -5.848048038329290226e+06,
- -6.272967875940668583e+07,
- -9.374610126189786196e+07,
- -5.444083807201912999e+07,
- -4.781479151113666594e+07,
- 2.885451375306561589e+06,
- -2.886111956023474224e+06,
- 2.886111956023474224e+06,
- 6.830522162672655284e+07,
- 6.830522162672655284e+07,
- -1.366104432534531057e+08,
- 1.650000000000000000e+07};
-
-
-
-
-
-double ellipk(double m){
-  return Complete_Elliptic_Integral_First_Kind( 'm', m );
-}
-double ellipe(double m){
-  return Complete_Elliptic_Integral_Second_Kind( 'm', m );
-}
-
-// input is spherical coords r,theta,a
-double Aphi_f(double r, double theta, double a){
-    double mu0 = 1.256e-6;
-    double ksq = 4*a*r*sin(theta)/(sq(a)+sq(r) + 2*a*r*sin(theta));
-    double fac1 = mu0/(4*M_PI);
-
-    double num2 = 4*a;
-    double denom2 = sqrt(sq(a) + sq(r) + 2*a*r*sin(theta));
-    double fac2 = num2/denom2;
-
-    double num3 = (2-ksq)*ellipk(ksq) - 2*ellipe(ksq);
-    double denom3 = ksq;
-    double fac3 = num3/denom3;
-
-    return fac1*fac2*fac3;
-}
-
-void
-psi(double t, const double *xn, double *fout, void *ctx)
-{
-  struct step_ctx *s = ctx;
-  double R0 = s->R0;
-  double R = xn[0], Z = xn[1];
-
-  double psiret = 0.0;
-
-  for(int i = 0; i<24; i++){
-    double zi = Z - Zlist[i];
-    double rs = sqrt(sq(R) + sq(zi));
-    double thetas = acos(zi/rs);
-    double Aphii = Aphi_f(rs,thetas,Alist[i]);
-    double psii = current_list[i]*Aphii*R;
-    psiret += psii;
-  }
-  fout[0] = psiret;
-}
-
-
-
-void
-psibyr(double t, const double *xn, double *fout, void *ctx)
-{
-  double R = xn[0], Z = xn[1];
-  psi(t,xn,fout,ctx);
-  fout[0] = fout[0]/R;
-}
-
-void
-psibyr2(double t, const double *xn, double *fout, void *ctx)
-{
-  double R = xn[0], Z = xn[1];
-  psi(t,xn,fout,ctx);
-  fout[0] = fout[0]/R/R;
-}
 
 void
 bphi_func(double t, const double *xn, double *fout, void *ctx)
@@ -213,40 +56,12 @@ bphi_func(double t, const double *xn, double *fout, void *ctx)
   fout[0] = B0*R0/R;
 }
 
-
 void
 test_1()
 {
   clock_t start, end;
   double cpu_time_used;
   start = clock();
-
-
-
-  
-  // create RZ grid
-  //double lower[] = { 0.01, -7.5 }, upper[] = { 7.0, 7.4 };
-  //int cells[] = { 64, 128 };
-
-  //struct gkyl_rect_grid rzgrid;
-  //gkyl_rect_grid_init(&rzgrid, 2, lower, upper, cells);
-
-  // RZ ranges
-  //struct gkyl_range rzlocal, rzlocal_ext;
-  //int nghost[GKYL_MAX_CDIM] = { 1, 1 };
-  //gkyl_create_grid_ranges(&rzgrid, nghost, &rzlocal_ext, &rzlocal);
-
-  //// RZ basis function
-  //int rzpoly_order = 2;
-  //struct gkyl_basis rzbasis;
-  //gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
-
-  // allocate psiRZ array, initialize and write it to file
-  //struct gkyl_array *psiRZ = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-  //
-  //gkyl_eval_on_nodes *eon = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, &psi, &sctx);
-  //gkyl_eval_on_nodes_advance(eon, 0.0, &rzlocal, psiRZ);
-  //gkyl_eval_on_nodes_release(eon);
 
   char* filepath = "./efit_data/input.geqdsk";
   // RZ basis function
@@ -301,9 +116,9 @@ test_1()
   //double cupper[] = {1.4688, 0.01, 3.14 };
 
   double clower[] = { psiSep, -0.01, -3.14 };
-  double cupper[] = {1.6, 0.01, 3.14 };
+  double cupper[] = {1.52, 0.01, 3.14 };
 
-  int ccells[] = { 1, 1, 32 };
+  int ccells[] = { 1, 1, 8 };
 
 
 
@@ -338,20 +153,20 @@ test_1()
   struct gkyl_geo_gyrokinetic_geo_inp ginp = {
     .cgrid = &cgrid,
     .cbasis = &cbasis,
-    .ftype = GKYL_CORE,
+    .ftype = GKYL_PF_LO,
     .bcs = bcs,
     //.zmin = efit->zmin,
     //.zmax = efit->zmax,
 
     .rclose = efit->rmax,
-    .rleft= efit->rmin,
+    .rleft= 2.0,
     .rright= efit->rmax,
-    .zmin = -6.168,
-    .zmax = 6.168,
+    .zmin = -6.48,
+    .zmax = -6.168,
     .zmaxis = -4.84614e-07,
   
     .write_node_coord_array = true,
-    .node_file_nm = "stepclosed_nodes.gkyl"
+    .node_file_nm = "steppflo_nodes.gkyl"
   }; 
 
 
@@ -363,14 +178,14 @@ test_1()
   gkyl_geo_gyrokinetic_calcgeom(geo, &ginp, mapc2p_arr, &conversion_range);
 
   printf("writing mapc2p file from calcgeom\n");
-  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "stepclosed_mapc2pfile.gkyl");
+  gkyl_grid_sub_array_write(&cgrid, &clocal, mapc2p_arr, "steppflo_mapc2pfile.gkyl");
   printf("wrote mapc2p file\n");
 
   //make psi
   //gkyl_eval_on_nodes *eval_psi = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psi, &sctx);
   //struct gkyl_array* psidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   //gkyl_eval_on_nodes_advance(eval_psi, 0.0, &rzlocal_ext, psidg); //on ghosts with ext_range
-  //gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "stepclosed_psi.gkyl");
+  //gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psidg, "steppflo_psi.gkyl");
 
   //gkyl_eval_on_nodes *eval_psibyr = gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, psibyr, &sctx);
   //struct gkyl_array* psibyrdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
@@ -405,14 +220,14 @@ test_1()
   do{
     printf("writing the comp bmag file \n");
     const char *fmt = "%s_compbmag.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "stepclosed");
+    snprintf(fileNm, sizeof fileNm, fmt, "steppflo");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
   } while (0);
 
   do{
     printf("writing the bphi file \n");
     const char *fmt = "%s_bphi.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "stepclosed");
+    snprintf(fileNm, sizeof fileNm, fmt, "steppflo");
     gkyl_grid_sub_array_write(&rzgrid, &rzlocal, bphidg, fileNm);
   } while (0);
 
@@ -427,7 +242,7 @@ test_1()
   //gkyl_eval_on_nodes_advance(eval_mapc2p, 0.0, &clocal_ext, XYZ);
 
   //printf("writing rz file\n");
-  //gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "stepclosed_xyzfile.gkyl");
+  //gkyl_grid_sub_array_write(&cgrid, &clocal, XYZ, "steppflo_xyzfile.gkyl");
   //printf("wrote rz file\n");
   
   printf("calculating metrics \n");
@@ -441,7 +256,7 @@ test_1()
   do{
     printf("writing the gij file \n");
     const char *fmt = "%s_g_ij.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "stepclosed");
+    snprintf(fileNm, sizeof fileNm, fmt, "steppflo");
     gkyl_grid_sub_array_write(&cgrid, &clocal, gFld, fileNm);
   } while (0);
 
@@ -470,28 +285,28 @@ test_1()
   do{
     printf("writing the  second comp bmag file \n");
     const char *fmt = "%s_compbmag2.gkyl";
-    snprintf(fileNm, sizeof fileNm, fmt, "stepclosed");
+    snprintf(fileNm, sizeof fileNm, fmt, "steppflo");
     gkyl_grid_sub_array_write(&cgrid, &clocal, bmagFld, fileNm);
   } while (0);
 
     do{
       printf("writing the j file \n");
       const char *fmt = "%s_j.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "stepclosed");
+      snprintf(fileNm, sizeof fileNm, fmt, "steppflo");
       gkyl_grid_sub_array_write(&cgrid, &clocal, jFld, fileNm);
     } while (0);
 
     do{
       printf("writing the jtot file \n");
       const char *fmt = "%s_jtot.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "stepclosed");
+      snprintf(fileNm, sizeof fileNm, fmt, "steppflo");
       gkyl_grid_sub_array_write(&cgrid, &clocal, jtotFld, fileNm);
     } while (0);
 
     do{
       printf("writing the cmag file \n");
       const char *fmt = "%s_cmag.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "stepclosed");
+      snprintf(fileNm, sizeof fileNm, fmt, "steppflo");
       gkyl_grid_sub_array_write(&cgrid, &clocal, cmagFld, fileNm);
     } while (0);
  
@@ -499,7 +314,7 @@ test_1()
     do{
       printf("writing the g^ij file \n");
       const char *fmt = "%s_gij.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "stepclosed");
+      snprintf(fileNm, sizeof fileNm, fmt, "steppflo");
       gkyl_grid_sub_array_write(&cgrid, &clocal, grFld, fileNm);
     } while (0);
 
@@ -507,7 +322,7 @@ test_1()
     do{
       printf("writing the b_i file \n");
       const char *fmt = "%s_bi.gkyl";
-      snprintf(fileNm, sizeof fileNm, fmt, "stepclosed");
+      snprintf(fileNm, sizeof fileNm, fmt, "steppflo");
       gkyl_grid_sub_array_write(&cgrid, &clocal, biFld, fileNm);
     } while (0);
 
