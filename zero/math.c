@@ -276,6 +276,6 @@ gkyl_calc_lo_poly_roots(enum gkyl_lo_poly_order order, double coeff[4])
     case GKYL_LO_POLY_4:
       proots = quart_poly_roots(coeff);
       break;
-  };
+  }
   return proots;
 }

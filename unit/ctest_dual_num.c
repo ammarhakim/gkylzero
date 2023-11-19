@@ -76,8 +76,13 @@ void test_basic(void)
   TEST_CHECK( res.x[0] == tan(x10) );
   TEST_CHECK( gkyl_compare_double(res.x[1], 1/(cos(x10)*cos(x10)), 1e-15) );
 
+  res = gdn_log(x1);
+  TEST_CHECK( res.x[0] == log(x10) );
+  TEST_CHECK( gkyl_compare_double(res.x[1], 1/x10, 1e-15) );
+
   res = func_1(x1);
   TEST_CHECK( cmp_dn(res, gdn_new(func_1_0(x10), func_1_1(x10))) );
+
 }
 
 void test_basic2(void)
@@ -104,6 +109,9 @@ void test_basic2(void)
 
   res = gdn2_sin(x1);
   TEST_CHECK( cmp_dn2(res, gdn2_new(sin(x10), cos(x10), 2.0*cos(x10))) );
+
+  res = gdn2_log(x1);
+  TEST_CHECK( cmp_dn2(res, gdn2_new(log(x10), 1/x10, 2.0/x10)) );  
 
   res = gdn2_tan(x1);
   TEST_CHECK( res.x[0] == tan(x10) );

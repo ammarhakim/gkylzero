@@ -14,7 +14,7 @@ struct gkyl_dn2 { double x[3]; };
 
    Basic operators: neg, add, sadd, sub, ssub, mul, smul, div, sdiv
    
-   Functions: sq, cube, npow, sqrt, sin, cos, tan
+   Functions: sq, cube, npow, sqrt, sin, cos, tan, log
 */
 
 // Construct new dual numbers
@@ -165,6 +165,13 @@ static inline struct gkyl_dn
 gdn_tan(struct gkyl_dn d1)
 {
   return gdn_div(gdn_sin(d1), gdn_cos(d1));
+}
+
+GKYL_CU_DH
+static inline struct gkyl_dn
+gdn_log(struct gkyl_dn d1)
+{
+  return (struct gkyl_dn) { log(d1.x[0]), d1.x[1]/d1.x[0] };
 }
 
 /***************/
@@ -333,4 +340,11 @@ static inline struct gkyl_dn2
 gdn2_tan(struct gkyl_dn2 d1)
 {
   return gdn2_div(gdn2_sin(d1), gdn2_cos(d1));
+}
+
+GKYL_CU_DH
+static inline struct gkyl_dn2
+gdn2_log(struct gkyl_dn2 d1)
+{
+  return (struct gkyl_dn2) { log(d1.x[0]), d1.x[1]/d1.x[0], d1.x[2]/d1.x[0] };
 }
