@@ -44,7 +44,8 @@ struct gkyl_geo_gyrokinetic {
 
 // Type of flux surface
 enum gkyl_geo_gyrokinetic_type {
-  GKYL_SOL_DN, // SOL of double-null configuration
+  GKYL_SOL_DN_OUT, // Outboard SOL of double-null configuration
+  GKYL_SOL_DN_IN, // Inboard SOL of double-null configuration
   GKYL_SOL_SN, // SOL of single-null configuration
   GKYL_PF_UP, // Private flux region at top
   GKYL_PF_LO, // Private flux region at bottom

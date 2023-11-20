@@ -360,8 +360,11 @@ arc_length_func(double Z, void *ctx)
   double zmax = actx->zmax;
   double ival = 0.0;
 
-  if(actx->ftype==GKYL_SOL_DN){
-    ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo) - arcL;
+  if(actx->ftype==GKYL_SOL_DN_OUT){
+    ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, true, arc_memo) - arcL;
+  }
+  if(actx->ftype==GKYL_SOL_DN_IN){
+    ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, true, true, arc_memo) - arcL;
   }
   else if(actx->ftype==GKYL_CORE){
     if(actx->right==true){
@@ -402,11 +405,14 @@ phi_func(double alpha_curr, double Z, void *ctx)
   // Using convention from Noah Mandell's thesis Eq 5.104 phi = alpha at midplane
   double ival = 0;
   double phi_ref = 0.0;
-  if(actx->ftype==GKYL_SOL_DN){
+  if(actx->ftype==GKYL_SOL_DN_OUT){
     if(Z<actx->zmaxis)
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     else
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+  }
+  if(actx->ftype==GKYL_SOL_DN_IN){
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
   }
   else if(actx->ftype==GKYL_CORE){
     if(actx->right==true){
@@ -812,11 +818,17 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             arc_ctx.phi_left = phi_l - alpha_curr; // otherwise alpha will get added on twice
             printf("phi left= %g\n", arc_ctx.phi_left);
           }
-          else if(inp->ftype==GKYL_SOL_DN){
+          else if(inp->ftype==GKYL_SOL_DN_OUT){
             arc_ctx.phi_right = 0.0;
             arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);
             darcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
-            printf("SOL_DN, arcL = %g\n", arcL);
+            printf("SOL_DN_OUT, arcL = %g\n", arcL);
+          }
+          else if(inp->ftype==GKYL_SOL_DN_IN){
+            arc_ctx.phi_right = 0.0;
+            arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);
+            darcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
+            printf("SOL_DN_IN, arcL = %g\n", arcL);
           }
 
           // at the beginning of each theta loop we need to reset things
@@ -889,9 +901,14 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                   ridders_max = -arcL_curr;
                 }
               }
-              if(arc_ctx.ftype==GKYL_SOL_DN){
+              if(arc_ctx.ftype==GKYL_SOL_DN_OUT){
                 ridders_min = -arcL_curr;
                 ridders_max = arcL-arcL_curr;
+                arc_ctx.right = false;
+              }
+              if(arc_ctx.ftype==GKYL_SOL_DN_IN){
+                ridders_min = arcL-arcL_curr;
+                ridders_max = -arcL_curr;
                 arc_ctx.right = false;
               }
 
