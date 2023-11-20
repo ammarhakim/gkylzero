@@ -61,11 +61,15 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   double *amdq, double *apdq)
 {
   amdq[0] = apdq[0] = 0.0;
-  double s0 = 0.5*(ql[0]+qr[0]);
-  if (s0 < 0)
-    amdq[0] = s0*(qr[0]-ql[0]);
+  if (s[0] < 0)
+    amdq[0] = s[0]*waves[0];
   else
-    apdq[0] = s0*(qr[0]-ql[0]);
+    apdq[0] = s[0]*waves[0];
+
+  if ((ql[0]<0.0) && (0.0<qr[0])) {
+    amdq[0] = -0.5*ql[0]*ql[0];
+    apdq[0] = 0.5*qr[0]*qr[0];
+  }  
 }
 
 static void
@@ -73,17 +77,20 @@ ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
-  double s0 = 0.5*(ql[0]+qr[0]);
   amdq[0] = apdq[0] = 0.0;
 
-  if (fabs(s0) < 1e-15) {
+  if (fabs(s[0]) < 1e-15) {
     amdq[0] = apdq[0] = 0.5*waves[0];
   }
   else {
-    if (s0 < 0)
+    if (s[0] < 0)
       amdq[0] = waves[0];
     else
       apdq[0] = waves[0];
+  }
+  if ((ql[0]<0.0) && (0.0<qr[0])) {
+    amdq[0] = 0.0 -0.5*ql[0]*ql[0];
+    apdq[0] = 0.5*qr[0]*qr[0] - 0.0;
   }
 }
 

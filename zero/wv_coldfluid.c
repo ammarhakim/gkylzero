@@ -13,7 +13,7 @@ struct wv_coldfluid {
   struct gkyl_wv_eqn eqn; // base object
 };
 
-void
+static void
 coldfluid_flux(const double q[5], double flux[5])
 {
   double u = q[RHOU]/q[0];
