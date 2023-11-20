@@ -301,7 +301,7 @@ test_1()
   //double cupper[] = {1.4688, 0.01, 3.14 };
 
   double clower[] = { psiSep, -0.01, -3.14 };
-  double cupper[] = {1.6, 0.01, 3.14 };
+  double cupper[] = {1.9, 0.01, 3.14 };
 
   int ccells[] = { 1, 1, 32 };
 

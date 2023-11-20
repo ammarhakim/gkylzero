@@ -122,7 +122,7 @@ test_1()
   //double clower[] = { 0.934, -0.01, -3.14 };
   //double cupper[] = {1.4688, 0.01, 3.14 };
 
-  double clower[] = { 1.4, -0.01, -3.14 };
+  double clower[] = { 0.934, -0.01, -3.14 };
   double cupper[] = {psiSep, 0.01, 3.14 };
 
   int ccells[] = { 1, 1, 32 };
