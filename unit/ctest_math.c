@@ -159,9 +159,8 @@ test_poly2_roots(void)
     TEST_CHECK( istat.status );
   } while (0);
 
-  do { 
+  do {
     struct idx_status istat;
-  
     double c1[4] = { 13.0, -4.0 };
     rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_2, c1);
     
@@ -218,8 +217,6 @@ test_poly4_roots(void)
   struct gkyl_lo_poly_roots rts;
 
   do {
-    static struct idx_status istat;
-
     double c1[4] = { 120.0, -26.0, -25.0, 2.0 };
     rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_4, c1);
 
@@ -233,8 +230,6 @@ test_poly4_roots(void)
   } while (0);
 
   do {
-    static struct idx_status istat;
-
     double c1[4] = { 520.0, 22.0, -3.0, 10.0 };
     rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_4, c1);
 
@@ -249,7 +244,72 @@ test_poly4_roots(void)
         check_in_list(4, res, rts.rpart[i]+I*rts.impart[i], 1e-14).status
       );
     
+  } while (0);
+
+  do {
+    // REPEATED ROOTS ARE A PROBLEM!
+    double c1[4] = { 20.0, -4.0, -15.0, -2.0 };
+    /* rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_4, c1); */
+
+    /* double complex res[4] = { */
+    /*   5.0, 1.0, -2.0, -2.0 */
+    /* }; */
+
+    /* printf("%d (%lg,%lg) (%lg,%lg) (%lg,%lg) (%lg,%lg)\n", */
+    /*   rts.niter, */
+    /*   rts.rpart[0], rts.impart[0], */
+    /*   rts.rpart[1], rts.impart[1], */
+    /*   rts.rpart[2], rts.impart[2], */
+    /*   rts.rpart[3], rts.impart[3] */
+    /* ); */
+
+    /* for (int i=0; i<4; ++i) */
+    /*   TEST_CHECK( */
+    /*     check_in_list(4, res, rts.rpart[i]+I*rts.impart[i], 1e-14).status */
+    /*   ); */
+    
   } while (0);  
+}
+
+void
+test_polyn_roots(void)
+{
+  struct gkyl_poly_roots *rts = gkyl_poly_roots_new(4);
+
+  do {
+    double c1[] = { 120.0, -26.0, -25.0, 2.0 };
+    gkyl_calc_poly_roots(rts, c1);
+
+    double complex res[4] = { 4.0, 2.0, -3.0, -5.0 };
+
+    //printf("test_polyn_roots: niter = %d\n", rts->niter);
+    for (int i=0; i<4; ++i) {
+      TEST_CHECK(
+        check_in_list(4, res, rts->rpart[i]+I*rts->impart[i], 1e-14).status
+      );
+    }
+    
+  } while (0);
+
+  do {
+    // REPEATED ROOTS ARE A PROBLEM!    
+    /* double c1[] = { 20.0, -4.0, -15.0, -2.0 }; */
+    /* gkyl_calc_poly_roots(rts, c1); */
+
+    /* double complex res[4] = { 5.0, 1.0, -2.0, -2.0 }; */
+
+    /* for (int i=0; i<4; ++i) { */
+    /*   if (!TEST_CHECK( */
+    /*       check_in_list(4, res, rts->rpart[i]+I*rts->impart[i], 1e-14).status */
+    /*     ) */
+    /*   ) { */
+    /*     TEST_MSG("Root is (%lg,%lg) %lg\n", rts->rpart[i], rts->impart[i], rts->err[i]); */
+    /*   } */
+    /* } */
+    
+  } while (0);  
+
+  gkyl_poly_roots_release(rts);
 }
 
 TEST_LIST = {
@@ -258,5 +318,6 @@ TEST_LIST = {
   { "poly2_roots", test_poly2_roots },
   { "poly3_roots", test_poly3_roots },
   { "poly4_roots", test_poly4_roots },
+  { "polyn_roots", test_polyn_roots },  
   { NULL, NULL },
 };

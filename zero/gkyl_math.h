@@ -134,6 +134,16 @@ struct gkyl_lo_poly_roots {
   double rpart[4], impart[4]; // real and imaginary part of roots
   double err[4]; // estimated error for each root
   int niter; // number of iterations
+};
+
+// Polynomial roots for arbitrary order polynomials: allocate an free
+// using new and release methods as usual
+struct gkyl_poly_roots {
+  int poly_order; // polynomial order
+  double *rpart, *impart; // real and imaginary part of roots
+  double *err; // estimated error for each root
+  int niter;   // number of iterations
+  void *work; // some memory needed internally. Do not muck or access!
 };  
 
 /**
@@ -188,3 +198,27 @@ struct gkyl_qr_res gkyl_ridders(double (*func)(double,void*), void *ctx,
  */
 struct gkyl_lo_poly_roots gkyl_calc_lo_poly_roots(enum gkyl_lo_poly_order order,
   double coeff[4]);
+
+/**
+ * Allocate memory to store polynomial roots.
+ *
+ * @param poly_order Polynomial order
+ * @return newly allocated memory. Free using release method.
+ */
+struct gkyl_poly_roots* gkyl_poly_roots_new(int poly_order);
+
+/**
+ * Compute all roots of polymomial with real coefficients. The leading
+ * coefficient must be 1.0 and the coeff[i] is the coefficient of x^i.
+ *
+ * @param pr On output, contains all the roots. Must be preallocated
+ * @param coeff Coefficients of monomials
+ */
+void gkyl_calc_poly_roots(struct gkyl_poly_roots *pr, const double *coeff);
+
+/**
+ * Release memory for use in polynomial root finder.
+ *
+ * @param pr Memory to release.
+ */
+void gkyl_poly_roots_release(struct gkyl_poly_roots *pr);
