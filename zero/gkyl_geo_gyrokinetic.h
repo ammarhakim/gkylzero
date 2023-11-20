@@ -46,7 +46,8 @@ struct gkyl_geo_gyrokinetic {
 enum gkyl_geo_gyrokinetic_type {
   GKYL_SOL_DN_OUT, // Outboard SOL of double-null configuration
   GKYL_SOL_DN_IN, // Inboard SOL of double-null configuration
-  GKYL_SOL_SN, // SOL of single-null configuration
+  GKYL_SOL_SN_LO, // SOL of a lower single-null configuration
+  GKYL_SOL_SN_UP, // SOL of an upper single-null configuration
   GKYL_PF_UP, // Private flux region at top
   GKYL_PF_LO, // Private flux region at bottom
   GKYL_CORE // Core (closed flux-surface)
