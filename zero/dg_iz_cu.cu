@@ -13,16 +13,16 @@ extern "C" {
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_iz_priv.h>
-#include <gkyl_read_adas_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_const.h>
 }
 
 __global__ static void
-gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng, const struct gkyl_basis adas_basis,
-  const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq, const struct gkyl_dg_prim_vars_type *calc_prim_vars_donor_gk,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_donor,
-  struct gkyl_array *vtSq_elc, struct gkyl_array *prim_vars_donor, struct gkyl_array *coef_iz,
-  struct gkyl_array *ioniz_data)
+gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
+  const struct gkyl_basis adas_basis, const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq,
+  const struct gkyl_dg_prim_vars_type *calc_prim_vars_donor_gk, const struct gkyl_array *moms_elc,
+  const struct gkyl_array *moms_donor, struct gkyl_array *vtSq_elc, struct gkyl_array *prim_vars_donor,
+  struct gkyl_array *coef_iz, struct gkyl_array *coef_m0, struct gkyl_array *ioniz_data)
 {
   int cidx[GKYL_MAX_CDIM];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -33,7 +33,10 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     const double *moms_elc_d = (const double*) gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];
 
+    for (int i=0; i<up->cbasis->num_basis; ++i) coef_m0_d[i] = m0_elc_d[i];
+    
     double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
+    double *coef_m0_d = (double*) gkyl_array_fetch(coef_m0, loc);
     double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc);
     
     calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d,
@@ -41,9 +44,13 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
 
     if ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION)) {
       const double *moms_donor_d = (const double*) gkyl_array_cfetch(moms_donor, loc);
+      const double *m0_donor_d = &moms_donor_d[0];
       double *prim_vars_donor_d = (double*) gkyl_array_fetch(prim_vars_donor, loc);
       calc_prim_vars_donor_gk->kernel(calc_prim_vars_donor_gk, cidx,
 				      moms_donor_d, prim_vars_donor_d);
+      if (up->type_self == GKYL_IZ_ELC) {
+      	for (int i=0; i<up->cbasis->num_basis; ++i) coef_m0_d[i] = m0_donor_d[i];
+      }
     }   
     
     //Find nearest neighbor for n, Te in ADAS interpolated data
@@ -70,9 +77,14 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     cell_center = (m0_idx - 0.5)*up->dlogM0 + up->minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
  
-    double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&adas_rng, (int[2]) {t_idx,m0_idx}));
-    double adas_eval = adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
-    coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+    if ((up->E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
+      coef_iz_d[0] = 0.0;
+    }
+    else {
+      double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
+      double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
+      coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+    }
   }
 }
 
@@ -87,50 +99,46 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   }
 
-  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng, up->adas_basis,
-    up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_donor->on_dev, 
-    moms_elc->on_dev, moms_donor->on_dev,
-    up->vtSq_elc->on_dev, up->prim_vars_donor->on_dev, up->coef_iz->on_dev,
-    up->ioniz_data->on_dev);
+  gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng,
+    up->adas_basis, up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_donor->on_dev, 
+    moms_elc->on_dev, moms_donor->on_dev, up->vtSq_elc->on_dev, up->prim_vars_donor->on_dev,
+    up->coef_iz->on_dev, up->coef_m0->on_dev, up->ioniz_data->on_dev);
 
   if (up->type_self == GKYL_IZ_ELC) {
+     
     // Calculate vt_sq_iz
-    gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, *up->conf_rng);
-    gkyl_array_scale_range(up->vtSq_iz, 1/2.0, *up->conf_rng);
+    gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, up->conf_rng);
+    gkyl_array_scale_range(up->vtSq_iz, 1/2.0, up->conf_rng);
     gkyl_array_shiftc(up->vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
 
     // Set fmax moments
-    gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->prim_vars_donor, 0, *up->conf_rng);
-    gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, *up->conf_rng);
+    gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->prim_vars_donor, 0, up->conf_rng);
+    gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, up->conf_rng);
 
     // Proj maxwellian on basis
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_elc,
-					     up->prim_vars_fmax, bmag, jacob_tot, up->mass_elc, up->fmax_iz);
-
+    					     up->prim_vars_fmax, bmag, jacob_tot, up->mass_elc, coll_iz);
+    
     // copy, scale and accumulate
-    gkyl_array_set_range(coll_iz, 2.0, up->fmax_iz, *up->phase_rng);
-    gkyl_array_accumulate_range(coll_iz, -1.0, f_self, *up->phase_rng);
-  
-    // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_donor, up->conf_rng);
+    gkyl_array_scale_range(coll_iz, 2.0, up->phase_rng);
+    gkyl_array_accumulate_range(coll_iz, -1.0, f_self, up->phase_rng);
+
   }
   else if (up->type_self == GKYL_IZ_ION) {
     // Proj maxwellian on basis (doesn't assume same phase grid, even if GK)
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_donor,
-					     up->prim_vars_donor, bmag, jacob_tot, up->mass_elc, coll_iz);
-    // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
+    					     up->prim_vars_donor, bmag, jacob_tot, up->mass_ion, coll_iz);
   }
   else if (up->type_self == GKYL_IZ_DONOR) {
     // neut coll_iz = -f_n
-    gkyl_array_set_range(coll_iz, -1.0, f_self, *up->phase_rng);
-    // weak multiply
-    gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_iz, 0, up->coef_iz, 0, moms_elc, up->conf_rng);
+    gkyl_array_set_range(coll_iz, -1.0, f_self, up->phase_rng);
   }
 
-  // coll_iz = n_n*coef_iz*coll_iz
+  // coll_iz = coef_iz*coll_iz
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_iz, coll_iz,
-				    up->conf_rng, up->phase_rng);
+  				    up->conf_rng, up->phase_rng);
+  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_m0, coll_iz,
+  				    up->conf_rng, up->phase_rng);
   
   
   // cfl calculation
@@ -148,50 +156,52 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
 }
 
 struct gkyl_dg_iz*
-gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
-  double elem_charge, double mass_elc, enum gkyl_dg_iz_type type_ion,
-  int charge_state, enum gkyl_dg_iz_self type_self, bool all_gk)
+gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp);
 {
   gkyl_dg_iz *up = (struct gkyl_dg_iz*) gkyl_malloc(sizeof(struct gkyl_dg_iz));
 
-  int cdim = cbasis->ndim;
-  int pdim = pbasis->ndim;
-  int poly_order = cbasis->poly_order;
-  up->cbasis = cbasis;
-  up->pbasis = pbasis;
+  up->grid = inp->grid;
+  up->cbasis = inp->cbasis;
+  up->pbasis = inp->pbasis;
+  up->conf_rng = inp->conf_rng;
+  up->phase_rng = inp->phase_rng;
+  up->mass_ion = inp->mass_ion;
+  up->type_self = inp->type_self;
+  up->all_gk = inp->all_gk;
+
+  const char *base = inp->base;
+  int charge_state = inp->charge_state;
+  enum gkyl_dg_iz_type type_ion = inp->type_ion;
+  
+  int cdim = up->cbasis->ndim;
+  int pdim = up->pbasis->ndim;
+  int poly_order = up->cbasis->poly_order;
   up->cdim = cdim;
   up->use_gpu = use_gpu;
-  up->conf_rng = conf_rng;
-  up->phase_rng = phase_rng;
-  up->grid = grid;
-  up->all_gk = all_gk;
-  
-  up->elem_charge = elem_charge;
-  up->mass_elc = mass_elc;
-  up->mass_ion = mass_ion;
 
-  up->type_self = type_self;
+  up->elem_charge = GKYL_ELEMENTARY_CHARGE;
+  up->mass_elc = GKYL_ELECTRON_MASS;
   
   // Project ADAS data (H, He, Li)
   struct adas_field data;
 
-  read_adas_field_iz(type_ion, data);
+  read_adas_field_iz(type_ion, &data, base);
   
   long sz = data.NT*data.NN;
-  double *minmax;
+  double minmax[2];
 
-  if (data.logT == NULL) fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file.");
-  if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file.");
-  if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'ioniz_<elem>.npy' file.");
-  minmax = minmax_from_numpy(data.logT, data.NT);
+  if (data.logT == NULL) fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file. ");
+  if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file. ");
+  if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'ioniz_<elem>.npy' file. ");
+  minmax_from_numpy(data.logT, data.NT, minmax);
   fclose(data.logT);
   double logTmin = minmax[0], logTmax = minmax[1];
-  minmax = minmax_from_numpy(data.logN, data.NN);
+  minmax_from_numpy(data.logN, data.NN, minmax);
   fclose(data.logN);
   double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
 
-  struct gkyl_array *adas_nodal = array_from_numpy(data.logData, sz, data.Zmax);
+  struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, data.Zmax, sz);
+  array_from_numpy(data.logData, sz, data.Zmax, adas_nodal);
   fclose(data.logData);
 
   if (!adas_nodal) {
@@ -218,11 +228,14 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
   struct gkyl_basis adas_basis;
   gkyl_cart_modal_serendip(&adas_basis, 2, 1);
 
-  struct gkyl_array *adas_dg = gkyl_array_cu_dev_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
+  struct gkyl_array *adas_dg_ho =
+    gkyl_array_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
+  struct gkyl_array *adas_dg =
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
 
-  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state+1);
-  //gkyl_grid_sub_array_write(&tn_grid, &adas_rng, adas_dg, "adas_dg.gkyl");
-
+  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg_ho, charge_state+1);
+  gkyl_array_copy(adas_dg, adas_dg_ho);
+  
   // ADAS data pointers
   up->ioniz_data = adas_dg;
   up->E = data.Eiz[charge_state];
@@ -241,7 +254,8 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
   up->prim_vars_donor = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);
   up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
   up->vtSq_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); 
-  up->prim_vars_fmax = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); 
+  up->prim_vars_fmax = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);
+  up->coef_m0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
   up->coef_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
 
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", true);
@@ -256,6 +270,9 @@ gkyl_dg_iz_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, st
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
+
+  gkyl_array_release(adas_nodal);
+  gkyl_array_release(adas_dg_ho);
   
   return up;
 }

@@ -493,11 +493,22 @@ test_coll_iz_h_1x(bool use_gpu)
 
   // cuda stuff
   if (use_gpu) {
-    struct gkyl_array *moms_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume);
+    struct gkyl_array *moms_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim_vl+2)*basis.num_basis, confRange.volume);
     struct gkyl_array *moms_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+    struct gkyl_array *moms_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+    
     struct gkyl_array *cflRate_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_elc.volume);
     struct gkyl_array *distf_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_gk.num_basis, phaseRange_elc.volume);
     struct gkyl_array *coll_iz_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_gk.num_basis, phaseRange_elc.volume);
+
+    struct gkyl_array *cflRate_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ion.volume);
+    struct gkyl_array *distf_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_gk.num_basis, phaseRange_ion.volume);
+    struct gkyl_array *coll_iz_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_gk.num_basis, phaseRange_ion.volume);
+
+    struct gkyl_array *cflRate_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_vl.volume);
+    struct gkyl_array *distf_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_vl.num_basis, phaseRange_vl.volume);
+    struct gkyl_array *coll_iz_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_vl.num_basis, phaseRange_vl.volume);
+    
     // arrays necessary for fmax
     struct gkyl_array *bmag_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
     struct gkyl_array *jacob_tot_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -505,22 +516,45 @@ test_coll_iz_h_1x(bool use_gpu)
 
     gkyl_array_copy(moms_neut_cu, moms_neut);
     gkyl_array_copy(moms_elc_cu, moms_elc);
+    gkyl_array_copy(moms_ion_cu, moms_ion);
+    gkyl_array_copy(bmag_cu, bmag);
+    gkyl_array_copy(jacob_tot_cu, bmag);
+    gkyl_array_copy(b_i_cu, bmag);
+
     gkyl_array_copy(cflRate_elc_cu, cflRate_elc);
     gkyl_array_copy(distf_elc_cu, distf_elc);
     gkyl_array_copy(coll_iz_elc_cu, coll_iz_elc);
-    gkyl_array_copy(bmag_cu, bmag);
 
+    gkyl_array_copy(cflRate_ion_cu, cflRate_ion);
+    gkyl_array_copy(distf_ion_cu, distf_ion);
+    gkyl_array_copy(coll_iz_ion_cu, coll_iz_ion);
+
+    gkyl_array_copy(cflRate_neut_cu, cflRate_neut);
+    gkyl_array_copy(distf_neut_cu, distf_neut);
+    gkyl_array_copy(coll_iz_neut_cu, coll_iz_neut);
+    
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_elc, &phaseRange_elc, &confRange, moms_elc_cu,
-    bmag_cu, jacob_tot_cu, emass, distf_elc_cu);
+					    bmag_cu, jacob_tot_cu, emass, distf_elc_cu);
+    gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_ion, &phaseRange_ion, &confRange, moms_ion_cu,
+					    bmag_cu, jacob_tot_cu, h_ion_mass, distf_ion_cu);
+    gkyl_proj_maxwellian_on_basis_lab_mom(proj_max_neut, &phaseRange_vl, &confRange, moms_neut_cu, distf_neut_cu);
 
     gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_elc_cu);
+    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_ion_cu, coll_iz_ion_cu, cflRate_ion_cu);
+    gkyl_dg_iz_coll(coll_iz_up_neut, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_neut_cu, coll_iz_neut_cu, cflRate_neut_cu);
 
     gkyl_array_copy(coll_iz_elc, coll_iz_elc_cu);
-
+    gkyl_array_copy(coll_iz_ion, coll_iz_ion_cu);
+    gkyl_array_copy(coll_iz_neut, coll_iz_neut_cu);
+    
     gkyl_array_release(moms_elc_cu); gkyl_array_release(moms_neut_cu);
+    gkyl_array_release(moms_ion_cu);
     gkyl_array_release(cflRate_elc_cu); gkyl_array_release(distf_elc_cu);
-    gkyl_array_release(bmag_cu); gkyl_array_release(jacob_tot_cu);
-    gkyl_array_release(coll_iz_elc_cu); gkyl_array_release(b_i_cu);
+    gkyl_array_release(cflRate_ion_cu); gkyl_array_release(distf_ion_cu);
+    gkyl_array_release(cflRate_neut_cu); gkyl_array_release(distf_neut_cu);
+    gkyl_array_release(bmag_cu); gkyl_array_release(jacob_tot_cu); gkyl_array_release(b_i_cu);
+    gkyl_array_release(coll_iz_elc_cu); gkyl_array_release(coll_iz_ion_cu);
+    gkyl_array_release(coll_iz_neut_cu);
   }
   else {
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_elc, &phaseRange_elc, &confRange, moms_elc,
@@ -529,8 +563,11 @@ test_coll_iz_h_1x(bool use_gpu)
       bmag, jacob_tot, h_ion_mass, distf_ion);
 
     gkyl_proj_maxwellian_on_basis_lab_mom(proj_max_neut, &phaseRange_vl, &confRange, moms_neut, distf_neut);
-    gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_ion, "ctest_distf_ion.gkyl");
 
+    /* gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_elc, "ctest_distf_elc.gkyl"); */
+    /* gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_ion, "ctest_distf_ion.gkyl"); */
+    /* gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_neut, "ctest_distf_neut.gkyl"); */
+    
     gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc, moms_neut, bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate_elc);
     gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc, moms_neut, bmag, jacob_tot, b_i, distf_ion, coll_iz_ion, cflRate_ion);
     gkyl_dg_iz_coll(coll_iz_up_neut, moms_elc, moms_neut, bmag, jacob_tot, b_i, distf_neut, coll_iz_neut, cflRate_neut);
@@ -538,9 +575,9 @@ test_coll_iz_h_1x(bool use_gpu)
   }
 
   //gkyl_grid_sub_array_write(&confGrid, &confRange, coll_iz_up_ion->prim_vars_donor, "ctest_coll_iz_pvneut_gk.gkyl");
-  //gkyl_grid_sub_array_write(&phaseGrid_elc, &phaseRange_elc, coll_iz_elc, "ctest_coll_iz_h_elc.gkyl");
-  //gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, coll_iz_ion, "ctest_coll_iz_h_ion.gkyl");
-  //gkyl_grid_sub_array_write(&phaseGrid_vl, &phaseRange_vl, coll_iz_neut, "ctest_coll_iz_h_neut.gkyl");
+  gkyl_grid_sub_array_write(&phaseGrid_elc, &phaseRange_elc, coll_iz_elc, "ctest_coll_iz_h_elc.gkyl");
+  gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, coll_iz_ion, "ctest_coll_iz_h_ion.gkyl");
+  gkyl_grid_sub_array_write(&phaseGrid_vl, &phaseRange_vl, coll_iz_neut, "ctest_coll_iz_h_neut.gkyl");
   
   /* double p1_vals_elc[] = {-2.6709857935892035e+02,  7.7615561179731124e-15, -3.0274206010288621e-14, */
   /* 			  3.1077133685936207e-15, -3.7063309667532565e+01,  2.3005854246601783e+02, */
@@ -852,11 +889,22 @@ test_coll_iz_h(bool use_gpu)
 
   // cuda stuff
   if (use_gpu) {
-    struct gkyl_array *moms_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume);
+    struct gkyl_array *moms_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim_vl+2)*basis.num_basis, confRange.volume);
     struct gkyl_array *moms_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+    struct gkyl_array *moms_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+    
     struct gkyl_array *cflRate_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_elc.volume);
     struct gkyl_array *distf_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_gk.num_basis, phaseRange_elc.volume);
     struct gkyl_array *coll_iz_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_gk.num_basis, phaseRange_elc.volume);
+
+    struct gkyl_array *cflRate_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ion.volume);
+    struct gkyl_array *distf_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_gk.num_basis, phaseRange_ion.volume);
+    struct gkyl_array *coll_iz_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_gk.num_basis, phaseRange_ion.volume);
+
+    struct gkyl_array *cflRate_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_vl.volume);
+    struct gkyl_array *distf_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_vl.num_basis, phaseRange_vl.volume);
+    struct gkyl_array *coll_iz_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis_vl.num_basis, phaseRange_vl.volume);
+    
     // arrays necessary for fmax
     struct gkyl_array *bmag_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
     struct gkyl_array *jacob_tot_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -864,22 +912,45 @@ test_coll_iz_h(bool use_gpu)
 
     gkyl_array_copy(moms_neut_cu, moms_neut);
     gkyl_array_copy(moms_elc_cu, moms_elc);
+    gkyl_array_copy(moms_ion_cu, moms_ion);
+    gkyl_array_copy(bmag_cu, bmag);
+    gkyl_array_copy(jacob_tot_cu, bmag);
+    gkyl_array_copy(b_i_cu, bmag);
+
     gkyl_array_copy(cflRate_elc_cu, cflRate_elc);
     gkyl_array_copy(distf_elc_cu, distf_elc);
     gkyl_array_copy(coll_iz_elc_cu, coll_iz_elc);
-    gkyl_array_copy(bmag_cu, bmag);
 
+    gkyl_array_copy(cflRate_ion_cu, cflRate_ion);
+    gkyl_array_copy(distf_ion_cu, distf_ion);
+    gkyl_array_copy(coll_iz_ion_cu, coll_iz_ion);
+
+    gkyl_array_copy(cflRate_neut_cu, cflRate_neut);
+    gkyl_array_copy(distf_neut_cu, distf_neut);
+    gkyl_array_copy(coll_iz_neut_cu, coll_iz_neut);
+    
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_elc, &phaseRange_elc, &confRange, moms_elc_cu,
-    bmag_cu, jacob_tot_cu, emass, distf_elc_cu);
+					    bmag_cu, jacob_tot_cu, emass, distf_elc_cu);
+    gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_ion, &phaseRange_ion, &confRange, moms_ion_cu,
+					    bmag_cu, jacob_tot_cu, h_ion_mass, distf_ion_cu);
+    gkyl_proj_maxwellian_on_basis_lab_mom(proj_max_neut, &phaseRange_vl, &confRange, moms_neut_cu, distf_neut_cu);
 
     gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_elc_cu);
+    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_ion_cu, coll_iz_ion_cu, cflRate_ion_cu);
+    gkyl_dg_iz_coll(coll_iz_up_neut, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_neut_cu, coll_iz_neut_cu, cflRate_neut_cu);
 
     gkyl_array_copy(coll_iz_elc, coll_iz_elc_cu);
-
+    gkyl_array_copy(coll_iz_ion, coll_iz_ion_cu);
+    gkyl_array_copy(coll_iz_neut, coll_iz_neut_cu);
+    
     gkyl_array_release(moms_elc_cu); gkyl_array_release(moms_neut_cu);
+    gkyl_array_release(moms_ion_cu);
     gkyl_array_release(cflRate_elc_cu); gkyl_array_release(distf_elc_cu);
-    gkyl_array_release(bmag_cu); gkyl_array_release(jacob_tot_cu);
-    gkyl_array_release(coll_iz_elc_cu); gkyl_array_release(b_i_cu);
+    gkyl_array_release(cflRate_ion_cu); gkyl_array_release(distf_ion_cu);
+    gkyl_array_release(cflRate_neut_cu); gkyl_array_release(distf_neut_cu);
+    gkyl_array_release(bmag_cu); gkyl_array_release(jacob_tot_cu); gkyl_array_release(b_i_cu);
+    gkyl_array_release(coll_iz_elc_cu); gkyl_array_release(coll_iz_ion_cu);
+    gkyl_array_release(coll_iz_neut_cu);
   }
   else {
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_elc, &phaseRange_elc, &confRange, moms_elc,
@@ -1185,11 +1256,22 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
 
   // cuda stuff
   if (use_gpu) {
-    struct gkyl_array *moms_donor_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 5*basis.num_basis, confRange.volume);
+    struct gkyl_array *moms_donor_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
     struct gkyl_array *moms_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+    struct gkyl_array *moms_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+    
     struct gkyl_array *cflRate_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_elc.volume);
     struct gkyl_array *distf_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange_elc.volume);
     struct gkyl_array *coll_iz_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange_elc.volume);
+
+    struct gkyl_array *cflRate_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ion.volume);
+    struct gkyl_array *distf_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange_ion.volume);
+    struct gkyl_array *coll_izion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange_ion.volume);
+
+    struct gkyl_array *cflRate_donor_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ion.volume);
+    struct gkyl_array *distf_donor_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange_ion.volume);
+    struct gkyl_array *coll_iz_donor_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, phaseBasis.num_basis, phaseRange_ion.volume);
+    
     // arrays necessary for fmax
     struct gkyl_array *bmag_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
     struct gkyl_array *jacob_tot_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -1197,22 +1279,46 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
 
     gkyl_array_copy(moms_donor_cu, moms_donor);
     gkyl_array_copy(moms_elc_cu, moms_elc);
+    gkyl_array_copy(moms_ion_cu, moms_ion);
+    gkyl_array_copy(bmag_cu, bmag);
+    gkyl_array_copy(jacob_tot_cu, bmag);
+    gkyl_array_copy(b_i_cu, bmag);
+
     gkyl_array_copy(cflRate_elc_cu, cflRate_elc);
     gkyl_array_copy(distf_elc_cu, distf_elc);
     gkyl_array_copy(coll_iz_elc_cu, coll_iz_elc);
-    gkyl_array_copy(bmag_cu, bmag);
 
+    gkyl_array_copy(cflRate_ion_cu, cflRate_ion);
+    gkyl_array_copy(distf_ion_cu, distf_ion);
+    gkyl_array_copy(coll_iz_ion_cu, coll_iz_ion);
+
+    gkyl_array_copy(cflRate_donor_cu, cflRate_donor);
+    gkyl_array_copy(distf_donor_cu, distf_donor);
+    gkyl_array_copy(coll_iz_donor_cu, coll_iz_donor);
+    
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_elc, &phaseRange_elc, &confRange, moms_elc_cu,
-    bmag_cu, jacob_tot_cu, emass, distf_elc_cu);
+					    bmag_cu, jacob_tot_cu, emass, distf_elc_cu);
+    gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_ion, &phaseRange_ion, &confRange, moms_ion_cu,
+					    bmag_cu, jacob_tot_cu, li_ion_mass, distf_ion_cu);
+    gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_ion, &phaseRange_ion, &confRange, moms_donor_cu,
+					    bmag_cu, jacob_tot_cu, li_ion_mass, distf_donor_cu);
 
-    gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc_cu, moms_donor_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_elc_cu);
+    gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_elc_cu, coll_iz_elc_cu, cflRate_elc_cu);
+    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_ion_cu, coll_iz_ion_cu, cflRate_ion_cu);
+    gkyl_dg_iz_coll(coll_iz_up_donor, moms_elc_cu, moms_neut_cu, bmag_cu, jacob_tot_cu, b_i_cu, distf_donor_cu, coll_iz_donor_cu, cflRate_donor_cu);
 
     gkyl_array_copy(coll_iz_elc, coll_iz_elc_cu);
-
-    gkyl_array_release(moms_elc_cu); gkyl_array_release(moms_donor_cu);
+    gkyl_array_copy(coll_iz_ion, coll_iz_ion_cu);
+    gkyl_array_copy(coll_iz_donor, coll_iz_donor_cu);
+    
+    gkyl_array_release(moms_elc_cu); gkyl_array_release(moms_neut_cu);
+    gkyl_array_release(moms_ion_cu);
     gkyl_array_release(cflRate_elc_cu); gkyl_array_release(distf_elc_cu);
-    gkyl_array_release(bmag_cu); gkyl_array_release(jacob_tot_cu);
-    gkyl_array_release(coll_iz_elc_cu); gkyl_array_release(b_i_cu);
+    gkyl_array_release(cflRate_ion_cu); gkyl_array_release(distf_ion_cu);
+    gkyl_array_release(cflRate_neut_cu); gkyl_array_release(distf_neut_cu);
+    gkyl_array_release(bmag_cu); gkyl_array_release(jacob_tot_cu); gkyl_array_release(b_i_cu);
+    gkyl_array_release(coll_iz_elc_cu); gkyl_array_release(coll_iz_ion_cu);
+    gkyl_array_release(coll_iz_neut_cu);
   }
   else {
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_elc, &phaseRange_elc, &confRange, moms_elc,

@@ -180,9 +180,9 @@ test_coll_recomb_h(bool use_gpu)
   };
   
   // coll struct.
-  struct gkyl_dg_recomb *coll_recomb_up_elc = gkyl_dg_recomb_new(rec_inp_elc, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_ion = gkyl_dg_recomb_new(rec_inp_ion, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_neut = gkyl_dg_recomb_new(rec_inp_rcvr, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_elc = gkyl_dg_recomb_new(&rec_inp_elc, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_ion = gkyl_dg_recomb_new(&rec_inp_ion, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_neut = gkyl_dg_recomb_new(&rec_inp_rcvr, use_gpu);
   
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2_elc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -519,9 +519,9 @@ test_coll_recomb_all_gk_li(bool use_gpu)
   };
   
   // coll struct.
-  struct gkyl_dg_recomb *coll_recomb_up_elc = gkyl_dg_recomb_new(rec_inp_elc, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_ion = gkyl_dg_recomb_new(rec_inp_ion, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_recvr = gkyl_dg_recomb_new(rec_inp_rcvr, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_elc = gkyl_dg_recomb_new(&rec_inp_elc, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_ion = gkyl_dg_recomb_new(&rec_inp_ion, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_recvr = gkyl_dg_recomb_new(&rec_inp_rcvr, use_gpu);
   
   struct gkyl_array *m0 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *m2_elc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
@@ -818,12 +818,12 @@ test_coll_recomb_init_elem(bool use_gpu)
   };
     
   // coll struct.
-  struct gkyl_dg_recomb *coll_recomb_up_he = gkyl_dg_recomb_new(rec_inp_he, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_be = gkyl_dg_recomb_new(rec_inp_be, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_b = gkyl_dg_recomb_new(rec_inp_b, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_c = gkyl_dg_recomb_new(rec_inp_c, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_n = gkyl_dg_recomb_new(rec_inp_n, use_gpu);
-  struct gkyl_dg_recomb *coll_recomb_up_o = gkyl_dg_recomb_new(rec_inp_o, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_he = gkyl_dg_recomb_new(&rec_inp_he, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_be = gkyl_dg_recomb_new(&rec_inp_be, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_b = gkyl_dg_recomb_new(&rec_inp_b, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_c = gkyl_dg_recomb_new(&rec_inp_c, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_n = gkyl_dg_recomb_new(&rec_inp_n, use_gpu);
+  struct gkyl_dg_recomb *coll_recomb_up_o = gkyl_dg_recomb_new(&rec_inp_o, use_gpu);
 
   gkyl_dg_recomb_release(coll_recomb_up_he);
   gkyl_dg_recomb_release(coll_recomb_up_be);

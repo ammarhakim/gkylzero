@@ -14,14 +14,16 @@ extern "C" {
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_recomb_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_const.h>
 }
 
 __global__ static void
-gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng, const struct gkyl_basis adas_basis,
-  const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq, const struct gkyl_dg_prim_vars_type *calc_prim_vars_donor_gk,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_donor,
-  struct gkyl_array *vtSq_elc, struct gkyl_array *prim_vars_donor, struct gkyl_array *coef_recomb,
-  struct gkyl_array *recomb_data)
+gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
+  const struct gkyl_basis adas_basis, const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq,
+  const struct gkyl_dg_prim_vars_type *calc_prim_vars_ion_udrift, const struct gkyl_dg_prim_vars_type *calc_prim_vars_ion_vtSq,
+  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion, struct gkyl_array *vtSq_elc,
+  struct gkyl_array *coef_m0, struct gkyl_array *coef_recomb, struct gkyl_array *udrift_ion, struct gkyl_array *vtSq_ion,
+  struct gkyl_array prim_vars_ion, struct gkyl_array *recomb_data)
 {
   int cidx[GKYL_MAX_CDIM];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -31,20 +33,16 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
 
     const double *moms_elc_d = (const double*) gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];
-
+    
     double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
+    double *coef_m0_d = (double*) gkyl_array_fetch(coef_m0, loc);
     double *coef_recomb_d = (double*) gkyl_array_fetch(coef_recomb, loc);
+
+    for (int i=0; i<up->cbasis->num_basis; ++i) coef_m0_d[i] = m0_elc_d[i];
     
     calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d,
 				    vtSq_elc_d);
 
-    if ((up->type_self == GKYL_RECOMB_ELC) || (up->type_self == GKYL_RECOMB_ION)) {
-      const double *moms_donor_d = (const double*) gkyl_array_cfetch(moms_donor, loc);
-      double *prim_vars_donor_d = (double*) gkyl_array_fetch(prim_vars_donor, loc);
-      calc_prim_vars_donor_gk->kernel(calc_prim_vars_donor_gk, cidx,
-				      moms_donor_d, prim_vars_donor_d);
-    }   
-    
     //Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1.0/sqrt(2.0),up->cdim);
     double m0_elc_av = m0_elc_d[0]*cell_av_fac;
@@ -72,6 +70,19 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
     double *recomb_dat_d = gkyl_array_fetch(up->recomb_data, gkyl_range_idx(&adas_rng, (int[2]) {t_idx,m0_idx}));
     double adas_eval = adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
     coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+
+    if ((up->all_gk==false) && (up->type_self == GKYL_RECOMB_RECVR)) {
+      const double *moms_ion_d = (const double*) gkyl_array_cfetch(moms_ion, loc);
+      double *udrift_ion_d = (const double*) gkyl_array_fetch(udrift_ion, loc);
+      double *vtSq_ion_d = (const double*) gkyl_array_fetch(vtSq_ion, loc);
+      double *prim_vars_ion_d = (const double*) gkyl_array_fetch(prim_vars_ion, loc);
+      
+      // condense the following 2 kernels...
+      calc_prim_vars_ion_udrift->kernel(calc_prim_vars_ion_udrift, conf_iter.idx,
+					    moms_ion_d, udrift_ion_d);
+      calc_prim_vars_ion_vtSq->kernel(calc_prim_vars_ion_vtSq, conf_iter.idx,
+					    moms_ion_d, vtSq_ion_d);
+    }
   }
 }
 
@@ -87,9 +98,8 @@ void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up,
   }
 
   gkyl_recomb_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng, up->adas_basis,
-    up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_donor->on_dev, 
-    moms_elc->on_dev, moms_donor->on_dev,
-    up->vtSq_elc->on_dev, up->prim_vars_donor->on_dev, up->coef_recomb->on_dev,
+    up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_ion_udrift->on_dev, up->calc_prim_vars_ion_vtSq->on_dev, 
+    moms_elc->on_dev, moms_ion->on_dev, up->vtSq_elc->on_dev, up->coef_m0->on_dev, up->coef_recomb->on_dev,
     up->recomb_data->on_dev);
 
   if (up->type_self == GKYL_RECOMB_ELC) {
@@ -147,55 +157,93 @@ void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up,
 }
 
 struct gkyl_dg_recomb*
-gkyl_dg_recomb_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis, struct gkyl_basis* pbasis,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng, 
-  double elem_charge, double mass_elc, enum gkyl_dg_recomb_type type_ion,
-  int charge_state, enum gkyl_dg_recomb_self type_self, bool all_gk)
+gkyl_dg_recomb_cu_dev_new(gkyl_dg_recomb_inp *inp)
 {
   gkyl_dg_recomb *up = (struct gkyl_dg_recomb*) gkyl_malloc(srecombeof(struct gkyl_dg_recomb));
 
-  int cdim = cbasis->ndim;
-  int pdim = pbasis->ndim;
-  int vdim = 1; //HARDCODED. FIX THIS.
+  up->cbasis = inp->cbasis;
+  up->pbasis = inp->pbasis;
+  up->conf_rng = inp->conf_rng;
+  up->phase_rng = inp->phase_rng;
+  up->grid = inp->grid;
+  up->mass_self = inp->mass_self;
+  up->type_self = inp->type_self;
+  up->all_gk = inp->all_gk;
   
-  int poly_order = cbasis->poly_order;
-  up->cbasis = cbasis;
-  up->pbasis = pbasis;
+  int cdim = up->cbasis->ndim;
+  int pdim = up->pbasis->ndim;
+  int vdim = pdim - cdim;
+  int poly_order = up->cbasis->poly_order;
   up->cdim = cdim;
-  up->vdim = vdim; 
-  up->use_gpu = true;
-  up->conf_rng = conf_rng;
-  up->phase_rng = phase_rng; 
-  up->grid = grid;
-  up->all_gk = all_gk;
+  up->vdim = vdim;
+  up->use_gpu = use_gpu;
   
-  up->elem_charge = elem_charge;
-  up->mass_elc = mass_elc;
+  up->elem_charge = GKYL_ELEMENTARY_CHARGE;
+  up->mass_elc = GKYL_ELECTRON_MASS;
 
-  // access adas data
-  int resM0=50, resTe=100, qpoints=resM0*resTe;
-  double minM0 = 1e15, maxM0 = 1e20;
-  double minTe = 1.0, maxTe = 4e3;
+  const char *base = inp->base;
+  int charge_state = inp->charge_state;
+  enum gkyl_dg_recomb_type type_ion = inp->type_ion;
 
-  up->minLogM0 = log10(minM0);
-  up->minLogTe = log10(minTe);    
-  up->maxLogM0 = log10(maxM0);
-  up->maxLogTe = log10(maxTe);
+  // Project ADAS data
+  struct adas_field data;
+
+  read_adas_field_recomb(type_ion, &data, base);
   
-  double dlogM0 = (up->maxLogM0 - up->minLogM0)/(resM0-1);
-  double dlogTe = (up->maxLogTe - up->minLogTe)/(resTe-1);
-  up->resM0=resM0;
-  up->resTe=resTe;
-  up->dlogM0=dlogM0;
-  up->dlogTe=dlogTe;
-  
-  up->recomb_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, qpoints);
+  long sz = data.NT*data.NN;
+  double minmax[2];
 
-  up->E = 13.6;
+  if (data.logT == NULL) fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file.");
+  if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file.");
+  if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'recomb_<elem>.npy' file.");
+
+  minmax_from_numpy(data.logT, data.NT, minmax);
+  fclose(data.logT);
+  double logTmin = minmax[0], logTmax = minmax[1];
+  minmax_from_numpy(data.logN, data.NN, minmax);
+  fclose(data.logN);
+  double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
+
+  // "duplicate symbol" error
+  struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, data.Zmax, sz);
+  array_from_numpy(data.logData, sz, data.Zmax, adas_nodal);
+  fclose(data.logData);
+
+  if (!adas_nodal) {
+    fprintf(stderr, "Unable to read data from adas nodal numpy file!\n");
+    return 0;
+  }
+
+  struct gkyl_range range_node;
+  gkyl_range_init_from_shape(&range_node, 2, (int[]) { data.NT, data.NN } );
+
+  // allocate grid and DG array
+  struct gkyl_rect_grid tn_grid;
+  gkyl_rect_grid_init(&tn_grid, 2,
+    (double[]) { logTmin, logNmin},
+    (double []) { logTmax, logNmax},
+    (int[]) { data.NT-1, data.NN-1 }
+  );
+  
+  struct gkyl_range adas_rng;
+  //int ghost[] = { 0, 0 };
+  //gkyl_create_grid_ranges(&tn_grid, ghost, &adas_rng_ext, &adas_rng);
+  gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
+
+  struct gkyl_basis adas_basis;
+  gkyl_cart_modal_serendip(&adas_basis, 2, 1);
+
+  struct gkyl_array *adas_dg_ho =
+    gkyl_array_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
+  struct gkyl_array *adas_dg =
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
+
+  // "duplicate symbol" error
+  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
+  gkyl_array_copy(adas_dg, adas_dg_ho);
 
   // ADAS data pointers
   up->recomb_data = adas_dg;
-  up->E = data.Erecomb[charge_state-1];
   up->minLogM0 = logNmin;
   up->minLogTe = logTmin;
   up->maxLogM0 = logNmax;
@@ -206,28 +254,33 @@ gkyl_dg_recomb_cu_dev_new(struct gkyl_rect_grid* grid, struct gkyl_basis* cbasis
   up->resM0 = tn_grid.cells[1];
   up->adas_rng = adas_rng;
   up->adas_basis = adas_basis;
-  //end access adas data 
 
   // allocate fields for prim mom calculation
-  up->prim_vars_donor = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume); // elc, ion 
-  up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); // all
-  up->vtSq_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // elc
-  up->prim_vars_fmax = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);  //elc
-  up->coef_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);  // all
-  up->fmax_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, pbasis->num_basis, up->phase_rng->volume); // elc
+  up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+  up->coef_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+  up->coef_m0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", true); 
 
-  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", true); // all
-  if (up->all_gk) up->calc_prim_vars_donor = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "prim", true);
-  else up->calc_prim_vars_donor = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "prim", true); // for Vlasov donor
+  // only for Vlasov neutral species
+  up->calc_prim_vars_ion_udrift = gkyl_dg_prim_vars_transform_vlasov_gk_new(up->cbasis, up->pbasis, up->conf_rng, "u_par_i", true);
+  up->calc_prim_vars_ion_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", true);
   
-  up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, true); // elc, ion
+  up->udrift_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, vdim*up->cbasis->num_basis, up->conf_rng->volume);
+  up->vtSq_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+  up->prim_vars_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim+1)*up->cbasis->num_basis, up->conf_rng->volume);
 
+  // only for receiver species
+  up->proj_max = gkyl_proj_maxwellian_on_basis_new(up->grid, up->cbasis, up->pbasis, poly_order+1, true);
+  
   // copy the host struct to device struct
   struct gkyl_dg_recomb *up_cu = (struct gkyl_dg_recomb*) gkyl_cu_malloc(srecombeof(struct gkyl_dg_recomb));
   gkyl_cu_memcpy(up_cu, up, srecombeof(struct gkyl_dg_recomb), GKYL_CU_MEMCPY_H2D);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
+
+  gkyl_array_release(adas_nodal);
+  gkyl_array_release(
   
   return up;
 }

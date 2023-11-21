@@ -168,11 +168,13 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];    
-    double *coef_m0_d = gkyl_array_fetch(up->coef_m0, loc);
-    for (int i=0; i<up->cbasis->num_basis; ++i) coef_m0_d[i] = m0_elc_d[i];
     
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
+    double *coef_m0_d = gkyl_array_fetch(up->coef_m0, loc);
     double *coef_recomb_d = gkyl_array_fetch(up->coef_recomb, loc);
+
+    for (int i=0; i<up->cbasis->num_basis; ++i) coef_m0_d[i] = m0_elc_d[i];
+
     up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
 
     //Find cell containing value of n,T

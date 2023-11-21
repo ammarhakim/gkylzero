@@ -117,7 +117,6 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   up->adas_basis = adas_basis;
   
   // allocate fields for prim mom calculation
-  // Try allocating these at g2 level...
   up->prim_vars_donor = gkyl_array_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume); // elc, ion
   up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume); // all
   up->vtSq_iz = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);  // elc
