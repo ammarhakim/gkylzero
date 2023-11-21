@@ -97,7 +97,7 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
     // Set auxiliary variable (b_i) for computation of gk neut prim vars
     gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_donor, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
-  }x
+  }
 
   gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng,
     up->adas_basis, up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_donor->on_dev, 

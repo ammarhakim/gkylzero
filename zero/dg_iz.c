@@ -115,12 +115,12 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
     up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
     gkyl_array_copy(up->ioniz_data, adas_dg);
     
-    up->prim_vars_donor = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);
-    up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
-    up->vtSq_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); 
-    up->prim_vars_fmax = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);
+    up->prim_vars_donor = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume);
+    up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->vtSq_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume); 
+    up->prim_vars_fmax = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume);
     up->coef_m0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-    up->coef_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
+    up->coef_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
   }
   else {
     up->ioniz_data = adas_dg;
