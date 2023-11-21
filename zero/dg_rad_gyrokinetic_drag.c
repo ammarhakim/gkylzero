@@ -38,7 +38,6 @@ gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 #endif
 
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
-  rad_gyrokinetic_drag->auxfields.bmag = auxin.bmag;
   rad_gyrokinetic_drag->auxfields.vnu = auxin.vnu;
   rad_gyrokinetic_drag->auxfields.vsqnu = auxin.vsqnu;
   rad_gyrokinetic_drag->auxfields.nI = auxin.nI;
@@ -114,9 +113,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
     num_v_cells = grid->cells[cdim];
     }*/
 
-  rad_gyrokinetic_drag->auxfields.bmag = bmag;
   rad_gyrokinetic_drag->auxfields.nI = 0;
-  rad_gyrokinetic_drag->auxfields.fit_params = fit_params;
   
   //struct gkyl_range prangeloc, prange_ext;
   const int nghost[GKYL_MAX_DIM]={0};

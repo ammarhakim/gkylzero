@@ -11,8 +11,6 @@ struct gkyl_dg_rad_gyrokinetic_drag_auxfields {
   const struct gkyl_array *nI;
   const struct gkyl_array *vnu;
   const struct gkyl_array *vsqnu;
-  const struct gkyl_array *bmag;
-  const struct gkyl_array *fit_params;
 };
 
 /**
@@ -37,7 +35,7 @@ struct gkyl_dg_eqn* gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_ba
 
 /**
  * Set auxiliary fields needed in updating the drag flux term.
- * These are bmag, vnu, vsqnu, and nI
+ * These are vnu, vsqnu, and nI
  * 
  * @param eqn Equation pointer
  * @param auxfields Pointer to struct of aux fields.

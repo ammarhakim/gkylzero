@@ -87,8 +87,6 @@ kernel_rad_gyrokinetic_drag_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const
   printf("int %d\n",rad_gyrokinetic_drag->prange.ndim);
   long pidx = gkyl_range_idx(&rad_gyrokinetic_drag->prange, idx);
   printf("pidx=%d\n",pidx);
-  const double *ap = (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.bmag, cidx);
-  printf("After ap, ap[0]=%f, ap[1]=%f\n",ap[0],ap[1]);
   const double *b = (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.vnu, pidx);
   printf("After bb\n");
   const double *c = (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.vsqnu, cidx);

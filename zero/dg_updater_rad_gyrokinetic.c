@@ -13,7 +13,7 @@
 // Done first pass
 struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-				    const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, const struct gkyl_range *prange, const struct gkyl_array *bmag, const struct gkyl_array *fit_params, const struct gkyl_array *vnu, const struct gkyl_array *vsqnu, bool use_gpu)
+				    const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, const struct gkyl_range *prange, const struct gkyl_array *bmag, const struct gkyl_array *fit_params, struct gkyl_array *vnu, struct gkyl_array *vsqnu, bool use_gpu)
 {
   printf("Before allocation\n");
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
@@ -48,7 +48,7 @@ gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *rad,
   printf("In updater rad advance\n");
   // Set arrays needed
   gkyl_rad_gyrokinetic_drag_set_auxfields(rad->coll_drag,
-					  (struct gkyl_dg_rad_gyrokinetic_drag_auxfields) { .nI = nI, .vnu = vnu, .vsqnu = vsqnu, .bmag = nI});
+					  (struct gkyl_dg_rad_gyrokinetic_drag_auxfields) { .nI = nI, .vnu = vnu, .vsqnu = vsqnu});
   printf("Aux fields set(updater-advance)\n");
   const double *a = (const double*) gkyl_array_cfetch(nI,0);
   printf("After a (update), a[0]=%f\n",a[0]);
