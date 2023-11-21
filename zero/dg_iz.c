@@ -21,11 +21,6 @@
 struct gkyl_dg_iz*
 gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
 {
-#ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_dg_iz_cu_dev_new(inp);
-  } 
-#endif
   gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
 
   up->grid = inp->grid;
@@ -103,7 +98,6 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   //gkyl_grid_sub_array_write(&tn_grid, &adas_rng, adas_dg, "adas_dg.gkyl");
 
   // ADAS data pointers
-  up->ioniz_data = adas_dg;
   up->E = data.Eiz[charge_state];
   up->minLogM0 = logNmin;
   up->minLogTe = logTmin;
@@ -115,15 +109,31 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   up->resM0 = tn_grid.cells[1];
   up->adas_rng = adas_rng;
   up->adas_basis = adas_basis;
-  
-  // allocate fields for prim mom calculation
-  up->prim_vars_donor = gkyl_array_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume); // elc, ion
-  up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume); // all
-  up->vtSq_iz = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);  // elc
-  up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume);  //elc
-  up->coef_m0 = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-  up->coef_iz = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);  // all
 
+  if (use_gpu) {
+    // allocate fields for prim mom calculation
+    up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
+    gkyl_array_copy(up->ioniz_data, adas_dg);
+    
+    up->prim_vars_donor = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);
+    up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
+    up->vtSq_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); 
+    up->prim_vars_fmax = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);
+    up->coef_m0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->coef_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
+  }
+  else {
+    up->ioniz_data = adas_dg;
+    
+    // allocate fields for prim mom calculation
+    up->prim_vars_donor = gkyl_array_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume); // elc, ion
+    up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume); // all
+    up->vtSq_iz = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);  // elc
+    up->prim_vars_fmax = gkyl_array_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume);  //elc
+    up->coef_m0 = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->coef_iz = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);  // all
+  }
+  
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); // all
   if (up->all_gk) up->calc_prim_vars_donor = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "prim", use_gpu);
   else up->calc_prim_vars_donor = gkyl_dg_prim_vars_transform_vlasov_gk_new(up->cbasis, up->pbasis, up->conf_rng, "prim", use_gpu); // for Vlasov donor
@@ -143,7 +153,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
 {
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(coll_iz)) {
-    return gkyl_dg_iz_coll_elc_cu(up, moms_elc, moms_donor, bmag, jacob_tot, b_i, f_self, coll_iz, cflrate);
+    return gkyl_dg_iz_coll_cu(up, moms_elc, moms_donor, bmag, jacob_tot, b_i, f_self, coll_iz, cflrate);
   } 
 #endif
   if ((up->all_gk==false) && ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION))) {
@@ -282,13 +292,13 @@ gkyl_dg_iz_release(struct gkyl_dg_iz* up)
   free(up);
 }
 
-#ifndef GKYL_HAVE_CUDA
+/* #ifndef GKYL_HAVE_CUDA */
 
-struct gkyl_dg_iz*
-gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp)
-{
-  assert(false);
-  return 0;
-}
+/* struct gkyl_dg_iz* */
+/* gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp) */
+/* { */
+/*   assert(false); */
+/*   return 0; */
+/* } */
 
-#endif
+/* #endif */

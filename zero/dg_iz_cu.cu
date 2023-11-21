@@ -32,12 +32,12 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
 
     const double *moms_elc_d = (const double*) gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];
-
-    for (int i=0; i<up->cbasis->num_basis; ++i) coef_m0_d[i] = m0_elc_d[i];
     
     double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
     double *coef_m0_d = (double*) gkyl_array_fetch(coef_m0, loc);
     double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc);
+
+    for (int i=0; i<up->cbasis->num_basis; ++i) coef_m0_d[i] = m0_elc_d[i];
     
     calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d,
 				    vtSq_elc_d);
@@ -81,7 +81,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
       coef_iz_d[0] = 0.0;
     }
     else {
-      double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
+      double *iz_dat_d = (double*) gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
     }
@@ -95,9 +95,9 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
 {
   if ((up->all_gk==false) && ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION))) {
     // Set auxiliary variable (b_i) for computation of gk neut prim vars
-    gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_donor_gk, 
+    gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_donor, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
-  }
+  }x
 
   gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng,
     up->adas_basis, up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_donor->on_dev, 
@@ -153,126 +153,4 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
   /*   double *cflrate_d = gkyl_array_fetch(cflrate, cfl_idx); */
   /*   cflrate_d[0] += cflr; // frequencies are additive */
   /* } */
-}
-
-struct gkyl_dg_iz*
-gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp);
-{
-  gkyl_dg_iz *up = (struct gkyl_dg_iz*) gkyl_malloc(sizeof(struct gkyl_dg_iz));
-
-  up->grid = inp->grid;
-  up->cbasis = inp->cbasis;
-  up->pbasis = inp->pbasis;
-  up->conf_rng = inp->conf_rng;
-  up->phase_rng = inp->phase_rng;
-  up->mass_ion = inp->mass_ion;
-  up->type_self = inp->type_self;
-  up->all_gk = inp->all_gk;
-
-  const char *base = inp->base;
-  int charge_state = inp->charge_state;
-  enum gkyl_dg_iz_type type_ion = inp->type_ion;
-  
-  int cdim = up->cbasis->ndim;
-  int pdim = up->pbasis->ndim;
-  int poly_order = up->cbasis->poly_order;
-  up->cdim = cdim;
-  up->use_gpu = use_gpu;
-
-  up->elem_charge = GKYL_ELEMENTARY_CHARGE;
-  up->mass_elc = GKYL_ELECTRON_MASS;
-  
-  // Project ADAS data (H, He, Li)
-  struct adas_field data;
-
-  read_adas_field_iz(type_ion, &data, base);
-  
-  long sz = data.NT*data.NN;
-  double minmax[2];
-
-  if (data.logT == NULL) fprintf(stderr, "Unable to load ADAS 'logT_<elem>.npy' file. ");
-  if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file. ");
-  if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'ioniz_<elem>.npy' file. ");
-  minmax_from_numpy(data.logT, data.NT, minmax);
-  fclose(data.logT);
-  double logTmin = minmax[0], logTmax = minmax[1];
-  minmax_from_numpy(data.logN, data.NN, minmax);
-  fclose(data.logN);
-  double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
-
-  struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, data.Zmax, sz);
-  array_from_numpy(data.logData, sz, data.Zmax, adas_nodal);
-  fclose(data.logData);
-
-  if (!adas_nodal) {
-    fprintf(stderr, "Unable to read data from adas nodal numpy file!\n");
-    return 0;
-  }
-
-  struct gkyl_range range_node;
-  gkyl_range_init_from_shape(&range_node, 2, (int[]) { data.NT, data.NN } );
-
-  // allocate grid and DG array
-  struct gkyl_rect_grid tn_grid;
-  gkyl_rect_grid_init(&tn_grid, 2,
-    (double[]) { logTmin, logNmin},
-    (double []) { logTmax, logNmax},
-    (int[]) { data.NT-1, data.NN-1 }
-  );
-
-  struct gkyl_range adas_rng;
-  //int ghost[] = { 0, 0 };
-  //gkyl_create_grid_ranges(&tn_grid, ghost, &adas_rng_ext, &adas_rng);
-  gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
-
-  struct gkyl_basis adas_basis;
-  gkyl_cart_modal_serendip(&adas_basis, 2, 1);
-
-  struct gkyl_array *adas_dg_ho =
-    gkyl_array_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
-  struct gkyl_array *adas_dg =
-    gkyl_array_cu_dev_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
-
-  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg_ho, charge_state+1);
-  gkyl_array_copy(adas_dg, adas_dg_ho);
-  
-  // ADAS data pointers
-  up->ioniz_data = adas_dg;
-  up->E = data.Eiz[charge_state];
-  up->minLogM0 = logNmin;
-  up->minLogTe = logTmin;
-  up->maxLogM0 = logNmax;
-  up->maxLogTe = logTmax;
-  up->dlogTe = tn_grid.dx[0];
-  up->dlogM0 = tn_grid.dx[1];
-  up->resTe = tn_grid.cells[0];
-  up->resM0 = tn_grid.cells[1];
-  up->adas_rng = adas_rng;
-  up->adas_basis = adas_basis;
-
-  // allocate fields for prim mom calculation
-  up->prim_vars_donor = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);
-  up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
-  up->vtSq_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume); 
-  up->prim_vars_fmax = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*cbasis->num_basis, up->conf_rng->volume);
-  up->coef_m0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-  up->coef_iz = gkyl_array_cu_dev_new(GKYL_DOUBLE, cbasis->num_basis, up->conf_rng->volume);
-
-  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "vtSq", true);
-  if (up->all_gk) up->calc_prim_vars_donor = gkyl_dg_prim_vars_gyrokinetic_new(cbasis, pbasis, "prim", true);
-  else up->calc_prim_vars_donor = gkyl_dg_prim_vars_transform_vlasov_gk_new(cbasis, pbasis, up->conf_rng, "prim", true);
-  
-  up->proj_max = gkyl_proj_maxwellian_on_basis_new(grid, cbasis, pbasis, poly_order+1, true);
-
-  // copy the host struct to device struct
-  struct gkyl_dg_iz *up_cu = (struct gkyl_dg_iz*) gkyl_cu_malloc(sizeof(struct gkyl_dg_iz));
-  gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_dg_iz), GKYL_CU_MEMCPY_H2D);
-
-  // set parent on_dev pointer
-  up->on_dev = up_cu;
-
-  gkyl_array_release(adas_nodal);
-  gkyl_array_release(adas_dg_ho);
-  
-  return up;
 }
