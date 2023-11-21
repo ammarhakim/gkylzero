@@ -88,6 +88,8 @@ struct gkyl_geo_gyrokinetic_geo_inp {
   double rleft; // closest R to discrimate
   double rright; // closest R to discrimate
   double zmin, zmax; // extents of Z for integration
+  double zmin_left, zmin_right; // for lower single null and PF cases diff b/t in and outboard side
+  double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
   double zmaxis; // z of magnetic axis
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written

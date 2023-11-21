@@ -748,7 +748,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
           else if(inp->ftype == GKYL_PF_LO){
             //Find the  upper turning point
             double zlo, zup, zlo_last;
-            zlo = zmin;
+            zlo = fmax(inp->zmin_left, inp->zmin_right);
             zup=zmax;
             zlo_last = zlo;
             double R[4], dR[4];
@@ -771,11 +771,11 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             printf("found zmin, zmax = %g, %g\n", zmin, zmax);
             printf("psi_curr, Z = %g, %1.16f\n", psi_curr, zlo);
             // Done finding turning point
-            arcL_r = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rright,
+            arcL_r = integrate_psi_contour_memo(geo, psi_curr, inp->zmin_right, zmax, rright,
               true, true, arc_memo);
             arc_ctx.arcL_right = arcL_r;
             arc_ctx.right = false;
-            arcL_l = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rleft,
+            arcL_l = integrate_psi_contour_memo(geo, psi_curr, inp->zmin_left, zmax, rleft,
               true, true, arc_memo);
             arcL = arcL_l + arcL_r;
             printf("arcL total, L, R = %g, %g, %g\n", arcL, arcL_l, arcL_r);
@@ -785,7 +785,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             arc_ctx.phi_right = 0.0;
             arc_ctx.rclose = rright;
             arc_ctx.psi = psi_curr;
-            arc_ctx.zmin = zmin;
+            arc_ctx.zmin = inp->zmin_right;
             phi_r = phi_func(alpha_curr, zmax, &arc_ctx);
             arc_ctx.phi_right = phi_r - alpha_curr; // otherwise alpha will get added on twice
             printf("phi right = %g\n", arc_ctx.phi_right);
@@ -794,7 +794,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             //Find the lower turning point
             double zlo, zup, zlo_last;
             double zup_last;
-            zup = zmax;
+            zup = fmin(inp->zmax_left, inp->zmax_right);
             zlo=zmin;
             zup_last = zup;
             double R[4], dR[4];
@@ -819,10 +819,10 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             printf("found zmin, zmax = %g, %g\n", zmin, zmax);
             printf("psi_curr, Z = %g, %1.16f\n", psi_curr, zlo);
             // Done finding turning point
-            arcL_r = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rright,
+            arcL_r = integrate_psi_contour_memo(geo, psi_curr, zmin, inp->zmax_right, rright,
               true, true, arc_memo);
             arc_ctx.right = false;
-            arcL_l = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rleft,
+            arcL_l = integrate_psi_contour_memo(geo, psi_curr, zmin, inp->zmax_left, rleft,
               true, true, arc_memo);
             arc_ctx.arcL_left= arcL_l;
             arcL = arcL_l + arcL_r;
@@ -833,7 +833,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             arc_ctx.phi_left = 0.0;
             arc_ctx.rclose = rleft;
             arc_ctx.psi = psi_curr;
-            arc_ctx.zmax = zmax;
+            arc_ctx.zmax = inp->zmax_left;
             phi_l = phi_func(alpha_curr, zmin, &arc_ctx);
             arc_ctx.phi_left = phi_l - alpha_curr; // otherwise alpha will get added on twice
             printf("phi left= %g\n", arc_ctx.phi_left);
@@ -853,7 +853,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
           else if(inp->ftype == GKYL_SOL_SN_LO){
             //Find the  upper turning point
             double zlo, zup, zlo_last;
-            zlo = zmin;
+            zlo = fmax(inp->zmin_left, inp->zmin_right);
             zup=zmax;
             zlo_last = zlo;
             double R[4], dR[4];
@@ -876,11 +876,11 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             printf("found zmin, zmax = %g, %g\n", zmin, zmax);
             printf("psi_curr, Z = %g, %1.16f\n", psi_curr, zlo);
             // Done finding turning point
-            arcL_r = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rright,
+            arcL_r = integrate_psi_contour_memo(geo, psi_curr, inp->zmin_right, zmax, rright,
               true, true, arc_memo);
             arc_ctx.arcL_right = arcL_r;
             arc_ctx.right = false;
-            arcL_l = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rleft,
+            arcL_l = integrate_psi_contour_memo(geo, psi_curr, inp->zmin_left, zmax, rleft,
               true, true, arc_memo);
             arcL = arcL_l + arcL_r;
             printf("arcL total, L, R = %g, %g, %g\n", arcL, arcL_l, arcL_r);
@@ -890,7 +890,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             arc_ctx.phi_right = 0.0;
             arc_ctx.rclose = rright;
             arc_ctx.psi = psi_curr;
-            arc_ctx.zmin = zmin;
+            arc_ctx.zmin = inp->zmin_right;
             phi_r = phi_func(alpha_curr, zmax, &arc_ctx);
             arc_ctx.phi_right = phi_r - alpha_curr; // otherwise alpha will get added on twice
             printf("phi right = %g\n", arc_ctx.phi_right);
@@ -930,12 +930,16 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                   arc_ctx.right = true;
                   ridders_min = -arcL_curr;
                   ridders_max = arcL-arcL_curr;
+                  arc_ctx.zmin = zmin;
+                  arc_ctx.zmax = zmax;
                 }
                 else{
                   rclose = rleft;
                   arc_ctx.right = false;
                   ridders_min = arcL - arcL_curr;
                   ridders_max = -arcL_curr + arc_ctx.arcL_right;
+                  arc_ctx.zmin = zmin;
+                  arc_ctx.zmax = zmax;
                 }
               }
               if(inp->ftype==GKYL_PF_LO){
@@ -944,12 +948,16 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                   arc_ctx.right = true;
                   ridders_min = -arcL_curr;
                   ridders_max = arcL-arcL_curr;
+                  arc_ctx.zmin = inp->zmin_right;
+                  arc_ctx.zmax = zmax;
                 }
                 else{
                   rclose = rleft;
                   arc_ctx.right = false;
                   ridders_min = arcL - arcL_curr;
                   ridders_max = -arcL_curr + arc_ctx.arcL_right;
+                  arc_ctx.zmin = inp->zmin_left;
+                  arc_ctx.zmax = zmax;
                 }
               }
               if(inp->ftype==GKYL_PF_UP){
@@ -958,23 +966,31 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                   arc_ctx.right = true;
                   ridders_min = arc_ctx.arcL_left - arcL_curr;
                   ridders_max = arcL - arcL_curr;
+                  arc_ctx.zmin = zmin;
+                  arc_ctx.zmax = inp->zmax_right;
                 }
                 else{
                   rclose = rleft;
                   arc_ctx.right = false;
                   ridders_min = arc_ctx.arcL_left - arcL_curr;
                   ridders_max = -arcL_curr;
+                  arc_ctx.zmin = zmin;
+                  arc_ctx.zmax = inp->zmax_left;
                 }
               }
               if(arc_ctx.ftype==GKYL_SOL_DN_OUT){
                 ridders_min = -arcL_curr;
                 ridders_max = arcL-arcL_curr;
                 arc_ctx.right = false;
+                arc_ctx.zmin = zmin;
+                arc_ctx.zmax = zmax;
               }
               if(arc_ctx.ftype==GKYL_SOL_DN_IN){
                 ridders_min = arcL-arcL_curr;
                 ridders_max = -arcL_curr;
                 arc_ctx.right = false;
+                arc_ctx.zmin = zmin;
+                arc_ctx.zmax = zmax;
               }
               if(arc_ctx.ftype==GKYL_SOL_SN_LO){
                 if(arcL_curr <= arcL_r){
@@ -982,22 +998,24 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
                   arc_ctx.right = true;
                   ridders_min = -arcL_curr;
                   ridders_max = arcL-arcL_curr;
+                  arc_ctx.zmin = inp->zmin_right;
+                  arc_ctx.zmax = zmax;
                 }
                 else{
                   rclose = rleft;
                   arc_ctx.right = false;
                   ridders_min = arcL - arcL_curr;
                   ridders_max = -arcL_curr + arc_ctx.arcL_right;
+                  arc_ctx.zmin = inp->zmin_left;
+                  arc_ctx.zmax = zmax;
                 }
               }
 
               arc_ctx.psi = psi_curr;
               arc_ctx.rclose = rclose;
-              arc_ctx.zmin = zmin;
-              arc_ctx.zmax = zmax;
               arc_ctx.arcL = arcL_curr;
               struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
-                zmin, zmax, ridders_min, ridders_max,
+                arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
                 geo->root_param.max_iter, 1e-10);
               double z_curr = res.res;
               ((gkyl_geo_gyrokinetic *)geo)->stat.nroot_cont_calls += res.nevals;

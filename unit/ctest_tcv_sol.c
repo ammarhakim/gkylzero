@@ -123,10 +123,10 @@ test_1()
   //double clower[] = { 0.934, -0.01, -3.14 };
   //double cupper[] = {1.4688, 0.01, 3.14 };
 
-  double clower[] = { -0.001, -0.01, -3.14 };
+  double clower[] = { -0.01, -0.01, -3.14 };
   double cupper[] = {psiSep, 0.01, 3.14 };
 
-  int ccells[] = { 1, 1, 32 };
+  int ccells[] = { 1, 1, 64 };
 
 
 
@@ -169,7 +169,9 @@ test_1()
     .rclose = efit->rmax,
     .rleft= efit->rmin,
     .rright= efit->rmax,
-    .zmin = -0.42,
+    .zmin_right = -0.6,
+    .zmin_left = -0.4,
+    .zmin = -0.4,
     .zmax = 0.4,
     .zmaxis = -0.00768114,
   

@@ -162,6 +162,8 @@ test_1()
     .rleft= 2.0,
     .rright= efit->rmax,
     .zmin = -6.48,
+    .zmin_left = -6.48,
+    .zmin_right = -7.5,
     .zmax = -6.168,
     .zmaxis = -4.84614e-07,
   

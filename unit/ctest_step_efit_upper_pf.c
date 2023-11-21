@@ -162,6 +162,8 @@ test_1()
     .rright= efit->rmax,
     .zmin = 6.168,
     .zmax = 6.48,
+    .zmax_left = 6.48,
+    .zmax_right = 7.5,
     .zmaxis = -4.84614e-07,
   
     .write_node_coord_array = true,
