@@ -76,13 +76,14 @@ create_dg_from_nodal(const struct gkyl_rect_grid *grid,
     int count = 0;
     for (int j=0; j<2; ++j) {
       for (int i=0; i<2; ++i) {
-        long nidx = gkyl_range_idx(range_nodal, (const int[]) { ix+i, iy+j } );
-        const double *adas_n = gkyl_array_cfetch(adas_nodal, nidx);
+	const int array_idx[2] = {ix+i, iy+j};
+        long nidx = (long) gkyl_range_idx(range_nodal, array_idx );
+        const double *adas_n = (const double*) gkyl_array_cfetch(adas_nodal, nidx);
 	const double *adas_z_n = &adas_n[zi]; // get data for charge state
 	nv[count++] = adas_n[0];
       }
     }
-    double *mv = gkyl_array_fetch(adas_dg, gkyl_range_idx(&range, iter.idx));
+    double *mv = (double*) gkyl_array_fetch(adas_dg, gkyl_range_idx(&range, iter.idx));
     nodal_to_modal(nv, mv);
   }
 }

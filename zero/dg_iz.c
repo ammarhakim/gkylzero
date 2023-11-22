@@ -89,10 +89,20 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
 
   struct gkyl_basis adas_basis;
-  gkyl_cart_modal_serendip(&adas_basis, 2, 1);
+  up->adas_basis = adas_basis;
+  if (use_gpu) {
+    // allocate device basis if we are using GPUs
+    up->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  }
+  else {
+    up->basis_on_dev = &up->adas_basis;
+  }
+  gkyl_cart_modal_serendip(&up->adas_basis, 2, 1);
+  if (use_gpu)
+    gkyl_cart_modal_serendip_cu_dev(up->basis_on_dev, 2, 1);
 
   struct gkyl_array *adas_dg =
-    gkyl_array_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
+    gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
 
   create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state+1);
   //gkyl_grid_sub_array_write(&tn_grid, &adas_rng, adas_dg, "adas_dg.gkyl");
@@ -108,11 +118,10 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   up->resTe = tn_grid.cells[0];
   up->resM0 = tn_grid.cells[1];
   up->adas_rng = adas_rng;
-  up->adas_basis = adas_basis;
 
   if (use_gpu) {
     // allocate fields for prim mom calculation
-    up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
+    up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
     gkyl_array_copy(up->ioniz_data, adas_dg);
     
     up->prim_vars_donor = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng->volume);
