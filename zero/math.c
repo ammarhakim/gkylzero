@@ -301,9 +301,9 @@ gkyl_poly_roots_new(int poly_order)
 static inline double complex
 eval_poly(int poly_order, const double *coeff, double complex x)
 {
-  double complex xn = 1;
-  double complex res = 0.0;
-  for (int i=0; i<poly_order; ++i) {
+  double complex xn = x;
+  double complex res = coeff[0];
+  for (int i=1; i<poly_order; ++i) {
     res += coeff[i]*xn;
     xn = xn*x;
   }
@@ -341,17 +341,12 @@ gkyl_calc_poly_roots(struct gkyl_poly_roots *pr, const double *coeff)
       pn[i] = pn1[i];
       
       double complex denom = 1.0;
-      for (int j=0; j<poly_order; ++j) {
-        if (i != j) {
-          if (cabs(pn1[i]-pn1[j]) > ROOT_EPS)
-            denom = denom*(pn1[i]-pn1[j]);
-        }
-      }
+      for (int j=0; j<poly_order; ++j)
+        if (i != j)
+          denom = denom*(pn1[i]-pn1[j]);
       pn1[i] = pn1[i] - eval_poly(poly_order, coeff, pn1[i])/denom;
     }
-
     niter += 1;
-    
   } while (!check_converged(poly_order, pn, pn1, pr->err) && niter < max_iter);
 
   pr->niter = niter;

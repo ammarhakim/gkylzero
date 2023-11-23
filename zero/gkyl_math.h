@@ -167,7 +167,7 @@ struct gkyl_qr_res gkyl_dbl_exp(double (*func)(double, void *), void *ctx,
  * Compute single real root of a function using Ridders' method. See
  * IEEE Tran. Circuit and Systems, vol CAS-26 No 11, Pg 976 1976. The
  * root must be inside the interval specified, and there must only be
- * one such root in the interval.
+ * * one such root in the interval.
  *
  * @param func Function to integrate
  * @param ctx Context to pass to function
@@ -183,9 +183,9 @@ struct gkyl_qr_res gkyl_ridders(double (*func)(double,void*), void *ctx,
   double x1, double x2, double f1, double f2, int max_iter, double eps);
 
 /**
- * Compute all roots of the low-order polynomial with monomial
- * coefficients given by @a coeff. The leading coefficient is always
- * assumed be 1.0 and so the coeff[i] give the coefficient for the
+ * Compute all simple roots of the low-order polynomial with monomial
+ * coefficients given by @a coeff. The leading coefficient is always *
+ * assumed be 1.0 and so the coeff[i] give the coefficient for the *
  * monomial x^i. For example for the quartic:
  *
  * p(x) = x^4 + 2 x^3 + 4
@@ -208,8 +208,9 @@ struct gkyl_lo_poly_roots gkyl_calc_lo_poly_roots(enum gkyl_lo_poly_order order,
 struct gkyl_poly_roots* gkyl_poly_roots_new(int poly_order);
 
 /**
- * Compute all roots of polymomial with real coefficients. The leading
- * coefficient must be 1.0 and the coeff[i] is the coefficient of x^i.
+ * Compute all simple roots of polymomial with real coefficients. The
+ * leading coefficient must be 1.0 and the coeff[i] is the coefficient
+ * of x^i.
  *
  * @param pr On output, contains all the roots. Must be preallocated
  * @param coeff Coefficients of monomials
