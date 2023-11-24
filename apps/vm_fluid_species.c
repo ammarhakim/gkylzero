@@ -65,7 +65,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
 
     struct gkyl_dg_advection_auxfields aux_inp = {.u_i = f->app_advect};
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
-      &app->local, f->equation, &aux_inp, app->use_gpu);
+      &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);
   }
   else {
     // allocate array to store fluid velocity (ux, uy, uz) and pressure
@@ -95,7 +95,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     struct gkyl_dg_euler_auxfields aux_inp = {.u = f->u, .p = f->p, 
       .u_surf = f->u_surf, .p_surf = f->p_surf};
     f->advect_slvr = gkyl_dg_updater_fluid_new(&app->grid, &app->confBasis,
-      &app->local, f->equation, &aux_inp, app->use_gpu);    
+      &app->local, f->equation, app->geom, &aux_inp, app->use_gpu);    
   }
 
   f->has_diffusion = false;

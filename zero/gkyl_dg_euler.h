@@ -6,6 +6,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 
 // Struct containing the pointers to auxiliary fields.
@@ -26,10 +27,10 @@ struct gkyl_dg_euler_auxfields {
  * @return Pointer to euler equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
-  const struct gkyl_wv_eqn *wv_eqn, bool use_gpu);
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, bool use_gpu);
 
 struct gkyl_dg_eqn* gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
-  const struct gkyl_wv_eqn *wv_eqn);
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom);
 
 /**
  * Set the auxiliary fields (e.g. velocity u = rho*u/rho) needed in updating euler equation.

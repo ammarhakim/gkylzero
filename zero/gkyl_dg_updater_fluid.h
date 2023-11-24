@@ -32,7 +32,7 @@ struct gkyl_dg_updater_fluid_tm {
  */
 gkyl_dg_updater_fluid* gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, 
-  const struct gkyl_wv_eqn *wv_eqn, void *aux_inp, bool use_gpu);
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, void *aux_inp, bool use_gpu);
 
 /**
  * Acquire fluid equation object

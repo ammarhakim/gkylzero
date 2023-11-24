@@ -12,7 +12,8 @@
 // functions
 
 // Types for various kernels
-typedef double (*euler_surf_t)(const double *w, const double *dx, const struct gkyl_wv_eqn *wv_eqn, 
+typedef double (*euler_surf_t)(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
+  const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
   const double *u_surf_l, const double *u_surf_c, const double *u_surf_r,
   const double *p_surf_l, const double *p_surf_c, const double *p_surf_r, 
   const double *fluid_l, const double *fluid_c, const double *fluid_r, 
@@ -27,6 +28,7 @@ struct dg_euler {
   euler_surf_t surf[3]; // pointers to surface kernels
   enum gkyl_eqn_type eqn_type; // Equation type
   const struct gkyl_wv_eqn *wv_eqn; // wave equation object for Roe solve
+  const struct gkyl_wave_geom *geom; // geometry
   double gas_gamma; // adiabatic index
   struct gkyl_range conf_range; // configuration space range
   struct gkyl_dg_euler_auxfields auxfields; // Auxiliary fields.
@@ -114,7 +116,11 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_c = gkyl_range_idx(&euler->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&euler->conf_range, idxR);
 
-  return euler->surf[dir](xcC, dxC, euler->wv_eqn, 
+  const struct gkyl_wave_cell_geom *geom_l = gkyl_wave_geom_get(euler->geom, idxC);
+  const struct gkyl_wave_cell_geom *geom_r = gkyl_wave_geom_get(euler->geom, idxR);
+
+  return euler->surf[dir](xcC, dxC, 
+    euler->wv_eqn, geom_l, geom_r, 
     (const double*) gkyl_array_cfetch(euler->auxfields.u_surf, cidx_l),
     (const double*) gkyl_array_cfetch(euler->auxfields.u_surf, cidx_c),
     (const double*) gkyl_array_cfetch(euler->auxfields.u_surf, cidx_r), 

@@ -5,7 +5,10 @@
 #include <assert.h>
 #include <float.h>
 #include <math.h>
+#include <stdbool.h>
 #include <string.h>
+
+#include <stc/cstr.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_app_priv.h>
@@ -31,7 +34,9 @@
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dynvec.h>
+#include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
@@ -51,6 +56,7 @@
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -388,6 +394,13 @@ struct gkyl_vlasov_app {
   struct gkyl_basis basis, confBasis, velBasis; // phase-space, conf-space basis, vel-space basis
 
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
+
+  bool has_mapc2p; // flag to indicate if we have mapc2p
+  void *c2p_ctx;   // context for mapc2p function
+  // pointer to mapc2p function
+  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
+  struct gkyl_wave_geom *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 11/24/23)
   
   // pointers to basis on device (these point to host structs if not
   // on GPU)
