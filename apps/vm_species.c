@@ -184,6 +184,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   // setup applied acceleration
   if (s->info.accel) {
     s->has_accel = true;
+    if (s->info.accel_evolve)
+      s->accel_evolve = s->info.accel_evolve;
     // we need to ensure applied acceleration has same shape as EM
     // field as it will get added to qmem
     s->accel = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
@@ -293,7 +295,7 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
   if (app->use_gpu) // note: f_host is same as f when not on GPUs
     gkyl_array_copy(species->f, species->f_host);
 
-  // we are pre-computing acceleration for now as it is time-independent
+  // Pre-compute applied acceleration in case it's time-independent
   vm_species_calc_accel(app, species, t0);
 
   // we are pre-computing source for now as it is time-independent

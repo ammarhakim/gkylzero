@@ -578,7 +578,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   double dtmin = DBL_MAX;
 
-  // Compute external EM field or applied currents if present.
+  // Compute external EM field or applied currents if present and time-dependent.
   // Note: external EM field and  applied currents use proj_on_basis 
   // so does copy to GPU every call if app->use_gpu = true.
   if (app->has_field) {
@@ -586,6 +586,11 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_field_calc_ext_em(app, app->field, tcurr);
     if (app->field->app_current_evolve)
       vm_field_calc_app_current(app, app->field, tcurr); 
+  }
+  // Compute applied acceleration if if present and time-dependent.
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].accel_evolve)
+      vm_species_calc_accel(app, &app->species[i], tcurr);
   }
 
   // compute necessary moments and boundary corrections for collisions

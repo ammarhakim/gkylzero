@@ -224,6 +224,7 @@ struct vm_species {
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
   bool has_accel; // flag to indicate there is applied acceleration
+  bool accel_evolve; // flag to indicate applied acceleration is time dependent
   struct gkyl_array *accel; // applied acceleration
   struct gkyl_array *accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *accel_proj; // projector for acceleration

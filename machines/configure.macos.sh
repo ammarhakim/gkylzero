@@ -1,1 +1,2 @@
-./configure --prefix=$HOME/gkylsoft
+: "${PREFIX:=$HOME/gkylsoft}"
+./configure --prefix=$PREFIX
