@@ -295,6 +295,10 @@ check: ${UNITS} ## Build (if needed) and run all unit tests
 mpicheck: ${MPI_UNITS} ## Build (if needed) and run all unit tests needing MPI
 	$(foreach unit,${MPI_UNITS},echo $(unit); $(unit) -E -M;)
 
+# Set full paths to install location so config.mak is used from there
+G0_SHARE_INSTALL_PREFIX=${PREFIX}/gkylzero/share
+SED_REPS_STR=s,G0_SHARE_INSTALL_PREFIX,${G0_SHARE_INSTALL_PREFIX},g
+
 install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # Construct install directories
 	$(MKDIR_P) ${PREFIX}/gkylzero/include
@@ -310,7 +314,7 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
 # Examples
 	test -e config.mak && cp -f config.mak ${PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
-	cp -f Makefile.sample ${PREFIX}/gkylzero/share/Makefile
+	sed ${SED_REPS_STR} Makefile.sample > ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
 # Lua wrappers
