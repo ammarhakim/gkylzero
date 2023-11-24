@@ -6,7 +6,9 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_wv_euler.h>
 #include <rt_arg_parse.h>
 
 struct euler_ctx {
@@ -47,14 +49,15 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 512);
 
+  // Euler equation object
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
+
   struct gkyl_vlasov_fluid_species f = {
     .name = "euler",
 
     .ctx = &ctx,
-    .gas_gamma = ctx.gas_gamma,
+    .equation = euler,
     .init = evalEulerInit,
-
-    .num_eqn = 5,
   };
 
   // VM app
@@ -115,7 +118,8 @@ main(int argc, char **argv)
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
-  // simulation complete, free objects
+  // simulation complete, free resources
+  gkyl_wv_eqn_release(euler);
   gkyl_vlasov_app_release(app);
 
   printf("\n");

@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_eqn.h>
 
 #include <stdbool.h>
 
@@ -150,12 +151,7 @@ struct gkyl_vlasov_fluid_species {
   // Hyper-diffusion coefficient
   double nuHyp;
 
-  // Thermal velocity (if isothermal Euler)
-  // gkyl_eqn_type eqn_id = GKYL_EQN_ISO_EULER
-  double vt;
-  // Adiabatic index (if Euler)
-  // gkyl_eqn_type eqn_id = GKYL_EQN_EULER
-  double gas_gamma;
+  struct gkyl_wv_eqn *equation; // equation object
   // advection coupling (if scalar advection)
   // gkyl_eqn_type eqn_id = GKYL_EQN_ADVECTION
   struct gkyl_vlasov_fluid_advection advection;

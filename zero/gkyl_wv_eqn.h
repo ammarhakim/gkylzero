@@ -13,17 +13,13 @@ struct gkyl_wv_eqn;
 
 // Function pointer to compute waves from RP solver
 typedef double (*wv_waves_t)(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  const double *delta, const double *ql, const double *qr, 
   double *waves, double *speeds);
 
 // Function pointer to compute q-fluctuations from waves
 typedef void (*wv_qfluct_t)(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *speeds,
   double *amdq, double *apdq);
-
-// Function pointer to compute primitive variables from conserved variables
-typedef void (*wv_prim_vars_t)(const struct gkyl_wv_eqn *eqn,
-  const double *ql, const double *qr, double *vl, double *vr);
 
 // Function pointer to compute jump in flux. Returns absolute maximum
 // wave-speed
@@ -70,7 +66,6 @@ struct gkyl_wv_eqn {
   wv_waves_t waves_func; // function to compute waves and speeds
   wv_qfluct_t qfluct_func; // function to compute q-fluctuations
   wv_qfluct_t ffluct_func; // function to compute f-fluctuations
-  wv_prim_vars_t prim_vars_func; // function to compute primitive variables from conserved variables 
 
   wv_flux_jump_t flux_jump; // function to compute jump in flux
   wv_check_inv check_inv_func; // function to check invariant domains
@@ -126,10 +121,10 @@ gkyl_default_cons_to_diag(const struct gkyl_wv_eqn *eqn,
  */
 static inline double
 gkyl_wv_eqn_waves(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  const double *delta, const double *ql, const double *qr, 
   double *waves, double *speeds)
 {
-  return eqn->waves_func(eqn, type, delta, ql, qr, vl, vr, waves, speeds);
+  return eqn->waves_func(eqn, type, delta, ql, qr, waves, speeds);
 }
 
 /**
@@ -164,22 +159,6 @@ gkyl_wv_eqn_ffluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   double *amdq, double *apdq)
 {
   eqn->ffluct_func(eqn, type, ql, qr, waves, speeds, amdq, apdq);
-}
-
-/**
- * Compute primitive variables from conserved variable states.
- *
- * @param eqn Equation object
- * @param ql Conserved variables on left
- * @param qr Conserved variables on right
- * @param vl Primitive variables on left
- * @param vr Primitive variables on right
- */
-static inline void
-gkyl_wv_eqn_prim_vars(const struct gkyl_wv_eqn *eqn,
-  const double *ql, const double *qr, double *vl, double *vr)
-{
-  eqn->prim_vars_func(eqn, ql, qr, vl, vr);
 }
 
 /**

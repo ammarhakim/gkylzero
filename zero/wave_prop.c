@@ -267,7 +267,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double is_cfl_violated = 0.0; // delibrately a double
   
   // local conserved and primitive variables
-  double ql_local[meqn], qr_local[meqn], vl_local[meqn], vr_local[meqn];
+  double ql_local[meqn], qr_local[meqn];
   
   double fjump_local[meqn];
   double waves_local[meqn*mwaves];
@@ -357,11 +357,9 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
               calc_jump(meqn, ql_local, qr_local, delta);
             else
               gkyl_wv_eqn_flux_jump(wv->equation, ql_local, qr_local, delta);
-          
-            gkyl_wv_eqn_prim_vars(wv->equation, ql_local, qr_local, vl_local, vr_local);
 
             double my_max_speed = gkyl_wv_eqn_waves(wv->equation, ftype, delta,
-              ql_local, qr_local, vl_local, vr_local, waves_local, s);
+              ql_local, qr_local, waves_local, s);
             max_speed = max_speed > my_max_speed ? max_speed : my_max_speed;
 
             double lenr = cg->lenr[dir];

@@ -45,7 +45,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  const double *delta, const double *ql, const double *qr, 
   double *waves, double *s)
 {
   const struct wv_burgers *burgers = container_of(eqn, struct wv_burgers, eqn);
@@ -95,12 +95,6 @@ ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
 }
 
-static void
-prim_vars(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *vl, double *vr)
-{
-  // no primitive variables for Burger's equation, so do nothing
-}
-
 static double
 flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
 {
@@ -134,7 +128,6 @@ gkyl_wv_burgers_new(void)
   burgers->eqn.waves_func = wave_roe;
   burgers->eqn.qfluct_func = qfluct_roe;
   burgers->eqn.ffluct_func = ffluct_roe;
-  burgers->eqn.prim_vars_func = prim_vars;
 
   burgers->eqn.flux_jump = flux_jump;
   burgers->eqn.check_inv_func = check_inv;

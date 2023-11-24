@@ -1,14 +1,18 @@
 #pragma once
 
-#include <gkyl_euler_kernels.h>
-#include <gkyl_ref_count.h>
 #include <gkyl_dg_eqn.h>
+#include <gkyl_eqn_type.h>
+#include <gkyl_euler_kernels.h>
+#include <gkyl_range.h>
+#include <gkyl_ref_count.h>
+#include <gkyl_util.h>
+#include <gkyl_wv_eqn.h>
 
 // private header for use in euler DG equation object creation
 // functions
 
 // Types for various kernels
-typedef double (*euler_surf_t)(const double *w, const double *dx, const double gas_gamma, 
+typedef double (*euler_surf_t)(const double *w, const double *dx, const struct gkyl_wv_eqn *wv_eqn, 
   const double *u_surf_l, const double *u_surf_c, const double *u_surf_r,
   const double *p_surf_l, const double *p_surf_c, const double *p_surf_r, 
   const double *fluid_l, const double *fluid_c, const double *fluid_r, 
@@ -21,6 +25,8 @@ typedef struct { euler_surf_t kernels[3]; } gkyl_dg_euler_surf_kern_list;
 struct dg_euler {
   struct gkyl_dg_eqn eqn; // Base object  
   euler_surf_t surf[3]; // pointers to surface kernels
+  enum gkyl_eqn_type eqn_type; // Equation type
+  const struct gkyl_wv_eqn *wv_eqn; // wave equation object for Roe solve
   double gas_gamma; // adiabatic index
   struct gkyl_range conf_range; // configuration space range
   struct gkyl_dg_euler_auxfields auxfields; // Auxiliary fields.
@@ -108,7 +114,7 @@ surf(const struct gkyl_dg_eqn *eqn,
   long cidx_c = gkyl_range_idx(&euler->conf_range, idxC);
   long cidx_r = gkyl_range_idx(&euler->conf_range, idxR);
 
-  return euler->surf[dir](xcC, dxC, euler->gas_gamma, 
+  return euler->surf[dir](xcC, dxC, euler->wv_eqn, 
     (const double*) gkyl_array_cfetch(euler->auxfields.u_surf, cidx_l),
     (const double*) gkyl_array_cfetch(euler->auxfields.u_surf, cidx_c),
     (const double*) gkyl_array_cfetch(euler->auxfields.u_surf, cidx_r), 

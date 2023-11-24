@@ -44,7 +44,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 
 static double
 wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  const double *delta, const double *ql, const double *qr, 
   double *waves, double *s)
 {
   const struct wv_advect *advect = container_of(eqn, struct wv_advect, eqn);
@@ -73,12 +73,6 @@ qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     apdq[0] = 0.0;
     amdq[0] = c * (qr[0]-ql[0]);
   }
-}
-
-static void
-prim_vars(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *vl, double *vr)
-{
-  // no primitive variables for advection, so do nothing
 }
 
 static double
@@ -118,7 +112,6 @@ struct gkyl_wv_eqn *gkyl_wv_advect_new(double c) {
 
   advect->eqn.waves_func = wave;
   advect->eqn.qfluct_func = qfluct;
-  advect->eqn.prim_vars_func = prim_vars;
 
   advect->eqn.flux_jump = flux_jump;
   advect->eqn.check_inv_func = check_inv;

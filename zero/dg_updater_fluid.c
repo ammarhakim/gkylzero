@@ -21,10 +21,10 @@ gkyl_dg_updater_fluid_acquire_eqn(const gkyl_dg_updater_fluid* fluid)
 gkyl_dg_updater_fluid*
 gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  enum gkyl_eqn_type eqn_id, double param, void *aux_inp, bool use_gpu)
+  const struct gkyl_wv_eqn *wv_eqn, void *aux_inp, bool use_gpu)
 {
   gkyl_dg_updater_fluid *up = gkyl_malloc(sizeof(gkyl_dg_updater_fluid));
-  up->eqn_id = eqn_id;
+  up->eqn_id = wv_eqn->type;
   up->use_gpu = use_gpu;
   if (up->eqn_id == GKYL_EQN_ADVECTION) {
     up->eqn_fluid = gkyl_dg_advection_new(cbasis, conf_range, up->use_gpu);
@@ -32,7 +32,7 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
     gkyl_advection_set_auxfields(up->eqn_fluid, *adv_in);
   }
   else if (up->eqn_id == GKYL_EQN_EULER) {
-    up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, param, up->use_gpu);
+    up->eqn_fluid = gkyl_dg_euler_new(cbasis, conf_range, wv_eqn, up->use_gpu);
     struct gkyl_dg_euler_auxfields *euler_inp = aux_inp;
     gkyl_euler_set_auxfields(up->eqn_fluid, *euler_inp);
   }

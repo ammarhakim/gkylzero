@@ -1,28 +1,27 @@
 #include <gkyl_euler_kernels.h> 
-GKYL_CU_DH void fluid_vars_limiter_1x_ser_p1(double gas_gamma, double *p_c, 
+GKYL_CU_DH void fluid_vars_limiterx_1x_ser_p2(const struct gkyl_wv_eqn *wv_eqn, 
     double *fluid_l, double *fluid_c, double *fluid_r) 
 { 
-  // gas_gamma:    Adiabatic index.
-  // p_c: Input volume expansion of pressure
-  // fluid_l/c/r:  [rho, rho ux, rho uy, rho uz, energy], Fluid input state vector in left/center/right cells.
+  // wv_eqn:      Wave equation for computing waves for limiting characteristics
+  // fluid_l/c/r: [rho, rho ux, rho uy, rho uz, energy], Fluid input state vector in left/center/right cells.
 
   double *rho_l = &fluid_l[0]; 
-  double *rhoux_l = &fluid_l[2]; 
-  double *rhouy_l = &fluid_l[4]; 
-  double *rhouz_l = &fluid_l[6]; 
-  double *energy_l = &fluid_l[8]; 
+  double *rhoux_l = &fluid_l[3]; 
+  double *rhouy_l = &fluid_l[6]; 
+  double *rhouz_l = &fluid_l[9]; 
+  double *energy_l = &fluid_l[12]; 
 
   double *rho_c = &fluid_c[0]; 
-  double *rhoux_c = &fluid_c[2]; 
-  double *rhouy_c = &fluid_c[4]; 
-  double *rhouz_c = &fluid_c[6]; 
-  double *energy_c = &fluid_c[8]; 
+  double *rhoux_c = &fluid_c[3]; 
+  double *rhouy_c = &fluid_c[6]; 
+  double *rhouz_c = &fluid_c[9]; 
+  double *energy_c = &fluid_c[12]; 
 
   double *rho_r = &fluid_r[0]; 
-  double *rhoux_r = &fluid_r[2]; 
-  double *rhouy_r = &fluid_r[4]; 
-  double *rhouz_r = &fluid_r[6]; 
-  double *energy_r = &fluid_r[8]; 
+  double *rhoux_r = &fluid_r[3]; 
+  double *rhouy_r = &fluid_r[6]; 
+  double *rhouz_r = &fluid_r[9]; 
+  double *energy_r = &fluid_r[12]; 
 
   double fluid_avg_l[5], fluid_avg_c[5], fluid_avg_r[5] = {0.0};
   double delta_l[5], delta_c[5], delta_r[5] = {0.0};
@@ -65,12 +64,12 @@ GKYL_CU_DH void fluid_vars_limiter_1x_ser_p1(double gas_gamma, double *p_c,
   delta_r[3] = 0.2886751345948129*(fluid_avg_r[3] - fluid_avg_c[3]);
   delta_r[4] = 0.2886751345948129*(fluid_avg_r[4] - fluid_avg_c[4]);
 
-  double roe_avg[4] = {0.0}; 
-  roe_avg_euler(fluid_avg_c, fluid_avg_c, p_c, p_c, roe_avg);  
-
-  waves_euler(gas_gamma, delta_l, roe_avg, waves_slope_l, speeds);
-  waves_euler(gas_gamma, delta_c, roe_avg, waves_slope_c, speeds);
-  waves_euler(gas_gamma, delta_r, roe_avg, waves_slope_r, speeds);
+  double my_max_speed_l = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_l,
+    fluid_avg_c, fluid_avg_c, waves_slope_l, speeds);
+  double my_max_speed_c = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_c,
+    fluid_avg_c, fluid_avg_c, waves_slope_c, speeds);
+  double my_max_speed_r = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_r,
+    fluid_avg_c, fluid_avg_c, waves_slope_r, speeds);
 
   // limit wave components, accumulating it to slope
   double mm[15] = {0.0};
@@ -116,4 +115,17 @@ GKYL_CU_DH void fluid_vars_limiter_1x_ser_p1(double gas_gamma, double *p_c,
   rhouy_c[1] = slope[2];
   rhouz_c[1] = slope[3];
   energy_c[1] = slope[4];
+
+  for (int i=0; i<3; ++i) {
+    if (mm[i*5] != waves_slope_c[i*5])
+      rho_c[2] = 0.0;
+    if (mm[i*5+1] != waves_slope_c[i*5+1])
+      rhoux_c[2] = 0.0;
+    if (mm[i*5+2] != waves_slope_c[i*5+2])
+      rhouy_c[2] = 0.0;
+    if (mm[i*5+3] != waves_slope_c[i*5+3])
+      rhouz_c[2] = 0.0;
+    if (mm[i*5+4] != waves_slope_c[i*5+4])
+      energy_c[2] = 0.0;
+  }
 }

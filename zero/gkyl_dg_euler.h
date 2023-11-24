@@ -3,9 +3,10 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
-#include <gkyl_eqn_type.h>
 #include <gkyl_dg_eqn.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
+#include <gkyl_wv_eqn.h>
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_dg_euler_auxfields { 
@@ -20,15 +21,15 @@ struct gkyl_dg_euler_auxfields {
  *
  * @param cbasis Configuration space basis functions
  * @param conf_range Configuration space range for use in indexing velocity
- * @param gas_gamma Adiabatic index for fluid (assumed constant)
+ * @param wv_eqn Wave equation object which contains information and functions for the specific fluid equation
  * @param use_gpu Boolean to determine whether equation object is on host or device
  * @return Pointer to euler equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
-  double gas_gamma, bool use_gpu);
+  const struct gkyl_wv_eqn *wv_eqn, bool use_gpu);
 
 struct gkyl_dg_eqn* gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
-  double gas_gamma);
+  const struct gkyl_wv_eqn *wv_eqn);
 
 /**
  * Set the auxiliary fields (e.g. velocity u = rho*u/rho) needed in updating euler equation.

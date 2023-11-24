@@ -1,6 +1,6 @@
 #include <gkyl_euler_kernels.h> 
 #include <gkyl_basis_ser_1x_p1_surfx1_eval_quad.h> 
-GKYL_CU_DH double euler_surfx_1x_ser_p1(const double *w, const double *dxv, double gas_gamma, 
+GKYL_CU_DH double euler_surfx_1x_ser_p1(const double *w, const double *dxv, const struct gkyl_wv_eqn *wv_eqn, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r,
     const double *p_surf_l, const double *p_surf_c, const double *p_surf_r,
     const double *fluid_l, const double *fluid_c, const double *fluid_r, 
@@ -135,24 +135,23 @@ GKYL_CU_DH double euler_surfx_1x_ser_p1(const double *w, const double *dxv, doub
   delta_r[3] = (-1.224744871391589*rhouz_r[1])-1.224744871391589*rhouz_c[1]+0.7071067811865475*rhouz_r[0]-0.7071067811865475*rhouz_c[0]; 
   delta_r[4] = (-1.224744871391589*energy_r[1])-1.224744871391589*energy_c[1]+0.7071067811865475*energy_r[0]-0.7071067811865475*energy_c[0]; 
 
-  double roe_avg_l[4] = {0.0}; 
-  double roe_avg_r[4] = {0.0}; 
-  roe_avg_euler(q_lr, q_cl, &pl_r, &pc_l, roe_avg_l);
-  roe_avg_euler(q_cr, q_rl, &pc_r, &pr_l, roe_avg_r);
-
   double waves_l[15] = {0.0}; 
   double waves_r[15] = {0.0}; 
   double speeds_l[3] = {0.0}; 
   double speeds_r[3] = {0.0}; 
-  waves_euler(gas_gamma, delta_l, roe_avg_l, waves_l, speeds_l);
-  waves_euler(gas_gamma, delta_r, roe_avg_r, waves_r, speeds_r);
+  double my_max_speed_l = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_l,
+    q_lr, q_cl, waves_l, speeds_l);
+  double my_max_speed_r = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_r,
+    q_cr, q_rl, waves_r, speeds_r);
 
   double amdq_l[5] = {0.0}; 
   double apdq_l[5] = {0.0}; 
   double amdq_r[5] = {0.0}; 
   double apdq_r[5] = {0.0}; 
-  qfluct_euler(waves_l, speeds_l, amdq_l, apdq_l);
-  qfluct_euler(waves_r, speeds_r, amdq_r, apdq_r);
+  gkyl_wv_eqn_qfluct(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_lr, q_cl,
+    waves_l, speeds_l, amdq_l, apdq_l);
+  gkyl_wv_eqn_qfluct(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, q_cr, q_rl,
+    waves_r, speeds_r, amdq_r, apdq_r);
 
   Ghat_rho_l = 0.3061862178478972*rho_l[1]*uxl_r-0.3061862178478972*rho_c[1]*uxl_r+0.1767766952966369*rho_l[0]*uxl_r+0.1767766952966369*rho_c[0]*uxl_r+0.3061862178478972*rho_l[1]*uxc_l-0.3061862178478972*rho_c[1]*uxc_l+0.1767766952966369*rho_l[0]*uxc_l+0.1767766952966369*rho_c[0]*uxc_l-0.5*apdq_l[0]+0.5*amdq_l[0]; 
   Ghat_rhoux_l = 0.5*Ghat_rho_l*uxl_r+0.5*Ghat_rho_l*uxc_l+0.5*pl_r+0.5*pc_l-0.5*apdq_l[1]+0.5*amdq_l[1]; 

@@ -5,9 +5,11 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_euler_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_eqn.h>
 #include <assert.h>
 
 typedef int (*fluid_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, 
@@ -16,10 +18,10 @@ typedef int (*fluid_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs
 typedef void (*fluid_copy_t)(int count, struct gkyl_nmat *x, 
   double* GKYL_RESTRICT u, double* GKYL_RESTRICT u_surf);
 
-typedef void (*fluid_pressure_t)(double param, const double *fluid, const double *u, 
+typedef void (*fluid_pressure_t)(double gas_gamma, const double *fluid, const double *u, 
   double* GKYL_RESTRICT p, double* GKYL_RESTRICT p_surf);
 
-typedef void (*fluid_limiter_t)(double gas_gamma, double *p_c, 
+typedef void (*fluid_limiter_t)(const struct gkyl_wv_eqn *wv_eqn, 
   double *fluid_l, double *fluid_c, double *fluid_r);
 
 // for use in kernel tables
@@ -29,7 +31,10 @@ typedef struct { fluid_pressure_t kernels[3]; } gkyl_dg_fluid_pressure_kern_list
 typedef struct { fluid_limiter_t kernels[3]; } gkyl_dg_fluid_limiter_kern_list;
 
 struct gkyl_dg_calc_fluid_vars {
-  struct gkyl_rect_grid conf_grid; // Configuration space grid for cell spacing and cell center
+  enum gkyl_eqn_type eqn_type; // Equation type
+  const struct gkyl_wv_eqn *wv_eqn; // Wave equation for characteristic limiting of solution
+  double param; // parameter for computing primitive moments/limiting solution (vt for isothermal Euler, gas_gammas for Euler)
+
   int cdim; // Configuration space dimensionality
   int poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method)
   struct gkyl_range mem_range; // Configuration space range for linear solve
@@ -98,7 +103,7 @@ static const gkyl_dg_fluid_pressure_kern_list ten_fluid_pressure_kernels[] = {
 // Scalar pressure Isothermal Euler -> p = vth*rho; Euler -> p = (gas_gamma - 1)*(E - 1/2 rho u^2) (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_fluid_limiter_kern_list ser_fluid_limiter_kernels[] = {
-  { NULL, fluid_vars_limiter_1x_ser_p1, fluid_vars_limiter_1x_ser_p2 }, // 0
+  { NULL, fluid_vars_limiterx_1x_ser_p1, fluid_vars_limiterx_1x_ser_p2 }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL }, // 2
 };
@@ -106,7 +111,7 @@ static const gkyl_dg_fluid_limiter_kern_list ser_fluid_limiter_kernels[] = {
 // Scalar pressure Isothermal Euler -> p = vth*rho; Euler -> p = (gas_gamma - 1)*(E - 1/2 rho u^2) (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_fluid_limiter_kern_list ten_fluid_limiter_kernels[] = {
-  { NULL, fluid_vars_limiter_1x_ser_p1, fluid_vars_limiter_1x_ser_p2 }, // 0
+  { NULL, fluid_vars_limiterx_1x_ser_p1, fluid_vars_limiterx_1x_ser_p2 }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL }, // 2
 };

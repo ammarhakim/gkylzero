@@ -51,6 +51,7 @@
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_wv_eqn.h>
 
 // Definitions of private structs and APIs attached to these objects
 // for use in Vlasov app.
@@ -305,8 +306,9 @@ struct vm_fluid_species {
 
   struct gkyl_array *fluid_host;  // host copy for use IO and initialization
 
-  enum gkyl_eqn_type eqn_id; // type of fluid system (e.g., scalar advection vs. Euler vs. isothermal Euler)
-  double param; // Input parameter for fluid species (vt for isothermal Euler, gas_gamma for Euler)
+  enum gkyl_eqn_type eqn_type;  // type ID of equation
+  int num_equations;            // number of equations in species
+  struct gkyl_wv_eqn *equation; // equation object
   // organization of the different equation objects and the required data and solvers
   union {
     // Applied advection

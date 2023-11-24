@@ -64,14 +64,18 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
+  const double *delta, const double *ql, const double *qr, 
   double *waves, double *s)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
+  double vl[5], vr[5];
   double gas_gamma = sr_euler->gas_gamma;
   double g1 = gas_gamma - 1.;
   double gFrac = gas_gamma/g1;
 
+  // Get prim variables rho, p, u, v, w. 
+  gkyl_sr_euler_prim_vars(gas_gamma, ql, vl);
+  gkyl_sr_euler_prim_vars(gas_gamma, qr, vr);
   double gammal = 1. / sqrt(1. - (vl[2]*vl[2] + vl[3]*vl[3] + vl[4]*vl[4]));
   double pl = vl[1];
   double gammar = 1. / sqrt(1. - (vr[2]*vr[2] + vr[3]*vr[3] + vr[4]*vr[4]));
@@ -152,15 +156,6 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
 }
 
-static void
-prim_vars(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *vl, double *vr)
-{
-  const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
-
-  gkyl_sr_euler_prim_vars(sr_euler->gas_gamma, ql, vl);
-  gkyl_sr_euler_prim_vars(sr_euler->gas_gamma, qr, vr);
-}
-
 static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
@@ -187,7 +182,6 @@ gkyl_wv_sr_euler_new(double gas_gamma)
   sr_euler->gas_gamma = gas_gamma;
   sr_euler->eqn.waves_func = wave_roe;
   sr_euler->eqn.qfluct_func = qfluct_roe;
-  sr_euler->eqn.prim_vars_func = prim_vars;
 
   sr_euler->eqn.check_inv_func = check_inv;
   sr_euler->eqn.max_speed_func = max_speed;

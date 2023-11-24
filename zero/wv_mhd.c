@@ -127,25 +127,24 @@ mhd_free(const struct gkyl_ref_count *ref)
 // in Bx is nonzero?
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, const double *priml, const double *primr, 
-  double *waves, double *s)
+  const double *dQ, const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   double gamma = mhd->gas_gamma;
 
   //////////////////////////////////////////////////////////////////////////////
-  // STEP 1: FETCH PRIMITIVE VARIABLES                                      //
+  // STEP 1: COMPUTE PRIMITIVE VARIABLES                                      //
   //////////////////////////////////////////////////////////////////////////////
-  double ul = priml[1], ur = primr[1];
-  double vl = priml[2], vr = primr[2];
-  double wl = priml[3], wr = primr[3];
-  double pl = priml[4];
-  double pr = primr[4];
-  double pbl = priml[5];
-  double pbr = primr[5];
+  double ul = ql[MX] / ql[DN], ur = qr[MX] / qr[DN];
+  double vl = ql[MY] / ql[DN], vr = qr[MY] / qr[DN];
+  double wl = ql[MZ] / ql[DN], wr = qr[MZ] / qr[DN];
+  double pl = gkyl_mhd_pressure(gamma, ql);
+  double pr = gkyl_mhd_pressure(gamma, qr);
+  double pbl = 0.5 * (sq(ql[BX]) + sq(ql[BY]) + sq(ql[BZ]));
+  double pbr = 0.5 * (sq(qr[BX]) + sq(qr[BY]) + sq(qr[BZ]));
   // total enthalpy (density) in CG97 eq. 2.2
-  double Hl = priml[6];
-  double Hr = primr[6];
+  double Hl = (ql[ER] + pl + pbl) / ql[DN];
+  double Hr = (qr[ER] + pr + pbr) / qr[DN];
 
   //////////////////////////////////////////////////////////////////////////////
   // STEP 2: COMPUTE ROE AVERAGES OF PRIMITIVE VARIABLES                      //
@@ -170,7 +169,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   // CG97 eq. 4.12, including jump in Bx seems to give correct jump in pressure
   // according to the equation bewteen CG97 eq. 4.15 and 4.16; X may also be
   // computed from CG97 eq. 4.15
-  double X = (sq(delta[BX]) + sq(delta[BY]) + sq(delta[BZ])) / (2*sq(srrhol+srrhor));
+  double X = (sq(dQ[BX]) + sq(dQ[BY]) + sq(dQ[BZ])) / (2*sq(srrhol+srrhor));
 
   // CG97 eq 4.17, wave speeds
   double ca2 = Bx*Bx/rho; // for alfven speed due to normal B field
@@ -209,7 +208,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   // STEP 4: COMPUTE WAVE SPEEDS AND FLUCTUATIONS DUE TO ROE LINEARIZATION    //
   //                                                                          //
   // For each eigensolution of the Roe linearizing matrix, compute:           //
-  // 0. Eigenvalue, which is the wave speed. The results are stored in s     //
+  // 0. Eigenvalue, which is the wave speed. The results are stored in ev     //
   //     array and sorted by their values, that is,                           //
   //    u-c_fast<u-c_alfven<u-c_slow<u<u+c_slow<u+c_alfven<u+c_fast           //
   // 1. Projection coefficient of jumps in conservative state on to the       //
@@ -218,14 +217,14 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   //////////////////////////////////////////////////////////////////////////////
   // CG97 eq. 4.20 gave projection coefficients in primitive varialbles.
   // Alternatively, one may compute the full left-eigenvectors and dot it with
-  // delta. The left-eigenvector of the Roe matrix can be found in Stone et al.
+  // dQ. The left-eigenvector of the Roe matrix can be found in Stone et al.
   // (2008), Appendix B2.
-  double drho = delta[DN];
+  double drho = dQ[DN];
   double du = ur - ul;
   double dv = vr - vl;
   double dw = wr - wl;
-  double dBy = delta[BY];
-  double dBz = delta[BZ];
+  double dBy = dQ[BY];
+  double dBz = dQ[BZ];
   double dp = pr - pl; // consistent the CG97 eq. between 4.15 and 4.16
 
   const int meqns = eqn->num_equations;
@@ -247,7 +246,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double t5 = alphas * cs * S * (v*betay + w*betaz);
   double t6 = alphas * a * Bt / sqrt(rho);
 
-  s[0] = u - cf;
+  ev[0] = u - cf;
   // Coefficients of projection onto the left-eigenvector
   eta[0] = (t1 + t2 - t3 + t4) / 2; // eq. 4.20
   eta[0] /= a2; // merge a2 in right-eigenvector in 4.19 into coefficents
@@ -261,7 +260,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   wv[BY] = eta[0]*alphas*a*betay/sqrt(rho);
   wv[BZ] = eta[0]*alphas*a*betaz/sqrt(rho);
 
-  s[6] = u + cf;
+  ev[6] = u + cf;
   // Coefficients of projection onto the left-eigenvector
   eta[6] = (t1 - t2 + t3 + t4) / 2; // eq. 4.20
   eta[6] /= a2; // merge a2 in right-eigenvector in 4.19 into coefficents
@@ -283,7 +282,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   double t7 = betay*dw - betaz*dv;
   double t8 = (S/sqrt(rho)) * (betay*dBz-betaz*dBy);
 
-  s[1] = u - ca;
+  ev[1] = u - ca;
   // Coefficients of projection onto the left-eigenvector
   eta[1] = (t7 + t8) / 2; // eg. 4.20
   eta[1] *= rho; // merge rho in right-eigenvector in 4.18 into coefficents
@@ -295,7 +294,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   wv[BY] = -eta[1]*S*betaz/sqrt(rho);
   wv[BZ] = eta[1]*S*betay/sqrt(rho);
 
-  s[5] = u + ca;
+  ev[5] = u + ca;
   // Coefficients of projection onto the left-eigenvector
   eta[5] = (-t7 + t8) / 2; // eq. 4.20
   eta[5] *= rho; // merge rho in right-eigenvector in 4.18 into coefficents
@@ -321,7 +320,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   t5 = alphaf * cf * S * (v*betay + w*betaz);
   t6 = alphaf * a * Bt / sqrt(rho);
 
-  s[2] = u - cs;
+  ev[2] = u - cs;
   // Coefficients of projection onto the left-eigenvector
   eta[2] = (t1 - t2 - t3 - t4) / 2; // eq. 4.20
   eta[2] /= a2; // merge a2 in right-eigenvector in 4.19 into coefficents
@@ -335,7 +334,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   wv[BY] = -eta[2]*alphaf*a*betay/sqrt(rho);
   wv[BZ] = -eta[2]*alphaf*a*betaz/sqrt(rho);
 
-  s[4] = u + cs;
+  ev[4] = u + cs;
   // Coefficients of projection onto the left-eigenvector
   eta[4] = (t1 + t2 + t3 - t4) / 2; // eq. 4.20
   eta[4] /= a2; // merge a2 in right-eigenvector in 4.19 into coefficents
@@ -352,7 +351,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
   //////////////////
   // Enropy wave  //
   //////////////////
-  s[3] = u;
+  ev[3] = u;
   // Coefficients of projection onto the left-eigenvector
   eta[3] = (a2 - X) * drho - dp; // eq. 4.20
   eta[3] /= a2; // merge a2 in right-eigenvector in 4.18 into coefficents
@@ -372,9 +371,9 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 
   // For the eight-wave scheme, advect the jump in Bx at the speed u.
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES) {
-    s[7] = u;
+    ev[7] = u;
     wv = &waves[7*meqns];
-    wv[BX] = delta[BX];
+    wv[BX] = dQ[BX];
   }
 
   // For the GLM Bx and psi waves, solve the linear Riemann problem.
@@ -384,15 +383,15 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
     double ch = mhd->glm_ch;
 
     // L = 0.5*(-ch, 1), R = (-1/ch, 1)
-    s[7] = -ch;
-    eta[7] = 0.5 * (-delta[BX]*ch+delta[PSI_GLM]);
+    ev[7] = -ch;
+    eta[7] = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
     wv = &waves[7*meqns];
     wv[BX] = -eta[7]/ch;
     wv[PSI_GLM] = eta[7];
 
     // L = 0.5*(+ch, 1), R = (+1/ch, 1)
-    s[8] = ch;
-    eta[8] = 0.5 * (delta[BX]*ch+delta[PSI_GLM]);
+    ev[8] = ch;
+    eta[8] = 0.5 * (dQ[BX]*ch+dQ[PSI_GLM]);
     wv = &waves[8*meqns];
     wv[BX] = eta[8]/ch;
     wv[PSI_GLM] = eta[8];
@@ -405,8 +404,8 @@ wave_roe(const struct gkyl_wv_eqn *eqn,
 
 static void
 qfluct_roe(const struct gkyl_wv_eqn *eqn,
-  const double *ql, const double *qr, const double *waves, const double *s, 
-  double *amdq, double *apdq)
+  const double *ql, const double *qr, const double *waves, const double *s, double *amdq,
+  double *apdq)
 {
   int meqn = eqn->num_equations;
   for (int i=0; i<meqn; ++i) {
@@ -422,8 +421,7 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
 // Computing waves and waves speeds from Lax fluxes
 static double
 wave_lax(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, const double *priml, const double *primr, 
-  double *waves, double *s)
+  const double *dQ, const double *ql, const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   int meqn = eqn->num_equations;
@@ -432,11 +430,11 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
 #if 0
   double sl = gkyl_mhd_max_abs_speed(gas_gamma, ql);
   double sr = gkyl_mhd_max_abs_speed(gas_gamma, qr);
-  s[0] = 0.5*(sl+sr);
+  ev[0] = 0.5*(sl+sr);
 #else
   double amax = gkyl_mhd_max_abs_speed_roe(gas_gamma, ql, qr);
-  s[0] = -amax;
-  s[1] = amax;
+  ev[0] = -amax;
+  ev[1] = amax;
 #endif
 
   double fl[10], fr[10];
@@ -455,7 +453,7 @@ wave_lax(const struct gkyl_wv_eqn *eqn,
     w1[i] = 0.5*((qr[i]-ql[i]) + (fr[i]-fl[i])/amax);
   }
 
-  return s[1];
+  return ev[1];
 }
 
 static void
@@ -476,9 +474,8 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
 
 // HLLD, Miyoshi & Kusano (2005), JCP, 208(1), 315-344
 static double
-wave_hlld(const struct gkyl_wv_eqn *eqn, 
-  const double *delta, const double *ql, const double *qr, const double *priml, const double *primr, 
-  double *waves, double *s)
+wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
+  const double *qr, double *waves, double *speeds)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   double g = mhd->gas_gamma;
@@ -486,14 +483,19 @@ wave_hlld(const struct gkyl_wv_eqn *eqn,
 
   // notations based on Miyoshi & Kusano: r:rho, u:ux, p:pressure, l:left,
   // r:right, s:star, m:middle/intermidiate
-  double rl = priml[0], rr = primr[0];
-  double ul = priml[1], ur = primr[1];
-  double vl = priml[2], vr = primr[2];
-  double wl = priml[3], wr = primr[3];
-  double pl = priml[4];
-  double pr = primr[4];
-  double ptl = pl + priml[5];
-  double ptr = pr + primr[5];
+  double rl = ql[DN];
+  double ul = ql[MX] / rl;
+  double vl = ql[MY] / rl;
+  double wl = ql[MZ] / rl;
+  double pl = gkyl_mhd_pressure(g, ql);
+  double ptl = pl + 0.5 * (sq(ql[BX]) + sq(ql[BY]) + sq(ql[BZ]));
+
+  double rr = qr[DN];
+  double ur = qr[MX] / rr;
+  double vr = qr[MY] / rr;
+  double wr = qr[MZ] / rr;
+  double pr = gkyl_mhd_pressure(g, qr);
+  double ptr = pr + 0.5 * (sq(qr[BX]) + sq(qr[BY]) + sq(qr[BZ]));
 
   // STEP 1. compute min and max wave speeds
   double cf_l = gkyl_mhd_fast_speed(g, ql);
@@ -607,11 +609,11 @@ wave_hlld(const struct gkyl_wv_eqn *eqn,
   qssr[ER] = qsr[ER] + sqrtr*tmp3*sign; // eq. 63
 
   // STEP 4. collect all waves and wave speeds
-  s[0] = sl;
-  s[1] = ssl;
-  s[2] = sm;
-  s[3] = ssr;
-  s[4] = sr;
+  speeds[0] = sl;
+  speeds[1] = ssl;
+  speeds[2] = sm;
+  speeds[3] = ssr;
+  speeds[4] = sr;
 
   double *wv;
 
@@ -635,10 +637,10 @@ wave_hlld(const struct gkyl_wv_eqn *eqn,
   // For the eight-wave scheme, advect the jump in Bx at the speed u.
   // XXX is this correct?
   if (mhd->divergence_constraint == GKYL_MHD_DIVB_EIGHT_WAVES) {
-    s[5] = sm;
+    speeds[5] = sm;
     wv += meqn;
     for (int i=0; i<8; ++i) wv[i] = 0.0;
-    wv[BX] = delta[BX];
+    wv[BX] = dQ[BX];
   }
 
   // For the GLM Bx and psi waves, solve the linear Riemann problem.
@@ -653,18 +655,18 @@ wave_hlld(const struct gkyl_wv_eqn *eqn,
     double ch = mhd->glm_ch;
 
     // L = 0.5*(-ch, 1), R = (-1/ch, 1)
-    s[5] = -ch;
+    speeds[5] = -ch;
     wv += meqn;
     for (int i=0; i<8; ++i) wv[i] = 0.0;
-    double eta = 0.5 * (-delta[BX]*ch+delta[PSI_GLM]);
+    double eta = 0.5 * (-dQ[BX]*ch+dQ[PSI_GLM]);
     wv[BX] = -eta/ch;
     wv[PSI_GLM] = eta;
 
     // L = 0.5*(+ch, 1), R = (+1/ch, 1)
-    s[6] = ch;
+    speeds[6] = ch;
     wv += meqn;
     for (int i=0; i<8; ++i) wv[i] = 0.0;
-    eta = 0.5 * (delta[BX]*ch+delta[PSI_GLM]);
+    eta = 0.5 * (dQ[BX]*ch+dQ[PSI_GLM]);
     wv[BX] = eta/ch;
     wv[PSI_GLM] = eta;
 
@@ -676,7 +678,7 @@ wave_hlld(const struct gkyl_wv_eqn *eqn,
 
 static void
 qfluct_hlld(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
-  const double *waves, const double *s, double *amdq, double *apdq)
+            const double *waves, const double *s, double *amdq, double *apdq)
 {
   int meqn = eqn->num_equations;
   int mwave = eqn->num_waves;
@@ -692,13 +694,12 @@ qfluct_hlld(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
 
 static double
 wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
-  double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
-    return wave_roe(eqn, delta, ql, qr, vl, vr, waves, s);
+    return wave_roe(eqn, delta, ql, qr, waves, s);
   else
-    return wave_lax(eqn, delta, ql, qr, vl, vr, waves, s);
+    return wave_lax(eqn, delta, ql, qr, waves, s);
 
   return 0.0; // can't happen
 }
@@ -716,13 +717,12 @@ qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 
 static double
 wave_hlld_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
-  double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
-    return wave_hlld(eqn, delta, ql, qr, vl, vr, waves, s);
+    return wave_hlld(eqn, delta, ql, qr, waves, s);
   else
-    return wave_lax(eqn, delta, ql, qr, vl, vr, waves, s);
+    return wave_lax(eqn, delta, ql, qr, waves, s);
 
   return 0.0; // can't happen
 }
@@ -740,10 +740,9 @@ qfluct_hlld_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 
 static double
 wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, const double *vl, const double *vr, 
-  double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
-  return wave_lax(eqn, delta, ql, qr, vl, vr, waves, s);
+  return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
 static void
@@ -752,25 +751,6 @@ qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   double *amdq, double *apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
-}
-
-static void
-prim_vars(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *vl, double *vr)
-{
-  const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
-
-  vl[0] = ql[DN], vr[0] = qr[DN];
-  vl[1] = ql[MX]/ql[DN], vr[1] = qr[MX]/qr[DN]; 
-  vl[2] = ql[MY]/ql[DN], vr[2] = qr[MY]/qr[DN]; 
-  vl[3] = ql[MZ]/ql[DN], vr[3] = qr[MZ]/qr[DN];
-  
-  vl[4] = gkyl_mhd_pressure(mhd->gas_gamma, ql);
-  vr[4] = gkyl_mhd_pressure(mhd->gas_gamma, qr);
-  vl[5] = 0.5 * (sq(ql[BX]) + sq(ql[BY]) + sq(ql[BZ]));
-  vr[5] = 0.5 * (sq(qr[BX]) + sq(qr[BY]) + sq(qr[BZ]));
-  // total enthalpy (density) in CG97 eq. 2.2
-  vl[6] = (ql[ER] + vl[4] + vl[5]) / ql[DN];
-  vr[6] = (qr[ER] + vr[4] + vr[5]) / qr[DN];
 }
 
 static bool
@@ -825,7 +805,6 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
       mhd->eqn.qfluct_func = qfluct_lax_l;
       break;      
   }
-  mhd->eqn.prim_vars_func = prim_vars;
 
   mhd->eqn.check_inv_func = check_inv;
   mhd->eqn.max_speed_func = max_speed;

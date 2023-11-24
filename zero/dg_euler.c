@@ -6,6 +6,7 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_euler_priv.h>
+#include <gkyl_wv_euler.h>
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polyorder
@@ -23,6 +24,7 @@ gkyl_euler_free(const struct gkyl_ref_count *ref)
   }  
   
   struct dg_euler *euler = container_of(base, struct dg_euler, eqn);
+  gkyl_wv_eqn_release(euler->wv_eqn);
   gkyl_free(euler);
 }
 
@@ -45,7 +47,7 @@ gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_aux
 
 struct gkyl_dg_eqn*
 gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
-  double gas_gamma, bool use_gpu)
+  const struct gkyl_wv_eqn *wv_eqn, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -72,12 +74,14 @@ gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf
       assert(false);
       break;    
   }  
-    
-  euler->eqn.num_equations = 5;
+
+  euler->eqn_type = wv_eqn->type;
+  euler->eqn.num_equations = wv_eqn->num_equations;
+  euler->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
+  euler->gas_gamma = gkyl_wv_euler_gas_gamma(euler->wv_eqn);
+
   euler->eqn.surf_term = surf;
   euler->eqn.boundary_surf_term = boundary_surf;
-
-  euler->gas_gamma = gas_gamma;
 
   euler->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
 
@@ -108,7 +112,7 @@ gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf
 
 struct gkyl_dg_eqn*
 gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
-  double gas_gamma)
+  const struct gkyl_wv_eqn *wv_eqn)
 {
   assert(false);
   return 0;
