@@ -13,11 +13,11 @@
 gkyl_dg_calc_fluid_vars*
 gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
-  bool use_gpu)
+  double limiter_fac, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_calc_fluid_vars_cu_dev_new(wv_eqn, cbasis, mem_range);
+    return gkyl_dg_calc_fluid_vars_cu_dev_new(wv_eqn, cbasis, mem_range, limiter_fac);
   } 
 #endif     
   gkyl_dg_calc_fluid_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_fluid_vars));
@@ -42,6 +42,17 @@ gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn,
   // Fetch the kernels in each direction
   for (int d=0; d<cdim; ++d) 
     up->fluid_limiter[d] = choose_fluid_limiter_kern(d, b_type, cdim, poly_order);
+
+  // Limiter factor for relationship between slopes and cell average differences
+  // By default, this factor is 1/sqrt(3) because cell_avg(f) = f0/sqrt(2^cdim)
+  // and a cell slope estimate from two adjacent cells is (for the x variation): 
+  // integral(psi_1 [cell_avg(f_{i+1}) - cell_avg(f_{i})]*x) = sqrt(2^cdim)/sqrt(3)*[cell_avg(f_{i+1}) - cell_avg(f_{i})]
+  // where psi_1 is the x cell slope basis in our orthonormal expansion psi_1 = sqrt(3)/sqrt(2^cdim)*x
+  // This factor can be made smaller (larger) to increase (decrease) the diffusion from the slope limiter
+  if (limiter_fac == 0.0)
+    up->limiter_fac = 0.5773502691896258;
+  else
+    up->limiter_fac = limiter_fac;
 
   // There are Ncomp*range->volume linear systems to be solved 
   // 3 components: ux, uy, uz, 
@@ -158,7 +169,7 @@ void gkyl_dg_calc_fluid_vars_limiter(struct gkyl_dg_calc_fluid_vars *up,
       double *fluid_l = gkyl_array_fetch(fluid, linl);
       double *fluid_r = gkyl_array_fetch(fluid, linr);
 
-      up->fluid_limiter[dir](up->wv_eqn, fluid_l, fluid_c, fluid_r);    
+      up->fluid_limiter[dir](up->limiter_fac, up->wv_eqn, fluid_l, fluid_c, fluid_r);    
     }
   }
 }

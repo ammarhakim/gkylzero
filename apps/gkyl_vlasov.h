@@ -147,12 +147,12 @@ struct gkyl_vlasov_fluid_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-  // Number of fluid equations
-  int num_eqn;
   // Hyper-diffusion coefficient
   double nuHyp;
 
   struct gkyl_wv_eqn *equation; // equation object
+  double limiter_fac; // Optional input parameter for adjusting diffusion in slope limiter
+
   // advection coupling (if scalar advection)
   // gkyl_eqn_type eqn_id = GKYL_EQN_ADVECTION
   struct gkyl_vlasov_fluid_advection advection;

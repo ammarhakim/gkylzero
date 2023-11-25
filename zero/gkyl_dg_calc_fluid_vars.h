@@ -21,18 +21,25 @@ typedef struct gkyl_dg_calc_fluid_vars gkyl_dg_calc_fluid_vars;
  * 
  * Updater also stores the kernels to compute fluid source terms and fluid integrated moments.
  * 
- * @param wv_eqn    Wave equation (stores function pointers for computing waves)
- * @param cbasis    Configuration space basis functions
- * @param mem_range Configuration space range that sets the size of the bin_op memory
- *                  for computing primitive moments. Note range is stored so 
- *                  updater loops over consistent range for primitive moments
- * @param use_gpu   bool to determine if on GPU
+ * @param wv_eqn      Wave equation (stores function pointers for computing waves)
+ * @param cbasis      Configuration space basis functions
+ * @param mem_range   Configuration space range that sets the size of the bin_op memory
+ *                    for computing primitive moments. Note range is stored so 
+ *                    updater loops over consistent range for primitive moments
+ * @param limiter_fac Optional parameter for changing diffusion in sloper limiter 
+ *                    by changing relationship between slopes and cell average differences.
+ *                    By default, this factor is 1/sqrt(3) because cell_avg(f) = f0/sqrt(2^cdim)
+ *                    and a cell slope estimate from two adjacent cells is (for the x variation): 
+ *                    integral(psi_1 [cell_avg(f_{i+1}) - cell_avg(f_{i})]*x) = sqrt(2^cdim)/sqrt(3)*[cell_avg(f_{i+1}) - cell_avg(f_{i})]
+ *                    where psi_1 is the x cell slope basis in our orthonormal expansion psi_1 = sqrt(3)/sqrt(2^cdim)*x
+ *                    This factor can be made smaller (larger) to increase (decrease) the diffusion from the slope limiter
+ * @param use_gpu     bool to determine if on GPU
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_fluid_vars* 
 gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, 
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
-  bool use_gpu);
+  double limiter_fac, bool use_gpu);
 
 /**
  * Create new updater to compute fluid variables on
@@ -40,7 +47,8 @@ gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn,
  */
 struct gkyl_dg_calc_fluid_vars* 
 gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn, 
-  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range);
+  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
+  double limiter_fac);
 
 /**
  * Compute flow velocity from mass density and momentum density.

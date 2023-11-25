@@ -86,11 +86,15 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     // [p_xl, p_xr, p_yl, p_yr, p_zl, p_zr]
     f->p_surf = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
 
+    // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
+    // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_fluid_vars.h)
+    double limiter_fac = f->info.limiter_fac == 0 ? 0.0 : f->info.limiter_fac;
+
     // updater for computing fluid variables: flow velocity and pressure
     // also stores kernels for computing source terms, integrated variables
     // Two instances, one over extended range and one over local range for ease of handling boundary conditions
-    f->calc_fluid_vars_ext = gkyl_dg_calc_fluid_vars_new(f->equation, &app->confBasis, &app->local_ext, app->use_gpu);
-    f->calc_fluid_vars = gkyl_dg_calc_fluid_vars_new(f->equation, &app->confBasis, &app->local, app->use_gpu); 
+    f->calc_fluid_vars_ext = gkyl_dg_calc_fluid_vars_new(f->equation, &app->confBasis, &app->local_ext, limiter_fac, app->use_gpu);
+    f->calc_fluid_vars = gkyl_dg_calc_fluid_vars_new(f->equation, &app->confBasis, &app->local, limiter_fac, app->use_gpu); 
 
     struct gkyl_dg_euler_auxfields aux_inp = {.u = f->u, .p = f->p, 
       .u_surf = f->u_surf, .p_surf = f->p_surf};

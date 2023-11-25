@@ -1,7 +1,8 @@
 #include <gkyl_euler_kernels.h> 
-GKYL_CU_DH void fluid_vars_limiterx_2x_ser_p1(const struct gkyl_wv_eqn *wv_eqn, 
+GKYL_CU_DH void fluid_vars_limiterx_2x_ser_p1(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, 
     double *fluid_l, double *fluid_c, double *fluid_r) 
 { 
+  // limiter_fac: Factor for relationship between cell slopes and cell average differences (by default: 1/sqrt(3))  
   // wv_eqn:      Wave equation for computing waves for limiting characteristics
   // fluid_l/c/r: [rho, rho ux, rho uy, rho uz, energy], Fluid input state vector in left/center/right cells.
 
@@ -46,11 +47,11 @@ GKYL_CU_DH void fluid_vars_limiterx_2x_ser_p1(const struct gkyl_wv_eqn *wv_eqn,
   fluid_avg_r[3] = rhouz_r[0];
   fluid_avg_r[4] = energy_r[0];
 
-  delta_l[0] = 0.5773502691896258*(fluid_avg_c[0] - fluid_avg_l[0]);
-  delta_l[1] = 0.5773502691896258*(fluid_avg_c[1] - fluid_avg_l[1]);
-  delta_l[2] = 0.5773502691896258*(fluid_avg_c[2] - fluid_avg_l[2]);
-  delta_l[3] = 0.5773502691896258*(fluid_avg_c[3] - fluid_avg_l[3]);
-  delta_l[4] = 0.5773502691896258*(fluid_avg_c[4] - fluid_avg_l[4]);
+  delta_l[0] = limiter_fac*(fluid_avg_c[0] - fluid_avg_l[0]);
+  delta_l[1] = limiter_fac*(fluid_avg_c[1] - fluid_avg_l[1]);
+  delta_l[2] = limiter_fac*(fluid_avg_c[2] - fluid_avg_l[2]);
+  delta_l[3] = limiter_fac*(fluid_avg_c[3] - fluid_avg_l[3]);
+  delta_l[4] = limiter_fac*(fluid_avg_c[4] - fluid_avg_l[4]);
 
   delta_c[0] = rho_c[1];
   delta_c[1] = rhoux_c[1];
@@ -58,11 +59,11 @@ GKYL_CU_DH void fluid_vars_limiterx_2x_ser_p1(const struct gkyl_wv_eqn *wv_eqn,
   delta_c[3] = rhouz_c[1];
   delta_c[4] = energy_c[1];
 
-  delta_r[0] = 0.5773502691896258*(fluid_avg_r[0] - fluid_avg_c[0]);
-  delta_r[1] = 0.5773502691896258*(fluid_avg_r[1] - fluid_avg_c[1]);
-  delta_r[2] = 0.5773502691896258*(fluid_avg_r[2] - fluid_avg_c[2]);
-  delta_r[3] = 0.5773502691896258*(fluid_avg_r[3] - fluid_avg_c[3]);
-  delta_r[4] = 0.5773502691896258*(fluid_avg_r[4] - fluid_avg_c[4]);
+  delta_r[0] = limiter_fac*(fluid_avg_r[0] - fluid_avg_c[0]);
+  delta_r[1] = limiter_fac*(fluid_avg_r[1] - fluid_avg_c[1]);
+  delta_r[2] = limiter_fac*(fluid_avg_r[2] - fluid_avg_c[2]);
+  delta_r[3] = limiter_fac*(fluid_avg_r[3] - fluid_avg_c[3]);
+  delta_r[4] = limiter_fac*(fluid_avg_r[4] - fluid_avg_c[4]);
 
   double my_max_speed_l = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_l,
     fluid_avg_c, fluid_avg_c, waves_slope_l, speeds);

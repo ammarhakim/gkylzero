@@ -21,7 +21,7 @@ typedef void (*fluid_copy_t)(int count, struct gkyl_nmat *x,
 typedef void (*fluid_pressure_t)(double gas_gamma, const double *fluid, const double *u, 
   double* GKYL_RESTRICT p, double* GKYL_RESTRICT p_surf);
 
-typedef void (*fluid_limiter_t)(const struct gkyl_wv_eqn *wv_eqn, 
+typedef void (*fluid_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, 
   double *fluid_l, double *fluid_c, double *fluid_r);
 
 // for use in kernel tables
@@ -38,6 +38,8 @@ struct gkyl_dg_calc_fluid_vars {
   int cdim; // Configuration space dimensionality
   int poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method)
   struct gkyl_range mem_range; // Configuration space range for linear solve
+
+  double limiter_fac; // Factor for relationship between cell slopes and cell average differences (by default: 1/sqrt(3))
 
   struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
   gkyl_nmat_mem *mem; // memory for use in batched linear solve
