@@ -46,11 +46,11 @@ GKYL_CU_DH void fluid_vars_limiterx_3x_ser_p1(const struct gkyl_wv_eqn *wv_eqn,
   fluid_avg_r[3] = rhouz_r[0];
   fluid_avg_r[4] = energy_r[0];
 
-  delta_l[0] = 0.0721687836487032*(fluid_avg_c[0] - fluid_avg_l[0]);
-  delta_l[1] = 0.0721687836487032*(fluid_avg_c[1] - fluid_avg_l[1]);
-  delta_l[2] = 0.0721687836487032*(fluid_avg_c[2] - fluid_avg_l[2]);
-  delta_l[3] = 0.0721687836487032*(fluid_avg_c[3] - fluid_avg_l[3]);
-  delta_l[4] = 0.0721687836487032*(fluid_avg_c[4] - fluid_avg_l[4]);
+  delta_l[0] = 0.5773502691896258*(fluid_avg_c[0] - fluid_avg_l[0]);
+  delta_l[1] = 0.5773502691896258*(fluid_avg_c[1] - fluid_avg_l[1]);
+  delta_l[2] = 0.5773502691896258*(fluid_avg_c[2] - fluid_avg_l[2]);
+  delta_l[3] = 0.5773502691896258*(fluid_avg_c[3] - fluid_avg_l[3]);
+  delta_l[4] = 0.5773502691896258*(fluid_avg_c[4] - fluid_avg_l[4]);
 
   delta_c[0] = rho_c[1];
   delta_c[1] = rhoux_c[1];
@@ -58,11 +58,11 @@ GKYL_CU_DH void fluid_vars_limiterx_3x_ser_p1(const struct gkyl_wv_eqn *wv_eqn,
   delta_c[3] = rhouz_c[1];
   delta_c[4] = energy_c[1];
 
-  delta_r[0] = 0.0721687836487032*(fluid_avg_r[0] - fluid_avg_c[0]);
-  delta_r[1] = 0.0721687836487032*(fluid_avg_r[1] - fluid_avg_c[1]);
-  delta_r[2] = 0.0721687836487032*(fluid_avg_r[2] - fluid_avg_c[2]);
-  delta_r[3] = 0.0721687836487032*(fluid_avg_r[3] - fluid_avg_c[3]);
-  delta_r[4] = 0.0721687836487032*(fluid_avg_r[4] - fluid_avg_c[4]);
+  delta_r[0] = 0.5773502691896258*(fluid_avg_r[0] - fluid_avg_c[0]);
+  delta_r[1] = 0.5773502691896258*(fluid_avg_r[1] - fluid_avg_c[1]);
+  delta_r[2] = 0.5773502691896258*(fluid_avg_r[2] - fluid_avg_c[2]);
+  delta_r[3] = 0.5773502691896258*(fluid_avg_r[3] - fluid_avg_c[3]);
+  delta_r[4] = 0.5773502691896258*(fluid_avg_r[4] - fluid_avg_c[4]);
 
   double my_max_speed_l = gkyl_wv_eqn_waves(wv_eqn, GKYL_WV_HIGH_ORDER_FLUX, delta_l,
     fluid_avg_c, fluid_avg_c, waves_slope_l, speeds);
