@@ -305,23 +305,19 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	${MKDIR_P} ${PREFIX}/gkylzero/lib
 	${MKDIR_P} ${PREFIX}/gkylzero/bin
 	${MKDIR_P} ${PREFIX}/gkylzero/share
-	${MKDIR_P} ${PREFIX}/gkylzero/scripts
 # Headers
 	cp ${INSTALL_HEADERS} ${PREFIX}/gkylzero/include
 	./minus/gengkylzeroh.sh > ${PREFIX}/gkylzero/include/gkylzero.h
 # libraries
 #	strip ${ZERO_SH_INSTALL_LIB}  ## MF 2023/10/26: Causes a problem in Macs.
 	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
-# Examples
+# Examplesappl
 	test -e config.mak && cp -f config.mak ${PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
 	sed ${SED_REPS_STR} Makefile.sample > ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
 # Lua wrappers
-	cp -f inf/Vlasov.lua ${PREFIX}/gkylzero/lib/
 	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
-# Misc scripts
-	cp -f scripts/*.sh ${PREFIX}/gkylzero/scripts
 
 .PHONY: clean
 clean: ## Clean build output
