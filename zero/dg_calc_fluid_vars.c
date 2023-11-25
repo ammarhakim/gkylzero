@@ -156,7 +156,7 @@ void gkyl_dg_calc_fluid_vars_limiter(struct gkyl_dg_calc_fluid_vars *up,
       long linr = gkyl_range_idx(conf_range, idxr);
 
       double *fluid_l = gkyl_array_fetch(fluid, linl);
-      double *fluid_r= gkyl_array_fetch(fluid, linr);
+      double *fluid_r = gkyl_array_fetch(fluid, linr);
 
       up->fluid_limiter[dir](up->wv_eqn, fluid_l, fluid_c, fluid_r);    
     }
