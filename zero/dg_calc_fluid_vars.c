@@ -39,7 +39,9 @@ gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn,
   up->fluid_set = choose_fluid_set_kern(b_type, cdim, poly_order);
   up->fluid_copy = choose_fluid_copy_kern(b_type, cdim, poly_order);
   up->fluid_pressure = choose_fluid_pressure_kern(b_type, cdim, poly_order);
-  up->fluid_limiter = choose_fluid_limiter_kern(b_type, cdim, poly_order);
+  // Fetch the kernels in each direction
+  for (int d=0; d<cdim; ++d) 
+    up->fluid_limiter[d] = choose_fluid_limiter_kern(d, b_type, cdim, poly_order);
 
   // There are Ncomp*range->volume linear systems to be solved 
   // 3 components: ux, uy, uz, 
@@ -156,7 +158,7 @@ void gkyl_dg_calc_fluid_vars_limiter(struct gkyl_dg_calc_fluid_vars *up,
       double *fluid_l = gkyl_array_fetch(fluid, linl);
       double *fluid_r= gkyl_array_fetch(fluid, linr);
 
-      up->fluid_limiter(up->wv_eqn, fluid_l, fluid_c, fluid_r);    
+      up->fluid_limiter[dir](up->wv_eqn, fluid_l, fluid_c, fluid_r);    
     }
   }
 }

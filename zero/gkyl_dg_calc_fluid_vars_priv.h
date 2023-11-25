@@ -46,7 +46,7 @@ struct gkyl_dg_calc_fluid_vars {
   fluid_set_t fluid_set;  // kernel for setting matrices for linear solve
   fluid_copy_t fluid_copy; // kernel for copying solution to output; also computed needed surface expansions
   fluid_pressure_t fluid_pressure; // kernel for computing pressure (Volume and surface expansion)
-  fluid_limiter_t fluid_limiter; // kernel for limiting slopes of fluid variables
+  fluid_limiter_t fluid_limiter[3]; // kernel for limiting slopes of fluid variables
 
   uint32_t flags;
   struct gkyl_dg_calc_fluid_vars *on_dev; // pointer to itself or device data
@@ -100,20 +100,52 @@ static const gkyl_dg_fluid_pressure_kern_list ten_fluid_pressure_kernels[] = {
   { NULL, fluid_vars_pressure_3x_ser_p1, NULL }, // 2
 };
 
-// Scalar pressure Isothermal Euler -> p = vth*rho; Euler -> p = (gas_gamma - 1)*(E - 1/2 rho u^2) (Serendipity kernels)
+// Characteristic limiter in x (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_fluid_limiter_kern_list ser_fluid_limiter_kernels[] = {
+static const gkyl_dg_fluid_limiter_kern_list ser_fluid_limiter_x_kernels[] = {
   { NULL, fluid_vars_limiterx_1x_ser_p1, fluid_vars_limiterx_1x_ser_p2 }, // 0
-  { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, fluid_vars_limiterx_2x_ser_p1, NULL }, // 1
+  { NULL, fluid_vars_limiterx_3x_ser_p1, NULL }, // 2
 };
 
-// Scalar pressure Isothermal Euler -> p = vth*rho; Euler -> p = (gas_gamma - 1)*(E - 1/2 rho u^2) (Tensor kernels)
+// Characteristic limiter in y (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_fluid_limiter_kern_list ten_fluid_limiter_kernels[] = {
-  { NULL, fluid_vars_limiterx_1x_ser_p1, fluid_vars_limiterx_1x_ser_p2 }, // 0
+static const gkyl_dg_fluid_limiter_kern_list ser_fluid_limiter_y_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, fluid_vars_limitery_2x_ser_p1, NULL }, // 1
+  { NULL, fluid_vars_limitery_3x_ser_p1, NULL }, // 2
+};
+
+// Characteristic limiter in z (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_fluid_limiter_kern_list ser_fluid_limiter_z_kernels[] = {
+  { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL }, // 2
+  { NULL, fluid_vars_limiterz_3x_ser_p1, NULL }, // 2
+};
+
+// Characteristic limiter in x (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_fluid_limiter_kern_list ten_fluid_limiter_x_kernels[] = {
+  { NULL, fluid_vars_limiterx_1x_ser_p1, fluid_vars_limiterx_1x_ser_p2 }, // 0
+  { NULL, fluid_vars_limiterx_2x_ser_p1, NULL }, // 1
+  { NULL, fluid_vars_limiterx_3x_ser_p1, NULL }, // 2
+};
+
+// Characteristic limiter in y (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_fluid_limiter_kern_list ten_fluid_limiter_y_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, fluid_vars_limitery_2x_ser_p1, NULL }, // 1
+  { NULL, fluid_vars_limitery_3x_ser_p1, NULL }, // 2
+};
+
+// Characteristic limiter in z (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_fluid_limiter_kern_list ten_fluid_limiter_z_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL }, // 1
+  { NULL, fluid_vars_limiterz_3x_ser_p1, NULL }, // 2
 };
 
 GKYL_CU_D
@@ -169,14 +201,28 @@ choose_fluid_pressure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order
 
 GKYL_CU_D
 static fluid_limiter_t
-choose_fluid_limiter_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_fluid_limiter_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      return ser_fluid_limiter_kernels[cdim-1].kernels[poly_order];
+      if (dir == 0)
+        return ser_fluid_limiter_x_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 1)
+        return ser_fluid_limiter_y_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 2)
+        return ser_fluid_limiter_z_kernels[cdim-1].kernels[poly_order];
+      else
+        return NULL;
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      return ten_fluid_limiter_kernels[cdim-1].kernels[poly_order];
+      if (dir == 0)
+        return ten_fluid_limiter_x_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 1)
+        return ten_fluid_limiter_y_kernels[cdim-1].kernels[poly_order];
+      else if (dir == 2)
+        return ten_fluid_limiter_z_kernels[cdim-1].kernels[poly_order];
+      else
+        return NULL;
       break;
     default:
       assert(false);
