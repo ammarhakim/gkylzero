@@ -18,19 +18,15 @@ void
 gkyl_dg_euler_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
-
-  if (gkyl_dg_eqn_is_cu_dev(base)) {
-    // free inner on_dev object
-    struct dg_euler *euler = container_of(base->on_dev, struct dg_euler, eqn);
-    // release device-side pointers of wv_eqn and geom
-    gkyl_wv_eqn_release(euler->wv_eqn);
-    gkyl_wave_geom_release(euler->geom);
-    gkyl_cu_free(euler);
-  }  
-  
   struct dg_euler *euler = container_of(base, struct dg_euler, eqn);
   gkyl_wv_eqn_release(euler->wv_eqn);
   gkyl_wave_geom_release(euler->geom);
+
+  if (gkyl_dg_eqn_is_cu_dev(base)) {
+    // free inner on_dev object
+    struct dg_euler *euler_cu = container_of(base->on_dev, struct dg_euler, eqn);
+    gkyl_cu_free(euler_cu);
+  }  
   gkyl_free(euler);
 }
 

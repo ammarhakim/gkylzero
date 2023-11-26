@@ -136,13 +136,7 @@ gkyl_array_cfetch(const struct gkyl_array* arr, long loc)
  * @param arr Array to which a pointer is needed
  * @return Pointer to acquired array
  */
-GKYL_CU_DH
-static inline struct gkyl_array*
-gkyl_array_acquire(const struct gkyl_array* arr)
-{
-  gkyl_ref_count_inc(&arr->ref_count);
-  return (struct gkyl_array*) arr;
-}
+struct gkyl_array* gkyl_array_acquire(const struct gkyl_array* arr);
 
 /**
  * Release pointer to array

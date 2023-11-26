@@ -102,13 +102,7 @@ bool gkyl_wv_eqn_is_cu_dev(const struct gkyl_wv_eqn *eqn);
  * @param eqn Equation object.
  * @return Acquired eqn obj pointer
  */
-GKYL_CU_DH
-static inline struct gkyl_wv_eqn*
-gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn *eqn)
-{
-  gkyl_ref_count_inc(&eqn->ref_count);
-  return (struct gkyl_wv_eqn*) eqn;
-}
+struct gkyl_wv_eqn *gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn *eqn);
 
 /**
  * Default function to convert conserved vars to diagostics: for many

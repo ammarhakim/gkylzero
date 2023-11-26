@@ -189,7 +189,6 @@ __global__ static void
 dg_calc_fluid_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_wv_eqn *wv_eqn, 
   enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  up->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
   up->fluid_set = choose_fluid_set_kern(b_type, cdim, poly_order);
   up->fluid_copy = choose_fluid_copy_kern(b_type, cdim, poly_order);
   up->fluid_pressure = choose_fluid_pressure_kern(b_type, cdim, poly_order);
@@ -206,9 +205,12 @@ gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn,
   struct gkyl_dg_calc_fluid_vars *up = (struct gkyl_dg_calc_fluid_vars*) gkyl_malloc(sizeof(gkyl_dg_calc_fluid_vars));
 
   up->eqn_type = wv_eqn->type;
-  up->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
   if (up->eqn_type == GKYL_EQN_EULER)
-    up->param = gkyl_wv_euler_gas_gamma(up->wv_eqn);
+    up->param = gkyl_wv_euler_gas_gamma(wv_eqn);
+
+  // acquire pointer to wave equation object
+  struct gkyl_wv_eqn *eqn = gkyl_wv_eqn_acquire(wv_eqn);
+  up->wv_eqn = eqn->on_dev; // this is so the memcpy below has eqn on_dev
 
   int nc = cbasis->num_basis;
   int cdim = cbasis->ndim;
@@ -246,5 +248,7 @@ gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn,
   // set parent on_dev pointer
   up->on_dev = up_cu;
   
+  up->wv_eqn = eqn; // updater should store host pointer  
+
   return up;
 }

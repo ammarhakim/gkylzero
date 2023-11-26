@@ -12,15 +12,6 @@ extern "C" {
 
 #include <cassert>
 
-// CUDA kernel to set pointer to geometry array.
-// This is required because geometry object lives on device,
-// and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void
-wave_geom_set_cu_dev_ptrs(gkyl_wave_geom *wg, const struct gkyl_array *geom)
-{
-  wg->geom = gkyl_array_acquire(geom);
-}
-
 // CPU interface to create and track a GPU object
 struct gkyl_wave_geom*
 gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
@@ -31,7 +22,7 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid, struct gkyl_range *
   wg->range = *range;
 
   // Initialize the geometry object on the host side
-  wg->geom = gkyl_array_new(GKYL_USER, sizeof(struct gkyl_wave_cell_geom), range->volume);
+  struct gkyl_array *geom = gkyl_array_new(GKYL_USER, sizeof(struct gkyl_wave_cell_geom), range->volume);
   double xc[GKYL_MAX_CDIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
@@ -52,7 +43,10 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid, struct gkyl_range *
   }
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *geom_dev = gkyl_array_cu_dev_new(GKYL_USER, sizeof(struct gkyl_wave_cell_geom), range->volume);
-  gkyl_array_copy(geom_dev, wg->geom);
+  gkyl_array_copy(geom_dev, geom);
+  gkyl_array_release(geom);
+
+  wg->geom = geom_dev->on_dev; // this is so the memcpy below has wv_eqn on_dev
 
   wg->flags = 0;
   GKYL_SET_CU_ALLOC(wg->flags);
@@ -64,10 +58,7 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid, struct gkyl_range *
 
   wg->on_dev = wg_cu;
 
-  // Acquire a pointer to the device geometry object *on device*
-  wave_geom_set_cu_dev_ptrs<<<1,1>>>(wg->on_dev, geom_dev->on_dev); 
-  // Release the local copy of device-side geometry array 
-  gkyl_array_release(geom_dev);
+  wg->geom = geom_dev; // geometry object should store host pointer
   
   return wg;
 }

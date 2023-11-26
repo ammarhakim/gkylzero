@@ -20,11 +20,9 @@ gkyl_wave_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wave_geom *wg = container_of(ref, struct gkyl_wave_geom, ref_count);
   gkyl_array_release(wg->geom);
-  if (gkyl_wave_geom_is_cu_dev(wg)) { 
-    // Release device-side pointer of geometry array
-    gkyl_array_release(wg->on_dev->geom);
+  if (gkyl_wave_geom_is_cu_dev(wg)) 
     gkyl_cu_free(wg->on_dev); 
-  }
+
   gkyl_free(wg);
 }
 
@@ -75,6 +73,13 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
   wg->on_dev = wg; // CPU eqn obj points to itself
 
   return wg;
+}
+
+struct gkyl_wave_geom*
+gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg)
+{
+  gkyl_ref_count_inc(&wg->ref_count);
+  return (struct gkyl_wave_geom*) wg;
 }
 
 void
