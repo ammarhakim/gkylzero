@@ -2,11 +2,11 @@
 
 #include <stdio.h>
 #include <gkylzero.h>
-#include <gkyl_wv_euler.h>
-#include <gkyl_wv_euler_priv.h>
 
 extern "C" {
-    int cu_wv_euler_test(const struct gkyl_wv_eqn *eqn);
+#include <gkyl_wv_euler.h>
+#include <gkyl_wv_euler_priv.h>
+int cu_wv_euler_test(const struct gkyl_wv_eqn *eqn);
 }
 
 __global__

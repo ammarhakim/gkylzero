@@ -1,6 +1,10 @@
+/* -*- c -*- */
+
+#include <stdio.h>
+#include <gkylzero.h>
+
 extern "C" {
 #include <float.h>
-#include <gkylzero.h>
 #include <gkyl_array.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_geom_priv.h>

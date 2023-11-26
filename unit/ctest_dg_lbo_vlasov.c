@@ -386,8 +386,8 @@ test_1x1v_p2_cu()
 
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
-  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
-  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum_cu, .nuPrimMomsSum = nuPrimMomsSum_cu };
+  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum_cu, .nuPrimMomsSum = nuPrimMomsSum_cu };
   slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, true);
   
   // run hyper_dg_advance
@@ -518,8 +518,8 @@ test_1x2v_p2_cu()
 
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
-  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
-  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum, .nuPrimMomsSum = nuPrimMomsSum };
+  struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum_cu, .nuPrimMomsSum = nuPrimMomsSum_cu };
+  struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum_cu, .nuPrimMomsSum = nuPrimMomsSum_cu };
   slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, true);
 
   // run hyper_dg_advance
