@@ -1,6 +1,7 @@
 #pragma once 
-#include <math.h> 
-#include <gkyl_mat.h> 
+#include <math.h>
+#include <gkyl_mat.h>
+#include <gkyl_math.h> 
 #include <gkyl_wave_geom.h> 
 #include <gkyl_wv_eqn.h> 
 #include <gkyl_util.h> 
@@ -83,23 +84,23 @@ GKYL_CU_DH double euler_surfy_2x_tensor_p2(const double *w, const double *dxv, c
     const struct gkyl_wave_cell_geom *geom_l, const struct gkyl_wave_cell_geom *geom_r, 
     const double *u_surf_l, const double *u_surf_c, const double *u_surf_r, 
     const double *p_surf_l, const double *p_surf_c, const double *p_surf_r, 
-    const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out); 
+    const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out);
 
-inline static double
-minmod(double a, double b, double c)
+inline static double minmod(double a, double b, double c)
 {
-  double sa = GKYL_SGN(a);
-  double sb = GKYL_SGN(b);
-  double sc = GKYL_SGN(c);
-  if( (sa==sb) && (sb==sc) ) {
-    if (sa<0)
-      return GKYL_MAX(GKYL_MAX(a,b),c);
-    else
-      return GKYL_MIN(GKYL_MIN(a,b),c);
-  }
-  else {
-     return 0;
-  }
+  return gkyl_minmod_3(a, b, c);
+  // double sa = GKYL_SGN(a);
+  // double sb = GKYL_SGN(b);
+  // double sc = GKYL_SGN(c);
+  // if( (sa==sb) && (sb==sc) ) {
+  //   if (sa<0)
+  //     return GKYL_MAX(GKYL_MAX(a,b),c);
+  //   else
+  //     return GKYL_MIN(GKYL_MIN(a,b),c);
+  // }
+  // else {
+  //    return 0;
+  // }
 }
 
 EXTERN_C_END 
