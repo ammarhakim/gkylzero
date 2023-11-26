@@ -127,7 +127,7 @@ static const gkyl_dg_euler_surf_kern_list ser_surf_z_kernels[] = {
  *
  * @param ref Reference counter for euler equation
  */
-void gkyl_euler_free(const struct gkyl_ref_count *ref);
+void gkyl_dg_euler_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
 static double

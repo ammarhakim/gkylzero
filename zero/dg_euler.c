@@ -13,7 +13,7 @@
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
 void 
-gkyl_euler_free(const struct gkyl_ref_count *ref)
+gkyl_dg_euler_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -104,7 +104,7 @@ gkyl_dg_euler_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf
   
   euler->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(euler->eqn.flags);
-  euler->eqn.ref_count = gkyl_ref_count_init(gkyl_euler_free);
+  euler->eqn.ref_count = gkyl_ref_count_init(gkyl_dg_euler_free);
   euler->eqn.on_dev = &euler->eqn; // CPU eqn obj points to itself
   
   return &euler->eqn;

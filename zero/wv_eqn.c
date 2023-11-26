@@ -1,4 +1,5 @@
 #include <gkyl_wv_eqn.h>
+#include <gkyl_alloc_flags_priv.h>
 
 // these ensure inline functions are defined only once
 
@@ -28,6 +29,12 @@ extern inline void gkyl_wv_eqn_rotate_to_local(const struct gkyl_wv_eqn *eqn,
 extern inline void gkyl_wv_eqn_rotate_to_global(const struct gkyl_wv_eqn *eqn,
   const double *tau1, const double *tau2, const double *norm,
   const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal);
+
+bool
+gkyl_wv_eqn_is_cu_dev(const struct gkyl_wv_eqn *eqn)
+{
+  return GKYL_IS_CU_ALLOC(eqn->flags);
+}
 
 struct gkyl_wv_eqn*
 gkyl_wv_eqn_acquire(const struct gkyl_wv_eqn* eqn)

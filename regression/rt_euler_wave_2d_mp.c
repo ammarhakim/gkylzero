@@ -53,7 +53,8 @@ main(int argc, char **argv)
   // equation object
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
       .gas_gamma = ctx.gas_gamma,
-      .rp_type = WV_EULER_RP_LAX 
+      .rp_type = WV_EULER_RP_LAX, 
+      .use_gpu = false,  
     }
   );
 

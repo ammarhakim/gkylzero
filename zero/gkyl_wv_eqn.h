@@ -82,8 +82,18 @@ struct gkyl_wv_eqn {
 
   wv_cons_to_diag cons_to_diag; // function for diagnostic variables
 
+  uint32_t flags;  
   struct gkyl_ref_count ref_count; // reference count
+  struct gkyl_wv_eqn *on_dev; // pointer to itself or device data
 };
+
+/**
+ * Check if equation is on device.
+ *
+ * @param eqn Equation to check
+ * @return true if eqn on device, false otherwise
+ */
+bool gkyl_wv_eqn_is_cu_dev(const struct gkyl_wv_eqn *eqn);
 
 /**
  * Acquire pointer to equation object. Delete using the release()

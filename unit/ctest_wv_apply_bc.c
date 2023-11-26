@@ -312,7 +312,7 @@ test_bc_buff_rtheta()
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
-  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(1.4);  
+  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(1.4, false);  
 
   int nghost[] = { 2, 2 };
 
