@@ -100,7 +100,7 @@ gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_rang
   // copy the host struct to device struct
   struct dg_euler *euler_cu = (struct dg_euler*) gkyl_cu_malloc(sizeof(struct dg_euler));
   gkyl_cu_memcpy(euler_cu, euler, sizeof(struct dg_euler), GKYL_CU_MEMCPY_H2D);
-  dg_euler_set_cu_dev_ptrs<<<1,1>>>(euler_cu, wv_eqn->on_dev, geom->on_dev, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
+  dg_euler_set_cu_dev_ptrs<<<1,1>>>(euler_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
 
   // set parent on_dev pointer
   euler->eqn.on_dev = &euler_cu->eqn;
