@@ -88,19 +88,18 @@ GKYL_CU_DH double euler_surfy_2x_tensor_p2(const double *w, const double *dxv, c
 
 inline static double minmod(double a, double b, double c)
 {
-  return gkyl_minmod_3(a, b, c);
-  // double sa = GKYL_SGN(a);
-  // double sb = GKYL_SGN(b);
-  // double sc = GKYL_SGN(c);
-  // if( (sa==sb) && (sb==sc) ) {
-  //   if (sa<0)
-  //     return GKYL_MAX(GKYL_MAX(a,b),c);
-  //   else
-  //     return GKYL_MIN(GKYL_MIN(a,b),c);
-  // }
-  // else {
-  //    return 0;
-  // }
+  double sa = GKYL_SGN(a);
+  double sb = GKYL_SGN(b);
+  double sc = GKYL_SGN(c);
+  if( (sa==sb) && (sb==sc) ) {
+    if (sa<0)
+      return GKYL_MAX(GKYL_MAX(a,b),c);
+    else
+      return GKYL_MIN(GKYL_MIN(a,b),c);
+  }
+  else {
+     return 0;
+  }
 }
 
 EXTERN_C_END 
