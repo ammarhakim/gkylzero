@@ -15,25 +15,35 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_euler_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *u_i, const struct gkyl_array *p_ij)
+gkyl_euler_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
+  const struct gkyl_array *u, const struct gkyl_array *u_surf, 
+  const struct gkyl_array *p, const struct gkyl_array *p_surf)
 {
   struct dg_euler *euler = container_of(eqn, struct dg_euler, eqn);
-  euler->auxfields.u_i = u_i;
-  euler->auxfields.p_ij = p_ij;
+  euler->auxfields.u = u;
+  euler->auxfields.p = p;
+  euler->auxfields.u_surf = u_surf;
+  euler->auxfields.p_surf = p_surf;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
 gkyl_euler_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin)
 {
-  gkyl_euler_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.u_i->on_dev, auxin.p_ij->on_dev);
+  gkyl_euler_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.u->on_dev, auxin.u_surf->on_dev, auxin.p->on_dev, auxin.p_surf->on_dev);
 }
 
 __global__ void static
-dg_euler_set_cu_dev_ptrs(struct dg_euler* euler, enum gkyl_basis_type b_type, int cdim, int poly_order)
+dg_euler_set_cu_dev_ptrs(struct dg_euler* euler, const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, 
+  enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
-  euler->auxfields.u_i = 0; 
-  euler->auxfields.p_ij = 0; 
+  euler->auxfields.u = 0;  
+  euler->auxfields.p = 0;  
+  euler->auxfields.u_surf = 0;  
+  euler->auxfields.p_surf = 0;  
+
+  euler->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
+  euler->geom = gkyl_wave_geom_acquire(geom);
 
   const gkyl_dg_euler_vol_kern_list *vol_kernels;
   const gkyl_dg_euler_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;  
@@ -64,14 +74,16 @@ dg_euler_set_cu_dev_ptrs(struct dg_euler* euler, enum gkyl_basis_type b_type, in
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range, 
-  double gas_gamma)
+gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_range* conf_range,
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom)
 {
   struct dg_euler *euler = (struct dg_euler*) gkyl_malloc(sizeof(struct dg_euler));
 
-  // set basic parameters
-  euler->eqn.num_equations = 5;
-  euler->gas_gamma = gas_gamma;
+  euler->eqn_type = wv_eqn->type;
+  euler->eqn.num_equations = wv_eqn->num_equations;
+  euler->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
+  euler->geom = gkyl_wave_geom_acquire(geom);
+  euler->gas_gamma = gkyl_wv_euler_gas_gamma(euler->wv_eqn);
 
   euler->conf_range = *conf_range;
 
@@ -82,7 +94,7 @@ gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_rang
   // copy the host struct to device struct
   struct dg_euler *euler_cu = (struct dg_euler*) gkyl_cu_malloc(sizeof(struct dg_euler));
   gkyl_cu_memcpy(euler_cu, euler, sizeof(struct dg_euler), GKYL_CU_MEMCPY_H2D);
-  dg_euler_set_cu_dev_ptrs<<<1,1>>>(euler_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
+  dg_euler_set_cu_dev_ptrs<<<1,1>>>(euler_cu, wv_eqn->on_dev, geom->on_dev, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
 
   // set parent on_dev pointer
   euler->eqn.on_dev = &euler_cu->eqn;

@@ -21,7 +21,9 @@ gkyl_wave_geom_free(const struct gkyl_ref_count *ref)
   struct gkyl_wave_geom *wg = container_of(ref, struct gkyl_wave_geom, ref_count);
   gkyl_array_release(wg->geom);
   if (gkyl_wave_geom_is_cu_dev(wg)) { 
-    gkyl_cu_free(wg->on_dev); // wg->on_dev->geom was released with wg->geom
+    // Release device-side pointer of geometry array
+    gkyl_array_release(wg->on_dev->geom);
+    gkyl_cu_free(wg->on_dev); 
   }
   gkyl_free(wg);
 }

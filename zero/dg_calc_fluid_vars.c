@@ -182,7 +182,10 @@ void gkyl_dg_calc_fluid_vars_release(gkyl_dg_calc_fluid_vars *up)
   gkyl_nmat_release(up->xs);
   gkyl_nmat_linsolve_lu_release(up->mem);
   
-  if (GKYL_IS_CU_ALLOC(up->flags))
+  if (GKYL_IS_CU_ALLOC(up->flags)) {
+    // Release device-side pointer of wv_eqn 
+    gkyl_wv_eqn_release(up->on_dev->wv_eqn);
     gkyl_cu_free(up->on_dev);
+  }
   gkyl_free(up);
 }
