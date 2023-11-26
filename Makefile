@@ -159,6 +159,11 @@ ${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}/regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
+# Lua interpreter for testing Lua regression tests
+${BUILD_DIR}/xglua: regression/xglua.c ${BUILD_DIR}/libgkylzero.so
+	$(MKDIR_P) ${BUILD_DIR}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+
 # Amalgamated header file
 ${BUILD_DIR}/gkylzero.h:
 	$(MKDIR_P) ${BUILD_DIR}
@@ -285,6 +290,7 @@ all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated h
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
 regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ## Build regression tests
+xglua: ${BUILD_DIR}/xglua ## Build Lua interpreter
 
 .PHONY: check mpicheck
 # Run all unit tests
@@ -311,11 +317,13 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # libraries
 #	strip ${ZERO_SH_INSTALL_LIB}  ## MF 2023/10/26: Causes a problem in Macs.
 	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
-# Examplesappl
+# Example app
 	test -e config.mak && cp -f config.mak ${PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
 	sed ${SED_REPS_STR} Makefile.sample > ${PREFIX}/gkylzero/share/Makefile
 	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
+# Lua exectuable
+	cp -f build/xglua ${PREFIX}/gkylzero/bin/
 # Lua wrappers
 	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
 
