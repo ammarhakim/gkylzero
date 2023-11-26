@@ -86,6 +86,7 @@ GKYL_CU_DH double euler_surfy_2x_tensor_p2(const double *w, const double *dxv, c
     const double *p_surf_l, const double *p_surf_c, const double *p_surf_r, 
     const double *fluid_l, const double *fluid_c, const double *fluid_r, double* GKYL_RESTRICT out);
 
+GKYL_CU_DH
 inline static double minmod(double a, double b, double c)
 {
   double sa = GKYL_SGN(a);

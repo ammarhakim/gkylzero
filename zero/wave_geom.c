@@ -34,7 +34,7 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_wave_geom_cu_dev_new(grid, range, mac2p, ctx);
+    return gkyl_wave_geom_cu_dev_new(grid, range, mapc2p, ctx);
   } 
 #endif 
 
@@ -75,13 +75,6 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range,
   wg->on_dev = wg; // CPU eqn obj points to itself
 
   return wg;
-}
-
-struct gkyl_wave_geom*
-gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg)
-{
-  gkyl_ref_count_inc(&wg->ref_count);
-  return (struct gkyl_wave_geom*) wg;
 }
 
 void

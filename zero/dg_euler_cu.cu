@@ -3,8 +3,12 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_dg_euler.h>    
+#include <gkyl_dg_euler.h>
 #include <gkyl_dg_euler_priv.h>
+#include <gkyl_util.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
+#include <gkyl_wv_euler.h>
 }
 
 #include <cassert>
@@ -89,7 +93,7 @@ gkyl_dg_euler_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_rang
 
   euler->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(euler->eqn.flags);
-  euler->eqn.ref_count = gkyl_ref_count_init(gkyl_euler_free);
+  euler->eqn.ref_count = gkyl_ref_count_init(gkyl_dg_euler_free);
 
   // copy the host struct to device struct
   struct dg_euler *euler_cu = (struct dg_euler*) gkyl_cu_malloc(sizeof(struct dg_euler));

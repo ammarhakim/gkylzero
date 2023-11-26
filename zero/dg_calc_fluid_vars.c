@@ -4,9 +4,9 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
-#include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_fluid_vars_priv.h>
+#include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_util.h>
 

@@ -10,6 +10,8 @@ extern "C" {
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_fluid_vars_priv.h>
+#include <gkyl_wv_eqn.h>
+#include <gkyl_wv_euler.h>
 #include <gkyl_util.h>
 }
 
@@ -152,7 +154,7 @@ gkyl_dg_calc_fluid_vars_limiter_cu_kernel(struct gkyl_dg_calc_fluid_vars *up, st
     // linc will have jumps in it to jump over ghost cells
     long linc = gkyl_range_idx(&conf_range, idxc);
 
-    double *fluid_d = (double*) gkyl_array_fetch(fluid, linc);
+    double *fluid_c = (double*) gkyl_array_fetch(fluid, linc);
 
     for (int dir=0; dir<cdim; ++dir) {
       gkyl_copy_int_arr(cdim, idxc, idxl);
@@ -163,8 +165,8 @@ gkyl_dg_calc_fluid_vars_limiter_cu_kernel(struct gkyl_dg_calc_fluid_vars *up, st
       long linl = gkyl_range_idx(&conf_range, idxl); 
       long linr = gkyl_range_idx(&conf_range, idxr);
 
-      const double *fluid_l = (const double*) gkyl_array_cfetch(fluid, linl);
-      const double *fluid_r = (const double*) gkyl_array_cfetch(fluid, linr);
+      double *fluid_l = (double*) gkyl_array_fetch(fluid, linl);
+      double *fluid_r = (double*) gkyl_array_fetch(fluid, linr);
       
       up->fluid_limiter[dir](up->limiter_fac, up->wv_eqn, fluid_l, fluid_c, fluid_r);
     }
@@ -178,7 +180,7 @@ gkyl_dg_calc_fluid_vars_limiter_cu(struct gkyl_dg_calc_fluid_vars *up, const str
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_fluid_vars_accel_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, fluid->on_dev);
+  gkyl_dg_calc_fluid_vars_limiter_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, fluid->on_dev);
 }
 
 // CUDA kernel to set device pointers to pkpm vars kernel functions
@@ -201,6 +203,8 @@ gkyl_dg_calc_fluid_vars_cu_dev_new(const struct gkyl_wv_eqn *wv_eqn,
   const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
   double limiter_fac)
 {
+  struct gkyl_dg_calc_fluid_vars *up = (struct gkyl_dg_calc_fluid_vars*) gkyl_malloc(sizeof(gkyl_dg_calc_fluid_vars));
+
   up->eqn_type = wv_eqn->type;
   up->wv_eqn = gkyl_wv_eqn_acquire(wv_eqn);
   if (up->eqn_type == GKYL_EQN_EULER)

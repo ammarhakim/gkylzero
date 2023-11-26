@@ -54,7 +54,13 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid,
  * @param wg Geometry to which a pointer is needed
  * @return Pointer to acquired geometry
  */
-struct gkyl_wave_geom* gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg);
+GKYL_CU_DH
+static inline struct gkyl_wave_geom*
+gkyl_wave_geom_acquire(const struct gkyl_wave_geom* wg)
+{
+  gkyl_ref_count_inc(&wg->ref_count);
+  return (struct gkyl_wave_geom*) wg;
+}
 
 /**
  * Get pointer to geometry in a cell given by idx into the range over

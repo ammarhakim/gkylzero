@@ -6,6 +6,8 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_euler_priv.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_util.h>
 
@@ -36,7 +38,7 @@ void
 gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.u_i)) {
+  if (gkyl_array_is_cu_dev(auxin.u)) {
     gkyl_euler_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }

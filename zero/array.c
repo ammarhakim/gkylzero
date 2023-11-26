@@ -179,13 +179,6 @@ gkyl_array_clone(const struct gkyl_array* src)
   return arr;
 }
 
-struct gkyl_array*
-gkyl_array_acquire(const struct gkyl_array* arr)
-{
-  gkyl_ref_count_inc(&arr->ref_count);
-  return (struct gkyl_array*) arr;
-}
-
 void
 gkyl_array_release(const struct gkyl_array* arr)
 {

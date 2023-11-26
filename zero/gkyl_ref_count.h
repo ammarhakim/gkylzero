@@ -34,6 +34,7 @@ gkyl_ref_count_init(void (*free)(const struct gkyl_ref_count* ))
  *
  * @param ref Object to increment.
  */
+GKYL_CU_DH
 static inline void
 gkyl_ref_count_inc(const struct gkyl_ref_count *ref)
 {
@@ -46,6 +47,7 @@ gkyl_ref_count_inc(const struct gkyl_ref_count *ref)
  *
  * @param ref Object to decrement.
  */
+GKYL_CU_DH
 static inline void
 gkyl_ref_count_dec(const struct gkyl_ref_count *ref)
 {

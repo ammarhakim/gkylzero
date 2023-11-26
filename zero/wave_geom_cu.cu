@@ -3,6 +3,9 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
+#include <gkyl_array.h>
+#include <gkyl_math.h>
+#include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_geom_priv.h>
 }
@@ -13,7 +16,7 @@ extern "C" {
 // This is required because geometry object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-wave_geom_set_cu_dev_ptrs(const gkyl_wave_geom *wg, const struct gkyl_array *geom)
+wave_geom_set_cu_dev_ptrs(gkyl_wave_geom *wg, const struct gkyl_array *geom)
 {
   wg->geom = gkyl_array_acquire(geom);
 }
@@ -65,6 +68,6 @@ gkyl_wave_geom_cu_dev_new(const struct gkyl_rect_grid *grid, struct gkyl_range *
   wave_geom_set_cu_dev_ptrs<<<1,1>>>(wg->on_dev, geom_dev->on_dev); 
   // Release the local copy of device-side geometry array 
   gkyl_array_release(geom_dev);
-
+  
   return wg;
 }
