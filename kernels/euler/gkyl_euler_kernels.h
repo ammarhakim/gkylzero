@@ -93,9 +93,9 @@ inline static double minmod(double a, double b, double c)
   double sc = GKYL_SGN(c);
   if( (sa==sb) && (sb==sc) ) {
     if (sa<0)
-      return GKYL_MAX(GKYL_MAX(a,b),c);
+      return GKYL_MAX2(GKYL_MAX2(a,b),c);
     else
-      return GKYL_MIN(GKYL_MIN(a,b),c);
+      return GKYL_MIN2(GKYL_MIN2(a,b),c);
   }
   else {
      return 0;

@@ -239,7 +239,7 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   long buff_sz = 0;
   // compute buffer size needed
   for (int d=0; d<cdim; ++d) {
-    long vol = GKYL_MAX(s->lower_skin[d].volume, s->upper_skin[d].volume);
+    long vol = GKYL_MAX2(s->lower_skin[d].volume, s->upper_skin[d].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   s->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);

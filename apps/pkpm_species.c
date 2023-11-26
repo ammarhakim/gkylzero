@@ -302,9 +302,9 @@ pkpm_species_init(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app, struct pkpm
   long buff_sz_fluid = 0;
   // compute buffer size needed
   for (int dir=0; dir<cdim; ++dir) {
-    long vol_dist = GKYL_MAX(s->lower_skin_dist[dir].volume, s->upper_skin_dist[dir].volume);
+    long vol_dist = GKYL_MAX2(s->lower_skin_dist[dir].volume, s->upper_skin_dist[dir].volume);
     buff_sz_dist = buff_sz_dist > vol_dist ? buff_sz_dist : vol_dist;
-    long vol_fluid = GKYL_MAX(app->lower_skin[dir].volume, app->upper_skin[dir].volume);
+    long vol_fluid = GKYL_MAX2(app->lower_skin[dir].volume, app->upper_skin[dir].volume);
     buff_sz_fluid = buff_sz_fluid > vol_fluid ? buff_sz_fluid : vol_fluid;
   }
 
