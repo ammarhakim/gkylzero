@@ -55,7 +55,7 @@ test_euler_basic()
   TEST_CHECK ( pr == gkyl_euler_pressure(gas_gamma, q) );
 
   double q_local[5], flux_local[5], flux[5];
-  for (int d=1; d<2; ++d) {
+  for (int d=0; d<3; ++d) {
     euler->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_euler_flux(gas_gamma, q_local, flux_local);
     euler->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
@@ -65,7 +65,7 @@ test_euler_basic()
   }
 
   double q_l[5], q_g[5];
-  for (int d=1; d<3; ++d) {
+  for (int d=0; d<3; ++d) {
     gkyl_wv_eqn_rotate_to_local(euler, tau1[d], tau2[d], norm[d], q, q_l);
     gkyl_wv_eqn_rotate_to_global(euler, tau1[d], tau2[d], norm[d], q_l, q_g);
 

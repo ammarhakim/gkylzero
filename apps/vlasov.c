@@ -169,7 +169,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // create geometry object
   app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
-    app->mapc2p, app->c2p_ctx);
+    app->mapc2p, app->c2p_ctx, app->use_gpu);
 
   app->has_field = !vm->skip_field; // note inversion of truth value
   if (app->has_field)

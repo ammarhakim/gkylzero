@@ -77,7 +77,10 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
 
   euler->eqn.cons_to_diag = euler_cons_to_diag;
 
+  euler->eqn.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(euler->eqn.flags);
   euler->eqn.ref_count = gkyl_ref_count_init(gkyl_euler_free);
+  euler->eqn.on_dev = &euler->eqn; // CPU eqn obj points to itself
 
   return &euler->eqn;  
 }
