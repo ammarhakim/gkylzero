@@ -9,7 +9,7 @@
 // Object type
 typedef struct gkyl_dg_updater_vlasov gkyl_dg_updater_vlasov;
 
-// return type for drag and diffusion timers
+// return type for vlasov timers
 struct gkyl_dg_updater_vlasov_tm {
   double vlasov_tm; // time for vlasov updates
 };
@@ -21,12 +21,12 @@ struct gkyl_dg_updater_vlasov_tm {
  *
  * @param grid Grid object
  * @param cbasis Configuration space basis functions
- * @param pbasis Phase-space basis function
- * @param conf_range Config space range
+ * @param pbasis Phase space basis function
+ * @param conf_range Configuration space range
  * @param vel_range Velocity space range
  * @param phase_range Phase space range
  * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
- * @param model_id Enum identifier for model type (e.g., SR, General Geometry, PKPM, see gkyl_eqn_type.h)
+ * @param model_id Enum identifier for model type (e.g., SR, General Geometry, see gkyl_eqn_type.h)
  * @param field_id Enum identifier for field type (e.g., Maxwell's, Poisson, see gkyl_eqn_type.h)
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param use_gpu Boolean to determine whether struct objects are on host or device

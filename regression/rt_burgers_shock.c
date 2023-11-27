@@ -10,7 +10,9 @@
 void
 evalBurgersInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = sin(2*M_PI*xn[0]);
+  double x = xn[0];
+  fout[0] = -1.0;
+  if ((x>2.0) && (x<4.0)) fout[0] = 3.0;
 }
 
 int
@@ -34,6 +36,7 @@ main(int argc, char **argv)
     .equation = burgers,
     .evolve = 1,
     .init = evalBurgersInit,
+    .split_type = GKYL_WAVE_QWAVE,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
@@ -44,11 +47,9 @@ main(int argc, char **argv)
 
     .ndim = 1,
     .lower = { 0.0 },
-    .upper = { 1.0 }, 
+    .upper = { 6.0 }, 
     .cells = { NX },
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },    
     .cfl_frac = 0.9,
 
     .num_species = 1,

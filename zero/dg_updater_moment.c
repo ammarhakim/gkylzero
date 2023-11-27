@@ -6,7 +6,6 @@
 #include <gkyl_mom_type.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_mom_vlasov.h>
-#include <gkyl_mom_vlasov_pkpm.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_moment_priv.h>
@@ -43,9 +42,6 @@ gkyl_dg_updater_moment_new(const struct gkyl_rect_grid *grid,
 
     struct gkyl_mom_vlasov_sr_auxfields *sr_inp = aux_inp;
     gkyl_mom_vlasov_sr_set_auxfields(up->type, *sr_inp);
-  }
-  else if (up->model_id == GKYL_MODEL_PKPM) {
-    up->type = gkyl_mom_vlasov_pkpm_new(cbasis, pbasis, mass, is_integrated, use_gpu);
   }
   else {
     if (is_integrated)

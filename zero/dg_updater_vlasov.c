@@ -5,7 +5,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_dg_vlasov.h>
-#include <gkyl_dg_vlasov_pkpm.h>
 #include <gkyl_dg_vlasov_sr.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_updater_vlasov_priv.h>
@@ -33,11 +32,6 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
     struct gkyl_dg_vlasov_sr_auxfields *sr_inp = aux_inp;
     gkyl_vlasov_sr_set_auxfields(up->eqn_vlasov, *sr_inp);
   }
-  else if (up->model_id == GKYL_MODEL_PKPM) {
-    up->eqn_vlasov = gkyl_dg_vlasov_pkpm_new(cbasis, pbasis, conf_range, phase_range, up->use_gpu);
-    struct gkyl_dg_vlasov_pkpm_auxfields *pkpm_inp = aux_inp;
-    gkyl_vlasov_pkpm_set_auxfields(up->eqn_vlasov, *pkpm_inp);
-  }
   else {
     up->eqn_vlasov = gkyl_dg_vlasov_new(cbasis, pbasis, conf_range, phase_range, up->model_id, up->field_id, up->use_gpu);
     struct gkyl_dg_vlasov_auxfields *vlasov_inp = aux_inp;
@@ -52,8 +46,8 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
     zero_flux_flags[d] = is_zero_flux_dir[d]? 1 : 0;
   }
   int num_up_dirs = cdim;
-  // update velocity space only when field is present (or pkpm model, which always has force update)
-  if (field_id != GKYL_FIELD_NULL || up->model_id == GKYL_MODEL_PKPM) {
+  // update velocity space only when field is present 
+  if (field_id != GKYL_FIELD_NULL) {
     for (int d=cdim; d<pdim; ++d) {
       up_dirs[d] = d;
       zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
