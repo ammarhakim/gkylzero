@@ -1,11 +1,11 @@
 /* -*- c -*- */
 
 #include <stdio.h>
-#include <gkylzero.h>
 
 extern "C" {
 #include <float.h>
 #include <gkyl_array.h>
+#include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_geom_priv.h>
 int cu_wave_geom_test(const struct gkyl_wave_geom *wg);

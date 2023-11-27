@@ -1,9 +1,11 @@
 /* -*- c -*- */
 
 #include <stdio.h>
-#include <gkylzero.h>
 
 extern "C" {
+#include <gkyl_alloc.h>
+#include <gkyl_array.h>
+#include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_euler_priv.h>
 int cu_wv_euler_test(const struct gkyl_wv_eqn *eqn);
