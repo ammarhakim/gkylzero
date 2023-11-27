@@ -266,9 +266,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   double cfla = 0.0, cfl = wv->cfl, cflm = 1.1*cfl;
   double is_cfl_violated = 0.0; // delibrately a double
   
-  // local conserved and primitive variables
   double ql_local[meqn], qr_local[meqn];
-  
   double fjump_local[meqn];
   double waves_local[meqn*mwaves];
   double amdq_local[meqn], apdq_local[meqn];
