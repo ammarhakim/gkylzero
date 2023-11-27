@@ -3,7 +3,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_wv_cold_sr_fluid.h>
 
-// Files for roe-averged velocity 
+// Files for polynomial solve
 #include <gkyl_math.h>
 
 #define NUX 1
@@ -14,6 +14,7 @@
 
 struct wv_cold_sr_fluid {
   struct gkyl_wv_eqn eqn; // base object
+  double clight;
 };
 
 // relativistic case
@@ -25,7 +26,7 @@ struct cold_sr {
 void
 cold_sr_fluid_flux(const double q[5], double flux[5])
 {
-  // Vx = NUx/(N^2 + NU^2/c^2) 
+  // Vx = NUx/sqrt(N^2 + NU^2/c^2) 
   const double c = 299792458.0;
   double Vx = q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])/(c*c)); 
   flux[0] = q[0]*Vx; // N*Vx
@@ -106,7 +107,7 @@ static bool
 entropy_check(const double UL[3], const double UR[4], double u[3], const double c)
 {
   bool cond = 1;
-  double tol = 1e-15;
+  double tol = 1.e-15;
   for(int i=0; i<3; ++i){
     cond = cond && (fmin(UR[i],UL[i]) - tol) <= u[i] && u[i] <= (fmax(UR[i],UL[i]) + tol);
   }
@@ -147,7 +148,7 @@ calc_u_from_result(double uhat[3], double v_hat, void *ctx)
   }
 }
 
-static void
+static inline void
 sr_poly_coeffs(void *ctx, double coeff[4])
 {
 
@@ -175,9 +176,9 @@ sr_poly_coeffs(void *ctx, double coeff[4])
   a = rhol*vl[0] - rhor*vr[0];
 
   double p4coeff = SQ(drho)+SQ(B[2])+SQ(B[1])+SQ(B[0]); 
-  double p3coeff = 2*a*drho+2*A[2]*B[2]+2*A[1]*B[1]+2*A[0]*B[0]; 
+  double p3coeff = 2.0*a*drho+2.0*A[2]*B[2]+2.0*A[1]*B[1]+2.0*A[0]*B[0]; 
   double p2coeff = SQ(a)+SQ(A[2])+SQ(A[1])-SQ(B[0])+SQ(A[0]); 
-  double p1coeff = -2*A[0]*B[0]; 
+  double p1coeff = -2.0*A[0]*B[0]; 
   double p0coeff = -SQ(A[0]); 
 
   // Find the four roots to the polynomial Vx equation:
@@ -191,12 +192,12 @@ sr_poly_coeffs(void *ctx, double coeff[4])
 }
 
 
-static double 
-root_select(struct gkyl_lo_poly_roots *roots, double vrx, double vlx, int status)
+static inline double 
+root_select(struct gkyl_lo_poly_roots *roots, double vrx, double vlx, int *status)
 {
 
   // status 
-  status = 1;
+  *status = 1;
 
   // Check that each root has a small complex component
   double real_comps[4], imag_comps[4], tol[4];
@@ -207,13 +208,14 @@ root_select(struct gkyl_lo_poly_roots *roots, double vrx, double vlx, int status
   }
 
   // Find the closest real root
-  double v_mean = 0.5*(vrx + vlx);;
+  double v_mean = 0.5*(vrx + vlx);
   int real_root_only[4] = { 0, 0, 0, 0 };
   double v_diff_real[4];
   int i_choosen_root = 5;
   double min_val = 1.0;
   for (int i=0; i<4; ++i) {
-    if (fabs(2.0*tol[i]) > fabs(imag_comps[i])) {
+    //printf("Root: %1.16e + %1.16eI\n",real_comps[i],imag_comps[i]);
+    if (1.e-13 > fabs(imag_comps[i]/ real_comps[i]) && real_comps[i] < 1.0) {
 
       // Then the root is considered purely real
       real_root_only[i] = 1;
@@ -221,7 +223,7 @@ root_select(struct gkyl_lo_poly_roots *roots, double vrx, double vlx, int status
       // compute the difference of the real part from mean vl
       v_diff_real[i] = fabs( real_comps[i] - v_mean );
 
-      if(min_val > v_diff_real[i]) {
+      if(min_val > v_diff_real[i] ) {
         i_choosen_root = i;
         min_val = v_diff_real[i];
       }
@@ -230,8 +232,10 @@ root_select(struct gkyl_lo_poly_roots *roots, double vrx, double vlx, int status
 
   // If choosen i_choosen_root = 5 then throw an error:
   if (i_choosen_root == 5){
-    printf("THERE WAS AN ERROR ISOLATING THE REAL ROOT\n");
-    status = 0;
+    //printf("THERE WAS AN ERROR ISOLATING THE REAL ROOT\n");
+    *status = 0;
+  } else {
+    //printf("(ACCEPTED) Root: %1.16e + %1.16eI\n",real_comps[i_choosen_root],imag_comps[i_choosen_root]);
   }
 
   // Return the root which best matches
@@ -281,22 +285,6 @@ compute_sr_roe_averaged_velocity(const double ql[4], const double qr[4], const d
       .vr = { vRx, vRy, vRz }
     };
 
-    // compute the coefficients of the polynomial
-    double coeff[4];
-    sr_poly_coeffs(&csr, coeff);
-
-    // compute Vx_hat
-    enum gkyl_lo_poly_order order = GKYL_LO_POLY_4;
-    struct gkyl_lo_poly_roots roots = gkyl_calc_lo_poly_roots(order, coeff);
-
-    // Select the proper root
-    int status = 0;
-    double v_hat = root_select(&roots,vRx,vLx,status);
-
-    // Compute U from Vx
-    double u[3];
-    calc_u_from_result(u,v_hat,&csr);
-
     // Compute a default answer, the v-hat-avg
     double u_avg[3] = {(uLx+uRx)/2.0,(uLy+uRy)/2.0,(uLz+uRz)/2.0};
     double v_hat_avg = u_avg[0]/sqrt(1.0 + u_avg[0]*u_avg[0] + u_avg[1]*u_avg[1] + u_avg[2]*u_avg[2] );
@@ -306,16 +294,40 @@ compute_sr_roe_averaged_velocity(const double ql[4], const double qr[4], const d
     double UR[3] = {uRx,uRy,uRz};
     double drho = fabs(rhoR-rhoL);
     double du = fabs(uLx-uRx)+fabs(uLy-uRy)+fabs(uLz-uRz);
-    if ((drho + du > 1e-13) && (du > 1e-15)) {
+    if ((drho + du > 1e-13) && (du > 1e-13)) {
+
+      // compute the coefficients of the polynomial
+      double coeff[4];
+      sr_poly_coeffs(&csr, coeff);
+
+      // compute Vx_hat
+      enum gkyl_lo_poly_order order = GKYL_LO_POLY_4;
+      struct gkyl_lo_poly_roots roots = gkyl_calc_lo_poly_roots(order, coeff);
+
+      // Select the proper root
+      int mystatus; 
+      int *status = &mystatus;
+      double v_hat = root_select(&roots,vRx,vLx,status);
+
+      // Compute U from Vx
+      double u[3];
+      calc_u_from_result(u,v_hat,&csr);
       bool pass_entropy_check = entropy_check(UL, UR, u, c);
       if (pass_entropy_check && status){
       } else {
-        printf("Entropy test fails with by entropy_test: %d, status: %d (1 is pass, 0 is fail) \n",pass_entropy_check, status);
-        printf("v_computed = %1.16e; uxhat = %1.16e; uyhat = %1.16e; uzhat = %1.16e;\n",v_hat,u[0],u[1],u[2]);
-        printf("rhol = %1.16e; ulx = %1.16e; uly = %1.16e; ulz = %1.16e;\n",rhoL,uLx,uLy,uLz);
-        printf("rhor = %1.16e; urx = %1.16e; ury = %1.16e; urz = %1.16e;\n",rhoR,uRx,uRy,uRz);
+        //printf("Entropy test fails with by entropy_test: %d, status: %d (1 is pass, 0 is fail) \n",pass_entropy_check, status[0]);
+        //printf("v_computed = %1.16e; uxhat = %1.16e; uyhat = %1.16e; uzhat = %1.16e;\n",v_hat,u[0],u[1],u[2]);
+        //printf("rhol = %1.16e; ulx = %1.16e; uly = %1.16e; ulz = %1.16e;\n",rhoL,uLx,uLy,uLz);
+        //printf("rhor = %1.16e; urx = %1.16e; ury = %1.16e; urz = %1.16e;\n",rhoR,uRx,uRy,uRz);
+
+        // Check v_hat_avg
+        //printf("Replacing with v_hat_avg\n");
+        calc_u_from_result(u,v_hat_avg,&csr);
+        bool pass_entropy_check = entropy_check(UL, UR, u, c);
+        //printf("v_avg = %1.16e; uxhat = %1.16e; uyhat = %1.16e; uzhat = %1.16e;\n",v_hat_avg,u[0],u[1],u[2]);
         return c*v_hat_avg;
       }
+
     } else {
       return c*v_hat_avg;
     }
@@ -450,7 +462,7 @@ flux_jump_sr(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, 
 
   for (int m=0; m<4; ++m) flux_jump_sr[m] = fr[m]-fl[m];
 
- // Vn = NUn/(N^2 + NU^2/c^2)
+ // Vn = NUn/sqrt(N^2 + NU^2/c^2)
   const double c = 299792458.0;
   double amaxl = ql[NUX]/sqrt(ql[0]*ql[0] + (ql[NUX]*ql[NUX] + ql[NUY]*ql[NUY] + ql[NUZ]*ql[NUZ])/(c*c));
   double amaxr = qr[NUX]/sqrt(qr[0]*qr[0] + (qr[NUX]*qr[NUX] + qr[NUY]*qr[NUY] + qr[NUZ]*qr[NUZ])/(c*c)); 
