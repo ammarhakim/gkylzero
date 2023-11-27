@@ -60,7 +60,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
           gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
           gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
         }
-      } else if (poly_order == 1) {
+      } 
+      else if (poly_order == 1) {
         if (vdim > 0) {
           /* Force hybrid basis (p=2 in velocity space). */
           gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
@@ -71,19 +72,25 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       if (app->use_gpu) {
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
         if (poly_order > 1) {
-          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
-        } else if (poly_order == 1) {
-          /* Force hybrid basis (p=2 in velocity space). */
-          gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim);
+          if (vdim > 0) {
+            gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
+          }
+        } 
+        else if (poly_order == 1) {
+          if (vdim > 0) {
+            /* Force hybrid basis (p=2 in velocity space). */
+            gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); 
+          }
         }
       }
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
       gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-      if (vdim > 0)
+      if (vdim > 0) {
+        gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
         gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
+      }
       break;
 
     default:
