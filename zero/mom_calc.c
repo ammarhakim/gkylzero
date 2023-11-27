@@ -44,7 +44,7 @@ gkyl_mom_calc_advance(const struct gkyl_mom_calc* calc,
   double xc[GKYL_MAX_DIM];
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
-  
+
   int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
 
@@ -61,15 +61,21 @@ gkyl_mom_calc_advance(const struct gkyl_mom_calc* calc,
     gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
 
     while (gkyl_range_iter_next(&vel_iter)) {
-      
+
       copy_idx_arrays(conf_rng->ndim, phase_rng->ndim, conf_iter.idx, vel_iter.idx, pidx);
       gkyl_rect_grid_cell_center(&calc->grid, pidx, xc);
-      
-      long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
 
+      long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
+      printf("fidx=%d,midx=%d\n",fidx,midx);
+      printf("fin=%f\n",gkyl_array_cfetch(fin, fidx));
+      printf("mout=%f\n",gkyl_array_cfetch(mout, midx));
+      printf("pidx[0]=%d\n",pidx[0]);
+      printf("xc[0]=%f\n",xc[0]);
+      printf("dx[0]=%f\n",calc->grid.dx[0]);
       gkyl_mom_type_calc(calc->momt, xc, calc->grid.dx, pidx,
         gkyl_array_cfetch(fin, fidx), gkyl_array_fetch(mout, midx), 0
         );
+      printf("After mom_type_calc\n");
     }
   }
 }

@@ -134,7 +134,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   double *vnu_arr = vnu->data;
   gkyl_array_clear(vnu,1.2);
   for (int i=0; i<32; i++){
-    printf("i=%i, vnu[%i]=%e\n",i,i,vnu_arr[i]);
+    //printf("i=%i, vnu[%i]=%e\n",i,i,vnu_arr[i]);
   }
   
   printf("Now do eval on nodes\n");

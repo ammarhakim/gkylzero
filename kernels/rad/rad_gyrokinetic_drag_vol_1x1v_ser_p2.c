@@ -10,7 +10,7 @@ GKYL_CU_DH double rad_gyrokinetic_drag_vol_1x1v_ser_p2(const double *w, const do
   // out: incremented output 
 
   for (int i=0; i<8; i++) {
-    printf("i=%i, nI=%f, vnu=%f, vsqnu=%f, f=%f\n",i,nI[i],vnu[i],vsqnu[i],f[i]);
+    //    printf("i=%i, nI=%f, vnu=%f, vsqnu=%f, f=%f\n",i,nI[i],vnu[i],vsqnu[i],f[i]);
   }
   
   double rdv2[1]; 
