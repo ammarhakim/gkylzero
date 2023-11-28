@@ -54,12 +54,6 @@ typedef struct gkyl_dg_recomb gkyl_dg_recomb;
 struct gkyl_dg_recomb* gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu); 
 
 /**
- * Create new ionrecombation updater type object on NV-GPU: 
- * see new() method above for documentation.
- */
-struct gkyl_dg_recomb* gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp *inp); 
-
-/**
  * Compute ionrecombation collision term for use in neutral reactions. 
  * The update_rng MUST be a sub-range of the
  * range on which the array is defined.  That is, it must be either

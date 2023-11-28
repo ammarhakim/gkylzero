@@ -18,15 +18,9 @@
 #include <gkyl_util.h>
 #include <gkyl_const.h>
 
-// FIX MASS FOR PMOB ETC
 struct gkyl_dg_recomb*
 gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
 {
-#ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_dg_recomb_cu_dev_new(inp);
-  } 
-#endif
   gkyl_dg_recomb *up = gkyl_malloc(sizeof(struct gkyl_dg_recomb));
 
   up->cbasis = inp->cbasis;
@@ -100,13 +94,22 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
 
   struct gkyl_basis adas_basis;
-  gkyl_cart_modal_serendip(&adas_basis, 2, 1);
+  up->adas_basis = adas_basis;
+  if (use_gpu) {
+    // allocate device basis if we are using GPUs
+    up->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  }
+  else {
+    up->basis_on_dev = &up->adas_basis;
+  }
+  gkyl_cart_modal_serendip(&up->adas_basis, 2, 1);
+  if (use_gpu)
+    gkyl_cart_modal_serendip_cu_dev(up->basis_on_dev, 2, 1);
 
   struct gkyl_array *adas_dg =
-    gkyl_array_new(GKYL_DOUBLE, adas_basis.num_basis, data.NT*data.NN);
+    gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
 
-  // "duplicate symbol" error
-  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
+  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state+1);
 
   // ADAS data pointers
   up->recomb_data = adas_dg;
@@ -119,22 +122,37 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   up->resTe = tn_grid.cells[0];
   up->resM0 = tn_grid.cells[1];
   up->adas_rng = adas_rng;
-  up->adas_basis = adas_basis;
-  
-  // allocate fields for prim mom calculation
-  up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-  up->coef_recomb = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-  up->coef_m0 = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); 
 
-  // only for Vlasov neutral species
+  if (use_gpu) {
+    up->recomb_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
+    gkyl_array_copy(up->recomb_data, adas_dg);
+    
+    up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->coef_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->coef_m0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+ 
+    up->udrift_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, vdim*up->cbasis->num_basis, up->conf_rng->volume);
+    up->vtSq_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->prim_vars_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim+1)*up->cbasis->num_basis, up->conf_rng->volume);
+
+  }
+  else {
+    up->recomb_data = adas_dg;
+    
+    // allocate fields for prim mom calculation
+    up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->coef_recomb = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->coef_m0 = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+
+    up->udrift_ion = gkyl_array_new(GKYL_DOUBLE, vdim*up->cbasis->num_basis, up->conf_rng->volume);
+    up->vtSq_ion = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->prim_vars_ion = gkyl_array_new(GKYL_DOUBLE, (vdim+1)*up->cbasis->num_basis, up->conf_rng->volume);
+  }
+
+  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); 
   up->calc_prim_vars_ion_udrift = gkyl_dg_prim_vars_transform_vlasov_gk_new(up->cbasis, up->pbasis, up->conf_rng, "u_par_i", use_gpu);
   up->calc_prim_vars_ion_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu);
   
-  up->udrift_ion = gkyl_array_new(GKYL_DOUBLE, vdim*up->cbasis->num_basis, up->conf_rng->volume);
-  up->vtSq_ion = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-  up->prim_vars_ion = gkyl_array_new(GKYL_DOUBLE, (vdim+1)*up->cbasis->num_basis, up->conf_rng->volume);
-
   // only for receiver species
   up->proj_max = gkyl_proj_maxwellian_on_basis_new(up->grid, up->cbasis, up->pbasis, poly_order+1, use_gpu);
 
@@ -151,8 +169,8 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
 {
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(coll_recomb)) {
-    return gkyl_dg_recomb_coll_cu(up, moms_elc, moms_ions, b_i, f_self, coll_recomb, cflrate);
-  } 
+    return gkyl_dg_recomb_coll_cu(up, moms_elc, moms_ion, bmag, jacob_tot, b_i, f_self, coll_recomb, cflrate);
+  }
 #endif
   if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
     // Set auxiliary variable (b_i) for computation of udrift_i
@@ -280,13 +298,13 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
   free(up);
 }
 
-#ifndef GKYL_HAVE_CUDA
+/* #ifndef GKYL_HAVE_CUDA */
 
-struct gkyl_dg_recomb*
-gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp *inp)
-{
-  assert(false);
-  return 0;
-}
+/* struct gkyl_dg_recomb* */
+/* gkyl_dg_recomb_cu_dev_new(struct gkyl_dg_recomb_inp *inp) */
+/* { */
+/*   assert(false); */
+/*   return 0; */
+/* } */
 
-#endif
+/* #endif */

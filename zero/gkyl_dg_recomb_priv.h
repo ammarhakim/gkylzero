@@ -33,6 +33,7 @@ struct gkyl_dg_recomb {
 
   struct gkyl_range adas_rng;
   struct gkyl_basis adas_basis;
+  struct gkyl_basis *basis_on_dev;
   
   struct gkyl_array *recomb_data;
   struct gkyl_array *vtSq_elc;
