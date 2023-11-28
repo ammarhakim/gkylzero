@@ -270,14 +270,14 @@ test_polyn_roots(void)
   do {
     struct gkyl_poly_roots *rts = gkyl_poly_roots_new(5);
     
-    double c1[] = { 120.0, -26.0, -25.0, 2.0 };
+    double c1[] = { 14400.0, -11400.0, 1174.0, 711.0, -126.0 };
     gkyl_calc_poly_roots(rts, c1);
 
-    double complex res[4] = { 4.0, 2.0, -3.0, -5.0 };
+    double complex res[5] = { 120.0, 5.0, 3.0, 2.0, -4.0 };
 
-    for (int i=0; i<4; ++i)
+    for (int i=0; i<5; ++i)
       TEST_CHECK(
-        check_in_list(4, res, rts->rpart[i]+I*rts->impart[i], 1e-14).status
+        check_in_list(5, res, rts->rpart[i]+I*rts->impart[i], 1e-14).status
       );
 
     gkyl_poly_roots_release(rts);

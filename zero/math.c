@@ -327,7 +327,7 @@ gkyl_calc_poly_roots(struct gkyl_poly_roots *pr, const double *coeff)
 {
   int poly_order = pr->poly_order;
   double complex *pn1 = pr->work;
-  double complex *pn = pr->work + sizeof(double complex[poly_order]);
+  double complex *pn = pn1 + poly_order;
 
   double complex r1 = 0.4+0.9*I; // arbitrary complex number, not a root of unity  
   pn1[0] = r1;
