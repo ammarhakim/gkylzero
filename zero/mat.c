@@ -84,7 +84,7 @@ struct gkyl_mat*
 gkyl_mat_diag(struct gkyl_mat *mat, double val)
 {
   gkyl_mat_clear(mat, 0.0);
-  for (size_t i=0; i<GKYL_MIN(mat->nr, mat->nc); ++i)
+  for (size_t i=0; i<GKYL_MIN2(mat->nr, mat->nc); ++i)
     gkyl_mat_set(mat, i, i, val);
   return mat;
 }

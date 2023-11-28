@@ -419,6 +419,7 @@ int main(int argc, char **argv) {
   struct gkyl_wv_euler_inp inp = {
     .gas_gamma = ctx.gamma,
     .rp_type = WV_EULER_RP_HLLC,
+    .use_gpu = false, 
   };
 
   // create electron(elc), ion species

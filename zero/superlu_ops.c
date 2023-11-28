@@ -50,7 +50,7 @@ gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs)
     prob->U[k] = gkyl_malloc(sizeof(SuperMatrix));
   }
 
-  prob->rhs = doubleMalloc(mrow*GKYL_MAX(nprob,nrhs));
+  prob->rhs = doubleMalloc(mrow*GKYL_MAX2(nprob,nrhs));
   prob->perm_c = intMalloc(ncol);
   prob->perm_r = gkyl_malloc(prob->nprob*sizeof(int *));
   for (size_t k=0; k<prob->nprob; k++)
@@ -197,7 +197,7 @@ gkyl_superlu_brhs_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_mat_t
 void
 gkyl_superlu_brhs_from_array(struct gkyl_superlu_prob *prob, const double *bin)
 {
-  for (size_t i=0; i<prob->mrow*GKYL_MAX(prob->nprob,prob->nrhs); i++)
+  for (size_t i=0; i<prob->mrow*GKYL_MAX2(prob->nprob,prob->nrhs); i++)
     prob->rhs[i] = bin[i];
   
   // Create RHS matrix B. See SuperLU manual for definitions.

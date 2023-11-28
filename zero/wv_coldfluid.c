@@ -13,7 +13,7 @@ struct wv_coldfluid {
   struct gkyl_wv_eqn eqn; // base object
 };
 
-void
+static void
 coldfluid_flux(const double q[5], double flux[5])
 {
   double u = q[RHOU]/q[0];
@@ -81,7 +81,8 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, 
+  double *waves, double *s)
 {
   double f[4];
   double ur = qr[RHOU]/qr[0], ul = ql[RHOU]/ql[0];
@@ -220,11 +221,10 @@ gkyl_wv_coldfluid_new(void)
   coldfluid->eqn.waves_func = wave_roe;
   coldfluid->eqn.qfluct_func = qfluct_roe;
   coldfluid->eqn.ffluct_func = ffluct_roe;
+
   coldfluid->eqn.flux_jump = flux_jump;
-  
   coldfluid->eqn.check_inv_func = check_inv;
   coldfluid->eqn.max_speed_func = max_speed;
-
   coldfluid->eqn.rotate_to_local_func = rot_to_local;
   coldfluid->eqn.rotate_to_global_func = rot_to_global;
 

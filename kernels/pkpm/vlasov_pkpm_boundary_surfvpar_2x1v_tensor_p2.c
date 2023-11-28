@@ -56,6 +56,11 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
   double G_1_div_b_Upwind[9] = {0.0};;
   double Ghat_G_1_div_b[9] = {0.0}; 
 
+  // get stable timestep of alpha_v = 1/rho (div(p_par b) - p_perp div(b)) - v_par bb : grad(u) 
+  // from the quadrature point evaluation needed to compute upwinded distribution functions 
+  double cflFreq = 0.0;
+  double alphaOrd = 0.0;
+
   if (edge == -1) { 
 
   alphaSurf[0] = (-1.0*bb_grad_u[0]*wvpar)-0.5*bb_grad_u[0]*dvpar+p_force[0]; 
@@ -68,6 +73,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
   alphaSurf[7] = (-1.0*bb_grad_u[7]*wvpar)-0.5*bb_grad_u[7]*dvpar+p_force[7]; 
   alphaSurf[8] = (-1.0*bb_grad_u[8]*wvpar)-0.5*bb_grad_u[8]*dvpar+p_force[8]; 
 
+  alphaOrd = 0.4*alphaSurf[8]-0.5999999999999995*alphaSurf[7]-0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])+0.9*alphaSurf[3]-0.6708203932499369*(alphaSurf[2]+alphaSurf[1])+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.4*alphaSurf[8]-0.5999999999999995*alphaSurf[7]-0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])+0.9*alphaSurf[3]-0.6708203932499369*(alphaSurf[2]+alphaSurf[1])+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[0] = tensor_3x_p2_surfx3_eval_quad_node_0_r(F_0Skin); 
     G_1_UpwindQuad[0] = tensor_3x_p2_surfx3_eval_quad_node_0_r(G_1Skin); 
@@ -75,6 +82,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[0] = tensor_3x_p2_surfx3_eval_quad_node_0_l(F_0Edge); 
     G_1_UpwindQuad[0] = tensor_3x_p2_surfx3_eval_quad_node_0_l(G_1Edge); 
   } 
+  alphaOrd = (-0.5*alphaSurf[8])+0.75*alphaSurf[7]-0.5590169943749475*alphaSurf[5]+0.4472135954999579*alphaSurf[4]-0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if ((-0.5*alphaSurf[8])+0.75*alphaSurf[7]-0.5590169943749475*alphaSurf[5]+0.4472135954999579*alphaSurf[4]-0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[1] = tensor_3x_p2_surfx3_eval_quad_node_1_r(F_0Skin); 
     G_1_UpwindQuad[1] = tensor_3x_p2_surfx3_eval_quad_node_1_r(G_1Skin); 
@@ -82,6 +91,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[1] = tensor_3x_p2_surfx3_eval_quad_node_1_l(F_0Edge); 
     G_1_UpwindQuad[1] = tensor_3x_p2_surfx3_eval_quad_node_1_l(G_1Edge); 
   } 
+  alphaOrd = 0.4*alphaSurf[8]-0.5999999999999995*alphaSurf[7]+0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])-0.9*alphaSurf[3]+0.6708203932499369*alphaSurf[2]-0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.4*alphaSurf[8]-0.5999999999999995*alphaSurf[7]+0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])-0.9*alphaSurf[3]+0.6708203932499369*alphaSurf[2]-0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[2] = tensor_3x_p2_surfx3_eval_quad_node_2_r(F_0Skin); 
     G_1_UpwindQuad[2] = tensor_3x_p2_surfx3_eval_quad_node_2_r(G_1Skin); 
@@ -89,6 +100,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[2] = tensor_3x_p2_surfx3_eval_quad_node_2_l(F_0Edge); 
     G_1_UpwindQuad[2] = tensor_3x_p2_surfx3_eval_quad_node_2_l(G_1Edge); 
   } 
+  alphaOrd = (-0.5*alphaSurf[8])+0.75*alphaSurf[6]+0.4472135954999579*alphaSurf[5]-0.5590169943749475*alphaSurf[4]-0.6708203932499369*alphaSurf[2]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if ((-0.5*alphaSurf[8])+0.75*alphaSurf[6]+0.4472135954999579*alphaSurf[5]-0.5590169943749475*alphaSurf[4]-0.6708203932499369*alphaSurf[2]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[3] = tensor_3x_p2_surfx3_eval_quad_node_3_r(F_0Skin); 
     G_1_UpwindQuad[3] = tensor_3x_p2_surfx3_eval_quad_node_3_r(G_1Skin); 
@@ -96,6 +109,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[3] = tensor_3x_p2_surfx3_eval_quad_node_3_l(F_0Edge); 
     G_1_UpwindQuad[3] = tensor_3x_p2_surfx3_eval_quad_node_3_l(G_1Edge); 
   } 
+  alphaOrd = 0.625*alphaSurf[8]-0.5590169943749475*(alphaSurf[5]+alphaSurf[4])+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.625*alphaSurf[8]-0.5590169943749475*(alphaSurf[5]+alphaSurf[4])+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[4] = tensor_3x_p2_surfx3_eval_quad_node_4_r(F_0Skin); 
     G_1_UpwindQuad[4] = tensor_3x_p2_surfx3_eval_quad_node_4_r(G_1Skin); 
@@ -103,6 +118,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[4] = tensor_3x_p2_surfx3_eval_quad_node_4_l(F_0Edge); 
     G_1_UpwindQuad[4] = tensor_3x_p2_surfx3_eval_quad_node_4_l(G_1Edge); 
   } 
+  alphaOrd = (-0.5*alphaSurf[8])-0.75*alphaSurf[6]+0.4472135954999579*alphaSurf[5]-0.5590169943749475*alphaSurf[4]+0.6708203932499369*alphaSurf[2]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if ((-0.5*alphaSurf[8])-0.75*alphaSurf[6]+0.4472135954999579*alphaSurf[5]-0.5590169943749475*alphaSurf[4]+0.6708203932499369*alphaSurf[2]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[5] = tensor_3x_p2_surfx3_eval_quad_node_5_r(F_0Skin); 
     G_1_UpwindQuad[5] = tensor_3x_p2_surfx3_eval_quad_node_5_r(G_1Skin); 
@@ -110,6 +127,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[5] = tensor_3x_p2_surfx3_eval_quad_node_5_l(F_0Edge); 
     G_1_UpwindQuad[5] = tensor_3x_p2_surfx3_eval_quad_node_5_l(G_1Edge); 
   } 
+  alphaOrd = 0.4*alphaSurf[8]+0.5999999999999995*alphaSurf[7]-0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])-0.9*alphaSurf[3]-0.6708203932499369*alphaSurf[2]+0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.4*alphaSurf[8]+0.5999999999999995*alphaSurf[7]-0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])-0.9*alphaSurf[3]-0.6708203932499369*alphaSurf[2]+0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[6] = tensor_3x_p2_surfx3_eval_quad_node_6_r(F_0Skin); 
     G_1_UpwindQuad[6] = tensor_3x_p2_surfx3_eval_quad_node_6_r(G_1Skin); 
@@ -117,6 +136,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[6] = tensor_3x_p2_surfx3_eval_quad_node_6_l(F_0Edge); 
     G_1_UpwindQuad[6] = tensor_3x_p2_surfx3_eval_quad_node_6_l(G_1Edge); 
   } 
+  alphaOrd = (-0.5*alphaSurf[8])-0.75*alphaSurf[7]-0.5590169943749475*alphaSurf[5]+0.4472135954999579*alphaSurf[4]+0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if ((-0.5*alphaSurf[8])-0.75*alphaSurf[7]-0.5590169943749475*alphaSurf[5]+0.4472135954999579*alphaSurf[4]+0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[7] = tensor_3x_p2_surfx3_eval_quad_node_7_r(F_0Skin); 
     G_1_UpwindQuad[7] = tensor_3x_p2_surfx3_eval_quad_node_7_r(G_1Skin); 
@@ -124,6 +145,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[7] = tensor_3x_p2_surfx3_eval_quad_node_7_l(F_0Edge); 
     G_1_UpwindQuad[7] = tensor_3x_p2_surfx3_eval_quad_node_7_l(G_1Edge); 
   } 
+  alphaOrd = 0.4*alphaSurf[8]+0.5999999999999995*alphaSurf[7]+0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])+0.9*alphaSurf[3]+0.6708203932499369*(alphaSurf[2]+alphaSurf[1])+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.4*alphaSurf[8]+0.5999999999999995*alphaSurf[7]+0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])+0.9*alphaSurf[3]+0.6708203932499369*(alphaSurf[2]+alphaSurf[1])+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[8] = tensor_3x_p2_surfx3_eval_quad_node_8_r(F_0Skin); 
     G_1_UpwindQuad[8] = tensor_3x_p2_surfx3_eval_quad_node_8_r(G_1Skin); 
@@ -308,6 +331,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
   alphaSurf[7] = (-1.0*bb_grad_u[7]*wvpar)+0.5*bb_grad_u[7]*dvpar+p_force[7]; 
   alphaSurf[8] = (-1.0*bb_grad_u[8]*wvpar)+0.5*bb_grad_u[8]*dvpar+p_force[8]; 
 
+  alphaOrd = 0.4*alphaSurf[8]-0.5999999999999995*alphaSurf[7]-0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])+0.9*alphaSurf[3]-0.6708203932499369*(alphaSurf[2]+alphaSurf[1])+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.4*alphaSurf[8]-0.5999999999999995*alphaSurf[7]-0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])+0.9*alphaSurf[3]-0.6708203932499369*(alphaSurf[2]+alphaSurf[1])+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[0] = tensor_3x_p2_surfx3_eval_quad_node_0_r(F_0Edge); 
     G_1_UpwindQuad[0] = tensor_3x_p2_surfx3_eval_quad_node_0_r(G_1Edge); 
@@ -315,6 +340,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[0] = tensor_3x_p2_surfx3_eval_quad_node_0_l(F_0Skin); 
     G_1_UpwindQuad[0] = tensor_3x_p2_surfx3_eval_quad_node_0_l(G_1Skin); 
   } 
+  alphaOrd = (-0.5*alphaSurf[8])+0.75*alphaSurf[7]-0.5590169943749475*alphaSurf[5]+0.4472135954999579*alphaSurf[4]-0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if ((-0.5*alphaSurf[8])+0.75*alphaSurf[7]-0.5590169943749475*alphaSurf[5]+0.4472135954999579*alphaSurf[4]-0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[1] = tensor_3x_p2_surfx3_eval_quad_node_1_r(F_0Edge); 
     G_1_UpwindQuad[1] = tensor_3x_p2_surfx3_eval_quad_node_1_r(G_1Edge); 
@@ -322,6 +349,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[1] = tensor_3x_p2_surfx3_eval_quad_node_1_l(F_0Skin); 
     G_1_UpwindQuad[1] = tensor_3x_p2_surfx3_eval_quad_node_1_l(G_1Skin); 
   } 
+  alphaOrd = 0.4*alphaSurf[8]-0.5999999999999995*alphaSurf[7]+0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])-0.9*alphaSurf[3]+0.6708203932499369*alphaSurf[2]-0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.4*alphaSurf[8]-0.5999999999999995*alphaSurf[7]+0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])-0.9*alphaSurf[3]+0.6708203932499369*alphaSurf[2]-0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[2] = tensor_3x_p2_surfx3_eval_quad_node_2_r(F_0Edge); 
     G_1_UpwindQuad[2] = tensor_3x_p2_surfx3_eval_quad_node_2_r(G_1Edge); 
@@ -329,6 +358,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[2] = tensor_3x_p2_surfx3_eval_quad_node_2_l(F_0Skin); 
     G_1_UpwindQuad[2] = tensor_3x_p2_surfx3_eval_quad_node_2_l(G_1Skin); 
   } 
+  alphaOrd = (-0.5*alphaSurf[8])+0.75*alphaSurf[6]+0.4472135954999579*alphaSurf[5]-0.5590169943749475*alphaSurf[4]-0.6708203932499369*alphaSurf[2]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if ((-0.5*alphaSurf[8])+0.75*alphaSurf[6]+0.4472135954999579*alphaSurf[5]-0.5590169943749475*alphaSurf[4]-0.6708203932499369*alphaSurf[2]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[3] = tensor_3x_p2_surfx3_eval_quad_node_3_r(F_0Edge); 
     G_1_UpwindQuad[3] = tensor_3x_p2_surfx3_eval_quad_node_3_r(G_1Edge); 
@@ -336,6 +367,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[3] = tensor_3x_p2_surfx3_eval_quad_node_3_l(F_0Skin); 
     G_1_UpwindQuad[3] = tensor_3x_p2_surfx3_eval_quad_node_3_l(G_1Skin); 
   } 
+  alphaOrd = 0.625*alphaSurf[8]-0.5590169943749475*(alphaSurf[5]+alphaSurf[4])+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.625*alphaSurf[8]-0.5590169943749475*(alphaSurf[5]+alphaSurf[4])+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[4] = tensor_3x_p2_surfx3_eval_quad_node_4_r(F_0Edge); 
     G_1_UpwindQuad[4] = tensor_3x_p2_surfx3_eval_quad_node_4_r(G_1Edge); 
@@ -343,6 +376,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[4] = tensor_3x_p2_surfx3_eval_quad_node_4_l(F_0Skin); 
     G_1_UpwindQuad[4] = tensor_3x_p2_surfx3_eval_quad_node_4_l(G_1Skin); 
   } 
+  alphaOrd = (-0.5*alphaSurf[8])-0.75*alphaSurf[6]+0.4472135954999579*alphaSurf[5]-0.5590169943749475*alphaSurf[4]+0.6708203932499369*alphaSurf[2]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if ((-0.5*alphaSurf[8])-0.75*alphaSurf[6]+0.4472135954999579*alphaSurf[5]-0.5590169943749475*alphaSurf[4]+0.6708203932499369*alphaSurf[2]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[5] = tensor_3x_p2_surfx3_eval_quad_node_5_r(F_0Edge); 
     G_1_UpwindQuad[5] = tensor_3x_p2_surfx3_eval_quad_node_5_r(G_1Edge); 
@@ -350,6 +385,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[5] = tensor_3x_p2_surfx3_eval_quad_node_5_l(F_0Skin); 
     G_1_UpwindQuad[5] = tensor_3x_p2_surfx3_eval_quad_node_5_l(G_1Skin); 
   } 
+  alphaOrd = 0.4*alphaSurf[8]+0.5999999999999995*alphaSurf[7]-0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])-0.9*alphaSurf[3]-0.6708203932499369*alphaSurf[2]+0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.4*alphaSurf[8]+0.5999999999999995*alphaSurf[7]-0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])-0.9*alphaSurf[3]-0.6708203932499369*alphaSurf[2]+0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[6] = tensor_3x_p2_surfx3_eval_quad_node_6_r(F_0Edge); 
     G_1_UpwindQuad[6] = tensor_3x_p2_surfx3_eval_quad_node_6_r(G_1Edge); 
@@ -357,6 +394,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[6] = tensor_3x_p2_surfx3_eval_quad_node_6_l(F_0Skin); 
     G_1_UpwindQuad[6] = tensor_3x_p2_surfx3_eval_quad_node_6_l(G_1Skin); 
   } 
+  alphaOrd = (-0.5*alphaSurf[8])-0.75*alphaSurf[7]-0.5590169943749475*alphaSurf[5]+0.4472135954999579*alphaSurf[4]+0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if ((-0.5*alphaSurf[8])-0.75*alphaSurf[7]-0.5590169943749475*alphaSurf[5]+0.4472135954999579*alphaSurf[4]+0.6708203932499369*alphaSurf[1]+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[7] = tensor_3x_p2_surfx3_eval_quad_node_7_r(F_0Edge); 
     G_1_UpwindQuad[7] = tensor_3x_p2_surfx3_eval_quad_node_7_r(G_1Edge); 
@@ -364,6 +403,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
     F_0_UpwindQuad[7] = tensor_3x_p2_surfx3_eval_quad_node_7_l(F_0Skin); 
     G_1_UpwindQuad[7] = tensor_3x_p2_surfx3_eval_quad_node_7_l(G_1Skin); 
   } 
+  alphaOrd = 0.4*alphaSurf[8]+0.5999999999999995*alphaSurf[7]+0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])+0.9*alphaSurf[3]+0.6708203932499369*(alphaSurf[2]+alphaSurf[1])+0.5*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.4*alphaSurf[8]+0.5999999999999995*alphaSurf[7]+0.5999999999999999*alphaSurf[6]+0.4472135954999579*(alphaSurf[5]+alphaSurf[4])+0.9*alphaSurf[3]+0.6708203932499369*(alphaSurf[2]+alphaSurf[1])+0.5*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[8] = tensor_3x_p2_surfx3_eval_quad_node_8_r(F_0Edge); 
     G_1_UpwindQuad[8] = tensor_3x_p2_surfx3_eval_quad_node_8_r(G_1Edge); 
@@ -538,6 +579,6 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_2x1v_tensor_p2(const double *w, 
 
   } 
 
-  return 0.;
+  return 2.5*dv1par*cflFreq;
 
 } 
