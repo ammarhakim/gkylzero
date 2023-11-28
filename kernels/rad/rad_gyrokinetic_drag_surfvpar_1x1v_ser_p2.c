@@ -37,7 +37,13 @@ GKYL_CU_DH double rad_gyrokinetic_drag_surfvpar_1x1v_ser_p2(const double *w, con
   out[4] += (0.7071067811865475*Ghat_r[2]-0.7071067811865475*Ghat_l[2])*rdv2; 
   out[5] += (1.58113883008419*Ghat_r[0]-1.58113883008419*Ghat_l[0])*rdv2; 
   out[6] += 1.224744871391589*(Ghat_r[2]+Ghat_l[2])*rdv2; 
-  out[7] += (1.58113883008419*Ghat_r[1]-1.58113883008419*Ghat_l[1])*rdv2; 
+  out[7] += (1.58113883008419*Ghat_r[1]-1.58113883008419*Ghat_l[1])*rdv2;
+  
+  printf("w[0]=%f,w[1]=%f\n",w[0],w[1]);
+  for (int i=0; i<8; i++) {
+    //  out[i]=0;
+    printf("i=%i, nI=%e, vnu=%e, f=%e, out=%e\n",i,nI[i],nuField[i],fc[i],out[i]);
+  }
 
   return 0.;
 

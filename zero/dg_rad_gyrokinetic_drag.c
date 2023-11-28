@@ -181,7 +181,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
 }
 
 void vnu_calc(double t, const double *xn, double *fout, void *ctx){
-  double vpar, mu, vmag;
+  double vpar, mu;
   const struct gkyl_dg_rad_vnu_params *my_ctx = ctx;
   const double *fit_params = (const double*) gkyl_array_cfetch(my_ctx->fit_params, 0);
   const double a = fit_params[0];
@@ -194,10 +194,6 @@ void vnu_calc(double t, const double *xn, double *fout, void *ctx){
   for (int i = 0; i<my_ctx->cdim; i++) 
     idx[i] = (xn[i]-my_ctx->pgrid->lower[i])/my_ctx->pgrid->dx[i];
 
-  //printf("a=%f,alpha=%f,beta=%f,gamma=%f,v0=%f\n",a,alpha,beta,gamma,scaled_v0); all non-zero
-  const double bmag = *((const double*) gkyl_array_cfetch(my_ctx->bmag,gkyl_range_idx(my_ctx->conf_range,idx)));
-  const double const_mult = a*(alpha+beta)*8*bmag*sqrt(GKYL_PI)*pow(GKYL_ELEMENTARY_CHARGE,5.0/2.0)/GKYL_ELECTRON_MASS;
-
   
   vpar = xn[my_ctx->cdim];
   if (my_ctx->vdim>1) {
@@ -205,12 +201,19 @@ void vnu_calc(double t, const double *xn, double *fout, void *ctx){
   } else {
     mu = 0;
   }
-  vmag = sqrt(vpar*vpar+2*bmag*mu/GKYL_ELECTRON_MASS);
+  
+  const double bmag = *((const double*) gkyl_array_cfetch(my_ctx->bmag,gkyl_range_idx(my_ctx->conf_range,idx)));
+  double vmag = sqrt(vpar*vpar+2*bmag*mu/GKYL_ELECTRON_MASS);
+  const double c_const = 8*sqrt(GKYL_PI)*pow(GKYL_ELEMENTARY_CHARGE,5.0/2.0)/GKYL_ELECTRON_MASS;
+  const double const_mult = a*(alpha+beta)/c_const;
+  
   if (vmag == 0) {
     fout[0] = 0;
   } else {
     fout[0] = 2/GKYL_PI*const_mult*pow(vmag,gamma/2+1)/(beta*pow(vmag/scaled_v0,-alpha)+alpha*pow(vmag/scaled_v0,beta));
   }
+  double temp_for_test = a*(alpha+beta)*pow(vmag,gamma/2)/(beta*pow(vmag/scaled_v0,-alpha)+alpha*pow(vmag/scaled_v0,beta));
+  printf("a=%f, C=%e, vmag=%e, nu=%e, v0=%e, fout=%e\n",a,const_mult,vmag,temp_for_test,scaled_v0,fout[0]); 
 }
 
 
@@ -229,7 +232,8 @@ void vsqnu_calc(double t, const double *xn, double *fout, void *ctx){
     idx[i] = (xn[i]-my_ctx->pgrid->lower[i])/my_ctx->pgrid->dx[i];
   
   const double bmag = *((const double*) gkyl_array_cfetch(my_ctx->bmag,gkyl_range_idx( my_ctx->conf_range,idx)));
-  const double const_mult = a*(alpha+beta)*8*bmag*sqrt(GKYL_PI)*pow(GKYL_ELEMENTARY_CHARGE,5.0/2.0)/GKYL_ELECTRON_MASS;
+  const double c_const = 8*sqrt(GKYL_PI)*pow(GKYL_ELEMENTARY_CHARGE,5.0/2.0)/GKYL_ELECTRON_MASS;
+  const double const_mult = a*(alpha+beta)/c_const;
 
   vpar = xn[my_ctx->cdim];
   if (my_ctx->vdim > 1) {

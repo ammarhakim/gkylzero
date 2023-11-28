@@ -49,15 +49,17 @@ gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *rad,
   // Set arrays needed
   gkyl_rad_gyrokinetic_drag_set_auxfields(rad->coll_drag,
 					  (struct gkyl_dg_rad_gyrokinetic_drag_auxfields) { .nI = nI, .vnu = vnu, .vsqnu = vsqnu});
-  printf("Aux fields set(updater-advance)\n");
-  const double *a = (const double*) gkyl_array_cfetch(nI,0);
-  printf("After a (update), a[0]=%f\n",a[0]);
-  const double *b = (const double*) gkyl_array_cfetch(vnu,0);
-  printf("After b (update), b[0]=%f\n",b[0]);
-
+  
   gkyl_hyper_dg_advance(rad->drag, update_rng, fIn, cflrate, rhs);
 
   printf("After hyper advance (updater-advance)\n");
+  // Testing
+  //long linc = gkyl_range_idx(update_rng, 56354688);
+  double *rhs_d = gkyl_array_fetch(rhs, 7);
+  const double *fIn_d = gkyl_array_cfetch(fIn, 7);
+  for (int i=0; i<30; i++) {
+    printf("rhs[%d]=%e, fin[%d]=%e\n",i,rhs_d[i],i,fIn_d[i]);
+  }
 }
 
 struct gkyl_dg_updater_rad_gyrokinetic_tm

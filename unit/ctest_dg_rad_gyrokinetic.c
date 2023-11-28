@@ -53,7 +53,7 @@ void maxwellian1x2v(double t, const double *xn, double* restrict fout, void *ctx
   double vx = xn[1];
   double vy = xn[2];
   double *te = ctx;
-  fout[0] = 1.0/(2*M_PI)*exp(-(pow(vx, 2) + pow(vy, 2))/(2*te[0]));
+  fout[0] = 1.0/(2*M_PI*te[0])*exp(-(pow(vx, 2) + pow(vy, 2))/(2*te[0]));
 }
 
 void maxwellian1x1v(double t, const double *xn, double* restrict fout, void *ctx)
@@ -61,7 +61,7 @@ void maxwellian1x1v(double t, const double *xn, double* restrict fout, void *ctx
   double x = xn[0];
   double vx = xn[1];
   double *te = ctx;
-  fout[0] = 1.0/sqrt(2*M_PI)*exp(-(pow(vx, 2))/(2*te[0]));
+  fout[0] = 1.0/sqrt(2*M_PI*te[0])*exp(-(pow(vx, 2))*GKYL_ELECTRON_MASS/(2*te[0]));
 }
 
 void
@@ -71,8 +71,8 @@ test_1x1v_p2()
   // rad specific variables
   //double *b = {1.0, 1.0};
   //double *data = {0.16, 8000.1, 0.9, -3.9, 3.1}; // H fit params
-  struct gkyl_array *fit_params = gkyl_array_new(GKYL_DOUBLE, 1, 5);
-  struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, 1, 2);
+  struct gkyl_array *fit_params = mkarr(1, 5);
+  struct gkyl_array *bmag = mkarr(1, 2);
   double *te = (double*) malloc(sizeof(double)*1);
   double *data = fit_params->data;
   double *b = bmag->data;
@@ -83,7 +83,7 @@ test_1x1v_p2()
   data[0]=0.16;
   data[1]=8000.1;
   data[2]=0.9;
-  data[3]=-3.9;
+  data[3]=-5.9;
   data[4]=3.1;
   double *temp = (double *)gkyl_array_fetch(bmag,0);
   double *temp2 = (double *)gkyl_array_fetch(fit_params,0);
@@ -98,7 +98,7 @@ test_1x1v_p2()
   int cdim = 1, vdim = 1;
   int pdim = cdim+vdim;
 
-  int cells[] = {2, 4};
+  int cells[] = {2, 5};
   int ghost[] = {0, 0};
   double lower[] = {0., -1.};
   double upper[] = {1., 5.e6};
@@ -114,7 +114,7 @@ test_1x1v_p2()
   gkyl_create_grid_ranges(&phaseGrid, ghost, &phaseRange_ext, &phaseRange);
 
   // initialize basis
-  int poly_order = 2;
+  int poly_order = 1;
   struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
 
   gkyl_cart_modal_serendip(&basis, pdim, poly_order);
@@ -126,25 +126,20 @@ test_1x1v_p2()
 
   gkyl_dg_updater_collisions *slvr;
   enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
-  printf("Before dg updater\n");
-  //  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, model_id, false);
  
   //Initilize vnu and vsqnu
   struct gkyl_array *vnu = mkarr(basis.num_basis, phaseRange.volume);
   struct gkyl_array *vsqnu = mkarr(basis.num_basis, phaseRange.volume);
   
-  printf("int %d\n",phaseRange.ndim);
   slvr = gkyl_dg_updater_rad_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange,  &phaseRange, bmag, fit_params, vnu, vsqnu, false);
-   // printf("Created vlasov updater\n");
   
-  
-  printf("After dg updater (ctest)\n");
   gkyl_proj_on_basis *projF = gkyl_proj_on_basis_new(&phaseGrid, &basis, poly_order+1, 1, maxwellian1x1v, te);
   gkyl_proj_on_basis *projNi = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, ni_prof, NULL);
-  printf("After projection (ctest)\n");
+  
   struct gkyl_array *cflrate, *rhs, *fin, *nI, *fmax;
   cflrate = mkarr(1, phaseRange_ext.volume);
   rhs = mkarr(basis.num_basis, phaseRange_ext.volume);
+  printf("Size of rhs %d,%d\n",basis.num_basis, phaseRange_ext.volume);
   fin = mkarr(basis.num_basis, phaseRange_ext.volume);
   nI = mkarr(confBasis.num_basis, confRange_ext.volume);
   fmax = mkarr(basis.num_basis, phaseRange_ext.volume);
@@ -157,10 +152,9 @@ test_1x1v_p2()
   gkyl_array_copy(fmax, fin);
   gkyl_proj_on_basis_release(projF);
   gkyl_proj_on_basis_release(projNi);
-  printf("After projection release (ctest)\n");
 
   // run hyper_dg_advance
-  int nrep = 10;
+  int nrep = 1;
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
@@ -169,46 +163,42 @@ test_1x1v_p2()
   }
 
   // Take 2nd moment of f to find energy
+  struct gkyl_mom_type *m0 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confRange, GKYL_ELECTRON_MASS, "M0", use_gpu);
   struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confRange, GKYL_ELECTRON_MASS, "M2", use_gpu);
   printf("After moment new, cdim=%d\n",m2->cdim);
+  gkyl_gyrokinetic_set_bmag(m0, bmag);
   gkyl_gyrokinetic_set_bmag(m2, bmag);
+  struct gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&phaseGrid, m0, use_gpu);
   struct gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&phaseGrid, m2, use_gpu);
   printf("After moment calc new\n");
+  struct gkyl_array *m0_ho = mkarr(confBasis.num_basis, confRange_ext.volume);
+  struct gkyl_array *m0final = mkarr_cu(confBasis.num_basis, confRange_ext.volume, use_gpu);
   struct gkyl_array *m2_ho = mkarr(confBasis.num_basis, confRange_ext.volume);
   struct gkyl_array *m2final = mkarr_cu(confBasis.num_basis, confRange_ext.volume, use_gpu);
   printf("After array calculations\n");
   if (use_gpu) {
+    gkyl_mom_calc_advance_cu(m0calc, &phaseRange, &confRange, fmax, m0final);
     gkyl_mom_calc_advance_cu(m2calc, &phaseRange, &confRange, fmax, m2final);
   } else {
-    gkyl_mom_calc_advance(m2calc, &phaseRange, &confRange, fmax, m2final);
+    gkyl_mom_calc_advance(m0calc, &phaseRange, &confRange, rhs, m0final);
+    gkyl_mom_calc_advance(m2calc, &phaseRange, &confRange, rhs, m2final);
   }
   printf("After mom calc advance\n");
+  double *m00 = gkyl_array_fetch(m0final, 0+ghost[0]);
   double *m20 = gkyl_array_fetch(m2final, 0+ghost[0]);
+  double *m21 = gkyl_array_fetch(rhs, 0+ghost[0]);
+
+  //  double cell_avg0 = m20[0]/pow(sqrt(2),cdim);
+  double cell_avg0 = m20[0]/m00[0];
+
+  double correct = 4.419192399328895e-32;
+  for (int i=0; i<30; i++){
+    printf("cell_avg=%e, correct energy=%e, density=%e, m2=%e\n",cell_avg0, correct, m00[0], m20[0]);
+  }
   
-  // get linear index of first non-ghost cell
-  // 1-indexed for interfacing with G2 Lua layer
-  int idx[] = {1, 1, 1, 1, 1};
-  int linl = gkyl_range_idx(&phaseRange, idx);
+  TEST_CHECK( gkyl_compare( cell_avg0, correct, 1e-12));
+  TEST_CHECK( cell_avg0>0);
 
-  // check that ghost cells are empty
-  double val = 0;
-  double *rhs_d1, *rhs_d2;
-  int i = 0;
-  while(val==0) {
-    rhs_d1 = gkyl_array_fetch(rhs, i);
-    val = rhs_d1[0];
-    if(val==0) i++;
-    }
-  TEST_CHECK(i == linl);
-
-  // get linear index of some other cell
-  int idx1[] = {1, 1};
-  int idx2[] = {2, 3};
-  int linl1 = gkyl_range_idx(&phaseRange, idx1);
-  int linl2 = gkyl_range_idx(&phaseRange, idx2);
-  rhs_d1 = gkyl_array_fetch(rhs, linl1);
-  rhs_d2 = gkyl_array_fetch(rhs, linl2);
-  TEST_CHECK( gkyl_compare_double(rhs_d2[7], 0.015080609728081, 1e-12) );
 
   // release memory for moment data object
   gkyl_array_release(rhs);
