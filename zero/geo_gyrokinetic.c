@@ -338,6 +338,8 @@ integrate_phi_along_psi_contour_memo(const gkyl_geo_gyrokinetic *geo, double psi
 struct arc_length_ctx {
   const gkyl_geo_gyrokinetic *geo;
   double *arc_memo;
+  double *arc_memo_left;
+  double *arc_memo_right;
   double psi, rclose, zmin, arcL;
   double rleft, rright, zmax;
   double arcL_right; // this is for when we need to switch sides
@@ -355,16 +357,17 @@ static inline double
 arc_length_func(double Z, void *ctx)
 {
   struct arc_length_ctx *actx = ctx;
-  double *arc_memo = actx->arc_memo;
+  double *arc_memo;// = actx->arc_memo;
   double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL;
   double zmax = actx->zmax;
   double ival = 0.0;
 
   if(actx->ftype==GKYL_SOL_DN_OUT){
-    ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, true, arc_memo) - arcL;
+    double *arc_memo = actx->arc_memo;
+    ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL;
   }
   if(actx->ftype==GKYL_SOL_DN_IN){
-    ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, true, true, arc_memo) - arcL;
+    ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, true, false, arc_memo) - arcL;
   }
   else if(actx->ftype==GKYL_SOL_SN_LO){
     if(actx->right==true){
@@ -376,10 +379,12 @@ arc_length_func(double Z, void *ctx)
   }
   else if(actx->ftype==GKYL_CORE){
     if(actx->right==true){
-      ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo) - arcL;
+      double *arc_memo = actx->arc_memo_right;
+      ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL;
     }
     else{
-      ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo)  - arcL + actx->arcL_right;
+      double *arc_memo = actx->arc_memo_left;
+      ival = integrate_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, true, false, arc_memo)  - arcL + actx->arcL_right;
     }
   }
   else if(actx->ftype==GKYL_PF_LO){
@@ -602,9 +607,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
-  double delta_alpha = dalpha*1e-4;
-  double delta_psi = dpsi*1e-8;
-  double delta_theta = dtheta*1e-4;
+  double delta_alpha = dalpha*1e-2;
+  double delta_psi = dpsi*1e-4;
+  double delta_theta = dtheta*1e-2;
   geo->dzc = gkyl_malloc(3*sizeof(double));
   geo->dzc[0] = delta_psi;
   geo->dzc[1] = delta_alpha;
@@ -618,10 +623,14 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
   int nzcells = geo->rzgrid->cells[1];
   double *arc_memo = gkyl_malloc(sizeof(double[nzcells]));
+  double *arc_memo_left = gkyl_malloc(sizeof(double[nzcells]));
+  double *arc_memo_right = gkyl_malloc(sizeof(double[nzcells]));
 
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
     .arc_memo = arc_memo,
+    .arc_memo_right = arc_memo_right,
+    .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
     .zmaxis = inp->zmaxis
   };
@@ -728,11 +737,11 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             printf("psi_curr, Z = %g, %1.16f\n", psi_curr, zlo);
             // Done finding turning point
             arcL_r = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rright,
-              true, true, arc_memo);
+              true, true, arc_memo_right);
             arc_ctx.arcL_right = arcL_r;
             arc_ctx.right = false;
             arcL_l = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rleft,
-              true, true, arc_memo);
+              true, true, arc_memo_left);
             arcL = arcL_l + arcL_r;
             printf("arcL total, L, R = %g, %g, %g\n", arcL, arcL_l, arcL_r);
             darcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
