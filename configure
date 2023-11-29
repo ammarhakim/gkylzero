@@ -1,7 +1,13 @@
 #!/bin/sh
 
+OSTYPE=`uname -o`
+MACHINE=`uname -n`
+USER=`whoami`
+echo "# OS type is $OSTYPE on $MACHINE user $USER"
+
 # Defaults
 PREFIX=${HOME}/gkylsoft
+INSTALL_PREFIX=$PREFIX
 
 # default build options
 CC=cc
@@ -12,11 +18,6 @@ USE_MPI=
 USE_LUA=
 # Lua link to static library
 CONF_LUA_LIB=luajit-5.1
-
-OSTYPE=`uname -o`
-MACHINE=`uname -n`
-USER=`whoami`
-echo "# OS type is $OSTYPE on $MACHINE user $USER"
 
 # Location of CUDA math libraries
 CUDAMATH_LIBS=
@@ -44,7 +45,10 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 
 -h
 --help                     This help.
---prefix=DIR               Prefix where GkeyllZero is installed
+--prefix=DIR               Prefix where GkeyllZero dependences are installed
+                           Default is $HOME/gkylsoft/
+
+--install-prefix=DIR       Prefix where to install GkeyllZero
                            Default is $HOME/gkylsoft/
 
 --use-mpi                  [no] Build MPI-dependent code
@@ -128,6 +132,10 @@ do
    --prefix)
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
+      ;;
+   --install-prefix)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      INSTALL_PREFIX="$value"
       ;;
    --lapack-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -221,6 +229,7 @@ cat <<EOF1 > config.mak
 
 # Installation directory
 PREFIX=$PREFIX
+INSTALL_PREFIX=$INSTALL_PREFIX
 # Compilers
 CC=$CC
 ARCH_FLAGS=$ARCH_FLAGS
