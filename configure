@@ -1,5 +1,10 @@
 #!/bin/sh
 
+OSTYPE=`uname -o`
+MACHINE=`uname -n`
+USER=`whoami`
+echo "# OS type is $OSTYPE on $MACHINE user $USER"
+
 # Defaults
 PREFIX=${HOME}/gkylsoft
 INSTALL_PREFIX=$PREFIX
@@ -24,10 +29,6 @@ CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1
 CONF_LUA_LIB_DIR=$PREFIX/luajit/lib/
 CONF_LUA_LIB=luajit-5.1
 
-OSTYPE=`uname -o`
-MACHINE=`uname -n`
-USER=`whoami`
-echo "# OS type is $OSTYPE on $MACHINE user $USER"
 # SuperLU includes and librararies
 SUPERLU_INC=$PREFIX/superlu/include
 if [ "$OSTYPE" = "linux-gnu"* ]
