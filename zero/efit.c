@@ -155,7 +155,7 @@ gkyl_efit* gkyl_efit_new(const char *filepath, const struct gkyl_basis *rzbasis,
   return up;
 }
 
-void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl_rect_grid* fluxgrid, struct gkyl_range* rzlocal, struct gkyl_range* rzlocal_ext, struct gkyl_array* psizr, struct gkyl_array* psibyrzr,struct gkyl_array* psibyr2zr, struct gkyl_range* fluxlocal, struct gkyl_range* fluxlocal_ext, struct gkyl_array* fpolflux)
+void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl_rect_grid* fluxgrid, struct gkyl_range* rzlocal, struct gkyl_range* rzlocal_ext, struct gkyl_array* psizr, struct gkyl_array* psibyrzr,struct gkyl_array* psibyr2zr, struct gkyl_range* fluxlocal, struct gkyl_range* fluxlocal_ext, struct gkyl_array* fpolflux, struct gkyl_array* qflux)
 {
   // Do this in g2 now
   //gkyl_rect_grid_init(up->rzgrid, 2, rzlower, rzupper, cells);
@@ -221,24 +221,23 @@ void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl
     }
   }
   // We filled psizr_nodal
-  fclose(ptr);
-
-  // Do the ranges in g2
-  // Now we need to create a range for the modal array up->psizr
-  // Then we can loop through it with a nodal->modal conversion function
-  //int nghost[GKYL_MAX_CDIM] = { 1, 1 };
-  //gkyl_create_grid_ranges(rzgrid, nghost, rzlocal_ext, rzlocal);
-
-
-
-  // Allocate these in g2 now
-  //up->psizr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
-  //up->psibyrzr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
-  //up->psibyr2zr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
-
   nodal_array_to_modal_psi(psizr_n, psizr, rzlocal, &nrange, up->rzbasis, rzgrid, 1);
   nodal_array_to_modal_psi(psibyrzr_n, psibyrzr, rzlocal, &nrange, up->rzbasis, rzgrid, 1);
   nodal_array_to_modal_psi(psibyr2zr_n, psibyr2zr, rzlocal, &nrange, up->rzbasis, rzgrid, 1);
+  
+ 
+  // Now lets read the q profile
+  struct gkyl_array *qflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
+  for(int i = 0; i<up->nr; i++){
+      fidx[0] = i;
+      double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr,"%lf", q_n);
+  }
+  gkyl_nodal_ops_n2m( up->fluxbasis, fluxgrid, &flux_nrange, fluxlocal, 1, qflux_n, qflux, bcs);
+
+
+
+  fclose(ptr);
 }
 
 
