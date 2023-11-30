@@ -136,6 +136,11 @@ struct gkyl_lo_poly_roots {
   int niter; // number of iterations
 };  
 
+// Quartic polynomial to hand off to ridders
+struct quartic_polynomial {
+  double p[4];
+};
+
 // Result polynomials from Sturn Chain
 struct sturn_polynomials {
   double p0[4];
@@ -155,6 +160,8 @@ struct gkyl_root_intervals {
   int niter_refinement[4]; // number of iterations
   int nroots; // number of distinct-real-roots
   struct sturn_polynomials sturn_chain;
+  double real_roots_ridders[4]; // Output of the root finding algorithm
+  int status_ridders[4]; // Status of the ridders' ability to find the roots 
 };
 
 /**
@@ -250,4 +257,24 @@ struct gkyl_root_intervals gkyl_calc_quartic_root_intervals(
  * @return Roots of the polynomial
  */
 void gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_intervals,
+  double tol);
+
+
+  /**
+ * Compute the roots from the intervals given by gkyl_calc_quartic_root_intervals() 
+ * using ridders' algorithm. This can handle either refined or unrefined intervals.
+ * 
+ * The leading coefficient 
+ * is always assumed be 1.0 and so the coeff[i] give the coefficient for the
+ * monomial x^i. For example:
+ *
+ * p(x) = x^4 + 2 x^3 + 4
+ *
+ * coeff[4] = { 4.0, 0.0, 0.0, 2.0 };
+ *
+ * @param root_intervals Object containing the number of roots and root intervals
+ * @param tol Tolerance of the interval isolation
+ * @return Roots of the polynomial
+ */
+void gkyl_root_isolation_from_intervals_via_ridders(struct gkyl_root_intervals *root_intervals,
   double tol);

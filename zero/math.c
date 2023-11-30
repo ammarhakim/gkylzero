@@ -302,11 +302,12 @@ eval_poly_lo(double *p, double x)
 
 
 static inline double 
-eval_poly(double *p, double x)
+eval_poly(double x, void *ctx)
 {
 
   // eval_poly() assumes a fourth order quartic form with 1.0*x^4 leading term,
   // bounds must be finite
+  double *p = (double*)ctx; 
 
   //compute the polynomial evaluated at x
   double res = 0.0;
@@ -354,7 +355,7 @@ signs_strun_chain(double *eval_sturn_chain, int *signs)
 static void
 eval_sturn_chain(struct sturn_polynomials *sturn_chain, double x, double *eval)
 {
-  eval[0] = eval_poly(sturn_chain->p0,x);
+  eval[0] = eval_poly(x,sturn_chain->p0);
   eval[1] = eval_poly_lo(sturn_chain->p1,x);
   eval[2] = eval_poly_lo(sturn_chain->p2,x);
   eval[3] = eval_poly_lo(sturn_chain->p3,x);
@@ -390,20 +391,20 @@ check_poly_full_domain(double *p, double *domain, double tol)
 {
   double left_bound = domain[0];
   double right_bound = domain[1];
-  double eval_left_bound = eval_poly(p,left_bound);
-  double eval_right_bound = eval_poly(p,right_bound);
+  double eval_left_bound = eval_poly(left_bound,p);
+  double eval_right_bound = eval_poly(right_bound,p);
 
   // If the edges are zero, then shift the boundary
   int iter = 0;
   while(eval_left_bound == 0.0 && iter <= 3){
     left_bound = left_bound - tol;
-    eval_left_bound = eval_poly(p,left_bound);
+    eval_left_bound = eval_poly(left_bound,p);
     iter = iter + 1;
   }
   iter = 0;
   while(eval_right_bound == 0.0 && iter <= 3){
     right_bound = right_bound + tol;
-    eval_right_bound = eval_poly(p,right_bound);
+    eval_right_bound = eval_poly(right_bound,p);
     iter = iter + 1;
   }
 
@@ -420,12 +421,12 @@ check_poly_bounded(double *p, double left_bound, double middle_bound, double rig
   // Compute the updated middle bound in the polynomial evaluation falls directly on 
   // p(x) = 0
   double updated_middle_bound = middle_bound;
-  double eval_middle_bound = eval_poly(p,middle_bound);
+  double eval_middle_bound = eval_poly(middle_bound,p);
 
   int iter = 0;
   while(eval_middle_bound == 0.0 && iter <= 3){
       updated_middle_bound = (right_bound+left_bound)/2.0 + (right_bound-left_bound)*(0.1*(iter+1));
-      eval_middle_bound = eval_poly(p,updated_middle_bound);
+      eval_middle_bound = eval_poly(updated_middle_bound,p);
       iter = iter + 1;
   }
 
@@ -766,6 +767,31 @@ gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_intervals,
     root_intervals->niter_refinement[i] = iter;
   }
 } 
+
+void 
+gkyl_root_isolation_from_intervals_via_ridders(struct gkyl_root_intervals *root_intervals, double tol)
+{
+
+  // Compute the number of domains to compute roots on
+  int nroots = root_intervals->nroots; 
+  double root;
+  int status;
+
+  // For all domains, refine the result
+  for (int i=0; i<nroots; ++i) {
+
+    // Compute the roots via ridders
+    double x1 = root_intervals->root_bound_lower[i];
+    double x2 = root_intervals->root_bound_upper[i];
+    double f1 = eval_poly(x1,root_intervals->sturn_chain.p0);
+    double f2 = eval_poly(x2,root_intervals->sturn_chain.p0);
+    struct gkyl_qr_res res = gkyl_ridders(eval_poly, root_intervals->sturn_chain.p0, x1, x2, f1, f2, 100, tol);
+
+    // Save the roots
+    root_intervals->real_roots_ridders[i] = res.res;
+    root_intervals->status_ridders[i] = res.status;
+  }
+}
 
 
 struct gkyl_root_intervals 

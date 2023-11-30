@@ -281,6 +281,16 @@ test_sturn_root_intervals(void)
       TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
     }
 
+    // Compute the roots via ridders
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {-1.0,1.0,0.0,0.0};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
+    }
+
     // test refined root intervals
     gkyl_refine_root_intervals_bisection(&root_intervals, tol);
 
@@ -318,6 +328,16 @@ test_sturn_root_intervals(void)
     for (int i=0; i<4; ++i){
       TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
       TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+
+    // Compute the roots via ridders
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {-0.9419651451198933,-0.3357106870197288,0.3357106870197288,0.9419651451198933};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
     }
 
     // test refined root intervals
@@ -360,6 +380,16 @@ test_sturn_root_intervals(void)
       TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
     }
 
+    // Compute the roots via ridders
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {-8.3856473883897131e-01,6.5873479706025262e-01,9.3592994177871747e-01,1.0000000000000040e+00};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
+    }
+
     // test refined root intervals
     gkyl_refine_root_intervals_bisection(&root_intervals, tol);
 
@@ -373,6 +403,15 @@ test_sturn_root_intervals(void)
       TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
       TEST_CHECK( root_intervals.status_refinement[i] == 0 );
       TEST_CHECK( root_intervals.niter_refinement[i] > 0 );
+    }
+
+    // Compute the roots via ridders using the refined domains
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Check the outputs of the roots via ridders
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
     }
   } while (0); 
 
@@ -398,6 +437,18 @@ test_sturn_root_intervals(void)
     for (int i=0; i<4; ++i){
       TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
       TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+
+    // Compute the roots via ridders using the refined domains
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Ridders fails to find the repeated root! (root 3), returns status_ridders == 1 
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {1.0,-1.0,0.0,0.0};
+    for (int i=0; i<2; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
     }
 
    // test refined root intervals
@@ -439,6 +490,20 @@ test_sturn_root_intervals(void)
     for (int i=0; i<4; ++i){
       TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
       TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+
+       // Compute the roots via ridders using the refined domains
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Ridders fails to find the repeated root! (root 2), returns status_ridders == 1 
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {-1.0*10e-10,0.0,1.0*10e-10,0.0};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      if (i != 1){
+        TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-2));
+        TEST_CHECK( root_intervals.status_ridders[i] == 0 );
+      }
     }
 
     // test refined root intervals
@@ -490,6 +555,26 @@ test_sturn_root_intervals(void)
     for (int i=0; i<4; ++i){
       TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
       TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+
+  // Compute the roots via ridders using the refined domains
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Check we have the right number of roots etc
+    //printf("\nnum-roots: %d\n",root_intervals.nroots);
+    //for (int i=0; i<root_intervals.nroots; ++i){
+    //  printf("Root bounds: [L,R]: [%1.16e,%1.16e]\n",root_intervals.root_bound_lower[i],
+    //  root_intervals.root_bound_upper[i]);
+    //  printf("Roots: [%1.16e]\n",root_intervals.real_roots_ridders[i] );
+    //  printf("num-iterations: %d\n",root_intervals.niter_refinement[i] );
+    //  printf("Status Ridders: %d\n",root_intervals.status_ridders[i] );
+    //}
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {-2.1,-0.1,0.0,0.0};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
     }
 
     // test refined root intervals
