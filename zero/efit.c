@@ -13,6 +13,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_range.h>
+#include <gkyl_nodal_ops.h>
 
 void nodal_array_to_modal_psi(const struct gkyl_array *nodal_array, struct gkyl_array *modal_array, const struct gkyl_range *update_range, const struct gkyl_range *nrange, const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, int num_ret_vals){
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
@@ -72,11 +73,12 @@ void nodal_array_to_modal_psi(const struct gkyl_array *nodal_array, struct gkyl_
 
 
 
-gkyl_efit* gkyl_efit_new(const char *filepath, const struct gkyl_basis *rzbasis, bool use_gpu)
+gkyl_efit* gkyl_efit_new(const char *filepath, const struct gkyl_basis *rzbasis, const struct gkyl_basis *fluxbasis, bool use_gpu)
 {
 
   gkyl_efit *up = gkyl_malloc(sizeof(gkyl_efit));
   up->rzbasis = rzbasis;
+  up->fluxbasis = fluxbasis;
   //up->rzgrid = rzgrid;
   //up->rzlocal = rzlocal;
   //up->rzlocal_ext = rzlocal_ext;
@@ -100,7 +102,7 @@ gkyl_efit* gkyl_efit_new(const char *filepath, const struct gkyl_basis *rzbasis,
 
   status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
 
-  printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%g sibry=%g bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", up->rdim, up->zdim, up->rcentr, up->rleft, up->zmid, up->rmaxis, up->zmaxis, up->simag, up->sibry, up->bcentr, up-> current, up->simag, up->rmaxis, up-> zmaxis, up->sibry);
+  printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", up->rdim, up->zdim, up->rcentr, up->rleft, up->zmid, up->rmaxis, up->zmaxis, up->simag, up->sibry, up->bcentr, up-> current, up->simag, up->rmaxis, up-> zmaxis, up->sibry);
 
   fclose(ptr);
 
@@ -132,10 +134,28 @@ gkyl_efit* gkyl_efit_new(const char *filepath, const struct gkyl_basis *rzbasis,
     up->rzcells[1] = (up->nz-1)/2;
   }
 
+  // Now we need to make the flux grid
+  up->fluxlower = gkyl_malloc(1*sizeof(double));
+  up->fluxupper = gkyl_malloc(1*sizeof(double));
+  up->fluxcells = gkyl_malloc(1*sizeof(double));
+  up->fluxghost = gkyl_malloc(1*sizeof(double));
+
+  up->fluxlower[0] = up->sibry;
+  up->fluxupper[0] = up->simag;
+  up->fluxghost[0] = 1;
+
+  if(up->fluxbasis->poly_order==1){
+    up->fluxcells[0] = up->nr-1;
+  }
+
+  if(up->fluxbasis->poly_order==2){
+    up->fluxcells[0] = (up->nr-1)/2;
+  }
+
   return up;
 }
 
-void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl_range* rzlocal, struct gkyl_range* rzlocal_ext, struct gkyl_array* psizr, struct gkyl_array* psibyrzr,struct gkyl_array* psibyr2zr)
+void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl_rect_grid* fluxgrid, struct gkyl_range* rzlocal, struct gkyl_range* rzlocal_ext, struct gkyl_array* psizr, struct gkyl_array* psibyrzr,struct gkyl_array* psibyr2zr, struct gkyl_range* fluxlocal, struct gkyl_range* fluxlocal_ext, struct gkyl_array* fpolflux)
 {
   // Do this in g2 now
   //gkyl_rect_grid_init(up->rzgrid, 2, rzlower, rzupper, cells);
@@ -150,10 +170,25 @@ void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl
   status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy, &ddummy);
 
 
-  // Now we 4 of the 1d arrays, all of length nr :
-  // fpol, pres, ffprim, pprime
+  // Read pol because we do want that
+  int flux_node_nums[1] = {up->nr};
+  struct gkyl_range flux_nrange;
+  gkyl_range_init_from_shape(&flux_nrange, 1, flux_node_nums);
+  struct gkyl_array *fpolflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
+  int fidx[1];
+  for(int i = 0; i<up->nr; i++){
+      fidx[0] = i;
+      double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr,"%lf", fpol_n);
+  }
+
+  int bcs[3] = {0,0,0};
+  gkyl_nodal_ops_n2m( up->fluxbasis, fluxgrid, &flux_nrange, fluxlocal, 1, fpolflux_n, fpolflux, bcs);
+
+  // Now we 3 of the 1d arrays, all of length nr :
+  // pres, ffprim, pprime
   // I don't actually care about these so just read 4*nr times
-  for(int i = 0; i<4*up->nr; i++){
+  for(int i = 0; i<3*up->nr; i++){
     status = fscanf(ptr, "%lf", &ddummy);
   }
 

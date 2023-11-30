@@ -14,6 +14,12 @@ struct gkyl_efit{
   int *rzcells;
   int *rzghost;
 
+  const struct gkyl_basis *fluxbasis;
+  double *fluxlower;
+  double *fluxupper;
+  int *fluxcells;
+  int *fluxghost;
+
   //struct gkyl_rect_grid *rzgrid;
   //struct gkyl_array *psizr;
   //struct gkyl_array *psibyrzr;

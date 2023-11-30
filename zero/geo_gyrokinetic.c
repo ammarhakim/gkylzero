@@ -573,7 +573,8 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   if (poly_order == 2){
     for (int d=0; d<inp->cgrid->ndim; ++d)
       nodes[d] = 2*(inp->cgrid->cells[d]) + 1;
-    nodes[1] += 4; // specically alpha gets ghosts
+    if(inp->bcs[1]==1)
+      nodes[1] += 4; // specically alpha gets ghosts
   }
 
   for(int d=0; d<inp->cgrid->ndim; d++){
@@ -607,9 +608,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
-  double delta_alpha = dalpha*1e-2;
-  double delta_psi = dpsi*1e-4;
-  double delta_theta = dtheta*1e-2;
+  double delta_alpha = dalpha*1e-4;
+  double delta_psi = dpsi*1e-8;
+  double delta_theta = dtheta*1e-4;
   geo->dzc = gkyl_malloc(3*sizeof(double));
   geo->dzc[0] = delta_psi;
   geo->dzc[1] = delta_alpha;

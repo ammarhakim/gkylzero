@@ -105,3 +105,27 @@ void gkyl_nodal_ops_m2n(const struct gkyl_basis* cbasis, const struct gkyl_rect_
 
   }
 }
+
+struct gkyl_range gkyl_nodal_ops_nrange(const struct gkyl_basis* cbasis, const struct gkyl_rect_grid *grid, const struct gkyl_range *update_range){
+  int nodes[3] = { 1, 1, 1 };
+  if (cbasis->poly_order == 1){
+    for (int d=0; d<grid->ndim; ++d)
+      nodes[d] = grid->cells[d] + 1;
+  }
+                   
+  if (cbasis->poly_order == 2){
+    for (int d=0; d<grid->ndim; ++d)
+      nodes[d] = 2*(grid->cells[d]) + 1;
+  }
+
+  for(int d=0; d<grid->ndim; d++){
+    printf("d[%d] = %d\n", d, nodes[d]);
+  }
+
+
+  struct gkyl_range nrange;
+  gkyl_range_init_from_shape(&nrange, grid->ndim, nodes);
+  printf("nrange lower = %d %d %d\n", nrange.lower[0], nrange.lower[1], nrange.lower[2]);
+  printf("nrange upper = %d %d %d\n", nrange.upper[0], nrange.upper[1], nrange.upper[2]);
+  return nrange;
+}
