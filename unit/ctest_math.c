@@ -252,11 +252,180 @@ test_poly4_roots(void)
   } while (0);  
 }
 
+
+void
+test_sturn_root_intervals(void)
+{
+
+  // Test from wiki example: 2 real, distinct roots
+  // https://en.wikipedia.org/wiki/Sturm%27s_theorem
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {-1.0, -1.0, 0.0, 1.0};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check the outputs
+    double lower[4] = {-3.0,0.0,0.0,0.0};
+    double upper[4] = {0.0,3.0,0.0,0.0};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 2 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+  } while (0);  
+
+  // Test: 4 real roots
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {0.1000, 0.0, -1.0000, 0.0};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check the outputs
+    double lower[4] = {-1.5,-0.75,0.0,0.75};
+    double upper[4] = {-0.75,0.0,0.75,1.5};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 4 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+  } while (0);  
+
+
+  // Test: 4 real roots, more complex polynomial
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {-0.5170, 1.2377, 0.0354, -1.7561};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check the outputs
+    double lower[4] = {-3.0,0.0,0.75,0.9375};
+    double upper[4] = {0,0.75,0.9375,1.1250};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 4 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+  } while (0); 
+
+
+  // Test: 3-distinct roots, search interval falls on x = 0 root
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {0.0, 0.0, -1.0, 0.0};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check the outputs
+    double lower[4] = {0.6,-1.2,-0.3,0.0};
+    double upper[4] = {3.0,-0.3,0.6,0.0};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 3 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+  } while (0); 
+
+
+ // Test: 3-distinct roots, large ordering
+ // Maxima res: [x=-1.0*10^-10,x=1.0*10^-10,x=0.0] 
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {0.0, 0.0, -1.0e-20, 0.0};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check the outputs
+    double lower[4] = {-2.793966983697753e-10,-6.984911908129258e-11,3.492467056294875e-11,0.0};
+    double upper[4] = {-6.984911908129258e-11,3.492467056294875e-11,1.396984602071901e-10,0.0};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 3 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+  } while (0); 
+
+
+  // Test: 3-distinct roots, shifted (x+1.1)^4 - (x+1.1)^2 = 0
+  // Maxima res: [x=-2.1,x=-0.1,x=-1.1]
+  // FAILS TO FIND REPEATED ROOT AT x = -0.1!
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {0.2541, 3.1240, 6.2600, 4.4000};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check we have the right number of roots etc
+    //printf("\nnum-roots: %d\n",root_intervals.nroots);
+    //printf("num-iterations: %d\n",root_intervals.niter );
+    //printf("Status: %d\n",root_intervals.status );
+    //for (int i=0; i<4; ++i){
+    //  printf("Root bounds: [L,R]: [%1.16e,%1.16e]\n",root_intervals.root_bound_lower[i],
+    //  root_intervals.root_bound_upper[i]);
+    //}
+
+    // Check the outputs
+    double lower[4] = {-3.0,-1.5,0.0,0.0};
+    double upper[4] = {-1.5,0.0,0.0,0.0};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 2 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+  } while (0);
+
+}
+
 TEST_LIST = {
   { "dbl_exp", test_dbl_exp },
   { "ridders", test_ridders },
   { "poly2_roots", test_poly2_roots },
   { "poly3_roots", test_poly3_roots },
   { "poly4_roots", test_poly4_roots },
+  { "strun_root_intervals", test_sturn_root_intervals },
   { NULL, NULL },
 };

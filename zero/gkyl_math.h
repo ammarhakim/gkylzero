@@ -136,6 +136,25 @@ struct gkyl_lo_poly_roots {
   int niter; // number of iterations
 };  
 
+// Result polynomials from Sturn Chain
+struct sturn_polynomials {
+  double p0[4];
+  double p1[4];
+  double p2[4];
+  double p3[4];
+  double p4[4];
+};
+
+// Result from binary search/ strun chain
+struct gkyl_root_intervals {
+  double root_bound_lower[4]; // lower root bound
+  double root_bound_upper[4]; // upper root bound
+  int status; // 0 - success.
+  int niter; // number of iterations
+  int nroots; // number of distinct-real-roots
+  struct sturn_polynomials sturn_chain;
+};
+
 /**
  * Integrate func(x,ctx) in interval [a,b], using maximum levels
  * "n". Typical value of levels is 7. The status flag of the return
@@ -188,3 +207,26 @@ struct gkyl_qr_res gkyl_ridders(double (*func)(double,void*), void *ctx,
  */
 struct gkyl_lo_poly_roots gkyl_calc_lo_poly_roots(enum gkyl_lo_poly_order order,
   double coeff[4]);
+
+
+/**
+ * Compute all *real-district-root* intervals to a *quartic* equation via Sturn's sequence
+ * and isolate individual intervals via bisection search. Once every real-distict root 
+ * interval is isolated, then the root intervals are returned. (There is no further 
+ * iterative isolation)
+ * 
+ * The leading coefficient 
+ * is always assumed be 1.0 and so the coeff[i] give the coefficient for the
+ * monomial x^i. For example:
+ *
+ * p(x) = x^4 + 2 x^3 + 4
+ *
+ * coeff[4] = { 4.0, 0.0, 0.0, 2.0 };
+ *
+ * @param coeff Coefficients of the polynomial
+ * @param domain Interval to find the real-district roots within
+ * @param tol Tolerance of the quartic solve
+ * @return Roots of the polynomial
+ */
+struct gkyl_root_intervals gkyl_calc_quartic_root_intervals(
+  double coeff[4], double domain[2], double tol);
