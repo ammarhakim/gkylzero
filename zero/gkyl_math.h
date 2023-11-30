@@ -81,6 +81,17 @@ gkyl_minmod_2(double x, double y)
   return 0.0;
 }
 
+// minmod(x,y)
+static inline double
+gkyl_minmod_3(double x, double y, double z)
+{
+  if (x>0 && y>0 && z>0)
+    return fmin(fmin(x,y),z);
+  if (x<0 && y<0 && z<0)
+    return fmax(fmax(x,y),z);
+  return 0.0;
+}
+
 // minmod(x,y,z,w)
 static inline double
 gkyl_minmod_4(double x, double y, double z, double w)

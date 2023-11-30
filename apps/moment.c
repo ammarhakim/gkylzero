@@ -103,9 +103,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     gkyl_eval_on_nodes_release(ev_c2p);
   }
 
-  // create geometry object
+  // create geometry object (no GPU support in fluids right now JJ: 11/26/23)
   app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
-    app->mapc2p, app->c2p_ctx);
+    app->mapc2p, app->c2p_ctx, false);
 
   double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;

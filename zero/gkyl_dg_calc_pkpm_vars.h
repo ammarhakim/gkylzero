@@ -50,7 +50,6 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
  * Compute pkpm primitive moments.
  *
  * @param up Updater for computing pkpm variables 
- * @param conf_range Configuration space range
  * @param vlasov_pkpm_moms Input array of pkpm kinetic moments [rho, p_parallel, p_perp]
  * @param euler_pkpm Input array of pkpm fluid variables [rho ux, rho uy, rho uz]
  * @param p_ij Input pressure tensor p_ij = (p_par - p_perp) b_i b_j + p_perp g_ij

@@ -42,9 +42,11 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
   qglobal[0] = qlocal[0];
 }
 
-static double wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                   const double *delta, const double *ql, const double *qr,
-                   double *waves, double *s) {
+static double
+wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *delta, const double *ql, const double *qr, 
+  double *waves, double *s)
+{
   const struct wv_advect *advect = container_of(eqn, struct wv_advect, eqn);
 
   double c = advect->c;
@@ -55,9 +57,11 @@ static double wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   return fabs(c);
 }
 
-static void qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-                   const double *ql, const double *qr, const double *waves,
-                   const double *s, double *amdq, double *apdq) {
+static void
+qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
   const struct wv_advect *advect = container_of(eqn, struct wv_advect, eqn);
 
   double c = advect->c;
@@ -71,8 +75,9 @@ static void qfluct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   }
 }
 
-static double flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql,
-                        const double *qr, double *flux_jump) {
+static double
+flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, double *flux_jump)
+{
   const struct wv_advect *advect = container_of(eqn, struct wv_advect, eqn);
 
   double c = advect->c;
@@ -82,11 +87,15 @@ static double flux_jump(const struct gkyl_wv_eqn *eqn, const double *ql,
   return fabs(c);
 }
 
-static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q) {
+static bool
+check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+{
   return true; // no negative states in advection
 }
 
-static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q) {
+static double
+max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+{
   const struct wv_advect *advect = container_of(eqn, struct wv_advect, eqn);
   return fabs(advect->c);
 }
@@ -103,8 +112,8 @@ struct gkyl_wv_eqn *gkyl_wv_advect_new(double c) {
 
   advect->eqn.waves_func = wave;
   advect->eqn.qfluct_func = qfluct;
-  advect->eqn.flux_jump = flux_jump;
 
+  advect->eqn.flux_jump = flux_jump;
   advect->eqn.check_inv_func = check_inv;
   advect->eqn.max_speed_func = max_speed;
   advect->eqn.rotate_to_local_func = rot_to_local;

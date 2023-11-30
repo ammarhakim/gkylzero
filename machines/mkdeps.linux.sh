@@ -1,2 +1,3 @@
 cd install-deps
-./mkdeps.sh --build-openblas=yes --build-superlu=yes
+: "${PREFIX:=$HOME/gkylsoft}"
+./mkdeps.sh --build-openblas=yes --build-superlu=yes --prefix=$PREFIX

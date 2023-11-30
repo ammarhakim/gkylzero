@@ -8,6 +8,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_wv_advect.h>
 #include <rt_arg_parse.h>
 
 static inline double sq(double x) { return x*x; }
@@ -44,6 +45,10 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[0], 16);  
 
+  // equation object
+  double c = 1.0;
+  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(c);
+
   // f
   struct gkyl_vlasov_fluid_species f = {
     .name = "f",
@@ -51,6 +56,7 @@ main(int argc, char **argv)
     .mass = 1.0,
 
     .init = eval_fun,
+    .equation = advect,
     .advection = {
       .velocity = eval_advect_vel,
       .qtype = GKYL_GAUSS_LOBATTO_QUAD,
@@ -119,7 +125,8 @@ main(int argc, char **argv)
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
-  // simulation complete, free objects
+  // simulation complete, free resources
+  gkyl_wv_eqn_release(advect);
   gkyl_vlasov_app_release(app);
 
   printf("\n");

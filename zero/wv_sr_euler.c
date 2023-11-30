@@ -64,7 +64,8 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, 
+  double *waves, double *s)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
   double vl[5], vr[5];
@@ -181,15 +182,14 @@ gkyl_wv_sr_euler_new(double gas_gamma)
   sr_euler->gas_gamma = gas_gamma;
   sr_euler->eqn.waves_func = wave_roe;
   sr_euler->eqn.qfluct_func = qfluct_roe;
+
   sr_euler->eqn.check_inv_func = check_inv;
   sr_euler->eqn.max_speed_func = max_speed;
-
+  sr_euler->eqn.rotate_to_local_func = rot_to_local;
+  sr_euler->eqn.rotate_to_global_func = rot_to_global;
 
   sr_euler->eqn.cons_to_riem = cons_to_riem;
   sr_euler->eqn.riem_to_cons = riem_to_cons;
-  
-  sr_euler->eqn.rotate_to_local_func = rot_to_local;
-  sr_euler->eqn.rotate_to_global_func = rot_to_global;
 
   sr_euler->eqn.cons_to_diag = gkyl_default_cons_to_diag;
 

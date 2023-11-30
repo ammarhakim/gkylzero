@@ -8,6 +8,7 @@ CUDA_ARCH ?= 70
 CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
+INSTALL_PREFIX ?= ${PREFIX}
 
 # determine OS we are running on
 UNAME = $(shell uname)
@@ -129,7 +130,7 @@ UNIT_CU_OBJS =
 # There is some problem with the Vlasov and Maxwell kernels that is causing some unit builds to fail
 ifdef USING_NVCC
 #	UNIT_CU_SRCS = $(shell find unit -name *.cu)
-	UNIT_CU_SRCS = unit/ctest_cusolver.cu unit/ctest_basis_cu.cu unit/ctest_array_cu.cu unit/ctest_mom_vlasov_cu.cu unit/ctest_range_cu.cu unit/ctest_rect_grid_cu.cu
+	UNIT_CU_SRCS = unit/ctest_cusolver.cu unit/ctest_basis_cu.cu unit/ctest_array_cu.cu unit/ctest_mom_vlasov_cu.cu unit/ctest_range_cu.cu unit/ctest_rect_grid_cu.cu unit/ctest_wave_geom_cu.cu unit/ctest_wv_euler_cu.cu
 	UNIT_CU_OBJS = $(UNIT_CU_SRCS:%=$(BUILD_DIR)/%.o)
 endif
 
@@ -256,6 +257,10 @@ $(BUILD_DIR)/kernels/ambi_bolt_potential/%.c.o : kernels/ambi_bolt_potential/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/array_integrate/%.c.o : kernels/array_integrate/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 endif
 
 ## GkylZero Library 
@@ -307,25 +312,26 @@ SED_REPS_STR=s,G0_SHARE_INSTALL_PREFIX,${G0_SHARE_INSTALL_PREFIX},g
 
 install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # Construct install directories
-	$(MKDIR_P) ${PREFIX}/gkylzero/include
-	${MKDIR_P} ${PREFIX}/gkylzero/lib
-	${MKDIR_P} ${PREFIX}/gkylzero/bin
-	${MKDIR_P} ${PREFIX}/gkylzero/share
+	$(MKDIR_P) ${INSTALL_PREFIX}/gkylzero/include
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/lib
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/share
 # Headers
-	cp ${INSTALL_HEADERS} ${PREFIX}/gkylzero/include
-	./minus/gengkylzeroh.sh > ${PREFIX}/gkylzero/include/gkylzero.h
+	cp ${INSTALL_HEADERS} ${INSTALL_PREFIX}/gkylzero/include
+	./minus/gengkylzeroh.sh > ${INSTALL_PREFIX}/gkylzero/include/gkylzero.h
 # libraries
 #	strip ${ZERO_SH_INSTALL_LIB}  ## MF 2023/10/26: Causes a problem in Macs.
-	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
-# Example app
-	test -e config.mak && cp -f config.mak ${PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
-	sed ${SED_REPS_STR} Makefile.sample > ${PREFIX}/gkylzero/share/Makefile
-	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
-	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
-# Lua exectuable
-	cp -f build/xglua ${PREFIX}/gkylzero/bin/
+	cp -f ${ZERO_SH_INSTALL_LIB} ${INSTALL_PREFIX}/gkylzero/lib/libgkylzero.so
+# Examples
+	test -e config.mak && cp -f config.mak ${INSTALL_PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
+	cp -f Makefile.sample ${INSTALL_PREFIX}/gkylzero/share/Makefile
+	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/share/rt_arg_parse.h
+	cp -f regression/rt_twostream.c ${INSTALL_PREFIX}/gkylzero/share/rt_twostream.c
 # Lua wrappers
-	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
+	cp -f inf/Vlasov.lua ${INSTALL_PREFIX}/gkylzero/lib/
+	cp -f inf/Moments.lua ${INSTALL_PREFIX}/gkylzero/lib/
+# Misc scripts
+	cp -f scripts/*.sh ${INSTALL_PREFIX}/gkylzero/scripts
 
 .PHONY: clean
 clean: ## Clean build output

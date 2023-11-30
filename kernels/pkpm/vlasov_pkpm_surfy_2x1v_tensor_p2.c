@@ -256,6 +256,11 @@ GKYL_CU_DH double vlasov_pkpm_surfy_2x1v_tensor_p2(const double *w, const double
   Ghat_G_1_u_r[7] = (0.1581138830084189*(u_surf_rl[1]+u_surf_cr[1])-0.3162277660168379*pkpm_lax_r[1])*G_1_rl[8]+(0.1581138830084189*(u_surf_rl[1]+u_surf_cr[1])+0.3162277660168379*pkpm_lax_r[1])*G_1_cr[8]+(0.1581138830084189*(u_surf_rl[2]+u_surf_cr[2])-0.3162277660168379*pkpm_lax_r[2]+0.1767766952966368*(u_surf_rl[0]+u_surf_cr[0])-0.3535533905932737*pkpm_lax_r[0])*G_1_rl[7]+(0.1581138830084189*(u_surf_rl[2]+u_surf_cr[2])+0.3162277660168379*pkpm_lax_r[2]+0.1767766952966368*(u_surf_rl[0]+u_surf_cr[0])+0.3535533905932737*pkpm_lax_r[0])*G_1_cr[7]+(0.1767766952966368*(u_surf_rl[1]+u_surf_cr[1])-0.3535533905932737*pkpm_lax_r[1])*G_1_rl[5]+(0.1767766952966368*(u_surf_rl[1]+u_surf_cr[1])+0.3535533905932737*pkpm_lax_r[1])*G_1_cr[5]; 
   Ghat_G_1_u_r[8] = (0.1129384878631564*(u_surf_rl[2]+u_surf_cr[2])-0.2258769757263128*pkpm_lax_r[2]+0.1767766952966368*(u_surf_rl[0]+u_surf_cr[0])-0.3535533905932737*pkpm_lax_r[0])*G_1_rl[8]+(0.1129384878631564*(u_surf_rl[2]+u_surf_cr[2])+0.2258769757263128*pkpm_lax_r[2]+0.1767766952966368*(u_surf_rl[0]+u_surf_cr[0])+0.3535533905932737*pkpm_lax_r[0])*G_1_cr[8]+(0.1581138830084189*(u_surf_rl[1]+u_surf_cr[1])-0.3162277660168379*pkpm_lax_r[1])*G_1_rl[7]+(0.1581138830084189*(u_surf_rl[1]+u_surf_cr[1])+0.3162277660168379*pkpm_lax_r[1])*G_1_cr[7]+(0.1767766952966368*(u_surf_rl[2]+u_surf_cr[2])-0.3535533905932737*pkpm_lax_r[2])*G_1_rl[5]+(0.1767766952966368*(u_surf_rl[2]+u_surf_cr[2])+0.3535533905932737*pkpm_lax_r[2])*G_1_cr[5]; 
 
+  double max_v_par = fmax(fabs(wvpar + dvpar/2), fabs(wvpar - dvpar/2)); 
+  double cfl_l = (max_v_par*pkpm_max_b_l[0] + pkpm_lax_l[0])/sqrt(2.0); 
+  double cfl_r = (max_v_par*pkpm_max_b_r[0] + pkpm_lax_r[0])/sqrt(2.0); 
+  double cflFreq = fmax(cfl_l, cfl_r);
+
   out_F_0[0] += ((-0.7071067811865475*Ghat_F_0_vpar_r[0])+0.7071067811865475*Ghat_F_0_vpar_l[0]-0.7071067811865475*Ghat_F_0_u_r[0]+0.7071067811865475*Ghat_F_0_u_l[0])*dx1; 
   out_F_0[1] += ((-0.7071067811865475*Ghat_F_0_vpar_r[1])+0.7071067811865475*Ghat_F_0_vpar_l[1]-0.7071067811865475*Ghat_F_0_u_r[1]+0.7071067811865475*Ghat_F_0_u_l[1])*dx1; 
   out_F_0[2] += -1.224744871391589*(Ghat_F_0_vpar_r[0]+Ghat_F_0_vpar_l[0]+Ghat_F_0_u_r[0]+Ghat_F_0_u_l[0])*dx1; 
@@ -311,6 +316,6 @@ GKYL_CU_DH double vlasov_pkpm_surfy_2x1v_tensor_p2(const double *w, const double
   out_G_1[25] += ((-1.58113883008419*Ghat_G_1_vpar_r[7])+1.58113883008419*Ghat_G_1_vpar_l[7]-1.58113883008419*Ghat_G_1_u_r[7]+1.58113883008419*Ghat_G_1_u_l[7])*dx1; 
   out_G_1[26] += ((-1.58113883008419*Ghat_G_1_vpar_r[8])+1.58113883008419*Ghat_G_1_vpar_l[8]-1.58113883008419*Ghat_G_1_u_r[8]+1.58113883008419*Ghat_G_1_u_l[8])*dx1; 
 
-  return 0.;
+  return 2.5*dx1*cflFreq;
 
 } 

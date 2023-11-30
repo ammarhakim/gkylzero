@@ -6,25 +6,22 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
-// Object type
+// Object type (defined in gkyl_dg_updater_moment_priv.h)
 typedef struct gkyl_dg_updater_moment gkyl_dg_updater_moment;
 
-// return type for drag and diffusion timers
-struct gkyl_dg_updater_moment_tm {
-  double moment_tm; // time for moment updates
-};
+// return type for moment timers (defined in gkyl_dg_updater_moment_priv.h)
+typedef struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_tm;
 
 /**
  * Create new updater to compute moments of distribution function.
- * Supports Vlasov-Maxwell, special relativistic Vlasov-Maxwell,
- * and parallel-kinetic-perpendicular-moment (pkpm) Vlasov
+ * Supports Vlasov-Maxwell and special relativistic Vlasov-Maxwell,
  *
  * @param grid Grid object
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis function
  * @param conf_range Config space range
  * @param vel_range Velocity space range
- * @param model_id Enum identifier for model type (e.g., SR, PKPM, see gkyl_eqn_type.h)
+ * @param model_id Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param mom Name of moment
  * @param is_integrated Boolean for if the moment is an integrated moment

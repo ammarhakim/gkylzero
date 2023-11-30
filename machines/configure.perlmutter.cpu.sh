@@ -1,5 +1,5 @@
 module unload darshan
-export GKYLSOFT=$HOME/gkylsoft
-./configure CC=cc --prefix=$GKYLSOFT --lapack-inc=$GKYLSOFT/OpenBLAS/include --lapack-lib=$GKYLSOFT/OpenBLAS/lib/libopenblas.a --superlu-inc=$GKYLSOFT/superlu/include --superlu-lib=$GKYLSOFT/superlu/lib/libsuperlu.a;
+: "${PREFIX:=$HOME/gkylsoft}"
+./configure CC=cc --prefix=$PREFIX --lapack-inc=$PREFIX/OpenBLAS/include --lapack-lib=$PREFIX/OpenBLAS/lib/libopenblas.a --superlu-inc=$PREFIX/superlu/include --superlu-lib=$PREFIX/superlu/lib/libsuperlu.a;
 
 
