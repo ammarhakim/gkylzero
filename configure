@@ -7,36 +7,16 @@ echo "# OS type is $OSTYPE on $MACHINE user $USER"
 
 # Defaults
 PREFIX=${HOME}/gkylsoft
-INSTALL_PREFIX=$PREFIX
 
 # default build options
 CC=cc
 ARCH_FLAGS=-march=native
 CUDA_ARCH=70
 
-# Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC=$PREFIX/OpenBLAS/include
-LAPACK_LIB=$PREFIX/OpenBLAS/lib/libopenblas.a
-
-# MPI specific paths and flags
 USE_MPI=
-CONF_MPI_INC_DIR=$PREFIX/openmpi/include
-CONF_MPI_LIB_DIR=$PREFIX/openmpi/lib/
-
-# Lua specific paths and flags (link to static library)
 USE_LUA=
-CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1
-CONF_LUA_LIB_DIR=$PREFIX/luajit/lib/
+# Lua link to static library
 CONF_LUA_LIB=luajit-5.1
-
-# SuperLU includes and librararies
-SUPERLU_INC=$PREFIX/superlu/include
-if [ "$OSTYPE" = "linux-gnu"* ]
-then
-    SUPERLU_LIB=$PREFIX/superlu/lib64/libsuperlu.a;
-else
-    SUPERLU_LIB=$PREFIX/superlu/lib/libsuperlu.a;
-fi
 
 # Location of CUDA math libraries
 CUDAMATH_LIBS=
@@ -64,10 +44,7 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 
 -h
 --help                     This help.
---prefix=DIR               Prefix where GkeyllZero dependences are installed
-                           Default is $HOME/gkylsoft/
-
---install-prefix=DIR       Prefix where to install GkeyllZero
+--prefix=DIR               Prefix where GkeyllZero is installed
                            Default is $HOME/gkylsoft/
 
 --use-mpi                  [no] Build MPI-dependent code
@@ -152,10 +129,6 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
       ;;
-   --install-prefix)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      INSTALL_PREFIX="$value"
-      ;;
    --lapack-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
       LAPACK_INC="$value"
@@ -221,13 +194,33 @@ else
     USE_LUA=
 fi
 
+# Default lapack include and libraries: we prefer linking to static library
+: "${LAPACK_INC:=$PREFIX/OpenBLAS/include}"
+: "${LAPACK_LIB=$PREFIX/OpenBLAS/lib/libopenblas.a}"
+
+# MPI specific paths and flags
+: "${CONF_MPI_INC_DIR=$PREFIX/openmpi/include}"
+: "${CONF_MPI_LIB_DIR=$PREFIX/openmpi/lib/}"
+
+# Lua specific paths and flags
+: "${CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1}"
+: "${CONF_LUA_LIB_DIR=$PREFIX/luajit/lib/}"
+
+# SuperLU includes and librararies
+: "${SUPERLU_INC=$PREFIX/superlu/include}"
+if [ "$OSTYPE" = "linux-gnu"* ]
+then
+    : "${SUPERLU_LIB=$PREFIX/superlu/lib64/libsuperlu.a;}"
+else
+    : "${SUPERLU_LIB=$PREFIX/superlu/lib/libsuperlu.a;}"
+fi
+
 # Write out config.mak
 cat <<EOF1 > config.mak
 # Generated automatically! Do not edit
 
 # Installation directory
 PREFIX=$PREFIX
-INSTALL_PREFIX=$INSTALL_PREFIX
 # Compilers
 CC=$CC
 ARCH_FLAGS=$ARCH_FLAGS
