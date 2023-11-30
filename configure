@@ -7,7 +7,6 @@ echo "# OS type is $OSTYPE on $MACHINE user $USER"
 
 # Defaults
 PREFIX=${HOME}/gkylsoft
-INSTALL_PREFIX=$PREFIX
 
 # default build options
 CC=cc
@@ -45,10 +44,7 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
 
 -h
 --help                     This help.
---prefix=DIR               Prefix where GkeyllZero dependences are installed
-                           Default is $HOME/gkylsoft/
-
---install-prefix=DIR       Prefix where to install GkeyllZero
+--prefix=DIR               Prefix where GkeyllZero is installed
                            Default is $HOME/gkylsoft/
 
 --use-mpi                  [no] Build MPI-dependent code
@@ -132,10 +128,6 @@ do
    --prefix)
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
-      ;;
-   --install-prefix)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      INSTALL_PREFIX="$value"
       ;;
    --lapack-inc)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -229,7 +221,6 @@ cat <<EOF1 > config.mak
 
 # Installation directory
 PREFIX=$PREFIX
-INSTALL_PREFIX=$INSTALL_PREFIX
 # Compilers
 CC=$CC
 ARCH_FLAGS=$ARCH_FLAGS
