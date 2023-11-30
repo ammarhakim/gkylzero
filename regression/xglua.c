@@ -22,7 +22,7 @@ calc_output_prefix_len(const char *fn)
   return strlen(fn) - (suff ? strlen(suff) : 0);
 }
 
-const char*
+static const char*
 get_fname(const char *fn)
 {
   return strrchr(fn, '/');
@@ -60,7 +60,7 @@ main(int argc, char **argv)
 int
 main(int argc, char **argv)
 {
-  fprintf(stderr,  "GkeyllZero built without Lua support!\n");
+  fprintf(stderr, "GkeyllZero built without Lua support!\n");
   return 0;
 }
 
