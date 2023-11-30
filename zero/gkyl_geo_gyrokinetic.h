@@ -24,6 +24,12 @@ struct gkyl_geo_gyrokinetic {
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
   const struct gkyl_range* rzlocal; // local range over which psiRZ is defined
   int num_rzbasis; // number of basis functions in RZ
+                   
+  const struct gkyl_rect_grid* fgrid; // flux grid for fpol
+  const struct gkyl_range* frange; // flux range
+  const struct gkyl_array *fpoldg; // fpol(psi) dg rep
+  const struct gkyl_basis *fbasis; // psi basis for fpol
+  double psisep;
 
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
@@ -62,6 +68,13 @@ struct gkyl_geo_gyrokinetic_inp {
   const struct gkyl_range *rzlocal; // local range over which psiRZ is defined
   double B0; // Toroidal Field on axis
   double R0; // Axis
+             
+  const struct gkyl_rect_grid* fgrid; // flux grid for fpol
+  const struct gkyl_range* frange; // flux range
+  const struct gkyl_array *fpoldg; // fpol(psi) dg rep
+  const struct gkyl_basis *fbasis; // psi basis for fpol
+  double psisep;
+
 
   // Parameters for root finder: leave unset to use defaults
   struct {

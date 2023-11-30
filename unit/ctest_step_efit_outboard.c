@@ -50,7 +50,6 @@ static inline double pen(double x) { return x*x*x*x*x; }
 static inline double hex(double x) { return x*x*x*x*x*x; }
 
 
-
 void
 bphi_func(double t, const double *xn, double *fout, void *ctx)
 {
@@ -69,7 +68,6 @@ test_1()
   start = clock();
 
 
-
   char* filepath = "./efit_data/input.geqdsk";
   // RZ basis function
   int rzpoly_order = 2;
@@ -77,14 +75,12 @@ test_1()
   gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
   struct gkyl_rect_grid rzgrid;
   struct gkyl_range rzlocal, rzlocal_ext;
-
   // flux basis function
   int fluxpoly_order = 1;
   struct gkyl_basis fluxbasis;
   gkyl_cart_modal_serendip(&fluxbasis, 1, fluxpoly_order);
   struct gkyl_rect_grid fluxgrid;
   struct gkyl_range fluxlocal, fluxlocal_ext;
-
   struct gkyl_efit* efit = gkyl_efit_new(filepath, &rzbasis, &fluxbasis, false);
   gkyl_rect_grid_init(&rzgrid, 2, efit->rzlower, efit->rzupper, efit->rzcells);
   gkyl_create_grid_ranges(&rzgrid, efit->rzghost, &rzlocal_ext, &rzlocal);
@@ -97,8 +93,6 @@ test_1()
   struct gkyl_array* psibyrzr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   struct gkyl_array* psibyr2zr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   struct gkyl_array* fpolflux = gkyl_array_new(GKYL_DOUBLE, fluxbasis.num_basis, fluxlocal_ext.volume);
-  printf("mads psi arrays\n");
-
   gkyl_efit_advance(efit, &rzgrid, &fluxgrid, &rzlocal, &rzlocal_ext, psizr, psibyrzr, psibyr2zr, &fluxlocal, &fluxlocal_ext, fpolflux);
 
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psizr, "stepoutboard_psi.gkyl");
@@ -121,7 +115,11 @@ test_1()
       .rzlocal = &rzlocal,
       .B0 = sctx.B0,
       .R0 = sctx.R0,
-
+      .fgrid = &fluxgrid,
+      .frange = &fluxlocal,
+      .fpoldg = fpolflux,
+      .fbasis = &fluxbasis,
+      .psisep = efit->sibry,
       .quad_param = {  .eps = 1e-10 }
     }
   );
@@ -181,6 +179,7 @@ test_1()
     .rclose = efit->rmax,
     .zmin = -8.3,
     .zmax = 8.3,
+    .zmaxis = efit->zmaxis,
   
     .write_node_coord_array = true,
     .node_file_nm = "stepoutboard_nodes.gkyl"
@@ -200,9 +199,6 @@ test_1()
 
   gkyl_eval_on_nodes *eval_bphi= gkyl_eval_on_nodes_new(&rzgrid, &rzbasis, 1, bphi_func, &sctx);
   struct gkyl_array* bphidg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-  gkyl_eval_on_nodes_advance(eval_bphi, 0.0, &rzlocal_ext, bphidg); //on ghosts with ext_range
-  printf("made the Bphi array\n");
-
   //make bmag
   struct gkyl_array* bmagdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
 
@@ -210,10 +206,10 @@ test_1()
   struct gkyl_array* bmagFld= gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, clocal_ext.volume);
 
   printf("calculating bmag \n");
-  gkyl_calc_bmag *calculator = gkyl_calc_bmag_new(&cbasis, &rzbasis, &cgrid, &rzgrid, geo, &ginp, false);
+  gkyl_calc_bmag *calculator = gkyl_calc_bmag_new(&cbasis, &rzbasis, &fluxbasis, &cgrid, &rzgrid, &fluxgrid, geo, &ginp, psiSep, false);
   printf("allocated bmag calculator\n");
 
-  gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, psizr, psibyrzr, psibyr2zr, bphidg, bmagFld, mapc2p_arr);
+  gkyl_calc_bmag_advance(calculator, &clocal, &clocal_ext, &rzlocal, &rzlocal_ext, &fluxlocal, &fluxlocal_ext, psizr, psibyrzr, psibyr2zr, bphidg, bmagFld, fpolflux, mapc2p_arr);
   printf("advanced bmag calculator\n");
 
 

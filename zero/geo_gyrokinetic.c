@@ -475,8 +475,24 @@ phi_func(double alpha_curr, double Z, void *ctx)
   double dR[4] = {0};
   int nr = R_psiZ(actx->geo, psi, Z, 4, R, dR);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
-  double Bphi = actx->geo->B0*actx->geo->R0/r_curr;
-  ival = ival*r_curr*Bphi;
+  //double Bphi = actx->geo->B0*actx->geo->R0/r_curr;
+  //ival = ival*r_curr*Bphi;
+  //use actual bphi
+  double psi_fpol = psi;
+  if(psi_fpol < actx->geo->psisep)
+    psi_fpol = actx->geo->psisep;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, actx->geo->frange);
+  iter.idx[0] = fmin(actx->geo->frange->lower[0] + (int) floor((psi_fpol - actx->geo->fgrid->lower[0])/actx->geo->fgrid->dx[0]), actx->geo->frange->upper[0]);
+  long loc = gkyl_range_idx(actx->geo->frange, iter.idx);
+  const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
+  double fxc[1];
+  gkyl_rect_grid_cell_center(actx->geo->fgrid, iter.idx, fxc);
+  double fx[1];
+  fx[0] = (psi_fpol-fxc[0])/(actx->geo->fgrid->dx[0]*0.5);
+  double fpol = actx->geo->fbasis->eval_expand(fx, coeffs);
+  ival = ival*fpol;
+
 
   // now keep in range 2pi
   while(ival < -M_PI){
@@ -520,6 +536,13 @@ gkyl_geo_gyrokinetic_new(const struct gkyl_geo_gyrokinetic_inp *inp)
     geo->calc_roots = calc_RdR_p2;
 
   geo->stat = (struct gkyl_geo_gyrokinetic_stat) { };
+
+
+  geo->fgrid = inp->fgrid;
+  geo->fbasis = inp->fbasis;
+  geo->frange = inp->frange;
+  geo->fpoldg = inp->fpoldg;
+  geo->psisep = inp->psisep;
   
   return geo;
 }

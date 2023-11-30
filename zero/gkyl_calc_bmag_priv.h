@@ -28,6 +28,18 @@ struct bmag_ctx{
    const struct gkyl_array* mapc2p;
 };
 
+struct fpol_ctx{
+   const struct gkyl_rect_grid* grid;
+   const struct gkyl_rect_grid* rzgrid;
+   const struct gkyl_range* range;
+   const struct gkyl_range* rzrange;
+   const struct gkyl_basis* basis;
+   const struct gkyl_basis* rzbasis;
+   struct gkyl_array* fpoldg;
+   const struct gkyl_array* psidg;
+   double psisep;
+};
+
 
 
 struct gkyl_calc_bmag {
@@ -47,6 +59,9 @@ struct gkyl_calc_bmag {
   //evalf_t psi;
   //evalf_t psibyr;
   //evalf_t psibyr2;
+  const struct gkyl_basis* fbasis; //flux basis
+  const struct gkyl_rect_grid* fgrid; // flux grid
+  double psisep;
 };
 
 GKYL_CU_DH
