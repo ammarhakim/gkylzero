@@ -150,7 +150,9 @@ struct gkyl_root_intervals {
   double root_bound_lower[4]; // lower root bound
   double root_bound_upper[4]; // upper root bound
   int status; // 0 - success.
+  int status_refinement[4]; // 0 - success.
   int niter; // number of iterations
+  int niter_refinement[4]; // number of iterations
   int nroots; // number of distinct-real-roots
   struct sturn_polynomials sturn_chain;
 };
@@ -230,3 +232,22 @@ struct gkyl_lo_poly_roots gkyl_calc_lo_poly_roots(enum gkyl_lo_poly_order order,
  */
 struct gkyl_root_intervals gkyl_calc_quartic_root_intervals(
   double coeff[4], double domain[2], double tol);
+
+/**
+ * Refine the result of gkyl_calc_quartic_root_intervals() using bisection search
+ * to narrow down the domain containing the root. 
+ * 
+ * The leading coefficient 
+ * is always assumed be 1.0 and so the coeff[i] give the coefficient for the
+ * monomial x^i. For example:
+ *
+ * p(x) = x^4 + 2 x^3 + 4
+ *
+ * coeff[4] = { 4.0, 0.0, 0.0, 2.0 };
+ *
+ * @param root_intervals Object containing the number of roots and root intervals
+ * @param tol Tolerance of the interval isolation
+ * @return Roots of the polynomial
+ */
+void gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_intervals,
+  double tol);

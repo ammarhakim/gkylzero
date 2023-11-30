@@ -685,11 +685,9 @@ compute_sturn_chain(double p0[4])
   minus_euclidean_division_rem(p0,p1,4,p2);
 
   // Compute the next division p1 by p2
-  double ;
   minus_euclidean_division_rem(p1,p2,0,p3);
 
   // Compute the next division p2 by p3
-  double ;
   minus_euclidean_division_rem(p2,p3,0,p4);
 
   return (struct sturn_polynomials) {
@@ -700,6 +698,74 @@ compute_sturn_chain(double p0[4])
     .p4 = { p4[0], p4[1], p4[2], p4[3] }
   };
 }
+
+void 
+gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_intervals, double tol)
+{
+  // Compute the number of domains to refine
+  int nroots = root_intervals->nroots; 
+
+  // For all domains, refine the result
+  for (int i=0; i<nroots; ++i) {
+
+    // Grab the domain
+    double left_bound = root_intervals->root_bound_lower[i];
+    double right_bound = root_intervals->root_bound_upper[i];
+    double error = 2.0*tol;
+    int iter = 0;
+    double middle_bound;
+    double domain_left[2];
+    double domain_right[2];
+    int left_num_roots, right_num_roots;
+    int status = 0;
+
+    // Iterate on the domain for some tolerance
+    while(error > tol && iter < 100){
+
+      // Grab middle location in the domain
+      middle_bound = (left_bound+right_bound)/2.0;
+      middle_bound = check_poly_bounded(root_intervals->sturn_chain.p0, left_bound, middle_bound, right_bound);
+
+      // Compute the roots (L)
+      domain_left[0] = left_bound;
+      domain_left[1] = middle_bound;
+      left_num_roots = eval_num_roots(&root_intervals->sturn_chain, domain_left);
+
+      // Compute the roots (R)
+      domain_right[0] = middle_bound;
+      domain_right[1] = right_bound;
+      right_num_roots = eval_num_roots(&root_intervals->sturn_chain, domain_right);
+
+
+      // Cases of different number of roots in each side
+      if (left_num_roots == 1){
+
+          // update to the left domain
+          right_bound = middle_bound;
+
+      } else if (right_num_roots == 1){
+
+          // update to the right domain
+          left_bound = middle_bound;
+
+      } else {
+
+        status = 1;
+
+      }
+
+      // update the error
+      error = fabs(left_bound - right_bound);
+      iter = iter + 1;
+    }
+    
+    // Save the restricted domain
+    root_intervals->root_bound_lower[i] = left_bound;
+    root_intervals->root_bound_upper[i] = right_bound;
+    root_intervals->status_refinement[i] = status;
+    root_intervals->niter_refinement[i] = iter;
+  }
+} 
 
 
 struct gkyl_root_intervals 
