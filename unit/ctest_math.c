@@ -1,6 +1,7 @@
 #include <acutest.h>
 #include <gkyl_math.h>
 
+#include <complex.h>
 #include <math.h>
 
 // Table on Page 5 of van Engelen paper. See math.c for full reference
@@ -28,7 +29,7 @@ show_qr_res(struct gkyl_qr_res res, const char *msg)
 }
 
 void
-test_dbl_exp()
+test_dbl_exp(void)
 {
   do {
     struct gkyl_qr_res res = gkyl_dbl_exp(func_1, 0, 0.0, 1.0, 10, 1e-11);
@@ -82,7 +83,7 @@ double rfunc_3(double x, void *ctx)
 }
 
 void
-test_ridders()
+test_ridders(void)
 {
   do {
     double x1 = 0.5, x2 = 2.0;
@@ -121,8 +122,175 @@ test_ridders()
   } while(0);  
 }
 
+struct idx_status {
+  int idx;
+  bool status;
+};
+
+static struct idx_status
+check_in_list(int nvals, const double complex *vals, double complex tocheck, double eps)
+{
+  for (int i=0; i<nvals; ++i)
+    if (gkyl_compare_double(creal(vals[i]), creal(tocheck), eps) &&
+      gkyl_compare_double(cimag(vals[i]), cimag(tocheck), eps) )
+      return (struct idx_status) { .idx = i, .status = true };
+  return (struct idx_status) { .idx = nvals, .status = false };
+}
+
+void
+test_poly2_roots(void)
+{
+  struct gkyl_lo_poly_roots rts;
+
+  do {
+    static struct idx_status istat;
+    
+    double c1[4] = { 10.0, -7.0 };
+    rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_2, c1);
+    // checks
+    istat = check_in_list(2, (double complex[]) { 2.0, 5.0 },
+      rts.rpart[0]+I*rts.impart[0],
+      1e-15);
+    TEST_CHECK( istat.status );
+    
+    istat = check_in_list(2, (double complex[]) { 2.0, 5.0 },
+      rts.rpart[1]+I*rts.impart[1],
+      1e-15);
+    TEST_CHECK( istat.status );
+  } while (0);
+
+  do {
+    struct idx_status istat;
+    double c1[4] = { 13.0, -4.0 };
+    rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_2, c1);
+    
+    istat = check_in_list(2, (double complex[]) { 2.0-3.0*I, 2.0+3.0*I },
+      rts.rpart[0] + I*rts.impart[0],
+      1e-15);
+    TEST_CHECK( istat.status );
+
+    istat = check_in_list(2, (double complex[]) { 2.0-3.0*I, 2.0+3.0*I },
+      rts.rpart[1] + I*rts.impart[1],
+      1e-15);
+    TEST_CHECK( istat.status );
+  } while (0);
+}
+
+void
+test_poly3_roots(void)
+{
+  struct gkyl_lo_poly_roots rts;
+
+  do {
+    static struct idx_status istat;
+
+    double c1[4] = { 3.0, -5.5, -1.5 };
+    rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_3, c1);
+
+    double complex res[4] = { 3.0, 0.5, -2.0 };
+
+    for (int i=0; i<3; ++i)
+      TEST_CHECK(
+        check_in_list(3, res, rts.rpart[i]+I*rts.impart[i], 1e-14).status
+      );
+  } while (0);
+
+  do {
+    static struct idx_status istat;
+
+    double c1[4] = { -7.5, 11.0, -5.5 };
+    rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_3, c1);
+
+    double complex res[4] = { 1.5, 2+I, 2-I };
+
+    for (int i=0; i<3; ++i)
+      TEST_CHECK(
+        check_in_list(3, res, rts.rpart[i]+I*rts.impart[i], 1e-14).status
+      );
+  } while (0);  
+
+}
+
+void
+test_poly4_roots(void)
+{
+  struct gkyl_lo_poly_roots rts;
+
+  do {
+    double c1[4] = { 120.0, -26.0, -25.0, 2.0 };
+    rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_4, c1);
+
+    double complex res[4] = { 4.0, 2.0, -3.0, -5.0 };
+
+    for (int i=0; i<4; ++i)
+      TEST_CHECK(
+        check_in_list(4, res, rts.rpart[i]+I*rts.impart[i], 1e-14).status
+      );
+    
+  } while (0);
+
+  do {
+    double c1[4] = { 520.0, 22.0, -3.0, 10.0 };
+    rts = gkyl_calc_lo_poly_roots(GKYL_LO_POLY_4, c1);
+
+    double complex res[4] = {
+      -4.0, -10.0,
+      2.0 + 3.0*I,
+      2.0 - 3.0*I
+    };
+
+    for (int i=0; i<4; ++i)
+      TEST_CHECK(
+        check_in_list(4, res, rts.rpart[i]+I*rts.impart[i], 1e-14).status
+      );
+    
+  } while (0);
+}
+
+void
+test_polyn_roots(void)
+{
+
+  do {
+    struct gkyl_poly_roots *rts = gkyl_poly_roots_new(4);
+    
+    double c1[] = { 120.0, -26.0, -25.0, 2.0 };
+    gkyl_calc_poly_roots(rts, c1);
+
+    double complex res[4] = { 4.0, 2.0, -3.0, -5.0 };
+
+    for (int i=0; i<4; ++i)
+      TEST_CHECK(
+        check_in_list(4, res, rts->rpart[i]+I*rts->impart[i], 1e-14).status
+      );
+
+    gkyl_poly_roots_release(rts);
+  } while (0);
+
+  do {
+    struct gkyl_poly_roots *rts = gkyl_poly_roots_new(5);
+    
+    double c1[] = { 14400.0, -11400.0, 1174.0, 711.0, -126.0 };
+    gkyl_calc_poly_roots(rts, c1);
+
+    double complex res[5] = { 120.0, 5.0, 3.0, 2.0, -4.0 };
+
+    for (int i=0; i<5; ++i)
+      TEST_CHECK(
+        check_in_list(5, res, rts->rpart[i]+I*rts->impart[i], 1e-14).status
+      );
+
+    gkyl_poly_roots_release(rts);
+  } while (0);  
+
+}
+
 TEST_LIST = {
   { "dbl_exp", test_dbl_exp },
   { "ridders", test_ridders },
+  { "poly2_roots", test_poly2_roots },
+  { "poly3_roots", test_poly3_roots },
+  { "poly4_roots", test_poly4_roots },
+  { "polyn_roots", test_polyn_roots },  
   { NULL, NULL },
 };
