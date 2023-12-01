@@ -346,11 +346,50 @@ struct arc_length_ctx {
   double arcL_left; // this is for when we need to switch sides
   double phi_right; // this is for when we need to switch sides
   double phi_left; // this is for when we need to switch sides
+  double phi_bot; // For new way of trying to do core
   bool right;
   double zmaxis;
   enum gkyl_geo_gyrokinetic_type ftype; // type of geometry
 };
+struct plate_ctx{
+  const struct gkyl_geo_gyrokinetic* geo;
+  double psi_curr;
+  bool lower;
+};
 
+static inline double
+plate_psi_func(double R, void *ctx){
+  // uses a pointer to the plate function to get Z(R)
+  // Then calculates psi(R, Z(R))
+  // will be used by ridders later
+  
+  struct plate_ctx *gc = ctx;
+  // First find R(z)
+  //printf("about to call Z plate func\n");
+  double Z;
+  if(gc->lower==true)
+    Z = gc->geo->plate_func_lower(R);
+  else
+    Z = gc->geo->plate_func_upper(R);
+
+  printf("R is = %g\n", R);
+  printf("Z is = %g\n", Z);
+  // Now find the cell where this R and Z is
+  int rzidx[2];
+  rzidx[0] = fmin(gc->geo->rzlocal->lower[0] + (int) floor((R - gc->geo->rzgrid->lower[0])/gc->geo->rzgrid->dx[0]), gc->geo->rzlocal->upper[0]);
+  rzidx[1] = fmin(gc->geo->rzlocal->lower[1] + (int) floor((Z - gc->geo->rzgrid->lower[1])/gc->geo->rzgrid->dx[1]), gc->geo->rzlocal->upper[1]);
+  long loc = gkyl_range_idx(gc->geo->rzlocal, rzidx);
+  const double *coeffs = gkyl_array_cfetch(gc->geo->psiRZ,loc);
+
+  double xc[2];
+  gkyl_rect_grid_cell_center(gc->geo->rzgrid, rzidx, xc);
+  double xy[2];
+  xy[0] = (R-xc[0])/(gc->geo->rzgrid->dx[0]*0.5);
+  xy[1] = (Z-xc[1])/(gc->geo->rzgrid->dx[1]*0.5);
+  double psi = gc->geo->rzbasis->eval_expand(xy, coeffs);
+  printf("psi is = %g\n", psi);
+  return psi - gc->psi_curr;
+}
 
 // Function to pass to root-finder to find Z location for given arc-length
 static inline double
@@ -425,7 +464,14 @@ phi_func(double alpha_curr, double Z, void *ctx)
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
   if(actx->ftype==GKYL_SOL_DN_IN){
-    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
+    // this one uses top point as a reference
+    //ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
+    
+    // now use inboard midplane as reference
+    if(Z<actx->zmaxis)
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
+    else
+      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
   else if(actx->ftype==GKYL_SOL_SN_LO){
     if(actx->right==true){
@@ -445,10 +491,26 @@ phi_func(double alpha_curr, double Z, void *ctx)
         ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
       else
         ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+
+      // try using bottom as reference
+      //ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, Z, rclose, false, false, arc_memo);
+      //phi_ref = actx->phi_bot;
     }
     else{
-      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);// + actx->phi_right;
-      phi_ref = actx->phi_right;
+      // this original uses phi right
+      //ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
+      //phi_ref = actx->phi_right;
+
+      //try using bottom as reference
+      //ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, Z, rclose, false, false, arc_memo);
+      //phi_ref = actx->phi_bot;
+
+      // this new one forgets about the offset. just use midplane as ref
+      if(Z<actx->zmaxis)
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
+      else
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+
     }
   }
   else if(actx->ftype==GKYL_PF_LO){
@@ -511,6 +573,13 @@ gkyl_geo_gyrokinetic_new(const struct gkyl_geo_gyrokinetic_inp *inp)
 {
   struct gkyl_geo_gyrokinetic *geo = gkyl_malloc(sizeof(*geo));
 
+  geo->plate_func_lower = inp->plate_func_lower;
+  geo->plate_func_upper = inp->plate_func_upper;
+  geo->plate_lower_Rl = inp->plate_lower_Rl;
+  geo->plate_lower_Rr = inp->plate_lower_Rr;
+  geo->plate_upper_Rl = inp->plate_upper_Rl;
+  geo->plate_upper_Rr = inp->plate_upper_Rr;
+  geo->rzbasis= inp->rzbasis;
   geo->B0 = inp->B0;
   geo->R0 = inp->R0;
 
@@ -542,6 +611,7 @@ gkyl_geo_gyrokinetic_new(const struct gkyl_geo_gyrokinetic_inp *inp)
   geo->fbasis = inp->fbasis;
   geo->frange = inp->frange;
   geo->fpoldg = inp->fpoldg;
+  geo->qdg = inp->qdg;
   geo->psisep = inp->psisep;
   
   return geo;
@@ -632,7 +702,7 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
 
   // used for finite differences 
   double delta_alpha = dalpha*1e-4;
-  double delta_psi = dpsi*1e-8;
+  double delta_psi = dpsi*1e-6;
   double delta_theta = dtheta*1e-4;
   geo->dzc = gkyl_malloc(3*sizeof(double));
   geo->dzc[0] = delta_psi;
@@ -657,6 +727,9 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
     .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
     .zmaxis = inp->zmaxis
+  };
+  struct plate_ctx pctx = {
+    .geo = geo
   };
 
   int cidx[3] = { 0 };
@@ -700,6 +773,24 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
           double zmin = inp->zmin, zmax = inp->zmax;
           double psi_curr = phi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
           printf("psi_curr = %g\n", psi_curr);
+
+
+
+          // check what q is
+          double psi_q = psi_curr;
+          if(psi_q < geo->psisep)
+            psi_q = geo->psisep+1e-15;
+          struct gkyl_range_iter iter;
+          gkyl_range_iter_init(&iter, geo->frange);
+          iter.idx[0] = fmin(geo->frange->lower[0] + (int) floor((psi_q - geo->fgrid->lower[0])/geo->fgrid->dx[0]), geo->frange->upper[0]);
+          long loc = gkyl_range_idx(geo->frange, iter.idx);
+          const double *coeffs = gkyl_array_cfetch(geo->qdg,loc);
+          double fxc[1];
+          gkyl_rect_grid_cell_center(geo->fgrid, iter.idx, fxc);
+          double fx[1];
+          fx[0] = (psi_q-fxc[0])/(geo->fgrid->dx[0]*0.5);
+          double q = geo->fbasis->eval_expand(fx, coeffs);
+          //printf("psi_q, q  = %g, %g\n", psi_q, q);
 
           double arcL, darcL, arcL_curr, arcL_lo;
           double arcL_l, arcL_r;
@@ -777,6 +868,15 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             phi_r = phi_func(alpha_curr, zmax, &arc_ctx);
             arc_ctx.phi_right = phi_r - alpha_curr; // otherwise alpha will get added on twice
             printf("phi right = %g\n", arc_ctx.phi_right);
+
+            // try using phi bottom
+            arc_ctx.right = true;
+            arc_ctx.phi_bot= 0.0;
+            arc_ctx.rclose = rright;
+            arc_ctx.psi = psi_curr;
+            double phi_b = phi_func(alpha_curr, zmin, &arc_ctx);
+            arc_ctx.phi_bot= phi_b - alpha_curr; // otherwise alpha will get added on twice
+            printf("phi bot = %g\n", arc_ctx.phi_bot);
           }
           else if(inp->ftype == GKYL_PF_LO){
             //Find the  upper turning point
@@ -872,6 +972,34 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             printf("phi left= %g\n", arc_ctx.phi_left);
           }
           else if(inp->ftype==GKYL_SOL_DN_OUT){
+            // here I should do a ridders to find zmin and zmax for the plate
+            // 2nd arg to ridders is a ctx pointer if needed
+            pctx.psi_curr = psi_curr;
+            pctx.lower=false;
+            double a = geo->plate_upper_Rl;
+            double b = geo->plate_upper_Rr;
+            double fa = plate_psi_func(a, &pctx);
+            double fb = plate_psi_func(b, &pctx);
+            printf("Testing plate func\n");
+            printf("fa, fb = %g %g\n", fa, fb);
+            struct gkyl_qr_res res = gkyl_ridders(plate_psi_func, &pctx,
+              a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+            double rmax = res.res;
+            zmax = geo->plate_func_upper(rmax);
+
+            pctx.lower=true;
+            a = geo->plate_lower_Rl;
+            b = geo->plate_lower_Rr;
+            fa = plate_psi_func(a, &pctx);
+            fb = plate_psi_func(b, &pctx);
+            printf("Testing plate func\n");
+            printf("fa, fb = %g %g\n", fa, fb);
+            res = gkyl_ridders(plate_psi_func, &pctx,
+              a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+            double rmin = res.res;
+            zmin = geo->plate_func_lower(rmin);
+            printf("psi_curr, zmax = %g, %g, %g\n", psi_curr, zmax, zmin);
+
             arc_ctx.phi_right = 0.0;
             arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);
             darcL = arcL/(poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
@@ -1069,7 +1197,10 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
               double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
               //printf("ip,ia,it = %d, %d, %d\n", ip, ia, it);
               //printf("deltas : ip,ia,it = %d, %d, %d\n", ip_delta, ia_delta, it_delta);
-              //printf("PHICURR = %g\n", phi_curr);
+              //printf("phi curr= %g\n", phi_curr);
+              // try using qtheta
+              //printf("q * theta +alpha = %g\n", q*theta_curr + alpha_curr);
+              //phi_curr = q*theta_curr + alpha_curr;
               // convert to x,y,z
               double *mc2p_fd_n = gkyl_array_fetch(geo->mc2p_nodal_fd, gkyl_range_idx(geo->nrange, cidx));
               double *mc2p_n = gkyl_array_fetch(mc2p, gkyl_range_idx(geo->nrange, cidx));

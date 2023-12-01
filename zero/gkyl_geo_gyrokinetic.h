@@ -19,17 +19,25 @@ struct gkyl_geo_gyrokinetic_stat {
   long nroot_cont_calls; // num calls from root-finder
 };  
 
+typedef   double (*plate_func)(double R);
+
 struct gkyl_geo_gyrokinetic {
   const struct gkyl_rect_grid* rzgrid; // RZ grid on which psi(R,Z) is defined
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
   const struct gkyl_range* rzlocal; // local range over which psiRZ is defined
   int num_rzbasis; // number of basis functions in RZ
+  const struct gkyl_basis *rzbasis; // basis functions for R,Z grid
                    
   const struct gkyl_rect_grid* fgrid; // flux grid for fpol
   const struct gkyl_range* frange; // flux range
   const struct gkyl_array *fpoldg; // fpol(psi) dg rep
+  const struct gkyl_array *qdg; // q(psi) dg rep
   const struct gkyl_basis *fbasis; // psi basis for fpol
   double psisep;
+  plate_func plate_func_lower;
+  plate_func plate_func_upper;
+  double plate_lower_Rl, plate_lower_Rr;
+  double plate_upper_Rl, plate_upper_Rr;
 
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
@@ -72,9 +80,13 @@ struct gkyl_geo_gyrokinetic_inp {
   const struct gkyl_rect_grid* fgrid; // flux grid for fpol
   const struct gkyl_range* frange; // flux range
   const struct gkyl_array *fpoldg; // fpol(psi) dg rep
+  const struct gkyl_array *qdg; // q(psi) dg rep
   const struct gkyl_basis *fbasis; // psi basis for fpol
   double psisep;
-
+  plate_func plate_func_lower;
+  plate_func plate_func_upper;
+  double plate_lower_Rl, plate_lower_Rr;
+  double plate_upper_Rl, plate_upper_Rr;
 
   // Parameters for root finder: leave unset to use defaults
   struct {

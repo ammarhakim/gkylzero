@@ -49,6 +49,25 @@ static inline double qad(double x) { return x*x*x*x; }
 static inline double pen(double x) { return x*x*x*x*x; }
 static inline double hex(double x) { return x*x*x*x*x*x; }
 
+// gives Z(R)
+double pfunc_upper(double R){
+ double dzdr = -0.33333333333332943;
+ double c = 9.990999999999982;
+
+ //double dzdr = -0.06600660066006442;
+ //double c = 8.634851485148507;
+ double Z = dzdr*R + c;
+ return Z;
+}
+
+double pfunc_lower(double R){
+ double dzdr = 0.33333333333332943;
+ double c = -9.990999999999982;
+ //double dzdr = 0.06600660066006442;
+ //double c = -8.634851485148507;
+ double Z = dzdr*R + c;
+ return Z;
+}
 
 void
 bphi_func(double t, const double *xn, double *fout, void *ctx)
@@ -66,7 +85,6 @@ test_1()
   clock_t start, end;
   double cpu_time_used;
   start = clock();
-
 
   char* filepath = "./efit_data/input.geqdsk";
   // RZ basis function
@@ -93,12 +111,14 @@ test_1()
   struct gkyl_array* psibyrzr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   struct gkyl_array* psibyr2zr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   struct gkyl_array* fpolflux = gkyl_array_new(GKYL_DOUBLE, fluxbasis.num_basis, fluxlocal_ext.volume);
-  gkyl_efit_advance(efit, &rzgrid, &fluxgrid, &rzlocal, &rzlocal_ext, psizr, psibyrzr, psibyr2zr, &fluxlocal, &fluxlocal_ext, fpolflux);
+  struct gkyl_array* qflux = gkyl_array_new(GKYL_DOUBLE, fluxbasis.num_basis, fluxlocal_ext.volume);
+  gkyl_efit_advance(efit, &rzgrid, &fluxgrid, &rzlocal, &rzlocal_ext, psizr, psibyrzr, psibyr2zr, &fluxlocal, &fluxlocal_ext, fpolflux, qflux);
 
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psizr, "stepoutboard_psi.gkyl");
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psibyrzr, "stepoutboard_psibyr.gkyl");
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psibyr2zr, "stepoutboard_psibyr2.gkyl");
   gkyl_grid_sub_array_write(&fluxgrid, &fluxlocal, fpolflux, "stepoutboard_fpol.gkyl");
+  gkyl_grid_sub_array_write(&fluxgrid, &fluxlocal, qflux, "stepoutboard_q.gkyl");
 
   //struct step_ctx sctx = {  .R0 = 2.6,  .B0 = 2.1 };
   struct step_ctx sctx = {  .R0 = efit->rcentr,  .B0 = efit->bcentr };
@@ -118,8 +138,15 @@ test_1()
       .fgrid = &fluxgrid,
       .frange = &fluxlocal,
       .fpoldg = fpolflux,
+      .qdg = qflux,
       .fbasis = &fluxbasis,
       .psisep = efit->sibry,
+      .plate_func_lower = pfunc_lower,
+      .plate_func_upper = pfunc_upper,
+      .plate_lower_Rl = 4.77,
+      .plate_lower_Rr = 5.073,
+      .plate_upper_Rl = 4.77,
+      .plate_upper_Rr = 5.073,
       .quad_param = {  .eps = 1e-10 }
     }
   );
@@ -133,9 +160,9 @@ test_1()
   //double cupper[] = {1.4688, 0.01, 3.14 };
 
   double clower[] = { 0.934, -0.01, -3.14 };
-  double cupper[] = {psiSep, 0.01, 3.14 };
+  double cupper[] = {efit->sibry, 0.01, 3.14 };
 
-  int ccells[] = { 1, 1, 32 };
+  int ccells[] = { 4, 1, 128 };
 
 
 
