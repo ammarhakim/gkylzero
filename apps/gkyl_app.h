@@ -18,6 +18,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_WEDGE, // specialized "wedge" BCs for RZ-theta
   GKYL_SPECIES_FUNC, // Function boundary conditions
   GKYL_SPECIES_FIXED_FUNC, // Fixed function, time-independent, boundary conditions
+  GKYL_SPECIES_GK_SHEATH, // Gyrokinetic sheath BCs
 };
 
 // Boundary conditions on fields

@@ -21,6 +21,12 @@ enum gkyl_field_id {
   GKYL_FIELD_NULL = 3, // no field is present
 };
 
+// Identifiers for specific gyrokinetic field object types
+enum gkyl_gkfield_id {
+  GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default
+  GKYL_GK_FIELD_EM = 1, // Electromagnetic GK
+};
+
 // Identifiers for subsidary models
 // These are used to distinguish things like special relativistic from non-relativistic
 enum gkyl_model_id {

@@ -5,10 +5,9 @@
 #include <gkyl_dg_updater_gyrokinetic.h>
 
 struct gkyl_dg_updater_gyrokinetic {
-  struct gkyl_dg_eqn *dgeqn; // Equation object
-  struct gkyl_hyper_dg *hyperdg; // solvers for specific gyrokinetic equation
+  bool use_gpu; // Boolean for if the update is performed on GPUs
+  struct gkyl_dg_eqn *eqn_gyrokinetic; // Equation object
+  struct gkyl_hyper_dg *up_gyrokinetic; // solvers for specific gyrokinetic equation
 
-  enum gkyl_gkeqn_id eqn_id;  // ID to distinguish the equation type.
-
-  bool use_gpu;
+  double gyrokinetic_tm; // total time spent in computing gyrokinetic equation
 };
