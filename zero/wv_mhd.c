@@ -808,12 +808,11 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 
   mhd->eqn.check_inv_func = check_inv;
   mhd->eqn.max_speed_func = max_speed;
+  mhd->eqn.rotate_to_local_func = rot_to_local_rect;
+  mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
   mhd->eqn.cons_to_riem = cons_to_riem_8;
   mhd->eqn.riem_to_cons = riem_to_cons_8;
-  
-  mhd->eqn.rotate_to_local_func = rot_to_local_rect;
-  mhd->eqn.rotate_to_global_func = rot_to_global_rect;
 
   mhd->divergence_constraint = inp->divergence_constraint;
   switch (inp->divergence_constraint) {

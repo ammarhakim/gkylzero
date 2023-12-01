@@ -555,12 +555,12 @@ main(int argc, char **argv)
   for (int i=0; i<num_blocks; ++i) {
     gkyl_create_grid_ranges(&bdata[i].grid, (int []) { 2, 2 }, &bdata[i].ext_range, &bdata[i].range);
     bdata[i].geom = gkyl_wave_geom_new(&bdata[i].grid, &bdata[i].ext_range,
-      0, 0);
+      0, 0, false);
   }
 
   // create FV updaters for dimensional sweeps
   for (int i=0; i<num_blocks; ++i) {
-    bdata[i].euler = gkyl_wv_euler_new(1.4);
+    bdata[i].euler = gkyl_wv_euler_new(1.4, false);
 
     for (int d=0; d<2; ++d)
       bdata[i].slvr[d] = gkyl_wave_prop_new( &(struct gkyl_wave_prop_inp) {

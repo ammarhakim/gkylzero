@@ -20,6 +20,12 @@ enum gkyl_wave_limiter {
   GKYL_ZERO
 };
 
+// Wave-splitting to use
+enum gkyl_wave_split_type {
+  GKYL_WAVE_QWAVE = 0, // default: split jump in Q
+  GKYL_WAVE_FWAVE // split jump in F
+};
+
 struct gkyl_wave_prop_status {
   int success; // 1 if step worked, 0 otherwise
   double dt_suggested; // suggested time-step
@@ -40,6 +46,8 @@ struct gkyl_wave_prop_inp {
 
   bool force_low_order_flux; // if true, only low-order flux is used
   bool check_inv_domain; // flag to indicate if invariant domains are checked
+
+  enum gkyl_wave_split_type split_type; // type of splitting to use
 
   const struct gkyl_wave_geom *geom; // geometry
   const struct gkyl_comm *comm; // communcator

@@ -79,7 +79,8 @@ enum gkyl_cu_memcpy_kind {
 inline cudaError_t __checkCudaErrors__(cudaError_t code, const char *func, const char *file, int line)
 {
   if (code) {
-    fprintf(stderr, "CUDA error: %s (code=%d)  \"%s\" at %s:%d \n", cudaGetErrorString(code), (unsigned int)code, func, file, line);
+    fprintf(stderr, "CUDA error: %s (code=%u)  \"%s\" at %s:%d \n",
+      cudaGetErrorString(code), (unsigned int)code, func, file, line);
     cudaDeviceReset();
     exit(EXIT_FAILURE);
   }
@@ -141,8 +142,9 @@ enum gkyl_cu_memcpy_kind {
 
 // Code
 
-#define GKYL_MIN(x,y) ((x)<(y) ? (x) : (y))
-#define GKYL_MAX(x,y) ((x)>(y) ? (x) : (y))
+#define GKYL_MIN2(x,y) ((x)<(y) ? (x) : (y))
+#define GKYL_MAX2(x,y) ((x)>(y) ? (x) : (y))
+#define GKYL_SGN(b) (((b)>=0.) ? 1.0 : -1.0)
 
 EXTERN_C_BEG
 
@@ -353,5 +355,15 @@ bool gkyl_check_file_exists(const char *fname);
  * @return file size in bytes
  */
 int64_t gkyl_file_size(const char *fname);
+
+/**
+ * Read contents of file into a character buffer. The returned buffer
+ * must be freed using gkyl_free.
+ *
+ * @param fname Name of file
+ * @param sz On return this has the size of data read
+ * @return Data in file as a char array.
+ */
+char* gkyl_load_file(const char *fname, int64_t *sz);
 
 EXTERN_C_END

@@ -13,9 +13,12 @@
 struct gkyl_moment_species {
   char name[128]; // species name
   double charge, mass; // charge and mass
-  bool has_grad_closure; // has gradient-based closure (only for 10 moment)
-  enum gkyl_wave_limiter limiter; // limiter to use
+ 
   struct gkyl_wv_eqn *equation; // equation object
+  enum gkyl_wave_limiter limiter; // limiter to use
+  enum gkyl_wave_split_type split_type; // edge splitting to use
+
+  bool has_grad_closure; // has gradient-based closure (only for 10 moment)  
 
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
@@ -110,6 +113,7 @@ struct gkyl_moment {
   double cfl_frac; // CFL fraction to use
 
   enum gkyl_moment_scheme scheme_type; // scheme to update fluid and moment eqns
+  
   enum gkyl_mp_recon mp_recon; // reconstruction scheme to use
   bool skip_mp_limiter; // should MP limiter be skipped?
   bool use_hybrid_flux_kep; // should shock-hybrid scheme be used when using KEP?

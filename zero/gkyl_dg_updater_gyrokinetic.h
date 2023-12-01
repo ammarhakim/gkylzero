@@ -22,14 +22,14 @@ enum gkyl_gkeqn_id {
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis function
  * @param conf_range Config space range
- * @param vel_range Velocity space range
- * @param field_id Enum identifier for field type (see gkyl_eqn_type.h)
+ * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
+ * @param gkyl_gkeqn_id Enum identifier for gyrokinetic equation type.
  * 
  * @return New gyrokinetic updater object
  */
 gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+  const struct gkyl_range *conf_range, const bool *is_zero_flux_dir,
   enum gkyl_gkeqn_id eqn_id, double charge, double mass, bool use_gpu);
 
 /**
