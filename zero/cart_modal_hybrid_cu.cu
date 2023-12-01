@@ -10,7 +10,7 @@ extern "C" {
 #include <gkyl_dg_maxwell.h>    
 #include <gkyl_dg_maxwell_priv.h>
 
-#include <cart_modal_hybrid_priv.h>
+#include <gkyl_cart_modal_hybrid_priv.h>
 }
 
 __global__ void static

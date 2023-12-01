@@ -3,7 +3,7 @@
 #include <gkyl_util.h>
 #include <gkyl_alloc.h>
 
-#include <cart_modal_serendip_priv.h>
+#include <gkyl_cart_modal_serendip_priv.h>
 
 void
 gkyl_cart_modal_serendip(struct gkyl_basis *basis, int ndim, int poly_order)
