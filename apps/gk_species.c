@@ -108,11 +108,10 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
-  struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .bmag = app->bmag, .jacobtot_inv = app->jacobtot_inv,
-    .cmag = app->cmag, .b_i = app->b_i, .phi = s->phi, .apar = s->apar, .apardot = s->apardot };
+  struct gkyl_dg_gyrokinetic_auxfields aux_inp = {.phi = s->phi, .apar = s->apar, .apardot = s->apardot };
   // create solver
   s->slvr = gkyl_dg_updater_gyrokinetic_new(&s->grid, &app->confBasis, &app->basis, 
-    &app->local, is_zero_flux, s->info.charge, s->info.mass, &aux_inp, app->use_gpu);
+    &app->local, is_zero_flux, s->info.charge, s->info.mass, app->gk_geom, &aux_inp, app->use_gpu);
 
   // acquire equation object
   s->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(s->slvr);

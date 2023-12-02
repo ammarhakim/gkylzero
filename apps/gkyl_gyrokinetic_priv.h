@@ -299,7 +299,7 @@ struct gkyl_gyrokinetic_app {
     struct gkyl_basis *basis, *confBasis;
   } basis_on_dev;
 
-  struct gkyl_gk_geometry *gk_geom;
+  struct gk_geometry *gk_geom;
 
   struct gkyl_array *bmag; 
   struct gkyl_array *bmag_inv; 

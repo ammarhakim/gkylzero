@@ -3,6 +3,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -25,6 +26,7 @@ struct gkyl_dg_updater_gyrokinetic_tm {
  * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
  * @param charge Species charge
  * @param mass Species mass
+ * @param gk_geom Geometry struct 
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param gkyl_gkeqn_id Enum identifier for gyrokinetic equation type.
  * 
@@ -33,7 +35,7 @@ struct gkyl_dg_updater_gyrokinetic_tm {
 gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const bool *is_zero_flux_dir,
-  double charge, double mass, void *aux_inp, bool use_gpu);
+  double charge, double mass, const struct gk_geometry *gk_geom, void *aux_inp, bool use_gpu);
 
 /**
  * Acquire gyrokinetic equation object

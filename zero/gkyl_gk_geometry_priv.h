@@ -36,7 +36,7 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 
 void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
 
-void gkyl_gk_geometry_advance(struct gkyl_gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
+void gkyl_gk_geometry_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx) 
 {
   //First just do bmag

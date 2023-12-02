@@ -7,9 +7,9 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-typedef struct gkyl_gk_geometry gkyl_gk_geometry;
+typedef struct gk_geometry gk_geometry;
 
-struct gkyl_gk_geometry {
+struct gk_geometry {
   // stuff for mapc2p and finite differences array
   const struct gkyl_range* range;
   const struct gkyl_range* range_ext;
@@ -37,7 +37,7 @@ struct gkyl_gk_geometry {
 
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
-  struct gkyl_gk_geometry *on_dev; // pointer to itself or device object
+  struct gk_geometry *on_dev; // pointer to itself or device object
 };
 
 
@@ -53,7 +53,7 @@ struct gkyl_gk_geometry {
  * @param bmag function which gives |B| in computational space
  * @param bmag_ctx Context for calculating |B|
  */
-struct gkyl_gk_geometry* gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+struct gk_geometry* gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
   const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu);
 
 /**
@@ -61,7 +61,7 @@ struct gkyl_gk_geometry* gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid,
  * above for documentation.
  */
 
-struct gkyl_gk_geometry* gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+struct gk_geometry* gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
   const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx);
 
 /**
@@ -71,7 +71,7 @@ struct gkyl_gk_geometry* gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid
  * @param up Geometry to which a pointer is needed
  * @return Pointer to acquired geometry
  */
-struct gkyl_gk_geometry* gkyl_gk_geometry_acquire(const struct gkyl_gk_geometry* up);
+struct gk_geometry* gkyl_gk_geometry_acquire(const struct gk_geometry* up);
 
 
 /**
@@ -79,4 +79,4 @@ struct gkyl_gk_geometry* gkyl_gk_geometry_acquire(const struct gkyl_gk_geometry*
  *
  * @param wg Wave geometry object to release.
  */
-void gkyl_gk_geometry_release(const struct gkyl_gk_geometry *up);
+void gkyl_gk_geometry_release(const struct gk_geometry *up);

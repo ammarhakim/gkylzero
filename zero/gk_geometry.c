@@ -12,7 +12,7 @@
 
 
 bool
-gkyl_gk_geometry_is_cu_dev(const struct gkyl_gk_geometry* up)
+gkyl_gk_geometry_is_cu_dev(const struct gk_geometry* up)
 {
   return GKYL_IS_CU_ALLOC(up->flags);
 }
@@ -20,7 +20,7 @@ gkyl_gk_geometry_is_cu_dev(const struct gkyl_gk_geometry* up)
 void
 gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_gk_geometry *up = container_of(ref, struct gkyl_gk_geometry, ref_count);
+  struct gk_geometry *up = container_of(ref, struct gk_geometry, ref_count);
   gkyl_array_release(up->mc2p_nodal_fd);
   gkyl_array_release(up->mc2p_nodal);
   gkyl_array_release(up->mc2p);
@@ -45,7 +45,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_free(up);
 }
 
-struct gkyl_gk_geometry*
+struct gk_geometry*
 gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
   const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu)
 {
@@ -55,7 +55,7 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   } 
 #endif 
 
-  struct gkyl_gk_geometry *up = gkyl_malloc(sizeof(*up));
+  struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->basis = basis;
   up->range = range;
   up->range_ext = range_ext;
@@ -105,15 +105,15 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   return up;
 }
 
-struct gkyl_gk_geometry*
-gkyl_gk_geometry_acquire(const struct gkyl_gk_geometry* up)
+struct gk_geometry*
+gkyl_gk_geometry_acquire(const struct gk_geometry* up)
 {
   gkyl_ref_count_inc(&up->ref_count);
-  return (struct gkyl_gk_geometry*) up;
+  return (struct gk_geometry*) up;
 }
 
 void
-gkyl_gk_geometry_release(const struct gkyl_gk_geometry *up)
+gkyl_gk_geometry_release(const struct gk_geometry *up)
 {
   gkyl_ref_count_dec(&up->ref_count);
 }

@@ -19,13 +19,13 @@ struct gkyl_dg_updater_gyrokinetic*
 gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const bool *is_zero_flux_dir,
-  double charge, double mass, void *aux_inp, bool use_gpu)
+  double charge, double mass, const struct gk_geometry *gk_geom, void *aux_inp, bool use_gpu)
 {
   struct gkyl_dg_updater_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_gyrokinetic));
 
   up->use_gpu = use_gpu;
 
-  up->eqn_gyrokinetic = gkyl_dg_gyrokinetic_new(cbasis, pbasis, conf_range, charge, mass, use_gpu);
+  up->eqn_gyrokinetic = gkyl_dg_gyrokinetic_new(cbasis, pbasis, conf_range, charge, mass, gk_geom, use_gpu);
   struct gkyl_dg_gyrokinetic_auxfields *gk_inp = aux_inp;
   gkyl_gyrokinetic_set_auxfields(up->eqn_gyrokinetic, *gk_inp);
 
