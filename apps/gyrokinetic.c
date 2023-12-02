@@ -654,7 +654,7 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
 }
 
 struct gkyl_update_status
-gkyl_gk_update(gkyl_gyrokinetic_app* app, double dt)
+gkyl_gyrokinetic_update(gkyl_gyrokinetic_app* app, double dt)
 {
   app->stat.nup += 1;
   struct timespec wst = gkyl_wall_clock();
