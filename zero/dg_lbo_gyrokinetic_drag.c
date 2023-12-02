@@ -13,6 +13,8 @@ gkyl_lbo_gyrokinetic_drag_free(const struct gkyl_ref_count* ref)
 {
   struct gkyl_dg_eqn* base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_lbo_gyrokinetic_drag *lbo_gyrokinetic_drag  = container_of(base, struct dg_lbo_gyrokinetic_drag, eqn);
+  gkyl_gk_geometry_release(lbo_gyrokinetic_drag->gk_geom);
+
 
   if (GKYL_IS_CU_ALLOC(lbo_gyrokinetic_drag->eqn.flags))
     gkyl_cu_free(lbo_gyrokinetic_drag->eqn.on_dev);
@@ -33,7 +35,6 @@ gkyl_lbo_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 #endif
 
   struct dg_lbo_gyrokinetic_drag *lbo_gyrokinetic_drag = container_of(eqn, struct dg_lbo_gyrokinetic_drag, eqn);
-  lbo_gyrokinetic_drag->auxfields.bmag_inv = auxin.bmag_inv;
   lbo_gyrokinetic_drag->auxfields.nuSum = auxin.nuSum;
   lbo_gyrokinetic_drag->auxfields.nuPrimMomsSum = auxin.nuPrimMomsSum;
   lbo_gyrokinetic_drag->auxfields.m2self = auxin.m2self;
@@ -42,11 +43,11 @@ gkyl_lbo_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass, bool use_gpu)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass,  const struct gk_geometry *gk_geom, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(cbasis, pbasis, conf_range, pgrid, mass);
+    return gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(cbasis, pbasis, conf_range, pgrid, mass, gk_geom);
 #endif
   struct dg_lbo_gyrokinetic_drag* lbo_gyrokinetic_drag = gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_drag));
 
@@ -97,7 +98,7 @@ gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   for (int i=0; i<vdim; ++i) assert(lbo_gyrokinetic_drag->boundary_surf[i]);
 
   lbo_gyrokinetic_drag->mass = mass;
-  lbo_gyrokinetic_drag->auxfields.bmag_inv = 0;
+  lbo_gyrokinetic_drag->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   lbo_gyrokinetic_drag->auxfields.nuSum = 0;
   lbo_gyrokinetic_drag->auxfields.nuPrimMomsSum = 0;
   lbo_gyrokinetic_drag->auxfields.m2self = 0;
@@ -115,7 +116,7 @@ gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass, const struct gk_geometry *gk_geom)
 {
   assert(false);
   return 0;

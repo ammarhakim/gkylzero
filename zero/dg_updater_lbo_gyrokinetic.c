@@ -16,13 +16,13 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const struct gkyl_range *conf_range, 
   struct gkyl_dg_lbo_gyrokinetic_drag_auxfields *drag_inp, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields *diff_inp, 
-  double mass, bool use_gpu)
+  double mass, const struct gk_geometry *gk_geom, bool use_gpu)
 {
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
 
-  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(conf_basis, phase_basis, conf_range, phase_grid, mass, use_gpu);
+  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(conf_basis, phase_basis, conf_range, phase_grid, mass, gk_geom, use_gpu);
   gkyl_lbo_gyrokinetic_drag_set_auxfields(up->coll_drag, *drag_inp);
-  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(conf_basis, phase_basis, conf_range, phase_grid, mass, use_gpu); 
+  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(conf_basis, phase_basis, conf_range, phase_grid, mass, gk_geom, use_gpu); 
   gkyl_lbo_gyrokinetic_diff_set_auxfields(up->coll_diff, *diff_inp);
 
   int cdim = conf_basis->ndim, pdim = phase_basis->ndim;

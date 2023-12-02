@@ -102,7 +102,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gky
 
   gyrokinetic->eqn.num_equations = 1;
   // acquire pointer to geometry object
-  struct gk_geometry *geom = gkyl_wv_eqn_acquire(gk_geom);
+  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
   gyrokinetic->gk_geom = geom->on_dev; // this is so the memcpy below has geometry on_dev
 
   gyrokinetic->conf_range = *conf_range;

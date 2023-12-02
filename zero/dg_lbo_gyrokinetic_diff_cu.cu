@@ -14,11 +14,9 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_lbo_gyrokinetic_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *bmag_inv, const struct gkyl_array *nuSum,
-  const struct gkyl_array *nuPrimMomsSum, const struct gkyl_array *m2self)
+  const struct gkyl_array *nuSum, const struct gkyl_array *nuPrimMomsSum, const struct gkyl_array *m2self)
 {
   struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff = container_of(eqn, struct dg_lbo_gyrokinetic_diff, eqn);
-  lbo_gyrokinetic_diff->auxfields.bmag_inv = bmag_inv;
   lbo_gyrokinetic_diff->auxfields.nuSum = nuSum;
   lbo_gyrokinetic_diff->auxfields.nuPrimMomsSum = nuPrimMomsSum;
   lbo_gyrokinetic_diff->auxfields.m2self = m2self;
@@ -29,8 +27,7 @@ void
 gkyl_lbo_gyrokinetic_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxin)
 {
   gkyl_lbo_gyrokinetic_diff_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
-    auxin.bmag_inv->on_dev, auxin.nuSum->on_dev,
-    auxin.nuPrimMomsSum->on_dev, auxin.m2self->on_dev);
+    auxin.nuSum->on_dev, auxin.nuPrimMomsSum->on_dev, auxin.m2self->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and gyrokinetic LBO kernel function
@@ -39,7 +36,6 @@ __global__ static void
 dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order)
 {
-  lbo_gyrokinetic_diff->auxfields.bmag_inv = 0; 
   lbo_gyrokinetic_diff->auxfields.nuSum = 0; 
   lbo_gyrokinetic_diff->auxfields.nuPrimMomsSum = 0; 
   lbo_gyrokinetic_diff->auxfields.m2self = 0; 
@@ -79,7 +75,7 @@ dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_diff *lbo_gyro
 
 struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass)
+  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass, const struct gk_geometry *gk_geom)
 {
   struct dg_lbo_gyrokinetic_diff *lbo_gyrokinetic_diff =
     (struct dg_lbo_gyrokinetic_diff*) gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_diff));
@@ -92,6 +88,9 @@ gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const s
 
   lbo_gyrokinetic_diff->eqn.num_equations = 1;
   lbo_gyrokinetic_diff->mass = mass;
+  // acquire pointer to geometry object
+  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
+  lbo_gyrokinetic_diff->gk_geom = geom->on_dev; // this is so the memcpy below has geometry on_dev
   lbo_gyrokinetic_diff->conf_range = *conf_range;
 
   lbo_gyrokinetic_diff->vparMax = pgrid->upper[cdim];
@@ -113,6 +112,8 @@ gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const s
     cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
 
   lbo_gyrokinetic_diff->eqn.on_dev = &lbo_gyrokinetic_diff_cu->eqn;  
+  // updater should store host pointers
+  lbo_gyrokinetic_diff->gk_geom = geom;
   
   return &lbo_gyrokinetic_diff->eqn;
 }

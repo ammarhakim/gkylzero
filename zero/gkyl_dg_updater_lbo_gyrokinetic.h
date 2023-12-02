@@ -5,6 +5,7 @@
 #include <gkyl_dg_lbo_gyrokinetic_diff.h>
 #include <gkyl_dg_lbo_gyrokinetic_drag.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -34,7 +35,7 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const struct gkyl_range *conf_range, 
   struct gkyl_dg_lbo_gyrokinetic_drag_auxfields *drag_inp, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields *diff_inp, 
-  double mass, bool use_gpu);
+  double mass, const struct gk_geometry *gk_geom, bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
