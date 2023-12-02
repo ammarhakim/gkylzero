@@ -36,13 +36,19 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->weight = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   gkyl_array_shiftc(f->weight, sqrt(2.0), 0); // Sets weight=1.
 
+
   f->epsilon = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
   // Linearized polarization density
+  double polarization_weight = 0.0; 
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    gkyl_array_accumulate_range(f->epsilon, 
-      s->info.mass/(f->info.bmag_fac*f->info.bmag_fac), s->polarization_density, &app->local_ext);
+    polarization_weight += s->info.mass/(f->info.bmag_fac*f->info.bmag_fac);
   }
+  // polarizationWeight  = sum over species of {species.polarizationDensityFactor * species.mass / (bmag at the middle of the simulation domain)^2 }
+  // epsPoisson = polarization weight * (gxx*J, gxy*J, gyy*J)   ; its a weak multiply
+  gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
+  gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
+  gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);
 
   f->kSq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
