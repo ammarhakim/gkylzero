@@ -24,7 +24,7 @@ struct gkyl_correct_maxwellian_gyrokinetic
   struct gkyl_rect_grid grid;
   struct gkyl_basis conf_basis, phase_basis;
 
-  struct gkyl_array *bmag, *jacob_tot;  
+  const struct gk_geometry *gk_geom; // Pointer to geometry struct
   struct gkyl_array *m0_in, *m0, *m0scl;
   struct gkyl_array *m12_in, *m12, *dm12, *ddm12;
   struct gkyl_array *moms;
@@ -38,7 +38,9 @@ struct gkyl_correct_maxwellian_gyrokinetic
 };
 
 gkyl_correct_maxwellian_gyrokinetic *
-gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext, const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass, bool use_gpu)
+gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *conf_basis, 
+  const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext, 
+  double mass, const struct gk_geometry *gk_geom, bool use_gpu)
 {
   gkyl_correct_maxwellian_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
@@ -48,14 +50,13 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const
   up->conf_basis = *conf_basis;
   up->phase_basis = *phase_basis;
 
-  up->bmag = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->jacob_tot = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
+  // acquire pointer to geometry object
   if (use_gpu) {
-    gkyl_array_copy(up->bmag, bmag);
-    gkyl_array_copy(up->jacob_tot, jacob_tot);
-  } else {
-    up->bmag = bmag;
-    up->jacob_tot = jacob_tot;
+    struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
+    up->gk_geom = geom->on_dev;
+  }
+  else {
+    up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   }
 
   // Allocate memory
@@ -70,10 +71,9 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *grid, const
 
   up->proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(grid, conf_basis, phase_basis, conf_basis->num_basis+1, use_gpu); 
 
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_local, mass, "M0", use_gpu);
-  struct gkyl_mom_type *MOMS_t = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_local, mass, "ThreeMoments", use_gpu);
-  gkyl_gyrokinetic_set_bmag(M0_t, bmag);
-  gkyl_gyrokinetic_set_bmag(MOMS_t, bmag);
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_local, mass, gk_geom, "M0", use_gpu);
+  struct gkyl_mom_type *MOMS_t = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_local, mass, gk_geom, "ThreeMoments", use_gpu);
+
   up->m0calc = gkyl_mom_calc_new(grid, M0_t, use_gpu);
   up->momsCalc = gkyl_mom_calc_new(grid, MOMS_t, use_gpu);
 
@@ -166,7 +166,7 @@ void gkyl_correct_maxwellian_gyrokinetic_fix(gkyl_correct_maxwellian_gyrokinetic
     // Project the maxwellian
     gkyl_array_set_offset(up->moms, 1., up->m0, 0*up->conf_basis.num_basis);
     gkyl_array_set_offset(up->moms, 1., up->m12, 1*up->conf_basis.num_basis);
-    gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, up->bmag, up->jacob_tot, up->mass, fM);
+    gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, up->gk_geom->bmag, up->gk_geom->jacobtot, up->mass, fM);
     // Rescale the maxwellian
     (up->use_gpu) ? gkyl_mom_calc_advance_cu(up->m0calc, phase_local, conf_local, fM, up->m0) : gkyl_mom_calc_advance(up->m0calc, phase_local, conf_local, fM, up->m0);
     gkyl_dg_div_op_range(up->weak_divide, up->conf_basis, 0, up->m0scl, 0, up->m0_in, 0, up->m0, conf_local);
@@ -187,8 +187,7 @@ gkyl_correct_maxwellian_gyrokinetic_release(gkyl_correct_maxwellian_gyrokinetic*
     gkyl_cu_free(up->err1_cu);
     gkyl_cu_free(up->err2_cu);
   }
-  gkyl_array_release(up->bmag);
-  gkyl_array_release(up->jacob_tot);
+  gkyl_gk_geometry_release(up->gk_geom);
   gkyl_array_release(up->m0_in);
   gkyl_array_release(up->m0);
   gkyl_array_release(up->m0scl);

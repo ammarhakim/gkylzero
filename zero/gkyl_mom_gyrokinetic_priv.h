@@ -4,6 +4,7 @@
 
 #include <gkyl_util.h>
 #include <gkyl_array.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_mom_type.h>
 #include <gkyl_range.h>
 #include <gkyl_ref_count.h>
@@ -14,7 +15,7 @@ struct mom_type_gyrokinetic {
   struct gkyl_mom_type momt;
   double mass; // mass of species
   struct gkyl_range conf_range; // configuration space range
-  const struct gkyl_array *bmag; // Pointer to magnitude of magnetic field
+  const struct gk_geometry *gk_geom; // Pointer to geometry struct
 };
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -40,7 +41,7 @@ kernel_gyrokinetic_M0_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M0_1x1v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -52,7 +53,7 @@ kernel_gyrokinetic_M0_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M0_1x1v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -64,7 +65,7 @@ kernel_gyrokinetic_M0_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M0_1x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -76,7 +77,7 @@ kernel_gyrokinetic_M0_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M0_1x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -88,7 +89,7 @@ kernel_gyrokinetic_M0_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M0_2x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -100,7 +101,7 @@ kernel_gyrokinetic_M0_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M0_2x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -112,7 +113,7 @@ kernel_gyrokinetic_M0_3x2v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M0_3x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -124,7 +125,7 @@ kernel_gyrokinetic_M0_3x2v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M0_3x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -136,7 +137,7 @@ kernel_gyrokinetic_M1_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M1_1x1v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -148,7 +149,7 @@ kernel_gyrokinetic_M1_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M1_1x1v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -160,7 +161,7 @@ kernel_gyrokinetic_M1_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M1_1x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -172,7 +173,7 @@ kernel_gyrokinetic_M1_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M1_1x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -184,7 +185,7 @@ kernel_gyrokinetic_M1_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M1_2x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -196,7 +197,7 @@ kernel_gyrokinetic_M1_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M1_2x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -208,7 +209,7 @@ kernel_gyrokinetic_M1_3x2v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M1_3x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -220,7 +221,7 @@ kernel_gyrokinetic_M1_3x2v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M1_3x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -232,7 +233,7 @@ kernel_gyrokinetic_M2_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_1x1v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -244,7 +245,7 @@ kernel_gyrokinetic_M2_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_1x1v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -256,7 +257,7 @@ kernel_gyrokinetic_M2_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_1x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -268,7 +269,7 @@ kernel_gyrokinetic_M2_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_1x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -280,7 +281,7 @@ kernel_gyrokinetic_M2_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_2x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -292,7 +293,7 @@ kernel_gyrokinetic_M2_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_2x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -304,7 +305,7 @@ kernel_gyrokinetic_M2_3x2v_ser_p1(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_3x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -316,7 +317,7 @@ kernel_gyrokinetic_M2_3x2v_ser_p2(const struct gkyl_mom_type *momt, const double
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_3x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -328,7 +329,7 @@ kernel_gyrokinetic_M2_par_1x1v_ser_p1(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_par_1x1v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -340,7 +341,7 @@ kernel_gyrokinetic_M2_par_1x1v_ser_p2(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_par_1x1v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -352,7 +353,7 @@ kernel_gyrokinetic_M2_par_1x2v_ser_p1(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_par_1x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -364,7 +365,7 @@ kernel_gyrokinetic_M2_par_1x2v_ser_p2(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_par_1x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -376,7 +377,7 @@ kernel_gyrokinetic_M2_par_2x2v_ser_p1(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_par_2x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -388,7 +389,7 @@ kernel_gyrokinetic_M2_par_2x2v_ser_p2(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_par_2x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -400,7 +401,7 @@ kernel_gyrokinetic_M2_par_3x2v_ser_p1(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_par_3x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -412,7 +413,7 @@ kernel_gyrokinetic_M2_par_3x2v_ser_p2(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_par_3x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -424,7 +425,7 @@ kernel_gyrokinetic_M2_perp_1x2v_ser_p1(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_perp_1x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -436,7 +437,7 @@ kernel_gyrokinetic_M2_perp_1x2v_ser_p2(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_perp_1x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -448,7 +449,7 @@ kernel_gyrokinetic_M2_perp_2x2v_ser_p1(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_perp_2x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -460,7 +461,7 @@ kernel_gyrokinetic_M2_perp_2x2v_ser_p2(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_perp_2x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -472,7 +473,7 @@ kernel_gyrokinetic_M2_perp_3x2v_ser_p1(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_perp_3x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -484,7 +485,7 @@ kernel_gyrokinetic_M2_perp_3x2v_ser_p2(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M2_perp_3x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -496,7 +497,7 @@ kernel_gyrokinetic_M3_par_1x1v_ser_p1(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_par_1x1v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -508,7 +509,7 @@ kernel_gyrokinetic_M3_par_1x1v_ser_p2(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_par_1x1v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -520,7 +521,7 @@ kernel_gyrokinetic_M3_par_1x2v_ser_p1(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_par_1x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -532,7 +533,7 @@ kernel_gyrokinetic_M3_par_1x2v_ser_p2(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_par_1x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -544,7 +545,7 @@ kernel_gyrokinetic_M3_par_2x2v_ser_p1(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_par_2x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -556,7 +557,7 @@ kernel_gyrokinetic_M3_par_2x2v_ser_p2(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_par_2x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -568,7 +569,7 @@ kernel_gyrokinetic_M3_par_3x2v_ser_p1(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_par_3x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -580,7 +581,7 @@ kernel_gyrokinetic_M3_par_3x2v_ser_p2(const struct gkyl_mom_type *momt, const do
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_par_3x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -592,7 +593,7 @@ kernel_gyrokinetic_M3_perp_1x2v_ser_p1(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_perp_1x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -604,7 +605,7 @@ kernel_gyrokinetic_M3_perp_1x2v_ser_p2(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_perp_1x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -616,7 +617,7 @@ kernel_gyrokinetic_M3_perp_2x2v_ser_p1(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_perp_2x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -628,7 +629,7 @@ kernel_gyrokinetic_M3_perp_2x2v_ser_p2(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_perp_2x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -640,7 +641,7 @@ kernel_gyrokinetic_M3_perp_3x2v_ser_p1(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_perp_3x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -652,7 +653,7 @@ kernel_gyrokinetic_M3_perp_3x2v_ser_p2(const struct gkyl_mom_type *momt, const d
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_M3_perp_3x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -664,7 +665,7 @@ kernel_gyrokinetic_three_moments_1x1v_ser_p1(const struct gkyl_mom_type *momt, c
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_three_moments_1x1v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -676,7 +677,7 @@ kernel_gyrokinetic_three_moments_1x1v_ser_p2(const struct gkyl_mom_type *momt, c
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_three_moments_1x1v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -688,7 +689,7 @@ kernel_gyrokinetic_three_moments_1x2v_ser_p1(const struct gkyl_mom_type *momt, c
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_three_moments_1x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -700,7 +701,7 @@ kernel_gyrokinetic_three_moments_1x2v_ser_p2(const struct gkyl_mom_type *momt, c
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_three_moments_1x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -712,7 +713,7 @@ kernel_gyrokinetic_three_moments_2x2v_ser_p1(const struct gkyl_mom_type *momt, c
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_three_moments_2x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -724,7 +725,7 @@ kernel_gyrokinetic_three_moments_2x2v_ser_p2(const struct gkyl_mom_type *momt, c
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_three_moments_2x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);  
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);  
 }
 
 GKYL_CU_DH
@@ -736,7 +737,7 @@ kernel_gyrokinetic_three_moments_3x2v_ser_p1(const struct gkyl_mom_type *momt, c
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_three_moments_3x2v_ser_p1(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);
 }
 
 GKYL_CU_DH
@@ -748,7 +749,7 @@ kernel_gyrokinetic_three_moments_3x2v_ser_p2(const struct gkyl_mom_type *momt, c
 
   long cidx = gkyl_range_idx(&mom_gk->conf_range, idx);
   return gyrokinetic_three_moments_3x2v_ser_p2(xc, dx, idx, mom_gk->mass,
-    (const double*) gkyl_array_cfetch(mom_gk->bmag, cidx), f, out);
+    (const double*) gkyl_array_cfetch(mom_gk->gk_geom->bmag, cidx), f, out);
 }
 
 //
