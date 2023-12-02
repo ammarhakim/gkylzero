@@ -46,7 +46,14 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_free(up);
 }
 
-gkyl_gk_geometry* gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx){
+struct gkyl_gk_geometry*
+gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu){
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_wave_geom_cu_dev_new(grid, range, mapc2p, ctx);
+  } 
+#endif 
 
   struct gkyl_gk_geometry *up = gkyl_malloc(sizeof(*up));
   up->basis = basis;

@@ -1,3 +1,5 @@
+#pragme once
+
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
@@ -33,6 +35,8 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 
   gkyl_grid_sub_array_write(&grid, nrange, nodes, nm);
 }
+
+void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
 
 void  gkyl_gk_geometry_advance(struct gkyl_gk_geometry* up, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx){
   //First just do bmag
