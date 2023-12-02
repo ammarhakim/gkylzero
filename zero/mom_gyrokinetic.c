@@ -11,29 +11,23 @@
 void
 gkyl_gk_mom_free(const struct gkyl_ref_count *ref)
 {
-  struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
-  if (GKYL_IS_CU_ALLOC(momt->flags))
-    gkyl_cu_free(momt->on_dev);
-  gkyl_free(momt);
-}
+  struct gkyl_mom_type *base = container_of(ref, struct gkyl_mom_type, ref_count);
+  struct mom_type_gyrokinetic *mom_gk = container_of(base, struct mom_type_gyrokinetic, momt);
+  gkyl_gk_geometry_release(mom_gk->gk_geom);
 
-void
-gkyl_gyrokinetic_set_bmag(const struct gkyl_mom_type *momt, const struct gkyl_array *bmag)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(bmag)) {
-    gkyl_gyrokinetic_set_bmag_cu(momt->on_dev, bmag);
-    return;
+  if (gkyl_mom_type_is_cu_dev(base)) {
+    // free inner on_dev object
+    struct mom_type_gyrokinetic *mom_gk_cu = container_of(base->on_dev, struct mom_type_gyrokinetic, momt);
+    gkyl_cu_free(mom_gk_cu);
   }
-#endif
 
-  struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
-  mom_gyrokinetic->bmag = bmag;
+  gkyl_free(mom_gk);
 }
 
 struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, double mass, const char *mom, bool use_gpu)
+  const struct gkyl_range* conf_range, double mass, const struct gk_geometry *gk_geom, 
+  const char *mom, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -136,7 +130,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   }
 
   mom_gk->mass = mass;
-  mom_gk->bmag = 0;  
+  mom_gk->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   mom_gk->conf_range = *conf_range;
   
   mom_gk->momt.flags = 0;
@@ -152,7 +146,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
 struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, double mass, const char *mom)
+  const struct gkyl_range* conf_range, double mass, const struct gk_geometry *gk_geom, const char *mom)
 {
   assert(false);
   return 0;

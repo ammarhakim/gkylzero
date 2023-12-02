@@ -95,24 +95,6 @@ gk_num_mom(int vdim, int mom_id)
   return num_mom;
 }
 
-// CUDA kernel to set pointer to bmag
-// This is required because moment type object lives on device,
-// and so its members cannot be modified without a full __global__ kernel on device.
-__global__
-static void
-gkyl_gyrokinetic_set_bmag_cu_kernel(const struct gkyl_mom_type *momt, const struct gkyl_array *bmag)
-{
-  struct mom_type_gyrokinetic *mom_gyrokinetic = container_of(momt, struct mom_type_gyrokinetic, momt);
-  mom_gyrokinetic->bmag = bmag;
-}
-
-// Host-side wrapper for set_bmag_cu_kernel
-void
-gkyl_gyrokinetic_set_bmag_cu(const struct gkyl_mom_type *momt, const struct gkyl_array *bmag)
-{
-  gkyl_gyrokinetic_set_bmag_cu_kernel<<<1,1>>>(momt, bmag->on_dev);
-}
-
 __global__
 static void
 set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
@@ -187,7 +169,7 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
 
 struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, double mass, const char *mom)
+  const struct gkyl_range* conf_range, double mass, const struct gk_geometry *gk_geom, const char *mom)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -211,6 +193,9 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   mom_gk->momt.num_mom = gk_num_mom(vdim, mom_id); // number of moments
 
   mom_gk->mass = mass;
+  // acquire pointer to geometry object
+  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
+  mom_gk->gk_geom = geom->on_dev; // this is so the memcpy below has geometry on_dev
   mom_gk->conf_range = *conf_range;
 
   mom_gk->momt.flags = 0;
@@ -228,6 +213,9 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_gk->momt.on_dev = &mom_gk_cu->momt;
+
+  // updater should store host pointers
+  mom_gk->gk_geom = geom; 
   
   return &mom_gk->momt;
 }
