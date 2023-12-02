@@ -1,4 +1,4 @@
-#pragme once
+#pragma once
 
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
@@ -16,8 +16,6 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_derived_geo.h>
-
-
 
 // write out nodal coordinates 
 static void
@@ -38,7 +36,9 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 
 void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
 
-void  gkyl_gk_geometry_advance(struct gkyl_gk_geometry* up, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx){
+void gkyl_gk_geometry_advance(struct gkyl_gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
+  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx) 
+{
   //First just do bmag
   gkyl_eval_on_nodes *eval_bmag = gkyl_eval_on_nodes_new(up->grid, up->basis, 1, bmag_func, bmag_ctx);
   gkyl_eval_on_nodes_advance(eval_bmag, 0.0, up->range, up->bmag);
@@ -61,20 +61,20 @@ void  gkyl_gk_geometry_advance(struct gkyl_gk_geometry* up, evalf_t mapc2p_func,
   double delta_alpha = dalpha*1e-4;
   double delta_psi = dpsi*1e-6;
   double delta_theta = dtheta*1e-4;
-  up->dzc[0] = delta_psi;
-  up->dzc[1] = delta_alpha;
-  up->dzc[2] = delta_theta;
+  dzc[0] = delta_psi;
+  dzc[1] = delta_alpha;
+  dzc[2] = delta_theta;
   int modifiers[5] = {0, -1, 1, -2, 2};
                                 
   int cidx[3] = { 0 };
-  for(int ia=up->nrange->lower[AL_IDX]; ia<=up->nrange->upper[AL_IDX]; ++ia){
+  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     for(int ia_delta = 0; ia_delta < 5; ia_delta++){ // should be <5
-      if(ia == up->nrange->lower[AL_IDX]){
+      if(ia == nrange->lower[AL_IDX]){
         if(ia_delta == 1 || ia_delta == 3)
           continue; // want to use one sided stencils at edge
       }
-      else if(ia == up->nrange->upper[AL_IDX]){
+      else if(ia == nrange->upper[AL_IDX]){
           if(ia_delta == 2 || ia_delta == 4)
             continue; // want to use one sided stencils at edge
       }
@@ -84,16 +84,16 @@ void  gkyl_gk_geometry_advance(struct gkyl_gk_geometry* up, evalf_t mapc2p_func,
       }
       double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
 
-      for (int ip=up->nrange->lower[PH_IDX]; ip<=up->nrange->upper[PH_IDX]; ++ip) {
+      for (int ip=nrange->lower[PH_IDX]; ip<=nrange->upper[PH_IDX]; ++ip) {
         int ip_delta_max = 5;// should be 5
         if(ia_delta != 0)
           ip_delta_max = 1;
         for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
-          if(ip == up->nrange->lower[PH_IDX]){
+          if(ip == nrange->lower[PH_IDX]){
             if(ip_delta == 1 || ip_delta == 3)
               continue; // want to use one sided stencils at edge
           }
-          else if(ip == up->nrange->upper[PH_IDX]){
+          else if(ip == nrange->upper[PH_IDX]){
             if(ip_delta == 2 || ip_delta == 4)
               continue; // want to use one sided stencils at edge
           }
@@ -104,16 +104,16 @@ void  gkyl_gk_geometry_advance(struct gkyl_gk_geometry* up, evalf_t mapc2p_func,
           double psi_curr = phi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
           cidx[PH_IDX] = ip;
           // set node coordinates
-          for (int it=up->nrange->lower[TH_IDX]; it<=up->nrange->upper[TH_IDX]; ++it) {
+          for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
             int it_delta_max = 5; // should be 5
             if(ia_delta != 0 || ip_delta != 0 )
               it_delta_max = 1;
             for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
-              if(it == up->nrange->lower[TH_IDX]){
+              if(it == nrange->lower[TH_IDX]){
                 if(it_delta == 1 || it_delta == 3)
                   continue; // want to use one sided stencils at edge
               }
-              else if(it == up->nrange->upper[TH_IDX]){
+              else if(it == nrange->upper[TH_IDX]){
                 if(it_delta == 2 || it_delta == 4)
                   continue; // want to use one sided stencils at edge
               }
@@ -131,8 +131,8 @@ void  gkyl_gk_geometry_advance(struct gkyl_gk_geometry* up, evalf_t mapc2p_func,
               if (it_delta != 0)
                 lidx = 27 + 3*(it_delta-1);
 
-              double *mc2p_fd_n = (double *) gkyl_array_fetch(up->mc2p_nodal_fd, gkyl_range_idx(up->nrange, cidx));
-              double *mc2p_n = (double *) gkyl_array_fetch(up->mc2p_nodal, gkyl_range_idx(up->nrange, cidx));
+              double *mc2p_fd_n = (double *) gkyl_array_fetch(up->mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
+              double *mc2p_n = (double *) gkyl_array_fetch(up->mc2p_nodal, gkyl_range_idx(nrange, cidx));
 
               double xyz[3] = {psi_curr, alpha_curr, theta_curr};
               double XYZ[3] = {0.};
@@ -154,16 +154,16 @@ void  gkyl_gk_geometry_advance(struct gkyl_gk_geometry* up, evalf_t mapc2p_func,
     }
   }
 
-  gkyl_nodal_ops_n2m(up->basis, up->grid, up->nrange, up->range, 3, up->mc2p_nodal, up->mc2p);
+  gkyl_nodal_ops_n2m(up->basis, up->grid, nrange, up->range, 3, up->mc2p_nodal, up->mc2p);
 
   char str1[50] = "xyz.gkyl";
   char str2[50] = "allxyz.gkyl";
-  write_nodal_coordinates(str1, up->nrange, up->mc2p_nodal);
-  write_nodal_coordinates(str2, up->nrange, up->mc2p_nodal_fd);
+  write_nodal_coordinates(str1, nrange, up->mc2p_nodal);
+  write_nodal_coordinates(str2, nrange, up->mc2p_nodal_fd);
 
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(up->basis, up->grid, false);
-  gkyl_calc_metric_advance(mcalc, up->nrange, up->mc2p_nodal_fd, up->dzc, up->g_ij, up->range);
+  gkyl_calc_metric_advance(mcalc, nrange, up->mc2p_nodal_fd, dzc, up->g_ij, up->range);
 
   // calculate the derived geometric quantities
   gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(up->basis, up->grid, false);

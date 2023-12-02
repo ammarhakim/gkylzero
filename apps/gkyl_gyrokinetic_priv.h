@@ -34,6 +34,7 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_fem_poisson_perp.h>
 #include <gkyl_ghost_surf_calc.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
@@ -285,15 +286,20 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
 
   bool has_mapc2p; // flag to indicate if we have mapc2p
-  void *c2p_ctx;   // context for mapc2p function
+  void *c2p_ctx; // context for mapc2p function
   // pointer to mapc2p function
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
-  
+  void *bmag_ctx; // context for bmag function
+  // pointer to bmag function
+  void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
+
   // pointers to basis on device (these point to host structs if not
   // on GPU)
   struct {
     struct gkyl_basis *basis, *confBasis;
   } basis_on_dev;
+
+  struct gkyl_gk_geometry *gk_geom;
 
   struct gkyl_array *bmag; 
   struct gkyl_array *bmag_inv; 

@@ -13,7 +13,8 @@ extern "C" {
 
 // CPU interface to create and track a GPU object
 struct gkyl_gk_geometry*
-gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu)
+gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu)
 {
   struct gkyl_gk_geometry *up =(struct gkyl_gk_geometry*) gkyl_malloc(sizeof(struct gkyl_gk_geometry));
 
@@ -21,8 +22,8 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   up->range = range;
   up->range_ext = range_ext;
   up->grid = grid;
-  up->nrange = gkyl_malloc(sizeof(struct gkyl_range));
-  up->dzc = gkyl_malloc(3*sizeof(double));
+  struct gkyl_range nrange;
+  double dzc[3] = {0.0};
 
   int poly_order = basis->poly_order;
   int nodes[3] = { 1, 1, 1 };
@@ -35,13 +36,12 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
       nodes[d] = 2*(grid->cells[d]) + 1;
   }
 
-  gkyl_range_init_from_shape(up->nrange, up->grid->ndim, nodes);
-
+  gkyl_range_init_from_shape(&nrange, up->grid->ndim, nodes);
 
   // Initialize the geometry object on the host side
   // mapc2p arrays, bmag, metrics and derived geo quantities
-  struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim*13, up->nrange->volume);
-  struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim, up->nrange->volume);
+  struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim*13, nrange.volume);
+  struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim, nrange.volume);
   struct gkyl_array* mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim, up->range_ext->volume);
   struct gkyl_array* bmag = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array* g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis->num_basis, up->range_ext->volume);
@@ -57,12 +57,11 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   struct gkyl_array* gxxj = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array* gxyj = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array* gyyj = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
-  gkyl_gk_geometry_advance(up, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
-
+  gkyl_gk_geometry_advance(up, &nrange, dzc, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
 
   // Copy the host-side initialized geometry object to the device
-  struct gkyl_array *mc2p_nodal_fd_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim*13, up->nrange->volume);
-  struct gkyl_array *mc2p_nodal_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim, up->nrange->volume);
+  struct gkyl_array *mc2p_nodal_fd_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim*13, nrange.volume);
+  struct gkyl_array *mc2p_nodal_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim, nrange.volume);
   struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim, up->range_ext->volume);
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis->num_basis, up->range_ext->volume);
@@ -143,7 +142,7 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_gk_geometry), GKYL_CU_MEMCPY_H2D);
   up->on_dev = up_cu;
 
-  //wg->geom = geom_dev; // geometry object should store host pointer
+  // geometry object should store host pointer
   up->mc2p_nodal_fd = mc2p_nodal_fd_dev;
   up->mc2p_nodal  = mc2p_nodal_dev ;
   up->mc2p  = mc2p_dev;

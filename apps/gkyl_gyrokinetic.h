@@ -105,6 +105,10 @@ struct gkyl_gk {
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
+  void *bmag_ctx; // context for bmag function
+  // pointer to bmag function
+  void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
+
   double cfl_frac; // CFL fraction to use (default 1.0)
 
   bool use_gpu; // Flag to indicate if solver should use GPUs

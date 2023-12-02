@@ -146,31 +146,24 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
 
   // Configuration space geometry initialization
-  // Note: *only* uses a p=1 DG representation of the geometry (JJ: 11/24/23)
   app->c2p_ctx = app->mapc2p = 0;  
+  app->bmag_ctx = app->bmag_func = 0;  
   app->has_mapc2p = gk->mapc2p ? true : false;
 
   if (app->has_mapc2p) {
     // initialize computational to physical space mapping
     app->c2p_ctx = gk->c2p_ctx;
     app->mapc2p = gk->mapc2p;
+    app->bmag_ctx = gk->bmag_ctx;
+    app->bmag_func = gk->bmag_func;
 
-    // we project mapc2p on p=1 basis functions
-    struct gkyl_basis basis;
-    gkyl_cart_modal_tensor(&basis, cdim, 1);
-
-    // initialize DG field representing mapping
-    struct gkyl_array *c2p = mkarr(false, cdim*basis.num_basis, app->local_ext.volume);
-    gkyl_eval_on_nodes *ev_c2p = gkyl_eval_on_nodes_new(&app->grid, &basis, cdim, gk->mapc2p, gk->c2p_ctx);
-    gkyl_eval_on_nodes_advance(ev_c2p, 0.0, &app->local_ext, c2p);
+    app->gk_geom = gkyl_gk_geometry_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
+      app->mapc2p, app->c2p_ctx, app->bmag_func,  app->bmag_ctx, app->use_gpu);
 
     // write DG projection of mapc2p to file
     cstr fileNm = cstr_from_fmt("%s-mapc2p.gkyl", app->name);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, c2p, fileNm.str);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->mc2p, fileNm.str);
     cstr_drop(&fileNm);
-
-    gkyl_array_release(c2p);
-    gkyl_eval_on_nodes_release(ev_c2p);
   }
 
   // Initialize geometry fields
@@ -888,6 +881,7 @@ gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app* app, FILE *fp, const char 
 void
 gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 {
+  gkyl_gk_geometry_release(app->gk_geom);
   gkyl_array_release(app->bmag);
   gkyl_array_release(app->jacobtot_inv);
   gkyl_array_release(app->cmag);

@@ -24,8 +24,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->mc2p_nodal_fd);
   gkyl_array_release(up->mc2p_nodal);
   gkyl_array_release(up->mc2p);
-  gkyl_free(up->nrange);
-  gkyl_free(up->dzc);
+
   gkyl_array_release(up->bmag);
   gkyl_array_release(up->g_ij);
   gkyl_array_release(up->jacobgeo);
@@ -47,11 +46,12 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 }
 
 struct gkyl_gk_geometry*
-gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu){
-
+gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu)
+{
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_wave_geom_cu_dev_new(grid, range, mapc2p, ctx);
+    return gkyl_gk_geometry_new_cu_dev_new(grid, range, range_ext, basis, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
   } 
 #endif 
 
@@ -60,8 +60,8 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   up->range = range;
   up->range_ext = range_ext;
   up->grid = grid;
-  up->nrange = gkyl_malloc(sizeof(struct gkyl_range));
-  up->dzc = gkyl_malloc(3*sizeof(double));
+  struct gkyl_range nrange;
+  double dzc[3] = {0.0};
 
   int poly_order = basis->poly_order;
   int nodes[3] = { 1, 1, 1 };
@@ -74,9 +74,9 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
       nodes[d] = 2*(grid->cells[d]) + 1;
   }
 
-  gkyl_range_init_from_shape(up->nrange, up->grid->ndim, nodes);
-  up->mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim*13, up->nrange->volume);
-  up->mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim, up->nrange->volume);
+  gkyl_range_init_from_shape(&nrange, up->grid->ndim, nodes);
+  up->mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim*13, nrange.volume);
+  up->mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim, up->range_ext->volume);
 
   // bmag, metrics and derived geo quantities
@@ -95,8 +95,7 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
 
-
-  gkyl_gk_geometry_advance(up, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
+  gkyl_gk_geometry_advance(up, &nrange, dzc, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
