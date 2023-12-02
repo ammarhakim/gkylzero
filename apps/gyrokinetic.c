@@ -173,7 +173,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->cmag = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   app->b_i = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);  
 
-  app->field = gk_field_new(gk, app);
 
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
@@ -182,6 +181,9 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   // to access species name from gk_species_init
   for (int i=0; i<ns; ++i)
     app->species[i].info = gk->species[i];
+
+
+  app->field = gk_field_new(gk, app);
 
   // initialize each species
   for (int i=0; i<ns; ++i) 

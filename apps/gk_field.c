@@ -44,8 +44,6 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     struct gk_species *s = &app->species[i];
     polarization_weight += s->info.mass/(f->info.bmag_fac*f->info.bmag_fac);
   }
-  // polarizationWeight  = sum over species of {species.polarizationDensityFactor * species.mass / (bmag at the middle of the simulation domain)^2 }
-  // epsPoisson = polarization weight * (gxx*J, gxy*J, gyy*J)   ; its a weak multiply
   gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
   gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
   gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);

@@ -176,6 +176,13 @@ mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   xp[0] = r*cos(th); xp[1] = r*sin(th); xp[2] = z;
 }
 
+void
+bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_lapd_ctx *gc = ctx;
+  fout[0] = gc->B0;
+}
+
 struct gk_lapd_ctx
 create_ctx(void)
 {
@@ -373,6 +380,9 @@ main(int argc, char **argv)
 
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = &ctx,
+
+    .bmag_func = bmag_func, // mapping of computational to physical space
+    .bmag_ctx = &ctx,
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
