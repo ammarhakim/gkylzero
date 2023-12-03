@@ -64,6 +64,13 @@ struct gkyl_gyrokinetic_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
+  // flag to indicate if IC is maxwellian projection
+  bool is_maxwellian;
+  // pointers to initialization functions for gk maxwellian projection
+  void (*init_density)(double t, const double *xn, double *fout, void *ctx);
+  void (*init_vtsq)(double t, const double *xn, double *fout, void *ctx);
+  void (*init_upar)(double t, const double *xn, double *fout, void *ctx);
+
   double polarization_density;
 
   int num_diag_moments; // number of diagnostic moments

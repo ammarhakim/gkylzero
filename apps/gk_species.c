@@ -213,12 +213,77 @@ void
 gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, double t0)
 {
   int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj;
-  proj = gkyl_proj_on_basis_new(&species->grid, &app->basis,
-    poly_order+1, 1, species->info.init, species->info.ctx);
+  if (species->info.is_maxwellian){
+    // project the lab moms (just M0)
+    // create moment arrays
+    struct gkyl_array *m0, *m1, *m2;
+    m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    // set density to 1 first, rescale later
+    gkyl_array_shiftc(m0, sqrt(2.0), 0); 
+    m1 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    m2 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+      poly_order+1, 1, species->info.init_density, species->info.ctx);
+    // proj_maxwellian expects the moments as a single array.
+    //struct gkyl_array *moms = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+    //gkyl_array_set_offset(moms, 1., m0, 0*app->confBasis.num_basis);
+    //gkyl_array_set_offset(moms, 1., m1, 1*app->confBasis.num_basis);
+    //gkyl_array_set_offset(moms, 1., m2, 2*app->confBasis.num_basis);
 
-  gkyl_proj_on_basis_advance(proj, t0, &species->local, species->f_host);
-  gkyl_proj_on_basis_release(proj);    
+    // now perform the maxwellian projection using primitive moments.
+    struct gkyl_array *udrift, *vtsq;
+    udrift = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    vtsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+      poly_order+1, app->vdim, species->info.init_upar, species->info.ctx);
+    gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+      poly_order+1, 1, species->info.init_vtsq, species->info.ctx);
+    gkyl_proj_on_basis_advance(proj_udrift, 0.0, &app->local, udrift);
+    gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &app->local, vtsq);
+    // proj_maxwellian expects the primitive moments as a single array.
+    struct gkyl_array *prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_set_offset(prim_moms, 1., udrift, 0*app->confBasis.num_basis);
+    gkyl_array_set_offset(prim_moms, 1., vtsq  , 1*app->confBasis.num_basis);
+
+    gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&app->grid,
+        &app->confBasis, &app->basis, poly_order+1, app->use_gpu);
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &species->local, &app->local, m0, prim_moms,
+        app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, species->f_host);
+
+    // scale the density
+    gk_species_moment_calc(&species->m0, species->local, app->local, species->f_host); // actual density
+    struct gkyl_array *m0e = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_proj_on_basis_advance(proj_m0, 0.0, &app->local, m0e); // desired density
+    struct gkyl_array *m0mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    //struct gkyl_array *mem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_dg_bin_op_mem *mem  = gkyl_dg_bin_op_mem_new(app->local_ext.volume, app->confBasis.num_basis);
+    gkyl_dg_div_op(mem, app->confBasis, 0, m0mod, 0, m0e, 0, m0);
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->f_host, 
+        m0mod, species->f_host, &app->local_ext, &species->local_ext);
+
+    // multiply by jacobeo
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->f_host, 
+        app->gk_geom->jacobgeo, species->f_host, &app->local_ext, &species->local_ext);
+
+    gkyl_array_release(m0mod); gkyl_array_release(m0e);
+    gkyl_dg_bin_op_mem_release(mem);
+    gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
+    //gkyl_array_release(moms);
+    gkyl_proj_on_basis_release(proj_m0);
+    gkyl_array_release(udrift); gkyl_array_release(vtsq);
+    gkyl_array_release(prim_moms);
+    gkyl_proj_on_basis_release(proj_udrift);
+    gkyl_proj_on_basis_release(proj_vtsq);
+    gkyl_proj_maxwellian_on_basis_release(proj_max);
+  }
+  else{
+    gkyl_proj_on_basis *proj;
+    proj = gkyl_proj_on_basis_new(&species->grid, &app->basis,
+      poly_order+1, 1, species->info.init, species->info.ctx);
+
+    gkyl_proj_on_basis_advance(proj, t0, &species->local, species->f_host);
+    gkyl_proj_on_basis_release(proj);    
+  }
 
   if (app->use_gpu) // note: f_host is same as f when not on GPUs
     gkyl_array_copy(species->f, species->f_host);
