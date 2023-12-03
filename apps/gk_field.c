@@ -145,7 +145,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
 
-    gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
+    gk_species_moment_calc(app, &s->m0, s->local, app->local, fin[i]);
     gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
   } 
 }
