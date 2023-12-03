@@ -74,25 +74,25 @@ eval_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 }
 
 void
-eval_vtsq_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_lapd_ctx *app = ctx;
   double r = xn[0], th = xn[1], z = xn[2];
   double massElc = app->massElc;
   double Lperp = app->Lperp;
   double T = app->Te*5.7/6.0*profileA(r, 1.0/5.0, Lperp);
-  fout[0] = T/massElc;
+  fout[0] = T;
 }
 
 void
-eval_vtsq_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_lapd_ctx *app = ctx;
   double r = xn[0], th = xn[1], z = xn[2];
   double massIon = app->massIon;
   double Lperp = app->Lperp;
   double T = app->Ti;
-  fout[0] = T/massIon;
+  fout[0] = T;
 
 }
 
@@ -351,7 +351,7 @@ main(int argc, char **argv)
     .init = evalDistFuncElc,
     .is_maxwellian = true,
     .init_density = eval_density,
-    .init_vtsq = eval_vtsq_elc,
+    .init_temp = eval_temp_elc,
     .init_upar= eval_upar,
 
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_REFLECT },
@@ -388,7 +388,7 @@ main(int argc, char **argv)
     .init = evalDistFuncIon,
     .is_maxwellian = true,
     .init_density = eval_density,
-    .init_vtsq = eval_vtsq_ion,
+    .init_temp = eval_temp_ion,
     .init_upar = eval_upar,
 
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_REFLECT },

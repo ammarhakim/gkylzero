@@ -225,9 +225,10 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
     gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       poly_order+1, app->vdim, species->info.init_upar, species->info.ctx);
     gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.init_vtsq, species->info.ctx);
+      poly_order+1, 1, species->info.init_temp, species->info.ctx);
     gkyl_proj_on_basis_advance(proj_udrift, 0.0, &app->local, udrift);
     gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &app->local, vtsq);
+    gkyl_array_scale(vtsq, 1/species->info.mass);
     // proj_maxwellian expects the primitive moments as a single array.
     struct gkyl_array *prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     gkyl_array_set_offset(prim_moms, 1., udrift, 0*app->confBasis.num_basis);
