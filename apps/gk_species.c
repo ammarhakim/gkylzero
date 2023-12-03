@@ -409,7 +409,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   for (int i=0; i<s->info.num_diag_moments; ++i)
     gk_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
-  gk_species_moment_release(app, &s->integ_moms); 
+  //gk_species_moment_release(app, &s->integ_moms); 
 
   gkyl_array_release(s->L2_f);
   gkyl_dynvec_release(s->integ_L2_f);
