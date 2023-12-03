@@ -91,9 +91,17 @@ gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl
   ginp->cgrid = up->grid;
   ginp->cbasis = up->basis;
   struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(inp);
+// calculate bmag on a uniform grid
   // calculate mapc2p
-  gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, 
-    mc2p_nodal_fd, mc2p_nodal, mc2p);
+  gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, mc2p, false);
+  // calculate bmag
+  // gkyl_calc_bmag *bcalculator_uniform = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
+  // gkyl_calc_bmag_advance(bcalculator_uniform, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, mc2p, false);
+  // Create a function to feed into mirror_geo_calc for bmag
+  
+  // calculate mapc2p
+  // gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, gkyl_calc_bmag_comp, bcalculator_uniform, mc2p_nodal_fd, mc2p_nodal, mc2p, true);
+  gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, mc2p, true);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
   gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, mc2p, false);

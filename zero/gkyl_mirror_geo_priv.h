@@ -353,3 +353,7 @@ void mirror_find_endpoints(struct gkyl_mirror_geo_grid_inp* inp, struct gkyl_mir
 */
 void mirror_set_ridders(struct gkyl_mirror_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double* rclose, double *ridders_min, double* ridders_max);
 
+/*
+ * Provide the non-uniform mapping from computational space to physical space
+*/
+double map_theta_to_z(const double uniform_coordinate, const double z_min, const double z_max, const double z_m);
