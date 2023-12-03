@@ -72,7 +72,7 @@ evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
   double perturb = 2e-3*(1.0 - 0.5*gkyl_pcg32_rand_double(&rng));
 
   double n = n0*profileA(r, 1.0/20.0, Lperp)*(1.0 + perturb);
-  double T = Te*profileA(r, 1.0/5.0, Lperp);
+  double T = 5.7*profileA(r, 1.0/5.0, Lperp);
 
   double fv = maxwellian(n, vpar, 0.0, mu, bmag, T, massElc);
   fout[0] = fv;
@@ -194,7 +194,7 @@ create_ctx(void)
   double qi = eV; // ion charge
   double qe = -eV; // electron charge
 
-  double Te = 5.7*eV;
+  double Te = 6.0*eV;
   double Ti = 1.0*eV;
   double B0 = 0.0398; // Magnetic field magnitude in Tesla
   double n0 = 2.0e18; // Particle density in 1/m^3
