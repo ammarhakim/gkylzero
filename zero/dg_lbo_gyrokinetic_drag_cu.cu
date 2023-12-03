@@ -113,7 +113,7 @@ gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const s
 
   lbo_gyrokinetic_drag->eqn.on_dev = &lbo_gyrokinetic_drag_cu->eqn;  
   // updater should store host pointers
-  lbo_gyrokinetic_diff->gk_geom = geom;
+  lbo_gyrokinetic_drag->gk_geom = geom;
   
   return &lbo_gyrokinetic_drag->eqn;
 }

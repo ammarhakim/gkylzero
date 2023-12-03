@@ -27,7 +27,7 @@ gkyl_lbo_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 {
 
 #ifdef GKYL_HAVE_CUDA
- if (gkyl_array_is_cu_dev(auxin.bmag_inv) && gkyl_array_is_cu_dev(auxin.nuSum) &&
+ if (gkyl_array_is_cu_dev(auxin.nuSum) &&
      gkyl_array_is_cu_dev(auxin.nuPrimMomsSum) && gkyl_array_is_cu_dev(auxin.m2self)) {
    gkyl_lbo_gyrokinetic_drag_set_auxfields_cu(eqn->on_dev, auxin);
    return;
