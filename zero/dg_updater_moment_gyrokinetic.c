@@ -31,7 +31,11 @@ gkyl_dg_updater_moment_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   gkyl_dg_updater_moment *up = gkyl_malloc(sizeof(gkyl_dg_updater_moment));
   up->use_gpu = use_gpu;
 
-  up->type = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_range, mass, gk_geom, mom, use_gpu);
+  if (is_integrated)
+    up->type = gkyl_int_mom_gyrokinetic_new(conf_basis, phase_basis, conf_range, mass, gk_geom, use_gpu);
+  else
+    up->type = gkyl_mom_gyrokinetic_new(conf_basis, phase_basis, conf_range, mass, gk_geom, mom, use_gpu);
+
   up->up_moment = gkyl_mom_calc_new(grid, up->type, use_gpu);
 
   up->moment_tm = 0.0;

@@ -142,11 +142,69 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   return &mom_gk->momt;
 }
 
+struct gkyl_mom_type*
+gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* conf_range, double mass, const struct gk_geometry *gk_geom, bool use_gpu)
+{
+  assert(cbasis->poly_order == pbasis->poly_order);
+
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_int_mom_gyrokinetic_cu_dev_new(cbasis, pbasis);
+  } 
+#endif
+  struct mom_type_gyrokinetic *mom_gk = gkyl_malloc(sizeof(struct mom_type_gyrokinetic));
+  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
+  int poly_order = cbasis->poly_order;
+
+  mom_gk->momt.cdim = cdim;
+  mom_gk->momt.pdim = pdim;
+  mom_gk->momt.poly_order = poly_order;
+  mom_gk->momt.num_config = cbasis->num_basis;
+  mom_gk->momt.num_phase = pbasis->num_basis;
+  mom_gk->momt.num_mom = 2+vdim;
+  
+  // set kernel pointer
+  switch (cbasis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      assert(cv_index[cdim].vdim[vdim] != -1);
+      assert(NULL != ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+      
+      mom_gk->momt.kernel = ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }  
+
+  mom_gk->mass = mass;
+  mom_gk->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+  mom_gk->conf_range = *conf_range;
+
+  mom_gk->momt.flags = 0;
+  GKYL_CLEAR_CU_ALLOC(mom_gk->momt.flags);
+  mom_gk->momt.ref_count = gkyl_ref_count_init(gkyl_gk_mom_free);
+  
+  mom_gk->momt.on_dev = &mom_gk->momt; // on host, self-reference
+    
+  return &mom_gk->momt;  
+}
+
 #ifndef GKYL_HAVE_CUDA
 
 struct gkyl_mom_type*
 gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
   const struct gkyl_range* conf_range, double mass, const struct gk_geometry *gk_geom, const char *mom)
+{
+  assert(false);
+  return 0;
+}
+
+struct gkyl_mom_type*
+gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* conf_range, double mass, const struct gk_geometry *gk_geom)
 {
   assert(false);
   return 0;

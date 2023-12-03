@@ -101,8 +101,7 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   // allocate date for density (for use in charge density accumulation and weak division for upar)
   gk_species_moment_init(app, s, &s->m0, "M0");
   // allocate data for integrated moments
-  // We don't have integrated moments for Gk yet? TO DO
-  //gk_species_moment_init(app, s, &s->integ_moms, "Integrated");
+  gk_species_moment_init(app, s, &s->integ_moms, "Integrated");
 
   // allocate data for diagnostic moments
   int ndm = s->info.num_diag_moments;
@@ -409,7 +408,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   for (int i=0; i<s->info.num_diag_moments; ++i)
     gk_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
-  //gk_species_moment_release(app, &s->integ_moms); 
+  gk_species_moment_release(app, &s->integ_moms); 
 
   gkyl_array_release(s->L2_f);
   gkyl_dynvec_release(s->integ_L2_f);
