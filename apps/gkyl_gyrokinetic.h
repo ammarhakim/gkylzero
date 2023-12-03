@@ -68,7 +68,7 @@ struct gkyl_gyrokinetic_species {
   bool is_maxwellian;
   // pointers to initialization functions for gk maxwellian projection
   void (*init_density)(double t, const double *xn, double *fout, void *ctx);
-  void (*init_vtsq)(double t, const double *xn, double *fout, void *ctx);
+  void (*init_temp)(double t, const double *xn, double *fout, void *ctx);
   void (*init_upar)(double t, const double *xn, double *fout, void *ctx);
 
   double polarization_density;
