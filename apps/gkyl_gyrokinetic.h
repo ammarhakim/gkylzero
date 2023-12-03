@@ -64,9 +64,7 @@ struct gkyl_gyrokinetic_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-  void *polarization_density_ctx; // context for initial condition init function
-  // pointer to initialization function
-  void (*polarization_density)(double t, const double *xn, double *fout, void *ctx);
+  double polarization_density;
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments

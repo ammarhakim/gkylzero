@@ -301,6 +301,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc}, 
     .cells = { NV, NMU },
+    .polarization_density = ctx.n0,
 
     .ctx = &ctx,
     .init = evalDistFuncElc,
@@ -333,6 +334,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { NV, NMU },
+    .polarization_density = ctx.n0,
 
     .ctx = &ctx,
     .init = evalDistFuncIon,
@@ -410,6 +412,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
   gkyl_gyrokinetic_app_calc_integrated_L2_f(app, tcurr);
 
+  printf("Fnished Initialization\n");
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);

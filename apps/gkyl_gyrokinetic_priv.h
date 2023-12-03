@@ -178,8 +178,8 @@ struct gk_species {
       struct gkyl_array *apardot; // array for d/dt A_parallel
     };
   };
-  struct gkyl_array *polarization_density; // array for polarization weight
-  struct gkyl_array *polarization_density_host; // host copy of array for polarization weight for initialization on GPUs
+
+  double polarization_density;
 
   struct gk_species_moment m0; // for computing charge density
   struct gk_species_moment integ_moms; // integrated moments
@@ -240,6 +240,7 @@ struct gk_field {
   };
 
   struct gkyl_array *weight; 
+  struct gkyl_array *es_energy_fac; 
   struct gkyl_array *epsilon; 
   struct gkyl_array *kSq; 
 

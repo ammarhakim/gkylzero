@@ -63,7 +63,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       else if (poly_order == 1) {
         if (vdim > 0) {
           /* Force hybrid basis (p=2 in velocity space). */
-          gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
+          gkyl_cart_modal_gkhybrid(&app->basis, cdim, vdim);
           gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
         }
       }
@@ -78,7 +78,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
         else if (poly_order == 1) {
           if (vdim > 0) {
             /* Force hybrid basis (p=2 in velocity space). */
-            gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); 
+            gkyl_cart_modal_gkhybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); 
           }
         }
       }
@@ -330,6 +330,9 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
   struct timespec wtm = gkyl_wall_clock();
   
   gkyl_gyrokinetic_app_write_field(app, tm, frame);
+
+  gkyl_gyrokinetic_app_calc_mom(app);
+  gkyl_gyrokinetic_app_write_mom(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) 
     gkyl_gyrokinetic_app_write_species(app, i, tm, frame);
 

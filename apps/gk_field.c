@@ -33,8 +33,16 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   // allocate arrays for Poisson smoothing and solver
-  f->weight = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  gkyl_array_shiftc(f->weight, sqrt(2.0), 0); // Sets weight=1.
+
+  if (app->cdim == 3){
+    f->es_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_shiftc(f->es_energy_fac, sqrt(2.0), 0); // Sets weight=1.
+  }
+  else if (app->cdim == 1){
+    // in 1D case need to set to kperpsq*polarizationWeight. TO DO
+    f->weight = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    gkyl_array_shiftc(f->weight, sqrt(2.0), 0); // Sets weight=1.
+  }
 
 
   f->epsilon = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
@@ -42,11 +50,18 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   double polarization_weight = 0.0; 
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    polarization_weight += s->info.mass/(f->info.bmag_fac*f->info.bmag_fac);
+    polarization_weight += s->info.polarization_density*s->info.mass/(f->info.bmag_fac*f->info.bmag_fac);
   }
   gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
   gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
   gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);
+
+  if (app->cdim == 3){
+    gkyl_array_scale(f->es_energy_fac, 0.5*polarization_weight);
+  }
+
+
+
 
   f->kSq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
@@ -110,12 +125,12 @@ gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field
   double energy[1] = { 0.0 };
   if (app->use_gpu) {
     gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
-      app->grid.cellVolume, field->weight, &app->local, field->em_energy_red);
+      app->grid.cellVolume, field->es_energy_fac, &app->local, field->em_energy_red);
     gkyl_cu_memcpy(energy, field->em_energy_red, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
   }
   else {
     gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
-      app->grid.cellVolume, field->weight, &app->local, energy);
+      app->grid.cellVolume, field->es_energy_fac, &app->local, energy);
   } 
 
   double energy_global[6] = { 0.0 };

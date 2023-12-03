@@ -89,21 +89,6 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     s->apar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     s->apardot = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);    
   }
-  // setup linearized polarization density
-  s->polarization_density = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-  s->polarization_density_host = s->polarization_density;
-  if (app->use_gpu)
-    s->polarization_density_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-
-  gkyl_eval_on_nodes *polarization_density_proj = gkyl_eval_on_nodes_new(&app->grid, &app->confBasis, 1, 
-    s->info.polarization_density, s->info.polarization_density_ctx);
-
-  gkyl_eval_on_nodes_advance(polarization_density_proj, 0.0, &app->local, s->polarization_density_host);
-  if (app->use_gpu) // note: polarization_density_host is same as advect when not on GPUs
-    gkyl_array_copy(s->polarization_density, s->polarization_density_host);
-  // Free projection object
-  gkyl_eval_on_nodes_release(polarization_density_proj);
 
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
@@ -119,7 +104,8 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   // allocate date for density (for use in charge density accumulation and weak division for upar)
   gk_species_moment_init(app, s, &s->m0, "M0");
   // allocate data for integrated moments
-  gk_species_moment_init(app, s, &s->integ_moms, "Integrated");
+  // We don't have integrated moments for Gk yet? TO DO
+  //gk_species_moment_init(app, s, &s->integ_moms, "Integrated");
 
   // allocate data for diagnostic moments
   int ndm = s->info.num_diag_moments;
@@ -305,6 +291,7 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_GK_SHEATH:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             app->field->phi_wall, f, &app->local);
+          break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
@@ -325,6 +312,7 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_GK_SHEATH:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             app->field->phi_wall, f, &app->local);
+          break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
@@ -415,10 +403,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_array_release(s->apar);
     gkyl_array_release(s->apardot);
   }
-
-  gkyl_array_release(s->polarization_density);
-  if (app->use_gpu)
-    gkyl_array_release(s->polarization_density_host);
 
   // release equation object and solver
   gkyl_dg_eqn_release(s->eqn_gyrokinetic);
