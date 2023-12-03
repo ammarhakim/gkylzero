@@ -491,6 +491,11 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   double dtmin = DBL_MAX;
 
+  // Compute biased wall potential if present and time-dependent.
+  // Note: biased wall potential use proj_on_basis 
+  // so does copy to GPU every call if app->use_gpu = true.
+  if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
+    gk_field_calc_phi_wall(app, app->field, tcurr);
   // compute electrostatic potential from gyrokinetic Poisson's equation
   gk_field_accumulate_rho_c(app, app->field, fin);
   gk_field_rhs(app, app->field);

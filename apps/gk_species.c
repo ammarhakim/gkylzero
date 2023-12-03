@@ -351,7 +351,7 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
       switch (species->lower_bc[d]) {
         case GKYL_SPECIES_GK_SHEATH:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
-            app->field->phi_wall, f, &app->local);
+            app->field->phi_wall_lo, f, &app->local);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -372,7 +372,7 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
       switch (species->upper_bc[d]) {
         case GKYL_SPECIES_GK_SHEATH:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
-            app->field->phi_wall, f, &app->local);
+            app->field->phi_wall_up, f, &app->local);
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:

@@ -75,11 +75,66 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->confBasis, 
     1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
 
-  // Initialize wall potential
-  int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
-  f->phi_wall = mkarr(app->use_gpu, Nbasis_surf, app->local_ext.volume);
+  // setup biased lower wall (same size as electrostatic potential), by default is 0.0
+  f->phi_wall_lo = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  f->has_phi_wall_lo = false;
+  f->phi_wall_lo_evolve = false;
+  if (f->info.phi_wall_lo) {
+    f->has_phi_wall_lo = true;
+    if (f->info.phi_wall_lo_evolve)
+      f->phi_wall_lo_evolve = f->info.phi_wall_lo_evolve;
+
+    f->phi_wall_lo_host = f->phi_wall_lo;
+    if (app->use_gpu) 
+      f->phi_wall_lo_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+
+    f->phi_wall_lo_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+      1, f->info.phi_wall_lo, &f->info.phi_wall_lo_ctx);
+
+    // Compute phi_wall_lo at t = 0
+    gkyl_proj_on_basis_advance(f->phi_wall_lo_proj, 0.0, &app->local_ext, f->phi_wall_lo_host);
+    if (app->use_gpu) // note: phi_wall_lo_host is same as phi_wall_lo when not on GPUs
+      gkyl_array_copy(f->phi_wall_lo, f->phi_wall_lo_host);
+  }
+
+  // setup biased upper wall (same size as electrostatic potential), by default is 0.0
+  f->phi_wall_up = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  f->has_phi_wall_up = false;
+  f->phi_wall_up_evolve = false;
+  if (f->info.phi_wall_up) {
+    f->has_phi_wall_up = true;
+    if (f->info.phi_wall_up_evolve)
+      f->phi_wall_up_evolve = f->info.phi_wall_up_evolve;
+
+    f->phi_wall_up_host = f->phi_wall_up;
+    if (app->use_gpu) 
+      f->phi_wall_up_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+
+    f->phi_wall_up_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+      1, f->info.phi_wall_up, &f->info.phi_wall_up_ctx);
+
+    // Compute phi_wall_up at t = 0
+    gkyl_proj_on_basis_advance(f->phi_wall_up_proj, 0.0, &app->local_ext, f->phi_wall_up_host);
+    if (app->use_gpu) // note: phi_wall_up_host is same as phi_wall_up when not on GPUs
+      gkyl_array_copy(f->phi_wall_up, f->phi_wall_up_host);
+  }
 
   return f;
+}
+
+void
+gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, double tm)
+{
+  if (field->has_phi_wall_lo && field->phi_wall_lo_evolve) {
+    gkyl_proj_on_basis_advance(field->phi_wall_lo_proj, tm, &app->local_ext, field->phi_wall_lo_host);
+    if (app->use_gpu) // note: phi_wall_lo_host is same as phi_wall_lo when not on GPUs
+      gkyl_array_copy(field->phi_wall_lo, field->phi_wall_lo_host);
+  }
+  if (field->has_phi_wall_up && field->phi_wall_up_evolve) {
+    gkyl_proj_on_basis_advance(field->phi_wall_up_proj, tm, &app->local_ext, field->phi_wall_up_host);
+    if (app->use_gpu) // note: phi_wall_up_host is same as phi_wall_up when not on GPUs
+      gkyl_array_copy(field->phi_wall_up, field->phi_wall_up_host);
+  }
 }
 
 void
@@ -160,7 +215,12 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_cu_free(f->em_energy_red);
   }
 
-  gkyl_array_release(f->phi_wall);
+  gkyl_array_release(f->phi_wall_lo);
+  gkyl_array_release(f->phi_wall_up);
+  if (f->has_phi_wall_lo && app->use_gpu) 
+    gkyl_array_release(f->phi_wall_lo);
+  if (f->has_phi_wall_up && app->use_gpu) 
+    gkyl_array_release(f->phi_wall_up);
 
   gkyl_free(f);
 }
