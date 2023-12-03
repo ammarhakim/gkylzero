@@ -240,7 +240,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
         app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, species->f_host);
 
     // scale the density
-    gk_species_moment_calc(app, &species->m0, species->local, app->local, species->f_host); // actual density
+    gk_species_moment_calc(&species->m0, species->local, app->local, species->f_host); // actual density
     struct gkyl_array *m0e = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_proj_on_basis_advance(proj_m0, 0.0, &app->local, m0e); // desired density
     struct gkyl_array *m0mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -251,7 +251,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
 
     // multiply by jacobeo
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->f_host, 
-        app->gk_geom->jacobgeo, species->f_host, &app->local_ext, &species->local_ext);
+        app->gk_geom->jacobgeo, species->f_host, &app->local, &species->local);
 
     gkyl_array_release(m0mod); gkyl_array_release(m0e);
     gkyl_dg_bin_op_mem_release(mem);

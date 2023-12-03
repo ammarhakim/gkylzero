@@ -360,13 +360,12 @@ void gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 /**
  * Calculate moment, given distribution function @a fin.
  * 
- * @param app gyrokinetic app object
  * @param sm Species moment object
  * @param phase_rng Phase-space range
  * @param conf_rng Config-space range
  * @param fin Input distribution function array
  */
-void gk_species_moment_calc(struct gkyl_gyrokinetic_app *app, const struct gk_species_moment *sm,
+void gk_species_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin);
 

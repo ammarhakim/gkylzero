@@ -253,7 +253,7 @@ gkyl_gyrokinetic_app_calc_mom(gkyl_gyrokinetic_app* app)
 
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
       struct timespec wst = gkyl_wall_clock();
-      gk_species_moment_calc(app, &s->moms[m], s->local, app->local, s->f);
+      gk_species_moment_calc(&s->moms[m], s->local, app->local, s->f);
       app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
       app->stat.nmom += 1;
     }
@@ -273,7 +273,7 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
 
     struct timespec wst = gkyl_wall_clock();
 
-    gk_species_moment_calc(app, &s->integ_moms, s->local, app->local, s->f);
+    gk_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
     // reduce to compute sum over whole domain, append to diagnostics
     if (app->use_gpu) {
       gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, &(app->local));
@@ -386,6 +386,10 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
         app->species[i].info.diag_moments[m], frame);
+
+      // Rescale moment by inverse of Jacobian
+      gkyl_dg_div_op_range(app->species[i].moms[m].mem_geo, app->confBasis, 
+        0, app->species[i].moms[m].marr, 0, app->species[i].moms[m].marr, 0, app->gk_geom->jacobgeo, &app->local);      
 
       if (app->use_gpu)
         gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
