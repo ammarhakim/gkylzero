@@ -4,6 +4,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_correct_maxwellian_gyrokinetic.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
@@ -47,17 +48,19 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   }
 }
 
-void eval_jacob_tot(double t, const double *xn, double* restrict fout, void *ctx)
+void
+mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
-  double x = xn[0];
-  fout[0] = 1.0;
+  xp[0] = xc[0]; 
 }
 
-void eval_bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
+void
+bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double x = xn[0];
+  double x = xc[0];
   fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x);
 }
+
 void eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -121,26 +124,9 @@ void test_1x1v(int poly_order, bool use_gpu)
   struct skin_ghost_ranges skin_ghost;
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
-  // Create bmag and jacob_tot arrays
-  struct gkyl_array *bmag_ho, *jacob_tot_ho;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume, false);
-  jacob_tot_ho = mkarr(confBasis.num_basis, confLocal_ext.volume, false);
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_bmag_1x, NULL);
-  gkyl_proj_on_basis *proj_jac = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_jacob_tot, NULL);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_proj_on_basis_advance(proj_jac, 0.0, &confLocal, jacob_tot_ho);
-  struct gkyl_array *bmag, *jacob_tot;
-  if (use_gpu) { 
-    // create device copies
-    bmag = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-    jacob_tot = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-    // copy host array to device
-    gkyl_array_copy(bmag, bmag_ho);
-    gkyl_array_copy(jacob_tot, jacob_tot_ho);
-  } else {
-    bmag = bmag_ho;
-    jacob_tot = jacob_tot_ho;
-  }
+  // Initialize geometry
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+    mapc2p, 0, bmag_func, 0, use_gpu);
 
   // Create correct moment arrays
   struct gkyl_array *m0_in_ho, *m1_in_ho, *m2_in_ho;
@@ -176,7 +162,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   // (2) create distribution function array
   gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid, &confBasis, &basis, poly_order+1, use_gpu);
   struct gkyl_array *fM = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_maxwellian, &local, &confLocal, moms_in, bmag, jacob_tot, mass, fM);
+  gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_maxwellian, &local, &confLocal, moms_in, gk_geom->bmag, gk_geom->jacobtot, mass, fM);
   // (3) copy from device to host
   struct gkyl_array *fM_ho;
   if (use_gpu) {
@@ -191,7 +177,8 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_ic);
  
   // Create a Maxwellian with corrected moments
-  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, bmag, jacob_tot, mass, use_gpu);
+  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, 
+    mass, gk_geom, use_gpu);
   gkyl_correct_maxwellian_gyrokinetic_fix(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local, &confLocal_ext);
   gkyl_correct_maxwellian_gyrokinetic_release(corr_max);
   gkyl_array_clear(fM_ho, 0.0);
@@ -206,8 +193,7 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // Calculate the corrected moments
   // (1) create the calculators
-  struct gkyl_mom_type *MOMS_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "ThreeMoments", use_gpu);
-  gkyl_gyrokinetic_set_bmag(MOMS_t, bmag);
+  struct gkyl_mom_type *MOMS_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "ThreeMoments", use_gpu);
   gkyl_mom_calc *momsCalc = gkyl_mom_calc_new(&grid, MOMS_t, use_gpu);
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
@@ -237,10 +223,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   }
   
   // Release memory for moment data object
-  gkyl_array_release(bmag);
-  gkyl_array_release(jacob_tot);
-  gkyl_array_release(bmag_ho);
-  gkyl_array_release(jacob_tot_ho);
+  gkyl_gk_geometry_release(gk_geom);  
   gkyl_array_release(m0_in);
   gkyl_array_release(m1_in);
   gkyl_array_release(m2_in);
@@ -321,26 +304,9 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct skin_ghost_ranges skin_ghost;
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
-  // Create bmag and jacob_tot arrays
-  struct gkyl_array *bmag_ho, *jacob_tot_ho;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume, false);
-  jacob_tot_ho = mkarr(confBasis.num_basis, confLocal_ext.volume, false);
-  gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_bmag_1x, NULL);
-  gkyl_proj_on_basis *proj_jac = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_jacob_tot, NULL);
-  gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
-  gkyl_proj_on_basis_advance(proj_jac, 0.0, &confLocal, jacob_tot_ho);
-  struct gkyl_array *bmag, *jacob_tot;
-  if (use_gpu) { 
-    // create device copies
-    bmag = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-    jacob_tot = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-    // copy host array to device
-    gkyl_array_copy(bmag, bmag_ho);
-    gkyl_array_copy(jacob_tot, jacob_tot_ho);
-  } else {
-    bmag = bmag_ho;
-    jacob_tot = jacob_tot_ho;
-  }
+  // Initialize geometry
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+    mapc2p, 0, bmag_func, 0, use_gpu);
 
   // Create correct moment arrays
   struct gkyl_array *m0_in_ho, *m1_in_ho, *m2_in_ho;
@@ -376,7 +342,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   // (2) create distribution function array
   gkyl_proj_maxwellian_on_basis *proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&grid, &confBasis, &basis, poly_order+1, use_gpu);
   struct gkyl_array *fM = mkarr(basis.num_basis, local_ext.volume, use_gpu);
-  gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_maxwellian, &local, &confLocal, moms_in, bmag, jacob_tot, mass, fM);
+  gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_maxwellian, &local, &confLocal, moms_in, gk_geom->bmag, gk_geom->jacobtot, mass, fM);
   // (3) copy from device to host
   struct gkyl_array *fM_ho;
   if (use_gpu) {
@@ -391,7 +357,8 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_ic);
  
   // Create a Maxwellian with corrected moments
-  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, bmag, jacob_tot, mass, use_gpu);
+  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &confLocal_ext, 
+    mass, gk_geom, use_gpu);
   gkyl_correct_maxwellian_gyrokinetic_fix(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local, &confLocal_ext);
   gkyl_correct_maxwellian_gyrokinetic_release(corr_max);
   gkyl_array_clear(fM_ho, 0.0);
@@ -406,8 +373,7 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Calculate the corrected moments
   // (1) create the calculators
-  struct gkyl_mom_type *MOMS_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "ThreeMoments", use_gpu);
-  gkyl_gyrokinetic_set_bmag(MOMS_t, bmag);
+  struct gkyl_mom_type *MOMS_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "ThreeMoments", use_gpu);
   gkyl_mom_calc *momsCalc = gkyl_mom_calc_new(&grid, MOMS_t, use_gpu);
   // (2) calculate the moments and copy from host to device
   struct gkyl_array *moms_corr = mkarr(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
@@ -437,10 +403,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   }
 
   // Release memory for moment data object
-  gkyl_array_release(bmag);
-  gkyl_array_release(jacob_tot);
-  gkyl_array_release(bmag_ho);
-  gkyl_array_release(jacob_tot_ho);
+  gkyl_gk_geometry_release(gk_geom);  
   gkyl_array_release(m0_in);
   gkyl_array_release(m1_in);
   gkyl_array_release(m2_in);
@@ -459,15 +422,28 @@ void test_1x2v(int poly_order, bool use_gpu)
 }
 
 // Run the test
-void test_1x1v_p1() {test_1x1v(1, true);}
-void test_1x1v_p2() {test_1x1v(2, true);}
-void test_1x2v_p1() {test_1x2v(1, true);}
-void test_1x2v_p2() {test_1x2v(2, true);}
+void test_1x1v_p1() {test_1x1v(1, false);}
+void test_1x1v_p2() {test_1x1v(2, false);}
+void test_1x2v_p1() {test_1x2v(1, false);}
+void test_1x2v_p2() {test_1x2v(2, false);}
+
+#ifdef GKYL_HAVE_CUDA
+void test_1x1v_p1_gpu() {test_1x1v(1, true);}
+void test_1x1v_p2_gpu() {test_1x1v(2, true);}
+void test_1x2v_p1_gpu() {test_1x2v(1, true);}
+void test_1x2v_p2_gpu() {test_1x2v(2, true);}
+#endif
 
 TEST_LIST = {
   {"test_1x1v_p1", test_1x1v_p1},
   {"test_1x1v_p2", test_1x1v_p2},
   {"test_1x2v_p1", test_1x2v_p1},
   {"test_1x2v_p2", test_1x2v_p2},
+#ifdef GKYL_HAVE_CUDA
+  {"test_1x1v_p1_gpu", test_1x1v_p1_gpu},
+  {"test_1x1v_p2_gpu", test_1x1v_p2_gpu},
+  {"test_1x2v_p1_gpu", test_1x2v_p1_gpu},
+  {"test_1x2v_p2_gpu", test_1x2v_p2_gpu},
+#endif
   {NULL, NULL},
 };

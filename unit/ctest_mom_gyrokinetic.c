@@ -12,6 +12,44 @@
 #include <math.h>
 
 void
+mapc2p_1x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  xp[0] = xc[0]; 
+}
+
+void
+bmag_func_1x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xc[0]; 
+  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x);
+}
+
+void
+mapc2p_2x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  xp[0] = xc[0]; xp[1] = xc[1]; 
+}
+
+void
+bmag_func_2x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xc[0], y = xc[1];
+  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x)*exp(-(y*y)/(2.*pow(M_PI/3,2)));
+}
+
+void
+mapc2p_3x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
+}
+
+void
+bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  fout[0] = 1.0;
+}
+
+void
 test_mom_gyrokinetic()
 {
   double mass = 1.0;
@@ -39,7 +77,11 @@ test_mom_gyrokinetic()
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", false);
+  // Initialize geometry
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+    mapc2p_3x, 0, bmag_func_3x, 0, false);
+
+  struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M2", false);
 
   TEST_CHECK( m2->cdim == 1 );
   TEST_CHECK( m2->pdim == 3 );
@@ -48,9 +90,10 @@ test_mom_gyrokinetic()
   TEST_CHECK( m2->num_phase == basis.num_basis );
   TEST_CHECK( m2->num_mom == 1 );
 
-  struct gkyl_mom_type *m3par = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M3par", false);
+  struct gkyl_mom_type *m3par = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M3par", false);
   TEST_CHECK( m3par->num_mom == 1 );
 
+  gkyl_gk_geometry_release(gk_geom);  
   gkyl_mom_type_release(m2);
   gkyl_mom_type_release(m3par);
 }
@@ -98,36 +141,25 @@ skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
   }
 }
 
-void bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0];
-  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x);
-}
-void bmag_2x(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0], y = xn[1];
-  fout[0] = cos((2.*M_PI/(2.*2.*M_PI))*x)*exp(-(y*y)/(2.*pow(M_PI/3,2)));
-}
-
 void distf_1x1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1];
   double bmag[1];
-  bmag_1x(t, xn, &bmag[0], ctx); 
+  bmag_func_1x(t, xn, &bmag[0], ctx); 
   fout[0] = bmag[0]*(x*x)*(vpar-0.5)*(vpar-0.5);
 }
 void distf_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1], mu = xn[2];
   double bmag[1];
-  bmag_1x(t, xn, &bmag[0], ctx); 
+  bmag_func_1x(t, xn, &bmag[0], ctx); 
   fout[0] = bmag[0]*(x*x)*(vpar-0.5)*(vpar-0.5);
 }
 void distf_2x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vpar = xn[2], mu = xn[3];
   double bmag[1];
-  bmag_2x(t, xn, &bmag[0], ctx); 
+  bmag_func_2x(t, xn, &bmag[0], ctx); 
   fout[0] = bmag[0]*(x*x+y*y)*(vpar-0.5)*(vpar-0.5);
 }
 
@@ -182,23 +214,13 @@ test_1x1v(int polyOrder, bool use_gpu)
   gkyl_array_copy(distf, distf_ho);
 //  gkyl_grid_sub_array_write(&grid, &local, distf_ho, "ctest_mom_gyrokinetic_1x1v_p1_distf.gkyl");
 
-  // create bmag array and project magnetic field amplitude function on basis
-  struct gkyl_array *bmag_ho, *bmag;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, bmag_1x, NULL);
+  // Initialize geometry
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+    mapc2p_1x, 0, bmag_func_1x, 0, use_gpu);
 
-  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
-//  gkyl_grid_sub_array_write(&confGrid, &confLocal, bmag_ho, "ctest_mom_gyrokinetic_1x1v_p1_bmag.gkyl");
-
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", use_gpu);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", use_gpu);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", use_gpu);
-  gkyl_gyrokinetic_set_bmag(M0_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M1_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M2_t, bmag);
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M2", use_gpu);
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
   gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
@@ -325,6 +347,7 @@ test_1x1v(int polyOrder, bool use_gpu)
     TEST_CHECK( gkyl_compare( m2Correct[11], m23[2], 1e-12) );
   }
 
+  gkyl_gk_geometry_release(gk_geom); 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
   gkyl_array_release(m0_ho); gkyl_array_release(m1_ho); gkyl_array_release(m2_ho);
@@ -333,7 +356,6 @@ test_1x1v(int polyOrder, bool use_gpu)
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
-  gkyl_array_release(bmag); gkyl_array_release(bmag_ho);
 }
 
 void
@@ -385,22 +407,13 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
-  // create bmag array and project magnetic field amplitude function on basis
-  struct gkyl_array *bmag_ho, *bmag;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, bmag_1x, NULL);
+  // Initialize geometry
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+    mapc2p_1x, 0, bmag_func_1x, 0, use_gpu);
 
-  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
-
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", use_gpu);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", use_gpu);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", use_gpu);
-  gkyl_gyrokinetic_set_bmag(M0_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M1_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M2_t, bmag);
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M2", use_gpu);
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
   gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
@@ -509,6 +522,7 @@ test_1x2v(int poly_order, bool use_gpu)
     TEST_CHECK( gkyl_compare( -1.080258558862570e+02, m23[2], 1e-12) );
   }
 
+  gkyl_gk_geometry_release(gk_geom); 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
   gkyl_array_release(m0_ho); gkyl_array_release(m1_ho); gkyl_array_release(m2_ho);
@@ -517,7 +531,6 @@ test_1x2v(int poly_order, bool use_gpu)
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
-  gkyl_array_release(bmag); gkyl_array_release(bmag_ho);
 }
 
 void
@@ -569,22 +582,13 @@ test_2x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
-  // create bmag array and project magnetic field amplitude function on basis
-  struct gkyl_array *bmag_ho, *bmag;
-  bmag_ho = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  bmag = mkarr_cu(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  gkyl_proj_on_basis *projbmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, bmag_2x, NULL);
+  // Initialize geometry
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+    mapc2p_2x, 0, bmag_func_2x, 0, use_gpu);
 
-  gkyl_proj_on_basis_advance(projbmag, 0.0, &confLocal, bmag_ho);
-  gkyl_array_copy(bmag, bmag_ho);
-
-  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M0", use_gpu);
-  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M1", use_gpu);
-  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, "M2", use_gpu);
-  gkyl_gyrokinetic_set_bmag(M0_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M1_t, bmag);
-  gkyl_gyrokinetic_set_bmag(M2_t, bmag);
+  struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M0", use_gpu);
+  struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M1", use_gpu);
+  struct gkyl_mom_type *M2_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M2", use_gpu);
   gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, M0_t, use_gpu);
   gkyl_mom_calc *m1calc = gkyl_mom_calc_new(&grid, M1_t, use_gpu);
   gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&grid, M2_t, use_gpu);
@@ -778,6 +782,7 @@ test_2x2v(int poly_order, bool use_gpu)
     }
   }
 
+  gkyl_gk_geometry_release(gk_geom); 
   // release memory for moment data object
   gkyl_array_release(m0); gkyl_array_release(m1); gkyl_array_release(m2);
   gkyl_array_release(m0_ho); gkyl_array_release(m1_ho); gkyl_array_release(m2_ho);
@@ -786,7 +791,6 @@ test_2x2v(int poly_order, bool use_gpu)
 
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf); gkyl_array_release(distf_ho);
-  gkyl_array_release(bmag); gkyl_array_release(bmag_ho);
 }
 
 void test_1x1v_p1() { test_1x1v(1, false); } 

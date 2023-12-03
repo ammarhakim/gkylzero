@@ -2,11 +2,25 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_dg_gyrokinetic.h>
+#include <gkyl_gk_geometry.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_range.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
+
+void
+mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
+}
+
+void
+bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  fout[0] = 1.0;
+}
 
 static struct gkyl_array*
 mkarr1(bool use_gpu, long nc, long size)
@@ -53,26 +67,28 @@ test_3x2v_p1(bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
+  // Initialize geometry
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
+    mapc2p, 0, bmag_func, 0, use_gpu);
+
+  // Initialize gyrokinetic variables
+  struct gkyl_array *phi = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
+  struct gkyl_array *apar = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
+  struct gkyl_array *apardot = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
+  struct gkyl_dg_gyrokinetic_auxfields aux = { .phi = phi, .apar = apar, .apardot = apardot };
+
   const bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
   struct gkyl_dg_updater_gyrokinetic* up;
-  up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, is_zero_flux, 0, 1.0, 1.0, use_gpu);
+  up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, is_zero_flux, 1.0, 1.0, gk_geom, &aux, use_gpu);
 
   // initialize arrays
-  struct gkyl_array *fin, *rhs, *cflrate, *bmag, *jacobtot_inv, *cmag, *b_i, *phi, *apar, *apardot;
+  struct gkyl_array *fin, *rhs, *cflrate;
   struct gkyl_array *fin_h, *qmem_h, *rhs_h;
   
   fin = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   rhs = mkarr1(use_gpu, basis.num_basis, phaseRange_ext.volume);
   cflrate = mkarr1(use_gpu, 1, phaseRange_ext.volume);
-  // Initialize gyrokinetic variables
-  bmag = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
-  jacobtot_inv = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
-  cmag = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
-  b_i = mkarr1(use_gpu, 3*confBasis.num_basis, confRange_ext.volume);
-  phi = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
-  apar = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
-  apardot = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
 
   struct timespec tm = gkyl_wall_clock();
   // run hyper_dg_advance
@@ -80,20 +96,17 @@ test_3x2v_p1(bool use_gpu)
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_dg_updater_gyrokinetic_advance(up, &phaseRange, bmag, jacobtot_inv, cmag, b_i, phi, apar, apardot, fin, cflrate, rhs);
+    gkyl_dg_updater_gyrokinetic_advance(up, &phaseRange, fin, cflrate, rhs);
   }
   double gk_tm = gkyl_time_diff_now_sec(tm);
 
   printf("\ngyrokinetic update on (%d, %d, %d, %d, %d) took %g sec\n", cells[0], cells[1], cells[2], cells[3], cells[4], gk_tm); 
 
   // clean up
+  gkyl_gk_geometry_release(gk_geom);  
   gkyl_array_release(fin);
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
-  gkyl_array_release(bmag);
-  gkyl_array_release(jacobtot_inv);
-  gkyl_array_release(cmag);
-  gkyl_array_release(b_i);
   gkyl_array_release(phi);
   gkyl_array_release(apar);
   gkyl_array_release(apardot);
