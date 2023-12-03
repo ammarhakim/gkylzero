@@ -25,7 +25,7 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
 
   up->use_gpu = use_gpu;
 
-  up->eqn_gyrokinetic = gkyl_dg_gyrokinetic_new(cbasis, pbasis, conf_range, charge, mass, gk_geom, use_gpu);
+  up->eqn_gyrokinetic = gkyl_dg_gyrokinetic_new(cbasis, pbasis, conf_range, charge, mass, gk_geom, up->use_gpu);
   struct gkyl_dg_gyrokinetic_auxfields *gk_inp = aux_inp;
   gkyl_gyrokinetic_set_auxfields(up->eqn_gyrokinetic, *gk_inp);
 
@@ -42,7 +42,7 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
     zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
 
   up->up_gyrokinetic = gkyl_hyper_dg_new(grid, pbasis, up->eqn_gyrokinetic,
-    num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+    num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->gyrokinetic_tm = 0.0;
   

@@ -20,9 +20,11 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid,
 {
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
 
-  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(conf_basis, phase_basis, conf_range, phase_grid, mass, gk_geom, use_gpu);
+  up->use_gpu = use_gpu;
+
+  up->coll_drag = gkyl_dg_lbo_gyrokinetic_drag_new(conf_basis, phase_basis, conf_range, phase_grid, mass, gk_geom, up->use_gpu);
   gkyl_lbo_gyrokinetic_drag_set_auxfields(up->coll_drag, *drag_inp);
-  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(conf_basis, phase_basis, conf_range, phase_grid, mass, gk_geom, use_gpu); 
+  up->coll_diff = gkyl_dg_lbo_gyrokinetic_diff_new(conf_basis, phase_basis, conf_range, phase_grid, mass, gk_geom, up->use_gpu); 
   gkyl_lbo_gyrokinetic_diff_set_auxfields(up->coll_diff, *diff_inp);
 
   int cdim = conf_basis->ndim, pdim = phase_basis->ndim;
@@ -36,8 +38,8 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid,
   for (int d=cdim; d<pdim; ++d)
     zero_flux_flags[d] = 1;
   
-  up->drag = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
-  up->diff = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->drag = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
+  up->diff = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
 
   up->diff_tm = 0.0; 
   up->drag_tm = 0.0;
