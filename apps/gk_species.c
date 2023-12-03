@@ -218,8 +218,6 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
     struct gkyl_array *m0, *m1, *m2;
     m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_array_shiftc(m0, sqrt(2.0), 0); 
-    gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.init_density, species->info.ctx);
     // Project prim moms and perform the maxwellian projection using primitive moments.
     struct gkyl_array *udrift, *vtsq;
     udrift = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -241,6 +239,8 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
 
     // scale the density
     gk_species_moment_calc(app, &species->m0, species->local, app->local, species->f_host); // actual density
+    gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+      poly_order+1, 1, species->info.init_density, species->info.ctx);
     struct gkyl_array *m0e = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_proj_on_basis_advance(proj_m0, 0.0, &app->local, m0e); // desired density
     struct gkyl_array *m0mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
