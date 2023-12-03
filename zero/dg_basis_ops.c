@@ -1,4 +1,25 @@
 #include <gkyl_dg_basis_ops.h>
+#include <gkyl_array.h>
+#include <gkyl_alloc.h>
+
+enum dg_basis_op_code {
+  GKYL_DG_BASIS_OP_CUBIC_1D,
+  GKYL_DG_BASIS_OP_CUBIC_2D
+};
+
+struct gkyl_dg_basis_op_mem {
+  enum dg_basis_op_code opcode;
+  union {
+    // data for GKYL_DG_BASIS_OP_CUBIC_1D
+    struct {
+      struct gkyl_array *grad1dx;
+    };
+    // data for GKYL_DG_BASIS_OP_CUBIC_2D
+    struct {
+      struct gkyl_array *grad2dx, *grad2dy, *grad2dxy;
+    };
+  };
+};
 
 void
 gkyl_dg_calc_cubic_1d(const double val[2], const double grad[2], double *coeff)
@@ -30,4 +51,73 @@ gkyl_dg_calc_cubic_2d(const double f[4],
   coeff[13] = (-0.00563436169819011*fy[3])+0.00563436169819011*fxy[3]+0.00563436169819011*fy[2]-0.00563436169819011*fxy[2]+0.00563436169819011*fy[1]+0.00563436169819011*fxy[1]-0.00563436169819011*fy[0]-0.00563436169819011*fxy[0]; 
   coeff[14] = 0.00563436169819011*fxy[3]-0.00563436169819011*fx[3]+0.00563436169819011*fxy[2]+0.00563436169819011*fx[2]-0.00563436169819011*fxy[1]+0.00563436169819011*fx[1]-0.00563436169819011*fxy[0]-0.00563436169819011*fx[0]; 
   coeff[15] = (-0.002857142857142857*fy[3])+0.002857142857142857*fxy[3]-0.002857142857142857*fx[3]+0.002857142857142857*f[3]-0.002857142857142857*fy[2]+0.002857142857142857*fxy[2]+0.002857142857142857*fx[2]-0.002857142857142857*f[2]+0.002857142857142857*fy[1]+0.002857142857142857*fxy[1]-0.002857142857142857*fx[1]-0.002857142857142857*f[1]+0.002857142857142857*fy[0]+0.002857142857142857*fxy[0]+0.002857142857142857*fx[0]+0.002857142857142857*f[0];
+}
+
+gkyl_dg_basis_op_mem *
+gkyl_dg_alloc_cubic_1d(int cells)
+{
+  struct gkyl_dg_basis_op_mem *mem = gkyl_malloc(sizeof(*mem));
+  mem->opcode = GKYL_DG_BASIS_OP_CUBIC_1D;
+  mem->grad1dx = gkyl_array_new(GKYL_DOUBLE, 1, cells+1);
+  return mem;
+}
+
+gkyl_dg_basis_op_mem *
+gkyl_dg_alloc_cubic_2d(int cells[2])
+{
+  struct gkyl_dg_basis_op_mem *mem = gkyl_malloc(sizeof(*mem));
+  mem->opcode = GKYL_DG_BASIS_OP_CUBIC_2D;
+
+  size_t ncells = (cells[0]+1)*(cells[1]+1);
+  mem->grad2dx = gkyl_array_new(GKYL_DOUBLE, 1, ncells);
+  mem->grad2dy = gkyl_array_new(GKYL_DOUBLE, 1, ncells);
+  mem->grad2dxy = gkyl_array_new(GKYL_DOUBLE, 1, ncells);
+  
+  return mem;
+}
+
+void
+gkyl_dg_basis_op_mem_release(gkyl_dg_basis_op_mem *mem)
+{
+  if (mem->opcode == GKYL_DG_BASIS_OP_CUBIC_1D) {
+    gkyl_array_release(mem->grad1dx);
+  }
+  if (mem->opcode == GKYL_DG_BASIS_OP_CUBIC_2D) {
+    gkyl_array_release(mem->grad2dx);
+    gkyl_array_release(mem->grad2dy);
+    gkyl_array_release(mem->grad2dxy);
+  }  
+  gkyl_free(mem);
+}
+
+void
+gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells, double dx,
+  const struct gkyl_array *nodal_vals, struct gkyl_array *cubic)
+{
+  enum { I, R, L }; // i, i-1, i+1 nodes
+  
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 1, (int[1]) { cells });
+
+  struct gkyl_range nc_range;
+  gkyl_range_init_from_shape(&nc_range, 1, (int[1]) { cells+1 });
+
+  long offset[3];
+  offset[I] = 0; // i
+  offset[L] = gkyl_range_offset(&nc_range, (int[]) { -1 } ); // i-1
+  offset[R] = gkyl_range_offset(&nc_range, (int[]) { 1 } ); // i+1
+
+  struct gkyl_array *gradx = mem->grad1dx;  
+  
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long nidx = gkyl_range_idx(&nc_range, iter.idx);
+
+    /* const double *val_I = gkyl_array_cfetch(nodal_vals, nidx+offset[I]); */
+    /* const double *val_L = gkyl_array_cfetch(nodal_vals, nidx+offset[L]); */
+    /* const double *val_R = gkyl_array_cfetch(nodal_vals, nidx+offset[R]); */
+
+    /* double *grad_I = gkyl_array_fetch(gradx, nidx+offset[I]); */
+  }
 }
