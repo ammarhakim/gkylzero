@@ -83,12 +83,9 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
 
   // allocate arrays to store fields: phi and (if EM GK) Apar and d/dt Apar 
   s->phi = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  s->apar = 0;
-  s->apardot = 0;
-  if (s->gkfield_id == GKYL_GK_FIELD_EM) {
-    s->apar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    s->apardot = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);    
-  }
+
+  s->apar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  s->apardot = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);    
 
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
@@ -399,10 +396,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_array_release(s->f_host);
 
   gkyl_array_release(s->phi);
-  if (s->gkfield_id == GKYL_GK_FIELD_EM) {
-    gkyl_array_release(s->apar);
-    gkyl_array_release(s->apardot);
-  }
+
+  gkyl_array_release(s->apar);
+  gkyl_array_release(s->apardot);
 
   // release equation object and solver
   gkyl_dg_eqn_release(s->eqn_gyrokinetic);

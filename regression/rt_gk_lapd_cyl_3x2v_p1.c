@@ -272,8 +272,10 @@ create_ctx(void)
 void
 write_data(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double tcurr)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) 
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
     gkyl_gyrokinetic_app_write(app, tcurr, iot->curr-1);
+    gkyl_gyrokinetic_app_calc_mom(app); gkyl_gyrokinetic_app_write_mom(app, tcurr, iot->curr-1);
+  }
 }
 
 int

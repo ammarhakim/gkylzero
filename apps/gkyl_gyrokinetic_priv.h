@@ -179,8 +179,6 @@ struct gk_species {
     };
   };
 
-  double polarization_density;
-
   struct gk_species_moment m0; // for computing charge density
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
@@ -301,12 +299,6 @@ struct gkyl_gyrokinetic_app {
   } basis_on_dev;
 
   struct gk_geometry *gk_geom;
-
-  struct gkyl_array *bmag; 
-  struct gkyl_array *bmag_inv; 
-  struct gkyl_array *jacobtot_inv; 
-  struct gkyl_array *cmag; 
-  struct gkyl_array *b_i; 
 
   struct gk_field *field; // pointer to field object
 

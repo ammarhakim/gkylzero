@@ -33,17 +33,12 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   // allocate arrays for Poisson smoothing and solver
-
-  if (app->cdim == 3){
-    f->es_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_array_shiftc(f->es_energy_fac, sqrt(2.0), 0); // Sets weight=1.
-  }
-  else if (app->cdim == 1){
+  f->weight = 0;
+  if (app->cdim == 1){
     // in 1D case need to set to kperpsq*polarizationWeight. TO DO
     f->weight = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_array_shiftc(f->weight, sqrt(2.0), 0); // Sets weight=1.
   }
-
 
   f->epsilon = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
   // Linearized polarization density
@@ -56,14 +51,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
   gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);
 
-  if (app->cdim == 3){
-    gkyl_array_scale(f->es_energy_fac, 0.5*polarization_weight);
-  }
-
-
-
-
-  f->kSq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  f->kSq = 0; 
+  //f->kSq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
   f->fem_parproj = gkyl_fem_parproj_new(&app->local, &app->local_ext, 
     &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
@@ -76,6 +65,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[1]));
   }
 
+  f->es_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  if (app->cdim == 3){
+    gkyl_array_shiftc(f->es_energy_fac, sqrt(2.0), 0); // Sets es_energy_fac=1.
+    gkyl_array_scale(f->es_energy_fac, 0.5*polarization_weight);
+  }
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   f->is_first_energy_write_call = true;
   f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->confBasis, 

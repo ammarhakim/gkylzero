@@ -166,14 +166,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     cstr_drop(&fileNm);
   }
 
-  // Initialize geometry fields
-  app->bmag = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  app->bmag_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  app->jacobtot_inv = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);  
-  app->cmag = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  app->b_i = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);  
-
-
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
 
@@ -331,8 +323,6 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
   
   gkyl_gyrokinetic_app_write_field(app, tm, frame);
 
-  gkyl_gyrokinetic_app_calc_mom(app);
-  gkyl_gyrokinetic_app_write_mom(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) 
     gkyl_gyrokinetic_app_write_species(app, i, tm, frame);
 
@@ -887,10 +877,6 @@ void
 gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 {
   gkyl_gk_geometry_release(app->gk_geom);
-  gkyl_array_release(app->bmag);
-  gkyl_array_release(app->jacobtot_inv);
-  gkyl_array_release(app->cmag);
-  gkyl_array_release(app->b_i);
 
   gk_field_release(app, app->field);
 
