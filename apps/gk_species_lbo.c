@@ -156,9 +156,9 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
       lbo->moms.marr, lbo->boundary_corrections,
       lbo->prim_moms);
   }
-  for (int d=0; d<app->vdim; d++)
+  // Scale upar and vth2 by nu
+  for (int d=0; d<2; d++)
     gkyl_dg_mul_op(app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
-  gkyl_dg_mul_op(app->confBasis, app->vdim, lbo->nu_prim_moms, app->vdim, lbo->prim_moms, 0, lbo->self_nu);
   
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
@@ -203,11 +203,9 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
         lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
         lbo->boundary_corrections, 
         lbo->cross_prim_moms[i]);
-
-
-    for (int d=0; d<app->vdim; d++)
+    // Scale upar_{rs} and vth2_{rs} by nu_{rs}
+    for (int d=0; d<2; d++)
       gkyl_dg_mul_op(app->confBasis, d, lbo->cross_nu_prim_moms, d, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
-    gkyl_dg_mul_op(app->confBasis, app->vdim, lbo->cross_nu_prim_moms, app->vdim, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
 
     gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, lbo->cross_nu_prim_moms);
   }
