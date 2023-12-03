@@ -274,6 +274,11 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
     struct timespec wst = gkyl_wall_clock();
 
     gk_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
+
+    // Rescale integrated moment by inverse of Jacobian before integration over configuration space
+    gkyl_dg_div_op_range(app->species[i].integ_moms.mem_geo, app->confBasis, 
+      0, app->species[i].integ_moms.marr, 0, app->species[i].integ_moms.marr, 0, app->gk_geom->jacobgeo, &app->local); 
+
     // reduce to compute sum over whole domain, append to diagnostics
     if (app->use_gpu) {
       gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, &(app->local));
