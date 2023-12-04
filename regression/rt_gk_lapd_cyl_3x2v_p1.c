@@ -354,7 +354,7 @@ main(int argc, char **argv)
     .init_temp = eval_temp_elc,
     .init_upar= eval_upar,
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_REFLECT },
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_FIXED_FUNC },
     .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
 
     .collisions =  {
@@ -391,7 +391,7 @@ main(int argc, char **argv)
     .init_temp = eval_temp_ion,
     .init_upar = eval_upar,
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_REFLECT },
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_FIXED_FUNC },
     .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
 
     .collisions =  {
