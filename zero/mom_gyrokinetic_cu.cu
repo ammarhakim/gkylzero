@@ -257,11 +257,11 @@ gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struc
 
   momt->momt.num_mom = vdim+2;
 
-  mom_gk->mass = mass;
+  momt->mass = mass;
   // acquire pointer to geometry object
   struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
-  mom_gk->gk_geom = geom->on_dev; // this is so the memcpy below has geometry on_dev
-  mom_gk->conf_range = *conf_range;
+  momt->gk_geom = geom->on_dev; // this is so the memcpy below has geometry on_dev
+  momt->conf_range = *conf_range;
 
   momt->momt.flags = 0;
   GKYL_SET_CU_ALLOC(momt->momt.flags);
@@ -278,7 +278,7 @@ gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struc
   momt->momt.on_dev = &momt_cu->momt;
 
   // updater should store host pointers
-  mom_gk->gk_geom = geom; 
+  momt->gk_geom = geom; 
   
   return &momt->momt;
 }

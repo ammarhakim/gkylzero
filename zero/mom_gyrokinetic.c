@@ -33,7 +33,7 @@ gkyl_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, mom);
+    return gkyl_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, gk_geom, mom);
   } 
 #endif    
   struct mom_type_gyrokinetic *mom_gk = gkyl_malloc(sizeof(struct mom_type_gyrokinetic));
@@ -150,7 +150,7 @@ gkyl_int_mom_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_int_mom_gyrokinetic_cu_dev_new(cbasis, pbasis);
+    return gkyl_int_mom_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, mass, gk_geom);
   } 
 #endif
   struct mom_type_gyrokinetic *mom_gk = gkyl_malloc(sizeof(struct mom_type_gyrokinetic));
