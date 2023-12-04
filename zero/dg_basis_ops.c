@@ -167,3 +167,109 @@ gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells, doub
     gkyl_dg_calc_cubic_1d(val, grad, gkyl_array_fetch(cubic, cidx));
   }
 }
+
+void
+gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], double dx[2],
+  const struct gkyl_array *nodal_vals, struct gkyl_array *cubic)
+{
+  enum {
+    I, // (i,j)
+    L, R, // (i-1,j) (i+1,j)
+    B, T, // (i,j-1) (i,j+1)
+    LT, RT, // (i-1,j+1), (i+1,j+1)
+    LB, RB, // (i-1,j-1), (i+1,j-1)
+    XE
+  }; 
+  
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, cells);
+
+  struct gkyl_range nc_range;
+  gkyl_range_init_from_shape(&nc_range, 2, (int[2]) { cells[0]+1, cells[1]+1 });
+
+  long offset[XE];
+  offset[I] = 0; // i,j
+  offset[L] = gkyl_range_offset(&nc_range, (int[]) { -1,0 } ); // i-1,j
+  offset[R] = gkyl_range_offset(&nc_range, (int[]) { 1,0 } ); // i+1,j
+  offset[B] = gkyl_range_offset(&nc_range, (int[]) { 0,-1 } ); // i,j-1
+  offset[T] = gkyl_range_offset(&nc_range, (int[]) { 0,1 } ); // i,j+1
+  offset[LT] = gkyl_range_offset(&nc_range, (int[]) { -1,1 } ); // i-1,j+1
+  offset[RT] = gkyl_range_offset(&nc_range, (int[]) { 1,1 } ); // i+1,j+1
+  offset[LB] = gkyl_range_offset(&nc_range, (int[]) { -1,-1 } ); // i-1,j-1
+  offset[RB] = gkyl_range_offset(&nc_range, (int[]) { 1,-1 } ); // i+1,j-1
+
+  struct gkyl_array *gradx = mem->grad2dx;
+  struct gkyl_array *grady = mem->grad2dy;
+  struct gkyl_array *gradxy = mem->grad2dxy;
+
+  int ilo = nc_range.lower[0], iup = nc_range.upper[0];
+  int jlo = nc_range.lower[1], jup = nc_range.upper[1];
+
+  // Step 1: compute gradients at nodes using differencing
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &nc_range); // loop over node range
+
+  while (gkyl_range_iter_next(&iter)) {
+    long nidx = gkyl_range_idx(&nc_range, iter.idx);
+
+    if ((iter.idx[0] != ilo) && (iter.idx[0] != iup) && (iter.idx[1] != jlo) && (iter.idx[1] != jup)) {
+      // interior nodes
+      const double *val_L = gkyl_array_cfetch(nodal_vals, nidx+offset[L]);
+      const double *val_R = gkyl_array_cfetch(nodal_vals, nidx+offset[R]);
+      const double *val_T = gkyl_array_cfetch(nodal_vals, nidx+offset[T]);
+      const double *val_B = gkyl_array_cfetch(nodal_vals, nidx+offset[B]);
+
+      double *gradx_I = gkyl_array_fetch(gradx, nidx+offset[I]);
+      gradx_I[0] = (val_R[0]-val_L[0])/(2*dx[0]);
+
+      double *grady_I = gkyl_array_fetch(grady, nidx+offset[I]);
+      grady_I[0] = (val_T[0]-val_B[0])/(2*dx[1]);
+
+      const double *val_LT = gkyl_array_cfetch(nodal_vals, nidx+offset[LT]);
+      const double *val_RT = gkyl_array_cfetch(nodal_vals, nidx+offset[RT]);
+      const double *val_LB = gkyl_array_cfetch(nodal_vals, nidx+offset[LB]);
+      const double *val_RB = gkyl_array_cfetch(nodal_vals, nidx+offset[RB]);
+
+      double *gradxy_I = gkyl_array_fetch(gradxy, nidx+offset[I]);
+      gradxy_I[0] = (
+        (val_RT[0]-val_RB[0])/(2*dx[1]) - (val_LT[0]-val_LB[0])/(2*dx[1])
+      )/(2*dx[0]);
+    }
+  }
+
+  // Step 2: compute cubic expansions in each cell
+  gkyl_range_iter_init(&iter, &range); // loop is over cells
+  while (gkyl_range_iter_next(&iter)) {
+    
+    long nidx = gkyl_range_idx(&nc_range, iter.idx);
+
+    // four corners nodes of cell
+    const double *val_I = gkyl_array_cfetch(nodal_vals, nidx+offset[I]);
+    const double *val_R = gkyl_array_cfetch(nodal_vals, nidx+offset[R]);
+    const double *val_T = gkyl_array_cfetch(nodal_vals, nidx+offset[T]);
+    const double *val_RT = gkyl_array_cfetch(nodal_vals, nidx+offset[RT]);
+    
+    const double *gradx_I = gkyl_array_cfetch(gradx, nidx+offset[I]);
+    const double *gradx_R = gkyl_array_cfetch(gradx, nidx+offset[R]);
+    const double *gradx_T = gkyl_array_cfetch(gradx, nidx+offset[T]);
+    const double *gradx_RT = gkyl_array_cfetch(gradx, nidx+offset[RT]);
+
+    const double *grady_I = gkyl_array_cfetch(grady, nidx+offset[I]);
+    const double *grady_R = gkyl_array_cfetch(grady, nidx+offset[R]);
+    const double *grady_T = gkyl_array_cfetch(grady, nidx+offset[T]);
+    const double *grady_RT = gkyl_array_cfetch(grady, nidx+offset[RT]);
+
+    const double *gradxy_I = gkyl_array_cfetch(gradxy, nidx+offset[I]);
+    const double *gradxy_R = gkyl_array_cfetch(gradxy, nidx+offset[R]);
+    const double *gradxy_T = gkyl_array_cfetch(gradxy, nidx+offset[T]);
+    const double *gradxy_RT = gkyl_array_cfetch(gradxy, nidx+offset[RT]);
+
+    double val[4] = { val_I[0], val_T[0], val_R[0], val_RT[0] };
+    double gradx[4] = { gradx_I[0]*dx[0]/2, gradx_T[0]*dx[0]/2, gradx_R[0]*dx[0]/2, gradx_RT[0]*dx[0]/2 };
+    double grady[4] = { grady_I[0]*dx[1]/2, grady_T[0]*dx[1]/2, grady_R[0]*dx[1]/2, grady_RT[0]*dx[1]/2 };
+    double gradxy[4] = { gradxy_I[0]*dx[0]/2*dx[1]/2, gradxy_T[0]*dx[0]/2*dx[1]/2, gradxy_R[0]*dx[0]/2*dx[1]/2, gradxy_RT[0]*dx[0]/2*dx[1]/2 };
+
+    long cidx = gkyl_range_idx(&range, iter.idx);
+    gkyl_dg_calc_cubic_2d(val, gradx, grady, gradxy, gkyl_array_fetch(cubic, cidx));
+  }
+}
