@@ -84,7 +84,7 @@ static void
 cubic_2d(void)
 {
   double lower[] = { 0.0, 0.0 }, upper[] = { 10.0, 10.0 };
-  int cells[] = { 16, 32 };
+  int cells[] = { 16, 16 };
 
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
@@ -119,7 +119,7 @@ cubic_2d(void)
       double *pn = gkyl_array_fetch(psi_nodal, nidx);
       double xn = grid.lower[0] + iter.idx[0]*grid.dx[0];
       double yn = grid.lower[1] + iter.idx[1]*grid.dx[1];
-      pn[0] = (-sq(xn) + 0.15*cub(xn))*(-sq(yn) + 0.15*cub(yn));
+      pn[0] = (-sq(xn) + 0.15*cub(xn));
     }
     // compute cubic expansion
     gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, grid.dx,
@@ -128,6 +128,25 @@ cubic_2d(void)
     gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_2d_a.gkyl");
     gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_2d_a.gkyl");
   } while (0);
+
+  do {
+    // initialize 2D nodal values
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &nc_local);
+    while (gkyl_range_iter_next(&iter)) {
+      long nidx = gkyl_range_idx(&nc_local, iter.idx);
+      double *pn = gkyl_array_fetch(psi_nodal, nidx);
+      double xn = grid.lower[0] + iter.idx[0]*grid.dx[0];
+      double yn = grid.lower[1] + iter.idx[1]*grid.dx[1];
+      pn[0] = (-sq(yn) + 0.15*cub(yn));
+    }
+    // compute cubic expansion
+    gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, grid.dx,
+      psi_nodal, psi_cubic);
+    
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_2d_b.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_2d_b.gkyl");
+  } while (0);  
 
   gkyl_array_release(psi_nodal);
   gkyl_array_release(psi_cubic);
