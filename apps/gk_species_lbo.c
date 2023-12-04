@@ -53,6 +53,16 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   lbo->m2self = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
+  // Host-side copy for I/O
+  lbo->nu_sum_host = lbo->nu_sum;
+  lbo->prim_moms_host = lbo->prim_moms;
+  lbo->nu_prim_moms_host = lbo->nu_prim_moms;
+  if (app->use_gpu) {
+    lbo->nu_sum = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    lbo->prim_moms = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);
+    lbo->nu_prim_moms = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);    
+  }
+
   // allocate moments needed for LBO update
   gk_species_moment_init(app, s, &lbo->moms, "ThreeMoments");
 
@@ -236,6 +246,12 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
   gkyl_array_release(lbo->nu_prim_moms);
   gkyl_array_release(lbo->m0);
   gkyl_array_release(lbo->m2self);
+
+  if (app->use_gpu) {
+    gkyl_array_release(lbo->nu_sum_host);
+    gkyl_array_release(lbo->prim_moms_host);
+    gkyl_array_release(lbo->nu_prim_moms_host);    
+  }
 
   gk_species_moment_release(app, &lbo->moms);
 

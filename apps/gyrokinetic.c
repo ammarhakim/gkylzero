@@ -328,8 +328,11 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
   
   gkyl_gyrokinetic_app_write_field(app, tm, frame);
 
-  for (int i=0; i<app->num_species; ++i) 
+  for (int i=0; i<app->num_species; ++i) {
     gkyl_gyrokinetic_app_write_species(app, i, tm, frame);
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS)
+      gkyl_gyrokinetic_app_write_coll_mom(app, i, tm, frame);
+  }
 
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
 }
@@ -377,6 +380,44 @@ gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double t
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
       app->species[sidx].f, fileNm);
   }
+}
+
+void
+gkyl_gyrokinetic_app_write_coll_mom(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *s = &app->species[sidx];
+
+  // Construct the file handles for collision frequency and primitive moments
+  const char *fmt = "%s-%s_nu_sum_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+
+  const char *fmt_prim = "%s-%s_prim_moms_%d.gkyl";
+  int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, s->info.name, frame);
+  char fileNm_prim[sz_prim+1]; // ensures no buffer overflow
+  snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, s->info.name, frame);
+
+  const char *fmt_nu_prim = "%s-%s_nu_prim_moms_%d.gkyl";
+  int sz_nu_prim = gkyl_calc_strlen(fmt_nu_prim, app->name, s->info.name, frame);
+  char fileNm_nu_prim[sz_nu_prim+1]; // ensures no buffer overflow
+  snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, s->info.name, frame);
+
+  // Compute primitive moments
+  gk_species_lbo_moms(app, s, &s->lbo, s->f);
+  if (s->lbo.num_cross_collisions)
+    gk_species_lbo_moms(app, s, &s->lbo, s->f);
+
+  // copy data from device to host before writing it out
+  if (app->use_gpu) {
+    gkyl_array_copy(s->lbo.nu_sum_host, s->lbo.nu_sum);
+    gkyl_array_copy(s->lbo.prim_moms_host, s->lbo.prim_moms);
+    gkyl_array_copy(s->lbo.nu_prim_moms_host, s->lbo.nu_prim_moms);
+  }
+
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->lbo.nu_sum_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->lbo.prim_moms_host, fileNm_prim);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->lbo.nu_prim_moms_host, fileNm_nu_prim);
 }
 
 void

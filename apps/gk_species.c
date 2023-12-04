@@ -236,7 +236,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
     gkyl_array_set_offset(prim_moms, 1.0, vtsq  , 1*app->confBasis.num_basis);
 
     // Initialize Maxwellian projection object
-    gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&app->grid,
+    gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&species->grid,
         &app->confBasis, &app->basis, poly_order+1, app->use_gpu);
 
     // If on GPUs, need to copy n, udrift, and vt^2 onto device
