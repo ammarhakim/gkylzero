@@ -50,6 +50,13 @@ struct gkyl_gyrokinetic_source {
   void *ctx; // context for source function
   // function for computing source profile
   void (*profile)(double t, const double *xn, double *aout, void *ctx);
+
+  // flag to indicate if source is maxwellian projection
+  bool is_maxwellian;
+  // functions for computing source density, upar, and temperature profiles
+  void (*density_profile)(double t, const double *xn, double *aout, void *ctx);
+  void (*upar_profile)(double t, const double *xn, double *aout, void *ctx);
+  void (*temp_profile)(double t, const double *xn, double *aout, void *ctx);
 };
 
 // Parameters for gk species

@@ -97,6 +97,48 @@ eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 }
 
 void
+eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_lapd_ctx *app = ctx;
+  double r = xn[0], th = xn[1], z = xn[2], vpar = xn[3], mu = xn[4];
+  double n0 = app->n0;
+  double Lz = app->Lz;
+  double c_s = app->c_s;
+  double r_s = app->r_s;
+  double L_s = app->L_s;
+  double sourceFloor = 0.01;
+  double S0 = 1.08*n0*c_s/Lz;
+  double n = S0*(sourceFloor + (1.0-sourceFloor)*0.5*(1.0 - tanh((r-r_s)/L_s)));
+  fout[0] = n;
+}
+
+void
+eval_upar_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  fout[0] = 0.0;
+}
+
+void
+eval_temp_elc_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_lapd_ctx *app = ctx;
+  double r = xn[0], th = xn[1], z = xn[2], vpar = xn[3], mu = xn[4];
+  double n0 = app->n0;
+  double Te_source = app->Te_source;
+  double Lperp = app->Lperp;
+  double T = Te_source*profileA(r, 1.0/2.5, Lperp);
+  fout[0] = T;
+}
+
+void
+eval_temp_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_lapd_ctx *app = ctx;
+  double Ti = app->Ti;
+  fout[0] = Ti;
+}
+
+void
 evalDistFuncElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_lapd_ctx *app = ctx;
@@ -368,6 +410,10 @@ main(int argc, char **argv)
     .source = {
       .source_species = "elc",
       .profile = evalDistFuncElcSource,
+      .is_maxwellian = true,
+      .density_profile = eval_density_source,
+      .upar_profile = eval_upar_source,
+      .temp_profile = eval_temp_elc_source,
       .ctx = &ctx,
     },
     
@@ -405,6 +451,10 @@ main(int argc, char **argv)
     .source = {
       .source_species = "ion",
       .profile = evalDistFuncIonSource,
+      .is_maxwellian = true,
+      .density_profile = eval_density_source,
+      .upar_profile = eval_upar_source,
+      .temp_profile = eval_temp_ion_source,
       .ctx = &ctx,
     },
     
