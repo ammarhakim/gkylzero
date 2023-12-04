@@ -408,9 +408,7 @@ main(int argc, char **argv)
     },
 
     .source = {
-      .source_species = "elc",
-      .profile = evalDistFuncElcSource,
-      .is_maxwellian = true,
+      .source_id = GKYL_MAXWELLIAN_SOURCE,
       .density_profile = eval_density_source,
       .upar_profile = eval_upar_source,
       .temp_profile = eval_temp_elc_source,
@@ -449,9 +447,7 @@ main(int argc, char **argv)
     },
 
     .source = {
-      .source_species = "ion",
-      .profile = evalDistFuncIonSource,
-      .is_maxwellian = true,
+      .source_id = GKYL_MAXWELLIAN_SOURCE,
       .density_profile = eval_density_source,
       .upar_profile = eval_upar_source,
       .temp_profile = eval_temp_ion_source,

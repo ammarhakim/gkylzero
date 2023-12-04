@@ -47,6 +47,7 @@ enum gkyl_collision_id {
 enum gkyl_source_id {
   GKYL_NO_SOURCE = 0, // No source. This is default
   GKYL_FUNC_SOURCE, // Source given by function
+  GKYL_MAXWELLIAN_SOURCE, // Source given by Maxwellian
   GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes
 };
 

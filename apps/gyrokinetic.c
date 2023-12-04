@@ -576,7 +576,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // bflux calculation of the source species
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].source_id) {
-      gk_species_source_rhs(app, &app->species[i], &app->species[i].src, fin, fout);
+      gk_species_source_rhs(app, &app->species[i], &app->species[i].src, fin[i], fout[i]);
     }
   }
 

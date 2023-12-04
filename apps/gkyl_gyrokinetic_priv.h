@@ -135,18 +135,10 @@ struct gk_lbo_collisions {
 };
 
 struct gk_source {
-  struct gk_species_moment moms; // source moments
-
+  enum gkyl_source_id source_id; // type of source
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *source_proj; // projector for source
-
-  struct gk_species *source_species; // species to use for the source
-  int source_species_idx; // index of source species
-  
-  double scale_factor; // factor to scale source function
-  double source_length; // length used to scale the source function
-  double *scale_ptr;
 };
 
 // species data
@@ -484,7 +476,7 @@ void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *specie
  * @param rhs On output, the distribution function
  */
 void gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
+  struct gk_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
  * Release species source object.
