@@ -12,6 +12,10 @@ typedef struct gkyl_dg_basis_op_mem gkyl_dg_basis_op_mem;
  * expansion cofficients of modal cubic (p=3) basis functions. The
  * output @a coeff must be preallocated and have at least 4 elements.
  *
+ * IMPORTANT: The input gradients are computed on the unit cell
+ * [-1,1]. Hence you MUST properly transform your gradients from
+ * gradients on your cell to the unit cell.
+ *
  * @param val val[0] and val[1] are the values at left/right edges
  * @param grad grad[0] and grad[1] are the gradients at left/right edges
  * @param coeff On output, the DG expansion coefficients for p=3 basis.
@@ -31,6 +35,10 @@ void gkyl_dg_calc_cubic_1d(const double val[2], const double grad[2], double *co
  *  |       |
  *  *-------*
  *  1       3
+ *
+ * IMPORTANT: The input gradients are computed on the unit cell [-1,1]
+ * x [-1,1]. Hence you MUST properly transform your gradients from
+ * gradients on your cell to the unit cell.
  *
  * @param val val[i] is the value at node i
  * @param gradx gradx[i] is the x-derivative at node i

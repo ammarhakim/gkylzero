@@ -19,7 +19,7 @@ static void
 cubic_1d(void)
 {
   double lower[] = { 0.0 }, upper[] = { 10.0 };
-  int cells[] = { 32 };
+  int cells[] = { 16 };
 
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
@@ -43,21 +43,37 @@ cubic_1d(void)
 
   struct gkyl_array *psi_nodal = gkyl_array_new(GKYL_DOUBLE, 1, cells[0]+1);
   struct gkyl_array *psi_cubic = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-
-  // initialize 1D nodal values
-  for (int i=0; i<cells[0]+1; ++i) {
-    double *pn = gkyl_array_fetch(psi_nodal, i);
-    double xn = grid.lower[0] + i*grid.dx[0];
-    pn[0] = -sq(xn) + 0.15*cub(xn);
-  }
-  gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_1d.gkyl");
-
   gkyl_dg_basis_op_mem *mem = gkyl_dg_alloc_cubic_1d(cells[0]);
+  
+  do {
+    // initialize 1D nodal values
+    for (int i=0; i<cells[0]+1; ++i) {
+      double *pn = gkyl_array_fetch(psi_nodal, i);
+      double xn = grid.lower[0] + i*grid.dx[0];
+      pn[0] = -sq(xn) + 0.15*cub(xn);
+    }
+    // compute cubic expansion
+    gkyl_dg_calc_cubic_1d_from_nodal_vals(mem, cells[0], grid.dx[0],
+      psi_nodal, psi_cubic);
+    
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_1d_a.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_1d_a.gkyl");
+  } while (0);
 
-  gkyl_dg_calc_cubic_1d_from_nodal_vals(mem, cells[0], grid.dx[0],
-    psi_nodal, psi_cubic);
-
-  gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_1d.gkyl");
+  do {
+    // initialize 1D nodal values
+    for (int i=0; i<cells[0]+1; ++i) {
+      double *pn = gkyl_array_fetch(psi_nodal, i);
+      double xn = grid.lower[0] + i*grid.dx[0];
+      pn[0] = sq(xn) + 10*sq(sin(xn));
+    }
+    // compute cubic expansion
+    gkyl_dg_calc_cubic_1d_from_nodal_vals(mem, cells[0], grid.dx[0],
+      psi_nodal, psi_cubic);
+    
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_1d_b.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_1d_b.gkyl");
+  } while (0);  
 
   gkyl_array_release(psi_nodal);
   gkyl_array_release(psi_cubic);
