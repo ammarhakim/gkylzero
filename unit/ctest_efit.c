@@ -17,7 +17,7 @@
 
 
 void test_1(){
-  char* filepath = "./efit_data/input.geqdsk";
+  char* filepath = "./efit_data/asdex.geqdsk";
   // RZ basis function
 
   int rzpoly_order = 2;
@@ -47,22 +47,23 @@ void test_1(){
   struct gkyl_array* psizr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   struct gkyl_array* psibyrzr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   struct gkyl_array* psibyr2zr = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-
   struct gkyl_array* fpolflux = gkyl_array_new(GKYL_DOUBLE, fluxbasis.num_basis, fluxlocal_ext.volume);
+  struct gkyl_array* qflux = gkyl_array_new(GKYL_DOUBLE, fluxbasis.num_basis, fluxlocal_ext.volume);
 
 
-  gkyl_efit_advance(efit, &rzgrid, &fluxgrid, &rzlocal, &rzlocal_ext, psizr, psibyrzr, psibyr2zr, &fluxlocal, &fluxlocal_ext, fpolflux);
+  gkyl_efit_advance(efit, &rzgrid, &fluxgrid, &rzlocal, &rzlocal_ext, psizr, psibyrzr, psibyr2zr, &fluxlocal, &fluxlocal_ext, fpolflux, qflux);
 
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psizr, "efit_psi.gkyl");
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psibyrzr, "efit_psibyr.gkyl");
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, psibyr2zr, "efit_psibyr2.gkyl");
-
   gkyl_grid_sub_array_write(&fluxgrid, &fluxlocal, fpolflux, "efit_fpol.gkyl");
+  gkyl_grid_sub_array_write(&fluxgrid, &fluxlocal, qflux, "efit_q.gkyl");
 
   gkyl_array_release(psizr);
   gkyl_array_release(psibyrzr);
   gkyl_array_release(psibyr2zr);
   gkyl_array_release(fpolflux);
+  gkyl_array_release(qflux);
 
 
 
