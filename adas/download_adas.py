@@ -75,6 +75,7 @@ def adas_files_dict():
     files["C"] = {}
     files["N"] = {}
     files["O"] = {}
+    files["Ar"] = {}
     files["H"]["acd"] = "acd12_h.dat"
     files["H"]["scd"] = "scd12_h.dat"
     files["H"]["plt"] = "plt12_h.dat"
@@ -107,6 +108,10 @@ def adas_files_dict():
     files["O"]["scd"] = "scd96_o.dat"
     files["O"]["plt"] = "plt96_o.dat"
     files["O"]["prb"] = "prb96_o.dat"
+    files["Ar"]["acd"] = "acd89_o.dat"
+    files["Ar"]["scd"] = "scd89_o.dat"
+    files["Ar"]["plt"] = "plt89_o.dat"
+    files["Ar"]["prb"] = "prb89_o.dat"
     return files
 
 
