@@ -241,7 +241,6 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
 
     // If on GPUs, need to copy n, udrift, and vt^2 onto device
     struct gkyl_array *prim_moms_dev, *m0_dev;
-    struct gkyl_dg_bin_op_mem *mem;
     if (app->use_gpu) {
       prim_moms_dev = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
       m0_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -250,20 +249,25 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
       gkyl_array_copy(m0_dev, m0);
       gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &species->local_ext, &app->local_ext, m0_dev, prim_moms_dev,
           app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, species->f);
-      // Initialize bin op memory on device 
-      mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
     }
     else {
       gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &species->local_ext, &app->local_ext, m0, prim_moms,
           app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, species->f);
-      mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
     }
     // Now compute and scale the density to the desired density function based on input density from Maxwellian projection
     gk_species_moment_calc(&species->m0, species->local_ext, app->local_ext, species->f); 
 
     // Rescale projected density to desired input density function
     struct gkyl_array *m0mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_dg_div_op_range(mem, app->confBasis, 0, m0mod, 0, m0, 0, species->m0.marr, &app->local);
+    struct gkyl_dg_bin_op_mem *mem;
+    if (app->use_gpu) {
+      mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
+      gkyl_dg_div_op_range(mem, app->confBasis, 0, m0mod, 0, m0_dev, 0, species->m0.marr, &app->local);
+    }
+    else {
+      mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
+      gkyl_dg_div_op_range(mem, app->confBasis, 0, m0mod, 0, m0, 0, species->m0.marr, &app->local);
+    }
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->f, 
         m0mod, species->f, &app->local_ext, &species->local_ext);
 
