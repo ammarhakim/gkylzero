@@ -22,7 +22,10 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     if (app->use_gpu)
       sm->marr_host = mkarr(false, num_mom, app->local_ext.volume); 
     // Bin Op memory for rescaling moment by inverse of Jacobian
-    sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, num_mom);     
+    if (app->use_gpu)
+      sm->mem_geo = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, num_mom);  
+    else   
+      sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, num_mom);  
   }
   else {
     sm->marr = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);
@@ -30,7 +33,10 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     if (app->use_gpu)
       sm->marr_host = mkarr(false, num_mom*app->confBasis.num_basis, app->local_ext.volume);
     // Bin Op memory for rescaling moment by inverse of Jacobian
-    sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, num_mom*app->confBasis.num_basis);
+    if (app->use_gpu)
+      sm->mem_geo = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, num_mom*app->confBasis.num_basis);
+    else
+      sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, num_mom*app->confBasis.num_basis);
   }
 }
 
