@@ -83,7 +83,7 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis->num_basis, up->range_ext->volume);
   up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
-  up->jacobgeo_inv= gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
+  up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis->num_basis, up->range_ext->volume);
   up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis->num_basis, up->range_ext->volume);
   up->cmag = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
@@ -95,7 +95,10 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
 
-  gkyl_gk_geometry_advance(up, &nrange, dzc, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
+  gkyl_gk_geometry_advance(up, &nrange, dzc, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx, 
+    up->mc2p_nodal_fd, up->mc2p_nodal, up->mc2p, 
+    up->bmag, up->g_ij, up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, 
+    up->jacobtot_inv, up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);

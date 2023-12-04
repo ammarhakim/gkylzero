@@ -14,7 +14,7 @@ extern "C" {
 // CPU interface to create and track a GPU object
 struct gk_geometry*
 gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu)
+  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx)
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 
@@ -57,7 +57,10 @@ gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl
   struct gkyl_array* gxxj = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array* gxyj = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array* gyyj = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
-  gkyl_gk_geometry_advance(up, &nrange, dzc, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
+  gkyl_gk_geometry_advance(up, &nrange, dzc, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx, 
+    mc2p_nodal_fd, mc2p_nodal, mc2p, 
+    bmag, g_ij, jacobgeo, jacobgeo_inv, gij, b_i, cmag, jacobtot, 
+    jacobtot_inv, bmag_inv, bmag_inv_sq, gxxj, gxyj, gyyj);
 
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *mc2p_nodal_fd_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim*13, nrange.volume);
