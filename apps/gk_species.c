@@ -215,8 +215,8 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
   int poly_order = app->poly_order;
   if (species->info.is_maxwellian){
     // Project udrift and vt^2 based on input functions
-    struct gkyl_array *udrift = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    struct gkyl_array *vtsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *udrift = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *vtsq = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       poly_order+1, 1, species->info.init_upar, species->info.ctx);
     gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
@@ -226,17 +226,17 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
     gkyl_array_scale(vtsq, 1/species->info.mass);
 
     // proj_maxwellian expects the primitive moments as a single array.
-    struct gkyl_array *prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *prim_moms = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);
     gkyl_array_set_offset(prim_moms, 1.0, udrift, 0*app->confBasis.num_basis);
     gkyl_array_set_offset(prim_moms, 1.0, vtsq  , 1*app->confBasis.num_basis);
 
     // Utilizing an initial density of 1 in projection calculation to minimize errors
-    struct gkyl_array *m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *m0 = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_array_shiftc(m0, sqrt(2.0), 0); 
 
     // Project GK Maxwellian with udrift and vth^2 input functions, and initial density of 1
     gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&app->grid,
-        &app->confBasis, &app->basis, poly_order+1, app->use_gpu);
+        &app->confBasis, &app->basis, poly_order+1, false);
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &species->local_ext, &app->local_ext, m0, prim_moms,
         app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, species->f_host);
 
@@ -246,10 +246,10 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
     // Input density function
     gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       poly_order+1, 1, species->info.init_density, species->info.ctx);
-    struct gkyl_array *m0_inp = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *m0_inp = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_proj_on_basis_advance(proj_m0, 0.0, &app->local_ext, m0_inp); 
     // Rescale projected density to desired input density function
-    struct gkyl_array *m0mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *m0mod = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     struct gkyl_dg_bin_op_mem *mem  = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
     gkyl_dg_div_op_range(mem, app->confBasis, 0, m0mod, 0, m0_inp, 0, species->m0.marr, &app->local);
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->f_host, 
