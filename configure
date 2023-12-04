@@ -1,5 +1,10 @@
 #!/bin/sh
 
+OSTYPE=`uname -o`
+MACHINE=`uname -n`
+USER=`whoami`
+echo "# OS type is $OSTYPE on $MACHINE user $USER"
+
 # Defaults
 PREFIX=${HOME}/gkylsoft
 
@@ -8,33 +13,10 @@ CC=cc
 ARCH_FLAGS=-march=native
 CUDA_ARCH=70
 
-# Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC=$PREFIX/OpenBLAS/include
-LAPACK_LIB=$PREFIX/OpenBLAS/lib/libopenblas.a
-
-# MPI specific paths and flags
 USE_MPI=
-CONF_MPI_INC_DIR=$PREFIX/openmpi/include
-CONF_MPI_LIB_DIR=$PREFIX/openmpi/lib/
-
-# Lua specific paths and flags (link to static library)
 USE_LUA=
-CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1
-CONF_LUA_LIB_DIR=$PREFIX/luajit/lib/
+# Lua link to static library
 CONF_LUA_LIB=luajit-5.1
-
-OSTYPE=`uname -o`
-MACHINE=`uname -n`
-USER=`whoami`
-echo "# OS type is $OSTYPE on $MACHINE user $USER"
-# SuperLU includes and librararies
-SUPERLU_INC=$PREFIX/superlu/include
-if [ "$OSTYPE" = "linux-gnu"* ]
-then
-    SUPERLU_LIB=$PREFIX/superlu/lib64/libsuperlu.a;
-else
-    SUPERLU_LIB=$PREFIX/superlu/lib/libsuperlu.a;
-fi
 
 # Location of CUDA math libraries
 CUDAMATH_LIBS=
@@ -210,6 +192,27 @@ then
     USE_LUA=1
 else
     USE_LUA=
+fi
+
+# Default lapack include and libraries: we prefer linking to static library
+: "${LAPACK_INC:=$PREFIX/OpenBLAS/include}"
+: "${LAPACK_LIB=$PREFIX/OpenBLAS/lib/libopenblas.a}"
+
+# MPI specific paths and flags
+: "${CONF_MPI_INC_DIR=$PREFIX/openmpi/include}"
+: "${CONF_MPI_LIB_DIR=$PREFIX/openmpi/lib/}"
+
+# Lua specific paths and flags
+: "${CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1}"
+: "${CONF_LUA_LIB_DIR=$PREFIX/luajit/lib/}"
+
+# SuperLU includes and librararies
+: "${SUPERLU_INC=$PREFIX/superlu/include}"
+if [ "$OSTYPE" = "linux-gnu"* ]
+then
+    : "${SUPERLU_LIB=$PREFIX/superlu/lib64/libsuperlu.a;}"
+else
+    : "${SUPERLU_LIB=$PREFIX/superlu/lib/libsuperlu.a;}"
 fi
 
 # Write out config.mak

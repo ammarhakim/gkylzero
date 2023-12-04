@@ -159,7 +159,7 @@ gkyl_mat_mv(double alpha, double beta,
   size_t lda = transa == GKYL_NO_TRANS ? A->nr : k;
   size_t ldc = y->nr;
   
-  assert( (sza.nr == szy.nr) && (sza.nc == szx.nr) && (szx.nr = szy.nr) );
+  assert( (sza.nr == szy.nr) && (sza.nc == szx.nr) && (szx.nr == szy.nr) );
 
   // call BLAS routine to perform matrix-matrix multiply
   int incx = 1;

@@ -8,6 +8,7 @@ CUDA_ARCH ?= 70
 CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
+INSTALL_PREFIX ?= ${PREFIX}
 
 # determine OS we are running on
 UNAME = $(shell uname)
@@ -159,6 +160,11 @@ ${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}/regression
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
+# Lua interpreter for testing Lua regression tests
+${BUILD_DIR}/xglua: regression/xglua.c ${BUILD_DIR}/libgkylzero.so
+	$(MKDIR_P) ${BUILD_DIR}
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+
 # Amalgamated header file
 ${BUILD_DIR}/gkylzero.h:
 	$(MKDIR_P) ${BUILD_DIR}
@@ -288,7 +294,8 @@ all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated h
 
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
-regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ## Build regression tests
+regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/xglua ## Build regression tests
+xglua: ${BUILD_DIR}/xglua ## Build Lua interpreter
 
 .PHONY: check mpicheck
 # Run all unit tests
@@ -299,6 +306,10 @@ check: ${UNITS} ## Build (if needed) and run all unit tests
 mpicheck: ${MPI_UNITS} ## Build (if needed) and run all unit tests needing MPI
 	$(foreach unit,${MPI_UNITS},echo $(unit); $(unit) -E -M;)
 
+# Set full paths to install location so config.mak is used from there
+G0_SHARE_INSTALL_PREFIX=${INSTALL_PREFIX}/gkylzero/share
+SED_REPS_STR=s,G0_SHARE_INSTALL_PREFIX,${G0_SHARE_INSTALL_PREFIX},g
+
 install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # Construct install directories
 	$(MKDIR_P) ${PREFIX}/gkylzero/include
@@ -308,22 +319,26 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	${MKDIR_P} ${PREFIX}/gkylzero/share/adas
 	${MKDIR_P} ${PREFIX}/gkylzero/scripts
 # Headers
-	cp ${INSTALL_HEADERS} ${PREFIX}/gkylzero/include
-	./minus/gengkylzeroh.sh > ${PREFIX}/gkylzero/include/gkylzero.h
+	cp ${INSTALL_HEADERS} ${INSTALL_PREFIX}/gkylzero/include
+	./minus/gengkylzeroh.sh > ${INSTALL_PREFIX}/gkylzero/include/gkylzero.h
 # libraries
 #	strip ${ZERO_SH_INSTALL_LIB}  ## MF 2023/10/26: Causes a problem in Macs.
-	cp -f ${ZERO_SH_INSTALL_LIB} ${PREFIX}/gkylzero/lib/libgkylzero.so
+	cp -f ${ZERO_SH_INSTALL_LIB} ${INSTALL_PREFIX}/gkylzero/lib/libgkylzero.so
 # Examples
-	test -e config.mak && cp -f config.mak ${PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
-	cp -f Makefile.sample ${PREFIX}/gkylzero/share/Makefile
-	cp -f regression/rt_arg_parse.h ${PREFIX}/gkylzero/share/rt_arg_parse.h
-	cp -f regression/rt_twostream.c ${PREFIX}/gkylzero/share/rt_twostream.c
+	test -e config.mak && cp -f config.mak ${INSTALL_PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
+	cp -f Makefile.sample ${INSTALL_PREFIX}/gkylzero/share/Makefile
+	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/share/rt_arg_parse.h
+	cp -f regression/rt_twostream.c ${INSTALL_PREFIX}/gkylzero/share/rt_twostream.c
 # Lua wrappers
+<<<<<<< HEAD
 	cp -f inf/Vlasov.lua ${PREFIX}/gkylzero/lib/
 	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
 # Misc scripts
 	cp -f scripts/*.sh ${PREFIX}/gkylzero/scripts
 	cp -f adas/*.npy ${PREFIX}/gkylzero/share/adas
+=======
+	cp -f inf/Moments.lua ${INSTALL_PREFIX}/gkylzero/lib/
+>>>>>>> main
 
 .PHONY: clean
 clean: ## Clean build output
@@ -331,7 +346,7 @@ clean: ## Clean build output
 
 .PHONY: cleanur
 cleanur: ## Delete the unit and regression test executables
-	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression
+	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/xglua
 
 # include dependencies
 -include $(DEPS)

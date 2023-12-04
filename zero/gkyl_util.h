@@ -84,7 +84,8 @@ enum gkyl_cu_memcpy_kind {
 inline cudaError_t __checkCudaErrors__(cudaError_t code, const char *func, const char *file, int line)
 {
   if (code) {
-    fprintf(stderr, "CUDA error: %s (code=%d)  \"%s\" at %s:%d \n", cudaGetErrorString(code), (unsigned int)code, func, file, line);
+    fprintf(stderr, "CUDA error: %s (code=%u)  \"%s\" at %s:%d \n",
+      cudaGetErrorString(code), (unsigned int)code, func, file, line);
     cudaDeviceReset();
     exit(EXIT_FAILURE);
   }
