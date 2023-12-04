@@ -58,9 +58,9 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->prim_moms_host = lbo->prim_moms;
   lbo->nu_prim_moms_host = lbo->nu_prim_moms;
   if (app->use_gpu) {
-    lbo->nu_sum = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    lbo->prim_moms = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);
-    lbo->nu_prim_moms = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);    
+    lbo->nu_sum_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    lbo->prim_moms_host = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);
+    lbo->nu_prim_moms_host = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);    
   }
 
   // allocate moments needed for LBO update
