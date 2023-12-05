@@ -53,6 +53,12 @@ gkyl_dg_calc_cubic_2d(const double f[4],
   coeff[15] = (-0.002857142857142857*fy[3])+0.002857142857142857*fxy[3]-0.002857142857142857*fx[3]+0.002857142857142857*f[3]-0.002857142857142857*fy[2]+0.002857142857142857*fxy[2]+0.002857142857142857*fx[2]-0.002857142857142857*f[2]+0.002857142857142857*fy[1]+0.002857142857142857*fxy[1]-0.002857142857142857*fx[1]-0.002857142857142857*f[1]+0.002857142857142857*fy[0]+0.002857142857142857*fxy[0]+0.002857142857142857*fx[0]+0.002857142857142857*f[0];
 }
 
+static inline double
+calc_bilinear_grad_xy(double val[4], double dx[2])
+{
+  return ( (val[3]-val[2])/dx[1] - (val[1]-val[0])/dx[1])/dx[0];
+}
+
 gkyl_dg_basis_op_mem *
 gkyl_dg_alloc_cubic_1d(int cells)
 {
@@ -364,6 +370,87 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
 
       double *gradxy_I = gkyl_array_fetch(gradxy, nidx+offset[I]);
       gradxy_I[0] = (3*gx_I-4*gx_B+gx_BB)/(2*dx[1]);
+    }
+
+    if ((iter.idx[0] == ilo) && (iter.idx[1] = jlo)) {
+      // lower-left corner
+      const double *val_I = gkyl_array_cfetch(nodal_vals, nidx+offset[I]);
+      const double *val_R = gkyl_array_cfetch(nodal_vals, nidx+offset[R]);
+      const double *val_RR = gkyl_array_cfetch(nodal_vals, nidx+offset[RR]);
+      const double *val_T = gkyl_array_cfetch(nodal_vals, nidx+offset[T]);
+      const double *val_TT = gkyl_array_cfetch(nodal_vals, nidx+offset[TT]);
+      const double *val_RT = gkyl_array_cfetch(nodal_vals, nidx+offset[RT]);
+
+      double *gradx_I = gkyl_array_fetch(gradx, nidx+offset[I]);
+      gradx_I[0] = -(val_RR[0]-4*val_R[0]+3*val_I[0])/(2*dx[0]);
+      
+      double *grady_I = gkyl_array_fetch(grady, nidx+offset[I]);
+      grady_I[0] = -(val_TT[0]-4*val_T[0]+3*val_I[0])/(2*dx[1]);
+
+      double *gradxy_I = gkyl_array_fetch(gradxy, nidx+offset[I]);
+      double vxy[4] = { val_I[0], val_T[0], val_R[0], val_RT[0] };
+      gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);
+    }
+
+    if ((iter.idx[0] == ilo) && (iter.idx[1] = jup)) {
+      // upper-left corner
+      const double *val_I = gkyl_array_cfetch(nodal_vals, nidx+offset[I]);
+      const double *val_R = gkyl_array_cfetch(nodal_vals, nidx+offset[R]);
+      const double *val_RR = gkyl_array_cfetch(nodal_vals, nidx+offset[RR]);
+      const double *val_B = gkyl_array_cfetch(nodal_vals, nidx+offset[B]);
+      const double *val_BB = gkyl_array_cfetch(nodal_vals, nidx+offset[BB]);
+      const double *val_RB = gkyl_array_cfetch(nodal_vals, nidx+offset[RB]);
+
+      double *gradx_I = gkyl_array_fetch(gradx, nidx+offset[I]);
+      gradx_I[0] = -(val_RR[0]-4*val_R[0]+3*val_I[0])/(2*dx[0]);
+      
+      double *grady_I = gkyl_array_fetch(grady, nidx+offset[I]);
+      grady_I[0] = (3*val_I[0]-4*val_B[0]+val_BB[0])/(2*dx[1]);
+
+      double *gradxy_I = gkyl_array_fetch(gradxy, nidx+offset[I]);
+      double vxy[4] = { val_B[0], val_I[0], val_RB[0], val_R[0] };
+      gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);      
+    }    
+
+    if ((iter.idx[0] == iup) && (iter.idx[1] = jlo)) {
+      // lower-right corner
+      const double *val_I = gkyl_array_cfetch(nodal_vals, nidx+offset[I]);
+      const double *val_L = gkyl_array_cfetch(nodal_vals, nidx+offset[L]);
+      const double *val_LL = gkyl_array_cfetch(nodal_vals, nidx+offset[LL]);
+      const double *val_T = gkyl_array_cfetch(nodal_vals, nidx+offset[T]);
+      const double *val_TT = gkyl_array_cfetch(nodal_vals, nidx+offset[TT]);
+      const double *val_LT = gkyl_array_cfetch(nodal_vals, nidx+offset[LT]);
+
+      double *gradx_I = gkyl_array_fetch(gradx, nidx+offset[I]);
+      gradx_I[0] = (3*val_I[0]-4*val_L[0]+val_LL[0])/(2*dx[0]);
+      
+      double *grady_I = gkyl_array_fetch(grady, nidx+offset[I]);
+      grady_I[0] = -(val_TT[0]-4*val_T[0]+3*val_I[0])/(2*dx[1]);
+
+      double *gradxy_I = gkyl_array_fetch(gradxy, nidx+offset[I]);
+      double vxy[4] = { val_L[0], val_LT[0], val_I[0], val_T[0] };
+      gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);
+    }
+
+
+    if ((iter.idx[0] == iup) && (iter.idx[1] = jup)) {
+      // upper-right corner
+      const double *val_I = gkyl_array_cfetch(nodal_vals, nidx+offset[I]);
+      const double *val_L = gkyl_array_cfetch(nodal_vals, nidx+offset[L]);
+      const double *val_LL = gkyl_array_cfetch(nodal_vals, nidx+offset[LL]);
+      const double *val_B = gkyl_array_cfetch(nodal_vals, nidx+offset[B]);
+      const double *val_BB = gkyl_array_cfetch(nodal_vals, nidx+offset[BB]);
+      const double *val_LB = gkyl_array_cfetch(nodal_vals, nidx+offset[LB]);
+
+      double *gradx_I = gkyl_array_fetch(gradx, nidx+offset[I]);
+      gradx_I[0] = (3*val_I[0]-4*val_L[0]+val_LL[0])/(2*dx[0]);
+      
+      double *grady_I = gkyl_array_fetch(grady, nidx+offset[I]);
+      grady_I[0] = (3*val_I[0]-4*val_B[0]+val_BB[0])/(2*dx[1]);
+
+      double *gradxy_I = gkyl_array_fetch(gradxy, nidx+offset[I]);
+      double vxy[4] = { val_LB[0], val_L[0], val_B[0], val_I[0] };
+      gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);
     }    
   }
 

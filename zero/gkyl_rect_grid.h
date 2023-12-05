@@ -47,6 +47,23 @@ gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid,
 }
 
 /**
+ * Get coordinate of lower-left node. Note that idx is a 1-based cell
+ * index, i.e. the lower-left corner is (1,1,...).
+ *
+ * @param grid Grid object
+ * @param idx Index of cell (lower-left corner has all index (1,1,...) )
+ * @param xn On output, coordinates of lower-left node
+ */
+GKYL_CU_DH
+static inline void
+gkyl_rect_grid_ll_node(const struct gkyl_rect_grid *grid,
+  const int *idx, double *xc)
+{
+  for (int i=0; i<grid->ndim; ++i)
+    xc[i] = grid->lower[i]+(idx[i]-1)*grid->dx[i];
+}
+
+/**
  * Get index extents in direction @a dir. The extents are inclusive.
  *
  * @param grid Grid object
