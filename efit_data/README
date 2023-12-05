@@ -1,0 +1,3 @@
+Put the geqdsk file you want in this folder and name it 'input.geqdsk' in order to run g0 unit tests with it
+
+If running a simulation with g2, pass the filename to g2 in the App Table as "efit_name" and put the eqdsk file with the same name in this folder
