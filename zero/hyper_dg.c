@@ -44,7 +44,6 @@ void
 gkyl_hyper_dg_advance(struct gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
-  printf("Now in hyper_dg_advance\n");
   int ndim = hdg->ndim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
   double xcl[GKYL_MAX_DIM], xcc[GKYL_MAX_DIM], xcr[GKYL_MAX_DIM], xc_edge[GKYL_MAX_DIM];
@@ -53,23 +52,20 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *hdg, const struct gkyl_range *update
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
-  printf("Before while loop (hyper_dg)\n");
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(ndim, iter.idx, idxc);
     gkyl_rect_grid_cell_center(&hdg->grid, idxc, xcc);
 
     long linc = gkyl_range_idx(update_range, idxc);
-    printf("Before if (hyper_dg)\n");
     if (hdg->update_vol_term) {
       double cflr = hdg->equation->vol_term(
         hdg->equation, xcc, hdg->grid.dx, idxc,
         gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc)
       );
-      printf("After vol term\n");
       double *cflrate_d = gkyl_array_fetch(cflrate, linc);
       cflrate_d[0] += cflr; // frequencies are additive
     }
-    printf("After vol if (hyper_dg)\n");
+    
     for (int d=0; d<hdg->num_up_dirs; ++d) {
       int dir = hdg->update_dirs[d];
       double cfls = 0.0;
@@ -108,7 +104,6 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *hdg, const struct gkyl_range *update
           gkyl_array_fetch(rhs, linc)
         );
       }
-      printf("After else (hyper dg)\n");
       double *cflrate_d = gkyl_array_fetch(cflrate, linc);
       cflrate_d[0] += cfls; // frequencies are additive      
     }

@@ -21,8 +21,12 @@ struct gkyl_dg_updater_rad_gyrokinetic_tm {
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis function
  * @param conf_range Config space range
+ * @param prange Phase space range
  * @param bmag Magnetic field
  * @param fit_params 5 fitting parameters for nu
+ * @param vnu dg field of v*nu (v')
+ * @param vsqnu dg field of v^2*nu (v'')
+ * @param use_gpu Logical to turn gpu on/off
  * @return New RAD updater object
  */
 struct gkyl_dg_updater_collisions* 

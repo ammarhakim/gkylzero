@@ -15,11 +15,11 @@ struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
 				    const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, const struct gkyl_range *prange, const struct gkyl_array *bmag, const struct gkyl_array *fit_params, struct gkyl_array *vnu, struct gkyl_array *vsqnu, bool use_gpu)
 {
-  printf("Before allocation\n");
+
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
-  printf("Before coll creation\n");
+
   up->coll_drag = gkyl_dg_rad_gyrokinetic_drag_new(cbasis, pbasis, conf_range, prange, grid, bmag, fit_params, vnu, vsqnu, use_gpu);
-  printf("After coll creation\n");
+
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
   int num_up_dirs = vdim;
@@ -30,7 +30,7 @@ gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, const str
   int zero_flux_flags[GKYL_MAX_DIM] = { 0 };
   for (int d=cdim; d<pdim; ++d)
     zero_flux_flags[d] = 1;
-  printf("Before hyper dg new\n");
+
   up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
   
   return up;
@@ -45,21 +45,12 @@ gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *rad,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
-  printf("In updater rad advance\n");
+  
   // Set arrays needed
   gkyl_rad_gyrokinetic_drag_set_auxfields(rad->coll_drag,
 					  (struct gkyl_dg_rad_gyrokinetic_drag_auxfields) { .nI = nI, .vnu = vnu, .vsqnu = vsqnu});
   
   gkyl_hyper_dg_advance(rad->drag, update_rng, fIn, cflrate, rhs);
-
-  printf("After hyper advance (updater-advance)\n");
-  // Testing
-  //long linc = gkyl_range_idx(update_rng, 56354688);
-  double *rhs_d = gkyl_array_fetch(rhs, 7);
-  const double *fIn_d = gkyl_array_cfetch(fIn, 7);
-  for (int i=0; i<30; i++) {
-    printf("rhs[%d]=%e, fin[%d]=%e\n",i,rhs_d[i],i,fIn_d[i]);
-  }
 }
 
 struct gkyl_dg_updater_rad_gyrokinetic_tm

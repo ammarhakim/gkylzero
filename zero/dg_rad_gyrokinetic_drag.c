@@ -57,7 +57,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
     //Return to do
     //return gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(cbasis, pbasis, conf_range, pgrid, mass);
 #endif
-    printf("In drag new\n");
+    
   struct dg_rad_gyrokinetic_drag* rad_gyrokinetic_drag = gkyl_malloc(sizeof(struct dg_rad_gyrokinetic_drag));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
@@ -77,7 +77,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   const gkyl_dg_rad_gyrokinetic_drag_vol_kern_list *vol_kernels;
   const gkyl_dg_rad_gyrokinetic_drag_surf_kern_list *surf_vpar_kernels, *surf_mu_kernels;
   const gkyl_dg_rad_gyrokinetic_drag_boundary_surf_kern_list *boundary_surf_vpar_kernels, *boundary_surf_mu_kernels;
-  printf("set pointers\n");
+  
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
@@ -101,7 +101,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   rad_gyrokinetic_drag->boundary_surf[0] = CK(boundary_surf_vpar_kernels, cdim, vdim, poly_order);
   if (vdim>1)
     rad_gyrokinetic_drag->boundary_surf[1] = CK(boundary_surf_mu_kernels, cdim, vdim, poly_order);
-  printf("Chose kernel\n");
+  
   // ensure non-NULL pointers
   for (int i=0; i<vdim; ++i) assert(rad_gyrokinetic_drag->surf[i]);
   for (int i=0; i<vdim; ++i) assert(rad_gyrokinetic_drag->boundary_surf[i]);
@@ -117,10 +117,10 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   
   //struct gkyl_range prangeloc, prange_ext;
   const int nghost[GKYL_MAX_DIM]={0};
-  printf("Set AuxFields\n");
+  
   //gkyl_create_global_range(pdim, pgrid->cells, &prangeloc);
   // gkyl_create_grid_ranges(pgrid, nghost, &prange_ext, &prangeloc);
-  printf("assign vnu_params\n");
+
   struct gkyl_dg_rad_vnu_params vnu_params;// = gkyl_malloc(sizeof(gkyl_dg_rad_vnu_params));
   vnu_params.cdim = cdim;
   vnu_params.vdim = vdim;
@@ -128,7 +128,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   vnu_params.fit_params = fit_params;
   vnu_params.pgrid = pgrid;
   vnu_params.conf_range = conf_range;
-  printf("assigned vnu_params, vnu_params.cdim=%i\n",vnu_params.cdim);
+
   struct gkyl_array *vnu_temp = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, prange->volume);
   //double *vnu_arr = vnu_temp->data;
   double *vnu_arr = vnu->data;
@@ -137,16 +137,16 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
     //printf("i=%i, vnu[%i]=%e\n",i,i,vnu_arr[i]);
   }
   
-  printf("Now do eval on nodes\n");
+
   gkyl_eval_on_nodes *evnu = gkyl_eval_on_nodes_new(pgrid, pbasis, 1, &vnu_calc, &vnu_params);
   gkyl_eval_on_nodes_advance(evnu, 0.0, prange, vnu);//Not on ghosts?
   /*fr (int i=0; i<32; i++){
     printf("i=%i, vnu[%i]=%e\n",i,i,vnu_arr[i]);
     }*/
 
-  printf("After evnu advance\n");
+  //  printf("After evnu advance\n");
   gkyl_eval_on_nodes_release(evnu);
-  printf("vnu calculated\n");
+  //printf("vnu calculated\n");
   rad_gyrokinetic_drag->auxfields.vnu = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, prange->volume);
   // gkyl_array_release(vnu_temp);
 
@@ -163,7 +163,7 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
       }*/
     //   gkyl_array_release(vsqnu_temp);
   }
-  printf("int %d\n",prange->ndim);
+  //printf("int %d\n",prange->ndim);
   rad_gyrokinetic_drag->conf_range = *conf_range;
   rad_gyrokinetic_drag->prange = *prange;
 
@@ -171,8 +171,8 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   GKYL_CLEAR_CU_ALLOC(rad_gyrokinetic_drag->eqn.flags);
   rad_gyrokinetic_drag->eqn.ref_count = gkyl_ref_count_init(gkyl_rad_gyrokinetic_drag_free);
   rad_gyrokinetic_drag->eqn.on_dev = &rad_gyrokinetic_drag->eqn;
-  printf("int %d\n",rad_gyrokinetic_drag->prange.ndim);
-  printf("int %d\n",rad_gyrokinetic_drag->conf_range.ndim);
+  //printf("int %d\n",rad_gyrokinetic_drag->prange.ndim);
+  //printf("int %d\n",rad_gyrokinetic_drag->conf_range.ndim);
 
   //  vsqnu->data = vnu_temp->data
   //  gkyl_rad_gyrokinetic_drag_set_auxfields(&rad_gyrokinetic_drag->eqn, 
@@ -203,17 +203,18 @@ void vnu_calc(double t, const double *xn, double *fout, void *ctx){
   }
   
   const double bmag = *((const double*) gkyl_array_cfetch(my_ctx->bmag,gkyl_range_idx(my_ctx->conf_range,idx)));
-  double vmag = sqrt(vpar*vpar+2*bmag*mu/GKYL_ELECTRON_MASS);
+  const double vmag = sqrt(vpar*vpar+2*bmag*mu/GKYL_ELECTRON_MASS);
   const double c_const = 8*sqrt(GKYL_PI)*pow(GKYL_ELEMENTARY_CHARGE,5.0/2.0)/GKYL_ELECTRON_MASS;
   const double const_mult = a*(alpha+beta)/c_const;
-  
+  double nu;
   if (vmag == 0) {
+    nu = 0;
     fout[0] = 0;
   } else {
-    fout[0] = 2/GKYL_PI*const_mult*pow(vmag,gamma/2+1)/(beta*pow(vmag/scaled_v0,-alpha)+alpha*pow(vmag/scaled_v0,beta));
+    nu = a*(alpha+beta)*pow(vmag,gamma)/(beta*pow(vmag/scaled_v0,-alpha)+alpha*pow(vmag/scaled_v0,beta));
+    fout[0] = 2/(GKYL_PI*c_const)*nu*vmag;
   }
-  double temp_for_test = a*(alpha+beta)*pow(vmag,gamma/2)/(beta*pow(vmag/scaled_v0,-alpha)+alpha*pow(vmag/scaled_v0,beta));
-  printf("a=%f, C=%e, vmag=%e, nu=%e, v0=%e, fout=%e\n",a,const_mult,vmag,temp_for_test,scaled_v0,fout[0]); 
+  //printf("a=%f, C=%e, vmag=%e, nu=%e, v0=%e, fout=%e\n",a,1/c_const,vmag,nu,scaled_v0,fout[0]); 
 }
 
 

@@ -15,6 +15,7 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_const.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_util.h>
 #include <math.h>
 
 // allocate array (filled with zeros)
@@ -77,28 +78,32 @@ test_1x1v_p2()
   double *data = fit_params->data;
   double *b = bmag->data;
   bool use_gpu = false;
-  te[0]=30;
+  te[0]=29.999913327161483;
   b[0]=1;
   b[1]=1;
-  data[0]=0.16;
-  data[1]=8000.1;
-  data[2]=0.9;
-  data[3]=-5.9;
-  data[4]=3.1;
+  data[0]=0.153650876536253;
+  data[1]=8000.006932403581;
+  data[2]=0.892102642790662;
+  data[3]=-3.923194017288736;
+  data[4]=3.066473173090881;
   double *temp = (double *)gkyl_array_fetch(bmag,0);
   double *temp2 = (double *)gkyl_array_fetch(fit_params,0);
   printf("\n");
-  for (int i=0; i<2;i++) {
+  /*for (int i=0; i<2;i++) {
     printf("b[i]=%f, bmag[%d]=%f ",i,b[i],i,temp[i]);
     printf("data[i]=%f, fit_params[%d]=%f\n",i,data[i],i,temp2[i]);
-    }
+    }*/
 
 
    // initialize grid and ranges
   int cdim = 1, vdim = 1;
   int pdim = cdim+vdim;
 
-  int cells[] = {2, 5};
+  //int cells[] = {2, 7}; // This works (incorrect value, but no error), cell average=0 if poly_order=2
+  //int cells[] = {2, 8}; // This gives an error
+  //int cells[] = {1, 14}; // This doesn't give an error, but cell average=0
+  //int cells[] = {1, 16}; // This gives an error
+  int cells[] = {4, 7}; // This gives a segmentation fault
   int ghost[] = {0, 0};
   double lower[] = {0., -1.};
   double upper[] = {1., 5.e6};
@@ -164,39 +169,48 @@ test_1x1v_p2()
 
   // Take 2nd moment of f to find energy
   struct gkyl_mom_type *m0 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confRange, GKYL_ELECTRON_MASS, "M0", use_gpu);
+  struct gkyl_mom_type *m0_nI = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confRange, GKYL_ELECTRON_MASS, "M0", use_gpu);
   struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confRange, GKYL_ELECTRON_MASS, "M2", use_gpu);
   printf("After moment new, cdim=%d\n",m2->cdim);
   gkyl_gyrokinetic_set_bmag(m0, bmag);
+  gkyl_gyrokinetic_set_bmag(m0_nI, bmag);
   gkyl_gyrokinetic_set_bmag(m2, bmag);
   struct gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&phaseGrid, m0, use_gpu);
+  struct gkyl_mom_calc *m0_nIcalc = gkyl_mom_calc_new(&phaseGrid, m0_nI, use_gpu);
   struct gkyl_mom_calc *m2calc = gkyl_mom_calc_new(&phaseGrid, m2, use_gpu);
   printf("After moment calc new\n");
   struct gkyl_array *m0_ho = mkarr(confBasis.num_basis, confRange_ext.volume);
   struct gkyl_array *m0final = mkarr_cu(confBasis.num_basis, confRange_ext.volume, use_gpu);
+  struct gkyl_array *m0_nI_ho = mkarr(confBasis.num_basis, confRange_ext.volume);
+  struct gkyl_array *m0_nIfinal = mkarr_cu(confBasis.num_basis, confRange_ext.volume, use_gpu);
   struct gkyl_array *m2_ho = mkarr(confBasis.num_basis, confRange_ext.volume);
   struct gkyl_array *m2final = mkarr_cu(confBasis.num_basis, confRange_ext.volume, use_gpu);
   printf("After array calculations\n");
   if (use_gpu) {
-    gkyl_mom_calc_advance_cu(m0calc, &phaseRange, &confRange, fmax, m0final);
-    gkyl_mom_calc_advance_cu(m2calc, &phaseRange, &confRange, fmax, m2final);
+    gkyl_mom_calc_advance_cu(m0calc, &phaseRange, &confRange, fin, m0final);
+    gkyl_mom_calc_advance_cu(m0_nIcalc, &phaseRange, &confRange, nI, m0_nIfinal);
+    gkyl_mom_calc_advance_cu(m2calc, &phaseRange, &confRange, rhs, m2final);
   } else {
-    gkyl_mom_calc_advance(m0calc, &phaseRange, &confRange, rhs, m0final);
+    gkyl_mom_calc_advance(m0calc, &phaseRange, &confRange, fin, m0final);
+    gkyl_mom_calc_advance(m0_nIcalc, &phaseRange, &confRange, nI, m0_nIfinal);
     gkyl_mom_calc_advance(m2calc, &phaseRange, &confRange, rhs, m2final);
   }
   printf("After mom calc advance\n");
   double *m00 = gkyl_array_fetch(m0final, 0+ghost[0]);
+  double *m00_nI = gkyl_array_fetch(m0_nIfinal, 0+ghost[0]);
   double *m20 = gkyl_array_fetch(m2final, 0+ghost[0]);
   double *m21 = gkyl_array_fetch(rhs, 0+ghost[0]);
-
-  //  double cell_avg0 = m20[0]/pow(sqrt(2),cdim);
-  double cell_avg0 = m20[0]/m00[0];
-
-  double correct = 4.419192399328895e-32;
-  for (int i=0; i<30; i++){
-    printf("cell_avg=%e, correct energy=%e, density=%e, m2=%e\n",cell_avg0, correct, m00[0], m20[0]);
-  }
+  //I'm pretty sure the m2 moment is being calculated incorrectly
   
-  TEST_CHECK( gkyl_compare( cell_avg0, correct, 1e-12));
+  //  double cell_avg0 = m20[0]/pow(sqrt(2),cdim);
+  double cell_avg0 = 1.0/2.0*GKYL_ELECTRON_MASS*m20[0]/(m00[0]*m00_nI[0]);
+
+  double correct = 4.419192427285379e-32;
+  //  for (int i=0; i<30; i++){
+  printf("cell_avg=%e, correct energy=%e, density=%e, nI=%e, m2=%e\n",cell_avg0, correct, m00[0], m00_nI[0], m20[0]);
+    //}
+  
+  TEST_CHECK( gkyl_compare( correct*1e30, cell_avg0*1e30, 1e-12));
   TEST_CHECK( cell_avg0>0);
 
 
