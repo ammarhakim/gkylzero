@@ -32,7 +32,7 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_gri
 static inline double calc_metric(double dxdz[3][3], int i, int j) 
 { double sum = 0;   for (int k=0; k<3; ++k) sum += dxdz[k][i-1]*dxdz[k][j-1]; return sum; } 
 
-void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_range *update_range){
+void gkyl_calc_metric_advance(gkyl_calc_metric *up, const struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, const struct gkyl_range *update_range){
   up->gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
