@@ -972,33 +972,33 @@ gkyl_geo_gyrokinetic_calcgeom(gkyl_geo_gyrokinetic *geo,
             printf("phi left= %g\n", arc_ctx.phi_left);
           }
           else if(inp->ftype==GKYL_SOL_DN_OUT){
-            // here I should do a ridders to find zmin and zmax for the plate
-            // 2nd arg to ridders is a ctx pointer if needed
-            pctx.psi_curr = psi_curr;
-            pctx.lower=false;
-            double a = geo->plate_upper_Rl;
-            double b = geo->plate_upper_Rr;
-            double fa = plate_psi_func(a, &pctx);
-            double fb = plate_psi_func(b, &pctx);
-            printf("Testing plate func\n");
-            printf("fa, fb = %g %g\n", fa, fb);
-            struct gkyl_qr_res res = gkyl_ridders(plate_psi_func, &pctx,
-              a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-            double rmax = res.res;
-            zmax = geo->plate_func_upper(rmax);
+            if (geo->plate_func_lower){ // if we dont have a fixed zmin and zmax
+              pctx.psi_curr = psi_curr;
+              pctx.lower=false;
+              double a = geo->plate_upper_Rl;
+              double b = geo->plate_upper_Rr;
+              double fa = plate_psi_func(a, &pctx);
+              double fb = plate_psi_func(b, &pctx);
+              printf("Testing plate func\n");
+              printf("fa, fb = %g %g\n", fa, fb);
+              struct gkyl_qr_res res = gkyl_ridders(plate_psi_func, &pctx,
+                a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+              double rmax = res.res;
+              zmax = geo->plate_func_upper(rmax);
 
-            pctx.lower=true;
-            a = geo->plate_lower_Rl;
-            b = geo->plate_lower_Rr;
-            fa = plate_psi_func(a, &pctx);
-            fb = plate_psi_func(b, &pctx);
-            printf("Testing plate func\n");
-            printf("fa, fb = %g %g\n", fa, fb);
-            res = gkyl_ridders(plate_psi_func, &pctx,
-              a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-            double rmin = res.res;
-            zmin = geo->plate_func_lower(rmin);
-            printf("psi_curr, zmax = %g, %g, %g\n", psi_curr, zmax, zmin);
+              pctx.lower=true;
+              a = geo->plate_lower_Rl;
+              b = geo->plate_lower_Rr;
+              fa = plate_psi_func(a, &pctx);
+              fb = plate_psi_func(b, &pctx);
+              printf("Testing plate func\n");
+              printf("fa, fb = %g %g\n", fa, fb);
+              res = gkyl_ridders(plate_psi_func, &pctx,
+                a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+              double rmin = res.res;
+              zmin = geo->plate_func_lower(rmin);
+              printf("psi_curr, zmax = %g, %g, %g\n", psi_curr, zmax, zmin);
+            }
 
             arc_ctx.phi_right = 0.0;
             arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);

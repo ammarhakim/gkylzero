@@ -135,14 +135,15 @@ gkyl_efit* gkyl_efit_new(const char *filepath, const struct gkyl_basis *rzbasis,
   }
 
   // Now we need to make the flux grid
-  up->fluxlower = gkyl_malloc(1*sizeof(double));
-  up->fluxupper = gkyl_malloc(1*sizeof(double));
-  up->fluxcells = gkyl_malloc(1*sizeof(double));
-  up->fluxghost = gkyl_malloc(1*sizeof(double));
+  up->fluxlower = gkyl_malloc(sizeof(double));
+  up->fluxupper = gkyl_malloc(sizeof(double));
+  up->fluxcells = gkyl_malloc(sizeof(double));
+  up->fluxghost = gkyl_malloc(2*sizeof(double));
 
   up->fluxlower[0] = up->sibry;
   up->fluxupper[0] = up->simag;
   up->fluxghost[0] = 1;
+  up->fluxghost[1] = 1;
 
   if(up->fluxbasis->poly_order==1){
     up->fluxcells[0] = up->nr-1;
@@ -242,12 +243,13 @@ void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl
 
 
 void gkyl_efit_release(gkyl_efit* up){
-  //gkyl_array_release(up->psizr);
-  //gkyl_array_release(up->psibyrzr);
-  //gkyl_array_release(up->psibyr2zr);
   gkyl_free(up->rzlower);
   gkyl_free(up->rzupper);
   gkyl_free(up->rzcells);
   gkyl_free(up->rzghost);
+  gkyl_free(up->fluxlower);
+  gkyl_free(up->fluxupper);
+  gkyl_free(up->fluxcells);
+  gkyl_free(up->fluxghost);
   gkyl_free(up);
 }
