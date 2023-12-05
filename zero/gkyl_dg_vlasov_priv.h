@@ -56,12 +56,14 @@ typedef struct { vlasov_accel_boundary_surf_t kernels[3]; } gkyl_dg_vlasov_accel
 struct dg_vlasov {
   struct gkyl_dg_eqn eqn; // Base object.
   int cdim; // Config-space dimensions.
+  int vdim; // Config-space dimensions.
   int pdim; // Phase-space dimensions.
   vlasov_stream_surf_t stream_surf[3]; // Surface terms for streaming.
   vlasov_stream_boundary_surf_t stream_boundary_surf[3]; // Boundary surface terms for streaming
   vlasov_accel_surf_t accel_surf[3]; // Surface terms for acceleration.
   vlasov_accel_boundary_surf_t accel_boundary_surf[3]; // Surface terms for acceleration
   struct gkyl_range conf_range; // Configuration space range (for indexing fields)
+  struct gkyl_range vel_range; // velocity space range
   struct gkyl_range phase_range; // Phase space range (for indexing alpha_geo in geometry)
   struct gkyl_dg_vlasov_auxfields auxfields; // Auxiliary fields.
 };
@@ -204,6 +206,9 @@ static const gkyl_dg_vlasov_stream_gen_geo_vol_kern_list ser_stream_gen_geo_vol_
 // Need to be separated like this for GPU build
 //
 
+// .....
+// .......... Uniform velocity grid .......... //
+// .....
 GKYL_CU_DH
 static double
 kernel_vlasov_poisson_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
@@ -1062,6 +1067,188 @@ static const gkyl_dg_vlasov_accel_boundary_surf_kern_list ser_accel_boundary_sur
   // 3x kernels
   { NULL, vlasov_boundary_surfvz_3x3v_ser_p1, NULL }, // 5
 };
+
+// .....
+// .......... Nonuniform velocity grid .......... //
+// .....
+GKYL_CU_DH
+static double
+kernel_vlasov_stream_vol_1x1v_ser_p1_nonuniformv_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  int vidx[GKYL_MAX_DIM];
+  for (int d=0; d<vlasov->vdim; ++d) vidx[d] = idx[vlasov->cdim+d];
+
+  long clinidx = gkyl_range_idx(&vlasov->conf_range, idx);
+  long vlinidx = gkyl_range_idx(&vlasov->vel_range, vidx);
+
+  const double* vrot_p = (const double*) gkyl_array_cfetch(vlasov->auxfields.vrot, vlinidx);
+  double xcp[GKYL_MAX_DIM], dxp[GKYL_MAX_DIM];
+  for (int d=0; d<vlasov->cdim; ++d) {
+    xcp[d] = xc[d];  dxp[d] = dx[d];
+  }
+  int numb = vlasov->auxfields.vrot->ncomp / vlasov->vdim;
+  double vfac[] = {pow(0.7071067811865475,vlasov->vdim),  // pow(1./sqrt(2.),vdim).
+                   pow(0.7071067811865475,vlasov->vdim)*3.464101615137754};  // pow(1./sqrt(2.),vdim)*(2.*sqrt(3.)).
+  for (int d=0; d<vlasov->vdim; ++d) {
+    xcp[vlasov->cdim+d] = vfac[0]*vrot_p[d*numb];
+    dxp[vlasov->cdim+d] = vfac[1]*vrot_p[d*numb+d+1];
+  }
+
+  return vlasov_stream_vol_1x1v_ser_p1(xcp, dxp, qIn, qRhsOut);
+}
+
+// Volume kernel list
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_vol_kern_list ser_stream_vol_kernels_nonuniformv_p1[] = {
+  // 1x kernels
+  { NULL, kernel_vlasov_stream_vol_1x1v_ser_p1_nonuniformv_p1, kernel_vlasov_stream_vol_1x1v_ser_p2 }, // 0
+  { NULL, kernel_vlasov_stream_vol_1x2v_ser_p1, kernel_vlasov_stream_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_vlasov_stream_vol_1x3v_ser_p1, kernel_vlasov_stream_vol_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, kernel_vlasov_stream_vol_2x2v_ser_p1, kernel_vlasov_stream_vol_2x2v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_stream_vol_2x3v_ser_p1, kernel_vlasov_stream_vol_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, kernel_vlasov_stream_vol_3x3v_ser_p1, NULL               }, // 5
+};
+
+GKYL_CU_DH
+static double
+kernel_vlasov_poisson_vol_1x1v_ser_p1_nonuniformv_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  int vidx[GKYL_MAX_DIM];
+  for (int d=0; d<vlasov->vdim; ++d) vidx[d] = idx[vlasov->cdim+d];
+
+  long clinidx = gkyl_range_idx(&vlasov->conf_range, idx);
+  long vlinidx = gkyl_range_idx(&vlasov->vel_range, vidx);
+
+  const double* vrot_p = (const double*) gkyl_array_cfetch(vlasov->auxfields.vrot, vlinidx); 
+  double xcp[GKYL_MAX_DIM], dxp[GKYL_MAX_DIM];
+  for (int d=0; d<vlasov->cdim; ++d) {
+    xcp[d] = xc[d];  dxp[d] = dx[d];
+  }
+  int numb = vlasov->auxfields.vrot->ncomp / vlasov->vdim;
+  double vfac[] = {pow(0.7071067811865475,vlasov->vdim),  // pow(1./sqrt(2.),vdim).
+                   pow(0.7071067811865475,vlasov->vdim)*3.464101615137754};  // pow(1./sqrt(2.),vdim)*(2.*sqrt(3.)).
+  for (int d=0; d<vlasov->vdim; ++d) {
+    xcp[vlasov->cdim+d] = vfac[0]*vrot_p[d*numb];
+    dxp[vlasov->cdim+d] = vfac[1]*vrot_p[d*numb+d+1];
+  }
+
+  return vlasov_poisson_vol_1x1v_ser_p1(xcp, dxp,
+    (const double*) gkyl_array_cfetch(vlasov->auxfields.field, clinidx), 
+    qIn, qRhsOut);
+}
+
+// Volume kernel list, phi only
+GKYL_CU_D
+static const gkyl_dg_vlasov_poisson_vol_kern_list ser_poisson_vol_kernels_nonuniformv_p1[] = {
+  // 1x kernels
+  { NULL, kernel_vlasov_poisson_vol_1x1v_ser_p1_nonuniformv_p1, kernel_vlasov_poisson_vol_1x1v_ser_p2 }, // 0
+  { NULL, kernel_vlasov_poisson_vol_1x2v_ser_p1, kernel_vlasov_poisson_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_vlasov_poisson_vol_1x3v_ser_p1, kernel_vlasov_poisson_vol_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, kernel_vlasov_poisson_vol_2x2v_ser_p1, kernel_vlasov_poisson_vol_2x2v_ser_p2 }, // 3
+  { NULL, kernel_vlasov_poisson_vol_2x3v_ser_p1, kernel_vlasov_poisson_vol_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, kernel_vlasov_poisson_vol_3x3v_ser_p1, NULL               }, // 5
+};
+
+
+GKYL_CU_D
+static double
+surf_nonuniformv_p1(const struct gkyl_dg_eqn *eqn,
+  int dir,
+  const double* xcL, const double* xcC, const double* xcR,
+  const double* dxL, const double* dxC, const double* dxR,
+  const int* idxL, const int* idxC, const int* idxR,
+  const double* qInL, const double* qInC, const double* qInR, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  int vidx[GKYL_MAX_DIM];
+  for (int d=0; d<vlasov->vdim; ++d) vidx[d] = idxC[vlasov->cdim+d];
+
+  long vlinidx = gkyl_range_idx(&vlasov->vel_range, vidx);
+
+  const double* vrot_p = (const double*) gkyl_array_cfetch(vlasov->auxfields.vrot, vlinidx);
+  double xcp[GKYL_MAX_DIM], dxp[GKYL_MAX_DIM];
+  for (int d=0; d<vlasov->cdim; ++d) {
+    xcp[d] = xcC[d];  dxp[d] = dxC[d];
+  }
+  int numb = vlasov->auxfields.vrot->ncomp / vlasov->vdim;
+  double vfac[] = {pow(0.7071067811865475,vlasov->vdim),  // pow(1./sqrt(2.),vdim).
+                   pow(0.7071067811865475,vlasov->vdim)*3.464101615137754};  // pow(1./sqrt(2.),vdim)*(2.*sqrt(3.)).
+  for (int d=0; d<vlasov->vdim; ++d) {
+    xcp[vlasov->cdim+d] = vfac[0]*vrot_p[d*numb];
+    dxp[vlasov->cdim+d] = vfac[1]*vrot_p[d*numb+d+1];
+  }
+
+  if (dir < vlasov->cdim) {
+    long plinidx = gkyl_range_idx(&vlasov->phase_range, idxC);
+    return vlasov->stream_surf[dir]
+      (xcp, dxp,
+       vlasov->auxfields.alpha_geo ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_geo, plinidx) : 0,
+       qInL, qInC, qInR, qRhsOut);
+  }
+  else {
+    long clinidx = gkyl_range_idx(&vlasov->conf_range, idxC);
+    return vlasov->accel_surf[dir-vlasov->cdim]
+      (xcp, dxp,
+        vlasov->auxfields.field ? (const double*) gkyl_array_cfetch(vlasov->auxfields.field, clinidx) : 0,
+        qInL, qInC, qInR, qRhsOut);
+  }
+}
+
+GKYL_CU_D
+static double
+boundary_surf_nonuniformv_p1(const struct gkyl_dg_eqn *eqn,
+  int dir,
+  const double* xcEdge, const double* xcSkin,
+  const double* dxEdge, const double* dxSkin,
+  const int* idxEdge, const int* idxSkin, const int edge,
+  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
+
+  int vidx[GKYL_MAX_DIM];
+  for (int d=0; d<vlasov->vdim; ++d) vidx[d] = idxSkin[vlasov->cdim+d];
+
+  long vlinidx = gkyl_range_idx(&vlasov->vel_range, vidx);
+
+  const double* vrot_p = (const double*) gkyl_array_cfetch(vlasov->auxfields.vrot, vlinidx);
+  double xcp[GKYL_MAX_DIM], dxp[GKYL_MAX_DIM];
+  for (int d=0; d<vlasov->cdim; ++d) {
+    xcp[d] = xcSkin[d];  dxp[d] = dxSkin[d];
+  }
+  int numb = vlasov->auxfields.vrot->ncomp / vlasov->vdim;
+  double vfac[] = {pow(0.7071067811865475,vlasov->vdim),  // pow(1./sqrt(2.),vdim).
+                   pow(0.7071067811865475,vlasov->vdim)*3.464101615137754};  // pow(1./sqrt(2.),vdim)*(2.*sqrt(3.)).
+  for (int d=0; d<vlasov->vdim; ++d) {
+    xcp[vlasov->cdim+d] = vfac[0]*vrot_p[d*numb];
+    dxp[vlasov->cdim+d] = vfac[1]*vrot_p[d*numb+d+1];
+  }
+
+  if (dir < vlasov->cdim) {
+    long plinidx = gkyl_range_idx(&vlasov->phase_range, idxSkin);
+    return vlasov->stream_boundary_surf[dir]
+      (xcp, dxp,
+        vlasov->auxfields.alpha_geo ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_geo, plinidx) : 0,
+        edge, qInEdge, qInSkin, qRhsOut);
+  } else if (dir >= vlasov->cdim) {
+    long clinidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
+    return vlasov->accel_boundary_surf[dir-vlasov->cdim]
+      (xcp, dxp,
+        vlasov->auxfields.field ? (const double*) gkyl_array_cfetch(vlasov->auxfields.field, clinidx) : 0,
+        edge, qInEdge, qInSkin, qRhsOut);
+  }
+  return 0.;
+}
 
 // "Choose Kernel" based on cdim, vdim and polyorder
 #define CK(lst,cdim,vd,poly_order) lst[cv_index[cdim].vdim[vd]].kernels[poly_order]

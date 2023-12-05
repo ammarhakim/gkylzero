@@ -27,6 +27,9 @@ enum gkyl_model_id {
   GKYL_MODEL_DEFAULT = 0, // No subsidiary model specified
   GKYL_MODEL_SR = 1,
   GKYL_MODEL_GEN_GEO = 2,
+  GKYL_MODEL_DEFAULT_NONUNIFORMV = 3, // No subsidiary model specified
+  GKYL_MODEL_SR_NONUNIFORMV = 4,
+  GKYL_MODEL_GEN_GEO_NONUNIFORMV = 5,
 };
 
 // Identifiers for specific collision object types
