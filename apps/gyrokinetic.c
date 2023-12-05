@@ -54,42 +54,23 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   switch (gk->basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-      if (poly_order > 1) {
-        if (vdim > 0) {
-          gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-          gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
-        }
-      } 
-      else if (poly_order == 1) {
-        if (vdim > 0) {
-          /* Force hybrid basis (p=2 in velocity space). */
-          gkyl_cart_modal_gkhybrid(&app->basis, cdim, vdim);
-          gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
-        }
-      }
+      if (poly_order > 1) 
+        gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
+      else if (poly_order == 1) 
+        gkyl_cart_modal_gkhybrid(&app->basis, cdim, vdim); // p=2 in vparallel
 
       if (app->use_gpu) {
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
-        if (poly_order > 1) {
-          if (vdim > 0) {
-            gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
-          }
-        } 
-        else if (poly_order == 1) {
-          if (vdim > 0) {
-            /* Force hybrid basis (p=2 in velocity space). */
-            gkyl_cart_modal_gkhybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); 
-          }
-        }
+        if (poly_order > 1) 
+          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
+        else if (poly_order == 1) 
+          gkyl_cart_modal_gkhybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); // p=2 in vparallel
       }
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
       gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-      if (vdim > 0) {
-        gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
-        gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
-      }
+      gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
       break;
 
     default:

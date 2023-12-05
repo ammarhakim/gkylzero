@@ -386,6 +386,8 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_WEDGE:
           assert(false);
           break;
+        case GKYL_SPECIES_ZERO_FLUX:
+          break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
         default:
           break;
       }
@@ -407,6 +409,8 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_WEDGE:
           assert(false);
           break;
+        case GKYL_SPECIES_ZERO_FLUX:
+          break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
         default:
           break;
       }      
