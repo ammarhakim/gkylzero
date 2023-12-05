@@ -128,7 +128,7 @@ static void
 cubic_2d(void)
 {
   double lower[] = { 0.0, 0.0 }, upper[] = { 1.0, 1.0 };
-  int cells[] = { 16, 8 };
+  int cells[] = { 8, 8 };
 
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
@@ -239,6 +239,104 @@ cubic_2d(void)
     gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_2d_c.gkyl");
   } while (0);
 
+  do {
+    // initialize 2D nodal values
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &nc_local);
+    while (gkyl_range_iter_next(&iter)) {
+      long nidx = gkyl_range_idx(&nc_local, iter.idx);
+
+      gkyl_rect_grid_ll_node(&grid, iter.idx, xn);
+      
+      double *pn = gkyl_array_fetch(psi_nodal, nidx);      
+      pn[0] = sin(2*M_PI*xn[0])*cub(xn[1]);
+    }
+    // compute cubic expansion
+    gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, grid.dx,
+      psi_nodal, psi_cubic);
+
+    // check continuity of value and gradients
+
+    do {
+      int idx[2] = { 2, 4 };
+      long nidx = gkyl_range_idx(&local, idx);
+      const double *pc = gkyl_array_cfetch(psi_cubic, nidx);
+
+      int idxl[2] = { 1, 4 };
+      nidx = gkyl_range_idx(&local, idxl);
+      const double *pcl = gkyl_array_cfetch(psi_cubic, nidx);
+
+      double psiL = basis.eval_expand((double[]) { 1.0, 0.0 }, pcl);
+      double psiR = basis.eval_expand((double[]) { -1.0, 0.0 }, pc);
+
+      printf("Error in values across cell: %lg\n", fabs(psiL-psiR));
+
+      double dpsixL = basis.eval_grad_expand(0, (double[]) { 1.0, 0.0 }, pcl);
+      double dpsixR = basis.eval_grad_expand(0, (double[]) { -1.0, 0.0 }, pc);
+
+      printf("Error in x-gradient across cell: %lg\n", fabs(dpsixL-dpsixR));      
+
+      double dpsiyL = basis.eval_grad_expand(1, (double[]) { 1.0, 0.0 }, pcl);
+      double dpsiyR = basis.eval_grad_expand(1, (double[]) { -1.0, 0.0 }, pc);      
+
+      printf("Error in y-gradient across cell: %lg\n", fabs(dpsiyL-dpsiyR));
+    } while (0);
+    
+    do {
+      int idx[2] = { 3, 4 };
+      long nidx = gkyl_range_idx(&local, idx);
+      const double *pc = gkyl_array_cfetch(psi_cubic, nidx);
+
+      int idxl[2] = { 2, 4 };
+      nidx = gkyl_range_idx(&local, idxl);
+      const double *pcl = gkyl_array_cfetch(psi_cubic, nidx);
+
+      double psiL = basis.eval_expand((double[]) { 1.0, 0.0 }, pcl);
+      double psiR = basis.eval_expand((double[]) { -1.0, 0.0 }, pc);
+
+      printf("Error in values across cell: %lg\n", fabs(psiL-psiR));
+
+      double dpsixL = basis.eval_grad_expand(0, (double[]) { 1.0, 0.0 }, pcl);
+      double dpsixR = basis.eval_grad_expand(0, (double[]) { -1.0, 0.0 }, pc);
+
+      printf("Error in x-gradient across cell: %lg\n", fabs(dpsixL-dpsixR));      
+
+      double dpsiyL = basis.eval_grad_expand(1, (double[]) { 1.0, 0.0 }, pcl);
+      double dpsiyR = basis.eval_grad_expand(1, (double[]) { -1.0, 0.0 }, pc);
+
+      printf("Error in y-gradient across cell: %lg\n", fabs(dpsiyL-dpsiyR));
+    } while (0);
+
+    do {
+      int idx[2] = { 3, 4 };
+      long nidx = gkyl_range_idx(&local, idx);
+      const double *pc = gkyl_array_cfetch(psi_cubic, nidx);
+
+      int idxl[2] = { 3, 3 };
+      nidx = gkyl_range_idx(&local, idxl);
+      const double *pcl = gkyl_array_cfetch(psi_cubic, nidx);
+
+      double psiL = basis.eval_expand((double[]) { 0.5, 1.0 }, pcl);
+      double psiR = basis.eval_expand((double[]) { 0.5, -1.0 }, pc);
+
+      printf("Error in values across cell: %lg\n", fabs(psiL-psiR));
+
+      double dpsixL = basis.eval_grad_expand(0, (double[]) { 0.25, 1.0 }, pcl);
+      double dpsixR = basis.eval_grad_expand(0, (double[]) { 0.25, -1.0 }, pc);
+
+      printf("Error in x-gradient across cell: %lg\n", fabs(dpsixL-dpsixR));      
+
+      double dpsiyL = basis.eval_grad_expand(1, (double[]) { -0.25, 1.0 }, pcl);
+      double dpsiyR = basis.eval_grad_expand(1, (double[]) { -0.25, -1.0 }, pc);
+
+      printf("Error in y-gradient across cell: %lg\n", fabs(dpsiyL-dpsiyR));
+    } while (0);    
+    
+    
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_2d_d.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_2d_d.gkyl");
+  } while (0);  
+  
   gkyl_array_release(psi_nodal);
   gkyl_array_release(psi_cubic);
   gkyl_dg_basis_op_mem_release(mem);
