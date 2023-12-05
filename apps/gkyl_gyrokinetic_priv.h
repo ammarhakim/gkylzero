@@ -136,6 +136,7 @@ struct gk_lbo_collisions {
 
 struct gk_source {
   enum gkyl_source_id source_id; // type of source
+  bool write_source; // optional parameter to write out source distribution
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *source_proj; // projector for source

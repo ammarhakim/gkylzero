@@ -26,9 +26,9 @@ struct gk_lapd_ctx {
   double r_s; // Radial extent of source
   double L_s; // Length of source
   // Simulation parameters
+  double Lx; // Box size in x
+  double Ly; // Box size in y
   double Lperp; // Perpendicular length
-  double Rmin; // Minimum radius
-  double Rmax; // Maximum radius
   double Lz; // Box size in z
   double vpar_max_elc; // Velocity space extents in vparallel for electrons
   double mu_max_elc; // Velocity space extents in mu for electrons
@@ -51,7 +51,8 @@ void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_lapd_ctx *app = ctx;
-  double r = xn[0], th = xn[1], z = xn[2];
+  double x = xn[0], y = xn[1], z = xn[2];
+  double r = sqrt(x*x + y*y);
   double n0 = app->n0;
   double Lperp = app->Lperp;
   pcg32_random_t rng; // RNG for use in IC
@@ -70,7 +71,8 @@ void
 eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_lapd_ctx *app = ctx;
-  double r = xn[0], th = xn[1], z = xn[2];
+  double x = xn[0], y = xn[1], z = xn[2];
+  double r = sqrt(x*x + y*y);
   double massElc = app->massElc;
   double Lperp = app->Lperp;
   double T = app->Te*profileA(r, 1.0/5.0, Lperp);
@@ -81,7 +83,8 @@ void
 eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_lapd_ctx *app = ctx;
-  double r = xn[0], th = xn[1], z = xn[2];
+  double x = xn[0], y = xn[1], z = xn[2];
+  double r = sqrt(x*x + y*y);
   double massIon = app->massIon;
   double Lperp = app->Lperp;
   double T = app->Ti;
@@ -93,7 +96,8 @@ void
 eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_lapd_ctx *app = ctx;
-  double r = xn[0], th = xn[1], z = xn[2];
+  double x = xn[0], y = xn[1], z = xn[2];
+  double r = sqrt(x*x + y*y);
   double n0 = app->n0;
   double Lz = app->Lz;
   double c_s = app->c_s;
@@ -115,7 +119,8 @@ void
 eval_temp_elc_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_lapd_ctx *app = ctx;
-  double r = xn[0], th = xn[1], z = xn[2];
+  double x = xn[0], y = xn[1], z = xn[2];
+  double r = sqrt(x*x + y*y);
   double n0 = app->n0;
   double Te_source = app->Te_source;
   double Lperp = app->Lperp;
@@ -149,8 +154,7 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 void
 mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
-  double r = xc[0], th = xc[1], z = xc[2];
-  xp[0] = r*cos(th); xp[1] = r*sin(th); xp[2] = z;
+  xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
 }
 
 void
@@ -203,10 +207,9 @@ create_ctx(void)
   // Simulation box size (m).
   double Lx = 100.0*rho_s;
   double Ly = 100.0*rho_s;
+  double Lperp = Lx;
   double R  = 40.0*rho_s;
   double Lz = 36.0*R;       // approx 18.0492 m.
-  double Rmax = Lx/2.0;
-  double Rmin = 0.05*Rmax;
 
   double vpar_max_elc = 4.0*vtElc;
   double mu_max_elc = 0.75*me*(4.0*vtElc)*(4.0*vtElc)/(2.0*B0);
@@ -231,10 +234,10 @@ create_ctx(void)
     .n0 = n0, 
     .Te_source = Te_source, 
     .r_s = r_s, 
-    .L_s = L_s, 
-    .Lperp = Lx, 
-    .Rmin = Rmin, 
-    .Rmax = Rmax, 
+    .L_s = L_s,
+    .Lx = Lx, 
+    .Ly = Ly,  
+    .Lperp = Lperp, 
     .Lz = Lz, 
     .vpar_max_elc = vpar_max_elc, 
     .mu_max_elc = mu_max_elc, 
@@ -288,7 +291,8 @@ main(int argc, char **argv)
     .init_temp = eval_temp_elc,
     .init_upar= eval_upar,
 
-    .bcx = { GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_FIXED_FUNC },
+    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
 
     .collisions =  {
@@ -327,7 +331,8 @@ main(int argc, char **argv)
     .init_temp = eval_temp_ion,
     .init_upar = eval_upar,
 
-    .bcx = { GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_FIXED_FUNC },
+    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
 
     .collisions =  {
@@ -355,18 +360,18 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
-                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
+                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
                     .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
   };
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_lapd_cyl_3x2v_p1",
+    .name = "gk_lapd_cart_3x2v_p1",
 
     .cdim = 3, .vdim = 2,
-    .lower = { ctx.Rmin, -M_PI, -ctx.Lz/2.0 },
-    .upper = { ctx.Rmax, M_PI, ctx.Lz/2.0 },
+    .lower = { -ctx.Lx/2.0, -ctx.Ly/2.0, -ctx.Lz/2.0 },
+    .upper = { ctx.Lx/2.0, ctx.Ly/2.0, ctx.Lz/2.0 },
     .cells = { NX, NY, NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
@@ -377,8 +382,8 @@ main(int argc, char **argv)
     .bmag_func = bmag_func, // mapping of computational to physical space
     .bmag_ctx = &ctx,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
     .num_species = 2,
     .species = { elc, ion },

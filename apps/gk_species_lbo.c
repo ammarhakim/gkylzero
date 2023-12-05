@@ -113,9 +113,9 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     
     if (lbo->other_m[i] > s->info.mass) {
       gkyl_array_set(lbo->cross_nu[i], sqrt(2), lbo->self_nu);
-      gkyl_array_set(lbo->other_nu[i], (s->info.mass)/(lbo->other_m[i]), lbo->self_nu);
+      gkyl_array_set(lbo->other_nu[i], sqrt(2)*(s->info.mass)/(lbo->other_m[i]), lbo->self_nu);
     } else {
-      gkyl_array_set(lbo->cross_nu[i], (lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.self_nu);
+      gkyl_array_set(lbo->cross_nu[i], sqrt(2)*(lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.self_nu);
       gkyl_array_set(lbo->other_nu[i], sqrt(2), lbo->collide_with[i]->lbo.self_nu);
     }
     
