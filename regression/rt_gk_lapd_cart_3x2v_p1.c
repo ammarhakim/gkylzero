@@ -150,7 +150,6 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   fout[0] = app->nuIon;
 }
 
-// map (r,theta) -> (x,y)
 void
 mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
