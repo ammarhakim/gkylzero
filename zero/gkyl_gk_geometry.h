@@ -35,6 +35,8 @@ struct gk_geometry {
   struct gkyl_array* gxyj;
   struct gkyl_array* gyyj;
 
+  bool tokamak;
+
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
   struct gk_geometry *on_dev; // pointer to itself or device object
@@ -54,7 +56,7 @@ struct gk_geometry {
  * @param bmag_ctx Context for calculating |B|
  */
 struct gk_geometry* gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu);
+  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool tokamak, bool use_gpu);
 
 /**
  * Create a new wave geometry object that lives on NV-GPU: see new() method
@@ -64,6 +66,14 @@ struct gk_geometry* gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, cons
 struct gk_geometry* gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
   const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx);
 
+
+/**
+ * Write out all geometry fields
+ * @param up Geometry to which a pointer is needed
+ * @return Pointer to acquired geometry
+ */
+void gkyl_gk_geometry_write(const struct gk_geometry* up);
+
 /**
  * Acquire pointer to geometry object. The pointer must be released
  * using gkyl_wave_geom_release method.
@@ -72,6 +82,7 @@ struct gk_geometry* gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* gri
  * @return Pointer to acquired geometry
  */
 struct gk_geometry* gkyl_gk_geometry_acquire(const struct gk_geometry* up);
+
 
 
 /**

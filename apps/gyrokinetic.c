@@ -158,7 +158,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     app->bmag_func = gk->bmag_func;
 
     app->gk_geom = gkyl_gk_geometry_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
-      app->mapc2p, app->c2p_ctx, app->bmag_func,  app->bmag_ctx, app->use_gpu);
+      app->mapc2p, app->c2p_ctx, app->bmag_func,  app->bmag_ctx, false, app->use_gpu);
 
     // write DG projection of mapc2p to file
     cstr fileNm = cstr_from_fmt("%s-mapc2p.gkyl", app->name);

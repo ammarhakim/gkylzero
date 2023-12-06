@@ -5,10 +5,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <gkyl_efit.h>
 #include <gkyl_alloc.h>
 #include <gkyl_rect_grid.h>
 #include<gkyl_rect_decomp.h>
+#include <gkyl_efit.h>
 
 #include <gkyl_array.h>
 #include <gkyl_range.h>
@@ -43,7 +43,6 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
   // Get the dimensions
 
   status = fscanf(ptr,"%d%d", &up->nr, &up->nz);
-  printf("nr, nz = %d, %d\n",up->nr, up->nz );
 
   // Read the non-array parameters, all are doubles:
   // rdim,zdim,rcentr,rleft,zmid;
@@ -97,7 +96,6 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
   up->psibyr2zr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
   up->fpolflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis->num_basis, up->fluxlocal_ext->volume);
   up->qflux = gkyl_array_new(GKYL_DOUBLE, up->fluxbasis->num_basis, up->fluxlocal_ext->volume);
-
 
   // Read fpol because we do want that
   int flux_node_nums[1] = {up->nr};
