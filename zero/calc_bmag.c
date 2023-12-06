@@ -119,7 +119,7 @@ static inline void bphi_RZ(double t, const double *xn, double *fout, void *ctx){
 
 
 
-void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array *bphirz, struct gkyl_array* bmagrz, struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p)
+void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p)
 {
   // 0th stage is to calculate bphi from fpol on the RZ grid from its representation on the flux grid
   // We will do this with an eval on nodes similar to what is done in bmag comp
@@ -140,10 +140,14 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
   fctx->rzbasis = up->pbasis;
   fctx->psisep = up->psisep;
 
+
+  struct gkyl_array* bphirz = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
   gkyl_eval_on_nodes *eval_fpol_RZ = gkyl_eval_on_nodes_new(up->pgrid, up->pbasis, 1, bphi_RZ, fctx);
   gkyl_eval_on_nodes_advance(eval_fpol_RZ, 0.0, prange, bphirz); //on ghosts with ext_range
 
 
+
+  struct gkyl_array* bmagrz = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
   //First Stage is use psidg, psibydg, psibyr2dg to create bmagdg = B(R,Z) continuous
   //struct gkyl_array* bmagdg = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
   //make psibyr have LIRBT for recovery
