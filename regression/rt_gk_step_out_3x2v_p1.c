@@ -292,7 +292,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 2);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 1);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 32);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 4);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 10);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 5);
 
