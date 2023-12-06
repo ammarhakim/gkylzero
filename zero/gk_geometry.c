@@ -9,8 +9,6 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_alloc_flags_priv.h>
-#include<gkyl_tok_geo.h>
-#include<gkyl_calc_bmag.h>
 
 
 bool
