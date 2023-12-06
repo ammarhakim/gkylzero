@@ -86,12 +86,10 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 void 
 gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lbo_collisions *lbo)
 {
-  int vdim = app->vdim;
-
   lbo->cross_calc = gkyl_prim_lbo_gyrokinetic_cross_calc_new(&s->grid, 
     &app->confBasis, &app->basis, &app->local, app->use_gpu);
   
-  lbo->cross_nu_prim_moms = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+  lbo->cross_nu_prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
 
   lbo->greene_factor_mem = 0;
   if (app->use_gpu)
@@ -105,7 +103,7 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     lbo->other_m[i] = lbo->collide_with[i]->info.mass;
     lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
     lbo->other_nu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    lbo->cross_prim_moms[i] = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+    lbo->cross_prim_moms[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     lbo->cross_nu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     lbo->greene_num[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     lbo->greene_den[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -113,9 +111,9 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     
     if (lbo->other_m[i] > s->info.mass) {
       gkyl_array_set(lbo->cross_nu[i], sqrt(2), lbo->self_nu);
-      gkyl_array_set(lbo->other_nu[i], (s->info.mass)/(lbo->other_m[i]), lbo->self_nu);
+      gkyl_array_set(lbo->other_nu[i], sqrt(2)*(s->info.mass)/(lbo->other_m[i]), lbo->self_nu);
     } else {
-      gkyl_array_set(lbo->cross_nu[i], (lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.self_nu);
+      gkyl_array_set(lbo->cross_nu[i], sqrt(2)*(lbo->other_m[i])/(s->info.mass), lbo->collide_with[i]->lbo.self_nu);
       gkyl_array_set(lbo->other_nu[i], sqrt(2), lbo->collide_with[i]->lbo.self_nu);
     }
     

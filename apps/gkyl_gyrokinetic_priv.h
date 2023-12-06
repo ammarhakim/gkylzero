@@ -136,6 +136,7 @@ struct gk_lbo_collisions {
 
 struct gk_source {
   enum gkyl_source_id source_id; // type of source
+  bool write_source; // optional parameter to write out source distribution
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *source_proj; // projector for source
@@ -287,8 +288,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
-  struct gkyl_basis basis, confBasis, velBasis; // phase-space, conf-space basis, vel-space basis
-
+  struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
+  
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
 
   bool has_mapc2p; // flag to indicate if we have mapc2p

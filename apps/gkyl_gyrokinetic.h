@@ -43,9 +43,7 @@ struct gkyl_gyrokinetic_collisions {
 // Parameters for species source
 struct gkyl_gyrokinetic_source {
   enum gkyl_source_id source_id; // type of source
-
-  double source_length; // required for boundary flux source
-  char source_species[128];
+  bool write_source; // optional parameter to write out source
   
   void *ctx; // context for source function
   // function for computing source profile
@@ -284,6 +282,16 @@ void gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int 
  * @param frame Frame number
  */
 void gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write source species data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_source_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
 
 /**
  * Write collisional moments for species to file.

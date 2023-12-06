@@ -54,42 +54,23 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   switch (gk->basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-      if (poly_order > 1) {
-        if (vdim > 0) {
-          gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-          gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
-        }
-      } 
-      else if (poly_order == 1) {
-        if (vdim > 0) {
-          /* Force hybrid basis (p=2 in velocity space). */
-          gkyl_cart_modal_gkhybrid(&app->basis, cdim, vdim);
-          gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
-        }
-      }
+      if (poly_order > 1) 
+        gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
+      else if (poly_order == 1) 
+        gkyl_cart_modal_gkhybrid(&app->basis, cdim, vdim); // p=2 in vparallel
 
       if (app->use_gpu) {
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
-        if (poly_order > 1) {
-          if (vdim > 0) {
-            gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
-          }
-        } 
-        else if (poly_order == 1) {
-          if (vdim > 0) {
-            /* Force hybrid basis (p=2 in velocity space). */
-            gkyl_cart_modal_gkhybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); 
-          }
-        }
+        if (poly_order > 1) 
+          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
+        else if (poly_order == 1) 
+          gkyl_cart_modal_gkhybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); // p=2 in vparallel
       }
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
       gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-      if (vdim > 0) {
-        gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
-        gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
-      }
+      gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
       break;
 
     default:
@@ -330,6 +311,9 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
 
   for (int i=0; i<app->num_species; ++i) {
     gkyl_gyrokinetic_app_write_species(app, i, tm, frame);
+    if (app->species[i].source_id)
+      if (app->species[i].src.write_source)
+        gkyl_gyrokinetic_app_write_source_species(app, i, tm, frame);
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS)
       gkyl_gyrokinetic_app_write_coll_mom(app, i, tm, frame);
   }
@@ -380,6 +364,43 @@ gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double t
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
       app->species[sidx].f, fileNm);
   }
+}
+
+void
+gkyl_gyrokinetic_app_write_source_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *s = &app->species[sidx];
+
+  // Write out the source distribution function
+  const char *fmt = "%s-%s_source_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
+
+  if (app->use_gpu) {
+    // copy data from device to host before writing it out
+    gkyl_array_copy(s->src.source_host, s->src.source);
+    gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->src.source_host, fileNm);
+  }
+  else {
+    gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->src.source, fileNm);
+  }
+
+  // Write out density of the source
+  const char *fmt_M0 = "%s-%s_source_M0_%d.gkyl";
+  int sz_M0 = gkyl_calc_strlen(fmt_M0, app->name, s->info.name, frame);
+  char fileNm_M0[sz_M0+1]; // ensures no buffer overflow
+  snprintf(fileNm_M0, sizeof fileNm_M0, fmt_M0, app->name, s->info.name, frame); 
+
+  gk_species_moment_calc(&s->m0, s->local, app->local, s->src.source); 
+  // Rescale moment by inverse of Jacobian
+  gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 
+    0, s->m0.marr, 0, s->m0.marr, 0, app->gk_geom->jacobgeo, &app->local); 
+
+  if (app->use_gpu)
+    gkyl_array_copy(s->m0.marr_host, s->m0.marr);
+
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->m0.marr_host, fileNm_M0);   
 }
 
 void

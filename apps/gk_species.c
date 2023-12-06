@@ -90,6 +90,30 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
+  // determine which directions are not periodic, if any directions are zero-flux, need to set is_zero_flux
+  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
+  for (int d=0; d<num_periodic_dir; ++d)
+    is_np[app->periodic_dirs[d]] = 0;
+
+  for (int dir=0; dir<app->cdim; ++dir) {
+    s->lower_bc[dir] = s->upper_bc[dir] = GKYL_SPECIES_COPY;
+    if (is_np[dir]) {
+      const enum gkyl_species_bc_type *bc;
+      if (dir == 0)
+        bc = s->info.bcx;
+      else if (dir == 1)
+        bc = s->info.bcy;
+      else
+        bc = s->info.bcz;
+
+      s->lower_bc[dir] = bc[0];
+      s->upper_bc[dir] = bc[1];
+      // Zero flux BCs can only be applied jointly on lower and upper boundary
+      if (s->lower_bc[dir] == GKYL_SPECIES_ZERO_FLUX || s->upper_bc[dir] == GKYL_SPECIES_ZERO_FLUX)
+        is_zero_flux[dir] = true;
+    }
+  }
+
   struct gkyl_dg_gyrokinetic_auxfields aux_inp = {.phi = s->phi, .apar = s->apar, .apardot = s->apardot };
   // create solver
   s->slvr = gkyl_dg_updater_gyrokinetic_new(&s->grid, &app->confBasis, &app->basis, 
@@ -130,36 +154,16 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     gk_species_lbo_init(app, s, &s->lbo);
   }
 
-  // determine which directions are not periodic
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
-  for (int d=0; d<num_periodic_dir; ++d)
-    is_np[app->periodic_dirs[d]] = 0;
-
-  for (int dir=0; dir<app->cdim; ++dir) {
-    s->lower_bc[dir] = s->upper_bc[dir] = GKYL_SPECIES_COPY;
-    if (is_np[dir]) {
-      const enum gkyl_species_bc_type *bc;
-      if (dir == 0)
-        bc = s->info.bcx;
-      else if (dir == 1)
-        bc = s->info.bcy;
-      else
-        bc = s->info.bcz;
-
-      s->lower_bc[dir] = bc[0];
-      s->upper_bc[dir] = bc[1];
-    }
+  // create ranges and allocate buffers for applying periodic and non-periodic BCs
+  long buff_sz = 0;
+  // compute buffer size needed
+  for (int dir=0; dir<cdim; ++dir) {
     // Create local lower skin and ghost ranges for distribution function
     gkyl_skin_ghost_ranges(&s->lower_skin[dir], &s->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &s->local_ext, ghost);
     // Create local upper skin and ghost ranges for distribution function
     gkyl_skin_ghost_ranges(&s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
-  }
 
-  // allocate buffer for applying periodic BCs
-  long buff_sz = 0;
-  // compute buffer size needed
-  for (int d=0; d<cdim; ++d) {
-    long vol = GKYL_MAX2(s->lower_skin[d].volume, s->upper_skin[d].volume);
+    long vol = GKYL_MAX2(s->lower_skin[dir].volume, s->upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   s->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
@@ -305,7 +309,8 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
   }
 
   // we are pre-computing source for now as it is time-independent
-  gk_species_source_calc(app, species, t0);
+  if (species->source_id)
+    gk_species_source_calc(app, species, t0);
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
@@ -381,6 +386,8 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_WEDGE:
           assert(false);
           break;
+        case GKYL_SPECIES_ZERO_FLUX:
+          break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
         default:
           break;
       }
@@ -402,6 +409,8 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_WEDGE:
           assert(false);
           break;
+        case GKYL_SPECIES_ZERO_FLUX:
+          break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
         default:
           break;
       }      

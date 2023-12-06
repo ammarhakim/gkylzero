@@ -7,12 +7,13 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, s
   // we need to ensure source has same shape as distribution function
   src->source = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   src->source_id = s->source_id;
-  
-  if (src->source_id == GKYL_FUNC_SOURCE) {
-    src->source_host = src->source;
-    if (app->use_gpu)
-      src->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+  src->source_host = src->source;
+  if (app->use_gpu)
+    src->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
 
+  src->write_source = s->info.source.write_source; // optional flag to write out source
+
+  if (src->source_id == GKYL_FUNC_SOURCE) {
     src->source_proj = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
         .basis = &app->basis,
@@ -127,10 +128,8 @@ void
 gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source *src)
 {
   gkyl_array_release(src->source);
-  if (src->source_id == GKYL_FUNC_SOURCE) {  
-    if (app->use_gpu) 
-      gkyl_array_release(src->source_host);
-
+  if (app->use_gpu) 
+    gkyl_array_release(src->source_host);
+  if (src->source_id == GKYL_FUNC_SOURCE)   
     gkyl_proj_on_basis_release(src->source_proj);
-  }
 }
