@@ -51,6 +51,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
+#include <gkyl_tok_geo.h>
 #include <gkyl_util.h>
 
 #include <gkyl_gyrokinetic.h>
@@ -293,6 +294,7 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
 
   bool has_mapc2p; // flag to indicate if we have mapc2p
+  bool tokamak; // flag to indicate if it is a tokamak geometry
   void *c2p_ctx; // context for mapc2p function
   // pointer to mapc2p function
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);

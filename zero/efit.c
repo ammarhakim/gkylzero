@@ -18,7 +18,6 @@
 
 gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_order, bool use_gpu)
 {
-
   gkyl_efit *up = gkyl_malloc(sizeof(struct gkyl_efit));
   up->rzbasis = gkyl_malloc(sizeof(struct gkyl_basis));
 

@@ -38,7 +38,9 @@ struct gkyl_tok_geo {
   const struct gkyl_array *fpoldg; // fpol(psi) dg rep
   const struct gkyl_array *qdg; // q(psi) dg rep
   const struct gkyl_basis *fbasis; // psi basis for fpol
-  double psisep;
+  double psisep; // psi of separatrix
+  double zmaxis; // z of magnetic axis
+
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
@@ -53,8 +55,6 @@ struct gkyl_tok_geo {
     double xc[2], double dx[2]);
 
   struct gkyl_tok_geo_stat stat; 
-  double B0;
-  double R0;
   struct gkyl_array* mc2p_nodal_fd;
   struct gkyl_range* nrange;
   double* dzc;
@@ -75,25 +75,11 @@ enum gkyl_tok_geo_type {
 
 // Inputs to create a new GK geometry creation object
 struct gkyl_tok_geo_inp {
-  // psiRZ and related inputs  
-  const struct gkyl_rect_grid *rzgrid; // RZ grid on which psi(R,Z) is defined
-  const struct gkyl_basis *rzbasis; // basis functions for R,Z grid
-  const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
-  const struct gkyl_array *psibyrRZ; // psi(R,Z)/R DG representation
-  const struct gkyl_array *psibyr2RZ; // psi(R,Z)/R^2 DG representation
-  const struct gkyl_range *rzlocal; // local range over which psiRZ is defined
-  const struct gkyl_range* rzlocal_ext; // extended range
-  double B0; // Toroidal Field on axis
-  double R0; // Axis
-             
-  const struct gkyl_rect_grid* fgrid; // flux grid for fpol
-  const struct gkyl_range* frange; // flux range
-  const struct gkyl_range* frange_ext; // extended range
-  const struct gkyl_array *fpoldg; // fpol(psi) dg rep
-  const struct gkyl_array *qdg; // q(psi) dg rep
-  const struct gkyl_basis *fbasis; // psi basis for fpol
-  double psisep;
-
+  // Inputs to get psiRZ and related inputs from efit
+  char* filepath;
+  int rzpoly_order;
+  int fluxpoly_order;
+  // Specifications for divertor plate
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
@@ -108,7 +94,7 @@ struct gkyl_tok_geo_inp {
 
   // Parameters for nmumerical quadrature: leave unset to use default
   struct {
-   int max_levels; // typically 6-7    
+    int max_levels; // typically 6-7    
     double eps; // typically 1e-10
   } quad_param;
 };
@@ -125,7 +111,6 @@ struct gkyl_tok_geo_geo_inp {
   double zmin, zmax; // extents of Z for integration
   double zmin_left, zmin_right; // for lower single null and PF cases diff b/t in and outboard side
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
-  double zmaxis; // z of magnetic axis
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written
   const char *node_file_nm; // name of nodal coordinate file

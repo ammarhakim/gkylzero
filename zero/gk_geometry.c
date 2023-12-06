@@ -98,7 +98,9 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
 
   if (up->tokamak){
     const struct gkyl_tok_geo_inp *inp = mapc2p_ctx;
-    const struct gkyl_tok_geo_geo_inp *ginp = bmag_ctx;
+    struct gkyl_tok_geo_geo_inp *ginp = bmag_ctx;
+    ginp->cgrid = up->grid;
+    ginp->cbasis= up->basis;
     struct gkyl_tok_geo *geo = gkyl_tok_geo_new(inp);
     gkyl_tok_geo_advance(up, &nrange, dzc, NULL, geo, NULL, bmag_ctx, 
       up->mc2p_nodal_fd, up->mc2p_nodal, up->mc2p, 

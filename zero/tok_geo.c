@@ -8,6 +8,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_efit.h>
 
 #include <math.h>
 #include <string.h>
@@ -542,6 +543,8 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_inp *inp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
 
+  struct gkyl_efit* efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->fluxpoly_order, false);
+
   geo->plate_spec = inp->plate_spec;
   geo->plate_func_lower = inp->plate_func_lower;
   geo->plate_func_upper = inp->plate_func_upper;
@@ -549,22 +552,24 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_inp *inp)
   geo->plate_lower_Rr = inp->plate_lower_Rr;
   geo->plate_upper_Rl = inp->plate_upper_Rl;
   geo->plate_upper_Rr = inp->plate_upper_Rr;
-  geo->rzbasis= inp->rzbasis;
-  geo->rzgrid = inp->rzgrid;
-  geo->psiRZ = gkyl_array_acquire(inp->psiRZ);
-  geo->psibyrRZ = gkyl_array_acquire(inp->psibyrRZ);
-  geo->psibyr2RZ = gkyl_array_acquire(inp->psibyr2RZ);
 
-  geo->num_rzbasis = inp->rzbasis->num_basis;
-  geo->rzlocal = inp->rzlocal;
-  geo->rzlocal_ext = inp->rzlocal_ext;
-  geo->fgrid = inp->fgrid;
-  geo->fbasis = inp->fbasis;
-  geo->frange = inp->frange;
-  geo->frange_ext = inp->frange_ext;
-  geo->fpoldg= gkyl_array_acquire(inp->fpoldg);
-  geo->qdg= gkyl_array_acquire(inp->qdg);
-  geo->psisep = inp->psisep;
+  geo->rzbasis= efit->rzbasis;
+  geo->rzgrid = efit->rzgrid;
+  geo->psiRZ = gkyl_array_acquire(efit->psizr);
+  geo->psibyrRZ = gkyl_array_acquire(efit->psibyrzr);
+  geo->psibyr2RZ = gkyl_array_acquire(efit->psibyr2zr);
+
+  geo->num_rzbasis = efit->rzbasis->num_basis;
+  geo->rzlocal = efit->rzlocal;
+  geo->rzlocal_ext = efit->rzlocal_ext;
+  geo->fgrid = efit->fluxgrid;
+  geo->fbasis = efit->fluxbasis;
+  geo->frange = efit->fluxlocal;
+  geo->frange_ext = efit->fluxlocal_ext;
+  geo->fpoldg= gkyl_array_acquire(efit->fpolflux);
+  geo->qdg= gkyl_array_acquire(efit->qflux);
+  geo->psisep = efit->sibry;
+  geo->zmaxis = efit->zmaxis;
 
   geo->root_param.eps =
     inp->root_param.eps > 0 ? inp->root_param.eps : 1e-10;
@@ -576,9 +581,9 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_inp *inp)
   geo->quad_param.eps =
     inp->quad_param.eps > 0 ? inp->quad_param.eps : 1e-10;
 
-  if (inp->rzbasis->poly_order == 1)
+  if (efit->rzbasis->poly_order == 1)
     geo->calc_roots = calc_RdR_p1;
-  else if (inp->rzbasis->poly_order == 2)
+  else if (efit->rzbasis->poly_order == 2)
     geo->calc_roots = calc_RdR_p2;
 
   geo->stat = (struct gkyl_tok_geo_stat) { };
@@ -670,7 +675,7 @@ void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, dou
     .arc_memo_right = arc_memo_right,
     .arc_memo_left = arc_memo_left,
     .ftype = inp->ftype,
-    .zmaxis = inp->zmaxis
+    .zmaxis = geo->zmaxis
   };
   struct plate_ctx pctx = {
     .geo = geo
@@ -1069,6 +1074,9 @@ void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, dou
                 lidx = 15 + 3*(ia_delta-1);
               if (it_delta != 0)
                 lidx = 27 + 3*(it_delta-1);
+
+              if(ia_delta==0 && ip_delta==0 && it_delta==0)
+                lidx = 0;
 
               double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
               double *mc2p_fd_n = gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));

@@ -69,19 +69,9 @@ test_1()
 
   struct gkyl_tok_geo_inp inp = {
       // psiRZ and related inputs
-      .rzgrid = efit->rzgrid,
-      .rzbasis = efit->rzbasis,
-      .psiRZ = efit->psizr,
-      .psibyrRZ = efit->psibyrzr,
-      .psibyr2RZ = efit->psibyr2zr,
-      .rzlocal = efit->rzlocal,
-      .rzlocal_ext = efit->rzlocal_ext,
-      .fgrid = efit->fluxgrid,
-      .frange = efit->fluxlocal,
-      .fpoldg = efit->fpolflux,
-      .qdg = efit->qflux,
-      .fbasis = efit->fluxbasis,
-      .psisep = efit->sibry,
+      .filepath = "./efit_data/input.geqdsk",
+      .rzpoly_order = 2,
+      .fluxpoly_order = 1,
       .plate_spec = false,
       // can set plate func if you dont want a fixed zmin and zmax
       //.plate_func_lower = pfunc_lower,
@@ -99,7 +89,7 @@ test_1()
   double clower[] = { 0.934, -0.01, -3.14 };
   double cupper[] = {1.0, 0.01, 3.14 };
 
-  int ccells[] = { 4, 1, 64 };
+  int ccells[] = { 2, 1, 32 };
 
 
 
@@ -118,17 +108,10 @@ test_1()
 
 
   struct gkyl_tok_geo_geo_inp ginp = {
-    .cgrid = &cgrid,
-    .cbasis = &cbasis,
     .ftype = GKYL_SOL_DN_OUT,
-    //.rclose = efit->rmax,
-    //.zmin = efit->zmin,
-    //.zmax = efit->zmax,
-
     .rclose = efit->rmax,
     .zmin = -8.3,
     .zmax = 8.3,
-    .zmaxis = efit->zmaxis,
   
     .write_node_coord_array = true,
     .node_file_nm = "stepoutboard_nodes.gkyl"
