@@ -64,7 +64,7 @@ struct gk_geometry* gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, cons
  */
 
 struct gk_geometry* gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx);
+  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool tokamak);
 
 
 /**
