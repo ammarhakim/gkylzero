@@ -42,7 +42,7 @@ gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl
   // mapc2p arrays, bmag, metrics and derived geo quantities
   struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim*13, nrange.volume);
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim, nrange.volume);
-  struct gkyl_array* mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim, up->range_ext->volume);
+  struct gkyl_array* mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid->ndim*up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array* bmag = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array* g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array* jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
@@ -91,7 +91,7 @@ gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *mc2p_nodal_fd_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim*13, nrange.volume);
   struct gkyl_array *mc2p_nodal_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim, nrange.volume);
-  struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim, up->range_ext->volume);
+  struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim*up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array *jacobgeo_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
