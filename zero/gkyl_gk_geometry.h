@@ -16,11 +16,7 @@ struct gk_geometry {
   const struct gkyl_basis* basis;
   const struct gkyl_rect_grid* grid;
 
-  struct gkyl_array* mc2p;
-  struct gkyl_array* mc2p_nodal;
-  struct gkyl_array* mc2p_nodal_fd;
-
-  struct gkyl_array* bmag; // bmag
+  struct gkyl_array* bmag;
   struct gkyl_array* g_ij;
   struct gkyl_array* jacobgeo;
   struct gkyl_array* jacobgeo_inv;
@@ -65,14 +61,6 @@ struct gk_geometry* gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, cons
 
 struct gk_geometry* gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
   const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool tokamak);
-
-
-/**
- * Write out all geometry fields
- * @param up Geometry to which a pointer is needed
- * @return Pointer to acquired geometry
- */
-void gkyl_gk_geometry_write(const struct gk_geometry* up);
 
 /**
  * Acquire pointer to geometry object. The pointer must be released

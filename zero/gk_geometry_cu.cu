@@ -89,10 +89,23 @@ gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl
     jacobtot_inv, bmag_inv, bmag_inv_sq, gxxj, gxyj, gyyj);
   }
 
+  gkyl_grid_sub_array_write(up->grid, up->range, mc2p, "mapc2p.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, bmag, "bmag.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, g_ij, "g_ij.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, jacobgeo, "jacobgeo.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, jacobgeo_inv, "jacogeo_inv.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, gij, "gij.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, b_i, "b_i.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, cmag, "cmag.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, jacobtot, "jacobtot.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, jacobtot_inv, "jacobtot_inv.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, bmag_inv, "bmag_inv.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, bmag_inv_sq, "bmag_inv_sq.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, gxxj, "gxxj.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, gxyj,  "gxyj.gkyl");
+  gkyl_grid_sub_array_write(up->grid, up->range, gyyj,  "gyyj.gkyl");
+
   // Copy the host-side initialized geometry object to the device
-  struct gkyl_array *mc2p_nodal_fd_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim*13, nrange.volume);
-  struct gkyl_array *mc2p_nodal_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim, nrange.volume);
-  struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid->ndim*up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array *jacobgeo_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
@@ -108,9 +121,6 @@ gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl
   struct gkyl_array *gxyj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
   struct gkyl_array *gyyj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
 
-  gkyl_array_copy(mc2p_nodal_fd_dev, mc2p_nodal_fd);
-  gkyl_array_copy(mc2p_nodal_dev, mc2p_nodal);
-  gkyl_array_copy(mc2p_dev, mc2p);
   gkyl_array_copy(bmag_dev, bmag);
   gkyl_array_copy(g_ij_dev, g_ij);
   gkyl_array_copy(jacobgeo_dev , jacobgeo);
@@ -145,9 +155,6 @@ gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl
   gkyl_array_release(gyyj);
 
   // this is for the memcpy below
-  up->mc2p_nodal_fd = mc2p_nodal_fd_dev->on_dev;
-  up->mc2p_nodal  = mc2p_nodal_dev ->on_dev;
-  up->mc2p  = mc2p_dev->on_dev;
   up->bmag  = bmag_dev->on_dev;
   up->g_ij  = g_ij_dev->on_dev;
   up->jacobgeo  = jacobgeo_dev->on_dev;
@@ -173,9 +180,6 @@ gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl
   up->on_dev = up_cu;
 
   // geometry object should store host pointer
-  up->mc2p_nodal_fd = mc2p_nodal_fd_dev;
-  up->mc2p_nodal  = mc2p_nodal_dev ;
-  up->mc2p  = mc2p_dev;
   up->bmag  = bmag_dev;
   up->g_ij  = g_ij_dev;
   up->jacobgeo  = jacobgeo_dev;
