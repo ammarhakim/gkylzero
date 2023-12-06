@@ -59,19 +59,21 @@ gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl
   struct gkyl_array* gyyj = gkyl_array_new(GKYL_DOUBLE, up->basis->num_basis, up->range_ext->volume);
 
   if (up->tokamak){
-    const struct gkyl_tok_geo_inp *inp = mapc2p_ctx;
-    const struct gkyl_tok_geo_geo_inp *ginp = bmag_ctx;
+    const struct gkyl_tok_geo_inp *inp = (struct gkyl_tok_geo_inp*) mapc2p_ctx;
+    struct gkyl_tok_geo_geo_inp *ginp = (struct gkyl_tok_geo_geo_inp*) bmag_ctx;
     struct gkyl_tok_geo *geo = gkyl_tok_geo_new(inp);
+    ginp->cgrid = up->grid;
+    ginp->cbasis= up->basis;
     gkyl_tok_geo_advance(up, &nrange, dzc, NULL, geo, NULL, bmag_ctx, 
-      up->mc2p_nodal_fd, up->mc2p_nodal, up->mc2p, 
-      up->bmag, up->g_ij, up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, 
-      up->jacobtot_inv, up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj);
+      mc2p_nodal_fd, mc2p_nodal, mc2p, 
+      bmag, g_ij, jacobgeo, jacobgeo_inv, gij, b_i, cmag, jacobtot, 
+      jacobtot_inv, bmag_inv, bmag_inv_sq, gxxj, gxyj, gyyj);
 
     gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(up->basis, geo->rzbasis, geo->fbasis, up->grid, geo->rzgrid, geo->fgrid, geo, ginp, geo->psisep, false);
 
     struct gkyl_array* bmagrz = gkyl_array_new(GKYL_DOUBLE, geo->rzbasis->num_basis, geo->rzlocal_ext->volume);
     struct gkyl_array* bphirz = gkyl_array_new(GKYL_DOUBLE, geo->rzbasis->num_basis, geo->rzlocal_ext->volume);
-    gkyl_calc_bmag_advance(bcalculator, up->range, up->range_ext, geo->rzlocal, geo->rzlocal_ext, geo->frange, geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, bphirz, bmagrz, up->bmag, geo->fpoldg, mc2p);
+    gkyl_calc_bmag_advance(bcalculator, up->range, up->range_ext, geo->rzlocal, geo->rzlocal_ext, geo->frange, geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, bphirz, bmagrz, bmag, geo->fpoldg, mc2p);
 
 
     // now calculate the metrics
