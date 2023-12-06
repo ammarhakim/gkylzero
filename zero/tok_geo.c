@@ -543,7 +543,7 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_inp *inp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
 
-  struct gkyl_efit* efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->fluxpoly_order, false);
+  geo->efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->fluxpoly_order, false);
 
   geo->plate_spec = inp->plate_spec;
   geo->plate_func_lower = inp->plate_func_lower;
@@ -553,23 +553,23 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_inp *inp)
   geo->plate_upper_Rl = inp->plate_upper_Rl;
   geo->plate_upper_Rr = inp->plate_upper_Rr;
 
-  geo->rzbasis= efit->rzbasis;
-  geo->rzgrid = efit->rzgrid;
-  geo->psiRZ = gkyl_array_acquire(efit->psizr);
-  geo->psibyrRZ = gkyl_array_acquire(efit->psibyrzr);
-  geo->psibyr2RZ = gkyl_array_acquire(efit->psibyr2zr);
+  geo->rzbasis= geo->efit->rzbasis;
+  geo->rzgrid = geo->efit->rzgrid;
+  geo->psiRZ = gkyl_array_acquire(geo->efit->psizr);
+  geo->psibyrRZ = gkyl_array_acquire(geo->efit->psibyrzr);
+  geo->psibyr2RZ = gkyl_array_acquire(geo->efit->psibyr2zr);
 
-  geo->num_rzbasis = efit->rzbasis->num_basis;
-  geo->rzlocal = efit->rzlocal;
-  geo->rzlocal_ext = efit->rzlocal_ext;
-  geo->fgrid = efit->fluxgrid;
-  geo->fbasis = efit->fluxbasis;
-  geo->frange = efit->fluxlocal;
-  geo->frange_ext = efit->fluxlocal_ext;
-  geo->fpoldg= gkyl_array_acquire(efit->fpolflux);
-  geo->qdg= gkyl_array_acquire(efit->qflux);
-  geo->psisep = efit->sibry;
-  geo->zmaxis = efit->zmaxis;
+  geo->num_rzbasis = geo->efit->rzbasis->num_basis;
+  geo->rzlocal = geo->efit->rzlocal;
+  geo->rzlocal_ext = geo->efit->rzlocal_ext;
+  geo->fgrid = geo->efit->fluxgrid;
+  geo->fbasis = geo->efit->fluxbasis;
+  geo->frange = geo->efit->fluxlocal;
+  geo->frange_ext = geo->efit->fluxlocal_ext;
+  geo->fpoldg= gkyl_array_acquire(geo->efit->fpolflux);
+  geo->qdg= gkyl_array_acquire(geo->efit->qflux);
+  geo->psisep = geo->efit->sibry;
+  geo->zmaxis = geo->efit->zmaxis;
 
   geo->root_param.eps =
     inp->root_param.eps > 0 ? inp->root_param.eps : 1e-10;
@@ -581,12 +581,13 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_inp *inp)
   geo->quad_param.eps =
     inp->quad_param.eps > 0 ? inp->quad_param.eps : 1e-10;
 
-  if (efit->rzbasis->poly_order == 1)
+  if (geo->efit->rzbasis->poly_order == 1)
     geo->calc_roots = calc_RdR_p1;
-  else if (efit->rzbasis->poly_order == 2)
+  else if (geo->efit->rzbasis->poly_order == 2)
     geo->calc_roots = calc_RdR_p2;
 
   geo->stat = (struct gkyl_tok_geo_stat) { };
+
   
   return geo;
 }
@@ -1119,5 +1120,6 @@ gkyl_tok_geo_get_stat(const gkyl_tok_geo *geo)
 void
 gkyl_tok_geo_release(gkyl_tok_geo *geo)
 {
+  gkyl_efit_release(geo->efit);
   gkyl_free(geo);
 }

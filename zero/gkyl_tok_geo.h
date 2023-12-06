@@ -23,6 +23,7 @@ struct gkyl_tok_geo_stat {
 typedef   double (*plate_func)(double R);
 
 struct gkyl_tok_geo {
+  struct gkyl_efit* efit;
   const struct gkyl_rect_grid* rzgrid; // RZ grid on which psi(R,Z) is defined
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
   const struct gkyl_array *psibyrRZ; // psi(R,Z)/R DG representation
