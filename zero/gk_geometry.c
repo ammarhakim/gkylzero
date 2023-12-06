@@ -131,22 +131,12 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
                    
+  gkyl_gk_geometry_write(up);
   return up;
 }
 
 void gkyl_gk_geometry_write(const struct gk_geometry* up)
 {
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
   gkyl_grid_sub_array_write(up->grid, up->range, up->bmag, "bmag.gkyl");
   gkyl_grid_sub_array_write(up->grid, up->range, up->g_ij, "g_ij.gkyl");
   gkyl_grid_sub_array_write(up->grid, up->range, up->jacobgeo, "jacobgeo.gkyl");
