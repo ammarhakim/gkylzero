@@ -194,7 +194,7 @@ main(int argc, char **argv)
 
   // Initialize geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
-    mapc2p, 0, bmag_func, 0, use_gpu);
+    mapc2p, 0, bmag_func, 0, false, use_gpu);
 
   // initialize eqn
   struct gkyl_dg_eqn *eqn;

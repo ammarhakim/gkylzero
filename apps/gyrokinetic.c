@@ -130,8 +130,9 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->c2p_ctx = app->mapc2p = 0;  
   app->bmag_ctx = app->bmag_func = 0;  
   app->has_mapc2p = gk->mapc2p ? true : false;
+  app->tokamak = gk->tokamak ? true : false;
 
-  if (app->has_mapc2p) {
+  if (app->has_mapc2p || app->tokamak) {
     // initialize computational to physical space mapping
     app->c2p_ctx = gk->c2p_ctx;
     app->mapc2p = gk->mapc2p;
@@ -139,12 +140,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     app->bmag_func = gk->bmag_func;
 
     app->gk_geom = gkyl_gk_geometry_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
-      app->mapc2p, app->c2p_ctx, app->bmag_func,  app->bmag_ctx, app->use_gpu);
-
-    // write DG projection of mapc2p to file
-    cstr fileNm = cstr_from_fmt("%s-mapc2p.gkyl", app->name);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->mc2p, fileNm.str);
-    cstr_drop(&fileNm);
+      app->mapc2p, app->c2p_ctx, app->bmag_func,  app->bmag_ctx, app->tokamak, app->use_gpu);
   }
 
   // allocate space to store species objects

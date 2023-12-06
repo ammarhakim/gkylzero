@@ -126,7 +126,7 @@ void test_1x1v(int poly_order, bool use_gpu)
 
   // Initialize geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
-    mapc2p, 0, bmag_func, 0, use_gpu);
+    mapc2p, 0, bmag_func, 0, false, use_gpu);
 
   // Create correct moment arrays
   struct gkyl_array *m0_in_ho, *m1_in_ho, *m2_in_ho;
@@ -306,7 +306,7 @@ void test_1x2v(int poly_order, bool use_gpu)
 
   // Initialize geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
-    mapc2p, 0, bmag_func, 0, use_gpu);
+    mapc2p, 0, bmag_func, 0, false, use_gpu);
 
   // Create correct moment arrays
   struct gkyl_array *m0_in_ho, *m1_in_ho, *m2_in_ho;

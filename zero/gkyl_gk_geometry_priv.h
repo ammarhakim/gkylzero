@@ -16,6 +16,8 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_derived_geo.h>
+#include<gkyl_tok_geo.h>
+#include<gkyl_calc_bmag.h>
 
 // write out nodal coordinates 
 static void

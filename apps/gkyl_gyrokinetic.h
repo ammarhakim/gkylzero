@@ -124,6 +124,7 @@ struct gkyl_gk {
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+  bool tokamak; // to indicate whether it is a tokamak geometry
 
   void *bmag_ctx; // context for bmag function
   // pointer to bmag function
