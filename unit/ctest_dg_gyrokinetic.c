@@ -58,7 +58,7 @@ test_dg_gyrokinetic()
 
   // Initialize geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
-    mapc2p, 0, bmag_func, 0, false);
+    mapc2p, 0, bmag_func, 0, false, false);
 
   double charge = 1.;
   double mass = 1.;

@@ -59,12 +59,6 @@ test_1()
   double cpu_time_used;
   start = clock();
 
-  char* filepath = "./efit_data/input.geqdsk";
-  int rzpoly_order = 2;
-  int fluxpoly_order = 1;
-  struct gkyl_efit* efit = gkyl_efit_new(filepath, rzpoly_order, fluxpoly_order, false);
-  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psizr, "stepoutboard_psi.gkyl");
-  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, efit->fpolflux, "stepoutboard_fpol.gkyl");
 
 
   struct gkyl_tok_geo_inp inp = {
@@ -109,7 +103,7 @@ test_1()
 
   struct gkyl_tok_geo_geo_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
-    .rclose = efit->rmax,
+    .rclose = 6.2,
     .zmin = -8.3,
     .zmax = 8.3,
   
@@ -118,10 +112,7 @@ test_1()
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_new(&cgrid, &clocal, &clocal_ext, &cbasis, NULL, &inp, NULL, &ginp, true, false); 
-  gkyl_gk_geometry_write(up);
 
-
-  gkyl_efit_release(efit);
   gkyl_gk_geometry_release(up);
 
   end = clock();

@@ -79,7 +79,7 @@ test_mom_gyrokinetic()
 
   // Initialize geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
-    mapc2p_3x, 0, bmag_func_3x, 0, false);
+    mapc2p_3x, 0, bmag_func_3x, 0, false, false);
 
   struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M2", false);
 
@@ -216,7 +216,7 @@ test_1x1v(int polyOrder, bool use_gpu)
 
   // Initialize geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
-    mapc2p_1x, 0, bmag_func_1x, 0, use_gpu);
+    mapc2p_1x, 0, bmag_func_1x, 0, false, use_gpu);
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M0", use_gpu);
   struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M1", use_gpu);
@@ -409,7 +409,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Initialize geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
-    mapc2p_1x, 0, bmag_func_1x, 0, use_gpu);
+    mapc2p_1x, 0, bmag_func_1x, 0, false, use_gpu);
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M0", use_gpu);
   struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M1", use_gpu);
@@ -584,7 +584,7 @@ test_2x2v(int poly_order, bool use_gpu)
 
   // Initialize geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
-    mapc2p_2x, 0, bmag_func_2x, 0, use_gpu);
+    mapc2p_2x, 0, bmag_func_2x, 0, false, use_gpu);
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M0", use_gpu);
   struct gkyl_mom_type *M1_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M1", use_gpu);

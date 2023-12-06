@@ -69,7 +69,7 @@ test_3x2v_p1(bool use_gpu)
 
   // Initialize geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
-    mapc2p, 0, bmag_func, 0, use_gpu);
+    mapc2p, 0, bmag_func, 0, false, use_gpu);
 
   // Initialize gyrokinetic variables
   struct gkyl_array *phi = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
