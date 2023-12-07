@@ -24,21 +24,23 @@ typedef   double (*plate_func)(double R);
 
 struct gkyl_tok_geo {
   struct gkyl_efit* efit;
-  const struct gkyl_rect_grid* rzgrid; // RZ grid on which psi(R,Z) is defined
+
+  struct gkyl_rect_grid rzgrid; // RZ grid on which psi(R,Z) is defined
+  struct gkyl_range rzlocal; // local range over which psiRZ is defined
+  struct gkyl_range rzlocal_ext; // extended range
+  struct gkyl_basis rzbasis; // basis functions for R,Z grid
+  int num_rzbasis; // number of basis functions in RZ
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
   const struct gkyl_array *psibyrRZ; // psi(R,Z)/R DG representation
   const struct gkyl_array *psibyr2RZ; // psi(R,Z)/R^2 DG representation
-  const struct gkyl_range* rzlocal; // local range over which psiRZ is defined
-  const struct gkyl_range* rzlocal_ext; // extended range
-  int num_rzbasis; // number of basis functions in RZ
-  const struct gkyl_basis *rzbasis; // basis functions for R,Z grid
                    
-  const struct gkyl_rect_grid* fgrid; // flux grid for fpol
-  const struct gkyl_range* frange; // flux range
-  const struct gkyl_range* frange_ext; // extended range
+  struct gkyl_rect_grid fgrid; // flux grid for fpol
+  struct gkyl_range frange; // flux range
+  struct gkyl_range frange_ext; // extended range
+  struct gkyl_basis fbasis; // psi basis for fpol
   const struct gkyl_array *fpoldg; // fpol(psi) dg rep
   const struct gkyl_array *qdg; // q(psi) dg rep
-  const struct gkyl_basis *fbasis; // psi basis for fpol
+                                   
   double psisep; // psi of separatrix
   double zmaxis; // z of magnetic axis
 
