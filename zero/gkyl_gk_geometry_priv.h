@@ -41,16 +41,12 @@ void gkyl_gk_geometry_free(const struct gkyl_ref_count *ref);
 static
 void gkyl_gk_geometry_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, 
-  struct gkyl_array *bmag, struct gkyl_array *g_ij, 
-  struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_inv, 
-  struct gkyl_array *gij, struct gkyl_array *b_i, struct gkyl_array *cmag, struct gkyl_array *jacobtot, 
-  struct gkyl_array *jacobtot_inv, struct gkyl_array *bmag_inv, struct gkyl_array *bmag_inv_sq, 
-  struct gkyl_array *gxxj, struct gkyl_array *gxyj, struct gkyl_array *gyyj) 
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p)
+ 
 {
   //First just do bmag
   gkyl_eval_on_nodes *eval_bmag = gkyl_eval_on_nodes_new(up->grid, up->basis, 1, bmag_func, bmag_ctx);
-  gkyl_eval_on_nodes_advance(eval_bmag, 0.0, up->range, bmag);
+  gkyl_eval_on_nodes_advance(eval_bmag, 0.0, up->range, up->bmag);
   //Now project mapc2p and the FD array
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
@@ -172,12 +168,12 @@ void gkyl_gk_geometry_advance(struct gk_geometry* up, struct gkyl_range *nrange,
 
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(up->basis, up->grid, false);
-  gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, g_ij, up->range);
+  gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, up->g_ij, up->range);
 
   // calculate the derived geometric quantities
   gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(up->basis, up->grid, false);
-  gkyl_calc_derived_geo_advance( jcalculator, up->range, g_ij, bmag, 
-    jacobgeo, jacobgeo_inv, gij, b_i, cmag, jacobtot, jacobtot_inv, 
-    bmag_inv, bmag_inv_sq, gxxj, gxyj, gyyj);
+  gkyl_calc_derived_geo_advance( jcalculator, up->range, up->g_ij, up->bmag, 
+    up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
+    up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj);
 }
 

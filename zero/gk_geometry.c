@@ -117,9 +117,7 @@ gkyl_gk_geometry_new(const struct gkyl_rect_grid* grid, const struct gkyl_range 
   }
   else{
     gkyl_gk_geometry_advance(up, &nrange, dzc, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx, 
-    mc2p_nodal_fd, mc2p_nodal, mc2p, 
-    up->bmag, up->g_ij, up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, 
-    up->jacobtot_inv, up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj);
+    mc2p_nodal_fd, mc2p_nodal, mc2p);
   }
 
   up->flags = 0;
