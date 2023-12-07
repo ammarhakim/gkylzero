@@ -293,7 +293,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
       grady_I[0] = (val_T[0]-val_B[0])/(2*dx[1]);
 
       const double *val_RT = gkyl_array_cfetch(nodal_vals, nidx+offset[RT]);
-      const double *val_RB = gkyl_array_cfetch(nodal_vals, nidx+offset[RB]);      
+      const double *val_RB = gkyl_array_cfetch(nodal_vals, nidx+offset[RB]);
       const double *val_RRT = gkyl_array_cfetch(nodal_vals, nidx+offset[RRT]);
       const double *val_RRB = gkyl_array_cfetch(nodal_vals, nidx+offset[RRB]);
 
@@ -320,7 +320,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
       grady_I[0] = (val_T[0]-val_B[0])/(2*dx[1]);
 
       const double *val_LT = gkyl_array_cfetch(nodal_vals, nidx+offset[LT]);
-      const double *val_LB = gkyl_array_cfetch(nodal_vals, nidx+offset[LB]);      
+      const double *val_LB = gkyl_array_cfetch(nodal_vals, nidx+offset[LB]);
       const double *val_LLT = gkyl_array_cfetch(nodal_vals, nidx+offset[LLT]);
       const double *val_LLB = gkyl_array_cfetch(nodal_vals, nidx+offset[LLB]);
 
@@ -343,7 +343,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
       double *gradx_I = gkyl_array_fetch(gradx, nidx+offset[I]);
       gradx_I[0] = (val_R[0]-val_L[0])/(2*dx[0]);
       
-      double *grady_I = gkyl_array_fetch(gradxy, nidx+offset[I]);
+      double *grady_I = gkyl_array_fetch(grady, nidx+offset[I]);
       grady_I[0] = -(val_TT[0]-4*val_T[0]+3*val_I[0])/(2*dx[1]);
 
       const double *val_LT = gkyl_array_cfetch(nodal_vals, nidx+offset[LT]);
@@ -386,7 +386,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
       gradxy_I[0] = (3*gx_I-4*gx_B+gx_BB)/(2*dx[1]);
     }
 
-    if ((iter.idx[0] == ilo) && (iter.idx[1] = jlo)) {
+    if ((iter.idx[0] == ilo) && (iter.idx[1] == jlo)) {
       // lower-left corner
       const double *val_I = gkyl_array_cfetch(nodal_vals, nidx+offset[I]);
       const double *val_R = gkyl_array_cfetch(nodal_vals, nidx+offset[R]);
@@ -406,7 +406,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
       gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);
     }
 
-    if ((iter.idx[0] == ilo) && (iter.idx[1] = jup)) {
+    if ((iter.idx[0] == ilo) && (iter.idx[1] == jup)) {
       // upper-left corner
       const double *val_I = gkyl_array_cfetch(nodal_vals, nidx+offset[I]);
       const double *val_R = gkyl_array_cfetch(nodal_vals, nidx+offset[R]);
@@ -423,10 +423,10 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
 
       double *gradxy_I = gkyl_array_fetch(gradxy, nidx+offset[I]);
       double vxy[4] = { val_B[0], val_I[0], val_RB[0], val_R[0] };
-      gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);      
-    }    
+      gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);
+    }
 
-    if ((iter.idx[0] == iup) && (iter.idx[1] = jlo)) {
+    if ((iter.idx[0] == iup) && (iter.idx[1] == jlo)) {
       // lower-right corner
       const double *val_I = gkyl_array_cfetch(nodal_vals, nidx+offset[I]);
       const double *val_L = gkyl_array_cfetch(nodal_vals, nidx+offset[L]);
@@ -447,7 +447,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
     }
 
 
-    if ((iter.idx[0] == iup) && (iter.idx[1] = jup)) {
+    if ((iter.idx[0] == iup) && (iter.idx[1] == jup)) {
       // upper-right corner
       const double *val_I = gkyl_array_cfetch(nodal_vals, nidx+offset[I]);
       const double *val_L = gkyl_array_cfetch(nodal_vals, nidx+offset[L]);
@@ -465,7 +465,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
       double *gradxy_I = gkyl_array_fetch(gradxy, nidx+offset[I]);
       double vxy[4] = { val_LB[0], val_L[0], val_B[0], val_I[0] };
       gradxy_I[0] = calc_bilinear_grad_xy(vxy, dx);
-    }    
+    }
   }
 
   // Step 2: compute cubic expansions in each cell
