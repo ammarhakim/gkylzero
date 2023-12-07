@@ -539,6 +539,31 @@ eval_cubic(double t, const double *xn, double *fout, void *ctx)
   fout[0] = ectx->basis.eval_expand(eta, fdg);
 }
 
+// function for computing cubic at a specified coordinate
+static void
+eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
+{
+  struct dg_basis_ops_evalf_ctx *ectx = ctx;
+  
+  int idx[GKYL_MAX_DIM];  
+  gkyl_rect_grid_coord_idx(&ectx->grid, xn, idx);
+
+  double xc[GKYL_MAX_DIM];
+  gkyl_rect_grid_cell_center(&ectx->grid, idx, xc);
+
+  double eta[GKYL_MAX_DIM];
+  for (int d=0; d<ectx->ndim; ++d)
+    eta[d] = 2.0*(xn[d]-xc[d])/ectx->grid.dx[d];
+  
+  long lidx = gkyl_range_idx(&ectx->local, idx);
+  const double *fdg = gkyl_array_cfetch(ectx->cubic, lidx);
+  
+  fout[0] = ectx->basis.eval_expand(eta, fdg);
+  fout[1] = ectx->basis.eval_grad_expand(0, eta, fdg);
+  if (ectx->ndim > 1)
+    fout[2] = ectx->basis.eval_grad_expand(1, eta, fdg);
+}
+
 struct gkyl_basis_ops_evalf*
 gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_array *nodal_vals)
@@ -578,6 +603,7 @@ gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
   struct gkyl_basis_ops_evalf *evf = gkyl_malloc(sizeof(*evf));
   evf->ctx = ctx;
   evf->eval_cubic = eval_cubic;
+  evf->eval_cubic_wgrad = eval_cubic_wgrad;
   evf->ref_count = (struct gkyl_ref_count) { evalf_free, 1 };
   
   return evf;

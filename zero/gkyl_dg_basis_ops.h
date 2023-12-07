@@ -16,6 +16,7 @@ typedef struct gkyl_dg_basis_op_mem gkyl_dg_basis_op_mem;
 struct gkyl_basis_ops_evalf {
   void *ctx; // function context
   evalf_t eval_cubic; // function pointer to evaluate the cubic
+  evalf_t eval_cubic_wgrad; // function pointer to evaluate the cubic & its gradient
   struct gkyl_ref_count ref_count;   
 };  
 
