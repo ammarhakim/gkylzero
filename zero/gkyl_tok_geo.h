@@ -104,8 +104,8 @@ struct gkyl_tok_geo_inp {
 
 // Inputs to create geometry for a specific computational grid
 struct gkyl_tok_geo_geo_inp {
-  const struct gkyl_rect_grid *cgrid;
-  const struct gkyl_basis *cbasis;
+  struct gkyl_rect_grid cgrid;
+  struct gkyl_basis cbasis;
   enum gkyl_tok_geo_type ftype; // type of geometry
   
   double rclose; // closest R to discrimate

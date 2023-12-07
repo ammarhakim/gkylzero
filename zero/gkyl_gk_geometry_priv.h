@@ -45,21 +45,21 @@ void gkyl_gk_geometry_advance(struct gk_geometry* up, struct gkyl_range *nrange,
  
 {
   //First just do bmag
-  gkyl_eval_on_nodes *eval_bmag = gkyl_eval_on_nodes_new(up->grid, up->basis, 1, bmag_func, bmag_ctx);
-  gkyl_eval_on_nodes_advance(eval_bmag, 0.0, up->range, up->bmag);
+  gkyl_eval_on_nodes *eval_bmag = gkyl_eval_on_nodes_new(&up->grid, &up->basis, 1, bmag_func, bmag_ctx);
+  gkyl_eval_on_nodes_advance(eval_bmag, 0.0, &up->range, up->bmag);
   //Now project mapc2p and the FD array
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
                                 
-  double dtheta = up->grid->dx[TH_IDX],
-    dpsi = up->grid->dx[PH_IDX],
-    dalpha = up->grid->dx[AL_IDX];
+  double dtheta = up->grid.dx[TH_IDX],
+    dpsi = up->grid.dx[PH_IDX],
+    dalpha = up->grid.dx[AL_IDX];
   
-  double theta_lo = up->grid->lower[TH_IDX],
-    phi_lo = up->grid->lower[PH_IDX],
-    alpha_lo = up->grid->lower[AL_IDX];
+  double theta_lo = up->grid.lower[TH_IDX],
+    phi_lo = up->grid.lower[PH_IDX],
+    alpha_lo = up->grid.lower[AL_IDX];
 
-  double dx_fact = up->basis->poly_order == 1 ? 1 : 0.5;
+  double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
@@ -159,7 +159,7 @@ void gkyl_gk_geometry_advance(struct gk_geometry* up, struct gkyl_range *nrange,
     }
   }
 
-  gkyl_nodal_ops_n2m(up->basis, up->grid, nrange, up->range, 3, mc2p_nodal, mc2p);
+  gkyl_nodal_ops_n2m(&up->basis, &up->grid, nrange, &up->range, 3, mc2p_nodal, mc2p);
 
   char str1[50] = "xyz.gkyl";
   char str2[50] = "allxyz.gkyl";
@@ -167,12 +167,12 @@ void gkyl_gk_geometry_advance(struct gk_geometry* up, struct gkyl_range *nrange,
   write_nodal_coordinates(str2, nrange, mc2p_nodal_fd);
 
   // now calculate the metrics
-  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(up->basis, up->grid, false);
-  gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, up->g_ij, up->range);
+  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, false);
+  gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, up->g_ij, &up->range);
 
   // calculate the derived geometric quantities
-  gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(up->basis, up->grid, false);
-  gkyl_calc_derived_geo_advance( jcalculator, up->range, up->g_ij, up->bmag, 
+  gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
+  gkyl_calc_derived_geo_advance( jcalculator, &up->range, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj);
 }

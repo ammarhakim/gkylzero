@@ -641,15 +641,15 @@ void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, dou
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   
-  double dtheta = inp->cgrid->dx[TH_IDX],
-    dpsi = inp->cgrid->dx[PH_IDX],
-    dalpha = inp->cgrid->dx[AL_IDX];
+  double dtheta = inp->cgrid.dx[TH_IDX],
+    dpsi = inp->cgrid.dx[PH_IDX],
+    dalpha = inp->cgrid.dx[AL_IDX];
   
-  double theta_lo = inp->cgrid->lower[TH_IDX],
-    phi_lo = inp->cgrid->lower[PH_IDX],
-    alpha_lo = inp->cgrid->lower[AL_IDX];
+  double theta_lo = inp->cgrid.lower[TH_IDX],
+    phi_lo = inp->cgrid.lower[PH_IDX],
+    alpha_lo = inp->cgrid.lower[AL_IDX];
 
-  double dx_fact = up->basis->poly_order == 1 ? 1 : 0.5;
+  double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
@@ -779,7 +779,7 @@ void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, dou
             arcL_l = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rleft,
               true, true, arc_memo_left);
             arcL = arcL_l + arcL_r;
-            darcL = arcL/(up->basis->poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
+            darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
 
             arc_ctx.right = true;
             arc_ctx.phi_right = 0.0;
@@ -818,7 +818,7 @@ void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, dou
             arcL_l = integrate_psi_contour_memo(geo, psi_curr, inp->zmin_left, zmax, rleft,
               true, true, arc_memo);
             arcL = arcL_l + arcL_r;
-            darcL = arcL/(up->basis->poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
+            darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
 
             arc_ctx.right = true;
             arc_ctx.phi_right = 0.0;
@@ -859,7 +859,7 @@ void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, dou
               true, true, arc_memo);
             arc_ctx.arcL_left= arcL_l;
             arcL = arcL_l + arcL_r;
-            darcL = arcL/(up->basis->poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
+            darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
 
             arc_ctx.right = false;
             arc_ctx.phi_left = 0.0;
@@ -895,12 +895,12 @@ void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, dou
 
             arc_ctx.phi_right = 0.0;
             arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);
-            darcL = arcL/(up->basis->poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
+            darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
           }
           else if(inp->ftype==GKYL_SOL_DN_IN){
             arc_ctx.phi_right = 0.0;
             arcL = integrate_psi_contour_memo(geo, psi_curr, zmin, zmax, rclose, true, true, arc_memo);
-            darcL = arcL/(up->basis->poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
+            darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
           }
           else if(inp->ftype == GKYL_SOL_SN_LO){
             //Find the  upper turning point
@@ -932,7 +932,7 @@ void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, dou
             arcL_l = integrate_psi_contour_memo(geo, psi_curr, inp->zmin_left, zmax, rleft,
               true, true, arc_memo);
             arcL = arcL_l + arcL_r;
-            darcL = arcL/(up->basis->poly_order*inp->cgrid->cells[TH_IDX]) * (inp->cgrid->upper[TH_IDX] - inp->cgrid->lower[TH_IDX])/2/M_PI;
+            darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
 
             arc_ctx.right = true;
             arc_ctx.phi_right = 0.0;
@@ -1097,7 +1097,7 @@ void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, dou
       }
     }
   }
-  gkyl_nodal_ops_n2m(inp->cbasis, inp->cgrid, nrange, up->range, 3, mc2p_nodal, mc2p);
+  gkyl_nodal_ops_n2m(&inp->cbasis, &inp->cgrid, nrange, &up->range, 3, mc2p_nodal, mc2p);
 
   char str1[50] = "xyz";
   char str2[50] = "allxyz";
