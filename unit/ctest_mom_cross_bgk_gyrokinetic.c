@@ -90,14 +90,22 @@ void eval_M2_i(double t, const double *xn, double* restrict fout, void *ctx)
   eval_M0_i(t, xn, den, ctx);
   fout[0] = den[0]*vtsq + den[0]*udrift*udrift;
 }
+void eval_nu_ei(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 10.0;
+}
+void eval_nu_ie(double t, const double *xn, double *restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 5.0;
+}
 
 void test_1x1v(int poly_order, bool use_gpu)
 {
   double me = 1.0; //9.10938215e-31;
   double mi = 2.0; //1.672621637e-27;
   double beta = 0.0;
-  double nu_ei = 10.0; 
-  double nu_ie = 5.0;
 
   double lower[] = {-0.5, -5.0}, upper[] = {0.5, 5.0};
   int cells[] = {2, 32};
@@ -193,10 +201,18 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_array_set_offset(moms_i, 1., m1_i, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_i, 1., m2_i, 2*confBasis.num_basis);
   
+  // Create collisionality arrays
+  struct gkyl_array *nu_ei = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_proj_on_basis *proj_nu_ei = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_nu_ei, NULL);
+  struct gkyl_array *nu_ie = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_proj_on_basis *proj_nu_ie = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_nu_ie, NULL);
+  gkyl_proj_on_basis_advance(proj_nu_ei, 0.0, &confLocal, nu_ei);
+  gkyl_proj_on_basis_advance(proj_nu_ie, 0.0, &confLocal, nu_ie);
+
   // Calculate the cross moments
-  gkyl_mom_cross_bgk_gyrokinetic *momCrossCalc = gkyl_mom_cross_bgk_gyrokinetic_new(&basis, &confBasis);
-  struct gkyl_array *moms_cross = mkarr(6*confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  gkyl_mom_cross_bgk_gyrokinetic_advance(momCrossCalc, &confLocal_ext, beta, me, moms_e, mi, moms_i, nu_ei, nu_ie, moms_cross);
+  gkyl_mom_cross_bgk_gyrokinetic *momCrossCalc = gkyl_mom_cross_bgk_gyrokinetic_new(&basis, &confBasis, use_gpu);
+  struct gkyl_array *moms_cross = mkarr(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_mom_cross_bgk_gyrokinetic_advance(momCrossCalc, &confLocal, beta, me, moms_e, mi, moms_i, nu_ei, nu_ie, moms_cross);
   gkyl_mom_cross_bgk_gyrokinetic_release(momCrossCalc);
 
   // Write out on host
@@ -210,12 +226,9 @@ void test_1x1v(int poly_order, bool use_gpu)
     long linidx = gkyl_range_idx(&confLocal, idx);
     const double *momsCross = gkyl_array_cfetch(moms_cross, linidx);
     TEST_CHECK( gkyl_compare(10.0, momsCross[0*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_CHECK( gkyl_compare(10.0, momsCross[1*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_CHECK( gkyl_compare(5.0, momsCross[2*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_CHECK( gkyl_compare(5.0, momsCross[3*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_CHECK( gkyl_compare(913.3333333333334, momsCross[4*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_CHECK( gkyl_compare(456.6666666666667, momsCross[5*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e, %.13e, \t%.13e, \t%.13e", momsCross[0*confBasis.num_basis]/sqrt(2), momsCross[1*confBasis.num_basis]/sqrt(2), momsCross[2*confBasis.num_basis]/sqrt(2), momsCross[3*confBasis.num_basis]/sqrt(2), momsCross[4*confBasis.num_basis]/sqrt(2), momsCross[5*confBasis.num_basis]/sqrt(2));
+    TEST_CHECK( gkyl_compare(5.0, momsCross[1*confBasis.num_basis]/sqrt(2), 1e-12) );
+    TEST_CHECK( gkyl_compare(913.3333333333334, momsCross[2*confBasis.num_basis]/sqrt(2), 1e-12) );
+    TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", momsCross[0*confBasis.num_basis]/sqrt(2), momsCross[1*confBasis.num_basis]/sqrt(2), momsCross[2*confBasis.num_basis]/sqrt(2));
   } // The hard coded numbers are expected values. The basis is looked up in maxima with: load("basis-precalc/basisSer1x"); polyOrder:1$ basis:basisC[polyOrder];
 
   // Release memory for moment data object
@@ -236,6 +249,10 @@ void test_1x1v(int poly_order, bool use_gpu)
   gkyl_array_release(moms_e);
   gkyl_array_release(moms_i);
   gkyl_array_release(moms_cross);
+  gkyl_array_release(nu_ei);
+  gkyl_array_release(nu_ie);
+  gkyl_proj_on_basis_release(proj_nu_ei);
+  gkyl_proj_on_basis_release(proj_nu_ie);
   gkyl_proj_on_basis_release(proj_m0_e);
   gkyl_proj_on_basis_release(proj_m1_e);
   gkyl_proj_on_basis_release(proj_m2_e);
@@ -266,8 +283,6 @@ void test_1x2v(int poly_order, bool use_gpu)
   double me = 1.0; //9.10938215e-31;
   double mi = 2.0; //1.672621637e-27;
   double beta = 0.0;
-  double nu_ei = 10.0; 
-  double nu_ie = 5.0;
 
   double lower[] = {-0.5, -5.0, 0.0}, upper[] = {0.5, 5.0, 5.0};
   int cells[] = {2, 32, 32};
@@ -363,10 +378,18 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_array_set_offset(moms_i, 1., m1_i, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_i, 1., m2_i, 2*confBasis.num_basis);
   
+  // Create collisionality arrays
+  struct gkyl_array *nu_ei = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_proj_on_basis *proj_nu_ei = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_nu_ei, NULL);
+  struct gkyl_array *nu_ie = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_proj_on_basis *proj_nu_ie = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_nu_ie, NULL);
+  gkyl_proj_on_basis_advance(proj_nu_ei, 0.0, &confLocal, nu_ei);
+  gkyl_proj_on_basis_advance(proj_nu_ie, 0.0, &confLocal, nu_ie);
+
   // Calculate the cross moments
-  gkyl_mom_cross_bgk_gyrokinetic *momCrossCalc = gkyl_mom_cross_bgk_gyrokinetic_new(&basis, &confBasis);
-  struct gkyl_array *moms_cross = mkarr(6*confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  gkyl_mom_cross_bgk_gyrokinetic_advance(momCrossCalc, &confLocal_ext, beta, me, moms_e, mi, moms_i, nu_ei, nu_ie, moms_cross);
+  gkyl_mom_cross_bgk_gyrokinetic *momCrossCalc = gkyl_mom_cross_bgk_gyrokinetic_new(&basis, &confBasis, use_gpu);
+  struct gkyl_array *moms_cross = mkarr(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_mom_cross_bgk_gyrokinetic_advance(momCrossCalc, &confLocal, beta, me, moms_e, mi, moms_i, nu_ei, nu_ie, moms_cross);
   gkyl_mom_cross_bgk_gyrokinetic_release(momCrossCalc);
 
   // Write out on host
@@ -380,12 +403,9 @@ void test_1x2v(int poly_order, bool use_gpu)
     long linidx = gkyl_range_idx(&confLocal, idx);
     const double *momsCross = gkyl_array_cfetch(moms_cross, linidx);
     TEST_CHECK( gkyl_compare(10.0, momsCross[0*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_CHECK( gkyl_compare(10.0, momsCross[1*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_CHECK( gkyl_compare(5.0, momsCross[2*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_CHECK( gkyl_compare(5.0, momsCross[3*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_CHECK( gkyl_compare(2726.6666666666665, momsCross[4*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_CHECK( gkyl_compare(1363.3333333333333, momsCross[5*confBasis.num_basis]/sqrt(2), 1e-12) );
-    TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e, %.13e, \t%.13e, \t%.13e", momsCross[0*confBasis.num_basis]/sqrt(2), momsCross[1*confBasis.num_basis]/sqrt(2), momsCross[2*confBasis.num_basis]/sqrt(2), momsCross[3*confBasis.num_basis]/sqrt(2), momsCross[4*confBasis.num_basis]/sqrt(2), momsCross[5*confBasis.num_basis]/sqrt(2));
+    TEST_CHECK( gkyl_compare(5.0, momsCross[1*confBasis.num_basis]/sqrt(2), 1e-12) );
+    TEST_CHECK( gkyl_compare(2726.6666666666665, momsCross[2*confBasis.num_basis]/sqrt(2), 1e-12) );
+    TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", momsCross[0*confBasis.num_basis]/sqrt(2), momsCross[1*confBasis.num_basis]/sqrt(2), momsCross[2*confBasis.num_basis]/sqrt(2));
   }
 
   // Release memory for moment data object
@@ -406,6 +426,10 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_array_release(moms_e);
   gkyl_array_release(moms_i);
   gkyl_array_release(moms_cross);
+  gkyl_array_release(nu_ei);
+  gkyl_array_release(nu_ie);
+  gkyl_proj_on_basis_release(proj_nu_ei);
+  gkyl_proj_on_basis_release(proj_nu_ie);
   gkyl_proj_on_basis_release(proj_m0_e);
   gkyl_proj_on_basis_release(proj_m1_e);
   gkyl_proj_on_basis_release(proj_m2_e);
@@ -419,8 +443,6 @@ void test_2x2v(int poly_order, bool use_gpu)
   double me = 1.0; //9.10938215e-31;
   double mi = 2.0; //1.672621637e-27;
   double beta = 0.0;
-  double nu_ei = 10.0; 
-  double nu_ie = 5.0;
 
   double lower[] = {-0.5, -0.5, -5.0, 0.0}, upper[] = {0.5, 0.5, 5.0, 5.0};
   int cells[] = {2, 2, 32, 32};
@@ -516,9 +538,17 @@ void test_2x2v(int poly_order, bool use_gpu)
   gkyl_array_set_offset(moms_i, 1., m1_i, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_i, 1., m2_i, 2*confBasis.num_basis);
   
+  // Create collisionality arrays
+  struct gkyl_array *nu_ei = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_proj_on_basis *proj_nu_ei = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_nu_ei, NULL);
+  struct gkyl_array *nu_ie = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_proj_on_basis *proj_nu_ie = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_nu_ie, NULL);
+  gkyl_proj_on_basis_advance(proj_nu_ei, 0.0, &confLocal, nu_ei);
+  gkyl_proj_on_basis_advance(proj_nu_ie, 0.0, &confLocal, nu_ie);
+
   // Calculate the cross moments
-  gkyl_mom_cross_bgk_gyrokinetic *momCrossCalc = gkyl_mom_cross_bgk_gyrokinetic_new(&basis, &confBasis);
-  struct gkyl_array *moms_cross = mkarr(6*confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_mom_cross_bgk_gyrokinetic *momCrossCalc = gkyl_mom_cross_bgk_gyrokinetic_new(&basis, &confBasis, use_gpu);
+  struct gkyl_array *moms_cross = mkarr(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
   gkyl_mom_cross_bgk_gyrokinetic_advance(momCrossCalc, &confLocal_ext, beta, me, moms_e, mi, moms_i, nu_ei, nu_ie, moms_cross);
   gkyl_mom_cross_bgk_gyrokinetic_release(momCrossCalc);
 
@@ -534,12 +564,9 @@ void test_2x2v(int poly_order, bool use_gpu)
       long linidx = gkyl_range_idx(&confLocal, idx);
       const double *momsCross = gkyl_array_cfetch(moms_cross, linidx);
       TEST_CHECK( gkyl_compare(10.0, momsCross[0*confBasis.num_basis]/2, 1e-12) );
-      TEST_CHECK( gkyl_compare(10.0, momsCross[1*confBasis.num_basis]/2, 1e-12) );
-      TEST_CHECK( gkyl_compare(5.0, momsCross[2*confBasis.num_basis]/2, 1e-12) );
-      TEST_CHECK( gkyl_compare(5.0, momsCross[3*confBasis.num_basis]/2, 1e-12) );
-      TEST_CHECK( gkyl_compare(2726.6666666666665, momsCross[4*confBasis.num_basis]/2, 1e-12) );
-      TEST_CHECK( gkyl_compare(1363.3333333333333, momsCross[5*confBasis.num_basis]/2, 1e-12) );
-      TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e, %.13e, \t%.13e, \t%.13e", momsCross[0*confBasis.num_basis]/2, momsCross[1*confBasis.num_basis]/2, momsCross[2*confBasis.num_basis]/2, momsCross[3*confBasis.num_basis]/2, momsCross[4*confBasis.num_basis]/2, momsCross[5*confBasis.num_basis]/2);
+      TEST_CHECK( gkyl_compare(5.0, momsCross[1*confBasis.num_basis]/2, 1e-12) );
+      TEST_CHECK( gkyl_compare(2726.6666666666665, momsCross[2*confBasis.num_basis]/2, 1e-12) );
+      TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", momsCross[0*confBasis.num_basis]/sqrt(2), momsCross[1*confBasis.num_basis]/sqrt(2), momsCross[2*confBasis.num_basis]/sqrt(2));
     }
   }
 
@@ -561,6 +588,10 @@ void test_2x2v(int poly_order, bool use_gpu)
   gkyl_array_release(moms_e);
   gkyl_array_release(moms_i);
   gkyl_array_release(moms_cross);
+  gkyl_array_release(nu_ei);
+  gkyl_array_release(nu_ie);
+  gkyl_proj_on_basis_release(proj_nu_ei);
+  gkyl_proj_on_basis_release(proj_nu_ie);
   gkyl_proj_on_basis_release(proj_m0_e);
   gkyl_proj_on_basis_release(proj_m1_e);
   gkyl_proj_on_basis_release(proj_m2_e);
@@ -574,8 +605,6 @@ void test_3x2v(int poly_order, bool use_gpu)
   double me = 1.0; //9.10938215e-31;
   double mi = 2.0; //1.672621637e-27;
   double beta = 0.0;
-  double nu_ei = 10.0; 
-  double nu_ie = 5.0;
 
   double lower[] = {-0.5, -0.5, -0.5, -5.0, 0.0}, upper[] = {0.5, 0.5, 0.5, 5.0, 5.0};
   int cells[] = {2, 2, 2, 32, 32};
@@ -671,9 +700,17 @@ void test_3x2v(int poly_order, bool use_gpu)
   gkyl_array_set_offset(moms_i, 1., m1_i, 1*confBasis.num_basis);
   gkyl_array_set_offset(moms_i, 1., m2_i, 2*confBasis.num_basis);
   
+  // Create collisionality arrays
+  struct gkyl_array *nu_ei = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_proj_on_basis *proj_nu_ei = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_nu_ei, NULL);
+  struct gkyl_array *nu_ie = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_proj_on_basis *proj_nu_ie = gkyl_proj_on_basis_new(&confGrid, &confBasis, poly_order+1, 1, eval_nu_ie, NULL);
+  gkyl_proj_on_basis_advance(proj_nu_ei, 0.0, &confLocal, nu_ei);
+  gkyl_proj_on_basis_advance(proj_nu_ie, 0.0, &confLocal, nu_ie);
+
   // Calculate the cross moments
-  gkyl_mom_cross_bgk_gyrokinetic *momCrossCalc = gkyl_mom_cross_bgk_gyrokinetic_new(&basis, &confBasis);
-  struct gkyl_array *moms_cross = mkarr(6*confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  gkyl_mom_cross_bgk_gyrokinetic *momCrossCalc = gkyl_mom_cross_bgk_gyrokinetic_new(&basis, &confBasis, use_gpu);
+  struct gkyl_array *moms_cross = mkarr(3*confBasis.num_basis, confLocal_ext.volume, use_gpu);
   gkyl_mom_cross_bgk_gyrokinetic_advance(momCrossCalc, &confLocal_ext, beta, me, moms_e, mi, moms_i, nu_ei, nu_ie, moms_cross);
   gkyl_mom_cross_bgk_gyrokinetic_release(momCrossCalc);
 
@@ -690,12 +727,9 @@ void test_3x2v(int poly_order, bool use_gpu)
         long linidx = gkyl_range_idx(&confLocal, idx);
         const double *momsCross = gkyl_array_cfetch(moms_cross, linidx);
         TEST_CHECK( gkyl_compare(10.0, momsCross[0*confBasis.num_basis]/sqrt(8), 1e-12) );
-        TEST_CHECK( gkyl_compare(10.0, momsCross[1*confBasis.num_basis]/sqrt(8), 1e-12) );
-        TEST_CHECK( gkyl_compare(5.0, momsCross[2*confBasis.num_basis]/sqrt(8), 1e-12) );
-        TEST_CHECK( gkyl_compare(5.0, momsCross[3*confBasis.num_basis]/sqrt(8), 1e-12) );
-        TEST_CHECK( gkyl_compare(2726.6666666666665, momsCross[4*confBasis.num_basis]/sqrt(8), 1e-12) );
-        TEST_CHECK( gkyl_compare(1363.3333333333333, momsCross[5*confBasis.num_basis]/sqrt(8), 1e-12) );
-        TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e, %.13e, \t%.13e, \t%.13e", momsCross[0*confBasis.num_basis]/sqrt(8), momsCross[1*confBasis.num_basis]/sqrt(8), momsCross[2*confBasis.num_basis]/sqrt(8), momsCross[3*confBasis.num_basis]/sqrt(8), momsCross[4*confBasis.num_basis]/sqrt(8), momsCross[5*confBasis.num_basis]/sqrt(8));
+        TEST_CHECK( gkyl_compare(5.0, momsCross[1*confBasis.num_basis]/sqrt(8), 1e-12) );
+        TEST_CHECK( gkyl_compare(2726.6666666666665, momsCross[2*confBasis.num_basis]/sqrt(8), 1e-12) );
+        TEST_MSG("Produced: %.13e, \t%.13e, \t%.13e", momsCross[0*confBasis.num_basis]/sqrt(8), momsCross[1*confBasis.num_basis]/sqrt(8), momsCross[2*confBasis.num_basis]/sqrt(8));
       }
     }
   }
@@ -718,6 +752,10 @@ void test_3x2v(int poly_order, bool use_gpu)
   gkyl_array_release(moms_e);
   gkyl_array_release(moms_i);
   gkyl_array_release(moms_cross);
+  gkyl_array_release(nu_ei);
+  gkyl_array_release(nu_ie);
+  gkyl_proj_on_basis_release(proj_nu_ei);
+  gkyl_proj_on_basis_release(proj_nu_ie);
   gkyl_proj_on_basis_release(proj_m0_e);
   gkyl_proj_on_basis_release(proj_m1_e);
   gkyl_proj_on_basis_release(proj_m2_e);
@@ -725,6 +763,7 @@ void test_3x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_m1_i);
   gkyl_proj_on_basis_release(proj_m2_i);
 }
+
 // Run the test
 void test_1x1v_p1() {test_1x1v(1, false);}
 //void test_1x1v_p2() {test_1x1v(2, true);}
