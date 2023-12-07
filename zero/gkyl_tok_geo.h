@@ -186,12 +186,7 @@ void gkyl_tok_geo_mapc2p(const gkyl_tok_geo *geo, const struct gkyl_tok_geo_geo_
 
 void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, 
-  struct gkyl_array *bmag, struct gkyl_array *g_ij, 
-  struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_inv, 
-  struct gkyl_array *gij, struct gkyl_array *b_i, struct gkyl_array *cmag, struct gkyl_array *jacobtot, 
-  struct gkyl_array *jacobtot_inv, struct gkyl_array *bmag_inv, struct gkyl_array *bmag_inv_sq, 
-  struct gkyl_array *gxxj, struct gkyl_array *gxyj, struct gkyl_array *gyyj) ;
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p);
 
 /**
  * Return cumulative statistics from geometry computations
