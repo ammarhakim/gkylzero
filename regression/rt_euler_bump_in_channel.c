@@ -101,7 +101,7 @@ main(int argc, char **argv)
   double halfx = ctx.inlet_xlen+0.5*ctx.bump_xlen;
 
   // equation object
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, false);
 
   struct gkyl_moment_species fluid = {
     .name = "euler",

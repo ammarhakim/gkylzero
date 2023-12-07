@@ -29,6 +29,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   enum gkyl_wave_limiter limiter =
     mom_sp->limiter == 0 ? GKYL_MONOTONIZED_CENTERED : mom_sp->limiter;
 
+  enum gkyl_wave_split_type split_type = mom_sp->split_type;    
+
   int ndim = mom->ndim;
   int meqn = sp->num_equations;  
 
@@ -38,6 +40,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       sp->slvr[d] = gkyl_wave_prop_new( &(struct gkyl_wave_prop_inp) {
           .grid = &app->grid,
           .equation = mom_sp->equation,
+          .split_type = split_type,
           .limiter = limiter,
           .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
           .force_low_order_flux = mom_sp->force_low_order_flux,

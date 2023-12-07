@@ -53,8 +53,10 @@ test_3x2v_p1(bool use_gpu)
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
+  const bool is_zero_flux[GKYL_MAX_DIM] = {false};
+
   struct gkyl_dg_updater_gyrokinetic* up;
-  up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, &phaseRange, 0, 1.0, 1.0, use_gpu);
+  up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, is_zero_flux, 0, 1.0, 1.0, use_gpu);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate, *bmag, *jacobtot_inv, *cmag, *b_i, *phi, *apar, *apardot;

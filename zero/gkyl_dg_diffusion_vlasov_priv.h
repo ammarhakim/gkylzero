@@ -1058,7 +1058,7 @@ GKYL_CU_D static const gkyl_dg_diffusion_vlasov_boundary_surf_kern_list ser_vlas
   },
 };
 
-#define SURFKERIDX(cdim,vdim) cdim-1+vdim-1+GKYL_MIN(1,cdim-1)
+#define SURFKERIDX(cdim,vdim) cdim-1+vdim-1+GKYL_MIN2(1,cdim-1)
 
 // Macro for choosing volume and surface kernels.
 #define CKVOL(lst,cdim,diff_order,poly_order,diffdir_linidx) lst[cdim-1].list[diff_order/2-1].list[poly_order-1].kernels[diffdir_linidx]

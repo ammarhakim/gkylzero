@@ -125,7 +125,6 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     mean[j] = mean[j] / conf_local->volume;
   }
   mean[1] = epsilon * sqrt((mean[2]-mean[1]*mean[1]/mean[0])/mean[0])*mean[0];
-  printf("M1_ave=%10.8e, M2_ave=%10.8e\n", mean[1], mean[2]);
   // Calculate the absolute error
   gkyl_array_clear(up->mvals1, 0.0);
   gkyl_array_clear(up->mvals2, 0.0);
@@ -175,7 +174,6 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     }
     err1[0] = sqrt(err1[0]/up->conf_grid.cellVolume/conf_local->volume) / mean[1]; 
     err2[0] = sqrt(err2[0]/up->conf_grid.cellVolume/conf_local->volume) / mean[2]; 
-    printf("err1=%10.8e, err2=%10.8e\n", err1[0], err2[0]);
 
     // Project the maxwellian
     gkyl_array_set_offset(up->moms, 1., up->m0, 0*up->conf_basis.num_basis);
@@ -191,7 +189,6 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     gkyl_array_set_offset(up->m12, 1., up->moms, 1*up->conf_basis.num_basis);
     
     i += 1;
-    printf("Iteration=%d\n", i);
   } // Main iteration loop ends
 }
 
