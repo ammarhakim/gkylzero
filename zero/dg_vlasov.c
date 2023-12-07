@@ -35,17 +35,15 @@ gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_a
 #endif
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  vlasov->auxfields.field = auxin.field; // q/m*(E,B) for Maxwell's, q/m*phi for Poisson's (gradient calculated in kernel).
-  vlasov->auxfields.vrot = auxin.vrot; // Velocity coordinate rate of change, for nonuniform grids.
-  vlasov->auxfields.cot_vec = auxin.cot_vec; // Cotangent vectors (e^i) used in volume term if general geometry enabled.
-  vlasov->auxfields.alpha_geo = auxin.alpha_geo; // alpha^i (e^i . alpha) used in surface term if general geometry enabled.
+  vlasov->auxfields.field = auxin.field; // q/m*(E,B) for Maxwell's, q/m*phi for Poisson's (gradient calculated in kernel)
+  vlasov->auxfields.cot_vec = auxin.cot_vec; // cotangent vectors (e^i) used in volume term if general geometry enabled
+  vlasov->auxfields.alpha_geo = auxin.alpha_geo; // alpha^i (e^i . alpha) used in surface term if general geometry enabled
 }
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range,
-  const struct gkyl_range* phase_range, enum gkyl_model_id model_id,
-  enum gkyl_field_id field_id, bool use_gpu)
+  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range,
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -59,10 +57,11 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   int poly_order = cbasis->poly_order;
 
   vlasov->cdim = cdim;
-  vlasov->vdim = pdim-cdim;
   vlasov->pdim = pdim;
 
   vlasov->eqn.num_equations = 1;
+  vlasov->eqn.surf_term = surf;
+  vlasov->eqn.boundary_surf_term = boundary_surf;
 
   const gkyl_dg_vlasov_stream_vol_kern_list *stream_vol_kernels;
   const gkyl_dg_vlasov_stream_gen_geo_vol_kern_list *stream_gen_geo_vol_kernels; 
@@ -100,109 +99,52 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   const gkyl_dg_vlasov_accel_boundary_surf_kern_list *accel_boundary_surf_vx_kernels, 
     *accel_boundary_surf_vy_kernels,
     *accel_boundary_surf_vz_kernels;
-
-  // Select the surface kernels
   
-  if (model_id == GKYL_MODEL_DEFAULT_NONUNIFORMV) {
-    vlasov->eqn.surf_term = surf_nonuniformv_p1;
-    vlasov->eqn.boundary_surf_term = boundary_surf_nonuniformv_p1;
+  switch (cbasis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      stream_vol_kernels = ser_stream_vol_kernels;
+      stream_gen_geo_vol_kernels = ser_stream_gen_geo_vol_kernels;
+      poisson_vol_kernels = ser_poisson_vol_kernels;
+      poisson_extem_vol_kernels = ser_poisson_extem_vol_kernels;
+      vol_kernels = ser_vol_kernels;
 
-    switch (cbasis->b_type) {
-      case GKYL_BASIS_MODAL_SERENDIPITY:
-        stream_vol_kernels = ser_stream_vol_kernels_nonuniformv_p1;
-        stream_gen_geo_vol_kernels = ser_stream_gen_geo_vol_kernels;
-        poisson_vol_kernels = ser_poisson_vol_kernels_nonuniformv_p1;
-        poisson_extem_vol_kernels = ser_poisson_extem_vol_kernels;
-        vol_kernels = ser_vol_kernels;
+      stream_surf_x_kernels = ser_stream_surf_x_kernels;
+      stream_surf_y_kernels = ser_stream_surf_y_kernels;
+      stream_surf_z_kernels = ser_stream_surf_z_kernels;
+      stream_gen_geo_surf_x_kernels = ser_stream_gen_geo_surf_x_kernels;
+      stream_gen_geo_surf_y_kernels = ser_stream_gen_geo_surf_y_kernels;
+      stream_gen_geo_surf_z_kernels = ser_stream_gen_geo_surf_z_kernels;
 
-        stream_surf_x_kernels = ser_stream_surf_x_kernels;
-        stream_surf_y_kernels = ser_stream_surf_y_kernels;
-        stream_surf_z_kernels = ser_stream_surf_z_kernels;
-        stream_gen_geo_surf_x_kernels = ser_stream_gen_geo_surf_x_kernels;
-        stream_gen_geo_surf_y_kernels = ser_stream_gen_geo_surf_y_kernels;
-        stream_gen_geo_surf_z_kernels = ser_stream_gen_geo_surf_z_kernels;
+      poisson_accel_surf_vx_kernels = ser_poisson_accel_surf_vx_kernels;
+      poisson_accel_surf_vy_kernels = ser_poisson_accel_surf_vy_kernels;
+      poisson_accel_surf_vz_kernels = ser_poisson_accel_surf_vz_kernels;
+      poisson_extem_accel_surf_vx_kernels = ser_poisson_extem_accel_surf_vx_kernels;
+      poisson_extem_accel_surf_vy_kernels = ser_poisson_extem_accel_surf_vy_kernels;
+      poisson_extem_accel_surf_vz_kernels = ser_poisson_extem_accel_surf_vz_kernels;
+      accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
+      accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
+      accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
 
-        poisson_accel_surf_vx_kernels = ser_poisson_accel_surf_vx_kernels;
-        poisson_accel_surf_vy_kernels = ser_poisson_accel_surf_vy_kernels;
-        poisson_accel_surf_vz_kernels = ser_poisson_accel_surf_vz_kernels;
-        poisson_extem_accel_surf_vx_kernels = ser_poisson_extem_accel_surf_vx_kernels;
-        poisson_extem_accel_surf_vy_kernels = ser_poisson_extem_accel_surf_vy_kernels;
-        poisson_extem_accel_surf_vz_kernels = ser_poisson_extem_accel_surf_vz_kernels;
-        accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
-        accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
-        accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
+      stream_boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
+      stream_boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
+      stream_boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
 
-        stream_boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
-        stream_boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
-        stream_boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
+      poisson_accel_boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_kernels;
+      poisson_accel_boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_kernels;
+      poisson_accel_boundary_surf_vz_kernels = ser_poisson_accel_boundary_surf_vz_kernels;
+      poisson_extem_accel_boundary_surf_vx_kernels = ser_poisson_extem_accel_boundary_surf_vx_kernels;
+      poisson_extem_accel_boundary_surf_vy_kernels = ser_poisson_extem_accel_boundary_surf_vy_kernels;
+      poisson_extem_accel_boundary_surf_vz_kernels = ser_poisson_extem_accel_boundary_surf_vz_kernels;
+      accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
+      accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
+      accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
+      
+      break;
 
-        poisson_accel_boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_kernels;
-        poisson_accel_boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_kernels;
-        poisson_accel_boundary_surf_vz_kernels = ser_poisson_accel_boundary_surf_vz_kernels;
-        poisson_extem_accel_boundary_surf_vx_kernels = ser_poisson_extem_accel_boundary_surf_vx_kernels;
-        poisson_extem_accel_boundary_surf_vy_kernels = ser_poisson_extem_accel_boundary_surf_vy_kernels;
-        poisson_extem_accel_boundary_surf_vz_kernels = ser_poisson_extem_accel_boundary_surf_vz_kernels;
-        accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
-        accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
-        accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
-        
-        break;
-
-      default:
-        assert(false);
-        break;    
-    }
-  } else {
-    vlasov->eqn.surf_term = surf;
-    vlasov->eqn.boundary_surf_term = boundary_surf;
-
-    switch (cbasis->b_type) {
-      case GKYL_BASIS_MODAL_SERENDIPITY:
-        stream_vol_kernels = ser_stream_vol_kernels;
-        stream_gen_geo_vol_kernels = ser_stream_gen_geo_vol_kernels;
-        poisson_vol_kernels = ser_poisson_vol_kernels;
-        poisson_extem_vol_kernels = ser_poisson_extem_vol_kernels;
-        vol_kernels = ser_vol_kernels;
-
-        stream_surf_x_kernels = ser_stream_surf_x_kernels;
-        stream_surf_y_kernels = ser_stream_surf_y_kernels;
-        stream_surf_z_kernels = ser_stream_surf_z_kernels;
-        stream_gen_geo_surf_x_kernels = ser_stream_gen_geo_surf_x_kernels;
-        stream_gen_geo_surf_y_kernels = ser_stream_gen_geo_surf_y_kernels;
-        stream_gen_geo_surf_z_kernels = ser_stream_gen_geo_surf_z_kernels;
-
-        poisson_accel_surf_vx_kernels = ser_poisson_accel_surf_vx_kernels;
-        poisson_accel_surf_vy_kernels = ser_poisson_accel_surf_vy_kernels;
-        poisson_accel_surf_vz_kernels = ser_poisson_accel_surf_vz_kernels;
-        poisson_extem_accel_surf_vx_kernels = ser_poisson_extem_accel_surf_vx_kernels;
-        poisson_extem_accel_surf_vy_kernels = ser_poisson_extem_accel_surf_vy_kernels;
-        poisson_extem_accel_surf_vz_kernels = ser_poisson_extem_accel_surf_vz_kernels;
-        accel_surf_vx_kernels = ser_accel_surf_vx_kernels;
-        accel_surf_vy_kernels = ser_accel_surf_vy_kernels;
-        accel_surf_vz_kernels = ser_accel_surf_vz_kernels;
-
-        stream_boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
-        stream_boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
-        stream_boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
-
-        poisson_accel_boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_kernels;
-        poisson_accel_boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_kernels;
-        poisson_accel_boundary_surf_vz_kernels = ser_poisson_accel_boundary_surf_vz_kernels;
-        poisson_extem_accel_boundary_surf_vx_kernels = ser_poisson_extem_accel_boundary_surf_vx_kernels;
-        poisson_extem_accel_boundary_surf_vy_kernels = ser_poisson_extem_accel_boundary_surf_vy_kernels;
-        poisson_extem_accel_boundary_surf_vz_kernels = ser_poisson_extem_accel_boundary_surf_vz_kernels;
-        accel_boundary_surf_vx_kernels = ser_accel_boundary_surf_vx_kernels;
-        accel_boundary_surf_vy_kernels = ser_accel_boundary_surf_vy_kernels;
-        accel_boundary_surf_vz_kernels = ser_accel_boundary_surf_vz_kernels;
-        
-        break;
-
-      default:
-        assert(false);
-        break;    
-    }
+    default:
+      assert(false);
+      break;    
   }
-
   if (model_id == GKYL_MODEL_GEN_GEO) {
     if (field_id == GKYL_FIELD_NULL) 
       vlasov->eqn.vol_term = CK(stream_gen_geo_vol_kernels,cdim,vdim,poly_order);
@@ -282,11 +224,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
   }
 
   vlasov->auxfields.field = 0;
-  vlasov->auxfields.vrot = 0;
   vlasov->auxfields.cot_vec = 0;
   vlasov->auxfields.alpha_geo = 0;
   vlasov->conf_range = *conf_range;
-  vlasov->vel_range = *vel_range;
   vlasov->phase_range = *phase_range;
   
   vlasov->eqn.flags = 0;
@@ -302,8 +242,8 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
 
 struct gkyl_dg_eqn*
 gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range,
-  const struct gkyl_range* phase_range, enum gkyl_model_id model_id, enum gkyl_field_id field_id)
+  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range,
+  enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   assert(false);
   return 0;

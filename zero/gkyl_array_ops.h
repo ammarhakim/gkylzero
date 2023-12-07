@@ -101,7 +101,7 @@ struct gkyl_array* gkyl_array_set_offset(struct gkyl_array *out,
 struct gkyl_array* gkyl_array_scale(struct gkyl_array *out, double a);
 
 /**
- * Scale out = a*out where a varies from cell to cell. Returns out.
+ * Scale out = a*out. Returns out.
  *
  * @param out Output array
  * @param a Factor to scale that varies by cell

@@ -33,8 +33,7 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
     gkyl_vlasov_sr_set_auxfields(up->eqn_vlasov, *sr_inp);
   }
   else {
-    up->eqn_vlasov = gkyl_dg_vlasov_new(cbasis, pbasis, conf_range, vel_range,
-      phase_range, up->model_id, up->field_id, up->use_gpu);
+    up->eqn_vlasov = gkyl_dg_vlasov_new(cbasis, pbasis, conf_range, phase_range, up->model_id, up->field_id, up->use_gpu);
     struct gkyl_dg_vlasov_auxfields *vlasov_inp = aux_inp;
     gkyl_vlasov_set_auxfields(up->eqn_vlasov, *vlasov_inp); 
   }
