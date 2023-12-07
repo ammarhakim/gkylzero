@@ -1,6 +1,9 @@
-#include <gkyl_dg_basis_ops.h>
-#include <gkyl_array.h>
 #include <gkyl_alloc.h>
+#include <gkyl_array.h>
+#include <gkyl_dg_basis_ops.h>
+#include <gkyl_rect_decomp.h>
+#include <gkyl_ref_count.h>
+#include <gkyl_util.h>
 
 enum dg_basis_op_code {
   GKYL_DG_BASIS_OP_CUBIC_1D,
@@ -19,6 +22,17 @@ struct gkyl_dg_basis_op_mem {
       struct gkyl_array *grad2dx, *grad2dy, *grad2dxy;
     };
   };
+};
+
+struct dg_basis_ops_evalf_ctx {
+  int ndim; // number of dimensions
+  int cells[2]; // cells in each direction
+  double dx[2]; // cell-spacing in each direction
+  struct gkyl_rect_grid grid; // grid on which cubic is define
+  struct gkyl_range local, local_ext; // ranges for cubic
+  struct gkyl_basis basis; // p=3 basis functions
+  
+  struct gkyl_array *cubic; // cubic DG representation
 };
 
 void
@@ -490,4 +504,94 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
     double *coeff = gkyl_array_fetch(cubic, cidx);
     gkyl_dg_calc_cubic_2d(val, gradx, grady, gradxy, coeff);
   }
+}
+
+static void
+evalf_free(const struct gkyl_ref_count* rc)
+{
+  struct gkyl_basis_ops_evalf *evf = container_of(rc, struct gkyl_basis_ops_evalf, ref_count);
+
+  struct dg_basis_ops_evalf_ctx *ctx = evf->ctx;
+  gkyl_array_release(ctx->cubic);
+  gkyl_free(ctx);
+  gkyl_free(evf);
+}
+
+// function for computing cubic at a specified coordinate
+static void
+eval_cubic(double t, const double *xn, double *fout, void *ctx)
+{
+  struct dg_basis_ops_evalf_ctx *ectx = ctx;
+  
+  int idx[GKYL_MAX_DIM];  
+  gkyl_rect_grid_coord_idx(&ectx->grid, xn, idx);
+
+  double xc[GKYL_MAX_DIM];
+  gkyl_rect_grid_cell_center(&ectx->grid, idx, xc);
+
+  double eta[GKYL_MAX_DIM];
+  for (int d=0; d<ectx->ndim; ++d)
+    eta[d] = 2.0*(xn[d]-xc[d])/ectx->grid.dx[d];
+  
+  long lidx = gkyl_range_idx(&ectx->local, idx);
+  const double *fdg = gkyl_array_cfetch(ectx->cubic, lidx);
+  
+  fout[0] = ectx->basis.eval_expand(eta, fdg);
+}
+
+struct gkyl_basis_ops_evalf*
+gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_array *nodal_vals)
+{
+  if (grid->ndim > 2) return 0;
+
+  struct dg_basis_ops_evalf_ctx *ctx = gkyl_malloc(sizeof(*ctx));
+  int ndim = ctx->ndim = grid->ndim;
+  
+  int cells[2];
+  double dx[2];
+  size_t vol = 1;  
+  for (int d=0; d<ndim; ++d) {
+    vol *= grid->cells[d];
+    dx[d] = ctx->dx[d] = grid->dx[d];    
+    cells[d] = ctx->cells[d] = grid->cells[d];
+  }
+
+  ctx->grid = *grid;
+  int nghost[GKYL_MAX_CDIM] = { 0 };
+  gkyl_create_grid_ranges(grid, nghost, &ctx->local_ext, &ctx->local);
+
+  gkyl_cart_modal_tensor(&ctx->basis, ndim, 3);
+  ctx->cubic = gkyl_array_new(GKYL_DOUBLE, ctx->basis.num_basis, vol);
+
+  gkyl_dg_basis_op_mem *mem = 0;
+  if (ndim == 1) {
+    mem = gkyl_dg_alloc_cubic_1d(cells[0]);
+    gkyl_dg_calc_cubic_1d_from_nodal_vals(mem, grid->cells[0], dx[0], nodal_vals, ctx->cubic);
+  }
+  if (ndim == 2) {
+    mem = gkyl_dg_alloc_cubic_2d(cells);
+    gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, dx, nodal_vals, ctx->cubic);
+  }
+  gkyl_dg_basis_op_mem_release(mem);
+
+  struct gkyl_basis_ops_evalf *evf = gkyl_malloc(sizeof(*evf));
+  evf->ctx = ctx;
+  evf->eval_cubic = eval_cubic;
+  evf->ref_count = (struct gkyl_ref_count) { evalf_free, 1 };
+  
+  return evf;
+}
+
+struct gkyl_basis_ops_evalf *
+gkyl_dg_basis_ops_evalf_acquire(const struct gkyl_basis_ops_evalf *evf)
+{
+  gkyl_ref_count_inc(&evf->ref_count);
+  return (struct gkyl_basis_ops_evalf*) evf;
+}
+
+void
+gkyl_dg_basis_ops_evalf_release(struct gkyl_basis_ops_evalf *evf)
+{
+  gkyl_ref_count_dec(&evf->ref_count);
 }

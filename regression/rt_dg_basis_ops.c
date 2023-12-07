@@ -4,6 +4,7 @@
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_gkgeom.h>
+#include <gkyl_proj_on_basis.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 
@@ -342,11 +343,93 @@ cubic_2d(void)
   gkyl_dg_basis_op_mem_release(mem);
 }
 
+void
+cubic_evalf_2d(void)
+{
+  double lower[] = { 0.0, 0.0 }, upper[] = { 1.0, 1.0 };
+  int cells[] = { 8, 8 };
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+
+  // nodal grid used in IO so we can plot things
+  double nc_lower[] = { lower[0] - 0.5*grid.dx[0], lower[1] - 0.5*grid.dx[1] };
+  double nc_upper[] = { upper[0] + 0.5*grid.dx[0], upper[1] + 0.5*grid.dx[1] };
+  int nc_cells[] = { cells[0] + 1, cells[1] + 1 };
+  struct gkyl_rect_grid nc_grid;
+  gkyl_rect_grid_init(&nc_grid, 2, nc_lower, nc_upper, nc_cells);
+
+  struct gkyl_range local, local_ext;
+  int nghost[GKYL_MAX_CDIM] = { 0, 0 };  
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+  struct gkyl_range nc_local, nc_local_ext;
+  gkyl_create_grid_ranges(&nc_grid, nghost, &nc_local_ext, &nc_local);
+
+  struct gkyl_basis basis;
+  gkyl_cart_modal_tensor(&basis, 2, 3);
+
+  struct gkyl_array *psi_nodal = gkyl_array_new(GKYL_DOUBLE, 1, (cells[0]+1)*(cells[1]+1));
+  struct gkyl_array *psi_cubic = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_dg_basis_op_mem *mem = gkyl_dg_alloc_cubic_2d(cells);
+
+  double xn[2];
+  
+  do {
+    // initialize 2D nodal values
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &nc_local);
+    while (gkyl_range_iter_next(&iter)) {
+      long nidx = gkyl_range_idx(&nc_local, iter.idx);
+      
+      gkyl_rect_grid_ll_node(&grid, iter.idx, xn);
+      
+      double *pn = gkyl_array_fetch(psi_nodal, nidx);      
+      pn[0] = sin(2*M_PI*xn[0])*cub(xn[1]);
+    }
+    // compute cubic expansion
+    gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, grid.dx,
+      psi_nodal, psi_cubic);
+    
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_evf.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_evf.gkyl");
+  } while (0);
+
+  // compute evalf function from nodal values
+  struct gkyl_basis_ops_evalf *evf = gkyl_dg_basis_ops_evalf_new(&grid, psi_nodal);
+
+  // project the cubic on cubic basis: this should result in the same
+  // DG expansions
+  gkyl_proj_on_basis *projCub = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &grid,
+      .basis = &basis,
+      .num_ret_vals = 1,
+      .ctx = evf->ctx,
+      .eval = evf->eval_cubic
+    }
+  );
+
+  struct gkyl_array *psi_cubic_DG = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis_advance(projCub, 0.0, &local, psi_cubic_DG);
+
+  gkyl_grid_sub_array_write(&grid, &local, psi_cubic_DG, "cubic_DG_evf.gkyl");
+  
+  gkyl_array_release(psi_nodal);
+  gkyl_array_release(psi_cubic);
+  gkyl_array_release(psi_cubic_DG);
+  
+  gkyl_dg_basis_op_mem_release(mem);
+  gkyl_dg_basis_ops_evalf_release(evf);
+  gkyl_proj_on_basis_release(projCub);
+}
+
 int
 main(int argc, char **argv)
 {
   cubic_1d();
   cubic_2d();
+
+  cubic_evalf_2d();
   
   return 0;
 }

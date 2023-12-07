@@ -2,10 +2,22 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_range.h>
+#include <gkyl_ref_count.h>
+#include <gkyl_rect_grid.h>
 
 // Type for storing preallocating memory needed in various operations
 typedef struct gkyl_dg_basis_op_mem gkyl_dg_basis_op_mem;
+
+// Function pointer and context for use in updater that expect evalf_t
+// function pointers. This struct essentially wraps the cubic
+// interpolation in 1D and 2D.
+struct gkyl_basis_ops_evalf {
+  void *ctx; // function context
+  evalf_t eval_cubic; // function pointer to evaluate the cubic
+  struct gkyl_ref_count ref_count;   
+};  
 
 /**
  * Given values and gradients at the corner of a 1D cell, compute the
@@ -104,3 +116,30 @@ void gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells,
  */
 void gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], double dx[2],
   const struct gkyl_array *nodal_vals, struct gkyl_array *cubic);
+
+/**
+ * Create a wrapper to the cubic interpolation from a given set of
+ * nodal data in 1D or 2D. The returned context and function pointer
+ * can be passed to updaters that expect evalf_t pointers.
+ *
+ * @param Grid on which interpolation is needed
+ * @param nodal_vals Array holding nodal values
+ * @return Struct with context and function pointer
+ */
+struct gkyl_basis_ops_evalf* gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_array *nodal_vals);
+
+/**
+ * Acquire pointer to memory allocated for cubic interpolation.
+ *
+ * @param evf Memory to acquire
+ * @retrun Pointer to newly acquired memory
+ */
+struct gkyl_basis_ops_evalf* gkyl_dg_basis_ops_evalf_acquire(const struct gkyl_basis_ops_evalf *evf);
+
+/**
+ * Release memory allocated for cubic interpolation.
+ *
+ * @param evf Memory to release
+ */
+void gkyl_dg_basis_ops_evalf_release(struct gkyl_basis_ops_evalf *evf);
