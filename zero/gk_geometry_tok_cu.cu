@@ -14,7 +14,7 @@ extern "C" {
 }
 // CPU interface to create and track a GPU object
 struct gk_geometry*
-gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+gkyl_gk_geometry_tok_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
   const struct gkyl_basis* basis, void* tok_rz_ctx, void* tok_comp_ctx)
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));

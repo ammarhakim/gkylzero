@@ -6,6 +6,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_tok.h>
 #include <gkyl_math.h>
 #include <gkyl_nodal_ops.h>
 
@@ -38,7 +39,7 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_cu_dev_new(grid, range, range_ext, basis, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx, tokamak);
+    return gkyl_gk_geometry_tok_cu_dev_new(grid, range, range_ext, basis, tok_rz_ctx, tok_comp_ctx);
   } 
 #endif 
 
