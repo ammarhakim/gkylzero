@@ -131,16 +131,21 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->bmag_ctx = app->bmag_func = 0;  
   app->has_mapc2p = gk->mapc2p ? true : false;
   app->tokamak = gk->tokamak ? true : false;
+  app->tok_rz_ctx = gk->tok_rz_ctx;
+  app->tok_comp_ctx = gk->tok_comp_ctx;
 
-  if (app->has_mapc2p || app->tokamak) {
+  if(app->tokamak){
+    app->gk_geom = gkyl_gk_geometry_tok_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
+      app->tok_rz_ctx, app->tok_comp_ctx, app->use_gpu);
+  }
+  else if (app->has_mapc2p) {
     // initialize computational to physical space mapping
     app->c2p_ctx = gk->c2p_ctx;
     app->mapc2p = gk->mapc2p;
     app->bmag_ctx = gk->bmag_ctx;
     app->bmag_func = gk->bmag_func;
-
-    app->gk_geom = gkyl_gk_geometry_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
-      app->mapc2p, app->c2p_ctx, app->bmag_func,  app->bmag_ctx, app->tokamak, app->use_gpu);
+    app->gk_geom = gkyl_gk_geometry_mapc2p_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
+      app->mapc2p, app->c2p_ctx, app->bmag_func,  app->bmag_ctx, app->use_gpu);
   }
 
   // allocate space to store species objects

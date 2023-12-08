@@ -18,6 +18,8 @@
 #include <gkyl_tok_geo.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_derived_geo.h>
+#include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_tok.h>
 
 
 
@@ -78,7 +80,7 @@ test_1()
     .node_file_nm = "stepccore_nodes.gkyl"
   }; 
 
-  struct gk_geometry* up = gkyl_gk_geometry_new(&cgrid, &clocal, &clocal_ext, &cbasis, NULL, &inp, NULL, &ginp, true, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
 
 
   gkyl_gk_geometry_release(up);

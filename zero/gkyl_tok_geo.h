@@ -181,10 +181,7 @@ void gkyl_tok_geo_mapc2p(const gkyl_tok_geo *geo, const struct gkyl_tok_geo_geo_
  * @param ginp Input structure for creating mapc2p
  * @param mapc2p On output, the DG representation of mapc2p
  */
-//void gkyl_tok_geo_calcgeom(gkyl_tok_geo *geo,
-//  const struct gkyl_tok_geo_geo_inp *ginp, struct gkyl_array *mapc2p, struct gkyl_range *conversion_range);
-
-void gkyl_tok_geo_advance(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
+void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p);
 

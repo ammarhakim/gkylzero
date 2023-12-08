@@ -5,6 +5,7 @@
 #include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_dg_gyrokinetic_priv.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_range.h>
@@ -57,8 +58,8 @@ test_dg_gyrokinetic()
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
-    mapc2p, 0, bmag_func, 0, false, false);
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
+    mapc2p, 0, bmag_func, 0, false);
 
   double charge = 1.;
   double mass = 1.;

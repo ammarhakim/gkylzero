@@ -3,28 +3,28 @@ extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
+#include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
+#include <gkyl_basis.h>
 #include <gkyl_math.h>
 #include <gkyl_util.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_gk_geometry_priv.h>
+#include <gkyl_gk_geometry_tok.h>
+
 }
-
-#include <cassert>
-
 // CPU interface to create and track a GPU object
 struct gk_geometry*
 gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool tokamak)
+  const struct gkyl_basis* basis, void* tok_rz_ctx, void* tok_comp_ctx)
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 
-  up->tokamak = tokamak;
   up->basis = *basis;
   up->range = *range;
   up->range_ext = *range_ext;
   up->grid = *grid;
 
-  struct gk_geometry *hgeo  = gkyl_gk_geometry_new(grid, range, range_ext, basis, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx, tokamak, false);
+  struct gk_geometry *hgeo  = gkyl_gk_geometry_tok_new(grid, range, range_ext, basis, tok_rz_ctx, tok_comp_ctx, false);
   struct gkyl_range nrange;
 
   int poly_order = basis->poly_order;
@@ -138,5 +138,4 @@ gkyl_gk_geometry_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl
   
   return up;
 }
-       
 

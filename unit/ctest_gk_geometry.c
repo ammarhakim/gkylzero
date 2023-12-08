@@ -15,6 +15,7 @@
 #include <gkyl_util.h>
 #include <gkyl_basis.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_mapc2p.h>
 
 #include <gkyl_comm.h>
 
@@ -83,7 +84,7 @@ test_3x_p1()
   struct gkyl_range ext_range, range;
   int nghost[3] = { 1,1,1};
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
-  struct gk_geometry* gkgeom = gkyl_gk_geometry_new(&grid, &range, &ext_range, &basis, mapc2p, 0, bmag_func, 0, false, false);
+  struct gk_geometry* gkgeom = gkyl_gk_geometry_mapc2p_new(&grid, &range, &ext_range, &basis, mapc2p, 0, bmag_func, 0, false);
   gkyl_grid_sub_array_write(&grid, &range, gkgeom->g_ij, "cylindrical_gFld.gkyl");
   gkyl_grid_sub_array_write(&grid, &range, gkgeom->jacobgeo, "cylindrical_jFld.gkyl");
   gkyl_gk_geometry_release(gkgeom);

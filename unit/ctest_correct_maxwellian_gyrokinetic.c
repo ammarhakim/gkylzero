@@ -5,6 +5,7 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_correct_maxwellian_gyrokinetic.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
@@ -125,8 +126,8 @@ void test_1x1v(int poly_order, bool use_gpu)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
-    mapc2p, 0, bmag_func, 0, false, use_gpu);
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+    mapc2p, 0, bmag_func, 0, use_gpu);
 
   // Create correct moment arrays
   struct gkyl_array *m0_in_ho, *m1_in_ho, *m2_in_ho;
@@ -305,8 +306,8 @@ void test_1x2v(int poly_order, bool use_gpu)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
-    mapc2p, 0, bmag_func, 0, false, use_gpu);
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+    mapc2p, 0, bmag_func, 0, use_gpu);
 
   // Create correct moment arrays
   struct gkyl_array *m0_in_ho, *m1_in_ho, *m2_in_ho;

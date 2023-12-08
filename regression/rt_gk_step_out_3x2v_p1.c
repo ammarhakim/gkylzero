@@ -397,10 +397,9 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .tokamak = true,
-    .c2p_ctx = &inp,
+    .tok_rz_ctx = &inp,
 
-    .bmag_func = bmag_func, // mapping of computational to physical space
-    .bmag_ctx = &ginp,
+    .tok_comp_ctx = &ginp,
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },
