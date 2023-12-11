@@ -1,0 +1,79 @@
+#include <assert.h>
+#include <math.h>
+#include <time.h>
+
+#include <gkyl_alloc.h>
+#include <gkyl_dg_eqn.h>
+#include <gkyl_dg_vlasov_poisson.h>
+#include <gkyl_dg_updater_vlasov_poisson.h>
+#include <gkyl_dg_updater_vlasov_poisson_priv.h>
+#include <gkyl_hyper_dg.h>
+#include <gkyl_util.h>
+
+struct gkyl_dg_eqn*
+gkyl_dg_updater_vlasov_poisson_acquire_eqn(const gkyl_dg_updater_vlasov_poisson* vlasov)
+{
+  return gkyl_dg_eqn_acquire(vlasov->eqn_vlasov);
+}
+
+gkyl_dg_updater_vlasov_poisson*
+gkyl_dg_updater_vlasov_poisson_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_array *vmap,
+  const bool *is_zero_flux_dir, enum gkyl_field_id field_id, void *aux_inp, bool use_gpu)
+{
+  gkyl_dg_updater_vlasov_poisson *up = gkyl_malloc(sizeof(gkyl_dg_updater_vlasov_poisson));
+  up->field_id = field_id;
+  up->use_gpu = use_gpu;
+  up->eqn_vlasov = gkyl_dg_vlasov_poisson_new(cbasis, pbasis, conf_range, vel_range, vmap, up->field_id, up->use_gpu);
+  struct gkyl_dg_vlasov_poisson_auxfields *vlasov_inp = aux_inp;
+  gkyl_dg_vlasov_poisson_set_auxfields(up->eqn_vlasov, *vlasov_inp); 
+
+  int cdim = cbasis->ndim, pdim = pbasis->ndim;
+  int vdim = pdim-cdim;
+  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
+  for (int d=0; d<cdim; ++d) {
+    up_dirs[d] = d;
+    zero_flux_flags[d] = is_zero_flux_dir[d]? 1 : 0;
+  }
+  int num_up_dirs = cdim;
+  for (int d=cdim; d<pdim; ++d) {
+    up_dirs[d] = d;
+    zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
+  }
+  num_up_dirs = pdim;
+  up->up_vlasov = gkyl_hyper_dg_new(grid, pbasis, up->eqn_vlasov, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
+
+  up->vlasov_tm = 0.0;
+  
+  return up;
+}
+
+void
+gkyl_dg_updater_vlasov_poisson_advance(gkyl_dg_updater_vlasov_poisson *vlasov,
+  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
+  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
+{
+  struct timespec wst = gkyl_wall_clock();
+  if (vlasov->use_gpu)
+    gkyl_hyper_dg_advance_cu(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
+  else 
+    gkyl_hyper_dg_advance(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
+  vlasov->vlasov_tm += gkyl_time_diff_now_sec(wst);
+}
+
+struct gkyl_dg_updater_vlasov_poisson_tm
+gkyl_dg_updater_vlasov_poisson_get_tm(const gkyl_dg_updater_vlasov_poisson *vlasov)
+{
+  return (struct gkyl_dg_updater_vlasov_poisson_tm) {
+    .vlasov_tm = vlasov->vlasov_tm,
+  };
+}
+
+void
+gkyl_dg_updater_vlasov_poisson_release(gkyl_dg_updater_vlasov_poisson *vlasov)
+{
+  gkyl_dg_eqn_release(vlasov->eqn_vlasov);
+  gkyl_hyper_dg_release(vlasov->up_vlasov);
+  gkyl_free(vlasov);
+}

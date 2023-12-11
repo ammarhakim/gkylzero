@@ -15,7 +15,7 @@ struct gkyl_dg_vlasov_auxfields {
 };
 
 /**
- * Create a new Vlasov equation object.
+ * Create a new Vlasov-Maxwell equation object.
  *
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis functions
