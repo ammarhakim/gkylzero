@@ -13,11 +13,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 #include <gkyl_basis.h>
-#include <gkyl_efit.h>
-#include <gkyl_calc_bmag.h>
 #include <gkyl_tok_geo.h>
-#include <gkyl_calc_metric.h>
-#include <gkyl_calc_derived_geo.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_tok.h>
 
