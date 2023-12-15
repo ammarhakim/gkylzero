@@ -105,7 +105,7 @@ main(int argc, char **argv)
     .split_type = GKYL_WAVE_FWAVE,
     .evolve = 1,
     .init = evalColdInit,
-    .limiter = GKYL_ZERO, // First order test
+    //.limiter = GKYL_ZERO, // First order test
 
     //.bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },

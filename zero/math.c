@@ -487,7 +487,7 @@ bisection_root_search(struct sturn_polynomials *sturn_chain, double domain[2], d
     int left_num_roots, right_num_roots;
 
     // Iterate while not all roots are isolated
-    while(not_all_roots_are_isolated){
+    while(not_all_roots_are_isolated && niter < 1000){
 
       // update niter
       niter = niter + 1;
@@ -595,6 +595,11 @@ bisection_root_search(struct sturn_polynomials *sturn_chain, double domain[2], d
 
   } //end roots conditions
 
+  // Throw an error if the while loop stopped due to unending iterations
+  if (niter == 1000){
+    printf("Couldn't isolate the root intervals: Total_roots: %d!\n",total_roots);
+  }
+
   return (struct gkyl_root_intervals) {
     .status = status,
     .niter = niter,
@@ -651,14 +656,20 @@ minus_euclidean_division_rem(double *p0, double *p1, int p0_deg, double *res)
 
     // compute the quotient
     q[iter_max - iter] = rmax/p1[p1_deg];
-
+ 
     // Multiply p1 by q
     for (int i=0; i<=p1_deg; ++i){
         p1g[i+(iter_max - iter)] = p1[i]*q[iter_max - iter];
     }
 
     // Subtract p1g from r
-    for (int i=0; i<=fmin(r_deg,3); ++i) r[i] = r[i] - p1g[i];
+    for (int i=0; i<=fmin(r_deg,3); ++i){
+      if (i != r_deg){
+        r[i] = r[i] - p1g[i];
+      } else {
+        r[i] = 0.0;
+      }
+    } 
 
     // update the iter, degree of the remaining poly
     iter = iter + 1;

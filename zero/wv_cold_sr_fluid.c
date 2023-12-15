@@ -24,10 +24,12 @@ struct cold_sr {
 };
 
 void
-cold_sr_fluid_flux(const double q[5], double flux[5])
+cold_sr_fluid_flux(const double q[4], double *flux)
 {
   // Vx = NUx/sqrt(N^2 + NU^2/c^2) 
-  const double c = 299792458.0;
+  const double c = 1.0; //c = 299792458.0; 
+  //const double c = 299792458.0; 
+  printf("TEMP SPEED IN COLD_SR_FLUX\n");
   double Vx = q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])/(c*c)); 
   flux[0] = q[0]*Vx; // N*Vx
   flux[NUX] = q[NUX]*Vx; // N*Ux*Vx
@@ -93,7 +95,7 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 }
 
 static inline void
-calc_ufromv(const double v[3], double u[3])
+calc_ufromv(const double v[3], double *u)
 {
   double v2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
   double gamma1 = 1/sqrt(1-v2);
@@ -102,21 +104,32 @@ calc_ufromv(const double v[3], double u[3])
   u[2] = v[2]*gamma1;
 }
 
-// returns 1 if it passes, 0 if fails
+// returns 0 if it passes, 1 if fails
 static bool 
-entropy_check(const double UL[3], const double UR[4], double u[3], const double c)
+entropy_check(const double UL[3], const double UR[3], double u[3])
 {
   bool cond = 1;
   double tol = 1.e-15;
   for(int i=0; i<3; ++i){
     cond = cond && (fmin(UR[i],UL[i]) - tol) <= u[i] && u[i] <= (fmax(UR[i],UL[i]) + tol);
   }
-  return cond;
+  return !cond;
+}
+
+// returns 0 if it passes, 1 if fails, strict (no wiggle for overshoot)
+static bool 
+entropy_check_strict(const double UL[3], const double UR[3], double u[3])
+{
+  bool cond = 1;
+  for(int i=0; i<3; ++i){
+    cond = cond && (fmin(UR[i],UL[i])) <= u[i] && u[i] <= (fmax(UR[i],UL[i]));
+  }
+  return !cond;
 }
 
 
 static void
-calc_u_from_result(double uhat[3], double v_hat, void *ctx)
+calc_u_from_result(double *uhat, double v_hat, void *ctx)
 {
 
   // compute the coefficients
@@ -149,7 +162,7 @@ calc_u_from_result(double uhat[3], double v_hat, void *ctx)
 }
 
 static inline void
-sr_poly_coeffs(void *ctx, double coeff[4])
+sr_poly_coeffs(void *ctx, double *coeff)
 {
 
   // compute the coefficients
@@ -192,60 +205,173 @@ sr_poly_coeffs(void *ctx, double coeff[4])
 }
 
 
-static inline double 
-root_select(struct gkyl_lo_poly_roots *roots, double vrx, double vlx, int *status)
+static double 
+root_select(struct gkyl_root_intervals *roots, double ul[3], double ur[3], int *status,
+void *ctx)
 {
 
-  // status 
-  *status = 1;
+  // status and number of roots
+  status[0] = 0; //Passed 
+  int num_roots = roots->nroots;
+  double chosen_velocity = 1.1;
+  int roots_satisfying_cond = 0;
 
-  // Check that each root has a small complex component
-  double real_comps[4], imag_comps[4], tol[4];
-  for (int i=0; i<4; ++i) {
-    real_comps[i] = roots->rpart[i];
-    imag_comps[i] = roots->impart[i];
-    tol[i] = roots->err[i];
-  }
+  // Stop on problem:
+  if (num_roots <= 0 || num_roots > 4){
+    //printf("Issue in root select: num_roots is invalid %d\n",num_roots);
+    status[0] = 1;
 
-  // Find the closest real root
-  double v_mean = 0.5*(vrx + vlx);
-  int real_root_only[4] = { 0, 0, 0, 0 };
-  double v_diff_real[4];
-  int i_choosen_root = 5;
-  double min_val = 1.0;
-  for (int i=0; i<4; ++i) {
-    //printf("Root: %1.16e + %1.16eI\n",real_comps[i],imag_comps[i]);
-    if (1.e-13 > fabs(imag_comps[i]/ real_comps[i]) && real_comps[i] < 1.0) {
+  } else if (roots->status){
+    //printf("Root_select failed with status 1 %d\n",num_roots);
+    status[0] = 2;
 
-      // Then the root is considered purely real
-      real_root_only[i] = 1;
-
-      // compute the difference of the real part from mean vl
-      v_diff_real[i] = fabs( real_comps[i] - v_mean );
-
-      if(min_val > v_diff_real[i] ) {
-        i_choosen_root = i;
-        min_val = v_diff_real[i];
-      }
-    }
-  }
-
-  // If choosen i_choosen_root = 5 then throw an error:
-  if (i_choosen_root == 5){
-    //printf("THERE WAS AN ERROR ISOLATING THE REAL ROOT\n");
-    *status = 0;
   } else {
-    //printf("(ACCEPTED) Root: %1.16e + %1.16eI\n",real_comps[i_choosen_root],imag_comps[i_choosen_root]);
-  }
+    // Iterate over each root
+    for (int i=0; i<num_roots; ++i) {
+
+      // Start with zero root
+      double root = 0.0;
+      
+      // Select the root
+      if (roots->status_ridders[i] == 0){
+        root = roots->real_roots_ridders[i];  
+        status[0] = 0;
+      // else replace with average of right and left bounds after refinement 
+      //} else if (roots->status_refinement[i] == 0) {
+      //  root = roots->root_bound_lower[i]
+      //  + (roots->root_bound_upper[i]-roots->root_bound_lower[i])/2.0;
+      //  status[0] = 1; 
+      } else {
+        status[0] = 3;
+        //printf("Failure to isolate a specifc root\n");
+      }
+
+      // See if the solution is the right one
+      double u_root[3];
+      bool entropy_test_passed;
+      if (status[0] == 0){
+
+        // Reconstruct U_root 
+        calc_u_from_result(u_root,root,ctx);
+
+        // Test if U_root satisfied UL_i < U_root_i < UR_i
+        bool entropy_test_passed = entropy_check(ul,ur,u_root);
+
+        // If the entropy test is passed, then this is the right root
+        if (entropy_test_passed == 0){
+          chosen_velocity = root;
+          roots_satisfying_cond = roots_satisfying_cond + 1;
+        } else if (roots_satisfying_cond == 0 && entropy_test_passed == 1) {
+          status[0] = 4; 
+        }
+      }
+
+      // Roots satisfying conditions
+      if (roots_satisfying_cond < 1){
+        status[0] = 5; 
+        //printf("Invalid number of roots satisfying entropy condition: %d\n",roots_satisfying_cond);
+      } else if (roots_satisfying_cond > 1) { 
+
+        // isolate the right root if multiple satisfy the condition
+        roots_satisfying_cond = 0;
+        for (int i=0; i<num_roots; ++i) {
+          if (roots->status_ridders[i] == 0){
+            root = roots->real_roots_ridders[i];  
+            double u_root[3];
+            calc_u_from_result(u_root,root,ctx);
+            bool entropy_test_strict_passed = entropy_check_strict(ul,ur,u_root);
+            if (entropy_test_strict_passed == 0){
+              chosen_velocity = root;
+              roots_satisfying_cond = roots_satisfying_cond + 1;
+            } else if (roots_satisfying_cond == 0 && entropy_test_strict_passed == 1) {
+              status[0] = 6; 
+            }
+          }
+        }
+      }
+    } // end iterating over roots
+  } // end if
 
   // Return the root which best matches
-  return real_comps[i_choosen_root];
-
+  return chosen_velocity;
 }
 
+double 
+compute_sr_roe_averaged_velocity_cold_limit(const double ql[4], const double qr[4], const double c, double *u, double *gamma_avg) 
+{
 
-static double
-compute_sr_roe_averaged_velocity(const double ql[4], const double qr[4], const double c, double u[3]) 
+  // As long as one density is positive on both sides:
+  if (ql[0] > 0.0 || qr[0] > 0.0){
+
+    // output 
+    double v_hat;
+
+    // isolate variables (right/left), normalize, u & v by c
+    double rhor = qr[0];
+    double urx = qr[1]/(c*qr[0]);
+    double ury = qr[2]/(c*qr[0]);
+    double urz = qr[3]/(c*qr[0]);
+    double rhol = ql[0];
+    double ulx = ql[1]/(c*ql[0]);
+    double uly = ql[2]/(c*ql[0]);
+    double ulz = ql[3]/(c*ql[0]);
+
+    // compute the constants:
+    double gammal = sqrt(1.0 + (ulx*ulx + uly*uly + ulz*ulz));
+    double gammar = sqrt(1.0 + (urx*urx + ury*ury + urz*urz));
+    double vlx = ulx/gammal;
+    double vrx = urx/gammar;
+    double vly = uly/gammal;
+    double vry = ury/gammar;
+    double vlz = ulz/gammal;
+    double vrz = urz/gammar;
+
+    //compute the primative vars
+    double rhol_prim = rhol/gammal;
+    double rhor_prim = rhor/gammar;
+
+    // Compute the primative-parameterization state vector w
+    // these are the averages of the left and right states
+    double k = sqrt(rhol_prim) + sqrt(rhor_prim);
+    double w0 = sqrt(rhol_prim)*gammal + sqrt(rhor_prim)*gammar;
+    double w1 = sqrt(rhol_prim)*gammal*vlx + sqrt(rhor_prim)*gammar*vrx;
+    double w2 = sqrt(rhol_prim)*gammal*vly + sqrt(rhor_prim)*gammar*vry;
+    double w3 = sqrt(rhol_prim)*gammal*vlz + sqrt(rhor_prim)*gammar*vrz;
+
+    // Compute F^0 which is in terms of k, w state (These are our new conserved variables)
+    // q_avg = [N, NUx, NUy, Nuz]
+    double q_avg[4];
+    q_avg[0] = k*w0;
+    q_avg[1] = w0*w1;
+    q_avg[2] = w0*w2;
+    q_avg[3] = w0*w3;
+
+    // Recover u and v
+    u[0] = q_avg[1]/q_avg[0];
+    u[1] = q_avg[2]/q_avg[0];
+    u[2] = q_avg[3]/q_avg[0];
+
+
+    // convert back from u/c -> u
+    v_hat = u[0]/sqrt(1.0 + u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
+    double other_v1 = w1/w0;
+    double other_v2 = 2*w0*w1/( k*k + w0*w0 + w1*w1 + w2*w2 + w3*w3 );
+    double other_v3 = u[0]/sqrt(1.0 + u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);;
+    printf("Choice, Vx = w1/w0: %1.16e or cons-reconstruction: %1.16e, 2*w0*w1/...: %1.16e\n",other_v1, other_v3, other_v2);
+    u[0] = c*u[0];
+    u[1] = c*u[1];
+    u[2] = c*u[2];
+
+    // return the velocity
+    return v_hat*c;
+
+  } else {
+    return 0.0;
+  }
+}
+
+double
+compute_sr_roe_averaged_velocity(const double ql[4], const double qr[4], const double c, double *u) 
 {
 
   // output 
@@ -285,50 +411,62 @@ compute_sr_roe_averaged_velocity(const double ql[4], const double qr[4], const d
       .vr = { vRx, vRy, vRz }
     };
 
-    // Compute a default answer, the v-hat-avg
+    // Compute a default answer, the v-hat-avg, this is a worst case-everything else failed
     double u_avg[3] = {(uLx+uRx)/2.0,(uLy+uRy)/2.0,(uLz+uRz)/2.0};
     double v_hat_avg = u_avg[0]/sqrt(1.0 + u_avg[0]*u_avg[0] + u_avg[1]*u_avg[1] + u_avg[2]*u_avg[2] );
 
-    // Do the entropy check
+    // Check the two states are distinguishable
     double UL[3] = {uLx,uLy,uLz};
     double UR[3] = {uRx,uRy,uRz};
     double drho = fabs(rhoR-rhoL);
     double du = fabs(uLx-uRx)+fabs(uLy-uRy)+fabs(uLz-uRz);
-    if ((drho + du > 1e-13) && (du > 1e-13)) {
+    if ((drho == 0) && (du == 0)) {
+      // Identical states
+      v_hat = vLx;
+
+    } else if ((drho + du > 1e-15) && (du > 1e-15)) {
 
       // compute the coefficients of the polynomial
       double coeff[4];
       sr_poly_coeffs(&csr, coeff);
 
       // compute Vx_hat
-      enum gkyl_lo_poly_order order = GKYL_LO_POLY_4;
-      struct gkyl_lo_poly_roots roots = gkyl_calc_lo_poly_roots(order, coeff);
+      struct gkyl_root_intervals root_intervals; 
+      double domain[2] = {-1.1, 1.1};
+      double tol = 1e-16;
+
+      // compute root inverals, refine them via bisection, compute the result via riddrrs
+      root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+      //gkyl_refine_root_intervals_bisection(&root_intervals, tol);
+      gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
 
       // Select the proper root
-      int mystatus; 
-      int *status = &mystatus;
-      double v_hat = root_select(&roots,vRx,vLx,status);
+      int status; 
+      v_hat = root_select(&root_intervals,UL,UR,&status,&csr);
 
       // Compute U from Vx
-      double u[3];
       calc_u_from_result(u,v_hat,&csr);
-      bool pass_entropy_check = entropy_check(UL, UR, u, c);
-      if (pass_entropy_check && status){
+      bool pass_entropy_check = entropy_check(UL, UR, u);
+      if (pass_entropy_check == 0 && status == 0){
       } else {
-        //printf("Entropy test fails with by entropy_test: %d, status: %d (1 is pass, 0 is fail) \n",pass_entropy_check, status[0]);
+        printf("Entropy test fails with by entropy_test: %d, status: %d (0 is pass, 1-n is fail) \n",pass_entropy_check, status);
         //printf("v_computed = %1.16e; uxhat = %1.16e; uyhat = %1.16e; uzhat = %1.16e;\n",v_hat,u[0],u[1],u[2]);
         //printf("rhol = %1.16e; ulx = %1.16e; uly = %1.16e; ulz = %1.16e;\n",rhoL,uLx,uLy,uLz);
         //printf("rhor = %1.16e; urx = %1.16e; ury = %1.16e; urz = %1.16e;\n",rhoR,uRx,uRy,uRz);
+        //printf("Poly Coeff: [");
+        for (int i=0; i<4; ++i) //printf("%1.16e,",coeff[i]);
+        //printf("1.0]\n");
 
         // Check v_hat_avg
-        //printf("Replacing with v_hat_avg\n");
+        //printf("\nReplacing with v_hat_avg\n");
         calc_u_from_result(u,v_hat_avg,&csr);
-        bool pass_entropy_check = entropy_check(UL, UR, u, c);
-        //printf("v_avg = %1.16e; uxhat = %1.16e; uyhat = %1.16e; uzhat = %1.16e;\n",v_hat_avg,u[0],u[1],u[2]);
+        pass_entropy_check = entropy_check(UL, UR, u);
+        ////printf("v_avg = %1.16e; uxhat = %1.16e; uyhat = %1.16e; uzhat = %1.16e;\n",v_hat_avg,u[0],u[1],u[2]);
         return c*v_hat_avg;
-      }
+     }
 
     } else {
+      ////printf("\nReplacing with v_hat_avg\n");
       return c*v_hat_avg;
     }
 
@@ -339,6 +477,11 @@ compute_sr_roe_averaged_velocity(const double ql[4], const double qr[4], const d
   } else { // qr[0] and ql[0] are zero/negative
     v_hat = 0.0;
   }
+
+  // Return to units of c
+  u[0] = c*u[0];
+  u[1] = c*u[1];
+  u[2] = c*u[2];
 
   // Renormalize to c and return
   return c*v_hat;
@@ -352,7 +495,8 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
   double f[4];
-  const double c = 299792458.0;
+  printf("TEMP Set c = 1 in wave_roe_sr\n");
+  const double c = 1.0; //299792458.0;
   double vl = ql[NUX]/sqrt(ql[0]*ql[0] + (ql[NUX]*ql[NUX] + ql[NUY]*ql[NUY] + ql[NUZ]*ql[NUZ])/(c*c));
   double vr = qr[NUX]/sqrt(qr[0]*qr[0] + (qr[NUX]*qr[NUX] + qr[NUY]*qr[NUY] + qr[NUZ]*qr[NUZ])/(c*c)); 
 
@@ -375,9 +519,14 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     double rl = ql[0];
     double rr = qr[0];
     double u_diag[3];
+    double gamma_avg;
+
     // compute Roe averaged speed
-    double vel = compute_sr_roe_averaged_velocity(ql,qr,c,u_diag);
-    //printf("vL: %1.16f, vs %1.16f, vR: %1.16f\n",vl,vel,vr);
+    //double vel = compute_sr_roe_averaged_velocity(ql,qr,c,u_diag);
+    ////printf("vL: %1.16f, vs %1.16f, vR: %1.16f\n",vl,vel,vr);
+
+    // Compute Roe-averaged speed using the cold limit of the conservation laws
+    double vel = compute_sr_roe_averaged_velocity_cold_limit(ql,qr,c,u_diag,&gamma_avg);
             
     if(vel<0) {
       wv = &waves[0];
