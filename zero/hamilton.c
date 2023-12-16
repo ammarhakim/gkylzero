@@ -44,7 +44,8 @@ gunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, eva
     free(gunc_out);
 }
 
-void trace_adaptive(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, void *ctx, double end, int max_steps)
+void 
+trace_adaptive(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, void *ctx, double end, int max_steps)
 {
     double ds = end;
     double Bn[21] = {0};
@@ -91,7 +92,8 @@ void trace_adaptive(double *xf, evalf_t func, evalf_t gunc, double t, double *xi
     }
 }
 
-void trace(double *xf, evalf_t func, evalf_t gunc,
+void 
+trace(double *xf, evalf_t func, evalf_t gunc,
            double t, double *xi, void *ctx, double L, int N)
 {
     double ds = L / N;
@@ -109,7 +111,8 @@ void trace(double *xf, evalf_t func, evalf_t gunc,
     }
 }
 
-void push(double *xf, double *Bn,
+void 
+push(double *xf, double *Bn,
           double t, double *xi, void *ctx, double ds, evalf_t func, evalf_t gunc)
 {
     int len_hF = 8;
@@ -131,9 +134,10 @@ void push(double *xf, double *Bn,
     free(Gn);
 }
 
-void calculate_node_positions(double *xh, double *Bn,
-                            double t, double *xni, evalf_t func, evalf_t gunc,
-                            double ds, const double *hp, void *ctx, int len)
+void 
+calculate_node_positions(double *xh, double *Bn,
+                              double t, double *xni, evalf_t func, evalf_t gunc,
+                              double ds, const double *hp, void *ctx, int len)
 {
     double *F1x = malloc(sizeof(double));
     double *F1y = malloc(sizeof(double));
@@ -152,8 +156,9 @@ void calculate_node_positions(double *xh, double *Bn,
     free(F1y);
 }
 
-void calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc,
-                          double t, double *xn, void *ctx, int len)
+void 
+calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc,
+                           double t, double *xn, void *ctx, int len)
 {
     double *func_out = malloc(sizeof(double));
     double *gunc_out = malloc(sizeof(double));
@@ -168,7 +173,8 @@ void calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc,
     free(gunc_out);
 }
 
-void calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
+void 
+calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
 {
     for (int i = 0; i < ndim; i++)
     {
@@ -182,7 +188,8 @@ void calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
     }
 }
 
-void calculate_Gn_from_Fn(double *G, double *F, int ndim)
+void 
+calculate_Gn_from_Fn(double *G, double *F, int ndim)
 {
     for (int i = 0; i < ndim; i++)
     {
