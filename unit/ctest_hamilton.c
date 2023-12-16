@@ -46,7 +46,7 @@ void test_1()
     // Test calculateGFromF function
     double F_test[8] = {1, 2, 3, 4, 5, 6, 7, 8};
     double G_test[7];
-    calculateGnFromFn(G_test, F_test, 1);
+    calculate_Gn_from_Fn(G_test, F_test, 1);
 
     double G_known[7] = {
         17.77380891,
@@ -68,7 +68,7 @@ void test_2()
     // Test calculateB function
     double G_test[7] = {1, 2, 3, 4, 5, 6, 7};
     double B_test[7];
-    calculateBn(B_test, G_test, 1);
+    calculate_Bn_from_Gn(B_test, G_test, 1);
 
     double B_known[7] = {
         0.91365987,
@@ -91,7 +91,7 @@ void test_3()
     // Test calculateGFromF function
     double F_test[16] = {1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8};
     double G_test[14];
-    calculateGnFromFn(G_test, F_test, 2);
+    calculate_Gn_from_Fn(G_test, F_test, 2);
 
     double G_known[14] = {
         17.77380891,
@@ -120,7 +120,7 @@ void test_4()
     // Test calculateB function
     double G_test[14] = {1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7};
     double B_test[14];
-    calculateBn(B_test, G_test, 2);
+    calculate_Bn_from_Gn(B_test, G_test, 2);
 
     double B_known[14] = {
         0.91365987,
@@ -324,7 +324,7 @@ void test_13()
     int max_steps = 3000;
     double t = 0;
     void *ctx = NULL;
-    adaptiveTrace(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, max_steps);
+    trace_adaptive(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, max_steps);
     assert(fabs(xf[0] + 1) < 1e-8);
     assert(fabs(xf[1]) < 1e-8);
 }
@@ -337,7 +337,7 @@ void test_14()
     int max_steps = 3000;
     double t = 0;
     void *ctx = NULL;
-    adaptiveTrace(xf, dxds_double_circ, dyds_double_circ, t, xi, ctx, s_final, max_steps);
+    trace_adaptive(xf, dxds_double_circ, dyds_double_circ, t, xi, ctx, s_final, max_steps);
     assert(fabs(xf[0] + 1) < 1e-8);
     assert(fabs(xf[1]) < 1e-8);
 }
@@ -350,7 +350,7 @@ void test_15()
     int max_steps = 3000;
     double t = 0;
     void *ctx = NULL;
-    adaptiveTrace(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, max_steps);
+    trace_adaptive(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, max_steps);
     assert(fabs(xf[0]) < 1e-8);
     assert(fabs(xf[1] - 2) < 1e-8);
 }
@@ -363,7 +363,7 @@ void test_16()
     int max_steps = 3000;
     double t = 0;
     void *ctx = NULL;
-    adaptiveTrace(xf, dxds_hyperbola, dyds_hyperbola, t, xi, ctx, s_final, max_steps);
+    trace_adaptive(xf, dxds_hyperbola, dyds_hyperbola, t, xi, ctx, s_final, max_steps);
     assert(fabs(xf[0] - 2.7401066200785826) < 1e-8);
     assert(fabs(xf[1] - 2.551114323075012) < 1e-8);
 }

@@ -31,7 +31,6 @@ func_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, eva
     free(gunc_out);
 }
 
-
 static void
 gunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, evalf_t gunc)
 {
@@ -45,51 +44,7 @@ gunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, eva
     free(gunc_out);
 }
 
-// void adaptiveTrace(double *xf, double *yf, evalf_t func, evalf_t gunc, double xi, double yi, double end, int maxSteps)
-// {
-//     double ds = end;
-//     double Bx[7] = {0};
-//     double By[7] = {0};
-//     double epsilon = 0.1;
-//     double minStep = end / maxSteps;
-//     int i = 1;
-//     double s = 0;
-//     while (1)
-//     {
-//         push(xf, yf, Bx, By, xi, yi, ds, func, gunc);
-//         double lastBsum = pow(fabs(Bx[6]), 1.0 / 7) + pow(fabs(By[6]), 1.0 / 7);
-//         int tooMuchError = lastBsum > epsilon;
-//         int largeEnoughSteps = ds > minStep;
-//         if (tooMuchError && largeEnoughSteps)
-//         {
-//             if (ds / 2 > minStep)
-//             {
-//                 ds = ds / 2;
-//                 continue;
-//             }
-//         }
-//         else
-//         {
-//             if (s + ds > end)
-//             {
-//                 ds = end - s;
-//                 continue;
-//             }
-//             s = s + ds;
-//             xi = *xf;
-//             yi = *yf;
-//             ds = ds * 2;
-//             if (s >= end)
-//             {
-//                 break;
-//             }
-//             i++;
-//         }
-//     }
-// }
-
-
-void adaptiveTrace(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, void *ctx, double end, int maxSteps)
+void trace_adaptive(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, void *ctx, double end, int max_steps)
 {
     double ds = end;
     double Bn[21] = {0};
@@ -98,18 +53,18 @@ void adaptiveTrace(double *xf, evalf_t func, evalf_t gunc, double t, double *xi,
     xtmp[1] = xi[1];
     xtmp[2] = xi[2];
     double epsilon = 0.1;
-    double minStep = end / maxSteps;
+    double min_step = end / max_steps;
     int i = 1;
     double s = 0;
     while (1)
     {
         push(xf, Bn, t, xtmp, ctx, ds, func, gunc);
-        double lastBsum = pow(fabs(Bn[6]), 1.0 / 7.0) + pow(fabs(Bn[13]), 1.0 / 7.0) + pow(fabs(Bn[22]), 1.0 / 7.0);
-        int tooMuchError = lastBsum > epsilon;
-        int largeEnoughSteps = ds > minStep;
-        if (tooMuchError && largeEnoughSteps)
+        double last_B_sum = pow(fabs(Bn[6]), 1.0 / 7.0) + pow(fabs(Bn[13]), 1.0 / 7.0) + pow(fabs(Bn[22]), 1.0 / 7.0);
+        int too_much_error = last_B_sum > epsilon;
+        int large_enough_steps = ds > min_step;
+        if (too_much_error && large_enough_steps)
         {
-            if (ds / 2 > minStep)
+            if (ds / 2 > min_step)
             {
                 ds = ds / 2;
                 continue;
@@ -136,7 +91,6 @@ void adaptiveTrace(double *xf, evalf_t func, evalf_t gunc, double t, double *xi,
     }
 }
 
-
 void trace(double *xf, evalf_t func, evalf_t gunc,
            double t, double *xi, void *ctx, double L, int N)
 {
@@ -160,24 +114,24 @@ void push(double *xf, double *Bn,
 {
     int len_hF = 8;
     int len_BG = 7;
-    double *xh = (double *)malloc(3 * len_hF * sizeof(double));
-    double *Fn = (double *)malloc(3 * len_hF * sizeof(double));
-    double *Gn = (double *)malloc(3 * len_BG * sizeof(double));
+    double *xh = malloc(sizeof(double[3 * len_hF]));
+    double *Fn = malloc(sizeof(double[3 * len_hF]));
+    double *Gn = malloc(sizeof(double[3 * len_BG]));
     for (int i = 0; i < 12; i++)
     {
-        calculateNodePositions(xh, Bn, t, xi, func, gunc, ds, h, ctx, len_hF);
-        calculateDerivatives(Fn, func, gunc, t, xh, ctx, len_hF);
-        calculateGnFromFn(Gn, Fn, 3);
-        calculateBn(Bn, Gn, 3);
+        calculate_node_positions(xh, Bn, t, xi, func, gunc, ds, h, ctx, len_hF);
+        calculate_derivatives(Fn, func, gunc, t, xh, ctx, len_hF);
+        calculate_Gn_from_Fn(Gn, Fn, 3);
+        calculate_Bn_from_Gn(Bn, Gn, 3);
     }
     double hf = 1.0;
-    calculateNodePositions(xf, Bn, t, xi, func, gunc, ds, &hf, ctx, 1);
+    calculate_node_positions(xf, Bn, t, xi, func, gunc, ds, &hf, ctx, 1);
     free(xh);
     free(Fn);
     free(Gn);
 }
 
-void calculateNodePositions(double *xh, double *Bn,
+void calculate_node_positions(double *xh, double *Bn,
                             double t, double *xni, evalf_t func, evalf_t gunc,
                             double ds, const double *hp, void *ctx, int len)
 {
@@ -198,7 +152,7 @@ void calculateNodePositions(double *xh, double *Bn,
     free(F1y);
 }
 
-void calculateDerivatives(double *Fn, evalf_t func, evalf_t gunc,
+void calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc,
                           double t, double *xn, void *ctx, int len)
 {
     double *func_out = malloc(sizeof(double));
@@ -214,30 +168,30 @@ void calculateDerivatives(double *Fn, evalf_t func, evalf_t gunc,
     free(gunc_out);
 }
 
-void calculateBn(double *Bn, double *Gn, int ndim)
+void calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
 {
     for (int i = 0; i < ndim; i++)
     {
-        Bn[7 * i + 0] = Gn[7 * i + 0] + c[0]  * Gn[7 * i + 1] + c[1]  * Gn[7 * i + 2] + c[3]  * Gn[7 * i + 3] + c[6]  * Gn[7 * i + 4] + c[10] * Gn[7 * i + 5] + c[15] * Gn[7 * i + 6];
-        Bn[7 * i + 1] = Gn[7 * i + 1] + c[2]  * Gn[7 * i + 2] + c[4]  * Gn[7 * i + 3] + c[7]  * Gn[7 * i + 4] + c[11] * Gn[7 * i + 5] + c[16] * Gn[7 * i + 6];
-        Bn[7 * i + 2] = Gn[7 * i + 2] + c[5]  * Gn[7 * i + 3] + c[8]  * Gn[7 * i + 4] + c[12] * Gn[7 * i + 5] + c[17] * Gn[7 * i + 6];
-        Bn[7 * i + 3] = Gn[7 * i + 3] + c[9]  * Gn[7 * i + 4] + c[13] * Gn[7 * i + 5] + c[18] * Gn[7 * i + 6];
+        Bn[7 * i + 0] = Gn[7 * i + 0] + c[0] * Gn[7 * i + 1] + c[1] * Gn[7 * i + 2] + c[3] * Gn[7 * i + 3] + c[6] * Gn[7 * i + 4] + c[10] * Gn[7 * i + 5] + c[15] * Gn[7 * i + 6];
+        Bn[7 * i + 1] = Gn[7 * i + 1] + c[2] * Gn[7 * i + 2] + c[4] * Gn[7 * i + 3] + c[7] * Gn[7 * i + 4] + c[11] * Gn[7 * i + 5] + c[16] * Gn[7 * i + 6];
+        Bn[7 * i + 2] = Gn[7 * i + 2] + c[5] * Gn[7 * i + 3] + c[8] * Gn[7 * i + 4] + c[12] * Gn[7 * i + 5] + c[17] * Gn[7 * i + 6];
+        Bn[7 * i + 3] = Gn[7 * i + 3] + c[9] * Gn[7 * i + 4] + c[13] * Gn[7 * i + 5] + c[18] * Gn[7 * i + 6];
         Bn[7 * i + 4] = Gn[7 * i + 4] + c[14] * Gn[7 * i + 5] + c[19] * Gn[7 * i + 6];
         Bn[7 * i + 5] = Gn[7 * i + 5] + c[20] * Gn[7 * i + 6];
         Bn[7 * i + 6] = Gn[7 * i + 6];
     }
 }
 
-void calculateGnFromFn(double *G, double *F, int ndim)
+void calculate_Gn_from_Fn(double *G, double *F, int ndim)
 {
     for (int i = 0; i < ndim; i++)
     {
-        G[7 * i + 0] =       (F[8 * i + 1] - F[8 * i + 0]) / rr[0];
-        G[7 * i + 1] =      ((F[8 * i + 2] - F[8 * i + 0]) / rr[1]  - G[7 * i + 0]) / rr[2];
-        G[7 * i + 2] =     (((F[8 * i + 3] - F[8 * i + 0]) / rr[3]  - G[7 * i + 0]) / rr[4]  - G[7 * i + 1]) / rr[5];
-        G[7 * i + 3] =    ((((F[8 * i + 4] - F[8 * i + 0]) / rr[6]  - G[7 * i + 0]) / rr[7]  - G[7 * i + 1]) / rr[8]  - G[7 * i + 2]) / rr[9];
-        G[7 * i + 4] =   (((((F[8 * i + 5] - F[8 * i + 0]) / rr[10] - G[7 * i + 0]) / rr[11] - G[7 * i + 1]) / rr[12] - G[7 * i + 2]) / rr[13] - G[7 * i + 3]) / rr[14];
-        G[7 * i + 5] =  ((((((F[8 * i + 6] - F[8 * i + 0]) / rr[15] - G[7 * i + 0]) / rr[16] - G[7 * i + 1]) / rr[17] - G[7 * i + 2]) / rr[18] - G[7 * i + 3]) / rr[19] - G[7 * i + 4]) / rr[20];
+        G[7 * i + 0] = (F[8 * i + 1] - F[8 * i + 0]) / rr[0];
+        G[7 * i + 1] = ((F[8 * i + 2] - F[8 * i + 0]) / rr[1] - G[7 * i + 0]) / rr[2];
+        G[7 * i + 2] = (((F[8 * i + 3] - F[8 * i + 0]) / rr[3] - G[7 * i + 0]) / rr[4] - G[7 * i + 1]) / rr[5];
+        G[7 * i + 3] = ((((F[8 * i + 4] - F[8 * i + 0]) / rr[6] - G[7 * i + 0]) / rr[7] - G[7 * i + 1]) / rr[8] - G[7 * i + 2]) / rr[9];
+        G[7 * i + 4] = (((((F[8 * i + 5] - F[8 * i + 0]) / rr[10] - G[7 * i + 0]) / rr[11] - G[7 * i + 1]) / rr[12] - G[7 * i + 2]) / rr[13] - G[7 * i + 3]) / rr[14];
+        G[7 * i + 5] = ((((((F[8 * i + 6] - F[8 * i + 0]) / rr[15] - G[7 * i + 0]) / rr[16] - G[7 * i + 1]) / rr[17] - G[7 * i + 2]) / rr[18] - G[7 * i + 3]) / rr[19] - G[7 * i + 4]) / rr[20];
         G[7 * i + 6] = (((((((F[8 * i + 7] - F[8 * i + 0]) / rr[21] - G[7 * i + 0]) / rr[22] - G[7 * i + 1]) / rr[23] - G[7 * i + 2]) / rr[24] - G[7 * i + 3]) / rr[25] - G[7 * i + 4]) / rr[26] - G[7 * i + 5]) / rr[27];
     }
 }
