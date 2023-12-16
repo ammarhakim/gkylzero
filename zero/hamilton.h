@@ -1,26 +1,17 @@
 #ifndef HAMILTON
 #define HAMILTON
 
-typedef double (*derivative_func)(double, double);
+typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
 
 // Define a function pointer type for the derivative function
-static double func_norm(double x, double y, derivative_func func, derivative_func gunc);
+void push(double *xf, double *Bn, double t, double *xi, void *ctx, double ds, evalf_t func, evalf_t gunc);
 
-static double gunc_norm(double x, double y, derivative_func func, derivative_func gunc);
+void calculateNodePositions(double *xh, double *Bn, double t, double *xni, evalf_t func, evalf_t gunc, double ds, const double *hp, void *ctx, int len);
 
-void adaptiveTrace(double *xf, double *yf, derivative_func func, derivative_func gunc, double xi, double yi, double end, int maxSteps);
+void calculateDerivatives(double *Fn, evalf_t func, evalf_t gunc, double t, double *xn, void *ctx, int len);
 
-void trace(double *xf, double *yf, derivative_func func, derivative_func gunc,
-           double xi, double yi, double L, int N);
+void calculateBn(double *Bn, double *Gn, int ndim);
 
-void push(double *xf, double *yf, double *Bx, double *By, double xi, double yi, double ds, derivative_func func, derivative_func gunc);
-
-void calculateNodePositions(double *xh, double *yh, double *Bx, double *By, double xi, double yi, derivative_func func, derivative_func gunc, double ds, const double *hp, int len);
-
-void calculateDerivatives(double *Fx, double *Fy, derivative_func func, derivative_func gunc, double *x, double *y, int len);
-
-void calculateB(double *B, double *G);
-
-void calculateGFromF(double *G, double *F);
+void calculateGnFromFn(double *G, double *F, int ndim);
 
 #endif
