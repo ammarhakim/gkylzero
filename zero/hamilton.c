@@ -102,6 +102,24 @@ gunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, eva
 //     }
 // }
 
+void trace(double *xf, evalf_t func, evalf_t gunc,
+           double t, double *xi, void *ctx, double L, int N)
+{
+    double ds = L / N;
+    double Bn[21] = {0};
+    double xtmp[3];
+    xtmp[0] = xi[0];
+    xtmp[1] = xi[1];
+    xtmp[2] = xi[2];
+    for (int i = 1; i <= N; i++)
+    {
+        push(xf, Bn, t, xtmp, ctx, ds, func, gunc);
+        xtmp[0] = xf[0];
+        xtmp[1] = xf[1];
+        xtmp[2] = xf[2];
+    }
+}
+
 void push(double *xf, double *Bn,
           double t, double *xi, void *ctx, double ds, evalf_t func, evalf_t gunc)
 {

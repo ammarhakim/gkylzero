@@ -264,67 +264,59 @@ void test_8()
 }
 
 // // Now these tests are for the same conditions, but with trace
-// void test_9()
-// {
-//     // Test the trace around a circle radius 1 to pi
-//     double x0 = 1;
-//     double y0 = 0;
-//     double s_final = M_PI;
-//     int nSteps = 30;
-//     double xf;
-//     double yf;
-//     trace(&xf, &yf, dxds_circ, dyds_circ, x0, y0, s_final, nSteps);
-//     assert(fabs(xf+1) < 1e-8);
-//     assert(fabs(yf) < 1e-8);
+void test_9()
+{
+    double xi[3] = {1, 0, 0};
+    double xf[3];
+    double s_final = M_PI;
+    int nSteps = 30;
+    double t = 0;
+    void *ctx = NULL;
+    trace(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, nSteps);
+    assert(fabs(xf[0] + 1) < 1e-8);
+    assert(fabs(xf[1]) < 1e-8);
+}
 
+void test_10()
+{
+    double xi[3] = {1, 0, 0};
+    double xf[3];
+    double s_final = M_PI;
+    int nSteps = 30;
+    double t = 0;
+    void *ctx = NULL;
+    trace(xf, dxds_double_circ, dyds_double_circ, t, xi, ctx, s_final, nSteps);
+    assert(fabs(xf[0] + 1) < 1e-8);
+    assert(fabs(xf[1]) < 1e-8);
+}
 
-// }
+void test_11()
+{
+    double xi[3] = {2, 0, 0};
+    double xf[3];
+    double s_final = M_PI;
+    int nSteps = 30;
+    double t = 0;
+    void *ctx = NULL;
+    trace(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, nSteps);
+    assert(fabs(xf[0]) < 1e-8);
+    assert(fabs(xf[1]-2) < 1e-8);
+}
 
-// void test_10()
-// {
-//     // Test the trace around a circle radius 1 to pi
-//     // with double derivatives
-//     double x0 = 1;
-//     double y0 = 0;
-//     double s_final = M_PI;
-//     int nSteps = 30;
-//     double xf;
-//     double yf;
-//     trace(&xf, &yf, dxds_double_circ, dyds_double_circ, x0, y0, s_final, nSteps);
-//     assert(fabs(xf+1) < 1e-8);
-//     assert(fabs(yf) < 1e-8);
+void test_12()
+{
+    double xi[3] = {1, 0, 0};
+    double xf[3];
+    double s_final = M_PI;
+    int nSteps = 30;
+    double t = 0;
+    void *ctx = NULL;
+    trace(xf, dxds_hyperbola, dyds_hyperbola, t, xi, ctx, s_final, nSteps);
+    assert(fabs(xf[0] - 2.7401066200785826) < 1e-8);
+    assert(fabs(xf[1] - 2.551114323075012) < 1e-8);
+}
 
-// }
-
-// void test_11()
-// {
-//     // Test the pusher goes around a circle radius 2 to pi/2
-//     double x0 = 2;
-//     double y0 = 0;
-//     double s_final = M_PI;
-//     int nSteps = 30;
-//     double xf;
-//     double yf;
-//     trace(&xf, &yf, dxds_double_circ, dyds_double_circ, x0, y0, s_final, nSteps);
-//     assert(fabs(xf) < 1e-8);
-//     assert(fabs(yf-2) < 1e-8);
-// }
-
-// void test_12()
-// {
-//     // Test pusher around a hyperbola
-//     double x0 = 1;
-//     double y0 = 0;
-//     double s_final = M_PI;
-//     int nSteps = 30;
-//     double xf;
-//     double yf;
-//     trace(&xf, &yf, dxds_hyperbola, dyds_hyperbola, x0, y0, s_final, nSteps);
-//     assert(fabs(xf - 2.7401066200785826) < 1e-8);
-//     assert(fabs(yf - 2.551114323075012) < 1e-8);
-// }
-
-// // Now these tests are for the same conditions, but with trace
+// // Now these tests are for the same conditions, but with adaptive trace
 // void test_13()
 // {
 //     // Test the trace around a circle radius 1 to pi
@@ -401,14 +393,14 @@ int main()
     printf("Test 7 passed\n");
     test_8();
     printf("Test 8 passed\n");
-    // test_9();
-    // printf("Test 9 passed\n");
-    // test_10();
-    // printf("Test 10 passed\n");
-    // test_11();
-    // printf("Test 11 passed\n");
-    // test_12();
-    // printf("Test 12 passed\n");
+    test_9();
+    printf("Test 9 passed\n");
+    test_10();
+    printf("Test 10 passed\n");
+    test_11();
+    printf("Test 11 passed\n");
+    test_12();
+    printf("Test 12 passed\n");
     // test_13();
     // printf("Test 13 passed\n");
     return 0;

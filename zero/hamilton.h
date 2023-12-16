@@ -3,7 +3,8 @@
 
 typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
 
-// Define a function pointer type for the derivative function
+void trace(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, void *ctx, double L, int N);
+
 void push(double *xf, double *Bn, double t, double *xi, void *ctx, double ds, evalf_t func, evalf_t gunc);
 
 void calculateNodePositions(double *xh, double *Bn, double t, double *xni, evalf_t func, evalf_t gunc, double ds, const double *hp, void *ctx, int len);
