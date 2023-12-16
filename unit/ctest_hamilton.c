@@ -6,6 +6,8 @@
 
 // Build using gcc test_hamilton.c hamilton.c -o test_hamilton -lm && ./test_hamilton
 
+// Improvement could be made by testing explicitely the pushing function for positions and the calculate derivative functions
+
 // Define a function pointer type for the derivative function
 static const double h[8] = {0.0, 0.0562625605369221464656521910318, 0.180240691736892364987579942780, 0.352624717113169637373907769648, 0.547153626330555383001448554766, 0.734210177215410531523210605558, 0.885320946839095768090359771030, 0.977520613561287501891174488626};
 
@@ -38,7 +40,6 @@ void dxds_hyperbola(double t, const double *xn, double *fout, void *ctx)
 {
     *fout = xn[1];
 }
-
 
 void test_1()
 {
@@ -144,7 +145,6 @@ void test_4()
     }
 }
 
-
 void test_5()
 {
     // Test the pusher goes around a circle radius 1 to pi
@@ -173,7 +173,6 @@ void test_5()
     assert(fabs(xf[0] + 1) < 1e-8);
     assert(fabs(xf[1]) < 1e-8);
 }
-
 
 void test_6()
 {
@@ -231,7 +230,7 @@ void test_7()
         x_trace[i * 3 + 2] = xf[2];
     }
     assert(fabs(xf[0]) < 1e-8);
-    assert(fabs(xf[1]-2) < 1e-8);
+    assert(fabs(xf[1] - 2) < 1e-8);
 }
 
 void test_8()
@@ -300,7 +299,7 @@ void test_11()
     void *ctx = NULL;
     trace(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, nSteps);
     assert(fabs(xf[0]) < 1e-8);
-    assert(fabs(xf[1]-2) < 1e-8);
+    assert(fabs(xf[1] - 2) < 1e-8);
 }
 
 void test_12()
@@ -317,63 +316,58 @@ void test_12()
 }
 
 // // Now these tests are for the same conditions, but with adaptive trace
-// void test_13()
-// {
-//     // Test the trace around a circle radius 1 to pi
-//     double x0 = 1;
-//     double y0 = 0;
-//     double s_final = M_PI;
-//     int maxSteps = 3000;
-//     double xf;
-//     double yf;
-//     adaptiveTrace(&xf, &yf, dxds_circ, dyds_circ, x0, y0, s_final, maxSteps);
-//     assert(fabs(xf+1) < 1e-8);
-//     assert(fabs(yf) < 1e-8);
-// }
+void test_13()
+{
+    double xi[3] = {1, 0, 0};
+    double xf[3];
+    double s_final = M_PI;
+    int max_steps = 3000;
+    double t = 0;
+    void *ctx = NULL;
+    adaptiveTrace(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, max_steps);
+    assert(fabs(xf[0] + 1) < 1e-8);
+    assert(fabs(xf[1]) < 1e-8);
+}
 
-// void test_14()
-// {
-//     // Test the trace around a circle radius 1 to pi
-//     // with double derivatives
-//     double x0 = 1;
-//     double y0 = 0;
-//     double s_final = M_PI;
-//     int maxSteps = 3000;
-//     double xf;
-//     double yf;
-//     adaptiveTrace(&xf, &yf, dxds_double_circ, dyds_double_circ, x0, y0, s_final, maxSteps);
-//     assert(fabs(xf+1) < 1e-8);
-//     assert(fabs(yf) < 1e-8);
+void test_14()
+{
+    double xi[3] = {1, 0, 0};
+    double xf[3];
+    double s_final = M_PI;
+    int max_steps = 3000;
+    double t = 0;
+    void *ctx = NULL;
+    adaptiveTrace(xf, dxds_double_circ, dyds_double_circ, t, xi, ctx, s_final, max_steps);
+    assert(fabs(xf[0] + 1) < 1e-8);
+    assert(fabs(xf[1]) < 1e-8);
+}
 
-// }
+void test_15()
+{
+    double xi[3] = {2, 0, 0};
+    double xf[3];
+    double s_final = M_PI;
+    int max_steps = 3000;
+    double t = 0;
+    void *ctx = NULL;
+    adaptiveTrace(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, max_steps);
+    assert(fabs(xf[0]) < 1e-8);
+    assert(fabs(xf[1] - 2) < 1e-8);
+}
 
-// void test_15()
-// {
-//     // Test the pusher goes around a circle radius 2 to pi/2
-//     double x0 = 2;
-//     double y0 = 0;
-//     double s_final = M_PI;
-//     int maxSteps = 3000;
-//     double xf;
-//     double yf;
-//     adaptiveTrace(&xf, &yf, dxds_double_circ, dyds_double_circ, x0, y0, s_final, maxSteps);
-//     assert(fabs(xf) < 1e-8);
-//     assert(fabs(yf-2) < 1e-8);
-// }
+void test_16()
+{
+    double xi[3] = {1, 0, 0};
+    double xf[3];
+    double s_final = M_PI;
+    int max_steps = 3000;
+    double t = 0;
+    void *ctx = NULL;
+    adaptiveTrace(xf, dxds_hyperbola, dyds_hyperbola, t, xi, ctx, s_final, max_steps);
+    assert(fabs(xf[0] - 2.7401066200785826) < 1e-8);
+    assert(fabs(xf[1] - 2.551114323075012) < 1e-8);
+}
 
-// void test_16()
-// {
-//     // Test pusher around a hyperbola
-//     double x0 = 1;
-//     double y0 = 0;
-//     double s_final = M_PI;
-//     int maxSteps = 3000;
-//     double xf;
-//     double yf;
-//     adaptiveTrace(&xf, &yf, dxds_hyperbola, dyds_hyperbola, x0, y0, s_final, maxSteps);
-//     assert(fabs(xf - 2.7401066200785826) < 1e-8);
-//     assert(fabs(yf - 2.551114323075012) < 1e-8);
-// }
 
 int main()
 {
@@ -401,7 +395,13 @@ int main()
     printf("Test 11 passed\n");
     test_12();
     printf("Test 12 passed\n");
-    // test_13();
-    // printf("Test 13 passed\n");
+    test_13();
+    printf("Test 13 passed\n");
+    test_14();
+    printf("Test 14 passed\n");
+    test_15();
+    printf("Test 15 passed\n");
+    test_16();
+    printf("Test 16 passed\n");
     return 0;
 }

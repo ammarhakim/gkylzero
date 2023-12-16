@@ -88,19 +88,54 @@ gunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, eva
 //     }
 // }
 
-// void trace(double *xf, double *yf, evalf_t func, evalf_t gunc,
-//            double xi, double yi, double L, int N)
-// {
-//     double ds = L / N;
-//     double Bx[7] = {0};
-//     double By[7] = {0};
-//     for (int i = 1; i <= N; i++)
-//     {
-//         push(xf, yf, Bx, By, xi, yi, ds, func, gunc);
-//         xi = *xf;
-//         yi = *yf;
-//     }
-// }
+
+void adaptiveTrace(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, void *ctx, double end, int maxSteps)
+{
+    double ds = end;
+    double Bn[21] = {0};
+    double xtmp[3];
+    xtmp[0] = xi[0];
+    xtmp[1] = xi[1];
+    xtmp[2] = xi[2];
+    double epsilon = 0.1;
+    double minStep = end / maxSteps;
+    int i = 1;
+    double s = 0;
+    while (1)
+    {
+        push(xf, Bn, t, xtmp, ctx, ds, func, gunc);
+        double lastBsum = pow(fabs(Bn[6]), 1.0 / 7.0) + pow(fabs(Bn[13]), 1.0 / 7.0) + pow(fabs(Bn[22]), 1.0 / 7.0);
+        int tooMuchError = lastBsum > epsilon;
+        int largeEnoughSteps = ds > minStep;
+        if (tooMuchError && largeEnoughSteps)
+        {
+            if (ds / 2 > minStep)
+            {
+                ds = ds / 2;
+                continue;
+            }
+        }
+        else
+        {
+            if (s + ds > end)
+            {
+                ds = end - s;
+                continue;
+            }
+            s = s + ds;
+            xtmp[0] = xf[0];
+            xtmp[1] = xf[1];
+            xtmp[2] = xf[2];
+            ds = ds * 2;
+            if (s >= end)
+            {
+                break;
+            }
+            i++;
+        }
+    }
+}
+
 
 void trace(double *xf, evalf_t func, evalf_t gunc,
            double t, double *xi, void *ctx, double L, int N)

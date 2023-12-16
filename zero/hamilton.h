@@ -3,6 +3,8 @@
 
 typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
 
+void adaptiveTrace(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, void *ctx, double end, int maxSteps);
+
 void trace(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, void *ctx, double L, int N);
 
 void push(double *xf, double *Bn, double t, double *xi, void *ctx, double ds, evalf_t func, evalf_t gunc);
