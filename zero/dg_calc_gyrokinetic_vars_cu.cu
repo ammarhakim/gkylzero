@@ -18,7 +18,6 @@ __global__ void
 gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag_cu_kernel(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range, struct gkyl_array* Bstar_Bmag)
 { 
-  int pdim = up->pdim;
   int idx[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
 
@@ -141,12 +140,12 @@ dg_calc_gyrokinetic_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_gyrokinetic_vars *u
 
 gkyl_dg_calc_gyrokinetic_vars*
 gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis)
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const double charge, const double mass, const struct gk_geometry *gk_geom)
 {
   struct gkyl_dg_calc_gyrokinetic_vars *up = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_malloc(sizeof(gkyl_dg_calc_gyrokinetic_vars));
 
   up->phase_grid = *phase_grid;
-  int nc = phase_basis->num_basis;
   int cdim = conf_basis->ndim;
   int pdim = phase_basis->ndim;
   int vdim = pdim - cdim;

@@ -23,7 +23,6 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
   gkyl_dg_calc_gyrokinetic_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_gyrokinetic_vars));
 
   up->phase_grid = *phase_grid;
-  int nc = phase_basis->num_basis;
   int cdim = conf_basis->ndim;
   int pdim = phase_basis->ndim;
   int vdim = pdim - cdim;
