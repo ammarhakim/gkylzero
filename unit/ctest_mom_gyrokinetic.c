@@ -9,6 +9,8 @@
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_array_rio.h>
+#include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_mapc2p.h>
 #include <math.h>
 
 void
@@ -78,7 +80,7 @@ test_mom_gyrokinetic()
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
     mapc2p_3x, 0, bmag_func_3x, 0, false);
 
   struct gkyl_mom_type *m2 = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M2", false);
@@ -215,7 +217,7 @@ test_1x1v(int polyOrder, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &local, distf_ho, "ctest_mom_gyrokinetic_1x1v_p1_distf.gkyl");
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
     mapc2p_1x, 0, bmag_func_1x, 0, use_gpu);
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M0", use_gpu);
@@ -408,7 +410,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_array_copy(distf, distf_ho);
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
     mapc2p_1x, 0, bmag_func_1x, 0, use_gpu);
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M0", use_gpu);
@@ -583,7 +585,7 @@ test_2x2v(int poly_order, bool use_gpu)
   gkyl_array_copy(distf, distf_ho);
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confLocal, &confLocal_ext, &confBasis, 
     mapc2p_2x, 0, bmag_func_2x, 0, use_gpu);
 
   struct gkyl_mom_type *M0_t = gkyl_mom_gyrokinetic_new(&confBasis, &basis, &confLocal, mass, gk_geom, "M0", use_gpu);

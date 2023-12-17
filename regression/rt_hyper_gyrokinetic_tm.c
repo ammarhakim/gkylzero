@@ -8,6 +8,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_range.h>
@@ -193,7 +194,7 @@ main(int argc, char **argv)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
     mapc2p, 0, bmag_func, 0, use_gpu);
 
   // initialize eqn

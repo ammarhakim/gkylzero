@@ -129,6 +129,11 @@ struct gkyl_gk {
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
+
+  bool tokamak; // to indicate whether it is a tokamak geometry
+  void *tok_rz_ctx; // context with RZ data such as efit file for a tokamak
+  void *tok_comp_ctx; // context for tokamak geometry with computational domain info
+
   double cfl_frac; // CFL fraction to use (default 1.0)
 
   bool use_gpu; // Flag to indicate if solver should use GPUs
