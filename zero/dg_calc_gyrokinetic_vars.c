@@ -55,7 +55,7 @@ void gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag(struct gkyl_dg_calc_gyrokinetic_va
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(Bstar_Bmag)) {
-    return gkyl_dg_calc_gyrokinetic_vars__Bstar_Bmag_cu(up, conf_range, phase_range, Bstar_Bmag);
+    return gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag_cu(up, conf_range, phase_range, Bstar_Bmag);
   }
 #endif
   int pdim = up->pdim;
