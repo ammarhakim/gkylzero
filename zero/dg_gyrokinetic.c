@@ -29,7 +29,7 @@ void
 gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.alpha_surf) && gkyl_array_is_cu_dev(auxin.phi)
+  if (gkyl_array_is_cu_dev(auxin.alpha_surf) && gkyl_array_is_cu_dev(auxin.phi) &&
       gkyl_array_is_cu_dev(auxin.apar) && gkyl_array_is_cu_dev(auxin.apardot) ) {
     gkyl_gyrokinetic_set_auxfields_cu(eqn->on_dev, auxin);
     return;
@@ -51,7 +51,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, charge, mass, gk_geom);
+    return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, phase_range, charge, mass, gk_geom);
 #endif
 
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
