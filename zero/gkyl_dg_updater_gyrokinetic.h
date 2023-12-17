@@ -22,7 +22,8 @@ struct gkyl_dg_updater_gyrokinetic_tm {
  * @param grid Grid object
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis function
- * @param conf_range Config space range
+ * @param conf_range Configuration space range
+ * @param conf_range Phase space range
  * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
  * @param charge Species charge
  * @param mass Species mass
@@ -34,7 +35,7 @@ struct gkyl_dg_updater_gyrokinetic_tm {
  */
 gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const bool *is_zero_flux_dir,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const bool *is_zero_flux_dir,
   double charge, double mass, const struct gk_geometry *gk_geom, void *aux_inp, bool use_gpu);
 
 /**

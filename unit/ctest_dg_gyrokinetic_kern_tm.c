@@ -57,13 +57,15 @@ test_3x2v_p1(bool use_gpu)
 
   // initialize basis
   int poly_order = 1;
-  struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
+  struct gkyl_basis basis, surf_basis, confBasis; // phase-space, conf-space basis
 
   if (poly_order > 1) {
     gkyl_cart_modal_serendip(&basis, pdim, poly_order);
+    gkyl_cart_modal_serendip(&surf_basis, pdim-1, poly_order);
   } else if (poly_order == 1) {
     /* Force hybrid basis (p=2 in velocity space). */
     gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+    gkyl_cart_modal_gkhybrid(&surf_basis, cdim-1, vdim);
   }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
@@ -72,15 +74,17 @@ test_3x2v_p1(bool use_gpu)
     mapc2p, 0, bmag_func, 0, use_gpu);
 
   // Initialize gyrokinetic variables
+  struct gkyl_array *alpha_surf = mkarr1(use_gpu, 4*surf_basis.num_basis, phaseRange_ext.volume);
   struct gkyl_array *phi = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
   struct gkyl_array *apar = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
   struct gkyl_array *apardot = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
-  struct gkyl_dg_gyrokinetic_auxfields aux = { .phi = phi, .apar = apar, .apardot = apardot };
+  struct gkyl_dg_gyrokinetic_auxfields aux = { .alpha_surf = alpha_surf, .phi = phi, .apar = apar, .apardot = apardot };
 
   const bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
   struct gkyl_dg_updater_gyrokinetic* up;
-  up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, is_zero_flux, 1.0, 1.0, gk_geom, &aux, use_gpu);
+  up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, &phaseRange, 
+    is_zero_flux, 1.0, 1.0, gk_geom, &aux, use_gpu);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate;

@@ -21,6 +21,7 @@
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_calc_gyrokinetic_vars.h>
 #include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_diffusion_gyrokinetic.h>
@@ -167,6 +168,8 @@ struct gk_species {
 
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
+  struct gkyl_array *Bstar_Bmag; // array for volume expansion of Bstar/Bmag, time-independent component
+  struct gkyl_array *alpha_surf; // array for surface phase space flux
   struct gkyl_array *phi; // array for electrostatic potential
   // organization of the different equation objects and the required data and solvers
   union {
@@ -176,6 +179,8 @@ struct gk_species {
       struct gkyl_array *apardot; // array for d/dt A_parallel
     };
   };
+
+  struct gkyl_dg_calc_gyrokinetic_vars *calc_gk_vars;
 
   struct gk_species_moment m0; // for computing charge density
   struct gk_species_moment integ_moms; // integrated moments

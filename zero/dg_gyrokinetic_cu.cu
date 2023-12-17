@@ -14,9 +14,12 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
+  const struct gkyl_array *Bstar_Bmag, const struct gkyl_array *alpha_surf, 
   const struct gkyl_array *phi, const struct gkyl_array *apar, const struct gkyl_array *apardot)
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
+  gyrokinetic->auxfields.Bstar_Bmag = Bstar_Bmag;
+  gyrokinetic->auxfields.alpha_surf = alpha_surf;
   gyrokinetic->auxfields.phi = phi;
   gyrokinetic->auxfields.apar = apar;
   gyrokinetic->auxfields.apardot = apardot;
@@ -26,7 +29,9 @@ gkyl_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
 void
 gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin)
 {
-  gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev);
+  gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
+  auxin.Bstar_Bmag->on_dev, auxin.alpha_surf->on_dev, 
+  auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and gyrokinetic kernel function
@@ -35,6 +40,8 @@ __global__ static void
 dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_basis_type b_type,
   int cv_index, int cdim, int vdim, int poly_order)
 {
+  gyrokinetic->auxfields.Bstar_Bmag = 0; 
+  gyrokinetic->auxfields.alpha_surf = 0; 
   gyrokinetic->auxfields.phi = 0; 
   gyrokinetic->auxfields.apar = 0; 
   gyrokinetic->auxfields.apardot= 0; 
@@ -86,7 +93,8 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
 
 struct gkyl_dg_eqn*
 gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, const double charge, const double mass, const struct gk_geometry *gk_geom)
+  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, 
+  const double charge, const double mass, const struct gk_geometry *gk_geom)
 {
   struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(struct dg_gyrokinetic));
 
@@ -105,6 +113,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gky
   gyrokinetic->gk_geom = geom->on_dev; // this is so the memcpy below has geometry on_dev
 
   gyrokinetic->conf_range = *conf_range;
+  gyrokinetic->phase_range = *phase_range;
 
   gyrokinetic->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(gyrokinetic->eqn.flags);

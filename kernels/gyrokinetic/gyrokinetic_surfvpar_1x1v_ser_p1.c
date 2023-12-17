@@ -1,18 +1,12 @@
 #include <gkyl_gyrokinetic_kernels.h>
 #include <gkyl_basis_gkhyb_1x1v_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_gkhyb_1x1v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double *apardot, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double *alpha_surf_l, const double *alpha_surf_r, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
-  // q_,m_: species charge and mass.
-  // bmag: magnetic field amplitude.
-  // jacobTotInv: reciprocal of the conf-space jacobian time the guiding center coordinate Jacobian.
-  // cmag: coefficient multiplying parallel gradient.
-  // b_i: covariant components of the field aligned unit vector.
-  // phi: electrostatic potential .
-  // apar: parallel component of magnetic vector potential.
-  // apardot: time derivative of Apar.
+  // alpha_surf_l: Surface expansion of phase space flux on the left.
+  // alpha_surf_r: Surface expansion of phase space flux on the right.
   // fl,fc,fr: distribution function in left, center and right cells.
   // out: output increment in center cell.
 
@@ -26,30 +20,8 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double
   double wvparSq = w[1]*w[1];
   double rdvpar2Sq = rdvpar2*rdvpar2;
 
-  const double *b_x = &b_i[0];
-  const double *b_y = &b_i[2];
-  const double *b_z = &b_i[4];
-
-  double hamil[6] = {0.}; 
-  hamil[0] = (0.3333333333333333*(3.0*rdvpar2Sq*(m_*wvparSq+1.414213562373095*phi[0]*q_)+m_))/rdvpar2Sq; 
-  hamil[1] = 1.414213562373095*phi[1]*q_; 
-  hamil[2] = (1.154700538379252*m_*wvpar)/rdvpar2; 
-  hamil[4] = (0.2981423969999719*m_)/rdvpar2Sq; 
-
-  double BstarZdBmag[6] = {0.}; 
-  BstarZdBmag[0] = (1.732050807568877*jacobtot_inv[0]*b_y[1]*m_*rdx2*wvpar+(cmag[1]*jacobtot_inv[1]+cmag[0]*jacobtot_inv[0])*q_)/q_; 
-  BstarZdBmag[1] = (1.732050807568877*b_y[1]*jacobtot_inv[1]*m_*rdx2*wvpar+(cmag[0]*jacobtot_inv[1]+jacobtot_inv[0]*cmag[1])*q_)/q_; 
-  BstarZdBmag[2] = (jacobtot_inv[0]*b_y[1]*m_*rdx2)/(q_*rdvpar2); 
-  BstarZdBmag[3] = (b_y[1]*jacobtot_inv[1]*m_*rdx2)/(q_*rdvpar2); 
-
-  double alphaL[2] = {0.}; 
-  alphaL[0] = (0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[2]-1.732050807568877*BstarZdBmag[0])*rdx2-2.828427124746191*apardot[0]*q_))/m_; 
-  alphaL[1] = (0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[3]-1.732050807568877*BstarZdBmag[1])*rdx2-2.828427124746191*apardot[1]*q_))/m_; 
-
-  double alphaR[2] = {0.}; 
-  alphaR[0] = -(0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[2]+1.732050807568877*BstarZdBmag[0])*rdx2+2.828427124746191*apardot[0]*q_))/m_; 
-  alphaR[1] = -(0.3535533905932737*(hamil[1]*(3.0*BstarZdBmag[3]+1.732050807568877*BstarZdBmag[1])*rdx2+2.828427124746191*apardot[1]*q_))/m_; 
-
+  const double *alphaL = &alpha_surf_l[3];
+  const double *alphaR = &alpha_surf_r[3];
   double cflFreq = 0.0;
   double fUpOrdL[2] = {0.};
   double alphaL_n = 0.;
@@ -74,8 +46,8 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double
   gkhyb_1x1v_p1_vpardir_upwind_quad_to_modal(fUpOrdL, fUpL); 
 
   double GhatL[2] = {0.}; 
-  GhatL[0] = 0.7071067811865475*alphaL[1]*fUpL[1]+0.7071067811865475*alphaL[0]*fUpL[0]; 
-  GhatL[1] = 0.7071067811865475*alphaL[0]*fUpL[1]+0.7071067811865475*fUpL[0]*alphaL[1]; 
+  GhatL[0] = 0.7071067811865475*(alphaL[1]*fUpL[1]+alphaL[0]*fUpL[0]); 
+  GhatL[1] = 0.7071067811865475*(alphaL[0]*fUpL[1]+fUpL[0]*alphaL[1]); 
 
   double fUpOrdR[2] = {0.};
   double alphaR_n = 0.;
@@ -100,8 +72,8 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double
   gkhyb_1x1v_p1_vpardir_upwind_quad_to_modal(fUpOrdR, fUpR); 
 
   double GhatR[2] = {0.}; 
-  GhatR[0] = 0.7071067811865475*alphaR[1]*fUpR[1]+0.7071067811865475*alphaR[0]*fUpR[0]; 
-  GhatR[1] = 0.7071067811865475*alphaR[0]*fUpR[1]+0.7071067811865475*fUpR[0]*alphaR[1]; 
+  GhatR[0] = 0.7071067811865475*(alphaR[1]*fUpR[1]+alphaR[0]*fUpR[0]); 
+  GhatR[1] = 0.7071067811865475*(alphaR[0]*fUpR[1]+fUpR[0]*alphaR[1]); 
 
   out[0] += (0.7071067811865475*GhatL[0]-0.7071067811865475*GhatR[0])*rdvpar2; 
   out[1] += (0.7071067811865475*GhatL[1]-0.7071067811865475*GhatR[1])*rdvpar2; 
@@ -110,6 +82,6 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p1(const double *w, const double
   out[4] += (1.58113883008419*GhatL[0]-1.58113883008419*GhatR[0])*rdvpar2; 
   out[5] += (1.58113883008419*GhatL[1]-1.58113883008419*GhatR[1])*rdvpar2; 
 
-  return 5.0*rdvpar2*cflFreq; 
+  return 2.5*rdvpar2*cflFreq; 
 
 } 
