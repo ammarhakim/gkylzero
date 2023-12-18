@@ -19,7 +19,7 @@ gkyl_gk_geometry_fromfile_new(const struct gkyl_rect_grid* grid, const struct gk
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_mapc2p_cu_dev_new(grid, range, range_ext, basis, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
+    return gkyl_gk_geometry_fromfile_cu_dev_new(grid, range, range_ext, basis);
   } 
 #endif 
 

@@ -14,8 +14,8 @@ extern "C" {
 }
 // CPU interface to create and track a GPU object
 struct gk_geometry*
-gkyl_gk_geometry_mapc2p_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx)
+gkyl_gk_geometry_fromfile_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+  const struct gkyl_basis* basis)
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 
@@ -30,22 +30,6 @@ gkyl_gk_geometry_mapc2p_cu_dev_new(const struct gkyl_rect_grid* grid, const stru
   // // Initialize the geometry object on the host side
   // mapc2p arrays, bmag, metrics and derived geo quantities
   struct gkyl_array* mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
-
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, mc2p, "mapc2p.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->bmag, "bmag.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->jacobgeo, "jacobgeo.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->jacobgeo_inv, "jacogeo_inv.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->gij, "gij.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->b_i, "b_i.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->cmag, "cmag.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->jacobtot, "jacobtot.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->jacobtot_inv, "jacobtot_inv.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->bmag_inv, "bmag_inv.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->bmag_inv_sq, "bmag_inv_sq.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->gxxj, "gxxj.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->gxyj,  "gxyj.gkyl");
-  gkyl_grid_sub_array_write(&hgeo->grid, &hgeo->range, hgeo->gyyj,  "gyyj.gkyl");
 
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
