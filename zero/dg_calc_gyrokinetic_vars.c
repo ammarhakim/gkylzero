@@ -87,7 +87,7 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_surf)) {
     return gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(up, conf_range, phase_range, phase_ext_range, 
-      Bstar_Bmag, phi, alpha_surf);
+      phi, Bstar_Bmag, alpha_surf);
   }
 #endif
   int pdim = up->pdim;
