@@ -407,6 +407,7 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .tokamak = true,
+    .geo_fromfile = false,
     .tok_rz_ctx = &inp,
 
     .tok_comp_ctx = &ginp,
