@@ -73,20 +73,20 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   // find source density at z = 0
   double source_density = 0;
   double source_floor = 1e-10;
-  if (x < x_source)
+  if (x > x_source)
      source_floor = 1e-2; // higher floor to left of source peak
   source_density = fmax(exp(-(x-x_source)*(x-x_source)/(2*lambda_source)*(2*lambda_source)), source_floor);
 
   // find source temp at z = 0
   double source_temp = 0;
   double eV = GKYL_ELEMENTARY_CHARGE;
-  if (x < x_source + 3*lambda_source)
+  if (x > x_source - 3*lambda_source)
      source_temp = 80*eV;
   else
      source_temp = 30*eV;
 
   // now compute initial desity
-  double effective_source = fmax(source_density, floor);
+  double effective_source = 2.11e+23*fmax(source_density, floor);
   double c_ss = sqrt(5.0/3.0*source_temp/app->massIon);
   double n_peak = 4*sqrt(5)/3/c_ss*Ls*effective_source/2;
   double perturb = 0;
@@ -110,7 +110,7 @@ eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double lambda_source = app->lambda_source;
   double x_source = app->x_source;
   double eV = GKYL_ELEMENTARY_CHARGE;
-  if (x < x_source + 3*lambda_source)
+  if (x > x_source - 3*lambda_source)
      fout[0] = 50*eV;
   else
      fout[0] = 20*eV;
@@ -124,7 +124,7 @@ eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double lambda_source = app->lambda_source;
   double x_source = app->x_source;
   double eV = GKYL_ELEMENTARY_CHARGE;
-  if (x < x_source + 3*lambda_source)
+  if (x > x_source - 3*lambda_source)
      fout[0] = 50*eV;
   else
      fout[0] = 20*eV;
@@ -139,12 +139,12 @@ eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_REST
   double x_source = app->x_source;
   double Lz = app->Lz;
   double source_floor = 1e-10;
-  if (x < x_source)
+  if (x > x_source)
      source_floor = 1e-2; // higher floor to left of source peak
   if (fabs(z) < Lz/4)
-     fout[0] = fmax(exp(-(x-x_source)*(x-x_source)/(2*lambda_source)*(2*lambda_source)), source_floor);
+     fout[0] = 3.800419e+23*fmax(exp(-(x-x_source)*(x-x_source)/(2*lambda_source)*(2*lambda_source)), source_floor);
   else
-     fout[0] = 1e-40;
+     fout[0] = 3.800419e+23*1e-40;
 }
 
 void
@@ -161,7 +161,7 @@ eval_temp_elc_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
   double lambda_source = app->lambda_source;
   double x_source = app->x_source;
   double eV = GKYL_ELEMENTARY_CHARGE;
-  if (x < x_source + 3*lambda_source)
+  if (x > x_source - 3*lambda_source)
      fout[0] = 80*eV;
   else
      fout[0] = 30*eV;
@@ -175,7 +175,7 @@ eval_temp_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
   double lambda_source = app->lambda_source;
   double x_source = app->x_source;
   double eV = GKYL_ELEMENTARY_CHARGE;
-  if (x < x_source + 3*lambda_source)
+  if (x > x_source - 3*lambda_source)
      fout[0] = 80*eV;
   else
      fout[0] = 30*eV;
@@ -241,8 +241,8 @@ create_ctx(void)
   double Lz = 3.14*2;
 
   // Source parameters.
-  double lambda_source = 0.07;
-  double x_source = 0.03*Lx;
+  double x_source = -0.07;
+  double lambda_source = 0.03*Lx;
 
   // Velocity Grid
   double vpar_max_elc = 4.0*vtElc;
