@@ -51,8 +51,8 @@ struct gkyl_tok_geo_inp inp = {
 struct gkyl_tok_geo_geo_inp ginp = {
   .ftype = GKYL_SOL_DN_OUT,
   .rclose = 3.0, // any number larger than ~2 will do
-  .zmin = -1.4,
-  .zmax = 1.4,
+  .zmin = -1.5,
+  .zmax = 1.5,
   .write_node_coord_array = true,
   .node_file_nm = "solovev_nodes.gkyl"
 }; 
@@ -75,7 +75,7 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double source_floor = 1e-10;
   if (x > x_source)
      source_floor = 1e-2; // higher floor to left of source peak
-  source_density = fmax(exp(-(x-x_source)*(x-x_source)/(2*lambda_source)*(2*lambda_source)), source_floor);
+  source_density = fmax(exp(-(x-x_source)*(x-x_source)/((2*lambda_source)*(2*lambda_source))), source_floor);
 
   // find source temp at z = 0
   double source_temp = 0;
@@ -86,7 +86,7 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
      source_temp = 30*eV;
 
   // now compute initial desity
-  double effective_source = 2.11e+23*fmax(source_density, floor);
+  double effective_source = 3.800419e+23*fmax(source_density, floor);
   double c_ss = sqrt(5.0/3.0*source_temp/app->massIon);
   double n_peak = 4*sqrt(5)/3/c_ss*Ls*effective_source/2;
   double perturb = 0;
@@ -142,7 +142,7 @@ eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_REST
   if (x > x_source)
      source_floor = 1e-2; // higher floor to left of source peak
   if (fabs(z) < Lz/4)
-     fout[0] = 3.800419e+23*fmax(exp(-(x-x_source)*(x-x_source)/(2*lambda_source)*(2*lambda_source)), source_floor);
+     fout[0] = 3.800419e+23*fmax(exp(-(x-x_source)*(x-x_source)/((2*lambda_source)*(2*lambda_source))), source_floor);
   else
      fout[0] = 3.800419e+23*1e-40;
 }
@@ -397,7 +397,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_solovev_cart_3x2v_p1",
+    .name = "gk_solovev_out_3x2v_p1",
 
     .cdim = 3, .vdim = 2,
     .lower = { -0.08, -ctx.Ly/2.0, -ctx.Lz/2.0 },
