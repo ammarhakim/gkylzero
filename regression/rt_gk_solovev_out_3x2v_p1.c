@@ -324,7 +324,6 @@ main(int argc, char **argv)
     .init_upar= eval_upar,
 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
 
     .collisions =  {
@@ -364,7 +363,6 @@ main(int argc, char **argv)
     .init_upar = eval_upar,
 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
 
     .collisions =  {
@@ -392,8 +390,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
-                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
+                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
                     .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
   };
 
@@ -413,8 +411,8 @@ main(int argc, char **argv)
 
     .tok_comp_ctx = &ginp,
 
-    .num_periodic_dir = 0,
-    .periodic_dirs = { },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 1 },
 
     .num_species = 2,
     .species = { elc, ion },
