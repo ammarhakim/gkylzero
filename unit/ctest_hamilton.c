@@ -11,19 +11,19 @@
 // Define a function pointer type for the derivative function
 static const double h[8] = {0.0, 0.0562625605369221464656521910318, 0.180240691736892364987579942780, 0.352624717113169637373907769648, 0.547153626330555383001448554766, 0.734210177215410531523210605558, 0.885320946839095768090359771030, 0.977520613561287501891174488626};
 
-void dyds_circ(double t, const double *xn, double *fout, void *ctx)
-{
-    *fout = xn[0];
-}
-
 void dxds_circ(double t, const double *xn, double *fout, void *ctx)
 {
     *fout = -xn[1];
 }
 
-void dyds_double_circ(double t, const double *xn, double *fout, void *ctx)
+void dyds_circ(double t, const double *xn, double *fout, void *ctx)
 {
-    *fout = 2 * xn[0];
+    *fout = xn[0];
+}
+
+void dzds_circ(double t, const double *xn, double *fout, void *ctx)
+{
+    *fout = 0.0;
 }
 
 void dxds_double_circ(double t, const double *xn, double *fout, void *ctx)
@@ -31,15 +31,46 @@ void dxds_double_circ(double t, const double *xn, double *fout, void *ctx)
     *fout = -2 * xn[1];
 }
 
-void dyds_hyperbola(double t, const double *xn, double *fout, void *ctx)
+void dyds_double_circ(double t, const double *xn, double *fout, void *ctx)
 {
-    *fout = xn[0];
+    *fout = 2 * xn[0];
+}
+
+void dzds_double_circ(double t, const double *xn, double *fout, void *ctx)
+{
+    *fout = 0.0;
 }
 
 void dxds_hyperbola(double t, const double *xn, double *fout, void *ctx)
 {
     *fout = xn[1];
 }
+
+void dyds_hyperbola(double t, const double *xn, double *fout, void *ctx)
+{
+    *fout = xn[0];
+}
+
+void dzds_hyperbola(double t, const double *xn, double *fout, void *ctx)
+{
+    *fout = 0.0;
+}
+
+void dxds_circz(double t, const double *xn, double *fout, void *ctx)
+{
+    *fout = 0.0;
+}
+
+void dyds_circz(double t, const double *xn, double *fout, void *ctx)
+{
+    *fout = -xn[2];
+}   
+
+void dzds_circz(double t, const double *xn, double *fout, void *ctx)
+{
+    *fout = xn[1];
+}
+
 
 void test_1()
 {
@@ -165,7 +196,7 @@ void test_5()
         xi[0] = x_trace[(i - 1) * 3 + 0];
         xi[1] = x_trace[(i - 1) * 3 + 1];
         xi[2] = x_trace[(i - 1) * 3 + 2];
-        push(xf, Bn, t, xi, ctx, ds, dxds_circ, dyds_circ);
+        push(xf, Bn, t, xi, ctx, ds, dxds_circ, dyds_circ, dzds_circ);
         x_trace[i * 3 + 0] = xf[0];
         x_trace[i * 3 + 1] = xf[1];
         x_trace[i * 3 + 2] = xf[2];
@@ -195,7 +226,7 @@ void test_6()
         xi[0] = x_trace[(i - 1) * 3 + 0];
         xi[1] = x_trace[(i - 1) * 3 + 1];
         xi[2] = x_trace[(i - 1) * 3 + 2];
-        push(xf, Bn, t, xi, ctx, ds, dxds_double_circ, dyds_double_circ);
+        push(xf, Bn, t, xi, ctx, ds, dxds_double_circ, dyds_double_circ, dzds_double_circ);
         x_trace[i * 3 + 0] = xf[0];
         x_trace[i * 3 + 1] = xf[1];
         x_trace[i * 3 + 2] = xf[2];
@@ -224,7 +255,7 @@ void test_7()
         xi[0] = x_trace[(i - 1) * 3 + 0];
         xi[1] = x_trace[(i - 1) * 3 + 1];
         xi[2] = x_trace[(i - 1) * 3 + 2];
-        push(xf, Bn, t, xi, ctx, ds, dxds_circ, dyds_circ);
+        push(xf, Bn, t, xi, ctx, ds, dxds_circ, dyds_circ, dzds_circ);
         x_trace[i * 3 + 0] = xf[0];
         x_trace[i * 3 + 1] = xf[1];
         x_trace[i * 3 + 2] = xf[2];
@@ -253,7 +284,7 @@ void test_8()
         xi[0] = x_trace[(i - 1) * 3 + 0];
         xi[1] = x_trace[(i - 1) * 3 + 1];
         xi[2] = x_trace[(i - 1) * 3 + 2];
-        push(xf, Bn, t, xi, ctx, ds, dxds_hyperbola, dyds_hyperbola);
+        push(xf, Bn, t, xi, ctx, ds, dxds_hyperbola, dyds_hyperbola, dzds_hyperbola);
         x_trace[i * 3 + 0] = xf[0];
         x_trace[i * 3 + 1] = xf[1];
         x_trace[i * 3 + 2] = xf[2];
@@ -271,7 +302,7 @@ void test_9()
     int nSteps = 30;
     double t = 0;
     void *ctx = NULL;
-    trace(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, nSteps);
+    trace(xf, dxds_circ, dyds_circ, dzds_circ, t, xi, ctx, s_final, nSteps);
     assert(fabs(xf[0] + 1) < 1e-8);
     assert(fabs(xf[1]) < 1e-8);
 }
@@ -284,7 +315,7 @@ void test_10()
     int nSteps = 30;
     double t = 0;
     void *ctx = NULL;
-    trace(xf, dxds_double_circ, dyds_double_circ, t, xi, ctx, s_final, nSteps);
+    trace(xf, dxds_double_circ, dyds_double_circ, dzds_double_circ, t, xi, ctx, s_final, nSteps);
     assert(fabs(xf[0] + 1) < 1e-8);
     assert(fabs(xf[1]) < 1e-8);
 }
@@ -297,7 +328,7 @@ void test_11()
     int nSteps = 30;
     double t = 0;
     void *ctx = NULL;
-    trace(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, nSteps);
+    trace(xf, dxds_circ, dyds_circ, dzds_circ, t, xi, ctx, s_final, nSteps);
     assert(fabs(xf[0]) < 1e-8);
     assert(fabs(xf[1] - 2) < 1e-8);
 }
@@ -310,7 +341,7 @@ void test_12()
     int nSteps = 30;
     double t = 0;
     void *ctx = NULL;
-    trace(xf, dxds_hyperbola, dyds_hyperbola, t, xi, ctx, s_final, nSteps);
+    trace(xf, dxds_hyperbola, dyds_hyperbola, dzds_hyperbola, t, xi, ctx, s_final, nSteps);
     assert(fabs(xf[0] - 2.7401066200785826) < 1e-8);
     assert(fabs(xf[1] - 2.551114323075012) < 1e-8);
 }
@@ -324,7 +355,7 @@ void test_13()
     int max_steps = 3000;
     double t = 0;
     void *ctx = NULL;
-    trace_adaptive(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, max_steps);
+    trace_adaptive(xf, dxds_circ, dyds_circ, dzds_circ, t, xi, ctx, s_final, max_steps);
     assert(fabs(xf[0] + 1) < 1e-8);
     assert(fabs(xf[1]) < 1e-8);
 }
@@ -337,7 +368,7 @@ void test_14()
     int max_steps = 3000;
     double t = 0;
     void *ctx = NULL;
-    trace_adaptive(xf, dxds_double_circ, dyds_double_circ, t, xi, ctx, s_final, max_steps);
+    trace_adaptive(xf, dxds_double_circ, dyds_double_circ, dzds_double_circ, t, xi, ctx, s_final, max_steps);
     assert(fabs(xf[0] + 1) < 1e-8);
     assert(fabs(xf[1]) < 1e-8);
 }
@@ -350,7 +381,7 @@ void test_15()
     int max_steps = 3000;
     double t = 0;
     void *ctx = NULL;
-    trace_adaptive(xf, dxds_circ, dyds_circ, t, xi, ctx, s_final, max_steps);
+    trace_adaptive(xf, dxds_circ, dyds_circ, dzds_circ, t, xi, ctx, s_final, max_steps);
     assert(fabs(xf[0]) < 1e-8);
     assert(fabs(xf[1] - 2) < 1e-8);
 }
@@ -363,9 +394,23 @@ void test_16()
     int max_steps = 3000;
     double t = 0;
     void *ctx = NULL;
-    trace_adaptive(xf, dxds_hyperbola, dyds_hyperbola, t, xi, ctx, s_final, max_steps);
+    trace_adaptive(xf, dxds_hyperbola, dyds_hyperbola, dzds_hyperbola, t, xi, ctx, s_final, max_steps);
     assert(fabs(xf[0] - 2.7401066200785826) < 1e-8);
     assert(fabs(xf[1] - 2.551114323075012) < 1e-8);
+}
+
+// Test the 3D implementation with a circle in the y-z plane
+void test_17()
+{
+    double xi[3] = {0, 1, 0};
+    double xf[3];
+    double s_final = M_PI;
+    int max_steps = 3000;
+    double t = 0;
+    void *ctx = NULL;
+    trace_adaptive(xf, dxds_circz, dyds_circz, dzds_circz, t, xi, ctx, s_final, max_steps);
+    assert(fabs(xf[1] + 1) < 1e-8);
+    assert(fabs(xf[2]) < 1e-8);
 }
 
 
@@ -403,5 +448,7 @@ int main()
     printf("Test 15 passed\n");
     test_16();
     printf("Test 16 passed\n");
+    test_17();
+    printf("Test 17 passed\n");
     return 0;
 }

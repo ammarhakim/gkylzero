@@ -19,33 +19,55 @@ static const double c[21] = {-0.0562625605369221464656522, 0.0101408028300636299
 typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
 
 static void
-func_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, evalf_t gunc)
+func_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, evalf_t gunc, evalf_t hunc)
 {
     double *func_out = malloc(sizeof(double));
     double *gunc_out = malloc(sizeof(double));
+    double *hunc_out = malloc(sizeof(double));
     func(t, xn, func_out, ctx);
     gunc(t, xn, gunc_out, ctx);
-    double norm = sqrt(*func_out * *func_out + *gunc_out * *gunc_out);
+    hunc(t, xn, hunc_out, ctx);
+    double norm = sqrt(*func_out * *func_out + *gunc_out * *gunc_out + *hunc_out * *hunc_out);
     *fout = *func_out / norm;
     free(func_out);
     free(gunc_out);
+    free(hunc_out);
 }
 
 static void
-gunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, evalf_t gunc)
+gunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, evalf_t gunc, evalf_t hunc)
 {
     double *func_out = malloc(sizeof(double));
     double *gunc_out = malloc(sizeof(double));
+    double *hunc_out = malloc(sizeof(double));
     func(t, xn, func_out, ctx);
     gunc(t, xn, gunc_out, ctx);
-    double norm = sqrt(*func_out * *func_out + *gunc_out * *gunc_out);
+    hunc(t, xn, hunc_out, ctx);
+    double norm = sqrt(*func_out * *func_out + *gunc_out * *gunc_out + *hunc_out * *hunc_out);
     *fout = *gunc_out / norm;
     free(func_out);
     free(gunc_out);
+    free(hunc_out);
+}
+
+static void
+hunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, evalf_t gunc, evalf_t hunc)
+{
+    double *func_out = malloc(sizeof(double));
+    double *gunc_out = malloc(sizeof(double));
+    double *hunc_out = malloc(sizeof(double));
+    func(t, xn, func_out, ctx);
+    gunc(t, xn, gunc_out, ctx);
+    hunc(t, xn, hunc_out, ctx);
+    double norm = sqrt(*func_out * *func_out + *gunc_out * *gunc_out + *hunc_out * *hunc_out);
+    *fout = *hunc_out / norm;
+    free(func_out);
+    free(gunc_out);
+    free(hunc_out);
 }
 
 void 
-trace_adaptive(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, void *ctx, double end, int max_steps)
+trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, double t, double *xi, void *ctx, double end, int max_steps)
 {
     double ds = end;
     double Bn[21] = {0};
@@ -59,7 +81,7 @@ trace_adaptive(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, voi
     double s = 0;
     while (1)
     {
-        push(xf, Bn, t, xtmp, ctx, ds, func, gunc);
+        push(xf, Bn, t, xtmp, ctx, ds, func, gunc, hunc);
         double last_B_sum = pow(fabs(Bn[6]), 1.0 / 7.0) + pow(fabs(Bn[13]), 1.0 / 7.0) + pow(fabs(Bn[20]), 1.0 / 7.0);
         int too_much_error = last_B_sum > epsilon;
         int large_enough_steps = ds > min_step;
@@ -93,7 +115,7 @@ trace_adaptive(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, voi
 }
 
 void 
-trace(double *xf, evalf_t func, evalf_t gunc,
+trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
            double t, double *xi, void *ctx, double L, int N)
 {
     double ds = L / N;
@@ -104,7 +126,7 @@ trace(double *xf, evalf_t func, evalf_t gunc,
     xtmp[2] = xi[2];
     for (int i = 1; i <= N; i++)
     {
-        push(xf, Bn, t, xtmp, ctx, ds, func, gunc);
+        push(xf, Bn, t, xtmp, ctx, ds, func, gunc, hunc);
         xtmp[0] = xf[0];
         xtmp[1] = xf[1];
         xtmp[2] = xf[2];
@@ -113,7 +135,7 @@ trace(double *xf, evalf_t func, evalf_t gunc,
 
 void 
 push(double *xf, double *Bn,
-          double t, double *xi, void *ctx, double ds, evalf_t func, evalf_t gunc)
+          double t, double *xi, void *ctx, double ds, evalf_t func, evalf_t gunc, evalf_t hunc)
 {
     int len_hF = 8;
     int len_BG = 7;
@@ -124,8 +146,8 @@ push(double *xf, double *Bn,
     double total_diff;
     for (int i = 0; i < 20; i++)
     {
-        calculate_node_positions(xh, Bn, t, xi, func, gunc, ds, h, ctx, len_hF);
-        calculate_derivatives(Fn, func, gunc, t, xh, ctx, len_hF);
+        calculate_node_positions(xh, Bn, t, xi, func, gunc, hunc, ds, h, ctx, len_hF);
+        calculate_derivatives(Fn, func, gunc, hunc, t, xh, ctx, len_hF);
         calculate_Gn_from_Fn(Gn, Fn, 3);
         calculate_Bn_from_Gn(Bf, Gn, 3);
         total_diff = 0;
@@ -140,7 +162,7 @@ push(double *xf, double *Bn,
         }
     }
     double hf = 1.0;
-    calculate_node_positions(xf, Bn, t, xi, func, gunc, ds, &hf, ctx, 1);
+    calculate_node_positions(xf, Bn, t, xi, func, gunc, hunc, ds, &hf, ctx, 1);
     free(xh);
     free(Fn);
     free(Gn);
@@ -148,13 +170,15 @@ push(double *xf, double *Bn,
 
 void 
 calculate_node_positions(double *xh, double *Bn,
-                              double t, double *xni, evalf_t func, evalf_t gunc,
+                              double t, double *xni, evalf_t func, evalf_t gunc, evalf_t hunc,
                               double ds, const double *hp, void *ctx, int len)
 {
     double *F1x = malloc(sizeof(double));
     double *F1y = malloc(sizeof(double));
-    func_norm(t, xni, F1x, ctx, func, gunc);
-    gunc_norm(t, xni, F1y, ctx, func, gunc);
+    double *F1z = malloc(sizeof(double));
+    func_norm(t, xni, F1x, ctx, func, gunc, hunc);
+    gunc_norm(t, xni, F1y, ctx, func, gunc, hunc);
+    hunc_norm(t, xni, F1z, ctx, func, gunc, hunc);
     for (int n = 0; n < len; n++)
     {
         int i = 0;
@@ -162,27 +186,32 @@ calculate_node_positions(double *xh, double *Bn,
         i = 1;
         xh[n * 3 + i] = xni[i] + hp[n] * ds * (*F1y + hp[n] * 1 / 2 * (Bn[0 + 7 * i] + hp[n] * 2 / 3 * (Bn[1 + 7 * i] + hp[n] * 3 / 4 * (Bn[2 + 7 * i] + hp[n] * 4 / 5 * (Bn[3 + 7 * i] + hp[n] * 5 / 6 * (Bn[4 + 7 * i] + hp[n] * 6 / 7 * (Bn[5 + 7 * i] + hp[n] * 7 / 8 * Bn[6 + 7 * i])))))));
         i = 2;
-        xh[n * 3 + i] = xni[i] + hp[n] * ds * (0 + hp[n] * 1 / 2 * (Bn[0 + 7 * i] + hp[n] * 2 / 3 * (Bn[1 + 7 * i] + hp[n] * 3 / 4 * (Bn[2 + 7 * i] + hp[n] * 4 / 5 * (Bn[3 + 7 * i] + hp[n] * 5 / 6 * (Bn[4 + 7 * i] + hp[n] * 6 / 7 * (Bn[5 + 7 * i] + hp[n] * 7 / 8 * Bn[6 + 7 * i])))))));
+        xh[n * 3 + i] = xni[i] + hp[n] * ds * (*F1z + hp[n] * 1 / 2 * (Bn[0 + 7 * i] + hp[n] * 2 / 3 * (Bn[1 + 7 * i] + hp[n] * 3 / 4 * (Bn[2 + 7 * i] + hp[n] * 4 / 5 * (Bn[3 + 7 * i] + hp[n] * 5 / 6 * (Bn[4 + 7 * i] + hp[n] * 6 / 7 * (Bn[5 + 7 * i] + hp[n] * 7 / 8 * Bn[6 + 7 * i])))))));
     }
     free(F1x);
     free(F1y);
+    free(F1z);
 }
 
 void 
-calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc,
+calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc, evalf_t hunc,
                            double t, double *xn, void *ctx, int len)
 {
     double *func_out = malloc(sizeof(double));
     double *gunc_out = malloc(sizeof(double));
+    double *hunc_out = malloc(sizeof(double));
     for (int i = 0; i < len; i++)
     {
-        func_norm(t, &xn[i * 3], func_out, ctx, func, gunc);
-        gunc_norm(t, &xn[i * 3], gunc_out, ctx, func, gunc);
+        func_norm(t, &xn[i * 3], func_out, ctx, func, gunc, hunc);
+        gunc_norm(t, &xn[i * 3], gunc_out, ctx, func, gunc, hunc);
+        hunc_norm(t, &xn[i * 3], hunc_out, ctx, func, gunc, hunc);
         Fn[0 + i] = *func_out;
         Fn[8 + i] = *gunc_out;
+        Fn[16 + i] = *hunc_out;
     }
     free(func_out);
     free(gunc_out);
+    free(hunc_out);
 }
 
 void 
