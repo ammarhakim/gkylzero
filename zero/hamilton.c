@@ -60,7 +60,7 @@ trace_adaptive(double *xf, evalf_t func, evalf_t gunc, double t, double *xi, voi
     while (1)
     {
         push(xf, Bn, t, xtmp, ctx, ds, func, gunc);
-        double last_B_sum = pow(fabs(Bn[6]), 1.0 / 7.0) + pow(fabs(Bn[13]), 1.0 / 7.0) + pow(fabs(Bn[22]), 1.0 / 7.0);
+        double last_B_sum = pow(fabs(Bn[6]), 1.0 / 7.0) + pow(fabs(Bn[13]), 1.0 / 7.0) + pow(fabs(Bn[20]), 1.0 / 7.0);
         int too_much_error = last_B_sum > epsilon;
         int large_enough_steps = ds > min_step;
         if (too_much_error && large_enough_steps)
@@ -120,12 +120,24 @@ push(double *xf, double *Bn,
     double *xh = malloc(sizeof(double[3 * len_hF]));
     double *Fn = malloc(sizeof(double[3 * len_hF]));
     double *Gn = malloc(sizeof(double[3 * len_BG]));
-    for (int i = 0; i < 12; i++)
+    double Bf[21] = {0};
+    double total_diff;
+    for (int i = 0; i < 20; i++)
     {
         calculate_node_positions(xh, Bn, t, xi, func, gunc, ds, h, ctx, len_hF);
         calculate_derivatives(Fn, func, gunc, t, xh, ctx, len_hF);
         calculate_Gn_from_Fn(Gn, Fn, 3);
-        calculate_Bn_from_Gn(Bn, Gn, 3);
+        calculate_Bn_from_Gn(Bf, Gn, 3);
+        total_diff = 0;
+        for (int j = 0; j < 21; j++)
+        {
+            total_diff += pow(fabs(Bf[j] - Bn[j]),2);
+            Bn[j] = Bf[j];
+        }
+        if (total_diff < 1e-16)
+        {
+            break;
+        }
     }
     double hf = 1.0;
     calculate_node_positions(xf, Bn, t, xi, func, gunc, ds, &hf, ctx, 1);
