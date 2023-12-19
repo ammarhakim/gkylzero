@@ -31,6 +31,15 @@
          _break;                                                        \
          _break = false, _isfun ? 0 : lua_pop(L, 1))
 
+// Check and fetch user-data based on metatable name
+#define GKYL_CHECK_UDATA(L, mnm) luaL_checkudata(L, 1, mnm)
+
+// For debugging top of stack
+#define gkyl_lua_trace_stack_top(L, fnm) do { \
+      fprintf(stdout, "Inside function %s\n", fnm);                              \
+      fprintf(stdout, "--> Top of stack is %s\n", lua_typename(L, lua_type(L, -1))); \
+    } while (0);
+
 /**
  * Get length of object on top of stack. (Table size, string length
  * and memory allocated)

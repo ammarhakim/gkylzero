@@ -1,5 +1,3 @@
-#include "gkyl_moment.h"
-#include "gkyl_util.h"
 #include <acutest.h>
 
 #include <gkyl_alloc.h>
