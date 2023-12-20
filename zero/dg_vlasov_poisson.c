@@ -50,6 +50,7 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
 #endif
   struct dg_vlasov_poisson *vlasov = gkyl_malloc(sizeof(struct dg_vlasov_poisson));
 
+  bool uniformv = vmap == NULL;
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
@@ -76,31 +77,59 @@ gkyl_dg_vlasov_poisson_new(const struct gkyl_basis* cbasis, const struct gkyl_ba
   
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      surf_x_kernels = ser_poisson_stream_surf_x_kernels;
-      surf_y_kernels = ser_poisson_stream_surf_y_kernels;
-      surf_z_kernels = ser_poisson_stream_surf_z_kernels;
-
-      if (field_id == GKYL_FIELD_PHI) {
-        vol_kernels = ser_poisson_vol_kernels;
-        surf_vx_kernels = ser_poisson_accel_surf_vx_kernels;
-        surf_vy_kernels = ser_poisson_accel_surf_vy_kernels;
-        surf_vz_kernels = ser_poisson_accel_surf_vz_kernels;
-        boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_kernels;
-        boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_kernels;
-        boundary_surf_vz_kernels = ser_poisson_accel_boundary_surf_vz_kernels;
+      if (uniformv) {
+        surf_x_kernels = ser_poisson_stream_surf_x_kernels;
+        surf_y_kernels = ser_poisson_stream_surf_y_kernels;
+        surf_z_kernels = ser_poisson_stream_surf_z_kernels;
+  
+        if (field_id == GKYL_FIELD_PHI) {
+          vol_kernels = ser_poisson_vol_kernels;
+          surf_vx_kernels = ser_poisson_accel_surf_vx_kernels;
+          surf_vy_kernels = ser_poisson_accel_surf_vy_kernels;
+          surf_vz_kernels = ser_poisson_accel_surf_vz_kernels;
+          boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_kernels;
+          boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_kernels;
+          boundary_surf_vz_kernels = ser_poisson_accel_boundary_surf_vz_kernels;
+        } else {
+          vol_kernels = ser_poisson_extem_vol_kernels;
+          surf_vx_kernels = ser_poisson_accel_extem_surf_vx_kernels;
+          surf_vy_kernels = ser_poisson_accel_extem_surf_vy_kernels;
+          surf_vz_kernels = ser_poisson_accel_extem_surf_vz_kernels;
+          boundary_surf_vx_kernels = ser_poisson_accel_extem_boundary_surf_vx_kernels;
+          boundary_surf_vy_kernels = ser_poisson_accel_extem_boundary_surf_vy_kernels;
+          boundary_surf_vz_kernels = ser_poisson_accel_extem_boundary_surf_vz_kernels;
+        }
+  
+        boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
+        boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
+        boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
       } else {
-        vol_kernels = ser_poisson_extem_vol_kernels;
-        surf_vx_kernels = ser_poisson_accel_extem_surf_vx_kernels;
-        surf_vy_kernels = ser_poisson_accel_extem_surf_vy_kernels;
-        surf_vz_kernels = ser_poisson_accel_extem_surf_vz_kernels;
-        boundary_surf_vx_kernels = ser_poisson_accel_extem_boundary_surf_vx_kernels;
-        boundary_surf_vy_kernels = ser_poisson_accel_extem_boundary_surf_vy_kernels;
-        boundary_surf_vz_kernels = ser_poisson_accel_extem_boundary_surf_vz_kernels;
-      }
+        surf_x_kernels = ser_poisson_stream_surf_x_nonuniformv_kernels;
+        surf_y_kernels = ser_poisson_stream_surf_y_nonuniformv_kernels;
+        surf_z_kernels = ser_poisson_stream_surf_z_nonuniformv_kernels;
 
-      boundary_surf_x_kernels = ser_stream_boundary_surf_x_kernels;
-      boundary_surf_y_kernels = ser_stream_boundary_surf_y_kernels;
-      boundary_surf_z_kernels = ser_stream_boundary_surf_z_kernels;
+        if (field_id == GKYL_FIELD_PHI) {
+          vol_kernels = ser_poisson_vol_nonuniformv_kernels;
+          surf_vx_kernels = ser_poisson_accel_surf_vx_nonuniformv_kernels;
+          surf_vy_kernels = ser_poisson_accel_surf_vy_nonuniformv_kernels;
+          surf_vz_kernels = ser_poisson_accel_surf_vz_nonuniformv_kernels;
+          boundary_surf_vx_kernels = ser_poisson_accel_boundary_surf_vx_nonuniformv_kernels;
+          boundary_surf_vy_kernels = ser_poisson_accel_boundary_surf_vy_nonuniformv_kernels;
+          boundary_surf_vz_kernels = ser_poisson_accel_boundary_surf_vz_nonuniformv_kernels;
+        } else {
+          vol_kernels = ser_poisson_extem_vol_nonuniformv_kernels;
+          surf_vx_kernels = ser_poisson_accel_extem_surf_vx_nonuniformv_kernels;
+          surf_vy_kernels = ser_poisson_accel_extem_surf_vy_nonuniformv_kernels;
+          surf_vz_kernels = ser_poisson_accel_extem_surf_vz_nonuniformv_kernels;
+          boundary_surf_vx_kernels = ser_poisson_accel_extem_boundary_surf_vx_nonuniformv_kernels;
+          boundary_surf_vy_kernels = ser_poisson_accel_extem_boundary_surf_vy_nonuniformv_kernels;
+          boundary_surf_vz_kernels = ser_poisson_accel_extem_boundary_surf_vz_nonuniformv_kernels;
+        }
+
+        boundary_surf_x_kernels = ser_stream_boundary_surf_x_nonuniformv_kernels;
+        boundary_surf_y_kernels = ser_stream_boundary_surf_y_nonuniformv_kernels;
+        boundary_surf_z_kernels = ser_stream_boundary_surf_z_nonuniformv_kernels;
+      };
       
       break;
 
