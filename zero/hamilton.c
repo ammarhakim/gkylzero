@@ -66,8 +66,7 @@ hunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, eva
     free(hunc_out);
 }
 
-void 
-trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, double t, double *xi, void *ctx, double end, int max_steps)
+void trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, double t, double *xi, void *ctx, double end, int max_steps)
 {
     double ds = end;
     double Bn[21] = {0};
@@ -83,6 +82,11 @@ trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, double t, d
     {
         push(xf, Bn, t, xtmp, ctx, ds, func, gunc, hunc);
         double last_B_sum = pow(fabs(Bn[6]), 1.0 / 7.0) + pow(fabs(Bn[13]), 1.0 / 7.0) + pow(fabs(Bn[20]), 1.0 / 7.0);
+        if (isnan(last_B_sum))
+        {
+            ds = ds / 2;
+            continue;
+        }
         int too_much_error = last_B_sum > epsilon;
         int large_enough_steps = ds > min_step;
         if (too_much_error && large_enough_steps)
@@ -114,8 +118,7 @@ trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, double t, d
     }
 }
 
-void 
-trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
+void trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
            double t, double *xi, void *ctx, double L, int N)
 {
     double ds = L / N;
@@ -133,8 +136,7 @@ trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
     }
 }
 
-void 
-push(double *xf, double *Bn,
+void push(double *xf, double *Bn,
           double t, double *xi, void *ctx, double ds, evalf_t func, evalf_t gunc, evalf_t hunc)
 {
     int len_hF = 8;
@@ -153,7 +155,7 @@ push(double *xf, double *Bn,
         total_diff = 0;
         for (int j = 0; j < 21; j++)
         {
-            total_diff += pow(fabs(Bf[j] - Bn[j]),2);
+            total_diff += pow(fabs(Bf[j] - Bn[j]), 2);
             Bn[j] = Bf[j];
         }
         if (total_diff < 1e-16)
@@ -168,8 +170,7 @@ push(double *xf, double *Bn,
     free(Gn);
 }
 
-void 
-calculate_node_positions(double *xh, double *Bn,
+void calculate_node_positions(double *xh, double *Bn,
                               double t, double *xni, evalf_t func, evalf_t gunc, evalf_t hunc,
                               double ds, const double *hp, void *ctx, int len)
 {
@@ -193,8 +194,7 @@ calculate_node_positions(double *xh, double *Bn,
     free(F1z);
 }
 
-void 
-calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc, evalf_t hunc,
+void calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc, evalf_t hunc,
                            double t, double *xn, void *ctx, int len)
 {
     double *func_out = malloc(sizeof(double));
@@ -214,8 +214,7 @@ calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc, evalf_t hunc,
     free(hunc_out);
 }
 
-void 
-calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
+void calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
 {
     for (int i = 0; i < ndim; i++)
     {
@@ -229,8 +228,7 @@ calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
     }
 }
 
-void 
-calculate_Gn_from_Fn(double *G, double *F, int ndim)
+void calculate_Gn_from_Fn(double *G, double *F, int ndim)
 {
     for (int i = 0; i < ndim; i++)
     {
