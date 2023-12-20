@@ -14,6 +14,16 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
+static void
+gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
+{
+  // Create a 2D thread grid so we launch ncomp*range.volume number of threads and can parallelize over components too
+  dimBlock->y = ncomp;
+  dimGrid->y = 1;
+  dimBlock->x = range.nthreads;
+  dimGrid->x = range.nblocks;
+}
+
 __global__ void
 gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag_cu_kernel(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range, struct gkyl_array* Bstar_Bmag)
@@ -67,6 +77,9 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
   int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
 
+  // 2D thread grid
+  // linc2 = c where c is the component index (from 0 to cdim + 1)
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
       linc1 += gridDim.x*blockDim.x)
@@ -91,23 +104,26 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
 
     double* alpha_surf_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase);
     for (int dir = 0; dir<cdim+1; ++dir) {
-      up->alpha_surf[dir](xc, up->phase_grid.dx, up->charge, up->mass, 
-        bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, Bstar_Bmag_d, alpha_surf_d);
+      // Each thread in linc2 thread grid handles a different component
+      if (linc2 == dir) {
+        up->alpha_surf[dir](xc, up->phase_grid.dx, up->charge, up->mass, 
+          bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, Bstar_Bmag_d, alpha_surf_d);
 
-      // If the phase space index is at the local configuration space upper value, we
-      // we are at the configuration space upper edge and we also need to evaluate 
-      // alpha = +1 to avoid evaluating the geometry information in the ghost cells 
-      // where it is not defined when computing the final surface alpha we need
-      // (since the surface alpha array stores only the *lower* surface expansion)
-      if (dir < cdim && idx[dir] == conf_range.upper[dir]) {
-        gkyl_copy_int_arr(pdim, idx, idx_edge);
-        idx_edge[dir] = idx_edge[dir]+1;
-        long loc_phase_ext = gkyl_range_idx(&phase_ext_range, idx_edge);
+        // If the phase space index is at the local configuration space upper value, we
+        // we are at the configuration space upper edge and we also need to evaluate 
+        // alpha = +1 to avoid evaluating the geometry information in the ghost cells 
+        // where it is not defined when computing the final surface alpha we need
+        // (since the surface alpha array stores only the *lower* surface expansion)
+        if (dir < cdim && idx[dir] == conf_range.upper[dir]) {
+          gkyl_copy_int_arr(pdim, idx, idx_edge);
+          idx_edge[dir] = idx_edge[dir]+1;
+          long loc_phase_ext = gkyl_range_idx(&phase_ext_range, idx_edge);
 
-        double* alpha_surf_ext_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase_ext);
-        up->alpha_edge_surf[dir](xc, up->phase_grid.dx, up->charge, up->mass, 
-          bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, Bstar_Bmag_d, alpha_surf_ext_d); 
-      }  
+          double* alpha_surf_ext_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase_ext);
+          up->alpha_edge_surf[dir](xc, up->phase_grid.dx, up->charge, up->mass, 
+            bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, Bstar_Bmag_d, alpha_surf_ext_d); 
+        }  
+      }
     }
   }
 }
@@ -117,9 +133,9 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range, 
   const struct gkyl_array *phi, const struct gkyl_array *Bstar_Bmag, struct gkyl_array* alpha_surf)
 {
-  int nblocks = phase_range->nblocks;
-  int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
+  dim3 dimGrid, dimBlock;
+  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, up->cdim+1);
+  gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev, 
     *conf_range, *phase_range, *phase_ext_range, 
     phi->on_dev, Bstar_Bmag->on_dev, alpha_surf->on_dev);
 }
