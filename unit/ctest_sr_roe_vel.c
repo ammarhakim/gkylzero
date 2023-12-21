@@ -7,27 +7,15 @@ void
 calcq(const double c, const double pv[4], double q[4])
 {
   double rho = pv[0], u = pv[1], v = pv[2], w = pv[3];
-  double gamma = 1 / sqrt(1 - u*u - v*v - w*w);
+  double gamma = 1 / sqrt(1 + (- u*u - v*v - w*w)/(c*c));
   double rhoh = rho;
-  printf("v/c: %1.4e\n", sqrt(u*u + v*v + w*w) );
+  printf("v/c: %1.4e\n", sqrt(-(- u*u - v*v - w*w)/(c*c)) );
   
   q[0] = gamma*rho;
   q[1] = gamma*gamma*rhoh*u;
   q[2] = gamma*gamma*rhoh*v;
   q[3] = gamma*gamma*rhoh*w;
   
-}
-
-void
-cold_sr_fluid_flux_local_copy(const double q[4], double *flux)
-{
-  // Vx = NUx/sqrt(N^2 + NU^2/c^2) 
-  const double c = 1.0; 
-  double Vx = q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])/(c*c)); 
-  flux[0] = q[0]*Vx; // N*Vx
-  flux[NUX] = q[NUX]*Vx; // N*Ux*Vx
-  flux[NUY] = q[NUY]*Vx; // N*Uy*Vx
-  flux[NUZ] = q[NUZ]*Vx; // N*Uz*Vx
 }
 
 void
@@ -66,7 +54,7 @@ compute_flux_jacobian(double A1[4][4], double *u, double c)
 }
 
 void
-compute_approximated_jacobian(double A1[4][4], double ql[4], double qr[4], double c)
+compute_approximated_jacobian_c_0(double A1[4][4], double ql[4], double qr[4], double c)
 {
   // isolate left and right states
   double rhor = qr[0];
@@ -122,6 +110,64 @@ compute_approximated_jacobian(double A1[4][4], double ql[4], double qr[4], doubl
 }
 
 
+void
+compute_approximated_jacobian(double A[4][4], double ql[4], double qr[4], double c)
+{
+  // isolate left and right states
+  double rhor = qr[0];
+  double urx = qr[1]/(qr[0]);
+  double ury = qr[2]/(qr[0]);
+  double urz = qr[3]/(qr[0]);
+  double rhol = ql[0];
+  double ulx = ql[1]/(ql[0]);
+  double uly = ql[2]/(ql[0]);
+  double ulz = ql[3]/(ql[0]);
+
+  // compute the constants:
+  double gammal = sqrt(1.0 + (ulx*ulx + uly*uly + ulz*ulz)/(c*c));
+  double gammar = sqrt(1.0 + (urx*urx + ury*ury + urz*urz)/(c*c));
+  double vlx = ulx/gammal;
+  double vrx = urx/gammar;
+  double vly = uly/gammal;
+  double vry = ury/gammar;
+  double vlz = ulz/gammal;
+  double vrz = urz/gammar;
+
+  // Primative rho
+  double rhol_prim = rhol/gammal;
+  double rhor_prim = rhor/gammar;
+
+  // Compute the primative-parameterization state vector w
+  // these are the averages of the left and right states
+  double k = (sqrt(rhol_prim) + sqrt(rhor_prim))/(c);
+  double w0 = sqrt(rhol_prim)*gammal + sqrt(rhor_prim)*gammar;
+  double w1 = sqrt(rhol_prim)*gammal*vlx/c + sqrt(rhor_prim)*gammar*vrx/c;
+  double w2 = sqrt(rhol_prim)*gammal*vly/c + sqrt(rhor_prim)*gammar*vry/c;
+  double w3 = sqrt(rhol_prim)*gammal*vlz/c + sqrt(rhor_prim)*gammar*vrz/c;
+
+  A[0][0] = (c * w1 * (-c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3)) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[0][1] = (c * k * (c * c * k * k + w0 * w0 - w1 * w1 + w2 * w2 + w3 * w3)) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[0][2] = -(2 * c * k * w1 * w2) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[0][3] = -(2 * c * k * w1 * w3) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+
+  A[1][0] = -(2 * c * c * c * k * w1 * w1) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[1][1] = (2 * c * w1 * (c * c * k * k + w0 * w0 + w2 * w2 + w3 * w3)) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[1][2] = -(2 * c * w1 * w1 * w2) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[1][3] = -(2 * c * w1 * w1 * w3) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+
+  A[2][0] = -(2 * c * c * c * k * w1 * w2) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[2][1] = (c * w2 * (c * c * k * k + w0 * w0 - w1 * w1 + w2 * w2 + w3 * w3)) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[2][2] = (c * w1 * (c * c * k * k + w0 * w0 + w1 * w1 - w2 * w2 + w3 * w3)) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[2][3] = -(2 * c * w1 * w2 * w3) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+
+  A[3][0] = -(2 * c * c * c * k * w1 * w3) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[3][1] = (c * w3 * (c * c * k * k + w0 * w0 - w1 * w1 + w2 * w2 + w3 * w3)) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[3][2] = -(2 * c * w1 * w2 * w3) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+  A[3][3] = (c * w1 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 - w3 * w3)) / (w0 * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
+
+}
+
+
 void 
 multiplyMatrixVector(double A[4][4], double b[4], double *result) {
   for (int i = 0; i < 4; ++i) {
@@ -147,21 +193,21 @@ test_flux_jump()
   // CASE 1: 
 
   // Give constants for the test:
-  const double c = 1.0;
+  double c = 1.0;
+  c = 299792458.0;
 
-  double vl[4] = { 1.0, 0.0999, 0.02, 0.03 };
-  double vr[4] = { 0.1, 0.7, 0.2, 0.3  };
+  double vl[4] = { 1.0, 0.0999*c, 0.02*c, 0.03*c };
+  double vr[4] = { 0.1, 0.7*c, 0.2*c, 0.3*c  };
   double ql[4], qr[4];
   calcq(c, vl, ql); calcq(c, vr, qr);
 
   //const double ql[4] = { 1.0, 15.0*c, 0.01*c, -5.0*c };
   //const double qr[4] = { 0.1, -0.5*c,  0.01*c, 25.0*c };
   double u_hat[3];
-  double gamma_hat = 0.0;
 
 
   // Call the roe-averaged velocity routine
-  double v_avg = compute_sr_roe_averaged_velocity_cold_limit(ql, qr, c, u_hat, &gamma_hat);
+  double v_avg = compute_sr_roe_averaged_velocity_cold_limit(ql, qr, c, u_hat);
   // double v_avg = compute_sr_roe_averaged_velocity(ql, qr, c, u_hat);
 
 
@@ -256,11 +302,12 @@ test_sr_cold_fluid()
 {
 
     // Give constants for the test:
-  const double c = 1.0;
+  //const double c = 1.0;
 
   struct gkyl_wv_eqn *sr_cold_fluid = gkyl_wv_cold_sr_fluid_new();
-  double vl[4] = { 1.0, 0.0999, 0.02, 0.03 };
-  double vr[4] = { 0.1, 0.7, 0.2, 0.3  };
+  const double c = 299792458.0;
+  double vl[4] = { 1.0, 0.0999*c, 0.02*c, 0.03*c };
+  double vr[4] = { 0.1, 0.7*c, 0.2*c, 0.3*c  };
   double ql[4], qr[4];
   double ql_local[4], qr_local[4];
   calcq(c, vl, ql); calcq(c, vr, qr);
@@ -291,8 +338,8 @@ test_sr_cold_fluid()
 
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[4], fr_local[4];
-    cold_sr_fluid_flux_local_copy(ql_local, fl_local);
-    cold_sr_fluid_flux_local_copy(qr_local, fr_local);
+    cold_sr_fluid_flux(ql_local, fl_local);
+    cold_sr_fluid_flux(qr_local, fr_local);
 
     double delta[4];
     for (int i=0; i<4; ++i) delta[i] = fr_local[i]-fl_local[i];
@@ -313,7 +360,7 @@ test_sr_cold_fluid()
     for (int i=0; i<4; ++i){
       printf("fr[%d]: %1.4e, fl[%d]: %1.4e, amdq[%d]: %1.4e, apdq[%d]: %1.4e ",i,fr[i],i,fl[i],i,amdq[i],i,apdq[i]);
       printf("  df[%d]: %1.4e, dadq[%d]: %1.4e,     total_diff: %1.4e\n",i,fr[i]-fl[i],i,amdq[i]+apdq[i], fr[i]-fl[i]-(amdq[i]+apdq[i]));
-      TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-8) ); 
+      TEST_CHECK( gkyl_compare((fr[i]-fl[i])/(c*c), (amdq[i]+apdq[i])/(c*c), 1e-8) ); 
     }
   }
 
@@ -326,6 +373,6 @@ void test_sr_cold_fluids_internal() { test_sr_cold_fluid(); }
 
 TEST_LIST = {
   {"test_flux_jump", test_flux_jump_relation},
-  {"test_cold_sr_fluids", test_sr_cold_fluids_internal},
+  {"test_cold_sr_fluids_ffluct", test_sr_cold_fluids_internal},
   {NULL, NULL},
 };
