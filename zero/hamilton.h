@@ -4,7 +4,8 @@
 typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
 
 typedef struct push_input {
-    const double *xf, *Bn, t, *xi, top_val;
+    double *xf, *Bn;
+    const double t, *xi, top_val;
     const int top_idx;
     const evalf_t func, gunc, hunc;
     const void *ctx;

@@ -130,23 +130,14 @@ void trace_vertical_boundary_bottom_to_top(double *xf, double *sf, evalf_t func,
         {
             if (xf[top_idx] > top_val)
             {
-                printf("I'm on the top boundary\n");
-                printf("Triggered by pushing to xf = (%f, %f, %f)\n", xf[0], xf[1], xf[2]);
-                printf("using ds = %f\n", ds);
                 double ds_tmp = ds;
                 ds = find_ds_to_top_boundary(xf, Bn, func, gunc, hunc, t, xtmp, ctx, top_val, top_idx, ds_tmp);
-                printf("after root finding ds = %1.16f\n", ds);
                 push(xf, Bn, t, xtmp, ctx, ds, func, gunc, hunc);
-                printf("xf = (%f, %f, %f)\n", xf[0], xf[1], xf[2]);
                 *sf = *sf + ds;
                 break;
             }
             else
             {
-                printf("Making a step\n");
-                printf("Pushed from xi = (%f, %f, %f)\n", xi[0], xi[1], xi[2]);
-                printf("to xf = (%f, %f, %f)\n", xf[0], xf[1], xf[2]);
-                printf("using ds = %f\n", ds);
                 *sf = *sf + ds;
                 xtmp[0] = xf[0];
                 xtmp[1] = xf[1];
@@ -158,12 +149,9 @@ void trace_vertical_boundary_bottom_to_top(double *xf, double *sf, evalf_t func,
 }
 
 double root_top_boundary(double ds, push_input *p_ctx){
+    // I have suspicion that this push is changing the value of p_ctx->xf and it's feeding back
     push(p_ctx->xf, p_ctx->Bn, p_ctx->t, p_ctx->xi, p_ctx->ctx,
     ds, p_ctx->func, p_ctx->gunc, p_ctx->hunc);
-    printf("Pushed to xf = (%f, %f, %f)\n", p_ctx->xf[0], p_ctx->xf[1], p_ctx->xf[2]);
-    printf("using ds = %f\n", ds);
-    printf("Optimizing quantity %f\n", p_ctx->xf[p_ctx->top_idx] - p_ctx->top_val);
-    printf("Top value %f\n", p_ctx->top_val);
     return p_ctx->xf[p_ctx->top_idx] - p_ctx->top_val;
 }
 
@@ -183,12 +171,13 @@ double find_ds_to_top_boundary(double *xf, double *Bn, evalf_t func, evalf_t gun
         .top_val = top_val,
         .top_idx = top_idx
     };
-    printf("ds_max = %1.16f\n", ds_max);
-    struct gkyl_qr_res ds = gkyl_dbl_exp(root_top_boundary, &p_ctx, 0, ds_max, 7, 1e-7);
+    int max_iter = 10000;
+    double f_upper = root_top_boundary(ds_max, &p_ctx);
+    double f_lower = root_top_boundary(0, &p_ctx);
+    struct gkyl_qr_res ds = gkyl_ridders(root_top_boundary, &p_ctx, 0, ds_max, f_lower, f_upper, max_iter, 1e-16);
     if (ds.status != 0) {
         printf("Error in root riders in finding the top contour boundary. hamilton.c");
     }
-    printf("Root found but error of %1.16f\n", ds.error);
     return ds.res;
 }
 
