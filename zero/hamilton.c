@@ -4,16 +4,43 @@
 //              directly from the python implementation. It will be a standalone
 //              C file.
 #include "hamilton.h"
+
+//********************************************************************************
+// Compilation warning. Not sure how to fix this
+// zero/hamilton.c:161:42: warning: incompatible function pointer types passing 'double (double, push_input *)' (aka 'double (double, struct push_input *)') to parameter of type 'double (*)(double, void *)' [-Wincompatible-function-pointer-types]
+//     struct gkyl_qr_res ds = gkyl_dbl_exp(root_top_boundary, &p_ctx, 0, ds_max, 7, 1e-14);
+//                                          ^~~~~~~~~~~~~~~~~
+// zero/gkyl_math.h:174:42: note: passing argument to parameter 'func' here
+// struct gkyl_qr_res gkyl_dbl_exp(double (*func)(double, void *), void *ctx,
+//                                          ^
+// 1 warning generated.
+// ********************************************************************************
+
+#include <gkyl_math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
 
 // Gauss Radau spacings
-static const double h[8] = {0.0, 0.0562625605369221464656521910318, 0.180240691736892364987579942780, 0.352624717113169637373907769648, 0.547153626330555383001448554766, 0.734210177215410531523210605558, 0.885320946839095768090359771030, 0.977520613561287501891174488626};
+static const double h[8] = {0.0, 0.0562625605369221464656521910318, 0.180240691736892364987579942780, 
+0.352624717113169637373907769648, 0.547153626330555383001448554766, 0.734210177215410531523210605558, 
+0.885320946839095768090359771030, 0.977520613561287501891174488626};
 // Other constants
-static const double rr[28] = {0.0562625605369221464656522, 0.1802406917368923649875799, 0.1239781311999702185219278, 0.3526247171131696373739078, 0.2963621565762474909082556, 0.1723840253762772723863278, 0.5471536263305553830014486, 0.4908910657936332365357964, 0.3669129345936630180138686, 0.1945289092173857456275408, 0.7342101772154105315232106, 0.6779476166784883850575584, 0.5539694854785181665356307, 0.3815854601022408941493028, 0.1870565508848551485217621, 0.8853209468390957680903598, 0.8290583863021736216247076, 0.7050802551022034031027798, 0.5326962297259261307164520, 0.3381673205085403850889112, 0.1511107696236852365671492, 0.9775206135612875018911745, 0.9212580530243653554255223, 0.7972799218243951369035945, 0.6248958964481178645172667, 0.4303669872307321188897259, 0.2433104363458769703679639, 0.0921996667221917338008147};
-static const double c[21] = {-0.0562625605369221464656522, 0.0101408028300636299864818, -0.2365032522738145114532321, -0.0035758977292516175949345, 0.0935376952594620658957485, -0.5891279693869841488271399, 0.0019565654099472210769006, -0.0547553868890686864408084, 0.4158812000823068616886219, -1.1362815957175395318285885, -0.0014365302363708915424460, 0.0421585277212687077072973, -0.3600995965020568122897665, 1.2501507118406910258505441, -1.8704917729329500633517991, 0.0012717903090268677492943, -0.0387603579159067703699046, 0.3609622434528459832253398, -1.4668842084004269643701553, 2.9061362593084293014237913, -2.7558127197720458314421588};
+static const double rr[28] = {0.0562625605369221464656522, 0.1802406917368923649875799, 0.1239781311999702185219278,
+ 0.3526247171131696373739078, 0.2963621565762474909082556, 0.1723840253762772723863278, 0.5471536263305553830014486,
+  0.4908910657936332365357964, 0.3669129345936630180138686, 0.1945289092173857456275408, 0.7342101772154105315232106,
+   0.6779476166784883850575584, 0.5539694854785181665356307, 0.3815854601022408941493028, 0.1870565508848551485217621,
+    0.8853209468390957680903598, 0.8290583863021736216247076, 0.7050802551022034031027798, 0.5326962297259261307164520,
+     0.3381673205085403850889112, 0.1511107696236852365671492, 0.9775206135612875018911745, 0.9212580530243653554255223,
+      0.7972799218243951369035945, 0.6248958964481178645172667, 0.4303669872307321188897259, 0.2433104363458769703679639,
+       0.0921996667221917338008147};
+static const double c[21] = {-0.0562625605369221464656522, 0.0101408028300636299864818, -0.2365032522738145114532321,
+ -0.0035758977292516175949345, 0.0935376952594620658957485, -0.5891279693869841488271399, 0.0019565654099472210769006,
+  -0.0547553868890686864408084, 0.4158812000823068616886219, -1.1362815957175395318285885, -0.0014365302363708915424460,
+   0.0421585277212687077072973, -0.3600995965020568122897665, 1.2501507118406910258505441, -1.8704917729329500633517991,
+    0.0012717903090268677492943, -0.0387603579159067703699046, 0.3609622434528459832253398, -1.4668842084004269643701553,
+     2.9061362593084293014237913, -2.7558127197720458314421588};
 
 // Define a function pointer type for the derivative function
 typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
@@ -66,7 +93,108 @@ hunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, eva
     free(hunc_out);
 }
 
-void trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, double t, double *xi, void *ctx, double end, int max_steps)
+// void find_contour_nodes(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, double t,
+//  double *xi, void *ctx, int max_steps, double top_val, int top_idx){
+    
+//  }
+
+void trace_vertical_boundary_bottom_to_top(double *xf, double *sf, evalf_t func, evalf_t gunc, evalf_t hunc, double t,
+ double *xi, void *ctx, int max_steps, double top_val, int top_idx){
+    double ds = fabs(top_val - xf[top_idx]);
+    double Bn[21] = {0};
+    double xtmp[3];
+    xtmp[0] = xi[0];
+    xtmp[1] = xi[1];
+    xtmp[2] = xi[2];
+    double epsilon = 0.1;
+    double min_step = fabs(top_val - xf[top_idx]) / max_steps;
+    while (1)
+    {
+        push(xf, Bn, t, xtmp, ctx, ds, func, gunc, hunc);
+        double last_B_sum = pow(fabs(Bn[6]), 1.0 / 7.0) + pow(fabs(Bn[13]), 1.0 / 7.0) + pow(fabs(Bn[20]), 1.0 / 7.0);
+        if (isnan(last_B_sum))
+        {
+            ds = ds / 2;
+            continue;
+        }
+        int too_much_error = last_B_sum > epsilon;
+        int large_enough_steps = ds > min_step;
+        if (too_much_error && large_enough_steps)
+        {
+            if (ds / 2 > min_step)
+            {
+                ds = ds / 2;
+            }
+        }
+        else
+        {
+            if (xf[top_idx] > top_val)
+            {
+                printf("I'm on the top boundary\n");
+                printf("Triggered by pushing to xf = (%f, %f, %f)\n", xf[0], xf[1], xf[2]);
+                printf("using ds = %f\n", ds);
+                double ds_tmp = ds;
+                ds = find_ds_to_top_boundary(xf, Bn, func, gunc, hunc, t, xtmp, ctx, top_val, top_idx, ds_tmp);
+                printf("after root finding ds = %1.16f\n", ds);
+                push(xf, Bn, t, xtmp, ctx, ds, func, gunc, hunc);
+                printf("xf = (%f, %f, %f)\n", xf[0], xf[1], xf[2]);
+                *sf = *sf + ds;
+                break;
+            }
+            else
+            {
+                printf("Making a step\n");
+                printf("Pushed from xi = (%f, %f, %f)\n", xi[0], xi[1], xi[2]);
+                printf("to xf = (%f, %f, %f)\n", xf[0], xf[1], xf[2]);
+                printf("using ds = %f\n", ds);
+                *sf = *sf + ds;
+                xtmp[0] = xf[0];
+                xtmp[1] = xf[1];
+                xtmp[2] = xf[2];
+                ds = ds * 2;
+            }
+        }
+    }
+}
+
+double root_top_boundary(double ds, push_input *p_ctx){
+    push(p_ctx->xf, p_ctx->Bn, p_ctx->t, p_ctx->xi, p_ctx->ctx,
+    ds, p_ctx->func, p_ctx->gunc, p_ctx->hunc);
+    printf("Pushed to xf = (%f, %f, %f)\n", p_ctx->xf[0], p_ctx->xf[1], p_ctx->xf[2]);
+    printf("using ds = %f\n", ds);
+    printf("Optimizing quantity %f\n", p_ctx->xf[p_ctx->top_idx] - p_ctx->top_val);
+    printf("Top value %f\n", p_ctx->top_val);
+    return p_ctx->xf[p_ctx->top_idx] - p_ctx->top_val;
+}
+
+
+double find_ds_to_top_boundary(double *xf, double *Bn, evalf_t func, evalf_t gunc, evalf_t hunc, double t, 
+    double *xi, void *ctx, double top_val, int top_idx, double ds_max)
+{
+    struct push_input p_ctx = {
+        .xf = xf,
+        .Bn = Bn,
+        .t = t,
+        .xi = xi,
+        .func = func,
+        .gunc = gunc,
+        .hunc = hunc,
+        .ctx = ctx,
+        .top_val = top_val,
+        .top_idx = top_idx
+    };
+    printf("ds_max = %1.16f\n", ds_max);
+    struct gkyl_qr_res ds = gkyl_dbl_exp(root_top_boundary, &p_ctx, 0, ds_max, 7, 1e-7);
+    if (ds.status != 0) {
+        printf("Error in root riders in finding the top contour boundary. hamilton.c");
+    }
+    printf("Root found but error of %1.16f\n", ds.error);
+    return ds.res;
+}
+
+void 
+trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, 
+    double t, double *xi, void *ctx, double end, int max_steps)
 {
     double ds = end;
     double Bn[21] = {0};
@@ -118,8 +246,9 @@ void trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, double
     }
 }
 
-void trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
-           double t, double *xi, void *ctx, double L, int N)
+void 
+trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
+    double t, double *xi, void *ctx, double L, int N)
 {
     double ds = L / N;
     double Bn[21] = {0};
@@ -136,8 +265,9 @@ void trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
     }
 }
 
-void push(double *xf, double *Bn,
-          double t, double *xi, void *ctx, double ds, evalf_t func, evalf_t gunc, evalf_t hunc)
+void 
+push(double *xf, double *Bn, double t, double *xi, void *ctx, double ds, 
+    evalf_t func, evalf_t gunc, evalf_t hunc)
 {
     int len_hF = 8;
     int len_BG = 7;
@@ -170,9 +300,9 @@ void push(double *xf, double *Bn,
     free(Gn);
 }
 
-void calculate_node_positions(double *xh, double *Bn,
-                              double t, double *xni, evalf_t func, evalf_t gunc, evalf_t hunc,
-                              double ds, const double *hp, void *ctx, int len)
+void 
+calculate_node_positions(double *xh, double *Bn, double t, double *xni, evalf_t func,
+    evalf_t gunc, evalf_t hunc, double ds, const double *hp, void *ctx, int len)
 {
     double *F1x = malloc(sizeof(double));
     double *F1y = malloc(sizeof(double));
@@ -194,8 +324,9 @@ void calculate_node_positions(double *xh, double *Bn,
     free(F1z);
 }
 
-void calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc, evalf_t hunc,
-                           double t, double *xn, void *ctx, int len)
+void 
+calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc, evalf_t hunc,
+    double t, double *xn, void *ctx, int len)
 {
     double *func_out = malloc(sizeof(double));
     double *gunc_out = malloc(sizeof(double));
@@ -214,7 +345,8 @@ void calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc, evalf_t hunc,
     free(hunc_out);
 }
 
-void calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
+void 
+calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
 {
     for (int i = 0; i < ndim; i++)
     {
@@ -228,7 +360,8 @@ void calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
     }
 }
 
-void calculate_Gn_from_Fn(double *G, double *F, int ndim)
+void 
+calculate_Gn_from_Fn(double *G, double *F, int ndim)
 {
     for (int i = 0; i < ndim; i++)
     {

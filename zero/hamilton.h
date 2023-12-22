@@ -3,6 +3,19 @@
 
 typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
 
+typedef struct push_input {
+    const double *xf, *Bn, t, *xi, top_val;
+    const int top_idx;
+    const evalf_t func, gunc, hunc;
+    const void *ctx;
+} push_input;
+
+void trace_vertical_boundary_bottom_to_top(double *xf, double *sf, evalf_t func, evalf_t gunc, evalf_t hunc, double t, double *xi, void *ctx, int max_steps, double top_val, int top_idx);
+
+double root_top_boundary(double ds, push_input *p_ctx);
+
+double find_ds_to_top_boundary(double *xf, double *Bn, evalf_t func, evalf_t gunc, evalf_t hunc, double t, double *xi, void *ctx, double top_val, int top_idx, double ds_max);
+
 void trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, double t, double *xi, void *ctx, double end, int maxSteps);
 
 void trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc, double t, double *xi, void *ctx, double L, int N);

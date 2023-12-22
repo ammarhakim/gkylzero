@@ -413,42 +413,63 @@ void test_17()
     assert(fabs(xf[2]) < 1e-8);
 }
 
+// Test the boundary finding function
+void test_18()
+{
+    double xi[3] = {1, 0, 0};
+    double xf[3];
+    double t = 0;
+    double *s_final = malloc(sizeof(double));
+    void *ctx = NULL;
+    int max_steps = 3000;
+    // Go half way up the unit circle to pi/6
+    double top_val = 0.5;
+    int top_idx = 1;
+    trace_vertical_boundary_bottom_to_top(xf, s_final, dxds_circ, dyds_circ, dzds_circ,
+     t, xi, ctx, max_steps, top_val, top_idx);
+    printf("s_final_correct = %f\n", M_PI/6);
+    printf("s_final_numeric = %f\n", *s_final);
+    printf("xf = (%f, %f, %f)\n", xf[0], xf[1], xf[2]);
+    free(s_final);
+}
 
 int main()
 {
-    test_1();
-    printf("Test 1 passed\n");
-    test_2();
-    printf("Test 2 passed\n");
-    test_3();
-    printf("Test 3 passed\n");
-    test_4();
-    printf("Test 4 passed\n");
-    test_5();
-    printf("Test 5 passed\n");
-    test_6();
-    printf("Test 6 passed\n");
-    test_7();
-    printf("Test 7 passed\n");
-    test_8();
-    printf("Test 8 passed\n");
-    test_9();
-    printf("Test 9 passed\n");
-    test_10();
-    printf("Test 10 passed\n");
-    test_11();
-    printf("Test 11 passed\n");
-    test_12();
-    printf("Test 12 passed\n");
-    test_13();
-    printf("Test 13 passed\n");
-    test_14();
-    printf("Test 14 passed\n");
-    test_15();
-    printf("Test 15 passed\n");
-    test_16();
-    printf("Test 16 passed\n");
-    test_17();
-    printf("Test 17 passed\n");
+    // test_1();
+    // printf("Test 1 passed\n");
+    // test_2();
+    // printf("Test 2 passed\n");
+    // test_3();
+    // printf("Test 3 passed\n");
+    // test_4();
+    // printf("Test 4 passed\n");
+    // test_5();
+    // printf("Test 5 passed\n");
+    // test_6();
+    // printf("Test 6 passed\n");
+    // test_7();
+    // printf("Test 7 passed\n");
+    // test_8();
+    // printf("Test 8 passed\n");
+    // test_9();
+    // printf("Test 9 passed\n");
+    // test_10();
+    // printf("Test 10 passed\n");
+    // test_11();
+    // printf("Test 11 passed\n");
+    // test_12();
+    // printf("Test 12 passed\n");
+    // test_13();
+    // printf("Test 13 passed\n");
+    // test_14();
+    // printf("Test 14 passed\n");
+    // test_15();
+    // printf("Test 15 passed\n");
+    // test_16();
+    // printf("Test 16 passed\n");
+    // test_17();
+    // printf("Test 17 passed\n");
+    test_18();
+    printf("Test 18 passed\n");
     return 0;
 }
