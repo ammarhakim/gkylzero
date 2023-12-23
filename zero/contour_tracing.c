@@ -4,7 +4,7 @@
  * https://arxiv.org/abs/1409.4779. These functions are related to contour
  * tracing to follow contours of constant flux function psi
  */
-#include <hamilton.h>
+#include <contour_tracing.h>
 #include <gkyl_math.h>
 #include <stdio.h>
 #include <stdlib.h>

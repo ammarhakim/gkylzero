@@ -1,4 +1,4 @@
-#include "hamilton.h"
+#include <contour_tracing.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>

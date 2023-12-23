@@ -1,5 +1,5 @@
-#ifndef HAMILTON
-#define HAMILTON
+#ifndef CONTOUR_TRACING
+#define CONTOUR_TRACING
 
 typedef void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
 
