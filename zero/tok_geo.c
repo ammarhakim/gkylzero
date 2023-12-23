@@ -360,18 +360,20 @@ struct plate_ctx{
 };
 
 static inline double
-plate_psi_func(double R, void *ctx){
-  // uses a pointer to the plate function to get Z(R)
-  // Then calculates psi(R, Z(R))
+plate_psi_func(double s, void *ctx){
+  // uses a pointer to the plate function to get R(s), Z(s)
+  // Then calculates psi(R, Z)
   // will be used by ridders later
   
   struct plate_ctx *gc = ctx;
-  // First find R(z)
-  double Z;
+  double RZ[2];
   if(gc->lower==true)
-    Z = gc->geo->plate_func_lower(R);
+    gc->geo->plate_func_lower(s, RZ);
   else
-    Z = gc->geo->plate_func_upper(R);
+    gc->geo->plate_func_upper(s, RZ);
+
+  double R = RZ[0];
+  double Z = RZ[1];
 
   // Now find the cell where this R and Z is
   int rzidx[2];
@@ -388,6 +390,8 @@ plate_psi_func(double R, void *ctx){
   double psi = gc->geo->rzbasis.eval_expand(xy, coeffs);
   return psi - gc->psi_curr;
 }
+
+
 
 // Function to pass to root-finder to find Z location for given arc-length
 static inline double
@@ -548,10 +552,6 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_inp *inp)
   geo->plate_spec = inp->plate_spec;
   geo->plate_func_lower = inp->plate_func_lower;
   geo->plate_func_upper = inp->plate_func_upper;
-  geo->plate_lower_Rl = inp->plate_lower_Rl;
-  geo->plate_lower_Rr = inp->plate_lower_Rr;
-  geo->plate_upper_Rl = inp->plate_upper_Rl;
-  geo->plate_upper_Rr = inp->plate_upper_Rr;
 
   geo->rzbasis= *geo->efit->rzbasis;
   geo->rzgrid = *geo->efit->rzgrid;
@@ -866,26 +866,29 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           }
           else if(inp->ftype==GKYL_SOL_DN_OUT){
             if (geo->plate_spec){ // if we dont have a fixed zmin and zmax
+              double rzplate[2];
               pctx.psi_curr = psi_curr;
               pctx.lower=false;
-              double a = geo->plate_upper_Rl;
-              double b = geo->plate_upper_Rr;
+              double a = 0;
+              double b = 1;
               double fa = plate_psi_func(a, &pctx);
               double fb = plate_psi_func(b, &pctx);
               struct gkyl_qr_res res = gkyl_ridders(plate_psi_func, &pctx,
                 a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-              double rmax = res.res;
-              zmax = geo->plate_func_upper(rmax);
+              double smax = res.res;
+              geo->plate_func_upper(smax, rzplate);
+              zmax = rzplate[1];
 
               pctx.lower=true;
-              a = geo->plate_lower_Rl;
-              b = geo->plate_lower_Rr;
+              a = 0;
+              b = 1;
               fa = plate_psi_func(a, &pctx);
               fb = plate_psi_func(b, &pctx);
               res = gkyl_ridders(plate_psi_func, &pctx,
                 a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-              double rmin = res.res;
-              zmin = geo->plate_func_lower(rmin);
+              double smin = res.res;
+              geo->plate_func_lower(smin, rzplate);
+              zmin = rzplate[1];
             }
 
             arc_ctx.phi_right = 0.0;
