@@ -4,9 +4,6 @@
 #include <math.h>
 #include <assert.h>
 
-// Improvement could be made by testing explicitely the pushing function for positions and the calculate derivative functions
-
-// Define a function pointer type for the derivative function
 static const double h[8] = {0.0, 0.0562625605369221464656521910318, 
 0.180240691736892364987579942780, 0.352624717113169637373907769648, 
 0.547153626330555383001448554766, 0.734210177215410531523210605558, 
