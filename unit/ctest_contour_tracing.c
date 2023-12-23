@@ -4,8 +4,6 @@
 #include <math.h>
 #include <assert.h>
 
-// Build using gcc test_hamilton.c hamilton.c -o test_hamilton -lm && ./test_hamilton
-
 // Improvement could be made by testing explicitely the pushing function for positions and the calculate derivative functions
 
 // Define a function pointer type for the derivative function
