@@ -432,6 +432,30 @@ void test_18()
     free(s_final);
 }
 
+// Test the contour node points
+void test_19()
+{
+    int N = 3;
+    double *xn = malloc(sizeof(double[3*N]));
+    double xi[3] = {1, 0, 0};
+    double t = 0;
+    void *ctx = NULL;
+    double top_val = 0.5;
+    int top_idx = 1;
+    find_contour_nodes(xn, N, dxds_circ, dyds_circ, dzds_circ, t,
+                        xi, ctx, top_val, top_idx);
+    assert(fabs(xn[0] - 1) < 1e-15);
+    assert(fabs(xn[1] - 0) < 1e-15);
+    assert(fabs(xn[2] - 0) < 1e-15);
+    assert(fabs(xn[3] - cos(M_PI/12)) < 1e-15);
+    assert(fabs(xn[4] - sin(M_PI/12)) < 1e-15);
+    assert(fabs(xn[5] - 0) < 1e-15);
+    assert(fabs(xn[6] - cos(M_PI/6)) < 1e-15);
+    assert(fabs(xn[7] - sin(M_PI/6)) < 1e-15);
+    assert(fabs(xn[8] - 0) < 1e-15);
+    free(xn);
+}
+
 int main()
 {
     test_1();
@@ -470,5 +494,7 @@ int main()
     printf("Test 17 passed\n");
     test_18();
     printf("Test 18 passed\n");
+    test_19();
+    printf("Test 19 passed\n");
     return 0;
 }
