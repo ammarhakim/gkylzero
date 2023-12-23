@@ -3,7 +3,7 @@
  * Gauss Radau integrator detailed by Everheart (1985) and the IAS15 paper.
  * https://arxiv.org/abs/1409.4779. These functions are related to contour
  * tracing to follow contours of constant flux function psi
- */ 
+ */
 #include <hamilton.h>
 #include <gkyl_math.h>
 #include <stdio.h>
@@ -82,7 +82,8 @@ hunc_norm(double t, const double *xn, double *fout, void *ctx, evalf_t func, eva
     free(hunc_out);
 }
 
-void find_contour_nodes(double *xn, int N, evalf_t func, evalf_t gunc, evalf_t hunc, double t,
+void
+find_contour_nodes(double *xn, int N, evalf_t func, evalf_t gunc, evalf_t hunc, double t,
                         double *xi, void *ctx, double top_val, int top_idx)
 {
     double *xf = malloc(sizeof(double[3 * (N + 1)]));
@@ -106,7 +107,8 @@ void find_contour_nodes(double *xn, int N, evalf_t func, evalf_t gunc, evalf_t h
     free(sf);
 }
 
-void trace_vertical_boundary_bottom_to_top(double *xf, double *sf, evalf_t func, evalf_t gunc, evalf_t hunc, double t,
+void
+trace_vertical_boundary_bottom_to_top(double *xf, double *sf, evalf_t func, evalf_t gunc, evalf_t hunc, double t,
                                            double *xi, void *ctx, int max_steps, double top_val, int top_idx)
 {
     double ds = fabs(top_val - xf[top_idx]);
@@ -157,7 +159,8 @@ void trace_vertical_boundary_bottom_to_top(double *xf, double *sf, evalf_t func,
     }
 }
 
-double root_top_boundary(double ds, push_input *p_ctx)
+double
+root_top_boundary(double ds, push_input *p_ctx)
 {
     // I have suspicion that this push is changing the value of p_ctx->xf and it's feeding back
     push(p_ctx->xf, p_ctx->Bn, p_ctx->t, p_ctx->xi, p_ctx->ctx,
@@ -165,7 +168,8 @@ double root_top_boundary(double ds, push_input *p_ctx)
     return p_ctx->xf[p_ctx->top_idx] - p_ctx->top_val;
 }
 
-double find_ds_to_top_boundary(double *xf, double *Bn, evalf_t func, evalf_t gunc, evalf_t hunc, double t,
+double 
+find_ds_to_top_boundary(double *xf, double *Bn, evalf_t func, evalf_t gunc, evalf_t hunc, double t,
                                double *xi, void *ctx, double top_val, int top_idx, double ds_max)
 {
     struct push_input p_ctx = {
@@ -190,7 +194,8 @@ double find_ds_to_top_boundary(double *xf, double *Bn, evalf_t func, evalf_t gun
     return ds.res;
 }
 
-void trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
+void
+trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
                     double t, double *xi, void *ctx, double end, int max_steps)
 {
     double ds = end;
@@ -243,7 +248,8 @@ void trace_adaptive(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
     }
 }
 
-void trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
+void
+trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
            double t, double *xi, void *ctx, double L, int N)
 {
     double ds = L / N;
@@ -261,7 +267,8 @@ void trace(double *xf, evalf_t func, evalf_t gunc, evalf_t hunc,
     }
 }
 
-void push(double *xf, double *Bn, double t, double *xi, void *ctx, double ds,
+void
+push(double *xf, double *Bn, double t, double *xi, void *ctx, double ds,
           evalf_t func, evalf_t gunc, evalf_t hunc)
 {
     int len_hF = 8;
@@ -295,7 +302,8 @@ void push(double *xf, double *Bn, double t, double *xi, void *ctx, double ds,
     free(Gn);
 }
 
-void calculate_node_positions(double *xh, double *Bn, double t, double *xni, evalf_t func,
+void
+calculate_node_positions(double *xh, double *Bn, double t, double *xni, evalf_t func,
                               evalf_t gunc, evalf_t hunc, double ds, const double *hp, void *ctx, int len)
 {
     double *F1x = malloc(sizeof(double));
@@ -318,7 +326,8 @@ void calculate_node_positions(double *xh, double *Bn, double t, double *xni, eva
     free(F1z);
 }
 
-void calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc, evalf_t hunc,
+void
+calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc, evalf_t hunc,
                            double t, double *xn, void *ctx, int len)
 {
     double *func_out = malloc(sizeof(double));
@@ -338,7 +347,8 @@ void calculate_derivatives(double *Fn, evalf_t func, evalf_t gunc, evalf_t hunc,
     free(hunc_out);
 }
 
-void calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
+void
+calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
 {
     for (int i = 0; i < ndim; i++)
     {
@@ -352,7 +362,8 @@ void calculate_Bn_from_Gn(double *Bn, double *Gn, int ndim)
     }
 }
 
-void calculate_Gn_from_Fn(double *G, double *F, int ndim)
+void
+calculate_Gn_from_Fn(double *G, double *F, int ndim)
 {
     for (int i = 0; i < ndim; i++)
     {
