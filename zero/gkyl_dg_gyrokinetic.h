@@ -12,6 +12,8 @@
 struct gkyl_dg_gyrokinetic_auxfields {
   const struct gkyl_array *Bstar_Bmag; // Pointer to volume expansion of Bstar/Bmag time-independent component.
   const struct gkyl_array *alpha_surf; // Pointer to surface expansion of phase space flux alpha.
+  const struct gkyl_array *sgn_alpha_surf; // Pointer to sign(alpha_surf) at quadrature points.
+  const struct gkyl_array *const_sgn_alpha; // Pointer to integer array for if sign(alpha_surf) is single-signed.
   const struct gkyl_array *phi; // Pointer to electrostatic potential.
   const struct gkyl_array *apar; // Pointer to A_\parallel.
   const struct gkyl_array *apardot; // Pointer to d(A_parallel)/dt.

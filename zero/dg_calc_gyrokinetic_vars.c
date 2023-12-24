@@ -82,12 +82,13 @@ void gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag(struct gkyl_dg_calc_gyrokinetic_va
 
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,  const struct gkyl_range *phase_ext_range, 
-  const struct gkyl_array *phi, const struct gkyl_array *Bstar_Bmag, struct gkyl_array* alpha_surf)
+  const struct gkyl_array *phi, const struct gkyl_array *Bstar_Bmag, 
+  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_surf)) {
     return gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(up, conf_range, phase_range, phase_ext_range, 
-      phi, Bstar_Bmag, alpha_surf);
+      phi, Bstar_Bmag, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
   }
 #endif
   int pdim = up->pdim;
@@ -111,9 +112,12 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
     const double *Bstar_Bmag_d = gkyl_array_cfetch(Bstar_Bmag, loc_phase);
 
     double* alpha_surf_d = gkyl_array_fetch(alpha_surf, loc_phase);
+    double* sgn_alpha_surf_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase);
+    int* const_sgn_alpha_d = gkyl_array_fetch(const_sgn_alpha, loc_phase);
     for (int dir = 0; dir<cdim+1; ++dir) {
-      up->alpha_surf[dir](xc, up->phase_grid.dx, up->charge, up->mass, 
-        bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d,  Bstar_Bmag_d, alpha_surf_d);
+      const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
+        up->charge, up->mass, bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d,  Bstar_Bmag_d, 
+        alpha_surf_d, sgn_alpha_surf_d);
 
       // If the phase space index is at the local configuration space upper value, we
       // we are at the configuration space upper edge and we also need to evaluate 
@@ -126,8 +130,11 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
         long loc_phase_ext = gkyl_range_idx(phase_ext_range, idx_edge);
 
         double* alpha_surf_ext_d = gkyl_array_fetch(alpha_surf, loc_phase_ext);
-        up->alpha_edge_surf[dir](xc, up->phase_grid.dx, up->charge, up->mass, 
-          bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, Bstar_Bmag_d, alpha_surf_ext_d); 
+        double* sgn_alpha_surf_ext_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
+        int* const_sgn_alpha_ext_d = gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
+        const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->phase_grid.dx, 
+          up->charge, up->mass, bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, Bstar_Bmag_d, 
+          alpha_surf_ext_d, sgn_alpha_surf_ext_d);
       }  
     }
   }

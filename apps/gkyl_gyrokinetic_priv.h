@@ -173,6 +173,14 @@ struct gk_species {
 
   struct gkyl_array *Bstar_Bmag; // array for volume expansion of Bstar/Bmag, time-independent component
   struct gkyl_array *alpha_surf; // array for surface phase space flux
+  struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
+                                     // utilized for numerical flux function
+                                     // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
+  struct gkyl_array *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
+                                      // if true, numerical flux function inside kernels simplifies to
+                                      // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
+                                      // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
+  
   struct gkyl_array *phi; // array for electrostatic potential
   // organization of the different equation objects and the required data and solvers
   union {

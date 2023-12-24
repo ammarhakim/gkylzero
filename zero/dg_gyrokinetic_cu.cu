@@ -15,11 +15,14 @@ extern "C" {
 __global__ static void
 gkyl_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
   const struct gkyl_array *Bstar_Bmag, const struct gkyl_array *alpha_surf, 
+  const struct gkyl_array *sgn_alpha_surf, const struct gkyl_array *const_sgn_alpha, 
   const struct gkyl_array *phi, const struct gkyl_array *apar, const struct gkyl_array *apardot)
 {
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   gyrokinetic->auxfields.Bstar_Bmag = Bstar_Bmag;
   gyrokinetic->auxfields.alpha_surf = alpha_surf;
+  gyrokinetic->auxfields.sgn_alpha_surf = sgn_alpha_surf;
+  gyrokinetic->auxfields.const_sgn_alpha = const_sgn_alpha;
   gyrokinetic->auxfields.phi = phi;
   gyrokinetic->auxfields.apar = apar;
   gyrokinetic->auxfields.apardot = apardot;
@@ -31,6 +34,7 @@ gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
 {
   gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
   auxin.Bstar_Bmag->on_dev, auxin.alpha_surf->on_dev, 
+  auxin.sgn_alpha_surf->on_dev, auxin.const_sgn_alpha->on_dev, 
   auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev);
 }
 
@@ -42,6 +46,8 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
 {
   gyrokinetic->auxfields.Bstar_Bmag = 0; 
   gyrokinetic->auxfields.alpha_surf = 0; 
+  gyrokinetic->auxfields.sgn_alpha_surf = 0; 
+  gyrokinetic->auxfields.const_sgn_alpha = 0; 
   gyrokinetic->auxfields.phi = 0; 
   gyrokinetic->auxfields.apar = 0; 
   gyrokinetic->auxfields.apardot= 0; 

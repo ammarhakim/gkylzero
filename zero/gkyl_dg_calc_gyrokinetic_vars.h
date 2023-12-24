@@ -61,12 +61,16 @@ void gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag(struct gkyl_dg_calc_gyrokinetic_va
  * @param phase_range Phase space range 
  * @param phase_ext_range Extended Phase space range (so we obtain alpha_surf at all the needed surfaces)
  * @param phi Electrostatic potential
- * @param phi Bstar/Bmag time-independent component pre-computed
+ * @param Bstar_Bmag Bstar/Bmag time-independent component pre-computed
  * @param alpha_surf Output surface expansion in a cell on the *lower* edge in each direction 
+ * @param sgn_alpha_surf Output sign(alpha) at quadrature points along a surface 
+ * @param const_sgn_alpha Output boolean array for if sign(alpha) is a constant on the surface
+ *                        If sign(alpha) is a constant, kernels are simpler and we exploit this fact.
  */
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range, 
-  const struct gkyl_array *phi, const struct gkyl_array *Bstar_Bmag, struct gkyl_array* alpha_surf);
+  const struct gkyl_array *phi, const struct gkyl_array *Bstar_Bmag, 
+  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);
 
 /**
  * Delete pointer to updater to compute gyrokinetic variables.
@@ -84,4 +88,5 @@ void gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag_cu(struct gkyl_dg_calc_gyrokinetic
 
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range, 
-  const struct gkyl_array *phi, const struct gkyl_array *Bstar_Bmag, struct gkyl_array* alpha_surf);
+  const struct gkyl_array *phi, const struct gkyl_array *Bstar_Bmag, 
+  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);

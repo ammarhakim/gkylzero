@@ -15,10 +15,11 @@ typedef void (*gyrokinetic_Bstar_Bmag_t)(const double *w, const double *dxv,
   const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, 
   double* GKYL_RESTRICT Bstar_Bmag); 
 
-typedef void (*gyrokinetic_alpha_surf_t)(const double *w, const double *dxv, 
+typedef int (*gyrokinetic_alpha_surf_t)(const double *w, const double *dxv, 
   const double q_, const double m_, 
   const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, 
-  const double *phi, const double *Bstar_Bmag, double* GKYL_RESTRICT alpha_surf); 
+  const double *phi, const double *Bstar_Bmag, 
+  double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.

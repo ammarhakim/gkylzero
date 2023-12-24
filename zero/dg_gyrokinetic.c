@@ -29,8 +29,7 @@ void
 gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.alpha_surf) && gkyl_array_is_cu_dev(auxin.phi) &&
-      gkyl_array_is_cu_dev(auxin.apar) && gkyl_array_is_cu_dev(auxin.apardot) ) {
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
     gkyl_gyrokinetic_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
@@ -39,6 +38,8 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
   struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
   gyrokinetic->auxfields.Bstar_Bmag = auxin.Bstar_Bmag;
   gyrokinetic->auxfields.alpha_surf = auxin.alpha_surf;
+  gyrokinetic->auxfields.sgn_alpha_surf = auxin.sgn_alpha_surf;
+  gyrokinetic->auxfields.const_sgn_alpha = auxin.const_sgn_alpha;
   gyrokinetic->auxfields.phi = auxin.phi;
   gyrokinetic->auxfields.apar = auxin.apar;
   gyrokinetic->auxfields.apardot = auxin.apardot;
@@ -119,6 +120,8 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
   gyrokinetic->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   gyrokinetic->auxfields.Bstar_Bmag = 0;
   gyrokinetic->auxfields.alpha_surf = 0;
+  gyrokinetic->auxfields.sgn_alpha_surf = 0;
+  gyrokinetic->auxfields.const_sgn_alpha = 0;
   gyrokinetic->auxfields.phi = 0;
   gyrokinetic->auxfields.apar = 0;
   gyrokinetic->auxfields.apardot = 0;

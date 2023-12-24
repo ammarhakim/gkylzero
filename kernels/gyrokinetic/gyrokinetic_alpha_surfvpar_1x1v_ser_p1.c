@@ -1,5 +1,8 @@
 #include <gkyl_gyrokinetic_kernels.h> 
-GKYL_CU_DH void gyrokinetic_alpha_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *Bstar_Bmag, double* GKYL_RESTRICT alpha_surf) 
+GKYL_CU_DH int gyrokinetic_alpha_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, 
+  const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, 
+  const double *phi, const double *Bstar_Bmag, 
+  double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
@@ -11,7 +14,10 @@ GKYL_CU_DH void gyrokinetic_alpha_surfvpar_1x1v_ser_p1(const double *w, const do
   // phi: electrostatic potential.
   // Bstar_Bmag: Bstar/Bmag volume expansion, pre-computed time-independent part.
   // alpha_surf: output surface phase space flux in each direction (cdim + 1 components).
-  //             Note: Each cell owns their *lower* edge surface evaluation (evaluated at -1).
+  //             Note: Each cell owns their *lower* edge surface evaluation.
+  // sgn_alpha_surf: output sign(alpha_surf) in each direction at quadrature points (cdim + 1 components).
+  //                 Note: Each cell owns their *lower* edge sign(alpha_surf).
+  // returns int const_sgn_alpha (true if sign(alpha_surf) is only one sign, either +1 or -1).
 
   double wx = w[0];
   double rdx2 = 2.0/dxv[0];
@@ -38,5 +44,25 @@ GKYL_CU_DH void gyrokinetic_alpha_surfvpar_1x1v_ser_p1(const double *w, const do
   double *alphaL1 = &alpha_surf[3];
   alphaL1[0] = -(0.8660254037844386*BstarZdBmag[0]*hamil[1]*rdx2)/m_; 
   alphaL1[1] = -(0.8660254037844386*BstarZdBmag[1]*hamil[1]*rdx2)/m_; 
+
+  double *sgn_alpha_surf1 = &sgn_alpha_surf[3];
+  int const_sgn_alpha_surf = 1; 
+  
+  if (0.7071067811865468*alphaL1[0]-0.7071067811865468*alphaL1[1] > 0.) 
+    sgn_alpha_surf1[0] = 1.0; 
+  else  
+    sgn_alpha_surf1[0] = -1.0; 
+  
+  if (0.7071067811865468*alphaL1[1]+0.7071067811865468*alphaL1[0] > 0.) 
+    sgn_alpha_surf1[1] = 1.0; 
+  else  
+    sgn_alpha_surf1[1] = -1.0; 
+  
+  if (sgn_alpha_surf1[1] == sgn_alpha_surf1[0]) 
+    const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
+  else  
+    const_sgn_alpha_surf = 0; 
+  
+  return const_sgn_alpha_surf; 
 
 } 
