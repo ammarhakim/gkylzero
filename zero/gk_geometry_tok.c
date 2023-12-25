@@ -70,6 +70,7 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
+  up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
   up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
@@ -96,7 +97,7 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, mc2p);
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, false);
-  gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, &up->range);
+  gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, &up->range);
   // calculate the derived geometric quantities
   gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
   gkyl_calc_derived_geo_advance( jcalculator, &up->range, up->g_ij, up->bmag, 
@@ -111,6 +112,7 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   gkyl_grid_sub_array_write(&up->grid, &up->range, mc2p, "mapc2p.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->bmag, "bmag.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->g_ij, "g_ij.gkyl");
+  gkyl_grid_sub_array_write(&up->grid, &up->range, up->dxdz, "dxdz.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->jacobgeo, "jacobgeo.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->jacobgeo_inv, "jacogeo_inv.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->gij, "gij.gkyl");
