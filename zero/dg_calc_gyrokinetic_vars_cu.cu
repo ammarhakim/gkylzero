@@ -25,52 +25,9 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
 }
 
 __global__ void
-gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag_cu_kernel(struct gkyl_dg_calc_gyrokinetic_vars *up, 
-  struct gkyl_range conf_range, struct gkyl_range phase_range, struct gkyl_array* Bstar_Bmag)
-{ 
-  int idx[GKYL_MAX_DIM];
-  double xc[GKYL_MAX_DIM];
-
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < phase_range.volume;
-      linc1 += gridDim.x*blockDim.x)
-  {
-    // inverse index from linc1 to idx
-    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
-    // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&phase_range, linc1, idx);
-    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
-
-    // convert back to a linear index on the super-range (with ghost cells)
-    // linc will have jumps in it to jump over ghost cells
-    long loc_conf = gkyl_range_idx(&conf_range, idx);
-    long loc_phase = gkyl_range_idx(&phase_range, idx);
-
-    const double *bmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->bmag, loc_conf);
-    const double *jacobtot_inv_d = (const double*) gkyl_array_cfetch(up->gk_geom->jacobtot_inv, loc_conf);
-    const double *cmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->cmag, loc_conf);
-    const double *b_i_d = (const double*) gkyl_array_cfetch(up->gk_geom->b_i, loc_conf);
-
-    double* Bstar_Bmag_d = (double*) gkyl_array_fetch(Bstar_Bmag, loc_phase);
-    up->Bstar_Bmag(xc, up->phase_grid.dx, up->charge, up->mass, 
-      bmag_d, jacobtot_inv_d, cmag_d, b_i_d, Bstar_Bmag_d);
-  }
-}
-
-// Host-side wrapper for time-independent component of B*/Bmag calculation
-void gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, struct gkyl_array* Bstar_Bmag)
-{
-  int nblocks = phase_range->nblocks;
-  int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, *phase_range, Bstar_Bmag->on_dev);
-}
-
-__global__ void
 gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range, struct gkyl_range phase_ext_range, 
-  const struct gkyl_array *phi, const struct gkyl_array *Bstar_Bmag, 
+  const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 { 
   int pdim = up->pdim;
@@ -101,7 +58,6 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
     const double *cmag_d = (const double*) gkyl_array_cfetch(up->gk_geom->cmag, loc_conf);
     const double *b_i_d = (const double*) gkyl_array_cfetch(up->gk_geom->b_i, loc_conf);
     const double *phi_d = (const double*) gkyl_array_cfetch(phi, loc_conf);
-    const double *Bstar_Bmag_d =  (const double*) gkyl_array_cfetch(Bstar_Bmag, loc_phase);
 
     double* alpha_surf_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase);
     double* sgn_alpha_surf_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase);
@@ -110,7 +66,7 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
       // Each thread in linc2 thread grid handles a different component
       if (linc2 == dir) {
         const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
-          up->charge, up->mass, bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d,  Bstar_Bmag_d, 
+          up->charge, up->mass, bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, 
           alpha_surf_d, sgn_alpha_surf_d);
 
         // If the phase space index is at the local configuration space upper value, we
@@ -127,7 +83,7 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
           double* sgn_alpha_surf_ext_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
           int* const_sgn_alpha_ext_d = (int*) gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
           const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->phase_grid.dx, 
-            up->charge, up->mass, bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, Bstar_Bmag_d, 
+            up->charge, up->mass, bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, 
             alpha_surf_ext_d, sgn_alpha_surf_ext_d);
         }  
       }
@@ -138,14 +94,14 @@ gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_gyrokinet
 // Host-side wrapper for gyrokinetic surface alpha calculation
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_ext_range, 
-  const struct gkyl_array *phi, const struct gkyl_array *Bstar_Bmag, 
+  const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 {
   dim3 dimGrid, dimBlock;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, up->cdim+1);
   gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev, 
     *conf_range, *phase_range, *phase_ext_range, 
-    phi->on_dev, Bstar_Bmag->on_dev, 
+    phi->on_dev, 
     alpha_surf->on_dev, sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev);
 }
 
@@ -153,20 +109,29 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 dg_calc_gyrokinetic_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_gyrokinetic_vars *up, 
-  int cdim, int vdim, int poly_order)
+  int cdim, int vdim, int poly_order, enum gkyl_gkmodel_id gkmodel_id)
 {
-  up->Bstar_Bmag = choose_gyrokinetic_Bstar_Bmag_kern(cdim, poly_order);
-  for (int d=0; d<cdim; ++d) {
-    up->alpha_surf[d] = choose_gyrokinetic_alpha_surf_conf_kern(d, cdim, vdim, poly_order);
-    up->alpha_edge_surf[d] = choose_gyrokinetic_alpha_edge_surf_conf_kern(d, cdim, vdim, poly_order);
+  if (gkmodel_id == GKYL_GK_MODEL_NO_BY) {
+    for (int d=0; d<cdim; ++d) {
+      up->alpha_surf[d] = choose_gyrokinetic_alpha_no_by_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->alpha_edge_surf[d] = choose_gyrokinetic_alpha_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
+    }
+    up->alpha_surf[cdim] = choose_gyrokinetic_alpha_no_by_surf_vpar_kern(cdim, vdim, poly_order);
   }
-  up->alpha_surf[cdim] = choose_gyrokinetic_alpha_surf_vpar_kern(cdim, vdim, poly_order);
+  else {
+    for (int d=0; d<cdim; ++d) {
+      up->alpha_surf[d] = choose_gyrokinetic_alpha_surf_conf_kern(d, cdim, vdim, poly_order);
+      up->alpha_edge_surf[d] = choose_gyrokinetic_alpha_edge_surf_conf_kern(d, cdim, vdim, poly_order);
+    }
+    up->alpha_surf[cdim] = choose_gyrokinetic_alpha_surf_vpar_kern(cdim, vdim, poly_order);
+  }
 }
 
 gkyl_dg_calc_gyrokinetic_vars*
 gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const double charge, const double mass, const struct gk_geometry *gk_geom)
+  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
+  const struct gk_geometry *gk_geom)
 {
   struct gkyl_dg_calc_gyrokinetic_vars *up = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_malloc(sizeof(gkyl_dg_calc_gyrokinetic_vars));
 
@@ -191,7 +156,7 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
   struct gkyl_dg_calc_gyrokinetic_vars *up_cu = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_cu_malloc(sizeof(gkyl_dg_calc_gyrokinetic_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_gyrokinetic_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_gyrokinetic_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order);
+  dg_calc_gyrokinetic_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order, gkmodel_id);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

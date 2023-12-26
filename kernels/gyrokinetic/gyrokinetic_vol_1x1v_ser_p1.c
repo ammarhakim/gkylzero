@@ -1,5 +1,5 @@
 #include <gkyl_gyrokinetic_kernels.h> 
-GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double* apardot, const double *Bstar_Bmag, const double *fin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, const double *phi, const double *apar, const double* apardot, const double *fin, double* GKYL_RESTRICT out) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
@@ -11,7 +11,6 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   // phi: electrostatic potential .
   // apar: parallel component of magnetic vector potential.
   // apardot: time derivative of Apar.
-  // Bstar_Bmag: Bstar/Bmag volume expansion, pre-computed time-independent part.
   // fin: Distribution function.
   // out: output increment.
 
@@ -29,8 +28,6 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   const double *b_y = &b_i[2];
   const double *b_z = &b_i[4];
 
-  const double *BstarZdBmag = &Bstar_Bmag[0]; 
-
   double hamil[6] = {0.}; 
   hamil[0] = m_*wvparSq+(0.3333333333333333*m_)/rdvpar2Sq+1.414213562373095*phi[0]*q_; 
   hamil[1] = 1.414213562373095*phi[1]*q_; 
@@ -38,14 +35,14 @@ GKYL_CU_DH double gyrokinetic_vol_1x1v_ser_p1(const double *w, const double *dxv
   hamil[4] = (0.2981423969999719*m_)/rdvpar2Sq; 
 
   double alphax[6] = {0.}; 
-  alphax[0] = (1.224744871391589*BstarZdBmag[0]*hamil[2]*rdvpar2*rdx2)/m_; 
-  alphax[1] = (1.224744871391589*BstarZdBmag[1]*hamil[2]*rdvpar2*rdx2)/m_; 
-  alphax[2] = (2.738612787525831*BstarZdBmag[0]*hamil[4]*rdvpar2*rdx2)/m_; 
-  alphax[3] = (2.738612787525831*BstarZdBmag[1]*hamil[4]*rdvpar2*rdx2)/m_; 
+  alphax[0] = ((0.8660254037844386*cmag[1]*jacobtot_inv[1]*hamil[2]+0.8660254037844386*cmag[0]*jacobtot_inv[0]*hamil[2])*rdvpar2*rdx2)/m_; 
+  alphax[1] = ((0.8660254037844386*cmag[0]*jacobtot_inv[1]*hamil[2]+0.8660254037844386*jacobtot_inv[0]*cmag[1]*hamil[2])*rdvpar2*rdx2)/m_; 
+  alphax[2] = ((1.936491673103709*cmag[1]*jacobtot_inv[1]*hamil[4]+1.936491673103709*cmag[0]*jacobtot_inv[0]*hamil[4])*rdvpar2*rdx2)/m_; 
+  alphax[3] = ((1.936491673103709*cmag[0]*jacobtot_inv[1]*hamil[4]+1.936491673103709*jacobtot_inv[0]*cmag[1]*hamil[4])*rdvpar2*rdx2)/m_; 
 
   double alphavpar[6] = {0.}; 
-  alphavpar[0] = -(1.224744871391589*BstarZdBmag[0]*hamil[1]*rdvpar2*rdx2)/m_; 
-  alphavpar[1] = -(1.224744871391589*BstarZdBmag[1]*hamil[1]*rdvpar2*rdx2)/m_; 
+  alphavpar[0] = (((-0.8660254037844386*cmag[1]*hamil[1]*jacobtot_inv[1])-0.8660254037844386*cmag[0]*jacobtot_inv[0]*hamil[1])*rdvpar2*rdx2)/m_; 
+  alphavpar[1] = (((-0.8660254037844386*cmag[0]*hamil[1]*jacobtot_inv[1])-0.8660254037844386*jacobtot_inv[0]*cmag[1]*hamil[1])*rdvpar2*rdx2)/m_; 
 
   out[1] += 0.8660254037844386*(alphax[3]*fin[3]+alphax[2]*fin[2]+alphax[1]*fin[1]+alphax[0]*fin[0]); 
   out[2] += 0.8660254037844386*(alphavpar[1]*fin[1]+alphavpar[0]*fin[0]); 

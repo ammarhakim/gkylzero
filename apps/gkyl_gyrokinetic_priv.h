@@ -150,6 +150,7 @@ struct gk_source {
 struct gk_species {
   struct gkyl_gyrokinetic_species info; // data for species
 
+  enum gkyl_gkmodel_id gkmodel_id;
   enum gkyl_gkfield_id gkfield_id;
   
   struct gkyl_job_pool *job_pool; // Job pool
@@ -171,7 +172,6 @@ struct gk_species {
 
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
-  struct gkyl_array *Bstar_Bmag; // array for volume expansion of Bstar/Bmag, time-independent component
   struct gkyl_array *alpha_surf; // array for surface phase space flux
   struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
                                      // utilized for numerical flux function

@@ -27,16 +27,17 @@ struct gkyl_dg_updater_gyrokinetic_tm {
  * @param is_zero_flux_dir True in directions with (lower and upper) zero flux BCs.
  * @param charge Species charge
  * @param mass Species mass
+ * @param gkmodel_id Model ID for gyrokinetics (e.g., general geometry vs. no toroidal field, see gkyl_eqn_type.h)
  * @param gk_geom Geometry struct 
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
- * @param gkyl_gkeqn_id Enum identifier for gyrokinetic equation type.
- * 
- * @return New gyrokinetic updater object
+ * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
+ * @return Pointer to updater object for Gyrokinetic equation
  */
 gkyl_dg_updater_gyrokinetic* gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const bool *is_zero_flux_dir,
-  double charge, double mass, const struct gk_geometry *gk_geom, void *aux_inp, bool use_gpu);
+  double charge, double mass, enum gkyl_gkmodel_id gkmodel_id, 
+  const struct gk_geometry *gk_geom, void *aux_inp, bool use_gpu);
 
 /**
  * Acquire gyrokinetic equation object

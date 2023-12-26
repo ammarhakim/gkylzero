@@ -33,25 +33,6 @@ static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
   },
 };
 
-// Serendipity  kernels.
-GKYL_CU_D
-static const edged_sheath_reflectedf_kern_list tensor_sheath_reflect_list[] = {
-  { .list={
-           { NULL, bc_sheath_gyrokinetic_reflectedf_lower_1x1v_tensor_p2 },
-           { NULL, bc_sheath_gyrokinetic_reflectedf_lower_1x2v_tensor_p2 },
-           { NULL, NULL},
-           { NULL, NULL},
-          },
-  },
-  { .list={
-           { NULL, bc_sheath_gyrokinetic_reflectedf_upper_1x1v_tensor_p2 },
-           { NULL, bc_sheath_gyrokinetic_reflectedf_upper_1x2v_tensor_p2 },
-           { NULL, NULL},
-           { NULL, NULL},
-          },
-  },
-};
-
 struct gkyl_bc_sheath_gyrokinetic_kernels {
   sheath_reflectedf_t reflectedf;  // reflectedf kernel.
 };
@@ -83,8 +64,6 @@ bc_gksheath_choose_reflectedf_kernel(const struct gkyl_basis *basis, enum gkyl_e
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
       return ser_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
-    case GKYL_BASIS_MODAL_TENSOR:
-      return tensor_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
     default:
       assert(false);
       break;

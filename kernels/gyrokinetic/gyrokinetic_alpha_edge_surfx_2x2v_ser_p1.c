@@ -1,8 +1,7 @@
 #include <gkyl_gyrokinetic_kernels.h> 
 GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, 
   const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, 
-  const double *phi, const double *Bstar_Bmag, 
-  double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf) 
+  const double *phi, double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
@@ -12,7 +11,6 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   // cmag: coefficient multiplying parallel gradient.
   // b_i: covariant components of the field aligned unit vector.
   // phi: electrostatic potential.
-  // Bstar_Bmag: Bstar/Bmag volume expansion, pre-computed time-independent part.
   // alpha_surf: output surface phase space flux in each direction (cdim + 1 components).
   //             Note: Each cell owns their *lower* edge surface evaluation.
   // sgn_alpha_surf: output sign(alpha_surf) in each direction at quadrature points (cdim + 1 components).
@@ -41,8 +39,6 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   const double *b_y = &b_i[4];
   const double *b_z = &b_i[8];
 
-  const double *BstarXdBmag = &Bstar_Bmag[0]; 
-
   double hamil[24] = {0.}; 
   hamil[0] = 2.0*m_*wvparSq+2.0*bmag[0]*wmu+(0.6666666666666666*m_)/rdvpar2Sq+2.0*phi[0]*q_; 
   hamil[1] = 2.0*bmag[1]*wmu+2.0*phi[1]*q_; 
@@ -54,19 +50,17 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   hamil[16] = (0.5962847939999438*m_)/rdvpar2Sq; 
 
   double *alphaR0 = &alpha_surf[0];
-  alphaR0[0] = (((((-1.590990257669731*b_z[1])-0.9185586535436913*b_z[0])*jacobtot_inv[1]+jacobtot_inv[0]*((-0.9185586535436913*b_z[1])-0.5303300858899105*b_z[0]))*hamil[5]+(((-0.9185586535436913*b_z[1])-0.5303300858899105*b_z[0])*jacobtot_inv[1]+jacobtot_inv[0]*((-0.5303300858899105*b_z[1])-0.3061862178478971*b_z[0]))*hamil[2])*rdy2)/q_+(((2.371708245126284*BstarXdBmag[3]+1.369306393762915*BstarXdBmag[2])*hamil[16]+(1.060660171779821*BstarXdBmag[1]+0.6123724356957944*BstarXdBmag[0])*hamil[3])*rdvpar2)/m_; 
-  alphaR0[2] = (((2.371708245126284*BstarXdBmag[1]+1.369306393762915*BstarXdBmag[0])*hamil[16]+(1.060660171779821*BstarXdBmag[3]+0.6123724356957944*BstarXdBmag[2])*hamil[3])*rdvpar2)/m_; 
-  alphaR0[8] = ((2.121320343559642*BstarXdBmag[3]+1.224744871391589*BstarXdBmag[2])*hamil[16]*rdvpar2)/m_; 
+  alphaR0[0] = (((-1.590990257669731*b_z[1]*jacobtot_inv[1]*hamil[5])-0.9185586535436913*b_z[0]*jacobtot_inv[1]*hamil[5]-0.9185586535436913*jacobtot_inv[0]*b_z[1]*hamil[5]-0.5303300858899105*b_z[0]*jacobtot_inv[0]*hamil[5]-0.9185586535436913*b_z[1]*jacobtot_inv[1]*hamil[2]-0.5303300858899105*b_z[0]*jacobtot_inv[1]*hamil[2]-0.5303300858899105*jacobtot_inv[0]*b_z[1]*hamil[2]-0.3061862178478971*b_z[0]*jacobtot_inv[0]*hamil[2])*rdy2)/q_; 
 
   double *sgn_alpha_surf0 = &sgn_alpha_surf[0];
   int const_sgn_alpha_surf = 1; 
   
-  if (0.3162277660168378*alphaR0[8]-0.4743416490252568*alphaR0[2]+0.3535533905932734*alphaR0[0] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[0] = 1.0; 
   else  
     sgn_alpha_surf0[0] = -1.0; 
   
-  if (0.3535533905932734*alphaR0[0]-0.3952847075210471*alphaR0[8] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[1] = 1.0; 
   else  
     sgn_alpha_surf0[1] = -1.0; 
@@ -76,7 +70,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3162277660168378*alphaR0[8]+0.4743416490252568*alphaR0[2]+0.3535533905932734*alphaR0[0] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[2] = 1.0; 
   else  
     sgn_alpha_surf0[2] = -1.0; 
@@ -86,7 +80,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3162277660168378*alphaR0[8]-0.4743416490252568*alphaR0[2]+0.3535533905932734*alphaR0[0] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[3] = 1.0; 
   else  
     sgn_alpha_surf0[3] = -1.0; 
@@ -96,7 +90,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0]-0.3952847075210471*alphaR0[8] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[4] = 1.0; 
   else  
     sgn_alpha_surf0[4] = -1.0; 
@@ -106,7 +100,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3162277660168378*alphaR0[8]+0.4743416490252568*alphaR0[2]+0.3535533905932734*alphaR0[0] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[5] = 1.0; 
   else  
     sgn_alpha_surf0[5] = -1.0; 
@@ -116,7 +110,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3162277660168378*alphaR0[8]-0.4743416490252568*alphaR0[2]+0.3535533905932734*alphaR0[0] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[6] = 1.0; 
   else  
     sgn_alpha_surf0[6] = -1.0; 
@@ -126,7 +120,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0]-0.3952847075210471*alphaR0[8] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[7] = 1.0; 
   else  
     sgn_alpha_surf0[7] = -1.0; 
@@ -136,7 +130,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3162277660168378*alphaR0[8]+0.4743416490252568*alphaR0[2]+0.3535533905932734*alphaR0[0] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[8] = 1.0; 
   else  
     sgn_alpha_surf0[8] = -1.0; 
@@ -146,7 +140,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3162277660168378*alphaR0[8]-0.4743416490252568*alphaR0[2]+0.3535533905932734*alphaR0[0] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[9] = 1.0; 
   else  
     sgn_alpha_surf0[9] = -1.0; 
@@ -156,7 +150,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0]-0.3952847075210471*alphaR0[8] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[10] = 1.0; 
   else  
     sgn_alpha_surf0[10] = -1.0; 
@@ -166,7 +160,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3162277660168378*alphaR0[8]+0.4743416490252568*alphaR0[2]+0.3535533905932734*alphaR0[0] > 0.) 
+  if (0.3535533905932734*alphaR0[0] > 0.) 
     sgn_alpha_surf0[11] = 1.0; 
   else  
     sgn_alpha_surf0[11] = -1.0; 

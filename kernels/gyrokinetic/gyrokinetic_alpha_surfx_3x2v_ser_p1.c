@@ -1,8 +1,7 @@
 #include <gkyl_gyrokinetic_kernels.h> 
 GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double *dxv, const double q_, const double m_, 
   const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, 
-  const double *phi, const double *Bstar_Bmag, 
-  double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf) 
+  const double *phi, double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
@@ -12,7 +11,6 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   // cmag: coefficient multiplying parallel gradient.
   // b_i: covariant components of the field aligned unit vector.
   // phi: electrostatic potential.
-  // Bstar_Bmag: Bstar/Bmag volume expansion, pre-computed time-independent part.
   // alpha_surf: output surface phase space flux in each direction (cdim + 1 components).
   //             Note: Each cell owns their *lower* edge surface evaluation.
   // sgn_alpha_surf: output sign(alpha_surf) in each direction at quadrature points (cdim + 1 components).
@@ -45,8 +43,6 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   const double *b_y = &b_i[8];
   const double *b_z = &b_i[16];
 
-  const double *BstarXdBmag = &Bstar_Bmag[0]; 
-
   double hamil[48] = {0.}; 
   hamil[0] = 2.828427124746191*m_*wvparSq+2.0*bmag[0]*wmu+(0.9428090415820636*m_)/rdvpar2Sq+2.0*phi[0]*q_; 
   hamil[1] = 2.0*bmag[1]*wmu+2.0*phi[1]*q_; 
@@ -64,16 +60,16 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   hamil[32] = (0.8432740427115681*m_)/rdvpar2Sq; 
 
   double *alphaL0 = &alpha_surf[0];
-  alphaL0[0] = ((((0.4592793267718456*b_y[3]-0.7954951288348656*b_y[5])*jacobtot_inv[5]+jacobtot_inv[3]*(0.4592793267718456*b_y[5]-0.2651650429449552*b_y[3])+(0.4592793267718456*b_y[0]-0.7954951288348656*b_y[1])*jacobtot_inv[1]+jacobtot_inv[0]*(0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0]))*hamil[7]+hamil[3]*((0.4592793267718456*b_y[5]-0.2651650429449552*b_y[3])*jacobtot_inv[5]+jacobtot_inv[3]*(0.1530931089239486*b_y[3]-0.2651650429449552*b_y[5])+(0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0])*jacobtot_inv[1]+jacobtot_inv[0]*(0.1530931089239486*b_y[0]-0.2651650429449552*b_y[1])))*rdz2+(((0.7954951288348656*b_z[1]-0.4592793267718456*b_z[0])*jacobtot_inv[5]+(0.7954951288348656*jacobtot_inv[1]-0.4592793267718456*jacobtot_inv[0])*b_z[5]+(0.2651650429449552*b_z[0]-0.4592793267718456*b_z[1])*jacobtot_inv[3]+(0.2651650429449552*jacobtot_inv[0]-0.4592793267718456*jacobtot_inv[1])*b_z[3])*hamil[16]+((0.2651650429449552*b_z[0]-0.4592793267718456*b_z[1])*jacobtot_inv[5]+(0.2651650429449552*jacobtot_inv[0]-0.4592793267718456*jacobtot_inv[1])*b_z[5]+(0.2651650429449552*b_z[1]-0.1530931089239486*b_z[0])*jacobtot_inv[3]+(0.2651650429449552*jacobtot_inv[1]-0.1530931089239486*jacobtot_inv[0])*b_z[3])*hamil[8]+((0.7954951288348656*b_z[5]-0.4592793267718456*b_z[3])*jacobtot_inv[5]+jacobtot_inv[3]*(0.2651650429449552*b_z[3]-0.4592793267718456*b_z[5])+(0.7954951288348656*b_z[1]-0.4592793267718456*b_z[0])*jacobtot_inv[1]+jacobtot_inv[0]*(0.2651650429449552*b_z[0]-0.4592793267718456*b_z[1]))*hamil[6]+hamil[2]*((0.2651650429449552*b_z[3]-0.4592793267718456*b_z[5])*jacobtot_inv[5]+jacobtot_inv[3]*(0.2651650429449552*b_z[5]-0.1530931089239486*b_z[3])+(0.2651650429449552*b_z[0]-0.4592793267718456*b_z[1])*jacobtot_inv[1]+jacobtot_inv[0]*(0.2651650429449552*b_z[1]-0.1530931089239486*b_z[0])))*rdy2)/q_+(((0.9682458365518543*BstarXdBmag[3]-1.677050983124842*BstarXdBmag[5])*hamil[32]+(0.4330127018922193*BstarXdBmag[0]-0.75*BstarXdBmag[1])*hamil[4])*rdvpar2)/m_; 
-  alphaL0[1] = ((((0.4592793267718456*b_y[3]-0.7954951288348656*b_y[5])*jacobtot_inv[5]+jacobtot_inv[3]*(0.4592793267718456*b_y[5]-0.2651650429449552*b_y[3])+(0.4592793267718456*b_y[0]-0.7954951288348656*b_y[1])*jacobtot_inv[1]+jacobtot_inv[0]*(0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0]))*hamil[16]+((0.4592793267718456*b_y[5]-0.2651650429449552*b_y[3])*jacobtot_inv[5]+jacobtot_inv[3]*(0.1530931089239486*b_y[3]-0.2651650429449552*b_y[5])+(0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0])*jacobtot_inv[1]+jacobtot_inv[0]*(0.1530931089239486*b_y[0]-0.2651650429449552*b_y[1]))*hamil[8])*rdz2)/q_; 
-  alphaL0[2] = ((((0.4592793267718456*b_y[0]-0.7954951288348656*b_y[1])*jacobtot_inv[5]+(0.4592793267718456*jacobtot_inv[0]-0.7954951288348656*jacobtot_inv[1])*b_y[5]+(0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0])*jacobtot_inv[3]+(0.4592793267718456*jacobtot_inv[1]-0.2651650429449552*jacobtot_inv[0])*b_y[3])*hamil[7]+hamil[3]*((0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0])*jacobtot_inv[5]+(0.4592793267718456*jacobtot_inv[1]-0.2651650429449552*jacobtot_inv[0])*b_y[5]+(0.1530931089239486*b_y[0]-0.2651650429449552*b_y[1])*jacobtot_inv[3]+(0.1530931089239486*jacobtot_inv[0]-0.2651650429449552*jacobtot_inv[1])*b_y[3]))*rdz2+(((1.431891231902758*b_z[5]-0.826702788189322*b_z[3])*jacobtot_inv[5]+jacobtot_inv[3]*(0.4772970773009194*b_z[3]-0.826702788189322*b_z[5])+(0.7954951288348656*b_z[1]-0.4592793267718456*b_z[0])*jacobtot_inv[1]+jacobtot_inv[0]*(0.2651650429449552*b_z[0]-0.4592793267718456*b_z[1]))*hamil[16]+((0.4772970773009194*b_z[3]-0.826702788189322*b_z[5])*jacobtot_inv[5]+jacobtot_inv[3]*(0.4772970773009194*b_z[5]-0.2755675960631073*b_z[3])+(0.2651650429449552*b_z[0]-0.4592793267718456*b_z[1])*jacobtot_inv[1]+jacobtot_inv[0]*(0.2651650429449552*b_z[1]-0.1530931089239486*b_z[0]))*hamil[8]+((0.7954951288348656*b_z[1]-0.4592793267718456*b_z[0])*jacobtot_inv[5]+(0.7954951288348656*jacobtot_inv[1]-0.4592793267718456*jacobtot_inv[0])*b_z[5]+(0.2651650429449552*b_z[0]-0.4592793267718456*b_z[1])*jacobtot_inv[3]+(0.2651650429449552*jacobtot_inv[0]-0.4592793267718456*jacobtot_inv[1])*b_z[3])*hamil[6]+hamil[2]*((0.2651650429449552*b_z[0]-0.4592793267718456*b_z[1])*jacobtot_inv[5]+(0.2651650429449552*jacobtot_inv[0]-0.4592793267718456*jacobtot_inv[1])*b_z[5]+(0.2651650429449552*b_z[1]-0.1530931089239486*b_z[0])*jacobtot_inv[3]+(0.2651650429449552*jacobtot_inv[1]-0.1530931089239486*jacobtot_inv[0])*b_z[3]))*rdy2)/q_+(((0.9682458365518543*BstarXdBmag[6]-1.677050983124842*BstarXdBmag[7])*hamil[32]+(0.4330127018922193*BstarXdBmag[2]-0.75*BstarXdBmag[4])*hamil[4])*rdvpar2)/m_; 
-  alphaL0[3] = (((0.9682458365518543*BstarXdBmag[0]-1.677050983124842*BstarXdBmag[1])*hamil[32]+hamil[4]*(0.4330127018922193*BstarXdBmag[3]-0.75*BstarXdBmag[5]))*rdvpar2)/m_; 
-  alphaL0[4] = ((((0.4592793267718456*b_y[3]-0.7954951288348656*b_y[5])*jacobtot_inv[5]+jacobtot_inv[3]*(0.4592793267718456*b_y[5]-0.2651650429449552*b_y[3])+(0.4592793267718456*b_y[0]-0.7954951288348656*b_y[1])*jacobtot_inv[1]+jacobtot_inv[0]*(0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0]))*hamil[21]+((0.4592793267718456*b_y[5]-0.2651650429449552*b_y[3])*jacobtot_inv[5]+jacobtot_inv[3]*(0.1530931089239486*b_y[3]-0.2651650429449552*b_y[5])+(0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0])*jacobtot_inv[1]+jacobtot_inv[0]*(0.1530931089239486*b_y[0]-0.2651650429449552*b_y[1]))*hamil[14])*rdz2)/q_; 
-  alphaL0[5] = ((((0.4592793267718456*b_y[0]-0.7954951288348656*b_y[1])*jacobtot_inv[5]+(0.4592793267718456*jacobtot_inv[0]-0.7954951288348656*jacobtot_inv[1])*b_y[5]+(0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0])*jacobtot_inv[3]+(0.4592793267718456*jacobtot_inv[1]-0.2651650429449552*jacobtot_inv[0])*b_y[3])*hamil[16]+((0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0])*jacobtot_inv[5]+(0.4592793267718456*jacobtot_inv[1]-0.2651650429449552*jacobtot_inv[0])*b_y[5]+(0.1530931089239486*b_y[0]-0.2651650429449552*b_y[1])*jacobtot_inv[3]+(0.1530931089239486*jacobtot_inv[0]-0.2651650429449552*jacobtot_inv[1])*b_y[3])*hamil[8])*rdz2)/q_; 
-  alphaL0[7] = (((0.9682458365518543*BstarXdBmag[2]-1.677050983124842*BstarXdBmag[4])*hamil[32]+hamil[4]*(0.4330127018922193*BstarXdBmag[6]-0.75*BstarXdBmag[7]))*rdvpar2)/m_; 
-  alphaL0[9] = ((((0.4592793267718456*b_y[0]-0.7954951288348656*b_y[1])*jacobtot_inv[5]+(0.4592793267718456*jacobtot_inv[0]-0.7954951288348656*jacobtot_inv[1])*b_y[5]+(0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0])*jacobtot_inv[3]+(0.4592793267718456*jacobtot_inv[1]-0.2651650429449552*jacobtot_inv[0])*b_y[3])*hamil[21]+((0.4592793267718456*b_y[1]-0.2651650429449552*b_y[0])*jacobtot_inv[5]+(0.4592793267718456*jacobtot_inv[1]-0.2651650429449552*jacobtot_inv[0])*b_y[5]+(0.1530931089239486*b_y[0]-0.2651650429449552*b_y[1])*jacobtot_inv[3]+(0.1530931089239486*jacobtot_inv[0]-0.2651650429449552*jacobtot_inv[1])*b_y[3])*hamil[14])*rdz2)/q_; 
-  alphaL0[16] = ((0.8660254037844386*BstarXdBmag[3]-1.5*BstarXdBmag[5])*hamil[32]*rdvpar2)/m_; 
-  alphaL0[18] = ((0.8660254037844387*BstarXdBmag[6]-1.5*BstarXdBmag[7])*hamil[32]*rdvpar2)/m_; 
+  alphaL0[0] = (((-0.7954951288348656*jacobtot_inv[1]*hamil[4]*b_y[5])+0.4592793267718456*jacobtot_inv[0]*hamil[4]*b_y[5]+0.4592793267718456*jacobtot_inv[1]*b_y[3]*hamil[4]-0.2651650429449552*jacobtot_inv[0]*b_y[3]*hamil[4])*rdvpar2*rdz2*wvpar)/q_+(((-1.026979795322186*jacobtot_inv[1]*b_y[5]*hamil[32])+0.592927061281571*jacobtot_inv[0]*b_y[5]*hamil[32]+0.592927061281571*jacobtot_inv[1]*b_y[3]*hamil[32]-0.3423265984407287*jacobtot_inv[0]*b_y[3]*hamil[32]-0.7954951288348656*b_y[5]*jacobtot_inv[5]*hamil[7]+0.4592793267718456*b_y[3]*jacobtot_inv[5]*hamil[7]+0.4592793267718456*jacobtot_inv[3]*b_y[5]*hamil[7]-0.2651650429449552*b_y[3]*jacobtot_inv[3]*hamil[7]-0.7954951288348656*b_y[1]*jacobtot_inv[1]*hamil[7]+0.4592793267718456*b_y[0]*jacobtot_inv[1]*hamil[7]+0.4592793267718456*jacobtot_inv[0]*b_y[1]*hamil[7]-0.2651650429449552*b_y[0]*jacobtot_inv[0]*hamil[7]+0.4592793267718456*hamil[3]*b_y[5]*jacobtot_inv[5]-0.2651650429449552*b_y[3]*hamil[3]*jacobtot_inv[5]-0.2651650429449552*hamil[3]*jacobtot_inv[3]*b_y[5]+0.1530931089239486*b_y[3]*hamil[3]*jacobtot_inv[3]+0.4592793267718456*b_y[1]*jacobtot_inv[1]*hamil[3]-0.2651650429449552*b_y[0]*jacobtot_inv[1]*hamil[3]-0.2651650429449552*jacobtot_inv[0]*b_y[1]*hamil[3]+0.1530931089239486*b_y[0]*jacobtot_inv[0]*hamil[3])*rdz2+(0.7954951288348656*b_z[1]*jacobtot_inv[5]*hamil[16]-0.4592793267718456*b_z[0]*jacobtot_inv[5]*hamil[16]+0.7954951288348656*jacobtot_inv[1]*b_z[5]*hamil[16]-0.4592793267718456*jacobtot_inv[0]*b_z[5]*hamil[16]-0.4592793267718456*b_z[1]*jacobtot_inv[3]*hamil[16]+0.2651650429449552*b_z[0]*jacobtot_inv[3]*hamil[16]-0.4592793267718456*jacobtot_inv[1]*b_z[3]*hamil[16]+0.2651650429449552*jacobtot_inv[0]*b_z[3]*hamil[16]-0.4592793267718456*b_z[1]*jacobtot_inv[5]*hamil[8]+0.2651650429449552*b_z[0]*jacobtot_inv[5]*hamil[8]-0.4592793267718456*jacobtot_inv[1]*b_z[5]*hamil[8]+0.2651650429449552*jacobtot_inv[0]*b_z[5]*hamil[8]+0.2651650429449552*b_z[1]*jacobtot_inv[3]*hamil[8]-0.1530931089239486*b_z[0]*jacobtot_inv[3]*hamil[8]+0.2651650429449552*jacobtot_inv[1]*b_z[3]*hamil[8]-0.1530931089239486*jacobtot_inv[0]*b_z[3]*hamil[8]+0.7954951288348656*b_z[5]*jacobtot_inv[5]*hamil[6]-0.4592793267718456*b_z[3]*jacobtot_inv[5]*hamil[6]-0.4592793267718456*jacobtot_inv[3]*b_z[5]*hamil[6]+0.2651650429449552*b_z[3]*jacobtot_inv[3]*hamil[6]+0.7954951288348656*b_z[1]*jacobtot_inv[1]*hamil[6]-0.4592793267718456*b_z[0]*jacobtot_inv[1]*hamil[6]-0.4592793267718456*jacobtot_inv[0]*b_z[1]*hamil[6]+0.2651650429449552*b_z[0]*jacobtot_inv[0]*hamil[6]-0.4592793267718456*hamil[2]*b_z[5]*jacobtot_inv[5]+0.2651650429449552*hamil[2]*b_z[3]*jacobtot_inv[5]+0.2651650429449552*hamil[2]*jacobtot_inv[3]*b_z[5]-0.1530931089239486*hamil[2]*b_z[3]*jacobtot_inv[3]-0.4592793267718456*b_z[1]*jacobtot_inv[1]*hamil[2]+0.2651650429449552*b_z[0]*jacobtot_inv[1]*hamil[2]+0.2651650429449552*jacobtot_inv[0]*b_z[1]*hamil[2]-0.1530931089239486*b_z[0]*jacobtot_inv[0]*hamil[2])*rdy2)/q_; 
+  alphaL0[1] = (((-0.7954951288348656*b_y[5]*jacobtot_inv[5]*hamil[16])+0.4592793267718456*b_y[3]*jacobtot_inv[5]*hamil[16]+0.4592793267718456*jacobtot_inv[3]*b_y[5]*hamil[16]-0.2651650429449552*b_y[3]*jacobtot_inv[3]*hamil[16]-0.7954951288348656*b_y[1]*jacobtot_inv[1]*hamil[16]+0.4592793267718456*b_y[0]*jacobtot_inv[1]*hamil[16]+0.4592793267718456*jacobtot_inv[0]*b_y[1]*hamil[16]-0.2651650429449552*b_y[0]*jacobtot_inv[0]*hamil[16]+0.4592793267718456*b_y[5]*jacobtot_inv[5]*hamil[8]-0.2651650429449552*b_y[3]*jacobtot_inv[5]*hamil[8]-0.2651650429449552*jacobtot_inv[3]*b_y[5]*hamil[8]+0.1530931089239486*b_y[3]*jacobtot_inv[3]*hamil[8]+0.4592793267718456*b_y[1]*jacobtot_inv[1]*hamil[8]-0.2651650429449552*b_y[0]*jacobtot_inv[1]*hamil[8]-0.2651650429449552*jacobtot_inv[0]*b_y[1]*hamil[8]+0.1530931089239486*b_y[0]*jacobtot_inv[0]*hamil[8])*rdz2)/q_; 
+  alphaL0[2] = (((-0.7954951288348656*hamil[4]*b_y[5]*jacobtot_inv[5])+0.4592793267718456*b_y[3]*hamil[4]*jacobtot_inv[5]+0.4592793267718456*jacobtot_inv[3]*hamil[4]*b_y[5]-0.2651650429449552*b_y[3]*jacobtot_inv[3]*hamil[4])*rdvpar2*rdz2*wvpar)/q_+(((-1.026979795322186*b_y[5]*jacobtot_inv[5]*hamil[32])+0.592927061281571*b_y[3]*jacobtot_inv[5]*hamil[32]+0.592927061281571*jacobtot_inv[3]*b_y[5]*hamil[32]-0.3423265984407287*b_y[3]*jacobtot_inv[3]*hamil[32]-0.7954951288348656*b_y[1]*jacobtot_inv[5]*hamil[7]+0.4592793267718456*b_y[0]*jacobtot_inv[5]*hamil[7]-0.7954951288348656*jacobtot_inv[1]*b_y[5]*hamil[7]+0.4592793267718456*jacobtot_inv[0]*b_y[5]*hamil[7]+0.4592793267718456*b_y[1]*jacobtot_inv[3]*hamil[7]-0.2651650429449552*b_y[0]*jacobtot_inv[3]*hamil[7]+0.4592793267718456*jacobtot_inv[1]*b_y[3]*hamil[7]-0.2651650429449552*jacobtot_inv[0]*b_y[3]*hamil[7]+0.4592793267718456*b_y[1]*hamil[3]*jacobtot_inv[5]-0.2651650429449552*b_y[0]*hamil[3]*jacobtot_inv[5]+0.4592793267718456*jacobtot_inv[1]*hamil[3]*b_y[5]-0.2651650429449552*jacobtot_inv[0]*hamil[3]*b_y[5]-0.2651650429449552*b_y[1]*hamil[3]*jacobtot_inv[3]+0.1530931089239486*b_y[0]*hamil[3]*jacobtot_inv[3]-0.2651650429449552*jacobtot_inv[1]*b_y[3]*hamil[3]+0.1530931089239486*jacobtot_inv[0]*b_y[3]*hamil[3])*rdz2+(1.431891231902758*b_z[5]*jacobtot_inv[5]*hamil[16]-0.826702788189322*b_z[3]*jacobtot_inv[5]*hamil[16]-0.826702788189322*jacobtot_inv[3]*b_z[5]*hamil[16]+0.4772970773009194*b_z[3]*jacobtot_inv[3]*hamil[16]+0.7954951288348656*b_z[1]*jacobtot_inv[1]*hamil[16]-0.4592793267718456*b_z[0]*jacobtot_inv[1]*hamil[16]-0.4592793267718456*jacobtot_inv[0]*b_z[1]*hamil[16]+0.2651650429449552*b_z[0]*jacobtot_inv[0]*hamil[16]-0.826702788189322*b_z[5]*jacobtot_inv[5]*hamil[8]+0.4772970773009194*b_z[3]*jacobtot_inv[5]*hamil[8]+0.4772970773009194*jacobtot_inv[3]*b_z[5]*hamil[8]-0.2755675960631073*b_z[3]*jacobtot_inv[3]*hamil[8]-0.4592793267718456*b_z[1]*jacobtot_inv[1]*hamil[8]+0.2651650429449552*b_z[0]*jacobtot_inv[1]*hamil[8]+0.2651650429449552*jacobtot_inv[0]*b_z[1]*hamil[8]-0.1530931089239486*b_z[0]*jacobtot_inv[0]*hamil[8]+0.7954951288348656*b_z[1]*jacobtot_inv[5]*hamil[6]-0.4592793267718456*b_z[0]*jacobtot_inv[5]*hamil[6]+0.7954951288348656*jacobtot_inv[1]*b_z[5]*hamil[6]-0.4592793267718456*jacobtot_inv[0]*b_z[5]*hamil[6]-0.4592793267718456*b_z[1]*jacobtot_inv[3]*hamil[6]+0.2651650429449552*b_z[0]*jacobtot_inv[3]*hamil[6]-0.4592793267718456*jacobtot_inv[1]*b_z[3]*hamil[6]+0.2651650429449552*jacobtot_inv[0]*b_z[3]*hamil[6]-0.4592793267718456*b_z[1]*hamil[2]*jacobtot_inv[5]+0.2651650429449552*b_z[0]*hamil[2]*jacobtot_inv[5]-0.4592793267718456*jacobtot_inv[1]*hamil[2]*b_z[5]+0.2651650429449552*jacobtot_inv[0]*hamil[2]*b_z[5]+0.2651650429449552*b_z[1]*hamil[2]*jacobtot_inv[3]-0.1530931089239486*b_z[0]*hamil[2]*jacobtot_inv[3]+0.2651650429449552*jacobtot_inv[1]*hamil[2]*b_z[3]-0.1530931089239486*jacobtot_inv[0]*hamil[2]*b_z[3])*rdy2)/q_; 
+  alphaL0[3] = (((-1.778781183844713*jacobtot_inv[1]*b_y[5]*hamil[32])+1.026979795322186*jacobtot_inv[0]*b_y[5]*hamil[32]+1.026979795322186*jacobtot_inv[1]*b_y[3]*hamil[32]-0.592927061281571*jacobtot_inv[0]*b_y[3]*hamil[32])*rdvpar2*rdz2*wvpar)/q_+(((-0.4592793267718456*jacobtot_inv[1]*hamil[4]*b_y[5])+0.2651650429449552*jacobtot_inv[0]*hamil[4]*b_y[5]+0.2651650429449552*jacobtot_inv[1]*b_y[3]*hamil[4]-0.1530931089239486*jacobtot_inv[0]*b_y[3]*hamil[4])*rdz2)/q_; 
+  alphaL0[4] = (((-0.7954951288348656*b_y[5]*jacobtot_inv[5]*hamil[21])+0.4592793267718456*b_y[3]*jacobtot_inv[5]*hamil[21]+0.4592793267718456*jacobtot_inv[3]*b_y[5]*hamil[21]-0.2651650429449552*b_y[3]*jacobtot_inv[3]*hamil[21]-0.7954951288348656*b_y[1]*jacobtot_inv[1]*hamil[21]+0.4592793267718456*b_y[0]*jacobtot_inv[1]*hamil[21]+0.4592793267718456*jacobtot_inv[0]*b_y[1]*hamil[21]-0.2651650429449552*b_y[0]*jacobtot_inv[0]*hamil[21]+0.4592793267718456*b_y[5]*jacobtot_inv[5]*hamil[14]-0.2651650429449552*b_y[3]*jacobtot_inv[5]*hamil[14]-0.2651650429449552*jacobtot_inv[3]*b_y[5]*hamil[14]+0.1530931089239486*b_y[3]*jacobtot_inv[3]*hamil[14]+0.4592793267718456*b_y[1]*jacobtot_inv[1]*hamil[14]-0.2651650429449552*b_y[0]*jacobtot_inv[1]*hamil[14]-0.2651650429449552*jacobtot_inv[0]*b_y[1]*hamil[14]+0.1530931089239486*b_y[0]*jacobtot_inv[0]*hamil[14])*rdz2)/q_; 
+  alphaL0[5] = (((-0.7954951288348656*b_y[1]*jacobtot_inv[5]*hamil[16])+0.4592793267718456*b_y[0]*jacobtot_inv[5]*hamil[16]-0.7954951288348656*jacobtot_inv[1]*b_y[5]*hamil[16]+0.4592793267718456*jacobtot_inv[0]*b_y[5]*hamil[16]+0.4592793267718456*b_y[1]*jacobtot_inv[3]*hamil[16]-0.2651650429449552*b_y[0]*jacobtot_inv[3]*hamil[16]+0.4592793267718456*jacobtot_inv[1]*b_y[3]*hamil[16]-0.2651650429449552*jacobtot_inv[0]*b_y[3]*hamil[16]+0.4592793267718456*b_y[1]*jacobtot_inv[5]*hamil[8]-0.2651650429449552*b_y[0]*jacobtot_inv[5]*hamil[8]+0.4592793267718456*jacobtot_inv[1]*b_y[5]*hamil[8]-0.2651650429449552*jacobtot_inv[0]*b_y[5]*hamil[8]-0.2651650429449552*b_y[1]*jacobtot_inv[3]*hamil[8]+0.1530931089239486*b_y[0]*jacobtot_inv[3]*hamil[8]-0.2651650429449552*jacobtot_inv[1]*b_y[3]*hamil[8]+0.1530931089239486*jacobtot_inv[0]*b_y[3]*hamil[8])*rdz2)/q_; 
+  alphaL0[7] = (((-1.778781183844713*b_y[5]*jacobtot_inv[5]*hamil[32])+1.026979795322186*b_y[3]*jacobtot_inv[5]*hamil[32]+1.026979795322186*jacobtot_inv[3]*b_y[5]*hamil[32]-0.592927061281571*b_y[3]*jacobtot_inv[3]*hamil[32])*rdvpar2*rdz2*wvpar)/q_+(((-0.4592793267718456*hamil[4]*b_y[5]*jacobtot_inv[5])+0.2651650429449552*b_y[3]*hamil[4]*jacobtot_inv[5]+0.2651650429449552*jacobtot_inv[3]*hamil[4]*b_y[5]-0.1530931089239486*b_y[3]*jacobtot_inv[3]*hamil[4])*rdz2)/q_; 
+  alphaL0[9] = (((-0.7954951288348656*b_y[1]*jacobtot_inv[5]*hamil[21])+0.4592793267718456*b_y[0]*jacobtot_inv[5]*hamil[21]-0.7954951288348656*jacobtot_inv[1]*b_y[5]*hamil[21]+0.4592793267718456*jacobtot_inv[0]*b_y[5]*hamil[21]+0.4592793267718456*b_y[1]*jacobtot_inv[3]*hamil[21]-0.2651650429449552*b_y[0]*jacobtot_inv[3]*hamil[21]+0.4592793267718456*jacobtot_inv[1]*b_y[3]*hamil[21]-0.2651650429449552*jacobtot_inv[0]*b_y[3]*hamil[21]+0.4592793267718456*b_y[1]*jacobtot_inv[5]*hamil[14]-0.2651650429449552*b_y[0]*jacobtot_inv[5]*hamil[14]+0.4592793267718456*jacobtot_inv[1]*b_y[5]*hamil[14]-0.2651650429449552*jacobtot_inv[0]*b_y[5]*hamil[14]-0.2651650429449552*b_y[1]*jacobtot_inv[3]*hamil[14]+0.1530931089239486*b_y[0]*jacobtot_inv[3]*hamil[14]-0.2651650429449552*jacobtot_inv[1]*b_y[3]*hamil[14]+0.1530931089239486*jacobtot_inv[0]*b_y[3]*hamil[14])*rdz2)/q_; 
+  alphaL0[16] = (((-0.9185586535436913*jacobtot_inv[1]*b_y[5]*hamil[32])+0.5303300858899105*jacobtot_inv[0]*b_y[5]*hamil[32]+0.5303300858899105*jacobtot_inv[1]*b_y[3]*hamil[32]-0.3061862178478971*jacobtot_inv[0]*b_y[3]*hamil[32])*rdz2)/q_; 
+  alphaL0[18] = (((-0.9185586535436916*b_y[5]*jacobtot_inv[5]*hamil[32])+0.5303300858899104*b_y[3]*jacobtot_inv[5]*hamil[32]+0.5303300858899104*jacobtot_inv[3]*b_y[5]*hamil[32]-0.3061862178478971*b_y[3]*jacobtot_inv[3]*hamil[32])*rdz2)/q_; 
 
   double *sgn_alpha_surf0 = &sgn_alpha_surf[0];
   int const_sgn_alpha_surf = 1; 
@@ -83,7 +79,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     sgn_alpha_surf0[0] = -1.0; 
   
-  if (0.2795084971874732*alphaL0[18]-0.2795084971874732*alphaL0[16]+0.25*alphaL0[9]+0.25*alphaL0[5]-0.25*alphaL0[4]-0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2795084971874732*alphaL0[18]-0.2795084971874732*alphaL0[16]+0.25*(alphaL0[9]+alphaL0[5])-0.25*(alphaL0[4]+alphaL0[2]+alphaL0[1])+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[1] = 1.0; 
   else  
     sgn_alpha_surf0[1] = -1.0; 
@@ -93,7 +89,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]+0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]+0.25*alphaL0[5]-0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]+0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]+0.25*alphaL0[5]-0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]-0.25*(alphaL0[2]+alphaL0[1])+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[2] = 1.0; 
   else  
     sgn_alpha_surf0[2] = -1.0; 
@@ -103,7 +99,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]+0.25*alphaL0[5]+0.25*alphaL0[4]-0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]+0.25*(alphaL0[5]+alphaL0[4])-0.3354101966249678*alphaL0[3]-0.25*(alphaL0[2]+alphaL0[1])+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[3] = 1.0; 
   else  
     sgn_alpha_surf0[3] = -1.0; 
@@ -113,7 +109,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2795084971874732*alphaL0[18]-0.2795084971874732*alphaL0[16]-0.25*alphaL0[9]+0.25*alphaL0[5]+0.25*alphaL0[4]-0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2795084971874732*alphaL0[18]-0.2795084971874732*alphaL0[16]-0.25*alphaL0[9]+0.25*(alphaL0[5]+alphaL0[4])-0.25*(alphaL0[2]+alphaL0[1])+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[4] = 1.0; 
   else  
     sgn_alpha_surf0[4] = -1.0; 
@@ -123,7 +119,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]+0.25*alphaL0[5]+0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]+0.25*(alphaL0[5]+alphaL0[4])+0.3354101966249678*alphaL0[3]-0.25*(alphaL0[2]+alphaL0[1])+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[5] = 1.0; 
   else  
     sgn_alpha_surf0[5] = -1.0; 
@@ -133,7 +129,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2236067977499786*alphaL0[18]+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]-0.25*alphaL0[4]-0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2236067977499786*(alphaL0[18]+alphaL0[16])-0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]-0.25*(alphaL0[5]+alphaL0[4])-0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[6] = 1.0; 
   else  
     sgn_alpha_surf0[6] = -1.0; 
@@ -143,7 +139,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2795084971874732*alphaL0[18])-0.2795084971874732*alphaL0[16]-0.25*alphaL0[9]-0.25*alphaL0[5]-0.25*alphaL0[4]+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if ((-0.2795084971874732*(alphaL0[18]+alphaL0[16]))-0.25*(alphaL0[9]+alphaL0[5]+alphaL0[4])+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[7] = 1.0; 
   else  
     sgn_alpha_surf0[7] = -1.0; 
@@ -153,7 +149,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2236067977499786*alphaL0[18]+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]-0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2236067977499786*(alphaL0[18]+alphaL0[16])-0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]-0.25*(alphaL0[5]+alphaL0[4])+0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[8] = 1.0; 
   else  
     sgn_alpha_surf0[8] = -1.0; 
@@ -163,7 +159,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2236067977499786*alphaL0[18]+0.2236067977499786*alphaL0[16]+0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]+0.25*alphaL0[4]-0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2236067977499786*(alphaL0[18]+alphaL0[16])+0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]+0.25*alphaL0[4]-0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[9] = 1.0; 
   else  
     sgn_alpha_surf0[9] = -1.0; 
@@ -173,7 +169,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2795084971874732*alphaL0[18])-0.2795084971874732*alphaL0[16]+0.25*alphaL0[9]-0.25*alphaL0[5]+0.25*alphaL0[4]+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if ((-0.2795084971874732*(alphaL0[18]+alphaL0[16]))+0.25*alphaL0[9]-0.25*alphaL0[5]+0.25*(alphaL0[4]+alphaL0[2])-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[10] = 1.0; 
   else  
     sgn_alpha_surf0[10] = -1.0; 
@@ -183,7 +179,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2236067977499786*alphaL0[18]+0.2236067977499786*alphaL0[16]+0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]+0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2236067977499786*(alphaL0[18]+alphaL0[16])+0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]+0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]-0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
     sgn_alpha_surf0[11] = 1.0; 
   else  
     sgn_alpha_surf0[11] = -1.0; 
@@ -193,7 +189,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]+0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]-0.25*alphaL0[4]-0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]+0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]-0.25*(alphaL0[5]+alphaL0[4])-0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]+0.25*(alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[12] = 1.0; 
   else  
     sgn_alpha_surf0[12] = -1.0; 
@@ -203,7 +199,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2795084971874732*alphaL0[18]-0.2795084971874732*alphaL0[16]+0.25*alphaL0[9]-0.25*alphaL0[5]-0.25*alphaL0[4]-0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2795084971874732*alphaL0[18]-0.2795084971874732*alphaL0[16]+0.25*alphaL0[9]-0.25*(alphaL0[5]+alphaL0[4]+alphaL0[2])+0.25*(alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[13] = 1.0; 
   else  
     sgn_alpha_surf0[13] = -1.0; 
@@ -213,7 +209,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]+0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]-0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]+0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]-0.25*(alphaL0[5]+alphaL0[4])+0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]+0.25*(alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[14] = 1.0; 
   else  
     sgn_alpha_surf0[14] = -1.0; 
@@ -223,7 +219,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]+0.25*alphaL0[4]-0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]+0.25*alphaL0[4]-0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]+0.25*(alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[15] = 1.0; 
   else  
     sgn_alpha_surf0[15] = -1.0; 
@@ -233,7 +229,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2795084971874732*alphaL0[18]-0.2795084971874732*alphaL0[16]-0.25*alphaL0[9]-0.25*alphaL0[5]+0.25*alphaL0[4]-0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2795084971874732*alphaL0[18]-0.2795084971874732*alphaL0[16]-0.25*(alphaL0[9]+alphaL0[5])+0.25*alphaL0[4]-0.25*alphaL0[2]+0.25*(alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[16] = 1.0; 
   else  
     sgn_alpha_surf0[16] = -1.0; 
@@ -243,7 +239,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]+0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if ((-0.2236067977499786*alphaL0[18])+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]-0.25*alphaL0[5]+0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]-0.25*alphaL0[2]+0.25*(alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[17] = 1.0; 
   else  
     sgn_alpha_surf0[17] = -1.0; 
@@ -253,7 +249,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2236067977499786*alphaL0[18]+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]+0.25*alphaL0[5]-0.25*alphaL0[4]-0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2236067977499786*(alphaL0[18]+alphaL0[16])-0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]+0.25*alphaL0[5]-0.25*alphaL0[4]-0.3354101966249678*alphaL0[3]+0.25*(alphaL0[2]+alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[18] = 1.0; 
   else  
     sgn_alpha_surf0[18] = -1.0; 
@@ -263,7 +259,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2795084971874732*alphaL0[18])-0.2795084971874732*alphaL0[16]-0.25*alphaL0[9]+0.25*alphaL0[5]-0.25*alphaL0[4]+0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if ((-0.2795084971874732*(alphaL0[18]+alphaL0[16]))-0.25*alphaL0[9]+0.25*alphaL0[5]-0.25*alphaL0[4]+0.25*(alphaL0[2]+alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[19] = 1.0; 
   else  
     sgn_alpha_surf0[19] = -1.0; 
@@ -273,7 +269,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2236067977499786*alphaL0[18]+0.2236067977499786*alphaL0[16]-0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]+0.25*alphaL0[5]-0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2236067977499786*(alphaL0[18]+alphaL0[16])-0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]+0.25*alphaL0[5]-0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]+0.25*(alphaL0[2]+alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[20] = 1.0; 
   else  
     sgn_alpha_surf0[20] = -1.0; 
@@ -283,7 +279,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2236067977499786*alphaL0[18]+0.2236067977499786*alphaL0[16]+0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]+0.25*alphaL0[5]+0.25*alphaL0[4]-0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2236067977499786*(alphaL0[18]+alphaL0[16])+0.25*alphaL0[9]-0.3354101966249678*alphaL0[7]+0.25*(alphaL0[5]+alphaL0[4])-0.3354101966249678*alphaL0[3]+0.25*(alphaL0[2]+alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[21] = 1.0; 
   else  
     sgn_alpha_surf0[21] = -1.0; 
@@ -293,7 +289,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if ((-0.2795084971874732*alphaL0[18])-0.2795084971874732*alphaL0[16]+0.25*alphaL0[9]+0.25*alphaL0[5]+0.25*alphaL0[4]+0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.25*(alphaL0[9]+alphaL0[5]+alphaL0[4]+alphaL0[2]+alphaL0[1]+alphaL0[0])-0.2795084971874732*(alphaL0[18]+alphaL0[16]) > 0.) 
     sgn_alpha_surf0[22] = 1.0; 
   else  
     sgn_alpha_surf0[22] = -1.0; 
@@ -303,7 +299,7 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_3x2v_ser_p1(const double *w, const double
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.2236067977499786*alphaL0[18]+0.2236067977499786*alphaL0[16]+0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]+0.25*alphaL0[5]+0.25*alphaL0[4]+0.3354101966249678*alphaL0[3]+0.25*alphaL0[2]+0.25*alphaL0[1]+0.25*alphaL0[0] > 0.) 
+  if (0.2236067977499786*(alphaL0[18]+alphaL0[16])+0.25*alphaL0[9]+0.3354101966249678*alphaL0[7]+0.25*(alphaL0[5]+alphaL0[4])+0.3354101966249678*alphaL0[3]+0.25*(alphaL0[2]+alphaL0[1]+alphaL0[0]) > 0.) 
     sgn_alpha_surf0[23] = 1.0; 
   else  
     sgn_alpha_surf0[23] = -1.0; 

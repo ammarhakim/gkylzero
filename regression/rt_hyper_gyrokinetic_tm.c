@@ -200,7 +200,7 @@ main(int argc, char **argv)
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
   double charge, mass = 1.;
-  eqn = gkyl_dg_gyrokinetic_new(&confBasis, &basis, &confRange, &phaseRange, charge, mass, gk_geom, use_gpu);
+  eqn = gkyl_dg_gyrokinetic_new(&confBasis, &basis, &confRange, &phaseRange, charge, mass, 0, gk_geom, use_gpu);
 
   gkyl_hyper_dg *slvr;
   slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);

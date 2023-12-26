@@ -1,5 +1,4 @@
 #include <gkyl_gyrokinetic_kernels.h>
-#include <gkyl_basis_gkhyb_3x2v_p1_surfx3_eval_quad.h> 
 #include <gkyl_basis_gkhyb_3x2v_p1_upwind_quad_to_modal.h> 
 GKYL_CU_DH double gyrokinetic_surfz_3x2v_ser_p1(const double *w, const double *dxv, 
   const double *alpha_surf_l, const double *alpha_surf_r, 
