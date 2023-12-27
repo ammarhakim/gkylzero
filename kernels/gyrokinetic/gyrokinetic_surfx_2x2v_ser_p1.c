@@ -27,7 +27,6 @@ GKYL_CU_DH double gyrokinetic_surfx_2x2v_ser_p1(const double *w, const double *d
   const int *const_sgn_alphaR = &const_sgn_alpha_r[0];
 
   double fUpL[12] = {0.};
-  double sgn_alphaUpL[12] = {0.};
   if (const_sgn_alphaL[0] == 1) {  
     if (sgn_alpha_surfL[0] == 1.0) {  
   fUpL[0] = 1.224744871391589*fl[1]+0.7071067811865475*fl[0]; 
@@ -59,6 +58,7 @@ GKYL_CU_DH double gyrokinetic_surfx_2x2v_ser_p1(const double *w, const double *d
   } else { 
   double f_lr[12] = {0.};
   double f_cl[12] = {0.};
+  double sgn_alphaUpL[12] = {0.};
   gkhyb_2x2v_p1_xdir_upwind_quad_to_modal(sgn_alpha_surfL, sgn_alphaUpL); 
 
   f_lr[0] = 1.224744871391589*fl[1]+0.7071067811865475*fl[0]; 
@@ -102,7 +102,6 @@ GKYL_CU_DH double gyrokinetic_surfx_2x2v_ser_p1(const double *w, const double *d
 
   } 
   double fUpR[12] = {0.};
-  double sgn_alphaUpR[12] = {0.};
   if (const_sgn_alphaR[0] == 1) {  
     if (sgn_alpha_surfR[0] == 1.0) {  
   fUpR[0] = 1.224744871391589*fc[1]+0.7071067811865475*fc[0]; 
@@ -134,6 +133,7 @@ GKYL_CU_DH double gyrokinetic_surfx_2x2v_ser_p1(const double *w, const double *d
   } else { 
   double f_cr[12] = {0.};
   double f_rl[12] = {0.};
+  double sgn_alphaUpR[12] = {0.};
   gkhyb_2x2v_p1_xdir_upwind_quad_to_modal(sgn_alpha_surfR, sgn_alphaUpR); 
 
   f_cr[0] = 1.224744871391589*fc[1]+0.7071067811865475*fc[0]; 
