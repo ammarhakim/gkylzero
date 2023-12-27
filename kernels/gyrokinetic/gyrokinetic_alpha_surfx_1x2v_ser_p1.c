@@ -39,64 +39,64 @@ GKYL_CU_DH int gyrokinetic_alpha_surfx_1x2v_ser_p1(const double *w, const double
   hamil[5] = (1.154700538379252*bmag[1])/rdmu2; 
   hamil[8] = (0.421637021355784*m_)/rdvpar2Sq; 
 
-  double *alphaL0 = &alpha_surf[0];
-  alphaL0[0] = ((1.837117307087383*cmag[1]*jacobtot_inv[1]*hamil[2]-1.060660171779821*cmag[0]*jacobtot_inv[1]*hamil[2]-1.060660171779821*jacobtot_inv[0]*cmag[1]*hamil[2]+0.6123724356957944*cmag[0]*jacobtot_inv[0]*hamil[2])*rdvpar2)/m_; 
-  alphaL0[1] = ((4.107919181288745*cmag[1]*jacobtot_inv[1]*hamil[8]-2.371708245126284*cmag[0]*jacobtot_inv[1]*hamil[8]-2.371708245126284*jacobtot_inv[0]*cmag[1]*hamil[8]+1.369306393762915*cmag[0]*jacobtot_inv[0]*hamil[8])*rdvpar2)/m_; 
+  double *alphaL = &alpha_surf[0];
+  double *sgn_alpha_surfL = &sgn_alpha_surf[0];
+  alphaL[0] = ((1.837117307087383*cmag[1]*jacobtot_inv[1]*hamil[2]-1.060660171779821*cmag[0]*jacobtot_inv[1]*hamil[2]-1.060660171779821*jacobtot_inv[0]*cmag[1]*hamil[2]+0.6123724356957944*cmag[0]*jacobtot_inv[0]*hamil[2])*rdvpar2)/m_; 
+  alphaL[1] = ((4.107919181288745*cmag[1]*jacobtot_inv[1]*hamil[8]-2.371708245126284*cmag[0]*jacobtot_inv[1]*hamil[8]-2.371708245126284*jacobtot_inv[0]*cmag[1]*hamil[8]+1.369306393762915*cmag[0]*jacobtot_inv[0]*hamil[8])*rdvpar2)/m_; 
 
-  double *sgn_alpha_surf0 = &sgn_alpha_surf[0];
-  int const_sgn_alpha_surf = 1; 
+  int const_sgn_alpha_surf = 1;  
   
-  if (0.5*alphaL0[0]-0.6708203932499357*alphaL0[1] > 0.) 
-    sgn_alpha_surf0[0] = 1.0; 
+  if (0.5*alphaL[0]-0.6708203932499357*alphaL[1] > 0.) 
+    sgn_alpha_surfL[0] = 1.0; 
   else  
-    sgn_alpha_surf0[0] = -1.0; 
+    sgn_alpha_surfL[0] = -1.0; 
   
-  if (0.5*alphaL0[0] > 0.) 
-    sgn_alpha_surf0[1] = 1.0; 
+  if (0.5*alphaL[0] > 0.) 
+    sgn_alpha_surfL[1] = 1.0; 
   else  
-    sgn_alpha_surf0[1] = -1.0; 
+    sgn_alpha_surfL[1] = -1.0; 
   
-  if (sgn_alpha_surf0[1] == sgn_alpha_surf0[0]) 
+  if (sgn_alpha_surfL[1] == sgn_alpha_surfL[0]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.6708203932499357*alphaL0[1]+0.5*alphaL0[0] > 0.) 
-    sgn_alpha_surf0[2] = 1.0; 
+  if (0.6708203932499357*alphaL[1]+0.5*alphaL[0] > 0.) 
+    sgn_alpha_surfL[2] = 1.0; 
   else  
-    sgn_alpha_surf0[2] = -1.0; 
+    sgn_alpha_surfL[2] = -1.0; 
   
-  if (sgn_alpha_surf0[2] == sgn_alpha_surf0[1]) 
+  if (sgn_alpha_surfL[2] == sgn_alpha_surfL[1]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.5*alphaL0[0]-0.6708203932499357*alphaL0[1] > 0.) 
-    sgn_alpha_surf0[3] = 1.0; 
+  if (0.5*alphaL[0]-0.6708203932499357*alphaL[1] > 0.) 
+    sgn_alpha_surfL[3] = 1.0; 
   else  
-    sgn_alpha_surf0[3] = -1.0; 
+    sgn_alpha_surfL[3] = -1.0; 
   
-  if (sgn_alpha_surf0[3] == sgn_alpha_surf0[2]) 
+  if (sgn_alpha_surfL[3] == sgn_alpha_surfL[2]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.5*alphaL0[0] > 0.) 
-    sgn_alpha_surf0[4] = 1.0; 
+  if (0.5*alphaL[0] > 0.) 
+    sgn_alpha_surfL[4] = 1.0; 
   else  
-    sgn_alpha_surf0[4] = -1.0; 
+    sgn_alpha_surfL[4] = -1.0; 
   
-  if (sgn_alpha_surf0[4] == sgn_alpha_surf0[3]) 
+  if (sgn_alpha_surfL[4] == sgn_alpha_surfL[3]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.6708203932499357*alphaL0[1]+0.5*alphaL0[0] > 0.) 
-    sgn_alpha_surf0[5] = 1.0; 
+  if (0.6708203932499357*alphaL[1]+0.5*alphaL[0] > 0.) 
+    sgn_alpha_surfL[5] = 1.0; 
   else  
-    sgn_alpha_surf0[5] = -1.0; 
+    sgn_alpha_surfL[5] = -1.0; 
   
-  if (sgn_alpha_surf0[5] == sgn_alpha_surf0[4]) 
+  if (sgn_alpha_surfL[5] == sgn_alpha_surfL[4]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 

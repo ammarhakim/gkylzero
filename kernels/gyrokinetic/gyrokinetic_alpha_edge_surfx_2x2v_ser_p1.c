@@ -43,123 +43,123 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_2x2v_ser_p1(const double *w, const d
   hamil[8] = (1.154700538379252*bmag[1])/rdmu2; 
   hamil[16] = (0.5962847939999438*m_)/rdvpar2Sq; 
 
-  double *alphaR0 = &alpha_surf[0];
-  alphaR0[0] = (((-1.590990257669731*b_z[1]*jacobtot_inv[1]*hamil[5])-0.9185586535436913*b_z[0]*jacobtot_inv[1]*hamil[5]-0.9185586535436913*jacobtot_inv[0]*b_z[1]*hamil[5]-0.5303300858899105*b_z[0]*jacobtot_inv[0]*hamil[5]-0.9185586535436913*b_z[1]*jacobtot_inv[1]*hamil[2]-0.5303300858899105*b_z[0]*jacobtot_inv[1]*hamil[2]-0.5303300858899105*jacobtot_inv[0]*b_z[1]*hamil[2]-0.3061862178478971*b_z[0]*jacobtot_inv[0]*hamil[2])*rdy2)/q_; 
+  double *alphaR = &alpha_surf[0];
+  double *sgn_alpha_surfR = &sgn_alpha_surf[0];
+  alphaR[0] = (((-1.590990257669731*b_z[1]*jacobtot_inv[1]*hamil[5])-0.9185586535436913*b_z[0]*jacobtot_inv[1]*hamil[5]-0.9185586535436913*jacobtot_inv[0]*b_z[1]*hamil[5]-0.5303300858899105*b_z[0]*jacobtot_inv[0]*hamil[5]-0.9185586535436913*b_z[1]*jacobtot_inv[1]*hamil[2]-0.5303300858899105*b_z[0]*jacobtot_inv[1]*hamil[2]-0.5303300858899105*jacobtot_inv[0]*b_z[1]*hamil[2]-0.3061862178478971*b_z[0]*jacobtot_inv[0]*hamil[2])*rdy2)/q_; 
 
-  double *sgn_alpha_surf0 = &sgn_alpha_surf[0];
-  int const_sgn_alpha_surf = 1; 
+  int const_sgn_alpha_surf = 1;  
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[0] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[0] = 1.0; 
   else  
-    sgn_alpha_surf0[0] = -1.0; 
+    sgn_alpha_surfR[0] = -1.0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[1] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[1] = 1.0; 
   else  
-    sgn_alpha_surf0[1] = -1.0; 
+    sgn_alpha_surfR[1] = -1.0; 
   
-  if (sgn_alpha_surf0[1] == sgn_alpha_surf0[0]) 
+  if (sgn_alpha_surfR[1] == sgn_alpha_surfR[0]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[2] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[2] = 1.0; 
   else  
-    sgn_alpha_surf0[2] = -1.0; 
+    sgn_alpha_surfR[2] = -1.0; 
   
-  if (sgn_alpha_surf0[2] == sgn_alpha_surf0[1]) 
+  if (sgn_alpha_surfR[2] == sgn_alpha_surfR[1]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[3] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[3] = 1.0; 
   else  
-    sgn_alpha_surf0[3] = -1.0; 
+    sgn_alpha_surfR[3] = -1.0; 
   
-  if (sgn_alpha_surf0[3] == sgn_alpha_surf0[2]) 
+  if (sgn_alpha_surfR[3] == sgn_alpha_surfR[2]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[4] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[4] = 1.0; 
   else  
-    sgn_alpha_surf0[4] = -1.0; 
+    sgn_alpha_surfR[4] = -1.0; 
   
-  if (sgn_alpha_surf0[4] == sgn_alpha_surf0[3]) 
+  if (sgn_alpha_surfR[4] == sgn_alpha_surfR[3]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[5] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[5] = 1.0; 
   else  
-    sgn_alpha_surf0[5] = -1.0; 
+    sgn_alpha_surfR[5] = -1.0; 
   
-  if (sgn_alpha_surf0[5] == sgn_alpha_surf0[4]) 
+  if (sgn_alpha_surfR[5] == sgn_alpha_surfR[4]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[6] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[6] = 1.0; 
   else  
-    sgn_alpha_surf0[6] = -1.0; 
+    sgn_alpha_surfR[6] = -1.0; 
   
-  if (sgn_alpha_surf0[6] == sgn_alpha_surf0[5]) 
+  if (sgn_alpha_surfR[6] == sgn_alpha_surfR[5]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[7] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[7] = 1.0; 
   else  
-    sgn_alpha_surf0[7] = -1.0; 
+    sgn_alpha_surfR[7] = -1.0; 
   
-  if (sgn_alpha_surf0[7] == sgn_alpha_surf0[6]) 
+  if (sgn_alpha_surfR[7] == sgn_alpha_surfR[6]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[8] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[8] = 1.0; 
   else  
-    sgn_alpha_surf0[8] = -1.0; 
+    sgn_alpha_surfR[8] = -1.0; 
   
-  if (sgn_alpha_surf0[8] == sgn_alpha_surf0[7]) 
+  if (sgn_alpha_surfR[8] == sgn_alpha_surfR[7]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[9] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[9] = 1.0; 
   else  
-    sgn_alpha_surf0[9] = -1.0; 
+    sgn_alpha_surfR[9] = -1.0; 
   
-  if (sgn_alpha_surf0[9] == sgn_alpha_surf0[8]) 
+  if (sgn_alpha_surfR[9] == sgn_alpha_surfR[8]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[10] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[10] = 1.0; 
   else  
-    sgn_alpha_surf0[10] = -1.0; 
+    sgn_alpha_surfR[10] = -1.0; 
   
-  if (sgn_alpha_surf0[10] == sgn_alpha_surf0[9]) 
+  if (sgn_alpha_surfR[10] == sgn_alpha_surfR[9]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
   
-  if (0.3535533905932734*alphaR0[0] > 0.) 
-    sgn_alpha_surf0[11] = 1.0; 
+  if (0.3535533905932734*alphaR[0] > 0.) 
+    sgn_alpha_surfR[11] = 1.0; 
   else  
-    sgn_alpha_surf0[11] = -1.0; 
+    sgn_alpha_surfR[11] = -1.0; 
   
-  if (sgn_alpha_surf0[11] == sgn_alpha_surf0[10]) 
+  if (sgn_alpha_surfR[11] == sgn_alpha_surfR[10]) 
     const_sgn_alpha_surf = const_sgn_alpha_surf ? 1 : 0; 
   else  
     const_sgn_alpha_surf = 0; 
