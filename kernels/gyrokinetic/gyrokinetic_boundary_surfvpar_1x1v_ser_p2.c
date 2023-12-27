@@ -18,9 +18,6 @@ GKYL_CU_DH double gyrokinetic_boundary_surfvpar_1x1v_ser_p2(const double *w, con
   // fskin,fedge: distribution function in skin cell/last edge cell.
   // out: output increment in center cell.
 
-  double wx = w[0];
-  double rdx2 = 2.0/dxv[0];
-  double wvpar = w[1];
   double rdvpar2 = 2.0/dxv[1];
 
   const double *alphaL = &alpha_surf_skin[3];
