@@ -17,12 +17,7 @@ GKYL_CU_DH double gyrokinetic_surfx_1x2v_ser_p2(const double *w, const double *d
   // fl,fc,fr: distribution function in left, center and right cells.
   // out: output increment in center cell.
 
-  double wx = w[0];
   double rdx2 = 2.0/dxv[0];
-  double wvpar = w[1];
-  double rdvpar2 = 2.0/dxv[1];
-  double wmu = w[2];
-  double rdmu2 = 2.0/dxv[2];
 
   const double *alphaL = &alpha_surf_l[0];
   const double *alphaR = &alpha_surf_r[0];

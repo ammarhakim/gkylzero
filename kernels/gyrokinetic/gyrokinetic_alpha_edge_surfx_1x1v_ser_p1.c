@@ -22,9 +22,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_1x1v_ser_p1(const double *w, const d
   double wvpar = w[1];
   double rdvpar2 = 2.0/dxv[1];
 
-  double wxSq = w[0]*w[0];
-  double rdx2Sq = rdx2*rdx2;
-  double wvparSq = w[1]*w[1];
+  double wvparSq = wvpar*wvpar;
   double rdvpar2Sq = rdvpar2*rdvpar2;
 
   const double *b_x = &b_i[0];
@@ -32,7 +30,7 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_1x1v_ser_p1(const double *w, const d
   const double *b_z = &b_i[4];
 
   double hamil[6] = {0.}; 
-  hamil[0] = m_*wvparSq+(0.3333333333333333*m_)/rdvpar2Sq+1.414213562373095*phi[0]*q_; 
+  hamil[0] = m_*(wvparSq+0.3333333333333333/rdvpar2Sq)+1.414213562373095*phi[0]*q_; 
   hamil[1] = 1.414213562373095*phi[1]*q_; 
   hamil[2] = (1.154700538379252*m_*wvpar)/rdvpar2; 
   hamil[4] = (0.2981423969999719*m_)/rdvpar2Sq; 

@@ -24,12 +24,8 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_1x2v_ser_p2(const double *w, const d
   double wmu = w[2];
   double rdmu2 = 2.0/dxv[2];
 
-  double wxSq = w[0]*w[0];
-  double rdx2Sq = rdx2*rdx2;
-  double wvparSq = w[1]*w[1];
+  double wvparSq = wvpar*wvpar;
   double rdvpar2Sq = rdvpar2*rdvpar2;
-  double wmuSq = w[2]*w[2];
-  double rdmu2Sq = rdmu2*rdmu2;
 
   const double *b_x = &b_i[0];
   const double *b_y = &b_i[3];
@@ -37,11 +33,11 @@ GKYL_CU_DH int gyrokinetic_alpha_edge_surfx_1x2v_ser_p2(const double *w, const d
 
   double hamil[20] = {0.}; 
   hamil[0] = 1.414213562373095*m_*wvparSq+2.0*bmag[0]*wmu+(0.4714045207910317*m_)/rdvpar2Sq+2.0*phi[0]*q_; 
-  hamil[1] = 2.0*bmag[1]*wmu+2.0*phi[1]*q_; 
+  hamil[1] = 2.0*(bmag[1]*wmu+phi[1]*q_); 
   hamil[2] = (1.632993161855453*m_*wvpar)/rdvpar2; 
   hamil[3] = (1.154700538379252*bmag[0])/rdmu2; 
   hamil[5] = (1.154700538379252*bmag[1])/rdmu2; 
-  hamil[7] = 2.0*bmag[2]*wmu+2.0*phi[2]*q_; 
+  hamil[7] = 2.0*(bmag[2]*wmu+phi[2]*q_); 
   hamil[8] = (0.421637021355784*m_)/rdvpar2Sq; 
   hamil[13] = (1.154700538379251*bmag[2])/rdmu2; 
 
