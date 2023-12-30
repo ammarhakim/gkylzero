@@ -407,96 +407,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
-              if(inp->ftype==GKYL_CORE){
-                if(arcL_curr <= arc_ctx.arcL_right){
-                  rclose = rright;
-                  arc_ctx.right = true;
-                  ridders_min = -arcL_curr;
-                  ridders_max = arcL-arcL_curr;
-                  arc_ctx.zmin = zmin;
-                  arc_ctx.zmax = zmax;
-                }
-                else{
-                  rclose = rleft;
-                  arc_ctx.right = false;
-                  ridders_min = arcL - arcL_curr;
-                  ridders_max = -arcL_curr + arc_ctx.arcL_right;
-                  arc_ctx.zmin = zmin;
-                  arc_ctx.zmax = zmax;
-                }
-              }
-              if(inp->ftype==GKYL_PF_LO){
-                if(arcL_curr <= arc_ctx.arcL_right){
-                  rclose = rright;
-                  arc_ctx.right = true;
-                  ridders_min = -arcL_curr;
-                  ridders_max = arcL-arcL_curr;
-                  arc_ctx.zmin = inp->zmin_right;
-                  arc_ctx.zmax = zmax;
-                }
-                else{
-                  rclose = rleft;
-                  arc_ctx.right = false;
-                  ridders_min = arcL - arcL_curr;
-                  ridders_max = -arcL_curr + arc_ctx.arcL_right;
-                  arc_ctx.zmin = inp->zmin_left;
-                  arc_ctx.zmax = zmax;
-                }
-              }
-              if(inp->ftype==GKYL_PF_UP){
-                if(arcL_curr > arc_ctx.arcL_left){
-                  rclose = rright;
-                  arc_ctx.right = true;
-                  ridders_min = arc_ctx.arcL_left - arcL_curr;
-                  ridders_max = arcL - arcL_curr;
-                  arc_ctx.zmin = zmin;
-                  arc_ctx.zmax = inp->zmax_right;
-                }
-                else{
-                  rclose = rleft;
-                  arc_ctx.right = false;
-                  ridders_min = arc_ctx.arcL_left - arcL_curr;
-                  ridders_max = -arcL_curr;
-                  arc_ctx.zmin = zmin;
-                  arc_ctx.zmax = inp->zmax_left;
-                }
-              }
-              if(arc_ctx.ftype==GKYL_SOL_DN_OUT){
-                ridders_min = -arcL_curr;
-                ridders_max = arcL-arcL_curr;
-                arc_ctx.right = false;
-                arc_ctx.zmin = zmin;
-                arc_ctx.zmax = zmax;
-              }
-              if(arc_ctx.ftype==GKYL_SOL_DN_IN){
-                ridders_min = arcL-arcL_curr;
-                ridders_max = -arcL_curr;
-                arc_ctx.right = false;
-                arc_ctx.zmin = zmin;
-                arc_ctx.zmax = zmax;
-              }
-              if(arc_ctx.ftype==GKYL_SOL_SN_LO){
-                if(arcL_curr <= arc_ctx.arcL_right){
-                  rclose = rright;
-                  arc_ctx.right = true;
-                  ridders_min = -arcL_curr;
-                  ridders_max = arcL-arcL_curr;
-                  arc_ctx.zmin = inp->zmin_right;
-                  arc_ctx.zmax = zmax;
-                }
-                else{
-                  rclose = rleft;
-                  arc_ctx.right = false;
-                  ridders_min = arcL - arcL_curr;
-                  ridders_max = -arcL_curr + arc_ctx.arcL_right;
-                  arc_ctx.zmin = inp->zmin_left;
-                  arc_ctx.zmax = zmax;
-                }
-              }
 
-              arc_ctx.psi = psi_curr;
-              arc_ctx.rclose = rclose;
-              arc_ctx.arcL = arcL_curr;
+              set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+
               struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
                 arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
                 geo->root_param.max_iter, 1e-10);

@@ -236,3 +236,101 @@ find_endpoints(struct gkyl_tok_geo_geo_inp* inp, struct gkyl_tok_geo *geo, struc
 
 
 }
+
+
+
+void
+set_ridders(struct gkyl_tok_geo_geo_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double rright, double rleft, double* rclose, double *ridders_min, double* ridders_max){
+
+
+  if(inp->ftype==GKYL_CORE){
+    if(arcL_curr <= arc_ctx->arcL_right){
+      *rclose = rright;
+      arc_ctx->right = true;
+      *ridders_min = -arcL_curr;
+      *ridders_max = arcL-arcL_curr;
+      arc_ctx->zmin = zmin;
+      arc_ctx->zmax = zmax;
+    }
+    else{
+      *rclose = rleft;
+      arc_ctx->right = false;
+      *ridders_min = arcL - arcL_curr;
+      *ridders_max = -arcL_curr + arc_ctx->arcL_right;
+      arc_ctx->zmin = zmin;
+      arc_ctx->zmax = zmax;
+    }
+  }
+  if(inp->ftype==GKYL_PF_LO){
+    if(arcL_curr <= arc_ctx->arcL_right){
+      *rclose = rright;
+      arc_ctx->right = true;
+      *ridders_min = -arcL_curr;
+      *ridders_max = arcL-arcL_curr;
+      arc_ctx->zmin = inp->zmin_right;
+      arc_ctx->zmax = zmax;
+    }
+    else{
+      *rclose = rleft;
+      arc_ctx->right = false;
+      *ridders_min = arcL - arcL_curr;
+      *ridders_max = -arcL_curr + arc_ctx->arcL_right;
+      arc_ctx->zmin = inp->zmin_left;
+      arc_ctx->zmax = zmax;
+    }
+  }
+  if(inp->ftype==GKYL_PF_UP){
+    if(arcL_curr > arc_ctx->arcL_left){
+      *rclose = rright;
+      arc_ctx->right = true;
+      *ridders_min = arc_ctx->arcL_left - arcL_curr;
+      *ridders_max = arcL - arcL_curr;
+      arc_ctx->zmin = zmin;
+      arc_ctx->zmax = inp->zmax_right;
+    }
+    else{
+      *rclose = rleft;
+      arc_ctx->right = false;
+      *ridders_min = arc_ctx->arcL_left - arcL_curr;
+      *ridders_max = -arcL_curr;
+      arc_ctx->zmin = zmin;
+      arc_ctx->zmax = inp->zmax_left;
+    }
+  }
+  if(arc_ctx->ftype==GKYL_SOL_DN_OUT){
+    *ridders_min = -arcL_curr;
+    *ridders_max = arcL-arcL_curr;
+    arc_ctx->right = false;
+    arc_ctx->zmin = zmin;
+    arc_ctx->zmax = zmax;
+  }
+  if(arc_ctx->ftype==GKYL_SOL_DN_IN){
+    *ridders_min = arcL-arcL_curr;
+    *ridders_max = -arcL_curr;
+    arc_ctx->right = false;
+    arc_ctx->zmin = zmin;
+    arc_ctx->zmax = zmax;
+  }
+  if(arc_ctx->ftype==GKYL_SOL_SN_LO){
+    if(arcL_curr <= arc_ctx->arcL_right){
+      *rclose = rright;
+      arc_ctx->right = true;
+      *ridders_min = -arcL_curr;
+      *ridders_max = arcL-arcL_curr;
+      arc_ctx->zmin = inp->zmin_right;
+      arc_ctx->zmax = zmax;
+    }
+    else{
+      *rclose = rleft;
+      arc_ctx->right = false;
+      *ridders_min = arcL - arcL_curr;
+      *ridders_max = -arcL_curr + arc_ctx->arcL_right;
+      arc_ctx->zmin = inp->zmin_left;
+      arc_ctx->zmax = zmax;
+    }
+  }
+
+  arc_ctx->psi = psi_curr;
+  arc_ctx->rclose = *rclose;
+  arc_ctx->arcL = arcL_curr;
+}
