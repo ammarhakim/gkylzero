@@ -408,16 +408,97 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
 
-              set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+              double z_curr, r_curr, phi_curr;
+              double phi_1, phi_2;
+              int nr;
+              struct gkyl_qr_res res;
 
-              struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
-                arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
-                geo->root_param.max_iter, 1e-10);
-              double z_curr = res.res;
-              ((gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
-              double R[4] = { 0 }, dR[4] = { 0 };
-              int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
-              double r_curr = choose_closest(rclose, R, R, nr);
+              if ( fabs(arcL_curr - arc_ctx.arcL_right) < darcL/3){ // if we are at the top x point
+                // first set arcL to previous node and find phi
+                double a1 = arcL_curr - darcL;
+                printf("a1 = %g\n", a1);
+                set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr - darcL, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+                res = gkyl_ridders(arc_length_func, &arc_ctx, arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, geo->root_param.max_iter, 1e-10);
+                z_curr = res.res;
+                double z1 = z_curr;
+                ((gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+                phi_1 = phi_func(alpha_curr, z_curr, &arc_ctx);
+
+                // next set it to next node and find phi
+                double a2 = arcL_curr + darcL;
+                printf("a2 = %g\n", a2);
+                set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr + darcL, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+                res = gkyl_ridders(arc_length_func, &arc_ctx, arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, geo->root_param.max_iter, 1e-10);
+                z_curr = res.res;
+                double z2 = z_curr;
+                ((gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+                phi_2 = phi_func(alpha_curr, z_curr, &arc_ctx);
+
+                // set phi to be between the two
+                phi_curr = (phi_1 + phi_2)/2;
+
+                // then set arcL it to current node to find r and z
+                set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+                res = gkyl_ridders(arc_length_func, &arc_ctx,
+                  arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
+                  geo->root_param.max_iter, 1e-10);
+                z_curr = res.res;
+                ((gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+                double R[4] = { 0 }, dR[4] = { 0 };
+                nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+                r_curr = choose_closest(rclose, R, R, nr);
+                printf("Used special method, z1, z2, phi_1,phi_2,phi_curr = %g, %g, %g, %g, %g\n", z1, z2, phi_1, phi_2, phi_curr);
+              }
+              else if ( fabs(arcL_curr) < darcL/3 || fabs(arcL_curr - arcL) < darcL/3 ){ // if we are at the bottom x point
+                // first set arcL to 2nd to last node and find phi
+                double a1 = arcL_lo + (nrange->upper[TH_IDX] - 1)*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
+                printf("a1 = %g\n", a1);
+                set_ridders(inp, &arc_ctx, psi_curr, arcL, a1, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+                res = gkyl_ridders(arc_length_func, &arc_ctx, arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, geo->root_param.max_iter, 1e-10);
+                z_curr = res.res;
+                double z1 = z_curr;
+                ((gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+                phi_1 = phi_func(alpha_curr, z_curr, &arc_ctx);
+
+                // next set it to 2nd node and find phi
+                double a2 = arcL_lo + (nrange->lower[TH_IDX] + 1)*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
+                printf("a2 = %g\n", a2);
+                set_ridders(inp, &arc_ctx, psi_curr, arcL, a2, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+                res = gkyl_ridders(arc_length_func, &arc_ctx, arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, geo->root_param.max_iter, 1e-10);
+                z_curr = res.res;
+                double z2 = z_curr;
+                ((gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+                phi_2 = phi_func(alpha_curr, z_curr, &arc_ctx);
+
+                // set phi to be between the two
+                phi_curr = (phi_1 + phi_2)/2;
+
+                // then set arcL it to current node to find r and z
+                set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+                res = gkyl_ridders(arc_length_func, &arc_ctx,
+                  arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
+                  geo->root_param.max_iter, 1e-10);
+                z_curr = res.res;
+                ((gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+                double R[4] = { 0 }, dR[4] = { 0 };
+                nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+                r_curr = choose_closest(rclose, R, R, nr);
+                printf("Used special method at bottom , z1, z2, phi_1,phi_2,phi_curr = %g, %g, %g, %g, %g\n", z1, z2, phi_1, phi_2, phi_curr);
+              }
+              else{ // if we are not at either x point do it the normal way
+                // set rclose, ridders min and max
+                set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+                // find z then r then phi
+                res = gkyl_ridders(arc_length_func, &arc_ctx,
+                  arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
+                  geo->root_param.max_iter, 1e-10);
+                z_curr = res.res;
+                ((gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+                double R[4] = { 0 }, dR[4] = { 0 };
+                nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+                r_curr = choose_closest(rclose, R, R, nr);
+                phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
+              }
 
               cidx[TH_IDX] = it;
               int lidx = 0;
@@ -431,7 +512,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               if(ia_delta==0 && ip_delta==0 && it_delta==0)
                 lidx = 0;
 
-              double phi_curr = phi_func(alpha_curr, z_curr, &arc_ctx);
               double *mc2p_fd_n = gkyl_array_fetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
               double *mc2p_n = gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
               mc2p_fd_n[lidx+X_IDX] = r_curr*cos(phi_curr);
