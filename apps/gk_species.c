@@ -63,6 +63,7 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
 
   // determine field-type 
   s->gkfield_id = app->field->gkfield_id;
+  s->gkmodel_id = GKYL_GK_MODEL_GEN_GEO;
 
   // allocate distribution function arrays
   s->f = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -81,27 +82,33 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   else 
     s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
-  // Need to figure out size of alpha_surf by finding size of surface basis set 
-  struct gkyl_basis surf_basis;
-  if (app->poly_order > 1) 
+  // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
+  struct gkyl_basis surf_basis, surf_quad_basis;
+  if (app->poly_order > 1) {
     gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
-  else 
+    gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
+  }
+  else {
     gkyl_cart_modal_gkhybrid(&surf_basis, cdim-1, vdim); // p=2 in vparallel
+    gkyl_cart_modal_gkhybrid(&surf_quad_basis, cdim-1, vdim); 
+  }
   int alpha_surf_sz = (cdim+1)*surf_basis.num_basis;
+  int sgn_alpha_surf_sz = (cdim+1)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
 
   // allocate arrays to store fields: 
-  // 1. Bstar/Bmag time-independent component 
-  // Bstar/Bmag dependence: 1D (x), 2D (x,vpar), 3D (x,z,vpar) so re-use size of configuration space basis
-  s->Bstar_Bmag = mkarr(app->use_gpu, cdim*app->confBasis.num_basis, s->local_ext.volume);
-  // 2. alpha_surf (surface phase space flux)
+  // 1. alpha_surf (surface phase space flux)
+  // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
+  // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
   s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
-  // 3. EM fields: phi and (if EM GK) Apar and d/dt Apar  
+  s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
+  s->const_sgn_alpha = mk_int_arr(app->use_gpu, (cdim+1), s->local_ext.volume);
+  // 4. EM fields: phi and (if EM GK) Apar and d/dt Apar  
   s->phi = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   s->apar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   s->apardot = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);    
 
   s->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&s->grid, &app->confBasis, &app->basis, 
-    s->info.charge, s->info.mass, app->gk_geom, app->use_gpu);
+    s->info.charge, s->info.mass, s->gkmodel_id, app->gk_geom, app->use_gpu);
 
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
@@ -130,12 +137,14 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     }
   }
 
-  struct gkyl_dg_gyrokinetic_auxfields aux_inp = {.Bstar_Bmag = s->Bstar_Bmag, 
-    .alpha_surf = s->alpha_surf, .phi = s->phi, .apar = s->apar, .apardot = s->apardot };
+  struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .alpha_surf = s->alpha_surf, 
+    .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha, 
+    .phi = s->phi, .apar = s->apar, .apardot = s->apardot };
   // create solver
   s->slvr = gkyl_dg_updater_gyrokinetic_new(&s->grid, &app->confBasis, &app->basis, 
     &app->local, &s->local, is_zero_flux, 
-    s->info.charge, s->info.mass, app->gk_geom, &aux_inp, app->use_gpu);
+    s->info.charge, s->info.mass, s->gkmodel_id, 
+    app->gk_geom, &aux_inp, app->use_gpu);
 
   // acquire equation object
   s->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(s->slvr);
@@ -334,10 +343,6 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
   // *only works in x dimension for now*
   gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f);
   gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f);
-
-  // Initialize the time-independent component of Bstar/Bmag
-  gkyl_dg_calc_gyrokinetic_vars_Bstar_Bmag(species->calc_gk_vars, 
-    &app->local, &species->local, species->Bstar_Bmag);
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -359,7 +364,7 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   // where they are not defined.
   gkyl_dg_calc_gyrokinetic_vars_alpha_surf(species->calc_gk_vars, 
     &app->local, &species->local, &species->local_ext, 
-    species->phi, species->Bstar_Bmag, species->alpha_surf);
+    species->phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
 
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
@@ -516,8 +521,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   if (app->use_gpu)
     gkyl_array_release(s->f_host);
 
-  gkyl_array_release(s->Bstar_Bmag);
   gkyl_array_release(s->alpha_surf);
+  gkyl_array_release(s->sgn_alpha_surf);
+  gkyl_array_release(s->const_sgn_alpha);
   gkyl_array_release(s->phi);
   gkyl_array_release(s->apar);
   gkyl_array_release(s->apardot);

@@ -19,9 +19,6 @@ gkyl_bc_gksheath_set_cu_ker_ptrs(const struct gkyl_basis *basis,
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kers->reflectedf = ser_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
       break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      kers->reflectedf = tensor_sheath_reflect_list[edge].list[dim-2].kernels[poly_order-1];
-      break;
     default:
       assert(false);
   }

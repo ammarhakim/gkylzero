@@ -13,18 +13,24 @@ enum gkyl_eqn_type {
   GKYL_EQN_ADVECTION, // Scalar advection equation
 };
 
-// Identifiers for specific field object types
-enum gkyl_field_id {
-  GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
-  GKYL_FIELD_PHI = 1, // Poisson (only phi)
-  GKYL_FIELD_PHI_A = 2, // Poisson with static B = curl(A) (phi, A)
-  GKYL_FIELD_NULL = 3, // no field is present
+// Identifiers for specific gyrokinetic model types
+enum gkyl_gkmodel_id {
+  GKYL_GK_MODEL_GEN_GEO = 0, // General geometry GK. This is default
+  GKYL_GK_MODEL_NO_BY = 1, // General geometry GK, but no toroidal field (by = 0)
 };
 
 // Identifiers for specific gyrokinetic field object types
 enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default
   GKYL_GK_FIELD_EM = 1, // Electromagnetic GK
+};
+
+// Identifiers for specific field object types
+enum gkyl_field_id {
+  GKYL_FIELD_E_B = 0, // Maxwell (E, B). This is default
+  GKYL_FIELD_PHI = 1, // Poisson (only phi)
+  GKYL_FIELD_PHI_A = 2, // Poisson with static B = curl(A) (phi, A)
+  GKYL_FIELD_NULL = 3, // no field is present
 };
 
 // Identifiers for subsidary models
