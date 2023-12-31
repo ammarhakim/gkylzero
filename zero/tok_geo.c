@@ -413,7 +413,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               int nr;
               struct gkyl_qr_res res;
 
-              if ( fabs(arcL_curr - arc_ctx.arcL_right) < darcL/3){ // if we are at the top x point
+              if ( (fabs(psi_curr - geo->psisep)<1e-4) && (inp->ftype==GKYL_CORE) && (fabs(arcL_curr - arc_ctx.arcL_right) < darcL/3) ){ // if we are at the top x point
                 // first set arcL to previous node and find phi
                 double a1 = arcL_curr - darcL/5;
                 printf("a1 = %g\n", a1);
@@ -449,7 +449,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 r_curr = choose_closest(rclose, R, R, nr);
                 printf("Used special method, z1, z2, phi_1,phi_2,phi_curr = %g, %g, %g, %g, %g\n", z1, z2, phi_1, phi_2, phi_curr);
               }
-              else if ( fabs(arcL_curr) < darcL/3 || fabs(arcL_curr - arcL) < darcL/3 ){ // if we are at the bottom x point
+              else if ( (fabs(psi_curr - geo->psisep)<1e-4) && (inp->ftype==GKYL_CORE) && (fabs(arcL_curr) < darcL/3 || fabs(arcL_curr - arcL) < darcL/3) ){ // if we are at the bottom x point
                 // first set arcL to 2nd to last node and find phi
                 double a1 = arcL_lo + (nrange->upper[TH_IDX] - 1.0/5)*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
                 printf("a1 = %g\n", a1);
