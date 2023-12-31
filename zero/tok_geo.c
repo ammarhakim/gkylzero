@@ -415,9 +415,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 
               if ( fabs(arcL_curr - arc_ctx.arcL_right) < darcL/3){ // if we are at the top x point
                 // first set arcL to previous node and find phi
-                double a1 = arcL_curr - darcL;
+                double a1 = arcL_curr - darcL/5;
                 printf("a1 = %g\n", a1);
-                set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr - darcL, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+                set_ridders(inp, &arc_ctx, psi_curr, arcL, a1, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
                 res = gkyl_ridders(arc_length_func, &arc_ctx, arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, geo->root_param.max_iter, 1e-10);
                 z_curr = res.res;
                 double z1 = z_curr;
@@ -425,9 +425,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 phi_1 = phi_func(alpha_curr, z_curr, &arc_ctx);
 
                 // next set it to next node and find phi
-                double a2 = arcL_curr + darcL;
+                double a2 = arcL_curr + darcL/5;
                 printf("a2 = %g\n", a2);
-                set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr + darcL, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+                set_ridders(inp, &arc_ctx, psi_curr, arcL, a2, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
                 res = gkyl_ridders(arc_length_func, &arc_ctx, arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, geo->root_param.max_iter, 1e-10);
                 z_curr = res.res;
                 double z2 = z_curr;
@@ -451,7 +451,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               }
               else if ( fabs(arcL_curr) < darcL/3 || fabs(arcL_curr - arcL) < darcL/3 ){ // if we are at the bottom x point
                 // first set arcL to 2nd to last node and find phi
-                double a1 = arcL_lo + (nrange->upper[TH_IDX] - 1)*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
+                double a1 = arcL_lo + (nrange->upper[TH_IDX] - 1.0/5)*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
                 printf("a1 = %g\n", a1);
                 set_ridders(inp, &arc_ctx, psi_curr, arcL, a1, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
                 res = gkyl_ridders(arc_length_func, &arc_ctx, arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, geo->root_param.max_iter, 1e-10);
@@ -461,7 +461,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 phi_1 = phi_func(alpha_curr, z_curr, &arc_ctx);
 
                 // next set it to 2nd node and find phi
-                double a2 = arcL_lo + (nrange->lower[TH_IDX] + 1)*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
+                double a2 = arcL_lo + (nrange->lower[TH_IDX] + 1.0/5)*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
                 printf("a2 = %g\n", a2);
                 set_ridders(inp, &arc_ctx, psi_curr, arcL, a2, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
                 res = gkyl_ridders(arc_length_func, &arc_ctx, arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max, geo->root_param.max_iter, 1e-10);

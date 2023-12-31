@@ -37,8 +37,8 @@ test_deep_core()
     };
 
 
-  double clower[] = { 2.01, -0.01, -3.14 };
-  double cupper[] = {2.1, 0.01, 3.14 };
+  double clower[] = { 2.01, -0.01, -M_PI + 1e-14 };
+  double cupper[] = {2.1, 0.01, M_PI - 1e-14 };
 
   int ccells[] = { 1, 1, 64 };
 
@@ -98,10 +98,10 @@ test_boundary()
     };
 
 
-  double clower[] = { 1.50982, -0.01, -3.14 };
-  double cupper[] = {1.8, 0.01, 3.14 };
+  double clower[] = { 1.50982, -0.01, -M_PI+1e-14 };
+  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
 
-  int ccells[] = { 1, 1, 64 };
+  int ccells[] = { 1, 1, 32 };
 
 
 
