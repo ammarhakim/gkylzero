@@ -317,11 +317,13 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-    .ctx = &ctx,
-    .is_maxwellian = true,
+    .ctx_density = &ctx,
     .init_density = eval_density,
-    .init_temp = eval_temp_elc,
+    .ctx_upar = &ctx,
     .init_upar= eval_upar,
+    .ctx_temp = &ctx,
+    .init_temp = eval_temp_elc,
+    .is_maxwellian = true,
 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
@@ -337,10 +339,12 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_MAXWELLIAN_SOURCE,
       .write_source = true,
+      .ctx_density = &ctx,
       .density_profile = eval_density_source,
+      .ctx_upar = &ctx,
       .upar_profile = eval_upar_source,
+      .ctx_temp = &ctx,
       .temp_profile = eval_temp_elc_source,
-      .ctx = &ctx,
     },
     
     .num_diag_moments = 7,
@@ -356,11 +360,13 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-    .ctx = &ctx,
-    .is_maxwellian = true,
+    .ctx_density = &ctx,
     .init_density = eval_density,
-    .init_temp = eval_temp_ion,
+    .ctx_upar = &ctx,
     .init_upar = eval_upar,
+    .ctx_temp = &ctx,
+    .init_temp = eval_temp_ion,
+    .is_maxwellian = true,
 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
@@ -376,10 +382,12 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_MAXWELLIAN_SOURCE,
       .write_source = true,
+      .ctx_density = &ctx,
       .density_profile = eval_density_source,
+      .ctx_upar = &ctx,
       .upar_profile = eval_upar_source,
+      .ctx_temp = &ctx,
       .temp_profile = eval_temp_ion_source,
-      .ctx = &ctx,
     },
     
     .num_diag_moments = 7,

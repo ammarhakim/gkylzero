@@ -68,12 +68,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
           gkyl_cart_modal_gkhybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); // p=2 in vparallel
       }
       break;
-
-    case GKYL_BASIS_MODAL_TENSOR:
-      gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-      gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
-      break;
-
     default:
       assert(false);
       break;

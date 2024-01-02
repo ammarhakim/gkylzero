@@ -40,41 +40,57 @@ struct gkyl_gyrokinetic_collisions {
   char collide_with_fluid[128]; // name of fluid species to cross collide with
 };
 
+// Parameters for species diffusion
+struct gkyl_gyrokinetic_diffusion {
+  double D; // constant diffusion coefficient
+  int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
+  void* Dij_ctx; // context for applied diffusion function if using general diffusion tensor
+  // pointer to applied diffusion function is using general diffusion tensor 
+  void (*Dij)(double t, const double* xn, double* Dout, void* ctx);
+};
+
 // Parameters for species source
 struct gkyl_gyrokinetic_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source
-  
-  void *ctx; // context for source function
-  // function for computing source profile
-  void (*profile)(double t, const double *xn, double *aout, void *ctx);
 
+  // pointer and context to source profile function   
+  void *ctx_profile; 
+  void (*profile)(double t, const double *xn, double *fout, void *ctx);
+
+  // functions and contexts for computing source density, upar, and temperature profiles
+  void *ctx_density;
+  void (*density_profile)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_upar;
+  void (*upar_profile)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_temp;
+  void (*temp_profile)(double t, const double *xn, double *fout, void *ctx);
   // flag to indicate if source is maxwellian projection
   bool is_maxwellian;
-  // functions for computing source density, upar, and temperature profiles
-  void (*density_profile)(double t, const double *xn, double *aout, void *ctx);
-  void (*upar_profile)(double t, const double *xn, double *aout, void *ctx);
-  void (*temp_profile)(double t, const double *xn, double *aout, void *ctx);
 };
 
 // Parameters for gk species
 struct gkyl_gyrokinetic_species {
   char name[128]; // species name
 
+  enum gkyl_gkmodel_id gkmodel_id;
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
-  void *ctx; // context for initial condition init function
-  // pointer to initialization function
-  void (*init)(double t, const double *xn, double *fout, void *ctx);
+  // pointer and context to initialization function 
+  void *ctx_dist; 
+  void (*init_dist)(double t, const double *xn, double *fout, void *ctx); 
 
+  // pointers and contexts to initialization functions for gk maxwellian projection
+  void *ctx_density;
+  void (*init_density)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_upar;
+  void (*init_upar)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_temp;
+  void (*init_temp)(double t, const double *xn, double *fout, void *ctx);
   // flag to indicate if IC is maxwellian projection
   bool is_maxwellian;
-  // pointers to initialization functions for gk maxwellian projection
-  void (*init_density)(double t, const double *xn, double *fout, void *ctx);
-  void (*init_temp)(double t, const double *xn, double *fout, void *ctx);
-  void (*init_upar)(double t, const double *xn, double *fout, void *ctx);
 
   double polarization_density;
 
@@ -83,6 +99,9 @@ struct gkyl_gyrokinetic_species {
 
   // collisions to include
   struct gkyl_gyrokinetic_collisions collisions;
+
+  // diffusion coupling to include
+  struct gkyl_gyrokinetic_diffusion diffusion;
 
   // source to include
   struct gkyl_gyrokinetic_source source;
@@ -129,7 +148,6 @@ struct gkyl_gk {
   // pointer to bmag function
   void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
 
-
   bool tokamak; // to indicate whether it is a tokamak geometry
   void *tok_rz_ctx; // context with RZ data such as efit file for a tokamak
   void *tok_comp_ctx; // context for tokamak geometry with computational domain info
@@ -146,7 +164,6 @@ struct gkyl_gk {
   int num_species; // number of species
   struct gkyl_gyrokinetic_species species[GKYL_MAX_SPECIES]; // species objects
   
-  bool skip_field; // Skip field update or no field specified
   struct gkyl_gyrokinetic_field field; // field object
 
   // this should not be set by typical user-facing code but only by

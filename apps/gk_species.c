@@ -250,11 +250,11 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
     struct gkyl_array *udrift = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     struct gkyl_array *vtsq = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.init_density, species->info.ctx);
+      poly_order+1, 1, species->info.init_density, species->info.ctx_density);
     gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.init_upar, species->info.ctx);
+      poly_order+1, 1, species->info.init_upar, species->info.ctx_upar);
     gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.init_temp, species->info.ctx);
+      poly_order+1, 1, species->info.init_temp, species->info.ctx_temp);
 
     gkyl_proj_on_basis_advance(proj_m0, 0.0, &app->local_ext, m0); 
     gkyl_proj_on_basis_advance(proj_udrift, 0.0, &app->local_ext, udrift);
@@ -325,7 +325,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
   else {
     gkyl_proj_on_basis *proj;
     proj = gkyl_proj_on_basis_new(&species->grid, &app->basis,
-      poly_order+1, 1, species->info.init, species->info.ctx);
+      poly_order+1, 1, species->info.init_dist, species->info.ctx_dist);
 
     gkyl_proj_on_basis_advance(proj, t0, &species->local, species->f_host);
     gkyl_proj_on_basis_release(proj);    

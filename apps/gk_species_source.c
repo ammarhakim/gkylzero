@@ -21,7 +21,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, s
         .num_quad = app->basis.poly_order+1,
         .num_ret_vals = 1,
         .eval = s->info.source.profile,
-        .ctx = s->info.source.ctx
+        .ctx = s->info.source.ctx_profile
       }
     );
   }
@@ -32,32 +32,32 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *species, do
 {
   if (species->source_id == GKYL_MAXWELLIAN_SOURCE) {
     int poly_order = app->poly_order;
-    // Project n, udrift, and vt^2 based on input functions
+    // Project n, upar, and vt^2 based on input functions
     struct gkyl_array *m0 = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    struct gkyl_array *udrift = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    struct gkyl_array *upar = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     struct gkyl_array *vtsq = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.source.density_profile, species->info.ctx);
-    gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.source.upar_profile, species->info.ctx);
+      poly_order+1, 1, species->info.source.density_profile, species->info.ctx_density);
+    gkyl_proj_on_basis *proj_upar = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
+      poly_order+1, 1, species->info.source.upar_profile, species->info.ctx_upar);
     gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.source.temp_profile, species->info.ctx);
+      poly_order+1, 1, species->info.source.temp_profile, species->info.ctx_temp);
 
     gkyl_proj_on_basis_advance(proj_m0, 0.0, &app->local_ext, m0); 
-    gkyl_proj_on_basis_advance(proj_udrift, 0.0, &app->local_ext, udrift);
+    gkyl_proj_on_basis_advance(proj_upar, 0.0, &app->local_ext, upar);
     gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &app->local_ext, vtsq);
     gkyl_array_scale(vtsq, 1/species->info.mass);
 
     // proj_maxwellian expects the primitive moments as a single array.
     struct gkyl_array *prim_moms = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_array_set_offset(prim_moms, 1.0, udrift, 0*app->confBasis.num_basis);
+    gkyl_array_set_offset(prim_moms, 1.0, upar, 0*app->confBasis.num_basis);
     gkyl_array_set_offset(prim_moms, 1.0, vtsq  , 1*app->confBasis.num_basis);
 
     // Initialize Maxwellian projection object
     gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&species->grid,
         &app->confBasis, &app->basis, poly_order+1, app->use_gpu);
 
-    // If on GPUs, need to copy n, udrift, and vt^2 onto device
+    // If on GPUs, need to copy n, upar, and vt^2 onto device
     struct gkyl_array *prim_moms_dev, *m0_dev;
     if (app->use_gpu) {
       prim_moms_dev = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
@@ -95,7 +95,7 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *species, do
 
     // Free temporary variables and projection objects
     gkyl_array_release(m0);
-    gkyl_array_release(udrift); 
+    gkyl_array_release(upar); 
     gkyl_array_release(vtsq);
     gkyl_array_release(prim_moms);
     if (app->use_gpu) {
@@ -103,7 +103,7 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *species, do
       gkyl_array_release(prim_moms_dev);      
     }
     gkyl_proj_on_basis_release(proj_m0);
-    gkyl_proj_on_basis_release(proj_udrift);
+    gkyl_proj_on_basis_release(proj_upar);
     gkyl_proj_on_basis_release(proj_vtsq);
     gkyl_array_release(m0mod); 
     gkyl_dg_bin_op_mem_release(mem);
