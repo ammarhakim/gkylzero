@@ -65,7 +65,7 @@ void maxwellian1x1v(double t, const double *xn, double* restrict fout, void *ctx
   double *te = ctx;
   double beta = GKYL_ELECTRON_MASS/(2*te[0]*GKYL_ELEMENTARY_CHARGE);
   fout[0] = sqrt(beta/GKYL_PI)*exp(-(pow(vx, 2))*beta);
-  printf("te= %f, v=%e, f=%e\n",te[0],vx,fout[0]);
+  //  printf("te= %f, v=%e, f=%e\n",te[0],vx,fout[0]);
 }
 
 void
@@ -102,10 +102,10 @@ test_1x1v_p1()
   int cdim = 1, vdim = 1;
   int pdim = cdim+vdim;
 
-  int cells[] = {1, 2000};
+  int cells[] = {1, 4000};
   int ghost[] = {0, 0};
-  double lower[] = {0., -10.e7};
-  double upper[] = {1., 10.e7};
+  double lower[] = {1.0, -10.e7};
+  double upper[] = {1.1, 10.e7};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -120,9 +120,13 @@ test_1x1v_p1()
   int poly_order = 1;
   struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
 
-  //gkyl_cart_modal_serendip(&basis, pdim, poly_order);
+
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
-  gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  if (poly_order==1) {
+    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  } else {
+    gkyl_cart_modal_serendip(&basis, pdim, poly_order);
+  }
 
   gkyl_dg_updater_collisions *slvr;
   enum gkyl_model_id model_id = GKYL_MODEL_DEFAULT;
