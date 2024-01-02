@@ -1,3 +1,4 @@
+#include "gkyl_gk_geometry_fromfile.h"
 #include <stdarg.h>
 
 #include <gkyl_alloc.h>
@@ -131,10 +132,14 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   app->bmag_ctx = app->bmag_func = 0;  
   app->has_mapc2p = gk->mapc2p ? true : false;
   app->tokamak = gk->tokamak ? true : false;
+  app->geo_fromfile = gk->geo_fromfile? true : false;
   app->tok_rz_ctx = gk->tok_rz_ctx;
   app->tok_comp_ctx = gk->tok_comp_ctx;
 
-  if(app->tokamak){
+  if (app->geo_fromfile) {
+    app->gk_geom = gkyl_gk_geometry_fromfile_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, app->use_gpu);
+  }
+  else if (app->tokamak) {
     app->gk_geom = gkyl_gk_geometry_tok_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
       app->tok_rz_ctx, app->tok_comp_ctx, app->use_gpu);
   }

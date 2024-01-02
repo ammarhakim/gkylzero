@@ -24,8 +24,9 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_gri
 static inline double calc_metric(double dxdz[3][3], int i, int j) 
 { double sum = 0;   for (int k=0; k<3; ++k) sum += dxdz[k][i-1]*dxdz[k][j-1]; return sum; } 
 
-void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, const struct gkyl_range *update_range){
-  up->gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
+void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, const struct gkyl_range *update_range){
+  struct gkyl_array* gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
+  struct gkyl_array* tanvecFld_nodal = gkyl_array_new(GKYL_DOUBLE, 9, nrange->volume);
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
@@ -87,17 +88,31 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, s
                 dxdz[2][2] = -(mc2p_n[27 +Z_IDX] - mc2p_n[30 +Z_IDX])/2/dzc[2];
               }
 
-              double *gFld_n= gkyl_array_fetch(up->gFld_nodal, gkyl_range_idx(nrange, cidx));
+              double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
               gFld_n[0] = calc_metric(dxdz, 1, 1); 
               gFld_n[1] = calc_metric(dxdz, 1, 2); 
               gFld_n[2] = calc_metric(dxdz, 1, 3); 
               gFld_n[3] = calc_metric(dxdz, 2, 2); 
               gFld_n[4] = calc_metric(dxdz, 2, 3); 
               gFld_n[5] = calc_metric(dxdz, 3, 3); 
+
+              double *tanvecFld_n= gkyl_array_fetch(tanvecFld_nodal, gkyl_range_idx(nrange, cidx));
+              tanvecFld_n[0] = dxdz[0][0]; 
+              tanvecFld_n[1] = dxdz[1][0]; 
+              tanvecFld_n[2] = dxdz[2][0]; 
+              tanvecFld_n[3] = dxdz[0][1]; 
+              tanvecFld_n[4] = dxdz[1][1]; 
+              tanvecFld_n[5] = dxdz[2][1]; 
+              tanvecFld_n[6] = dxdz[0][2]; 
+              tanvecFld_n[7] = dxdz[1][2]; 
+              tanvecFld_n[8] = dxdz[2][2]; 
       }
     }
   }
-  gkyl_nodal_ops_n2m(up->cbasis, up->grid, nrange, update_range, 6, up->gFld_nodal, gFld);
+  gkyl_nodal_ops_n2m(up->cbasis, up->grid, nrange, update_range, 6, gFld_nodal, gFld);
+  gkyl_nodal_ops_n2m(up->cbasis, up->grid, nrange, update_range, 9, tanvecFld_nodal, tanvecFld);
+  gkyl_array_release(gFld_nodal);
+  gkyl_array_release(tanvecFld_nodal);
 }
 
 void

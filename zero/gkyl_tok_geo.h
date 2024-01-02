@@ -20,7 +20,7 @@ struct gkyl_tok_geo_stat {
   long nroot_cont_calls; // num calls from root-finder
 };  
 
-typedef   double (*plate_func)(double R);
+typedef   void (*plate_func)(double s, double* RZ);
 
 struct gkyl_tok_geo {
   struct gkyl_efit* efit;
@@ -47,8 +47,6 @@ struct gkyl_tok_geo {
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
-  double plate_lower_Rl, plate_lower_Rr;
-  double plate_upper_Rl, plate_upper_Rr;
 
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
@@ -86,8 +84,6 @@ struct gkyl_tok_geo_inp {
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
-  double plate_lower_Rl, plate_lower_Rr;
-  double plate_upper_Rl, plate_upper_Rr;
 
   // Parameters for root finder: leave unset to use defaults
   struct {

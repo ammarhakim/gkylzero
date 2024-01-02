@@ -38,6 +38,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
+#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
@@ -310,6 +311,7 @@ struct gkyl_gyrokinetic_app {
 
   bool has_mapc2p; // flag to indicate if we have mapc2p
   bool tokamak; // flag to indicate if it is a tokamak geometry
+  bool geo_fromfile; // flag to indicate if we should just read the geometry
   void *c2p_ctx; // context for mapc2p function
   // pointer to mapc2p function
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
