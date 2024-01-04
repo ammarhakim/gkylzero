@@ -138,13 +138,14 @@ double integrand_z_psiZ(double ZIn, void *ctx){
 double 
 z_psiZ(double psiIn, double ZIn, void *ctx) {
     struct gk_mirror_ctx *app = ctx;
-    ctx.psi_in = psiIn;
+    app->psi_in = psiIn;
     double eps = 0.0;
     struct gkyl_qr_res integral;
     if (eps <= ZIn) {
         integral = gkyl_dbl_exp(integrand_z_psiZ, ctx, eps, ZIn, 7, 1e-14);
     } else {
-        integral = -gkyl_dbl_exp(integrand_z_psiZ, ctx, ZIn, eps, 7, 1e-14);
+        integral = gkyl_dbl_exp(integrand_z_psiZ, ctx, ZIn, eps, 7, 1e-14);
+        integral.res = -integral.res;
     }
     return integral.res;
 }
@@ -152,7 +153,8 @@ z_psiZ(double psiIn, double ZIn, void *ctx) {
 // Invert z(Z) via root-finding.
 double
 root_Z_psiz(double Z, void *ctx){
-    return Z - z_psiZ(ctx.psi_in, Z, ctx);
+    struct gk_mirror_ctx *app = ctx;
+    return Z - z_psiZ(app->psi_in, Z, ctx);
 }
 
 double 
@@ -160,15 +162,15 @@ Z_psiz(double psiIn, double zIn, void *ctx) {
     struct gk_mirror_ctx *app = ctx;
     double macL = app->Zmax - app->Zmin; // These are globals. Where do they come from?
     double eps = macL / app->numCellLineLength; // Interestingly using a smaller eps yields larger errors in some geo quantities.
-    ctx.psi_in = psiIn;
+    app->psi_in = psiIn;
     struct gkyl_qr_res Zout;
     if (zIn <= 0.0) {
-        double fl = lossF(-eps, ctx);
-        double fr = lossF(app->Zmax + eps, ctx);
+        double fl = root_Z_psiz(-eps, ctx);
+        double fr = root_Z_psiz(app->Zmax + eps, ctx);
         Zout = gkyl_ridders(root_Z_psiz, ctx, -eps, app->Zmax + eps, fl, fr, 1000, 1e-14);
     } else {
-        double fl = lossF(app->Zmin - eps, ctx);
-        double fr = lossF(eps, ctx);
+        double fl = root_Z_psiz(app->Zmin - eps, ctx);
+        double fr = root_Z_psiz(eps, ctx);
         Zout = gkyl_ridders(root_Z_psiz, ctx, app->Zmin - eps, eps, fl, fr, 1000, 1e-14);
     }
     return Zout.res;
@@ -655,7 +657,7 @@ main(int argc, char **argv)
         .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, // Not sure
                         .up_type = {GKYL_POISSON_DIRICHLET}, 
                         .lo_value = {0.0}, .up_value = {0.0}}, 
-        .evolve = false,
+        // .evolve = false,
     };
 
     // GK app
