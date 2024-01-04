@@ -82,7 +82,7 @@ bool gkyl_array_is_cu_dev(const struct gkyl_array *arr);
  * 'src' must not point to same data.
  *
  * @param dest Destination for copy.
- * @param src Srouce to copy from.
+ * @param src Source to copy from.
  * @return dest is returned
  */
 struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
@@ -93,7 +93,7 @@ struct gkyl_array* gkyl_array_copy(struct gkyl_array* dest,
  * 'src' must not point to same data.
  *
  * @param dest Destination for copy.
- * @param src Srouce to copy from.
+ * @param src Source to copy from.
  * @return dest is returned
  */
 struct gkyl_array* gkyl_array_copy_async(struct gkyl_array* dest,
