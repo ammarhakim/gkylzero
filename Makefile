@@ -5,7 +5,7 @@
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS ?= -O0 -g -ffast-math -fPIC -MMD -MP #-O0 for debugging
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP 
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 INSTALL_PREFIX ?= ${PREFIX}
