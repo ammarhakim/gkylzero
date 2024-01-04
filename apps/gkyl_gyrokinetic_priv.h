@@ -22,11 +22,14 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_gyrokinetic_vars.h>
+#include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_dg_gyrokinetic.h>
+#include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_diffusion_gyrokinetic.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_dg_updater_rad_gyrokinetic.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
@@ -96,6 +99,19 @@ struct gk_species_moment {
 
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
+};
+
+struct gk_rad_drag {  
+  // drag coefficients in vparallel and mu
+  struct gkyl_array *vnu; // vnu = 2/pi*|v|*nu(v)
+  struct gkyl_array *vsqnu; // vsqnu = 1/2*(m/B)^(3/2)*sqrt(mu)*|v|^2*nu(v)
+  struct gkyl_array *vnu_host; // host-side copy of vnu
+  struct gkyl_array *vsqnu_host; // host-side copy of vsqnu
+  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars; 
+
+  struct gk_species_moment moms; // moments needed in radiation update (need number density)
+
+  gkyl_dg_updater_collisions *drag_slvr; // radiation solver
 };
 
 // forward declare species struct
@@ -227,6 +243,9 @@ struct gk_species {
 
   enum gkyl_collision_id collision_id; // type of collisions
   struct gk_lbo_collisions lbo; // collisions object
+
+  enum gkyl_radiation_id radiation_id; // type of radiation
+  struct gk_rad_drag rad; // radiation object
 
   double *omegaCfl_ptr;
 };
@@ -394,6 +413,40 @@ void gk_species_moment_calc(const struct gk_species_moment *sm,
 void gk_species_moment_release(const struct gkyl_gyrokinetic_app *app,
   const struct gk_species_moment *sm);
 
+/** gk_species_radiation API */
+
+/**
+ * Initialize species radiation drag object.
+ *
+ * @param app gyrokinetic app object
+ * @param s Species object 
+ * @param rad Species radiation drag object
+ */
+void gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_rad_drag *rad);
+
+/**
+ * Compute RHS from radiation drag object.
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param rad Species radiation drag object
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from LBO
+ */
+void gk_species_radiation_rhs(gkyl_gyrokinetic_app *app,
+  const struct gk_species *species,
+  struct gk_rad_drag *rad,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species radiation drag object.
+ *
+ * @param app gyrokinetic app object
+ * @param rad Species radiation drag object to release
+ */
+void gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struct gk_rad_drag *rad);
+
 /** gk_species_lbo API */
 
 /**
@@ -402,7 +455,6 @@ void gk_species_moment_release(const struct gkyl_gyrokinetic_app *app,
  * @param app gyrokinetic app object
  * @param s Species object 
  * @param lbo Species LBO object
- * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
  */
 void gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   struct gk_lbo_collisions *lbo);
@@ -438,8 +490,6 @@ void gk_species_lbo_moms(gkyl_gyrokinetic_app *app,
  * @param species Pointer to species
  * @param lbo Pointer to LBO
  * @param fin Input distribution function
- * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
- * @param fluidin Input fluid array (size: num_fluid_species)
  */
 void gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app,
   const struct gk_species *species,
@@ -454,7 +504,6 @@ void gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app,
  * @param lbo Pointer to LBO
  * @param fin Input distribution function
  * @param rhs On output, the RHS from LBO
- * @return Maximum stable time-step
  */
 void gk_species_lbo_rhs(gkyl_gyrokinetic_app *app,
   const struct gk_species *species,
@@ -465,7 +514,7 @@ void gk_species_lbo_rhs(gkyl_gyrokinetic_app *app,
  * Release species LBO object.
  *
  * @param app gyrokinetic app object
- * @param sm Species LBO object to release
+ * @param lbo Species LBO object to release
  */
 void gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lbo_collisions *lbo);
 

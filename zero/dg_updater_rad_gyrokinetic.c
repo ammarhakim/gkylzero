@@ -12,45 +12,47 @@
 
 // Done first pass
 struct gkyl_dg_updater_collisions*
-gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
-				    const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, const struct gkyl_range *prange, const struct gkyl_array *bmag, const struct gkyl_array *fit_params, struct gkyl_array *vnu, struct gkyl_array *vsqnu, bool use_gpu)
+gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  void *aux_inp, bool use_gpu)
 {
 
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
 
-  up->coll_drag = gkyl_dg_rad_gyrokinetic_drag_new(cbasis, pbasis, conf_range, prange, grid, bmag, fit_params, vnu, vsqnu, use_gpu);
+  up->coll_drag = gkyl_dg_rad_gyrokinetic_drag_new(conf_basis, phase_basis, conf_range, phase_range, use_gpu);
+  struct gkyl_dg_rad_gyrokinetic_drag_auxfields *rad_inp = aux_inp;
+  gkyl_rad_gyrokinetic_drag_set_auxfields(up->coll_drag, *rad_inp);
 
-  int cdim = cbasis->ndim, pdim = pbasis->ndim;
+  int cdim = conf_basis->ndim, pdim = phase_basis->ndim;
   int vdim = pdim-cdim;
   int num_up_dirs = vdim;
   int up_dirs[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<vdim; ++d)
-    up_dirs[d] = d + pbasis->ndim - vdim;
+    up_dirs[d] = d + phase_basis->ndim - vdim;
 
   int zero_flux_flags[GKYL_MAX_DIM] = { 0 };
   for (int d=cdim; d<pdim; ++d)
     zero_flux_flags[d] = 1;
 
-  up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->drag = gkyl_hyper_dg_new(grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  
+  up->drag_tm = 0.0;
   
   return up;
 }
 
 void
 gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *rad,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *nI,
-  const struct gkyl_array *vnu,
-  const struct gkyl_array *vsqnu,
-  const struct gkyl_array* GKYL_RESTRICT fIn,
+  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
-  
-  // Set arrays needed
-  gkyl_rad_gyrokinetic_drag_set_auxfields(rad->coll_drag,
-					  (struct gkyl_dg_rad_gyrokinetic_drag_auxfields) { .nI = nI, .vnu = vnu, .vsqnu = vsqnu});
-  
-  gkyl_hyper_dg_advance(rad->drag, update_rng, fIn, cflrate, rhs);
+  struct timespec wst = gkyl_wall_clock();
+  if (rad->use_gpu)
+    gkyl_hyper_dg_advance_cu(rad->drag, update_rng, fIn, cflrate, rhs);
+  else 
+    gkyl_hyper_dg_advance(rad->drag, update_rng, fIn, cflrate, rhs);
+  rad->drag_tm += gkyl_time_diff_now_sec(wst);
 }
 
 struct gkyl_dg_updater_rad_gyrokinetic_tm
@@ -68,35 +70,3 @@ gkyl_dg_updater_rad_gyrokinetic_release(struct gkyl_dg_updater_collisions* coll)
   gkyl_hyper_dg_release(coll->drag);
   gkyl_free(coll);
 }
-
-#ifdef GKYL_HAVE_CUDA
-
-void
-gkyl_dg_updater_rad_gyrokinetic_advance_cu(struct gkyl_dg_updater_collisions *rad,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *nI, 
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
-  struct gkyl_array* GKYL_RESTRICT rhs)
-{
-  // Set arrays needed
-  gkyl_rad_gyrokinetic_drag_set_auxfields(rad->coll_drag,
-    (struct gkyl_dg_rad_gyrokinetic_drag_auxfields) { .nI = nI});
-
-  gkyl_hyper_dg_advance_cu(rad->drag, update_rng, fIn, cflrate, rhs);
-}
-
-#endif
-
-#ifndef GKYL_HAVE_CUDA
-
-void
-gkyl_dg_updater_rad_gyrokinetic_advance_cu(struct gkyl_dg_updater_collisions *rad,
-  const struct gkyl_range *update_rng,
-					   const struct gkyl_array *nI,// const struct gkyl_array *vnu, 
-					   //const struct gkyl_array *vsqnu, 
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
-{
-  assert(false);
-  }
-
-#endif

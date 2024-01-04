@@ -69,6 +69,11 @@ struct gkyl_gyrokinetic_source {
   bool is_maxwellian;
 };
 
+// Parameters for species radiation
+struct gkyl_gyrokinetic_radiation {
+  enum gkyl_radiation_id radiation_id; // type of radiation
+};
+
 // Parameters for gk species
 struct gkyl_gyrokinetic_species {
   char name[128]; // species name
@@ -105,6 +110,9 @@ struct gkyl_gyrokinetic_species {
 
   // source to include
   struct gkyl_gyrokinetic_source source;
+
+  // radiation to include
+  struct gkyl_gyrokinetic_radiation radiation;
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];

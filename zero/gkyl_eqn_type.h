@@ -57,6 +57,12 @@ enum gkyl_source_id {
   GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes
 };
 
+// Identifiers for specific radiation object types
+enum gkyl_radiation_id {
+  GKYL_NO_RADIATION = 0, // No radiation. This is default
+  GKYL_GK_RADIATION, // Radiation in gyrokinetic equations.
+};
+
 // type of quadrature to use
 enum gkyl_quad_type {
   GKYL_GAUSS_QUAD = 0, // Gauss-Legendre quadrature

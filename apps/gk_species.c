@@ -177,9 +177,13 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   
   // determine collision type to use in gyrokinetic update
   s->collision_id = s->info.collisions.collision_id;
-  if (s->collision_id == GKYL_LBO_COLLISIONS) {
+  if (s->collision_id == GKYL_LBO_COLLISIONS) 
     gk_species_lbo_init(app, s, &s->lbo);
-  }
+
+  // determine radiation type to use in gyrokinetic update
+  s->radiation_id = s->info.radiation.radiation_id;
+  if (s->radiation_id == GKYL_GK_RADIATION) 
+    gk_species_radiation_init(app, s, &s->rad);
 
   // create ranges and allocate buffers for applying periodic and non-periodic BCs
   long buff_sz = 0;
@@ -372,6 +376,9 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
   
+  if (species->radiation_id == GKYL_GK_RADIATION)
+    gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
+
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
@@ -551,6 +558,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     gk_species_lbo_release(app, &s->lbo);
+
+  if (s->radiation_id == GKYL_GK_RADIATION) 
+    gk_species_radiation_release(app, &s->rad);
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {

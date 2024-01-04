@@ -17,24 +17,20 @@ struct gkyl_dg_updater_rad_gyrokinetic_tm {
 /**
  * Create new updater to update rad equations using hyper dg.
  *
- * @param grid Grid object
- * @param cbasis Configuration space basis functions
- * @param pbasis Phase-space basis function
+ * @param grid Phase-space grid object
+ * @param conf_basis Configuration-space basis functions
+ * @param phase_basis Phase-space basis function
  * @param conf_range Config space range
- * @param prange Phase space range
- * @param bmag Magnetic field
- * @param fit_params 5 fitting parameters for nu
- * @param vnu dg field of v*nu (v')
- * @param vsqnu dg field of v^2*nu (v'')
- * @param use_gpu Logical to turn gpu on/off
- * @return New RAD updater object
+ * @param phase_range Phase space range
+ * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
+ * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
+ * @return Pointer to updater object for Radiation operator in Gyrokinetic equation
  */
 struct gkyl_dg_updater_collisions* 
-gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *prange,
-  const struct gkyl_array *bmag,
-  const struct gkyl_array *fit_params, struct gkyl_array *vnu, struct gkyl_array *vsqnu, bool use_gpu);
+gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  void *aux_inp, bool use_gpu);
 
 
 /**
@@ -43,25 +39,14 @@ gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid,
  * same range as the array range, or one created using the
  * gkyl_sub_range_init method.
  *
- * @param rad RAD updater object
+ * @param rad Radiation operator updater object
  * @param update_rng Range on which to compute.
- * @param nI Atomic density of radiating species
  * @param fIn Input to updater
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
 void gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *rad,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *nI,
-  const struct gkyl_array *vnu,
-  const struct gkyl_array *vsqnu,
-  const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
-
-void gkyl_dg_updater_rad_gyrokinetic_advance_cu(struct gkyl_dg_updater_collisions *rad,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *nI,
-  const struct gkyl_array* GKYL_RESTRICT fIn,
+  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 /**
