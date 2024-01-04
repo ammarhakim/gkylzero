@@ -1,4 +1,3 @@
-#include "gkyl_gk_geometry_fromfile.h"
 #include <stdarg.h>
 
 #include <gkyl_alloc.h>
@@ -6,6 +5,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
+#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_null_comm.h>
 
 #include <gkyl_gyrokinetic_priv.h>
