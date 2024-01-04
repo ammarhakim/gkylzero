@@ -131,6 +131,8 @@ struct gkyl_gyrokinetic_species {
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   double bmag_fac; 
+  double kperp2; // kperp^2 parameter for 1D field equations
+  
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
 
