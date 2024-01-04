@@ -49,14 +49,10 @@ GKYL_CU_DH double vlasov_pkpm_vol_1x1v_ser_p1(const double *w, const double *dxv
   alpha_cdim[2] = 0.408248290463863*bx[0]*dvpar*dx0; 
   alpha_cdim[3] = 0.408248290463863*bx[1]*dvpar*dx0; 
 
-  cflFreq_mid += 3.0*fabs(0.25*alpha_cdim[0]); 
-
   alpha_vdim[0] = 1.414213562373095*p_force[0]*dv1par-1.414213562373095*bb_grad_u[0]*dv1par*wvpar; 
   alpha_vdim[1] = 1.414213562373095*p_force[1]*dv1par-1.414213562373095*bb_grad_u[1]*dv1par*wvpar; 
   alpha_vdim[2] = -0.408248290463863*bb_grad_u[0]*dv1par*dvpar; 
   alpha_vdim[3] = -0.408248290463863*bb_grad_u[1]*dv1par*dvpar; 
-
-  cflFreq_mid += 5.0*fabs(0.25*alpha_vdim[0]); 
 
   alpha_div_b[0] = 1.414213562373095*div_b[0]*dv1par; 
   alpha_div_b[1] = 1.414213562373095*div_b[1]*dv1par; 

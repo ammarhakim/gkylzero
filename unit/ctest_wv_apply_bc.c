@@ -45,7 +45,7 @@ test_1()
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
   
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim, false);
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();
 
   gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
@@ -97,7 +97,7 @@ test_2()
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim, false);
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();  
 
   gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
@@ -169,7 +169,7 @@ test_3()
   struct gkyl_range ext_range, range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
-  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim);
+  struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range, nomapc2p, &ndim, false);
   struct gkyl_wv_eqn *eqn = gkyl_wv_burgers_new();
 
   gkyl_wv_apply_bc *lbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
@@ -312,7 +312,7 @@ test_bc_buff_rtheta()
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
-  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(1.4);  
+  struct gkyl_wv_eqn *eqn = gkyl_wv_euler_new(1.4, false);  
 
   int nghost[] = { 2, 2 };
 
@@ -332,7 +332,7 @@ test_bc_buff_rtheta()
     eqn->num_equations, buff_sz);
 
   struct gkyl_wave_geom *wg = gkyl_wave_geom_new(&grid, &ext_range,
-    rtheta_map, &ndim);
+    rtheta_map, &ndim, false);
 
   gkyl_wv_apply_bc *bbc = gkyl_wv_apply_bc_new(&grid, eqn, wg,
     1, GKYL_LOWER_EDGE, nghost, bc_copy, NULL);

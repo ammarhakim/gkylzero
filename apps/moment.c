@@ -19,6 +19,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   app->tcurr = 0.0; // reset on init
 
   app->scheme_type = mom->scheme_type;
+  
   app->mp_recon = mom->mp_recon;
   app->use_hybrid_flux_kep = mom->use_hybrid_flux_kep;
   
@@ -102,9 +103,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     gkyl_eval_on_nodes_release(ev_c2p);
   }
 
-  // create geometry object
+  // create geometry object (no GPU support in fluids right now JJ: 11/26/23)
   app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
-    app->mapc2p, app->c2p_ctx);
+    app->mapc2p, app->c2p_ctx, false);
 
   double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;
@@ -579,7 +580,7 @@ v_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, va_list
 {
   int rank, r = 0;
   gkyl_comm_get_rank(app->comm, &rank);
-  if (rank == 0)
+  if ((rank == 0) && fp)
     vfprintf(fp, fmt, argp);
 }
 

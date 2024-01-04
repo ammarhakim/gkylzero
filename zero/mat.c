@@ -84,7 +84,7 @@ struct gkyl_mat*
 gkyl_mat_diag(struct gkyl_mat *mat, double val)
 {
   gkyl_mat_clear(mat, 0.0);
-  for (size_t i=0; i<GKYL_MIN(mat->nr, mat->nc); ++i)
+  for (size_t i=0; i<GKYL_MIN2(mat->nr, mat->nc); ++i)
     gkyl_mat_set(mat, i, i, val);
   return mat;
 }
@@ -159,7 +159,7 @@ gkyl_mat_mv(double alpha, double beta,
   size_t lda = transa == GKYL_NO_TRANS ? A->nr : k;
   size_t ldc = y->nr;
   
-  assert( (sza.nr == szy.nr) && (sza.nc == szx.nr) && (szx.nr = szy.nr) );
+  assert( (sza.nr == szy.nr) && (sza.nc == szx.nr) && (szx.nr == szy.nr) );
 
   // call BLAS routine to perform matrix-matrix multiply
   int incx = 1;

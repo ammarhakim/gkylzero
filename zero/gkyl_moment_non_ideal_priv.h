@@ -1,6 +1,10 @@
 #pragma once
 #include <math.h>
 
+#ifndef M_PI
+  #define M_PI 3.14159265358979323846
+#endif
+
 // Private header, not for direct use in user code
 // Makes indexing cleaner
 static const unsigned RHO = 0;
@@ -123,7 +127,7 @@ calc_grad_u_2D(double dx, double dy, double u_ll[3], double u_lu[3], double u_ul
   grad_u[0] = calc_sym_gradx_2D(dx, u_ll[0], u_lu[0], u_ul[0], u_uu[0]);
   grad_u[1] = calc_sym_gradx_2D(dx, u_ll[1], u_lu[1], u_ul[1], u_uu[1]);
   grad_u[2] = calc_sym_gradx_2D(dx, u_ll[2], u_lu[2], u_ul[2], u_uu[2]);
-  
+
   grad_u[3] = calc_sym_grady_2D(dy, u_ll[0], u_lu[0], u_ul[0], u_uu[0]);
   grad_u[4] = calc_sym_grady_2D(dy, u_ll[1], u_lu[1], u_ul[1], u_uu[1]);
   grad_u[5] = calc_sym_grady_2D(dy, u_ll[2], u_lu[2], u_ul[2], u_uu[2]);
@@ -221,12 +225,12 @@ calc_bhat(const double em_tot[8], double b[3])
   double By = em_tot[BY];
   double Bz = em_tot[BZ];
   double Bmag = calc_mag_b(em_tot);
-  // get magnetic field unit vector 
+  // get magnetic field unit vector
   if (Bmag > 0.0) {
     b[0] = Bx/Bmag;
     b[1] = By/Bmag;
     b[2] = Bz/Bmag;
-  }  
+  }
 }
 
 // Calculate the collision time based on the species' parameters

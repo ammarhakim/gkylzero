@@ -51,7 +51,7 @@ main(int argc, char **argv)
   struct euler_ctx ctx = euler_ctx(); // context for init functions
 
   // equation object
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, false);
 
   struct gkyl_moment_species fluid = {
     .name = "euler",

@@ -64,27 +64,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_energy_write_call = true;
 
-  // Allocate arrays for diagonstics/parallel-kinetic-perpendicular-moment arrays:
-  // bvar = magnetic field unit vector (first 3 components) and unit tensor (last 6 components)
-  // ExB = E x B velocity, E x B/|B|^2
-  f->cell_avg_magB2 = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
-  f->bvar = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
-  // Surface magnetic field vector organized as:
-  // [bx_xl, bx_xr, bxbx_xl, bxbx_xr, bxby_xl, bxby_xr, bxbz_xl, bxbz_xr,
-  //  by_yl, by_yr, bxby_yl, bxby_yr, byby_yl, byby_yr, bybz_yl, bybz_yr,
-  //  bz_zl, bz_zr, bxbz_zl, bxbz_zr, bybz_zl, bybz_zr, bzbz_zl, bzbz_zr] 
-  int cdim = app->cdim;
-  int Ncomp_surf = 2*cdim*4;
-  int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
-  f->bvar_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf, app->local_ext.volume);
-  // Volume expansion of div(b)
-  f->div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  // Surface expansion of max b penalization for streaming in PKPM system max(|b_i_l|, |b_i_r|)
-  f->max_b = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
-
-  // Create updaters for bvar (needed by PKPM model)
-  f->calc_bvar = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 0, app->use_gpu);
-
   f->has_ext_em = false;
   f->ext_em_evolve = false;
   // setup external electromagnetic field
@@ -128,15 +107,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->app_current_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
       8, eval_app_current, &f->app_current_ctx);
   }
-  
-  // allocate buffer for applying BCs (used for both periodic and copy BCs)
-  long buff_sz = 0;
-  // compute buffer size needed
-  for (int d=0; d<app->cdim; ++d) {
-    long vol = GKYL_MAX(app->skin_ghost.lower_skin[d].volume, app->skin_ghost.upper_skin[d].volume);
-    buff_sz = buff_sz > vol ? buff_sz : vol;
-  }
-  f->bc_buffer = mkarr(app->use_gpu, 8*app->confBasis.num_basis, buff_sz);
 
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
@@ -179,9 +149,14 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     }
   }
 
-  int ghost[GKYL_MAX_DIM] = { 0 };
-  for (int d=0; d<app->cdim; ++d)
-    ghost[d] = 1;
+  // allocate buffer for applying BCs 
+  long buff_sz = 0;
+  // compute buffer size needed
+  for (int dir=0; dir<app->cdim; ++dir) {
+    long vol = GKYL_MAX2(app->lower_skin[dir].volume, app->upper_skin[dir].volume);
+    buff_sz = buff_sz > vol ? buff_sz : vol;
+  }
+  f->bc_buffer = mkarr(app->use_gpu, 8*app->confBasis.num_basis, buff_sz);
   
   for (int d=0; d<app->cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
@@ -195,10 +170,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     else if (f->lower_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
-    // Create local lower skin and ghost ranges
-    gkyl_skin_ghost_ranges(&f->lower_skin[d], &f->lower_ghost[d], d, GKYL_LOWER_EDGE, &app->local_ext, ghost);
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
-      &f->lower_skin[d], &f->lower_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
+      &app->lower_skin[d], &app->lower_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
     if (f->upper_bc[d] == GKYL_FIELD_COPY)
@@ -210,10 +183,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     else if (f->upper_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
 
-    // Create local upper skin and ghost ranges
-    gkyl_skin_ghost_ranges(&f->upper_skin[d], &f->upper_ghost[d], d, GKYL_UPPER_EDGE, &app->local_ext, ghost);
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
-      &f->upper_skin[d], &f->upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
+      &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
   }
 
   gkyl_dg_eqn_release(eqn);
@@ -224,6 +195,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 void
 vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
 {
+  if (!app->has_field) return;
+  
   int poly_order = app->poly_order;
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
     poly_order+1, 8, field->info.init, field->info.ctx);
@@ -266,30 +239,6 @@ vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double t
 }
 
 void
-vm_field_calc_bvar(gkyl_vlasov_app *app, struct vm_field *field,
-  const struct gkyl_array *em)
-{
-  struct timespec tm = gkyl_wall_clock();
-
-  gkyl_array_clear(field->tot_em, 0.0);
-  gkyl_array_set(field->tot_em, 1.0, em);
-  if (field->has_ext_em) 
-    gkyl_array_accumulate(field->tot_em, 1.0, field->ext_em);
-  // Assumes magnetic field boundary conditions applied so magnetic field 
-  // unit vector and unit tensor are defined everywhere in the domain
-  gkyl_dg_calc_em_vars_advance(field->calc_bvar, field->tot_em, 
-    field->cell_avg_magB2, field->bvar, field->bvar_surf);
-
-  // Compute div(b) and max_b = max(|b_i_l|, |b_i_r|)
-  gkyl_array_clear(field->div_b, 0.0); // Incremented in each dimension, so clear beforehand
-  gkyl_dg_calc_em_vars_div_b(field->calc_bvar, &app->local, 
-    field->bvar_surf, field->bvar, 
-    field->max_b, field->div_b); 
-
-  app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
-}
-
-void
 vm_field_accumulate_current(gkyl_vlasov_app *app, 
   const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], 
   struct gkyl_array *emout)
@@ -298,19 +247,12 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
     struct vm_species *s = &app->species[i];
     double qbyeps = s->info.charge/app->field->info.epsilon0; 
 
-    if (s->model_id == GKYL_MODEL_PKPM) {
-      // Need to divide out the mass in pkpm model since we evolve momentum
-      gkyl_array_set_range(s->m1i_pkpm, 1.0/s->info.mass, fluidin[s->pkpm_fluid_index], &(app->local));
-      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_pkpm, &(app->local));   
-    }
-    else {
-      vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
-      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &(app->local));
-    }
+    vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
+    gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
   } 
   // Accumulate applied current to electric field terms
   if (app->field->has_app_current)
-    gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, &(app->local));
+    gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, &app->local);
 }
 
 // Compute the RHS for field update, returning maximum stable
@@ -332,7 +274,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
     else
       gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
     
-    gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &(app->local));
+    gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &app->local);
 
     app->stat.nfield_omega_cfl += 1;
     struct timespec tm = gkyl_wall_clock();
@@ -350,18 +292,6 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
   
   return app->cfl/omegaCfl;
-}
-
-// Apply periodic BCs on EM fields
-void
-vm_field_apply_periodic_bc(gkyl_vlasov_app *app, const struct vm_field *field,
-  int dir, struct gkyl_array *f)
-{
-  gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &(app->skin_ghost.lower_skin[dir]));
-  gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &(app->skin_ghost.upper_ghost[dir]));
-
-  gkyl_array_copy_to_buffer(field->bc_buffer->data, f, &(app->skin_ghost.upper_skin[dir]));
-  gkyl_array_copy_from_buffer(f, field->bc_buffer->data, &(app->skin_ghost.lower_ghost[dir]));
 }
 
 // Determine which directions are periodic and which directions are not periodic,
@@ -418,15 +348,15 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
 {
   for (int i=0; i<6; ++i)
     gkyl_dg_calc_l2_range(app->confBasis, i, field->em_energy, i, field->em, app->local);
-  gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, &(app->local));
+  gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, &app->local);
   
   double energy[6] = { 0.0 };
   if (app->use_gpu) {
-    gkyl_array_reduce_range(field->em_energy_red, field->em_energy, GKYL_SUM, &(app->local));
+    gkyl_array_reduce_range(field->em_energy_red, field->em_energy, GKYL_SUM, &app->local);
     gkyl_cu_memcpy(energy, field->em_energy_red, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
   }
   else { 
-    gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, &(app->local));
+    gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, &app->local);
   }
 
   double energy_global[6] = { 0.0 };
@@ -448,13 +378,6 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->cflrate);
   gkyl_array_release(f->em_energy);
   gkyl_dynvec_release(f->integ_energy);
-
-  gkyl_array_release(f->cell_avg_magB2);
-  gkyl_array_release(f->bvar);
-  gkyl_array_release(f->bvar_surf);
-  gkyl_array_release(f->div_b);
-  gkyl_array_release(f->max_b);
-  gkyl_dg_calc_em_vars_release(f->calc_bvar);
 
   if (f->has_ext_em) {
     gkyl_array_release(f->ext_em);
