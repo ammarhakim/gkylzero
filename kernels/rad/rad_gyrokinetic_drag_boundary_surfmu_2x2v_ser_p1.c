@@ -1,9 +1,8 @@
 #include <gkyl_rad_gyrokinetic_kernels.h> 
-GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p1(const double *w, const double *dxv, const double *nI, const double *nuField, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p1(const double *w, const double *dxv, const double *nuField, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[4]:     cell-center coordinates. 
   // dxv[4]:   cell spacing. 
-  // nI:        ion density. 
   // nuField:       2/pi*v*nu(v) field dg representation (v''(v||,mu) in notes
   // fSkin/Edge:    Distribution function in cells 
   // out:           Incremented distribution function in cell 
@@ -14,18 +13,18 @@ GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p1(const double 
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = 0.3535533905932737*(1.732050807568877*(nI[3]*nuField[12]+nI[2]*nuField[9]+nI[1]*nuField[8])+nI[3]*nuField[5]+1.732050807568877*nI[0]*nuField[4]+nI[2]*nuField[2]+nI[1]*nuField[1]+nI[0]*nuField[0]); 
-  alphaDrSurf[1] = 0.3535533905932737*(1.732050807568877*(nI[2]*nuField[12]+nI[3]*nuField[9]+nI[0]*nuField[8])+nI[2]*nuField[5]+1.732050807568877*nI[1]*nuField[4]+nuField[2]*nI[3]+nI[0]*nuField[1]+nuField[0]*nI[1]); 
-  alphaDrSurf[2] = 0.3535533905932737*(1.732050807568877*(nI[1]*nuField[12]+nI[0]*nuField[9]+nI[3]*nuField[8])+nI[1]*nuField[5]+1.732050807568877*nI[2]*nuField[4]+nuField[1]*nI[3]+nI[0]*nuField[2]+nuField[0]*nI[2]); 
-  alphaDrSurf[3] = 0.3535533905932737*(1.732050807568877*(nI[3]*nuField[15]+nI[2]*nuField[14]+nI[1]*nuField[13])+nI[3]*nuField[11]+1.732050807568877*nI[0]*nuField[10]+nI[2]*nuField[7]+nI[1]*nuField[6]+nI[0]*nuField[3]); 
-  alphaDrSurf[4] = 0.3535533905932737*(1.732050807568877*(nI[0]*nuField[12]+nI[1]*nuField[9]+nI[2]*nuField[8])+nI[0]*nuField[5]+nI[3]*(1.732050807568877*nuField[4]+nuField[0])+nI[1]*nuField[2]+nuField[1]*nI[2]); 
-  alphaDrSurf[5] = 0.3535533905932737*(1.732050807568877*(nI[2]*nuField[15]+nI[3]*nuField[14]+nI[0]*nuField[13])+nI[2]*nuField[11]+1.732050807568877*nI[1]*nuField[10]+nI[3]*nuField[7]+nI[0]*nuField[6]+nI[1]*nuField[3]); 
-  alphaDrSurf[6] = 0.3535533905932737*(1.732050807568877*(nI[1]*nuField[15]+nI[0]*nuField[14]+nI[3]*nuField[13])+nI[1]*nuField[11]+1.732050807568877*nI[2]*nuField[10]+nI[0]*nuField[7]+nI[3]*nuField[6]+nI[2]*nuField[3]); 
-  alphaDrSurf[7] = 0.3535533905932737*(1.732050807568877*(nI[0]*nuField[15]+nI[1]*nuField[14]+nI[2]*nuField[13])+nI[0]*nuField[11]+1.732050807568877*nI[3]*nuField[10]+nI[1]*nuField[7]+nI[2]*nuField[6]+nI[3]*nuField[3]); 
-  alphaDrSurf[8] = 0.02357022603955158*(25.98076211353316*nI[3]*nuField[23]+25.98076211353316*(nI[2]*nuField[22]+nI[1]*nuField[21])+15.0*nI[3]*nuField[20]+25.98076211353316*nI[0]*nuField[19]+15.0*(nI[2]*nuField[18]+nI[1]*nuField[17])+15.0*nI[0]*nuField[16]); 
-  alphaDrSurf[9] = 0.02357022603955158*(25.98076211353316*nI[2]*nuField[23]+25.98076211353316*(nI[3]*nuField[22]+nI[0]*nuField[21])+15.0*nI[2]*nuField[20]+25.98076211353316*nI[1]*nuField[19]+15.0*(nI[3]*nuField[18]+nI[0]*nuField[17])+15.0*nI[1]*nuField[16]); 
-  alphaDrSurf[10] = 0.02357022603955158*(25.98076211353316*nI[1]*nuField[23]+25.98076211353316*(nI[0]*nuField[22]+nI[3]*nuField[21])+15.0*nI[1]*nuField[20]+25.98076211353316*nI[2]*nuField[19]+15.0*(nI[0]*nuField[18]+nI[3]*nuField[17])+15.0*nI[2]*nuField[16]); 
-  alphaDrSurf[11] = 0.02357022603955158*(25.98076211353316*nI[0]*nuField[23]+25.98076211353316*(nI[1]*nuField[22]+nI[2]*nuField[21])+15.0*nI[0]*nuField[20]+25.98076211353316*nI[3]*nuField[19]+15.0*(nI[1]*nuField[18]+nI[2]*nuField[17])+15.0*nI[3]*nuField[16]); 
+  alphaDrSurf[0] = 0.7071067811865475*(1.732050807568877*nuField[4]+nuField[0]); 
+  alphaDrSurf[1] = 0.7071067811865475*(1.732050807568877*nuField[8]+nuField[1]); 
+  alphaDrSurf[2] = 0.7071067811865475*(1.732050807568877*nuField[9]+nuField[2]); 
+  alphaDrSurf[3] = 0.7071067811865475*(1.732050807568877*nuField[10]+nuField[3]); 
+  alphaDrSurf[4] = 0.7071067811865475*(1.732050807568877*nuField[12]+nuField[5]); 
+  alphaDrSurf[5] = 0.7071067811865475*(1.732050807568877*nuField[13]+nuField[6]); 
+  alphaDrSurf[6] = 0.7071067811865475*(1.732050807568877*nuField[14]+nuField[7]); 
+  alphaDrSurf[7] = 0.7071067811865475*(1.732050807568877*nuField[15]+nuField[11]); 
+  alphaDrSurf[8] = 0.1414213562373095*(8.660254037844387*nuField[19]+5.0*nuField[16]); 
+  alphaDrSurf[9] = 0.1414213562373095*(8.660254037844387*nuField[21]+5.0*nuField[17]); 
+  alphaDrSurf[10] = 0.1414213562373095*(8.660254037844387*nuField[22]+5.0*nuField[18]); 
+  alphaDrSurf[11] = 0.1414213562373095*(8.660254037844387*nuField[23]+5.0*nuField[20]); 
 
   Ghat[0] = -0.05*(8.660254037844387*(alphaDrSurf[11]*fEdge[23]+alphaDrSurf[10]*fEdge[22]+alphaDrSurf[9]*fEdge[21])-5.0*alphaDrSurf[11]*fEdge[20]+8.660254037844387*alphaDrSurf[8]*fEdge[19]-5.0*(alphaDrSurf[10]*fEdge[18]+alphaDrSurf[9]*fEdge[17]+alphaDrSurf[8]*fEdge[16])+8.660254037844386*(alphaDrSurf[7]*fEdge[15]+alphaDrSurf[6]*fEdge[14]+alphaDrSurf[5]*fEdge[13]+alphaDrSurf[4]*fEdge[12])-5.0*alphaDrSurf[7]*fEdge[11]+8.660254037844386*(alphaDrSurf[3]*fEdge[10]+alphaDrSurf[2]*fEdge[9]+alphaDrSurf[1]*fEdge[8])-5.0*(alphaDrSurf[6]*fEdge[7]+alphaDrSurf[5]*fEdge[6]+alphaDrSurf[4]*fEdge[5])+8.660254037844386*alphaDrSurf[0]*fEdge[4]-5.0*(alphaDrSurf[3]*fEdge[3]+alphaDrSurf[2]*fEdge[2]+alphaDrSurf[1]*fEdge[1]+alphaDrSurf[0]*fEdge[0])); 
   Ghat[1] = -0.01666666666666667*(25.98076211353316*(alphaDrSurf[10]*fEdge[23]+alphaDrSurf[11]*fEdge[22]+alphaDrSurf[8]*fEdge[21])-15.0*alphaDrSurf[10]*fEdge[20]+25.98076211353316*alphaDrSurf[9]*fEdge[19]-15.0*(alphaDrSurf[11]*fEdge[18]+alphaDrSurf[8]*fEdge[17]+alphaDrSurf[9]*fEdge[16])+25.98076211353316*(alphaDrSurf[6]*fEdge[15]+alphaDrSurf[7]*fEdge[14]+alphaDrSurf[3]*fEdge[13]+alphaDrSurf[2]*fEdge[12])-15.0*alphaDrSurf[6]*fEdge[11]+25.98076211353316*(alphaDrSurf[5]*fEdge[10]+alphaDrSurf[4]*fEdge[9]+alphaDrSurf[0]*fEdge[8])-15.0*(alphaDrSurf[7]*fEdge[7]+alphaDrSurf[3]*fEdge[6]+alphaDrSurf[2]*fEdge[5]+fEdge[3]*alphaDrSurf[5])+25.98076211353316*alphaDrSurf[1]*fEdge[4]-15.0*(fEdge[2]*alphaDrSurf[4]+alphaDrSurf[0]*fEdge[1]+fEdge[0]*alphaDrSurf[1])); 
@@ -67,18 +66,18 @@ GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p1(const double 
 
   } else { 
 
-  alphaDrSurf[0] = -0.3535533905932737*(1.732050807568877*(nI[3]*nuField[12]+nI[2]*nuField[9]+nI[1]*nuField[8])-1.0*nI[3]*nuField[5]+1.732050807568877*nI[0]*nuField[4]-1.0*(nI[2]*nuField[2]+nI[1]*nuField[1]+nI[0]*nuField[0])); 
-  alphaDrSurf[1] = -0.3535533905932737*(1.732050807568877*(nI[2]*nuField[12]+nI[3]*nuField[9]+nI[0]*nuField[8])-1.0*nI[2]*nuField[5]+1.732050807568877*nI[1]*nuField[4]-1.0*(nuField[2]*nI[3]+nI[0]*nuField[1]+nuField[0]*nI[1])); 
-  alphaDrSurf[2] = -0.3535533905932737*(1.732050807568877*(nI[1]*nuField[12]+nI[0]*nuField[9]+nI[3]*nuField[8])-1.0*nI[1]*nuField[5]+1.732050807568877*nI[2]*nuField[4]-1.0*(nuField[1]*nI[3]+nI[0]*nuField[2]+nuField[0]*nI[2])); 
-  alphaDrSurf[3] = -0.3535533905932737*(1.732050807568877*(nI[3]*nuField[15]+nI[2]*nuField[14]+nI[1]*nuField[13])-1.0*nI[3]*nuField[11]+1.732050807568877*nI[0]*nuField[10]-1.0*(nI[2]*nuField[7]+nI[1]*nuField[6]+nI[0]*nuField[3])); 
-  alphaDrSurf[4] = -0.3535533905932737*(1.732050807568877*(nI[0]*nuField[12]+nI[1]*nuField[9]+nI[2]*nuField[8])-1.0*nI[0]*nuField[5]+1.732050807568877*nI[3]*nuField[4]-1.0*(nuField[0]*nI[3]+nI[1]*nuField[2]+nuField[1]*nI[2])); 
-  alphaDrSurf[5] = -0.3535533905932737*(1.732050807568877*(nI[2]*nuField[15]+nI[3]*nuField[14]+nI[0]*nuField[13])-1.0*nI[2]*nuField[11]+1.732050807568877*nI[1]*nuField[10]-1.0*(nI[3]*nuField[7]+nI[0]*nuField[6]+nI[1]*nuField[3])); 
-  alphaDrSurf[6] = -0.3535533905932737*(1.732050807568877*(nI[1]*nuField[15]+nI[0]*nuField[14]+nI[3]*nuField[13])-1.0*nI[1]*nuField[11]+1.732050807568877*nI[2]*nuField[10]-1.0*(nI[0]*nuField[7]+nI[3]*nuField[6]+nI[2]*nuField[3])); 
-  alphaDrSurf[7] = -0.3535533905932737*(1.732050807568877*(nI[0]*nuField[15]+nI[1]*nuField[14]+nI[2]*nuField[13])-1.0*nI[0]*nuField[11]+1.732050807568877*nI[3]*nuField[10]-1.0*(nI[1]*nuField[7]+nI[2]*nuField[6]+nI[3]*nuField[3])); 
-  alphaDrSurf[8] = -0.02357022603955158*(25.98076211353316*nI[3]*nuField[23]+25.98076211353316*(nI[2]*nuField[22]+nI[1]*nuField[21])-15.0*nI[3]*nuField[20]+25.98076211353316*nI[0]*nuField[19]-15.0*(nI[2]*nuField[18]+nI[1]*nuField[17])-15.0*nI[0]*nuField[16]); 
-  alphaDrSurf[9] = -0.02357022603955158*(25.98076211353316*nI[2]*nuField[23]+25.98076211353316*(nI[3]*nuField[22]+nI[0]*nuField[21])-15.0*nI[2]*nuField[20]+25.98076211353316*nI[1]*nuField[19]-15.0*(nI[3]*nuField[18]+nI[0]*nuField[17])-15.0*nI[1]*nuField[16]); 
-  alphaDrSurf[10] = -0.02357022603955158*(25.98076211353316*nI[1]*nuField[23]+25.98076211353316*(nI[0]*nuField[22]+nI[3]*nuField[21])-15.0*nI[1]*nuField[20]+25.98076211353316*nI[2]*nuField[19]-15.0*(nI[0]*nuField[18]+nI[3]*nuField[17])-15.0*nI[2]*nuField[16]); 
-  alphaDrSurf[11] = -0.02357022603955158*(25.98076211353316*nI[0]*nuField[23]+25.98076211353316*(nI[1]*nuField[22]+nI[2]*nuField[21])-15.0*nI[0]*nuField[20]+25.98076211353316*nI[3]*nuField[19]-15.0*(nI[1]*nuField[18]+nI[2]*nuField[17])-15.0*nI[3]*nuField[16]); 
+  alphaDrSurf[0] = -0.7071067811865475*(1.732050807568877*nuField[4]-1.0*nuField[0]); 
+  alphaDrSurf[1] = -0.7071067811865475*(1.732050807568877*nuField[8]-1.0*nuField[1]); 
+  alphaDrSurf[2] = -0.7071067811865475*(1.732050807568877*nuField[9]-1.0*nuField[2]); 
+  alphaDrSurf[3] = -0.7071067811865475*(1.732050807568877*nuField[10]-1.0*nuField[3]); 
+  alphaDrSurf[4] = -0.7071067811865475*(1.732050807568877*nuField[12]-1.0*nuField[5]); 
+  alphaDrSurf[5] = -0.7071067811865475*(1.732050807568877*nuField[13]-1.0*nuField[6]); 
+  alphaDrSurf[6] = -0.7071067811865475*(1.732050807568877*nuField[14]-1.0*nuField[7]); 
+  alphaDrSurf[7] = -0.7071067811865475*(1.732050807568877*nuField[15]-1.0*nuField[11]); 
+  alphaDrSurf[8] = -0.1414213562373095*(8.660254037844387*nuField[19]-5.0*nuField[16]); 
+  alphaDrSurf[9] = -0.1414213562373095*(8.660254037844387*nuField[21]-5.0*nuField[17]); 
+  alphaDrSurf[10] = -0.1414213562373095*(8.660254037844387*nuField[22]-5.0*nuField[18]); 
+  alphaDrSurf[11] = -0.1414213562373095*(8.660254037844387*nuField[23]-5.0*nuField[20]); 
 
   Ghat[0] = -0.05*(8.660254037844387*(alphaDrSurf[11]*fSkin[23]+alphaDrSurf[10]*fSkin[22]+alphaDrSurf[9]*fSkin[21])-5.0*alphaDrSurf[11]*fSkin[20]+8.660254037844387*alphaDrSurf[8]*fSkin[19]-5.0*(alphaDrSurf[10]*fSkin[18]+alphaDrSurf[9]*fSkin[17]+alphaDrSurf[8]*fSkin[16])+8.660254037844386*(alphaDrSurf[7]*fSkin[15]+alphaDrSurf[6]*fSkin[14]+alphaDrSurf[5]*fSkin[13]+alphaDrSurf[4]*fSkin[12])-5.0*alphaDrSurf[7]*fSkin[11]+8.660254037844386*(alphaDrSurf[3]*fSkin[10]+alphaDrSurf[2]*fSkin[9]+alphaDrSurf[1]*fSkin[8])-5.0*(alphaDrSurf[6]*fSkin[7]+alphaDrSurf[5]*fSkin[6]+alphaDrSurf[4]*fSkin[5])+8.660254037844386*alphaDrSurf[0]*fSkin[4]-5.0*(alphaDrSurf[3]*fSkin[3]+alphaDrSurf[2]*fSkin[2]+alphaDrSurf[1]*fSkin[1]+alphaDrSurf[0]*fSkin[0])); 
   Ghat[1] = -0.01666666666666667*(25.98076211353316*(alphaDrSurf[10]*fSkin[23]+alphaDrSurf[11]*fSkin[22]+alphaDrSurf[8]*fSkin[21])-15.0*alphaDrSurf[10]*fSkin[20]+25.98076211353316*alphaDrSurf[9]*fSkin[19]-15.0*(alphaDrSurf[11]*fSkin[18]+alphaDrSurf[8]*fSkin[17]+alphaDrSurf[9]*fSkin[16])+25.98076211353316*(alphaDrSurf[6]*fSkin[15]+alphaDrSurf[7]*fSkin[14]+alphaDrSurf[3]*fSkin[13]+alphaDrSurf[2]*fSkin[12])-15.0*alphaDrSurf[6]*fSkin[11]+25.98076211353316*(alphaDrSurf[5]*fSkin[10]+alphaDrSurf[4]*fSkin[9]+alphaDrSurf[0]*fSkin[8])-15.0*(alphaDrSurf[7]*fSkin[7]+alphaDrSurf[3]*fSkin[6]+alphaDrSurf[2]*fSkin[5]+fSkin[3]*alphaDrSurf[5])+25.98076211353316*alphaDrSurf[1]*fSkin[4]-15.0*(fSkin[2]*alphaDrSurf[4]+alphaDrSurf[0]*fSkin[1]+fSkin[0]*alphaDrSurf[1])); 

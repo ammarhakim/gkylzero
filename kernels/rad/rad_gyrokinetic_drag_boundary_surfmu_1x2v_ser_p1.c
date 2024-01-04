@@ -1,9 +1,8 @@
 #include <gkyl_rad_gyrokinetic_kernels.h> 
-GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfmu_1x2v_ser_p1(const double *w, const double *dxv, const double *nI, const double *nuField, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfmu_1x2v_ser_p1(const double *w, const double *dxv, const double *nuField, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[3]:     cell-center coordinates. 
   // dxv[3]:   cell spacing. 
-  // nI:        ion density. 
   // nuField:       2/pi*v*nu(v) field dg representation (v''(v||,mu) in notes
   // fSkin/Edge:    Distribution function in cells 
   // out:           Incremented distribution function in cell 
@@ -14,12 +13,12 @@ GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfmu_1x2v_ser_p1(const double 
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = 0.5*(1.732050807568877*(nI[1]*nuField[5]+nI[0]*nuField[3])+nI[1]*nuField[1]+nI[0]*nuField[0]); 
-  alphaDrSurf[1] = 0.5*(1.732050807568877*(nI[0]*nuField[5]+nI[1]*nuField[3])+nI[0]*nuField[1]+nuField[0]*nI[1]); 
-  alphaDrSurf[2] = 0.5*(1.732050807568877*(nI[1]*nuField[7]+nI[0]*nuField[6])+nI[1]*nuField[4]+nI[0]*nuField[2]); 
-  alphaDrSurf[3] = 0.5*(1.732050807568877*(nI[0]*nuField[7]+nI[1]*nuField[6])+nI[0]*nuField[4]+nI[1]*nuField[2]); 
-  alphaDrSurf[4] = 0.03333333333333333*(25.98076211353316*nI[1]*nuField[11]+25.98076211353316*nI[0]*nuField[10]+15.0*nI[1]*nuField[9]+15.0*nI[0]*nuField[8]); 
-  alphaDrSurf[5] = 0.03333333333333333*(25.98076211353316*nI[0]*nuField[11]+25.98076211353316*nI[1]*nuField[10]+15.0*nI[0]*nuField[9]+15.0*nI[1]*nuField[8]); 
+  alphaDrSurf[0] = 0.5*(2.449489742783178*nuField[3]+1.414213562373095*nuField[0]); 
+  alphaDrSurf[1] = 0.5*(2.449489742783178*nuField[5]+1.414213562373095*nuField[1]); 
+  alphaDrSurf[2] = 0.5*(2.449489742783178*nuField[6]+1.414213562373095*nuField[2]); 
+  alphaDrSurf[3] = 0.5*(2.449489742783178*nuField[7]+1.414213562373095*nuField[4]); 
+  alphaDrSurf[4] = 0.1*(12.24744871391589*nuField[10]+7.071067811865476*nuField[8]); 
+  alphaDrSurf[5] = 0.1*(12.24744871391589*nuField[11]+7.071067811865476*nuField[9]); 
 
   Ghat[0] = -0.05*(12.24744871391589*(alphaDrSurf[5]*fEdge[11]+alphaDrSurf[4]*fEdge[10])-7.071067811865476*(alphaDrSurf[5]*fEdge[9]+alphaDrSurf[4]*fEdge[8])+12.24744871391589*(alphaDrSurf[3]*fEdge[7]+alphaDrSurf[2]*fEdge[6]+alphaDrSurf[1]*fEdge[5])-7.071067811865476*alphaDrSurf[3]*fEdge[4]+12.24744871391589*alphaDrSurf[0]*fEdge[3]-7.071067811865476*(alphaDrSurf[2]*fEdge[2]+alphaDrSurf[1]*fEdge[1]+alphaDrSurf[0]*fEdge[0])); 
   Ghat[1] = -0.01666666666666667*(36.74234614174767*(alphaDrSurf[4]*fEdge[11]+alphaDrSurf[5]*fEdge[10])-21.21320343559643*(alphaDrSurf[4]*fEdge[9]+alphaDrSurf[5]*fEdge[8])+36.74234614174767*(alphaDrSurf[2]*fEdge[7]+alphaDrSurf[3]*fEdge[6]+alphaDrSurf[0]*fEdge[5])-21.21320343559643*alphaDrSurf[2]*fEdge[4]+36.74234614174767*alphaDrSurf[1]*fEdge[3]-21.21320343559643*(fEdge[2]*alphaDrSurf[3]+alphaDrSurf[0]*fEdge[1]+fEdge[0]*alphaDrSurf[1])); 
@@ -43,12 +42,12 @@ GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfmu_1x2v_ser_p1(const double 
 
   } else { 
 
-  alphaDrSurf[0] = -0.5*(1.732050807568877*(nI[1]*nuField[5]+nI[0]*nuField[3])-1.0*(nI[1]*nuField[1]+nI[0]*nuField[0])); 
-  alphaDrSurf[1] = -0.5*(1.732050807568877*(nI[0]*nuField[5]+nI[1]*nuField[3])-1.0*(nI[0]*nuField[1]+nuField[0]*nI[1])); 
-  alphaDrSurf[2] = -0.5*(1.732050807568877*(nI[1]*nuField[7]+nI[0]*nuField[6])-1.0*(nI[1]*nuField[4]+nI[0]*nuField[2])); 
-  alphaDrSurf[3] = -0.5*(1.732050807568877*(nI[0]*nuField[7]+nI[1]*nuField[6])-1.0*(nI[0]*nuField[4]+nI[1]*nuField[2])); 
-  alphaDrSurf[4] = -0.03333333333333333*(25.98076211353316*nI[1]*nuField[11]+25.98076211353316*nI[0]*nuField[10]-15.0*nI[1]*nuField[9]-15.0*nI[0]*nuField[8]); 
-  alphaDrSurf[5] = -0.03333333333333333*(25.98076211353316*nI[0]*nuField[11]+25.98076211353316*nI[1]*nuField[10]-15.0*nI[0]*nuField[9]-15.0*nI[1]*nuField[8]); 
+  alphaDrSurf[0] = -0.5*(2.449489742783178*nuField[3]-1.414213562373095*nuField[0]); 
+  alphaDrSurf[1] = -0.5*(2.449489742783178*nuField[5]-1.414213562373095*nuField[1]); 
+  alphaDrSurf[2] = -0.5*(2.449489742783178*nuField[6]-1.414213562373095*nuField[2]); 
+  alphaDrSurf[3] = -0.5*(2.449489742783178*nuField[7]-1.414213562373095*nuField[4]); 
+  alphaDrSurf[4] = -0.1*(12.24744871391589*nuField[10]-7.071067811865476*nuField[8]); 
+  alphaDrSurf[5] = -0.1*(12.24744871391589*nuField[11]-7.071067811865476*nuField[9]); 
 
   Ghat[0] = -0.05*(12.24744871391589*(alphaDrSurf[5]*fSkin[11]+alphaDrSurf[4]*fSkin[10])-7.071067811865476*(alphaDrSurf[5]*fSkin[9]+alphaDrSurf[4]*fSkin[8])+12.24744871391589*(alphaDrSurf[3]*fSkin[7]+alphaDrSurf[2]*fSkin[6]+alphaDrSurf[1]*fSkin[5])-7.071067811865476*alphaDrSurf[3]*fSkin[4]+12.24744871391589*alphaDrSurf[0]*fSkin[3]-7.071067811865476*(alphaDrSurf[2]*fSkin[2]+alphaDrSurf[1]*fSkin[1]+alphaDrSurf[0]*fSkin[0])); 
   Ghat[1] = -0.01666666666666667*(36.74234614174767*(alphaDrSurf[4]*fSkin[11]+alphaDrSurf[5]*fSkin[10])-21.21320343559643*(alphaDrSurf[4]*fSkin[9]+alphaDrSurf[5]*fSkin[8])+36.74234614174767*(alphaDrSurf[2]*fSkin[7]+alphaDrSurf[3]*fSkin[6]+alphaDrSurf[0]*fSkin[5])-21.21320343559643*alphaDrSurf[2]*fSkin[4]+36.74234614174767*alphaDrSurf[1]*fSkin[3]-21.21320343559643*(fSkin[2]*alphaDrSurf[3]+alphaDrSurf[0]*fSkin[1]+fSkin[0]*alphaDrSurf[1])); 

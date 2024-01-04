@@ -1,11 +1,10 @@
 #include <gkyl_rad_gyrokinetic_kernels.h> 
 #include <gkyl_basis_gkhyb_1x1v_p1_surfx2_eval_quad.h> 
 #include <gkyl_basis_gkhyb_1x1v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double *nI, const double *nuField, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfvpar_1x1v_ser_p1(const double *w, const double *dxv, const double *nuField, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
 { 
   // w[2]:     cell-center coordinates. 
   // dxv[2]:   cell spacing. 
-  // nI:        ion density. 
   // nuField:       2/pi*v*nu(v) field dg representation (v'(v||,mu) in notes
   // fSkin/Edge:    Distribution function in cells 
   // out:           Incremented distribution function in cell 
@@ -56,8 +55,7 @@ GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfvpar_1x1v_ser_p1(const doubl
   out[4] += 1.58113883008419*Ghat[0]*rdv2; 
   out[5] += 1.58113883008419*Ghat[1]*rdv2; 
 
-  }
-  //  printf("w[1]=%e, rdv= %f, out: 0=%e, 1=%e, 2=%e, 3=%e, 4=%e, 5=%e\n",w[1], rdv2,out[0],out[1],out[2],out[3],out[4],out[5]);
+  } 
   return 0.;
 
 } 
