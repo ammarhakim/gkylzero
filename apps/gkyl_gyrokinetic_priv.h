@@ -102,14 +102,18 @@ struct gk_species_moment {
 };
 
 struct gk_rad_drag {  
-  // drag coefficients in vparallel and mu
-  struct gkyl_array *vnu; // vnu = 2/pi*|v|*nu(v)
-  struct gkyl_array *vsqnu; // vsqnu = 1/2*(m/B)^(3/2)*sqrt(mu)*|v|^2*nu(v)
-  struct gkyl_array *vnu_host; // host-side copy of vnu
-  struct gkyl_array *vsqnu_host; // host-side copy of vsqnu
-  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars; 
+  int num_cross_collisions; // number of species we cross-collide with
+  struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
+  int collide_with_idx[GKYL_MAX_SPECIES]; // index of species we collide with
 
-  struct gk_species_moment moms; // moments needed in radiation update (need number density)
+  // drag coefficients in vparallel and mu for each species being collided with
+  struct gkyl_array *vnu[GKYL_MAX_SPECIES]; // vnu = 2/pi*|v|*nu(v)
+  struct gkyl_array *vsqnu[GKYL_MAX_SPECIES]; // vsqnu = 1/2*(m/B)^(3/2)*sqrt(mu)*|v|^2*nu(v)
+  struct gkyl_array *vnu_host[GKYL_MAX_SPECIES]; // host-side copy of vnu
+  struct gkyl_array *vsqnu_host[GKYL_MAX_SPECIES]; // host-side copy of vsqnu
+  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[GKYL_MAX_SPECIES]; 
+
+  struct gk_species_moment moms[GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
 
   gkyl_dg_updater_collisions *drag_slvr; // radiation solver
 };

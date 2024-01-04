@@ -11,7 +11,8 @@
 
 gkyl_dg_calc_gk_rad_vars* gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  double charge, double mass, const struct gk_geometry *gk_geom) 
+  double charge, double mass, const struct gk_geometry *gk_geom, 
+  double a, double alpha, double beta, double gamma, double v0) 
 {
   gkyl_dg_calc_gk_rad_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_gk_rad_vars));
   up->phase_grid = *phase_grid;
@@ -30,6 +31,13 @@ gkyl_dg_calc_gk_rad_vars* gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_gr
   up->charge = charge;
   up->mass = mass;
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+
+  // Fitting parameters for a given collision type
+  up->a = a;
+  up->alpha = alpha;
+  up->beta = beta;
+  up->gamma = gamma;
+  up->v0 = v0;
 
   return up;
 }

@@ -24,12 +24,14 @@ typedef struct gkyl_dg_calc_gk_rad_vars gkyl_dg_calc_gk_rad_vars;
  * @param charge Species charge
  * @param mass Species mass
  * @param gk_geom Geometry struct
+ * @param a, alpha, beta, gamma, v0 Input fitting parameters for a given collision type
  * @return New updater pointer.
  */
 struct gkyl_dg_calc_gk_rad_vars* 
 gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  double charge, double mass, const struct gk_geometry *gk_geom);
+  double charge, double mass, const struct gk_geometry *gk_geom, 
+  double a, double alpha, double beta, double gamma, double v0);
 
 /**
  * Compute drag coefficients needed for radiation in gyrokinetic equations

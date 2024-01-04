@@ -72,6 +72,15 @@ struct gkyl_gyrokinetic_source {
 // Parameters for species radiation
 struct gkyl_gyrokinetic_radiation {
   enum gkyl_radiation_id radiation_id; // type of radiation
+
+  int num_cross_collisions; // number of species to cross-collide with
+  char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
+  // fitting parameters associated with cross-collisions
+  double a[GKYL_MAX_SPECIES];
+  double alpha[GKYL_MAX_SPECIES];
+  double beta[GKYL_MAX_SPECIES];
+  double gamma[GKYL_MAX_SPECIES];
+  double v0[GKYL_MAX_SPECIES];
 };
 
 // Parameters for gk species
