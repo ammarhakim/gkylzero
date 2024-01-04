@@ -9,8 +9,9 @@
 
 
 void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid, 
-  struct gkyl_basis pbasis, const struct gkyl_range *range, 
-  const struct gkyl_array* fpo_h, struct gkyl_array* fpo_drag_coeff)
+  struct gkyl_basis pbasis, const struct gkyl_range *range, const struct gkyl_range *conf_range,
+  const struct gkyl_array* gamma, const struct gkyl_array* fpo_h, 
+  const struct gkyl_array* fpo_dhdv_surf, struct gkyl_array* fpo_drag_coeff)
 {
   int pdim = pbasis.ndim;
   int vdim = 3;
@@ -18,17 +19,18 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid,
 
   int poly_order = pbasis.poly_order; 
  
-  fpo_drag_coeff_t drag_coeff_recovery[3];
-  fpo_drag_coeff_surf_t drag_coeff_recovery_surf[3];
+  fpo_drag_coeff_t drag_coeff_recovery_stencil[3][3];
  
   // Fetch kernels in each direction
   for (int d=0; d<vdim; ++d) {
-    drag_coeff_recovery[d] = choose_ser_fpo_drag_coeff_recovery_kern(d, cdim, poly_order);
-    drag_coeff_recovery_surf[d] = choose_ser_fpo_drag_coeff_recovery_surf_kern(d, cdim, poly_order);
+    for (int idx=0; idx<3; ++idx) {
+      drag_coeff_recovery_stencil[d][idx] = 
+       choose_ser_fpo_drag_coeff_recovery_kern(d, cdim, poly_order, idx);
+    }
   }
  
   // Indices in each direction
-  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM], conf_idxc[GKYL_MAX_DIM];
   int idx_edge[GKYL_MAX_DIM], idx_skin[GKYL_MAX_DIM];
   int edge;
  
@@ -37,44 +39,45 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid,
 
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(pdim, iter.idx, idxc);
+    gkyl_copy_int_arr(cdim, iter.idx, conf_idxc);
+
     long linc = gkyl_range_idx(range, idxc);
+    long conf_linc = gkyl_range_idx(conf_range, conf_idxc);
  
-    const double *fpo_h_c = gkyl_array_cfetch(fpo_h, linc);
-    double *fpo_drag_coeff_d = gkyl_array_fetch(fpo_drag_coeff, linc);
+    const double *fpo_dhdv_surf_c = gkyl_array_cfetch(fpo_dhdv_surf, linc);
+    double *fpo_drag_coeff_c = gkyl_array_fetch(fpo_drag_coeff, linc);
+
+    const double *gamma_c = gkyl_array_cfetch(gamma, conf_linc);
 
     // Iterate through velocity space directions
     for (int d=0; d<vdim; ++d) {
       int dir = d + cdim;
-      // Are we at a domain boundary?
-      if (idxc[dir] == range->lower[dir] || idxc[dir] == range->upper[dir]) {
-        gkyl_copy_int_arr(pdim, iter.idx, idx_edge);
-        gkyl_copy_int_arr(pdim, iter.idx, idx_skin);
-        edge = (idxc[dir] == range->lower[dir]) ? -1 : 1;
-        idx_skin[dir] = idx_edge[dir] - edge;
-        
-        long lin_skin = gkyl_range_idx(range, idx_skin);
-        long lin_edge = gkyl_range_idx(range, idx_edge);
 
-        const double *fpo_h_skin = gkyl_array_cfetch(fpo_h, lin_skin);
-        const double *fpo_h_edge = gkyl_array_cfetch(fpo_h, lin_edge);
+      // Always a 1D, 3-cell stencil.
+      const long sz_dim = 3;
+      long offsets[sz_dim] = {0};
+      int update_dir[] = {dir};
 
-        drag_coeff_recovery_surf[d](edge, grid->dx, fpo_h_skin, fpo_h_edge, fpo_drag_coeff_d);
-      } 
-      else {
-        // Volume update
-        gkyl_copy_int_arr(pdim, iter.idx, idxl);
-        gkyl_copy_int_arr(pdim, iter.idx, idxr);
-  
-        idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
-  
-        long linl = gkyl_range_idx(range, idxl);
-        long linr = gkyl_range_idx(range, idxr);
-  
-        const double *fpo_h_l = gkyl_array_cfetch(fpo_h, linl);
-        const double *fpo_h_r = gkyl_array_cfetch(fpo_h, linr);
+      bool is_edge_upper[1], is_edge_lower[1];
+      is_edge_lower[0] = idxc[dir] == range->lower[dir]; 
+      is_edge_upper[0] = idxc[dir] == range->upper[dir];
 
-        drag_coeff_recovery[d](grid->dx, fpo_h_l, fpo_h_c, fpo_h_r, fpo_drag_coeff_d);
+      // Create offsets from center cell to stencil and index into kernel list.
+      create_offsets(1, is_edge_lower, is_edge_upper, update_dir, range, offsets);
+      int keri = idx_to_inloup_ker(1, idxc, update_dir, range->upper);
+
+      const double* fpo_h_stencil[sz_dim];
+      int idx[sz_dim][GKYL_MAX_DIM];
+      int in_grid = 1;
+      for (int i=0; i<sz_dim; ++i) {
+        gkyl_range_inv_idx(range, linc+offsets[i], idx[i]);
+        if (!(idx[i][dir] < range->lower[dir] || idx[i][dir] > range->upper[dir])) {
+          fpo_h_stencil[i] = gkyl_array_cfetch(fpo_h, linc+offsets[i]);
+        }
       }
+
+      drag_coeff_recovery_stencil[d][keri](grid->dx, gamma_c[0], fpo_h_stencil, 
+        fpo_dhdv_surf_c, fpo_drag_coeff_c);
     }
-   }
+  }
 }
