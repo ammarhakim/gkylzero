@@ -210,9 +210,9 @@ fi
 : "${SUPERLU_INC=$PREFIX/superlu/include}"
 if [ "$OSTYPE" = "linux-gnu"* ]
 then
-    : "${SUPERLU_LIB=$PREFIX/superlu/lib64/libsuperlu.a;}"
+    : "${SUPERLU_LIB=$PREFIX/superlu/lib64/libsuperlu.a}"
 else
-    : "${SUPERLU_LIB=$PREFIX/superlu/lib/libsuperlu.a;}"
+    : "${SUPERLU_LIB=$PREFIX/superlu/lib/libsuperlu.a}"
 fi
 
 # Write out config.mak

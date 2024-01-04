@@ -184,6 +184,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct vm_species[ns])) : 0;
+  for (int i=0; i<ns; ++i)
+    app->species[i] = (struct vm_species) { };
 
   // set info for each species: this needs to be done here as we need
   // to access species name from vm_species_init
