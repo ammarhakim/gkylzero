@@ -272,6 +272,35 @@ void test_mapc2p_2(void)
   TEST_CHECK( xp[1].x[2] == r*cos(theta) );
 }
 
+
+static inline double sq(double x) { return x * x; }
+
+static inline struct gkyl_dn2
+RpsiZ_ellip(const struct gkyl_dn2 psiZ[2])
+{
+  // psi*sin(Z)
+  return gdn2_mul(psiZ[0], gdn2_sin(psiZ[1]));
+}
+
+/* static inline struct gkyl_dn2 */
+/* dRdZ_ellip(const struct gkyl_dn2 psiZ[2]) */
+/* { */
+/*   struct gkyl_dn2 RpsiZ = RpsiZ_ellip(psiZ); */
+/*   double dRdZ = RpsiZ.x[2]; */
+/* } */
+
+void
+test_psi_mapping(void)
+{
+  double pz[2] = { 1.0, 2.0 };
+  struct gkyl_dn2 psiZ[2] = { gdn2_new10(pz[0]), gdn2_new01(pz[1]) };
+  struct gkyl_dn2 RpsiZ = RpsiZ_ellip(psiZ);
+
+  TEST_CHECK( RpsiZ.x[0] == pz[0]*sin(pz[1]) );
+  TEST_CHECK( RpsiZ.x[1] == sin(pz[1]) ); // dR/dpsi
+  TEST_CHECK( RpsiZ.x[2] == pz[0]*cos(pz[1]) ); // dR/dZ
+}
+
 TEST_LIST = {
   { "test_basic", test_basic },
   { "test_basic2", test_basic2 },
@@ -279,5 +308,6 @@ TEST_LIST = {
   { "test_inv_mapc2p", test_inv_mapc2p },
   { "test_mapc2p", test_mapc2p },
   { "test_mapc2p_2", test_mapc2p_2 },
+  { "test_psi_mapping", test_psi_mapping  },
   { NULL, NULL },  
 };

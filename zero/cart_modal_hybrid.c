@@ -3,7 +3,7 @@
 #include <gkyl_util.h>
 #include <gkyl_alloc.h>
 
-#include "cart_modal_hybrid_priv.h"
+#include <gkyl_cart_modal_hybrid_priv.h>
 
 void
 gkyl_cart_modal_hybrid(struct gkyl_basis *basis, int cdim, int vdim)

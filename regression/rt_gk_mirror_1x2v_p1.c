@@ -90,6 +90,7 @@ struct gk_mirror_ctx {
     int poly_order;
     double finalTime;
     int numFrames;
+    double psi_in;
 };
 
 double 
@@ -126,46 +127,51 @@ Bfield_psiZ(double psiIn, double ZIn, void *ctx, double *BRad, double *BZ, doubl
     *Bmag = sqrt(pow(*BRad, 2) + pow(*BZ, 2));
 }
 
+double integrand_z_psiZ(double ZIn, void *ctx){
+    struct gk_mirror_ctx *app = ctx;
+    double psi = app->psi_in;
+    double BRad, BZ, Bmag;
+    Bfield_psiZ(psi, ZIn, ctx, &BRad, &BZ, &Bmag);
+    return Bmag/BZ;
+}
+
 double 
 z_psiZ(double psiIn, double ZIn, void *ctx) {
     struct gk_mirror_ctx *app = ctx;
+    app->psi_in = psiIn;
     double eps = 0.0;
-    double integrand(double ZIn, void *ctx_in) { // Error function difinition not allowed here
-        double BRad = 0.0;
-        double BZ = 0.0;
-        double Bmag = 0.0;
-        Bfield_psiZ(psiIn, ZIn, ctx_in, &BRad, &BZ, &Bmag);
-        return Bmag/BZ;
-    };
     struct gkyl_qr_res integral;
     if (eps <= ZIn) {
         integral = gkyl_dbl_exp(integrand_z_psiZ, ctx, eps, ZIn, 7, 1e-14);
     } else {
-        integral = -gkyl_dbl_exp(integrand_z_psiZ, ctx, ZIn, eps, 7, 1e-14);
+        integral = gkyl_dbl_exp(integrand_z_psiZ, ctx, ZIn, eps, 7, 1e-14);
+        integral.res = -integral.res;
     }
     return integral.res;
 }
 
 // Invert z(Z) via root-finding.
+double
+root_Z_psiz(double Z, void *ctx){
+    struct gk_mirror_ctx *app = ctx;
+    return Z - z_psiZ(app->psi_in, Z, ctx);
+}
+
 double 
 Z_psiz(double psiIn, double zIn, void *ctx) {
-    double lossF(double Z, void *ctx_in) { // error function deffinition is not allowed here
-        // Function we will find the roots of. The root corresponds to
-        // the value of Z that satisfies our coordinate transformation
-        return zIn - z_psiZ(psiIn, Z, ctx_in);
-    }
     struct gk_mirror_ctx *app = ctx;
     double macL = app->Zmax - app->Zmin; // These are globals. Where do they come from?
     double eps = macL / app->numCellLineLength; // Interestingly using a smaller eps yields larger errors in some geo quantities.
+    app->psi_in = psiIn;
     struct gkyl_qr_res Zout;
     if (zIn <= 0.0) {
-        double fl = lossF(-eps, ctx);
-        double fr = lossF(app->Zmax + eps, ctx);
-        Zout = gkyl_ridders(lossF, ctx, -eps, app->Zmax + eps, fl, fr, 1000, 1e-14);
+        double fl = root_Z_psiz(-eps, ctx);
+        double fr = root_Z_psiz(app->Zmax + eps, ctx);
+        Zout = gkyl_ridders(root_Z_psiz, ctx, -eps, app->Zmax + eps, fl, fr, 1000, 1e-14);
     } else {
-        double fl = lossF(app->Zmin - eps, ctx);
-        double fr = lossF(eps, ctx);
-        Zout = gkyl_ridders(lossF, ctx, app->Zmin - eps, eps, fl, fr, 1000, 1e-14);
+        double fl = root_Z_psiz(app->Zmin - eps, ctx);
+        double fr = root_Z_psiz(eps, ctx);
+        Zout = gkyl_ridders(root_Z_psiz, ctx, app->Zmin - eps, eps, fl, fr, 1000, 1e-14);
     }
     return Zout.res;
 }
@@ -646,12 +652,12 @@ main(int argc, char **argv)
     // field
     struct gkyl_gyrokinetic_field field = {
         .kperp2 = ctx.kperp * ctx.kperp,
-        .bmag_fac = ctx.B0, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
+        .bmag_fac = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
         .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
         .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, // Not sure
                         .up_type = {GKYL_POISSON_DIRICHLET}, 
                         .lo_value = {0.0}, .up_value = {0.0}}, 
-        .evolve = false,
+        // .evolve = false,
     };
 
     // GK app
@@ -664,6 +670,8 @@ main(int argc, char **argv)
         .cells = { ctx.numCellLineLength },
         .poly_order = ctx.poly_order,
         .basis_type = app_args.basis_type,
+
+        //There should be a world in here
 
         .mapc2p = mapc2p, // mapping of computational to physical space
         .c2p_ctx = &ctx,
