@@ -115,6 +115,10 @@ struct gk_rad_drag {
 
   struct gk_species_moment moms[GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
 
+  struct gkyl_array *nvnu_sum; // total vparallel radiation drag including density scaling
+  struct gkyl_array *nvsqnu_sum; // total mu radiation drag including density scaling
+  struct gkyl_array *nvnu_sum_host; // host-side copy of total vparallel radiation drag including density scaling
+  struct gkyl_array *nvsqnu_sum_host; // host-side copy of total mu radiation drag including density scaling
   gkyl_dg_updater_collisions *drag_slvr; // radiation solver
 };
 
@@ -428,6 +432,18 @@ void gk_species_moment_release(const struct gkyl_gyrokinetic_app *app,
  */
 void gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   struct gk_rad_drag *rad);
+
+/**
+ * Compute necessary moments for radiation drag object
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param rad Species radiation drag object
+ * @param fin Input distribution functions (size num_species)
+ */
+void gk_species_radiation_moms(gkyl_gyrokinetic_app *app,
+  const struct gk_species *species, struct gk_rad_drag *rad, 
+  const struct gkyl_array *fin[]);
 
 /**
  * Compute RHS from radiation drag object.

@@ -46,33 +46,44 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");
   }
 
+  // Total vparallel and mu radiation drag including density scaling
+  rad->nvnu_sum = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  rad->nvsqnu_sum = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  rad->nvnu_sum_host = rad->nvnu_sum;
+  rad->nvsqnu_sum_host = rad->nvsqnu_sum;
+  if (app->use_gpu) {
+    rad->nvnu_sum_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+    rad->nvsqnu_sum_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+  }
+
   // Radiation updater
-  struct gkyl_dg_rad_gyrokinetic_drag_auxfields drag_inp = { .nI = rad->moms[0].marr, 
-    .vnu = rad->vnu[0], .vsqnu = rad->vsqnu[0] };
+  struct gkyl_dg_rad_gyrokinetic_drag_auxfields drag_inp = { .nvnu_sum = rad->nvnu_sum, .nvsqnu_sum = rad->nvsqnu_sum };
   rad->drag_slvr = gkyl_dg_updater_rad_gyrokinetic_new(&s->grid, 
-    &app->confBasis, &app->basis, &app->local, &s->local, &drag_inp, app->use_gpu);
+    &app->confBasis, &app->basis, &s->local, &drag_inp, app->use_gpu);
 }
 
-// // computes density for computation of total radiation drag
-// void
-// gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-//   struct gk_rad_drag *rad, const struct gkyl_array *fin)
-// {
-//   gkyl_array_clear(rad->nvnu_sum, 0.0);
-//   gkyl_array_clear(rad->nvsqnu_sum, 0.0);
-//   for (int i=0; i<rad->num_cross_collisions; ++i) {
-//     // compute needed moments
-//     gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[collide_with_idx[i]]);
+// computes density for computation of total radiation drag
+void
+gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  struct gk_rad_drag *rad, const struct gkyl_array *fin[])
+{
+  gkyl_array_clear(rad->nvnu_sum, 0.0);
+  gkyl_array_clear(rad->nvsqnu_sum, 0.0);
+  for (int i=0; i<rad->num_cross_collisions; ++i) {
+    // compute needed moments
+    gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
 
-//     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rad->nvnu[i], rad->moms.marr, rad->vnu[i],
-//       &app->local, &species->local);
-//     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rad->nvsqnu[i], rad->moms.marr, rad->vsqnu[i],
-//       &app->local, &species->local);
+    // scale drag coefficients by density
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rad->vnu[i], rad->moms[i].marr, rad->vnu[i],
+      &app->local, &species->local);
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rad->vsqnu[i], rad->moms[i].marr, rad->vsqnu[i],
+      &app->local, &species->local);
 
-//     gkyl_array_accumulate(rad->nvnu_sum, 1.0, rad->nvnu[i]);
-//     gkyl_array_accumulate(rad->nvsqnu_sum, 1.0, rad->nvsqnu[i]);
-//   }
-// }
+    // accumulate total drag coefficient
+    gkyl_array_accumulate(rad->nvnu_sum, 1.0, rad->vnu[i]);
+    gkyl_array_accumulate(rad->nvsqnu_sum, 1.0, rad->vsqnu[i]);
+  }
+}
 
 // updates the collision terms in the rhs
 void
@@ -102,5 +113,8 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
 
     gk_species_moment_release(app, &rad->moms[i]);
   }
+
+  gkyl_array_release(rad->nvnu_sum);
+  gkyl_array_release(rad->nvsqnu_sum);
   gkyl_dg_updater_rad_gyrokinetic_release(rad->drag_slvr);
  }

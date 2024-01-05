@@ -24,25 +24,21 @@ gkyl_rad_gyrokinetic_drag_free(const struct gkyl_ref_count* ref)
 void
 gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_drag_auxfields auxin)
 {
-
-  // TO DO:
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.nI) && gkyl_array_is_cu_dev(auxin.vnu) &&
-      gkyl_array_is_cu_dev(auxin.vsqnu)) {
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
     gkyl_rad_gyrokinetic_drag_set_auxfields_cu(eqn->on_dev, auxin);
     return;
  }
 #endif
 
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
-  rad_gyrokinetic_drag->auxfields.vnu = auxin.vnu;
-  rad_gyrokinetic_drag->auxfields.vsqnu = auxin.vsqnu;
-  rad_gyrokinetic_drag->auxfields.nI = auxin.nI;
+  rad_gyrokinetic_drag->auxfields.nvnu_sum = auxin.nvnu_sum;
+  rad_gyrokinetic_drag->auxfields.nvsqnu_sum = auxin.nvsqnu_sum;
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, bool use_gpu)
+gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis, 
+  const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)    
@@ -93,11 +89,8 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis, const stru
   for (int i=0; i<vdim; ++i) assert(rad_gyrokinetic_drag->surf[i]);
   for (int i=0; i<vdim; ++i) assert(rad_gyrokinetic_drag->boundary_surf[i]);
 
-  rad_gyrokinetic_drag->auxfields.vnu = 0;
-  rad_gyrokinetic_drag->auxfields.vsqnu = 0;
-  rad_gyrokinetic_drag->auxfields.nI = 0;
-
-  rad_gyrokinetic_drag->conf_range = *conf_range;
+  rad_gyrokinetic_drag->auxfields.nvnu_sum = 0;
+  rad_gyrokinetic_drag->auxfields.nvsqnu_sum = 0;
   rad_gyrokinetic_drag->phase_range = *phase_range;
 
   rad_gyrokinetic_drag->eqn.flags = 0;
@@ -111,8 +104,8 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis, const stru
 
 #ifndef GKYL_HAVE_CUDA
 struct gkyl_dg_eqn*
-gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis, const struct gkyl_basis* phase_basis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range)
+gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis, 
+  const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range)
 {
   assert(false);
   return 0;

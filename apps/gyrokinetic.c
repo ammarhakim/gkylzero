@@ -164,19 +164,31 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
-  // allocated in the previous step
-  for (int i=0; i<ns; ++i)
+  // allocated in gk_species_init
+  for (int i=0; i<ns; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
       && app->species[i].lbo.num_cross_collisions) {
       gk_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
     }
+  }
+
+  // initialize each species radiation terms: this has to be done here
+  // as need pointers to colliding species' objects
+  // allocated in gk_species_init
+  for (int i=0; i<ns; ++i) {
+    if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
+      gk_species_radiation_init(app, &app->species[i], &app->species[i].rad);
+    }
+  }
 
   // initialize each species source terms: this has to be done here
   // as they may initialize a bflux updater for their source species
-  for (int i=0; i<ns; ++i)
-    if (app->species[i].source_id)
+  for (int i=0; i<ns; ++i) {
+    if (app->species[i].source_id) {
       gk_species_source_init(app, &app->species[i], &app->species[i].src);
-  
+    }
+  }
+
   // initialize stat object
   app->stat = (struct gkyl_gyrokinetic_stat) {
     .use_gpu = app->use_gpu,
@@ -316,6 +328,8 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
         gkyl_gyrokinetic_app_write_source_species(app, i, tm, frame);
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS)
       gkyl_gyrokinetic_app_write_coll_mom(app, i, tm, frame);
+    if (app->species[i].radiation_id == GKYL_GK_RADIATION)
+      gkyl_gyrokinetic_app_write_rad_drag(app, i, tm, frame);
   }
 
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
@@ -425,6 +439,7 @@ gkyl_gyrokinetic_app_write_coll_mom(gkyl_gyrokinetic_app* app, int sidx, double 
   snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, s->info.name, frame);
 
   // Compute primitive moments
+  const struct gkyl_array *fin[app->num_species];
   gk_species_lbo_moms(app, s, &s->lbo, s->f);
   if (s->lbo.num_cross_collisions)
     gk_species_lbo_moms(app, s, &s->lbo, s->f);
@@ -439,6 +454,38 @@ gkyl_gyrokinetic_app_write_coll_mom(gkyl_gyrokinetic_app* app, int sidx, double 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->lbo.nu_sum_host, fileNm);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->lbo.prim_moms_host, fileNm_prim);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->lbo.nu_prim_moms_host, fileNm_nu_prim);
+}
+
+void
+gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *s = &app->species[sidx];
+
+  // Construct the file handles for vparallel and mu drag
+  const char *fmt_vnu = "%s-%s_vnu_%d.gkyl";
+  int sz_vnu = gkyl_calc_strlen(fmt_vnu, app->name, s->info.name, frame);
+  char fileNm_vnu[sz_vnu+1]; // ensures no buffer overflow
+  snprintf(fileNm_vnu, sizeof fileNm_vnu, fmt_vnu, app->name, s->info.name, frame);
+
+  const char *fmt_vsqnu = "%s-%s_vsqnu_%d.gkyl";
+  int sz_vsqnu = gkyl_calc_strlen(fmt_vsqnu, app->name, s->info.name, frame);
+  char fileNm_vsqnu[sz_vsqnu+1]; // ensures no buffer overflow
+  snprintf(fileNm_vsqnu, sizeof fileNm_vsqnu, fmt_vsqnu, app->name, s->info.name, frame);
+
+  // Compute radiation drag coefficients
+  const struct gkyl_array *fin[app->num_species];
+  for (int i=0; i<app->num_species; ++i) 
+    fin[i] = app->species[i].f;
+  gk_species_radiation_moms(app, s, &s->rad, fin);
+
+  // copy data from device to host before writing it out
+  if (app->use_gpu) {
+    gkyl_array_copy(s->rad.nvnu_sum_host, s->rad.nvnu_sum);
+    gkyl_array_copy(s->rad.nvsqnu_sum_host, s->rad.nvsqnu_sum);
+  }
+
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvnu_sum_host, fileNm_vnu);
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvsqnu_sum_host, fileNm_vsqnu);
 }
 
 void
@@ -584,6 +631,13 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
       && app->species[i].lbo.num_cross_collisions) {
       gk_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
+    }
+  }
+
+  // compute necessary drag coefficients for radiation operator
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
+      gk_species_radiation_moms(app, &app->species[i], &app->species[i].rad, fin);
     }
   }
 

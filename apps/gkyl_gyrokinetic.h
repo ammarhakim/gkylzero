@@ -132,7 +132,7 @@ struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   double bmag_fac; 
   double kperp2; // kperp^2 parameter for 1D field equations
-  
+
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
 
@@ -345,6 +345,16 @@ void gkyl_gyrokinetic_app_write_source_species(gkyl_gyrokinetic_app* app, int si
  * @param frame Frame number
  */
 void gkyl_gyrokinetic_app_write_coll_mom(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
+/**
+ * Write radiation drag coefficients for species to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
  * Write diagnostic moments for species to file.
