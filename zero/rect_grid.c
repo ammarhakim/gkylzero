@@ -5,7 +5,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_grid_priv.h>
-
+#include <gkyl_util.h>
 void
 gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
   const double *lower, const double *upper, const int *cells)
@@ -25,134 +25,90 @@ gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
 }
 
 GKYL_CU_DH
-void gkyl_rect_grid_find_cell(struct gkyl_rect_grid *grid, const double *point, bool pickLower, const int **knownIdx, int *cellIdx){
+void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point, bool pick_lower, const int *known_index, int *cell_index){
   int nDim = grid->ndim;
-  int searchNum = 0;
-  int searchDim[GKYL_MAX_DIM], *idxOut;
-  int *dimTrans[GKYL_MAX_DIM];
-  int plusminus[2] = {-1,1};
-  bool allLessEq = true;
-  int iStart[GKYL_MAX_DIM], iEnd[GKYL_MAX_DIM], iMid[GKYL_MAX_DIM], iNew[GKYL_MAX_DIM];
-  int *cells, lowHighCellIdx[2*GKYL_MAX_DIM];
-  double lowerInDir[nDim], upperInDir[nDim];
+  int search_num = 0;
+  int search_dim[GKYL_MAX_DIM];
+  int *dim_trans[GKYL_MAX_DIM];
   double low, high;
   
-  for(int d=0; d<nDim; d++){
-    dimTrans[d] = (int*)malloc(1*sizeof(int));
-    if(knownIdx[d]==NULL){
-      searchDim[searchNum] = d;
-      *dimTrans[d] = searchNum;
-      searchNum = searchNum + 1;
-    }else{
-      dimTrans[d] = NULL;      
-      cellIdx[d] = *knownIdx[d];
-      low = grid->lower[d]+(*knownIdx[d]-1)*grid->dx[d];
-      high = grid->lower[d]+(*knownIdx[d])*grid->dx[d];
+  for (int d=0; d<nDim; d++) {
+    dim_trans[d] = (int*)malloc(1*sizeof(int));
+    if (known_index[d]<0) {
+      search_dim[search_num] = d;
+      *dim_trans[d] = search_num;
+      search_num = search_num + 1;
+    } else {
+      dim_trans[d] = NULL;      
+      cell_index[d] = known_index[d];
+      low = grid->lower[d]+(known_index[d]-1)*grid->dx[d];
+      high = grid->lower[d]+(known_index[d])*grid->dx[d];
       assert(low<point[d]&&high>point[d]);
     }
   }
 
-  cells = grid -> cells;
-  for(int d=0; d<searchNum; d++){
-    iStart[d] = 1;
-    iEnd[d] = cells[searchDim[d]];
-    iMid[d] = 0;
-    iNew[d] = 0;
+  int start_index[GKYL_MAX_DIM], end_index[GKYL_MAX_DIM], mid_index[GKYL_MAX_DIM], new_index[GKYL_MAX_DIM];
+  const int *cells = grid -> cells;
+  for (int d=0; d<search_num; d++) {
+    start_index[d] = 1;
+    end_index[d] = cells[search_dim[d]];
+    mid_index[d] = 0;
+    new_index[d] = 0;
   }
+
+  int plusminus[2] = {-1,1}, low_high_index[2*GKYL_MAX_DIM];
+  bool all_less_eq = true;
+  double lower_dir[nDim], upper_dir[nDim];
   /* Below we use a binary search. That is, if the i-th coordinate of the point in
    * question is below(above) the ith-coordinate of the current mid-point, we search
    * the lower(upper) half along that direction in the next iteration.
    */
-  while (allLessEq){
-    for(int d=0; d<searchNum; d++){
-      iMid[d] = (iStart[d]+iEnd[d])/2;//Integer division intentional
-    }
+  while (all_less_eq) {
+    for (int d=0; d<search_num; d++)
+      mid_index[d] = (start_index[d]+end_index[d])/2;  // Integer division intentional
 
-    if(isInCell(grid, point, iMid, dimTrans, knownIdx)){
-      //Check if neighboring cells also contain this point.
-      for(int k=0; k<searchNum; k++){
-	iNew[k] = iMid[k];
-	lowHighCellIdx[searchDim[k]] = iMid[k];
-	lowHighCellIdx[nDim+searchDim[k]] = iMid[k];
+    if (is_in_cell(grid, point, mid_index, dim_trans, known_index)) {
+      // Check if neighboring cells also contain this point.
+      for (int k=0; k<search_num; k++){
+	new_index[k] = mid_index[k];
+	low_high_index[search_dim[k]] = mid_index[k];
+	low_high_index[nDim+search_dim[k]] = mid_index[k];
       }
-      for(int i=0; i<searchNum; i++){	
-	for(int j=0; j<2; j++){
-	  iNew[i] = fmax(fmin(iMid[i] + plusminus[j],cells[i]),0);
-	  if(isInCell(grid, point, iNew, dimTrans, knownIdx)){
-	    lowHighCellIdx[j*nDim+searchDim[i]] = iNew[i];	    
-	  }
+      for (int i=0; i<search_num; i++){	
+	for (int j=0; j<2; j++){
+	  new_index[i] = GKYL_MAX(GKYL_MIN(mid_index[i] + plusminus[j],cells[i]),0);
+	  if (is_in_cell(grid, point, new_index, dim_trans, known_index))
+	    low_high_index[j*nDim+search_dim[i]] = new_index[i];	    	  
 	}
-	iNew[i] = iMid[i];
+	new_index[i] = mid_index[i];
       }
-      if(pickLower){
-	for(int d=0; d<searchNum; d++){
-	  cellIdx[searchDim[d]] = lowHighCellIdx[searchDim[d]];
+      if (pick_lower) {
+	for (int d=0; d<search_num; d++) {
+	  cell_index[search_dim[d]] = low_high_index[search_dim[d]];
 	}
-      }else{
-	for(int d=0; d<searchNum; d++){
-	  cellIdx[searchDim[d]] = lowHighCellIdx[nDim+searchDim[d]];
+      } else {
+	for (int d=0; d<search_num; d++) {
+	  cell_index[search_dim[d]] = low_high_index[nDim+search_dim[d]];
 	}
       }
       break;
-    }else{
-      InDir(grid, iMid, dimTrans, knownIdx, lowerInDir, upperInDir);
-      for(int d=0; d<searchNum; d++){
-	if(point[searchDim[d]] < lowerInDir[searchDim[d]]){
-	  iEnd[d] = iMid[d]-1;
-	}else if(point[searchDim[d]] > upperInDir[searchDim[d]]){
-	  iStart[d] = iMid[d]+1;
+    } else {
+      in_dir(grid, mid_index, dim_trans, known_index, lower_dir, upper_dir);
+      for (int d=0; d<search_num; d++) {
+	if (point[search_dim[d]] < lower_dir[search_dim[d]]) {
+	  end_index[d] = mid_index[d]-1;
+	} else if(point[search_dim[d]] > upper_dir[search_dim[d]]) {
+	  start_index[d] = mid_index[d]+1;
 	}
       }
     }
 
-    for(int d=0; d<searchNum; d++){
-      if(iStart[d]>iEnd[d]){
-	allLessEq = false;
+    for (int d=0; d<search_num; d++) {
+      if (start_index[d]>end_index[d]) {
+	all_less_eq = false;
 	break;
       }
     }
-  }
-
-}
-
-GKYL_CU_DH
-bool isInCell(const struct gkyl_rect_grid *grid, const double *pIn, int *iIn, int *dimTrans[1], const int **knownIdx){
-  double eps = 1.0e-14;
-  int checkIdx;
-  bool inCell = true;
-  int nDim;
-  nDim = grid -> ndim;
-  double lowerInDir[nDim], upperInDir[nDim];
-
-  for(int d=0;d<nDim; d++){
-    lowerInDir[d]=0;
-    upperInDir[d]=0;
-  }
-  InDir(grid, iIn, dimTrans, knownIdx, lowerInDir, upperInDir);
-  for(int d=0; d<nDim; d++){
-    if(lowerInDir[d]-eps>pIn[d] || upperInDir[d]+eps<pIn[d]){
-      inCell = false;
-      break;
-    }
-  }
-  return inCell;
-}
-
-GKYL_CU_DH
-void InDir(const struct gkyl_rect_grid *grid, int *iIn, int *dimTrans[1], const int **knownIdx, double lowerInDir[], double upperInDir[]){
-  int nDim, checkIdx;
-  const double *dx, *lower;
-  nDim = grid -> ndim;
-  double testarr[nDim];
-  setbuf(stdout, NULL);
-  dx = grid -> dx;
-  lower = grid -> lower;
-  
-  for(int d=0; d<nDim; d++){
-    checkIdx = knownIdx[d]==NULL ? iIn[*dimTrans[d]] : *knownIdx[d];
-    lowerInDir[d] = lower[d]+(checkIdx-1)*dx[d];
-    testarr[d] = lower[d]+(checkIdx-1)*dx[d];
-    upperInDir[d] = lower[d]+(checkIdx)*dx[d];
   }
 }
 
