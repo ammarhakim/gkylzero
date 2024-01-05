@@ -156,6 +156,11 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *d
   Ghat_G_1_u_r[1] = 0.5*(G_1_cr[1]*max_speed_r+(G_1_rl[1]+G_1_cr[1])*avg_u_r)-0.5*G_1_rl[1]*max_speed_r; 
   Ghat_G_1_u_r[2] = 0.5*(G_1_cr[2]*max_speed_r+(G_1_rl[2]+G_1_cr[2])*avg_u_r)-0.5*G_1_rl[2]*max_speed_r; 
 
+  double max_v_par = fmax(fabs(wvpar + dvpar/2), fabs(wvpar - dvpar/2)); 
+  double cfl_l = max_v_par*max_b_l + max_speed_l; 
+  double cfl_r = max_v_par*max_b_r + max_speed_r; 
+  double cflFreq = fmax(cfl_l, cfl_r);
+
   out_F_0[0] += ((-0.7071067811865475*Ghat_F_0_vpar_r[0])+0.7071067811865475*Ghat_F_0_vpar_l[0]-0.7071067811865475*Ghat_F_0_u_r[0]+0.7071067811865475*Ghat_F_0_u_l[0])*dx1; 
   out_F_0[1] += -1.224744871391589*(Ghat_F_0_vpar_r[0]+Ghat_F_0_vpar_l[0]+Ghat_F_0_u_r[0]+Ghat_F_0_u_l[0])*dx1; 
   out_F_0[2] += ((-0.7071067811865475*Ghat_F_0_vpar_r[1])+0.7071067811865475*Ghat_F_0_vpar_l[1]-0.7071067811865475*Ghat_F_0_u_r[1]+0.7071067811865475*Ghat_F_0_u_l[1])*dx1; 
@@ -169,6 +174,6 @@ GKYL_CU_DH double vlasov_pkpm_surfx_1x1v_ser_p1(const double *w, const double *d
   out_G_1[4] += ((-0.7071067811865475*Ghat_G_1_vpar_r[2])+0.7071067811865475*Ghat_G_1_vpar_l[2]-0.7071067811865475*Ghat_G_1_u_r[2]+0.7071067811865475*Ghat_G_1_u_l[2])*dx1; 
   out_G_1[5] += -1.224744871391589*(Ghat_G_1_vpar_r[2]+Ghat_G_1_vpar_l[2]+Ghat_G_1_u_r[2]+Ghat_G_1_u_l[2])*dx1; 
 
-  return 0.;
+  return 1.5*dx1*cflFreq;
 
 } 

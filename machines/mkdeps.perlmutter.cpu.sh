@@ -1,3 +1,4 @@
 module unload darshan
 cd install-deps
-./mkdeps.sh --build-openblas=yes --build-superlu=yes --prefix=$HOME/gkylsoft/
+: "${PREFIX:=$HOME/gkylsoft}"
+./mkdeps.sh --build-openblas=yes --build-superlu=yes --prefix=$PREFIX

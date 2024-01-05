@@ -9,7 +9,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     .grid = &app->grid,
     .nfluids = app->num_species,
     // if there is a field, need to update electric field too, otherwise just updating fluid
-    .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
+    .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0,
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
     .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
     .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0,
@@ -40,7 +40,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   for (int n=0; n<app->num_species; ++n) {
     int meqn = app->species[n].num_equations;
     src->pr_rhs[n] = mkarr(false, meqn, app->local_ext.volume);
-    src->non_ideal_cflrate[n] = mkarr(false, 1, app->local_ext.volume); 
+    src->non_ideal_cflrate[n] = mkarr(false, 1, app->local_ext.volume);
   }
 
   int ghost[3] = { 1, 1, 1 };
@@ -49,7 +49,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   gkyl_create_ranges(&app->local, ghost, &src->non_ideal_local_ext, &src->non_ideal_local);
 
   // In Gradient-closure case, non-ideal variables are 10 heat flux tensor components
-  for (int n=0;  n<app->num_species; ++n) 
+  for (int n=0;  n<app->num_species; ++n)
     src->non_ideal_vars[n] = mkarr(false, 10, src->non_ideal_local_ext.volume);
 
   // check if gradient-closure is present
@@ -59,7 +59,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
         .grid = &app->grid,
         .k0 = app->species[i].k0,
       };
-      src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);      
+      src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(grad_closure_inp);
     }
   }
 }
@@ -75,7 +75,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
   const struct gkyl_array *pr_rhs_const[GKYL_MAX_SPECIES];
   const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES];
-  
+
   for (int i=0; i<app->num_species; ++i) {
     fluids[i] = app->species[i].f[sidx[nstrang]];
 
@@ -86,16 +86,16 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_grad_closure) {
       // non-ideal variables defined on an extended range with one additional "cell" in each direction
       // this additional cell accounts for the fact that non-ideal variables are stored at cell vertices
-      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], 
-        &src->non_ideal_local_ext, &app->local, 
-        app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]], 
+      gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i],
+        &src->non_ideal_local_ext, &app->local,
+        app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
         src->non_ideal_cflrate[i], src->non_ideal_vars[i], src->pr_rhs[i]);
     }
   }
-  
+
   if (app->field.proj_app_current)
     gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
-  
+
   if (app->field.proj_ext_em) {
 
     if (!app->field.was_ext_em_computed)
@@ -125,8 +125,8 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   }
 
   gkyl_moment_em_coupling_advance(src->slvr, tcurr, dt, &app->local,
-    fluids, app_accels, pr_rhs_const, 
-    app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
+    fluids, app_accels, pr_rhs_const,
+    app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em,
     nT_sources);
 
   for (int i=0; i<app->num_species; ++i)

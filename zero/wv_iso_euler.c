@@ -83,7 +83,8 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, 
+  double *waves, double *s)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   double vt = iso_euler->vt;
@@ -150,7 +151,8 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn,
 // Waves and speeds using Lax fluxes
 static double
 wave_lax(const struct gkyl_wv_eqn *eqn,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, 
+  double *waves, double *s)
 {
   const struct wv_iso_euler *iso_euler = container_of(eqn, struct wv_iso_euler, eqn);
   double vt = iso_euler->vt;
@@ -192,7 +194,8 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn,
 
 static double
 wave(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, 
+  double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
     return wave_roe(eqn, delta, ql, qr, waves, s);
@@ -239,7 +242,7 @@ gkyl_wv_iso_euler_new(double vt)
   iso_euler->vt = vt;
   iso_euler->eqn.waves_func = wave;
   iso_euler->eqn.qfluct_func = qfluct;
-  
+
   iso_euler->eqn.check_inv_func = check_inv;
   iso_euler->eqn.max_speed_func = max_speed;
   

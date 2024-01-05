@@ -833,7 +833,6 @@ static const gkyl_gyrokinetic_mom_kern_list ser_m3_perp_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
   { NULL, kernel_gyrokinetic_M3_perp_1x2v_ser_p1, kernel_gyrokinetic_M3_perp_1x2v_ser_p2 }, // 1
-  { NULL, kernel_gyrokinetic_M3_perp_1x2v_ser_p1, kernel_gyrokinetic_M3_perp_1x2v_ser_p2 }, // 1
   // 2x kernels
   { NULL, kernel_gyrokinetic_M3_perp_2x2v_ser_p1, kernel_gyrokinetic_M3_perp_2x2v_ser_p2 }, // 2
   // 3x kernels

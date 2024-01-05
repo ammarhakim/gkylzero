@@ -72,7 +72,7 @@ gkyl_cusolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
   prob->nprob = nprob;
   prob->mrow = mrow;
   prob->ncol = ncol;
-  prob->nrhs = GKYL_MAX(nprob,nrhs);
+  prob->nrhs = GKYL_MAX2(nprob,nrhs);
 
   prob->rhs = (double*) gkyl_malloc(mrow*prob->nrhs*sizeof(double));
   prob->rhs_cu = (double*) gkyl_cu_malloc(mrow*prob->nrhs*sizeof(double));

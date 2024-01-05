@@ -130,7 +130,8 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(
     &(struct gkyl_wv_euler_inp) {
       .gas_gamma = ctx.gas_gamma,
-      .rp_type = (scheme == GKYL_MOMENT_MP) ? WV_EULER_RP_LAX :  rp_type
+      .rp_type = (scheme == GKYL_MOMENT_MP) ? WV_EULER_RP_LAX :  rp_type, 
+      .use_gpu = false, 
     }
   );
 

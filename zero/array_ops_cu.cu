@@ -26,7 +26,7 @@ gkyl_get_array_range_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_rang
   int ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
   // CUDA Max block size in x is 2^31 - 1, Max block size in y is 2^16-1
   // Thus, x block size should be bigger to avoid max block size limits
-  dimBlock->y = GKYL_MIN(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
+  dimBlock->y = GKYL_MIN2(ncomp*ac1, GKYL_DEFAULT_NUM_THREADS);
   dimGrid->y = gkyl_int_div_up(ncomp*ac1, dimBlock->y);
   dimBlock->x = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ncomp*ac1);
   dimGrid->x = gkyl_int_div_up(range.volume, ac1*dimBlock->x);
@@ -657,7 +657,7 @@ gkyl_array_copy_range_to_range_cu(struct gkyl_array *out,
 {
   if (inp_range->volume > 0) {
     dim3 dimGrid, dimBlock;
-    gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *inp_range, out->ncomp);
+    gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *inp_range, inp->ncomp);
 
     gkyl_array_copy_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev,
       inp->on_dev, *out_range, *inp_range);

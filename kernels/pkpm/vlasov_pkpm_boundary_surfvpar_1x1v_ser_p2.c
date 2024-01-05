@@ -50,12 +50,19 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, con
   double G_1_div_b_Upwind[3] = {0.0};;
   double Ghat_G_1_div_b[3] = {0.0}; 
 
+  // get stable timestep of alpha_v = 1/rho (div(p_par b) - p_perp div(b)) - v_par bb : grad(u) 
+  // from the quadrature point evaluation needed to compute upwinded distribution functions 
+  double cflFreq = 0.0;
+  double alphaOrd = 0.0;
+
   if (edge == -1) { 
 
   alphaSurf[0] = (-1.0*bb_grad_u[0]*wvpar)-0.5*bb_grad_u[0]*dvpar+p_force[0]; 
   alphaSurf[1] = (-1.0*bb_grad_u[1]*wvpar)-0.5*bb_grad_u[1]*dvpar+p_force[1]; 
   alphaSurf[2] = (-1.0*bb_grad_u[2]*wvpar)-0.5*bb_grad_u[2]*dvpar+p_force[2]; 
 
+  alphaOrd = 0.6324555320336759*alphaSurf[2]-0.9486832980505137*alphaSurf[1]+0.7071067811865475*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.6324555320336759*alphaSurf[2]-0.9486832980505137*alphaSurf[1]+0.7071067811865475*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(F_0Skin); 
     G_1_UpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(G_1Skin); 
@@ -63,6 +70,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, con
     F_0_UpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(F_0Edge); 
     G_1_UpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(G_1Edge); 
   } 
+  alphaOrd = 0.7071067811865475*alphaSurf[0]-0.7905694150420947*alphaSurf[2];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.7071067811865475*alphaSurf[0]-0.7905694150420947*alphaSurf[2] > 0) { 
     F_0_UpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_r(F_0Skin); 
     G_1_UpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_r(G_1Skin); 
@@ -70,6 +79,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, con
     F_0_UpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(F_0Edge); 
     G_1_UpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(G_1Edge); 
   } 
+  alphaOrd = 0.6324555320336759*alphaSurf[2]+0.9486832980505137*alphaSurf[1]+0.7071067811865475*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.6324555320336759*alphaSurf[2]+0.9486832980505137*alphaSurf[1]+0.7071067811865475*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(F_0Skin); 
     G_1_UpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(G_1Skin); 
@@ -144,6 +155,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, con
   alphaSurf[1] = (-1.0*bb_grad_u[1]*wvpar)+0.5*bb_grad_u[1]*dvpar+p_force[1]; 
   alphaSurf[2] = (-1.0*bb_grad_u[2]*wvpar)+0.5*bb_grad_u[2]*dvpar+p_force[2]; 
 
+  alphaOrd = 0.6324555320336759*alphaSurf[2]-0.9486832980505137*alphaSurf[1]+0.7071067811865475*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.6324555320336759*alphaSurf[2]-0.9486832980505137*alphaSurf[1]+0.7071067811865475*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(F_0Edge); 
     G_1_UpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_r(G_1Edge); 
@@ -151,6 +164,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, con
     F_0_UpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(F_0Skin); 
     G_1_UpwindQuad[0] = ser_2x_p2_surfx2_eval_quad_node_0_l(G_1Skin); 
   } 
+  alphaOrd = 0.7071067811865475*alphaSurf[0]-0.7905694150420947*alphaSurf[2];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.7071067811865475*alphaSurf[0]-0.7905694150420947*alphaSurf[2] > 0) { 
     F_0_UpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_r(F_0Edge); 
     G_1_UpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_r(G_1Edge); 
@@ -158,6 +173,8 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, con
     F_0_UpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(F_0Skin); 
     G_1_UpwindQuad[1] = ser_2x_p2_surfx2_eval_quad_node_1_l(G_1Skin); 
   } 
+  alphaOrd = 0.6324555320336759*alphaSurf[2]+0.9486832980505137*alphaSurf[1]+0.7071067811865475*alphaSurf[0];
+  cflFreq = fmax(cflFreq, fabs(alphaOrd));
   if (0.6324555320336759*alphaSurf[2]+0.9486832980505137*alphaSurf[1]+0.7071067811865475*alphaSurf[0] > 0) { 
     F_0_UpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(F_0Edge); 
     G_1_UpwindQuad[2] = ser_2x_p2_surfx2_eval_quad_node_2_r(G_1Edge); 
@@ -228,6 +245,6 @@ GKYL_CU_DH double vlasov_pkpm_boundary_surfvpar_1x1v_ser_p2(const double *w, con
 
   } 
 
-  return 0.;
+  return 2.5*dv1par*cflFreq;
 
 } 
