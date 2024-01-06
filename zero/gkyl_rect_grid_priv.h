@@ -2,7 +2,7 @@
 
 #include <gkyl_rect_grid.h>
 
-/* Checks if given point is in given cell
+/* Find upper and lower boundaries of given cell
  * @params grid: grid struct which contains the cells
  * @params cell_in: given cell
  * @params dim_trans: The dimensions to check
