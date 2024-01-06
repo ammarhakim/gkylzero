@@ -55,8 +55,8 @@ eval_vnu(double charge, double mass,
   double a, double alpha, double beta, double gamma, double v0, 
   double vpar, double mu, double bmag) 
 {
-  double scaled_v0 = v0/sqrt(mass/(2.0*charge));
-  double c_const = 8.0*sqrt(M_PI)*pow(charge,5.0/2.0)/mass;
+  double scaled_v0 = v0/sqrt(mass/(2.0*fabs(charge)));
+  double c_const = 8.0*sqrt(M_PI)*pow(fabs(charge),5.0/2.0)/mass;
   double const_mult = a*(alpha+beta)/c_const;
   double vmag = sqrt(vpar*vpar+2.0*bmag*mu/mass);
   double nu = 0.0;
