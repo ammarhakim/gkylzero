@@ -166,9 +166,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   // as need pointers to colliding species' collision objects
   // allocated in gk_species_init
   for (int i=0; i<ns; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
-      && app->species[i].lbo.num_cross_collisions) {
-      gk_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
+    if (app->species[i].lbo.num_cross_collisions || app->species[i].bgk.num_cross_collisions) {
+      if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+        gk_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
+      }
+      else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+        gk_species_bgk_cross_init(app, &app->species[i], &app->species[i].bgk);
+      }
     }
   }
 
@@ -623,14 +627,21 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       gk_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      gk_species_bgk_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
+    }
   }
 
   // compute necessary moments for cross-species collisions
   // needs to be done after self-collisions moments, so separate loop over species
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
-      && app->species[i].lbo.num_cross_collisions) {
-      gk_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
+    if (app->species[i].lbo.num_cross_collisions || app->species[i].bgk.num_cross_collisions) {
+      if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+        gk_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
+      }
+      else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+        gk_species_bgk_cross_moms(app, &app->species[i], &app->species[i].bgk, fin[i]);
+      }
     }
   }
 

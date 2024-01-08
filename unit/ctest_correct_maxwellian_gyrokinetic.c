@@ -180,11 +180,24 @@ void test_1x1v(int poly_order, bool use_gpu)
   sprintf(fname_fM_ic, "ctest_correct_maxwellian_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
   gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_ic);
   // Create a Maxwellian with corrected moments
+  struct gkyl_correct_maxwellian_gyrokinetic_inp inp = {
+    .phase_grid = &grid,
+    .conf_grid = &confGrid,
+    .phase_basis = &basis,
+    .conf_basis = &confBasis,
+
+    .conf_local = &confLocal,
+    .conf_local_ext = &confLocal_ext,
+    .mass = mass, 
+    .gk_geom = gk_geom,
+    .max_iter = 50, 
+    .eps_err = 1.0e-14, 
+    .use_gpu = use_gpu
+  };
   printf("flag 0\n");
-  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confGrid, 
-    &confBasis, &basis, &confLocal, &confLocal_ext, mass, gk_geom, use_gpu);
+  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&inp);
   printf("flag 1\n");
-  gkyl_correct_maxwellian_gyrokinetic_advance(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local);
+  gkyl_correct_maxwellian_gyrokinetic_advance(corr_max, fM, moms_in, &confLocal, &local);
   printf("flag 2\n");
   gkyl_correct_maxwellian_gyrokinetic_release(corr_max);
   if (use_gpu) {
@@ -367,9 +380,22 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_grid_sub_array_write(&grid, &local, fM_ho, fname_fM_ic);
  
   // Create a Maxwellian with corrected moments
-  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&grid, &confGrid, 
-    &confBasis, &basis, &confLocal, &confLocal_ext, mass, gk_geom, use_gpu);
-  gkyl_correct_maxwellian_gyrokinetic_advance(corr_max, fM, moms_in, err_max, iter_max, &confLocal, &local);
+  struct gkyl_correct_maxwellian_gyrokinetic_inp inp = {
+    .phase_grid = &grid,
+    .conf_grid = &confGrid,
+    .phase_basis = &basis,
+    .conf_basis = &confBasis,
+
+    .conf_local = &confLocal,
+    .conf_local_ext = &confLocal_ext,
+    .mass = mass, 
+    .gk_geom = gk_geom,
+    .max_iter = 50, 
+    .eps_err = 1.0e-14, 
+    .use_gpu = use_gpu
+  };
+  gkyl_correct_maxwellian_gyrokinetic *corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&inp);
+  gkyl_correct_maxwellian_gyrokinetic_advance(corr_max, fM, moms_in,&confLocal, &local);
   gkyl_correct_maxwellian_gyrokinetic_release(corr_max);
   if (use_gpu) {
     gkyl_array_copy(fM_ho, fM);
