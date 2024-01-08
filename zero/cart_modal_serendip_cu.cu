@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 
-#include "gkyl_util.h"
+#include <gkyl_util.h>
 extern "C" {
 #include <assert.h>
 #include <string.h>    
@@ -10,7 +10,7 @@ extern "C" {
 #include <gkyl_dg_maxwell.h>    
 #include <gkyl_dg_maxwell_priv.h>
 
-#include "cart_modal_serendip_priv.h"
+#include <gkyl_cart_modal_serendip_priv.h>
 }
 
 __global__ void static

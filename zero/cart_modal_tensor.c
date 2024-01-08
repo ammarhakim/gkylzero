@@ -12,7 +12,7 @@
 static struct { void (*ev[4])(const double *z, double *b); } ev_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { eval_1d_ser_p0, eval_1d_ser_p1, eval_1d_ser_p2, eval_1d_ser_p3 },
-  { eval_2d_ser_p0, eval_2d_ser_p1, eval_2d_tensor_p2, NULL },
+  { eval_2d_ser_p0, eval_2d_ser_p1, eval_2d_tensor_p2, eval_2d_tensor_p3 },
   { eval_3d_ser_p0, eval_3d_ser_p1, eval_3d_tensor_p2, NULL },
   { eval_4d_ser_p0, eval_4d_ser_p1, eval_4d_tensor_p2, NULL },
   { eval_5d_ser_p0, eval_5d_ser_p1, eval_5d_tensor_p2, NULL },
@@ -23,7 +23,7 @@ static struct { void (*ev[4])(const double *z, double *b); } ev_list[] = {
 static struct { double (*ev[4])(const double *z, const double *f); } eve_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { eval_expand_1d_ser_p0, eval_expand_1d_ser_p1, eval_expand_1d_ser_p2, eval_expand_1d_ser_p3 },
-  { eval_expand_2d_ser_p0, eval_expand_2d_ser_p1, eval_expand_2d_tensor_p2, NULL },
+  { eval_expand_2d_ser_p0, eval_expand_2d_ser_p1, eval_expand_2d_tensor_p2,  eval_expand_2d_tensor_p3 },
   { eval_expand_3d_ser_p0, eval_expand_3d_ser_p1, eval_expand_3d_tensor_p2, NULL },
   { eval_expand_4d_ser_p0, eval_expand_4d_ser_p1, eval_expand_4d_tensor_p2, NULL },
   { eval_expand_5d_ser_p0, eval_expand_5d_ser_p1, eval_expand_5d_tensor_p2, NULL },
@@ -34,7 +34,7 @@ static struct { double (*ev[4])(const double *z, const double *f); } eve_list[] 
 static struct { double (*ev[4])(int dir, const double *z, const double *f); } eveg_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { eval_grad_expand_1d_ser_p0, eval_grad_expand_1d_ser_p1, eval_grad_expand_1d_ser_p2, eval_grad_expand_1d_ser_p3 },
-  { eval_grad_expand_2d_ser_p0, eval_grad_expand_2d_ser_p1, eval_grad_expand_2d_tensor_p2, NULL },
+  { eval_grad_expand_2d_ser_p0, eval_grad_expand_2d_ser_p1, eval_grad_expand_2d_tensor_p2, eval_grad_expand_2d_tensor_p3 },
   { eval_grad_expand_3d_ser_p0, eval_grad_expand_3d_ser_p1, eval_grad_expand_3d_tensor_p2, NULL },
   { eval_grad_expand_4d_ser_p0, eval_grad_expand_4d_ser_p1, eval_grad_expand_4d_tensor_p2, NULL },
   { eval_grad_expand_5d_ser_p0, eval_grad_expand_5d_ser_p1, eval_grad_expand_5d_tensor_p2, NULL },
@@ -45,7 +45,7 @@ static struct { double (*ev[4])(int dir, const double *z, const double *f); } ev
 static struct { void (*fs[4])(int dir, const double *f, double *fout); } fos_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { flip_odd_sign_1d_ser_p0, flip_odd_sign_1d_ser_p1, flip_odd_sign_1d_ser_p2, flip_odd_sign_1d_ser_p3 },
-  { flip_odd_sign_2d_ser_p0, flip_odd_sign_2d_ser_p1, flip_odd_sign_2d_tensor_p2, NULL },
+  { flip_odd_sign_2d_ser_p0, flip_odd_sign_2d_ser_p1, flip_odd_sign_2d_tensor_p2, flip_odd_sign_2d_tensor_p3 },
   { flip_odd_sign_3d_ser_p0, flip_odd_sign_3d_ser_p1, flip_odd_sign_3d_tensor_p2, NULL },
   { flip_odd_sign_4d_ser_p0, flip_odd_sign_4d_ser_p1, flip_odd_sign_4d_tensor_p2, NULL },
   { flip_odd_sign_5d_ser_p0, flip_odd_sign_5d_ser_p1, flip_odd_sign_5d_tensor_p2, NULL },
@@ -56,7 +56,7 @@ static struct { void (*fs[4])(int dir, const double *f, double *fout); } fos_lis
 static struct { void (*fs[4])(int dir, const double *f, double *fout); } fes_list[] = {
   { NULL, NULL, NULL, NULL }, // No 0D basis functions
   { flip_even_sign_1d_ser_p0, flip_even_sign_1d_ser_p1, flip_even_sign_1d_ser_p2, flip_even_sign_1d_ser_p3 },
-  { flip_even_sign_2d_ser_p0, flip_even_sign_2d_ser_p1, flip_even_sign_2d_tensor_p2, NULL },
+  { flip_even_sign_2d_ser_p0, flip_even_sign_2d_ser_p1, flip_even_sign_2d_tensor_p2, flip_even_sign_2d_tensor_p3 },
   { flip_even_sign_3d_ser_p0, flip_even_sign_3d_ser_p1, flip_even_sign_3d_tensor_p2, NULL },
   { flip_even_sign_4d_ser_p0, flip_even_sign_4d_ser_p1, flip_even_sign_4d_tensor_p2, NULL },
   { flip_even_sign_5d_ser_p0, flip_even_sign_5d_ser_p1, flip_even_sign_5d_tensor_p2, NULL },
