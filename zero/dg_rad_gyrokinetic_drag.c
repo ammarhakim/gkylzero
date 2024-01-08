@@ -40,10 +40,11 @@ struct gkyl_dg_eqn*
 gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis, 
   const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, bool use_gpu)
 {
-//#ifdef GKYL_HAVE_CUDA
-//  if (use_gpu)    
-//    return gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(conf_basis, phase_basis, conf_range, phase_range);
-//#endif
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)    
+    return gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(conf_basis, phase_basis, phase_range);
+#endif
+
     
   struct dg_rad_gyrokinetic_drag* rad_gyrokinetic_drag = gkyl_malloc(sizeof(struct dg_rad_gyrokinetic_drag));
 

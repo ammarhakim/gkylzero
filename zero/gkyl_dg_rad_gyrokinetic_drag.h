@@ -24,14 +24,19 @@ struct gkyl_dg_eqn* gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* co
   const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range, bool use_gpu);
 
 /**
- * TO DO: Create a new RAD equation object that lives on NV-GPU
+ * Create a new RAD equation object that lives on NV-GPU
+ *
+ * @param conf_basis Configuration-space basis functions
+ * @param phase_basis Phase-space basis functions
+ * @param phase_range Phase-space range for use in indexing drag coefficients
+ * @return Pointer to RAD equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis, 
   const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range);
 
 /**
  * Set auxiliary fields needed in updating the drag flux term.
- * These are vnu, vsqnu, and nI
+ * These are nvnu_sum, nvsqnu_sum
  * 
  * @param eqn Equation pointer
  * @param auxfields Pointer to struct of aux fields.
