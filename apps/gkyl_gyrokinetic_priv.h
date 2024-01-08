@@ -19,6 +19,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
+#include <gkyl_correct_maxwellian_gyrokinetic.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
@@ -47,6 +48,7 @@
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
+#include <gkyl_mom_cross_bgk.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo_calc.h>
@@ -162,6 +164,45 @@ struct gk_lbo_collisions {
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
+struct gk_bgk_collisions {  
+  struct gkyl_array *nu_sum; // BGK collision frequency 
+  struct gkyl_array *nu_sum_host; // BGK collision frequency host-side for I/O
+  struct gkyl_array *self_nu; // BGK self-collision frequency
+
+  bool normNu; // Boolean to determine if using Spitzer value
+  struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
+  struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
+  struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
+
+  struct gk_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
+  struct gkyl_array *m0;
+
+  struct gkyl_array *fmax;
+  struct gkyl_array *nu_fmax;
+  struct gkyl_array *nu_sum_f;
+
+  // Cross collisions inputs, arrays, and updaters
+  double betaGreenep1; // value of Greene's factor beta + 1
+  int num_cross_collisions; // number of species we cross-collide with
+  struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
+
+  double other_m[GKYL_MAX_SPECIES]; // masses of species being collided with
+  struct gkyl_array *other_moms[GKYL_MAX_SPECIES]; // moments of species being collided with
+  struct gkyl_array *other_nu[GKYL_MAX_SPECIES]; // cross-species collision frequencies
+  struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // cross-species collision frequencies
+  struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
+  struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
+  struct gkyl_array *greene_num[GKYL_MAX_SPECIES], *greene_den[GKYL_MAX_SPECIES];
+  gkyl_dg_bin_op_mem *greene_factor_mem; // memory needed in computing Greene factor
+  struct gkyl_array *greene_factor[GKYL_MAX_SPECIES];
+
+  struct gkyl_array *cross_moms[GKYL_MAX_SPECIES];
+  struct gkyl_mom_cross_bgk_gyrokinetic *cross_bgk; // cross-species moment computation
+
+  struct gkyl_correct_maxwellian_gyrokinetic *corr_max; // Maxwellian correction
+  struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+};
+
 struct gk_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source distribution
@@ -253,7 +294,7 @@ struct gk_species {
     enum gkyl_collision_id collision_id; // type of collisions
     union {
       struct gk_lbo_collisions lbo; // LBO collisions object
-      //struct gk_bgk_collisions bgk; // BGK collisions object
+      struct gk_bgk_collisions bgk; // BGK collisions object
     };      
   };
 
@@ -542,6 +583,76 @@ void gk_species_lbo_rhs(gkyl_gyrokinetic_app *app,
  * @param lbo Species LBO object to release
  */
 void gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lbo_collisions *lbo);
+
+/** gk_species_bgk API */
+
+/**
+ * Initialize species BGK collisions object.
+ *
+ * @param app gyrokinetic app object
+ * @param s Species object 
+ * @param bgk Species BGK object
+ */
+void gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_bgk_collisions *bgk);
+
+/**
+ * Initialize species BGK cross-collisions object.
+ *
+ * @param app gyrokinetic app object
+ * @param s Species object 
+ * @param bgk Species BGK object
+ */
+void gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_bgk_collisions *bgk);
+
+/**
+ * Compute necessary moments for BGK collisions
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param bgk Pointer to BGK
+ * @param fin Input distribution function
+ */
+void gk_species_bgk_moms(gkyl_gyrokinetic_app *app,
+  const struct gk_species *species,
+  struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin);
+
+/**
+ * Compute necessary moments for cross-species BGK collisions
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param bgk Pointer to BGK
+ * @param fin Input distribution function
+ */
+void gk_species_bgk_cross_moms(gkyl_gyrokinetic_app *app,
+  const struct gk_species *species,
+  struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin);
+
+/**
+ * Compute RHS from BGK collisions
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param bgk Pointer to BGK
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from bgk
+ */
+void gk_species_bgk_rhs(gkyl_gyrokinetic_app *app,
+  const struct gk_species *species,
+  struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species BGK object.
+ *
+ * @param app gyrokinetic app object
+ * @param bgk Species BGK object to release
+ */
+void gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_bgk_collisions *bgk);
 
 /** gk_species_source API */
 

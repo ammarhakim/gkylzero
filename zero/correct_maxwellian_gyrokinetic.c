@@ -21,6 +21,8 @@ struct gkyl_correct_maxwellian_gyrokinetic
 {
   bool use_gpu;
   double mass;
+  long max_iter;
+  double eps_err;
   struct gkyl_rect_grid phase_grid, conf_grid;
   struct gkyl_basis conf_basis, phase_basis;
 
@@ -38,67 +40,67 @@ struct gkyl_correct_maxwellian_gyrokinetic
 };
 
 gkyl_correct_maxwellian_gyrokinetic*
-gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *conf_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *conf_local, const struct gkyl_range *conf_local_ext, 
-  double mass, const struct gk_geometry *gk_geom, bool use_gpu)
+gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_correct_maxwellian_gyrokinetic_inp *inp)
 {
   gkyl_correct_maxwellian_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
-  up->use_gpu = use_gpu;
-  up->mass = mass;
-  up->phase_grid = *phase_grid;
-  up->conf_grid = *conf_grid;
-  up->phase_basis = *phase_basis;
-  up->conf_basis = *conf_basis;
+  up->use_gpu = inp->use_gpu;
+  up->max_iter = inp->max_iter;
+  up->eps_err = inp->eps_err;
+  up->mass = inp->mass;
+  up->phase_grid = *inp->phase_grid;
+  up->conf_grid = *inp->conf_grid;
+  up->phase_basis = *inp->phase_basis;
+  up->conf_basis = *inp->conf_basis;
 
   // acquire pointer to geometry object
-  if (use_gpu) {
-    struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
+  if (up->use_gpu) {
+    struct gk_geometry *geom = gkyl_gk_geometry_acquire(inp->gk_geom);
     up->gk_geom = geom->on_dev;
   }
   else {
-    up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+    up->gk_geom = gkyl_gk_geometry_acquire(inp->gk_geom);
   }
 
   // Allocate memory
-  up->m0_in = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->m0 = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->m0scl = mkarr(conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->m12_in = mkarr(2*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->m12 = mkarr(2*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->dm12 = mkarr(2*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->ddm12 = mkarr(2*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
-  up->moms = mkarr(3*conf_basis->num_basis, conf_local_ext->volume, use_gpu);
+  up->m0_in = mkarr(up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
+  up->m0 = mkarr(up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
+  up->m0scl = mkarr(up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
+  up->m12_in = mkarr(2*up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
+  up->m12 = mkarr(2*up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
+  up->dm12 = mkarr(2*up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
+  up->ddm12 = mkarr(2*up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
+  up->moms = mkarr(3*up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
 
-  up->proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(phase_grid, conf_basis, phase_basis, conf_basis->num_basis+1, use_gpu); 
+  up->proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&up->phase_grid, 
+    &up->conf_basis, &up->phase_basis, up->conf_basis.num_basis+1, up->use_gpu); 
 
   up->m0_calc = gkyl_dg_updater_moment_gyrokinetic_new(&up->phase_grid, &up->conf_basis, 
-    &up->phase_basis, conf_local, 0, mass, up->gk_geom,
-    "M0", false, use_gpu);   
+    &up->phase_basis, inp->conf_local, 0, up->mass, up->gk_geom,
+    "M0", false, up->use_gpu);   
 
   up->moms_calc = gkyl_dg_updater_moment_gyrokinetic_new(&up->phase_grid, &up->conf_basis, 
-    &up->phase_basis, conf_local, 0, mass, up->gk_geom,
-    "ThreeMoments", false, use_gpu); 
+    &up->phase_basis, inp->conf_local, 0, up->mass, up->gk_geom,
+    "ThreeMoments", false, up->use_gpu); 
 
-  if (use_gpu) {
-    up->weak_divide = gkyl_dg_bin_op_mem_cu_dev_new(conf_local->volume, conf_basis->num_basis);
+  if (up->use_gpu) {
+    up->weak_divide = gkyl_dg_bin_op_mem_cu_dev_new(inp->conf_local->volume, up->conf_basis.num_basis);
     up->err1_cu = gkyl_cu_malloc(sizeof(double[1]));
     up->err2_cu = gkyl_cu_malloc(sizeof(double[1]));
   }
   else {
-    up->weak_divide = gkyl_dg_bin_op_mem_new(conf_local->volume, conf_basis->num_basis);
+    up->weak_divide = gkyl_dg_bin_op_mem_new(inp->conf_local->volume, up->conf_basis.num_basis);
   }
 
-  up->mvals = mkarr(3, conf_local_ext->volume, use_gpu);
-  up->mvals1 = mkarr(1, conf_local_ext->volume, use_gpu);
-  up->mvals2 = mkarr(1, conf_local_ext->volume, use_gpu);
+  up->mvals = mkarr(3, inp->conf_local_ext->volume, up->use_gpu);
+  up->mvals1 = mkarr(1, inp->conf_local_ext->volume, up->use_gpu);
+  up->mvals2 = mkarr(1, inp->conf_local_ext->volume, up->use_gpu);
 
   return up;
 }
 
 void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokinetic *up, 
-  struct gkyl_array *fM, const struct gkyl_array *moms_in, double err_max, int iter_max, 
+  struct gkyl_array *fM, const struct gkyl_array *moms_in, 
   const struct gkyl_range *conf_local, const struct gkyl_range *phase_local)
 {
   double epsilon = 0.01;
@@ -152,7 +154,7 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
 
   // Main iteration loop
   int i = 0;
-  while ( (i<iter_max) && ((err1[0]>err_max) || (err2[0]>err_max)) )
+  while ( (i<up->max_iter) && ((err1[0]>up->eps_err) || (err2[0]>up->eps_err)) )
   {
     // Correct the moments
     gkyl_array_clear(up->ddm12, 0.0);

@@ -36,8 +36,6 @@ struct gkyl_gyrokinetic_collisions {
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
-
-  char collide_with_fluid[128]; // name of fluid species to cross collide with
 };
 
 // Parameters for species diffusion
