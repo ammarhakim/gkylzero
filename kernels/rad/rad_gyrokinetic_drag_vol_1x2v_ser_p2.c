@@ -34,6 +34,7 @@ GKYL_CU_DH double rad_gyrokinetic_drag_vol_1x2v_ser_p2(const double *w, const do
   alphaDrag[18] = rdv2[0]*vnu[18]; 
   alphaDrag[19] = rdv2[0]*vnu[19]; 
 
+  double betaDrag[20] = {0,0}; 
   betaDrag[0] += vsqnu[0]*rdv2[1]; 
   betaDrag[1] += rdv2[1]*vsqnu[1]; 
   betaDrag[2] += rdv2[1]*vsqnu[2]; 
