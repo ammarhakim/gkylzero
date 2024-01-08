@@ -373,12 +373,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 
           double psi_curr = phi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
           double zmin = inp->zmin, zmax = inp->zmax;
+          double zmin_left = inp->zmin_left, zmin_right = inp->zmin_left;
 
           double darcL, arcL_curr, arcL_lo;
           double arcL_l, arcL_r;
           double phi_r, phi_l;
 
-          find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, &zmin, &zmax, arc_memo, arc_memo_left, arc_memo_right);
+          find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, &zmin, &zmax, &zmin_left, &zmin_right, arc_memo, arc_memo_left, arc_memo_right);
           double arcL = arc_ctx.arcL_tot;
           darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
 
@@ -408,7 +409,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
 
-              set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+              set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, zmin_left, zmin_right, rright, rleft, &rclose, &ridders_min, &ridders_max);
 
               struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
                 arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,

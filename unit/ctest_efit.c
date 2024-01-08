@@ -66,9 +66,27 @@ void test_asdex(){
 
 }
 
+void test_cerfon(){
+  char* filepath = "./efit_data/cerfon.geqdsk";
+  int rzpoly_order = 2;
+  int fluxpoly_order = 1;
+  struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order, fluxpoly_order, false);
+
+  printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psizr, "cerfon_psi.gkyl");
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyrzr, "cerfon_psibyr.gkyl");
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyr2zr, "cerfon_psibyr2.gkyl");
+  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, efit->fpolflux, "cerfon_fpol.gkyl");
+  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, efit->qflux, "cerfon_q.gkyl");
+
+  gkyl_efit_release(efit);
+
+}
+
 TEST_LIST = {
   { "test_solovev", test_solovev},
   { "test_step", test_step},
   { "test_asdex", test_asdex},
+  { "test_cerfon", test_cerfon},
   { NULL, NULL },
 };
