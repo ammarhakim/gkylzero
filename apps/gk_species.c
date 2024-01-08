@@ -6,8 +6,8 @@
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_proj_on_basis.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_proj_on_basis.h>
 
 #include <assert.h>
 #include <time.h>
