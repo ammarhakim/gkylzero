@@ -91,14 +91,15 @@ struct gk_mirror_ctx {
     double finalTime;
     int numFrames;
     double psi_in;
+    double z_in;
 };
 
 double 
 psi_RZ(double RIn, double ZIn, void *ctx){
     struct gk_mirror_ctx *app = ctx;
     double psi = 0.5 * pow(RIn,2) * app->mcB *
-        (1. / (M_PI * app->gamma * pow(1. + ((ZIn - app->Z_m) / app->gamma) , 2)) + 1. /
-            (M_PI * app->gamma * pow(1. + ((ZIn + app->Z_m) / app->gamma) , 2)));
+        (1. / (M_PI * app->gamma * pow(1. + ((ZIn - app->Z_m) / app->gamma) , 2)) +
+         1. / (M_PI * app->gamma * pow(1. + ((ZIn + app->Z_m) / app->gamma) , 2)));
     return psi;
 }
 
@@ -106,8 +107,8 @@ double
 R_psiZ(double psiIn, double ZIn, void *ctx) {
     struct gk_mirror_ctx *app = ctx;
     double Rout = sqrt(2.0 * psiIn / (app->mcB *
-        (1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - app->Z_m) / app->gamma, 2))) + 1.0 /
-            (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2))))));
+        (1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - app->Z_m) / app->gamma, 2))) + 
+         1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2))))));
     return Rout;
 }
 
@@ -119,11 +120,11 @@ Bfield_psiZ(double psiIn, double ZIn, void *ctx, double *BRad, double *BZ, doubl
     double gamma = app->gamma;
     double Z_m = app->Z_m;
     *BRad = -(1.0 / 2.0) * Rcoord * mcB *
-        (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3) * pow((1.0 + ((ZIn - Z_m) / gamma)), 2)) - 2.0 *
-            (ZIn + Z_m) / (M_PI * pow(gamma, 3) * pow((1.0 + ((ZIn + Z_m) / gamma)), 2)));
+        (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3) * pow((1.0 + ((ZIn - Z_m) / gamma)), 2)) - 
+          2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3) * pow((1.0 + ((ZIn + Z_m) / gamma)), 2)));
     *BZ = mcB *
-        (1.0 / (M_PI * gamma * (1.0 + pow((ZIn - Z_m) / gamma, 2))) + 1.0 /
-            (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2))));
+        (1.0 / (M_PI * gamma * (1.0 + pow((ZIn - Z_m) / gamma, 2))) + 
+         1.0 / (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2))));
     *Bmag = sqrt(pow(*BRad, 2) + pow(*BZ, 2));
 }
 
@@ -144,7 +145,7 @@ z_psiZ(double psiIn, double ZIn, void *ctx) {
     if (eps <= ZIn) {
         integral = gkyl_dbl_exp(integrand_z_psiZ, ctx, eps, ZIn, 7, 1e-14);
     } else {
-        integral = gkyl_dbl_exp(integrand_z_psiZ, ctx, ZIn, eps, 7, 1e-14);
+        integral = gkyl_dbl_exp(integrand_z_psiZ, ctx, ZIn, eps, 7, 1e-14); // Not sure if 7 is the right number to use here, but .h suggests 7 to be the default
         integral.res = -integral.res;
     }
     return integral.res;
@@ -154,7 +155,7 @@ z_psiZ(double psiIn, double ZIn, void *ctx) {
 double
 root_Z_psiz(double Z, void *ctx){
     struct gk_mirror_ctx *app = ctx;
-    return Z - z_psiZ(app->psi_in, Z, ctx);
+    return app->z_in - z_psiZ(app->psi_in, Z, ctx);
 }
 
 double 
@@ -163,6 +164,7 @@ Z_psiz(double psiIn, double zIn, void *ctx) {
     double maxL = app->Zmax - app->Zmin; // These are globals. Where do they come from?
     double eps = maxL / app->numCellLineLength; // Interestingly using a smaller eps yields larger errors in some geo quantities.
     app->psi_in = psiIn;
+    app->z_in = zIn;
     struct gkyl_qr_res Zout;
     if (zIn <= 0.0) {
         double fl = root_Z_psiz(-eps, ctx);
@@ -181,20 +183,25 @@ void
 eval_density_elc_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xn[2];
     double psi = xn[0];
+    double z = xn[2];
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
-
     double NSrc = app->NSrcElc;
     double zSrc = app->lineLengthSrcElc;
     double sigSrc = app->sigSrcElc;
     double NSrcFloor = app->NSrcFloorElc;
     if (fabs(Z) <= app->Z_m) {
         fout[0] = fmax(NSrcFloor, (NSrc / sqrt(2.0 * M_PI * pow(sigSrc, 2))) *
-            exp(-pow((z - zSrc), 2) / (2.0 * pow(sigSrc, 2))));
+            exp( -1 * pow((z - zSrc), 2) / (2.0 * pow(sigSrc, 2))));
     } else {
         fout[0] = 1e-16;
     }
+}
+
+void
+eval_upar_elc_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+    fout[0] = 0.0;
 }
 
 void
@@ -216,8 +223,8 @@ void
 eval_density_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xn[2];
     double psi = xn[0];
+    double z = xn[2];
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
     double NSrc = app->NSrcIon;
     double zSrc = app->lineLengthSrcIon;
@@ -225,17 +232,23 @@ eval_density_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_
     double NSrcFloor = app->NSrcFloorIon;
     if (fabs(Z) <= app->Z_m) {
         fout[0] = fmax(NSrcFloor, (NSrc / sqrt(2.0 * M_PI * pow(sigSrc, 2))) *
-            exp(-pow((z - zSrc), 2) / (2.0 * pow(sigSrc, 2))));
+            exp( -1 * pow((z - zSrc), 2) / (2.0 * pow(sigSrc, 2))));
     } else {
         fout[0] = 1e-16;
     }
 }
 
 void
+eval_upar_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+    fout[0] = 0.0;
+}
+
+void
 eval_temp_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xn[0];
+    double z = xn[2];
     double sigSrc = app->sigSrcIon;
     double TSrc0 = app->TSrc0Ion;
     double Tfloor = app->TSrcFloorIon;
@@ -465,9 +478,9 @@ create_ctx(void)
     double mu_max_elc = me * pow(3 * vte, 2) / (2 * B_p);
     double vpar_max_ion = 3.75 * vti;
     double mu_max_ion = mi * pow(3 * vti, 2) / (2 * B_p);
-    int NV = 96; // Number of cells in the paralell velocity direction
-    int NMU = 192; // Number of cells in the mu direction
-    int numCellLineLength = 288; // Number of cells along the field line.
+    int NV = 20; // Number of cells in the paralell velocity direction 96
+    int NMU = 20; // Number of cells in the mu direction 192
+    int numCellLineLength = 20; // Number of cells along the field line.
     int poly_order = 1;
     double finalTime = 1e-10;
     int numFrames = 2;
@@ -607,6 +620,8 @@ main(int argc, char **argv)
             .write_source = true,
             .ctx_density = &ctx,
             .density_profile = eval_density_elc_source,
+            .ctx_upar = &ctx,
+            .upar_profile = eval_upar_elc_source,
             .ctx_temp = &ctx,
             .temp_profile = eval_temp_elc_source,
             // Need diagnostics?
@@ -643,6 +658,8 @@ main(int argc, char **argv)
             .write_source = true,
             .ctx_density = &ctx,
             .density_profile = eval_density_ion_source,
+            .ctx_upar = &ctx,
+            .upar_profile = eval_upar_ion_source,
             .ctx_temp = &ctx,
             .temp_profile = eval_temp_ion_source,
             // Need diagnostics
@@ -663,7 +680,7 @@ main(int argc, char **argv)
 
     // GK app
     struct gkyl_gk gk = {
-        .name = "gk_mirror_1x2v_p1",
+        .name = "gk_mirror_3x2v_p1",
 
         .cdim = 3, .vdim = 2,
         .lower = { 0.05, -M_PI, -2.515312 },
