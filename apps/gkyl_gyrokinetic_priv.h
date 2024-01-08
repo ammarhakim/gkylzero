@@ -21,12 +21,12 @@
 #include <gkyl_bc_sheath_gyrokinetic.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_calc_gyrokinetic_vars.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
+#include <gkyl_dg_calc_gyrokinetic_vars.h>
 #include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
-#include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_diffusion_gyrokinetic.h>
+#include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
@@ -39,9 +39,10 @@
 #include <gkyl_fem_poisson_perp.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_gk_geometry.h>
+#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
-#include <gkyl_gk_geometry_fromfile.h>
+#include <gkyl_gyrokinetic.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
@@ -50,8 +51,8 @@
 #include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo_calc.h>
 #include <gkyl_prim_lbo_cross_calc.h>
-#include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
+#include <gkyl_prim_lbo_type.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -60,8 +61,6 @@
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_tok_geo.h>
 #include <gkyl_util.h>
-
-#include <gkyl_gyrokinetic.h>
 
 // Definitions of private structs and APIs attached to these objects
 // for use in Gyrokinetic app.
@@ -249,8 +248,14 @@ struct gk_species {
   enum gkyl_source_id source_id; // type of source
   struct gk_source src; // applied source
 
-  enum gkyl_collision_id collision_id; // type of collisions
-  struct gk_lbo_collisions lbo; // collisions object
+  //  collisions
+  struct {
+    enum gkyl_collision_id collision_id; // type of collisions
+    union {
+      struct gk_lbo_collisions lbo; // LBO collisions object
+      //struct gk_bgk_collisions bgk; // BGK collisions object
+    };      
+  };
 
   enum gkyl_radiation_id radiation_id; // type of radiation
   struct gk_rad_drag rad; // radiation object
