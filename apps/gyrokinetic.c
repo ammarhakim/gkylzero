@@ -1,4 +1,3 @@
-#include "gkyl_eqn_type.h"
 #include <stdarg.h>
 
 #include <gkyl_alloc.h>
