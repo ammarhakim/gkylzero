@@ -75,7 +75,7 @@ enum gkyl_tok_geo_type {
 };  
 
 // Inputs to create a new GK geometry creation object
-struct gkyl_tok_geo_inp {
+struct gkyl_tok_geo_efit_inp {
   // Inputs to get psiRZ and related inputs from efit
   char* filepath;
   int rzpoly_order;
@@ -99,7 +99,7 @@ struct gkyl_tok_geo_inp {
 };
 
 // Inputs to create geometry for a specific computational grid
-struct gkyl_tok_geo_geo_inp {
+struct gkyl_tok_geo_grid_inp {
   struct gkyl_rect_grid cgrid;
   struct gkyl_basis cbasis;
   enum gkyl_tok_geo_type ftype; // type of geometry
@@ -123,7 +123,7 @@ struct gkyl_tok_geo_geo_inp {
  * @param inp Input parameters
  * @param New GK geometry updater
  */
-gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_inp *inp);
+gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp);
 
 /**
  * Get R(psi,Z) for a specified psi and Z value. Multiple values may
@@ -166,7 +166,7 @@ double gkyl_tok_geo_integrate_psi_contour(const gkyl_tok_geo *geo, double psi,
  * @param xn computational coordinates
  * @param ret physical coordinates
  */
-void gkyl_tok_geo_mapc2p(const gkyl_tok_geo *geo, const struct gkyl_tok_geo_geo_inp *inp,
+void gkyl_tok_geo_mapc2p(const gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid_inp *inp,
     const double *xn, double *ret);
 
 /**

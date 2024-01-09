@@ -1,3 +1,4 @@
+#include "gkyl_eqn_type.h"
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
@@ -691,12 +692,13 @@ main(int argc, char **argv)
         .basis_type = app_args.basis_type,
 
         //There should be a world in here
-
-        .mapc2p = mapc2p, // mapping of computational to physical space
-        .c2p_ctx = &ctx,
-
-        .bmag_func = bmag_func, // magnetic field magnitude
-        .bmag_ctx = &ctx,
+        .geometry = {
+          .geometry_id = GKYL_MAPC2P,
+          .mapc2p = mapc2p, // mapping of computational to physical space
+          .c2p_ctx = &ctx,
+          .bmag_func = bmag_func, // magnetic field magnitude
+          .bmag_ctx = &ctx
+        },
 
         .num_periodic_dir = 0,
         .periodic_dirs = {  },

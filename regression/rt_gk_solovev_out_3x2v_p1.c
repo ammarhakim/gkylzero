@@ -39,7 +39,7 @@ struct gk_solovev_ctx {
   int numFrames; // number of output frames
 };
 
-struct gkyl_tok_geo_inp inp = {
+struct gkyl_tok_geo_efit_inp inp = {
   // psiRZ and related inputs
   .filepath = "./efit_data/solovev.geqdsk",
   .rzpoly_order = 2,
@@ -48,7 +48,7 @@ struct gkyl_tok_geo_inp inp = {
   .quad_param = {  .eps = 1e-10 }
 };
 
-struct gkyl_tok_geo_geo_inp ginp = {
+struct gkyl_tok_geo_grid_inp ginp = {
   .ftype = GKYL_SOL_DN_OUT,
   .rclose = 3.0, // any number larger than ~2 will do
   .zmin = -1.5,
@@ -414,11 +414,11 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
-    .tokamak = true,
-    .geo_fromfile = false,
-    .tok_rz_ctx = &inp,
-
-    .tok_comp_ctx = &ginp,
+    .geometry = {
+      .geometry_id = GKYL_TOKAMAK,
+      .efit_info = &inp,
+      .grid_info = &ginp,
+    },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },

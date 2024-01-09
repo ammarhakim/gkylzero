@@ -67,6 +67,23 @@ struct gkyl_gyrokinetic_source {
   bool is_maxwellian;
 };
 
+struct gkyl_gyrokinetic_geometry {
+  enum gkyl_geometry_id geometry_id;
+
+  void *c2p_ctx; // context for mapc2p function
+  // pointer to mapc2p function: xc are the computational space
+  // coordinates and on output xp are the corresponding physical space
+  // coordinates.
+  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
+  void *bmag_ctx; // context for bmag function
+  // pointer to bmag function
+  void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
+
+  struct gkyl_tok_geo_efit_inp *efit_info; // context with RZ data such as efit file for a tokamak
+  struct gkyl_tok_geo_grid_inp *grid_info; // context for tokamak geometry with computational domain info
+};
+
 // Parameters for species radiation
 struct gkyl_gyrokinetic_radiation {
   enum gkyl_radiation_id radiation_id; // type of radiation
@@ -155,22 +172,8 @@ struct gkyl_gk {
   int poly_order; // polynomial order
   enum gkyl_basis_type basis_type; // type of basis functions to use
 
-  void *c2p_ctx; // context for mapc2p function
-  // pointer to mapc2p function: xc are the computational space
-  // coordinates and on output xp are the corresponding physical space
-  // coordinates.
-  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
-
-  void *bmag_ctx; // context for bmag function
-  // pointer to bmag function
-  void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
-
-  bool tokamak; // to indicate whether it is a tokamak geometry
-  void *tok_rz_ctx; // context with RZ data such as efit file for a tokamak
-  void *tok_comp_ctx; // context for tokamak geometry with computational domain info
-                      
-  bool geo_fromfile; // to indicate whether we should just read geo from file
-
+  struct gkyl_gyrokinetic_geometry geometry; // geometry input struct
+                                             //
   double cfl_frac; // CFL fraction to use (default 1.0)
 
   bool use_gpu; // Flag to indicate if solver should use GPUs

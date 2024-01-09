@@ -200,7 +200,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
 
 
 gkyl_tok_geo*
-gkyl_tok_geo_new(const struct gkyl_tok_geo_inp *inp)
+gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
 
@@ -288,7 +288,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 {
 
   struct gkyl_tok_geo *geo = mapc2p_ctx;
-  struct gkyl_tok_geo_geo_inp *inp = bmag_ctx;
+  struct gkyl_tok_geo_grid_inp *inp = bmag_ctx;
 
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates

@@ -33,8 +33,6 @@ struct gk_geometry {
   struct gkyl_array* gxyj;
   struct gkyl_array* gyyj;
 
-  bool tokamak;
-
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
   struct gk_geometry *on_dev; // pointer to itself or device object

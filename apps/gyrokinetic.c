@@ -121,30 +121,20 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
   }
 
-  // Configuration space geometry initialization
-  app->c2p_ctx = app->mapc2p = 0;  
-  app->bmag_ctx = app->bmag_func = 0;  
-  app->has_mapc2p = gk->mapc2p ? true : false;
-  app->tokamak = gk->tokamak ? true : false;
-  app->geo_fromfile = gk->geo_fromfile? true : false;
-  app->tok_rz_ctx = gk->tok_rz_ctx;
-  app->tok_comp_ctx = gk->tok_comp_ctx;
 
-  if (app->geo_fromfile) {
-    app->gk_geom = gkyl_gk_geometry_fromfile_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, app->use_gpu);
-  }
-  else if (app->tokamak) {
-    app->gk_geom = gkyl_gk_geometry_tok_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
-      app->tok_rz_ctx, app->tok_comp_ctx, app->use_gpu);
-  }
-  else if (app->has_mapc2p) {
-    // initialize computational to physical space mapping
-    app->c2p_ctx = gk->c2p_ctx;
-    app->mapc2p = gk->mapc2p;
-    app->bmag_ctx = gk->bmag_ctx;
-    app->bmag_func = gk->bmag_func;
-    app->gk_geom = gkyl_gk_geometry_mapc2p_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
-      app->mapc2p, app->c2p_ctx, app->bmag_func,  app->bmag_ctx, app->use_gpu);
+  // Configuration space geometry initialization
+  switch (gk->geometry.geometry_id) {
+    case GKYL_GEOMETRY_FROMFILE:
+      app->gk_geom = gkyl_gk_geometry_fromfile_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, app->use_gpu);
+      break;
+    case GKYL_TOKAMAK:
+      app->gk_geom = gkyl_gk_geometry_tok_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
+          gk->geometry.efit_info, gk->geometry.grid_info, app->use_gpu);
+      break;
+    case GKYL_MAPC2P:
+      app->gk_geom = gkyl_gk_geometry_mapc2p_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
+        gk->geometry.mapc2p, gk->geometry.c2p_ctx, gk->geometry.bmag_func,  gk->geometry.bmag_ctx, app->use_gpu);
+      break;
   }
 
   // allocate space to store species objects

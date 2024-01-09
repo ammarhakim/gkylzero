@@ -86,7 +86,7 @@ test_fixed_z()
 
 
 
-  struct gkyl_tok_geo_inp inp = {
+  struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
       .filepath = "./efit_data/input.geqdsk",
       .rzpoly_order = 2,
@@ -111,7 +111,7 @@ test_fixed_z()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_geo_inp ginp = {
+  struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
     .zmin = -8.3,
@@ -137,7 +137,7 @@ test_horizontal_plate()
 
 
 
-  struct gkyl_tok_geo_inp inp = {
+  struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
       .filepath = "./efit_data/input.geqdsk",
       .rzpoly_order = 2,
@@ -165,7 +165,7 @@ test_horizontal_plate()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_geo_inp ginp = {
+  struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
     .zmin = -8.3,
@@ -191,7 +191,7 @@ test_vertical_plate()
 
 
 
-  struct gkyl_tok_geo_inp inp = {
+  struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
       .filepath = "./efit_data/input.geqdsk",
       .rzpoly_order = 2,
@@ -219,7 +219,7 @@ test_vertical_plate()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_geo_inp ginp = {
+  struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
     .zmin = -8.3,
@@ -245,7 +245,7 @@ test_shaped_plate()
 
 
 
-  struct gkyl_tok_geo_inp inp = {
+  struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
       .filepath = "./efit_data/input.geqdsk",
       .rzpoly_order = 2,
@@ -273,7 +273,7 @@ test_shaped_plate()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_geo_inp ginp = {
+  struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
     .zmin = -8.3,

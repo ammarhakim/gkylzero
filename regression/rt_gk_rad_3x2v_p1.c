@@ -275,11 +275,12 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
-    .mapc2p = mapc2p, // mapping of computational to physical space
-    .c2p_ctx = &ctx,
-
-    .bmag_func = bmag_func, // mapping of computational to physical space
-    .bmag_ctx = &ctx,
+    .geometry = {
+      .mapc2p = mapc2p, // mapping of computational to physical space
+      .c2p_ctx = &ctx,
+      .bmag_func = bmag_func, // mapping of computational to physical space
+      .bmag_ctx = &ctx
+    },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
