@@ -1,3 +1,4 @@
+#include "gkyl_rect_grid.h"
 #include <stdarg.h>
 
 #include <gkyl_alloc.h>
@@ -5,7 +6,6 @@
 #include <gkyl_basis.h>
 #include <gkyl_dflt.h>
 #include <gkyl_dynvec.h>
-#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_null_comm.h>
 
 #include <gkyl_gyrokinetic_priv.h>
@@ -123,18 +123,54 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
 
   // Configuration space geometry initialization
+  struct gkyl_rect_grid geo_grid;
+  struct gkyl_range geo_local;
+  struct gkyl_range geo_local_ext;
+  struct gkyl_basis geo_basis;
+  bool geo_3d_use_gpu = app->use_gpu;
+
+  if(app->cdim < 3){
+    geo_grid = agument_grid(app->grid, gk->geometry);
+    gkyl_create_grid_ranges(&geo_grid, ghost, &geo_local_ext, &geo_local);
+    geo_3d_use_gpu = false;
+    switch (gk->basis_type) {
+      case GKYL_BASIS_MODAL_SERENDIPITY:
+        gkyl_cart_modal_serendip(&geo_basis, 3, poly_order);
+        break;
+      default:
+        assert(false);
+        break;
+    }
+  }
+  else{
+    geo_grid = app->grid;
+    geo_local = app->local;
+    geo_local_ext = app->local_ext;
+    geo_basis = app->confBasis;
+  }
+
+  struct gk_geometry* gk_geom_3d;
   switch (gk->geometry.geometry_id) {
     case GKYL_GEOMETRY_FROMFILE:
-      app->gk_geom = gkyl_gk_geometry_fromfile_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, app->use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_fromfile_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, geo_3d_use_gpu);
       break;
     case GKYL_TOKAMAK:
-      app->gk_geom = gkyl_gk_geometry_tok_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
-          gk->geometry.efit_info, gk->geometry.grid_info, app->use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_tok_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
+          gk->geometry.efit_info, gk->geometry.grid_info, geo_3d_use_gpu);
       break;
     case GKYL_MAPC2P:
-      app->gk_geom = gkyl_gk_geometry_mapc2p_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, 
-        gk->geometry.mapc2p, gk->geometry.c2p_ctx, gk->geometry.bmag_func,  gk->geometry.bmag_ctx, app->use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
+          gk->geometry.mapc2p, gk->geometry.c2p_ctx, gk->geometry.bmag_func,  gk->geometry.bmag_ctx, geo_3d_use_gpu);
       break;
+  }
+
+  // deflate geometry if necessary
+  if(app->cdim < 3){
+    app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &app->grid, &app->local, &app->local_ext, 
+        &app->confBasis, app->use_gpu);
+  }
+  else{
+    app->gk_geom = gk_geom_3d;
   }
 
   // allocate space to store species objects

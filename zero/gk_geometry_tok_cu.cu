@@ -40,11 +40,8 @@ gkyl_gk_geometry_tok_cu_dev_new(const struct gkyl_rect_grid* grid, const struct 
 
   gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
 
-  // // Initialize the geometry object on the host side
-  // mapc2p arrays, bmag, metrics and derived geo quantities
-  struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*13, nrange.volume);
-  struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  struct gkyl_array* mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
+  // Initialize the geometry object on the host side
+  // bmag, metrics and derived geo quantities
 
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);

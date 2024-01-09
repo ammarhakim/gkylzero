@@ -484,7 +484,7 @@ create_ctx(void)
     double mu_max_ion = mi * pow(3 * vti, 2) / (2 * B_p);
     int NV = 96; // Number of cells in the paralell velocity direction
     int NMU = 192; // Number of cells in the mu direction
-    int numCellLineLength = 288; // Number of cells along the field line.
+    int numCellLineLength = 72; // Number of cells along the field line.
     int poly_order = 1;
     double finalTime = 1e-10;
     int numFrames = 2;
@@ -694,6 +694,7 @@ main(int argc, char **argv)
         //There should be a world in here
         .geometry = {
           .geometry_id = GKYL_MAPC2P,
+          .world = {0.0026530898059565, 0.0},
           .mapc2p = mapc2p, // mapping of computational to physical space
           .c2p_ctx = &ctx,
           .bmag_func = bmag_func, // magnetic field magnitude
