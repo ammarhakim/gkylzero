@@ -273,12 +273,12 @@ eval_density_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
-    if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->n0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC0/2);
+    if (fabs(Z) <= app->Z_bt) {
+        fout[0] = app->n0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC0/2);
     } else if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->n0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC1/2);
+        fout[0] = app->n0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC1/2);
     } else {
-        fout[0] = app->n_m * sqrt(Bmag / app->B_m); // Need n_m or something. Not the same
+        fout[0] = app->n_m * sqrt(Bmag / app->B_m);
     }
 }
 
@@ -287,7 +287,13 @@ eval_upar_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[2];
-    fout[0] = app->c_s * (z / app->z_m);
+    if (fabs(z) <= app->z_m) {
+        fout[0] = 0.0;
+    } else if( z > app->z_m) {
+        fout[0] = app->cs_m * (z - app->z_m);
+    } else {
+        fout[0] = app->cs_m * (z + app->z_m);
+    }
 }
 
 void
@@ -300,10 +306,10 @@ eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
-    if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->Te0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC0/2);
+    if (fabs(Z) <= app->Z_bt) {
+        fout[0] = app->Te0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC0/2);
     } else if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->Te0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC1/2);
+        fout[0] = app->Te0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC1/2);
     } else {
         fout[0] = app->Te_m * sqrt(Bmag / app->B_m);
     }
@@ -320,12 +326,12 @@ eval_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
-    if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->n0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC0/2);
+    if (fabs(Z) <= app->Z_bt) {
+        fout[0] = app->n0 * pow(1.0 - pow((R - app->R_bt) / app->alim, 2) , app->alphaIC0/2);
     } else if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->n0 * pow(1.0 - pow((R - app->RatZeq0) / app->alim, 2) , app->alphaIC1/2);
+        fout[0] = app->n0 * pow(1.0 - pow((R - app->R_bt) / app->alim, 2) , app->alphaIC1/2);
     } else {
-        fout[0] = app->n_m * sqrt(Bmag / app->B_m); // Need n_m
+        fout[0] = app->n_m * sqrt(Bmag / app->B_m); 
     }
 }
 
@@ -334,7 +340,13 @@ eval_upar_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[2];
-    fout[0] = app->c_s * (z / app->z_m);
+    if (fabs(z) <= app->z_m) {
+        fout[0] = 0.0;
+    } else if( z > app->z_m) {
+        fout[0] = app->cs_m * (z - app->z_m);//* (z -  / app->z_m);
+    } else {
+        fout[0] = app->cs_m * (z + app->z_m);//* (z + app->z_m) / app->z_m;
+    }
 }
 
 void
@@ -347,12 +359,12 @@ eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
-    if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->Ti0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC0/2);
+    if (fabs(Z) <= app->Z_bt) {
+        fout[0] = app->Ti0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC0/2);
     } else if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->Ti0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC1/2);
+        fout[0] = app->Ti0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC1/2);
     } else {
-        fout[0] = app->Ti_m * sqrt(Bmag / app->B_m); // Not the same. Need Ti_m
+        fout[0] = app->Ti_m * sqrt(Bmag / app->B_m);
     }
 }
 
@@ -418,7 +430,7 @@ create_ctx(void)
     double n0 = 3e19;
     double B_p = 0.53;
     double beta = 0.4;
-    double tau = pow(B_p,2) * beta / (2.0 * mu0 * n0 * mi) - 1;
+    double tau = pow(B_p,2) * beta / (2.0 * mu0 * n0 * Te0) - 1;
     double Ti0 = tau * Te0;
     double kperpRhos = 0.1;
 
@@ -485,7 +497,7 @@ create_ctx(void)
     int NMU = 20; // Number of cells in the mu direction 192
     int numCellLineLength = 100; // Number of cells along the field line.
     int poly_order = 1;
-    double finalTime = 1e-15;
+    double finalTime = 1e-10;
     int numFrames = 1;
 
     // Bananna tip info. Hardcoad to avoid dependency on ctx
@@ -496,12 +508,13 @@ create_ctx(void)
     double R_m = 0.017845;
     double B_m = 16.662396;
     double z_m = 0.982544;
+    
 
     // Physics parameters at mirror throat
-    double n_m = n0 * sqrt(pow((1.0 - ((R_m - R_bt) / alim)), 2) * alphaIC1);
-    double Te_m = Te0 * sqrt(pow((1.0 - ((R_m - R_bt) / alim)), 2) * alphaIC1);
-    double Ti_m = tau * Te_m;
-    double cs_m = sqrt(Te_m * (1.0 + tau) / mi);
+    double n_m = 1.105617e19;
+    double Te_m = 346.426583*eV;
+    double Ti_m = 3081.437703*eV;
+    double cs_m = 4.037740e5;
 
     struct gk_mirror_ctx ctx = {
         .mi = mi,
@@ -711,6 +724,7 @@ main(int argc, char **argv)
     };
 
     // create app object
+    printf("Creating app object ...\n");
     gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
 
     // start, end and initial time-step
@@ -721,10 +735,14 @@ main(int argc, char **argv)
     struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
     // initialize simulation
+    printf("Applying initial conditions ...\n");
     gkyl_gyrokinetic_app_apply_ic(app, tcurr);
+    printf("Computing initial diagnostics ...\n");
     write_data(&io_trig, app, tcurr);
+    printf("Computing initial field energy ...\n");
     gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
 
+    printf("Starting main loop ...\n");
     long step = 1, num_steps = app_args.num_steps;
     while ((tcurr < tend) && (step <= num_steps)) {
         gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
@@ -744,6 +762,7 @@ main(int argc, char **argv)
 
         step += 1;
     }
+    printf(" ... finished\n");
     gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
     gkyl_gyrokinetic_app_write_field_energy(app);
     gkyl_gyrokinetic_app_stat_write(app);
