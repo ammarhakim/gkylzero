@@ -56,8 +56,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect
  * Create deflated geometry object on gpu
  */
 struct gk_geometry*
-gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis);
+gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, const struct gkyl_basis* basis);
 
 /**
  * Acquire pointer to gk geometry object. The pointer must be released
