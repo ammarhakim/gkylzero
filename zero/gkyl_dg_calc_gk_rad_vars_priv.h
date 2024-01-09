@@ -53,29 +53,23 @@ nod2mod(int num_ret_vals, const struct gkyl_basis *basis, const struct gkyl_arra
 static inline double 
 eval_vnu(double charge, double mass, 
   double a, double alpha, double beta, double gamma, double v0, 
-  double vpar, double mu, double bmag) 
+	 double vpar, double mu, double bmag, double nu) 
 {
   double scaled_v0 = v0/sqrt(mass/(2.0*fabs(charge)));
   double c_const = 8.0*sqrt(M_PI)*pow(fabs(charge),5.0/2.0)/mass;
   double const_mult = a*(alpha+beta)/c_const;
   double vmag = sqrt(vpar*vpar+2.0*bmag*mu/mass);
-  double nu = 0.0;
+  nu = 0.0;
   if (vmag == 0.0) {
     return 0.0;
   } else {
-    nu = a*(alpha+beta)*pow(vmag,gamma)/(beta*pow(vmag/scaled_v0,-alpha)+alpha*pow(vmag/scaled_v0,beta));
-    return 2.0/(M_PI*c_const)*nu*vmag;
+    nu = a*(alpha+beta)*pow(vmag,gamma)/(beta*pow(vmag/scaled_v0,-alpha)+alpha*pow(vmag/scaled_v0,beta))/c_const;
+    return abs(vpar)*nu;
   }
 }
 
 static inline double 
-eval_vsqnu(double charge, double mass, 
-  double vpar, double mu, double bmag, double vnu) 
-{
-  double vmag = sqrt(vpar*vpar+2.0*bmag*mu/mass);
-  if (vmag == 0.0) {
-    return 0.0;
-  } else {
-    return vmag*sqrt(mu)*M_PI*pow(mass/(2.0*bmag),3.0/2.0)*vnu;
-  }
+eval_vsqnu(double mu, double nu) 
+{  
+  return 2*mu*nu;
 }
