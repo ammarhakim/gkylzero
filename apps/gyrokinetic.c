@@ -618,7 +618,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       gk_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
     else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
-      gk_species_bgk_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
+      gk_species_bgk_moms(app, &app->species[i], &app->species[i].bgk, fin[i]);
     }
   }
 
