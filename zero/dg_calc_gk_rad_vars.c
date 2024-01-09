@@ -80,11 +80,11 @@ void gkyl_dg_calc_gk_rad_vars_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
 
       double* vnu_at_nodes_n = gkyl_array_fetch(vnu_at_nodes, i);
       double* vsqnu_at_nodes_n = gkyl_array_fetch(vsqnu_at_nodes, i);
+      double nu;
       vnu_at_nodes_n[0] = eval_vnu(up->charge, up->mass, 
         up->a, up->alpha, up->beta, up->gamma, up->v0,
-        vpar, mu, bmag_n);
-      vsqnu_at_nodes_n[0] = eval_vsqnu(up->charge, up->mass, 
-        vpar, mu, bmag_n, vnu_at_nodes_n[0]);
+				   vpar, mu, bmag_n, nu);
+      vsqnu_at_nodes_n[0] = eval_vsqnu(mu, nu);
     }
 
     nod2mod(1, up->phase_basis, vnu_at_nodes, gkyl_array_fetch(vnu, loc_phase));
