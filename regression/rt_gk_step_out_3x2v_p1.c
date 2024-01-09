@@ -39,7 +39,7 @@ struct gk_lapd_ctx {
   int numFrames; // number of output frames
 };
 
-struct gkyl_tok_geo_inp inp = {
+struct gkyl_tok_geo_efit_inp inp = {
   // psiRZ and related inputs
   .filepath = "./efit_data/input.geqdsk",
   .rzpoly_order = 2,
@@ -55,7 +55,7 @@ struct gkyl_tok_geo_inp inp = {
   .quad_param = {  .eps = 1e-10 }
 };
 
-struct gkyl_tok_geo_geo_inp ginp = {
+struct gkyl_tok_geo_grid_inp ginp = {
   .ftype = GKYL_SOL_DN_OUT,
   .rclose = 6.2,
   .zmin = -8.3,
@@ -404,10 +404,11 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
-    .tokamak = true,
-    .tok_rz_ctx = &inp,
-
-    .tok_comp_ctx = &ginp,
+    .geometry = {
+      .geometry_id = GKYL_TOKAMAK,
+      .efit_info = &inp,
+      .grid_info = &ginp,
+    },
 
     .num_periodic_dir = 0,
     .periodic_dirs = { },

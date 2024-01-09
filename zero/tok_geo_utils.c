@@ -1,7 +1,7 @@
 #include <gkyl_tok_geo_priv.h>
 
 void
-find_endpoints(struct gkyl_tok_geo_geo_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* zmin, double* zmax, double* arc_memo, double* arc_memo_left, double* arc_memo_right){
+find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* zmin, double* zmax, double* zmin_left, double* zmin_right, double* arc_memo, double* arc_memo_left, double* arc_memo_right){
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
 
@@ -215,12 +215,38 @@ find_endpoints(struct gkyl_tok_geo_geo_inp* inp, struct gkyl_tok_geo *geo, struc
         zlo = zlo_last;
       }
     }
+    if (geo->plate_spec){ // if we dont have a fixed zmin, set based on plate func
+      double rzplate[2];
+      pctx->psi_curr = psi_curr;
+      pctx->lower=false;
+      double a = 0;
+      double b = 1;
+      double fa = plate_psi_func(a, pctx);
+      double fb = plate_psi_func(b, pctx);
+      struct gkyl_qr_res res = gkyl_ridders(plate_psi_func, pctx,
+        a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+      double smax = res.res;
+      geo->plate_func_upper(smax, rzplate);
+      *zmin_left = rzplate[1];
+
+      pctx->lower=true;
+      a = 0;
+      b = 1;
+      fa = plate_psi_func(a, pctx);
+      fb = plate_psi_func(b, pctx);
+      res = gkyl_ridders(plate_psi_func, pctx,
+        a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+      double smin = res.res;
+      geo->plate_func_lower(smin, rzplate);
+      *zmin_right = rzplate[1];
+    }
+
     // Done finding turning point
-    arcL_r = integrate_psi_contour_memo(geo, psi_curr, inp->zmin_right, *zmax, rright,
+    arcL_r = integrate_psi_contour_memo(geo, psi_curr, *zmin_right, *zmax, rright,
       true, true, arc_memo);
     arc_ctx->arcL_right = arcL_r;
     arc_ctx->right = false;
-    arcL_l = integrate_psi_contour_memo(geo, psi_curr, inp->zmin_left, *zmax, rleft,
+    arcL_l = integrate_psi_contour_memo(geo, psi_curr, *zmin_left, *zmax, rleft,
       true, true, arc_memo);
     arcL = arcL_l + arcL_r;
     arc_ctx->arcL_tot = arcL;
@@ -240,7 +266,7 @@ find_endpoints(struct gkyl_tok_geo_geo_inp* inp, struct gkyl_tok_geo *geo, struc
 
 
 void
-set_ridders(struct gkyl_tok_geo_geo_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double rright, double rleft, double* rclose, double *ridders_min, double* ridders_max){
+set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double zmin_left, double zmin_right, double rright, double rleft, double* rclose, double *ridders_min, double* ridders_max){
 
 
   if(inp->ftype==GKYL_CORE){
@@ -317,7 +343,7 @@ set_ridders(struct gkyl_tok_geo_geo_inp* inp, struct arc_length_ctx* arc_ctx, do
       arc_ctx->right = true;
       *ridders_min = -arcL_curr;
       *ridders_max = arcL-arcL_curr;
-      arc_ctx->zmin = inp->zmin_right;
+      arc_ctx->zmin = zmin_right;
       arc_ctx->zmax = zmax;
     }
     else{
@@ -325,7 +351,7 @@ set_ridders(struct gkyl_tok_geo_geo_inp* inp, struct arc_length_ctx* arc_ctx, do
       arc_ctx->right = false;
       *ridders_min = arcL - arcL_curr;
       *ridders_max = -arcL_curr + arc_ctx->arcL_right;
-      arc_ctx->zmin = inp->zmin_left;
+      arc_ctx->zmin = zmin_left;
       arc_ctx->zmax = zmax;
     }
   }

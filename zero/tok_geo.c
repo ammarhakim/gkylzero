@@ -177,7 +177,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
   int nr = R_psiZ(actx->geo, psi, Z, 4, R, dR);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
-  if (psi_fpol < actx->geo->psisep) // F = F(psi_sep) in the SOL. Convention of psi increases inward
+  if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
     psi_fpol = actx->geo->psisep;
   int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
   long loc = gkyl_range_idx(&actx->geo->frange, &idx);
@@ -200,7 +200,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
 
 
 gkyl_tok_geo*
-gkyl_tok_geo_new(const struct gkyl_tok_geo_inp *inp)
+gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
 
@@ -288,7 +288,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 {
 
   struct gkyl_tok_geo *geo = mapc2p_ctx;
-  struct gkyl_tok_geo_geo_inp *inp = bmag_ctx;
+  struct gkyl_tok_geo_grid_inp *inp = bmag_ctx;
 
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
@@ -373,12 +373,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 
           double psi_curr = phi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
           double zmin = inp->zmin, zmax = inp->zmax;
+          double zmin_left = inp->zmin_left, zmin_right = inp->zmin_left;
 
           double darcL, arcL_curr, arcL_lo;
           double arcL_l, arcL_r;
           double phi_r, phi_l;
 
-          find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, &zmin, &zmax, arc_memo, arc_memo_left, arc_memo_right);
+          find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, &zmin, &zmax, &zmin_left, &zmin_right, arc_memo, arc_memo_left, arc_memo_right);
           double arcL = arc_ctx.arcL_tot;
           darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
 
@@ -408,7 +409,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
 
-              set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, rright, rleft, &rclose, &ridders_min, &ridders_max);
+              set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, zmin_left, zmin_right, rright, rleft, &rclose, &ridders_min, &ridders_max);
 
               struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
                 arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,

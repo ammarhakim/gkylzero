@@ -63,6 +63,13 @@ enum gkyl_radiation_id {
   GKYL_GK_RADIATION, // Radiation in gyrokinetic equations.
 };
 
+// Identifiers for specific geometry types
+enum gkyl_geometry_id {
+  GKYL_TOKAMAK, // Tokamak Geometry from Efit
+  GKYL_MAPC2P, // General geometry from user provided mapc2p
+  GKYL_GEOMETRY_FROMFILE, // Geometry from file
+};
+
 // type of quadrature to use
 enum gkyl_quad_type {
   GKYL_GAUSS_QUAD = 0, // Gauss-Legendre quadrature
