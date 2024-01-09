@@ -47,6 +47,12 @@ struct gk_mirror_ctx {
     // Axial coordinate Z extents. Endure that Z=0 is not on
     double Zmin; 
     double Zmax;
+    double z_min;
+    double z_max;
+    double psi_min;
+    double psi_max;
+    double theta_min;
+    double theta_max;
     // Parameters controlling the magnetic equilibrium model.
     double mcB;
     double gamma;
@@ -92,6 +98,11 @@ struct gk_mirror_ctx {
     int numFrames;
     double psi_in;
     double z_in;
+    // For non-uniform mapping
+    double diff_dz;
+    double map_strength;
+    double map_integral_total;
+    double psi_in_diff;
 };
 
 double 
@@ -179,6 +190,36 @@ Z_psiz(double psiIn, double zIn, void *ctx) {
         Zout = gkyl_ridders(root_Z_psiz, ctx, app->Zmin - eps, eps, fl, fr, 1000, 1e-14);
     }
     return Zout.res;
+}
+
+// Non-uniform grid mapping
+double dBdz(double z, void *ctx){
+    struct gk_mirror_ctx *app = ctx;
+    double dz = app->diff_dz;
+    double psi = app->psi_in_diff;
+    double Zp = Z_psiz(psi, z+dz, ctx);
+    double Zm = Z_psiz(psi, z-dz, ctx);
+    double B_rad, B_Z, Bmag_p, Bmag_m;
+    Bfield_psiZ(psi, Zp, ctx, &B_rad, &B_Z, &Bmag_p);
+    Bfield_psiZ(psi, Zm, ctx, &B_rad, &B_Z, &Bmag_m);
+    double dBdz = (Bmag_p - Bmag_m) / (2*dz);
+    return dBdz;
+}
+
+double z_chi_psi(double chi, double psi, void *ctx){
+    struct gk_mirror_ctx *app = ctx;
+    double map_strength = app->map_strength; // 1 is full strength, 0 is no mapping
+    if (map_strength == 0.0){
+        return chi;
+    } else {
+        app->psi_in_diff = psi;
+        double z_min = z_psiZ(psi, app->Zmin, ctx);
+        double z_max = z_psiZ(psi, app->Zmax, ctx);
+        struct gkyl_qr_res integral     = gkyl_dbl_exp(dBdz, ctx, z_min, chi, 7, 1e-14);
+        struct gkyl_qr_res integral_tot = gkyl_dbl_exp(dBdz, ctx, z_min, z_max, 7, 1e-14);
+        double cord = (integral.res / integral_tot.res * z_max)*map_strength + (1-map_strength)*chi;
+        return cord;
+    }
 }
 
 // -- Source functions.
@@ -468,6 +509,12 @@ create_ctx(void)
     // the boundary of a cell (due to AD errors).
     double Zmin = -2.5;
     double Zmax = 2.5;
+    double z_min = -2.515312;
+    double z_max = 2.515312;
+    double psi_min = 0.001;
+    double psi_max = 0.003;
+    double theta_min = -M_PI;
+    double theta_max = M_PI;
 
     // Parameters controlling the magnetic equilibrium model.
     double mcB = 6.51292;
@@ -546,6 +593,12 @@ create_ctx(void)
         .RatZeq0 = RatZeq0,
         .Zmin = Zmin,
         .Zmax = Zmax,
+        .z_min = z_min,
+        .z_max = z_max,
+        .psi_min = psi_min,
+        .psi_max = psi_max, 
+        .theta_min = theta_min,
+        .theta_max = theta_max,
         .mcB = mcB,
         .gamma = gamma,
         .Z_m = Z_m,
@@ -582,6 +635,11 @@ create_ctx(void)
         .finalTime = finalTime,
         .numFrames = numFrames,
     };
+    // Mapping parameters
+    double diff_dz = 0.01;
+    double map_strength = 0.0;
+    ctx.diff_dz = diff_dz;
+    ctx.map_strength = map_strength;
     return ctx;
 }
 
@@ -698,8 +756,8 @@ main(int argc, char **argv)
         .name = "gk_mirror_3x2v_p1",
 
         .cdim = 3, .vdim = 2,
-        .lower = { 0.001, -M_PI, -2.515312 },
-        .upper = { 0.003, M_PI, 2.515312 },
+        .lower = { ctx.psi_min, ctx.theta_min, ctx.z_min },
+        .upper = { ctx.psi_max, ctx.theta_max, ctx.z_max },
         .cells = { 5, 4, ctx.numCellLineLength },
         .poly_order = ctx.poly_order,
         .basis_type = app_args.basis_type,
