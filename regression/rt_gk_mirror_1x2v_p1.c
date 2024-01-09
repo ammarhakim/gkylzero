@@ -97,9 +97,12 @@ struct gk_mirror_ctx {
 double 
 psi_RZ(double RIn, double ZIn, void *ctx){
     struct gk_mirror_ctx *app = ctx;
-    double psi = 0.5 * pow(RIn,2) * app->mcB *
-        (1. / (M_PI * app->gamma * pow(1. + ((ZIn - app->Z_m) / app->gamma) , 2)) +
-         1. / (M_PI * app->gamma * pow(1. + ((ZIn + app->Z_m) / app->gamma) , 2)));
+    double mcB = app->mcB;
+    double gamma = app->gamma;
+    double Z_m = app->Z_m;
+    double psi = 0.5 * pow(RIn,2) * mcB *
+        (1. / (M_PI * gamma * (1. + pow((ZIn - Z_m) / gamma, 2))) +
+         1. / (M_PI * gamma * (1. + pow((ZIn + Z_m) / gamma, 2))));
     return psi;
 }
 
@@ -120,8 +123,8 @@ Bfield_psiZ(double psiIn, double ZIn, void *ctx, double *BRad, double *BZ, doubl
     double gamma = app->gamma;
     double Z_m = app->Z_m;
     *BRad = -(1.0 / 2.0) * Rcoord * mcB *
-        (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3) * pow((1.0 + ((ZIn - Z_m) / gamma)), 2)) - 
-          2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3) * pow((1.0 + ((ZIn + Z_m) / gamma)), 2)));
+        (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3) * (pow(1.0 + pow((ZIn - Z_m) / gamma, 2), 2))) - 
+          2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3) * (pow(1.0 + pow((ZIn + Z_m) / gamma, 2), 2))));
     *BZ = mcB *
         (1.0 / (M_PI * gamma * (1.0 + pow((ZIn - Z_m) / gamma, 2))) + 
          1.0 / (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2))));
@@ -133,7 +136,7 @@ double integrand_z_psiZ(double ZIn, void *ctx){
     double psi = app->psi_in;
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, ZIn, ctx, &BRad, &BZ, &Bmag);
-    return Bmag/BZ;
+    return Bmag / BZ;
 }
 
 double 
@@ -166,7 +169,7 @@ Z_psiz(double psiIn, double zIn, void *ctx) {
     app->psi_in = psiIn;
     app->z_in = zIn;
     struct gkyl_qr_res Zout;
-    if (zIn <= 0.0) {
+    if (zIn >= 0.0) {
         double fl = root_Z_psiz(-eps, ctx);
         double fr = root_Z_psiz(app->Zmax + eps, ctx);
         Zout = gkyl_ridders(root_Z_psiz, ctx, -eps, app->Zmax + eps, fl, fr, 1000, 1e-14);
@@ -499,7 +502,6 @@ create_ctx(void)
     double Te_m = Te0 * sqrt(pow((1.0 - ((R_m - R_bt) / alim)), 2) * alphaIC1);
     double Ti_m = tau * Te_m;
     double cs_m = sqrt(Te_m * (1.0 + tau) / mi);
-
     
     struct gk_mirror_ctx ctx = {
         .mi = mi,
@@ -656,7 +658,7 @@ main(int argc, char **argv)
             .write_source = true,
             .ctx_density = &ctx,
             .density_profile = eval_density_ion_source,
-            .ctx_upar = &ctx,
+        .ctx_upar = &ctx,
             .upar_profile = eval_upar_ion_source,
             .ctx_temp = &ctx,
             .temp_profile = eval_temp_ion_source,

@@ -97,9 +97,12 @@ struct gk_mirror_ctx {
 double 
 psi_RZ(double RIn, double ZIn, void *ctx){
     struct gk_mirror_ctx *app = ctx;
-    double psi = 0.5 * pow(RIn,2) * app->mcB *
-        (1. / (M_PI * app->gamma * pow(1. + ((ZIn - app->Z_m) / app->gamma) , 2)) +
-         1. / (M_PI * app->gamma * pow(1. + ((ZIn + app->Z_m) / app->gamma) , 2)));
+    double mcB = app->mcB;
+    double gamma = app->gamma;
+    double Z_m = app->Z_m;
+    double psi = 0.5 * pow(RIn,2) * mcB *
+        (1. / (M_PI * gamma * (1. + pow((ZIn - Z_m) / gamma, 2))) +
+         1. / (M_PI * gamma * (1. + pow((ZIn + Z_m) / gamma, 2))));
     return psi;
 }
 
@@ -120,8 +123,8 @@ Bfield_psiZ(double psiIn, double ZIn, void *ctx, double *BRad, double *BZ, doubl
     double gamma = app->gamma;
     double Z_m = app->Z_m;
     *BRad = -(1.0 / 2.0) * Rcoord * mcB *
-        (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3) * pow((1.0 + ((ZIn - Z_m) / gamma)), 2)) - 
-          2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3) * pow((1.0 + ((ZIn + Z_m) / gamma)), 2)));
+        (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3) * (pow(1.0 + pow((ZIn - Z_m) / gamma, 2), 2))) - 
+          2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3) * (pow(1.0 + pow((ZIn + Z_m) / gamma, 2), 2))));
     *BZ = mcB *
         (1.0 / (M_PI * gamma * (1.0 + pow((ZIn - Z_m) / gamma, 2))) + 
          1.0 / (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2))));
@@ -133,7 +136,7 @@ double integrand_z_psiZ(double ZIn, void *ctx){
     double psi = app->psi_in;
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, ZIn, ctx, &BRad, &BZ, &Bmag);
-    return Bmag/BZ;
+    return Bmag / BZ;
 }
 
 double 
@@ -166,7 +169,7 @@ Z_psiz(double psiIn, double zIn, void *ctx) {
     app->psi_in = psiIn;
     app->z_in = zIn;
     struct gkyl_qr_res Zout;
-    if (zIn <= 0.0) {
+    if (zIn >= 0.0) {
         double fl = root_Z_psiz(-eps, ctx);
         double fr = root_Z_psiz(app->Zmax + eps, ctx);
         Zout = gkyl_ridders(root_Z_psiz, ctx, -eps, app->Zmax + eps, fl, fr, 1000, 1e-14);
@@ -480,10 +483,10 @@ create_ctx(void)
     double mu_max_ion = mi * pow(3 * vti, 2) / (2 * B_p);
     int NV = 20; // Number of cells in the paralell velocity direction 96
     int NMU = 20; // Number of cells in the mu direction 192
-    int numCellLineLength = 20; // Number of cells along the field line.
+    int numCellLineLength = 100; // Number of cells along the field line.
     int poly_order = 1;
-    double finalTime = 1e-10;
-    int numFrames = 2;
+    double finalTime = 1e-15;
+    int numFrames = 1;
 
     // Bananna tip info. Hardcoad to avoid dependency on ctx
     double B_bt = 1.058278;
@@ -500,7 +503,6 @@ create_ctx(void)
     double Ti_m = tau * Te_m;
     double cs_m = sqrt(Te_m * (1.0 + tau) / mi);
 
-    
     struct gk_mirror_ctx ctx = {
         .mi = mi,
         .qi = qi,
@@ -606,7 +608,7 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .init_temp = eval_temp_elc,
         .is_maxwellian = true,
-        .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ZERO_FLUX}, //Without the GK?
+        .bcx = { GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_FIXED_FUNC },
         .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
         .collisions =  {
             .collision_id = GKYL_LBO_COLLISIONS,
@@ -644,7 +646,7 @@ main(int argc, char **argv)
         .ctx_temp = &ctx,
         .init_temp = eval_temp_ion,
         .is_maxwellian = true,
-        .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ZERO_FLUX}, //Without the GK?
+        .bcx = { GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_FIXED_FUNC },
         .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
         .collisions =  {
             .collision_id = GKYL_LBO_COLLISIONS,
@@ -672,9 +674,9 @@ main(int argc, char **argv)
     struct gkyl_gyrokinetic_field field = {
         .bmag_fac = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
         .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
-        .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC, GKYL_POISSON_NEUMANN}, // Not sure
-                        .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC, GKYL_POISSON_NEUMANN}, 
-                        .lo_value = {0.0, 0.0, 0.0}, .up_value = {0.0, 0.0, 0.0}}, 
+        .poisson_bcs = {.lo_type = {GKYL_POISSON_NEUMANN, GKYL_POISSON_PERIODIC}, // Not sure
+                        .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
+                        .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
         // .evolve = false,
     };
 
@@ -683,9 +685,9 @@ main(int argc, char **argv)
         .name = "gk_mirror_3x2v_p1",
 
         .cdim = 3, .vdim = 2,
-        .lower = { 0.05, -M_PI, -2.515312 },
-        .upper = { 0.2, M_PI, 2.515312 },
-        .cells = { 20, 20, ctx.numCellLineLength },
+        .lower = { 0.001, -M_PI, -2.515312 },
+        .upper = { 0.003, M_PI, 2.515312 },
+        .cells = { 5, 4, ctx.numCellLineLength },
         .poly_order = ctx.poly_order,
         .basis_type = app_args.basis_type,
 
