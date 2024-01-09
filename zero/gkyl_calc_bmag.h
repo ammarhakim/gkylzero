@@ -19,7 +19,7 @@ typedef struct bmag_ctx bmag_ctx;
  */
 gkyl_calc_bmag* 
 gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_basis *fbasis,
-  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const struct gkyl_rect_grid *fgrid, const gkyl_tok_geo *app, const struct gkyl_tok_geo_geo_inp *ginp, double psisep, bool use_gpu);
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const struct gkyl_rect_grid *fgrid, const gkyl_tok_geo *app, const struct gkyl_tok_geo_grid_inp *ginp, double psisep, bool use_gpu);
 
 
 /**

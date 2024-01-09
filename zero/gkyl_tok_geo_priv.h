@@ -356,11 +356,11 @@ double plate_psi_func(double s, void *ctx);
 /*
  * Used to set zmin and zmax and attributes of arc_ctx before looping over arc length
 */
-void find_endpoints(struct gkyl_tok_geo_geo_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* zmin, double* zmax, double* zmin_left, double* zmin_right, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
+void find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* zmin, double* zmax, double* zmin_left, double* zmin_right, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
 
 
 /*
  * Used to set arc_ctx attributes before using ridders to find z
 */
-void set_ridders(struct gkyl_tok_geo_geo_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double zmin_left, double zmin_right, double rright, double rleft, double* rclose, double *ridders_min, double* ridders_max);
+void set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double zmin_left, double zmin_right, double rright, double rleft, double* rclose, double *ridders_min, double* ridders_max);
 

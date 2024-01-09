@@ -27,7 +27,7 @@ test_deep_core()
   start = clock();
 
 
-  struct gkyl_tok_geo_inp inp = {
+  struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
       .filepath = "./efit_data/cerfon.geqdsk",
       .rzpoly_order = 2,
@@ -58,7 +58,7 @@ test_deep_core()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
 
-  struct gkyl_tok_geo_geo_inp ginp = {
+  struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_CORE,
     .rclose = 6.0,
     .rleft= 0.25,
@@ -88,7 +88,7 @@ test_boundary()
   start = clock();
 
 
-  struct gkyl_tok_geo_inp inp = {
+  struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
       .filepath = "./efit_data/cerfon.geqdsk",
       .rzpoly_order = 2,
@@ -119,7 +119,7 @@ test_boundary()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
 
-  struct gkyl_tok_geo_geo_inp ginp = {
+  struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_CORE,
     .rclose = 6.0,
     .rleft= 0.25,
@@ -150,7 +150,7 @@ test_outboard()
 
 
 
-  struct gkyl_tok_geo_inp inp = {
+  struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
       .filepath = "./efit_data/cerfon.geqdsk",
       .rzpoly_order = 2,
@@ -175,7 +175,7 @@ test_outboard()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_geo_inp ginp = {
+  struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.0,
     .zmin = -5.8,

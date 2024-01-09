@@ -86,7 +86,7 @@ test_fixed_z()
 
 
 
-  struct gkyl_tok_geo_inp inp = {
+  struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
       .filepath = "./efit_data/asdex.geqdsk",
       .rzpoly_order = 2,
@@ -96,7 +96,7 @@ test_fixed_z()
     };
 
   double clower[] = { 0.16, -0.01, -3.14 };
-  double cupper[] = {0.17, 0.01, 3.14 };
+  double cupper[] = {0.17501, 0.01, 3.14 };
 
   int ccells[] = { 1, 1, 32 };
 
@@ -111,7 +111,7 @@ test_fixed_z()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_geo_inp ginp = {
+  struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_SN_LO,
     .rclose = 2.5,
     .rright = 2.5,
@@ -141,7 +141,7 @@ test_shaped_plate()
 
 
 
-  struct gkyl_tok_geo_inp inp = {
+  struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
       .filepath = "./efit_data/asdex.geqdsk",
       .rzpoly_order = 2,
@@ -153,7 +153,7 @@ test_shaped_plate()
     };
 
   double clower[] = { 0.16, -0.01, -3.14 };
-  double cupper[] = {0.17, 0.01, 3.14 };
+  double cupper[] = {0.17501, 0.01, 3.14 };
 
   int ccells[] = { 1, 1, 32 };
 
@@ -168,7 +168,7 @@ test_shaped_plate()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
-  struct gkyl_tok_geo_geo_inp ginp = {
+  struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_SN_LO,
     .rclose = 2.5,
     .rright = 2.5,
@@ -178,7 +178,7 @@ test_shaped_plate()
     .zmin_left = -1.3,
     .zmin_right = -1.3,
     .write_node_coord_array = true,
-    .node_file_nm = "asdex_fixed_z_nodes.gkyl"
+    .node_file_nm = "asdex_shaped_plate_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 

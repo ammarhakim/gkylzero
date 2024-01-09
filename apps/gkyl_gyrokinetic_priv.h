@@ -382,19 +382,6 @@ struct gkyl_gyrokinetic_app {
   
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
 
-  bool has_mapc2p; // flag to indicate if we have mapc2p
-  bool tokamak; // flag to indicate if it is a tokamak geometry
-  bool geo_fromfile; // flag to indicate if we should just read the geometry
-  void *c2p_ctx; // context for mapc2p function
-  // pointer to mapc2p function
-  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
-  void *bmag_ctx; // context for bmag function
-  // pointer to bmag function
-  void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
-
-  void *tok_rz_ctx; // context with RZ data such as efit file for a tokamak
-  void *tok_comp_ctx; // context for tokamak geometry with computational domain info
-
   // pointers to basis on device (these point to host structs if not
   // on GPU)
   struct {

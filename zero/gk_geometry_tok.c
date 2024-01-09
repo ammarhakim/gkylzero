@@ -84,8 +84,8 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
 
-  const struct gkyl_tok_geo_inp *inp = tok_rz_ctx;
-  struct gkyl_tok_geo_geo_inp *ginp = tok_comp_ctx;
+  const struct gkyl_tok_geo_efit_inp *inp = tok_rz_ctx;
+  struct gkyl_tok_geo_grid_inp *ginp = tok_comp_ctx;
   ginp->cgrid = up->grid;
   ginp->cbasis = up->basis;
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(inp);
