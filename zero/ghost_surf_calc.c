@@ -28,7 +28,8 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
     cupper_idx[d] = phase_rng->upper[d];
   }
 
-  for (int dir=0; dir<gcalc->cdim; ++dir) {
+  for (int d=0; d<gcalc->num_up_dirs; ++d) {
+    int dir = gcalc->update_dirs[d];
     // Ghost surf at lower boundary.
     clower_idx[dir] = phase_rng->lower[dir];
     cupper_idx[dir] = phase_rng->lower[dir];
@@ -83,7 +84,8 @@ gkyl_ghost_surf_calc_advance(gkyl_ghost_surf_calc *gcalc,
 
 gkyl_ghost_surf_calc*
 gkyl_ghost_surf_calc_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_dg_eqn *equation, int cdim, bool use_gpu)
+  const struct gkyl_dg_eqn *equation, int num_up_dirs,
+  int update_dirs[GKYL_MAX_DIM], bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -93,7 +95,10 @@ gkyl_ghost_surf_calc_new(const struct gkyl_rect_grid *grid,
   gkyl_ghost_surf_calc *up = gkyl_malloc(sizeof(gkyl_ghost_surf_calc));
   up->grid = *grid;
   up->equation = gkyl_dg_eqn_acquire(equation);
-  up->cdim = cdim;
+  up->num_up_dirs = num_up_dirs;
+
+  for (int i=0; i<num_up_dirs; ++i)
+    up->update_dirs[i] = update_dirs[i];
   
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
