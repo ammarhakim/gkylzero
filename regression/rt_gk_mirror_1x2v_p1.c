@@ -274,12 +274,12 @@ eval_density_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
-    if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->n0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC0/2);
+    if (fabs(Z) <= app->Z_bt) {
+        fout[0] = app->n0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC0/2);
     } else if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->n0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC1/2);
+        fout[0] = app->n0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC1/2);
     } else {
-        fout[0] = app->n_m * sqrt(Bmag / app->B_m); // Need n_m or something. Not the same
+        fout[0] = app->n_m * sqrt(Bmag / app->B_m);
     }
 }
 
@@ -288,7 +288,13 @@ eval_upar_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[0];
-    fout[0] = app->c_s * (z / app->z_m);
+    if (fabs(z) <= app->z_m) {
+        fout[0] = 0.0;
+    } else if( z > app->z_m) {
+        fout[0] = app->cs_m * (z - app->z_m);
+    } else {
+        fout[0] = app->cs_m * (z + app->z_m);
+    }
 }
 
 void
@@ -301,10 +307,10 @@ eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
-    if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->Te0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC0/2);
+    if (fabs(Z) <= app->Z_bt) {
+        fout[0] = app->Te0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC0/2);
     } else if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->Te0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC1/2);
+        fout[0] = app->Te0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC1/2);
     } else {
         fout[0] = app->Te_m * sqrt(Bmag / app->B_m);
     }
@@ -321,12 +327,12 @@ eval_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
-    if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->n0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC0/2);
+    if (fabs(Z) <= app->Z_bt) {
+        fout[0] = app->n0 * pow(1.0 - pow((R - app->R_bt) / app->alim, 2) , app->alphaIC0/2);
     } else if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->n0 * pow(1.0 - pow((R - app->RatZeq0) / app->alim, 2) , app->alphaIC1/2);
+        fout[0] = app->n0 * pow(1.0 - pow((R - app->R_bt) / app->alim, 2) , app->alphaIC1/2);
     } else {
-        fout[0] = app->n_m * sqrt(Bmag / app->B_m); // Need n_m
+        fout[0] = app->n_m * sqrt(Bmag / app->B_m);
     }
 }
 
@@ -335,7 +341,13 @@ eval_upar_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[0];
-    fout[0] = app->c_s * (z / app->z_m);
+    if (fabs(z) <= app->z_m) {
+        fout[0] = 0.0;
+    } else if( z > app->z_m) {
+        fout[0] = app->cs_m * (z - app->z_m);//* (z -  / app->z_m);
+    } else {
+        fout[0] = app->cs_m * (z + app->z_m);//* (z + app->z_m) / app->z_m;
+    }
 }
 
 void
@@ -348,12 +360,12 @@ eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
-    if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->Ti0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC0/2);
+    if (fabs(Z) <= app->Z_bt) {
+        fout[0] = app->Ti0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC0/2);
     } else if (fabs(Z) <= app->Z_m) {
-        fout[0] = app->Ti0 * pow((1.0 - pow((R - app->RatZeq0) / app->alim, 2)) , app->alphaIC1/2);
+        fout[0] = app->Ti0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)) , app->alphaIC1/2);
     } else {
-        fout[0] = app->Ti_m * sqrt(Bmag / app->B_m); // Not the same. Need Ti_m
+        fout[0] = app->Ti_m * sqrt(Bmag / app->B_m);
     }
 }
 
@@ -393,7 +405,7 @@ void
 bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xc[0];
+    double z = xc[2];
     double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
     double Z = Z_psiz(psi, z, ctx);
     double BRad, BZ, Bmag;
@@ -419,7 +431,7 @@ create_ctx(void)
     double n0 = 3e19;
     double B_p = 0.53;
     double beta = 0.4;
-    double tau = pow(B_p,2) * beta / (2.0 * mu0 * n0 * mi) - 1;
+    double tau = pow(B_p,2) * beta / (2.0 * mu0 * n0 * Te0) - 1;
     double Ti0 = tau * Te0;
     double kperpRhos = 0.1;
 
@@ -482,12 +494,12 @@ create_ctx(void)
     double mu_max_elc = me * pow(3 * vte, 2) / (2 * B_p);
     double vpar_max_ion = 3.75 * vti;
     double mu_max_ion = mi * pow(3 * vti, 2) / (2 * B_p);
-    int NV = 96; // Number of cells in the paralell velocity direction
-    int NMU = 192; // Number of cells in the mu direction
-    int numCellLineLength = 288; // Number of cells along the field line.
+    int NV = 20; // Number of cells in the paralell velocity direction (should be 96)
+    int NMU = 20; // Number of cells in the mu direction (should be 192)
+    int numCellLineLength = 100; // Number of cells along the field line.
     int poly_order = 1;
     double finalTime = 1e-10;
-    int numFrames = 2;
+    int numFrames = 1;
 
     // Bananna tip info. Hardcoad to avoid dependency on ctx
     double B_bt = 1.058278;
@@ -498,11 +510,12 @@ create_ctx(void)
     double B_m = 16.662396;
     double z_m = 0.982544;
 
+
     // Physics parameters at mirror throat
-    double n_m = n0 * sqrt(pow((1.0 - ((R_m - R_bt) / alim)), 2) * alphaIC1);
-    double Te_m = Te0 * sqrt(pow((1.0 - ((R_m - R_bt) / alim)), 2) * alphaIC1);
-    double Ti_m = tau * Te_m;
-    double cs_m = sqrt(Te_m * (1.0 + tau) / mi);
+    double n_m = 1.105617e19;
+    double Te_m = 346.426583*eV;
+    double Ti_m = 3081.437703*eV;
+    double cs_m = 4.037740e5;
     
     struct gk_mirror_ctx ctx = {
         .mi = mi,
@@ -694,6 +707,7 @@ main(int argc, char **argv)
         //There should be a world in here
         .geometry = {
           .geometry_id = GKYL_MAPC2P,
+          .world = {0.0026530898059565, 0.0},
           .mapc2p = mapc2p, // mapping of computational to physical space
           .c2p_ctx = &ctx,
           .bmag_func = bmag_func, // magnetic field magnitude

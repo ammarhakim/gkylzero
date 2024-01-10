@@ -247,6 +247,10 @@ gkyl_gk_geometry_mapc2p_new(const struct gkyl_rect_grid* grid, const struct gkyl
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->gxyj,  "gxyj.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->gyyj,  "gyyj.gkyl");
 
+  gkyl_array_release(mc2p_nodal_fd);
+  gkyl_array_release(mc2p_nodal);
+  gkyl_array_release(mc2p);
+
   return up;
 }
 

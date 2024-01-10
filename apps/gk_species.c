@@ -347,8 +347,10 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
-  gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f);
-  gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f);
+  if (app->cdim>1) {
+    gkyl_bc_basic_buffer_fixed_func(species->bc_lo[0], species->bc_buffer_lo_fixed, species->f);
+    gkyl_bc_basic_buffer_fixed_func(species->bc_up[0], species->bc_buffer_up_fixed, species->f);
+  }
 }
 
 // Compute the RHS for species update, returning maximum stable
@@ -524,8 +526,10 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
-  gkyl_array_release(s->bc_buffer_lo_fixed);
-  gkyl_array_release(s->bc_buffer_up_fixed);
+  if (app->cdim > 1) {
+    gkyl_array_release(s->bc_buffer_lo_fixed);
+    gkyl_array_release(s->bc_buffer_up_fixed);
+  }
 
   gkyl_comm_release(s->comm);
 

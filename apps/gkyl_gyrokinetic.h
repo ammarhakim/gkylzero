@@ -82,6 +82,8 @@ struct gkyl_gyrokinetic_geometry {
 
   struct gkyl_tok_geo_efit_inp *efit_info; // context with RZ data such as efit file for a tokamak
   struct gkyl_tok_geo_grid_inp *grid_info; // context for tokamak geometry with computational domain info
+
+  double world[3]; // extra computational coordinates for cases with reduced dimensionality
 };
 
 // Parameters for species radiation
