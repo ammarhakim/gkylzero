@@ -105,6 +105,8 @@ struct gk_mirror_ctx {
     double psi_in_diff;
     double delta_y;
     double y_max;
+    int mapping_order;
+    double mapping_frac;
 };
 
 double 
@@ -195,74 +197,35 @@ Z_psiz(double psiIn, double zIn, void *ctx) {
 }
 
 // Non-uniform grid mapping
-double dBdz(double z, void *ctx){
+double
+z_xi(double xi, void *ctx){
     struct gk_mirror_ctx *app = ctx;
-    double dz = app->diff_dz;
-    double psi = app->psi_in_diff;
-    double Zp = Z_psiz(psi, z+dz, ctx);
-    double Zm = Z_psiz(psi, z-dz, ctx);
-    double B_rad, B_Z, Bmag_p, Bmag_m;
-    Bfield_psiZ(psi, Zp, ctx, &B_rad, &B_Z, &Bmag_p);
-    Bfield_psiZ(psi, Zm, ctx, &B_rad, &B_Z, &Bmag_m);
-    double dBdz = (Bmag_p - Bmag_m) / (2*dz);
-    return fabs(dBdz);
-}
-
-double z_xi(double chi, void *ctx){
-    struct gk_mirror_ctx *app = ctx;
-    double map_strength = app->map_strength; // 1 is full strength, 0 is no mapping
-    if (map_strength == 0.0){
-        return chi;
-    } else {
-        double psi = app->psi_in_diff;
-        double z_min = app->z_min;
-        double z_max = app->z_max;;
-        if (chi <= z_min || chi >= z_max){
-            return chi;
+    double z_min = app->z_min;
+    double z_max = app->z_max;
+    double z_m = app->z_m;
+    int n = app->mapping_order;
+    double frac = app->mapping_frac; // 1 is full mapping, 0 is no mapping
+    double z, left, right;
+    if (xi >= z_min && xi <= z_max) {
+        if (xi <= -z_m) {
+            left = -z_m;
+            right = z_min;
+        } else if (xi <= 0.0) {
+            left = -z_m;
+            right = 0.0;
+        } else if (xi <= z_m) {
+            left = z_m;
+            right = 0.0;
         } else {
-            struct gkyl_qr_res integral = gkyl_dbl_exp(dBdz, ctx, z_min, chi, 7, 1e-14);
-            // printf("integral: %f\n", integral.res);
-            // printf("map_integral_total: %f\n", app->map_integral_total);
-            double coord = (integral.res / app->map_integral_total * (z_max - z_min) + z_min) * map_strength + (1-map_strength)*chi;
-            // printf("chi: %f, coord: %f\n", chi, coord);
-            return coord;
+            left = z_m;
+            right = z_max;
         }
+        z = (pow(right-left, 1-n) * pow(xi-left, n) + left)*frac + xi*(1-frac);
+    } else {
+        z = xi;
     }
+    return z;
 }
-
-// double
-// z_xi(double xi, void *ctx){
-//     struct gk_mirror_ctx *app = ctx;
-//     double z_min = app->z_min;
-//     double z_max = app->z_max;
-//     double z_m = app->z_m;
-//     double delta_y = app->delta_y;
-//     double y_max = app->y_max;
-//     double a = -delta_y / (-z_min - z_m) * (z_m * z_m / 2 + z_min * z_m) - y_max * z_m + delta_y / (-z_min - z_m) *
-//                       (-(z_min * z_min) / 2) - y_max * z_min;
-//     double b = -delta_y / z_m * z_m * z_m / 2 + y_max * z_m;
-//     double c = (-delta_y / z_m) * z_m * z_m / 2 + y_max * z_m;
-//     double d = (delta_y / (z_max - z_m)) * (z_max * z_max / 2 - z_max * z_max) + y_max * z_max - (delta_y / (z_max - z_m)) *
-//                       (z_m * z_m / 2 - z_m * z_max) - y_max * z_m;
-//     double z, unnormalized_z;
-//     if (xi >= z_min && xi <= z_max) {
-//         if (xi <= -z_m) {
-//             z = -delta_y / (-z_min - z_m) * (xi * xi / 2 - z_min * xi) + y_max * xi + delta_y / (-z_min - z_m) *
-//                     (-(z_min * z_min) / 2) - y_max * z_min;
-//         } else if (xi <= 0.0) {
-//             z = (delta_y / z_m) * xi * xi / 2 + y_max * xi - delta_y / z_m * z_m * z_m / 2 + y_max * z_m + a;
-//         } else if (xi <= z_m) {
-//             z = (-delta_y / z_m) * xi * xi / 2 + y_max * xi + a + b;
-//         } else {
-//             z = (delta_y / (z_max - z_m)) * (xi * xi / 2 - xi * z_max) + y_max * xi - (delta_y / (z_max - z_m)) *
-//                     (z_m * z_m / 2 - z_m * z_max) - y_max * z_m + a + b + c;
-//         }
-//         unnormalized_z = (z / (a + b + c + d)) * (z_max - z_min) + z_min;
-//     } else {
-//         unnormalized_z = xi;
-//     }
-//     return unnormalized_z;
-// }
 
 // -- Source functions.
 void
@@ -602,7 +565,6 @@ create_ctx(void)
     double B_m = 16.662396;
     double z_m = 0.982544;
     
-
     // Physics parameters at mirror throat
     double n_m = 1.105617e19;
     double Te_m = 346.426583*eV;
@@ -684,13 +646,9 @@ create_ctx(void)
         .num_frames = num_frames,
         .delta_y = delta_y,
         .y_max = y_max,
+        .mapping_order = 4, // Order of the polynomial to fit through points for mapc2p
+        .mapping_frac = 0.5, // 1 is full mapping, 0 is no mapping
     };
-    ctx.psi_in_diff = 0.0026;
-    ctx.diff_dz = 1e-6;
-    ctx.map_strength = 1.0;
-    struct gkyl_qr_res integral_tot = gkyl_dbl_exp(dBdz, &ctx, z_min, z_max, 7, 1e-14); //65.458637
-    // printf("integral_tot: %f\n", integral_tot.res);
-    ctx.map_integral_total = integral_tot.res;
     return ctx;
 }
 
