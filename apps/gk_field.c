@@ -183,15 +183,14 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
 {
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-    // Only compute the total ion flux
-    if (s->info.charge > 0.0) {
-      gk_species_bflux_rhs(app, s, &s->bflux, fin[i], rhs[i]);
-    }
+
+    gk_species_bflux_rhs(app, s, &s->bflux, fin[i], rhs[i]);
+
     // Assumes symmetric sheath BCs for now only in 1D
-    gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, -1, 
+    gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
       &app->lower_skin[0], &app->lower_ghost[0], app->gk_geom->jacobgeo, 
       s->bflux.gammai[0].marr, field->rho_c, field->sheath_vals[0]);
-    gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, 1, 
+    gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
       &app->upper_skin[0], &app->upper_ghost[0], app->gk_geom->jacobgeo, 
       s->bflux.gammai[1].marr, field->rho_c, field->sheath_vals[1]);
   } 

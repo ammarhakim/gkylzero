@@ -375,9 +375,15 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
 
   // Compute electrostatic potential at desired output time
   const struct gkyl_array *fin[app->num_species];
-  for (int i=0; i<app->num_species; ++i) 
+  struct gkyl_array *fout[app->num_species];
+  for (int i=0; i<app->num_species; ++i) {
     fin[i] = app->species[i].f;
+    fout[i] = app->species[i].f1;
+  }
   gk_field_accumulate_rho_c(app, app->field, fin);
+  if (app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+    gk_field_calc_ambi_pot_sheath_vals(app, app->field, fin, fout);
+  }
   gk_field_rhs(app, app->field);
 
   if (app->use_gpu) {
