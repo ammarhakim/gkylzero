@@ -24,7 +24,6 @@ struct gk_mirror_ctx {
     double beta;
     double tau;
     double Ti0; 
-double kperpRhos;
     // Parameters controlling initial conditions.
     double alim;
     double alphaIC0;
@@ -40,22 +39,18 @@ double kperpRhos;
     // Gyrofrequencies and gyroradii.
     double omega_ci;
     double rho_s;
-double kperp; // Perpendicular wavenumber in SI units.
     double RatZeq0; // Radius of the field line at Z=0.
     // Axial coordinate Z extents. Endure that Z=0 is not on
     double Z_min; 
     double Z_max;
     double z_min;
     double z_max;
-    double psi_min;
-    double psi_max;
-    double theta_min;
-    double theta_max;
-    // Parameters controlling the magnetic equilibrium model.
+    double psi_eval;
+    // Magnetic equilibrium model.
     double mcB;
     double gamma;
     double Z_m;
-            // Bananna tip info. Hardcoad to avoid dependency on ctx
+    // Bananna tip info. Hardcoad to avoid dependency on ctx
     double B_bt;
     double R_bt;
     double Z_bt;
@@ -63,7 +58,6 @@ double kperp; // Perpendicular wavenumber in SI units.
     double R_m;
     double B_m;
     double z_m;
-
     // Physics parameters at mirror throat
     double n_m;
     double Ti_m;
@@ -76,14 +70,12 @@ double kperp; // Perpendicular wavenumber in SI units.
     double TSrc0Ion;
     double TSrcFloorIon;
     // Grid parameters
-double vpar_max_elc;
+    double vpar_max_elc;
     double mu_max_elc;
     double vpar_max_ion;
     double mu_max_ion;
     int num_cell_vpar;
     int num_cell_mu;
-    int num_cell_psi;
-    int num_cell_theta;
     int num_cell_z;
     int poly_order;
     double final_time;
@@ -91,12 +83,6 @@ double vpar_max_elc;
     double psi_in;
     double z_in;
 // For non-uniform mapping
-    double diff_dz;
-    double map_strength;
-    double map_integral_total;
-    double psi_in_diff;
-    double delta_y;
-    double y_max;
     int mapping_order;
     double mapping_frac;
 };
@@ -190,7 +176,7 @@ Z_psiz(double psiIn, double zIn, void *ctx) {
 
 // Non-uniform grid mapping
 double
-z_xi(double xi, void *ctx){
+z_xi(double xi, double psi, void *ctx){
     struct gk_mirror_ctx *app = ctx;
     double z_min = app->z_min;
     double z_max = app->z_max;
@@ -224,8 +210,8 @@ void
 eval_density_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xn[0];
     double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double z = z_xi(xn[0], psi, ctx);
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
     double NSrc = app->NSrcIon;
     double zSrc = app->lineLengthSrcIon;
@@ -249,7 +235,8 @@ void
 eval_temp_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xn[0];
+    double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double z = z_xi(xn[0], psi, ctx);
     double sigSrc = app->sigSrcIon;
     double TSrc0 = app->TSrc0Ion;
     double Tfloor = app->TSrcFloorIon;
@@ -265,8 +252,8 @@ void
 eval_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xn[0];
     double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double z = z_xi(xn[0], psi, ctx);
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
@@ -284,7 +271,8 @@ void
 eval_upar_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xn[0];
+    double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double z = z_xi(xn[0], psi, ctx);
     if (fabs(z) <= app->z_m) {
         fout[0] = 0.0;
     } else if( z > app->z_m) {
@@ -298,8 +286,8 @@ void
 eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xn[0];
     double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double z = z_xi(xn[0], psi, ctx);
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
@@ -326,7 +314,7 @@ mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
     double psi = xc[0];
     double theta = xc[1];
-    double z = xc[2];
+    double z = z_xi(xc[2], xc[0], ctx);
 
     double Z = Z_psiz(psi, z, ctx);
     double R = R_psiZ(psi, Z, ctx);
@@ -341,7 +329,7 @@ void
 bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xc[2];
+    double z = z_xi(xc[2], xc[0], ctx);
     double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
     double Z = Z_psiz(psi, z, ctx);
     double BRad, BZ, Bmag;
@@ -369,7 +357,6 @@ create_ctx(void)
     double beta = 0.4;
     double tau = pow(B_p,2) * beta / (2.0 * mu0 * n0 * Te0) - 1;
     double Ti0 = tau * Te0;
-    double kperpRhos = 0.1;
 
     // Parameters controlling initial conditions.
     double alim = 0.125;
@@ -392,20 +379,15 @@ create_ctx(void)
     double rho_s = c_s / omega_ci;
 
     // Perpendicular wavenumber in SI units:
-    double kperp = kperpRhos / rho_s;
-
     // Geometry parameters.
     double RatZeq0 = 0.10; // Radius of the field line at Z=0.
     // Axial coordinate Z extents. Endure that Z=0 is not on
     // the boundary of a cell (due to AD errors).
     double Z_min = -2.5;
     double Z_max = 2.5;
-double z_min = -2.515312;
+    double z_min = -2.515312;
     double z_max = 2.515312;
-    double psi_min = 0.001;
-    double psi_max = 0.003;
-    double theta_min = -M_PI;
-    double theta_max = M_PI;
+    double psi_eval = 0.0026530898059565;
 
     // Parameters controlling the magnetic equilibrium model.
     double mcB = 6.51292;
@@ -421,21 +403,16 @@ double z_min = -2.515312;
     double TSrcFloorIon = TSrc0Ion / 8.0;
 
     // Grid parameters
-double vpar_max_elc = 3.75 * vte;
+    double vpar_max_elc = 3.75 * vte;
     double mu_max_elc = me * pow(3 * vte, 2) / (2 * B_p);
     double vpar_max_ion = 3.75 * vti;
     double mu_max_ion = mi * pow(3 * vti, 2) / (2 * B_p);
     int num_cell_vpar = 20; // Number of cells in the paralell velocity direction 96
     int num_cell_mu = 20; // Number of cells in the mu direction 192
-    int num_cell_psi = 5;
-    int num_cell_theta = 4;
     int num_cell_z = 42;
     int poly_order = 1;
-    double final_time = 1e-10;
+    double final_time = 1e-9;
     int num_frames = 1;
-
-    double delta_y = 1;
-    double y_max = 1;
 
     // Bananna tip info. Hardcoad to avoid dependency on ctx
     double B_bt = 1.058278;
@@ -445,7 +422,6 @@ double vpar_max_elc = 3.75 * vte;
     double R_m = 0.017845;
     double B_m = 16.662396;
     double z_m = 0.982544;
-
 
     // Physics parameters at mirror throat
     double n_m = 1.105617e19;
@@ -463,7 +439,6 @@ double vpar_max_elc = 3.75 * vte;
         .beta = beta,
         .tau = tau,
         .Ti0 = Ti0,
-.kperpRhos = kperpRhos,
         .alim = alim,
         .alphaIC0 = alphaIC0,
         .alphaIC1 = alphaIC1,
@@ -475,19 +450,13 @@ double vpar_max_elc = 3.75 * vte;
         .c_s = c_s,
         .omega_ci = omega_ci,
         .rho_s = rho_s,
-        .kperp = kperp,
-        .num_cell_psi = num_cell_psi,
-        .num_cell_theta = num_cell_theta,
         .num_cell_z = num_cell_z,
         .RatZeq0 = RatZeq0,
         .Z_min = Z_min,
         .Z_max = Z_max,
         .z_min = z_min,
         .z_max = z_max,
-        .psi_min = psi_min,
-        .psi_max = psi_max, 
-        .theta_min = theta_min,
-        .theta_max = theta_max,
+        .psi_eval = psi_eval,
         .mcB = mcB,
         .gamma = gamma,
         .Z_m = Z_m,
@@ -514,10 +483,8 @@ double vpar_max_elc = 3.75 * vte;
         .poly_order = poly_order,
         .final_time = final_time,
         .num_frames = num_frames,
-.delta_y = delta_y,
-        .y_max = y_max,
         .mapping_order = 4, // Order of the polynomial to fit through points for mapc2p
-        .mapping_frac = 0.5, // 1 is full mapping, 0 is no mapping
+        .mapping_frac = 0.0, // 1 is full mapping, 0 is no mapping
     };
     return ctx;
 }
@@ -593,16 +560,16 @@ main(int argc, char **argv)
         .name = "gk_mirror_adiabatic_elc_1x2v_p1",
 
         .cdim = 1, .vdim = 2,
-        .lower = { -2.515312 },
-        .upper = { 2.515312 },
-        .cells = { ctx.num_cell_psi, ctx.num_cell_theta, ctx.num_cell_z },
+        .lower = { ctx.z_min },
+        .upper = { ctx.z_max },
+        .cells = { ctx.num_cell_z },
         .poly_order = ctx.poly_order,
         .basis_type = app_args.basis_type,
 
         //There should be a world in here
         .geometry = {
           .geometry_id = GKYL_MAPC2P,
-          .world = {0.0026530898059565, 0.0},
+          .world = {ctx.psi_eval, 0.0},
           .mapc2p = mapc2p, // mapping of computational to physical space
           .c2p_ctx = &ctx,
           .bmag_func = bmag_func, // magnetic field magnitude
