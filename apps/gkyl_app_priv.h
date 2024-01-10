@@ -2,6 +2,7 @@
 // in any public facing header!
 #pragma once
 
+#include "gkyl_gyrokinetic.h"
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_comm.h>
@@ -63,4 +64,43 @@ skin_ghost_ranges_init(struct app_skin_ghost_ranges *sgr,
     gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
       d, GKYL_UPPER_EDGE, parent, ghost);
   }
+}
+
+
+static struct gkyl_rect_grid agument_grid(struct gkyl_rect_grid grid, struct gkyl_gyrokinetic_geometry geometry)
+{
+  struct gkyl_rect_grid augmented_grid;
+  int cells[3];
+  double lower[3];
+  double upper[3];
+
+  if (grid.ndim==1) {
+    cells[0] = 1;
+    cells[1] = 1;
+    cells[2] = grid.cells[0];
+
+    lower[0] = geometry.world[0] - 1e-3;
+    lower[1] = geometry.world[1] - 1e-3;
+    lower[2] = grid.lower[0];
+
+    upper[0] = geometry.world[0] + 1e-3;
+    upper[1] = geometry.world[1] + 1e-3;
+    upper[2] = grid.upper[0];
+  }
+  else if (grid.ndim==2) {
+    cells[0] = grid.cells[0];
+    cells[1] = 1;
+    cells[2] = grid.cells[1];
+
+    lower[0] = grid.lower[0];
+    lower[1] = geometry.world[0] - 1e-3;
+    lower[2] = grid.lower[1];
+
+    upper[0] = grid.upper[0] + 1e-3;
+    upper[1] = geometry.world[0] + 1e-3;
+    upper[2] = grid.upper[1];
+  }
+
+  gkyl_rect_grid_init(&augmented_grid, 3, lower, upper, cells);
+  return augmented_grid;
 }

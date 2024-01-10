@@ -29,8 +29,6 @@ gkyl_gk_geometry_fromfile_new(const struct gkyl_rect_grid* grid, const struct gk
   up->range_ext = *range_ext;
   up->grid = *grid;
 
-  struct gkyl_array* mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
-
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
@@ -49,7 +47,6 @@ gkyl_gk_geometry_fromfile_new(const struct gkyl_rect_grid* grid, const struct gk
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
 
 
-  gkyl_grid_sub_array_read(&up->grid, &up->range, mc2p, "mapc2p.gkyl");
   gkyl_grid_sub_array_read(&up->grid, &up->range, up->bmag, "bmag.gkyl");
   gkyl_grid_sub_array_read(&up->grid, &up->range, up->g_ij, "g_ij.gkyl");
   gkyl_grid_sub_array_read(&up->grid, &up->range, up->dxdz, "dxdz.gkyl");
@@ -65,7 +62,6 @@ gkyl_gk_geometry_fromfile_new(const struct gkyl_rect_grid* grid, const struct gk
   gkyl_grid_sub_array_read(&up->grid, &up->range, up->gxxj, "gxxj.gkyl");
   gkyl_grid_sub_array_read(&up->grid, &up->range, up->gxyj,  "gxyj.gkyl");
   gkyl_grid_sub_array_read(&up->grid, &up->range, up->gyyj,  "gyyj.gkyl");
-
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);

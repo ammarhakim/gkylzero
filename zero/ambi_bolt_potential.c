@@ -60,7 +60,7 @@ void gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, e
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(up->ndim, iter.idx, idx_s);
     // Assume only 1 ghost cell on either side along the field line.
-    idx_s[up->ndim-1] = edge == GKYL_LOWER_EDGE? iter.idx[up->ndim-1]+1 : iter.idx[up->ndim-1]-1;
+    idx_s[up->ndim-1] = edge == GKYL_LOWER_EDGE ? iter.idx[up->ndim-1]+1 : iter.idx[up->ndim-1]-1;
 
     long ghost_loc = gkyl_range_idx(ghost_r, iter.idx);
     long skin_loc = gkyl_range_idx(skin_r, idx_s);

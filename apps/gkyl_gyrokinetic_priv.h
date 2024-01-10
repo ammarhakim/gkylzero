@@ -11,6 +11,7 @@
 #include <stc/cstr.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_ambi_bolt_potential.h>
 #include <gkyl_app_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_array_integrate.h>
@@ -203,6 +204,11 @@ struct gk_bgk_collisions {
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
 };
 
+struct gk_boundary_fluxes {
+  struct gk_species_moment gammai[2*GKYL_MAX_CDIM]; // integrated moments
+  gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
+};
+
 struct gk_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source distribution
@@ -289,7 +295,10 @@ struct gk_species {
   enum gkyl_source_id source_id; // type of source
   struct gk_source src; // applied source
 
-  //  collisions
+  // boundary fluxes
+  struct gk_boundary_fluxes bflux;
+
+  // collisions
   struct {
     enum gkyl_collision_id collision_id; // type of collisions
     union {
@@ -300,6 +309,11 @@ struct gk_species {
 
   enum gkyl_radiation_id radiation_id; // type of radiation
   struct gk_rad_drag rad; // radiation object
+
+  // gyrokinetic diffusion
+  bool has_diffusion; // flag to indicate there is applied diffusion
+  struct gkyl_array *diffD; // array for diffusion tensor
+  struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // gyrokinetic diffusion equation solver
 
   double *omegaCfl_ptr;
 };
@@ -318,6 +332,10 @@ struct gk_field {
 
   // organization of the different equation objects and the required data and solvers
   union {
+    struct {
+      struct gkyl_ambi_bolt_potential *ambi_pot;
+      struct gkyl_array *sheath_vals[2*GKYL_MAX_CDIM];
+    };
     // EM GK model
     struct {
       struct gkyl_array *apar_fem; // array for A_parallel
@@ -641,6 +659,41 @@ void gk_species_bgk_rhs(gkyl_gyrokinetic_app *app,
  */
 void gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_bgk_collisions *bgk);
 
+/** gk_species_boundary_fluxes API */
+
+/**
+ * Initialize species boundary flux object.
+ *
+ * @param app Gyrokinetic app object
+ * @param s Species object 
+ * @param bflux Species boundary flux object
+ */
+void gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_boundary_fluxes *bflux);
+
+/**
+ * Compute boundary flux 
+ * Note: stores the boundary flux in the ghost cells of rhs
+ * The ghost cells are overwritten by apply_bc so computations using
+ * boundary fluxes are internal to rhs method (such as integrated flux)
+ *
+ * @param app Gyrokinetic app object
+ * @param species Pointer to species
+ * @param bflux Species boundary flux object
+ * @param fin Input distribution function
+ * @param rhs On output, the boundary fluxes stored in the ghost cells of rhs
+ */
+void gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  struct gk_boundary_fluxes *bflux, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species boundary flux object.
+ *
+ * @param app Gyrokinetic app object
+ * @param bflux Species boundary flux object to release
+ */
+void gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk_boundary_fluxes *bflux);
+
 /** gk_species_source API */
 
 /**
@@ -781,7 +834,21 @@ void gk_field_calc_phi_wall(gkyl_gyrokinetic_app *app, struct gk_field *field, d
  * @param field Pointer to field
  * @param fin[] Input distribution function (num_species size)
  */
-void gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field, const struct gkyl_array *fin[]);
+void gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field, 
+  const struct gkyl_array *fin[]);
+
+/**
+ * Compute sheath values for use in ambipolar potential model 
+ * Computes the ion flux and then the ion density and sheath potential
+ * at the entrance of the sheath assuming adiabatic electrons
+ *
+ * @param app gyrokinetic app object
+ * @param field Pointer to field
+ * @param fin[] Input distribution function (num_species size)
+ * @param rhs[] Input rhs array, used for storing ion flux values (num_species size)
+ */
+void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field, 
+  const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
 
 /**
  * Compute EM field 

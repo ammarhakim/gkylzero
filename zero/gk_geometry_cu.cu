@@ -9,13 +9,12 @@ extern "C" {
 #include <gkyl_math.h>
 #include <gkyl_util.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_gk_geometry_mapc2p.h>
-
 }
+
 // CPU interface to create and track a GPU object
 struct gk_geometry*
-gkyl_gk_geometry_mapc2p_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx)
+gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+  const struct gkyl_basis* basis)
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 
@@ -24,24 +23,10 @@ gkyl_gk_geometry_mapc2p_cu_dev_new(const struct gkyl_rect_grid* grid, const stru
   up->range_ext = *range_ext;
   up->grid = *grid;
 
-  struct gk_geometry *hgeo  = gkyl_gk_geometry_mapc2p_new(grid, range, range_ext, basis, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx, false);
-  struct gkyl_range nrange;
-
-  int poly_order = basis->poly_order;
-  int nodes[3] = { 1, 1, 1 };
-  if (poly_order == 1){
-    for (int d=0; d<grid->ndim; ++d)
-      nodes[d] = grid->cells[d] + 1;
-  }
-  if (poly_order == 2){
-    for (int d=0; d<grid->ndim; ++d)
-      nodes[d] = 2*(grid->cells[d]) + 1;
-  }
-
-  gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
-
   // Initialize the geometry object on the host side
-  //bmag, metrics and derived geo quantities
+  struct gk_geometry* hgeo = gkyl_gk_geometry_deflate(up_3d, grid, range, range_ext, basis, false);
+
+  // bmag, metrics and derived geo quantities
 
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);

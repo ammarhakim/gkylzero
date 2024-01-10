@@ -27,9 +27,8 @@ gkyl_gk_geometry_fromfile_cu_dev_new(const struct gkyl_rect_grid* grid, const st
   struct gk_geometry *hgeo  = gkyl_gk_geometry_fromfile_new(grid, range, range_ext, basis, false);
 
 
-  // // Initialize the geometry object on the host side
-  // mapc2p arrays, bmag, metrics and derived geo quantities
-  struct gkyl_array* mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
+  // Initialize the geometry object on the host side
+  // bmag, metrics and derived geo quantities
 
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
