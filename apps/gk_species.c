@@ -187,6 +187,41 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   if (s->radiation_id == GKYL_GK_RADIATION) 
     gk_species_radiation_init(app, s, &s->rad);
 
+  // initialize boundary fluxes for diagnostics and, if present,
+  // ambipolar potential solve
+  gk_species_bflux_init(app, s, &s->bflux); 
+
+  // initialize diffusion if present
+  s->has_diffusion = false;  
+  if (s->info.diffusion.D) {
+    s->has_diffusion = true;
+    s->info.diffusion.order = s->info.diffusion.order < 2 ? 2 : s->info.diffusion.order;
+
+    int szD = cdim;
+    s->diffD = mkarr(app->use_gpu, szD, 1);
+    struct gkyl_array *diffD_host = s->diffD;
+    if (app->use_gpu)
+      diffD_host = mkarr(false, szD, 1);
+    // Set diffusion coefficient in each direction to input value.
+    gkyl_array_clear(diffD_host, 0.);
+    for (int d=0; d<cdim; d++) gkyl_array_shiftc(diffD_host, s->info.diffusion.D, d);
+
+    if (app->use_gpu) {// note: diffD_host is same as diffD when not on GPUs
+      gkyl_array_copy(s->diffD, diffD_host);
+      gkyl_array_release(diffD_host);
+    }
+
+    bool is_zero_flux[GKYL_MAX_CDIM] = {false};
+    bool diff_dir[GKYL_MAX_CDIM] = {false};
+
+    int num_diff_dir = s->info.diffusion.num_diff_dir ? app->cdim : s->info.diffusion.num_diff_dir;
+    for (int d=0; d<num_diff_dir; ++d)
+      diff_dir[s->info.diffusion.diff_dirs[d]] = 1; 
+
+    s->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&s->grid, &app->basis, &app->confBasis, 
+      true, diff_dir, s->info.diffusion.order, &s->local, is_zero_flux, app->use_gpu);
+  }
+
   // create ranges and allocate buffers for applying periodic and non-periodic BCs
   long buff_sz = 0;
   // compute buffer size needed

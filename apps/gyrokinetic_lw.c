@@ -42,6 +42,7 @@ enum gyrokinetic_magic_ids {
   GYROKINETIC_COLLISIONS_DEFAULT, // LBO Collisions
   GYROKINETIC_DIFFUSION_DEFAULT, // Diffusion operator
   GYROKINETIC_SOURCE_DEFAULT, // Sources
+  GYROKINETIC_GEOMETRY_DEFAULT, // Geometry
 };
 
 // Used in call back passed to the initial conditions
@@ -78,6 +79,72 @@ eval_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
     lua_pop(L, 1);
   }
 }
+
+/* ***************** */
+/* Geometry methods */
+/* ***************** */
+
+// Metatable name for field input struct
+#define GYROKINETIC_GEOMETRY_METATABLE_NM "GkeyllZero.Gyrokinetic.Geometry"
+
+// Lua userdata object for constructing field input
+struct gyrokinetic_geometry_lw {
+  int magic; // this must be first element in the struct
+  
+  struct gkyl_gyrokinetic_geometry gyrokinetic_geometry; // input struct to construct geometry
+
+  // Lua registry references for mapc2p and Bmag
+  struct lua_func_ctx mapc2p_ref;
+  struct lua_func_ctx bmag_ref;
+};
+
+static int
+gyrokinetic_geometry_lw_new(lua_State *L)
+{
+  struct gkyl_gyrokinetic_geometry gyrokinetic_geometry = { };
+
+  gyrokinetic_geometry.geometry_id = GKYL_MAPC2P; 
+
+  // Register and initialize mapc2p and bmag
+  int mapc2p_ref = LUA_NOREF;
+  int bmag_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "mapc2p")) {
+    mapc2p_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
+  if (glua_tbl_get_func(L, "bmag")) {
+    bmag_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
+
+  struct gyrokinetic_geometry_lw *gyrokinetic_g_lw = lua_newuserdata(L, sizeof(*gyrokinetic_g_lw));
+
+  gyrokinetic_g_lw->magic = GYROKINETIC_GEOMETRY_DEFAULT;
+  gyrokinetic_g_lw->gyrokinetic_geometry = gyrokinetic_geometry;
+
+  gyrokinetic_g_lw->mapc2p_ref = (struct lua_func_ctx) {
+    .func_ref = mapc2p_ref,
+    .ndim = 0, // this will be set later
+    .nret = 3,
+    .L = L,
+  };
+  gyrokinetic_g_lw->bmag_ref = (struct lua_func_ctx) {
+    .func_ref = bmag_ref,
+    .ndim = 0, // this will be set later
+    .nret = 1,
+    .L = L,
+  };
+  
+  // set metatable
+  luaL_getmetatable(L, GYROKINETIC_GEOMETRY_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Species diffusion constructor
+static struct luaL_Reg gyrokinetic_geometry_ctor[] = {
+  { "new",  gyrokinetic_geometry_lw_new },
+  { 0, 0 }
+};
 
 /* ************** */
 /* Source methods */
@@ -557,10 +624,9 @@ static struct luaL_Reg gyrokinetic_field_ctor[] = {
 struct gyrokinetic_app_lw {
   gkyl_gyrokinetic_app *app; // Gyokinetic app object
 
-  // Lua registery reference for mapc2p
-  struct lua_func_ctx mapc2p_ref;
-  // Lua registery reference for Bmag
-  struct lua_func_ctx bmag_ref;
+  // Function context for mapc2p and Bmag for geometry
+  struct lua_func_ctx mapc2p_func_ctx;
+  struct lua_func_ctx bmag_func_ctx;
 
   // Function contexts for ICs, either initialization of distribution function or Maxwellian ICs
   struct lua_func_ctx species_dist_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' distribution function
@@ -568,7 +634,7 @@ struct gyrokinetic_app_lw {
   struct lua_func_ctx species_upar_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' upar
   struct lua_func_ctx species_temp_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' temperature
 
-  // function context for each species' (self) collision frequency
+  // Function context for each species' (self) collision frequency
   struct lua_func_ctx collisions_func_ctx[GKYL_MAX_SPECIES]; 
 
   // Function contexts for sources, either sourcing of distribution function or Maxwellian sources
@@ -690,32 +756,26 @@ gyrokinetic_app_new(lua_State *L)
     }
   }
 
-  // Register and initialize mapc2p and bmag
-  int mapc2p_ref = LUA_NOREF;
-  int bmag_ref = LUA_NOREF;
-  if (glua_tbl_get_func(L, "mapc2p")) {
-    mapc2p_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  // set geometry input
+  with_lua_tbl_key(L, "geometry") {
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      struct gyrokinetic_geometry_lw *gyrokinetic_g_lw = lua_touserdata(L, -1);
+      if (gyrokinetic_g_lw->magic == GYROKINETIC_GEOMETRY_DEFAULT) {
+        // assign the App's geometry struct to user input geometry struct 
+        gyrokinetic.geometry = gyrokinetic_g_lw->gyrokinetic_geometry;
+        // get context for mapc2p and bmag functions
+        gyrokinetic_g_lw->mapc2p_ref.ndim = cdim;
+        app_lw->mapc2p_func_ctx = gyrokinetic_g_lw->mapc2p_ref;
+        gyrokinetic.geometry.mapc2p = eval_ic;
+        gyrokinetic.geometry.c2p_ctx = &app_lw->mapc2p_func_ctx;
+
+        gyrokinetic_g_lw->bmag_ref.ndim = cdim;
+        app_lw->bmag_func_ctx = gyrokinetic_g_lw->bmag_ref;
+        gyrokinetic.geometry.bmag_func = eval_ic;
+        gyrokinetic.geometry.bmag_ctx = &app_lw->bmag_func_ctx;
+      }
+    }
   }
-  if (glua_tbl_get_func(L, "bmag")) {
-    bmag_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
-  app_lw->mapc2p_ref = (struct lua_func_ctx) {
-    .func_ref = mapc2p_ref,
-    .ndim = cdim, 
-    .nret = cdim,
-    .L = L,
-  };
-  app_lw->bmag_ref = (struct lua_func_ctx) {
-    .func_ref = bmag_ref,
-    .ndim = cdim, 
-    .nret = 1,
-    .L = L,
-  };
-  // assign the App's mapc2p and bmag functions
-  gyrokinetic.mapc2p = eval_ic;
-  gyrokinetic.c2p_ctx = &app_lw->mapc2p_ref;
-  gyrokinetic.bmag_func = eval_ic;
-  gyrokinetic.bmag_ctx = &app_lw->bmag_ref;
 
   struct gyrokinetic_species_lw *gyrokinetic_s_lw[GKYL_MAX_SPECIES];
   // set all species input
@@ -1150,6 +1210,12 @@ app_openlibs(lua_State *L)
     
     luaL_register(L, "G0.Gyrokinetic.App", gyrokinetic_app_ctor);
     
+  } while (0);
+
+  // Register Geometry input struct
+  do {
+    luaL_newmetatable(L, GYROKINETIC_GEOMETRY_METATABLE_NM);
+    luaL_register(L, "G0.Gyrokinetic.Geometry", gyrokinetic_geometry_ctor);
   } while (0);
 
   // Register Species input struct

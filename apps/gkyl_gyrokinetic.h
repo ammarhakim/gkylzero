@@ -41,10 +41,9 @@ struct gkyl_gyrokinetic_collisions {
 // Parameters for species diffusion
 struct gkyl_gyrokinetic_diffusion {
   double D; // constant diffusion coefficient
+  int num_diff_dir; // number of periodic directions
+  int diff_dirs[3]; // list of periodic directions
   int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
-  void* Dij_ctx; // context for applied diffusion function if using general diffusion tensor
-  // pointer to applied diffusion function is using general diffusion tensor 
-  void (*Dij)(double t, const double* xn, double* Dout, void* ctx);
 };
 
 // Parameters for species source
@@ -149,6 +148,9 @@ struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   double bmag_fac; 
   double kperp2; // kperp^2 parameter for 1D field equations
+
+  // parameters for adiabatic electrons simulations
+  double electron_mass, electron_charge, electron_temp;
 
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;

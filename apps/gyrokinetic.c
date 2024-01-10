@@ -683,6 +683,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     double dt1 = gk_species_rhs(app, &app->species[i], fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
   }
+
   // compute source term
   // done here as the RHS update for all species should be complete before
   // bflux calculation of the source species
@@ -691,6 +692,12 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       gk_species_source_rhs(app, &app->species[i], &app->species[i].src, fin[i], fout[i]);
     }
   }
+
+  // Compute ambipolar potential sheath values if using adiabatic electrons
+  // done here as the RHS update for all species should be complete before
+  // boundary fluxes are computed and stored temporarily in ghost cells of RHS
+  if (app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
+    gk_field_calc_ambi_pot_sheath_vals(app, app->field, fin, fout);
 
   double dt_max_rel_diff = 0.01;
   // check if dtmin is slightly smaller than dt. Use dt if it is
