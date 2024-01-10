@@ -393,7 +393,7 @@ void
 bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xc[0];
+    double z = xc[2];
     double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
     double Z = Z_psiz(psi, z, ctx);
     double BRad, BZ, Bmag;
