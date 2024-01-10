@@ -24,18 +24,18 @@ struct gk_mirror_ctx {
     double beta;
     double tau;
     double Ti0; 
-    double kperpRhos;
+    double kperp_rho_s;
     // Parameters controlling initial conditions.
     double alim;
-    double alphaIC0;
-    double alphaIC1;
+    double alpha_ic_0;
+    double alpha_ic_1;
     double nuFrac;
     // Electron-electron collision freq.
-    double logLambdaElc;
-    double nuElc;
+    double log_lambda_elc;
+    double nu_elc;
     // Ion-ion collision freq.
-    double logLambdaIon;
-    double nuIon;
+    double log_lambda_ion;
+    double nu_ion;
     // Thermal speeds.
     double vti;
     double vte;
@@ -44,10 +44,10 @@ struct gk_mirror_ctx {
     double omega_ci;
     double rho_s;
     double kperp; // Perpendicular wavenumber in SI units.
-    double RatZeq0; // Radius of the field line at Z=0.
+    double R_at_Z_eq_0; // Radius of the field line at Z=0.
     // Axial coordinate Z extents. Endure that Z=0 is not on
-    double Zmin; 
-    double Zmax;
+    double Z_min; 
+    double Z_max;
     // Parameters controlling the magnetic equilibrium model.
     double mcB;
     double gamma;
@@ -68,29 +68,29 @@ struct gk_mirror_ctx {
     double Ti_m;
     double cs_m;
     // Source parameters
-    double NSrcIon;
-    double lineLengthSrcIon;
-    double sigSrcIon;
-    double NSrcFloorIon;
-    double TSrc0Ion;
-    double TSrcFloorIon;
-    double NSrcElc;
-    double lineLengthSrcElc;
-    double sigSrcElc;
-    double NSrcFloorElc;
-    double TSrc0Elc;
-    double TSrcFloorElc;
+    double N_src_ion;
+    double z_src_ion;
+    double sig_src_ion;
+    double N_src_floor_ion;
+    double T_src_0_ion;
+    double T_src_floor_ion;
+    double N_src_elc;
+    double z_src_elc;
+    double sig_src_elc;
+    double N_src_floor_elc;
+    double T_src_0_elc;
+    double T_src_floor_elc;
     // Grid parameters
     double vpar_max_elc;
     double mu_max_elc;
     double vpar_max_ion;
     double mu_max_ion;
-    int NV; // Number of cells in the paralell velocity direction
-    int NMU; // Number of cells in the mu direction
-    int numCellLineLength; // Number of cells along the field line.
+    int num_cell_vpar; // Number of cells in the paralell velocity direction
+    int num_cell_mu; // Number of cells in the mu direction
+    int num_cell_z; // Number of cells along the field line.
     int poly_order;
-    double finalTime;
-    int numFrames;
+    double final_time;
+    int num_frames;
     double psi_in;
     double z_in;
 };
@@ -165,19 +165,19 @@ root_Z_psiz(double Z, void *ctx){
 double 
 Z_psiz(double psiIn, double zIn, void *ctx) {
     struct gk_mirror_ctx *app = ctx;
-    double maxL = app->Zmax - app->Zmin; // These are globals. Where do they come from?
-    double eps = maxL / app->numCellLineLength; // Interestingly using a smaller eps yields larger errors in some geo quantities.
+    double maxL = app->Z_max - app->Z_min; // These are globals. Where do they come from?
+    double eps = maxL / app->num_cell_z; // Interestingly using a smaller eps yields larger errors in some geo quantities.
     app->psi_in = psiIn;
     app->z_in = zIn;
     struct gkyl_qr_res Zout;
     if (zIn >= 0.0) {
         double fl = root_Z_psiz(-eps, ctx);
-        double fr = root_Z_psiz(app->Zmax + eps, ctx);
-        Zout = gkyl_ridders(root_Z_psiz, ctx, -eps, app->Zmax + eps, fl, fr, 1000, 1e-14);
+        double fr = root_Z_psiz(app->Z_max + eps, ctx);
+        Zout = gkyl_ridders(root_Z_psiz, ctx, -eps, app->Z_max + eps, fl, fr, 1000, 1e-14);
     } else {
-        double fl = root_Z_psiz(app->Zmin - eps, ctx);
+        double fl = root_Z_psiz(app->Z_min - eps, ctx);
         double fr = root_Z_psiz(eps, ctx);
-        Zout = gkyl_ridders(root_Z_psiz, ctx, app->Zmin - eps, eps, fl, fr, 1000, 1e-14);
+        Zout = gkyl_ridders(root_Z_psiz, ctx, app->Z_min - eps, eps, fl, fr, 1000, 1e-14);
     }
     return Zout.res;
 }
@@ -188,12 +188,12 @@ eval_density_elc_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[0];
-    double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double psi = psi_RZ(app->R_at_Z_eq_0, 0.0, ctx); // Magnetic flux function psi of field line.
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
-    double NSrc = app->NSrcElc;
-    double zSrc = app->lineLengthSrcElc;
-    double sigSrc = app->sigSrcElc;
-    double NSrcFloor = app->NSrcFloorElc;
+    double NSrc = app->N_src_elc;
+    double zSrc = app->z_src_elc;
+    double sigSrc = app->sig_src_elc;
+    double NSrcFloor = app->N_src_floor_elc;
     if (fabs(Z) <= app->Z_m) {
         fout[0] = fmax(NSrcFloor, (NSrc / sqrt(2.0 * M_PI * pow(sigSrc, 2))) *
             exp( -1 * pow((z - zSrc), 2) / (2.0 * pow(sigSrc, 2))));
@@ -213,9 +213,9 @@ eval_temp_elc_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[0];
-    double sigSrc = app->sigSrcElc;
-    double TSrc0 = app->TSrc0Elc;
-    double Tfloor = app->TSrcFloorElc;
+    double sigSrc = app->sig_src_elc;
+    double TSrc0 = app->T_src_0_elc;
+    double Tfloor = app->T_src_floor_elc;
     if (fabs(z) <= 2.0 * sigSrc) {
         fout[0] = TSrc0;
     } else {
@@ -228,12 +228,12 @@ eval_density_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[0];
-    double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double psi = psi_RZ(app->R_at_Z_eq_0, 0.0, ctx); // Magnetic flux function psi of field line.
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
-    double NSrc = app->NSrcIon;
-    double zSrc = app->lineLengthSrcIon;
-    double sigSrc = app->sigSrcIon;
-    double NSrcFloor = app->NSrcFloorIon;
+    double NSrc = app->N_src_ion;
+    double zSrc = app->z_src_ion;
+    double sigSrc = app->sig_src_ion;
+    double NSrcFloor = app->N_src_floor_ion;
     if (fabs(Z) <= app->Z_m) {
         fout[0] = fmax(NSrcFloor, (NSrc / sqrt(2.0 * M_PI * pow(sigSrc, 2))) *
             exp( -1 * pow((z - zSrc), 2) / (2.0 * pow(sigSrc, 2))));
@@ -253,9 +253,9 @@ eval_temp_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[0];
-    double sigSrc = app->sigSrcIon;
-    double TSrc0 = app->TSrc0Ion;
-    double Tfloor = app->TSrcFloorIon;
+    double sigSrc = app->sig_src_ion;
+    double TSrc0 = app->T_src_0_ion;
+    double Tfloor = app->T_src_floor_ion;
     if (fabs(z) <= 2.0 * sigSrc) {
         fout[0] = TSrc0;
     } else {
@@ -269,7 +269,7 @@ eval_density_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[0];
-    double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double psi = psi_RZ(app->R_at_Z_eq_0, 0.0, ctx); // Magnetic flux function psi of field line.
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
@@ -302,7 +302,7 @@ eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[0];
-    double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double psi = psi_RZ(app->R_at_Z_eq_0, 0.0, ctx); // Magnetic flux function psi of field line.
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
@@ -322,7 +322,7 @@ eval_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[0];
-    double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double psi = psi_RZ(app->R_at_Z_eq_0, 0.0, ctx); // Magnetic flux function psi of field line.
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
@@ -355,7 +355,7 @@ eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
     struct gk_mirror_ctx *app = ctx;
     double z = xn[0];
-    double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double psi = psi_RZ(app->R_at_Z_eq_0, 0.0, ctx); // Magnetic flux function psi of field line.
     double Z = Z_psiz(psi, z, ctx);         // Cylindrical axial coordinate.
     double R = R_psiZ(psi, Z, ctx);         // Cylindrical radial coordinate.
     double BRad, BZ, Bmag;
@@ -371,17 +371,17 @@ eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 
 // Evaluate collision frequencies
 void
-evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_nu_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  fout[0] = app->nuElc;
+  fout[0] = app->nu_elc;
 }
 
 void
-evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_nu_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  fout[0] = app->nuIon;
+  fout[0] = app->nu_ion;
 }
 
 // Geometry evaluation functions for the gk app
@@ -405,8 +405,8 @@ void
 bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
     struct gk_mirror_ctx *app = ctx;
-    double z = xc[2];
-    double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+    double z = xc[0];
+    double psi = psi_RZ(app->R_at_Z_eq_0, 0.0, ctx); // Magnetic flux function psi of field line.
     double Z = Z_psiz(psi, z, ctx);
     double BRad, BZ, Bmag;
     Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
@@ -433,21 +433,21 @@ create_ctx(void)
     double beta = 0.4;
     double tau = pow(B_p,2) * beta / (2.0 * mu0 * n0 * Te0) - 1;
     double Ti0 = tau * Te0;
-    double kperpRhos = 0.1;
+    double kperp_rho_s = 0.1;
 
     // Parameters controlling initial conditions.
     double alim = 0.125;
-    double alphaIC0 = 2;
-    double alphaIC1 = 10;
+    double alpha_ic_0 = 2;
+    double alpha_ic_1 = 10;
 
     double nuFrac=1.0;
     // Electron-electron collision freq.
-    double logLambdaElc = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Te0 / eV);
-    double nuElc = nuFrac * logLambdaElc * pow(eV , 4) * n0 /
+    double log_lambda_elc = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Te0 / eV);
+    double nu_elc = nuFrac * log_lambda_elc * pow(eV , 4) * n0 /
     (6 * sqrt(2) * pow(M_PI,3/2) * pow(eps0 , 2) * sqrt(me) * pow(Te0 , 3 / 2));
     // Ion-ion collision freq.
-    double logLambdaIon = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Ti0 / eV);
-    double nuIon = nuFrac * logLambdaIon * pow(eV , 4) * n0 /
+    double log_lambda_ion = 6.6 - 0.5 * log(n0 / 1e20) + 1.5 * log(Ti0 / eV);
+    double nu_ion = nuFrac * log_lambda_ion * pow(eV , 4) * n0 /
     (12 * pow(M_PI,3 / 2) * pow(eps0 , 2) * sqrt(mi) * pow(Ti0, 3 / 2));
 
     // Thermal speeds.
@@ -460,15 +460,15 @@ create_ctx(void)
     double rho_s = c_s / omega_ci;
 
     // Perpendicular wavenumber in SI units:
-    double kperp = kperpRhos / rho_s;
+    double kperp = kperp_rho_s / rho_s;
 
     // Geometry parameters.
-    // int numCellLineLength = 280;
-    double RatZeq0 = 0.10; // Radius of the field line at Z=0.
+    // int num_cell_z = 280;
+    double R_at_Z_eq_0 = 0.10; // Radius of the field line at Z=0.
     // Axial coordinate Z extents. Endure that Z=0 is not on
     // the boundary of a cell (due to AD errors).
-    double Zmin = -2.5;
-    double Zmax = 2.5;
+    double Z_min = -2.5;
+    double Z_max = 2.5;
 
     // Parameters controlling the magnetic equilibrium model.
     double mcB = 6.51292;
@@ -476,30 +476,30 @@ create_ctx(void)
     double Z_m = 0.98;
 
     // Source parameters
-    double NSrcIon = 3.1715e23 / 8.0;
-    double lineLengthSrcIon = 0.0;
-    double sigSrcIon = Z_m / 4.0;
-    double NSrcFloorIon = 0.05 * NSrcIon;
-    double TSrc0Ion = Ti0 * 1.25;
-    double TSrcFloorIon = TSrc0Ion / 8.0;
-    double NSrcElc = NSrcIon;
-    double lineLengthSrcElc = lineLengthSrcIon;
-    double sigSrcElc = sigSrcIon;
-    double NSrcFloorElc = NSrcFloorIon;
-    double TSrc0Elc = TSrc0Ion / tau;
-    double TSrcFloorElc = TSrcFloorIon / tau;
+    double N_src_ion = 3.1715e23 / 8.0;
+    double z_src_ion = 0.0;
+    double sig_src_ion = Z_m / 4.0;
+    double N_src_floor_ion = 0.05 * N_src_ion;
+    double T_src_0_ion = Ti0 * 1.25;
+    double T_src_floor_ion = T_src_0_ion / 8.0;
+    double N_src_elc = N_src_ion;
+    double z_src_elc = z_src_ion;
+    double sig_src_elc = sig_src_ion;
+    double N_src_floor_elc = N_src_floor_ion;
+    double T_src_0_elc = T_src_0_ion / tau;
+    double T_src_floor_elc = T_src_floor_ion / tau;
 
     // Grid parameters
     double vpar_max_elc = 3.75 * vte;
     double mu_max_elc = me * pow(3 * vte, 2) / (2 * B_p);
     double vpar_max_ion = 3.75 * vti;
     double mu_max_ion = mi * pow(3 * vti, 2) / (2 * B_p);
-    int NV = 20; // Number of cells in the paralell velocity direction (should be 96)
-    int NMU = 20; // Number of cells in the mu direction (should be 192)
-    int numCellLineLength = 100; // Number of cells along the field line.
+    int num_cell_vpar = 96; // Number of cells in the paralell velocity direction
+    int num_cell_mu = 192; // Number of cells in the mu direction
+    int num_cell_z = 288; // Number of cells along the field line.
     int poly_order = 1;
-    double finalTime = 1e-10;
-    int numFrames = 1;
+    double final_time = 1e-10;
+    int num_frames = 2;
 
     // Bananna tip info. Hardcoad to avoid dependency on ctx
     double B_bt = 1.058278;
@@ -528,25 +528,25 @@ create_ctx(void)
         .beta = beta,
         .tau = tau,
         .Ti0 = Ti0,
-        .kperpRhos = kperpRhos,
+        .kperp_rho_s = kperp_rho_s,
         .alim = alim,
-        .alphaIC0 = alphaIC0,
-        .alphaIC1 = alphaIC1,
+        .alpha_ic_0 = alpha_ic_0,
+        .alpha_ic_1 = alpha_ic_1,
         .nuFrac = nuFrac,
-        .logLambdaElc = logLambdaElc,
-        .nuElc = nuElc,
-        .logLambdaIon = logLambdaIon,
-        .nuIon = nuIon,
+        .log_lambda_elc = log_lambda_elc,
+        .nu_elc = nu_elc,
+        .log_lambda_ion = log_lambda_ion,
+        .nu_ion = nu_ion,
         .vti = vti,
         .vte = vte,
         .c_s = c_s,
         .omega_ci = omega_ci,
         .rho_s = rho_s,
         .kperp = kperp,
-        .numCellLineLength = numCellLineLength,
-        .RatZeq0 = RatZeq0,
-        .Zmin = Zmin,
-        .Zmax = Zmax,
+        .num_cell_z = num_cell_z,
+        .R_at_Z_eq_0 = R_at_Z_eq_0,
+        .Z_min = Z_min,
+        .Z_max = Z_max,
         .mcB = mcB,
         .gamma = gamma,
         .Z_m = Z_m,
@@ -561,27 +561,27 @@ create_ctx(void)
         .Te_m = Te_m,
         .Ti_m = Ti_m,
         .cs_m = cs_m,
-        .NSrcIon = NSrcIon,
-        .lineLengthSrcIon = lineLengthSrcIon,
-        .sigSrcIon = sigSrcIon,
-        .NSrcFloorIon = NSrcFloorIon,
-        .TSrc0Ion = TSrc0Ion,
-        .TSrcFloorIon = TSrcFloorIon,
-        .NSrcElc = NSrcElc,
-        .lineLengthSrcElc = lineLengthSrcElc,
-        .sigSrcElc = sigSrcElc,
-        .NSrcFloorElc = NSrcFloorElc,
-        .TSrc0Elc = TSrc0Elc,
-        .TSrcFloorElc = TSrcFloorElc,
+        .N_src_ion = N_src_ion,
+        .z_src_ion = z_src_ion,
+        .sig_src_ion = sig_src_ion,
+        .N_src_floor_ion = N_src_floor_ion,
+        .T_src_0_ion = T_src_0_ion,
+        .T_src_floor_ion = T_src_floor_ion,
+        .N_src_elc = N_src_elc,
+        .z_src_elc = z_src_elc,
+        .sig_src_elc = sig_src_elc,
+        .N_src_floor_elc = N_src_floor_elc,
+        .T_src_0_elc = T_src_0_elc,
+        .T_src_floor_elc = T_src_floor_elc,
         .vpar_max_elc = vpar_max_elc,
         .mu_max_elc = mu_max_elc,
         .vpar_max_ion = vpar_max_ion,
         .mu_max_ion = mu_max_ion,
-        .NV = NV,
-        .NMU = NMU,
+        .num_cell_vpar = num_cell_vpar,
+        .num_cell_mu = num_cell_mu,
         .poly_order = poly_order,
-        .finalTime = finalTime,
-        .numFrames = numFrames,
+        .final_time = final_time,
+        .num_frames = num_frames,
     };
     return ctx;
 }
@@ -612,7 +612,7 @@ main(int argc, char **argv)
         .charge = ctx.qe, .mass = ctx.me,
         .lower = { -ctx.vpar_max_elc, 0.0},
         .upper = { ctx.vpar_max_elc, ctx.mu_max_elc}, 
-        .cells = { ctx.NV, ctx.NMU },
+        .cells = { ctx.num_cell_vpar, ctx.num_cell_mu },
         .polarization_density = ctx.n0,
 
         .ctx_density = &ctx,
@@ -626,7 +626,7 @@ main(int argc, char **argv)
         .collisions =  {
             .collision_id = GKYL_LBO_COLLISIONS,
             .ctx = &ctx,
-            .self_nu = evalNuElc,
+            .self_nu = eval_nu_elc,
             .num_cross_collisions = 1, // Not sure
             .collide_with = { "ion" },
         },
@@ -650,7 +650,7 @@ main(int argc, char **argv)
         .charge = ctx.qi, .mass = ctx.mi,
         .lower = { -ctx.vpar_max_ion, 0.0},
         .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
-        .cells = { ctx.NV, ctx.NMU },
+        .cells = { ctx.num_cell_vpar, ctx.num_cell_mu },
         .polarization_density = ctx.n0,
         .ctx_density = &ctx,
         .init_density = eval_density_ion,
@@ -663,7 +663,7 @@ main(int argc, char **argv)
         .collisions =  {
             .collision_id = GKYL_LBO_COLLISIONS,
             .ctx = &ctx,
-            .self_nu = evalNuIon,
+            .self_nu = eval_nu_ion,
             .num_cross_collisions = 1, // Not sure
             .collide_with = { "elc" },
         },
@@ -700,7 +700,7 @@ main(int argc, char **argv)
         .cdim = 1, .vdim = 2,
         .lower = { -2.515312 },
         .upper = { 2.515312 },
-        .cells = { ctx.numCellLineLength },
+        .cells = { ctx.num_cell_z },
         .poly_order = ctx.poly_order,
         .basis_type = app_args.basis_type,
 
@@ -728,9 +728,9 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
 
     // start, end and initial time-step
-    double tcurr = 0.0, tend = ctx.finalTime;
+    double tcurr = 0.0, tend = ctx.final_time;
     double dt = tend-tcurr;
-    int nframe = ctx.numFrames;
+    int nframe = ctx.num_frames;
     // create trigger for IO
     struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
 
