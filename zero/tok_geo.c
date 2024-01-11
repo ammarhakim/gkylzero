@@ -177,6 +177,7 @@ phi_func(double alpha_curr, double Z, void *ctx)
   int nr = R_psiZ(actx->geo, psi, Z, 4, R, dR);
   double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
   double psi_fpol = psi;
+  //if (psi_fpol < actx->geo->psisep) // F = F(psi_sep) in the SOL. Convention of psi increases inward
   if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
     psi_fpol = actx->geo->psisep;
   int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);

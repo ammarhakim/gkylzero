@@ -37,10 +37,10 @@ test_deep_core()
     };
 
 
-  double clower[] = { 2.01, -0.01, -3.14 };
-  double cupper[] = {2.1, 0.01, 3.14 };
+  double clower[] = { 2.01, -0.01, -M_PI + 1e-14 };
+  double cupper[] = {2.1, 0.01, M_PI - 1e-14 };
 
-  int ccells[] = { 1, 1, 64 };
+  int ccells[] = { 1, 1, 16 };
 
 
 
@@ -97,11 +97,14 @@ test_boundary()
       .quad_param = {  .eps = 1e-10 }
     };
 
+  double psisep = 1.5098198350000001;
+  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
+  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
 
-  double clower[] = { 1.50982, -0.01, -3.14 };
-  double cupper[] = {1.8, 0.01, 3.14 };
+  //double clower[] = { 1.5098198350000001, -0.01, -2.8 };
+  //double cupper[] = {1.8, 0.01, 2.8 };
 
-  int ccells[] = { 1, 1, 64 };
+  int ccells[] = { 2, 1, 32 };
 
 
 

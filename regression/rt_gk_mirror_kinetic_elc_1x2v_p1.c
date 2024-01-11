@@ -492,6 +492,7 @@ evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, 
 }
 
 // Geometry evaluation functions for the gk app
+// mapc2p must assume a 3d input xc
 void
 mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
@@ -510,6 +511,7 @@ mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
   xp[2] = Z;
 }
 
+// bmag_func must assume a 3d input xc
 void
 bmag_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
