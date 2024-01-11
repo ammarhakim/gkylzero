@@ -696,6 +696,27 @@ create_ctx(void)
       .mapping_order = mapping_order,  // Order of the polynomial to fit through points for mapc2p
       .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
+  // Printing
+  double dxi = (ctx.z_max - ctx.z_min) / ctx.num_cell_z;
+  double diff_z_max = z_xi(ctx.z_m + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_p75 = z_xi(ctx.z_m * .75 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .75 - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_p50 = z_xi(ctx.z_m * .5  + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5  - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_min = z_xi(dxi/2, ctx.psi_eval, &ctx) - z_xi(-dxi/2, ctx.psi_eval, &ctx);
+  if (ctx.mapping_frac == 0.0)
+  {
+    printf("Uniform cell spacing in z: %g m\n", dxi);
+  } else {
+    printf("Non-uniform cell spacings:\n");
+    printf("Total number of cells in z   : %d\n", ctx.num_cell_z);
+    printf("Polynomials order %i with mapping fraction %g\n", ctx.mapping_order, ctx.mapping_frac);
+    printf("Uniform computational spacing: %g m\n", dxi);
+    printf("Maximum cell spacing at z_m  : %g m\n", diff_z_max);
+    printf("Cell spacing at z_m * 0.75   : %g m\n", diff_z_p75);
+    printf("Cell spacing at z_m * 0.50   : %g m\n", diff_z_p50);
+    printf("Cell spacing at z_m * 0.25   : %g m\n", diff_z_p25);
+    printf("Minimum cell spacing at 0    : %g m\n", diff_z_min);
+  }
   return ctx;
 }
 
