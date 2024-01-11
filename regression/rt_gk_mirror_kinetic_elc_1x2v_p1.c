@@ -757,7 +757,7 @@ int main(int argc, char **argv)
       .mass = ctx.me,
       .lower = {-ctx.vpar_max_elc, 0.0},
       .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
-      .cells = {ctx.num_cell_vpar, ctx.num_cell_mu},
+      .cells = {NV, NMU},
       .polarization_density = ctx.n0,
       .ctx_density = &ctx,
       .init_density = eval_density_elc,
@@ -766,8 +766,7 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .init_temp = eval_temp_elc,
       .is_maxwellian = true,
-      .bcx = {GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_FIXED_FUNC},
-      .bcz = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
+      .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
       .collisions = {
           .collision_id = GKYL_LBO_COLLISIONS,
           .ctx = &ctx,
