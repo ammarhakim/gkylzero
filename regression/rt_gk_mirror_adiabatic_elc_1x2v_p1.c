@@ -449,11 +449,11 @@ create_ctx(void)
   double TSrcFloorIon = TSrc0Ion / 8.0;
 
   // Grid parameters
-  double vpar_max_ion = 3.75 * vti;
+  double vpar_max_ion = 5 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int num_cell_vpar = 64; // Number of cells in the paralell velocity direction 96
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
-  int num_cell_z = 100;
+  int num_cell_z = 144;
   int poly_order = 1;
   double final_time = 1e-9;
   int num_frames = 1;
@@ -474,7 +474,7 @@ create_ctx(void)
 
   // Non-uniform z mapping
   int mapping_order = 2;  // Order of the polynomial to fit through points for mapc2p
-  double mapping_frac = 0.0; // 1 is full mapping, 0 is no mapping
+  double mapping_frac = 1.0; // 1 is full mapping, 0 is no mapping
 
   struct gk_mirror_ctx ctx = {
     .mi = mi,
@@ -534,6 +534,27 @@ create_ctx(void)
     .mapping_order = mapping_order,  // Order of the polynomial to fit through points for mapc2p
     .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
+  // Printing
+  double dxi = (ctx.z_max - ctx.z_min) / ctx.num_cell_z;
+  double diff_z_max = z_xi(ctx.z_m + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_p75 = z_xi(ctx.z_m * .75 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .75 - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_p50 = z_xi(ctx.z_m * .5  + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5  - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_min = z_xi(dxi/2, ctx.psi_eval, &ctx) - z_xi(-dxi/2, ctx.psi_eval, &ctx);
+  if (ctx.mapping_frac == 0.0)
+  {
+    printf("Uniform cell spacing in z: %g m\n", dxi);
+  } else {
+    printf("Non-uniform cell spacings:\n");
+    printf("Total number of cells in z   : %d\n", ctx.num_cell_z);
+    printf("Polynomials order %i with mapping fraction %g\n", ctx.mapping_order, ctx.mapping_frac);
+    printf("Uniform computational spacing: %g m\n", dxi);
+    printf("Maximum cell spacing at z_m  : %g m\n", diff_z_max);
+    printf("Cell spacing at z_m * 0.75   : %g m\n", diff_z_p75);
+    printf("Cell spacing at z_m * 0.50   : %g m\n", diff_z_p50);
+    printf("Cell spacing at z_m * 0.25   : %g m\n", diff_z_p25);
+    printf("Minimum cell spacing at 0    : %g m\n", diff_z_min);
+  }
   return ctx;
 }
 
