@@ -548,20 +548,15 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double tcurr)
 int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
-
   if (app_args.trace_mem)
   {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-
   struct gk_mirror_ctx ctx = create_ctx(); // context for init functions
-
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.num_cell_z);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.num_cell_vpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.num_cell_mu);
-
-  // ions
   struct gkyl_gyrokinetic_species ion = {
       .name = "ion",
       .charge = ctx.qi,
@@ -596,9 +591,7 @@ int main(int argc, char **argv)
       .num_diag_moments = 7,
       .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
-
-  // field
-  struct gkyl_gyrokinetic_field field = {
+  struct gkyl_gyrokinetic_field field = {  // field
       .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
       .electron_mass = ctx.me,
       .electron_charge = ctx.qe,
@@ -606,11 +599,8 @@ int main(int argc, char **argv)
       .bmag_fac = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
       .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
-
-  // GK app
-  struct gkyl_gk gk = {
+  struct gkyl_gk gk = {  // GK app
       .name = "gk_mirror_adiabatic_elc_1x2v_p1",
-
       .cdim = 1,
       .vdim = 2,
       .lower = {ctx.z_min},
@@ -618,7 +608,6 @@ int main(int argc, char **argv)
       .cells = {NZ},
       .poly_order = ctx.poly_order,
       .basis_type = app_args.basis_type,
-
       .geometry = {
           .geometry_id = GKYL_MAPC2P,
           .world = {ctx.psi_eval, 0.0},
@@ -626,36 +615,25 @@ int main(int argc, char **argv)
           .c2p_ctx = &ctx,
           .bmag_func = bmag_func, // magnetic field magnitude
           .bmag_ctx = &ctx},
-
       .num_periodic_dir = 0,
       .periodic_dirs = {},
-
       .num_species = 1,
       .species = {ion},
       .field = field,
-
       .use_gpu = app_args.use_gpu,
   };
-
-  // create app object
   printf("Creating app object ...\n");
-  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
-
-  // start, end and initial time-step
-  double tcurr = 0.0, tend = ctx.final_time;
+  gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);  // create app object
+  double tcurr = 0.0, tend = ctx.final_time;  // start, end and initial time-step
   double dt = tend - tcurr;
   int nframe = ctx.num_frames;
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = {.dt = tend / nframe};
-
-  // initialize simulation
+  struct gkyl_tm_trigger io_trig = {.dt = tend / nframe};  // create trigger for IO
   printf("Applying initial conditions ...\n");
-  gkyl_gyrokinetic_app_apply_ic(app, tcurr);
+  gkyl_gyrokinetic_app_apply_ic(app, tcurr);  // initialize simulation
   printf("Computing initial diagnostics ...\n");
   write_data(&io_trig, app, tcurr);
   printf("Computing initial field energy ...\n");
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
-
   printf("Starting main loop ...\n");
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps))
@@ -674,19 +652,14 @@ int main(int argc, char **argv)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
-
     write_data(&io_trig, app, tcurr);
-
     step += 1;
   }
   printf(" ... finished\n");
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
   gkyl_gyrokinetic_app_write_field_energy(app);
   gkyl_gyrokinetic_app_stat_write(app);
-
-  // fetch simulation statistics
-  struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);
-
+  struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);  // fetch simulation statistics
   gkyl_gyrokinetic_app_cout(app, stdout, "\n");
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
@@ -702,12 +675,8 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
-
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
-
-  // simulation complete, free app
-  gkyl_gyrokinetic_app_release(app);
-
+  gkyl_gyrokinetic_app_release(app);  // simulation complete, free app
   return 0;
 }
