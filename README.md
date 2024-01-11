@@ -165,6 +165,8 @@ make -j # unit
 ```
 (# is the number of cores, see previous comment on this). A similar procedure
 should be followed to compile and run regression tests in ```/regression```.
+Regression test executables have a number of run-time options which you can list
+with the `-h` flag, i.e. ```<executable> -h```.
 
 You may also compile and run all the unit tests with one command:
 ```
