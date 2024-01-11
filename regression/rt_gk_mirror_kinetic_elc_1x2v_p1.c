@@ -25,6 +25,7 @@ struct gk_mirror_ctx
   double beta;
   double tau;
   double Ti0;
+  double kperpRhos;
   // Parameters controlling initial conditions.
   double alim;
   double alphaIC0;
@@ -43,6 +44,7 @@ struct gk_mirror_ctx
   // Gyrofrequencies and gyroradii.
   double omega_ci;
   double rho_s;
+  double kperp; // Perpendicular wavenumber in SI units.
   double RatZeq0; // Radius of the field line at Z=0.
   // Axial coordinate Z extents. Endure that Z=0 is not on
   double Z_min;
@@ -367,7 +369,6 @@ eval_upar_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
-  ;
   if (fabs(z) <= app->z_m)
   {
     fout[0] = 0.0;
@@ -541,6 +542,7 @@ create_ctx(void)
   double beta = 0.4;
   double tau = pow(B_p, 2.) * beta / (2.0 * mu0 * n0 * Te0) - 1.;
   double Ti0 = tau * Te0;
+double kperpRhos = 0.1;
 
   // Parameters controlling initial conditions.
   double alim = 0.125;
@@ -567,6 +569,8 @@ create_ctx(void)
   double rho_s = c_s / omega_ci;
 
   // Perpendicular wavenumber in SI units:
+  double kperp = kperpRhos / rho_s;
+
   // Geometry parameters.
   double RatZeq0 = 0.10; // Radius of the field line at Z=0.
   // Axial coordinate Z extents. Endure that Z=0 is not on
@@ -638,6 +642,7 @@ create_ctx(void)
       .beta = beta,
       .tau = tau,
       .Ti0 = Ti0,
+      .kperpRhos = kperpRhos,
       .alim = alim,
       .alphaIC0 = alphaIC0,
       .alphaIC1 = alphaIC1,
@@ -651,6 +656,7 @@ create_ctx(void)
       .c_s = c_s,
       .omega_ci = omega_ci,
       .rho_s = rho_s,
+      .kperp = kperp, 
       .RatZeq0 = RatZeq0,
       .Z_min = Z_min,
       .Z_max = Z_max,
@@ -698,15 +704,17 @@ create_ctx(void)
   };
   // Printing
   double dxi = (ctx.z_max - ctx.z_min) / ctx.num_cell_z;
-  double diff_z_max = z_xi(ctx.z_m + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m - dxi/2, ctx.psi_eval, &ctx);
-  double diff_z_p75 = z_xi(ctx.z_m * .75 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .75 - dxi/2, ctx.psi_eval, &ctx);
-  double diff_z_p50 = z_xi(ctx.z_m * .5  + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5  - dxi/2, ctx.psi_eval, &ctx);
-  double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi/2, ctx.psi_eval, &ctx);
-  double diff_z_min = z_xi(dxi/2, ctx.psi_eval, &ctx) - z_xi(-dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_max = z_xi(ctx.z_m + dxi / 2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m - dxi / 2, ctx.psi_eval, &ctx);
+  double diff_z_p75 = z_xi(ctx.z_m * .75 + dxi / 2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .75 - dxi / 2, ctx.psi_eval, &ctx);
+  double diff_z_p50 = z_xi(ctx.z_m * .5 + dxi / 2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5 - dxi / 2, ctx.psi_eval, &ctx);
+  double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi / 2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi / 2, ctx.psi_eval, &ctx);
+  double diff_z_min = z_xi(dxi / 2, ctx.psi_eval, &ctx) - z_xi(-dxi / 2, ctx.psi_eval, &ctx);
   if (ctx.mapping_frac == 0.0)
   {
     printf("Uniform cell spacing in z: %g m\n", dxi);
-  } else {
+  }
+  else
+  {
     printf("Non-uniform cell spacings:\n");
     printf("Total number of cells in z   : %d\n", ctx.num_cell_z);
     printf("Polynomials order %i with mapping fraction %g\n", ctx.mapping_order, ctx.mapping_frac);
@@ -800,6 +808,8 @@ int main(int argc, char **argv)
           .collision_id = GKYL_LBO_COLLISIONS,
           .ctx = &ctx,
           .self_nu = evalNuIon,
+          .num_cross_collisions = 1,
+          .collide_with = {"elc"},
       },
       .source = {
           .source_id = GKYL_MAXWELLIAN_SOURCE,
@@ -814,16 +824,20 @@ int main(int argc, char **argv)
       .num_diag_moments = 7,
       .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
-  struct gkyl_gyrokinetic_field field = {
-      .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
-      .electron_mass = ctx.me,
-      .electron_charge = ctx.qe,
-      .electron_temp = ctx.Te0,
-      .bmag_fac = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
-      .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+  struct gkyl_gyrokinetic_field field =
+  {
+    .bmag_fac = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
+    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+    .kperp2 = pow(ctx.kperp, 2.),
+    .poisson_bcs = {
+        .lo_type = {GKYL_POISSON_NEUMANN},
+        .up_type = {GKYL_POISSON_NEUMANN},
+        .lo_value = {0.0},
+        .up_value = {0.0},
+    }
   };
   struct gkyl_gk gk = {  // GK app
-      .name = "gk_mirror_adiabatic_elc_1x2v_p1",
+      .name = "gk_mirror_kinetic_elc_1x2v_p1",
       .cdim = 1,
       .vdim = 2,
       .lower = {ctx.z_min},
@@ -841,7 +855,7 @@ int main(int argc, char **argv)
       .num_periodic_dir = 0,
       .periodic_dirs = {},
       .num_species = 2,
-      .species = {ion, elc},
+      .species = {elc, ion},
       .field = field,
       .use_gpu = app_args.use_gpu,
   };
