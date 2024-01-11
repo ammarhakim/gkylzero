@@ -72,6 +72,8 @@ struct gk_mirror_ctx {
   // Grid parameters
   double vpar_max_ion;
   double mu_max_ion;
+int num_cell_vpar;
+    int num_cell_mu;
   int num_cell_z;
   int poly_order;
   double final_time;
@@ -401,7 +403,9 @@ create_ctx(void)
   // Grid parameters
   double vpar_max_ion = 3.75 * vti;
   double mu_max_ion = mi * pow(3 * vti, 2) / (2 * B_p);
-  int num_cell_z = 42;
+  int num_cell_vpar = 50; // Number of cells in the paralell velocity direction 96
+    int num_cell_mu = 50; // Number of cells in the mu direction 192
+    int num_cell_z = 100;
   int poly_order = 1;
   double final_time = 1e-9;
   int num_frames = 1;
@@ -470,6 +474,8 @@ create_ctx(void)
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
     .num_cell_z = num_cell_z,
+    .num_cell_vpar = num_cell_vpar,
+    .num_cell_mu = num_cell_mu,
     .poly_order = poly_order,
     .final_time = final_time,
     .num_frames = num_frames,
@@ -501,8 +507,8 @@ main(int argc, char **argv)
   struct gk_mirror_ctx ctx = create_ctx(); // context for init functions
 
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.num_cell_z);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 20);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 20);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.num_cell_vpar);
+  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.num_cell_mu);
 
   // ions
   struct gkyl_gyrokinetic_species ion = {
