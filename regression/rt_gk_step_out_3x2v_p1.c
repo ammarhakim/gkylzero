@@ -46,14 +46,23 @@ struct gkyl_tok_geo_efit_inp inp = {
   .quad_param = {  .eps = 1e-10 }
 };
 
+//struct gkyl_tok_geo_grid_inp ginp = {
+//  .ftype = GKYL_SOL_DN_OUT,
+//  .rclose = 6.2,
+//  .zmin = -8.3,
+//  .zmax = 8.3,
+//  .write_node_coord_array = true,
+//  .node_file_nm = "stepoutboard_nodes.gkyl"
+//}; 
+
 struct gkyl_tok_geo_grid_inp ginp = {
-  .ftype = GKYL_SOL_DN_OUT,
-  .rclose = 6.2,
-  .zmin = -8.3,
-  .zmax = 8.3,
-  .write_node_coord_array = true,
-  .node_file_nm = "stepoutboard_nodes.gkyl"
-}; 
+    .ftype = GKYL_SOL_DN_OUT,
+    .rclose = 6.2,
+    .zmin = -6.14213,
+    .zmax = 6.14226,
+    .write_node_coord_array = true,
+    .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
+  };
 
 void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -63,8 +72,8 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double n0 = app->n0;
   double cx = app->cx;
   double cz = app->cz;
-  double xcenter = 1.2014;
-  double n = n0*exp(-(x-xcenter*xcenter)*(x-xcenter*xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
+  double xcenter = 1.50982;
+  double n = n0*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
   if (n/n0 < 1e-5)
     n = n0*1e-5;
   fout[0] = n;
@@ -100,8 +109,8 @@ eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_REST
   double nsource = app->nsource;
   double cx = app->cx;
   double cz = app->cz;
-  double xcenter = 1.2014;
-  double n = nsource*exp(-(x-xcenter*xcenter)*(x-xcenter*xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
+  double xcenter = 1.50982;
+  double n = nsource*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
   if (n/nsource < 1e-5)
     n = nsource*1e-5;
   fout[0] = n;
@@ -165,7 +174,7 @@ create_ctx(void)
   // Source parameters.
   double nsource = 3.9e23/2.8; // peak source rate in particles/m^3/s 
   double T_source = 285*eV*2.8;
-  double cx = 0.0065612*2;
+  double cx = 0.0065612*9;
   double cz = 0.4916200;
 
   // Collision parameters.
@@ -237,9 +246,9 @@ main(int argc, char **argv)
 
   struct gk_step_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 72);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 8);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 1);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 128);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 16);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
 
@@ -345,19 +354,19 @@ main(int argc, char **argv)
 
     .cdim = 3, .vdim = 2,
     .lower = { 0.934, -ctx.Ly/2.0, -ctx.Lz/2.0 },
-    .upper = { 1.4688, ctx.Ly/2.0, ctx.Lz/2.0 },
+    .upper = { 1.5098198350000001, ctx.Ly/2.0, ctx.Lz/2.0 },
     .cells = { NX, NY, NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
-    //.geometry = {
-    //  .geometry_id = GKYL_TOKAMAK,
-    //  .efit_info = &inp,
-    //  .grid_info = &ginp,
-    //},
     .geometry = {
-      .geometry_id = GKYL_GEOMETRY_FROMFILE,
+      .geometry_id = GKYL_TOKAMAK,
+      .efit_info = &inp,
+      .grid_info = &ginp,
     },
+    //.geometry = {
+    //  .geometry_id = GKYL_GEOMETRY_FROMFILE,
+    //},
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
