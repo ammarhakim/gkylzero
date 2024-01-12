@@ -61,7 +61,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     else if (app->cdim == 2) {
       // set whatever epsilon we need
       // initialize a fem_poisson instead of fem_poisson_perp
-      // To ignore z derivatives set 1s2 and 2nd component to 0. Leave 3rd component alone
+      // To ignore z derivatives set 1s2 and 2nd component to 0. Leave 3rd component alone. Also must add a smoother in this case
       f->epsilon = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
       gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
       gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxzj, 1*app->confBasis.num_basis);
