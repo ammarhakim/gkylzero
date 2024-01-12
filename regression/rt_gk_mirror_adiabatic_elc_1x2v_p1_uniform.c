@@ -82,6 +82,8 @@ struct gk_mirror_ctx
   double psi_in;
   double z_in;
   // For non-uniform mapping
+  double diff_dz;
+  double psi_in_diff;
   int mapping_order;
   double mapping_frac;
 };
@@ -188,6 +190,49 @@ Z_psiz(double psiIn, double zIn, void *ctx)
 }
 
 // Non-uniform grid mapping
+double
+dBdz(double z, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double dz = app->diff_dz;
+  double psi = app->psi_in_diff;
+  double Zp = Z_psiz(psi, z + dz, ctx);
+  double Zm = Z_psiz(psi, z - dz, ctx);
+  double B_rad, B_Z, Bmag_p, Bmag_m;
+  Bfield_psiZ(psi, Zp, ctx, &B_rad, &B_Z, &Bmag_p);
+  Bfield_psiZ(psi, Zm, ctx, &B_rad, &B_Z, &Bmag_m);
+  double dBdz = (Bmag_p - Bmag_m) / (2 * dz);
+  return fabs(dBdz);
+}
+
+// double
+// z_xi_dBdz_inverse(double chi, double psi, void *ctx)
+// {
+//   struct gk_mirror_ctx *app = ctx;
+//   double map_strength = app->map_strength; // 1 is full strength, 0 is no mapping
+//   if (map_strength == 0.0)
+//   {
+//     return chi;
+//   }
+//   else
+//   {
+//     double psi = app->psi_in_diff;
+//     double z_min = app->z_min;
+//     double z_max = app->z_max;
+//     ;
+//     if (chi <= z_min || chi >= z_max)
+//     {
+//       return chi;
+//     }
+//     else
+//     {
+//       struct gkyl_qr_res integral = gkyl_dbl_exp(dBdz, ctx, z_min, chi, 7, 1e-14);
+//       double coord = (integral.res / app->map_integral_total * (z_max - z_min) + z_min) * map_strength + (1 - map_strength) * chi;
+//       return coord;
+//     }
+//   }
+// }
+
 double
 z_xi(double xi, double psi, void *ctx)
 {
@@ -473,8 +518,8 @@ create_ctx(void)
   double cs_m = 4.037740e5;
 
   // Non-uniform z mapping
-  int mapping_order = 2;  // Order of the polynomial to fit through points for mapc2p
-  double mapping_frac = 0.0; // 1 is full mapping, 0 is no mapping
+  int mapping_order = 20;  // Order of the polynomial to fit through points for mapc2p
+  double mapping_frac = 0.0;//0.72; // 1 is full mapping, 0 is no mapping
 
   struct gk_mirror_ctx ctx = {
     .mi = mi,
@@ -555,6 +600,44 @@ create_ctx(void)
     printf("Cell spacing at z_m * 0.25   : %g m\n", diff_z_p25);
     printf("Minimum cell spacing at 0    : %g m\n", diff_z_min);
   }
+
+  // Looking at calculating dB/dz in each cell
+  // xi is uniformly spaced computational coordinate
+  double dB_values[ctx.num_cell_z];
+  double mean = 0.0;
+  double max_dB = 0.0;
+  double loc_max_dB = 0.0;
+  for (int iz = 0; iz < ctx.num_cell_z; iz++)
+  {
+    double left_xi = ctx.z_min + iz * dxi;
+    double right_xi = ctx.z_min + (iz + 1) * dxi;
+    double psi = ctx.psi_eval;
+    double left_z = z_xi(left_xi, psi, &ctx);
+    double right_z = z_xi(right_xi, psi, &ctx);
+    double B_rad, B_Z, Bmag_left, Bmag_right;
+    Bfield_psiZ(psi, left_z, &ctx, &B_rad, &B_Z, &Bmag_left);
+    Bfield_psiZ(psi, right_z, &ctx, &B_rad, &B_Z, &Bmag_right);
+    double dB = (Bmag_right - Bmag_left);
+    dB_values[iz] = fabs(dB);
+    mean += fabs(dB);
+    if (fabs(dB) > max_dB)
+    {
+      max_dB = fabs(dB);
+      loc_max_dB = (left_z + right_z) / 2;
+    }
+  }
+  // Calculate mean and standard deviation of dBdz values
+  mean /= ctx.num_cell_z;
+  double std = 0.0;
+  for (int iz = 0; iz < ctx.num_cell_z; iz++)
+  {
+    std += pow(dB_values[iz] - mean, 2);
+  }
+  std = sqrt(std / ctx.num_cell_z);
+  printf("Mean dB: %g\n", mean);
+  printf("Std dB : %g\n", std);
+  printf("Max dB : %g\n", max_dB);
+  printf("Max dB location: %g\n", loc_max_dB);
   return ctx;
 }
 
