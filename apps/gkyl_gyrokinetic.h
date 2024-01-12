@@ -188,6 +188,7 @@ struct gkyl_gk {
   int num_species; // number of species
   struct gkyl_gyrokinetic_species species[GKYL_MAX_SPECIES]; // species objects
   
+  bool skip_field; // Skip field update -> phi = 0 for all time
   struct gkyl_gyrokinetic_field field; // field object
 
   // this should not be set by typical user-facing code but only by

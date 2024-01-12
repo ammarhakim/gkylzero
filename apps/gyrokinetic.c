@@ -181,8 +181,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   for (int i=0; i<ns; ++i)
     app->species[i].info = gk->species[i];
 
-
-  app->field = gk_field_new(gk, app);
+  app->update_field = !gk->skip_field; // note inversion of truth value (default: update field)
+  app->field = gk_field_new(gk, app); // initialize field, even if we are skipping field updates
 
   // initialize each species
   for (int i=0; i<ns; ++i) 
@@ -645,14 +645,16 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   double dtmin = DBL_MAX;
 
-  // Compute biased wall potential if present and time-dependent.
-  // Note: biased wall potential use proj_on_basis 
-  // so does copy to GPU every call if app->use_gpu = true.
-  if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
-    gk_field_calc_phi_wall(app, app->field, tcurr);
-  // compute electrostatic potential from gyrokinetic Poisson's equation
-  gk_field_accumulate_rho_c(app, app->field, fin);
-  gk_field_rhs(app, app->field);
+  if (app->update_field) {
+    // Compute biased wall potential if present and time-dependent.
+    // Note: biased wall potential use proj_on_basis 
+    // so does copy to GPU every call if app->use_gpu = true.
+    if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
+      gk_field_calc_phi_wall(app, app->field, tcurr);
+    // compute electrostatic potential from gyrokinetic Poisson's equation
+    gk_field_accumulate_rho_c(app, app->field, fin);
+    gk_field_rhs(app, app->field);
+  }
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
@@ -699,11 +701,13 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
-  // Compute ambipolar potential sheath values if using adiabatic electrons
-  // done here as the RHS update for all species should be complete before
-  // boundary fluxes are computed and stored temporarily in ghost cells of RHS
-  if (app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
-    gk_field_calc_ambi_pot_sheath_vals(app, app->field, fin, fout);
+  if (app->update_field) {
+    // Compute ambipolar potential sheath values if using adiabatic electrons
+    // done here as the RHS update for all species should be complete before
+    // boundary fluxes are computed and stored temporarily in ghost cells of RHS
+    if (app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
+      gk_field_calc_ambi_pot_sheath_vals(app, app->field, fin, fout);
+  }
 
   double dt_max_rel_diff = 0.01;
   // check if dtmin is slightly smaller than dt. Use dt if it is
