@@ -1,4 +1,3 @@
-#include "gkyl_rect_grid.h"
 #include <stdarg.h>
 
 #include <gkyl_alloc.h>
@@ -168,9 +167,10 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   if(app->cdim < 3){
     app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &app->grid, &app->local, &app->local_ext, 
         &app->confBasis, app->use_gpu);
+    gkyl_gk_geometry_release(gk_geom_3d);
   }
   else{
-    app->gk_geom = gk_geom_3d;
+    app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
   }
 
   // allocate space to store species objects
