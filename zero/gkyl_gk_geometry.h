@@ -32,6 +32,8 @@ struct gk_geometry {
   struct gkyl_array* gxxj;
   struct gkyl_array* gxyj;
   struct gkyl_array* gyyj;
+  struct gkyl_array* gxzj;
+  struct gkyl_array* eps2; // eps2 = Jg^33 - J/g_33
 
   uint32_t flags;
   struct gkyl_ref_count ref_count;  

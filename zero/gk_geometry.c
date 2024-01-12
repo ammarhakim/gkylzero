@@ -50,6 +50,8 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect
   up->gxxj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
+  up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
+  up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
 
   // Now fill the arrays by deflation
   int rem_dirs[3] = {0};
@@ -78,6 +80,8 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->gxxj, up->gxxj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->gxyj, up->gxyj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->gyyj, up->gyyj, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->gxzj, up->gxzj, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->eps2, up->eps2, 1);
   // Done deflating
 
   up->flags = 0;
@@ -101,6 +105,8 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->gxxj, "gxxj.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->gxyj,  "gxyj.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->gyyj,  "gyyj.gkyl");
+  gkyl_grid_sub_array_write(&up->grid, &up->range, up->gxyj,  "gxzj.gkyl");
+  gkyl_grid_sub_array_write(&up->grid, &up->range, up->gyyj,  "eps2.gkyl");
 
   return up;
 }
@@ -123,6 +129,8 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->gxxj);
   gkyl_array_release(up->gxyj);
   gkyl_array_release(up->gyyj);
+  gkyl_array_release(up->gxzj);
+  gkyl_array_release(up->eps2);
   if (gkyl_gk_geometry_is_cu_dev(up)) 
     gkyl_cu_free(up->on_dev); 
 

@@ -39,6 +39,7 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_fem_poisson_perp.h>
+#include <gkyl_fem_poisson.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_fromfile.h>
@@ -351,6 +352,9 @@ struct gk_field {
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 
   struct gkyl_fem_poisson_perp *fem_poisson_perp; // perpendicular Poisson solve
+                                                  // - nabla . (epsilon * nabla phi) - kSq * phi = rho
+
+  struct gkyl_fem_poisson *fem_poisson; // general Poisson solve to be used for axisymmetric calculations
                                                   // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 
   struct gkyl_array_integrate *calc_em_energy;
