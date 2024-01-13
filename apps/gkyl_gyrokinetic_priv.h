@@ -45,6 +45,7 @@
 #include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_gk_geometry_tok.h>
+#include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>

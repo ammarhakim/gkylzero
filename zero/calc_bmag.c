@@ -10,7 +10,7 @@
 
 gkyl_calc_bmag*
 gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_basis *fbasis,
-  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const struct gkyl_rect_grid *fgrid, const gkyl_tok_geo *app, const struct gkyl_tok_geo_grid_inp *ginp, double psisep, bool use_gpu)
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const struct gkyl_rect_grid *fgrid, double psisep, bool use_gpu)
 {
   gkyl_calc_bmag *up = gkyl_malloc(sizeof(gkyl_calc_bmag));
   up->cbasis = cbasis;
@@ -19,8 +19,6 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
   up->pgrid = pgrid;
   up->use_gpu = use_gpu;
   up->kernel = bmag_choose_kernel(up->pbasis->ndim, up->pbasis->b_type, up->pbasis->poly_order);
-  up->app = app;
-  up->ginp = ginp;
   up->fbasis = fbasis;
   up->fgrid = fgrid;
   up->psisep = psisep;
@@ -186,8 +184,6 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
   ctx->bmagdg = bmagrz;
   ctx->basis = up->pbasis;
   ctx->cbasis = up->cbasis;
-  ctx->app = up->app;
-  ctx->ginp = up->ginp;
   ctx->mapc2p = mapc2p;
   gkyl_eval_on_nodes *eval_bmag_comp = gkyl_eval_on_nodes_new(up->cgrid, up->cbasis, 1, bmag_comp, ctx);
   gkyl_eval_on_nodes_advance(eval_bmag_comp, 0.0, crange, bmag_compdg); //on ghosts with ext_range

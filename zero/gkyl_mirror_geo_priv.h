@@ -1,28 +1,18 @@
-#include <gkyl_tok_geo.h>
+#include <gkyl_mirror_geo.h>
 
 // Function context to pass to root finder
 struct arc_length_ctx {
-  const gkyl_tok_geo *geo;
+  const gkyl_mirror_geo *geo;
   double *arc_memo;
-  double *arc_memo_left;
-  double *arc_memo_right;
-  double psi, rclose, zmin, arcL;
-  double rleft, rright, zmax;
-  double arcL_right; // this is for when we need to switch sides
-  double arcL_left; // this is for when we need to switch sides
+  double psi, rclose, zmin, zmax, arcL;
   double arcL_tot; // total arc length
-  double phi_right; // this is for when we need to switch sides
-  double phi_left; // this is for when we need to switch sides
-  double phi_bot; // For new way of trying to do core
-  bool right;
   double zmaxis;
-  enum gkyl_tok_geo_type ftype; // type of geometry
 };
 
 
 // Context to pass to endpoint finder
 struct plate_ctx{
-  const struct gkyl_tok_geo* geo;
+  const struct gkyl_mirror_geo* geo;
   double psi_curr;
   bool lower;
 };
@@ -136,7 +126,7 @@ calc_RdR_p2(const double *psi, double psi0, double Z, double xc[2], double dx[2]
 // copied in the array R and dR. The calling function must ensure that
 // these arrays are big enough to hold all roots required
 static int
-R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
+R_psiZ(const gkyl_mirror_geo *geo, double psi, double Z, int nmaxroots,
   double *R, double *dR)
 {
   int zcell = get_idx(1, Z, &geo->rzgrid, &geo->rzlocal);
@@ -175,7 +165,7 @@ R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
 
 // Function context to pass to coutour integration function
 struct contour_ctx {
-  const gkyl_tok_geo *geo;
+  const gkyl_mirror_geo *geo;
   double psi, last_R;
   long ncall;
 };
@@ -234,7 +224,7 @@ phi_contour_func(double Z, void *ctx)
 // well, discontinuous, and adaptive quadrature struggles with such
 // functions.
 static double
-integrate_psi_contour_memo(const gkyl_tok_geo *geo, double psi,
+integrate_psi_contour_memo(const gkyl_mirror_geo *geo, double psi,
   double zmin, double zmax, double rclose,
   bool use_memo, bool fill_memo, double *memo)
 {
@@ -287,12 +277,12 @@ integrate_psi_contour_memo(const gkyl_tok_geo *geo, double psi,
     }
   }
 
-  ((gkyl_tok_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
+  ((gkyl_mirror_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
   return res;
 }
 
 static double
-integrate_phi_along_psi_contour_memo(const gkyl_tok_geo *geo, double psi,
+integrate_phi_along_psi_contour_memo(const gkyl_mirror_geo *geo, double psi,
   double zmin, double zmax, double rclose,
   bool use_memo, bool fill_memo, double *memo)
 {
@@ -345,22 +335,21 @@ integrate_phi_along_psi_contour_memo(const gkyl_tok_geo *geo, double psi,
     }
   }
 
-  ((gkyl_tok_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
+  ((gkyl_mirror_geo *)geo)->stat.nquad_cont_calls += ctx.ncall;
   return res;
 }
 
 
-double phi_func(double alpha_curr, double Z, void *ctx);
-double tok_plate_psi_func(double s, void *ctx);
+double mirror_plate_psi_func(double s, void *ctx);
 
 /*
  * Used to set zmin and zmax and attributes of arc_ctx before looping over arc length
 */
-void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* zmin, double* zmax, double* zmin_left, double* zmin_right, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
+void mirror_find_endpoints(struct gkyl_mirror_geo_grid_inp* inp, struct gkyl_mirror_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* zmin, double* zmax, double* arc_memo);
 
 
 /*
  * Used to set arc_ctx attributes before using ridders to find z
 */
-void tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double zmin_left, double zmin_right, double rright, double rleft, double* rclose, double *ridders_min, double* ridders_max);
+void mirror_set_ridders(struct gkyl_mirror_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double* rclose, double *ridders_min, double* ridders_max);
 
