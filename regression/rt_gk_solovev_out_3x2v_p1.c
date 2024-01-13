@@ -414,11 +414,16 @@ main(int argc, char **argv)
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
+    //.geometry = {
+    //  .geometry_id = GKYL_TOKAMAK,
+    //  .tok_efit_info = &inp,
+    //  .tok_grid_info = &ginp,
+    //},
+    //
     .geometry = {
-      .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .geometry_id = GKYL_GEOMETRY_FROMFILE,
     },
+
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
