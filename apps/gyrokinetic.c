@@ -155,11 +155,11 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       break;
     case GKYL_TOKAMAK:
       gk_geom_3d = gkyl_gk_geometry_tok_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-          gk->geometry.efit_info, gk->geometry.grid_info, geo_3d_use_gpu);
+          gk->geometry.tok_efit_info, gk->geometry.tok_grid_info, geo_3d_use_gpu);
       break;
     case GKYL_MIRROR:
       gk_geom_3d = gkyl_gk_geometry_mirror_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-          gk->geometry.efit_info, gk->geometry.grid_info, geo_3d_use_gpu);
+          gk->geometry.mirror_efit_info, gk->geometry.mirror_grid_info, geo_3d_use_gpu);
       break;
     case GKYL_MAPC2P:
       gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 

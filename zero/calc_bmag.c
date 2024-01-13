@@ -117,7 +117,7 @@ static inline void bphi_RZ(double t, const double *xn, double *fout, void *ctx){
 
 
 
-void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p)
+void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi)
 {
   // 0th stage is to calculate bphi from fpol on the RZ grid from its representation on the flux grid
   // We will do this with an eval on nodes similar to what is done in bmag comp
@@ -140,9 +140,11 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
 
 
   struct gkyl_array* bphirz = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
-  gkyl_eval_on_nodes *eval_fpol_RZ = gkyl_eval_on_nodes_new(up->pgrid, up->pbasis, 1, bphi_RZ, fctx);
-  gkyl_eval_on_nodes_advance(eval_fpol_RZ, 0.0, prange, bphirz); //on ghosts with ext_range
-
+  if (calc_bphi){
+    gkyl_eval_on_nodes *eval_fpol_RZ = gkyl_eval_on_nodes_new(up->pgrid, up->pbasis, 1, bphi_RZ, fctx);
+    gkyl_eval_on_nodes_advance(eval_fpol_RZ, 0.0, prange, bphirz); //on ghosts with ext_range
+    gkyl_eval_on_nodes_release(eval_fpol_RZ);
+  }
 
 
   struct gkyl_array* bmagrz = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
@@ -187,6 +189,7 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
   ctx->mapc2p = mapc2p;
   gkyl_eval_on_nodes *eval_bmag_comp = gkyl_eval_on_nodes_new(up->cgrid, up->cbasis, 1, bmag_comp, ctx);
   gkyl_eval_on_nodes_advance(eval_bmag_comp, 0.0, crange, bmag_compdg); //on ghosts with ext_range
+  gkyl_eval_on_nodes_release(eval_bmag_comp);
 }
 
 void

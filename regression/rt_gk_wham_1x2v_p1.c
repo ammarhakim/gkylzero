@@ -10,7 +10,7 @@
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_math.h>
 #include <rt_arg_parse.h>
-#include <gkyl_tok_geo.h>
+#include <gkyl_mirror_geo.h>
 
 // Define the context of the simulation. This is basically all the globals
 struct gk_mirror_ctx
@@ -104,7 +104,7 @@ struct gk_mirror_ctx
 };
 
 
-struct gkyl_tok_geo_efit_inp inp = {
+struct gkyl_mirror_geo_efit_inp inp = {
   // psiRZ and related inputs
   .filepath = "./efit_data/wham.geqdsk",
   .rzpoly_order = 2,
@@ -114,8 +114,7 @@ struct gkyl_tok_geo_efit_inp inp = {
 };
 
 
-struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT,
+struct gkyl_mirror_geo_grid_inp ginp = {
     .rclose = 0.2,
     .zmin = -2.48,
     .zmax = 2.48,
@@ -923,8 +922,8 @@ int main(int argc, char **argv)
           .geometry_id = GKYL_MIRROR,
           .world = {ctx.psi_eval, 0.0},
 
-      .efit_info = &inp,
-      .grid_info = &ginp,
+      .mirror_efit_info = &inp,
+      .mirror_grid_info = &ginp,
       },
 
       .num_periodic_dir = 0,
