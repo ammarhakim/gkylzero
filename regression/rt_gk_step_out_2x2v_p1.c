@@ -46,14 +46,6 @@ struct gkyl_tok_geo_efit_inp inp = {
   .quad_param = {  .eps = 1e-10 }
 };
 
-//struct gkyl_tok_geo_grid_inp ginp = {
-//  .ftype = GKYL_SOL_DN_OUT,
-//  .rclose = 6.2,
-//  .zmin = -8.3,
-//  .zmax = 8.3,
-//  .write_node_coord_array = true,
-//  .node_file_nm = "stepoutboard_nodes.gkyl"
-//}; 
 
 struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
@@ -362,9 +354,6 @@ main(int argc, char **argv)
       .tok_efit_info = &inp,
       .tok_grid_info = &ginp,
     },
-    //.geometry = {
-    //  .geometry_id = GKYL_GEOMETRY_FROMFILE,
-    //},
 
     .num_periodic_dir = 0,
     .periodic_dirs = {  },
