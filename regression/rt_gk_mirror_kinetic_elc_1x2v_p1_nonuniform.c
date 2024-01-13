@@ -98,7 +98,8 @@ struct gk_mirror_ctx
   // For non-uniform mapping
   double diff_dz;
   double psi_in_diff;
-  int mapping_order;
+  int mapping_order_center;
+  int mapping_order_expander;
   double mapping_frac;
 };
 
@@ -254,7 +255,9 @@ z_xi(double xi, double psi, void *ctx)
   double z_min = app->z_min;
   double z_max = app->z_max;
   double z_m = app->z_m;
-  int n = app->mapping_order;
+  int n_ex = app->mapping_order_expander;
+  int n_ct = app->mapping_order_center;
+  int n;
   double frac = app->mapping_frac; // 1 is full mapping, 0 is no mapping
   double z, left, right;
   if (xi >= z_min && xi <= z_max)
@@ -263,21 +266,25 @@ z_xi(double xi, double psi, void *ctx)
     {
       left = -z_m;
       right = z_min;
+  n = n_ex;
     }
     else if (xi <= 0.0)
     {
       left = -z_m;
       right = 0.0;
+n = n_ct;
     }
     else if (xi <= z_m)
     {
       left = z_m;
       right = 0.0;
+n = n_ct;
     }
     else
     {
       left = z_m;
       right = z_max;
+n = n_ex;
     }
     z = (pow(right - left, 1 - n) * pow(xi - left, n) + left) * frac + xi * (1 - frac);
   }
@@ -654,10 +661,10 @@ double kperpRhos = 0.1;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int num_cell_vpar = 64; // Number of cells in the paralell velocity direction 96
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
-  int num_cell_z = 81;
+  int num_cell_z = 128;
   int poly_order = 1;
-  double final_time = 1e-6;
-  int num_frames = 10;
+  double final_time = 30e-6;
+  int num_frames = 100;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx
   double B_bt = 1.058278;
@@ -675,7 +682,8 @@ double kperpRhos = 0.1;
   double cs_m = 4.037740e5;
 
   // Non-uniform z mapping
-  int mapping_order = 20;  // Order of the polynomial to fit through points for mapc2p
+  int mapping_order_center = 7; //depends on problem sizes. Big headache
+  int mapping_order_expander = 20;  // Order of the polynomial to fit through points for mapc2p
   double mapping_frac = 0.72;//0.72; // 1 is full mapping, 0 is no mapping
 
   struct gk_mirror_ctx ctx = {
@@ -746,7 +754,8 @@ double kperpRhos = 0.1;
       .poly_order = poly_order,
       .final_time = final_time,
       .num_frames = num_frames,
-      .mapping_order = mapping_order,  // Order of the polynomial to fit through points for mapc2p
+      .mapping_order_center = mapping_order_center,  // Order of the polynomial to fit through points for mapc2p
+.mapping_order_expander = mapping_order_expander,
       .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
   // Printing
@@ -764,7 +773,7 @@ double kperpRhos = 0.1;
   {
     printf("Non-uniform cell spacings:\n");
     printf("Total number of cells in z   : %d\n", ctx.num_cell_z);
-    printf("Polynomials order %i with mapping fraction %g\n", ctx.mapping_order, ctx.mapping_frac);
+    printf("Polynomials order %i center and %i expander with mapping fraction %g\n", ctx.mapping_order_center, ctx.mapping_order_expander, ctx.mapping_frac);
     printf("Uniform computational spacing: %g m\n", dxi);
     printf("Maximum cell spacing at z_m  : %g m\n", diff_z_max);
     printf("Cell spacing at z_m * 0.75   : %g m\n", diff_z_p75);
@@ -806,7 +815,7 @@ double kperpRhos = 0.1;
     std += pow(dB_values[iz] - mean, 2);
   }
   std = sqrt(std / ctx.num_cell_z);
-  printf("Mean dB: %g\n", mean);
+  printf("\nMean dB: %g\n", mean);
   printf("Std dB : %g\n", std);
   printf("Max dB : %g\n", max_dB);
   printf("Max dB location: %g\n", loc_max_dB);
