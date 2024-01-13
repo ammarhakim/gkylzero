@@ -33,6 +33,19 @@ void test_grid_2d()
       TEST_CHECK( xc[0] == 1.0 + (i-0.5)*grid.dx[0] );
       TEST_CHECK( xc[1] == 1.0 + (j-0.5)*grid.dx[1] );
     }
+
+  double xn[2] = { 0.0, 0.0 };
+  int idx[2];
+
+  xn[0] = grid.lower[0] + 0.5*grid.dx[0];
+  xn[1] = grid.lower[1] + 0.5*grid.dx[1];
+  gkyl_rect_grid_coord_idx(&grid, xn, idx);
+  TEST_CHECK( (idx[0] == 1) && (idx[1] == 1) );
+
+  xn[0] = grid.lower[0] + 1.5*grid.dx[0];
+  xn[1] = grid.lower[1] + 1.5*grid.dx[1];
+  gkyl_rect_grid_coord_idx(&grid, xn, idx);
+  TEST_CHECK( (idx[0] == 2) && (idx[1] == 2) );
 }
 
 void test_grid_io()

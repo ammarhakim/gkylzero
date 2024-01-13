@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include <gkyl_util.h>
 
@@ -47,6 +48,23 @@ gkyl_rect_grid_cell_center(const struct gkyl_rect_grid *grid,
 }
 
 /**
+ * Get coordinate of lower-left node. Note that idx is a 1-based cell
+ * index, i.e. the lower-left corner is (1,1,...).
+ *
+ * @param grid Grid object
+ * @param idx Index of cell (lower-left corner has all index (1,1,...) )
+ * @param xn On output, coordinates of lower-left node
+ */
+GKYL_CU_DH
+static inline void
+gkyl_rect_grid_ll_node(const struct gkyl_rect_grid *grid,
+  const int *idx, double *xc)
+{
+  for (int i=0; i<grid->ndim; ++i)
+    xc[i] = grid->lower[i]+(idx[i]-1)*grid->dx[i];
+}
+
+/**
  * Get index extents in direction @a dir. The extents are inclusive.
  *
  * @param grid Grid object
@@ -58,6 +76,25 @@ static inline void
 gkyl_rect_grid_extents(const struct gkyl_rect_grid *grid, int dir, int ext[2])
 {
   ext[0] = 1; ext[1] = grid->cells[dir];
+}
+
+/**
+ * Get index of point with coordinate @a xn
+ *
+ * @param grid Grid object
+ * @param xn Coordinate of point in grid
+ * @param idx On output, index of point in grid
+ */
+GKYL_CU_DH
+static inline void
+gkyl_rect_grid_coord_idx(const struct gkyl_rect_grid *grid,
+  const double *xn, int *idx)
+{
+  for (int d=0; d<grid->ndim; ++d) {
+    int ext[2]; gkyl_rect_grid_extents(grid, d, ext);
+    double xlower = grid->lower[d], dx = grid->dx[d];
+    idx[d] = ext[0] + (int) floor((xn[d]-xlower)/dx);
+  }
 }
 
 /**

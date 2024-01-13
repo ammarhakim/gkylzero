@@ -43,7 +43,7 @@ gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp)
   struct gkyl_proj_on_basis *up = gkyl_malloc(sizeof(struct gkyl_proj_on_basis));
 
   up->grid = *inp->grid;
-  int num_quad = up->num_quad = inp->num_quad;
+  int num_quad = up->num_quad = inp->num_quad == 0 ? inp->basis->poly_order+1 : inp->num_quad;
   int num_ret_vals = up->num_ret_vals = inp->num_ret_vals;
   up->eval = inp->eval;
   up->ctx = inp->ctx;
