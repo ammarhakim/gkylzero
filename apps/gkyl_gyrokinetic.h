@@ -102,6 +102,14 @@ struct gkyl_gyrokinetic_radiation {
   double v0[GKYL_MAX_SPECIES];
 };
 
+// Parameters for species radiation
+struct gkyl_gyrokinetic_react {
+  int num_react; // number of reactions
+  // 4 types of reactions supported currently
+  // Ionization, Charge exchange, Recombination, and Radiation
+  enum gkyl_react_id react_id[4]; 
+};
+
 // Parameters for gk species
 struct gkyl_gyrokinetic_species {
   char name[128]; // species name
@@ -141,6 +149,44 @@ struct gkyl_gyrokinetic_species {
 
   // radiation to include
   struct gkyl_gyrokinetic_radiation radiation;
+
+  // reactions to include
+  struct gkyl_gyrokinetic_react react;
+
+  // boundary conditions
+  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+};
+
+// Parameters for neutral species
+struct gkyl_gyrokinetic_neut_species {
+  char name[128]; // species name
+
+  double mass; // mass
+  double lower[3], upper[3]; // lower, upper bounds of velocity-space
+  int cells[3]; // velocity-space cells
+
+  // pointer and context to initialization function 
+  void *ctx_dist; 
+  void (*init_dist)(double t, const double *xn, double *fout, void *ctx); 
+
+  // pointers and contexts to initialization functions for gk maxwellian projection
+  void *ctx_density;
+  void (*init_density)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_upar;
+  void (*init_upar)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_temp;
+  void (*init_temp)(double t, const double *xn, double *fout, void *ctx);
+  // flag to indicate if IC is maxwellian projection
+  bool is_maxwellian;
+
+  int num_diag_moments; // number of diagnostic moments
+  char diag_moments[16][16]; // list of diagnostic moments
+
+  // source to include
+  struct gkyl_gyrokinetic_source source;
+
+  // reactions to include
+  struct gkyl_gyrokinetic_react react;
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
@@ -190,6 +236,9 @@ struct gkyl_gk {
 
   int num_species; // number of species
   struct gkyl_gyrokinetic_species species[GKYL_MAX_SPECIES]; // species objects
+
+  int num_neut_species; // number of species
+  struct gkyl_gyrokinetic_neut_species neut_species[GKYL_MAX_SPECIES]; // species objects
   
   bool skip_field; // Skip field update -> phi = 0 for all time
   struct gkyl_gyrokinetic_field field; // field object
@@ -277,6 +326,17 @@ void gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0);
 void gkyl_gyrokinetic_app_apply_ic_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
 /**
+ * Initialize neutral species by projecting initial conditions on basis
+ * functions. Neutral species index (sidx) is the same index used to specify
+ * the neutral species in the gkyl_gk object used to construct app.
+ *
+ * @param app App object.
+ * @param sidx Index of neutral species to initialize.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
+
+/**
  * Calculate diagnostic moments.
  *
  * @param app App object.
@@ -290,14 +350,6 @@ void gkyl_gyrokinetic_app_calc_mom(gkyl_gyrokinetic_app *app);
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm);
-
-/**
- * Calculate integrated L2 norm of the distribution function, f^2.
- *
- * @param tm Time at which integrated diagnostic are to be computed
- * @param app App object.
- */
-void gkyl_gyrokinetic_app_calc_integrated_L2_f(gkyl_gyrokinetic_app* app, double tm);
 
 /**
  * Calculate integrated field energy
@@ -381,14 +433,6 @@ void gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app *app, double tm, int fr
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app);
-
-/**
- * Write integrated L2 norm of the species distribution function to file. Integrated
- * L2 norm is appended to the same file.
- * 
- * @param app App object.
- */
-void gkyl_gyrokinetic_app_write_integrated_L2_f(gkyl_gyrokinetic_app *app);
 
 /**
  * Write field energy to file. Field energy data is appended to the

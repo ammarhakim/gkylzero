@@ -289,7 +289,6 @@ main(int argc, char **argv)
       .upar_profile = eval_upar_source,
       .ctx_temp = &ctx,
       .temp_profile = eval_temp_source,
-      .ctx_temp = &ctx,
     },
     
     .num_diag_moments = 7,
@@ -331,8 +330,8 @@ main(int argc, char **argv)
       .density_profile = eval_density_source,
       .ctx_upar = &ctx,
       .upar_profile = eval_upar_source,
-      .temp_profile = eval_temp_source,
       .ctx_temp = &ctx,
+      .temp_profile = eval_temp_source,
     },
     
     .num_diag_moments = 7,

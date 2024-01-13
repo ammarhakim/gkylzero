@@ -14,9 +14,9 @@
 
 // initialize species object
 void
-gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s)
+gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
 {
-  int cdim = app->cdim, vdim = app->vdim;
+  int cdim = app->cdim, vdim = app->vdim+1; // neutral species are 3v
   int pdim = cdim+vdim;
 
   int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
@@ -61,18 +61,14 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
   gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
 
-  // determine field-type 
-  s->gkfield_id = app->field->gkfield_id;
-  s->gkmodel_id = GKYL_GK_MODEL_GEN_GEO;
-
   // allocate distribution function arrays
-  s->f = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
-  s->f1 = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
-  s->fnew = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  s->f = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
+  s->f1 = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
+  s->fnew = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
 
   s->f_host = s->f;
   if (app->use_gpu)
-    s->f_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+    s->f_host = mkarr(false, app->neut_basis.num_basis, s->local_ext.volume);
 
   // allocate cflrate (scalar array)
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
@@ -81,34 +77,6 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     s->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
   else 
     s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
-
-  // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
-  struct gkyl_basis surf_basis, surf_quad_basis;
-  if (app->poly_order > 1) {
-    gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
-    gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
-  }
-  else {
-    gkyl_cart_modal_gkhybrid(&surf_basis, cdim-1, vdim); // p=2 in vparallel
-    gkyl_cart_modal_gkhybrid(&surf_quad_basis, cdim-1, vdim); 
-  }
-  int alpha_surf_sz = (cdim+1)*surf_basis.num_basis;
-  int sgn_alpha_surf_sz = (cdim+1)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
-
-  // allocate arrays to store fields: 
-  // 1. alpha_surf (surface phase space flux)
-  // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
-  // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
-  s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
-  s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
-  s->const_sgn_alpha = mk_int_arr(app->use_gpu, (cdim+1), s->local_ext.volume);
-  // 4. EM fields: phi and (if EM GK) Apar and d/dt Apar  
-  s->phi = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  s->apar = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  s->apardot = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);    
-
-  s->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&s->grid, &app->confBasis, &app->basis, 
-    s->info.charge, s->info.mass, s->gkmodel_id, app->gk_geom, app->use_gpu);
 
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
@@ -137,28 +105,26 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     }
   }
 
-  struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .alpha_surf = s->alpha_surf, 
-    .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha, 
-    .phi = s->phi, .apar = s->apar, .apardot = s->apardot };
-  // create solver
-  s->slvr = gkyl_dg_updater_gyrokinetic_new(&s->grid, &app->confBasis, &app->basis, 
-    &app->local, &s->local, is_zero_flux, 
-    s->info.charge, s->info.mass, s->gkmodel_id, 
-    app->gk_geom, &aux_inp, app->use_gpu);
+  struct gkyl_dg_vlasov_auxfields aux_inp = {.field = 0, .cot_vec = app->gk_geom->dxdz, .alpha_geo = 0};
+  // Set field type and model id for neutral species in GK system and create solver
+  s->field_id = GKYL_FIELD_NULL;
+  s->model_id = GKYL_MODEL_GEN_GEO;
+  s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->neut_basis, 
+    &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
 
   // acquire equation object
-  s->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(s->slvr);
+  s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
 
-  // allocate date for density (for use in charge density accumulation and weak division for upar)
-  gk_species_moment_init(app, s, &s->m0, "M0");
+  // allocate date for density 
+  gk_neut_species_moment_init(app, s, &s->m0, "M0");
   // allocate data for integrated moments
-  gk_species_moment_init(app, s, &s->integ_moms, "Integrated");
+  gk_neut_species_moment_init(app, s, &s->integ_moms, "Integrated");
 
   // allocate data for diagnostic moments
   int ndm = s->info.num_diag_moments;
-  s->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
+  s->moms = gkyl_malloc(sizeof(struct gk_neut_species_moment[ndm]));
   for (int m=0; m<ndm; ++m)
-    gk_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
+    gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
   if (app->use_gpu) 
     s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
@@ -168,53 +134,6 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
 
   // set species source id
   s->source_id = s->info.source.source_id;
-  
-  // determine collision type to use in gyrokinetic update
-  s->collision_id = s->info.collisions.collision_id;
-  if (s->collision_id == GKYL_LBO_COLLISIONS) 
-    gk_species_lbo_init(app, s, &s->lbo);
-  else if (s->collision_id == GKYL_BGK_COLLISIONS)
-    gk_species_bgk_init(app, s, &s->bgk);
-
-  // determine radiation type to use in gyrokinetic update
-  s->radiation_id = s->info.radiation.radiation_id;
-  if (s->radiation_id == GKYL_GK_RADIATION) 
-    gk_species_radiation_init(app, s, &s->rad);
-
-  // initialize boundary fluxes for diagnostics and, if present,
-  // ambipolar potential solve
-  gk_species_bflux_init(app, s, &s->bflux); 
-
-  // initialize diffusion if present
-  s->has_diffusion = false;  
-  if (s->info.diffusion.D) {
-    s->has_diffusion = true;
-    s->info.diffusion.order = s->info.diffusion.order < 2 ? 2 : s->info.diffusion.order;
-
-    int szD = cdim;
-    s->diffD = mkarr(app->use_gpu, szD, 1);
-    struct gkyl_array *diffD_host = s->diffD;
-    if (app->use_gpu)
-      diffD_host = mkarr(false, szD, 1);
-    // Set diffusion coefficient in each direction to input value.
-    gkyl_array_clear(diffD_host, 0.);
-    for (int d=0; d<cdim; d++) gkyl_array_shiftc(diffD_host, s->info.diffusion.D, d);
-
-    if (app->use_gpu) {// note: diffD_host is same as diffD when not on GPUs
-      gkyl_array_copy(s->diffD, diffD_host);
-      gkyl_array_release(diffD_host);
-    }
-
-    bool is_zero_flux[GKYL_MAX_CDIM] = {false};
-    bool diff_dir[GKYL_MAX_CDIM] = {false};
-
-    int num_diff_dir = s->info.diffusion.num_diff_dir ? app->cdim : s->info.diffusion.num_diff_dir;
-    for (int d=0; d<num_diff_dir; ++d)
-      diff_dir[s->info.diffusion.diff_dirs[d]] = 1; 
-
-    s->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&s->grid, &app->basis, &app->confBasis, 
-      true, diff_dir, s->info.diffusion.order, &s->local, is_zero_flux, app->use_gpu);
-  }
 
   // create ranges and allocate buffers for applying periodic and non-periodic BCs
   long buff_sz = 0;
@@ -228,17 +147,16 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     long vol = GKYL_MAX2(s->lower_skin[dir].volume, s->upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
-  s->bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+  s->bc_buffer = mkarr(app->use_gpu, app->neut_basis.num_basis, buff_sz);
   // buffer arrays for fixed function boundary conditions on distribution function
-  s->bc_buffer_lo_fixed = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
-  s->bc_buffer_up_fixed = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+  s->bc_buffer_lo_fixed = mkarr(app->use_gpu, app->neut_basis.num_basis, buff_sz);
+  s->bc_buffer_up_fixed = mkarr(app->use_gpu, app->neut_basis.num_basis, buff_sz);
 
   for (int d=0; d<cdim; ++d) {
     // Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-    if (s->lower_bc[d] == GKYL_SPECIES_GK_SHEATH) {
-      s->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, app->basis_on_dev.basis, 
-        &s->lower_skin[d], &s->lower_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
+    if (s->lower_bc[d] == GKYL_SPECIES_RECYCLE) {
+      ;
     }
     else { 
       if (s->lower_bc[d] == GKYL_SPECIES_COPY) 
@@ -250,13 +168,12 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
       else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
         bctype = GKYL_BC_FIXED_FUNC;
 
-      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
+      s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.neut_basis,
         &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
     }
 
-    if (s->upper_bc[d] == GKYL_SPECIES_GK_SHEATH) {
-      s->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, app->basis_on_dev.basis, 
-        &s->upper_skin[d], &s->upper_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
+    if (s->upper_bc[d] == GKYL_SPECIES_RECYCLE) {
+      ;
     }
     else {
       // Upper BC updater. Copy BCs by default.
@@ -269,14 +186,14 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
       else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
         bctype = GKYL_BC_FIXED_FUNC;
 
-      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
+      s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.neut_basis,
         &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
     }
   }
 }
 
 void
-gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, double t0)
+gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double t0)
 {
   int poly_order = app->poly_order;
   if (species->info.is_maxwellian){
@@ -303,7 +220,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
 
     // Initialize Maxwellian projection object
     gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&species->grid,
-        &app->confBasis, &app->basis, poly_order+1, app->use_gpu);
+        &app->confBasis, &app->neut_basis, poly_order+1, app->use_gpu);
 
     // If on GPUs, need to copy n, udrift, and vt^2 onto device
     struct gkyl_array *prim_moms_dev, *m0_dev;
@@ -313,15 +230,15 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
 
       gkyl_array_copy(prim_moms_dev, prim_moms);
       gkyl_array_copy(m0_dev, m0);
-      gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &species->local_ext, &app->local_ext, m0_dev, prim_moms_dev,
-          app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, species->f);
+      gkyl_proj_maxwellian_on_basis_prim_mom(proj_max, &species->local_ext, &app->local_ext, 
+        m0_dev, prim_moms_dev, species->f);
     }
     else {
-      gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &species->local_ext, &app->local_ext, m0, prim_moms,
-          app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, species->f);
+      gkyl_proj_maxwellian_on_basis_prim_mom(proj_max, &species->local_ext, &app->local_ext, 
+        m0_dev, prim_moms_dev, species->f);
     }
     // Now compute and scale the density to the desired density function based on input density from Maxwellian projection
-    gk_species_moment_calc(&species->m0, species->local_ext, app->local_ext, species->f); 
+    gk_neut_species_moment_calc(&species->m0, species->local_ext, app->local_ext, species->f); 
 
     // Rescale projected density to desired input density function
     struct gkyl_array *m0mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -334,11 +251,11 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
       mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
       gkyl_dg_div_op_range(mem, app->confBasis, 0, m0mod, 0, m0, 0, species->m0.marr, &app->local);
     }
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->f, 
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, species->f, 
         m0mod, species->f, &app->local_ext, &species->local_ext);
 
     // multiply final distribution function by Jacobian
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, species->f, 
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, species->f, 
         app->gk_geom->jacobgeo, species->f, &app->local_ext, &species->local_ext);
 
     // Free temporary variables and projection objects
@@ -359,7 +276,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
   }
   else {
     gkyl_proj_on_basis *proj;
-    proj = gkyl_proj_on_basis_new(&species->grid, &app->basis,
+    proj = gkyl_proj_on_basis_new(&species->grid, &app->neut_basis,
       poly_order+1, 1, species->info.init_dist, species->info.ctx_dist);
 
     gkyl_proj_on_basis_advance(proj, t0, &species->local, species->f_host);
@@ -372,7 +289,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
 
   // we are pre-computing source for now as it is time-independent
   if (species->source_id)
-    gk_species_source_calc(app, species, t0);
+    gk_neut_species_source_calc(app, species, t0);
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now for cdim > 1*
@@ -385,34 +302,14 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
 // Compute the RHS for species update, returning maximum stable
 // time-step.
 double
-gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gkyl_array_set(species->phi, 1.0, app->field->phi_smooth);
-
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  // Compute the surface expansion of the phase space flux
-  // Note: Each cell stores the *lower* surface expansions of the 
-  // phase space flux, so local_ext range needed to index the output
-  // values of alpha_surf even though we only loop over local ranges
-  // to avoid evaluating quantities such as geometry in ghost cells
-  // where they are not defined.
-  gkyl_dg_calc_gyrokinetic_vars_alpha_surf(species->calc_gk_vars, 
-    &app->local, &species->local, &species->local_ext, 
-    species->phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
-
-  gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
+  gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
-
-  if (species->collision_id == GKYL_LBO_COLLISIONS)
-    gk_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
-  else if (species->collision_id == GKYL_BGK_COLLISIONS)
-    gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
-  
-  if (species->radiation_id == GKYL_GK_RADIATION)
-    gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
 
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -433,7 +330,7 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 // Determine which directions are periodic and which directions are not periodic,
 // and then apply boundary conditions for distribution function
 void
-gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
   
@@ -449,9 +346,8 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     if (is_np_bc[d]) {
 
       switch (species->lower_bc[d]) {
-        case GKYL_SPECIES_GK_SHEATH:
-          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
-            app->field->phi_wall_lo, f, &app->local);
+        case GKYL_SPECIES_RECYCLE:
+          ;
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -472,9 +368,8 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
       }
 
       switch (species->upper_bc[d]) {
-        case GKYL_SPECIES_GK_SHEATH:
-          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
-            app->field->phi_wall_up, f, &app->local);
+        case GKYL_SPECIES_RECYCLE:
+          ;
           break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
@@ -502,32 +397,19 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 }
 
 void
-gk_species_coll_tm(gkyl_gyrokinetic_app *app)
-{
-  for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
-      struct gkyl_dg_updater_lbo_gyrokinetic_tm tm =
-        gkyl_dg_updater_lbo_gyrokinetic_get_tm(app->species[i].lbo.coll_slvr);
-      app->stat.species_lbo_coll_diff_tm[i] = tm.diff_tm;
-      app->stat.species_lbo_coll_drag_tm[i] = tm.drag_tm;
-    }
-  }
-}
-
-void
-gk_species_tm(gkyl_gyrokinetic_app *app)
+gk_neut_species_tm(gkyl_gyrokinetic_app *app)
 {
   app->stat.species_rhs_tm = 0.0;
-  for (int i=0; i<app->num_species; ++i) {
-    struct gkyl_dg_updater_gyrokinetic_tm tm =
-      gkyl_dg_updater_gyrokinetic_get_tm(app->species[i].slvr);
-    app->stat.species_rhs_tm += tm.gyrokinetic_tm;
+  for (int i=0; i<app->num_neut_species; ++i) {
+    struct gkyl_dg_updater_vlasov_tm tm =
+      gkyl_dg_updater_vlasov_get_tm(app->neut_species[i].slvr);
+    app->stat.species_rhs_tm += tm.vlasov_tm;
   }
 }
 
 // release resources for species
 void
-gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
+gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s)
 {
   // release various arrays
   gkyl_array_release(s->f);
@@ -545,48 +427,31 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   if (app->use_gpu)
     gkyl_array_release(s->f_host);
 
-  gkyl_array_release(s->alpha_surf);
-  gkyl_array_release(s->sgn_alpha_surf);
-  gkyl_array_release(s->const_sgn_alpha);
-  gkyl_array_release(s->phi);
-  gkyl_array_release(s->apar);
-  gkyl_array_release(s->apardot);
-
-  gkyl_dg_calc_gyrokinetic_vars_release(s->calc_gk_vars);
-
   // release equation object and solver
-  gkyl_dg_eqn_release(s->eqn_gyrokinetic);
-  gkyl_dg_updater_gyrokinetic_release(s->slvr);
+  gkyl_dg_eqn_release(s->eqn_vlasov);
+  gkyl_dg_updater_vlasov_release(s->slvr);
 
   // release moment data
-  gk_species_moment_release(app, &s->m0);
+  gk_neut_species_moment_release(app, &s->m0);
   for (int i=0; i<s->info.num_diag_moments; ++i)
-    gk_species_moment_release(app, &s->moms[i]);
+    gk_neut_species_moment_release(app, &s->moms[i]);
   gkyl_free(s->moms);
-  gk_species_moment_release(app, &s->integ_moms); 
+  gk_neut_species_moment_release(app, &s->integ_moms); 
   gkyl_dynvec_release(s->integ_diag);
 
   if (s->source_id) {
-    gk_species_source_release(app, &s->src);
+    gk_neut_species_source_release(app, &s->src);
   }
-
-  if (s->collision_id == GKYL_LBO_COLLISIONS)
-    gk_species_lbo_release(app, &s->lbo);
-  else if (s->collision_id == GKYL_BGK_COLLISIONS)
-    gk_species_bgk_release(app, &s->bgk);
-
-  if (s->radiation_id == GKYL_GK_RADIATION) 
-    gk_species_radiation_release(app, &s->rad);
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (s->lower_bc[d] == GKYL_SPECIES_GK_SHEATH) 
-      gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
+    if (s->lower_bc[d] == GKYL_SPECIES_RECYCLE) 
+      ;
     else 
       gkyl_bc_basic_release(s->bc_lo[d]);
     
-    if (s->upper_bc[d] == GKYL_SPECIES_GK_SHEATH) 
-      gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
+    if (s->upper_bc[d] == GKYL_SPECIES_RECYCLE) 
+      ;
     else 
       gkyl_bc_basic_release(s->bc_up[d]);
   }

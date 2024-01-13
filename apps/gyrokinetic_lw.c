@@ -930,24 +930,7 @@ gyrokinetic_app_calc_integrated_mom(lua_State *L)
   return 1;
 }
 
-// Compute integrated L2 norm of distribution function (only F_0^2 in 1V). (tm) -> bool
-static int
-gyrokinetic_app_calc_integrated_L2_f(lua_State *L)
-{
-  bool status = true;
-
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
-  struct gyrokinetic_app_lw *app_lw = *l_app_lw;
-
-  double tm = luaL_checknumber(L, 2);
-  gkyl_gyrokinetic_app_calc_integrated_L2_f(app_lw->app, tm);
-
-  lua_pushboolean(L, status);  
-  return 1;
-}
-
-// Compute integrated field energy (L2 norm of each field
-// component). (tm) -> bool
+// Compute integrated field energy. (tm) -> bool
 static int
 gyrokinetic_app_calc_field_energy(lua_State *L)
 {
@@ -1042,21 +1025,6 @@ gyrokinetic_app_write_integrated_mom(lua_State *L)
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   gkyl_gyrokinetic_app_write_integrated_mom(app_lw->app);
-
-  lua_pushboolean(L, status);  
-  return 1;
-}
-
-// Write integrated L2 norm of f to file () -> bool
-static int
-gyrokinetic_app_write_integrated_L2_f(lua_State *L)
-{
-  bool status = true;
-
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
-  struct gyrokinetic_app_lw *app_lw = *l_app_lw;
-
-  gkyl_gyrokinetic_app_write_integrated_L2_f(app_lw->app);
 
   lua_pushboolean(L, status);  
   return 1;
@@ -1179,14 +1147,12 @@ static struct luaL_Reg gyrokinetic_app_funcs[] = {
   { "apply_ic", gyrokinetic_app_apply_ic },
   { "apply_ic_species", gyrokinetic_app_apply_ic_species },
   { "calc_integrated_mom", gyrokinetic_app_calc_integrated_mom },
-  { "calc_integrated_L2_f", gyrokinetic_app_calc_integrated_L2_f },
   { "calc_field_energy", gyrokinetic_app_calc_field_energy },
   { "write", gyrokinetic_app_write },
   { "write_field", gyrokinetic_app_write_field },
   { "write_species", gyrokinetic_app_write_species },
   { "write_mom", gyrokinetic_app_write_mom },
   { "write_integrated_mom", gyrokinetic_app_write_integrated_mom },
-  { "write_integrated_L2_f", gyrokinetic_app_write_integrated_L2_f },
   { "write_field_energy", gyrokinetic_app_write_field_energy },
   { "stat_write", gyrokinetic_app_stat_write },
   { "run", gyrokinetic_app_run },

@@ -64,6 +64,15 @@ enum gkyl_radiation_id {
   GKYL_GK_RADIATION, // Radiation in gyrokinetic equations.
 };
 
+// Identifiers for specific reaction object types
+enum gkyl_react_id {
+  GKYL_NO_REACT = 0, // No reactions. This is default
+  GKYL_REACT_IZ, // Ionization.
+  GKYL_REACT_CX, // Charge exchange.
+  GKYL_REACT_RECOMB, // Recombination.
+  GKYL_REACT_RAD, // Radiation.
+};
+
 // Identifiers for specific geometry types
 enum gkyl_geometry_id {
   GKYL_TOKAMAK, // Tokamak Geometry from Efit
