@@ -410,11 +410,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
 
-
-              //double theta_right = arc_ctx.arcL_right*(2*M_PI/arcL) - M_PI;
-              //printf("arc r = %g\n", arc_ctx.arcL_right);
-              //printf("theta r = %g\n", theta_right);
-
               set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, zmin_left, zmin_right, rright, rleft, &rclose, &ridders_min, &ridders_max);
 
               struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
@@ -425,10 +420,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
-              if(it==0){
-                printf("\npsi_curr, z_curr, nr, r_curr = %g, %g, %d, %g\n",psi_curr, z_curr, nr, r_curr);
-                printf("R = %g,%g,%g,%g\n", R[0], R[1], R[2], R[3]);
-              }
 
               cidx[TH_IDX] = it;
               int lidx = 0;

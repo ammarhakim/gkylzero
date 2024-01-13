@@ -67,7 +67,7 @@ find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, stru
     arcL_l = integrate_psi_contour_memo(geo, psi_curr, *zmin, *zmax, rleft,
       true, true, arc_memo_left);
     arcL = arcL_l + arcL_r;
-    arc_ctx->arcL_tot = arcL_r; // should be arcL temporary hack
+    arc_ctx->arcL_tot = arcL;
 
     arc_ctx->right = true;
     arc_ctx->phi_right = 0.0;
