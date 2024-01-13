@@ -45,6 +45,8 @@ gkyl_gk_geometry_fromfile_new(const struct gkyl_rect_grid* grid, const struct gk
   up->gxxj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
+  up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
+  up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
 
 
   gkyl_grid_sub_array_read(&up->grid, &up->range, up->bmag, "bmag.gkyl");
@@ -62,6 +64,8 @@ gkyl_gk_geometry_fromfile_new(const struct gkyl_rect_grid* grid, const struct gk
   gkyl_grid_sub_array_read(&up->grid, &up->range, up->gxxj, "gxxj.gkyl");
   gkyl_grid_sub_array_read(&up->grid, &up->range, up->gxyj,  "gxyj.gkyl");
   gkyl_grid_sub_array_read(&up->grid, &up->range, up->gyyj,  "gyyj.gkyl");
+  gkyl_grid_sub_array_read(&up->grid, &up->range, up->gxzj,  "gxzj.gkyl");
+  gkyl_grid_sub_array_read(&up->grid, &up->range, up->eps2,  "eps2.gkyl");
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);

@@ -6,11 +6,11 @@
 #include <gkyl_basis.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_gk_geometry_tok.h>
+#include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_math.h>
 #include <gkyl_nodal_ops.h>
 
-#include <gkyl_tok_geo.h>
+#include <gkyl_mirror_geo.h>
 #include <gkyl_calc_derived_geo.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_bmag.h>
@@ -34,12 +34,12 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis, void* tok_rz_ctx, void* tok_comp_ctx, bool use_gpu)
+gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+  const struct gkyl_basis* basis, void* mirror_rz_ctx, void* mirror_comp_ctx, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_tok_cu_dev_new(grid, range, range_ext, basis, tok_rz_ctx, tok_comp_ctx);
+    return gkyl_gk_geometry_mirror_cu_dev_new(grid, range, range_ext, basis, mirror_rz_ctx, mirror_comp_ctx);
   } 
 #endif 
 
@@ -86,17 +86,17 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
 
-  const struct gkyl_tok_geo_efit_inp *inp = tok_rz_ctx;
-  struct gkyl_tok_geo_grid_inp *ginp = tok_comp_ctx;
+  const struct gkyl_mirror_geo_efit_inp *inp = mirror_rz_ctx;
+  struct gkyl_mirror_geo_grid_inp *ginp = mirror_comp_ctx;
   ginp->cgrid = up->grid;
   ginp->cbasis = up->basis;
-  struct gkyl_tok_geo *geo = gkyl_tok_geo_new(inp);
+  struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(inp);
   // calculate mapc2p
-  gkyl_tok_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, 
+  gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, 
     mc2p_nodal_fd, mc2p_nodal, mc2p);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-  gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, mc2p, true);
+  gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, mc2p, false);
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, false);
   gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, &up->range);

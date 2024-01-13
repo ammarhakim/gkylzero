@@ -100,11 +100,13 @@ test_boundary()
   double psisep = 1.5098198350000001;
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
   double cupper[] = {1.8, 0.01, M_PI-1e-14 };
+  //double cupper[] = {1.8, 0.01, 0.197};
+  //double cupper[] = {1.8, 0.01, 0.197109};
 
   //double clower[] = { 1.5098198350000001, -0.01, -2.8 };
   //double cupper[] = {1.8, 0.01, 2.8 };
 
-  int ccells[] = { 2, 1, 32 };
+  int ccells[] = { 1, 1, 16 };
 
 
 

@@ -23,8 +23,6 @@ struct bmag_ctx{
    const struct gkyl_basis* basis;
    const struct gkyl_basis* cbasis;
    struct gkyl_array* bmagdg;
-   const struct gkyl_tok_geo* app;
-   const struct gkyl_tok_geo_grid_inp* ginp;
    const struct gkyl_array* mapc2p;
 };
 
@@ -53,12 +51,6 @@ struct gkyl_calc_bmag {
   bool use_gpu;
   bmag_kernel kernel;
   bmag_ctx* bmag_ctx;
-  const gkyl_tok_geo *app;
-  const struct gkyl_tok_geo_grid_inp* ginp;
-  void (*mapc2p)(gkyl_tok_geo *app, const double *xn, double *ret); // Mapc2p function from tok_geo
-  //evalf_t psi;
-  //evalf_t psibyr;
-  //evalf_t psibyr2;
   const struct gkyl_basis* fbasis; //flux basis
   const struct gkyl_rect_grid* fgrid; // flux grid
   double psisep;

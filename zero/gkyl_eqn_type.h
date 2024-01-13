@@ -67,6 +67,7 @@ enum gkyl_radiation_id {
 // Identifiers for specific geometry types
 enum gkyl_geometry_id {
   GKYL_TOKAMAK, // Tokamak Geometry from Efit
+  GKYL_MIRROR, // Mirror Geometry from Efit
   GKYL_MAPC2P, // General geometry from user provided mapc2p
   GKYL_GEOMETRY_FROMFILE, // Geometry from file
 };
