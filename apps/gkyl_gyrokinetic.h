@@ -102,12 +102,16 @@ struct gkyl_gyrokinetic_radiation {
   double v0[GKYL_MAX_SPECIES];
 };
 
+struct gkyl_gyrokinetic_react_type {
+  enum gkyl_react_id react_id;
+};
+
 // Parameters for species radiation
 struct gkyl_gyrokinetic_react {
   int num_react; // number of reactions
-  // 4 types of reactions supported currently
-  // Ionization, Charge exchange, Recombination, and Radiation
-  enum gkyl_react_id react_id[4]; 
+  // 3 types of reactions supported currently
+  // Ionization, Charge exchange, and Recombination
+  struct gkyl_gyrokinetic_react_type react_type[3];
 };
 
 // Parameters for gk species
@@ -150,8 +154,10 @@ struct gkyl_gyrokinetic_species {
   // radiation to include
   struct gkyl_gyrokinetic_radiation radiation;
 
-  // reactions to include
+  // reactions between plasma species to include
   struct gkyl_gyrokinetic_react react;
+  // reactions with neutral species to include
+  struct gkyl_gyrokinetic_react react_neut;
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
@@ -185,8 +191,8 @@ struct gkyl_gyrokinetic_neut_species {
   // source to include
   struct gkyl_gyrokinetic_source source;
 
-  // reactions to include
-  struct gkyl_gyrokinetic_react react;
+  // reactions with plasma species to include
+  struct gkyl_gyrokinetic_react react_neut;
 
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];

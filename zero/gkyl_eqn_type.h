@@ -70,7 +70,6 @@ enum gkyl_react_id {
   GKYL_REACT_IZ, // Ionization.
   GKYL_REACT_CX, // Charge exchange.
   GKYL_REACT_RECOMB, // Recombination.
-  GKYL_REACT_RAD, // Radiation.
 };
 
 // Identifiers for specific geometry types
