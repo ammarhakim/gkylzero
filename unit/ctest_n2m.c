@@ -57,7 +57,6 @@ test_p1(){
   if (poly_order == 2){
     for (int d=0; d<rzgrid.ndim; ++d)
       nodes[d] = 2*(rzgrid.cells[d]) + 1;
-    nodes[1] += 4; // specically alpha gets ghosts
   }
 
   for(int d=0; d<rzgrid.ndim; d++){
@@ -117,7 +116,6 @@ test_p2(){
   if (poly_order == 2){
     for (int d=0; d<rzgrid.ndim; ++d)
       nodes[d] = 2*(rzgrid.cells[d]) + 1;
-    nodes[1] += 4; // specically alpha gets ghosts
   }
 
   for(int d=0; d<rzgrid.ndim; d++){

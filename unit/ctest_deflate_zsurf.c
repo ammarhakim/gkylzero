@@ -165,7 +165,6 @@ test_reconstruct(){
   if (poly_order == 2){
     for (int d=0; d<grid.ndim; ++d)
       nodes[d] = 2*(grid.cells[d]) + 1;
-    nodes[1] += 4; // specically alpha gets ghosts
   }
 
   printf("\n");
@@ -192,7 +191,6 @@ test_reconstruct(){
   if (poly_order == 2){
     for (int d=0; d<deflated_grid.ndim; ++d)
       deflated_nodes[d] = 2*(deflated_grid.cells[d]) + 1;
-    deflated_nodes[1] += 4; // specically alpha gets ghosts
   }
 
   for(int d=0; d<grid.ndim; d++){
@@ -321,7 +319,6 @@ test_poisson_slices(){
   if (poly_order == 2){
     for (int d=0; d<grid.ndim; ++d)
       nodes[d] = 2*(grid.cells[d]) + 1;
-    nodes[1] += 4; // specically alpha gets ghosts
   }
 
   printf("\n");
@@ -348,7 +345,6 @@ test_poisson_slices(){
   if (poly_order == 2){
     for (int d=0; d<deflated_grid.ndim; ++d)
       deflated_nodes[d] = 2*(deflated_grid.cells[d]) + 1;
-    deflated_nodes[1] += 4; // specically alpha gets ghosts
   }
 
   for(int d=0; d<grid.ndim; d++){
