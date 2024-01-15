@@ -60,15 +60,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     else if (app->cdim == 2) {
       // set whatever epsilon we need
-      // initialize a fem_poisson instead of fem_poisson_perp
-      // To ignore z derivatives set 1s2 and 2nd component to 0. Leave 3rd component alone. Also must add a smoother in this case
-      f->epsilon = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+      // initialize a the weight to be used by line_fem_poisson
+      f->epsilon = mkarr(app->use_gpu, 1*app->confBasis.num_basis, app->local_ext.volume);
       gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
-      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxzj, 1*app->confBasis.num_basis);
-      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->eps2, 2*app->confBasis.num_basis);
 
-      f->fem_poisson = gkyl_fem_poisson_new(&app->local, &app->grid, app->confBasis, 
-        &f->info.poisson_bcs, f->epsilon, f->kSq, false, app->use_gpu);
+      f->line_fem_poisson = gkyl_line_fem_poisson_new(app->grid, app->confBasis, app->local, app->local_ext, f->epsilon, f->info.poisson_bcs);
     }
     else {
       // allocate arrays for Poisson solver and Poisson solver 
@@ -83,9 +79,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   // Potential smoothing (in z) updater
-  if (app->cdim != 2)
-    f->fem_parproj = gkyl_fem_parproj_new(&app->local, &app->local_ext, 
-      &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
+  f->fem_parproj = gkyl_fem_parproj_new(&app->local, &app->local_ext, 
+    &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
 
   f->phi_host = f->phi_smooth;  
   if (app->use_gpu) {
@@ -230,10 +225,10 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
     }
     else if (app->cdim==2) {
-      // only advance fem_poisson. No smoothing.
       // input is rho_c and output should be in phi_smooth
-      gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c);
-      gkyl_fem_poisson_solve(field->fem_poisson, field->phi_smooth);
+      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
+      gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_smooth);
+      gkyl_line_fem_poisson_advance(field->line_fem_poisson, field->rho_c_smooth, field->phi_smooth);
     }
     else {
       gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
@@ -295,7 +290,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     }
     else if (app->cdim == 2) {
       gkyl_array_release(f->epsilon);
-      gkyl_fem_poisson_release(f->fem_poisson);
+      gkyl_fem_parproj_release(f->fem_parproj);
+      gkyl_line_fem_poisson_release(f->line_fem_poisson);
     }
     else {
       gkyl_array_release(f->epsilon);

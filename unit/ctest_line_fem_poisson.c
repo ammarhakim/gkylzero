@@ -82,7 +82,9 @@ test_1(){
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
   struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
                                             
-  gkyl_line_fem_poisson_advance(grid, basis, local, local_ext, epsilon, field, phi, poisson_bc);
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc);
+  gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
+  gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
 
 }
@@ -124,7 +126,9 @@ test_2(){
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
   struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
                                             
-  gkyl_line_fem_poisson_advance(grid, basis, local, local_ext, epsilon, field, phi, poisson_bc);
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc);
+  gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
+  gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
 
 }
@@ -180,7 +184,9 @@ test_3(){
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
   struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
                                             
-  gkyl_line_fem_poisson_advance(grid, basis, local, local_ext, epsilon, field, phi, poisson_bc);
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc);
+  gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
+  gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
 
 }

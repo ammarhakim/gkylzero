@@ -1,23 +1,27 @@
-#include <gkyl_array.h>
-#include <gkyl_array_ops.h>
-#include <gkyl_range.h>
-#include <gkyl_rect_grid.h>
-#include <gkyl_util.h>
-#include <gkyl_basis.h>
-#include <gkyl_deflate_zsurf.h>
-#include <gkyl_nodal_ops.h>
-#include <gkyl_fem_poisson_bctype.h>
-#include <gkyl_fem_poisson.h>
 #include <gkyl_line_fem_poisson.h>
+#include <gkyl_line_fem_poisson_priv.h>
 
-void gkyl_line_fem_poisson_advance(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_array *epsilon, struct gkyl_array *field, struct gkyl_array* phi, struct gkyl_poisson_bc poisson_bc)
+
+struct gkyl_line_fem_poisson* gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_array *epsilon, struct gkyl_poisson_bc poisson_bc){
+
+  struct gkyl_line_fem_poisson *up = gkyl_malloc(sizeof(struct gkyl_line_fem_poisson));
+  up->grid = grid;
+  up->basis = basis;
+  up->local = local;
+  up->local_ext = local_ext;
+  up->epsilon = epsilon;
+  up->poisson_bc = poisson_bc;
+  return up;
+}
+
+void gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi)
 {
 
-  int poly_order = basis.poly_order;
+  int poly_order = up->basis.poly_order;
   // create deflated 1d grid, ranges, basis, and field
   // create xz grid
-  double deflated_lower[1] = { grid.lower[0]}, deflated_upper[1] = { grid.upper[0]};
-  int deflated_cells[1] = { grid.cells[0] };
+  double deflated_lower[1] = { up->grid.lower[0]}, deflated_upper[1] = { up->grid.upper[0]};
+  int deflated_cells[1] = { up->grid.cells[0] };
   struct gkyl_rect_grid deflated_grid;
   gkyl_rect_grid_init(&deflated_grid, 1, deflated_lower, deflated_upper, deflated_cells);
 
@@ -41,18 +45,18 @@ void gkyl_line_fem_poisson_advance(struct gkyl_rect_grid grid, struct gkyl_basis
   // create nrange and the 2d nodal array to be populated
   int nodes[2] = { 1, 1 };
   if (poly_order == 1){
-    for (int d=0; d<grid.ndim; ++d)
-      nodes[d] = grid.cells[d] + 1;
+    for (int d=0; d<up->grid.ndim; ++d)
+      nodes[d] = up->grid.cells[d] + 1;
   }
                    
   if (poly_order == 2){
-    for (int d=0; d<grid.ndim; ++d)
-      nodes[d] = 2*(grid.cells[d]) + 1;
+    for (int d=0; d<up->grid.ndim; ++d)
+      nodes[d] = 2*(up->grid.cells[d]) + 1;
   }
 
   struct gkyl_range nrange;
-  gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
-  struct gkyl_array* nodal_fld = gkyl_array_new(GKYL_DOUBLE, grid.ndim, nrange.volume);
+  gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
+  struct gkyl_array* nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
 
 
   //create the deflated nodal range and 1d array that will be used as an intermediate
@@ -75,18 +79,18 @@ void gkyl_line_fem_poisson_advance(struct gkyl_rect_grid grid, struct gkyl_basis
   // Now for each z slice we want to deflate 
   // and then to a m2n to give us a nodal array at that z slice
   // Then fill the correct nodes in the 2d nodal array
-  gkyl_deflate_zsurf *deflator_lo = gkyl_deflate_zsurf_new(&basis, &deflated_basis, &grid, &deflated_grid, 0, false);
-  gkyl_deflate_zsurf *deflator_up = gkyl_deflate_zsurf_new(&basis, &deflated_basis, &grid, &deflated_grid, 1, false);
+  gkyl_deflate_zsurf *deflator_lo = gkyl_deflate_zsurf_new(&up->basis, &deflated_basis, &up->grid, &deflated_grid, 0, false);
+  gkyl_deflate_zsurf *deflator_up = gkyl_deflate_zsurf_new(&up->basis, &deflated_basis, &up->grid, &deflated_grid, 1, false);
   
 
   int nidx[2];
-  for(int zidx = local.lower[1]; zidx <= local.upper[1]; zidx++){
+  for(int zidx = up->local.lower[1]; zidx <= up->local.upper[1]; zidx++){
     // first deflate epsilon
-    gkyl_deflate_zsurf_advance(deflator_lo, zidx, &local, &deflated_local, epsilon, deflated_epsilon, 1);
+    gkyl_deflate_zsurf_advance(deflator_lo, zidx, &up->local, &deflated_local, up->epsilon, deflated_epsilon, 1);
     // construct the fem poisson object
-    struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &poisson_bc, epsilon, 0, false, false);
+    struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &up->poisson_bc, up->epsilon, 0, false, false);
     // then deflate deflate rho
-    gkyl_deflate_zsurf_advance(deflator_lo, zidx, &local, &deflated_local, field, deflated_field, 1);
+    gkyl_deflate_zsurf_advance(deflator_lo, zidx, &up->local, &deflated_local, field, deflated_field, 1);
     // do the poisson solve then free the solver
     gkyl_fem_poisson_set_rhs(fem_poisson, deflated_field);
     gkyl_fem_poisson_solve(fem_poisson, deflated_phi);
@@ -103,13 +107,13 @@ void gkyl_line_fem_poisson_advance(struct gkyl_rect_grid grid, struct gkyl_basis
       double* output = gkyl_array_fetch(nodal_fld, lin_nidx);
       output[0] = input[0];
     }
-    if (zidx == local.upper[1]){
+    if (zidx == up->local.upper[1]){
       // first deflate epsilon
-      gkyl_deflate_zsurf_advance(deflator_lo, zidx, &local, &deflated_local, epsilon, deflated_epsilon, 1);
+      gkyl_deflate_zsurf_advance(deflator_lo, zidx, &up->local, &deflated_local, up->epsilon, deflated_epsilon, 1);
       // construct the fem poisson object
-      struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &poisson_bc, epsilon, 0, false, false);
+      struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &up->poisson_bc, up->epsilon, 0, false, false);
       // then deflate rho
-      gkyl_deflate_zsurf_advance(deflator_up, zidx, &local, &deflated_local, field, deflated_field, 1);
+      gkyl_deflate_zsurf_advance(deflator_up, zidx, &up->local, &deflated_local, field, deflated_field, 1);
       // do the poisson solve then free the solver
       gkyl_fem_poisson_set_rhs(fem_poisson, deflated_field);
       gkyl_fem_poisson_solve(fem_poisson, deflated_phi);
@@ -129,7 +133,7 @@ void gkyl_line_fem_poisson_advance(struct gkyl_rect_grid grid, struct gkyl_basis
     }
 
   }
-  gkyl_nodal_ops_n2m(&basis, &grid, &nrange, &local, 1, nodal_fld, phi);
+  gkyl_nodal_ops_n2m(&up->basis, &up->grid, &nrange, &up->local, 1, nodal_fld, phi);
 
 
   gkyl_array_release(deflated_field);
@@ -139,6 +143,10 @@ void gkyl_line_fem_poisson_advance(struct gkyl_rect_grid grid, struct gkyl_basis
   gkyl_array_release(deflated_nodal_fld);
   gkyl_deflate_zsurf_release(deflator_lo);
   gkyl_deflate_zsurf_release(deflator_up);
+}
+
+void gkyl_line_fem_poisson_release(struct gkyl_line_fem_poisson* up){
+  gkyl_free(up);
 }
 
 
