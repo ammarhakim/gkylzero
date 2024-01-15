@@ -88,7 +88,7 @@ void gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl
     // first deflate epsilon
     gkyl_deflate_zsurf_advance(deflator_lo, zidx, &up->local, &deflated_local, up->epsilon, deflated_epsilon, 1);
     // construct the fem poisson object
-    struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &up->poisson_bc, up->epsilon, 0, false, false);
+    struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &up->poisson_bc, deflated_epsilon, 0, false, false);
     // then deflate deflate rho
     gkyl_deflate_zsurf_advance(deflator_lo, zidx, &up->local, &deflated_local, field, deflated_field, 1);
     // do the poisson solve then free the solver
@@ -109,9 +109,9 @@ void gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl
     }
     if (zidx == up->local.upper[1]){
       // first deflate epsilon
-      gkyl_deflate_zsurf_advance(deflator_lo, zidx, &up->local, &deflated_local, up->epsilon, deflated_epsilon, 1);
+      gkyl_deflate_zsurf_advance(deflator_up, zidx, &up->local, &deflated_local, up->epsilon, deflated_epsilon, 1);
       // construct the fem poisson object
-      struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &up->poisson_bc, up->epsilon, 0, false, false);
+      struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &up->poisson_bc, deflated_epsilon, 0, false, false);
       // then deflate rho
       gkyl_deflate_zsurf_advance(deflator_up, zidx, &up->local, &deflated_local, field, deflated_field, 1);
       // do the poisson solve then free the solver
