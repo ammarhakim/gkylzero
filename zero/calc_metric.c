@@ -5,7 +5,6 @@
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_array_ops_priv.h>
-#include <gkyl_nodal_ops.h>
 
 gkyl_calc_metric*
 gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu)
