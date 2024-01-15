@@ -18,7 +18,7 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
   up->d_fem_data = gkyl_malloc(sizeof(deflated_fem_data[num_solves_z]));
   int ctr = 0;
   for (int zidx = up->local.lower[1]; zidx <= up->local.upper[1]; zidx++) {
-    if (app->use_gpu) {
+    if (use_gpu) {
       up->d_fem_data[ctr].deflated_field = gkyl_array_cu_dev_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
     }
     else {
