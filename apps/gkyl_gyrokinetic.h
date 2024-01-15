@@ -103,7 +103,15 @@ struct gkyl_gyrokinetic_radiation {
 };
 
 struct gkyl_gyrokinetic_react_type {
-  enum gkyl_react_id react_id;
+  enum gkyl_react_id react_id; // what type of reaction (ionization, charge exchange, recombination)
+  enum gkyl_ion_type ion_id; // what type of ion is reacting
+  char elc_nm[128]; // names of electron species in reaction
+  char ion_nm[128]; // name of ion species in reaction
+  char donor_nm[128]; // name of donor species in reaction
+  char recvr_nm[128]; // name of receiver species in reaction
+  int charge_state; // charge state of species in reaction
+  double ion_mass; // mass of ion in reaction
+  double elc_mass; // mass of electron in reaction
 };
 
 // Parameters for species radiation
@@ -111,7 +119,8 @@ struct gkyl_gyrokinetic_react {
   int num_react; // number of reactions
   // 3 types of reactions supported currently
   // Ionization, Charge exchange, and Recombination
-  struct gkyl_gyrokinetic_react_type react_type[3];
+  // GKYL_MAX_SPECIES number of reactions supported per species (8 different reactions)
+  struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_SPECIES];
 };
 
 // Parameters for gk species

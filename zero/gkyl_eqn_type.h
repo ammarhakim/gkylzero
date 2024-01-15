@@ -72,6 +72,19 @@ enum gkyl_react_id {
   GKYL_REACT_RECOMB, // Recombination.
 };
 
+// Identifiers for different ion reaction types
+enum gkyl_ion_type
+{
+  GKYL_ION_H = 0,  // Hydrogen ions
+  GKYL_ION_HE = 1, // Helium ions
+  GKYL_ION_LI = 2, // Lithium ions
+  GKYL_ION_BE = 3, // Beryllium ions
+  GKYL_ION_B = 4,  // Boron ions
+  GKYL_ION_C = 5,  // Carbon ions
+  GKYL_ION_N = 6,  // Nitrogen ions
+  GKYL_ION_O = 7,  // Oxygen ions
+};
+
 // Identifiers for specific geometry types
 enum gkyl_geometry_id {
   GKYL_TOKAMAK, // Tokamak Geometry from Efit
