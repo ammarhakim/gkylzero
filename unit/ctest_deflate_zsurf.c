@@ -90,7 +90,7 @@ test_deflate(){
 
   // now deflate
   int edge = 1; //lower = 0
-  gkyl_deflate_zsurf *deflator = gkyl_deflate_zsurf_new(&basis, &deflated_basis, &grid, &deflated_grid, edge, false);
+  gkyl_deflate_zsurf *deflator = gkyl_deflate_zsurf_new(&basis, &deflated_basis, edge, false);
 
   int zidx = 1;
   gkyl_deflate_zsurf_advance(deflator, zidx, &local, &deflated_local, field, deflated_field, 1);
@@ -207,15 +207,17 @@ test_reconstruct(){
   // Now for each z slice we want to deflate 
   // and then to a m2n to give us a nodal array at that z slice
   // Then fill the correct nodes in the 2d nodal array
-  gkyl_deflate_zsurf *deflator_lo = gkyl_deflate_zsurf_new(&basis, &deflated_basis, &grid, &deflated_grid, 0, false);
-  gkyl_deflate_zsurf *deflator_up = gkyl_deflate_zsurf_new(&basis, &deflated_basis, &grid, &deflated_grid, 1, false);
+  gkyl_deflate_zsurf *deflator_lo = gkyl_deflate_zsurf_new(&basis, &deflated_basis, 0, false);
+  gkyl_deflate_zsurf *deflator_up = gkyl_deflate_zsurf_new(&basis, &deflated_basis, 1, false);
   
+
+  struct gkyl_nodal_ops *n2m_1d = gkyl_nodal_ops_new(&deflated_basis, &deflated_grid, false);
   int nidx[2];
   for(int zidx = local.lower[1]; zidx <= local.upper[1]; zidx++){
     // first deflate
     gkyl_deflate_zsurf_advance(deflator_lo, zidx, &local, &deflated_local, field, deflated_field, 1);
     // then nodal to modal
-    gkyl_nodal_ops_m2n(&deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1, deflated_nodal_fld, deflated_field);
+    gkyl_nodal_ops_m2n(n2m_1d, &deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1, deflated_nodal_fld, deflated_field);
     // now loop through the 2d nrange and populate
     nidx[1] = zidx-1;
     printf("\niz = %d\n", zidx);
@@ -233,7 +235,7 @@ test_reconstruct(){
       // first deflate
       gkyl_deflate_zsurf_advance(deflator_up, zidx, &local, &deflated_local, field, deflated_field, 1);
       // then nodal to modal
-      gkyl_nodal_ops_m2n(&deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1, deflated_nodal_fld, deflated_field);
+      gkyl_nodal_ops_m2n(n2m_1d, &deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1, deflated_nodal_fld, deflated_field);
       // now loop through the 2d nrange and populate
       nidx[1] = zidx;
       for(int ix = 0; ix <= nrange.upper[0]; ix++){
@@ -361,8 +363,8 @@ test_poisson_slices(){
   // Now for each z slice we want to deflate 
   // and then to a m2n to give us a nodal array at that z slice
   // Then fill the correct nodes in the 2d nodal array
-  gkyl_deflate_zsurf *deflator_lo = gkyl_deflate_zsurf_new(&basis, &deflated_basis, &grid, &deflated_grid, 0, false);
-  gkyl_deflate_zsurf *deflator_up = gkyl_deflate_zsurf_new(&basis, &deflated_basis, &grid, &deflated_grid, 1, false);
+  gkyl_deflate_zsurf *deflator_lo = gkyl_deflate_zsurf_new(&basis, &deflated_basis, 0, false);
+  gkyl_deflate_zsurf *deflator_up = gkyl_deflate_zsurf_new(&basis, &deflated_basis, 1, false);
   
   struct gkyl_poisson_bc poisson_bc;
   poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -374,6 +376,8 @@ test_poisson_slices(){
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); // Sets weight=1.
   struct gkyl_fem_poisson *fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &poisson_bc, epsilon, 0, false, false);
 
+
+  struct gkyl_nodal_ops *n2m_1d = gkyl_nodal_ops_new(&basis, &grid, false);
   int nidx[2];
   for(int zidx = local.lower[1]; zidx <= local.upper[1]; zidx++){
     // first deflate
@@ -382,7 +386,7 @@ test_poisson_slices(){
     gkyl_fem_poisson_set_rhs(fem_poisson, deflated_field);
     gkyl_fem_poisson_solve(fem_poisson, deflated_phi);
     // then nodal to modal
-    gkyl_nodal_ops_m2n(&deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1, deflated_nodal_fld, deflated_phi);
+    gkyl_nodal_ops_m2n(n2m_1d, &deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1, deflated_nodal_fld, deflated_phi);
     // now loop through the 2d nrange and populate
     nidx[1] = zidx-1;
     for(int ix = 0; ix <=nrange.upper[0]; ix++){
@@ -400,7 +404,7 @@ test_poisson_slices(){
       gkyl_fem_poisson_set_rhs(fem_poisson, deflated_field);
       gkyl_fem_poisson_solve(fem_poisson, deflated_phi);
       // then nodal to modal
-      gkyl_nodal_ops_m2n(&deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1, deflated_nodal_fld, deflated_phi);
+      gkyl_nodal_ops_m2n(n2m_1d, &deflated_basis, &deflated_grid, &deflated_nrange, &deflated_local, 1, deflated_nodal_fld, deflated_phi);
       // now loop through the 2d nrange and populate
       nidx[1] = zidx;
       for(int ix = 0; ix <= nrange.upper[0]; ix++){
@@ -417,7 +421,9 @@ test_poisson_slices(){
 
 
   struct gkyl_array *out_field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_nodal_ops_n2m(&basis, &grid, &nrange, &local, 1, nodal_fld, out_field);
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
+  gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &local, 1, nodal_fld, out_field);
+  gkyl_nodal_ops_release(n2m);
   gkyl_grid_sub_array_write(&grid, &local, out_field, "out_field.gkyl");
 
 }

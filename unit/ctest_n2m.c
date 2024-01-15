@@ -69,10 +69,12 @@ test_p1(){
 
 
   struct gkyl_array* nodal_fld = gkyl_array_new(GKYL_DOUBLE, rzgrid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(&rzbasis, &rzgrid, &nrange, &rzlocal, 1, nodal_fld, funcdg);
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&rzbasis, &rzgrid, false);
+  gkyl_nodal_ops_m2n(n2m, &rzbasis, &rzgrid, &nrange, &rzlocal, 1, nodal_fld, funcdg);
 
   struct gkyl_array *funcdg2 = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-  gkyl_nodal_ops_n2m(&rzbasis, &rzgrid, &nrange, &rzlocal, 1, nodal_fld, funcdg2);
+  gkyl_nodal_ops_n2m(n2m, &rzbasis, &rzgrid, &nrange, &rzlocal, 1, nodal_fld, funcdg2);
+  gkyl_nodal_ops_release(n2m);
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, funcdg2, "proj_func2.gkyl");
 
 }
@@ -128,10 +130,12 @@ test_p2(){
 
 
   struct gkyl_array* nodal_fld = gkyl_array_new(GKYL_DOUBLE, rzgrid.ndim, nrange.volume);
-  gkyl_nodal_ops_m2n(&rzbasis, &rzgrid, &nrange, &rzlocal, 1, nodal_fld, funcdg);
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&rzbasis, &rzgrid, false);
+  gkyl_nodal_ops_m2n(n2m, &rzbasis, &rzgrid, &nrange, &rzlocal, 1, nodal_fld, funcdg);
 
   struct gkyl_array *funcdg2 = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-  gkyl_nodal_ops_n2m(&rzbasis, &rzgrid, &nrange, &rzlocal, 1, nodal_fld, funcdg2);
+  gkyl_nodal_ops_n2m(n2m, &rzbasis, &rzgrid, &nrange, &rzlocal, 1, nodal_fld, funcdg2);
+  gkyl_nodal_ops_release(n2m);
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, funcdg2, "proj_func2.gkyl");
 
 }

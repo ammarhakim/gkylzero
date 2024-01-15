@@ -109,7 +109,8 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
       status = fscanf(ptr,"%lf", fpol_n);
   }
 
-  gkyl_nodal_ops_n2m( up->fluxbasis, up->fluxgrid, &flux_nrange, up->fluxlocal, 1, fpolflux_n, up->fpolflux);
+  struct gkyl_nodal_ops *n2m_flux = gkyl_nodal_ops_new(up->fluxbasis, up->fluxgrid, false);
+  gkyl_nodal_ops_n2m(n2m_flux, up->fluxbasis, up->fluxgrid, &flux_nrange, up->fluxlocal, 1, fpolflux_n, up->fpolflux);
 
   // Now we 3 of the 1d arrays, all of length nr :
   // pres, ffprim, pprime
@@ -147,9 +148,11 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
     }
   }
   // We filled psizr_nodal
-  gkyl_nodal_ops_n2m( up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psizr_n, up->psizr);
-  gkyl_nodal_ops_n2m( up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psibyrzr_n, up->psibyrzr);
-  gkyl_nodal_ops_n2m( up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psibyr2zr_n, up->psibyr2zr);
+  struct gkyl_nodal_ops *n2m_rz = gkyl_nodal_ops_new(up->rzbasis, up->rzgrid, false);
+  gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psizr_n, up->psizr);
+  gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psibyrzr_n, up->psibyrzr);
+  gkyl_nodal_ops_n2m(n2m_rz, up->rzbasis, up->rzgrid, &nrange, up->rzlocal, 1, psibyr2zr_n, up->psibyr2zr);
+  gkyl_nodal_ops_release(n2m_rz);
  
   // Now lets read the q profile
   struct gkyl_array *qflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
@@ -158,7 +161,8 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
       double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr,"%lf", q_n);
   }
-  gkyl_nodal_ops_n2m( up->fluxbasis, up->fluxgrid, &flux_nrange, up->fluxlocal, 1, qflux_n, up->qflux);
+  gkyl_nodal_ops_n2m(n2m_flux, up->fluxbasis, up->fluxgrid, &flux_nrange, up->fluxlocal, 1, qflux_n, up->qflux);
+  gkyl_nodal_ops_release(n2m_flux);
 
   // Done, don't care about the rest
 

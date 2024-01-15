@@ -7,17 +7,31 @@
 
 struct deflated_fem_data {
   struct gkyl_array *deflated_field;
+  struct gkyl_array *deflated_phi;
+  struct gkyl_array *deflated_epsilon;
+  struct gkyl_array *deflated_nodal_fld;
   struct gkyl_fem_poisson *fem_poisson;
 };
 
 // Updater type
 struct gkyl_line_fem_poisson {
   struct gkyl_rect_grid grid;
+  struct gkyl_rect_grid deflated_grid;
   struct gkyl_basis basis;
+  struct gkyl_basis deflated_basis;
   struct gkyl_range local;
+  struct gkyl_range deflated_local;
   struct gkyl_range local_ext;
-  struct gkyl_array *epsilon;
+  struct gkyl_range deflated_local_ext;
+  struct gkyl_range nrange;
+  struct gkyl_range deflated_nrange;
   struct gkyl_poisson_bc poisson_bc;
   struct deflated_fem_data *d_fem_data;
+  struct gkyl_array *nodal_fld;
+  int num_solves_z;
+  struct gkyl_nodal_ops *n2m_2d;
+  struct gkyl_nodal_ops *n2m_1d;
+  struct gkyl_deflate_zsurf *deflator_lo;
+  struct gkyl_deflate_zsurf *deflator_up;
   bool use_gpu;
 };

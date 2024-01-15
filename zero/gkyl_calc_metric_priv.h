@@ -12,5 +12,6 @@ struct gkyl_calc_metric {
   bool use_gpu;
   const int *num_cells;
   const struct gkyl_basis* cbasis;
+  struct gkyl_nodal_ops *n2m;
 };
 
