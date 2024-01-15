@@ -18,7 +18,12 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
   up->d_fem_data = gkyl_malloc(sizeof(deflated_fem_data[num_solves_z]));
   int ctr = 0;
   for (int zidx = up->local.lower[1]; zidx <= up->local.upper[1]; zidx++) {
-    up->d_fem_data[ctr].deflated_field = gkyl_array_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
+    if (app->use_gpu) {
+      up->d_fem_data[ctr].deflated_field = gkyl_array_cu_dev_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
+    }
+    else {
+      up->d_fem_data[ctr].deflated_field = gkyl_array_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
+    }
     up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &up->poisson_bc, deflated_epsilon, 0, false, use_gpu);
     ctr += 1;
   }
