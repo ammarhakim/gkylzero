@@ -141,7 +141,7 @@ void
 test_3(){
   // create the 2d field
   // create xz grid
-  double lower[] = { -M_PI, 0.0 }, upper[] = { 3*M_PI/2, 1.0 };
+  double lower[] = { -M_PI, 0.0 }, upper[] = { 3*M_PI/4, 1.0 };
   int cells[] = { 12, 4 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
@@ -158,7 +158,7 @@ test_3(){
 
   // project initial function on 2d field
   struct gkyl_array *field_discont = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &proj_func, 0);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &proj_func2, 0);
   gkyl_proj_on_basis_advance(proj, 0.0, &local_ext, field_discont);
   gkyl_proj_on_basis_release(proj);
   gkyl_grid_sub_array_write(&grid, &local, field_discont, "in_field.gkyl");
