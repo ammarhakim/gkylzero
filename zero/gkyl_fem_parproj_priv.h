@@ -22,6 +22,16 @@ gkyl_fem_parproj_global_num_nodes(const struct gkyl_basis *basis, bool isperiodi
       return isperiodic? fem_parproj_num_nodes_global_1x_ser_p2_periodicx(parnum_cells)
                        : fem_parproj_num_nodes_global_1x_ser_p2_nonperiodicx(parnum_cells);
     }
+  } else if (dim==2) {
+    if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
+      if (poly_order == 1) {
+        return isperiodic? fem_parproj_num_nodes_global_2x_ser_p1_periodicy(parnum_cells)
+                         : fem_parproj_num_nodes_global_2x_ser_p1_nonperiodicy(parnum_cells);
+      } else if (poly_order == 2) {
+        return isperiodic? fem_parproj_num_nodes_global_2x_ser_p2_periodicy(parnum_cells)
+                         : fem_parproj_num_nodes_global_2x_ser_p2_nonperiodicy(parnum_cells);
+      }
+    }
   } else if (dim==3) {
     if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       if (poly_order == 1) {
@@ -66,8 +76,16 @@ static const local2global_kern_list ser_loc2glob_list[] = {
   },
   // 2x
   {.list={ 
-          {.list={{NULL, NULL,},{NULL, NULL,},},},
-          {.list={{NULL, NULL,},{NULL, NULL,},},},
+          {.list={
+                  {fem_parproj_local_to_global_2x_ser_p1_iny_periodicy, fem_parproj_local_to_global_2x_ser_p1_upy_periodicy,}, 
+                  {fem_parproj_local_to_global_2x_ser_p2_iny_periodicy, fem_parproj_local_to_global_2x_ser_p2_upy_periodicy,}, 
+                 },
+          },
+          {.list={
+                  {fem_parproj_local_to_global_2x_ser_p1_iny_nonperiodicy, fem_parproj_local_to_global_2x_ser_p1_upy_nonperiodicy,}, 
+                  {fem_parproj_local_to_global_2x_ser_p2_iny_nonperiodicy, fem_parproj_local_to_global_2x_ser_p2_upy_nonperiodicy,}, 
+                 },
+          },
          }
   },
   // 3x
@@ -116,8 +134,19 @@ static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = {
   },
   // 2x
   {.list={ 
-          {.list={{NULL, NULL,},{NULL, NULL,},},},
-          {.list={{NULL, NULL,},{NULL, NULL,},},},
+          // nondirichlety
+          {.list={
+                  {fem_parproj_lhs_stencil_noweight_2x_ser_p1_iny_nondirichlety, fem_parproj_lhs_stencil_noweight_2x_ser_p1_loy_nondirichlety, fem_parproj_lhs_stencil_noweight_2x_ser_p1_upy_nondirichlety,}, 
+                  {fem_parproj_lhs_stencil_noweight_2x_ser_p2_iny_nondirichlety, fem_parproj_lhs_stencil_noweight_2x_ser_p2_loy_nondirichlety, fem_parproj_lhs_stencil_noweight_2x_ser_p2_upy_nondirichlety,}, 
+                 },
+          },
+          // dirichlety
+          {.list={ 
+                  {fem_parproj_lhs_stencil_noweight_2x_ser_p1_iny_nondirichlety, fem_parproj_lhs_stencil_noweight_2x_ser_p1_loy_dirichlety, fem_parproj_lhs_stencil_noweight_2x_ser_p1_upy_dirichlety,}, 
+                  {fem_parproj_lhs_stencil_noweight_2x_ser_p2_iny_nondirichlety, fem_parproj_lhs_stencil_noweight_2x_ser_p2_loy_dirichlety, fem_parproj_lhs_stencil_noweight_2x_ser_p2_upy_dirichlety,}, 
+                 },
+          },
+
          }
   },
   // 3x
@@ -158,8 +187,18 @@ static const lhsstencil_kern_list ser_lhsstencil_list_weighted[] = {
   },
   // 2x
   {.list={ 
-          {.list={{NULL, NULL,},{NULL, NULL,},},},
-          {.list={{NULL, NULL,},{NULL, NULL,},},},
+          // nondirichlety
+          {.list={
+                  {fem_parproj_lhs_stencil_weighted_2x_ser_p1_iny_nondirichlety, fem_parproj_lhs_stencil_weighted_2x_ser_p1_loy_nondirichlety, fem_parproj_lhs_stencil_weighted_2x_ser_p1_upy_nondirichlety,}, 
+                  {fem_parproj_lhs_stencil_weighted_2x_ser_p2_iny_nondirichlety, fem_parproj_lhs_stencil_weighted_2x_ser_p2_loy_nondirichlety, fem_parproj_lhs_stencil_weighted_2x_ser_p2_upy_nondirichlety,}, 
+                 },
+          },
+          // dirichlety
+          {.list={ 
+                  {fem_parproj_lhs_stencil_weighted_2x_ser_p1_iny_nondirichlety, fem_parproj_lhs_stencil_weighted_2x_ser_p1_loy_dirichlety, fem_parproj_lhs_stencil_weighted_2x_ser_p1_upy_dirichlety,}, 
+                  {fem_parproj_lhs_stencil_weighted_2x_ser_p2_iny_nondirichlety, fem_parproj_lhs_stencil_weighted_2x_ser_p2_loy_dirichlety, fem_parproj_lhs_stencil_weighted_2x_ser_p2_upy_dirichlety,}, 
+                 },
+          },
          }
   },
   // 3x
@@ -209,8 +248,18 @@ static const srcstencil_kern_list ser_srcstencil_list[] = {
   },
   // 2x
   {.list={
-          {.list={{NULL, NULL,},{NULL, NULL,},},},
-          {.list={{NULL, NULL,},{NULL, NULL,},},},
+          // nondirichlety
+          {.list={
+                  {fem_parproj_src_stencil_2x_ser_p1_iny_nondirichlety, fem_parproj_src_stencil_2x_ser_p1_loy_nondirichlety, fem_parproj_src_stencil_2x_ser_p1_upy_nondirichlety,},
+                  {fem_parproj_src_stencil_2x_ser_p2_iny_nondirichlety, fem_parproj_src_stencil_2x_ser_p2_loy_nondirichlety, fem_parproj_src_stencil_2x_ser_p2_upy_nondirichlety,},
+                 },
+          },
+          // dirichlety
+          {.list={
+                  {fem_parproj_src_stencil_2x_ser_p1_iny_nondirichlety, fem_parproj_src_stencil_2x_ser_p1_loy_dirichlety, fem_parproj_src_stencil_2x_ser_p1_upy_dirichlety,},
+                  {fem_parproj_src_stencil_2x_ser_p2_iny_nondirichlety, fem_parproj_src_stencil_2x_ser_p2_loy_dirichlety, fem_parproj_src_stencil_2x_ser_p2_upy_dirichlety,},
+                 },
+          },
          }
   },
   // 3x
@@ -242,7 +291,7 @@ typedef struct { solstencil_t kernels[3]; } solstencil_kern_list;  // For use in
 GKYL_CU_D
 static const solstencil_kern_list ser_solstencil_list[] = {
   { fem_parproj_sol_stencil_1x_ser_p1, fem_parproj_sol_stencil_1x_ser_p2 },
-  { NULL, NULL }, // No 2D basis functions
+  { fem_parproj_sol_stencil_2x_ser_p1, fem_parproj_sol_stencil_2x_ser_p2 },
   { fem_parproj_sol_stencil_3x_ser_p1, fem_parproj_sol_stencil_3x_ser_p2 }
 };
 
