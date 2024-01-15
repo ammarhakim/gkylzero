@@ -1,11 +1,42 @@
 #include <gkyl_nodal_ops.h>
 
-void gkyl_nodal_ops_n2m(const struct gkyl_basis* cbasis, const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, const struct gkyl_array* nodal_fld, struct gkyl_array *modal_fld){
+struct gkyl_nodal_ops*
+gkyl_nodal_ops_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu)
+{
+  // Allocate space for new updater.
+  struct gkyl_nodal_ops *up = gkyl_malloc(sizeof(*up));
+
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim, cbasis->num_basis);
+  cbasis->node_list(gkyl_array_fetch(nodes, 0));
+
+  if (use_gpu) 
+    up->nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE, grid->ndim, cbasis->num_basis);
+  else 
+    up->nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim, cbasis->num_basis);
+
+  // Copy the nodal values to the pre-allocated array
+  gkyl_array_copy(up->nodes, nodes);
+  gkyl_array_release(nodes);
+
+  return up;
+}
+
+void 
+gkyl_nodal_ops_n2m(const struct gkyl_nodal_ops *nodal_ops, 
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, 
+  const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, 
+  const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld) 
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(modal_fld)) {
+    return gkyl_nodal_ops_n2m_cu(cbasis, grid, 
+      nrange, update_range, num_comp, 
+      nodal_fld, modal_fld);
+  }
+#endif  
   double xc[GKYL_MAX_DIM];
   int num_basis = cbasis->num_basis;
   int cpoly_order = cbasis->poly_order;
-  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim, cbasis->num_basis);
-  cbasis->node_list(gkyl_array_fetch(nodes, 0));
   double fnodal[num_basis]; // to store nodal function values
 
   struct gkyl_range_iter iter;
@@ -17,7 +48,7 @@ void gkyl_nodal_ops_n2m(const struct gkyl_basis* cbasis, const struct gkyl_rect_
      gkyl_rect_grid_cell_center(grid, iter.idx, xc);
 
     for (int i=0; i<num_basis; ++i) {
-      const double* temp  = gkyl_array_cfetch(nodes,i);
+      const double *temp  = gkyl_array_cfetch(nodal_ops->nodes,i);
       for( int j = 0; j < grid->ndim; j++){
         if(cpoly_order==1){
               nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
@@ -34,7 +65,7 @@ void gkyl_nodal_ops_n2m(const struct gkyl_basis* cbasis, const struct gkyl_rect_
     double fao[num_basis*num_comp];
   
     for (int i=0; i<num_basis; ++i) {
-      const double* temp = gkyl_array_cfetch(nodal_fld, lin_nidx[i]);
+      const double *temp = gkyl_array_cfetch(nodal_fld, lin_nidx[i]);
       for (int j=0; j<num_comp; ++j) {
         fao[i*num_comp + j] = temp[j];
       }
@@ -52,12 +83,22 @@ void gkyl_nodal_ops_n2m(const struct gkyl_basis* cbasis, const struct gkyl_rect_
 }
 
 
-void gkyl_nodal_ops_m2n(const struct gkyl_basis* cbasis, const struct gkyl_rect_grid *grid, const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, struct gkyl_array* nodal_fld, const struct gkyl_array *modal_fld){
+void 
+gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops, 
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, 
+  const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, 
+  struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld) 
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(nodal_fld)) {
+    return gkyl_nodal_ops_m2n_cu(cbasis, grid, 
+      nrange, update_range, num_comp, 
+      nodal_fld, modal_fld);
+  }
+#endif 
   double xc[GKYL_MAX_DIM];
   int num_basis = cbasis->num_basis;
   int cpoly_order = cbasis->poly_order;
-  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim, cbasis->num_basis);
-  cbasis->node_list(gkyl_array_fetch(nodes, 0));
   double fnodal[num_basis]; // to store nodal function values
 
   struct gkyl_range_iter iter;
@@ -69,13 +110,13 @@ void gkyl_nodal_ops_m2n(const struct gkyl_basis* cbasis, const struct gkyl_rect_
      gkyl_rect_grid_cell_center(grid, iter.idx, xc);
 
     for (int i=0; i<num_basis; ++i) {
-      const double* temp  = gkyl_array_cfetch(nodes,i);
+      const double *temp  = gkyl_array_cfetch(nodal_ops->nodes,i);
       for( int j = 0; j < grid->ndim; j++){
         if(cpoly_order==1){
             nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
         }
         if (cpoly_order==2)
-          nidx[j] = 2*(iter.idx[j]-1) + (temp[j] + 1) ;
+          nidx[j] = 2*iter.idx[j] + (temp[j] + 1) ;
       }
       lin_nidx[i] = gkyl_range_idx(nrange, nidx);
     }
@@ -90,36 +131,18 @@ void gkyl_nodal_ops_m2n(const struct gkyl_basis* cbasis, const struct gkyl_rect_
     // at each place do an eval_basis at logical coords
   
     for (int i=0; i<num_basis; ++i) {
-      double* temp = gkyl_array_fetch(nodal_fld, lin_nidx[i]);
-      const double*  node_i  = gkyl_array_cfetch(nodes,i);
+      double *temp = gkyl_array_fetch(nodal_fld, lin_nidx[i]);
+      const double *node_i  = gkyl_array_cfetch(nodal_ops->nodes,i);
       for (int j=0; j<num_comp; ++j) {
         temp[j] = cbasis->eval_expand(node_i, &arr_p[j*num_basis]);
       }
     }
-
   }
 }
 
-struct gkyl_range gkyl_nodal_ops_nrange(const struct gkyl_basis* cbasis, const struct gkyl_rect_grid *grid, const struct gkyl_range *update_range){
-  int nodes[3] = { 1, 1, 1 };
-  if (cbasis->poly_order == 1){
-    for (int d=0; d<grid->ndim; ++d)
-      nodes[d] = grid->cells[d] + 1;
-  }
-                   
-  if (cbasis->poly_order == 2){
-    for (int d=0; d<grid->ndim; ++d)
-      nodes[d] = 2*(grid->cells[d]) + 1;
-  }
-
-  for(int d=0; d<grid->ndim; d++){
-    printf("d[%d] = %d\n", d, nodes[d]);
-  }
-
-
-  struct gkyl_range nrange;
-  gkyl_range_init_from_shape(&nrange, grid->ndim, nodes);
-  printf("nrange lower = %d %d %d\n", nrange.lower[0], nrange.lower[1], nrange.lower[2]);
-  printf("nrange upper = %d %d %d\n", nrange.upper[0], nrange.upper[1], nrange.upper[2]);
-  return nrange;
+void 
+gkyl_nodal_ops_release(struct gkyl_nodal_ops *up)
+{
+  gkyl_array_release(up->nodes);
+  gkyl_free(up);
 }
