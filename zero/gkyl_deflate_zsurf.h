@@ -11,29 +11,53 @@ typedef struct gkyl_deflate_zsurf gkyl_deflate_zsurf;
 /**
  * Create new updater to deflate a 2d (x,z) modal expansion to a 1d (x) modal expansion
  *  at z=+/1 surfaces given a z index
- * @param cbasis Basis object (configuration space).
+ * 
+ * @param cbasis Configuration-space basis.
+ * @param deflated_cbasis Deflated configuration-space basis
+ * @param edge Edge for surface (z=-1 or z=+1)
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
 
+struct gkyl_deflate_zsurf* 
+gkyl_deflate_zsurf_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *deflated_cbasis,
+  int edge, bool use_gpu);
 
-gkyl_deflate_zsurf* gkyl_deflate_zsurf_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *deflated_cbasis,
-  const struct gkyl_rect_grid *grid, const struct gkyl_rect_grid *deflated_grid, int edge, bool use_gpu);
+/**
+ * Create new updater to a 2d (x,z) modal expansion to a 1d (x) modal expansion on
+ * NV-GPU. See new() method for documentation.
+ */
+struct gkyl_deflate_zsurf* 
+gkyl_deflate_zsurf_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *deflated_cbasis,
+  int edge, bool use_gpu);
 
 /**
  * Advance deflate_zsurf (compute the derived_zsurf coefficients).
  *
  * @param up deflate_zsurf updater object.
- * @param crange Config-space range.
- * @param fld 2d (x,z) field containing DG rep 
- * @param deflated_fld 1d (x) field containing DG rep
+ * @param zidx Index for z surface
+ * @param range Configuration-space range.
+ * @param deflated_range Deflated configuration-space range.
+ * @param field 2d (x,z) field containing DG rep 
+ * @param deflated_field 1d (x) field containing DG rep
+ * @param ncomp Number of components being deflated
  */
 
-void gkyl_deflate_zsurf_advance(const gkyl_deflate_zsurf *up, int zidx, const struct gkyl_range *range, const struct gkyl_range* deflated_range, const struct gkyl_array *field, struct gkyl_array *deflated_field, int ncomp);
+void gkyl_deflate_zsurf_advance(const struct gkyl_deflate_zsurf *up, int zidx, 
+  const struct gkyl_range *range, const struct gkyl_range *deflated_range, 
+  const struct gkyl_array *field, struct gkyl_array *deflated_field, int ncomp);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_deflate_zsurf_release(gkyl_deflate_zsurf* up);
+void gkyl_deflate_zsurf_release(struct gkyl_deflate_zsurf* up);
+
+/**
+ * Host-side wrappers for deflation operations on device
+ */
+
+void gkyl_deflate_zsurf_advance_cu(const struct gkyl_deflate_zsurf *up, int zidx, 
+  const struct gkyl_range *range, const struct gkyl_range *deflated_range, 
+  const struct gkyl_array *field, struct gkyl_array *deflated_field, int ncomp);
