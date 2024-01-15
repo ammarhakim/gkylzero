@@ -37,14 +37,14 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   } else {
     up->isvareps = false;
     // Create a small gkyl_array to hold the constant epsilon value.
-    double *eps_avg = (double*) gkyl_malloc(sizeof(double)); 
+    double *eps_avg = gkyl_malloc(sizeof(double)); 
 #ifdef GKYL_HAVE_CUDA
     up->epsilon = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 1) : gkyl_array_new(GKYL_DOUBLE, 1, 1);
     struct gkyl_array *eps_cellavg = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, epsilon->size)
                                                 : gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
     gkyl_dg_calc_average_range(up->basis, 0, eps_cellavg, 0, epsilon, *up->solve_range);
     if (up->use_gpu) {
-      double *eps_avg_cu = (double*) gkyl_cu_malloc(sizeof(double));
+      double *eps_avg_cu = gkyl_cu_malloc(sizeof(double));
       gkyl_array_reduce_range(eps_avg_cu, eps_cellavg, GKYL_SUM, up->solve_range);
       gkyl_cu_memcpy(eps_avg, eps_avg_cu, sizeof(double), GKYL_CU_MEMCPY_D2H);
       gkyl_cu_free(eps_avg_cu);

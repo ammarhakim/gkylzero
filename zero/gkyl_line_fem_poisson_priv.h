@@ -5,6 +5,10 @@
 #include <gkyl_basis.h>
 #include <gkyl_fem_poisson_bctype.h>
 
+struct deflated_fem_data {
+  struct gkyl_array *deflated_field;
+  struct gkyl_fem_poisson *fem_poisson;
+};
 
 // Updater type
 struct gkyl_line_fem_poisson {
@@ -14,6 +18,6 @@ struct gkyl_line_fem_poisson {
   struct gkyl_range local_ext;
   struct gkyl_array *epsilon;
   struct gkyl_poisson_bc poisson_bc;
-  struct gkyl_array *deflated_field[128];
+  struct deflated_fem_data *d_fem_data;
   bool use_gpu;
 };

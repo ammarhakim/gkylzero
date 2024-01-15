@@ -2,24 +2,31 @@
 #include <gkyl_line_fem_poisson_priv.h>
 
 
-struct gkyl_line_fem_poisson* gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid, 
+struct gkyl_line_fem_poisson* 
+gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid, 
   struct gkyl_basis basis, struct gkyl_range local, struct gkyl_range local_ext, 
   struct gkyl_array *epsilon, struct gkyl_poisson_bc poisson_bc, bool use_gpu)
 {
-  struct gkyl_line_fem_poisson *up = gkyl_malloc(sizeof(struct gkyl_line_fem_poisson));
+  struct gkyl_line_fem_poisson *up = gkyl_malloc(sizeof(*up));
   up->grid = grid;
   up->basis = basis;
   up->local = local;
   up->local_ext = local_ext;
   up->epsilon = epsilon;
   up->poisson_bc = poisson_bc;
-  for(int zidx = up->local.lower[1]; zidx <= up->local.upper[1]; zidx++){
-    up->deflated_field[zidx] = gkyl_array_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
+  int num_solves_z = up->local.upper[1] - up->local.lower[1] + 1;
+  up->d_fem_data = gkyl_malloc(sizeof(deflated_fem_data[num_solves_z]));
+  int ctr = 0;
+  for (int zidx = up->local.lower[1]; zidx <= up->local.upper[1]; zidx++) {
+    up->d_fem_data[ctr].deflated_field = gkyl_array_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
+    up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&deflated_local, &deflated_grid, deflated_basis, &up->poisson_bc, deflated_epsilon, 0, false, use_gpu);
+    ctr += 1;
   }
   return up;
 }
 
-void gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi)
+void 
+gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi)
 {
 
   int poly_order = up->basis.poly_order;
@@ -108,7 +115,7 @@ void gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl
       nidx[0] = ix;
       long lin_nidx = gkyl_range_idx(&nrange, nidx);
       long lin_nidx_deflated = gkyl_range_idx(&deflated_nrange, &ix);
-      const double* input = gkyl_array_fetch(deflated_nodal_fld, lin_nidx_deflated);
+      const double* input = gkyl_array_cfetch(deflated_nodal_fld, lin_nidx_deflated);
       double* output = gkyl_array_fetch(nodal_fld, lin_nidx);
       output[0] = input[0];
     }
