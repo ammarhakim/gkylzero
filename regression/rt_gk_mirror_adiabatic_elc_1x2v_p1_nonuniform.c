@@ -56,9 +56,9 @@ struct gk_mirror_ctx
   double R_bt;
   double Z_bt;
   double z_bt;
-  double R_m;
   double B_m;
   double z_m;
+  double Z_m_computational;
   // Physics parameters at mirror throat
   double n_m;
   double Ti_m;
@@ -435,6 +435,136 @@ bmag_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
   fout[0] = Bmag;
 }
 
+void
+calculate_mirror_throat_location(void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double psi = app->psi_eval;
+  int itterations = 10;
+  double interval_left = 0.0;
+  double interval_right = app->z_max;
+  int points_per_level = 20;
+  double maximum_Bmag = 0.0;
+  double maximum_Bmag_location = 0.0;
+  for (int j = 0; j < itterations; j++)
+  {
+    double dz = (interval_right - interval_left) / points_per_level;
+    double B_rad, B_Z, Bmag;
+    maximum_Bmag = 0.0;
+    maximum_Bmag_location = 0.0;
+    for (int i = 0; i < points_per_level; i++)
+    {
+      double z = interval_left + i * dz;
+      double Z = Z_psiz(psi, z, ctx);
+      Bfield_psiZ(psi, Z, ctx, &B_rad, &B_Z, &Bmag);
+      if (Bmag > maximum_Bmag)
+      {
+        maximum_Bmag = Bmag;
+        maximum_Bmag_location = z;
+      }
+    }
+    interval_left = maximum_Bmag_location - dz;
+    interval_right = maximum_Bmag_location + dz;
+  }
+  app->z_m = maximum_Bmag_location;
+  app->Z_m_computational = Z_psiz(psi, maximum_Bmag_location, ctx);
+  app->B_m = maximum_Bmag;
+}
+
+void
+calculate_optimal_mapping(void *ctx)
+{
+  // Determine optimal order for each region
+  // Expander region
+  struct gk_mirror_ctx *app = ctx;
+  double mapping_frac = app->mapping_frac;
+  app->mapping_order_center = 1;
+  double scan_cells = 50;
+  double scan_left = app->z_m;
+  double scan_right = app->z_max;
+  double scan_dxi = (scan_right - scan_left) / scan_cells;
+  int expander_order = 1;
+  double max_dB_dCell_prior = 99999999.99;
+  double max_dB_dCell;
+  double max_dB_dCell_order1 = 0.0;
+  while (1)
+  {
+    max_dB_dCell = 0.0;
+    app->mapping_order_expander = expander_order;
+    for (int iz = 0; iz < scan_cells; iz++)
+    {
+      double left_xi = scan_left + iz * scan_dxi;
+      double right_xi = scan_left + (iz + 1) * scan_dxi;
+      double psi = app->psi_eval;
+      double left_z = z_xi(left_xi, psi, app);
+      double right_z = z_xi(right_xi, psi, app);
+      double B_rad, B_Z, Bmag_left, Bmag_right;
+      Bfield_psiZ(psi, left_z, app, &B_rad, &B_Z, &Bmag_left);
+      Bfield_psiZ(psi, right_z, app, &B_rad, &B_Z, &Bmag_right);
+      double dB_dCell = (Bmag_right - Bmag_left);
+      if (fabs(dB_dCell) > max_dB_dCell)
+      {
+        max_dB_dCell = fabs(dB_dCell);
+      }
+    }
+    double improvement = max_dB_dCell_prior - max_dB_dCell;
+    if (app->mapping_order_expander == 1)
+    {
+      max_dB_dCell_order1 = max_dB_dCell;
+    }
+
+    if (improvement > 1e-3)
+    {
+      expander_order++;
+      max_dB_dCell_prior = max_dB_dCell;
+    }
+    else
+    {
+      break;
+    }
+  }
+  printf("Expander order: %i \ndB/dCell reduction factor: %g\n", expander_order, max_dB_dCell_order1/max_dB_dCell);
+  double max_dB_dCell_expander = max_dB_dCell;
+  //Center region
+  scan_left = 0.0;
+  scan_right = app->z_m;
+  scan_dxi = (scan_right - scan_left) / scan_cells;
+  int center_order = 1;
+  max_dB_dCell_prior = 99999999.99;
+  while (1)
+  {
+    max_dB_dCell = 0.0;
+    app->mapping_order_center = center_order;
+    for (int iz = 0; iz < scan_cells; iz++)
+    {
+      double left_xi = scan_left + iz * scan_dxi;
+      double right_xi = scan_left + (iz + 1) * scan_dxi;
+      double psi = app->psi_eval;
+      double left_z = z_xi(left_xi, psi, app);
+      double right_z = z_xi(right_xi, psi, app);
+      double B_rad, B_Z, Bmag_left, Bmag_right;
+      Bfield_psiZ(psi, left_z, app, &B_rad, &B_Z, &Bmag_left);
+      Bfield_psiZ(psi, right_z, app, &B_rad, &B_Z, &Bmag_right);
+      double dB_dCell = (Bmag_right - Bmag_left);
+      if (fabs(dB_dCell) > max_dB_dCell)
+      {
+        max_dB_dCell = fabs(dB_dCell);
+      }
+    }
+    double improvement = max_dB_dCell_prior - max_dB_dCell;
+    if (improvement > 1e-3 & max_dB_dCell > max_dB_dCell_expander)
+    {
+      center_order++;
+      max_dB_dCell_prior = max_dB_dCell;
+    }
+    else
+    {
+      break;
+    }
+  }
+  printf("Center   order: %i\n", center_order);
+}
+
 struct gk_mirror_ctx
 create_ctx(void)
 {
@@ -515,9 +645,6 @@ create_ctx(void)
   double R_bt = 0.071022;
   double Z_bt = 0.467101;
   double z_bt = 0.468243;
-  double R_m = 0.017845;
-  double B_m = 16.662396;
-  double z_m = 0.982544;
 
   // Physics parameters at mirror throat
   double n_m = 1.105617e19;
@@ -525,9 +652,7 @@ create_ctx(void)
   double cs_m = 4.037740e5;
 
   // Non-uniform z mapping
-  int mapping_order_center = 7; //depends on problem sizes. Big headache
-  int mapping_order_expander = 20;  // Order of the polynomial to fit through points for mapc2p
-  double mapping_frac = 0.72;//0.72
+  double mapping_frac = 0.7; // 1 is full mapping, 0 is no mapping
 
   struct gk_mirror_ctx ctx = {
     .mi = mi,
@@ -564,9 +689,6 @@ create_ctx(void)
     .R_bt = R_bt,
     .Z_bt = Z_bt,
     .z_bt = z_bt,
-    .R_m = R_m,
-    .B_m = B_m,
-    .z_m = z_m,
     .n_m = n_m,
     .Ti_m = Ti_m,
     .cs_m = cs_m,
@@ -584,26 +706,25 @@ create_ctx(void)
     .poly_order = poly_order,
     .final_time = final_time,
     .num_frames = num_frames,
-    .mapping_order_center = mapping_order_center,  // Order of the polynomial to fit through points for mapc2p
-    .mapping_order_expander = mapping_order_expander,
     .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
+  calculate_mirror_throat_location(&ctx);
   // Printing
   double dxi = (ctx.z_max - ctx.z_min) / ctx.num_cell_z;
-  double diff_z_max = z_xi(ctx.z_m + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m - dxi/2, ctx.psi_eval, &ctx);
-  double diff_z_p75 = z_xi(ctx.z_m * .75 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .75 - dxi/2, ctx.psi_eval, &ctx);
-  double diff_z_p50 = z_xi(ctx.z_m * .5  + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5  - dxi/2, ctx.psi_eval, &ctx);
-  double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi/2, ctx.psi_eval, &ctx);
-  double diff_z_min = z_xi(dxi/2, ctx.psi_eval, &ctx) - z_xi(-dxi/2, ctx.psi_eval, &ctx);
   if (ctx.mapping_frac == 0.0)
   {
     printf("Uniform cell spacing in z: %g m\n", dxi);
   }
   else 
-  {
-    printf("Non-uniform cell spacings:\n");
+  {  
+    printf("Mapping fraction: %g\n", ctx.mapping_frac);
+    calculate_optimal_mapping(&ctx);
+    double diff_z_max = z_xi(ctx.z_m + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m - dxi/2, ctx.psi_eval, &ctx);
+    double diff_z_p75 = z_xi(ctx.z_m * .75 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .75 - dxi/2, ctx.psi_eval, &ctx);
+    double diff_z_p50 = z_xi(ctx.z_m * .5  + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5  - dxi/2, ctx.psi_eval, &ctx);
+    double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi/2, ctx.psi_eval, &ctx);
+    double diff_z_min = z_xi(dxi/2, ctx.psi_eval, &ctx) - z_xi(-dxi/2, ctx.psi_eval, &ctx);
     printf("Total number of cells in z   : %d\n", ctx.num_cell_z);
-    printf("Polynomials order %i center and %i expander with mapping fraction %g\n", ctx.mapping_order_center, ctx.mapping_order_expander, ctx.mapping_frac);
     printf("Uniform computational spacing: %g m\n", dxi);
     printf("Maximum cell spacing at z_m  : %g m\n", diff_z_max);
     printf("Cell spacing at z_m * 0.75   : %g m\n", diff_z_p75);
@@ -611,203 +732,6 @@ create_ctx(void)
     printf("Cell spacing at z_m * 0.25   : %g m\n", diff_z_p25);
     printf("Minimum cell spacing at 0    : %g m\n", diff_z_min);
   }
-
-  // Looking at calculating dB/dz in each cell
-  // xi is uniformly spaced computational coordinate
-  ctx.mapping_frac = 0.7;
-  int len_orders = 20;
-  int scan_cells = 50;
-  int orders[20] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
-  double *dB_max = malloc(len_orders * sizeof(double));
-  double *dB_max_loc = malloc(len_orders * sizeof(double));
-  double *dB_values = malloc(scan_cells * sizeof(double));
-  double *dB_all_values = malloc(len_orders * scan_cells * sizeof(double));
-  double scan_left = 0.0;//ctx.z_max;
-  double scan_right = ctx.z_m;
-  double scan_dxi = (scan_right - scan_left) / scan_cells;
-  for (int io = 0; io < len_orders; io++)
-  {
-    double mean = 0.0;
-    double max_dB = 0.0;
-    double loc_max_dB = 0.0;
-    ctx.mapping_order_center = orders[io];
-    for (int iz = 0; iz < scan_cells; iz++)
-    {
-      double left_xi = scan_left + iz * scan_dxi;
-      double right_xi = scan_left + (iz + 1) * scan_dxi;
-      double psi = ctx.psi_eval;
-      double left_z = z_xi(left_xi, psi, &ctx);
-      double right_z = z_xi(right_xi, psi, &ctx);
-      double B_rad, B_Z, Bmag_left, Bmag_right;
-      Bfield_psiZ(psi, left_z, &ctx, &B_rad, &B_Z, &Bmag_left);
-      Bfield_psiZ(psi, right_z, &ctx, &B_rad, &B_Z, &Bmag_right);
-      double dB = (Bmag_right - Bmag_left);
-      dB_values[iz] = fabs(dB);
-      mean += fabs(dB);
-      if (fabs(dB) > max_dB)
-      {
-        max_dB = fabs(dB);
-        loc_max_dB = (left_z + right_z) / 2;
-      }
-    }
-    dB_max[io] = max_dB;
-    dB_max_loc[io] = loc_max_dB;
-    for (int iz = 0; iz < scan_cells; iz++)
-    {
-      dB_all_values[io * scan_cells + iz] = dB_values[iz];
-    }
-  }
-  // // // Python friendly prints
-  // printf("orders = [");
-  // for (int io = 0; io < len_orders; io++)
-  // {
-  //   printf("%i, ", orders[io]);
-  // }
-  // printf("]\n");
-
-  // printf("dB_max = [");
-  // for (int io = 0; io < len_orders; io++)
-  // {
-  //   printf("%g, ", dB_max[io]);
-  // }
-  // printf("]\n");
-
-  // printf("dB_max_loc = [");
-  // for (int io = 0; io < len_orders; io++)
-  // {
-  //   printf("%g, ", dB_max_loc[io]);
-  // }
-  // printf("]\n");
-
-  // printf("dB_all_values = [");
-  // for (int io = 0; io < len_orders; io++)
-  // {
-  //   printf("[");
-  //   for (int iz = 0; iz < scan_cells; iz++)
-  //   {
-  //     printf("%g, ", dB_all_values[io * scan_cells + iz]);
-  //   }
-  //   printf("],\n");
-  // }
-  // printf("]\n");
-
-  // Determine optimal order for each region
-  // Expander region
-  int len_scan_map = 20;
-  double map_values[20] = {0.42, 0.44, 0.46, 0.48, 0.5, 0.52, 0.54, 0.56, 0.58, 0.60, 0.62, 0.64, 0.66, 0.68, 0.70, 0.72, 0.74, 0.76, 0.78, 0.80};
-  double *vec_maxdB = malloc(len_scan_map * sizeof(double));
-  double *vec_expander_order = malloc(len_scan_map * sizeof(double));
-  double *vec_center_order = malloc(len_scan_map * sizeof(double));
-  printf("Determining optimal mapping fraction for each region\n");
-  printf("[");
-  for (int im = 0; im < len_scan_map; im++)
-  {
-    ctx.mapping_frac = map_values[im];
-    printf("[%g, ", ctx.mapping_frac);
-    scan_cells = 50;
-    scan_left = ctx.z_m;
-    scan_right = ctx.z_max;
-    scan_dxi = (scan_right - scan_left) / scan_cells;
-    int expander_order = 1;
-    double max_dB_prior = 99999999.99;
-    double max_dB;
-    while (1)
-    {
-      max_dB = 0.0;
-      ctx.mapping_order_expander = expander_order;
-      for (int iz = 0; iz < scan_cells; iz++)
-      {
-        double left_xi = scan_left + iz * scan_dxi;
-        double right_xi = scan_left + (iz + 1) * scan_dxi;
-        double psi = ctx.psi_eval;
-        double left_z = z_xi(left_xi, psi, &ctx);
-        double right_z = z_xi(right_xi, psi, &ctx);
-        double B_rad, B_Z, Bmag_left, Bmag_right;
-        Bfield_psiZ(psi, left_z, &ctx, &B_rad, &B_Z, &Bmag_left);
-        Bfield_psiZ(psi, right_z, &ctx, &B_rad, &B_Z, &Bmag_right);
-        double dB = (Bmag_right - Bmag_left);
-        if (fabs(dB) > max_dB)
-        {
-          max_dB = fabs(dB);
-        }
-      }
-      double improvement = max_dB_prior - max_dB;
-      if (improvement > 1e-3)
-      {
-        expander_order++;
-        max_dB_prior = max_dB;
-      }
-      else
-      {
-        break;
-      }
-    }
-    printf("%i, ", expander_order);
-    printf("%g, ", max_dB);
-    double max_dB_expander = max_dB;
-    //Center region
-    scan_left = 0.0;
-    scan_right = ctx.z_m;
-    scan_dxi = (scan_right - scan_left) / scan_cells;
-    int center_order = 1;
-    max_dB_prior = 99999999.99;
-
-    while (1)
-    {
-      max_dB = 0.0;
-      ctx.mapping_order_center = center_order;
-      for (int iz = 0; iz < scan_cells; iz++)
-      {
-        double left_xi = scan_left + iz * scan_dxi;
-        double right_xi = scan_left + (iz + 1) * scan_dxi;
-        double psi = ctx.psi_eval;
-        double left_z = z_xi(left_xi, psi, &ctx);
-        double right_z = z_xi(right_xi, psi, &ctx);
-        double B_rad, B_Z, Bmag_left, Bmag_right;
-        Bfield_psiZ(psi, left_z, &ctx, &B_rad, &B_Z, &Bmag_left);
-        Bfield_psiZ(psi, right_z, &ctx, &B_rad, &B_Z, &Bmag_right);
-        double dB = (Bmag_right - Bmag_left);
-        if (fabs(dB) > max_dB)
-        {
-          max_dB = fabs(dB);
-        }
-      }
-      double improvement = max_dB_prior - max_dB;
-      if (improvement > 1e-3 & max_dB > max_dB_expander)
-      {
-        center_order++;
-        max_dB_prior = max_dB;
-      }
-      else
-      {
-        break;
-      }
-    }
-    // Calculate the center cell spacing
-    double left_z = z_xi(0.0, ctx.psi_eval, &ctx);
-    double right_z = z_xi(scan_dxi, ctx.psi_eval, &ctx);
-    double diff_z = right_z - left_z;
-    printf("%i, ", center_order);
-    printf("%g,", max_dB);
-    printf("%g],\n", diff_z);
-  }
-
-  // // Calculate mean and standard deviation of dB values
-  // mean /= ctx.num_cell_z;
-  // double std = 0.0;
-  // for (int iz = 0; iz < ctx.num_cell_z; iz++)
-  // {
-  //   std += pow(dB_values[iz] - mean, 2);
-  // }
-  // std = sqrt(std / ctx.num_cell_z);
-  // printf("\nMean dB: %g\n", mean);
-  // printf("Std dB : %g\n", std);
-  // printf("Max dB : %g\n", max_dB);
-  // printf("Max dB location: %g\n", loc_max_dB);
-  free(dB_max);
-  free(dB_max_loc);
-  free(dB_values);
-  free(dB_all_values);
   return ctx;
 }
 
