@@ -2,8 +2,10 @@
 #include <gkyl_line_fem_poisson_priv.h>
 
 
-struct gkyl_line_fem_poisson* gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid, struct gkyl_basis basis, struct gkyl_range local, struct gkyl_range local_ext, struct gkyl_array *epsilon, struct gkyl_poisson_bc poisson_bc){
-
+struct gkyl_line_fem_poisson* gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid, 
+  struct gkyl_basis basis, struct gkyl_range local, struct gkyl_range local_ext, 
+  struct gkyl_array *epsilon, struct gkyl_poisson_bc poisson_bc, bool use_gpu)
+{
   struct gkyl_line_fem_poisson *up = gkyl_malloc(sizeof(struct gkyl_line_fem_poisson));
   up->grid = grid;
   up->basis = basis;
@@ -11,6 +13,9 @@ struct gkyl_line_fem_poisson* gkyl_line_fem_poisson_new(struct gkyl_rect_grid gr
   up->local_ext = local_ext;
   up->epsilon = epsilon;
   up->poisson_bc = poisson_bc;
+  for(int zidx = up->local.lower[1]; zidx <= up->local.upper[1]; zidx++){
+    up->deflated_field[zidx] = gkyl_array_new(GKYL_DOUBLE, deflated_basis.num_basis, deflated_local_ext.volume);
+  }
   return up;
 }
 

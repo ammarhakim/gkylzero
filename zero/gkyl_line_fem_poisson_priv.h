@@ -14,5 +14,6 @@ struct gkyl_line_fem_poisson {
   struct gkyl_range local_ext;
   struct gkyl_array *epsilon;
   struct gkyl_poisson_bc poisson_bc;
+  struct gkyl_array *deflated_field[128];
   bool use_gpu;
 };
