@@ -52,7 +52,7 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
   up->deflator_up = gkyl_deflate_zsurf_new(&up->basis, &up->deflated_basis, 1, use_gpu);
 
   // Allocate the 1d and 2d nodal_ops updater to be used in the advance method
-  up->n2m_2d = gkyl_nodal_ops_new(&up->basis, &up->deflated_grid, use_gpu);
+  up->n2m_2d = gkyl_nodal_ops_new(&up->basis, &up->grid, use_gpu);
   up->n2m_1d = gkyl_nodal_ops_new(&up->deflated_basis, &up->deflated_grid, use_gpu);
 
   // Allocate necessary fields and solvers for each z slice
