@@ -268,14 +268,15 @@ main(int argc, char **argv)
   struct gkyl_gk gk = {
     .name = "gk_rad_3x2v_p1",
 
-    .cdim = 3, .vdim = 2,
-    .lower = { -ctx.Lx/2.0, -ctx.Lx/2.0, -ctx.Lx/2.0 },
+    .cdim = 1, .vdim = 2,
+    .lower = { -ctx.Lx/2.0 },
     .upper = { ctx.Lx/2.0, ctx.Lx/2.0, ctx.Lx/2.0 },
-    .cells = { NX, NY, NZ },
+    .cells = { NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
     .geometry = {
+      .world = {0.0, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func, // mapping of computational to physical space
