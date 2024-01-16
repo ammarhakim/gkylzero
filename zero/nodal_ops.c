@@ -116,7 +116,7 @@ gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops,
             nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
         }
         if (cpoly_order==2)
-          nidx[j] = 2*iter.idx[j] + (temp[j] + 1) ;
+          nidx[j] = 2*(iter.idx[j] - 1) + (temp[j] + 1) ;
       }
       lin_nidx[i] = gkyl_range_idx(nrange, nidx);
     }

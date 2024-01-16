@@ -117,7 +117,7 @@ gkyl_nodal_ops_m2n_cu_kernel(const struct gkyl_basis *cbasis,
           nidx[j] = idx[j]-1 + (temp[j]+1)/2 ;
         }
         if (cpoly_order==2)
-          nidx[j] = 2*idx[j] + (temp[j] + 1) ;
+          nidx[j] = 2*(idx[j]-1) + (temp[j] + 1) ;
       }
       lin_nidx[i] = gkyl_range_idx(&nrange, nidx);
     }
