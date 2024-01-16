@@ -2,7 +2,6 @@
 #pragma once
 
 #include <math.h>
-
 #include <gkyl_deflate_zsurf_kernels.h>
 #include <assert.h>
 

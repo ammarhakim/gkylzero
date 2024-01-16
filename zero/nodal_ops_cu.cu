@@ -19,10 +19,10 @@ gkyl_nodal_ops_n2m_cu_kernel(const struct gkyl_basis *cbasis,
   int idx[GKYL_MAX_DIM];
   int num_basis = cbasis->num_basis;
   int cpoly_order = cbasis->poly_order;
-  double fnodal[num_basis]; // to store nodal function values
+  double fnodal[20]; // to store nodal function values
 
   int nidx[3];
-  long lin_nidx[num_basis];
+  long lin_nidx[20];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < update_range.volume; linc1 += blockDim.x*gridDim.x) {
@@ -40,17 +40,17 @@ gkyl_nodal_ops_n2m_cu_kernel(const struct gkyl_basis *cbasis,
       const double *temp  = (const double *) gkyl_array_cfetch(nodes, i);
       for( int j = 0; j < grid.ndim; j++){
         if(cpoly_order==1){
-              nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
+              nidx[j] = idx[j]-1 + (temp[j]+1)/2 ;
         }
         if (cpoly_order==2){
-              nidx[j] = 2*(iter.idx[j]-1) + (temp[j]+1) ;
+              nidx[j] = 2*(idx[j]-1) + (temp[j]+1) ;
         }
       }
-      lin_nidx[i] = gkyl_range_idx(nrange, nidx);
+      lin_nidx[i] = gkyl_range_idx(&nrange, nidx);
     }
 
     double *arr_p = (double *) gkyl_array_fetch(modal_fld, linc);
-    double fao[num_basis*num_comp];
+    double fao[20*9];
   
     for (int i=0; i<num_basis; ++i) {
       const double *temp = (const double *) gkyl_array_cfetch(nodal_fld, lin_nidx[i]);
@@ -79,7 +79,7 @@ gkyl_nodal_ops_n2m_cu(const struct gkyl_nodal_ops *nodal_ops,
   int nblocks = update_range->nblocks;
   int nthreads = update_range->nthreads;
 
-  gkyl_nodal_ops_n2m_cu_kernel<<<nblocks, nthreads>>>(cbasis->on_dev, *grid, 
+  gkyl_nodal_ops_n2m_cu_kernel<<<nblocks, nthreads>>>(cbasis, *grid, 
     *nrange, *update_range, nodal_ops->nodes->on_dev, num_comp, 
     nodal_fld, modal_fld);
 }
@@ -94,10 +94,9 @@ gkyl_nodal_ops_m2n_cu_kernel(const struct gkyl_basis *cbasis,
   int idx[GKYL_MAX_DIM];
   int num_basis = cbasis->num_basis;
   int cpoly_order = cbasis->poly_order;
-  double fnodal[num_basis]; // to store nodal function values
 
   int nidx[3];
-  long lin_nidx[num_basis];
+  long lin_nidx[20];
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < update_range.volume; linc1 += blockDim.x*gridDim.x) {
@@ -113,18 +112,17 @@ gkyl_nodal_ops_m2n_cu_kernel(const struct gkyl_basis *cbasis,
 
     for (int i=0; i<num_basis; ++i) {
       const double *temp  = (const double *) gkyl_array_cfetch(nodes, i);
-      for( int j = 0; j < grid->ndim; j++){
+      for( int j = 0; j < grid.ndim; j++){
         if(cpoly_order==1){
-          nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
+          nidx[j] = idx[j]-1 + (temp[j]+1)/2 ;
         }
         if (cpoly_order==2)
-          nidx[j] = 2*iter.idx[j] + (temp[j] + 1) ;
+          nidx[j] = 2*idx[j] + (temp[j] + 1) ;
       }
-      lin_nidx[i] = gkyl_range_idx(nrange, nidx);
+      lin_nidx[i] = gkyl_range_idx(&nrange, nidx);
     }
 
     const double *arr_p = (const double *) gkyl_array_cfetch(modal_fld, linc);
-    double fao[num_basis*num_comp];
   
     // already fetched modal coeffs in arr_p
     // Now we are going to need to fill the nodal values
@@ -150,7 +148,7 @@ gkyl_nodal_ops_m2n_cu(const struct gkyl_nodal_ops *nodal_ops,
   int nblocks = update_range->nblocks;
   int nthreads = update_range->nthreads;
 
-  gkyl_nodal_ops_m2n_cu_kernel<<<nblocks, nthreads>>>(cbasis->on_dev, *grid, 
+  gkyl_nodal_ops_m2n_cu_kernel<<<nblocks, nthreads>>>(cbasis, *grid, 
     *nrange, *update_range, nodal_ops->nodes->on_dev, num_comp, 
     nodal_fld, modal_fld);
 }
