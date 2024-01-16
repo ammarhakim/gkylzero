@@ -4,6 +4,8 @@
 #include <time.h>
 
 extern "C" {
+#include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_nodal_ops.h>
 }
 

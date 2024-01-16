@@ -254,7 +254,9 @@ test_reconstruct(){
 
 
   struct gkyl_array *out_field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_nodal_ops_n2m(&basis, &grid, &nrange, &local, 1, nodal_fld, out_field);
+
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
+  gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &local, 1, nodal_fld, out_field);
   gkyl_grid_sub_array_write(&grid, &local, out_field, "out_field.gkyl");
 
 }

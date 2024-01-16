@@ -11,7 +11,6 @@
 #include <gkyl_util.h>
 #include <gkyl_basis.h>
 #include <gkyl_deflate_zsurf.h>
-#include <gkyl_nodal_ops.h>
 
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_fem_poisson.h>
@@ -82,7 +81,7 @@ test_1(){
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
   struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
                                             
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc);
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc, false);
   gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
   gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
@@ -126,7 +125,7 @@ test_2(){
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
   struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
                                             
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc);
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc, false);
   gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
   gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
@@ -184,7 +183,7 @@ test_3(){
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
   struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
                                             
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc);
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc, false);
   gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
   gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
