@@ -235,6 +235,416 @@ GKYL_CU_DH void fem_parproj_src_stencil_1x_ser_p2_upx_dirichletx(const double *r
 
 }
 
+GKYL_CU_DH void fem_parproj_src_stencil_2x_ser_p1_iny_nondirichlety(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
+{ 
+  // rho: right side source.
+  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[3]] += 0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+
+}
+
+GKYL_CU_DH void fem_parproj_src_stencil_2x_ser_p2_iny_nondirichlety(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
+{ 
+  // rho: right side source.
+  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+
+}
+
+GKYL_CU_DH void fem_parproj_src_stencil_2x_ser_p1_loy_nondirichlety(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
+{ 
+  // rho: right side source.
+  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[3]] += 0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+
+}
+
+GKYL_CU_DH void fem_parproj_src_stencil_2x_ser_p2_loy_nondirichlety(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
+{ 
+  // rho: right side source.
+  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+
+}
+
+GKYL_CU_DH void fem_parproj_src_stencil_2x_ser_p1_loy_dirichlety(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
+{ 
+  // rho: right side source.
+  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  #ifdef __CUDA_ARCH__
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong((-1.5*phiBC[3])+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  #else
+  bsrc[nodeOff+globalIdxs[0]] = (-1.5*phiBC[3])+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong(1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  #else
+  bsrc[nodeOff+globalIdxs[1]] = 1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[3]] += 0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+
+}
+
+GKYL_CU_DH void fem_parproj_src_stencil_2x_ser_p2_loy_dirichlety(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
+{ 
+  // rho: right side source.
+  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  #ifdef __CUDA_ARCH__
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[0]],__double_as_longlong((-1.936491673103709*phiBC[7])+1.936491673103709*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  #else
+  bsrc[nodeOff+globalIdxs[0]] = (-1.936491673103709*phiBC[7])+1.936491673103709*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]+0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[1]],__double_as_longlong((-0.9682458365518543*phiBC[6])+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]+0.8660254037844386*phiBC[2]+0.5*phiBC[0]));
+  #else
+  bsrc[nodeOff+globalIdxs[1]] = (-0.9682458365518543*phiBC[6])+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]+0.8660254037844386*phiBC[2]+0.5*phiBC[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.936491673103709*phiBC[7]+1.936491673103709*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  #else
+  bsrc[nodeOff+globalIdxs[2]] = 1.936491673103709*phiBC[7]+1.936491673103709*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]+0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+
+}
+
+GKYL_CU_DH void fem_parproj_src_stencil_2x_ser_p1_upy_nondirichlety(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
+{ 
+  // rho: right side source.
+  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[2]],(-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[2]] += (-0.1666666666666667*rho[3])+0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[3]] += 0.1666666666666667*rho[3]+0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+
+}
+
+GKYL_CU_DH void fem_parproj_src_stencil_2x_ser_p2_upy_nondirichlety(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
+{ 
+  // rho: right side source.
+  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[5]],(-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[5]] += (-0.08606629658238707*rho[7])+0.08606629658238707*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]+0.09622504486493766*rho[2]-0.09622504486493766*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[6]],(-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[6]] += (-0.1721325931647741*rho[6])-0.2981423969999719*rho[4]+0.3849001794597505*rho[2]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[7]],0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[7]] += 0.08606629658238704*rho[7]+0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]+0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+
+}
+
+GKYL_CU_DH void fem_parproj_src_stencil_2x_ser_p1_upy_dirichlety(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
+{ 
+  // rho: right side source.
+  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[0]],0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[0]] += 0.1666666666666667*rho[3]-0.2886751345948129*rho[2]-0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[1]],(-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[1]] += (-0.1666666666666667*rho[3])-0.2886751345948129*rho[2]+0.2886751345948129*rho[1]+0.5*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[2]],__double_as_longlong(1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  #else
+  bsrc[nodeOff+globalIdxs[2]] = 1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[3]],__double_as_longlong((-1.5*phiBC[3])-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  #else
+  bsrc[nodeOff+globalIdxs[3]] = (-1.5*phiBC[3])-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  #endif
+
+}
+
+GKYL_CU_DH void fem_parproj_src_stencil_2x_ser_p2_upy_dirichlety(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
+{ 
+  // rho: right side source.
+  // phiBC: Dirichlet boundary potential, given as a DG expansion in the ghost cell (volume).
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: global linear index of each basis function/node in current cell.
+  // bsrc: global right side source vector.
+
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[0]],(-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[0]] += (-0.08606629658238704*rho[7])-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]+0.1666666666666667*rho[3]-0.09622504486493762*rho[2]-0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[1]],0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[1]] += 0.1721325931647741*rho[6]-0.298142396999972*rho[4]-0.3849001794597506*rho[2]+0.6666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[2]],0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[2]] += 0.08606629658238704*rho[7]-0.08606629658238704*rho[6]+0.149071198499986*rho[5]+0.149071198499986*rho[4]-0.1666666666666667*rho[3]-0.09622504486493762*rho[2]+0.09622504486493762*rho[1]-0.1666666666666667*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[3]],0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[3]] += 0.1721325931647741*rho[7]-0.2981423969999719*rho[5]-0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicAdd(&bsrc[nodeOff+globalIdxs[4]],(-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0]);
+  #else
+  bsrc[nodeOff+globalIdxs[4]] += (-0.1721325931647741*rho[7])-0.2981423969999719*rho[5]+0.3849001794597505*rho[1]+0.6666666666666665*rho[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[5]],__double_as_longlong((-1.936491673103709*phiBC[7])-1.936491673103709*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  #else
+  bsrc[nodeOff+globalIdxs[5]] = (-1.936491673103709*phiBC[7])-1.936491673103709*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]+1.5*phiBC[3]-0.8660254037844386*phiBC[2]-0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[6]],__double_as_longlong(0.9682458365518543*phiBC[6]+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]-0.8660254037844386*phiBC[2]+0.5*phiBC[0]));
+  #else
+  bsrc[nodeOff+globalIdxs[6]] = 0.9682458365518543*phiBC[6]+1.118033988749895*phiBC[5]-0.5590169943749475*phiBC[4]-0.8660254037844386*phiBC[2]+0.5*phiBC[0];
+  #endif
+  #ifdef __CUDA_ARCH__
+  atomicExch((unsigned long long int*) &bsrc[nodeOff+globalIdxs[7]],__double_as_longlong(1.936491673103709*phiBC[7]-1.936491673103709*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0]));
+  #else
+  bsrc[nodeOff+globalIdxs[7]] = 1.936491673103709*phiBC[7]-1.936491673103709*phiBC[6]+1.118033988749895*phiBC[5]+1.118033988749895*phiBC[4]-1.5*phiBC[3]-0.8660254037844386*phiBC[2]+0.8660254037844386*phiBC[1]+0.5*phiBC[0];
+  #endif
+
+}
+
 GKYL_CU_DH void fem_parproj_src_stencil_3x_ser_p1_inz_nondirichletz(const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc) 
 { 
   // rho: right side source.
