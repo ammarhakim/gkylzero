@@ -14,9 +14,9 @@ extern "C" {
 }
 
 __global__ void
-gkyl_dg_calc_em_vars_div_b_cu_kernel(const struct gkyl_deflate_zsurf *up, int zidx, 
+gkyl_deflate_zsurf_advance_cu_kernel(const struct gkyl_deflate_zsurf *up, int zidx, 
   struct gkyl_range range, struct gkyl_range deflated_range, 
-  const struct gkyl_array* field, struct gkyl_array* deflated_field, ncomp) 
+  const struct gkyl_array* field, struct gkyl_array* deflated_field, int ncomp) 
 {
   int idx[GKYL_MAX_DIM];
   int do_idx[2];

@@ -29,7 +29,7 @@ gkyl_nodal_ops_n2m(const struct gkyl_nodal_ops *nodal_ops,
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(modal_fld)) {
-    return gkyl_nodal_ops_n2m_cu(cbasis, grid, 
+    return gkyl_nodal_ops_n2m_cu(nodal_ops, cbasis, grid, 
       nrange, update_range, num_comp, 
       nodal_fld, modal_fld);
   }
@@ -91,7 +91,7 @@ gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops,
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(nodal_fld)) {
-    return gkyl_nodal_ops_m2n_cu(cbasis, grid, 
+    return gkyl_nodal_ops_m2n_cu(nodal_ops, cbasis, grid, 
       nrange, update_range, num_comp, 
       nodal_fld, modal_fld);
   }

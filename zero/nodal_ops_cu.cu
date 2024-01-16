@@ -38,7 +38,7 @@ gkyl_nodal_ops_n2m_cu_kernel(const struct gkyl_basis *cbasis,
 
     for (int i=0; i<num_basis; ++i) {
       const double *temp  = (const double *) gkyl_array_cfetch(nodes, i);
-      for( int j = 0; j < grid->ndim; j++){
+      for( int j = 0; j < grid.ndim; j++){
         if(cpoly_order==1){
               nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
         }
@@ -150,7 +150,7 @@ gkyl_nodal_ops_m2n_cu(const struct gkyl_nodal_ops *nodal_ops,
   int nblocks = update_range->nblocks;
   int nthreads = update_range->nthreads;
 
-  gkyl_nodal_ops_n2m_cu_kernel<<<nblocks, nthreads>>>(cbasis->on_dev, *grid, 
+  gkyl_nodal_ops_m2n_cu_kernel<<<nblocks, nthreads>>>(cbasis->on_dev, *grid, 
     *nrange, *update_range, nodal_ops->nodes->on_dev, num_comp, 
     nodal_fld, modal_fld);
 }

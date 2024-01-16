@@ -29,7 +29,7 @@ gkyl_deflate_zsurf_new(const struct gkyl_basis *cbasis, const struct gkyl_basis 
  */
 struct gkyl_deflate_zsurf* 
 gkyl_deflate_zsurf_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *deflated_cbasis,
-  int edge, bool use_gpu);
+  int edge);
 
 /**
  * Advance deflate_zsurf (compute the derived_zsurf coefficients).
