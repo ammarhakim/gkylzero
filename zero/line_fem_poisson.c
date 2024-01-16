@@ -4,25 +4,28 @@
 
 struct gkyl_line_fem_poisson* 
 gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid, 
-  struct gkyl_basis basis, struct gkyl_range local, struct gkyl_range local_ext, 
+  struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, struct gkyl_range local, struct gkyl_range local_ext, 
   struct gkyl_array *epsilon, struct gkyl_poisson_bc poisson_bc, bool use_gpu)
 {
   struct gkyl_line_fem_poisson *up = gkyl_malloc(sizeof(*up));
   up->grid = grid;
   up->basis = basis;
+  up->basis_on_dev = basis_on_dev;
   up->local = local;
   up->local_ext = local_ext;
   up->poisson_bc = poisson_bc;
-  up->num_solves_z = up->local.upper[1] - up->local.lower[1] + 1;
+  up->num_solves_z = up->local.upper[1] - up->local.lower[1] + 2;
   up->d_fem_data = gkyl_malloc(sizeof(struct deflated_fem_data[up->num_solves_z]));
+
+  int poly_order = up->basis.poly_order;
 
   // Create 2d nodal range nodal array to be populated
   int nodes[2];
-  if (up->basis.poly_order == 1){
+  if (poly_order == 1){
     for (int d=0; d<up->grid.ndim; ++d)
       nodes[d] = up->grid.cells[d] + 1;
   }
-  if (up->basis.poly_order == 2){
+  if (poly_order == 2){
     for (int d=0; d<up->grid.ndim; ++d)
       nodes[d] = 2*(up->grid.cells[d]) + 1;
   }
@@ -35,13 +38,22 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
   gkyl_rect_grid_init(&up->deflated_grid, 1, deflated_lower, deflated_upper, deflated_cells);
   int deflated_nghost[GKYL_MAX_CDIM] = { 1 };
   gkyl_create_grid_ranges(&up->deflated_grid, deflated_nghost, &up->deflated_local_ext, &up->deflated_local);
-  gkyl_cart_modal_serendip(&up->deflated_basis, 1, up->basis.poly_order);
+  gkyl_cart_modal_serendip(&up->deflated_basis, 1, poly_order);
+
+  if (up->use_gpu) {
+    up->deflated_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+    gkyl_cart_modal_serendip_cu_dev(up->deflated_basis_on_dev, up->deflated_grid.ndim, poly_order);
+  }
+  else {
+    up->deflated_basis_on_dev = &up->deflated_basis;
+  }
+
   int deflated_nodes[1];
-  if (up->deflated_basis.poly_order == 1){
+  if (poly_order == 1){
     for (int d=0; d<up->deflated_grid.ndim; ++d)
       deflated_nodes[d] = up->deflated_grid.cells[d] + 1;
   }
-  if (up->deflated_basis.poly_order == 2){
+  if (poly_order == 2){
     for (int d=0; d<up->deflated_grid.ndim; ++d)
       deflated_nodes[d] = 2*(up->deflated_grid.cells[d]) + 1;
   }
@@ -95,7 +107,7 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
     gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
     gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
     // Nodal to Modal in 1d
-    gkyl_nodal_ops_m2n(up->n2m_1d, &up->deflated_basis, &up->deflated_grid, &up->deflated_nrange, &up->deflated_local, 1, up->d_fem_data[ctr].deflated_nodal_fld, up->d_fem_data[ctr].deflated_phi);
+    gkyl_nodal_ops_m2n(up->n2m_1d, up->deflated_basis_on_dev, &up->deflated_grid, &up->deflated_nrange, &up->deflated_local, 1, up->d_fem_data[ctr].deflated_nodal_fld, up->d_fem_data[ctr].deflated_phi);
     // Populate the 2d field 
     nidx[1] = zidx-1;
     for (int ix = 0; ix <= up->nrange.upper[0]; ix++) {
@@ -116,7 +128,7 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
       gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
       gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
       // Nodal to Modal in 1d
-      gkyl_nodal_ops_m2n(up->n2m_1d, &up->deflated_basis, &up->deflated_grid, &up->deflated_nrange, &up->deflated_local, 1, up->d_fem_data[ctr].deflated_nodal_fld, up->d_fem_data[ctr].deflated_phi);
+      gkyl_nodal_ops_m2n(up->n2m_1d, up->deflated_basis_on_dev, &up->deflated_grid, &up->deflated_nrange, &up->deflated_local, 1, up->d_fem_data[ctr].deflated_nodal_fld, up->d_fem_data[ctr].deflated_phi);
       // Populate the 2d field 
       nidx[1] = zidx-1;
       for (int ix = 0; ix <= up->nrange.upper[0]; ix++) {
@@ -129,7 +141,7 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
       }
     }
   }
-  gkyl_nodal_ops_n2m(up->n2m_2d, &up->basis, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, phi);
+  gkyl_nodal_ops_n2m(up->n2m_2d, up->basis_on_dev, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, phi);
 
 
 
@@ -150,6 +162,10 @@ void gkyl_line_fem_poisson_release(struct gkyl_line_fem_poisson* up){
     gkyl_fem_poisson_release(up->d_fem_data[ctr].fem_poisson);
     ctr += 1;
   }
+  if (up->use_gpu) {
+    gkyl_free(up->deflated_basis_on_dev);
+  }
+
   gkyl_free(up->d_fem_data);
   gkyl_free(up);
 }

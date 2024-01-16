@@ -18,7 +18,9 @@ struct gkyl_line_fem_poisson {
   struct gkyl_rect_grid grid;
   struct gkyl_rect_grid deflated_grid;
   struct gkyl_basis basis;
+  struct gkyl_basis *basis_on_dev;
   struct gkyl_basis deflated_basis;
+  struct gkyl_basis *deflated_basis_on_dev;
   struct gkyl_range local;
   struct gkyl_range deflated_local;
   struct gkyl_range local_ext;
