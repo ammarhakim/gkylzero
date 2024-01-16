@@ -90,7 +90,7 @@ gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis,
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag_cu = (struct dg_rad_gyrokinetic_drag*) gkyl_cu_malloc(sizeof(struct dg_rad_gyrokinetic_drag));
   gkyl_cu_memcpy(rad_gyrokinetic_drag_cu, rad_gyrokinetic_drag, sizeof(struct dg_rad_gyrokinetic_drag), GKYL_CU_MEMCPY_H2D);
 
-  dg_rad_gyrokinetic_drag_set_cu_dev_ptrs<<<1,1>>>(rad_gyrokinetic_drag_cu, cbasis->b_type, cv_index[cdim].vdim[vdim],
+  dg_rad_gyrokinetic_drag_set_cu_dev_ptrs<<<1,1>>>(rad_gyrokinetic_drag_cu, conf_basis->b_type, cv_index[cdim].vdim[vdim],
     cdim, vdim, poly_order);
 
   // set parent on_dev pointer
