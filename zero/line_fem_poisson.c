@@ -57,7 +57,7 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
 
   // Allocate necessary fields and solvers for each z slice
   int ctr = 0;
-  for (int zidx = up->local.lower[1]; zidx <= up->local.upper[1]; zidx++) {
+  for (int zidx = up->local.lower[1]; zidx <= up->local.upper[1]+1; zidx++) {
     if (use_gpu) {
       up->d_fem_data[ctr].deflated_field = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
       up->d_fem_data[ctr].deflated_phi = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
@@ -70,6 +70,10 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
       up->d_fem_data[ctr].deflated_epsilon = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
       up->d_fem_data[ctr].deflated_nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->deflated_grid.ndim, up->deflated_nrange.volume);
     }
+    if (zidx == up->local.upper[1] + 1 )
+      gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 1);
+    else 
+      gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 1);
     up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid, up->deflated_basis, &up->poisson_bc, up->d_fem_data[ctr].deflated_epsilon, 0, false, use_gpu);
     ctr += 1;
   }
@@ -85,13 +89,11 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
   int ctr = 0;
   for(int zidx = up->local.lower[1]; zidx <= up->local.upper[1]; zidx++){
     // Fetch solver and deflated epsilon
-    struct gkyl_array *deflated_epsilon = up->d_fem_data[ctr].deflated_epsilon;
-    struct gkyl_fem_poisson *fem_poisson = up->d_fem_data[ctr].fem_poisson;
     // Deflate rho
     gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
     // Do the poisson solve 
-    gkyl_fem_poisson_set_rhs(fem_poisson, up->d_fem_data[ctr].deflated_field);
-    gkyl_fem_poisson_solve(fem_poisson, up->d_fem_data[ctr].deflated_phi);
+    gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
+    gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
     // Nodal to Modal in 1d
     gkyl_nodal_ops_m2n(up->n2m_1d, &up->deflated_basis, &up->deflated_grid, &up->deflated_nrange, &up->deflated_local, 1, up->d_fem_data[ctr].deflated_nodal_fld, up->d_fem_data[ctr].deflated_phi);
     // Populate the 2d field 
@@ -104,15 +106,15 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
       double* output = gkyl_array_fetch(up->nodal_fld, lin_nidx);
       output[0] = input[0];
     }
+
+    ctr += 1;
     if (zidx == up->local.upper[1]) {
       // Fetch solver and deflated epsilon
-      struct gkyl_array *deflated_epsilon = up->d_fem_data[ctr].deflated_epsilon;
-      struct gkyl_fem_poisson *fem_poisson = up->d_fem_data[ctr].fem_poisson;
       // Deflate rho
-      gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
+      gkyl_deflate_zsurf_advance(up->deflator_up, zidx, &up->local, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
       // Do the poisson solve 
-      gkyl_fem_poisson_set_rhs(fem_poisson, up->d_fem_data[ctr].deflated_field);
-      gkyl_fem_poisson_solve(fem_poisson, up->d_fem_data[ctr].deflated_phi);
+      gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
+      gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
       // Nodal to Modal in 1d
       gkyl_nodal_ops_m2n(up->n2m_1d, &up->deflated_basis, &up->deflated_grid, &up->deflated_nrange, &up->deflated_local, 1, up->d_fem_data[ctr].deflated_nodal_fld, up->d_fem_data[ctr].deflated_phi);
       // Populate the 2d field 
@@ -126,8 +128,6 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
         output[0] = input[0];
       }
     }
-
-    ctr += 1;
   }
   gkyl_nodal_ops_n2m(up->n2m_2d, &up->basis, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, phi);
 
