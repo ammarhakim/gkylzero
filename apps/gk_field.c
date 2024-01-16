@@ -64,7 +64,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       f->epsilon = mkarr(app->use_gpu, 1*app->confBasis.num_basis, app->local_ext.volume);
       gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
 
-      f->line_fem_poisson = gkyl_line_fem_poisson_new(app->grid, app->confBasis, 
+      f->line_fem_poisson = gkyl_line_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
         app->local, app->local_ext, f->epsilon, f->info.poisson_bcs, app->use_gpu);
     }
     else {
