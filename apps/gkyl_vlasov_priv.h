@@ -502,7 +502,6 @@ void vm_species_moment_release(const struct gkyl_vlasov_app *app,
  * @param app Vlasov app object
  * @param s Species object 
  * @param lbo Species LBO object
- * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
  */
 void vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   struct vm_lbo_collisions *lbo);
@@ -538,8 +537,6 @@ void vm_species_lbo_moms(gkyl_vlasov_app *app,
  * @param species Pointer to species
  * @param lbo Pointer to LBO
  * @param fin Input distribution function
- * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
- * @param fluidin Input fluid array (size: num_fluid_species)
  */
 void vm_species_lbo_cross_moms(gkyl_vlasov_app *app,
   const struct vm_species *species,
@@ -678,7 +675,6 @@ void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, dou
  * @param fin Input distribution function
  * @param em EM field
  * @param rhs On output, the RHS from the species object
- * @param fluidin Input fluid array for potential fluid force (size: num_fluid_species)
  * @return Maximum stable time-step
  */
 double vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,

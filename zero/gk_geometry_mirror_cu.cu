@@ -9,13 +9,13 @@ extern "C" {
 #include <gkyl_math.h>
 #include <gkyl_util.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_gk_geometry_fromfile.h>
+#include <gkyl_gk_geometry_mirror.h>
 
 }
 // CPU interface to create and track a GPU object
 struct gk_geometry*
-gkyl_gk_geometry_fromfile_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis)
+gkyl_gk_geometry_mirror_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+  const struct gkyl_basis* basis, void* mirror_rz_ctx, void* mirror_comp_ctx)
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 
@@ -24,8 +24,21 @@ gkyl_gk_geometry_fromfile_cu_dev_new(const struct gkyl_rect_grid* grid, const st
   up->range_ext = *range_ext;
   up->grid = *grid;
 
-  struct gk_geometry *hgeo  = gkyl_gk_geometry_fromfile_new(grid, range, range_ext, basis, false);
+  struct gk_geometry *hgeo  = gkyl_gk_geometry_mirror_new(grid, range, range_ext, basis, mirror_rz_ctx, mirror_comp_ctx, false);
+  struct gkyl_range nrange;
 
+  int poly_order = basis->poly_order;
+  int nodes[3] = { 1, 1, 1 };
+  if (poly_order == 1){
+    for (int d=0; d<grid->ndim; ++d)
+      nodes[d] = grid->cells[d] + 1;
+  }
+  if (poly_order == 2){
+    for (int d=0; d<grid->ndim; ++d)
+      nodes[d] = 2*(grid->cells[d]) + 1;
+  }
+
+  gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
 
   // Initialize the geometry object on the host side
   // bmag, metrics and derived geo quantities

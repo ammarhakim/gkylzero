@@ -75,8 +75,8 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
   gkyl_rect_grid_init(up->rzgrid, 2, rzlower, rzupper, rzcells);
   gkyl_create_grid_ranges(up->rzgrid, rzghost, up->rzlocal_ext, up->rzlocal);
 
-  double fluxlower[1] = {up->simag};
-  double fluxupper[1] = {up->sibry};
+  double fluxlower[1] = {up->sibry};
+  double fluxupper[1] = {up->simag};
   int fluxcells[1] = {0};
   int fluxghost[2] = {1,1};
   if(up->fluxbasis->poly_order==1){
@@ -103,7 +103,7 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
   gkyl_range_init_from_shape(&flux_nrange, 1, flux_node_nums);
   struct gkyl_array *fpolflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
   int fidx[1];
-  for(int i = 0; i < up->nr; i++){
+  for(int i = up->nr-1; i>=0; i--){
       fidx[0] = i;
       double *fpol_n= gkyl_array_fetch(fpolflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr,"%lf", fpol_n);

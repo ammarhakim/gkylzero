@@ -416,8 +416,8 @@ main(int argc, char **argv)
 
     .geometry = {
       .geometry_id = GKYL_TOKAMAK,
-      .efit_info = &inp,
-      .grid_info = &ginp,
+      .tok_efit_info = &inp,
+      .tok_grid_info = &ginp,
     },
 
     .num_periodic_dir = 1,

@@ -46,14 +46,6 @@ struct gkyl_tok_geo_efit_inp inp = {
   .quad_param = {  .eps = 1e-10 }
 };
 
-//struct gkyl_tok_geo_grid_inp ginp = {
-//  .ftype = GKYL_SOL_DN_OUT,
-//  .rclose = 6.2,
-//  .zmin = -8.3,
-//  .zmax = 8.3,
-//  .write_node_coord_array = true,
-//  .node_file_nm = "stepoutboard_nodes.gkyl"
-//}; 
 
 struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
@@ -68,7 +60,7 @@ void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_step_ctx *app = ctx;
-  double x = xn[0], y = xn[1], z = xn[2];
+  double x = xn[0], z = xn[1];
   double n0 = app->n0;
   double cx = app->cx;
   double cz = app->cz;
@@ -105,7 +97,7 @@ void
 eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_step_ctx *app = ctx;
-  double x = xn[0], y = xn[1], z = xn[2];
+  double x = xn[0], z = xn[1];
   double nsource = app->nsource;
   double cx = app->cx;
   double cz = app->cz;
@@ -247,7 +239,6 @@ main(int argc, char **argv)
   struct gk_step_ctx ctx = create_ctx(); // context for init functions
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 8);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 1);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 16);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
@@ -330,8 +321,8 @@ main(int argc, char **argv)
       .density_profile = eval_density_source,
       .ctx_upar = &ctx,
       .upar_profile = eval_upar_source,
-      .ctx_temp = &ctx,
       .temp_profile = eval_temp_source,
+      .ctx_temp = &ctx,
     },
     
     .num_diag_moments = 7,
@@ -342,19 +333,19 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
-                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
+                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
                     .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
   };
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_step_out_3x2v_p1",
+    .name = "gk_step_out_2x2v_p1",
 
-    .cdim = 3, .vdim = 2,
-    .lower = { 0.934, -ctx.Ly/2.0, -ctx.Lz/2.0 },
-    .upper = { 1.5098198350000001, ctx.Ly/2.0, ctx.Lz/2.0 },
-    .cells = { NX, NY, NZ },
+    .cdim = 2, .vdim = 2,
+    .lower = { 0.934, -ctx.Lz/2.0 },
+    .upper = { 1.5098198350000001, ctx.Lz/2.0 },
+    .cells = { NX, NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
@@ -363,12 +354,9 @@ main(int argc, char **argv)
       .tok_efit_info = &inp,
       .tok_grid_info = &ginp,
     },
-    //.geometry = {
-    //  .geometry_id = GKYL_GEOMETRY_FROMFILE,
-    //},
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
+    .num_periodic_dir = 0,
+    .periodic_dirs = {  },
 
     .num_species = 2,
     .species = { elc, ion },

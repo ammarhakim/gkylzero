@@ -44,6 +44,8 @@ gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gk
   struct gkyl_array *gxxj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *gxyj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *gyyj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
+  struct gkyl_array *gxzj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
+  struct gkyl_array *eps2_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
 
   gkyl_array_copy(bmag_dev, hgeo->bmag);
   gkyl_array_copy(g_ij_dev, hgeo->g_ij);
@@ -60,6 +62,8 @@ gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gk
   gkyl_array_copy(gxxj_dev, hgeo->gxxj);
   gkyl_array_copy(gxyj_dev, hgeo->gxyj);
   gkyl_array_copy(gyyj_dev, hgeo->gyyj);
+  gkyl_array_copy(gxzj_dev, hgeo->gxzj);
+  gkyl_array_copy(eps2_dev, hgeo->eps2);
 
   gkyl_gk_geometry_release(hgeo);
 
@@ -79,6 +83,8 @@ gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gk
   up->gxxj  = gxxj_dev->on_dev;
   up->gxyj  = gxyj_dev->on_dev;
   up->gyyj  = gyyj_dev->on_dev;
+  up->gxzj  = gxzj_dev->on_dev;
+  up->eps2  = eps2_dev->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -105,6 +111,8 @@ gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gk
   up->gxxj  = gxxj_dev;
   up->gxyj  = gxyj_dev;
   up->gyyj  = gyyj_dev;
+  up->gxzj  = gxzj_dev;
+  up->eps2  = eps2_dev;
   
   return up;
 }

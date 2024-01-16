@@ -20,7 +20,7 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
   // Create a 2D thread grid so we launch ncomp*range.volume number of threads and can parallelize over components too
   dimBlock->y = ncomp;
   dimGrid->y = 1;
-  dimBlock->x = gkyl_int_div_up(GKYL_DEFAULT_NUM_THREADS, ncomp);
+  dimBlock->x = gkyl_int_div_up(252, ncomp);
   dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
 }
 

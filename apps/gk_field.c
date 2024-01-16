@@ -58,6 +58,18 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       gkyl_array_scale(f->weight, polarization_weight);
       gkyl_array_scale(f->weight, f->info.kperp2);
     }
+    else if (app->cdim == 2) {
+      // set whatever epsilon we need
+      // initialize a fem_poisson instead of fem_poisson_perp
+      // To ignore z derivatives set 1s2 and 2nd component to 0. Leave 3rd component alone. Also must add a smoother in this case
+      f->epsilon = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
+      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxzj, 1*app->confBasis.num_basis);
+      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->eps2, 2*app->confBasis.num_basis);
+
+      f->fem_poisson = gkyl_fem_poisson_new(&app->local, &app->grid, app->confBasis, 
+        &f->info.poisson_bcs, f->epsilon, f->kSq, false, app->use_gpu);
+    }
     else {
       // allocate arrays for Poisson solver and Poisson solver 
       f->epsilon = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
@@ -69,9 +81,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         &f->info.poisson_bcs, f->epsilon, f->kSq, app->use_gpu);
     }
   }
+
   // Potential smoothing (in z) updater
-  f->fem_parproj = gkyl_fem_parproj_new(&app->local, &app->local_ext, 
-    &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
+  if (app->cdim != 2)
+    f->fem_parproj = gkyl_fem_parproj_new(&app->local, &app->local_ext, 
+      &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
 
   f->phi_host = f->phi_smooth;  
   if (app->use_gpu) {
@@ -188,10 +202,10 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
 
     // Assumes symmetric sheath BCs for now only in 1D
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 
-      &app->lower_skin[0], &app->lower_ghost[0], app->gk_geom->jacobgeo, 
+      &app->lower_skin[0], &app->lower_ghost[0], app->gk_geom->jacobgeo_inv, 
       s->bflux.gammai[0].marr, field->rho_c, field->sheath_vals[0]);
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
-      &app->upper_skin[0], &app->upper_ghost[0], app->gk_geom->jacobgeo, 
+      &app->upper_skin[0], &app->upper_ghost[0], app->gk_geom->jacobgeo_inv, 
       s->bflux.gammai[1].marr, field->rho_c, field->sheath_vals[1]);
   } 
 }
@@ -214,6 +228,12 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
     if (app->cdim==1) {
       gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
       gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
+    }
+    else if (app->cdim==2) {
+      // only advance fem_poisson. No smoothing.
+      // input is rho_c and output should be in phi_smooth
+      gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c);
+      gkyl_fem_poisson_solve(field->fem_poisson, field->phi_smooth);
     }
     else {
       gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
@@ -271,13 +291,18 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   else {
     if (app->cdim == 1) {
       gkyl_array_release(f->weight);
+      gkyl_fem_parproj_release(f->fem_parproj);
+    }
+    else if (app->cdim == 2) {
+      gkyl_array_release(f->epsilon);
+      gkyl_fem_poisson_release(f->fem_poisson);
     }
     else {
       gkyl_array_release(f->epsilon);
       gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
+      gkyl_fem_parproj_release(f->fem_parproj);
     }
   }
-  gkyl_fem_parproj_release(f->fem_parproj);
   
   gkyl_dynvec_release(f->integ_energy);
   gkyl_array_integrate_release(f->calc_em_energy);

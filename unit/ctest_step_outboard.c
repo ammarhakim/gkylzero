@@ -64,6 +64,7 @@ void vertical_pfunc_lower(double s, double* RZ){
 // Try a Different (slanted) plate instead
 // p1 [5.151,8.516]
 // p2 [5.852, 8.434]
+// Reasonable Diagonal plate:
 void shaped_pfunc_upper(double s, double* RZ){
     RZ[0] = 5.151 + (5.852 - 5.151)*s;
     RZ[1] = 8.516 + (8.434 - 8.516)*s;
@@ -73,6 +74,11 @@ void shaped_pfunc_lower(double s, double* RZ){
     RZ[0] = 5.151 + (5.852 - 5.151)*s;
     RZ[1] = -(8.516 + (8.434 - 8.516)*s);
 }
+
+//X-pt info
+//upper xpt R, Z = 2.50498, 6.14226
+//lower xpt R, Z = 2.50504, -6.14214
+
 
 
 
@@ -95,10 +101,14 @@ test_fixed_z()
       .quad_param = {  .eps = 1e-10 }
     };
 
-  double clower[] = { 0.934, -0.01, -3.14 };
-  double cupper[] = {1.0, 0.01, 3.14 };
+  //double clower[] = { 0.934, -0.01, -3.14 };
+  //double cupper[] = {1.0, 0.01, 3.14 };
 
-  int ccells[] = { 2, 1, 32 };
+  double psisep = 1.5098198350000001;
+  double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
+
+  int ccells[] = { 1, 1, 16 };
 
 
 
@@ -114,8 +124,8 @@ test_fixed_z()
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
-    .zmin = -8.3,
-    .zmax = 8.3,
+    .zmin = -6.14213,
+    .zmax = 6.14226,
     .write_node_coord_array = true,
     .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   }; 
@@ -257,8 +267,12 @@ test_shaped_plate()
       .quad_param = {  .eps = 1e-10 }
     };
 
-  double clower[] = { 0.934, -0.01, -3.14 };
-  double cupper[] = {1.4688, 0.01, 3.14 };
+  //double clower[] = { 0.934, -0.01, -3.14 };
+  //double cupper[] = {1.4688, 0.01, 3.14 };
+
+  double psisep = 1.5098198350000001;
+  double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
 
   int ccells[] = { 2, 1, 32 };
 
@@ -291,9 +305,9 @@ test_shaped_plate()
 }
 
 TEST_LIST = {
-  //{ "test_fixed_z", test_fixed_z},
+  { "test_fixed_z", test_fixed_z},
   //{ "test_horizontal_plate", test_horizontal_plate},
   //{ "test_vertical_plate", test_vertical_plate},
-  { "test_shaped_plate", test_shaped_plate},
+  //{ "test_shaped_plate", test_shaped_plate},
   { NULL, NULL },
 };

@@ -41,4 +41,4 @@ GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfvpar_3x2v_ser_p1(const doubl
 GKYL_CU_DH double rad_gyrokinetic_drag_surfmu_3x2v_ser_p1(const double *w, const double *dxv, const double *nuField, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double rad_gyrokinetic_drag_boundary_surfmu_3x2v_ser_p1(const double *w, const double *dxv, const double *nuField, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out); 
 
-
+EXTERN_C_END
