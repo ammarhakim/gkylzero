@@ -36,6 +36,7 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct gk_rad_ctx *app = ctx;
   double n0 = app->n0;
   fout[0] = n0;
+  //printf("n fout = %f\n",fout[0]);
 }
 
 void
@@ -86,6 +87,7 @@ bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_rad_ctx *app = ctx;
   fout[0] = app->B0;
+  //  printf("B fout = %f\n",fout[0]);
 }
 
 struct gk_rad_ctx
@@ -206,9 +208,9 @@ main(int argc, char **argv)
       .self_nu = evalNuElc,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
-    },
+      },
 
-    .radiation = {
+    /*.radiation = {
       .radiation_id = GKYL_GK_RADIATION, 
       .num_cross_collisions = 1, 
       .collide_with = { "ion" },
@@ -217,7 +219,7 @@ main(int argc, char **argv)
       .beta = {0.892102642790662},
       .gamma = {-3.923194017288736},
       .v0 = {3.066473173090881},
-    },
+      },*/
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
@@ -249,7 +251,7 @@ main(int argc, char **argv)
       .self_nu = evalNuIon,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
-    },
+      },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
@@ -261,21 +263,22 @@ main(int argc, char **argv)
     .fem_parbc = GKYL_FEM_PARPROJ_PERIODIC, 
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
                     .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
-                    .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
+                    .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}},
   };
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_rad_3x2v_p1",
+    .name = "gk_rad_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { -ctx.Lx/2.0 },
-    .upper = { ctx.Lx/2.0, ctx.Lx/2.0, ctx.Lx/2.0 },
+    .upper = { ctx.Lx/2.0 },
     .cells = { NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
     .geometry = {
+      .geometry_id = GKYL_MAPC2P,
       .world = {0.0, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
@@ -292,7 +295,11 @@ main(int argc, char **argv)
 
     .use_gpu = app_args.use_gpu,
   };
-
+  // printf("%f\n",ctx.B0);
+  //printf("%f\n",&ctx.B0);
+  //printf("%f\n",&gk.geometry.bmag_ctx->B0);
+  // printf("%f\n",ion.init_density);
+  // printf("%f\n",elc.init_density);
   // create app object
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
 
