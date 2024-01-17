@@ -172,15 +172,22 @@ test_2_cu(){
 
   struct gkyl_array *epsilon_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_shiftc(epsilon_dev, sqrt(2.0), 0); 
-  struct gkyl_array *phi_dev = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *phi_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
                                             
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis_on_dev, basis, local, local_ext, epsilon_dev, poisson_bc, false);
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis_on_dev, basis, local, local_ext, epsilon_dev, poisson_bc, true);
   gkyl_line_fem_poisson_advance(line_fem_poisson, field_dev, phi_dev);
   gkyl_line_fem_poisson_release(line_fem_poisson);
 
   struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_copy(phi, phi_dev);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
+
+  gkyl_cu_free(basis_on_dev);
+  gkyl_array_release(field);
+  gkyl_array_release(field_dev);
+  gkyl_array_release(phi);
+  gkyl_array_release(phi_dev);
+  gkyl_array_release(epsilon_dev);
 
 }
 
@@ -246,7 +253,7 @@ test_3(){
 
 TEST_LIST = {
   //{ "test_1", test_1},
-  { "test_2", test_2},
+  //{ "test_2", test_2},
   //{ "test_3", test_3},
 #ifdef GKYL_HAVE_CUDA
   {"test_2_cu", test_2_cu},

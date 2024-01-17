@@ -133,14 +133,14 @@ gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops,
 void 
 gkyl_nodal_ops_m2n_deflated(const struct gkyl_nodal_ops *nodal_ops, 
   const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *deflated_grid, 
-  const struct gkyl_range *nrange, const struct gkyl_range *deflated_update_range, int num_comp, 
+  const struct gkyl_range *nrange, const struct gkyl_range *deflated_nrange, const struct gkyl_range *deflated_update_range, int num_comp, 
   struct gkyl_array *nodal_fld, const struct gkyl_array *deflated_modal_fld, int extra_idx) 
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(nodal_fld)) {
-    return gkyl_nodal_ops_m2n_cu(nodal_ops, cbasis, grid, 
-      nrange, update_range, num_comp, 
-      nodal_fld, modal_fld);
+    return gkyl_nodal_ops_m2n_deflated_cu(nodal_ops, deflated_cbasis, deflated_grid, 
+      nrange, deflated_nrange, deflated_update_range, num_comp, 
+      nodal_fld, deflated_modal_fld, extra_idx);
   }
 #endif 
   int num_basis = deflated_cbasis->num_basis;

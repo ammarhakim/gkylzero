@@ -62,6 +62,7 @@ void gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops,
  * @param deflated_cbasis Configuration-space basis with dim = d-1
  * @param deflated_grid Configuration-space grid
  * @param nrange Nodal range with dim = d
+ * @param deflated nrange Nodal range with dim = d-1. Should not be a subrange of nrange
  * @param deflated_update_range Configuration-space range on which we are operating with dim = d-1
  * @param num_comp Number of components
  * @param nodal_fld Output nodal representation with dim = d
@@ -70,7 +71,7 @@ void gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops,
 
 void gkyl_nodal_ops_m2n_deflated(const struct gkyl_nodal_ops *nodal_ops, 
   const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *deflated_grid, 
-  const struct gkyl_range *nrange, const struct gkyl_range *deflated_update_range, int num_comp, 
+  const struct gkyl_range *nrange, const struct gkyl_range *deflated_nrange, const struct gkyl_range *deflated_update_range, int num_comp, 
   struct gkyl_array *nodal_fld, const struct gkyl_array *deflated_modal_fld, int extra_idx) ;
 
 /**
@@ -96,7 +97,7 @@ void gkyl_nodal_ops_m2n_cu(const struct gkyl_nodal_ops *nodal_ops,
 
 void gkyl_nodal_ops_m2n_deflated_cu(const struct gkyl_nodal_ops *nodal_ops, 
   const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *deflated_grid, 
-  const struct gkyl_range *nrange, const struct gkyl_range *deflated_update_range, int num_comp, 
+  const struct gkyl_range *nrange, const struct gkyl_range *deflated_nrange, const struct gkyl_range *deflated_update_range, int num_comp, 
   struct gkyl_array *nodal_fld, const struct gkyl_array *deflated_modal_fld, int extra_idx) ;
 
 

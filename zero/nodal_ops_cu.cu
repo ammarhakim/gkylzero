@@ -141,41 +141,33 @@ gkyl_nodal_ops_m2n_cu(const struct gkyl_nodal_ops *nodal_ops,
 
 __global__ static void
 gkyl_nodal_ops_m2n_deflated_cu_kernel(const struct gkyl_basis *deflated_cbasis, 
-  struct gkyl_rect_grid deflated_grid, struct gkyl_range nrange, struct gkyl_range deflated_update_range, 
+  struct gkyl_rect_grid deflated_grid, struct gkyl_range nrange, struct gkyl_range def_nrange, struct gkyl_range deflated_update_range, 
   const struct gkyl_array *nodes, int num_comp, 
   struct gkyl_array *nodal_fld, const struct gkyl_array *deflated_modal_fld, int extra_idx)
 {
+  int idx[GKYL_MAX_DIM];
   int midx[GKYL_MAX_DIM];
   int num_basis = deflated_cbasis->num_basis;
-
-  int remDir[3] = {0, 0, 0};
-  int locDir[3] = {0, 0, 0};
-  remDir[nrange.ndim - 1] = 1;
-  locDir[nrange.ndim - 1] = extra_idx;
-  // Deflate the nodal range before iterating
-  struct gkyl_range def_nrange;
-  gkyl_range_deflate(&def_nrange, &nrange, remDir, locDir);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &def_nrange);
+  idx[deflated_grid.ndim] = extra_idx;
 
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < nrange.volume; linc1 += blockDim.x*gridDim.x) {
+    linc1 < def_nrange.volume; linc1 += blockDim.x*gridDim.x) {
     // inverse index from linc1 to idxc
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idxc={1,1,...}
     // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&nrange, linc1, iter.idx);
+    gkyl_sub_range_inv_idx(&def_nrange, linc1, idx);
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
-    long linc = gkyl_range_idx(&nrange, iter.idx);
+    long linc = gkyl_range_idx(&nrange, idx);
     int node_idx = 0;
     for( int j = 0; j < deflated_grid.ndim; j++){
       int mod = j==0 ? 1 : 0;
-      if (iter.idx[j] == nrange.upper[j]) {
-        midx[j] = iter.idx[j];
+      if (idx[j] == def_nrange.upper[j]) {
+        midx[j] = idx[j];
         node_idx += 2*j + mod;
       }
       else {
-        midx[j] = iter.idx[j] + 1;
+        midx[j] = idx[j] + 1;
       }
     }
     long lidx = gkyl_range_idx(&deflated_update_range, midx);
@@ -191,13 +183,13 @@ gkyl_nodal_ops_m2n_deflated_cu_kernel(const struct gkyl_basis *deflated_cbasis,
 void 
 gkyl_nodal_ops_m2n_deflated_cu(const struct gkyl_nodal_ops *nodal_ops, 
   const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *deflated_grid, 
-  const struct gkyl_range *nrange, const struct gkyl_range *deflated_update_range, int num_comp, 
+  const struct gkyl_range *nrange, const struct gkyl_range *deflated_nrange,  const struct gkyl_range *deflated_update_range, int num_comp, 
   struct gkyl_array *nodal_fld, const struct gkyl_array *deflated_modal_fld, int extra_idx) 
 {
-  int nblocks = update_range->nblocks;
-  int nthreads = update_range->nthreads;
+  int nblocks = deflated_update_range->nblocks;
+  int nthreads = deflated_update_range->nthreads;
 
-  gkyl_nodal_ops_m2n_cu_kernel<<<nblocks, nthreads>>>(cbasis, *grid, 
-    *nrange, *update_range, nodal_ops->nodes->on_dev, num_comp, 
-    nodal_fld->on_dev, modal_fld->on_dev, extra_idx);
+  gkyl_nodal_ops_m2n_deflated_cu_kernel<<<nblocks, nthreads>>>(deflated_cbasis, *deflated_grid, 
+    *nrange, *deflated_nrange, *deflated_update_range, nodal_ops->nodes->on_dev, num_comp, 
+    nodal_fld->on_dev, deflated_modal_fld->on_dev, extra_idx);
 }
