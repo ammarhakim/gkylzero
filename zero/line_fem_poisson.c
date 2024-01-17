@@ -130,7 +130,7 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
       // Nodal to Modal in 1d
       gkyl_nodal_ops_m2n(up->n2m_1d, up->deflated_basis_on_dev, &up->deflated_grid, &up->deflated_nrange, &up->deflated_local, 1, up->d_fem_data[ctr].deflated_nodal_fld, up->d_fem_data[ctr].deflated_phi);
       // Populate the 2d field 
-      nidx[1] = zidx-1;
+      nidx[1] = zidx;
       for (int ix = 0; ix <= up->nrange.upper[0]; ix++) {
         nidx[0] = ix;
         long lin_nidx = gkyl_range_idx(&up->nrange, nidx);

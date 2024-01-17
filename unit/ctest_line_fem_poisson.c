@@ -81,7 +81,7 @@ test_1(){
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
   struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
                                             
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc, false);
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, &basis, basis, local, local_ext, epsilon, poisson_bc, false);
   gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
   gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
@@ -125,7 +125,7 @@ test_2(){
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
   struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
                                             
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc, false);
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, &basis, basis, local, local_ext, epsilon, poisson_bc, false);
   gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
   gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
@@ -141,7 +141,7 @@ test_3(){
   // create the 2d field
   // create xz grid
   double lower[] = { -M_PI, 0.0 }, upper[] = { 3*M_PI/4, 1.0 };
-  int cells[] = { 12, 4 };
+  int cells[] = { 12, 8 };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
@@ -183,7 +183,7 @@ test_3(){
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
   struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
                                             
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis, local, local_ext, epsilon, poisson_bc, false);
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, &basis, basis, local, local_ext, epsilon, poisson_bc, false);
   gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
   gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
@@ -194,7 +194,7 @@ test_3(){
 
 TEST_LIST = {
   //{ "test_1", test_1},
-  //{ "test_2", test_2},
-  { "test_3", test_3},
+  { "test_2", test_2},
+  //{ "test_3", test_3},
   { NULL, NULL },
 };
