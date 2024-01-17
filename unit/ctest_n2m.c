@@ -136,7 +136,7 @@ test_p1_cu(){
   double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
   // as ellipitical surfaces are exact, we only need 1 cell in each
   // direction
-  int cells[] = { 64, 128 };
+  int cells[] = { 8, 16 };
 
 
   struct gkyl_rect_grid rzgrid;
@@ -151,6 +151,9 @@ test_p1_cu(){
   int rzpoly_order = 1;
   struct gkyl_basis rzbasis;
   gkyl_cart_modal_serendip(&rzbasis, 2, rzpoly_order);
+
+  struct gkyl_basis *rzbasis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_serendip_cu_dev(rzbasis_on_dev, 2, rzpoly_order);
 
   struct gkyl_array *funcdg = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   
@@ -179,11 +182,11 @@ test_p1_cu(){
 
   struct gkyl_array* nodal_fld_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, rzgrid.ndim, nrange.volume);
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&rzbasis, &rzgrid, true);
-  gkyl_nodal_ops_m2n(n2m, &rzbasis, &rzgrid, &nrange, &rzlocal, 1, nodal_fld_dev, funcdg_dev);
+  gkyl_nodal_ops_m2n(n2m, rzbasis_on_dev, &rzgrid, &nrange, &rzlocal, 1, nodal_fld_dev, funcdg_dev);
 
   struct gkyl_array *funcdg2 = gkyl_array_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
   struct gkyl_array *funcdg2_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, rzbasis.num_basis, rzlocal_ext.volume);
-  gkyl_nodal_ops_n2m(n2m, &rzbasis, &rzgrid, &nrange, &rzlocal, 1, nodal_fld_dev, funcdg2_dev);
+  gkyl_nodal_ops_n2m(n2m, rzbasis_on_dev, &rzgrid, &nrange, &rzlocal, 1, nodal_fld_dev, funcdg2_dev);
   gkyl_nodal_ops_release(n2m);
   gkyl_array_copy(funcdg2, funcdg2_dev);
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, funcdg2, "proj_func2.gkyl");

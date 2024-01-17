@@ -82,7 +82,7 @@ gkyl_nodal_ops_n2m_cu(const struct gkyl_nodal_ops *nodal_ops,
 
   gkyl_nodal_ops_n2m_cu_kernel<<<nblocks, nthreads>>>(cbasis, *grid, 
     *nrange, *update_range, nodal_ops->nodes->on_dev, num_comp, 
-    nodal_fld, modal_fld);
+    nodal_fld->on_dev, modal_fld->on_dev);
 }
 
 __global__ static void
@@ -137,5 +137,5 @@ gkyl_nodal_ops_m2n_cu(const struct gkyl_nodal_ops *nodal_ops,
 
   gkyl_nodal_ops_m2n_cu_kernel<<<nblocks, nthreads>>>(cbasis, *grid, 
     *nrange, *update_range, nodal_ops->nodes->on_dev, num_comp, 
-    nodal_fld, modal_fld);
+    nodal_fld->on_dev, modal_fld->on_dev);
 }
