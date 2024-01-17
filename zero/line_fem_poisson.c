@@ -117,7 +117,10 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
       long lin_nidx_deflated = gkyl_range_idx(&up->deflated_nrange, &ix);
       const double* input = gkyl_array_cfetch(up->d_fem_data[ctr].deflated_nodal_fld, lin_nidx_deflated);
       double* output = gkyl_array_fetch(up->nodal_fld, lin_nidx);
-      gkyl_cu_memcpy(output, input, sizeof(double), GKYL_CU_MEMCPY_D2D);
+      if (up->use_gpu)
+        gkyl_cu_memcpy(output, input, sizeof(double), GKYL_CU_MEMCPY_D2D);
+      else
+        output[0] = input[0];
     }
 
     ctr += 1;
@@ -138,7 +141,10 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
         long lin_nidx_deflated = gkyl_range_idx(&up->deflated_nrange, &ix);
         const double* input = gkyl_array_cfetch(up->d_fem_data[ctr].deflated_nodal_fld, lin_nidx_deflated);
         double* output = gkyl_array_fetch(up->nodal_fld, lin_nidx);
-        gkyl_cu_memcpy(output, input, sizeof(double), GKYL_CU_MEMCPY_D2D);
+        if (up->use_gpu)
+          gkyl_cu_memcpy(output, input, sizeof(double), GKYL_CU_MEMCPY_D2D);
+        else
+          output[0] = input[0];
       }
     }
   }

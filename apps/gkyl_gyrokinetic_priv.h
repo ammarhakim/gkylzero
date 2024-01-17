@@ -31,7 +31,10 @@
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
+#include <gkyl_dg_updater_vlasov.h>
+#include <gkyl_dg_vlasov.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
@@ -71,7 +74,7 @@
 // Definitions of private structs and APIs attached to these objects
 // for use in Gyrokinetic app.
 
-// list of valid moment names
+// list of valid moment names for gyrokinetics
 static const char *const valid_moment_names[] = {
   "M0",
   "M1",
@@ -84,7 +87,7 @@ static const char *const valid_moment_names[] = {
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
-// check if name of moment is valid or not
+// check if name of moment is valid or not for gyrokinetics
 static bool
 is_moment_name_valid(const char *nm)
 {
@@ -95,8 +98,42 @@ is_moment_name_valid(const char *nm)
   return 0;
 }
 
-// data for moments
+// list of valid moment names for neutrals
+static const char *const valid_neut_moment_names[] = {
+  "M0",
+  "M1i",
+  "M2ij",
+  "M2",
+  "M3i",
+  "M3ijk",
+  "FiveMoments",
+  "Integrated", // this is an internal flag, not for passing to moment type
+};
+
+// check if name of moment is valid or not for neutrals
+static bool
+is_neut_moment_name_valid(const char *nm)
+{
+  int n = sizeof(valid_neut_moment_names)/sizeof(valid_neut_moment_names[0]);
+  for (int i=0; i<n; ++i)
+    if (strcmp(valid_neut_moment_names[i], nm) == 0)
+      return 1;
+  return 0;
+}
+
+// data for gyrokinetic moments
 struct gk_species_moment {
+  struct gk_geometry *gk_geom; // geometry struct for dividing moments by Jacobian
+  struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in dividing moments by Jacobian
+
+  struct gkyl_dg_updater_moment *mcalc; // moment update
+
+  struct gkyl_array *marr; // array to moment data
+  struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
+};
+
+// data for neutral moments
+struct gk_neut_species_moment {
   struct gk_geometry *gk_geom; // geometry struct for dividing moments by Jacobian
   struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in dividing moments by Jacobian
 
@@ -212,6 +249,11 @@ struct gk_boundary_fluxes {
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
 };
 
+struct gk_react {
+  int num_react; // number of reactions
+  enum gkyl_react_id react_id; // type of reaction
+};
+
 struct gk_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source distribution
@@ -270,12 +312,8 @@ struct gk_species {
   struct gk_species_moment m0; // for computing charge density
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
-  struct gkyl_array *L2_f; // L2 norm f^2
-  double *red_L2_f; // for reduction of integrated L^2 norm on GPU
   double *red_integ_diag; // for reduction of integrated moments on GPU
-  gkyl_dynvec integ_L2_f; // integrated L^2 norm reduced across grid
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
-  bool is_first_integ_L2_write_call; // flag for integrated L^2 norm dynvec written first time
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver 
@@ -310,6 +348,8 @@ struct gk_species {
     };      
   };
 
+  struct gk_react react; // reaction object
+
   enum gkyl_radiation_id radiation_id; // type of radiation
   struct gk_rad_drag rad; // radiation object
 
@@ -317,6 +357,74 @@ struct gk_species {
   bool has_diffusion; // flag to indicate there is applied diffusion
   struct gkyl_array *diffD; // array for diffusion tensor
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // gyrokinetic diffusion equation solver
+
+  double *omegaCfl_ptr;
+};
+
+struct gk_neut_react {
+  int num_react; // number of reactions
+  enum gkyl_react_id react_id; // type of reaction
+};
+
+struct gk_neut_source {
+  enum gkyl_source_id source_id; // type of source
+  bool write_source; // optional parameter to write out source distribution
+  struct gkyl_array *source; // applied source
+  struct gkyl_array *source_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *source_proj; // projector for source
+};
+
+// neutral species data
+struct gk_neut_species {
+  struct gkyl_gyrokinetic_neut_species info; // data for neutral species
+  
+  struct gkyl_job_pool *job_pool; // Job pool
+  struct gkyl_rect_grid grid;
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  struct gkyl_range global, global_ext; // global, global-ext conf-space ranges    
+  struct app_skin_ghost_ranges skin_ghost; // conf-space skin/ghost
+
+  struct gkyl_comm *comm;   // communicator object for phase-space arrays
+  int nghost[GKYL_MAX_DIM]; // number of ghost-cells in each direction
+
+  struct gkyl_rect_grid grid_vel; // velocity space grid
+  struct gkyl_range local_vel, local_ext_vel; // local, local-ext velocity-space ranges
+
+  struct gkyl_array *f, *f1, *fnew; // arrays for updates
+  struct gkyl_array *cflrate; // CFL rate in each cell
+  struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
+  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
+
+  struct gkyl_array *f_host; // host copy for use IO and initialization
+
+  enum gkyl_field_id field_id; // type of field equation 
+  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR)
+
+  struct gk_neut_species_moment m0; // for computing density
+  struct gk_neut_species_moment integ_moms; // integrated moments
+  struct gk_neut_species_moment *moms; // diagnostic moments
+  double *red_integ_diag; // for reduction of integrated moments on GPU
+  gkyl_dynvec integ_diag; // integrated moments reduced across grid
+  bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+
+  gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
+  struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
+  
+  // boundary conditions on lower/upper edges in each direction  
+  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  // Pointers to updaters that apply BC.
+  struct gkyl_bc_basic *bc_lo[3];
+  struct gkyl_bc_basic *bc_up[3];
+  // To simplify BC application, store local skin and ghost ranges
+  struct gkyl_range lower_skin[GKYL_MAX_DIM];
+  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
+  struct gkyl_range upper_skin[GKYL_MAX_DIM];
+  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+
+  enum gkyl_source_id source_id; // type of source
+  struct gk_neut_source src; // applied source
+
+  struct gk_neut_react react; // reaction object
 
   double *omegaCfl_ptr;
 };
@@ -404,14 +512,15 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
-  struct gkyl_basis basis, confBasis; // phase-space, conf-space basis
+  struct gkyl_basis basis, neut_basis; // phase-space and phase-space basis for neutrals
+  struct gkyl_basis confBasis; // conf-space basis
   
   struct gkyl_comm *comm;   // communicator object for conf-space arrays
 
   // pointers to basis on device (these point to host structs if not
   // on GPU)
   struct {
-    struct gkyl_basis *basis, *confBasis;
+    struct gkyl_basis *basis, *neut_basis, *confBasis;
   } basis_on_dev;
 
   struct gk_geometry *gk_geom;
@@ -423,6 +532,10 @@ struct gkyl_gyrokinetic_app {
   int num_species;
   struct gk_species *species; // data for each species
   
+  // neutral species data
+  int num_neut_species;
+  struct gk_neut_species *neut_species; // data for each species
+
   struct gkyl_gyrokinetic_stat stat; // statistics
 };
 
@@ -446,6 +559,23 @@ struct gk_species* gk_find_species(const gkyl_gyrokinetic_app *app, const char *
  */
 int gk_find_species_idx(const gkyl_gyrokinetic_app *app, const char *nm);
 
+/**
+ * Find neutral species with given name.
+ *
+ * @param app Top-level app to look into
+ * @param nm Name of neutral species
+ * @return Pointer to neutral species with given name. NULL if not found.
+ */
+struct gk_neut_species* gk_find_neut_species(const gkyl_gyrokinetic_app *app, const char *nm);
+
+/**
+ * Return index of neutral species in the order it appears in the input.
+ *
+ * @param app Top-level app to look into
+ * @param nm Name of neutral species
+ * @return Index of neutral species, -1 if not found
+ */
+int gk_find_neut_species_idx(const gkyl_gyrokinetic_app *app, const char *nm);
 
 /** gk_species_moment API */
 
@@ -668,6 +798,66 @@ void gk_species_bgk_rhs(gkyl_gyrokinetic_app *app,
  */
 void gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_bgk_collisions *bgk);
 
+/** gk_species_react API */
+
+/**
+ * Initialize species reactions object.
+ *
+ * @param app gyrokinetic app object
+ * @param s Species object 
+ * @param react Species reaction object
+ */
+void gk_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_react *react);
+
+/**
+ * Initialize species reactions "cross-collisions" object
+ * for who is reacting with whom
+ *
+ * @param app gyrokinetic app object
+ * @param s Species object 
+ * @param react Species react object
+ */
+void gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_react *react);
+
+/**
+ * Compute necessary rates and moments for reactions
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param react Pointer to react
+ * @param fin Input distribution functions (size: num_species)
+ * @param fin_neut Input neutral distribution functions (size: num_neut_species)
+ */
+void gk_species_react_cross_moms(gkyl_gyrokinetic_app *app,
+  const struct gk_species *species,
+  struct gk_react *react,
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+
+/**
+ * Compute RHS from reactions 
+ * (e.g., ionization, charge exchange, recombination, or radiation)
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param react Pointer to react
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from react (df/dt)
+ */
+void gk_species_react_rhs(gkyl_gyrokinetic_app *app,
+  const struct gk_species *species,
+  struct gk_react *react,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species react object.
+ *
+ * @param app gyrokinetic app object
+ * @param react Species react object to release
+ */
+void gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_react *react);
+
 /** gk_species_boundary_fluxes API */
 
 /**
@@ -770,7 +960,6 @@ void gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, 
  * @param species Pointer to species
  * @param fin Input distribution function
  * @param rhs On output, the RHS from the species object
- * @param fluidin Input fluid array for potential fluid force (size: num_fluid_species)
  * @return Maximum stable time-step
  */
 double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
@@ -784,15 +973,6 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
  * @param f Field to apply BCs
  */
 void gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
-
-/**
- * Compute L2 norm (f^2) of the distribution function diagnostic
- *
- * @param app gyrokinetic app object
- * @param tm Time at which diagnostic is computed
- * @param species Pointer to species
- */
-void gk_species_calc_L2(gkyl_gyrokinetic_app *app, double tm, const struct gk_species *species);
 
 /**
  * Fill stat object in app with collision timers.
@@ -815,6 +995,196 @@ void gk_species_tm(gkyl_gyrokinetic_app *app);
  * @param species Species object to delete
  */
 void gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
+
+/** gk_neut_species_moment API */
+
+/**
+ * Initialize neutral species moment object.
+ *
+ * @param app gyrokinetic app object
+ * @param s Neutral species object 
+ * @param sm Neutral species moment object
+ * @param nm Name string indicating moment type
+ */
+void gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gk_neut_species_moment *sm, const char *nm);
+
+/**
+ * Calculate neutral species moment, given input neutral distribution function fin.
+ * 
+ * @param sm Neutral species moment object
+ * @param phase_rng Phase-space range
+ * @param conf_rng Config-space range
+ * @param fin Input neutral distribution function array
+ */
+void gk_neut_species_moment_calc(const struct gk_neut_species_moment *sm,
+  const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
+  const struct gkyl_array *fin);
+
+/**
+ * Release neutral species moment object.
+ *
+ * @param app gyrokinetic app object
+ * @param sm Neutral species moment object to release
+ */
+void gk_neut_species_moment_release(const struct gkyl_gyrokinetic_app *app,
+  const struct gk_neut_species_moment *sm);
+
+/** gk_neut_species_react API */
+
+/**
+ * Initialize neutral species reactions object.
+ *
+ * @param app gyrokinetic app object
+ * @param s Neutral species object 
+ * @param react Neutral species reaction object
+ */
+void gk_neut_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gk_neut_react *react);
+
+/**
+ * Initialize neutral species reactions "cross-collisions" object
+ * for who is reacting with whom
+ *
+ * @param app gyrokinetic app object
+ * @param s Neutral species object 
+ * @param react Neutral species react object
+ */
+void gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+  struct gk_neut_react *react);
+
+/**
+ * Compute necessary rates and moments for reactions
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to neutral species
+ * @param react Pointer to react
+ * @param fin Input distribution functions (size: num_species)
+ * @param fin_neut Input neutral distribution functions (size: num_neut_species)
+ */
+void gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app,
+  const struct gk_neut_species *species,
+  struct gk_neut_react *react,
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+
+/**
+ * Compute RHS from reactions for neutrals
+ * (e.g., ionization, charge exchange, recombination, or radiation)
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to neutral species
+ * @param react Pointer to react
+ * @param fin Input neutral distribution function
+ * @param rhs On output, the neutral RHS from react (df/dt)
+ */
+void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
+  const struct gk_neut_species *species,
+  struct gk_neut_react *react,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release neutral species react object.
+ *
+ * @param app gyrokinetic app object
+ * @param react Neutral species react object to release
+ */
+void gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_neut_react *react);
+
+/** gk_neut_species_source API */
+
+/**
+ * Initialize neutral species source object.
+ *
+ * @param app gyrokinetic app object
+ * @param s Neutral species object 
+ * @param src Neutral species source object
+ */
+void gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_neut_source *src);
+
+/**
+ * Compute Neutral species applied source term
+ *
+ * @param app gyrokinetic app object
+ * @param species Neutral species object
+ * @param tm Time for use in source
+ */
+void gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double tm);
+
+/**
+ * Compute RHS contribution from source
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to Neutral species
+ * @param src Pointer to source
+ * @param fin Input neutral distribution function
+ * @param rhs On output, the incremented rhs (df/dt)
+ */
+void gk_neut_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  struct gk_neut_source *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release Neutral species source object.
+ *
+ * @param app gyrokinetic app object
+ * @param src Neutral species source object to release
+ */
+void gk_neut_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct gk_neut_source *src);
+
+/** gk_neut_species API */
+
+/**
+ * Initialize Neutral species.
+ *
+ * @param gk Input gk data
+ * @param app gyrokinetic app object
+ * @param s On output, initialized neutral species object
+ */
+void gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s);
+
+/**
+ * Compute neutral species initial conditions.
+ *
+ * @param app gyrokinetic app object
+ * @param species Neutral species object
+ * @param t0 Time for use in ICs
+ */
+void gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double t0);
+
+/**
+ * Compute RHS from neutral species distribution function
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to neutral species
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from the neutral species object (df/dt)
+ * @return Maximum stable time-step
+ */
+double gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Apply BCs to neutral species distribution function
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to neutral species
+ * @param f Field to apply BCs
+ */
+void gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, struct gkyl_array *f);
+
+/**
+ * Fill stat object in app with collisionless timers for neutral species.
+ *
+ * @param app App object to update stat timers
+ */
+void gk_neut_species_tm(gkyl_gyrokinetic_app *app);
+
+/**
+ * Delete resources used in neutral species.
+ *
+ * @param app gyrokinetic app object
+ * @param species Neutral species object to delete
+ */
+void gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *s);
 
 /** gk_field API */
 

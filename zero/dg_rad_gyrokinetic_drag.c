@@ -24,12 +24,12 @@ gkyl_rad_gyrokinetic_drag_free(const struct gkyl_ref_count* ref)
 void
 gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_drag_auxfields auxin)
 {
-//#ifdef GKYL_HAVE_CUDA
-//  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
-//    gkyl_rad_gyrokinetic_drag_set_auxfields_cu(eqn->on_dev, auxin);
-//    return;
-// }
-//#endif
+#ifdef GKYL_HAVE_CUDA
+ if (gkyl_dg_eqn_is_cu_dev(eqn)) {
+   gkyl_rad_gyrokinetic_drag_set_auxfields_cu(eqn->on_dev, auxin);
+   return;
+}
+#endif
 
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
   rad_gyrokinetic_drag->auxfields.nvnu_sum = auxin.nvnu_sum;
@@ -40,10 +40,10 @@ struct gkyl_dg_eqn*
 gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis, 
   const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range, bool use_gpu)
 {
-//#ifdef GKYL_HAVE_CUDA
-//  if (use_gpu)    
-//    return gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(conf_basis, phase_basis, conf_range, phase_range);
-//#endif
+#ifdef GKYL_HAVE_CUDA
+ if (use_gpu)    
+   return gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(conf_basis, phase_basis, phase_range);
+#endif
     
   struct dg_rad_gyrokinetic_drag* rad_gyrokinetic_drag = gkyl_malloc(sizeof(struct dg_rad_gyrokinetic_drag));
 

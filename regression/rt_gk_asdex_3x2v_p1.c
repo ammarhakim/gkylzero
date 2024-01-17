@@ -10,23 +10,25 @@
 #include <rt_arg_parse.h>
 #include <gkyl_tok_geo.h>
 
-struct gk_step_ctx {
+struct gk_asdex_ctx {
   double chargeElc; // electron charge
   double massElc; // electron mass
   double chargeIon; // ion charge
   double massIon; // ion mass
   double Te; // electron temperature
   double Ti; // ion temperature
+  double c_s; // sound speed
   double nuElc; // electron collision frequency
   double nuIon; // ion collision frequency
   double B0; // reference magnetic field
   double n0; // reference density
-  double nsource;
   // Source parameters
-  double T_source; // Source electron temperature
-  double cx;
-  double cz;
+  double lambda_source;
+  double x_source;
+              
+              
   // Simulation parameters
+  double Lx; // Box size in x
   double Ly; // Box size in y
   double Lz; // Box size in z
   double vpar_max_elc; // Velocity space extents in vparallel for electrons
@@ -37,46 +39,82 @@ struct gk_step_ctx {
   int numFrames; // number of output frames
 };
 
-struct gkyl_tok_geo_efit_inp inp = {
-  // psiRZ and related inputs
-  .filepath = "./efit_data/input.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
-};
+void shaped_pfunc_upper(double s, double* RZ){
+    RZ[0] = 0.8 + (0.916 - 0.8)*s;
+    RZ[1] = -1.2 + (-1.329 + 1.2)*s;
+}
 
-//struct gkyl_tok_geo_grid_inp ginp = {
-//  .ftype = GKYL_SOL_DN_OUT,
-//  .rclose = 6.2,
-//  .zmin = -8.3,
-//  .zmax = 8.3,
-//  .write_node_coord_array = true,
-//  .node_file_nm = "stepoutboard_nodes.gkyl"
-//}; 
+void shaped_pfunc_lower(double s, double* RZ){
+    RZ[0] = 1.6 + (1.8 - 1.6)*s;
+    RZ[1] = -1.26 + (-1.1 + 1.26)*s;
+}
+
+struct gkyl_tok_geo_efit_inp inp = {
+    // psiRZ and related inputs
+    .filepath = "./efit_data/asdex.geqdsk",
+    .rzpoly_order = 2,
+    .fluxpoly_order = 1,
+    .plate_spec = true,
+    .plate_func_lower = shaped_pfunc_lower,
+    .plate_func_upper = shaped_pfunc_upper,
+    .quad_param = {  .eps = 1e-10 }
+  };
 
 struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_OUT,
-    .rclose = 6.2,
-    .zmin = -6.14213,
-    .zmax = 6.14226,
-    .write_node_coord_array = true,
-    .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
-  };
+  .ftype = GKYL_SOL_SN_LO,
+  .rclose = 2.5,
+  .rright = 2.5,
+  .rleft = 0.7,
+  .zmin = -1.3,
+  .zmax = 1.0,
+  .zmin_left = -1.3,
+  .zmin_right = -1.3,
+  .write_node_coord_array = true,
+  .node_file_nm = "asdex_fixed_z_nodes.gkyl"
+};
+
+double random0to1() 
+{
+  return (double)rand() / (double)RAND_MAX;
+}
 
 void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
+  struct gk_asdex_ctx *app = ctx;
   double x = xn[0], y = xn[1], z = xn[2];
-  double n0 = app->n0;
-  double cx = app->cx;
-  double cz = app->cz;
-  double xcenter = 1.50982;
-  double n = n0*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
-  if (n/n0 < 1e-5)
-    n = n0*1e-5;
-  fout[0] = n;
+  double lambda_source = app->lambda_source;
+  double x_source = app->x_source;
+  double Lz = app->Lz;
+  double Ls = Lz/4;
+  double floor = 0.01;
+
+
+  // find source density at z = 0
+  double source_density = 0;
+  double source_floor = 1e-10;
+  if (x < x_source + 3*lambda_source)
+     source_floor = 1e-2;
+  source_density = fmax(exp(-(x-x_source)*(x-x_source)/((2*lambda_source)*(2*lambda_source))), source_floor);
+
+  // find source temp at z = 0
+  double source_temp = 0;
+  double eV = GKYL_ELEMENTARY_CHARGE;
+  if (x < x_source + 3*lambda_source)
+     source_temp = 90*eV;
+  else
+     source_temp = 5*eV;
+
+  // now compute initial desity
+  double effective_source = 5.2e23*fmax(source_density, floor);
+  double c_ss = sqrt(5.0/3.0*source_temp/app->massIon);
+  double n_peak = 4*sqrt(5)/3/c_ss*Ls*effective_source/2;
+  //double perturb = 1e-3*(random0to1()-0.5)*2.0;
+  double perturb = 0;
+  if (fabs(z) <= Ls)
+     fout[0]  = n_peak*(1+sqrt(1-(z/Ls)*(z/Ls)))/2*(1+perturb);
+  else
+     fout[0] = n_peak/2*(1+perturb);
 }
 
 void
@@ -88,32 +126,46 @@ eval_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 void
 eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
-  double T = app->Te;
-  fout[0] = T;
+  struct gk_asdex_ctx *app = ctx;
+  double x = xn[0], y = xn[1], z = xn[2];
+  double lambda_source = app->lambda_source;
+  double x_source = app->x_source;
+  double eV = GKYL_ELEMENTARY_CHARGE;
+  if (x < x_source + 3*lambda_source)
+     fout[0] = 85*eV;
+  else
+     fout[0] = 5*eV;
 }
 
 void
 eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
-  double T = app->Ti;
-  fout[0] = T;
+  struct gk_asdex_ctx *app = ctx;
+  double x = xn[0], y = xn[1], z = xn[2];
+  double lambda_source = app->lambda_source;
+  double x_source = app->x_source;
+  double eV = GKYL_ELEMENTARY_CHARGE;
+  if (x < x_source + 3*lambda_source)
+     fout[0] = 85*eV;
+  else
+     fout[0] = 5*eV;
 }
 
 void
 eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
+  struct gk_asdex_ctx *app = ctx;
   double x = xn[0], y = xn[1], z = xn[2];
-  double nsource = app->nsource;
-  double cx = app->cx;
-  double cz = app->cz;
-  double xcenter = 1.50982;
-  double n = nsource*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
-  if (n/nsource < 1e-5)
-    n = nsource*1e-5;
-  fout[0] = n;
+  double lambda_source = app->lambda_source;
+  double x_source = app->x_source;
+  double Lz = app->Lz;
+  double source_floor = 1e-10;
+  if (x < x_source + 3*lambda_source)
+     source_floor = 1e-2;
+  if (fabs(z) < Lz/4)
+     fout[0] = 3.2e23*fmax(exp(-(x-x_source)*(x-x_source)/((2*lambda_source)*(2*lambda_source))), source_floor);
+  else
+     fout[0] = 3.2e23*1e-40;
 }
 
 void
@@ -123,36 +175,55 @@ eval_upar_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
 }
 
 void
-eval_temp_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_temp_elc_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
-  double n0 = app->n0;
-  double T = app->T_source;
-  fout[0] = T;
+  struct gk_asdex_ctx *app = ctx;
+  double x = xn[0], y = xn[1], z = xn[2];
+  double lambda_source = app->lambda_source;
+  double x_source = app->x_source;
+  double eV = GKYL_ELEMENTARY_CHARGE;
+  if (x < x_source + 3*lambda_source)
+     fout[0] = 90*eV;
+  else
+     fout[0] = 5*eV;
+}
+
+void
+eval_temp_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_asdex_ctx *app = ctx;
+  double x = xn[0], y = xn[1], z = xn[2];
+  double lambda_source = app->lambda_source;
+  double x_source = app->x_source;
+  double eV = GKYL_ELEMENTARY_CHARGE;
+  if (x < x_source + 3*lambda_source)
+     fout[0] = 90*eV;
+  else
+     fout[0] = 5*eV;
 }
 
 void
 evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
+  struct gk_asdex_ctx *app = ctx;
   fout[0] = app->nuElc;
 }
 
 void
 evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
+  struct gk_asdex_ctx *app = ctx;
   fout[0] = app->nuIon;
 }
 
 void
 bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
-  fout[0] = app->B0;
+  struct gk_asdex_ctx *gc = ctx;
+  fout[0] = gc->B0;
 }
 
-struct gk_step_ctx
+struct gk_asdex_ctx
 create_ctx(void)
 {
   double eps0 = GKYL_EPSILON0;
@@ -162,59 +233,65 @@ create_ctx(void)
   double qi = eV; // ion charge
   double qe = -eV; // electron charge
 
-  double Te = 100*2.8*eV;
-  double Ti = 150*2.8*eV;
-  double B0 = 2.51; // Magnetic field magnitude in Tesla
-  double n0 = 3.0e19/2.8; // Particle density in 1/m^3
+  double Te = 85.0*eV;
+  double Ti = 85.0*eV;
+  double B0 = 2.57; // Magnetic field magnitude in Tesla
+  double n0 = 2.0e19; // Particle density in 1/m^3
 
   // Derived parameters.
   double vtIon = sqrt(Ti/mi);
   double vtElc = sqrt(Te/me);
+  double c_s = sqrt(Te/mi);
+  double omega_ci = fabs(qi*B0/mi);
+  double rho_s = c_s/omega_ci;
 
-  // Source parameters.
-  double nsource = 3.9e23/2.8; // peak source rate in particles/m^3/s 
-  double T_source = 285*eV*2.8;
-  double cx = 0.0065612*9;
-  double cz = 0.4916200;
 
   // Collision parameters.
-  double nuFrac = 0.25;
+  double nuFrac = 1.0;  
   double logLambdaElc = 6.6 - 0.5*log(n0/1e20) + 1.5*log(Te/eV);
   double nuElc = nuFrac*logLambdaElc*pow(eV, 4.0)*n0/(6.0*sqrt(2.0)*M_PI*sqrt(M_PI)*eps0*eps0*sqrt(me)*(Te*sqrt(Te)));  // collision freq
 
   double logLambdaIon = 6.6 - 0.5*log(n0/1e20) + 1.5*log(Ti/eV);
   double nuIon = nuFrac*logLambdaIon*pow(eV, 4.0)*n0/(12.0*M_PI*sqrt(M_PI)*eps0*eps0*sqrt(mi)*(Ti*sqrt(Ti)));
 
-  // Simulation box size (m).
-  double Ly = 0.02;
+  // Simulation box size (psi, alpha, theta).
+  double q0 = 2.0;   // specify later
+  double r0 = 0.5;   
+  double Lx = 0.02;
+  double Ly = 50 * rho_s * q0/r0 ; 
   double Lz = 3.14*2;
 
+  // Source parameters.
+  double x_source = 0.16167;
+  double lambda_source = 0.00034;   // characteristic length scale of n and T
+
+  // Velocity Grid
   double vpar_max_elc = 4.0*vtElc;
-  double mu_max_elc = 18*me*vtElc*vtElc/(2.0*B0);
+  double mu_max_elc = 0.75*me*(4.0*vtElc)*(4.0*vtElc)/(2.0*B0);
 
   double vpar_max_ion = 4.0*vtIon;
-  double mu_max_ion = 18*mi*vtIon*vtIon/(2.0*B0);
+  double mu_max_ion = 0.75*mi*(4.0*vtIon)*(4.0*vtIon)/(2.0*B0);
 
-  double finalTime = 1.0e-3; 
-  double numFrames = 100;
+  double finalTime = 1.0e-6; 
+  double numFrames = 1;
 
-  struct gk_step_ctx ctx = {
+  struct gk_asdex_ctx ctx = {
     .chargeElc = qe, 
     .massElc = me, 
     .chargeIon = qi, 
     .massIon = mi,
     .Te = Te, 
     .Ti = Ti, 
+    .c_s = c_s, 
     .nuElc = nuElc, 
     .nuIon = nuIon, 
     .B0 = B0, 
     .n0 = n0, 
-    .T_source = T_source, 
-    .nsource = nsource,
-    .cx = cx,
-    .cz = cz,
+    .Lx = Lx, 
     .Ly = Ly,  
     .Lz = Lz, 
+    .lambda_source = lambda_source,
+    .x_source = x_source,
     .vpar_max_elc = vpar_max_elc, 
     .mu_max_elc = mu_max_elc, 
     .vpar_max_ion = vpar_max_ion, 
@@ -244,11 +321,11 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct gk_step_ctx ctx = create_ctx(); // context for init functions
+  struct gk_asdex_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 8);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 1);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 16);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 16);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 96);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 12);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
 
@@ -288,7 +365,7 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .upar_profile = eval_upar_source,
       .ctx_temp = &ctx,
-      .temp_profile = eval_temp_source,
+      .temp_profile = eval_temp_elc_source,
     },
     
     .num_diag_moments = 7,
@@ -331,7 +408,7 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .upar_profile = eval_upar_source,
       .ctx_temp = &ctx,
-      .temp_profile = eval_temp_source,
+      .temp_profile = eval_temp_ion_source,
     },
     
     .num_diag_moments = 7,
@@ -342,18 +419,18 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
-                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
+                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
                     .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
   };
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_step_out_3x2v_p1",
+    .name = "gk_asdex_out_3x2v_p1",
 
     .cdim = 3, .vdim = 2,
-    .lower = { 0.934, -ctx.Ly/2.0, -ctx.Lz/2.0 },
-    .upper = { 1.5098198350000001, ctx.Ly/2.0, ctx.Lz/2.0 },
+    .lower = { 0.16, -ctx.Ly/2.0, -ctx.Lz/2.0 },
+    .upper = { 0.17501, ctx.Ly/2.0, ctx.Lz/2.0 },
     .cells = { NX, NY, NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
@@ -363,9 +440,6 @@ main(int argc, char **argv)
       .tok_efit_info = &inp,
       .tok_grid_info = &ginp,
     },
-    //.geometry = {
-    //  .geometry_id = GKYL_GEOMETRY_FROMFILE,
-    //},
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
