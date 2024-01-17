@@ -654,7 +654,7 @@ create_ctx(void)
   double TSrcFloorIon = TSrc0Ion / 8.0;
 
   // Grid parameters
-  double vpar_max_ion = 5 * vti;
+  double vpar_max_ion = 8 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int num_cell_vpar = 64; // Number of cells in the paralell velocity direction 96
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
@@ -856,6 +856,7 @@ int main(int argc, char **argv)
     .num_species = 1,
     .species = {ion},
     .field = field,
+    .skip_field = true,
     .use_gpu = app_args.use_gpu,
   };
   printf("Creating app object ...\n");
