@@ -153,7 +153,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     -1.5490008912633003e-21, -1.5490008912633003e-21,
   };
 
-  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
+  const double *fv = gkyl_array_cfetch(distf_ho, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
   
   if (poly_order == 1) {
     for (int i=0; i<basis.num_basis; ++i)
@@ -167,8 +167,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
 //  // write distribution function to file
 //  char fname[1024];
-//  sprintf(fname, "ctest_proj_bimaxwellian_on_basis_gyrokinetic_test_1x2v_p%d.gkyl", poly_order);
-//  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+//  sprintf(fname, "ctest_proj_bimaxwellian_on_basis_gyrokinetic_test1_1x2v_p%d.gkyl", poly_order);
+//  gkyl_grid_sub_array_write(&grid, &local, distf_ho, fname);
 
   // release memory for moment data object
   gkyl_array_release(moms);
@@ -196,7 +196,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
                                                        bmag, jacob_tot, mass, distf);
   gkyl_array_copy(distf_ho, distf);
 
-  fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
+  fv = gkyl_array_cfetch(distf_ho, gkyl_range_idx(&local_ext, (int[3]) { 1, 9, 9 }));
   
   if (poly_order == 1) {
     for (int i=0; i<basis.num_basis; ++i)
@@ -210,8 +210,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
 //  // write distribution function to file
 //  char fname[1024];
-//  sprintf(fname, "ctest_proj_bimaxwellian_on_basis_gyrokinetic_test_1x2v_p%d.gkyl", poly_order);
-//  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+//  sprintf(fname, "ctest_proj_bimaxwellian_on_basis_gyrokinetic_test2_1x2v_p%d.gkyl", poly_order);
+//  gkyl_grid_sub_array_write(&grid, &local, distf_ho, fname);
 
   gkyl_array_release(prim_moms);
   if (use_gpu) {

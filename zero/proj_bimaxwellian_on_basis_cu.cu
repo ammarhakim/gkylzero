@@ -27,7 +27,7 @@ gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom_cu_ker(const struct gkyl_rec
   int tot_conf_quad = conf_basis_at_ords->size;
   int tot_phase_quad = phase_basis_at_ords->size;
 
-  // double exp_amp[tot_conf_quad], udrift[tot_conf_quad][vdim], vtsq[tot_conf_quad];
+  // double exp_amp[tot_conf_quad], udrift[tot_conf_quad][vdim], vtparsq[tot_conf_quad], vtperpsq[tot_conf_quad];
   // MF 2022/08/09: hard-coded to 3x, vdim=3, p=2 for now.
   double exp_amp[27], upar[27], vtparsq[27], vtperpsq[27], bfield[27];
 
@@ -75,7 +75,7 @@ gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom_cu_ker(const struct gkyl_rec
       vtperpsq[n] = m2perp_n/den;
 
       // Amplitude of the exponential.
-      if ((den > 0.) && (vtsq_par[n]>0.) && (vtsq_perp[n]>0.))
+      if ((den > 0.) && (vtparsq[n]>0.) && (vtperpsq[n]>0.))
         exp_amp[n] = jac_n*den/(sqrt(pow(2.0*GKYL_PI,3)*vtparsq[n])*vtperpsq[n]);
       else
         exp_amp[n] = 0.;
@@ -103,9 +103,9 @@ gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom_cu_ker(const struct gkyl_rec
 
       double efact = 0.0;
       // vpar term.
-      efact += pow(xmu[cdim]-upar[cqidx],2)/(2.0*vtsqpar[cqidx]);
+      efact += pow(xmu[cdim]-upar[cqidx],2)/(2.0*vtparsq[cqidx]);
       // mu term.
-      efact += xmu[cdim+1]*bfield[cqidx]/(mass*vtsqperp[cqidx]);
+      efact += xmu[cdim+1]*bfield[cqidx]/(mass*vtperpsq[cqidx]);
 
       double fmax_o = fJacB_floor+exp_amp[cqidx]*exp(-efact);
 
@@ -135,7 +135,7 @@ gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom_cu_ker(const struct gkyl_re
   int tot_conf_quad = conf_basis_at_ords->size;
   int tot_phase_quad = phase_basis_at_ords->size;
 
-  // double expamp_o[tot_conf_quad], upar_o[tot_conf_quad][vdim], vtsq_o[tot_conf_quad];
+  // double expamp_o[tot_conf_quad], upar_o[tot_conf_quad][vdim], vtparsq_o[tot_conf_quad], vtperpsq_o[tot_conf_quad];
   // MF 2022/08/09: hard-coded to 3x, vdim=3, p=2 for now.
   double expamp_o[27], upar_o[27], vtparsq_o[27], vtperpsq_o[27], bmag_o[27];
 
@@ -169,16 +169,16 @@ gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom_cu_ker(const struct gkyl_re
       vtperpsq_o[n] = 0.0;
       bmag_o[n] = 0.0;
       for (int k=0; k<num_conf_basis; ++k) {
-        m0_o += m0_d[k]*b_ord[k];
         jac_o += jactot_d[k]*b_ord[k];
         bmag_o[n] += bmag_d[k]*b_ord[k];
+        m0_o += m0_d[k]*b_ord[k];
         upar_o[n] += upar_d[k]*b_ord[k];
         vtparsq_o[n] += vtparsq_d[k]*b_ord[k];
         vtperpsq_o[n] += vtperpsq_d[k]*b_ord[k];
       }
       // Amplitude of the exponential.
       if ((m0_o > 0.) && (vtparsq_o[n]>0.) && (vtperpsq_o[n]>0.))
-        expamp_o[n] = jac_o*m0_o/sqrt(pow(2.0*GKYL_PI,3)*vtparsq_o[n])*vtperpsq_o[n];
+        expamp_o[n] = jac_o*m0_o/(sqrt(pow(2.0*GKYL_PI,3)*vtparsq_o[n])*vtperpsq_o[n]);
       else
         expamp_o[n] = 0.;
     }
@@ -219,7 +219,7 @@ gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom_cu_ker(const struct gkyl_re
 }
 
 void
-gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
+gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom_cu(const gkyl_proj_bimaxwellian_on_basis *up,
   const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
   const struct gkyl_array *moms, const struct gkyl_array *bmag,
   const struct gkyl_array *jacob_tot, double mass, struct gkyl_array *fmax)
@@ -232,7 +232,7 @@ gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom_cu(const gkyl_proj_maxwellia
 }
 
 void
-gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
+gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom_cu(const gkyl_proj_bimaxwellian_on_basis *up,
   const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
   const struct gkyl_array *prim_moms, const struct gkyl_array *bmag,
   const struct gkyl_array *jacob_tot, double mass, struct gkyl_array *fmax)

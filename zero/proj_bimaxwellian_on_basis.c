@@ -210,8 +210,8 @@ gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom(const gkyl_proj_bimaxwellian
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu(up, phase_rng, conf_rng, moms, 
-                                                      bmag, jacob_tot, mass, fmax);
+    return gkyl_proj_bimaxwellian_on_basis_gyrokinetic_lab_mom_cu(up, phase_rng, conf_rng, moms, 
+                                                                  bmag, jacob_tot, mass, fmax);
 #endif
 
   double fJacB_floor = 1.e-40;
@@ -322,8 +322,8 @@ gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bimaxwellia
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, moms, prim_moms,
-                                                       bmag, jacob_tot, mass, fmax);
+    return gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom_cu(up, phase_rng, conf_rng, prim_moms,
+                                                                   bmag, jacob_tot, mass, fmax);
 #endif
 
   double fJacB_floor = 1.e-40;
