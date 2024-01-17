@@ -122,6 +122,20 @@ array_write(struct gkyl_comm *comm,
   return gkyl_grid_sub_array_write(grid, range, arr, fname);
 }
 
+static int
+array_read(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char *fname)
+{
+  struct gkyl_rect_grid fgrid;
+  int status = gkyl_grid_sub_array_read(&fgrid, range, arr, fname);
+  if (status == 0) {
+    // check if the grids actually match
+    
+  }
+  return status;
+}
+
 static struct gkyl_comm*
 extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
 {

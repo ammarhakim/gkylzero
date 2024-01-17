@@ -98,6 +98,15 @@ gkyl_rect_grid_coord_idx(const struct gkyl_rect_grid *grid,
 }
 
 /**
+ * Compare grids
+ *
+ * @param grid1 Grid object to compare
+ * @param grid2 Grid object to compare
+ * @return true if the grids are the same, false otherwise
+ */
+bool gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_grid *grid2);
+
+/**
  * Write grid data to file. File must be opened by caller of this
  * function. Data is written in binary format.
  *

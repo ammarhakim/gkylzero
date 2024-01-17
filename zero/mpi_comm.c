@@ -454,7 +454,7 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
   char *buff; size_t buff_sz;
   FILE *fbuff = open_memstream(&buff, &buff_sz);
 
-  // wtite header to a char buffer
+  // write header to a char buffer
   gkyl_grid_sub_array_header_write_fp(grid,
     &(struct gkyl_array_header_info) {
       .file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
