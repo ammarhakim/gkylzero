@@ -132,6 +132,58 @@ test_2(){
 
 }
 
+void
+test_2_cu(){
+  // create the 2d field
+  // create xz grid
+  double lower[] = { -M_PI, 0.0 }, upper[] = { 3*M_PI/4, 1.0 };
+  int cells[] = { 12, 8 };
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+
+  //ranges
+  struct gkyl_range local, local_ext;
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+  // basis function
+  int poly_order = 1;
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 2, poly_order);
+
+  struct gkyl_basis *basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_serendip_cu_dev(basis_on_dev, 2, poly_order);
+
+  // project initial function on 2d field
+  struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_eval_on_nodes *proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func2, 0);
+  gkyl_eval_on_nodes_advance(proj, 0.0, &local, field);
+  gkyl_eval_on_nodes_release(proj);
+  gkyl_grid_sub_array_write(&grid, &local, field, "in_field.gkyl");
+  struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(field_dev, field);
+
+
+  struct gkyl_poisson_bc poisson_bc;
+  poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
+  poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
+  poisson_bc.lo_value[0].v[0] = 0.;
+  poisson_bc.up_value[0].v[0] = 0.;
+
+  struct gkyl_array *epsilon_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_shiftc(epsilon_dev, sqrt(2.0), 0); 
+  struct gkyl_array *phi_dev = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+                                            
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis_on_dev, basis, local, local_ext, epsilon_dev, poisson_bc, false);
+  gkyl_line_fem_poisson_advance(line_fem_poisson, field_dev, phi_dev);
+  gkyl_line_fem_poisson_release(line_fem_poisson);
+
+  struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(phi, phi_dev);
+  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
+
+}
+
 
 
 
@@ -196,5 +248,8 @@ TEST_LIST = {
   //{ "test_1", test_1},
   { "test_2", test_2},
   //{ "test_3", test_3},
+#ifdef GKYL_HAVE_CUDA
+  {"test_2_cu", test_2_cu},
+#endif
   { NULL, NULL },
 };

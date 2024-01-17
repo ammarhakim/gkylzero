@@ -55,6 +55,25 @@ void gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops,
   struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld);
 
 /**
+ * Transform modal representation of dim = d-1 of to nodal representation
+ * along one slice (last dim removed) of the nodal array of dim = d
+ *
+ * @param nodal_ops Nodal operations struct should have dim = d-1
+ * @param deflated_cbasis Configuration-space basis with dim = d-1
+ * @param deflated_grid Configuration-space grid
+ * @param nrange Nodal range with dim = d
+ * @param deflated_update_range Configuration-space range on which we are operating with dim = d-1
+ * @param num_comp Number of components
+ * @param nodal_fld Output nodal representation with dim = d
+ * @param deflated_modal_fld Input modal representation with dim = d-1
+ */
+
+void gkyl_nodal_ops_m2n_deflated(const struct gkyl_nodal_ops *nodal_ops, 
+  const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *deflated_grid, 
+  const struct gkyl_range *nrange, const struct gkyl_range *deflated_update_range, int num_comp, 
+  struct gkyl_array *nodal_fld, const struct gkyl_array *deflated_modal_fld, int extra_idx) ;
+
+/**
  * Delete pointer to gkyl_nodal_ops struct.
  *
  * @param up Struct to delete.
@@ -74,3 +93,11 @@ void gkyl_nodal_ops_m2n_cu(const struct gkyl_nodal_ops *nodal_ops,
   const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, 
   const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, 
   struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld);
+
+void gkyl_nodal_ops_m2n_deflated_cu(const struct gkyl_nodal_ops *nodal_ops, 
+  const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *deflated_grid, 
+  const struct gkyl_range *nrange, const struct gkyl_range *deflated_update_range, int num_comp, 
+  struct gkyl_array *nodal_fld, const struct gkyl_array *deflated_modal_fld, int extra_idx) ;
+
+
+

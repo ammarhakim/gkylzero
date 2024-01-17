@@ -96,49 +96,95 @@ gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops,
       nodal_fld, modal_fld);
   }
 #endif 
-  double xc[GKYL_MAX_DIM];
   int num_basis = cbasis->num_basis;
-  int cpoly_order = cbasis->poly_order;
-  double fnodal[num_basis]; // to store nodal function values
-
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, update_range);
-  int nidx[3];
-  long lin_nidx[num_basis];
-  
-  while (gkyl_range_iter_next(&iter)) {
-     gkyl_rect_grid_cell_center(grid, iter.idx, xc);
-
-    for (int i=0; i<num_basis; ++i) {
-      const double *temp  = gkyl_array_cfetch(nodal_ops->nodes,i);
-      for( int j = 0; j < grid->ndim; j++){
-        if(cpoly_order==1){
-            nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
-        }
-        if (cpoly_order==2)
-          nidx[j] = 2*(iter.idx[j] - 1) + (temp[j] + 1) ;
+  // do the nodal loop instead
+  gkyl_range_iter_init(&iter, nrange);
+  int idx[3];
+  long lin_nidx;
+  while (gkyl_range_iter_next(&iter)) { // iter.idx = nidx
+    lin_nidx = gkyl_range_idx(nrange, idx);
+    int node_idx = 0;
+    for( int j = 0; j < grid->ndim; j++){
+      int mod = j==0 ? 1 : 0;
+      if (iter.idx[j] == nrange->upper[j]) {
+        idx[j] = iter.idx[j];
+        node_idx += 2*j + mod;
       }
-      lin_nidx[i] = gkyl_range_idx(nrange, nidx);
+      else {
+        idx[j] = iter.idx[j] + 1;
+      }
     }
-
-    long lidx = gkyl_range_idx(update_range, iter.idx);
+    lin_nidx = gkyl_range_idx(nrange, iter.idx);
+    long lidx = gkyl_range_idx(update_range, idx);
     const double *arr_p = gkyl_array_cfetch(modal_fld, lidx);
-    double fao[num_basis*num_comp];
+    double *temp = gkyl_array_fetch(nodal_fld, lin_nidx);
 
-    // already fetched modal coeffs in arr_p
-    // Now we are going to need to fill the nodal values
-    // So in the loop of num_nodes/num_basis we will fetch the nodal value at lin_nidx[i]
-    // at each place do an eval_basis at logical coords
-  
-    for (int i=0; i<num_basis; ++i) {
-      double *temp = gkyl_array_fetch(nodal_fld, lin_nidx[i]);
-      const double *node_i  = gkyl_array_cfetch(nodal_ops->nodes,i);
-      for (int j=0; j<num_comp; ++j) {
-        temp[j] = cbasis->eval_expand(node_i, &arr_p[j*num_basis]);
-      }
+
+    const double *node_i  = gkyl_array_cfetch(nodal_ops->nodes, node_idx);
+    for (int j=0; j<num_comp; ++j) {
+      temp[j] = cbasis->eval_expand(node_i, &arr_p[j*num_basis]);
     }
+
+
   }
 }
+
+void 
+gkyl_nodal_ops_m2n_deflated(const struct gkyl_nodal_ops *nodal_ops, 
+  const struct gkyl_basis *deflated_cbasis, const struct gkyl_rect_grid *deflated_grid, 
+  const struct gkyl_range *nrange, const struct gkyl_range *deflated_update_range, int num_comp, 
+  struct gkyl_array *nodal_fld, const struct gkyl_array *deflated_modal_fld, int extra_idx) 
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(nodal_fld)) {
+    return gkyl_nodal_ops_m2n_cu(nodal_ops, cbasis, grid, 
+      nrange, update_range, num_comp, 
+      nodal_fld, modal_fld);
+  }
+#endif 
+  int num_basis = deflated_cbasis->num_basis;
+  // Remove last dimension.
+  int remDir[3] = {0, 0, 0};
+  int locDir[3] = {0, 0, 0};
+  remDir[nrange->ndim - 1] = 1;
+  locDir[nrange->ndim - 1] = extra_idx;
+  // Deflate the nodal range before iterating
+  struct gkyl_range def_nrange;
+  gkyl_range_deflate(&def_nrange, nrange, remDir, locDir);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &def_nrange);
+  int idx[3];
+  long lin_nidx;
+  while (gkyl_range_iter_next(&iter)) { // iter.idx = nidx
+    lin_nidx = gkyl_range_idx(&def_nrange, idx);
+    int node_idx = 0;
+    for( int j = 0; j < deflated_grid->ndim; j++){
+      int mod = j==0 ? 1 : 0;
+      if (iter.idx[j] == nrange->upper[j]) {
+        idx[j] = iter.idx[j];
+        node_idx += 2*j + mod;
+      }
+      else {
+        idx[j] = iter.idx[j] + 1;
+      }
+    }
+
+    lin_nidx = gkyl_range_idx(&def_nrange, iter.idx);
+    long lidx = gkyl_range_idx(deflated_update_range, idx);
+    const double *arr_p = gkyl_array_cfetch(deflated_modal_fld, lidx);
+    double *temp = gkyl_array_fetch(nodal_fld, lin_nidx);
+
+
+    const double *node_i  = gkyl_array_cfetch(nodal_ops->nodes, node_idx);
+    for (int j=0; j<num_comp; ++j) {
+      temp[j] = deflated_cbasis->eval_expand(node_i, &arr_p[j*num_basis]);
+    }
+
+
+  }
+}
+
 
 void 
 gkyl_nodal_ops_release(struct gkyl_nodal_ops *up)

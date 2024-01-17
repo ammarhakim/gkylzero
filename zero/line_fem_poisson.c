@@ -97,55 +97,24 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
 void 
 gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi)
 {
-
-  int nidx[2];
   int ctr = 0;
   for(int zidx = up->local.lower[1]; zidx <= up->local.upper[1]; zidx++){
-    // Fetch solver and deflated epsilon
     // Deflate rho
     gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
     // Do the poisson solve 
     gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
     gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
-    // Nodal to Modal in 1d
-    gkyl_nodal_ops_m2n(up->n2m_1d, up->deflated_basis_on_dev, &up->deflated_grid, &up->deflated_nrange, &up->deflated_local, 1, up->d_fem_data[ctr].deflated_nodal_fld, up->d_fem_data[ctr].deflated_phi);
-    // Populate the 2d field 
-    nidx[1] = zidx-1;
-    for (int ix = 0; ix <= up->nrange.upper[0]; ix++) {
-      nidx[0] = ix;
-      long lin_nidx = gkyl_range_idx(&up->nrange, nidx);
-      long lin_nidx_deflated = gkyl_range_idx(&up->deflated_nrange, &ix);
-      const double* input = gkyl_array_cfetch(up->d_fem_data[ctr].deflated_nodal_fld, lin_nidx_deflated);
-      double* output = gkyl_array_fetch(up->nodal_fld, lin_nidx);
-      if (up->use_gpu)
-        gkyl_cu_memcpy(output, input, sizeof(double), GKYL_CU_MEMCPY_D2D);
-      else
-        output[0] = input[0];
-    }
-
+    // Modal to Nodal in 1d -> Store the result in the 2d nodal field
+    gkyl_nodal_ops_m2n_deflated(up->n2m_1d, up->deflated_basis_on_dev, &up->deflated_grid, &up->nrange, &up->deflated_local, 1, up->nodal_fld, up->d_fem_data[ctr].deflated_phi, zidx-1);
     ctr += 1;
     if (zidx == up->local.upper[1]) {
-      // Fetch solver and deflated epsilon
       // Deflate rho
       gkyl_deflate_zsurf_advance(up->deflator_up, zidx, &up->local, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
       // Do the poisson solve 
       gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
       gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
-      // Nodal to Modal in 1d
-      gkyl_nodal_ops_m2n(up->n2m_1d, up->deflated_basis_on_dev, &up->deflated_grid, &up->deflated_nrange, &up->deflated_local, 1, up->d_fem_data[ctr].deflated_nodal_fld, up->d_fem_data[ctr].deflated_phi);
-      // Populate the 2d field 
-      nidx[1] = zidx;
-      for (int ix = 0; ix <= up->nrange.upper[0]; ix++) {
-        nidx[0] = ix;
-        long lin_nidx = gkyl_range_idx(&up->nrange, nidx);
-        long lin_nidx_deflated = gkyl_range_idx(&up->deflated_nrange, &ix);
-        const double* input = gkyl_array_cfetch(up->d_fem_data[ctr].deflated_nodal_fld, lin_nidx_deflated);
-        double* output = gkyl_array_fetch(up->nodal_fld, lin_nidx);
-        if (up->use_gpu)
-          gkyl_cu_memcpy(output, input, sizeof(double), GKYL_CU_MEMCPY_D2D);
-        else
-          output[0] = input[0];
-      }
+      // Modal to Nodal in 1d -> Store the result in the 2d nodal field
+      gkyl_nodal_ops_m2n_deflated(up->n2m_1d, up->deflated_basis_on_dev, &up->deflated_grid, &up->nrange, &up->deflated_local, 1, up->nodal_fld, up->d_fem_data[ctr].deflated_phi, zidx);
     }
   }
   gkyl_nodal_ops_n2m(up->n2m_2d, up->basis_on_dev, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, phi);
