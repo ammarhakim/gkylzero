@@ -106,9 +106,9 @@ gkyl_nodal_ops_m2n_cu_kernel(const struct gkyl_basis *cbasis,
     // linc will have jumps in it to jump over ghost cells
     long linc = gkyl_range_idx(&nrange, idx);
     int node_idx = 0;
-    for( int j = 0; j < grid->ndim; j++){
+    for( int j = 0; j < grid.ndim; j++){
       int mod = j==0 ? 1 : 0;
-      if (idx[j] == nrange->upper[j]) {
+      if (idx[j] == nrange.upper[j]) {
         midx[j] = idx[j];
         node_idx += 2*j + mod;
       }
@@ -116,10 +116,10 @@ gkyl_nodal_ops_m2n_cu_kernel(const struct gkyl_basis *cbasis,
         midx[j] = idx[j] + 1;
       }
     }
-    long lidx = gkyl_range_idx(update_range, midx);
-    const double *arr_p = gkyl_array_cfetch(modal_fld, lidx);
-    double *temp = gkyl_array_fetch(nodal_fld, linc1);
-    const double *node_i  = gkyl_array_cfetch(nodes, node_idx);
+    long lidx = gkyl_range_idx(&update_range, midx);
+    const double *arr_p = (const double *) gkyl_array_cfetch(modal_fld, lidx);
+    double *temp = (double *) gkyl_array_fetch(nodal_fld, linc);
+    const double *node_i  = (const double *) gkyl_array_cfetch(nodes, node_idx);
     for (int j=0; j<num_comp; ++j) {
       temp[j] = cbasis->eval_expand(node_i, &arr_p[j*num_basis]);
     }
