@@ -30,7 +30,6 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
       nodes[d] = 2*(up->grid.cells[d]) + 1;
   }
   gkyl_range_init_from_shape(&up->nrange, up->grid.ndim, nodes);
-  up->nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, up->nrange.volume);
 
   // Create deflated 1d grid, ranges, basis, and nodal range
   double deflated_lower[1] = { up->grid.lower[0]}, deflated_upper[1] = { up->grid.upper[0]};
@@ -43,9 +42,11 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
   if (up->use_gpu) {
     up->deflated_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
     gkyl_cart_modal_serendip_cu_dev(up->deflated_basis_on_dev, up->deflated_grid.ndim, poly_order);
+    up->nodal_fld = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid.ndim, up->nrange.volume);
   }
   else {
     up->deflated_basis_on_dev = &up->deflated_basis;
+    up->nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, up->nrange.volume);
   }
 
   int deflated_nodes[1];
@@ -116,7 +117,7 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
       long lin_nidx_deflated = gkyl_range_idx(&up->deflated_nrange, &ix);
       const double* input = gkyl_array_cfetch(up->d_fem_data[ctr].deflated_nodal_fld, lin_nidx_deflated);
       double* output = gkyl_array_fetch(up->nodal_fld, lin_nidx);
-      output[0] = input[0];
+      gkyl_cu_memcpy(output, input, sizeof(double), GKYL_CU_MEMCPY_D2D);
     }
 
     ctr += 1;
@@ -137,7 +138,7 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
         long lin_nidx_deflated = gkyl_range_idx(&up->deflated_nrange, &ix);
         const double* input = gkyl_array_cfetch(up->d_fem_data[ctr].deflated_nodal_fld, lin_nidx_deflated);
         double* output = gkyl_array_fetch(up->nodal_fld, lin_nidx);
-        output[0] = input[0];
+        gkyl_cu_memcpy(output, input, sizeof(double), GKYL_CU_MEMCPY_D2D);
       }
     }
   }
