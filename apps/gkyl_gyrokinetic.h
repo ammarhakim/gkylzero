@@ -217,7 +217,7 @@ struct gkyl_gyrokinetic_neut_species {
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   double bmag_fac; 
-  double kperp2; // kperp^2 parameter for 1D field equations
+  double kperpSq; // kperp^2 parameter for 1D field equations
 
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_temp;

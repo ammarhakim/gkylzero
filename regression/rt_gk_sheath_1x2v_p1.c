@@ -323,7 +323,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_PERIODIC, 
-    .kperp2 = pow(ctx.kperp, 2.),
+    .kperpSq = pow(ctx.kperp, 2.),
   };
 
   // GK app
@@ -375,7 +375,7 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-    if (step % 100 == 0) {
+    if (step % 10 == 0) {
       gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
     }
     if (!status.success) {
