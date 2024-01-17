@@ -64,7 +64,7 @@ eval_vnu(double charge, double mass,
     return 0.0;
   } else {
     nu = a*(alpha+beta)*pow(vmag,gamma)/(beta*pow(vmag/scaled_v0,-alpha)+alpha*pow(vmag/scaled_v0,beta))/c_const;
-    return abs(vpar)*nu;
+    return fabs(vpar)*nu;
   }
 }
 

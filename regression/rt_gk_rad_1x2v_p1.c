@@ -22,6 +22,7 @@ struct gk_rad_ctx {
   double n0; // reference density
   // Simulation parameters
   double Lx; // Box size in x
+  double kperp; // perpendicular wave number used in Poisson solve
   double vpar_max_elc; // Velocity space extents in vparallel for electrons
   double mu_max_elc; // Velocity space extents in mu for electrons
   double vpar_max_ion; // Velocity space extents in vparallel for ions
@@ -36,7 +37,6 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct gk_rad_ctx *app = ctx;
   double n0 = app->n0;
   fout[0] = n0;
-  //printf("n fout = %f\n",fout[0]);
 }
 
 void
@@ -87,7 +87,6 @@ bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_rad_ctx *app = ctx;
   fout[0] = app->B0;
-  //  printf("B fout = %f\n",fout[0]);
 }
 
 struct gk_rad_ctx
@@ -116,12 +115,16 @@ create_ctx(void)
   double nuFrac = 0.1;
   double logLambdaElc = 6.6 - 0.5*log(n0/1e20) + 1.5*log(Te/eV);
   double nuElc = nuFrac*logLambdaElc*pow(eV, 4.0)*n0/(6.0*sqrt(2.0)*M_PI*sqrt(M_PI)*eps0*eps0*sqrt(me)*(Te*sqrt(Te)));  // collision freq
-
+  
   double logLambdaIon = 6.6 - 0.5*log(n0/1e20) + 1.5*log(Ti/eV);
   double nuIon = nuFrac*logLambdaIon*pow(eV, 4.0)*n0/(12.0*M_PI*sqrt(M_PI)*eps0*eps0*sqrt(mi)*(Ti*sqrt(Ti)));
 
   // Simulation box size (m).
   double Lx = 100.0*rho_s;
+
+  // Perpendicular wavenumber in SI units:
+  double kperpRhos = 0.1;
+  double kperp = kperpRhos / rho_s;
 
   double vpar_max_elc = 4.0*vtElc;
   double mu_max_elc = 0.75*me*(4.0*vtElc)*(4.0*vtElc)/(2.0*B0);
@@ -145,6 +148,7 @@ create_ctx(void)
     .B0 = B0, 
     .n0 = n0, 
     .Lx = Lx, 
+    .kperp = kperp, 
     .vpar_max_elc = vpar_max_elc, 
     .mu_max_elc = mu_max_elc, 
     .vpar_max_ion = vpar_max_ion, 
@@ -199,18 +203,15 @@ main(int argc, char **argv)
     .init_temp = eval_temp_elc,
     .is_maxwellian = true,
 
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
-      },
+    },
 
-    /*.radiation = {
+    .radiation = {
       .radiation_id = GKYL_GK_RADIATION, 
       .num_cross_collisions = 1, 
       .collide_with = { "ion" },
@@ -219,7 +220,7 @@ main(int argc, char **argv)
       .beta = {0.892102642790662},
       .gamma = {-3.923194017288736},
       .v0 = {3.066473173090881},
-      },*/
+    },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
@@ -242,9 +243,6 @@ main(int argc, char **argv)
     .init_temp = eval_temp_ion,
     .is_maxwellian = true,
 
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -261,9 +259,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_PERIODIC, 
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
-                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET}, 
-                    .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}},
+    .kperp2 = pow(ctx.kperp, 2.),
   };
 
   // GK app
@@ -291,15 +287,11 @@ main(int argc, char **argv)
 
     .num_species = 2,
     .species = { elc, ion },
+    .skip_field = true, 
     .field = field,
 
     .use_gpu = app_args.use_gpu,
   };
-  // printf("%f\n",ctx.B0);
-  //printf("%f\n",&ctx.B0);
-  //printf("%f\n",&gk.geometry.bmag_ctx->B0);
-  // printf("%f\n",ion.init_density);
-  // printf("%f\n",elc.init_density);
   // create app object
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
 
