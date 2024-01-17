@@ -145,6 +145,12 @@ struct gkyl_gyrokinetic_species {
   void (*init_temp)(double t, const double *xn, double *fout, void *ctx);
   // flag to indicate if IC is maxwellian projection
   bool is_maxwellian;
+  // flag to indicate if IC is bimaxwellian projection
+  void *ctx_temppar;
+  void (*init_temppar)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_tempperp;
+  void (*init_tempperp)(double t, const double *xn, double *fout, void *ctx);
+  bool is_bimaxwellian;
 
   double polarization_density;
 
