@@ -37,11 +37,11 @@ gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *species, do
     struct gkyl_array *upar = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     struct gkyl_array *vtsq = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.source.density_profile, species->info.ctx_density);
+      poly_order+1, 1, species->info.source.density_profile, species->info.source.ctx_density);
     gkyl_proj_on_basis *proj_upar = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.source.upar_profile, species->info.ctx_upar);
+      poly_order+1, 1, species->info.source.upar_profile, species->info.source.ctx_upar);
     gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.source.temp_profile, species->info.ctx_temp);
+      poly_order+1, 1, species->info.source.temp_profile, species->info.source.ctx_temp);
 
     gkyl_proj_on_basis_advance(proj_m0, 0.0, &app->local_ext, m0); 
     gkyl_proj_on_basis_advance(proj_upar, 0.0, &app->local_ext, upar);
