@@ -130,8 +130,8 @@ array_read(struct gkyl_comm *comm,
   struct gkyl_rect_grid fgrid;
   int status = gkyl_grid_sub_array_read(&fgrid, range, arr, fname);
   if (status == 0) {
-    // check if the grids actually match
-    
+    if (!gkyl_rect_grid_cmp(grid, &fgrid))
+      status = 1;
   }
   return status;
 }
@@ -168,6 +168,7 @@ gkyl_null_comm_new(void)
   comm->base.gkyl_array_sync = array_sync;
   comm->base.barrier = barrier;
   comm->base.gkyl_array_write = array_write;
+  comm->base.gkyl_array_read = array_read;
 
   comm->base.ref_count = gkyl_ref_count_init(comm_free);
 
@@ -201,6 +202,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.gkyl_array_per_sync = array_per_sync;
   comm->base.barrier = barrier;
   comm->base.gkyl_array_write = array_write;
+  comm->base.gkyl_array_read = array_read;
   comm->base.extend_comm = extend_comm;
 
   comm->base.ref_count = gkyl_ref_count_init(comm_free);
