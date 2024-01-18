@@ -64,8 +64,6 @@ GKYL_CU_DH double vlasov_pkpm_vol_2x1v_tensor_p2(const double *w, const double *
   alpha_cdim[20] = 1.414213562373095*dx0*(bx[8]*wvpar+ux[8]); 
   alpha_cdim[23] = 0.408248290463863*bx[8]*dvpar*dx0; 
 
-  cflFreq_mid += 5.0*fabs(0.220970869120796*alpha_cdim[20]-0.1976423537605236*(alpha_cdim[8]+alpha_cdim[7])+0.1767766952966368*alpha_cdim[0]); 
-
   alpha_cdim[27] = 1.414213562373095*dx1*(by[0]*wvpar+uy[0]); 
   alpha_cdim[28] = 1.414213562373095*dx1*(by[1]*wvpar+uy[1]); 
   alpha_cdim[29] = 1.414213562373095*dx1*(by[2]*wvpar+uy[2]); 
@@ -85,8 +83,6 @@ GKYL_CU_DH double vlasov_pkpm_vol_2x1v_tensor_p2(const double *w, const double *
   alpha_cdim[47] = 1.414213562373095*dx1*(by[8]*wvpar+uy[8]); 
   alpha_cdim[50] = 0.408248290463863*by[8]*dvpar*dx1; 
 
-  cflFreq_mid += 5.0*fabs(0.220970869120796*alpha_cdim[47]-0.1976423537605236*(alpha_cdim[35]+alpha_cdim[34])+0.1767766952966368*alpha_cdim[27]); 
-
   alpha_vdim[0] = 1.414213562373095*p_force[0]*dv1par-1.414213562373095*bb_grad_u[0]*dv1par*wvpar; 
   alpha_vdim[1] = 1.414213562373095*p_force[1]*dv1par-1.414213562373095*bb_grad_u[1]*dv1par*wvpar; 
   alpha_vdim[2] = 1.414213562373095*p_force[2]*dv1par-1.414213562373095*bb_grad_u[2]*dv1par*wvpar; 
@@ -105,8 +101,6 @@ GKYL_CU_DH double vlasov_pkpm_vol_2x1v_tensor_p2(const double *w, const double *
   alpha_vdim[18] = -0.408248290463863*bb_grad_u[7]*dv1par*dvpar; 
   alpha_vdim[20] = 1.414213562373095*p_force[8]*dv1par-1.414213562373095*bb_grad_u[8]*dv1par*wvpar; 
   alpha_vdim[23] = -0.408248290463863*bb_grad_u[8]*dv1par*dvpar; 
-
-  cflFreq_mid += 5.0*fabs(0.220970869120796*alpha_vdim[20]-0.1976423537605236*(alpha_vdim[8]+alpha_vdim[7])+0.1767766952966368*alpha_vdim[0]); 
 
   alpha_div_b[0] = 1.414213562373095*div_b[0]*dv1par; 
   alpha_div_b[1] = 1.414213562373095*div_b[1]*dv1par; 

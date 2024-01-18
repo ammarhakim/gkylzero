@@ -56,32 +56,41 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
       if (poly_order > 1) {
-        gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-        if (vdim > 0)
+        if (vdim > 0) {
+          gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
           gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
-      } else if (poly_order == 1) {
-        /* Force hybrid basis (p=2 in velocity space). */
-        gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
-        if (vdim > 0)
+        }
+      } 
+      else if (poly_order == 1) {
+        if (vdim > 0) {
+          /* Force hybrid basis (p=2 in velocity space). */
+          gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
           gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
+        }
       }
 
       if (app->use_gpu) {
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
         if (poly_order > 1) {
-          gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
-        } else if (poly_order == 1) {
-          /* Force hybrid basis (p=2 in velocity space). */
-          gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim);
+          if (vdim > 0) {
+            gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
+          }
+        } 
+        else if (poly_order == 1) {
+          if (vdim > 0) {
+            /* Force hybrid basis (p=2 in velocity space). */
+            gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); 
+          }
         }
       }
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
       gkyl_cart_modal_tensor(&app->confBasis, cdim, poly_order);
-      if (vdim > 0)
+      if (vdim > 0) {
+        gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
         gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
+      }
       break;
 
     default:
@@ -93,8 +102,6 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   int ghost[] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&app->grid, ghost, &app->global_ext, &app->global);
-
-  for (int d=0; d<3; ++d) app->nghost[d] = ghost[d];
 
   if (vm->has_low_inp) {
     // create local and local_ext from user-supplied local range
@@ -133,16 +140,52 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     
     gkyl_rect_decomp_release(rect_decomp);
   }
+  // local skin and ghost ranges for configuration space fields
+  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &app->local_ext, ghost); 
+    gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &app->local_ext, ghost);
+  }
 
-  skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);
+  // Configuration space geometry initialization
+  // Note: *only* uses a p=1 DG representation of the geometry (JJ: 11/24/23)
+  app->c2p_ctx = app->mapc2p = 0;  
+  app->has_mapc2p = vm->mapc2p ? true : false;
+
+  if (app->has_mapc2p) {
+    // initialize computational to physical space mapping
+    app->c2p_ctx = vm->c2p_ctx;
+    app->mapc2p = vm->mapc2p;
+
+    // we project mapc2p on p=1 basis functions
+    struct gkyl_basis basis;
+    gkyl_cart_modal_tensor(&basis, cdim, 1);
+
+    // initialize DG field representing mapping
+    struct gkyl_array *c2p = mkarr(false, cdim*basis.num_basis, app->local_ext.volume);
+    gkyl_eval_on_nodes *ev_c2p = gkyl_eval_on_nodes_new(&app->grid, &basis, cdim, vm->mapc2p, vm->c2p_ctx);
+    gkyl_eval_on_nodes_advance(ev_c2p, 0.0, &app->local_ext, c2p);
+
+    // write DG projection of mapc2p to file
+    cstr fileNm = cstr_from_fmt("%s-mapc2p.gkyl", app->name);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, c2p, fileNm.str);
+    cstr_drop(&fileNm);
+
+    gkyl_array_release(c2p);
+    gkyl_eval_on_nodes_release(ev_c2p);
+  }
+
+  // create geometry object
+  app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
+    app->mapc2p, app->c2p_ctx, app->use_gpu);
 
   app->has_field = !vm->skip_field; // note inversion of truth value
-  app->calc_bvar = false; // by default, we do not need to calculate magnetic field unit vector & tensor
   if (app->has_field)
     app->field = vm_field_new(vm, app);
 
   // allocate space to store species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct vm_species[ns])) : 0;
+  for (int i=0; i<ns; ++i)
+    app->species[i] = (struct vm_species) { };
 
   // set info for each species: this needs to be done here as we need
   // to access species name from vm_species_init
@@ -158,12 +201,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
     app->fluid_species[i].info = vm->fluid_species[i];
 
   // initialize each species
-  for (int i=0; i<ns; ++i) {
+  for (int i=0; i<ns; ++i) 
     vm_species_init(vm, app, &app->species[i]);
-    // check if any species model id is PKPM; if so we need magnetic field unit vector & tensor
-    if (app->species[i].model_id == GKYL_MODEL_PKPM)
-      app->calc_bvar = true;
-  }
 
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
@@ -258,12 +297,6 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
 
   vm_field_apply_bc(app, app->field, app->field->em);
-  // bvar is computed over extended range, so if needed, calculate it after
-  // we apply BCs in the initialization step. Note that the apply_bc call
-  // may not apply BCs in the corner cells and the corner values will just
-  // be what comes from initializing the EM field over the extended range
-  if (app->calc_bvar)
-    vm_field_calc_bvar(app, app->field, app->field->em); 
 }
 
 void
@@ -310,7 +343,8 @@ gkyl_vlasov_app_calc_mom(gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
 {
-  double avals[2+GKYL_MAX_DIM], avals_global[2+GKYL_MAX_DIM];
+  int vdim = app->vdim;
+  double avals[2+vdim], avals_global[2+vdim];
 
   struct timespec wst = gkyl_wall_clock();
 
@@ -318,46 +352,27 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
     struct vm_species *s = &app->species[i];
 
     struct timespec wst = gkyl_wall_clock();
-    if (s->model_id == GKYL_MODEL_PKPM) {
-      gkyl_array_clear(s->integ_pkpm_mom, 0.0);
-      // Compute the PKPM variables including moments and primitive variables
-      const struct gkyl_array *fluidin[app->num_fluid_species];
-      for (int i=0; i<app->num_fluid_species; ++i) 
-        fluidin[i] = app->fluid_species[i].fluid;
-      vm_species_calc_pkpm_vars(app, s, s->f, fluidin);
-      gkyl_dg_calc_pkpm_integrated_vars(s->calc_pkpm_vars, &app->local, 
-        s->pkpm_moms.marr, fluidin[s->pkpm_fluid_index], 
-        s->pkpm_prim, s->integ_pkpm_mom);
-      gkyl_array_scale_range(s->integ_pkpm_mom, app->grid.cellVolume, &(app->local));
-      if (app->use_gpu) {
-        gkyl_array_reduce_range(s->red_integ_diag, s->integ_pkpm_mom, GKYL_SUM, &(app->local));
-        gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[2+GKYL_MAX_DIM]), GKYL_CU_MEMCPY_D2H);
-      }
-      else { 
-        gkyl_array_reduce_range(avals, s->integ_pkpm_mom, GKYL_SUM, &(app->local));
-      }
+
+    if (s->model_id == GKYL_MODEL_SR) {
+      // Compute the necessary factors to correctly integrate relativistic quantities such as:
+      // 1/Gamma = sqrt(1 - V_drift^2/c^2) where V_drift is computed from weak division: M0 * V_drift = M1i
+      vm_species_moment_calc(&s->m0, s->local, app->local, s->f);
+      vm_species_moment_calc(&s->m1i, s->local, app->local, s->f);
+      gkyl_calc_prim_vars_u_from_rhou(s->V_drift_mem, app->confBasis, &app->local, 
+        s->m0.marr, s->m1i.marr, s->V_drift); 
+      gkyl_calc_sr_vars_Gamma_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);
+    }
+    vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
+    // reduce to compute sum over whole domain, append to diagnostics
+    if (app->use_gpu) {
+      gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, &(app->local));
+      gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
     }
     else {
-      if (s->model_id == GKYL_MODEL_SR) {
-        // Compute the necessary factors to correctly integrate relativistic quantities such as:
-        // 1/Gamma = sqrt(1 - V_drift^2/c^2) where V_drift is computed from weak division: M0 * V_drift = M1i
-        vm_species_moment_calc(&s->m0, s->local, app->local, s->f);
-        gkyl_calc_prim_vars_u_from_rhou(s->V_drift_mem, app->confBasis, &app->local, 
-          s->m0.marr, s->m1i.marr, s->V_drift); 
-        gkyl_calc_sr_vars_Gamma_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);
-      }
-      vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
-      // reduce to compute sum over whole domain, append to diagnostics
-      if (app->use_gpu) {
-        gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, &(app->local));
-        gkyl_cu_memcpy(avals, s->red_integ_diag, sizeof(double[2+GKYL_MAX_DIM]), GKYL_CU_MEMCPY_D2H);
-      }
-      else {
-        gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, &(app->local));
-      }
+      gkyl_array_reduce_range(avals, s->integ_moms.marr_host, GKYL_SUM, &(app->local));
     }
 
-    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+GKYL_MAX_DIM, avals, avals_global);
+    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, avals, avals_global);
     gkyl_dynvec_append(s->integ_diag, tm, avals_global);
 
     app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
@@ -399,15 +414,11 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
     gkyl_vlasov_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_vlasov_app_write_species(app, i, tm, frame);
-    if (app->species[i].model_id == GKYL_MODEL_PKPM) 
-      gkyl_vlasov_app_write_species_pkpm(app, i, tm, frame);
     if (app->species[i].model_id == GKYL_MODEL_SR && frame == 0)
       gkyl_vlasov_app_write_species_gamma(app, i, tm, frame);
   }
   for (int i=0; i<app->num_fluid_species; ++i) {
-    // If fluid species is PKPM, fluid data already written out by kinetic species
-    if (app->fluid_species[i].eqn_id != GKYL_EQN_EULER_PKPM)
-      gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
+    gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
   }
 
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
@@ -449,52 +460,6 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
       app->species[sidx].f, fileNm);
   }
-}
-
-void
-gkyl_vlasov_app_write_species_pkpm(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-{
-  struct vm_species *s = &app->species[sidx];
-
-  // Construct the file handles for the three quantities (PKPM moments, PKPM fluid variables, PKPM update variables)
-  const char *fmt = "%s-%s_pkpm_moms_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, frame);
-  char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, frame);
-
-  const char *fmt_fluid = "%s-%s_pkpm_fluid_%d.gkyl";
-  int sz_fluid = gkyl_calc_strlen(fmt_fluid, app->name, s->info.name, frame);
-  char fileNm_fluid[sz_fluid+1]; // ensures no buffer overflow
-  snprintf(fileNm_fluid, sizeof fileNm_fluid, fmt_fluid, app->name, s->info.name, frame);
-
-  const char *fmt_pkpm_vars = "%s-%s_pkpm_vars_%d.gkyl";
-  int sz_pkpm_vars = gkyl_calc_strlen(fmt_pkpm_vars, app->name, s->info.name, frame);
-  char fileNm_pkpm_vars[sz_pkpm_vars+1]; // ensures no buffer overflow
-  snprintf(fileNm_pkpm_vars, sizeof fileNm_pkpm_vars, fmt_pkpm_vars, app->name, s->info.name, frame);
-
-  // Compute the PKPM variables including moments and primitive variables 
-  // and construct arrays for writing out fluid and other pkpm variables.
-  vm_species_moment_calc(&s->pkpm_moms_diag, s->local, app->local, s->f);
-  const struct gkyl_array *fluidin[app->num_fluid_species];
-  for (int i=0; i<app->num_fluid_species; ++i) 
-    fluidin[i] = app->fluid_species[i].fluid;
-  vm_species_calc_pkpm_vars(app, s, s->f, fluidin);
-  vm_species_calc_pkpm_update_vars(app, s, s->f); 
-  gkyl_dg_calc_pkpm_vars_io(s->calc_pkpm_vars, &app->local, 
-    s->pkpm_moms.marr, fluidin[s->pkpm_fluid_index], 
-    s->pkpm_p_ij, s->pkpm_prim, 
-    s->pkpm_accel, s->fluid_io, s->pkpm_vars_io);
-
-  // copy data from device to host before writing it out
-  if (app->use_gpu) {
-    gkyl_array_copy(s->pkpm_moms_diag.marr_host, s->pkpm_moms_diag.marr);
-    gkyl_array_copy(s->fluid_io_host, s->fluid_io);
-    gkyl_array_copy(s->pkpm_vars_io_host, s->pkpm_vars_io);
-  }
-
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->pkpm_moms_diag.marr_host, fileNm);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->fluid_io_host, fileNm_fluid);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->pkpm_vars_io_host, fileNm_pkpm_vars);
 }
 
 void
@@ -654,8 +619,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   double dtmin = DBL_MAX;
 
-  // Compute external EM field or applied currents if present.
-  // Also compute magnetic field unit vector and tensor if needed
+  // Compute external EM field or applied currents if present and time-dependent.
   // Note: external EM field and  applied currents use proj_on_basis 
   // so does copy to GPU every call if app->use_gpu = true.
   if (app->has_field) {
@@ -663,43 +627,32 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_field_calc_ext_em(app, app->field, tcurr);
     if (app->field->app_current_evolve)
       vm_field_calc_app_current(app, app->field, tcurr); 
-    if (app->calc_bvar)
-      vm_field_calc_bvar(app, app->field, emin);  
+  }
+  // Compute applied acceleration if if present and time-dependent.
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].accel_evolve)
+      vm_species_calc_accel(app, &app->species[i], tcurr);
   }
 
-  // Two separate loops over number of species to compute needed auxiliary 
-  // quantities for certain equation objects and models.
+  // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
-    // Compute parallel-kinetic-perpendicular moment (pkpm) variables if present.
-    // These are the coupling moments [rho, p_par, p_perp], the self-consistent
-    // pressure force (div(p_par b_hat)), and the primitive variables
-    vm_species_calc_pkpm_vars(app, &app->species[i], fin[i], fluidin);
-    // compute necessary moments and boundary corrections for collisions
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
   }
+
+  // compute necessary moments for cross-species collisions
+  // needs to be done after self-collisions moments, so separate loop over species
   for (int i=0; i<app->num_species; ++i) {
-    // compute necessary moments for cross-species collisions
-    // needs to be done after self-collisions moments, so separate loop over species
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
       && app->species[i].lbo.num_cross_collisions) {
       vm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
-    // Finish computing parallel-kinetic-perpendicular moment (pkpm) variables if present.
-    // These are the update variables including the acceleration variables in the kinetic
-    // equation and the source distribution functions for Laguerre couplings.
-    // Needs to be done after all collisional moment computations for collisional sources
-    // in Laguerre couplings.
-    vm_species_calc_pkpm_update_vars(app, &app->species[i], fin[i]); 
   }
 
-  // compute primitive moments for fluid species evolution
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    // If fluid species is PKPM, primitive variables already computed by kinetic species
-    if (app->fluid_species[i].eqn_id != GKYL_EQN_EULER_PKPM)
-      vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
-  }
+  // Limit fluid solution and compute primitive moments for fluid species evolution
+  for (int i=0; i<app->num_fluid_species; ++i) 
+    vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
 
   // compute RHS of Vlasov equations
   for (int i=0; i<app->num_species; ++i) {
@@ -799,6 +752,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fout[i] = app->species[i].f1;
         }
         for (int i=0; i<app->num_fluid_species; ++i) {
+          // Limit fluid species solution
+          vm_fluid_species_limiter(app, &app->fluid_species[i], app->fluid_species[i].fluid);
           fluidin[i] = app->fluid_species[i].fluid;
           fluidout[i] = app->fluid_species[i].fluid1;
         }
@@ -816,6 +771,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_fluid_species; ++i) {
+          // Limit fluid species solution
+          vm_fluid_species_limiter(app, &app->fluid_species[i], app->fluid_species[i].fluid1);
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
@@ -839,13 +796,13 @@ rk3(gkyl_vlasov_app* app, double dt0)
         } else {
           for (int i=0; i<app->num_species; ++i)
             array_combine(app->species[i].f1,
-              3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, app->species[i].local_ext);
+              3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
           for (int i=0; i<app->num_fluid_species; ++i)
             array_combine(app->fluid_species[i].fluid1,
-              3.0/4.0, app->fluid_species[i].fluid, 1.0/4.0, app->fluid_species[i].fluidnew, app->local_ext);
+              3.0/4.0, app->fluid_species[i].fluid, 1.0/4.0, app->fluid_species[i].fluidnew, &app->local_ext);
           if (app->has_field)
             array_combine(app->field->em1,
-              3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew, app->local_ext);
+              3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew, &app->local_ext);
 
           state = RK_STAGE_3;
         }
@@ -857,6 +814,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_fluid_species; ++i) {
+          // Limit fluid species solution
+          vm_fluid_species_limiter(app, &app->fluid_species[i], app->fluid_species[i].fluid1);
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
@@ -881,18 +840,18 @@ rk3(gkyl_vlasov_app* app, double dt0)
         else {
           for (int i=0; i<app->num_species; ++i) {
             array_combine(app->species[i].f1,
-              1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, app->species[i].local_ext);
-            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &(app->species[i].local_ext));
+              1.0/3.0, app->species[i].f, 2.0/3.0, app->species[i].fnew, &app->species[i].local_ext);
+            gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
           }
           for (int i=0; i<app->num_fluid_species; ++i) {
             array_combine(app->fluid_species[i].fluid1,
-              1.0/3.0, app->fluid_species[i].fluid, 2.0/3.0, app->fluid_species[i].fluidnew, app->local_ext);
-            gkyl_array_copy_range(app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &(app->local_ext));
+              1.0/3.0, app->fluid_species[i].fluid, 2.0/3.0, app->fluid_species[i].fluidnew, &app->local_ext);
+            gkyl_array_copy_range(app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &app->local_ext);
           }
           if (app->has_field) {
             array_combine(app->field->em1,
-              1.0/3.0, app->field->em, 2.0/3.0, app->field->emnew, app->local_ext);
-            gkyl_array_copy_range(app->field->em, app->field->em1, &(app->local_ext));
+              1.0/3.0, app->field->em, 2.0/3.0, app->field->emnew, &app->local_ext);
+            gkyl_array_copy_range(app->field->em, app->field->em1, &app->local_ext);
           }
 
           state = RK_COMPLETE;
@@ -941,12 +900,7 @@ gkyl_vlasov_app_species_ktm_rhs(gkyl_vlasov_app* app, int update_vol_term)
     const struct gkyl_array *fin = species->f;
     struct gkyl_array *rhs = species->f1;
 
-    // if (app->use_gpu)
-    //   gkyl_hyper_dg_set_update_vol_cu(species->slvr, update_vol_term);
-    // else
-    //   gkyl_hyper_dg_set_update_vol(species->slvr, update_vol_term);
-    gkyl_array_clear_range(rhs, 0.0, &(species->local));
-
+    gkyl_array_clear(rhs, 0.0);
     gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
       fin, species->cflrate, rhs); 
   }
@@ -993,8 +947,8 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
 
   enum {
     TOTAL_TM, INIT_SPECIES_TM, INIT_FLUID_SPECIES_TM, INIT_FIELD_TM,
-    SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, SPECIES_COLL_MOM_TM,
-    SPECIES_COL_TM, SPECIES_PKPM_VARS_TM, FIELD_RHS_TM, FIELD_EM_VARS_TM, CURRENT_TM,
+    SPECIES_RHS_TM, FLUID_SPECIES_RHS_TM, FLUID_SPECIES_VARS_TM, 
+    SPECIES_COLL_MOM_TM, SPECIES_COL_TM, FIELD_RHS_TM, CURRENT_TM,
     SPECIES_OMEGA_CFL_TM, FIELD_OMEGA_CFL_TM, MOM_TM, DIAG_TM, IO_TM,
     SPECIES_BC_TM, FLUID_SPECIES_BC_TM, FIELD_BC_TM,
     D_END
@@ -1007,11 +961,10 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
     [INIT_FIELD_TM] = local->field_rhs_tm,
     [SPECIES_RHS_TM] = local->species_rhs_tm,
     [FLUID_SPECIES_RHS_TM] = local->fluid_species_rhs_tm,
+    [FLUID_SPECIES_VARS_TM] = local->fluid_species_vars_tm,
     [SPECIES_COLL_MOM_TM] = local->species_coll_mom_tm,
     [SPECIES_COL_TM] = local->species_coll_tm,
-    [SPECIES_PKPM_VARS_TM] = local->species_pkpm_vars_tm,
     [FIELD_RHS_TM] = local->field_rhs_tm,
-    [FIELD_EM_VARS_TM] = local->field_em_vars_tm,
     [CURRENT_TM] = local->current_tm,
     [SPECIES_OMEGA_CFL_TM] = local->species_omega_cfl_tm,
     [FIELD_OMEGA_CFL_TM] = local->field_omega_cfl_tm,
@@ -1032,11 +985,10 @@ comm_reduce_app_stat(const gkyl_vlasov_app* app,
   global->field_rhs_tm = d_red_global[INIT_FIELD_TM];
   global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
   global->fluid_species_rhs_tm = d_red_global[FLUID_SPECIES_RHS_TM];
+  global->fluid_species_vars_tm = d_red_global[FLUID_SPECIES_VARS_TM];
   global->species_coll_mom_tm = d_red_global[SPECIES_COLL_MOM_TM];
   global->species_coll_tm = d_red_global[SPECIES_COL_TM];
-  global->species_pkpm_vars_tm = d_red_global[SPECIES_PKPM_VARS_TM];
   global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
-  global->field_em_vars_tm = d_red_global[FIELD_EM_VARS_TM];
   global->current_tm = d_red_global[CURRENT_TM];
   global->species_omega_cfl_tm = d_red_global[SPECIES_OMEGA_CFL_TM];
   global->field_omega_cfl_tm = d_red_global[FIELD_OMEGA_CFL_TM];
@@ -1125,8 +1077,6 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   gkyl_vlasov_app_cout(app, fp, " species_coll_mom_tm : %lg,\n", stat.species_coll_mom_tm);
   gkyl_vlasov_app_cout(app, fp, " species_coll_tm : %lg,\n", stat.species_coll_tm);
 
-  gkyl_vlasov_app_cout(app, fp, " species_pkpm_vars_tm : %lg,\n", stat.species_pkpm_vars_tm);
-
   gkyl_vlasov_app_cout(app, fp, " species_bc_tm : %lg,\n", stat.species_bc_tm);
   
   gkyl_vlasov_app_cout(app, fp, " fluid_species_rhs_tm : %lg,\n", stat.fluid_species_rhs_tm);
@@ -1137,7 +1087,6 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
     gkyl_vlasov_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
     gkyl_vlasov_app_cout(app, fp, " field_bc_tm : %lg,\n", stat.field_bc_tm);
     
-    gkyl_vlasov_app_cout(app, fp, " field_em_vars_tm : %lg,\n", stat.field_em_vars_tm);
     gkyl_vlasov_app_cout(app, fp, " current_tm : %lg,\n", stat.current_tm);
   }
 
@@ -1197,6 +1146,8 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
     vm_field_release(app, app->field);
 
   gkyl_comm_release(app->comm);
+
+  gkyl_wave_geom_release(app->geom);
 
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev.basis);

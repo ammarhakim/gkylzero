@@ -1,4 +1,3 @@
-#include "gkyl_util.h"
 #include <acutest.h>
 #include <math.h>
 
@@ -8,6 +7,7 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_util.h>
 
 void f_1d(double t, const double *xn, double* restrict fout, void *ctx)
 {

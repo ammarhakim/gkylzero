@@ -1,11 +1,16 @@
+#include <gkyl_alloc.h>
 #include <gkyl_math.h>
 
 #include <float.h>
 #include <stdbool.h>
 #include <complex.h>
 
+<<<<<<< HEAD
 // Temporary for diagnostics
 #include <stdio.h>
+=======
+static double ROOT_EPS = 1e-14;
+>>>>>>> origin/main
 
 // This implementation is taken from the Appendix of "Improving the
 // Double Exponential Quadrature Tanh-Sinh, Sinh-Sinh and Exp-Sinh
@@ -168,7 +173,7 @@ eval_poly3(const double coeff[4], double complex x)
 static inline bool
 check_converged3(double complex c1, double complex c2, double complex c3, double err[3])
 {
-  double eps = 1e-14;
+  double eps = ROOT_EPS;
   err[0] = cabs(c1);
   err[1] = cabs(c2);
   err[2] = cabs(c3);
@@ -222,7 +227,7 @@ static inline bool
 check_converged4(double complex c1, double complex c2, double complex c3, double complex c4,
   double err[4])
 {
-  double eps = 1e-14;
+  double eps = ROOT_EPS;
   err[0] = cabs(c1);
   err[1] = cabs(c2);
   err[2] = cabs(c3);
@@ -283,6 +288,7 @@ gkyl_calc_lo_poly_roots(enum gkyl_lo_poly_order order, double coeff[4])
   return proots;
 }
 
+<<<<<<< HEAD
 static inline double 
 eval_poly_lo(double *p, double x)
 {
@@ -819,3 +825,87 @@ gkyl_calc_quartic_root_intervals(double coeff[4], double domain[2], double tol)
   return root_intervals;
 
 } 
+=======
+struct gkyl_poly_roots*
+gkyl_poly_roots_new(int poly_order)
+{
+  struct gkyl_poly_roots *pr = gkyl_malloc(sizeof *pr);
+  pr->impart = gkyl_malloc(sizeof(double[poly_order]));
+  pr->rpart = gkyl_malloc(sizeof(double[poly_order]));
+  pr->err = gkyl_malloc(sizeof(double[poly_order]));
+
+  pr->work = gkyl_malloc(sizeof(double complex[2*poly_order]));
+
+  pr->poly_order = poly_order;
+
+  return pr;
+}
+
+static inline double complex
+eval_poly(int poly_order, const double *coeff, double complex x)
+{
+  double complex xn = x;
+  double complex res = coeff[0];
+  for (int i=1; i<poly_order; ++i) {
+    res += coeff[i]*xn;
+    xn = xn*x;
+  }
+  return res + xn;
+}
+
+static inline bool
+check_converged(int n, double complex *p1, double complex *p2, double *err)
+{
+  double eps = ROOT_EPS;
+  double tot_err = 0.0;
+  for (int i=0; i<n; ++i) {
+    err[i] = cabs(p1[i]-p2[i]);
+    tot_err += err[i];
+  }
+  return tot_err/n < eps;
+}
+
+void
+gkyl_calc_poly_roots(struct gkyl_poly_roots *pr, const double *coeff)
+{
+  int poly_order = pr->poly_order;
+  double complex *pn1 = pr->work;
+  double complex *pn = pn1 + poly_order;
+
+  double complex r1 = 0.4+0.9*I; // arbitrary complex number, not a root of unity  
+  pn1[0] = r1;
+  for (int i=1; i<poly_order; ++i)
+    pn1[i] = pn1[i-1]*r1;
+
+  int max_iter = 100;
+  int niter = 0;
+  do {
+    for (int i=0; i<poly_order; ++i) {
+      pn[i] = pn1[i];
+      
+      double complex denom = 1.0;
+      for (int j=0; j<poly_order; ++j)
+        if (i != j)
+          denom = denom*(pn1[i]-pn1[j]);
+      pn1[i] = pn1[i] - eval_poly(poly_order, coeff, pn1[i])/denom;
+    }
+    niter += 1;
+  } while (!check_converged(poly_order, pn, pn1, pr->err) && niter < max_iter);
+
+  pr->niter = niter;
+  for (int i=0; i<poly_order; ++i) {
+    pr->rpart[i] = creal(pn1[i]);
+    pr->impart[i] = cimag(pn1[i]);
+  }
+}
+
+void
+gkyl_poly_roots_release(struct gkyl_poly_roots *pr)
+{
+  gkyl_free(pr->impart);
+  gkyl_free(pr->rpart);
+  gkyl_free(pr->err);
+  gkyl_free(pr->work);
+  gkyl_free(pr);
+}
+>>>>>>> origin/main

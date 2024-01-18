@@ -2,7 +2,8 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_eqn_type.h>
+#include <gkyl_dg_lbo_vlasov_diff.h>
+#include <gkyl_dg_lbo_vlasov_drag.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
@@ -17,18 +18,21 @@ struct gkyl_dg_updater_lbo_vlasov_tm {
 /**
  * Create new updater to update lbo equations using hyper dg.
  *
- * @param grid Grid object
- * @param cbasis Configuration space basis functions
- * @param pbasis Phase-space basis function
- * @param conf_range Config space range
- * @param model_id Enum for type of LBO (e.g., Vlasov vs. PKPM model)
+ * @param phase_grid Phase space grid object
+ * @param conf_basis Configuration space basis functions
+ * @param phase_basis Phase space basis function
+ * @param conf_range Configuration space range
+ * @param drag_inp Input struct to vlasov drag operator (see gkyl_dg_lbo_vlasov_drag.h) 
+ * @param diff_inp Input struct to vlasov diffusion operator (see gkyl_dg_lbo_vlasov_diff.h) 
  * @param use_gpu Bool for whether updater is on host or device
  * @return New LBO updater object
  */
 struct gkyl_dg_updater_collisions* 
-gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, enum gkyl_model_id model_id, bool use_gpu);
+gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  const struct gkyl_range *conf_range, 
+  struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp, struct gkyl_dg_lbo_vlasov_diff_auxfields *diff_inp, 
+  bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the
@@ -45,15 +49,7 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
  * @param rhs RHS output
  */
 void gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
-  const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
-
-void gkyl_dg_updater_lbo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *lbo,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *nu_sum, const struct gkyl_array *nu_prim_moms,
-  const struct gkyl_array* GKYL_RESTRICT fIn,
+  const struct gkyl_range *update_rng, const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
 /**

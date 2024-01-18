@@ -206,6 +206,51 @@ test_ten_2d_members(struct gkyl_basis basis)
 }
 
 void
+test_ten_2d_members_p3(struct gkyl_basis basis)
+{
+  TEST_CHECK( basis.ndim == 2 );
+  TEST_CHECK( basis.poly_order == 3 );
+  TEST_CHECK( basis.num_basis == 16 );
+  TEST_CHECK( strcmp(basis.id, "tensor") == 0 );
+  TEST_CHECK( basis.b_type == GKYL_BASIS_MODAL_TENSOR );
+
+  double z[basis.ndim], b[basis.num_basis];
+
+  z[0] = 0.0; z[1] = 0.0;
+  basis.eval(z, b);
+
+  TEST_CHECK( gkyl_compare(0.5, b[0], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[1], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[2], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[3], 1e-15) );
+  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[4], 1e-15) );
+  TEST_CHECK( gkyl_compare(-sqrt(5.0)/4, b[5], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[6], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[7], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[8], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[9], 1e-15) );
+  TEST_CHECK( gkyl_compare(5.0/8.0, b[10], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[11], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[12], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[13], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[14], 1e-15) );
+  TEST_CHECK( gkyl_compare(0.0, b[15], 1e-15) );
+
+  double f[basis.num_basis];
+  for (int i=0; i<basis.num_basis; ++i) f[i] = 1.0;
+
+  z[0] = 0.5; z[1] = 0.5;
+  TEST_CHECK ( gkyl_compare(0.09202080373491306, basis.eval_expand(z, f), 1e-14) );
+  TEST_CHECK ( gkyl_compare(1.303799542808271, basis.eval_grad_expand(0, z, f), 1e-14) );
+  TEST_CHECK ( gkyl_compare(1.303799542808271, basis.eval_grad_expand(1, z, f), 1e-14) );
+
+  z[0] = 0.25; z[1] = -0.75;
+  TEST_CHECK ( gkyl_compare(-0.1193909952935715, basis.eval_expand(z, f), 1e-14) );
+  TEST_CHECK ( gkyl_compare(0.2231373667479314, basis.eval_grad_expand(0, z, f), 1e-14) );
+  TEST_CHECK ( gkyl_compare(-0.7090977834887839, basis.eval_grad_expand(1, z, f), 1e-14) );
+}
+
+void
 test_ten_2d()
 {
   struct gkyl_basis basis1;
@@ -215,6 +260,10 @@ test_ten_2d()
   struct gkyl_basis *basis2 = gkyl_cart_modal_tensor_new(2, 2);
   test_ten_2d_members(*basis2);
   gkyl_cart_modal_basis_release(basis2);
+
+  struct gkyl_basis basis3;
+  gkyl_cart_modal_tensor(&basis3, 2, 3);
+  test_ten_2d_members_p3(basis3);
 }
 
 void

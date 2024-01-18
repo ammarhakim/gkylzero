@@ -1,5 +1,5 @@
 module load cudatoolkit/12.0
-export GKYLSOFT=$HOME/gkylsoft-gpu
-./configure CC=nvcc ARCH_FLAGS="-march=native" CUDA_ARCH=80 --prefix=$GKYLSOFT --lapack-inc=$GKYLSOFT/OpenBLAS/include --lapack-lib=$GKYLSOFT/OpenBLAS/lib/libopenblas.a --superlu-inc=$GKYLSOFT/superlu/include --superlu-lib=$GKYLSOFT/superlu/lib/libsuperlu.a;
+: "${PREFIX:=$HOME/gkylsoft}"
+./configure CC=nvcc ARCH_FLAGS="-march=native" CUDA_ARCH=80 --prefix=$PREFIX --lapack-inc=$PREFIX/OpenBLAS/include --lapack-lib=$PREFIX/OpenBLAS/lib/libopenblas.a --superlu-inc=$PREFIX/superlu/include --superlu-lib=$PREFIX/superlu/lib/libsuperlu.a;
 
 

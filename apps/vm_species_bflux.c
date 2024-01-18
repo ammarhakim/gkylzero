@@ -21,8 +21,8 @@ vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
 {
   // zero ghost cells before calculation to ensure there's no residual data
   for (int j=0; j<app->cdim; ++j) {
-    gkyl_array_clear_range(rhs, 0.0, &(species->skin_ghost.lower_ghost[j]));
-    gkyl_array_clear_range(rhs, 0.0, &(species->skin_ghost.upper_ghost[j]));
+    gkyl_array_clear_range(rhs, 0.0, &(species->lower_ghost[j]));
+    gkyl_array_clear_range(rhs, 0.0, &(species->upper_ghost[j]));
   }
   // ghost cells of the rhs array are filled with the bflux
   // This is overwritten by the boundary conditions and is not being stored,
@@ -36,8 +36,8 @@ vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   // only calculating integrated moments for use in the bflux source for now,
   // others can be added if applications require
   for (int j=0; j<app->cdim; ++j) {
-    vm_species_moment_calc(&bflux->integ_moms[2*j], species->skin_ghost.lower_ghost[j], app->skin_ghost.lower_ghost[j], rhs);
-    vm_species_moment_calc(&bflux->integ_moms[2*j+1], species->skin_ghost.upper_ghost[j], app->skin_ghost.upper_ghost[j], rhs);
+    vm_species_moment_calc(&bflux->integ_moms[2*j], species->lower_ghost[j], app->lower_ghost[j], rhs);
+    vm_species_moment_calc(&bflux->integ_moms[2*j+1], species->upper_ghost[j], app->upper_ghost[j], rhs);
   }
 }
 

@@ -12,15 +12,6 @@
 
 #include <string.h>
 
-// Check and fetch user-data based on metatable name
-#define CHECK_UDATA(L, mnm) luaL_checkudata(L, 1, mnm)
-
-// For debugging
-#define trace_stack_top(L, fnm) do { \
-      fprintf(stdout, "Inside function %s\n", fnm);                              \
-      fprintf(stdout, "--> Top of stack is %s\n", lua_typename(L, lua_type(L, -1))); \
-    } while (0);
-
 // Get basis type from string
 static enum gkyl_basis_type
 get_basis_type(const char *bnm)
@@ -382,7 +373,7 @@ vm_app_apply_ic(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   double t0 = luaL_optnumber(L, 2, app_lw->tstart);
@@ -398,7 +389,7 @@ vm_app_apply_ic_field(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   double t0 = luaL_optnumber(L, 2, app_lw->tstart);
@@ -414,7 +405,7 @@ vm_app_apply_ic_species(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   int sidx = luaL_checkinteger(L, 2);
@@ -431,7 +422,7 @@ vm_app_calc_mom(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   gkyl_vlasov_app_calc_mom(app_lw->app);
@@ -446,7 +437,7 @@ vm_app_calc_integrated_mom(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -462,7 +453,7 @@ vm_app_calc_integrated_L2_f(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -479,7 +470,7 @@ vm_app_calc_field_energy(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -495,7 +486,7 @@ vm_app_write(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -512,7 +503,7 @@ vm_app_write_field(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -529,7 +520,7 @@ vm_app_write_species(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   int sidx = luaL_checkinteger(L, 2);
@@ -547,7 +538,7 @@ vm_app_write_mom(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -564,7 +555,7 @@ vm_app_write_integrated_mom(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   gkyl_vlasov_app_write_integrated_mom(app_lw->app);
@@ -579,7 +570,7 @@ vm_app_write_integrated_L2_f(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   gkyl_vlasov_app_write_integrated_L2_f(app_lw->app);
@@ -594,7 +585,7 @@ vm_app_write_field_energy(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   gkyl_vlasov_app_write_field_energy(app_lw->app);
@@ -609,7 +600,7 @@ vm_app_stat_write(lua_State *L)
 {
   bool status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   gkyl_vlasov_app_stat_write(app_lw->app);
@@ -634,7 +625,7 @@ vm_app_run(lua_State *L)
 {
   bool ret_status = true;
 
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
   struct gkyl_vlasov_app *app = app_lw->app;
 
@@ -687,7 +678,7 @@ vm_app_run(lua_State *L)
 static int
 vm_app_gc(lua_State *L)
 {
-  struct vlasov_app_lw **l_app_lw = CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
+  struct vlasov_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, VLASOV_APP_METATABLE_NM);
   struct vlasov_app_lw *app_lw = *l_app_lw;
 
   gkyl_vlasov_app_release(app_lw->app);

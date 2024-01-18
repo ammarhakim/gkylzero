@@ -81,6 +81,17 @@ gkyl_minmod_2(double x, double y)
   return 0.0;
 }
 
+// minmod(x,y)
+static inline double
+gkyl_minmod_3(double x, double y, double z)
+{
+  if (x>0 && y>0 && z>0)
+    return fmin(fmin(x,y),z);
+  if (x<0 && y<0 && z<0)
+    return fmax(fmax(x,y),z);
+  return 0.0;
+}
+
 // minmod(x,y,z,w)
 static inline double
 gkyl_minmod_4(double x, double y, double z, double w)
@@ -134,6 +145,16 @@ struct gkyl_lo_poly_roots {
   double rpart[4], impart[4]; // real and imaginary part of roots
   double err[4]; // estimated error for each root
   int niter; // number of iterations
+};
+
+// Polynomial roots for arbitrary order polynomials: allocate an free
+// using new and release methods as usual
+struct gkyl_poly_roots {
+  int poly_order; // polynomial order
+  double *rpart, *impart; // real and imaginary part of roots
+  double *err; // estimated error for each root
+  int niter;   // number of iterations
+  void *work; // some memory needed internally. Do not muck or access!
 };  
 
 // Quartic polynomial to hand off to ridders
@@ -185,7 +206,7 @@ struct gkyl_qr_res gkyl_dbl_exp(double (*func)(double, void *), void *ctx,
  * Compute single real root of a function using Ridders' method. See
  * IEEE Tran. Circuit and Systems, vol CAS-26 No 11, Pg 976 1976. The
  * root must be inside the interval specified, and there must only be
- * one such root in the interval.
+ * * one such root in the interval.
  *
  * @param func Function to integrate
  * @param ctx Context to pass to function
@@ -201,9 +222,9 @@ struct gkyl_qr_res gkyl_ridders(double (*func)(double,void*), void *ctx,
   double x1, double x2, double f1, double f2, int max_iter, double eps);
 
 /**
- * Compute all roots of the low-order polynomial with monomial
- * coefficients given by @a coeff. The leading coefficient is always
- * assumed be 1.0 and so the coeff[i] give the coefficient for the
+ * Compute all simple roots of the low-order polynomial with monomial
+ * coefficients given by @a coeff. The leading coefficient is always *
+ * assumed be 1.0 and so the coeff[i] give the coefficient for the *
  * monomial x^i. For example for the quartic:
  *
  * p(x) = x^4 + 2 x^3 + 4

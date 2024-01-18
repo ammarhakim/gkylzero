@@ -1,7 +1,12 @@
+#include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
@@ -9,7 +14,6 @@
 
 struct euler_ctx {
   double gas_gamma; // gas constant
-  pcg32_random_t rng; // RNG for use in IC
 };
 
 void
@@ -17,17 +21,23 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
-
+  pcg64_random_t rng = gkyl_pcg64_init(0);
   double x = xn[0], y = xn[1];
 
-  double rho = 1.0, vx = 0.5, pr = 2.5;
+  double rho = 1.0, vx = 0.5, vy = 0.0, pr = 2.5;
   if (fabs(y)<0.25) {
     rho = 2.0;
     vx = -0.5;
   }
 
-  vx = vx + 0.01*2*(0.5*gkyl_pcg32_rand_double(&app->rng)-1);
-  double vy = 0.01*2*(0.5*gkyl_pcg32_rand_double(&app->rng)-1);
+  double alpha = 1.0e-2;
+  double k = 2.0*M_PI;
+  for (int i=0; i<16; ++i) {
+    for (int j=0; j<16; ++j) {
+      vx += alpha*gkyl_pcg64_rand_double(&rng)*sin(i*k*x + j*k*y + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
+      vy += alpha*gkyl_pcg64_rand_double(&rng)*sin(i*k*x + j*k*y + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
+    }
+  }
   
   fout[0] = rho;
   fout[1] = rho*vx; fout[2] = rho*vy; fout[3] = 0.0;
@@ -37,7 +47,7 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 struct euler_ctx
 euler_ctx(void)
 {
-  return (struct euler_ctx) { .gas_gamma = 1.4, .rng = gkyl_pcg32_init(true) };
+  return (struct euler_ctx) { .gas_gamma = 1.4 };
 }
 
 int
@@ -45,8 +55,8 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 128);  
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 64);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 64);  
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -54,8 +64,8 @@ main(int argc, char **argv)
   }
   struct euler_ctx ctx = euler_ctx(); // context for init functions
 
-  // equation object
-  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma);
+  // Euler equation object
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, false);
 
   struct gkyl_moment_species fluid = {
     .name = "euler",

@@ -316,6 +316,11 @@ GKYL_CU_DH double vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *d
   Ghat_G_1_u_r[10] = (0.125*(u_surf_rl[1]+u_surf_cr[1])-0.2500000000000001*pkpm_lax_r[1])*G_1_rl[11]+(0.125*(u_surf_rl[1]+u_surf_cr[1])+0.2500000000000001*pkpm_lax_r[1])*G_1_cr[11]+(0.125*(u_surf_rl[0]+u_surf_cr[0])-0.25*pkpm_lax_r[0])*G_1_rl[10]+(0.125*(u_surf_rl[0]+u_surf_cr[0])+0.25*pkpm_lax_r[0])*G_1_cr[10]+(0.125*(u_surf_rl[3]+u_surf_cr[3])-0.25*pkpm_lax_r[3])*G_1_rl[9]+(0.125*(u_surf_rl[3]+u_surf_cr[3])+0.25*pkpm_lax_r[3])*G_1_cr[9]+(0.125*(u_surf_rl[2]+u_surf_cr[2])-0.2500000000000001*pkpm_lax_r[2])*G_1_rl[8]+(0.125*(u_surf_rl[2]+u_surf_cr[2])+0.2500000000000001*pkpm_lax_r[2])*G_1_cr[8]; 
   Ghat_G_1_u_r[11] = (0.125*(u_surf_rl[0]+u_surf_cr[0])-0.25*pkpm_lax_r[0])*G_1_rl[11]+(0.125*(u_surf_rl[0]+u_surf_cr[0])+0.25*pkpm_lax_r[0])*G_1_cr[11]+(0.125*(u_surf_rl[1]+u_surf_cr[1])-0.2500000000000001*pkpm_lax_r[1])*G_1_rl[10]+(0.125*(u_surf_rl[1]+u_surf_cr[1])+0.2500000000000001*pkpm_lax_r[1])*G_1_cr[10]+(0.125*(u_surf_rl[2]+u_surf_cr[2])-0.2500000000000001*pkpm_lax_r[2])*G_1_rl[9]+(0.125*(u_surf_rl[2]+u_surf_cr[2])+0.2500000000000001*pkpm_lax_r[2])*G_1_cr[9]+(0.125*(u_surf_rl[3]+u_surf_cr[3])-0.25*pkpm_lax_r[3])*G_1_rl[8]+(0.125*(u_surf_rl[3]+u_surf_cr[3])+0.25*pkpm_lax_r[3])*G_1_cr[8]; 
 
+  double max_v_par = fmax(fabs(wvpar + dvpar/2), fabs(wvpar - dvpar/2)); 
+  double cfl_l = (max_v_par*pkpm_max_b_l[0] + pkpm_lax_l[0])/2.0; 
+  double cfl_r = (max_v_par*pkpm_max_b_r[0] + pkpm_lax_r[0])/2.0; 
+  double cflFreq = fmax(cfl_l, cfl_r);
+
   out_F_0[0] += ((-0.7071067811865475*Ghat_F_0_vpar_r[0])+0.7071067811865475*Ghat_F_0_vpar_l[0]-0.7071067811865475*Ghat_F_0_u_r[0]+0.7071067811865475*Ghat_F_0_u_l[0])*dx1; 
   out_F_0[1] += ((-0.7071067811865475*Ghat_F_0_vpar_r[1])+0.7071067811865475*Ghat_F_0_vpar_l[1]-0.7071067811865475*Ghat_F_0_u_r[1]+0.7071067811865475*Ghat_F_0_u_l[1])*dx1; 
   out_F_0[2] += -1.224744871391589*(Ghat_F_0_vpar_r[0]+Ghat_F_0_vpar_l[0]+Ghat_F_0_u_r[0]+Ghat_F_0_u_l[0])*dx1; 
@@ -365,6 +370,6 @@ GKYL_CU_DH double vlasov_pkpm_surfy_3x1v_ser_p1(const double *w, const double *d
   out_G_1[22] += -1.224744871391589*(Ghat_G_1_vpar_r[10]+Ghat_G_1_vpar_l[10]+Ghat_G_1_u_r[10]+Ghat_G_1_u_l[10])*dx1; 
   out_G_1[23] += -1.224744871391589*(Ghat_G_1_vpar_r[11]+Ghat_G_1_vpar_l[11]+Ghat_G_1_u_r[11]+Ghat_G_1_u_l[11])*dx1; 
 
-  return 0.;
+  return 1.5*dx1*cflFreq;
 
 } 

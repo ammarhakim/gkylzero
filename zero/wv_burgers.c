@@ -45,7 +45,8 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, 
+  double *waves, double *s)
 {
   const struct wv_burgers *burgers = container_of(eqn, struct wv_burgers, eqn);
 
@@ -127,11 +128,10 @@ gkyl_wv_burgers_new(void)
   burgers->eqn.waves_func = wave_roe;
   burgers->eqn.qfluct_func = qfluct_roe;
   burgers->eqn.ffluct_func = ffluct_roe;
+
   burgers->eqn.flux_jump = flux_jump;
-  
   burgers->eqn.check_inv_func = check_inv;
   burgers->eqn.max_speed_func = max_speed;
-
   burgers->eqn.rotate_to_local_func = rot_to_local;
   burgers->eqn.rotate_to_global_func = rot_to_global;
 

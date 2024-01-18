@@ -5,6 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_wv_eqn.h>
 
 // Object type
 typedef struct gkyl_dg_updater_fluid gkyl_dg_updater_fluid;
@@ -31,7 +32,7 @@ struct gkyl_dg_updater_fluid_tm {
  */
 gkyl_dg_updater_fluid* gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, 
-  enum gkyl_eqn_type eqn_id, double param, void *aux_inp, bool use_gpu);
+  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, void *aux_inp, bool use_gpu);
 
 /**
  * Acquire fluid equation object
