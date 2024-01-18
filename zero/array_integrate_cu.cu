@@ -118,7 +118,6 @@ void gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl
 
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
-  const struct gkyl_array *win = weight == NULL? NULL : weight->on_dev;
   array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, factor, 
     weight ? weight->on_dev : 0, *range, out);
   // device synchronize required because out may be host pinned memory
