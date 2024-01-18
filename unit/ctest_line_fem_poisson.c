@@ -19,7 +19,7 @@
 #include <gkyl_dg_bin_ops.h>
 
 
-double calc_l2_avg(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range range_ext, struct gkyl_basis basis, struct gkyl_array* field1, struct gkyl_array* field2)
+double calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range range_ext, struct gkyl_basis basis, struct gkyl_array* field1, struct gkyl_array* field2)
 {
   struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range_ext.volume);
   struct gkyl_range_iter iter;
@@ -190,7 +190,7 @@ test_zdep_nd_nxnz(int nx, int ny){
   gkyl_proj_on_basis_release(proj_sol);
   gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
 
-  double l2 = calc_l2_avg(grid, local,local_ext, basis, phi, sol);
+  double l2 = calc_l2(grid, local,local_ext, basis, phi, sol);
   printf("l2 = %g\n", l2);
 
   gkyl_line_fem_poisson_release(line_fem_poisson);
@@ -289,7 +289,7 @@ test_simplez_dd_nxnz(int nx, int ny){
   gkyl_proj_on_basis_release(proj_sol);
   gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
 
-  double l2 = calc_l2_avg(grid, local,local_ext, basis, phi, sol);
+  double l2 = calc_l2(grid, local,local_ext, basis, phi, sol);
   printf("l2 = %g\n", l2);
 
   gkyl_line_fem_poisson_release(line_fem_poisson);
@@ -376,7 +376,7 @@ void test_fem_poisson_zind_dd_nx(int nx){
   gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
 
 
-  double l2 = calc_l2_avg(grid, local,local_ext, basis, phi, sol);
+  double l2 = calc_l2(grid, local,local_ext, basis, phi, sol);
   printf("l2 = %g\n", l2);
 
   gkyl_fem_poisson_release(fem_poisson);
@@ -474,7 +474,7 @@ test_zind_dd_nxnz(int nx, int ny){
   gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
 
 
-  double l2 = calc_l2_avg(grid, local,local_ext, basis, phi, sol);
+  double l2 = calc_l2(grid, local,local_ext, basis, phi, sol);
   printf("l2 = %g\n", l2);
 
   gkyl_line_fem_poisson_release(line_fem_poisson);
