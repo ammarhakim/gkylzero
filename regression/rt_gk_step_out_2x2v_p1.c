@@ -50,8 +50,8 @@ struct gkyl_tok_geo_efit_inp inp = {
 struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
-    .zmin = -6.14213,
-    .zmax = 6.14226,
+    .zmin = -5.14213,
+    .zmax = 5.14226,
     .write_node_coord_array = true,
     .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
@@ -64,7 +64,7 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double n0 = app->n0;
   double cx = app->cx;
   double cz = app->cz;
-  double xcenter = 1.50982;
+  double xcenter = 1.2014;
   double n = n0*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
   if (n/n0 < 1e-5)
     n = n0*1e-5;
@@ -101,7 +101,7 @@ eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_REST
   double nsource = app->nsource;
   double cx = app->cx;
   double cz = app->cz;
-  double xcenter = 1.50982;
+  double xcenter = 1.2014;
   double n = nsource*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
   if (n/nsource < 1e-5)
     n = nsource*1e-5;
@@ -187,8 +187,8 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 18*mi*vtIon*vtIon/(2.0*B0);
 
-  double finalTime = 1.0e-3; 
-  double numFrames = 100;
+  double finalTime = 1.0e-6; 
+  double numFrames = 1;
 
   struct gk_step_ctx ctx = {
     .chargeElc = qe, 
@@ -261,7 +261,7 @@ main(int argc, char **argv)
     .is_maxwellian = true,
 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -304,7 +304,7 @@ main(int argc, char **argv)
     .is_maxwellian = true,
 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -333,9 +333,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
-    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
-                    .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
-                    .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
+    .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, 
+                    .up_type = {GKYL_POISSON_DIRICHLET}, 
+                    .lo_value = {0.0}, .up_value = {0.0}}, 
   };
 
   // GK app
@@ -350,6 +350,7 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
+      .world = {0.0},
       .geometry_id = GKYL_TOKAMAK,
       .tok_efit_info = &inp,
       .tok_grid_info = &ginp,

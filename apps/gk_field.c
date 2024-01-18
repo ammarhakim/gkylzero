@@ -227,7 +227,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
     }
     else if (app->cdim==2) {
       // input is rho_c and output should be in phi_smooth
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
+      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, field->rho_c);
       gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_smooth);
       gkyl_line_fem_poisson_advance(field->line_fem_poisson, field->rho_c_smooth, field->phi_smooth);
     }
