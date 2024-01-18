@@ -91,7 +91,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   f->es_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
-  gkyl_array_shiftc(f->es_energy_fac, sqrt(2.0), 0); // Sets es_energy_fac=1.
+  gkyl_array_shiftc(f->es_energy_fac, sqrt(pow(2,app->cdim)), 0); // Sets es_energy_fac=1.
   gkyl_array_scale(f->es_energy_fac, 0.5*polarization_weight);
   if (app->cdim == 1){
     gkyl_array_scale(f->es_energy_fac, 0.5*f->info.kperp2);
