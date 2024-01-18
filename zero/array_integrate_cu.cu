@@ -92,7 +92,7 @@ array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct
   gkyl_sub_range_inv_idx(&range, linc, idx);
   long start = gkyl_range_idx(&range, idx);
   const double *fptr = (const double*) gkyl_array_cfetch(inp, start);
-  const double *wptr = weight == NULL? NULL : (const double*) gkyl_array_cfetch(weight, start);
+  const double *wptr = (const double*) gkyl_array_cfetch(weight, start);
 
   double outLocal[10]; // Set to max of 10 (e.g. heat flux tensor).
   for (unsigned int k=0; k<up->num_comp; ++k)
@@ -118,8 +118,8 @@ void gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl
 
   const int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks = gkyl_int_div_up(range->volume, nthreads);
-  const struct gkyl_array *win = weight == NULL? NULL : weight->on_dev;
-  array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, factor, win, *range, out);
+  array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, factor, 
+    weight->on_dev, *range, out);
   // device synchronize required because out may be host pinned memory
   cudaDeviceSynchronize();
 }

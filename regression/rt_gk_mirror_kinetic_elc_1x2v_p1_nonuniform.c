@@ -921,7 +921,7 @@ int main(int argc, char **argv)
   {
     .bmag_fac = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
-    .kperp2 = pow(ctx.kperp, 2.),
+    .kperpSq = pow(ctx.kperp, 2.),
     .poisson_bcs = {
         .lo_type = {GKYL_POISSON_NEUMANN},
         .up_type = {GKYL_POISSON_NEUMANN},
