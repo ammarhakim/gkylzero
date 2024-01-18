@@ -660,8 +660,8 @@ create_ctx(void)
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
   int num_cell_z = 128;
   int poly_order = 1;
-  double final_time = 30e-6;
-  int num_frames = 100;
+  double final_time = 50e-6;
+  int num_frames = 50;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx
   double B_bt = 1.058278;
@@ -681,7 +681,7 @@ create_ctx(void)
   double Ti_par_m = 1000 * eV;
 
   // Non-uniform z mapping
-  double mapping_frac = 0.0; // 1 is full mapping, 0 is no mapping
+  double mapping_frac = 0.7; // 1 is full mapping, 0 is no mapping
 
   struct gk_mirror_ctx ctx = {
     .mi = mi,
@@ -799,11 +799,13 @@ int main(int argc, char **argv)
     .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = {NV, NMU},
     .polarization_density = ctx.n0,
-    .is_bimaxwellian = true,
+    .is_maxwellian = true,
     .ctx_density = &ctx,
     .init_density = eval_density_ion,
     .ctx_upar = &ctx,
     .init_upar = eval_upar_ion,
+    .ctx_temp = &ctx,
+    .init_temp = eval_temp_ion,
     .ctx_temppar = &ctx,
     .init_temppar = eval_temp_par_ion,
     .ctx_tempperp = &ctx,

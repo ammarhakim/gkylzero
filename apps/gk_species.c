@@ -390,10 +390,14 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
     gkyl_proj_bimaxwellian_on_basis *proj_max = gkyl_proj_bimaxwellian_on_basis_new(&species->grid,
         &app->confBasis, &app->basis, poly_order+1, app->use_gpu);
 
-    // If on GPUs, need to copy n, udrift, and vt^2 onto device
+    // If on GPUs, need to copy n, udrift, vtpar^2, vtperp^2 onto device
     struct gkyl_array *prim_moms_dev, *m0_dev;
     if (app->use_gpu) {
-      prim_moms_dev = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
+      prim_moms_dev = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
+      m0_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+      gkyl_array_copy(prim_moms_dev, prim_moms);
+      gkyl_array_copy(m0_dev, m0);
 
       gkyl_array_copy(prim_moms_dev, prim_moms);
       gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom(proj_max, &species->local_ext, &app->local_ext, prim_moms_dev,
@@ -431,6 +435,7 @@ gk_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_species *species, doubl
     gkyl_array_release(vtsqperp);
     gkyl_array_release(prim_moms);
     if (app->use_gpu) {
+      gkyl_array_release(m0_dev);
       gkyl_array_release(prim_moms_dev);      
     }
     gkyl_proj_on_basis_release(proj_m0);
