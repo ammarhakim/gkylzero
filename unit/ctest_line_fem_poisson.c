@@ -149,15 +149,18 @@ test_zdep_nd_nxnz(int nx, int ny){
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_copy(field_dev, field);
+  struct gkyl_array *field_discont_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(field_discont_dev, field_discont);
 #else
   struct gkyl_array *field_dev = field;
+  struct gkyl_array *field_discont_dev = field_discont;
 #endif
 
   //smooth it
   struct gkyl_array *weight=0;
   struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
-  gkyl_fem_parproj_set_rhs(parproj, field_discont, field_discont);
-  gkyl_fem_parproj_solve(parproj, field);
+  gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
+  gkyl_fem_parproj_solve(parproj, field_dev);
 
   struct gkyl_poisson_bc poisson_bc;
   poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -178,7 +181,10 @@ test_zdep_nd_nxnz(int nx, int ny){
 #endif
 
   struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis_on_dev, basis, local, local_ext, epsilon_dev, poisson_bc, use_gpu);
-  gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
+  gkyl_line_fem_poisson_advance(line_fem_poisson, field_dev, phi_dev);
+#ifdef GKYL_HAVE_CUDA
+  gkyl_array_copy(phi, phi_dev);
+#endif
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
 
   // project analytic solution
@@ -245,14 +251,17 @@ test_simplez_dd_nxnz(int nx, int ny){
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_copy(field_dev, field);
+  struct gkyl_array *field_discont_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(field_discont_dev, field_discont);
 #else
   struct gkyl_array *field_dev = field;
+  struct gkyl_array *field_discont_dev = field_discont;
 #endif
 
   struct gkyl_array *weight=0;
   struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
-  gkyl_fem_parproj_set_rhs(parproj, field_discont, field_discont);
-  gkyl_fem_parproj_solve(parproj, field);
+  gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
+  gkyl_fem_parproj_solve(parproj, field_dev);
 
 
   struct gkyl_poisson_bc poisson_bc;
@@ -430,14 +439,17 @@ test_zind_dd_nxnz(int nx, int ny){
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_copy(field_dev, field);
+  struct gkyl_array *field_discont_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(field_discont_dev, field_discont);
 #else
   struct gkyl_array *field_dev = field;
+  struct gkyl_array *field_discont_dev = field_discont;
 #endif
 
   struct gkyl_array *weight=0;
   struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
-  gkyl_fem_parproj_set_rhs(parproj, field_discont, field_discont);
-  gkyl_fem_parproj_solve(parproj, field);
+  gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
+  gkyl_fem_parproj_solve(parproj, field_dev);
 
   struct gkyl_poisson_bc poisson_bc;
   poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
