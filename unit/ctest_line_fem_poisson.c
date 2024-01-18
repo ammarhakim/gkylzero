@@ -33,18 +33,14 @@ double calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_
       diff_i[i] = f1[i] - f2[i];
     }
   }
-  struct gkyl_array *l2_diff = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range_ext.volume);
-  for(int i = 0; i <basis.num_basis; i++)
-    gkyl_dg_calc_l2_range(basis, i, l2_diff, i, diff, range);
-
-  double l2[basis.num_basis];
+  struct gkyl_array *l2_diff = gkyl_array_new(GKYL_DOUBLE, 1, range_ext.volume);
+  gkyl_dg_calc_l2_range(basis, 0, l2_diff, 0, diff, range);
+  gkyl_array_scale_range(l2_diff, grid.cellVolume, &range);
+  double l2[1];
   gkyl_array_reduce_range(l2, l2_diff, GKYL_SUM, &range);
-  double l2_sum = 0.0;
-  for(int i = 0; i <basis.num_basis; i++)
-    l2_sum += l2[i];
-
   gkyl_array_release(diff);
-  return l2_sum;
+  gkyl_array_release(l2_diff);
+  return sqrt(l2[0]);
 }
 
 
