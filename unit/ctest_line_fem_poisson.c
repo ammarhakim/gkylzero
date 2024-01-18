@@ -199,7 +199,7 @@ test_zdep_nd_nxnz(int nx, int ny){
 
   gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_fem_parproj_release(parproj);
-#ifdef gkyl_have_cuda
+#ifdef GKYL_HAVE_CUDA 
   gkyl_cu_free(basis_on_dev);
   gkyl_array_release(field_dev);
   gkyl_array_release(phi_dev);

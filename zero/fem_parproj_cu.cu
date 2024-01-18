@@ -57,7 +57,7 @@ fem_parproj_set_cu_ker_ptrs(struct gkyl_fem_parproj_kernels* kers, enum gkyl_bas
 __global__ void
 gkyl_fem_parproj_set_rhs_kernel(double *rhs_global, const struct gkyl_array *rhsin, const struct gkyl_array *phibc, struct gkyl_range range, struct gkyl_range range_ext, struct gkyl_range perp_range2d, struct gkyl_range par_range1d, struct gkyl_fem_parproj_kernels *kers, long numnodes_global)
 {
-  int idx[GKYL_MAX_CDIM], ghost_idx[GKYL_MAX_CDIM];
+  int idx[GKYL_MAX_CDIM], skin_idx[GKYL_MAX_CDIM];
   long globalidx[32];
   int parnum_cells = range.upper[range.ndim-1]-range.lower[range.ndim-1]+1;
 
@@ -77,9 +77,9 @@ gkyl_fem_parproj_set_rhs_kernel(double *rhs_global, const struct gkyl_array *rhs
     long linidx = gkyl_range_idx(&range, idx);
     const double *rhsin_p = (const double*) gkyl_array_cfetch(rhsin, linidx);
 
-    for (int d=0; d<range.ndim-1; d++) ghost_idx[d] = idx[d];
-    ghost_idx[range.ndim-1] = idx1d[0] == parnum_cells? idx1d[0]+1 : idx1d[0]-1;
-    linidx = gkyl_range_idx(&range_ext, ghost_idx);
+    for (int d=0; d<range.ndim-1; d++) skin_idx[d] = idx[d];
+    skin_idx[range.ndim-1] = idx1d[0] == parnum_cells? idx1d[0] : idx1d[0];
+    linidx = gkyl_range_idx(&range_ext, skin_idx);
     const double *phibc_p = phibc? (const double *) gkyl_array_cfetch(phibc, linidx) : NULL;
 
     long paridx = gkyl_range_idx(&par_range1d, idx1d);
