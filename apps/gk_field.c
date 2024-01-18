@@ -95,14 +95,21 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   f->is_first_energy_write_call = true;
+  // Factors for ES energy. 
+  f->es_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  f->es_energy_fac_1d = 0.0;
   if (app->cdim==1) {
-    f->es_energy_fac_1d = polarization_weight*f->info.kperpSq;
+    if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
+      f->es_energy_fac_1d = polarization_weight;
+    else
+      f->es_energy_fac_1d = polarization_weight*f->info.kperpSq;
+
     f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->confBasis, 
       1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
   }
   else {
-    f->es_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_array_shiftc(f->es_energy_fac, sqrt(2.0), 0); // Sets es_energy_fac=1.
+    double norm_fac = pow(2.0, (float) app->cdim/2.0);
+    gkyl_array_shiftc(f->es_energy_fac, norm_fac, 0); // Sets es_energy_fac=1.
     gkyl_array_scale(f->es_energy_fac, 0.5*polarization_weight);
 
     f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->confBasis, 
@@ -282,6 +289,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_array_release(f->apardot_fem);
   }
 
+  gkyl_array_release(f->es_energy_fac);
   if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
     gkyl_ambi_bolt_potential_release(f->ambi_pot);
     for (int i=0; i<2*app->cdim; ++i) 
@@ -293,12 +301,10 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_fem_parproj_release(f->fem_parproj);
     }
     else if (app->cdim == 2) {
-      gkyl_array_release(f->es_energy_fac);
       gkyl_array_release(f->epsilon);
       gkyl_fem_poisson_release(f->fem_poisson);
     }
     else {
-      gkyl_array_release(f->es_energy_fac);
       gkyl_array_release(f->epsilon);
       gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
       gkyl_fem_parproj_release(f->fem_parproj);

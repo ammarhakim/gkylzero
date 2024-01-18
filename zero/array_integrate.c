@@ -68,7 +68,7 @@ void gkyl_array_integrate_advance(gkyl_array_integrate *up, const struct gkyl_ar
 
     long linidx = gkyl_range_idx(range, iter.idx);
     const double *fin_d = gkyl_array_cfetch(fin, linidx);
-    const double *wei_d = weight ? gkyl_array_cfetch(weight, linidx) : 0;
+    const double *wei_d = gkyl_array_cfetch(weight, linidx);
 
     up->kernel(up->dxSq, up->vol, up->num_comp, up->num_basis, wei_d, fin_d, out);
   }
