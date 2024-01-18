@@ -73,16 +73,15 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     // compute needed moments
     gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
 
-    // scale drag coefficients by density
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rad->vnu[i], rad->moms[i].marr, rad->vnu[i],
-      &app->local, &species->local);
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rad->vsqnu[i], rad->moms[i].marr, rad->vsqnu[i],
-      &app->local, &species->local);
-
     // accumulate total drag coefficient
     gkyl_array_accumulate(rad->nvnu_sum, 1.0, rad->vnu[i]);
     gkyl_array_accumulate(rad->nvsqnu_sum, 1.0, rad->vsqnu[i]);
   }
+  // scale drag coefficients by density *ONLY WORKS FOR 1 ION COLLISION RIGHT NOW*
+  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rad->nvnu_sum, rad->moms[0].marr, rad->nvnu_sum,
+    &app->local, &species->local);
+  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, rad->nvsqnu_sum, rad->moms[0].marr, rad->nvsqnu_sum,
+    &app->local, &species->local);
 }
 
 // updates the collision terms in the rhs
