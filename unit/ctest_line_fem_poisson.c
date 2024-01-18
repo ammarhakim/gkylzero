@@ -4,7 +4,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_proj_on_basis.h>
-#include <gkyl_eval_on_nodes.h>
+#include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
@@ -16,40 +16,104 @@
 #include <gkyl_fem_poisson.h>
 #include <gkyl_line_fem_poisson.h>
 #include <gkyl_fem_parproj.h>
+#include <gkyl_dg_bin_ops.h>
 
 
+double calc_l2_avg(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range range_ext, struct gkyl_basis basis, struct gkyl_array* field1, struct gkyl_array* field2)
+{
+  struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range_ext.volume);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(&range, iter.idx);
+    const double *f1 = gkyl_array_cfetch(field1, lidx);
+    const double *f2 = gkyl_array_cfetch(field2, lidx);
+    double *diff_i = gkyl_array_fetch(diff, lidx);
+    for(int i = 0; i <basis.num_basis; i++){
+      diff_i[i] = f1[i] - f2[i];
+    }
+  }
+  //struct gkyl_array *l2_diff = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range_ext.volume);
+  //for(int i = 0; i <basis.num_basis; i++)
+  //  gkyl_dg_calc_l2_range(basis, i, l2_diff, i, diff, range);
+
+  double l2_sum = 0.0;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(&range, iter.idx);
+    const double *diff_i = gkyl_array_cfetch(diff, lidx);
+    for(int i = 0; i <basis.num_basis; i++){
+      l2_sum += diff_i[i]*diff_i[i];
+    }
+  }
+  printf("cellvol = %g\n", grid.cellVolume);
+  return sqrt(l2_sum/grid.cellVolume);
+
+  //double l2[basis.num_basis];
+  //gkyl_array_reduce_range(l2, l2_diff, GKYL_SUM, &range);
+  //double l2_sum = 0.0;
+  //for(int i = 0; i <basis.num_basis; i++)
+  //  l2_sum += l2[i];
+  //return l2_sum/range.volume;
+}
+
+
+// functions for the charge density
 void
-proj_func(double t, const double *xn, double *fout, void *ctx)
+rho_func_zdep_nd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
-  fout[0] = cos(3*z)*cos(x);
+  fout[0] = 4*cos(3*z)*cos(2*x);
 }
 
 void
-proj_func2(double t, const double *xn, double *fout, void *ctx)
+phi_func_zdep_nd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
-  fout[0] = 4*z*cos(2*x);
+  fout[0] = cos(3*z)*cos(2*x);
 }
 
-void evalFunc1x_neumannx_dirichletx(double t, const double *xn, double* restrict fout, void *ctx)
+void
+rho_func_simplez_dd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
-  double a = 5.0;
-  double c0 = 0.;
-  double c1 = a/12. - 1./2.;
-  fout[0] = -(1.-a*pow(x,2));
+  double z = xn[1];
+  fout[0] = 4*z*cos(2*x - M_PI/2);
+}
+
+void
+phi_func_simplez_dd(double t, const double *xn, double *fout, void *ctx)
+{
+  double x = xn[0];
+  double z = xn[1];
+  fout[0] = z*cos(2*x - M_PI/2);
+}
+
+void
+rho_func_zind_dd(double t, const double *xn, double *fout, void *ctx)
+{
+  double x = xn[0];
+  double z = xn[1];
+  fout[0] = 4*cos(2*x - M_PI/2);
+}
+
+void
+phi_func_zind_dd(double t, const double *xn, double *fout, void *ctx)
+{
+  double x = xn[0];
+  double z = xn[1];
+  fout[0] = cos(2*x - M_PI/2);
 }
 
 
 void
-test_1(){
+test_zdep_nd_nxnz(int nx, int ny){
   // create the 2d field
   // create xz grid
-  double lower[] = { -M_PI, 0.0 }, upper[] = { 3*M_PI/2, 1.0 };
-  int cells[] = { 12, 8 };
+  double lower[] = { -M_PI, -M_PI}, upper[] = { 3*M_PI/4, M_PI };
+  int cells[] = { nx, ny };
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
 
@@ -63,174 +127,35 @@ test_1(){
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 2, poly_order);
 
-  // project initial function on 2d field
-  struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_eval_on_nodes *proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func, 0);
-  gkyl_eval_on_nodes_advance(proj, 0.0, &local, field);
-  gkyl_eval_on_nodes_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field, "in_field.gkyl");
-
-
-  struct gkyl_poisson_bc poisson_bc;
-  poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
-  poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
-  poisson_bc.lo_value[0].v[0] = 0.;
-  poisson_bc.up_value[0].v[0] = 0.;
-
-  struct gkyl_array *epsilon = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
-  struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-                                            
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, &basis, basis, local, local_ext, epsilon, poisson_bc, false);
-  gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
-  gkyl_line_fem_poisson_release(line_fem_poisson);
-  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
-
-}
-
-void
-test_2(){
-  // create the 2d field
-  // create xz grid
-  double lower[] = { -M_PI, 0.0 }, upper[] = { 3*M_PI/4, 1.0 };
-  int cells[] = { 12, 8 };
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
-
-  //ranges
-  struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
-  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
-
-  // basis function
-  int poly_order = 1;
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 2, poly_order);
-
-  // project initial function on 2d field
-  struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_eval_on_nodes *proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func2, 0);
-  gkyl_eval_on_nodes_advance(proj, 0.0, &local, field);
-  gkyl_eval_on_nodes_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field, "in_field.gkyl");
-
-
-  struct gkyl_poisson_bc poisson_bc;
-  poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
-  poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
-  poisson_bc.lo_value[0].v[0] = 0.;
-  poisson_bc.up_value[0].v[0] = 0.;
-
-  struct gkyl_array *epsilon = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
-  struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-                                            
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, &basis, basis, local, local_ext, epsilon, poisson_bc, false);
-  gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
-  gkyl_line_fem_poisson_release(line_fem_poisson);
-  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
-
-}
-
-void
-test_2_cu(){
-  // create the 2d field
-  // create xz grid
-  double lower[] = { -M_PI, 0.0 }, upper[] = { 3*M_PI/4, 1.0 };
-  int cells[] = { 12, 8 };
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
-
-  //ranges
-  struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
-  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
-
-  // basis function
-  int poly_order = 1;
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 2, poly_order);
-
+  bool use_gpu = false;
+#ifdef GKYL_HAVE_CUDA
+  use_gpu = true;
   struct gkyl_basis *basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
   gkyl_cart_modal_serendip_cu_dev(basis_on_dev, 2, poly_order);
-
-  // project initial function on 2d field
-  struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_eval_on_nodes *proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func2, 0);
-  gkyl_eval_on_nodes_advance(proj, 0.0, &local, field);
-  gkyl_eval_on_nodes_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field, "in_field.gkyl");
-  struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_array_copy(field_dev, field);
-
-
-  struct gkyl_poisson_bc poisson_bc;
-  poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
-  poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
-  poisson_bc.lo_value[0].v[0] = 0.;
-  poisson_bc.up_value[0].v[0] = 0.;
-
-  struct gkyl_array *epsilon_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_array_shiftc(epsilon_dev, sqrt(2.0), 0); 
-  struct gkyl_array *phi_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-                                            
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis_on_dev, basis, local, local_ext, epsilon_dev, poisson_bc, true);
-  gkyl_line_fem_poisson_advance(line_fem_poisson, field_dev, phi_dev);
-  gkyl_line_fem_poisson_release(line_fem_poisson);
-
-  struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_array_copy(phi, phi_dev);
-  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
-
-  gkyl_cu_free(basis_on_dev);
-  gkyl_array_release(field);
-  gkyl_array_release(field_dev);
-  gkyl_array_release(phi);
-  gkyl_array_release(phi_dev);
-  gkyl_array_release(epsilon_dev);
-
-}
-
-
-
-
-
-void
-test_3(){
-  // create the 2d field
-  // create xz grid
-  double lower[] = { -M_PI, 0.0 }, upper[] = { 3*M_PI/4, 1.0 };
-  int cells[] = { 12, 8 };
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
-
-  //ranges
-  struct gkyl_range local, local_ext;
-  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
-  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
-
-  // basis function
-  int poly_order = 1;
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 2, poly_order);
+#else
+  struct gkyl_basis *basis_on_dev = &basis;
+#endif
 
   // project initial function on 2d field
   struct gkyl_array *field_discont = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &proj_func2, 0);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local_ext, field_discont);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &rho_func_zdep_nd, 0);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont);
   gkyl_proj_on_basis_release(proj);
   gkyl_grid_sub_array_write(&grid, &local, field_discont, "in_field.gkyl");
 
-  // smooth output
-  struct gkyl_array *field= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(field_dev, field);
+#else
+  struct gkyl_array *field_dev = field;
+#endif
 
-  // smooth
+  //smooth it
   struct gkyl_array *weight=0;
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, false);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont, field_discont);
   gkyl_fem_parproj_solve(parproj, field);
-  gkyl_grid_sub_array_write(&grid, &local, field, "smooth_field.gkyl");
-
 
   struct gkyl_poisson_bc poisson_bc;
   poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
@@ -238,25 +163,275 @@ test_3(){
   poisson_bc.lo_value[0].v[0] = 0.;
   poisson_bc.up_value[0].v[0] = 0.;
 
+  struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   struct gkyl_array *epsilon = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
-  struct gkyl_array *phi= gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-                                            
-  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, &basis, basis, local, local_ext, epsilon, poisson_bc, false);
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_array *epsilon_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(epsilon_dev, epsilon);
+  struct gkyl_array *phi_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+#else
+  struct gkyl_array *phi_dev = phi;
+  struct gkyl_array *epsilon_dev = epsilon;
+#endif
+
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis_on_dev, basis, local, local_ext, epsilon_dev, poisson_bc, use_gpu);
   gkyl_line_fem_poisson_advance(line_fem_poisson, field, phi);
-  gkyl_line_fem_poisson_release(line_fem_poisson);
   gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
 
+  // project analytic solution
+  struct gkyl_array *sol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *proj_sol = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &phi_func_zdep_nd, 0);
+  gkyl_proj_on_basis_advance(proj_sol, 0.0, &local, sol);
+  gkyl_proj_on_basis_release(proj_sol);
+  gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
+
+  double l2 = calc_l2_avg(grid, local,local_ext, basis, phi, sol);
+  printf("l2 = %g\n", l2);
+
+  gkyl_line_fem_poisson_release(line_fem_poisson);
+  gkyl_fem_parproj_release(parproj);
+#ifdef gkyl_have_cuda
+  gkyl_cu_free(basis_on_dev);
+  gkyl_array_release(field_dev);
+  gkyl_array_release(phi_dev);
+  gkyl_array_release(epsilon_dev);
+#endif
+  gkyl_array_release(field);
+  gkyl_array_release(phi);
+  gkyl_array_release(epsilon);
+
+
+}
+
+void
+test_simplez_dd_nxnz(int nx, int ny){
+  // create the 2d field
+  // create xz grid
+  double lower[] = { -M_PI, -M_PI }, upper[] = { M_PI, M_PI };
+  int cells[] = { nx, ny };
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+
+  //ranges
+  struct gkyl_range local, local_ext;
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+  // basis function
+  int poly_order = 1;
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 2, poly_order);
+
+  bool use_gpu = false;
+#ifdef GKYL_HAVE_CUDA
+  use_gpu = true;
+  struct gkyl_basis *basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_serendip_cu_dev(basis_on_dev, 2, poly_order);
+#else
+  struct gkyl_basis *basis_on_dev = &basis;
+#endif
+
+  // project initial function on 2d field
+  struct gkyl_array *field_discont = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &rho_func_simplez_dd, 0);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont);
+  gkyl_proj_on_basis_release(proj);
+  gkyl_grid_sub_array_write(&grid, &local, field_discont, "in_field.gkyl");
+
+  struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(field_dev, field);
+#else
+  struct gkyl_array *field_dev = field;
+#endif
+
+  struct gkyl_array *weight=0;
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
+  gkyl_fem_parproj_set_rhs(parproj, field_discont, field_discont);
+  gkyl_fem_parproj_solve(parproj, field);
+
+
+  struct gkyl_poisson_bc poisson_bc;
+  poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
+  poisson_bc.lo_value[0].v[0] = 0.;
+  poisson_bc.up_value[0].v[0] = 0.;
+
+  struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *epsilon = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_array *epsilon_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(epsilon_dev, epsilon);
+  struct gkyl_array *phi_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+#else
+  struct gkyl_array *phi_dev = phi;
+  struct gkyl_array *epsilon_dev = epsilon;
+#endif
+                                            
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis_on_dev, basis, local, local_ext, epsilon_dev, poisson_bc, use_gpu);
+  gkyl_line_fem_poisson_advance(line_fem_poisson, field_dev, phi_dev);
+#ifdef GKYL_HAVE_CUDA
+  gkyl_array_copy(phi, phi_dev);
+#endif
+  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
+
+  // project analytic solution
+  struct gkyl_array *sol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *proj_sol = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &phi_func_simplez_dd, 0);
+  gkyl_proj_on_basis_advance(proj_sol, 0.0, &local, sol);
+  gkyl_proj_on_basis_release(proj_sol);
+  gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
+
+  double l2 = calc_l2_avg(grid, local,local_ext, basis, phi, sol);
+  printf("l2 = %g\n", l2);
+
+  gkyl_line_fem_poisson_release(line_fem_poisson);
+  gkyl_fem_parproj_release(parproj);
+#ifdef gkyl_have_cuda
+  gkyl_cu_free(basis_on_dev);
+  gkyl_array_release(field_dev);
+  gkyl_array_release(phi_dev);
+  gkyl_array_release(epsilon_dev);
+#endif
+  gkyl_array_release(field);
+  gkyl_array_release(phi);
+  gkyl_array_release(epsilon);
+
+}
+
+void
+test_zind_dd_nxnz(int nx, int ny){
+  // create the 2d field
+  // create xz grid
+  double lower[] = { -M_PI, -1 }, upper[] = { M_PI, 1 };
+  int cells[] = { nx, ny };
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+
+  //ranges
+  struct gkyl_range local, local_ext;
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+  // basis function
+  int poly_order = 1;
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 2, poly_order);
+
+  bool use_gpu = false;
+#ifdef GKYL_HAVE_CUDA
+  use_gpu = true;
+  struct gkyl_basis *basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+  gkyl_cart_modal_serendip_cu_dev(basis_on_dev, 2, poly_order);
+#else
+  struct gkyl_basis *basis_on_dev = &basis;
+#endif
+
+  // project initial function on 2d field
+  struct gkyl_array *field_discont = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &rho_func_zind_dd, 0);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont);
+  gkyl_proj_on_basis_release(proj);
+  gkyl_grid_sub_array_write(&grid, &local, field_discont, "in_field.gkyl");
+
+  struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(field_dev, field);
+#else
+  struct gkyl_array *field_dev = field;
+#endif
+
+  struct gkyl_array *weight=0;
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
+  gkyl_fem_parproj_set_rhs(parproj, field_discont, field_discont);
+  gkyl_fem_parproj_solve(parproj, field);
+
+  struct gkyl_poisson_bc poisson_bc;
+  poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
+  poisson_bc.lo_value[0].v[0] = 0.;
+  poisson_bc.up_value[0].v[0] = 0.;
+
+  struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *epsilon = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_shiftc(epsilon, sqrt(2.0), 0); 
+#ifdef GKYL_HAVE_CUDA
+  struct gkyl_array *epsilon_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(epsilon_dev, epsilon);
+  struct gkyl_array *phi_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+#else
+  struct gkyl_array *phi_dev = phi;
+  struct gkyl_array *epsilon_dev = epsilon;
+#endif
+                                            
+  struct gkyl_line_fem_poisson* line_fem_poisson = gkyl_line_fem_poisson_new(grid, basis_on_dev, basis, local, local_ext, epsilon_dev, poisson_bc, use_gpu);
+  gkyl_line_fem_poisson_advance(line_fem_poisson, field_dev, phi_dev);
+#ifdef GKYL_HAVE_CUDA
+  gkyl_array_copy(phi, phi_dev);
+#endif
+  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
+
+  // project analytic solution
+  struct gkyl_array *sol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *proj_sol = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &phi_func_zind_dd, 0);
+  gkyl_proj_on_basis_advance(proj_sol, 0.0, &local, sol);
+  gkyl_proj_on_basis_release(proj_sol);
+  gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
+
+
+  double l2 = calc_l2_avg(grid, local,local_ext, basis, phi, sol);
+  printf("l2 = %g\n", l2);
+
+  gkyl_line_fem_poisson_release(line_fem_poisson);
+  gkyl_fem_parproj_release(parproj);
+#ifdef gkyl_have_cuda
+  gkyl_cu_free(basis_on_dev);
+  gkyl_array_release(field_dev);
+  gkyl_array_release(phi_dev);
+  gkyl_array_release(epsilon_dev);
+#endif
+  gkyl_array_release(field);
+  gkyl_array_release(phi);
+  gkyl_array_release(epsilon);
+
+}
+
+
+
+void test_zind_dd(){
+  printf("\n");
+  int ny = 32;
+  for(int nx = 2; nx < 49; nx*=2){
+    printf("nx, ny = %d, %d\n", nx, ny);
+    test_zind_dd_nxnz(nx,ny);
+  }
+}
+void test_simplez_dd(){
+  printf("\n");
+  int ny = 32;
+  for(int nx = 2; nx < 49; nx*=2){
+    printf("nx, ny = %d, %d\n", nx, ny);
+    test_simplez_dd_nxnz(nx,ny);
+  }
+}
+void test_zdep_nd(){
+  printf("\n");
+  int ny = 32;
+  for(int nx = 2; nx < 17; nx*=2){
+    printf("nx, ny = %d, %d\n", nx, ny);
+    test_zdep_nd_nxnz(nx,ny);
+  }
 }
 
 
 
 TEST_LIST = {
-  //{ "test_1", test_1},
-  //{ "test_2", test_2},
-  //{ "test_3", test_3},
-#ifdef GKYL_HAVE_CUDA
-  {"test_2_cu", test_2_cu},
-#endif
+  { "test_zind_dd", test_zind_dd},
+  //{ "test_simplez_dd", test_simplez_dd},
+  //{ "test_zdep_nd", test_zdep_nd},
   { NULL, NULL },
 };

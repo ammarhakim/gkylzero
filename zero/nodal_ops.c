@@ -144,44 +144,31 @@ gkyl_nodal_ops_m2n_deflated(const struct gkyl_nodal_ops *nodal_ops,
   }
 #endif 
   int num_basis = deflated_cbasis->num_basis;
-  // Remove last dimension.
-  int remDir[3] = {0, 0, 0};
-  int locDir[3] = {0, 0, 0};
-  remDir[nrange->ndim - 1] = 1;
-  locDir[nrange->ndim - 1] = extra_idx;
-  // Deflate the nodal range before iterating
-  struct gkyl_range def_nrange;
-  gkyl_range_deflate(&def_nrange, nrange, remDir, locDir);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &def_nrange);
   int idx[3];
-  long lin_nidx;
-  while (gkyl_range_iter_next(&iter)) { // iter.idx = nidx
-    lin_nidx = gkyl_range_idx(&def_nrange, idx);
+  int midx[3];
+  idx[deflated_grid->ndim] = extra_idx;
+  //while (gkyl_range_iter_next(&iter)) { // iter.idx = nidx
+  for(int linc1 = 0; linc1 < deflated_nrange->volume; linc1++){
+    gkyl_sub_range_inv_idx(deflated_nrange, linc1, idx);
+    long linc = gkyl_range_idx(nrange, idx);
     int node_idx = 0;
     for( int j = 0; j < deflated_grid->ndim; j++){
       int mod = j==0 ? 1 : 0;
-      if (iter.idx[j] == nrange->upper[j]) {
-        idx[j] = iter.idx[j];
+      if (idx[j] == deflated_nrange->upper[j]) {
+        midx[j] = idx[j];
         node_idx += 2*j + mod;
       }
       else {
-        idx[j] = iter.idx[j] + 1;
+        midx[j] = idx[j] + 1;
       }
     }
-
-    lin_nidx = gkyl_range_idx(&def_nrange, iter.idx);
-    long lidx = gkyl_range_idx(deflated_update_range, idx);
+    long lidx = gkyl_range_idx(deflated_update_range, midx);
     const double *arr_p = gkyl_array_cfetch(deflated_modal_fld, lidx);
-    double *temp = gkyl_array_fetch(nodal_fld, lin_nidx);
-
-
+    double *temp = gkyl_array_fetch(nodal_fld, linc);
     const double *node_i  = gkyl_array_cfetch(nodal_ops->nodes, node_idx);
     for (int j=0; j<num_comp; ++j) {
       temp[j] = deflated_cbasis->eval_expand(node_i, &arr_p[j*num_basis]);
     }
-
-
   }
 }
 
