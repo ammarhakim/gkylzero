@@ -1001,7 +1001,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   } else { // partial reflection
 
     double xBar, xSqBar;
-    double fReflSurfXYMu[2][6] = {0.}; 
+    double fReflSurfXYMu[2][3] = {0.}; 
 
     // node (mu)_0 
     if (wv > 0.) {
@@ -1122,7 +1122,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   } else { // partial reflection
 
     double xBar, xSqBar;
-    double fReflSurfXYMu[2][6] = {0.}; 
+    double fReflSurfXYMu[2][3] = {0.}; 
 
     // node (mu)_0 
     if (wv > 0.) {
@@ -1243,7 +1243,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   } else { // partial reflection
 
     double xBar, xSqBar;
-    double fReflSurfXYMu[2][6] = {0.}; 
+    double fReflSurfXYMu[2][3] = {0.}; 
 
     // node (mu)_0 
     if (wv > 0.) {
@@ -1364,7 +1364,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   } else { // partial reflection
 
     double xBar, xSqBar;
-    double fReflSurfXYMu[2][6] = {0.}; 
+    double fReflSurfXYMu[2][3] = {0.}; 
 
     // node (mu)_0 
     if (wv > 0.) {
@@ -1539,7 +1539,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   } else { // partial reflection
 
     double xBar, xSqBar;
-    double fReflSurfXYMu[2][6] = {0.}; 
+    double fReflSurfXYMu[2][3] = {0.}; 
 
     // node (mu)_0 
     if (wv > 0.) {
@@ -1660,7 +1660,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   } else { // partial reflection
 
     double xBar, xSqBar;
-    double fReflSurfXYMu[2][6] = {0.}; 
+    double fReflSurfXYMu[2][3] = {0.}; 
 
     // node (mu)_0 
     if (wv > 0.) {
@@ -1781,7 +1781,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   } else { // partial reflection
 
     double xBar, xSqBar;
-    double fReflSurfXYMu[2][6] = {0.}; 
+    double fReflSurfXYMu[2][3] = {0.}; 
 
     // node (mu)_0 
     if (wv > 0.) {
@@ -1902,7 +1902,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   } else { // partial reflection
 
     double xBar, xSqBar;
-    double fReflSurfXYMu[2][6] = {0.}; 
+    double fReflSurfXYMu[2][3] = {0.}; 
 
     // node (mu)_0 
     if (wv > 0.) {
