@@ -42,6 +42,8 @@ double calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_
   double l2_sum = 0.0;
   for(int i = 0; i <basis.num_basis; i++)
     l2_sum += l2[i];
+
+  gkyl_array_release(diff);
   return l2_sum;
 }
 
