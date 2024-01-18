@@ -23,6 +23,23 @@ void evalFunc2x(double t, const double *xn, double* restrict fout, void *ctx)
   double sig = 0.3;
   fout[0] = exp(-(pow(x-mu,2))/(2.0*sig*sig))*sin(2.*M_PI*y);
 }
+void
+evalFunc_2x_zdep_dirichlet(double t, const double *xn, double *fout, void *ctx)
+{
+  double x = xn[0];
+  double z = xn[1];
+  fout[0] = cos(5*z)*cos(x);
+}
+
+void
+evalFunc_2x_simplez_dirichlet(double t, const double *xn, double *fout, void *ctx)
+{
+  double x = xn[0];
+  double z = xn[1];
+  fout[0] = 4*z*cos(2*x);
+}
+
+
 
 void evalFunc3x(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -80,6 +97,78 @@ apply_periodic_bc(struct gkyl_array *buff, struct gkyl_array *fld, const int dir
   gkyl_array_copy_to_buffer(buff->data, fld, &(sgr.upper_skin[dir]));
   gkyl_array_copy_from_buffer(fld, buff->data, &(sgr.lower_ghost[dir]));
 }
+
+// Check continuity along last dim in 2x
+void check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field)
+{
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid.ndim, basis.num_basis);
+  basis.node_list(gkyl_array_fetch(nodes, 0));
+  // Check continuity
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  int nidx;
+  long lin_nidx;
+  int idx[3];
+  const double *node_i  ;
+
+  while (gkyl_range_iter_next(&iter)) {
+    if (iter.idx[1] != range.upper[1]) {
+      long lidx = gkyl_range_idx(&range, iter.idx);
+      idx[0] = iter.idx[0];
+      idx[1] = iter.idx[1] + 1;
+      long lidx_up = gkyl_range_idx(&range, idx);
+      double *arr = gkyl_array_fetch(field, lidx);
+      double *arr_up = gkyl_array_fetch(field, lidx_up);
+      node_i  = gkyl_array_cfetch(nodes, 2);
+      double temp1 = basis.eval_expand(node_i, arr);
+      node_i  = gkyl_array_cfetch(nodes, 3);
+      double temp2 = basis.eval_expand(node_i, arr);
+      node_i  = gkyl_array_cfetch(nodes, 0);
+      double temp_up1 = basis.eval_expand(node_i, arr_up);
+      node_i  = gkyl_array_cfetch(nodes, 1);
+      double temp_up2 = basis.eval_expand(node_i, arr_up);
+      TEST_CHECK( gkyl_compare(temp1, temp_up1, 1e-12) );
+      TEST_CHECK( gkyl_compare(temp2, temp_up2, 1e-12) );
+    }
+  }
+
+}
+
+// Check that two fields have the same boundary values in 2nd dimension in 2x
+void check_bc_2x(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
+{
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid.ndim, basis.num_basis);
+  basis.node_list(gkyl_array_fetch(nodes, 0));
+  // Check continuity
+  int nidx;
+  long lin_nidx;
+  const double *node_i;
+  int remDir[2] = {0,1};
+  int locDir[2] = {0, range.upper[1]};
+  struct gkyl_range defr;
+  gkyl_range_deflate(&defr, &range, remDir, locDir);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &defr);
+  while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&defr, iter.idx);
+      double *arr1 = gkyl_array_fetch(field1, lidx);
+      double *arr2 = gkyl_array_fetch(field2, lidx);
+      node_i  = gkyl_array_cfetch(nodes, 2);
+      double temp_11 = basis.eval_expand(node_i, arr1);
+      node_i  = gkyl_array_cfetch(nodes, 3);
+      double temp_12 = basis.eval_expand(node_i, arr1);
+      node_i  = gkyl_array_cfetch(nodes, 2);
+      double temp_21 = basis.eval_expand(node_i, arr2);
+      node_i  = gkyl_array_cfetch(nodes, 3);
+      double temp_22 = basis.eval_expand(node_i, arr2);
+      TEST_CHECK( gkyl_compare(temp_11, temp_21, 1e-12) );
+      TEST_CHECK( gkyl_compare(temp_12, temp_22, 1e-12) );
+  }
+
+}
+
+
 
 void
 test_1x(int poly_order, const bool isperiodic, bool use_gpu)
@@ -643,6 +732,60 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
 }
 
 void
+test_2x_dirichlet(){
+  double lower[] = { -M_PI, 0.0 }, upper[] = { 3*M_PI/4, 1.0 };
+  int cells[] = { 12, 8 };
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
+  struct gkyl_range local, local_ext;
+  int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+  int poly_order = 1;
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 2, poly_order);
+  
+  // project initial function on 2d field
+  struct gkyl_array *field_discont = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &evalFunc_2x_zdep_dirichlet, 0);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont);
+  gkyl_proj_on_basis_release(proj);
+
+  struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  bool use_gpu = false;
+#ifdef GKYL_HAVE_CUDA
+  use_gpu = true;
+  struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(field_dev, field);
+  struct gkyl_array *field_discont_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  gkyl_array_copy(field_discont_dev, field_discont);
+#else
+  struct gkyl_array *field_dev = field;
+  struct gkyl_array *field_discont_dev = field_discont;
+#endif
+
+  // Smooth it
+  struct gkyl_array *weight=0;
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
+  gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
+  gkyl_fem_parproj_solve(parproj, field_dev);
+#ifdef GKYL_HAVE_CUDA
+  gkyl_array_copy(field, field_dev);
+#endif
+  check_continuity_2x(grid, local, basis, field);
+  check_bc_2x(grid, local, basis, field, field_discont);
+
+#ifdef GKYL_HAVE_CUDA
+  gkyl_array_release(field_dev);
+  gkyl_array_release(field_discont_dev);
+#endif
+  gkyl_array_release(field);
+  gkyl_array_release(field_discont);
+  gkyl_fem_parproj_release(parproj);
+}
+
+
+
+void
 test_3x(const int poly_order, const bool isperiodic, bool use_gpu)
 {
   double lower[] = {-2., -2., -0.5}, upper[] = {2., 2., 0.5};
@@ -1101,6 +1244,7 @@ TEST_LIST = {
   { "test_3x_p1_periodic", test_3x_p1_periodic },
   { "test_3x_p2_nonperiodic", test_3x_p2_nonperiodic },
   { "test_3x_p2_periodic", test_3x_p2_periodic },
+  { "test_2x_dirichlet", test_2x_dirichlet},
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_1x_p1_nonperiodic", gpu_test_1x_p1_nonperiodic },
   { "gpu_test_1x_p1_periodic", gpu_test_1x_p1_periodic },
