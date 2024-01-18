@@ -231,7 +231,7 @@ test_sr_euler_waves2()
 void
 test_sr_euler_cold()
 {
-  double gas_gamma = 1.3333;
+  double gas_gamma = 1.0; //1.3333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
 
   double vl[5] = { 1.0, 0.0999, 0.02, 0.03, 0 };

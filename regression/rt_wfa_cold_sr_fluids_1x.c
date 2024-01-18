@@ -17,9 +17,9 @@ evalColdInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   if (xn[0]<=10.e-6) {
     rho = 1.0e10;
   } else if ((xn[0]>10.e-6) && (xn[0]<30.e-6)) {
-    rho = 20.e23*((xn[0]*5.e4 + -0.5));
+    rho = 1.0e10 + 20.e23*((xn[0]*5.e4 + -0.5));
   } else {
-    rho = 20.e23;
+    rho = 1.0e10 + 20.e23;
   }  
 
   // no initial momentum density (fout = rho*u)
@@ -44,16 +44,16 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
 
   // laser profile:
   const double position    = -1.0e-6;         // This point is on the laser plane
-  const double E_max        = 16.e12;       // Maximum amplitude of the laser field (in V/m)
+  const double E_max        = 10.e12;       // Maximum amplitude of the laser field (in V/m)
   const double profile_duration = 15.e-15;  // The duration of the laser (in s)
   const double profile_t_peak = 30.e-15;    // Time at which the laser reaches its peak (in s)
   const double wavelength = 0.8e-6;         // The wavelength of the laser (in m)
 
   // compute last edge
-  double xupper = 120.0e-6;
-  double xlaser = -1.0e-6;
-  double xlower = -30.0e-6;
-  double nx = 10240.0;
+  double xupper = 170.0e-6;
+  double xlaser = -11.0e-6;
+  double xlower = -50.0e-6;
+  double nx = 37548.0; // 18774.0; //10240.0;
   double dx = (xupper - xlower)/nx;
   double xLastEdge = xlaser+dx;
 
@@ -63,10 +63,12 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
   const double mu_0 = 12.56637061435917295385057353311801153679e-7;
 
   //Laser amplitude (t + dt/2.0)
-  const double ad_hoc_factor = 16.0*10*2.4e5;
-  if (xn[0]<=xLastEdge && xn[0]>=(xLastEdge-dx)){
+  //const double ad_hoc_factor = 16.0*10*2.4e5*(1.1795);
+  const double factor = 2.0*E_max/(mu_0*c*dx);
+  if (xn[0]<=xLastEdge && xn[0]>(xLastEdge-dx)){
     fout[0] = 0.0;
-    fout[1] = ad_hoc_factor*sin(2.0*pi*c*t/wavelength)*(2.0/(mu_0*c))*E_max * exp(- pow((t - profile_t_peak),2) / pow(profile_duration,2));
+    //fout[1] = ad_hoc_factor*sin(2.0*pi*c*t/wavelength)*(2.0/(mu_0*c))*E_max * exp(- pow((t - profile_t_peak),2) / pow(profile_duration,2));
+    fout[1] = 1.00*factor*sin(2.0*pi*c*t/wavelength)* exp(- pow((t - profile_t_peak),2) / pow(profile_duration,2)); // 1.01
     fout[2] = 0.0;
   } else {
     fout[0] = 0.0;
@@ -87,7 +89,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 10240);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 37548); // 18774
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -111,19 +113,31 @@ main(int argc, char **argv)
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
-  // VM app
+  struct gkyl_moment_species ion = {
+    .name = "ion",
+    .charge = 1.602176487e-19, .mass = 1.67262192e-27,
+
+    .equation = coldf_sr,
+    .split_type = GKYL_WAVE_FWAVE,
+    .evolve = 1,
+    .init = evalColdInit,
+
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+  };
+
+  // Fluid app
   struct gkyl_moment app_inp = {
     .name = "cold_sr_fluid_wfa",
 
     .ndim = 1,
-    .lower = { -30.0e-6 },
-    .upper = { 120.0e-6 }, 
+    .lower = { -50.0e-6 },
+    .upper = { 170.0e-6 }, 
     .cells = { NX },
 
-    .cfl_frac = 0.9,
+    .cfl_frac = 0.90, // 0.9,
 
-    .num_species = 1,
-    .species = { elc },
+    .num_species = 2,
+    .species = { elc, ion }, //, ion 
     .field = {
       .epsilon0 = 8.854187817620389850536563031710750260608e-12, 
       .mu0 = 12.56637061435917295385057353311801153679e-7,
@@ -133,18 +147,19 @@ main(int argc, char **argv)
       .app_current_func = evalAppCurrent,
       .use_explicit_em_coupling = 1,
 
-      //.bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
       .bcx = { GKYL_FIELD_COPY, GKYL_FIELD_COPY },
     }
   };
+
+
 
   // create app object
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend =  5.e-13; //5.0e-13;
+  double tcurr = 0.0, tend =  5.8e-13; //7.0e-12;
 
-  int nframe = 5;
+  int nframe = 22;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = (tend-tcurr)/nframe };
 
@@ -190,3 +205,4 @@ main(int argc, char **argv)
   
   return 0;
 }
+

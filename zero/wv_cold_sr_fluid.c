@@ -3,9 +3,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_wv_cold_sr_fluid.h>
 
-// Files for polynomial solve
-#include <gkyl_math.h>
-
 #define NUX 1
 #define NUY 2
 #define NUZ 3
@@ -23,7 +20,7 @@ struct cold_sr {
   double vl[3], vr[3];
 };
 
-void
+static void
 cold_sr_fluid_flux(const double q[4], double *flux)
 {
   // Vx = NUx/sqrt(N^2 + NU^2/c^2) 
@@ -95,81 +92,6 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 }
 
 
-double 
-compute_sr_roe_averaged_velocity_cold_limit(const double ql[4], const double qr[4], const double c, double *u) 
-{
-
-  // As long as one density is positive on both sides:
-  if (ql[0] > 0.0 || qr[0] > 0.0){
-
-    // output 
-    double v_hat;
-
-    // isolate variables (right/left), normalize, u & v by c
-    double rhor = qr[0];
-    double urx = qr[1]/(c*qr[0]);
-    double ury = qr[2]/(c*qr[0]);
-    double urz = qr[3]/(c*qr[0]);
-    double rhol = ql[0];
-    double ulx = ql[1]/(c*ql[0]);
-    double uly = ql[2]/(c*ql[0]);
-    double ulz = ql[3]/(c*ql[0]);
-
-    // compute the constants:
-    double gammal = sqrt(1.0 + (ulx*ulx + uly*uly + ulz*ulz));
-    double gammar = sqrt(1.0 + (urx*urx + ury*ury + urz*urz));
-    double vlx = ulx/gammal;
-    double vrx = urx/gammar;
-    double vly = uly/gammal;
-    double vry = ury/gammar;
-    double vlz = ulz/gammal;
-    double vrz = urz/gammar;
-
-    //compute the primative vars
-    double rhol_prim = rhol/gammal;
-    double rhor_prim = rhor/gammar;
-
-    // Compute the primative-parameterization state vector w
-    // these are the averages of the left and right states
-    double k = sqrt(rhol_prim) + sqrt(rhor_prim);
-    double w0 = sqrt(rhol_prim)*gammal + sqrt(rhor_prim)*gammar;
-    double w1 = sqrt(rhol_prim)*gammal*vlx + sqrt(rhor_prim)*gammar*vrx;
-    double w2 = sqrt(rhol_prim)*gammal*vly + sqrt(rhor_prim)*gammar*vry;
-    double w3 = sqrt(rhol_prim)*gammal*vlz + sqrt(rhor_prim)*gammar*vrz;
-
-    // Compute F^0 which is in terms of k, w state (These are our new conserved variables)
-    // q_avg = [N, NUx, NUy, Nuz]
-    double q_avg[4];
-    q_avg[0] = k*w0;
-    q_avg[1] = w0*w1;
-    q_avg[2] = w0*w2;
-    q_avg[3] = w0*w3;
-
-    // Recover u and v
-    u[0] = q_avg[1]/q_avg[0];
-    u[1] = q_avg[2]/q_avg[0];
-    u[2] = q_avg[3]/q_avg[0];
-
-
-    // convert back from u/c -> u
-    v_hat =  w1/w0; //u[0]/sqrt(1.0 + u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);
-    double other_v1 = w1/w0;
-    double other_v2 = 2*w0*w1/( k*k + w0*w0 + w1*w1 + w2*w2 + w3*w3 );
-    //double other_v3 = u[0]/sqrt(1.0 + u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);;
-    if (w1 != 0)
-      printf("Choice, Vx = w1/w0: %1.16e, 2*w0*w1/...: %1.16e\n",other_v1, other_v2);
-    u[0] = c*u[0];
-    u[1] = c*u[1];
-    u[2] = c*u[2];
-
-    // return the velocity
-    return v_hat*c;
-
-  } else {
-    return 0.0;
-  }
-}
-
 
 // Waves and speeds using Roe averaging
 // corrective terms
@@ -219,20 +141,15 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     double w2 = sqrt(rhol_prim)*gammal*vly/c + sqrt(rhor_prim)*gammar*vry/c;
     double w3 = sqrt(rhol_prim)*gammal*vlz/c + sqrt(rhor_prim)*gammar*vrz/c;
 
-    // Compute F^0 which is in terms of k, w state (These are our new conserved variables)
-    // q_avg = [N, NUx, NUy, Nuz]
-    double q_avg[4];
-    q_avg[0] = c*k*w0;
-    q_avg[1] = c*w0*w1;
-    q_avg[2] = c*w0*w2;
-    q_avg[3] = c*w0*w3;
-
     // Assign the jump in the state vector, d = (d0,d1,d2,d3) 
     double d0 = qr[0] - ql[0]; 
     double d1 = qr[1] - ql[1]; 
     double d2 = qr[2] - ql[2]; 
     double d3 = qr[3] - ql[3]; 
 
+    bool turn_on_eigen_proj = 1;
+
+    if (turn_on_eigen_proj){
     // Wave 1: eigenvalue is w1/w0 repeated, three waves are lumped into one
     // waves = Vx*[N, NUx, NUy, Nuz]
     wv = &waves[0];
@@ -254,12 +171,41 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     wv[2] = -(2 * c * w0 * w2 * (d1 * c * c * k * k - 2 * d0 * c * c * k * w1 + d1 * w0 * w0 - d1 * w1 * w1 - 2 * d2 * w1 * w2 - 2 * d3 * w1 * w3 + d1 * w2 * w2 + d1 * w3 * w3)) / ((c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3) * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
     wv[3] = -(2 * c * w0 * w3 * (d1 * c * c * k * k - 2 * d0 * c * c * k * w1 + d1 * w0 * w0 - d1 * w1 * w1 - 2 * d2 * w1 * w2 - 2 * d3 * w1 * w3 + d1 * w2 * w2 + d1 * w3 * w3)) / ((c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3) * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
     for (int i=0; i<4; ++i) if (isnan(wv[i])) wv[i] = 0;
-    s[1] = 2*c*w0*w1/( c*c*k*k + w0*w0 + w1*w1 + w2*w2 + w3*w3 );
+    s[1] = 2*c*w0*w1/( c*c*k*k + w0*w0 + w1*w1 + w2*w2 + w3*w3 ); // (c*w1)/w0;
     if (isnan(s[1])) s[1] = 0;
 
+    // Does not work well
+    } else {
+      double vel = (c*w1)/w0;
+      if (isnan(vel)) vel = 0;
+      if(vel<0) {
+        wv = &waves[0];
+        for(int m=0; m<4; ++m)
+          wv[m] = delta[m];
+
+        wv = &waves[4];
+        for(int m=0; m<4; ++m)
+          wv[m] = 0.0;
+      }
+      else {
+        wv = &waves[0];
+        for(int m=0; m<4; ++m)
+          wv[m] = 0.0;
+
+        wv = &waves[4];
+        for(int m=0; m<4; ++m)
+          wv[m] = delta[m];
+      }
+      s[0] = vel;
+      s[1] = vel;
+    }
+
+
     //double other_v3 = u[0]/sqrt(1.0 + u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);;
-    //if (w1 != 0)
-      //printf("Choice, Vx = w1/w0: %1.16e, 2*w0*w1/...: %1.16e\n",s[0], s[1]);
+    //if (w1 != 0){
+      //printf("Eigenvalues, Vx = w1/w0: %1.16e, 2*w0*w1/...: %1.16e\n",s[0], s[1]);
+      //printf("vxl: %1.16e, vxr: %1.16e\n\n",vlx,vrx);
+    //}
 
     //if (w1 != 0)
       //printf("(SET 2): wv[0]: %1.16e, wv[1]: %1.16e, wv[2]: %1.16e, wv[3]: %1.16e, s[1]: %1.16e\n",wv[0],wv[1],wv[2],wv[3],s[1]);
@@ -287,10 +233,9 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
-  printf("Q-Waves will not work with this system (L,R Eigenvectors have issues)\n");
+  printf("Q-Waves will not work with this system (L,R Eigenvectors are not unique)\n");
 }
 
-// First order solve
 static void
 ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,

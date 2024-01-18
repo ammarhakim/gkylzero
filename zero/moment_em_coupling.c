@@ -385,7 +385,7 @@ collision_source_update(const gkyl_moment_em_coupling *mes, double dt,
 
 
 static inline void
-higuera_cary_push(double u[3], const double q, const double m, const double dt,
+higuera_cary_push(double *u, const double q, const double m, const double dt,
 const double c, const double E[3], const double B[3])
 {
   const double qmdt = q*0.5*dt/m;
@@ -401,15 +401,15 @@ const double c, const double E[3], const double B[3])
   const double u_2_minus = u[2] + E_2;
 
   const double u_star = u_0_minus*(B_0/c) + u_1_minus*(B_1/c) + u_2_minus*(B_2/c); 
-  const double gamma_minus = sqrt(1 + (u_0_minus*u_0_minus + u_1_minus*u_1_minus + u_2_minus*u_2_minus)/(c*c)); 
+  const double gamma_minus = sqrt(1.0 + (u_0_minus*u_0_minus + u_1_minus*u_1_minus + u_2_minus*u_2_minus)/(c*c)); 
   const double dot_tau_tau = (B_0*B_0 + B_1*B_1 + B_2*B_2); 
   const double sigma = gamma_minus*gamma_minus - dot_tau_tau; 
-  const double gamma_new = sqrt(  0.5*(   sigma + sqrt( sigma*sigma + 4*(dot_tau_tau + u_star*u_star ) ) )  ); 
+  const double gamma_new = sqrt(  0.5*(   sigma + sqrt( sigma*sigma + 4.0*(dot_tau_tau + u_star*u_star ) ) )  ); 
 
   const double t_0 = B_0/gamma_new; 
   const double t_1 = B_1/gamma_new; 
   const double t_2 = B_2/gamma_new; 
-  const double s = 1/(1+(t_0*t_0 + t_1*t_1 + t_2*t_2)); 
+  const double s = 1.0/(1.0+(t_0*t_0 + t_1*t_1 + t_2*t_2)); 
 
   const double umt = u_0_minus*t_0 + u_1_minus*t_1 + u_2_minus*t_2;
   const double u_0_plus = s*( u_0_minus + umt*t_0 + (u_1_minus*t_2 - u_2_minus*t_1));
@@ -421,13 +421,18 @@ const double c, const double E[3], const double B[3])
 }
 
 static inline void
-update_euler(double f_euler_update[3], 
+update_euler(double *f_euler_update, 
  double En[3], const double tcurr, const double dt, const double eps0,
  const gkyl_moment_em_coupling *mes, double *fluids[GKYL_MAX_SPECIES], 
  const double *app_current, const double c)
 {
 
   int nfluids = mes->nfluids;
+
+  // init have only the external current at the current time/step
+  f_euler_update[0] = En[0] + dt*( -(1/eps0)*(app_current[0]) );
+  f_euler_update[1] = En[1] + dt*( -(1/eps0)*(app_current[1]) );
+  f_euler_update[2] = En[2] + dt*( -(1/eps0)*(app_current[2]) );
 
   // update per species:
   for (int n=0; n < nfluids; ++n) {
@@ -439,11 +444,6 @@ update_euler(double f_euler_update[3],
 
     // grab the density first
     double N = f[RHO];
-
-    // init have only the external current at the current time/step
-    f_euler_update[0] = En[0] + dt*( -(1/eps0)*(app_current[0]) );
-    f_euler_update[1] = En[1] + dt*( -(1/eps0)*(app_current[1]) );
-    f_euler_update[2] = En[2] + dt*( -(1/eps0)*(app_current[2]) );
 
     // only run update when there is a positive density
     if (N > 0.0){
@@ -480,28 +480,36 @@ e_field_source(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
   // compute c
   double c = 1.0/sqrt(mu0*epsilon0);
   double f_euler_update[3], f1[3], f2[3];
+  bool ssp_rk3_update = true;
 
-  // compute f1
-  struct gkyl_array *app_curr;
   //gkyl_fv_proj_advance(proj_app_curr, tcurr, sub_range, app_curr);
-  update_euler(f_euler_update, e, tcurr, dt, epsilon0, mes, fluids, app_current, c);
-  f1[0] = f_euler_update[0];
-  f1[1] = f_euler_update[1];
-  f1[2] = f_euler_update[2];
+  if (ssp_rk3_update){
+    update_euler(f_euler_update, e, tcurr, dt, epsilon0, mes, fluids, app_current, c);
+    f1[0] = f_euler_update[0];
+    f1[1] = f_euler_update[1];
+    f1[2] = f_euler_update[2];
 
-  // compute f2
-  //gkyl_fv_proj_advance(proj_app_curr, tcurr + dt, sub_range, app_curr);
-  update_euler(f_euler_update, f1, tcurr + dt, dt, epsilon0, mes, fluids, app_curr_s1, c);
-  f2[0] = (0.75)*e[0] + (0.25)*f_euler_update[0];
-  f2[1] = (0.75)*e[1] + (0.25)*f_euler_update[1];
-  f2[2] = (0.75)*e[2] + (0.25)*f_euler_update[2];
+    // compute f2
+    //gkyl_fv_proj_advance(proj_app_curr, tcurr + dt, sub_range, app_curr);
+    update_euler(f_euler_update, f1, tcurr + dt, dt, epsilon0, mes, fluids, app_curr_s1, c);
+    f2[0] = (0.75)*e[0] + (0.25)*f_euler_update[0];
+    f2[1] = (0.75)*e[1] + (0.25)*f_euler_update[1];
+    f2[2] = (0.75)*e[2] + (0.25)*f_euler_update[2];
 
-  // update f^{n+1}
-  //gkyl_fv_proj_advance(proj_app_curr, tcurr + dt/2.0, sub_range, app_curr);
-  update_euler(f_euler_update, f2, tcurr + dt/2.0, dt, epsilon0, mes, fluids, app_curr_s2, c);
-  em[EX] = (1.0/3.0)*e[0] + (2.0/3.0)*f_euler_update[0];
-  em[EY] = (1.0/3.0)*e[1] + (2.0/3.0)*f_euler_update[1];
-  em[EZ] = (1.0/3.0)*e[2] + (2.0/3.0)*f_euler_update[2];
+    // update f^{n+1}
+    //gkyl_fv_proj_advance(proj_app_curr, tcurr + dt/2.0, sub_range, app_curr);
+    update_euler(f_euler_update, f2, tcurr + dt/2.0, dt, epsilon0, mes, fluids, app_curr_s2, c);
+    em[EX] = (1.0/3.0)*e[0] + (2.0/3.0)*f_euler_update[0];
+    em[EY] = (1.0/3.0)*e[1] + (2.0/3.0)*f_euler_update[1];
+    em[EZ] = (1.0/3.0)*e[2] + (2.0/3.0)*f_euler_update[2];
+
+  //First order euler update
+  }else{ 
+    update_euler(f_euler_update, e, tcurr, dt, epsilon0, mes, fluids, app_current, c);
+    em[EX] = f_euler_update[0];
+    em[EY] = f_euler_update[1];
+    em[EZ] = f_euler_update[2];
+  }
 }
 
 
