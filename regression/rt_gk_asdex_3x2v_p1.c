@@ -40,25 +40,25 @@ struct gk_asdex_ctx {
 };
 
 void shaped_pfunc_upper(double s, double* RZ){
-    RZ[0] = 0.8 + (0.916 - 0.8)*s;
-    RZ[1] = -1.2 + (-1.329 + 1.2)*s;
+  RZ[0] = 0.8 + (0.916 - 0.8)*s;
+  RZ[1] = -1.2 + (-1.329 + 1.2)*s;
 }
 
 void shaped_pfunc_lower(double s, double* RZ){
-    RZ[0] = 1.6 + (1.8 - 1.6)*s;
-    RZ[1] = -1.26 + (-1.1 + 1.26)*s;
+  RZ[0] = 1.6 + (1.8 - 1.6)*s;
+  RZ[1] = -1.26 + (-1.1 + 1.26)*s;
 }
 
 struct gkyl_tok_geo_efit_inp inp = {
-    // psiRZ and related inputs
-    .filepath = "./efit_data/asdex.geqdsk",
-    .rzpoly_order = 2,
-    .fluxpoly_order = 1,
-    .plate_spec = true,
-    .plate_func_lower = shaped_pfunc_lower,
-    .plate_func_upper = shaped_pfunc_upper,
-    .quad_param = {  .eps = 1e-10 }
-  };
+  // psiRZ and related inputs
+  .filepath = "./efit_data/asdex.geqdsk",
+  .rzpoly_order = 2,
+  .fluxpoly_order = 1,
+  .plate_spec = true,
+  .plate_func_lower = shaped_pfunc_lower,
+  .plate_func_upper = shaped_pfunc_upper,
+  .quad_param = {  .eps = 1e-10 }
+};
 
 struct gkyl_tok_geo_grid_inp ginp = {
   .ftype = GKYL_SOL_SN_LO,
@@ -94,16 +94,16 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double source_density = 0;
   double source_floor = 1e-10;
   if (x < x_source + 3*lambda_source)
-     source_floor = 1e-2;
+    source_floor = 1e-2;
   source_density = fmax(exp(-(x-x_source)*(x-x_source)/((2*lambda_source)*(2*lambda_source))), source_floor);
 
   // find source temp at z = 0
   double source_temp = 0;
   double eV = GKYL_ELEMENTARY_CHARGE;
   if (x < x_source + 3*lambda_source)
-     source_temp = 90*eV;
+    source_temp = 90*eV;
   else
-     source_temp = 5*eV;
+    source_temp = 5*eV;
 
   // now compute initial desity
   double effective_source = 5.2e23*fmax(source_density, floor);
@@ -112,9 +112,9 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   //double perturb = 1e-3*(random0to1()-0.5)*2.0;
   double perturb = 0;
   if (fabs(z) <= Ls)
-     fout[0]  = n_peak*(1+sqrt(1-(z/Ls)*(z/Ls)))/2*(1+perturb);
+    fout[0]  = n_peak*(1+sqrt(1-(z/Ls)*(z/Ls)))/2*(1+perturb);
   else
-     fout[0] = n_peak/2*(1+perturb);
+    fout[0] = n_peak/2*(1+perturb);
 }
 
 void
@@ -132,9 +132,9 @@ eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double x_source = app->x_source;
   double eV = GKYL_ELEMENTARY_CHARGE;
   if (x < x_source + 3*lambda_source)
-     fout[0] = 85*eV;
+    fout[0] = 85*eV;
   else
-     fout[0] = 5*eV;
+    fout[0] = 5*eV;
 }
 
 void
@@ -146,9 +146,9 @@ eval_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double x_source = app->x_source;
   double eV = GKYL_ELEMENTARY_CHARGE;
   if (x < x_source + 3*lambda_source)
-     fout[0] = 85*eV;
+    fout[0] = 85*eV;
   else
-     fout[0] = 5*eV;
+    fout[0] = 5*eV;
 }
 
 void
@@ -161,11 +161,11 @@ eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_REST
   double Lz = app->Lz;
   double source_floor = 1e-10;
   if (x < x_source + 3*lambda_source)
-     source_floor = 1e-2;
+    source_floor = 1e-2;
   if (fabs(z) < Lz/4)
-     fout[0] = 3.2e23*fmax(exp(-(x-x_source)*(x-x_source)/((2*lambda_source)*(2*lambda_source))), source_floor);
+    fout[0] = 3.2e23*fmax(exp(-(x-x_source)*(x-x_source)/((2*lambda_source)*(2*lambda_source))), source_floor);
   else
-     fout[0] = 3.2e23*1e-40;
+    fout[0] = 3.2e23*1e-40;
 }
 
 void
@@ -183,9 +183,9 @@ eval_temp_elc_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
   double x_source = app->x_source;
   double eV = GKYL_ELEMENTARY_CHARGE;
   if (x < x_source + 3*lambda_source)
-     fout[0] = 90*eV;
+    fout[0] = 90*eV;
   else
-     fout[0] = 5*eV;
+    fout[0] = 5*eV;
 }
 
 void
@@ -197,9 +197,9 @@ eval_temp_ion_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
   double x_source = app->x_source;
   double eV = GKYL_ELEMENTARY_CHARGE;
   if (x < x_source + 3*lambda_source)
-     fout[0] = 90*eV;
+    fout[0] = 90*eV;
   else
-     fout[0] = 5*eV;
+    fout[0] = 5*eV;
 }
 
 void
