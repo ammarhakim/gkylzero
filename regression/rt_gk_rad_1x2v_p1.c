@@ -132,8 +132,8 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 0.75*mi*(4.0*vtIon)*(4.0*vtIon)/(2.0*B0);
 
-  double finalTime = 1.0e-6; 
-  double numFrames = 1;
+  double finalTime = 600.0e-12; // Because it crashes at about 5e-8 
+  double numFrames = 10;
 
   struct gk_rad_ctx ctx = {
     .chargeElc = qe, 
@@ -183,8 +183,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 2);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 2);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 2);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 160);
+  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 80);
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -211,16 +211,21 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
     },
     
-    /*.radiation = {
+    .radiation = {
       .radiation_id = GKYL_GK_RADIATION, 
       .num_cross_collisions = 1, 
       .collide_with = { "ion" },
-      .a = {0.153650876536253},
+      .a = {0.153650876536253}, // H0 fit params
       .alpha = {8000.006932403581},
       .beta = {0.892102642790662},
       .gamma = {-3.923194017288736},
       .v0 = {3.066473173090881},
-      },*/
+      /*.a = {0.4611}, // Ar0 fit params
+      .alpha = {37.9754},
+      .beta = {58.5735},
+      .gamma = {-3.874},
+      .v0 = {3.7486},*/
+      },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
