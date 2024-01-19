@@ -380,7 +380,7 @@ eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   double z_max = app->z_max;
   if (fabs(z) <= z_m)
   {
-    fout[0] = app->Ti_par0 * tanh(3 * z_m * fabs(z_m - fabs(z)));
+    fout[0] = (app->Ti_par0 - app->Ti_par_m) * tanh(3 * z_m * fabs(z_m - fabs(z))) + app->Ti_par_m;
   }
   else
   {
@@ -396,13 +396,9 @@ eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   double z = z_xi(xn[0], psi, ctx);
   double z_m = app->z_m;
   double z_max = app->z_max;
-  //tiperp_m = 15 ish kev
-  //tiperp_0 = 10 kev
-  //tipar_0 = 7.5
-  //tipar_m = 1 kev
   if (fabs(z) <= z_m)
   {
-    fout[0] = app->Ti_perp0 + ((tanh((fabs(z) - z_m) * 4 * z_m)) / 2 + 0.5) * (app->Ti_perp_m - app->Ti_perp0);
+    fout[0] = (app->Ti_perp_m - app->Ti_perp0) * ((tanh((fabs(z) - z_m * 0.8) * 10 * z_m)) / 2 + 0.5) + app->Ti_perp0;
   }
   else
   {
@@ -654,7 +650,7 @@ create_ctx(void)
   double TSrcFloorIon = TSrc0Ion / 8.0;
 
   // Grid parameters
-  double vpar_max_ion = 8 * vti;
+  double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int num_cell_vpar = 64; // Number of cells in the paralell velocity direction 96
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
@@ -799,7 +795,7 @@ int main(int argc, char **argv)
     .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = {NV, NMU},
     .polarization_density = ctx.n0,
-    .is_maxwellian = true,
+    .is_bimaxwellian = true,
     .ctx_density = &ctx,
     .init_density = eval_density_ion,
     .ctx_upar = &ctx,
@@ -838,7 +834,7 @@ int main(int argc, char **argv)
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_mirror_adiabatic_elc_1x2v_p1_nonuniform",
+    .name = "gk_mirror_adiabatic_elc_1x2v_p1_nonuniform_20vt",
     .cdim = 1,
     .vdim = 2,
     .lower = {ctx.z_min},
