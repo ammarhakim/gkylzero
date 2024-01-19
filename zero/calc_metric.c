@@ -4,7 +4,6 @@
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
-
 #include <gkyl_array_ops_priv.h>
 
 gkyl_calc_metric*
@@ -18,6 +17,7 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_gri
   up->grid = grid;
   up->use_gpu = use_gpu;
   up->num_cells = up->grid->cells;
+  up->n2m = gkyl_nodal_ops_new(up->cbasis, up->grid, up->use_gpu);
   return up;
 }
 
@@ -109,8 +109,8 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, s
       }
     }
   }
-  gkyl_nodal_ops_n2m(up->cbasis, up->grid, nrange, update_range, 6, gFld_nodal, gFld);
-  gkyl_nodal_ops_n2m(up->cbasis, up->grid, nrange, update_range, 9, tanvecFld_nodal, tanvecFld);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 6, gFld_nodal, gFld);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 9, tanvecFld_nodal, tanvecFld);
   gkyl_array_release(gFld_nodal);
   gkyl_array_release(tanvecFld_nodal);
 }
@@ -118,5 +118,6 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, s
 void
 gkyl_calc_metric_release(gkyl_calc_metric* up)
 {
+  gkyl_nodal_ops_release(up->n2m);
   gkyl_free(up);
 }

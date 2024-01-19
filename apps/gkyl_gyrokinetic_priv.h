@@ -43,6 +43,7 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_fem_poisson_perp.h>
 #include <gkyl_fem_poisson.h>
+#include <gkyl_line_fem_poisson.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_fromfile.h>
@@ -467,6 +468,8 @@ struct gk_field {
 
   struct gkyl_fem_poisson *fem_poisson; // general Poisson solve to be used for axisymmetric calculations
                                                   // - nabla . (epsilon * nabla phi) - kSq * phi = rho
+                                                  //
+  struct gkyl_line_fem_poisson *line_fem_poisson; // poisson solver which solves on lines in x
 
   struct gkyl_array_integrate *calc_em_energy;
   double *em_energy_red; // memory for use in GPU reduction of EM energy

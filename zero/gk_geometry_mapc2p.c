@@ -152,7 +152,9 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
     }
   }
 
-  gkyl_nodal_ops_n2m(&up->basis, &up->grid, nrange, &up->range, 3, mc2p_nodal, mc2p);
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
+  gkyl_nodal_ops_n2m(n2m, &up->basis, &up->grid, nrange, &up->range, 3, mc2p_nodal, mc2p);
+  gkyl_nodal_ops_release(n2m);
 
   char str1[50] = "xyz.gkyl";
   char str2[50] = "allxyz.gkyl";
