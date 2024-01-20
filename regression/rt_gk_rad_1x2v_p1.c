@@ -183,8 +183,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 2);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 2);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 2);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 160);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 80);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 640);
+  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 320);
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -215,16 +215,19 @@ main(int argc, char **argv)
       .radiation_id = GKYL_GK_RADIATION, 
       .num_cross_collisions = 1, 
       .collide_with = { "ion" },
-      .a = {0.153650876536253}, // H0 fit params
+      /*.a = {0.153650876536253}, // H0 fit params
       .alpha = {8000.006932403581},
       .beta = {0.892102642790662},
       .gamma = {-3.923194017288736},
-      .v0 = {3.066473173090881},
-      /*.a = {0.4611}, // Ar0 fit params
+      .v0 = {3.066473173090881},*/
+      .z = 1,
+      .charge_state = 0,
+      .num_of_densities = 1, // Must be 1 for now
+      .a = {0.4611}, // Ar0 fit params
       .alpha = {37.9754},
       .beta = {58.5735},
       .gamma = {-3.874},
-      .v0 = {3.7486},*/
+      .v0 = {3.7486},
       },
     
     .num_diag_moments = 7,
