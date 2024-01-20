@@ -29,7 +29,7 @@ test_deep_core()
 
   struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
-      .filepath = "./efit_data/input.geqdsk",
+      .filepath = "./efit_data/step.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
       .plate_spec = false,
@@ -90,7 +90,7 @@ test_boundary()
 
   struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
-      .filepath = "./efit_data/input.geqdsk",
+      .filepath = "./efit_data/step.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
       .plate_spec = false,
