@@ -65,13 +65,30 @@ struct gkyl_tok_geo {
 
 // Type of flux surface
 enum gkyl_tok_geo_type {
-  GKYL_SOL_DN_OUT, // Outboard SOL of double-null configuration
-  GKYL_SOL_DN_IN, // Inboard SOL of double-null configuration
-  GKYL_SOL_SN_LO, // SOL of a lower single-null configuration
-  GKYL_SOL_SN_UP, // SOL of an upper single-null configuration
-  GKYL_PF_UP, // Private flux region at top
-  GKYL_PF_LO, // Private flux region at bottom
-  GKYL_CORE // Core (closed flux-surface)
+  // Full blocks to be used as stand alone simulations
+  GKYL_SOL_DN_OUT, // Full Outboard SOL of double-null configuration
+  GKYL_SOL_DN_IN, // Full Inboard SOL of double-null configuration
+  GKYL_SOL_SN_LO, // Full SOL of a lower single-null configuration
+  GKYL_SOL_SN_UP, // Full SOL of an upper single-null configuration -- not yet implemented
+  GKYL_CORE, // Full core
+  //GKYL_PF_LO, // Full lower PF
+  //GKYL_PF_UP, // Full upper PF
+
+  // 12 Blocks to be used for multiblock double null whold device simulations
+  GKYL_SOL_DN_OUT_LO,  // Section of outboard SOL below lower xpt
+  GKYL_SOL_DN_OUT_MID, // Section of outboard SOL between xpts
+  GKYL_SOL_DN_OUT_UP,  // Section of outboard SOL above upper xpt
+  GKYL_SOL_DN_IN_LO,   // Section of inboard SOL below lower xpt
+  GKYL_SOL_DN_IN_MID,  // Section of inboard SOL between xpts
+  GKYL_SOL_DN_IN_UP,   // Section of inboard SOL above upper xpt 
+
+  GKYL_PF_UP_L, // Left half of Private flux region at top (inboard upper plate to upper xpt)
+  GKYL_PF_UP_R, // Right half of Private flux region at top (upper xpt to outboard upper plate)
+  GKYL_PF_LO_L, // Left half of Private flux region at bottom (lower xpt to inboard lower plate)
+  GKYL_PF_LO_R, // Right half of Private flux region at bottom (outboard lower plate to lower xpt)
+
+  GKYL_CORE_L, // Left half of core (lower to upper xpt)
+  GKYL_CORE_R // Right half of core (upper to lower xpt)
 };  
 
 // Inputs to create a new GK geometry creation object
@@ -110,6 +127,9 @@ struct gkyl_tok_geo_grid_inp {
   double zmin, zmax; // extents of Z for integration
   double zmin_left, zmin_right; // for lower single null and PF cases diff b/t in and outboard side
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
+
+  double zxpt_lo; // z of the lower x point
+  double zxpt_up; // z of the upper x point
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written
   const char *node_file_nm; // name of nodal coordinate file
@@ -179,7 +199,7 @@ void gkyl_tok_geo_mapc2p(const gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid
  */
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p);
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *mc2prz_nodal_fd, struct gkyl_array *mc2prz_nodal, struct gkyl_array *mc2prz);
 
 /**
  * Return cumulative statistics from geometry computations

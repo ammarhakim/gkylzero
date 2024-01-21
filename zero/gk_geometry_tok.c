@@ -11,7 +11,7 @@
 #include <gkyl_nodal_ops.h>
 
 #include <gkyl_tok_geo.h>
-#include <gkyl_calc_derived_geo.h>
+#include <gkyl_tok_calc_derived_geo.h>
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_bmag.h>
 
@@ -67,6 +67,10 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   struct gkyl_array* mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
 
+  struct gkyl_array* mc2prz_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*13, nrange.volume);
+  struct gkyl_array* mc2prz_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
+  struct gkyl_array* mc2prz = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
+
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
@@ -91,18 +95,20 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   ginp->cgrid = up->grid;
   ginp->cbasis = up->basis;
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(inp);
-  // calculate mapc2p
+  // calculate mapc2p and mapc2prz
   gkyl_tok_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, 
-    mc2p_nodal_fd, mc2p_nodal, mc2p);
+    mc2p_nodal_fd, mc2p_nodal, mc2p, mc2prz_nodal_fd, mc2prz_nodal, mc2prz);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
   gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, mc2p, true);
-  // now calculate the metrics
+  // now calculate the metrics and tangent vectors using cartesian coordinates
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, false);
   gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, &up->range);
-  // calculate the derived geometric quantities
-  gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
-  gkyl_calc_derived_geo_advance( jcalculator, &up->range, up->g_ij, up->bmag, 
+  // Recalculate the metrics and jacobian using cylindrical coordinates
+  gkyl_calc_metric_advance_rz(mcalc, &nrange, mc2prz_nodal_fd, dzc, up->g_ij, up->jacobgeo, &up->range);
+  //// calculate the derived geometric quantities
+  gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, false);
+  gkyl_tok_calc_derived_geo_advance(jcalculator, &up->range, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
 

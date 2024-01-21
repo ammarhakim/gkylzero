@@ -24,6 +24,91 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_gri
 static inline double calc_metric(double dxdz[3][3], int i, int j) 
 { double sum = 0;   for (int k=0; k<3; ++k) sum += dxdz[k][i-1]*dxdz[k][j-1]; return sum; } 
 
+void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_array *jFld, const struct gkyl_range *update_range){
+  struct gkyl_array* gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
+  struct gkyl_array* jFld_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange->volume);
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
+  int cidx[3];
+  for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
+      for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
+          for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
+              cidx[PSI_IDX] = ip;
+              cidx[AL_IDX] = ia;
+              cidx[TH_IDX] = it;
+              const double *mc2p_n = gkyl_array_cfetch(mc2p_nodal_fd, gkyl_range_idx(nrange, cidx));
+              double dxdz[3][3];
+
+              if(ip==nrange->lower[PSI_IDX]){
+                dxdz[0][0] = (-3*mc2p_n[R_IDX] + 4*mc2p_n[6+R_IDX] - mc2p_n[12+R_IDX] )/dzc[0]/2;
+                dxdz[1][0] = (-3*mc2p_n[Z_IDX] + 4*mc2p_n[6+Z_IDX] - mc2p_n[12+Z_IDX] )/dzc[0]/2;
+                dxdz[2][0] = (-3*mc2p_n[PHI_IDX] + 4*mc2p_n[6+PHI_IDX] - mc2p_n[12+PHI_IDX] )/dzc[0]/2;
+              }
+              else if(ip==nrange->upper[PSI_IDX]){
+                dxdz[0][0] = (3*mc2p_n[R_IDX] - 4*mc2p_n[3+R_IDX] + mc2p_n[9+R_IDX] )/dzc[0]/2;
+                dxdz[1][0] = (3*mc2p_n[Z_IDX] - 4*mc2p_n[3+Z_IDX] + mc2p_n[9+Z_IDX] )/dzc[0]/2;
+                dxdz[2][0] = (3*mc2p_n[PHI_IDX] - 4*mc2p_n[3+PHI_IDX] + mc2p_n[9+PHI_IDX] )/dzc[0]/2;
+              }
+              else{
+                dxdz[0][0] = -(mc2p_n[3 +R_IDX] -   mc2p_n[6+R_IDX])/2/dzc[0];
+                dxdz[1][0] = -(mc2p_n[3 +Z_IDX] -   mc2p_n[6+Z_IDX])/2/dzc[0];
+                dxdz[2][0] = -(mc2p_n[3 +PHI_IDX] -   mc2p_n[6+PHI_IDX])/2/dzc[0];
+              }
+
+
+              if(ia==nrange->lower[AL_IDX]){
+                dxdz[0][1] = (-3*mc2p_n[R_IDX] +  4*mc2p_n[18+R_IDX] -  mc2p_n[24+R_IDX])/dzc[1]/2;
+                dxdz[1][1] = (-3*mc2p_n[Z_IDX] +  4*mc2p_n[18+Z_IDX] -  mc2p_n[24+Z_IDX])/dzc[1]/2;
+                dxdz[2][1] = (-3*mc2p_n[PHI_IDX] +  4*mc2p_n[18+PHI_IDX] -  mc2p_n[24+PHI_IDX])/dzc[1]/2;
+              }
+              else if(ia==nrange->upper[AL_IDX]){
+                dxdz[0][1] = (3*mc2p_n[R_IDX] -  4*mc2p_n[15+R_IDX] +  mc2p_n[21+R_IDX] )/dzc[1]/2;
+                dxdz[1][1] = (3*mc2p_n[Z_IDX] -  4*mc2p_n[15+Z_IDX] +  mc2p_n[21+Z_IDX] )/dzc[1]/2;
+                dxdz[2][1] = (3*mc2p_n[PHI_IDX] -  4*mc2p_n[15+PHI_IDX] +  mc2p_n[21+PHI_IDX] )/dzc[1]/2;
+              }
+              else{
+                dxdz[0][1] = -(mc2p_n[15 +R_IDX] -  mc2p_n[18 +R_IDX])/2/dzc[1];
+                dxdz[1][1] = -(mc2p_n[15 +Z_IDX] -  mc2p_n[18 +Z_IDX])/2/dzc[1];
+                dxdz[2][1] = -(mc2p_n[15 +PHI_IDX] -  mc2p_n[18 +PHI_IDX])/2/dzc[1];
+              }
+
+              if(it==nrange->lower[TH_IDX]){
+                dxdz[0][2] = (-3*mc2p_n[R_IDX] + 4*mc2p_n[30+R_IDX] - mc2p_n[36+R_IDX])/dzc[2]/2;
+                dxdz[1][2] = (-3*mc2p_n[Z_IDX] + 4*mc2p_n[30+Z_IDX] - mc2p_n[36+Z_IDX])/dzc[2]/2;
+                dxdz[2][2] = (-3*mc2p_n[PHI_IDX] + 4*mc2p_n[30+PHI_IDX] - mc2p_n[36+PHI_IDX])/dzc[2]/2;
+              }
+              else if(it==nrange->upper[TH_IDX]){
+                dxdz[0][2] = (3*mc2p_n[R_IDX] - 4*mc2p_n[27+R_IDX] + mc2p_n[33+R_IDX] )/dzc[2]/2;
+                dxdz[1][2] = (3*mc2p_n[Z_IDX] - 4*mc2p_n[27+Z_IDX] + mc2p_n[33+Z_IDX] )/dzc[2]/2;
+                dxdz[2][2] = (3*mc2p_n[PHI_IDX] - 4*mc2p_n[27+PHI_IDX] + mc2p_n[33+PHI_IDX] )/dzc[2]/2;
+              }
+              else{
+                dxdz[0][2] = -(mc2p_n[27 +R_IDX] - mc2p_n[30 +R_IDX])/2/dzc[2];
+                dxdz[1][2] = -(mc2p_n[27 +Z_IDX] - mc2p_n[30 +Z_IDX])/2/dzc[2];
+                dxdz[2][2] = -(mc2p_n[27 +PHI_IDX] - mc2p_n[30 +PHI_IDX])/2/dzc[2];
+              }
+
+              // I have temporarily let dxdz be in cylindrical coords so I can try calculating J from eq 73
+              double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
+              double R = mc2p_n[R_IDX];
+              jFld_n[0] = sqrt(R*R*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
+
+              double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
+              gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
+              gFld_n[1] = R*R*dxdz[2][0]; 
+              gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dxdz[2][2] + dxdz[1][0]*dxdz[1][2]; 
+              gFld_n[3] = R*R; 
+              gFld_n[4] = R*R*dxdz[2][2]; 
+              gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dxdz[2][2]*dxdz[2][2] + dxdz[1][2]*dxdz[1][2];  
+      }
+    }
+  }
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 6, gFld_nodal, gFld);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 1, jFld_nodal, jFld);
+  gkyl_array_release(gFld_nodal);
+  gkyl_array_release(jFld_nodal);
+}
+
 void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, const struct gkyl_range *update_range){
   struct gkyl_array* gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
   struct gkyl_array* tanvecFld_nodal = gkyl_array_new(GKYL_DOUBLE, 9, nrange->volume);

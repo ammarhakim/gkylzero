@@ -8,6 +8,7 @@ struct arc_length_ctx {
   double *arc_memo_right;
   double psi, rclose, zmin, arcL;
   double rleft, rright, zmax;
+  double zmin_left, zmin_right; // for single null full SOL only
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
@@ -223,7 +224,7 @@ phi_contour_func(double Z, void *ctx)
   dpsidx = dpsidx*2.0/c->geo->rzgrid.dx[0];
   dpsidy = dpsidy*2.0/c->geo->rzgrid.dx[1];
   double grad_psi_mag = sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
-  double result  = (1/r_curr/sqrt(dpsidx*dpsidx + dpsidy*dpsidy)) *sqrt(1+dRdZ*dRdZ) ;
+  double result  = (1/r_curr/grad_psi_mag) *sqrt(1+dRdZ*dRdZ) ;
   return nr>0 ? result : 0.0;
 }
 
@@ -356,11 +357,11 @@ double tok_plate_psi_func(double s, void *ctx);
 /*
  * Used to set zmin and zmax and attributes of arc_ctx before looping over arc length
 */
-void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* zmin, double* zmax, double* zmin_left, double* zmin_right, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
+void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
 
 
 /*
  * Used to set arc_ctx attributes before using ridders to find z
 */
-void tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double zmin_left, double zmin_right, double rright, double rleft, double* rclose, double *ridders_min, double* ridders_max);
+void tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL_curr, double* rclose, double *ridders_min, double* ridders_max);
 
