@@ -24,7 +24,7 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_gri
 static inline double calc_metric(double dxdz[3][3], int i, int j) 
 { double sum = 0;   for (int k=0; k<3; ++k) sum += dxdz[k][i-1]*dxdz[k][j-1]; return sum; } 
 
-void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_array *jFld, const struct gkyl_range *update_range){
+void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *dphidtheta_nodal, double *dzc, struct gkyl_array *gFld, struct gkyl_array *jFld, const struct gkyl_range *update_range){
   struct gkyl_array* gFld_nodal = gkyl_array_new(GKYL_DOUBLE, 6, nrange->volume);
   struct gkyl_array* jFld_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange->volume);
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
@@ -93,13 +93,18 @@ void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange
               double R = mc2p_n[R_IDX];
               jFld_n[0] = sqrt(R*R*(dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2] + dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0] - 2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2])) ;
 
+
+              double *dphidtheta_n= gkyl_array_fetch(dphidtheta_nodal, gkyl_range_idx(nrange, cidx));
               double *gFld_n= gkyl_array_fetch(gFld_nodal, gkyl_range_idx(nrange, cidx));
               gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
               gFld_n[1] = R*R*dxdz[2][0]; 
-              gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dxdz[2][2] + dxdz[1][0]*dxdz[1][2]; 
+              //gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dxdz[2][2] + dxdz[1][0]*dxdz[1][2]; 
+              gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta_n[0] + dxdz[1][0]*dxdz[1][2]; 
               gFld_n[3] = R*R; 
-              gFld_n[4] = R*R*dxdz[2][2]; 
-              gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dxdz[2][2]*dxdz[2][2] + dxdz[1][2]*dxdz[1][2];  
+              //gFld_n[4] = R*R*dxdz[2][2]; 
+              gFld_n[4] = R*R*dphidtheta_n[0]; 
+              //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dxdz[2][2]*dxdz[2][2] + dxdz[1][2]*dxdz[1][2];  
+              gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta_n[0]*dphidtheta_n[0] + dxdz[1][2]*dxdz[1][2];  
       }
     }
   }

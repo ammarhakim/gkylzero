@@ -77,7 +77,7 @@ arc_length_func(double Z, void *ctx)
 
   else if(actx->ftype==GKYL_CORE_R){
     double *arc_memo = actx->arc_memo;
-      ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL;
+    ival = integrate_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, true, false, arc_memo) - arcL;
   }
 
   else if(actx->ftype==GKYL_PF_LO_L){
@@ -237,6 +237,43 @@ phi_func(double alpha_curr, double Z, void *ctx)
   return alpha_curr + ival + phi_ref;
 }
 
+double
+dphidtheta_func(double Z, void *ctx)
+{
+  struct arc_length_ctx *actx = ctx;
+  double *arc_memo = actx->arc_memo;
+  double psi = actx->psi, rclose = actx->rclose, zmin = actx->zmin, arcL = actx->arcL, zmax = actx->zmax;
+
+  // Get the integrand
+  double integrand = 0.0;
+  struct contour_ctx cctx = {
+    .geo = actx->geo,
+    .psi = psi,
+    .ncall = 0,
+    .last_R = rclose
+  };
+  integrand = dphidtheta_integrand(Z, &cctx);
+  // Now multiply by fpol
+  double R[4] = {0};
+  double dR[4] = {0};
+  int nr = R_psiZ(actx->geo, psi, Z, 4, R, dR);
+  double r_curr = nr == 1 ? R[0] : choose_closest(rclose, R, R, nr);
+  double psi_fpol = psi;
+  if ( (psi_fpol < actx->geo->fgrid.lower[0]) || (psi_fpol > actx->geo->fgrid.upper[0]) ) // F = F(psi_sep) in the SOL.
+    psi_fpol = actx->geo->psisep;
+  int idx = fmin(actx->geo->frange.lower[0] + (int) floor((psi_fpol - actx->geo->fgrid.lower[0])/actx->geo->fgrid.dx[0]), actx->geo->frange.upper[0]);
+  long loc = gkyl_range_idx(&actx->geo->frange, &idx);
+  const double *coeffs = gkyl_array_cfetch(actx->geo->fpoldg,loc);
+  double fxc;
+  gkyl_rect_grid_cell_center(&actx->geo->fgrid, &idx, &fxc);
+  double fx = (psi_fpol-fxc)/(actx->geo->fgrid.dx[0]*0.5);
+  double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
+  integrand = integrand*fpol;
+  integrand = integrand*actx->arcL_tot/2/M_PI;
+  return integrand;
+}
+
+
 
 
 gkyl_tok_geo*
@@ -324,7 +361,7 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 
 void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *mc2prz_nodal_fd, struct gkyl_array *mc2prz_nodal, struct gkyl_array *mc2prz)
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *mc2prz_nodal_fd, struct gkyl_array *mc2prz_nodal, struct gkyl_array *mc2prz, struct gkyl_array *dphidtheta_nodal)
 {
 
   struct gkyl_tok_geo *geo = mapc2p_ctx;
@@ -479,6 +516,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               double *mc2p_n = gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
               double *mc2prz_fd_n = gkyl_array_fetch(mc2prz_nodal_fd, gkyl_range_idx(nrange, cidx));
               double *mc2prz_n = gkyl_array_fetch(mc2prz_nodal, gkyl_range_idx(nrange, cidx));
+              double *dphidtheta_n = gkyl_array_fetch(dphidtheta_nodal, gkyl_range_idx(nrange, cidx));
+
               mc2p_fd_n[lidx+X_IDX] = r_curr*cos(phi_curr);
               mc2p_fd_n[lidx+Y_IDX] = r_curr*sin(phi_curr);
               mc2p_fd_n[lidx+Z_IDX] = z_curr;
@@ -493,6 +532,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
                 mc2prz_n[X_IDX] = r_curr;
                 mc2prz_n[Y_IDX] = z_curr;
                 mc2prz_n[Z_IDX] = phi_curr;
+                dphidtheta_n[0] = dphidtheta_func(z_curr, &arc_ctx);
               }
             }
           }

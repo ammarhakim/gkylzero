@@ -228,6 +228,39 @@ phi_contour_func(double Z, void *ctx)
   return nr>0 ? result : 0.0;
 }
 
+static inline double
+dphidtheta_integrand(double Z, void *ctx)
+{
+  struct contour_ctx *c = ctx;
+  c->ncall += 1;
+  double R[4] = { 0 }, dR[4] = { 0 };
+  
+  int nr = R_psiZ(c->geo, c->psi, Z, 4, R, dR);
+  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR, nr);
+  double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
+
+  struct gkyl_range_iter iter;
+  iter.idx[0] = fmin(c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]), c->geo->rzlocal.upper[0]);
+  iter.idx[1] = fmin(c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]), c->geo->rzlocal.upper[1]);
+  long loc = gkyl_range_idx((&c->geo->rzlocal), iter.idx);
+  const double *psih = gkyl_array_cfetch(c->geo->psiRZ, loc);
+
+  double xc[2];
+  gkyl_rect_grid_cell_center((&c->geo->rzgrid), iter.idx, xc);
+  double x = (r_curr-xc[0])/(c->geo->rzgrid.dx[0]*0.5);
+  double y = (Z-xc[1])/(c->geo->rzgrid.dx[1]*0.5);
+
+  // if psi is polyorder 2 we can get grad psi
+  // in cylindrical coords it is grad psi = dpsi/dR Rhat + dpsi/dZ zhat
+  double dpsidx = 2.904737509655563*psih[7]*(y*y-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1]; 
+  double dpsidy =	5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(x*x-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
+  dpsidx = dpsidx*2.0/c->geo->rzgrid.dx[0];
+  dpsidy = dpsidy*2.0/c->geo->rzgrid.dx[1];
+  double grad_psi_mag = sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
+  double result  = (1/r_curr/grad_psi_mag);
+  return nr>0 ? result : 0.0;
+}
+
 // Integrates along a specified contour, optionally using a "memory"
 // of previously computed values, or storing computed values in
 // memory. The function basically breaks up the integral into a loop

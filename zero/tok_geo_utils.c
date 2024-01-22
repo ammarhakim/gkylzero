@@ -11,9 +11,17 @@ void find_upper_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double 
     double zup=*zmax;
     zlo_last = zlo;
     double R[4], dR[4];
+    double Rup[4], dRup[4];
     while(true){
       int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
-      if(nlo==2){
+      int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRup);
+      if (nup > 0) { // This is for the PF_LO regions. Does not seem to break core_L or core_R
+                  // However I need to think thos through more. I think it is ok only when xpt
+                  // is known quite precisely.
+        *zmax = zup;
+        break;
+      }
+      if (nlo==2){
         if(fabs(zlo-zup)<1e-12){
           *zmax = zlo;
           break;
@@ -35,8 +43,14 @@ void find_lower_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double 
     double zlo=*zmin;
     double zup_last = zup;
     double R[4], dR[4];
+    double Rlo[4], dRlo[4];
     while(true){
       int nup = R_psiZ(geo, psi_curr, zup, 4, R, dR);
+      int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo);
+      if (nlo > 0) {
+        *zmin = zlo;
+        break;
+      }
       if(nup==2){
         if(fabs(zlo-zup)<1e-12){
           *zmin = zup;
@@ -125,10 +139,10 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rleft;
     // Find turning points to set zmin and zmax
-    arc_ctx->zmax = inp->zxpt_up + 1e-1; // Initial guess
+    arc_ctx->zmax = inp->zxpt_up;// + 1e-1; // Initial guess
     double zlo = geo->zmaxis;
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax);
-    arc_ctx->zmin = inp->zxpt_lo - 1e-1; // Initial guess
+    arc_ctx->zmin = inp->zxpt_lo;// - 1e-1; // Initial guess
     double zup = geo->zmaxis;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin);
     // Set arc length
@@ -140,14 +154,14 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rright;
     // Find turning points to set zmin and zmax
-    arc_ctx->zmax = inp->zxpt_up + 1e-1; // Initial guess
+    arc_ctx->zmax = inp->zxpt_up;// + 1e-1; // Initial guess
     double zlo = geo->zmaxis;
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax);
-    arc_ctx->zmin = inp->zxpt_lo - 1e-1; // Initial guess
+    arc_ctx->zmin = inp->zxpt_lo;// - 1e-1; // Initial guess
     double zup = geo->zmaxis;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin);
     // Set arc length
-    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rright,
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
       true, true, arc_memo);
   }
 
@@ -403,28 +417,25 @@ tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ct
     }
   }
   else if(inp->ftype==GKYL_CORE_L){
-      *rclose = arc_ctx->rleft;
+      *rclose = arc_ctx->rclose;
       *ridders_min = arc_ctx->arcL_tot - arcL_curr;
       *ridders_max = -arcL_curr;
   }
   else if(inp->ftype==GKYL_CORE_R){
-      *rclose = arc_ctx->rright;
+      *rclose = arc_ctx->rclose;
       *ridders_min = -arcL_curr;
       *ridders_max = arc_ctx->arcL_tot-arcL_curr;
   }
-//  if(inp->ftype==GKYL_PF_LO){
-//    if(arcL_curr <= arc_ctx->arcL_right){
-//      *rclose = arc_ctx->rright;
-//      arc_ctx->right = true;
-//      *ridders_min = -arcL_curr;
-//      *ridders_max = arc_ctx->arcL_tot-arcL_curr;
-//    }
-//    else{
-//      *rclose = arc_ctx->rleft;
-//      arc_ctx->right = false;
-//      *ridders_min = arc_ctx->arcL_tot - arcL_curr;
-//      *ridders_max = -arcL_curr + arc_ctx->arcL_right;
-//    }
+  else if(inp->ftype==GKYL_PF_LO_R){
+    *rclose = arc_ctx->rclose;
+    *ridders_min = -arcL_curr;
+    *ridders_max = arc_ctx->arcL_tot-arcL_curr;
+  }
+  else if(inp->ftype==GKYL_PF_LO_L){
+    *rclose = arc_ctx->rclose;
+    *ridders_min = arc_ctx->arcL_tot - arcL_curr;
+    *ridders_max = -arcL_curr;
+  }
 //  }
 //  if(inp->ftype==GKYL_PF_UP){
 //    if(arcL_curr > arc_ctx->arcL_left){
