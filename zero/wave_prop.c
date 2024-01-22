@@ -163,9 +163,9 @@ static inline void
 calc_first_order_update(int meqn, double dtdx,
   double * GKYL_RESTRICT q, const double * GKYL_RESTRICT amdq_r, const double * GKYL_RESTRICT apdq_l)
 {
-  for (int i=0; i<meqn; ++i) if isnan(q[i]) printf("q[%d] is nan, FO\n",i);
-  for (int i=0; i<meqn; ++i) if isnan(apdq_l[i]) printf("apdq_l[%d] is nan, FO\n",i);
-  for (int i=0; i<meqn; ++i) if isnan(amdq_r[i]) printf("amdq_r[%d] is nan, FO\n",i);
+  for (int i=0; i<meqn; ++i) if (isnan(q[i])) printf("q[%d] is nan, FO\n",i);
+  for (int i=0; i<meqn; ++i) if (isnan(apdq_l[i])) printf("apdq_l[%d] is nan, FO\n",i);
+  for (int i=0; i<meqn; ++i) if (isnan(amdq_r[i])) printf("amdq_r[%d] is nan, FO\n",i);
   for (int i=0; i<meqn; ++i)
     q[i] = q[i] - dtdx*(apdq_l[i] + amdq_r[i]);
 }
@@ -210,9 +210,9 @@ calc_second_order_fflux(int meqn, double dtdx, double s,
   const double *waves, double * GKYL_RESTRICT flux2)
 {
   double sfact = 0.5*sign_double(s)*(1-fabs(s)*dtdx);
-  if isnan(sfact) printf("sfact is nan, FO\n");
-  for (int i=0; i<meqn; ++i) if isnan(flux2[i]) printf("flux2[%d] is nan, SO (before start)\n",i);
-  for (int i=0; i<meqn; ++i) if isnan(waves[i]) printf("waves[%d] is nan, SO\n",i);
+  if (isnan(sfact)) printf("sfact is nan, FO\n");
+  for (int i=0; i<meqn; ++i) if (isnan(flux2[i])) printf("flux2[%d] is nan, SO (before start)\n",i);
+  for (int i=0; i<meqn; ++i) if (isnan(waves[i])) printf("waves[%d] is nan, SO\n",i);
   for (int i=0; i<meqn; ++i)
     flux2[i] += sfact*waves[i];
 }
