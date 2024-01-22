@@ -132,7 +132,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 0.75*mi*(4.0*vtIon)*(4.0*vtIon)/(2.0*B0);
 
-  double finalTime = 600.0e-12; // Because it crashes at about 5e-8 
+  double finalTime = 600.0e-11; // Because it crashes at about 5e-8 
   double numFrames = 10;
 
   struct gk_rad_ctx ctx = {
@@ -183,8 +183,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 2);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 2);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 2);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 640);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 320);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
