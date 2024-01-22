@@ -163,6 +163,9 @@ static inline void
 calc_first_order_update(int meqn, double dtdx,
   double * GKYL_RESTRICT q, const double * GKYL_RESTRICT amdq_r, const double * GKYL_RESTRICT apdq_l)
 {
+  for (int i=0; i<meqn; ++i) if isnan(q[i]) printf("q[%d] is nan, FO\n",i);
+  for (int i=0; i<meqn; ++i) if isnan(apdq_l[i]) printf("apdq_l[%d] is nan, FO\n",i);
+  for (int i=0; i<meqn; ++i) if isnan(amdq_r[i]) printf("amdq_r[%d] is nan, FO\n",i);
   for (int i=0; i<meqn; ++i)
     q[i] = q[i] - dtdx*(apdq_l[i] + amdq_r[i]);
 }
@@ -207,6 +210,9 @@ calc_second_order_fflux(int meqn, double dtdx, double s,
   const double *waves, double * GKYL_RESTRICT flux2)
 {
   double sfact = 0.5*sign_double(s)*(1-fabs(s)*dtdx);
+  if isnan(sfact) printf("sfact is nan, FO\n");
+  for (int i=0; i<meqn; ++i) if isnan(flux2[i]) printf("flux2[%d] is nan, SO (before start)\n",i);
+  for (int i=0; i<meqn; ++i) if isnan(waves[i]) printf("waves[%d] is nan, SO\n",i);
   for (int i=0; i<meqn; ++i)
     flux2[i] += sfact*waves[i];
 }
@@ -372,6 +378,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             else
               gkyl_wv_eqn_ffluct(wv->equation, ftype, ql_local, qr_local,
                 waves_local, s, amdq_local, apdq_local);
+
+            for (int i=0; i<4; ++i) if (isnan(amdq_local[i])) printf("amdq_local[%d] is nan\n",i);
         
             double *waves = gkyl_array_fetch(wv->waves, sidx);
             for (int mw=0; mw<mwaves; ++mw)
@@ -420,6 +428,9 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             gkyl_array_cfetch(wv->amdq, gkyl_ridx(slice_range, i+1)),
             gkyl_array_cfetch(wv->apdq, gkyl_ridx(slice_range, i))
           );
+
+          double * qoutlocal = gkyl_array_fetch(qout, lidx);
+          for (int i=0; i<4; ++i) if (isnan(qoutlocal[i])) printf("qout[%d] is nan, FO update\n",i);
         }
 
         if (state == WV_FIRST_SWEEP) {
@@ -474,13 +485,18 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
               gkyl_array_cfetch(wv->flux2, gkyl_ridx(slice_range, i)),
               gkyl_array_cfetch(wv->flux2, gkyl_ridx(slice_range, i+1))
             );
+            
+            double * qoutlocal = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+            for (int i=0; i<4; ++i) if (isnan(qoutlocal[i])) printf("qout[%d] is nan\n",i);
           }
         }
 
         next_state = WV_FIN_SWEEP;
         // check invariant domains if needed
         if ( (state == WV_FIRST_SWEEP) && wv->check_inv_domain) {
-          long n_bad_cells = 0;            
+          long n_bad_cells = 0;      
+          int index_bad_cells = 0;
+          double bad_indexes[10] = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};  
 
           gkyl_array_clear(wv->redo_fluct, 0.0); // by default no edge needs recomputing
           
@@ -497,9 +513,17 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
               redo_fluct_l[0] = 1.0;
               redo_fluct_r[0] = 1.0;
 
+              bad_indexes[index_bad_cells] = i;
+              index_bad_cells += 1;
               n_bad_cells += 1;
             }
           }
+
+          //printf("n_bad_cells: %ld, [",n_bad_cells);
+          //for (int i=0; i<10; ++i){
+          //  printf("%1.0f ",bad_indexes[i]);
+          //}
+          //printf("]\n");
 
           if (n_bad_cells > 0) {
             // we need to resweep the 1D slice again
@@ -519,6 +543,8 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
   outsideloop:
   ;
+
+  //printf("\n\n\n\n\n\n\n");
 
   // compute actual CFL, status & max-speed across all domains
   double red_vars[3] = { cfla, is_cfl_violated, max_speed };

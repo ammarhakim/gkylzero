@@ -88,16 +88,20 @@ void gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling *mes
  * @param pr_hs Array of pressure tensor rhs for 10-moment gradient-based closure
  * @param em EM variables
  * @param app_current Applied current array (for external current driving)
+ * @param app_current1 Applied current array (for external current driving - stage 1)
+ * @param app_current2 Applied current array (for external current driving - stage 2)
  * @param ext_em External EM variables (for EM fields coming from external sources (coils, capacitors, etc.))
  * @param proj_app_curr the projection routine for the external current
+ * @param nstrang step of the strang splitting
  */
 
 void gkyl_moment_em_coupling_explicit_advance(gkyl_moment_em_coupling *mes, double tcurr, double dt,
   const struct gkyl_range *update_rng, 
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], 
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *pr_rhs[GKYL_MAX_SPECIES],
-  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em,
-  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj *proj_app_curr);
+  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *app_current1,
+  const struct gkyl_array *app_current2, const struct gkyl_array *ext_em,
+  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj *proj_app_curr, int nstrang);
 
 
 /**

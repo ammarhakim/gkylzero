@@ -183,7 +183,7 @@ void
 test_flux_jump()
 {
 
-  // TEST: A(u-hat)(qr - ql) = F(qr) - F(ql)
+  // TEST: A(u-hat)(qr - ql) = F(qr) - F(ql) 
 
   // Averages are computed via:
   // Martí, José María, and Ewald Müller. "Grid-based methods 
@@ -207,14 +207,14 @@ test_flux_jump()
 
 
   // Call the roe-averaged velocity routine
-  double v_avg = compute_sr_roe_averaged_velocity_cold_limit(ql, qr, c, u_hat);
+  //double v_avg = compute_sr_roe_averaged_velocity_cold_limit(ql, qr, c, u_hat);
   // double v_avg = compute_sr_roe_averaged_velocity(ql, qr, c, u_hat);
 
 
   // Compute the flux jacobian:
   double A_flux_jacobian[4][4];
   double A_tilde[4][4];
-  compute_flux_jacobian(A_flux_jacobian, u_hat, c);
+  //compute_flux_jacobian(A_flux_jacobian, u_hat, c);
   compute_approximated_jacobian(A_tilde, ql, qr, c);
 
   // Compute fluxes
@@ -231,19 +231,19 @@ test_flux_jump()
 
   // Compute A(u_hat)(qr - ql)
   double Adq[4];
-  multiplyMatrixVector(A_flux_jacobian, dq, Adq);
+  //multiplyMatrixVector(A_flux_jacobian, dq, Adq);
 
   // compute A(u_hat)(qr - ql) - ( f(ql) - f(qr) ) ~ 0 (retruns error in comp)
   double error[4], amdq[4], apdq[4];
-  multiplyMatrixVector(A_flux_jacobian, ql, amdq);
-  multiplyMatrixVector(A_flux_jacobian, qr, apdq);
-  printf("\n");
-  for(int i=0; i<4; ++i){
-    error[i] = Adq[i] - dfq[i];
-    amdq[i] = -amdq[i];
-    printf("(Flux_Jacobian Method) fr[%d]: %1.4e, fl[%d]: %1.4e, amdq[%d]: %1.4e, apdq[%d]: %1.4e ",i,fr[i],i,fl[i],i,amdq[i],i,apdq[i]);
-    printf("  df[%d]: %1.4e, dadq[%d]: %1.4e,     total_diff: %1.4e\n",i,fr[i]-fl[i],i,amdq[i]+apdq[i], fr[i]-fl[i]-(amdq[i]+apdq[i]));
-  } 
+  //multiplyMatrixVector(A_flux_jacobian, ql, amdq);
+  //multiplyMatrixVector(A_flux_jacobian, qr, apdq);
+  //printf("\n");
+  //for(int i=0; i<4; ++i){
+  //  error[i] = Adq[i] - dfq[i];
+  //  amdq[i] = -amdq[i];
+  //  printf("(Flux_Jacobian Method) fr[%d]: %1.4e, fl[%d]: %1.4e, amdq[%d]: %1.4e, apdq[%d]: %1.4e ",i,fr[i],i,fl[i],i,amdq[i],i,apdq[i]);
+  //  printf("  df[%d]: %1.4e, dadq[%d]: %1.4e,     total_diff: %1.4e\n",i,fr[i]-fl[i],i,amdq[i]+apdq[i], fr[i]-fl[i]-(amdq[i]+apdq[i]));
+  //} 
   multiplyMatrixVector(A_tilde, dq, Adq);
   multiplyMatrixVector(A_tilde, ql, amdq);
   multiplyMatrixVector(A_tilde, qr, apdq);

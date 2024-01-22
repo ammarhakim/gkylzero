@@ -5,12 +5,9 @@
 #include <stdbool.h>
 #include <complex.h>
 
-<<<<<<< HEAD
 // Temporary for diagnostics
 #include <stdio.h>
-=======
 static double ROOT_EPS = 1e-14;
->>>>>>> origin/main
 
 // This implementation is taken from the Appendix of "Improving the
 // Double Exponential Quadrature Tanh-Sinh, Sinh-Sinh and Exp-Sinh
@@ -288,7 +285,6 @@ gkyl_calc_lo_poly_roots(enum gkyl_lo_poly_order order, double coeff[4])
   return proots;
 }
 
-<<<<<<< HEAD
 static inline double 
 eval_poly_lo(double *p, double x)
 {
@@ -825,7 +821,6 @@ gkyl_calc_quartic_root_intervals(double coeff[4], double domain[2], double tol)
   return root_intervals;
 
 } 
-=======
 struct gkyl_poly_roots*
 gkyl_poly_roots_new(int poly_order)
 {
@@ -842,7 +837,7 @@ gkyl_poly_roots_new(int poly_order)
 }
 
 static inline double complex
-eval_poly(int poly_order, const double *coeff, double complex x)
+eval_poly2(int poly_order, const double *coeff, double complex x)
 {
   double complex xn = x;
   double complex res = coeff[0];
@@ -887,7 +882,7 @@ gkyl_calc_poly_roots(struct gkyl_poly_roots *pr, const double *coeff)
       for (int j=0; j<poly_order; ++j)
         if (i != j)
           denom = denom*(pn1[i]-pn1[j]);
-      pn1[i] = pn1[i] - eval_poly(poly_order, coeff, pn1[i])/denom;
+      pn1[i] = pn1[i] - eval_poly2(poly_order, coeff, pn1[i])/denom;
     }
     niter += 1;
   } while (!check_converged(poly_order, pn, pn1, pr->err) && niter < max_iter);
@@ -908,4 +903,3 @@ gkyl_poly_roots_release(struct gkyl_poly_roots *pr)
   gkyl_free(pr->work);
   gkyl_free(pr);
 }
->>>>>>> origin/main

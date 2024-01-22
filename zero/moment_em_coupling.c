@@ -388,6 +388,9 @@ static inline void
 higuera_cary_push(double *u, const double q, const double m, const double dt,
 const double c, const double E[3], const double B[3])
 {
+  for (int i=0; i<3; ++i) if isnan(u[i]) printf("u[%d] is a nan in HC Before\n",i);
+  for (int i=0; i<3; ++i) if (!isfinite(u[i])) printf("u[%d] is a inf in HC Before\n",i);
+
   const double qmdt = q*0.5*dt/m;
   const double E_0 = qmdt*E[0];
   const double E_1 = qmdt*E[1];
@@ -418,6 +421,9 @@ const double c, const double E[3], const double B[3])
   u[0] = u_0_plus + E_0 + (u_1_plus*t_2 - u_2_plus*t_1);
   u[1] = u_1_plus + E_1 + (u_2_plus*t_0 - u_0_plus*t_2);
   u[2] = u_2_plus + E_2 + (u_0_plus*t_1 - u_1_plus*t_0);
+
+  for (int i=0; i<3; ++i) if isnan(u[i]) printf("u[%d] is a nan in HC After\n",i);
+  for (int i=0; i<3; ++i) if (!isfinite(u[i])) printf("u[%d] is a inf in HC After\n",i);
 }
 
 static inline void
@@ -510,6 +516,10 @@ e_field_source(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
     em[EY] = f_euler_update[1];
     em[EZ] = f_euler_update[2];
   }
+
+  if isnan(em[EX]) printf("em[EX] is a nan in SSP\n");
+  if isnan(em[EY]) printf("em[EY] is a nan in SSP\n");
+  if isnan(em[EZ]) printf("em[EZ] is a nan in SSP\n");
 }
 
 
@@ -625,14 +635,18 @@ fluid_source_update_sr(const gkyl_moment_em_coupling *mes, double tcurr, double 
   double* fluids[GKYL_MAX_SPECIES], 
   const double *app_accels[GKYL_MAX_SPECIES], 
   double* em, const double* app_current, const double* app_curr_s1, 
-  const double* app_curr_s2, const double* ext_em)
+  const double* app_curr_s2, const double* ext_em, int nstrang)
 {
 
-  // Update momentum and electric field using time-centered implicit solve.
   // If permittivity of free-space is non-zero, EM fields exist and electric
   // field is updated, otherwise just update momentum
-  higuera_cary_update(mes, tcurr, dt, fluids, app_accels, em, app_current, ext_em);
-  e_field_source(mes, tcurr, dt, fluids, em, app_current, app_curr_s1, app_curr_s2, ext_em);
+  //higuera_cary_update(mes, tcurr, dt, fluids, app_accels, em, app_current, ext_em);
+  // TEMP: off -> uncommented
+  if (nstrang == 0) // 1
+    e_field_source(mes, tcurr, dt, fluids, em, app_current, app_curr_s1, app_curr_s2, ext_em);
+    // TEMP: off -> uncommented
+  if (nstrang == 1) //0
+    higuera_cary_update(mes, tcurr, dt, fluids, app_accels, em, app_current, ext_em);
 
 }
 
@@ -782,8 +796,9 @@ gkyl_moment_em_coupling_explicit_advance(gkyl_moment_em_coupling *mes, double tc
   const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES], 
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES], const struct gkyl_array *pr_rhs[GKYL_MAX_SPECIES],
-  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *ext_em,
-  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj *proj_app_curr)
+  struct gkyl_array *em, const struct gkyl_array *app_current, const struct gkyl_array *app_current1,
+  const struct gkyl_array *app_current2, const struct gkyl_array *ext_em,
+  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj *proj_app_curr, int nstrang)
 {
   int nfluids = mes->nfluids;
   double *fluids[GKYL_MAX_SPECIES];
@@ -792,15 +807,8 @@ gkyl_moment_em_coupling_explicit_advance(gkyl_moment_em_coupling *mes, double tc
   const double *pr_rhs_s[GKYL_MAX_SPECIES];
   const double *nT_source_s[GKYL_MAX_SPECIES];
 
-  // current projections for explicit source updates via SSP-RK3 steps  
-  struct gkyl_array *app_curr_stage1;
-  struct gkyl_array *app_curr_stage2;
-  app_curr_stage1 = gkyl_array_new(GKYL_DOUBLE, 3, update_range->volume);
-  app_curr_stage2 = gkyl_array_new(GKYL_DOUBLE, 3, update_range->volume);
-  if (proj_app_curr) {
-    gkyl_fv_proj_advance(proj_app_curr, tcurr + dt, update_range, app_curr_stage1);
-    gkyl_fv_proj_advance(proj_app_curr, tcurr + dt/2.0, update_range, app_curr_stage2);
-  }
+  // TEMP:
+  double dt_local = dt*2.0;
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -816,18 +824,15 @@ gkyl_moment_em_coupling_explicit_advance(gkyl_moment_em_coupling *mes, double tc
     }
 
     if (mes->use_rel)
-      fluid_source_update_sr(mes, tcurr, dt, fluids, app_accels, 
+      fluid_source_update_sr(mes, tcurr, dt_local, fluids, app_accels, 
         gkyl_array_fetch(em, lidx),
         gkyl_array_cfetch(app_current, lidx),
-        gkyl_array_cfetch(app_curr_stage1, lidx),
-        gkyl_array_cfetch(app_curr_stage2, lidx),
-        gkyl_array_cfetch(ext_em, lidx)
+        gkyl_array_cfetch(app_current1, lidx),
+        gkyl_array_cfetch(app_current2, lidx),
+        gkyl_array_cfetch(ext_em, lidx),
+        nstrang
       );
   }
-
-  // Release the temporary arrays
-  gkyl_array_release(app_curr_stage1);
-  gkyl_array_release(app_curr_stage2);
 }
 
 

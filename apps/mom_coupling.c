@@ -109,6 +109,11 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
 
   if (app->field.proj_app_current)
     gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
+  if ((app->field.proj_app_current) && (app->field.use_explicit_em_coupling)){
+    // TEMP: 2x on dt
+    gkyl_fv_proj_advance(app->field.proj_app_current, tcurr + dt*2, &app->local, app->field.app_current);
+    gkyl_fv_proj_advance(app->field.proj_app_current, tcurr + 2*dt/2.0, &app->local, app->field.app_current);
+  }
 
   if (app->field.proj_ext_em) {
 
@@ -141,8 +146,9 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   if (app->field.use_explicit_em_coupling)
     gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const, 
-      app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
-      nT_sources, app->field.proj_app_current);
+      app->field.f[sidx[nstrang]], app->field.app_current, app->field.app_current1,
+      app->field.app_current2, app->field.ext_em, 
+      nT_sources, app->field.proj_app_current,nstrang);
   else
     gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const, 

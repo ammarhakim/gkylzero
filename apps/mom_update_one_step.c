@@ -34,6 +34,9 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
         if (app->has_field)
           gkyl_array_copy(app->field.fdup, app->field.f[0]);
 
+
+        for (int i=0; i<ns; ++i)  if (check_for_nans(app->species[i].f[ndim], app->local)) printf("NANs occur, line 38\n");
+
         break;
           
       case FIRST_COUPLING_UPDATE:
@@ -49,6 +52,8 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
           mhd_src_update(app, &app->mhd_source, 0, tcurr, dt/2);
           app->stat.sources_tm += gkyl_time_diff_now_sec(src1_tm);
         }
+        
+        for (int i=0; i<ns; ++i)  if (check_for_nans(app->species[i].f[ndim], app->local)) printf("NANs occur, line 53\n");
 
         break;
 
@@ -68,6 +73,8 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
           dt_suggested = fmin(dt_suggested, s.dt_suggested);
           app->stat.field_tm += gkyl_time_diff_now_sec(fl_tm);
         }
+
+        for (int i=0; i<ns; ++i)  if (check_for_nans(app->species[i].f[ndim], app->local)) printf("NANs occur, line 72\n");
           
         break;
 
@@ -88,6 +95,8 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
           dt_suggested = fmin(dt_suggested, s.dt_suggested);
         }
         app->stat.species_tm += gkyl_time_diff_now_sec(sp_tm);
+
+        for (int i=0; i<ns; ++i)  if (check_for_nans(app->species[i].f[ndim], app->local)) printf("NANs occur, line 92\n");
          
         break;
 
@@ -104,6 +113,8 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
           mhd_src_update(app, &app->mhd_source, 1, tcurr, dt/2);
           app->stat.sources_tm += gkyl_time_diff_now_sec(src2_tm);
         }
+
+        for (int i=0; i<ns; ++i)  if (check_for_nans(app->species[i].f[ndim], app->local)) printf("NANs occur, line 108\n");
 
         break;
 
@@ -139,6 +150,8 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
         break;
     }
   }
+
+  if (have_nans_occured) printf("NANS OCCURED IN MOM_UPDATE_ONE_STEP");
 
   return (struct gkyl_update_status) {
     .success = have_nans_occured ? false : true,
