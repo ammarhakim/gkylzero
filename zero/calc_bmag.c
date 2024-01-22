@@ -96,9 +96,8 @@ static inline void bphi_RZ(double t, const double *xn, double *fout, void *ctx){
     rz[i] = (xn[i]-rzxc[i])/(gc->rzgrid->dx[i]*0.5);
   psi = gc->rzbasis->eval_expand(rz, &psicoeffs[gc->rzbasis->num_basis]);
 
-  if(psi < gc->psisep){
+  if ( (psi < gc->grid->lower[0]) || (psi > gc->grid->upper[0]) ) // F = F(psi_sep) in the SOL. Works regardless of psi convention
     psi = gc->psisep;
-  }
 
   // now find psi cell this lies in and get coeffs for fpol
   gkyl_range_iter_init(&iter, gc->range);

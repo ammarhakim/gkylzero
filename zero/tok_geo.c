@@ -367,18 +367,18 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   struct gkyl_tok_geo *geo = mapc2p_ctx;
   struct gkyl_tok_geo_grid_inp *inp = bmag_ctx;
 
-  enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
   
   double dtheta = inp->cgrid.dx[TH_IDX],
-    dpsi = inp->cgrid.dx[PH_IDX],
+    dpsi = inp->cgrid.dx[PSI_IDX],
     dalpha = inp->cgrid.dx[AL_IDX];
   
   double theta_lo = inp->cgrid.lower[TH_IDX],
-    psi_lo = inp->cgrid.lower[PH_IDX],
+    psi_lo = inp->cgrid.lower[PSI_IDX],
     alpha_lo = inp->cgrid.lower[AL_IDX];
 
-  double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
+  double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
 
   // used for finite differences 
@@ -430,16 +430,16 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 
       double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
 
-      for (int ip=nrange->lower[PH_IDX]; ip<=nrange->upper[PH_IDX]; ++ip) {
+      for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
         int ip_delta_max = 5;// should be 5
         if(ia_delta != 0)
           ip_delta_max = 1;
         for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
-          if(ip == nrange->lower[PH_IDX]){
+          if(ip == nrange->lower[PSI_IDX]){
             if(ip_delta == 1 || ip_delta == 3)
               continue; // want to use one sided stencils at edge
           }
-          else if(ip == nrange->upper[PH_IDX]){
+          else if(ip == nrange->upper[PSI_IDX]){
             if(ip_delta == 2 || ip_delta == 4)
               continue; // want to use one sided stencils at edge
           }
@@ -463,7 +463,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 
           darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
           // at the beginning of each theta loop we need to reset things
-          cidx[PH_IDX] = ip;
+          cidx[PSI_IDX] = ip;
           arcL_curr = 0.0;
           arcL_lo = (theta_lo + M_PI)/2/M_PI*arc_ctx.arcL_tot;
           double ridders_min, ridders_max;

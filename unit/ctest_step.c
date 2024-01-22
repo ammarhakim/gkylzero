@@ -419,7 +419,7 @@ test_1()
 }
 
 TEST_LIST = {
-  //{ "test_core", test_core},
+  { "test_core", test_core},
   //{ "test_outer", test_outer}, // Works
   //{"test_3", test_3}, // Works. Good cmag
   //{"test_2", test_2}, // cmag -> 0 at xpt  but ok
@@ -429,7 +429,7 @@ TEST_LIST = {
   //{"test_8", test_8},  // Works. Good cmag. Verified correct orientation
   //{"test_7", test_7}, // Works. cmag->0 at xpt but ok
   //{"test_9", test_9}, // Works. cmag-<0 at xpt but ok
-  {"test_1", test_1},  // Nodes work but cmag looks bad. Great if zxpt_lo=2.
+  //{"test_1", test_1},  // Nodes work but cmag looks bad. Great if zxpt_lo=2.
 
   { NULL, NULL },
 };

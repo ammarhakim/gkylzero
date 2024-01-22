@@ -510,17 +510,17 @@ test_6()
 
 
 TEST_LIST = {
-  //{ "test_1", test_1}, //cmag not so great
-  //{ "test_2", test_2},
-  //{ "test_3", test_3},
-  //{ "test_11", test_11},
-  //{ "test_12", test_12},
-  //{ "test_4", test_4},
-  //{"test_7", test_7},
-  //{"test_8", test_8},
-  //{"test_9", test_9},
-  //{"test_10", test_10}, //cmag not so great
-  //{"test_5", test_5}, //cmag not so great
+  { "test_1", test_1}, //cmag not so great
+  { "test_2", test_2},
+  { "test_3", test_3},
+  { "test_11", test_11},
+  { "test_12", test_12},
+  { "test_4", test_4},
+  {"test_7", test_7},
+  {"test_8", test_8},
+  {"test_9", test_9},
+  {"test_10", test_10}, //cmag not so great
+  {"test_5", test_5}, //cmag not so great
   {"test_6", test_6}, //cmag pretty good but not great
   { NULL, NULL },
 };

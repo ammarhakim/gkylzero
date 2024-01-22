@@ -88,17 +88,17 @@ test_fixed_z()
 
   struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
-      .filepath = "./efit_data/asdex.geqdsk",
+      .filepath = "./efit_data/tcv.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
       .plate_spec = false,
       .quad_param = {  .eps = 1e-10 }
     };
 
-  double clower[] = { 0.16, -0.01, -3.14 };
-  double cupper[] = {0.17501, 0.01, 3.14 };
+  double clower[] = { -0.02, -0.01, -3.14 };
+  double cupper[] = {-0.01, 0.01, 3.14 };
 
-  int ccells[] = { 1, 1, 32 };
+  int ccells[] = { 1, 1, 8 };
 
 
 
@@ -111,17 +111,19 @@ test_fixed_z()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
+
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_SN_LO,
-    .rclose = 2.5,
-    .rright = 2.5,
-    .rleft = 0.7,
-    .zmin = -1.3,
-    .zmax = 1.0,
-    .zmin_left = -1.3,
-    .zmin_right = -1.3,
+    .rclose = 1.2,
+    .rleft= 0.0,
+    .rright= 1.2,
+    .zmin_left = -0.35,
+    .zmin_right = -0.6,
+    .zmin = -0.35,
+    .zmax = 0.4,
+  
     .write_node_coord_array = true,
-    .node_file_nm = "asdex_fixed_z_nodes.gkyl"
+    .node_file_nm = "tcv_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -132,65 +134,8 @@ test_fixed_z()
   printf("total time = %g\n", cpu_time_used);
 }
 
-void
-test_shaped_plate()
-{
-  clock_t start, end;
-  double cpu_time_used;
-  start = clock();
-
-
-
-  struct gkyl_tok_geo_efit_inp inp = {
-      // psiRZ and related inputs
-      .filepath = "./efit_data/asdex.geqdsk",
-      .rzpoly_order = 2,
-      .fluxpoly_order = 1,
-      .plate_spec = false,
-      //.plate_func_lower = shaped_pfunc_lower,
-      //.plate_func_upper = shaped_pfunc_upper,
-      .quad_param = {  .eps = 1e-10 }
-    };
-
-  double clower[] = { 0.16, -0.01, -3.14 };
-  double cupper[] = {0.17501, 0.01, 3.14 };
-
-  int ccells[] = { 1, 1, 32 };
-
-
-
-  struct gkyl_rect_grid cgrid;
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_SN_LO,
-    .rclose = 2.5,
-    .rright = 2.5,
-    .rleft = 0.7,
-    .zmin = -1.3,
-    .zmax = 1.0,
-    .zmin_left = -1.2,
-    .zmin_right = -1.0,
-    .write_node_coord_array = true,
-    .node_file_nm = "asdex_shaped_plate_nodes.gkyl"
-  }; 
-
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
-  gkyl_gk_geometry_release(up);
-
-  end = clock();
-  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
-}
 
 TEST_LIST = {
-  //{ "test_fixed_z", test_fixed_z},
-  { "test_shaped_plate", test_shaped_plate},
+  { "test_fixed_z", test_fixed_z},
   { NULL, NULL },
 };

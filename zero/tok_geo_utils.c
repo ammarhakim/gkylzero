@@ -115,10 +115,10 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->rright = inp->rright;
     arc_ctx->rleft = inp->rleft;
 
-    arc_ctx->zmax = inp->zxpt_up + 1e-1; // Initial guess. Give  the bisection some room
+    arc_ctx->zmax = inp->zxpt_up; // Initial guess.
     double zlo = geo->zmaxis;
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax);
-    arc_ctx->zmin = inp->zxpt_lo - 1e-1; // Initial guess
+    arc_ctx->zmin = inp->zxpt_lo; // Initial guess
     double zup = geo->zmaxis;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin);
     // Done finding turning points
@@ -342,6 +342,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->rright = inp->rright;
     arc_ctx->rleft = inp->rleft;
     //Find the  upper turning point
+    arc_ctx->zmax = inp->zmax; // Initial guess
     double zlo = fmax(inp->zmin_left, inp->zmin_right);
     find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax);
 
@@ -462,12 +463,14 @@ tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ct
       arc_ctx->right = true;
       *ridders_min = -arcL_curr;
       *ridders_max = arc_ctx->arcL_tot-arcL_curr;
+      arc_ctx->zmin = arc_ctx->zmin_right;
     }
     else{
       *rclose = arc_ctx->rleft;
       arc_ctx->right = false;
       *ridders_min = arc_ctx->arcL_tot - arcL_curr;
       *ridders_max = -arcL_curr + arc_ctx->arcL_right;
+      arc_ctx->zmin = arc_ctx->zmin_left;
     }
   }
 
