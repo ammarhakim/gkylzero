@@ -526,7 +526,7 @@ e_field_source(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
 static inline void
 higuera_cary_update(const gkyl_moment_em_coupling *mes, double tcurr, double dt, 
   double *fluids[GKYL_MAX_SPECIES], const double *app_accels[GKYL_MAX_SPECIES],
-  double *em, const double *app_current, const double *ext_em)
+  double *em, const double *ext_em)
 {
   int nfluids = mes->nfluids;
   double epsilon0 = mes->epsilon0;
@@ -646,7 +646,7 @@ fluid_source_update_sr(const gkyl_moment_em_coupling *mes, double tcurr, double 
     e_field_source(mes, tcurr, dt, fluids, em, app_current, app_curr_s1, app_curr_s2, ext_em);
     // TEMP: off -> uncommented
   if (nstrang == 1) //0
-    higuera_cary_update(mes, tcurr, dt, fluids, app_accels, em, app_current, ext_em);
+    higuera_cary_update(mes, tcurr, dt, fluids, app_accels, em, ext_em);
 
 }
 
