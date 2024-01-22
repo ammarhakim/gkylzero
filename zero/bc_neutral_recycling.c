@@ -41,8 +41,9 @@ gkyl_bc_neutral_recycling_new(int dir, enum gkyl_edge_loc edge, const struct gky
   struct gkyl_array *moms_recyc = gkyl_array_new(GKYL_DOUBLE, (2+vdim)*cbasis->num_basis, up->ghost_conf_r->volume);
   struct gkyl_array *m0_recyc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->ghost_conf_r->volume);
   struct gkyl_array *m2_recyc = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->ghost_conf_r->volume);
-  up->recyc_fmax = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, up->ghost_r->volume);
-  up->recyc_flux_m0 = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->ghost_conf_r->volume);
+  // Will be passed at advance method
+  /* up->recyc_fmax = gkyl_array_new(GKYL_DOUBLE, pbasis->num_basis, up->ghost_r->volume); */
+  /* up->recyc_flux_m0 = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->ghost_conf_r->volume); */
   up->scale_fmax_m0 = gkyl_array_new(GKYL_DOUBLE, cbasis->num_basis, up->ghost_conf_r->volume); 
   
   struct gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(up->grid, up->cbasis, up->pbasis, poly_order+1, use_gpu);
@@ -71,7 +72,7 @@ gkyl_bc_neutral_recycling_new(int dir, enum gkyl_edge_loc edge, const struct gky
   return up;
 }
 
-/* Modeled after gkyl_array_flip_copy_to_buffer_fn */
+// assume advance is only for one boundary at a time
 void
 gkyl_bc_neutral_recycling_advance(const struct gkyl_bc_neutral_recycling *up, const struct gkyl_array *ion_flux_m0,
   struct gkyl_array *distf, const struct gkyl_range *conf_r)
