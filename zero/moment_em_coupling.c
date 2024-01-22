@@ -388,7 +388,7 @@ static inline void
 higuera_cary_push(double *u, const double q, const double m, const double dt,
 const double c, const double E[3], const double B[3])
 {
-  for (int i=0; i<3; ++i) if isnan(u[i]) printf("u[%d] is a nan in HC Before\n",i);
+  for (int i=0; i<3; ++i) if (isnan(u[i])) printf("u[%d] is a nan in HC Before\n",i);
   for (int i=0; i<3; ++i) if (!isfinite(u[i])) printf("u[%d] is a inf in HC Before\n",i);
 
   const double qmdt = q*0.5*dt/m;
@@ -422,7 +422,7 @@ const double c, const double E[3], const double B[3])
   u[1] = u_1_plus + E_1 + (u_2_plus*t_0 - u_0_plus*t_2);
   u[2] = u_2_plus + E_2 + (u_0_plus*t_1 - u_1_plus*t_0);
 
-  for (int i=0; i<3; ++i) if isnan(u[i]) printf("u[%d] is a nan in HC After\n",i);
+  for (int i=0; i<3; ++i) if (isnan(u[i])) printf("u[%d] is a nan in HC After\n",i);
   for (int i=0; i<3; ++i) if (!isfinite(u[i])) printf("u[%d] is a inf in HC After\n",i);
 }
 
@@ -517,9 +517,9 @@ e_field_source(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
     em[EZ] = f_euler_update[2];
   }
 
-  if isnan(em[EX]) printf("em[EX] is a nan in SSP\n");
-  if isnan(em[EY]) printf("em[EY] is a nan in SSP\n");
-  if isnan(em[EZ]) printf("em[EZ] is a nan in SSP\n");
+  if (isnan(em[EX])) printf("em[EX] is a nan in SSP\n");
+  if (isnan(em[EY])) printf("em[EY] is a nan in SSP\n");
+  if (isnan(em[EZ])) printf("em[EZ] is a nan in SSP\n");
 }
 
 
