@@ -404,8 +404,8 @@ test_1()
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_PF_LO_R,
     .rright = 6.2,
-    .zxpt_lo = -6.2,
-    .zmin = -8.3,
+    .zxpt_lo = -6.142,
+    .zmin = -8.4,
     .write_node_coord_array = true,
     .node_file_nm = "step1_nodes.gkyl"
   }; 

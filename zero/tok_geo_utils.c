@@ -169,7 +169,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     // Immediately set rclose
     arc_ctx->rclose = inp->rleft;
     // Immediately set zmin
-    arc_ctx->zmin = arc_ctx->zmin;
+    arc_ctx->zmin = inp->zmin;
     //Find the  upper turning point to set zmax
     arc_ctx->zmax = inp->zxpt_lo; // Initial guess
     double zlo = arc_ctx->zmin;
@@ -203,7 +203,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     double zup = arc_ctx->zmax;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin);
     // Done finding turning point
-    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, inp->zmax_left, arc_ctx->rclose,
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
       true, true, arc_memo);
   }
 
@@ -217,7 +217,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     double zup = arc_ctx->zmax;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin);
     // Done finding turning point
-    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, inp->zmax_right, arc_ctx->rclose,
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
       true, true, arc_memo);
   }
 
@@ -436,21 +436,16 @@ tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ct
     *ridders_min = arc_ctx->arcL_tot - arcL_curr;
     *ridders_max = -arcL_curr;
   }
-//  }
-//  if(inp->ftype==GKYL_PF_UP){
-//    if(arcL_curr > arc_ctx->arcL_left){
-//      *rclose = arc_ctx->rright;
-//      arc_ctx->right = true;
-//      *ridders_min = arc_ctx->arcL_left - arcL_curr;
-//      *ridders_max = arc_ctx->arcL_tot - arcL_curr;
-//    }
-//    else{
-//      *rclose = arc_ctx->rleft;
-//      arc_ctx->right = false;
-//      *ridders_min = arc_ctx->arcL_left - arcL_curr;
-//      *ridders_max = -arcL_curr;
-//    }
-//  }
+  else if(inp->ftype==GKYL_PF_UP_R){
+    *rclose = arc_ctx->rclose;
+    *ridders_min = -arcL_curr;
+    *ridders_max = arc_ctx->arcL_tot - arcL_curr;
+  }
+  else if (inp->ftype==GKYL_PF_UP_L) {
+    *rclose = arc_ctx->rright;
+    *ridders_min = arc_ctx->arcL_tot - arcL_curr;
+    *ridders_max = -arcL_curr;
+  }
   else if( (arc_ctx->ftype==GKYL_SOL_DN_OUT) || (arc_ctx->ftype==GKYL_SOL_DN_OUT) || (arc_ctx->ftype==GKYL_SOL_DN_OUT_LO) || (arc_ctx->ftype==GKYL_SOL_DN_OUT_MID) || (arc_ctx->ftype==GKYL_SOL_DN_OUT_UP) ){
     *ridders_min = -arcL_curr;
     *ridders_max = arc_ctx->arcL_tot-arcL_curr;
