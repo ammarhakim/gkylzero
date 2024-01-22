@@ -146,7 +146,8 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // by default, we do not have zero-flux boundary conditions in any direction
     bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
-    struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, .cot_vec = 0, .alpha_geo = 0};
+    struct gkyl_dg_vlasov_auxfields aux_inp = {.field = s->qmem, .cot_vec = 0, 
+      .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0 };
     // create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);

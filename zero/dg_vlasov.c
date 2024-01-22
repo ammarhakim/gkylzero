@@ -28,16 +28,18 @@ void
 gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.field)) {
+  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
     gkyl_vlasov_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
 #endif
 
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  vlasov->auxfields.field = auxin.field; // q/m*(E,B) for Maxwell's, q/m*phi for Poisson's (gradient calculated in kernel)
-  vlasov->auxfields.cot_vec = auxin.cot_vec; // cotangent vectors (e^i) used in volume term if general geometry enabled
-  vlasov->auxfields.alpha_geo = auxin.alpha_geo; // alpha^i (e^i . alpha) used in surface term if general geometry enabled
+  vlasov->auxfields.field = auxin.field; 
+  vlasov->auxfields.cot_vec = auxin.cot_vec; 
+  vlasov->auxfields.alpha_surf = auxin.alpha_surf;
+  vlasov->auxfields.sgn_alpha_surf = auxin.sgn_alpha_surf;
+  vlasov->auxfields.const_sgn_alpha = auxin.const_sgn_alpha;
 }
 
 struct gkyl_dg_eqn*
@@ -225,7 +227,9 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
 
   vlasov->auxfields.field = 0;
   vlasov->auxfields.cot_vec = 0;
-  vlasov->auxfields.alpha_geo = 0;
+  vlasov->auxfields.alpha_surf = 0;
+  vlasov->auxfields.sgn_alpha_surf = 0;
+  vlasov->auxfields.const_sgn_alpha = 0;
   vlasov->conf_range = *conf_range;
   vlasov->phase_range = *phase_range;
   
