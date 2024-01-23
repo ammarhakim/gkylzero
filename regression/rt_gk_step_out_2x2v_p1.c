@@ -283,9 +283,9 @@ main(int argc, char **argv)
     },
 
     .diffusion = {
-      .D = 0.03, 
       .num_diff_dir = 1, 
       .diff_dirs = { 0 },
+      .D = { 0.03 }, 
       .order = 2, 
     }, 
     
@@ -333,9 +333,9 @@ main(int argc, char **argv)
     },
 
     .diffusion = {
-      .D = 0.03, 
       .num_diff_dir = 1, 
       .diff_dirs = { 0 },
+      .D = { 0.03 }, 
       .order = 2, 
     }, 
     
