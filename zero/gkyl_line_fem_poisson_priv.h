@@ -31,8 +31,9 @@ struct gkyl_line_fem_poisson {
   struct deflated_fem_data *d_fem_data;
   struct gkyl_array *nodal_fld;
   int num_solves_z;
-  struct gkyl_nodal_ops *n2m_2d;
-  struct gkyl_nodal_ops *n2m_1d;
+  int cdim;
+  struct gkyl_nodal_ops *n2m;
+  struct gkyl_nodal_ops *n2m_deflated;
   struct gkyl_deflate_zsurf *deflator_lo;
   struct gkyl_deflate_zsurf *deflator_up;
   bool use_gpu;
