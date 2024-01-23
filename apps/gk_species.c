@@ -487,6 +487,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   if (s->radiation_id == GKYL_GK_RADIATION) 
     gk_species_radiation_release(app, &s->rad);
 
+  gk_species_bflux_release(app, &s->bflux);
+  
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
     if (s->lower_bc[d] == GKYL_SPECIES_GK_SHEATH) 

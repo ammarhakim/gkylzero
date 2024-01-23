@@ -12,8 +12,6 @@
 #include <gkyl_math.h>
 #include <gkyl_nodal_ops.h>
 
-
-
 // write out nodal coordinates 
 static void
 write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
@@ -37,9 +35,11 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p)
  
 {
-  //First just do bmag
-  gkyl_eval_on_nodes *eval_bmag = gkyl_eval_on_nodes_new(&up->grid, &up->basis, 1, bmag_func, bmag_ctx);
+  // First just do bmag
+  struct gkyl_eval_on_nodes *eval_bmag = gkyl_eval_on_nodes_new(&up->grid, &up->basis, 1, bmag_func, bmag_ctx);
   gkyl_eval_on_nodes_advance(eval_bmag, 0.0, &up->range, up->bmag);
+  gkyl_eval_on_nodes_release(eval_bmag);
+
   //Now project mapc2p and the FD array
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
@@ -164,12 +164,14 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, false);
   gkyl_calc_metric_advance(mcalc, nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, &up->range);
-
+  gkyl_calc_metric_release(mcalc);
+  
   // calculate the derived geometric quantities
-  gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
-  gkyl_calc_derived_geo_advance( jcalculator, &up->range, up->g_ij, up->bmag, 
+  struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
+  gkyl_calc_derived_geo_advance(jcalculator, &up->range, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
+  gkyl_calc_derived_geo_release(jcalculator);
 }
 
 

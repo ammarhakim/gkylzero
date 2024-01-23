@@ -8,7 +8,7 @@
 gkyl_calc_derived_geo*
 gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu)
 {
-  gkyl_calc_derived_geo *up = gkyl_malloc(sizeof(gkyl_calc_derived_geo));
+  gkyl_calc_derived_geo *up = gkyl_malloc(sizeof(*up));
   up->cdim = cbasis->ndim;
   up->cnum_basis = cbasis->num_basis;
   up->poly_order = cbasis->poly_order;
