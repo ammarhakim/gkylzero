@@ -200,7 +200,6 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     for (int d=0; d<num_diff_dir; ++d) {
       int dir = s->info.diffusion.diff_dirs[d]; 
       diff_dir[dir] = 1; 
-      printf("diffusion dir = %d, coeff = %g\n", dir, s->info.diffusion.D[d]);
       gkyl_array_shiftc(s->diffD, s->info.diffusion.D[d], dir);
     }
 
