@@ -44,6 +44,9 @@ struct gkyl_tok_geo {
   double psisep; // psi of separatrix
   double zmaxis; // z of magnetic axis
 
+  // Flag and functions to specify the plate location/shape in RZ coordinates
+  // The functions should specify R(s) and Z(s) on the plate where s is a parameter \in [0,1]
+  // For single null, the "lower" plate is the outboard plate and the "upper plate" is the inboard plate
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
