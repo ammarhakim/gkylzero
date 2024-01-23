@@ -25,13 +25,13 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
   int nodes[up->cdim];
   if (poly_order == 1){
     for (int d=0; d<up->cdim; ++d)
-      nodes[d] = up->grid.cells[d] + 1;
+      nodes[d] = gkyl_range_shape(&up->local,d) + 1;
   }
   if (poly_order == 2){
     for (int d=0; d<up->cdim; ++d)
-      nodes[d] = 2*(up->grid.cells[d]) + 1;
+      nodes[d] = 2*gkyl_range_shape(&up->local,d) + 1;
   }
-  gkyl_range_init_from_shape(&up->nrange, up->grid.ndim, nodes);
+  gkyl_range_init_from_shape(&up->nrange, up->cdim, nodes);
 
   // Create deflated 1d/2d grid, ranges, basis, and nodal range
   double deflated_lower[GKYL_MAX_DIM];
@@ -50,12 +50,12 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
 
   if (up->use_gpu) {
     up->deflated_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-    gkyl_cart_modal_serendip_cu_dev(up->deflated_basis_on_dev, up->deflated_grid.ndim, poly_order);
-    up->nodal_fld = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid.ndim, up->nrange.volume);
+    gkyl_cart_modal_serendip_cu_dev(up->deflated_basis_on_dev, up->cdim-1, poly_order);
+    up->nodal_fld = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cdim, up->nrange.volume);
   }
   else {
     up->deflated_basis_on_dev = &up->deflated_basis;
-    up->nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, up->nrange.volume);
+    up->nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->cdim, up->nrange.volume);
   }
 
   int deflated_nodes[1];
