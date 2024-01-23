@@ -99,8 +99,7 @@ void gkyl_dg_calc_vlasov_gen_geo_vars_alpha_surf_cu(struct gkyl_dg_calc_vlasov_g
 
 __global__ void
 gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec_cu_kernel(struct gkyl_dg_calc_vlasov_gen_geo_vars *up, 
-  struct gkyl_range conf_range, struct gkyl_range phase_range, struct gkyl_range phase_ext_range, 
-  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
+  struct gkyl_range conf_range, struct gkyl_array* cot_vec)
 { 
   int idx[GKYL_MAX_DIM];
 
@@ -143,8 +142,8 @@ dg_calc_vlasov_gen_geo_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_vlasov_gen_geo_v
   int cdim, int poly_order)
 {
   for (int d=0; d<cdim; ++d) {
-    up->alpha_surf[d] = choose_vlasov_gen_geo_alpha_surf_conf_kern(d, cdim, poly_order);
-    up->alpha_edge_surf[d] = choose_vlasov_gen_geo_alpha_edge_surf_conf_kern(d, cdim, poly_order);
+    up->alpha_surf[d] = choose_vlasov_gen_geo_alpha_surf_kern(d, cdim, poly_order);
+    up->alpha_edge_surf[d] = choose_vlasov_gen_geo_alpha_edge_surf_kern(d, cdim, poly_order);
   }
   up->calc_cot_vec = choose_vlasov_gen_geo_cot_vec_kern(cdim, poly_order);
 }
