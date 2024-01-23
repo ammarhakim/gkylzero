@@ -500,6 +500,10 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   else if (species->collision_id == GKYL_BGK_COLLISIONS)
     gk_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
   
+  if (species->has_diffusion)
+    gkyl_dg_updater_diffusion_gyrokinetic_advance(species->diff_slvr, &species->local, 
+      species->diffD, fin, species->cflrate, rhs);
+
   if (species->radiation_id == GKYL_GK_RADIATION)
     gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
 

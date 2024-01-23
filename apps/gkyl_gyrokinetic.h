@@ -41,8 +41,8 @@ struct gkyl_gyrokinetic_collisions {
 // Parameters for species diffusion
 struct gkyl_gyrokinetic_diffusion {
   double D; // constant diffusion coefficient
-  int num_diff_dir; // number of periodic directions
-  int diff_dirs[3]; // list of periodic directions
+  int num_diff_dir; // number of diffusion directions
+  int diff_dirs[3]; // list of diffusion directions
   int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
 };
 

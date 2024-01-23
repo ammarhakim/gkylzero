@@ -281,6 +281,13 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp_profile = eval_temp_source,
     },
+
+    .diffusion = {
+      .D = 0.03, 
+      .num_diff_dir = 1, 
+      .diff_dirs = { 0 },
+      .order = 2, 
+    }, 
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
@@ -324,6 +331,13 @@ main(int argc, char **argv)
       .temp_profile = eval_temp_source,
       .ctx_temp = &ctx,
     },
+
+    .diffusion = {
+      .D = 0.03, 
+      .num_diff_dir = 1, 
+      .diff_dirs = { 0 },
+      .order = 2, 
+    }, 
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
