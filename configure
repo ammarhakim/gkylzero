@@ -13,8 +13,8 @@ CC=cc
 ARCH_FLAGS=-march=native
 CUDA_ARCH=70
 
-USE_MPI=
-USE_LUA=
+USE_MPI="yes"
+USE_LUA="yes"
 # Lua link to static library
 CONF_LUA_LIB=luajit-5.1
 
@@ -199,8 +199,8 @@ fi
 : "${LAPACK_LIB=$PREFIX/OpenBLAS/lib/libopenblas.a}"
 
 # MPI specific paths and flags
-: "${CONF_MPI_INC_DIR=$PREFIX/openmpi/include}"
-: "${CONF_MPI_LIB_DIR=$PREFIX/openmpi/lib/}"
+: "${CONF_MPI_INC_DIR=$PREFIX/openmpi-4.1.2/include/}"
+: "${CONF_MPI_LIB_DIR=$PREFIX/openmpi-4.1.2/lib/}"
 
 # Lua specific paths and flags
 : "${CONF_LUA_INC_DIR=$PREFIX/luajit/include/luajit-2.1}"

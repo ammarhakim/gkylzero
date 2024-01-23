@@ -21,6 +21,29 @@ struct gkyl_gk_low_inp {
   struct gkyl_comm *comm;
 };
 
+// Parameters for projection
+struct gkyl_gyrokinetic_projection {
+  enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
+
+  // pointer and context to initialization function 
+  void *ctx_func; 
+  void (*func)(double t, const double *xn, double *fout, void *ctx); 
+
+  // pointers and contexts to initialization functions for gk maxwellian projection
+  void *ctx_density;
+  void (*density)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_upar;
+  void (*upar)(double t, const double *xn, double *fout, void *ctx);
+  // if projection is Maxwellian
+  void *ctx_temp;
+  void (*temp)(double t, const double *xn, double *fout, void *ctx);
+  // if projection is bi-Maxwellian
+  void *ctx_temppar;
+  void (*temppar)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_tempperp;
+  void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
+};
+
 // Parameters for species collisions
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -51,19 +74,8 @@ struct gkyl_gyrokinetic_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source
 
-  // pointer and context to source profile function   
-  void *ctx_profile; 
-  void (*profile)(double t, const double *xn, double *fout, void *ctx);
-
-  // functions and contexts for computing source density, upar, and temperature profiles
-  void *ctx_density;
-  void (*density_profile)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_upar;
-  void (*upar_profile)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_temp;
-  void (*temp_profile)(double t, const double *xn, double *fout, void *ctx);
-  // flag to indicate if source is maxwellian projection
-  bool is_maxwellian;
+  // sources using projection routine
+  struct gkyl_gyrokinetic_projection projection;
 };
 
 struct gkyl_gyrokinetic_geometry {
@@ -132,25 +144,8 @@ struct gkyl_gyrokinetic_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
-  // pointer and context to initialization function 
-  void *ctx_dist; 
-  void (*init_dist)(double t, const double *xn, double *fout, void *ctx); 
-
-  // pointers and contexts to initialization functions for gk maxwellian projection
-  void *ctx_density;
-  void (*init_density)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_upar;
-  void (*init_upar)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_temp;
-  void (*init_temp)(double t, const double *xn, double *fout, void *ctx);
-  // flag to indicate if IC is maxwellian projection
-  bool is_maxwellian;
-  // flag to indicate if IC is bimaxwellian projection
-  void *ctx_temppar;
-  void (*init_temppar)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_tempperp;
-  void (*init_tempperp)(double t, const double *xn, double *fout, void *ctx);
-  bool is_bimaxwellian;
+  // initial conditions using projection routine
+  struct gkyl_gyrokinetic_projection projection;
 
   double polarization_density;
 
@@ -186,19 +181,8 @@ struct gkyl_gyrokinetic_neut_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
-  // pointer and context to initialization function 
-  void *ctx_dist; 
-  void (*init_dist)(double t, const double *xn, double *fout, void *ctx); 
-
-  // pointers and contexts to initialization functions for gk maxwellian projection
-  void *ctx_density;
-  void (*init_density)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_upar;
-  void (*init_upar)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_temp;
-  void (*init_temp)(double t, const double *xn, double *fout, void *ctx);
-  // flag to indicate if IC is maxwellian projection
-  bool is_maxwellian;
+  // initial conditions using projection routine
+  struct gkyl_gyrokinetic_projection projection;
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments

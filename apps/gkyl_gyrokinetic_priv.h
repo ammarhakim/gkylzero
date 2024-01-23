@@ -256,12 +256,56 @@ struct gk_react {
   enum gkyl_react_id react_id; // type of reaction
 };
 
+struct gk_proj {
+  enum gkyl_projection_id proj_id; // type of projection
+  // organization of the different projection objects and the required data and solvers
+  union {
+    // function projection
+    struct {
+      struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
+      struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
+    };
+    // Maxwellian and Bi-Maxwellian projection
+    struct {
+      struct gkyl_array *m0; // host-side density
+      struct gkyl_array *upar; // host-side upar  
+      struct gkyl_array *prim_moms; // host-side prim_moms 
+
+      struct gkyl_array *m0mod; // array for correcting density
+
+      struct gkyl_array *prim_moms_dev; // device-side prim_moms for GPU simulations
+      struct gkyl_array *m0_dev; // device-side density for GPU simulations
+      struct gkyl_dg_bin_op_mem *mem; // memory needed in correcting density
+
+      struct gkyl_proj_on_basis *proj_dens; // projection operator for density
+      struct gkyl_proj_on_basis *proj_upar; // projection operator for upar
+
+      union {
+        // Maxwellian-specific arrays and functions
+        struct {
+          struct gkyl_array *vtsq; // host-side vth^2 = T/m (temperature/mass)
+          struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
+          struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+        };
+        // Bi-Maxwellian-specific arrays and functions
+        struct {
+          struct gkyl_array *vtsqpar; // host-side vth_par^2 = Tpar/m (parallel temperature/mass)
+          struct gkyl_array *vtsqperp; // host-side vth_perp^2 = Tperp/m (perpendicular temperature/mass)
+          struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
+          struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
+          struct gkyl_proj_bimaxwellian_on_basis *proj_bimax; // Bi-Maxwellian projection object
+        };
+      };
+    };
+  };
+};
+
 struct gk_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source distribution
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *source_proj; // projector for source
+  struct gk_proj proj_source; // projector for source
 };
 
 // species data
@@ -335,6 +379,8 @@ struct gk_species {
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
+  struct gk_proj proj_init; // projector for initial conditions
+
   enum gkyl_source_id source_id; // type of source
   struct gk_source src; // applied source
 
@@ -368,12 +414,42 @@ struct gk_neut_react {
   enum gkyl_react_id react_id; // type of reaction
 };
 
+struct gk_neut_proj {
+  enum gkyl_projection_id proj_id; // type of projection
+  // organization of the different projection objects and the required data and solvers
+  union {
+    // function projection
+    struct {
+      struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
+      struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
+    };
+    // Maxwellian projection
+    struct {
+      struct gkyl_array *m0; // host-side density
+      struct gkyl_array *upar; // host-side upar  
+      struct gkyl_array *vtsq; // host-side vth^2 = T/m (temperature/mass)
+      struct gkyl_array *prim_moms; // host-side prim_moms 
+
+      struct gkyl_array *m0mod; // array for correcting density
+
+      struct gkyl_array *prim_moms_dev; // device-side prim_moms for GPU simulations
+      struct gkyl_array *m0_dev; // device-side density for GPU simulations
+      struct gkyl_dg_bin_op_mem *mem; // memory needed in correcting density
+
+      struct gkyl_proj_on_basis *proj_dens; // projection operator for density
+      struct gkyl_proj_on_basis *proj_upar; // projection operator for upar
+      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
+      struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+    };
+  };
+};
+
 struct gk_neut_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source distribution
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *source_proj; // projector for source
+  struct gk_neut_proj proj_source; // projector for source
 };
 
 // neutral species data
@@ -432,6 +508,8 @@ struct gk_neut_species {
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+
+  struct gk_neut_proj proj_init; // projector for initial conditions
 
   enum gkyl_source_id source_id; // type of source
   struct gk_neut_source src; // applied source
@@ -906,6 +984,39 @@ void gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *sp
  */
 void gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk_boundary_fluxes *bflux);
 
+/** gk_species_projection API */
+
+/**
+ * Initialize species projection object.
+ *
+ * @param app gyrokinetic app object
+ * @param s Species object 
+ * @param inp Input struct for projection (contains functions pointers for type of projection)
+ * @param proj Species projection object
+ */
+void gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
+  struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj);
+
+/**
+ * Compute species projection
+ *
+ * @param app gyrokinetic app object
+ * @param species Species object
+ * @param proj Species projection object
+ * @param f Output distribution function from projection
+ * @param tm Time for use in projection
+ */
+void gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *species, 
+  struct gk_proj *proj, struct gkyl_array *f, double tm);
+
+/**
+ * Release species projection object.
+ *
+ * @param app gyrokinetic app object
+ * @param proj Species projection object to release
+ */
+void gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj);
+
 /** gk_species_source API */
 
 /**
@@ -922,9 +1033,11 @@ void gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
  *
  * @param app gyrokinetic app object
  * @param species Species object
+ * @param src Species source object
  * @param tm Time for use in source
  */
-void gk_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_species *species, double tm);
+void gk_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_species *species, 
+  struct gk_source *src, double tm);
 
 /**
  * Compute RHS contribution from source
@@ -1103,6 +1216,39 @@ void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
  */
 void gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_neut_react *react);
 
+/** gk_neut_species_projection API */
+
+/**
+ * Initialize neutral species projection object.
+ *
+ * @param app gyrokinetic app object
+ * @param s Neutral species object 
+ * @param inp Input struct for projection (contains functions pointers for type of projection)
+ * @param proj Neutral species projection object
+ */
+void gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
+  struct gkyl_gyrokinetic_projection inp, struct gk_neut_proj *proj);
+
+/**
+ * Compute neutral species projection
+ *
+ * @param app gyrokinetic app object
+ * @param species Neutral species object
+ * @param proj Neutral species projection object
+ * @param f Output Neutral distribution function from projection
+ * @param tm Time for use in projection
+ */
+void gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, 
+  struct gk_neut_proj *proj, struct gkyl_array *f, double tm);
+
+/**
+ * Release neutral species projection object.
+ *
+ * @param app gyrokinetic app object
+ * @param proj Neutral species projection object to release
+ */
+void gk_neut_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_neut_proj *proj);
+
 /** gk_neut_species_source API */
 
 /**
@@ -1119,9 +1265,11 @@ void gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
  *
  * @param app gyrokinetic app object
  * @param species Neutral species object
+ * @param src Neutral species source object
  * @param tm Time for use in source
  */
-void gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double tm);
+void gk_neut_species_source_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *species, 
+  struct gk_neut_source *src, double tm);
 
 /**
  * Compute RHS contribution from source

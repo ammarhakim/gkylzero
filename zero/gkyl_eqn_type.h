@@ -53,9 +53,16 @@ enum gkyl_collision_id {
 // Identifiers for specific source object types
 enum gkyl_source_id {
   GKYL_NO_SOURCE = 0, // No source. This is default
-  GKYL_FUNC_SOURCE, // Source given by function
-  GKYL_MAXWELLIAN_SOURCE, // Source given by Maxwellian
+  GKYL_FUNC_SOURCE, // Function source
+  GKYL_PROJ_SOURCE, // Source given by projection object determined by gkyl_projection_id
   GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes
+};
+
+// Identifiers for specific projection object types
+enum gkyl_projection_id {
+  GKYL_PROJ_FUNC = 0, // Function projection. This is default
+  GKYL_PROJ_MAXWELLIAN, // Maxwellian projection
+  GKYL_PROJ_BIMAXWELLIAN, // Bi-Maxwellian projection
 };
 
 // Identifiers for specific radiation object types
