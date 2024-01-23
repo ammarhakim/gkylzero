@@ -217,10 +217,6 @@ $(BUILD_DIR)/kernels/maxwell/%.c.o : kernels/maxwell/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
-$(BUILD_DIR)/kernels/neutral/%.c.o : kernels/neutral/%.c
-	$(MKDIR_P) $(dir $@)
-	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
-
 $(BUILD_DIR)/kernels/pkpm/%.c.o : kernels/pkpm/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
