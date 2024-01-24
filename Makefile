@@ -102,8 +102,8 @@ ifeq ($(UNAME), Darwin)
 	SHFLAGS_INSTALL = ${SHFLAGS} -install_name ${PREFIX}/gkylzero/lib/libgkylzero.so
 endif
 
-# Header files
-HEADERS := $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h)
+# Header files 
+HEADERS := $(wildcard minus/*.h) $(wildcard zero/*.h) $(wildcard apps/*.h) $(wildcard kernels/*/*.h) $(wildcard adas/*.h)
 # Headers to install
 INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sort)
 INSTALL_HEADERS += $(shell ls minus/*.h)
@@ -112,9 +112,9 @@ INSTALL_HEADERS += $(shell ls minus/*.h)
 INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR}
 
 # Directories containing source code
-SRC_DIRS := minus zero apps kernels
+SRC_DIRS := minus zero apps kernels adas
 
-# List of regression and unit tests
+# List of regression and unit test
 REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
 UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
 MPI_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/mctest_*.c))
@@ -316,10 +316,12 @@ SED_REPS_STR=s,G0_SHARE_INSTALL_PREFIX_TAG,${G0_SHARE_INSTALL_PREFIX},g
 
 install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # Construct install directories
-	$(MKDIR_P) ${INSTALL_PREFIX}/gkylzero/include
-	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/lib
-	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin
-	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/share
+	$(MKDIR_P) ${PREFIX}/gkylzero/include
+	${MKDIR_P} ${PREFIX}/gkylzero/lib
+	${MKDIR_P} ${PREFIX}/gkylzero/bin
+	${MKDIR_P} ${PREFIX}/gkylzero/share
+	${MKDIR_P} ${PREFIX}/gkylzero/share/adas
+	${MKDIR_P} ${PREFIX}/gkylzero/scripts
 # Headers
 	cp ${INSTALL_HEADERS} ${INSTALL_PREFIX}/gkylzero/include
 	./minus/gengkylzeroh.sh > ${INSTALL_PREFIX}/gkylzero/include/gkylzero.h
@@ -332,6 +334,11 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${INSTALL_PREFIX}/gkylzero/share/rt_twostream.c
 # Lua wrappers
+	cp -f inf/Vlasov.lua ${PREFIX}/gkylzero/lib/
+	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
+# Misc scripts
+	cp -f scripts/*.sh ${PREFIX}/gkylzero/scripts
+	cp -f adas/*.npy ${PREFIX}/gkylzero/share/adas
 	cp -f inf/Moments.lua ${INSTALL_PREFIX}/gkylzero/lib/
 
 .PHONY: clean
