@@ -2,7 +2,7 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 void 
-gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_boundary_fluxes *bflux)
+gk_species_bflux_init(struct gkyl_gyrokinetic_oneb *app, struct gk_species *s, struct gk_boundary_fluxes *bflux)
 { 
   // allocate solver
   bflux->flux_slvr = gkyl_ghost_surf_calc_new(&s->grid, s->eqn_gyrokinetic, app->cdim, app->use_gpu);
@@ -41,7 +41,7 @@ gk_species_bflux_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species
 }
 
 void
-gk_species_bflux_release(const struct gkyl_gyrokinetic_app *app, const struct gk_boundary_fluxes *bflux)
+gk_species_bflux_release(const struct gkyl_gyrokinetic_oneb *app, const struct gk_boundary_fluxes *bflux)
 {
   gkyl_ghost_surf_calc_release(bflux->flux_slvr);
   for (int i=0; i<2*app->cdim; ++i) {

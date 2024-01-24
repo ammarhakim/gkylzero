@@ -3,7 +3,7 @@
 
 // initialize neutral species moment object
 void
-gk_neut_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
+gk_neut_species_moment_init(struct gkyl_gyrokinetic_oneb *app, struct gk_neut_species *s,
   struct gk_neut_species_moment *sm, const char *nm)
 {
   assert(is_neut_moment_name_valid(nm));
@@ -50,7 +50,7 @@ gk_neut_species_moment_calc(const struct gk_neut_species_moment *sm,
 
 // release memory for moment data object
 void
-gk_neut_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct gk_neut_species_moment *sm)
+gk_neut_species_moment_release(const struct gkyl_gyrokinetic_oneb *app, const struct gk_neut_species_moment *sm)
 {
   if (app->use_gpu)
     gkyl_array_release(sm->marr_host);

@@ -2,7 +2,7 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 void 
-gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_bgk_collisions *bgk)
+gk_species_bgk_init(struct gkyl_gyrokinetic_oneb *app, struct gk_species *s, struct gk_bgk_collisions *bgk)
 {
   int cdim = app->cdim, vdim = app->vdim;
   // allocate nu and initialize it
@@ -74,7 +74,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 }
 
 void 
-gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_bgk_collisions *bgk)
+gk_species_bgk_cross_init(struct gkyl_gyrokinetic_oneb *app, struct gk_species *s, struct gk_bgk_collisions *bgk)
 {  
   bgk->greene_factor_mem = 0;
   if (app->use_gpu)
@@ -201,7 +201,7 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 }
 
 void 
-gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_bgk_collisions *bgk)
+gk_species_bgk_release(const struct gkyl_gyrokinetic_oneb *app, const struct gk_bgk_collisions *bgk)
 {
   gkyl_array_release(bgk->self_nu);
   gkyl_array_release(bgk->nu_sum);

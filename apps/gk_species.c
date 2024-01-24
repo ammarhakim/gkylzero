@@ -14,7 +14,7 @@
 
 // initialize species object
 void
-gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_species *s)
+gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_oneb *app, struct gk_species *s)
 {
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;

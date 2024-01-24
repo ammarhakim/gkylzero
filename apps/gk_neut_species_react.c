@@ -2,13 +2,13 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 void 
-gk_neut_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_neut_react *react)
+gk_neut_species_react_init(struct gkyl_gyrokinetic_oneb *app, struct gk_neut_species *s, struct gk_neut_react *react)
 {
   
 }
 
 void 
-gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_neut_react *react)
+gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_oneb *app, struct gk_neut_species *s, struct gk_neut_react *react)
 {
   
 }
@@ -30,7 +30,7 @@ gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_specie
 }
 
 void 
-gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_neut_react *react)
+gk_neut_species_react_release(const struct gkyl_gyrokinetic_oneb *app, const struct gk_neut_react *react)
 {
 
 }

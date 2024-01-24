@@ -315,7 +315,7 @@ struct gkyl_gyrokinetic_stat {
 };
 
 // Object representing gk app
-typedef struct gkyl_gyrokinetic_app gkyl_gyrokinetic_app;
+typedef struct gkyl_gyrokinetic_oneb gkyl_gyrokinetic_app;
 
 /**
  * Construct a new gk app.

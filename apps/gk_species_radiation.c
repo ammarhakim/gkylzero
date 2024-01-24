@@ -2,7 +2,7 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 void 
-gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_rad_drag *rad)
+gk_species_radiation_init(struct gkyl_gyrokinetic_oneb *app, struct gk_species *s, struct gk_rad_drag *rad)
 {
   // Fitting parameters
   double a, alpha, beta, gamma, v0;
@@ -100,7 +100,7 @@ gk_species_radiation_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *spe
 }
 
 void 
-gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struct gk_rad_drag *rad)
+gk_species_radiation_release(const struct gkyl_gyrokinetic_oneb *app, const struct gk_rad_drag *rad)
 {
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     gkyl_array_release(rad->vnu[i]);

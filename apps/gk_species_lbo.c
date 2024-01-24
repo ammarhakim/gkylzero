@@ -2,7 +2,7 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 void 
-gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lbo_collisions *lbo)
+gk_species_lbo_init(struct gkyl_gyrokinetic_oneb *app, struct gk_species *s, struct gk_lbo_collisions *lbo)
 {
   int cdim = app->cdim, vdim = app->vdim;
   double v_bounds[2*GKYL_MAX_DIM];
@@ -84,7 +84,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 }
 
 void 
-gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lbo_collisions *lbo)
+gk_species_lbo_cross_init(struct gkyl_gyrokinetic_oneb *app, struct gk_species *s, struct gk_lbo_collisions *lbo)
 {
   lbo->cross_calc = gkyl_prim_lbo_gyrokinetic_cross_calc_new(&s->grid, 
     &app->confBasis, &app->basis, &app->local, app->use_gpu);
@@ -235,7 +235,7 @@ gk_species_lbo_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 }
 
 void 
-gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_lbo_collisions *lbo)
+gk_species_lbo_release(const struct gkyl_gyrokinetic_oneb *app, const struct gk_lbo_collisions *lbo)
 {
   gkyl_array_release(lbo->boundary_corrections);
   gkyl_array_release(lbo->prim_moms);

@@ -11,7 +11,7 @@
 
 // initialize field object
 struct gk_field* 
-gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
+gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_oneb *app)
 {
   struct gk_field *f = gkyl_malloc(sizeof(struct gk_field));
 

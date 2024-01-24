@@ -1086,7 +1086,7 @@ gyrokinetic_app_run(lua_State *L)
 
   struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
-  struct gkyl_gyrokinetic_app *app = app_lw->app;
+  struct gkyl_gyrokinetic_oneb *app = app_lw->app;
 
   double tcurr = app_lw->tstart;
   double tend = app_lw->tend;

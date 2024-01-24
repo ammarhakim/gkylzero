@@ -2,7 +2,7 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 void 
-gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_source *src)
+gk_species_source_init(struct gkyl_gyrokinetic_oneb *app, struct gk_species *s, struct gk_source *src)
 {
   // we need to ensure source has same shape as distribution function
   src->source = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -125,7 +125,7 @@ gk_species_source_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *specie
 }
 
 void
-gk_species_source_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source *src)
+gk_species_source_release(const struct gkyl_gyrokinetic_oneb *app, const struct gk_source *src)
 {
   gkyl_array_release(src->source);
   if (app->use_gpu) 

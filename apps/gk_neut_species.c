@@ -14,7 +14,7 @@
 
 // initialize species object
 void
-gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_oneb *app, struct gk_neut_species *s)
 {
   int cdim = app->cdim, vdim = app->vdim+1; // neutral species are 3v
   int pdim = cdim+vdim;
