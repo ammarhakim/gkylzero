@@ -20,17 +20,17 @@
 
 
 //// Coords that worked for outer
-//.zmin = -6.14213,
-//.zmax = 6.14226,
+//.zmin = -1.093941629526259813,
+//.zmax = 1.094605624589544826,
 //
 //Coords that worked for core
-//.zxpt_lo = -6.14214,
-//.zxpt_up = 6.1423,
+//.zxpt_lo = -1.093941629526259814,
+//.zxpt_up = 1.09460562458954483,
 
-double psisep = 1.5098198350000001;
+double psisep = - .12501253600000001 ;
 struct gkyl_tok_geo_efit_inp inp = {
     // psiRZ and related inputs
-    .filepath = "./efit_data/step.geqdsk",
+    .filepath = "./efit_data/mast.geqdsk",
     .rzpoly_order = 2,
     .fluxpoly_order = 1,
     .plate_spec = false,
@@ -51,7 +51,7 @@ test_core()
   start = clock();
 
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
+  double cupper[] = {-0.11, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 16 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -60,18 +60,14 @@ test_core()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_CORE,
-    .rclose = 6.2,
-    .rleft= 1.1,
-    .rright= 6.2,
-    //.zxpt_lo = -6.2,
-    //.zxpt_up = 6.2,
-    //.zxpt_lo = -6.14214,
-    //.zxpt_up = 6.1423,
-    .zxpt_lo = -6.142,
-    .zxpt_up = 6.142,
+    .rclose = 2.0,
+    .rleft= 0.5,
+    .rright= 2.0,
+    .zxpt_lo = -1.0939416295262598,
+    .zxpt_up = 1.0946056245895448,
 
     .write_node_coord_array = true,
-    .node_file_nm = "stepcore_nodes.gkyl"
+    .node_file_nm = "mastcore_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -90,7 +86,7 @@ test_11()
   start = clock();
 
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
+  double cupper[] = {-0.11, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -99,16 +95,14 @@ test_11()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_CORE_R,
-    .rclose = 6.2,
-    .rleft= 1.1,
-    .rright= 6.2,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zxpt_lo = -6.142,
-    .zxpt_up = 6.142,
+    .rclose = 2.0,
+    .rleft= 0.5,
+    .rright= 2.0,
+    .zxpt_lo = -1.0939416295262598,
+    .zxpt_up = 1.0946056245895448,
 
     .write_node_coord_array = true,
-    .node_file_nm = "step11_nodes.gkyl"
+    .node_file_nm = "mast11_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -127,7 +121,7 @@ test_12()
   start = clock();
 
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
+  double cupper[] = {-0.11, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -136,16 +130,14 @@ test_12()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_CORE_L,
-    .rclose = 6.2,
-    .rleft= 1.1,
-    .rright= 6.2,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zxpt_lo = -6.142,
-    .zxpt_up = 6.142,
+    .rclose = 2.0,
+    .rleft = 0.5,
+    .rright= 2.0,
+    .zxpt_lo = -1.0939416295262598,
+    .zxpt_up = 1.0946056245895448,
 
     .write_node_coord_array = true,
-    .node_file_nm = "step12_nodes.gkyl"
+    .node_file_nm = "mast12_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -163,7 +155,7 @@ test_outer()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 16 };
 
@@ -175,14 +167,11 @@ test_outer()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
-    .rright = 6.2,
-    .rleft = 1.1,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zmin = -8.3,
-    .zmax = 8.3,
+    .rright = 2.0,
+    .zmin = -1.7,
+    .zmax = 1.7,
     .write_node_coord_array = true,
-    .node_file_nm = "stepouter_nodes.gkyl"
+    .node_file_nm = "mastouter_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -200,7 +189,7 @@ test_2()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
@@ -212,14 +201,12 @@ test_2()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT_LO,
-    .rright = 6.2,
-    .rleft = 1.1,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zmin = -8.3,
-    .zxpt_lo = -6.2,
+    .rright = 2.0,
+    .zmin = -1.7,
+    //.zxpt_lo = -1.0939416295262598,
+    .zxpt_lo = -1.0925,
     .write_node_coord_array = true,
-    .node_file_nm = "step2_nodes.gkyl"
+    .node_file_nm = "mast2_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -237,7 +224,7 @@ test_3()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
@@ -249,14 +236,11 @@ test_3()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT_MID,
-    .rright= 6.2,
-    .rleft = 1.1,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zxpt_lo = -6.142,
-    .zxpt_up = 6.142,
+    .rright= 2.0,
+    .zxpt_lo = -1.0925,
+    .zxpt_up = 1.092,
     .write_node_coord_array = true,
-    .node_file_nm = "step3_nodes.gkyl"
+    .node_file_nm = "mast3_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -274,7 +258,7 @@ test_4()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
@@ -286,14 +270,12 @@ test_4()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT_UP,
-    .rright = 6.2,
-    .rleft = 1.1,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zxpt_up = 6.2,
-    .zmax = 8.3,
+    .rright = 2.0,
+    //.zxpt_up = 1.0946056245895448,
+    .zxpt_up = 1.092,
+    .zmax = 1.7,
     .write_node_coord_array = true,
-    .node_file_nm = "step4_nodes.gkyl"
+    .node_file_nm = "mast4_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -311,7 +293,7 @@ test_8()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 1.45, -0.01, -M_PI+1e-14 };
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
@@ -323,14 +305,11 @@ test_8()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_IN_MID,
-    .rleft = 2.0,
-    .rright= 6.2,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zxpt_lo = -6.142,
-    .zxpt_up = 6.142,
+    .rleft = 0.5,
+    .zxpt_lo = -1.0939416295262598,
+    .zxpt_up = 1.0946056245895448,
     .write_node_coord_array = true,
-    .node_file_nm = "step8_nodes.gkyl"
+    .node_file_nm = "mast8_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -340,77 +319,6 @@ test_8()
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
   printf("total time = %g\n", cpu_time_used);
 }
-
-void
-test_5()
-{
-  clock_t start, end;
-  double cpu_time_used;
-  start = clock();
-
-  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
-  int ccells[] = { 1, 1, 4 };
-
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_PF_UP_R,
-    .rright = 6.2,
-    .rleft = 2.0,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zxpt_up = 6.2,
-    .zmax = 8.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "step5_nodes.gkyl"
-  }; 
-
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
-  gkyl_gk_geometry_release(up);
-
-  end = clock();
-  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
-}
-
-void
-test_6()
-{
-  clock_t start, end;
-  double cpu_time_used;
-  start = clock();
-
-  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.52, 0.01, M_PI-1e-14 };
-  int ccells[] = { 1, 1, 4 };
-
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_PF_UP_L,
-    .rleft = 2.0,
-    .rmin = 1.5,
-    .rmax = 6.2,
-    .rright = 6.2,
-    .zxpt_up = 6.2,
-    .zmax = 6.34,
-    .write_node_coord_array = true,
-    .node_file_nm = "step6_nodes.gkyl"
-  }; 
-
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
-  gkyl_gk_geometry_release(up);
-
-  end = clock();
-  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
-}
-
 
 void
 test_7()
@@ -419,7 +327,7 @@ test_7()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 1.45, -0.01, -M_PI+1e-14 };
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 4 };
 
@@ -429,14 +337,11 @@ test_7()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_IN_UP,
-    .rleft = 2.0,
-    .rright= 6.2,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zxpt_up = 6.2,
-    .zmax = 6.34,
+    .rleft = 0.5,
+    .zxpt_up = 1.0946056245895448,
+    .zmax = 1.3,
     .write_node_coord_array = true,
-    .node_file_nm = "step7_nodes.gkyl"
+    .node_file_nm = "mast7_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -454,9 +359,9 @@ test_9()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 1.45, -0.01, -M_PI+1e-14 };
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
-  int ccells[] = { 1, 1, 8 };
+  int ccells[] = { 1, 1, 4 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -465,13 +370,10 @@ test_9()
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_IN_LO,
     .rleft = 2.0,
-    .rright= 6.2,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zxpt_lo = -6.2,
-    .zmin = -6.34,
+    .zxpt_lo = -1.0939416295262598,
+    .zmin = -1.3,
     .write_node_coord_array = true,
-    .node_file_nm = "step9_nodes.gkyl"
+    .node_file_nm = "mast9_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -490,7 +392,7 @@ test_1()
   start = clock();
 
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.8, 0.01, M_PI-1e-14 };
+  double cupper[] = {-0.11, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 4 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
@@ -499,49 +401,11 @@ test_1()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_PF_LO_R,
-    .rright = 6.2,
-    .rleft = 2.0,
-    .rmin = 1.1,
-    .rmax = 6.2,
-    .zxpt_lo = -6.2,
+    .rright = 2.0,
+    .zxpt_lo = -1.0939416295262598,
     .zmin = -8.4,
     .write_node_coord_array = true,
-    .node_file_nm = "step1_nodes.gkyl"
-  }; 
-
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
-  gkyl_gk_geometry_release(up);
-
-  end = clock();
-  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
-}
-
-void
-test_10()
-{
-  clock_t start, end;
-  double cpu_time_used;
-  start = clock();
-
-  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
-  double cupper[] = {1.52, 0.01, M_PI-1e-14 };
-  int ccells[] = { 1, 1, 4 };
-
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_PF_LO_L,
-    .rleft= 2.0,
-    .rright = 6.2,
-    .rmin = 1.6,
-    .rmax = 6.2,
-    .zxpt_lo = -6.2,
-    .zmin = -6.34,
-    .write_node_coord_array = true,
-    .node_file_nm = "step10_nodes.gkyl"
+    .node_file_nm = "mast1_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -555,18 +419,15 @@ test_10()
 TEST_LIST = {
   //{ "test_core", test_core},
   //{ "test_outer", test_outer}, // Works
-  {"test_1", test_1},  // Nodes work, max cmag is 1.2
-  {"test_2", test_2}, // Cmag looks great
   {"test_3", test_3}, // Works. Good cmag
-  {"test_4", test_4}, // Cmag Looks good 
-  {"test_5", test_5}, // Works. Cmag - >1.2 at xpt
-  {"test_6", test_6}, // Works. Cmag - >1.7 at xpt
-  {"test_7", test_7}, // Works. Good cmag
-  {"test_8", test_8},  // Works. Good cmag.
-  {"test_9", test_9}, // Works. cmag 0.7 at xpt but ok
-  {"test_10", test_10}, // Works. cmag->3 at xpt
-  {"test_11", test_11}, // Works. Good cmag. Even with nup hack for PF
-  {"test_12", test_12}, // Works. Good cmag. Even with nup and nlo hack for PF
+  {"test_2", test_2}, // cmag -> 0 at xpt  but ok
+  {"test_4", test_4}, // cmag ->0 at xpt but ok
+  //{"test_11", test_11}, // Works. Good cmag. Even with nup hack for PF
+  //{"test_12", test_12}, // Works. Good cmag. Even with nup and nlo hack for PF
+  //{"test_8", test_8},  // Works. Good cmag. Verified correct orientation
+  //{"test_7", test_7}, // Works. cmag->0 at xpt but ok
+  //{"test_9", test_9}, // Works. cmag-<0 at xpt but ok
+  //{"test_1", test_1},  // Nodes work but cmag looks bad. Great if zxpt_lo=2.
 
   { NULL, NULL },
 };

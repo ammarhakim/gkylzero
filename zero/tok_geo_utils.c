@@ -15,13 +15,14 @@ void find_upper_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double 
     while(true){
       int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
       int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRup);
+      //printf("nlo, nup = %d %d; zlo, zup = %g %g\n", nlo, nup, zlo, zup);
       if (nup > 0) { // This is for the PF_LO regions. Does not seem to break core_L or core_R
                   // However I need to think thos through more. I think it is ok only when xpt
                   // is known quite precisely.
         *zmax = zup;
         break;
       }
-      if (nlo==2){
+      if (nlo>=1){
         if(fabs(zlo-zup)<1e-12){
           *zmax = zlo;
           break;
@@ -47,11 +48,12 @@ void find_lower_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double 
     while(true){
       int nup = R_psiZ(geo, psi_curr, zup, 4, R, dR);
       int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo);
+      //printf("psi = %g;lo, nup = %d %d; zlo, zup = %g %g\n", psi_curr, nlo, nup, zlo, zup);
       if (nlo > 0) {
         *zmin = zlo;
         break;
       }
-      if(nup==2){
+      if(nup>=1){
         if(fabs(zlo-zup)<1e-12){
           *zmin = zup;
           break;
@@ -66,6 +68,88 @@ void find_lower_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double 
     }
 
 }
+
+// This function will set zmin to be the upper lower point location
+void find_lower_turning_point_pf_up(struct gkyl_tok_geo *geo, double psi_curr, double zup, double *zmin)
+{
+    int nup = 0;
+    double zlo=*zmin;
+    double zup_last = zup;
+    double R[4], dR[4];
+    double Rlo[4], dRlo[4];
+    while(true){
+      int nup = R_psiZ(geo, psi_curr, zup, 4, R, dR);
+      int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo);
+      //if(nlo==1){
+      //  if (Rlo[0] < geo->rleft)
+      //    nlo=0;
+      //}
+      if (nlo > 0) {
+        *zmin = zlo;
+        break;
+      }
+      if(nup>=2){
+        if(fabs(zlo-zup)<1e-12){
+          *zmin = zup;
+          break;
+        }
+        zup_last = zup;
+        zup = (zlo+zup)/2;
+      }
+      if(nup==1){
+        zlo = zup;
+        zup = zup_last;
+      }
+      if(nup==0){
+        zlo = zup;
+        zup = zup_last;
+      }
+    }
+}
+
+// This function will set zmax to be the upper turning point location
+void find_upper_turning_point_pf_lo(struct gkyl_tok_geo *geo, double psi_curr, double zlo, double *zmax)
+{
+    //Find the turning points
+    double zlo_last;
+    double zup=*zmax;
+    zlo_last = zlo;
+    double R[4], dR[4];
+    double Rup[4], dRup[4];
+    while(true){
+      int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
+      int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRup);
+      if(nup==1){
+        if (Rup[0] < geo->rleft)
+          nup=0;
+      }
+      if (nup > 0) { // This is for the PF_LO regions. Does not seem to break core_L or core_R
+                  // However I need to think thos through more. I think it is ok only when xpt
+                  // is known quite precisely.
+        *zmax = zup;
+        break;
+      }
+      if (nlo>=2){
+        if(fabs(zlo-zup)<1e-12){
+          *zmax = zlo;
+          break;
+        }
+        zlo_last = zlo;
+        zlo = (zlo+zup)/2;
+      }
+      if(nlo==1){
+        zup = zlo;
+        zlo = zlo_last;
+      }
+      if(nlo==0){
+        zup = zlo;
+        zlo = zlo_last;
+      }
+    }
+}
+
+
+
 
 // Sets zmax if plate is specified
 void set_upper_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr)
@@ -443,7 +527,7 @@ tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ct
     *ridders_max = arc_ctx->arcL_tot - arcL_curr;
   }
   else if (inp->ftype==GKYL_PF_UP_L) {
-    *rclose = arc_ctx->rright;
+    *rclose = arc_ctx->rclose;
     *ridders_min = arc_ctx->arcL_tot - arcL_curr;
     *ridders_max = -arcL_curr;
   }

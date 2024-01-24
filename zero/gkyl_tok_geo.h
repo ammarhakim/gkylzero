@@ -43,6 +43,8 @@ struct gkyl_tok_geo {
                                    
   double psisep; // psi of separatrix
   double zmaxis; // z of magnetic axis
+  double rleft, rright;
+  double rmin, rmax;
 
   // Flag and functions to specify the plate location/shape in RZ coordinates
   // The functions should specify R(s) and Z(s) on the plate where s is a parameter \in [0,1]
@@ -127,6 +129,7 @@ struct gkyl_tok_geo_grid_inp {
   double rclose; // closest R to discrimate
   double rleft; // closest R to discrimate
   double rright; // closest R to discrimate
+  double rmin, rmax;
   double zmin, zmax; // extents of Z for integration
   double zmin_left, zmin_right; // for lower single null and PF cases diff b/t in and outboard side
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side

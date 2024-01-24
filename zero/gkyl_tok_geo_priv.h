@@ -165,9 +165,11 @@ R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
     
     if (sol.nsol > 0)
       for (int s=0; s<sol.nsol; ++s) {
-        R[sidx] = sol.R[s];
-        dR[sidx] = sol.dRdZ[s];
-        sidx += 1;
+        if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
+          R[sidx] = sol.R[s];
+          dR[sidx] = sol.dRdZ[s];
+          sidx += 1;
+        }
       }
   }
   return sidx;

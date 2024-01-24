@@ -366,6 +366,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 
   struct gkyl_tok_geo *geo = mapc2p_ctx;
   struct gkyl_tok_geo_grid_inp *inp = bmag_ctx;
+  geo->rleft = inp->rleft;
+  geo->rright = inp->rright;
+
+  geo->rmax = inp->rmax;
+  geo->rmin = inp->rmin;
 
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
@@ -393,6 +398,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   double rclose = inp->rclose;
   double rright = inp->rright;
   double rleft = inp->rleft;
+
 
   int nzcells = geo->rzgrid.cells[1];
   double *arc_memo = gkyl_malloc(sizeof(double[nzcells]));
@@ -487,6 +493,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arc_ctx.arcL_tot/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
+              printf("ia.ip.it = %d %d %d\n", ia, ip, it);
 
               tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
 
