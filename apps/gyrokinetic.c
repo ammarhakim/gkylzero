@@ -179,14 +179,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
 
   // deflate geometry if necessary
-  if(app->cdim < 3 && gk->geometry.geometry_id != GKYL_GEOMETRY_FROMFILE){
+  if(app->cdim < 3 && gk->geometry.geometry_id != GKYL_GEOMETRY_FROMFILE)
     app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &app->grid, &app->local, &app->local_ext, 
         &app->confBasis, app->use_gpu);
-    gkyl_gk_geometry_release(gk_geom_3d);
-  }
-  else{
+  else
     app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-  }
+
+  gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
 
   // allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
