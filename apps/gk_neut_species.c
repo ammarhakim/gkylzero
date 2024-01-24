@@ -165,8 +165,11 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   // set species source id
   s->source_id = s->info.source.source_id;
 
-  if (s->info.react_neut.num_react)
+  s->has_neutral_reactions = false;
+  if (s->info.react_neut.num_react) {
+    s->has_neutral_reactions = true;
     gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
+  }
 
   // create ranges and allocate buffers for applying periodic and non-periodic BCs
   long buff_sz = 0;
@@ -391,7 +394,7 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   if (s->source_id) 
     gk_neut_species_source_release(app, &s->src);
 
-  if (s->react_neut.num_react)
+  if (s->has_neutral_reactions)
     gk_neut_species_react_release(app, &s->react_neut);
 
   // Copy BCs are allocated by default. Need to free.

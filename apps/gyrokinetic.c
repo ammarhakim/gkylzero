@@ -226,11 +226,11 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
       }
     }
     // initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
-    if (app->species[i].react.num_react) {
+    if (app->species[i].has_reactions) {
       gk_species_react_cross_init(app, &app->species[i], &app->species[i].react);
     }
     // initialize cross-species reactions with neutral species (e.g., ionization, recombination, or charge exchange)
-    if (app->species[i].react_neut.num_react) {
+    if (app->species[i].has_neutral_reactions) {
       gk_species_react_cross_init(app, &app->species[i], &app->species[i].react_neut);
     }
     // initial radiation (e.g., bremmstrahlung model from cross-collisions of electrons with ions)
@@ -716,11 +716,11 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       }
     }
     // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
-    if (app->species[i].react.num_react) {
+    if (app->species[i].has_reactions) {
       gk_species_react_cross_moms(app, &app->species[i], 
         &app->species[i].react, fin, fin_neut);
     }
-    if (app->species[i].react_neut.num_react) {
+    if (app->species[i].has_neutral_reactions) {
       gk_species_react_cross_moms(app, &app->species[i], 
         &app->species[i].react_neut, fin, fin_neut);
     }
@@ -733,7 +733,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   for (int i=0; i<app->num_neut_species; ++i) {
     // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
-    if (app->neut_species[i].react_neut.num_react) {
+    if (app->neut_species[i].has_neutral_reactions) {
       gk_neut_species_react_cross_moms(app, &app->neut_species[i], 
         &app->neut_species[i].react_neut, fin, fin_neut);
     }

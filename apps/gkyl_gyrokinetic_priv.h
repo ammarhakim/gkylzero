@@ -396,6 +396,8 @@ struct gk_species {
     };      
   };
 
+  bool has_reactions; 
+  bool has_neutral_reactions; 
   struct gk_react react; // reaction object for reactions with other plasma species
   struct gk_react react_neut; // reaction object for reactions with neutral species
 
@@ -510,6 +512,7 @@ struct gk_neut_species {
   enum gkyl_source_id source_id; // type of source
   struct gk_neut_source src; // applied source
 
+  bool has_neutral_reactions;
   struct gk_react react_neut; // reaction object
 
   double *omegaCfl_ptr;
