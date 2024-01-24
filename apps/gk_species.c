@@ -179,6 +179,11 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   else if (s->collision_id == GKYL_BGK_COLLISIONS)
     gk_species_bgk_init(app, s, &s->bgk);
 
+  if (s->info.react.num_react)
+    gk_species_react_init(app, s, s->info.react, &s->react);
+  if (s->info.react_neut.num_react)
+    gk_species_react_init(app, s, s->info.react_neut, &s->react_neut);
+
   // determine radiation type to use in gyrokinetic update
   s->radiation_id = s->info.radiation.radiation_id;
   if (s->radiation_id == GKYL_GK_RADIATION) 
@@ -482,6 +487,11 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gk_species_lbo_release(app, &s->lbo);
   else if (s->collision_id == GKYL_BGK_COLLISIONS)
     gk_species_bgk_release(app, &s->bgk);
+
+  if (s->react.num_react)
+    gk_species_react_release(app, &s->react);
+  if (s->react_neut.num_react)
+    gk_species_react_release(app, &s->react_neut);  
 
   if (s->radiation_id == GKYL_GK_RADIATION) 
     gk_species_radiation_release(app, &s->rad);

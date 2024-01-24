@@ -214,7 +214,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   // initialize each species cross-collisions terms: this has to be done here
   // as need pointers to colliding species' collision objects
-  // allocated in gk_species_init
+  // allocated in gk_species_init and gk_neut_species_init
   for (int i=0; i<ns; ++i) {
     // initialize cross-species collisions (e.g, LBO or BGK)
     if (app->species[i].lbo.num_cross_collisions || app->species[i].bgk.num_cross_collisions) {
@@ -225,19 +225,23 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
         gk_species_bgk_cross_init(app, &app->species[i], &app->species[i].bgk);
       }
     }
-    // initialize cross-species reactions (e.g., ionization, recombination, or charge exchange)
+    // initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
     if (app->species[i].react.num_react) {
       gk_species_react_cross_init(app, &app->species[i], &app->species[i].react);
+    }
+    // initialize cross-species reactions with neutral species (e.g., ionization, recombination, or charge exchange)
+    if (app->species[i].react_neut.num_react) {
+      gk_species_react_cross_init(app, &app->species[i], &app->species[i].react_neut);
     }
     // initial radiation (e.g., bremmstrahlung model from cross-collisions of electrons with ions)
     if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_init(app, &app->species[i], &app->species[i].rad);
     }
   }
-
+  // initialize neutral species cross-species reactions with plasma species
   for (int i=0; i<neuts; ++i) {
-    if (app->neut_species[i].react.num_react) {
-      gk_neut_species_react_cross_init(app, &app->neut_species[i], &app->neut_species[i].react);
+    if (app->neut_species[i].react_neut.num_react) {
+      gk_neut_species_react_cross_init(app, &app->neut_species[i], &app->neut_species[i].react_neut);
     }
   }
 
@@ -716,6 +720,10 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       gk_species_react_cross_moms(app, &app->species[i], 
         &app->species[i].react, fin, fin_neut);
     }
+    if (app->species[i].react_neut.num_react) {
+      gk_species_react_cross_moms(app, &app->species[i], 
+        &app->species[i].react_neut, fin, fin_neut);
+    }
     // compute necessary drag coefficients for radiation operator
     if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_moms(app, &app->species[i], 
@@ -725,9 +733,9 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   for (int i=0; i<app->num_neut_species; ++i) {
     // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
-    if (app->neut_species[i].react.num_react) {
+    if (app->neut_species[i].react_neut.num_react) {
       gk_neut_species_react_cross_moms(app, &app->neut_species[i], 
-        &app->neut_species[i].react, fin, fin_neut);
+        &app->neut_species[i].react_neut, fin, fin_neut);
     }
   }
 

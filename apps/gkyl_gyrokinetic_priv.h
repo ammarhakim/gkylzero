@@ -253,7 +253,7 @@ struct gk_boundary_fluxes {
 
 struct gk_react {
   int num_react; // number of reactions
-  enum gkyl_react_id react_id; // type of reaction
+  struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_SPECIES]; // type of reaction
 };
 
 struct gk_proj {
@@ -396,7 +396,8 @@ struct gk_species {
     };      
   };
 
-  struct gk_react react; // reaction object
+  struct gk_react react; // reaction object for reactions with other plasma species
+  struct gk_react react_neut; // reaction object for reactions with neutral species
 
   enum gkyl_radiation_id radiation_id; // type of radiation
   struct gk_rad_drag rad; // radiation object
@@ -407,11 +408,6 @@ struct gk_species {
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // gyrokinetic diffusion equation solver
 
   double *omegaCfl_ptr;
-};
-
-struct gk_neut_react {
-  int num_react; // number of reactions
-  enum gkyl_react_id react_id; // type of reaction
 };
 
 struct gk_neut_proj {
@@ -514,7 +510,7 @@ struct gk_neut_species {
   enum gkyl_source_id source_id; // type of source
   struct gk_neut_source src; // applied source
 
-  struct gk_neut_react react; // reaction object
+  struct gk_react react_neut; // reaction object
 
   double *omegaCfl_ptr;
 };
@@ -896,10 +892,11 @@ void gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct
  *
  * @param app gyrokinetic app object
  * @param s Species object 
+ * @param inp Input reaction struct for determining types of reactions
  * @param react Species reaction object
  */
 void gk_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
-  struct gk_react *react);
+  struct gkyl_gyrokinetic_react inp, struct gk_react *react);
 
 /**
  * Initialize species reactions "cross-collisions" object
@@ -1163,10 +1160,11 @@ void gk_neut_species_moment_release(const struct gkyl_gyrokinetic_app *app,
  *
  * @param app gyrokinetic app object
  * @param s Neutral species object 
+ * @param inp Input reaction struct for determining types of reactions
  * @param react Neutral species reaction object
  */
 void gk_neut_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-  struct gk_neut_react *react);
+  struct gkyl_gyrokinetic_react inp, struct gk_react *react);
 
 /**
  * Initialize neutral species reactions "cross-collisions" object
@@ -1177,7 +1175,7 @@ void gk_neut_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
  * @param react Neutral species react object
  */
 void gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-  struct gk_neut_react *react);
+  struct gk_react *react);
 
 /**
  * Compute necessary rates and moments for reactions
@@ -1190,7 +1188,7 @@ void gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct g
  */
 void gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app,
   const struct gk_neut_species *species,
-  struct gk_neut_react *react,
+  struct gk_react *react,
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
@@ -1205,7 +1203,7 @@ void gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app,
  */
 void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
   const struct gk_neut_species *species,
-  struct gk_neut_react *react,
+  struct gk_react *react,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
@@ -1214,7 +1212,7 @@ void gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app,
  * @param app gyrokinetic app object
  * @param react Neutral species react object to release
  */
-void gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_neut_react *react);
+void gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_react *react);
 
 /** gk_neut_species_projection API */
 

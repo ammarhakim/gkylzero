@@ -165,6 +165,9 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   // set species source id
   s->source_id = s->info.source.source_id;
 
+  if (s->info.react_neut.num_react)
+    gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
+
   // create ranges and allocate buffers for applying periodic and non-periodic BCs
   long buff_sz = 0;
   // compute buffer size needed
@@ -385,9 +388,11 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   gk_neut_species_moment_release(app, &s->integ_moms); 
   gkyl_dynvec_release(s->integ_diag);
 
-  if (s->source_id) {
+  if (s->source_id) 
     gk_neut_species_source_release(app, &s->src);
-  }
+
+  if (s->react_neut.num_react)
+    gk_neut_species_react_release(app, &s->react_neut);
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {

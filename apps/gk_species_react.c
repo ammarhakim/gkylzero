@@ -2,9 +2,13 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 void 
-gk_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_react *react)
+gk_species_react_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, 
+  struct gkyl_gyrokinetic_react inp, struct gk_react *react)
 {
-  
+  react->num_react = inp.num_react; 
+  // initialize information about reactions from input struct
+  for (int i=0; i<react->num_react; ++i) 
+    react->react_type[i] = inp.react_type[i];
 }
 
 void 
