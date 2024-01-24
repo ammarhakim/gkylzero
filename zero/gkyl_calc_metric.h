@@ -30,7 +30,7 @@ gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
  * @param tanvecFld output field where tangent vector modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
  */
-void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, const struct gkyl_range *update_range);
+void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, struct gkyl_array *mc2p_nodal_fd, double *dzc, struct gkyl_array *gFld, struct gkyl_array *tanvecFld, struct gkyl_array *dualFld, const struct gkyl_range *update_range);
 
 
 /**

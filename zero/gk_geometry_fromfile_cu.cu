@@ -31,9 +31,11 @@ gkyl_gk_geometry_fromfile_cu_dev_new(const struct gkyl_rect_grid* grid, const st
   // bmag, metrics and derived geo quantities
 
   // Copy the host-side initialized geometry object to the device
+  struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *dxdz_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
+  struct gkyl_array *dzdx_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *jacobgeo_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *jacobgeo_inv_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *gij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
@@ -49,9 +51,12 @@ gkyl_gk_geometry_fromfile_cu_dev_new(const struct gkyl_rect_grid* grid, const st
   struct gkyl_array *gxzj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *eps2_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
 
+
+  gkyl_array_copy(mc2p_dev, hgeo->mc2p);
   gkyl_array_copy(bmag_dev, hgeo->bmag);
   gkyl_array_copy(g_ij_dev, hgeo->g_ij);
   gkyl_array_copy(dxdz_dev, hgeo->dxdz);
+  gkyl_array_copy(dzdx_dev, hgeo->dzdx);
   gkyl_array_copy(jacobgeo_dev , hgeo->jacobgeo);
   gkyl_array_copy(jacobgeo_inv_dev, hgeo->jacobgeo_inv);
   gkyl_array_copy(gij_dev, hgeo->gij);
@@ -70,9 +75,11 @@ gkyl_gk_geometry_fromfile_cu_dev_new(const struct gkyl_rect_grid* grid, const st
   gkyl_gk_geometry_release(hgeo);
 
   // this is for the memcpy below
+  up->mc2p  = mc2p_dev->on_dev;
   up->bmag  = bmag_dev->on_dev;
   up->g_ij  = g_ij_dev->on_dev;
   up->dxdz  = dxdz_dev->on_dev;
+  up->dzdx  = dzdx_dev->on_dev;
   up->jacobgeo  = jacobgeo_dev->on_dev;
   up->jacobgeo_inv = jacobgeo_inv_dev->on_dev;
   up->gij  = gij_dev->on_dev;
@@ -98,9 +105,11 @@ gkyl_gk_geometry_fromfile_cu_dev_new(const struct gkyl_rect_grid* grid, const st
   up->on_dev = up_cu;
 
   // geometry object should store host pointer
+  up->mc2p  = mc2p_dev;
   up->bmag  = bmag_dev;
   up->g_ij  = g_ij_dev;
   up->dxdz  = dxdz_dev;
+  up->dzdx  = dzdx_dev;
   up->jacobgeo  = jacobgeo_dev;
   up->jacobgeo_inv = jacobgeo_inv_dev;
   up->gij  = gij_dev;
