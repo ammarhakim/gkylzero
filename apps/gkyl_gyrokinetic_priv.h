@@ -564,8 +564,11 @@ struct gkyl_gyrokinetic_app {
 
   bool use_gpu; // should we use GPU (if present)
 
-  int num_blocks; // number of blocks
-  struct gkyl_gyrokinetic_oneb *blocks; // pointers to blocks
+  struct gkyl_block_topo *btopo; // block topology
+  
+  int num_blocks, num_local_block; // total and local number of blocks
+  int *block_numb; // list of blocks handled on this rank
+  struct gkyl_gyrokinetic_oneb *blocks; // pointers to blocks on this rank
 };
 
 /** gkyl_gyrokinetic_app private API */
