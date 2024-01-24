@@ -175,7 +175,7 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 
   // Obtain self-collisions nu*fmax
   gkyl_proj_gkmaxwellian_on_basis_lab_mom(bgk->proj_max, &species->local_ext, &app->local_ext, bgk->moms.marr,
-    app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, bgk->fmax);
+    app->gk_geom->bmag, app->gk_geom->jacobtot, species->info.mass, bgk->fmax);
   gkyl_correct_maxwellian_gyrokinetic_advance(bgk->corr_max, bgk->fmax, bgk->moms.marr, &app->local, &species->local);
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
     bgk->self_nu, bgk->fmax, &app->local, &species->local);
@@ -184,7 +184,7 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   // Accumulate cross-collisions nu*fmax
   for (int i=0; i<bgk->num_cross_collisions; ++i) {
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(bgk->proj_max, &species->local_ext, &app->local_ext, bgk->cross_moms[i],
-      app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, bgk->fmax);
+      app->gk_geom->bmag, app->gk_geom->jacobtot, species->info.mass, bgk->fmax);
     gkyl_correct_maxwellian_gyrokinetic_advance(bgk->corr_max, bgk->fmax, bgk->moms.marr, &app->local, &species->local);
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
       bgk->cross_nu[i], bgk->fmax, &app->local, &species->local);
