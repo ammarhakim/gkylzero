@@ -443,10 +443,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   gkyl_array_release(s->fnew);
   gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
-  if (app->cdim > 1) {
-    gkyl_array_release(s->bc_buffer_lo_fixed);
-    gkyl_array_release(s->bc_buffer_up_fixed);
-  }
+  gkyl_array_release(s->bc_buffer_lo_fixed);
+  gkyl_array_release(s->bc_buffer_up_fixed);
+
   gk_species_projection_release(app, &s->proj_init);
 
   gkyl_comm_release(s->comm);
@@ -488,7 +487,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gk_species_radiation_release(app, &s->rad);
 
   gk_species_bflux_release(app, &s->bflux);
-  
+
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
     if (s->lower_bc[d] == GKYL_SPECIES_GK_SHEATH) 

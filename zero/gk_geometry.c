@@ -83,6 +83,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->gxzj, up->gxzj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->eps2, up->eps2, 1);
   // Done deflating
+  gkyl_deflate_geo_release(deflator);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -117,6 +118,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   struct gk_geometry *up = container_of(ref, struct gk_geometry, ref_count);
   gkyl_array_release(up->bmag);
   gkyl_array_release(up->g_ij);
+  gkyl_array_release(up->dxdz);
   gkyl_array_release(up->jacobgeo);
   gkyl_array_release(up->jacobgeo_inv);
   gkyl_array_release(up->gij);
