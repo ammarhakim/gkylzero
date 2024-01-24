@@ -297,16 +297,15 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     }
     else if (app->cdim == 2) {
       gkyl_array_release(f->epsilon);
-      gkyl_fem_parproj_release(f->fem_parproj);
       gkyl_line_fem_poisson_release(f->line_fem_poisson);
     }
     else {
       gkyl_array_release(f->epsilon);
       gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
-      gkyl_fem_parproj_release(f->fem_parproj);
     }
   }
-  
+  gkyl_fem_parproj_release(f->fem_parproj);
+
   gkyl_dynvec_release(f->integ_energy);
   gkyl_array_integrate_release(f->calc_em_energy);
   if (app->use_gpu) {
