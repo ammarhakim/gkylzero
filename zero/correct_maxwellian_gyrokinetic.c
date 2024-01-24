@@ -73,7 +73,7 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_correct_maxwellian_gyr
   up->moms = mkarr(3*up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
 
   up->proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&up->phase_grid, 
-    &up->conf_basis, &up->phase_basis, up->conf_basis.num_basis+1, up->use_gpu); 
+    &up->conf_basis, &up->phase_basis, up->conf_basis.poly_order+1, up->use_gpu); 
 
   up->m0_calc = gkyl_dg_updater_moment_gyrokinetic_new(&up->phase_grid, &up->conf_basis, 
     &up->phase_basis, inp->conf_local, 0, up->mass, up->gk_geom,
@@ -186,7 +186,8 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     // Project the maxwellian
     gkyl_array_set_offset(up->moms, 1., up->m0, 0*up->conf_basis.num_basis);
     gkyl_array_set_offset(up->moms, 1., up->m12, 1*up->conf_basis.num_basis);
-    gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, up->gk_geom->bmag, up->gk_geom->jacobtot, up->mass, fM);
+    gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, 
+      up->gk_geom->bmag, up->gk_geom->bmag, up->mass, fM);
     // Rescale the maxwellian
     gkyl_dg_updater_moment_gyrokinetic_advance(up->m0_calc, phase_local, conf_local, fM, up->m0);
     gkyl_dg_div_op_range(up->weak_divide, up->conf_basis, 0, up->m0scl, 0, up->m0_in, 0, up->m0, conf_local);
