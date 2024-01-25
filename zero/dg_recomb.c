@@ -8,7 +8,7 @@
 #include <gkyl_array.h>
 #include <gkyl_dg_prim_vars_vlasov.h>
 #include <gkyl_dg_prim_vars_gyrokinetic.h>
-#include <gkyl_dg_prim_vars_transform_vlasov_gk.h>
+#include <gkyl_dg_prim_vars_transform.h>
 #include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
@@ -150,7 +150,7 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   }
 
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); 
-  up->calc_prim_vars_ion_udrift = gkyl_dg_prim_vars_transform_vlasov_gk_new(up->cbasis, up->pbasis, up->conf_rng, "u_par_i", use_gpu);
+  up->calc_prim_vars_ion_udrift = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "u_par_i", use_gpu);
   up->calc_prim_vars_ion_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu);
   
   // only for receiver species
@@ -174,7 +174,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
 #endif
   if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
     // Set auxiliary variable (b_i) for computation of udrift_i
-    gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_ion_udrift, 
+    gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_ion_udrift, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   }
 

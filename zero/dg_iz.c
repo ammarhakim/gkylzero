@@ -8,7 +8,7 @@
 #include <gkyl_array.h>
 #include <gkyl_dg_prim_vars_vlasov.h>
 #include <gkyl_dg_prim_vars_gyrokinetic.h>
-#include <gkyl_dg_prim_vars_transform_vlasov_gk.h>
+#include <gkyl_dg_prim_vars_transform.h>
 #include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
@@ -145,7 +145,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); // all
   if (up->all_gk) up->calc_prim_vars_donor = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "prim", use_gpu);
-  else up->calc_prim_vars_donor = gkyl_dg_prim_vars_transform_vlasov_gk_new(up->cbasis, up->pbasis, up->conf_rng, "prim", use_gpu); // for Vlasov donor
+  else up->calc_prim_vars_donor = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim", use_gpu); // for Vlasov donor
   
   up->proj_max = gkyl_proj_maxwellian_on_basis_new(up->grid, up->cbasis, up->pbasis, poly_order+1, use_gpu); // elc, ion
   
@@ -167,7 +167,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
 #endif
   if ((up->all_gk==false) && ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION))) {
     // Set auxiliary variable (b_i) for computation of upar
-    gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_donor, 
+    gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_donor, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   }
 
