@@ -16,13 +16,13 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
   up->local_ext = local_ext;
   up->poisson_bc = poisson_bc;
   up->cdim = grid.ndim;
-  up->num_solves_z = up->local.upper[1] - up->local.lower[1] + 2;
+  up->num_solves_z = up->local.upper[up->cdim-1] - up->local.lower[up->cdim-1] + 2;
   up->d_fem_data = gkyl_malloc(sizeof(struct deflated_fem_data[up->num_solves_z]));
 
   int poly_order = up->basis.poly_order;
 
   // Create 2d/3d nodal range nodal array to be populated
-  int nodes[up->cdim];
+  int nodes[GKYL_MAX_DIM];
   if (poly_order == 1){
     for (int d=0; d<up->cdim; ++d)
       nodes[d] = gkyl_range_shape(&up->local,d) + 1;
@@ -58,7 +58,7 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
     up->nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->cdim, up->nrange.volume);
   }
 
-  int deflated_nodes[1];
+  int deflated_nodes[up->deflated_grid.ndim];
   if (poly_order == 1){
     for (int d=0; d<up->deflated_grid.ndim; ++d)
       deflated_nodes[d] = up->deflated_grid.cells[d] + 1;
@@ -83,19 +83,19 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
     if (use_gpu) {
       up->d_fem_data[ctr].deflated_field = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
       up->d_fem_data[ctr].deflated_phi = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_fem_data[ctr].deflated_epsilon = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
+      up->d_fem_data[ctr].deflated_epsilon = gkyl_array_cu_dev_new(GKYL_DOUBLE, (2*up->deflated_grid.ndim - 1)*up->deflated_basis.num_basis, up->deflated_local_ext.volume);
       up->d_fem_data[ctr].deflated_nodal_fld = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->deflated_grid.ndim, up->deflated_nrange.volume);
     }
     else {
       up->d_fem_data[ctr].deflated_field = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
       up->d_fem_data[ctr].deflated_phi = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
-      up->d_fem_data[ctr].deflated_epsilon = gkyl_array_new(GKYL_DOUBLE, up->deflated_basis.num_basis, up->deflated_local_ext.volume);
+      up->d_fem_data[ctr].deflated_epsilon = gkyl_array_new(GKYL_DOUBLE, (2*up->deflated_grid.ndim - 1)*up->deflated_basis.num_basis, up->deflated_local_ext.volume);
       up->d_fem_data[ctr].deflated_nodal_fld = gkyl_array_new(GKYL_DOUBLE, up->deflated_grid.ndim, up->deflated_nrange.volume);
     }
     if (zidx == up->local.upper[up->cdim-1] + 1 )
-      gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 1);
+      gkyl_deflate_zsurf_advance(up->deflator_up, zidx-1, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon,  2*up->deflated_grid.ndim-1);
     else 
-      gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 1);
+      gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, epsilon, up->d_fem_data[ctr].deflated_epsilon, 2*up->deflated_grid.ndim-1);
     up->d_fem_data[ctr].fem_poisson = gkyl_fem_poisson_new(&up->deflated_local, &up->deflated_grid, up->deflated_basis, &up->poisson_bc, up->d_fem_data[ctr].deflated_epsilon, 0, false, use_gpu);
     ctr += 1;
   }
@@ -139,7 +139,7 @@ void gkyl_line_fem_poisson_release(struct gkyl_line_fem_poisson* up){
   gkyl_deflate_zsurf_release(up->deflator_lo);
   gkyl_deflate_zsurf_release(up->deflator_up);
   int ctr = 0;
-  for (int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1]+1; zidx++) {
+  for (int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1] + 1; zidx++) {
     gkyl_array_release(up->d_fem_data[ctr].deflated_field);
     gkyl_array_release(up->d_fem_data[ctr].deflated_phi);
     gkyl_array_release(up->d_fem_data[ctr].deflated_epsilon);

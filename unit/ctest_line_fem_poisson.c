@@ -111,8 +111,10 @@ void
 rho_func_3x_nd_dd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
-  double z = xn[1];
-  fout[0] = 4*cos(z)*cos(2*x);
+  double y = xn[1];
+  double z = xn[2];
+  fout[0] = (4*cos(2*x)*sin(y) + 4*sin(2*x)*cos(y) + cos(2*x)*sin(y)) ;
+  //fout[0] = 4*cos(2*y);
 }
 
 void
@@ -121,7 +123,8 @@ phi_func_3x_nd_dd(double t, const double *xn, double *fout, void *ctx)
   double x = xn[0];
   double y = xn[1];
   double z = xn[2];
-  fout[0] = cos(z)*cos(2*x)*sin(y);
+  fout[0] = cos(2*x)*sin(y);
+  //fout[0] = cos(2*y);
 }
 
 
@@ -519,10 +522,10 @@ test_zind_dd_nxnz(int nx, int ny){
 
 
 void
-test_3x_nd_nd_nxnynz(int nx, int ny, int nz){
+test_3x_nd_dd_nxnynz(int nx, int ny, int nz){
   // create the 2d field
   // create xz grid
-  double lower[] = { -M_PI, -M_PI, -M_PI}, upper[] = { 3*M_PI/4, M_PI, M_PI };
+  double lower[] = { -3*M_PI/4, -M_PI, -M_PI}, upper[] = { 3*M_PI/4, M_PI, M_PI };
   int cells[] = { nx, ny ,nz};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
@@ -546,7 +549,7 @@ test_3x_nd_nd_nxnynz(int nx, int ny, int nz){
   struct gkyl_basis *basis_on_dev = &basis;
 #endif
 
-  // project initial function on 2d field
+  // project initial function on 3d field
   struct gkyl_array *field_discont = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &rho_func_3x_nd_dd, 0);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont);
@@ -570,20 +573,33 @@ test_3x_nd_nd_nxnynz(int nx, int ny, int nz){
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
-  struct gkyl_poisson_bc poisson_bc;
-  poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
-  poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
-  poisson_bc.lo_value[0].v[0] = 0.;
-  poisson_bc.up_value[0].v[0] = 0.;
+  //struct gkyl_poisson_bc poisson_bc;
+  //poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
+  //poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
+  //poisson_bc.lo_value[0].v[0] = 0.;
+  //poisson_bc.up_value[0].v[0] = 0.;
 
+  //poisson_bc.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  //poisson_bc.up_type[1] = GKYL_POISSON_DIRICHLET;
+  //poisson_bc.lo_value[1].v[0] = 0.;
+  //poisson_bc.up_value[1].v[0] = 0.;
+
+  struct gkyl_poisson_bc poisson_bc;
+  poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_type[1] = GKYL_POISSON_DIRICHLET;
   poisson_bc.up_type[1] = GKYL_POISSON_DIRICHLET;
+  poisson_bc.lo_value[0].v[0] = 0.;
+  poisson_bc.up_value[0].v[0] = 0.;
   poisson_bc.lo_value[1].v[0] = 0.;
   poisson_bc.up_value[1].v[0] = 0.;
 
   struct gkyl_array *phi = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  struct gkyl_array *epsilon = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *epsilon = gkyl_array_new(GKYL_DOUBLE, 3*basis.num_basis, local_ext.volume);
   gkyl_array_shiftc(epsilon, sqrt(pow(2,3)), 0); 
+  gkyl_array_shiftc(epsilon, sqrt(pow(2,3)), basis.num_basis); 
+  gkyl_array_shiftc(epsilon, sqrt(pow(2,3)), 2*basis.num_basis); 
+  gkyl_grid_sub_array_write(&grid, &local, epsilon, "epsilon.gkyl");
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *epsilon_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_copy(epsilon_dev, epsilon);
@@ -666,19 +682,19 @@ void test_zdep_nd(){
 void test_3x_nd_dd(){
   printf("\n");
   int ny = 32;
-  int nz = 32;
+  int nz = 20;
   for(int nx = 4; nx < 129; nx*=2){
     printf("nx, ny = %d, %d\n", nx, ny);
-    test_3x_nd_nd_nxnynz(nx,ny, nz);
+    test_3x_nd_dd_nxnynz(nx,ny, nz);
   }
 }
 
 
 TEST_LIST = {
   //{ "test_fem_poisson_zind_dd", test_fem_poisson_zind_dd},
-  { "test_zind_dd", test_zind_dd},
-  { "test_simplez_dd", test_simplez_dd},
-  { "test_zdep_nd", test_zdep_nd},
-  //{ "test_3x_nd_dd", test_3x_nd_dd},
+  //{ "test_zind_dd", test_zind_dd},
+  //{ "test_simplez_dd", test_simplez_dd},
+  //{ "test_zdep_nd", test_zdep_nd},
+  { "test_3x_nd_dd", test_3x_nd_dd},
   { NULL, NULL },
 };

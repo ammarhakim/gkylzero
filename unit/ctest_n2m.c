@@ -34,7 +34,7 @@ proj_func(double t, const double *xn, double *fout, void *ctx)
 void
 proj_func3d(double t, const double *xn, double *fout, void *ctx)
 {
-  fout[0] = cos(xn[0])*sin(xn[1])*xn[2]*xn[2]*xn[2];
+  fout[0] = cos(2*xn[0])*sin(xn[1])*xn[2]*xn[2]*xn[2];
 }
 
 void
@@ -252,7 +252,7 @@ void
 test_p1_deflated_3d(){
   // create  grid, ranges, basis
   double lower[] = { 0.0, -1.5, -2 }, upper[] = { 1.5, 1.5,2 };
-  int cells[] = { 8, 16 , 4};
+  int cells[] = { 8, 16 , 12};
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
   struct gkyl_range local, local_ext;
