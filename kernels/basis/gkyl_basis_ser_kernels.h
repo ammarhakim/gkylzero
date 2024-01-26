@@ -43,6 +43,8 @@ GKYL_CU_DH double eval_grad_expand_2d_ser_p1(int dir, const double *z, const dou
 GKYL_CU_DH void flip_odd_sign_2d_ser_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void flip_even_sign_2d_ser_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_2d_ser_p1(double *node_coords);
+GKYL_CU_DH void node_coords_quad_surfx_2d_ser_p1(double *node_coords);
+GKYL_CU_DH void node_coords_quad_surfy_2d_ser_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_2d_ser_p1(const double *fnodal, double *fmodal);
 GKYL_CU_DH void nodal_to_modal_quad_surfx_2d_ser_p1(const double *fnodal, double *fmodal);
 GKYL_CU_DH void nodal_to_modal_quad_surfy_2d_ser_p1(const double *fnodal, double *fmodal);
@@ -52,6 +54,8 @@ GKYL_CU_DH double eval_grad_expand_2d_ser_p2(int dir, const double *z, const dou
 GKYL_CU_DH void flip_odd_sign_2d_ser_p2(int dir, const double *f, double *fout );
 GKYL_CU_DH void flip_even_sign_2d_ser_p2(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_2d_ser_p2(double *node_coords);
+GKYL_CU_DH void node_coords_quad_surfx_2d_ser_p2(double *node_coords);
+GKYL_CU_DH void node_coords_quad_surfy_2d_ser_p2(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_2d_ser_p2(const double *fnodal, double *fmodal);
 GKYL_CU_DH void nodal_to_modal_quad_surfx_2d_ser_p2(const double *fnodal, double *fmodal);
 GKYL_CU_DH void nodal_to_modal_quad_surfy_2d_ser_p2(const double *fnodal, double *fmodal);
@@ -75,6 +79,9 @@ GKYL_CU_DH double eval_grad_expand_3d_ser_p1(int dir, const double *z, const dou
 GKYL_CU_DH void flip_odd_sign_3d_ser_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void flip_even_sign_3d_ser_p1(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_3d_ser_p1(double *node_coords);
+GKYL_CU_DH void node_coords_quad_surfx_3d_ser_p1(double *node_coords);
+GKYL_CU_DH void node_coords_quad_surfy_3d_ser_p1(double *node_coords);
+GKYL_CU_DH void node_coords_quad_surfz_3d_ser_p1(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_3d_ser_p1(const double *fnodal, double *fmodal);
 GKYL_CU_DH void nodal_to_modal_quad_surfx_3d_ser_p1(const double *fnodal, double *fmodal);
 GKYL_CU_DH void nodal_to_modal_quad_surfy_3d_ser_p1(const double *fnodal, double *fmodal);
@@ -85,6 +92,9 @@ GKYL_CU_DH double eval_grad_expand_3d_ser_p2(int dir, const double *z, const dou
 GKYL_CU_DH void flip_odd_sign_3d_ser_p2(int dir, const double *f, double *fout );
 GKYL_CU_DH void flip_even_sign_3d_ser_p2(int dir, const double *f, double *fout );
 GKYL_CU_DH void node_coords_3d_ser_p2(double *node_coords);
+GKYL_CU_DH void node_coords_quad_surfx_3d_ser_p2(double *node_coords);
+GKYL_CU_DH void node_coords_quad_surfy_3d_ser_p2(double *node_coords);
+GKYL_CU_DH void node_coords_quad_surfz_3d_ser_p2(double *node_coords);
 GKYL_CU_DH void nodal_to_modal_3d_ser_p2(const double *fnodal, double *fmodal);
 GKYL_CU_DH void nodal_to_modal_quad_surfx_3d_ser_p2(const double *fnodal, double *fmodal);
 GKYL_CU_DH void nodal_to_modal_quad_surfy_3d_ser_p2(const double *fnodal, double *fmodal);
