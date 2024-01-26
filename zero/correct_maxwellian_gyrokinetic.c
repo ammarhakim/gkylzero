@@ -76,11 +76,11 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_correct_maxwellian_gyr
     &up->conf_basis, &up->phase_basis, up->conf_basis.poly_order+1, up->use_gpu); 
 
   up->m0_calc = gkyl_dg_updater_moment_gyrokinetic_new(&up->phase_grid, &up->conf_basis, 
-    &up->phase_basis, inp->conf_local, 0, up->mass, up->gk_geom,
+    &up->phase_basis, inp->conf_local, 0, up->mass, inp->gk_geom,
     "M0", false, up->use_gpu);   
 
   up->moms_calc = gkyl_dg_updater_moment_gyrokinetic_new(&up->phase_grid, &up->conf_basis, 
-    &up->phase_basis, inp->conf_local, 0, up->mass, up->gk_geom,
+    &up->phase_basis, inp->conf_local, 0, up->mass, inp->gk_geom,
     "ThreeMoments", false, up->use_gpu); 
 
   if (up->use_gpu) {
