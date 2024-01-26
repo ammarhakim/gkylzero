@@ -286,29 +286,31 @@ double theta_hi = inp->cgrid.upper[TH_IDX],
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
               if (nonuniform)
               {
-                theta_curr = map_theta_to_z(theta_curr, theta_lo, theta_hi, 0.98); // Need theta_mirror
-                arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
 
-                mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
-                struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
-                  arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
-                  geo->root_param.max_iter, 1e-10);
-                double z_curr = res.res;
+                // mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
+                // struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
+                //   arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
+                //   geo->root_param.max_iter, 1e-10);
+                // double z_curr = res.res;
 
-                double R[4] = { 0 }, dR[4] = { 0 };
-                int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
-                double r_curr = choose_closest(rclose, R, R, nr);
-                double phi_curr = alpha_curr;
+                // double R[4] = { 0 }, dR[4] = { 0 };
+                // int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+                // double r_curr = choose_closest(rclose, R, R, nr);
+                // double phi_curr = alpha_curr;
                 double *xp = malloc(3*sizeof(double));
-                xp[X_IDX] = r_curr * cos(phi_curr);
-                xp[Y_IDX] = r_curr * sin(phi_curr);
-                xp[Z_IDX] = z_curr;
+                xp[X_IDX] = psi_curr;
+                xp[Y_IDX] = alpha_curr;
+                xp[Z_IDX] = theta_curr;
                 double *fout = malloc(3*sizeof(double));
                 struct bmag_ctx *bmag_ctx_in = bmag_ctx_inp;
                 gkyl_calc_bmag_comp(0.0, xp, fout, bmag_ctx_inp);
-                printf("Magnetic field %g at z=%g\n", fout[0], z_curr);
+                // printf("Magnetic field %g at coordinate (%g, %g, %g)\n", fout[0], xp[0], xp[1], xp[2]);
                 free(xp);
                 free(fout);
+
+
+                theta_curr = map_theta_to_z(theta_curr, theta_lo, theta_hi, 0.98); // Need theta_mirror
+                arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
               }
 
               mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
