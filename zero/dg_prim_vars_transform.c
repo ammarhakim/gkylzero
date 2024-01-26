@@ -71,19 +71,19 @@ gkyl_dg_prim_vars_transform_new(const struct gkyl_basis* cbasis, const struct gk
 
   if (strcmp(prim_nm, "u_par_i") == 0) { // projection of parallel velocity from GK to Vlasov u_par b_i
     pvt->pvt.vdim = vdim;
-    pvt->pvt.kernel = dg_prim_vars_transform_u_par_i_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    pvt->pvt.kernel = dg_prim_vars_transform_u_par_i_kernels[cv_vlasov_index[cdim].vdim[vdim]].kernels[poly_order];
     pvt->pvt.num_mom = vdim; 
   }
   else if (strcmp(prim_nm, "u_par") == 0) { // projection of Vlasov u_i to upar (u_i . b_i) 
-    pvt->pvt.kernel = dg_prim_vars_transform_u_par_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    pvt->pvt.kernel = dg_prim_vars_transform_u_par_kernels[cv_gk_index[cdim].vdim[vdim]].kernels[poly_order];
     pvt->pvt.num_mom = 2; 
   }
   else if (strcmp(prim_nm, "prim_gk") == 0) { // projection of Vlasov u_i, vth^2 to upar (u_i . b_i) and vth_GK^2 (M2/M0 - upar^2)
-    pvt->pvt.kernel = dg_prim_vars_transform_gk_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-    pvt->pvt.num_mom = 2; 
+    pvt->pvt.kernel = dg_prim_vars_transform_gk_kernels[cv_gk_index[cdim].vdim[vdim]].kernels[poly_order];
+    pvt->pvt.num_mom = 2;
   }
   else if (strcmp(prim_nm, "prim_vlasov") == 0) { // projection of GK upar to upar_i = upar*b_i and vth^2 )
-    pvt->pvt.kernel = dg_prim_vars_transform_vlasov_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+    pvt->pvt.kernel = dg_prim_vars_transform_vlasov_kernels[cv_vlasov_index[cdim].vdim[vdim]].kernels[poly_order];
     pvt->pvt.num_mom = vdim+1; 
   }
   else {

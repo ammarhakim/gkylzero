@@ -12,11 +12,18 @@
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
-static struct { int vdim[4]; } cv_index[] = {
+static struct { int vdim[4]; } cv_vlasov_index[] = {
   {-1, -1, -1, -1}, // 0x makes no sense
   {-1,  0,  1,  2}, // 1x kernel indices
   {-1, -1,  3,  4}, // 2x kernel indices
   {-1, -1, -1,  5}, // 3x kernel indices  
+};
+
+static struct { int vdim[4]; } cv_gk_index[] = {
+  {-1, -1, -1}, // 0x makes no sense
+  {-1,  0,  1}, // 1x kernel indices
+  {-1, -1,  2}, // 2x kernel indices
+  {-1, -1,  3}, // 3x kernel indices  
 };
 
 struct dg_prim_vars_type_transform {
