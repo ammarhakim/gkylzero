@@ -74,7 +74,7 @@ gkyl_mom_cross_bgk_gyrokinetic_cu_dev_new(const struct gkyl_basis *phase_basis, 
   struct gkyl_mom_cross_bgk_gyrokinetic *up = (struct gkyl_mom_cross_bgk_gyrokinetic*) gkyl_malloc(sizeof(*up));
 
   // copy struct to device
-  struct gkyl_mom_cross_bgk_gyrokinetic *up_cu = (struct gkyl_mom_cross_bgk_gyrokinetic*) gkyl_cu_malloc(sizeof(struct *up_cu));
+  struct gkyl_mom_cross_bgk_gyrokinetic *up_cu = (struct gkyl_mom_cross_bgk_gyrokinetic*) gkyl_cu_malloc(sizeof(*up_cu));
   
   set_mom_cross_bgk_cu_ptrs<<<1,1>>>(up_cu, conf_basis->ndim,
     phase_basis->ndim-conf_basis->ndim, phase_basis->poly_order);
