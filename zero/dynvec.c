@@ -345,6 +345,20 @@ gkyl_dynvec_read(gkyl_dynvec vec, const char *fname)
 }
 
 void
+gkyl_dynvec_to_array(const gkyl_dynvec vec, struct gkyl_array *tm_mesh,
+  struct gkyl_array *dyndata)
+{
+  int nv = gkyl_dynvec_size(vec);
+  for (int i=0; i<nv; ++i) {
+    double *tmm = gkyl_array_fetch(tm_mesh, i);
+    tmm[0] = gkyl_dynvec_get_tm(vec, i);
+
+    void *dd = gkyl_array_fetch(dyndata, i);
+    gkyl_dynvec_get(vec, i, dd);
+  }
+}
+
+void
 gkyl_dynvec_release(gkyl_dynvec vec)
 {
   if (vec)
