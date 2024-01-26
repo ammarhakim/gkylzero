@@ -116,6 +116,7 @@ struct gkyl_gyrokinetic_radiation {
 
 struct gkyl_gyrokinetic_react_type {
   enum gkyl_react_id react_id; // what type of reaction (ionization, charge exchange, recombination)
+  enum gkyl_react_self_type type_self; // what is the role of species in this reaction
   enum gkyl_ion_type ion_id; // what type of ion is reacting
   char elc_nm[128]; // names of electron species in reaction
   char ion_nm[128]; // name of ion species in reaction
