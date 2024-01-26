@@ -152,6 +152,9 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
 {
 
   struct gkyl_mirror_geo *geo = mapc2p_ctx;
+  //Issue: Context to pass to bmag_func is not gkyl_mirror_geo_grid_inp. Why was this context here? It's unused
+  // I'd like to change it to bmag_ctx type from calc_bmag to use gkyl_compute_bmag_comp
+  // Maybe pass this as a geo_grid input parameter and keep the current 
   struct gkyl_mirror_geo_grid_inp *inp = bmag_ctx;
 
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
@@ -265,7 +268,7 @@ double theta_hi = inp->cgrid.upper[TH_IDX],
               }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
-if (nonuniform)
+              if (nonuniform)
               {
                 theta_curr = map_theta_to_z(theta_curr, theta_lo, theta_hi, 0.98); // Need theta_mirror
                 arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
