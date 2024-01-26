@@ -309,12 +309,47 @@ test_io_2()
   gkyl_dynvec_release(dv);
 }
 
+void
+test_to_array()
+{
+  gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
+
+  double out[3] = { 0.0 };
+  for (int i=0; i<10; ++i) {
+    out[0] = 0.1*i;
+    out[1] = 0.2*i;
+    out[2] = 0.3*i;
+    gkyl_dynvec_append(dv, i*0.1, out);
+  }
+
+  struct gkyl_array *tm_mesh = gkyl_array_new(GKYL_DOUBLE, 1, gkyl_dynvec_size(dv));
+  struct gkyl_array *dyn_data = gkyl_array_new(GKYL_DOUBLE, 3, gkyl_dynvec_size(dv));
+
+  gkyl_dynvec_to_array(dv, tm_mesh, dyn_data);
+
+  for (int i=0; i<10; ++i) {
+    const double *tm_i = gkyl_array_cfetch(tm_mesh, i);
+    const double *dd_i = gkyl_array_cfetch(dyn_data, i);
+
+    TEST_CHECK( tm_i[0] == i*0.1 );
+
+    TEST_CHECK( dd_i[0] == i*0.1 );
+    TEST_CHECK( dd_i[1] == i*0.2 );
+    TEST_CHECK( dd_i[2] == i*0.3 );
+  }
+  
+  gkyl_dynvec_release(dv);
+  gkyl_array_release(tm_mesh);
+  gkyl_array_release(dyn_data);
+}
+
 TEST_LIST = {
   { "test_1", test_1 },
   { "test_2", test_2 },
   { "test_3", test_3 },
   { "test_4", test_4 },
   { "test_io", test_io },
-  { "test_io_2", test_io_2 }, 
+  { "test_io_2", test_io_2 },
+  { "test_to_array", test_to_array },
   { NULL, NULL },
 };
