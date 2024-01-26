@@ -18,7 +18,8 @@ typedef void (*gyrokinetic_mom_cross_bgk_t)(const double beta,
   const double *nu_sr, const double *nu_rs, double *moms_cross);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
-// kernels below
+// kernels below.
+GKYL_CU_D
 static struct { int vdim[3]; } cv_index[] = {
   {-1, -1, -1}, // 0x makes no sense
   {-1,  0,  1}, // 1x kernel indices
