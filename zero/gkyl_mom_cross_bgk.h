@@ -22,7 +22,7 @@ gkyl_mom_cross_bgk_gyrokinetic* gkyl_mom_cross_bgk_gyrokinetic_new(
  * NV-GPU. See new() method for documentation.
  */
 gkyl_mom_cross_bgk_gyrokinetic* gkyl_mom_cross_bgk_gyrokinetic_cu_dev_new(
-  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, bool use_gpu);
+  const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis);
 
 /**
  * Compute the cross moments with moments of each species.
