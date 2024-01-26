@@ -36,6 +36,11 @@ void eval_m2_3v_elc(double t, const double *xn, double* restrict fout, void *ctx
   double x = xn[0];
   fout[0] = 40.*echarge/emass*1.0e19*3.;  //fabs(x);
 }
+void eval_m2_3v_li_elc(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0];
+  fout[0] = 100.*echarge/emass*1.0e19*3.;  //fabs(x);
+}
 void eval_m2_3v_h_ion(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -1040,13 +1045,13 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
 {
   int charge_state = 1; // charge state of reacting species
   bool all_gk = true;
-  // use vt = 40 eV for all grids
-  double vmax_elc = 4*sqrt(40*echarge/emass);
+  // use vt = 100 eV for all grids
+  double vmax_elc = 4*sqrt(100*echarge/emass);
   double vmin_elc = -vmax_elc;
-  double mumax_elc = 12*40*echarge/(2*B0);
-  double vmax_ion = 4*sqrt(40*echarge/li_ion_mass);
+  double mumax_elc = 12*100*echarge/(2*B0);
+  double vmax_ion = 4*sqrt(100*echarge/li_ion_mass);
   double vmin_ion = -vmax_ion;
-  double mumax_ion = 12*40*echarge/(2*B0);
+  double mumax_ion = 12*100*echarge/(2*B0);
   int poly_order = 1;
   int cdim = 1, vdim = 2;
   int pdim = cdim + vdim;
@@ -1127,7 +1132,7 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   gkyl_proj_on_basis *projM0 = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m0, NULL);
   gkyl_proj_on_basis *projM2_elc = gkyl_proj_on_basis_new(&confGrid, &basis,
-    poly_order+1, 1, eval_m2_3v_elc, NULL);
+    poly_order+1, 1, eval_m2_3v_li_elc, NULL);
   gkyl_proj_on_basis *projM2_ion = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m2_3v_li_ion, NULL);
   gkyl_proj_on_basis *projBmag = gkyl_proj_on_basis_new(&confGrid, &basis,
@@ -1260,85 +1265,50 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_ion, &phaseRange_ion, &confRange, moms_donor,
       bmag, jacob_tot, li_ion_mass, distf_donor);
 
-    gkyl_grid_sub_array_write(&phaseGrid_elc, &phaseRange_elc, distf_elc, "ctest_coll_iz_li_distf_elc.gkyl");
-    gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_ion, "ctest_coll_iz_li_distf_ion.gkyl");
-    gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_donor, "ctest_coll_iz_li_distf_donor.gkyl");
+    /* gkyl_grid_sub_array_write(&phaseGrid_elc, &phaseRange_elc, distf_elc, "ctest_coll_iz_li_distf_elc.gkyl"); */
+    /* gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_ion, "ctest_coll_iz_li_distf_ion.gkyl"); */
+    /* gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_donor, "ctest_coll_iz_li_distf_donor.gkyl"); */
+    /* gkyl_grid_sub_array_write(&confGrid, &confRange, moms_elc, "ctest_coll_iz_li_moms_elc.gkyl"); */
+    /* gkyl_grid_sub_array_write(&confGrid, &confRange, moms_donor, "ctest_coll_iz_li_moms_donor.gkyl"); */
     
     gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc, moms_donor, bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate_elc);
-    gkyl_dg_iz_coll(coll_iz_up_ion, moms_donor, moms_donor, bmag, jacob_tot, b_i, distf_ion, coll_iz_ion, cflRate_ion);
-    gkyl_dg_iz_coll(coll_iz_up_donor, moms_donor, moms_donor, bmag, jacob_tot, b_i, distf_donor, coll_iz_donor, cflRate_donor);
-
+    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc, moms_donor, bmag, jacob_tot, b_i, distf_ion, coll_iz_ion, cflRate_ion);
+    gkyl_dg_iz_coll(coll_iz_up_donor, moms_elc, moms_donor, bmag, jacob_tot, b_i, distf_donor, coll_iz_donor, cflRate_donor);
   }
 
-  gkyl_grid_sub_array_write(&phaseGrid_elc, &phaseRange_elc, coll_iz_elc, "ctest_coll_iz_li_elc_1x.gkyl");
-  gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, coll_iz_ion, "ctest_coll_iz_li_ion_1x.gkyl");
-  gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, coll_iz_donor, "ctest_coll_iz_li_donor_1x.gkyl");
+  /* gkyl_grid_sub_array_write(&phaseGrid_elc, &phaseRange_elc, coll_iz_elc, "ctest_coll_iz_li_elc_1x.gkyl"); */
+  /* gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, coll_iz_ion, "ctest_coll_iz_li_ion_1x.gkyl"); */
+  /* gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, coll_iz_donor, "ctest_coll_iz_li_donor_1x.gkyl"); */
   
-  /* double p1_vals_elc[] = {-3.0211866019063268e+03,  1.1151629206897585e-13,  3.6431890306379876e-13, */
-  /* 			  2.9260691682239769e-13, -1.0808072282313658e+02, 1.7261432022756057e+03, */
-  /* 			  -1.7533165289662860e-13, -4.8930347399217097e-14, -4.8930347399217103e-14, */
-  /* 			  -8.0530046129500689e-16,  2.2975665791155755e-15,  2.2975665791155755e-15, */
-  /* 			  -5.7757526206287122e-15, -1.3998079811979073e-13,  3.4431743630114681e-15, */
-  /* 			  6.1751500182237166e+01,  5.7589718567933035e-15, -1.6153735565021414e-15, */
-  /* 			  3.4109651130671742e-16,  1.1511696065138511e-15, -5.7757526206286972e-15, */
-  /* 			  -1.1662891288086177e-15, -1.1662891288086169e-15, -4.9806274555816689e-14, */
-  /* 			  -8.0319993619460044e-15, -8.0319993619460028e-15,  3.1076396743227091e-15, */
-  /* 			  3.4431743630114685e-15,  1.2131640310202148e-14,  1.1013818754303210e-14, */
-  /* 			  1.1013818754303212e-14, -8.0319993619460028e-15,  2.6414781912199704e+01, */
-  /* 			  2.6536488176685738e-14,  6.0320281695407716e-15,  6.0320281695407716e-15, */
-  /* 			  -1.5091982801911699e+01, -8.5094318488076805e-15, -8.9875904769978933e-15, */
-  /* 			  7.3202598929381168e-15,  5.8193829106763044e-15,  6.3657710517723692e-15, */
-  /* 			  6.3657710517723692e-15,  8.4622474551621719e-15,  8.2496021962977040e-15, */
-  /* 			  8.5227962668457375e-15, 8.5227962668457375e-15, -1.6800794278136792e-16};   */
+  double p1_vals_elc[] = {1.3913597706625114e+03,  7.7240705045206110e-14,  2.8053827993740714e+02,
+			  -1.7201680898677994e+03, -1.9571251001907993e-14,  8.8181799435898959e-14,
+			  -2.8986313377078608e+02, -5.4413813216366306e-15, -5.5313981185678102e+01,
+			  -2.1811484503643444e-14,  5.7732940869687617e+01,  4.4971056110216674e-16};
 
-  /* double p1_vals_ion[] = {1.6670249545888491e+04, -3.2417594348322014e-13, -9.2770344417926952e-13, */
-  /* 			  -6.2386751751611901e-14,  5.9636588465764521e+02, -9.5244821738970531e+03, */
-  /* 			  2.5270185146855172e-13,  2.3937699859641281e-13,  2.3937699859641281e-13, */
-  /* 			  1.0785813614986634e-13, -6.1032275456172119e-15, -6.1032275456172127e-15, */
-  /* 			  -7.0135428465832752e-13, -6.8092299440848366e-14, -6.8092299440848353e-14, */
-  /* 			  -3.4073132630117146e+02, -6.2386751751611901e-14,  1.5487523743201235e-14, */
-  /* 			  4.6921480987920046e-15, -4.7156688232485811e-14, -1.2447648970655591e-13, */
-  /* 			  4.7935054164240818e-14,  4.7935054164240812e-14, -6.2752950681203300e-14, */
-  /* 			  1.4316773372550237e-15,  1.4316773372550249e-15,  8.6267384861047899e-14, */
-  /* 			  -6.8092299440848353e-14, -1.0904114349925496e-14, -4.7362185063352344e-15, */
-  /* 			  -4.7362185063352352e-15,  1.4316773372550249e-15, -1.4575101249911003e+02, */
-  /* 			  1.0988812099679773e-13,  2.5333708527487868e-15,  2.5333708527487845e-15, */
-  /* 			  8.3274273522654596e+01, -1.4070439703451535e-14, -1.1432064553296630e-14, */
-  /* 			  2.0155883740287529e-14, -6.8403023299617067e-14, -1.4352759840810866e-13, */
-  /* 			  6.9185032983427534e-16, -8.7936894031417234e-15, 2.8434502997949620e-14, */
-  /* 			  2.6927077628189564e-14,  2.6927077628189560e-14, -1.0635209926056232e-14}; */
-
-  /* double p1_vals_donor[] = {-1.6670249545888491e+04,  3.2417594348322014e-13,  9.2770344417926952e-13, */
-  /* 			    6.2386751751611901e-14, -5.9636588465764521e+02, 9.5244821738970531e+03, */
-  /* 			    -2.5270185146855172e-13, -2.3937699859641281e-13, -2.3937699859641281e-13, */
-  /* 			    -1.0785813614986634e-13,  6.1032275456172119e-15,  6.1032275456172127e-15, */
-  /* 			    7.0135428465832752e-13,  6.8092299440848366e-14,  6.8092299440848353e-14, */
-  /* 			    3.4073132630117146e+02,  6.2386751751611901e-14, -1.5487523743201235e-14, */
-  /* 			    -4.6921480987920046e-15,  4.7156688232485811e-14,  1.2447648970655591e-13, */
-  /* 			    -4.7935054164240818e-14, -4.7935054164240812e-14,  6.2752950681203300e-14, */
-  /* 			    -1.4316773372550237e-15, -1.4316773372550249e-15, -8.6267384861047899e-14, */
-  /* 			    6.8092299440848353e-14,  1.0904114349925496e-14,  4.7362185063352344e-15, */
-  /* 			    4.7362185063352352e-15, -1.4316773372550249e-15,  1.4575101249911003e+02, */
-  /* 			    -1.0988812099679773e-13, -2.5333708527487868e-15, -2.5333708527487845e-15, */
-  /* 			    -8.3274273522654596e+01,  1.4070439703451535e-14,  1.1432064553296630e-14, */
-  /* 			    -2.0155883740287529e-14,  6.8403023299617067e-14,  1.4352759840810866e-13, */
-  /* 			    -6.9185032983427534e-16,  8.7936894031417234e-15, -2.8434502997949620e-14, */
-  /* 			    -2.6927077628189564e-14, -2.6927077628189560e-14, 1.0635209926056232e-14}; */
+  double p1_vals_ion[] = {1.7617284090808456e+09, -4.0165154812911567e-08,  1.5536865695901614e+08,
+			  -1.6299039296914399e+09, -6.9460615062335516e-09, -4.2227285763445698e-08,
+			  -1.4374291929622900e+08,  1.7830507256278157e-08, -3.4710511423457451e+07,
+			  -2.3014984066085229e-08,  3.2113235319971669e+07, -2.4297405716882824e-09};
+  
+  double p1_vals_donor[] = {-1.7617284090808456e+09,  4.0165154812911567e-08, -1.5536865695901614e+08,
+			    1.6299039296914399e+09,  6.9460615062335516e-09,  4.2227285763445698e-08,
+			    1.4374291929622900e+08, -1.7830507256278157e-08,  3.4710511423457451e+07,
+			    2.3014984066085229e-08, -3.2113235319971669e+07,  2.4297405716882824e-09};
     
-  /* const double *pv_elc = gkyl_array_cfetch(coll_iz_elc, gkyl_range_idx(&phaseRange_elc, (int[3]) {1, 8, 1})); */
-  /* for (int i=0; i<phaseBasis.num_basis; ++i) { */
-  /*   TEST_CHECK( gkyl_compare_double(p1_vals_elc[i], pv_elc[i], 1e-30) ); */
-  /* } */
+  const double *pv_elc = gkyl_array_cfetch(coll_iz_elc, gkyl_range_idx(&phaseRange_elc, (int[3]) {1, 8, 1}));
+  for (int i=0; i<phaseBasis.num_basis; ++i) {
+    TEST_CHECK( gkyl_compare_double(p1_vals_elc[i], pv_elc[i], 1e-30) );
+  }
 
-  /* const double *pv_ion = gkyl_array_cfetch(coll_iz_ion, gkyl_range_idx(&phaseRange_ion, (int[3]) { 1, 8, 1})); */
-  /* for (int i=0; i<phaseBasis.num_basis; ++i) { */
-  /*   TEST_CHECK( gkyl_compare_double(p1_vals_ion[i], pv_ion[i], 1e-30) ); */
-  /* } */
+  const double *pv_ion = gkyl_array_cfetch(coll_iz_ion, gkyl_range_idx(&phaseRange_ion, (int[3]) { 1, 8, 1}));
+  for (int i=0; i<phaseBasis.num_basis; ++i) {
+    TEST_CHECK( gkyl_compare_double(p1_vals_ion[i], pv_ion[i], 1e-30) );
+  }
   
-  /* const double *pv_donor = gkyl_array_cfetch(coll_iz_donor, gkyl_range_idx(&phaseRange_ion, (int[3]) {1, 8, 1})); */
-  /* for (int i=0; i<phaseBasis.num_basis; ++i) { */
-  /*   TEST_CHECK( gkyl_compare_double(p1_vals_donor[i], pv_donor[i], 1e-30) ); */
-  /* } */
+  const double *pv_donor = gkyl_array_cfetch(coll_iz_donor, gkyl_range_idx(&phaseRange_ion, (int[3]) {1, 8, 1}));
+  for (int i=0; i<phaseBasis.num_basis; ++i) {
+    TEST_CHECK( gkyl_compare_double(p1_vals_donor[i], pv_donor[i], 1e-30) );
+  }
   
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion); 
   gkyl_array_release(b_x); gkyl_array_release(b_y); gkyl_array_release(b_z);
@@ -1364,13 +1334,13 @@ test_coll_iz_all_gk_li_3x(bool use_gpu)
 {
   int charge_state = 1; // charge state of reacting species
   bool all_gk = true;
-  // use vt = 40 eV for all grids
-  double vmax_elc = 4*sqrt(40*echarge/emass);
+  // use vt = 100 eV for all grids
+  double vmax_elc = 4*sqrt(100*echarge/emass);
   double vmin_elc = -vmax_elc;
-  double mumax_elc = 12*40*echarge/(2*B0);
-  double vmax_ion = 4*sqrt(40*echarge/li_ion_mass);
+  double mumax_elc = 12*100*echarge/(2*B0);
+  double vmax_ion = 4*sqrt(100*echarge/li_ion_mass);
   double vmin_ion = -vmax_ion;
-  double mumax_ion = 12*40*echarge/(2*B0);
+  double mumax_ion = 12*100*echarge/(2*B0);
   int poly_order = 1;
   int cdim = 3, vdim = 2;
   int pdim = cdim + vdim;
@@ -1452,7 +1422,7 @@ test_coll_iz_all_gk_li_3x(bool use_gpu)
   gkyl_proj_on_basis *projM0 = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m0, NULL);
   gkyl_proj_on_basis *projM2_elc = gkyl_proj_on_basis_new(&confGrid, &basis,
-    poly_order+1, 1, eval_m2_3v_elc, NULL);
+    poly_order+1, 1, eval_m2_3v_li_elc, NULL);
   gkyl_proj_on_basis *projM2_ion = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m2_3v_li_ion, NULL);
   gkyl_proj_on_basis *projBmag = gkyl_proj_on_basis_new(&confGrid, &basis,
@@ -1555,70 +1525,70 @@ test_coll_iz_all_gk_li_3x(bool use_gpu)
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj_max_ion, &phaseRange_ion, &confRange, moms_donor,
       bmag, jacob_tot, li_ion_mass, distf_donor);
 
-    gkyl_grid_sub_array_write(&phaseGrid_elc, &phaseRange_elc, distf_elc, "ctest_coll_iz_li_distf_elc.gkyl");
-    gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_ion, "ctest_coll_iz_li_distf_ion.gkyl");
-    gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_donor, "ctest_coll_iz_li_distf_donor.gkyl");
+    /* gkyl_grid_sub_array_write(&phaseGrid_elc, &phaseRange_elc, distf_elc, "ctest_coll_iz_li_distf_elc.gkyl"); */
+    /* gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_ion, "ctest_coll_iz_li_distf_ion.gkyl"); */
+    /* gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, distf_donor, "ctest_coll_iz_li_distf_donor.gkyl"); */
     
     gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc, moms_donor, bmag, jacob_tot, b_i, distf_elc, coll_iz_elc, cflRate_elc);
-    gkyl_dg_iz_coll(coll_iz_up_ion, moms_donor, moms_donor, bmag, jacob_tot, b_i, distf_ion, coll_iz_ion, cflRate_ion);
-    gkyl_dg_iz_coll(coll_iz_up_donor, moms_donor, moms_donor, bmag, jacob_tot, b_i, distf_donor, coll_iz_donor, cflRate_donor);
+    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc, moms_donor, bmag, jacob_tot, b_i, distf_ion, coll_iz_ion, cflRate_ion);
+    gkyl_dg_iz_coll(coll_iz_up_donor, moms_elc, moms_donor, bmag, jacob_tot, b_i, distf_donor, coll_iz_donor, cflRate_donor);
 
   }
 
-  //gkyl_grid_sub_array_write(&phaseGrid_elc, &phaseRange_elc, coll_iz_elc, "ctest_coll_iz_li_elc_3x.gkyl");
-  //gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, coll_iz_ion, "ctest_coll_iz_li_ion_3x.gkyl");
-  //gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, coll_iz_donor, "ctest_coll_iz_li_donor_3x.gkyl");
+  gkyl_grid_sub_array_write(&phaseGrid_elc, &phaseRange_elc, coll_iz_elc, "ctest_coll_iz_li_elc_3x.gkyl");
+  gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, coll_iz_ion, "ctest_coll_iz_li_ion_3x.gkyl");
+  gkyl_grid_sub_array_write(&phaseGrid_ion, &phaseRange_ion, coll_iz_donor, "ctest_coll_iz_li_donor_3x.gkyl");
   
-  double p1_vals_elc[] = {-3.0211866019063268e+03,  1.1151629206897585e-13,  3.6431890306379876e-13,
-			  2.9260691682239769e-13, -1.0808072282313658e+02, 1.7261432022756057e+03,
-			  -1.7533165289662860e-13, -4.8930347399217097e-14, -4.8930347399217103e-14,
-			  -8.0530046129500689e-16,  2.2975665791155755e-15,  2.2975665791155755e-15,
-			  -5.7757526206287122e-15, -1.3998079811979073e-13,  3.4431743630114681e-15,
-			  6.1751500182237166e+01,  5.7589718567933035e-15, -1.6153735565021414e-15,
-			  3.4109651130671742e-16,  1.1511696065138511e-15, -5.7757526206286972e-15,
-			  -1.1662891288086177e-15, -1.1662891288086169e-15, -4.9806274555816689e-14,
-			  -8.0319993619460044e-15, -8.0319993619460028e-15,  3.1076396743227091e-15,
-			  3.4431743630114685e-15,  1.2131640310202148e-14,  1.1013818754303210e-14,
-			  1.1013818754303212e-14, -8.0319993619460028e-15,  2.6414781912199704e+01,
-			  2.6536488176685738e-14,  6.0320281695407716e-15,  6.0320281695407716e-15,
-			  -1.5091982801911699e+01, -8.5094318488076805e-15, -8.9875904769978933e-15,
-			  7.3202598929381168e-15,  5.8193829106763044e-15,  6.3657710517723692e-15,
-			  6.3657710517723692e-15,  8.4622474551621719e-15,  8.2496021962977040e-15,
-			  8.5227962668457375e-15, 8.5227962668457375e-15, -1.6800794278136792e-16};  
+  double p1_vals_elc[] = {2.7827195413250211e+03, -5.5143064617505270e-13, -1.1255267647969707e-13,
+			  3.0808617521510578e-15, 5.6107655987481405e+02, -3.4403361797355956e+03,
+			  -1.1807467759761490e-14,  2.4617602983186568e-13,  1.4908953368169480e-14,
+			  1.2913391515059414e-13, -3.5227252892099745e-14, -7.3771765636049109e-14,
+			  6.6091076977940103e-13, -1.0105954916810854e-13,  2.8438557827138510e-13,
+			  -5.7972626754157250e+02, -7.4008163735747697e-14,  4.2902657484742121e-14,
+			  -7.3251323191577558e-14, -6.2923218977002142e-15, -7.1434972355637081e-14,
+			  -2.2115305536569563e-13,  1.0114021098000586e-14, -1.1348389609270765e-13,
+			  -1.0856376260379595e-13, -7.0019249859846589e-14,  3.1731748401777602e-14,
+			  -2.3970523680209826e-14, -4.2824289865038693e-15,  4.4756250157717191e-14,
+			  -2.5900704204537201e-14, -3.1474737115897219e-14, -1.1062796237135630e+02,
+			  -1.9280338767567045e-13,  2.4184384490059006e-14,  4.9121281180843230e-15,
+			  1.1546588173937558e+02, -1.0060283647038903e-14,  3.0486809125880357e-14,
+			  3.1324036639042416e-14,  1.5332205766765544e-13, -5.0363047563901805e-15,
+			  -5.0363047563901845e-15, -3.4620176641933159e-14,  3.7561911937859624e-14,
+			  1.6199499841760875e-14,  1.6199499841760875e-14,  4.4732159316494668e-15};
 
-  double p1_vals_ion[] = {1.6670249545888491e+04, -3.2417594348322014e-13, -9.2770344417926952e-13,
-			  -6.2386751751611901e-14,  5.9636588465764521e+02, -9.5244821738970531e+03,
-			  2.5270185146855172e-13,  2.3937699859641281e-13,  2.3937699859641281e-13,
-			  1.0785813614986634e-13, -6.1032275456172119e-15, -6.1032275456172127e-15,
-			  -7.0135428465832752e-13, -6.8092299440848366e-14, -6.8092299440848353e-14,
-			  -3.4073132630117146e+02, -6.2386751751611901e-14,  1.5487523743201235e-14,
-			  4.6921480987920046e-15, -4.7156688232485811e-14, -1.2447648970655591e-13,
-			  4.7935054164240818e-14,  4.7935054164240812e-14, -6.2752950681203300e-14,
-			  1.4316773372550237e-15,  1.4316773372550249e-15,  8.6267384861047899e-14,
-			  -6.8092299440848353e-14, -1.0904114349925496e-14, -4.7362185063352344e-15,
-			  -4.7362185063352352e-15,  1.4316773372550249e-15, -1.4575101249911003e+02,
-			  1.0988812099679773e-13,  2.5333708527487868e-15,  2.5333708527487845e-15,
-			  8.3274273522654596e+01, -1.4070439703451535e-14, -1.1432064553296630e-14,
-			  2.0155883740287529e-14, -6.8403023299617067e-14, -1.4352759840810866e-13,
-			  6.9185032983427534e-16, -8.7936894031417234e-15, 2.8434502997949620e-14,
-			  2.6927077628189564e-14,  2.6927077628189560e-14, -1.0635209926056232e-14};
-
-  double p1_vals_donor[] = {-1.6670249545888491e+04,  3.2417594348322014e-13,  9.2770344417926952e-13,
-			    6.2386751751611901e-14, -5.9636588465764521e+02, 9.5244821738970531e+03,
-			    -2.5270185146855172e-13, -2.3937699859641281e-13, -2.3937699859641281e-13,
-			    -1.0785813614986634e-13,  6.1032275456172119e-15,  6.1032275456172127e-15,
-			    7.0135428465832752e-13,  6.8092299440848366e-14,  6.8092299440848353e-14,
-			    3.4073132630117146e+02,  6.2386751751611901e-14, -1.5487523743201235e-14,
-			    -4.6921480987920046e-15,  4.7156688232485811e-14,  1.2447648970655591e-13,
-			    -4.7935054164240818e-14, -4.7935054164240812e-14,  6.2752950681203300e-14,
-			    -1.4316773372550237e-15, -1.4316773372550249e-15, -8.6267384861047899e-14,
-			    6.8092299440848353e-14,  1.0904114349925496e-14,  4.7362185063352344e-15,
-			    4.7362185063352352e-15, -1.4316773372550249e-15,  1.4575101249911003e+02,
-			    -1.0988812099679773e-13, -2.5333708527487868e-15, -2.5333708527487845e-15,
-			    -8.3274273522654596e+01,  1.4070439703451535e-14,  1.1432064553296630e-14,
-			    -2.0155883740287529e-14,  6.8403023299617067e-14,  1.4352759840810866e-13,
-			    -6.9185032983427534e-16,  8.7936894031417234e-15, -2.8434502997949620e-14,
-			    -2.6927077628189564e-14, -2.6927077628189560e-14, 1.0635209926056232e-14};
+  double p1_vals_ion[] = {3.5234568181616907e+09, -1.3502092065823899e-07, -5.8591849133644818e-07,
+			  -2.0082577406455787e-08,  3.1073731391803235e+08, -3.2598078593828807e+09,
+			  2.6646483321758800e-08,  4.3698803952650981e-08,  4.3698803952650974e-08,
+			  -5.2848414799452318e-08, -5.5270948353937135e-09, -5.5270948353937118e-09,
+			  -4.6246610166974220e-07, -2.1113642881722849e-08, -2.1113642881722852e-08,
+			  -2.8748583859245795e+08, -2.0082577406455790e-08,  4.6139648605769385e-08,
+			  2.0306276885187836e-08,  2.1519154699650446e-09,  2.2536110270251248e-08,
+			  7.1123369426422104e-10,  7.1123369426420543e-10, -1.4928454932089281e-09,
+			  2.9595668230549338e-08,  9.3872427330496088e-09, -3.4730307531167770e-09,
+			  -2.1113642881722852e-08, -2.1229281885798126e-08, -1.6025232325124121e-08,
+			  -1.6497221430034653e-08,  9.3872427330496088e-09, -6.9421022846914962e+07,
+			  -1.4020801524854957e-08, -3.3929505804705617e-08,  6.4873451902938392e-09,
+			  6.4226470639943942e+07, -1.3229764036171755e-08, -1.1973109290265582e-08,
+			  6.0217279330708713e-09,  1.5981464715088735e-10, -2.1654319664136848e-09,
+			  -2.1654319664136848e-09, -1.1507492033042613e-08,  1.9014138164036288e-09,
+			  7.3879050962134245e-10,  7.3879050962134255e-10, -4.2383279716094371e-10};
+    
+  double p1_vals_donor[] = {-3.5234568181616907e+09,  1.3502092065823899e-07,  5.8591849133644818e-07,
+			    2.0082577406455787e-08, -3.1073731391803235e+08,  3.2598078593828807e+09,
+			    -2.6646483321758800e-08, -4.3698803952650981e-08, -4.3698803952650974e-08,
+			    5.2848414799452318e-08,  5.5270948353937135e-09,  5.5270948353937118e-09,
+			    4.6246610166974220e-07,  2.1113642881722849e-08,  2.1113642881722852e-08,
+			    2.8748583859245795e+08,  2.0082577406455790e-08, -4.6139648605769385e-08,
+			    -2.0306276885187836e-08, -2.1519154699650446e-09, -2.2536110270251248e-08,
+			    -7.1123369426422104e-10, -7.1123369426420543e-10,  1.4928454932089281e-09,
+			    -2.9595668230549338e-08, -9.3872427330496088e-09,  3.4730307531167770e-09,
+			    2.1113642881722852e-08,  2.1229281885798126e-08,  1.6025232325124121e-08,
+			    1.6497221430034653e-08, -9.3872427330496088e-09,  6.9421022846914962e+07,
+			    1.4020801524854957e-08,  3.3929505804705617e-08, -6.4873451902938392e-09,
+			    -6.4226470639943942e+07,  1.3229764036171755e-08,  1.1973109290265582e-08,
+			    -6.0217279330708713e-09, -1.5981464715088735e-10,  2.1654319664136848e-09,
+			    2.1654319664136848e-09,  1.1507492033042613e-08, -1.9014138164036288e-09,
+			    -7.3879050962134245e-10, -7.3879050962134255e-10,  4.2383279716094371e-10};
     
   const double *pv_elc = gkyl_array_cfetch(coll_iz_elc, gkyl_range_idx(&phaseRange_elc, (int[5]) { 1, 1, 1, 8, 1}));
   for (int i=0; i<phaseBasis.num_basis; ++i) {
@@ -1809,14 +1779,14 @@ void coll_iz_init_elem_gpu() { test_coll_iz_init_elem(true); }
 #endif
 
 TEST_LIST = {
-  /* { "prim_vars_gk_3x", prim_vars_gk_3x }, */
-  /* { "prim_vars_vlasov_3x", prim_vars_vlasov_3x }, */
-  // { "prim_vars_trans_1x", prim_vars_trans_1x },
-  /* { "coll_iz_h_1x", coll_iz_h_1x }, */
+  { "prim_vars_gk_3x", prim_vars_gk_3x },
+  { "prim_vars_vlasov_3x", prim_vars_vlasov_3x },
+  { "prim_vars_trans_1x", prim_vars_trans_1x },
+  { "coll_iz_h_1x", coll_iz_h_1x },
   { "coll_iz_h", coll_iz_h },
-  //  { "coll_iz_all_gk_li_1x", coll_iz_all_gk_li_1x },
-  //  { "coll_iz_all_gk_li_3x", coll_iz_all_gk_li_3x },
-  //  { "coll_iz_init_elem", coll_iz_init_elem },
+  { "coll_iz_all_gk_li_1x", coll_iz_all_gk_li_1x },
+  { "coll_iz_all_gk_li_3x", coll_iz_all_gk_li_3x },
+  { "coll_iz_init_elem", coll_iz_init_elem },
 #ifdef GKYL_HAVE_CUDA
   { "coll_iz_h_1x_gpu", coll_iz_h_1x_gpu },
 #endif  
