@@ -133,6 +133,7 @@ GKYL_CU_DH
 void
 node_coords_quad_surfz_3d_ser_p1(double *node_coords)
 {
+  printf("In the desired fxn\n");
   node_coords[0] = -0.5773502691896258;
   node_coords[1] = -0.5773502691896258;
   node_coords[2] = -1.0;

@@ -366,6 +366,10 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
 
   struct gkyl_tok_geo *geo = mapc2p_ctx;
   struct gkyl_tok_geo_grid_inp *inp = bmag_ctx;
+
+  printf("in calc basis ndim= %d\n", inp->cbasis.ndim);
+
+
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
 
@@ -384,7 +388,18 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
     alpha_lo = inp->cgrid.lower[AL_IDX];
 
   double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
-  dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
+  //dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
+  
+  // Dont use dx_fact instead use these for quad nodes
+  double dtheta1 = dtheta*0.42264973081037416/2;
+  double dtheta2 = dtheta*1.1547005383792517/2;
+  double dpsi1 = dpsi*0.42264973081037416/2;
+  double dpsi2 = dpsi*1.1547005383792517/2;
+  double psi_step[3] = {0.0, dpsi1, dpsi2+dpsi1};
+
+  double dalpha1 = dalpha*0.42264973081037416/2;
+  double dalpha2 = dalpha*1.1547005383792517/2;
+  double alpha_step[3] = {0, dalpha1, dalpha2 + dalpha1};
 
   // used for finite differences 
   double delta_alpha = dalpha*1e-4;
@@ -434,7 +449,13 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           continue; //dont do two away
       }
 
-      double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
+      //double alpha_curr = alpha_lo + ia*dalpha + modifiers[ia_delta]*delta_alpha;
+      // For quad nodes
+      double alpha_curr = alpha_lo + (ia/3)*dalpha + alpha_step[ia%3] + modifiers[ia_delta]*delta_alpha;
+      if(ia%3==0)
+        break;
+
+      printf("ia = %d, alpha_step = %g, alpha_curr = %g\n", ia, alpha_step[ia%3], alpha_curr);
 
       for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
         int ip_delta_max = 5;// should be 5
@@ -454,7 +475,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               continue; //dont do two away
           }
 
-          double psi_curr = psi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
+          //double psi_curr = psi_lo + ip*dpsi + modifiers[ip_delta]*delta_psi;
+          // For quad nodes
+          double psi_curr = psi_lo + (ip/3)*dpsi + psi_step[ip%3] + modifiers[ip_delta]*delta_psi;
+          if(ip%3==0)
+            break;
 
 
           double darcL, arcL_curr, arcL_lo;
@@ -465,7 +490,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           // also set phi_right and arcL_right
           // For a single null case:
           // also set zmin_left and zmin_right 
+          //printf("findin endpoints\n");
           tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, arc_memo, arc_memo_left, arc_memo_right);
+          //printf("found endpoints, zmin, zmax was = %g, %g\n", arc_ctx.zmin, arc_ctx.zmax);
 
           darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
           // at the beginning of each theta loop we need to reset things
@@ -493,7 +520,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arc_ctx.arcL_tot/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
-              printf("ia.ip.it = %d %d %d\n", ia, ip, it);
+
+              //printf("ia.ip.it = %d %d %d\n", ia, ip, it);
+              //printf("ia.ip.it psi_curr, alpha_curr, theta_curr = %d %d %d, %g, %g, %g\n", ia, ip, it, psi_curr, alpha_curr, theta_curr);
 
               tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
 
@@ -505,6 +534,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
+              if(nr==0)
+                printf("FAILED at Z = %1.16f\n", z_curr);
+
+              if( fabs(psi_curr - geo->psisep) < 5*delta_psi && it==nrange->upper[2])
+                printf("z,r = %1.16f, %1.16f\n", z_curr, r_curr);
 
               cidx[TH_IDX] = it;
               int lidx = 0;
@@ -547,9 +581,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
       }
     }
   }
-  struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
-  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->range, 3, mc2p_nodal, mc2p);
-  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->range, 3, mc2prz_nodal, mc2prz);
+  printf("\n ABOUT TO DO STUFF\n");
+  struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_interior_new(&inp->cbasis, &inp->cgrid, false);
+  gkyl_nodal_ops_n2m_interior(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->range, 3, mc2p_nodal, mc2p);
+  printf("\n DONE STUFF\n");
+  gkyl_nodal_ops_n2m_interior(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->range, 3, mc2prz_nodal, mc2prz);
   gkyl_nodal_ops_release(n2m);
 
   char str1[50] = "xyz";

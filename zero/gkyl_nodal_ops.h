@@ -19,6 +19,7 @@ struct gkyl_nodal_ops {
  * Returns pointer to gkyl_nodal_ops struct.
  */
 struct gkyl_nodal_ops* gkyl_nodal_ops_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu);
+struct gkyl_nodal_ops* gkyl_nodal_ops_interior_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu);
 
 /**
  * Transform nodal representation to modal representation
@@ -36,6 +37,12 @@ void gkyl_nodal_ops_n2m(const struct gkyl_nodal_ops *nodal_ops,
   const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, 
   const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, 
   const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld);
+
+void gkyl_nodal_ops_n2m_interior(const struct gkyl_nodal_ops *nodal_ops, 
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, 
+  const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, 
+  const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld) ;
+
 
 /**
  * Transform modal representation to nodal representation

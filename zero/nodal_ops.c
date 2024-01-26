@@ -1,3 +1,4 @@
+#include "gkyl_array.h"
 #include <gkyl_nodal_ops.h>
 
 struct gkyl_nodal_ops*
@@ -17,6 +18,31 @@ gkyl_nodal_ops_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid 
   // Copy the nodal values to the pre-allocated array
   gkyl_array_copy(up->nodes, nodes);
   gkyl_array_release(nodes);
+
+  return up;
+}
+
+struct gkyl_nodal_ops*
+gkyl_nodal_ops_interior_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu)
+{
+  // Allocate space for new updater.
+  struct gkyl_nodal_ops *up = gkyl_malloc(sizeof(*up));
+
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim, cbasis->num_basis);
+  cbasis->node_quad_surf_list[2](gkyl_array_fetch(nodes, 0));
+
+  if (use_gpu) 
+    up->nodes = gkyl_array_cu_dev_new(GKYL_DOUBLE, grid->ndim, cbasis->num_basis);
+  else 
+    up->nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim, cbasis->num_basis);
+
+  // Copy the nodal values to the pre-allocated array
+  gkyl_array_copy(up->nodes, nodes);
+  gkyl_array_release(nodes);
+  for(int i = 0; i < 8; i++) {
+    double *pval =  gkyl_array_fetch(up->nodes,i);
+    printf("nodes[%d] = %g, %g, %g\n", i,pval[0], pval[1], pval[2]);
+  }
 
   return up;
 }
@@ -134,6 +160,78 @@ gkyl_nodal_ops_n2m_nc_3xp3(const struct gkyl_nodal_ops *nodal_ops,
     }
   }
 }
+
+void 
+gkyl_nodal_ops_n2m_interior(const struct gkyl_nodal_ops *nodal_ops, 
+  const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, 
+  const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, 
+  const struct gkyl_array *nodal_fld, struct gkyl_array *modal_fld) 
+{
+  int num_basis = cbasis->num_basis;
+  int cpoly_order = cbasis->poly_order;
+  double fnodal[num_basis]; // to store nodal function values
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+  int nidx[3];
+  long lin_nidx[8];
+
+
+  printf("\nin advance interior\n");
+  for(int i = 0; i < 8; i++) {
+    double *pval =  gkyl_array_fetch(nodal_ops->nodes,i);
+    printf("nodes[%d] = %g, %g, %g\n", i,pval[0], pval[1], pval[2]);
+  }
+
+
+  
+  while (gkyl_range_iter_next(&iter)) {
+    for (int i=0; i < 8; ++i) {
+      const double *temp  = gkyl_array_cfetch(nodal_ops->nodes,i);
+      for( int j = 0; j < grid->ndim; j++){
+        if (j !=2 ) {
+          if(fabs(temp[j] - -1.0/sqrt(3.0) ) < 1e-12){
+            //nidx[j] = 4;
+            nidx[j] = 3*(iter.idx[j]-1) + (temp[j]*sqrt(3.0)+1)/2 + 1;
+          }
+          if(fabs(temp[j] - 1.0/sqrt(3.0)) < 1e-12) {
+            //nidx[j] = 5;
+            nidx[j] = 3*(iter.idx[j]-1) + (temp[j]*sqrt(3.0)+1)/2 + 1;
+          }
+        }
+        else if (j==2) {
+          nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
+        }
+      }
+      printf("temp = %g %g %g\n", temp[0], temp[1], temp[2]);
+      printf("iter.idx = %d %d %d\n", iter.idx[0], iter.idx[1], iter.idx[2]);
+      printf("nidx = %d, %d, %d\n", nidx[0], nidx[1], nidx[2]);
+      lin_nidx[i] = gkyl_range_idx(nrange, nidx);
+    }
+
+    long lidx = gkyl_range_idx(update_range, iter.idx);
+    double *arr_p = gkyl_array_fetch(modal_fld, lidx);
+    double fao[num_basis*num_comp];
+  
+    for (int i=0; i<num_basis; ++i) {
+      const double *temp = gkyl_array_cfetch(nodal_fld, lin_nidx[i]);
+      for (int j=0; j<num_comp; ++j) {
+        fao[i*num_comp + j] = temp[j];
+      }
+    }
+
+    for (int i=0; i<num_comp; ++i) {
+      // copy so nodal values for each return value are contiguous
+      // (recall that function can have more than one return value)
+      for (int k=0; k<num_basis; ++k)
+        fnodal[k] = fao[num_comp*k+i];
+      // transform to modal expansion
+      cbasis->nodal_to_modal_quad_surf[2](fnodal, &arr_p[num_basis*i]);
+    }
+  }
+}
+
+
 
 
 void 

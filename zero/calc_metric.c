@@ -17,7 +17,7 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_gri
   up->grid = grid;
   up->use_gpu = use_gpu;
   up->num_cells = up->grid->cells;
-  up->n2m = gkyl_nodal_ops_new(up->cbasis, up->grid, up->use_gpu);
+  up->n2m = gkyl_nodal_ops_interior_new(up->cbasis, up->grid, up->use_gpu);
   return up;
 }
 
@@ -108,8 +108,8 @@ void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange
       }
     }
   }
-  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 6, gFld_nodal, gFld);
-  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 1, jFld_nodal, jFld);
+  gkyl_nodal_ops_n2m_interior(up->n2m, up->cbasis, up->grid, nrange, update_range, 6, gFld_nodal, gFld);
+  gkyl_nodal_ops_n2m_interior(up->n2m, up->cbasis, up->grid, nrange, update_range, 1, jFld_nodal, jFld);
   gkyl_array_release(gFld_nodal);
   gkyl_array_release(jFld_nodal);
 }

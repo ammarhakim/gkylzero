@@ -58,7 +58,7 @@ struct gkyl_tok_geo {
 
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
-    double xc[2], double dx[2]);
+    double xc[2], double dx[2], struct gkyl_basis basis);
 
   struct gkyl_tok_geo_stat stat; 
   struct gkyl_array* mc2p_nodal_fd;

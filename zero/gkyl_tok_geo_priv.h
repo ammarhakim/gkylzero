@@ -62,7 +62,7 @@ struct RdRdZ_sol {
 
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=1 DG cell
 static inline struct RdRdZ_sol
-calc_RdR_p1(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+calc_RdR_p1(const double *psi, double psi0, double Z, double xc[2], double dx[2], struct gkyl_basis basis)
 {
   struct RdRdZ_sol sol = { .nsol = 0 };
 
@@ -82,18 +82,25 @@ calc_RdR_p1(const double *psi, double psi0, double Z, double xc[2], double dx[2]
 
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell
 static inline struct RdRdZ_sol
-calc_RdR_p2(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+calc_RdR_p2(const double *psi, double psi0, double Z, double xc[2], double dx[2], struct gkyl_basis basis)
 {
   struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z-xc[1])/(dx[1]*0.5);
-
+  //if( (Z < -6.15) && (Z > -6.16) && (xc[0] < 2.51)  && (xc[0] > 2.45) )
+  //  printf("near the x point, Z, Rc = %g %g\n",Z, xc[0] );
   double aq = 2.904737509655563*psi[6]*y+1.677050983124842*psi[4]; 
   double bq = 2.904737509655563*psi[7]*SQ(y)+1.5*psi[3]*y-0.9682458365518543*psi[7]+0.8660254037844386*psi[1]; 
   double cq = 1.677050983124842*psi[5]*SQ(y)-0.9682458365518543*psi[6]*y+0.8660254037844386*psi[2]*y-1.0*psi0-0.5590169943749475*psi[5]-0.5590169943749475*psi[4]+0.5*psi[0]; 
   double delta2 = bq*bq - 4*aq*cq;
+  //if(fabs(delta2)<1e-5)
+  //  delta2 = fabs(delta2);
+    
 
+  double r0 = -(1.0*(11.61895003862225*psi[7]*y*y+6.0*psi[3]*y-3.872983346207417*psi[7]+3.464101615137754*psi[1]))/(23.2379000772445*psi[6]*y+13.41640786499873*psi[4]);
+
+
+  double r1, r2;
   if (delta2 > 0) {
-    double r1, r2;
     double delta = sqrt(delta2);
     // compute both roots
     if (bq>=0) {
@@ -129,6 +136,44 @@ calc_RdR_p2(const double *psi, double psi0, double Z, double xc[2], double dx[2]
       sidx += 1;
     }
   }
+
+  else if ((-1<=r0) && (r0 < 1)) {
+      int sidx = 0;
+      double eval[2] = {r0,y};
+      double psieval = basis.eval_expand(eval, psi);
+      if (fabs(psi0 - psieval)<1e-6) {
+        double x = r0;
+        sol.nsol += 1;
+        sol.R[sidx] = r0*dx[0]*0.5 + xc[0];
+        //double dxdy = -(1.0*(174.2842505793338*psi[6]*psi[6]*psi[7]*y*y*y+301.8691769624716*psi[4]*psi[6]*psi[7]*y*y+((58.09475019311126*psi[6]*psi[6]+116.1895003862225*psi[4]*psi[4])*psi[7]-51.96152422706631*psi[1]*psi[6]*psi[6]+51.96152422706632*psi[3]*psi[4]*psi[6])*y+ 33.54101966249685*psi[4]*psi[6]*psi[7]-30.0*psi[1]*psi[4]*psi[6]+30.0*psi[3]*psi[4]*psi[4]))/(348.5685011586676*psi[6]*psi[6]*psi[6]*y*y*y+603.7383539249433*psi[4]*psi[6]*psi[6]*y*y+348.5685011586676*psi[4]*psi[4]*psi[6]*y+67.0820393249937*psi[4]*psi[4]*psi[4]);
+        //sol.dRdZ[sidx] = dxdy*dx[0]/dx[1];
+        //printf("psi desired, psieval = %g, %g\n", psi0, psieval);
+        printf("found a root at Z = %1.16f\n",Z);
+        //printf("R = %g\n", sol.R[sidx]);
+        double C = 5.809475019311126*psi[7]*x*y+3.354101966249685*psi[5]*y+2.904737509655563*psi[6]*SQ(x)+1.5*psi[3]*x-0.9682458365518543*psi[6]+0.8660254037844386*psi[2]; 
+        double A = 2.904737509655563*psi[7]*SQ(y)+5.809475019311126*psi[6]*x*y+1.5*psi[3]*y+3.354101966249685*psi[4]*x-0.9682458365518543*psi[7]+0.8660254037844386*psi[1];
+        sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+        //printf("dRdZ = %g\n", sol.dRdZ[sidx]);
+        sidx += 1;
+      }
+  }
+
+  //if( (Z < -6.14) && (Z > -6.16) && (xc[0] < 2.55)  && (xc[0] > 2.45) ){
+  //  printf("\n");
+  //  printf("near the x point, Z, Rc = %1.16f %g; nsol = %d\n",Z, xc[0], sol.nsol );
+  //  double eval[2] = {-1.0,y};
+  //  double psileft = basis.eval_expand(eval, psi);
+  //  eval[0] = 1.0;
+  //  double psiright = basis.eval_expand(eval, psi);
+  //  printf("psileft, psiright = %g,%g\n", psileft, psiright); 
+  //  printf("r1,r2 = %g, %g\n",r1,r2);
+  //  printf("delta2 = %g\n",delta2);
+  //  printf("aq,bq,cq= %g,%g,%g\n",aq,bq,cq);
+  //  eval[0] = r0;
+  //  double psir0 = basis.eval_expand(eval, psi);
+  //  printf("r0, psir0= %g, %g\n", r0, psir0);
+  //  printf("\n");
+  //}
   return sol;
 }
 
@@ -161,7 +206,7 @@ R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
     idx[0] = riter.idx[0];
     gkyl_rect_grid_cell_center(&geo->rzgrid, idx, xc);
 
-    struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx);
+    struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx, geo->rzbasis);
     
     if (sol.nsol > 0)
       for (int s=0; s<sol.nsol; ++s) {
@@ -172,6 +217,8 @@ R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
         }
       }
   }
+  if(Z ==-6.1422000000000088)
+    printf("At the Z, nr = %d\n", sidx);
   return sidx;
 }
 

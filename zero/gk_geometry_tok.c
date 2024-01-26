@@ -53,14 +53,17 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
 
   int poly_order = basis->poly_order;
   int nodes[3] = { 1, 1, 1 };
-  if (poly_order == 1){
-    for (int d=0; d<grid->ndim; ++d)
-      nodes[d] = grid->cells[d] + 1;
-  }
-  if (poly_order == 2){
-    for (int d=0; d<grid->ndim; ++d)
-      nodes[d] = 2*(grid->cells[d]) + 1;
-  }
+    for (int d=0; d<grid->ndim-1; ++d)
+      nodes[d] = 3*grid->cells[d] + 1;
+  nodes[2] = grid->cells[2] + 1;
+  //if (poly_order == 1){
+  //  for (int d=0; d<grid->ndim; ++d)
+  //    nodes[d] = grid->cells[d] + 1;
+  //}
+  //if (poly_order == 2){
+  //  for (int d=0; d<grid->ndim; ++d)
+  //    nodes[d] = 2*(grid->cells[d]) + 1;
+  //}
 
   gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
   struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*13, nrange.volume);
@@ -96,8 +99,12 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   struct gkyl_tok_geo_grid_inp *ginp = tok_comp_ctx;
   ginp->cgrid = up->grid;
   ginp->cbasis = up->basis;
+  printf("in gk_tok basis type = %d\n", ginp->cbasis.b_type);
+  printf("in gk_tok basis ndim= %d\n", ginp->cbasis.ndim);
+  printf("in gk_tok basis porder= %d\n", ginp->cbasis.poly_order);
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(inp);
   // calculate mapc2p and mapc2prz
+  printf("in gk_tok basis ndim= %d\n", ginp->cbasis.ndim);
   gkyl_tok_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, 
     mc2p_nodal_fd, mc2p_nodal, mc2p, mc2prz_nodal_fd, mc2prz_nodal, mc2prz, dphidtheta_nodal);
   // calculate bmag

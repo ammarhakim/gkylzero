@@ -36,6 +36,7 @@ test_ser_1d_members(struct gkyl_basis basis1)
   TEST_CHECK( nodes[0] == -1 );
   TEST_CHECK( nodes[1] == 1 );
 
+
   double f[basis1.num_basis];
   for (int i=0; i<basis1.num_basis; ++i) f[i] = 1.0;
 
@@ -165,6 +166,32 @@ test_ser_2d()
   struct gkyl_basis *basis2 = gkyl_cart_modal_serendip_new(2, 2);
   test_ser_2d_members(*basis2);
   gkyl_cart_modal_basis_release(basis2);
+}
+
+
+void
+test_ser_3d_members(struct gkyl_basis basis1)
+{
+  TEST_CHECK( basis1.ndim == 3 );
+  TEST_CHECK( basis1.poly_order == 1 );
+  TEST_CHECK( basis1.num_basis == 8 );
+  TEST_CHECK( strcmp(basis1.id, "serendipity") == 0 );
+  TEST_CHECK( basis1.b_type == GKYL_BASIS_MODAL_SERENDIPITY );
+
+  double nodes[basis1.ndim*basis1.num_basis];
+  basis1.node_quad_surf_list[2](nodes);
+
+  TEST_CHECK( nodes[0] ==  -0.5773502691896258);
+  TEST_CHECK( nodes[1] == -0.5773502691896258 );
+
+}
+
+void
+test_ser_3d()
+{
+  struct gkyl_basis basis1;
+  gkyl_cart_modal_serendip(&basis1, 3, 1);
+  test_ser_3d_members(basis1);
 }
 
 void
@@ -699,6 +726,7 @@ test_cu_ser_2d()
 TEST_LIST = {
   { "ser_1d", test_ser_1d },
   { "ser_2d", test_ser_2d },
+  { "ser_3d", test_ser_3d },
   { "ten_2d", test_ten_2d },
   { "hyb", test_hyb },
   { "gkhyb", test_gkhyb },
