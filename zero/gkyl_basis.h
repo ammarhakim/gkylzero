@@ -8,6 +8,8 @@ enum gkyl_basis_type {
   GKYL_BASIS_MODAL_GKHYBRID,
 };
 
+typedef void (*nodal_to_modal_quad_surf_t)(const double *fnodal, double *fmodal);
+
 /**
  * Basis function object
  */
@@ -85,6 +87,15 @@ struct gkyl_basis {
  * @param fmodal On output, coefficients of modal expansion
  */
   void (*nodal_to_modal)(const double *fnodal, double *fmodal);
+
+/**
+ * Given expansion coefficients on nodes at the surface in one direction,
+ * and Gauss-Legendre nodes in the other, compute modal expansion coefficients.
+ *
+ * @param fnodal Coefficients of nodal expansion
+ * @param fmodal On output, coefficients of modal expansion
+ */
+  nodal_to_modal_quad_surf_t nodal_to_modal_quad_surf[3];
 };
 
 /**
