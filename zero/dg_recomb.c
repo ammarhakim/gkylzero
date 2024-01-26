@@ -129,10 +129,7 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
     
     up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
     up->coef_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-    up->coef_m0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
- 
-    up->udrift_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, vdim*up->cbasis->num_basis, up->conf_rng->volume);
-    up->vtSq_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->coef_m0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume); 
     up->prim_vars_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim+1)*up->cbasis->num_basis, up->conf_rng->volume);
 
   }
@@ -143,15 +140,11 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
     up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
     up->coef_recomb = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
     up->coef_m0 = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-
-    up->udrift_ion = gkyl_array_new(GKYL_DOUBLE, vdim*up->cbasis->num_basis, up->conf_rng->volume);
-    up->vtSq_ion = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
     up->prim_vars_ion = gkyl_array_new(GKYL_DOUBLE, (vdim+1)*up->cbasis->num_basis, up->conf_rng->volume);
   }
 
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); 
-  up->calc_prim_vars_ion_udrift = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "u_par_i", use_gpu);
-  up->calc_prim_vars_ion_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu);
+  up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_vlasov", use_gpu);
   
   // only for receiver species
   up->proj_max = gkyl_proj_maxwellian_on_basis_new(up->grid, up->cbasis, up->pbasis, poly_order+1, use_gpu);
@@ -174,7 +167,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
 #endif
   if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
     // Set auxiliary variable (b_i) for computation of udrift_i
-    gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_ion_udrift, 
+    gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_ion, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   }
 
@@ -225,27 +218,20 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
 
     if ((up->all_gk==false) && (up->type_self == GKYL_RECOMB_RECVR)) {
       const double *moms_ion_d = gkyl_array_cfetch(moms_ion, loc);
-      double *udrift_ion_d = gkyl_array_fetch(up->udrift_ion, loc);
-      double *vtSq_ion_d = gkyl_array_fetch(up->vtSq_ion, loc);
       double *prim_vars_ion_d = gkyl_array_fetch(up->prim_vars_ion, loc);
       
       // condense the following 2 kernels...
-      up->calc_prim_vars_ion_udrift->kernel(up->calc_prim_vars_ion_udrift, conf_iter.idx,
-					    moms_ion_d, udrift_ion_d);
-      up->calc_prim_vars_ion_vtSq->kernel(up->calc_prim_vars_ion_vtSq, conf_iter.idx,
-					    moms_ion_d, vtSq_ion_d);
+      up->calc_prim_vars_ion->kernel(up->calc_prim_vars_ion, conf_iter.idx,
+					    moms_ion_d, prim_vars_ion_d);
     }
   }
 
   if (up->type_self == GKYL_RECOMB_RECVR) {
     if (up->all_gk) {
-      gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion, bmag, jacob_tot, up->mass_self, coll_recomb);
+      gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion, bmag,
+					      jacob_tot, up->mass_self, coll_recomb);
     }
-    else {
-      // Set fmax moments
-      gkyl_array_set_offset_range(up->prim_vars_ion, 1., up->udrift_ion, 0, up->conf_rng);
-      gkyl_array_set_offset_range(up->prim_vars_ion, 1., up->vtSq_ion, (up->vdim)*up->cbasis->num_basis, up->conf_rng);
-      
+    else {      
       // Proj maxwellian on basis
       gkyl_proj_maxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion,
 					     up->prim_vars_ion, coll_recomb);
@@ -256,8 +242,6 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     gkyl_array_set_range(coll_recomb, -1.0, f_self, up->phase_rng);
   }
   
-  //gkyl_array_set_range(up->coef_m0, 1.0, moms_elc, up->conf_rng);
-  //gkyl_dg_mul_op_range(*up->cbasis, 0, up->coef_recomb, 0, up->coef_recomb, 0, up->coef_m0, up->conf_rng);
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_recomb, coll_recomb,
 				  up->conf_rng, up->phase_rng);
   gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_m0, coll_recomb,
@@ -288,12 +272,12 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc_vtSq);
 
   // only used for Vlasov neut coll.
-  gkyl_array_release(up->udrift_ion);
-  gkyl_array_release(up->vtSq_ion);
+  //gkyl_array_release(up->udrift_ion);
+  //gkyl_array_release(up->vtSq_ion);
   gkyl_array_release(up->prim_vars_ion);
   gkyl_proj_maxwellian_on_basis_release(up->proj_max);
-  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion_udrift);
-  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion_vtSq);
+  //gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion_udrift);
+  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
   
   free(up);
 }

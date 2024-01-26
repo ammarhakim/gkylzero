@@ -40,12 +40,9 @@ struct gkyl_dg_recomb {
   struct gkyl_array *coef_m0;
   struct gkyl_array *coef_recomb;
   struct gkyl_array *prim_vars_ion;
-  struct gkyl_array *udrift_ion;
-  struct gkyl_array *vtSq_ion;
 
   struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq;
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_ion_udrift;
-  struct gkyl_dg_prim_vars_type *calc_prim_vars_ion_vtSq;
+  struct gkyl_dg_prim_vars_type *calc_prim_vars_ion;
 
   struct gkyl_proj_maxwellian_on_basis *proj_max;
   
