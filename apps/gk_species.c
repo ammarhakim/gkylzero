@@ -183,11 +183,11 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   s->has_neutral_reactions = false;
   if (s->info.react.num_react) {
     s->has_reactions = true;
-    gk_species_react_init(app, s, s->info.react, &s->react);
+    gk_species_react_init(app, s, s->info.react, &s->react, true);
   }
   if (s->info.react_neut.num_react) {
     s->has_neutral_reactions = true;
-    gk_species_react_init(app, s, s->info.react_neut, &s->react_neut);
+    gk_species_react_init(app, s, s->info.react_neut, &s->react_neut, false);
   }
 
   // determine radiation type to use in gyrokinetic update

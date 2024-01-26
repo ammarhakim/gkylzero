@@ -90,6 +90,16 @@ enum gkyl_ion_type
   GKYL_ION_C = 5,  // Carbon ions
   GKYL_ION_N = 6,  // Nitrogen ions
   GKYL_ION_O = 7,  // Oxygen ions
+  GKYL_ION_AR = 8,  // Argon ions
+};
+
+// Identifiers for different self in reaction
+enum gkyl_react_self_type
+{
+  GKYL_SELF_ELC = 0, // Electron species in reaction
+  GKYL_SELF_ION = 1, // Ion species in reaction 
+  GKYL_SELF_DONOR = 2, // Donating species in reaction (giving up electron)
+  GKYL_SELF_RECVR = 3, // Receiving species in reaction (receiving electron)
 };
 
 // Identifiers for specific geometry types

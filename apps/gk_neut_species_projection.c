@@ -3,7 +3,7 @@
 
 void 
 gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s, 
-  struct gkyl_gyrokinetic_projection inp, struct gk_neut_proj *proj)
+  struct gkyl_gyrokinetic_projection inp, struct gk_proj *proj)
 {
   proj->proj_id = inp.proj_id;
   if (proj->proj_id == GKYL_PROJ_FUNC) {
@@ -50,7 +50,7 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
 
 void
 gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_species *s, 
-  struct gk_neut_proj *proj, struct gkyl_array *f, double tm)
+  struct gk_proj *proj, struct gkyl_array *f, double tm)
 {
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, proj->proj_host);
@@ -96,7 +96,7 @@ gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_
 }
 
 void
-gk_neut_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_neut_proj *proj)
+gk_neut_species_projection_release(const struct gkyl_gyrokinetic_app *app, const struct gk_proj *proj)
 {
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     gkyl_proj_on_basis_release(proj->proj_func);

@@ -149,7 +149,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
   // allocate data for diagnostic moments
   int ndm = s->info.num_diag_moments;
-  s->moms = gkyl_malloc(sizeof(struct gk_neut_species_moment[ndm]));
+  s->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
   for (int m=0; m<ndm; ++m)
     gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 

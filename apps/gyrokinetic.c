@@ -718,11 +718,11 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
     if (app->species[i].has_reactions) {
       gk_species_react_cross_moms(app, &app->species[i], 
-        &app->species[i].react, fin, fin_neut);
+        &app->species[i].react, fin[i], fin, fin_neut);
     }
     if (app->species[i].has_neutral_reactions) {
       gk_species_react_cross_moms(app, &app->species[i], 
-        &app->species[i].react_neut, fin, fin_neut);
+        &app->species[i].react_neut, fin[i], fin, fin_neut);
     }
     // compute necessary drag coefficients for radiation operator
     if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
@@ -735,7 +735,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
     if (app->neut_species[i].has_neutral_reactions) {
       gk_neut_species_react_cross_moms(app, &app->neut_species[i], 
-        &app->neut_species[i].react_neut, fin, fin_neut);
+        &app->neut_species[i].react_neut, fin[i], fin, fin_neut);
     }
   }
 
