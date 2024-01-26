@@ -15,16 +15,7 @@ static const bmag_kernel_list ser_bmag_kernel_list[] = {
   { NULL, NULL, NULL}
 };
 
-struct bmag_ctx{
-   const struct gkyl_rect_grid* grid;
-   const struct gkyl_rect_grid* cgrid;
-   const struct gkyl_range* range;
-   const struct gkyl_range* crange;
-   const struct gkyl_basis* basis;
-   const struct gkyl_basis* cbasis;
-   struct gkyl_array* bmagdg;
-   const struct gkyl_array* mapc2p;
-};
+
 
 struct fpol_ctx{
    const struct gkyl_rect_grid* grid;

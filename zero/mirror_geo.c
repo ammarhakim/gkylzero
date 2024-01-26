@@ -8,12 +8,11 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_efit.h>
+#include <gkyl_calc_bmag.h>
 #include <gkyl_mirror_geo_priv.h>
 
 #include <math.h>
 #include <string.h>
-
-
 
 
 double
@@ -148,14 +147,31 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform)
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
+  void *bmag_ctx_inp)
 {
+  //Evaluate bmag at a point
+  
+  // Create a function to feed into mirror_geo_calc for bmag
+  //up->bmag is the DG components
+  
+  // calculate mapc2p
+  // gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, gkyl_calc_bmag_comp, bcalculator_uniform, mc2p_nodal_fd, mc2p_nodal, mc2p, true);
+
+  //Dilema
+  // I want to pass in bcalculator_uniform as a context ginp, but then it segfaults illegal memory access
+  // gkyl_calc_bmag_comp context is not a gkyl_calc_bmag object, but a bmag_ctx object. Does that mean I need to write a new function which takes gkyl_calc_bmag as context
+  // We have the ingrediants for a bmag_ctx. Hardcode and create this object, then we can feed in that into the geo_calc
+  
+  // Simpler: Cram zmap_parameters into ginp and pass that to the function
+  // Figure out the most optimal parameters for the fit here.
 
   struct gkyl_mirror_geo *geo = mapc2p_ctx;
   //Issue: Context to pass to bmag_func is not gkyl_mirror_geo_grid_inp. Why was this context here? It's unused
   // I'd like to change it to bmag_ctx type from calc_bmag to use gkyl_compute_bmag_comp
   // Maybe pass this as a geo_grid input parameter and keep the current 
   struct gkyl_mirror_geo_grid_inp *inp = bmag_ctx;
+  struct bmag_ctx *inp_bmag = bmag_ctx_inp;
 
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
@@ -273,23 +289,26 @@ double theta_hi = inp->cgrid.upper[TH_IDX],
                 theta_curr = map_theta_to_z(theta_curr, theta_lo, theta_hi, 0.98); // Need theta_mirror
                 arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
 
-                // mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
-                // struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
-                //   arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
-                //   geo->root_param.max_iter, 1e-10);
-                // double z_curr = res.res;
+                mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
+                struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
+                  arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
+                  geo->root_param.max_iter, 1e-10);
+                double z_curr = res.res;
 
-                // double R[4] = { 0 }, dR[4] = { 0 };
-                // int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
-                // double r_curr = choose_closest(rclose, R, R, nr);
-                // double phi_curr = alpha_curr;
-                // double *xp = malloc(3*sizeof(double));
-                // xp[X_IDX] = r_curr * cos(phi_curr);
-                // xp[Y_IDX] = r_curr * sin(phi_curr);
-                // xp[Z_IDX] = z_curr;
-                // double *fout;
-                // bmag_func(0.0, xp, fout, &bmag_ctx);
-                // printf("Magnetic field %g\n", fout[0]);
+                double R[4] = { 0 }, dR[4] = { 0 };
+                int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
+                double r_curr = choose_closest(rclose, R, R, nr);
+                double phi_curr = alpha_curr;
+                double *xp = malloc(3*sizeof(double));
+                xp[X_IDX] = r_curr * cos(phi_curr);
+                xp[Y_IDX] = r_curr * sin(phi_curr);
+                xp[Z_IDX] = z_curr;
+                double *fout = malloc(3*sizeof(double));
+                struct bmag_ctx *bmag_ctx_in = bmag_ctx_inp;
+                gkyl_calc_bmag_comp(0.0, xp, fout, bmag_ctx_inp);
+                printf("Magnetic field %g at z=%g\n", fout[0], z_curr);
+                free(xp);
+                free(fout);
               }
 
               mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);

@@ -10,6 +10,17 @@
 typedef struct gkyl_calc_bmag gkyl_calc_bmag;
 typedef struct bmag_ctx bmag_ctx;
 
+struct bmag_ctx{
+   const struct gkyl_rect_grid* grid;
+   const struct gkyl_rect_grid* cgrid;
+   const struct gkyl_range* range;
+   const struct gkyl_range* crange;
+   const struct gkyl_basis* basis;
+   const struct gkyl_basis* cbasis;
+   struct gkyl_array* bmagdg;
+   const struct gkyl_array* mapc2p;
+};
+
 /**
  * Create new updater to compute the bmag on the compuational grid 
  *
@@ -35,7 +46,7 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
  * @param fout Output array.
  * @param ctx Context object. Of type bmag_ctx
 */
-static inline void gkyl_calc_bmag_comp(double t, const double *xn, double *fout, void *ctx);
+void gkyl_calc_bmag_comp(double t, const double *xn, double *fout, void *ctx);
 
 /**
  * Advance calc_bmag (compute bmag given dg fields Psi Psi/R and Psi/R^2 on the RZ grid 
