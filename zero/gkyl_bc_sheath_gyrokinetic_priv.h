@@ -20,14 +20,14 @@ static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
   { .list={
            { bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1, bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p2 },
            { bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p2 },
-           { NULL, NULL},
+           { bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p2 },
            { bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p2 },
           },
   },
   { .list={
            { bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1, bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p2 },
            { bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p2 },
-           { NULL, NULL},
+           { bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p2 },
            { bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1, bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p2 },
           },
   },

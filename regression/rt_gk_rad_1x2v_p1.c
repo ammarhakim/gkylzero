@@ -267,7 +267,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_PERIODIC, 
-    .kperp2 = pow(ctx.kperp, 2.),
+    .kperpSq = pow(ctx.kperp, 2.),
   };
 
   // GK app

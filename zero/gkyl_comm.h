@@ -59,6 +59,11 @@ typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
   const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_array *arr, const char *fname);
 
+// Read array from specified file
+typedef int (*gkyl_array_read_t)(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char *fname);
+
 // Create a new communicator that extends the communcator to work on a
 // extended domain specified by erange
 typedef struct gkyl_comm* (*extend_comm_t)(const struct gkyl_comm *comm,
@@ -97,6 +102,9 @@ struct gkyl_comm {
   barrier_t barrier; // barrier
 
   gkyl_array_write_t gkyl_array_write; // array output
+  gkyl_array_read_t gkyl_array_read; // array input
+
+
   extend_comm_t extend_comm; // extend communcator
   split_comm_t split_comm; // split communicator.
 
@@ -310,6 +318,26 @@ gkyl_comm_array_write(struct gkyl_comm *comm,
   const struct gkyl_array *arr, const char *fname)
 {
   return comm->gkyl_array_write(comm, grid, range, arr, fname);
+}
+
+/**
+ * Read array data from .gkyl format. The input grid must be
+ * pre-computed and must match the grid in the array. An error is
+ * returned if this is not the case.
+ *
+ * @param comm Communicator
+ * @param grid Grid object for read
+ * @param range Range describing portion of the array to read.
+ * @param arr Array object to read
+ * @param fname Name of output file (include .gkyl extension)
+ * @return Status flag: 0 if write succeeded, 'errno' otherwise
+ */
+static int
+gkyl_comm_array_read(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char *fname)
+{
+  return comm->gkyl_array_read(comm, grid, range, arr, fname);
 }
 
 /**

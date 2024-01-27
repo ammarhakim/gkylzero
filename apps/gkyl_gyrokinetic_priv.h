@@ -25,6 +25,7 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_dg_calc_gyrokinetic_vars.h>
+#include <gkyl_dg_calc_vlasov_gen_geo_vars.h>
 #include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_updater_diffusion_gyrokinetic.h>
@@ -43,6 +44,7 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_fem_poisson_perp.h>
 #include <gkyl_fem_poisson.h>
+#include <gkyl_line_fem_poisson.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_fromfile.h>
@@ -61,6 +63,7 @@
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_gyrokinetic.h>
 #include <gkyl_prim_lbo_type.h>
+#include <gkyl_proj_bimaxwellian_on_basis.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -397,8 +400,18 @@ struct gk_neut_species {
 
   struct gkyl_array *f_host; // host copy for use IO and initialization
 
-  enum gkyl_field_id field_id; // type of field equation 
-  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., Vlasov vs. SR)
+  enum gkyl_field_id field_id; // type of field equation (always GKYL_FIELD_NULL)
+  enum gkyl_model_id model_id; // type of Vlasov equation (always GKYL_MODEL_GEN_GEO)
+
+  struct gkyl_array *alpha_surf; // array for surface phase space flux (v^i = v . e^i)
+  struct gkyl_array *sgn_alpha_surf; // array for the sign of the surface phase space flux at quadrature points
+                                     // utilized for numerical flux function
+                                     // F = alpha_surf/2 ( (f^+ + f^-) - sign_alpha_surf*(f^+ - f^-) )
+  struct gkyl_array *const_sgn_alpha; // boolean array for if the surface phase space flux is single signed
+                                      // if true, numerical flux function inside kernels simplifies to
+                                      // F = alpha_surf*f^- (if sign_alpha_surf = 1), 
+                                      // F = alpha_surf*f^+ (if sign_alpha_surf = -1)
+  struct gkyl_array *cot_vec; // array for cotangent vectors
 
   struct gk_neut_species_moment m0; // for computing density
   struct gk_neut_species_moment integ_moms; // integrated moments
@@ -454,7 +467,8 @@ struct gk_field {
     };
   };
 
-  struct gkyl_array *weight; 
+  struct gkyl_array *weight;
+  double es_energy_fac_1d; 
   struct gkyl_array *es_energy_fac; 
   struct gkyl_array *epsilon; 
   struct gkyl_array *kSq; 
@@ -466,6 +480,8 @@ struct gk_field {
 
   struct gkyl_fem_poisson *fem_poisson; // general Poisson solve to be used for axisymmetric calculations
                                                   // - nabla . (epsilon * nabla phi) - kSq * phi = rho
+                                                  //
+  struct gkyl_line_fem_poisson *line_fem_poisson; // poisson solver which solves on lines in x
 
   struct gkyl_array_integrate *calc_em_energy;
   double *em_energy_red; // memory for use in GPU reduction of EM energy

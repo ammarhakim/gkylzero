@@ -146,7 +146,7 @@ gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *r
 
   gkyl_array_clear(up->brhs, 0.0);
   double *brhs_p = gkyl_array_fetch(up->brhs, 0);
-  int ghost_idx[GKYL_MAX_CDIM] = {-1};
+  int skin_idx[GKYL_MAX_CDIM] = {-1};
 
   gkyl_range_iter_init(&up->solve_iter, up->solve_range);
   while (gkyl_range_iter_next(&up->solve_iter)) {
@@ -156,9 +156,9 @@ gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj* up, const struct gkyl_array *r
     long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
     const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
 
-    for (int d=0; d<up->ndim-1; d++) ghost_idx[d] = up->solve_iter.idx[d];
-    ghost_idx[up->pardir] = idx1d[0] == up->parnum_cells? idx1d[0]+1 : idx1d[0]-1;
-    linidx = gkyl_range_idx(up->solve_range_ext, ghost_idx);
+    for (int d=0; d<up->ndim-1; d++) skin_idx[d] = up->solve_iter.idx[d];
+    skin_idx[up->pardir] = idx1d[0] == up->parnum_cells? idx1d[0] : idx1d[0];
+    linidx = gkyl_range_idx(up->solve_range_ext, skin_idx);
     const double *phibc_p = up->isdirichlet? gkyl_array_cfetch(phibc, linidx) : NULL;
 
     long paridx = gkyl_range_idx(&up->par_range1d, idx1d);

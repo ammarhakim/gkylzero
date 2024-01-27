@@ -14,12 +14,15 @@ extern "C" {
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
 gkyl_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
-  const struct gkyl_array *field, const struct gkyl_array *cot_vec, const struct gkyl_array *alpha_geo)
+  const struct gkyl_array *field, const struct gkyl_array *cot_vec, 
+  const struct gkyl_array *alpha_surf, const struct gkyl_array *sgn_alpha_surf, const struct gkyl_array *const_sgn_alpha)
 {
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
-  vlasov->auxfields.field = field; // q/m*(E,B) for Maxwell's, q/m*phi for Poisson's (gradient calculated in kernel)
-  vlasov->auxfields.cot_vec = cot_vec; // cotangent vectors (e^i) used in volume term if general geometry enabled
-  vlasov->auxfields.alpha_geo = alpha_geo; // alpha^i (e^i . alpha) used in surface term if general geometry enabled
+  vlasov->auxfields.field = field; 
+  vlasov->auxfields.cot_vec = cot_vec; 
+  vlasov->auxfields.alpha_surf = alpha_surf;
+  vlasov->auxfields.sgn_alpha_surf = sgn_alpha_surf;
+  vlasov->auxfields.const_sgn_alpha = const_sgn_alpha;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
@@ -28,7 +31,9 @@ gkyl_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlaso
 {
   gkyl_vlasov_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.field->on_dev,
     auxin.cot_vec ? auxin.cot_vec->on_dev : 0,
-    auxin.alpha_geo ? auxin.alpha_geo->on_dev : 0);
+    auxin.alpha_surf ? auxin.alpha_surf->on_dev : 0,
+    auxin.sgn_alpha_surf ? auxin.sgn_alpha_surf->on_dev : 0,
+    auxin.const_sgn_alpha ? auxin.const_sgn_alpha->on_dev : 0);
 }
 
 // CUDA kernel to set device pointers to range object and vlasov kernel function
@@ -40,7 +45,9 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
 {
   vlasov->auxfields.field = 0;
   vlasov->auxfields.cot_vec = 0;
-  vlasov->auxfields.alpha_geo = 0;
+  vlasov->auxfields.alpha_surf = 0;
+  vlasov->auxfields.sgn_alpha_surf = 0;
+  vlasov->auxfields.const_sgn_alpha = 0;
 
   vlasov->eqn.surf_term = surf;
   vlasov->eqn.boundary_surf_term = boundary_surf;

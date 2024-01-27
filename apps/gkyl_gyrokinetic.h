@@ -40,9 +40,9 @@ struct gkyl_gyrokinetic_collisions {
 
 // Parameters for species diffusion
 struct gkyl_gyrokinetic_diffusion {
-  double D; // constant diffusion coefficient
-  int num_diff_dir; // number of periodic directions
-  int diff_dirs[3]; // list of periodic directions
+  int num_diff_dir; // number of diffusion directions
+  int diff_dirs[3]; // list of diffusion directions
+  double D[3]; // constant diffusion coefficient in each direction
   int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
 };
 
@@ -150,6 +150,12 @@ struct gkyl_gyrokinetic_species {
   void (*init_temp)(double t, const double *xn, double *fout, void *ctx);
   // flag to indicate if IC is maxwellian projection
   bool is_maxwellian;
+  // flag to indicate if IC is bimaxwellian projection
+  void *ctx_temppar;
+  void (*init_temppar)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_tempperp;
+  void (*init_tempperp)(double t, const double *xn, double *fout, void *ctx);
+  bool is_bimaxwellian;
 
   double polarization_density;
 
@@ -216,7 +222,7 @@ struct gkyl_gyrokinetic_neut_species {
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   double bmag_fac; 
-  double kperp2; // kperp^2 parameter for 1D field equations
+  double kperpSq; // kperp^2 parameter for 1D field equations
 
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_temp;

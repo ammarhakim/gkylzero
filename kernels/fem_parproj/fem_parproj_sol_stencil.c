@@ -23,6 +23,36 @@ GKYL_CU_DH void fem_parproj_sol_stencil_1x_ser_p2(const double *sol_nodal_global
   sol_modal_local[2] = 0.210818510677892*sol_nodal_global[nodeOff+globalIdxs[2]]-0.421637021355784*sol_nodal_global[nodeOff+globalIdxs[1]]+0.210818510677892*sol_nodal_global[nodeOff+globalIdxs[0]];
 
 }
+GKYL_CU_DH void fem_parproj_sol_stencil_2x_ser_p1(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local) 
+{ 
+  // sol_nodal_global: global nodal solution vector.
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: map between local nodes and global nodes.
+  // sol_modal_local: local modal solution vector.
+
+  sol_modal_local[0] = 0.5*sol_nodal_global[nodeOff+globalIdxs[3]]+0.5*sol_nodal_global[nodeOff+globalIdxs[2]]+0.5*sol_nodal_global[nodeOff+globalIdxs[1]]+0.5*sol_nodal_global[nodeOff+globalIdxs[0]];
+  sol_modal_local[1] = 0.2886751345948129*sol_nodal_global[nodeOff+globalIdxs[3]]-0.2886751345948129*sol_nodal_global[nodeOff+globalIdxs[2]]+0.2886751345948129*sol_nodal_global[nodeOff+globalIdxs[1]]-0.2886751345948129*sol_nodal_global[nodeOff+globalIdxs[0]];
+  sol_modal_local[2] = 0.2886751345948129*sol_nodal_global[nodeOff+globalIdxs[3]]+0.2886751345948129*sol_nodal_global[nodeOff+globalIdxs[2]]-0.2886751345948129*sol_nodal_global[nodeOff+globalIdxs[1]]-0.2886751345948129*sol_nodal_global[nodeOff+globalIdxs[0]];
+  sol_modal_local[3] = 0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[3]]-0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[2]]-0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[1]]+0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[0]];
+
+}
+GKYL_CU_DH void fem_parproj_sol_stencil_2x_ser_p2(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local) 
+{ 
+  // sol_nodal_global: global nodal solution vector.
+  // nodeOff: node offset (prob idx * global number of nodes).
+  // globalIdxs: map between local nodes and global nodes.
+  // sol_modal_local: local modal solution vector.
+
+  sol_modal_local[0] = (-0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[7]])+0.6666666666666666*sol_nodal_global[nodeOff+globalIdxs[6]]-0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[5]]+0.6666666666666666*sol_nodal_global[nodeOff+globalIdxs[4]]+0.6666666666666666*sol_nodal_global[nodeOff+globalIdxs[3]]-0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[2]]+0.6666666666666666*sol_nodal_global[nodeOff+globalIdxs[1]]-0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[0]];
+  sol_modal_local[1] = 0.09622504486493762*sol_nodal_global[nodeOff+globalIdxs[7]]-0.09622504486493762*sol_nodal_global[nodeOff+globalIdxs[5]]+0.3849001794597505*sol_nodal_global[nodeOff+globalIdxs[4]]-0.3849001794597505*sol_nodal_global[nodeOff+globalIdxs[3]]+0.09622504486493762*sol_nodal_global[nodeOff+globalIdxs[2]]-0.09622504486493762*sol_nodal_global[nodeOff+globalIdxs[0]];
+  sol_modal_local[2] = 0.09622504486493762*sol_nodal_global[nodeOff+globalIdxs[7]]+0.3849001794597505*sol_nodal_global[nodeOff+globalIdxs[6]]+0.09622504486493762*sol_nodal_global[nodeOff+globalIdxs[5]]-0.09622504486493762*sol_nodal_global[nodeOff+globalIdxs[2]]-0.3849001794597505*sol_nodal_global[nodeOff+globalIdxs[1]]-0.09622504486493762*sol_nodal_global[nodeOff+globalIdxs[0]];
+  sol_modal_local[3] = 0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[7]]-0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[5]]-0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[2]]+0.1666666666666667*sol_nodal_global[nodeOff+globalIdxs[0]];
+  sol_modal_local[4] = 0.149071198499986*sol_nodal_global[nodeOff+globalIdxs[7]]-0.298142396999972*sol_nodal_global[nodeOff+globalIdxs[6]]+0.149071198499986*sol_nodal_global[nodeOff+globalIdxs[5]]+0.149071198499986*sol_nodal_global[nodeOff+globalIdxs[2]]-0.298142396999972*sol_nodal_global[nodeOff+globalIdxs[1]]+0.149071198499986*sol_nodal_global[nodeOff+globalIdxs[0]];
+  sol_modal_local[5] = 0.149071198499986*sol_nodal_global[nodeOff+globalIdxs[7]]+0.149071198499986*sol_nodal_global[nodeOff+globalIdxs[5]]-0.298142396999972*sol_nodal_global[nodeOff+globalIdxs[4]]-0.298142396999972*sol_nodal_global[nodeOff+globalIdxs[3]]+0.149071198499986*sol_nodal_global[nodeOff+globalIdxs[2]]+0.149071198499986*sol_nodal_global[nodeOff+globalIdxs[0]];
+  sol_modal_local[6] = 0.08606629658238704*sol_nodal_global[nodeOff+globalIdxs[7]]-0.1721325931647741*sol_nodal_global[nodeOff+globalIdxs[6]]+0.08606629658238704*sol_nodal_global[nodeOff+globalIdxs[5]]-0.08606629658238704*sol_nodal_global[nodeOff+globalIdxs[2]]+0.1721325931647741*sol_nodal_global[nodeOff+globalIdxs[1]]-0.08606629658238704*sol_nodal_global[nodeOff+globalIdxs[0]];
+  sol_modal_local[7] = 0.08606629658238704*sol_nodal_global[nodeOff+globalIdxs[7]]-0.08606629658238704*sol_nodal_global[nodeOff+globalIdxs[5]]-0.1721325931647741*sol_nodal_global[nodeOff+globalIdxs[4]]+0.1721325931647741*sol_nodal_global[nodeOff+globalIdxs[3]]+0.08606629658238704*sol_nodal_global[nodeOff+globalIdxs[2]]-0.08606629658238704*sol_nodal_global[nodeOff+globalIdxs[0]];
+
+}
 GKYL_CU_DH void fem_parproj_sol_stencil_3x_ser_p1(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local) 
 { 
   // sol_nodal_global: global nodal solution vector.

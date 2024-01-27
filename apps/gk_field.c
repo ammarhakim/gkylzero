@@ -56,19 +56,16 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       f->weight = mkarr(false, app->confBasis.num_basis, app->local_ext.volume); // fem_parproj expects weight on host
       gkyl_array_shiftc(f->weight, sqrt(2.0), 0); // Sets weight=1.
       gkyl_array_scale(f->weight, polarization_weight);
-      gkyl_array_scale(f->weight, f->info.kperp2);
+      gkyl_array_scale(f->weight, f->info.kperpSq);
     }
     else if (app->cdim == 2) {
       // set whatever epsilon we need
-      // initialize a fem_poisson instead of fem_poisson_perp
-      // To ignore z derivatives set 1s2 and 2nd component to 0. Leave 3rd component alone. Also must add a smoother in this case
-      f->epsilon = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+      // initialize a the weight to be used by line_fem_poisson
+      f->epsilon = mkarr(app->use_gpu, 1*app->confBasis.num_basis, app->local_ext.volume);
       gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
-      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxzj, 1*app->confBasis.num_basis);
-      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->eps2, 2*app->confBasis.num_basis);
 
-      f->fem_poisson = gkyl_fem_poisson_new(&app->local, &app->grid, app->confBasis, 
-        &f->info.poisson_bcs, f->epsilon, f->kSq, false, app->use_gpu);
+      f->line_fem_poisson = gkyl_line_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
+        app->local, app->local_ext, f->epsilon, f->info.poisson_bcs, app->use_gpu);
     }
     else {
       // allocate arrays for Poisson solver and Poisson solver 
@@ -83,9 +80,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   // Potential smoothing (in z) updater
-  if (app->cdim != 2)
-    f->fem_parproj = gkyl_fem_parproj_new(&app->local, &app->local_ext, 
-      &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
+  f->fem_parproj = gkyl_fem_parproj_new(&app->local, &app->local_ext, 
+    &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
 
   f->phi_host = f->phi_smooth;  
   if (app->use_gpu) {
@@ -93,21 +89,24 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[1]));
   }
 
-  f->es_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-  gkyl_array_shiftc(f->es_energy_fac, sqrt(2.0), 0); // Sets es_energy_fac=1.
-  gkyl_array_scale(f->es_energy_fac, 0.5*polarization_weight);
-  if (app->cdim == 1){
-    gkyl_array_scale(f->es_energy_fac, 0.5*f->info.kperp2);
-  }
-
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
   f->is_first_energy_write_call = true;
+  // Factors for ES energy. 
+  f->es_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  f->es_energy_fac_1d = 0.0;
   if (app->cdim==1) {
+    if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
+      f->es_energy_fac_1d = polarization_weight;
+    else
+      f->es_energy_fac_1d = polarization_weight*f->info.kperpSq;
+
     f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->confBasis, 
       1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
   }
   else {
+    gkyl_array_shiftc(f->es_energy_fac, sqrt(pow(2,app->cdim)), 0); // Sets es_energy_fac=1.
+    gkyl_array_scale(f->es_energy_fac, 0.5*polarization_weight);
+
     f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->confBasis, 
       1, GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, app->use_gpu);
   }
@@ -230,10 +229,10 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
       gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
     }
     else if (app->cdim==2) {
-      // only advance fem_poisson. No smoothing.
       // input is rho_c and output should be in phi_smooth
-      gkyl_fem_poisson_set_rhs(field->fem_poisson, field->rho_c);
-      gkyl_fem_poisson_solve(field->fem_poisson, field->phi_smooth);
+      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, field->rho_c);
+      gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_smooth);
+      gkyl_line_fem_poisson_advance(field->line_fem_poisson, field->rho_c_smooth, field->phi_smooth);
     }
     else {
       gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
@@ -261,10 +260,12 @@ gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field
   else {
     gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
       app->grid.cellVolume, field->es_energy_fac, &app->local, energy);
-  } 
+  }
+  if (app->cdim == 1)
+    energy[0] *= field->es_energy_fac_1d; 
 
-  double energy_global[6] = { 0.0 };
-  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
+  double energy_global[1] = { 0.0 };
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, energy, energy_global);
   
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 }
@@ -283,6 +284,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     gkyl_array_release(f->apardot_fem);
   }
 
+  gkyl_array_release(f->es_energy_fac);
   if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
     gkyl_ambi_bolt_potential_release(f->ambi_pot);
     for (int i=0; i<2*app->cdim; ++i) 
@@ -295,7 +297,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     }
     else if (app->cdim == 2) {
       gkyl_array_release(f->epsilon);
-      gkyl_fem_poisson_release(f->fem_poisson);
+      gkyl_fem_parproj_release(f->fem_parproj);
+      gkyl_line_fem_poisson_release(f->line_fem_poisson);
     }
     else {
       gkyl_array_release(f->epsilon);

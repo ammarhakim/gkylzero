@@ -33,7 +33,7 @@ void test_solovev(){
 }
 
 void test_step(){
-  char* filepath = "./efit_data/input.geqdsk";
+  char* filepath = "./efit_data/step.geqdsk";
   int rzpoly_order = 2;
   int fluxpoly_order = 1;
   struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order, fluxpoly_order, false);

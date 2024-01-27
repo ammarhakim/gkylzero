@@ -115,12 +115,12 @@ struct gkyl_mirror_geo_efit_inp inp = {
 
 
 struct gkyl_mirror_geo_grid_inp ginp = {
-    .rclose = 0.2,
-    .zmin = -2.48,
-    .zmax = 2.48,
-    .write_node_coord_array = true,
-    .node_file_nm = "wham_nodes.gkyl"
-  };
+  .rclose = 0.2,
+  .zmin = -2.48,
+  .zmax =  2.48,
+  .write_node_coord_array = true,
+  .node_file_nm = "wham_nodes.gkyl"
+};
 
 double
 psi_RZ(double RIn, double ZIn, void *ctx)
@@ -141,7 +141,7 @@ R_psiZ(double psiIn, double ZIn, void *ctx)
   struct gk_mirror_ctx *app = ctx;
   double Rout = sqrt(2.0 * psiIn / (app->mcB * 
       (1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn - app->Z_m) / app->gamma, 2.))) + 
-      1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2.))))));
+       1.0 / (M_PI * app->gamma * (1.0 + pow((ZIn + app->Z_m) / app->gamma, 2.))))));
   return Rout;
 }
 
@@ -155,7 +155,7 @@ Bfield_psiZ(double psiIn, double ZIn, void *ctx, double *BRad, double *BZ, doubl
   double Z_m = app->Z_m;
   *BRad = -(1.0 / 2.0) * Rcoord * mcB *
           (-2.0 * (ZIn - Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn - Z_m) / gamma, 2.), 2.))) -
-           2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn + Z_m) / gamma, 2.), 2.))));
+            2.0 * (ZIn + Z_m) / (M_PI * pow(gamma, 3.) * (pow(1.0 + pow((ZIn + Z_m) / gamma, 2.), 2.))));
   *BZ = mcB *
         (1.0 / (M_PI * gamma * (1.0 + pow((ZIn - Z_m) / gamma, 2.))) +
          1.0 / (M_PI * gamma * (1.0 + pow((ZIn + Z_m) / gamma, 2.))));
@@ -238,34 +238,6 @@ dBdz(double z, void *ctx)
   double dBdz = (Bmag_p - Bmag_m) / (2 * dz);
   return fabs(dBdz);
 }
-
-// double
-// z_xi_dBdz_inverse(double chi, double psi, void *ctx)
-// {
-//   struct gk_mirror_ctx *app = ctx;
-//   double map_strength = app->map_strength; // 1 is full strength, 0 is no mapping
-//   if (map_strength == 0.0)
-//   {
-//     return chi;
-//   }
-//   else
-//   {
-//     double psi = app->psi_in_diff;
-//     double z_min = app->z_min;
-//     double z_max = app->z_max;
-//     ;
-//     if (chi <= z_min || chi >= z_max)
-//     {
-//       return chi;
-//     }
-//     else
-//     {
-//       struct gkyl_qr_res integral = gkyl_dbl_exp(dBdz, ctx, z_min, chi, 7, 1e-14);
-//       double coord = (integral.res / app->map_integral_total * (z_max - z_min) + z_min) * map_strength + (1 - map_strength) * chi;
-//       return coord;
-//     }
-//   }
-// }
 
 double
 z_xi(double xi, double psi, void *ctx)
@@ -577,7 +549,7 @@ create_ctx(void)
   double beta = 0.4;
   double tau = pow(B_p, 2.) * beta / (2.0 * mu0 * n0 * Te0) - 1.;
   double Ti0 = tau * Te0;
-double kperpRhos = 0.1;
+  double kperpRhos = 0.1;
 
   // Parameters controlling initial conditions.
   double alim = 0.125;
@@ -667,75 +639,75 @@ double kperpRhos = 0.1;
   double mapping_frac = 0.0;//0.72; // 1 is full mapping, 0 is no mapping
 
   struct gk_mirror_ctx ctx = {
-      .mi = mi,
-      .qi = qi,
-      .me = me,
-      .qe = qe,
-      .Te0 = Te0,
-      .n0 = n0,
-      .B_p = B_p,
-      .beta = beta,
-      .tau = tau,
-      .Ti0 = Ti0,
-      .kperpRhos = kperpRhos,
-      .alim = alim,
-      .alphaIC0 = alphaIC0,
-      .alphaIC1 = alphaIC1,
-      .nuFrac = nuFrac,
-      .logLambdaElc = logLambdaElc,
-      .nuElc = nuElc,
-      .logLambdaIon = logLambdaIon,
-      .nuIon = nuIon,
-      .vti = vti,
-      .vte = vte,
-      .c_s = c_s,
-      .omega_ci = omega_ci,
-      .rho_s = rho_s,
-      .kperp = kperp, 
-      .RatZeq0 = RatZeq0,
-      .Z_min = Z_min,
-      .Z_max = Z_max,
-      .z_min = z_min,
-      .z_max = z_max,
-      .psi_eval = psi_eval,
-      .mcB = mcB,
-      .gamma = gamma,
-      .Z_m = Z_m,
-      .B_bt = B_bt,
-      .R_bt = R_bt,
-      .Z_bt = Z_bt,
-      .z_bt = z_bt,
-      .R_m = R_m,
-      .B_m = B_m,
-      .z_m = z_m,
-      .n_m = n_m,
-      .Te_m = Te_m,
-      .Ti_m = Ti_m,
-      .cs_m = cs_m,
-      .NSrcIon = NSrcIon,
-      .lineLengthSrcIon = lineLengthSrcIon,
-      .sigSrcIon = sigSrcIon,
-      .NSrcFloorIon = NSrcFloorIon,
-      .TSrc0Ion = TSrc0Ion,
-      .TSrcFloorIon = TSrcFloorIon,
-      .NSrcElc = NSrcElc,
-      .lineLengthSrcElc = lineLengthSrcElc,
-      .sigSrcElc = sigSrcElc,
-      .NSrcFloorElc = NSrcFloorElc,
-      .TSrc0Elc = TSrc0Elc,
-      .TSrcFloorElc = TSrcFloorElc,
-      .vpar_max_ion = vpar_max_ion,
-      .vpar_max_elc = vpar_max_elc,
-      .mu_max_ion = mu_max_ion,
-      .mu_max_elc = mu_max_elc,
-      .num_cell_z = num_cell_z,
-      .num_cell_vpar = num_cell_vpar,
-      .num_cell_mu = num_cell_mu,
-      .poly_order = poly_order,
-      .final_time = final_time,
-      .num_frames = num_frames,
-      .mapping_order = mapping_order,  // Order of the polynomial to fit through points for mapc2p
-      .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
+    .mi = mi,
+    .qi = qi,
+    .me = me,
+    .qe = qe,
+    .Te0 = Te0,
+    .n0 = n0,
+    .B_p = B_p,
+    .beta = beta,
+    .tau = tau,
+    .Ti0 = Ti0,
+    .kperpRhos = kperpRhos,
+    .alim = alim,
+    .alphaIC0 = alphaIC0,
+    .alphaIC1 = alphaIC1,
+    .nuFrac = nuFrac,
+    .logLambdaElc = logLambdaElc,
+    .nuElc = nuElc,
+    .logLambdaIon = logLambdaIon,
+    .nuIon = nuIon,
+    .vti = vti,
+    .vte = vte,
+    .c_s = c_s,
+    .omega_ci = omega_ci,
+    .rho_s = rho_s,
+    .kperp = kperp, 
+    .RatZeq0 = RatZeq0,
+    .Z_min = Z_min,
+    .Z_max = Z_max,
+    .z_min = z_min,
+    .z_max = z_max,
+    .psi_eval = psi_eval,
+    .mcB = mcB,
+    .gamma = gamma,
+    .Z_m = Z_m,
+    .B_bt = B_bt,
+    .R_bt = R_bt,
+    .Z_bt = Z_bt,
+    .z_bt = z_bt,
+    .R_m = R_m,
+    .B_m = B_m,
+    .z_m = z_m,
+    .n_m = n_m,
+    .Te_m = Te_m,
+    .Ti_m = Ti_m,
+    .cs_m = cs_m,
+    .NSrcIon = NSrcIon,
+    .lineLengthSrcIon = lineLengthSrcIon,
+    .sigSrcIon = sigSrcIon,
+    .NSrcFloorIon = NSrcFloorIon,
+    .TSrc0Ion = TSrc0Ion,
+    .TSrcFloorIon = TSrcFloorIon,
+    .NSrcElc = NSrcElc,
+    .lineLengthSrcElc = lineLengthSrcElc,
+    .sigSrcElc = sigSrcElc,
+    .NSrcFloorElc = NSrcFloorElc,
+    .TSrc0Elc = TSrc0Elc,
+    .TSrcFloorElc = TSrcFloorElc,
+    .vpar_max_ion = vpar_max_ion,
+    .vpar_max_elc = vpar_max_elc,
+    .mu_max_ion = mu_max_ion,
+    .mu_max_elc = mu_max_elc,
+    .num_cell_z = num_cell_z,
+    .num_cell_vpar = num_cell_vpar,
+    .num_cell_mu = num_cell_mu,
+    .poly_order = poly_order,
+    .final_time = final_time,
+    .num_frames = num_frames,
+    .mapping_order = mapping_order,  // Order of the polynomial to fit through points for mapc2p
+    .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
   // Printing
   double dxi = (ctx.z_max - ctx.z_min) / ctx.num_cell_z;
@@ -825,113 +797,112 @@ int main(int argc, char **argv)
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.num_cell_vpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.num_cell_mu);
   struct gkyl_gyrokinetic_species elc = {
-      .name = "elc",
-      .charge = ctx.qe,
-      .mass = ctx.me,
-      .lower = {-ctx.vpar_max_elc, 0.0},
-      .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
-      .cells = {NV, NMU},
-      .polarization_density = ctx.n0,
+    .name = "elc",
+    .charge = ctx.qe,
+    .mass = ctx.me,
+    .lower = {-ctx.vpar_max_elc, 0.0},
+    .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
+    .cells = {NV, NMU},
+    .polarization_density = ctx.n0,
+    .ctx_density = &ctx,
+    .init_density = eval_density_elc,
+    .ctx_upar = &ctx,
+    .init_upar = eval_upar_elc,
+    .ctx_temp = &ctx,
+    .init_temp = eval_temp_elc,
+    .is_maxwellian = true,
+    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
+    .collisions = {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .ctx = &ctx,
+      .self_nu = evalNuElc,
+      .num_cross_collisions = 1, // Not sure
+      .collide_with = {"ion"},
+    },
+    .source = {
+      .source_id = GKYL_MAXWELLIAN_SOURCE, // Not sure
+      .write_source = true,
       .ctx_density = &ctx,
-      .init_density = eval_density_elc,
+      .density_profile = eval_density_elc_source,
       .ctx_upar = &ctx,
-      .init_upar = eval_upar_elc,
+      .upar_profile = eval_upar_elc_source,
       .ctx_temp = &ctx,
-      .init_temp = eval_temp_elc,
-      .is_maxwellian = true,
-      .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
-      .collisions = {
-          .collision_id = GKYL_LBO_COLLISIONS,
-          .ctx = &ctx,
-          .self_nu = evalNuElc,
-          .num_cross_collisions = 1, // Not sure
-          .collide_with = {"ion"},
-      },
-      .source = {
-          .source_id = GKYL_MAXWELLIAN_SOURCE, // Not sure
-          .write_source = true,
-          .ctx_density = &ctx,
-          .density_profile = eval_density_elc_source,
-          .ctx_upar = &ctx,
-          .upar_profile = eval_upar_elc_source,
-          .ctx_temp = &ctx,
-          .temp_profile = eval_temp_elc_source,
-      },
-      .num_diag_moments = 7, // Copied from GKsoloviev, but
-      .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+      .temp_profile = eval_temp_elc_source,
+    },
+    .num_diag_moments = 7, // Copied from GKsoloviev, but
+    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
   struct gkyl_gyrokinetic_species ion = {
-      .name = "ion",
-      .charge = ctx.qi,
-      .mass = ctx.mi,
-      .lower = {-ctx.vpar_max_ion, 0.0},
-      .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
-      .cells = {NV, NMU},
-      .polarization_density = ctx.n0,
+    .name = "ion",
+    .charge = ctx.qi,
+    .mass = ctx.mi,
+    .lower = {-ctx.vpar_max_ion, 0.0},
+    .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
+    .cells = {NV, NMU},
+    .polarization_density = ctx.n0,
+    .ctx_density = &ctx,
+    .init_density = eval_density_ion,
+    .ctx_upar = &ctx,
+    .init_upar = eval_upar_ion,
+    .ctx_temp = &ctx,
+    .init_temp = eval_temp_ion,
+    .is_maxwellian = true,
+    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
+    .collisions = {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .ctx = &ctx,
+      .self_nu = evalNuIon,
+      .num_cross_collisions = 1,
+      .collide_with = {"elc"},
+    },
+    .source = {
+      .source_id = GKYL_MAXWELLIAN_SOURCE,
+      .write_source = true,
       .ctx_density = &ctx,
-      .init_density = eval_density_ion,
+      .density_profile = eval_density_ion_source,
       .ctx_upar = &ctx,
-      .init_upar = eval_upar_ion,
+      .upar_profile = eval_upar_ion_source,
       .ctx_temp = &ctx,
-      .init_temp = eval_temp_ion,
-      .is_maxwellian = true,
-      .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
-      .collisions = {
-          .collision_id = GKYL_LBO_COLLISIONS,
-          .ctx = &ctx,
-          .self_nu = evalNuIon,
-          .num_cross_collisions = 1,
-          .collide_with = {"elc"},
-      },
-      .source = {
-          .source_id = GKYL_MAXWELLIAN_SOURCE,
-          .write_source = true,
-          .ctx_density = &ctx,
-          .density_profile = eval_density_ion_source,
-          .ctx_upar = &ctx,
-          .upar_profile = eval_upar_ion_source,
-          .ctx_temp = &ctx,
-          .temp_profile = eval_temp_ion_source,
-      },
-      .num_diag_moments = 7,
-      .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
+      .temp_profile = eval_temp_ion_source,
+    },
+    .num_diag_moments = 7,
+    .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
   struct gkyl_gyrokinetic_field field =
   {
     .bmag_fac = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
-    .kperp2 = pow(ctx.kperp, 2.),
+    .kperpSq = pow(ctx.kperp, 2.),
     .poisson_bcs = {
-        .lo_type = {GKYL_POISSON_NEUMANN},
-        .up_type = {GKYL_POISSON_NEUMANN},
-        .lo_value = {0.0},
-        .up_value = {0.0},
+      .lo_type = {GKYL_POISSON_NEUMANN},
+      .up_type = {GKYL_POISSON_NEUMANN},
+      .lo_value = {0.0},
+      .up_value = {0.0},
     }
   };
   struct gkyl_gk gk = {  // GK app
-      .name = "gk_mirror_kinetic_elc_1x2v_p1_uniform",
-      .cdim = 1,
-      .vdim = 2,
-      .lower = {ctx.z_min},
-      .upper = {ctx.z_max},
-      .cells = {NZ},
-      .poly_order = ctx.poly_order,
-      .basis_type = app_args.basis_type,
-      
-      .geometry = {
-          .geometry_id = GKYL_MIRROR,
-          .world = {ctx.psi_eval, 0.0},
-
+    .name = "gk_wham_elc_1x2v_p1",
+    .cdim = 1,
+    .vdim = 2,
+    .lower = {ctx.z_min},
+    .upper = {ctx.z_max},
+    .cells = {NZ},
+    .poly_order = ctx.poly_order,
+    .basis_type = app_args.basis_type,
+    
+    .geometry = {
+      .geometry_id = GKYL_MIRROR,
+      .world = {ctx.psi_eval, 0.0},
       .mirror_efit_info = &inp,
       .mirror_grid_info = &ginp,
-      },
+    },
 
-      .num_periodic_dir = 0,
-      .periodic_dirs = {},
-      .num_species = 2,
-      .species = {elc, ion},
-      .field = field,
-      .use_gpu = app_args.use_gpu,
+    .num_periodic_dir = 0,
+    .periodic_dirs = {},
+    .num_species = 2,
+    .species = {elc, ion},
+    .field = field,
+    .use_gpu = app_args.use_gpu,
   };
   printf("Creating app object ...\n");
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);  // create app object

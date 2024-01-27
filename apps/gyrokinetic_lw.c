@@ -266,8 +266,18 @@ gyrokinetic_diffusion_lw_new(lua_State *L)
 {
   struct gkyl_gyrokinetic_diffusion gyrokinetic_diffusion = { };
 
-  gyrokinetic_diffusion.D = glua_tbl_get_number(L, "D", 0.0);
   gyrokinetic_diffusion.order = glua_tbl_get_integer(L, "order", 2);
+  gyrokinetic_diffusion.num_diff_dir = 0;
+  if (glua_tbl_has_key(L, "diffDirs")) {
+    with_lua_tbl_tbl(L, "diffDirs") {
+      gyrokinetic_diffusion.num_diff_dir = glua_objlen(L);
+      for (int d=0; d<gyrokinetic_diffusion.num_diff_dir; ++d) {
+        // indexes are off by 1 between Lua and C
+        gyrokinetic_diffusion.diff_dirs[d] = glua_tbl_iget_integer(L, d+1, 0)-1;
+        gyrokinetic_diffusion.D[d] = glua_tbl_iget_number(L, d+1, 0.0);
+      }
+    }
+  }
 
   struct gyrokinetic_diffusion_lw *gyrokinetic_d_lw = lua_newuserdata(L, sizeof(*gyrokinetic_d_lw));
 
