@@ -181,6 +181,10 @@ $(BUILD_DIR)/kernels/advection/%.c.o : kernels/advection/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/bgk/%.c.o : kernels/bgk/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/bin_op/%.c.o : kernels/bin_op/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
@@ -316,12 +320,11 @@ SED_REPS_STR=s,G0_SHARE_INSTALL_PREFIX_TAG,${G0_SHARE_INSTALL_PREFIX},g
 
 install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # Construct install directories
-	$(MKDIR_P) ${PREFIX}/gkylzero/include
-	${MKDIR_P} ${PREFIX}/gkylzero/lib
-	${MKDIR_P} ${PREFIX}/gkylzero/bin
-	${MKDIR_P} ${PREFIX}/gkylzero/share
-	${MKDIR_P} ${PREFIX}/gkylzero/share/adas
-	${MKDIR_P} ${PREFIX}/gkylzero/scripts
+	$(MKDIR_P) ${INSTALL_PREFIX}/gkylzero/include
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/lib
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/bin
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/share
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/share/adas
 # Headers
 	cp ${INSTALL_HEADERS} ${INSTALL_PREFIX}/gkylzero/include
 	./minus/gengkylzeroh.sh > ${INSTALL_PREFIX}/gkylzero/include/gkylzero.h
@@ -334,12 +337,9 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/share/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${INSTALL_PREFIX}/gkylzero/share/rt_twostream.c
 # Lua wrappers
-	cp -f inf/Vlasov.lua ${PREFIX}/gkylzero/lib/
-	cp -f inf/Moments.lua ${PREFIX}/gkylzero/lib/
-# Misc scripts
-	cp -f scripts/*.sh ${PREFIX}/gkylzero/scripts
-	cp -f adas/*.npy ${PREFIX}/gkylzero/share/adas
 	cp -f inf/Moments.lua ${INSTALL_PREFIX}/gkylzero/lib/
+# Misc scripts
+	cp -f adas/*.npy ${PREFIX}/gkylzero/share/adas
 
 .PHONY: clean
 clean: ## Clean build output
