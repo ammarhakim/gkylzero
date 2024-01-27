@@ -334,6 +334,8 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 	cp -f regression/rt_twostream.c ${INSTALL_PREFIX}/gkylzero/share/rt_twostream.c
 # Lua wrappers
 	cp -f inf/Moments.lua ${INSTALL_PREFIX}/gkylzero/lib/
+# Misc scripts
+	cp -f adas/*.npy ${PREFIX}/gkylzero/share/adas
 
 .PHONY: clean
 clean: ## Clean build output
