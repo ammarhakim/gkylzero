@@ -6,7 +6,7 @@ extern "C" {
 #include <gkyl_array.h>
 #include <gkyl_dg_prim_vars_vlasov.h>
 #include <gkyl_dg_prim_vars_gyrokinetic.h>
-#include <gkyl_dg_prim_vars_transform_vlasov_gk.h>
+#include <gkyl_dg_prim_vars_transform.h>
 #include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
@@ -20,10 +20,9 @@ extern "C" {
 __global__ static void
 gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
   const struct gkyl_basis *adas_basis, const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq,
-  const struct gkyl_dg_prim_vars_type *calc_prim_vars_ion_udrift, const struct gkyl_dg_prim_vars_type *calc_prim_vars_ion_vtSq,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion, struct gkyl_array *vtSq_elc,
-  struct gkyl_array *coef_m0, struct gkyl_array *coef_recomb, struct gkyl_array *udrift_ion, struct gkyl_array *vtSq_ion,
-  struct gkyl_array *prim_vars_ion, struct gkyl_array *recomb_data, int num_basis,
+  const struct gkyl_dg_prim_vars_type *calc_prim_vars_ion, const struct gkyl_array *moms_elc,
+  const struct gkyl_array *moms_ion, struct gkyl_array *vtSq_elc, struct gkyl_array *coef_m0,
+  struct gkyl_array *coef_recomb, struct gkyl_array *prim_vars_ion, struct gkyl_array *recomb_data, int num_basis,
   enum gkyl_dg_recomb_self type_self, bool all_gk, double mass_elc, double elem_charge, double maxLogTe,
   double minLogTe, double dlogTe, double maxLogM0, double minLogM0, double dlogM0, double resTe, double resM0)
 {
@@ -75,15 +74,10 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
 
     if ((all_gk==false) && (type_self == GKYL_RECOMB_RECVR)) {
       const double *moms_ion_d = (const double*) gkyl_array_cfetch(moms_ion, loc);
-      double *udrift_ion_d = (double*) gkyl_array_fetch(udrift_ion, loc);
-      double *vtSq_ion_d = (double*) gkyl_array_fetch(vtSq_ion, loc);
       double *prim_vars_ion_d = (double*) gkyl_array_fetch(prim_vars_ion, loc);
       
-      // condense the following 2 kernels...
-      calc_prim_vars_ion_udrift->kernel(calc_prim_vars_ion_udrift, cidx,
-					    moms_ion_d, udrift_ion_d);
-      calc_prim_vars_ion_vtSq->kernel(calc_prim_vars_ion_vtSq, cidx,
-					    moms_ion_d, vtSq_ion_d);
+      calc_prim_vars_ion->kernel(calc_prim_vars_ion, cidx,
+					    moms_ion_d, prim_vars_ion_d);
     }
   }
 }
@@ -96,14 +90,13 @@ void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up,
 
   if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
     // Set auxiliary variable (b_i) for computation of udrift_i
-    gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_ion_udrift, 
+    gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_ion, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   }
   
   gkyl_recomb_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng, up->basis_on_dev,
-    up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_ion_udrift->on_dev, up->calc_prim_vars_ion_vtSq->on_dev, 
-    moms_elc->on_dev, moms_ion->on_dev, up->vtSq_elc->on_dev, up->coef_m0->on_dev, up->coef_recomb->on_dev,
-    up->udrift_ion->on_dev, up->vtSq_ion->on_dev, up->prim_vars_ion->on_dev,
+    up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_ion->on_dev, moms_elc->on_dev, moms_ion->on_dev,
+    up->vtSq_elc->on_dev, up->coef_m0->on_dev, up->coef_recomb->on_dev, up->prim_vars_ion->on_dev,
     up->recomb_data->on_dev, up->cbasis->num_basis, up->type_self, up->all_gk, up->mass_elc,
     up->elem_charge, up->maxLogTe, up->minLogTe, up->dlogTe, up->maxLogM0, up->minLogM0,
     up->dlogM0, up->resTe, up->resM0);
@@ -113,10 +106,6 @@ void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up,
       gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion, bmag, jacob_tot, up->mass_self, coll_recomb);
     }
     else {
-      // Set fmax moments
-      gkyl_array_set_offset_range(up->prim_vars_ion, 1., up->udrift_ion, 0, up->conf_rng);
-      gkyl_array_set_offset_range(up->prim_vars_ion, 1., up->vtSq_ion, (up->vdim)*up->cbasis->num_basis, up->conf_rng);
-      
       // Proj maxwellian on basis
       gkyl_proj_maxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion,
 					     up->prim_vars_ion, coll_recomb);

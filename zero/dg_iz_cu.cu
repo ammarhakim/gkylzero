@@ -6,7 +6,7 @@ extern "C" {
 #include <gkyl_array.h>
 #include <gkyl_dg_prim_vars_vlasov.h>
 #include <gkyl_dg_prim_vars_gyrokinetic.h>
-#include <gkyl_dg_prim_vars_transform_vlasov_gk.h>
+#include <gkyl_dg_prim_vars_transform.h>
 #include <gkyl_dg_prim_vars_type.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
@@ -99,7 +99,7 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
 {
   if ((up->all_gk==false) && ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION))) {
     // Set auxiliary variable (b_i) for computation of gk neut prim vars
-    gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(up->calc_prim_vars_donor, 
+    gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_donor, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   }
 

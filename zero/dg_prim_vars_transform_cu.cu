@@ -26,10 +26,10 @@ get_prim_id(const char *prim_nm)
     prim_idx = u_par;
   }
   else if (strcmp(prim_nm, "prim_gk") == 0) { // combined (u_par = u_i . b_i, vth_GK^2 = (M2/M0 - upar^2))
-    prim_idx = prim;
+    prim_idx = prim_gk;
   }
   else if (strcmp(prim_nm, "prim_vlasov") == 0) { // combined (u_par_ and vth^2)
-    prim_idx = prim;
+    prim_idx = prim_vlasov;
   }
   else {
     prim_idx = BAD;
@@ -94,8 +94,9 @@ set_cu_ptrs(struct dg_prim_vars_type_transform* pvt, int prim_id, enum gkyl_basi
   pvt->auxfields.b_i = 0;
 
   const gkyl_dg_prim_vars_transform_kern_list *dg_prim_vars_transform_u_par_i_kernels, 
-    *dg_prim_vars_transform_u_par_kernels, *dg_prim_vars_transform_kernels;
-
+    *dg_prim_vars_transform_u_par_kernels, *dg_prim_vars_transform_gk_kernels,
+    *dg_prim_vars_transform_vlasov_kernels;
+    
   // choose kernel tables based on basis-function type
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -138,8 +139,8 @@ gkyl_dg_prim_vars_transform_cu_dev_new(const struct gkyl_basis* cbasis,
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
-  struct dg_prim_vars_type_transform_vlasov_gk *pvt = (struct dg_prim_vars_type_transform_vlasov_gk*)
-    gkyl_malloc(sizeof(struct dg_prim_vars_type_transform_vlasov_gk));
+  struct dg_prim_vars_type_transform *pvt = (struct dg_prim_vars_type_transform*)
+    gkyl_malloc(sizeof(struct dg_prim_vars_type_transform));
   
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
@@ -164,13 +165,14 @@ gkyl_dg_prim_vars_transform_cu_dev_new(const struct gkyl_basis* cbasis,
     gkyl_cu_malloc(sizeof(struct dg_prim_vars_type_transform));
   gkyl_cu_memcpy(pvt_cu, pvt, sizeof(struct dg_prim_vars_type_transform), GKYL_CU_MEMCPY_H2D);
 
-  assert(cv_index[cdim].vdim[vdim] != -1);
 
   if ((strcmp(prim_nm, "u_par_i") == 0) || (strcmp(prim_nm, "prim_vlasov") == 0)) {
+    assert(cv_vlasov_index[cdim].vdim[vdim] != -1);
     set_cu_ptrs<<<1,1>>>(pvt_cu, prim_id, cbasis->b_type,
       vdim, poly_order, cv_vlasov_index[cdim].vdim[vdim]);
   }
   else if ((strcmp(prim_nm, "u_par") == 0) || (strcmp(prim_nm, "prim_gk") == 0)) {
+    assert(cv_gk_index[cdim].vdim[vdim] != -1);
     set_cu_ptrs<<<1,1>>>(pvt_cu, prim_id, cbasis->b_type,
       vdim, poly_order, cv_gk_index[cdim].vdim[vdim]);
   }
