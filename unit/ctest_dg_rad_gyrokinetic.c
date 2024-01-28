@@ -13,6 +13,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_eval_on_nodes.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -295,10 +296,130 @@ test_1x(int poly_order, int vdim, bool use_gpu)
   gkyl_array_release(m2_final);
 }
 
+struct eval_nu_ctx {
+  double Abar;
+  double alpha;
+  double beta;
+  double V0; 
+  double gamma;
+  double Crad;
+  double B0;
+};
+
+void eval_nu_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double x = xn[0], vpar = xn[1], mu = xn[2];
+
+  struct eval_nu_ctx *radFit = ctx;
+  double Abar  = radFit->Abar ;
+  double alpha = radFit->alpha;
+  double beta  = radFit->beta ;
+  double V0    = radFit->V0   ; 
+  double gamma = radFit->gamma;
+  double Crad  = radFit->Crad ;
+  double B0    = radFit->B0   ;
+  double me = GKYL_ELECTRON_MASS;
+  double eV = GKYL_ELEMENTARY_CHARGE;
+
+  double vSq = pow(vpar,2)+2.*mu*B0/me;
+  double denomFac = (me/(2.*eV*V0))*vSq;
+
+  fout[0] = vSq > 1e-18? (Abar/Crad)*(alpha+beta)*pow(vSq,gamma/2.) / 
+    ( beta*pow(denomFac,-alpha/2.)+alpha*pow(denomFac,beta/2.) ) 
+    : 0.;
+}
+
+void
+projnu_1x2v(int poly_order, bool use_gpu)
+{
+  // Project nu onto an (x,vpar,mu) grid. Use eval_on_nodes now
+  // though we'll have to write an updater for it if we keep the
+  // dependence on B.
+  int cdim = 1;
+  int vdim = 2;
+  int ndim = cdim + vdim;
+
+  double me = GKYL_ELECTRON_MASS;
+  double eV = GKYL_ELEMENTARY_CHARGE;
+  double qe = -eV;
+  double Te = 100*2.8*eV;
+  double B0 = 4.2;
+
+  // H fitting parameters.
+  double Abar = 0.166594984602572;
+  double alpha = 8.000072245234049e+03;
+  double beta = 0.875480342166318;
+  double V0 = 3.071566470338830;
+  double gamma = -3.956239523465181;
+  double Crad = 8.*sqrt(M_PI)*pow(GKYL_ELEMENTARY_CHARGE,5./2.)/me;
+  struct eval_nu_ctx radFit = {
+    .Abar  = Abar ,
+    .alpha = alpha,
+    .beta  = beta ,
+    .V0    = V0   ,
+    .gamma = gamma,
+    .Crad  = Crad ,
+//    .B0    = 0.5*B0   ,
+    .B0    = B0   ,
+//    .B0    = 2.*B0   ,
+  };
+
+  double vtElc = sqrt(Te/me);
+  double lower[] = {-M_PI, -4.0*vtElc, 0.};
+  double upper[] = { M_PI,  4.0*vtElc, 0.5*me*pow(4.0*vtElc,2)/B0};
+  int cells[] = {2, 32, 16};
+
+  double confLower[cdim], confUpper[cdim];
+  int confCells[cdim];
+  for (int d=0; d<cdim; d++) {
+    confLower[d] = lower[d]; 
+    confUpper[d] = upper[d];
+    confCells[d] = cells[d];
+  }
+
+  // grids
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid confGrid;
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+
+  // basis functions
+  struct gkyl_basis basis, confBasis;
+  if (poly_order > 1) {
+    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in vpar). */
+    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  }
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+
+  int confGhost[] = { 1 };
+  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+
+  int ghost[] = { confGhost[0], 0, 0 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // projection nu
+  struct gkyl_array *nu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  gkyl_eval_on_nodes *evonnod = gkyl_eval_on_nodes_new(&grid, &basis, 1, eval_nu_1x2v, &radFit);
+
+  gkyl_eval_on_nodes_advance(evonnod, 0.0, &local, nu);
+
+  gkyl_grid_sub_array_write(&grid, &local, nu, "ctest_dg_rad_gyrokinetic_nu.gkyl");
+
+  // Release memory
+  gkyl_array_release(nu);
+  gkyl_eval_on_nodes_release(evonnod);
+}
+
 void test_1x1v_p1() { test_1x(1, 1, false); }
 void test_1x2v_p1() { test_1x(1, 2, false); }
 void test_1x1v_p2() { test_1x(2, 1, false); }
 void test_1x2v_p2() { test_1x(2, 2, false); }
+
+void test_projnu_1x2v_p1() { projnu_1x2v(1, false); }
 
 // #ifdef GKYL_HAVE_CUDA
 
@@ -314,6 +435,7 @@ TEST_LIST = {
   { "test_1x2v_p1", test_1x2v_p1 },
   { "test_1x1v_p2", test_1x1v_p2 },
   { "test_1x2v_p2", test_1x2v_p2 },
+  { "test_projnu_1x2v_p1", test_projnu_1x2v_p1 },
 
 // #ifdef GKYL_HAVE_CUDA
 //   { "test_1x1v_p1_gpu", test_1x1v_p1_gpu },
