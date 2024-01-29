@@ -3,8 +3,8 @@
 
 struct all_radiation_states* gkyl_read_rad_fit_params(){
 
-  //char *filepath="/home/jroeltgen/gkylzero/adas-dat/radiation_fit_parameters.txt";
-  char *filepath="/global/homes/j/jonroelt/g0g2cpu/gkylzero/adas-dat/radiation_fit_parameters.txt";
+  char *filepath="./adas-dat/radiation_fit_parameters.txt";
+  //char *filepath="/global/homes/j/jonroelt/g0g2cpu/gkylzero/adas-dat/radiation_fit_parameters.txt";
   FILE *fptr = fopen(filepath,"r");
   if (fptr == NULL){
     printf("Error opening radiation fit file\n");

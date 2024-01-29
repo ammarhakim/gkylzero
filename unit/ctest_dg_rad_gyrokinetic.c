@@ -146,9 +146,8 @@ test_1x(int poly_order, int vdim, bool use_gpu)
     mapc2p_1x, 0, bmag_func_1x, 0, use_gpu);
 
   // allocate drag coefficients in vparallel and mu for each collision
-  // vnu = 2/pi*|v|*nu(v)
-  // vsqnu = 1/2*(m/B)^(3/2)*sqrt(mu)*|v|^2*nu(v)
-  // where |v| = sqrt(v_par^2 + 2 mu B/m)
+  // vnu = v_par*nu(v)
+  // vsqnu = 2*mu*nu(v)
   // Note that through the spatial variation of B, both these drag coefficients depend on the full phase space
   struct gkyl_array *vnu, *vsqnu, *vnu_host, *vsqnu_host;
   vnu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -169,9 +168,9 @@ test_1x(int poly_order, int vdim, bool use_gpu)
   v0 = 3.066473173090881;
 
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid, &confBasis, &basis, 
-    charge, mass, gk_geom, a, alpha, beta, gamma, v0);
+										   charge, mass, gk_geom, a, alpha, beta, gamma, v0, use_gpu);
 
-  gkyl_dg_calc_gk_rad_vars_advance(calc_gk_rad_vars, &confLocal, &local, vnu_host, vsqnu_host);
+  gkyl_dg_calc_gk_rad_vars_nu_advance(calc_gk_rad_vars, &confLocal, &local, vnu_host, vsqnu_host);
   if (use_gpu) {
     gkyl_array_copy(vnu, vnu_host);
     gkyl_array_copy(vsqnu, vsqnu_host);

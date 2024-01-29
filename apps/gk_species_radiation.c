@@ -83,10 +83,10 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       rad->vsqnu_surf[i], rad->vsqnu[i]);
 
     // allocate density calculation needed for radiation update
-    gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");
-    gkyl_release_fit_params(rad_data);
+    gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");  
   }
-
+  gkyl_release_fit_params(rad_data);
+  
   // Total vparallel and mu radiation drag including density scaling
   rad->nvnu_surf = mkarr(app->use_gpu, surf_vpar_basis.num_basis, s->local_ext.volume);
   rad->nvnu = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
