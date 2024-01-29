@@ -192,8 +192,6 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
 
   // determine radiation type to use in gyrokinetic update
   s->radiation_id = s->info.radiation.radiation_id;
-  if (s->radiation_id == GKYL_GK_RADIATION) 
-    gk_species_radiation_init(app, s, &s->rad);
 
   // initialize boundary fluxes for diagnostics and, if present,
   // ambipolar potential solve
