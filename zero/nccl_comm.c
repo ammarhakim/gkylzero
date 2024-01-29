@@ -36,6 +36,13 @@ static ncclDataType_t g2_nccl_datatype[] = {
   [GKYL_DOUBLE] = ncclDouble,
 };
 
+// Mapping of Gkeyll ops to ncclRedOp_t.
+static ncclRedOp_t g2_nccl_op[] = {
+  [GKYL_MIN] = ncclMin,
+  [GKYL_MAX] = ncclMax,
+  [GKYL_SUM] = ncclSum,
+};
+
 struct gkyl_comm_state {
   ncclComm_t *ncomm;
   int tag;
@@ -97,7 +104,7 @@ array_send(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm)
     checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
   } while(nstat == ncclInProgress);
   checkCuda(cudaStreamSynchronize(nccl->custream));
-  return 1;
+  return 0;
 }
 
 static int
@@ -110,7 +117,7 @@ array_recv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm)
     checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
   } while(nstat == ncclInProgress);
   checkCuda(cudaStreamSynchronize(nccl->custream));
-  return 1;
+  return 0;
 }
 
 static int
@@ -123,7 +130,7 @@ array_isend(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm,
   state->tag = tag;
   state->custream = &nccl->custream;
   state->peer = dest;
-  return 1;
+  return 0;
 }
 
 static int
@@ -136,7 +143,17 @@ array_irecv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm, 
   state->tag = tag;
   state->custream = &nccl->custream;
   state->peer = src;
-  return 1;
+  return 0;
+}
+
+static int
+all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp,
+  void *out)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  checkNCCL(ncclAllReduce(inp, out, nelem, g2_nccl_datatype[type], g2_nccl_op[op], nccl->ncomm, nccl->custream));
+  return 0;
 }
 
 static void
@@ -187,6 +204,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   checkCuda(cudaStreamSynchronize(nccl->custream));
   
   nccl->base.barrier = barrier;
+  nccl->base.all_reduce = all_reduce;
   nccl->base.gkyl_array_send = array_send;
   nccl->base.gkyl_array_isend = array_isend;
   nccl->base.gkyl_array_recv = array_recv;

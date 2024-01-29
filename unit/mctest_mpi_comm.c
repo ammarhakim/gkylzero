@@ -11,7 +11,7 @@
 #include <gkyl_mpi_comm.h>
 
 void
-test_1()
+mpi_1()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 100, 100 });
@@ -43,7 +43,7 @@ test_1()
 }
 
 void
-test_n2()
+mpi_allreduce()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -93,7 +93,7 @@ test_n2()
 }
 
 void
-test_n2_sync_1d()
+mpi_n2_sync_1d()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -149,7 +149,7 @@ test_n2_sync_1d()
 }
 
 void
-test_n4_sync_2d(bool use_corners)
+mpi_n4_sync_2d(bool use_corners)
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -223,11 +223,11 @@ test_n4_sync_2d(bool use_corners)
   gkyl_array_release(arr);
 }
 
-void test_n4_sync_2d_no_corner() { test_n4_sync_2d(false); }
-void test_n4_sync_2d_use_corner() { test_n4_sync_2d(true); }
+void mpi_n4_sync_2d_no_corner() { mpi_n4_sync_2d(false); }
+void mpi_n4_sync_2d_use_corner() { mpi_n4_sync_2d(true); }
 
 void
-test_n4_sync_1x1v()
+mpi_n4_sync_1x1v()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -294,7 +294,7 @@ test_n4_sync_1x1v()
 }
 
 void
-test_n1_per_sync_2d()
+mpi_n1_per_sync_2d()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -375,7 +375,7 @@ test_n1_per_sync_2d()
 }
 
 void
-test_n2_array_send_irecv_1d()
+mpi_n2_array_send_irecv_1d()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -434,7 +434,7 @@ test_n2_array_send_irecv_1d()
 }
 
 void
-test_n2_array_isend_irecv_2d()
+mpi_n2_array_isend_irecv_2d()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -500,7 +500,7 @@ test_n2_array_isend_irecv_2d()
 }
 
 void
-test_n4_multicomm_2d()
+mpi_n4_multicomm_2d()
 {
   // Test the use of two gkyl_comm objects simultaneously, mimicing the case
   // where one is used to decompose space and the other species.
@@ -605,16 +605,16 @@ test_n4_multicomm_2d()
 }
   
 TEST_LIST = {
-  {"test_1", test_1},
-  {"test_n2", test_n2},
-  {"test_n2_sync_1d", test_n2_sync_1d},
-  {"test_n4_sync_2d_no_corner", test_n4_sync_2d_no_corner },
-  {"test_n4_sync_2d_use_corner", test_n4_sync_2d_use_corner},
-  {"test_n2_sync_1x1v", test_n4_sync_1x1v },
-  {"test_n1_per_sync_2d", test_n1_per_sync_2d },
-  {"test_n2_array_send_irecv_1d", test_n2_array_send_irecv_1d},
-  {"test_n2_array_isend_irecv_2d", test_n2_array_isend_irecv_2d},
-  {"test_n4_multicomm_2d", test_n4_multicomm_2d},
+  {"mpi_1", mpi_1},
+  {"mpi_allreduce", mpi_allreduce},
+  {"mpi_n2_sync_1d", mpi_n2_sync_1d},
+  {"mpi_n4_sync_2d_no_corner", mpi_n4_sync_2d_no_corner },
+  {"mpi_n4_sync_2d_use_corner", mpi_n4_sync_2d_use_corner},
+  {"mpi_n2_sync_1x1v", mpi_n4_sync_1x1v },
+  {"mpi_n1_per_sync_2d", mpi_n1_per_sync_2d },
+  {"mpi_n2_array_send_irecv_1d", mpi_n2_array_send_irecv_1d},
+  {"mpi_n2_array_isend_irecv_2d", mpi_n2_array_isend_irecv_2d},
+  {"mpi_n4_multicomm_2d", mpi_n4_multicomm_2d},
   {NULL, NULL},
 };
 

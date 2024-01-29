@@ -11,7 +11,77 @@
 #include <gkyl_nccl_comm.h>
 
 void
-test_1()
+mpi_allreduce()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 2) return;
+  
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 100, 100 });
+  
+  int cuts[] = { 1, 1 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);  
+  
+  struct gkyl_comm *comm_ho = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp
+    }
+  );
+
+  int m_rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &m_rank);
+
+  struct gkyl_comm *comm_dev = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp
+    }
+  );
+
+  double vals_ho[2];
+  if (m_rank == 0) {
+    vals_ho[0] = 1.0;
+    vals_ho[1] = 2.0;
+  }
+  if (m_rank == 1) {
+    vals_ho[0] = 3.0;
+    vals_ho[1] = -1.0;
+  }
+  double *vals = gkyl_cu_malloc(2*sizeof(double));
+  gkyl_cu_memcpy(vals, vals_ho, 2*sizeof(double), GKYL_CU_MEMCPY_H2D);
+
+  double v_max_ho[2], v_min_ho[2], v_sum_ho[2];
+  double *v_max = gkyl_cu_malloc(2*sizeof(double));
+  double *v_min = gkyl_cu_malloc(2*sizeof(double));
+  double *v_sum = gkyl_cu_malloc(2*sizeof(double));
+
+  gkyl_comm_all_reduce(comm_dev, GKYL_DOUBLE, GKYL_MAX, 2, vals, v_max);
+  gkyl_cu_memcpy(v_max_ho, v_max, 2*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  TEST_CHECK( v_max_ho[0] == 3.0 );
+  TEST_CHECK( v_max_ho[1] == 2.0 );
+
+  gkyl_comm_all_reduce(comm_dev, GKYL_DOUBLE, GKYL_MIN, 2, vals, v_min);
+  gkyl_cu_memcpy(v_min_ho, v_min, 2*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  TEST_CHECK( v_min_ho[0] == 1.0 );
+  TEST_CHECK( v_min_ho[1] == -1.0 );
+
+  gkyl_comm_all_reduce(comm_dev, GKYL_DOUBLE, GKYL_SUM, 2, vals, v_sum);
+  gkyl_cu_memcpy(v_sum_ho, v_sum, 2*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  TEST_CHECK( v_sum_ho[0] == 4.0 );
+  TEST_CHECK( v_sum_ho[1] == 1.0 );
+
+  gkyl_cu_free(vals);
+  gkyl_cu_free(v_max);
+  gkyl_cu_free(v_min);
+  gkyl_cu_free(v_sum);
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm_ho);
+  gkyl_comm_release(comm_dev);
+}
+
+void
+nccl_n2_array_isend_irecv_2d()
 {
   // Test array_send and array_recv with a nonblocking comm.
   struct gkyl_range range;
@@ -125,7 +195,8 @@ test_1()
 
   
 TEST_LIST = {
-  {"test_1", test_1},
+  {"mpi_allreduce", mpi_allreduce},
+  {"nccl_n2_array_isend_irecv_2d", nccl_n2_array_isend_irecv_2d},
   {NULL, NULL},
 };
 
