@@ -139,6 +139,18 @@ array_irecv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm, 
   return 1;
 }
 
+static void
+group_call_start()
+{
+  checkNCCL(ncclGroupStart());
+}
+
+static void
+group_call_end()
+{
+  checkNCCL(ncclGroupEnd());
+}
+
 struct gkyl_comm*
 gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
 {
@@ -182,6 +194,8 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   nccl->base.comm_state_new = comm_state_new;
   nccl->base.comm_state_release = comm_state_release;
   nccl->base.comm_state_wait = comm_state_wait;
+  nccl->base.comm_group_call_start = group_call_start;
+  nccl->base.comm_group_call_end = group_call_end;
   nccl->base.ref_count = gkyl_ref_count_init(comm_free);
 
   return &nccl->base;

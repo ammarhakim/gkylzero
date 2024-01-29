@@ -81,6 +81,10 @@ typedef void (*comm_state_release_t)(struct gkyl_comm_state *state);
 // Wait for a request.
 typedef void (*comm_state_wait_t)(struct gkyl_comm_state *state);
 
+// Start and end a group call (e.g. in NCCL).
+typedef void (*comm_group_call_start_t)();
+typedef void (*comm_group_call_end_t)();
+
 // Structure holding data and function pointers to communicate various
 // Gkeyll objects across multi-region or multi-block domains
 struct gkyl_comm {
@@ -103,6 +107,9 @@ struct gkyl_comm {
   comm_state_new_t comm_state_new; // Allocate a new state object.
   comm_state_release_t comm_state_release; // Free a state object.
   comm_state_wait_t comm_state_wait; // Wait for a request to complete.
+
+  comm_group_call_start_t comm_group_call_start; // Start a group call.
+  comm_group_call_end_t comm_group_call_end; // End a group call.
 
   struct gkyl_ref_count ref_count; // reference count
 };
@@ -291,6 +298,20 @@ static void
 gkyl_comm_state_wait(struct gkyl_comm *comm, struct gkyl_comm_state *state)
 {
   comm->comm_state_wait(state);
+}
+
+/**
+ * Start and end a group call (e.g. in NCCL).
+ */
+static void
+gkyl_comm_group_call_start(struct gkyl_comm *comm)
+{
+  comm->comm_group_call_start();
+}
+static void
+gkyl_comm_group_call_end(struct gkyl_comm *comm)
+{
+  comm->comm_group_call_end();
 }
 
 /**
