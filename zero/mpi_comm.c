@@ -543,7 +543,7 @@ static void comm_state_release(struct gkyl_comm_state *state)
   gkyl_free(state);
 }
 
-void comm_state_wait(struct gkyl_comm_state *state)
+static void comm_state_wait(struct gkyl_comm_state *state)
 {
   MPI_Wait(&state->req, &state->stat);
 }
