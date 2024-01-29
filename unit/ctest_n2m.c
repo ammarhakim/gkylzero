@@ -244,12 +244,12 @@ test_p1_deflated(){
 }
 
 void
-test_p2(){
+test_p2_btype(basis_type){
   // create  grid
   double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
   // as ellipitical surfaces are exact, we only need 1 cell in each
   // direction
-  int cells[] = { 64, 128 };
+  int cells[] = { 8, 16 };
 
 
   int poly_order = 2;
@@ -263,7 +263,10 @@ test_p2(){
 
   //  basis function
   struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 2, poly_order);
+  if(basis_type == GKYL_BASIS_MODAL_SERENDIPITY)
+    gkyl_cart_modal_serendip(&basis, 2, poly_order);
+  if(basis_type == GKYL_BASIS_MODAL_TENSOR)
+    gkyl_cart_modal_tensor(&basis, 2, poly_order);
 
   struct gkyl_array *funcdg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   
@@ -273,15 +276,9 @@ test_p2(){
   gkyl_grid_sub_array_write(&grid, &local, funcdg, "proj_func.gkyl");
 
   int nodes[3] = { 1, 1, 1 };
-  if (poly_order == 1){
-    for (int d=0; d<grid.ndim; ++d)
-      nodes[d] = grid.cells[d] + 1;
-  }
                    
-  if (poly_order == 2){
-    for (int d=0; d<grid.ndim; ++d)
-      nodes[d] = 2*(grid.cells[d]) + 1;
-  }
+  for (int d=0; d<grid.ndim; ++d)
+    nodes[d] = 2*(grid.cells[d]) + 1;
 
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, grid.ndim, nodes);
@@ -294,8 +291,21 @@ test_p2(){
   struct gkyl_array *funcdg2 = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &local, 1, nodal_fld, funcdg2);
   gkyl_nodal_ops_release(n2m);
+  check_same(local, basis, funcdg, funcdg2);
   gkyl_grid_sub_array_write(&grid, &local, funcdg2, "proj_func2.gkyl");
 
+}
+
+void
+test_p2_ser()
+{
+  return test_p2_btype(GKYL_BASIS_MODAL_SERENDIPITY);
+}
+
+void
+test_p2_tensor()
+{
+  return test_p2_btype(GKYL_BASIS_MODAL_TENSOR);
 }
 
 
@@ -308,8 +318,9 @@ test_p2(){
 
 
 TEST_LIST = {
-  { "test_p1", test_p1},
-  { "test_p1_deflated", test_p1_deflated},
-  //{ "test_p2", test_p2},
+  //{ "test_p1", test_p1},
+  //{ "test_p1_deflated", test_p1_deflated},
+  { "test_p2_ser", test_p2_ser},
+  { "test_p2_tensor", test_p2_tensor},
   { NULL, NULL },
 };

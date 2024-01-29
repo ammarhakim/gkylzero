@@ -327,7 +327,8 @@ R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   }
 
   // Try again if we didn't find any
-  if (sidx==0 && geo->ftype != GKYL_CORE_R) {
+  //if (sidx==0 && geo->tol_no_roots) {
+  if (sidx==0 && geo->tol_no_roots) {
     gkyl_range_iter_init(&riter, &rangeR);
     while (gkyl_range_iter_next(&riter) && sidx<=nmaxroots) {
       long loc = gkyl_range_idx(&rangeR, riter.idx);

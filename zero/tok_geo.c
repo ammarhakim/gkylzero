@@ -372,7 +372,14 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   struct gkyl_tok_geo_grid_inp *inp = bmag_ctx;
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
-  geo->ftype = inp->ftype;
+
+  if( (inp->ftype == GKYL_SOL_DN_OUT_LO) || (inp->ftype == GKYL_SOL_DN_OUT_UP) 
+      || (inp->ftype == GKYL_SOL_DN_IN_LO) || (inp->ftype == GKYL_SOL_DN_IN_UP)
+      || (inp->ftype == GKYL_PF_LO_L) || (inp->ftype == GKYL_PF_LO_R)
+      || (inp->ftype == GKYL_PF_UP_L) || (inp->ftype == GKYL_PF_UP_R) )
+    geo->tol_no_roots = true;
+  else
+    geo->tol_no_roots = false;
 
   geo->rmax = inp->rmax;
   geo->rmin = inp->rmin;

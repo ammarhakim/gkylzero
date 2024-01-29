@@ -72,7 +72,6 @@ struct gkyl_tok_geo {
   const struct gkyl_array *qdg; // q(psi) dg rep
                                    
 
-  enum gkyl_tok_geo_type ftype; // type of geometry
   double psisep; // psi of separatrix
   double zmaxis; // z of magnetic axis
   double rleft, rright;
@@ -88,6 +87,7 @@ struct gkyl_tok_geo {
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
 
+  bool tol_no_roots; // If true we will allow approximate roots when no root is found
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
