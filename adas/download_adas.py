@@ -108,12 +108,11 @@ def adas_files_dict():
     files["O"]["scd"] = "scd96_o.dat"
     files["O"]["plt"] = "plt96_o.dat"
     files["O"]["prb"] = "prb96_o.dat"
-    files["Ar"]["acd"] = "acd89_o.dat"
-    files["Ar"]["scd"] = "scd89_o.dat"
-    files["Ar"]["plt"] = "plt89_o.dat"
-    files["Ar"]["prb"] = "prb89_o.dat"
+    files["Ar"]["acd"] = "acd89_ar.dat"
+    files["Ar"]["scd"] = "scd89_ar.dat"
+    files["Ar"]["plt"] = "plt89_ar.dat"
+    files["Ar"]["prb"] = "prb89_ar.dat"
     return files
-
 
 if __name__ == "__main__":
     if len(sys.argv)-1>0:

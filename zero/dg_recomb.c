@@ -131,7 +131,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
     up->coef_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
     up->coef_m0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume); 
     up->prim_vars_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim+1)*up->cbasis->num_basis, up->conf_rng->volume);
-
   }
   else {
     up->recomb_data = adas_dg;
@@ -144,7 +143,12 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   }
 
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); 
-  up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_vlasov", use_gpu);
+  if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
+    up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_vlasov", use_gpu);
+  }
+  else { // create dummer updater to pass to cuda kernel which isn't used
+    up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_gk", use_gpu);
+  }
   
   // only for receiver species
   up->proj_max = gkyl_proj_maxwellian_on_basis_new(up->grid, up->cbasis, up->pbasis, poly_order+1, use_gpu);
@@ -274,11 +278,12 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
   // only used for Vlasov neut coll.
   //gkyl_array_release(up->udrift_ion);
   //gkyl_array_release(up->vtSq_ion);
-  gkyl_array_release(up->prim_vars_ion);
   gkyl_proj_maxwellian_on_basis_release(up->proj_max);
   //gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion_udrift);
-  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
-  
+  if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
+    gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
+    gkyl_array_release(up->prim_vars_ion);
+  }
   free(up);
 }
 

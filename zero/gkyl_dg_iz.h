@@ -18,6 +18,7 @@ enum gkyl_dg_iz_type
   GKYL_IZ_C = 5,  // Carbon ions
   GKYL_IZ_N = 6,  // Nitrogen ions
   GKYL_IZ_O = 7,  // Oxygen ions
+  GKYL_IZ_AR = 8, // Argon ions
 };
 
 // Identifiers for self species to determine form of collision operator

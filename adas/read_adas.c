@@ -159,7 +159,39 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     data->Eiz[4] = 113.9;
     data->Eiz[5] = 138.1;
     data->Eiz[6] = 739.3;
-    data->Eiz[6] = 871.4;
+    data->Eiz[7] = 871.4;
+  }
+  else if (type_ion == GKYL_IZ_AR) {
+    data->NT = 48;
+    data->NN = 26;
+    strcpy(fname, base);  
+    strcat(fname, "/adas/ioniz_ar.npy");
+    data->logData = fopen(fname,"rb");
+    strcpy(fname, base);  
+    strcat(fname, "/adas/logT_ar.npy");
+    data->logT = fopen(fname, "rb");
+    strcpy(fname, base);  
+    strcat(fname, "/adas/logN_ar.npy");
+    data->logN = fopen(fname, "rb"); 
+    data->Zmax = 18;
+    data->Eiz[0] = 15.8;
+    data->Eiz[1] = 27.6;
+    data->Eiz[2] = 40.9;
+    data->Eiz[3] = 52.3;
+    data->Eiz[4] = 75.;
+    data->Eiz[5] = 91.;
+    data->Eiz[6] = 124.3;
+    data->Eiz[7] = 143.5;
+    data->Eiz[8] = 422.4;
+    data->Eiz[9] = 478.7;
+    data->Eiz[10] = 539.;
+    data->Eiz[11] = 618.3;
+    data->Eiz[12] = 686.1;
+    data->Eiz[13] = 755.7;
+    data->Eiz[14] = 854.8;
+    data->Eiz[15] = 918.;
+    data->Eiz[16] = 4120.7;
+    data->Eiz[17] = 4426.2;
   }
   else fprintf(stderr, "Incorrect ion type for ionization.");
 }
@@ -278,6 +310,20 @@ read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *dat
     strcat(fname, "/adas/logN_o.npy");
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 8;
+  }
+  else if (type_ion == GKYL_RECOMB_AR) {
+    data->NT = 48;
+    data->NN = 26;
+    strcpy(fname, base);  
+    strcat(fname, "/adas/recomb_ar.npy");
+    data->logData = fopen(fname,"rb");
+    strcpy(fname, base);  
+    strcat(fname, "/adas/logT_ar.npy");
+    data->logT = fopen(fname, "rb");
+    strcpy(fname, base);  
+    strcat(fname, "/adas/logN_ar.npy");
+    data->logN = fopen(fname, "rb"); 
+    data->Zmax = 18;
   }
   else fprintf(stderr, "Incorrect ion type for recombination.");
 }
