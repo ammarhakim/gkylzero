@@ -532,7 +532,7 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   return newcomm;
 }
 
-static struct gkyl_comm_state* comm_state_new()
+static struct gkyl_comm_state* comm_state_new(struct gkyl_comm *comm)
 {
   struct gkyl_comm_state *state = gkyl_malloc(sizeof *state);
   return state;

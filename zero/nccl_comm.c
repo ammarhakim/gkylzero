@@ -50,9 +50,14 @@ struct gkyl_comm_state {
   int peer;
 };
 
-static struct gkyl_comm_state* comm_state_new()
+static struct gkyl_comm_state* comm_state_new(struct gkyl_comm *comm)
 {
   struct gkyl_comm_state *state = gkyl_malloc(sizeof *state);
+
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  state->ncomm = &nccl->ncomm;
+  state->custream = &nccl->custream;
+
   return state;
 }
 
@@ -126,9 +131,7 @@ array_isend(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm,
   size_t vol = array->ncomp*array->size;
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
   ncclResult_t nstat = ncclSend(array->data, vol, g2_nccl_datatype[array->type], dest, nccl->ncomm, nccl->custream);
-  state->ncomm = &nccl->ncomm;
   state->tag = tag;
-  state->custream = &nccl->custream;
   state->peer = dest;
   return 0;
 }
@@ -139,9 +142,7 @@ array_irecv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm, 
   size_t vol = array->ncomp*array->size;
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
   ncclResult_t nstat = ncclRecv(array->data, vol, g2_nccl_datatype[array->type], src, nccl->ncomm, nccl->custream);
-  state->ncomm = &nccl->ncomm;
   state->tag = tag;
-  state->custream = &nccl->custream;
   state->peer = src;
   return 0;
 }

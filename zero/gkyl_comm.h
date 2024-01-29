@@ -75,7 +75,7 @@ typedef struct gkyl_comm* (*split_comm_t)(const struct gkyl_comm *comm,
 typedef int (*barrier_t)(struct gkyl_comm *comm);
 
 // Allocate/free state objects.
-typedef struct gkyl_comm_state* (*comm_state_new_t)();
+typedef struct gkyl_comm_state* (*comm_state_new_t)(struct gkyl_comm *comm);
 typedef void (*comm_state_release_t)(struct gkyl_comm_state *state);
 
 // Wait for a request.
@@ -279,7 +279,7 @@ gkyl_comm_barrier(struct gkyl_comm *comm)
 static struct gkyl_comm_state*
 gkyl_comm_state_new(struct gkyl_comm *comm)
 {
-  return comm->comm_state_new();
+  return comm->comm_state_new(comm);
 }
 
 /**
