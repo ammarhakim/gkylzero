@@ -15,6 +15,14 @@ static const bmag_kernel_list ser_bmag_kernel_list[] = {
   { NULL, NULL, NULL}
 };
 
+GKYL_CU_DH
+static const bmag_kernel_list tensor_bmag_kernel_list[] = {
+  { NULL, NULL, NULL }, // 0x No 0D basis functions
+  { NULL, NULL, NULL}, // 1x Not tested yet
+  { NULL, bmag_2x_Tensor_p1, bmag_2x_Tensor_p2}, //Only 2x makes sense
+  { NULL, NULL, NULL}
+};
+
 struct bmag_ctx{
    const struct gkyl_rect_grid* grid;
    const struct gkyl_rect_grid* cgrid;
@@ -62,6 +70,8 @@ bmag_choose_kernel(int dim, int basis_type, int poly_order)
 {
   switch (basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_bmag_kernel_list[dim].kernels[poly_order];
+    case GKYL_BASIS_MODAL_TENSOR:
       return ser_bmag_kernel_list[dim].kernels[poly_order];
     default:
       assert(false);

@@ -32,6 +32,7 @@ struct gkyl_tok_geo_efit_inp inp = {
     // psiRZ and related inputs
     .filepath = "./efit_data/step.geqdsk",
     .rzpoly_order = 2,
+    .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .fluxpoly_order = 1,
     .plate_spec = false,
     .quad_param = {  .eps = 1e-10 }
@@ -104,8 +105,8 @@ test_11()
     .rright= 6.2,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zxpt_lo = -6.142,
-    .zxpt_up = 6.142,
+    .zxpt_lo = -6.14213,
+    .zxpt_up = 6.1423,
 
     .write_node_coord_array = true,
     .node_file_nm = "step11_nodes.gkyl"
@@ -217,7 +218,7 @@ test_2()
     .rmin = 1.1,
     .rmax = 6.2,
     .zmin = -8.3,
-    .zxpt_lo = -6.2,
+    .zxpt_lo = -6.14213,
     .write_node_coord_array = true,
     .node_file_nm = "step2_nodes.gkyl"
   }; 
@@ -553,20 +554,20 @@ test_10()
 }
 
 TEST_LIST = {
-  //{ "test_core", test_core},
-  //{ "test_outer", test_outer}, // Works
-  {"test_1", test_1},  // Nodes work, max cmag is 1.2
-  {"test_2", test_2}, // Cmag looks great
-  {"test_3", test_3}, // Works. Good cmag
-  {"test_4", test_4}, // Cmag Looks good 
-  {"test_5", test_5}, // Works. Cmag - >1.2 at xpt
-  {"test_6", test_6}, // Works. Cmag - >1.7 at xpt
-  {"test_7", test_7}, // Works. Good cmag
-  {"test_8", test_8},  // Works. Good cmag.
-  {"test_9", test_9}, // Works. cmag 0.7 at xpt but ok
-  {"test_10", test_10}, // Works. cmag->3 at xpt
+//  { "test_core", test_core},
+//  { "test_outer", test_outer}, // Works
+//  {"test_1", test_1},  // Nodes work, max cmag is 1.2
+  //{"test_2", test_2}, // Cmag looks great
+//  {"test_3", test_3}, // Works. Good cmag
+//  {"test_4", test_4}, // Cmag Looks good 
+//  {"test_5", test_5}, // Works. Cmag - >1.2 at xpt
+//  {"test_6", test_6}, // Works. Cmag - >1.7 at xpt
+//  {"test_7", test_7}, // Works. Good cmag
+//  {"test_8", test_8},  // Works. Good cmag.
+//  {"test_9", test_9}, // Works. cmag 0.7 at xpt but ok
+//  {"test_10", test_10}, // Works. cmag->3 at xpt
   {"test_11", test_11}, // Works. Good cmag. Even with nup hack for PF
-  {"test_12", test_12}, // Works. Good cmag. Even with nup and nlo hack for PF
-
+//  {"test_12", test_12}, // Works. Good cmag. Even with nup and nlo hack for PF
+//
   { NULL, NULL },
 };

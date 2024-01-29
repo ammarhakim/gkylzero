@@ -281,7 +281,7 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
 {
   struct gkyl_tok_geo *geo = gkyl_malloc(sizeof(*geo));
 
-  geo->efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->fluxpoly_order, false);
+  geo->efit = gkyl_efit_new(inp->filepath, inp->rzpoly_order, inp->rz_basis_type, inp->fluxpoly_order, false);
 
   geo->plate_spec = inp->plate_spec;
   geo->plate_func_lower = inp->plate_func_lower;
@@ -317,8 +317,12 @@ gkyl_tok_geo_new(const struct gkyl_tok_geo_efit_inp *inp)
 
   if (geo->efit->rzbasis->poly_order == 1)
     geo->calc_roots = calc_RdR_p1;
-  else if (geo->efit->rzbasis->poly_order == 2)
-    geo->calc_roots = calc_RdR_p2;
+  else if (geo->efit->rzbasis->poly_order == 2){
+    if(inp->rz_basis_type == GKYL_BASIS_MODAL_SERENDIPITY)
+      geo->calc_roots = calc_RdR_p2;
+    else if(inp->rz_basis_type == GKYL_BASIS_MODAL_TENSOR)
+      geo->calc_roots = calc_RdR_p2_tensor_nrc;
+  }
 
   geo->stat = (struct gkyl_tok_geo_stat) { };
 
@@ -368,6 +372,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   struct gkyl_tok_geo_grid_inp *inp = bmag_ctx;
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
+  geo->ftype = inp->ftype;
 
   geo->rmax = inp->rmax;
   geo->rmin = inp->rmin;
@@ -493,7 +498,6 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arc_ctx.arcL_tot/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arc_ctx.arcL_tot) - M_PI ; 
-              printf("ia.ip.it = %d %d %d\n", ia, ip, it);
 
               tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
 

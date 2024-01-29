@@ -22,52 +22,6 @@ struct gkyl_tok_geo_stat {
 
 typedef   void (*plate_func)(double s, double* RZ);
 
-struct gkyl_tok_geo {
-  struct gkyl_efit* efit;
-
-  struct gkyl_rect_grid rzgrid; // RZ grid on which psi(R,Z) is defined
-  struct gkyl_range rzlocal; // local range over which psiRZ is defined
-  struct gkyl_range rzlocal_ext; // extended range
-  struct gkyl_basis rzbasis; // basis functions for R,Z grid
-  int num_rzbasis; // number of basis functions in RZ
-  const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
-  const struct gkyl_array *psibyrRZ; // psi(R,Z)/R DG representation
-  const struct gkyl_array *psibyr2RZ; // psi(R,Z)/R^2 DG representation
-                   
-  struct gkyl_rect_grid fgrid; // flux grid for fpol
-  struct gkyl_range frange; // flux range
-  struct gkyl_range frange_ext; // extended range
-  struct gkyl_basis fbasis; // psi basis for fpol
-  const struct gkyl_array *fpoldg; // fpol(psi) dg rep
-  const struct gkyl_array *qdg; // q(psi) dg rep
-                                   
-  double psisep; // psi of separatrix
-  double zmaxis; // z of magnetic axis
-  double rleft, rright;
-  double rmin, rmax;
-
-  // Flag and functions to specify the plate location/shape in RZ coordinates
-  // The functions should specify R(s) and Z(s) on the plate where s is a parameter \in [0,1]
-  // For single null, the "lower" plate is the outboard plate and the "upper plate" is the inboard plate
-  bool plate_spec;
-  plate_func plate_func_lower;
-  plate_func plate_func_upper;
-
-  struct { int max_iter; double eps; } root_param;
-  struct { int max_level; double eps; } quad_param;
-
-  // pointer to root finder (depends on polyorder)
-  struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
-    double xc[2], double dx[2]);
-
-  struct gkyl_tok_geo_stat stat; 
-  struct gkyl_array* mc2p_nodal_fd;
-  struct gkyl_range* nrange;
-  double* dzc;
-};
-
-
-
 // Type of flux surface
 enum gkyl_tok_geo_type {
   // Full blocks to be used as stand alone simulations
@@ -96,11 +50,62 @@ enum gkyl_tok_geo_type {
   GKYL_CORE_R // Right half of core (upper to lower xpt)
 };  
 
+
+
+struct gkyl_tok_geo {
+  struct gkyl_efit* efit;
+
+  struct gkyl_rect_grid rzgrid; // RZ grid on which psi(R,Z) is defined
+  struct gkyl_range rzlocal; // local range over which psiRZ is defined
+  struct gkyl_range rzlocal_ext; // extended range
+  struct gkyl_basis rzbasis; // basis functions for R,Z grid
+  int num_rzbasis; // number of basis functions in RZ
+  const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
+  const struct gkyl_array *psibyrRZ; // psi(R,Z)/R DG representation
+  const struct gkyl_array *psibyr2RZ; // psi(R,Z)/R^2 DG representation
+                   
+  struct gkyl_rect_grid fgrid; // flux grid for fpol
+  struct gkyl_range frange; // flux range
+  struct gkyl_range frange_ext; // extended range
+  struct gkyl_basis fbasis; // psi basis for fpol
+  const struct gkyl_array *fpoldg; // fpol(psi) dg rep
+  const struct gkyl_array *qdg; // q(psi) dg rep
+                                   
+
+  enum gkyl_tok_geo_type ftype; // type of geometry
+  double psisep; // psi of separatrix
+  double zmaxis; // z of magnetic axis
+  double rleft, rright;
+  double rmin, rmax;
+
+  // Flag and functions to specify the plate location/shape in RZ coordinates
+  // The functions should specify R(s) and Z(s) on the plate where s is a parameter \in [0,1]
+  // For single null, the "lower" plate is the outboard plate and the "upper plate" is the inboard plate
+  bool plate_spec;
+  plate_func plate_func_lower;
+  plate_func plate_func_upper;
+
+  struct { int max_iter; double eps; } root_param;
+  struct { int max_level; double eps; } quad_param;
+
+  // pointer to root finder (depends on polyorder)
+  struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
+    double xc[2], double dx[2]);
+
+  struct gkyl_tok_geo_stat stat; 
+  struct gkyl_array* mc2p_nodal_fd;
+  struct gkyl_range* nrange;
+  double* dzc;
+};
+
+
+
 // Inputs to create a new GK geometry creation object
 struct gkyl_tok_geo_efit_inp {
   // Inputs to get psiRZ and related inputs from efit
   char* filepath;
   int rzpoly_order;
+  enum gkyl_basis_type rz_basis_type;
   int fluxpoly_order;
   // Specifications for divertor plate
   bool plate_spec;

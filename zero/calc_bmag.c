@@ -56,6 +56,11 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
   gkyl_range_iter_init(&iter, gc->range);
   iter.idx[0] = fmin(gc->range->lower[0] + (int) floor((R - gc->grid->lower[0])/gc->grid->dx[0]), gc->range->upper[0]);
   iter.idx[1] = fmin(gc->range->lower[1] + (int) floor((Z - gc->grid->lower[1])/gc->grid->dx[1]), gc->range->upper[1]);
+  // 4 Lines below are to prevent issues cause by floating point comparison
+  if(iter.idx[0]<1)
+    iter.idx[0] = 1;
+  if(iter.idx[1]<1)
+    iter.idx[1] = 1;
   long loc = gkyl_range_idx(gc->range, iter.idx);
   const double *coeffs = gkyl_array_cfetch(gc->bmagdg,loc);
 

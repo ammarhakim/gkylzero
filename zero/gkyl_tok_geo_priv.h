@@ -132,6 +132,159 @@ calc_RdR_p2(const double *psi, double psi0, double Z, double xc[2], double dx[2]
   return sol;
 }
 
+// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis
+static inline struct RdRdZ_sol
+calc_RdR_p2_tensor(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+{
+  struct RdRdZ_sol sol = { .nsol = 0 };
+  double y = (Z-xc[1])/(dx[1]*0.5);
+
+  double aq = 0.125*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4]);
+  double bq = 0.125*(23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]) ;
+  double cq = 0.125*((13.41640786499874*psi[5]-15.0*psi[8])*SQ(y)+(6.928203230275509*psi[2]-7.745966692414834*psi[6])*y+5.0*psi[8]- 4.47213595499958*psi[5]-4.47213595499958*psi[4]+4.0*psi[0] ) - psi0;
+
+  double delta2 = bq*bq - 4*aq*cq;
+
+  if (delta2 > 0) {
+    double r1, r2;
+    double delta = sqrt(delta2);
+    // compute both roots
+    if (bq>=0) {
+      r1 = (-bq-delta)/(2*aq);
+      r2 = 2*cq/(-bq-delta);
+    }
+    else {
+      r1 = 2*cq/(-bq+delta);
+      r2 = (-bq+delta)/(2*aq);
+    }
+
+    int sidx = 0;
+    if ((-1<=r1) && (r1 < 1)) {
+      sol.nsol += 1;
+      sol.R[sidx] = r1*dx[0]*0.5 + xc[0];
+
+      double x = r1;
+      double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+      double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      
+      sidx += 1;
+    }
+    if ((-1<=r2) && (r2 < 1)) {
+      sol.nsol += 1;
+      sol.R[sidx] = r2*dx[0]*0.5 + xc[0];
+
+      double x = r2;
+      double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+      double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      
+      sidx += 1;
+    }
+  }
+  return sol;
+}
+
+// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis
+// Use more accurate roots from numerical recipes in C 2007 section 5.6
+static inline struct RdRdZ_sol
+calc_RdR_p2_tensor_nrc(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+{
+  struct RdRdZ_sol sol = { .nsol = 0 };
+  double y = (Z-xc[1])/(dx[1]*0.5);
+
+  double aq = 0.125*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4]);
+  double bq = 0.125*(23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]) ;
+  double cq = 0.125*((13.41640786499874*psi[5]-15.0*psi[8])*SQ(y)+(6.928203230275509*psi[2]-7.745966692414834*psi[6])*y+5.0*psi[8]- 4.47213595499958*psi[5]-4.47213595499958*psi[4]+4.0*psi[0] ) - psi0;
+
+  double delta2 = bq*bq - 4*aq*cq;
+
+  if (delta2 > 0) {
+    double r1, r2;
+    double delta = sqrt(delta2);
+    //// compute both roots
+    double qq = -0.5*(bq + (bq/fabs(bq)) * delta);
+    r1 = qq/aq;
+    r2 = cq/qq;
+
+    int sidx = 0;
+    if ((-1<=r1) && (r1 < 1)) {
+      sol.nsol += 1;
+      sol.R[sidx] = r1*dx[0]*0.5 + xc[0];
+
+      double x = r1;
+      double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+      double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      
+      sidx += 1;
+    }
+    if ((-1<=r2) && (r2 < 1)) {
+      sol.nsol += 1;
+      sol.R[sidx] = r2*dx[0]*0.5 + xc[0];
+
+      double x = r2;
+      double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+      double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      
+      sidx += 1;
+    }
+  }
+  return sol;
+}
+
+// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis if delta2 is negative byt very small
+// Use more accurate roots from numerical recipes in C 2007 section 5.6
+static inline struct RdRdZ_sol
+calc_RdR_p2_tensor_nrc_none(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+{
+  struct RdRdZ_sol sol = { .nsol = 0 };
+  double y = (Z-xc[1])/(dx[1]*0.5);
+
+  double aq = 0.125*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4]);
+  double bq = 0.125*(23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]) ;
+  double cq = 0.125*((13.41640786499874*psi[5]-15.0*psi[8])*SQ(y)+(6.928203230275509*psi[2]-7.745966692414834*psi[6])*y+5.0*psi[8]- 4.47213595499958*psi[5]-4.47213595499958*psi[4]+4.0*psi[0] ) - psi0;
+
+  double delta2 = bq*bq - 4*aq*cq;
+  if(delta2 > 0)
+    return sol;
+
+  if (fabs(delta2) < 1e-8) {
+    double r1, r2;
+    double delta = 0.0;
+    //// compute both roots
+    double qq = -0.5*(bq + (bq/fabs(bq)) * delta);
+    r1 = qq/aq;
+    r2 = cq/qq;
+
+    int sidx = 0;
+    //if ((-1<=r1) && (r1 < 1)) {
+    //  sol.nsol += 1;
+    //  sol.R[sidx] = r1*dx[0]*0.5 + xc[0];
+
+    //  double x = r1;
+    //  double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+    //  double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+    //  sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+    //  
+    //  sidx += 1;
+    //}
+    if ((-1<=r2) && (r2 < 1)) {
+      sol.nsol += 1;
+      sol.R[sidx] = r2*dx[0]*0.5 + xc[0];
+
+      double x = r2;
+      double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+      double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      
+      sidx += 1;
+    }
+  }
+  return sol;
+}
+
 // Compute R(psi,Z) given a psi and Z. Can return multiple solutions
 // or no solutions. The number of roots found is returned and are
 // copied in the array R and dR. The calling function must ensure that
@@ -172,6 +325,31 @@ R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
         }
       }
   }
+
+  // Try again if we didn't find any
+  if (sidx==0 && geo->ftype != GKYL_CORE_R) {
+    gkyl_range_iter_init(&riter, &rangeR);
+    while (gkyl_range_iter_next(&riter) && sidx<=nmaxroots) {
+      long loc = gkyl_range_idx(&rangeR, riter.idx);
+      const double *psih = gkyl_array_cfetch(geo->psiRZ, loc);
+
+      double xc[2];
+      idx[0] = riter.idx[0];
+      gkyl_rect_grid_cell_center(&geo->rzgrid, idx, xc);
+
+      struct RdRdZ_sol sol = calc_RdR_p2_tensor_nrc_none(psih, psi, Z, xc, dx);
+      
+      if (sol.nsol > 0)
+        for (int s=0; s<sol.nsol; ++s) {
+          if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
+            R[sidx] = sol.R[s];
+            dR[sidx] = sol.dRdZ[s];
+            sidx += 1;
+          }
+        }
+    }
+  }
+
   return sidx;
 }
 
