@@ -181,8 +181,6 @@ main(int argc, char **argv)
   struct gk_rad_ctx ctx = create_ctx(); // context for init functions
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 2);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 2);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 2);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
 

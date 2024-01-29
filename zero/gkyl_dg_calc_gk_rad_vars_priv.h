@@ -1,75 +1,98 @@
-#include <math.h>
-#include <string.h>
+// Private header: not for direct use
+#pragma once
 
-#include <gkyl_const.h>
+#include <math.h>
+
+#include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_eval_on_nodes.h>
-#include <gkyl_gauss_quad_data.h>
+#include <gkyl_rad_gyrokinetic_kernels.h>
+#include <gkyl_range.h>
 #include <gkyl_util.h>
-#include <gkyl_rect_grid.h>
+#include <assert.h>
+
+typedef void (*rad_gyrokinetic_nu_t)(const double *w, const double *dxv, 
+  double charge, double mass, double a, double alpha, double beta, double gamma, double v0, 
+  const double *bmag, double* GKYL_RESTRICT drag_rad_surf, double* GKYL_RESTRICT drag_rad); 
+
+typedef void (*rad_gyrokinetic_nI_nu_t)(const double *vnu_surf, const double *vnu,
+  const double *vsqnu_surf, const double *vsqnu, const double *nI, 
+  double* GKYL_RESTRICT nvnu_surf, double* GKYL_RESTRICT nvnu, 
+  double* GKYL_RESTRICT nvsqnu_surf, double* GKYL_RESTRICT nvsqnu); 
+
+// The cv_index[cd].vdim[vd] is used to index the various list of
+// kernels below.
+GKYL_CU_D
+static struct { int vdim[3]; } cv_index[] = {
+  {-1, -1, -1}, // 0x makes no sense.
+  {-1,  0,  1}, // 1x kernel indices.
+  {-1, -1,  2}, // 2x kernel indices.
+  {-1, -1,  3}, // 3x kernel indices.
+};
+
+// for use in kernel tables
+typedef struct { rad_gyrokinetic_nu_t kernels[3]; } gkyl_dg_rad_gyrokinetic_nu_kern_list;
+typedef struct { rad_gyrokinetic_nI_nu_t kernels[3]; } gkyl_dg_rad_gyrokinetic_nI_nu_kern_list;
 
 struct gkyl_dg_calc_gk_rad_vars {
-  struct gkyl_rect_grid phase_grid;
-  int cdim; // Configuration space dimension
-  int pdim; // Phase space dimension
-
-  const struct gkyl_basis *phase_basis;
-  const struct gkyl_basis *conf_basis;
-
-  int num_conf_basis; // number of configuration space basis functions
-  int num_phase_basis; // number of phase space basis functions
-   
-  struct gkyl_array *nodes;
+  struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
+  int cdim; // Configuration space dimensionality
+  int pdim; // Phase space dimensionality
+  rad_gyrokinetic_nu_t rad_nu_vpar; // kernel for computing surface and volume expansions of vpar radiation drag
+  rad_gyrokinetic_nu_t rad_nu_mu; // kernel for computing surface and volume expansions of mu radiation drag
+  rad_gyrokinetic_nI_nu_t rad_nI_nu; // kernel for density weighted radiation drag
 
   double charge, mass;
   double a, alpha, beta, gamma, v0; // Fitting parameters for radiation drag coefficient
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
+
+  uint32_t flags;
+  struct gkyl_dg_calc_gk_rad_vars *on_dev; // pointer to itself or device data
 };
 
-GKYL_CU_DH
-static inline void
-comp_to_phys(int ndim, const double *eta,
-  const double * GKYL_RESTRICT dx, const double * GKYL_RESTRICT xc,
-  double* GKYL_RESTRICT xout)
+// Radiation drag surface and volume expansions in vpar (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_rad_gyrokinetic_nu_kern_list ser_rad_gyrokinetic_nu_vpar_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, rad_gyrokinetic_drag_nuvpar_1x2v_ser_p1, rad_gyrokinetic_drag_nuvpar_1x2v_ser_p2 }, // 1
+  { NULL, rad_gyrokinetic_drag_nuvpar_2x2v_ser_p1, rad_gyrokinetic_drag_nuvpar_2x2v_ser_p2 }, // 2
+  { NULL, rad_gyrokinetic_drag_nuvpar_3x2v_ser_p1, NULL }, // 3
+};
+
+// Radiation drag surface and volume expansions in mu (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_rad_gyrokinetic_nu_kern_list ser_rad_gyrokinetic_nu_mu_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, rad_gyrokinetic_drag_numu_1x2v_ser_p1, rad_gyrokinetic_drag_numu_1x2v_ser_p2 }, // 1
+  { NULL, rad_gyrokinetic_drag_numu_2x2v_ser_p1, rad_gyrokinetic_drag_numu_2x2v_ser_p2 }, // 2
+  { NULL, rad_gyrokinetic_drag_numu_3x2v_ser_p1, NULL }, // 3
+};
+
+// Density-weighted radiation drag surface and volume expansions (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_rad_gyrokinetic_nI_nu_kern_list ser_rad_gyrokinetic_nI_nu_kernels[] = {
+  { NULL, NULL, NULL }, // 0
+  { NULL, rad_gyrokinetic_drag_nI_nu_1x2v_ser_p1, rad_gyrokinetic_drag_nI_nu_1x2v_ser_p2 }, // 1
+  { NULL, rad_gyrokinetic_drag_nI_nu_2x2v_ser_p1, rad_gyrokinetic_drag_nI_nu_2x2v_ser_p2 }, // 2
+  { NULL, rad_gyrokinetic_drag_nI_nu_3x2v_ser_p1, NULL }, // 3
+};
+
+GKYL_CU_D
+static rad_gyrokinetic_nu_t
+choose_rad_gyrokinetic_nu_vpar_kern(int cdim, int vdim, int poly_order)
 {
-  for (int d=0; d<ndim; ++d) xout[d] = 0.5*dx[d]*eta[d]+xc[d];
+  return ser_rad_gyrokinetic_nu_vpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
 
-static void
-nod2mod(int num_ret_vals, const struct gkyl_basis *basis, const struct gkyl_array *fun_at_nodes, double *f) {
-  const double *fao = gkyl_array_cfetch(fun_at_nodes, 0);
-
-  int num_basis = basis->num_basis;
-  double fnodal[num_basis];
-  for (int i=0; i<num_ret_vals; ++i) {
-    for (int k=0; k<num_basis; ++k) {
-      fnodal[k] = fao[num_ret_vals*k+i];
-    }
-
-    basis->nodal_to_modal(fnodal, &f[num_basis*i]);
-  }
+GKYL_CU_D
+static rad_gyrokinetic_nu_t
+choose_rad_gyrokinetic_nu_mu_kern(int cdim, int vdim, int poly_order)
+{
+  return ser_rad_gyrokinetic_nu_mu_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
 
-static inline double 
-eval_vnu(double charge, double mass, 
-  double a, double alpha, double beta, double gamma, double v0, 
-	 double vpar, double mu, double bmag, double *nu) 
+GKYL_CU_D
+static rad_gyrokinetic_nI_nu_t
+choose_rad_gyrokinetic_nI_nu_kern(int cdim, int vdim, int poly_order)
 {
-  double scaled_v0 = v0/sqrt(mass/(2.0*fabs(charge)));
-  double c_const = 8.0*sqrt(M_PI)*pow(fabs(charge),5.0/2.0)/mass;
-  double const_mult = a*(alpha+beta)/c_const;
-  double vmag = sqrt(vpar*vpar+2.0*bmag*mu/mass);
-  *nu = 0.0;
-  if (vmag == 0.0) {
-    return 0.0;
-  } else {
-    *nu = a*(alpha+beta)*pow(vmag,gamma)/(beta*pow(vmag/scaled_v0,-alpha)+alpha*pow(vmag/scaled_v0,beta))/c_const;
-    return vpar*nu[0];
-  }
-}
-
-static inline double 
-eval_vsqnu(double mu, double nu) 
-{
-  return 2*mu*nu;
+  return ser_rad_gyrokinetic_nI_nu_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }

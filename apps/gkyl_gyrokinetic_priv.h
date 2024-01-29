@@ -152,18 +152,25 @@ struct gk_rad_drag {
   int collide_with_idx[GKYL_MAX_SPECIES]; // index of species we collide with
 
   // drag coefficients in vparallel and mu for each species being collided with
-  struct gkyl_array *vnu[GKYL_MAX_SPECIES]; // vnu = 2/pi*|v|*nu(v)
-  struct gkyl_array *vsqnu[GKYL_MAX_SPECIES]; // vsqnu = 1/2*(m/B)^(3/2)*sqrt(mu)*|v|^2*nu(v)
-  struct gkyl_array *vnu_host[GKYL_MAX_SPECIES]; // host-side copy of vnu
-  struct gkyl_array *vsqnu_host[GKYL_MAX_SPECIES]; // host-side copy of vsqnu
+  struct gkyl_array *vnu_surf[GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vnu[GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vsqnu_surf[GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vsqnu[GKYL_MAX_SPECIES]; 
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[GKYL_MAX_SPECIES]; 
 
   struct gk_species_moment moms[GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
 
-  struct gkyl_array *nvnu_sum; // total vparallel radiation drag including density scaling
-  struct gkyl_array *nvsqnu_sum; // total mu radiation drag including density scaling
-  struct gkyl_array *nvnu_sum_host; // host-side copy of total vparallel radiation drag including density scaling
-  struct gkyl_array *nvsqnu_sum_host; // host-side copy of total mu radiation drag including density scaling
+  struct gkyl_array *nvnu_surf; // total vparallel radiation drag surface expansion including density scaling
+  struct gkyl_array *nvnu; // total vparallel radiation drag volume expansion including density scaling
+  struct gkyl_array *nvsqnu_surf; // total mu radiation drag surface expansion including density scaling
+  struct gkyl_array *nvsqnu; // total mu radiation drag volume expansion including density scaling
+
+  // host-side copies for I/O
+  struct gkyl_array *nvnu_surf_host; 
+  struct gkyl_array *nvnu_host; 
+  struct gkyl_array *nvsqnu_surf_host; 
+  struct gkyl_array *nvsqnu_host; 
+
   gkyl_dg_updater_collisions *drag_slvr; // radiation solver
 };
 

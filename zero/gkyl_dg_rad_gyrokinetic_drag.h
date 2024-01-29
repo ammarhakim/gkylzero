@@ -7,9 +7,11 @@
 #include <gkyl_rect_grid.h>
 
 // Struct containing the pointers to auxiliary fields.
-struct gkyl_dg_rad_gyrokinetic_drag_auxfields { 
-  const struct gkyl_array *nvnu_sum;
-  const struct gkyl_array *nvsqnu_sum;
+struct gkyl_dg_rad_gyrokinetic_auxfields { 
+  const struct gkyl_array *nvnu_surf;
+  const struct gkyl_array *nvnu;
+  const struct gkyl_array *nvsqnu_surf;
+  const struct gkyl_array *nvsqnu;
 };
 
 /**
@@ -41,13 +43,13 @@ struct gkyl_dg_eqn* gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_ba
  * @param eqn Equation pointer
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_drag_auxfields auxin);
+void gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 
 /**
  * CUDA device function to set auxiliary fields needed in updating the drag flux term.
  */
-void gkyl_rad_gyrokinetic_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_drag_auxfields auxin);
+void gkyl_rad_gyrokinetic_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin);
 
 #endif
