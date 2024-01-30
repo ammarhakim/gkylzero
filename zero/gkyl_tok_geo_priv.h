@@ -254,9 +254,11 @@ calc_RdR_p2_tensor_nrc_none(const double *psi, double psi0, double Z, double xc[
     double r1, r2;
     double delta = 0.0;
     //// compute both roots
-    double qq = -0.5*(bq + (bq/fabs(bq)) * delta);
+    double qq = -0.5*bq;
     r1 = qq/aq;
     r2 = cq/qq;
+    // The two roots should really both be equal to -sqrt(c/a) but numerically they are quite different
+    // It seems that only the expression for r2 = cq/aq is robust when both c and a are very small
 
     int sidx = 0;
     //if ((-1<=r1) && (r1 < 1)) {
