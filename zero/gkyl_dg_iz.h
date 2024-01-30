@@ -40,31 +40,27 @@ struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp);
 
 /**
  * Compute ionization collision term for use in neutral reactions. 
- * The update_rng MUST be a sub-range of the
- * range on which the array is defined.  That is, it must be either
- * the same range as the array range, or one created using the
- * gkyl_sub_range_init method.
+ * 
  *
  * @param iz Ionization object.
  * @param moms_elc Input electron moments
  * @param moms_donor Input neutral moments
- * @param bmag Magnetic field used for GK fmax 
- * @param jacob_tot Total Jacobian used for GK fmax
- * @param bhat_vec Unit bmag vector in Cartesian (X,Y,Z) components
- * @param distf_self Species self distribution function
- * @param coll_iz Output reaction rate coefficient
+ * @param b_i Unit bmag vector in Cartesian (X,Y,Z) components
+ * @param vtSq_iz Thermal speed for ionization distf
+ * @param prim_vars_donor Primitive variables for donor species
+ * @param coef_iz Output reaction rate coefficient
  */
 
-void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_donor,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
-  const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
+void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_elc,
+  const struct gkyl_array *moms_donor, const struct gkyl_array *b_i,
+  struct gkyl_array *vtSq_iz, struct gkyl_array *prim_vars_donor,		 
+  struct gkyl_array *coef_iz, struct gkyl_array *cflrate);
 
-void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_donor,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
-  const struct gkyl_array *distf_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate);
-
+void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_elc,
+  const struct gkyl_array *moms_donor, const struct gkyl_array *b_i,
+  struct gkyl_array *vtSq_iz, struct gkyl_array *prim_vars_donor,		 
+  struct gkyl_array *coef_iz, struct gkyl_array *cflrate);
+  
 /**
  * Delete updater.
  *

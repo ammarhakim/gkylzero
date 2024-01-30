@@ -22,9 +22,9 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
   const struct gkyl_basis *adas_basis, const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq,
   const struct gkyl_dg_prim_vars_type *calc_prim_vars_donor_gk, const struct gkyl_array* moms_elc,
   const struct gkyl_array* moms_donor, struct gkyl_array* vtSq_elc, struct gkyl_array* prim_vars_donor,
-  struct gkyl_array* coef_iz, struct gkyl_array* coef_m0, struct gkyl_array* ioniz_data, int num_basis,
-  enum gkyl_dg_iz_self type_self, double mass_elc, double elem_charge, double E, double maxLogTe, double minLogTe,
-  double dlogTe, double maxLogM0, double minLogM0, double dlogM0, double resTe, double resM0)
+  struct gkyl_array* coef_iz, struct gkyl_array* ioniz_data, int num_basis, enum gkyl_dg_iz_self type_self,
+  double mass_elc, double elem_charge, double E, double maxLogTe, double minLogTe, double dlogTe,
+  double maxLogM0, double minLogM0, double dlogM0, double resTe, double resM0)
 {
   int cidx[GKYL_MAX_CDIM];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -92,10 +92,10 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
   }
 }
 
-void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
-  const struct gkyl_array *moms_elc, const struct gkyl_array *moms_donor,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
-  const struct gkyl_array *f_self, struct gkyl_array *coll_iz, struct gkyl_array *cflrate)
+void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_elc,
+  const struct gkyl_array *moms_donor, const struct gkyl_array *b_i,
+  struct gkyl_array *vtSq_iz, struct gkyl_array *prim_vars_donor,		 
+  struct gkyl_array *coef_iz, struct gkyl_array *cflrate)
 {
   if ((up->all_gk==false) && ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION))) {
     // Set auxiliary variable (b_i) for computation of gk neut prim vars
@@ -105,47 +105,19 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up,
 
   gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng,
     up->basis_on_dev, up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_donor->on_dev, 
-    moms_elc->on_dev, moms_donor->on_dev, up->vtSq_elc->on_dev, up->prim_vars_donor->on_dev,
-    up->coef_iz->on_dev, up->coef_m0->on_dev, up->ioniz_data->on_dev, up->cbasis->num_basis,
+    moms_elc->on_dev, moms_donor->on_dev, up->vtSq_elc->on_dev, prim_vars_donor->on_dev,
+    coef_iz->on_dev, up->ioniz_data->on_dev, up->cbasis->num_basis,
     up->type_self, up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe,
     up->dlogTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resTe, up->resM0);
 
   if (up->type_self == GKYL_IZ_ELC) {
      
     // Calculate vt_sq_iz
-    gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, up->conf_rng);
-    gkyl_array_scale_range(up->vtSq_iz, 1/2.0, up->conf_rng);
-    gkyl_array_shiftc(up->vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
-
-    // Set fmax moments
-    gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->prim_vars_donor, 0, up->conf_rng);
-    gkyl_array_set_offset_range(up->prim_vars_fmax, 1., up->vtSq_iz, up->cbasis->num_basis, up->conf_rng);
-
-    // Proj maxwellian on basis
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_elc,
-    					     up->prim_vars_fmax, bmag, jacob_tot, up->mass_elc, coll_iz);
-    
-    // copy, scale and accumulate
-    gkyl_array_scale_range(coll_iz, 2.0, up->phase_rng);
-    gkyl_array_accumulate_range(coll_iz, -1.0, f_self, up->phase_rng);
+    gkyl_array_copy_range(vtSq_iz, vtSq_elc, up->conf_rng);
+    gkyl_array_scale_range(vtSq_iz, 1/2.0, up->conf_rng);
+    gkyl_array_shiftc(vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
 
   }
-  else if (up->type_self == GKYL_IZ_ION) {
-    // Proj maxwellian on basis (doesn't assume same phase grid, even if GK)
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_donor,
-    					     up->prim_vars_donor, bmag, jacob_tot, up->mass_ion, coll_iz);
-  }
-  else if (up->type_self == GKYL_IZ_DONOR) {
-    // neut coll_iz = -f_n
-    gkyl_array_set_range(coll_iz, -1.0, f_self, up->phase_rng);
-  }
-
-  // coll_iz = coef_iz*coll_iz
-  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_iz, coll_iz,
-				    up->conf_rng, up->phase_rng);
-  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_iz, up->coef_m0, coll_iz,
-				    up->conf_rng, up->phase_rng);
-  
   
   // cfl calculation
   //struct gkyl_range vel_rng;
