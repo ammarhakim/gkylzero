@@ -128,18 +128,10 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
     gkyl_array_copy(up->recomb_data, adas_dg);
     
     up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-    up->coef_recomb = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-    up->coef_m0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume); 
-    up->prim_vars_ion = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim+1)*up->cbasis->num_basis, up->conf_rng->volume);
   }
   else {
     up->recomb_data = adas_dg;
-    
-    // allocate fields for prim mom calculation
     up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-    up->coef_recomb = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-    up->coef_m0 = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
-    up->prim_vars_ion = gkyl_array_new(GKYL_DOUBLE, (vdim+1)*up->cbasis->num_basis, up->conf_rng->volume);
   }
 
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); 
@@ -150,9 +142,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
     up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_gk", use_gpu);
   }
   
-  // only for receiver species
-  up->proj_max = gkyl_proj_maxwellian_on_basis_new(up->grid, up->cbasis, up->pbasis, poly_order+1, use_gpu);
-
   up->on_dev = up; // CPU eqn obj points to itself
 
   gkyl_array_release(adas_nodal);
@@ -161,12 +150,12 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
 
 void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
-  const struct gkyl_array *f_self, struct gkyl_array *coll_recomb, struct gkyl_array *cflrate)
+  const struct gkyl_array *b_i, struct gkyl_array *prim_vars_ion,
+  struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(coll_recomb)) {
-    return gkyl_dg_recomb_coll_cu(up, moms_elc, moms_ion, bmag, jacob_tot, b_i, f_self, coll_recomb, cflrate);
+    return gkyl_dg_recomb_coll_cu(up, moms_elc, moms_ion, b_i, prim_vars_ion, coll_recomb, cflrate);
   }
 #endif
   if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
@@ -185,10 +174,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     const double *m0_elc_d = &moms_elc_d[0];    
     
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
-    double *coef_m0_d = gkyl_array_fetch(up->coef_m0, loc);
-    double *coef_recomb_d = gkyl_array_fetch(up->coef_recomb, loc);
-
-    for (int i=0; i<up->cbasis->num_basis; ++i) coef_m0_d[i] = m0_elc_d[i];
+    double *coef_recomb_d = gkyl_array_fetch(coef_recomb, loc);
 
     up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx, moms_elc_d, vtSq_elc_d);
 
@@ -222,7 +208,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
 
     if ((up->all_gk==false) && (up->type_self == GKYL_SELF_RECVR)) {
       const double *moms_ion_d = gkyl_array_cfetch(moms_ion, loc);
-      double *prim_vars_ion_d = gkyl_array_fetch(up->prim_vars_ion, loc);
+      double *prim_vars_ion_d = gkyl_array_fetch(prim_vars_ion, loc);
       
       // condense the following 2 kernels...
       up->calc_prim_vars_ion->kernel(up->calc_prim_vars_ion, conf_iter.idx,
@@ -230,27 +216,6 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     }
   }
 
-  if (up->type_self == GKYL_SELF_RECVR) {
-    if (up->all_gk) {
-      gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion, bmag,
-					      jacob_tot, up->mass_self, coll_recomb);
-    }
-    else {      
-      // Proj maxwellian on basis
-      gkyl_proj_maxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion,
-					     up->prim_vars_ion, coll_recomb);
-    }
-  }
-  else {
-    // copy and weak mult
-    gkyl_array_set_range(coll_recomb, -1.0, f_self, up->phase_rng);
-  }
-  
-  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_recomb, coll_recomb,
-				  up->conf_rng, up->phase_rng);
-  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_m0, coll_recomb,
-				  up->conf_rng, up->phase_rng);
-  
   // cfl calculation
   //struct gkyl_range vel_rng;
   /* gkyl_range_deflate(&vel_rng, up->phase_rng, rem_dir, conf_iter.idx); */
@@ -271,18 +236,16 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
 {
   gkyl_array_release(up->recomb_data);
   gkyl_array_release(up->vtSq_elc);
-  gkyl_array_release(up->coef_m0);
-  gkyl_array_release(up->coef_recomb);
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc_vtSq);
 
   // only used for Vlasov neut coll.
   //gkyl_array_release(up->udrift_ion);
   //gkyl_array_release(up->vtSq_ion);
-  gkyl_proj_maxwellian_on_basis_release(up->proj_max);
+  //gkyl_proj_maxwellian_on_basis_release(up->proj_max);
   //gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion_udrift);
   if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
     gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
-    gkyl_array_release(up->prim_vars_ion);
+    //gkyl_array_release(up->prim_vars_ion);
   }
   free(up);
 }

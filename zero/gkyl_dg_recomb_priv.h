@@ -38,15 +38,10 @@ struct gkyl_dg_recomb {
   
   struct gkyl_array *recomb_data;
   struct gkyl_array *vtSq_elc;
-  struct gkyl_array *coef_m0;
-  struct gkyl_array *coef_recomb;
-  struct gkyl_array *prim_vars_ion;
 
   struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq;
   struct gkyl_dg_prim_vars_type *calc_prim_vars_ion;
 
-  struct gkyl_proj_maxwellian_on_basis *proj_max;
-  
   struct gkyl_dg_recomb *on_dev; // pointer to itself or device data
   //dg_recomb_react_ratef_t react_rate; // pointer to reaction rate kernel
 };

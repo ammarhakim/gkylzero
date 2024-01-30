@@ -34,30 +34,25 @@ typedef struct gkyl_dg_recomb gkyl_dg_recomb;
 struct gkyl_dg_recomb* gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu); 
 
 /**
- * Compute ionrecombation collision term for use in neutral reactions. 
- * The update_rng MUST be a sub-range of the
- * range on which the array is defined.  That is, it must be either
- * the same range as the array range, or one created using the
- * gkyl_sub_range_init method.
+ * Compute recombination collision term for use in neutral reactions. 
  *
  * @param recomb Ionrecombation object.
  * @param moms_elc Input electron moments
  * @param moms_ion Input ion moments
- * @param bmag Magnetic field used for GK fmax 
- * @param jacob_tot Total Jacobian used for GK fmax
  * @param b_i Unit bmag vector in Cartesian (X,Y,Z) components
- * @param distf_self Species self distribution function
- * @param coll_recomb Output reaction rate coefficient
+ * @param prim_vars_ion Primitive variabls for ion on vlasov grid
+ * @param coef_recomb Output reaction rate coefficient
  */
 void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i, 
-  const struct gkyl_array *f_self, struct gkyl_array *coll_recomb, struct gkyl_array *cflrate);
+  const struct gkyl_array *b_i, struct gkyl_array *prim_vars_ion,
+  struct gkyl_array *coef_recomb, struct gkyl_array *cflrate);
 
 void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
-  const struct gkyl_array *f_self, struct gkyl_array *coll_recomb, struct gkyl_array *cflrate);
+  const struct gkyl_array *b_i, struct gkyl_array *prim_vars_ion,
+  struct gkyl_array *coef_recomb, struct gkyl_array *cflrate);
+
 /**
  * Delete updater.
  *

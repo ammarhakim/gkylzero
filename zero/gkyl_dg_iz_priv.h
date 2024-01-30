@@ -43,7 +43,6 @@ struct gkyl_dg_iz {
   struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq;
 
   struct gkyl_dg_iz *on_dev; // pointer to itself or device data
-  //dg_iz_react_ratef_t react_rate; // pointer to reaction rate kernel
 };
 
 

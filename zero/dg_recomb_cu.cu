@@ -21,8 +21,8 @@ __global__ static void
 gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
   const struct gkyl_basis *adas_basis, const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq,
   const struct gkyl_dg_prim_vars_type *calc_prim_vars_ion, const struct gkyl_array *moms_elc,
-  const struct gkyl_array *moms_ion, struct gkyl_array *vtSq_elc, struct gkyl_array *coef_m0,
-  struct gkyl_array *coef_recomb, struct gkyl_array *prim_vars_ion, struct gkyl_array *recomb_data, int num_basis,
+  const struct gkyl_array *moms_ion, struct gkyl_array *vtSq_elc, struct gkyl_array *coef_recomb,
+  struct gkyl_array *prim_vars_ion, struct gkyl_array *recomb_data, int num_basis,
   enum gkyl_dg_recomb_self type_self, bool all_gk, double mass_elc, double elem_charge, double maxLogTe,
   double minLogTe, double dlogTe, double maxLogM0, double minLogM0, double dlogM0, double resTe, double resM0)
 {
@@ -37,11 +37,8 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
     const double *m0_elc_d = &moms_elc_d[0];
     
     double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
-    double *coef_m0_d = (double*) gkyl_array_fetch(coef_m0, loc);
     double *coef_recomb_d = (double*) gkyl_array_fetch(coef_recomb, loc);
 
-    for (int i=0; i<num_basis; ++i) coef_m0_d[i] = m0_elc_d[i];
-    
     calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d,
 				    vtSq_elc_d);
 
@@ -84,8 +81,8 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
 
 void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up,
   const struct gkyl_array *moms_elc, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, const struct gkyl_array *b_i,
-  const struct gkyl_array *f_self, struct gkyl_array *coll_recomb, struct gkyl_array *cflrate)
+  const struct gkyl_array *b_i, struct gkyl_array *prim_vars_ion,
+  struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
 {
 
   if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
@@ -96,30 +93,10 @@ void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up,
   
   gkyl_recomb_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng, up->basis_on_dev,
     up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_ion->on_dev, moms_elc->on_dev, moms_ion->on_dev,
-    up->vtSq_elc->on_dev, up->coef_m0->on_dev, up->coef_recomb->on_dev, up->prim_vars_ion->on_dev,
+    up->vtSq_elc->on_dev, coef_recomb->on_dev, prim_vars_ion->on_dev,
     up->recomb_data->on_dev, up->cbasis->num_basis, up->type_self, up->all_gk, up->mass_elc,
     up->elem_charge, up->maxLogTe, up->minLogTe, up->dlogTe, up->maxLogM0, up->minLogM0,
     up->dlogM0, up->resTe, up->resM0);
-
-  if (up->type_self == GKYL_RECOMB_RECVR) {
-    if (up->all_gk) {
-      gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion, bmag, jacob_tot, up->mass_self, coll_recomb);
-    }
-    else {
-      // Proj maxwellian on basis
-      gkyl_proj_maxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion,
-					     up->prim_vars_ion, coll_recomb);
-    }
-  }
-  else {
-    // copy and weak mult
-    gkyl_array_set_range(coll_recomb, -1.0, f_self, up->phase_rng);
-  }
-  
-  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_recomb, coll_recomb,
-				  up->conf_rng, up->phase_rng);
-  gkyl_dg_mul_conf_phase_op_range(up->cbasis, up->pbasis, coll_recomb, up->coef_m0, coll_recomb,
-				  up->conf_rng, up->phase_rng);
 
   // cfl calculation
   //struct gkyl_range vel_rng;
