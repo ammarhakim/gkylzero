@@ -1,4 +1,3 @@
-#include "gkyl_array.h"
 #include <gkyl_bc_block_tensor.h>
 #include <gkyl_bc_block_tensor_priv.h>
 #include <gkyl_alloc.h>
@@ -13,15 +12,7 @@ static inline double dot_product(const double *v1, const double *v2)
 }
 
 
-/**
- * Given the modal expansion of the tangent vectors in the block which fluxes are leaving
- * and the duals in the block which the fluxes are entering
- * Compute 
- * simulations.
- *
- * @param inp Input parameters
- * @param New GK geometry updater
- */
+
 
 struct bc_block_tensor*
 gkyl_bc_block_tensor_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
@@ -43,15 +34,7 @@ gkyl_bc_block_tensor_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   return up;
 }
 
-/**
- * Take in modal expansions of duals of one block and tangents of the other (cartesian components)
- * and calculate T^j'_i = e^j' \dot e_i at the quadrature nodes of the interface
- * @param up bc_block_tensor object. Stored with i changing fastest, then quad node location, then j'
- * @param edge1 edge of block which fluxes leave (0 is lower, 1 is upper)
- * @param edge2 edge of block which fluxes enter(0 is lower, 1 is upper)
- * @param ej duals of block which fluxes enter
- * @param e_i tangent vectors of block which fluxes leave
- */
+
 void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, const double *ej, const double *e_i, double *tj_i)
 {
   // First evaluate at all the quadrature nodes
