@@ -80,6 +80,10 @@ installed. Likewise, SuperLU **requires you to have cmake** installed.
 in mind that on Apple Macs you do not need to do anything special to use
 LAPACK/BLAS as it comes with the developer tools.
 
+At this step, you can download ADAS data for neutral interactions by adding
+the flag ```--download-adas=yes``` after the other dependencies to be
+installed.
+
 ### Configuring
 
 The (optional) configure step is used when we need to specify the use of

@@ -57,7 +57,7 @@ The following flags specify the libraries to build.
 --enable-superlu_gpu        [no] Build GPUs lib for SuperLU (needs --build-superlu_dist=yes)
 --build-openmpi             [no] Should we build OpenMPI?
 --build-luajit              [no] Should we build LuaJIT?
---download-adas             [no] Should we download ADAS data?
+--download-adas             [no] Should we download ADAS data? (uses python)
 
 EOF
 }
