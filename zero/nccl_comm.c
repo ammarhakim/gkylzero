@@ -122,6 +122,22 @@ comm_free(const struct gkyl_ref_count *ref)
 }
 
 static int
+get_rank(struct gkyl_comm *comm, int *rank)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  *rank = nccl->rank;
+  return 0;
+}
+
+static int
+get_size(struct gkyl_comm *comm, int *sz)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  *sz = nccl->size;
+  return 0;
+}
+
+static int
 barrier(struct gkyl_comm *comm)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
@@ -285,7 +301,6 @@ array_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   return 0;
 }
 
-
 static struct gkyl_comm*
 extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
 {
@@ -301,6 +316,22 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   );
   gkyl_rect_decomp_release(ext_decomp);
   return ext_comm;
+}
+
+static struct gkyl_comm*
+split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  MPI_Comm new_mpi_comm;
+  int ret = MPI_Comm_split(nccl->mpi_comm, color, nccl->rank, &new_mpi_comm);
+  assert(ret == MPI_SUCCESS);
+
+  struct gkyl_comm *newcomm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+      .mpi_comm = new_mpi_comm,
+      .decomp = new_decomp,
+    }
+  );
+  return newcomm;
 }
 
 struct gkyl_comm*
@@ -352,6 +383,8 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   for (int i=0; i<MAX_RECV_NEIGH; ++i)
     nccl->send[i].buff = gkyl_mem_buff_cu_new(16);
   
+  nccl->base.get_rank = get_rank;
+  nccl->base.get_size = get_size;
   nccl->base.barrier = barrier;
   nccl->base.all_reduce = all_reduce;
   nccl->base.gkyl_array_send = array_send;
@@ -365,6 +398,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   nccl->base.comm_group_call_start = group_call_start;
   nccl->base.comm_group_call_end = group_call_end;
   nccl->base.extend_comm = extend_comm;
+  nccl->base.split_comm = split_comm;
   nccl->base.ref_count = gkyl_ref_count_init(comm_free);
 
   return &nccl->base;
