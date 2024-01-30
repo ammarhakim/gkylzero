@@ -70,6 +70,7 @@ struct nccl_comm {
   ncclComm_t ncomm; // NCCL communicator to use.
   cudaStream_t custream; // Cuda stream for NCCL comms.
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
+  bool sync_corners; // Whether to sync corners.
 
   struct gkyl_rect_decomp_neigh *neigh; // neighbors of local region
   struct gkyl_rect_decomp_neigh *per_neigh[GKYL_MAX_DIM]; // periodic neighbors
@@ -79,6 +80,8 @@ struct nccl_comm {
 
   int nsend; // number of elements in sinfo array
   struct comm_buff_stat send[MAX_RECV_NEIGH]; // info for send data
+
+  MPI_Comm mpi_comm; // MPI comm this NCCL comm derives from.
 };
 
 static struct gkyl_comm_state* comm_state_new(struct gkyl_comm *comm)
@@ -283,11 +286,29 @@ array_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 }
 
 
+static struct gkyl_comm*
+extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+
+  // extend internal decomp object and create a new communicator
+  struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, nccl->decomp);
+  struct gkyl_comm *ext_comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+      .mpi_comm = nccl->mpi_comm,
+      .decomp = ext_decomp,
+      .sync_corners = nccl->sync_corners,
+    }
+  );
+  gkyl_rect_decomp_release(ext_decomp);
+  return ext_comm;
+}
+
 struct gkyl_comm*
 gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
 {
   struct nccl_comm *nccl = gkyl_malloc(sizeof *nccl);
 
+  nccl->mpi_comm = inp->mpi_comm;
   MPI_Comm_rank(inp->mpi_comm, &nccl->rank);
   MPI_Comm_size(inp->mpi_comm, &nccl->size);
 
@@ -316,6 +337,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   }
   checkCuda(cudaStreamSynchronize(nccl->custream));
 
+  nccl->sync_corners = inp->sync_corners;
   nccl->decomp = gkyl_rect_decomp_acquire(inp->decomp);
   nccl->neigh = gkyl_rect_decomp_calc_neigh(nccl->decomp, inp->sync_corners, nccl->rank);
   for (int d=0; d<nccl->decomp->ndim; ++d)
@@ -342,6 +364,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   nccl->base.comm_state_wait = comm_state_wait;
   nccl->base.comm_group_call_start = group_call_start;
   nccl->base.comm_group_call_end = group_call_end;
+  nccl->base.extend_comm = extend_comm;
   nccl->base.ref_count = gkyl_ref_count_init(comm_free);
 
   return &nccl->base;
