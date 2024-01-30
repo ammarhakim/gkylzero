@@ -102,6 +102,10 @@ void test_cartesian_2x_onecell()
   printf("\n OR \n");
   for (int i = 0; i < 8; i++)
     printf("tj_i[%d] = %g\n", i, tj_i[i]);
+
+  gkyl_array_release(dxdz);
+  gkyl_array_release(dzdx);
+  gkyl_bc_block_tensor_release(bt);
 }
 
 void test_cartesian_2x_z()
@@ -153,6 +157,10 @@ void test_cartesian_2x_z()
   int dir = 1; // second direction
   gkyl_bc_block_tensor_advance(bt, dir, edge1, edge2, dxdz1, dzdx2, &local1, &local2);
   gkyl_grid_sub_array_write(&grid2, &local2, bt->tensor, "tji.gkyl");
+
+  gkyl_array_release(dxdz1);
+  gkyl_array_release(dzdx2);
+  gkyl_bc_block_tensor_release(bt);
 }
 
 void test_cartesian_2x_x()
@@ -204,6 +212,10 @@ void test_cartesian_2x_x()
   int dir = 0; // first direction
   gkyl_bc_block_tensor_advance(bt, dir, edge1, edge2, dxdz1, dzdx2, &local1, &local2);
   gkyl_grid_sub_array_write(&grid2, &local2, bt->tensor, "tji.gkyl");
+
+  gkyl_array_release(dxdz1);
+  gkyl_array_release(dzdx2);
+  gkyl_bc_block_tensor_release(bt);
 }
 
 // Block 2 cartesian and block 1 is cylindrical
@@ -257,6 +269,10 @@ void test_cyl_cart_2x_z()
   int dir = 1; // second direction
   gkyl_bc_block_tensor_advance(bt, dir, edge1, edge2, dxdz1, dzdx2, &local1, &local2);
   gkyl_grid_sub_array_write(&grid2, &local2, bt->tensor, "tji.gkyl");
+
+  gkyl_array_release(dxdz1);
+  gkyl_array_release(dzdx2);
+  gkyl_bc_block_tensor_release(bt);
 }
 
 
@@ -311,6 +327,9 @@ void test_cartesian_3x_onecell()
   //printf("\n OR \n");
   //for (int i = 0; i < 36; i++)
   //  printf("tj_i[%d] = %g\n", i, tj_i[i]);
+  gkyl_array_release(dxdz);
+  gkyl_array_release(dzdx);
+  gkyl_bc_block_tensor_release(bt);
 
 
 }

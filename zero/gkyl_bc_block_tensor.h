@@ -46,3 +46,11 @@ void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, cons
  */
 void gkyl_bc_block_tensor_advance(struct bc_block_tensor* up, int dir, int edge1, int edge2,
     struct gkyl_array* dxdz1, struct gkyl_array* dzdx2, struct gkyl_range *range1, struct gkyl_range *range2);
+
+
+
+/**
+ * Free the bc_block_tensor updater
+ * @param up updater to be freed
+ */
+void gkyl_bc_block_tensor_release(struct bc_block_tensor* up);

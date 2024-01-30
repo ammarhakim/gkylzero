@@ -117,3 +117,8 @@ void gkyl_bc_block_tensor_advance(struct bc_block_tensor* up, int dir, int edge1
     calc_tensor(up, dir, edge1, edge2, ej, e_i, tj_i);
   }
 }
+void gkyl_bc_block_tensor_release(struct bc_block_tensor* up)
+{
+  gkyl_array_release(up->tensor);
+  gkyl_free(up);
+}
