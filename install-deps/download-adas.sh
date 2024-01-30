@@ -1,0 +1,42 @@
+#!/bin/bash
+
+source ./build-opts.sh
+
+# Install prefix
+PREFIX=$GKYLSOFT
+ADAS_DIR="$GKYLSOFT/gkylzero/share/adas"
+
+python ../data/adas/download_adas.py
+echo "Converting ADAS data to numpy .."
+python ../data/adas/adas_to_numpy.py
+rm *.dat
+mv *.npy $ADAS_DIR/.
+echo "ADAS data downloaded to $ADAS_DIR"
+
+# # Install prefix
+# PREFIX=$GKYLSOFT/luajit-git
+# # Location where dependency sources will be downloaded
+# DEP_SOURCES=$GKYLSOFT/dep_src/
+
+# mkdir -p $DEP_SOURCES
+# cd $DEP_SOURCES
+
+# if [ "$DOWNLOAD_PKGS" = "yes" ]
+# then
+#     echo "Downloading LuaJIT .."
+#     # delete old checkout and builds
+#     rm -rf luajit
+#     git clone https://luajit.org/git/luajit.git
+#     cd luajit
+# fi
+
+# if [ "$BUILD_PKGS" = "yes" ]
+# then
+#     echo "Building LuaJIT .."
+#     cd luajit
+
+#     make -j6 PREFIX=$PREFIX install 
+
+#     # soft-link 
+#     ln -sfn $PREFIX $GKYLSOFT/luajit
+# fi

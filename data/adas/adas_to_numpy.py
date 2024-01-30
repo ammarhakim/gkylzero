@@ -209,7 +209,7 @@ def write_files(elem_array, file_num):
     for i in range(len(elem_array)):
         name = elem_array[i][0]
         num = file_num[elem_array[i][1]]
-        print(name, num)
+        #print(name, num)
         ioniz_np = []
         recomb_np = []
         for zi in range(0,i+1):
@@ -222,7 +222,7 @@ def write_files(elem_array, file_num):
             recomb_dat = recomb.logdata[zi,:,:]-6.0
             recomb_flat = numpy.ndarray.flatten(recomb_dat)
             recomb_np.append(recomb_flat)
-        print('2d shape', numpy.shape(recomb_dat))
+        #print('2d shape', numpy.shape(recomb_dat))
         ioniz_np = numpy.array(ioniz_np)
         recomb_np = numpy.array(recomb_np)
         ioniz_np.tofile("ioniz_%s.npy"%name)
