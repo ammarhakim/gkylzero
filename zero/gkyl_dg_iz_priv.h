@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_eqn_type.h>
 #include <read_adas.h>
 
 // Private header, not for direct use in user code
@@ -27,7 +28,7 @@ struct gkyl_dg_iz {
 
   double minLogM0, minLogTe, maxLogM0, maxLogTe;
 
-  enum gkyl_dg_iz_self type_self;
+  enum gkyl_react_self_type type_self;
 
   struct gkyl_basis *cbasis;
   struct gkyl_basis *pbasis;

@@ -45,7 +45,7 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
 
   const char *base = inp->base;
   int charge_state = inp->charge_state;
-  enum gkyl_dg_recomb_type type_ion = inp->type_ion;
+  enum gkyl_ion_type type_ion = inp->type_ion;
   
   // Project ADAS data
   struct adas_field data;
@@ -143,7 +143,7 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   }
 
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); 
-  if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
+  if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
     up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_vlasov", use_gpu);
   }
   else { // create dummer updater to pass to cuda kernel which isn't used
@@ -169,7 +169,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     return gkyl_dg_recomb_coll_cu(up, moms_elc, moms_ion, bmag, jacob_tot, b_i, f_self, coll_recomb, cflrate);
   }
 #endif
-  if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
+  if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
     // Set auxiliary variable (b_i) for computation of udrift_i
     gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_ion, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
@@ -220,7 +220,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
     coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
 
-    if ((up->all_gk==false) && (up->type_self == GKYL_RECOMB_RECVR)) {
+    if ((up->all_gk==false) && (up->type_self == GKYL_SELF_RECVR)) {
       const double *moms_ion_d = gkyl_array_cfetch(moms_ion, loc);
       double *prim_vars_ion_d = gkyl_array_fetch(up->prim_vars_ion, loc);
       
@@ -230,7 +230,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     }
   }
 
-  if (up->type_self == GKYL_RECOMB_RECVR) {
+  if (up->type_self == GKYL_SELF_RECVR) {
     if (up->all_gk) {
       gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_ion, bmag,
 					      jacob_tot, up->mass_self, coll_recomb);
@@ -280,7 +280,7 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
   //gkyl_array_release(up->vtSq_ion);
   gkyl_proj_maxwellian_on_basis_release(up->proj_max);
   //gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion_udrift);
-  if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
+  if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
     gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
     gkyl_array_release(up->prim_vars_ion);
   }

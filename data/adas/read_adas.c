@@ -11,9 +11,9 @@
 #include <read_adas.h>
 
 void
-read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const char *base) {
+read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const char *base) {
   char fname[4000];
-  if (type_ion == GKYL_IZ_H) {
+  if (type_ion == GKYL_ION_H) {
     strcpy(fname, base);
     data->NT = 29, data->NN = 24;
     strcpy(fname, base);  
@@ -28,7 +28,7 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     data->Zmax = 1;
     data->Eiz[0] = 13.6; 
   }
-  else if (type_ion == GKYL_IZ_HE) {
+  else if (type_ion == GKYL_ION_HE) {
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
@@ -44,7 +44,7 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     data->Eiz[0] = 24.6;
     data->Eiz[1] = 54.4;
   }
-  else if (type_ion == GKYL_IZ_LI) {
+  else if (type_ion == GKYL_ION_LI) {
     data->NT = 25;
     data->NN = 16;
     strcpy(fname, base);  
@@ -61,7 +61,7 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     data->Eiz[1] = 75.6;
     data->Eiz[2] = 122.4;
   }
-  else if (type_ion == GKYL_IZ_BE) {
+  else if (type_ion == GKYL_ION_BE) {
     data->NT = 25;
     data->NN = 24;
     strcpy(fname, base);  
@@ -79,7 +79,7 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     data->Eiz[3] = 153.9;
     data->Eiz[4] = 217.7;
   }
-  else if (type_ion == GKYL_IZ_B) {
+  else if (type_ion == GKYL_ION_B) {
     data->NT = 48;
     data->NN = 26;
     strcpy(fname, base);  
@@ -98,7 +98,7 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     data->Eiz[3] = 259.4;
     data->Eiz[5] = 340.2;
   }
-  else if (type_ion == GKYL_IZ_C) {
+  else if (type_ion == GKYL_ION_C) {
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
@@ -118,7 +118,7 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     data->Eiz[4] = 392.1;
     data->Eiz[5] = 490.0;
   }
-  else if (type_ion == GKYL_IZ_N) {
+  else if (type_ion == GKYL_ION_N) {
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
@@ -139,7 +139,7 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     data->Eiz[5] = 552.1;
     data->Eiz[6] = 667.0;
   }
-  else if (type_ion == GKYL_IZ_O) {
+  else if (type_ion == GKYL_ION_O) {
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
@@ -161,7 +161,7 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
     data->Eiz[6] = 739.3;
     data->Eiz[7] = 871.4;
   }
-  else if (type_ion == GKYL_IZ_AR) {
+  else if (type_ion == GKYL_ION_AR) {
     data->NT = 48;
     data->NN = 26;
     strcpy(fname, base);  
@@ -197,9 +197,9 @@ read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const
 }
  
 void
-read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *data, const char *base) {
+read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, const char *base) {
   char fname[4000];
-  if (type_ion == GKYL_RECOMB_H) {
+  if (type_ion == GKYL_ION_H) {
     strcpy(fname, base);
     data->NT = 29, data->NN = 24;
     strcpy(fname, base);  
@@ -213,7 +213,7 @@ read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *dat
     data->logN = fopen(fname, "rb");    
     data->Zmax = 1;
    }
-  else if (type_ion == GKYL_RECOMB_HE) {
+  else if (type_ion == GKYL_ION_HE) {
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
@@ -227,7 +227,7 @@ read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *dat
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 2;
    }
-  else if (type_ion == GKYL_RECOMB_LI) {
+  else if (type_ion == GKYL_ION_LI) {
     data->NT = 25;
     data->NN = 16;
     strcpy(fname, base);  
@@ -241,7 +241,7 @@ read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *dat
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 3;
   }
-  else if (type_ion == GKYL_RECOMB_BE) {
+  else if (type_ion == GKYL_ION_BE) {
     data->NT = 25;
     data->NN = 24;
     strcpy(fname, base);  
@@ -255,7 +255,7 @@ read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *dat
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 4;
   }
-  else if (type_ion == GKYL_RECOMB_B) {
+  else if (type_ion == GKYL_ION_B) {
     data->NT = 48;
     data->NN = 26;
     strcpy(fname, base);  
@@ -269,7 +269,7 @@ read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *dat
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 5;
   }
-  else if (type_ion == GKYL_RECOMB_C) {
+  else if (type_ion == GKYL_ION_C) {
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
@@ -283,7 +283,7 @@ read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *dat
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 6;
   }
-  else if (type_ion == GKYL_RECOMB_N) {
+  else if (type_ion == GKYL_ION_N) {
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
@@ -297,7 +297,7 @@ read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *dat
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 7;
   }
-  else if (type_ion == GKYL_RECOMB_O) {
+  else if (type_ion == GKYL_ION_O) {
     data->NT = 30;
     data->NN = 24;
     strcpy(fname, base);  
@@ -311,7 +311,7 @@ read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *dat
     data->logN = fopen(fname, "rb"); 
     data->Zmax = 8;
   }
-  else if (type_ion == GKYL_RECOMB_AR) {
+  else if (type_ion == GKYL_ION_AR) {
     data->NT = 48;
     data->NN = 26;
     strcpy(fname, base);  

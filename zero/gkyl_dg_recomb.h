@@ -4,30 +4,9 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-
-// Identifiers for different ionrecombation types
-enum gkyl_dg_recomb_type
-{
-  GKYL_RECOMB_H = 0,  // Hydrogen ions
-  GKYL_RECOMB_HE = 1, // Helium ions
-  GKYL_RECOMB_LI = 2, // Lithium ions
-  GKYL_RECOMB_BE = 3, // Beryllium ions
-  GKYL_RECOMB_B = 4,  // Boron ions
-  GKYL_RECOMB_C = 5,  // Carbon ions
-  GKYL_RECOMB_N = 6,  // Nitrogen ions
-  GKYL_RECOMB_O = 7,  // Oxygen ions
-  GKYL_RECOMB_AR = 8, // Argon
-};
-
-// Identifiers for self species to determine form of collision operator
-enum gkyl_dg_recomb_self
-{
-  GKYL_RECOMB_ELC = 0, // Electron species
-  GKYL_RECOMB_ION = 1, // Reacting ion species (increases charge state)
-  GKYL_RECOMB_RECVR = 2, // Resulting species (receives electron)
-};
 
 struct gkyl_dg_recomb_inp {
   const struct gkyl_rect_grid* grid; // Grid object needed for fmax
@@ -36,9 +15,9 @@ struct gkyl_dg_recomb_inp {
   const struct gkyl_range *conf_rng; // Configuration range
   const struct gkyl_range *phase_rng; // Phase range
   double mass_self; // Mass of the species
-  enum gkyl_dg_recomb_type type_ion; // Enum for type of ion for ionization (H thru 0)
+  enum gkyl_ion_type type_ion; // Enum for type of ion for ionization (H thru 0)
   int charge_state; // Ion charge state
-  enum gkyl_dg_recomb_self type_self; // Species type (ion, electron or receiver)
+  enum gkyl_react_self_type type_self; // Species type (ion, electron, or receiver)
   bool all_gk; // To indicate if all 3 interacting species are GK or not
   const char* base; // File path to locate adas data
 };

@@ -5,9 +5,8 @@
 #include <math.h>
 
 #include <gkyl_array.h>
+#include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
-#include <gkyl_dg_iz.h>
-#include <gkyl_dg_recomb.h>
 #include <gkyl_util.h>
 
 typedef struct adas_field {
@@ -89,7 +88,7 @@ create_dg_from_nodal(const struct gkyl_rect_grid *grid,
 }
 
 void
-read_adas_field_iz(enum gkyl_dg_iz_type type_ion, struct adas_field *data, const char *base);
+read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data, const char *base);
  
 void
-read_adas_field_recomb(enum gkyl_dg_recomb_type type_ion, struct adas_field *data, const char *base);
+read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data, const char *base);

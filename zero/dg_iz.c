@@ -34,7 +34,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
 
   const char *base = inp->base;
   int charge_state = inp->charge_state;
-  enum gkyl_dg_iz_type type_ion = inp->type_ion;
+  enum gkyl_ion_type type_ion = inp->type_ion;
   
   int cdim = up->cbasis->ndim;
   int pdim = up->pbasis->ndim;
@@ -165,7 +165,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     return gkyl_dg_iz_coll_cu(up, moms_elc, moms_donor, bmag, jacob_tot, b_i, f_self, coll_iz, cflrate);
   } 
 #endif
-  if ((up->all_gk==false) && ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION))) {
+  if ((up->all_gk==false) && ((up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION))) {
     // Set auxiliary variable (b_i) for computation of upar
     gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_donor, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
@@ -189,13 +189,13 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx,
 					moms_elc_d, vtSq_elc_d);
 
-    if ( (up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION) ) {
+    if ( (up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION) ) {
       const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
       const double *m0_donor_d = &moms_donor_d[0];
       double *prim_vars_donor_d = gkyl_array_fetch(up->prim_vars_donor, loc);
       up->calc_prim_vars_donor->kernel(up->calc_prim_vars_donor, conf_iter.idx,
 				       moms_donor_d, prim_vars_donor_d);
-      if (up->type_self == GKYL_IZ_ELC) {
+      if (up->type_self == GKYL_SELF_ELC) {
       	for (int i=0; i<up->cbasis->num_basis; ++i) coef_m0_d[i] = m0_donor_d[i];
       }
     }
@@ -234,7 +234,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     }
   }
   
-  if (up->type_self == GKYL_IZ_ELC) {
+  if (up->type_self == GKYL_SELF_ELC) {
      
     // Calculate vt_sq_iz
     gkyl_array_copy_range(up->vtSq_iz, up->vtSq_elc, up->conf_rng);
@@ -254,12 +254,12 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up,
     gkyl_array_accumulate_range(coll_iz, -1.0, f_self, up->phase_rng);
 
   }
-  else if (up->type_self == GKYL_IZ_ION) {
+  else if (up->type_self == GKYL_SELF_ION) {
     // Proj maxwellian on basis (doesn't assume same phase grid, even if GK)
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max, up->phase_rng, up->conf_rng, moms_donor,
     					     up->prim_vars_donor, bmag, jacob_tot, up->mass_ion, coll_iz);
   }
-  else if (up->type_self == GKYL_IZ_DONOR) {
+  else if (up->type_self == GKYL_SELF_DONOR) {
     // neut coll_iz = -f_n
     gkyl_array_set_range(coll_iz, -1.0, f_self, up->phase_rng);
   }
