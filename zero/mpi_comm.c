@@ -160,9 +160,6 @@ array_sync(struct gkyl_comm *comm,
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
 
-  int rank;
-  MPI_Comm_rank(mpi->mcomm, &rank);
-
   int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
   for (int i=0; i<mpi->decomp->ndim; ++i)
     elo[i] = eup[i] = local_ext->upper[i]-local->upper[i];
@@ -170,7 +167,7 @@ array_sync(struct gkyl_comm *comm,
   int nridx = 0;
   int tag = MPI_BASE_TAG;
 
-    // post nonblocking recv to get data into ghost-cells  
+  // post nonblocking recv to get data into ghost-cells  
   for (int n=0; n<mpi->neigh->num_neigh; ++n) {
     int nid = mpi->neigh->neigh[n];
     
@@ -263,9 +260,6 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 
   if (!mpi->touches_any_edge) return 0; // nothing to sync
 
-  int rank;
-  MPI_Comm_rank(mpi->mcomm, &rank);
-  
   int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
   for (int i=0; i<mpi->decomp->ndim; ++i)
     elo[i] = eup[i] = local_ext->upper[i]-local->upper[i];
