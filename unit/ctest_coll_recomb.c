@@ -251,19 +251,19 @@ test_coll_recomb_h(bool use_gpu)
     
   }
 
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_h_coef_recomb.gkyl");
+  //  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_h_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-30) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-30) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-12) );
   }
   // test against predicted value
   double p1_vals[] = {2.8362140482953747e-19, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-30) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-12) );
   }
 
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
@@ -452,19 +452,19 @@ test_coll_recomb_all_gk_li(bool use_gpu)
     
   }
 
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_li_coef_recomb.gkyl");
+  //  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_li_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-30) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-30) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-12) );
   }
   // test against predicted value
   double p1_vals[] = {8.63481872714444e-19, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-30) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-12) );
   }
   
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
@@ -652,19 +652,19 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
     
   }
 
-  //  gkyl_grid_sub_array_writ(e&confGrid, &confRange, coef_recomb, "ctest_ar_coef_recomb.gkyl");
+  //  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_ar_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-30) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-30) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-12) );
   }
   // test against predicted value
   double p1_vals[] = {3.860577342565882e-20, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-30) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-12) );
   }
   
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);

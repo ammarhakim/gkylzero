@@ -508,7 +508,7 @@ test_coll_iz_h_1x(bool use_gpu)
     cv_d = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
   }
 
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_iz, "ctest_h_coef_iz.gkyl");
+  //  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_iz, "ctest_h_coef_iz.gkyl");
   // test that coef are equal for different species
   for (int i=0; i<basis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
@@ -718,7 +718,7 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
     cv_d = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
   }
     
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_iz, "ctest_li_coef_iz.gkyl");
+  //  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_iz, "ctest_li_coef_iz.gkyl");
   // test that coef are equal for different species
   for (int i=0; i<basis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
@@ -918,9 +918,9 @@ TEST_LIST = {
   { "coll_iz_all_gk_li_1x", coll_iz_all_gk_li_1x },
   { "coll_iz_init_elem", coll_iz_init_elem },
 #ifdef GKYL_HAVE_CUDA
-  //  { "coll_iz_h_1x_gpu", coll_iz_h_1x_gpu },
-  //{ "coll_iz_all_gk_li_1x_gpu", coll_iz_all_gk_li_1x_gpu },
-  //  { "coll_iz_init_elem_gpu", coll_iz_init_elem_gpu },
+  { "coll_iz_h_1x_gpu", coll_iz_h_1x_gpu },
+  { "coll_iz_all_gk_li_1x_gpu", coll_iz_all_gk_li_1x_gpu },
+  { "coll_iz_init_elem_gpu", coll_iz_init_elem_gpu },
 #endif  
   { NULL, NULL },
 };
