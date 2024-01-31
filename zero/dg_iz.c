@@ -146,7 +146,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
   struct gkyl_array *coef_iz, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(coll_iz)) {
+  if(gkyl_array_is_cu_dev(coef_iz)) {
     return gkyl_dg_iz_coll_cu(up, moms_elc, moms_donor, vtSq_iz,
 			      prim_vars_donor, b_i, coef_iz, cflrate);
   } 

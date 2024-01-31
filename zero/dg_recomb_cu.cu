@@ -23,7 +23,7 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
   const struct gkyl_dg_prim_vars_type *calc_prim_vars_ion, const struct gkyl_array *moms_elc,
   const struct gkyl_array *moms_ion, struct gkyl_array *vtSq_elc, struct gkyl_array *coef_recomb,
   struct gkyl_array *prim_vars_ion, struct gkyl_array *recomb_data, int num_basis,
-  enum gkyl_dg_recomb_self type_self, bool all_gk, double mass_elc, double elem_charge, double maxLogTe,
+  enum gkyl_react_self_type type_self, bool all_gk, double mass_elc, double elem_charge, double maxLogTe,
   double minLogTe, double dlogTe, double maxLogM0, double minLogM0, double dlogM0, double resTe, double resM0)
 {
   int cidx[GKYL_MAX_CDIM];
@@ -69,7 +69,7 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
     double adas_eval = adas_basis->eval_expand(cell_vals_2d, recomb_dat_d);
     coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
 
-    if ((all_gk==false) && (type_self == GKYL_RECOMB_RECVR)) {
+    if ((all_gk==false) && (type_self == GKYL_SELF_RECVR)) {
       const double *moms_ion_d = (const double*) gkyl_array_cfetch(moms_ion, loc);
       double *prim_vars_ion_d = (double*) gkyl_array_fetch(prim_vars_ion, loc);
       
@@ -85,7 +85,7 @@ void gkyl_dg_recomb_coll_cu(const struct gkyl_dg_recomb *up,
   struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
 {
 
-  if ((up->all_gk == false) && (up->type_self == GKYL_RECOMB_RECVR)) {
+  if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
     // Set auxiliary variable (b_i) for computation of udrift_i
     gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_ion, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});

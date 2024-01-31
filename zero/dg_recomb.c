@@ -154,8 +154,8 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
   struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(gkyl_array_is_cu_dev(coll_recomb)) {
-    return gkyl_dg_recomb_coll_cu(up, moms_elc, moms_ion, b_i, prim_vars_ion, coll_recomb, cflrate);
+  if(gkyl_array_is_cu_dev(coef_recomb)) {
+    return gkyl_dg_recomb_coll_cu(up, moms_elc, moms_ion, b_i, prim_vars_ion, coef_recomb, cflrate);
   }
 #endif
   if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {

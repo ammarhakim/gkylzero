@@ -22,7 +22,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
   const struct gkyl_basis *adas_basis, const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq,
   const struct gkyl_dg_prim_vars_type *calc_prim_vars_donor_gk, const struct gkyl_array* moms_elc,
   const struct gkyl_array* moms_donor, struct gkyl_array* vtSq_elc, struct gkyl_array* prim_vars_donor,
-  struct gkyl_array* coef_iz, struct gkyl_array* ioniz_data, int num_basis, enum gkyl_dg_iz_self type_self,
+  struct gkyl_array* coef_iz, struct gkyl_array* ioniz_data, int num_basis, enum gkyl_react_self_type type_self,
   double mass_elc, double elem_charge, double E, double maxLogTe, double minLogTe, double dlogTe,
   double maxLogM0, double minLogM0, double dlogM0, double resTe, double resM0)
 {
@@ -37,23 +37,17 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     const double *m0_elc_d = &moms_elc_d[0];
     
     double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
-    double *coef_m0_d = (double*) gkyl_array_fetch(coef_m0, loc);
     double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc);
-
-    for (int i=0; i<num_basis; ++i) coef_m0_d[i] = m0_elc_d[i];
     
     calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d,
 				    vtSq_elc_d);
 
-    if ((type_self == GKYL_IZ_ELC) || (type_self == GKYL_IZ_ION)) {
+    if ((type_self == GKYL_SELF_ELC) || (type_self == GKYL_SELF_ION)) {
       const double *moms_donor_d = (const double*) gkyl_array_cfetch(moms_donor, loc);
       const double *m0_donor_d = &moms_donor_d[0];
       double *prim_vars_donor_d = (double*) gkyl_array_fetch(prim_vars_donor, loc);
       calc_prim_vars_donor_gk->kernel(calc_prim_vars_donor_gk, cidx,
 				      moms_donor_d, prim_vars_donor_d);
-      if (type_self == GKYL_IZ_ELC) {
-        for (int i=0; i<num_basis; ++i) coef_m0_d[i] = m0_donor_d[i];
-      }
     }   
     
     //Find nearest neighbor for n, Te in ADAS interpolated data
@@ -97,7 +91,7 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *mo
   struct gkyl_array *vtSq_iz, struct gkyl_array *prim_vars_donor,		 
   struct gkyl_array *coef_iz, struct gkyl_array *cflrate)
 {
-  if ((up->all_gk==false) && ((up->type_self == GKYL_IZ_ELC) || (up->type_self == GKYL_IZ_ION))) {
+  if ((up->all_gk==false) && ((up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION))) {
     // Set auxiliary variable (b_i) for computation of gk neut prim vars
     gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_donor, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
@@ -110,10 +104,10 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *mo
     up->type_self, up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe,
     up->dlogTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resTe, up->resM0);
 
-  if (up->type_self == GKYL_IZ_ELC) {
+  if (up->type_self == GKYL_SELF_ELC) {
      
     // Calculate vt_sq_iz
-    gkyl_array_copy_range(vtSq_iz, vtSq_elc, up->conf_rng);
+    gkyl_array_copy_range(vtSq_iz, up->vtSq_elc, up->conf_rng);
     gkyl_array_scale_range(vtSq_iz, 1/2.0, up->conf_rng);
     gkyl_array_shiftc(vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
 
