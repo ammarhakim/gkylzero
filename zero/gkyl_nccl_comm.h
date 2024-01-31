@@ -12,6 +12,8 @@ struct gkyl_nccl_comm_inp {
   MPI_Comm mpi_comm; // MPI communicator to use
   const struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   bool sync_corners; // should we sync corners?
+  bool set_device; // Whether to set the device, only done by world comm.
+  cudaStream_t custream; // CUDA stream to use.
 };
 
 /**

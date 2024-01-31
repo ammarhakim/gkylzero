@@ -68,6 +68,7 @@ struct nccl_comm {
   int size; // Size of this communicator.
 
   ncclComm_t ncomm; // NCCL communicator to use.
+  bool has_decomp; // Whether this comm is associated with a decomposition (e.g. of a range)
   cudaStream_t custream; // Cuda stream for NCCL comms.
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   bool sync_corners; // Whether to sync corners.
@@ -115,7 +116,24 @@ comm_free(const struct gkyl_ref_count *ref)
   struct gkyl_comm *comm = container_of(ref, struct gkyl_comm, ref_count);
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
 
+  if (nccl->has_decomp) {
+    int ndim = nccl->decomp->ndim;
+    gkyl_rect_decomp_release(nccl->decomp);
+
+    gkyl_rect_decomp_neigh_release(nccl->neigh);
+    for (int d=0; d<ndim; ++d)
+      gkyl_rect_decomp_neigh_release(nccl->per_neigh[d]);
+
+    for (int i=0; i<MAX_RECV_NEIGH; ++i)
+      gkyl_mem_buff_release(nccl->recv[i].buff);
+
+    for (int i=0; i<MAX_RECV_NEIGH; ++i)
+      gkyl_mem_buff_release(nccl->send[i].buff);
+  }
+
   // Finalize NCCL comm.
+  checkCuda(cudaStreamSynchronize(nccl->custream));
+  checkCuda(cudaDeviceSynchronize());
   ncclCommDestroy(nccl->ncomm);
 
   gkyl_free(nccl);
@@ -312,6 +330,8 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
       .mpi_comm = nccl->mpi_comm,
       .decomp = ext_decomp,
       .sync_corners = nccl->sync_corners,
+      .set_device = false,
+      .custream = nccl->custream,
     }
   );
   gkyl_rect_decomp_release(ext_decomp);
@@ -329,6 +349,8 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   struct gkyl_comm *newcomm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
       .mpi_comm = new_mpi_comm,
       .decomp = new_decomp,
+      .set_device = false,
+      .custream = nccl->custream,
     }
   );
   return newcomm;
@@ -343,17 +365,22 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   MPI_Comm_rank(inp->mpi_comm, &nccl->rank);
   MPI_Comm_size(inp->mpi_comm, &nccl->size);
 
-  int num_devices[1];
-  checkCuda(cudaGetDeviceCount(num_devices));
-
-  int local_rank = nccl->rank % num_devices[0];
-  checkCuda(cudaSetDevice(local_rank));
+  if (inp->set_device) {
+    int num_devices[1];
+    checkCuda(cudaGetDeviceCount(num_devices));
+  
+    int local_rank = nccl->rank % num_devices[0];
+    checkCuda(cudaSetDevice(local_rank));
+  }
 
   ncclUniqueId nId;
   if (nccl->rank == 0) ncclGetUniqueId(&nId);
-  MPI_Bcast(&nId, sizeof(nId), MPI_BYTE, 0, inp->mpi_comm);
+  MPI_Bcast((void *)&nId, sizeof(nId), MPI_BYTE, 0, inp->mpi_comm);
 
-  checkCuda(cudaStreamCreate(&nccl->custream));
+  if (inp->custream == 0)
+    checkCuda(cudaStreamCreate(&nccl->custream));
+  else
+    nccl->custream = inp->custream;
 
   // Initialize NCCL comm
   ncclConfig_t config = NCCL_CONFIG_INITIALIZER;
@@ -369,19 +396,29 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   checkCuda(cudaStreamSynchronize(nccl->custream));
 
   nccl->sync_corners = inp->sync_corners;
-  nccl->decomp = gkyl_rect_decomp_acquire(inp->decomp);
-  nccl->neigh = gkyl_rect_decomp_calc_neigh(nccl->decomp, inp->sync_corners, nccl->rank);
-  for (int d=0; d<nccl->decomp->ndim; ++d)
-    nccl->per_neigh[d] =
-      gkyl_rect_decomp_calc_periodic_neigh(nccl->decomp, d, false, nccl->rank);
 
-  nccl->nrecv = 0;
-  for (int i=0; i<MAX_RECV_NEIGH; ++i)
-    nccl->recv[i].buff = gkyl_mem_buff_cu_new(16);
+  nccl->has_decomp = false;
+  // In case this nccl_comm purely an object holding an ncclComm,
+  // not associated with any range nor decomposition of it.
+  if (inp->decomp != 0) { 
+    nccl->has_decomp = true;
 
-  nccl->nsend = 0;
-  for (int i=0; i<MAX_RECV_NEIGH; ++i)
-    nccl->send[i].buff = gkyl_mem_buff_cu_new(16);
+    nccl->decomp = gkyl_rect_decomp_acquire(inp->decomp);
+    nccl->neigh = gkyl_rect_decomp_calc_neigh(nccl->decomp, inp->sync_corners, nccl->rank);
+    for (int d=0; d<nccl->decomp->ndim; ++d)
+      nccl->per_neigh[d] =
+        gkyl_rect_decomp_calc_periodic_neigh(nccl->decomp, d, false, nccl->rank);
+  
+    nccl->nrecv = 0;
+    for (int i=0; i<MAX_RECV_NEIGH; ++i)
+      nccl->recv[i].buff = gkyl_mem_buff_cu_new(16);
+  
+    nccl->nsend = 0;
+    for (int i=0; i<MAX_RECV_NEIGH; ++i)
+      nccl->send[i].buff = gkyl_mem_buff_cu_new(16);
+
+    nccl->base.gkyl_array_sync = array_sync;
+  }
   
   nccl->base.get_rank = get_rank;
   nccl->base.get_size = get_size;
@@ -391,7 +428,6 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   nccl->base.gkyl_array_isend = array_isend;
   nccl->base.gkyl_array_recv = array_recv;
   nccl->base.gkyl_array_irecv = array_irecv;
-  nccl->base.gkyl_array_sync = array_sync;
   nccl->base.comm_state_new = comm_state_new;
   nccl->base.comm_state_release = comm_state_release;
   nccl->base.comm_state_wait = comm_state_wait;
