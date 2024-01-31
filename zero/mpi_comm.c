@@ -75,9 +75,9 @@ comm_free(const struct gkyl_ref_count *ref)
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
 
   if (mpi->has_decomp) {
+    int ndim = mpi->decomp->ndim;
     gkyl_rect_decomp_release(mpi->decomp);
 
-    int ndim = mpi->decomp->ndim;
     gkyl_rect_decomp_neigh_release(mpi->neigh);
     for (int d=0; d<ndim; ++d)
       gkyl_rect_decomp_neigh_release(mpi->per_neigh[d]);
