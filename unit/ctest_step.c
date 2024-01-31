@@ -103,10 +103,10 @@ test_11()
     .rclose = 6.2,
     .rleft= 1.1,
     .rright= 6.2,
-    .rmin = 1.1,
+    .rmin = 1.4,
     .rmax = 6.2,
-    .zxpt_lo = -6.14213,
-    .zxpt_up = 6.1423,
+    .zxpt_lo = -6.18,
+    .zxpt_up = 6.18,
 
     .write_node_coord_array = true,
     .node_file_nm = "step11_nodes.gkyl"
@@ -140,10 +140,10 @@ test_12()
     .rclose = 6.2,
     .rleft= 1.1,
     .rright= 6.2,
-    .rmin = 1.1,
+    .rmin = 1.2,
     .rmax = 6.2,
-    .zxpt_lo = -6.142,
-    .zxpt_up = 6.142,
+    .zxpt_lo = -6.18,
+    .zxpt_up = 6.18,
 
     .write_node_coord_array = true,
     .node_file_nm = "step12_nodes.gkyl"
@@ -219,7 +219,7 @@ test_2()
     .rmax = 6.2,
     .zmin = -8.3,
     //.zxpt_lo = -6.14213,
-    .zxpt_lo = -6.14213,
+    .zxpt_lo = -6.2,
     .write_node_coord_array = true,
     .node_file_nm = "step2_nodes.gkyl"
   }; 
@@ -255,8 +255,8 @@ test_3()
     .rleft = 1.1,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zxpt_lo = -6.142,
-    .zxpt_up = 6.142,
+    .zxpt_lo = -6.1419,
+    .zxpt_up = 6.1421,
     .write_node_coord_array = true,
     .node_file_nm = "step3_nodes.gkyl"
   }; 
@@ -293,7 +293,7 @@ test_4()
     .rmin = 1.1,
     .rmax = 6.2,
     //.zxpt_up = 6.2,
-    .zxpt_up = 6.1423,
+    .zxpt_up = 6.2,
     .zmax = 8.3,
     .write_node_coord_array = true,
     .node_file_nm = "step4_nodes.gkyl"
@@ -330,8 +330,8 @@ test_8()
     .rright= 6.2,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zxpt_lo = -6.142,
-    .zxpt_up = 6.142,
+    .zxpt_lo = -6.1419,
+    .zxpt_up = 6.1421,
     .write_node_coord_array = true,
     .node_file_nm = "step8_nodes.gkyl"
   }; 
@@ -507,7 +507,7 @@ test_1()
     .rmin = 1.1,
     .rmax = 6.2,
     .zxpt_lo = -6.2,
-    .zmin = -8.4,
+    .zmin = -8.3,
     .write_node_coord_array = true,
     .node_file_nm = "step1_nodes.gkyl"
   }; 
@@ -556,20 +556,19 @@ test_10()
 }
 
 TEST_LIST = {
-//  { "test_core", test_core},
-//  { "test_outer", test_outer}, // Works
-//  {"test_1", test_1},  // Nodes work, max cmag is 1.2
-//  {"test_2", test_2}, // Cmag looks great
-//  {"test_3", test_3}, // Works. Good cmag
-  {"test_4", test_4}, // Cmag Looks good 
-//  {"test_5", test_5}, // Works. Cmag - >1.2 at xpt
-//  {"test_6", test_6}, // Works. Cmag - >1.7 at xpt
-//  {"test_7", test_7}, // Works. Good cmag
-//  {"test_8", test_8},  // Works. Good cmag.
-//  {"test_9", test_9}, // Works. cmag 0.7 at xpt but ok
-//  {"test_10", test_10}, // Works. cmag->3 at xpt
-//  {"test_11", test_11}, // Works. Good cmag. Even with nup hack for PF
-//  {"test_12", test_12}, // Works. Good cmag. Even with nup and nlo hack for PF
-//
+  { "test_core", test_core},
+  { "test_outer", test_outer},
+  {"test_1", test_1},  // Works
+  {"test_2", test_2}, // Works
+  {"test_3", test_3}, // Works
+  {"test_4", test_4}, // Works
+  {"test_5", test_5}, // Works
+  {"test_6", test_6}, // Works
+  {"test_7", test_7}, // Works
+  {"test_8", test_8},  // Works
+  {"test_9", test_9}, // Works
+  {"test_10", test_10}, // Works
+  {"test_11", test_11}, // Works
+  {"test_12", test_12}, // Works
   { NULL, NULL },
 };

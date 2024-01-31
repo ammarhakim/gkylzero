@@ -9,6 +9,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_efit.h>
 #include <gkyl_tok_geo_priv.h>
+#include <assert.h>
 
 #include <math.h>
 #include <string.h>
@@ -373,13 +374,16 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   geo->rleft = inp->rleft;
   geo->rright = inp->rright;
 
-  if( (inp->ftype == GKYL_SOL_DN_OUT_LO) || (inp->ftype == GKYL_SOL_DN_OUT_UP) 
-      || (inp->ftype == GKYL_SOL_DN_IN_LO) || (inp->ftype == GKYL_SOL_DN_IN_UP)
-      || (inp->ftype == GKYL_PF_LO_L) || (inp->ftype == GKYL_PF_LO_R)
-      || (inp->ftype == GKYL_PF_UP_L) || (inp->ftype == GKYL_PF_UP_R) )
-    geo->tol_no_roots = true;
-  else
-    geo->tol_no_roots = false;
+  geo->tol_no_roots = false;
+  // The block below can be used if one wishes to tolerate approximate roots
+  //if( (inp->ftype == GKYL_SOL_DN_OUT_LO) || (inp->ftype == GKYL_SOL_DN_OUT_UP) 
+  //    || (inp->ftype == GKYL_SOL_DN_IN_LO) || (inp->ftype == GKYL_SOL_DN_IN_UP)
+  //    || (inp->ftype == GKYL_PF_LO_L) || (inp->ftype == GKYL_PF_LO_R)
+  //    || (inp->ftype == GKYL_PF_UP_L) || (inp->ftype == GKYL_PF_UP_R) )
+  //  geo->tol_no_roots = true;
+  //else
+  //  geo->tol_no_roots = false;
+
 
   geo->rmax = inp->rmax;
   geo->rmin = inp->rmin;
@@ -478,6 +482,12 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
           // For a single null case:
           // also set zmin_left and zmin_right 
           tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr, arc_memo, arc_memo_left, arc_memo_right);
+          if(ip==0 && ia==0 && ip_delta==0 && ia_delta==0){
+            if(inp->ftype==GKYL_CORE_R) 
+              printf("In right core block, bottom xpt at z = %1.16f, top at z = %1.16f\n", arc_ctx.zmin, arc_ctx.zmax);
+            if(inp->ftype==GKYL_CORE_L) 
+              printf("In left core block, bottom xpt at z = %1.16f, top at z = %1.16f\n", arc_ctx.zmin, arc_ctx.zmax);
+          }
 
           darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
           // at the beginning of each theta loop we need to reset things
@@ -516,6 +526,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
               double R[4] = { 0 }, dR[4] = { 0 };
               int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
               double r_curr = choose_closest(rclose, R, R, nr);
+
+              if(nr==0){
+                printf("Failed to find a root at psi = %g, Z = %g\n", psi_curr, z_curr);
+                assert(false);
+              }
 
               cidx[TH_IDX] = it;
               int lidx = 0;

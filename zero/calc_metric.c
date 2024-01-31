@@ -112,15 +112,15 @@ void gkyl_calc_metric_advance_rz(gkyl_calc_metric *up, struct gkyl_range *nrange
               gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
               gFld_n[1] = R*R*dxdz[2][0]; 
               //gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dxdz[2][2] + dxdz[1][0]*dxdz[1][2]; // Uses dphi/dtheta from FD
-              gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta_n[0] + dxdz[1][0]*dxdz[1][2];  // uses exact 1/gradpsi
-              //gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta + dxdz[1][0]*dxdz[1][2];  // Uses corrected
+              //gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta_n[0] + dxdz[1][0]*dxdz[1][2];  // uses exact 1/gradpsi
+              gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta + dxdz[1][0]*dxdz[1][2];  // Uses corrected
               gFld_n[3] = R*R; 
               //gFld_n[4] = R*R*dxdz[2][2];  // Uses FD
-              gFld_n[4] = R*R*dphidtheta_n[0]; //uses exact 1/gradpsi
-              //gFld_n[4] = R*R*dphidtheta; //uses corrected 
+              //gFld_n[4] = R*R*dphidtheta_n[0]; //uses exact 1/gradpsi
+              gFld_n[4] = R*R*dphidtheta; //uses corrected 
               //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dxdz[2][2]*dxdz[2][2] + dxdz[1][2]*dxdz[1][2];  // uses dphidtheta from FD
-              gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta_n[0]*dphidtheta_n[0] + dxdz[1][2]*dxdz[1][2];  // uses exact 1/gradpsi
-              //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2];  // uses corrected 
+              //gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta_n[0]*dphidtheta_n[0] + dxdz[1][2]*dxdz[1][2];  // uses exact 1/gradpsi
+              gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2];  // uses corrected 
       }
     }
   }
