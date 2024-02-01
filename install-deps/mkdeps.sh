@@ -120,6 +120,14 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       CXX="$value"
       ;;
+   MPICC)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      MPICC="$value"
+      ;;
+   MPICXX)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      MPICXX="$value"
+      ;;
    FC)
       [ -n "$value" ] || die "Missing value in flag $key."
       FC="$value"
