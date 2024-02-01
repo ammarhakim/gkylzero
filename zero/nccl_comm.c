@@ -456,7 +456,7 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
       .mpi_comm = nccl->mpi_comm,
       .decomp = ext_decomp,
       .sync_corners = nccl->sync_corners,
-      .set_device = false,
+      .device_set = 1,
       .custream = nccl->custream,
     }
   );
@@ -475,7 +475,7 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   struct gkyl_comm *newcomm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
       .mpi_comm = new_mpi_comm,
       .decomp = new_decomp,
-      .set_device = false,
+      .device_set = 1,
       .custream = nccl->custream,
     }
   );
@@ -491,7 +491,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   MPI_Comm_rank(inp->mpi_comm, &nccl->rank);
   MPI_Comm_size(inp->mpi_comm, &nccl->size);
 
-  if (inp->set_device) {
+  if (inp->device_set == 0) {
     int num_devices[1];
     checkCuda(cudaGetDeviceCount(num_devices));
   

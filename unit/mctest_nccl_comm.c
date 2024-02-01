@@ -35,7 +35,6 @@ nccl_allreduce()
   struct gkyl_comm *comm_dev = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp,
-      .set_device = true,
     }
   );
 
@@ -114,7 +113,6 @@ nccl_n2_array_send_irecv_2d()
   struct gkyl_comm *comm_dev = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp,
-      .set_device = true,
     }
   );
 
@@ -228,7 +226,6 @@ nccl_n2_array_isend_irecv_2d()
   struct gkyl_comm *comm_dev = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp,
-      .set_device = true,
     }
   );
 
@@ -347,7 +344,6 @@ nccl_n2_sync_1d()
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp,
       .sync_corners = false,
-      .set_device = true,
     }
   );
 
@@ -416,7 +412,6 @@ nccl_n4_sync_2d(bool use_corners)
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp,
       .sync_corners = use_corners,
-      .set_device = true,
     }
   );
 
@@ -500,7 +495,6 @@ nccl_n4_sync_1x1v()
   struct gkyl_comm *comm_dev = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp,
-      .set_device = true,
     }
   );
 
@@ -570,7 +564,6 @@ nccl_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
   struct gkyl_comm *comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp,
-      .set_device = true,
     }
   );
 
@@ -673,7 +666,6 @@ nccl_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
   struct gkyl_comm *comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp,
-      .set_device = true,
     }
   );
 
@@ -785,7 +777,6 @@ nccl_n4_multicomm_2d()
   struct gkyl_comm *worldcomm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = 0,
-      .set_device = true,
     }
   );
 
