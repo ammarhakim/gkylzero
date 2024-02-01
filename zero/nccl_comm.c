@@ -68,6 +68,7 @@ struct nccl_comm {
   int size; // Size of this communicator.
 
   ncclComm_t ncomm; // NCCL communicator to use.
+  MPI_Comm mpi_comm; // MPI comm this NCCL comm derives from.
   bool has_decomp; // Whether this comm is associated with a decomposition (e.g. of a range)
   cudaStream_t custream; // Cuda stream for NCCL comms.
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
@@ -82,7 +83,9 @@ struct nccl_comm {
   int nsend; // number of elements in sinfo array
   struct comm_buff_stat send[MAX_RECV_NEIGH]; // info for send data
 
-  MPI_Comm mpi_comm; // MPI comm this NCCL comm derives from.
+  struct gkyl_range dir_edge; // for use in computing tags
+  int is_on_edge[2][GKYL_MAX_DIM]; // flags to indicate if local range is on edge
+  bool touches_any_edge; // true if this range touches any edge
 };
 
 static struct gkyl_comm_state* comm_state_new(struct gkyl_comm *comm)
@@ -247,8 +250,6 @@ array_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   for (int i=0; i<nccl->decomp->ndim; ++i)
     elo[i] = eup[i] = local_ext->upper[i]-local->upper[i];
 
-  int tag = NCCL_BASE_TAG;
-
   checkNCCL(ncclGroupStart());
 
   // post nonblocking recv to get data into ghost-cells  
@@ -316,6 +317,131 @@ array_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
     }
   }
 
+  return 0;
+}
+
+static int
+array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
+  int nper_dirs, const int *per_dirs, struct gkyl_array *array)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+
+  if (!nccl->touches_any_edge) return 0; // nothing to sync
+
+  int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
+  for (int i=0; i<nccl->decomp->ndim; ++i)
+    elo[i] = eup[i] = local_ext->upper[i]-local->upper[i];
+
+  int nridx = 0;
+  int nsidx = 0;  
+
+  int shift_sign[] = { -1, 1 };
+
+  // post nonblocking recv to get data into ghost-cells
+  for (int i=0; i<nper_dirs; ++i) {
+    int dir = per_dirs[i];
+
+    for (int e=0; e<2; ++e) {
+      checkNCCL(ncclGroupStart());
+      if (nccl->is_on_edge[e][dir]) {
+        int nid = nccl->per_neigh[dir]->neigh[0];
+        if (nid == nccl->rank) {
+          int delta[GKYL_MAX_DIM] = { 0 };
+          delta[dir] = shift_sign[e]*gkyl_range_shape(&nccl->decomp->parent_range, dir);
+
+          struct gkyl_range neigh_shift, neigh_shift_ext;
+          gkyl_range_shift(&neigh_shift, &nccl->decomp->ranges[nid], delta);
+
+          int isrecv = gkyl_sub_range_intersect(
+            &nccl->recv[nridx].range, local_ext, &neigh_shift);
+
+          delta[dir] *= -1;
+          gkyl_range_shift(&neigh_shift, &nccl->decomp->ranges[nid], delta);
+          gkyl_range_extend(&neigh_shift_ext, &neigh_shift, elo, eup);
+          int issend = gkyl_sub_range_intersect(
+            &nccl->send[nsidx].range, local, &neigh_shift_ext);
+          
+          size_t recv_vol = array->esznc*nccl->recv[nridx].range.volume;
+          if (gkyl_mem_buff_size(nccl->recv[nridx].buff) < recv_vol)
+            gkyl_mem_buff_resize(nccl->recv[nridx].buff, recv_vol);
+
+          gkyl_array_copy_to_buffer(gkyl_mem_buff_data(nccl->recv[nridx].buff), array, &(nccl->send[nsidx].range));
+          gkyl_array_copy_from_buffer(array, gkyl_mem_buff_data(nccl->recv[nridx].buff), &(nccl->recv[nridx].range));
+
+          nridx += 1;
+          nsidx += 1;
+        } else {
+          int delta[GKYL_MAX_DIM] = { 0 };
+          delta[dir] = shift_sign[e]*gkyl_range_shape(&nccl->decomp->parent_range, dir);
+
+          if (nccl->per_neigh[dir]->num_neigh == 1) { // really should  be a loop
+//            int nid = nccl->per_neigh[dir]->neigh[0];
+
+            struct gkyl_range neigh_shift;
+            gkyl_range_shift(&neigh_shift, &nccl->decomp->ranges[nid], delta);
+
+            int isrecv = gkyl_sub_range_intersect(
+              &nccl->recv[nridx].range, local_ext, &neigh_shift);
+            size_t recv_vol = array->esznc*nccl->recv[nridx].range.volume;
+
+            if (isrecv) {
+              if (gkyl_mem_buff_size(nccl->recv[nridx].buff) < recv_vol)
+                gkyl_mem_buff_resize(nccl->recv[nridx].buff, recv_vol);
+
+              checkNCCL(ncclRecv(gkyl_mem_buff_data(nccl->recv[nridx].buff),
+                recv_vol, ncclChar, nid, nccl->ncomm, nccl->custream));
+
+              nridx += 1;
+            }
+
+            struct gkyl_range neigh_shift_ext;
+            gkyl_range_shift(&neigh_shift, &nccl->decomp->ranges[nid], delta);
+            gkyl_range_extend(&neigh_shift_ext, &neigh_shift, elo, eup);
+
+            int issend = gkyl_sub_range_intersect(
+              &nccl->send[nsidx].range, local, &neigh_shift_ext);
+            size_t send_vol = array->esznc*nccl->send[nsidx].range.volume;
+
+            if (issend) {
+              if (gkyl_mem_buff_size(nccl->send[nsidx].buff) < send_vol)
+                gkyl_mem_buff_resize(nccl->send[nsidx].buff, send_vol);
+              
+              gkyl_array_copy_to_buffer(gkyl_mem_buff_data(nccl->send[nsidx].buff),
+                array, &(nccl->send[nsidx].range));
+
+              checkNCCL(ncclSend(gkyl_mem_buff_data(nccl->send[nsidx].buff),
+                send_vol, ncclChar, nid, nccl->ncomm, nccl->custream));
+
+              nsidx += 1;
+            }
+          }
+        }
+      }
+      checkNCCL(ncclGroupEnd());
+
+      // Complete sends and recvs.
+      ncclResult_t nstat;
+      do {
+        checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
+      } while(nstat == ncclInProgress);
+      checkCuda(cudaStreamSynchronize(nccl->custream));
+    }
+  }
+
+  // Copy data into ghost-cells.
+  for (int r=0; r<nridx; ++r) {
+    int isrecv = nccl->recv[r].range.volume;
+    if (isrecv) {
+      gkyl_array_copy_from_buffer(array,
+        gkyl_mem_buff_data(nccl->recv[r].buff),
+        &(nccl->recv[r].range)
+      );
+    }
+  }
+
+  nccl->nrecv = nridx > nccl->nrecv ? nridx : nccl->nrecv;
+  
   return 0;
 }
 
@@ -417,7 +543,20 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
     for (int i=0; i<MAX_RECV_NEIGH; ++i)
       nccl->send[i].buff = gkyl_mem_buff_cu_new(16);
 
+    gkyl_range_init(&nccl->dir_edge, 2, (int[]) { 0, 0 }, (int[]) { GKYL_MAX_DIM, 2 });
+
+    int num_touches = 0;
+    for (int d=0; d<nccl->decomp->ndim; ++d) {
+      nccl->is_on_edge[0][d] = gkyl_range_is_on_lower_edge(
+        d, &nccl->decomp->ranges[nccl->rank], &nccl->decomp->parent_range);
+      nccl->is_on_edge[1][d] = gkyl_range_is_on_upper_edge(
+        d, &nccl->decomp->ranges[nccl->rank], &nccl->decomp->parent_range);
+      num_touches += nccl->is_on_edge[0][d] + nccl->is_on_edge[1][d];
+    }
+    nccl->touches_any_edge = num_touches > 0 ? true : false;
+  
     nccl->base.gkyl_array_sync = array_sync;
+    nccl->base.gkyl_array_per_sync = array_per_sync;
   }
   
   nccl->base.get_rank = get_rank;
