@@ -322,7 +322,7 @@ struct gk_species {
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object
   
   // boundary conditions on lower/upper edges in each direction  
-  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
   // gyrokinetic sheath boundary conditions
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_lo;
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_up;

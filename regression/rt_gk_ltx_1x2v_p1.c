@@ -451,7 +451,10 @@ main(int argc, char **argv)
     .ctx_temp = &ctx,
     .init_temp = temp_elc,
     .is_maxwellian = true,
-    .bcx = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -488,7 +491,10 @@ main(int argc, char **argv)
     .ctx_temp = &ctx,
     .init_temp = temp_ion,
     .is_maxwellian = true,
-    .bcx = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,

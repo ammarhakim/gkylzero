@@ -119,20 +119,20 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     is_np[app->periodic_dirs[d]] = 0;
 
   for (int dir=0; dir<app->cdim; ++dir) {
-    s->lower_bc[dir] = s->upper_bc[dir] = GKYL_SPECIES_COPY;
+    s->lower_bc[dir].type = s->upper_bc[dir].type = GKYL_SPECIES_COPY;
     if (is_np[dir]) {
-      const enum gkyl_species_bc_type *bc;
+      const struct gkyl_gyrokinetic_bcs *bc;
       if (dir == 0)
-        bc = s->info.bcx;
+        bc = &s->info.bcx;
       else if (dir == 1)
-        bc = s->info.bcy;
+        bc = &s->info.bcy;
       else
-        bc = s->info.bcz;
+        bc = &s->info.bcz;
 
-      s->lower_bc[dir] = bc[0];
-      s->upper_bc[dir] = bc[1];
+      s->lower_bc[dir] = bc->lower;
+      s->upper_bc[dir] = bc->upper;
       // Zero flux BCs can only be applied jointly on lower and upper boundary
-      if (s->lower_bc[dir] == GKYL_SPECIES_ZERO_FLUX || s->upper_bc[dir] == GKYL_SPECIES_ZERO_FLUX)
+      if (s->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX || s->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX)
         is_zero_flux[dir] = true;
     }
   }
@@ -227,37 +227,37 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   for (int d=0; d<cdim; ++d) {
     // Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-    if (s->lower_bc[d] == GKYL_SPECIES_GK_SHEATH) {
+    if (s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
       s->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, app->basis_on_dev.basis, 
         &s->lower_skin[d], &s->lower_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
     else { 
-      if (s->lower_bc[d] == GKYL_SPECIES_COPY) 
+      if (s->lower_bc[d].type == GKYL_SPECIES_COPY) 
         bctype = GKYL_BC_COPY;
-      else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) 
+      else if (s->lower_bc[d].type == GKYL_SPECIES_ABSORB) 
         bctype = GKYL_BC_ABSORB;
-      else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) 
+      else if (s->lower_bc[d].type == GKYL_SPECIES_REFLECT) 
         bctype = GKYL_BC_REFLECT;
-      else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
+      else if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) 
         bctype = GKYL_BC_FIXED_FUNC;
 
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
         &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
     }
 
-    if (s->upper_bc[d] == GKYL_SPECIES_GK_SHEATH) {
+    if (s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
       s->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, app->basis_on_dev.basis, 
         &s->upper_skin[d], &s->upper_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
     else {
       // Upper BC updater. Copy BCs by default.
-      if (s->upper_bc[d] == GKYL_SPECIES_COPY) 
+      if (s->upper_bc[d].type == GKYL_SPECIES_COPY) 
         bctype = GKYL_BC_COPY;
-      else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) 
+      else if (s->upper_bc[d].type == GKYL_SPECIES_ABSORB) 
         bctype = GKYL_BC_ABSORB;
-      else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) 
+      else if (s->upper_bc[d].type == GKYL_SPECIES_REFLECT) 
         bctype = GKYL_BC_REFLECT;
-      else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
+      else if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) 
         bctype = GKYL_BC_FIXED_FUNC;
 
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
@@ -532,7 +532,7 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 
-      switch (species->lower_bc[d]) {
+      switch (species->lower_bc[d].type) {
         case GKYL_SPECIES_GK_SHEATH:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             app->field->phi_wall_lo, f, &app->local);
@@ -555,7 +555,7 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
           break;
       }
 
-      switch (species->upper_bc[d]) {
+      switch (species->upper_bc[d].type) {
         case GKYL_SPECIES_GK_SHEATH:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             app->field->phi_wall_up, f, &app->local);
@@ -664,12 +664,12 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (s->lower_bc[d] == GKYL_SPECIES_GK_SHEATH) 
+    if (s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) 
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
     else 
       gkyl_bc_basic_release(s->bc_lo[d]);
     
-    if (s->upper_bc[d] == GKYL_SPECIES_GK_SHEATH) 
+    if (s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) 
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
     else 
       gkyl_bc_basic_release(s->bc_up[d]);

@@ -332,8 +332,14 @@ main(int argc, char **argv)
       .temp_profile = eval_source_temp,
     },
     
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
 
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
@@ -375,8 +381,14 @@ main(int argc, char **argv)
       .temp_profile = eval_source_temp,
     },
 
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },

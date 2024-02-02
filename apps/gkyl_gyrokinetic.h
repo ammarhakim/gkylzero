@@ -66,6 +66,18 @@ struct gkyl_gyrokinetic_source {
   bool is_maxwellian;
 };
 
+// Parameters for boundary conditions
+struct gkyl_gyrokinetic_bc {
+  enum gkyl_species_bc_type type;
+  void *aux_func_ctx;
+  void (*aux_func)(double t, const double *xn, double *fout, void *ctx);  
+  double aux_parameter;
+};
+
+struct gkyl_gyrokinetic_bcs {
+  struct gkyl_gyrokinetic_bc lower, upper;
+};
+
 struct gkyl_gyrokinetic_geometry {
   enum gkyl_geometry_id geometry_id;
 
@@ -175,7 +187,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_react react_neut;
 
   // boundary conditions
-  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
 };
 
 // Parameters for neutral species

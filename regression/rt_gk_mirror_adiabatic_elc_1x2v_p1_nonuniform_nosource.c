@@ -777,7 +777,10 @@ int main(int argc, char **argv)
     .init_temppar = eval_temp_par_ion,
     .ctx_tempperp = &ctx,
     .init_tempperp = eval_temp_perp_ion,
-    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,

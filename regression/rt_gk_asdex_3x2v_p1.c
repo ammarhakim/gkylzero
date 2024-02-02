@@ -346,8 +346,14 @@ main(int argc, char **argv)
     .init_temp = eval_temp_elc,
     .is_maxwellian = true,
 
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+    },
+    .bcz = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -389,8 +395,14 @@ main(int argc, char **argv)
     .init_temp = eval_temp_ion,
     .is_maxwellian = true,
 
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+    },
+    .bcz = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
