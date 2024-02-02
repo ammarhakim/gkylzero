@@ -204,19 +204,24 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     int diffusion_order = s->info.diffusion.order ? s->info.diffusion.order : 2;
 
     int szD = cdim;
-    s->diffD = mkarr(app->use_gpu, szD, 1);
+    s->diffD = mkarr(app->use_gpu, szD, app->local_ext.volume);
     bool is_zero_flux[GKYL_MAX_CDIM] = {false};
     bool diff_dir[GKYL_MAX_CDIM] = {false};
 
     int num_diff_dir = s->info.diffusion.num_diff_dir ? s->info.diffusion.num_diff_dir : app->cdim;
+    // Assuming diffusion along x only for now.
+    assert(num_diff_dir == 1);
+    assert(s->info.diffusion.diff_dirs[0] == 0);
     for (int d=0; d<num_diff_dir; ++d) {
       int dir = s->info.diffusion.diff_dirs[d]; 
       diff_dir[dir] = 1; 
-      gkyl_array_shiftc(s->diffD, s->info.diffusion.D[d], dir);
+      gkyl_array_shiftc(s->diffD, s->info.diffusion.D[d]*pow(sqrt(2),app->cdim), dir);
     }
+    // Multiply diffD by g^xx*jacobgeo.
+    gkyl_dg_mul_op(app->confBasis, 0, s->diffD, 0, app->gk_geom->gxxj, 0, s->diffD);
 
     s->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&s->grid, &app->basis, &app->confBasis, 
-      true, diff_dir, diffusion_order, &s->local, is_zero_flux, app->use_gpu);
+      false, diff_dir, diffusion_order, &app->local, is_zero_flux, app->use_gpu);
   }
 
   // create ranges and allocate buffers for applying periodic and non-periodic BCs
@@ -326,7 +331,7 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   
   if (species->has_diffusion)
     gkyl_dg_updater_diffusion_gyrokinetic_advance(species->diff_slvr, &species->local, 
-      species->diffD, fin, species->cflrate, rhs);
+      species->diffD, app->gk_geom->jacobgeo_inv, fin, species->cflrate, rhs);
 
   if (species->radiation_id == GKYL_GK_RADIATION)
     gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
