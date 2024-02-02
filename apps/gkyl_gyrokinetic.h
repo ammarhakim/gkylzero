@@ -31,6 +31,8 @@ struct gkyl_gyrokinetic_collisions {
 
   // inputs for Spitzer collisionality
   bool normNu; // Set to true if you want to rescale collision frequency
+  double norm_nu_facs[GKYL_MAX_SPECIES]; // List of collision freqs without 
+  double bmag_mid; // bmag at the middle of the domain
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar; // Planck's constant/2 pi 
 
