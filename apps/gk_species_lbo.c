@@ -262,6 +262,7 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
   gkyl_array_release(lbo->nu_sum);
   gkyl_array_release(lbo->nu_prim_moms);
   gkyl_array_release(lbo->m0);
+  gkyl_array_release(lbo->vtsq);
   gkyl_array_release(lbo->m2self);
 
   if (app->use_gpu) {
