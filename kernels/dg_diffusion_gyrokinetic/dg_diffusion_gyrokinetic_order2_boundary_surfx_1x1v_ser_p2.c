@@ -1,15 +1,36 @@
 #include <gkyl_dg_diffusion_gyrokinetic_kernels.h>
 
-GKYL_CU_DH double dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p2_constcoeff(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, int edge, const double *qSkin, const double *qEdge, double* GKYL_RESTRICT out) 
 {
   // w[NDIM]: Cell-center coordinate.
   // dxv[NDIM]: Cell length.
   // coeff: Diffusion coefficient.
+  // jacobgeo_inv: one divided by the configuration space Jacobian.
   // edge: -1 for lower boundary, +1 for upper boundary.
-  // fSkin/Edge: scalar field in skind and egde cells.
+  // qSkin/Edge: scalar field in skin and egde cells.
   // out: Incremented output.
 
-  const double Jfac = pow(2./dx[0],2.);
+  const double rdx2Sq = pow(2./dx[0],2.);
+
+  double fSkin[8];
+  fSkin[0] = 0.7071067811865476*(jacobgeo_inv[2]*qSkin[4]+jacobgeo_inv[1]*qSkin[1]+jacobgeo_inv[0]*qSkin[0]); 
+  fSkin[1] = 0.1*(6.324555320336761*(jacobgeo_inv[1]*qSkin[4]+qSkin[1]*jacobgeo_inv[2])+7.071067811865476*(jacobgeo_inv[0]*qSkin[1]+qSkin[0]*jacobgeo_inv[1])); 
+  fSkin[2] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[2]*qSkin[6]+21.21320343559643*(jacobgeo_inv[1]*qSkin[3]+jacobgeo_inv[0]*qSkin[2])); 
+  fSkin[3] = 0.03333333333333333*(18.97366596101028*jacobgeo_inv[1]*qSkin[6]+(18.97366596101028*jacobgeo_inv[2]+21.21320343559643*jacobgeo_inv[0])*qSkin[3]+21.21320343559643*jacobgeo_inv[1]*qSkin[2]); 
+  fSkin[4] = 0.01428571428571429*((31.62277660168381*jacobgeo_inv[2]+49.49747468305833*jacobgeo_inv[0])*qSkin[4]+49.49747468305833*qSkin[0]*jacobgeo_inv[2]+44.27188724235732*jacobgeo_inv[1]*qSkin[1]); 
+  fSkin[5] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[1]*qSkin[7]+21.21320343559643*jacobgeo_inv[0]*qSkin[5]); 
+  fSkin[6] = 0.004761904761904762*((94.86832980505142*jacobgeo_inv[2]+148.492424049175*jacobgeo_inv[0])*qSkin[6]+132.815661727072*jacobgeo_inv[1]*qSkin[3]+148.492424049175*jacobgeo_inv[2]*qSkin[2]); 
+  fSkin[7] = 0.03333333333333333*((18.97366596101028*jacobgeo_inv[2]+21.21320343559643*jacobgeo_inv[0])*qSkin[7]+21.21320343559643*jacobgeo_inv[1]*qSkin[5]); 
+
+  double fEdge[8];
+  fEdge[0] = 0.7071067811865476*(jacobgeo_inv[2]*qEdge[4]+jacobgeo_inv[1]*qEdge[1]+jacobgeo_inv[0]*qEdge[0]); 
+  fEdge[1] = 0.1*(6.324555320336761*(jacobgeo_inv[1]*qEdge[4]+qEdge[1]*jacobgeo_inv[2])+7.071067811865476*(jacobgeo_inv[0]*qEdge[1]+qEdge[0]*jacobgeo_inv[1])); 
+  fEdge[2] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[2]*qEdge[6]+21.21320343559643*(jacobgeo_inv[1]*qEdge[3]+jacobgeo_inv[0]*qEdge[2])); 
+  fEdge[3] = 0.03333333333333333*(18.97366596101028*jacobgeo_inv[1]*qEdge[6]+(18.97366596101028*jacobgeo_inv[2]+21.21320343559643*jacobgeo_inv[0])*qEdge[3]+21.21320343559643*jacobgeo_inv[1]*qEdge[2]); 
+  fEdge[4] = 0.01428571428571429*((31.62277660168381*jacobgeo_inv[2]+49.49747468305833*jacobgeo_inv[0])*qEdge[4]+49.49747468305833*qEdge[0]*jacobgeo_inv[2]+44.27188724235732*jacobgeo_inv[1]*qEdge[1]); 
+  fEdge[5] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[1]*qEdge[7]+21.21320343559643*jacobgeo_inv[0]*qEdge[5]); 
+  fEdge[6] = 0.004761904761904762*((94.86832980505142*jacobgeo_inv[2]+148.492424049175*jacobgeo_inv[0])*qEdge[6]+132.815661727072*jacobgeo_inv[1]*qEdge[3]+148.492424049175*jacobgeo_inv[2]*qEdge[2]); 
+  fEdge[7] = 0.03333333333333333*((18.97366596101028*jacobgeo_inv[2]+21.21320343559643*jacobgeo_inv[0])*qEdge[7]+21.21320343559643*jacobgeo_inv[1]*qEdge[5]); 
 
   double vol_incr[8] = {0.0}; 
   vol_incr[4] = 6.708203932499369*coeff[0]*fSkin[0]; 
@@ -52,30 +73,51 @@ GKYL_CU_DH double dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p2_con
   boundSurf_incr[6] = (-3.75*coeff[0]*fSkin[6])-4.841229182759271*coeff[0]*fSkin[3]-3.354101966249684*coeff[0]*fSkin[2]; 
   boundSurf_incr[7] = (-1.25*coeff[0]*fSkin[7])-0.8660254037844387*coeff[0]*fSkin[5]; 
 
-  out[0] += (vol_incr[0]+edgeSurf_incr[0]+boundSurf_incr[0])*Jfac; 
-  out[1] += (vol_incr[1]+edgeSurf_incr[1]+boundSurf_incr[1])*Jfac; 
-  out[2] += (vol_incr[2]+edgeSurf_incr[2]+boundSurf_incr[2])*Jfac; 
-  out[3] += (vol_incr[3]+edgeSurf_incr[3]+boundSurf_incr[3])*Jfac; 
-  out[4] += (vol_incr[4]+edgeSurf_incr[4]+boundSurf_incr[4])*Jfac; 
-  out[5] += (vol_incr[5]+edgeSurf_incr[5]+boundSurf_incr[5])*Jfac; 
-  out[6] += (vol_incr[6]+edgeSurf_incr[6]+boundSurf_incr[6])*Jfac; 
-  out[7] += (vol_incr[7]+edgeSurf_incr[7]+boundSurf_incr[7])*Jfac; 
+  out[0] += (vol_incr[0]+edgeSurf_incr[0]+boundSurf_incr[0])*rdx2Sq; 
+  out[1] += (vol_incr[1]+edgeSurf_incr[1]+boundSurf_incr[1])*rdx2Sq; 
+  out[2] += (vol_incr[2]+edgeSurf_incr[2]+boundSurf_incr[2])*rdx2Sq; 
+  out[3] += (vol_incr[3]+edgeSurf_incr[3]+boundSurf_incr[3])*rdx2Sq; 
+  out[4] += (vol_incr[4]+edgeSurf_incr[4]+boundSurf_incr[4])*rdx2Sq; 
+  out[5] += (vol_incr[5]+edgeSurf_incr[5]+boundSurf_incr[5])*rdx2Sq; 
+  out[6] += (vol_incr[6]+edgeSurf_incr[6]+boundSurf_incr[6])*rdx2Sq; 
+  out[7] += (vol_incr[7]+edgeSurf_incr[7]+boundSurf_incr[7])*rdx2Sq; 
 
   }
 
   return 0.;
 }
 
-GKYL_CU_DH double dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p2_varcoeff(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, int edge, const double *qSkin, const double *qEdge, double* GKYL_RESTRICT out) 
 {
   // w[NDIM]: Cell-center coordinate.
   // dxv[NDIM]: Cell length.
   // coeff: Diffusion coefficient.
+  // jacobgeo_inv: one divided by the configuration space Jacobian.
   // edge: -1 for lower boundary, +1 for upper boundary.
-  // fSkin/Edge: scalar field in skind and egde cells.
+  // qSkin/Edge: scalar field in skin and egde cells.
   // out: Incremented output.
 
-  const double Jfac = pow(2./dx[0],2.);
+  const double rdx2Sq = pow(2./dx[0],2.);
+
+  double fSkin[8];
+  fSkin[0] = 0.7071067811865476*(jacobgeo_inv[2]*qSkin[4]+jacobgeo_inv[1]*qSkin[1]+jacobgeo_inv[0]*qSkin[0]); 
+  fSkin[1] = 0.1*(6.324555320336761*(jacobgeo_inv[1]*qSkin[4]+qSkin[1]*jacobgeo_inv[2])+7.071067811865476*(jacobgeo_inv[0]*qSkin[1]+qSkin[0]*jacobgeo_inv[1])); 
+  fSkin[2] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[2]*qSkin[6]+21.21320343559643*(jacobgeo_inv[1]*qSkin[3]+jacobgeo_inv[0]*qSkin[2])); 
+  fSkin[3] = 0.03333333333333333*(18.97366596101028*jacobgeo_inv[1]*qSkin[6]+(18.97366596101028*jacobgeo_inv[2]+21.21320343559643*jacobgeo_inv[0])*qSkin[3]+21.21320343559643*jacobgeo_inv[1]*qSkin[2]); 
+  fSkin[4] = 0.01428571428571429*((31.62277660168381*jacobgeo_inv[2]+49.49747468305833*jacobgeo_inv[0])*qSkin[4]+49.49747468305833*qSkin[0]*jacobgeo_inv[2]+44.27188724235732*jacobgeo_inv[1]*qSkin[1]); 
+  fSkin[5] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[1]*qSkin[7]+21.21320343559643*jacobgeo_inv[0]*qSkin[5]); 
+  fSkin[6] = 0.004761904761904762*((94.86832980505142*jacobgeo_inv[2]+148.492424049175*jacobgeo_inv[0])*qSkin[6]+132.815661727072*jacobgeo_inv[1]*qSkin[3]+148.492424049175*jacobgeo_inv[2]*qSkin[2]); 
+  fSkin[7] = 0.03333333333333333*((18.97366596101028*jacobgeo_inv[2]+21.21320343559643*jacobgeo_inv[0])*qSkin[7]+21.21320343559643*jacobgeo_inv[1]*qSkin[5]); 
+
+  double fEdge[8];
+  fEdge[0] = 0.7071067811865476*(jacobgeo_inv[2]*qEdge[4]+jacobgeo_inv[1]*qEdge[1]+jacobgeo_inv[0]*qEdge[0]); 
+  fEdge[1] = 0.1*(6.324555320336761*(jacobgeo_inv[1]*qEdge[4]+qEdge[1]*jacobgeo_inv[2])+7.071067811865476*(jacobgeo_inv[0]*qEdge[1]+qEdge[0]*jacobgeo_inv[1])); 
+  fEdge[2] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[2]*qEdge[6]+21.21320343559643*(jacobgeo_inv[1]*qEdge[3]+jacobgeo_inv[0]*qEdge[2])); 
+  fEdge[3] = 0.03333333333333333*(18.97366596101028*jacobgeo_inv[1]*qEdge[6]+(18.97366596101028*jacobgeo_inv[2]+21.21320343559643*jacobgeo_inv[0])*qEdge[3]+21.21320343559643*jacobgeo_inv[1]*qEdge[2]); 
+  fEdge[4] = 0.01428571428571429*((31.62277660168381*jacobgeo_inv[2]+49.49747468305833*jacobgeo_inv[0])*qEdge[4]+49.49747468305833*qEdge[0]*jacobgeo_inv[2]+44.27188724235732*jacobgeo_inv[1]*qEdge[1]); 
+  fEdge[5] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[1]*qEdge[7]+21.21320343559643*jacobgeo_inv[0]*qEdge[5]); 
+  fEdge[6] = 0.004761904761904762*((94.86832980505142*jacobgeo_inv[2]+148.492424049175*jacobgeo_inv[0])*qEdge[6]+132.815661727072*jacobgeo_inv[1]*qEdge[3]+148.492424049175*jacobgeo_inv[2]*qEdge[2]); 
+  fEdge[7] = 0.03333333333333333*((18.97366596101028*jacobgeo_inv[2]+21.21320343559643*jacobgeo_inv[0])*qEdge[7]+21.21320343559643*jacobgeo_inv[1]*qEdge[5]); 
 
   double vol_incr[8] = {0.0}; 
   vol_incr[1] = 4.743416490252569*fSkin[1]*coeff[2]+2.121320343559642*fSkin[0]*coeff[1]; 
@@ -121,14 +163,14 @@ GKYL_CU_DH double dg_diffusion_gyrokinetic_order2_boundary_surfx_1x1v_ser_p2_var
   boundSurf_incr[6] = (-5.929270612815711*coeff[2]*fSkin[6])-4.592793267718456*coeff[1]*fSkin[6]-2.651650429449552*coeff[0]*fSkin[6]-7.65465544619743*coeff[2]*fSkin[3]-5.929270612815709*coeff[1]*fSkin[3]-3.423265984407287*coeff[0]*fSkin[3]-5.303300858899106*coeff[2]*fSkin[2]-4.107919181288745*coeff[1]*fSkin[2]-2.371708245126284*coeff[0]*fSkin[2]; 
   boundSurf_incr[7] = (-1.976423537605237*coeff[2]*fSkin[7])-1.530931089239486*coeff[1]*fSkin[7]-0.883883476483184*coeff[0]*fSkin[7]-1.369306393762915*coeff[2]*fSkin[5]-1.060660171779821*coeff[1]*fSkin[5]-0.6123724356957944*coeff[0]*fSkin[5]; 
 
-  out[0] += (vol_incr[0]+edgeSurf_incr[0]+boundSurf_incr[0])*Jfac; 
-  out[1] += (vol_incr[1]+edgeSurf_incr[1]+boundSurf_incr[1])*Jfac; 
-  out[2] += (vol_incr[2]+edgeSurf_incr[2]+boundSurf_incr[2])*Jfac; 
-  out[3] += (vol_incr[3]+edgeSurf_incr[3]+boundSurf_incr[3])*Jfac; 
-  out[4] += (vol_incr[4]+edgeSurf_incr[4]+boundSurf_incr[4])*Jfac; 
-  out[5] += (vol_incr[5]+edgeSurf_incr[5]+boundSurf_incr[5])*Jfac; 
-  out[6] += (vol_incr[6]+edgeSurf_incr[6]+boundSurf_incr[6])*Jfac; 
-  out[7] += (vol_incr[7]+edgeSurf_incr[7]+boundSurf_incr[7])*Jfac; 
+  out[0] += (vol_incr[0]+edgeSurf_incr[0]+boundSurf_incr[0])*rdx2Sq; 
+  out[1] += (vol_incr[1]+edgeSurf_incr[1]+boundSurf_incr[1])*rdx2Sq; 
+  out[2] += (vol_incr[2]+edgeSurf_incr[2]+boundSurf_incr[2])*rdx2Sq; 
+  out[3] += (vol_incr[3]+edgeSurf_incr[3]+boundSurf_incr[3])*rdx2Sq; 
+  out[4] += (vol_incr[4]+edgeSurf_incr[4]+boundSurf_incr[4])*rdx2Sq; 
+  out[5] += (vol_incr[5]+edgeSurf_incr[5]+boundSurf_incr[5])*rdx2Sq; 
+  out[6] += (vol_incr[6]+edgeSurf_incr[6]+boundSurf_incr[6])*rdx2Sq; 
+  out[7] += (vol_incr[7]+edgeSurf_incr[7]+boundSurf_incr[7])*rdx2Sq; 
 
   }
 
