@@ -24,32 +24,6 @@
 #include <gkyl_app_priv.h>
 
 void
-mapc2p_1x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
-{
-  xp[0] = xc[0]; 
-}
-
-void
-bmag_func_1x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0]; 
-  fout[0] = 1.0;
-}
-
-void
-mapc2p_2x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
-{
-  xp[0] = xc[0]; xp[1] = xc[1]; 
-}
-
-void
-bmag_func_2x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0], y = xc[1];
-  fout[0] = 1.0;
-}
-
-void
 mapc2p_3x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
@@ -64,7 +38,7 @@ bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 1.0;
+  fout[0] = 1.0e19;
 }
 
 void
@@ -76,7 +50,7 @@ eval_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 void
 eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 29.999913327161483*GKYL_ELEMENTARY_CHARGE*2/GKYL_ELECTRON_MASS;
+  fout[0] = 29.999913327161483*GKYL_ELEMENTARY_CHARGE;
 }
 
 void
@@ -90,11 +64,11 @@ test_1x(int poly_order, bool use_gpu)
   double confLower[cdim], confUpper[cdim], vLower[vdim], vUpper[vdim];
   int confCells[cdim], vCells[vdim];
 
-
+  double vth = sqrt(29.999913327161483*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS);
   // Phase space and Configuration space extents and resolution
-  double lower[] = {-1.0, -4.0e7, 0.0};
-  double upper[] = {1.0, 4.0e7, 4e7*4e7*GKYL_ELECTRON_MASS};
-  int cells[] = {2, 32, 16};
+  double lower[] = {-1.0, -4*vth, 0.0};
+  double upper[] = {1.0, 4*vth, 9*vth*vth*GKYL_ELECTRON_MASS};
+  int cells[] = {2, 1024, 512};
   confLower[0] = lower[0]; 
   confUpper[0] = upper[0];
   confCells[0] = cells[0];
@@ -168,7 +142,7 @@ test_1x(int poly_order, bool use_gpu)
       geometry_input.mapc2p, geometry_input.c2p_ctx, geometry_input.bmag_func,  geometry_input.bmag_ctx, geo_3d_use_gpu);
   // deflate geometry if necessary
   printf("Deflating geometry...\n");
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &confGrid, &local, &local_ext, 
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &confGrid, &confLocal, &confLocal_ext, 
       &confBasis, use_gpu);
   gkyl_gk_geometry_release(gk_geom_3d);
 
@@ -217,8 +191,6 @@ test_1x(int poly_order, bool use_gpu)
     nvnu_surf_host = mkarr(false, surf_vpar_basis.num_basis, local_ext.volume);
     nvsqnu_surf_host = mkarr(false, surf_mu_basis.num_basis, local_ext.volume);
   }
-  struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu,
-							     .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu};
 
   printf("created auxfields\n");
   if (use_gpu) {
@@ -228,10 +200,8 @@ test_1x(int poly_order, bool use_gpu)
     gkyl_array_copy(nvsqnu_surf, nvsqnu_surf_host);
   }
 
-  
   // Initialize distribution function with proj_gkmaxwellian_on_basis
   struct gkyl_array *f = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *nI = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   // Project n, udrift, and vt^2 based on input functions
   struct gkyl_array *m0 = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *udrift = mkarr(false, vdim*confBasis.num_basis, confLocal_ext.volume);
@@ -246,16 +216,16 @@ test_1x(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0); 
   gkyl_proj_on_basis_advance(proj_udrift, 0.0, &confLocal, udrift);
   gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
-  //gkyl_array_scale(vtsq, 1.0/mass);
+  gkyl_array_scale(vtsq, 1.0/mass);
 
   // proj_maxwellian expects the primitive moments as a single array.
-  struct gkyl_array *prim_moms = mkarr(false, (vdim+1)*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *prim_moms = mkarr(false, 2*confBasis.num_basis, confLocal_ext.volume);
   gkyl_array_set_offset(prim_moms, 1.0, udrift, 0*confBasis.num_basis);
-  gkyl_array_set_offset(prim_moms, 1.0, vtsq  , vdim*confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms, 1.0, vtsq, 1*confBasis.num_basis);
 
   // Initialize Maxwellian projection object
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-      &confBasis, &basis, poly_order+1, use_gpu);
+    &confBasis, &basis, poly_order+1, use_gpu);
 
   // If on GPUs, need to copy n, udrift, and vt^2 onto device
   struct gkyl_array *prim_moms_dev, *m0_dev;
@@ -271,54 +241,48 @@ test_1x(int poly_order, bool use_gpu)
   else {
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, m0, prim_moms,
       gk_geom->bmag, gk_geom->bmag, mass, f);
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, m0, prim_moms,
-      gk_geom->bmag, gk_geom->bmag, GKYL_PROTON_MASS, nI);
   }
 
   // initialize solver 
   struct gkyl_dg_updater_collisions *slvr;
+  struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu, 
+    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu};
   slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &drag_inp, use_gpu);
 
   struct gkyl_array *cflrate, *rhs, *fmax;
   cflrate = mkarr(use_gpu, 1, local_ext.volume);
   rhs = mkarr(use_gpu, basis.num_basis, local_ext.volume);
 
-  struct gkyl_array *m0_ion = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_dg_updater_moment *m0_ion_up = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis, &confLocal, &vLocal, GKYL_PROTON_MASS, gk_geom, "M0", false, use_gpu);
-  gkyl_dg_updater_moment_gyrokinetic_advance(m0_ion_up, &local, &confLocal, nI, m0_ion);
-
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, vtsq, "ctest_dg_rad_gyrokinetic_vthsq.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, m0, "ctest_dg_rad_gyrokinetic_M0.gkyl");
   gkyl_grid_sub_array_write(&grid, &local, vnu, "ctest_dg_rad_gyrokinetic_vnu.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, vtsq, "ctest_dg_rad_gyrokinetic_vthsq.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, m0, "ctest_dg_rad_gyrokinetic_M0.gkyl");
   gkyl_grid_sub_array_write(&grid, &local, vsqnu, "ctest_dg_rad_gyrokinetic_vsqnu.gkyl");
   gkyl_grid_sub_array_write(&grid, &local, vnu_surf, "ctest_dg_rad_gyrokinetic_vnu_surf.gkyl");
   gkyl_grid_sub_array_write(&grid, &local, vsqnu_surf, "ctest_dg_rad_gyrokinetic_vsqnu_surf.gkyl");
 
   printf("Advancing hyper dg...\n");
   // run hyper_dg_advance
-  int nrep = 1;
-  for(int n=0; n<nrep; n++) {
-    gkyl_array_clear(rhs, 0.0);
-    gkyl_array_clear(cflrate, 0.0);
-    gkyl_array_clear(nvnu_surf, 0.0);
-    gkyl_array_clear(nvnu, 0.0);
-    gkyl_array_clear(nvsqnu_surf, 0.0);
-    gkyl_array_clear(nvsqnu, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+  gkyl_array_clear(cflrate, 0.0);
+  gkyl_array_clear(nvnu_surf, 0.0);
+  gkyl_array_clear(nvnu, 0.0);
+  gkyl_array_clear(nvsqnu_surf, 0.0);
+  gkyl_array_clear(nvsqnu, 0.0);
 
-    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-      &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-      m0_ion, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+  // Assumed electron and ion density are the same and uniform
+  gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
+    &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
+    m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
 
-    gkyl_grid_sub_array_write(&grid, &local, f, "ctest_dg_rad_gyrokinetic_f.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, nvnu, "ctest_dg_rad_gyrokinetic_nvnu.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, nvsqnu, "ctest_dg_rad_gyrokinetic_nvsqnu.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, nvnu_surf, "ctest_dg_rad_gyrokinetic_nvnu_surf.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, nvsqnu_surf, "ctest_dg_rad_gyrokinetic_nvsqnu_surf.gkyl");
-    
+  gkyl_grid_sub_array_write(&grid, &local, f, "ctest_dg_rad_gyrokinetic_f.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, nvnu, "ctest_dg_rad_gyrokinetic_nvnu.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, nvsqnu, "ctest_dg_rad_gyrokinetic_nvsqnu.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, nvnu_surf, "ctest_dg_rad_gyrokinetic_nvnu_surf.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, nvsqnu_surf, "ctest_dg_rad_gyrokinetic_nvsqnu_surf.gkyl");
 
-    gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
-    printf("After updater advance, n=%i\n",n);
-  }
+  gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
+  printf("After updater advance, n=%i\n",n);
+
   gkyl_grid_sub_array_write(&grid, &local, rhs, "ctest_dg_rad_gyrokinetic_rhs.gkyl");
   // Take 2nd moment of rhs to find energy loss
   struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
@@ -329,18 +293,18 @@ test_1x(int poly_order, bool use_gpu)
   double *m00 = gkyl_array_fetch(m0, 0+ghost[0]);
   double *m20 = gkyl_array_fetch(m2_final, 0+ghost[0]);
   //double *m21 = gkyl_array_fetch(rhs, 0+ghost[0]);
-  double *m00_ion = gkyl_array_fetch(m0_ion, 0+ghost[0]);
   
-  //  double cell_avg0 = m20[0]/pow(sqrt(2),cdim);
-  double cell_avg0 = 1.0/2.0*GKYL_ELECTRON_MASS*m20[0]/(m00[0]*m00_ion[0]);
+  double cell_avg_m2 = m20[0]/pow(sqrt(2.0),cdim);
+  double cell_avg_m0 = m00[0]/pow(sqrt(2.0),cdim);
+  // two factors of density, one for the electrons and one for the ions
+  double cell_avg0 = 1.0/2.0*GKYL_ELECTRON_MASS*cell_avg_m2/(cell_avg_m0*cell_avg_m0);
 
   double correct = 4.419192427285379e-32;
   //  for (int i=0; i<30; i++){
-  printf("cell_avg=%e, correct energy=%e, density=%.10e, nI=%e, m2=%e\n",cell_avg0, correct, m00[0], m00_ion[0], m20[0]);
+  printf("cell_avg=%e, correct energy=%e, density=%.10e, m2=%e\n", cell_avg0, correct, m00[0], m20[0]);
     //}
   
-  TEST_CHECK( gkyl_compare( correct*1e30, cell_avg0*1e30, 1e-12));
-  TEST_CHECK( cell_avg0>0);
+  TEST_CHECK( gkyl_compare( -correct*1e30, cell_avg0*1e30, 1e-12));
 
   // Release memory
   gkyl_array_release(vnu);
