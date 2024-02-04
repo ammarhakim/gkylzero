@@ -10,7 +10,7 @@ GKYL_CU_DH double dg_diffusion_gyrokinetic_order6_vol_1x_ser_p2_constcoeff_diffx
   // out: Incremented output
 
   const double rdx2 = 2.0/dx[0]; 
-  return (1030.961686969986*coeff[0])/jacobgeo_inv[0]*pow(rdx2, 6.0); 
+  return 729.0*coeff[0]*pow(rdx2, 6.0); 
 }
 
 GKYL_CU_DH double dg_diffusion_gyrokinetic_order6_vol_1x_ser_p2_constcoeff_diffdirsx(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, const double *q, double* GKYL_RESTRICT out) 

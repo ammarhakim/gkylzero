@@ -10,7 +10,7 @@ GKYL_CU_DH double dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffx
   // out: Incremented output
 
   const double rdx2 = 2.0/dx[0]; 
-  return (45.25483399593907*coeff[0])/jacobgeo_inv[0]*pow(rdx2, 4.0); 
+  return 16.0*coeff[0]*pow(rdx2, 4.0); 
 }
 
 GKYL_CU_DH double dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffy(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, const double *q, double* GKYL_RESTRICT out) 
@@ -23,7 +23,7 @@ GKYL_CU_DH double dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffy
   // out: Incremented output
 
   const double rdx2 = 2.0/dx[1]; 
-  return (45.25483399593907*coeff[1])/jacobgeo_inv[0]*pow(rdx2, 4.0); 
+  return 16.0*coeff[1]*pow(rdx2, 4.0); 
 }
 
 GKYL_CU_DH double dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffz(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, const double *q, double* GKYL_RESTRICT out) 
@@ -36,7 +36,7 @@ GKYL_CU_DH double dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffz
   // out: Incremented output
 
   const double rdx2 = 2.0/dx[2]; 
-  return (45.25483399593907*coeff[2])/jacobgeo_inv[0]*pow(rdx2, 4.0); 
+  return 16.0*coeff[2]*pow(rdx2, 4.0); 
 }
 
 GKYL_CU_DH double dg_diffusion_gyrokinetic_order4_vol_3x_ser_p1_constcoeff_diffdirsx(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, const double *q, double* GKYL_RESTRICT out) 

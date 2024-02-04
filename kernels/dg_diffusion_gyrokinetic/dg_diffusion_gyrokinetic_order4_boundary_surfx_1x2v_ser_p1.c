@@ -12,34 +12,6 @@ GKYL_CU_DH double dg_diffusion_gyrokinetic_order4_boundary_surfx_1x2v_ser_p1_con
 
   const double rdx2Sq = pow(2./dx[0],4.);
 
-  double fSkin[12];
-  fSkin[0] = 0.7071067811865475*(jacobgeo_inv[1]*qSkin[1]+jacobgeo_inv[0]*qSkin[0]); 
-  fSkin[1] = 0.7071067811865475*(jacobgeo_inv[0]*qSkin[1]+qSkin[0]*jacobgeo_inv[1]); 
-  fSkin[2] = 0.7071067811865475*(jacobgeo_inv[1]*qSkin[4]+jacobgeo_inv[0]*qSkin[2]); 
-  fSkin[3] = 0.7071067811865475*(jacobgeo_inv[1]*qSkin[5]+jacobgeo_inv[0]*qSkin[3]); 
-  fSkin[4] = 0.7071067811865475*(jacobgeo_inv[0]*qSkin[4]+jacobgeo_inv[1]*qSkin[2]); 
-  fSkin[5] = 0.7071067811865475*(jacobgeo_inv[0]*qSkin[5]+jacobgeo_inv[1]*qSkin[3]); 
-  fSkin[6] = 0.7071067811865475*(jacobgeo_inv[1]*qSkin[7]+jacobgeo_inv[0]*qSkin[6]); 
-  fSkin[7] = 0.7071067811865475*(jacobgeo_inv[0]*qSkin[7]+jacobgeo_inv[1]*qSkin[6]); 
-  fSkin[8] = 0.04714045207910316*(15.0*jacobgeo_inv[1]*qSkin[9]+15.0*jacobgeo_inv[0]*qSkin[8]); 
-  fSkin[9] = 0.04714045207910316*(15.0*jacobgeo_inv[0]*qSkin[9]+15.0*jacobgeo_inv[1]*qSkin[8]); 
-  fSkin[10] = 0.04714045207910316*(15.0*jacobgeo_inv[1]*qSkin[11]+15.0*jacobgeo_inv[0]*qSkin[10]); 
-  fSkin[11] = 0.04714045207910316*(15.0*jacobgeo_inv[0]*qSkin[11]+15.0*jacobgeo_inv[1]*qSkin[10]); 
-
-  double fEdge[12];
-  fEdge[0] = 0.7071067811865475*(jacobgeo_inv[1]*qEdge[1]+jacobgeo_inv[0]*qEdge[0]); 
-  fEdge[1] = 0.7071067811865475*(jacobgeo_inv[0]*qEdge[1]+qEdge[0]*jacobgeo_inv[1]); 
-  fEdge[2] = 0.7071067811865475*(jacobgeo_inv[1]*qEdge[4]+jacobgeo_inv[0]*qEdge[2]); 
-  fEdge[3] = 0.7071067811865475*(jacobgeo_inv[1]*qEdge[5]+jacobgeo_inv[0]*qEdge[3]); 
-  fEdge[4] = 0.7071067811865475*(jacobgeo_inv[0]*qEdge[4]+jacobgeo_inv[1]*qEdge[2]); 
-  fEdge[5] = 0.7071067811865475*(jacobgeo_inv[0]*qEdge[5]+jacobgeo_inv[1]*qEdge[3]); 
-  fEdge[6] = 0.7071067811865475*(jacobgeo_inv[1]*qEdge[7]+jacobgeo_inv[0]*qEdge[6]); 
-  fEdge[7] = 0.7071067811865475*(jacobgeo_inv[0]*qEdge[7]+jacobgeo_inv[1]*qEdge[6]); 
-  fEdge[8] = 0.04714045207910316*(15.0*jacobgeo_inv[1]*qEdge[9]+15.0*jacobgeo_inv[0]*qEdge[8]); 
-  fEdge[9] = 0.04714045207910316*(15.0*jacobgeo_inv[0]*qEdge[9]+15.0*jacobgeo_inv[1]*qEdge[8]); 
-  fEdge[10] = 0.04714045207910316*(15.0*jacobgeo_inv[1]*qEdge[11]+15.0*jacobgeo_inv[0]*qEdge[10]); 
-  fEdge[11] = 0.04714045207910316*(15.0*jacobgeo_inv[0]*qEdge[11]+15.0*jacobgeo_inv[1]*qEdge[10]); 
-
   double vol_incr[12] = {0.0}; 
 
   double edgeSurf_incr[12] = {0.0}; 
@@ -47,47 +19,47 @@ GKYL_CU_DH double dg_diffusion_gyrokinetic_order4_boundary_surfx_1x2v_ser_p1_con
 
   if (edge == -1) { 
 
-  edgeSurf_incr[0] = 1.623797632095822*coeff[0]*fSkin[1]+1.623797632095822*coeff[0]*fEdge[1]+0.9375*coeff[0]*fSkin[0]-0.9375*coeff[0]*fEdge[0]; 
-  edgeSurf_incr[1] = 3.5625*coeff[0]*fSkin[1]+2.0625*coeff[0]*fEdge[1]+1.623797632095822*coeff[0]*fSkin[0]-1.623797632095822*coeff[0]*fEdge[0]; 
-  edgeSurf_incr[2] = 1.623797632095822*coeff[0]*fSkin[4]+1.623797632095822*coeff[0]*fEdge[4]+0.9375*coeff[0]*fSkin[2]-0.9375*coeff[0]*fEdge[2]; 
-  edgeSurf_incr[3] = 1.623797632095822*coeff[0]*fSkin[5]+1.623797632095822*coeff[0]*fEdge[5]+0.9375*coeff[0]*fSkin[3]-0.9375*coeff[0]*fEdge[3]; 
-  edgeSurf_incr[4] = 3.5625*coeff[0]*fSkin[4]+2.0625*coeff[0]*fEdge[4]+1.623797632095822*coeff[0]*fSkin[2]-1.623797632095822*coeff[0]*fEdge[2]; 
-  edgeSurf_incr[5] = 3.5625*coeff[0]*fSkin[5]+2.0625*coeff[0]*fEdge[5]+1.623797632095822*coeff[0]*fSkin[3]-1.623797632095822*coeff[0]*fEdge[3]; 
-  edgeSurf_incr[6] = 1.623797632095822*coeff[0]*fSkin[7]+1.623797632095822*coeff[0]*fEdge[7]+0.9375*coeff[0]*fSkin[6]-0.9375*coeff[0]*fEdge[6]; 
-  edgeSurf_incr[7] = 3.5625*coeff[0]*fSkin[7]+2.0625*coeff[0]*fEdge[7]+1.623797632095822*coeff[0]*fSkin[6]-1.623797632095822*coeff[0]*fEdge[6]; 
-  edgeSurf_incr[8] = 1.623797632095823*coeff[0]*fSkin[9]+1.623797632095823*coeff[0]*fEdge[9]+0.9375*coeff[0]*fSkin[8]-0.9375*coeff[0]*fEdge[8]; 
-  edgeSurf_incr[9] = 3.5625*coeff[0]*fSkin[9]+2.0625*coeff[0]*fEdge[9]+1.623797632095823*coeff[0]*fSkin[8]-1.623797632095823*coeff[0]*fEdge[8]; 
-  edgeSurf_incr[10] = 1.623797632095823*coeff[0]*fSkin[11]+1.623797632095823*coeff[0]*fEdge[11]+0.9375*coeff[0]*fSkin[10]-0.9375*coeff[0]*fEdge[10]; 
-  edgeSurf_incr[11] = 3.5625*coeff[0]*fSkin[11]+2.0625*coeff[0]*fEdge[11]+1.623797632095823*coeff[0]*fSkin[10]-1.623797632095823*coeff[0]*fEdge[10]; 
+  edgeSurf_incr[0] = 1.623797632095822*coeff[0]*qSkin[1]+1.623797632095822*coeff[0]*qEdge[1]+0.9375*coeff[0]*qSkin[0]-0.9375*coeff[0]*qEdge[0]; 
+  edgeSurf_incr[1] = 3.5625*coeff[0]*qSkin[1]+2.0625*coeff[0]*qEdge[1]+1.623797632095822*coeff[0]*qSkin[0]-1.623797632095822*coeff[0]*qEdge[0]; 
+  edgeSurf_incr[2] = 1.623797632095822*coeff[0]*qSkin[4]+1.623797632095822*coeff[0]*qEdge[4]+0.9375*coeff[0]*qSkin[2]-0.9375*coeff[0]*qEdge[2]; 
+  edgeSurf_incr[3] = 1.623797632095822*coeff[0]*qSkin[5]+1.623797632095822*coeff[0]*qEdge[5]+0.9375*coeff[0]*qSkin[3]-0.9375*coeff[0]*qEdge[3]; 
+  edgeSurf_incr[4] = 3.5625*coeff[0]*qSkin[4]+2.0625*coeff[0]*qEdge[4]+1.623797632095822*coeff[0]*qSkin[2]-1.623797632095822*coeff[0]*qEdge[2]; 
+  edgeSurf_incr[5] = 3.5625*coeff[0]*qSkin[5]+2.0625*coeff[0]*qEdge[5]+1.623797632095822*coeff[0]*qSkin[3]-1.623797632095822*coeff[0]*qEdge[3]; 
+  edgeSurf_incr[6] = 1.623797632095822*coeff[0]*qSkin[7]+1.623797632095822*coeff[0]*qEdge[7]+0.9375*coeff[0]*qSkin[6]-0.9375*coeff[0]*qEdge[6]; 
+  edgeSurf_incr[7] = 3.5625*coeff[0]*qSkin[7]+2.0625*coeff[0]*qEdge[7]+1.623797632095822*coeff[0]*qSkin[6]-1.623797632095822*coeff[0]*qEdge[6]; 
+  edgeSurf_incr[8] = 1.623797632095823*coeff[0]*qSkin[9]+1.623797632095823*coeff[0]*qEdge[9]+0.9375*coeff[0]*qSkin[8]-0.9375*coeff[0]*qEdge[8]; 
+  edgeSurf_incr[9] = 3.5625*coeff[0]*qSkin[9]+2.0625*coeff[0]*qEdge[9]+1.623797632095823*coeff[0]*qSkin[8]-1.623797632095823*coeff[0]*qEdge[8]; 
+  edgeSurf_incr[10] = 1.623797632095823*coeff[0]*qSkin[11]+1.623797632095823*coeff[0]*qEdge[11]+0.9375*coeff[0]*qSkin[10]-0.9375*coeff[0]*qEdge[10]; 
+  edgeSurf_incr[11] = 3.5625*coeff[0]*qSkin[11]+2.0625*coeff[0]*qEdge[11]+1.623797632095823*coeff[0]*qSkin[10]-1.623797632095823*coeff[0]*qEdge[10]; 
 
-  boundSurf_incr[1] = 1.5*coeff[0]*fSkin[1]; 
-  boundSurf_incr[4] = 1.5*coeff[0]*fSkin[4]; 
-  boundSurf_incr[5] = 1.5*coeff[0]*fSkin[5]; 
-  boundSurf_incr[7] = 1.5*coeff[0]*fSkin[7]; 
-  boundSurf_incr[9] = 1.5*coeff[0]*fSkin[9]; 
-  boundSurf_incr[11] = 1.5*coeff[0]*fSkin[11]; 
+  boundSurf_incr[1] = 1.5*coeff[0]*qSkin[1]; 
+  boundSurf_incr[4] = 1.5*coeff[0]*qSkin[4]; 
+  boundSurf_incr[5] = 1.5*coeff[0]*qSkin[5]; 
+  boundSurf_incr[7] = 1.5*coeff[0]*qSkin[7]; 
+  boundSurf_incr[9] = 1.5*coeff[0]*qSkin[9]; 
+  boundSurf_incr[11] = 1.5*coeff[0]*qSkin[11]; 
 
   } else { 
 
-  edgeSurf_incr[0] = (-1.623797632095822*coeff[0]*fSkin[1])-1.623797632095822*coeff[0]*fEdge[1]+0.9375*coeff[0]*fSkin[0]-0.9375*coeff[0]*fEdge[0]; 
-  edgeSurf_incr[1] = 3.5625*coeff[0]*fSkin[1]+2.0625*coeff[0]*fEdge[1]-1.623797632095822*coeff[0]*fSkin[0]+1.623797632095822*coeff[0]*fEdge[0]; 
-  edgeSurf_incr[2] = (-1.623797632095822*coeff[0]*fSkin[4])-1.623797632095822*coeff[0]*fEdge[4]+0.9375*coeff[0]*fSkin[2]-0.9375*coeff[0]*fEdge[2]; 
-  edgeSurf_incr[3] = (-1.623797632095822*coeff[0]*fSkin[5])-1.623797632095822*coeff[0]*fEdge[5]+0.9375*coeff[0]*fSkin[3]-0.9375*coeff[0]*fEdge[3]; 
-  edgeSurf_incr[4] = 3.5625*coeff[0]*fSkin[4]+2.0625*coeff[0]*fEdge[4]-1.623797632095822*coeff[0]*fSkin[2]+1.623797632095822*coeff[0]*fEdge[2]; 
-  edgeSurf_incr[5] = 3.5625*coeff[0]*fSkin[5]+2.0625*coeff[0]*fEdge[5]-1.623797632095822*coeff[0]*fSkin[3]+1.623797632095822*coeff[0]*fEdge[3]; 
-  edgeSurf_incr[6] = (-1.623797632095822*coeff[0]*fSkin[7])-1.623797632095822*coeff[0]*fEdge[7]+0.9375*coeff[0]*fSkin[6]-0.9375*coeff[0]*fEdge[6]; 
-  edgeSurf_incr[7] = 3.5625*coeff[0]*fSkin[7]+2.0625*coeff[0]*fEdge[7]-1.623797632095822*coeff[0]*fSkin[6]+1.623797632095822*coeff[0]*fEdge[6]; 
-  edgeSurf_incr[8] = (-1.623797632095823*coeff[0]*fSkin[9])-1.623797632095823*coeff[0]*fEdge[9]+0.9375*coeff[0]*fSkin[8]-0.9375*coeff[0]*fEdge[8]; 
-  edgeSurf_incr[9] = 3.5625*coeff[0]*fSkin[9]+2.0625*coeff[0]*fEdge[9]-1.623797632095823*coeff[0]*fSkin[8]+1.623797632095823*coeff[0]*fEdge[8]; 
-  edgeSurf_incr[10] = (-1.623797632095823*coeff[0]*fSkin[11])-1.623797632095823*coeff[0]*fEdge[11]+0.9375*coeff[0]*fSkin[10]-0.9375*coeff[0]*fEdge[10]; 
-  edgeSurf_incr[11] = 3.5625*coeff[0]*fSkin[11]+2.0625*coeff[0]*fEdge[11]-1.623797632095823*coeff[0]*fSkin[10]+1.623797632095823*coeff[0]*fEdge[10]; 
+  edgeSurf_incr[0] = (-1.623797632095822*coeff[0]*qSkin[1])-1.623797632095822*coeff[0]*qEdge[1]+0.9375*coeff[0]*qSkin[0]-0.9375*coeff[0]*qEdge[0]; 
+  edgeSurf_incr[1] = 3.5625*coeff[0]*qSkin[1]+2.0625*coeff[0]*qEdge[1]-1.623797632095822*coeff[0]*qSkin[0]+1.623797632095822*coeff[0]*qEdge[0]; 
+  edgeSurf_incr[2] = (-1.623797632095822*coeff[0]*qSkin[4])-1.623797632095822*coeff[0]*qEdge[4]+0.9375*coeff[0]*qSkin[2]-0.9375*coeff[0]*qEdge[2]; 
+  edgeSurf_incr[3] = (-1.623797632095822*coeff[0]*qSkin[5])-1.623797632095822*coeff[0]*qEdge[5]+0.9375*coeff[0]*qSkin[3]-0.9375*coeff[0]*qEdge[3]; 
+  edgeSurf_incr[4] = 3.5625*coeff[0]*qSkin[4]+2.0625*coeff[0]*qEdge[4]-1.623797632095822*coeff[0]*qSkin[2]+1.623797632095822*coeff[0]*qEdge[2]; 
+  edgeSurf_incr[5] = 3.5625*coeff[0]*qSkin[5]+2.0625*coeff[0]*qEdge[5]-1.623797632095822*coeff[0]*qSkin[3]+1.623797632095822*coeff[0]*qEdge[3]; 
+  edgeSurf_incr[6] = (-1.623797632095822*coeff[0]*qSkin[7])-1.623797632095822*coeff[0]*qEdge[7]+0.9375*coeff[0]*qSkin[6]-0.9375*coeff[0]*qEdge[6]; 
+  edgeSurf_incr[7] = 3.5625*coeff[0]*qSkin[7]+2.0625*coeff[0]*qEdge[7]-1.623797632095822*coeff[0]*qSkin[6]+1.623797632095822*coeff[0]*qEdge[6]; 
+  edgeSurf_incr[8] = (-1.623797632095823*coeff[0]*qSkin[9])-1.623797632095823*coeff[0]*qEdge[9]+0.9375*coeff[0]*qSkin[8]-0.9375*coeff[0]*qEdge[8]; 
+  edgeSurf_incr[9] = 3.5625*coeff[0]*qSkin[9]+2.0625*coeff[0]*qEdge[9]-1.623797632095823*coeff[0]*qSkin[8]+1.623797632095823*coeff[0]*qEdge[8]; 
+  edgeSurf_incr[10] = (-1.623797632095823*coeff[0]*qSkin[11])-1.623797632095823*coeff[0]*qEdge[11]+0.9375*coeff[0]*qSkin[10]-0.9375*coeff[0]*qEdge[10]; 
+  edgeSurf_incr[11] = 3.5625*coeff[0]*qSkin[11]+2.0625*coeff[0]*qEdge[11]-1.623797632095823*coeff[0]*qSkin[10]+1.623797632095823*coeff[0]*qEdge[10]; 
 
-  boundSurf_incr[1] = 1.5*coeff[0]*fSkin[1]; 
-  boundSurf_incr[4] = 1.5*coeff[0]*fSkin[4]; 
-  boundSurf_incr[5] = 1.5*coeff[0]*fSkin[5]; 
-  boundSurf_incr[7] = 1.5*coeff[0]*fSkin[7]; 
-  boundSurf_incr[9] = 1.5*coeff[0]*fSkin[9]; 
-  boundSurf_incr[11] = 1.5*coeff[0]*fSkin[11]; 
+  boundSurf_incr[1] = 1.5*coeff[0]*qSkin[1]; 
+  boundSurf_incr[4] = 1.5*coeff[0]*qSkin[4]; 
+  boundSurf_incr[5] = 1.5*coeff[0]*qSkin[5]; 
+  boundSurf_incr[7] = 1.5*coeff[0]*qSkin[7]; 
+  boundSurf_incr[9] = 1.5*coeff[0]*qSkin[9]; 
+  boundSurf_incr[11] = 1.5*coeff[0]*qSkin[11]; 
 
   out[0] += -1.0*(vol_incr[0]+edgeSurf_incr[0]+boundSurf_incr[0])*rdx2Sq; 
   out[1] += -1.0*(vol_incr[1]+edgeSurf_incr[1]+boundSurf_incr[1])*rdx2Sq; 
