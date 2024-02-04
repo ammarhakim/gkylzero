@@ -58,7 +58,6 @@ void gkyl_calc_bmag_comp(double t, const double *xn, double *fout, void *ctx)
   xy[0] = (R-xc[0])/(gc->grid->dx[0]*0.5);
   xy[1] = (Z-xc[1])/(gc->grid->dx[1]*0.5);
   fout[0] = gc->basis->eval_expand(xy, coeffs);
-  printf("R = %f, Z = %f, B = %f\n", R, Z, fout[0]);
 }
 
 static inline void bphi_RZ(double t, const double *xn, double *fout, void *ctx){

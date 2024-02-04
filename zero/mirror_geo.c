@@ -14,7 +14,6 @@
 #include <math.h>
 #include <string.h>
 
-
 double
 mirror_plate_psi_func(double s, void *ctx){
   // uses a pointer to the plate function to get R(s), Z(s)
@@ -150,26 +149,9 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
   void *bmag_ctx_inp)
 {
-  //Evaluate bmag at a point
-  
-  // Create a function to feed into mirror_geo_calc for bmag
-  //up->bmag is the DG components
-  
-  // calculate mapc2p
-  // gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, gkyl_calc_bmag_comp, bcalculator_uniform, mc2p_nodal_fd, mc2p_nodal, mc2p, true);
-
-  //Dilema
-  // I want to pass in bcalculator_uniform as a context ginp, but then it segfaults illegal memory access
-  // gkyl_calc_bmag_comp context is not a gkyl_calc_bmag object, but a bmag_ctx object. Does that mean I need to write a new function which takes gkyl_calc_bmag as context
-  // We have the ingrediants for a bmag_ctx. Hardcode and create this object, then we can feed in that into the geo_calc
-  
-  // Simpler: Cram zmap_parameters into ginp and pass that to the function
-  // Figure out the most optimal parameters for the fit here.
+  // Notation: Theta is computational coordinate for length along the field line.
 
   struct gkyl_mirror_geo *geo = mapc2p_ctx;
-  //Issue: Context to pass to bmag_func is not gkyl_mirror_geo_grid_inp. Why was this context here? It's unused
-  // I'd like to change it to bmag_ctx type from calc_bmag to use gkyl_compute_bmag_comp
-  // Maybe pass this as a geo_grid input parameter and keep the current 
   struct gkyl_mirror_geo_grid_inp *inp = bmag_ctx;
   struct bmag_ctx *inp_bmag = bmag_ctx_inp;
 
@@ -184,7 +166,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
     psi_lo = inp->cgrid.lower[PH_IDX],
     alpha_lo = inp->cgrid.lower[AL_IDX];
 
-double theta_hi = inp->cgrid.upper[TH_IDX],
+  double theta_hi = inp->cgrid.upper[TH_IDX],
     psi_hi = inp->cgrid.upper[PH_IDX],
     alpha_hi = inp->cgrid.upper[AL_IDX];
 
@@ -208,7 +190,9 @@ double theta_hi = inp->cgrid.upper[TH_IDX],
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
     .arc_memo = arc_memo,
-    .zmaxis = geo->zmaxis
+    .zmaxis = geo->zmaxis,
+    .theta_min = theta_lo,
+    .theta_max = theta_hi,
   };
   struct plate_ctx pctx = {
     .geo = geo
@@ -259,6 +243,14 @@ double theta_hi = inp->cgrid.upper[TH_IDX],
           double arcL = arc_ctx.arcL_tot;
           darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
 
+          if (nonuniform)
+          {
+            arc_ctx.mapping_frac = 0.7;
+            arc_ctx.psi = psi_curr; // I'm not sure if this messes up something
+            arc_ctx.alpha = alpha_curr;
+            calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
+            calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);
+          }
           // at the beginning of each theta loop we need to reset things
           cidx[PH_IDX] = ip;
           arcL_curr = 0.0;
@@ -286,30 +278,7 @@ double theta_hi = inp->cgrid.upper[TH_IDX],
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
               if (nonuniform)
               {
-
-                // mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
-                // struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
-                //   arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
-                //   geo->root_param.max_iter, 1e-10);
-                // double z_curr = res.res;
-
-                // double R[4] = { 0 }, dR[4] = { 0 };
-                // int nr = R_psiZ(geo, psi_curr, z_curr, 4, R, dR);
-                // double r_curr = choose_closest(rclose, R, R, nr);
-                // double phi_curr = alpha_curr;
-                double *xp = malloc(3*sizeof(double));
-                xp[X_IDX] = psi_curr;
-                xp[Y_IDX] = alpha_curr;
-                xp[Z_IDX] = theta_curr;
-                double *fout = malloc(3*sizeof(double));
-                struct bmag_ctx *bmag_ctx_in = bmag_ctx_inp;
-                gkyl_calc_bmag_comp(0.0, xp, fout, bmag_ctx_inp);
-                // printf("Magnetic field %g at coordinate (%g, %g, %g)\n", fout[0], xp[0], xp[1], xp[2]);
-                free(xp);
-                free(fout);
-
-
-                theta_curr = map_theta_to_z(theta_curr, theta_lo, theta_hi, 0.98); // Need theta_mirror
+                theta_curr = map_theta_to_z(theta_curr, &arc_ctx); // Need theta_mirror
                 arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
               }
 
