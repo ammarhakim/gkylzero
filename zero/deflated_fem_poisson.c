@@ -1,13 +1,13 @@
-#include <gkyl_line_fem_poisson.h>
-#include <gkyl_line_fem_poisson_priv.h>
+#include <gkyl_deflated_fem_poisson.h>
+#include <gkyl_deflated_fem_poisson_priv.h>
 
 
-struct gkyl_line_fem_poisson* 
-gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid, 
+struct gkyl_deflated_fem_poisson* 
+gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, 
   struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, struct gkyl_range local, struct gkyl_range local_ext, 
   struct gkyl_array *epsilon, struct gkyl_poisson_bc poisson_bc, bool use_gpu)
 {
-  struct gkyl_line_fem_poisson *up = gkyl_malloc(sizeof(*up));
+  struct gkyl_deflated_fem_poisson *up = gkyl_malloc(sizeof(*up));
   up->use_gpu = use_gpu;
   up->grid = grid;
   up->basis = basis;
@@ -104,7 +104,7 @@ gkyl_line_fem_poisson_new(struct gkyl_rect_grid grid,
 }
 
 void 
-gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi)
+gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi)
 {
   int ctr = 0;
   for(int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1]; zidx++){
@@ -132,7 +132,7 @@ gkyl_line_fem_poisson_advance(struct gkyl_line_fem_poisson *up, struct gkyl_arra
 
 }
 
-void gkyl_line_fem_poisson_release(struct gkyl_line_fem_poisson* up){
+void gkyl_deflated_fem_poisson_release(struct gkyl_deflated_fem_poisson* up){
   gkyl_array_release(up->nodal_fld);
   gkyl_nodal_ops_release(up->n2m);
   gkyl_nodal_ops_release(up->n2m_deflated);

@@ -14,7 +14,7 @@ struct deflated_fem_data {
 };
 
 // Updater type
-struct gkyl_line_fem_poisson {
+struct gkyl_deflated_fem_poisson {
   struct gkyl_rect_grid grid;
   struct gkyl_rect_grid deflated_grid;
   struct gkyl_basis basis;
