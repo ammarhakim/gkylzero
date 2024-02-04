@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_array.h>
 #include <gkyl_elem_type.h>
 
 #include <stdbool.h>
@@ -163,6 +164,18 @@ int gkyl_dynvec_read_ncomp(const char *fname);
  * @param fname Name of input file.
  */
 bool gkyl_dynvec_read(gkyl_dynvec vec, const char *fname);
+
+/**
+ * Convert contents of dynvector to array. Time mesh is not copied to
+ * the array but it returned as a seperate array. The input arrays
+ * must be preallocated to be big enough to contain all the data.
+ *
+ * @param vec Dynvector to convert
+ * @param tm_mesh On output, time-mesh of data
+ * @param dyndata On output, data in dynamic array
+ */
+void gkyl_dynvec_to_array(const gkyl_dynvec vec, struct gkyl_array *tm_mesh,
+  struct gkyl_array *dyndata);
 
 /**
  * Release dynvec.
