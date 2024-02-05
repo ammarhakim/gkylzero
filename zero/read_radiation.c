@@ -128,6 +128,30 @@ int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z
   return 0;
 }
 
+int gkyl_get_fit_lz(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double ne, double* te, double* Lz){
+  int location = 0;
+  atomic_z = atomic_z-1;
+  int index = atomic_z*rad_data.max_atomic_number+charge_state;
+  if (!rad_data.all_states[index].state_exists)
+    return 1;
+  
+  for (int i = 0; i<rad_data.all_states[index].number_of_densities; i++){
+    if (fabs(rad_data.all_states[index].electron_densities[i]-ne)<
+	 fabs(rad_data.all_states[index].electron_densities[location]-ne)) 
+      location = i;
+  }
+
+  int location2 = 0;
+  for (int i=0; i<rad_data.all_states[index].rad_fits[location].te_intervals; i++){
+    if (fabs(rad_data.all_states[index].rad_fits[location].te[i]-te[0])<
+	fabs(rad_data.all_states[index].rad_fits[location].te[location2]-te[0])) 
+      location2 = i;
+  }
+  te[0]=rad_data.all_states[index].rad_fits[location].te[location2];
+  Lz[0]=rad_data.all_states[index].rad_fits[location].Lz[location2];
+  return 0;
+}
+
 void gkyl_release_fit_params(struct all_radiation_states *rad_data){
   int max_Z = rad_data->max_atomic_number;
   for (int i=0; i<max_Z; i++){
