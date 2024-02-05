@@ -18,7 +18,8 @@ gkyl_deflate_zsurf_new(const struct gkyl_basis *cbasis, const struct gkyl_basis 
   gkyl_deflate_zsurf *up = gkyl_malloc(sizeof(*up));
   up->num_basis = cbasis->num_basis;
   up->num_deflated_basis = deflated_cbasis->num_basis;
-  up->kernel = deflate_zsurf_choose_kernel(cbasis->b_type, edge, cbasis->poly_order); // edge = 0,1 = lo, up
+  up->cdim = cbasis->ndim;
+  up->kernel = deflate_zsurf_choose_kernel(cbasis->b_type, cbasis->ndim, edge, cbasis->poly_order); // edge = 0,1 = lo, up
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -39,13 +40,14 @@ gkyl_deflate_zsurf_advance(const gkyl_deflate_zsurf *up, int zidx,
       field, deflated_field, ncomp);
   }
 #endif
-  int do_idx[2];
+  int do_idx[3];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, deflated_range);
 
   while (gkyl_range_iter_next(&iter)) {
-    do_idx[0] = iter.idx[0];
-    do_idx[1] = zidx;
+    for(int i = 0; i < up->cdim-1; i++)
+      do_idx[i] = iter.idx[i];
+    do_idx[up->cdim-1] = zidx;
 
     long loc = gkyl_range_idx(range, do_idx);
     const double *fld = gkyl_array_cfetch(field, loc);
