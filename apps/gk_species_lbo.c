@@ -30,7 +30,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->normNu = false;
   if (s->info.collisions.normNu) {
     lbo->normNu = true;
-    lbo->norm_nu_facs = s->info.collisions.norm_nu_facs;
+    lbo->self_nu_fac = s->info.collisions.self_nu_fac;
     double tpar_min = (s->info.mass/6.0)*s->grid.dx[cdim+1];
     double tperp_min = (s->info.collisions.bmag_mid/3.0)*s->grid.dx[cdim+2];
     lbo->vtsq_min = (tpar_min + 2*tperp_min)/(3*s->info.mass);
@@ -104,6 +104,8 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
 
   // set pointers to species we cross-collide with
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
+    if (s->info.collisions.normNu)
+      lbo->cross_nu_fac[i] = s->info.collisions.cross_nu_fac[i];
     lbo->collide_with[i] = gk_find_species(app, s->info.collisions.collide_with[i]);
     lbo->other_m[i] = lbo->collide_with[i]->info.mass;
     lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
@@ -176,7 +178,7 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   // Calculate self_nu if using spitzer-nu
   if (lbo->normNu) {
     gkyl_array_set_offset(lbo->vtsq, 1.0, lbo->prim_moms, 1*app->confBasis.num_basis);
-    gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min, lbo->m0, lbo->vtsq, lbo->vtsq_min, lbo->norm_nu_facs[0], lbo->self_nu);
+    gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min, lbo->m0, lbo->vtsq, lbo->vtsq_min, lbo->self_nu_fac, lbo->self_nu);
   }
 
   // Scale upar and vth2 by nu
@@ -233,7 +235,7 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 
     // Calculate cross nu if using spitzer nu
     if (lbo->normNu)
-      gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min, lbo->collide_with[i]->lbo.m0, lbo->collide_with[i]->lbo.vtsq, lbo->collide_with[i]->lbo.vtsq_min, lbo->norm_nu_facs[i+1], lbo->cross_nu[i]);
+      gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min, lbo->collide_with[i]->lbo.m0, lbo->collide_with[i]->lbo.vtsq, lbo->collide_with[i]->lbo.vtsq_min, lbo->cross_nu_fac[i], lbo->cross_nu[i]);
     
     // Scale upar_{rs} and vth2_{rs} by nu_{rs}
     for (int d=0; d<2; d++)
