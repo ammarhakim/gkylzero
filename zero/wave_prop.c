@@ -298,7 +298,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
     gkyl_range_init(&slice_range, 1, (int[]) { loidx }, (int[]) { upidx } );
 
     struct gkyl_range perp_range;
-    gkyl_range_shorten(&perp_range, update_range, dir, 1);
+    gkyl_range_shorten_from_above(&perp_range, update_range, dir, 1);
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &perp_range);
 

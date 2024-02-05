@@ -42,9 +42,7 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_poisson_bctype.h>
-#include <gkyl_fem_poisson_perp.h>
-#include <gkyl_fem_poisson.h>
-#include <gkyl_line_fem_poisson.h>
+#include <gkyl_deflated_fem_poisson.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_fromfile.h>
@@ -176,6 +174,9 @@ struct gk_lbo_collisions {
   struct gkyl_array *nu_sum_host, *prim_moms_host, *nu_prim_moms_host; // LBO primitive moments host-side for I/O
   bool normNu; // Boolean to determine if using Spitzer value
   struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
+  double self_nu_fac; // Self collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
+  double cross_nu_fac[GKYL_MAX_SPECIES]; // Cross collision freqs without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
+  double vtsq_min; // minimum vtsq
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
@@ -192,6 +193,7 @@ struct gk_lbo_collisions {
   struct gk_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
 
   struct gkyl_array *m0;
+  struct gkyl_array *vtsq;
   struct gkyl_array *m2self; // m2self used for robustness of LBO
   struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
   struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
@@ -474,13 +476,9 @@ struct gk_field {
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 
-  struct gkyl_fem_poisson_perp *fem_poisson_perp; // perpendicular Poisson solve
-                                                  // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 
-  struct gkyl_fem_poisson *fem_poisson; // general Poisson solve to be used for axisymmetric calculations
-                                                  // - nabla . (epsilon * nabla phi) - kSq * phi = rho
-                                                  //
-  struct gkyl_line_fem_poisson *line_fem_poisson; // poisson solver which solves on lines in x
+  struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves on lines in x or planes in xy
+                                                          // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 
   struct gkyl_array_integrate *calc_em_energy;
   double *em_energy_red; // memory for use in GPU reduction of EM energy
