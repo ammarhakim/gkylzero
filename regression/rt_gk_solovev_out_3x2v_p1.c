@@ -41,7 +41,7 @@ struct gk_solovev_ctx {
 
 struct gkyl_tok_geo_efit_inp inp = {
   // psiRZ and related inputs
-  .filepath = "./efit_data/solovev.geqdsk",
+  .filepath = "./data/eqdsk/solovev.geqdsk",
   .rzpoly_order = 2,
   .fluxpoly_order = 1,
   .plate_spec = false,
