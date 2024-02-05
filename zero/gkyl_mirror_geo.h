@@ -99,6 +99,9 @@ struct gkyl_mirror_geo_grid_inp {
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written
   const char *node_file_nm; // name of nodal coordinate file
+
+  double nonuniform_mapping_fraction; // Zero is uniform mapping, one is fully nonuniform mapping. In between values 
+  // preserve some fraction of the nonuniform mapping to maintain cell density in center.
 };
 
 

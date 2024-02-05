@@ -94,15 +94,26 @@ gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl
   gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, mc2p, false, NULL);
   // calculate bmag on a uniform grid
   struct bmag_ctx *bmag_ctx_inp = gkyl_malloc(sizeof(*bmag_ctx_inp));
-  gkyl_calc_bmag *bcalculator_uniform = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-  gkyl_calc_bmag_advance(bcalculator_uniform, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange,
-   &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, bmag_ctx_inp, geo->fpoldg, mc2p, false);
-  // calculate mapc2p and the mirror geometry
-  gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, mc2p, true, bmag_ctx_inp);
-  // calculate bmag
-  gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-  gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, 
-  &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, NULL, geo->fpoldg, mc2p, false);
+  if (ginp->nonuniform_mapping_fraction == 0.0)
+  {
+    printf("Uniform mapping");
+    gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
+    gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange,
+    &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, bmag_ctx_inp, geo->fpoldg, mc2p, false);
+  } else if (ginp->nonuniform_mapping_fraction <= 1.0 & ginp->nonuniform_mapping_fraction > 0.0){
+    printf("Nonuniform mapping");
+    gkyl_calc_bmag *bcalculator_uniform = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
+    gkyl_calc_bmag_advance(bcalculator_uniform, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange,
+    &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, bmag_ctx_inp, geo->fpoldg, mc2p, false);
+    // calculate mapc2p and the nonuniform geometry
+    gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, mc2p, true, bmag_ctx_inp);
+    // calculate bmag
+    gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
+    gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, 
+    &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, NULL, geo->fpoldg, mc2p, false);
+  } else {
+    printf("Invalid nonuniform mapping fraction");
+  }
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, false);
   gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, &up->range);

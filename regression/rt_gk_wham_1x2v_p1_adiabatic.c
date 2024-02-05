@@ -129,7 +129,8 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   .zmin = -2.48,
   .zmax =  2.48,
   .write_node_coord_array = true,
-  .node_file_nm = "bmag.gkyl"
+  .node_file_nm = "bmag.gkyl",
+  .nonuniform_mapping_fraction = 0.7,
 };
 
 double

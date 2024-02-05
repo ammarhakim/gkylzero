@@ -245,8 +245,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
 
           if (nonuniform)
           {
-            arc_ctx.mapping_frac = 0.7; // need to pull this into input file level.
-            
+            arc_ctx.mapping_frac = inp->nonuniform_mapping_fraction;
             arc_ctx.psi = psi_curr; // I'm not sure if this messes up something
             arc_ctx.alpha = alpha_curr;
             calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
