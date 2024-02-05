@@ -199,6 +199,12 @@ calculate_optimal_mapping(void *arc_ctx, void *bmag_ctx_inp)
       expander_order++;
       max_dB_dCell_prior = max_dB_dCell;
     }
+    else if (improvement < 0)
+    {
+      expander_order--;
+      arc_app->mapping_order_expander = expander_order;
+      break;
+    }
     else
     {
       break;
@@ -239,6 +245,12 @@ calculate_optimal_mapping(void *arc_ctx, void *bmag_ctx_inp)
     {
       center_order++;
       max_dB_dCell_prior = max_dB_dCell;
+    }
+    else if (improvement < 0)
+    {
+      center_order--;
+      arc_app->mapping_order_center = center_order;
+      break;
     }
     else
     {
