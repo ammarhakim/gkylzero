@@ -22,6 +22,25 @@
 #include <math.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_app_priv.h>
+#include <gkyl_read_radiation.h>
+#include <gkyl_dg_bin_ops.h>
+
+struct gk_rad_ctx {
+  double B0; // reference magnetic field  
+  // Simulation parameters
+  double Lx; // Box size in x
+  double kperp; // perpendicular wave number used in Poisson solve
+};
+
+struct gk_rad_ctx create_ctx(void) {
+  struct gk_rad_ctx ctx = {
+    .B0 = 1.0,
+    .Lx = 2.0,
+    .kperp = 0.1
+  };
+  return ctx;
+}
+
 
 void
 mapc2p_1x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
@@ -64,7 +83,7 @@ bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 1.0;
+  fout[0] = 1.0e19;
 }
 
 void
@@ -74,13 +93,33 @@ eval_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 }
 
 void
-eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+eval_vthsq(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 29.999913327161483*GKYL_ELEMENTARY_CHARGE*2/GKYL_ELECTRON_MASS;
+  double *te=ctx;
+  fout[0] = te[0]*GKYL_ELEMENTARY_CHARGE*2/GKYL_ELECTRON_MASS;
+}
+
+void eval_M1_2v_gk(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0];
+  double den[1], udrift[1];
+  eval_density(t, xn, den, ctx);
+  eval_upar(t, xn, udrift, ctx);
+  fout[0] = den[0]*udrift[0];
+}
+
+void eval_M2_2v_gk(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0];
+  double den[1], udrift[1], vtsq[1];
+  eval_density(t, xn, den, ctx);
+  eval_upar(t, xn, udrift, ctx);
+  eval_vthsq(t, xn, vtsq, ctx);
+  fout[0] = 3.*den[0]*vtsq[0] + den[0]*(udrift[0]*udrift[0]);
 }
 
 void
-test_1x(int poly_order, bool use_gpu)
+test_1x(int poly_order, bool use_gpu, double te)
 {
   double mass = GKYL_ELECTRON_MASS;
   double charge = -1.0*GKYL_ELEMENTARY_CHARGE;
@@ -145,13 +184,14 @@ test_1x(int poly_order, bool use_gpu)
 
   printf("Initializing geometry...\n");
   // Initialize geometry
+  struct gk_rad_ctx geo_ctx = create_ctx();
   struct gkyl_gyrokinetic_geometry geometry_input = {
       .geometry_id = GKYL_MAPC2P,
       .world = {0.0, 0.0},
       .mapc2p = mapc2p_3x, // mapping of computational to physical space
-      .c2p_ctx = 0,
+      .c2p_ctx = &geo_ctx,
       .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx =0 
+      .bmag_ctx = &geo_ctx 
   };
   struct gkyl_rect_grid geo_grid;
   struct gkyl_range geo_local;
@@ -184,12 +224,22 @@ test_1x(int poly_order, bool use_gpu)
   vnu_surf = mkarr(use_gpu, surf_vpar_basis.num_basis, local_ext.volume);
   vsqnu_surf = mkarr(use_gpu, surf_mu_basis.num_basis, local_ext.volume);
 
-  double a, alpha, beta, gamma, v0;
-  a = 0.153650876536253;
+
+  struct all_radiation_states *rad_data=gkyl_read_rad_fit_params();
+  double a[1], alpha[1], beta[1], gamma[1], v0[1];
+  int atomic_z = 3;
+  int charge_state = 1;
+  int num_ne = 1;
+  int status = gkyl_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne);
+  if (status == 1) {
+    printf("No radiation fits exist for z=%d, charge state=%d\n",atomic_z, charge_state);
+  }
+  printf("a=%e,alpha=%e,beta=%e,gamma=%e,V0=%e\n",a[0], alpha[0], beta[0], gamma[0], v0[0]);
+  /*  a = 0.153650876536253;
   alpha = 8000.006932403581;
   beta = 0.892102642790662;
   gamma = -3.923194017288736;
-  v0 = 3.066473173090881;
+  v0 = 3.066473173090881;*/
   /*a = 1.1e-5;
   alpha = 3;
   beta = 1;
@@ -198,7 +248,7 @@ test_1x(int poly_order, bool use_gpu)
   
   printf("Next: call calc_gk_rad_vars\n");
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid, &confBasis, &basis, 
-		  charge, mass, gk_geom, a, alpha, beta, gamma, v0, use_gpu);
+		  charge, mass, gk_geom, a[0], alpha[0], beta[0], gamma[0], v0[0], use_gpu);
 
   gkyl_dg_calc_gk_rad_vars_nu_advance(calc_gk_rad_vars, &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu);
 
@@ -232,16 +282,29 @@ test_1x(int poly_order, bool use_gpu)
   // Initialize distribution function with proj_gkmaxwellian_on_basis
   struct gkyl_array *f = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   struct gkyl_array *nI = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  // Project n, udrift, and vt^2 based on input functions
+  // Project n, M1, M2, udrift, and vt^2 based on input functions
   struct gkyl_array *m0 = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *m1 = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *m2 = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+
   struct gkyl_array *udrift = mkarr(false, vdim*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *vtsq = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, 1, eval_density, NULL);
+  gkyl_proj_on_basis *proj_m1 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, 1, eval_M1_2v_gk, NULL);
+  gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
+    poly_order+1, 1, eval_M2_2v_gk, NULL);
+
   gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, vdim, eval_upar, 0);
+  
+  double ctx[1], Lz[1];
+  ctx[0]=te;
+  gkyl_get_fit_lz(*rad_data, atomic_z, charge_state, 1e19, ctx, Lz);
+  printf("ctx[0]=%f, Lz[0]=%e\n",ctx[0],Lz[0]);
   gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_temp_elc, NULL);
+    poly_order+1, 1, eval_vthsq, ctx);
 
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0); 
   gkyl_proj_on_basis_advance(proj_udrift, 0.0, &confLocal, udrift);
@@ -253,6 +316,20 @@ test_1x(int poly_order, bool use_gpu)
   gkyl_array_set_offset(prim_moms, 1.0, udrift, 0*confBasis.num_basis);
   gkyl_array_set_offset(prim_moms, 1.0, vtsq  , vdim*confBasis.num_basis);
 
+  // proj_maxwellian expects the moments as a single array.
+  struct gkyl_array *moms_ho = mkarr(false, 3*confBasis.num_basis, confLocal_ext.volume);
+  gkyl_array_set_offset(moms_ho, 1., m0, 0*confBasis.num_basis);
+  gkyl_array_set_offset(moms_ho, 1., m1, 1*confBasis.num_basis);
+  gkyl_array_set_offset(moms_ho, 1., m2, 2*confBasis.num_basis);
+  struct gkyl_array *moms;
+  if (use_gpu) { // copy host array to device
+    moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*confBasis.num_basis, confLocal_ext.volume);
+    gkyl_array_copy(moms, moms_ho);
+  } else {
+    moms = moms_ho;
+  }
+
+
   // Initialize Maxwellian projection object
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
       &confBasis, &basis, poly_order+1, use_gpu);
@@ -261,17 +338,15 @@ test_1x(int poly_order, bool use_gpu)
   struct gkyl_array *prim_moms_dev, *m0_dev;
   if (use_gpu) {
     prim_moms_dev = mkarr(use_gpu, 2*confBasis.num_basis, confLocal_ext.volume);
-    m0_dev = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
 
     gkyl_array_copy(prim_moms_dev, prim_moms);
-    gkyl_array_copy(m0_dev, m0);
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, m0_dev, prim_moms_dev,
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, moms, prim_moms_dev,
       gk_geom->bmag, gk_geom->bmag, mass, f);
   }
   else {
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, m0, prim_moms,
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, moms, prim_moms,
       gk_geom->bmag, gk_geom->bmag, mass, f);
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, m0, prim_moms,
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, moms, prim_moms,
       gk_geom->bmag, gk_geom->bmag, GKYL_PROTON_MASS, nI);
   }
 
@@ -288,12 +363,12 @@ test_1x(int poly_order, bool use_gpu)
   gkyl_dg_updater_moment_gyrokinetic_advance(m0_ion_up, &local, &confLocal, nI, m0_ion);
 
   gkyl_grid_sub_array_write(&grid, &local, vnu, "ctest_dg_rad_gyrokinetic_vnu.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, vtsq, "ctest_dg_rad_gyrokinetic_vthsq.gkyl");
-  gkyl_grid_sub_array_write(&grid, &local, m0, "ctest_dg_rad_gyrokinetic_M0.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, vtsq, "ctest_dg_rad_gyrokinetic_vthsq.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, m0, "ctest_dg_rad_gyrokinetic_M0.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, gk_geom->bmag, "ctest_dg_rad_gyrokinetic_bmag.gkyl");
   gkyl_grid_sub_array_write(&grid, &local, vsqnu, "ctest_dg_rad_gyrokinetic_vsqnu.gkyl");
   gkyl_grid_sub_array_write(&grid, &local, vnu_surf, "ctest_dg_rad_gyrokinetic_vnu_surf.gkyl");
   gkyl_grid_sub_array_write(&grid, &local, vsqnu_surf, "ctest_dg_rad_gyrokinetic_vsqnu_surf.gkyl");
-
   printf("Advancing hyper dg...\n");
   // run hyper_dg_advance
   int nrep = 1;
@@ -334,10 +409,19 @@ test_1x(int poly_order, bool use_gpu)
   //  double cell_avg0 = m20[0]/pow(sqrt(2),cdim);
   double cell_avg0 = 1.0/2.0*GKYL_ELECTRON_MASS*m20[0]/(m00[0]*m00_ion[0]);
 
-  double correct = 4.419192427285379e-32;
+  //double correct = 4.419192427285379e-32;
+  double correct = Lz[0];;
   //  for (int i=0; i<30; i++){
   printf("cell_avg=%e, correct energy=%e, density=%.10e, nI=%e, m2=%e\n",cell_avg0, correct, m00[0], m00_ion[0], m20[0]);
     //}
+  struct gkyl_array *dem = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *emissivity = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  gkyl_dg_mul_op(confBasis, 0, dem, 0, m0, 0, m0_ion);
+  gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_new(emissivity->size, confBasis.num_basis);
+  gkyl_dg_div_op(mem, confBasis, 0, emissivity, 0, m2_final, 0, dem);
+  double *emissivity_a = gkyl_array_fetch(emissivity, 0+ghost[0]);
+  printf("Emissivity from bin_ops=%e",0.5*GKYL_ELECTRON_MASS*emissivity_a[0]);
+
   
   TEST_CHECK( gkyl_compare( correct*1e30, cell_avg0*1e30, 1e-12));
   TEST_CHECK( cell_avg0>0);
@@ -374,130 +458,10 @@ test_1x(int poly_order, bool use_gpu)
   gkyl_array_release(m2_final);
 }
 
-struct eval_nu_ctx {
-  double Abar;
-  double alpha;
-  double beta;
-  double V0; 
-  double gamma;
-  double Crad;
-  double B0;
-};
+void test_1x2v_p1_30eV() { test_1x(1, false, 30.0); }
+void test_1x2v_p1_50eV() { test_1x(1, false, 50.0); }
+void test_1x2v_p2() { test_1x(2, false, 30.0); }
 
-void eval_nu_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
-{
-  double x = xn[0], vpar = xn[1], mu = xn[2];
-
-  struct eval_nu_ctx *radFit = ctx;
-  double Abar  = radFit->Abar ;
-  double alpha = radFit->alpha;
-  double beta  = radFit->beta ;
-  double V0    = radFit->V0   ; 
-  double gamma = radFit->gamma;
-  double Crad  = radFit->Crad ;
-  double B0    = radFit->B0   ;
-  double me = GKYL_ELECTRON_MASS;
-  double eV = GKYL_ELEMENTARY_CHARGE;
-
-  double vSq = pow(vpar,2)+2.*mu*B0/me;
-  double denomFac = (me/(2.*eV*V0))*vSq;
-
-  fout[0] = vSq > 1e-18? (Abar/Crad)*(alpha+beta)*pow(vSq,gamma/2.) / 
-    ( beta*pow(denomFac,-alpha/2.)+alpha*pow(denomFac,beta/2.) ) 
-    : 0.;
-}
-
-void
-projnu_1x2v(int poly_order, bool use_gpu)
-{
-  // Project nu onto an (x,vpar,mu) grid. Use eval_on_nodes now
-  // though we'll have to write an updater for it if we keep the
-  // dependence on B.
-  int cdim = 1;
-  int vdim = 2;
-  int ndim = cdim + vdim;
-
-  double me = GKYL_ELECTRON_MASS;
-  double eV = GKYL_ELEMENTARY_CHARGE;
-  double qe = -eV;
-  double Te = 100*2.8*eV;
-  double B0 = 4.2;
-
-  // H fitting parameters.
-  double Abar = 0.166594984602572;
-  double alpha = 8.000072245234049e+03;
-  double beta = 0.875480342166318;
-  double V0 = 3.071566470338830;
-  double gamma = -3.956239523465181;
-  double Crad = 8.*sqrt(M_PI)*pow(GKYL_ELEMENTARY_CHARGE,5./2.)/me;
-  struct eval_nu_ctx radFit = {
-    .Abar  = Abar ,
-    .alpha = alpha,
-    .beta  = beta ,
-    .V0    = V0   ,
-    .gamma = gamma,
-    .Crad  = Crad ,
-//    .B0    = 0.5*B0   ,
-    .B0    = B0   ,
-//    .B0    = 2.*B0   ,
-  };
-
-  double vtElc = sqrt(Te/me);
-  double lower[] = {-M_PI, -4.0*vtElc, 0.};
-  double upper[] = { M_PI,  4.0*vtElc, 0.5*me*pow(4.0*vtElc,2)/B0};
-  int cells[] = {2, 32, 16};
-
-  double confLower[cdim], confUpper[cdim];
-  int confCells[cdim];
-  for (int d=0; d<cdim; d++) {
-    confLower[d] = lower[d]; 
-    confUpper[d] = upper[d];
-    confCells[d] = cells[d];
-  }
-
-  // grids
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
-  struct gkyl_rect_grid confGrid;
-  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
-
-  // basis functions
-  struct gkyl_basis basis, confBasis;
-  if (poly_order > 1) {
-    gkyl_cart_modal_serendip(&basis, ndim, poly_order);
-  } else if (poly_order == 1) {
-    /* Force hybrid basis (p=2 in vpar). */
-    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
-  }
-  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
-
-  int confGhost[] = { 1 };
-  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
-  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-
-  int ghost[] = { confGhost[0], 0, 0 };
-  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
-  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-
-  // projection nu
-  struct gkyl_array *nu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  gkyl_eval_on_nodes *evonnod = gkyl_eval_on_nodes_new(&grid, &basis, 1, eval_nu_1x2v, &radFit);
-
-  gkyl_eval_on_nodes_advance(evonnod, 0.0, &local, nu);
-
-  gkyl_grid_sub_array_write(&grid, &local, nu, "ctest_dg_rad_gyrokinetic_nu.gkyl");
-
-  // Release memory
-  gkyl_array_release(nu);
-  gkyl_eval_on_nodes_release(evonnod);
-}
-
-void test_1x1v_p1() { test_1x(1, false); }
-void test_1x2v_p1() { test_1x(1, false); }
-void test_1x1v_p2() { test_1x(2, false); }
-void test_1x2v_p2() { test_1x(2, false); }
-
-void test_projnu_1x2v_p1() { projnu_1x2v(1, false); }
 
 // #ifdef GKYL_HAVE_CUDA
 
@@ -509,10 +473,10 @@ void test_projnu_1x2v_p1() { projnu_1x2v(1, false); }
 // #endif
 
 TEST_LIST = {
-  { "test_1x2v_p1", test_1x2v_p1 },
+  { "test_1x2v_p1_30eV", test_1x2v_p1_30eV },
+  { "test_1x2v_p1_50eV", test_1x2v_p1_50eV },
   // { "test_1x1v_p2", test_1x1v_p2 },
   // { "test_1x2v_p2", test_1x2v_p2 },
-  //{ "test_projnu_1x2v_p1", test_projnu_1x2v_p1 },
 
 // #ifdef GKYL_HAVE_CUDA
 //   { "test_1x1v_p1_gpu", test_1x1v_p1_gpu },
