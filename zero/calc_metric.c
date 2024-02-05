@@ -238,7 +238,6 @@ void gkyl_calc_metric_advance(gkyl_calc_metric *up, struct gkyl_range *nrange, s
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, nrange, update_range, 9, dualFld_nodal, dualFld);
   gkyl_array_release(gFld_nodal);
   gkyl_array_release(tanvecFld_nodal);
-  gkyl_array_release(dualFld_nodal);
 }
 
 void

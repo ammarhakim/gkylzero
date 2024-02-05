@@ -148,21 +148,11 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->gxzj,  "gxzj.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->eps2,  "eps2.gkyl");
 
-
-
-  gkyl_calc_bmag_release(bcalculator);
-  gkyl_calc_metric_release(mcalc);
-  gkyl_tok_calc_derived_geo_release(jcalculator);
-  gkyl_nodal_ops_release(n2m);
-
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
   gkyl_array_release(mc2prz_nodal_fd);
   gkyl_array_release(mc2prz_nodal);
   gkyl_array_release(mc2prz);
-  gkyl_array_release(dphidtheta_nodal);
-  gkyl_array_release(bmag_nodal);
-
 
   return up;
 }
