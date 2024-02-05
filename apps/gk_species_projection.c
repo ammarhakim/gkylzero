@@ -82,9 +82,13 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
   struct gk_proj *proj, struct gkyl_array *f, double tm)
 {
   if (proj->proj_id == GKYL_PROJ_FUNC) {
-    gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, proj->proj_host);
-    if (app->use_gpu) 
+    if (app->use_gpu) {
+      gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, proj->proj_host);
       gkyl_array_copy(f, proj->proj_host);
+    }
+    else {
+      gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, f);
+    }
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN) { 
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->m0); 
