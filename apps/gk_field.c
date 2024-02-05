@@ -58,24 +58,18 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       gkyl_array_scale(f->weight, polarization_weight);
       gkyl_array_scale(f->weight, f->info.kperpSq);
     }
-    else if (app->cdim == 2) {
+    else if (app->cdim > 1) {
       // set whatever epsilon we need
       // initialize a the weight to be used by deflated_fem_poisson
-      f->epsilon = mkarr(app->use_gpu, 1*app->confBasis.num_basis, app->local_ext.volume);
+      f->epsilon = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->confBasis.num_basis, app->local_ext.volume);
       gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
+      if (app->cdim > 2) {
+        gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
+        gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);
+      }
 
       f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
         app->local, app->local_ext, f->epsilon, f->info.poisson_bcs, app->use_gpu);
-    }
-    else {
-      // allocate arrays for Poisson solver and Poisson solver 
-      f->epsilon = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
-      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxxj, 0*app->confBasis.num_basis);
-      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
-      gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);
-
-      f->fem_poisson_perp = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->confBasis, 
-        &f->info.poisson_bcs, f->epsilon, f->kSq, app->use_gpu);
     }
   }
 
@@ -224,25 +218,15 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
     gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
   }
   else {
-    if (app->cdim==1) {
+    if (app->cdim == 1) {
       gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
       gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
     }
-    else if (app->cdim==2) {
+    else if (app->cdim > 1) {
       // input is rho_c and output should be in phi_smooth
       gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, field->rho_c);
       gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_smooth);
       gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_smooth, field->phi_smooth);
-    }
-    else {
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
-      gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_smooth);
-
-      gkyl_fem_poisson_perp_set_rhs(field->fem_poisson_perp, field->rho_c_smooth);
-      gkyl_fem_poisson_perp_solve(field->fem_poisson_perp, field->phi_fem);
-
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->phi_fem, field->phi_fem);
-      gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
     }
   }
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
@@ -295,15 +279,10 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_array_release(f->weight);
       gkyl_fem_parproj_release(f->fem_parproj);
     }
-    else if (app->cdim == 2) {
+    else if (app->cdim > 1) {
       gkyl_array_release(f->epsilon);
       gkyl_fem_parproj_release(f->fem_parproj);
       gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
-    }
-    else {
-      gkyl_array_release(f->epsilon);
-      gkyl_fem_poisson_perp_release(f->fem_poisson_perp);
-      gkyl_fem_parproj_release(f->fem_parproj);
     }
   }
   
