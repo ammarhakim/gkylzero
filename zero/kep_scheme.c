@@ -222,7 +222,7 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
     int upidx = update_rng->upper[dir]+1; // one more edge than cells
 
     struct gkyl_range perp_range;
-    gkyl_range_shorten(&perp_range, update_rng, dir, 1);
+    gkyl_range_shorten_from_above(&perp_range, update_rng, dir, 1);
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &perp_range);
 
