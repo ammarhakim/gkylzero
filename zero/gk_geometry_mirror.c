@@ -132,6 +132,11 @@ gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->gxzj,  "gxzj.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->eps2,  "eps2.gkyl");
 
+
+  gkyl_calc_bmag_release(bcalculator);
+  gkyl_calc_metric_release(mcalc);
+  gkyl_calc_derived_geo_release(jcalculator);
+
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
 
