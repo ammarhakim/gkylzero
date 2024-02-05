@@ -47,6 +47,16 @@ void test_range_shape()
   }
 }
 
+void test_range_copy()
+{
+  int lower[] = {1, 1}, upper[] = {10, 20};
+  struct gkyl_range range1, range2;
+  gkyl_range_init(&range1, 2, lower, upper);
+  gkyl_range_init(&range2, 2, lower, upper);
+
+  memcpy(&range2, &range1, sizeof(struct gkyl_range));
+}
+
 void test_range_shift()
 {
   int lower[] = {1, 1}, upper[] = {10, 20};
@@ -1073,6 +1083,7 @@ TEST_LIST = {
   { "range_1", test_range_1 },
   { "range_shift", test_range_shift },
   { "range_shape",  test_range_shape },
+  { "range_copy", test_range_copy },
   { "sub_range",  test_sub_range },
   { "range_iter_init_next", test_range_iter_init_next},
   { "sub_sub_range",  test_sub_sub_range },

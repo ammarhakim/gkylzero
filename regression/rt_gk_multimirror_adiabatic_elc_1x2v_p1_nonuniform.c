@@ -606,11 +606,11 @@ create_ctx(void)
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int num_cell_vpar = 64; // Number of cells in the paralell velocity direction 96
-  int num_cell_mu = 192;  // Number of cells in the mu direction 192
+  int num_cell_mu = 32;  // Number of cells in the mu direction 192
   int num_cell_z = 128;
   int poly_order = 1;
-  double final_time = 50e-6;
-  int num_frames = 50;
+  double final_time = 100e-6;
+  int num_frames = 100;
 
   // Physics parameters at mirror throat
   double n_m = 1.105617e19;

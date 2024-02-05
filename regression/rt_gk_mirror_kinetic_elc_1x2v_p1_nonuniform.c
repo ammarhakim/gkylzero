@@ -379,14 +379,14 @@ eval_density_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
   double z_m = app->z_m;
-  double z_max = app->z_max;
-  if (fabs(z) <= z_m)
+  double sigma = 0.9*z_m;
+  if (fabs(z) <= sigma)
   {
-    fout[0] = app->n0 * (tanh(10 * z_m * fabs(z_m - fabs(z))) / 2 + .5);
+    fout[0] = 0.5*app->n0*(1. + tanh(10. * sigma * fabs(sigma - fabs(z))));
   }
   else
   {
-    fout[0] = app->n0 / 2 * exp(-5 * (fabs(z_m - fabs(z))));
+    fout[0] = 0.5*app->n0*exp(-5 * (fabs(sigma - fabs(z))));
   }
 }
 
@@ -416,14 +416,15 @@ eval_temp_par_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
   double z_m = app->z_m;
-  double z_max = app->z_max;
+  double Te_par0 = app->Te_par0;
+  double Te_par_m = app->Te_par_m;
   if (fabs(z) <= z_m)
   {
-    fout[0] = (app->Te_par0 - app->Te_par_m) * tanh(3 * z_m * fabs(z_m - fabs(z))) + app->Te_par_m;
+    fout[0] = Te_par_m+(Te_par0-Te_par_m)*tanh(4 * fabs(z_m - fabs(z)));
   }
   else
   {
-    fout[0] = app->Te_par_m;
+    fout[0] = Te_par_m;
   }
 }
 
@@ -434,14 +435,15 @@ eval_temp_perp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
   double z_m = app->z_m;
-  double z_max = app->z_max;
+  double Te_perp0 = app->Te_perp0;
+  double Te_perp_m = app->Te_perp_m;
   if (fabs(z) <= z_m)
   {
-    fout[0] = (app->Te_perp_m - app->Te_perp0) * ((tanh((fabs(z) - z_m * 0.8) * 10 * z_m)) / 2 + 0.5) + app->Te_perp0;
+    fout[0] = Te_perp_m - Te_perp0*tanh(3.*fabs(z_m-fabs(z)));
   }
   else
   {
-    fout[0] = app->Te_perp_m * exp(-5 * (fabs(z_m - fabs(z))));
+    fout[0] = Te_perp_m * GKYL_MAX2(1.e-3, exp(-5. * (fabs(z_m - fabs(z)))));
   }
 }
 
@@ -464,14 +466,14 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
   double z_m = app->z_m;
-  double z_max = app->z_max;
-  if (fabs(z) <= z_m)
+  double sigma = 0.9*z_m;
+  if (fabs(z) <= sigma)
   {
-    fout[0] = app->n0 * (tanh(10 * z_m * fabs(z_m - fabs(z))) / 2 + .5);
+    fout[0] = 0.5*app->n0*(1. + tanh(10. * sigma * fabs(sigma - fabs(z))));
   }
   else
   {
-    fout[0] = app->n0 / 2 * exp(-5 * (fabs(z_m - fabs(z))));
+    fout[0] = 0.5*app->n0*exp(-5 * (fabs(sigma - fabs(z))));
   }
 }
 
@@ -501,14 +503,15 @@ eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
   double z_m = app->z_m;
-  double z_max = app->z_max;
+  double Ti_par0 = app->Ti_par0;
+  double Ti_par_m = app->Ti_par_m;
   if (fabs(z) <= z_m)
   {
-    fout[0] = (app->Ti_par0 - app->Ti_par_m) * tanh(3 * z_m * fabs(z_m - fabs(z))) + app->Ti_par_m;
+    fout[0] = Ti_par_m+(Ti_par0-Ti_par_m)*tanh(4 * fabs(z_m - fabs(z)));
   }
   else
   {
-    fout[0] = app->Ti_par_m;
+    fout[0] = Ti_par_m;
   }
 }
 
@@ -519,14 +522,15 @@ eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
   double z_m = app->z_m;
-  double z_max = app->z_max;
+  double Ti_perp0 = app->Ti_perp0;
+  double Ti_perp_m = app->Ti_perp_m;
   if (fabs(z) <= z_m)
   {
-    fout[0] = (app->Ti_perp_m - app->Ti_perp0) * ((tanh((fabs(z) - z_m * 0.8) * 10 * z_m)) / 2 + 0.5) + app->Ti_perp0;
+    fout[0] = Ti_perp_m - Ti_perp0*tanh(3.*fabs(z_m-fabs(z)));
   }
   else
   {
-    fout[0] = app->Ti_perp_m * exp(-5 * (fabs(z_m - fabs(z))));
+    fout[0] = Ti_perp_m * GKYL_MAX2(1.e-3, exp(-5. * (fabs(z_m - fabs(z)))));
   }
 }
 
@@ -827,15 +831,6 @@ double kperpRhos = 0.1;
   double Te_par_m = 300 * eV;
   double Te_perp0 = 2000 * eV;
   double Te_perp_m = 3000 * eV;
-printf("ev = %g\n", eV);
-printf("Ti_perp0 = %g\n", Ti_perp0);
-printf("Ti_par0 = %g\n", Ti_par0);
-printf("Ti_perp_m = %g\n", Ti_perp_m);
-printf("Ti_par_m = %g\n", Ti_par_m);
-printf("Te_par0 = %g\n", Te_par0);
-printf("Te_par_m = %g\n", Te_par_m);
-printf("Te_perp0 = %g\n", Te_perp0);
-printf("Te_perp_m = %g\n", Te_perp_m);
   // Non-uniform z mapping
   double mapping_frac = 0.7; // 1 is full mapping, 0 is no mapping
 
@@ -976,8 +971,6 @@ int main(int argc, char **argv)
       .init_density = eval_density_elc,
       .ctx_upar = &ctx,
       .init_upar = eval_upar_elc,
-      .ctx_temp = &ctx,
-      .init_temp = eval_temp_elc,
       .ctx_temppar = &ctx,
       .init_temppar = eval_temp_par_elc,
       .ctx_tempperp = &ctx,
@@ -1017,8 +1010,6 @@ int main(int argc, char **argv)
       .init_density = eval_density_ion,
       .ctx_upar = &ctx,
       .init_upar = eval_upar_ion,
-      .ctx_temp = &ctx,
-      .init_temp = eval_temp_ion,
       .ctx_temppar = &ctx,
       .init_temppar = eval_temp_par_ion,
       .ctx_tempperp = &ctx,
