@@ -128,6 +128,9 @@ is_neut_moment_name_valid(const char *nm)
 struct gk_species_moment {
   struct gk_geometry *gk_geom; // geometry struct for dividing moments by Jacobian
   struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in dividing moments by Jacobian
+  bool is_integrated; // boolean for if computing integrated moments 
+                      // integrated moments do not need to divide by Jacobian since
+                      // the inverse Jacobian is already included in the computation
 
   struct gkyl_dg_updater_moment *mcalc; // moment update
 
