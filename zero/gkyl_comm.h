@@ -43,6 +43,13 @@ typedef int (*gkyl_array_irecv_t)(struct gkyl_array *array, int src, int tag,
 typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp, void *out);
 
+// Gather local arrays into global array on each process.
+typedef int (*gkyl_array_all_gather_t)(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, 
+  struct gkyl_array *buff_local, struct gkyl_array *buff_global, 
+  struct gkyl_array *array_global);
+
 // "Synchronize" @a array across the regions or blocks.
 typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *local_ext,
@@ -97,6 +104,7 @@ struct gkyl_comm {
   gkyl_array_recv_t gkyl_array_recv; // blocking recv array.
   gkyl_array_irecv_t gkyl_array_irecv; // nonblocking recv array.
   all_reduce_t all_reduce; // all reduce function
+  gkyl_array_all_gather_t gkyl_array_all_gather; // gather local arrays to global array
   gkyl_array_sync_t gkyl_array_sync; // sync array
   gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
   barrier_t barrier; // barrier
@@ -219,6 +227,29 @@ gkyl_comm_all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp, void *out)
 {
   return comm->all_reduce(comm, type, op, nelem, inp, out);
+}
+
+/**
+ * All reduce values across domains.
+ *
+ * @param comm Communicator
+ * @param local Local range for array
+ * @param global Global range for array
+ * @param array_local Local array
+ * @param buff_local Local buffer
+ * @param buff_global Global buffer
+ * @param array_global Global array
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_array_all_gather(struct gkyl_comm *comm, 
+  const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, 
+  struct gkyl_array *buff_local, struct gkyl_array *buff_global, 
+  struct gkyl_array *array_global)
+{
+  return comm->gkyl_array_all_gather(comm, local, global, 
+    array_local, buff_local, buff_global, array_global);
 }
 
 /**

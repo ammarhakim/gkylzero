@@ -56,6 +56,18 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
 }
 
 static int
+array_all_gather(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, 
+  struct gkyl_array *buff_local, struct gkyl_array *buff_global, 
+  struct gkyl_array *array_global)
+{
+  gkyl_array_copy_to_buffer(buff_local->data, array_local, local);
+  gkyl_array_copy_from_buffer(array_global, buff_local->data, global);
+  return 0;
+}
+
+static int
 array_sync(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *local_ext,
   struct gkyl_array *array)
@@ -165,6 +177,7 @@ gkyl_null_comm_new(void)
   comm->base.get_rank = get_rank;
   comm->base.get_size = get_size;
   comm->base.all_reduce = all_reduce;
+  comm->base.gkyl_array_all_gather = array_all_gather;
   comm->base.gkyl_array_sync = array_sync;
   comm->base.barrier = barrier;
   comm->base.gkyl_array_write = array_write;

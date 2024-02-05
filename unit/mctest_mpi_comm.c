@@ -93,6 +93,70 @@ test_n2()
 }
 
 void
+test_n2_all_gather_1d()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 2) return;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  struct gkyl_range global;
+  gkyl_range_init(&global, 1, (int[]) { 1 }, (int[]) { 10 });
+
+  int cuts[] = { 2 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(global.ndim, cuts, &global);
+  
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp,
+      .sync_corners = false,
+    }
+  );
+
+  int nghost[] = { 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arr_local = gkyl_array_new(GKYL_DOUBLE, global.ndim, local_ext.volume);
+  struct gkyl_array *buff_local = gkyl_array_new(GKYL_DOUBLE, global.ndim, local.volume);
+  gkyl_array_clear(arr_local, 200005.0);
+  gkyl_array_clear(buff_local, 0.0);
+
+  struct gkyl_array *arr_global = gkyl_array_new(GKYL_DOUBLE, global.ndim, global.volume);
+  struct gkyl_array *buff_global = gkyl_array_new(GKYL_DOUBLE, global.ndim, global.volume);
+  gkyl_array_clear(arr_global, 1.0);
+  gkyl_array_clear(buff_global, 0.0);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long idx = gkyl_range_idx(&local, iter.idx);
+    double  *f = gkyl_array_fetch(arr_local, idx);
+    f[0] = iter.idx[0]+10.0*rank;
+  }
+
+  gkyl_comm_array_all_gather(comm, &local, &global, arr_local, buff_local, buff_global, arr_global);
+
+  struct gkyl_range_iter iter_global;
+  gkyl_range_iter_init(&iter_global, &global);
+  while (gkyl_range_iter_next(&iter_global)) {
+    long idx = gkyl_range_idx(&global, iter_global.idx);
+    double *f = gkyl_array_fetch(arr_global, idx);
+    printf("f = %g\n", f[0]);
+    //TEST_CHECK( iter_global.idx[0]+10.0*rank == f[0] );
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr_local);    
+  gkyl_array_release(buff_local);    
+  gkyl_array_release(arr_global);    
+  gkyl_array_release(buff_global);    
+}
+
+void
 test_n2_sync_1d()
 {
   int m_sz;
@@ -607,6 +671,7 @@ test_n4_multicomm_2d()
 TEST_LIST = {
   {"test_1", test_1},
   {"test_n2", test_n2},
+  {"test_n2_all_gather_1d", test_n2_all_gather_1d},
   {"test_n2_sync_1d", test_n2_sync_1d},
   {"test_n4_sync_2d_no_corner", test_n4_sync_2d_no_corner },
   {"test_n4_sync_2d_use_corner", test_n4_sync_2d_use_corner},

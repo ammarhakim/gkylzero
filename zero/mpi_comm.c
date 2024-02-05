@@ -154,6 +154,33 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
 }
 
 static int
+array_all_gather(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, 
+  struct gkyl_array *buff_local, struct gkyl_array *buff_global, 
+  struct gkyl_array *array_global)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  // copy data to local buffer
+  gkyl_array_copy_to_buffer(buff_local->data, array_local, local);
+  size_t nelem = array_local->esznc*local->volume;
+  // gather data into global buffer
+  int ret = 
+    MPI_Allgather(buff_local->data, nelem, MPI_CHAR, buff_global->data, nelem, MPI_CHAR, mpi->mcomm);
+
+  // copy data to global array
+  int idx = 0;
+  for (int r=0; r<mpi->decomp->ndecomp; ++r) {
+    gkyl_array_copy_from_buffer(array_global, 
+      buff_global->data + idx, &mpi->decomp->ranges[r]);
+    idx += idx + array_local->esznc*mpi->decomp->ranges[r].volume;
+  }
+
+  return 0;
+}
+
+static int
 array_sync(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *local_ext,
   struct gkyl_array *array)
@@ -592,6 +619,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.gkyl_array_recv = array_recv;
   mpi->base.gkyl_array_irecv = array_irecv;
   mpi->base.all_reduce = all_reduce;
+  mpi->base.gkyl_array_all_gather = array_all_gather;
   mpi->base.gkyl_array_sync = array_sync;
   mpi->base.gkyl_array_per_sync = array_per_sync;
   mpi->base.gkyl_array_write = array_write;
