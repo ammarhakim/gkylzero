@@ -8,11 +8,13 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_efit.h>
-#include <gkyl_calc_bmag.h>
 #include <gkyl_mirror_geo_priv.h>
 
 #include <math.h>
 #include <string.h>
+
+
+
 
 double
 mirror_plate_psi_func(double s, void *ctx){
@@ -146,14 +148,11 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 
 void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
   evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
-  void *bmag_ctx_inp)
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p)
 {
-  // Notation: Theta is computational coordinate for length along the field line.
 
   struct gkyl_mirror_geo *geo = mapc2p_ctx;
   struct gkyl_mirror_geo_grid_inp *inp = bmag_ctx;
-  struct bmag_ctx *inp_bmag = bmag_ctx_inp;
 
   enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
@@ -165,10 +164,6 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   double theta_lo = inp->cgrid.lower[TH_IDX],
     psi_lo = inp->cgrid.lower[PH_IDX],
     alpha_lo = inp->cgrid.lower[AL_IDX];
-
-  double theta_hi = inp->cgrid.upper[TH_IDX],
-    psi_hi = inp->cgrid.upper[PH_IDX],
-    alpha_hi = inp->cgrid.upper[AL_IDX];
 
   double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
@@ -190,9 +185,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
     .arc_memo = arc_memo,
-    .zmaxis = geo->zmaxis,
-    .theta_min = theta_lo,
-    .theta_max = theta_hi,
+    .zmaxis = geo->zmaxis
   };
   struct plate_ctx pctx = {
     .geo = geo
@@ -243,14 +236,6 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
           double arcL = arc_ctx.arcL_tot;
           darcL = arcL/(up->basis.poly_order*inp->cgrid.cells[TH_IDX]) * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;
 
-          if (nonuniform)
-          {
-            arc_ctx.mapping_frac = 0.7;
-            arc_ctx.psi = psi_curr; // I'm not sure if this messes up something
-            arc_ctx.alpha = alpha_curr;
-            calculate_mirror_throat_location(&arc_ctx, bmag_ctx_inp);
-            calculate_optimal_mapping(&arc_ctx, bmag_ctx_inp);
-          }
           // at the beginning of each theta loop we need to reset things
           cidx[PH_IDX] = ip;
           arcL_curr = 0.0;
@@ -276,11 +261,6 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               }
               arcL_curr = arcL_lo + it*darcL + modifiers[it_delta]*delta_theta*(arcL/2/M_PI);
               double theta_curr = arcL_curr*(2*M_PI/arcL) - M_PI ; 
-              if (nonuniform)
-              {
-                theta_curr = map_theta_to_z(theta_curr, &arc_ctx); // Need theta_mirror
-                arcL_curr = (theta_curr + M_PI)/2/M_PI*arcL;
-              }
 
               mirror_set_ridders(inp, &arc_ctx, psi_curr, arcL, arcL_curr, zmin, zmax, &rclose, &ridders_min, &ridders_max);
 

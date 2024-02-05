@@ -10,17 +10,6 @@
 typedef struct gkyl_calc_bmag gkyl_calc_bmag;
 typedef struct bmag_ctx bmag_ctx;
 
-struct bmag_ctx{
-   const struct gkyl_rect_grid* grid;
-   const struct gkyl_rect_grid* cgrid;
-   const struct gkyl_range* range;
-   const struct gkyl_range* crange;
-   const struct gkyl_basis* basis;
-   const struct gkyl_basis* cbasis;
-   struct gkyl_array* bmagdg;
-   const struct gkyl_array* mapc2p;
-};
-
 /**
  * Create new updater to compute the bmag on the compuational grid 
  *
@@ -38,15 +27,6 @@ gkyl_calc_bmag*
 gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_basis *fbasis,
   const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const struct gkyl_rect_grid *fgrid, double psisep, bool use_gpu);
 
-/**
- * Computes the magnitude of the magnetic field.
- * 
- * @param t Time at which to compute the magnetic field.
- * @param xn Coordinates at which to compute the magnetic field.
- * @param fout Output array.
- * @param ctx Context object. Of type bmag_ctx
-*/
-void gkyl_calc_bmag_comp(double t, const double *xn, double *fout, void *ctx);
 
 /**
  * Advance calc_bmag (compute bmag given dg fields Psi Psi/R and Psi/R^2 on the RZ grid 
@@ -64,10 +44,8 @@ void gkyl_calc_bmag_comp(double t, const double *xn, double *fout, void *ctx);
  * @param XYZ field containing DG rep of cartesian coordinates
  * @param gFld output field where metric coefficients will be placed
  */
-void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext,
-  const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext,
-  const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, 
-  void *bmag_comp_ctx, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi);
+
+void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi);
 
 /**
  * Delete updater.

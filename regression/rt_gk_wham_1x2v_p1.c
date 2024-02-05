@@ -119,7 +119,7 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   .zmin = -2.48,
   .zmax =  2.48,
   .write_node_coord_array = true,
-  .node_file_nm = "bmag.gkyl"
+  .node_file_nm = "wham_nodes.gkyl"
 };
 
 double
@@ -614,7 +614,7 @@ create_ctx(void)
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int num_cell_vpar = 20; // Number of cells in the paralell velocity direction 96
   int num_cell_mu = 20;  // Number of cells in the mu direction 192
-  int num_cell_z = 20;
+  int num_cell_z = 144;
   int poly_order = 1;
   double final_time = 1e-6;
   int num_frames = 10;
@@ -918,25 +918,25 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
   printf("Starting main loop ...\n");
   long step = 1, num_steps = app_args.num_steps;
-  // while ((tcurr < tend) && (step <= num_steps))
-  // {
-  //   gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
-    //   struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
-    //   gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-    //   if (step % 100 == 0)
-    //   {
-  //     gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
-    //   }
-  //   if (!status.success)
-    //   {
-  //     gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
-      //     break;
-    //   }
-  //   tcurr += status.dt_actual;
-    //   dt = status.dt_suggested;
-    //   write_data(&io_trig, app, tcurr);
-    //   step += 1;
-  // }
+  while ((tcurr < tend) && (step <= num_steps))
+  {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
+    struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
+    gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+    if (step % 100 == 0)
+    {
+      gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
+    }
+    if (!status.success)
+    {
+      gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
+      break;
+    }
+    tcurr += status.dt_actual;
+    dt = status.dt_suggested;
+    write_data(&io_trig, app, tcurr);
+    step += 1;
+  }
   printf(" ... finished\n");
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
   gkyl_gyrokinetic_app_write_field_energy(app);
