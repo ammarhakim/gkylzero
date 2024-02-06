@@ -324,6 +324,7 @@ test_uniform_grid()
   double upper[] = {2.48};
   int cells[] = {10};
   int ndim = 1;
+  enum gkyl_basis_type basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
 
@@ -333,6 +334,17 @@ test_uniform_grid()
 
   // Now read the mapc2p file
   struct gkyl_array* mapc2p = gkyl_grid_array_new_from_file(&grid, "mapc2p.gkyl");
+
+  // Look at values inside the mapc2p file
+  printf("Component 0\n")
+  for (int i = 0; i < local.volume; i++)
+  {
+    double *mapc2p_data = gkyl_array_fetch(mapc2p, i);
+    for (int j = 0; j < 1; j++)
+    {
+      printf("mapc2p[%d] = %g\n", i, mapc2p_data[0]);
+    }
+  }
 }
 
 void
