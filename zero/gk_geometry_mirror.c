@@ -15,6 +15,7 @@
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_bmag.h>
 
+
 // write out nodal coordinates 
 static void
 write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
@@ -115,11 +116,14 @@ gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, false);
   gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, &up->range);
+  gkyl_calc_metric_release(mcalc);
+  
   // calculate the derived geometric quantities
-  gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
-  gkyl_calc_derived_geo_advance( jcalculator, &up->range, up->g_ij, up->bmag, 
+  struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
+  gkyl_calc_derived_geo_advance(jcalculator, &up->range, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
+  gkyl_calc_derived_geo_release(jcalculator);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);

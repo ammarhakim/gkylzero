@@ -62,6 +62,10 @@ struct gk_mirror_ctx
   // Physics parameters at mirror throat
   double n_m;
   double Ti_m;
+  double Ti_perp0;
+  double Ti_par0;
+  double Ti_perp_m;
+  double Ti_par_m;
   double cs_m;
   // Source parameters
   double NSrcIon;
@@ -367,27 +371,49 @@ eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
 }
 
 void
-eval_temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
-  double Z = Z_psiz(psi, z, ctx); // Cylindrical axial coordinate.
-  double R = R_psiZ(psi, Z, ctx); // Cylindrical radial coordinate.
-  double BRad, BZ, Bmag;
-  Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
-  if (fabs(Z) <= app->Z_bt)
+  double z_m = app->z_m;
+  double z_max = app->z_max;
+  if (fabs(z) <= z_m)
   {
-    fout[0] = app->Ti0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)), app->alphaIC0 / 2);
-  }
-  else if (fabs(Z) <= app->Z_m)
-  {
-    fout[0] = app->Ti0 * pow((1.0 - pow((R - app->R_bt) / app->alim, 2)), app->alphaIC1 / 2);
+    fout[0] = (app->Ti_par0 - app->Ti_par_m) * tanh(3 * z_m * fabs(z_m - fabs(z))) + app->Ti_par_m;
   }
   else
   {
-    fout[0] = app->Ti_m * sqrt(Bmag / app->B_m);
+    fout[0] = app->Ti_par_m;
   }
+}
+
+void
+eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+  double z = z_xi(xn[0], psi, ctx);
+  double z_m = app->z_m;
+  double z_max = app->z_max;
+  if (fabs(z) <= z_m)
+  {
+    fout[0] = (app->Ti_perp_m - app->Ti_perp0) * ((tanh((fabs(z) - z_m * 0.8) * 10 * z_m)) / 2 + 0.5) + app->Ti_perp0;
+  }
+  else
+  {
+    fout[0] = app->Ti_perp_m * exp(-5 * (fabs(z_m - fabs(z))));
+  }
+}
+
+void
+eval_temp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  eval_temp_par_ion(t, xn, fout, ctx);
+  double Tpar = fout[0];
+  eval_temp_perp_ion(t, xn, fout, ctx);
+  double Tperp = fout[0];
+  fout[0] = (Tpar + 2 * Tperp) / 3;
 }
 
 void
@@ -517,6 +543,12 @@ create_ctx(void)
   double Ti_m = 3081.437703 * eV;
   double cs_m = 4.037740e5;
 
+  // Initial conditions parameters
+  double Ti_perp0 = 10000 * eV;
+  double Ti_par0 = 7500 * eV;
+  double Ti_perp_m = 15000 * eV;
+  double Ti_par_m = 1000 * eV;
+
   // Non-uniform z mapping
   int mapping_order = 20;  // Order of the polynomial to fit through points for mapc2p
   double mapping_frac = 0.0;//0.72; // 1 is full mapping, 0 is no mapping
@@ -561,6 +593,10 @@ create_ctx(void)
     .z_m = z_m,
     .n_m = n_m,
     .Ti_m = Ti_m,
+    .Ti_perp0 = Ti_perp0,
+    .Ti_par0 = Ti_par0,
+    .Ti_perp_m = Ti_perp_m,
+    .Ti_par_m = Ti_par_m,
     .cs_m = cs_m,
     .NSrcIon = NSrcIon,
     .lineLengthSrcIon = lineLengthSrcIon,
@@ -672,28 +708,34 @@ int main(int argc, char **argv)
     .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = {NV, NMU},
     .polarization_density = ctx.n0,
-    .ctx_density = &ctx,
-    .init_density = eval_density_ion,
-    .ctx_upar = &ctx,
-    .init_upar = eval_upar_ion,
-    .ctx_temp = &ctx,
-    .init_temp = eval_temp_ion,
-    .is_maxwellian = true,
-    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
-    .collisions = {
+    .projection = {
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
+      .ctx_density = &ctx,
+      .density = eval_density_ion,
+      .ctx_upar = &ctx,
+      .upar= eval_upar_ion,
+      .ctx_temppar = &ctx,
+      .temppar = eval_temp_par_ion,      
+      .ctx_tempperp = &ctx,
+      .tempperp = eval_temp_perp_ion,   
+    },
+    .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },
     .source = {
-      .source_id = GKYL_MAXWELLIAN_SOURCE,
+      .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .ctx_density = &ctx,
-      .density_profile = eval_density_ion_source,
-      .ctx_upar = &ctx,
-      .upar_profile = eval_upar_ion_source,
-      .ctx_temp = &ctx,
-      .temp_profile = eval_temp_ion_source,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_density_ion_source,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_ion_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_ion_source,      
+      }, 
     },
     .num_diag_moments = 7,
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},

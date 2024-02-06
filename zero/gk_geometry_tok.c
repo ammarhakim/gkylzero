@@ -94,20 +94,27 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   // calculate mapc2p
   gkyl_tok_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, 
     mc2p_nodal_fd, mc2p_nodal, mc2p);
+
   // calculate bmag
-  gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, 
-  &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-  gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext,
-   &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, NULL, geo->fpoldg, mc2p, true);
+  struct gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, 
+    &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
+  gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, 
+    &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, 
+    geo->psibyrRZ, geo->psibyr2RZ, up->bmag, NULL, geo->fpoldg, mc2p, true);
+  gkyl_calc_bmag_release(bcalculator);
+
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, false);
   gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, &up->range);
+  gkyl_calc_metric_release(mcalc);
+  
   // calculate the derived geometric quantities
-  gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
+  struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
   gkyl_calc_derived_geo_advance( jcalculator, &up->range, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
-
+  gkyl_calc_derived_geo_release(jcalculator);
+  
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);

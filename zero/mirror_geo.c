@@ -149,7 +149,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, bool nonuniform,
   void *bmag_ctx_inp)
 {
-  // Notation: Theta is computational coordinate for length along the field line.
+// Notation: Theta is computational coordinate for length along the field line.
 
   struct gkyl_mirror_geo *geo = mapc2p_ctx;
   struct gkyl_mirror_geo_grid_inp *inp = bmag_ctx;
