@@ -20,6 +20,9 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   gkyl_array_copy(bgk->nu_sum, self_nu);
   gkyl_array_release(self_nu);
 
+  // array for finding the maximum stable time-step
+  bgk->max_nu = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
   bgk->spitzer_calc = 0;
   bgk->normNu = false;
   if (s->info.collisions.normNu) {
@@ -208,6 +211,9 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   gkyl_array_accumulate(rhs, 1.0, bgk->nu_fmax);
   gkyl_array_accumulate(rhs, -1.0, bgk->nu_sum_f);
 
+  // Determine the maximum collision frequency in each cell for finding the stable time-step
+  gkyl_dg_calc_average_range(app->confBasis, 0, bgk->max_nu, 0, bgk->nu_sum, app->local);
+
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -216,6 +222,7 @@ gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_b
 {
   gkyl_array_release(bgk->self_nu);
   gkyl_array_release(bgk->nu_sum);
+  gkyl_array_release(bgk->max_nu);
   gkyl_array_release(bgk->m0);
 
   gkyl_array_release(bgk->fmax);
