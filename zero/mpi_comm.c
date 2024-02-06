@@ -201,17 +201,11 @@ array_all_gather(struct gkyl_comm *comm,
   // copy data to global array
   int idx = 0;
   for (int r=0; r<mpi->decomp->ndecomp; ++r) {
-    // printf("decomp range lower = %d,%d, upper = %d,%d\n", 
-    //   mpi->decomp->ranges[r].lower[0], mpi->decomp->ranges[r].lower[1], 
-    //   mpi->decomp->ranges[r].upper[0], mpi->decomp->ranges[r].upper[1]);
     int isrecv = gkyl_sub_range_intersect(
       &gather_range, global, &mpi->decomp->ranges[r]);
-    // printf("gather range lower = %d,%d, upper = %d,%d\n", 
-    //   gather_range.lower[0], gather_range.lower[1], 
-    //   gather_range.upper[0], gather_range.upper[1]);
     gkyl_array_copy_from_buffer(array_global, 
       gkyl_mem_buff_data(mpi->all_gather_buff_global.buff) + idx, &gather_range);
-    idx += idx + array_local->esznc*gather_range.volume;
+    idx += array_local->esznc*gather_range.volume;
   }
 
   return 0;

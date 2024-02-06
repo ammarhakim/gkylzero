@@ -162,11 +162,11 @@ test_n4_all_gather_2d()
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
   // create global range
-  int cells[] = { 12, 12 };
+  int cells[] = { 10, 10 };
   struct gkyl_range global;
   gkyl_create_global_range(2, cells, &global);
 
-  int cuts[] = { 4, 1 };
+  int cuts[] = { 2, 2 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &global);  
   
   struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
@@ -190,8 +190,6 @@ test_n4_all_gather_2d()
     long idx = gkyl_range_idx(&local, iter.idx);
     double  *f = gkyl_array_fetch(arr_local, idx);
     f[0] = iter.idx[0] + iter.idx[1]*(rank+1.0) + 10.0*rank;
-    // if (rank == 2)
-    //   printf("idx[0] = %d, idx[1] = %d, f = %g\n", iter.idx[0], iter.idx[1], f[0]);
   } 
 
   gkyl_comm_array_all_gather(comm, &local, &global, arr_local, arr_global);
@@ -201,8 +199,21 @@ test_n4_all_gather_2d()
   while (gkyl_range_iter_next(&iter_global)) {
     long idx = gkyl_range_idx(&global, iter_global.idx);
     double *f = gkyl_array_fetch(arr_global, idx);
-    // if (rank == 2)
-    //   printf("after all gather, idx[0] = %d, idx[1] = %d, f = %g\n", iter_global.idx[0], iter_global.idx[1], f[0]);
+    // check value of {2, 2} decomp organized as 
+    // rank 0 owns {1, 1} to {5, 5}
+    // rank 1 owns {1, 6} to {5, 10} 
+    // rank 2 owns {6, 1} to {10, 5} 
+    // rank 3 owns {6, 6} to {10, 10}
+    double val;
+    if (iter_global.idx[0] <= cells[0]/cuts[0] && iter_global.idx[1] <= cells[1]/cuts[1])
+      val = iter_global.idx[0] + iter_global.idx[1];
+    else if (iter_global.idx[0] <= cells[0]/cuts[0] && iter_global.idx[1] > cells[1]/cuts[1])
+      val = iter_global.idx[0] + iter_global.idx[1]*2.0 + 10.0;
+    else if (iter_global.idx[0] > cells[0]/cuts[0] && iter_global.idx[1] <= cells[1]/cuts[1])
+      val = iter_global.idx[0] + iter_global.idx[1]*3.0 + 20.0;
+    else 
+      val = iter_global.idx[0] + iter_global.idx[1]*4.0 + 30.0;
+    TEST_CHECK( val == f[0] );
   }
 
   gkyl_rect_decomp_release(decomp);
