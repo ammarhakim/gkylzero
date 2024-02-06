@@ -3,7 +3,8 @@
 
 struct all_radiation_states* gkyl_read_rad_fit_params(){
 
-  char *filepath="./adas-dat/radiation_fit_parameters.txt";
+  //  char *filepath="./adas-dat/radiation_fit_parameters.txt";
+  char *filepath="./adas-dat/fake_fit_parameters.txt";
   //char *filepath="/global/homes/j/jonroelt/g0g2cpu/gkylzero/adas-dat/radiation_fit_parameters.txt";
   FILE *fptr = fopen(filepath,"r");
   if (fptr == NULL){
@@ -54,9 +55,9 @@ struct all_radiation_states* gkyl_read_rad_fit_params(){
 	rad_data->all_states[index].state_exists = true;
 	rad_data->all_states[index].electron_densities = (double*)malloc(density_intervals*sizeof(double));
 	rad_data->all_states[index].rad_fits = (struct rad_fit_parameters*)malloc(density_intervals*sizeof(struct rad_fit_parameters));
-	char buf[50*15];
+	char buf[1000*15];
 	for (int k=0; k<density_intervals; k++) {
-	  if (fgets(buf,50*15, fptr) == NULL) {
+	  if (fgets(buf,1000*15, fptr) == NULL) {
 	    rad_data->all_states[index].number_of_densities = rad_data->all_states[index].number_of_densities-1;
 	    rad_data->all_states[index].electron_densities[k] = 0;
 	  } else {
@@ -71,14 +72,14 @@ struct all_radiation_states* gkyl_read_rad_fit_params(){
 	    rad_data->all_states[index].rad_fits[k].te = (double*)malloc(te_intervals*sizeof(double));
 	    rad_data->all_states[index].rad_fits[k].Lz = (double*)malloc(te_intervals*sizeof(double));
 	    int offset=0;
-	    if (fgets(buf, 50*15, fptr)!=NULL) {
+	    if (fgets(buf, 1000*15, fptr)!=NULL) {
 	      char *data = buf;	
 	      for (int l=0; l<te_intervals; l++) {
 		sscanf(data, " %lf%n", &rad_data->all_states[index].rad_fits[k].te[l], &offset);
 		data += offset;
 	      }
 	    }
-	    if (fgets(buf, 50*15, fptr) !=NULL) {
+	    if (fgets(buf, 1000*15, fptr) !=NULL) {
 	      char *data2 = buf;
 	      for (int l=0; l<te_intervals; l++) {
 		sscanf(data2, " %lf%n", &rad_data->all_states[index].rad_fits[k].Lz[l], &offset);
