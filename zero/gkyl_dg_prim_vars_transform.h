@@ -21,7 +21,7 @@ struct gkyl_dg_prim_vars_auxfields {
  * @param use_gpu bool to determine if on GPU
  */
 struct gkyl_dg_prim_vars_type* 
-gkyl_dg_prim_vars_transform_vlasov_gk_new(const struct gkyl_basis* cbasis,
+gkyl_dg_prim_vars_transform_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const char *prim_nm, bool use_gpu);
 
 /**
@@ -29,7 +29,7 @@ gkyl_dg_prim_vars_transform_vlasov_gk_new(const struct gkyl_basis* cbasis,
  * see new() method above for documentation.
  */
 struct gkyl_dg_prim_vars_type* 
-gkyl_dg_prim_vars_transform_vlasov_gk_cu_dev_new(const struct gkyl_basis* cbasis,
+gkyl_dg_prim_vars_transform_cu_dev_new(const struct gkyl_basis* cbasis,
   const struct gkyl_basis* pbasis, const struct gkyl_range* conf_range, const char *prim_nm);
 
 /**
@@ -38,7 +38,7 @@ gkyl_dg_prim_vars_transform_vlasov_gk_cu_dev_new(const struct gkyl_basis* cbasis
  * @param pvt Primitive variables type pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(const struct gkyl_dg_prim_vars_type *pvt, struct gkyl_dg_prim_vars_auxfields auxin);
+void gkyl_dg_prim_vars_transform_set_auxfields(const struct gkyl_dg_prim_vars_type *pvt, struct gkyl_dg_prim_vars_auxfields auxin);
 
 #ifdef GKYL_HAVE_CUDA
 /**
@@ -47,7 +47,7 @@ void gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields(const struct gkyl_dg_pr
  * @param pvt Primitive variables type pointer.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_dg_prim_vars_transform_vlasov_gk_set_auxfields_cu(const struct gkyl_dg_prim_vars_type *pvt, struct gkyl_dg_prim_vars_auxfields auxin);
+void gkyl_dg_prim_vars_transform_set_auxfields_cu(const struct gkyl_dg_prim_vars_type *pvt, struct gkyl_dg_prim_vars_auxfields auxin);
 
 
 #endif

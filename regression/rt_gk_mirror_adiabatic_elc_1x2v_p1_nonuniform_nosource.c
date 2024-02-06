@@ -67,13 +67,6 @@ struct gk_mirror_ctx
   double Ti_perp_m;
   double Ti_par_m;
   double cs_m;
-  // Source parameters
-  double NSrcIon;
-  double lineLengthSrcIon;
-  double sigSrcIon;
-  double NSrcFloorIon;
-  double TSrc0Ion;
-  double TSrcFloorIon;
   // Grid parameters
   double vpar_max_ion;
   double mu_max_ion;
@@ -283,24 +276,6 @@ z_xi(double xi, double psi, void *ctx)
     z = xi;
   }
   return z;
-}
-
-void
-eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  fout[0] = 0.0;
-}
-
-void
-eval_upar_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  fout[0] = 0.0;
-}
-
-void
-eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
-{
-  fout[0] = 0.0;
 }
 
 // Ion initial conditions
@@ -612,14 +587,6 @@ create_ctx(void)
   double gamma = 0.124904;
   double Z_m = 0.98;
 
-  // Source parameters
-  double NSrcIon = 3.1715e23 / 8.0;
-  double lineLengthSrcIon = 0.0;
-  double sigSrcIon = Z_m / 4.0;
-  double NSrcFloorIon = 0.05 * NSrcIon;
-  double TSrc0Ion = Ti0 * 1.25;
-  double TSrcFloorIon = TSrc0Ion / 8.0;
-
   // Grid parameters
   double vpar_max_ion = 10 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
@@ -692,12 +659,6 @@ create_ctx(void)
     .Ti_perp_m = Ti_perp_m,
     .Ti_par_m = Ti_par_m,
     .cs_m = cs_m,
-    .NSrcIon = NSrcIon,
-    .lineLengthSrcIon = lineLengthSrcIon,
-    .sigSrcIon = sigSrcIon,
-    .NSrcFloorIon = NSrcFloorIon,
-    .TSrc0Ion = TSrc0Ion,
-    .TSrcFloorIon = TSrcFloorIon,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
     .num_cell_z = num_cell_z,
@@ -766,33 +727,23 @@ int main(int argc, char **argv)
     .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = {NV, NMU},
     .polarization_density = ctx.n0,
-    .is_bimaxwellian = true,
-    .ctx_density = &ctx,
-    .init_density = eval_density_ion,
-    .ctx_upar = &ctx,
-    .init_upar = eval_upar_ion,
-    .ctx_temp = &ctx,
-    .init_temp = eval_temp_ion,
-    .ctx_temppar = &ctx,
-    .init_temppar = eval_temp_par_ion,
-    .ctx_tempperp = &ctx,
-    .init_tempperp = eval_temp_perp_ion,
-    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
-    .collisions = {
+    .projection = {
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
+      .ctx_density = &ctx,
+      .density = eval_density_ion,
+      .ctx_upar = &ctx,
+      .upar= eval_upar_ion,
+      .ctx_temppar = &ctx,
+      .temppar = eval_temp_par_ion,      
+      .ctx_tempperp = &ctx,
+      .tempperp = eval_temp_perp_ion,    
+    },
+    .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },
-    .source = {
-      .source_id = GKYL_MAXWELLIAN_SOURCE,
-      .write_source = true,
-      .ctx_density = &ctx,
-      .density_profile = eval_density_ion_source,
-      .ctx_upar = &ctx,
-      .upar_profile = eval_upar_ion_source,
-      .ctx_temp = &ctx,
-      .temp_profile = eval_temp_ion_source,
-    },
+    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
     .num_diag_moments = 7,
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };

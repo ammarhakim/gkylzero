@@ -225,8 +225,8 @@ void gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
 #else
   gkyl_superlu_prob_release(up->prob);
 #endif
+  gkyl_array_release(up->brhs);
   gkyl_free(up->globalidx);
-  gkyl_free(up->brhs);
   gkyl_free(up->kernels);
   gkyl_free(up);
 }

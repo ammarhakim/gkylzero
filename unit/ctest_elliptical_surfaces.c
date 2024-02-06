@@ -44,7 +44,7 @@ test_elliptical()
 
   struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
-      .filepath = "./efit_data/elliptical.geqdsk",
+      .filepath = "./data/eqdsk/elliptical.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
       .plate_spec = false,

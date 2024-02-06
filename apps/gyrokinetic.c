@@ -179,14 +179,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
 
   // deflate geometry if necessary
-  if(app->cdim < 3 && gk->geometry.geometry_id != GKYL_GEOMETRY_FROMFILE){
+  if(app->cdim < 3 && gk->geometry.geometry_id != GKYL_GEOMETRY_FROMFILE)
     app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &app->grid, &app->local, &app->local_ext, 
         &app->confBasis, app->use_gpu);
-    gkyl_gk_geometry_release(gk_geom_3d);
-  }
-  else{
+  else
     app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-  }
+
+  gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
 
   // allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
@@ -215,7 +214,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   // initialize each species cross-collisions terms: this has to be done here
   // as need pointers to colliding species' collision objects
-  // allocated in gk_species_init
+  // allocated in gk_species_init and gk_neut_species_init
   for (int i=0; i<ns; ++i) {
     // initialize cross-species collisions (e.g, LBO or BGK)
     if (app->species[i].lbo.num_cross_collisions || app->species[i].bgk.num_cross_collisions) {
@@ -226,19 +225,23 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
         gk_species_bgk_cross_init(app, &app->species[i], &app->species[i].bgk);
       }
     }
-    // initialize cross-species reactions (e.g., ionization, recombination, or charge exchange)
-    if (app->species[i].react.num_react) {
+    // initialize cross-species reactions with plasma species (e.g., ionization, recombination, or charge exchange)
+    if (app->species[i].has_reactions) {
       gk_species_react_cross_init(app, &app->species[i], &app->species[i].react);
+    }
+    // initialize cross-species reactions with neutral species (e.g., ionization, recombination, or charge exchange)
+    if (app->species[i].has_neutral_reactions) {
+      gk_species_react_cross_init(app, &app->species[i], &app->species[i].react_neut);
     }
     // initial radiation (e.g., bremmstrahlung model from cross-collisions of electrons with ions)
     if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_init(app, &app->species[i], &app->species[i].rad);
     }
   }
-
+  // initialize neutral species cross-species reactions with plasma species
   for (int i=0; i<neuts; ++i) {
-    if (app->neut_species[i].react.num_react) {
-      gk_neut_species_react_cross_init(app, &app->neut_species[i], &app->neut_species[i].react);
+    if (app->neut_species[i].react_neut.num_react) {
+      gk_neut_species_react_cross_init(app, &app->neut_species[i], &app->neut_species[i].react_neut);
     }
   }
 
@@ -713,9 +716,13 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       }
     }
     // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
-    if (app->species[i].react.num_react) {
+    if (app->species[i].has_reactions) {
       gk_species_react_cross_moms(app, &app->species[i], 
-        &app->species[i].react, fin, fin_neut);
+        &app->species[i].react, fin[i], fin, fin_neut);
+    }
+    if (app->species[i].has_neutral_reactions) {
+      gk_species_react_cross_moms(app, &app->species[i], 
+        &app->species[i].react_neut, fin[i], fin, fin_neut);
     }
     // compute necessary drag coefficients for radiation operator
     if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
@@ -726,9 +733,9 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   for (int i=0; i<app->num_neut_species; ++i) {
     // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
-    if (app->neut_species[i].react.num_react) {
+    if (app->neut_species[i].has_neutral_reactions) {
       gk_neut_species_react_cross_moms(app, &app->neut_species[i], 
-        &app->neut_species[i].react, fin, fin_neut);
+        &app->neut_species[i].react_neut, fin[i], fin, fin_neut);
     }
   }
 
