@@ -16,7 +16,7 @@
 
 
 void test_solovev(){
-  char* filepath = "./efit_data/solovev.geqdsk";
+  char* filepath = "./data/eqdsk/solovev.geqdsk";
   int rzpoly_order = 2;
   int fluxpoly_order = 1;
   struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order, fluxpoly_order, false);
@@ -33,7 +33,7 @@ void test_solovev(){
 }
 
 void test_step(){
-  char* filepath = "./efit_data/step.geqdsk";
+  char* filepath = "./data/eqdsk/step.geqdsk";
   int rzpoly_order = 2;
   int fluxpoly_order = 1;
   struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order, fluxpoly_order, false);
@@ -50,7 +50,7 @@ void test_step(){
 }
 
 void test_asdex(){
-  char* filepath = "./efit_data/asdex.geqdsk";
+  char* filepath = "./data/eqdsk/asdex.geqdsk";
   int rzpoly_order = 2;
   int fluxpoly_order = 1;
   struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order, fluxpoly_order, false);
@@ -67,7 +67,7 @@ void test_asdex(){
 }
 
 void test_cerfon(){
-  char* filepath = "./efit_data/cerfon.geqdsk";
+  char* filepath = "./data/eqdsk/cerfon.geqdsk";
   int rzpoly_order = 2;
   int fluxpoly_order = 1;
   struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order, fluxpoly_order, false);
@@ -84,7 +84,7 @@ void test_cerfon(){
 }
 
 void test_elliptical(){
-  char* filepath = "./efit_data/elliptical.geqdsk";
+  char* filepath = "./data/eqdsk/elliptical.geqdsk";
   int rzpoly_order = 2;
   int fluxpoly_order = 1;
   struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order, fluxpoly_order, false);
@@ -101,7 +101,7 @@ void test_elliptical(){
 }
 
 void test_wham(){
-  char* filepath = "./efit_data/wham.geqdsk";
+  char* filepath = "./data/eqdsk/wham.geqdsk";
   int rzpoly_order = 2;
   int fluxpoly_order = 1;
   struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order, fluxpoly_order, false);
