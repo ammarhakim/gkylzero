@@ -7,6 +7,8 @@ gkyl_nodal_ops_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid 
   // Allocate space for new updater.
   struct gkyl_nodal_ops *up = gkyl_malloc(sizeof(*up));
 
+  up->poly_order = cbasis->poly_order;
+
   struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim, cbasis->num_basis);
   cbasis->node_list(gkyl_array_fetch(nodes, 0));
 
@@ -133,16 +135,20 @@ gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops,
   const struct gkyl_range *nrange, const struct gkyl_range *update_range, int num_comp, 
   struct gkyl_array *nodal_fld, const struct gkyl_array *modal_fld) 
 {
-  if(cbasis->poly_order == 2)
-    return gkyl_nodal_ops_m2n_p2(nodal_ops, cbasis, grid, nrange, update_range, num_comp, nodal_fld, modal_fld);
     
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(nodal_fld)) {
+    if (nodal_ops->poly_order==2)
+      assert(false);
     return gkyl_nodal_ops_m2n_cu(nodal_ops, cbasis, grid, 
       nrange, update_range, num_comp, 
       nodal_fld, modal_fld);
   }
 #endif 
+
+  if(cbasis->poly_order == 2)
+    return gkyl_nodal_ops_m2n_p2(nodal_ops, cbasis, grid, nrange, update_range, num_comp, nodal_fld, modal_fld);
+
   int num_basis = cbasis->num_basis;
   struct gkyl_range_iter iter;
   // do the nodal loop instead
