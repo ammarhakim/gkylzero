@@ -1,7 +1,7 @@
 #include <gkyl_dg_prim_vars_kernels.h> 
 #include <gkyl_binop_mul_ser.h> 
 #include <gkyl_basis_ser_1x_p1_inv.h> 
-GKYL_CU_DH void transform_vlasov_gk_prim_vars_1x3v_ser_p1(const double *b_i, const double *moms, double* prim_vars) 
+GKYL_CU_DH void transform_prim_vars_gk_1x2v_ser_p1(const double *b_i, const double *moms, double* prim_vars) 
 { 
   // moms: Input moments. 
   // b_i:  Contravariant components of field-aligned unit vector. 
@@ -36,7 +36,7 @@ GKYL_CU_DH void transform_vlasov_gk_prim_vars_1x3v_ser_p1(const double *b_i, con
 
   binop_mul_1d_ser_p1(upar, upar, uparSq); 
   vtSq[0] = 0.2357022603955158*m0_inv[1]*m2[1]-0.3333333333333333*uparSq[0]+0.2357022603955158*m0_inv[0]*m2[0]; 
-  vtSq[1] = (-0.3333333333333333*uparSq[1])+0.2357022603955158*m0_inv[0]*m2[1]+0.2357022603955158*m2[0]*m0_inv[1]; 
+  vtSq[1] = -(0.3333333333333333*uparSq[1])+0.2357022603955158*m0_inv[0]*m2[1]+0.2357022603955158*m2[0]*m0_inv[1]; 
 
 } 
  

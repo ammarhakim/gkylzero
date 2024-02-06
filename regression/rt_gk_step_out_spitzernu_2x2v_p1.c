@@ -256,13 +256,16 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-    .ctx_density = &ctx,
-    .init_density = eval_density,
-    .ctx_upar = &ctx,
-    .init_upar= eval_upar,
-    .ctx_temp = &ctx,
-    .init_temp = eval_temp_elc,
-    .is_maxwellian = true,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .ctx_density = &ctx,
+      .density = eval_density,
+      .ctx_upar = &ctx,
+      .upar= eval_upar,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_elc,
+    },
 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
@@ -280,14 +283,17 @@ main(int argc, char **argv)
     },
 
     .source = {
-      .source_id = GKYL_MAXWELLIAN_SOURCE,
+      .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .ctx_density = &ctx,
-      .density_profile = eval_density_source,
-      .ctx_upar = &ctx,
-      .upar_profile = eval_upar_source,
-      .ctx_temp = &ctx,
-      .temp_profile = eval_temp_source,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_density_source,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_source,      
+      }, 
     },
 
     .diffusion = {
@@ -310,13 +316,16 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-    .ctx_density = &ctx,
-    .init_density = eval_density,
-    .ctx_upar = &ctx,
-    .init_upar = eval_upar,
-    .ctx_temp = &ctx,
-    .init_temp = eval_temp_ion,
-    .is_maxwellian = true,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .ctx_density = &ctx,
+      .density = eval_density,
+      .ctx_upar = &ctx,
+      .upar = eval_upar,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_ion,
+    },
 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
@@ -334,16 +343,18 @@ main(int argc, char **argv)
     },
 
     .source = {
-      .source_id = GKYL_MAXWELLIAN_SOURCE,
+      .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .ctx_density = &ctx,
-      .density_profile = eval_density_source,
-      .ctx_upar = &ctx,
-      .upar_profile = eval_upar_source,
-      .temp_profile = eval_temp_source,
-      .ctx_temp = &ctx,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_density_source,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_source,      
+      }, 
     },
-
     .diffusion = {
       .num_diff_dir = 1, 
       .diff_dirs = { 0 },

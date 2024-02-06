@@ -131,7 +131,7 @@ void check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range, st
       TEST_CHECK( gkyl_compare(temp2, temp_up2, 1e-12) );
     }
   }
-
+  gkyl_array_release(nodes);
 }
 
 // Check that two fields have the same boundary values in 2nd dimension in 2x
@@ -165,7 +165,7 @@ void check_bc_2x(struct gkyl_rect_grid grid, struct gkyl_range range, struct gky
       TEST_CHECK( gkyl_compare(temp_11, temp_21, 1e-12) );
       TEST_CHECK( gkyl_compare(temp_12, temp_22, 1e-12) );
   }
-
+  gkyl_array_release(nodes);
 }
 
 
