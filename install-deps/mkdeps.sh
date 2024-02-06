@@ -17,7 +17,7 @@ BUILD_SUPERLU_DIST=no
 BUILD_SUPERLU_DIST_GPU=no
 BUILD_OPENMPI=no
 BUILD_LUAJIT=no
-DOWNLOAD_ADAS=no
+USE_ADAS=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -57,7 +57,7 @@ The following flags specify the libraries to build.
 --enable-superlu_gpu        [no] Build GPUs lib for SuperLU (needs --build-superlu_dist=yes)
 --build-openmpi             [no] Should we build OpenMPI?
 --build-luajit              [no] Should we build LuaJIT?
---download-adas             [no] Should we download ADAS data? (uses python)
+--use-adas             [no] Should we download ADAS data? (uses python)
 
 EOF
 }
@@ -154,9 +154,9 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_LUAJIT="$value"
       ;;
-   --download-adas)
+   --use-adas)
       [ -n "$value" ] || die "Missing value in flag $key."
-      DOWNLOAD_ADAS="$value"
+      USE_ADAS="$value"
       ;;
    *)
       die "Error: Unknown flag: $1"
@@ -237,8 +237,8 @@ build_luajit() {
     fi
 }
 
-download_adas() {
-    if [ "$DOWNLOAD_ADAS" = "yes" ]
+use_adas() {
+    if [ "$USE_ADAS" = "yes" ]
     then    
 	echo "Downloading ADAS data for neutral reactions"
 	./download-adas.sh
@@ -252,4 +252,4 @@ build_luajit
 build_openblas
 build_superlu
 build_superlu_dist
-download_adas
+use_adas
