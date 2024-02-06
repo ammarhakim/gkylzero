@@ -83,10 +83,7 @@ ADAS_INC_DIR = zero # dummy
 ADAS_LIB_DIR = .
 ifeq (${USE_ADAS}, 1)
 	USING_ADAS = yes
-	MPI_INC_DIR = ${CONF_MPI_INC_DIR}
-	MPI_LIB_DIR = ${CONF_MPI_LIB_DIR}
-	MPI_LIBS = -lmpi
-	CFLAGS += -DGKYL_HAVE_MPI
+	CFLAGS += -DGKYL_HAVE_ADAS
 endif
 
 # Build directory
