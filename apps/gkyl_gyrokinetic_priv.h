@@ -483,6 +483,8 @@ struct gk_field {
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 
+  struct gkyl_fem_parproj *fem_parproj_sol;
+  struct gkyl_fem_parproj *fem_parproj_core;
 
   struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves on lines in x or planes in xy
                                                           // - nabla . (epsilon * nabla phi) - kSq * phi = rho
@@ -504,6 +506,9 @@ struct gk_field {
   struct gkyl_array *phi_wall_up; // biased wall potential on upper wall
   struct gkyl_array *phi_wall_up_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *phi_wall_up_proj; // projector for biased wall potential on upper wall 
+
+  // Core and SOL ranges for IWL sims. 
+  struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
 };
 
 // gyrokinetic object: used as opaque pointer in user code

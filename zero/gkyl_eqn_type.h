@@ -23,7 +23,8 @@ enum gkyl_gkmodel_id {
 enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default
   GKYL_GK_FIELD_ADIABATIC = 1, // Adiabatic electrons GK field, phi = phi_sheath + (T_e/e)*ln(n_i/n_is)
-  GKYL_GK_FIELD_EM = 2, // Electromagnetic GK
+  GKYL_GK_FIELD_ES_IWL = 2, // Inner-wall limited ES.
+  GKYL_GK_FIELD_EM = 3, // Electromagnetic GK
 };
 
 // Identifiers for specific field object types
