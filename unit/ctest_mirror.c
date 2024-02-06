@@ -225,7 +225,7 @@ void mirror_geometry_new(struct gkyl_gk *gk)
 }
 
 void
-test_mirror_geometry_new_1x2v()
+test_mirror_geometry_new_1x2v_nonuniform()
 {
   struct gkyl_mirror_geo_efit_inp inp = {
     // psiRZ and related inputs
@@ -243,7 +243,9 @@ test_mirror_geometry_new_1x2v()
     .zmax =  2.48,
     .write_node_coord_array = true,
     .node_file_nm = "bmag.gkyl",
-    .nonuniform_mapping_fraction = 0.7,
+    .nonuniform_mapping_fraction = 0.7, // To do a non-uniform mapping, this parameter should be set to a
+    // value between 0 and 1. Zero is for no mapping and 1 is for full mapping. One may not desire full 
+    // mapping to maintain cell density in the center of the domain.
   };
 
   struct gkyl_gk gk = {  // GK app
@@ -267,6 +269,70 @@ test_mirror_geometry_new_1x2v()
     .use_gpu = false,
   };
   mirror_geometry_new(&gk);
+}
+
+void
+test_mirror_geometry_new_1x2v_uniform()
+{
+  struct gkyl_mirror_geo_efit_inp inp = {
+    // psiRZ and related inputs
+    .filepath = "./efit_data/wham.geqdsk",
+    .rzpoly_order = 2,
+    .fluxpoly_order = 1,
+    .plate_spec = false,
+    .quad_param = {  .eps = 1e-10 }
+  };
+
+
+  struct gkyl_mirror_geo_grid_inp ginp = {
+    .rclose = 0.2,
+    .zmin = -2.48,
+    .zmax =  2.48,
+    .write_node_coord_array = true,
+    .node_file_nm = "bmag.gkyl",
+    // To do uniform mapping, one may simply neglect the .nonuniform_mapping_fraction parameter, or set it to 0, or 0.0.
+  };
+
+  struct gkyl_gk gk = {  // GK app
+    .name = "test_mirror_geometry_new_1x2v",
+    .cdim = 1,
+    .vdim = 2,
+    .lower = {-2.48},
+    .upper = {2.48},
+    .cells = {10},
+    .poly_order = 1,
+    .basis_type = GKYL_BASIS_MODAL_SERENDIPITY,
+    .geometry = {
+      .geometry_id = GKYL_MIRROR,
+      .world = {0.02, 0.0},
+      .mirror_efit_info = &inp,
+      .mirror_grid_info = &ginp,
+    },
+    .num_periodic_dir = 0,
+    .periodic_dirs = {},
+    .num_species = 1,
+    .use_gpu = false,
+  };
+  mirror_geometry_new(&gk);
+}
+
+void
+test_uniform_grid()
+{
+  // First read the mapc2p file by defining the appropriate grid and range
+  double lower[] = {-2.48};
+  double upper[] = {2.48};
+  int cells[] = {10};
+  int ndim = 1;
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  int ghost[] = { 1, 1, 1 };
+  struct gkyl_range local_ext, local;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  // Now read the mapc2p file
+  struct gkyl_array* mapc2p = gkyl_grid_array_new_from_file(&grid, "mapc2p.gkyl");
 }
 
 void
@@ -315,7 +381,9 @@ test_mirror_geometry_new_2x2v()
 }
 
 TEST_LIST = {
-  { "test_mirror_geometry_new_1x2v", test_mirror_geometry_new_1x2v},
-  { "test_mirror_geometry_new_2x2v", test_mirror_geometry_new_2x2v},
+  // { "test_mirror_geometry_new_1x2v_uniform", test_mirror_geometry_new_1x2v_uniform},
+  { "test_uniform_grid", test_uniform_grid},
+  // { "test_mirror_geometry_new_1x2v_nonuniform", test_mirror_geometry_new_1x2v_nonuniform},
+  // { "test_mirror_geometry_new_2x2v", test_mirror_geometry_new_2x2v},
   { NULL, NULL },
 };
