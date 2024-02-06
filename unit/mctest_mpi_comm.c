@@ -118,9 +118,9 @@ test_n2_all_gather_1d()
   struct gkyl_range local, local_ext;
   gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
 
-  struct gkyl_array *arr_local = gkyl_array_new(GKYL_DOUBLE, global.ndim, local_ext.volume);
+  struct gkyl_array *arr_local = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
   gkyl_array_clear(arr_local, 200005.0);
-  struct gkyl_array *arr_global = gkyl_array_new(GKYL_DOUBLE, global.ndim, global.volume);
+  struct gkyl_array *arr_global = gkyl_array_new(GKYL_DOUBLE, 1, global.volume);
   gkyl_array_clear(arr_global, 0.0);
 
   struct gkyl_range_iter iter;
@@ -179,9 +179,9 @@ test_n4_all_gather_2d()
   struct gkyl_range local, local_ext;
   gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
 
-  struct gkyl_array *arr_local = gkyl_array_new(GKYL_DOUBLE, global.ndim, local.volume);
+  struct gkyl_array *arr_local = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
   gkyl_array_clear(arr_local, 200005.0);
-  struct gkyl_array *arr_global = gkyl_array_new(GKYL_DOUBLE, global.ndim, global.volume);
+  struct gkyl_array *arr_global = gkyl_array_new(GKYL_DOUBLE, 1, global.volume);
   gkyl_array_clear(arr_global, 0.0);
 
   struct gkyl_range_iter iter;

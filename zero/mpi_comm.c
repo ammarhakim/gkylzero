@@ -191,23 +191,12 @@ array_all_gather(struct gkyl_comm *comm,
   // copy data to local buffer
   gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->all_gather_buff_local.buff), 
     array_local, local);
-  double *buff = (double*) gkyl_mem_buff_data(mpi->all_gather_buff_local.buff);
-  for (int i=0; i < mpi->decomp->ranges[rank].volume; ++i) {
-    printf("rank = %d, buffer local value = %g\n", rank, buff[i]);
-  }
-  // printf("rank = %d\n", rank);
-  // gkyl_print_range(local, "local", stdout);
 
   size_t nelem = array_local->esznc*mpi->decomp->ranges[rank].volume;
   // gather data into global buffer
   int ret = 
     MPI_Allgather(gkyl_mem_buff_data(mpi->all_gather_buff_local.buff), nelem, MPI_CHAR, 
       gkyl_mem_buff_data(mpi->all_gather_buff_global.buff), nelem, MPI_CHAR, mpi->mcomm);
-
-  // double *buff = (double*) gkyl_mem_buff_data(mpi->all_gather_buff_global.buff);
-  // for (int i=0; i < mpi->decomp->parent_range.volume; ++i) {
-  //   printf("rank = %d, buffer value = %g\n", rank, buff[i]);
-  // }
 
   // copy data to global array
   int idx = 0;
