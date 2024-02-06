@@ -44,7 +44,7 @@ gkyl_gk_geometry_tok_cu_dev_new(const struct gkyl_rect_grid* grid, const struct 
   // bmag, metrics and derived geo quantities
 
   // Copy the host-side initialized geometry object to the device
-  struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
+  struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *dxdz_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);

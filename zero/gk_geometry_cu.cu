@@ -28,7 +28,7 @@ gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gk
 
   // bmag, metrics and derived geo quantities
 
-  struct gkyl_array *mapc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
+  struct gkyl_array *mapc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->range_ext.volume);
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
