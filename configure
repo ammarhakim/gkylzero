@@ -257,6 +257,8 @@ CONF_LUA_LIB=$CONF_LUA_LIB
 
 CUDAMATH_LIBDIR=$CUDAMATH_LIBDIR
 
+USE_ADAS=$USE_ADAS
+
 EOF1
 
 echo "# Wrote config.mak with contents:"
