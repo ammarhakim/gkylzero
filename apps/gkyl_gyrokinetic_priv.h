@@ -323,6 +323,10 @@ struct gk_species {
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver 
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object
   
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
+  bool bc_is_np[3]; // whether BC is nonperiodic.
+
   // boundary conditions on lower/upper edges in each direction  
   struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
   // gyrokinetic sheath boundary conditions
@@ -336,6 +340,9 @@ struct gk_species {
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  // GK_IWL sims need SOL ghost and skin ranges.
+  struct gkyl_range lower_skin_par_sol, lower_ghost_par_sol;
+  struct gkyl_range upper_skin_par_sol, upper_ghost_par_sol;
 
   enum gkyl_source_id source_id; // type of source
   struct gk_source src; // applied source

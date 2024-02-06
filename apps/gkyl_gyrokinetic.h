@@ -72,8 +72,8 @@ struct gkyl_gyrokinetic_source {
 // Parameters for boundary conditions
 struct gkyl_gyrokinetic_bc {
   enum gkyl_species_bc_type type;
-  void *aux_func_ctx;
-  void (*aux_func)(double t, const double *xn, double *fout, void *ctx);  
+  void *aux_ctx;
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);  
   double aux_parameter;
 };
 
