@@ -139,7 +139,6 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-
     .projection = {
       .proj_id = GKYL_PROJ_FUNC, 
       .ctx_func = &ctx,
@@ -154,9 +153,6 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "bump" },
     },
-
-
-    
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };

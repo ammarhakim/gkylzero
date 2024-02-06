@@ -139,8 +139,11 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-    .ctx_dist= &ctx,
-    .init_dist = eval_tophat,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC, 
+      .ctx_func = &ctx,
+      .func = eval_tophat,
+    },
 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
@@ -150,9 +153,6 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "bump" },
     },
-
-
-    
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
@@ -166,9 +166,11 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-
-    .ctx_dist= &ctx,
-    .init_dist = eval_bump,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC, 
+      .ctx_func = &ctx,
+      .func = eval_bump,
+    },
 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
@@ -178,7 +180,6 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "square" },
     },
-
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
