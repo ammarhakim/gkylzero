@@ -78,6 +78,32 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   else 
     s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
+  // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
+  struct gkyl_basis surf_basis, surf_quad_basis;
+  gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
+  gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
+
+  // always 3v
+  int alpha_surf_sz = 3*surf_basis.num_basis; 
+  int sgn_alpha_surf_sz = 3*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
+
+  // allocate arrays to store fields: 
+  // 1. alpha_surf (surface phase space flux)
+  // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
+  // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
+  s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
+  s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
+  s->const_sgn_alpha = mk_int_arr(app->use_gpu, 3, s->local_ext.volume);
+  // 4. cotangent vectors e^i = g^ij e_j 
+  s->cot_vec = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
+
+  // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
+  struct gkyl_dg_calc_vlasov_gen_geo_vars *calc_vars = gkyl_dg_calc_vlasov_gen_geo_vars_new(&s->grid, 
+    &app->confBasis, &app->basis, app->gk_geom, app->use_gpu);
+  gkyl_dg_calc_vlasov_gen_geo_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, 
+    s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+  gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(calc_vars, &app->local, s->cot_vec);
+
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
@@ -105,7 +131,8 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     }
   }
 
-  struct gkyl_dg_vlasov_auxfields aux_inp = {.field = 0, .cot_vec = app->gk_geom->dxdz, .alpha_geo = 0};
+    struct gkyl_dg_vlasov_auxfields aux_inp = {.field = 0, .cot_vec = s->cot_vec, 
+      .alpha_surf = s->alpha_surf, .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha };
   // Set field type and model id for neutral species in GK system and create solver
   s->field_id = GKYL_FIELD_NULL;
   s->model_id = GKYL_MODEL_GEN_GEO;
@@ -122,7 +149,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
   // allocate data for diagnostic moments
   int ndm = s->info.num_diag_moments;
-  s->moms = gkyl_malloc(sizeof(struct gk_neut_species_moment[ndm]));
+  s->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
   for (int m=0; m<ndm; ++m)
     gk_neut_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
@@ -132,8 +159,17 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   s->is_first_integ_write_call = true;
 
+  // initialize projection routine for initial conditions
+  gk_neut_species_projection_init(app, s, s->info.projection, &s->proj_init);
+
   // set species source id
   s->source_id = s->info.source.source_id;
+
+  s->has_neutral_reactions = false;
+  if (s->info.react_neut.num_react) {
+    s->has_neutral_reactions = true;
+    gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
+  }
 
   // create ranges and allocate buffers for applying periodic and non-periodic BCs
   long buff_sz = 0;
@@ -195,101 +231,11 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 void
 gk_neut_species_apply_ic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, double t0)
 {
-  int poly_order = app->poly_order;
-  if (species->info.is_maxwellian){
-    // Project n, udrift, and vt^2 based on input functions
-    struct gkyl_array *m0 = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    struct gkyl_array *udrift = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    struct gkyl_array *vtsq = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.init_density, species->info.ctx_density);
-    gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.init_upar, species->info.ctx_upar);
-    gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      poly_order+1, 1, species->info.init_temp, species->info.ctx_temp);
-
-    gkyl_proj_on_basis_advance(proj_m0, 0.0, &app->local_ext, m0); 
-    gkyl_proj_on_basis_advance(proj_udrift, 0.0, &app->local_ext, udrift);
-    gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &app->local_ext, vtsq);
-    gkyl_array_scale(vtsq, 1/species->info.mass);
-
-    // proj_maxwellian expects the primitive moments as a single array.
-    struct gkyl_array *prim_moms = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);
-    gkyl_array_set_offset(prim_moms, 1.0, udrift, 0*app->confBasis.num_basis);
-    gkyl_array_set_offset(prim_moms, 1.0, vtsq  , 1*app->confBasis.num_basis);
-
-    // Initialize Maxwellian projection object
-    gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&species->grid,
-        &app->confBasis, &app->neut_basis, poly_order+1, app->use_gpu);
-
-    // If on GPUs, need to copy n, udrift, and vt^2 onto device
-    struct gkyl_array *prim_moms_dev, *m0_dev;
-    if (app->use_gpu) {
-      prim_moms_dev = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
-      m0_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-      gkyl_array_copy(prim_moms_dev, prim_moms);
-      gkyl_array_copy(m0_dev, m0);
-      gkyl_proj_maxwellian_on_basis_prim_mom(proj_max, &species->local_ext, &app->local_ext, 
-        m0_dev, prim_moms_dev, species->f);
-    }
-    else {
-      gkyl_proj_maxwellian_on_basis_prim_mom(proj_max, &species->local_ext, &app->local_ext, 
-        m0_dev, prim_moms_dev, species->f);
-    }
-    // Now compute and scale the density to the desired density function based on input density from Maxwellian projection
-    gk_neut_species_moment_calc(&species->m0, species->local_ext, app->local_ext, species->f); 
-
-    // Rescale projected density to desired input density function
-    struct gkyl_array *m0mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    struct gkyl_dg_bin_op_mem *mem;
-    if (app->use_gpu) {
-      mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
-      gkyl_dg_div_op_range(mem, app->confBasis, 0, m0mod, 0, m0_dev, 0, species->m0.marr, &app->local);
-    }
-    else {
-      mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
-      gkyl_dg_div_op_range(mem, app->confBasis, 0, m0mod, 0, m0, 0, species->m0.marr, &app->local);
-    }
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, species->f, 
-        m0mod, species->f, &app->local_ext, &species->local_ext);
-
-    // multiply final distribution function by Jacobian
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, species->f, 
-        app->gk_geom->jacobgeo, species->f, &app->local_ext, &species->local_ext);
-
-    // Free temporary variables and projection objects
-    gkyl_array_release(m0);
-    gkyl_array_release(udrift); 
-    gkyl_array_release(vtsq);
-    gkyl_array_release(prim_moms);
-    if (app->use_gpu) {
-      gkyl_array_release(m0_dev);
-      gkyl_array_release(prim_moms_dev);      
-    }
-    gkyl_proj_on_basis_release(proj_m0);
-    gkyl_proj_on_basis_release(proj_udrift);
-    gkyl_proj_on_basis_release(proj_vtsq);
-    gkyl_array_release(m0mod); 
-    gkyl_dg_bin_op_mem_release(mem);
-    gkyl_proj_maxwellian_on_basis_release(proj_max);
-  }
-  else {
-    gkyl_proj_on_basis *proj;
-    proj = gkyl_proj_on_basis_new(&species->grid, &app->neut_basis,
-      poly_order+1, 1, species->info.init_dist, species->info.ctx_dist);
-
-    gkyl_proj_on_basis_advance(proj, t0, &species->local, species->f_host);
-    gkyl_proj_on_basis_release(proj);    
-
-    if (app->use_gpu) // note: f_host is same as f when not on GPUs
-      gkyl_array_copy(species->f, species->f_host);
-
-  }
+  gk_neut_species_projection_calc(app, species, &species->proj_init, species->f, t0);
 
   // we are pre-computing source for now as it is time-independent
   if (species->source_id)
-    gk_neut_species_source_calc(app, species, t0);
+    gk_neut_species_source_calc(app, species, &species->src, t0);
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now for cdim > 1*
@@ -421,11 +367,17 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     gkyl_array_release(s->bc_buffer_lo_fixed);
     gkyl_array_release(s->bc_buffer_up_fixed);
   }
-
+  gk_neut_species_projection_release(app, &s->proj_init);
+  
   gkyl_comm_release(s->comm);
 
   if (app->use_gpu)
     gkyl_array_release(s->f_host);
+
+  gkyl_array_release(s->alpha_surf);
+  gkyl_array_release(s->sgn_alpha_surf);
+  gkyl_array_release(s->const_sgn_alpha);
+  gkyl_array_release(s->cot_vec);
 
   // release equation object and solver
   gkyl_dg_eqn_release(s->eqn_vlasov);
@@ -439,9 +391,11 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   gk_neut_species_moment_release(app, &s->integ_moms); 
   gkyl_dynvec_release(s->integ_diag);
 
-  if (s->source_id) {
+  if (s->source_id) 
     gk_neut_species_source_release(app, &s->src);
-  }
+
+  if (s->has_neutral_reactions)
+    gk_neut_species_react_release(app, &s->react_neut);
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {

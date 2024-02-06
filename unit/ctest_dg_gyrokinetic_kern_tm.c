@@ -76,10 +76,14 @@ test_3x2v_p1(bool use_gpu)
 
   // Initialize gyrokinetic variables
   struct gkyl_array *alpha_surf = mkarr1(use_gpu, 4*surf_basis.num_basis, phaseRange_ext.volume);
+  struct gkyl_array *sgn_alpha_surf = mkarr1(use_gpu, 4*surf_basis.num_basis, phaseRange_ext.volume);
+  struct gkyl_array *const_sgn_alpha = mkarr1(use_gpu, 4, phaseRange_ext.volume);
   struct gkyl_array *phi = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
   struct gkyl_array *apar = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
   struct gkyl_array *apardot = mkarr1(use_gpu, confBasis.num_basis, confRange_ext.volume);
-  struct gkyl_dg_gyrokinetic_auxfields aux = { .alpha_surf = alpha_surf, .phi = phi, .apar = apar, .apardot = apardot };
+  struct gkyl_dg_gyrokinetic_auxfields aux = { .alpha_surf = alpha_surf, 
+    .sgn_alpha_surf = sgn_alpha_surf, .const_sgn_alpha = const_sgn_alpha, 
+    .phi = phi, .apar = apar, .apardot = apardot };
 
   const bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
@@ -112,6 +116,9 @@ test_3x2v_p1(bool use_gpu)
   gkyl_array_release(fin);
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
+  gkyl_array_release(alpha_surf);
+  gkyl_array_release(sgn_alpha_surf);
+  gkyl_array_release(const_sgn_alpha);
   gkyl_array_release(phi);
   gkyl_array_release(apar);
   gkyl_array_release(apardot);

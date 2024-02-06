@@ -11,9 +11,15 @@ typedef struct gkyl_calc_bmag gkyl_calc_bmag;
 typedef struct bmag_ctx bmag_ctx;
 
 /**
- * Create new updater to compute the metric coefficients
+ * Create new updater to compute the bmag on the compuational grid 
  *
- * @param cbasis Basis object (configuration space).
+ * @param cbasis Basis object ( computational configuration space).
+ * @ param pbasis (physical RZ basis)
+ * @param flux basis (Poloidal flux basis)
+ * @param cgrid computational grid
+ * @param pgrid physical RZ grid
+ * @param fgrid poloidal flux grid from psi_min to psi_max. Usually from EFIT.
+ * @param psisep poloidal flux at separatrix
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
@@ -23,10 +29,18 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
 
 
 /**
- * Advance calc_metric (compute the metric coefficients).
+ * Advance calc_bmag (compute bmag given dg fields Psi Psi/R and Psi/R^2 on the RZ grid 
+ * as well as Fpol = RB_phi on the poloidal flux grid).
  *
- * @param up calc_metric updater object.
- * @param crange Config-space range.
+ * @param up calc_bmag updater object.
+ * @param crange, _ext computational Config-space range and extended range.
+ * @param prange, _ext physical RZ range and extended range.
+ * @param frange, _ext poloidal flux range and extended range.
+ * @param psidg, psibyrdg, psibyr2dg: DG Psi(R,Z), Psi(R,Z)/R, Psi(R,Z)/R^2 on the RZ grid
+ * @param bmag_compdg output field where DG bmag on the computational basis/grid will be plaed
+ * @param fpol_dg DG rep of fpol = RB_phi on the poloidal flux grid
+ * @param mapc2p DG rep of mapc2p on the computational grid
+ * @param calc_bphi whether or not to calculate bphi. set false for mirrors
  * @param XYZ field containing DG rep of cartesian coordinates
  * @param gFld output field where metric coefficients will be placed
  */

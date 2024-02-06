@@ -43,6 +43,7 @@ enum gyrokinetic_magic_ids {
   GYROKINETIC_DIFFUSION_DEFAULT, // Diffusion operator
   GYROKINETIC_SOURCE_DEFAULT, // Sources
   GYROKINETIC_GEOMETRY_DEFAULT, // Geometry
+  GYROKINETIC_PROJECTION_DEFAULT, // Geometry
 };
 
 // Used in call back passed to the initial conditions
@@ -79,6 +80,87 @@ eval_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
     lua_pop(L, 1);
   }
 }
+
+/* ***************** */
+/* Projection methods */
+/* ***************** */
+
+// Metatable name for field input struct
+#define GYROKINETIC_PROJECTION_METATABLE_NM "GkeyllZero.Gyrokinetic.Projection"
+
+// Lua userdata object for constructing field input
+struct gyrokinetic_projection_lw {
+  int magic; // this must be first element in the struct
+  
+  struct gkyl_gyrokinetic_projection gyrokinetic_projection; // input struct to construct projection
+
+  struct lua_func_ctx density_ref; // Lua registery reference to density
+  struct lua_func_ctx upar_ref; // Lua registery reference to upar
+  struct lua_func_ctx temp_ref; // Lua registery reference to temperature
+};
+
+static int
+gyrokinetic_projection_lw_new(lua_State *L)
+{
+  struct gkyl_gyrokinetic_projection gyrokinetic_projection = { };
+
+  gyrokinetic_projection.proj_id = GKYL_PROJ_MAXWELLIAN; 
+
+  // Register functions for density, upar, and temperature 
+  int density_ref = LUA_NOREF;
+  int upar_ref = LUA_NOREF;
+  int temp_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "density")) 
+    density_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  else
+    return luaL_error(L, "Projection must have an \"density\" function if projecting a Maxwellian!");
+  if (glua_tbl_get_func(L, "upar"))
+    upar_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  else
+    return luaL_error(L, "Projection must have an \"upar\" function if projecting a Maxwellian!");
+  if (glua_tbl_get_func(L, "temp")) 
+    temp_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  else
+    return luaL_error(L, "Projection must have an \"temp\" function if projecting a Maxwellian!");
+
+  struct gyrokinetic_projection_lw *gyrokinetic_p_lw = lua_newuserdata(L, sizeof(*gyrokinetic_p_lw));
+
+  gyrokinetic_p_lw->magic = GYROKINETIC_PROJECTION_DEFAULT;
+  gyrokinetic_p_lw->gyrokinetic_projection = gyrokinetic_projection;
+
+  gyrokinetic_p_lw->density_ref = (struct lua_func_ctx) {
+    .func_ref = density_ref,
+    .ndim = 0, // this will be set later
+    .nret = 1,
+    .L = L,
+  };
+
+  gyrokinetic_p_lw->upar_ref = (struct lua_func_ctx) {
+    .func_ref = upar_ref,
+    .ndim = 0, // this will be set later
+    .nret = 1,
+    .L = L,
+  };
+
+  gyrokinetic_p_lw->temp_ref = (struct lua_func_ctx) {
+    .func_ref = temp_ref,
+    .ndim = 0, // this will be set later
+    .nret = 1,
+    .L = L,
+  };
+  
+  // set metatable
+  luaL_getmetatable(L, GYROKINETIC_PROJECTION_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Species diffusion constructor
+static struct luaL_Reg gyrokinetic_projection_ctor[] = {
+  { "new",  gyrokinetic_projection_lw_new },
+  { 0, 0 }
+};
 
 /* ***************** */
 /* Geometry methods */
@@ -140,7 +222,7 @@ gyrokinetic_geometry_lw_new(lua_State *L)
   return 1;
 }
 
-// Species diffusion constructor
+// Species geometry constructor
 static struct luaL_Reg gyrokinetic_geometry_ctor[] = {
   { "new",  gyrokinetic_geometry_lw_new },
   { 0, 0 }
@@ -159,80 +241,36 @@ struct gyrokinetic_source_lw {
   
   struct gkyl_gyrokinetic_source gyrokinetic_source; // input struct to construct sources
 
-  struct lua_func_ctx src_dist_ref; // Lua registery reference to source distribution function
-
-  // Lua registry references for Maxwellian sources
-  struct lua_func_ctx src_density_ref; // Lua registery reference to source density
-  struct lua_func_ctx src_upar_ref; // Lua registery reference to source upar
-  struct lua_func_ctx src_temp_ref; // Lua registery reference to source temperature
-  bool src_maxwellian; // Boolean if source is Maxwellian for later initialization
+  struct gyrokinetic_projection_lw *projection_lw; // pointer to Lua projection table
+  bool has_projection; // Boolean if projection exists for later initialization
 };
 
 static int
 gyrokinetic_source_lw_new(lua_State *L)
 {
   struct gkyl_gyrokinetic_source gyrokinetic_source = { };
+  gyrokinetic_source.source_id = GKYL_PROJ_SOURCE; 
 
-  // Register initial conditions for distribution functions or density, upar, and temperature 
-  int src_dist_ref = LUA_NOREF;
-  int src_density_ref = LUA_NOREF;
-  int src_upar_ref = LUA_NOREF;
-  int src_temp_ref = LUA_NOREF;
-  bool src_maxwellian = false;
-  if (glua_tbl_get_func(L, "src_dist")) {
-    src_dist_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
-  else if (glua_tbl_get_func(L, "src_density")) {
-    src_density_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    src_maxwellian = true;
-    gyrokinetic_source.source_id = GKYL_MAXWELLIAN_SOURCE;
-    if (glua_tbl_get_func(L, "src_upar"))
-      src_upar_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    else
-      return luaL_error(L, "Sources must have an \"src_upar\" function if sourcing a Maxwellian!");
-
-    if (glua_tbl_get_func(L, "src_temp")) 
-      src_temp_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    else
-      return luaL_error(L, "Sources must have an \"src_temp\" function if sourcing a Maxwellian!");
-  }
-  else {
-    return luaL_error(L, "Sources must have either \"src_dist\" function or \"src_density\", \"src_upar\", and \"src_temp\" for sources!");
-  }
+  // Fetch user input table for projection input for sources
+  struct gyrokinetic_projection_lw *gyrokinetic_p_lw = 0;
+  bool has_projection = false;
+  with_lua_tbl_key(L, "projection") {
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      struct gyrokinetic_projection_lw *input_gyrokinetic_projection_lw = lua_touserdata(L, -1);
+      if (input_gyrokinetic_projection_lw->magic == GYROKINETIC_PROJECTION_DEFAULT) {
+        gyrokinetic_p_lw = input_gyrokinetic_projection_lw;
+        has_projection = true;
+      }
+    }
+  }  
 
   struct gyrokinetic_source_lw *gyrokinetic_src_lw = lua_newuserdata(L, sizeof(*gyrokinetic_src_lw));
 
   gyrokinetic_src_lw->magic = GYROKINETIC_SOURCE_DEFAULT;
   gyrokinetic_src_lw->gyrokinetic_source = gyrokinetic_source;
 
-  gyrokinetic_src_lw->src_dist_ref = (struct lua_func_ctx) {
-    .func_ref = src_dist_ref,
-    .ndim = 0, // this will be set later
-    .nret = 1,
-    .L = L,
-  };
-
-  gyrokinetic_src_lw->src_density_ref = (struct lua_func_ctx) {
-    .func_ref = src_density_ref,
-    .ndim = 0, // this will be set later
-    .nret = 1,
-    .L = L,
-  };
-
-  gyrokinetic_src_lw->src_upar_ref = (struct lua_func_ctx) {
-    .func_ref = src_upar_ref,
-    .ndim = 0, // this will be set later
-    .nret = 1,
-    .L = L,
-  };
-
-  gyrokinetic_src_lw->src_temp_ref = (struct lua_func_ctx) {
-    .func_ref = src_temp_ref,
-    .ndim = 0, // this will be set later
-    .nret = 1,
-    .L = L,
-  };
-  gyrokinetic_src_lw->src_maxwellian = src_maxwellian;
+  gyrokinetic_src_lw->projection_lw = gyrokinetic_p_lw;
+  gyrokinetic_src_lw->has_projection = has_projection;
   
   // set metatable
   luaL_getmetatable(L, GYROKINETIC_SOURCE_METATABLE_NM);
@@ -266,8 +304,18 @@ gyrokinetic_diffusion_lw_new(lua_State *L)
 {
   struct gkyl_gyrokinetic_diffusion gyrokinetic_diffusion = { };
 
-  gyrokinetic_diffusion.D = glua_tbl_get_number(L, "D", 0.0);
   gyrokinetic_diffusion.order = glua_tbl_get_integer(L, "order", 2);
+  gyrokinetic_diffusion.num_diff_dir = 0;
+  if (glua_tbl_has_key(L, "diffDirs")) {
+    with_lua_tbl_tbl(L, "diffDirs") {
+      gyrokinetic_diffusion.num_diff_dir = glua_objlen(L);
+      for (int d=0; d<gyrokinetic_diffusion.num_diff_dir; ++d) {
+        // indexes are off by 1 between Lua and C
+        gyrokinetic_diffusion.diff_dirs[d] = glua_tbl_iget_integer(L, d+1, 0)-1;
+        gyrokinetic_diffusion.D[d] = glua_tbl_iget_number(L, d+1, 0.0);
+      }
+    }
+  }
 
   struct gyrokinetic_diffusion_lw *gyrokinetic_d_lw = lua_newuserdata(L, sizeof(*gyrokinetic_d_lw));
 
@@ -353,13 +401,9 @@ struct gyrokinetic_species_lw {
   
   struct gkyl_gyrokinetic_species gyrokinetic_species; // input struct to construct species
   int vdim; // velocity dimensions
-  struct lua_func_ctx init_dist_ref; // Lua registery reference to initilization distribution function
 
-  struct lua_func_ctx init_density_ref; // Lua registery reference to initilization of density
-  struct lua_func_ctx init_upar_ref; // Lua registery reference to initilization of upar
-  struct lua_func_ctx init_temp_ref; // Lua registery reference to initilization of temperature
-  bool init_maxwellian; // Boolean if initialization is Maxwellian projection
-
+  struct gyrokinetic_projection_lw *projection_lw; // pointer to Lua projection table
+  bool has_projection; // Boolean if projection exists for later initialization
   struct gyrokinetic_collisions_lw *collisions_lw; // pointer to Lua collisions table
   bool has_collisions; // Boolean if collisions exists for later initialization
   struct gyrokinetic_diffusion_lw *diffusion_lw; // pointer to Lua diffusion table
@@ -408,33 +452,18 @@ gyrokinetic_species_lw_new(lua_State *L)
     gyrokinetic_species.num_diag_moments = n;
   }
 
-
-  // Register initial conditions for distribution functions or density, upar, and temperature 
-  int init_dist_ref = LUA_NOREF;
-  int init_density_ref = LUA_NOREF;
-  int init_upar_ref = LUA_NOREF;
-  int init_temp_ref = LUA_NOREF;
-  bool init_maxwellian = false;
-  if (glua_tbl_get_func(L, "init_dist")) {
-    init_dist_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-  }
-  else if (glua_tbl_get_func(L, "init_density")) {
-    init_density_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    init_maxwellian = true;
-    gyrokinetic_species.is_maxwellian = init_maxwellian;
-    if (glua_tbl_get_func(L, "init_upar"))
-      init_upar_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    else
-      return luaL_error(L, "Species must have an \"init_upar\" function if initializing a Maxwellian!");
-
-    if (glua_tbl_get_func(L, "init_temp")) 
-      init_temp_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    else
-      return luaL_error(L, "Species must have an \"init_temp\" function if initializing a Maxwellian!");
-  }
-  else {
-    return luaL_error(L, "Species must have either \"init_dist\" function or \"init_density\", \"init_upar\", and \"init_temp\" for initial conditions!");
-  }
+  // Fetch user input table for projection input
+  struct gyrokinetic_projection_lw *gyrokinetic_p_lw = 0;
+  bool has_projection = false;
+  with_lua_tbl_key(L, "projection") {
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      struct gyrokinetic_projection_lw *input_gyrokinetic_projection_lw = lua_touserdata(L, -1);
+      if (input_gyrokinetic_projection_lw->magic == GYROKINETIC_PROJECTION_DEFAULT) {
+        gyrokinetic_p_lw = input_gyrokinetic_projection_lw;
+        has_projection = true;
+      }
+    }
+  }  
 
   // Fetch user input table for collision operator 
   struct gyrokinetic_collisions_lw *gyrokinetic_c_lw = 0;
@@ -481,34 +510,8 @@ gyrokinetic_species_lw_new(lua_State *L)
   gyrokinetic_s_lw->vdim = vdim;
   gyrokinetic_s_lw->gyrokinetic_species = gyrokinetic_species;
 
-  gyrokinetic_s_lw->init_dist_ref = (struct lua_func_ctx) {
-    .func_ref = init_dist_ref,
-    .ndim = 0, // this will be set later
-    .nret = 1,
-    .L = L,
-  };
-
-  gyrokinetic_s_lw->init_density_ref = (struct lua_func_ctx) {
-    .func_ref = init_density_ref,
-    .ndim = 0, // this will be set later
-    .nret = 1,
-    .L = L,
-  };
-
-  gyrokinetic_s_lw->init_upar_ref = (struct lua_func_ctx) {
-    .func_ref = init_upar_ref,
-    .ndim = 0, // this will be set later
-    .nret = 1,
-    .L = L,
-  };
-
-  gyrokinetic_s_lw->init_temp_ref = (struct lua_func_ctx) {
-    .func_ref = init_temp_ref,
-    .ndim = 0, // this will be set later
-    .nret = 1,
-    .L = L,
-  };
-  gyrokinetic_s_lw->init_maxwellian = init_maxwellian;
+  gyrokinetic_s_lw->projection_lw = gyrokinetic_p_lw;
+  gyrokinetic_s_lw->has_projection = has_projection;
 
   gyrokinetic_s_lw->collisions_lw = gyrokinetic_c_lw;
   gyrokinetic_s_lw->has_collisions = has_collisions;
@@ -629,7 +632,6 @@ struct gyrokinetic_app_lw {
   struct lua_func_ctx bmag_func_ctx;
 
   // Function contexts for ICs, either initialization of distribution function or Maxwellian ICs
-  struct lua_func_ctx species_dist_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' distribution function
   struct lua_func_ctx species_density_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' density 
   struct lua_func_ctx species_upar_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' upar
   struct lua_func_ctx species_temp_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' temperature
@@ -638,7 +640,6 @@ struct gyrokinetic_app_lw {
   struct lua_func_ctx collisions_func_ctx[GKYL_MAX_SPECIES]; 
 
   // Function contexts for sources, either sourcing of distribution function or Maxwellian sources
-  struct lua_func_ctx src_dist_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' source distribution function
   struct lua_func_ctx src_density_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' source density 
   struct lua_func_ctx src_upar_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' source upar
   struct lua_func_ctx src_temp_func_ctx[GKYL_MAX_SPECIES]; // function context for each species' source temperature
@@ -665,26 +666,20 @@ get_species_inp(lua_State *L, int cdim, struct gyrokinetic_species_lw *gyrokinet
     if (lua_type(L, TVAL) == LUA_TUSERDATA) {
       struct gyrokinetic_species_lw *input_gyrokinetic_species_lw = lua_touserdata(L, TVAL);
       if (input_gyrokinetic_species_lw->magic == GYROKINETIC_SPECIES_DEFAULT) {
-        
-        if (input_gyrokinetic_species_lw->init_maxwellian) {
-          input_gyrokinetic_species_lw->init_density_ref.ndim = cdim;
-          input_gyrokinetic_species_lw->init_upar_ref.ndim = cdim;
-          input_gyrokinetic_species_lw->init_temp_ref.ndim = cdim;
-        }
-        else {
-          input_gyrokinetic_species_lw->init_dist_ref.ndim = cdim + input_gyrokinetic_species_lw->vdim;
+
+        if (input_gyrokinetic_species_lw->has_projection) {
+          input_gyrokinetic_species_lw->projection_lw->density_ref.ndim = cdim;
+          input_gyrokinetic_species_lw->projection_lw->upar_ref.ndim = cdim;
+          input_gyrokinetic_species_lw->projection_lw->temp_ref.ndim = cdim;
         }
         if (input_gyrokinetic_species_lw->has_collisions) {
           input_gyrokinetic_species_lw->collisions_lw->init_nu_ref.ndim = cdim;
         }
         if (input_gyrokinetic_species_lw->has_source) {
-          if (input_gyrokinetic_species_lw->source_lw->src_maxwellian) {
-            input_gyrokinetic_species_lw->source_lw->src_density_ref.ndim = cdim;
-            input_gyrokinetic_species_lw->source_lw->src_upar_ref.ndim = cdim;
-            input_gyrokinetic_species_lw->source_lw->src_temp_ref.ndim = cdim;            
-          }
-          else {
-            input_gyrokinetic_species_lw->source_lw->src_dist_ref.ndim = cdim + input_gyrokinetic_species_lw->vdim;
+          if (input_gyrokinetic_species_lw->source_lw->has_projection) {
+            input_gyrokinetic_species_lw->source_lw->projection_lw->density_ref.ndim = cdim;
+            input_gyrokinetic_species_lw->source_lw->projection_lw->upar_ref.ndim = cdim;
+            input_gyrokinetic_species_lw->source_lw->projection_lw->temp_ref.ndim = cdim;            
           }
         }
         
@@ -784,28 +779,24 @@ gyrokinetic_app_new(lua_State *L)
     gyrokinetic.species[s] = gyrokinetic_s_lw[s]->gyrokinetic_species;
     gyrokinetic.vdim = gyrokinetic_s_lw[s]->vdim;
     
-    // get context for distribution functions or density, upar, and temperature for Maxwellian initialization
-    if (gyrokinetic_s_lw[s]->init_maxwellian) {
-      app_lw->species_density_func_ctx[s] = gyrokinetic_s_lw[s]->init_density_ref;
-      gyrokinetic.species[s].init_density = eval_ic;
-      gyrokinetic.species[s].ctx_density = &app_lw->species_density_func_ctx[s];
-
-      app_lw->species_upar_func_ctx[s] = gyrokinetic_s_lw[s]->init_upar_ref;
-      gyrokinetic.species[s].init_upar = eval_ic;
-      gyrokinetic.species[s].ctx_upar = &app_lw->species_upar_func_ctx[s];
-
-      app_lw->species_temp_func_ctx[s] = gyrokinetic_s_lw[s]->init_temp_ref;
-      gyrokinetic.species[s].init_temp = eval_ic;
-      gyrokinetic.species[s].ctx_temp = &app_lw->species_temp_func_ctx[s];
-    }
-    else {
-      app_lw->species_dist_func_ctx[s] = gyrokinetic_s_lw[s]->init_dist_ref;
-      gyrokinetic.species[s].init_dist = eval_ic;
-      gyrokinetic.species[s].ctx_dist = &app_lw->species_dist_func_ctx[s];
-    }
-
-    // Note: user input collisions, diffusion, and source structs
+    // Note: user input projection, collisions, diffusion, and source structs
     // initialized in gyrokinetic_species_lw_new as part of species' initialization
+    if (gyrokinetic_s_lw[s]->has_projection) {
+      // assign the App's species object projection struct to user input projection struct 
+      gyrokinetic.species[s].projection = gyrokinetic_s_lw[s]->projection_lw->gyrokinetic_projection;
+      // get context for density, upar, and temperature
+      app_lw->species_density_func_ctx[s] = gyrokinetic_s_lw[s]->projection_lw->density_ref;
+      gyrokinetic.species[s].projection.density = eval_ic;
+      gyrokinetic.species[s].projection.ctx_density = &app_lw->species_density_func_ctx[s];
+
+      app_lw->species_upar_func_ctx[s] = gyrokinetic_s_lw[s]->projection_lw->upar_ref;
+      gyrokinetic.species[s].projection.upar = eval_ic;
+      gyrokinetic.species[s].projection.ctx_upar = &app_lw->species_upar_func_ctx[s];
+
+      app_lw->species_temp_func_ctx[s] = gyrokinetic_s_lw[s]->projection_lw->temp_ref;
+      gyrokinetic.species[s].projection.temp = eval_ic;
+      gyrokinetic.species[s].projection.ctx_temp = &app_lw->species_temp_func_ctx[s];
+    }
     if (gyrokinetic_s_lw[s]->has_collisions) {
       // assign the App's species object collision struct to user input collision struct 
       gyrokinetic.species[s].collisions = gyrokinetic_s_lw[s]->collisions_lw->gyrokinetic_collisions;
@@ -822,24 +813,19 @@ gyrokinetic_app_new(lua_State *L)
       // assign the App's species object source struct to user input source struct 
       gyrokinetic.species[s].source = gyrokinetic_s_lw[s]->source_lw->gyrokinetic_source;
       // get context for distribution functions or density, upar, and temperature for Maxwellian initialization
-      if (gyrokinetic_s_lw[s]->source_lw->src_maxwellian) {
-        app_lw->src_density_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->src_density_ref;
-        gyrokinetic.species[s].source.density_profile = eval_ic;
-        gyrokinetic.species[s].source.ctx_density = &app_lw->species_density_func_ctx[s];
+      if (gyrokinetic_s_lw[s]->source_lw->has_projection) {
+        app_lw->src_density_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->projection_lw->density_ref;
+        gyrokinetic.species[s].source.projection.density = eval_ic;
+        gyrokinetic.species[s].source.projection.ctx_density = &app_lw->species_density_func_ctx[s];
 
-        app_lw->src_upar_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->src_upar_ref;
-        gyrokinetic.species[s].source.upar_profile = eval_ic;
-        gyrokinetic.species[s].source.ctx_upar = &app_lw->src_upar_func_ctx[s];
+        app_lw->src_upar_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->projection_lw->upar_ref;
+        gyrokinetic.species[s].source.projection.upar = eval_ic;
+        gyrokinetic.species[s].source.projection.ctx_upar = &app_lw->src_upar_func_ctx[s];
 
-        app_lw->src_temp_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->src_temp_ref;
-        gyrokinetic.species[s].source.temp_profile = eval_ic;
-        gyrokinetic.species[s].source.ctx_temp = &app_lw->src_temp_func_ctx[s];
-      }
-      else {
-        app_lw->src_dist_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->src_dist_ref;
-        gyrokinetic.species[s].source.profile = eval_ic;
-        gyrokinetic.species[s].source.ctx_profile = &app_lw->src_dist_func_ctx[s];
-      }      
+        app_lw->src_temp_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->projection_lw->temp_ref;
+        gyrokinetic.species[s].source.projection.temp = eval_ic;
+        gyrokinetic.species[s].source.projection.ctx_temp = &app_lw->src_temp_func_ctx[s];
+      }   
     }      
   }
 
@@ -1186,8 +1172,14 @@ app_openlibs(lua_State *L)
 
   // Register Species input struct
   do {
-    luaL_newmetatable(L, GYROKINETIC_APP_METATABLE_NM);
+    luaL_newmetatable(L, GYROKINETIC_SPECIES_METATABLE_NM);
     luaL_register(L, "G0.Gyrokinetic.Species", gyrokinetic_species_ctor);
+  } while (0);
+
+  // Register Projection input struct
+  do {
+    luaL_newmetatable(L, GYROKINETIC_PROJECTION_METATABLE_NM);
+    luaL_register(L, "G0.Gyrokinetic.Projection", gyrokinetic_projection_ctor);
   } while (0);
 
   // Register Collisions input struct

@@ -21,6 +21,29 @@ struct gkyl_gk_low_inp {
   struct gkyl_comm *comm;
 };
 
+// Parameters for projection
+struct gkyl_gyrokinetic_projection {
+  enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
+
+  // pointer and context to initialization function 
+  void *ctx_func; 
+  void (*func)(double t, const double *xn, double *fout, void *ctx); 
+
+  // pointers and contexts to initialization functions for gk maxwellian projection
+  void *ctx_density;
+  void (*density)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_upar;
+  void (*upar)(double t, const double *xn, double *fout, void *ctx);
+  // if projection is Maxwellian
+  void *ctx_temp;
+  void (*temp)(double t, const double *xn, double *fout, void *ctx);
+  // if projection is bi-Maxwellian
+  void *ctx_temppar;
+  void (*temppar)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_tempperp;
+  void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
+};
+
 // Parameters for species collisions
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -31,6 +54,9 @@ struct gkyl_gyrokinetic_collisions {
 
   // inputs for Spitzer collisionality
   bool normNu; // Set to true if you want to rescale collision frequency
+  double self_nu_fac; // Self collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
+  double cross_nu_fac[GKYL_MAX_SPECIES]; // Cross collision freqs without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
+  double bmag_mid; // bmag at the middle of the domain
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar; // Planck's constant/2 pi 
 
@@ -40,9 +66,9 @@ struct gkyl_gyrokinetic_collisions {
 
 // Parameters for species diffusion
 struct gkyl_gyrokinetic_diffusion {
-  double D; // constant diffusion coefficient
-  int num_diff_dir; // number of periodic directions
-  int diff_dirs[3]; // list of periodic directions
+  int num_diff_dir; // number of diffusion directions
+  int diff_dirs[3]; // list of diffusion directions
+  double D[3]; // constant diffusion coefficient in each direction
   int order; // integer for order of the diffusion (4 for grad^4, 6 for grad^6, default is grad^2)
 };
 
@@ -51,19 +77,8 @@ struct gkyl_gyrokinetic_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source
 
-  // pointer and context to source profile function   
-  void *ctx_profile; 
-  void (*profile)(double t, const double *xn, double *fout, void *ctx);
-
-  // functions and contexts for computing source density, upar, and temperature profiles
-  void *ctx_density;
-  void (*density_profile)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_upar;
-  void (*upar_profile)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_temp;
-  void (*temp_profile)(double t, const double *xn, double *fout, void *ctx);
-  // flag to indicate if source is maxwellian projection
-  bool is_maxwellian;
+  // sources using projection routine
+  struct gkyl_gyrokinetic_projection projection;
 };
 
 struct gkyl_gyrokinetic_geometry {
@@ -104,6 +119,7 @@ struct gkyl_gyrokinetic_radiation {
 
 struct gkyl_gyrokinetic_react_type {
   enum gkyl_react_id react_id; // what type of reaction (ionization, charge exchange, recombination)
+  enum gkyl_react_self_type type_self; // what is the role of species in this reaction
   enum gkyl_ion_type ion_id; // what type of ion is reacting
   char elc_nm[128]; // names of electron species in reaction
   char ion_nm[128]; // name of ion species in reaction
@@ -132,25 +148,8 @@ struct gkyl_gyrokinetic_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
-  // pointer and context to initialization function 
-  void *ctx_dist; 
-  void (*init_dist)(double t, const double *xn, double *fout, void *ctx); 
-
-  // pointers and contexts to initialization functions for gk maxwellian projection
-  void *ctx_density;
-  void (*init_density)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_upar;
-  void (*init_upar)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_temp;
-  void (*init_temp)(double t, const double *xn, double *fout, void *ctx);
-  // flag to indicate if IC is maxwellian projection
-  bool is_maxwellian;
-  // flag to indicate if IC is bimaxwellian projection
-  void *ctx_temppar;
-  void (*init_temppar)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_tempperp;
-  void (*init_tempperp)(double t, const double *xn, double *fout, void *ctx);
-  bool is_bimaxwellian;
+  // initial conditions using projection routine
+  struct gkyl_gyrokinetic_projection projection;
 
   double polarization_density;
 
@@ -186,19 +185,8 @@ struct gkyl_gyrokinetic_neut_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
-  // pointer and context to initialization function 
-  void *ctx_dist; 
-  void (*init_dist)(double t, const double *xn, double *fout, void *ctx); 
-
-  // pointers and contexts to initialization functions for gk maxwellian projection
-  void *ctx_density;
-  void (*init_density)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_upar;
-  void (*init_upar)(double t, const double *xn, double *fout, void *ctx);
-  void *ctx_temp;
-  void (*init_temp)(double t, const double *xn, double *fout, void *ctx);
-  // flag to indicate if IC is maxwellian projection
-  bool is_maxwellian;
+  // initial conditions using projection routine
+  struct gkyl_gyrokinetic_projection projection;
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments

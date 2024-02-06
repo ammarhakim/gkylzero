@@ -105,10 +105,12 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
   gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, up->mc2p, true);
+  gkyl_calc_bmag_release(bcalculator);
 
   // Convert bmag to nodal so we can use it to calculate dphidtheta
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
   gkyl_nodal_ops_m2n(n2m, &up->basis, &up->grid, &nrange, &up->range, 1, bmag_nodal, up->bmag);
+  gkyl_nodal_ops_release(n2m);
 
 
 
@@ -117,12 +119,14 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, &up->range);
   // Recalculate the metrics and jacobian using cylindrical coordinates
   gkyl_calc_metric_advance_rz(mcalc, &nrange, mc2prz_nodal_fd, dphidtheta_nodal, bmag_nodal, dzc, up->g_ij, up->jacobgeo, &up->range);
+  gkyl_calc_metric_release(mcalc);
   //// calculate the derived geometric quantities
   gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, false);
   gkyl_tok_calc_derived_geo_advance(jcalculator, &up->range, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
-
+  gkyl_tok_calc_derived_geo_release(jcalculator);
+  
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
@@ -153,6 +157,8 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   gkyl_array_release(mc2prz_nodal_fd);
   gkyl_array_release(mc2prz_nodal);
   gkyl_array_release(mc2prz);
+  gkyl_array_release(dphidtheta_nodal);
+  gkyl_array_release(bmag_nodal);
 
   return up;
 }

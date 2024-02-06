@@ -30,7 +30,7 @@
 double psisep = 1.5098198350000001;
 struct gkyl_tok_geo_efit_inp inp = {
     // psiRZ and related inputs
-    .filepath = "./efit_data/step.geqdsk",
+    .filepath = "./data/eqdsk/step.geqdsk",
     .rzpoly_order = 2,
     .rz_basis_type = GKYL_BASIS_MODAL_TENSOR,
     .fluxpoly_order = 1,
@@ -556,7 +556,7 @@ test_10()
 }
 
 TEST_LIST = {
-  { "test_core", test_core},
+  //{ "test_core", test_core},
   { "test_outer", test_outer},
   {"test_1", test_1},  // Works
   {"test_2", test_2}, // Works

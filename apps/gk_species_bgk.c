@@ -129,6 +129,13 @@ gk_species_bgk_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 
   // compute needed moments
   gk_species_moment_calc(&bgk->moms, species->local, app->local, fin);
+  // divide out Jacobian from computed moments
+  gkyl_dg_div_op_range(bgk->moms.mem_geo, app->confBasis, 
+    0, bgk->moms.marr, 0, bgk->moms.marr, 0, app->gk_geom->jacobgeo, &app->local); 
+  gkyl_dg_div_op_range(bgk->moms.mem_geo, app->confBasis, 
+    1, bgk->moms.marr, 1, bgk->moms.marr, 0, app->gk_geom->jacobgeo, &app->local); 
+  gkyl_dg_div_op_range(bgk->moms.mem_geo, app->confBasis, 
+    2, bgk->moms.marr, 2, bgk->moms.marr, 0, app->gk_geom->jacobgeo, &app->local); 
   gkyl_array_set_range(bgk->m0, 1.0, bgk->moms.marr, &app->local);
   
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
@@ -179,15 +186,19 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   gkyl_correct_maxwellian_gyrokinetic_advance(bgk->corr_max, bgk->fmax, bgk->moms.marr, &app->local, &species->local);
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
     bgk->self_nu, bgk->fmax, &app->local, &species->local);
+  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
+    app->gk_geom->jacobgeo, bgk->fmax, &app->local, &species->local);
   gkyl_array_accumulate(bgk->nu_fmax, 1.0, bgk->fmax);
 
   // Accumulate cross-collisions nu*fmax
   for (int i=0; i<bgk->num_cross_collisions; ++i) {
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(bgk->proj_max, &species->local_ext, &app->local_ext, bgk->cross_moms[i],
       app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, bgk->fmax);
-    gkyl_correct_maxwellian_gyrokinetic_advance(bgk->corr_max, bgk->fmax, bgk->moms.marr, &app->local, &species->local);
+    gkyl_correct_maxwellian_gyrokinetic_advance(bgk->corr_max, bgk->fmax, bgk->cross_moms[i], &app->local, &species->local);
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
       bgk->cross_nu[i], bgk->fmax, &app->local, &species->local);
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
+      app->gk_geom->jacobgeo, bgk->fmax, &app->local, &species->local);
     gkyl_array_accumulate(bgk->nu_fmax, 1.0, bgk->fmax);
   }
 

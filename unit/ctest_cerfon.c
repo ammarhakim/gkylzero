@@ -20,7 +20,7 @@
 
   struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
-      .filepath = "./efit_data/cerfon.geqdsk",
+      .filepath = "./data/eqdsk/cerfon.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
       .plate_spec = false,
@@ -103,7 +103,6 @@ test_12()
     .rleft= 0.25,
     .zxpt_lo = -4.3,
     .zxpt_up = 4.3,
-
     .write_node_coord_array = true,
     .node_file_nm = "cerfon12_nodes.gkyl"
   }; 

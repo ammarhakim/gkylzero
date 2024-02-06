@@ -11,11 +11,15 @@
 
 // Types for various kernels
 typedef double (*vlasov_stream_surf_t)(const double *w, const double *dxv, 
-  const double *alpha_geo,
+  const double *alpha_surf_l, const double *alpha_surf_r, 
+  const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+  const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_stream_boundary_surf_t)(const double *w, const double *dxv, 
-  const double *alpha_geo,
+  const double *alpha_surf_edge, const double *alpha_surf_skin, 
+  const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+  const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
   const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_accel_surf_t)(const double *w, const double *dxv,
@@ -1085,10 +1089,19 @@ surf(const struct gkyl_dg_eqn *eqn,
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   if (dir < vlasov->cdim) {
-    long pidx = gkyl_range_idx(&vlasov->phase_range, idxC);
+    // Each cell owns the *lower* edge surface alpha
+    // Since alpha is continuous, fetch alpha_surf in center cell for lower edge
+    // and fetch alpha_surf in right cell for upper edge
+    long pidxC = gkyl_range_idx(&vlasov->phase_range, idxC);
+    long pidxR = gkyl_range_idx(&vlasov->phase_range, idxR);
     return vlasov->stream_surf[dir]
       (xcC, dxC,
-       vlasov->auxfields.alpha_geo ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_geo, pidx) : 0,
+       vlasov->auxfields.alpha_surf ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_surf, pidxC) : 0, 
+       vlasov->auxfields.alpha_surf ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_surf, pidxR) : 0,
+       vlasov->auxfields.sgn_alpha_surf ? (const double*) gkyl_array_cfetch(vlasov->auxfields.sgn_alpha_surf, pidxC) : 0, 
+       vlasov->auxfields.sgn_alpha_surf ? (const double*) gkyl_array_cfetch(vlasov->auxfields.sgn_alpha_surf, pidxR) : 0,
+       vlasov->auxfields.const_sgn_alpha ? (const int*) gkyl_array_cfetch(vlasov->auxfields.const_sgn_alpha, pidxC) : 0,
+       vlasov->auxfields.const_sgn_alpha ? (const int*) gkyl_array_cfetch(vlasov->auxfields.const_sgn_alpha, pidxR) : 0,
        qInL, qInC, qInR, qRhsOut);
   }
   else {
@@ -1112,11 +1125,18 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   struct dg_vlasov *vlasov = container_of(eqn, struct dg_vlasov, eqn);
 
   if (dir < vlasov->cdim) {
-    long pidx = gkyl_range_idx(&vlasov->phase_range, idxSkin);
+    // Each cell owns the *lower* edge surface alpha
+    long pidxEdge = gkyl_range_idx(&vlasov->phase_range, idxEdge);
+    long pidxSkin = gkyl_range_idx(&vlasov->phase_range, idxSkin);
     return vlasov->stream_boundary_surf[dir]
       (xcSkin, dxSkin,
-        vlasov->auxfields.alpha_geo ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_geo, pidx) : 0,
-        edge, qInEdge, qInSkin, qRhsOut);
+       vlasov->auxfields.alpha_surf ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_surf, pidxEdge) : 0,
+       vlasov->auxfields.alpha_surf ? (const double*) gkyl_array_cfetch(vlasov->auxfields.alpha_surf, pidxSkin) : 0,
+       vlasov->auxfields.sgn_alpha_surf ? (const double*) gkyl_array_cfetch(vlasov->auxfields.sgn_alpha_surf, pidxEdge) : 0,
+       vlasov->auxfields.sgn_alpha_surf ? (const double*) gkyl_array_cfetch(vlasov->auxfields.sgn_alpha_surf, pidxSkin) : 0,
+       vlasov->auxfields.const_sgn_alpha ? (const int*) gkyl_array_cfetch(vlasov->auxfields.const_sgn_alpha, pidxEdge) : 0,
+       vlasov->auxfields.const_sgn_alpha ? (const int*) gkyl_array_cfetch(vlasov->auxfields.const_sgn_alpha, pidxSkin) : 0,
+       edge, qInEdge, qInSkin, qRhsOut);
   } else if (dir >= vlasov->cdim) {
     long cidx = gkyl_range_idx(&vlasov->conf_range, idxSkin);
     return vlasov->accel_boundary_surf[dir-vlasov->cdim]
