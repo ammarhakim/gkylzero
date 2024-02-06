@@ -893,7 +893,7 @@ test_coll_iz_init_elem(bool use_gpu)
   gkyl_dg_iz_release(coll_iz_up_ar);
 
 }
-  
+
 void prim_vars_gk_3x() { test_prim_vars_gk_3x(false); }
 void prim_vars_vlasov_3x() { test_prim_vars_vlasov_3x(false); }
 void prim_vars_trans_1x() { test_prim_vars_transform_1x(false); }
@@ -911,6 +911,7 @@ void coll_iz_init_elem_gpu() { test_coll_iz_init_elem(true); }
 #endif
 
 TEST_LIST = {
+#ifdef GKYL_HAVE_ADAS
   /* { "prim_vars_gk_3x", prim_vars_gk_3x }, */
   /* { "prim_vars_vlasov_3x", prim_vars_vlasov_3x }, */
   /* { "prim_vars_trans_1x", prim_vars_trans_1x }, */
@@ -921,6 +922,7 @@ TEST_LIST = {
   { "coll_iz_h_1x_gpu", coll_iz_h_1x_gpu },
   { "coll_iz_all_gk_li_1x_gpu", coll_iz_all_gk_li_1x_gpu },
   { "coll_iz_init_elem_gpu", coll_iz_init_elem_gpu },
-#endif  
+#endif
+#endif
   { NULL, NULL },
 };

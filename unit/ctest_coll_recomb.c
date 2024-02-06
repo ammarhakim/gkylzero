@@ -825,6 +825,7 @@ void coll_recomb_init_elem_gpu() { test_coll_recomb_init_elem(true); }
 #endif
 
 TEST_LIST = {
+#ifdef GKYL_HAVE_ADAS
   { "coll_recomb_h", coll_recomb_h },
   { "coll_recomb_all_gk_li", coll_recomb_all_gk_li },
   { "coll_recomb_all_gk_ar", coll_recomb_all_gk_ar },
@@ -833,6 +834,7 @@ TEST_LIST = {
   { "coll_recomb_h_gpu", coll_recomb_h_gpu },
   { "coll_recomb_li_gpu", coll_recomb_li_gpu },
   { "coll_recomb_ar_gpu", coll_recomb_ar_gpu },
-#endif  
+#endif
+#endif
   { NULL, NULL },
 };

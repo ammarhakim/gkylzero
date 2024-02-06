@@ -77,6 +77,18 @@ ifeq (${USE_LUA}, 1)
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
 
+# Read ADAS paths and flags if needed 
+USING_ADAS =
+ADAS_INC_DIR = zero # dummy
+ADAS_LIB_DIR = .
+ifeq (${USE_ADAS}, 1)
+	USING_ADAS = yes
+	MPI_INC_DIR = ${CONF_MPI_INC_DIR}
+	MPI_LIB_DIR = ${CONF_MPI_LIB_DIR}
+	MPI_LIBS = -lmpi
+	CFLAGS += -DGKYL_HAVE_MPI
+endif
+
 # Build directory
 ifdef USING_NVCC
 	BUILD_DIR ?= cuda-build
