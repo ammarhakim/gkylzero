@@ -111,7 +111,6 @@ test_n2_all_gather_1d()
   struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
       .mpi_comm = MPI_COMM_WORLD,
       .decomp = decomp,
-      .sync_corners = false,
     }
   );
 
@@ -150,6 +149,66 @@ test_n2_all_gather_1d()
   gkyl_comm_release(comm);
   gkyl_array_release(arr_local);      
   gkyl_array_release(arr_global); 
+}
+
+void
+test_n4_all_gather_2d()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 4) return;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  // create global range
+  int cells[] = { 12, 12 };
+  struct gkyl_range global;
+  gkyl_create_global_range(2, cells, &global);
+
+  int cuts[] = { 4, 1 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &global);  
+  
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp,
+    }
+  );
+
+  int nghost[] = { 1, 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arr_local = gkyl_array_new(GKYL_DOUBLE, global.ndim, local.volume);
+  gkyl_array_clear(arr_local, 200005.0);
+  struct gkyl_array *arr_global = gkyl_array_new(GKYL_DOUBLE, global.ndim, global.volume);
+  gkyl_array_clear(arr_global, 0.0);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long idx = gkyl_range_idx(&local, iter.idx);
+    double  *f = gkyl_array_fetch(arr_local, idx);
+    f[0] = iter.idx[0] + iter.idx[1]*(rank+1.0) + 10.0*rank;
+    // if (rank == 2)
+    //   printf("idx[0] = %d, idx[1] = %d, f = %g\n", iter.idx[0], iter.idx[1], f[0]);
+  } 
+
+  gkyl_comm_array_all_gather(comm, &local, &global, arr_local, arr_global);
+
+  struct gkyl_range_iter iter_global;
+  gkyl_range_iter_init(&iter_global, &global);
+  while (gkyl_range_iter_next(&iter_global)) {
+    long idx = gkyl_range_idx(&global, iter_global.idx);
+    double *f = gkyl_array_fetch(arr_global, idx);
+    // if (rank == 2)
+    //   printf("after all gather, idx[0] = %d, idx[1] = %d, f = %g\n", iter_global.idx[0], iter_global.idx[1], f[0]);
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr_local);      
+  gkyl_array_release(arr_global);   
 }
 
 void
@@ -669,6 +728,7 @@ TEST_LIST = {
   {"test_n2", test_n2},
   {"test_n2_all_gather_1d", test_n2_all_gather_1d},
   {"test_n2_sync_1d", test_n2_sync_1d},
+  {"test_n4_all_gather_2d", test_n4_all_gather_2d},
   {"test_n4_sync_2d_no_corner", test_n4_sync_2d_no_corner },
   {"test_n4_sync_2d_use_corner", test_n4_sync_2d_use_corner},
   {"test_n2_sync_1x1v", test_n4_sync_1x1v },
