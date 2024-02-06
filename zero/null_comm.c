@@ -58,12 +58,9 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
 static int
 array_all_gather(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *global,
-  const struct gkyl_array *array_local, 
-  struct gkyl_array *buff_local, struct gkyl_array *buff_global, 
-  struct gkyl_array *array_global)
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
 {
-  gkyl_array_copy_to_buffer(buff_local->data, array_local, local);
-  gkyl_array_copy_from_buffer(array_global, buff_local->data, global);
+  gkyl_array_copy(array_global, array_local);
   return 0;
 }
 

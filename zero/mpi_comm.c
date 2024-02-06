@@ -1,6 +1,7 @@
 
 #ifdef GKYL_HAVE_MPI
 
+#include <assert.h>
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
@@ -65,6 +66,10 @@ struct mpi_comm {
 
   int nsend; // number of elements in sinfo array
   struct comm_buff_stat send[MAX_RECV_NEIGH]; // info for send data
+
+  // info for all gather
+  struct comm_buff_stat all_gather_buff_local; 
+  struct comm_buff_stat all_gather_buff_global; 
 };
 
 static void
@@ -86,6 +91,9 @@ comm_free(const struct gkyl_ref_count *ref)
   for (int i=0; i<MAX_RECV_NEIGH; ++i)
     gkyl_mem_buff_release(mpi->send[i].buff);
   
+  gkyl_mem_buff_release(mpi->all_gather_buff_local.buff);
+  gkyl_mem_buff_release(mpi->all_gather_buff_global.buff);
+
   gkyl_free(mpi);
 }
 
@@ -155,26 +163,48 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
 
 static int
 array_all_gather(struct gkyl_comm *comm,
-  const struct gkyl_range *local, const struct gkyl_range *global,
-  const struct gkyl_array *array_local, 
-  struct gkyl_array *buff_local, struct gkyl_array *buff_global, 
-  struct gkyl_array *array_global)
+  const struct gkyl_range *local, const struct gkyl_range *global, 
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
 {
+  assert(array_global->esznc == array_local->esznc);
+
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
 
+  struct gkyl_range gather_range;
+
+  int rank;
+  MPI_Comm_rank(mpi->mcomm, &rank);
+
+  assert(local->volume == mpi->decomp->ranges[rank].volume);
+  assert(global->volume == mpi->decomp->parent_range.volume);
+
+  // potentially re-size local buffer volume
+  size_t send_vol = array_local->esznc*mpi->decomp->ranges[rank].volume;
+  if (gkyl_mem_buff_size(mpi->all_gather_buff_local.buff) < send_vol)
+    gkyl_mem_buff_resize(mpi->all_gather_buff_local.buff, send_vol);
+
+  // potentially re-size global buffer volume
+  size_t buff_global_vol = array_local->esznc*mpi->decomp->parent_range.volume;
+  if (gkyl_mem_buff_size(mpi->all_gather_buff_global.buff) < buff_global_vol)
+    gkyl_mem_buff_resize(mpi->all_gather_buff_global.buff, buff_global_vol);
+
   // copy data to local buffer
-  gkyl_array_copy_to_buffer(buff_local->data, array_local, local);
-  size_t nelem = array_local->esznc*local->volume;
+  gkyl_array_copy_to_buffer(gkyl_mem_buff_data(mpi->all_gather_buff_local.buff), 
+    array_local, local);
+  size_t nelem = array_local->esznc*mpi->decomp->ranges[rank].volume;
   // gather data into global buffer
   int ret = 
-    MPI_Allgather(buff_local->data, nelem, MPI_CHAR, buff_global->data, nelem, MPI_CHAR, mpi->mcomm);
+    MPI_Allgather(gkyl_mem_buff_data(mpi->all_gather_buff_local.buff), nelem, MPI_CHAR, 
+      gkyl_mem_buff_data(mpi->all_gather_buff_global.buff), nelem, MPI_CHAR, mpi->mcomm);
 
   // copy data to global array
   int idx = 0;
   for (int r=0; r<mpi->decomp->ndecomp; ++r) {
+    int isrecv = gkyl_sub_range_intersect(
+      &gather_range, global, &mpi->decomp->ranges[r]);
     gkyl_array_copy_from_buffer(array_global, 
-      buff_global->data + idx, &mpi->decomp->ranges[r]);
-    idx += idx + array_local->esznc*mpi->decomp->ranges[r].volume;
+      gkyl_mem_buff_data(mpi->all_gather_buff_global.buff) + idx, &gather_range);
+    idx += idx + array_local->esznc*gather_range.volume;
   }
 
   return 0;
@@ -610,6 +640,9 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->nsend = 0;
   for (int i=0; i<MAX_RECV_NEIGH; ++i)
     mpi->send[i].buff = gkyl_mem_buff_new(16);
+
+  mpi->all_gather_buff_local.buff = gkyl_mem_buff_new(16);
+  mpi->all_gather_buff_global.buff = gkyl_mem_buff_new(16);
   
   mpi->base.get_rank = get_rank;
   mpi->base.get_size = get_size;

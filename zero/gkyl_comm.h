@@ -46,9 +46,7 @@ typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
 // Gather local arrays into global array on each process.
 typedef int (*gkyl_array_all_gather_t)(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *global,
-  const struct gkyl_array *array_local, 
-  struct gkyl_array *buff_local, struct gkyl_array *buff_global, 
-  struct gkyl_array *array_global);
+  const struct gkyl_array *array_local, struct gkyl_array *array_global);
 
 // "Synchronize" @a array across the regions or blocks.
 typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm,
@@ -230,26 +228,21 @@ gkyl_comm_all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
 }
 
 /**
- * All reduce values across domains.
+ * Gather all local data into a global array on each process.
  *
  * @param comm Communicator
  * @param local Local range for array
  * @param global Global range for array
  * @param array_local Local array
- * @param buff_local Local buffer
- * @param buff_global Global buffer
  * @param array_global Global array
  * @return error code: 0 for success
  */
 static int
 gkyl_comm_array_all_gather(struct gkyl_comm *comm, 
   const struct gkyl_range *local, const struct gkyl_range *global,
-  const struct gkyl_array *array_local, 
-  struct gkyl_array *buff_local, struct gkyl_array *buff_global, 
-  struct gkyl_array *array_global)
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
 {
-  return comm->gkyl_array_all_gather(comm, local, global, 
-    array_local, buff_local, buff_global, array_global);
+  return comm->gkyl_array_all_gather(comm, local, global, array_local, array_global);
 }
 
 /**
