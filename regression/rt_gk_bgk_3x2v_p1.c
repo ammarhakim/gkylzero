@@ -216,7 +216,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 0.75*mi*(4.0*vtIon)*(4.0*vtIon)/(2.0*B0);
 
-  double finalTime = 1.0e-6; 
+  double finalTime = 1.0e-4; 
   double numFrames = 100;
 
   struct gk_lapd_ctx ctx = {
@@ -269,11 +269,11 @@ main(int argc, char **argv)
 
   struct gk_lapd_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 6); // 18
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 2); // 18
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 2); // 10
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 10); // 10
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 5); // 5
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 18);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 18);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 10);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 10);
+  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 5);
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
