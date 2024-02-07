@@ -37,6 +37,7 @@ struct gkyl_correct_maxwellian_gyrokinetic
 
   double *err1_cu, *err2_cu;
   struct gkyl_array *mvals, *mvals1, *mvals2;
+  struct gkyl_array *mvals_host;
 };
 
 gkyl_correct_maxwellian_gyrokinetic*
@@ -96,6 +97,11 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_correct_maxwellian_gyr
   up->mvals1 = mkarr(1, inp->conf_local_ext->volume, up->use_gpu);
   up->mvals2 = mkarr(1, inp->conf_local_ext->volume, up->use_gpu);
 
+  // Compute the mean on the host-side
+  up->mvals_host = up->mvals;
+  if (up->use_gpu)
+    up->mvals_host = mkarr(3, inp->conf_local_ext->volume, false);
+
   return up;
 }
 
@@ -128,11 +134,16 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
   gkyl_dg_calc_average_range(up->conf_basis, 0, up->mvals, 0, moms_in, *conf_local);
   gkyl_dg_calc_average_range(up->conf_basis, 1, up->mvals, 1, moms_in, *conf_local);
   gkyl_dg_calc_average_range(up->conf_basis, 2, up->mvals, 2, moms_in, *conf_local);
-  gkyl_array_reduce_range(mean, up->mvals, GKYL_SUM, conf_local);
+  // Compute the reduction on the host-side for ease of subsequent divisions 
+  // This reduction is only done once
+  if (up->use_gpu) 
+    gkyl_array_copy(up->mvals_host, up->mvals);
+  gkyl_array_reduce_range(mean, up->mvals_host, GKYL_SUM, conf_local);
   for (int j=0; j<3; j++) {
     mean[j] = mean[j] / conf_local->volume;
   }
   mean[1] = epsilon * sqrt((mean[2]-mean[1]*mean[1]/mean[0])/mean[0])*mean[0];
+
   // Calculate the absolute error
   gkyl_array_clear(up->mvals1, 0.0);
   gkyl_array_clear(up->mvals2, 0.0);
@@ -207,6 +218,7 @@ gkyl_correct_maxwellian_gyrokinetic_release(gkyl_correct_maxwellian_gyrokinetic*
   if (up->use_gpu) {
     gkyl_cu_free(up->err1_cu);
     gkyl_cu_free(up->err2_cu);
+    gkyl_array_release(up->mvals_host);
   }
 
   gkyl_gk_geometry_release(up->gk_geom);
