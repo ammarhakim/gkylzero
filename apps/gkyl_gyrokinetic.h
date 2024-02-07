@@ -76,9 +76,10 @@ struct gkyl_gyrokinetic_diffusion {
 struct gkyl_gyrokinetic_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source
+  int num_sources;
 
   // sources using projection routine
-  struct gkyl_gyrokinetic_projection projection;
+  struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
 };
 
 // Parameters for boundary conditions

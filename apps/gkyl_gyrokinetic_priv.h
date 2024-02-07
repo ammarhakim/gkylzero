@@ -334,7 +334,8 @@ struct gk_source {
   bool write_source; // optional parameter to write out source distribution
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
-  struct gk_proj proj_source; // projector for source
+  struct gk_proj proj_source[GKYL_MAX_SOURCES]; // projector for source
+  int num_sources; // Number of sources.
 };
 
 // species data
