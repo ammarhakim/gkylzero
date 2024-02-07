@@ -280,7 +280,6 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     }
     else if (app->cdim > 1) {
       gkyl_array_release(f->epsilon);
-      gkyl_fem_parproj_release(f->fem_parproj);
       gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
     }
   }
