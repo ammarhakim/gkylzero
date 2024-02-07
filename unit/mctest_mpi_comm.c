@@ -231,7 +231,7 @@ mpi_n4_sync_1x1v()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
-  if (m_sz != 2) return;
+  if (m_sz != 4) return;
 
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -286,11 +286,11 @@ mpi_n4_sync_1x1v()
     TEST_CHECK( iter.idx[1] == f[1] );
   }
 
-  gkyl_rect_decomp_release(decomp);
+  gkyl_array_release(arr);
+  gkyl_comm_release(ext_comm);
   gkyl_rect_decomp_release(ext_decomp);
   gkyl_comm_release(comm);
-  gkyl_comm_release(ext_comm);
-  gkyl_array_release(arr);
+  gkyl_rect_decomp_release(decomp);
 }
 
 void
@@ -637,19 +637,18 @@ mpi_n4_multicomm_2d()
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
   if (m_sz != 4) return;
 
+  struct gkyl_comm *worldcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = 0,
+    }
+  );
+
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 10, 20 });
 
   int confcuts[] = { 2, 1 };
   struct gkyl_rect_decomp *confdecomp = gkyl_rect_decomp_new_from_cuts(2, confcuts, &range);  
   
-  struct gkyl_comm *worldcomm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
-      .mpi_comm = MPI_COMM_WORLD,
-      .decomp = confdecomp,  // MF 2023/07/28: I think decomp doesn't matter
-                             // for worldcomm.
-    }
-  );
-
   int worldrank;
   gkyl_comm_get_rank(worldcomm, &worldrank);
 
@@ -725,9 +724,9 @@ mpi_n4_multicomm_2d()
   gkyl_comm_state_release(speciescomm, cstate);
   gkyl_array_release(arrA);
   gkyl_array_release(arrB);
-  gkyl_rect_decomp_release(confdecomp);
   gkyl_comm_release(speciescomm);
   gkyl_comm_release(confcomm);
+  gkyl_rect_decomp_release(confdecomp);
   gkyl_comm_release(worldcomm);
 }
   
