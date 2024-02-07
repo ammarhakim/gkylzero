@@ -30,10 +30,11 @@ void gkyl_mom_cross_bgk_gyrokinetic_advance(gkyl_mom_cross_bgk_gyrokinetic *up,
   struct gkyl_array *moms_cross)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu)  {
     return gkyl_mom_cross_bgk_gyrokinetic_advance_cu(up, conf_rng, beta, 
       m_self, moms_self, m_other, moms_other, 
       nu_sr, nu_rs, moms_cross);
+  }
 #endif
   struct gkyl_range_iter conf_iter;  
   

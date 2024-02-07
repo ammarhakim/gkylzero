@@ -55,13 +55,7 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_correct_maxwellian_gyr
   up->conf_basis = *inp->conf_basis;
 
   // acquire pointer to geometry object
-  if (up->use_gpu) {
-    struct gk_geometry *geom = gkyl_gk_geometry_acquire(inp->gk_geom);
-    up->gk_geom = geom->on_dev;
-  }
-  else {
-    up->gk_geom = gkyl_gk_geometry_acquire(inp->gk_geom);
-  }
+  up->gk_geom = gkyl_gk_geometry_acquire(inp->gk_geom);
 
   // Allocate memory
   up->m0_in = mkarr(up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);

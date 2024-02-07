@@ -72,7 +72,8 @@ gkyl_mom_cross_bgk_gyrokinetic*
 gkyl_mom_cross_bgk_gyrokinetic_cu_dev_new(const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis)
 {
   struct gkyl_mom_cross_bgk_gyrokinetic *up = (struct gkyl_mom_cross_bgk_gyrokinetic*) gkyl_malloc(sizeof(*up));
-
+  up->use_gpu = true;
+  
   // copy struct to device
   struct gkyl_mom_cross_bgk_gyrokinetic *up_cu = (struct gkyl_mom_cross_bgk_gyrokinetic*) gkyl_cu_malloc(sizeof(*up_cu));
   
