@@ -244,10 +244,7 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
   //gkyl_array_release(up->vtSq_ion);
   //gkyl_proj_maxwellian_on_basis_release(up->proj_max);
   //gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion_udrift);
-  if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
-    gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
-    //gkyl_array_release(up->prim_vars_ion);
-  }
+  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
   free(up);
 }
 
