@@ -5,7 +5,7 @@
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
 # Warning flags: -Wall -Wno-unused-variable -Wno-unused-function -Wno-missing-braces
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP 
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 INSTALL_PREFIX ?= ${PREFIX}
@@ -65,6 +65,22 @@ ifeq (${USE_MPI}, 1)
 	CFLAGS += -DGKYL_HAVE_MPI
 endif
 
+# Read NCCL paths and flags if needed (needs MPI and NVCC)
+USING_NCCL =
+NCCL_INC_DIR = zero # dummy
+NCCL_LIB_DIR = .
+ifeq (${USE_NCCL}, 1)
+ifdef USING_MPI
+ifdef USING_NVCC
+	USING_NCCL = yes
+	NCCL_INC_DIR = ${CONF_NCCL_INC_DIR}
+	NCCL_LIB_DIR = ${CONF_NCCL_LIB_DIR}
+	NCCL_LIBS = -lnccl
+	CFLAGS += -DGKYL_HAVE_NCCL
+endif
+endif
+endif
+
 # Read LUA paths and flags if needed 
 USING_LUA =
 LUA_INC_DIR = zero # dummy
@@ -109,7 +125,7 @@ INSTALL_HEADERS := $(shell ls apps/gkyl_*.h zero/gkyl_*.h | grep -v "priv" | sor
 INSTALL_HEADERS += $(shell ls minus/*.h)
 
 # all includes
-INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR}
+INCLUDES = -Iminus -Iminus/STC/include -Izero -Iapps -Iregression -I${BUILD_DIR} ${KERN_INCLUDES} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${NCCL_INC_DIR} -I${LUA_INC_DIR}
 
 # Directories containing source code
 SRC_DIRS := minus zero apps kernels
@@ -135,8 +151,8 @@ ifdef USING_NVCC
 endif
 
 # List of link directories and libraries for unit and regression tests
-EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR}
-EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_LIBS} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${LUA_LIB_DIR}
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_LIBS} ${NCCL_LIBS} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
 
@@ -229,6 +245,10 @@ $(BUILD_DIR)/kernels/prim_vars/%.c.o : kernels/prim_vars/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
+$(BUILD_DIR)/kernels/rad/%.c.o : kernels/rad/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
 $(BUILD_DIR)/kernels/vlasov/%.c.o : kernels/vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
@@ -258,6 +278,10 @@ $(BUILD_DIR)/kernels/ambi_bolt_potential/%.c.o : kernels/ambi_bolt_potential/%.c
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
 $(BUILD_DIR)/kernels/array_integrate/%.c.o : kernels/array_integrate/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
+
+$(BUILD_DIR)/kernels/deflate_zsurf/%.c.o : kernels/deflate_zsurf/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCLUDES) -c $< -o $@
 
