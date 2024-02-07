@@ -397,7 +397,7 @@ main(int argc, char **argv)
       .temp = eval_temp_ion,      
     },
     .react = {
-      .num_react = 1,
+      .num_react = 2,
       .react_type = {
         { .react_id = GKYL_REACT_IZ, 
           .type_self = GKYL_SELF_DONOR, 
