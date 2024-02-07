@@ -165,11 +165,19 @@ make -j # unit
 ```
 (# is the number of cores, see previous comment on this). A similar procedure
 should be followed to compile and run regression tests in ```/regression```.
+Regression test executables have a number of run-time options which you can list
+with the `-h` flag, i.e. ```<executable> -h```.
 
 You may also compile and run all the unit tests with one command:
 ```
 make -j # check
 ```
+
+If you wish to run a regression test from a different directory (e.g. scratch
+in a cluster), copy the ```Makefile``` in the ```$HOME/gkylsoft/share``` directory
+to your desired directory, change ```rt_twostream``` for the name of your test
+there in (best to use search & replace), and run the makefile with ```make -j #```,
+where ```#``` is a responsibly chosen number of cores.
 
 Development philosophy
 ---------------------

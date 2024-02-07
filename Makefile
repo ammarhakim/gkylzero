@@ -325,7 +325,7 @@ install: all $(ZERO_SH_INSTALL_LIB) ## Install library and headers
 # Examples
 	test -e config.mak && cp -f config.mak ${INSTALL_PREFIX}/gkylzero/share/config.mak || echo "No config.mak"
 	sed ${SED_REPS_STR} Makefile.sample > ${INSTALL_PREFIX}/gkylzero/share/Makefile
-	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/share/rt_arg_parse.h
+	cp -f regression/rt_arg_parse.h ${INSTALL_PREFIX}/gkylzero/include/rt_arg_parse.h
 	cp -f regression/rt_twostream.c ${INSTALL_PREFIX}/gkylzero/share/rt_twostream.c
 # Lua wrappers
 	cp -f inf/Moments.lua ${INSTALL_PREFIX}/gkylzero/lib/
