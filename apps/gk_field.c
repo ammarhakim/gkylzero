@@ -311,16 +311,16 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
     }
     else if (app->cdim > 1) {
       gkyl_array_release(f->epsilon);
-      if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
-        gkyl_fem_parproj_release(f->fem_parproj_core);
-        gkyl_fem_parproj_release(f->fem_parproj_sol);
-      } else {
-        gkyl_fem_parproj_release(f->fem_parproj);
-      }
       gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
     }
   }
-  gkyl_fem_parproj_release(f->fem_parproj);
+
+  if (app->cdim > 1 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+    gkyl_fem_parproj_release(f->fem_parproj_core);
+    gkyl_fem_parproj_release(f->fem_parproj_sol);
+  } else {
+    gkyl_fem_parproj_release(f->fem_parproj);
+  }
 
   gkyl_dynvec_release(f->integ_energy);
   gkyl_array_integrate_release(f->calc_em_energy);

@@ -601,7 +601,7 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz){
   gkyl_array_shiftc(epsilon, sqrt(pow(2,3)), 2*basis.num_basis); 
   gkyl_grid_sub_array_write(&grid, &local, epsilon, "epsilon.gkyl");
 #ifdef GKYL_HAVE_CUDA
-  struct gkyl_array *epsilon_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *epsilon_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, local_ext.volume);
   gkyl_array_copy(epsilon_dev, epsilon);
   struct gkyl_array *phi_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 #else

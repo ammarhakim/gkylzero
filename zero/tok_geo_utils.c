@@ -1,28 +1,28 @@
 #include <gkyl_tok_geo_priv.h>
 
-void
-tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* zmin, double* zmax, double* zmin_left, double* zmin_right, double* arc_memo, double* arc_memo_left, double* arc_memo_right){
-  enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
-  enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
+// Helper functions for finding turning points when necessary
 
-  double rclose = inp->rclose;
-  double rright = inp->rright;
-  double rleft = inp->rleft;
 
-  double arcL, arcL_curr, arcL_lo;
-  double arcL_l, arcL_r;
-  double phi_r, phi_l;
-
-  if(inp->ftype == GKYL_CORE){
+// This function will set zmax to be the upper turning point location
+void find_upper_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double zlo, double *zmax)
+{
     //Find the turning points
-    double zlo, zup, zlo_last;
-    zlo = 0.01;
-    zup=*zmax;
+    double zlo_last;
+    double zup=*zmax;
     zlo_last = zlo;
     double R[4], dR[4];
+    double Rup[4], dRup[4];
     while(true){
       int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
-      if(nlo==2){
+      int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRup);
+      //printf("nlo, nup = %d %d; zlo, zup = %g %g\n", nlo, nup, zlo, zup);
+      if (nup > 0) { // This is for the PF_LO regions. Does not seem to break core_L or core_R
+                  // However I need to think thos through more. I think it is ok only when xpt
+                  // is known quite precisely.
+        *zmax = zup;
+        break;
+      }
+      if (nlo>=1){
         if(fabs(zlo-zup)<1e-12){
           *zmax = zlo;
           break;
@@ -35,18 +35,25 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
         zlo = zlo_last;
       }
     }
-    for(int i =0; i<4; i++){
-      R[i] = 0.0;
-      dR[i] = 0.0;
-    }
+}
+
+// This function will set zmin to be the upper lower point location
+void find_lower_turning_point(struct gkyl_tok_geo *geo, double psi_curr, double zup, double *zmin)
+{
     int nup = 0;
-    double zup_last;
-    zup = -0.01;
-    zlo=*zmin;
-    zup_last = zup;
+    double zlo=*zmin;
+    double zup_last = zup;
+    double R[4], dR[4];
+    double Rlo[4], dRlo[4];
     while(true){
       int nup = R_psiZ(geo, psi_curr, zup, 4, R, dR);
-      if(nup==2){
+      int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo);
+      //printf("psi = %g;lo, nup = %d %d; zlo, zup = %g %g\n", psi_curr, nlo, nup, zlo, zup);
+      if (nlo > 0) {
+        *zmin = zlo;
+        break;
+      }
+      if(nup>=1){
         if(fabs(zlo-zup)<1e-12){
           *zmin = zup;
           break;
@@ -59,73 +66,28 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
         zup = zup_last;
       }
     }
-    // Done finding turning points
-    arcL_r = integrate_psi_contour_memo(geo, psi_curr, *zmin, *zmax, rright,
-      true, true, arc_memo_right);
-    arc_ctx->arcL_right = arcL_r;
-    arc_ctx->right = false;
-    arcL_l = integrate_psi_contour_memo(geo, psi_curr, *zmin, *zmax, rleft,
-      true, true, arc_memo_left);
-    arcL = arcL_l + arcL_r;
-    arc_ctx->arcL_tot = arcL;
 
-    arc_ctx->right = true;
-    arc_ctx->phi_right = 0.0;
-    arc_ctx->rclose = rright;
-    arc_ctx->psi = psi_curr;
-    phi_r = phi_func(alpha_curr, *zmax, arc_ctx);
-    arc_ctx->phi_right = phi_r - alpha_curr; // otherwise alpha will get added on twice
-  }
-  else if(inp->ftype == GKYL_PF_LO){
-    //Find the  upper turning point
-    double zlo, zup, zlo_last;
-    zlo = fmax(inp->zmin_left, inp->zmin_right);
-    zup=*zmax;
-    zlo_last = zlo;
-    double R[4], dR[4];
-    while(true){
-      int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
-      if(nlo>=2){
-        if(fabs(zlo-zup)<1e-12){
-          *zmax = zlo;
-          break;
-        }
-        zlo_last = zlo;
-        zlo = (zlo+zup)/2;
-      }
-      if(nlo<2){
-        zup = zlo;
-        zlo = zlo_last;
-      }
-    }
-    // Done finding turning point
-    arcL_r = integrate_psi_contour_memo(geo, psi_curr, inp->zmin_right, *zmax, rright,
-      true, true, arc_memo);
-    arc_ctx->arcL_right = arcL_r;
-    arc_ctx->right = false;
-    arcL_l = integrate_psi_contour_memo(geo, psi_curr, inp->zmin_left, *zmax, rleft,
-      true, true, arc_memo);
-    arcL = arcL_l + arcL_r;
-    arc_ctx->arcL_tot = arcL;
+}
 
-    arc_ctx->right = true;
-    arc_ctx->phi_right = 0.0;
-    arc_ctx->rclose = rright;
-    arc_ctx->psi = psi_curr;
-    arc_ctx->zmin = inp->zmin_right;
-    phi_r = phi_func(alpha_curr, *zmax, arc_ctx);
-    arc_ctx->phi_right = phi_r - alpha_curr; // otherwise alpha will get added on twice
-  }
-  else if(inp->ftype == GKYL_PF_UP){
-    //Find the lower turning point
-    double zlo, zup, zlo_last;
-    double zup_last;
-    zup = fmin(inp->zmax_left, inp->zmax_right);
-    zlo=*zmin;
-    zup_last = zup;
+// This function will set zmin to be the upper lower point location
+void find_lower_turning_point_pf_up(struct gkyl_tok_geo *geo, double psi_curr, double zup, double *zmin)
+{
+    int nup = 0;
+    double zlo=*zmin;
+    double zup_last = zup;
     double R[4], dR[4];
+    double Rlo[4], dRlo[4];
     while(true){
       int nup = R_psiZ(geo, psi_curr, zup, 4, R, dR);
+      int nlo = R_psiZ(geo, psi_curr, zlo, 4, Rlo, dRlo);
+      //if(nlo==1){
+      //  if (Rlo[0] < geo->rleft)
+      //    nlo=0;
+      //}
+      if (nlo > 0) {
+        *zmin = zlo;
+        break;
+      }
       if(nup>=2){
         if(fabs(zlo-zup)<1e-12){
           *zmin = zup;
@@ -134,75 +96,40 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
         zup_last = zup;
         zup = (zlo+zup)/2;
       }
-      if(nup<2){
+      if(nup==1){
+        zlo = zup;
+        zup = zup_last;
+      }
+      if(nup==0){
         zlo = zup;
         zup = zup_last;
       }
     }
-    // Done finding turning point
-    arcL_r = integrate_psi_contour_memo(geo, psi_curr, *zmin, inp->zmax_right, rright,
-      true, true, arc_memo);
-    arc_ctx->right = false;
-    arcL_l = integrate_psi_contour_memo(geo, psi_curr, *zmin, inp->zmax_left, rleft,
-      true, true, arc_memo);
-    arc_ctx->arcL_left= arcL_l;
-    arcL = arcL_l + arcL_r;
-    arc_ctx->arcL_tot = arcL;
+}
 
-    arc_ctx->right = false;
-    arc_ctx->phi_left = 0.0;
-    arc_ctx->rclose = rleft;
-    arc_ctx->psi = psi_curr;
-    arc_ctx->zmax = inp->zmax_left;
-    phi_l = phi_func(alpha_curr, *zmin, arc_ctx);
-    arc_ctx->phi_left = phi_l - alpha_curr; // otherwise alpha will get added on twice
-  }
-  else if(inp->ftype==GKYL_SOL_DN_OUT){
-    if (geo->plate_spec){ // if we dont have a fixed zmin and zmax
-      double rzplate[2];
-      pctx->psi_curr = psi_curr;
-      pctx->lower=false;
-      double a = 0;
-      double b = 1;
-      double fa = tok_plate_psi_func(a, pctx);
-      double fb = tok_plate_psi_func(b, pctx);
-      struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
-        a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
-      geo->plate_func_upper(smax, rzplate);
-      *zmax = rzplate[1];
-
-      pctx->lower=true;
-      a = 0;
-      b = 1;
-      fa = tok_plate_psi_func(a, pctx);
-      fb = tok_plate_psi_func(b, pctx);
-      res = gkyl_ridders(tok_plate_psi_func, pctx,
-        a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
-      geo->plate_func_lower(smin, rzplate);
-      *zmin = rzplate[1];
-    }
-
-    arc_ctx->phi_right = 0.0;
-    arcL = integrate_psi_contour_memo(geo, psi_curr, *zmin, *zmax, rclose, true, true, arc_memo);
-    arc_ctx->arcL_tot = arcL;
-  }
-  else if(inp->ftype==GKYL_SOL_DN_IN){
-    arc_ctx->phi_right = 0.0;
-    arcL = integrate_psi_contour_memo(geo, psi_curr, *zmin, *zmax, rclose, true, true, arc_memo);
-    arc_ctx->arcL_tot = arcL;
-  }
-  else if(inp->ftype == GKYL_SOL_SN_LO){
-    //Find the  upper turning point
-    double zlo, zup, zlo_last;
-    zlo = fmax(inp->zmin_left, inp->zmin_right);
-    zup = *zmax;
+// This function will set zmax to be the upper turning point location
+void find_upper_turning_point_pf_lo(struct gkyl_tok_geo *geo, double psi_curr, double zlo, double *zmax)
+{
+    //Find the turning points
+    double zlo_last;
+    double zup=*zmax;
     zlo_last = zlo;
     double R[4], dR[4];
+    double Rup[4], dRup[4];
     while(true){
       int nlo = R_psiZ(geo, psi_curr, zlo, 4, R, dR);
-      if(nlo>=2){
+      int nup = R_psiZ(geo, psi_curr, zup, 4, Rup, dRup);
+      if(nup==1){
+        if (Rup[0] < geo->rleft)
+          nup=0;
+      }
+      if (nup > 0) { // This is for the PF_LO regions. Does not seem to break core_L or core_R
+                  // However I need to think thos through more. I think it is ok only when xpt
+                  // is known quite precisely.
+        *zmax = zup;
+        break;
+      }
+      if (nlo>=2){
         if(fabs(zlo-zup)<1e-12){
           *zmax = zlo;
           break;
@@ -210,12 +137,23 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
         zlo_last = zlo;
         zlo = (zlo+zup)/2;
       }
-      if(nlo<2){
+      if(nlo==1){
+        zup = zlo;
+        zlo = zlo_last;
+      }
+      if(nlo==0){
         zup = zlo;
         zlo = zlo_last;
       }
     }
-    if (geo->plate_spec){ // if we dont have a fixed zmin, set based on plate func
+}
+
+
+
+
+// Sets zmax if plate is specified
+void set_upper_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr)
+{
       double rzplate[2];
       pctx->psi_curr = psi_curr;
       pctx->lower=false;
@@ -227,7 +165,286 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
       double smax = res.res;
       geo->plate_func_upper(smax, rzplate);
-      *zmin_left = rzplate[1];
+      arc_ctx->zmax = rzplate[1];
+}
+
+// Sets zmin if plate is specified
+void set_lower_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr)
+{
+      double rzplate[2];
+      pctx->psi_curr = psi_curr;
+      pctx->lower=true;
+      double a = 0;
+      double b = 1;
+      double fa = tok_plate_psi_func(a, pctx);
+      double fb = tok_plate_psi_func(b, pctx);
+      struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
+        a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+      double smin = res.res;
+      geo->plate_func_lower(smin, rzplate);
+      arc_ctx->zmin = rzplate[1];
+}
+
+void
+tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* arc_memo, double* arc_memo_left, double* arc_memo_right){
+  enum { PH_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  enum { X_IDX, Y_IDX, Z_IDX }; // arrangement of cartesian coordinates
+
+
+  // Set psicurr no matter what
+  arc_ctx->psi = psi_curr;
+
+  if(inp->ftype == GKYL_CORE){
+    // Immediately set rleft and rright. Will need both
+    arc_ctx->rright = inp->rright;
+    arc_ctx->rleft = inp->rleft;
+
+    arc_ctx->zmax = inp->zxpt_up; // Initial guess.
+    double zlo = geo->zmaxis;
+    find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax);
+    arc_ctx->zmin = inp->zxpt_lo; // Initial guess
+    double zup = geo->zmaxis;
+    find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin);
+    // Done finding turning points
+    arc_ctx->arcL_right = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rright,
+      true, true, arc_memo_right);
+    arc_ctx->right = false;
+    double arcL_l = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rleft,
+      true, true, arc_memo_left);
+    arc_ctx->arcL_tot = arcL_l + arc_ctx->arcL_right;
+
+    arc_ctx->right = true;
+    arc_ctx->phi_right = 0.0;
+    arc_ctx->rclose = arc_ctx->rright;
+    arc_ctx->phi_right = phi_func(alpha_curr, arc_ctx->zmax, arc_ctx) - alpha_curr;
+  }
+
+  if(inp->ftype == GKYL_CORE_L){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rleft;
+    // Find turning points to set zmin and zmax
+    arc_ctx->zmax = inp->zxpt_up;// + 1e-1; // Initial guess
+    double zlo = geo->zmaxis;
+    find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax);
+    arc_ctx->zmin = inp->zxpt_lo;// - 1e-1; // Initial guess
+    double zup = geo->zmaxis;
+    find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin);
+    // Set arc length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
+      true, true, arc_memo);
+  }
+
+  if(inp->ftype == GKYL_CORE_R){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rright;
+    // Find turning points to set zmin and zmax
+    arc_ctx->zmax = inp->zxpt_up;// + 1e-1; // Initial guess
+    double zlo = geo->zmaxis;
+    find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax);
+    arc_ctx->zmin = inp->zxpt_lo;// - 1e-1; // Initial guess
+    double zup = geo->zmaxis;
+    find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin);
+    // Set arc length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
+      true, true, arc_memo);
+  }
+
+  else if(inp->ftype == GKYL_PF_LO_L){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rleft;
+    // Immediately set zmin
+    arc_ctx->zmin = inp->zmin;
+    //Find the  upper turning point to set zmax
+    arc_ctx->zmax = inp->zxpt_lo; // Initial guess
+    double zlo = arc_ctx->zmin;
+    find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax);
+    // Set arc length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
+      true, true, arc_memo);
+  }
+
+  else if(inp->ftype == GKYL_PF_LO_R){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rright;
+    // Immediately set zmin
+    arc_ctx->zmin = inp->zmin;
+    //Find the  upper turning point to set zmax
+    arc_ctx->zmax = inp->zxpt_lo; // Initial guess
+    double zlo = arc_ctx->zmin;
+    find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax);
+    // Set arc length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
+      true, true, arc_memo);
+  }
+
+  else if(inp->ftype == GKYL_PF_UP_L){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rleft;
+    // Immediately set zmax
+    arc_ctx->zmax = inp->zmax;
+    //Find the lower turning point to set zmin
+    arc_ctx->zmin = inp->zxpt_up; // Initial guess
+    double zup = arc_ctx->zmax;
+    find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin);
+    // Done finding turning point
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
+      true, true, arc_memo);
+  }
+
+  else if(inp->ftype == GKYL_PF_UP_R){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rright;
+    // Immediately set zmax
+    arc_ctx->zmax = inp->zmax;
+    //Find the lower turning point to set zmin
+    arc_ctx->zmin = inp->zxpt_up; // Initial guess
+    double zup = arc_ctx->zmax;
+    find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin);
+    // Done finding turning point
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose,
+      true, true, arc_memo);
+  }
+
+  else if(inp->ftype==GKYL_SOL_DN_OUT){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rright;
+    // Set zmin and zmax either fixed or with plate
+    if (geo->plate_spec){
+      set_upper_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+      set_lower_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+    }
+    else{
+      arc_ctx->zmin = inp->zmin;
+      arc_ctx->zmax = inp->zmax;
+    }
+    // Set the arc length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
+  }
+
+  else if(inp->ftype==GKYL_SOL_DN_OUT_LO){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rright;
+    // Set zmax to be the lower x-point
+    arc_ctx->zmax = inp->zxpt_lo;
+    // Set zmin either fixed or with plate
+    if (geo->plate_spec){
+      set_lower_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+    }
+    else{
+      arc_ctx->zmin = inp->zmin;
+    }
+    // Set the arc length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
+  }
+
+  else if(inp->ftype==GKYL_SOL_DN_OUT_MID){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rright;
+    // Set zmin and zmax to be the x-points
+    arc_ctx->zmax = inp->zxpt_up;
+    arc_ctx->zmin = inp->zxpt_lo;
+    // Set the arc length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
+  }
+
+  else if(inp->ftype==GKYL_SOL_DN_OUT_UP){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rright;
+    // Set zmin to be the upper x-point
+    arc_ctx->zmin = inp->zxpt_up;
+    // Set zmax either fixed or with plate
+    if (geo->plate_spec){
+      set_upper_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+    }
+    else{
+      arc_ctx->zmax = inp->zmax;
+    }
+    // Set the arc length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
+  }
+
+  else if(inp->ftype==GKYL_SOL_DN_IN){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rleft;
+    // Set zmin and zmax either fixed or with plate
+    if (geo->plate_spec){
+      set_upper_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+      set_lower_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+    }
+    else{
+      arc_ctx->zmin = inp->zmin;
+      arc_ctx->zmax = inp->zmax;
+    }
+    // Set the arc Length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
+  }
+
+  else if(inp->ftype==GKYL_SOL_DN_IN_LO){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rleft;
+    // Set zmax to be the lower x-point
+    arc_ctx->zmax = inp->zxpt_lo;
+    // Set zmin either fixed or with plate
+    if (geo->plate_spec){
+      set_lower_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+    }
+    else{
+      arc_ctx->zmin = inp->zmin;
+    }
+    // Set the arc Length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
+  }
+
+  else if(inp->ftype==GKYL_SOL_DN_IN_MID){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rleft;
+    // Set zmin and zmax to be the x-points
+    arc_ctx->zmax = inp->zxpt_up;
+    arc_ctx->zmin = inp->zxpt_lo;
+    // Set the arc Length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
+  }
+
+  else if(inp->ftype==GKYL_SOL_DN_IN_UP){
+    // Immediately set rclose
+    arc_ctx->rclose = inp->rleft;
+    // Set zmin to be the upper x-point
+    arc_ctx->zmin = inp->zxpt_up;
+    // Set zmax either fixed or with plate
+    if (geo->plate_spec){
+      set_upper_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+    }
+    else{
+      arc_ctx->zmax = inp->zmax;
+    }
+    // Set the arc Length
+    arc_ctx->arcL_tot = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rclose, true, true, arc_memo);
+  }
+
+  else if(inp->ftype == GKYL_SOL_SN_LO){
+    // Immediately set rleft and rright. Will need both
+    arc_ctx->rright = inp->rright;
+    arc_ctx->rleft = inp->rleft;
+    //Find the  upper turning point
+    arc_ctx->zmax = inp->zmax; // Initial guess
+    double zlo = fmax(inp->zmin_left, inp->zmin_right);
+    find_upper_turning_point(geo, psi_curr, zlo, &arc_ctx->zmax);
+
+    // Set zmin left and zmin right wither with plate or fixed
+    // This one can't be used with the general func for setting upper and lower plates because it uses zmin left and zmin right
+    if (geo->plate_spec){
+      double rzplate[2];
+      pctx->psi_curr = psi_curr;
+      pctx->lower=false;
+      double a = 0;
+      double b = 1;
+      double fa = tok_plate_psi_func(a, pctx);
+      double fb = tok_plate_psi_func(b, pctx);
+      struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
+        a, b, fa, fb, geo->root_param.max_iter, 1e-10);
+      double smax = res.res;
+      geo->plate_func_upper(smax, rzplate);
+      arc_ctx->zmin_left = rzplate[1];
 
       pctx->lower=true;
       a = 0;
@@ -238,26 +455,27 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
       double smin = res.res;
       geo->plate_func_lower(smin, rzplate);
-      *zmin_right = rzplate[1];
+      arc_ctx->zmin_right = rzplate[1];
+    }
+    else{
+      arc_ctx->zmin_left = inp->zmin_left;
+      arc_ctx->zmin_right = inp->zmin_right;
     }
 
     // Done finding turning point
-    arcL_r = integrate_psi_contour_memo(geo, psi_curr, *zmin_right, *zmax, rright,
-      true, true, arc_memo);
-    arc_ctx->arcL_right = arcL_r;
+    arc_ctx->arcL_right = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin_right, arc_ctx->zmax, arc_ctx->rright,
+      true, true, arc_memo_right);
     arc_ctx->right = false;
-    arcL_l = integrate_psi_contour_memo(geo, psi_curr, *zmin_left, *zmax, rleft,
-      true, true, arc_memo);
-    arcL = arcL_l + arcL_r;
-    arc_ctx->arcL_tot = arcL;
+    double arcL_l = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin_left, arc_ctx->zmax, arc_ctx->rleft,
+      true, true, arc_memo_left);
+    arc_ctx->arcL_tot = arcL_l + arc_ctx->arcL_right;
 
     arc_ctx->right = true;
     arc_ctx->phi_right = 0.0;
-    arc_ctx->rclose = rright;
+    arc_ctx->rclose = arc_ctx->rright;
     arc_ctx->psi = psi_curr;
-    arc_ctx->zmin = inp->zmin_right;
-    phi_r = phi_func(alpha_curr, *zmax, arc_ctx);
-    arc_ctx->phi_right = phi_r - alpha_curr; // otherwise alpha will get added on twice
+    arc_ctx->zmin = arc_ctx->zmin_right;
+    arc_ctx->phi_right = phi_func(alpha_curr, arc_ctx->zmax, arc_ctx) - alpha_curr;
   }
 
 
@@ -266,97 +484,80 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
 
 
 void
-tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double zmin_left, double zmin_right, double rright, double rleft, double* rclose, double *ridders_min, double* ridders_max){
+tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL_curr,double* rclose, double *ridders_min, double* ridders_max){
 
 
   if(inp->ftype==GKYL_CORE){
     if(arcL_curr <= arc_ctx->arcL_right){
-      *rclose = rright;
+      *rclose = arc_ctx->rright;
       arc_ctx->right = true;
       *ridders_min = -arcL_curr;
-      *ridders_max = arcL-arcL_curr;
-      arc_ctx->zmin = zmin;
-      arc_ctx->zmax = zmax;
+      *ridders_max = arc_ctx->arcL_tot-arcL_curr;
     }
     else{
-      *rclose = rleft;
+      *rclose = arc_ctx->rleft;
       arc_ctx->right = false;
-      *ridders_min = arcL - arcL_curr;
+      *ridders_min = arc_ctx->arcL_tot - arcL_curr;
       *ridders_max = -arcL_curr + arc_ctx->arcL_right;
-      arc_ctx->zmin = zmin;
-      arc_ctx->zmax = zmax;
     }
   }
-  if(inp->ftype==GKYL_PF_LO){
-    if(arcL_curr <= arc_ctx->arcL_right){
-      *rclose = rright;
-      arc_ctx->right = true;
-      *ridders_min = -arcL_curr;
-      *ridders_max = arcL-arcL_curr;
-      arc_ctx->zmin = inp->zmin_right;
-      arc_ctx->zmax = zmax;
-    }
-    else{
-      *rclose = rleft;
-      arc_ctx->right = false;
-      *ridders_min = arcL - arcL_curr;
-      *ridders_max = -arcL_curr + arc_ctx->arcL_right;
-      arc_ctx->zmin = inp->zmin_left;
-      arc_ctx->zmax = zmax;
-    }
-  }
-  if(inp->ftype==GKYL_PF_UP){
-    if(arcL_curr > arc_ctx->arcL_left){
-      *rclose = rright;
-      arc_ctx->right = true;
-      *ridders_min = arc_ctx->arcL_left - arcL_curr;
-      *ridders_max = arcL - arcL_curr;
-      arc_ctx->zmin = zmin;
-      arc_ctx->zmax = inp->zmax_right;
-    }
-    else{
-      *rclose = rleft;
-      arc_ctx->right = false;
-      *ridders_min = arc_ctx->arcL_left - arcL_curr;
+  else if(inp->ftype==GKYL_CORE_L){
+      *rclose = arc_ctx->rclose;
+      *ridders_min = arc_ctx->arcL_tot - arcL_curr;
       *ridders_max = -arcL_curr;
-      arc_ctx->zmin = zmin;
-      arc_ctx->zmax = inp->zmax_left;
-    }
   }
-  if(arc_ctx->ftype==GKYL_SOL_DN_OUT){
+  else if(inp->ftype==GKYL_CORE_R){
+      *rclose = arc_ctx->rclose;
+      *ridders_min = -arcL_curr;
+      *ridders_max = arc_ctx->arcL_tot-arcL_curr;
+  }
+  else if(inp->ftype==GKYL_PF_LO_R){
+    *rclose = arc_ctx->rclose;
     *ridders_min = -arcL_curr;
-    *ridders_max = arcL-arcL_curr;
-    arc_ctx->right = false;
-    arc_ctx->zmin = zmin;
-    arc_ctx->zmax = zmax;
+    *ridders_max = arc_ctx->arcL_tot-arcL_curr;
   }
-  if(arc_ctx->ftype==GKYL_SOL_DN_IN){
-    *ridders_min = arcL-arcL_curr;
+  else if(inp->ftype==GKYL_PF_LO_L){
+    *rclose = arc_ctx->rclose;
+    *ridders_min = arc_ctx->arcL_tot - arcL_curr;
     *ridders_max = -arcL_curr;
-    arc_ctx->right = false;
-    arc_ctx->zmin = zmin;
-    arc_ctx->zmax = zmax;
   }
-  if(arc_ctx->ftype==GKYL_SOL_SN_LO){
+  else if(inp->ftype==GKYL_PF_UP_R){
+    *rclose = arc_ctx->rclose;
+    *ridders_min = -arcL_curr;
+    *ridders_max = arc_ctx->arcL_tot - arcL_curr;
+  }
+  else if (inp->ftype==GKYL_PF_UP_L) {
+    *rclose = arc_ctx->rclose;
+    *ridders_min = arc_ctx->arcL_tot - arcL_curr;
+    *ridders_max = -arcL_curr;
+  }
+  else if( (arc_ctx->ftype==GKYL_SOL_DN_OUT) || (arc_ctx->ftype==GKYL_SOL_DN_OUT) || (arc_ctx->ftype==GKYL_SOL_DN_OUT_LO) || (arc_ctx->ftype==GKYL_SOL_DN_OUT_MID) || (arc_ctx->ftype==GKYL_SOL_DN_OUT_UP) ){
+    *ridders_min = -arcL_curr;
+    *ridders_max = arc_ctx->arcL_tot-arcL_curr;
+    *rclose = arc_ctx->rclose;
+  }
+  else if( (arc_ctx->ftype==GKYL_SOL_DN_IN) || (arc_ctx->ftype==GKYL_SOL_DN_IN) || (arc_ctx->ftype==GKYL_SOL_DN_IN_LO) || (arc_ctx->ftype==GKYL_SOL_DN_IN_MID) || (arc_ctx->ftype==GKYL_SOL_DN_IN_UP) ){
+    *ridders_min = arc_ctx->arcL_tot-arcL_curr;
+    *ridders_max = -arcL_curr;
+    *rclose = arc_ctx->rclose;
+  }
+  else if(arc_ctx->ftype==GKYL_SOL_SN_LO){
     if(arcL_curr <= arc_ctx->arcL_right){
-      *rclose = rright;
+      *rclose = arc_ctx->rright;
       arc_ctx->right = true;
       *ridders_min = -arcL_curr;
-      *ridders_max = arcL-arcL_curr;
-      arc_ctx->zmin = zmin_right;
-      arc_ctx->zmax = zmax;
+      *ridders_max = arc_ctx->arcL_tot-arcL_curr;
+      arc_ctx->zmin = arc_ctx->zmin_right;
     }
     else{
-      *rclose = rleft;
+      *rclose = arc_ctx->rleft;
       arc_ctx->right = false;
-      *ridders_min = arcL - arcL_curr;
+      *ridders_min = arc_ctx->arcL_tot - arcL_curr;
       *ridders_max = -arcL_curr + arc_ctx->arcL_right;
-      arc_ctx->zmin = zmin_left;
-      arc_ctx->zmax = zmax;
+      arc_ctx->zmin = arc_ctx->zmin_left;
     }
   }
 
-  arc_ctx->psi = psi_curr;
-  arc_ctx->rclose = *rclose;
   arc_ctx->arcL = arcL_curr;
+  arc_ctx->rclose = *rclose; // This would be unnecessary for all double null block cases. Only needed for SN and full core
 }

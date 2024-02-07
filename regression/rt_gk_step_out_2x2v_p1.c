@@ -50,6 +50,10 @@ struct gkyl_tok_geo_efit_inp inp = {
 struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
+    .rright= 6.2,
+    .rleft= 2.0,
+    .rmin = 1.1,
+    .rmax = 6.2,
     .zmin = -5.14213,
     .zmax = 5.14226,
     .write_node_coord_array = true,
@@ -238,8 +242,8 @@ main(int argc, char **argv)
 
   struct gk_step_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 8);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 16);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 4);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 8);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
 
