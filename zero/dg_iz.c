@@ -27,6 +27,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   up->cbasis = inp->cbasis;
   up->pbasis = inp->pbasis;
   up->conf_rng = inp->conf_rng;
+  up->conf_rng_ext = inp->conf_rng_ext;
   up->phase_rng = inp->phase_rng;
   up->mass_ion = inp->mass_ion;
   up->type_self = inp->type_self;
@@ -123,11 +124,11 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
     up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
     gkyl_array_copy(up->ioniz_data, adas_dg);
     
-    up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume);
   }
   else {
     up->ioniz_data = adas_dg;
-    up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume); // all
+    up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume); // all
   }
   
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); // all

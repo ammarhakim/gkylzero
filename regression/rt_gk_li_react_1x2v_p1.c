@@ -306,17 +306,17 @@ main(int argc, char **argv)
     .react = {
       .num_react = 2,
       .react_type = {
-      /* { .react_id = GKYL_REACT_IZ, */
-      /*     .type_self = GKYL_SELF_ELC, */
-      /*     .ion_id = GKYL_ION_LI, */
-      /*     .elc_nm = "elc", */
-      /*     .ion_nm = "Li2", */
-      /*     .donor_nm = "Li1", */
-      /*     .charge_state = 1, */
-      /*     .ion_mass = ctx.massLi, */
-      /*     .elc_mass = ctx.massElc, */
-      /*   }, */
-      { .react_id = GKYL_REACT_RECOMB,
+        { .react_id = GKYL_REACT_IZ, 
+          .type_self = GKYL_SELF_ELC, 
+          .ion_id = GKYL_ION_LI, 
+          .elc_nm = "elc", 
+          .ion_nm = "Li2", 
+          .donor_nm = "Li1", 
+          .charge_state = 1, 
+          .ion_mass = ctx.massLi, 
+          .elc_mass = ctx.massElc, 
+        }, 
+        { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_ELC,
           .ion_id = GKYL_ION_LI,
           .elc_nm = "elc",
@@ -399,16 +399,16 @@ main(int argc, char **argv)
     .react = {
       .num_react = 1,
       .react_type = {
-        /* { .react_id = GKYL_REACT_IZ, */
-        /*   .type_self = GKYL_SELF_DONOR, */
-        /*   .ion_id = GKYL_ION_LI, */
-        /*   .elc_nm = "elc", */
-        /*   .ion_nm = "Li2", */
-        /*   .donor_nm = "Li1", */
-        /*   .charge_state = 1, */
-        /*   .ion_mass = ctx.massLi, */
-        /*   .elc_mass = ctx.massElc, */
-        /* }, */
+        { .react_id = GKYL_REACT_IZ, 
+          .type_self = GKYL_SELF_DONOR, 
+          .ion_id = GKYL_ION_LI, 
+          .elc_nm = "elc", 
+          .ion_nm = "Li2", 
+          .donor_nm = "Li1", 
+          .charge_state = 1, 
+          .ion_mass = ctx.massLi, 
+          .elc_mass = ctx.massElc, 
+        }, 
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_RECVR,
           .ion_id = GKYL_ION_LI,
@@ -468,16 +468,16 @@ main(int argc, char **argv)
     .react = {
       .num_react = 2,
       .react_type = {
-        /* { .react_id = GKYL_REACT_IZ, */
-        /*   .type_self = GKYL_SELF_ION, */
-        /*   .ion_id = GKYL_ION_LI, */
-        /*   .elc_nm = "elc", */
-        /*   .ion_nm = "Li2", */
-        /*   .donor_nm = "Li1", */
-        /*   .charge_state = 1, */
-        /*   .ion_mass = ctx.massLi, */
-        /*   .elc_mass = ctx.massElc, */
-        /* }, */
+        { .react_id = GKYL_REACT_IZ, 
+          .type_self = GKYL_SELF_ION, 
+          .ion_id = GKYL_ION_LI, 
+          .elc_nm = "elc", 
+          .ion_nm = "Li2", 
+          .donor_nm = "Li1", 
+          .charge_state = 1, 
+          .ion_mass = ctx.massLi, 
+          .elc_mass = ctx.massElc, 
+        }, 
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_ION,
           .ion_id = GKYL_ION_LI,
