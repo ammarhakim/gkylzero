@@ -116,7 +116,7 @@ double Ti_perp0;
 
 struct gkyl_mirror_geo_efit_inp inp = {
   // psiRZ and related inputs
-  .filepath = "./efit_data/wham.geqdsk",
+  .filepath = "./data/eqdsk/wham.geqdsk",
   .rzpoly_order = 2,
   .fluxpoly_order = 1,
   .plate_spec = false,
@@ -129,7 +129,7 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   .zmin = -2.48,
   .zmax =  2.48,
   .write_node_coord_array = true,
-  .node_file_nm = "bmag.gkyl",
+  .node_file_nm = "wham_nodes.gkyl",
   .nonuniform_mapping_fraction = 0.7,
 };
 
