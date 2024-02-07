@@ -38,11 +38,11 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     // If all the reacting species are gyrokinetic species, need to use 
     // gk methods to fetch pointers and indices, otherwise use gk_neut methods
     // to get the necessary neutral species information
-    if (react->all_gk) {
+    if (react->all_gk && gk_find_species(app, react->react_type[i].donor_nm)) {
       react->donor_idx[i] = gk_find_species_idx(app, react->react_type[i].donor_nm);
       gk_species_moment_init(app, &app->species[react->donor_idx[i]], &react->moms_donor[i], "ThreeMoments");
     }
-    else {
+    else if (gk_find_neut_species(app, react->react_type[i].donor_nm)) {
       react->donor_idx[i] = gk_find_neut_species_idx(app, react->react_type[i].donor_nm);
       gk_neut_species_moment_init(app, &app->neut_species[react->donor_idx[i]], &react->moms_donor[i], "FiveMoments");   
     }
