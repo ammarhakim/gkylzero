@@ -207,9 +207,9 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
   for (int i=0; i<react->num_react; ++i) {
     gk_species_moment_release(app, &react->moms_elc[i]);
     gk_species_moment_release(app, &react->moms_ion[i]);
-    if (react->all_gk)
+    if (react->all_gk && gk_find_species(app, react->react_type[i].donor_nm))
       gk_species_moment_release(app, &react->moms_donor[i]);
-    else 
+    else if (gk_find_neut_species(app, react->react_type[i].donor_nm))
       gk_neut_species_moment_release(app, &react->moms_donor[i]);
 
     gkyl_array_release(react->coeff_react[i]);
