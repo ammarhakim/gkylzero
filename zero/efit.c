@@ -1,4 +1,3 @@
-#include "gkyl_array_rio.h"
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -14,10 +13,11 @@
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
+#include <assert.h>
 
 
 
-gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_order, bool use_gpu)
+gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool use_gpu)
 {
   if (access(filepath, F_OK) == -1){
     fprintf(stderr, "efit file %s does not exist\n", filepath);
@@ -37,8 +37,18 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
   up->use_gpu = use_gpu;
   up->filepath = filepath;
 
-  gkyl_cart_modal_serendip(up->rzbasis, 2, rz_poly_order);
   gkyl_cart_modal_serendip(up->fluxbasis, 1, flux_poly_order);
+  switch (rz_basis_type){
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      gkyl_cart_modal_serendip(up->rzbasis, 2, rz_poly_order);
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      gkyl_cart_modal_tensor(up->rzbasis, 2, rz_poly_order);
+      break;
+    default:
+      assert(false);
+      break;
+  }
 
   FILE *ptr = fopen(up->filepath,"r");
   size_t status;

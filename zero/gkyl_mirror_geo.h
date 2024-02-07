@@ -69,6 +69,7 @@ struct gkyl_mirror_geo_efit_inp {
   // Inputs to get psiRZ and related inputs from efit
   char* filepath;
   int rzpoly_order;
+  enum gkyl_basis_type rz_basis_type;
   int fluxpoly_order;
   // Specifications for divertor plate
   bool plate_spec;
