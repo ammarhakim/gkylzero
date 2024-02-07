@@ -65,9 +65,15 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/dlogM0; // M0 value on cell interval
 
     int ad_idx[2] = {t_idx, m0_idx};
-    double *recomb_dat_d = (double*) gkyl_array_fetch(recomb_data, gkyl_range_idx(&adas_rng, ad_idx));
-    double adas_eval = adas_basis->eval_expand(cell_vals_2d, recomb_dat_d);
-    coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+
+    if ((m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
+      coef_recomb_d[0] = 0.0;
+    }   
+    else {
+      double *recomb_dat_d = (double*) gkyl_array_fetch(up->recomb_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
+      double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
+      coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+    }
 
     if ((all_gk==false) && (type_self == GKYL_SELF_RECVR)) {
       const double *moms_ion_d = (const double*) gkyl_array_cfetch(moms_ion, loc);
