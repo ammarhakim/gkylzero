@@ -217,11 +217,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   // allocated in gk_species_init and gk_neut_species_init
   for (int i=0; i<ns; ++i) {
     // initialize cross-species collisions (e.g, LBO or BGK)
-    if (app->species[i].lbo.num_cross_collisions || app->species[i].bgk.num_cross_collisions) {
-      if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+      if (app->species[i].lbo.num_cross_collisions) {
         gk_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
       }
-      else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+    }
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      if (app->species[i].bgk.num_cross_collisions) {
         gk_species_bgk_cross_init(app, &app->species[i], &app->species[i].bgk);
       }
     }
@@ -705,14 +707,16 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // compute necessary moments for cross-species collisions
   // needs to be done after self-collisions moments, so separate loop over species
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].lbo.num_cross_collisions || app->species[i].bgk.num_cross_collisions) {
-      if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) { 
+      if (app->species[i].lbo.num_cross_collisions) {
         gk_species_lbo_cross_moms(app, &app->species[i], 
-          &app->species[i].lbo, fin[i]);
+          &app->species[i].lbo, fin[i]);        
       }
-      else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+    }
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      if (app->species[i].bgk.num_cross_collisions) {
         gk_species_bgk_cross_moms(app, &app->species[i], 
-          &app->species[i].bgk, fin[i]);
+          &app->species[i].bgk, fin[i]);        
       }
     }
     // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
