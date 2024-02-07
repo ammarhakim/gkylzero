@@ -17,9 +17,11 @@ struct gk_geometry {
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
 
+  struct gkyl_array* mc2p;
   struct gkyl_array* bmag;
   struct gkyl_array* g_ij;
   struct gkyl_array* dxdz;
+  struct gkyl_array* dzdx;
   struct gkyl_array* jacobgeo;
   struct gkyl_array* jacobgeo_inv;
   struct gkyl_array* gij;

@@ -8,6 +8,7 @@ struct arc_length_ctx {
   double *arc_memo_right;
   double psi, rclose, zmin, arcL;
   double rleft, rright, zmax;
+  double zmin_left, zmin_right; // for single null full SOL only
   double arcL_right; // this is for when we need to switch sides
   double arcL_left; // this is for when we need to switch sides
   double arcL_tot; // total arc length
@@ -131,6 +132,161 @@ calc_RdR_p2(const double *psi, double psi0, double Z, double xc[2], double dx[2]
   return sol;
 }
 
+// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis
+static inline struct RdRdZ_sol
+calc_RdR_p2_tensor(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+{
+  struct RdRdZ_sol sol = { .nsol = 0 };
+  double y = (Z-xc[1])/(dx[1]*0.5);
+
+  double aq = 0.125*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4]);
+  double bq = 0.125*(23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]) ;
+  double cq = 0.125*((13.41640786499874*psi[5]-15.0*psi[8])*SQ(y)+(6.928203230275509*psi[2]-7.745966692414834*psi[6])*y+5.0*psi[8]- 4.47213595499958*psi[5]-4.47213595499958*psi[4]+4.0*psi[0] ) - psi0;
+
+  double delta2 = bq*bq - 4*aq*cq;
+
+  if (delta2 > 0) {
+    double r1, r2;
+    double delta = sqrt(delta2);
+    // compute both roots
+    if (bq>=0) {
+      r1 = (-bq-delta)/(2*aq);
+      r2 = 2*cq/(-bq-delta);
+    }
+    else {
+      r1 = 2*cq/(-bq+delta);
+      r2 = (-bq+delta)/(2*aq);
+    }
+
+    int sidx = 0;
+    if ((-1<=r1) && (r1 < 1)) {
+      sol.nsol += 1;
+      sol.R[sidx] = r1*dx[0]*0.5 + xc[0];
+
+      double x = r1;
+      double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+      double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      
+      sidx += 1;
+    }
+    if ((-1<=r2) && (r2 < 1)) {
+      sol.nsol += 1;
+      sol.R[sidx] = r2*dx[0]*0.5 + xc[0];
+
+      double x = r2;
+      double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+      double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      
+      sidx += 1;
+    }
+  }
+  return sol;
+}
+
+// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis
+// Use more accurate roots from numerical recipes in C 2007 section 5.6
+static inline struct RdRdZ_sol
+calc_RdR_p2_tensor_nrc(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+{
+  struct RdRdZ_sol sol = { .nsol = 0 };
+  double y = (Z-xc[1])/(dx[1]*0.5);
+
+  double aq = 0.125*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4]);
+  double bq = 0.125*(23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]) ;
+  double cq = 0.125*((13.41640786499874*psi[5]-15.0*psi[8])*SQ(y)+(6.928203230275509*psi[2]-7.745966692414834*psi[6])*y+5.0*psi[8]- 4.47213595499958*psi[5]-4.47213595499958*psi[4]+4.0*psi[0] ) - psi0;
+
+  double delta2 = bq*bq - 4*aq*cq;
+
+  if (delta2 > 0) {
+    double r1, r2;
+    double delta = sqrt(delta2);
+    //// compute both roots
+    double qq = -0.5*(bq + (bq/fabs(bq)) * delta);
+    r1 = qq/aq;
+    r2 = cq/qq;
+
+    int sidx = 0;
+    if ((-1<=r1) && (r1 < 1)) {
+      sol.nsol += 1;
+      sol.R[sidx] = r1*dx[0]*0.5 + xc[0];
+
+      double x = r1;
+      double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+      double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      
+      sidx += 1;
+    }
+    if ((-1<=r2) && (r2 < 1)) {
+      sol.nsol += 1;
+      sol.R[sidx] = r2*dx[0]*0.5 + xc[0];
+
+      double x = r2;
+      double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+      double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      
+      sidx += 1;
+    }
+  }
+  return sol;
+}
+
+// Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis if delta2 is negative byt very small
+// Use more accurate roots from numerical recipes in C 2007 section 5.6
+static inline struct RdRdZ_sol
+calc_RdR_p2_tensor_nrc_none(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+{
+  struct RdRdZ_sol sol = { .nsol = 0 };
+  double y = (Z-xc[1])/(dx[1]*0.5);
+
+  double aq = 0.125*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4]);
+  double bq = 0.125*(23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]) ;
+  double cq = 0.125*((13.41640786499874*psi[5]-15.0*psi[8])*SQ(y)+(6.928203230275509*psi[2]-7.745966692414834*psi[6])*y+5.0*psi[8]- 4.47213595499958*psi[5]-4.47213595499958*psi[4]+4.0*psi[0] ) - psi0;
+
+  double delta2 = bq*bq - 4*aq*cq;
+  if(delta2 > 0)
+    return sol;
+
+  if (fabs(delta2) < 1e-8) {
+    double r1, r2;
+    double delta = 0.0;
+    //// compute both roots
+    double qq = -0.5*bq;
+    r1 = qq/aq;
+    r2 = cq/qq;
+    // The two roots should really both be equal to -sqrt(c/a) but numerically they are quite different
+    // It seems that only the expression for r2 = cq/aq is robust when both c and a are very small
+
+    int sidx = 0;
+    //if ((-1<=r1) && (r1 < 1)) {
+    //  sol.nsol += 1;
+    //  sol.R[sidx] = r1*dx[0]*0.5 + xc[0];
+
+    //  double x = r1;
+    //  double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+    //  double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+    //  sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+    //  
+    //  sidx += 1;
+    //}
+    if ((-1<=r2) && (r2 < 1)) {
+      sol.nsol += 1;
+      sol.R[sidx] = r2*dx[0]*0.5 + xc[0];
+
+      double x = r2;
+      double C = 0.125*(SQ(x)*(90.0*psi[8]*y+23.2379000772445*psi[6])+x*(46.47580015448901*psi[7]*y+12.0*psi[3])+2* (13.41640786499874*psi[5]-15.0*psi[8])*y-7.745966692414834*psi[6]+6.928203230275509*psi[2]) ;
+      double A = 0.125*(2*x*(45.0*psi[8]*SQ(y)+23.2379000772445*psi[6]*y-15.0*psi[8]+13.41640786499874*psi[4])+23.2379000772445*psi[7]*SQ(y)+12.0*psi[3]*y-7.745966692414834*psi[7]+6.928203230275509*psi[1]); 
+      sol.dRdZ[sidx] = -C/A*dx[0]/dx[1];
+      
+      sidx += 1;
+    }
+  }
+  return sol;
+}
+
 // Compute R(psi,Z) given a psi and Z. Can return multiple solutions
 // or no solutions. The number of roots found is returned and are
 // copied in the array R and dR. The calling function must ensure that
@@ -164,11 +320,39 @@ R_psiZ(const gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
     
     if (sol.nsol > 0)
       for (int s=0; s<sol.nsol; ++s) {
-        R[sidx] = sol.R[s];
-        dR[sidx] = sol.dRdZ[s];
-        sidx += 1;
+        if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
+          R[sidx] = sol.R[s];
+          dR[sidx] = sol.dRdZ[s];
+          sidx += 1;
+        }
       }
   }
+
+  // Try again if we didn't find any
+  //if (sidx==0 && geo->tol_no_roots) {
+  if (sidx==0 && geo->tol_no_roots) {
+    gkyl_range_iter_init(&riter, &rangeR);
+    while (gkyl_range_iter_next(&riter) && sidx<=nmaxroots) {
+      long loc = gkyl_range_idx(&rangeR, riter.idx);
+      const double *psih = gkyl_array_cfetch(geo->psiRZ, loc);
+
+      double xc[2];
+      idx[0] = riter.idx[0];
+      gkyl_rect_grid_cell_center(&geo->rzgrid, idx, xc);
+
+      struct RdRdZ_sol sol = calc_RdR_p2_tensor_nrc_none(psih, psi, Z, xc, dx);
+      
+      if (sol.nsol > 0)
+        for (int s=0; s<sol.nsol; ++s) {
+          if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
+            R[sidx] = sol.R[s];
+            dR[sidx] = sol.dRdZ[s];
+            sidx += 1;
+          }
+        }
+    }
+  }
+
   return sidx;
 }
 
@@ -223,7 +407,40 @@ phi_contour_func(double Z, void *ctx)
   dpsidx = dpsidx*2.0/c->geo->rzgrid.dx[0];
   dpsidy = dpsidy*2.0/c->geo->rzgrid.dx[1];
   double grad_psi_mag = sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
-  double result  = (1/r_curr/sqrt(dpsidx*dpsidx + dpsidy*dpsidy)) *sqrt(1+dRdZ*dRdZ) ;
+  double result  = (1/r_curr/grad_psi_mag) *sqrt(1+dRdZ*dRdZ) ;
+  return nr>0 ? result : 0.0;
+}
+
+static inline double
+dphidtheta_integrand(double Z, void *ctx)
+{
+  struct contour_ctx *c = ctx;
+  c->ncall += 1;
+  double R[4] = { 0 }, dR[4] = { 0 };
+  
+  int nr = R_psiZ(c->geo, c->psi, Z, 4, R, dR);
+  double dRdZ = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dR, nr);
+  double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
+
+  struct gkyl_range_iter iter;
+  iter.idx[0] = fmin(c->geo->rzlocal.lower[0] + (int) floor((r_curr - c->geo->rzgrid.lower[0])/c->geo->rzgrid.dx[0]), c->geo->rzlocal.upper[0]);
+  iter.idx[1] = fmin(c->geo->rzlocal.lower[1] + (int) floor((Z - c->geo->rzgrid.lower[1])/c->geo->rzgrid.dx[1]), c->geo->rzlocal.upper[1]);
+  long loc = gkyl_range_idx((&c->geo->rzlocal), iter.idx);
+  const double *psih = gkyl_array_cfetch(c->geo->psiRZ, loc);
+
+  double xc[2];
+  gkyl_rect_grid_cell_center((&c->geo->rzgrid), iter.idx, xc);
+  double x = (r_curr-xc[0])/(c->geo->rzgrid.dx[0]*0.5);
+  double y = (Z-xc[1])/(c->geo->rzgrid.dx[1]*0.5);
+
+  // if psi is polyorder 2 we can get grad psi
+  // in cylindrical coords it is grad psi = dpsi/dR Rhat + dpsi/dZ zhat
+  double dpsidx = 2.904737509655563*psih[7]*(y*y-0.3333333333333333)+5.809475019311126*psih[6]*x*y+1.5*psih[3]*y+3.354101966249684*psih[4]*x+0.8660254037844386*psih[1]; 
+  double dpsidy =	5.809475019311126*psih[7]*x*y+3.354101966249684*psih[5]*y+2.904737509655563*psih[6]*(x*x-0.3333333333333333)+1.5*psih[3]*x+0.8660254037844386*psih[2];
+  dpsidx = dpsidx*2.0/c->geo->rzgrid.dx[0];
+  dpsidy = dpsidy*2.0/c->geo->rzgrid.dx[1];
+  double grad_psi_mag = sqrt(dpsidx*dpsidx + dpsidy*dpsidy);
+  double result  = (1/r_curr/grad_psi_mag);
   return nr>0 ? result : 0.0;
 }
 
@@ -356,11 +573,11 @@ double tok_plate_psi_func(double s, void *ctx);
 /*
  * Used to set zmin and zmax and attributes of arc_ctx before looping over arc length
 */
-void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* zmin, double* zmax, double* zmin_left, double* zmin_right, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
+void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
 
 
 /*
  * Used to set arc_ctx attributes before using ridders to find z
 */
-void tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL, double arcL_curr, double zmin, double zmax, double zmin_left, double zmin_right, double rright, double rleft, double* rclose, double *ridders_min, double* ridders_max);
+void tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL_curr, double* rclose, double *ridders_min, double* ridders_max);
 

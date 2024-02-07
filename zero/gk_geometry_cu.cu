@@ -28,10 +28,12 @@ gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gk
 
   // bmag, metrics and derived geo quantities
 
+  struct gkyl_array *mapc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->range_ext.volume);
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *dxdz_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
+  struct gkyl_array *dzdx_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *jacobgeo_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *jacobgeo_inv_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *gij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
@@ -47,9 +49,12 @@ gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gk
   struct gkyl_array *gxzj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   struct gkyl_array *eps2_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
 
+
+  gkyl_array_copy(mapc2p_dev, hgeo->mc2p);
   gkyl_array_copy(bmag_dev, hgeo->bmag);
   gkyl_array_copy(g_ij_dev, hgeo->g_ij);
   gkyl_array_copy(dxdz_dev, hgeo->dxdz);
+  gkyl_array_copy(dzdx_dev, hgeo->dzdx);
   gkyl_array_copy(jacobgeo_dev , hgeo->jacobgeo);
   gkyl_array_copy(jacobgeo_inv_dev, hgeo->jacobgeo_inv);
   gkyl_array_copy(gij_dev, hgeo->gij);
@@ -68,9 +73,11 @@ gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gk
   gkyl_gk_geometry_release(hgeo);
 
   // this is for the memcpy below
+  up->mc2p  = mapc2p_dev->on_dev;
   up->bmag  = bmag_dev->on_dev;
   up->g_ij  = g_ij_dev->on_dev;
   up->dxdz  = dxdz_dev->on_dev;
+  up->dzdx  = dzdx_dev->on_dev;
   up->jacobgeo  = jacobgeo_dev->on_dev;
   up->jacobgeo_inv = jacobgeo_inv_dev->on_dev;
   up->gij  = gij_dev->on_dev;
@@ -96,9 +103,11 @@ gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gk
   up->on_dev = up_cu;
 
   // geometry object should store host pointer
+  up->mc2p  = mapc2p_dev;
   up->bmag  = bmag_dev;
   up->g_ij  = g_ij_dev;
   up->dxdz  = dxdz_dev;
+  up->dzdx  = dzdx_dev;
   up->jacobgeo  = jacobgeo_dev;
   up->jacobgeo_inv = jacobgeo_inv_dev;
   up->gij  = gij_dev;

@@ -18,15 +18,65 @@
 #include <gkyl_gk_geometry_tok.h>
 
 
-  struct gkyl_tok_geo_efit_inp inp = {
-      // psiRZ and related inputs
-      .filepath = "./data/eqdsk/cerfon.geqdsk",
-      .rzpoly_order = 2,
-      .fluxpoly_order = 1,
-      .plate_spec = false,
-      .quad_param = {  .eps = 1e-10 }
-    };
 
+//// Coords that worked for outer
+//.zmin = -1.093941629526259813,
+//.zmax = 1.094605624589544826,
+//
+//Coords that worked for core
+//.zxpt_lo = -1.093941629526259814,
+//.zxpt_up = 1.09460562458954483,
+
+double psisep = - .12501253600000001 ;
+struct gkyl_tok_geo_efit_inp inp = {
+    // psiRZ and related inputs
+    .filepath = "./efit_data/mast.geqdsk",
+    .rzpoly_order = 2,
+    .fluxpoly_order = 1,
+    .plate_spec = false,
+    .quad_param = {  .eps = 1e-10 }
+  };
+
+int cpoly_order = 1;
+struct gkyl_basis cbasis;
+int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
+struct gkyl_rect_grid cgrid;
+struct gkyl_range clocal, clocal_ext;
+
+void
+test_core()
+{
+  clock_t start, end;
+  double cpu_time_used;
+  start = clock();
+
+  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
+  double cupper[] = {-0.11, 0.01, M_PI-1e-14 };
+  int ccells[] = { 1, 1, 16 };
+
+  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .ftype = GKYL_CORE,
+    .rclose = 2.0,
+    .rleft= 0.5,
+    .rright= 2.0,
+    .zxpt_lo = -1.0939416295262598,
+    .zxpt_up = 1.0946056245895448,
+
+    .write_node_coord_array = true,
+    .node_file_nm = "mastcore_nodes.gkyl"
+  }; 
+
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  gkyl_gk_geometry_release(up);
+
+  end = clock();
+  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+  printf("total time = %g\n", cpu_time_used);
+}
 
 void
 test_11()
@@ -35,37 +85,27 @@ test_11()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.1, 0.01, M_PI-1e-14 };
-
+  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
+  double cupper[] = {-0.11, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
-  struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_CORE_R,
-    .rclose = 6.0,
-    .rright= 6.0,
-    .zxpt_lo = -4.3,
-    .zxpt_up = 4.3,
+    .rclose = 2.0,
+    .rleft= 0.5,
+    .rright= 2.0,
+    .zxpt_lo = -1.0939416295262598,
+    .zxpt_up = 1.0946056245895448,
 
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon11_nodes.gkyl"
+    .node_file_nm = "mast11_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
-
-
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -80,36 +120,27 @@ test_12()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.1, 0.01, M_PI-1e-14 };
-
+  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
+  double cupper[] = {-0.11, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
-  struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_CORE_L,
-    .rclose = 6.0,
-    .rleft= 0.25,
-    .zxpt_lo = -4.3,
-    .zxpt_up = 4.3,
+    .rclose = 2.0,
+    .rleft = 0.5,
+    .rright= 2.0,
+    .zxpt_lo = -1.0939416295262598,
+    .zxpt_up = 1.0946056245895448,
+
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon12_nodes.gkyl"
+    .node_file_nm = "mast12_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
-
-
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -117,37 +148,30 @@ test_12()
   printf("total time = %g\n", cpu_time_used);
 }
 
-
-
-
 void
-test_1()
+test_outer()
 {
   clock_t start, end;
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.1, 0.01, M_PI-1e-14 };
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
+  int ccells[] = { 1, 1, 16 };
 
-  int ccells[] = { 1, 1, 8 };
 
-  struct gkyl_rect_grid cgrid;
+
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_PF_LO_R,
-    .rright = 6.0,
-    .zmin = -5.8,
-    .zxpt_lo = -4.3,
+    .ftype = GKYL_SOL_DN_OUT,
+    .rright = 2.0,
+    .zmin = -1.7,
+    .zmax = 1.7,
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon1_nodes.gkyl"
+    .node_file_nm = "mastouter_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -165,27 +189,24 @@ test_2()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { -0.2, -0.01, -M_PI+1e-14 };
-  double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
-
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
-  struct gkyl_rect_grid cgrid;
+
+
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT_LO,
-    .rright = 6.0,
-    .zmin = -5.8,
-    .zxpt_lo = -4.3,
+    .rright = 2.0,
+    .zmin = -1.7,
+    //.zxpt_lo = -1.0939416295262598,
+    .zxpt_lo = -1.0925,
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon2_nodes.gkyl"
+    .node_file_nm = "mast2_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -203,27 +224,23 @@ test_3()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { -0.2, -0.01, -M_PI+1e-14 };
-  double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
-
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
-  struct gkyl_rect_grid cgrid;
+
+
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT_MID,
-    .rright = 6.0,
-    .zxpt_lo = -4.3,
-    .zxpt_up = 4.3,
+    .rright= 2.0,
+    .zxpt_lo = -1.0925,
+    .zxpt_up = 1.092,
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon3_nodes.gkyl"
+    .node_file_nm = "mast3_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -241,65 +258,24 @@ test_4()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { -0.2, -0.01, -M_PI+1e-14 };
-  double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
-
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
-  struct gkyl_rect_grid cgrid;
+
+
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT_UP,
-    .rright = 6.0,
-    .zmax = 5.8,
-    .zxpt_up = 4.3,
+    .rright = 2.0,
+    //.zxpt_up = 1.0946056245895448,
+    .zxpt_up = 1.092,
+    .zmax = 1.7,
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon4_nodes.gkyl"
-  }; 
-
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
-  gkyl_gk_geometry_release(up);
-
-  end = clock();
-  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
-}
-
-void
-test_7()
-{
-  clock_t start, end;
-  double cpu_time_used;
-  start = clock();
-
-  double clower[] = { -0.01, -0.01, -M_PI+1e-14 };
-  double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
-
-  int ccells[] = { 1, 1, 8 };
-
-  struct gkyl_rect_grid cgrid;
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_SOL_DN_IN_UP,
-    .rleft = 0.25,
-    .zxpt_up = 4.3,
-    .zmax = 5.8,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon7_nodes.gkyl"
+    .node_file_nm = "mast4_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -317,27 +293,55 @@ test_8()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { -0.01, -0.01, -M_PI+1e-14 };
-  double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
-
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
   int ccells[] = { 1, 1, 8 };
 
-  struct gkyl_rect_grid cgrid;
+
+
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_IN_MID,
-    .rleft = 0.25,
-    .zxpt_lo = -4.3,
-    .zxpt_up = 4.3,
+    .rleft = 0.5,
+    .zxpt_lo = -1.0939416295262598,
+    .zxpt_up = 1.0946056245895448,
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon8_nodes.gkyl"
+    .node_file_nm = "mast8_nodes.gkyl"
+  }; 
+
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  gkyl_gk_geometry_release(up);
+
+  end = clock();
+  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+  printf("total time = %g\n", cpu_time_used);
+}
+
+void
+test_7()
+{
+  clock_t start, end;
+  double cpu_time_used;
+  start = clock();
+
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
+  int ccells[] = { 1, 1, 4 };
+
+  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .ftype = GKYL_SOL_DN_IN_UP,
+    .rleft = 0.5,
+    .zxpt_up = 1.0946056245895448,
+    .zmax = 1.3,
+    .write_node_coord_array = true,
+    .node_file_nm = "mast7_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -355,27 +359,21 @@ test_9()
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { -0.01, -0.01, -M_PI+1e-14 };
-  double cupper[] = {-0.0, 0.01, M_PI-1e-14 };
+  double clower[] = { -0.13, -0.01, -M_PI+1e-14 };
+  double cupper[] = {psisep, 0.01, M_PI-1e-14 };
+  int ccells[] = { 1, 1, 4 };
 
-  int ccells[] = { 1, 1, 8 };
-
-  struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_IN_LO,
-    .rleft = 0.25,
-    .zmin = -5.8,
-    .zxpt_lo = -4.3,
+    .rleft = 2.0,
+    .zxpt_lo = -1.0939416295262598,
+    .zmin = -1.3,
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon9_nodes.gkyl"
+    .node_file_nm = "mast9_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -387,33 +385,27 @@ test_9()
 }
 
 void
-test_10()
+test_1()
 {
   clock_t start, end;
   double cpu_time_used;
   start = clock();
 
-  double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.1, 0.01, M_PI-1e-14 };
+  double clower[] = { psisep, -0.01, -M_PI+1e-14 };
+  double cupper[] = {-0.11, 0.01, M_PI-1e-14 };
+  int ccells[] = { 1, 1, 4 };
 
-  int ccells[] = { 1, 1, 8 };
-
-  struct gkyl_rect_grid cgrid;
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_PF_LO_L,
-    .rleft= 0.25,
-    .zmin = -5.8,
-    .zxpt_lo = -4.3,
+    .ftype = GKYL_PF_LO_R,
+    .rright = 2.0,
+    .zxpt_lo = -1.0939416295262598,
+    .zmin = -8.4,
     .write_node_coord_array = true,
-    .node_file_nm = "cerfon10_nodes.gkyl"
+    .node_file_nm = "mast1_nodes.gkyl"
   }; 
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
@@ -423,103 +415,19 @@ test_10()
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
   printf("total time = %g\n", cpu_time_used);
 }
-
-void
-test_5()
-{
-  clock_t start, end;
-  double cpu_time_used;
-  start = clock();
-
-  double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.1, 0.01, M_PI-1e-14 };
-
-  int ccells[] = { 1, 1, 8 };
-
-  struct gkyl_rect_grid cgrid;
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_PF_UP_R,
-    .rright = 6.0,
-    .zmax = 5.8,
-    .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon5_nodes.gkyl"
-  }; 
-
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
-  gkyl_gk_geometry_release(up);
-
-  end = clock();
-  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
-}
-
-void
-test_6()
-{
-  clock_t start, end;
-  double cpu_time_used;
-  start = clock();
-
-  double clower[] = { 0.0, -0.01, -M_PI+1e-14 };
-  double cupper[] = {0.1, 0.01, M_PI-1e-14 };
-
-  int ccells[] = { 1, 1, 8 };
-
-  struct gkyl_rect_grid cgrid;
-  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
-  struct gkyl_range clocal, clocal_ext;
-  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
-  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
-  int cpoly_order = 1;
-  struct gkyl_basis cbasis;
-  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
-
-  struct gkyl_tok_geo_grid_inp ginp = {
-    .ftype = GKYL_PF_UP_L,
-    .rleft = 0.25,
-    .zmax = 5.8,
-    .zxpt_up = 4.3,
-    .write_node_coord_array = true,
-    .node_file_nm = "cerfon6_nodes.gkyl"
-  }; 
-
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
-  gkyl_gk_geometry_release(up);
-
-  end = clock();
-  cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
-  printf("total time = %g\n", cpu_time_used);
-}
-
-
-
-
-
-
-
-
 
 TEST_LIST = {
-  { "test_1", test_1}, //cmag not so great
-  { "test_2", test_2},
-  { "test_3", test_3},
-  { "test_11", test_11},
-  { "test_12", test_12},
-  { "test_4", test_4},
-  {"test_7", test_7},
-  {"test_8", test_8},
-  {"test_9", test_9},
-  {"test_10", test_10}, //cmag not so great
-  {"test_5", test_5}, //cmag not so great
-  {"test_6", test_6}, //cmag pretty good but not great
+  //{ "test_core", test_core},
+  //{ "test_outer", test_outer}, // Works
+  {"test_3", test_3}, // Works. Good cmag
+  {"test_2", test_2}, // cmag -> 0 at xpt  but ok
+  {"test_4", test_4}, // cmag ->0 at xpt but ok
+  //{"test_11", test_11}, // Works. Good cmag. Even with nup hack for PF
+  //{"test_12", test_12}, // Works. Good cmag. Even with nup and nlo hack for PF
+  //{"test_8", test_8},  // Works. Good cmag. Verified correct orientation
+  //{"test_7", test_7}, // Works. cmag->0 at xpt but ok
+  //{"test_9", test_9}, // Works. cmag-<0 at xpt but ok
+  //{"test_1", test_1},  // Nodes work but cmag looks bad. Great if zxpt_lo=2.
+
   { NULL, NULL },
 };
