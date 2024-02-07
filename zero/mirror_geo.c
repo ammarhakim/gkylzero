@@ -104,9 +104,7 @@ gkyl_mirror_geo_new(const struct gkyl_mirror_geo_efit_inp *inp)
     geo->calc_roots = calc_RdR_p1;
   else if (geo->efit->rzbasis->poly_order == 2)
     geo->calc_roots = calc_RdR_p2;
-
   geo->stat = (struct gkyl_mirror_geo_stat) { };
-
   
   return geo;
 }

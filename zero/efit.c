@@ -19,6 +19,9 @@
 
 gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_order, bool use_gpu)
 {
+  if (access(filepath, F_OK) == -1){
+    fprintf(stderr, "efit file %s does not exist\n", filepath);
+  }
   gkyl_efit *up = gkyl_malloc(sizeof(struct gkyl_efit));
   up->rzbasis = gkyl_malloc(sizeof(struct gkyl_basis));
 
@@ -40,19 +43,12 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
   FILE *ptr = fopen(up->filepath,"r");
   size_t status;
 
-  // Get the dimensions
-
+  // Read the file
   status = fscanf(ptr,"%d%d", &up->nr, &up->nz);
-
-  // Read the non-array parameters, all are doubles:
-  // rdim,zdim,rcentr,rleft,zmid;
-  // rmaxis,zmaxis,simag,sibry,bcentr;
-  // current,simag,xdum,rmaxis,xdum;
-  // zmaxis,xdum,sibry,xdum,xdum;
-  //double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
-
-  status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
-
+  status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &up->rdim, 
+  &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, &up->simag, &up->sibry,
+  &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up-> zmaxis, &up->xdum, 
+  &up->sibry, &up->xdum, &up->xdum);
 
   // Now we need to make the grid
   up->zmin = up->zmid - up->zdim/2;
@@ -89,7 +85,6 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
   gkyl_rect_grid_init(up->fluxgrid, 1, fluxlower, fluxupper, fluxcells);
   gkyl_create_grid_ranges(up->fluxgrid, fluxghost, up->fluxlocal_ext, up->fluxlocal);
 
-
   // allocate the necessary arrays
   up->psizr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
   up->psibyrzr = gkyl_array_new(GKYL_DOUBLE, up->rzbasis->num_basis, up->rzlocal_ext->volume);
@@ -119,7 +114,7 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_
     status = fscanf(ptr, "%lf", &up->xdum);
   }
 
-  // Now we are gonna wanna read psi
+  // Now we are going to want to read psi
   int node_nums[2] = {up->nr, up->nz};
   struct gkyl_range nrange;
   gkyl_range_init_from_shape(&nrange, up->rzgrid->ndim, node_nums);
