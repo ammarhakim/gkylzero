@@ -54,35 +54,35 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     react->prim_vars[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
-        .grid = &s->grid, 
-        .cbasis = &app->confBasis, 
-        .pbasis = &app->basis, 
-        .conf_rng = &app->local, 
-        .phase_rng = &s->local, 
-        .mass_ion = react->react_type[i].ion_mass, 
-        .type_ion = react->react_type[i].ion_id, 
-        .charge_state = react->react_type[i].charge_state, 
-        .type_self = react->type_self[i], 
-        .all_gk = react->all_gk, 
-        .base = 0,
+        .grid = &s->grid,
+        .cbasis = &app->confBasis,
+        .pbasis = &app->basis,
+        .conf_rng = &app->local,
+        .phase_rng = &s->local,
+        .mass_ion = react->react_type[i].ion_mass,
+        .type_ion = react->react_type[i].ion_id,
+        .charge_state = react->react_type[i].charge_state,
+        .type_self = react->type_self[i],
+        .all_gk = react->all_gk,
+        .base = ".",
       };
-      react->iz[i] = gkyl_dg_iz_new(&iz_inp, app->use_gpu); 
+      react->iz[i] = gkyl_dg_iz_new(&iz_inp, app->use_gpu);
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       struct gkyl_dg_recomb_inp recomb_inp = {
-        .grid = &s->grid, 
-        .cbasis = &app->confBasis, 
-        .pbasis = &app->basis, 
-        .conf_rng = &app->local, 
-        .phase_rng = &s->local, 
-        .mass_self = s->info.mass, 
-        .type_ion = react->react_type[i].ion_id, 
-        .charge_state = react->react_type[i].charge_state, 
-        .type_self = react->type_self[i], 
-        .all_gk = react->all_gk, 
-        .base = 0,
+        .grid = &s->grid,
+        .cbasis = &app->confBasis,
+        .pbasis = &app->basis,
+        .conf_rng = &app->local,
+        .phase_rng = &s->local,
+        .mass_self = s->info.mass,
+        .type_ion = react->react_type[i].ion_id,
+        .charge_state = react->react_type[i].charge_state,
+        .type_self = react->type_self[i],
+        .all_gk = react->all_gk,
+        .base = ".",
       };
-      react->recomb[i] = gkyl_dg_recomb_new(&recomb_inp, app->use_gpu);       
+      react->recomb[i] = gkyl_dg_recomb_new(&recomb_inp, app->use_gpu);
     }
   }
 }
@@ -95,32 +95,32 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
   for (int i=0; i<react->num_react; ++i) {
     if (react->react_id[i] == GKYL_REACT_IZ) {
       // compute needed moments
-      gk_species_moment_calc(&react->moms_elc[i], app->species[react->elc_idx[i]].local, 
+      gk_species_moment_calc(&react->moms_elc[i], app->species[react->elc_idx[i]].local,
         app->local, fin[react->elc_idx[i]]);
       if (react->all_gk)
-        gk_species_moment_calc(&react->moms_donor[i], app->species[react->donor_idx[i]].local, 
+        gk_species_moment_calc(&react->moms_donor[i], app->species[react->donor_idx[i]].local,
           app->local, fin[react->donor_idx[i]]);
       else
-        gk_neut_species_moment_calc(&react->moms_donor[i], app->neut_species[react->donor_idx[i]].local, 
-          app->local, fin_neut[react->donor_idx[i]]);  
+        gk_neut_species_moment_calc(&react->moms_donor[i], app->neut_species[react->donor_idx[i]].local,
+          app->local, fin_neut[react->donor_idx[i]]);
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
       gkyl_array_set_range(react->m0_donor[i], 1.0, react->moms_donor[i].marr, &app->local);
 
       // compute ionization reaction rate
-      gkyl_dg_iz_coll(react->iz[i], react->moms_elc[i].marr, react->moms_donor[i].marr, 
-	app->gk_geom->b_i, react->vt_sq_iz[i], react->prim_vars[i], 
+      gkyl_dg_iz_coll(react->iz[i], react->moms_elc[i].marr, react->moms_donor[i].marr,
+    	app->gk_geom->b_i, react->vt_sq_iz[i], react->prim_vars[i],
         react->coeff_react[i], 0);
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       // compute needed moments
-      gk_species_moment_calc(&react->moms_elc[i], app->species[react->elc_idx[i]].local, 
+      gk_species_moment_calc(&react->moms_elc[i], app->species[react->elc_idx[i]].local,
         app->local, fin[react->elc_idx[i]]);
-      gk_species_moment_calc(&react->moms_ion[i], app->species[react->ion_idx[i]].local, 
+      gk_species_moment_calc(&react->moms_ion[i], app->species[react->ion_idx[i]].local,
         app->local, fin[react->ion_idx[i]]);
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
 
       // compute recombination reaction rate
-      gkyl_dg_recomb_coll(react->recomb[i], react->moms_elc[i].marr, react->moms_ion[i].marr, 
+      gkyl_dg_recomb_coll(react->recomb[i], react->moms_elc[i].marr, react->moms_ion[i].marr,
         app->gk_geom->b_i, react->prim_vars[i], react->coeff_react[i], 0);
     }
   }
@@ -137,61 +137,61 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     if (react->react_id[i] == GKYL_REACT_IZ) {
       if (react->type_self[i] == GKYL_SELF_ELC) {
         gkyl_array_set_offset(react->prim_vars[i], 1.0, react->vt_sq_iz[i], 1*app->confBasis.num_basis);
-        gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local, 
+        gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->moms_elc[i].marr, react->prim_vars[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 
         // electron update is n_elc*coeff_react*(2*fmax(n_elc, upar_donor, vtiz^2) - f_elc)
         gkyl_array_scale(react->f_react, 2.0);
         gkyl_array_accumulate(react->f_react, -1.0, fin);
-        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
-            react->m0_donor[i], react->f_react, &app->local, &s->local);     
-        gkyl_array_accumulate(rhs, 1.0, react->f_react);  
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
+            react->m0_donor[i], react->f_react, &app->local, &s->local);
+        gkyl_array_accumulate(rhs, 1.0, react->f_react);
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
-        gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local, 
+        gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->moms_donor[i].marr, react->prim_vars[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 
         // ion update is n_elc*coeff_react*fmax(n_donor, upar_donor, vt_donor^2)
-        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
-            react->m0_elc[i], react->f_react, &app->local, &s->local);  
-        gkyl_array_accumulate(rhs, 1.0, react->f_react); 
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
+            react->m0_elc[i], react->f_react, &app->local, &s->local);
+        gkyl_array_accumulate(rhs, 1.0, react->f_react);
       }
       else {
         // donor update is -n_elc*coeff_react*f_donor
         gkyl_array_set(react->f_react, 1.0, fin);
-        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
-            react->m0_elc[i], react->f_react, &app->local, &s->local);  
-        gkyl_array_accumulate(rhs, -1.0, react->f_react);         
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
+            react->m0_elc[i], react->f_react, &app->local, &s->local);
+        gkyl_array_accumulate(rhs, -1.0, react->f_react);
       }
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       if (react->type_self[i] == GKYL_SELF_ELC || react->type_self[i] == GKYL_SELF_ION) {
         // update is -n_elc*coeff_react*f_s where s = (electron, ion)
         gkyl_array_set(react->f_react, 1.0, fin);
-        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
-            react->m0_elc[i], react->f_react, &app->local, &s->local);  
-        gkyl_array_accumulate(rhs, -1.0, react->f_react);    
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
+            react->m0_elc[i], react->f_react, &app->local, &s->local);
+        gkyl_array_accumulate(rhs, -1.0, react->f_react);
       }
       else {
-        gkyl_proj_gkmaxwellian_on_basis_lab_mom(react->proj_max, &s->local, &app->local, 
+        gkyl_proj_gkmaxwellian_on_basis_lab_mom(react->proj_max, &s->local, &app->local,
           react->moms_ion[i].marr, app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 
         // receiver update is n_elc*coeff_react*fmax(n_ion, upar_ion, vt_ion^2)
-        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
-            react->m0_elc[i], react->f_react, &app->local, &s->local);  
-        gkyl_array_accumulate(rhs, 1.0, react->f_react); 
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
+            react->m0_elc[i], react->f_react, &app->local, &s->local);
+        gkyl_array_accumulate(rhs, 1.0, react->f_react);
       }
     }
   }
