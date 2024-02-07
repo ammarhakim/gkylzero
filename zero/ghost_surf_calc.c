@@ -106,7 +106,7 @@ gkyl_ghost_surf_calc_new(const struct gkyl_rect_grid *grid,
 void
 gkyl_ghost_surf_calc_release(gkyl_ghost_surf_calc* up)
 {
-  // gkyl_dg_eqn_release(up->equation);
+  gkyl_dg_eqn_release(up->equation);
   if (GKYL_IS_CU_ALLOC(up->flags))
     gkyl_cu_free(up->on_dev);
   gkyl_free(up);

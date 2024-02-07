@@ -54,9 +54,16 @@ enum gkyl_collision_id {
 // Identifiers for specific source object types
 enum gkyl_source_id {
   GKYL_NO_SOURCE = 0, // No source. This is default
-  GKYL_FUNC_SOURCE, // Source given by function
-  GKYL_MAXWELLIAN_SOURCE, // Source given by Maxwellian
+  GKYL_FUNC_SOURCE, // Function source
+  GKYL_PROJ_SOURCE, // Source given by projection object determined by gkyl_projection_id
   GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes
+};
+
+// Identifiers for specific projection object types
+enum gkyl_projection_id {
+  GKYL_PROJ_FUNC = 0, // Function projection. This is default
+  GKYL_PROJ_MAXWELLIAN, // Maxwellian projection
+  GKYL_PROJ_BIMAXWELLIAN, // Bi-Maxwellian projection
 };
 
 // Identifiers for specific radiation object types
@@ -84,6 +91,16 @@ enum gkyl_ion_type
   GKYL_ION_C = 5,  // Carbon ions
   GKYL_ION_N = 6,  // Nitrogen ions
   GKYL_ION_O = 7,  // Oxygen ions
+  GKYL_ION_AR = 8,  // Argon ions
+};
+
+// Identifiers for different self in reaction
+enum gkyl_react_self_type
+{
+  GKYL_SELF_ELC = 0, // Electron species in reaction
+  GKYL_SELF_ION = 1, // Ion species in reaction 
+  GKYL_SELF_DONOR = 2, // Donating species in reaction (giving up electron)
+  GKYL_SELF_RECVR = 3, // Receiving species in reaction (receiving electron)
 };
 
 // Identifiers for specific geometry types

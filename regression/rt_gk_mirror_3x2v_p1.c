@@ -780,13 +780,35 @@ int main(int argc, char **argv)
         .upper = {ctx.vpar_max_elc, ctx.mu_max_elc},
         .cells = {ctx.num_cell_vpar, ctx.num_cell_mu},
         .polarization_density = ctx.n0,
-        .ctx_density = &ctx,
-        .init_density = eval_density_elc,
-        .ctx_upar = &ctx,
-        .init_upar = eval_upar_elc,
-        .ctx_temp = &ctx,
-        .init_temp = eval_temp_elc,
-        .is_maxwellian = true,
+        .projection = {
+          .proj_id = GKYL_PROJ_MAXWELLIAN, 
+          .ctx_density = &ctx,
+          .density = eval_density_elc,
+          .ctx_upar = &ctx,
+          .upar= eval_upar_elc,
+          .ctx_temp = &ctx,
+          .temp = eval_temp_elc,      
+        },
+        .collisions =  {
+          .collision_id = GKYL_LBO_COLLISIONS,
+          .ctx = &ctx,
+          .self_nu = evalNuElc,
+          .num_cross_collisions = 1,
+          .collide_with = { "ion" },
+        },
+        .source = {
+          .source_id = GKYL_PROJ_SOURCE,
+          .write_source = true,
+          .projection = {
+            .proj_id = GKYL_PROJ_MAXWELLIAN, 
+            .ctx_density = &ctx,
+            .density = eval_density_elc_source,
+            .ctx_upar = &ctx,
+            .upar= eval_upar_elc_source,
+            .ctx_temp = &ctx,
+            .temp = eval_temp_elc_source,      
+          }, 
+        },
         .bcx = {
           .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
           .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
@@ -795,23 +817,7 @@ int main(int argc, char **argv)
           .lower={.type = GKYL_SPECIES_GK_SHEATH,},
           .upper={.type = GKYL_SPECIES_GK_SHEATH,},
         },
-        .collisions = {
-            .collision_id = GKYL_LBO_COLLISIONS,
-            .ctx = &ctx,
-            .self_nu = evalNuElc,
-            .num_cross_collisions = 1, // Not sure
-            .collide_with = {"ion"},
-        },
-        .source = {
-            .source_id = GKYL_MAXWELLIAN_SOURCE, // Not sure
-            .write_source = true,
-            .ctx_density = &ctx,
-            .density_profile = eval_density_elc_source,
-            .ctx_upar = &ctx,
-            .upar_profile = eval_upar_elc_source,
-            .ctx_temp = &ctx,
-            .temp_profile = eval_temp_elc_source,
-        },
+
         .num_diag_moments = 7, // Copied from GKsoloviev, but
         .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
     };
@@ -823,13 +829,35 @@ int main(int argc, char **argv)
         .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
         .cells = {NV, NMU},
         .polarization_density = ctx.n0,
-        .ctx_density = &ctx,
-        .init_density = eval_density_ion,
-        .ctx_upar = &ctx,
-        .init_upar = eval_upar_ion,
-        .ctx_temp = &ctx,
-        .init_temp = eval_temp_ion,
-        .is_maxwellian = true,
+        .projection = {
+          .proj_id = GKYL_PROJ_MAXWELLIAN, 
+          .ctx_density = &ctx,
+          .density = eval_density_ion,
+          .ctx_upar = &ctx,
+          .upar= eval_upar_ion,
+          .ctx_temp = &ctx,
+          .temp = eval_temp_ion,      
+        },
+        .collisions =  {
+          .collision_id = GKYL_LBO_COLLISIONS,
+          .ctx = &ctx,
+          .self_nu = evalNuIon,
+          .num_cross_collisions = 1,
+          .collide_with = { "elc" },
+        },
+        .source = {
+          .source_id = GKYL_PROJ_SOURCE,
+          .write_source = true,
+          .projection = {
+            .proj_id = GKYL_PROJ_MAXWELLIAN, 
+            .ctx_density = &ctx,
+            .density = eval_density_ion_source,
+            .ctx_upar = &ctx,
+            .upar= eval_upar_ion_source,
+            .ctx_temp = &ctx,
+            .temp = eval_temp_ion_source,      
+          }, 
+        },
         .bcx = {
           .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
           .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
@@ -838,35 +866,16 @@ int main(int argc, char **argv)
           .lower={.type = GKYL_SPECIES_GK_SHEATH,},
           .upper={.type = GKYL_SPECIES_GK_SHEATH,},
         },
-        .collisions = {
-            .collision_id = GKYL_LBO_COLLISIONS,
-            .ctx = &ctx,
-            .self_nu = evalNuIon,
-            .num_cross_collisions = 1,
-            .collide_with = {"elc"},
-        },
-        .source = {
-            .source_id = GKYL_MAXWELLIAN_SOURCE,
-            .write_source = true,
-            .ctx_density = &ctx,
-            .density_profile = eval_density_ion_source,
-            .ctx_upar = &ctx,
-            .upar_profile = eval_upar_ion_source,
-            .ctx_temp = &ctx,
-            .temp_profile = eval_temp_ion_source,
-        },
         .num_diag_moments = 7,
         .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
     };
     struct gkyl_gyrokinetic_field field =
     {
-        .bmag_fac = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
-        .fem_parbc = GKYL_FEM_PARPROJ_NONE,
-        .poisson_bcs = {.lo_type = {GKYL_POISSON_NEUMANN, GKYL_POISSON_PERIODIC}, // Not sure
-                        .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC},
-                        .lo_value = {0.0, 0.0},
-                        .up_value = {0.0, 0.0}},
-        // .evolve = false,
+        .bmag_fac = ctx.B_p, 
+        .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
+        .poisson_bcs = {.lo_type = {GKYL_POISSON_NEUMANN, GKYL_POISSON_PERIODIC}, 
+                        .up_type = {GKYL_POISSON_DIRICHLET, GKYL_POISSON_PERIODIC}, 
+                        .lo_value = {0.0, 0.0}, .up_value = {0.0, 0.0}}, 
     };
     struct gkyl_gk gk = {  // GK app
         .name = "gk_mirror_3x2v_p1",

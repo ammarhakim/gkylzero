@@ -1,7 +1,7 @@
 #include <gkyl_dg_prim_vars_kernels.h> 
 #include <gkyl_binop_mul_ser.h> 
 #include <gkyl_basis_ser_1x_p1_inv.h> 
-GKYL_CU_DH void transform_vlasov_gk_prim_vars_u_par_1x3v_ser_p1(const double *b_i, const double *moms, double* upar) 
+GKYL_CU_DH void transform_u_par_1x2v_ser_p1(const double *b_i, const double *moms, double* upar) 
 { 
   // moms: Input moments. 
   // b_i:  Contravariant components of field-aligned unit vector. 

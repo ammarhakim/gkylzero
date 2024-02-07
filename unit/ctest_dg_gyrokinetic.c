@@ -74,7 +74,7 @@ test_dg_gyrokinetic()
 
   TEST_CHECK( gyrokinetic->cdim == 3 );
   TEST_CHECK( gyrokinetic->pdim == 5 );
-  TEST_CHECK( gyrokinetic->conf_range.volume == 32768 );
+  TEST_CHECK( gyrokinetic->conf_range.volume == 512 );
 
   gkyl_gk_geometry_release(gk_geom);  
   gkyl_dg_eqn_release(eqn);

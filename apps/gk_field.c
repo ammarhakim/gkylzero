@@ -308,7 +308,6 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   else {
     if (app->cdim == 1) {
       gkyl_array_release(f->weight);
-      gkyl_fem_parproj_release(f->fem_parproj);
     }
     else if (app->cdim > 1) {
       gkyl_array_release(f->epsilon);
@@ -321,7 +320,8 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
     }
   }
-  
+  gkyl_fem_parproj_release(f->fem_parproj);
+
   gkyl_dynvec_release(f->integ_energy);
   gkyl_array_integrate_release(f->calc_em_energy);
   if (app->use_gpu) {
