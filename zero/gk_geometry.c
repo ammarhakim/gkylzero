@@ -124,7 +124,6 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->mc2p);
   gkyl_array_release(up->bmag);
   gkyl_array_release(up->g_ij);
-  gkyl_array_release(up->dxdz);
   gkyl_array_release(up->jacobgeo);
   gkyl_array_release(up->jacobgeo_inv);
   gkyl_array_release(up->dxdz);
