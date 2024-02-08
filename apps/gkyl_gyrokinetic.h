@@ -42,6 +42,10 @@ struct gkyl_gyrokinetic_projection {
   void (*temppar)(double t, const double *xn, double *fout, void *ctx);
   void *ctx_tempperp;
   void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
+
+  // pointer and context to lab moments (M0, M1, M2) function 
+  void *ctx_lab_moms; 
+  void (*lab_moms)(double t, const double *xn, double *fout, void *ctx); 
 };
 
 // Parameters for species collisions

@@ -258,7 +258,7 @@ main(int argc, char **argv)
 
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
       .density = eval_density,
       .ctx_upar = &ctx,
@@ -286,7 +286,7 @@ main(int argc, char **argv)
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
       .projection = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
         .density = eval_density_source,
         .ctx_upar = &ctx,
@@ -318,7 +318,7 @@ main(int argc, char **argv)
 
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
       .density = eval_density,
       .ctx_upar = &ctx,
@@ -346,7 +346,7 @@ main(int argc, char **argv)
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
       .projection = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
         .density = eval_density_source,
         .ctx_upar = &ctx,
