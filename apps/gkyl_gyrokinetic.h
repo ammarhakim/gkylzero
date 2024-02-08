@@ -34,6 +34,8 @@ struct gkyl_gyrokinetic_projection {
   void (*density)(double t, const double *xn, double *fout, void *ctx);
   void *ctx_upar;
   void (*upar)(double t, const double *xn, double *fout, void *ctx);
+  void *ctx_udrift;
+  void (*udrift)(double t, const double *xn, double *fout, void *ctx);
   // if projection is Maxwellian
   void *ctx_temp;
   void (*temp)(double t, const double *xn, double *fout, void *ctx);

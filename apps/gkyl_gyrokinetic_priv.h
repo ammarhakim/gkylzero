@@ -297,7 +297,8 @@ struct gk_proj {
     // Maxwellian and Bi-Maxwellian projection
     struct {
       struct gkyl_array *m0; // host-side density
-      struct gkyl_array *upar; // host-side upar  
+      struct gkyl_array *upar; // host-side upar
+      struct gkyl_array *udrift; // host-side udrift
       struct gkyl_array *prim_moms; // host-side prim_moms 
 
       struct gkyl_array *m0mod; // array for correcting density
@@ -308,7 +309,8 @@ struct gk_proj {
 
       struct gkyl_proj_on_basis *proj_dens; // projection operator for density
       struct gkyl_proj_on_basis *proj_upar; // projection operator for upar
-
+      struct gkyl_proj_on_basis *proj_udrift; // projection operator for upar
+      
       union {
         // Maxwellian-specific arrays and functions
         struct {
