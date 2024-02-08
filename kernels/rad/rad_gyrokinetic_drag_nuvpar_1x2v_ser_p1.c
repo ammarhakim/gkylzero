@@ -18,8 +18,7 @@ GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_1x2v_ser_p1(const double *w, const d
   const double wvpar_sq = wvpar*wvpar, dvpar_sq = dvpar*dvpar; 
 
   double scaled_v0 = v0/sqrt(mass/(2.0*fabs(charge)));
-  //double c_const = 8.0*sqrt(M_PI)*pow(fabs(charge),5.0/2.0)/mass/pow(mass/(2*fabs(charge)),gamma/2.0);
-  double c_const = 8.0*sqrt(M_PI)*pow(fabs(charge),5.0/2.0)/mass/pow(mass/(2*fabs(charge)),gamma/2.0)*mass/(M_PI*pow(fabs(charge),3.0/2.0));
+  double c_const = 8.0*fabs(charge)/sqrt(M_PI)*pow(2*fabs(charge)/mass,gamma/2.0); 
   double const_mult = a*(alpha+beta)/c_const;
   double vmag = 0.0;
   double vmag_surf = 0.0;
@@ -29,21 +28,21 @@ GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_1x2v_ser_p1(const double *w, const d
   double mu_p[2] = {0.0};
   vpar_p[0] = 1.414213562373095*wvpar; 
   vpar_p[1] = 0.408248290463863*dvpar; 
-  vpar_sq_p[0] = 1.414213562373095*wvpar_sq+0.1178511301977579*dvpar_sq; 
-  vpar_sq_p[1] = 0.8164965809277261*dvpar*wvpar; 
-  vpar_sq_p[2] = 0.105409255338946*dvpar_sq; 
+  vpar_sq_p[0] = 1.414213562373095*wvpar_sq+0.1178511301977578*dvpar_sq; 
+  vpar_sq_p[1] = 0.8164965809277262*dvpar*wvpar; 
+  vpar_sq_p[2] = 0.1054092553389459*dvpar_sq; 
   mu_p[0] = 1.414213562373095*wvmu; 
   mu_p[1] = 0.408248290463863*dvmu; 
 
   double vnu_surf_nodal[4] = {0.0};
   double vnu_nodal[12] = {0.0};
-  vmag_surf = sqrt((1.58113883008419*vpar_sq_p[2]-1.224744871391589*vpar_sq_p[1]+0.7071067811865475*vpar_sq_p[0])+2.0*((0.7071067811865475*bmag[0]-0.7071067811865475*bmag[1])*(0.7071067811865475*mu_p[0]-0.7071067811865475*mu_p[1]))/mass);
+  vmag_surf = sqrt((1.581138830084189*vpar_sq_p[2]-1.224744871391589*vpar_sq_p[1]+0.7071067811865475*vpar_sq_p[0])+2.0*((0.7071067811865475*bmag[0]-0.7071067811865475*bmag[1])*(0.7071067811865475*mu_p[0]-0.7071067811865475*mu_p[1]))/mass);
   vnu_surf_nodal[0] = (0.7071067811865475*vpar_p[0]-1.224744871391589*vpar_p[1])*((a/c_const*(alpha+beta)*pow(vmag_surf,gamma))/(beta*pow(vmag_surf/scaled_v0,-alpha)+alpha*pow(vmag_surf/scaled_v0,beta)));
-  vmag_surf = sqrt((1.58113883008419*vpar_sq_p[2]-1.224744871391589*vpar_sq_p[1]+0.7071067811865475*vpar_sq_p[0])+2.0*(0.7071067811865475*(0.7071067811865475*bmag[0]-0.7071067811865475*bmag[1])*(mu_p[1]+mu_p[0]))/mass);
+  vmag_surf = sqrt((1.581138830084189*vpar_sq_p[2]-1.224744871391589*vpar_sq_p[1]+0.7071067811865475*vpar_sq_p[0])+2.0*(0.7071067811865475*(0.7071067811865475*bmag[0]-0.7071067811865475*bmag[1])*(mu_p[1]+mu_p[0]))/mass);
   vnu_surf_nodal[1] = (0.7071067811865475*vpar_p[0]-1.224744871391589*vpar_p[1])*((a/c_const*(alpha+beta)*pow(vmag_surf,gamma))/(beta*pow(vmag_surf/scaled_v0,-alpha)+alpha*pow(vmag_surf/scaled_v0,beta)));
-  vmag_surf = sqrt((1.58113883008419*vpar_sq_p[2]-1.224744871391589*vpar_sq_p[1]+0.7071067811865475*vpar_sq_p[0])+2.0*(0.7071067811865475*(bmag[1]+bmag[0])*(0.7071067811865475*mu_p[0]-0.7071067811865475*mu_p[1]))/mass);
+  vmag_surf = sqrt((1.581138830084189*vpar_sq_p[2]-1.224744871391589*vpar_sq_p[1]+0.7071067811865475*vpar_sq_p[0])+2.0*(0.7071067811865475*(bmag[1]+bmag[0])*(0.7071067811865475*mu_p[0]-0.7071067811865475*mu_p[1]))/mass);
   vnu_surf_nodal[2] = (0.7071067811865475*vpar_p[0]-1.224744871391589*vpar_p[1])*((a/c_const*(alpha+beta)*pow(vmag_surf,gamma))/(beta*pow(vmag_surf/scaled_v0,-alpha)+alpha*pow(vmag_surf/scaled_v0,beta)));
-  vmag_surf = sqrt((1.58113883008419*vpar_sq_p[2]-1.224744871391589*vpar_sq_p[1]+0.7071067811865475*vpar_sq_p[0])+2.0*(0.4999999999999999*(bmag[1]+bmag[0])*(mu_p[1]+mu_p[0]))/mass);
+  vmag_surf = sqrt((1.581138830084189*vpar_sq_p[2]-1.224744871391589*vpar_sq_p[1]+0.7071067811865475*vpar_sq_p[0])+2.0*(0.4999999999999999*(bmag[1]+bmag[0])*(mu_p[1]+mu_p[0]))/mass);
   vnu_surf_nodal[3] = (0.7071067811865475*vpar_p[0]-1.224744871391589*vpar_p[1])*((a/c_const*(alpha+beta)*pow(vmag_surf,gamma))/(beta*pow(vmag_surf/scaled_v0,-alpha)+alpha*pow(vmag_surf/scaled_v0,beta)));
 
   drag_rad_nu_surf[0] = 0.5*vnu_surf_nodal[3]+0.5*vnu_surf_nodal[2]+0.5*vnu_surf_nodal[1]+0.5*vnu_surf_nodal[0]; 
@@ -84,9 +83,9 @@ GKYL_CU_DH void rad_gyrokinetic_drag_nuvpar_1x2v_ser_p1(const double *w, const d
   drag_rad_nu[5] = 0.1964185503295965*vnu_nodal[11]+0.3142696805273545*vnu_nodal[10]+0.1964185503295965*vnu_nodal[9]-0.1964185503295965*vnu_nodal[8]-0.3142696805273545*vnu_nodal[7]-0.1964185503295965*vnu_nodal[6]-0.1964185503295965*vnu_nodal[5]-0.3142696805273545*vnu_nodal[4]-0.1964185503295965*vnu_nodal[3]+0.1964185503295965*vnu_nodal[2]+0.3142696805273545*vnu_nodal[1]+0.1964185503295965*vnu_nodal[0]; 
   drag_rad_nu[6] = 0.2635231383473649*vnu_nodal[11]-0.2635231383473649*vnu_nodal[9]-0.2635231383473649*vnu_nodal[8]+0.2635231383473649*vnu_nodal[6]+0.2635231383473649*vnu_nodal[5]-0.2635231383473649*vnu_nodal[3]-0.2635231383473649*vnu_nodal[2]+0.2635231383473649*vnu_nodal[0]; 
   drag_rad_nu[7] = 0.2635231383473649*vnu_nodal[11]-0.2635231383473649*vnu_nodal[9]-0.2635231383473649*vnu_nodal[8]+0.2635231383473649*vnu_nodal[6]-0.2635231383473649*vnu_nodal[5]+0.2635231383473649*vnu_nodal[3]+0.2635231383473649*vnu_nodal[2]-0.2635231383473649*vnu_nodal[0]; 
-  drag_rad_nu[8] = 0.1756820922315766*vnu_nodal[11]-0.3513641844631533*vnu_nodal[10]+0.1756820922315766*vnu_nodal[9]+0.1756820922315766*vnu_nodal[8]-0.3513641844631533*vnu_nodal[7]+0.1756820922315766*vnu_nodal[6]+0.1756820922315766*vnu_nodal[5]-0.3513641844631533*vnu_nodal[4]+0.1756820922315766*vnu_nodal[3]+0.1756820922315766*vnu_nodal[2]-0.3513641844631533*vnu_nodal[1]+0.1756820922315766*vnu_nodal[0]; 
-  drag_rad_nu[9] = 0.1756820922315767*vnu_nodal[11]-0.3513641844631534*vnu_nodal[10]+0.1756820922315767*vnu_nodal[9]+0.1756820922315767*vnu_nodal[8]-0.3513641844631534*vnu_nodal[7]+0.1756820922315767*vnu_nodal[6]-0.1756820922315767*vnu_nodal[5]+0.3513641844631534*vnu_nodal[4]-0.1756820922315767*vnu_nodal[3]-0.1756820922315767*vnu_nodal[2]+0.3513641844631534*vnu_nodal[1]-0.1756820922315767*vnu_nodal[0]; 
-  drag_rad_nu[10] = 0.1756820922315767*vnu_nodal[11]-0.3513641844631534*vnu_nodal[10]+0.1756820922315767*vnu_nodal[9]-0.1756820922315767*vnu_nodal[8]+0.3513641844631534*vnu_nodal[7]-0.1756820922315767*vnu_nodal[6]+0.1756820922315767*vnu_nodal[5]-0.3513641844631534*vnu_nodal[4]+0.1756820922315767*vnu_nodal[3]-0.1756820922315767*vnu_nodal[2]+0.3513641844631534*vnu_nodal[1]-0.1756820922315767*vnu_nodal[0]; 
-  drag_rad_nu[11] = 0.1756820922315766*vnu_nodal[11]-0.3513641844631533*vnu_nodal[10]+0.1756820922315766*vnu_nodal[9]-0.1756820922315766*vnu_nodal[8]+0.3513641844631533*vnu_nodal[7]-0.1756820922315766*vnu_nodal[6]-0.1756820922315766*vnu_nodal[5]+0.3513641844631533*vnu_nodal[4]-0.1756820922315766*vnu_nodal[3]+0.1756820922315766*vnu_nodal[2]-0.3513641844631533*vnu_nodal[1]+0.1756820922315766*vnu_nodal[0]; 
+  drag_rad_nu[8] = 0.1756820922315766*vnu_nodal[11]-0.3513641844631532*vnu_nodal[10]+0.1756820922315766*vnu_nodal[9]+0.1756820922315766*vnu_nodal[8]-0.3513641844631532*vnu_nodal[7]+0.1756820922315766*vnu_nodal[6]+0.1756820922315766*vnu_nodal[5]-0.3513641844631532*vnu_nodal[4]+0.1756820922315766*vnu_nodal[3]+0.1756820922315766*vnu_nodal[2]-0.3513641844631532*vnu_nodal[1]+0.1756820922315766*vnu_nodal[0]; 
+  drag_rad_nu[9] = 0.1756820922315766*vnu_nodal[11]-0.3513641844631533*vnu_nodal[10]+0.1756820922315766*vnu_nodal[9]+0.1756820922315766*vnu_nodal[8]-0.3513641844631533*vnu_nodal[7]+0.1756820922315766*vnu_nodal[6]-0.1756820922315766*vnu_nodal[5]+0.3513641844631533*vnu_nodal[4]-0.1756820922315766*vnu_nodal[3]-0.1756820922315766*vnu_nodal[2]+0.3513641844631533*vnu_nodal[1]-0.1756820922315766*vnu_nodal[0]; 
+  drag_rad_nu[10] = 0.1756820922315766*vnu_nodal[11]-0.3513641844631533*vnu_nodal[10]+0.1756820922315766*vnu_nodal[9]-0.1756820922315766*vnu_nodal[8]+0.3513641844631533*vnu_nodal[7]-0.1756820922315766*vnu_nodal[6]+0.1756820922315766*vnu_nodal[5]-0.3513641844631533*vnu_nodal[4]+0.1756820922315766*vnu_nodal[3]-0.1756820922315766*vnu_nodal[2]+0.3513641844631533*vnu_nodal[1]-0.1756820922315766*vnu_nodal[0]; 
+  drag_rad_nu[11] = 0.1756820922315766*vnu_nodal[11]-0.3513641844631532*vnu_nodal[10]+0.1756820922315766*vnu_nodal[9]-0.1756820922315766*vnu_nodal[8]+0.3513641844631532*vnu_nodal[7]-0.1756820922315766*vnu_nodal[6]-0.1756820922315766*vnu_nodal[5]+0.3513641844631532*vnu_nodal[4]-0.1756820922315766*vnu_nodal[3]+0.1756820922315766*vnu_nodal[2]-0.3513641844631532*vnu_nodal[1]+0.1756820922315766*vnu_nodal[0]; 
 
 } 

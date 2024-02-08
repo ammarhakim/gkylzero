@@ -61,17 +61,10 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     // Fetch the species we are colliding with and the fitting parameters for that species
     rad->collide_with[i] = gk_find_species(app, s->info.radiation.collide_with[i]);
     rad->collide_with_idx[i] = gk_find_species_idx(app, s->info.radiation.collide_with[i]);
-    /*a = s->info.radiation.a[i];
-    alpha = s->info.radiation.alpha[i];
-    beta = s->info.radiation.beta[i];
-    gamma = s->info.radiation.gamma[i];
-    v0 = s->info.radiation.v0[i];*/
-    printf("z=%d,charge state=%d\n",s->info.radiation.z[i], s->info.radiation.charge_state[i]);
     int status = gkyl_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, s->info.radiation.num_of_densities[i]);
     if (status == 1) {
       printf("No radiation fits exist for z=%d, charge state=%d\n",s->info.radiation.z[i], s->info.radiation.charge_state[i]);
     }
-    printf("a=%f,alpha=%f,beta=%f,gamma=%f,v0=%f\n",a[0], alpha[0], beta[0], gamma[0], v0[0]);
     rad->calc_gk_rad_vars[i] = gkyl_dg_calc_gk_rad_vars_new(&s->grid, &app->confBasis, &app->basis, 
       s->info.charge, s->info.mass, app->gk_geom, 
       a[0], alpha[0], beta[0], gamma[0], v0[0], 

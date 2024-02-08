@@ -3,9 +3,7 @@
 
 struct all_radiation_states* gkyl_read_rad_fit_params(){
 
-  //  char *filepath="./data/adas/radiation_fit_parameters.txt";
-  char *filepath="./data/adas/fake_fit_parameters.txt";
-  //char *filepath="/global/homes/j/jonroelt/g0g2cpu/gkylzero/adas-dat/radiation_fit_parameters.txt";
+  char *filepath="./data/adas/radiation_fit_parameters.txt";
   FILE *fptr = fopen(filepath,"r");
   if (fptr == NULL){
     printf("Error opening radiation fit file\n");
@@ -102,6 +100,8 @@ int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z
   int index = atomic_z*rad_data.max_atomic_number+charge_state;
   if (!rad_data.all_states[index].state_exists)
     return 1;
+  if (num_densities>1)
+    return 2;
   
   if (num_densities==1) {
     for (int i = 0; i<rad_data.all_states[index].number_of_densities; i++){
