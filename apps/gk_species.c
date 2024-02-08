@@ -344,6 +344,19 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
     omegaCfl_ho[0] = species->omegaCfl_ptr[0];
   double omegaCfl = omegaCfl_ho[0];
 
+  // If we are doing BGK collisions, find the maximum collision frequency and accumulate it
+  // onto the CFL. Collision frequency is only a configuration space quantity, so do the reduce
+  // here instead of utilizing species->cflrate, which is a phase space array. 
+  if (species->collision_id == GKYL_BGK_COLLISIONS) {
+    gkyl_array_reduce_range(species->omegaCfl_ptr, species->bgk.max_nu, GKYL_MAX, &app->local);
+    double omegaCfl_bgk_ho[1];
+    if (app->use_gpu)
+      gkyl_cu_memcpy(omegaCfl_bgk_ho, species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    else
+      omegaCfl_bgk_ho[0] = species->omegaCfl_ptr[0]; 
+    omegaCfl += omegaCfl_bgk_ho[0];
+  }
+
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   
   return app->cfl/omegaCfl;

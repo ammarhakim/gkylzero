@@ -205,6 +205,8 @@ struct gk_bgk_collisions {
   struct gkyl_array *nu_sum_host; // BGK collision frequency host-side for I/O
   struct gkyl_array *self_nu; // BGK self-collision frequency
 
+  struct gkyl_array *max_nu; // Maximum collision frequency in each cell for finding stable timestep
+
   bool normNu; // Boolean to determine if using Spitzer value
   struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater

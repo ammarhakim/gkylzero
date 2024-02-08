@@ -127,8 +127,8 @@ main(int argc, char **argv)
   struct gk_lbo_ctx ctx = create_ctx(); // context for init functions
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 2);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 16);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
 
   // electrons
   struct gkyl_gyrokinetic_species square = {
@@ -146,7 +146,7 @@ main(int argc, char **argv)
     },
 
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
+      .collision_id = GKYL_BGK_COLLISIONS,
       .ctx = &ctx,
       .normNu = false,
       .self_nu = evalNu,
@@ -166,7 +166,6 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-
     .projection = {
       .proj_id = GKYL_PROJ_FUNC, 
       .ctx_func = &ctx,
@@ -174,14 +173,13 @@ main(int argc, char **argv)
     },
 
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
+      .collision_id = GKYL_BGK_COLLISIONS,
       .ctx = &ctx,
       .normNu = false,
       .self_nu = evalNu,
       .num_cross_collisions = 1,
       .collide_with = { "square" },
     },
-
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
@@ -198,7 +196,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_lborelax_1x2v_p1",
+    .name = "gk_bgk_relax_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { 0.0},
