@@ -110,7 +110,7 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   struct gkyl_array *adas_dg =
     gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
 
-  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state+1);
+  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
 
   // ADAS data pointers
   up->recomb_data = adas_dg;

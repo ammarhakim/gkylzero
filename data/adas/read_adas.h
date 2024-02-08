@@ -67,7 +67,7 @@ create_dg_from_nodal(const struct gkyl_rect_grid *grid,
   gkyl_range_iter_init(&iter, &range);
 
   double nv[4];
-  int zi = charge_state - 1;
+  int zi = charge_state;
   
   while (gkyl_range_iter_next(&iter)) {
 
