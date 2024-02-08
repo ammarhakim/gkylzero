@@ -40,7 +40,7 @@ gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis
  * @param gxyJFld DG representation of gxy*J (appears in Poisson equation)
  * @param gyyJFld DG representation of gyy*J (appears in Poisson equation)
  * @param gxzJFld DG representation of gxz*J (can appear in Poisson and diffusion equation depending on formulation)
- * @param eps2Fld DG representation of eps^2
+ * @param eps2Fld DG representation of eps2 = Jg^33 - J/g_33
  */
 
 void gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange,
