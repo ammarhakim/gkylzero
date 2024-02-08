@@ -68,7 +68,7 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_correct_maxwellian_gyr
   up->moms = mkarr(3*up->conf_basis.num_basis, inp->conf_local_ext->volume, up->use_gpu);
 
   up->proj_maxwellian = gkyl_proj_maxwellian_on_basis_new(&up->phase_grid, 
-    &up->conf_basis, &up->phase_basis, up->conf_basis.poly_order+1, up->use_gpu); 
+    &up->conf_basis, &up->phase_basis, up->phase_basis.poly_order+1, up->use_gpu); 
 
   up->m0_calc = gkyl_dg_updater_moment_gyrokinetic_new(&up->phase_grid, &up->conf_basis, 
     &up->phase_basis, inp->conf_local, 0, up->mass, inp->gk_geom,

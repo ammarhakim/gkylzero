@@ -71,7 +71,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     };
     proj->corr_max_lab = gkyl_correct_maxwellian_gyrokinetic_new(&inp);  
     proj->proj_max_lab = gkyl_proj_maxwellian_on_basis_new(&s->grid, &app->confBasis, &app->basis, 
-      app->poly_order+1, app->use_gpu);
+      app->basis.poly_order+1, app->use_gpu);
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     proj->n = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
@@ -156,15 +156,15 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
         app->gk_geom->jacobgeo, f, &app->local_ext, &s->local_ext);  
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_LAB) { 
-    gkyl_proj_on_basis_advance(proj->proj_lab_moms, tm, &app->local_ext, proj->lab_moms_host); 
+    gkyl_proj_on_basis_advance(proj->proj_lab_moms, tm, &app->local, proj->lab_moms_host); 
     if (app->use_gpu) 
       gkyl_array_copy(proj->lab_moms, proj->lab_moms_host);
 
-    gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj->proj_max_lab, &s->local_ext, &app->local_ext, proj->lab_moms,
+    gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj->proj_max_lab, &s->local, &app->local, proj->lab_moms,
       app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
     gkyl_correct_maxwellian_gyrokinetic_advance(proj->corr_max_lab, f, proj->lab_moms, &app->local, &s->local);
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
-        app->gk_geom->jacobgeo, f, &app->local_ext, &s->local_ext);      
+        app->gk_geom->jacobgeo, f, &app->local, &s->local);      
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->n); 
