@@ -61,6 +61,44 @@ void eval_source_density(double t, const double * GKYL_RESTRICT xn, double* GKYL
   }
   fout[0] = n_src*fout[0];
 }
+void eval_source_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
+
+  struct gk_app_ctx *app = ctx;
+  double n_src = app->n_src;
+  double Ls = app->Lz/4.;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
+
+  double floor_src = 0.1;
+
+  if (fabs(z) < Ls) {
+    fout[0] = GKYL_MAX2(exp(-pow(x-xmu_src,2)/(pow(2*xsigma_src,2))), floor_src);
+  } else {
+    fout[0] = 1.e-40;
+  }
+  fout[0] = 0.9*n_src*fout[0];
+}
+void eval_source_density_li(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
+
+  struct gk_app_ctx *app = ctx;
+  double n_src = app->n_src;
+  double Ls = app->Lz/4.;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
+
+  double floor_src = 0.1;
+
+  if (fabs(z) < Ls) {
+    fout[0] = GKYL_MAX2(exp(-pow(x-xmu_src,2)/(pow(2*xsigma_src,2))), floor_src);
+  } else {
+    fout[0] = 1.e-40;
+  }
+  fout[0] = 0.05*n_src*fout[0];
+}
 
 void eval_source_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -106,8 +144,29 @@ void eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRI
     fout[0] = nPeak/2.;
   }
 }
+void eval_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
 
-void eval_density_Li(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+  struct gk_app_ctx *app = ctx;
+  double n0 = app->n0;
+  double Ls = app->Lz/4.;
+  double mi = app->massIon;
+  double xnCenterZ[] = {xn[0], xn[1], 0.};
+  double n_src[1];
+  eval_source_density(t, xnCenterZ, n_src, ctx);
+  double T_src[1];
+  eval_source_temp(t, xnCenterZ, T_src, ctx);
+
+  double c_ss = sqrt((5./3.)*T_src[0]/mi);
+  double nPeak = 0.9*4.*sqrt(5)/3./c_ss*Ls/2.*n_src[0];
+  if (fabs(z) <= Ls) {
+    fout[0] = nPeak*(1.+sqrt(1.-pow(z/Ls,2)))/2;
+  } else {
+    fout[0] = nPeak/2.;
+  }
+}
+void eval_density_li(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
 
@@ -417,7 +476,7 @@ main(int argc, char **argv)
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_ion,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
@@ -436,7 +495,7 @@ main(int argc, char **argv)
       .projection = {
         .proj_id = GKYL_PROJ_MAXWELLIAN, 
         .ctx_density = &ctx,
-        .density = eval_source_density,
+        .density = eval_source_density_ion,
         .ctx_upar = &ctx,
         .upar= eval_source_upar,
         .ctx_temp = &ctx,
@@ -462,11 +521,24 @@ main(int argc, char **argv)
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_li,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .write_source = true,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_source_density_li,
+        .ctx_upar = &ctx,
+        .upar= eval_source_upar,
+        .ctx_temp = &ctx,
+        .temp = eval_source_temp,      
+      }, 
     },
     .react = {
       .num_react = 2,
@@ -516,6 +588,19 @@ main(int argc, char **argv)
       .upar= eval_upar,
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .write_source = true,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_source_density_li,
+        .ctx_upar = &ctx,
+        .upar= eval_source_upar,
+        .ctx_temp = &ctx,
+        .temp = eval_source_temp,      
+      }, 
     },
     .react = {
       .num_react = 2,

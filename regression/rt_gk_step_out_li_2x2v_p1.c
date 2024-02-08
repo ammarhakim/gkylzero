@@ -77,7 +77,20 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
     n = n0*1e-5;
   fout[0] = n;
 }
-
+void
+eval_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_step_ctx *app = ctx;
+  double x = xn[0], z = xn[1];
+  double n0 = app->n0;
+  double cx = app->cx;
+  double cz = app->cz;
+  double xcenter = 1.2014;
+  double n = 0.9*n0*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
+  if (n/n0 < 1e-5)
+    n = n0*1e-5;
+  fout[0] = n;
+}
 void
 eval_density_li(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -125,6 +138,34 @@ eval_density_source(double t, const double * GKYL_RESTRICT xn, double* GKYL_REST
   double cz = app->cz;
   double xcenter = 1.2014;
   double n = nsource*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
+  if (n/nsource < 1e-5)
+    n = nsource*1e-5;
+  fout[0] = n;
+}
+void
+eval_density_source_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_step_ctx *app = ctx;
+  double x = xn[0], z = xn[1];
+  double nsource = app->nsource;
+  double cx = app->cx;
+  double cz = app->cz;
+  double xcenter = 1.2014;
+  double n = 0.9*nsource*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
+  if (n/nsource < 1e-5)
+    n = nsource*1e-5;
+  fout[0] = n;
+}
+void
+eval_density_source_li(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_step_ctx *app = ctx;
+  double x = xn[0], z = xn[1];
+  double nsource = app->nsource;
+  double cx = app->cx;
+  double cz = app->cz;
+  double xcenter = 1.2014;
+  double n = 0.05*nsource*exp(-(x-xcenter)*(x-xcenter)/2/cx/cx) * exp(-z*z/2/cz/cz);
   if (n/nsource < 1e-5)
     n = nsource*1e-5;
   fout[0] = n;
@@ -214,7 +255,7 @@ create_ctx(void)
   double vpar_max_Li = 4.0*vtLi;
   double mu_max_Li = (3./2.)*0.5*mi*pow(4.0*vtLi,2)/(2.0*B0);
 
-  double finalTime = 1.0e-8; 
+  double finalTime = 1.0e-7; 
   double numFrames = 1;
 
   struct gk_step_ctx ctx = {
@@ -361,7 +402,7 @@ main(int argc, char **argv)
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_ion,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
@@ -380,7 +421,7 @@ main(int argc, char **argv)
       .projection = {
         .proj_id = GKYL_PROJ_MAXWELLIAN, 
         .ctx_density = &ctx,
-        .density = eval_density_source,
+        .density = eval_density_source_ion,
         .ctx_upar = &ctx,
         .upar= eval_upar_source,
         .ctx_temp = &ctx,
@@ -412,11 +453,24 @@ main(int argc, char **argv)
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_li,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .write_source = true,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_density_source_li,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_source,      
+      }, 
     },
     .react = {
       .num_react = 2,
@@ -462,11 +516,24 @@ main(int argc, char **argv)
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_li,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .write_source = true,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_density_source_li,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_source,      
+      }, 
     },
     .react = {
       .num_react = 2,

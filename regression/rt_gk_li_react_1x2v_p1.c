@@ -52,6 +52,36 @@ void eval_source_density(double t, const double * GKYL_RESTRICT xn, double* GKYL
   }
   fout[0] = n_src*fout[0];
 }
+void eval_source_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double z = xn[0];
+
+  struct gk_app_ctx *app = ctx;
+  double n_src = app->n_src;
+  double Ls = app->Lz/4.;
+
+  if (fabs(z) < Ls) {
+    fout[0] = 1.;
+  } else {
+    fout[0] = 1.e-40;
+  }
+  fout[0] = 0.9*n_src*fout[0];
+}
+void eval_source_density_li(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double z = xn[0];
+
+  struct gk_app_ctx *app = ctx;
+  double n_src = app->n_src;
+  double Ls = app->Lz/4.;
+
+  if (fabs(z) < Ls) {
+    fout[0] = 1.;
+  } else {
+    fout[0] = 1.e-40;
+  }
+  fout[0] = 0.05*n_src*fout[0];
+}
 
 void eval_source_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -85,7 +115,26 @@ void eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRI
     fout[0] = nPeak/2.;
   }
 }
-void eval_density_Li(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+void eval_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double z = xn[0];
+
+  struct gk_app_ctx *app = ctx;
+  double n0 = app->n0;
+  double Ls = app->Lz/4.;
+  double mi = app->massIon;
+  double n_src = app->n_src;
+  double T_src = app->T_src;
+
+  double c_ss = sqrt((5./3.)*T_src/mi);
+  double nPeak = 0.9*4.*sqrt(5)/3./c_ss*Ls/2.*n_src;
+  if (fabs(z) <= Ls) {
+    fout[0] = nPeak*(1.+sqrt(1.-pow(z/Ls,2)))/2;
+  } else {
+    fout[0] = nPeak/2.;
+  }
+}
+void eval_density_li(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double z = xn[0];
 
@@ -341,12 +390,12 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { NV, NMU },
-    .polarization_density = ctx.n0,
+    .polarization_density = 0.9*ctx.n0,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_ion,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
@@ -365,7 +414,7 @@ main(int argc, char **argv)
       .projection = {
         .proj_id = GKYL_PROJ_MAXWELLIAN, 
         .ctx_density = &ctx,
-        .density = eval_source_density,
+        .density = eval_source_density_ion,
         .ctx_upar = &ctx,
         .upar= eval_source_upar,
         .ctx_temp = &ctx,
@@ -390,11 +439,24 @@ main(int argc, char **argv)
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_li,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .write_source = true,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_source_density_li,
+        .ctx_upar = &ctx,
+        .upar= eval_source_upar,
+        .ctx_temp = &ctx,
+        .temp = eval_source_temp,      
+      }, 
     },
     .react = {
       .num_react = 2,
@@ -439,11 +501,24 @@ main(int argc, char **argv)
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_li,
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .write_source = true,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_source_density_li,
+        .ctx_upar = &ctx,
+        .upar= eval_source_upar,
+        .ctx_temp = &ctx,
+        .temp = eval_source_temp,      
+      }, 
     },
     .react = {
       .num_react = 2,
