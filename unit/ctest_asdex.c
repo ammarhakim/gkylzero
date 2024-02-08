@@ -88,7 +88,7 @@ test_fixed_z()
 
   struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
-      .filepath = "./efit_data/asdex.geqdsk",
+      .filepath = "./data/eqdsk/asdex.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
       .plate_spec = false,
@@ -143,12 +143,12 @@ test_shaped_plate()
 
   struct gkyl_tok_geo_efit_inp inp = {
       // psiRZ and related inputs
-      .filepath = "./efit_data/asdex.geqdsk",
+      .filepath = "./data/eqdsk/asdex.geqdsk",
       .rzpoly_order = 2,
       .fluxpoly_order = 1,
-      .plate_spec = true,
-      .plate_func_lower = shaped_pfunc_lower,
-      .plate_func_upper = shaped_pfunc_upper,
+      .plate_spec = false,
+      //.plate_func_lower = shaped_pfunc_lower,
+      //.plate_func_upper = shaped_pfunc_upper,
       .quad_param = {  .eps = 1e-10 }
     };
 
@@ -175,8 +175,8 @@ test_shaped_plate()
     .rleft = 0.7,
     .zmin = -1.3,
     .zmax = 1.0,
-    .zmin_left = -1.3,
-    .zmin_right = -1.3,
+    .zmin_left = -1.2,
+    .zmin_right = -1.0,
     .write_node_coord_array = true,
     .node_file_nm = "asdex_shaped_plate_nodes.gkyl"
   }; 

@@ -35,9 +35,11 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect
 
   //struct gkyl_array* mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
   // bmag, metrics and derived geo quantities
+  up->mc2p= gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->range_ext.volume);
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
   up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
+  up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
   up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
@@ -65,9 +67,11 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect
   struct gkyl_deflate_geo* deflator = gkyl_deflate_geo_new(&up_3d->basis, &up->basis, &up_3d->grid, &up->grid, rem_dirs, false);
 
   //gkyl_deflate_geo_advance(deflator, up_3d->range, up->range, mc2p, mc2p, 3); // mc2p is not currently stored. fix later so we can deflate
+  gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->mc2p, up->mc2p, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->bmag, up->bmag, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->g_ij, up->g_ij, 6);
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->dxdz, up->dxdz, 9);
+  gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->dzdx, up->dzdx, 9);
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->jacobgeo, up->jacobgeo, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->jacobgeo_inv, up->jacobgeo_inv, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->gij, up->gij, 6);
@@ -83,16 +87,18 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->gxzj, up->gxzj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->range, &up->range, up_3d->eps2, up->eps2, 1);
   // Done deflating
+  gkyl_deflate_geo_release(deflator);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
                    //
-  //gkyl_grid_sub_array_write(&up->grid, &up->range, mc2p, "mapc2p.gkyl");
+  gkyl_grid_sub_array_write(&up->grid, &up->range, up->mc2p, "mapc2p.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->bmag, "bmag.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->g_ij, "g_ij.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->dxdz, "dxdz.gkyl");
+  gkyl_grid_sub_array_write(&up->grid, &up->range, up->dzdx, "dzdx.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->jacobgeo, "jacobgeo.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->jacobgeo_inv, "jacogeo_inv.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->gij, "gij.gkyl");
@@ -115,10 +121,13 @@ void
 gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
 {
   struct gk_geometry *up = container_of(ref, struct gk_geometry, ref_count);
+  gkyl_array_release(up->mc2p);
   gkyl_array_release(up->bmag);
   gkyl_array_release(up->g_ij);
   gkyl_array_release(up->jacobgeo);
   gkyl_array_release(up->jacobgeo_inv);
+  gkyl_array_release(up->dxdz);
+  gkyl_array_release(up->dzdx);
   gkyl_array_release(up->gij);
   gkyl_array_release(up->b_i);
   gkyl_array_release(up->cmag);

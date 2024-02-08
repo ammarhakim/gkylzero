@@ -45,7 +45,7 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_ran
   up->parnum_cells = up->par_range.volume;
 
   // Range of perpendicular cells.
-  gkyl_range_shorten(&up->perp_range, up->solve_range, up->pardir, 1);
+  gkyl_range_shorten_from_above(&up->perp_range, up->solve_range, up->pardir, 1);
 
   // 1D range of parallel cells.
   int lower1d[] = {up->par_range.lower[up->pardir]}, upper1d[] = {up->par_range.upper[up->pardir]};
@@ -225,8 +225,8 @@ void gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
 #else
   gkyl_superlu_prob_release(up->prob);
 #endif
+  gkyl_array_release(up->brhs);
   gkyl_free(up->globalidx);
-  gkyl_free(up->brhs);
   gkyl_free(up->kernels);
   gkyl_free(up);
 }
