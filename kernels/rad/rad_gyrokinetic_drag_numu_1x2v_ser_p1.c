@@ -18,7 +18,8 @@ GKYL_CU_DH void rad_gyrokinetic_drag_numu_1x2v_ser_p1(const double *w, const dou
   const double wvpar_sq = wvpar*wvpar, dvpar_sq = dvpar*dvpar; 
 
   double scaled_v0 = v0/sqrt(mass/(2.0*fabs(charge)));
-  double c_const = 8.0*sqrt(M_PI)*pow(fabs(charge),5.0/2.0)/mass;
+  //double c_const = 8.0*sqrt(M_PI)*pow(fabs(charge),5.0/2.0)/mass/pow(mass/(2*fabs(charge)),gamma/2.0);
+  double c_const = 8.0*sqrt(M_PI)*pow(fabs(charge),5.0/2.0)/mass/pow(mass/(2*fabs(charge)),gamma/2.0)*mass/(M_PI*pow(fabs(charge),3.0/2.0));
   double const_mult = a*(alpha+beta)/c_const;
   double vmag = 0.0;
   double vmag_surf = 0.0;

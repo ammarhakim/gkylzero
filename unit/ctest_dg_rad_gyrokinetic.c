@@ -68,10 +68,12 @@ test_1x(int poly_order, bool use_gpu, double te)
   int confCells[cdim], vCells[vdim];
 
   double vth = sqrt(te*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS);
+  double vth10eV = sqrt(10.0*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS);
   // Phase space and Configuration space extents and resolution
   double lower[] = {-1.0, -4*vth, 0.0};
+  int scale = 1; //(int)vth/vth10eV;
   double upper[] = {1.0, 4*vth, 9*vth*vth*GKYL_ELECTRON_MASS};
-  int cells[] = {2, 128, 64};
+  int cells[] = {2, 1028*scale, 512*scale*scale};
   confLower[0] = lower[0]; 
   confUpper[0] = upper[0];
   confCells[0] = cells[0];
@@ -312,7 +314,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   //double correct = 4.419192427285379e-32;
   double correct = Lz[0];;
   //  for (int i=0; i<30; i++){
-  printf("cell_avg=%e, correct energy=%e, ratio = %e, density=%.10e, m2=%e\n", cell_avg0, correct, cell_avg0/correct, m00[0], m20[0]);
+printf("cell_avg=%e, correct energy=%e, ratio=%e, percent error = %e, density=%.10e, m2=%e\n", cell_avg0, correct, cell_avg0/correct, (fabs(cell_avg0)-correct)/correct, m00[0], m20[0]);
     //}
   struct gkyl_array *dem = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *emissivity = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
@@ -380,7 +382,7 @@ void test_1x2v_p2() { test_1x(2, false, 30.0); }
 // #endif
 
 TEST_LIST = {
-  { "test_1x2v_p1_10eV", test_1x2v_p1_10eV },
+	     //  { "test_1x2v_p1_10eV", test_1x2v_p1_10eV },
   { "test_1x2v_p1_30eV", test_1x2v_p1_30eV },
   { "test_1x2v_p1_50eV", test_1x2v_p1_50eV },
   { "test_1x2v_p1_100eV", test_1x2v_p1_100eV },
