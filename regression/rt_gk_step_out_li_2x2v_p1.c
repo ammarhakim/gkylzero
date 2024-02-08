@@ -214,7 +214,7 @@ create_ctx(void)
   double vpar_max_Li = 4.0*vtLi;
   double mu_max_Li = (3./2.)*0.5*mi*pow(4.0*vtLi,2)/(2.0*B0);
 
-  double finalTime = 1.0e-6; 
+  double finalTime = 1.0e-8; 
   double numFrames = 1;
 
   struct gk_step_ctx ctx = {

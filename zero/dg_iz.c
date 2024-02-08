@@ -246,14 +246,3 @@ gkyl_dg_iz_release(struct gkyl_dg_iz* up)
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc_vtSq);
   free(up);
 }
-
-/* #ifndef GKYL_HAVE_CUDA */
-
-/* struct gkyl_dg_iz* */
-/* gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp) */
-/* { */
-/*   assert(false); */
-/*   return 0; */
-/* } */
-
-/* #endif */
