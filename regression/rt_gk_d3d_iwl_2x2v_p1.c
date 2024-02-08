@@ -444,8 +444,8 @@ create_ctx(void)
   // Grid parameters
   int num_cell_x = 48;
   int num_cell_z = 32;
-  int num_cell_vpar = 16;
-  int num_cell_mu = 8;
+  int num_cell_vpar = 24;
+  int num_cell_mu = 16;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;

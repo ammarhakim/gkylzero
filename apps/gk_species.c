@@ -545,12 +545,14 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) 
+    if ((s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) ||
+        (s->lower_bc[d].type == GKYL_SPECIES_GK_IWL))
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
     else 
       gkyl_bc_basic_release(s->bc_lo[d]);
     
-    if (s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) 
+    if ((s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) ||
+        (s->upper_bc[d].type == GKYL_SPECIES_GK_IWL))
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
     else 
       gkyl_bc_basic_release(s->bc_up[d]);
