@@ -52,13 +52,14 @@ gkyl_dg_updater_diffusion_gyrokinetic_new(const struct gkyl_rect_grid *grid,
 
 void
 gkyl_dg_updater_diffusion_gyrokinetic_advance(struct gkyl_dg_updater_diffusion_gyrokinetic *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *coeff,
+  const struct gkyl_range *update_rng, const struct gkyl_array *coeff, const struct gkyl_array *jacobgeo_inv,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   // Set arrays needed and call the specific advance method required
-  gkyl_dg_diffusion_gyrokinetic_set_auxfields(up->dgeqn, (struct gkyl_dg_diffusion_gyrokinetic_auxfields) { .D = coeff });
+  gkyl_dg_diffusion_gyrokinetic_set_auxfields(up->dgeqn, (struct gkyl_dg_diffusion_gyrokinetic_auxfields) {
+    .D = coeff, .jacobgeo_inv = jacobgeo_inv });
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     gkyl_hyper_dg_advance_cu(up->hyperdg, update_rng, fIn, cflrate, rhs);
