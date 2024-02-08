@@ -294,13 +294,13 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
         &s->upper_skin[d], &s->upper_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
     else if (s->lower_bc[d].type == GKYL_SPECIES_GK_IWL) {
-      double xLCFS = s->lower_bc[d].aux_parameter;
+      double xLCFS = s->upper_bc[d].aux_parameter;
       // Index of the cell that abuts the xLCFS from below.
       int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
       gkyl_range_shorten_from_below(&s->upper_skin_par_sol, &s->upper_skin[d], 0, app->grid.cells[0]-idxLCFS_m+1);
       gkyl_range_shorten_from_below(&s->upper_ghost_par_sol, &s->upper_ghost[d], 0, app->grid.cells[0]-idxLCFS_m+1);
 
-      s->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, app->basis_on_dev.basis, 
+      s->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, app->basis_on_dev.basis, 
         &s->upper_skin_par_sol, &s->upper_ghost_par_sol, &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
     else {
