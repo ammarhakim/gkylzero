@@ -53,6 +53,10 @@ struct gkyl_tok_geo_efit_inp inp = {
 struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
+    .rright= 6.2,
+    .rleft= 2.0,
+    .rmin = 1.1,
+    .rmax = 6.2,
     .zmin = -5.14213,
     .zmax = 5.14226,
     .write_node_coord_array = true,
@@ -526,8 +530,8 @@ main(int argc, char **argv)
     .num_periodic_dir = 0,
     .periodic_dirs = {  },
 
-    .num_species = 2,
-    .species = { elc, ion },
+    .num_species = 4,
+    .species = { elc, ion, Li1, Li2 },
     .field = field,
 
     .use_gpu = app_args.use_gpu,
