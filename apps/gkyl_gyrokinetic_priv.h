@@ -516,7 +516,10 @@ struct gk_field {
   enum gkyl_gkfield_id gkfield_id;
 
   struct gkyl_job_pool *job_pool; // Job pool  
-  struct gkyl_array *rho_c, *rho_c_smooth; // arrays for charge density and smoothed charge density
+  // arrays for local charge density, global charge density, and global smoothed (in z) charge density
+  struct gkyl_array *rho_c;
+  struct gkyl_array *rho_c_global_dg;
+  struct gkyl_array *rho_c_global_smooth; 
   struct gkyl_array *phi_fem, *phi_smooth; // arrays for updates
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization

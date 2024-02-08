@@ -208,6 +208,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.get_rank = get_rank;
   comm->base.get_size = get_size;
   comm->base.all_reduce = all_reduce;
+  comm->base.gkyl_array_all_gather = array_all_gather;
   comm->base.gkyl_array_sync = array_sync;
   comm->base.gkyl_array_per_sync = array_per_sync;
   comm->base.barrier = barrier;
