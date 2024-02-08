@@ -1,4 +1,4 @@
-Maximum atomic number in file=2, Number of elements=2
+Maximum atomic number in file=3, Number of elements=2
 ***Atomic number=1; Number of charge states=1
 **Charge state=1, Number of density intervals=1
 1.900000e+01 5.574609e-32 8.000000e+03 7.987639e-01 3.520172e+00 -1.389108e+00 29

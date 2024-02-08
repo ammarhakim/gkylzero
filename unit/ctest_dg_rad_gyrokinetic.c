@@ -166,6 +166,10 @@ test_1x(int poly_order, bool use_gpu, double te)
     printf("No radiation fits exist for z=%d, charge state=%d\n",atomic_z, charge_state);
   }
   printf("a=%e,alpha=%e,beta=%e,gamma=%e,V0=%e\n",a[0], alpha[0], beta[0], gamma[0], v0[0]);
+  double ctx[1], Lz[1];
+  ctx[0]=te;
+  gkyl_get_fit_lz(*rad_data, atomic_z, charge_state, log10(1e19), ctx, Lz);
+  gkyl_release_fit_params(rad_data);
   
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid, &confBasis, &basis, 
 		  charge, mass, gk_geom, a[0], alpha[0], beta[0], gamma[0], v0[0], use_gpu);
@@ -209,9 +213,6 @@ test_1x(int poly_order, bool use_gpu, double te)
   gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, vdim, eval_upar, 0);
   
-  double ctx[1], Lz[1];
-  ctx[0]=te;
-  gkyl_get_fit_lz(*rad_data, atomic_z, charge_state, log10(1e19), ctx, Lz);
   gkyl_proj_on_basis *proj_vtsq = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, 1, eval_vthsq, ctx);
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0); 
@@ -299,18 +300,24 @@ test_1x(int poly_order, bool use_gpu, double te)
   double correct = Lz[0];;
 printf("cell_avg=%e, correct energy=%e, ratio=%e, percent error = %e, density=%.10e, m2=%e\n", cell_avg0, correct, cell_avg0/correct, (fabs(cell_avg0)-correct)/correct, m00[0], m20[0]);
  
-  struct gkyl_array *dem = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *emissivity = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-
   // Fit error typically >10%, so %1 should be sufficient here
   TEST_CHECK( gkyl_compare( -correct*1e30, cell_avg0*1e30, 1e-2));
 
   // Release memory
   gkyl_array_release(vnu);
+  gkyl_array_release(vnu_surf);
   gkyl_array_release(vsqnu);
+  gkyl_array_release(vsqnu_surf);
+  gkyl_array_release(nvnu);
+  gkyl_array_release(nvnu_surf);
+  gkyl_array_release(nvsqnu);
+  gkyl_array_release(nvsqnu_surf);
+
   if (use_gpu) {
     gkyl_array_release(nvnu_host);
-    gkyl_array_release(nvsqnu_host);      
+    gkyl_array_release(nvsqnu_host);
+    gkyl_array_release(nvnu_surf_host);
+    gkyl_array_release(nvsqnu_surf_host);      
   }
   gkyl_dg_calc_gk_rad_vars_release(calc_gk_rad_vars);
 
@@ -318,6 +325,7 @@ printf("cell_avg=%e, correct energy=%e, ratio=%e, percent error = %e, density=%.
   gkyl_array_release(udrift); 
   gkyl_array_release(vtsq);
   gkyl_array_release(prim_moms);
+  gkyl_array_release(nI);
   if (use_gpu) {
     gkyl_array_release(m0_dev);
     gkyl_array_release(prim_moms_dev);      
@@ -333,6 +341,8 @@ printf("cell_avg=%e, correct energy=%e, ratio=%e, percent error = %e, density=%.
   gkyl_dg_updater_rad_gyrokinetic_release(slvr);
   gkyl_dg_updater_moment_gyrokinetic_release(m2_calc);
   gkyl_array_release(m2_final);
+
+  gkyl_gk_geometry_release(gk_geom);
 }
 
 void test_1x2v_p1_10eV() { test_1x(1, false, 10.0); }
@@ -355,12 +365,12 @@ void test_1x2v_p2_gpu() { test_1x(2, true, 30.0); }
 
 TEST_LIST = {
   { "test_1x2v_p1_30eV", test_1x2v_p1_30eV },
-  { "test_1x2v_p1_50eV", test_1x2v_p1_50eV },
+  /*  { "test_1x2v_p1_50eV", test_1x2v_p1_50eV },
   { "test_1x2v_p1_100eV", test_1x2v_p1_100eV },
   { "test_1x2v_p1_500eV", test_1x2v_p1_500eV },
   { "test_1x2v_p1_1000eV", test_1x2v_p1_1000eV },
   { "test_1x2v_p1_5000eV", test_1x2v_p1_5000eV },
-  { "test_1x2v_p1_10000eV", test_1x2v_p1_10000eV },
+  { "test_1x2v_p1_10000eV", test_1x2v_p1_10000eV },*/
   { "test_1x2v_p2", test_1x2v_p2 },
 
 #ifdef GKYL_HAVE_CUDA

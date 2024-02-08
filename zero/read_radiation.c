@@ -157,14 +157,17 @@ void gkyl_release_fit_params(struct all_radiation_states *rad_data){
   int max_Z = rad_data->max_atomic_number;
   for (int i=0; i<max_Z; i++){
     for (int j=0; j<max_Z; j++){
-      free(rad_data->all_states[i*max_Z+j].electron_densities);
-      for (int k=0; k<rad_data->all_states[i*max_Z+j].number_of_densities; k++){
-	free(rad_data->all_states[i*max_Z+j].rad_fits[k].te);
-	free(rad_data->all_states[i*max_Z+j].rad_fits[k].Lz);
+      if (rad_data->all_states[i*max_Z+j].state_exists) {
+	free(rad_data->all_states[i*max_Z+j].electron_densities);
+	for (int k=0; k<rad_data->all_states[i*max_Z+j].number_of_densities; k++){
+	  free(rad_data->all_states[i*max_Z+j].rad_fits[k].te);
+	  free(rad_data->all_states[i*max_Z+j].rad_fits[k].Lz);
+	}
       }
       free(rad_data->all_states[i*max_Z+j].rad_fits);
     }
   }
+  free(rad_data->all_states);
   free(rad_data);
 }
 

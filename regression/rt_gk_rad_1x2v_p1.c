@@ -132,7 +132,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 0.75*mi*(4.0*vtIon)*(4.0*vtIon)/(2.0*B0);
 
-  double finalTime = 1.0e-8; // Because it crashes at about 5e-8 
+  double finalTime = 1.0e-7; 
   double numFrames = 1;
 
   struct gk_rad_ctx ctx = {
@@ -216,19 +216,9 @@ main(int argc, char **argv)
       .radiation_id = GKYL_GK_RADIATION, 
       .num_cross_collisions = 1, 
       .collide_with = { "ion" },
-      /*.a = {0.153650876536253}, // H0 fit params
-      .alpha = {8000.006932403581},
-      .beta = {0.892102642790662},
-      .gamma = {-3.923194017288736},
-      .v0 = {3.066473173090881},*/
       .z = 1,
       .charge_state = 0,
       .num_of_densities = 1, // Must be 1 for now
-      .a = {0.4611}, // Ar0 fit params
-      .alpha = {37.9754},
-      .beta = {58.5735},
-      .gamma = {-3.874},
-      .v0 = {3.7486},
       },
     
     .num_diag_moments = 7,
