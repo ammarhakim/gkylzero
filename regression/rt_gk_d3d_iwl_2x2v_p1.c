@@ -290,24 +290,30 @@ void temp_ion_srcGB(double t, const double * GKYL_RESTRICT xn, double* GKYL_REST
 void density_init(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], z = xn[1];
-  fout[0] = 2.2e19*(0.5*(1.+tanh(2.*(2.-25.*x)))+0.01);
+
+  struct gk_app_ctx *app = ctx;
+  double n0 = app->n0;
+
+  fout[0] = n0*1.1*(0.5*(1.+tanh(2.*(2.-25.*x)))+0.01);
 }
 void temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
+  double x = xn[0], z = xn[1];
+
   struct gk_app_ctx *app = ctx;
   double Ti0 = app->Ti0;
 
-  double x = xn[0], z = xn[1];
   fout[0] = Ti0*((1/3)*(2.+tanh(2.*(2.-25.*x)))+0.01);
 }
 
 // Electron initial conditions
 void temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
+  double x = xn[0], z = xn[1];
+
   struct gk_app_ctx *app = ctx;
   double Te0 = app->Te0;
 
-  double x = xn[0], z = xn[1];
   fout[0] = Te0*((1/3)*(2.+tanh(2.*(2.-25.*x)))+0.01);
 }
 
