@@ -8,6 +8,7 @@
 // Struct definition. Used to store nodal values 
 struct gkyl_nodal_ops {
   struct gkyl_array *nodes;
+  int poly_order;
 };
 
 /**

@@ -39,27 +39,23 @@ struct gk_step_ctx {
 
 struct gkyl_tok_geo_efit_inp inp = {
   // psiRZ and related inputs
-  .filepath = "./efit_data/step.geqdsk",
+  .filepath = "./data/eqdsk/step.geqdsk",
   .rzpoly_order = 2,
   .fluxpoly_order = 1,
   .plate_spec = false,
   .quad_param = {  .eps = 1e-10 }
 };
 
-//struct gkyl_tok_geo_grid_inp ginp = {
-//  .ftype = GKYL_SOL_DN_OUT,
-//  .rclose = 6.2,
-//  .zmin = -8.3,
-//  .zmax = 8.3,
-//  .write_node_coord_array = true,
-//  .node_file_nm = "stepoutboard_nodes.gkyl"
-//}; 
 
 struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
-    .zmin = -6.14213,
-    .zmax = 6.14226,
+    .rright= 6.2,
+    .rleft= 2.0,
+    .rmin = 1.1,
+    .rmax = 6.2,
+    .zmin = -5.14213,
+    .zmax = 5.14213,
     .write_node_coord_array = true,
     .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
@@ -261,17 +257,15 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-    .ctx_density = &ctx,
-    .init_density = eval_density,
-    .ctx_upar = &ctx,
-    .init_upar= eval_upar,
-    .ctx_temp = &ctx,
-    .init_temp = eval_temp_elc,
-    .is_maxwellian = true,
-
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
-
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .ctx_density = &ctx,
+      .density = eval_density,
+      .ctx_upar = &ctx,
+      .upar= eval_upar,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_elc,      
+    },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -279,17 +273,21 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
-
     .source = {
-      .source_id = GKYL_MAXWELLIAN_SOURCE,
+      .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .ctx_density = &ctx,
-      .density_profile = eval_density_source,
-      .ctx_upar = &ctx,
-      .upar_profile = eval_upar_source,
-      .ctx_temp = &ctx,
-      .temp_profile = eval_temp_source,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_density_source,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_source,      
+      }, 
     },
+    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
@@ -304,17 +302,15 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-    .ctx_density = &ctx,
-    .init_density = eval_density,
-    .ctx_upar = &ctx,
-    .init_upar = eval_upar,
-    .ctx_temp = &ctx,
-    .init_temp = eval_temp_ion,
-    .is_maxwellian = true,
-
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
-
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .ctx_density = &ctx,
+      .density = eval_density,
+      .ctx_upar = &ctx,
+      .upar= eval_upar,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_ion,      
+    },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -322,17 +318,21 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
-
     .source = {
-      .source_id = GKYL_MAXWELLIAN_SOURCE,
+      .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .ctx_density = &ctx,
-      .density_profile = eval_density_source,
-      .ctx_upar = &ctx,
-      .upar_profile = eval_upar_source,
-      .ctx_temp = &ctx,
-      .temp_profile = eval_temp_source,
+      .projection = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_density_source,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_source,      
+      }, 
     },
+    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },

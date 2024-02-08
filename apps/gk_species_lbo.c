@@ -30,6 +30,10 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->normNu = false;
   if (s->info.collisions.normNu) {
     lbo->normNu = true;
+    lbo->self_nu_fac = s->info.collisions.self_nu_fac;
+    double tpar_min = (s->info.mass/6.0)*s->grid.dx[cdim];
+    double tperp_min = (s->info.collisions.bmag_mid/3.0)*s->grid.dx[cdim+1];
+    lbo->vtsq_min = (tpar_min + 2*tperp_min)/(3*s->info.mass);
     double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
     double eps0 = 1.0;
     double hbar = 1.0;
@@ -51,6 +55,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
   lbo->nu_prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
   lbo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  lbo->vtsq = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   lbo->m2self = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
   // Host-side copy for I/O
@@ -99,6 +104,8 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
 
   // set pointers to species we cross-collide with
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
+    if (s->info.collisions.normNu)
+      lbo->cross_nu_fac[i] = s->info.collisions.cross_nu_fac[i];
     lbo->collide_with[i] = gk_find_species(app, s->info.collisions.collide_with[i]);
     lbo->other_m[i] = lbo->collide_with[i]->info.mass;
     lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
@@ -139,6 +146,9 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
+  if (lbo->normNu)
+    gkyl_array_clear(lbo->nu_sum, 0.0);
+
   // compute needed moments
   gk_species_moment_calc(&lbo->moms, species->local, app->local, fin);
   gkyl_array_set_range(lbo->m0, 1.0, lbo->moms.marr, &app->local);
@@ -164,9 +174,20 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
       lbo->moms.marr, lbo->boundary_corrections,
       lbo->prim_moms);
   }
+
+  // Calculate self_nu if using spitzer-nu
+  if (lbo->normNu) {
+    gkyl_array_set_offset(lbo->vtsq, 1.0, lbo->prim_moms, 1*app->confBasis.num_basis);
+    gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min, lbo->m0, lbo->vtsq, lbo->vtsq_min, lbo->self_nu_fac, lbo->self_nu);
+  }
+
   // Scale upar and vth2 by nu
   for (int d=0; d<2; d++)
     gkyl_dg_mul_op(app->confBasis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
+
+
+  if (lbo->normNu)
+   gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->self_nu);
   
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
@@ -211,11 +232,20 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
         lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
         lbo->boundary_corrections, 
         lbo->cross_prim_moms[i]);
+
+    // Calculate cross nu if using spitzer nu
+    if (lbo->normNu)
+      gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min, lbo->collide_with[i]->lbo.m0, lbo->collide_with[i]->lbo.vtsq, lbo->collide_with[i]->lbo.vtsq_min, lbo->cross_nu_fac[i], lbo->cross_nu[i]);
+    
     // Scale upar_{rs} and vth2_{rs} by nu_{rs}
     for (int d=0; d<2; d++)
       gkyl_dg_mul_op(app->confBasis, d, lbo->cross_nu_prim_moms, d, lbo->cross_prim_moms[i], 0, lbo->cross_nu[i]);
 
     gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, lbo->cross_nu_prim_moms);
+
+    if (lbo->normNu)
+      gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[i]);
+
   }
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
@@ -243,6 +273,7 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
   gkyl_array_release(lbo->nu_sum);
   gkyl_array_release(lbo->nu_prim_moms);
   gkyl_array_release(lbo->m0);
+  gkyl_array_release(lbo->vtsq);
   gkyl_array_release(lbo->m2self);
 
   if (app->use_gpu) {

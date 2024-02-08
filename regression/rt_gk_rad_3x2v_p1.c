@@ -189,24 +189,24 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-    .ctx_density = &ctx,
-    .init_density = eval_density,
-    .ctx_upar = &ctx,
-    .init_upar= eval_upar,
-    .ctx_temp = &ctx,
-    .init_temp = eval_temp_elc,
-    .is_maxwellian = true,
-
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-
-    .collisions = {
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .ctx_density = &ctx,
+      .density = eval_density,
+      .ctx_upar = &ctx,
+      .upar= eval_upar,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_elc,      
+    },
+    .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
+    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
 
     .radiation = {
       .radiation_id = GKYL_GK_RADIATION, 
@@ -232,17 +232,15 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-    .ctx_density = &ctx,
-    .init_density = eval_density,
-    .ctx_upar = &ctx,
-    .init_upar = eval_upar,
-    .ctx_temp = &ctx,
-    .init_temp = eval_temp_ion,
-    .is_maxwellian = true,
-
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
-
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .ctx_density = &ctx,
+      .density = eval_density,
+      .ctx_upar = &ctx,
+      .upar= eval_upar,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_ion,      
+    },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -250,6 +248,8 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
+    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },

@@ -65,12 +65,13 @@ gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl
   gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
   struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*13, nrange.volume);
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  struct gkyl_array* mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
+  up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
 
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
   up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
+  up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
   up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
   up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
@@ -93,28 +94,33 @@ gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl
   struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(inp);
   // calculate mapc2p
   gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, 
-    mc2p_nodal_fd, mc2p_nodal, mc2p);
+    mc2p_nodal_fd, mc2p_nodal, up->mc2p);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-  gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, mc2p, false);
+  gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, up->mc2p, false);
+  gkyl_calc_bmag_release(bcalculator);
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, false);
-  gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, &up->range);
+  gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, &up->range);
+  gkyl_calc_metric_release(mcalc);
+
   // calculate the derived geometric quantities
-  gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
-  gkyl_calc_derived_geo_advance( jcalculator, &up->range, up->g_ij, up->bmag, 
+  struct gkyl_calc_derived_geo *jcalculator = gkyl_calc_derived_geo_new(&up->basis, &up->grid, false);
+  gkyl_calc_derived_geo_advance(jcalculator, &up->range, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
+  gkyl_calc_derived_geo_release(jcalculator);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
                    
-  gkyl_grid_sub_array_write(&up->grid, &up->range, mc2p, "mapc2p.gkyl");
+  gkyl_grid_sub_array_write(&up->grid, &up->range, up->mc2p, "mapc2p.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->bmag, "bmag.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->g_ij, "g_ij.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->dxdz, "dxdz.gkyl");
+  gkyl_grid_sub_array_write(&up->grid, &up->range, up->dzdx, "dzdx.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->jacobgeo, "jacobgeo.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->jacobgeo_inv, "jacogeo_inv.gkyl");
   gkyl_grid_sub_array_write(&up->grid, &up->range, up->gij, "gij.gkyl");
@@ -132,7 +138,6 @@ gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl
 
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
-  gkyl_array_release(mc2p);
 
   return up;
 }

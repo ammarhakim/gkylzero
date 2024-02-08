@@ -19,7 +19,7 @@ gkyl_deflate_zsurf_advance_cu_kernel(const struct gkyl_deflate_zsurf *up, int zi
   const struct gkyl_array* field, struct gkyl_array* deflated_field, int ncomp) 
 {
   int idx[GKYL_MAX_DIM];
-  int do_idx[2];
+  int do_idx[3];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < deflated_range.volume;
       linc1 += gridDim.x*blockDim.x)
@@ -29,8 +29,9 @@ gkyl_deflate_zsurf_advance_cu_kernel(const struct gkyl_deflate_zsurf *up, int zi
     // since deflated_range is a subrange
     gkyl_sub_range_inv_idx(&deflated_range, linc1, idx);
 
-    do_idx[0] = idx[0];
-    do_idx[1] = zidx;
+    for(int i = 0; i < up->cdim-1; i++)
+      do_idx[i] = idx[i];
+    do_idx[up->cdim-1] = zidx;
     long linc = gkyl_range_idx(&range, do_idx);
     const double *fld = (const double*) gkyl_array_cfetch(field, linc);
 
@@ -61,7 +62,7 @@ __global__ static void
 deflate_zsurf_set_cu_dev_ptrs(struct gkyl_deflate_zsurf *up, enum gkyl_basis_type b_type,
   int edge, int poly_order)
 {
-  up->kernel = deflate_zsurf_choose_kernel(b_type, edge, poly_order); // edge = 0,1 = lo, up
+  up->kernel = deflate_zsurf_choose_kernel(b_type, up->cdim, edge, poly_order); // edge = 0,1 = lo, up
 }
 
 struct gkyl_deflate_zsurf* 
@@ -71,6 +72,7 @@ gkyl_deflate_zsurf_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl
 
   up->num_basis = cbasis->num_basis;
   up->num_deflated_basis = deflated_cbasis->num_basis;
+  up->cdim = cbasis->ndim;
 
   int poly_order = cbasis->poly_order;
   enum gkyl_basis_type b_type = cbasis->b_type;
