@@ -361,11 +361,11 @@ eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   double Ti_par_m = app->Ti_par_m;
   if (fabs(z) <= z_m)
   {
-    fout[0] = Ti_par_m+(Ti_par0-Ti_par_m)*tanh(4 * fabs(z_m - fabs(z)));
+    fout[0] = Ti_par_m + (Ti_par0 - Ti_par_m) * tanh(4 * fabs(z_m - fabs(z)));
   }
   else
   {
-    fout[0] = Ti_par_m;
+    fout[0] = Ti_par_m * GKYL_MAX2(1.e-2, 4 * log(fabs(fabs(z) - z_m) + 1));
   }
 }
 
@@ -380,7 +380,7 @@ eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   double Ti_perp_m = app->Ti_perp_m;
   if (fabs(z) <= z_m)
   {
-    fout[0] = Ti_perp_m - Ti_perp0*tanh(3.*fabs(z_m-fabs(z)));
+    fout[0] = Ti_perp_m + (Ti_perp0 - Ti_perp_m) * tanh(3. * fabs(z_m - fabs(z)));
   }
   else
   {
@@ -496,8 +496,8 @@ create_ctx(void)
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
   int num_cell_z = 128;
   int poly_order = 1;
-  double final_time = 100e-6;
-  int num_frames = 100;
+  double final_time = 300e-6;
+  int num_frames = 300;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx
   double B_bt = 1.058278;
@@ -516,6 +516,7 @@ create_ctx(void)
   double Ti_perp_m = 15000 * eV;
   double Ti_par0 = 7500 * eV;
   double Ti_par_m = 1000 * eV;
+
   double Te_par0 = 1800 * eV;  
   double Te_par_m = 300 * eV;
   double Te_perp0 = 2000 * eV;
@@ -670,7 +671,7 @@ int main(int argc, char **argv)
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
       };
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_wham_1x2v_p1_adiabatic",
+    .name = "outputs/gk_wham_1x2v_p1_adiabatic",
     .cdim = 1,
     .vdim = 2,
     .lower = {ctx.z_min},
