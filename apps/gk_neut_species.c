@@ -78,31 +78,33 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   else 
     s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
 
-  // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
-  struct gkyl_basis surf_basis, surf_quad_basis;
-  gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
-  gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
+  if (!s->info.is_static) {
+    // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
+    struct gkyl_basis surf_basis, surf_quad_basis;
+    gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
+    gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
 
-  // always 3v
-  int alpha_surf_sz = 3*surf_basis.num_basis; 
-  int sgn_alpha_surf_sz = 3*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
+    // always 3v
+    int alpha_surf_sz = 3*surf_basis.num_basis; 
+    int sgn_alpha_surf_sz = 3*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
 
-  // allocate arrays to store fields: 
-  // 1. alpha_surf (surface phase space flux)
-  // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
-  // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
-  s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
-  s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
-  s->const_sgn_alpha = mk_int_arr(app->use_gpu, 3, s->local_ext.volume);
-  // 4. cotangent vectors e^i = g^ij e_j 
-  s->cot_vec = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
+    // allocate arrays to store fields: 
+    // 1. alpha_surf (surface phase space flux)
+    // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
+    // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
+    s->alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
+    s->sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
+    s->const_sgn_alpha = mk_int_arr(app->use_gpu, 3, s->local_ext.volume);
+    // 4. cotangent vectors e^i = g^ij e_j 
+    s->cot_vec = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
 
-  // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
-  struct gkyl_dg_calc_vlasov_gen_geo_vars *calc_vars = gkyl_dg_calc_vlasov_gen_geo_vars_new(&s->grid, 
-    &app->confBasis, &app->basis, app->gk_geom, app->use_gpu);
-  gkyl_dg_calc_vlasov_gen_geo_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, 
-    s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
-  gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(calc_vars, &app->local, s->cot_vec);
+    // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
+    struct gkyl_dg_calc_vlasov_gen_geo_vars *calc_vars = gkyl_dg_calc_vlasov_gen_geo_vars_new(&s->grid, 
+      &app->confBasis, &app->basis, app->gk_geom, app->use_gpu);
+    gkyl_dg_calc_vlasov_gen_geo_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, 
+      s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+    gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(calc_vars, &app->local, s->cot_vec);
+  }
 
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
@@ -131,16 +133,18 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     }
   }
 
+  if (!s->info.is_static) {
     struct gkyl_dg_vlasov_auxfields aux_inp = {.field = 0, .cot_vec = s->cot_vec, 
       .alpha_surf = s->alpha_surf, .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha };
-  // Set field type and model id for neutral species in GK system and create solver
-  s->field_id = GKYL_FIELD_NULL;
-  s->model_id = GKYL_MODEL_GEN_GEO;
-  s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->neut_basis, 
-    &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+    // Set field type and model id for neutral species in GK system and create solver
+    s->field_id = GKYL_FIELD_NULL;
+    s->model_id = GKYL_MODEL_GEN_GEO;
+    s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->neut_basis, 
+      &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
 
-  // acquire equation object
-  s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
+    // acquire equation object
+    s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
+  }
 
   // allocate date for density 
   gk_neut_species_moment_init(app, s, &s->m0, "M0");
@@ -254,22 +258,26 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
-    fin, species->cflrate, rhs);
+  double omegaCfl = 1/DBL_MAX;
 
-  app->stat.nspecies_omega_cfl +=1;
-  struct timespec tm = gkyl_wall_clock();
-  gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
+  if (!species->info.is_static) {
+    gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
+      fin, species->cflrate, rhs);
 
-  double omegaCfl_ho[1];
-  if (app->use_gpu)
-    gkyl_cu_memcpy(omegaCfl_ho, species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
-    omegaCfl_ho[0] = species->omegaCfl_ptr[0];
-  double omegaCfl = omegaCfl_ho[0];
+    app->stat.nspecies_omega_cfl +=1;
+    struct timespec tm = gkyl_wall_clock();
+    gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
 
-  app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
-  
+    double omegaCfl_ho[1];
+    if (app->use_gpu)
+      gkyl_cu_memcpy(omegaCfl_ho, species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    else
+      omegaCfl_ho[0] = species->omegaCfl_ptr[0];
+    omegaCfl = omegaCfl_ho[0];
+
+    app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+  }
+
   return app->cfl/omegaCfl;
 }
 

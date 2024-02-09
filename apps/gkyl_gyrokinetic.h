@@ -187,6 +187,8 @@ struct gkyl_gyrokinetic_neut_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
+  bool is_static; // set to true if neutral species does not change in time
+
   // initial conditions using projection routine
   struct gkyl_gyrokinetic_projection projection;
 
