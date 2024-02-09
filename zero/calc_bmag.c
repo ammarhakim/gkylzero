@@ -172,11 +172,7 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
     double scale_factorZ = 2.0/(up->pgrid->dx[1]);
     up->kernel(psibyrall,psibyr2_i, bphi_i, bmag_i, scale_factorR, scale_factorZ);
   }
-if (bmag_comp_ctx == NULL)
-  {
-    return;
-  }
-  else
+  if (!(bmag_comp_ctx == NULL))
   {
     struct bmag_ctx *b_ctx = bmag_comp_ctx;
     b_ctx->grid = up->pgrid;

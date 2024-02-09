@@ -50,7 +50,7 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   .zmin = -2.48,
   .zmax =  2.48,
   .write_node_coord_array = true,
-  .node_file_nm = "bmag.gkyl",
+  .node_file_nm = "wham-nodes.gkyl",
   .nonuniform_mapping_fraction = 0.7,
 };
 
@@ -336,7 +336,6 @@ test_uniform_grid()
   struct gkyl_array* mapc2p = gkyl_grid_array_new_from_file(&grid, "mapc2p.gkyl");
 
   // Look at values inside the mapc2p file
-  printf("Component 0\n")
   for (int i = 0; i < local.volume; i++)
   {
     double *mapc2p_data = gkyl_array_fetch(mapc2p, i);

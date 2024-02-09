@@ -48,8 +48,6 @@ struct gk_mirror_ctx
   double kperp; // Perpendicular wavenumber in SI units.
   double RatZeq0; // Radius of the field line at Z=0.
   // Axial coordinate Z extents. Endure that Z=0 is not on
-  double Z_min;
-  double Z_max;
   double z_min;
   double z_max;
   double psi_eval;
@@ -466,12 +464,8 @@ create_ctx(void)
 
   // Geometry parameters.
   double RatZeq0 = 0.10; // Radius of the field line at Z=0.
-  // Axial coordinate Z extents. Endure that Z=0 is not on
-  // the boundary of a cell (due to AD errors).
-  double Z_min = -2.48;
-  double Z_max = 2.48;
-  double z_min = -2.515312;
-  double z_max = 2.515312;
+  double z_min = -M_PI + 1e-1;
+  double z_max = M_PI - 1e-1;
   double psi_eval = 0.0026530898059565;
 
   // Parameters controlling the magnetic equilibrium model.
@@ -526,8 +520,6 @@ create_ctx(void)
   double Te_par_m = 300 * eV;
   double Te_perp0 = 2000 * eV;
   double Te_perp_m = 3000 * eV;
-  // Non-uniform z mapping
-  double mapping_frac = 0.7; // 1 is full mapping, 0 is no mapping
 
   struct gk_mirror_ctx ctx = {
     .mi = mi,
@@ -556,8 +548,6 @@ create_ctx(void)
     .rho_s = rho_s,
     .kperp = kperp, 
     .RatZeq0 = RatZeq0,
-    .Z_min = Z_min,
-    .Z_max = Z_max,
     .z_min = z_min,
     .z_max = z_max,
     .psi_eval = psi_eval,
@@ -602,11 +592,8 @@ create_ctx(void)
     .poly_order = poly_order,
     .final_time = final_time,
     .num_frames = num_frames,
-    .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
-  ctx.mapping_order_center = 3;
-  ctx.mapping_order_expander = 7;
-  ctx.z_m = 0.98;
+  ctx.z_m = 1;
   return ctx;
 }
 

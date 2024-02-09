@@ -117,6 +117,23 @@ void test_wham(){
 
 }
 
+void test_wham_lorentzian(){
+  char* filepath = "./data/eqdsk/wham_lorentzian.geqdsk";
+  int rzpoly_order = 2;
+  int fluxpoly_order = 1;
+  struct gkyl_efit* efit = gkyl_efit_new(filepath,rzpoly_order,  GKYL_BASIS_MODAL_SERENDIPITY, fluxpoly_order, false);
+
+  printf( "rdim=%g zdim=%g rcentr=%g rleft=%g zmid=%g  rmaxis=%g zmaxis=%g simag=%1.16e sibry=%1.16e bcentr=%g  current=%g simag=%g rmaxis=%g   zmaxis=%g sibry=%g \n", efit->rdim, efit->zdim, efit->rcentr, efit->rleft, efit->zmid, efit->rmaxis, efit->zmaxis, efit->simag, efit->sibry, efit->bcentr, efit-> current, efit->simag, efit->rmaxis, efit-> zmaxis, efit->sibry);
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psizr, "wham_lorentzian_psi.gkyl");
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyrzr, "wham_lorentzian_psibyr.gkyl");
+  gkyl_grid_sub_array_write(efit->rzgrid, efit->rzlocal, efit->psibyr2zr, "wham_lorentzian_psibyr2.gkyl");
+  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, efit->fpolflux, "wham_lorentzian_fpol.gkyl");
+  gkyl_grid_sub_array_write(efit->fluxgrid, efit->fluxlocal, efit->qflux, "wham_lorentzian_q.gkyl");
+
+  gkyl_efit_release(efit);
+
+}
+
 
 void test_tcv(){
   char* filepath = "./data/eqdsk/tcv.geqdsk";
@@ -159,6 +176,7 @@ TEST_LIST = {
   { "test_cerfon", test_cerfon},
   { "test_elliptical", test_elliptical},
   { "test_wham", test_wham},
+  { "test_wham_lorentzian", test_wham_lorentzian},
   { "test_tcv", test_tcv},
   { "test_mast", test_mast},
   { NULL, NULL },
