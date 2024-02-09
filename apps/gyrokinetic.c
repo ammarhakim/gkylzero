@@ -302,7 +302,7 @@ int
 gk_find_neut_species_idx(const gkyl_gyrokinetic_app *app, const char *nm)
 {
   for (int i=0; i<app->num_neut_species; ++i)
-    if (strcmp(nm, app->species[i].info.name) == 0)
+    if (strcmp(nm, app->neut_species[i].info.name) == 0)
       return i;
   return -1;
 }

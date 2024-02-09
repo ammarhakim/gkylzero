@@ -390,51 +390,56 @@ main(int argc, char **argv)
         .temp = eval_temp_source,      
       }, 
     },
-    /* .react = { */
-    /*   .num_react = 2, */
-    /*   .react_type = { */
-    /*     { .react_id = GKYL_REACT_IZ, */
-    /*       .type_self = GKYL_SELF_ELC, */
-    /*       .ion_id = GKYL_ION_AR, */
-    /*       .elc_nm = "elc", */
-    /*       .ion_nm = "Ar1", // ion is always the higher charge state  */
-    /*       .donor_nm = "Ar0", // interacts with elc to give up charge */
-    /*       .charge_state = 0, // corresponds to lower charge state (donor) */
-    /*       .ion_mass = ctx.massAr, */
-    /*       .elc_mass = ctx.massElc, */
-    /*     }, */
-    /* 	/\* { .react_id = GKYL_REACT_IZ, *\/ */
-    /*     /\*   .type_self = GKYL_SELF_ELC, *\/ */
-    /*     /\*   .ion_id = GKYL_ION_AR, *\/ */
-    /*     /\*   .elc_nm = "elc", *\/ */
-    /*     /\*   .ion_nm = "Ar2", // ion is always the higher charge state  *\/ */
-    /*     /\*   .donor_nm = "Ar1", // interacts with elc to give up charge *\/ */
-    /*     /\*   .charge_state = 1, // corresponds to lower charge state (donor) *\/ */
-    /*     /\*   .ion_mass = ctx.massAr, *\/ */
-    /*     /\*   .elc_mass = ctx.massElc, *\/ */
-    /*     /\* }, *\/ */
-    /*     { .react_id = GKYL_REACT_RECOMB, */
-    /*       .type_self = GKYL_SELF_ELC, */
-    /*       .ion_id = GKYL_ION_AR, */
-    /*       .elc_nm = "elc", */
-    /*       .ion_nm = "Ar1", */
-    /*       .recvr_nm = "Ar0", */
-    /*       .charge_state = 0, */
-    /*       .ion_mass = ctx.massAr, */
-    /*       .elc_mass = ctx.massElc, */
-    /*     }, */
-    /*     /\* { .react_id = GKYL_REACT_RECOMB, *\/ */
-    /*     /\*   .type_self = GKYL_SELF_ELC, *\/ */
-    /*     /\*   .ion_id = GKYL_ION_AR, *\/ */
-    /*     /\*   .elc_nm = "elc", *\/ */
-    /*     /\*   .ion_nm = "Ar2", *\/ */
-    /*     /\*   .recvr_nm = "Ar1", *\/ */
-    /*     /\*   .charge_state = 1, *\/ */
-    /*     /\*   .ion_mass = ctx.massAr, *\/ */
-    /*     /\*   .elc_mass = ctx.massElc, *\/ */
-    /*     /\* }, *\/ */
-    /*   }, */
-    /* },  */
+    .react_neut = { 
+      .num_react = 2, 
+      .react_type = { 
+        { .react_id = GKYL_REACT_IZ, 
+          .type_self = GKYL_SELF_ELC, 
+          .ion_id = GKYL_ION_AR, 
+          .elc_nm = "elc", 
+          .ion_nm = "Ar1", // ion is always the higher charge state  
+          .donor_nm = "Ar0", // interacts with elc to give up charge 
+          .charge_state = 0, // corresponds to lower charge state (donor) 
+          .ion_mass = ctx.massAr, 
+          .elc_mass = ctx.massElc, 
+        }, 
+        { .react_id = GKYL_REACT_RECOMB, 
+          .type_self = GKYL_SELF_ELC, 
+          .ion_id = GKYL_ION_AR, 
+          .elc_nm = "elc", 
+          .ion_nm = "Ar1", 
+          .recvr_nm = "Ar0", 
+          .charge_state = 0, 
+          .ion_mass = ctx.massAr, 
+          .elc_mass = ctx.massElc, 
+        }, 
+      },
+    },  
+    //.react= { 
+    //  .num_react = 2, 
+    //  .react_type = { 
+    //	  { .react_id = GKYL_REACT_IZ, 
+    //      .type_self = GKYL_SELF_ELC, 
+    //      .ion_id = GKYL_ION_AR, 
+    //      .elc_nm = "elc", 
+    //      .ion_nm = "Ar2", // ion is always the higher charge state  
+    //      .donor_nm = "Ar1", // interacts with elc to give up charge 
+    //      .charge_state = 1, // corresponds to lower charge state (donor) 
+    //      .ion_mass = ctx.massAr, 
+    //      .elc_mass = ctx.massElc, 
+    //    }, 
+    //    { .react_id = GKYL_REACT_RECOMB, 
+    //      .type_self = GKYL_SELF_ELC, 
+    //      .ion_id = GKYL_ION_AR, 
+    //      .elc_nm = "elc", 
+    //      .ion_nm = "Ar2", 
+    //      .recvr_nm = "Ar1", 
+    //      .charge_state = 1, 
+    //      .ion_mass = ctx.massAr, 
+    //      .elc_mass = ctx.massElc, 
+    //    }, 
+    //  },
+    //},  
     .diffusion = {
       .num_diff_dir = 1, 
       .diff_dirs = { 0 },
@@ -517,31 +522,31 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = eval_temp_ar,      
     },
-    /* .react = { */
-    /*   .num_react = 2, */
-    /*   .react_type = { */
-    /*     { .react_id = GKYL_REACT_IZ, */
-    /*       .type_self = GKYL_SELF_ION, */
-    /*       .ion_id = GKYL_ION_AR, */
-    /*       .elc_nm = "elc", */
-    /*       .ion_nm = "Ar1", */
-    /*       .donor_nm = "Ar0", */
-    /*       .charge_state = 0, */
-    /*       .ion_mass = ctx.massAr, */
-    /*       .elc_mass = ctx.massElc, */
-    /*     }, */
-    /*     { .react_id = GKYL_REACT_RECOMB, */
-    /*       .type_self = GKYL_SELF_ION, */
-    /*       .ion_id = GKYL_ION_AR, */
-    /*       .elc_nm = "elc", */
-    /*       .ion_nm = "Ar1", */
-    /*       .recvr_nm = "Ar0", */
-    /*       .charge_state = 0, */
-    /*       .ion_mass = ctx.massAr, */
-    /*       .elc_mass = ctx.massElc, */
-    /*     }, */
-    /*   }, */
-    /* }, */
+    .react_neut = {
+      .num_react = 2, 
+      .react_type = { 
+        { .react_id = GKYL_REACT_IZ, 
+          .type_self = GKYL_SELF_ION, 
+          .ion_id = GKYL_ION_AR, 
+          .elc_nm = "elc", 
+          .ion_nm = "Ar1", 
+          .donor_nm = "Ar0", 
+          .charge_state = 0, 
+          .ion_mass = ctx.massAr, 
+          .elc_mass = ctx.massElc, 
+        }, 
+        { .react_id = GKYL_REACT_RECOMB, 
+          .type_self = GKYL_SELF_ION, 
+          .ion_id = GKYL_ION_AR, 
+          .elc_nm = "elc", 
+          .ion_nm = "Ar1", 
+          .recvr_nm = "Ar0", 
+          .charge_state = 0, 
+          .ion_mass = ctx.massAr, 
+          .elc_mass = ctx.massElc, 
+        }, 
+      }, 
+    }, 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
     
