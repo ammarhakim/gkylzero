@@ -95,19 +95,19 @@ test_coll_recomb_h(bool use_gpu)
   struct gkyl_rect_grid phaseGrid_elc;
   struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
   gkyl_rect_grid_init(&phaseGrid_elc, pdim_gk, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&phaseGrid_elc, ghost_gk, &phaseRange_elc, &phaseRange_elc);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost_gk, &phaseRange_ext_elc, &phaseRange_elc);
 
   // ion phase grid
   struct gkyl_rect_grid phaseGrid_ion;
   struct gkyl_range phaseRange_ion, phaseRange_ext_ion;
   gkyl_rect_grid_init(&phaseGrid_ion, pdim_gk, lower_ion, upper_ion, cells_gk);
-  gkyl_create_grid_ranges(&phaseGrid_ion, ghost_gk, &phaseRange_ion, &phaseRange_ion);
+  gkyl_create_grid_ranges(&phaseGrid_ion, ghost_gk, &phaseRange_ext_ion, &phaseRange_ion);
 
   // vlasov phase grid
   struct gkyl_rect_grid phaseGrid_vl;
   struct gkyl_range phaseRange_vl, phaseRange_ext_vl;
   gkyl_rect_grid_init(&phaseGrid_vl, pdim_vl, lower_vl, upper_vl, cells_vl);
-  gkyl_create_grid_ranges(&phaseGrid_vl, ghost_vl, &phaseRange_vl, &phaseRange_vl);
+  gkyl_create_grid_ranges(&phaseGrid_vl, ghost_vl, &phaseRange_ext_vl, &phaseRange_vl);
 
   // basis functions
   struct gkyl_basis phaseBasis_vl, phaseBasis_gk, basis; // phase-space, conf-space basis
@@ -311,13 +311,13 @@ test_coll_recomb_all_gk_li(bool use_gpu)
   struct gkyl_rect_grid phaseGrid_elc;
   struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
   gkyl_rect_grid_init(&phaseGrid_elc, pdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_elc, &phaseRange_elc);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_ext_elc, &phaseRange_elc);
 
   // ion phase grid
   struct gkyl_rect_grid phaseGrid_ion;
   struct gkyl_range phaseRange_ion, phaseRange_ext_ion;
   gkyl_rect_grid_init(&phaseGrid_ion, pdim, lower_ion, upper_ion, cells);
-  gkyl_create_grid_ranges(&phaseGrid_ion, ghost, &phaseRange_ion, &phaseRange_ion);
+  gkyl_create_grid_ranges(&phaseGrid_ion, ghost, &phaseRange_ext_ion, &phaseRange_ion);
 
   // basis functions
   struct gkyl_basis phaseBasis, basis; // phase-space, conf-space basis
@@ -514,13 +514,13 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
   struct gkyl_rect_grid phaseGrid_elc;
   struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
   gkyl_rect_grid_init(&phaseGrid_elc, pdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_elc, &phaseRange_elc);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_ext_elc, &phaseRange_elc);
 
   // ion phase grid
   struct gkyl_rect_grid phaseGrid_ion;
   struct gkyl_range phaseRange_ion, phaseRange_ext_ion;
   gkyl_rect_grid_init(&phaseGrid_ion, pdim, lower_ion, upper_ion, cells);
-  gkyl_create_grid_ranges(&phaseGrid_ion, ghost, &phaseRange_ion, &phaseRange_ion);
+  gkyl_create_grid_ranges(&phaseGrid_ion, ghost, &phaseRange_ext_ion, &phaseRange_ion);
 
   // basis functions
   struct gkyl_basis phaseBasis, basis; // phase-space, conf-space basis
@@ -716,7 +716,7 @@ test_coll_recomb_init_elem(bool use_gpu)
   struct gkyl_rect_grid phaseGrid_elc;
   struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
   gkyl_rect_grid_init(&phaseGrid_elc, pdim_gk, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&phaseGrid_elc, ghost_gk, &phaseRange_elc, &phaseRange_elc);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost_gk, &phaseRange_ext_elc, &phaseRange_elc);
 
   // basis functions
   struct gkyl_basis  phaseBasis_gk, basis; // phase-space, conf-space basis
