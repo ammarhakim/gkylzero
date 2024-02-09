@@ -66,23 +66,12 @@ void eval_jac(double t, const double *xn, double* restrict fout, void *ctx)
 void
 test_prim_vars_gk_3x(bool use_gpu)
 {
-  // use vte = 40 eV for elc grid
-  double vmax = 4.*sqrt(40.*echarge/emass);
-  double vmin = -vmax;
-  double mumax = 12.*40.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 3, vdim = 2;
   int pdim = cdim + vdim;
-  double lower[] = {-2.0,-2.0,-2.0,vmin,0.0}, upper[] = {2.0,2.0,2.0,vmax,mumax};
-  int ghost[] = {0, 0, 0, 0, 0};
-  int cells[] = {16, 16, 16, 8, 4};
-  
-  // low d test -- use eval_m2_1v
-  /* int cdim = 1, vdim = 2; */
-  /* int pdim = cdim + vdim; */
-  /* double lower[] = {-2.0,vmin,0}, upper[] = {2.,0,vmax,mumax}; */
-  /* int ghost[] = {0, 0, 0}; */
-  /* int cells[] = {1, 8, 8}; */
+  double lower[] = {-2.0,-2.0,-2.0}, upper[] = {2.0,2.0,2.0};
+  int ghost[] = {0, 0, 0};
+  int cells[] = {16, 16, 16};
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -151,14 +140,12 @@ void
 test_prim_vars_vlasov_3x(bool use_gpu)
 {
   // use vte = 40 eV for elc grid
-  double vmax = 4.*sqrt(40.*echarge/emass);
-  double vmin = -vmax;
   int poly_order = 1;
   int cdim = 3, vdim = 3;
   int pdim = cdim + vdim;
-  double lower[] = {-2.0,-2.0,-2.0,vmin,-vmin,-vmin}, upper[] = {2.0,2.0,2.0,vmax,vmax,vmax};
-  int ghost[] = {0, 0, 0, 0, 0, 0};
-  int cells[] = {16, 16, 16, 8, 8, 8};
+  double lower[] = {-2.0,-2.0,-2.0}, upper[] = {2.0,2.0,2.0};
+  int ghost[] = {0, 0, 0};
+  int cells[] = {16, 16, 16};
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -226,16 +213,12 @@ test_prim_vars_vlasov_3x(bool use_gpu)
 void
 test_prim_vars_transform_1x(bool use_gpu)
 {
-  // use vte = 40 eV for elc grid
-  double vmax = 4.*sqrt(40.*echarge/emass);
-  double vmin = -vmax;
-  double mumax = 12.*40.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 1, vdim = 2;
   int pdim = cdim + vdim;
-  double lower[] = {-2.0,-vmin,0}, upper[] = {2.0,vmax,mumax};
-  int ghost[] = {0, 0, 0};
-  int cells[] = {16, 16, 8};
+  double lower[] = {-2.0}, upper[] = {2.0};
+  int ghost[] = {0};
+  int cells[] = {16};
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -338,7 +321,8 @@ test_coll_iz_h_1x(bool use_gpu)
   double lower_ion[] = {-2.0,vmin_ion,0.0}, upper_ion[] = {2.0,vmax_ion,mumax_ion};
   int ghost_gk[] = {0, 0, 0};
   int cells_gk[] = {16, 8, 4};
-
+  int ghost[] = {0};
+  
   // for vlasov grid 
   double lower_vl[] = {-2.0,vmin_ion,vmin_ion,vmin_ion}, upper_vl[] = {2.0,vmax_ion,vmax_ion,vmax_ion};
   int ghost_vl[] = {0, 0, 0, 0};
@@ -348,7 +332,7 @@ test_coll_iz_h_1x(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange_ext, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghost, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
@@ -556,13 +540,14 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   
   double lower_elc[] = {-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,vmax_elc,mumax_elc};
   double lower_ion[] = {-2.0,vmin_ion,0.0}, upper_ion[] = {2.0,vmax_ion,mumax_ion};
+  int ghostc[] = {0};
   int ghost[] = {0, 0, 0};
   int cells[] = {2, 16, 8};
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&confGrid, ghost, &confRange_ext, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghostc, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
@@ -768,11 +753,12 @@ test_coll_iz_init_elem(bool use_gpu)
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
   int ghost_gk[] = {0, 0, 0, 0, 0};
   int cells_gk[] = {16, 16, 16, 8, 4};
-
+  int ghost[] = {0, 0, 0};
+  
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange_ext, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghost, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;

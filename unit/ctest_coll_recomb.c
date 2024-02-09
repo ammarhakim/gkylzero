@@ -84,7 +84,7 @@ test_coll_recomb_h(bool use_gpu)
   double lower_vl[] = {-2.0,-2.0,-2.0,vmin_ion,vmin_ion,vmin_ion}, upper_vl[] = {2.0,2.0,2.0,vmax_ion,vmax_ion,vmax_ion};
   int ghost_vl[] = {0, 0, 0, 0, 0, 0};
   int cells_vl[] = {16, 16, 16, 4, 4, 4};
-  //int cells_vl[] = {2, 2, 2, 4, 4, 4};
+  int ghost[] = {0, 0, 0};
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -95,7 +95,7 @@ test_coll_recomb_h(bool use_gpu)
   struct gkyl_rect_grid phaseGrid_elc;
   struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
   gkyl_rect_grid_init(&phaseGrid_elc, pdim_gk, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&phaseGrid_elc, ghost_gk, &phaseRange_ext_elc, &phaseRange_elc);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_ext_elc, &phaseRange_elc);
 
   // ion phase grid
   struct gkyl_rect_grid phaseGrid_ion;
@@ -298,6 +298,7 @@ test_coll_recomb_all_gk_li(bool use_gpu)
 
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
   double lower_ion[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_ion[] = {2.0,2.0,2.0,vmax_elc,mumax_ion};
+  int ghostc[] = {0, 0, 0};
   int ghost[] = {0, 0, 0, 0, 0};
   int cells[] = {2, 2, 2, 16, 8};
   char basepath[4000] = ".";
@@ -305,7 +306,7 @@ test_coll_recomb_all_gk_li(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&confGrid, ghost, &confRange_ext, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghostc, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
@@ -501,6 +502,7 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
 
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
   double lower_ion[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_ion[] = {2.0,2.0,2.0,vmax_elc,mumax_ion};
+  int ghostc[] = {0, 0, 0};
   int ghost[] = {0, 0, 0, 0, 0};
   int cells[] = {2, 2, 2, 16, 8};
   char basepath[4000] = ".";
@@ -508,7 +510,7 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&confGrid, ghost, &confRange_ext, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghostc, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
@@ -703,6 +705,7 @@ test_coll_recomb_init_elem(bool use_gpu)
   
   // for gk grids 
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
+  int ghost[] = {0, 0, 0};
   int ghost_gk[] = {0, 0, 0, 0, 0};
   int cells_gk[] = {16, 16, 16, 8, 4};
   char basepath[4000] = ".";
@@ -710,7 +713,7 @@ test_coll_recomb_init_elem(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange_ext, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghost, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
