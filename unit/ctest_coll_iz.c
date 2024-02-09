@@ -30,7 +30,7 @@ void eval_m0(double t, const double *xn, double* restrict fout, void *ctx)
 void eval_m2_1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 40*echarge/emass*1.0e19*1.;  //fabs(x);
+  fout[0] = 40.*echarge/emass*1.0e19*1.;  //fabs(x);
 }
 void eval_m2_3v_elc(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -67,9 +67,9 @@ void
 test_prim_vars_gk_3x(bool use_gpu)
 {
   // use vte = 40 eV for elc grid
-  double vmax = 4*sqrt(40*echarge/emass);
+  double vmax = 4.*sqrt(40.*echarge/emass);
   double vmin = -vmax;
-  double mumax = 12*40*echarge/(2*B0);
+  double mumax = 12.*40.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 3, vdim = 2;
   int pdim = cdim + vdim;
@@ -151,7 +151,7 @@ void
 test_prim_vars_vlasov_3x(bool use_gpu)
 {
   // use vte = 40 eV for elc grid
-  double vmax = 4*sqrt(40*echarge/emass);
+  double vmax = 4.*sqrt(40.*echarge/emass);
   double vmin = -vmax;
   int poly_order = 1;
   int cdim = 3, vdim = 3;
@@ -227,9 +227,9 @@ void
 test_prim_vars_transform_1x(bool use_gpu)
 {
   // use vte = 40 eV for elc grid
-  double vmax = 4*sqrt(40*echarge/emass);
+  double vmax = 4.*sqrt(40.*echarge/emass);
   double vmin = -vmax;
-  double mumax = 12*40*echarge/(2*B0);
+  double mumax = 12.*40.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 1, vdim = 2;
   int pdim = cdim + vdim;
@@ -322,12 +322,12 @@ test_coll_iz_h_1x(bool use_gpu)
   int charge_state = 0; // charge state of reacting species
   bool all_gk = false;
   // use vt = 40 eV for all grids
-  double vmax_elc = 4*sqrt(40*echarge/emass);
+  double vmax_elc = 4.*sqrt(40.*echarge/emass);
   double vmin_elc = -vmax_elc;
-  double mumax_elc = 12*40*echarge/(2*B0);
-  double vmax_ion = 4*sqrt(40*echarge/h_ion_mass);
+  double mumax_elc = 12.*40.*echarge/(2.*B0);
+  double vmax_ion = 4.*sqrt(40.*echarge/h_ion_mass);
   double vmin_ion = -vmax_ion;
-  double mumax_ion = 12*40*echarge/(2*B0);
+  double mumax_ion = 12.*40.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 1, vdim_gk = 2, vdim_vl = 3;
   int pdim_gk = cdim + vdim_gk, pdim_vl = cdim + vdim_vl;
@@ -392,6 +392,7 @@ test_coll_iz_h_1x(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_ion = h_ion_mass,
     .type_ion = GKYL_ION_H,
@@ -406,6 +407,7 @@ test_coll_iz_h_1x(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_ion,
     .mass_ion = h_ion_mass,
     .type_ion = GKYL_ION_H,
@@ -420,6 +422,7 @@ test_coll_iz_h_1x(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_vl,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_vl,
     .mass_ion = h_ion_mass,
     .type_ion = GKYL_ION_H,
@@ -540,12 +543,12 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   int charge_state = 1; // charge state of reacting species
   bool all_gk = true;
   // use vt = 100 eV for all grids
-  double vmax_elc = 4*sqrt(100*echarge/emass);
+  double vmax_elc = 4.*sqrt(100.*echarge/emass);
   double vmin_elc = -vmax_elc;
-  double mumax_elc = 12*100*echarge/(2*B0);
-  double vmax_ion = 4*sqrt(100*echarge/li_ion_mass);
+  double mumax_elc = 12.*100.*echarge/(2.*B0);
+  double vmax_ion = 4.*sqrt(100.*echarge/li_ion_mass);
   double vmin_ion = -vmax_ion;
-  double mumax_ion = 12*100*echarge/(2*B0);
+  double mumax_ion = 12.*100.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 1, vdim = 2;
   int pdim = cdim + vdim;
@@ -585,6 +588,7 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_ion = li_ion_mass,
     .type_ion = GKYL_ION_LI,
@@ -599,6 +603,7 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_ion,
     .mass_ion = li_ion_mass,
     .type_ion = GKYL_ION_LI,
@@ -613,6 +618,7 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_ion,
     .mass_ion = li_ion_mass,
     .type_ion = GKYL_ION_LI,
@@ -749,9 +755,9 @@ test_coll_iz_init_elem(bool use_gpu)
   int charge_state = 0; // charge state of reacting species
   bool all_gk = true;
   // use vt = 40 eV for all grids
-  double vmax_elc = 4*sqrt(40*echarge/emass);
+  double vmax_elc = 4.*sqrt(40.*echarge/emass);
   double vmin_elc = -vmax_elc;
-  double mumax_elc = 12*40*echarge/(2*B0);
+  double mumax_elc = 12.*40.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 3, vdim_gk = 2;
   int pdim_gk = cdim + vdim_gk;
@@ -787,6 +793,7 @@ test_coll_iz_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_ion = imass,
     .type_ion = GKYL_ION_HE,
@@ -800,6 +807,7 @@ test_coll_iz_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_ion = imass,
     .type_ion = GKYL_ION_BE,
@@ -813,6 +821,7 @@ test_coll_iz_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_ion = imass,
     .type_ion = GKYL_ION_B,
@@ -826,6 +835,7 @@ test_coll_iz_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_ion = imass,
     .type_ion = GKYL_ION_C,
@@ -839,6 +849,7 @@ test_coll_iz_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_ion = imass,
     .type_ion = GKYL_ION_N,
@@ -852,6 +863,7 @@ test_coll_iz_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_ion = imass,
     .type_ion = GKYL_ION_O,
@@ -865,6 +877,7 @@ test_coll_iz_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_ion = imass,
     .type_ion = GKYL_ION_AR,
@@ -912,9 +925,9 @@ void coll_iz_init_elem_gpu() { test_coll_iz_init_elem(true); }
 
 TEST_LIST = {
 #ifdef GKYL_HAVE_ADAS
-  /* { "prim_vars_gk_3x", prim_vars_gk_3x }, */
-  /* { "prim_vars_vlasov_3x", prim_vars_vlasov_3x }, */
-  /* { "prim_vars_trans_1x", prim_vars_trans_1x }, */
+  { "prim_vars_gk_3x", prim_vars_gk_3x },
+  { "prim_vars_vlasov_3x", prim_vars_vlasov_3x },
+  { "prim_vars_trans_1x", prim_vars_trans_1x },
   { "coll_iz_h_1x", coll_iz_h_1x },
   { "coll_iz_all_gk_li_1x", coll_iz_all_gk_li_1x },
   { "coll_iz_init_elem", coll_iz_init_elem },
