@@ -21,8 +21,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   // allocate arrays for charge density
   f->rho_c = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  f->rho_c_global_dg = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
-  f->rho_c_global_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+  f->rho_c_global_dg = mkarr(app->use_gpu, app->confBasis.num_basis, app->global.volume);
+  f->rho_c_global_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->global.volume);
 
   // allocate arrays for electrostatic potential
   f->phi_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -68,9 +68,11 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
         gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);
       }
-      // deflated Poisson solve is performed on local range assuming decomposition is *only* in z right now
+      // deflated Poisson solve is performed on range assuming decomposition is *only* in z right now
+      struct gkyl_range deflate_fem_poisson_range;
+      int intersect = gkyl_sub_range_intersect(&deflate_fem_poisson_range, &app->global, &app->local);
       f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
-        app->local, app->local_ext, f->epsilon, f->info.poisson_bcs, app->use_gpu);
+        deflate_fem_poisson_range, app->local_ext, f->epsilon, f->info.poisson_bcs, app->use_gpu);
     }
   }
   // Potential smoothing (in z) updater (smoothing is done on global range)
