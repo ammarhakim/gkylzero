@@ -333,6 +333,9 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   if (species->radiation_id == GKYL_GK_RADIATION)
     gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
 
+  if (species->has_reactions)
+    gk_species_react_rhs(app, species, &species->react, fin, rhs);
+  
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
