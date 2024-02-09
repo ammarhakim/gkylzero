@@ -15,7 +15,7 @@ extern "C" {
 }
 
 __global__ void
-gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel(struct gkyl_dg_calc_pkpm_dist_vars *up, 
+gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
   struct gkyl_array* vnu_surf, struct gkyl_array* vnu, 
   struct gkyl_array* vsqnu_surf, struct gkyl_array* vsqnu)
@@ -68,7 +68,7 @@ gkyl_dg_calc_gk_rad_vars_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars *up
 }
 
 __global__ void
-gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_pkpm_dist_vars *up, 
+gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel(struct gkyl_dg_calc_gk_rad_vars *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range,
   const struct gkyl_array* vnu_surf, const struct gkyl_array* vnu, 
   const struct gkyl_array* vsqnu_surf, const struct gkyl_array* vsqnu, 
@@ -122,7 +122,7 @@ gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(const struct gkyl_dg_calc_gk_rad_vars 
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_calc_gk_rad_vars_nu_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
+  gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
     *conf_range, *phase_range, 
     vnu_surf->on_dev, vnu->on_dev, vsqnu_surf->on_dev, vsqnu->on_dev, 
     nI->on_dev, 
