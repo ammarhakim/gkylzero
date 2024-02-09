@@ -41,7 +41,7 @@ struct gem_ctx
 
   double Ti_frac; // Fraction of total temperature from ions.
   double Te_frac; // Fraction of total temperature from electrons.
-  double Ttotal; // Total temperature.
+  double T_tot; // Total temperature.
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
@@ -49,7 +49,7 @@ struct gem_ctx
   double Lx; // Domain size (x-direction).
   double Ly; // Domain size (y-direction).
   double k0; // Closure parameter.
-  double tend; // Final simulation time.
+  double t_end; // Final simulation time.
 };
 
 struct gem_ctx
@@ -66,9 +66,9 @@ create_ctx(void)
   double mass_elc = 1.0 / 25.0; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
   double Ti_over_Te = 5.0; // Ion temperature / electron temperature.
-  double lambda = 0.5;
+  double lambda = 0.5; // Wavelength
   double n0 = 1.0; // Reference number density.
-  double nb_over_n0 = 0.2;
+  double nb_over_n0 = 0.2; // Background number density / reference number density.
   double B0 = 0.1; // Reference magnetic field strength.
   double beta = 1.0; // Plasma beta.
   
@@ -77,7 +77,7 @@ create_ctx(void)
 
   double Ti_frac = Ti_over_Te / (1.0 + Ti_over_Te); // Fraction of total temperature from ions.
   double Te_frac = 1.0 / (1.0 + Ti_over_Te); // Fraction of total temperature from electrons.
-  double Ttotal = beta * (B0 * B0) / 2.0 / n0; // Total temperature;
+  double T_tot = beta * (B0 * B0) / 2.0 / n0; // Total temperature;
 
   // Simulation parameters.
   int Nx = 128; // Cell count (x-drection).
@@ -85,7 +85,7 @@ create_ctx(void)
   double Lx = 25.6; // Domain size (x-direction).
   double Ly = 12.8; // Domain size (y-direction).
   double k0 = 5.0; // Closure parameter.
-  double tend = 250.0; // Final simulation time.
+  double t_end = 250.0; // Final simulation time.
 
   struct gem_ctx ctx = {
     .pi = pi,
@@ -104,13 +104,13 @@ create_ctx(void)
     .psi0 = psi0,
     .Ti_frac = Ti_frac,
     .Te_frac = Te_frac,
-    .Ttotal = Ttotal,
+    .T_tot = T_tot,
     .Nx = Nx,
     .Ny = Ny,
     .Lx = Lx,
     .Ly = Ly,
     .k0 = k0,
-    .tend = tend,
+    .t_end = t_end,
   };
 
   return ctx;
@@ -131,7 +131,7 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double beta = app -> beta;
 
   double Te_frac = app -> Te_frac;
-  double Ttotal = app -> Ttotal;
+  double T_tot = app -> T_tot;
 
   double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
 
@@ -140,7 +140,7 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double rhoe = n * mass_elc; // Electron mass density.
   double momze = (mass_elc / charge_elc) * Jz * Te_frac; // Electron momentum density (z-direction).
-  double pre = n * Ttotal * Te_frac; // Electron pressure (scalar).
+  double pre = n * T_tot * Te_frac; // Electron pressure (scalar).
 
   // Set electron mass density.
   fout[0] = rhoe;
@@ -166,7 +166,7 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double beta = app -> beta;
 
   double Ti_frac = app -> Ti_frac;
-  double Ttotal = app -> Ttotal;
+  double T_tot = app -> T_tot;
 
   double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
 
@@ -175,7 +175,7 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
 
   double rhoi = n * mass_ion; // Ion mass density.
   double momzi = (mass_ion / charge_ion) * Jz * Ti_frac; // Ion momentum density (z-direction).
-  double pri = n * Ttotal * Ti_frac; // Ion pressure (scalar).
+  double pri = n * T_tot * Ti_frac; // Ion pressure (scalar).
 
   // Set ion mass density.
   fout[0] = rhoi;
@@ -203,8 +203,8 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Ly = app -> Ly;
 
   double Bxb = B0 * tanh(y / lambda); // Total magnetic field strength.
-  double Bx = Bxb - psi0 * (pi / Ly) * cos(2 * pi * x / Lx) * sin(pi * y / Ly); // Total magnetic field (x-direction).
-  double By = psi0 * (2 * pi / Lx) * sin(2 * pi * x / Lx) * cos(pi * y / Ly); // Total magnetic field (y-direction).
+  double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) * sin(pi * y / Ly); // Total magnetic field (x-direction).
+  double By = psi0 * (2.0 * pi / Lx) * sin(2.0 * pi * x / Lx) * cos(pi * y / Ly); // Total magnetic field (y-direction).
   double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electric field.
@@ -277,7 +277,7 @@ main(int argc, char **argv)
   gkyl_create_global_range(2, cells, &globalr);
 
   // Create decomposition.
-  int cuts[] = {1, 1};
+  int cuts[] = { 1, 1 };
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
   {
@@ -371,19 +371,19 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // Initial and final simulation times.
-  double tcurr = 0.0, tend = ctx.tend;
+  double t_curr = 0.0, t_end = ctx.t_end;
 
   // Initialize simulation.
-  gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_write(app, tcurr, 0);
+  gkyl_moment_app_apply_ic(app, t_curr);
+  gkyl_moment_app_write(app, t_curr, 0);
 
   // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
 
   long step = 1;
-  while ((tcurr < tend) && (step <= app_args.num_steps))
+  while ((t_curr < t_end) && (step <= app_args.num_steps))
   {
-    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, tcurr);
+    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
@@ -393,13 +393,13 @@ main(int argc, char **argv)
       break;
     }
 
-    tcurr += status.dt_actual;
+    t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_write(app, t_curr, 1);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);

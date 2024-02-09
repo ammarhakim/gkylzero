@@ -70,7 +70,7 @@ struct lhdi_ctx
   double Ly; // Domain size (y-direction).
   double k0_elc; // Closure parameter for electrons.
   double k0_ion; // Closure parameter for ions.
-  double tend; // Final simulation time.
+  double t_end; // Final simulation time.
 };
 
 struct lhdi_ctx
@@ -127,7 +127,7 @@ create_ctx(void)
   double Ly = 12.8 * l; // Domain size (y-direction).
   double k0_elc = 1.0; // Closure parameter for electrons.
   double k0_ion = 1.0 / 6.0; // Closure parameter for ions.
-  double tend = 1100.0; // Final simulation time.
+  double t_end = 1100.0; // Final simulation time.
 
   struct lhdi_ctx ctx = {
     .pi = pi,
@@ -166,7 +166,7 @@ create_ctx(void)
     .Ly = Ly,
     .k0_elc = k0_elc,
     .k0_ion = k0_ion,
-    .tend = tend,
+    .t_end = t_end,
   };
 
   return ctx;
@@ -372,7 +372,7 @@ main(int argc, char **argv)
   gkyl_create_global_range(2, cells, &globalr);
 
   // Create decomposition.
-  int cuts[] = {1, 1};
+  int cuts[] = { 1, 1 };
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
   {
@@ -430,7 +430,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "10m_gem",
+    .name = "10m_lhdi",
 
     .ndim = 2,
     .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly},
@@ -466,19 +466,19 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // Initial and final simulation times.
-  double tcurr = 0.0, tend = ctx.tend;
+  double t_curr = 0.0, t_end = ctx.t_end;
 
   // Initialize simulation.
-  gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_write(app, tcurr, 0);
+  gkyl_moment_app_apply_ic(app, t_curr);
+  gkyl_moment_app_write(app, t_curr, 0);
 
   // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
 
   long step = 1;
-  while ((tcurr < tend) && (step <= app_args.num_steps))
+  while ((t_curr < t_end) && (step <= app_args.num_steps))
   {
-    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, tcurr);
+    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
@@ -488,13 +488,13 @@ main(int argc, char **argv)
       break;
     }
 
-    tcurr += status.dt_actual;
+    t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_write(app, t_curr, 1);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);

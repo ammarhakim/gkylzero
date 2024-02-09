@@ -62,7 +62,7 @@ struct burch_ctx
   double Ly; // Domain size (y-direction).
   double k0_elc; // Closure parameter for electrons.
   double k0_ion; // Closure parameter for ions.
-  double tend; // Final simulation time.
+  double t_end; // Final simulation time.
 };
 
 struct burch_ctx
@@ -112,7 +112,7 @@ create_ctx(void)
   double Ly = 20.48 * di; // Domain size (y-direction).
   double k0_elc = 1.0; // Closure parameter for electrons.
   double k0_ion = 0.1; // Closure parameter for ions.
-  double tend = 250.0; // Final simulation time.
+  double t_end = 250.0; // Final simulation time.
   
   struct burch_ctx ctx = {
     .pi = pi,
@@ -149,7 +149,7 @@ create_ctx(void)
     .Ly = Ly,
     .k0_elc = k0_elc,
     .k0_ion = k0_ion,
-    .tend = tend,
+    .t_end = t_end,
   };
 
   return ctx;
@@ -189,18 +189,18 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double b1z = 0.5 * (guide2 - guide1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
     + tanh((y - Ly * 1.25) / w0) - tanh((y + Ly * 0.25) / w0) + 1.0) + 0.5 * (guide2 + guide1); // Magnetospheric magnetic field (z-direction).
 
-  double Tvali = 0.5 * (Ti2 - Ti1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
+  double Ti_tot = 0.5 * (Ti2 - Ti1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
     + tanh((y - Ly * 1.25) / w0) - tanh((y + Ly * 0.25) / w0) + 1.0) + 0.5 * (Ti2 + Ti1); // Total ion temperature.
-  double Tvale = 0.5 * (Te2 - Te1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
+  double Te_tot = 0.5 * (Te2 - Te1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
     + tanh((y - Ly * 1.25) / w0) - tanh((y + Ly * 0.25) / w0) + 1.0) + 0.5 * (Te2 + Te1); // Total electron temperature.
-  double n = (0.5 * (b1 * b1 - b1x * b1x) + 0.5 * (guide1 * guide1 - b1z * b1z) + n1 * (Ti1 + Te1)) / (Tvali + Tvale); // Total number density.
+  double n = (0.5 * (b1 * b1 - b1x * b1x) + 0.5 * (guide1 * guide1 - b1z * b1z) + n1 * (Ti1 + Te1)) / (Ti_tot + Te_tot); // Total number density.
 
   double Bx = b1x - psi0 * 4.0 * pi / Ly * sin(2.0 * pi * x / Lx) * sin(4.0 * pi * y / Ly); // Total magnetic field (x-direction).
   double By = b1y + psi0 * 2.0 * pi / Lx * cos(2.0 * pi * x / Lx) * (1.0 - cos(4.0 * pi * y / Ly)); // Total magnetic field (y-direction).
   double Bz = b1z; // Total magnetic field (z-direction).
 
-  double Te_frac = Tvale / (Tvale + Tvali); // Fraction of total temperature from electrons.
-  double Ti_frac = Tvali / (Tvale + Tvali); // Fraction of total temperature from ions;
+  double Te_frac = Te_tot / (Te_tot + Ti_tot); // Fraction of total temperature from electrons.
+  double Ti_frac = Ti_tot / (Te_tot + Ti_tot); // Fraction of total temperature from ions;
 
   double Jx = 0.5 * (guide2 - guide1) / w0 * ((1.0 / cosh((y - Ly * 0.25) / w0)) * (1.0 / cosh((y - Ly * 0.25) / w0)) 
     - (1.0 / cosh((y - Ly * 0.75) / w0)) * (1.0 / cosh((y - Ly * 0.75) / w0)) 
@@ -222,12 +222,12 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double momxe = (mass_elc / charge_elc) * Jxe; // Electron momentum density (x-direction).
   double momye = (mass_elc / charge_elc) * Jye; // Electron momentum density (y-direction).
   double momze = (mass_elc / charge_elc) * Jze; // Electron momentum density (z-direction).
-  double pxxe = n * Tvale + momxe * momxe / rhoe; // Electron pressure tensor (x-x component).
+  double pxxe = n * Te_tot + momxe * momxe / rhoe; // Electron pressure tensor (x-x component).
   double pxye = momxe * momye / rhoe; // Electron pressure tensor (x-y/y-x component).
   double pxze = momxe * momze / rhoe; // Electron pressure tensor (x-z/z-x component).
-  double pyye = n*Tvale + momye * momye / rhoe; // Electron pressure tensor (y-y component).
+  double pyye = n*Te_tot + momye * momye / rhoe; // Electron pressure tensor (y-y component).
   double pyze = momye * momye / rhoe; // Electron pressure tensor (y-z/z-y component).
-  double pzze = n*Tvale + momze * momze / rhoe; // Electron pressure tensor (z-z component).
+  double pzze = n*Te_tot + momze * momze / rhoe; // Electron pressure tensor (z-z component).
 
   // Set electron mass density.
   fout[0] = rhoe;
@@ -272,18 +272,18 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double b1z = 0.5 * (guide2 - guide1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
     + tanh((y - Ly * 1.25) / w0) - tanh((y + Ly * 0.25) / w0) + 1.0) + 0.5 * (guide2 + guide1); // Magnetospheric magnetic field (z-direction).
 
-  double Tvali = 0.5 * (Ti2 - Ti1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
+  double Ti_tot = 0.5 * (Ti2 - Ti1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
     + tanh((y - Ly * 1.25) / w0) - tanh((y + Ly * 0.25) / w0) + 1.0) + 0.5 * (Ti2 + Ti1); // Total ion temperature.
-  double Tvale = 0.5 * (Te2 - Te1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
+  double Te_tot = 0.5 * (Te2 - Te1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
     + tanh((y - Ly * 1.25) / w0) - tanh((y + Ly * 0.25) / w0) + 1.0) + 0.5 * (Te2 + Te1); // Total electron temperature.
-  double n = (0.5 * (b1 * b1 - b1x * b1x) + 0.5 * (guide1 * guide1 - b1z * b1z) + n1 * (Ti1 + Te1)) / (Tvali + Tvale); // Total number density.
+  double n = (0.5 * (b1 * b1 - b1x * b1x) + 0.5 * (guide1 * guide1 - b1z * b1z) + n1 * (Ti1 + Te1)) / (Ti_tot + Te_tot); // Total number density.
 
   double Bx = b1x - psi0 * 4.0 * pi / Ly * sin(2.0 * pi * x / Lx) * sin(4.0 * pi * y / Ly); // Total magnetic field (x-direction).
   double By = b1y + psi0 * 2.0 * pi / Lx * cos(2.0 * pi * x / Lx) * (1.0 - cos(4.0 * pi * y / Ly)); // Total magnetic field (y-direction).
   double Bz = b1z; // Total magnetic field (z-direction).
 
-  double Te_frac = Tvale / (Tvale + Tvali); // Fraction of total temperature from electrons.
-  double Ti_frac = Tvali / (Tvale + Tvali); // Fraction of total temperature from ions;
+  double Te_frac = Te_tot / (Te_tot + Ti_tot); // Fraction of total temperature from electrons.
+  double Ti_frac = Ti_tot / (Te_tot + Ti_tot); // Fraction of total temperature from ions;
 
   double Jx = 0.5 * (guide2 - guide1) / w0 * ((1.0 / cosh((y - Ly * 0.25) / w0)) * (1.0 / cosh((y - Ly * 0.25) / w0)) 
     - (1.0 / cosh((y - Ly * 0.75) / w0)) * (1.0 / cosh((y - Ly * 0.75) / w0)) 
@@ -305,12 +305,12 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double momxi = (mass_ion / charge_ion) * Jxi; // Ion momentum density (x-direction).
   double momyi = (mass_ion / charge_ion) * Jyi; // Ion momentum density (y-direction).
   double momzi = (mass_ion / charge_ion) * Jzi; // Ion momentum density (z-direction).
-  double pxxi = n * Tvali + momxi * momxi / rhoi; // Ion pressure tensor (x-x component).
+  double pxxi = n * Ti_tot + momxi * momxi / rhoi; // Ion pressure tensor (x-x component).
   double pxyi = momxi * momyi / rhoi; // Ion pressure tensor (x-y/y-x component).
   double pxzi = momxi * momzi / rhoi; // Ion pressure tensor (x-z/z-x component).
-  double pyyi = n * Tvali + momyi * momyi / rhoi; // Ion pressure tensor (y-y component).
+  double pyyi = n * Ti_tot + momyi * momyi / rhoi; // Ion pressure tensor (y-y component).
   double pyzi = momyi * momyi / rhoi; // Ion pressure tensor (y-z/z-y component).
-  double pzzi = n * Tvali + momzi * momzi / rhoi; // Ion pressure tensor (z-z component).
+  double pzzi = n * Ti_tot + momzi * momzi / rhoi; // Ion pressure tensor (z-z component).
 
   // Set ion mass density,
   fout[0] = rhoi;
@@ -352,11 +352,11 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double b1z = 0.5 * (guide2 - guide1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
     + tanh((y - Ly * 1.25) / w0) - tanh((y + Ly * 0.25) / w0) + 1.0) + 0.5 * (guide2 + guide1); // Magnetospheric magnetic field (z-direction).
 
-  double Tvali = 0.5 * (Ti2 - Ti1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
+  double Ti_tot = 0.5 * (Ti2 - Ti1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
     + tanh((y - Ly * 1.25) / w0) - tanh((y + Ly * 0.25) / w0) + 1.0) + 0.5 * (Ti2 + Ti1); // Total ion temperature.
-  double Tvale = 0.5 * (Te2 - Te1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
+  double Te_tot = 0.5 * (Te2 - Te1) * (tanh((y - Ly * 0.25) / w0) - tanh((y - Ly * 0.75) / w0)
     + tanh((y - Ly * 1.25) / w0) - tanh((y + Ly * 0.25) / w0) + 1.0) + 0.5 * (Te2 + Te1); // Total electron temperature.
-  double n = (0.5 * (b1 * b1 - b1x * b1x) + 0.5 * (guide1 * guide1 - b1z * b1z) + n1 * (Ti1 + Te1)) / (Tvali + Tvale); // Total number density.
+  double n = (0.5 * (b1 * b1 - b1x * b1x) + 0.5 * (guide1 * guide1 - b1z * b1z) + n1 * (Ti1 + Te1)) / (Ti_tot + Te_tot); // Total number density.
 
   double Bx = b1x - psi0 * 4.0 * pi / Ly * sin(2.0 * pi * x / Lx) * sin(4.0 * pi * y / Ly); // Total magnetic field (x-direction).
   double By = b1y + psi0 * 2.0 * pi / Lx * cos(2.0 * pi * x / Lx) * (1.0 - cos(4.0 * pi * y / Ly)); // Total magnetic field (y-direction).
@@ -428,7 +428,7 @@ main(int argc, char **argv)
   gkyl_create_global_range(2, cells, &globalr);
 
   // Create decomposition.
-  int cuts[] = {1, 1};
+  int cuts[] = { 1, 1 };
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
   {
@@ -520,19 +520,19 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // Initial and final simulation times.
-  double tcurr = 0.0, tend = ctx.tend;
+  double t_curr = 0.0, t_end = ctx.t_end;
 
   // Initialize simulation.
-  gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_write(app, tcurr, 0);
+  gkyl_moment_app_apply_ic(app, t_curr);
+  gkyl_moment_app_write(app, t_curr, 0);
 
   // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
 
   long step = 1;
-  while ((tcurr < tend) && (step <= app_args.num_steps))
+  while ((t_curr < t_end) && (step <= app_args.num_steps))
   {
-    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, tcurr);
+    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
@@ -542,13 +542,13 @@ main(int argc, char **argv)
       break;
     }
 
-    tcurr += status.dt_actual;
+    t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_write(app, t_curr, 1);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
