@@ -67,6 +67,9 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   minmax_from_numpy(data.logN, data.NN, minmax);
   fclose(data.logN);
   double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
+  // To check reaction rate min/max
+  /* fprintf(stdout, "\nT_min %g T_max %g", pow(10, logTmin), pow(10, logTmax)); */
+  /* fprintf(stdout, "\nM0_min %g M0_max %g", pow(10, logNmin), pow(10, logNmax)); */
 
   // "duplicate symbol" error
   struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, data.Zmax, sz);
@@ -210,6 +213,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
       double *recomb_dat_d = gkyl_array_fetch(up->recomb_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
       coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+      //fprintf(stdout, "\nadas recomb = %g t_idx %d m0_idx %d", adas_eval, t_idx, m0_idx);
     }
     
     if ((up->all_gk==false) && (up->type_self == GKYL_SELF_RECVR)) {

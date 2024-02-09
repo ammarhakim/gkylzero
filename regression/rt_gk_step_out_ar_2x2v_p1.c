@@ -285,13 +285,13 @@ create_ctx(void)
   double Lz = 3.14*2;
 
   double vpar_max_elc = 8.0*vtElc;
-  double mu_max_elc = 12*me*vtElc*vtElc/(2.0*B0);
+  double mu_max_elc = 12.*me*vtElc*vtElc/(2.0*B0);
 
   double vpar_max_ion = 8.0*vtIon;
-  double mu_max_ion = 12*mi*vtIon*vtIon/(2.0*B0);
+  double mu_max_ion = 12.*mi*vtIon*vtIon/(2.0*B0);
 
   double vpar_max_Ar = 8.0*vtAr;
-  double mu_max_Ar = 12*mi*vtAr*vtAr/(2.0*B0);
+  double mu_max_Ar = 12.*mi*vtAr*vtAr/(2.0*B0);
 
   double finalTime = 1.0e-8; 
   double numFrames = 1;
@@ -597,7 +597,7 @@ main(int argc, char **argv)
 
     .geometry = {
       .world = {0.0},
-      .geometry_id = GKYL_GEOMETRY_FROMFILE, //TOKAMAK,
+      .geometry_id = GKYL_TOKAMAK, //GEOMETRY_FROMFILE, //TOKAMAK,
       .tok_efit_info = &inp,
       .tok_grid_info = &ginp,
     },
