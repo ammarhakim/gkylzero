@@ -303,7 +303,7 @@ void temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   struct gk_app_ctx *app = ctx;
   double Ti0 = app->Ti0;
 
-  fout[0] = Ti0*((1/3)*(2.+tanh(2.*(2.-25.*x)))+0.01);
+  fout[0] = Ti0*((1./3.)*(2.+tanh(2.*(2.-25.*x)))+0.01);
 }
 
 // Electron initial conditions
@@ -314,7 +314,7 @@ void temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   struct gk_app_ctx *app = ctx;
   double Te0 = app->Te0;
 
-  fout[0] = Te0*((1/3)*(2.+tanh(2.*(2.-25.*x)))+0.01);
+  fout[0] = Te0*((1./3.)*(2.+tanh(2.*(2.-25.*x)))+0.01);
 }
 
 // Collision frequencies.
@@ -382,7 +382,7 @@ create_ctx(void)
   double Rmid_min  = R_LCFSmid - 0.1;    // Minimum midplane major radius of simulation box [m].
   double Rmid_max  = R_LCFSmid + 0.05;   // Maximum midplane major radius of simulation box [m].
   double R0        = 0.5*(Rmid_min+Rmid_max);  // Major radius of the simulation box [m].
-                                               //
+
   double a_mid     = R_LCFSmid-R_axis;   // Minor radius at outboard midplane [m].
   // Redefine a_mid with Shafranov shift, to ensure LCFS radial location.
   a_mid = R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
