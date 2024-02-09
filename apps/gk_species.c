@@ -335,6 +335,8 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
 
   if (species->has_reactions)
     gk_species_react_rhs(app, species, &species->react, fin, rhs);
+  if (species->has_neutral_reactions)
+    gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
