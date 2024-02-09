@@ -89,7 +89,7 @@ test_coll_recomb_h(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
@@ -305,7 +305,7 @@ test_coll_recomb_all_gk_li(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&confGrid, ghost, &confRange, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghost, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
@@ -508,7 +508,7 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&confGrid, ghost, &confRange, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghost, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
@@ -710,7 +710,7 @@ test_coll_recomb_init_elem(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
