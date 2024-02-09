@@ -382,7 +382,7 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   if (app->use_gpu)
     gkyl_array_release(s->f_host);
 
-  if (!species->info.is_static) {
+  if (!s->info.is_static) {
     gkyl_array_release(s->alpha_surf);
     gkyl_array_release(s->sgn_alpha_surf);
     gkyl_array_release(s->const_sgn_alpha);
@@ -392,7 +392,7 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     gkyl_dg_eqn_release(s->eqn_vlasov);
     gkyl_dg_updater_vlasov_release(s->slvr);
   }
-  
+
   // release moment data
   gk_neut_species_moment_release(app, &s->m0);
   for (int i=0; i<s->info.num_diag_moments; ++i)
