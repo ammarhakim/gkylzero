@@ -21,8 +21,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   // allocate arrays for charge density
   f->rho_c = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  f->rho_c_global_dg = mkarr(app->use_gpu, app->confBasis.num_basis, app->global.volume);
-  f->rho_c_global_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->global.volume);
+  f->rho_c_global_dg = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+  f->rho_c_global_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
 
   // allocate arrays for electrostatic potential
   f->phi_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);

@@ -566,6 +566,8 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // simulation complete, free app
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
   gkyl_gyrokinetic_app_release(app);
   
   mpifinalize:
