@@ -91,9 +91,9 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   rad->nvsqnu_surf_host = rad->nvsqnu_surf;
   rad->nvsqnu_host = rad->nvsqnu;
   if (app->use_gpu) {
-    rad->nvnu_surf_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+    rad->nvnu_surf_host = mkarr(false, surf_vpar_basis.num_basis, s->local_ext.volume);
     rad->nvnu_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
-    rad->nvsqnu_surf_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+    rad->nvsqnu_surf_host = mkarr(false, surf_mu_basis.num_basis, s->local_ext.volume);
     rad->nvsqnu_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
   }
 

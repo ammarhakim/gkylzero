@@ -6,7 +6,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
-// Struct containing the pointers to auxiliary fields.
+// Struct containing the pointers to auxiliary fields. These are all summed over radiating species
 struct gkyl_dg_rad_gyrokinetic_auxfields { 
   const struct gkyl_array *nvnu_surf;
   const struct gkyl_array *nvnu;
