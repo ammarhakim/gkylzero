@@ -1,10 +1,12 @@
+#include <assert.h>
+
 #include <gkyl_deflated_fem_poisson.h>
 #include <gkyl_deflated_fem_poisson_priv.h>
 
-
 struct gkyl_deflated_fem_poisson* 
 gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid, 
-  struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, struct gkyl_range local, struct gkyl_range local_ext, 
+  struct gkyl_basis *basis_on_dev, struct gkyl_basis basis, 
+  struct gkyl_range local, struct gkyl_range global_sub_range, 
   struct gkyl_array *epsilon, struct gkyl_poisson_bc poisson_bc, bool use_gpu)
 {
   struct gkyl_deflated_fem_poisson *up = gkyl_malloc(sizeof(*up));
@@ -12,8 +14,13 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
   up->grid = grid;
   up->basis = basis;
   up->basis_on_dev = basis_on_dev;
+
+  // Assumes domain decomposition *only* in z.
+  // local is range of potential; global_sub_range is range for indexing global charge density
   up->local = local;
-  up->local_ext = local_ext;
+  up->global_sub_range = global_sub_range;
+  assert(up->local.volume == up->global_sub_range.volume);
+
   up->poisson_bc = poisson_bc;
   up->cdim = grid.ndim;
   up->num_solves_z = up->local.upper[up->cdim-1] - up->local.lower[up->cdim-1] + 2;
@@ -107,18 +114,18 @@ void
 gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct gkyl_array *field, struct gkyl_array* phi)
 {
   int ctr = 0;
-  for(int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1]; zidx++){
-    // Deflate rho
-    gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->local, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
+  for(int zidx = up->global_sub_range.lower[up->cdim-1]; zidx <= up->global_sub_range.upper[up->cdim-1]; zidx++){
+    // Deflate rho indexing global sub-range to fetch correct place in z
+    gkyl_deflate_zsurf_advance(up->deflator_lo, zidx, &up->global_sub_range, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
     // Do the poisson solve 
     gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
     gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
     // Modal to Nodal in 1d -> Store the result in the 2d nodal field
     gkyl_nodal_ops_m2n_deflated(up->n2m_deflated, up->deflated_basis_on_dev, &up->deflated_grid, &up->nrange, &up->deflated_nrange, &up->deflated_local, 1, up->nodal_fld, up->d_fem_data[ctr].deflated_phi, zidx-1);
     ctr += 1;
-    if (zidx == up->local.upper[up->cdim-1]) {
-      // Deflate rho
-      gkyl_deflate_zsurf_advance(up->deflator_up, zidx, &up->local, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
+    if (zidx == up->global_sub_range.upper[up->cdim-1]) {
+      // Deflate rho indexing global sub-range to fetch correct place in z
+      gkyl_deflate_zsurf_advance(up->deflator_up, zidx, &up->global_sub_range, &up->deflated_local, field, up->d_fem_data[ctr].deflated_field, 1);
       // Do the poisson solve 
       gkyl_fem_poisson_set_rhs(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_field);
       gkyl_fem_poisson_solve(up->d_fem_data[ctr].fem_poisson, up->d_fem_data[ctr].deflated_phi);
@@ -127,9 +134,6 @@ gkyl_deflated_fem_poisson_advance(struct gkyl_deflated_fem_poisson *up, struct g
     }
   }
   gkyl_nodal_ops_n2m(up->n2m, up->basis_on_dev, &up->grid, &up->nrange, &up->local, 1, up->nodal_fld, phi);
-
-
-
 }
 
 void gkyl_deflated_fem_poisson_release(struct gkyl_deflated_fem_poisson* up){
