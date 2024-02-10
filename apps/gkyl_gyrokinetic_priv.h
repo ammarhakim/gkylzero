@@ -524,6 +524,9 @@ struct gk_field {
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
 
+  struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
+                                      // for solving subset of Poisson solves with parallelization in z
+
   // organization of the different equation objects and the required data and solvers
   union {
     struct {

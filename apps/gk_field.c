@@ -70,10 +70,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       }
       // deflated Poisson solve is performed on range assuming decomposition is *only* in z right now
       // need sub range of global range corresponding to where we are in z to properly index global charge density
-      struct gkyl_range global_sub_range;
-      int intersect = gkyl_sub_range_intersect(&global_sub_range, &app->global, &app->local);
+      int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
       f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
-        app->local, global_sub_range, f->epsilon, f->info.poisson_bcs, app->use_gpu);
+        app->local, f->global_sub_range, f->epsilon, f->info.poisson_bcs, app->use_gpu);
     }
   }
   // Potential smoothing (in z) updater (smoothing is done on global range)
