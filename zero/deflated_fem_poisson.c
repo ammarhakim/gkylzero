@@ -32,11 +32,11 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
   int nodes[GKYL_MAX_DIM];
   if (poly_order == 1){
     for (int d=0; d<up->cdim; ++d)
-      nodes[d] = gkyl_range_shape(&up->local,d) + 1;
+      nodes[d] = gkyl_range_shape(&up->global_sub_range, d) + 1;
   }
   if (poly_order == 2){
     for (int d=0; d<up->cdim; ++d)
-      nodes[d] = 2*gkyl_range_shape(&up->local,d) + 1;
+      nodes[d] = 2*gkyl_range_shape(&up->global_sub_range, d) + 1;
   }
   gkyl_range_init_from_shape(&up->nrange, up->cdim, nodes);
 
