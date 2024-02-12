@@ -10,7 +10,6 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-// Done first pass
 struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 

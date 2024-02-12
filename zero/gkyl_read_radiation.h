@@ -19,8 +19,7 @@ struct rad_fit_parameters{
   double *Lz;
 };
 
-/* Radiation data for a single charge state, may (or may not) have fits for more than
- *    1 electron density
+/* Radiation data for a single charge state (for all electron densities).
  */
 struct radiating_state{
   bool state_exists;

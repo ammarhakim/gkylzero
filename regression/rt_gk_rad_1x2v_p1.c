@@ -294,7 +294,7 @@ main(int argc, char **argv)
 
     .use_gpu = app_args.use_gpu,
   };
-  printf("Use gpu=%d\n",gk.use_gpu);
+  
   // create app object
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
 

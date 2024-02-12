@@ -164,8 +164,8 @@ test_1x(int poly_order, bool use_gpu, double te)
   int status = gkyl_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne);
   if (status == 1) {
     printf("No radiation fits exist for z=%d, charge state=%d\n",atomic_z, charge_state);
+    TEST_CHECK(status==0);
   }
-  printf("a=%e,alpha=%e,beta=%e,gamma=%e,V0=%e\n",a[0], alpha[0], beta[0], gamma[0], v0[0]);
   double ctx[1], Lz[1];
   ctx[0]=te;
   gkyl_get_fit_lz(*rad_data, atomic_z, charge_state, log10(1e19), ctx, Lz);
@@ -441,8 +441,8 @@ test_2x(int poly_order, bool use_gpu, double te)
   int status = gkyl_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne);
   if (status == 1) {
     printf("No radiation fits exist for z=%d, charge state=%d\n",atomic_z, charge_state);
+    TEST_CHECK( status==0 );
   }
-  printf("a=%e,alpha=%e,beta=%e,gamma=%e,V0=%e\n",a[0], alpha[0], beta[0], gamma[0], v0[0]);
   double ctx[1], Lz[1];
   ctx[0]=te;
   gkyl_get_fit_lz(*rad_data, atomic_z, charge_state, log10(1e19), ctx, Lz);
@@ -561,7 +561,6 @@ test_2x(int poly_order, bool use_gpu, double te)
   double cell_avg0 = 1.0/2.0*GKYL_ELECTRON_MASS*cell_avg_m2/(cell_avg_m0*cell_avg_m0);
 
   double correct = Lz[0];;
-  printf("cell_avg=%e, correct energy=%e, ratio=%e, percent error = %e, density=%.10e, m2=%e\n", cell_avg0, correct, cell_avg0/correct, (fabs(cell_avg0)-correct)/correct, cell_avg_m0, cell_avg_m2);
  
   // Fit error typically >10%, so %1 should be sufficient here
   TEST_CHECK( gkyl_compare( -correct*1e30, cell_avg0*1e30, 1e-2));
@@ -627,16 +626,10 @@ void test_1x2v_p2_gpu() { test_1x(2, true, 30.0); }
 #endif
 
 TEST_LIST = {
-	     //  { "test_1x2v_p1_10eV", test_1x2v_p1_10eV },
   { "test_1x2v_p1_30eV", test_1x2v_p1_30eV },
-  /*  { "test_1x2v_p1_50eV", test_1x2v_p1_50eV },
-  { "test_1x2v_p1_100eV", test_1x2v_p1_100eV },
-  { "test_1x2v_p1_500eV", test_1x2v_p1_500eV },
-  { "test_1x2v_p1_1000eV", test_1x2v_p1_1000eV },*/
   { "test_1x2v_p1_5000eV", test_1x2v_p1_5000eV },
-  /*  { "test_1x2v_p1_10000eV", test_1x2v_p1_10000eV },
   { "test_1x2v_p2", test_1x2v_p2 },
-  { "test_2x2v_p1", test_2x2v_p1 },*/
+  { "test_2x2v_p1", test_2x2v_p1 },
 
 #ifdef GKYL_HAVE_CUDA
   { "test_1x2v_p1_gpu", test_1x2v_p1_gpu },
