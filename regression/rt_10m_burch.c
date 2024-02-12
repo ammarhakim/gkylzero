@@ -25,7 +25,6 @@ struct burch_ctx
   // Physical constants (using normalized code units).
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
-  double speed_light; // Speed of light.
   double mass_ion; // Proton mass.
   double charge_ion; // Proton charge.
   double mass_elc; // Electron mass.
@@ -37,6 +36,7 @@ struct burch_ctx
   double Te1_over_Te2; // Magnetospheric electron temperature / magnetosheath ion temperature.
 
   // Derived physical quantities (using normalized code units).
+  double speed_light; // Speed of light.
   double B0; // Reference magnetic field strength.
   double wpi; // Ion plasma frequency.
   double di; // Ion skin depth.
@@ -74,7 +74,6 @@ create_ctx(void)
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
-  double speed_light = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
   double mass_ion = 1.0; // Proton mass.
   double charge_ion = 1.0; // Proton charge.
   double mass_elc = mass_ion / 100.0; // Electron mass.
@@ -86,6 +85,7 @@ create_ctx(void)
   double Te1_over_Te2 = 1.288 / 1.374; // Magnetospheric electron temperature / magnetosheath ion temperature.
 
   // Derived physical quantities (using normalized code units).
+  double speed_light = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
   double B0 = vAe * sqrt(n0 * mass_elc); // Reference magnetic field strength.
   double wpi = sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)); // Ion plasma frequency.
   double di = speed_light / wpi; // Ion skin depth.

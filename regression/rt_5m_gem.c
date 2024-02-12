@@ -81,7 +81,7 @@ create_ctx(void)
   double T_tot = beta * (B0 * B0) / 2.0 / n0; // Total temperature;
 
   // Simulation parameters.
-  int Nx = 64; // Cell count (x-drection).
+  int Nx = 64; // Cell count (x-direction).
   int Ny = 32; // Cell count (y-direction).
   double Lx = 25.6; // Domain size (x-direction).
   double Ly = 12.8; // Domain size (y-direction).
