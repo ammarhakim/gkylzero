@@ -49,8 +49,8 @@ struct lhdi_ctx
   double B0; // Reference magnetic field strength (derived from normalization of mass_elc and n0).
   double vAi; // Ion Alfven velocity.
 
-  double omegaCi; // Ion cyclotron frequency.
-  double omegaCe; // Electron cyclotron frequency.
+  double omega_ci; // Ion cyclotron frequency.
+  double omega_ce; // Electron cyclotron frequency.
 
   double larmor_ion; // Ion Larmor radius.
   double larmor_elc; // Electron Larmor radius.
@@ -106,11 +106,11 @@ create_ctx(void)
   double B0 = vAe; // Reference magnetic field strength (derived from normalization of mass_elc and n0).
   double vAi = vAe / sqrt(mass_ion); // Ion Alfven velocity.
 
-  double omegaCi = charge_ion * B0 / mass_ion; // Ion cyclotron frequency.
-  double omegaCe = charge_ion * B0 / mass_elc; // Electron cyclotron frequency.
+  double omega_ci = charge_ion * B0 / mass_ion; // Ion cyclotron frequency.
+  double omega_ce = charge_ion * B0 / mass_elc; // Electron cyclotron frequency.
 
-  double larmor_ion = vt_ion / omegaCi; // Ion Larmor radius.
-  double larmor_elc = vt_elc / omegaCe; // Electron Larmor radius.
+  double larmor_ion = vt_ion / omega_ci; // Ion Larmor radius.
+  double larmor_elc = vt_elc / omega_ce; // Electron Larmor radius.
 
   double l = larmor_ion; // Current sheet width.
   
@@ -150,8 +150,8 @@ create_ctx(void)
     .vAe = vAe,
     .B0 = B0,
     .vAi = vAi,
-    .omegaCi = omegaCi,
-    .omegaCe = omegaCe,
+    .omega_ci = omega_ci,
+    .omega_ce = omega_ce,
     .larmor_ion = larmor_ion,
     .larmor_elc = larmor_elc,
     .l = l,

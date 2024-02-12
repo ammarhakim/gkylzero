@@ -38,7 +38,12 @@ struct mom_beach_ctx
   int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
   double Lx100; // Domain size over 100 (x-direction).
+  double x_last_edge; // Location of center of last cell.
   double t_end; // Final simulation time.
+
+  double deltaT; // Arbitrary constant, with units of time.
+  double factor; // Numerical factor for calculation of electron number density.
+  double omega_drive; // Drive current angular frequency.
 };
 
 struct mom_beach_ctx
@@ -63,7 +68,12 @@ create_ctx(void)
   int Nx = 400; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
+  double x_last_edge = Lx / Nx; // Location of center of last cell.
   double t_end = 5.0e-9; // Final simulation time.
+
+  double deltaT = Lx100 / speed_light; // Arbitrary constant, with units of time.
+  double factor = deltaT * deltaT * charge_elc * charge_elc / (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
+  double omega_drive = pi / 10.0 / deltaT; // Drive current angular frequency.
 
   struct mom_beach_ctx ctx = {
     .pi = pi,
@@ -77,14 +87,18 @@ create_ctx(void)
     .Nx = Nx,
     .Lx = Lx,
     .Lx100 = Lx100,
+    .x_last_edge = x_last_edge,
     .t_end = t_end,
+    .deltaT = deltaT,
+    .factor = factor,
+    .omega_drive = omega_drive,
   };
 
   return ctx;
 }
 
 void
-evalElcInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
   struct mom_beach_ctx *app = ctx;
@@ -98,10 +112,10 @@ evalElcInit(double t, const double * restrict xn, double* restrict fout, void *c
 
   double Lx100 = app -> Lx100;
 
-  double wpdt = 25.0 * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x); // Plasma frequency profile.
-  double deltaT = Lx100 / speed_light; // Arbitrary constant, with units of time.
-  double factor = deltaT * deltaT * charge_elc * charge_elc / (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
-  double ne = wpdt * wpdt / factor; // Electron number density.
+  double factor = app ->factor;
+
+  double omegaPdt = 25.0 * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x) * (1.0 - x); // Plasma frequency profile.
+  double ne = omegaPdt * omegaPdt / factor; // Electron number density.
 
   // Set electron mass density.
   fout[0] = mass_elc * ne;
@@ -112,7 +126,7 @@ evalElcInit(double t, const double * restrict xn, double* restrict fout, void *c
 }
 
 void
-evalFieldInit(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   // Set electric field.
   fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
@@ -123,7 +137,7 @@ evalFieldInit(double t, const double * restrict xn, double* restrict fout, void 
 }
 
 void
-evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void *ctx)
+evalAppCurrent(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
   struct mom_beach_ctx *app = ctx;
@@ -137,10 +151,9 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
   double Lx = app -> Lx;
   double Nx = app -> Nx;
   double Lx100 = app -> Lx100;
+  double x_last_edge = app -> x_last_edge;
 
-  double x_last_edge = Lx / Nx; // Location of center of last cell.
-  double deltaT = Lx100 / speed_light; // Arbitrary constant, with units of time.
-  double omega_drive = pi / 10.0 / deltaT; // Drive current angular frequency.
+  double omega_drive = app -> omega_drive;
 
   if (x > x_last_edge)
   {
@@ -259,14 +272,13 @@ main(int argc, char **argv)
     .ndim = 1,
     .lower = { 0.0 },
     .upper = { ctx.Lx }, 
-    .cells = { ctx.Nx  },
+    .cells = { NX },
 
     .num_species = 1,
     .species = { elc },
 
     .field = {
-      .epsilon0 = ctx.epsilon0,
-      .mu0 = ctx.mu0,
+      .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
       
       .evolve = 1,
       .init = evalFieldInit,

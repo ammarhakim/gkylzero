@@ -83,15 +83,21 @@ eval10mInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double ur = app -> ur;
   double pr = app -> pr;
 
-  double rho = rhor;
-  double u = ur;
-  double p = pr;
+  double rho = 0.0;
+  double u = 0.0;
+  double p = 0.0;
 
   if (x < 0.75)
   {
-    rho = rhol;
-    u = ul;
-    p = pl;
+    rho = rhol; // Fluid momentum density (left).
+    u = ul; // Fluid velocity (left).
+    p = pl; // Fluid pressure (left).
+  }
+  else
+  {
+    rho = rhor; // Fluid momentum density (right).
+    u = ur; // Fluid velocity (right).
+    p = pr; // Fluid pressure (right).
   }
 
   // Set fluid mass density.
