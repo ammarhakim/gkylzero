@@ -318,7 +318,7 @@ gkyl_proj_bimaxwellian_mirror_on_basis_gyrokinetic_lab_mom(const gkyl_proj_bimax
 }
 
 void
-gkyl_proj_bimaxwellian_mirror_mirror_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bimaxwellian_mirror_on_basis *up,
+gkyl_proj_bimaxwellian_mirror_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bimaxwellian_mirror_on_basis *up,
   const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
   const struct gkyl_array *prim_moms, const struct gk_geometry *gk_geom,
   double mass, struct gkyl_array *fmax)
