@@ -94,11 +94,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
     (double []) { logTmax, logNmax},
     (int[]) { data.NT-1, data.NN-1 }
   );
-  
-  struct gkyl_range adas_rng;
-  //int ghost[] = { 0, 0 };
-  //gkyl_create_grid_ranges(&tn_grid, ghost, &adas_rng_ext, &adas_rng);
-  gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
 
   struct gkyl_basis adas_basis;
   up->adas_basis = adas_basis;
@@ -140,7 +135,7 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   up->dlogM0 = tn_grid.dx[1];
   up->resTe = tn_grid.cells[0];
   up->resM0 = tn_grid.cells[1];
-  up->adas_rng = adas_rng;
+  up->adas_rng = modal_range;
 
   if (use_gpu) {
     up->recomb_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
@@ -228,7 +223,7 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
       double *recomb_dat_d = gkyl_array_fetch(up->recomb_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
       coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
-      //fprintf(stdout, "\nadas recomb = %g t_idx %d m0_idx %d", adas_eval, t_idx, m0_idx);
+      //fprintf(stdout, "\nadas recomb = %g %g t_idx %d m0_idx %d", recomb_dat_d[0], adas_eval, t_idx, m0_idx);
     }
     
     if ((up->all_gk==false) && (up->type_self == GKYL_SELF_RECVR)) {
@@ -240,6 +235,8 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
 					    moms_ion_d, prim_vars_ion_d);
     }
   }
+
+  //gkyl_grid_sub_array_write(&s->grid, &s->local, react->coef_react[i], "coef_recomb.gkyl");
 
   // cfl calculation
   //struct gkyl_range vel_rng;

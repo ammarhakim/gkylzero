@@ -218,13 +218,12 @@ def write_files(elem_array, file_num):
             ioniz_dat = ioniz.logdata[zi,:,:]-6.0
             ioniz_flat = numpy.ndarray.flatten(ioniz_dat)
             ioniz_np.append(ioniz_flat)
-            if (i == 1):
-                print(zi, ioniz_dat)
             
             recomb = adas_adf11("acd%s_%s.dat"%(num,name))
             recomb_dat = recomb.logdata[zi,:,:]-6.0
             recomb_flat = numpy.ndarray.flatten(recomb_dat)
             recomb_np.append(recomb_flat)
+ 
         #print('2d shape', numpy.shape(recomb_dat))
         ioniz_np = numpy.array(ioniz_np)
         recomb_np = numpy.array(recomb_np)

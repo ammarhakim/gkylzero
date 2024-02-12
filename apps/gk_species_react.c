@@ -147,7 +147,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->moms_elc[i].marr, react->prim_vars[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
-	gkyl_grid_sub_array_write(&s->grid, &s->local, react->f_react, "f_react_elc.gkyl");
+
         // electron update is n_elc*coeff_react*(2*fmax(n_elc, upar_donor, vtiz^2) - f_elc)
         gkyl_array_scale(react->f_react, 2.0);
         gkyl_array_accumulate(react->f_react, -1.0, fin);
@@ -163,7 +163,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->moms_donor[i].marr, react->prim_vars[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
-	gkyl_grid_sub_array_write(&s->grid, &s->local, react->f_react, "f_react_ion.gkyl");
+
         // ion update is n_elc*coeff_react*fmax(n_donor, upar_donor, vt_donor^2)
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
@@ -190,9 +190,11 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_array_set(react->f_react, 1.0, fin);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
+	//gkyl_grid_sub_array_write(&app->grid, &app->local, react->coeff_react[i], "coef_recomb.gkyl");
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->m0_elc[i], react->f_react, &app->local, &s->local);
         gkyl_array_accumulate(rhs, -1.0, react->f_react);
+	//gkyl_grid_sub_array_write(&s->grid, &s->local, react->f_react, "f_recomb.gkyl");
       }
       else {
         gkyl_proj_gkmaxwellian_on_basis_lab_mom(react->proj_max, &s->local, &app->local,

@@ -217,7 +217,7 @@ create_ctx(void)
   double Te = 150.0*eV;
   double Ti = 150.0*eV;
   double TAr = 20.0*eV;
-  double n0 = 1.0e19;
+  double n0 = 1e19;
 
   // Geometry and magnetic field.
   double B_axis = 0.5;
@@ -260,9 +260,9 @@ create_ctx(void)
   double mu_max_ion = (3./2.)*0.5*mi*pow(4.0*vtIon,2)/(2.0*B0);
 
   double vpar_max_Ar = 6.0*vtAr;
-  double mu_max_Ar = (3./2.)*0.5*mi*pow(4.0*vtAr,2)/(2.0*B0);
+  double mu_max_Ar = (3./2.)*0.5*mAr*pow(4.0*vtAr,2)/(2.0*B0);
   
-  double finalTime = 6.e-6; 
+  double finalTime = 1e-6; 
   double numFrames = 1;
 
   struct gk_app_ctx ctx = {
@@ -290,7 +290,7 @@ create_ctx(void)
     .vpar_max_Ar = vpar_max_Ar, 
     .mu_max_Ar = mu_max_Ar, 
     .finalTime = finalTime, 
-    .numFrames = numFrames, 
+    .numFrames = numFrames,
   };
   return ctx;
 }
@@ -359,18 +359,18 @@ main(int argc, char **argv)
       }, 
     },
     .react_neut = {
-      .num_react = 0,
+      .num_react = 2,
       .react_type = {
-        /* { .react_id = GKYL_REACT_IZ, */
-        /*   .type_self = GKYL_SELF_ELC, */
-        /*   .ion_id = GKYL_ION_AR, */
-        /*   .elc_nm = "elc", */
-        /*   .ion_nm = "Ar1", */
-        /*   .donor_nm = "Ar0", */
-        /*   .charge_state = 0, */
-        /*   .ion_mass = ctx.massAr, */
-        /*   .elc_mass = ctx.massElc, */
-        /* }, */
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_ELC,
+          .ion_id = GKYL_ION_AR,
+          .elc_nm = "elc",
+          .ion_nm = "Ar1",
+          .donor_nm = "Ar0",
+          .charge_state = 0,
+          .ion_mass = ctx.massAr,
+          .elc_mass = ctx.massElc,
+        },
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_ELC,
           .ion_id = GKYL_ION_AR,
@@ -452,7 +452,7 @@ main(int argc, char **argv)
       .temp = eval_temp_ion,      
     },
     .react_neut = {
-      .num_react = 1,
+      .num_react = 2,
       .react_type = {
         { .react_id = GKYL_REACT_IZ,
           .type_self = GKYL_SELF_ION,
@@ -460,7 +460,7 @@ main(int argc, char **argv)
           .elc_nm = "elc",
           .ion_nm = "Ar1",
           .donor_nm = "Ar0",
-          .charge_state = 8,
+          .charge_state = 0,
           .ion_mass = ctx.massAr,
           .elc_mass = ctx.massElc,
         },
@@ -470,7 +470,7 @@ main(int argc, char **argv)
           .elc_nm = "elc",
           .ion_nm = "Ar1",
           .recvr_nm = "Ar0",
-          .charge_state = 8,
+          .charge_state = 0,
           .ion_mass = ctx.massAr,
           .elc_mass = ctx.massElc,
         },
@@ -516,6 +516,8 @@ main(int argc, char **argv)
   struct gkyl_gk gk = {
     .name = "rt_gk_ar_react_1x2v_p1",
 
+    //.cfl_frac = 0.1,
+
     .cdim = 1, .vdim = 2,
     .lower = { -ctx.Lz/2.0 },
     .upper = { ctx.Lz/2.0 },
@@ -541,6 +543,8 @@ main(int argc, char **argv)
     .num_neut_species = 1,
     .neut_species = {Ar0},
     .field = field,
+
+
 
     .use_gpu = app_args.use_gpu,
   };
