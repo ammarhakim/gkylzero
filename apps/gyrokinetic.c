@@ -136,12 +136,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   struct gkyl_rect_grid geo_grid;
   struct gkyl_range geo_local;
   struct gkyl_range geo_local_ext;
+  struct gkyl_range geo_global;
+  struct gkyl_range geo_global_ext;
   struct gkyl_basis geo_basis;
   bool geo_3d_use_gpu = app->use_gpu;
 
   if(app->cdim < 3){
     geo_grid = agument_grid(app->grid, gk->geometry);
-    gkyl_create_grid_ranges(&geo_grid, ghost, &geo_local_ext, &geo_local);
     geo_3d_use_gpu = false;
     switch (gk->basis_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -151,11 +152,55 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
         assert(false);
         break;
     }
+
+    int ghost[] = { 1, 1, 1 };
+    gkyl_create_grid_ranges(&geo_grid, ghost, &geo_global_ext, &geo_global);
+    if (gk->has_low_inp) {
+      // create local and local_ext from user-supplied local range
+      //gkyl_create_ranges(&gk->low_inp.local_range, ghost, &geo_local_ext, &geo_local);
+      gkyl_create_grid_ranges(&geo_grid, ghost, &geo_local_ext, &geo_local);
+      
+      if (gk->low_inp.comm)
+        app->comm = gkyl_comm_acquire(gk->low_inp.comm);
+      else {
+        int cuts[3] = { 1, 1, 1 };
+        struct gkyl_rect_decomp *geo_rect_decomp =
+          gkyl_rect_decomp_new_from_cuts(3, cuts, &geo_global);
+        
+        app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+            .decomp = geo_rect_decomp,
+            .use_gpu = app->use_gpu
+          }
+        );
+
+        gkyl_rect_decomp_release(geo_rect_decomp);
+      }
+    }
+    else {
+      // global and local ranges are same, and so just copy
+      memcpy(&geo_local, &geo_global, sizeof(struct gkyl_range));
+      memcpy(&geo_local_ext, &geo_global_ext, sizeof(struct gkyl_range));
+
+      int cuts[3] = { 1, 1, 1 };
+      struct gkyl_rect_decomp *rect_decomp =
+        gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
+      
+      app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+          .decomp = rect_decomp,
+          .use_gpu = app->use_gpu
+        }
+      );
+      
+      gkyl_rect_decomp_release(rect_decomp);
+    }
+
   }
   else{
     geo_grid = app->grid;
     geo_local = app->local;
     geo_local_ext = app->local_ext;
+    geo_global = app->global;
+    geo_global_ext = app->global_ext;
     geo_basis = app->confBasis;
   }
 
@@ -163,6 +208,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   switch (gk->geometry.geometry_id) {
     case GKYL_GEOMETRY_FROMFILE:
       gk_geom_3d = gkyl_gk_geometry_fromfile_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, app->use_gpu);
+      gkyl_gyrokinetic_app_read_geometry(app);
       break;
     case GKYL_TOKAMAK:
       gk_geom_3d = gkyl_gk_geometry_tok_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
@@ -173,7 +219,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
           gk->geometry.mirror_efit_info, gk->geometry.mirror_grid_info, geo_3d_use_gpu);
       break;
     case GKYL_MAPC2P:
-      gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
+      gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_global, &geo_global_ext, &geo_basis, 
           gk->geometry.mapc2p, gk->geometry.c2p_ctx, gk->geometry.bmag_func,  gk->geometry.bmag_ctx, geo_3d_use_gpu);
       break;
   }
@@ -186,6 +232,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+  gkyl_gyrokinetic_app_write_geometry(app);
 
   // allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
@@ -661,6 +708,98 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     }
   }
   gkyl_dynvec_clear(app->field->integ_energy);
+}
+
+void
+gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
+{
+  const char *fmt = "%s-%s.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, "jacobtot_inv");
+  char fileNm[sz+1]; // ensure no buffer overflow
+  sprintf(fileNm, fmt, app->name, "mapc2p");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->mc2p, fileNm);
+  sprintf(fileNm, fmt, app->name, "bmag");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->bmag, fileNm);
+  sprintf(fileNm, fmt, app->name, "g_ij");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->g_ij, fileNm);
+  sprintf(fileNm, fmt, app->name, "dxdz");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->dxdz, fileNm);
+  sprintf(fileNm, fmt, app->name, "dzdx");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->dzdx, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacobgeo");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->jacobgeo, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacogeo_inv");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->jacobgeo_inv, fileNm);
+  sprintf(fileNm, fmt, app->name, "gij");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->gij, fileNm);
+  sprintf(fileNm, fmt, app->name, "b_i");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->b_i, fileNm);
+  sprintf(fileNm, fmt, app->name, "cmag");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->cmag, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacobtot");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->jacobtot, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacobtot_inv");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->jacobtot_inv, fileNm);
+  sprintf(fileNm, fmt, app->name, "bmag_inv");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->bmag_inv, fileNm);
+  sprintf(fileNm, fmt, app->name, "bmag_inv_sq");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->bmag_inv_sq, fileNm);
+  sprintf(fileNm, fmt, app->name, "gxxj");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->gxxj, fileNm);
+  sprintf(fileNm, fmt, app->name, "gxyj");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->gxyj, fileNm);
+  sprintf(fileNm, fmt, app->name, "gyyj");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->gyyj, fileNm);
+  sprintf(fileNm, fmt, app->name, "gxzj");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->gxzj, fileNm);
+  sprintf(fileNm, fmt, app->name, "eps2");
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->gk_geom->eps2, fileNm);
+}
+
+void
+gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
+{
+  const char *fmt = "%s-%s.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, "jacobtot_inv");
+  char fileNm[sz+1]; // ensure no buffer overflow
+  sprintf(fileNm, fmt, app->name, "mapc2p");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->mc2p, fileNm);
+  sprintf(fileNm, fmt, app->name, "bmag");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->bmag, fileNm);
+  sprintf(fileNm, fmt, app->name, "g_ij");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->g_ij, fileNm);
+  sprintf(fileNm, fmt, app->name, "dxdz");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->dxdz, fileNm);
+  sprintf(fileNm, fmt, app->name, "dzdx");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->dzdx, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacobgeo");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->jacobgeo, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacogeo_inv");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->jacobgeo_inv, fileNm);
+  sprintf(fileNm, fmt, app->name, "gij");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->gij, fileNm);
+  sprintf(fileNm, fmt, app->name, "b_i");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->b_i, fileNm);
+  sprintf(fileNm, fmt, app->name, "cmag");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->cmag, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacobtot");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->jacobtot, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacobtot_inv");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->jacobtot_inv, fileNm);
+  sprintf(fileNm, fmt, app->name, "bmag_inv");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->bmag_inv, fileNm);
+  sprintf(fileNm, fmt, app->name, "bmag_inv_sq");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->bmag_inv_sq, fileNm);
+  sprintf(fileNm, fmt, app->name, "gxxj");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->gxxj, fileNm);
+  sprintf(fileNm, fmt, app->name, "gxyj");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->gxyj, fileNm);
+  sprintf(fileNm, fmt, app->name, "gyyj");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->gyyj, fileNm);
+  sprintf(fileNm, fmt, app->name, "gxzj");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->gxzj, fileNm);
+  sprintf(fileNm, fmt, app->name, "eps2");
+  gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->gk_geom->eps2, fileNm);
 }
 
 // Take a forward Euler step with the suggested time-step dt. This may
