@@ -243,7 +243,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = (3./2.)*0.5*mi*pow(4.0*vtIon,2)/(2.0*B0);
 
-  double finalTime = .5e-7; 
+  double finalTime = .5e-6; 
   double numFrames = 1;
 
   struct gk_app_ctx ctx = {
