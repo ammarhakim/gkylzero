@@ -17,9 +17,9 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   // distribution function which holds update for each reaction
   // form depend on react->type_self, e.g., for recombination and react->type_self == GKYL_SELF_RECVR
   // react->f_react = n_elc*coeff_react*fmax(n_ion, upar_ion b_i, vt_ion^2)
-  react->f_react = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  react->f_react = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
   react->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid,
-    &app->confBasis, &app->basis, app->basis.poly_order+1, app->use_gpu);  
+    &app->confBasis, &app->neut_basis, app->neut_basis.poly_order+1, app->use_gpu);  
 
   for (int i=0; i<react->num_react; ++i) {
     react->react_id[i] = react->react_type[i].react_id;
@@ -46,7 +46,7 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
       struct gkyl_dg_iz_inp iz_inp = {
         .grid = &s->grid, 
         .cbasis = &app->confBasis, 
-        .pbasis = &app->basis, 
+        .pbasis = &app->neut_basis, 
         .conf_rng = &app->local, 
         .conf_rng_ext = &app->local_ext,
         .phase_rng = &s->local, 
@@ -63,7 +63,7 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
       struct gkyl_dg_recomb_inp recomb_inp = {
         .grid = &s->grid, 
         .cbasis = &app->confBasis, 
-        .pbasis = &app->basis, 
+        .pbasis = &app->neut_basis, 
         .conf_rng = &app->local, 
         .conf_rng_ext = &app->local_ext,
         .phase_rng = &s->local, 
@@ -125,9 +125,9 @@ gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_specie
     if (react->react_id[i] == GKYL_REACT_IZ) {
       // donor update is -n_elc*coeff_react*f_donor
       gkyl_array_set(react->f_react, 1.0, fin);
-      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react, 
           react->coeff_react[i], react->f_react, &app->local, &s->local);
-      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react, 
           react->m0_elc[i], react->f_react, &app->local, &s->local);  
       gkyl_array_accumulate(rhs, -1.0, react->f_react);    
 
@@ -137,12 +137,12 @@ gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_specie
         react->moms_ion[i].marr, react->prim_vars[i], react->f_react);
 
       // receiver update is n_elc*coeff_react*fmax(n_ion, upar_ion, vt_ion^2)
-      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react, 
           react->coeff_react[i], react->f_react, &app->local, &s->local);
-      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react, 
           react->m0_elc[i], react->f_react, &app->local, &s->local);  
       // multiply by configuration space Jacobian before final accumulation
-      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+      gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, react->f_react, 
           app->gk_geom->jacobgeo, react->f_react, &app->local_ext, &s->local_ext);  
       gkyl_array_accumulate(rhs, 1.0, react->f_react);  
     }

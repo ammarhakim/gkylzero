@@ -100,7 +100,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
     // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
     struct gkyl_dg_calc_vlasov_gen_geo_vars *calc_vars = gkyl_dg_calc_vlasov_gen_geo_vars_new(&s->grid, 
-      &app->confBasis, &app->basis, app->gk_geom, app->use_gpu);
+      &app->confBasis, &app->neut_basis, app->gk_geom, app->use_gpu);
     gkyl_dg_calc_vlasov_gen_geo_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, 
       s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
     gkyl_dg_calc_vlasov_gen_geo_vars_cot_vec(calc_vars, &app->local, s->cot_vec);

@@ -9,16 +9,16 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
   if (proj->proj_id == GKYL_PROJ_FUNC) {
     proj->proj_func = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
         .grid = &s->grid,
-        .basis = &app->basis,
+        .basis = &app->neut_basis,
         .qtype = GKYL_GAUSS_QUAD,
-        .num_quad = app->basis.poly_order+1,
+        .num_quad = app->neut_basis.poly_order+1,
         .num_ret_vals = 1,
         .eval = inp.func,
         .ctx = inp.ctx_func,
       }
     );
     if (app->use_gpu)
-      proj->proj_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+      proj->proj_host = mkarr(false, app->neut_basis.num_basis, s->local_ext.volume);
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN) {
     int vdim = app->vdim+1; // neutral species are 3v otherwise
@@ -38,14 +38,14 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
     }
 
     proj->proj_dens = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      app->basis.poly_order+1, 1, inp.density, inp.ctx_density);
+      app->neut_basis.poly_order+1, 1, inp.density, inp.ctx_density);
     proj->proj_udrift = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      app->basis.poly_order+1, vdim, inp.udrift, inp.ctx_udrift);
+      app->neut_basis.poly_order+1, vdim, inp.udrift, inp.ctx_udrift);
     proj->proj_temp = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
-      app->basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
+      app->neut_basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
 
     proj->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid,
-      &app->confBasis, &app->basis, app->basis.poly_order+1, app->use_gpu);
+      &app->confBasis, &app->neut_basis, app->neut_basis.poly_order+1, app->use_gpu);
   }
 }
 
@@ -94,9 +94,9 @@ gk_neut_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_neut_
       gkyl_dg_div_op_range(proj->mem, app->confBasis, 
         0, proj->m0mod, 0, proj->m0, 0, s->m0.marr, &app->local);
 
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, f, 
         proj->m0mod, f, &app->local_ext, &s->local_ext);
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->neut_basis, f, 
         app->gk_geom->jacobgeo, f, &app->local_ext, &s->local_ext);  
   }
 }
