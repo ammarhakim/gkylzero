@@ -6,11 +6,11 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
   struct gk_source *src)
 {
   // we need to ensure source has same shape as distribution function
-  src->source = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  src->source = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
   src->source_id = s->source_id;
   src->source_host = src->source;
   if (app->use_gpu)
-    src->source_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+    src->source_host = mkarr(false, app->neut_basis.num_basis, s->local_ext.volume);
 
   src->write_source = s->info.source.write_source; // optional flag to write out source
 
