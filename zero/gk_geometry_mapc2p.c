@@ -48,13 +48,9 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
     dpsi = up->grid.dx[PH_IDX],
     dalpha = up->grid.dx[AL_IDX];
 
-  printf("range diff = %d\n",  up->local.lower[TH_IDX] - up->global.lower[TH_IDX]);
-  
   double theta_lo = up->grid.lower[TH_IDX] + (up->local.lower[TH_IDX] - up->global.lower[TH_IDX])*up->grid.dx[TH_IDX],
     phi_lo = up->grid.lower[PH_IDX] + (up->local.lower[PH_IDX] - up->global.lower[PH_IDX])*up->grid.dx[PH_IDX],
     alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
-
-  printf("Lo vals are %g, %g, %g\n", phi_lo, alpha_lo, theta_lo);
 
   double dx_fact = up->basis.poly_order == 1 ? 1 : 0.5;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
@@ -137,7 +133,6 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
               double *mc2p_n = (double *) gkyl_array_fetch(mc2p_nodal, gkyl_range_idx(nrange, cidx));
 
               double xyz[3] = {psi_curr, alpha_curr, theta_curr};
-              //printf("Comp coord is = %g, %g, %g\n", psi_curr, alpha_curr, theta_curr);
               double XYZ[3] = {0.};
               mapc2p_func(0.0, xyz, XYZ, mapc2p_ctx);
 
@@ -202,7 +197,6 @@ gkyl_gk_geometry_mapc2p_new(const struct gkyl_rect_grid* grid, const struct gkyl
   double dzc[3] = {0.0};
 
   int poly_order = basis->poly_order;
-  // Create 2d/3d nodal range nodal array to be populated
   int nodes[GKYL_MAX_DIM];
   if (poly_order == 1) {
     for (int d=0; d<grid->ndim; ++d)
