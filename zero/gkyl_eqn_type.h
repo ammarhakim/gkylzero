@@ -63,6 +63,7 @@ enum gkyl_projection_id {
   GKYL_PROJ_FUNC = 0, // Function projection. This is default
   GKYL_PROJ_MAXWELLIAN, // Maxwellian projection
   GKYL_PROJ_BIMAXWELLIAN, // Bi-Maxwellian projection
+  GKYL_PROJ_BIMAXWELLIAN_MIRROR, // Bi-Maxwellian projection with mirror loss cone subtraction
 };
 
 // Identifiers for specific radiation object types
