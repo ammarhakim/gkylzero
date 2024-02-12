@@ -52,12 +52,12 @@ gkyl_nodal_ops_n2m(const struct gkyl_nodal_ops *nodal_ops,
 
     for (int i=0; i<num_basis; ++i) {
       const double *temp  = gkyl_array_cfetch(nodal_ops->nodes,i);
-      for( int j = 0; j < grid->ndim; j++){
-        if(cpoly_order==1){
-              nidx[j] = iter.idx[j]-1 + (temp[j]+1)/2 ;
+      for( int j = 0; j < grid->ndim; j++) {
+        if (cpoly_order==1) {
+              nidx[j] = (iter.idx[j]-update_range->lower[j]) + (temp[j]+1)/2 ;
         }
-        if (cpoly_order==2){
-              nidx[j] = 2*(iter.idx[j]-1) + (temp[j]+1) ;
+        if (cpoly_order==2) {
+              nidx[j] = 2*(iter.idx[j]-update_range->lower[j]) + (temp[j]+1) ;
         }
       }
       lin_nidx[i] = gkyl_range_idx(nrange, nidx);
