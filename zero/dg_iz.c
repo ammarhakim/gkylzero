@@ -6,6 +6,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_dg_prim_vars_vlasov.h>
 #include <gkyl_dg_prim_vars_gyrokinetic.h>
 #include <gkyl_dg_prim_vars_transform.h>
@@ -17,6 +18,8 @@
 #include <gkyl_dg_iz_priv.h>
 #include <gkyl_util.h>
 #include <gkyl_const.h>
+#include <gkyl_nodal_ops.h>
+#include <gkyl_rect_decomp.h>
 
 struct gkyl_dg_iz*
 gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
@@ -68,7 +71,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   /* fprintf(stdout, "\nM0_min %g M0_max %g", pow(10, logNmin), pow(10, logNmax)); */
 
   struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, data.Zmax, sz);
-  array_from_numpy(data.logData, sz, data.Zmax, adas_nodal);
+  array_from_numpy(data.logData, sz, data.Zmax, charge_state, adas_nodal);
   fclose(data.logData);
 
   if (!adas_nodal) {
@@ -76,8 +79,8 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
     return 0;
   }
 
-  struct gkyl_range range_node;
-  gkyl_range_init_from_shape(&range_node, 2, (int[]) { data.NT, data.NN } );
+  struct gkyl_range range_nodal;
+  gkyl_range_init_from_shape(&range_nodal, 2, (int[]) { data.NT, data.NN } );
 
   // allocate grid and DG array
   struct gkyl_rect_grid tn_grid;
@@ -86,11 +89,6 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
     (double []) { logTmax, logNmax},
     (int[]) { data.NT-1, data.NN-1 }
   );
-
-  struct gkyl_range adas_rng;
-  //int ghost[] = { 0, 0 };
-  //gkyl_create_grid_ranges(&tn_grid, ghost, &adas_rng_ext, &adas_rng);
-  gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
 
   struct gkyl_basis adas_basis;
   up->adas_basis = adas_basis;
@@ -105,10 +103,22 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   if (use_gpu)
     gkyl_cart_modal_serendip_cu_dev(up->basis_on_dev, 2, 1);
 
-  struct gkyl_array *adas_dg =
-    gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
+  int ghost[GKYL_MAX_DIM] = { 1, 1};
+  struct gkyl_range modal_range;
+  struct gkyl_range modal_range_ext;
+  gkyl_create_grid_ranges(&tn_grid, ghost, &modal_range_ext, &modal_range);
 
-  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
+  struct gkyl_array *adas_dg = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
+  
+  /* struct gkyl_array *adas_dg = */
+  /*   gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, (data.NT-1)*(data.NN-1)); */
+
+  //create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
+
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
+  gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg);
+  gkyl_nodal_ops_release(n2m);
+  gkyl_grid_sub_array_write(&tn_grid, &modal_range, adas_dg, "adas_iz.gkyl");
 
   // ADAS data pointers
   up->E = data.Eiz[charge_state];
@@ -120,7 +130,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   up->dlogM0 = tn_grid.dx[1];
   up->resTe = tn_grid.cells[0];
   up->resM0 = tn_grid.cells[1];
-  up->adas_rng = adas_rng;
+  up->adas_rng = modal_range;
 
   if (use_gpu) {
     // allocate fields for prim mom calculation

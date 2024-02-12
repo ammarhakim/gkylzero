@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_gyrokinetic_priv.h>
 
 void 
@@ -108,6 +109,9 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
       gkyl_array_set_range(react->m0_donor[i], 1.0, react->moms_donor[i].marr, &app->local);
 
+      // When do moments become infinitely large? 
+      //gkyl_grid_sub_array_write(&species->grid, &species->local, react->moms_elc[i].marr, "moms_elc.gkyl");
+
       // compute ionization reaction rate
       gkyl_dg_iz_coll(react->iz[i], react->moms_elc[i].marr, react->moms_donor[i].marr,
     	app->gk_geom->b_i, react->vt_sq_iz[i], react->prim_vars[i],
@@ -133,6 +137,7 @@ void
 gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
+  //fprintf(stdout, "\nspecies react");
   for (int i=0; i<react->num_react; ++i) {
     gkyl_array_clear(react->f_react, 0.0);
 
@@ -142,7 +147,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->moms_elc[i].marr, react->prim_vars[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
-
+	gkyl_grid_sub_array_write(&s->grid, &s->local, react->f_react, "f_react_elc.gkyl");
         // electron update is n_elc*coeff_react*(2*fmax(n_elc, upar_donor, vtiz^2) - f_elc)
         gkyl_array_scale(react->f_react, 2.0);
         gkyl_array_accumulate(react->f_react, -1.0, fin);
@@ -151,18 +156,22 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->m0_donor[i], react->f_react, &app->local, &s->local);
         gkyl_array_accumulate(rhs, 1.0, react->f_react);
+
+	//fprintf(stdout, "\nApplying iz elc rhs");
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->moms_donor[i].marr, react->prim_vars[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
-
+	gkyl_grid_sub_array_write(&s->grid, &s->local, react->f_react, "f_react_ion.gkyl");
         // ion update is n_elc*coeff_react*fmax(n_donor, upar_donor, vt_donor^2)
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->m0_elc[i], react->f_react, &app->local, &s->local);
-        gkyl_array_accumulate(rhs, 1.0, react->f_react);
+	gkyl_array_accumulate(rhs, 1.0, react->f_react);
+
+	//fprintf(stdout, "\nApplying iz ion rhs");
       }
       else {
         // donor update is -n_elc*coeff_react*f_donor
@@ -172,6 +181,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->m0_elc[i], react->f_react, &app->local, &s->local);
         gkyl_array_accumulate(rhs, -1.0, react->f_react);
+	//fprintf(stdout, "\nApplying iz donor rhs");
       }
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {

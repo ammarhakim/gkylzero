@@ -277,6 +277,8 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
 
     app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   }
+  else if (species->has_neutral_reactions)
+    gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
 
   return app->cfl/omegaCfl;
 }

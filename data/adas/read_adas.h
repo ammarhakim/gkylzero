@@ -22,9 +22,16 @@ typedef struct adas_field {
 
 // Functions to extract ADAS data and project onto DG data
 static inline void
-array_from_numpy(FILE *fp, long sz, int Zmax, struct gkyl_array *arr)
+array_from_numpy(FILE *fp, long sz, int Zmax, int charge_state, struct gkyl_array *arr)
 {
-  long res_sz = fread(arr->data, 1, sizeof(double[Zmax][sz]), fp);
+  int zi = charge_state;
+  double array[Zmax][sz];
+  long res_sz = fread(array, 1, sizeof(double[Zmax][sz]), fp);
+		   
+  for (int i=0; i<sz; ++i) {
+    double *arr_d = (double*) gkyl_array_fetch(arr, i);
+    arr_d[0] = array[zi][i]; 
+  }
 }
 
 static inline void
@@ -75,11 +82,11 @@ create_dg_from_nodal(const struct gkyl_rect_grid *grid,
     int count = 0;
     for (int j=0; j<2; ++j) {
       for (int i=0; i<2; ++i) {
-	const int array_idx[2] = {ix+i, iy+j};
+  	const int array_idx[2] = {ix+i, iy+j};
         long nidx = (long) gkyl_range_idx(range_nodal, array_idx );
         const double *adas_n = (const double*) gkyl_array_cfetch(adas_nodal, nidx);
-	const double *adas_z_n = &adas_n[zi]; // get data for charge state
-	nv[count++] = adas_n[0];
+  	//const double *adas_z_n = &adas_n[zi]; // get data for charge state
+  	nv[count++] = adas_n[0];
       }
     }
     double *mv = (double*) gkyl_array_fetch(adas_dg, gkyl_range_idx(&range, iter.idx));
