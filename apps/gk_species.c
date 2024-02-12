@@ -203,7 +203,7 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     s->has_diffusion = true;
     int diffusion_order = s->info.diffusion.order ? s->info.diffusion.order : 2;
 
-    int szD = cdim;
+    int szD = cdim*app->confBasis.num_basis;
     s->diffD = mkarr(app->use_gpu, szD, app->local_ext.volume);
     bool is_zero_flux[GKYL_MAX_CDIM] = {false};
     bool diff_dir[GKYL_MAX_CDIM] = {false};
@@ -218,7 +218,7 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
       gkyl_array_shiftc(s->diffD, s->info.diffusion.D[d]*pow(sqrt(2),app->cdim), dir);
     }
     // Multiply diffD by g^xx*jacobgeo.
-    gkyl_dg_mul_op(app->confBasis, 0, s->diffD, 0, app->gk_geom->jacobgeo, 0, s->diffD);
+    gkyl_dg_mul_op(app->confBasis, 0, s->diffD, 0, app->gk_geom->gxxj, 0, s->diffD);
 
     s->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&s->grid, &app->basis, &app->confBasis, 
       false, diff_dir, diffusion_order, &app->local, is_zero_flux, app->use_gpu);
