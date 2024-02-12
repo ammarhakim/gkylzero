@@ -72,7 +72,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   // Phase space and Configuration space extents and resolution
   double lower[] = {-1.0, -4*vth, 0.0};
   double upper[] = {1.0, 4*vth, 9*vth*vth*GKYL_ELECTRON_MASS};
-  int cells[] = {2, 2048, 1024};
+  int cells[] = {2, 256, 128};
   confLower[0] = lower[0]; 
   confUpper[0] = upper[0];
   confCells[0] = cells[0];
@@ -164,7 +164,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   int status = gkyl_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne);
   if (status == 1) {
     printf("No radiation fits exist for z=%d, charge state=%d\n",atomic_z, charge_state);
-    TEST_CHECK(status==0);
+    TEST_CHECK( status==0 );
   }
   double ctx[1], Lz[1];
   ctx[0]=te;
@@ -283,7 +283,6 @@ test_1x(int poly_order, bool use_gpu, double te)
   double cell_avg0 = 1.0/2.0*GKYL_ELECTRON_MASS*cell_avg_m2/(cell_avg_m0*cell_avg_m0);
 
   double correct = Lz[0];;
-printf("cell_avg=%e, correct energy=%e, ratio=%e, percent error = %e, density=%.10e, m2=%e\n", cell_avg0, correct, cell_avg0/correct, (fabs(cell_avg0)-correct)/correct, m00[0], m20[0]);
  
   // Fit error typically >10%, so %1 should be sufficient here
   TEST_CHECK( gkyl_compare( -correct*1e30, cell_avg0*1e30, 1e-2));
