@@ -32,27 +32,21 @@ struct gkyl_efit{
 };
 
 /**
- * Create new updater to project psi, psi/R, psi/R^2
- * new method fills info to contruct a grid
+ * Create new updater which reads in magnetic equilibrium 
+ * parameters from a geqdsk file,
+ * projects the poloidal flux psi(R,Z), psi/R, psi/R^2 on 
+ * the RZ grid,
+ * and projects F(psi)= R*B_phi on a poloidal flux grid
  *
- * @param rzbasis Basis object 
- * @param rz grid to be filled from efit
+ * @param filepath path to eqdsk file
+ * @param rz_basis_type RZ basis to use for DG rep of psi, psi/R, and psi/R^2
+ * @param rz_poly_order poly order for DG rep of psi, psi/R, and psi/R^2
+ * @param flux_poly_order poly order to use for DG rep of F(psi)
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, int flux_poly_order, bool use_gpu);
+gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool use_gpu);
 
 
-
-/**
- * Project psi, psi/R, psi/R^2
- *
- * @param rzbasis Basis object 
- * @param rz grid to be filled from efit
- * @param use_gpu boolean indicating whether to use the GPU.
- * @return New updater pointer.
- */
-
-void gkyl_efit_advance(gkyl_efit* up, struct gkyl_rect_grid* rzgrid, struct gkyl_rect_grid* fluxgrid, struct gkyl_range* rzlocal, struct gkyl_range* rzlocal_ext, struct gkyl_array* psizr, struct gkyl_array* psibyrzr,struct gkyl_array* psibyr2zr, struct gkyl_range* fluxlocal, struct gkyl_range* fluxlocal_ext, struct gkyl_array* fpolflux, struct gkyl_array* qflux);
 
 void gkyl_efit_release(gkyl_efit* up);

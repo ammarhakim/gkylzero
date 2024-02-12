@@ -22,6 +22,36 @@ struct gkyl_tok_geo_stat {
 
 typedef   void (*plate_func)(double s, double* RZ);
 
+// Type of flux surface
+enum gkyl_tok_geo_type {
+  // Full blocks to be used as stand alone simulations
+  GKYL_SOL_DN_OUT, // Full Outboard SOL of double-null configuration
+  GKYL_SOL_DN_IN, // Full Inboard SOL of double-null configuration
+  GKYL_SOL_SN_LO, // Full SOL of a lower single-null configuration
+  GKYL_SOL_SN_UP, // Full SOL of an upper single-null configuration -- not yet implemented
+  GKYL_CORE, // Full core
+  //GKYL_PF_LO, // Full lower PF
+  //GKYL_PF_UP, // Full upper PF
+
+  // 12 Blocks to be used for multiblock double null whold device simulations
+  GKYL_SOL_DN_OUT_LO,  // Section of outboard SOL below lower xpt
+  GKYL_SOL_DN_OUT_MID, // Section of outboard SOL between xpts
+  GKYL_SOL_DN_OUT_UP,  // Section of outboard SOL above upper xpt
+  GKYL_SOL_DN_IN_LO,   // Section of inboard SOL below lower xpt
+  GKYL_SOL_DN_IN_MID,  // Section of inboard SOL between xpts
+  GKYL_SOL_DN_IN_UP,   // Section of inboard SOL above upper xpt 
+
+  GKYL_PF_UP_L, // Left half of Private flux region at top (inboard upper plate to upper xpt)
+  GKYL_PF_UP_R, // Right half of Private flux region at top (upper xpt to outboard upper plate)
+  GKYL_PF_LO_L, // Left half of Private flux region at bottom (lower xpt to inboard lower plate)
+  GKYL_PF_LO_R, // Right half of Private flux region at bottom (outboard lower plate to lower xpt)
+
+  GKYL_CORE_L, // Left half of core (lower to upper xpt)
+  GKYL_CORE_R // Right half of core (upper to lower xpt)
+};  
+
+
+
 struct gkyl_tok_geo {
   struct gkyl_efit* efit;
 
@@ -41,9 +71,15 @@ struct gkyl_tok_geo {
   const struct gkyl_array *fpoldg; // fpol(psi) dg rep
   const struct gkyl_array *qdg; // q(psi) dg rep
                                    
+
   double psisep; // psi of separatrix
   double zmaxis; // z of magnetic axis
+  double rleft, rright;
+  double rmin, rmax;
 
+  // Flag and functions to specify the plate location/shape in RZ coordinates
+  // The functions should specify R(s) and Z(s) on the plate where s is a parameter \in [0,1]
+  // For single null, the "lower" plate is the outboard plate and the "upper plate" is the inboard plate
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
@@ -51,6 +87,7 @@ struct gkyl_tok_geo {
   struct { int max_iter; double eps; } root_param;
   struct { int max_level; double eps; } quad_param;
 
+  bool tol_no_roots; // If true we will allow approximate roots when no root is found
   // pointer to root finder (depends on polyorder)
   struct RdRdZ_sol (*calc_roots)(const double *psi, double psi0, double Z,
     double xc[2], double dx[2]);
@@ -63,22 +100,12 @@ struct gkyl_tok_geo {
 
 
 
-// Type of flux surface
-enum gkyl_tok_geo_type {
-  GKYL_SOL_DN_OUT, // Outboard SOL of double-null configuration
-  GKYL_SOL_DN_IN, // Inboard SOL of double-null configuration
-  GKYL_SOL_SN_LO, // SOL of a lower single-null configuration
-  GKYL_SOL_SN_UP, // SOL of an upper single-null configuration
-  GKYL_PF_UP, // Private flux region at top
-  GKYL_PF_LO, // Private flux region at bottom
-  GKYL_CORE // Core (closed flux-surface)
-};  
-
 // Inputs to create a new GK geometry creation object
 struct gkyl_tok_geo_efit_inp {
   // Inputs to get psiRZ and related inputs from efit
   char* filepath;
   int rzpoly_order;
+  enum gkyl_basis_type rz_basis_type;
   int fluxpoly_order;
   // Specifications for divertor plate
   bool plate_spec;
@@ -107,9 +134,13 @@ struct gkyl_tok_geo_grid_inp {
   double rclose; // closest R to discrimate
   double rleft; // closest R to discrimate
   double rright; // closest R to discrimate
+  double rmin, rmax;
   double zmin, zmax; // extents of Z for integration
   double zmin_left, zmin_right; // for lower single null and PF cases diff b/t in and outboard side
   double zmax_left, zmax_right; // for upper single null and PF cases diff b/t in and outboard side
+
+  double zxpt_lo; // z of the lower x point
+  double zxpt_up; // z of the upper x point
 
   bool write_node_coord_array; // set to true if nodal coordinates should be written
   const char *node_file_nm; // name of nodal coordinate file
@@ -173,13 +204,24 @@ void gkyl_tok_geo_mapc2p(const gkyl_tok_geo *geo, const struct gkyl_tok_geo_grid
  * Compute geometry (mapc2p) on a specified computational grid. The
  * output array must be pre-allocated by the caller.
  *
- * @param geo Geometry object
- * @param ginp Input structure for creating mapc2p
- * @param mapc2p On output, the DG representation of mapc2p
+ * @param up gk_geometry object
+ * @param nodal range of computational grid
+ * @param dzc grid spacing of nodal range
+ * @param geo gkyl_tok_geo object with efit dats and root finder specs 
+ * @param inp tok_geo_grid_inp Input structure for creating mapc2p
+ * @param mc2p_nodal_fd output nodal field to be filled with X,Y,Z at grid nodes
+ *  and nodes epsilon away to be used for FD
+ * @param mc2p_nodal output nodal mapc2p field
+ * @param mc2p On output, the DG representation of mapc2p
+ * @param mc2prz_nodal_fd output nodal field to be filled with R,Z,phi at grid nodes
+ *  and nodes epsilon away to be used for FD
+ * @param mc2prz_nodal output nodal mapc2p field R,Z,phi)
+ * @param mc2prz On output, the DG representation of mapc2p ((R,Z,phi)
+ * @param dphidtheta_nodal output nodal field containing dphi/dtheta = s(psi)/R|grad(psi|
  */
-void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], 
-  evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void *bmag_ctx, 
-  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p);
+void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double dzc[3], struct gkyl_tok_geo* geo, struct gkyl_tok_geo_grid_inp *inp, 
+  struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *mc2p, struct gkyl_array *mc2prz_nodal_fd,
+  struct gkyl_array *mc2prz_nodal, struct gkyl_array *mc2prz, struct gkyl_array *dphidtheta_nodal);
 
 /**
  * Return cumulative statistics from geometry computations
