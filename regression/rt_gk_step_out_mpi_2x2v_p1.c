@@ -61,8 +61,8 @@ struct gkyl_tok_geo_grid_inp ginp = {
     .rleft= 2.0,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zmin = -5.14213,
-    .zmax = 5.14226,
+    .zmin = -8.3,
+    .zmax = 8.3,
     .write_node_coord_array = true,
     .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
@@ -365,12 +365,12 @@ main(int argc, char **argv)
         .temp = eval_temp_source,      
       }, 
     },
-    //.diffusion = {
-    //  .num_diff_dir = 1, 
-    //  .diff_dirs = { 0 },
-    //  .D = { 0.03 }, 
-    //  .order = 2, 
-    //}, 
+    .diffusion = {
+      .num_diff_dir = 1, 
+      .diff_dirs = { 0 },
+      .D = { 0.03 }, 
+      .order = 2, 
+    }, 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
     
@@ -416,12 +416,12 @@ main(int argc, char **argv)
         .temp = eval_temp_source,      
       }, 
     },
-    //.diffusion = {
-    //  .num_diff_dir = 1, 
-    //  .diff_dirs = { 0 },
-    //  .D = { 0.03 }, 
-    //  .order = 2, 
-    //}, 
+    .diffusion = {
+      .num_diff_dir = 1, 
+      .diff_dirs = { 0 },
+      .D = { 0.03 }, 
+      .order = 2, 
+    }, 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
     

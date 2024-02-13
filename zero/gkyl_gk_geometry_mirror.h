@@ -11,7 +11,7 @@
  * @param mirror_rz_ctx RZ Context for use in mapping (efit file and associated quantities)
  * @param mirror_comp_ctx computation domain context for calculating mapping
  */
-struct gk_geometry* gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+struct gk_geometry* gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, const struct gkyl_range *global, const struct gkyl_range* global_ext,
   const struct gkyl_basis* basis, void* mirror_rz_ctx, void* mirror_comp_ctx, bool use_gpu);
 
 /**
