@@ -105,7 +105,7 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic
     alpha_surf->on_dev, sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev);
 }
 
-// CUDA kernel to set device pointers to pkpm vars kernel functions
+// CUDA kernel to set device pointers to gyrokinetic vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 dg_calc_gyrokinetic_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_gyrokinetic_vars *up, 
@@ -133,7 +133,7 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
   const struct gk_geometry *gk_geom)
 {
-  struct gkyl_dg_calc_gyrokinetic_vars *up = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_malloc(sizeof(gkyl_dg_calc_gyrokinetic_vars));
+  struct gkyl_dg_calc_gyrokinetic_vars *up = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_malloc(sizeof(*up));
 
   up->phase_grid = *phase_grid;
   int cdim = conf_basis->ndim;
@@ -153,7 +153,7 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
-  struct gkyl_dg_calc_gyrokinetic_vars *up_cu = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_cu_malloc(sizeof(gkyl_dg_calc_gyrokinetic_vars));
+  struct gkyl_dg_calc_gyrokinetic_vars *up_cu = (struct gkyl_dg_calc_gyrokinetic_vars*) gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_gyrokinetic_vars), GKYL_CU_MEMCPY_H2D);
 
   dg_calc_gyrokinetic_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order, gkmodel_id);

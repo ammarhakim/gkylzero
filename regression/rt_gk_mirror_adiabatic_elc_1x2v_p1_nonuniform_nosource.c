@@ -763,7 +763,10 @@ int main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },
-    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     .num_diag_moments = 7,
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };

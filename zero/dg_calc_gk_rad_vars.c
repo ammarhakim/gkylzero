@@ -9,24 +9,28 @@
 #include <gkyl_dg_calc_gk_rad_vars_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_gk_rad_vars* gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid, 
+gkyl_dg_calc_gk_rad_vars* 
+gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   double charge, double mass, const struct gk_geometry *gk_geom, 
-  double a, double alpha, double beta, double gamma, double v0) 
+  double a, double alpha, double beta, double gamma, double v0, 
+  bool use_gpu) 
 {
-  gkyl_dg_calc_gk_rad_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_gk_rad_vars));
+#ifdef GKYL_HAVE_CUDA
+  if(use_gpu) {
+    return gkyl_dg_calc_gk_rad_vars_cu_dev_new(phase_grid, conf_basis, phase_basis, 
+      charge, mass, gk_geom, 
+      a, alpha, beta, gamma, v0);
+  } 
+#endif 
+  gkyl_dg_calc_gk_rad_vars *up = gkyl_malloc(sizeof(*up));
   up->phase_grid = *phase_grid;
-  up->cdim = conf_basis->ndim;
-  up->pdim = phase_basis->ndim;
-
-  up->phase_basis = phase_basis;
-  up->conf_basis = conf_basis;
-
-  up->num_conf_basis = conf_basis->num_basis;
-  up->num_phase_basis = phase_basis->num_basis;
-
-  up->nodes = gkyl_array_new(GKYL_DOUBLE, phase_grid->ndim, phase_basis->num_basis);
-  phase_basis->node_list(gkyl_array_fetch(up->nodes, 0));
+  int cdim = conf_basis->ndim;
+  int pdim = phase_basis->ndim;
+  int vdim = pdim - cdim;
+  int poly_order = phase_basis->poly_order;
+  up->cdim = cdim;
+  up->pdim = pdim;
 
   up->charge = charge;
   up->mass = mass;
@@ -39,24 +43,32 @@ gkyl_dg_calc_gk_rad_vars* gkyl_dg_calc_gk_rad_vars_new(const struct gkyl_rect_gr
   up->gamma = gamma;
   up->v0 = v0;
 
+  up->rad_nu_vpar = choose_rad_gyrokinetic_nu_vpar_kern(cdim, vdim, poly_order);
+  up->rad_nu_mu = choose_rad_gyrokinetic_nu_mu_kern(cdim, vdim, poly_order);
+  up->rad_nI_nu = choose_rad_gyrokinetic_nI_nu_kern(cdim, vdim, poly_order);
+
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->on_dev = up; // self-reference on host
+  
   return up;
 }
 
-void gkyl_dg_calc_gk_rad_vars_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
+void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  struct gkyl_array* vnu, struct gkyl_array* vsqnu)
+  struct gkyl_array* vnu_surf, struct gkyl_array* vnu, 
+  struct gkyl_array* vsqnu_surf, struct gkyl_array* vsqnu)
 {
-  // Calculate radiation drag coefficients
-  int cdim = up->cdim, pdim = up->pdim;
-  int vdim = pdim-cdim;
-  int num_phase_basis = up->num_phase_basis;
-  int num_conf_basis = up->num_conf_basis;
-
-  struct gkyl_array *vnu_at_nodes = gkyl_array_new(GKYL_DOUBLE, 1, num_phase_basis);
-  struct gkyl_array *vsqnu_at_nodes = gkyl_array_new(GKYL_DOUBLE, 1, num_phase_basis);
-
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(vnu_surf)) {
+    return gkyl_dg_calc_gk_rad_vars_nu_advance_cu(up, conf_range, phase_range, 
+      vnu_surf, vnu, vsqnu_surf, vsqnu);
+  }
+#endif
+  int pdim = up->pdim;
+  int cdim = up->cdim;
   int idx[GKYL_MAX_DIM];
-  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
+  double xc[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
 
@@ -68,35 +80,69 @@ void gkyl_dg_calc_gk_rad_vars_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
 
     const double *bmag_d = gkyl_array_cfetch(up->gk_geom->bmag, loc_conf);
 
-    for (int i=0; i<num_phase_basis; ++i) {
-      const double* node = gkyl_array_cfetch(up->nodes,i);
-      comp_to_phys(pdim, node, up->phase_grid.dx, xc, xmu);
+    double* vnu_surf_d = gkyl_array_fetch(vnu_surf, loc_phase);
+    double* vnu_d = gkyl_array_fetch(vnu, loc_phase);
+    double* vsqnu_surf_d = gkyl_array_fetch(vsqnu_surf, loc_phase);  
+    double* vsqnu_d = gkyl_array_fetch(vsqnu, loc_phase);   
 
-      double bmag_n = up->conf_basis->eval_expand(node, bmag_d);
-      double vpar = xmu[cdim];
-      double mu = 0.0;
-      if (vdim > 1)
-        mu = xmu[cdim+1];
+    up->rad_nu_vpar(xc, up->phase_grid.dx, up->charge, up->mass, 
+      up->a, up->alpha, up->beta, up->gamma, up->v0, 
+      bmag_d, vnu_surf_d, vnu_d);
+    up->rad_nu_mu(xc, up->phase_grid.dx, up->charge, up->mass, 
+      up->a, up->alpha, up->beta, up->gamma, up->v0, 
+      bmag_d, vsqnu_surf_d, vsqnu_d);
+  }
+}
 
-      double* vnu_at_nodes_n = gkyl_array_fetch(vnu_at_nodes, i);
-      double* vsqnu_at_nodes_n = gkyl_array_fetch(vsqnu_at_nodes, i);
-      vnu_at_nodes_n[0] = eval_vnu(up->charge, up->mass, 
-        up->a, up->alpha, up->beta, up->gamma, up->v0,
-        vpar, mu, bmag_n);
-      vsqnu_at_nodes_n[0] = eval_vsqnu(up->charge, up->mass, 
-        vpar, mu, bmag_n, vnu_at_nodes_n[0]);
-    }
+void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
+  const struct gkyl_array* vnu_surf, const struct gkyl_array* vnu, 
+  const struct gkyl_array* vsqnu_surf, const struct gkyl_array* vsqnu, 
+  const struct gkyl_array *nI, 
+  struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
+  struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(vnu_surf)) {
+    return gkyl_dg_calc_gk_rad_vars_nI_nu_advance_cu(up, conf_range, phase_range, 
+      vnu_surf, vnu, vsqnu_surf, vsqnu, nI, 
+      nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+  }
+#endif
+  int pdim = up->pdim;
+  int cdim = up->cdim;
+  int idx[GKYL_MAX_DIM];
+  double xc[GKYL_MAX_DIM];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, phase_range);
 
-    nod2mod(1, up->phase_basis, vnu_at_nodes, gkyl_array_fetch(vnu, loc_phase));
-    nod2mod(1, up->phase_basis, vsqnu_at_nodes, gkyl_array_fetch(vsqnu, loc_phase));
-    gkyl_array_clear(vnu_at_nodes, 0.0);
-    gkyl_array_clear(vsqnu_at_nodes, 0.0); 
-  }  
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_copy_int_arr(pdim, iter.idx, idx);
+    long loc_conf = gkyl_range_idx(conf_range, idx);
+    long loc_phase = gkyl_range_idx(phase_range, idx);
+    gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
+
+    const double* vnu_surf_d = gkyl_array_cfetch(vnu_surf, loc_phase);
+    const double* vnu_d = gkyl_array_cfetch(vnu, loc_phase);
+    const double* vsqnu_surf_d = gkyl_array_cfetch(vsqnu_surf, loc_phase);  
+    const double* vsqnu_d = gkyl_array_cfetch(vsqnu, loc_phase);   
+
+    const double *nI_d = gkyl_array_cfetch(nI, loc_conf);
+
+    double* nvnu_surf_d = gkyl_array_fetch(nvnu_surf, loc_phase);
+    double* nvnu_d = gkyl_array_fetch(nvnu, loc_phase);
+    double* nvsqnu_surf_d = gkyl_array_fetch(nvsqnu_surf, loc_phase);  
+    double* nvsqnu_d = gkyl_array_fetch(nvsqnu, loc_phase);   
+
+    up->rad_nI_nu(vnu_surf_d, vnu_d, vsqnu_surf_d, vsqnu_d, nI_d, 
+      nvnu_surf_d, nvnu_d, nvsqnu_surf_d, nvsqnu_d);
+  }
 }
 
 void gkyl_dg_calc_gk_rad_vars_release(gkyl_dg_calc_gk_rad_vars *up)
 {
-  gkyl_array_release(up->nodes);
   gkyl_gk_geometry_release(up->gk_geom);
+  if (GKYL_IS_CU_ALLOC(up->flags))
+    gkyl_cu_free(up->on_dev);
   gkyl_free(up);
 }
