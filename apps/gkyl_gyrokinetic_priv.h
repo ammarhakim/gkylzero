@@ -345,7 +345,8 @@ struct gk_source {
   bool write_source; // optional parameter to write out source distribution
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
-  struct gk_proj proj_source; // projector for source
+  struct gk_proj proj_source[GKYL_MAX_SOURCES]; // projector for source
+  int num_sources; // Number of sources.
 };
 
 // species data
@@ -405,8 +406,12 @@ struct gk_species {
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver 
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object
   
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
+  bool bc_is_np[3]; // whether BC is nonperiodic.
+
   // boundary conditions on lower/upper edges in each direction  
-  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
   // gyrokinetic sheath boundary conditions
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_lo;
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_up;
@@ -418,6 +423,9 @@ struct gk_species {
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  // GK_IWL sims need SOL ghost and skin ranges.
+  struct gkyl_range lower_skin_par_sol, lower_ghost_par_sol;
+  struct gkyl_range upper_skin_par_sol, upper_ghost_par_sol;
 
   struct gk_proj proj_init; // projector for initial conditions
 
@@ -553,6 +561,8 @@ struct gk_field {
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 
+  struct gkyl_fem_parproj *fem_parproj_sol;
+  struct gkyl_fem_parproj *fem_parproj_core;
 
   struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves on lines in x or planes in xy
                                                           // - nabla . (epsilon * nabla phi) - kSq * phi = rho
@@ -574,6 +584,9 @@ struct gk_field {
   struct gkyl_array *phi_wall_up; // biased wall potential on upper wall
   struct gkyl_array *phi_wall_up_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *phi_wall_up_proj; // projector for biased wall potential on upper wall 
+
+  // Core and SOL ranges for IWL sims. 
+  struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
 };
 
 // gyrokinetic object: used as opaque pointer in user code

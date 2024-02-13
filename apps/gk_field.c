@@ -74,8 +74,31 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   }
 
   // Potential smoothing (in z) updater
-  f->fem_parproj = gkyl_fem_parproj_new(&app->local, &app->local_ext, 
-    &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
+  if (f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+    enum gkyl_fem_parproj_bc_type fem_parproj_bc_core, fem_parproj_bc_sol;
+    if (app->cdim == 2) {
+      fem_parproj_bc_core = GKYL_FEM_PARPROJ_PERIODIC;
+      fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
+    } else {
+      fem_parproj_bc_core = GKYL_FEM_PARPROJ_DIRICHLET;
+      fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
+    }
+    // construct core and SOL ranges.
+    double xLCFS = f->info.xLCFS;
+    // Index of the cell that abuts the xLCFS from below.
+    int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+    gkyl_range_shorten_from_below(&f->local_sol, &app->local, 0, app->grid.cells[0]-idxLCFS_m+1);
+    gkyl_range_shorten_from_below(&f->local_ext_sol, &app->local_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
+    gkyl_range_shorten_from_above(&f->local_core, &app->local, 0, idxLCFS_m+1);
+    gkyl_range_shorten_from_above(&f->local_ext_core, &app->local_ext, 0, idxLCFS_m+1);
+    f->fem_parproj_core = gkyl_fem_parproj_new(&f->local_core, &f->local_ext_core, 
+      &app->confBasis, fem_parproj_bc_core, f->weight, app->use_gpu);
+    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->local_sol, &f->local_ext_sol, 
+      &app->confBasis, fem_parproj_bc_sol, f->weight, app->use_gpu);
+  } else {
+    f->fem_parproj = gkyl_fem_parproj_new(&app->local, &app->local_ext, 
+      &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
+  }
 
   f->phi_host = f->phi_smooth;  
   if (app->use_gpu) {
@@ -217,6 +240,14 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
     gkyl_fem_parproj_set_rhs(field->fem_parproj, field->phi_fem, field->phi_fem);
     gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
   }
+  else if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL) { 
+    // input is rho_c and output should be in phi_smooth
+    gkyl_fem_parproj_set_rhs(field->fem_parproj_core, field->rho_c, field->rho_c);
+    gkyl_fem_parproj_solve(field->fem_parproj_core, field->rho_c_smooth);
+    gkyl_fem_parproj_set_rhs(field->fem_parproj_sol, field->rho_c, field->rho_c);
+    gkyl_fem_parproj_solve(field->fem_parproj_sol, field->rho_c_smooth);
+    gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_smooth, field->phi_smooth);
+  }
   else {
     if (app->cdim == 1) {
       gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
@@ -283,7 +314,13 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
       gkyl_deflated_fem_poisson_release(f->deflated_fem_poisson);
     }
   }
-  gkyl_fem_parproj_release(f->fem_parproj);
+
+  if (app->cdim > 1 && f->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+    gkyl_fem_parproj_release(f->fem_parproj_core);
+    gkyl_fem_parproj_release(f->fem_parproj_sol);
+  } else {
+    gkyl_fem_parproj_release(f->fem_parproj);
+  }
 
   gkyl_dynvec_release(f->integ_energy);
   gkyl_array_integrate_release(f->calc_em_energy);

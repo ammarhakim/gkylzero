@@ -263,7 +263,8 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .num_sources = 1,
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN, 
         .ctx_density = &ctx,
         .density = eval_source_density,
@@ -273,7 +274,11 @@ main(int argc, char **argv)
         .temp = eval_source_temp,      
       }, 
     },
-    .bcx = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
 
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
@@ -307,7 +312,8 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .num_sources = 1,
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN, 
         .ctx_density = &ctx,
         .density = eval_source_density,
@@ -317,7 +323,11 @@ main(int argc, char **argv)
         .temp = eval_source_temp,      
       }, 
     },
-    .bcx = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },

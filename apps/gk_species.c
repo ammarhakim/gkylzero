@@ -114,26 +114,46 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
 
   // determine which directions are not periodic, if any directions are zero-flux, need to set is_zero_flux
-  int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
-  for (int d=0; d<num_periodic_dir; ++d)
-    is_np[app->periodic_dirs[d]] = 0;
+  // keep a copy of num_periodic_dir and periodic_dirs in species so we can
+  // modify it in GK_IWL BCs without modifying the app's.
+  s->num_periodic_dir = app->num_periodic_dir;
+  for (int d=0; d<s->num_periodic_dir; ++d)
+    s->periodic_dirs[d] = app->periodic_dirs[d];
+
+  for (int d=0; d<app->cdim; ++d) s->bc_is_np[d] = true;
+  for (int d=0; d<s->num_periodic_dir; ++d)
+    s->bc_is_np[s->periodic_dirs[d]] = false;
 
   for (int dir=0; dir<app->cdim; ++dir) {
-    s->lower_bc[dir] = s->upper_bc[dir] = GKYL_SPECIES_COPY;
-    if (is_np[dir]) {
-      const enum gkyl_species_bc_type *bc;
+    s->lower_bc[dir].type = s->upper_bc[dir].type = GKYL_SPECIES_COPY;
+    if (s->bc_is_np[dir]) {
+      const struct gkyl_gyrokinetic_bcs *bc;
       if (dir == 0)
-        bc = s->info.bcx;
+        bc = &s->info.bcx;
       else if (dir == 1)
-        bc = s->info.bcy;
+        bc = &s->info.bcy;
       else
-        bc = s->info.bcz;
+        bc = &s->info.bcz;
 
-      s->lower_bc[dir] = bc[0];
-      s->upper_bc[dir] = bc[1];
-      // Zero flux BCs can only be applied jointly on lower and upper boundary
-      if (s->lower_bc[dir] == GKYL_SPECIES_ZERO_FLUX || s->upper_bc[dir] == GKYL_SPECIES_ZERO_FLUX)
+      s->lower_bc[dir] = bc->lower;
+      s->upper_bc[dir] = bc->upper;
+      if (s->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX || s->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+        // Zero flux BCs can only be applied jointly on lower and upper boundary
         is_zero_flux[dir] = true;
+      }
+      else if (s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL || s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) {
+        // Make the parallel direction periodic so that we sync the core before
+        // applying sheath BCs in the SOL.
+        s->periodic_dirs[s->num_periodic_dir] = app->cdim-1; // The last direction is the parallel one.
+        s->num_periodic_dir += 1;
+        // Check that the LCFS is the same on both BCs and that it's on a cell boundary within our grid.
+        double xLCFS = s->lower_bc[dir].aux_parameter;
+        assert(fabs(xLCFS-s->upper_bc[dir].aux_parameter) < 1e-14);
+        // Assume the split happens at a cell boundary and within the domain.
+        assert((app->grid.lower[0]<xLCFS) && (xLCFS<app->grid.upper[0]));
+        double needint = (xLCFS-app->grid.lower[0])/app->grid.dx[0];
+        assert(floor(fabs(needint-floor(needint))) < 1.);
+      }
     }
   }
 
@@ -203,7 +223,7 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     s->has_diffusion = true;
     int diffusion_order = s->info.diffusion.order ? s->info.diffusion.order : 2;
 
-    int szD = cdim;
+    int szD = cdim*app->confBasis.num_basis;
     s->diffD = mkarr(app->use_gpu, szD, app->local_ext.volume);
     bool is_zero_flux[GKYL_MAX_CDIM] = {false};
     bool diff_dir[GKYL_MAX_CDIM] = {false};
@@ -218,7 +238,7 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
       gkyl_array_shiftc(s->diffD, s->info.diffusion.D[d]*pow(sqrt(2),app->cdim), dir);
     }
     // Multiply diffD by g^xx*jacobgeo.
-    gkyl_dg_mul_op(app->confBasis, 0, s->diffD, 0, app->gk_geom->jacobgeo, 0, s->diffD);
+    gkyl_dg_mul_op(app->confBasis, 0, s->diffD, 0, app->gk_geom->gxxj, 0, s->diffD);
 
     s->diff_slvr = gkyl_dg_updater_diffusion_gyrokinetic_new(&s->grid, &app->basis, &app->confBasis, 
       false, diff_dir, diffusion_order, &app->local, is_zero_flux, app->use_gpu);
@@ -244,37 +264,57 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   for (int d=0; d<cdim; ++d) {
     // Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-    if (s->lower_bc[d] == GKYL_SPECIES_GK_SHEATH) {
+    if (s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
       s->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, app->basis_on_dev.basis, 
         &s->lower_skin[d], &s->lower_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
+    else if (s->lower_bc[d].type == GKYL_SPECIES_GK_IWL) {
+      double xLCFS = s->lower_bc[d].aux_parameter;
+      // Index of the cell that abuts the xLCFS from below.
+      int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+      gkyl_range_shorten_from_below(&s->lower_skin_par_sol, &s->lower_skin[d], 0, app->grid.cells[0]-idxLCFS_m+1);
+      gkyl_range_shorten_from_below(&s->lower_ghost_par_sol, &s->lower_ghost[d], 0, app->grid.cells[0]-idxLCFS_m+1);
+
+      s->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, app->basis_on_dev.basis, 
+        &s->lower_skin_par_sol, &s->lower_ghost_par_sol, &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
+    }
     else { 
-      if (s->lower_bc[d] == GKYL_SPECIES_COPY) 
+      if (s->lower_bc[d].type == GKYL_SPECIES_COPY) 
         bctype = GKYL_BC_COPY;
-      else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) 
+      else if (s->lower_bc[d].type == GKYL_SPECIES_ABSORB) 
         bctype = GKYL_BC_ABSORB;
-      else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) 
+      else if (s->lower_bc[d].type == GKYL_SPECIES_REFLECT) 
         bctype = GKYL_BC_REFLECT;
-      else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
+      else if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) 
         bctype = GKYL_BC_FIXED_FUNC;
 
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
         &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
     }
 
-    if (s->upper_bc[d] == GKYL_SPECIES_GK_SHEATH) {
+    if (s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
       s->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, app->basis_on_dev.basis, 
         &s->upper_skin[d], &s->upper_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
+    else if (s->lower_bc[d].type == GKYL_SPECIES_GK_IWL) {
+      double xLCFS = s->upper_bc[d].aux_parameter;
+      // Index of the cell that abuts the xLCFS from below.
+      int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
+      gkyl_range_shorten_from_below(&s->upper_skin_par_sol, &s->upper_skin[d], 0, app->grid.cells[0]-idxLCFS_m+1);
+      gkyl_range_shorten_from_below(&s->upper_ghost_par_sol, &s->upper_ghost[d], 0, app->grid.cells[0]-idxLCFS_m+1);
+
+      s->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, app->basis_on_dev.basis, 
+        &s->upper_skin_par_sol, &s->upper_ghost_par_sol, &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
+    }
     else {
       // Upper BC updater. Copy BCs by default.
-      if (s->upper_bc[d] == GKYL_SPECIES_COPY) 
+      if (s->upper_bc[d].type == GKYL_SPECIES_COPY) 
         bctype = GKYL_BC_COPY;
-      else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) 
+      else if (s->upper_bc[d].type == GKYL_SPECIES_ABSORB) 
         bctype = GKYL_BC_ABSORB;
-      else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) 
+      else if (s->upper_bc[d].type == GKYL_SPECIES_REFLECT) 
         bctype = GKYL_BC_REFLECT;
-      else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
+      else if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) 
         bctype = GKYL_BC_FIXED_FUNC;
 
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
@@ -359,19 +399,16 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
   
-  int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
+  int num_periodic_dir = species->num_periodic_dir, cdim = app->cdim;
   gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext,
-    num_periodic_dir, app->periodic_dirs, f); 
+    num_periodic_dir, species->periodic_dirs, f); 
   
-  int is_np_bc[3] = {1, 1, 1}; // flags to indicate if direction is periodic
-  for (int d=0; d<num_periodic_dir; ++d)
-    is_np_bc[app->periodic_dirs[d]] = 0;
-
   for (int d=0; d<cdim; ++d) {
-    if (is_np_bc[d]) {
+    if (species->bc_is_np[d]) {
 
-      switch (species->lower_bc[d]) {
+      switch (species->lower_bc[d].type) {
         case GKYL_SPECIES_GK_SHEATH:
+        case GKYL_SPECIES_GK_IWL:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             app->field->phi_wall_lo, f, &app->local);
           break;
@@ -389,12 +426,14 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
           break;
         case GKYL_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
+          break;
         default:
           break;
       }
 
-      switch (species->upper_bc[d]) {
+      switch (species->upper_bc[d].type) {
         case GKYL_SPECIES_GK_SHEATH:
+        case GKYL_SPECIES_GK_IWL:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             app->field->phi_wall_up, f, &app->local);
           break;
@@ -509,12 +548,14 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (s->lower_bc[d] == GKYL_SPECIES_GK_SHEATH) 
+    if ((s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) ||
+        (s->lower_bc[d].type == GKYL_SPECIES_GK_IWL))
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
     else 
       gkyl_bc_basic_release(s->bc_lo[d]);
     
-    if (s->upper_bc[d] == GKYL_SPECIES_GK_SHEATH) 
+    if ((s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) ||
+        (s->upper_bc[d].type == GKYL_SPECIES_GK_IWL))
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
     else 
       gkyl_bc_basic_release(s->bc_up[d]);
