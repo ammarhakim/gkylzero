@@ -12,16 +12,10 @@ typedef struct gk_geometry gk_geometry;
 
 struct gk_geometry {
   // stuff for mapc2p and finite differences array
-  // These are all computational ranges, grid, and basis
   struct gkyl_range range;
   struct gkyl_range range_ext;
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
-  // These are for the physical range, grid, and basis
-  struct gkyl_range prange;
-  struct gkyl_range prange_ext;
-  struct gkyl_basis pbasis;
-  struct gkyl_rect_grid pgrid;
 
   struct gkyl_array* mc2p;
   struct gkyl_array* bmag;

@@ -630,7 +630,7 @@ int main(int argc, char **argv)
     .cells = {NV, NMU},
     .polarization_density = ctx.n0,
     .projection = {
-      .proj_id = GKYL_PROJ_BIMAXWELLIAN_MIRROR, 
+      .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
       .density = eval_density_ion,
       .ctx_upar = &ctx,

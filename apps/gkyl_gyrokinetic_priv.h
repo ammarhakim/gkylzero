@@ -64,7 +64,6 @@
 #include <gkyl_prim_lbo_gyrokinetic.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_proj_bimaxwellian_on_basis.h>
-#include <gkyl_proj_bimaxwellian_mirror_on_basis.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -324,7 +323,6 @@ struct gk_proj {
           struct gkyl_proj_on_basis *proj_temppar; // projection operator for parallel temperature
           struct gkyl_proj_on_basis *proj_tempperp; // projection operator for parallel temperature
           struct gkyl_proj_bimaxwellian_on_basis *proj_bimax; // Bi-Maxwellian projection object
-          struct gkyl_proj_bimaxwellian_mirror_on_basis *proj_bimax_mirror; // Bi-Maxwellian mirror projection object
         };
       };
     };
