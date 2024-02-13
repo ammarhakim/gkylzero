@@ -815,16 +815,16 @@ gyrokinetic_app_new(lua_State *L)
       // get context for distribution functions or density, upar, and temperature for Maxwellian initialization
       if (gyrokinetic_s_lw[s]->source_lw->has_projection) {
         app_lw->src_density_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->projection_lw->density_ref;
-        gyrokinetic.species[s].source.projection.density = eval_ic;
-        gyrokinetic.species[s].source.projection.ctx_density = &app_lw->species_density_func_ctx[s];
+        gyrokinetic.species[s].source.projection[0].density = eval_ic;
+        gyrokinetic.species[s].source.projection[0].ctx_density = &app_lw->species_density_func_ctx[s];
 
         app_lw->src_upar_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->projection_lw->upar_ref;
-        gyrokinetic.species[s].source.projection.upar = eval_ic;
-        gyrokinetic.species[s].source.projection.ctx_upar = &app_lw->src_upar_func_ctx[s];
+        gyrokinetic.species[s].source.projection[0].upar = eval_ic;
+        gyrokinetic.species[s].source.projection[0].ctx_upar = &app_lw->src_upar_func_ctx[s];
 
         app_lw->src_temp_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->projection_lw->temp_ref;
-        gyrokinetic.species[s].source.projection.temp = eval_ic;
-        gyrokinetic.species[s].source.projection.ctx_temp = &app_lw->src_temp_func_ctx[s];
+        gyrokinetic.species[s].source.projection[0].temp = eval_ic;
+        gyrokinetic.species[s].source.projection[0].ctx_temp = &app_lw->src_temp_func_ctx[s];
       }   
     }      
   }

@@ -8,24 +8,19 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 {
   assert(is_moment_name_valid(nm));
 
-  bool is_integrated = strcmp(nm, "Integrated") == 0;
+  sm->is_integrated = strcmp(nm, "Integrated") == 0;
 
   sm->mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&s->grid, &app->confBasis, 
     &app->basis, &app->local, &s->local_vel, s->info.mass, app->gk_geom,
-    nm, is_integrated, app->use_gpu);    
+    nm, sm->is_integrated, app->use_gpu);    
 
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
 
-  if (is_integrated) {
+  if (sm->is_integrated) {
     sm->marr = mkarr(app->use_gpu, num_mom, app->local_ext.volume);
     sm->marr_host = sm->marr;
     if (app->use_gpu)
-      sm->marr_host = mkarr(false, num_mom, app->local_ext.volume); 
-    // Bin Op memory for rescaling moment by inverse of Jacobian
-    if (app->use_gpu)
-      sm->mem_geo = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, num_mom);  
-    else   
-      sm->mem_geo = gkyl_dg_bin_op_mem_new(app->local.volume, num_mom);  
+      sm->marr_host = mkarr(false, num_mom, app->local_ext.volume);  
   }
   else {
     sm->marr = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);
@@ -58,5 +53,7 @@ gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct g
   gkyl_dg_updater_moment_gyrokinetic_release(sm->mcalc);
   gkyl_array_release(sm->marr);
 
-  gkyl_dg_bin_op_mem_release(sm->mem_geo);
+  // free the weak division memory if not computing integrated moments
+  if (!sm->is_integrated)
+    gkyl_dg_bin_op_mem_release(sm->mem_geo);
 }

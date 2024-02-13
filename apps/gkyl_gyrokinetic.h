@@ -128,6 +128,11 @@ struct gkyl_gyrokinetic_radiation {
   double beta[GKYL_MAX_SPECIES];
   double gamma[GKYL_MAX_SPECIES];
   double v0[GKYL_MAX_SPECIES];
+
+  // Atomic z and charge state of species colliding with
+  int z[GKYL_MAX_SPECIES];
+  int charge_state[GKYL_MAX_SPECIES];
+  int num_of_densities[GKYL_MAX_SPECIES]; // Max number of densities to use per charge state
 };
 
 struct gkyl_gyrokinetic_react_type {
