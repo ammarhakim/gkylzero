@@ -92,6 +92,10 @@ gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl
   ginp->cgrid = up->grid;
   ginp->cbasis = up->basis;
   struct gkyl_mirror_geo *geo = gkyl_mirror_geo_new(inp);
+  up->pbasis = geo->rzbasis;
+  up->pgrid = geo->rzgrid;
+  up->prange = geo->rzlocal;
+  up->prange_ext = geo->rzlocal_ext;
    // calculate mapc2p on a uniform grid
   gkyl_mirror_geo_calc(up, &nrange, dzc, NULL, geo, NULL, ginp, mc2p_nodal_fd, mc2p_nodal, up->mc2p, false, NULL);
   // calculate bmag on a uniform grid
