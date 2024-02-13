@@ -256,21 +256,21 @@ test_1x(int poly_order, bool use_gpu, double te)
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
 
-  struct gkyl_array *rhs_host;
-  rhs_host = rhs;
-  if (use_gpu) {
-    rhs_host = mkarr(false, basis.num_basis, local_ext.volume);
-    gkyl_array_copy(rhs, rhs_host);
-  }
-
   // Take 2nd moment of rhs to find energy loss on host
   struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
-    &confLocal, &vLocal, GKYL_ELECTRON_MASS, gk_geom, "M2", false, false);
-  struct gkyl_array *m2_final = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
-  gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs_host, m2_final);
+    &confLocal, &vLocal, GKYL_ELECTRON_MASS, gk_geom, "M2", false, use_gpu);
+  struct gkyl_array *m2_final = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs, m2_final);
+
+  struct gkyl_array *m2_final_host;
+  m2_final_host = m2_final;
+  if (use_gpu) {
+    struct gkyl_array *m2_final = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+    gkyl_array_copy(m2_final_host, m2_final);
+  }
 
   double *m00 = gkyl_array_fetch(m0, 0+ghost[0]);
-  double *m20 = gkyl_array_fetch(m2_final, 0+ghost[0]);
+  double *m20 = gkyl_array_fetch(m2_final_host, 0+ghost[0]);
   
   double cell_avg_m2 = m20[0]/pow(sqrt(2.0),cdim);
   double cell_avg_m0 = m00[0]/pow(sqrt(2.0),cdim);
@@ -293,22 +293,13 @@ test_1x(int poly_order, bool use_gpu, double te)
   gkyl_array_release(nvsqnu);
   gkyl_array_release(nvsqnu_surf);
 
-  if (use_gpu) {
-    gkyl_array_release(nvnu_host);
-    gkyl_array_release(nvsqnu_host);
-    gkyl_array_release(nvnu_surf_host);
-    gkyl_array_release(nvsqnu_surf_host);      
-  }
   gkyl_dg_calc_gk_rad_vars_release(calc_gk_rad_vars);
 
   gkyl_array_release(m0);
   gkyl_array_release(udrift); 
   gkyl_array_release(vtsq);
   gkyl_array_release(prim_moms);
-  if (use_gpu) {
-    gkyl_array_release(m0_dev);
-    gkyl_array_release(prim_moms_dev);      
-  }
+
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_udrift);
   gkyl_proj_on_basis_release(proj_vtsq);
@@ -320,6 +311,12 @@ test_1x(int poly_order, bool use_gpu, double te)
   gkyl_dg_updater_rad_gyrokinetic_release(slvr);
   gkyl_dg_updater_moment_gyrokinetic_release(m2_calc);
   gkyl_array_release(m2_final);
+
+  if (use_gpu) {
+    gkyl_array_release(m0_dev);
+    gkyl_array_release(prim_moms_dev);   
+    gkyl_array_release(m2_final_host);   
+  }
 
   gkyl_gk_geometry_release(gk_geom);
 }
@@ -529,21 +526,21 @@ test_2x(int poly_order, bool use_gpu, double te)
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
 
-  struct gkyl_array *rhs_host;
-  rhs_host = rhs;
+  // Take 2nd moment of rhs to find energy loss on host
+  struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
+    &confLocal, &vLocal, GKYL_ELECTRON_MASS, gk_geom, "M2", false, use_gpu);
+  struct gkyl_array *m2_final = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
+  gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs, m2_final);
+
+  struct gkyl_array *m2_final_host;
+  m2_final_host = m2_final;
   if (use_gpu) {
-    rhs_host = mkarr(false, basis.num_basis, local_ext.volume);
-    gkyl_array_copy(rhs, rhs_host);
+    struct gkyl_array *m2_final = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+    gkyl_array_copy(m2_final_host, m2_final);
   }
 
-  // Take 2nd moment of rhs to find energy loss
-  struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
-    &confLocal, &vLocal, GKYL_ELECTRON_MASS, gk_geom, "M2", false, false);
-  struct gkyl_array *m2_final = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
-  gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs_host, m2_final);
-
   double *m00 = gkyl_array_fetch(m0, 0+ghost[0]);
-  double *m20 = gkyl_array_fetch(m2_final, 0+ghost[0]);
+  double *m20 = gkyl_array_fetch(m2_final_host, 0+ghost[0]);
 
   double cell_avg_m2 = m20[confLocal_ext.volume]/pow(sqrt(2.0),cdim);
   double cell_avg_m0 = m00[confLocal_ext.volume]/pow(sqrt(2.0),cdim);
@@ -566,22 +563,13 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_array_release(nvsqnu);
   gkyl_array_release(nvsqnu_surf);
 
-  if (use_gpu) {
-    gkyl_array_release(nvnu_host);
-    gkyl_array_release(nvsqnu_host);
-    gkyl_array_release(nvnu_surf_host);
-    gkyl_array_release(nvsqnu_surf_host);      
-  }
   gkyl_dg_calc_gk_rad_vars_release(calc_gk_rad_vars);
 
   gkyl_array_release(m0);
   gkyl_array_release(udrift); 
   gkyl_array_release(vtsq);
   gkyl_array_release(prim_moms);
-  if (use_gpu) {
-    gkyl_array_release(m0_dev);
-    gkyl_array_release(prim_moms_dev);      
-  }
+
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_udrift);
   gkyl_proj_on_basis_release(proj_vtsq);
@@ -593,6 +581,12 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_dg_updater_rad_gyrokinetic_release(slvr);
   gkyl_dg_updater_moment_gyrokinetic_release(m2_calc);
   gkyl_array_release(m2_final);
+
+  if (use_gpu) {
+    gkyl_array_release(m0_dev);
+    gkyl_array_release(prim_moms_dev);   
+    gkyl_array_release(m2_final_host);   
+  }
 
   gkyl_gk_geometry_release(gk_geom);
 }
