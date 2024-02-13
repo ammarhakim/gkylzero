@@ -155,7 +155,6 @@ test_1x(int poly_order, bool use_gpu, double te)
   vnu_surf = mkarr(use_gpu, surf_vpar_basis.num_basis, local_ext.volume);
   vsqnu_surf = mkarr(use_gpu, surf_mu_basis.num_basis, local_ext.volume);
 
-
   struct all_radiation_states *rad_data=gkyl_read_rad_fit_params();
   double a[1], alpha[1], beta[1], gamma[1], v0[1];
   int atomic_z = 3;
@@ -180,24 +179,6 @@ test_1x(int poly_order, bool use_gpu, double te)
   nvsqnu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   nvnu_surf = mkarr(use_gpu, surf_vpar_basis.num_basis, local_ext.volume);
   nvsqnu_surf = mkarr(use_gpu, surf_mu_basis.num_basis, local_ext.volume);
-  
-  nvnu_host = nvnu;
-  nvsqnu_host = nvsqnu;
-  nvnu_surf_host = nvnu_surf;
-  nvsqnu_surf_host = nvsqnu_surf;
-  if (use_gpu) {
-    nvnu_host = mkarr(false, basis.num_basis, local_ext.volume);
-    nvsqnu_host = mkarr(false, basis.num_basis, local_ext.volume);
-    nvnu_surf_host = mkarr(false, surf_vpar_basis.num_basis, local_ext.volume);
-    nvsqnu_surf_host = mkarr(false, surf_mu_basis.num_basis, local_ext.volume);
-  }
-
-  if (use_gpu) {
-    gkyl_array_copy(nvnu, nvnu_host);
-    gkyl_array_copy(nvsqnu, nvsqnu_host);
-    gkyl_array_copy(nvnu_surf, nvnu_surf_host);
-    gkyl_array_copy(nvsqnu_surf, nvsqnu_surf_host);
-  }
 
   // Initialize distribution function with proj_gkmaxwellian_on_basis
   struct gkyl_array *f = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -262,17 +243,31 @@ test_1x(int poly_order, bool use_gpu, double te)
   gkyl_array_clear(nvsqnu, 0.0);
 
   // Assumed electron and ion density are the same and uniform
-  gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-    &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-    m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+  if (use_gpu) {
+    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
+      &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
+      m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+  }
+  else {
+    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
+      &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
+      m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+  }
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
 
-  // Take 2nd moment of rhs to find energy loss
+  struct gkyl_array *rhs_host;
+  rhs_host = rhs;
+  if (use_gpu) {
+    rhs_host = mkarr(false, basis.num_basis, local_ext.volume);
+    gkyl_array_copy(rhs, rhs_host);
+  }
+
+  // Take 2nd moment of rhs to find energy loss on host
   struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
-    &confLocal, &vLocal, GKYL_ELECTRON_MASS, gk_geom, "M2", false, use_gpu);
+    &confLocal, &vLocal, GKYL_ELECTRON_MASS, gk_geom, "M2", false, false);
   struct gkyl_array *m2_final = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
-  gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs, m2_final);
+  gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs_host, m2_final);
 
   double *m00 = gkyl_array_fetch(m0, 0+ghost[0]);
   double *m20 = gkyl_array_fetch(m2_final, 0+ghost[0]);
@@ -282,7 +277,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   // two factors of density, one for the electrons and one for the ions
   double cell_avg0 = 1.0/2.0*GKYL_ELECTRON_MASS*cell_avg_m2/(cell_avg_m0*cell_avg_m0);
 
-  double correct = Lz[0];;
+  double correct = Lz[0];
  
   // Fit error typically >10%, so %1 should be sufficient here
   TEST_CHECK( gkyl_compare( -correct*1e30, cell_avg0*1e30, 1e-2));
@@ -431,7 +426,6 @@ test_2x(int poly_order, bool use_gpu, double te)
   vnu_surf = mkarr(use_gpu, surf_vpar_basis.num_basis, local_ext.volume);
   vsqnu_surf = mkarr(use_gpu, surf_mu_basis.num_basis, local_ext.volume);
 
-
   struct all_radiation_states *rad_data=gkyl_read_rad_fit_params();
   double a[1], alpha[1], beta[1], gamma[1], v0[1];
   int atomic_z = 3;
@@ -457,24 +451,6 @@ test_2x(int poly_order, bool use_gpu, double te)
   nvnu_surf = mkarr(use_gpu, surf_vpar_basis.num_basis, local_ext.volume);
   nvsqnu_surf = mkarr(use_gpu, surf_mu_basis.num_basis, local_ext.volume);
   
-  nvnu_host = nvnu;
-  nvsqnu_host = nvsqnu;
-  nvnu_surf_host = nvnu_surf;
-  nvsqnu_surf_host = nvsqnu_surf;
-  if (use_gpu) {
-    nvnu_host = mkarr(false, basis.num_basis, local_ext.volume);
-    nvsqnu_host = mkarr(false, basis.num_basis, local_ext.volume);
-    nvnu_surf_host = mkarr(false, surf_vpar_basis.num_basis, local_ext.volume);
-    nvsqnu_surf_host = mkarr(false, surf_mu_basis.num_basis, local_ext.volume);
-  }
-
-  if (use_gpu) {
-    gkyl_array_copy(nvnu, nvnu_host);
-    gkyl_array_copy(nvsqnu, nvsqnu_host);
-    gkyl_array_copy(nvnu_surf, nvnu_surf_host);
-    gkyl_array_copy(nvsqnu_surf, nvsqnu_surf_host);
-  }
-
   // Initialize distribution function with proj_gkmaxwellian_on_basis
   struct gkyl_array *f = mkarr(use_gpu, basis.num_basis, local_ext.volume);
 
@@ -540,16 +516,31 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_array_clear(nvsqnu, 0.0);
 
   // Assumed electron and ion density are the same and uniform
-  gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-    &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-    m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+  if (use_gpu) {
+    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
+      &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
+      m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+  }
+  else {
+    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
+      &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
+      m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+  }
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
+
+  struct gkyl_array *rhs_host;
+  rhs_host = rhs;
+  if (use_gpu) {
+    rhs_host = mkarr(false, basis.num_basis, local_ext.volume);
+    gkyl_array_copy(rhs, rhs_host);
+  }
+
   // Take 2nd moment of rhs to find energy loss
   struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
-    &confLocal, &vLocal, GKYL_ELECTRON_MASS, gk_geom, "M2", false, use_gpu);
+    &confLocal, &vLocal, GKYL_ELECTRON_MASS, gk_geom, "M2", false, false);
   struct gkyl_array *m2_final = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
-  gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs, m2_final);
+  gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs_host, m2_final);
 
   double *m00 = gkyl_array_fetch(m0, 0+ghost[0]);
   double *m20 = gkyl_array_fetch(m2_final, 0+ghost[0]);
