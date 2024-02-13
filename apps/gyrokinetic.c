@@ -681,25 +681,6 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
   gkyl_dynvec_clear(app->field->integ_energy);
 }
 
-//mc2p
-//bmag
-//g_ij
-//dxdz
-//dzdx
-//jacobgeo
-//jacobgeo_inv
-//gij
-//b_i
-//cmag
-//jacobtot
-//jacobtot_inv
-//bmag_inv
-//bmag_inv_sq
-//gxxj
-//gxyj
-//gyyj
-//gxzj
-//eps2
 void
 gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
 {
