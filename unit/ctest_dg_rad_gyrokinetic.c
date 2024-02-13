@@ -131,7 +131,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   struct gkyl_range geo_local;
   struct gkyl_range geo_local_ext;
   struct gkyl_basis geo_basis;
-  bool geo_3d_use_gpu = use_gpu;
+  bool geo_3d_use_gpu = false; // initialize 3D geometry on host before deflation
   geo_grid = agument_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(&geo_grid, ghost, &geo_local_ext, &geo_local);
   geo_3d_use_gpu = false;
@@ -407,7 +407,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   struct gkyl_range geo_local;
   struct gkyl_range geo_local_ext;
   struct gkyl_basis geo_basis;
-  bool geo_3d_use_gpu = use_gpu;
+  bool geo_3d_use_gpu = false; // initialize 3D geometry on host before deflation
   geo_grid = agument_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(&geo_grid, ghost, &geo_local_ext, &geo_local);
   geo_3d_use_gpu = false;
