@@ -640,7 +640,10 @@ int main(int argc, char **argv)
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_ion,    
     },
-    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -649,7 +652,7 @@ int main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN, 
         .ctx_density = &ctx,
         .density = eval_density_ion_source,

@@ -817,7 +817,6 @@ int main(int argc, char **argv)
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_elc,   
     },
-    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -865,7 +864,6 @@ int main(int argc, char **argv)
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_ion,   
     },
-    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
