@@ -265,7 +265,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   struct gkyl_array *m2_final_host;
   m2_final_host = m2_final;
   if (use_gpu) {
-    struct gkyl_array *m2_final_host = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+    m2_final_host = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(m2_final_host, m2_final);
   }
 
@@ -535,7 +535,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   struct gkyl_array *m2_final_host;
   m2_final_host = m2_final;
   if (use_gpu) {
-    struct gkyl_array *m2_final_host = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+    m2_final_host = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(m2_final_host, m2_final);
   }
 
@@ -547,7 +547,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   // two factors of density, one for the electrons and one for the ions
   double cell_avg0 = 1.0/2.0*GKYL_ELECTRON_MASS*cell_avg_m2/(cell_avg_m0*cell_avg_m0);
 
-  double correct = Lz[0];;
+  double correct = Lz[0];
  
   // Fit error typically >10%, so %1 should be sufficient here
   TEST_CHECK( gkyl_compare( -correct*1e30, cell_avg0*1e30, 1e-2));
