@@ -379,7 +379,7 @@ void test_p1_deflated_3d(){
 
 
 void
-test_p2_btype(basis_type){
+test_p2_btype(enum gkyl_basis_type basis_type){
   // create  grid
   double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
   // as ellipitical surfaces are exact, we only need 1 cell in each
