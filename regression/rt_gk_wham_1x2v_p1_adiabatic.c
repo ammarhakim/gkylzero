@@ -323,31 +323,18 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
   {
-    fout[0] = 0.5*app->n0*(1. + tanh(10. * sigma * fabs(sigma - fabs(z))));
+    fout[0] = app->n0;
   }
   else
   {
-    fout[0] = 0.5*app->n0*exp(-5 * (fabs(sigma - fabs(z))));
+    fout[0] = app->n0 * 1e-12;
   }
 }
 
 void
 eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_mirror_ctx *app = ctx;
-  double psi = app->psi_eval; // Magnetic flux function psi of field line.
-  double z = xn[0];
-  double cs_m = app->cs_m;
-  double z_m = app->z_m;
-  double z_max = app->z_max;
-  if (fabs(z) <= z_m)
-  {
-    fout[0] = 0.0;
-  }
-  else
-  {
-    fout[0] = fabs(z) / z * cs_m * tanh(3 * (z_max - z_m) * fabs(fabs(z) - z_m)); // Maybe put a 5 here
-  }
+  fout[0] = 0.0;
 }
 
 void
@@ -359,14 +346,7 @@ eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   double z_m = app->z_m;
   double Ti_par0 = app->Ti_par0;
   double Ti_par_m = app->Ti_par_m;
-  if (fabs(z) <= z_m)
-  {
-    fout[0] = Ti_par_m + (Ti_par0 - Ti_par_m) * tanh(4 * fabs(z_m - fabs(z)));
-  }
-  else
-  {
-    fout[0] = Ti_par_m * GKYL_MAX2(1.e-2, 4 * log(fabs(fabs(z) - z_m) + 1));
-  }
+  fout[0] = Ti_par0;
 }
 
 void
@@ -378,14 +358,7 @@ eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   double z_m = app->z_m;
   double Ti_perp0 = app->Ti_perp0;
   double Ti_perp_m = app->Ti_perp_m;
-  if (fabs(z) <= z_m)
-  {
-    fout[0] = Ti_perp_m + (Ti_perp0 - Ti_perp_m) * tanh(3. * fabs(z_m - fabs(z)));
-  }
-  else
-  {
-    fout[0] = Ti_perp_m * GKYL_MAX2(1.e-3, exp(-5. * (fabs(z_m - fabs(z)))));
-  }
+  fout[0] = Ti_perp0;
 }
 
 void

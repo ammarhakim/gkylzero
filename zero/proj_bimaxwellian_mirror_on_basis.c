@@ -332,18 +332,6 @@ gkyl_proj_bimaxwellian_mirror_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bima
   struct gkyl_array *bmag = gk_geom->bmag;
   struct gkyl_array *jacob_tot = gk_geom->jacobtot;
   struct bmag_ctx *bmag_ctx = gkyl_malloc(sizeof(struct bmag_ctx));
-
-
-  // gkyl_range_copy(bmag_ctx->crange, &gk_geom->range);
-  // gkyl_array_copy(bmag_ctx->cgrid, &gk_geom->grid);
-
-  // gkyl_array_copy(bmag_ctx->cbasis, &gk_geom->basis);
-  // gkyl_array_copy(bmag_ctx->range, &gk_geom->prange);
-  // gkyl_array_copy(bmag_ctx->grid, &gk_geom->pgrid);
-  // gkyl_array_copy(bmag_ctx->basis, &gk_geom->pbasis);
-  // gkyl_array_copy(bmag_ctx->bmagdg, &gk_geom->bmag);
-  // gkyl_array_copy(bmag_ctx->mapc2p, &gk_geom->mc2p);
-
   bmag_ctx->crange = &gk_geom->range;
   bmag_ctx->cgrid = &gk_geom->grid;
   bmag_ctx->cbasis = &gk_geom->basis;
@@ -352,6 +340,9 @@ gkyl_proj_bimaxwellian_mirror_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bima
   bmag_ctx->basis = &gk_geom->pbasis;
   bmag_ctx->bmagdg = gk_geom->bmag;
   bmag_ctx->mapc2p = gk_geom->mc2p;
+
+  // mu_thresh = m/2 / (Bmax - B(Z)) vpar^2
+  double bmax = 17.408088;
 
   double fJacB_floor = 1.e-40;
   int cdim = up->cdim, pdim = up->pdim;
@@ -378,6 +369,7 @@ gkyl_proj_bimaxwellian_mirror_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bima
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
+    // What does the d stand for?
     const double *prim_moms_d = gkyl_array_cfetch(prim_moms, midx);
     const double *m0_d = &prim_moms_d[0];
     const double *upar_d = &prim_moms_d[num_conf_basis];
@@ -385,11 +377,12 @@ gkyl_proj_bimaxwellian_mirror_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bima
     const double *vtperpsq_d = &prim_moms_d[3*num_conf_basis];
     const double *bmag_d = gkyl_array_cfetch(bmag, midx);
     const double *jactot_d = gkyl_array_cfetch(jacob_tot, midx);
-    
+
+    double cellaveragebmag = bmag_d[0]/sqrt(2);//Normalization is different depending on basis
     // compute primitive moments at quadrature nodes
     for (int n=0; n<tot_conf_quad; ++n) {
       const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
-
+      // O is for the ordinates. The nodes. Quadrature nodes
       double m0_o = 0., jac_o = 0.;
       upar_o[n] = 0.;
       vtparsq_o[n] = 0.;
@@ -411,8 +404,7 @@ gkyl_proj_bimaxwellian_mirror_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bima
         expamp_o[n] = 0.;
 
     }
-
-    // inner loop over velocity space
+    double max_condition = 0.0;
     gkyl_range_deflate(&vel_rng, phase_rng, rem_dir, conf_iter.idx);
     gkyl_range_iter_no_split_init(&vel_iter, &vel_rng);
     while (gkyl_range_iter_next(&vel_iter)) {
@@ -438,14 +430,34 @@ gkyl_proj_bimaxwellian_mirror_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bima
         efact += xmu[cdim+1]*bmag_o[cqidx]/(mass*vtperpsq_o[cqidx]);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        
-        // Either set to this or 1e-16 if in the loss cone
         fq[0] = fJacB_floor+expamp_o[cqidx]*exp(-efact);
       }
 
       // compute expansion coefficients of Maxwellian on basis
       long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
       proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(fmax, lidx));
+
+      // Set distribution function near zero in the loss cone
+      double vpar = xmu[cdim];
+      double mu = xmu[cdim+1];
+      double condition = mass/2.0/(bmax - cellaveragebmag)*vpar*vpar - mu;
+      if (condition > max_condition) {
+        max_condition = fabs(condition);
+      }
+      if (condition > 0.0) {
+        // Inside the loss cone
+        double *fmax_d = gkyl_array_fetch(fmax, lidx);
+        for (int k=0; k<num_phase_basis; ++k) {
+          fmax_d[k] *= 1e-10;
+        }
+      }
+      // Smooth the distribution function near the loss cone
+      else if (condition / max_condition > - 1.0) {
+        double *fmax_d = gkyl_array_fetch(fmax, lidx);
+        for (int k=0; k<num_phase_basis; ++k) {
+          fmax_d[k] *= - pow(condition / max_condition, 2.0);
+        }
+      }
     }
   }
 }
