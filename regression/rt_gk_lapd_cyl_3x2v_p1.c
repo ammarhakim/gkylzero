@@ -301,7 +301,8 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .num_sources = 1,
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
         .density = eval_density_source,
@@ -311,9 +312,16 @@ main(int argc, char **argv)
         .temp = eval_temp_elc_source,      
       }, 
     },
-    .bcx = { GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_FIXED_FUNC },
-    .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
     
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
+      .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
+    },
+    .bcz = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
+
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
@@ -346,7 +354,8 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .num_sources = 1,
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
         .density = eval_density_source,
@@ -356,9 +365,16 @@ main(int argc, char **argv)
         .temp = eval_temp_ion_source,      
       }, 
     },
-    .bcx = { GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_FIXED_FUNC },
-    .bcz = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
     
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
+      .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
+    },
+    .bcz = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
+
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
