@@ -344,6 +344,7 @@ gkyl_proj_bimaxwellian_mirror_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bima
   // mu_thresh = m/2 / (Bmax - B(Z)) vpar^2
   double bmax = 17.408088;
 
+
   double fJacB_floor = 1.e-40;
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
@@ -448,14 +449,14 @@ gkyl_proj_bimaxwellian_mirror_on_basis_gyrokinetic_prim_mom(const gkyl_proj_bima
         // Inside the loss cone
         double *fmax_d = gkyl_array_fetch(fmax, lidx);
         for (int k=0; k<num_phase_basis; ++k) {
-          fmax_d[k] *= 1e-10;
+          fmax_d[k] *= 1e-2;
         }
       }
       // Smooth the distribution function near the loss cone
       else if (condition / max_condition > - 1.0) {
         double *fmax_d = gkyl_array_fetch(fmax, lidx);
         for (int k=0; k<num_phase_basis; ++k) {
-          fmax_d[k] *= - pow(condition / max_condition, 2.0);
+          fmax_d[k] *= GKYL_MAX2(1e-2, fabs(pow(condition / max_condition, 2.0)));
         }
       }
     }
