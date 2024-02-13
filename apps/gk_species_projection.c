@@ -152,9 +152,14 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
         proj->m0mod, f, &app->local_ext, &s->local_ext);
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
-        app->gk_geom->jacobgeo, f, &app->local_ext, &s->local_ext);  
   }
+
+  // Multiply by the configuration space jacobian.
+  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
+    app->gk_geom->jacobgeo, f, &app->local_ext, &s->local_ext);  
+
+  // Multiply by the velocity space jacobian.
+  gkyl_array_scale_by_cell(f, s->jacobvel);
 }
 
 void

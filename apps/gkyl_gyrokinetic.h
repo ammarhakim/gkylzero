@@ -21,6 +21,15 @@ struct gkyl_gk_low_inp {
   struct gkyl_comm *comm;
 };
 
+typedef void (*mapc2p_t)(double t, const double *xc, double *xp, void *ctx);
+
+// Velocity space mappings.
+struct gkyl_gyrokinetic_mapc2p {
+  bool is_mapped;
+  mapc2p_t mapping[2];
+  void *ctx; 
+};
+
 // Parameters for projection
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
@@ -147,6 +156,8 @@ struct gkyl_gyrokinetic_species {
   double charge, mass; // charge and mass
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
+
+  struct gkyl_gyrokinetic_mapc2p mapc2p;
 
   // initial conditions using projection routine
   struct gkyl_gyrokinetic_projection projection;
