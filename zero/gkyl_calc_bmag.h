@@ -18,7 +18,7 @@ struct bmag_ctx{
    const struct gkyl_basis* basis;
    const struct gkyl_basis* cbasis;
    struct gkyl_array* bmagdg;
-   const struct gkyl_array* mapc2p;
+   struct gkyl_array* mapc2p;
 };
 
 /**
