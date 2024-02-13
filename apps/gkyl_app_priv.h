@@ -104,3 +104,56 @@ static struct gkyl_rect_grid agument_grid(struct gkyl_rect_grid grid, struct gky
   gkyl_rect_grid_init(&augmented_grid, 3, lower, upper, cells);
   return augmented_grid;
 }
+
+
+static void augment_local(const struct gkyl_range *inrange,
+  const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range)
+{
+  if (inrange->ndim == 2) {
+    int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
+    int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+    
+    lower_ext[0] = inrange->lower[0]-nghost[0];
+    upper_ext[0] = inrange->upper[0]+nghost[0];
+    lower[0] = inrange->lower[0];
+    upper[0] = inrange->upper[0];
+
+    lower_ext[1] = 1 - 1;
+    upper_ext[1] = 1 + 1;
+    lower[1] = 1;
+    upper[1] = 1;
+
+    lower_ext[2] = inrange->lower[1]-nghost[1];
+    upper_ext[2] = inrange->upper[1]+nghost[1];
+    lower[2] = inrange->lower[1];
+    upper[2] = inrange->upper[1];
+
+
+    gkyl_range_init(ext_range, inrange->ndim+1, lower_ext, upper_ext);
+    gkyl_sub_range_init(range, ext_range, lower, upper);  
+  }
+  else if (inrange->ndim == 1) {
+    int lower_ext[GKYL_MAX_DIM], upper_ext[GKYL_MAX_DIM];
+    int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+    
+    lower_ext[0] = 1 - 1;
+    upper_ext[0] = 1 + 1;
+    lower[0] = 1;
+    upper[0] = 1;
+
+    lower_ext[1] = 1 - 1;
+    upper_ext[1] = 1 + 1;
+    lower[1] = 1;
+    upper[1] = 1;
+
+    lower_ext[2] = inrange->lower[0]-nghost[0];
+    upper_ext[2] = inrange->upper[0]+nghost[0];
+    lower[2] = inrange->lower[0];
+    upper[2] = inrange->upper[0];
+
+
+
+    gkyl_range_init(ext_range, inrange->ndim+2, lower_ext, upper_ext);
+    gkyl_sub_range_init(range, ext_range, lower, upper);  
+  }
+}

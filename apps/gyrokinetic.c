@@ -157,41 +157,12 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     gkyl_create_grid_ranges(&geo_grid, ghost, &geo_global_ext, &geo_global);
     if (gk->has_low_inp) {
       // create local and local_ext from user-supplied local range
-      //gkyl_create_ranges(&gk->low_inp.local_range, ghost, &geo_local_ext, &geo_local);
-      gkyl_create_grid_ranges(&geo_grid, ghost, &geo_local_ext, &geo_local);
-      
-      if (gk->low_inp.comm)
-        app->comm = gkyl_comm_acquire(gk->low_inp.comm);
-      else {
-        int cuts[3] = { 1, 1, 1 };
-        struct gkyl_rect_decomp *geo_rect_decomp =
-          gkyl_rect_decomp_new_from_cuts(3, cuts, &geo_global);
-        
-        app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-            .decomp = geo_rect_decomp,
-            .use_gpu = app->use_gpu
-          }
-        );
-
-        gkyl_rect_decomp_release(geo_rect_decomp);
-      }
+      augment_local(&gk->low_inp.local_range, ghost, &geo_local_ext, &geo_local);
     }
     else {
       // global and local ranges are same, and so just copy
       memcpy(&geo_local, &geo_global, sizeof(struct gkyl_range));
       memcpy(&geo_local_ext, &geo_global_ext, sizeof(struct gkyl_range));
-
-      int cuts[3] = { 1, 1, 1 };
-      struct gkyl_rect_decomp *rect_decomp =
-        gkyl_rect_decomp_new_from_cuts(cdim, cuts, &app->global);
-      
-      app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
-          .decomp = rect_decomp,
-          .use_gpu = app->use_gpu
-        }
-      );
-      
-      gkyl_rect_decomp_release(rect_decomp);
     }
 
   }
