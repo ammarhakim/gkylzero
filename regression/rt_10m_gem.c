@@ -246,7 +246,7 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_ten_moment,
-    .evolve = 1,
+    .evolve = true,
     .init = evalElcInit,
     .ctx = &ctx,
 
@@ -256,7 +256,7 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_ten_moment,
-    .evolve = 1,
+    .evolve = true,
     .init = evalIonInit,
     .ctx = &ctx,
 
@@ -353,7 +353,7 @@ main(int argc, char **argv)
       .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
       .mag_error_speed_fact = 1.0,
       
-      .evolve = 1,
+      .evolve = true,
       .init = evalFieldInit,
       .ctx = &ctx,
       

@@ -30,7 +30,7 @@ struct sodshock_lax_ctx
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
-  long Lx; // Domain size (x-direction).
+  double Lx; // Domain size (x-direction).
   double k0; // Closure parameter.
   double t_end; // Final simulation time.
 };
@@ -137,7 +137,7 @@ main(int argc, char **argv)
   struct gkyl_moment_species fluid = {
     .name = "10m",
     .equation = ten_moment,
-    .evolve = 1,
+    .evolve = true,
     .init = eval10mInit,
     .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
@@ -245,7 +245,7 @@ main(int argc, char **argv)
   gkyl_moment_app_apply_ic(app, t_curr);
   gkyl_moment_app_write(app, t_curr, 0);
 
-  // compute estimate of maximum stable time-step
+  // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
 
   long step = 1;

@@ -191,7 +191,7 @@ main(int argc, char **argv)
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_euler,
-    .evolve = 1,
+    .evolve = true,
     .init = evalElcInit,
     .ctx = &ctx,
   };
@@ -280,7 +280,7 @@ main(int argc, char **argv)
     .field = {
       .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
       
-      .evolve = 1,
+      .evolve = true,
       .init = evalFieldInit,
       .app_current_func = evalAppCurrent,
       .ctx = &ctx,
