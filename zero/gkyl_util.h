@@ -41,7 +41,12 @@
 
 // Maximum number of supported species
 #ifndef GKYL_MAX_SPECIES
-# define GKYL_MAX_SPECIES 8
+# define GKYL_MAX_SPECIES 16
+#endif
+
+// Maximum number of supported sources
+#ifndef GKYL_MAX_SOURCES
+# define GKYL_MAX_SOURCES 4
 #endif
 
 // Maximum number of supported charge states

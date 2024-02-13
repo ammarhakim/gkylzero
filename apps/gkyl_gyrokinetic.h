@@ -76,9 +76,22 @@ struct gkyl_gyrokinetic_diffusion {
 struct gkyl_gyrokinetic_source {
   enum gkyl_source_id source_id; // type of source
   bool write_source; // optional parameter to write out source
+  int num_sources;
 
   // sources using projection routine
-  struct gkyl_gyrokinetic_projection projection;
+  struct gkyl_gyrokinetic_projection projection[GKYL_MAX_SOURCES];
+};
+
+// Parameters for boundary conditions
+struct gkyl_gyrokinetic_bc {
+  enum gkyl_species_bc_type type;
+  void *aux_ctx;
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);  
+  double aux_parameter;
+};
+
+struct gkyl_gyrokinetic_bcs {
+  struct gkyl_gyrokinetic_bc lower, upper;
 };
 
 struct gkyl_gyrokinetic_geometry {
@@ -174,7 +187,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_react react_neut;
 
   // boundary conditions
-  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
 };
 
 // Parameters for neutral species
@@ -206,6 +219,7 @@ struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   double bmag_fac; 
   double kperpSq; // kperp^2 parameter for 1D field equations
+  double xLCFS; // radial location of the LCFS.
 
   // parameters for adiabatic electrons simulations
   double electron_mass, electron_charge, electron_temp;
