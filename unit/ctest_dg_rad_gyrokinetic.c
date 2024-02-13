@@ -265,7 +265,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   struct gkyl_array *m2_final_host;
   m2_final_host = m2_final;
   if (use_gpu) {
-    struct gkyl_array *m2_final = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+    struct gkyl_array *m2_final_host = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(m2_final_host, m2_final);
   }
 
@@ -535,7 +535,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   struct gkyl_array *m2_final_host;
   m2_final_host = m2_final;
   if (use_gpu) {
-    struct gkyl_array *m2_final = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
+    struct gkyl_array *m2_final_host = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
     gkyl_array_copy(m2_final_host, m2_final);
   }
 
