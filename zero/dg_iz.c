@@ -161,8 +161,8 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
 {
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(coef_iz)) {
-    return gkyl_dg_iz_coll_cu(up, moms_elc, moms_donor, vtSq_iz,
-			      prim_vars_donor, b_i, coef_iz, cflrate);
+    return gkyl_dg_iz_coll_cu(up, moms_elc, moms_donor, b_i, vtSq_iz,
+			      prim_vars_donor, coef_iz, cflrate);
   } 
 #endif
   if ((up->all_gk==false) && ((up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION))) {
