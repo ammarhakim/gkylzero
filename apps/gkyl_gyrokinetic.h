@@ -431,6 +431,16 @@ void gkyl_gyrokinetic_app_write_coll_mom(gkyl_gyrokinetic_app *app, int sidx, do
 void gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
+ * Write radiation drag coefficients for species to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_react(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+
+/**
  * Write diagnostic moments for species to file.
  * 
  * @param app App object.

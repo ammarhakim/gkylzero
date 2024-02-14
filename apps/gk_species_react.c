@@ -49,6 +49,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     }
 
     react->coeff_react[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->coeff_react_host[i] = react->coeff_react[i];
     react->vt_sq_iz[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_ion[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);

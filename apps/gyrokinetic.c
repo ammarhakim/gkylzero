@@ -423,6 +423,8 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
       gkyl_gyrokinetic_app_write_coll_mom(app, i, tm, frame);
     if (app->species[i].radiation_id == GKYL_GK_RADIATION)
       gkyl_gyrokinetic_app_write_rad_drag(app, i, tm, frame);
+    if ((app->species[i].has_reactions) && (&app->species[i].react.type_self[i] == GKYL_SELF_ELC))
+      gkyl_gyrokinetic_app_write_react(app, i, tm, frame);
   }
 
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
@@ -586,6 +588,54 @@ gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double 
   gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvnu_sum_host, fileNm_vnu);
   gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvsqnu_sum_host, fileNm_vsqnu);
 }
+
+void
+gkyl_gyrokinetic_app_write_react(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gk_species *s = &app->species[sidx];
+
+  // Compute reaction rate
+  const struct gkyl_array *fin[app->num_species];
+  const struct gkyl_array *fin_neut[app->num_neut_species];
+  for (int i=0; i<app->num_species; ++i) 
+    fin[i] = app->species[i].f;
+  for (int i=0; i<app->num_neut_species; ++i) 
+    fin_neut[i] = app->neut_species[i].f;  
+  gk_species_react_cross_moms(app, s, &s->react, fin[sidx], fin, fin_neut);
+
+  for (int i=0; i<s->react.num_react; ++i) {
+    if (s->react.react_id[i] == GKYL_REACT_IZ) {
+
+      const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, s->info.name,
+        s->react.react_type[i].ion_nm, s->react.react_type[i].donor_nm, frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name,
+        s->react.react_type[i].ion_nm, s->react.react_type[i].donor_nm, frame);
+
+      if (app->use_gpu) {
+	gkyl_array_copy(s->react.coeff_react_host[i], s->react.coeff_react[i]);
+      }
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react.coeff_react_host[i], fileNm);
+
+    }
+    if (s->react.react_id[i] == GKYL_REACT_RECOMB) {
+      const char *fmt = "%s-%s_%s_%s_recomb_react_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, s->info.name,
+        s->react.react_type[i].ion_nm, s->react.react_type[i].recvr_nm, frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name,
+        s->react.react_type[i].ion_nm, s->react.react_type[i].donor_nm, frame);
+
+      if (app->use_gpu) {
+	gkyl_array_copy(s->react.coeff_react_host[i], s->react.coeff_react[i]);
+      }
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react.coeff_react_host[i], fileNm);
+    }
+  }
+}
+
+// Add neut_react write method
 
 void
 gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)

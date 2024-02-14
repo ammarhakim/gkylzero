@@ -268,6 +268,7 @@ struct gk_react {
   struct gk_species_moment moms_donor[GKYL_MAX_SPECIES]; // for computing moments of donor species in reaction
 
   struct gkyl_array *coeff_react[GKYL_MAX_SPECIES]; // reaction rate
+  struct gkyl_array *coeff_react_host[GKYL_MAX_SPECIES]; // reaction rate
   struct gkyl_array *vt_sq_iz[GKYL_MAX_SPECIES]; // ionization temperature
   struct gkyl_array *m0_elc[GKYL_MAX_SPECIES]; // electron density
   struct gkyl_array *m0_ion[GKYL_MAX_SPECIES]; // ion density
