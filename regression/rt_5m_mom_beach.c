@@ -293,7 +293,7 @@ main(int argc, char **argv)
     }
   };
 
-  // create app object
+  // Create app object.
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // Initial and final simulation times.

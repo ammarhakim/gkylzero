@@ -62,6 +62,7 @@ struct burch_ctx
   double Ly; // Domain size (y-direction).
   double k0_elc; // Closure parameter for electrons.
   double k0_ion; // Closure parameter for ions.
+  double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
 };
 
@@ -112,6 +113,7 @@ create_ctx(void)
   double Ly = 20.48 * di; // Domain size (y-direction).
   double k0_elc = 1.0; // Closure parameter for electrons.
   double k0_ion = 0.1; // Closure parameter for ions.
+  double cfl_frac = 1.0; // CFL coefficient.
   double t_end = 250.0; // Final simulation time.
   
   struct burch_ctx ctx = {
@@ -149,6 +151,7 @@ create_ctx(void)
     .Ly = Ly,
     .k0_elc = k0_elc,
     .k0_ion = k0_ion,
+    .cfl_frac = cfl_frac,
     .t_end = t_end,
   };
 
@@ -495,7 +498,7 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 2,
     .periodic_dirs = { 0, 1 },
-    .cfl_frac = 1.0,
+    .cfl_frac = ctx.cfl_frac,
 
     .num_species = 2,
     .species = { elc, ion },

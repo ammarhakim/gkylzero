@@ -32,6 +32,7 @@ struct sodshock_ctx
   int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
   double k0; // Closure parameter.
+  double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
 };
 
@@ -51,6 +52,7 @@ create_ctx(void)
   int Nx = 512; // Cell count (x-direction).
   long Lx = 1.0; // Domain size (x-direction).
   double k0 = 0.0; // Closure parameter.
+  double cfl_frac = 0.9; // CFL coefficient.
   double t_end = 0.1; // Final simulation time.
 
   struct sodshock_ctx ctx = {
@@ -63,6 +65,7 @@ create_ctx(void)
     .Nx = Nx,
     .Lx = Lx,
     .k0 = k0,
+    .cfl_frac = cfl_frac,
     .t_end = t_end,
   };
 
@@ -222,7 +225,7 @@ main(int argc, char **argv)
     .upper = { 0.25 + ctx.Lx }, 
     .cells = { NX },
 
-    .cfl_frac = 0.9,
+    .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
     .species = { fluid },

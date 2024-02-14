@@ -49,6 +49,7 @@ struct gem_ctx
   double Lx; // Domain size (x-direction).
   double Ly; // Domain size (y-direction).
   double k0; // Closure parameter.
+  double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
 };
 
@@ -85,6 +86,7 @@ create_ctx(void)
   double Lx = 25.6; // Domain size (x-direction).
   double Ly = 12.8; // Domain size (y-direction).
   double k0 = 5.0; // Closure parameter.
+  double cfl_frac = 1.0; // CFL coefficient.
   double t_end = 250.0; // Final simulation time.
 
   struct gem_ctx ctx = {
@@ -110,6 +112,7 @@ create_ctx(void)
     .Lx = Lx,
     .Ly = Ly,
     .k0 = k0,
+    .cfl_frac = cfl_frac,
     .t_end = t_end,
   };
 
@@ -344,7 +347,7 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
-    .cfl_frac = 1.0,
+    .cfl_frac = ctx.cfl_frac,
 
     .num_species = 2,
     .species = { elc, ion },

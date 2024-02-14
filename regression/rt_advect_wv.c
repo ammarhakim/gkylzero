@@ -23,6 +23,7 @@ struct advect_wv_ctx
   int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
   double v_advect; // Advection velocity.
+  double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
 };
 
@@ -33,12 +34,14 @@ create_ctx(void)
   int Nx = 200; // Cell count (x-direction).
   double Lx = 2.0; // Domain size (x-direction).
   double v_advect = 1.0; // Advection velocity.
+  double cfl_frac = 0.4; // CFL coefficient.
   double t_end = 20.0; // Final simulation time.
 
   struct advect_wv_ctx ctx = {
     .Nx = Nx,
     .Lx = Lx,
     .v_advect = v_advect,
+    .cfl_frac = cfl_frac,
     .t_end = t_end,
   };
 
@@ -186,7 +189,7 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
-    .cfl_frac = 0.4,
+    .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
     .species = { fluid },

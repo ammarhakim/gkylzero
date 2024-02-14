@@ -52,6 +52,7 @@ struct rt_ctx
   double Ny; // Cell count (y-direction).
   double Lx; // Domain size (x-direction).
   double Ly; // Domain size (y-direction).
+  double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
 
   double xloc; // Fluid boundary (x-coordinate).
@@ -93,6 +94,7 @@ create_ctx(void)
   double Ny = 64; // Cell count (y-direction).
   double Lx = 3.0; // Domain size (x-direction).
   double Ly = 3.75; // Domain size (y-direction).
+  double cfl_frac = 1.0; // CFL coefficient.
   double t_end = 250.0; // Final simulation time.
 
   double xloc = 0.5 * Lx; // Fluid boundary (x-coordinate).
@@ -124,6 +126,7 @@ create_ctx(void)
     .Ny = Ny,
     .Lx = Lx,
     .Ly = Ly,
+    .cfl_frac = cfl_frac,
     .t_end = t_end,
     .xloc = xloc
   };
@@ -423,7 +426,7 @@ main(int argc, char **argv)
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
-    .cfl_frac = 1.0,
+    .cfl_frac = ctx.cfl_frac,
 
     .num_species = 2,
     .species = { elc, ion },

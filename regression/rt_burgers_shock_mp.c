@@ -25,6 +25,7 @@ struct burgers_shock_mp_ctx
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
+  double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
 };
 
@@ -37,12 +38,14 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 128; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
+  double cfl_frac = 0.9; // CFL coefficient.
   double t_end = 0.4; // Final simulation time.
 
   struct burgers_shock_mp_ctx ctx = {
     .pi = pi,
     .Nx = Nx,
     .Lx = Lx,
+    .cfl_frac = cfl_frac,
     .t_end = t_end,
   };
 
@@ -174,7 +177,7 @@ main(int argc, char **argv)
     .upper = { ctx.Lx }, 
     .cells = { NX },
 
-    .cfl_frac = 0.9,
+    .cfl_frac = ctx.cfl_frac,
 
     .scheme_type = GKYL_MOMENT_MP,
     .mp_recon = app_args.mp_recon,

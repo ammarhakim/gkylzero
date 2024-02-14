@@ -22,6 +22,7 @@ struct burgers_shock_ctx
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
+  double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
 };
 
@@ -31,11 +32,13 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 128; // Cell count (x-direction).
   double Lx = 6.0; // Domain size (x-direction).
+  double cfl_frac = 0.9; // CFL coefficient.
   double t_end = 0.4; // Final simulation time.
 
   struct burgers_shock_ctx ctx = {
     .Nx = Nx,
     .Lx = Lx,
+    .cfl_frac = cfl_frac,
     .t_end = t_end,
   };
 
@@ -172,7 +175,7 @@ main(int argc, char **argv)
     .upper = { ctx.Lx }, 
     .cells = { NX },
 
-    .cfl_frac = 0.9,
+    .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
     .species = { fluid },
