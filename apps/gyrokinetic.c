@@ -423,6 +423,7 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
       gkyl_gyrokinetic_app_write_coll_mom(app, i, tm, frame);
     if (app->species[i].radiation_id == GKYL_GK_RADIATION)
       gkyl_gyrokinetic_app_write_rad_drag(app, i, tm, frame);
+
     if (app->species[i].has_reactions) {
       for (int j=0; j<app->species[i].react.num_react; ++j) {
 	if ((app->species[i].react.react_id[j] == GKYL_REACT_IZ) && (app->species[i].react.type_self[j] == GKYL_SELF_ELC)) {
@@ -433,6 +434,17 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
 	}
       }
     }
+    if (app->species[i].has_neutral_reactions) {
+      for (int j=0; j<app->species[i].react_neut.num_react; ++j) {
+    	if ((app->species[i].react_neut.react_id[j] == GKYL_REACT_IZ) && (app->species[i].react_neut.type_self[j] == GKYL_SELF_ELC)) {
+    	  gkyl_gyrokinetic_app_write_iz_react_neut(app, i, j, tm, frame);
+    	}
+    	if ((app->species[i].react_neut.react_id[j] == GKYL_REACT_RECOMB) && (app->species[i].react_neut.type_self[j] == GKYL_SELF_ELC)) {
+    	  gkyl_gyrokinetic_app_write_recomb_react_neut(app, i, j, tm, frame);
+    	}
+      }
+    }
+
   }
 
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
@@ -607,8 +619,8 @@ gkyl_gyrokinetic_app_write_iz_react(gkyl_gyrokinetic_app* app, int sidx, int rid
   const struct gkyl_array *fin_neut[app->num_neut_species];
   for (int i=0; i<app->num_species; ++i) 
     fin[i] = app->species[i].f;
-  /* for (int i=0; i<app->num_neut_species; ++i)  */
-  /*   fin_neut[i] = app->neut_species[i].f;   */
+  for (int i=0; i<app->num_neut_species; ++i)
+    fin_neut[i] = app->neut_species[i].f;
   gk_species_react_cross_moms(app, s, &s->react, fin[sidx], fin, fin_neut);
 
   const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
@@ -653,7 +665,61 @@ gkyl_gyrokinetic_app_write_recomb_react(gkyl_gyrokinetic_app* app, int sidx, int
 
 }
 
-// Add neut_react write method
+void
+gkyl_gyrokinetic_app_write_iz_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
+{
+  struct gk_species *s = &app->species[sidx];
+
+  // Compute reaction rate
+  const struct gkyl_array *fin[app->num_species];
+  const struct gkyl_array *fin_neut[app->num_neut_species];
+  for (int i=0; i<app->num_species; ++i) 
+    fin[i] = app->species[i].f;
+  for (int i=0; i<app->num_neut_species; ++i)
+    fin_neut[i] = app->neut_species[i].f;
+  gk_species_react_cross_moms(app, s, &s->react_neut, fin[sidx], fin, fin_neut);
+
+  const char *fmt = "%s-%s_%s_%s_iz_react_neut_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name,
+    s->react_neut.react_type[ridx].ion_nm, s->react_neut.react_type[ridx].donor_nm, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name,
+    s->react_neut.react_type[ridx].ion_nm, s->react_neut.react_type[ridx].donor_nm, frame);
+  
+  if (app->use_gpu) {
+    gkyl_array_copy(s->react_neut.coeff_react_host[ridx], s->react_neut.coeff_react[ridx]);
+  }
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react_neut.coeff_react_host[ridx], fileNm);
+
+}
+
+void
+gkyl_gyrokinetic_app_write_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
+{
+  struct gk_species *s = &app->species[sidx];
+
+  // Compute reaction rate
+  const struct gkyl_array *fin[app->num_species];
+  const struct gkyl_array *fin_neut[app->num_neut_species];
+  for (int i=0; i<app->num_species; ++i) 
+    fin[i] = app->species[i].f;
+  for (int i=0; i<app->num_neut_species; ++i) 
+    fin_neut[i] = app->neut_species[i].f;  
+  gk_species_react_cross_moms(app, s, &s->react_neut, fin[sidx], fin, fin_neut);
+
+  const char *fmt = "%s-%s_%s_%s_recomb_react_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name,
+    s->react_neut.react_type[ridx].ion_nm, s->react_neut.react_type[ridx].recvr_nm, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name,
+    s->react_neut.react_type[ridx].ion_nm, s->react_neut.react_type[ridx].recvr_nm, frame);
+  
+  if (app->use_gpu) {
+    gkyl_array_copy(s->react_neut.coeff_react_host[ridx], s->react_neut.coeff_react[ridx]);
+  }
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react_neut.coeff_react_host[ridx], fileNm);
+
+}
 
 void
 gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)

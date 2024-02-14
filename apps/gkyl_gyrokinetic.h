@@ -453,6 +453,28 @@ void gkyl_gyrokinetic_app_write_iz_react(gkyl_gyrokinetic_app* app, int sidx, in
 void gkyl_gyrokinetic_app_write_recomb_react(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
 
 /**
+ * Write iz react rate coefficients for species to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param ridx Index of reaction to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_iz_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
+
+/**
+ * Write recomb react rate coefficients for species to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param ridx Index of reaction to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame);
+
+/**
  * Write diagnostic moments for species to file.
  * 
  * @param app App object.
