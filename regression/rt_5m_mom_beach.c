@@ -1,3 +1,9 @@
+// Propagation into a plasma wave beach test for the 5-moment equations.
+// Input parameters match the initial conditions found in entry JE8 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je8/je8-plasmabeach.html), adapted from Section III. A. of the article:
+// D. N. Smithe (2007), "Finite-difference time-domain simulation of fusion plasmas at radiofrequency time scales",
+// Physics of Plasmas, Volume 14 (5): 056104.
+// https://pubs.aip.org/aip/pop/article/14/5/056104/929539/Finite-difference-time-domain-simulation-of-fusion
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,6 +45,7 @@ struct mom_beach_ctx
   double Lx; // Domain size (x-direction).
   double Lx100; // Domain size over 100 (x-direction).
   double x_last_edge; // Location of center of last cell.
+  double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
 
   double deltaT; // Arbitrary constant, with units of time.
@@ -69,6 +76,7 @@ create_ctx(void)
   double Lx = 1.0; // Domain size (x-direction).
   double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
   double x_last_edge = Lx / Nx; // Location of center of last cell.
+  double cfl_frac = 0.95; // CFL coefficient.
   double t_end = 5.0e-9; // Final simulation time.
 
   double deltaT = Lx100 / speed_light; // Arbitrary constant, with units of time.
@@ -88,6 +96,7 @@ create_ctx(void)
     .Lx = Lx,
     .Lx100 = Lx100,
     .x_last_edge = x_last_edge,
+    .cfl_frac = cfl_frac,
     .t_end = t_end,
     .deltaT = deltaT,
     .factor = factor,
@@ -273,6 +282,8 @@ main(int argc, char **argv)
     .lower = { 0.0 },
     .upper = { ctx.Lx }, 
     .cells = { NX },
+
+    .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
     .species = { elc },

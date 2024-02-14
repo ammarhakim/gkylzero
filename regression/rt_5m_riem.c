@@ -1,3 +1,9 @@
+// Generalized Brio-Wu Riemann problem for the 5-moment equations.
+// Input parameters match the initial conditions found in entry JE4 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je4/je4-twofluid-shock.html), adapted from Section 7.1 of the article:
+// A. Hakim, J. Loverich and U. Shumlak (2006), "A high resolution wave propagation scheme for ideal Two-Fluid plasma equations",
+// Journal of Computational Physics, Volume 219 (1): 418-442.
+// https://www.sciencedirect.com/science/article/pii/S0021999106001707
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +53,7 @@ struct riem_ctx
   // Simulation parameters.
   double Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
+  double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
 };
 
@@ -81,6 +88,7 @@ create_ctx(void)
   // Simulation parameters.
   double Nx = 1024; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
+  double cfl_frac = 0.95; // CFL coefficient.
   double t_end = 10.0; // Final simulation time.
   
   struct riem_ctx ctx = {
@@ -104,6 +112,7 @@ create_ctx(void)
     .rhor_elc = rhor_elc,
     .Nx = Nx,
     .Lx = Lx,
+    .cfl_frac = cfl_frac,
     .t_end = t_end,
   };
 
@@ -330,6 +339,8 @@ main(int argc, char **argv)
     .lower = { 0.0 },
     .upper = { ctx.Lx }, 
     .cells = { NX },
+
+    .cfl_frac = ctx.cfl_frac,
 
     .num_species = 2,
     .species = { elc, ion },

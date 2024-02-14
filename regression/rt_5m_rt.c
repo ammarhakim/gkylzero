@@ -1,3 +1,7 @@
+// WARNING: This regression test currently (as of February 13th, 2024) fails.
+// All but one time-steps fail, even with acceleration switched off, boundary conditions tweaked, and first-order (Lax) fluxes used in lieu of higher-order (Roe) ones.
+// Somehow this hints at something more fundamentally wrong with the 5-moment solver.
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

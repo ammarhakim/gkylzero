@@ -1,3 +1,9 @@
+// Square wave initial data test for the inviscid Burgers' equation.
+// Input parameters correspond to a square wave, equivalent to the initial conditions in Section 6, but with the wave amplitude set to 3 between x = 2 and x = 4, and -1 everywhere else, from the article:
+// J. W. L. Wan and A. Jameson (2008), "Monotonicity-preserving multigrid time stepping schemes for conservation laws",
+// Computing and Visualization in Science, Volume 11: 41-58.
+// https://link.springer.com/article/10.1007/s00791-006-0056-3
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,7 +89,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Burgers' equation.
+  // Inviscid Burgers' equation.
   struct gkyl_wv_eqn *burgers = gkyl_wv_burgers_new();
 
   struct gkyl_moment_species fluid = {

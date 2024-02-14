@@ -1,3 +1,9 @@
+// Lower-Hybrid Drift Instability (LHDI) test, with gradient-closure, for the 10-moment equations.
+// Input parameters match the initial conditions in Section 5.2, from the article:
+// J. Ng, A. Hakim, J. Juno and A. Bhattacharjee (2019), "Drift Instabilities in Thin Current Sheets Using a Two-Fluid Model With Pressure Tensor Effects",
+// Journal of Geophysical Research: Space Physics, Volume 124 (5): 3331-3346.
+// https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2018JA026313
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

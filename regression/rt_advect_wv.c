@@ -1,3 +1,9 @@
+// Discontinuous initial data test for the linear advection equation.
+// Input parameters match the initial conditions in Section 4.1, Example 2, from the article:
+// A. Suresh and H. T. Huynh (1997), "Accurate Monotonicity-Preserving Schemes with Runge-Kutta Time Stepping",
+// Journal of Computational Physics, Volume 136 (1): 83-99.
+// https://www.sciencedirect.com/science/article/pii/S0021999197957454
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,7 +104,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Advection equation.
+  // Linear advection equation.
   struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect);
 
   struct gkyl_moment_species fluid = {

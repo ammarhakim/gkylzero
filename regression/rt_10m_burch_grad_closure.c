@@ -1,3 +1,9 @@
+// Burch et al. magnetic reconnection test, with gradient-closure, for the 10-moment equations.
+// Input parameters match the "16 October 2015" entries in Table 1, from the article:
+// P. A. Cassak et al. (2017), "The Effect of a Guide Field on Local Energy Conservation During Asymmetric Magnetic Reconnection: Particle-in-Cell Simulations",
+// Journal of Geophysical Research: Space Physics, Volume 122 (11): 11523-11542.
+// https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017JA024555
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

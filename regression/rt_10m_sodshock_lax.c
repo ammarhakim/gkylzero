@@ -1,3 +1,9 @@
+// Sod-type shock tube test, using first-order (Lax) fluxes, for the 10-moment equations.
+// Input parameters match the initial conditions in Section 2.6.2, with the contact discontinuity placed at x = 0.75 rather than x = 0.5, from the thesis:
+// A. Hakim (2006), "High Resolution Wave Propagation Schemes for Two-Fluid Plasma Simulations",
+// PhD Thesis, University of Washington.
+// https://www.aa.washington.edu/sites/aa/files/research/cpdlab/docs/PhDthesis_hakim.pdf
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

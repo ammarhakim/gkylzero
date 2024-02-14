@@ -1,3 +1,9 @@
+// Parallel firehose instability test for the 10-moment equations.
+// Input parameters match the initial conditions on Slide 7, from the poster presentation:
+// E. Bair, J. TenBarge, J. Juno and A. Hakim (2020), "Two Fluid, Ten Moment Simulations of the Firehose Instability in the Solar Wind",
+// PPPL Summer Science Undergraduate Laboratory Internship (SULI) 2020 Poster.
+// https://suli.pppl.gov/2020/2020%20summer%20deliverables/BairPosterSession.pdf
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
