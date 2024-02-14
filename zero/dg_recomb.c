@@ -19,7 +19,6 @@
 #include <gkyl_const.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_rect_decomp.h>
-#include <gkyl_array_rio.h>
 
 struct gkyl_dg_recomb*
 gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
@@ -123,7 +122,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
   gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg);
   gkyl_nodal_ops_release(n2m);
-  gkyl_grid_sub_array_write(&tn_grid, &modal_range, adas_dg, "adas_recomb.gkyl");
 
   // ADAS data pointers
   up->recomb_data = adas_dg;

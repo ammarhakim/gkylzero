@@ -6,7 +6,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
-#include <gkyl_array_rio.h>
 #include <gkyl_dg_prim_vars_vlasov.h>
 #include <gkyl_dg_prim_vars_gyrokinetic.h>
 #include <gkyl_dg_prim_vars_transform.h>
@@ -118,7 +117,6 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
   gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg);
   gkyl_nodal_ops_release(n2m);
-  gkyl_grid_sub_array_write(&tn_grid, &modal_range, adas_dg, "adas_iz.gkyl");
 
   // ADAS data pointers
   up->E = data.Eiz[charge_state];
