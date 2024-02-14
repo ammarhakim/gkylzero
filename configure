@@ -49,6 +49,7 @@ CUDA_ARCH                  CUDA architecture flag to specify compute capability.
                            Default is $HOME/gkylsoft/
 
 --use-mpi                  [no] Build MPI-dependent code
+--use-nccl                 [no] Build NCCL-dependent code
 --use-lua                  [no] Build Lua dependent code
 --use-adas                 [no] Build adas dependent code
 
@@ -62,6 +63,9 @@ Library Includes and Locations
 
 --mpi-inc                  Location of MPI headers
 --mpi-lib                  Location to MPI library
+
+--nccl-inc                 Location of NCCL headers
+--nccl-lib                 Location to NCCL library
 
 --lua-inc                  Location of Lua headers
 --lua-lib                  Location to Lua library
@@ -159,6 +163,18 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       CONF_MPI_LIB_DIR="$value"
       ;;
+   --use-nccl)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      USE_NCCL="$value"
+      ;;       
+   --nccl-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_NCCL_INC_DIR="$value"
+      ;;
+   --nccl-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      CONF_NCCL_LIB_DIR="$value"
+      ;;
    --use-lua)
       [ -n "$value" ] || die "Missing value in flag $key."
       USE_LUA="$value"
@@ -191,6 +207,13 @@ then
     USE_MPI=1
 else
     USE_MPI=
+fi
+
+if [ "$USE_NCCL" = "yes" ]
+then
+    USE_NCCL=1
+else
+    USE_NCCL=
 fi
 
 if [ "$USE_LUA" = "yes" ]
@@ -249,6 +272,10 @@ SUPERLU_LIB=$SUPERLU_LIB
 USE_MPI=$USE_MPI
 CONF_MPI_INC_DIR=$CONF_MPI_INC_DIR
 CONF_MPI_LIB_DIR=$CONF_MPI_LIB_DIR
+
+USE_NCCL=$USE_NCCL
+CONF_NCCL_INC_DIR=$CONF_NCCL_INC_DIR
+CONF_NCCL_LIB_DIR=$CONF_NCCL_LIB_DIR
 
 USE_LUA=$USE_LUA
 CONF_LUA_INC_DIR=$CONF_LUA_INC_DIR
