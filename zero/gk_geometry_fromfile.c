@@ -14,12 +14,13 @@
 
 
 struct gk_geometry*
-gkyl_gk_geometry_fromfile_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+gkyl_gk_geometry_fromfile_new(struct gk_geometry* hgeo, const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, const struct gkyl_range *global, const struct gkyl_range* global_ext, 
   const struct gkyl_basis* basis, bool use_gpu)
 {
+
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_fromfile_cu_dev_new(grid, range, range_ext, basis);
+    return gkyl_gk_geometry_fromfile_cu_dev_new(hgeo, grid, range, range_ext, global, global_ext, basis);
   } 
 #endif 
 
@@ -27,6 +28,8 @@ gkyl_gk_geometry_fromfile_new(const struct gkyl_rect_grid* grid, const struct gk
   up->basis = *basis;
   up->local = *range;
   up->local_ext = *range_ext;
+  up->global = *global;
+  up->global_ext = *global_ext;
   up->grid = *grid;
 
   // bmag, metrics and derived geo quantities

@@ -1,3 +1,4 @@
+#include "gkyl_gk_geometry.h"
 #include <stdarg.h>
 
 #include <gkyl_alloc.h>
@@ -139,7 +140,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   struct gkyl_range geo_global;
   struct gkyl_range geo_global_ext;
   struct gkyl_basis geo_basis;
-  bool geo_3d_use_gpu = app->use_gpu;
+  bool geo_3d_use_gpu = false;
 
   if(app->cdim < 3){
     geo_grid = agument_grid(app->grid, gk->geometry);
@@ -178,9 +179,9 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   struct gk_geometry* gk_geom_3d;
   switch (gk->geometry.geometry_id) {
     case GKYL_GEOMETRY_FROMFILE:
-      gk_geom_3d = gkyl_gk_geometry_fromfile_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, app->use_gpu);
-      app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-      gkyl_gyrokinetic_app_read_geometry(app);
+      gk_geom_3d = gkyl_gk_geometry_fromfile_new(app->gk_geom, &app->grid, &app->local, &app->local_ext, &app->global, &app->global_ext, &app->confBasis, geo_3d_use_gpu);
+      //app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+      //gkyl_gyrokinetic_app_read_geometry(app);
       break;
     case GKYL_TOKAMAK:
       gk_geom_3d = gkyl_gk_geometry_tok_new(&geo_grid, &geo_local, &geo_local_ext, &geo_global, &geo_global_ext, &geo_basis, gk->geometry.tok_efit_info, gk->geometry.tok_grid_info, geo_3d_use_gpu);
@@ -196,14 +197,29 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
 
   // deflate geometry if necessary
-  if(app->cdim < 3 && gk->geometry.geometry_id != GKYL_GEOMETRY_FROMFILE)
-    app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &app->grid, &app->local, &app->local_ext, 
-        &app->confBasis, app->use_gpu);
-  else if (gk->geometry.geometry_id != GKYL_GEOMETRY_FROMFILE)
+  if (gk->geometry.geometry_id != GKYL_GEOMETRY_FROMFILE) {
+    if(app->cdim < 3)
+      app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &app->grid, &app->local, &app->local_ext, 
+          &app->confBasis, app->use_gpu);
+    else
+      app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+  }
+  else {
     app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+    gkyl_gyrokinetic_app_read_geometry(app);
+  }
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
   gkyl_gyrokinetic_app_write_geometry(app);
+
+  // If we are on the gpu, copy from host
+  if (app->use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(app->gk_geom, &app->grid, &app->local, &app->local_ext, &app->global, &app->global_ext, &app->confBasis, app->use_gpu);
+    gkyl_gk_geometry_release(app->gk_geom);
+    app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
 
   // allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
