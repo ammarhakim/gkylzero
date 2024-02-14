@@ -51,6 +51,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     react->coeff_react[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->vt_sq_iz[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->m0_ion[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_donor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     if (react->react_id[i] == GKYL_REACT_IZ) {
@@ -106,8 +107,13 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       else
         gk_neut_species_moment_calc(&react->moms_donor[i], app->neut_species[react->donor_idx[i]].local,
           app->local, fin_neut[react->donor_idx[i]]);
-      gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
-      gkyl_array_set_range(react->m0_donor[i], 1.0, react->moms_donor[i].marr, &app->local);
+
+      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->m0_elc[i], 0, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->m0_donor[i], 0, react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+      gkyl_dg_div_op_range(react->moms_ion[i].mem_geo, app->confBasis, 0, react->m0_ion[i], 0, react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+      
+      //gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
+      //gkyl_array_set_range(react->m0_donor[i], 1.0, react->moms_donor[i].marr, &app->local);
 
       // When do moments become infinitely large? 
       //gkyl_grid_sub_array_write(&species->grid, &species->local, react->moms_elc[i].marr, "moms_elc.gkyl");
@@ -125,6 +131,8 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         app->local, fin[react->ion_idx[i]]);
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
 
+      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->m0_elc[i], 0, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+      
       // compute recombination reaction rate
       gkyl_dg_recomb_coll(react->recomb[i], react->moms_elc[i].marr, react->moms_ion[i].marr,
         app->gk_geom->b_i, react->prim_vars[i], react->coeff_react[i], 0);
@@ -161,7 +169,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
-          react->moms_donor[i].marr, react->prim_vars[i],
+          react->m0_donor[i], react->prim_vars[i], //react->moms_donor[i].marr, react->prim_vars[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 
         // ion update is n_elc*coeff_react*fmax(n_donor, upar_donor, vt_donor^2)
@@ -198,7 +206,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
       }
       else {
         gkyl_proj_gkmaxwellian_on_basis_lab_mom(react->proj_max, &s->local, &app->local,
-          react->moms_ion[i].marr, app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
+          react->m0_ion[i], app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 
         // receiver update is n_elc*coeff_react*fmax(n_ion, upar_ion, vt_ion^2)
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
@@ -227,6 +235,7 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
     gkyl_array_release(react->coeff_react[i]);
     gkyl_array_release(react->vt_sq_iz[i]);
     gkyl_array_release(react->m0_elc[i]);
+    gkyl_array_release(react->m0_ion[i]);
     gkyl_array_release(react->m0_donor[i]);
     gkyl_array_release(react->prim_vars[i]); 
     if (react->react_id[i] == GKYL_REACT_IZ) 
