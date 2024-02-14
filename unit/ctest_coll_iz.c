@@ -123,11 +123,11 @@ test_prim_vars_gk_3x(bool use_gpu)
 		      -8.1549238327948822e-05, -2.1582846978896450e-05,
 		      -2.1582846978896450e-05,  3.8383544370155820e-05};
   
-  /* const double *pv = gkyl_array_cfetch(vtSq_elc, gkyl_range_idx(&confRange, (int[3]) { 1, 1, 1})); */
+  const double *pv = gkyl_array_cfetch(vtSq_elc, gkyl_range_idx(&confRange, (int[3]) { 1, 1, 1}));
 
-  /* for (int i=0; i<cbasis.num_basis; ++i) { */
-  /*   TEST_CHECK( gkyl_compare_double(p1_vals[i], pv[i], 1e-12) ); */
-  /* } */
+  for (int i=0; i<cbasis.num_basis; ++i) {
+    TEST_CHECK( gkyl_compare_double(p1_vals[i], pv[i], 1e-12) );
+  }
   
   gkyl_array_release(m0); gkyl_array_release(m2);
   gkyl_array_release(moms_elc); gkyl_array_release(vtSq_elc);
@@ -495,18 +495,18 @@ test_coll_iz_h_1x(bool use_gpu)
     cv_d = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
   }
 
-  //  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_iz, "ctest_h_coef_iz.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_iz, "ctest_h_coef_iz.gkyl");
   // test that coef are equal for different species
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-16) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_d[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_d[i], 1e-16) );
   }
   // test against predicted value
-  double p1_vals[] = {4.9790947988721575e-14, 0.0000000000000000e+00};
+  double p1_vals[] = {4.1936847897461634e-14, 0.0000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_d[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_d[i], 1e-16) );
   }
   
   gkyl_array_release(coef_iz); gkyl_array_release(vtSq_iz); gkyl_array_release(prim_vars);
@@ -709,18 +709,18 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
     cv_d = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
   }
     
-  //  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_iz, "ctest_li_coef_iz.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_iz, "ctest_li_coef_iz.gkyl");
   // test that coef are equal for different species
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-16) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_d[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_d[i], 1e-16) );
   }
   //test against predicted value
-  double p1_vals[] = {6.284595029978665e-15, 0.000000000000000e+00};
+  double p1_vals[] = {2.3606193318967417e-15, 0.000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_d[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_d[i], 1e-16) );
   }
   
   gkyl_array_release(coef_iz); gkyl_array_release(vtSq_iz); gkyl_array_release(prim_vars);
