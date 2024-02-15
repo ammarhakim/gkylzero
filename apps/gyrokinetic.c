@@ -142,7 +142,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   bool geo_3d_use_gpu = false;
 
   if(app->cdim < 3){
-    geo_grid = agument_grid(app->grid, gk->geometry);
+    geo_grid = augment_grid(app->grid, gk->geometry);
     geo_3d_use_gpu = false;
     switch (gk->basis_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -761,7 +761,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
     gkyl_grid_sub_array_write(&app->grid, &app->global, dzdx, fileNm);
     sprintf(fileNm, fmt, app->name, "jacobgeo");
     gkyl_grid_sub_array_write(&app->grid, &app->global, jacobgeo, fileNm);
-    sprintf(fileNm, fmt, app->name, "jacogeo_inv");
+    sprintf(fileNm, fmt, app->name, "jacobgeo_inv");
     gkyl_grid_sub_array_write(&app->grid, &app->global, jacobgeo_inv, fileNm);
     sprintf(fileNm, fmt, app->name, "gij");
     gkyl_grid_sub_array_write(&app->grid, &app->global, gij, fileNm);
@@ -851,7 +851,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
   gkyl_grid_sub_array_read(&app->grid, &app->global, dzdx, fileNm);
   sprintf(fileNm, fmt, app->name, "jacobgeo");
   gkyl_grid_sub_array_read(&app->grid, &app->global, jacobgeo, fileNm);
-  sprintf(fileNm, fmt, app->name, "jacogeo_inv");
+  sprintf(fileNm, fmt, app->name, "jacobgeo_inv");
   gkyl_grid_sub_array_read(&app->grid, &app->global, jacobgeo_inv, fileNm);
   sprintf(fileNm, fmt, app->name, "gij");
   gkyl_grid_sub_array_read(&app->grid, &app->global, gij, fileNm);

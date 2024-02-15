@@ -58,7 +58,7 @@ test_dg_gyrokinetic()
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confRange, &confRange_ext, &confRange, &confRange_ext, &confBasis, 
     mapc2p, 0, bmag_func, 0, false);
 
   double charge = 1.;

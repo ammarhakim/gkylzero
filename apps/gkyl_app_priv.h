@@ -67,7 +67,7 @@ skin_ghost_ranges_init(struct app_skin_ghost_ranges *sgr,
 }
 
 
-static struct gkyl_rect_grid agument_grid(struct gkyl_rect_grid grid, struct gkyl_gyrokinetic_geometry geometry)
+static struct gkyl_rect_grid augment_grid(struct gkyl_rect_grid grid, struct gkyl_gyrokinetic_geometry geometry)
 {
   struct gkyl_rect_grid augmented_grid;
   int cells[3];

@@ -120,7 +120,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_range geo_local;
   struct gkyl_range geo_local_ext;
   struct gkyl_basis geo_basis;
-  geo_grid = agument_grid(confGrid, geometry_input);
+  geo_grid = augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(&geo_grid, confGhost, &geo_local_ext, &geo_local);
   gkyl_cart_modal_serendip(&geo_basis, 3, poly_order);
   struct gk_geometry* gk_geom_3d;
@@ -317,7 +317,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_range geo_local;
   struct gkyl_range geo_local_ext;
   struct gkyl_basis geo_basis;
-  geo_grid = agument_grid(confGrid, geometry_input);
+  geo_grid = augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(&geo_grid, confGhost, &geo_local_ext, &geo_local);
   gkyl_cart_modal_serendip(&geo_basis, 3, poly_order);
   struct gk_geometry* gk_geom_3d;
