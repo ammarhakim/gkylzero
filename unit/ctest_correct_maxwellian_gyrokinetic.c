@@ -516,28 +516,28 @@ void test_2x2v(int poly_order, bool use_gpu)
   double confLower[] = {lower[0], lower[1]}, confUpper[] = {upper[0], upper[1]};
   int confCells[] = {cells[0], cells[1]};
 
-  // Grids
+  // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
 
-  // Basis functions
+  // basis functions
   struct gkyl_basis basis, confBasis;
-  if (poly_order==1)
-    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
-  else
+  if (poly_order > 1) {
     gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  } else if (poly_order == 1) {
+    /* Force hybrid basis (p=2 in vpar). */
+    gkyl_cart_modal_gkhybrid(&basis, cdim, vdim);
+  }
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
-  // Configuration space range
-  int confGhost[] = {1, 1};
-  struct gkyl_range confLocal, confLocal_ext;
+  int confGhost[] = { 1, 1, 1 };
+  struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
-  // Phase space range
-  int ghost[] = {confGhost[0], confGhost[1], 0, 0};
-  struct gkyl_range local, local_ext;
+  int ghost[] = { confGhost[0], confGhost[1], 0, 0 };
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Initialize geometry
@@ -553,15 +553,16 @@ void test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_range geo_local;
   struct gkyl_range geo_local_ext;
   struct gkyl_basis geo_basis;
+  bool geo_3d_use_gpu = false; // initialize 3D geometry on host before deflation
   geo_grid = agument_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(&geo_grid, confGhost, &geo_local_ext, &geo_local);
   gkyl_cart_modal_serendip(&geo_basis, 3, poly_order);
   struct gk_geometry* gk_geom_3d;
   gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-      geometry_input.mapc2p, geometry_input.c2p_ctx, geometry_input.bmag_func,  geometry_input.bmag_ctx, false);
+      geometry_input.mapc2p, geometry_input.c2p_ctx, geometry_input.bmag_func,  geometry_input.bmag_ctx, geo_3d_use_gpu);
   // deflate geometry if necessary
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &confGrid, &confLocal, &confLocal_ext, 
-      &confBasis, false);
+      &confBasis, use_gpu);
   gkyl_gk_geometry_release(gk_geom_3d);
 
   // Create correct moment arrays
