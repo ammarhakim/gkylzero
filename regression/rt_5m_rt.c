@@ -66,7 +66,7 @@ struct rt_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
-  double pi = 3.141592653589793238462643383279502884;
+  double pi = M_PI;
 
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.

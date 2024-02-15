@@ -1,8 +1,8 @@
-// Parallel firehose instability test for the 10-moment equations.
-// Input parameters match the initial conditions on Slide 7, from the poster presentation:
-// E. Bair, J. TenBarge, J. Juno and A. Hakim (2020), "Two Fluid, Ten Moment Simulations of the Firehose Instability in the Solar Wind",
-// PPPL Summer Science Undergraduate Laboratory Internship (SULI) 2020 Poster.
-// https://suli.pppl.gov/2020/2020%20summer%20deliverables/BairPosterSession.pdf
+// Parallel-propagating firehose instability test for the 10-moment equations.
+// Input parameters match the initial conditions in Section 4.4, from the article:
+// M. W. Kunz, J. M. Stone and X-N. Bai (2014), "Pegasus: A new hybrid-kinetic particle-in-cell code for astrophysical plasma dynamics",
+// Journal of Computational Physics, Volume 259: 154-174.
+// https://www.sciencedirect.com/science/article/pii/S0021999113007973
 
 #include <math.h>
 #include <stdio.h>
@@ -40,14 +40,14 @@ struct par_firehose_ctx
   double n0; // Reference number density.
 
   // Derived physical quantities (using normalized code units).
-  double speed_light; // Speed of light.
+  double light_speed; // Speed of light.
   double B0; // Reference magnetic field strength.
   double beta; // Trace proton plasma beta.
   double dbeta; // Parallel proton plasma beta - perpendicular proton plasma beta.
   double beta_par; // Parallel proton plasma beta.
   double beta_perp; // Perpendicular proton plasma beta.
 
-  double vt_elc; // Electron thermal velocity.
+  double vte; // Electron thermal velocity.
   double Te; // Electron temperature.
   
   double Ti_par; // Parallel ion temperature.
@@ -77,7 +77,7 @@ struct par_firehose_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
-  double pi = 3.141592653589793238462643383279502884;
+  double pi = M_PI;
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
@@ -91,25 +91,25 @@ create_ctx(void)
   double n0 = 1.0; // Reference number density.
 
   // Derived physical quantities (using normalized code units).
-  double speed_light = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
+  double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
   double B0 = vAe * sqrt(mu0 * n0 * mass_elc); // Reference magnetic field strength.
   double beta = 300.0 / pi; // Trace proton plasma beta.
   double dbeta = 100.0; // Parallel proton plasma beta - perpendicular proton plasma beta.
   double beta_par = beta + 2.0 * dbeta / 3.0; // Parallel proton plasma beta.
   double beta_perp = beta - dbeta / 3.0; // Perpendicular proton plasma beta.
 
-  double vt_elc = vAe * sqrt(beta); // Electron thermal velocity.
-  double Te = vt_elc * vt_elc * mass_elc / 2.0; // Electron temperature.
+  double vte = vAe * sqrt(beta); // Electron thermal velocity.
+  double Te = vte * vte * mass_elc / 2.0; // Electron temperature.
   
   double Ti_par = vAe * vAe * (beta_par * mass_elc / 2.0); // Parallel ion temperature.
   double Ti_perp = vAe * vAe * (beta_perp * mass_elc / 2.0); // Perpendicular ion temperature.
 
   double omega_ci = charge_ion * B0 / mass_ion; // Ion cyclotron frequency.
   double omega_pe = sqrt(n0 * charge_elc * charge_elc / (epsilon0 * mass_elc)); // Electron plasma frequency.
-  double de = speed_light / omega_pe; // Electron skin depth.
+  double de = light_speed / omega_pe; // Electron skin depth.
   double omega_pi = sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)); // Ion plasma frequency.
-  double di = speed_light / omega_pi; // Ion skin depth.
-  double lambdaD = vt_elc / omega_pe; // Electron Debye length.
+  double di = light_speed / omega_pi; // Ion skin depth.
+  double lambdaD = vte / omega_pe; // Electron Debye length.
 
   double noise_amp = 1.0e-6 * B0; // Noise level for perturbation.
   long mode_init = 1; // Initial wave mode to perturb with noise.
@@ -133,13 +133,13 @@ create_ctx(void)
     .charge_elc = charge_elc,
     .vAe = vAe,
     .n0 = n0,
-    .speed_light = speed_light,
+    .light_speed = light_speed,
     .B0 = B0,
     .beta = beta,
     .dbeta = dbeta,
     .beta_par = beta_par,
     .beta_perp = beta_perp,
-    .vt_elc = vt_elc,
+    .vte = vte,
     .Te = Te,
     .Ti_par = Ti_par,
     .Ti_perp = Ti_perp,

@@ -63,7 +63,7 @@ struct gem_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
-  double pi = 3.141592653589793238462643383279502884;
+  double pi = M_PI;
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.

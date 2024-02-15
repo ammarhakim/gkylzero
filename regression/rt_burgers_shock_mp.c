@@ -39,7 +39,7 @@ struct burgers_shock_mp_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
-  double pi = 3.141592653589793238462643383279502884;
+  double pi = M_PI;
 
   // Simulation parameters.
   int Nx = 128; // Cell count (x-direction).

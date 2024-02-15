@@ -1,8 +1,8 @@
 // Burch et al. magnetic reconnection test for the 10-moment equations.
-// Input parameters match the "16 October 2015" entries in Table 1, from the article:
-// P. A. Cassak et al. (2017), "The Effect of a Guide Field on Local Energy Conservation During Asymmetric Magnetic Reconnection: Particle-in-Cell Simulations",
-// Journal of Geophysical Research: Space Physics, Volume 122 (11): 11523-11542.
-// https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017JA024555
+// Input parameters match the initial conditions in Section 3, from the article:
+// J. M. TenBarge, J. Ng, J. Juno, L. Wang, A. M. Hakim and A. Bhattacharjee (2019), "An Extended MHD Study of the 16 October 2015 MMS Diffusion Region Crossing",
+// Journal of Geophysical Research: Space Physics, Volume 124 (11): 8474-8487.
+// https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2019JA026731
 
 #include <math.h>
 #include <stdio.h>
@@ -42,7 +42,7 @@ struct burch_ctx
   double Te1_over_Te2; // Magnetospheric electron temperature / magnetosheath ion temperature.
 
   // Derived physical quantities (using normalized code units).
-  double speed_light; // Speed of light.
+  double light_speed; // Speed of light.
   double B0; // Reference magnetic field strength.
   double omega_pi; // Ion plasma frequency.
   double di; // Ion skin depth.
@@ -76,7 +76,7 @@ struct burch_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
-  double pi = 3.141592653589793238462643383279502884;
+  double pi = M_PI;
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
@@ -92,10 +92,10 @@ create_ctx(void)
   double Te1_over_Te2 = 1.288 / 1.374; // Magnetospheric electron temperature / magnetosheath ion temperature.
 
   // Derived physical quantities (using normalized code units).
-  double speed_light = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
+  double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
   double B0 = vAe * sqrt(n0 * mass_elc); // Reference magnetic field strength.
   double omega_pi = sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)); // Ion plasma frequency.
-  double di = speed_light / omega_pi; // Ion skin depth.
+  double di = light_speed / omega_pi; // Ion skin depth.
   double omega0 = 1.0 * di; // Reference frequency.
   double psi0 = 0.1 * B0 * di; // Reference magnetic scalar potential.
   double guide1 = 0.099 * B0; // Magnetospheric guide field strength.
@@ -135,7 +135,7 @@ create_ctx(void)
     .beta2 = beta2,
     .Ti1_over_Ti2 = Ti1_over_Ti2,
     .Te1_over_Te2 = Te1_over_Te2,
-    .speed_light = speed_light,
+    .light_speed = light_speed,
     .B0 = B0,
     .omega_pi = omega_pi,
     .di = di,

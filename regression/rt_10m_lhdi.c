@@ -39,7 +39,7 @@ struct lhdi_ctx
 
   double n0; // Reference number density.
   double nb_over_n0; // Background number density / reference number density.
-  double vt_elc; // Electron thermal velocity.
+  double vte; // Electron thermal velocity.
 
   double beta; // Electron plasma beta.
 
@@ -49,7 +49,7 @@ struct lhdi_ctx
   // Derived physical quantities (using normalized code units).
   double Te; // Electron temperature.
   double Ti; // Ion temperature.
-  double vt_ion; // Ion thermal velocity.
+  double vti; // Ion thermal velocity.
 
   double vAe; // Electron Alfven velocity.
   double B0; // Reference magnetic field strength (derived from normalization of mass_elc and n0).
@@ -84,7 +84,7 @@ struct lhdi_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
-  double pi = 3.141592653589793238462643383279502884;
+  double pi = M_PI;
 
   // Physical constants (using normalized code units).
   double epsilon0 = 1.0; // Permittivity of free space.
@@ -97,7 +97,7 @@ create_ctx(void)
 
   double n0 = 1.0; // Reference number density.
   double nb_over_n0 = 0.001; // Background number density / reference number density.
-  double vt_elc = 0.06; // Electron thermal velocity.
+  double vte = 0.06; // Electron thermal velocity.
 
   double beta = 1.0 / 11.0; // Electron plasma beta.
 
@@ -105,19 +105,19 @@ create_ctx(void)
   double mode = 8.0; // Wave mode to perturb with noise.
 
   // Derived physical quantities (using normalized code units).
-  double Te = vt_elc * vt_elc * mass_elc / 2.0; // Electron temperature.
+  double Te = vte * vte * mass_elc / 2.0; // Electron temperature.
   double Ti = Te / Te_over_Ti; // Ion temperature.
-  double vt_ion = sqrt(2.0 * Ti / mass_ion); // Ion thermal velocity.
+  double vti = sqrt(2.0 * Ti / mass_ion); // Ion thermal velocity.
 
-  double vAe = vt_elc / sqrt(beta); // Electron Alfven velocity.
+  double vAe = vte / sqrt(beta); // Electron Alfven velocity.
   double B0 = vAe; // Reference magnetic field strength (derived from normalization of mass_elc and n0).
   double vAi = vAe / sqrt(mass_ion); // Ion Alfven velocity.
 
   double omega_ci = charge_ion * B0 / mass_ion; // Ion cyclotron frequency.
   double omega_ce = charge_ion * B0 / mass_elc; // Electron cyclotron frequency.
 
-  double larmor_ion = vt_ion / omega_ci; // Ion Larmor radius.
-  double larmor_elc = vt_elc / omega_ce; // Electron Larmor radius.
+  double larmor_ion = vti / omega_ci; // Ion Larmor radius.
+  double larmor_elc = vte / omega_ce; // Electron Larmor radius.
 
   double l = larmor_ion; // Current sheet width.
   
@@ -148,13 +148,13 @@ create_ctx(void)
     .Te_over_Ti = Te_over_Ti,
     .n0 = n0,
     .nb_over_n0 = nb_over_n0,
-    .vt_elc = vt_elc,
+    .vte = vte,
     .beta = beta,
     .noise_amp = noise_amp,
     .mode = mode,
     .Te = Te,
     .Ti = Ti,
-    .vt_ion = vt_ion,
+    .vti = vti,
     .vAe = vAe,
     .B0 = B0,
     .vAi = vAi,

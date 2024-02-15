@@ -38,7 +38,7 @@ struct mom_beach_ctx
   double J0; // Reference current density (Amps / m^3).
   
   // Derived physical quantities (using non-normalized physical units).
-  double speed_light; // Speed of light.
+  double light_speed; // Speed of light.
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
@@ -57,7 +57,7 @@ struct mom_beach_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
-  double pi = 3.141592653589793238462643383279502884;
+  double pi = M_PI;
 
   // Physical constants (using non-normalized physical units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
@@ -69,7 +69,7 @@ create_ctx(void)
   double J0 = 1.0e-12; // Reference current density (Amps / m^3).
   
   // Derived physical quantities (using non-normalized physical units).
-  double speed_light = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
+  double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
 
   // Simulation parameters.
   int Nx = 400; // Cell count (x-direction).
@@ -79,7 +79,7 @@ create_ctx(void)
   double cfl_frac = 0.95; // CFL coefficient.
   double t_end = 5.0e-9; // Final simulation time.
 
-  double deltaT = Lx100 / speed_light; // Arbitrary constant, with units of time.
+  double deltaT = Lx100 / light_speed; // Arbitrary constant, with units of time.
   double factor = deltaT * deltaT * charge_elc * charge_elc / (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
   double omega_drive = pi / 10.0 / deltaT; // Drive current angular frequency.
 
@@ -91,7 +91,7 @@ create_ctx(void)
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
     .J0 = J0,
-    .speed_light = speed_light,
+    .light_speed = light_speed,
     .Nx = Nx,
     .Lx = Lx,
     .Lx100 = Lx100,
@@ -117,7 +117,7 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double mass_elc = app -> mass_elc;
   double charge_elc = app -> charge_elc;
 
-  double speed_light = app -> speed_light;
+  double light_speed = app -> light_speed;
 
   double Lx100 = app -> Lx100;
 
@@ -155,7 +155,7 @@ evalAppCurrent(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 
   double J0 = app -> J0;
 
-  double speed_light = app -> speed_light;
+  double light_speed = app -> light_speed;
 
   double Lx = app -> Lx;
   double Nx = app -> Nx;

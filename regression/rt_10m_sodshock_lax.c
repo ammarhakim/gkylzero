@@ -56,7 +56,7 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nx = 512; // Cell count (x-direction).
-  long Lx = 1.0; // Domain size (x-direction).
+  double Lx = 1.0; // Domain size (x-direction).
   double k0 = 0.0; // Closure parameter.
   double cfl_frac = 0.9; // CFL coefficient.
   double t_end = 0.1; // Final simulation time.
