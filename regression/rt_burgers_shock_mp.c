@@ -1,3 +1,9 @@
+// Sinusoidal initial data test, with monotonicity-preserving reconstruction, for the inviscid Burgers' equation.
+// Input parameters correspond to a sine wave, equivalent to the initial conditions in Section 4, Example 2, but with periodicity 1 rather than 2, from the article:
+// X-d. Liu and S. Osher (1996), "Nonoscillatory High Order Accurate Self-Similar Maximum Principle Satisfying Shock Capturing Schemes I",
+// SIAM Journal on Numerical Analysis, Volume 33 (2): 760-779.
+// https://epubs.siam.org/doi/10.1137/0733038
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,7 +92,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Burgers' equation.
+  // Inviscid Burgers' equation.
   struct gkyl_wv_eqn *burgers = gkyl_wv_burgers_new();
 
   struct gkyl_moment_species fluid = {
