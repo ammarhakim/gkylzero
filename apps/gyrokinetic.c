@@ -242,7 +242,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
   // initialize neutral species cross-species reactions with plasma species
   for (int i=0; i<neuts; ++i) {
-    if (app->neut_species[i].react_neut.num_react) {
+    if (app->neut_species[i].has_neutral_reactions) {
       gk_neut_species_react_cross_init(app, &app->neut_species[i], &app->neut_species[i].react_neut);
     }
   }

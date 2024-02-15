@@ -449,7 +449,7 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
-      .temp = eval_temp_ion,      
+      .temp = eval_temp_ar,      
     },
     .react_neut = {
       .num_react = 2,

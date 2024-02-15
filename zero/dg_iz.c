@@ -134,11 +134,11 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
     // allocate fields for prim mom calculation
     up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
     gkyl_array_copy(up->ioniz_data, adas_dg);
-    
     up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume);
   }
   else {
-    up->ioniz_data = adas_dg;
+    up->ioniz_data = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
+    gkyl_array_copy(up->ioniz_data, adas_dg);
     up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume); // all
   }
   
@@ -150,6 +150,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
 
   gkyl_array_release(adas_nodal);
   gkyl_array_release(adas_dg);
+
   return up;
 }
 

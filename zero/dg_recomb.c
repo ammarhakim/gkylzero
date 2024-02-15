@@ -138,11 +138,11 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   if (use_gpu) {
     up->recomb_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
     gkyl_array_copy(up->recomb_data, adas_dg);
-    
     up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume);
   }
   else {
-    up->recomb_data = adas_dg;
+    up->recomb_data = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
+    gkyl_array_copy(up->recomb_data, adas_dg);
     up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume);
   }
 
@@ -158,6 +158,7 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
 
   gkyl_array_release(adas_nodal);
   gkyl_array_release(adas_dg);
+
   return up;
 }
 
