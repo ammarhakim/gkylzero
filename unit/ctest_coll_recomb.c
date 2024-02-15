@@ -255,7 +255,7 @@ test_coll_recomb_h(bool use_gpu)
     
   }
 
-  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_h_coef_recomb.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_h_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
@@ -460,7 +460,7 @@ test_coll_recomb_all_gk_li(bool use_gpu)
     
   }
 
-  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_li_coef_recomb.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_li_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
@@ -664,7 +664,7 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
     
   }
 
-  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_ar_coef_recomb.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_ar_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
