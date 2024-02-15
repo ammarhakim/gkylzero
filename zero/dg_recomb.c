@@ -150,13 +150,14 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
     up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_vlasov", use_gpu);
   }
-  else { // create dummer updater to pass to cuda kernel which isn't used
+  else { // create dummy updater to pass to cuda kernel which isn't used
     up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_gk", use_gpu);
   }
   
   up->on_dev = up; // CPU eqn obj points to itself
 
   gkyl_array_release(adas_nodal);
+  gkyl_array_release(adas_dg);
   return up;
 }
 

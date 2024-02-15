@@ -149,6 +149,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   up->on_dev = up; // CPU eqn obj points to itself
 
   gkyl_array_release(adas_nodal);
+  gkyl_array_release(adas_dg);
   return up;
 }
 

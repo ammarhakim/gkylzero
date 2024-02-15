@@ -70,8 +70,8 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
       coef_recomb_d[0] = 0.0;
     }   
     else {
-      double *recomb_dat_d = (double*) gkyl_array_fetch(up->recomb_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
-      double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
+      double *recomb_dat_d = (double*) gkyl_array_fetch(recomb_data, gkyl_range_idx(&adas_rng,ad_idx));
+      double adas_eval = adas_basis->eval_expand(cell_vals_2d, recomb_dat_d);
       coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
     }
 
