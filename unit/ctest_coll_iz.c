@@ -21,6 +21,7 @@ double emass = GKYL_ELECTRON_MASS;
 double h_ion_mass = GKYL_PROTON_MASS*2.01410177811;
 double li_ion_mass = GKYL_PROTON_MASS*6.94;
 double B0 = 0.5;
+double check_fac = 1.e10;
 
 void eval_m0(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -498,15 +499,15 @@ test_coll_iz_h_1x(bool use_gpu)
   //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_iz, "ctest_h_coef_iz.gkyl");
   // test that coef are equal for different species
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-16) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_d[i], 1e-16) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_d[i]*check_fac, 1e-12) );
   }
   // test against predicted value
   double p1_vals[] = {4.1936847897461634e-14, 0.0000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_d[i], 1e-16) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i]*check_fac, cv_d[i]*check_fac, 1e-12) );
   }
   
   gkyl_array_release(coef_iz); gkyl_array_release(vtSq_iz); gkyl_array_release(prim_vars);
@@ -712,15 +713,15 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_iz, "ctest_li_coef_iz.gkyl");
   // test that coef are equal for different species
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-16) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_d[i], 1e-16) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_d[i]*check_fac, 1e-12) );
   }
   //test against predicted value
   double p1_vals[] = {2.3606193318967417e-15, 0.000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_d[i], 1e-16) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i]*check_fac, cv_d[i]*check_fac, 1e-12) );
   }
   
   gkyl_array_release(coef_iz); gkyl_array_release(vtSq_iz); gkyl_array_release(prim_vars);

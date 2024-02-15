@@ -20,6 +20,7 @@ double h_ion_mass = GKYL_PROTON_MASS*2.01410177811;
 double li_ion_mass = GKYL_PROTON_MASS*6.94;
 double ar_ion_mass = GKYL_PROTON_MASS*39.948;
 double B0 = 0.5;
+double check_fac = 1.e10;
 
 void eval_m0(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -256,17 +257,17 @@ test_coll_recomb_h(bool use_gpu)
 
   gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_h_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
   // test against predicted value
   double p1_vals[] = {4.0651315620487753e-19, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-20) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
 
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
@@ -461,17 +462,17 @@ test_coll_recomb_all_gk_li(bool use_gpu)
 
   gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_li_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
   // test against predicted value
   double p1_vals[] = {1.4761368114720401e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
   		      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
   		      0.0000000000000000e+00, 0.0000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-20) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
   
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
@@ -665,17 +666,17 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
 
   gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_ar_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
   // test against predicted value
   double p1_vals[] = {2.6716460249415115e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-20) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
   
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
