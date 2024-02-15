@@ -508,8 +508,8 @@ void test_2x2v(int poly_order, bool use_gpu)
   double mass = 1.0;
   double err_max = 1e-14, iter_max = 50;
   double vt = sqrt(10.0*1.602e-19/9.1e-31); // reference temperature
-  double lower[] = {-M_PI, -M_PI, -8.0*vt, 0.0}, upper[] = {M_PI, M_PI, 8.0*vt, 12.0*vt*vt};
-  int cells[] = {4, 4, 32, 16};
+  double lower[] = {-M_PI, -M_PI, -8.0*vt, 0.0}, upper[] = {M_PI, M_PI, 8.0*vt, 9.0*vt*vt};
+  int cells[] = {4, 4, 32, 32};
   int vdim = 2, cdim = 2;
   int ndim = cdim + vdim;
 
