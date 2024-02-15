@@ -34,12 +34,13 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, const struct gkyl_range *global, const struct gkyl_range* global_ext,
-  const struct gkyl_basis* basis, void* tok_rz_ctx, void* tok_comp_ctx, bool use_gpu)
+gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext,
+    const struct gkyl_range *global, const struct gkyl_range* global_ext, const struct gkyl_basis* basis, void* tok_rz_ctx,
+    void* tok_comp_ctx, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_tok_cu_dev_new(grid, range, range_ext, basis, tok_rz_ctx, tok_comp_ctx);
+    return gkyl_gk_geometry_tok_cu_dev_new(grid, range, range_ext, global, global_ext, basis, tok_rz_ctx, tok_comp_ctx);
   } 
 #endif 
 

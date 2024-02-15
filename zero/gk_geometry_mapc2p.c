@@ -177,12 +177,12 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
 
 struct gk_geometry*
 gkyl_gk_geometry_mapc2p_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-    const struct gkyl_range *global, const struct gkyl_range* global_ext,
-  const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu)
+    const struct gkyl_range *global, const struct gkyl_range* global_ext, const struct gkyl_basis* basis,
+    evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_mapc2p_cu_dev_new(grid, range, range_ext, basis, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
+    return gkyl_gk_geometry_mapc2p_cu_dev_new(grid, range, range_ext, global, global_ext, basis, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
   } 
 #endif 
 
@@ -242,26 +242,6 @@ gkyl_gk_geometry_mapc2p_new(const struct gkyl_rect_grid* grid, const struct gkyl
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
                    
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->mc2p, "mapc2p.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->bmag, "bmag.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->g_ij, "g_ij.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->dxdz, "dxdz.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->dzdx, "dzdx.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->jacobgeo, "jacobgeo.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->jacobgeo_inv, "jacogeo_inv.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->gij, "gij.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->b_i, "b_i.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->cmag, "cmag.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->jacobtot, "jacobtot.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->jacobtot_inv, "jacobtot_inv.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->bmag_inv, "bmag_inv.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->bmag_inv_sq, "bmag_inv_sq.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->gxxj, "gxxj.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->gxyj,  "gxyj.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->gyyj,  "gyyj.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->gxzj,  "gxzj.gkyl");
-  //gkyl_grid_sub_array_write(&up->grid, &up->local, up->eps2,  "eps2.gkyl");
-
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
 

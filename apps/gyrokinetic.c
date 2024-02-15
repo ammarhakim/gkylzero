@@ -1,4 +1,3 @@
-#include "gkyl_gk_geometry.h"
 #include <stdarg.h>
 
 #include <gkyl_alloc.h>
