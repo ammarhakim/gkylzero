@@ -161,6 +161,8 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
   int i = 0;
   while ( (i<up->max_iter) && ((err1[0]>up->eps_err) || (err2[0]>up->eps_err)) )
   {
+    // initialize inputs to previous iteration values
+    gkyl_array_set(up->m12_in, 1.0, up->m12);
     // Correct the moments
     gkyl_array_clear(up->ddm12, 0.0);
     gkyl_array_accumulate(up->ddm12, -1.0, up->m12);

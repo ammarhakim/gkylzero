@@ -319,8 +319,14 @@ main(int argc, char **argv)
       .lab_moms = eval_lab_elc,    
     },
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB},
-    .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ABSORB,},
+      .upper={.type = GKYL_SPECIES_ABSORB,},
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -337,7 +343,8 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .num_sources = 1,
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_LAB, 
         .ctx_lab_moms = &ctx,
         .lab_moms = eval_lab_source_elc,    
@@ -370,8 +377,14 @@ main(int argc, char **argv)
       .lab_moms = eval_lab_ion,    
     },
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB},
-    .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ABSORB,},
+      .upper={.type = GKYL_SPECIES_ABSORB,},
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -388,7 +401,8 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .num_sources = 1,
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_LAB, 
         .ctx_lab_moms = &ctx,
         .lab_moms = eval_lab_source_ion,    
