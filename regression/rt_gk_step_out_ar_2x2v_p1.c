@@ -57,8 +57,8 @@ struct gkyl_tok_geo_grid_inp ginp = {
     .rleft= 2.0,
     .rmin = 1.1,
     .rmax = 6.2,
-    .zmin = -5.14213,
-    .zmax = 5.14226,
+    .zmin = -8.3,
+    .zmax = 8.3,
     .write_node_coord_array = true,
     .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
@@ -73,8 +73,8 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double cz = app->cz;
   double xcenter = 1.2014;
   double n = n0*exp(-(x-xcenter)*(x-xcenter)/(2.0*cx*cx)) * exp(-z*z/(2.0*cz*cz));
-  if (n/n0 < 1.0e-5)
-    n = n0*1.0e-5;
+  if (n/n0 < 1.0e-1)
+    n = n0*1.0e-1;
   fout[0] = n;
 }
 
@@ -83,13 +83,13 @@ eval_density_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
 {
   struct gk_step_ctx *app = ctx;
   double x = xn[0], z = xn[1];
-  double n0 = app->n0;
+  double n0 = app->n0*0.9;
   double cx = app->cx;
   double cz = app->cz;
   double xcenter = 1.2014;
-  double n = 0.99*n0*exp(-(x-xcenter)*(x-xcenter)/(2.0*cx*cx)) * exp(-z*z/(2.0*cz*cz));
-  if (n/n0 < 1.0e-5)
-    n = n0*1.0e-5;
+  double n = n0*exp(-(x-xcenter)*(x-xcenter)/(2.0*cx*cx)) * exp(-z*z/(2.0*cz*cz));
+  if (n/n0 < 1.0e-1)
+    n = n0*1.0e-1;
   fout[0] = n;
 }
 
@@ -98,63 +98,78 @@ eval_density_ar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 {
   struct gk_step_ctx *app = ctx;
   double x = xn[0], z = xn[1];
-  double n0 = app->n0;
+  double n0 = app->n0*0.1;
   double cx = app->cx;
   double cz = app->cz;
   double xcenter = 1.2014;
-  double n = 0.0;
+  double n = n0*exp(-(x-xcenter)*(x-xcenter)/(2.0*cx*cx)) * exp(-z*z/(2.0*cz*cz));
+  if (n/n0 < 1.0e-1)
+    n = n0*1.0e-1;
   fout[0] = n;
 }
 
-void
-eval_density_ar0(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_step_ctx *app = ctx;
-  double x = xn[0], z = xn[1];
-  double n0 = 0.01*app->n0;
-  double xmax = 1.509820; // taken from gkyl output file. CHECK THIS!
-  double lambda_ar_x = .1;
-  double lambda_ar_z = 0.25;
-  double zmin = -3.14; 
-  double xcenter = 1.2014;
-  // edit this profile appropriately
-  double n; 
-  if (z <= 0) {
-    n = n0*exp((x-xmax)/lambda_ar_x) * exp(-(z-zmin)/lambda_ar_z);
-  }
-  else {
-    n = n0*exp((x-xmax)/lambda_ar_x) * exp((z+zmin)/lambda_ar_z);
-  }
-  if (n/n0 < 1e-5)
-    n = n0*1e-5;
-  fout[0] = n;
-}
+//void
+//eval_density_ar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+//{
+//  struct gk_step_ctx *app = ctx;
+//  double x = xn[0], z = xn[1];
+//  double n0 = app->n0/10.0;
+//  double cx = app->cx;
+//  double cz = app->cz;
+//  double xcenter = 1.2014;
+//  double n = n;
+//  fout[0] = n;
+//}
 
-void
-eval_vm_max(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct gk_step_ctx *app = ctx;
-  double x = xn[0], z = xn[1], vx = xn[2], vy = xn[3], vz = xn[4];
-  double n0 = 0.01*app->n0;
-  double vt2Ar = app->TAr/app->massAr;
-  double xmax = 1.509820; // taken from gkyl output file. CHECK THIS!
-  double lambda_ar_x = .1;
-  double lambda_ar_z = 0.25;
-  double zmin = -3.14; 
-  double xcenter = 1.2014;
-  // edit this profile appropriately
-  double n; 
-  if (z <= 0.0) {
-    n = n0*exp((x-xmax)/lambda_ar_x) * exp(-(z-zmin)/lambda_ar_z);
-  }
-  else {
-    n = n0*exp((x-xmax)/lambda_ar_x) * exp((z+zmin)/lambda_ar_z);
-  }
-  if (n/n0 < 1.0e-5)
-    n = n0*1.0e-5;
-  
-  fout[0] = n/pow(2*M_PI*vt2Ar,1.5)*exp(-(vx*vx + vy*vy* + vz*vz)/(2.0*vt2Ar));
-}
+//void
+//eval_density_ar0(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+//{
+//  struct gk_step_ctx *app = ctx;
+//  double x = xn[0], z = xn[1];
+//  double n0 = 0.01*app->n0;
+//  double xmax = 1.4688; // taken from gkyl output file. CHECK THIS!
+//  double lambda_ar_x = .1;
+//  double lambda_ar_z = 0.25;
+//  double zmin = -3.14; 
+//  double xcenter = 1.2014;
+//  // edit this profile appropriately
+//  double n; 
+//  if (z <= 0) {
+//    n = n0*exp((x-xmax)/lambda_ar_x) * exp(-(z-zmin)/lambda_ar_z);
+//  }
+//  else {
+//    n = n0*exp((x-xmax)/lambda_ar_x) * exp((z+zmin)/lambda_ar_z);
+//  }
+//  if (n/n0 < 1e-5)
+//    n = n0*1e-5;
+//  fout[0] = n;
+//}
+
+//void
+//eval_vm_max(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+//{
+//  struct gk_step_ctx *app = ctx;
+//  double x = xn[0], z = xn[1], vx = xn[2], vy = xn[3], vz = xn[4];
+//  double n0 = 0.01*app->n0;
+//  double vt2Ar = app->TAr/app->massAr;
+//  double xmax = 1.4688; // taken from gkyl output file. CHECK THIS!
+//  double lambda_ar_x = .1;
+//  double lambda_ar_z = 0.25;
+//  double zmin = -3.14; 
+//  double xcenter = 1.2014;
+//  // edit this profile appropriately
+//  double n; 
+//  if (z <= 0.0) {
+//    n = n0*exp((x-xmax)/lambda_ar_x) * exp(-(z-zmin)/lambda_ar_z);
+//  }
+//  else {
+//    n = n0*exp((x-xmax)/lambda_ar_x) * exp((z+zmin)/lambda_ar_z);
+//  }
+//  if (n/n0 < 1.0e-5)
+//    n = n0*1.0e-5;
+//  
+//  fout[0] = n/pow(2*M_PI*vt2Ar,1.5)*exp(-(vx*vx + vy*vy* + vz*vz)/(2.0*vt2Ar));
+//}
 
 void
 eval_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
@@ -238,6 +253,12 @@ evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
   fout[0] = app->nuIon;
 }
 
+
+void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  xp[0] = xc[0]; xp[1] = xc[1]; xp[2] = xc[2];
+}
+
 void
 bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -256,11 +277,12 @@ create_ctx(void)
   double qi = eV; // ion charge
   double qe = -eV; // electron charge
 
-  double Te = 100*2.8*eV;
-  double Ti = 150*2.8*eV;
+  double tempfac = 1.0;
+  double Te = 100*tempfac*eV;
+  double Ti = 150*tempfac*eV;
   double TAr = 30*eV; 
   double B0 = 2.51; // Magnetic field magnitude in Tesla
-  double n0 = 3.0e19/2.8; // Particle density in 1/m^3
+  double n0 = 3.0e19/tempfac; // Particle density in 1/m^3
 
   // Derived parameters.
   double vtIon = sqrt(Ti/mi);
@@ -268,10 +290,12 @@ create_ctx(void)
   double vtAr = sqrt(TAr/mAr);
 
   // Source parameters.
-  double nsource = 3.9e23/2.8; // peak source rate in particles/m^3/s 
-  double T_source = 285*eV*2.8;
+  double nsource = 3.9e23/tempfac; // peak source rate in particles/m^3/s 
+  double T_source = 285*eV*tempfac;
   double cx = 0.0065612*9;
   double cz = 0.4916200;
+  // For box change it
+  //cz = cz * (60/M_PI);
 
   // Collision parameters.
   double nuFrac = 0.25;
@@ -283,18 +307,20 @@ create_ctx(void)
 
   // Simulation box size (m).
   double Lz = 3.14*2;
+  // For box
+  //double Lz = 60.0*2.0;
 
-  double vpar_max_elc = 8.0*vtElc;
+  double vpar_max_elc = 6.0*vtElc;
   double mu_max_elc = 12.*me*vtElc*vtElc/(2.0*B0);
 
-  double vpar_max_ion = 8.0*vtIon;
+  double vpar_max_ion = 6.0*vtIon;
   double mu_max_ion = 12.*mi*vtIon*vtIon/(2.0*B0);
 
-  double vpar_max_Ar = 8.0*vtAr;
-  double mu_max_Ar = 12.*mi*vtAr*vtAr/(2.0*B0);
+  double vpar_max_Ar = 6.0*vtAr;
+  double mu_max_Ar = 12.*mAr*vtAr*vtAr/(2.0*B0);
 
-  double finalTime = 1.0e-8; 
-  double numFrames = 1;
+  double finalTime = 1.0e-5; 
+  double numFrames = 10;
 
   struct gk_step_ctx ctx = {
     .chargeElc = qe, 
@@ -347,8 +373,8 @@ main(int argc, char **argv)
 
   struct gk_step_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 8);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 16);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 4);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 8);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
 
@@ -415,6 +441,7 @@ main(int argc, char **argv)
         },
       },
     }, 
+
     //.react= { 
     //  .num_react = 2, 
     //  .react_type = { 
@@ -440,12 +467,12 @@ main(int argc, char **argv)
     //    }, 
     //  },
     //},  
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.03 }, 
-      .order = 2, 
-    }, 
+    //.diffusion = {
+    //  .num_diff_dir = 1, 
+    //  .diff_dirs = { 0 },
+    //  .D = { 0.03 }, 
+    //  .order = 2, 
+    //}, 
     .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
     .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
     
@@ -460,12 +487,12 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
     .cells = { NV, NMU },
-    .polarization_density = 0.99*ctx.n0,
+    .polarization_density = 0.9*ctx.n0,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
-      .density = eval_density,
+      .density = eval_density_ion,
       .ctx_upar = &ctx,
       .upar = eval_upar,
       .ctx_temp = &ctx,
@@ -491,13 +518,13 @@ main(int argc, char **argv)
         .temp = eval_temp_source,      
       }, 
     },
-    .diffusion = {
-      .num_diff_dir = 1, 
-      .diff_dirs = { 0 },
-      .D = { 0.03 }, 
-      .order = 2, 
-    }, 
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    //.diffusion = {
+    //  .num_diff_dir = 1, 
+    //  .diff_dirs = { 0 },
+    //  .D = { 0.03 }, 
+    //  .order = 2, 
+    //}, 
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB},
     .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
     
     .num_diag_moments = 7,
@@ -511,7 +538,7 @@ main(int argc, char **argv)
     .lower = { -ctx.vpar_max_Ar, 0.0},
     .upper = { ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
     .cells = { NV, NMU },
-    .polarization_density = 0.01*ctx.n0,
+    .polarization_density = 0.1*ctx.n0,
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
@@ -547,7 +574,7 @@ main(int argc, char **argv)
         },
       },
     },
-    .bcx = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
     .bcy = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
     
     .num_diag_moments = 5,
@@ -562,10 +589,20 @@ main(int argc, char **argv)
     .cells = { NV, NV, NV},
     .is_static = true,
 
+    //.projection = {
+    //  .proj_id = GKYL_PROJ_FUNC,
+    //  .ctx_func = &ctx,
+    //  .func = eval_vm_max,
+    //},
+
     .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .ctx_func = &ctx,
-      .func = eval_vm_max,
+      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .ctx_density = &ctx,
+      .density = eval_density_ar,
+      .ctx_upar = &ctx,
+      .udrift= eval_udrift,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_ar,      
     },
 
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ZERO_FLUX },
@@ -590,16 +627,26 @@ main(int argc, char **argv)
 
     .cdim = 2, .vdim = 2,
     .lower = { 0.934, -ctx.Lz/2.0 },
-    .upper = { 1.5098198350000001, ctx.Lz/2.0 },
+    .upper = { 1.4688, ctx.Lz/2.0 },
     .cells = { NX, NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
+
+    //.geometry = {
+    //  .geometry_id = GKYL_MAPC2P,
+    //  .world = {0.0},
+    //  .mapc2p = mapc2p, // mapping of computational to physical space
+    //  .c2p_ctx = &ctx,
+    //  .bmag_func = bmag_func, // mapping of computational to physical space
+    //  .bmag_ctx = &ctx
+    //},
     .geometry = {
-      .world = {0.0},
-      .geometry_id = GKYL_TOKAMAK, //GEOMETRY_FROMFILE, //TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .geometry_id = GKYL_GEOMETRY_FROMFILE,
+      //.world = {0.0},
+      //.geometry_id = GKYL_TOKAMAK,
+      //.tok_efit_info = &inp,
+      //.tok_grid_info = &ginp,
     },
 
     .num_periodic_dir = 0,
