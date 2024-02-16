@@ -14,7 +14,7 @@
 
 
 struct gk_geometry*
-gkyl_gk_geometry_fromfile_new(struct gk_geometry* geo_host, struct gkyl_gyrokinetic_geometry_inp *geometry_inp, bool use_gpu)
+gkyl_gk_geometry_fromfile_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu)
 {
 
 #ifdef GKYL_HAVE_CUDA

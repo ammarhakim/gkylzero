@@ -34,7 +34,7 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_mirror_new(struct gkyl_gyrokinetic_geometry_inp *geometry_inp)
+gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));

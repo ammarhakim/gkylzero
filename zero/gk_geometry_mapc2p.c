@@ -176,7 +176,7 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
 
 
 struct gk_geometry*
-gkyl_gk_geometry_mapc2p_new(struct gkyl_gyrokinetic_geometry_inp *geometry_inp)
+gkyl_gk_geometry_mapc2p_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));

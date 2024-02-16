@@ -135,7 +135,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   // Configuration space geometry initialization
 
   // Initialize the input struct from user side input struct
-  struct gkyl_gyrokinetic_geometry_inp geometry_inp = {
+  struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = gk->geometry.geometry_id,
     .c2p_ctx = gk->geometry.c2p_ctx,
     .mapc2p = gk->geometry.mapc2p,

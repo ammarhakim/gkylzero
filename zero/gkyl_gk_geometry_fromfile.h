@@ -11,14 +11,14 @@
  * @param use_gpu whether or not to use gpu
  */
 
-struct gk_geometry* gkyl_gk_geometry_fromfile_new(struct gk_geometry* geo_host, struct gkyl_gyrokinetic_geometry_inp *geometry_inp, bool use_gpu);
+struct gk_geometry* gkyl_gk_geometry_fromfile_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu);
 
 /**
  * Create a new gk geometry object that lives on NV-GPU: see new() method
  * above for documentation.
  */
 
-struct gk_geometry* gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gyrokinetic_geometry_inp *geometry_inp);
+struct gk_geometry* gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp);
 
 
 

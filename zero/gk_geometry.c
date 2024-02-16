@@ -17,7 +17,7 @@ gkyl_gk_geometry_is_cu_dev(const struct gk_geometry* up)
   return GKYL_IS_CU_ALLOC(up->flags);
 }
 
-struct gkyl_rect_grid gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gyrokinetic_geometry_inp geometry)
+struct gkyl_rect_grid gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gk_geometry_inp geometry)
 {
   struct gkyl_rect_grid augmented_grid;
   int cells[3];
@@ -109,7 +109,7 @@ void gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange,
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gyrokinetic_geometry_inp *geometry_inp)
+gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));

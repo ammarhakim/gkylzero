@@ -71,7 +71,7 @@ test_mom_gyrokinetic()
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
 
   // Initialize geometry
-  struct gkyl_gyrokinetic_geometry_inp geometry_input = {
+  struct gkyl_gk_geometry_inp geometry_input = {
       .geometry_id = GKYL_MAPC2P,
       .world = {0.0, 0.0},
       .mapc2p = mapc2p_3x, // mapping of computational to physical space
@@ -181,7 +181,7 @@ test_1x1v(int polyOrder, bool use_gpu)
 //  gkyl_grid_sub_array_write(&grid, &local, distf_ho, "ctest_mom_gyrokinetic_1x1v_p1_distf.gkyl");
 
   // Initialize geometry
-  struct gkyl_gyrokinetic_geometry_inp geometry_input = {
+  struct gkyl_gk_geometry_inp geometry_input = {
       .geometry_id = GKYL_MAPC2P,
       .world = {0.0, 0.0},
       .mapc2p = mapc2p_3x, // mapping of computational to physical space
@@ -391,7 +391,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_array_copy(distf, distf_ho);
 
   // Initialize geometry
-  struct gkyl_gyrokinetic_geometry_inp geometry_input = {
+  struct gkyl_gk_geometry_inp geometry_input = {
       .geometry_id = GKYL_MAPC2P,
       .world = {0.0, 0.0},
       .mapc2p = mapc2p_3x, // mapping of computational to physical space
@@ -582,7 +582,7 @@ test_2x2v(int poly_order, bool use_gpu)
   gkyl_array_copy(distf, distf_ho);
 
   // Initialize geometry
-  struct gkyl_gyrokinetic_geometry_inp geometry_input = {
+  struct gkyl_gk_geometry_inp geometry_input = {
       .geometry_id = GKYL_MAPC2P,
       .world = {0.0, 0.0},
       .mapc2p = mapc2p_3x, // mapping of computational to physical space

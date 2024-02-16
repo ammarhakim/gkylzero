@@ -47,7 +47,7 @@ struct gk_geometry {
 
 
 // Input struct gor geometry creation
-struct gkyl_gyrokinetic_geometry_inp {
+struct gkyl_gk_geometry_inp {
   enum gkyl_geometry_id geometry_id;
 
   void *c2p_ctx; // context for mapc2p function
@@ -95,7 +95,7 @@ struct gkyl_gyrokinetic_geometry_inp {
  * @ param geometry geometry input struct with context for augmenting grid
  */
 struct gkyl_rect_grid 
-gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gyrokinetic_geometry_inp geometry);
+gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gk_geometry_inp geometry);
 
 
 /**
@@ -119,7 +119,7 @@ gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *ngho
  * param basis deflated basis
  * param use_gpu whether or not to use gpu
  */
-struct gk_geometry* gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gyrokinetic_geometry_inp *geometry_inp);
+struct gk_geometry* gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp);
 
 /**
  * Acquire pointer to gk geometry object. The pointer must be released
