@@ -592,7 +592,7 @@ struct gk_field {
   gkyl_proj_on_basis *phi_wall_up_proj; // projector for biased wall potential on upper wall 
 
   // Core and SOL ranges for IWL sims. 
-  struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
+  struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
 };
 
 // gyrokinetic object: used as opaque pointer in user code
