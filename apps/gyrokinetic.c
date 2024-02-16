@@ -133,6 +133,23 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
 
   // Configuration space geometry initialization
+
+  // Initialize the input struct from user side input struct
+  struct gkyl_gyrokinetic_geometry_inp geometry_inp = {
+    .c2p_ctx = gk->geometry.c2p_ctx,
+    .mapc2p = gk->geometry.mapc2p,
+    .bmag_ctx = gk->geometry.bmag_ctx,
+    .bmag_func = gk->geometry.bmag_func,
+    .tok_efit_info = gk->geometry.tok_efit_info,
+    .tok_grid_info = gk->geometry.tok_grid_info,
+    .mirror_efit_info = gk->geometry.mirror_efit_info,
+    .mirror_grid_info = gk->geometry.mirror_grid_info,
+  };
+  for(int i = 0; i<3; i++)
+    geometry_inp.world[i] = gk->geometry.world[i];
+
+
+
   struct gkyl_rect_grid geo_grid;
   struct gkyl_range geo_local;
   struct gkyl_range geo_local_ext;
@@ -141,7 +158,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   struct gkyl_basis geo_basis;
 
   if(app->cdim < 3){
-    geo_grid = augment_grid(app->grid, gk->geometry);
+    geo_grid = augment_grid(app->grid, geometry_inp);
     switch (gk->basis_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
         gkyl_cart_modal_serendip(&geo_basis, 3, poly_order);
@@ -174,25 +191,25 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
 
   struct gk_geometry* gk_geom_3d;
-  switch (gk->geometry.geometry_id) {
+  switch (geometry_inp.geometry_id) {
     case GKYL_GEOMETRY_FROMFILE:
       gk_geom_3d = gkyl_gk_geometry_fromfile_new(app->gk_geom, &app->grid, &app->local, &app->local_ext, &app->global, &app->global_ext, &app->confBasis, false);
       break;
     case GKYL_TOKAMAK:
-      gk_geom_3d = gkyl_gk_geometry_tok_new(&geo_grid, &geo_local, &geo_local_ext, &geo_global, &geo_global_ext, &geo_basis, gk->geometry.tok_efit_info, gk->geometry.tok_grid_info, false);
+      gk_geom_3d = gkyl_gk_geometry_tok_new(&geo_grid, &geo_local, &geo_local_ext, &geo_global, &geo_global_ext, &geo_basis, geometry_inp.tok_efit_info, geometry_inp.tok_grid_info, false);
       break;
     case GKYL_MIRROR:
       gk_geom_3d = gkyl_gk_geometry_mirror_new(&geo_grid, &geo_local, &geo_local_ext, &geo_global, &geo_global_ext, &geo_basis, 
-          gk->geometry.mirror_efit_info, gk->geometry.mirror_grid_info, false);
+          geometry_inp.mirror_efit_info, geometry_inp.mirror_grid_info, false);
       break;
     case GKYL_MAPC2P:
       gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_global, &geo_global_ext, &geo_basis, 
-          gk->geometry.mapc2p, gk->geometry.c2p_ctx, gk->geometry.bmag_func,  gk->geometry.bmag_ctx, false);
+          geometry_inp.mapc2p, geometry_inp.c2p_ctx, geometry_inp.bmag_func,  geometry_inp.bmag_ctx, false);
       break;
   }
 
   // deflate geometry if necessary
-  if (gk->geometry.geometry_id != GKYL_GEOMETRY_FROMFILE) {
+  if (geometry_inp.geometry_id != GKYL_GEOMETRY_FROMFILE) {
     if(app->cdim < 3)
       app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &app->grid, &app->local, &app->local_ext, 
           &app->confBasis, app->use_gpu);

@@ -6,6 +6,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
+#include <gkyl_eqn_type.h>
 
 
 typedef struct gk_geometry gk_geometry;
@@ -44,6 +45,36 @@ struct gk_geometry {
   struct gk_geometry *on_dev; // pointer to itself or device object
 };
 
+
+// Input struct gor geometry creation
+struct gkyl_gyrokinetic_geometry_inp {
+  enum gkyl_geometry_id geometry_id;
+
+  void *c2p_ctx; // context for mapc2p function
+  // pointer to mapc2p function: xc are the computational space
+  // coordinates and on output xp are the corresponding physical space
+  // coordinates.
+  void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
+  void *bmag_ctx; // context for bmag function
+  // pointer to bmag function
+  void (*bmag_func)(double t, const double *xc, double *xp, void *ctx);
+
+  struct gkyl_tok_geo_efit_inp *tok_efit_info; // context with RZ data such as efit file for a tokamak
+  struct gkyl_tok_geo_grid_inp *tok_grid_info; // context for tokamak geometry with computational domain info
+
+  struct gkyl_mirror_geo_efit_inp *mirror_efit_info; // context with RZ data such as efit file for a mirror
+  struct gkyl_mirror_geo_grid_inp *mirror_grid_info; // context for mirror geometry with computational domain info
+
+  double world[3]; // extra computational coordinates for cases with reduced dimensionality
+};
+
+
+struct gkyl_rect_grid 
+augment_grid(struct gkyl_rect_grid grid, struct gkyl_gyrokinetic_geometry_inp geometry);
+
+void 
+augment_local(const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
 
 /**
  * deflate geometry to lower dimensionality
