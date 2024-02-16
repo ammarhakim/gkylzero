@@ -85,11 +85,15 @@ typedef struct gkyl_comm* (*split_comm_t)(const struct gkyl_comm *comm,
 typedef int (*barrier_t)(struct gkyl_comm *comm);
 
 // Allocate/free state objects.
-typedef struct gkyl_comm_state* (*comm_state_new_t)();
+typedef struct gkyl_comm_state* (*comm_state_new_t)(struct gkyl_comm *comm);
 typedef void (*comm_state_release_t)(struct gkyl_comm_state *state);
 
 // Wait for a request.
 typedef void (*comm_state_wait_t)(struct gkyl_comm_state *state);
+
+// Start and end a group call (e.g. in NCCL).
+typedef void (*comm_group_call_start_t)();
+typedef void (*comm_group_call_end_t)();
 
 // Structure holding data and function pointers to communicate various
 // Gkeyll objects across multi-region or multi-block domains
@@ -118,6 +122,9 @@ struct gkyl_comm {
   comm_state_release_t comm_state_release; // Free a state object.
   comm_state_wait_t comm_state_wait; // Wait for a request to complete.
 
+  comm_group_call_start_t comm_group_call_start; // Start a group call.
+  comm_group_call_end_t comm_group_call_end; // End a group call.
+
   struct gkyl_ref_count ref_count; // reference count
 };
 
@@ -135,7 +142,7 @@ gkyl_comm_get_rank(struct gkyl_comm *comm, int *rank)
 }
 
 /**
- * Get number of ranks in communcator
+ * Get number of ranks in communicator
  *
  * @param comm Communicator
  * @param rank On output, the rank
@@ -304,7 +311,7 @@ gkyl_comm_barrier(struct gkyl_comm *comm)
 static struct gkyl_comm_state*
 gkyl_comm_state_new(struct gkyl_comm *comm)
 {
-  return comm->comm_state_new();
+  return comm->comm_state_new(comm);
 }
 
 /**
@@ -323,6 +330,20 @@ static void
 gkyl_comm_state_wait(struct gkyl_comm *comm, struct gkyl_comm_state *state)
 {
   comm->comm_state_wait(state);
+}
+
+/**
+ * Start and end a group call (e.g. in NCCL).
+ */
+static void
+gkyl_comm_group_call_start(struct gkyl_comm *comm)
+{
+  comm->comm_group_call_start();
+}
+static void
+gkyl_comm_group_call_end(struct gkyl_comm *comm)
+{
+  comm->comm_group_call_end();
 }
 
 /**
@@ -367,8 +388,8 @@ gkyl_comm_array_read(struct gkyl_comm *comm,
 /**
  * Create a new communcator that extends the communcator to work on a
  * extended domain specified by erange. (Each range handled by the
- * communcator is extended by a tensor-product with erange). The
- * returned communcator must be freed by calling gkyl_comm_release.
+ * communicator is extended by a tensor-product with erange). The
+ * returned communicator must be freed by calling gkyl_comm_release.
  *
  * @param comm Communicator
  * @param erange Range to extend by
@@ -382,10 +403,10 @@ gkyl_comm_extend_comm(const struct gkyl_comm *comm,
 }
 
 /**
- * Create a new communcator that extends the communcator to work on a
+ * Create a new communicator that extends the communicator to work on a
  * extended domain specified by erange. (Each range handled by the
- * communcator is extended by a tensor-product with erange). The
- * returned communcator must be freed by calling gkyl_comm_release.
+ * communicator is extended by a tensor-product with erange). The
+ * returned communicator must be freed by calling gkyl_comm_release.
  *
  * @param comm Communicator.
  * @param color All ranks of same color will share a communicator.

@@ -263,7 +263,8 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .num_sources = 1,
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN, 
         .ctx_density = &ctx,
         .density = eval_source_density,
@@ -273,7 +274,11 @@ main(int argc, char **argv)
         .temp = eval_source_temp,      
       }, 
     },
-    .bcx = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+    
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
 
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
@@ -307,7 +312,8 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .num_sources = 1,
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN, 
         .ctx_density = &ctx,
         .density = eval_source_density,
@@ -317,7 +323,11 @@ main(int argc, char **argv)
         .temp = eval_source_temp,      
       }, 
     },
-    .bcx = { GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH },
+
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     
     .num_diag_moments = 5,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp" },
@@ -373,6 +383,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_apply_ic(app, tcurr);
   write_data(&io_trig, app, tcurr);
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
+  gkyl_gyrokinetic_app_calc_integrated_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -381,6 +392,7 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     if (step % 10 == 0) {
       gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
+      gkyl_gyrokinetic_app_calc_integrated_mom(app, tcurr);
     }
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -394,7 +406,9 @@ main(int argc, char **argv)
     step += 1;
   }
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
+  gkyl_gyrokinetic_app_calc_integrated_mom(app, tcurr);
   gkyl_gyrokinetic_app_write_field_energy(app);
+  gkyl_gyrokinetic_app_write_integrated_mom(app);
   gkyl_gyrokinetic_app_stat_write(app);
   
   // fetch simulation statistics
