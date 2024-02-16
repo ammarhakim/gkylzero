@@ -40,7 +40,7 @@ typedef void (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
 typedef void (*gen_termf_t)(const struct gkyl_dg_eqn *eqn, 
   int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
-  long sz_dim, const int idx[27][GKYL_MAX_DIM], const double* qIn[27], 
+  int keri, const int idx[9][GKYL_MAX_DIM], const double* qIn[9], 
   double* GKYL_RESTRICT qRhsOut);
 
 struct gkyl_dg_eqn {
