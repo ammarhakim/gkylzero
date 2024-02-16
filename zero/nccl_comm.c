@@ -9,6 +9,8 @@
 #include <gkyl_nccl_comm.h>
 #include <gkyl_util.h>
 
+#include <errno.h>
+
 // Maximum number of recv neighbors: not sure hard-coding this is a
 // good idea.
 #define MAX_RECV_NEIGH 32
@@ -73,6 +75,7 @@ struct nccl_comm {
   cudaStream_t custream; // Cuda stream for NCCL comms.
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   bool sync_corners; // Whether to sync corners.
+  long local_range_offset; // Offset of the local region.
 
   struct gkyl_rect_decomp_neigh *neigh; // neighbors of local region
   struct gkyl_rect_decomp_neigh *per_neigh[GKYL_MAX_DIM]; // periodic neighbors
@@ -136,6 +139,9 @@ comm_free(const struct gkyl_ref_count *ref)
 
     for (int i=0; i<MAX_RECV_NEIGH; ++i)
       gkyl_mem_buff_release(nccl->send[i].buff);
+
+    gkyl_mem_buff_release(nccl->all_gather_buff_local.buff);
+    gkyl_mem_buff_release(nccl->all_gather_buff_global.buff);
   }
 
   // Finalize NCCL comm.
@@ -172,6 +178,121 @@ barrier(struct gkyl_comm *comm)
   } while(nstat == ncclInProgress);
   checkCuda(cudaStreamSynchronize(nccl->custream));
   return 0;
+}
+
+// set of functions to help with parallel array output using MPI-IO
+static void
+sub_array_decomp_write(struct nccl_comm *comm, const struct gkyl_rect_decomp *decomp,
+  const struct gkyl_range *range,
+  const struct gkyl_array *arr, MPI_File fp)
+{
+#define _F(loc) gkyl_array_cfetch(arr, loc)
+
+  int rank = comm->rank;
+
+  // seek to appropriate place in the file, depending on rank
+  size_t hdr_sz = gkyl_base_hdr_size(0) + gkyl_file_type_3_hrd_size(range->ndim);
+  size_t file_loc = hdr_sz +
+    arr->esznc*comm->local_range_offset +
+    rank*gkyl_file_type_3_range_hrd_size(range->ndim);
+
+  MPI_Offset fp_offset = file_loc;
+  MPI_File_seek(fp, fp_offset, MPI_SEEK_SET);
+
+  do {
+    char *buff; size_t buff_sz;
+    FILE *fbuff = open_memstream(&buff, &buff_sz);
+  
+    uint64_t loidx[GKYL_MAX_DIM] = {0}, upidx[GKYL_MAX_DIM] = {0};
+    for (int d = 0; d < range->ndim; ++d) {
+      loidx[d] = range->lower[d];
+      upidx[d] = range->upper[d];
+    }
+    
+    fwrite(loidx, sizeof(uint64_t), range->ndim, fbuff);
+    fwrite(upidx, sizeof(uint64_t), range->ndim, fbuff);
+    uint64_t sz = range->volume;
+    fwrite(&sz, sizeof(uint64_t), 1, fbuff);
+
+    fclose(fbuff);
+
+    MPI_Status status;
+    MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
+
+    free(buff);
+    
+  } while (0);
+
+  // construct skip iterator to allow writing (potentially) in chunks
+  // rather than element by element or requiring a copy of data. Note:
+  // We must use "range" here and not decomp->ranges[rank] as the
+  // latter is not a sub-range of the local extended
+  // range.
+  struct gkyl_range_skip_iter skip;
+  gkyl_range_skip_iter_init(&skip, range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &skip.range);
+
+  MPI_Status status;
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(&skip.range, iter.idx);
+    MPI_File_write(fp, _F(start), arr->esznc*skip.delta, MPI_CHAR, &status);
+  }
+
+#undef _F
+}
+
+static int
+grid_sub_array_decomp_write_fp(struct nccl_comm *comm,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_rect_decomp *decomp, const struct gkyl_range *range,
+  const struct gkyl_array *arr, MPI_File fp)
+{
+  char *buff; size_t buff_sz;
+  FILE *fbuff = open_memstream(&buff, &buff_sz);
+
+  // write header to a char buffer
+  gkyl_grid_sub_array_header_write_fp(grid,
+    &(struct gkyl_array_header_info) {
+      .file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
+      .etype = arr->type,
+      .esznc = arr->esznc,
+      .tot_cells = decomp->parent_range.volume
+    },
+    fbuff
+  );
+  uint64_t nrange = decomp->ndecomp;
+  fwrite(&nrange, sizeof(uint64_t), 1, fbuff);
+  fclose(fbuff);
+
+  // actual header IO is only done by rank 0
+  int rank = comm->rank;
+  if (rank == 0) {
+    MPI_Status status;
+    MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
+  }
+  free(buff);
+  
+  // write data in array
+  sub_array_decomp_write(comm, decomp, range, arr, fp);
+  return errno;
+}
+
+static int
+array_write(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_array *arr, const char *fname)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  MPI_File fp;
+  int err =
+    MPI_File_open(nccl->mpi_comm, fname, MPI_MODE_CREATE|MPI_MODE_WRONLY, MPI_INFO_NULL, &fp);
+  if (err != MPI_SUCCESS)
+    return err;
+  err = grid_sub_array_decomp_write_fp(nccl, grid, nccl->decomp, range, arr, fp);
+  MPI_File_close(&fp);
+  return err;
 }
 
 static int
@@ -611,9 +732,12 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
     }
     nccl->touches_any_edge = num_touches > 0 ? true : false;
   
+    nccl->local_range_offset = gkyl_rect_decomp_calc_offset(nccl->decomp, nccl->rank);
+
     nccl->base.gkyl_array_all_gather = array_all_gather;
     nccl->base.gkyl_array_sync = array_sync;
     nccl->base.gkyl_array_per_sync = array_per_sync;
+    nccl->base.gkyl_array_write = array_write;
   }
   
   nccl->base.get_rank = get_rank;

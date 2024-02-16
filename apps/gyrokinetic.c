@@ -443,14 +443,13 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
   }
   gk_field_rhs(app, app->field);
 
-  if (app->use_gpu) {
+  if (app->use_gpu)
     // copy data from device to host before writing it out
     gkyl_array_copy(app->field->phi_host, app->field->phi_smooth);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->phi_host, fileNm);
-  }
-  else {
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->phi_smooth, fileNm);
-  }
+  else
+    app->field->phi_host = app->field->phi_smooth;
+
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->phi_host, fileNm);
 }
 
 void
@@ -461,16 +460,14 @@ gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double t
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[sidx].info.name, frame);
 
-  if (app->use_gpu) {
+  if (app->use_gpu)
     // copy data from device to host before writing it out
     gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      app->species[sidx].f_host, fileNm);
-  }
-  else {
-    gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      app->species[sidx].f, fileNm);
-  }
+  else
+    app->species[sidx].f_host = app->species[sidx].f;
+
+  gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
+    app->species[sidx].f_host, fileNm);
 }
 
 void

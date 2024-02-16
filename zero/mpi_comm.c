@@ -92,10 +92,10 @@ comm_free(const struct gkyl_ref_count *ref)
 
     for (int i=0; i<MAX_RECV_NEIGH; ++i)
       gkyl_mem_buff_release(mpi->send[i].buff);
-  }
   
-  gkyl_mem_buff_release(mpi->all_gather_buff_local.buff);
-  gkyl_mem_buff_release(mpi->all_gather_buff_global.buff);
+    gkyl_mem_buff_release(mpi->all_gather_buff_local.buff);
+    gkyl_mem_buff_release(mpi->all_gather_buff_global.buff);
+  }
 
   gkyl_free(mpi);
 }
@@ -618,6 +618,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   
     int rank;
     MPI_Comm_rank(inp->mpi_comm, &rank);
+
     mpi->local_range_offset = gkyl_rect_decomp_calc_offset(mpi->decomp, rank);
   
     mpi->neigh = gkyl_rect_decomp_calc_neigh(mpi->decomp, inp->sync_corners, rank);

@@ -11,6 +11,11 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
+
 #endif
 
 #include <rt_arg_parse.h>
@@ -334,19 +339,25 @@ main(int argc, char **argv)
   // construct communcator for use in app
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
+  if (app_args.use_gpu && app_args.use_mpi) {
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+  } else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
-  }
-  else
+  } else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
+  }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp,
@@ -586,9 +597,9 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // simulation complete, free app
+  gkyl_gyrokinetic_app_release(app);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
-  gkyl_gyrokinetic_app_release(app);
   
   mpifinalize:
   ;
