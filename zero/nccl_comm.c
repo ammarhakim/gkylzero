@@ -86,6 +86,10 @@ struct nccl_comm {
   struct gkyl_range dir_edge; // for use in computing tags
   int is_on_edge[2][GKYL_MAX_DIM]; // flags to indicate if local range is on edge
   bool touches_any_edge; // true if this range touches any edge
+
+  // buffers for for all_gather
+  struct comm_buff_stat all_gather_buff_local; 
+  struct comm_buff_stat all_gather_buff_global; 
 };
 
 static struct gkyl_comm_state* comm_state_new(struct gkyl_comm *comm)
@@ -225,6 +229,55 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
   checkNCCL(ncclAllReduce(inp, out, nelem, g2_nccl_datatype[type], g2_nccl_op[op], nccl->ncomm, nccl->custream));
+  return 0;
+}
+
+static int
+array_all_gather(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *global, 
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
+{
+  assert(array_global->esznc == array_local->esznc);
+
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+
+  struct gkyl_range gather_range;
+
+  int rank = nccl->rank;
+
+  assert(local->volume == nccl->decomp->ranges[rank].volume);
+  assert(global->volume == nccl->decomp->parent_range.volume);
+
+  // potentially re-size local buffer volume
+  size_t send_vol = array_local->esznc*nccl->decomp->ranges[rank].volume;
+  if (gkyl_mem_buff_size(nccl->all_gather_buff_local.buff) < send_vol)
+    gkyl_mem_buff_resize(nccl->all_gather_buff_local.buff, send_vol);
+
+  // potentially re-size global buffer volume
+  size_t buff_global_vol = array_local->esznc*nccl->decomp->parent_range.volume;
+  if (gkyl_mem_buff_size(nccl->all_gather_buff_global.buff) < buff_global_vol)
+    gkyl_mem_buff_resize(nccl->all_gather_buff_global.buff, buff_global_vol);
+
+  // copy data to local buffer
+  gkyl_array_copy_to_buffer(gkyl_mem_buff_data(nccl->all_gather_buff_local.buff), 
+    array_local, local);
+
+  size_t nelem = array_local->esznc*nccl->decomp->ranges[rank].volume;
+  // gather data into global buffer
+  checkNCCL(ncclAllGather(gkyl_mem_buff_data(nccl->all_gather_buff_local.buff),
+                          gkyl_mem_buff_data(nccl->all_gather_buff_global.buff),
+			  nelem, ncclChar, nccl->ncomm, nccl->custream));
+
+  // copy data to global array
+  int idx = 0;
+  for (int r=0; r<nccl->decomp->ndecomp; ++r) {
+    int isrecv = gkyl_sub_range_intersect(
+      &gather_range, global, &nccl->decomp->ranges[r]);
+    gkyl_array_copy_from_buffer(array_global, 
+      gkyl_mem_buff_data(nccl->all_gather_buff_global.buff) + idx, &gather_range);
+    idx += array_local->esznc*gather_range.volume;
+  }
+
   return 0;
 }
 
@@ -543,6 +596,9 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
     for (int i=0; i<MAX_RECV_NEIGH; ++i)
       nccl->send[i].buff = gkyl_mem_buff_cu_new(16);
 
+    nccl->all_gather_buff_local.buff = gkyl_mem_buff_cu_new(16);
+    nccl->all_gather_buff_global.buff = gkyl_mem_buff_cu_new(16);
+
     gkyl_range_init(&nccl->dir_edge, 2, (int[]) { 0, 0 }, (int[]) { GKYL_MAX_DIM, 2 });
 
     int num_touches = 0;
@@ -555,6 +611,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
     }
     nccl->touches_any_edge = num_touches > 0 ? true : false;
   
+    nccl->base.gkyl_array_all_gather = array_all_gather;
     nccl->base.gkyl_array_sync = array_sync;
     nccl->base.gkyl_array_per_sync = array_per_sync;
   }

@@ -68,7 +68,7 @@ struct mpi_comm {
   int nsend; // number of elements in sinfo array
   struct comm_buff_stat send[MAX_RECV_NEIGH]; // info for send data
 
-  // info for all gather
+  // buffers for for all_gather
   struct comm_buff_stat all_gather_buff_local; 
   struct comm_buff_stat all_gather_buff_global; 
 };
