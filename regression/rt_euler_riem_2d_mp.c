@@ -315,7 +315,7 @@ main(int argc, char **argv)
   
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "euler_riem_2d_roe",
+    .name = "euler_riem_2d_mp",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
