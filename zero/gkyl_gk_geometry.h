@@ -87,11 +87,28 @@ struct gkyl_gyrokinetic_geometry_inp {
 };
 
 
+/**
+ * Augment a grid with dim < 3 to 3d by adding 1 cell in the other directions
+ * If dim=1, the input grid is assumed to be in z
+ * If dim =2, the input grid is assumed to be in xz
+ * @param grid input grid with dim <3
+ * @ param geometry geometry input struct with context for augmenting grid
+ */
 struct gkyl_rect_grid 
-augment_grid(struct gkyl_rect_grid grid, struct gkyl_gyrokinetic_geometry_inp geometry);
+gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gyrokinetic_geometry_inp geometry);
 
+
+/**
+ * Augment a range with dim < 3 to 3d by adding 1 cell in the other directions
+ * If dim=1, the input range is assumed to be in z
+ * If dim =2, the input range is assumed to be in xz
+ * @param inrange input range with dim <3
+ * @param nghost number of ghost cells
+ * @param ext_range output, augmented extended range
+ * @param range output, augmented range
+ */
 void 
-augment_local(const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
+gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
 
 /**
  * deflate geometry to lower dimensionality

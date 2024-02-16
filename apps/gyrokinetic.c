@@ -156,7 +156,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     geometry_inp.world[i] = gk->geometry.world[i];
 
   if(app->cdim < 3){
-    geometry_inp.geo_grid = augment_grid(app->grid, geometry_inp);
+    geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);
     switch (gk->basis_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
         gkyl_cart_modal_serendip(&geometry_inp.geo_basis, 3, poly_order);
@@ -170,7 +170,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     gkyl_create_grid_ranges(&geometry_inp.geo_grid, ghost, &geometry_inp.geo_global_ext, &geometry_inp.geo_global);
     if (gk->has_low_inp) {
       // create local and local_ext from user-supplied local range
-      augment_local(&gk->low_inp.local_range, ghost, &geometry_inp.geo_local_ext, &geometry_inp.geo_local);
+      gkyl_gk_geometry_augment_local(&gk->low_inp.local_range, ghost, &geometry_inp.geo_local_ext, &geometry_inp.geo_local);
     }
     else {
       // global and local ranges are same, and so just copy
