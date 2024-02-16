@@ -25,7 +25,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->rho_c_global_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
 
   // allocate arrays for electrostatic potential
-  f->phi_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  // global phi (only used in 1x simulations)
+  f->phi_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+  // local phi (assuming domain decomposition is *only* in z right now)
   f->phi_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
   if (f->gkfield_id == GKYL_GK_FIELD_EM) {
@@ -54,7 +56,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     if (app->cdim == 1) {
       // in 1D case need to set weight to kperpsq*polarizationWeight for use in potential smoothing
-      f->weight = mkarr(false, app->confBasis.num_basis, app->local_ext.volume); // fem_parproj expects weight on host
+      f->weight = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
       gkyl_array_shiftc(f->weight, sqrt(2.0), 0); // Sets weight=1.
       gkyl_array_scale(f->weight, polarization_weight);
       gkyl_array_scale(f->weight, f->info.kperpSq);
@@ -245,27 +247,27 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
     gkyl_fem_parproj_set_rhs(field->fem_parproj, field->phi_fem, field->phi_fem);
     gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
   }
-  else if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL) { 
+  else {
     // gather charge density into global array for smoothing in z
     gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
-    // input is rho_c_global_dg and output should be in phi_smooth
-    gkyl_fem_parproj_set_rhs(field->fem_parproj_core, field->rho_c, field->rho_c_global_dg);
-    gkyl_fem_parproj_solve(field->fem_parproj_core, field->rho_c_global_smooth);
-    gkyl_fem_parproj_set_rhs(field->fem_parproj_sol, field->rho_c, field->rho_c_global_dg);
-    gkyl_fem_parproj_solve(field->fem_parproj_sol, field->rho_c_global_smooth);
-    gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
-  }
-  else {
     if (app->cdim == 1) {
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
-      gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
+      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, 0);
+      gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
+      // copy globally smoothed potential to local potential per process for update
+      gkyl_array_copy_range_to_range(field->phi_smooth, field->phi_fem, &app->local, &field->global_sub_range);
     }
     else if (app->cdim > 1) {
-      // gather charge density into global array for smoothing in z
-      gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
-      // input is rho_c_global_dg and output should be in phi_smooth
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
-      gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
+      // input is rho_c_global_dg, globally smoothed in z, and then output should be in *local* phi_smooth
+      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+        gkyl_fem_parproj_set_rhs(field->fem_parproj_core, field->rho_c_global_dg, field->rho_c_global_dg);
+        gkyl_fem_parproj_solve(field->fem_parproj_core, field->rho_c_global_smooth);
+        gkyl_fem_parproj_set_rhs(field->fem_parproj_sol, field->rho_c_global_dg, field->rho_c_global_dg);
+        gkyl_fem_parproj_solve(field->fem_parproj_sol, field->rho_c_global_smooth);
+      }
+      else {
+        gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+        gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
+      }
       gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
     }
   }
