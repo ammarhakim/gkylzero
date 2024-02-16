@@ -1,4 +1,8 @@
-// TODO: Where did this test come from??
+// Finite dust cloud collision test for the cold fluid equations.
+// Input parameters match the initial conditions in Section 5 (Figures 3 and 4), from the article:
+// R. J. LeVeque (2004), "The Dynamics of Pressureless Dust Clouds",
+// Journal of Hyperbolic Differential Equations, Volume 1 (2): 315-327.
+// https://www.worldscientific.com/doi/10.1142/S0219891604000135
 
 #include <math.h>
 #include <stdio.h>
