@@ -13,6 +13,8 @@ typedef struct gkyl_calc_metric gkyl_calc_metric;
  *
  * @param cbasis Basis object (configuration space).
  * @param grid configuration space grid.
+ * @param global, _ext computational global Config-space range and extended range.
+ * @param local, _ext computational local Config-space range and extended range.
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */

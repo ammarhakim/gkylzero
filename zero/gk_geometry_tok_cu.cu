@@ -14,20 +14,20 @@ extern "C" {
 }
 // CPU interface to create and track a GPU object
 struct gk_geometry*
-gkyl_gk_geometry_tok_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext,
+gkyl_gk_geometry_tok_cu_dev_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *local, const struct gkyl_range* local_ext,
       const struct gkyl_range *global, const struct gkyl_range* global_ext, const struct gkyl_basis* basis, void* tok_rz_ctx,
       void* tok_comp_ctx)
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 
   up->basis = *basis;
-  up->local = *range;
-  up->local_ext = *range_ext;
+  up->local = *local;
+  up->local_ext = *local_ext;
   up->global= *global;
   up->global_ext= *global_ext;
   up->grid = *grid;
 
-  struct gk_geometry *hgeo  = gkyl_gk_geometry_tok_new(grid, range, range_ext, global, global_ext, basis, tok_rz_ctx, tok_comp_ctx, false);
+  struct gk_geometry *hgeo  = gkyl_gk_geometry_tok_new(grid, local, local_ext, global, global_ext, basis, tok_rz_ctx, tok_comp_ctx, false);
   struct gkyl_range nrange;
 
   int poly_order = basis->poly_order;

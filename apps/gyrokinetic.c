@@ -139,11 +139,9 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   struct gkyl_range geo_global;
   struct gkyl_range geo_global_ext;
   struct gkyl_basis geo_basis;
-  bool geo_3d_use_gpu = false;
 
   if(app->cdim < 3){
     geo_grid = augment_grid(app->grid, gk->geometry);
-    geo_3d_use_gpu = false;
     switch (gk->basis_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
         gkyl_cart_modal_serendip(&geo_basis, 3, poly_order);
@@ -178,20 +176,18 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   struct gk_geometry* gk_geom_3d;
   switch (gk->geometry.geometry_id) {
     case GKYL_GEOMETRY_FROMFILE:
-      gk_geom_3d = gkyl_gk_geometry_fromfile_new(app->gk_geom, &app->grid, &app->local, &app->local_ext, &app->global, &app->global_ext, &app->confBasis, geo_3d_use_gpu);
-      //app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
-      //gkyl_gyrokinetic_app_read_geometry(app);
+      gk_geom_3d = gkyl_gk_geometry_fromfile_new(app->gk_geom, &app->grid, &app->local, &app->local_ext, &app->global, &app->global_ext, &app->confBasis, false);
       break;
     case GKYL_TOKAMAK:
-      gk_geom_3d = gkyl_gk_geometry_tok_new(&geo_grid, &geo_local, &geo_local_ext, &geo_global, &geo_global_ext, &geo_basis, gk->geometry.tok_efit_info, gk->geometry.tok_grid_info, geo_3d_use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_tok_new(&geo_grid, &geo_local, &geo_local_ext, &geo_global, &geo_global_ext, &geo_basis, gk->geometry.tok_efit_info, gk->geometry.tok_grid_info, false);
       break;
     case GKYL_MIRROR:
       gk_geom_3d = gkyl_gk_geometry_mirror_new(&geo_grid, &geo_local, &geo_local_ext, &geo_global, &geo_global_ext, &geo_basis, 
-          gk->geometry.mirror_efit_info, gk->geometry.mirror_grid_info, geo_3d_use_gpu);
+          gk->geometry.mirror_efit_info, gk->geometry.mirror_grid_info, false);
       break;
     case GKYL_MAPC2P:
       gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_global, &geo_global_ext, &geo_basis, 
-          gk->geometry.mapc2p, gk->geometry.c2p_ctx, gk->geometry.bmag_func,  gk->geometry.bmag_ctx, geo_3d_use_gpu);
+          gk->geometry.mapc2p, gk->geometry.c2p_ctx, gk->geometry.bmag_func,  gk->geometry.bmag_ctx, false);
       break;
   }
 

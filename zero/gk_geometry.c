@@ -18,19 +18,19 @@ gkyl_gk_geometry_is_cu_dev(const struct gk_geometry* up)
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect_grid* grid, const struct gkyl_range *local, const struct gkyl_range* local_ext, 
   const struct gkyl_basis* basis, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_deflate_cu_dev(up_3d, grid, range, range_ext, basis);
+    return gkyl_gk_geometry_deflate_cu_dev(up_3d, grid, local, local_ext, basis);
   } 
 #endif 
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->basis = *basis;
-  up->local = *range;
-  up->local_ext = *range_ext;
+  up->local = *local;
+  up->local_ext = *local_ext;
   up->grid = *grid;
 
   // bmag, metrics and derived geo quantities

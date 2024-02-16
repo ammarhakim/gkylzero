@@ -33,7 +33,8 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
  * as well as Fpol = RB_phi on the poloidal flux grid).
  *
  * @param up calc_bmag updater object.
- * @param crange, _ext computational Config-space range and extended range.
+ * @param crange, _ext computational local Config-space range and extended range.
+ * @param crange_global, _ext computational global Config-space range and extended range.
  * @param prange, _ext physical RZ range and extended range.
  * @param frange, _ext poloidal flux range and extended range.
  * @param psidg, psibyrdg, psibyr2dg: DG Psi(R,Z), Psi(R,Z)/R, Psi(R,Z)/R^2 on the RZ grid

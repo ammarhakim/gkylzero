@@ -176,20 +176,20 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
 
 
 struct gk_geometry*
-gkyl_gk_geometry_mapc2p_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
+gkyl_gk_geometry_mapc2p_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *local, const struct gkyl_range* local_ext, 
     const struct gkyl_range *global, const struct gkyl_range* global_ext, const struct gkyl_basis* basis,
     evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_mapc2p_cu_dev_new(grid, range, range_ext, global, global_ext, basis, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
+    return gkyl_gk_geometry_mapc2p_cu_dev_new(grid, local, local_ext, global, global_ext, basis, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
   } 
 #endif 
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->basis = *basis;
-  up->local = *range;
-  up->local_ext = *range_ext;
+  up->local = *local;
+  up->local_ext = *local_ext;
   up->global = *global;
   up->global_ext = *global_ext;
   up->grid = *grid;

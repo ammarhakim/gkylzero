@@ -34,20 +34,20 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext,
+gkyl_gk_geometry_mirror_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *local, const struct gkyl_range* local_ext,
     const struct gkyl_range *global, const struct gkyl_range* global_ext, const struct gkyl_basis* basis, void* mirror_rz_ctx,
     void* mirror_comp_ctx, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_mirror_cu_dev_new(grid, range, range_ext, global, global_ext, basis, mirror_rz_ctx, mirror_comp_ctx);
+    return gkyl_gk_geometry_mirror_cu_dev_new(grid, local, local_ext, global, global_ext, basis, mirror_rz_ctx, mirror_comp_ctx);
   } 
 #endif 
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
   up->basis = *basis;
-  up->local = *range;
-  up->local_ext = *range_ext;
+  up->local = *local;
+  up->local_ext = *local_ext;
   up->global = *global;
   up->global_ext = *global_ext;
   up->grid = *grid;

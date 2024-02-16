@@ -13,18 +13,18 @@ extern "C" {
 
 // CPU interface to create and track a GPU object
 struct gk_geometry*
-gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gkyl_rect_grid* grid, const struct gkyl_range *range,
-      const struct gkyl_range* range_ext, const struct gkyl_basis* basis)
+gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gkyl_rect_grid* grid, const struct gkyl_range *local,
+      const struct gkyl_range* local_ext, const struct gkyl_basis* basis)
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 
   up->basis = *basis;
-  up->local= *range;
-  up->local_ext= *range_ext;
+  up->local= *local;
+  up->local_ext= *local_ext;
   up->grid = *grid;
 
   // Initialize the geometry object on the host side
-  struct gk_geometry* hgeo = gkyl_gk_geometry_deflate(up_3d, grid, range, range_ext, basis, false);
+  struct gk_geometry* hgeo = gkyl_gk_geometry_deflate(up_3d, grid, local, local_ext, basis, false);
 
   // bmag, metrics and derived geo quantities
 
