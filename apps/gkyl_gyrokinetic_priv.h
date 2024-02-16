@@ -273,6 +273,7 @@ struct gk_react {
   struct gkyl_array *m0_elc[GKYL_MAX_SPECIES]; // electron density
   struct gkyl_array *m0_ion[GKYL_MAX_SPECIES]; // ion density
   struct gkyl_array *m0_donor[GKYL_MAX_SPECIES]; // donor density
+  struct gkyl_array *m0_mod[GKYL_MAX_SPECIES]; // to rescale fmax to have correct density
   struct gkyl_array *prim_vars[GKYL_MAX_SPECIES]; // primitive variables of donor (gk) or ion (vlasov), used for fmax
   union {
     // ionization

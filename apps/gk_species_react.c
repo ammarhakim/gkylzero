@@ -54,6 +54,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     react->m0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_ion[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_donor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->m0_mod[i] =  mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
@@ -118,6 +119,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 2, react->moms_donor[i].marr, 2, react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
       
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
+      gkyl_array_set_range(react->m0_ion[i], 1.0, react->moms_ion[i].marr, &app->local);
       gkyl_array_set_range(react->m0_donor[i], 1.0, react->moms_donor[i].marr, &app->local);
 
       // When do moments become infinitely large? 
@@ -167,6 +169,12 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->moms_elc[i].marr, react->prim_vars[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
+	// scale to correct m0
+	gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react); 
+	gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
+	  react->m0_elc[i], 0, s->m0.marr, &app->local);
+	gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+          react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
 
         // electron update is n_elc*coeff_react*(2*fmax(n_elc, upar_donor, vtiz^2) - f_elc)
         gkyl_array_scale(react->f_react, 2.0);
@@ -181,8 +189,14 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
-          react->moms_donor[i].marr, react->prim_vars[i], //react->moms_donor[i].marr, react->prim_vars[i],
+          react->moms_donor[i].marr, react->prim_vars[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
+	// scale to correct m0
+	gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react); 
+	gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
+	  react->m0_donor[i], 0, s->m0.marr, &app->local);
+	gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+          react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
 
         // ion update is n_elc*coeff_react*fmax(n_donor, upar_donor, vt_donor^2)
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
@@ -219,6 +233,12 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
       else {
         gkyl_proj_gkmaxwellian_on_basis_lab_mom(react->proj_max, &s->local, &app->local,
           react->moms_ion[i].marr, app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
+	// scale to correct m0
+	gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react); 
+	gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
+	  react->m0_ion[i], 0, s->m0.marr, &app->local);
+	gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
+          react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
 
         // receiver update is n_elc*coeff_react*fmax(n_ion, upar_ion, vt_ion^2)
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
