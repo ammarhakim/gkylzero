@@ -280,6 +280,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_init(app, s, &s->lbo);
   }
+  else if (s->collision_id == GKYL_FPO_COLLISIONS) {
+    vm_species_fpo_init(app, s, &s->fpo);
+  }
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -478,6 +481,8 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
   if (species->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
+  else if (species->collision_id == GKYL_FPO_COLLISIONS)
+    vm_species_fpo_rhs(app, species, &species->fpo, fin, rhs);
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -675,6 +680,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
 
   if (s->collision_id == GKYL_LBO_COLLISIONS)
     vm_species_lbo_release(app, &s->lbo);
+  else if (s->collision_id == GKYL_FPO_COLLISIONS)
+    vm_species_fpo_release(app, &s->fpo);
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {

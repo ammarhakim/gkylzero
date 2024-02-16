@@ -20,10 +20,13 @@
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_pkpm_vars.h>
 #include <gkyl_dg_calc_sr_vars.h>
+#include <gkyl_dg_fpo_vlasov_diff_coeff.h>
+#include <gkyl_dg_fpo_vlasov_drag_coeff.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_diffusion.h>
 #include <gkyl_dg_updater_lbo_vlasov.h>
+#include <gkyl_dg_updater_fpo_vlasov.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
@@ -48,6 +51,7 @@
 #include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_prim_lbo_vlasov_pkpm.h>
 #include <gkyl_proj_on_basis.h>
+#include <gkyl_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -114,6 +118,22 @@ struct vm_lbo_collisions {
 
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
+  gkyl_dg_updater_collisions *coll_slvr; // collision solver
+};
+
+struct vm_fpo_collisions {
+  struct gkyl_array *gamma, *gamma_host; // FPO Gamma factor
+  struct gkyl_array *h, *g; // Rosenbluth potentials
+
+  // Maxwellian potentials and derivatives on velocity space edges for boundary conditions
+  struct gkyl_array *h_surf, *g_surf;
+  struct gkyl_array *dhdv_surf, *dgdv_surf, *d2gdv2_surf;
+
+  struct gkyl_proj_maxwellian_pots_on_basis *pot_slvr; // potential solver for Maxwellian potentials
+
+  struct vm_species_moment moms; // moments needed in LBO (single array includes Zeroth, First, and Second moment)
+
+  struct gkyl_array *drag_coeff, *diff_coeff; // Drag and diffusion coefficients
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 };
 
@@ -227,7 +247,8 @@ struct vm_species {
   struct gkyl_array *magB_host;
 
   enum gkyl_collision_id collision_id; // type of collisions
-  struct vm_lbo_collisions lbo; // collisions object
+  struct vm_lbo_collisions lbo; // LBO collisions object
+  struct vm_fpo_collisions fpo; // FPO collisions object
 
   double *omegaCfl_ptr;
 };
@@ -593,6 +614,53 @@ void vm_species_lbo_apply_bc(struct gkyl_vlasov_app *app, const struct vm_lbo_co
  * @param sm Species LBO object to release
  */
 void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo);
+
+/** vm_species_fpo API */
+
+/**
+ * Initialize species fpo collisions object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param fpo Species fpo object
+ * @param collides_with_fluid Boolean for if kinetic species collides with a fluid species
+ */
+void vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_fpo_collisions *fpo);
+
+/**
+ * Compute drag and diffusion coefficients for update
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fpo Pointer to fpo
+ * @param fin Input distribution function
+ */
+void vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s,
+  struct vm_fpo_collisions *fpo, const struct gkyl_array *fin);
+
+/**
+ * Compute RHS from fpo collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param fpo Pointer to fpo
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from fpo
+ * @return Maximum stable time-step
+ */
+void vm_species_fpo_rhs(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_fpo_collisions *fpo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species fpo object.
+ *
+ * @param app Vlasov app object
+ * @param sm Species fpo object to release
+ */
+void vm_species_fpo_release(const struct gkyl_vlasov_app *app, const struct vm_fpo_collisions *fpo);
 
 /** vm_species_boundary_fluxes API */
 
