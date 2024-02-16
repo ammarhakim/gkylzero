@@ -67,6 +67,23 @@ struct gkyl_gyrokinetic_geometry_inp {
   struct gkyl_mirror_geo_grid_inp *mirror_grid_info; // context for mirror geometry with computational domain info
 
   double world[3]; // extra computational coordinates for cases with reduced dimensionality
+
+  // 3D grid ranges and basis
+  struct gkyl_rect_grid geo_grid;
+  struct gkyl_range geo_local;
+  struct gkyl_range geo_local_ext;
+  struct gkyl_range geo_global;
+  struct gkyl_range geo_global_ext;
+  struct gkyl_basis geo_basis;
+
+  // Grid ranges and basis with cdim of simulation
+  struct gkyl_rect_grid grid;
+  struct gkyl_range local;
+  struct gkyl_range local_ext;
+  struct gkyl_range global;
+  struct gkyl_range global_ext;
+  struct gkyl_basis basis;
+
 };
 
 
@@ -85,15 +102,7 @@ augment_local(const struct gkyl_range *inrange, const int *nghost, struct gkyl_r
  * param basis deflated basis
  * param use_gpu whether or not to use gpu
  */
-struct gk_geometry* 
-gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect_grid* grid, const struct gkyl_range *local, const struct gkyl_range* local_ext, 
-  const struct gkyl_basis* basis, bool use_gpu);
-
-/**
- * Create deflated geometry object on gpu
- */
-struct gk_geometry*
-gkyl_gk_geometry_deflate_cu_dev(const struct gk_geometry* up_3d, const struct gkyl_rect_grid* grid, const struct gkyl_range *local, const struct gkyl_range* local_ext, const struct gkyl_basis* basis);
+struct gk_geometry* gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gyrokinetic_geometry_inp *geometry_inp);
 
 /**
  * Acquire pointer to gk geometry object. The pointer must be released

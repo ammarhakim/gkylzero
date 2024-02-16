@@ -14,23 +14,22 @@
 
 
 struct gk_geometry*
-gkyl_gk_geometry_fromfile_new(struct gk_geometry* geo_host, const struct gkyl_rect_grid* grid, const struct gkyl_range *local, const struct gkyl_range* local_ext, const struct gkyl_range *global, const struct gkyl_range* global_ext, 
-  const struct gkyl_basis* basis, bool use_gpu)
+gkyl_gk_geometry_fromfile_new(struct gk_geometry* geo_host, struct gkyl_gyrokinetic_geometry_inp *geometry_inp, bool use_gpu)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_fromfile_cu_dev_new(geo_host, grid, local, local_ext, global, global_ext, basis);
+    return gkyl_gk_geometry_fromfile_cu_dev_new(geo_host, geometry_inp);
   } 
 #endif 
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
-  up->basis = *basis;
-  up->local = *local;
-  up->local_ext = *local_ext;
-  up->global = *global;
-  up->global_ext = *global_ext;
-  up->grid = *grid;
+  up->basis = geometry_inp->basis;
+  up->local = geometry_inp->local;
+  up->local_ext = geometry_inp->local_ext;
+  up->global = geometry_inp->global;
+  up->global_ext = geometry_inp->global_ext;
+  up->grid = geometry_inp->grid;
 
   // bmag, metrics and derived geo quantities
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);

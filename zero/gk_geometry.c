@@ -109,20 +109,14 @@ void augment_local(const struct gkyl_range *inrange,
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, const struct gkyl_rect_grid* grid, const struct gkyl_range *local, const struct gkyl_range* local_ext, 
-  const struct gkyl_basis* basis, bool use_gpu)
+gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gyrokinetic_geometry_inp *geometry_inp)
 {
-#ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_gk_geometry_deflate_cu_dev(up_3d, grid, local, local_ext, basis);
-  } 
-#endif 
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
-  up->basis = *basis;
-  up->local = *local;
-  up->local_ext = *local_ext;
-  up->grid = *grid;
+  up->basis = geometry_inp->basis;
+  up->local = geometry_inp->local;
+  up->local_ext = geometry_inp->local_ext;
+  up->grid = geometry_inp->grid;
 
   // bmag, metrics and derived geo quantities
   up->mc2p= gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);

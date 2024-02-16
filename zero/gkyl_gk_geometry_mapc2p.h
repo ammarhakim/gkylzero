@@ -4,28 +4,10 @@
 /**
  * Create a new geometry object using mac2p. 
  *
- * @param grid Grid on which geometry lives
- * @param local, _ext local config-space range and extended range on which geometry should be constructed
- * @param global, _ext global config-space range and extended 
- * @param basis configuration space basis
- * @param mapc2p Mapping from computational to physical space
- * @param mapc2p_ctx Context for use in mapping
- * @param bmag function which gives |B| in computational space
- * @param bmag_ctx Context for calculating |B|
- */
-struct gk_geometry* gkyl_gk_geometry_mapc2p_new(const struct gkyl_rect_grid* grid, 
-    const struct gkyl_range *local, const struct gkyl_range* local_ext, 
-    const struct gkyl_range *global, const struct gkyl_range* global_ext,
-    const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu);
-
-/**
- * Create a new gk geometry object that lives on NV-GPU: see new() method
- * above for documentation.
+ * @param geometry_inp geometry input struct containing grid, range, and other geo info
  */
 
-struct gk_geometry* gkyl_gk_geometry_mapc2p_cu_dev_new(const struct gkyl_rect_grid* grid, 
-    const struct gkyl_range *local, const struct gkyl_range* local_ext, 
-    const struct gkyl_range *global, const struct gkyl_range* global_ext,
-    const struct gkyl_basis* basis, evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx);
+struct gk_geometry* gkyl_gk_geometry_mapc2p_new(struct gkyl_gyrokinetic_geometry_inp *geometry_inp);
+
 
 

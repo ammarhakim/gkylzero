@@ -34,34 +34,28 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *local, const struct gkyl_range* local_ext,
-    const struct gkyl_range *global, const struct gkyl_range* global_ext, const struct gkyl_basis* basis, void* tok_rz_ctx,
-    void* tok_comp_ctx, bool use_gpu)
+gkyl_gk_geometry_tok_new(struct gkyl_gyrokinetic_geometry_inp *geometry_inp)
 {
-#ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_gk_geometry_tok_cu_dev_new(grid, local, local_ext, global, global_ext, basis, tok_rz_ctx, tok_comp_ctx);
-  } 
-#endif 
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
-  up->basis = *basis;
-  up->local = *local;
-  up->local_ext = *local_ext;
-  up->global = *global;
-  up->global_ext = *global_ext;
-  up->grid = *grid;
+  up->basis = geometry_inp->geo_basis;
+  up->local = geometry_inp->geo_local;
+  up->local_ext = geometry_inp->geo_local_ext;
+  up->global = geometry_inp->geo_global;
+  up->global_ext = geometry_inp->geo_global_ext;
+  up->grid = geometry_inp->geo_grid;
+
   struct gkyl_range nrange;
   double dzc[3] = {0.0};
 
-  int poly_order = basis->poly_order;
+  int poly_order = up->basis.poly_order;
   int nodes[GKYL_MAX_DIM];
   if (poly_order == 1) {
-    for (int d=0; d<grid->ndim; ++d)
+    for (int d=0; d<up->grid.ndim; ++d)
       nodes[d] = gkyl_range_shape(&up->local, d) + 1;
   }
   if (poly_order == 2) {
-    for (int d=0; d<grid->ndim; ++d)
+    for (int d=0; d<up->grid.ndim; ++d)
       nodes[d] = 2*gkyl_range_shape(&up->local, d) + 1;
   }
 
@@ -97,8 +91,8 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 
-  const struct gkyl_tok_geo_efit_inp *inp = tok_rz_ctx;
-  struct gkyl_tok_geo_grid_inp *ginp = tok_comp_ctx;
+  const struct gkyl_tok_geo_efit_inp *inp = geometry_inp->tok_efit_info;
+  struct gkyl_tok_geo_grid_inp *ginp = geometry_inp->tok_grid_info;
   ginp->cgrid = up->grid;
   ginp->cbasis = up->basis;
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(inp);

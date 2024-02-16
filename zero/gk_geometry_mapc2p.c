@@ -176,34 +176,28 @@ void gkyl_gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *
 
 
 struct gk_geometry*
-gkyl_gk_geometry_mapc2p_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *local, const struct gkyl_range* local_ext, 
-    const struct gkyl_range *global, const struct gkyl_range* global_ext, const struct gkyl_basis* basis,
-    evalf_t mapc2p_func, void* mapc2p_ctx, evalf_t bmag_func, void* bmag_ctx, bool use_gpu)
+gkyl_gk_geometry_mapc2p_new(struct gkyl_gyrokinetic_geometry_inp *geometry_inp)
 {
-#ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_gk_geometry_mapc2p_cu_dev_new(grid, local, local_ext, global, global_ext, basis, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx);
-  } 
-#endif 
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
-  up->basis = *basis;
-  up->local = *local;
-  up->local_ext = *local_ext;
-  up->global = *global;
-  up->global_ext = *global_ext;
-  up->grid = *grid;
+  up->basis = geometry_inp->geo_basis;
+  up->local = geometry_inp->geo_local;
+  up->local_ext = geometry_inp->geo_local_ext;
+  up->global = geometry_inp->geo_global;
+  up->global_ext = geometry_inp->geo_global_ext;
+  up->grid = geometry_inp->geo_grid;
+
   struct gkyl_range nrange;
   double dzc[3] = {0.0};
 
-  int poly_order = basis->poly_order;
+  int poly_order = up->basis.poly_order;
   int nodes[GKYL_MAX_DIM];
   if (poly_order == 1) {
-    for (int d=0; d<grid->ndim; ++d)
+    for (int d=0; d<up->grid.ndim; ++d)
       nodes[d] = gkyl_range_shape(&up->local, d) + 1;
   }
   if (poly_order == 2) {
-    for (int d=0; d<grid->ndim; ++d)
+    for (int d=0; d<up->grid.ndim; ++d)
       nodes[d] = 2*gkyl_range_shape(&up->local, d) + 1;
   }
 
@@ -234,7 +228,7 @@ gkyl_gk_geometry_mapc2p_new(const struct gkyl_rect_grid* grid, const struct gkyl
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 
-  gkyl_gk_geometry_mapc2p_advance(up, &nrange, dzc, mapc2p_func, mapc2p_ctx, bmag_func, bmag_ctx, 
+  gkyl_gk_geometry_mapc2p_advance(up, &nrange, dzc, geometry_inp->mapc2p, geometry_inp->c2p_ctx, geometry_inp->bmag_func, geometry_inp->bmag_ctx, 
   mc2p_nodal_fd, mc2p_nodal, up->mc2p);
 
   up->flags = 0;
