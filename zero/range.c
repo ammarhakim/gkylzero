@@ -61,7 +61,7 @@ calc_volume_safely(int ndim, const int *lower, const int *upper)
   long vol = 1L;
   for (int i=0; i<ndim; ++i) {
     vol *= upper[i]-lower[i]+1;
-    is_zero_vol = GKYL_MAX(is_zero_vol, upper[i]<lower[i] ? 1 : 0);
+    is_zero_vol = GKYL_MAX2(is_zero_vol, upper[i]<lower[i] ? 1 : 0);
   }
   if (is_zero_vol) vol = 0;
   return vol;
@@ -71,6 +71,9 @@ void
 gkyl_range_init(struct gkyl_range *rng, int ndim,
   const int *lower, const int *upper)
 {
+//  // MF 2023/07/07: commenting this out because it causes seg faults in g2.
+//  *rng = (struct gkyl_range) { };
+  
   int is_zero_vol = 0;
   rng->ndim = ndim;
   rng->volume = 1L;
@@ -79,7 +82,7 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
     rng->upper[i] = upper[i];
     rng->volume *= upper[i]-lower[i]+1;
     // need to handle case when upper[i]<lower[i]
-    is_zero_vol = GKYL_MAX(is_zero_vol, upper[i]<lower[i] ? 1 : 0);
+    is_zero_vol = GKYL_MAX2(is_zero_vol, upper[i]<lower[i] ? 1 : 0);
   }
   // reset volume if any lower[d] <= upper[d]
   if (is_zero_vol) rng->volume = 0;
@@ -110,6 +113,36 @@ gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim, const int *shape)
     up[i] = shape[i]-1;
   }
   gkyl_range_init(rng, ndim, lo, up);
+}
+
+void
+gkyl_range_ten_prod(struct gkyl_range *rng, const struct gkyl_range *a, const struct gkyl_range *b)
+{
+  int adim = a->ndim, bdim = b->ndim;
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<adim; ++d) {
+    lower[d] = a->lower[d];
+    upper[d] = a->upper[d];
+  }
+  for (int d=0; d<bdim; ++d) {
+    lower[adim+d] = b->lower[d];
+    upper[adim+d] = b->upper[d];
+  }
+  gkyl_range_init(rng, adim+bdim, lower, upper);
+}
+
+void
+gkyl_range_shift(struct gkyl_range *rng, const struct gkyl_range *inp,
+  const int *delta)
+{
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<inp->ndim; ++d) {
+    lower[d] = inp->lower[d] + delta[d];
+    upper[d] = inp->upper[d] + delta[d];
+  }
+  gkyl_range_init(rng, inp->ndim, lower, upper);
 }
 
 int
@@ -377,7 +410,7 @@ gkyl_sub_range_intersect(struct gkyl_range* irng,
     up[d] = r1->upper[d] < r2->upper[d] ? r1->upper[d] : r2->upper[d];
   }
   
-  long vol = calc_volume_safely(ndim, lo, up);
+  long vol = irng->volume = calc_volume_safely(ndim, lo, up);
   if (vol > 0)
     gkyl_sub_range_init(irng, r1, lo, up);
   else
@@ -385,13 +418,32 @@ gkyl_sub_range_intersect(struct gkyl_range* irng,
   return irng->volume > 0 ? 1 : 0;
 }
 
+bool
+gkyl_range_is_on_lower_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent)
+{
+  if (range->lower[dir] == parent->lower[dir])
+    return true;
+  return false;
+  
+}
+
+bool
+gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
+  const struct gkyl_range *parent)
+{
+  if (range->upper[dir] == parent->upper[dir])
+    return true;
+  return false;  
+}
+    
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
-  iter->bumps_left = range_calc_split(range, iter->idx);
+  iter->bumps_left = range->volume > 0? range_calc_split(range, iter->idx) : 0;
   
   for (int i=0; i<range->ndim; ++i) {
     iter->lower[i] = range->lower[i];
@@ -405,7 +457,7 @@ gkyl_range_iter_no_split_init(struct gkyl_range_iter *iter,
 {
   iter->is_first = 1;
   iter->ndim = range->ndim;
-  iter->bumps_left = range->volume;
+  iter->bumps_left = range->volume > 0? range_calc_split(range, iter->idx) : 0;
   
   for (int i=0; i<range->ndim; ++i) {
     iter->idx[i] = iter->lower[i] = range->lower[i];
@@ -459,5 +511,6 @@ gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
   fprintf(fp, " volume = %ld, ", range->volume );
   fprintf(fp, " is_sub_range = %d", gkyl_range_is_sub_range(range) );
   
-  fprintf(fp, " }\n ");
+  fprintf(fp, " }\n");
+  fflush(fp);
 }

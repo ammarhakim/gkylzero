@@ -41,11 +41,11 @@ void
 moment_apply_periodic_bc(const gkyl_moment_app *app, struct gkyl_array *bc_buffer,
   int dir, struct gkyl_array *f)
 {
-  gkyl_array_copy_to_buffer(bc_buffer->data, f, app->skin_ghost.lower_skin[dir]);
-  gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  gkyl_array_copy_to_buffer(bc_buffer->data, f,   &(app->skin_ghost.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.upper_ghost[dir]));
 
-  gkyl_array_copy_to_buffer(bc_buffer->data, f, app->skin_ghost.upper_skin[dir]);
-  gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  gkyl_array_copy_to_buffer(bc_buffer->data, f,   &(app->skin_ghost.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.lower_ghost[dir]));
 }
 
 void
@@ -57,8 +57,8 @@ moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gkyl_arr
   if (app->ndim == 2) {
     // LL skin cell -> UU ghost cell
     idx_src = gkyl_range_idx(&app->local, (int[]) {app->local.lower[0],app->local.lower[1]});
-    idx_dest = gkyl_range_idx(&app->local, (int[]) {app->local.upper[0]+1,app->local.upper[1]+1});
-    
+    idx_dest = gkyl_range_idx(&app->local_ext, (int[]) {app->local.upper[0]+1,app->local.upper[1]+1});
+
     out = (double*) gkyl_array_fetch(f, idx_dest);
     inp = (const double*) gkyl_array_cfetch(f, idx_src);
     gkyl_copy_double_arr(f->ncomp, inp, out);
@@ -66,7 +66,7 @@ moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gkyl_arr
     // LU skin cell -> UL ghost cell
     idx_src = gkyl_range_idx(&app->local, (int[]) {app->local.lower[0],app->local.upper[1]});
     idx_dest = gkyl_range_idx(&app->local_ext, (int[]) {app->local.upper[0]+1,app->local.lower[1]-1});
-    
+
     out = (double*) gkyl_array_fetch(f, idx_dest);
     inp = (const double*) gkyl_array_cfetch(f, idx_src);
     gkyl_copy_double_arr(f->ncomp, inp, out);
@@ -74,7 +74,7 @@ moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gkyl_arr
     // UL skin cell -> LU ghost cell
     idx_src = gkyl_range_idx(&app->local, (int[]) {app->local.upper[0],app->local.lower[1]});
     idx_dest = gkyl_range_idx(&app->local_ext, (int[]) {app->local.lower[0]-1,app->local.upper[1]+1});
-    
+
     out = (double*) gkyl_array_fetch(f, idx_dest);
     inp = (const double*) gkyl_array_cfetch(f, idx_src);
     gkyl_copy_double_arr(f->ncomp, inp, out);
@@ -82,7 +82,7 @@ moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gkyl_arr
     // UU skin cell -> LL ghost cell
     idx_src = gkyl_range_idx(&app->local, (int[]) {app->local.upper[0],app->local.upper[1]});
     idx_dest = gkyl_range_idx(&app->local_ext, (int[]) {app->local.lower[0]-1,app->local.lower[1]-1});
-    
+
     out = (double*) gkyl_array_fetch(f, idx_dest);
     inp = (const double*) gkyl_array_cfetch(f, idx_src);
     gkyl_copy_double_arr(f->ncomp, inp, out);
@@ -97,9 +97,9 @@ moment_apply_wedge_bc(const gkyl_moment_app *app, double tcurr,
   struct gkyl_array *f)
 {
   gkyl_wv_apply_bc_to_buff(lo, tcurr, update_rng, f, bc_buffer->data);
-  gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.upper_ghost[dir]);
+  gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.upper_ghost[dir]));
 
   gkyl_wv_apply_bc_to_buff(up, tcurr, update_rng, f, bc_buffer->data);
-  gkyl_array_copy_from_buffer(f, bc_buffer->data, app->skin_ghost.lower_ghost[dir]);
+  gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.lower_ghost[dir]));
 }
 

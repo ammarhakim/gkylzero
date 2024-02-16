@@ -15,13 +15,13 @@ gkyl_dg_updater_gyrokinetic_acquire_eqn(const gkyl_dg_updater_gyrokinetic* gyrok
   return gkyl_dg_eqn_acquire(gyrokinetic->dgeqn);
 }
 
-gkyl_dg_updater_gyrokinetic*
+struct gkyl_dg_updater_gyrokinetic*
 gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+  const struct gkyl_range *conf_range, const bool *is_zero_flux_dir,
   enum gkyl_gkeqn_id eqn_id, double charge, double mass, bool use_gpu)
 {
-  gkyl_dg_updater_gyrokinetic *up = gkyl_malloc(sizeof(gkyl_dg_updater_gyrokinetic));
+  struct gkyl_dg_updater_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_dg_updater_gyrokinetic));
 
   up->use_gpu = use_gpu;
 
@@ -38,6 +38,8 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   for (int d=0; d<num_up_dirs; ++d) up_dirs[d] = d;
 
   int zero_flux_flags[GKYL_MAX_DIM] = {0};
+  for (int d=0; d<cdim; ++d)
+    zero_flux_flags[d] = is_zero_flux_dir[d]? 1 : 0;
   for (int d=cdim; d<pdim; ++d)
     zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
 
@@ -48,7 +50,7 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
 }
 
 void
-gkyl_dg_updater_gyrokinetic_advance(gkyl_dg_updater_gyrokinetic *up,
+gkyl_dg_updater_gyrokinetic_advance(struct gkyl_dg_updater_gyrokinetic *up,
   const struct gkyl_range *update_rng,
   const struct gkyl_array *bmag, const struct gkyl_array *jacobtot_inv,
   const struct gkyl_array *cmag, const struct gkyl_array *b_i,
@@ -73,7 +75,7 @@ gkyl_dg_updater_gyrokinetic_advance(gkyl_dg_updater_gyrokinetic *up,
 }
 
 void
-gkyl_dg_updater_gyrokinetic_release(gkyl_dg_updater_gyrokinetic* up)
+gkyl_dg_updater_gyrokinetic_release(struct gkyl_dg_updater_gyrokinetic* up)
 {
   gkyl_dg_eqn_release(up->dgeqn);
   gkyl_hyper_dg_release(up->hyperdg);

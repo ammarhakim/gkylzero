@@ -1,12 +1,11 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_ser_4x_p2_surfx4_eval_quad.h> 
 #include <gkyl_basis_ser_4x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_poisson_extem_surfvz_1x3v_ser_p2(const double *w, const double *dxv, const double *field, const double *ext_field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_extem_surfvz_1x3v_ser_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
-  // field:     potential (scaled by appropriate factors).
-  // ext_field: vector potential (scaled by appropriate factors). 
+  // field:     potentials, including external (scaled by appropriate factors).
   // fl/fc/fr:  Input Distribution function in left/center/right cells 
   // out:       Output distribution function in center cell 
   const double dv12 = 2/dxv[3]; 
@@ -15,9 +14,9 @@ GKYL_CU_DH void vlasov_poisson_extem_surfvz_1x3v_ser_p2(const double *w, const d
   const double dv3 = dxv[3], wv3 = w[3]; 
   const double *phi = &field[0]; 
   const double dx10 = 2/dxv[0]; 
-  const double *A0 = &ext_field[0]; 
-  const double *A1 = &ext_field[3]; 
-  const double *A2 = &ext_field[6]; 
+  const double *A0 = &field[3]; 
+  const double *A1 = &field[6]; 
+  const double *A2 = &field[9]; 
   double alpha[20] = {0.0}; 
 
   alpha[0] = -3.464101615137754*A2[1]*dx10*wv1; 
@@ -316,5 +315,7 @@ GKYL_CU_DH void vlasov_poisson_extem_surfvz_1x3v_ser_p2(const double *w, const d
   out[45] += -1.224744871391589*(Ghat_r[18]+Ghat_l[18])*dv12; 
   out[46] += -1.224744871391589*(Ghat_r[19]+Ghat_l[19])*dv12; 
   out[47] += (1.58113883008419*Ghat_l[10]-1.58113883008419*Ghat_r[10])*dv12; 
+
+  return 0.;
 
 } 

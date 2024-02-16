@@ -38,15 +38,15 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
 
   // complete update of species
   for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, app->local),
-      1.0, fin[i], app->local);
+    gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, &(app->local)),
+      1.0, fin[i], &(app->local));
     moment_species_apply_bc(app, tcurr, &app->species[i], fout[i]);
   }
   if (app->has_field) {
     // complete update of field (even when field is static, it is
     // safest to do this accumulate as it ensure emout = emin)
-    gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, app->local),
-      1.0, emin, app->local);
+    gkyl_array_accumulate_range(gkyl_array_scale_range(emout, dta, &(app->local)),
+      1.0, emin, &(app->local));
     
     moment_field_apply_bc(app, tcurr, &app->field, emout);
   }
@@ -103,10 +103,10 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
         } else {
           for (int i=0; i<app->num_species; ++i)
             array_combine(app->species[i].f1,
-              3.0/4.0, app->species[i].f0, 1.0/4.0, app->species[i].fnew, app->local_ext);
+              3.0/4.0, app->species[i].f0, 1.0/4.0, app->species[i].fnew, &app->local_ext);
           if (app->has_field)
             array_combine(app->field.f1,
-              3.0/4.0, app->field.f0, 1.0/4.0, app->field.fnew, app->local_ext);
+              3.0/4.0, app->field.f0, 1.0/4.0, app->field.fnew, &app->local_ext);
 
           state = RK_STAGE_3;
         }
@@ -137,13 +137,13 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
         else {
           for (int i=0; i<app->num_species; ++i) {
             array_combine(app->species[i].f1,
-              1.0/3.0, app->species[i].f0, 2.0/3.0, app->species[i].fnew, app->local_ext);
-            gkyl_array_copy_range(app->species[i].f0, app->species[i].f1, app->local_ext);
+              1.0/3.0, app->species[i].f0, 2.0/3.0, app->species[i].fnew, &app->local_ext);
+            gkyl_array_copy_range(app->species[i].f0, app->species[i].f1, &app->local_ext);
           }
           if (app->has_field) {
             array_combine(app->field.f1,
-              1.0/3.0, app->field.f0, 2.0/3.0, app->field.fnew, app->local_ext);
-            gkyl_array_copy_range(app->field.f0, app->field.f1, app->local_ext);
+              1.0/3.0, app->field.f0, 2.0/3.0, app->field.fnew, &app->local_ext);
+            gkyl_array_copy_range(app->field.f0, app->field.f1, &app->local_ext);
           }
           
           state = RK_COMPLETE;

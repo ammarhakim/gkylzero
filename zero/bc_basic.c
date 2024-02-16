@@ -81,9 +81,9 @@ gkyl_bc_basic_create_arr_copy_func(int dir, int cdim, enum gkyl_bc_basic_type bc
 }
 
 struct gkyl_bc_basic*
-gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *local_range_ext,
-  const int *num_ghosts, enum gkyl_bc_basic_type bctype, const struct gkyl_basis *basis,
-  int num_comp, int cdim, bool use_gpu)
+gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, enum gkyl_bc_basic_type bctype,
+  const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, int num_comp, int cdim, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -94,10 +94,8 @@ gkyl_bc_basic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_range *loc
   up->edge = edge;
   up->bctype = bctype;
   up->use_gpu = use_gpu;
-
-  // Create the skin/ghost ranges.
-  gkyl_skin_ghost_ranges(&up->skin_r, &up->ghost_r, dir, edge,
-    local_range_ext, num_ghosts);
+  up->skin_r = skin_r;
+  up->ghost_r = ghost_r;
 
   // Create function applied to array contents (DG coefficients) when
   // copying to/from buffer.

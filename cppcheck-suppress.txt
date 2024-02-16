@@ -1,0 +1,2 @@
+useClosedFile:zero/array_rio.c
+useClosedFile:zero/dynvec.c

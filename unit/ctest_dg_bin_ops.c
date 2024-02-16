@@ -1,4 +1,3 @@
-#include "gkyl_util.h"
 #include <acutest.h>
 #include <math.h>
 
@@ -8,6 +7,7 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_util.h>
 
 void f_1d(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -338,7 +338,7 @@ test_1d(int poly_order, bool use_gpu)
     gkyl_dg_calc_l2_range(basis, 1, mvals_cu, 0, distf_cu, arr_range);
 
     double* al2_cu = (double*) gkyl_cu_malloc(sizeof(double[2]));
-    gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, arr_range);
+    gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, &arr_range);
   
     gkyl_cu_memcpy(al2, al2_cu, sizeof(double[2]), GKYL_CU_MEMCPY_D2H);
     gkyl_cu_free(al2_cu);
@@ -352,7 +352,7 @@ test_1d(int poly_order, bool use_gpu)
     // L2 are stored in h[1]
     gkyl_dg_calc_l2_range(basis, 1, mvals, 0, distf, arr_range);
 
-    gkyl_array_reduce_range(al2, mvals, GKYL_SUM, arr_range);
+    gkyl_array_reduce_range(al2, mvals, GKYL_SUM, &arr_range);
     gkyl_array_release(mvals);
   }
 
@@ -791,7 +791,7 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_dg_calc_l2_range(basis, 1, mvals_cu, 0, distf_cu, arr_range);
 
     double* al2_cu = (double*) gkyl_cu_malloc(sizeof(double[2]));
-    gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, arr_range);
+    gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, &arr_range);
 
     gkyl_cu_memcpy(al2, al2_cu, sizeof(double[2]), GKYL_CU_MEMCPY_D2H);
     gkyl_cu_free(al2_cu);
@@ -805,7 +805,7 @@ test_2d(int poly_order, bool use_gpu)
     // L2 are stored in h[1]
     gkyl_dg_calc_l2_range(basis, 1, mvals, 0, distf, arr_range);
 
-    gkyl_array_reduce_range(al2, mvals, GKYL_SUM, arr_range);
+    gkyl_array_reduce_range(al2, mvals, GKYL_SUM, &arr_range);
     gkyl_array_release(mvals);
   }
 
@@ -1228,7 +1228,7 @@ test_3d(int poly_order, bool use_gpu)
     gkyl_dg_calc_l2_range(basis, 1, mvals_cu, 0, distf_cu, arr_range);
 
     double* al2_cu = (double*) gkyl_cu_malloc(sizeof(double[2]));
-    gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, arr_range);
+    gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, &arr_range);
 
     gkyl_cu_memcpy(al2, al2_cu, sizeof(double[2]), GKYL_CU_MEMCPY_D2H);
     gkyl_cu_free(al2_cu);
@@ -1242,7 +1242,7 @@ test_3d(int poly_order, bool use_gpu)
     // L2 are stored in h[1]
     gkyl_dg_calc_l2_range(basis, 1, mvals, 0, distf, arr_range);
 
-    gkyl_array_reduce_range(al2, mvals, GKYL_SUM, arr_range);
+    gkyl_array_reduce_range(al2, mvals, GKYL_SUM, &arr_range);
     gkyl_array_release(mvals);
   }
 

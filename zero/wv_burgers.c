@@ -45,7 +45,8 @@ rot_to_global(const double *tau1, const double *tau2, const double *norm,
 // Waves and speeds using Roe averaging
 static double
 wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
-  const double *delta, const double *ql, const double *qr, double *waves, double *s)
+  const double *delta, const double *ql, const double *qr, 
+  double *waves, double *s)
 {
   const struct wv_burgers *burgers = container_of(eqn, struct wv_burgers, eqn);
 
@@ -61,11 +62,37 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   double *amdq, double *apdq)
 {
   amdq[0] = apdq[0] = 0.0;
-  double s0 = 0.5*(ql[0]+qr[0]);  
-  if (s0 < 0)
-    amdq[0] = s0*(qr[0]-ql[0]);
+  if (s[0] < 0)
+    amdq[0] = s[0]*waves[0];
   else
-    apdq[0] = s0*(qr[0]-ql[0]);
+    apdq[0] = s[0]*waves[0];
+
+  if ((ql[0]<0.0) && (0.0<qr[0])) {
+    amdq[0] = -0.5*ql[0]*ql[0];
+    apdq[0] = 0.5*qr[0]*qr[0];
+  }  
+}
+
+static void
+ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+  const double *ql, const double *qr, const double *waves, const double *s,
+  double *amdq, double *apdq)
+{
+  amdq[0] = apdq[0] = 0.0;
+
+  if (fabs(s[0]) < 1e-15) {
+    amdq[0] = apdq[0] = 0.5*waves[0];
+  }
+  else {
+    if (s[0] < 0)
+      amdq[0] = waves[0];
+    else
+      apdq[0] = waves[0];
+  }
+  if ((ql[0]<0.0) && (0.0<qr[0])) {
+    amdq[0] = 0.0 -0.5*ql[0]*ql[0];
+    apdq[0] = 0.5*qr[0]*qr[0] - 0.0;
+  }
 }
 
 static double
@@ -100,11 +127,11 @@ gkyl_wv_burgers_new(void)
   
   burgers->eqn.waves_func = wave_roe;
   burgers->eqn.qfluct_func = qfluct_roe;
+  burgers->eqn.ffluct_func = ffluct_roe;
+
   burgers->eqn.flux_jump = flux_jump;
-  
   burgers->eqn.check_inv_func = check_inv;
   burgers->eqn.max_speed_func = max_speed;
-
   burgers->eqn.rotate_to_local_func = rot_to_local;
   burgers->eqn.rotate_to_global_func = rot_to_global;
 

@@ -92,6 +92,45 @@ gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_ran
   return decomp;
 }
 
+// ext_range = a X b 
+static void
+init_extend_range(struct gkyl_range *ext_range,
+  const struct gkyl_range *a, const struct gkyl_range *b)
+{
+  int adim = a->ndim, bdim = b->ndim;
+  int lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+
+  for (int d=0; d<adim; ++d) {
+    lower[d] = a->lower[d];
+    upper[d] = a->upper[d];
+  }
+  for (int d=0; d<bdim; ++d) {
+    lower[adim+d] = b->lower[d];
+    upper[adim+d] = b->upper[d];
+  }
+
+  gkyl_range_init(ext_range, adim+bdim, lower, upper);
+}
+
+struct gkyl_rect_decomp*
+gkyl_rect_decomp_extended_new(const struct gkyl_range *arange,
+  const struct gkyl_rect_decomp *decomp)
+{
+  struct gkyl_rect_decomp *extd = gkyl_malloc(sizeof(*extd));
+
+  int ndecomp =  extd->ndecomp = decomp->ndecomp;  
+  int ndim = extd->ndim = arange->ndim + decomp->ndim;
+  extd->ranges = gkyl_malloc(sizeof(struct gkyl_range[ndecomp]));
+
+  gkyl_range_ten_prod(&extd->parent_range, &decomp->parent_range, arange);
+  for (int n=0; n<ndecomp; ++n)
+    gkyl_range_ten_prod(&extd->ranges[n], &decomp->ranges[n], arange);
+
+  extd->ref_count = gkyl_ref_count_init(rect_decomp_free);
+  
+  return extd;
+}
+
 struct gkyl_rect_decomp*
 gkyl_rect_decomp_acquire(const struct gkyl_rect_decomp *decomp)
 {
@@ -202,6 +241,63 @@ gkyl_rect_decomp_calc_neigh(const struct gkyl_rect_decomp *decomp,
   if (inc_corners)
     return calc_neigh_with_corners(decomp, nidx);
   return calc_neigh_no_corners(decomp, nidx);
+}
+
+struct gkyl_rect_decomp_neigh*
+gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
+  int dir, bool inc_corners, int nidx)
+{
+  struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
+  cont->l_neigh = cvec_int_init();
+
+  const struct gkyl_range *curr = &decomp->ranges[nidx];
+
+  int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
+  elo[dir] = eup[dir] = 1; // only extend in 1 direction
+  
+  if (gkyl_range_is_on_lower_edge(dir, curr, &decomp->parent_range)) {
+    int delta[GKYL_MAX_DIM] = { 0 };
+    delta[dir] = gkyl_range_shape(&decomp->parent_range, dir);
+    
+    struct gkyl_range curr_shift;
+    gkyl_range_shift(&curr_shift, curr, delta);
+      
+    struct gkyl_range shift_erng;
+    gkyl_range_extend(&shift_erng, &curr_shift, elo, eup);
+
+    for (int i=0; i<decomp->ndecomp; ++i)
+      if (gkyl_range_is_on_upper_edge(dir, &decomp->ranges[i], &decomp->parent_range)) {
+        struct gkyl_range irng;
+        int is_inter = gkyl_range_intersect(&irng, &shift_erng,
+          &decomp->ranges[i]);
+        if (is_inter)
+          cvec_int_push_back(&cont->l_neigh, i);
+      }
+  }
+  else if (gkyl_range_is_on_upper_edge(dir, curr, &decomp->parent_range)) {
+    int delta[GKYL_MAX_DIM] = { 0 };
+    delta[dir] = -gkyl_range_shape(&decomp->parent_range, dir);
+    
+    struct gkyl_range curr_shift;
+    gkyl_range_shift(&curr_shift, curr, delta);
+      
+    struct gkyl_range shift_erng;
+    gkyl_range_extend(&shift_erng, &curr_shift, elo, eup);
+
+    for (int i=0; i<decomp->ndecomp; ++i)
+      if (gkyl_range_is_on_lower_edge(dir, &decomp->ranges[i], &decomp->parent_range)) {
+        struct gkyl_range irng;
+        int is_inter = gkyl_range_intersect(&irng, &shift_erng,
+          &decomp->ranges[i]);
+        if (is_inter)
+          cvec_int_push_back(&cont->l_neigh, i);        
+      }
+  }
+
+  cont->neigh.num_neigh = cvec_int_size(cont->l_neigh);  
+  cont->neigh.neigh = cvec_int_front(&cont->l_neigh);  
+  
+  return &cont->neigh;
 }
 
 void

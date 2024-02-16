@@ -140,7 +140,8 @@ proj_on_basis(const gkyl_spitzer_coll_freq *up, const struct gkyl_array *fun_at_
 
 void
 calc_nu(const gkyl_spitzer_coll_freq *up, struct gkyl_range qrange, const double *vtSqSelf_d,
-  const double *m0Other_d, const double *vtSqOther_d, double normNu, long linidx, struct gkyl_array *nuOut)
+  double vtSqMinSelf, const double *m0Other_d, const double *vtSqOther_d, double vtSqMinOther,
+  double normNu, long linidx, struct gkyl_array *nuOut)
 {
   // Perform the multiplication of normNu*n_r/(v_ts^2+v_tr^2)^(3/2) via
   // quadrature in one cell.
@@ -161,8 +162,17 @@ calc_nu(const gkyl_spitzer_coll_freq *up, struct gkyl_range qrange, const double
 
     double *fq = gkyl_array_fetch(up->fun_at_ords, qidx);
 
-    fq[0] = ((m0Other_q>0.) && (vtSqSelf_q>0.) && (vtSqOther_q>0.)) ?
-      normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqOther_q),3) : 1.e-14;
+    if (m0Other_q<0.) {
+      fq[0] = 0.;
+    } else if ((vtSqSelf_q < vtSqMinSelf) && (vtSqOther_q < vtSqMinOther)) {
+      fq[0] = normNu*m0Other_q/pow(sqrt(vtSqMinSelf+vtSqMinOther),3);
+    } else if (vtSqSelf_q < vtSqMinSelf) {
+      fq[0] = normNu*m0Other_q/pow(sqrt(vtSqMinSelf+vtSqOther_q),3);
+    } else if (vtSqOther_q < vtSqMinOther) {
+      fq[0] = normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqMinOther),3);
+    } else {
+      fq[0] = normNu*m0Other_q/pow(sqrt(vtSqSelf_q+vtSqOther_q),3);
+    }
   }
 
   // compute expansion coefficients of Maxwellian on basis
@@ -171,8 +181,8 @@ calc_nu(const gkyl_spitzer_coll_freq *up, struct gkyl_range qrange, const double
 
 void
 gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
-  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf,
-  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther,
+  const struct gkyl_range *range, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
+  const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
   double normNu, struct gkyl_array *nuOut)
 {
   // Scale project normNu*n_r/(v_ts^2+v_tr^2)^(3/2) onto the basis using
@@ -181,7 +191,7 @@ gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     return gkyl_spitzer_coll_freq_advance_normnu_cu(up, range, vtSqSelf, 
-      m0Other, vtSqOther, normNu, nuOut);
+      vtSqMinSelf, m0Other, vtSqOther, vtSqMinOther, normNu, nuOut);
 #endif
 
   // Create range to loop over quadrature points.
@@ -196,7 +206,7 @@ gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
     const double *m0Other_d = gkyl_array_cfetch(m0Other, linidx);
     const double *vtSqOther_d = gkyl_array_cfetch(vtSqOther, linidx);
 
-    calc_nu(up, qrange, vtSqSelf_d, m0Other_d, vtSqOther_d, normNu, linidx, nuOut);
+    calc_nu(up, qrange, vtSqSelf_d, vtSqMinSelf, m0Other_d, vtSqOther_d, vtSqMinOther, normNu, linidx, nuOut);
   }
 
 }
@@ -204,8 +214,8 @@ gkyl_spitzer_coll_freq_advance_normnu(const gkyl_spitzer_coll_freq *up,
 void
 gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
   const struct gkyl_range *range, const struct gkyl_array *bmag,  
-  double qSelf, double mSelf, const struct gkyl_array *m0Self, const struct gkyl_array *vtSqSelf,
-  double qOther, double mOther, const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther,
+  double qSelf, double mSelf, const struct gkyl_array *m0Self, const struct gkyl_array *vtSqSelf, double vtSqMinSelf,
+  double qOther, double mOther, const struct gkyl_array *m0Other, const struct gkyl_array *vtSqOther, double vtSqMinOther,
   struct gkyl_array *nuOut)
 {
   // Compute the Spitzer-like collision frequency
@@ -216,8 +226,8 @@ gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_spitzer_coll_freq_advance_cu(up, range, bmag, qSelf, mSelf, m0Self, vtSqSelf, 
-      qOther, mOther, m0Other, vtSqOther, nuOut);
+    return gkyl_spitzer_coll_freq_advance_cu(up, range, bmag, qSelf, mSelf, m0Self, vtSqSelf,
+      vtSqMinSelf, qOther, mOther, m0Other, vtSqOther, vtSqMinOther, nuOut);
 #endif
 
   double mReduced = 1./(1./mSelf+1./mOther);
@@ -239,10 +249,10 @@ gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
 
     // Compute the Coulomb logarithm using cell-average values.
     double bmagAv = bmag_d[0]*up->cellav_fac;
-    double m0SelfAv = m0Self_d[0]*up->cellav_fac;
-    double vtSqSelfAv = vtSqSelf_d[0]*up->cellav_fac;
-    double m0OtherAv = m0Other_d[0]*up->cellav_fac;
-    double vtSqOtherAv = vtSqOther_d[0]*up->cellav_fac;
+    double m0SelfAv    =    m0Self_d[0] < 0.? 1.e-14 : m0Self_d[0]*up->cellav_fac;
+    double vtSqSelfAv  =  vtSqSelf_d[0] < vtSqMinSelf?  vtSqMinSelf*up->cellav_fac  : vtSqSelf_d[0]*up->cellav_fac;
+    double m0OtherAv   =   m0Other_d[0] < 0.? 1.e-14 : m0Other_d[0]*up->cellav_fac;
+    double vtSqOtherAv = vtSqOther_d[0] < vtSqMinOther? vtSqMinOther*up->cellav_fac : vtSqOther_d[0]*up->cellav_fac;
 
     double omegaSqSumSelf  = m0SelfAv*pow(qSelf,2)/(up->eps0*mSelf)+pow(qSelf*bmagAv/mSelf,2);
     double omegaSqSumOther = m0OtherAv*pow(qOther,2)/(up->eps0*mOther)+pow(qOther*bmagAv/mOther,2);
@@ -255,14 +265,14 @@ gkyl_spitzer_coll_freq_advance(const gkyl_spitzer_coll_freq *up,
 
     double uRelSq = 3.*(vtSqOtherAv+vtSqSelfAv);
 
-    double rMin = GKYL_MAX(fabs(qSelf*qOther)*up->r4pieps0_fac/(mReduced*uRelSq), up->hbar_fac/(mReduced*sqrt(uRelSq)));
+    double rMin = GKYL_MAX2(fabs(qSelf*qOther)*up->r4pieps0_fac/(mReduced*uRelSq), up->hbar_fac/(mReduced*sqrt(uRelSq)));
 
     double logLambda = 0.5*(0.5*log(1.+pow(rmaxSelf/rMin,2))+0.5*log(1.+pow(rmaxOther/rMin,2)));
 
     // Normalized nu (nu missing density and temperature factors).
     double normNu = timeConstFac*logLambda;
 
-    calc_nu(up, qrange, vtSqSelf_d, m0Other_d, vtSqOther_d, normNu, linidx, nuOut);
+    calc_nu(up, qrange, vtSqSelf_d, vtSqMinSelf, m0Other_d, vtSqOther_d, vtSqMinOther, normNu, linidx, nuOut);
   }
 
 }

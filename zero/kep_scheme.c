@@ -1,9 +1,9 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_kep_scheme.h>
-#include <gkyl_moment_prim_euler.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_euler_priv.h>
 
 #include <float.h>
 #include <math.h>
@@ -127,7 +127,7 @@ calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
   const struct gkyl_array *qin,   struct gkyl_array *alpha)
 {
   int ndim = update_rng->ndim;
-  gkyl_array_clear_range(alpha, 0.0, *update_rng);
+  gkyl_array_clear_range(alpha, 0.0, update_rng);
 
   double eps = 1e-14; // to prevent div by 0.0
   double nu = 0.1;
@@ -209,7 +209,7 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
 
   double vm[5], vp[5], flux[5], lflux[5];
 
-  gkyl_array_clear_range(rhs, 0.0, *update_rng);
+  gkyl_array_clear_range(rhs, 0.0, update_rng);
 
   if (kep->use_hybrid_flux)
     calc_alpha(kep, update_rng, qin, alpha);

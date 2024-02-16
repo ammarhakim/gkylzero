@@ -19,6 +19,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   app->tcurr = 0.0; // reset on init
 
   app->scheme_type = mom->scheme_type;
+  
   app->mp_recon = mom->mp_recon;
   app->use_hybrid_flux_kep = mom->use_hybrid_flux_kep;
   
@@ -44,18 +45,38 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     
     if (mom->low_inp.comm)
       app->comm = gkyl_comm_acquire(mom->low_inp.comm);
-    else
-      app->comm = gkyl_null_comm_new();
+    else {
+      int cuts[] = { 1, 1, 1 };
+      struct gkyl_rect_decomp *rect_decomp =
+        gkyl_rect_decomp_new_from_cuts(ndim, cuts, &app->global);
+      
+      app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+          .decomp = rect_decomp
+        }
+      );
+
+      gkyl_rect_decomp_release(rect_decomp);
+    }
   }
   else {
     // global and local ranges are same, and so just copy
     memcpy(&app->local, &app->global, sizeof(struct gkyl_range));
     memcpy(&app->local_ext, &app->global_ext, sizeof(struct gkyl_range));
-    app->comm = gkyl_null_comm_new();
-  }
-  
-  skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);
 
+    int cuts[] = { 1, 1, 1 };
+    struct gkyl_rect_decomp *rect_decomp =
+      gkyl_rect_decomp_new_from_cuts(ndim, cuts, &app->global);
+    
+    app->comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .decomp = rect_decomp
+      }
+    );
+    
+    gkyl_rect_decomp_release(rect_decomp);
+  }
+
+  skin_ghost_ranges_init(&app->skin_ghost, &app->global_ext, ghost);  
+  
   app->c2p_ctx = app->mapc2p = 0;  
   app->has_mapc2p = mom->mapc2p ? true : false;
 
@@ -82,9 +103,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     gkyl_eval_on_nodes_release(ev_c2p);
   }
 
-  // create geometry object
+  // create geometry object (no GPU support in fluids right now JJ: 11/26/23)
   app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
-    app->mapc2p, app->c2p_ctx);
+    app->mapc2p, app->c2p_ctx, false);
 
   double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;
@@ -393,7 +414,9 @@ comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *
   global->nstage_3_fail = l_red_global[NSTAGE_3_FAIL];
 
   enum { TOTAL_TM, SPECIES_TM, FIELD_TM, SOURCES_TM, INIT_SPECIES_TM, INIT_FIELD_TM,
-    SPECIES_RHS_TM, FIELD_RHS_TM, D_END };
+    SPECIES_RHS_TM, FIELD_RHS_TM, SPECIES_BC_TM, FIELD_BC_TM,
+    D_END
+  };
 
   double d_red[] = {
     [TOTAL_TM] = local->total_tm,
@@ -403,7 +426,9 @@ comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *
     [INIT_SPECIES_TM] = local->init_species_tm,
     [INIT_FIELD_TM] = local->init_field_tm,
     [SPECIES_RHS_TM] = local->species_rhs_tm,
-    [FIELD_RHS_TM] = local->field_rhs_tm
+    [FIELD_RHS_TM] = local->field_rhs_tm,
+    [SPECIES_BC_TM] = local->species_bc_tm,
+    [FIELD_BC_TM] = local->field_bc_tm
   };
 
   double_t d_red_global[D_END];
@@ -417,6 +442,8 @@ comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *
   global->init_field_tm = d_red_global[INIT_FIELD_TM];
   global->species_rhs_tm = d_red_global[SPECIES_RHS_TM];
   global->field_rhs_tm = d_red_global[FIELD_RHS_TM];
+  global->species_bc_tm = d_red_global[SPECIES_BC_TM];
+  global->field_bc_tm = d_red_global[FIELD_BC_TM];
 }
 
 static void
@@ -468,6 +495,9 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
 
+  int num_ranks;
+  gkyl_comm_get_size(app->comm, &num_ranks);
+
   // append to existing file so we have a history of different runs
   FILE *fp = 0;
   if (rank == 0) fp = fopen(fileNm.str, "a");
@@ -477,6 +507,8 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   if (strftime(buff, sizeof buff, "%c", &curr_tm))
     gkyl_moment_app_cout(app, fp, " date : %s\n", buff);
 
+  gkyl_moment_app_cout(app, fp, " num_ranks : %d,\n", num_ranks);
+  
   gkyl_moment_app_cout(app, fp, " nup : %ld,\n", stat.nup);
   gkyl_moment_app_cout(app, fp, " nfail : %ld,\n", stat.nfail);
   gkyl_moment_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
@@ -507,6 +539,9 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     if (app->has_field)
       gkyl_moment_app_cout(app, fp, " field_rhs_tm : %lg,\n", stat.field_rhs_tm);
   }
+
+  gkyl_moment_app_cout(app, fp, " species_bc_tm : %lg,\n", stat.species_bc_tm);
+  gkyl_moment_app_cout(app, fp, " field_bc_tm : %lg,\n", stat.field_bc_tm);    
 
   for (int i = 0; i < app->num_species; ++i) {
     long tot_bad_cells = 0L;
@@ -545,7 +580,7 @@ v_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, va_list
 {
   int rank, r = 0;
   gkyl_comm_get_rank(app->comm, &rank);
-  if (rank == 0)
+  if ((rank == 0) && fp)
     vfprintf(fp, fmt, argp);
 }
 

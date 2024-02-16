@@ -162,6 +162,10 @@ main(int argc, char **argv)
   // create array holding continuous field we'll compute.
   struct gkyl_array *phi = mkarr1(use_gpu, basis.num_basis, localRange_ext.volume);
   struct gkyl_array *rho_h;
+
+  // create epsilon array
+  struct gkyl_array *epsilon = mkarr1(use_gpu, basis.num_basis, localRange_ext.volume);
+  gkyl_array_shiftc(epsilon, 1.0*pow(sqrt(2.),dim), 0);
   
   // set initial condition
   int nf = localRange_ext.volume*basis.num_basis;
@@ -184,7 +188,7 @@ main(int argc, char **argv)
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
 
   // FEM poisson solver.
-  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&grid, basis, &bc_tv, 1.0, use_gpu);
+  gkyl_fem_poisson *poisson = gkyl_fem_poisson_new(&localRange, &grid, basis, &bc_tv, epsilon, NULL, true, use_gpu);
 
   int nrep = inp.nloop;
 
@@ -219,6 +223,13 @@ main(int argc, char **argv)
   
   tm_tot = gkyl_time_sec(gkyl_time_diff(tm_start, gkyl_wall_clock()));
   printf("Avg time for fem_poisson_solve: %g [s]\n", tm_tot/inp.nloop);
+  
+  gkyl_array_release(rho);
+  gkyl_array_release(phi);
+  gkyl_array_release(epsilon);
+  if (use_gpu)
+    gkyl_array_release(rho);
+  gkyl_fem_poisson_release(poisson);
   
   return 0;
 }

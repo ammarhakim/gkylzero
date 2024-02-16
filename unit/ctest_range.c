@@ -1,5 +1,3 @@
-#include "gkyl_moment.h"
-#include "gkyl_util.h"
 #include <acutest.h>
 
 #include <gkyl_alloc.h>
@@ -47,6 +45,91 @@ void test_range_shape()
     TEST_CHECK( range.lower[i] == 0);
     TEST_CHECK( range.upper[i] == shape[i]-1);
   }
+}
+
+void test_range_shift()
+{
+  int lower[] = {1, 1}, upper[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lower, upper);
+
+  int delta[] = { 10, -20 };
+  
+  struct gkyl_range rshift;
+  gkyl_range_shift(&rshift, &range, delta);
+
+  TEST_CHECK( rshift.ndim = range.ndim );
+  TEST_CHECK( rshift.volume = range.volume );
+
+  for (int d=0; d<range.ndim; ++d) {
+    TEST_CHECK( rshift.lower[d] - range.lower[d] == delta[d] );
+    TEST_CHECK( rshift.upper[d] - range.upper[d] == delta[d] );
+  }
+}
+
+void test_range_iter_init_next()
+{
+  // Test 1D range
+  int lower1d[] = {1}, upper1d[] = {17};
+  struct gkyl_range range1d;
+  gkyl_range_init(&range1d, 1, lower1d, upper1d);
+
+  struct gkyl_range_iter iter1d;
+  gkyl_range_iter_init(&iter1d, &range1d);
+  int idx1d[] = {lower1d[0]-1};
+  while (gkyl_range_iter_next(&iter1d)) {
+    idx1d[0] += 1;
+    TEST_CHECK( iter1d.idx[0] == idx1d[0] );
+  }
+
+  // Test 2D range
+  int lower2d[] = {1,1}, upper2d[] = {17,6};
+  struct gkyl_range range2d;
+  gkyl_range_init(&range2d, 2, lower2d, upper2d);
+
+  struct gkyl_range_iter iter2d;
+  gkyl_range_iter_init(&iter2d, &range2d);
+  int linc = 0;
+  while (gkyl_range_iter_next(&iter2d)) {
+    // Assume row-major order.
+    int idx2d[2];
+    idx2d[0] = lower2d[0]+linc/(upper2d[1]-lower2d[1]+1);
+    idx2d[1] = linc+lower2d[1] - (idx2d[0]-1)*(upper2d[1]-lower2d[1]+1);
+    TEST_CHECK( iter2d.idx[0] == idx2d[0] );
+    TEST_CHECK( iter2d.idx[1] == idx2d[1] );
+    TEST_MSG("Expected: %d,%d | Got: %d,%d", iter2d.idx[0], iter2d.idx[1], idx2d[0], idx2d[1]);
+    linc += 1;
+  }
+
+  // Test that we can create 2D ranges with lower>upper.
+  int lower2d_empty0[] = {18,1}, upper2d_empty0[] = {17,6};
+  struct gkyl_range range2d_empty0;
+  gkyl_range_init(&range2d_empty0, 2, lower2d_empty0, upper2d_empty0);
+  struct gkyl_range_iter iter2d_empty0;
+  gkyl_range_iter_init(&iter2d_empty0, &range2d_empty0);
+  while (gkyl_range_iter_next(&iter2d_empty0)) TEST_CHECK(false); // Shouldn't be in here.
+
+  int lower2d_empty1[] = {28,1}, upper2d_empty1[] = {17,6};
+  struct gkyl_range range2d_empty1;
+  gkyl_range_init(&range2d_empty1, 2, lower2d_empty1, upper2d_empty1);
+  struct gkyl_range_iter iter2d_empty1;
+  gkyl_range_iter_init(&iter2d_empty1, &range2d_empty1);
+  while (gkyl_range_iter_next(&iter2d_empty1)) TEST_CHECK(false); // Shouldn't be in here.
+
+  int lower2d_empty2[] = {1,7}, upper2d_empty2[] = {17,6};
+  struct gkyl_range range2d_empty2;
+  gkyl_range_init(&range2d_empty2, 2, lower2d_empty2, upper2d_empty2);
+  struct gkyl_range_iter iter2d_empty2;
+  gkyl_range_iter_init(&iter2d_empty2, &range2d_empty2);
+  while (gkyl_range_iter_next(&iter2d_empty2)) TEST_CHECK(false); // Shouldn't be in here.
+
+  int lower2d_empty3[] = {1,27}, upper2d_empty3[] = {17,6};
+  struct gkyl_range range2d_empty3;
+  gkyl_range_init(&range2d_empty3, 2, lower2d_empty3, upper2d_empty3);
+  struct gkyl_range_iter iter2d_empty3;
+  gkyl_range_iter_init(&iter2d_empty3, &range2d_empty3);
+  while (gkyl_range_iter_next(&iter2d_empty3)) TEST_CHECK(false); // Shouldn't be in here.
+
 }
 
 void test_sub_range()
@@ -470,6 +553,7 @@ void test_range_deflate()
   struct gkyl_range range;
   gkyl_range_init(&range, 3, lower, upper);
 
+  // Remove last dimension.
   int remDir[] = {0, 0, 1}, locDir[] = {0, 0, lower[2]};
   struct gkyl_range defr;
   gkyl_range_deflate(&defr, &range, remDir, locDir);
@@ -485,13 +569,26 @@ void test_range_deflate()
   TEST_CHECK( defr.lower[1] == lower[1] );
   TEST_CHECK( defr.upper[1] == upper[1] );
 
-  int idx[3]; idx[2] = lower[2];
+  int idx[3]; idx[2] = locDir[2];
 
-  // loop over deflated region
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &defr);
-  while (gkyl_range_iter_next(&iter)) {
+  while (gkyl_range_iter_next(&iter)) {  // loop over deflated region.
     idx[0] = iter.idx[0]; idx[1] = iter.idx[1];
+    TEST_CHECK(
+      gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
+    );
+  }
+
+  // Remove first dimension.
+  remDir[0] = 1; remDir[1] = 0; remDir[2] = 0;
+  locDir[0] = 3; locDir[1] = 0; locDir[2] = 0;
+  gkyl_range_deflate(&defr, &range, remDir, locDir);
+
+  idx[0] = locDir[0];
+  gkyl_range_iter_init(&iter, &defr);
+  while (gkyl_range_iter_next(&iter)) {  // loop over deflated region
+    idx[1] = iter.idx[0]; idx[2] = iter.idx[1];
     TEST_CHECK(
       gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
     );
@@ -508,10 +605,9 @@ void test_range_deflate()
   TEST_CHECK( defr.lower[0] == lower[0] );
   TEST_CHECK( defr.upper[0] == upper[0] );
   
-  idx[1] = upper[1]; idx[2] = lower[2];
-  // loop over deflated region
+  idx[1] = locDir[1]; idx[2] = locDir[2];
   gkyl_range_iter_init(&iter, &defr);
-  while (gkyl_range_iter_next(&iter)) {
+  while (gkyl_range_iter_next(&iter)) {  // loop over deflated region
     idx[0] = iter.idx[0];
     TEST_CHECK(
       gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
@@ -527,9 +623,8 @@ void test_range_deflate()
   TEST_CHECK( defr.volume == 1 );
   
   idx[0] = 5; idx[1] = upper[1]; idx[2] = lower[2];
-  // loop over deflated region
   gkyl_range_iter_init(&iter, &defr);
-  while (gkyl_range_iter_next(&iter)) {
+  while (gkyl_range_iter_next(&iter)) {  // loop over deflated region
     TEST_CHECK(
       gkyl_range_idx(&defr, iter.idx) == gkyl_range_idx(&range, idx)
     );
@@ -912,6 +1007,28 @@ void test_intersect_2()
   TEST_CHECK( 0 == gkyl_range_intersect(&inter, &r1, &r3) );
 }
 
+void
+test_sub_intersect()
+{
+  struct gkyl_range local_ext;
+  gkyl_range_init(&local_ext, 2, (int[]) { 1, 1 }, (int[]) { 15, 15 });
+
+  struct gkyl_range local;
+  gkyl_range_init(&local, 2, (int[]) { 4, 4 }, (int[]) { 10, 12 });
+
+  struct gkyl_range local_sub;
+  gkyl_sub_range_intersect(&local_sub, &local_ext, &local);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local_sub);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx1 = gkyl_range_idx(&local_sub, iter.idx);
+    long lidx2 = gkyl_range_idx(&local_ext, iter.idx);
+
+    TEST_CHECK( lidx2 == lidx1 );
+  }
+}
+
 void test_extend(void)
 {
   int lo[] = {1, 1}, up[] = { 4, 8 };
@@ -954,8 +1071,10 @@ void test_cu_range()
 TEST_LIST = {
   { "range_0", test_range_0 },
   { "range_1", test_range_1 },
+  { "range_shift", test_range_shift },
   { "range_shape",  test_range_shape },
   { "sub_range",  test_sub_range },
+  { "range_iter_init_next", test_range_iter_init_next},
   { "sub_sub_range",  test_sub_sub_range },
   { "sub_range_inv_idx",  test_sub_range_inv_idx },
   { "shorten", test_shorten },
@@ -983,7 +1102,8 @@ TEST_LIST = {
   { "sub_range_split_iter", test_sub_range_split_iter },
   { "nested_iter", test_nested_iter },
   { "intersect", test_intersect },
-  { "intersect_2", test_intersect_2 },  
+  { "intersect_2", test_intersect_2 },
+  { "sub_intersect", test_sub_intersect },
   { "extend", test_extend },
 #ifdef GKYL_HAVE_CUDA
   { "cu_range", test_cu_range },

@@ -1,84 +1,165 @@
 #include <assert.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
+#include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
+#include <gkyl_dg_bin_ops_priv.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_em_vars_priv.h>
 #include <gkyl_util.h>
 
-void gkyl_calc_em_vars_bvar(struct gkyl_basis basis, const struct gkyl_range* range, 
-  const struct gkyl_array* em, struct gkyl_array* bvar)
+gkyl_dg_calc_em_vars*
+gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid, 
+  const struct gkyl_basis* cbasis, const struct gkyl_range *mem_range, 
+  bool is_ExB, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(bvar)) {
-    return gkyl_calc_em_vars_bvar_cu(basis, range, em, bvar);
+  if(use_gpu) {
+    return gkyl_dg_calc_em_vars_cu_dev_new(conf_grid, cbasis, mem_range, is_ExB);
+  } 
+#endif     
+  gkyl_dg_calc_em_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_em_vars));
+
+  up->conf_grid = *conf_grid;
+  int nc = cbasis->num_basis;
+  int cdim = cbasis->ndim;
+  int poly_order = cbasis->poly_order;
+  enum gkyl_basis_type b_type = cbasis->b_type;
+  up->cdim = cdim;
+  up->poly_order = poly_order;
+  up->mem_range = *mem_range;
+
+  if (is_ExB) {
+    up->Ncomp = 3;
+    up->em_calc_temp = choose_em_calc_num_ExB_kern(b_type, cdim, poly_order);
+    up->em_set = choose_em_set_ExB_kern(b_type, cdim, poly_order);
+    up->em_copy = choose_em_copy_ExB_kern(b_type, cdim, poly_order);
+  }
+  else {
+    up->Ncomp = 6;
+    up->em_calc_temp = choose_em_calc_BB_kern(b_type, cdim, poly_order);
+    up->em_set = choose_em_set_bvar_kern(b_type, cdim, poly_order);
+    up->em_copy = choose_em_copy_bvar_kern(b_type, cdim, poly_order);      
+    // Fetch the kernels in each direction
+    for (int d=0; d<cdim; ++d) 
+      up->em_div_b[d] = choose_em_div_b_kern(d, b_type, cdim, poly_order);   
+  }
+
+  // There are Ncomp more linear systems to be solved 
+  // 6 components of bb and 3 components of E x B
+  up->As = gkyl_nmat_new(up->Ncomp*mem_range->volume, nc, nc);
+  up->xs = gkyl_nmat_new(up->Ncomp*mem_range->volume, nc, 1);
+  up->mem = gkyl_nmat_linsolve_lu_new(up->As->num, up->As->nr);
+  // 6 component temporary variable for either storing B_i B_j (for computing bb) 
+  // or (E x B)_i and B_i^2 (for computing E x B/|B|^2)
+  up->temp_var = gkyl_array_new(GKYL_DOUBLE, 6*nc, mem_range->volume);
+
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->on_dev = up; // self-reference on host
+  
+  return up;
+}
+
+void gkyl_dg_calc_em_vars_advance(struct gkyl_dg_calc_em_vars *up, 
+  const struct gkyl_array* em, struct gkyl_array* cell_avg_magB2, 
+  struct gkyl_array* out, struct gkyl_array* out_surf)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_calc_em_vars_advance_cu(up, em, cell_avg_magB2, out, out_surf);
   }
 #endif
+  gkyl_array_clear(up->temp_var, 0.0);
 
-  int cdim = basis.ndim;
-  int poly_order = basis.poly_order;
-
-  em_t em_bvar = choose_ser_em_bvar_kern(cdim, poly_order);
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, range);
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  long count = 0;
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(range, iter.idx);
+    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
 
     const double *em_d = gkyl_array_cfetch(em, loc);
+    int* cell_avg_magB2_d = gkyl_array_fetch(cell_avg_magB2, loc);
 
-    double *bvar_d = gkyl_array_fetch(bvar, loc);
-    em_bvar(em_d, bvar_d);
+    up->em_calc_temp(em_d, gkyl_array_fetch(up->temp_var, loc));
+    cell_avg_magB2_d[0] = up->em_set(count, up->As, up->xs, gkyl_array_cfetch(up->temp_var, loc));
+
+    count += up->Ncomp;
+  }
+
+  if (up->poly_order > 1) {
+    bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
+    assert(status);
+  }
+
+  gkyl_range_iter_init(&iter, &up->mem_range);
+  count = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&up->mem_range, iter.idx);
+
+    const double *em_d = gkyl_array_cfetch(em, loc);
+    int *cell_avg_magB2_d = gkyl_array_fetch(cell_avg_magB2, loc);
+    double *out_d = gkyl_array_fetch(out, loc);
+    double *out_surf_d = gkyl_array_fetch(out_surf, loc);
+
+    up->em_copy(count, up->xs, em_d, cell_avg_magB2_d, out_d, out_surf_d);
+
+    count += up->Ncomp;
+  }  
+}
+
+void gkyl_dg_calc_em_vars_div_b(struct gkyl_dg_calc_em_vars *up, const struct gkyl_range *conf_range, 
+  const struct gkyl_array* bvar_surf, const struct gkyl_array* bvar, 
+  struct gkyl_array* max_b, struct gkyl_array* div_b)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(div_b)) {
+    return gkyl_dg_calc_em_vars_div_b_cu(up, conf_range, bvar_surf, bvar, max_b, div_b);
+  }
+#endif
+  // Loop over configuration space range to compute div(b) and max(|b_i|) penalization
+  int cdim = up->cdim;
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_copy_int_arr(cdim, iter.idx, idxc);
+    long linc = gkyl_range_idx(conf_range, idxc);
+
+    const double *bvar_surf_c = gkyl_array_cfetch(bvar_surf, linc);
+    const double *bvar_d = gkyl_array_cfetch(bvar, linc);
+
+    double *max_b_d = gkyl_array_fetch(max_b, linc);
+    double *div_b_d = gkyl_array_fetch(div_b, linc);
+
+    for (int dir=0; dir<cdim; ++dir) {
+      gkyl_copy_int_arr(cdim, iter.idx, idxl);
+      gkyl_copy_int_arr(cdim, iter.idx, idxr);
+
+      idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
+
+      long linl = gkyl_range_idx(conf_range, idxl); 
+      long linr = gkyl_range_idx(conf_range, idxr);
+
+      const double *bvar_surf_l = gkyl_array_cfetch(bvar_surf, linl);
+      const double *bvar_surf_r = gkyl_array_cfetch(bvar_surf, linr);
+
+      up->em_div_b[dir](up->conf_grid.dx, 
+        bvar_surf_l, bvar_surf_c, bvar_surf_r, 
+        bvar_d, max_b_d, div_b_d);
+    }
   }
 }
 
-void gkyl_calc_em_vars_ExB(struct gkyl_basis basis, const struct gkyl_range* range, 
-  const struct gkyl_array* em, struct gkyl_array* ExB)
+void gkyl_dg_calc_em_vars_release(gkyl_dg_calc_em_vars *up)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(ExB)) {
-    return gkyl_calc_em_vars_ExB_cu(basis, range, em, ExB);
-  }
-#endif
-
-  int cdim = basis.ndim;
-  int poly_order = basis.poly_order;
-
-  em_t em_ExB = choose_ser_em_ExB_kern(cdim, poly_order);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, range);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(range, iter.idx);
-
-    const double *em_d = gkyl_array_cfetch(em, loc);
-
-    double *ExB_d = gkyl_array_fetch(ExB, loc);
-    em_ExB(em_d, ExB_d);
-  }
-}
-
-void gkyl_calc_em_vars_pkpm_kappa_inv_b(struct gkyl_basis basis, const struct gkyl_range* range, 
-  const struct gkyl_array* bvar, const struct gkyl_array* ExB,
-  struct gkyl_array* kappa_inv_b)
-{
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(ExB)) {
-    return gkyl_calc_em_vars_pkpm_kappa_inv_b_cu(basis, range, bvar, ExB, kappa_inv_b);
-  }
-#endif
-
-  int cdim = basis.ndim;
-  int poly_order = basis.poly_order;
-
-  em_pkpm_kappa_inv_b_t em_pkpm_kappa_inv_b = choose_ser_em_pkpm_kappa_inv_b_kern(cdim, poly_order);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, range);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(range, iter.idx);
-
-    const double *bvar_d = gkyl_array_cfetch(bvar, loc);
-    const double *ExB_d = gkyl_array_cfetch(ExB, loc);
-
-    double *kappa_inv_b_d = gkyl_array_fetch(kappa_inv_b, loc);
-    em_pkpm_kappa_inv_b(bvar_d, ExB_d, kappa_inv_b_d);
-  }
+  gkyl_nmat_release(up->As);
+  gkyl_nmat_release(up->xs);
+  gkyl_nmat_linsolve_lu_release(up->mem);
+  gkyl_array_release(up->temp_var);
+  
+  if (GKYL_IS_CU_ALLOC(up->flags))
+    gkyl_cu_free(up->on_dev);
+  gkyl_free(up);
 }

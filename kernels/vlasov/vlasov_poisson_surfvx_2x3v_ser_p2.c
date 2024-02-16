@@ -1,12 +1,11 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_basis_ser_5x_p2_surfx3_eval_quad.h> 
 #include <gkyl_basis_ser_5x_p2_upwind_quad_to_modal.h> 
-GKYL_CU_DH void vlasov_poisson_surfvx_2x3v_ser_p2(const double *w, const double *dxv, const double *field, const double *ext_field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double vlasov_poisson_surfvx_2x3v_ser_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // w:         Cell-center coordinates.
   // dxv[NDIM]: Cell spacing.
   // field:     potential (scaled by appropriate factors).
-  // ext_field: vector potential (scaled by appropriate factors). Unused in pure Vlasov-Poisson. 
   // fl/fc/fr:  Input Distribution function in left/center/right cells 
   // out:       Output distribution function in center cell 
   const double dv10 = 2/dxv[2]; 
@@ -597,5 +596,7 @@ GKYL_CU_DH void vlasov_poisson_surfvx_2x3v_ser_p2(const double *w, const double 
   out[109] += (1.58113883008419*Ghat_l[31]-1.58113883008419*Ghat_r[31])*dv10; 
   out[110] += -1.224744871391589*(Ghat_r[46]+Ghat_l[46])*dv10; 
   out[111] += -1.224744871391589*(Ghat_r[47]+Ghat_l[47])*dv10; 
+
+  return 0.;
 
 } 

@@ -249,14 +249,16 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
 {
   int ndim = update_range->ndim;
   int meqn = mp->equation->num_equations;
+  int mwaves = mp->equation->num_waves;
 
   double apdq_local[meqn], amdq_local[meqn];
   double qlocal_r[meqn], qlocal_l[meqn];
+  double delta[meqn], waves[meqn*mwaves], speeds[mwaves];
 
   // labels for three cells to left, three cells to right of edge:
   enum { I3M, I2M, IM, IP, I2P, I3P };
 
-  gkyl_array_clear_range(rhs, 0.0, *update_range);
+  gkyl_array_clear_range(rhs, 0.0, update_range);
   
   // outer loop is over direction: the RHS is updated direction
   // by direction
@@ -326,10 +328,13 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_l, qlocal_l);
       mp->equation->rotate_to_local_func(cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qr_r, qlocal_r);
 
-      // compute fluctuations: note the equation system must not use
-      // either the waves or speeds
+      for (int m=0; m<meqn; ++m) delta[m] = qlocal_r[m]-qlocal_l[m];
+      
+      // compute waves and fluctuations
+      gkyl_wv_eqn_waves(mp->equation, GKYL_WV_HIGH_ORDER_FLUX, delta,
+        qlocal_l, qlocal_r, waves, speeds);
       gkyl_wv_eqn_qfluct(mp->equation, GKYL_WV_HIGH_ORDER_FLUX,
-        qlocal_l, qlocal_r, 0, 0, amdq_local, apdq_local);
+        qlocal_l, qlocal_r, waves, speeds, amdq_local, apdq_local);
 
       double *amdq_p = gkyl_array_fetch(amdq, loc+offsets[IM]);
       double *apdq_p = gkyl_array_fetch(apdq, loc+offsets[IP]);

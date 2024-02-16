@@ -111,7 +111,7 @@ void test_array_clear_range()
   gkyl_range_init_from_shape(&range, 2, shape);
   
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, range.volume);
-  gkyl_array_clear_range(a1, 0.5, range);
+  gkyl_array_clear_range(a1, 0.5, &range);
 
   double *a1_d = a1->data;
   for (unsigned i=0; i<a1->size; ++i)
@@ -153,7 +153,7 @@ void test_array_accumulate_range()
   gkyl_array_clear(a1, 0.5);
   gkyl_array_clear(a2, 1.5);
 
-  gkyl_array_accumulate_range(a1, 0.5, a2, range);
+  gkyl_array_accumulate_range(a1, 0.5, a2, &range);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -171,7 +171,7 @@ void test_array_accumulate_range()
   gkyl_array_clear(a1, 0.5);
   gkyl_array_clear(a2, 1.5);
 
-  gkyl_array_accumulate_range(a2, 0.5, a1, range);
+  gkyl_array_accumulate_range(a2, 0.5, a1, &range);
 
   gkyl_range_iter_init(&iter, &range);
   
@@ -241,7 +241,7 @@ void test_array_accumulate_offset_range()
   gkyl_array_clear(a1, 0.5);
   gkyl_array_clear(a2, 1.5);
 
-  gkyl_array_accumulate_offset_range(a1, 0.5, a2, 1*a1->ncomp, range);
+  gkyl_array_accumulate_offset_range(a1, 0.5, a2, 1*a1->ncomp, &range);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -257,7 +257,7 @@ void test_array_accumulate_offset_range()
   gkyl_array_clear(a1, 0.5);
   gkyl_array_clear(a2, 1.5);
 
-  gkyl_array_accumulate_offset_range(a2, 0.5, a1, 1*a1->ncomp, range);
+  gkyl_array_accumulate_offset_range(a2, 0.5, a1, 1*a1->ncomp, &range);
 
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
@@ -328,10 +328,10 @@ void test_array_set_range()
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
 
   // test a1 = 0.5*a2
-  gkyl_array_clear_range(a1, 0.5, range);
-  gkyl_array_clear_range(a2, 1.5, range);
+  gkyl_array_clear_range(a1, 0.5, &range);
+  gkyl_array_clear_range(a2, 1.5, &range);
 
-  gkyl_array_set_range(a1, 0.5, a2, range);
+  gkyl_array_set_range(a1, 0.5, a2, &range);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -349,7 +349,7 @@ void test_array_set_range()
   gkyl_array_clear(a1, 0.5);
   gkyl_array_clear(a2, 1.5);
 
-  gkyl_array_set_range(a2, 0.5, a1, range);
+  gkyl_array_set_range(a2, 0.5, a1, &range);
 
   gkyl_range_iter_init(&iter, &range);
   
@@ -416,10 +416,10 @@ void test_array_set_offset_range()
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3*a1->ncomp, range.volume);
 
   // test a1 = 0.1*a2[a1->ncomp]
-  gkyl_array_clear_range(a1, 0.5, range);
-  gkyl_array_clear_range(a2, 1.5, range);
+  gkyl_array_clear_range(a1, 0.5, &range);
+  gkyl_array_clear_range(a2, 1.5, &range);
 
-  gkyl_array_set_offset_range(a1, 0.1, a2, 1*a1->ncomp, range);
+  gkyl_array_set_offset_range(a1, 0.1, a2, 1*a1->ncomp, &range);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -434,7 +434,7 @@ void test_array_set_offset_range()
   gkyl_array_clear(a1, 0.5);
   gkyl_array_clear(a2, 1.5);
 
-  gkyl_array_set_offset_range(a2, 0.1, a1, 1*a1->ncomp, range);
+  gkyl_array_set_offset_range(a2, 0.1, a1, 1*a1->ncomp, &range);
 
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
@@ -493,7 +493,7 @@ void test_array_scale_by_cell()
   gkyl_array_release(s);
 }
 
-void test_array_shiftc0()
+void test_array_shiftc()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
 
@@ -503,15 +503,127 @@ void test_array_shiftc0()
     for (size_t k=0; k<a1->ncomp; ++k) a1_d[i*a1->ncomp+k] = i*2.0+k;
   }
 
-  gkyl_array_shiftc0(a1, s);
+  gkyl_array_shiftc(a1, s, 0);
 
-  TEST_CHECK( gkyl_compare(a1_d[0], 0*1.0+0-0.5, 1e-14) );
+  TEST_CHECK( gkyl_compare(a1_d[0], 0*1.0+0+s, 1e-14) );
   for (unsigned i=0; i<a1->size; ++i) {
     for (size_t k=1; k<a1->ncomp; ++k) 
       TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], i*2.0+k, 1e-14) );
   }
 
   gkyl_array_release(a1);
+
+  // Repeat the test but shifting another coefficient as well.
+  int shiftks[] = {0, 2};
+  int nks = sizeof(shiftks)/sizeof(shiftks[0]);
+
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 4, 8);
+  double *a2_d = a2->data;
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) a2_d[i*a2->ncomp+k] = i*2.0+k;
+  }
+
+  for (size_t l=0; l<nks; l++)
+    gkyl_array_shiftc(a2, s, shiftks[l]);
+
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      bool isshifted = false;
+      for (size_t l=0; l<nks; l++) {
+        if (shiftks[l]==k) {isshifted = true; break;}
+      }
+      if (isshifted)
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k+s, 1e-14) );
+      else
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a2);
+}
+
+void test_array_shiftc_range(bool on_gpu)
+{
+  int lower[] = {1}, upper[] = {10};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 1, lower, upper);
+
+  struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+  struct gkyl_array *a1 = a1_ho;
+  if (on_gpu) a1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, a1_ho->ncomp, a1_ho->size);
+
+  double s = -0.5;
+  double *a1_ho_d = a1_ho->data;
+  for (unsigned i=0; i<a1_ho->size; ++i)
+    for (size_t k=0; k<a1_ho->ncomp; ++k) a1_ho_d[i*a1_ho->ncomp+k] = i*2.0+k;
+
+  if (on_gpu) gkyl_array_copy(a1, a1_ho);
+
+  int lowerSub[] = {2}, upperSub[] = {6};
+  struct gkyl_range subrange;
+  gkyl_sub_range_init(&subrange, &range, lowerSub, upperSub);
+
+  gkyl_array_shiftc_range(a1, s, 0, &subrange);
+
+  if (on_gpu) gkyl_array_copy(a1_ho, a1);
+
+  for (size_t k=1; k<a1_ho->ncomp; ++k) {
+    for (unsigned i=0; i<1; ++i)
+      TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+k], i*2.0+k, 1e-14) );
+    for (unsigned i=6; i<10; ++i)
+      TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+k], i*2.0+k, 1e-14) );
+  }
+  for (unsigned i=1; i<6; ++i)
+    TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+0], i*2.0+0+s, 1e-14) );
+
+  gkyl_array_release(a1_ho);
+  if (on_gpu) gkyl_array_release(a1);
+
+  // Repeat the test but shifting another coefficient as well.
+  int shiftks[] = {0, 2};
+  int nks = sizeof(shiftks)/sizeof(shiftks[0]);
+
+  lower[0] = 1;  upper[0] = 8;
+  struct gkyl_range range2;
+  gkyl_range_init(&range2, 1, lower, upper);
+
+  struct gkyl_array *a2_ho = gkyl_array_new(GKYL_DOUBLE, 4, range2.volume);
+  struct gkyl_array *a2 = a2_ho;
+  if (on_gpu) a2 = gkyl_array_cu_dev_new(GKYL_DOUBLE, a2_ho->ncomp, a2_ho->size);
+
+  double *a2_ho_d = a2_ho->data;
+  for (unsigned i=0; i<a2_ho->size; ++i) {
+    for (size_t k=0; k<a2_ho->ncomp; ++k) a2_ho_d[i*a2_ho->ncomp+k] = i*2.0+k;
+  }
+
+  if (on_gpu) gkyl_array_copy(a2, a2_ho);
+
+  for (size_t l=0; l<nks; l++)
+    gkyl_array_shiftc_range(a2, s, shiftks[l], &subrange);
+
+  if (on_gpu) gkyl_array_copy(a2_ho, a2);
+
+  for (size_t k=0; k<a2_ho->ncomp; ++k) {
+    for (unsigned i=0; i<1; ++i)
+      TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], i*2.0+k, 1e-14) );
+    for (unsigned i=6; i<8; ++i)
+      TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], i*2.0+k, 1e-14) );
+  }
+  for (unsigned i=1; i<6; ++i) {
+    for (size_t k=0; k<a2_ho->ncomp; ++k) {
+      bool isshifted = false;
+      for (size_t l=0; l<nks; l++) {
+        if (shiftks[l]==k) {isshifted = true; break;}
+      }
+      if (isshifted)
+        TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], i*2.0+k+s, 1e-14) );
+      else
+        TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], i*2.0+k, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a2);
+  if (on_gpu) gkyl_array_release(a2);
 }
 
 void test_array_opcombine()
@@ -577,7 +689,7 @@ void test_array_copy_buffer()
   gkyl_sub_range_init(&sub_range, &range, lower, upper);
 
   double *buff = gkyl_malloc(sizeof(double)*sub_range.volume);
-  gkyl_array_copy_to_buffer(buff, arr, sub_range);
+  gkyl_array_copy_to_buffer(buff, arr, &sub_range);
 
   long count = 0;
   gkyl_range_iter_init(&iter, &sub_range);
@@ -586,7 +698,7 @@ void test_array_copy_buffer()
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr, buff, sub_range);
+  gkyl_array_copy_from_buffer(arr, buff, &sub_range);
 
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -626,7 +738,7 @@ void test_array_copy_buffer_fn()
   gkyl_sub_range_init(&sub_range, &range, lower, upper);
 
   double *buff = gkyl_malloc(sizeof(double)*sub_range.volume);
-  gkyl_array_copy_to_buffer_fn(buff, arr, sub_range,
+  gkyl_array_copy_to_buffer_fn(buff, arr, &sub_range,
     &(struct gkyl_array_copy_func) { .func = buffer_fn, .ctx = 0 }
   );
 
@@ -637,7 +749,7 @@ void test_array_copy_buffer_fn()
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr, buff, sub_range);
+  gkyl_array_copy_from_buffer(arr, buff, &sub_range);
 
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -670,7 +782,7 @@ void test_array_flip_copy_buffer_fn()
 
   double *buff = gkyl_malloc(sizeof(double)*sub_range.volume);
 
-  gkyl_array_flip_copy_to_buffer_fn(buff, arr, 0, sub_range,
+  gkyl_array_flip_copy_to_buffer_fn(buff, arr, 0, &sub_range,
     &(struct gkyl_array_copy_func) { .func = buffer_fn, .ctx = 0 }
   );
   long count = 0;
@@ -678,7 +790,7 @@ void test_array_flip_copy_buffer_fn()
   while (gkyl_range_iter_next(&iter))
     TEST_CHECK( buff[count++] == 2*((5+1)-iter.idx[0] + 10.5*iter.idx[1]) );
 
-  gkyl_array_flip_copy_to_buffer_fn(buff, arr, 1, sub_range,     
+  gkyl_array_flip_copy_to_buffer_fn(buff, arr, 1, &sub_range,     
     &(struct gkyl_array_copy_func) { .func = buffer_fn, .ctx = 0 }
   );
   count = 0;
@@ -688,7 +800,7 @@ void test_array_flip_copy_buffer_fn()
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr, buff, sub_range);
+  gkyl_array_copy_from_buffer(arr, buff, &sub_range);
 
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -718,7 +830,7 @@ void test_array_copy_range()
   }
 
   // copy the contents of a1 into a2 over the specified range
-  gkyl_array_copy_range(a2, a1, range);
+  gkyl_array_copy_range(a2, a1, &range);
   
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
@@ -780,7 +892,7 @@ void test_array_copy_split()
   long loc = 0;
   for (int tid=0; tid<num_split; ++tid) {
     struct gkyl_range sr = gkyl_range_split(&sub_range, num_split, tid);
-    gkyl_array_copy_to_buffer(buff+loc, arr, sr);
+    gkyl_array_copy_to_buffer(buff+loc, arr, &sr);
     
     loc += gkyl_range_split_len(&sr);
   }
@@ -796,7 +908,7 @@ void test_array_copy_split()
   for (int tid=0; tid<num_split; ++tid) {
     // copy back from buffer
     struct gkyl_range sr = gkyl_range_split(&sub_range, num_split, tid);
-    gkyl_array_copy_from_buffer(arr, buff+loc, sr);
+    gkyl_array_copy_from_buffer(arr, buff+loc, &sr);
     loc += gkyl_range_split_len(&sr);
   }
 
@@ -880,13 +992,13 @@ void test_reduce_range()
   }
 
   double amin[3], amax[3];
-  gkyl_array_reduce_range(amin, arr, GKYL_MIN, range);
+  gkyl_array_reduce_range(amin, arr, GKYL_MIN, &range);
 
   TEST_CHECK( amin[0] == -999.5 );
   TEST_CHECK( amin[1] == -998.5 );
   TEST_CHECK( amin[2] == -997.5 );
 
-  gkyl_array_reduce_range(amax, arr, GKYL_MAX, range);
+  gkyl_array_reduce_range(amax, arr, GKYL_MAX, &range);
   
   TEST_CHECK( amax[0] == -800.5 );
   TEST_CHECK( amax[1] == -799.5 );
@@ -914,7 +1026,7 @@ void test_sum_reduce_range()
   }
 
   double asum[3];
-  gkyl_array_reduce_range(asum, arr, GKYL_SUM, range);
+  gkyl_array_reduce_range(asum, arr, GKYL_SUM, &range);
 
   TEST_CHECK( asum[0] == 0.5*range.volume );
   TEST_CHECK( asum[1] == 1.5*range.volume );
@@ -1031,7 +1143,6 @@ void test_rio_3()
     long idx = gkyl_range_idx(&sub_range, iter.idx);
     const double *rhs = gkyl_array_cfetch(arr, idx);
     const double *lhs = gkyl_array_cfetch(arr2, idx);
-    
     TEST_CHECK( lhs[0] == rhs[0] );
   }  
 
@@ -1076,8 +1187,8 @@ test_grid_array_rio_1()
   int err =
     gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
 
-  TEST_CHECK( err < 1 );
-
+  TEST_CHECK( err < 1 );  
+  
   if (err < 1) {
 
     TEST_CHECK( grid.ndim == grid2.ndim );
@@ -1134,6 +1245,8 @@ test_grid_array_rio_2()
 
   struct gkyl_rect_grid grid2;
   struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid2, "ctest_array_grid_array_2.gkyl");
+
+  TEST_CHECK( arr2->type == GKYL_DOUBLE );
 
   TEST_CHECK( grid.ndim == grid2.ndim );
   for (int d=0; d<grid.ndim; ++d) {
@@ -1289,7 +1402,7 @@ void test_cu_array_clear_range()
   // make device copy of array
   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, range.volume);
   gkyl_array_copy(a1_cu, a1);
-  gkyl_array_clear_range(a1_cu, 0.5, range);
+  gkyl_array_clear_range(a1_cu, 0.5, &range);
 
   // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -1361,7 +1474,7 @@ void test_cu_array_accumulate_range()
   gkyl_array_copy(a2_cu, a2);
 
   // a1 = a1 + 0.5*a2
-  gkyl_array_accumulate_range(a1_cu, 0.5, a2_cu, range);
+  gkyl_array_accumulate_range(a1_cu, 0.5, a2_cu, &range);
 
  // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -1382,7 +1495,7 @@ void test_cu_array_accumulate_range()
   gkyl_array_clear(a1_cu, 0.5);
   gkyl_array_clear(a2_cu, 1.5);
 
-  gkyl_array_accumulate_range(a2_cu, 0.5, a1_cu, range);
+  gkyl_array_accumulate_range(a2_cu, 0.5, a1_cu, &range);
 
  // copy from device and check if things are ok
   gkyl_array_copy(a2, a2_cu);
@@ -1484,7 +1597,7 @@ void test_cu_array_accumulate_offset_range()
   gkyl_array_copy(a2_cu, a2);
 
   // a1 = a1 + 0.5*a2[1*a1->ncomp]
-  gkyl_array_accumulate_offset_range(a1_cu, 0.5, a2_cu, 1*a1->ncomp, range);
+  gkyl_array_accumulate_offset_range(a1_cu, 0.5, a2_cu, 1*a1->ncomp, &range);
 
   gkyl_array_copy(a1, a1_cu);
   struct gkyl_range_iter iter;
@@ -1500,7 +1613,7 @@ void test_cu_array_accumulate_offset_range()
   gkyl_array_clear(a1_cu, 0.5);
   gkyl_array_clear(a2_cu, 1.5);
 
-  gkyl_array_accumulate_offset_range(a2_cu, 0.5, a1_cu, 1*a1->ncomp, range);
+  gkyl_array_accumulate_offset_range(a2_cu, 0.5, a1_cu, 1*a1->ncomp, &range);
 
   gkyl_array_copy(a2, a2_cu);
   gkyl_range_iter_init(&iter, &range);
@@ -1548,7 +1661,7 @@ void test_cu_array_accumulate_range_4d()
   gkyl_sub_range_init(&sub_range, &range, slower, supper);
 
   // a1 = a1 + 0.5*a2 (only first 3 components of a1 are modified)
-  gkyl_array_accumulate_range(a1_cu, 0.5, a2_cu, sub_range);
+  gkyl_array_accumulate_range(a1_cu, 0.5, a2_cu, &sub_range);
 
  // copy from device and check if things are ok
   gkyl_array_clear(a1, 0.0); 
@@ -1667,7 +1780,7 @@ void test_cu_array_set_range()
   gkyl_array_clear(a1_cu, 0.5);
   gkyl_array_clear(a2_cu, 1.5);
 
-  gkyl_array_set_range(a1_cu, 0.5, a2_cu, range);
+  gkyl_array_set_range(a1_cu, 0.5, a2_cu, &range);
 
  // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -1687,7 +1800,7 @@ void test_cu_array_set_range()
   gkyl_array_clear(a1_cu, 0.5);
   gkyl_array_clear(a2_cu, 1.5);
 
-  gkyl_array_set_range(a2_cu, 0.5, a1_cu, range);
+  gkyl_array_set_range(a2_cu, 0.5, a1_cu, &range);
 
   // copy from device and check if things are ok
   gkyl_array_copy(a2, a2_cu);
@@ -1782,7 +1895,7 @@ void test_cu_array_set_offset_range()
   gkyl_array_clear(a1_cu, 0.5);
   gkyl_array_clear(a2_cu, 1.5);
 
-  gkyl_array_set_offset_range(a1_cu, 0.5, a2_cu, 1*a1->ncomp, range);
+  gkyl_array_set_offset_range(a1_cu, 0.5, a2_cu, 1*a1->ncomp, &range);
 
   gkyl_array_copy(a1, a1_cu);
   struct gkyl_range_iter iter;
@@ -1798,7 +1911,7 @@ void test_cu_array_set_offset_range()
   gkyl_array_clear(a1_cu, 0.5);
   gkyl_array_clear(a2_cu, 1.5);
 
-  gkyl_array_set_offset_range(a2_cu, 0.5, a1_cu, 1*a1->ncomp, range);
+  gkyl_array_set_offset_range(a2_cu, 0.5, a1_cu, 1*a1->ncomp, &range);
 
   gkyl_array_copy(a2, a2_cu);
   gkyl_range_iter_init(&iter, &range);
@@ -1883,7 +1996,7 @@ void test_cu_array_scale_by_cell()
   gkyl_array_release(s_cu);
 }
 
-void test_cu_array_shiftc0()
+void test_cu_array_shiftc()
 {
   double s = -0.5;
 
@@ -1900,7 +2013,7 @@ void test_cu_array_shiftc0()
   // copy host arrays to device
   gkyl_array_copy(a1_cu, a1);
 
-  gkyl_array_shiftc0(a1_cu, s);
+  gkyl_array_shiftc(a1_cu, s, 0);
 
   // copy from device and check if things are ok
   gkyl_array_copy(a1, a1_cu);
@@ -1912,6 +2025,38 @@ void test_cu_array_shiftc0()
 
   gkyl_array_release(a1);
   gkyl_array_release(a1_cu);
+
+  // Repeat the test but shifting another coefficient as well.
+  int shiftks[] = {0, 2};
+  int nks = sizeof(shiftks)/sizeof(shiftks[0]);
+
+  struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 4, 8);
+  struct gkyl_array *a2_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 4, 8);
+  double *a2_d = a2->data;
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) a2_d[i*a2->ncomp+k] = i*2.0+k;
+  }
+  gkyl_array_copy(a2_cu, a2);
+
+  for (size_t l=0; l<nks; l++)
+    gkyl_array_shiftc(a2_cu, s, shiftks[l]);
+
+  gkyl_array_copy(a2, a2_cu);
+  for (unsigned i=0; i<a2->size; ++i) {
+    for (size_t k=0; k<a2->ncomp; ++k) {
+      bool isshifted = false;
+      for (size_t l=0; l<nks; l++) {
+        if (shiftks[l]==k) {isshifted = true; break;}
+      }
+      if (isshifted)
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k+s, 1e-14) );
+      else
+        TEST_CHECK( gkyl_compare(a2_d[i*a2->ncomp+k], i*2.0+k, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a2);
+  gkyl_array_release(a2_cu);
 }
 
 void test_cu_array_copy_buffer()
@@ -1940,11 +2085,11 @@ void test_cu_array_copy_buffer()
   gkyl_sub_range_init(&sub_range, &range, lower, upper);
 
   double *buff_cu = gkyl_cu_malloc(sizeof(double)*sub_range.volume);
-  gkyl_array_copy_to_buffer(buff_cu, arr_cu, sub_range);
+  gkyl_array_copy_to_buffer(buff_cu, arr_cu, &sub_range);
 
   gkyl_array_clear(arr, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
+  gkyl_array_copy_from_buffer(arr_cu, buff_cu, &sub_range);
 
   // copy from device and check if things are ok
   gkyl_array_copy(arr, arr_cu);
@@ -1992,9 +2137,9 @@ void test_cu_array_copy_buffer_fn()
   set_array_copy_fn(fn);
   
   double *buff_cu = gkyl_cu_malloc(sizeof(double)*sub_range.volume);
-  gkyl_array_copy_to_buffer_fn_cu(buff_cu, arr_cu, sub_range, fn);
+  gkyl_array_copy_to_buffer_fn_cu(buff_cu, arr_cu, &sub_range, fn);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
+  gkyl_array_copy_from_buffer(arr_cu, buff_cu, &sub_range);
 
   // copy from device and check if things are ok
   gkyl_array_copy(arr, arr_cu);
@@ -2041,11 +2186,11 @@ void test_cu_array_flip_copy_buffer_fn()
   double *buff_cu = gkyl_cu_malloc(sizeof(double)*sub_range.volume);
 
   // test flip copy on first direction of 2D array
-  gkyl_array_flip_copy_to_buffer_fn_cu(buff_cu, arr_cu, 0, sub_range, fn);
+  gkyl_array_flip_copy_to_buffer_fn_cu(buff_cu, arr_cu, 0, &sub_range, fn);
 
   gkyl_array_clear(arr_cu, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
+  gkyl_array_copy_from_buffer(arr_cu, buff_cu, &sub_range);
 
   gkyl_array_clear(arr, 0.0);  
   // copy from device and check if things are ok
@@ -2066,11 +2211,11 @@ void test_cu_array_flip_copy_buffer_fn()
   gkyl_array_copy(arr_cu, arr);
   
   // test flip copy on second direction of 2D array
-  gkyl_array_flip_copy_to_buffer_fn(buff_cu, arr_cu, 1, sub_range, fn);
+  gkyl_array_flip_copy_to_buffer_fn(buff_cu, arr_cu, 1, &sub_range, fn);
 
   gkyl_array_clear(arr_cu, 0.0);
   // copy back from buffer
-  gkyl_array_copy_from_buffer(arr_cu, buff_cu, sub_range);
+  gkyl_array_copy_from_buffer(arr_cu, buff_cu, &sub_range);
 
   gkyl_array_clear(arr, 0.0);
   // copy from device and check if things are ok
@@ -2113,7 +2258,7 @@ void test_cu_array_copy_range()
   gkyl_array_copy(a2_cu, a2);
 
   // copy the contents of a1 into a2 over the specified range
-  gkyl_array_copy_range_cu(a2_cu, a1_cu, range);
+  gkyl_array_copy_range_cu(a2_cu, a1_cu, &range);
 
   /// copy back to host to check contents
   gkyl_array_copy(a2, a2_cu);
@@ -2157,6 +2302,14 @@ void test_cu_array_copy_range()
 
 #endif
 
+void test_array_shiftc_range_ho() {
+  test_array_shiftc_range(false);
+}
+
+void test_array_shiftc_range_dev() {
+  test_array_shiftc_range(true);
+}
+
 TEST_LIST = {
   { "array_0", test_array_0 },  
   { "array_base", test_array_base },
@@ -2174,7 +2327,8 @@ TEST_LIST = {
   { "array_set_offset_range", test_array_set_offset_range },
   { "array_scale", test_array_scale },
   { "array_scale_by_cell", test_array_scale_by_cell },
-  { "array_shiftc0", test_array_shiftc0 },
+  { "array_shiftc", test_array_shiftc },
+  { "array_shiftc_range", test_array_shiftc_range_ho },
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy_buffer", test_array_copy_buffer },
@@ -2207,7 +2361,8 @@ TEST_LIST = {
   { "cu_array_set_offset_range", test_cu_array_set_offset_range },
   { "cu_array_scale", test_cu_array_scale },
   { "cu_array_scale_by_cell", test_cu_array_scale_by_cell },
-  { "cu_array_shiftc0", test_cu_array_shiftc0 },
+  { "cu_array_shiftc", test_cu_array_shiftc },
+  { "cu_array_shiftc_range", test_array_shiftc_range_dev },
   { "cu_array_copy_buffer", test_cu_array_copy_buffer },
   { "cu_array_copy_buffer_fn", test_cu_array_copy_buffer_fn },
   { "cu_array_flip_copy_buffer_fn", test_cu_array_flip_copy_buffer_fn },

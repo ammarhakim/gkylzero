@@ -204,7 +204,7 @@ test_1x1v_p1()
 
   // sum the integrated moments
   double red_mom[vdim+2];
-  gkyl_array_reduce_range(red_mom, int_mom, GKYL_SUM, confLocal);
+  gkyl_array_reduce_range(red_mom, int_mom, GKYL_SUM, &confLocal);
 
   TEST_CHECK( gkyl_compare(  33.7777777777778, red_mom[0], 1e-12) );
   TEST_CHECK( gkyl_compare(  -28.4444444444444, red_mom[1], 1e-12) );

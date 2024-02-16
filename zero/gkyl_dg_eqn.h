@@ -14,7 +14,7 @@ typedef double (*vol_termf_t)(const struct gkyl_dg_eqn *eqn,
   const double* qIn, double* GKYL_RESTRICT qRhsOut);
 
 // Function pointer type for surface kernel
-typedef void (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, 
+typedef double (*surf_termf_t)(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
   const double*  dxL, const double* dxC, const double* dxR,
@@ -22,7 +22,7 @@ typedef void (*surf_termf_t)(const struct gkyl_dg_eqn *eqn,
   const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut);
 
 // Function pointer type for surface kernel
-typedef void (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
+typedef double (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
   const double*  dxEdge, const double* dxSkin,
@@ -37,7 +37,7 @@ typedef void (*boundary_surf_termf_t)(const struct gkyl_dg_eqn *eqn,
 // NOTE: Takes the index of the cell being updated (idxc) and array of indices
 //       (idx) so we can fetch auxiliary variables easily for neighbors or just
 //       the cell being updated. Need size of integer array (sz_dim)
-typedef void (*gen_termf_t)(const struct gkyl_dg_eqn *eqn, 
+typedef double (*gen_termf_t)(const struct gkyl_dg_eqn *eqn, 
   int dir1, int dir2,
   const double* xc, const double* dxc, const int* idxc,
   int keri, const int idx[9][GKYL_MAX_DIM], const double* qIn[9], 

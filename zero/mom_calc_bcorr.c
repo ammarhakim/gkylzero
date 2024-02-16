@@ -8,8 +8,8 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_mom_calc_bcorr.h>
 #include <gkyl_mom_calc_bcorr_priv.h>
+#include <gkyl_mom_bcorr_lbo_pkpm.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
-#include <gkyl_mom_bcorr_lbo_vlasov_pkpm.h>
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_util.h>
 
@@ -54,7 +54,7 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
   enum gkyl_vel_edge edge;
   
   for (int d=0; d<conf_rng->ndim; ++d) rem_dir[d] = 1;
-  gkyl_array_clear_range(out, 0.0, *conf_rng);
+  gkyl_array_clear_range(out, 0.0, conf_rng);
 
   // outer loop is over configuration space cells; for each
   // config-space cell inner loop walks over the edges of velocity
@@ -132,12 +132,12 @@ gkyl_mom_calc_bcorr_lbo_vlasov_new(const struct gkyl_rect_grid *grid,
 }
 
 struct gkyl_mom_calc_bcorr*
-gkyl_mom_calc_bcorr_lbo_vlasov_pkpm_new(const struct gkyl_rect_grid *grid, 
+gkyl_mom_calc_bcorr_lbo_pkpm_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const double* vBoundary, double mass, bool use_gpu)
 {
   struct gkyl_mom_type *bcorr_type; // LBO boundary corrections moment type
-  bcorr_type = gkyl_mom_bcorr_lbo_vlasov_pkpm_new(cbasis, pbasis, vBoundary, mass, use_gpu);  
+  bcorr_type = gkyl_mom_bcorr_lbo_pkpm_new(cbasis, pbasis, vBoundary, mass, use_gpu);  
   struct gkyl_mom_calc_bcorr* calc = gkyl_mom_calc_bcorr_new(grid, bcorr_type, use_gpu);
   // Since calc now has pointer to specific type, decrease reference counter of type
   // so that eventual gkyl_mom_calc_bcorr_release method on calculator deallocates specific type data
