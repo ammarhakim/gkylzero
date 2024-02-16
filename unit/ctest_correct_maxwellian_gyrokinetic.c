@@ -16,6 +16,18 @@
 #include <gkyl_util.h>
 #include <math.h>
 
+
+static struct gkyl_array*
+mkarr(bool on_gpu, long nc, long size)
+{
+  struct gkyl_array* a;
+  if (on_gpu)
+    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  else
+    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
 void
 mapc2p_3x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
