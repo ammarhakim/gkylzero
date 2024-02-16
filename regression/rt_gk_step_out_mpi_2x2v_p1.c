@@ -450,6 +450,7 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
+      //.geometry_id = GKYL_GEOMETRY_FROMFILE,
       .world = {0.0},
       .geometry_id = GKYL_TOKAMAK,
       .tok_efit_info = &inp,
