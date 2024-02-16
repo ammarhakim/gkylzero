@@ -13,7 +13,6 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 #include <math.h>
-#include <gkyl_gyrokinetic.h>
 
 void
 bmag_func_1x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
