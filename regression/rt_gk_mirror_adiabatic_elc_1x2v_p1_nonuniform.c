@@ -210,34 +210,6 @@ dBdz(double z, void *ctx)
   return fabs(dBdz);
 }
 
-// double
-// z_xi_dBdz_inverse(double chi, double psi, void *ctx)
-// {
-//   struct gk_mirror_ctx *app = ctx;
-//   double map_strength = app->map_strength; // 1 is full strength, 0 is no mapping
-//   if (map_strength == 0.0)
-//   {
-//     return chi;
-//   }
-//   else
-//   {
-//     double psi = app->psi_in_diff;
-//     double z_min = app->z_min;
-//     double z_max = app->z_max;
-//     ;
-//     if (chi <= z_min || chi >= z_max)
-//     {
-//       return chi;
-//     }
-//     else
-//     {
-//       struct gkyl_qr_res integral = gkyl_dbl_exp(dBdz, ctx, z_min, chi, 7, 1e-14);
-//       double coord = (integral.res / app->map_integral_total * (z_max - z_min) + z_min) * map_strength + (1 - map_strength) * chi;
-//       return coord;
-//     }
-//   }
-// }
-
 double
 z_xi(double xi, double psi, void *ctx)
 {
@@ -542,7 +514,6 @@ calculate_optimal_mapping(void *ctx)
       break;
     }
   }
-  printf("Expander order: %i \ndB/dCell reduction factor: %g\n", expander_order, max_dB_dCell_order1/max_dB_dCell);
   double max_dB_dCell_expander = max_dB_dCell;
   //Center region
   scan_left = 0.0;
@@ -581,7 +552,6 @@ calculate_optimal_mapping(void *ctx)
       break;
     }
   }
-  printf("Center   order: %i\n", center_order);
 }
 
 struct gk_mirror_ctx
@@ -656,8 +626,8 @@ create_ctx(void)
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
   int num_cell_z = 128;
   int poly_order = 1;
-  double final_time = 1000e-6;
-  int num_frames = 1000;
+  double final_time = 1-9;
+  int num_frames = 1;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx
   double B_bt = 1.058278;
@@ -738,29 +708,7 @@ create_ctx(void)
     .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
   calculate_mirror_throat_location(&ctx);
-  // Printing
-  double dxi = (ctx.z_max - ctx.z_min) / ctx.num_cell_z;
-  if (ctx.mapping_frac == 0.0)
-  {
-    printf("Uniform cell spacing in z: %g m\n", dxi);
-  }
-  else 
-  {  
-    printf("Mapping fraction: %g\n", ctx.mapping_frac);
-    calculate_optimal_mapping(&ctx);
-    double diff_z_max = z_xi(ctx.z_m + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m - dxi/2, ctx.psi_eval, &ctx);
-    double diff_z_p75 = z_xi(ctx.z_m * .75 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .75 - dxi/2, ctx.psi_eval, &ctx);
-    double diff_z_p50 = z_xi(ctx.z_m * .5  + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5  - dxi/2, ctx.psi_eval, &ctx);
-    double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi/2, ctx.psi_eval, &ctx);
-    double diff_z_min = z_xi(dxi/2, ctx.psi_eval, &ctx) - z_xi(-dxi/2, ctx.psi_eval, &ctx);
-    printf("Total number of cells in z   : %d\n", ctx.num_cell_z);
-    printf("Uniform computational spacing: %g m\n", dxi);
-    printf("Maximum cell spacing at z_m  : %g m\n", diff_z_max);
-    printf("Cell spacing at z_m * 0.75   : %g m\n", diff_z_p75);
-    printf("Cell spacing at z_m * 0.50   : %g m\n", diff_z_p50);
-    printf("Cell spacing at z_m * 0.25   : %g m\n", diff_z_p25);
-    printf("Minimum cell spacing at 0    : %g m\n", diff_z_min);
-  }
+  calculate_optimal_mapping(&ctx);
   return ctx;
 }
 

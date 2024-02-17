@@ -471,8 +471,8 @@ create_ctx(void)
   int num_cell_psi = 10;
   int num_cell_z = 20;
   int poly_order = 1;
-  double final_time = 100e-6;
-  int num_frames = 100;
+  double final_time = 1-9;
+  int num_frames = 1;
 
   // Physics parameters at mirror throat
   double cs_m = 4.037740e5;
@@ -599,8 +599,15 @@ int main(int argc, char **argv)
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_elc,   
     },
-    .bcx = {GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_FIXED_FUNC},
-    .bcy = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
+
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
+      .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -611,7 +618,7 @@ int main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN, 
         .ctx_density = &ctx,
         .density = eval_density_elc_source,
@@ -643,8 +650,14 @@ int main(int argc, char **argv)
       .ctx_tempperp = &ctx,
       .tempperp = eval_temp_perp_ion,   
     },
-    .bcx = {GKYL_SPECIES_FIXED_FUNC, GKYL_SPECIES_FIXED_FUNC},
-    .bcy = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
+      .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },    
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
@@ -653,7 +666,7 @@ int main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
-      .projection = {
+      .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN, 
         .ctx_density = &ctx,
         .density = eval_density_ion_source,

@@ -209,34 +209,6 @@ dBdz(double z, void *ctx)
   return fabs(dBdz);
 }
 
-// double
-// z_xi_dBdz_inverse(double chi, double psi, void *ctx)
-// {
-//   struct gk_mirror_ctx *app = ctx;
-//   double map_strength = app->map_strength; // 1 is full strength, 0 is no mapping
-//   if (map_strength == 0.0)
-//   {
-//     return chi;
-//   }
-//   else
-//   {
-//     double psi = app->psi_in_diff;
-//     double z_min = app->z_min;
-//     double z_max = app->z_max;
-//     ;
-//     if (chi <= z_min || chi >= z_max)
-//     {
-//       return chi;
-//     }
-//     else
-//     {
-//       struct gkyl_qr_res integral = gkyl_dbl_exp(dBdz, ctx, z_min, chi, 7, 1e-14);
-//       double coord = (integral.res / app->map_integral_total * (z_max - z_min) + z_min) * map_strength + (1 - map_strength) * chi;
-//       return coord;
-//     }
-//   }
-// }
-
 double
 z_xi(double xi, double psi, void *ctx)
 {

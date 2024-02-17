@@ -10,6 +10,8 @@
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_math.h>
 #include <rt_arg_parse.h>
+#include <gkyl_mirror_geo.h>
+
 
 // Define the context of the simulation. This is basically all the globals
 struct gk_mirror_ctx
@@ -84,6 +86,25 @@ struct gk_mirror_ctx
   int mapping_order_center;
   int mapping_order_expander;
   double mapping_frac;
+};
+
+struct gkyl_mirror_geo_efit_inp inp = {
+  // psiRZ and related inputs
+  .filepath = "./data/eqdsk/wham_lorentzian.geqdsk",
+  .rzpoly_order = 2,
+  .fluxpoly_order = 1,
+  .plate_spec = false,
+  .quad_param = {  .eps = 1e-10 }
+};
+
+
+struct gkyl_mirror_geo_grid_inp ginp = {
+  .rclose = 0.2,
+  .zmin = -2.48,
+  .zmax =  2.48,
+  .write_node_coord_array = true,
+  .node_file_nm = "lorenzian_nodes.gkyl",
+  .nonuniform_mapping_fraction = 0.7,
 };
 
 double
@@ -508,7 +529,6 @@ calculate_optimal_mapping(void *ctx)
       break;
     }
   }
-  printf("Expander order: %i \ndB/dCell reduction factor: %g\n", expander_order, max_dB_dCell_order1/max_dB_dCell);
   double max_dB_dCell_expander = max_dB_dCell;
   //Center region
   scan_left = 0.0;
@@ -547,7 +567,6 @@ calculate_optimal_mapping(void *ctx)
       break;
     }
   }
-  printf("Center   order: %i\n", center_order);
 }
 
 struct gk_mirror_ctx
@@ -596,8 +615,8 @@ create_ctx(void)
   double RatZeq0 = 0.10; // Radius of the field line at Z=0.
   // Axial coordinate Z extents. Endure that Z=0 is not on
   // the boundary of a cell (due to AD errors).
-  double Z_min = -2.5;
-  double Z_max = 2.5;
+  double Z_min = -2.48;
+  double Z_max = 2.48;
   double z_min = -2.515312;
   double z_max = 2.515312;
   double psi_eval = 0.0026530898059565;
@@ -614,8 +633,8 @@ create_ctx(void)
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
   int num_cell_z = 128;
   int poly_order = 1;
-  double final_time = 200e-6;
-  int num_frames = 200;
+  double final_time = 1-9;
+  int num_frames = 1;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx
   double B_bt = 1.058278;
@@ -690,29 +709,7 @@ create_ctx(void)
     .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
   calculate_mirror_throat_location(&ctx);
-  // Printing
-  double dxi = (ctx.z_max - ctx.z_min) / ctx.num_cell_z;
-  if (ctx.mapping_frac == 0.0)
-  {
-    printf("Uniform cell spacing in z: %g m\n", dxi);
-  }
-  else 
-  {  
-    printf("Mapping fraction: %g\n", ctx.mapping_frac);
-    calculate_optimal_mapping(&ctx);
-    double diff_z_max = z_xi(ctx.z_m + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m - dxi/2, ctx.psi_eval, &ctx);
-    double diff_z_p75 = z_xi(ctx.z_m * .75 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .75 - dxi/2, ctx.psi_eval, &ctx);
-    double diff_z_p50 = z_xi(ctx.z_m * .5  + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5  - dxi/2, ctx.psi_eval, &ctx);
-    double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi/2, ctx.psi_eval, &ctx);
-    double diff_z_min = z_xi(dxi/2, ctx.psi_eval, &ctx) - z_xi(-dxi/2, ctx.psi_eval, &ctx);
-    printf("Total number of cells in z   : %d\n", ctx.num_cell_z);
-    printf("Uniform computational spacing: %g m\n", dxi);
-    printf("Maximum cell spacing at z_m  : %g m\n", diff_z_max);
-    printf("Cell spacing at z_m * 0.75   : %g m\n", diff_z_p75);
-    printf("Cell spacing at z_m * 0.50   : %g m\n", diff_z_p50);
-    printf("Cell spacing at z_m * 0.25   : %g m\n", diff_z_p25);
-    printf("Minimum cell spacing at 0    : %g m\n", diff_z_min);
-  }
+  calculate_optimal_mapping(&ctx);
   return ctx;
 }
 
@@ -763,10 +760,7 @@ int main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
-    },
+    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
     .num_diag_moments = 7,
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
@@ -779,21 +773,20 @@ int main(int argc, char **argv)
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_mirror_adiabatic_elc_1x2v_p1_nonuniform_nosource",
+    .name = "gk_mirror_adiabatic_elc_1x2v_p1_nonuniform_nosource_eqdsk",
     .cdim = 1,
     .vdim = 2,
-    .lower = {ctx.z_min},
-    .upper = {ctx.z_max},
+    .lower = {-M_PI + 1e-1},
+    .upper = {M_PI - 1e-1},
     .cells = {NZ},
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
     .geometry = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_MIRROR,
       .world = {ctx.psi_eval, 0.0},
-      .mapc2p = mapc2p, // mapping of computational to physical space
-      .c2p_ctx = &ctx,
-      .bmag_func = bmag_func, // magnetic field magnitude
-      .bmag_ctx = &ctx},
+      .mirror_efit_info = &inp,
+      .mirror_grid_info = &ginp,
+    },
     .num_periodic_dir = 0,
     .periodic_dirs = {},
     .num_species = 1,
