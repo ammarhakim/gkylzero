@@ -154,10 +154,6 @@ test_1x(int poly_order, int vdim, bool use_gpu)
       .global_ext = confLocal_ext,
       .basis = confBasis,
   };
-  struct gkyl_rect_grid geo_grid;
-  struct gkyl_range geo_local;
-  struct gkyl_range geo_local_ext;
-  struct gkyl_basis geo_basis;
   bool geo_3d_use_gpu = use_gpu;
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, ghost, &geometry_input.geo_local_ext, &geometry_input.geo_local);

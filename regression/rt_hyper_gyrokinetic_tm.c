@@ -194,8 +194,38 @@ main(int argc, char **argv)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
-    mapc2p, 0, bmag_func, 0, use_gpu);
+  struct gkyl_gk_geometry_inp geometry_input = {
+      .geometry_id = GKYL_MAPC2P,
+      .world = {0.0},
+      .mapc2p = mapc2p, // mapping of computational to physical space
+      .c2p_ctx = 0,
+      .bmag_func = bmag_func, // magnetic field magnitude
+      .bmag_ctx =0 ,
+      .grid = confGrid,
+      .local = confRange,
+      .local_ext = confRange_ext,
+      .global = confRange,
+      .global_ext = confRange_ext,
+      .basis = confBasis,
+      .geo_grid = confGrid,
+      .geo_local = confRange,
+      .geo_local_ext = confRange_ext,
+      .geo_global = confRange,
+      .geo_global_ext = confRange_ext,
+      .geo_basis = confBasis,
+  };
+  bool geo_3d_use_gpu = use_gpu;
+  geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, ghost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
+  geo_3d_use_gpu = false;
+  gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
+  struct gk_geometry* gk_geom_3d;
+  gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+  // deflate geometry if necessary
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
+  gkyl_gk_geometry_release(gk_geom_3d);
+
+
 
   // initialize eqn
   struct gkyl_dg_eqn *eqn;
