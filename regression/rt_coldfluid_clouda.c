@@ -183,7 +183,7 @@ main(int argc, char **argv)
     );
   }
 #else
-  comm = gklyl_null_comm_inew( &(struct gkyl_null_comp_inp)
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
     {
       .decomp = decomp,
       .use_gpu = app_args.use_gpu
