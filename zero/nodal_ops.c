@@ -161,11 +161,11 @@ gkyl_nodal_ops_m2n(const struct gkyl_nodal_ops *nodal_ops,
     for( int j = 0; j < grid->ndim; j++){
       int mod = j==0 ? 1 : 0;
       if (iter.idx[j] == nrange->upper[j]) {
-        idx[j] = iter.idx[j];
+        idx[j] = iter.idx[j] + update_range->lower[j]-1;
         node_idx += 2*j + mod;
       }
       else {
-        idx[j] = iter.idx[j] + 1;
+        idx[j] = iter.idx[j] + update_range->lower[j];
       }
     }
     lin_nidx = gkyl_range_idx(nrange, iter.idx);

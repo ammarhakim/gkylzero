@@ -133,59 +133,100 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
 
   // Configuration space geometry initialization
-  struct gkyl_rect_grid geo_grid;
-  struct gkyl_range geo_local;
-  struct gkyl_range geo_local_ext;
-  struct gkyl_basis geo_basis;
-  bool geo_3d_use_gpu = app->use_gpu;
+
+  // Initialize the input struct from user side input struct
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = gk->geometry.geometry_id,
+    .c2p_ctx = gk->geometry.c2p_ctx,
+    .mapc2p = gk->geometry.mapc2p,
+    .bmag_ctx = gk->geometry.bmag_ctx,
+    .bmag_func = gk->geometry.bmag_func,
+    .tok_efit_info = gk->geometry.tok_efit_info,
+    .tok_grid_info = gk->geometry.tok_grid_info,
+    .mirror_efit_info = gk->geometry.mirror_efit_info,
+    .mirror_grid_info = gk->geometry.mirror_grid_info,
+    .grid = app->grid,
+    .local = app->local,
+    .local_ext = app->local_ext,
+    .global = app->global,
+    .global_ext = app->global_ext,
+    .basis = app->confBasis,
+  };
+  for(int i = 0; i<3; i++)
+    geometry_inp.world[i] = gk->geometry.world[i];
 
   if(app->cdim < 3){
-    geo_grid = agument_grid(app->grid, gk->geometry);
-    gkyl_create_grid_ranges(&geo_grid, ghost, &geo_local_ext, &geo_local);
-    geo_3d_use_gpu = false;
+    geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);
     switch (gk->basis_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
-        gkyl_cart_modal_serendip(&geo_basis, 3, poly_order);
+        gkyl_cart_modal_serendip(&geometry_inp.geo_basis, 3, poly_order);
         break;
       default:
         assert(false);
         break;
     }
+
+    int ghost[] = { 1, 1, 1 };
+    gkyl_create_grid_ranges(&geometry_inp.geo_grid, ghost, &geometry_inp.geo_global_ext, &geometry_inp.geo_global);
+    if (gk->has_low_inp) {
+      // create local and local_ext from user-supplied local range
+      gkyl_gk_geometry_augment_local(&gk->low_inp.local_range, ghost, &geometry_inp.geo_local_ext, &geometry_inp.geo_local);
+    }
+    else {
+      // global and local ranges are same, and so just copy
+      memcpy(&geometry_inp.geo_local, &geometry_inp.geo_global, sizeof(struct gkyl_range));
+      memcpy(&geometry_inp.geo_local_ext, &geometry_inp.geo_global_ext, sizeof(struct gkyl_range));
+    }
+
   }
   else{
-    geo_grid = app->grid;
-    geo_local = app->local;
-    geo_local_ext = app->local_ext;
-    geo_basis = app->confBasis;
+    geometry_inp.geo_grid = app->grid;
+    geometry_inp.geo_local = app->local;
+    geometry_inp.geo_local_ext = app->local_ext;
+    geometry_inp.geo_global = app->global;
+    geometry_inp.geo_global_ext = app->global_ext;
+    geometry_inp.geo_basis = app->confBasis;
   }
 
   struct gk_geometry* gk_geom_3d;
-  switch (gk->geometry.geometry_id) {
+  switch (geometry_inp.geometry_id) {
     case GKYL_GEOMETRY_FROMFILE:
-      gk_geom_3d = gkyl_gk_geometry_fromfile_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, app->use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, false);
       break;
     case GKYL_TOKAMAK:
-      gk_geom_3d = gkyl_gk_geometry_tok_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-          gk->geometry.tok_efit_info, gk->geometry.tok_grid_info, geo_3d_use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_tok_new(&geometry_inp);
       break;
     case GKYL_MIRROR:
-      gk_geom_3d = gkyl_gk_geometry_mirror_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-          gk->geometry.mirror_efit_info, gk->geometry.mirror_grid_info, geo_3d_use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
       break;
     case GKYL_MAPC2P:
-      gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-          gk->geometry.mapc2p, gk->geometry.c2p_ctx, gk->geometry.bmag_func,  gk->geometry.bmag_ctx, geo_3d_use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);
       break;
   }
 
   // deflate geometry if necessary
-  if(app->cdim < 3 && gk->geometry.geometry_id != GKYL_GEOMETRY_FROMFILE)
-    app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &app->grid, &app->local, &app->local_ext, 
-        &app->confBasis, app->use_gpu);
-  else
+  if (geometry_inp.geometry_id != GKYL_GEOMETRY_FROMFILE) {
+    if(app->cdim < 3)
+      app->gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_inp);
+    else
+      app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+  }
+  else {
     app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
+    gkyl_gyrokinetic_app_read_geometry(app);
+  }
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
+  gkyl_gyrokinetic_app_write_geometry(app);
+
+  // If we are on the gpu, copy from host
+  if (app->use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, app->use_gpu);
+    gkyl_gk_geometry_release(app->gk_geom);
+    app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
 
   // allocate space to store species and neutral species objects
   app->species = ns>0 ? gkyl_malloc(sizeof(struct gk_species[ns])) : 0;
@@ -668,6 +709,234 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     }
   }
   gkyl_dynvec_clear(app->field->integ_energy);
+}
+
+void
+gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
+{
+  const char *fmt = "%s-%s.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, "jacobtot_inv");
+  char fileNm[sz+1]; // ensure no buffer overflow
+  
+  // Gather geo into a global array
+  struct gkyl_array *mc2p = gkyl_array_new(GKYL_DOUBLE, 3*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *g_ij = gkyl_array_new(GKYL_DOUBLE, 6*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *dxdz = gkyl_array_new(GKYL_DOUBLE, 9*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *dzdx = gkyl_array_new(GKYL_DOUBLE, 9*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *jacobgeo = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *gij = gkyl_array_new(GKYL_DOUBLE, 6*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *b_i = gkyl_array_new(GKYL_DOUBLE, 3*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *jacobtot = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *bmag_inv = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *bmag_inv_sq = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *gxxj= gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *gxyj= gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *gyyj= gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *gxzj= gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *eps2= gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> mc2p, mc2p);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> bmag, bmag);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> g_ij, g_ij);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> dxdz, dxdz);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> dzdx, dzdx);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> jacobgeo, jacobgeo);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> jacobgeo_inv, jacobgeo_inv);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> gij, gij);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> b_i, b_i);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> cmag, cmag);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> jacobtot, jacobtot);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> jacobtot_inv, jacobtot_inv);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> bmag_inv, bmag_inv);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> bmag_inv_sq, bmag_inv_sq);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> gxxj, gxxj);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> gxyj, gxyj);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> gyyj, gyyj);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> gxzj, gxzj);
+  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> eps2, eps2);
+
+
+  // Write out global geometry on rank 0
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank == 0) {
+    sprintf(fileNm, fmt, app->name, "mapc2p");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, mc2p, fileNm);
+    sprintf(fileNm, fmt, app->name, "bmag");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, bmag, fileNm);
+    sprintf(fileNm, fmt, app->name, "g_ij");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, g_ij, fileNm);
+    sprintf(fileNm, fmt, app->name, "dxdz");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, dxdz, fileNm);
+    sprintf(fileNm, fmt, app->name, "dzdx");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, dzdx, fileNm);
+    sprintf(fileNm, fmt, app->name, "jacobgeo");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, jacobgeo, fileNm);
+    sprintf(fileNm, fmt, app->name, "jacobgeo_inv");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, jacobgeo_inv, fileNm);
+    sprintf(fileNm, fmt, app->name, "gij");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, gij, fileNm);
+    sprintf(fileNm, fmt, app->name, "b_i");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, b_i, fileNm);
+    sprintf(fileNm, fmt, app->name, "cmag");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, cmag, fileNm);
+    sprintf(fileNm, fmt, app->name, "jacobtot");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, jacobtot, fileNm);
+    sprintf(fileNm, fmt, app->name, "jacobtot_inv");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, jacobtot_inv, fileNm);
+    sprintf(fileNm, fmt, app->name, "bmag_inv");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, bmag_inv, fileNm);
+    sprintf(fileNm, fmt, app->name, "bmag_inv_sq");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, bmag_inv_sq, fileNm);
+    sprintf(fileNm, fmt, app->name, "gxxj");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, gxxj, fileNm);
+    sprintf(fileNm, fmt, app->name, "gxyj");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, gxyj, fileNm);
+    sprintf(fileNm, fmt, app->name, "gyyj");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, gyyj, fileNm);
+    sprintf(fileNm, fmt, app->name, "gxzj");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, gxzj, fileNm);
+    sprintf(fileNm, fmt, app->name, "eps2");
+    gkyl_grid_sub_array_write(&app->grid, &app->global, eps2, fileNm);
+  }
+
+  gkyl_array_release(mc2p);
+  gkyl_array_release(bmag);
+  gkyl_array_release(g_ij);
+  gkyl_array_release(dxdz);
+  gkyl_array_release(dzdx);
+  gkyl_array_release(jacobgeo);
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(gij);
+  gkyl_array_release(b_i);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot);
+  gkyl_array_release(jacobtot_inv);
+  gkyl_array_release(bmag_inv);
+  gkyl_array_release(bmag_inv_sq);
+  gkyl_array_release(gxxj);
+  gkyl_array_release(gxyj);
+  gkyl_array_release(gyyj);
+  gkyl_array_release(gxzj);
+  gkyl_array_release(eps2);
+
+}
+
+void
+gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
+{
+  const char *fmt = "%s-%s.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, "jacobtot_inv");
+  char fileNm[sz+1]; // ensure no buffer overflow
+
+  // read global geometry on all ranks
+  struct gkyl_array *mc2p = gkyl_array_new(GKYL_DOUBLE, 3*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *bmag = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *g_ij = gkyl_array_new(GKYL_DOUBLE, 6*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *dxdz = gkyl_array_new(GKYL_DOUBLE, 9*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *dzdx = gkyl_array_new(GKYL_DOUBLE, 9*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *jacobgeo = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *gij = gkyl_array_new(GKYL_DOUBLE, 6*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *b_i = gkyl_array_new(GKYL_DOUBLE, 3*app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *cmag = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *jacobtot = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *bmag_inv = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *bmag_inv_sq = gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *gxxj= gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *gxyj= gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *gyyj= gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *gxzj= gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+  struct gkyl_array *eps2= gkyl_array_new(GKYL_DOUBLE, app->confBasis.num_basis, app->global_ext.volume);
+
+  sprintf(fileNm, fmt, app->name, "mapc2p");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, mc2p, fileNm);
+  sprintf(fileNm, fmt, app->name, "bmag");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, bmag, fileNm);
+  sprintf(fileNm, fmt, app->name, "g_ij");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, g_ij, fileNm);
+  sprintf(fileNm, fmt, app->name, "dxdz");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, dxdz, fileNm);
+  sprintf(fileNm, fmt, app->name, "dzdx");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, dzdx, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacobgeo");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, jacobgeo, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacobgeo_inv");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, jacobgeo_inv, fileNm);
+  sprintf(fileNm, fmt, app->name, "gij");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, gij, fileNm);
+  sprintf(fileNm, fmt, app->name, "b_i");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, b_i, fileNm);
+  sprintf(fileNm, fmt, app->name, "cmag");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, cmag, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacobtot");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, jacobtot, fileNm);
+  sprintf(fileNm, fmt, app->name, "jacobtot_inv");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, jacobtot_inv, fileNm);
+  sprintf(fileNm, fmt, app->name, "bmag_inv");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, bmag_inv, fileNm);
+  sprintf(fileNm, fmt, app->name, "bmag_inv_sq");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, bmag_inv_sq, fileNm);
+  sprintf(fileNm, fmt, app->name, "gxxj");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, gxxj, fileNm);
+  sprintf(fileNm, fmt, app->name, "gxyj");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, gxyj, fileNm);
+  sprintf(fileNm, fmt, app->name, "gyyj");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, gyyj, fileNm);
+  sprintf(fileNm, fmt, app->name, "gxzj");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, gxzj, fileNm);
+  sprintf(fileNm, fmt, app->name, "eps2");
+  gkyl_grid_sub_array_read(&app->grid, &app->global, eps2, fileNm);
+
+  // Copy contents into local array
+  struct gkyl_range global_sub_range;
+  gkyl_sub_range_init(&global_sub_range, &app->global, app->local.lower, app->local.upper);
+
+  gkyl_array_copy_range_to_range(app->gk_geom->mc2p, mc2p, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->bmag, bmag, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->g_ij, g_ij, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->dxdz, dxdz, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->dzdx, dzdx, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->jacobgeo, jacobgeo, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->jacobgeo_inv, jacobgeo_inv, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->gij, gij, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->b_i, b_i, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->cmag, cmag, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->jacobtot, jacobtot, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->jacobtot_inv, jacobtot_inv, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->bmag_inv, bmag_inv, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->bmag_inv_sq, bmag_inv_sq, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->gxxj, gxxj, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->gxyj, gxyj, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->gyyj, gyyj, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->gxzj, gxzj, &app->local, &global_sub_range);
+  gkyl_array_copy_range_to_range(app->gk_geom->eps2, eps2, &app->local, &global_sub_range);
+
+  // Release the global arrays used for reading
+  gkyl_array_release(mc2p);
+  gkyl_array_release(bmag);
+  gkyl_array_release(g_ij);
+  gkyl_array_release(dxdz);
+  gkyl_array_release(dzdx);
+  gkyl_array_release(jacobgeo);
+  gkyl_array_release(jacobgeo_inv);
+  gkyl_array_release(gij);
+  gkyl_array_release(b_i);
+  gkyl_array_release(cmag);
+  gkyl_array_release(jacobtot);
+  gkyl_array_release(jacobtot_inv);
+  gkyl_array_release(bmag_inv);
+  gkyl_array_release(bmag_inv_sq);
+  gkyl_array_release(gxxj);
+  gkyl_array_release(gxyj);
+  gkyl_array_release(gyyj);
+  gkyl_array_release(gxzj);
+  gkyl_array_release(eps2);
 }
 
 // Take a forward Euler step with the suggested time-step dt. This may

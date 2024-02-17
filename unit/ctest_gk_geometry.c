@@ -84,8 +84,32 @@ test_3x_p1()
   struct gkyl_range ext_range, range;
   int nghost[3] = { 1,1,1};
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
-  struct gk_geometry* gkgeom = gkyl_gk_geometry_mapc2p_new(&grid, &range, &ext_range, &basis, mapc2p, 0, bmag_func, 0, false);
-  gkyl_gk_geometry_release(gkgeom);
+
+  // Initialize geometry
+  struct gkyl_gk_geometry_inp geometry_input = {
+      .geometry_id = GKYL_MAPC2P,
+      .mapc2p = mapc2p, // mapping of computational to physical space
+      .c2p_ctx = 0,
+      .bmag_func = bmag_func, // magnetic field magnitude
+      .bmag_ctx =0 ,
+      .grid = grid,
+      .local = range,
+      .local_ext = ext_range,
+      .global = range,
+      .global_ext = ext_range,
+      .basis = basis,
+      .geo_grid = grid,
+      .geo_local = range,
+      .geo_local_ext = ext_range,
+      .geo_global = range,
+      .geo_global_ext = ext_range,
+      .geo_basis = basis,
+  };
+
+
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+
+  gkyl_gk_geometry_release(gk_geom);
 }
 
 TEST_LIST = {
