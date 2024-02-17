@@ -10,7 +10,7 @@
 #include <gkyl_util.h>
 
 void
-gkyl_rad_gyrokinetic_drag_free(const struct gkyl_ref_count* ref)
+gkyl_rad_gyrokinetic_free(const struct gkyl_ref_count* ref)
 {
   struct gkyl_dg_eqn* base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag  = container_of(base, struct dg_rad_gyrokinetic_drag, eqn);
@@ -22,7 +22,7 @@ gkyl_rad_gyrokinetic_drag_free(const struct gkyl_ref_count* ref)
 }
 
 void
-gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_drag_auxfields auxin)
+gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
  if (gkyl_dg_eqn_is_cu_dev(eqn)) {
@@ -32,8 +32,10 @@ gkyl_rad_gyrokinetic_drag_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gk
 #endif
 
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
-  rad_gyrokinetic_drag->auxfields.nvnu_sum = auxin.nvnu_sum;
-  rad_gyrokinetic_drag->auxfields.nvsqnu_sum = auxin.nvsqnu_sum;
+  rad_gyrokinetic_drag->auxfields.nvnu_surf = auxin.nvnu_surf;
+  rad_gyrokinetic_drag->auxfields.nvnu = auxin.nvnu;
+  rad_gyrokinetic_drag->auxfields.nvsqnu_surf = auxin.nvsqnu_surf;
+  rad_gyrokinetic_drag->auxfields.nvsqnu = auxin.nvsqnu;
 }
 
 struct gkyl_dg_eqn*
@@ -57,9 +59,9 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis,
   rad_gyrokinetic_drag->eqn.surf_term = surf;
   rad_gyrokinetic_drag->eqn.boundary_surf_term = boundary_surf;
 
-  const gkyl_dg_rad_gyrokinetic_drag_vol_kern_list *vol_kernels;
-  const gkyl_dg_rad_gyrokinetic_drag_surf_kern_list *surf_vpar_kernels, *surf_mu_kernels;
-  const gkyl_dg_rad_gyrokinetic_drag_boundary_surf_kern_list *boundary_surf_vpar_kernels, *boundary_surf_mu_kernels;
+  const gkyl_dg_rad_gyrokinetic_vol_kern_list *vol_kernels;
+  const gkyl_dg_rad_gyrokinetic_surf_kern_list *surf_vpar_kernels, *surf_mu_kernels;
+  const gkyl_dg_rad_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels, *boundary_surf_mu_kernels;
   
   switch (conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -89,13 +91,15 @@ gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis *conf_basis,
   for (int i=0; i<vdim; ++i) assert(rad_gyrokinetic_drag->surf[i]);
   for (int i=0; i<vdim; ++i) assert(rad_gyrokinetic_drag->boundary_surf[i]);
 
-  rad_gyrokinetic_drag->auxfields.nvnu_sum = 0;
-  rad_gyrokinetic_drag->auxfields.nvsqnu_sum = 0;
+  rad_gyrokinetic_drag->auxfields.nvnu_surf = 0;
+  rad_gyrokinetic_drag->auxfields.nvnu = 0;
+  rad_gyrokinetic_drag->auxfields.nvsqnu_surf = 0;
+  rad_gyrokinetic_drag->auxfields.nvsqnu = 0;
   rad_gyrokinetic_drag->phase_range = *phase_range;
 
   rad_gyrokinetic_drag->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(rad_gyrokinetic_drag->eqn.flags);
-  rad_gyrokinetic_drag->eqn.ref_count = gkyl_ref_count_init(gkyl_rad_gyrokinetic_drag_free);
+  rad_gyrokinetic_drag->eqn.ref_count = gkyl_ref_count_init(gkyl_rad_gyrokinetic_free);
   rad_gyrokinetic_drag->eqn.on_dev = &rad_gyrokinetic_drag->eqn;
 
   return &rad_gyrokinetic_drag->eqn;

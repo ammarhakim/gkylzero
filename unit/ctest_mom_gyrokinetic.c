@@ -415,6 +415,7 @@ test_1x2v(int poly_order, bool use_gpu)
       .global_ext = confLocal_ext,
       .basis = confBasis,
   };
+
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);

@@ -410,12 +410,8 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
 
     struct timespec wst = gkyl_wall_clock();
 
-    gk_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
-
-    // Rescale integrated moment by inverse of Jacobian before integration over configuration space
-    gkyl_dg_div_op_range(app->species[i].integ_moms.mem_geo, app->confBasis, 
-      0, app->species[i].integ_moms.marr, 0, app->species[i].integ_moms.marr, 0, app->gk_geom->jacobgeo, &app->local); 
-
+    gk_species_moment_calc(&s->integ_moms, s->local, app->local, s->f); 
+    
     // reduce to compute sum over whole domain, append to diagnostics
     if (app->use_gpu) {
       gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, &(app->local));
@@ -600,15 +596,25 @@ gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double 
   struct gk_species *s = &app->species[sidx];
 
   // Construct the file handles for vparallel and mu drag
-  const char *fmt_vnu = "%s-%s_vnu_%d.gkyl";
-  int sz_vnu = gkyl_calc_strlen(fmt_vnu, app->name, s->info.name, frame);
-  char fileNm_vnu[sz_vnu+1]; // ensures no buffer overflow
-  snprintf(fileNm_vnu, sizeof fileNm_vnu, fmt_vnu, app->name, s->info.name, frame);
+  const char *fmt_nvnu_surf = "%s-%s_nvnu_surf_%d.gkyl";
+  int sz_nvnu_surf = gkyl_calc_strlen(fmt_nvnu_surf, app->name, s->info.name, frame);
+  char fileNm_nvnu_surf[sz_nvnu_surf+1]; // ensures no buffer overflow
+  snprintf(fileNm_nvnu_surf, sizeof fileNm_nvnu_surf, fmt_nvnu_surf, app->name, s->info.name, frame);
 
-  const char *fmt_vsqnu = "%s-%s_vsqnu_%d.gkyl";
-  int sz_vsqnu = gkyl_calc_strlen(fmt_vsqnu, app->name, s->info.name, frame);
-  char fileNm_vsqnu[sz_vsqnu+1]; // ensures no buffer overflow
-  snprintf(fileNm_vsqnu, sizeof fileNm_vsqnu, fmt_vsqnu, app->name, s->info.name, frame);
+  const char *fmt_nvnu = "%s-%s_nvnu_%d.gkyl";
+  int sz_nvnu = gkyl_calc_strlen(fmt_nvnu, app->name, s->info.name, frame);
+  char fileNm_nvnu[sz_nvnu+1]; // ensures no buffer overflow
+  snprintf(fileNm_nvnu, sizeof fileNm_nvnu, fmt_nvnu, app->name, s->info.name, frame);
+
+  const char *fmt_nvsqnu_surf = "%s-%s_nvsqnu_surf_%d.gkyl";
+  int sz_nvsqnu_surf = gkyl_calc_strlen(fmt_nvsqnu_surf, app->name, s->info.name, frame);
+  char fileNm_nvsqnu_surf[sz_nvsqnu_surf+1]; // ensures no buffer overflow
+  snprintf(fileNm_nvsqnu_surf, sizeof fileNm_nvsqnu_surf, fmt_nvsqnu_surf, app->name, s->info.name, frame);
+
+  const char *fmt_nvsqnu = "%s-%s_nvsqnu_%d.gkyl";
+  int sz_nvsqnu = gkyl_calc_strlen(fmt_nvsqnu, app->name, s->info.name, frame);
+  char fileNm_nvsqnu[sz_nvsqnu+1]; // ensures no buffer overflow
+  snprintf(fileNm_nvsqnu, sizeof fileNm_nvsqnu, fmt_nvsqnu, app->name, s->info.name, frame);
 
   // Compute radiation drag coefficients
   const struct gkyl_array *fin[app->num_species];
@@ -618,12 +624,16 @@ gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double 
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
-    gkyl_array_copy(s->rad.nvnu_sum_host, s->rad.nvnu_sum);
-    gkyl_array_copy(s->rad.nvsqnu_sum_host, s->rad.nvsqnu_sum);
+    gkyl_array_copy(s->rad.nvnu_surf_host, s->rad.nvnu_surf);
+    gkyl_array_copy(s->rad.nvnu_host, s->rad.nvnu);
+    gkyl_array_copy(s->rad.nvsqnu_surf_host, s->rad.nvsqnu_surf);
+    gkyl_array_copy(s->rad.nvsqnu_host, s->rad.nvsqnu);
   }
 
-  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvnu_sum_host, fileNm_vnu);
-  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvsqnu_sum_host, fileNm_vsqnu);
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvnu_surf_host, fileNm_nvnu_surf);
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvnu_host, fileNm_nvnu);
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvsqnu_surf_host, fileNm_nvsqnu_surf);
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvsqnu_host, fileNm_nvsqnu);
 }
 
 void

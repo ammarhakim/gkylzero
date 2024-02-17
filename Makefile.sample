@@ -36,13 +36,24 @@ CFLAGS = -O3 -g -ffast-math -I.
 G0_INC_DIR = ${PREFIX}/gkylzero/include
 G0_LIB_DIR = ${PREFIX}/gkylzero/lib
 G0_LIB = -lgkylzero
-CUDA_LIB = 
 
+USING_NVCC =
+NVCC_FLAGS =
+CUDA_LIBS =
 ifeq ($(CC), nvcc)
-	CUDA_LIB = -lcublas
+       USING_NVCC = yes
+       CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC
+       NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} --compiler-options="-fPIC"
+       LDFLAGS += -arch=sm_${CUDA_ARCH}
+       ifdef CUDAMATH_LIBDIR
+              CUDA_LIBS = -L${CUDAMATH_LIBDIR}
+       else
+              CUDA_LIBS =
+       endif
+       CUDA_LIBS += -lcublas -lcusparse -lcusolver
 endif
 
-G0_LIBS = ${G0_LIB} ${CUDA_LIB} -lm -lpthread
+G0_LIBS = ${G0_LIB} ${CUDA_LIBS} -lm -lpthread
 G0_RPATH = -Wl,-rpath,${G0_LIB_DIR}
 
 # determine OS we are running on
