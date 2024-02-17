@@ -263,8 +263,8 @@ test_1x(int poly_order, int vdim, bool use_gpu)
     &confLocal, 0, GKYL_ELECTRON_MASS, gk_geom, "M0", false, use_gpu);
   struct gkyl_dg_updater_moment *m2_calc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis, &basis,
     &confLocal, 0, GKYL_ELECTRON_MASS, gk_geom, "M2", false, use_gpu);
-  struct gkyl_array *m0_final = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
-  struct gkyl_array *m2_final = mkarr(confBasis.num_basis, confLocal_ext.volume, use_gpu);
+  struct gkyl_array *m0_final = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume );
+  struct gkyl_array *m2_final = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume );
   gkyl_dg_updater_moment_gyrokinetic_advance(m0_calc, &local, &confLocal, rhs, m0_final);
   gkyl_dg_updater_moment_gyrokinetic_advance(m2_calc, &local, &confLocal, rhs, m2_final);
 
