@@ -28,6 +28,7 @@ struct bmag_ctx{
    const struct gkyl_rect_grid* cgrid;
    const struct gkyl_range* range;
    const struct gkyl_range* crange;
+   const struct gkyl_range* crange_global;
    const struct gkyl_basis* basis;
    const struct gkyl_basis* cbasis;
    struct gkyl_array* bmagdg;

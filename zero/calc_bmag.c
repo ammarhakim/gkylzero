@@ -34,7 +34,7 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
   struct gkyl_range_iter citer;
   gkyl_range_iter_init(&iter, gc->crange);
   for(int i = 0; i < gc->cgrid->ndim; i++){
-    citer.idx[i] = fmin(gc->crange->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]), gc->crange->upper[i]);
+    citer.idx[i] = fmin(gc->crange_global->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]), gc->crange->upper[i]);
   }
 
   long lidx = gkyl_range_idx(gc->crange, citer.idx);
@@ -121,7 +121,7 @@ static inline void bphi_RZ(double t, const double *xn, double *fout, void *ctx){
 
 
 
-void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi)
+void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *crange_global, const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi)
 {
   // 0th stage is to calculate bphi from fpol on the RZ grid from its representation on the flux grid
   // We will do this with an eval on nodes similar to what is done in bmag comp
@@ -187,6 +187,7 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
   ctx->cgrid = up->cgrid;
   ctx->range = prange;
   ctx->crange = crange;
+  ctx->crange_global = crange_global;
   ctx->bmagdg = bmagrz;
   ctx->basis = up->pbasis;
   ctx->cbasis = up->cbasis;
