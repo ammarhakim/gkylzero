@@ -23,12 +23,7 @@ struct cold_sr {
 static inline void
 cold_sr_fluid_flux(const double q[4], double *flux)
 {
-  // Vx = NUx/sqrt(N^2 + NU^2/c^2) 
-  ////printf("TEMP SPEED IN COLD_SR_FLUX\n");
-  //const double c = 1.0; //c = 299792458.0; 
   const double c = 299792458.0; 
-  //if ((q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])/(c*c)) < 0) //printf("invalid sqrt");
-  //for (int i=0; i<4; ++i) if isnan(q[i]) //printf("q[%d] is nan\n",i);
   double Vx = q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])/(c*c)); 
   flux[0] =  q[0]*Vx; // N*Vx
   flux[NUX] =  q[NUX]*Vx; // N*Ux*Vx
@@ -101,164 +96,69 @@ static double
 wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr, double *waves, double *s)
 {
-  ////printf("TEMP Set c = 1 in wave_roe_sr\n");
-  //const double c = 1.0;
-  const double c = 299792458.0;
 
+  const double c = 299792458.0;
   double *wv = 0;
 
+  // isolate left and right states
+  double rhor = qr[0];
+  if (qr[0] < 0.0) {
+    rhor = 1.0;
+  }
+  double urx = qr[1]/(rhor);
+  double ury = qr[2]/(rhor);
+  double urz = qr[3]/(rhor);
+  double rhol = ql[0];
+  // Fix density if negative:
+  if (ql[0] < 0.0) {
+    rhol = 1.0;
+  }
+  double ulx = ql[1]/(rhol);
+  double uly = ql[2]/(rhol);
+  double ulz = ql[3]/(rhol);
 
-  // As long as one density is positive on both sides:
-  if (ql[0] > 0.0 || qr[0] > 0.0){
+  // compute the constants:
+  double gammal = sqrt(1.0 + (ulx*ulx + uly*uly + ulz*ulz)/(c*c));
+  double gammar = sqrt(1.0 + (urx*urx + ury*ury + urz*urz)/(c*c));
+  double vlx = ulx/gammal;
+  double vrx = urx/gammar;
+  double vly = uly/gammal;
+  double vry = ury/gammar;
+  double vlz = ulz/gammal;
+  double vrz = urz/gammar;
 
-    // isolate left and right states
-    double rhor = qr[0];
-    if (qr[0] < 0.0) {
-      rhor = 0.0;
-      //printf("rhor fix!\n");
-    }
-    double urx = qr[1]/(rhor);
-    double ury = qr[2]/(rhor);
-    double urz = qr[3]/(rhor);
-    if (qr[0] < 0.0) {
-      //urx = 0.0;
-      //ury = 0.0;
-      //urz = 0.0;
-    }
-    double rhol = ql[0];
-    // Fix density if negative:
-    if (ql[0] < 0.0) {
-      rhol = 0.0;
-      //printf("rhol fix!\n");
-    }
-    double ulx = ql[1]/(rhol);
-    double uly = ql[2]/(rhol);
-    double ulz = ql[3]/(rhol);
-    if (ql[0] < 0.0) {
-      //ulx = 0.0;
-      //uly = 0.0;
-      //ulz = 0.0;
-    }
+  // Primative rho
+  double rhol_prim = rhol/(gammal);
+  double rhor_prim = rhor/(gammar);
 
+  double k = (sqrt(rhol_prim) + sqrt(rhor_prim))/(2.0*c);
+  double w0 = (sqrt(rhol_prim)*gammal + sqrt(rhor_prim)*gammar)/(2.0);
+  double w1 = (sqrt(rhol_prim)*gammal*vlx/c + sqrt(rhor_prim)*gammar*vrx/c)/(2.0);
+  double w2 = (sqrt(rhol_prim)*gammal*vly/c + sqrt(rhor_prim)*gammar*vry/c)/(2.0);
+  double w3 = (sqrt(rhol_prim)*gammal*vlz/c + sqrt(rhor_prim)*gammar*vrz/c)/(2.0);
 
+  // TEMP: for prim waves, use_conserved_var = 0;
+  // Decide between primative or conserved jumps
+  bool use_conserved_var = 1;
 
-    // compute the constants:
-    double gammal = sqrt(1.0 + (ulx*ulx + uly*uly + ulz*ulz)/(c*c));
-    double gammar = sqrt(1.0 + (urx*urx + ury*ury + urz*urz)/(c*c));
-    double vlx = ulx/gammal;
-    double vrx = urx/gammar;
-    double vly = uly/gammal;
-    double vry = ury/gammar;
-    double vlz = ulz/gammal;
-    double vrz = urz/gammar;
-
-    // Primative rho
-    double rhol_prim = rhol/gammal;
-    double rhor_prim = rhor/gammar;
-
-    // TEMP: Norm of density prim (not working!)
-    //double max_prim = fmin(rhol_prim,rhor_prim);
-    //rhol_prim = rhol_prim/max_prim;
-    //rhor_prim = rhor_prim/max_prim;
-
-    // Compute the primative-parameterization state vector w
-    // these are the averages of the left and right states
-    //double k = (sqrt(rhol_prim) + sqrt(rhor_prim))/(c);
-    //double w0 = sqrt(rhol_prim)*gammal + sqrt(rhor_prim)*gammar;
-    //double w1 = sqrt(rhol_prim)*gammal*vlx/c + sqrt(rhor_prim)*gammar*vrx/c;
-    //double w2 = sqrt(rhol_prim)*gammal*vly/c + sqrt(rhor_prim)*gammar*vry/c;
-    //double w3 = sqrt(rhol_prim)*gammal*vlz/c + sqrt(rhor_prim)*gammar*vrz/c;
-
-    // Can /1.0e12 each term as a sort of normalization, but doesn't change the answer
-
-    double k = (sqrt(rhol_prim) + sqrt(rhor_prim))/(2.0*c);
-    double w0 = (sqrt(rhol_prim)*gammal + sqrt(rhor_prim)*gammar)/(2.0);
-    double w1 = (sqrt(rhol_prim)*gammal*vlx/c + sqrt(rhor_prim)*gammar*vrx/c)/(2.0);
-    double w2 = (sqrt(rhol_prim)*gammal*vly/c + sqrt(rhor_prim)*gammar*vry/c)/(2.0);
-    double w3 = (sqrt(rhol_prim)*gammal*vlz/c + sqrt(rhor_prim)*gammar*vrz/c)/(2.0);
-
+  if (use_conserved_var){
     // Assign the jump in the state vector, d = (d0,d1,d2,d3) 
     double d0 = qr[0] - ql[0]; 
     double d1 = qr[1] - ql[1]; 
     double d2 = qr[2] - ql[2]; 
     double d3 = qr[3] - ql[3]; 
 
-      
-
-    //if ( (ql[0] != qr[0])  ){ // 
-    if  ((w1 != 0) || (w2 != 0) || (w3 != 0)){
-      //printf("\n*****\n");
-      //printf("(STATE JUMP): k: %1.16e, w[0]: %1.16e, w[1]: %1.16e, w[2]: %1.16e, w[3]: %1.16e\n",k,w0,w1,w2,w3);
-      //printf("DENOM1: %1.16e, DENOM2: %1.16e\n",(w0 * (c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3)), ((c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3) * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3)));
-      //printf("NUM Wv0[0]: %1.16e, NUM Wv0[1]: %1.16e\n",(c * (d1 * c * c * k * k * k - d0 * c * c * k * k * w1 + d1 * k * w0 * w0 - d1 * k * w1 * w1 - 2 * d2 * k * w1 * w2 - 2 * d3 * k * w1 * w3 + d1 * k * w2 * w2 + d1 * k * w3 * w3 - d0 * w0 * w0 * w1 + d0 * w1 * w1 * w1 + d0 * w1 * w2 * w2 + d0 * w1 * w3 * w3)),(2 * c * w1 * (d1 * c * c * k * k - d0 * w1 * c * c * k + d1 * w2 * w2 - d2 * w1 * w2 + d1 * w3 * w3 - d3 * w1 * w3)));
-      //printf("NUM Wv1[0]: %1.16e, NUM Wv1[1]: %1.16e\n",-(2 * c *  k * w0 * (d1 * c * c * k * k - 2 * d0 * c * c * k * w1 + d1 * w0 * w0 - d1 * w1 * w1 - 2 * d2 * w1 * w2 - 2 * d3 * w1 * w3 + d1 * w2 * w2 + d1 * w3 * w3)),-(2 * c * w0 * w1 * (d1 * c * c * k * k - 2 * d0 * c * c * k * w1 + d1 * w0 * w0 - d1 * w1 * w1 - 2 * d2 * w1 * w2 - 2 * d3 * w1 * w3 + d1 * w2 * w2 + d1 * w3 * w3)));
-      //printf("Wv0[0]: %1.16e, Wv0[1]: %1.16e\n",(c * (d1 * c * c * k * k * k - d0 * c * c * k * k * w1 + d1 * k * w0 * w0 - d1 * k * w1 * w1 - 2 * d2 * k * w1 * w2 - 2 * d3 * k * w1 * w3 + d1 * k * w2 * w2 + d1 * k * w3 * w3 - d0 * w0 * w0 * w1 + d0 * w1 * w1 * w1 + d0 * w1 * w2 * w2 + d0 * w1 * w3 * w3)) / (w0 * (c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3)),(2 * c * w1 * (d1 * c * c * k * k - d0 * w1 * c * c * k + d1 * w2 * w2 - d2 * w1 * w2 + d1 * w3 * w3 - d3 * w1 * w3)) / (w0 * (c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3)));
-      //printf("Wv1[0]: %1.16e, Wv1[1]: %1.16e\n",-(2 * c *  k * w0 * (d1 * c * c * k * k - 2 * d0 * c * c * k * w1 + d1 * w0 * w0 - d1 * w1 * w1 - 2 * d2 * w1 * w2 - 2 * d3 * w1 * w3 + d1 * w2 * w2 + d1 * w3 * w3)) / ((c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3) * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3)),-(2 * c * w0 * w1 * (d1 * c * c * k * k - 2 * d0 * c * c * k * w1 + d1 * w0 * w0 - d1 * w1 * w1 - 2 * d2 * w1 * w2 - 2 * d3 * w1 * w3 + d1 * w2 * w2 + d1 * w3 * w3)) / ((c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3) * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3)));
-      //printf("(c * c * k * k): %1.16e, - (w0 * w0): %1.16e, w1 * w1: %1.16e, (w2 * w2): %1.16e, (w3 * w3): %1.16e\n",(c * c * k * k), - (w0 * w0),w1 * w1, w2 * w2, w3 * w3);
-      //printf("ql[0]: %1.16e, ql[1]: %1.16e, ql[2]: %1.16e, qr[0]: %1.16e, qr[1]: %1.16e, qr[2]: %1.16e\n",ql[0],ql[1],ql[2],qr[0],qr[1],qr[2]);
-      //printf("*****\n");
-    }
-
-    // Wave 1: eigenvalue is w1/w0 repeated, three waves are lumped into one
-    // waves = Vx*[N, NUx, NUy, Nuz]
+    // Wave 1: eigenvalue is (c*w1)/w0;
     wv = &waves[0];
-
-    // Diagnostics
-    //double wv_val[4] = { 0.0, 0.0, 0.0, 0.0}; 
-    //double wv_num[4] = { 0.0, 0.0, 0.0, 0.0}; 
-    //double wv_denom;
-    //wv_denom = (w0 * (c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
-    //wv_num[0] = (c * (d1 * c * c * k * k * k - d0 * c * c * k * k * w1 + d1 * k * w0 * w0 - d1 * k * w1 * w1 - 2 * d2 * k * w1 * w2 - 2 * d3 * k * w1 * w3 + d1 * k * w2 * w2 + d1 * k * w3 * w3 - d0 * w0 * w0 * w1 + d0 * w1 * w1 * w1 + d0 * w1 * w2 * w2 + d0 * w1 * w3 * w3)) ;
-    //wv_num[1] = (2 * c * w1 * (d1 * c * c * k * k - d0 * w1 * c * c * k + d1 * w2 * w2 - d2 * w1 * w2 + d1 * w3 * w3 - d3 * w1 * w3)) / (w0 * (c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
-    //wv_num[2] = (c * (d2 * c * c * k * k * w1 + d1 * c * c * k * k * w2 - 2 * d0 * c * c * k * w1 * w2 - d2 * w0 * w0 * w1 + d1 * w0 * w0 * w2 + d2 * w1 * w1 * w1 - d1 * w1 * w1 * w2 - d2 * w1 * w2 * w2 - 2 * d3 * w1 * w2 * w3 + d2 * w1 * w3 * w3 + d1 * w2 * w2 * w2 + d1 * w2 * w3 * w3));
-    //wv_num[3] = (c * (d3 * c * c * k * k * w1 + d1 * c * c * k * k * w3 - 2 * d0 * c * c * k * w1 * w3 - d3 * w0 * w0 * w1 + d1 * w0 * w0 * w3 + d3 * w1 * w1 * w1 - d1 * w1 * w1 * w3 + d3 * w1 * w2 * w2 - 2 * d2 * w1 * w2 * w3 - d3 * w1 * w3 * w3 + d1 * w2 * w2 * w3 + d1 * w3 * w3 * w3));
-    //wv_val[0] = wv_num[0]/wv_denom;
-    //wv_val[1] = wv_num[1]/wv_denom;
-    //wv_val[2] = wv_num[2]/wv_denom;
-    //wv_val[3] = wv_num[3]/wv_denom;
-
-
     wv[0] =  (c * (d1 * c * c * k * k * k - d0 * c * c * k * k * w1 + d1 * k * w0 * w0 - d1 * k * w1 * w1 - 2 * d2 * k * w1 * w2 - 2 * d3 * k * w1 * w3 + d1 * k * w2 * w2 + d1 * k * w3 * w3 - d0 * w0 * w0 * w1 + d0 * w1 * w1 * w1 + d0 * w1 * w2 * w2 + d0 * w1 * w3 * w3)) / (w0 * (c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3)); 
     wv[1] =  (2 * c * w1 * (d1 * c * c * k * k - d0 * w1 * c * c * k + d1 * w2 * w2 - d2 * w1 * w2 + d1 * w3 * w3 - d3 * w1 * w3)) / (w0 * (c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
     wv[2] =  (c * (d2 * c * c * k * k * w1 + d1 * c * c * k * k * w2 - 2 * d0 * c * c * k * w1 * w2 - d2 * w0 * w0 * w1 + d1 * w0 * w0 * w2 + d2 * w1 * w1 * w1 - d1 * w1 * w1 * w2 - d2 * w1 * w2 * w2 - 2 * d3 * w1 * w2 * w3 + d2 * w1 * w3 * w3 + d1 * w2 * w2 * w2 + d1 * w2 * w3 * w3)) / (w0 * (c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
     wv[3] =  (c * (d3 * c * c * k * k * w1 + d1 * c * c * k * k * w3 - 2 * d0 * c * c * k * w1 * w3 - d3 * w0 * w0 * w1 + d1 * w0 * w0 * w3 + d3 * w1 * w1 * w1 - d1 * w1 * w1 * w3 + d3 * w1 * w2 * w2 - 2 * d2 * w1 * w2 * w3 - d3 * w1 * w3 * w3 + d1 * w2 * w2 * w3 + d1 * w3 * w3 * w3)) / (w0 * (c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
-    for (int i=0; i<4; ++i) if (isnan(wv[i])) {
-      //if ( (ql[0] != qr[0])  )
-        //printf("wv[%d]: %1.16e, wv_num/denom: %1.16e/%1.16e\n",i,wv[i],wv_num[i],wv_denom);
-      wv[i] = 0;
-      //if ( (ql[0] != qr[0])  )
-        //printf("S1 RESET WV[%d] is nan\n",i);
-      if ((w1 != 0) || (w2 != 0) || (w3 != 0)){
-        //printf("S1 RESET WV[%d] is nan\n",i);
-        //printf("ql[0]: %1.16e, ql[1]: %1.16e, ql[2]: %1.16e, qr[0]: %1.16e, qr[1]: %1.16e, qr[2]: %1.16e\n",ql[0],ql[1],ql[2],qr[0],qr[1],qr[2]);
-      }
-    }
-    for (int i=0; i<4; ++i) if (!(isfinite(wv[i]))) {
-      //if ( (ql[0] != qr[0])  )
-        //printf("wv[%d]: %1.16e, wv_num/denom: %1.16e/%1.16e\n",i,wv[i],wv_num[i],wv_denom);
-      wv[i] = 0;
-      //if ( (ql[0] != qr[0])  )
-        //printf("S1 RESET WV[%d] is inf\n",i);
-      if ((w1 != 0) || (w2 != 0) || (w3 != 0)){
-        //printf("S1 RESET WV[%d] is inf\n",i);
-        //printf("ql[0]: %1.16e, ql[1]: %1.16e, ql[2]: %1.16e, qr[0]: %1.16e, qr[1]: %1.16e, qr[2]: %1.16e\n",ql[0],ql[1],ql[2],qr[0],qr[1],qr[2]);
-      }
-    }
+    for (int i=0; i<4; ++i) if (isnan(wv[i]))  wv[i] = 0;
+    for (int i=0; i<4; ++i) if (!(isfinite(wv[i])))  wv[i] = 0;
     s[0] = (c*w1)/w0;
-    if (isnan(s[0])) {
-      s[0] = 0;
-      //printf("RESET s[0] is nan\n");
-    }
-    if (!(isfinite(s[0]))) {
-      s[0] = 0;
-      //printf("RESET s[0] is inf\n");
-    }
-
-    if ((w1 != 0) || (w2 != 0) || (w3 != 0)){
-    //if ( (ql[0] != qr[0])  ){
-      //printf("(SET 1): wv[0]: %1.16e, wv[1]: %1.16e, wv[2]: %1.16e, wv[3]: %1.16e, s[0]: %1.16e\n",wv[0],wv[1],wv[2],wv[3],s[0]);
-      //printf("(SET 1): vlx: %1.16e, s1: %1.16e, vrx: %1.16e\n",vlx,s[0],vrx);
-    }
+    if (isnan(s[0])) s[0] = 0;
+    if (!(isfinite(s[0]))) s[0] = 0;
 
     // Wave 2: eigenvalue is 2*w0*w1/( k*k + w0*w0 + w1*w1 + w2*w2 + w3*w3 );
     wv = &waves[4];
@@ -266,75 +166,86 @@ wave_roe_sr(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
     wv[1] =  -(2 * c * w0 * w1 * (d1 * c * c * k * k - 2 * d0 * c * c * k * w1 + d1 * w0 * w0 - d1 * w1 * w1 - 2 * d2 * w1 * w2 - 2 * d3 * w1 * w3 + d1 * w2 * w2 + d1 * w3 * w3)) / ((c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3) * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
     wv[2] =  -(2 * c * w0 * w2 * (d1 * c * c * k * k - 2 * d0 * c * c * k * w1 + d1 * w0 * w0 - d1 * w1 * w1 - 2 * d2 * w1 * w2 - 2 * d3 * w1 * w3 + d1 * w2 * w2 + d1 * w3 * w3)) / ((c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3) * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
     wv[3] =  -(2 * c * w0 * w3 * (d1 * c * c * k * k - 2 * d0 * c * c * k * w1 + d1 * w0 * w0 - d1 * w1 * w1 - 2 * d2 * w1 * w2 - 2 * d3 * w1 * w3 + d1 * w2 * w2 + d1 * w3 * w3)) / ((c * c * k * k - w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3) * (c * c * k * k + w0 * w0 + w1 * w1 + w2 * w2 + w3 * w3));
-    for (int i=0; i<4; ++i) if (isnan(wv[i])){
-      wv[i] = 0;
-      //if ( (ql[0] != qr[0])  )
-        //printf("S2 RESET WV[%d] is nan\n",i);
-      if ((w1 != 0) || (w2 != 0) || (w3 != 0)){
-        //printf("S2 RESET WV[%d] is nan\n",i);
-        //printf("ql[0]: %1.16e, ql[1]: %1.16e, ql[2]: %1.16e, qr[0]: %1.16e, qr[1]: %1.16e, qr[2]: %1.16e\n",ql[0],ql[1],ql[2],qr[0],qr[1],qr[2]); 
-      }
-    }
-    for (int i=0; i<4; ++i) if (!(isfinite(wv[i]))) {
-      wv[i] = 0;
-      //if ( (ql[0] != qr[0])  )
-        //printf("S2 RESET WV[%d] is inf\n",i);
-      if ((w1 != 0) || (w2 != 0) || (w3 != 0)){
-        //printf("S2 RESET WV[%d] is inf\n",i);
-        //printf("ql[0]: %1.16e, ql[1]: %1.16e, ql[2]: %1.16e, qr[0]: %1.16e, qr[1]: %1.16e, qr[2]: %1.16e\n",ql[0],ql[1],ql[2],qr[0],qr[1],qr[2]);
-      }
-    }
-    s[1] =  2.0*c*w0*w1/( c*c*k*k + w0*w0 + w1*w1 + w2*w2 + w3*w3 ); // (c*w1)/w0;
-    if (isnan(s[1])) {
-      s[1] = 0;
-      //printf("RESET s[1] is nan\n");
-    }
-    if (!(isfinite(s[1]))) {
-      s[1] = 0;
-      //printf("RESET s[1] is inf\n");
-    }
+    for (int i=0; i<4; ++i) if (isnan(wv[i])) wv[i] = 0;
+    for (int i=0; i<4; ++i) if (!(isfinite(wv[i]))) wv[i] = 0;
+    s[1] =  2.0*c*w0*w1/( c*c*k*k + w0*w0 + w1*w1 + w2*w2 + w3*w3 ); 
+    if (isnan(s[1])) s[1] = 0;
+    if (!(isfinite(s[1]))) s[1] = 0;
 
 
-
-
-    //double other_v3 = u[0]/sqrt(1.0 + u[0]*u[0] + u[1]*u[1] + u[2]*u[2]);;
-    //if (w1 != 0){
-      //printf("Eigenvalues, Vx = w1/w0: %1.16e, 2*w0*w1/...: %1.16e\n",s[0], s[1]);
-      //printf("vxl: %1.16e, vxr: %1.16e\n\n",vlx,vrx);
-    //}
-
-
-    if ((w1 != 0) || (w2 != 0) || (w3 != 0)){
-    //if ( (ql[0] != qr[0])  ){
-      //wv = &waves[0];
-      //double fr[4], fl[4];
-      //cold_sr_fluid_flux(ql, fl);
-      //cold_sr_fluid_flux(qr, fr);
-      //printf("(SET 2): wv[0]: %1.16e, wv[1]: %1.16e, wv[2]: %1.16e, wv[3]: %1.16e, s[1]: %1.16e\n",wv[0],wv[1],wv[2],wv[3],s[1]);
-      //printf("(SET 2): vlx: %1.16e, s2: %1.16e, vrx: %1.16e\n",vlx,s[1],vrx);
-      //printf("ql[0]: %1.16e, ql[1]: %1.16e, ql[2]: %1.16e, qr[0]: %1.16e, qr[1]: %1.16e, qr[2]: %1.16e\n",ql[0],ql[1],ql[2],qr[0],qr[1],qr[2]); 
-      //for (int i=0; i<4; ++i) printf("(FLUX) FL[%d] %1.16e, F_tot[%d] %1.16e, FR[%d] %1.16e, || F0[%d] %1.16e, F1[%d] %1.16e,\n",i,fl[i],i,wv[i]+ wv[4+i],i,fr[i],i,wv[i],i,wv[4+i]);
-    }
-
-
+  // Use Primative variables
   } else {
-    wv = &waves[0];
-    wv[0] = 0.0;
-    wv[1] = 0.0;
-    wv[2] = 0.0;
-    wv[3] = 0.0;
-    s[0] = 0.0;
-    wv = &waves[4];
-    wv[0] = 0.0;
-    wv[1] = 0.0;
-    wv[2] = 0.0;
-    wv[3] = 0.0;
-    s[1] = 0.0;
-  }
 
-  // Print if the waves are nan
-  //for (int i=0; i<8; ++i) if (isnan(waves[i])) //printf("waves[%d] is nan\n",i);
-  //for (int i=0; i<2; ++i) if (isnan(s[i])) //printf("s[%d] is nan\n",i);
+    // Alternate primitive jump formulation, requires 3 waves instead of 2!
+
+    // Assign the jump in the PRIMATIVE state vector, d = (d0,d1,d2,d3) 
+    double d0 = rhor - rhol; 
+    double d1 = urx - ulx; 
+    double d2 = ury - uly; 
+    double d3 = urz - ulz; 
+
+    // Compute some useful terms
+    double kstar = sqrt(rhol_prim)*sqrt(rhor_prim)/(c*c);
+    double a_sqrt = sqrt((c * c * c * c * c * c * k * k * k * k * kstar * kstar) +
+                    (2 * c * c * c * c * k * k * kstar * kstar * w0 * w0) +
+                    (c * c * kstar * kstar * w0 * w0 * w0 * w0) -
+                    (2 * c * k * kstar * w0 * w1 * w1) -
+                    (2 * c * k * kstar * w0 * w2 * w2) -
+                    (2 * c * k * kstar * w0 * w3 * w3) +
+                    (k * k * w0 * w0));
+    double sigma = c*c*k*k + w0*w0 + w1*w1 + w2*w2 + w3*w3; 
+    double epsilon = -c*c*k*k - w0*w0 + w1*w1 + w2*w2 + w3*w3; 
+
+    //Norm of fwave1
+    double c1_wv1 = c * (kstar * c * c * c * k * k + kstar * c * w0 * w0 + k * w0 + a_sqrt);
+    double c2_wv1 = (kstar*c*c*c*k*k + kstar*c*w0*w0 - k*w0 + a_sqrt);
+    double c3_wv1 = (2*c2_wv1*d1*w1*w1 - c2_wv1*d1*sigma + 2*c2_wv1*d2*w1*w2 + 2*c2_wv1*d3*w1*w3 + 2*d0*epsilon*w0*w1);
+    double nf1 = (c1_wv1*c3_wv1/(2*a_sqrt*epsilon*k*sigma));
+
+    //Norm of fwave2
+    double c1_wv2 = kstar * c * c * c * k * k + kstar * c * w0 * w0 + k * w0 - a_sqrt;
+    double c2_wv2 = -kstar * c * c * c * k * k - kstar * c * w0 * w0 + k * w0 + a_sqrt;
+    double c3_wv2 = 2*c2_wv2*d1*w1*w1 - c2_wv2*d1*sigma + 2*c2_wv2*d2*w1*w2 + 2*c2_wv2*d3*w1*w3 - 2*d0*epsilon*w0*w1;
+    double nf2 = c*c1_wv2*c3_wv2/(2*a_sqrt*epsilon*k*sigma);
+
+    // Move from eigenvalues to eigenvectors 
+    double c_norm = w0*c*kstar/k; 
+
+    // Set the waves
+    wv = &waves[0];
+    wv[0] = (c2_wv2*nf1)/(2*w0);
+    wv[1] = nf1*w1;
+    wv[2] = nf1*w2;
+    wv[3] = nf1*w3;
+    s[0] = (c*w1*(kstar*c*c*c*k*k + kstar*c*w0*w0 + k*w0 + a_sqrt))/(k*sigma);
+
+    wv = &waves[4];
+    wv[0] = -(c2_wv1*nf2)/(2*w0);
+    wv[1] = nf2*w1;
+    wv[2] = nf2*w2;
+    wv[3] = nf2*w3;
+    s[1] = (c*w1*(kstar*c*c*c*k*k + kstar*c*w0*w0 + k*w0 - a_sqrt))/(k*sigma);
+
+    wv = &waves[8];
+    wv[0] = 0;
+    wv[1] = (2 * c * c * kstar * w1 * (d1 * w2 * w2 - d2 * w1 * w2 + d1 * w3 * w3 - d3 * w1 * w3)) / (epsilon * k);
+    wv[2] = -(c * c * kstar * (d2 * w0 * w0 * w1 - d2 * w1 * w1 * w1 + d2 * w1 * w2 * w2 - d2 * w1 * w3 * w3 - d1 * w2 * (-2 * w1 * w1 + sigma) + 2 * d3 * w1 * w2 * w3 + c * c * d2 * k * k * w1)) / (epsilon * k);
+    wv[3] = -(c * c * kstar * (d3 * w0 * w0 * w1 - d3 * w1 * w1 * w1 - d3 * w1 * w2 * w2 + d3 * w1 * w3 * w3 - d1 * w3 * (-2 * w1 * w1 + sigma) + 2 * d2 * w1 * w2 * w3 + c * c * d3 * k * k * w1)) / (epsilon * k);
+    s[2] = (c*c*kstar*w1)/k;
+
+    // Iterate over waves, correcting for overflow/underflow
+    for (int i=0; i<3; ++i){
+      s[i] = s[i]/c_norm; // Very important, converts lambda->V, by moving const to F
+      if (isnan(s[i]))  s[i] = 0;
+      if (!(isfinite(s[i])))  s[i] = 0;
+    }
+    for (int i=0; i<12; ++i){
+      waves[i] = waves[i]/c_norm; // Very important, converts lambda->V, by moving const to F
+      if (isnan(waves[i])) waves[i] = 0;
+      if (!(isfinite(waves[i])))  waves[i] = 0;
+    }
+
+  }
 
 
   return fmax(fabs(s[0]), fabs(s[1]));
@@ -345,7 +256,7 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
-  //printf("Q-Waves will not work with this system (L,R Eigenvectors are not unique)\n");
+  //Q-Waves will not work with this system (L,R Eigenvectors are not unique)
 }
 
 static void
@@ -353,6 +264,7 @@ ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *ql, const double *qr, const double *waves, const double *s,
   double *amdq, double *apdq)
 {
+
   int meqn = 4, mwaves = 2;
   
   for (int m=0; m<meqn; ++m) {
@@ -373,12 +285,6 @@ ffluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
       }
     }
   }
-
-  //for (int i=0; i<2; ++i) if (isnan(s[i])) //printf("s[%d] is nan ffluc_roe\n",i);
-  //for (int i=0; i<8; ++i) if (isnan(waves[i])) //printf("wv[%d] is nan ffluc_roe\n",i);
-  //for (int i=0; i<4; ++i) if (isnan(amdq[i])) //printf("amdq[%d] is nan ffluc_roe\n",i);
-  //for (int i=0; i<4; ++i) if (isnan(amdq[i])) //printf("waves1[%d] is: %1.16e, waves2[%d] is: %1.16e, \n",i,waves[i],i+4,waves[i*meqn]);
-  //for (int i=0; i<4; ++i) if (isnan(apdq[i])) //printf("apdq[%d] is nan ffluc_roe\n",i);
 }
 
 static double
@@ -390,10 +296,7 @@ flux_jump_sr(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, 
 
   for (int m=0; m<4; ++m) flux_jump_sr[m] = fr[m]-fl[m];
 
- // Vn = NUn/sqrt(N^2 + NU^2/c^2)
   const double c = 299792458.0;
-  //if ((ql[0]*ql[0] + (ql[NUX]*ql[NUX] + ql[NUY]*ql[NUY] + ql[NUZ]*ql[NUZ])/(c*c)) < 0) //printf("invalid sqrt");
-  //if ((qr[0]*qr[0] + (qr[NUX]*qr[NUX] + qr[NUY]*qr[NUY] + qr[NUZ]*qr[NUZ])/(c*c)) < 0) //printf("invalid sqrt");
   double amaxl =  ql[NUX]/sqrt(ql[0]*ql[0] + (ql[NUX]*ql[NUX] + ql[NUY]*ql[NUY] + ql[NUZ]*ql[NUZ])/(c*c));
   double amaxr =  qr[NUX]/sqrt(qr[0]*qr[0] + (qr[NUX]*qr[NUX] + qr[NUY]*qr[NUY] + qr[NUZ]*qr[NUZ])/(c*c)); 
 
@@ -411,7 +314,6 @@ max_speed_sr(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_cold_sr_fluid *cold_sr_fluid = container_of(eqn, struct wv_cold_sr_fluid, eqn);
   const double c = 299792458.0;
-  //if ((q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])/(c*c)) < 0) //printf("invalid sqrt");
   return fabs(q[NUX]/sqrt(q[0]*q[0] + (q[NUX]*q[NUX] + q[NUY]*q[NUY] + q[NUZ]*q[NUZ])/(c*c)));
 }
 

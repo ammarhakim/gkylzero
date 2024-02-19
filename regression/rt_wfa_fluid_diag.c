@@ -24,11 +24,11 @@ evalColdInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   double pi = 3.141;
   double xmax = 170.0e-6;
   double xmin = -50e-6;
-  double u = c; //0.25*c + 1.0*c*sin(4.0*(xn[0] - xmin)*2.0*pi/(xmax - xmin));
+  double u = 0.25*c + 1.0*c*sin(4.0*(xn[0] - xmin)*2.0*pi/(xmax - xmin));
 
   // no initial momentum density (fout = rho*u)
   fout[0] = rho;
-  fout[1] = rho*u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = rho*u; fout[2] = rho*u; fout[3] = 0.0;
 }
 
 void
@@ -54,7 +54,7 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 5120); // //37548 5120
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 200); // //37548 5120
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -99,7 +99,7 @@ main(int argc, char **argv)
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend =  3.8699e-13; //7.0e-12;
+  double tcurr = 0.0, tend = 1.0e-13; //7.0e-12;
 
   int nframe = 5;
   // create trigger for IO

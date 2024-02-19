@@ -48,8 +48,8 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
 {
 
   // laser profile:
-  const double position    = -1.0e-6;         // This point is on the laser plane
-  const double E_max        = 10.e12;       // Maximum amplitude of the laser field (in V/m)
+  const double position    = -1.0e-6;       // This point is on the laser plane
+  const double E_max        = 10.0e12;      // Maximum amplitude of the laser field (in V/m)
   const double profile_duration = 15.e-15;  // The duration of the laser (in s)
   const double profile_t_peak = 30.e-15;    // Time at which the laser reaches its peak (in s)
   const double wavelength = 0.8e-6;         // The wavelength of the laser (in m)
@@ -58,7 +58,7 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
   double xupper = 170.0e-6;
   double xlaser = -11.0e-6;
   double xlower = -50.0e-6;
-  double nx = 18774.0; // 37548.0; // 18774.0; //10240.0;
+  double nx = 18774.0; 
   double dx = (xupper - xlower)/nx;
   double xLastEdge = xlaser+dx;
 
@@ -68,11 +68,9 @@ evalAppCurrent(double t, const double * restrict xn, double* restrict fout, void
   const double mu_0 = 12.56637061435917295385057353311801153679e-7;
 
   //Laser amplitude (t + dt/2.0)
-  //const double ad_hoc_factor = 16.0*10*2.4e5*(1.1795);
   const double factor = 2.0*E_max/(mu_0*c*dx);
   if (xn[0]<=xLastEdge && xn[0]>(xLastEdge-dx)){
     fout[0] = 0.0;
-    //fout[1] = ad_hoc_factor*sin(2.0*pi*c*t/wavelength)*(2.0/(mu_0*c))*E_max * exp(- pow((t - profile_t_peak),2) / pow(profile_duration,2));
     fout[1] = 1.00*factor*sin(2.0*pi*c*t/wavelength)* exp(- pow((t - profile_t_peak),2) / pow(profile_duration,2)); // 1.01
     fout[2] = 0.0;
   } else {
@@ -142,8 +140,8 @@ main(int argc, char **argv)
 
     .cfl_frac = 0.90, // 0.9,
 
-    .num_species = 1,
-    .species = { elc }, //, ion 
+    .num_species = 2,
+    .species = { elc, ion  }, 
     .field = {
       .epsilon0 = 8.854187817620389850536563031710750260608e-12, 
       .mu0 = 12.56637061435917295385057353311801153679e-7,
@@ -165,7 +163,7 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double tcurr = 0.0, tend =  5.8e-13; //7.0e-12;
 
-  int nframe = 22;
+  int nframe = 5; // 22;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = (tend-tcurr)/nframe };
 
