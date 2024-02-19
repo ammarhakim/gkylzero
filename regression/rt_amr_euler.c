@@ -31,5 +31,5 @@ void initEuler(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 
 int main(int argc, char **argv)
 {
-  euler2d_run_level1(argc, argv, initEuler, 128, 128, 2, 1.0, 1.0, 2.0, 2.0, 0.0, 0.0, 3.0, 3.0, 0.95, 0.1);
+  euler2d_run_level1(argc, argv, initEuler, 1.4, 64, 64, 2, 0.75, 0.75, 2.25, 2.25, 0.0, 0.0, 3.0, 3.0, 0.95, 0.1);
 }

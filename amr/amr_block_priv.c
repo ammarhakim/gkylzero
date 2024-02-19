@@ -237,7 +237,8 @@ copy_job_func(void* ctx)
   gkyl_array_copy(j_ctx -> out, j_ctx -> inp);
 }
 
-struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo, const struct euler_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats)
+struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo, const struct euler_block_data bdata[],
+    double t_curr, double dt0, struct sim_stats* stats)
 {
   long num_blocks = btopo -> num_blocks;
   double dt_suggested = DBL_MAX;
@@ -371,102 +372,48 @@ create_block_topo()
   struct gkyl_block_topo *btopo = gkyl_block_topo_new(2, 9);
   
   btopo -> conn[0] = (struct gkyl_block_connections) {
-    .connections[0] = {
-        { .bid = 4, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 5, .dir = 0, .edge = GKYL_LOWER_POSITIVE }
-    },
-    .connections[1] = {
-        { .bid = 7, .dir = 1, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
-    }
+    .connections[0] = { { .bid = 4, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 5, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 7, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE } }
   };
 
   btopo -> conn[1] = (struct gkyl_block_connections) {
-    .connections[0] = {
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL },
-        { .bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE }
-    },
-    .connections[1] = {
-        { .bid = 4, .dir = 1, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }
-    }
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, { .bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 4, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } }
   };
 
   btopo -> conn[2] = (struct gkyl_block_connections) {
-    .connections[0] = {
-        { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 3, .dir = 0, .edge = GKYL_LOWER_POSITIVE }
-    },
-    .connections[1] = {
-        { .bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE  },
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }
-    }
+    .connections[0] = { { .bid = 1, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 3, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE  }, { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } }
   };
 
   btopo -> conn[3] = (struct gkyl_block_connections) {
-    .connections[0] = {
-        { .bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }
-    },
-    .connections[1] = {
-        { .bid = 5, .dir = 1, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }
-    }
+    .connections[0] = { { .bid = 2, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
+    .connections[1] = { { .bid = 5, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL } }
   };
 
   btopo -> conn[4] = (struct gkyl_block_connections) {
-    .connections[0] = {
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL },
-        { .bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE }
-    },
-    .connections[1] = {
-        { .bid = 6, .dir = 1, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
-    }
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, { .bid = 0, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 6, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 1, .dir = 1, .edge = GKYL_LOWER_POSITIVE } }
   };
 
   btopo -> conn[5] = (struct gkyl_block_connections) {
-    .connections[0] = {
-        { .bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }
-    },
-    .connections[1] = {
-        { .bid = 8, .dir = 1, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 3, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
-    }
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
+    .connections[1] = { { .bid = 8, .dir = 1, .edge = GKYL_UPPER_POSITIVE }, { .bid = 3, .dir = 1, .edge = GKYL_LOWER_POSITIVE } }
   };
 
   btopo -> conn[6] = (struct gkyl_block_connections) {
-    .connections[0] = {
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL },
-        { .bid = 7, .dir = 0, .edge = GKYL_LOWER_POSITIVE }
-    },
-    .connections[1] = {
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
-        { .bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
-    }
+    .connections[0] = { { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }, { .bid = 7, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE } }
   };
 
   btopo -> conn[7] = (struct gkyl_block_connections) {
-    .connections[0] = {
-        { .bid = 6, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 8, .dir = 0, .edge = GKYL_LOWER_POSITIVE }
-    },
-    .connections[1] = {
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
-        { .bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
-    }
+    .connections[0] = { { .bid = 6, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 8, .dir = 0, .edge = GKYL_LOWER_POSITIVE } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 0, .dir = 1, .edge = GKYL_LOWER_POSITIVE } }
   };
 
   btopo -> conn[8] = (struct gkyl_block_connections) {
-    .connections[0] = {
-        { .bid = 7, .dir = 0, .edge = GKYL_UPPER_POSITIVE },
-        { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL }
-    },
-    .connections[1] = {
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
-        { .bid = 5, .dir = 1, .edge = GKYL_LOWER_POSITIVE }
-    }
+    .connections[0] = { { .bid = 7, .dir = 0, .edge = GKYL_UPPER_POSITIVE }, { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL } },
+    .connections[1] = { { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL }, { .bid = 5, .dir = 1, .edge = GKYL_LOWER_POSITIVE } }
   };
 
   return btopo;
