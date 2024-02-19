@@ -92,13 +92,15 @@ double euler_block_data_max_dt(const struct euler_block_data* bdata);
 
 void euler_update_block_job_func(void *ctx);
 
-struct gkyl_update_status euler_update_all_blocks(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo, const struct euler_block_data bdata[], double t_curr, double dt);
+struct gkyl_update_status euler_update_all_blocks(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
+  const struct euler_block_data bdata[], double t_curr, double dt);
 
 void euler_init_job_func(void* ctx);
 
 void copy_job_func(void* ctx);
 
-struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo, const struct euler_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats);
+struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
+  const struct euler_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats);
 
 void euler_write_sol(const char* fbase, int num_blocks, const struct euler_block_data bdata[]);
 

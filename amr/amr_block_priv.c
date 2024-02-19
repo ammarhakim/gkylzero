@@ -138,7 +138,7 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
 void
 euler_block_data_write(const char* fileNm, const struct euler_block_data* bdata)
 {
-    gkyl_grid_sub_array_write(&bdata -> grid, &bdata -> range, bdata -> f[0], fileNm);
+  gkyl_grid_sub_array_write(&bdata -> grid, &bdata -> range, bdata -> f[0], fileNm);
 }
 
 double
@@ -356,14 +356,14 @@ euler_write_sol(const char* fbase, int num_blocks, const struct euler_block_data
 double
 euler_max_dt(int num_blocks, const struct euler_block_data bdata[])
 {
-    double dt = DBL_MAX;
-
-    for (int i = 0; i < num_blocks; i++)
-    {
-        dt = fmin(dt, euler_block_data_max_dt(&bdata[i]));
-    }
-
-    return dt;
+  double dt = DBL_MAX;
+  
+  for (int i = 0; i < num_blocks; i++)
+  {
+    dt = fmin(dt, euler_block_data_max_dt(&bdata[i]));
+  }
+  
+  return dt;
 }
 
 struct gkyl_block_topo*

@@ -3,7 +3,7 @@
 
 void
 euler2d_run_level1(int argc, char **argv, evalf_t eval, double gas_gamma, int baseNx, int baseNy, int ref_factor, double refined_x1, double refined_y1,
-    double refined_x2, double refined_y2, double coarse_x1, double coarse_y1, double coarse_x2, double coarse_y2, double cfl_frac, double t_end)
+  double refined_x2, double refined_y2, double coarse_x1, double coarse_y1, double coarse_x2, double coarse_y2, double cfl_frac, double t_end)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -163,18 +163,19 @@ euler2d_run_level1(int argc, char **argv, evalf_t eval, double gas_gamma, int ba
 
     for (long fine_step = 1; fine_step < 3; fine_step++)
     {
-        printf("   Taking fine (level 1) time-step %ld at t = %g; ", fine_step, fine_t_curr);
-        struct gkyl_update_status fine_status = euler_update(fine_job_pool, btopo, fine_bdata, fine_t_curr, fine_dt, &stats);
-        printf(" dt = %g\n", fine_status.dt_actual);
-
-        if (!fine_status.success)
-        {
-            printf("   ** Update method failed! Aborting simulation ....\n");
-            break;
-        }
-
-        fine_t_curr += fine_status.dt_actual;
-        fine_dt = fine_status.dt_suggested;
+      printf("   Taking fine (level 1) time-step %ld at t = %g; ", fine_step, fine_t_curr);
+      struct gkyl_update_status fine_status = euler_update(fine_job_pool, btopo, fine_bdata, fine_t_curr, fine_dt, &stats);
+      printf(" dt = %g\n", fine_status.dt_actual);
+      
+      if (!fine_status.success)
+      {
+        printf("   ** Update method failed! Aborting simulation ....\n");
+        break;
+      }
+      
+      fine_t_curr += fine_status.dt_actual;
+      
+      fine_dt = fine_status.dt_suggested;
     }
 
     coarse_t_curr += coarse_status.dt_actual;
