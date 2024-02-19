@@ -238,6 +238,23 @@ struct gkyl_qr_res gkyl_ridders(double (*func)(double,void*), void *ctx,
 struct gkyl_lo_poly_roots gkyl_calc_lo_poly_roots(enum gkyl_lo_poly_order order,
   double coeff[4]);
 
+/**
+ * Allocate memory to store polynomial roots.
+ *
+ * @param poly_order Polynomial order
+ * @return newly allocated memory. Free using release method.
+ */
+struct gkyl_poly_roots* gkyl_poly_roots_new(int poly_order);
+
+/**
+ * Compute all simple roots of polymomial with real coefficients. The
+ * leading coefficient must be 1.0 and the coeff[i] is the coefficient
+ * of x^i.
+ *
+ * @param pr On output, contains all the roots. Must be preallocated
+ * @param coeff Coefficients of monomials
+ */
+void gkyl_calc_poly_roots(struct gkyl_poly_roots *pr, const double *coeff);
 
 /**
  * Compute all *real-district-root* intervals to a *quartic* equation via Sturn's sequence
@@ -299,3 +316,11 @@ void gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_inter
  */
 void gkyl_root_isolation_from_intervals_via_ridders(struct gkyl_root_intervals *root_intervals,
   double tol);
+
+/**
+ * Release memory for use in polynomial root finder.
+ *
+ * @param pr Memory to release.
+ */
+void gkyl_poly_roots_release(struct gkyl_poly_roots *pr);
+
