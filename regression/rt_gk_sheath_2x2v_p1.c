@@ -11,11 +11,9 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
-
 #ifdef GKYL_HAVE_NCCL
 #include <gkyl_nccl_comm.h>
 #endif
-
 #endif
 
 #include <rt_arg_parse.h>
@@ -321,8 +319,9 @@ main(int argc, char **argv)
 
   // create global range
   int cells[] = { NX, NZ };
+  int cdim = sizeof(cells)/sizeof(cells[0]);
   struct gkyl_range globalr;
-  gkyl_create_global_range(2, cells, &globalr);
+  gkyl_create_global_range(cdim, cells, &globalr);
 
   // create decomposition
   int cuts[] = { 1, 1 };
@@ -366,9 +365,8 @@ main(int argc, char **argv)
   );
 #endif
 
-  int my_rank;
+  int my_rank, comm_sz;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_sz;
   gkyl_comm_get_size(comm, &comm_sz);
 
   int ncuts = cuts[0]*cuts[1];
