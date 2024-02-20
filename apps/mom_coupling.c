@@ -38,7 +38,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   // check for relativistic-species
   bool use_rel = 0;
   for (int n=0;  n<app->num_species; ++n) 
-    use_rel = use_rel || (app->species[n].eqn_type == GKYL_EQN_COLDFLUID_SR);
+    use_rel = use_rel || (app->species[n].eqn_type == GKYL_EQN_COLDFLUID_SR) || app->field.use_explicit_em_coupling;
 
   // save the use-rel bool
   src_inp.use_rel = use_rel;
