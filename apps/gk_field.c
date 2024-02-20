@@ -111,6 +111,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   if (app->use_gpu) {
     f->phi_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[1]));
+    f->em_energy_red_global = gkyl_cu_malloc(sizeof(double[1]));
+  } else {
+    f->em_energy_red = gkyl_malloc(sizeof(double[1]));
+    f->em_energy_red_global = gkyl_malloc(sizeof(double[1]));
   }
 
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
@@ -277,22 +281,20 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 void
 gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
 {
-  double energy[1] = { 0.0 };
-  if (app->use_gpu) {
-    gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
-      app->grid.cellVolume, field->es_energy_fac, &app->local, field->em_energy_red);
-    gkyl_cu_memcpy(energy, field->em_energy_red, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
-    gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
-      app->grid.cellVolume, field->es_energy_fac, &app->local, energy);
-  }
-  if (app->cdim == 1)
-    energy[0] *= field->es_energy_fac_1d; 
+  gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
+    app->grid.cellVolume, field->es_energy_fac, &app->local, field->em_energy_red);
+
+  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global);
 
   double energy_global[1] = { 0.0 };
-  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, energy, energy_global);
+  if (app->use_gpu)
+    gkyl_cu_memcpy(energy_global, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+  else
+    energy_global[0] = field->em_energy_red_global[0];
   
+  if (app->cdim == 1)
+    energy_global[0] *= field->es_energy_fac_1d; 
+
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 }
 
@@ -339,6 +341,10 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   if (app->use_gpu) {
     gkyl_array_release(f->phi_host);
     gkyl_cu_free(f->em_energy_red);
+    gkyl_cu_free(f->em_energy_red_global);
+  } else {
+    gkyl_free(f->em_energy_red);
+    gkyl_free(f->em_energy_red_global);
   }
 
   gkyl_array_release(f->phi_wall_lo);

@@ -667,6 +667,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.gkyl_array_recv = array_recv;
   mpi->base.gkyl_array_irecv = array_irecv;
   mpi->base.all_reduce = all_reduce;
+  mpi->base.all_reduce_host = all_reduce;
   mpi->base.extend_comm = extend_comm;
   mpi->base.split_comm = split_comm;
   mpi->base.comm_state_new = comm_state_new;

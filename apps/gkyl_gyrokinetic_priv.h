@@ -399,7 +399,7 @@ struct gk_species {
   struct gk_species_moment m0; // for computing charge density
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
-  double *red_integ_diag; // for reduction of integrated moments on GPU
+  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
@@ -457,7 +457,7 @@ struct gk_species {
   struct gkyl_array *diffD; // array for diffusion tensor
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // gyrokinetic diffusion equation solver
 
-  double *omegaCfl_ptr;
+  double *omega_cfl;
 };
 
 // neutral species data
@@ -499,7 +499,7 @@ struct gk_neut_species {
   struct gk_species_moment m0; // for computing density
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
-  double *red_integ_diag; // for reduction of integrated moments on GPU
+  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
@@ -525,7 +525,7 @@ struct gk_neut_species {
   bool has_neutral_reactions;
   struct gk_react react_neut; // reaction object
 
-  double *omegaCfl_ptr;
+  double *omega_cfl_ptr;
 };
 
 // field data
@@ -574,7 +574,7 @@ struct gk_field {
                                                           // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 
   struct gkyl_array_integrate *calc_em_energy;
-  double *em_energy_red; // memory for use in GPU reduction of EM energy
+  double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy
   gkyl_dynvec integ_energy; // integrated energy components
 
   bool is_first_energy_write_call; // flag for energy dynvec written first time

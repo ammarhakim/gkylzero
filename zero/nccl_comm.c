@@ -48,6 +48,21 @@ static ncclRedOp_t g2_nccl_op[] = {
   [GKYL_SUM] = ncclSum,
 };
 
+// Mapping of Gkeyll type to MPI_Datatype
+static MPI_Datatype g2_mpi_datatype[] = {
+  [GKYL_INT] = MPI_INT,
+  [GKYL_INT_64] = MPI_INT64_T,
+  [GKYL_FLOAT] = MPI_FLOAT,
+  [GKYL_DOUBLE] = MPI_DOUBLE
+};
+
+// Mapping of Gkeyll ops to MPI_Op
+static MPI_Op g2_mpi_op[] = {
+  [GKYL_MIN] = MPI_MIN,
+  [GKYL_MAX] = MPI_MAX,
+  [GKYL_SUM] = MPI_SUM
+};
+
 struct gkyl_comm_state {
   ncclComm_t *ncomm;
   int tag;
@@ -351,6 +366,17 @@ all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
   checkNCCL(ncclAllReduce(inp, out, nelem, g2_nccl_datatype[type], g2_nccl_op[op], nccl->ncomm, nccl->custream));
   return 0;
+}
+
+static int
+all_reduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp,
+  void *out)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);  
+  int ret =
+    MPI_Allreduce(inp, out, nelem, g2_mpi_datatype[type], g2_mpi_op[op], nccl->mpi_comm);
+  return ret == MPI_SUCCESS ? 0 : 1;
 }
 
 static int
@@ -744,6 +770,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   nccl->base.get_size = get_size;
   nccl->base.barrier = barrier;
   nccl->base.all_reduce = all_reduce;
+  nccl->base.all_reduce_host = all_reduce_host;
   nccl->base.gkyl_array_send = array_send;
   nccl->base.gkyl_array_isend = array_isend;
   nccl->base.gkyl_array_recv = array_recv;
