@@ -157,6 +157,34 @@ struct gkyl_poly_roots {
   void *work; // some memory needed internally. Do not muck or access!
 };  
 
+// Quartic polynomial to hand off to ridders
+struct quartic_polynomial {
+  double p[4];
+};
+
+// Result polynomials from Sturn Chain
+struct sturn_polynomials {
+  double p0[4];
+  double p1[4];
+  double p2[4];
+  double p3[4];
+  double p4[4];
+};
+
+// Result from binary search/ strun chain
+struct gkyl_root_intervals {
+  double root_bound_lower[4]; // lower root bound
+  double root_bound_upper[4]; // upper root bound
+  int status; // 0 - success.
+  int status_refinement[4]; // 0 - success.
+  int niter; // number of iterations
+  int niter_refinement[4]; // number of iterations
+  int nroots; // number of distinct-real-roots
+  struct sturn_polynomials sturn_chain;
+  double real_roots_ridders[4]; // Output of the root finding algorithm
+  int status_ridders[4]; // Status of the ridders' ability to find the roots 
+};
+
 /**
  * Integrate func(x,ctx) in interval [a,b], using maximum levels
  * "n". Typical value of levels is 7. The status flag of the return
@@ -229,8 +257,70 @@ struct gkyl_poly_roots* gkyl_poly_roots_new(int poly_order);
 void gkyl_calc_poly_roots(struct gkyl_poly_roots *pr, const double *coeff);
 
 /**
+ * Compute all *real-district-root* intervals to a *quartic* equation via Sturn's sequence
+ * and isolate individual intervals via bisection search. Once every real-distict root 
+ * interval is isolated, then the root intervals are returned. (There is no further 
+ * iterative isolation)
+ * 
+ * The leading coefficient 
+ * is always assumed be 1.0 and so the coeff[i] give the coefficient for the
+ * monomial x^i. For example:
+ *
+ * p(x) = x^4 + 2 x^3 + 4
+ *
+ * coeff[4] = { 4.0, 0.0, 0.0, 2.0 };
+ *
+ * @param coeff Coefficients of the polynomial
+ * @param domain Interval to find the real-district roots within
+ * @param tol Tolerance of the quartic solve
+ * @return Roots of the polynomial
+ */
+struct gkyl_root_intervals gkyl_calc_quartic_root_intervals(
+  double coeff[4], double domain[2], double tol);
+
+/**
+ * Refine the result of gkyl_calc_quartic_root_intervals() using bisection search
+ * to narrow down the domain containing the root. 
+ * 
+ * The leading coefficient 
+ * is always assumed be 1.0 and so the coeff[i] give the coefficient for the
+ * monomial x^i. For example:
+ *
+ * p(x) = x^4 + 2 x^3 + 4
+ *
+ * coeff[4] = { 4.0, 0.0, 0.0, 2.0 };
+ *
+ * @param root_intervals Object containing the number of roots and root intervals
+ * @param tol Tolerance of the interval isolation
+ * @return Roots of the polynomial
+ */
+void gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_intervals,
+  double tol);
+
+
+  /**
+ * Compute the roots from the intervals given by gkyl_calc_quartic_root_intervals() 
+ * using ridders' algorithm. This can handle either refined or unrefined intervals.
+ * 
+ * The leading coefficient 
+ * is always assumed be 1.0 and so the coeff[i] give the coefficient for the
+ * monomial x^i. For example:
+ *
+ * p(x) = x^4 + 2 x^3 + 4
+ *
+ * coeff[4] = { 4.0, 0.0, 0.0, 2.0 };
+ *
+ * @param root_intervals Object containing the number of roots and root intervals
+ * @param tol Tolerance of the interval isolation
+ * @return Roots of the polynomial
+ */
+void gkyl_root_isolation_from_intervals_via_ridders(struct gkyl_root_intervals *root_intervals,
+  double tol);
+
+/**
  * Release memory for use in polynomial root finder.
  *
  * @param pr Memory to release.
  */
 void gkyl_poly_roots_release(struct gkyl_poly_roots *pr);
+

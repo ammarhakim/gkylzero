@@ -9,7 +9,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     .grid = &app->grid,
     .nfluids = app->num_species,
     // if there is a field, need to update electric field too, otherwise just updating fluid
-    .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0,
+    .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
+    .mu0 = app->field.mu0 ? app->field.mu0 : 0.0, 
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
     .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
     .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0,
@@ -33,6 +34,19 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   for (int i=0; i<app->num_species; ++i)
     if (app->species[i].proj_nT_source)
       src_inp.has_nT_sources = true;
+
+  // check for relativistic-species
+  bool use_rel = 0;
+  for (int n=0;  n<app->num_species; ++n) 
+    use_rel = use_rel || (app->species[n].eqn_type == GKYL_EQN_COLDFLUID_SR);
+
+  // save the use-rel bool
+  src_inp.use_rel = use_rel;
+
+  // check for explicit em-coupling
+  src_inp.use_explicit_em_coupling = 0;
+  if (app->field.use_explicit_em_coupling)
+    src_inp.use_explicit_em_coupling = 1;
 
   // create updater to solve for sources
   src->slvr = gkyl_moment_em_coupling_new(src_inp);
@@ -95,6 +109,11 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
 
   if (app->field.proj_app_current)
     gkyl_fv_proj_advance(app->field.proj_app_current, tcurr, &app->local, app->field.app_current);
+  if ((app->field.proj_app_current) && (app->field.use_explicit_em_coupling)){
+    // TEMP: 2x on dt
+    gkyl_fv_proj_advance(app->field.proj_app_current, tcurr + dt*2, &app->local, app->field.app_current1);
+    gkyl_fv_proj_advance(app->field.proj_app_current, tcurr + 2*dt/2.0, &app->local, app->field.app_current2);
+  }
 
   if (app->field.proj_ext_em) {
 
@@ -124,10 +143,17 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     app->species[i].nT_source_is_set = true;
   }
 
-  gkyl_moment_em_coupling_advance(src->slvr, tcurr, dt, &app->local,
-    fluids, app_accels, pr_rhs_const,
-    app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em,
-    nT_sources);
+  if (app->field.use_explicit_em_coupling)
+    gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local,
+      fluids, app_accels, pr_rhs_const, 
+      app->field.f[sidx[nstrang]], app->field.app_current, app->field.app_current1,
+      app->field.app_current2, app->field.ext_em, 
+      nT_sources, app->field.proj_app_current,nstrang);
+  else
+    gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local,
+      fluids, app_accels, pr_rhs_const, 
+      app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
+      nT_sources);
 
   for (int i=0; i<app->num_species; ++i)
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);

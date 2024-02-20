@@ -285,12 +285,365 @@ test_polyn_roots(void)
 
 }
 
+
+void
+test_sturn_root_intervals(void)
+{
+
+  // Test from wiki example: 2 real, distinct roots
+  // https://en.wikipedia.org/wiki/Sturm%27s_theorem
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {-1.0, -1.0, 0.0, 1.0};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check the outputs
+    double lower[4] = {-3.0,0.0,0.0,0.0};
+    double upper[4] = {0.0,3.0,0.0,0.0};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 2 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+
+    // Compute the roots via ridders
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {-1.0,1.0,0.0,0.0};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
+    }
+
+    // test refined root intervals
+    gkyl_refine_root_intervals_bisection(&root_intervals, tol);
+
+    // Roots (maxima): [x=1.0,x=-1.0,x=-0.5*(1.732050807568877*%i+1.0),x=0.5*(1.732050807568877*%i-1.0)]
+
+    // Check the outputs of the refinement pass
+    double lower_refined[4] = {-1.0000000000000284e+00,9.9999999999994316e-01,0.0,0.0};
+    double upper_refined[4] = {-9.9999999999994316e-01,1.0000000000000284e+00,0.0,0.0};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(upper_refined[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
+      TEST_CHECK( root_intervals.status_refinement[i] == 0 );
+      TEST_CHECK( root_intervals.niter_refinement[i] > 0 );
+    }
+  } while (0);  
+
+  // Test: 4 real roots
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {0.1000, 0.0, -1.0000, 0.0};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check the outputs
+    double lower[4] = {-1.5,-0.75,0.0,0.75};
+    double upper[4] = {-0.75,0.0,0.75,1.5};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 4 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+
+    // Compute the roots via ridders
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {-0.9419651451198933,-0.3357106870197288,0.3357106870197288,0.9419651451198933};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
+    }
+
+    // test refined root intervals
+    gkyl_refine_root_intervals_bisection(&root_intervals, tol);
+
+    // Maxima roots: 	[x=-0.9419651451198933,x=0.9419651451198933,x=-0.3357106870197288,x=0.3357106870197288]
+
+    // Check the outputs of the refinement pass
+    double lower_refined[4] = {-9.4196514511995133e-01,-3.3571068701979812e-01,3.3571068701971285e-01,9.4196514511986607e-01};
+    double upper_refined[4] = {-9.4196514511986607e-01,-3.3571068701971285e-01,3.3571068701979812e-01,9.4196514511995133e-01};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(upper_refined[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
+      TEST_CHECK( root_intervals.status_refinement[i] == 0 );
+      TEST_CHECK( root_intervals.niter_refinement[i] > 0 );
+    }
+  } while (0);  
+
+
+  // Test: 4 real roots, more complex polynomial
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {-0.5170, 1.2377, 0.0354, -1.7561};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check the outputs
+    double lower[4] = {-3.0,0.0,0.75,0.9375};
+    double upper[4] = {0,0.75,0.9375,1.1250};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 4 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+
+    // Compute the roots via ridders
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {-8.3856473883897131e-01,6.5873479706025262e-01,9.3592994177871747e-01,1.0000000000000040e+00};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
+    }
+
+    // test refined root intervals
+    gkyl_refine_root_intervals_bisection(&root_intervals, tol);
+
+    // Maxima roots: 	... fails to simplify expr, verified by plotting / Matlab testcode
+
+    // Check the outputs of the refinement pass
+    double lower_refined[4] = {-8.3856473883901117e-01,6.5873479706024796e-01,9.3592994177868438e-01,9.9999999999994316e-01};
+    double upper_refined[4] = {-8.3856473883892590e-01,6.5873479706033322e-01,9.3592994177874400e-01,1.0000000000000284e+00};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(upper_refined[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
+      TEST_CHECK( root_intervals.status_refinement[i] == 0 );
+      TEST_CHECK( root_intervals.niter_refinement[i] > 0 );
+    }
+
+    // Compute the roots via ridders using the refined domains
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Check the outputs of the roots via ridders
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
+    }
+  } while (0); 
+
+
+  // Test: 3-distinct roots, search interval falls on x = 0 root
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {0.0, 0.0, -1.0, 0.0};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check the outputs
+    double lower[4] = {0.6,-1.2,-0.3,0.0};
+    double upper[4] = {3.0,-0.3,0.6,0.0};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 3 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+
+    // Compute the roots via ridders using the refined domains
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Ridders fails to find the repeated root! (root 3), returns status_ridders == 1 
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {1.0,-1.0,0.0,0.0};
+    for (int i=0; i<2; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
+    }
+
+   // test refined root intervals
+    gkyl_refine_root_intervals_bisection(&root_intervals, tol);
+
+    // Roots: [0,0,+1,-1]
+
+    // Check the outputs of the refinement pass
+    double lower_refined[4] = {9.9999999999997746e-01,-1.0000000000000455e+00,-1.6979010789934061e-14,0.0};
+    double upper_refined[4] = {1.0000000000000457e+00,-9.9999999999999434e-01,3.4180066184793154e-14,0.0};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(upper_refined[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
+      TEST_CHECK( root_intervals.status_refinement[i] == 0 );
+      TEST_CHECK( root_intervals.niter_refinement[i] > 0 );
+    }
+  } while (0); 
+
+
+ // Test: 3-distinct roots, large ordering
+ // Maxima res: [x=-1.0*10^-10,x=1.0*10^-10,x=0.0] 
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {0.0, 0.0, -1.0e-20, 0.0};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check the outputs
+    double lower[4] = {-2.793966983697753e-10,-6.984911908129258e-11,3.492467056294875e-11,0.0};
+    double upper[4] = {-6.984911908129258e-11,3.492467056294875e-11,1.396984602071901e-10,0.0};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 3 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+
+       // Compute the roots via ridders using the refined domains
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Ridders fails to find the repeated root! (root 2), returns status_ridders == 1 
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {-1.0*10e-10,0.0,1.0*10e-10,0.0};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      if (i != 1){
+        TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-2));
+        TEST_CHECK( root_intervals.status_ridders[i] == 0 );
+      }
+    }
+
+    // test refined root intervals
+    gkyl_refine_root_intervals_bisection(&root_intervals, tol);
+
+    // Maxima res: [x=-1.0*10^-10,x=1.0*10^-10,x=0.0] 
+
+    // Check the outputs of the refinement pass
+    double lower_refined[4] = {-1.0003297449638165e-10,-1.6979010789934061e-14,9.9999016474801779e-11,0.0};
+    double upper_refined[4] = {-9.9981815419406931e-11,3.4180066184793154e-14,1.0005017555177650e-10,0.0};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(upper_refined[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
+      TEST_CHECK( root_intervals.status_refinement[i] == 0 );
+      TEST_CHECK( root_intervals.niter_refinement[i] > 0 );
+    }
+  } while (0); 
+
+
+  // Test: 3-distinct roots, shifted (x+1.1)^4 - (x+1.1)^2 = 0
+  // Maxima res: [x=-2.1,x=-0.1,x=-1.1]
+  // FAILS TO FIND REPEATED ROOT AT x = -0.1!
+  do {
+    struct gkyl_root_intervals root_intervals; 
+
+    // Setup the specific test
+    double coeff[4] = {0.2541, 3.1240, 6.2600, 4.4000};
+    double domain[2] = {-3.0, 3.0};
+    double tol = 1e-13;
+
+    // compute root inverals
+    root_intervals = gkyl_calc_quartic_root_intervals( coeff, domain, tol);
+
+    // Check we have the right number of roots etc
+    //printf("\nnum-roots: %d\n",root_intervals.nroots);
+    //printf("num-iterations: %d\n",root_intervals.niter );
+    //printf("Status: %d\n",root_intervals.status );
+    //for (int i=0; i<4; ++i){
+    //  printf("Root bounds: [L,R]: [%1.16e,%1.16e]\n",root_intervals.root_bound_lower[i],
+    //  root_intervals.root_bound_upper[i]);
+    //}
+
+    // Check the outputs
+    double lower[4] = {-3.0,-1.5,0.0,0.0};
+    double upper[4] = {-1.5,0.0,0.0,0.0};
+    TEST_CHECK( root_intervals.status == 0 );
+    TEST_CHECK( root_intervals.nroots == 2 );
+    TEST_CHECK( root_intervals.niter > 0 );
+    for (int i=0; i<4; ++i){
+      TEST_CHECK(gkyl_compare_double(upper[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower[i], root_intervals.root_bound_lower[i], 1e-12));
+    }
+
+  // Compute the roots via ridders using the refined domains
+    gkyl_root_isolation_from_intervals_via_ridders(&root_intervals, tol);
+
+    // Check we have the right number of roots etc
+    //printf("\nnum-roots: %d\n",root_intervals.nroots);
+    //for (int i=0; i<root_intervals.nroots; ++i){
+    //  printf("Root bounds: [L,R]: [%1.16e,%1.16e]\n",root_intervals.root_bound_lower[i],
+    //  root_intervals.root_bound_upper[i]);
+    //  printf("Roots: [%1.16e]\n",root_intervals.real_roots_ridders[i] );
+    //  printf("num-iterations: %d\n",root_intervals.niter_refinement[i] );
+    //  printf("Status Ridders: %d\n",root_intervals.status_ridders[i] );
+    //}
+
+    // Check the outputs of the roots via ridders
+    double roots[4] = {-2.1,-0.1,0.0,0.0};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(roots[i], root_intervals.real_roots_ridders[i], 1e-12));
+      TEST_CHECK( root_intervals.status_ridders[i] == 0 );
+    }
+
+    // test refined root intervals
+    gkyl_refine_root_intervals_bisection(&root_intervals, tol);
+
+    // Check we have the right number of roots etc
+    //printf("\nnum-roots: %d\n",root_intervals.nroots);
+    //for (int i=0; i<root_intervals.nroots; ++i){
+    //  printf("Root bounds: [L,R]: [%1.16e,%1.16e]\n",root_intervals.root_bound_lower[i],
+    //  root_intervals.root_bound_upper[i]);
+    //  printf("num-iterations: %d\n",root_intervals.niter_refinement[i] );
+    //  printf("Status: %d\n",root_intervals.status_refinement[i] );
+    //}
+
+    // Maxima res: [x=-2.1,x=-0.1,x=-1.1 (x2)]
+
+    // Check the outputs of the refinement pass
+    double lower_refined[4] = {-2.1000000000000512e+00,-1.0000000000007958e-01,0.0,0.0};
+    double upper_refined[4] = {-2.0999999999999659e+00,-9.9999999999994316e-02,0.0,0.0};
+    for (int i=0; i<root_intervals.nroots; ++i){
+      TEST_CHECK(gkyl_compare_double(upper_refined[i], root_intervals.root_bound_upper[i], 1e-12));
+      TEST_CHECK(gkyl_compare_double(lower_refined[i], root_intervals.root_bound_lower[i], 1e-12));
+      TEST_CHECK( root_intervals.status_refinement[i] == 0 );
+      TEST_CHECK( root_intervals.niter_refinement[i] > 0 );
+    }
+  } while (0);
+
+}
+
 TEST_LIST = {
   { "dbl_exp", test_dbl_exp },
   { "ridders", test_ridders },
   { "poly2_roots", test_poly2_roots },
   { "poly3_roots", test_poly3_roots },
   { "poly4_roots", test_poly4_roots },
+  { "strun_root_intervals", test_sturn_root_intervals },
   { "polyn_roots", test_polyn_roots },  
   { NULL, NULL },
 };
