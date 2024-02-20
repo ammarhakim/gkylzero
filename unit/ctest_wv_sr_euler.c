@@ -10,7 +10,6 @@ calcq(double gas_gamma, const double pv[5], double q[5])
   double rho = pv[0], u = pv[1], v = pv[2], w = pv[3], pr = pv[4];
   double gamma = 1 / sqrt(1 - u*u - v*v - w*w);
   double rhoh = gas_gamma * pr / (gas_gamma - 1)  + rho;
-  
   q[0] = gamma*rho;
   q[1] = gamma*gamma*rhoh - pr;
   q[2] = gamma*gamma*rhoh*u;
@@ -228,84 +227,10 @@ test_sr_euler_waves2()
   gkyl_wv_eqn_release(sr_euler);
 }
 
-void
-test_sr_euler_waves_cold()
-{
-  double gas_gamma = 1.3333;
-  struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
-
-  double vl[5] = { 1.0, 0.0999, 0.02, 0.03, 0.0};
-  double vr[5] = { 0.1, 0.999, 0.0, 0.0, 0.0};
-  
-  double ql[5], qr[5];
-  double ql_local[5], qr_local[5];
-  calcq(gas_gamma, vl, ql); calcq(gas_gamma, vr, qr);
-
-  for (int i = 0; i < 5; ++i) {
-    printf("%lg %lg\n", ql[i], vl[i]);
-  }
-
-  for (int i = 0; i < 5; ++i) {
-    printf("%lg %lg\n", qr[i], vr[i]);
-  }  
-  
-  double norm[3][3] = {
-    { 1.0, 0.0, 0.0 },
-    { 0.0, -1.0, 0.0 },
-    { 0.0, 0.0, 1.0 }
-  };
-
-  double tau1[3][3] = {
-    { 0.0, 1.0, 0.0 },
-    { 1.0, 0.0, 0.0 },
-    { 1.0, 0.0, 0.0 }
-  };
-
-  double tau2[3][3] = {
-    { 0.0, 0.0, 1.0 },
-    { 0.0, 0.0, 1.0 },
-    { 0.0, 1.0, 0.0 }
-  };  
-
-  for (int d=0; d<1; ++d) {
-    double speeds[3], waves[3*5], waves_local[3*5];
-    // rotate to local tangent-normal frame
-    gkyl_wv_eqn_rotate_to_local(sr_euler, tau1[d], tau2[d], norm[d], ql, ql_local);
-    gkyl_wv_eqn_rotate_to_local(sr_euler, tau1[d], tau2[d], norm[d], qr, qr_local);
-
-    double delta[5];
-    for (int i=0; i<5; ++i) delta[i] = qr_local[i]-ql_local[i];
-    
-    gkyl_wv_eqn_waves(sr_euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, waves_local, speeds);
-
-    // rotate waves back to global frame
-    for (int mw=0; mw<3; ++mw)
-      gkyl_wv_eqn_rotate_to_global(sr_euler, tau1[d], tau2[d], norm[d], &waves_local[mw*5], &waves[mw*5]);
-
-    double apdq[5], amdq[5];
-    gkyl_wv_eqn_qfluct(sr_euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, waves, speeds, amdq, apdq);
-    
-    // check if sum of left/right going fluctuations sum to jump in flux
-    double fl_local[5], fr_local[5];
-    gkyl_sr_euler_flux(gas_gamma, ql_local, fl_local);
-    gkyl_sr_euler_flux(gas_gamma, qr_local, fr_local);
-
-    double fl[5], fr[5];
-    gkyl_wv_eqn_rotate_to_global(sr_euler, tau1[d], tau2[d], norm[d], fl_local, fl);
-    gkyl_wv_eqn_rotate_to_global(sr_euler, tau1[d], tau2[d], norm[d], fr_local, fr);
-    
-    for (int i=0; i<5; ++i)
-      TEST_CHECK( gkyl_compare(fr[i]-fl[i], amdq[i]+apdq[i], 1e-14) );
-  }
-
-  gkyl_wv_eqn_release(sr_euler);
-}
-
 
 TEST_LIST = {
   { "euler_sr_prim1", test_sr_euler_prim1 },
   { "test_sr_euler_waves", test_sr_euler_waves},
   { "test_sr_euler_waves2", test_sr_euler_waves2},
-  //{ "test_sr_euler_waves_cold", test_sr_euler_waves_cold},  
   { NULL, NULL },
 };
