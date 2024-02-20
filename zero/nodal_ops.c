@@ -54,10 +54,10 @@ gkyl_nodal_ops_n2m(const struct gkyl_nodal_ops *nodal_ops,
       const double *temp  = gkyl_array_cfetch(nodal_ops->nodes,i);
       for( int j = 0; j < grid->ndim; j++) {
         if (cpoly_order==1) {
-              nidx[j] = (iter.idx[j]-update_range->lower[j]) + (temp[j]+1)/2 ;
+          nidx[j] = (iter.idx[j]-update_range->lower[j]) + (temp[j]+1)/2 ;
         }
         if (cpoly_order==2) {
-              nidx[j] = 2*(iter.idx[j]-update_range->lower[j]) + (temp[j]+1) ;
+          nidx[j] = 2*(iter.idx[j]-update_range->lower[j]) + (temp[j]+1) ;
         }
       }
       lin_nidx[i] = gkyl_range_idx(nrange, nidx);
@@ -106,7 +106,7 @@ gkyl_nodal_ops_m2n_p2(const struct gkyl_nodal_ops *nodal_ops,
     for (int i=0; i<num_basis; ++i) {
       const double* temp  = gkyl_array_cfetch(nodes,i);
       for( int j = 0; j < grid->ndim; j++){
-        nidx[j] = 2*(iter.idx[j]-1) + (temp[j] + 1) ;
+        nidx[j] = 2*(iter.idx[j]-update_range->lower[j]) + (temp[j] + 1) ;
       }
       lin_nidx[i] = gkyl_range_idx(nrange, nidx);
     }
@@ -210,11 +210,11 @@ gkyl_nodal_ops_m2n_deflated(const struct gkyl_nodal_ops *nodal_ops,
     for( int j = 0; j < deflated_grid->ndim; j++){
       int mod = j==0 ? 1 : 0;
       if (idx[j] == deflated_nrange->upper[j]) {
-        midx[j] = idx[j];
+        midx[j] = idx[j] + deflated_update_range->lower[j]-1;
         node_idx += 2*j + mod;
       }
       else {
-        midx[j] = idx[j] + 1;
+        midx[j] = idx[j] + deflated_update_range->lower[j];
       }
     }
     long lidx = gkyl_range_idx(deflated_update_range, midx);
