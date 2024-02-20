@@ -255,7 +255,7 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
     // gather charge density into global array for smoothing in z
     gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
     if (app->cdim == 1) {
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, 0);
+      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
       gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
       // copy globally smoothed potential to local potential per process for update
       gkyl_array_copy_range_to_range(field->phi_smooth, field->phi_fem, &app->local, &field->global_sub_range);
