@@ -12,6 +12,15 @@ skin_ghost_ranges_init(struct skin_ghost_ranges* sgr, const struct gkyl_range* p
   }
 }
 
+static void
+euler_transmissive_bc(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
+{
+  for (int i = 0; i < 5; i++)
+  {
+    ghost[i] = skin[i];
+  }
+}
+
 void
 euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn)
 {
@@ -23,12 +32,12 @@ euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_b
     
     if (conn -> connections[d][0].edge == GKYL_PHYSICAL)
     {
-      bdata -> lower_bc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler, bdata -> geom, d, GKYL_LOWER_EDGE, nghost, bdata -> euler -> wall_bc_func, 0);
+      bdata -> lower_bc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler, bdata -> geom, d, GKYL_LOWER_EDGE, nghost, euler_transmissive_bc, 0);
     }
     
-    if (conn -> connections[d][0].edge == GKYL_PHYSICAL)
+    if (conn -> connections[d][1].edge == GKYL_PHYSICAL)
     {
-      bdata -> upper_bc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler, bdata -> geom, d, GKYL_UPPER_EDGE, nghost, bdata -> euler -> wall_bc_func, 0);
+      bdata -> upper_bc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler, bdata -> geom, d, GKYL_UPPER_EDGE, nghost, euler_transmissive_bc, 0);
     }
   }
   

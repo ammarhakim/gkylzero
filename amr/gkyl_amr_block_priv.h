@@ -78,6 +78,8 @@ struct sim_stats {
 
 void skin_ghost_ranges_init(struct skin_ghost_ranges* sgr, const struct gkyl_range* parent, const int* ghost);
 
+static void euler_transmissive_bc(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+
 void euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_block_connections* conn);
 
 void euler_block_bc_updaters_release(struct euler_block_data* bdata);

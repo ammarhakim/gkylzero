@@ -2,8 +2,7 @@
 #include <gkyl_amr_block_priv.h>
 
 void
-euler2d_run_level1(int argc, char **argv, evalf_t eval, double gas_gamma, int baseNx, int baseNy, int ref_factor, double refined_x1, double refined_y1,
-  double refined_x2, double refined_y2, double coarse_x1, double coarse_y1, double coarse_x2, double coarse_y2, double cfl_frac, double t_end)
+euler2d_run_level1(int argc, char **argv, struct euler2d_level1_init* init)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -13,10 +12,30 @@ euler2d_run_level1(int argc, char **argv, evalf_t eval, double gas_gamma, int ba
     gkyl_mem_debug_set(true);
   }
 
+  long baseNx = init -> baseNx;
+  long baseNy = init -> baseNy;
+  long ref_factor = init -> ref_factor;
+
+  double coarse_x1 = init -> coarse_x1;
+  double coarse_y1 = init -> coarse_y1;
+  double coarse_x2 = init -> coarse_x2;
+  double coarse_y2 = init -> coarse_y2;
+
+  double refined_x1 = init -> refined_x1;
+  double refined_y1 = init -> refined_y1;
+  double refined_x2 = init -> refined_x2;
+  double refined_y2 = init -> refined_y2;
+
+  evalf_t eval = init -> eval;
+  double gas_gamma = init -> gas_gamma;
+
+  double cfl_frac = init -> cfl_frac;
+  double t_end = init -> t_end;
+
   int ndim = 2;
   int num_blocks = 9;
-  int Nx = baseNx;
-  int Ny = baseNy;
+  long Nx = baseNx;
+  long Ny = baseNy;
 
   struct euler_block_data coarse_bdata[num_blocks];
   struct euler_block_data fine_bdata[num_blocks];
@@ -161,7 +180,7 @@ euler2d_run_level1(int argc, char **argv, evalf_t eval, double gas_gamma, int ba
       break;
     }
 
-    for (long fine_step = 1; fine_step < 3; fine_step++)
+    for (long fine_step = 1; fine_step < ref_factor + 1; fine_step++)
     {
       printf("   Taking fine (level 1) time-step %ld at t = %g; ", fine_step, fine_t_curr);
       struct gkyl_update_status fine_status = euler_update(fine_job_pool, btopo, fine_bdata, fine_t_curr, fine_dt, &stats);
