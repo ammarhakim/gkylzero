@@ -668,12 +668,12 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
       // write out integrated diagnostic moments
-      const char *fmt = "%s-%s-%s.gkyl";
+      const char *fmt = "%s-%s_%s.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-        "imom");
+        "integrated_moms");
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-        "imom");
+        "integrated_moms");
 
       if (app->species[i].is_first_integ_write_call) {
         gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
@@ -691,7 +691,7 @@ void
 gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
 {
   // write out diagnostic moments
-  const char *fmt = "%s-field-energy.gkyl";
+  const char *fmt = "%s-field_energy.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name);
