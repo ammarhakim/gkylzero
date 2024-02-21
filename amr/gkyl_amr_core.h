@@ -3,6 +3,7 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_util.h>
 
+// Initialization data for a 2D Euler equations simulation, run using static, block-structured mesh refinement with a single refinement patch of level 1.
 struct euler2d_level1_init {
     long baseNx;
     long baseNy;
@@ -25,4 +26,11 @@ struct euler2d_level1_init {
     double t_end;
 };
 
+/**
+* Run a 2D Euler equations simulation, using static, block-structured mesh refinement with a single refinement patch of level 1.
+*
+* @param argc Number of command line arguments passed to the function.
+* @param argv Array of command line arguments passed to the function.
+* @param init Initialization data for the 2D Euler equations simulation.
+*/
 void euler2d_run_level1(int argc, char **argv, struct euler2d_level1_init* init);
