@@ -259,7 +259,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "euler_axi_sodshock",
+    .name = "euler_axi_vac_riem",
 
     .ndim = 2,
     .lower = { 0.25, 0.0 },
