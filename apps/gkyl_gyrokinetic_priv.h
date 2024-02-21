@@ -443,7 +443,9 @@ struct gk_species {
   // velocity mapping objects.
   struct gkyl_array *vmap[2]; // Velocity mapping in each velocity direction.
   struct gkyl_array *vmap_prime[2]; // Derivative of the velocity mappings.
+  struct gkyl_array *vmapSq[2]; // Velocity mapping in each velocity direction squared.
   struct gkyl_array *jacobvel; // Velocity space Jacobian.
+  struct gkyl_basis vel_basis1d[2];  // Basis for velocity mappings.
   struct gkyl_rect_grid grid_vel1d[2]; // velocity space grid
   struct gkyl_range local_vel1d[2], local_ext_vel1d[2]; // local, local-ext velocity-space ranges
 };

@@ -54,7 +54,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     if (app->cdim == 1) {
       // in 1D case need to set weight to kperpsq*polarizationWeight for use in potential smoothing
       f->weight = mkarr(false, app->confBasis.num_basis, app->local_ext.volume); // fem_parproj expects weight on host
-      gkyl_array_shiftc(f->weight, sqrt(2.0), 0); // Sets weight=1.
+      gkyl_array_shiftc(f->weight, pow(sqrt(2.0),app->cdim), 0); // Sets weight=1.
       gkyl_array_scale(f->weight, polarization_weight);
       gkyl_array_scale(f->weight, f->info.kperpSq);
     }

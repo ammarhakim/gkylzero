@@ -43,8 +43,20 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     proj->proj_temp = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       app->basis.poly_order+1, 1, inp.temp, inp.ctx_temp);
 
-    proj->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid,
-      &app->confBasis, &app->basis, app->basis.poly_order+1, app->use_gpu);
+    struct gkyl_proj_maxwellian_on_basis_inp proj_inp = {
+      .grid = &s->grid,
+      .conf_basis = &app->confBasis,
+      .phase_basis = &app->basis,
+      .num_quad = app->basis.poly_order+1,
+      .use_gpu = app->use_gpu,
+      .vmap = 0,
+    };
+    if (s->info.mapc2p.is_mapped) {
+      proj_inp.vmap = &s->vmap[0];
+      proj_inp.vel_basis1d = s->vel_basis1d;
+      proj_inp.vel_range1d = s->local_vel1d;
+    }
+    proj->proj_max = gkyl_proj_maxwellian_on_basis_inew( &proj_inp );
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     proj->m0 = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
@@ -138,6 +150,11 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
         proj->prim_moms, app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
     } 
   }
+
+  // Multiply by the velocity space jacobian. This has to happen before
+  // trying to correct the moments otherwise moments will be wrong.
+  gkyl_array_scale_by_cell(f, s->jacobvel);
+
   // Now compute and scale the density to the desired density function 
   // based on input density from Maxwellian projection. Also multiplies the
   // final distribution function by the Jacobian since we evolve J*f
@@ -157,9 +174,6 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
   // Multiply by the configuration space jacobian.
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
     app->gk_geom->jacobgeo, f, &app->local_ext, &s->local_ext);  
-
-  // Multiply by the velocity space jacobian.
-  gkyl_array_scale_by_cell(f, s->jacobvel);
 }
 
 void

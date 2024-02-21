@@ -27,6 +27,15 @@ struct gkyl_proj_on_basis_inp {
  * Create new updater to project function on basis functions on a
  * grid. Free using gkyl_proj_on_basis_release method.
  *
+ * @param inp Input parameters
+ * @return New updater pointer.
+ */
+gkyl_proj_on_basis* gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp);
+
+/**
+ * Create new updater to project function on basis functions on a
+ * grid, passing inputs separately. Free using gkyl_proj_on_basis_release method.
+ *
  * @param grid Grid object
  * @param basis Basis functions to project on
  * @param num_quad Number of quadrature nodes
@@ -37,15 +46,6 @@ struct gkyl_proj_on_basis_inp {
  */
 gkyl_proj_on_basis *gkyl_proj_on_basis_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, int num_quad, int num_ret_vals, evalf_t eval, void *ctx);
-
-/**
- * Create new updater to project function on basis functions on a
- * grid. Free using gkyl_proj_on_basis_release method.
- *
- * @param inp Input parameters
- * @return New updater pointer.
- */
-gkyl_proj_on_basis* gkyl_proj_on_basis_inew(const struct gkyl_proj_on_basis_inp *inp);
 
 /**
  * Compute projection on basis. The update_rng MUST be a sub-range of
