@@ -428,6 +428,23 @@ array_allgather(struct gkyl_comm *comm,
   return 0;
 }
 
+static int
+array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
+  struct gkyl_array *arecv, int root)
+{
+  assert(asend->esznc == arecv->esznc);
+  assert(asend->size == arecv->size);
+
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+
+  size_t nelem = asend->ncomp*asend->size;
+
+  checkNCCL(ncclBroadcast(asend->data, arecv->data, nelem, g2_nccl_datatype[asend->type],
+			  root, nccl->ncomm, nccl->custream));
+
+  return 0;
+}
+
 static void
 group_call_start()
 {
@@ -775,6 +792,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   nccl->base.gkyl_array_isend = array_isend;
   nccl->base.gkyl_array_recv = array_recv;
   nccl->base.gkyl_array_irecv = array_irecv;
+  nccl->base.gkyl_array_bcast = array_bcast;
   nccl->base.comm_state_new = comm_state_new;
   nccl->base.comm_state_release = comm_state_release;
   nccl->base.comm_state_wait = comm_state_wait;
