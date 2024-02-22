@@ -643,12 +643,12 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
     gkyl_comm_get_rank(app->comm, &rank);
     if (rank == 0) {
       // write out integrated diagnostic moments
-      const char *fmt = "%s-%s-%s.gkyl";
+      const char *fmt = "%s-%s_%s.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-        "imom");
+        "integrated_moms");
       char fileNm[sz+1]; // ensures no buffer overflow
       snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-        "imom");
+        "integrated_moms");
 
       if (app->species[i].is_first_integ_write_call) {
         gkyl_dynvec_write(app->species[i].integ_diag, fileNm);
@@ -674,10 +674,10 @@ gkyl_gyrokinetic_app_write_integrated_source_mom(gkyl_gyrokinetic_app *app)
         // write out integrated diagnostic moments
         const char *fmt = "%s-%s_source_%s.gkyl";
         int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
-          "imom");
+          "integrated_moms");
         char fileNm[sz+1]; // ensures no buffer overflow
         snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
-          "imom");
+          "integrated_moms");
 
         if (app->species[i].src.is_first_integ_write_call) {
           gkyl_dynvec_write(app->species[i].src.integ_diag, fileNm);
