@@ -275,7 +275,9 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double tcurr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
     gkyl_gyrokinetic_app_write(app, tcurr, iot->curr-1);
-    gkyl_gyrokinetic_app_calc_mom(app); gkyl_gyrokinetic_app_write_mom(app, tcurr, iot->curr-1);
+    gkyl_gyrokinetic_app_calc_mom(app);
+    gkyl_gyrokinetic_app_write_mom(app, tcurr, iot->curr-1);
+    gkyl_gyrokinetic_app_write_source_mom(app, tcurr, iot->curr-1);
   }
 }
 
@@ -454,6 +456,7 @@ main(int argc, char **argv)
   write_data(&io_trig, app, tcurr);
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
   gkyl_gyrokinetic_app_calc_integrated_mom(app, tcurr);
+  gkyl_gyrokinetic_app_calc_integrated_source_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -463,6 +466,7 @@ main(int argc, char **argv)
     if (step % 10 == 0) {
       gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
       gkyl_gyrokinetic_app_calc_integrated_mom(app, tcurr);
+      gkyl_gyrokinetic_app_calc_integrated_source_mom(app, tcurr);
     }
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -477,8 +481,10 @@ main(int argc, char **argv)
   }
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
   gkyl_gyrokinetic_app_calc_integrated_mom(app, tcurr);
+  gkyl_gyrokinetic_app_calc_integrated_source_mom(app, tcurr);
   gkyl_gyrokinetic_app_write_field_energy(app);
   gkyl_gyrokinetic_app_write_integrated_mom(app);
+  gkyl_gyrokinetic_app_write_integrated_source_mom(app);
   gkyl_gyrokinetic_app_stat_write(app);
   
   // fetch simulation statistics
