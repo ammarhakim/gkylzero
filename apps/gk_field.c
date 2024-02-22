@@ -236,6 +236,12 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
       &app->upper_skin[0], &app->upper_ghost[0], app->gk_geom->jacobgeo_inv, 
       s->bflux.gammai[1].marr, field->rho_c, field->sheath_vals[1]);
+
+    // Broadcast the sheath values from skin processes to other processes.
+    int comm_sz[1];
+    gkyl_comm_get_size(app->comm, comm_sz);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[0], field->sheath_vals[0], 0);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[1], field->sheath_vals[1], comm_sz[0]-1);
   } 
 }
 
@@ -246,12 +252,16 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
   struct timespec wst = gkyl_wall_clock();
   if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) { 
     // This is not currently right. There's some subtlety in how the sheath_vals are stored
-    gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot,
-      &app->local, &app->local_ext,
-      app->gk_geom->jacobgeo_inv, field->rho_c,
-      field->sheath_vals[0], field->phi_fem);
-    gkyl_fem_parproj_set_rhs(field->fem_parproj, field->phi_fem, field->phi_fem);
-    gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
+    gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
+      app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[0], field->phi_smooth);
+
+    // gather potential into global array for smoothing in z
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->phi_smooth, field->rho_c_global_dg);
+
+    gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+    gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
+    // copy globally smoothed potential to local potential per process for update
+    gkyl_array_copy_range_to_range(field->phi_smooth, field->phi_fem, &app->local, &field->global_sub_range);
   }
   else {
     // gather charge density into global array for smoothing in z
