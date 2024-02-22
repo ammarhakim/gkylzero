@@ -6,6 +6,16 @@
 #include <gkyl_const.h>
 #include <gkyl_fem_parproj.h>
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
+#endif
+
 #include <rt_arg_parse.h>
 
 struct gk_app_ctx {
@@ -224,6 +234,11 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Init(&argc, &argv);
+#endif
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -234,6 +249,85 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 8);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 6);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 4);
+
+  int nrank = 1; // number of processors in simulation
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+#endif  
+
+  // create global range
+  int ccells[] = { NX };
+  int cdim = sizeof(ccells)/sizeof(ccells[0]);
+  struct gkyl_range cglobal_r;
+  gkyl_create_global_range(cdim, ccells, &cglobal_r);
+
+  // create decomposition
+  int cuts[cdim];
+#ifdef GKYL_HAVE_MPI  
+  for (int d=0; d<cdim; d++)
+    cuts[d] = app_args.use_mpi? app_args.cuts[d] : 1;
+#else
+  for (int d=0; d<cdim; d++) cuts[d] = 1;
+#endif  
+    
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
+
+  // construct communcator for use in app
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert( 0 == 1);
+#endif
+  } else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+  } else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .decomp = decomp,
+        .use_gpu = app_args.use_gpu
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp,
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank, comm_sz;
+  gkyl_comm_get_rank(comm, &my_rank);
+  gkyl_comm_get_size(comm, &comm_sz);
+
+  int ncuts = 1;
+  for (int d=0; d<cdim; d++) ncuts *= cuts[d];
+  if (ncuts != comm_sz) {
+    if (my_rank == 0)
+      fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
+    goto mpifinalize;
+  }  
+
+  for (int d=0; d<cdim-1; d++) {
+    if (cuts[d] > 1) {
+      if (my_rank == 0)
+        fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
+      goto mpifinalize;
+    }
+  }
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -336,7 +430,7 @@ main(int argc, char **argv)
   // field
   struct gkyl_gyrokinetic_field field = {
     .bmag_fac = ctx.B0, 
-    .fem_parbc = GKYL_FEM_PARPROJ_PERIODIC, 
+    .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
     .kperpSq = pow(ctx.kperp, 2.),
   };
 
@@ -346,7 +440,7 @@ main(int argc, char **argv)
 
     .cdim = 1, .vdim = 2,
     .lower = { -ctx.Lz/2.0 },
-    .upper = { ctx.Lz/2.0 },
+    .upper = {  ctx.Lz/2.0 },
     .cells = { NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
@@ -368,6 +462,12 @@ main(int argc, char **argv)
     .field = field,
 
     .use_gpu = app_args.use_gpu,
+
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
   // create app object
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
@@ -434,6 +534,15 @@ main(int argc, char **argv)
 
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
   
+  mpifinalize:
+  ;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif
+
   return 0;
 }

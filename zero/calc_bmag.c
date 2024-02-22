@@ -10,7 +10,8 @@
 
 gkyl_calc_bmag*
 gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, const struct gkyl_basis *fbasis,
-  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const struct gkyl_rect_grid *fgrid, double psisep, bool use_gpu)
+  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, const struct gkyl_rect_grid *fgrid, 
+  double psisep, bool use_gpu)
 {
   gkyl_calc_bmag *up = gkyl_malloc(sizeof(gkyl_calc_bmag));
   up->cbasis = cbasis;
@@ -34,13 +35,12 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
   struct gkyl_range_iter citer;
   gkyl_range_iter_init(&iter, gc->crange);
   for(int i = 0; i < gc->cgrid->ndim; i++){
-    citer.idx[i] = fmin(gc->crange->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]), gc->crange->upper[i]);
+    citer.idx[i] = fmin(gc->crange_global->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]), gc->crange->upper[i]);
   }
 
   long lidx = gkyl_range_idx(gc->crange, citer.idx);
   const double *mcoeffs = gkyl_array_cfetch(gc->mapc2p, lidx);
   
-
   double cxc[gc->cgrid->ndim];
   double xyz[gc->cgrid->ndim];
   gkyl_rect_grid_cell_center(gc->cgrid, citer.idx, cxc);
@@ -63,9 +63,6 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
     iter.idx[1] = 1;
   long loc = gkyl_range_idx(gc->range, iter.idx);
   const double *coeffs = gkyl_array_cfetch(gc->bmagdg,loc);
-
-
-
 
   double xc[2];
   gkyl_rect_grid_cell_center(gc->grid, iter.idx, xc);
@@ -92,7 +89,6 @@ static inline void bphi_RZ(double t, const double *xn, double *fout, void *ctx){
   long lidx = gkyl_range_idx(gc->rzrange, rziter.idx);
   const double *psicoeffs = gkyl_array_cfetch(gc->psidg, lidx);
   
-
   // Now get psi at that location
   double rzxc[gc->rzgrid->ndim];
   double rz[gc->rzgrid->ndim];
@@ -118,10 +114,12 @@ static inline void bphi_RZ(double t, const double *xn, double *fout, void *ctx){
   fout[0] = gc->basis->eval_expand(fx, coeffs)/R;
 }
 
-
-
-
-void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi)
+void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, 
+  const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *crange_global, 
+  const struct gkyl_range *prange, const struct gkyl_range *prange_ext, 
+  const struct gkyl_range *frange, const struct gkyl_range* frange_ext, 
+  const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, 
+  struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi)
 {
   // 0th stage is to calculate bphi from fpol on the RZ grid from its representation on the flux grid
   // We will do this with an eval on nodes similar to what is done in bmag comp
@@ -129,7 +127,6 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
   // it will evaluate psi at that coordinate
   // we find which cell that lies in for fpol and the normalized coord
   // then evaluate
-
 
   struct fpol_ctx *fctx = gkyl_malloc(sizeof(*fctx));
   fctx->grid = up->fgrid;
@@ -142,16 +139,14 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
   fctx->rzbasis = up->pbasis;
   fctx->psisep = up->psisep;
 
-
-  struct gkyl_array* bphirz = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
+  struct gkyl_array *bphirz = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
   if (calc_bphi){
     gkyl_eval_on_nodes *eval_fpol_RZ = gkyl_eval_on_nodes_new(up->pgrid, up->pbasis, 1, bphi_RZ, fctx);
     gkyl_eval_on_nodes_advance(eval_fpol_RZ, 0.0, prange, bphirz); //on ghosts with ext_range
     gkyl_eval_on_nodes_release(eval_fpol_RZ);
   }
 
-
-  struct gkyl_array* bmagrz = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
+  struct gkyl_array *bmagrz = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
   //First Stage is use psidg, psibydg, psibyr2dg to create bmagdg = B(R,Z) continuous
   //struct gkyl_array* bmagdg = gkyl_array_new(GKYL_DOUBLE, up->pbasis->num_basis, prange_ext->volume);
   //make psibyr have LIRBT for recovery
@@ -178,15 +173,16 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
     }
     double scale_factorR = 2.0/(up->pgrid->dx[0]);
     double scale_factorZ = 2.0/(up->pgrid->dx[1]);
-    up->kernel(psibyrall,psibyr2_i, bphi_i, bmag_i, scale_factorR, scale_factorZ);
+    up->kernel(psibyrall, psibyr2_i, bphi_i, bmag_i, scale_factorR, scale_factorZ);
   }
 
-  //Second stage is to convert bmag into computational coordinates
+  // Second stage is to convert bmag into computational coordinates
   struct bmag_ctx *ctx = gkyl_malloc(sizeof(*ctx));
   ctx->grid = up->pgrid;
   ctx->cgrid = up->cgrid;
   ctx->range = prange;
   ctx->crange = crange;
+  ctx->crange_global = crange_global;
   ctx->bmagdg = bmagrz;
   ctx->basis = up->pbasis;
   ctx->cbasis = up->cbasis;
@@ -194,6 +190,13 @@ void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *c
   gkyl_eval_on_nodes *eval_bmag_comp = gkyl_eval_on_nodes_new(up->cgrid, up->cbasis, 1, bmag_comp, ctx);
   gkyl_eval_on_nodes_advance(eval_bmag_comp, 0.0, crange, bmag_compdg); //on ghosts with ext_range
   gkyl_eval_on_nodes_release(eval_bmag_comp);
+
+  // Free allocated memory
+  gkyl_free(fctx);
+  gkyl_array_release(bphirz);
+  gkyl_array_release(bmagrz);
+  gkyl_free(psibyrall);
+  gkyl_free(ctx);
 }
 
 void
