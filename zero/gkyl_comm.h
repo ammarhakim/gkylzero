@@ -40,11 +40,11 @@ typedef int (*gkyl_array_irecv_t)(struct gkyl_array *array, int src, int tag,
   struct gkyl_comm *comm, struct gkyl_comm_state *state);
 
 // "Reduce" all elements of @a type in array @a data and store output in @a out
-typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
+typedef int (*allreduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp, void *out);
 
 // Gather local arrays into global array on each process.
-typedef int (*gkyl_array_all_gather_t)(struct gkyl_comm *comm,
+typedef int (*gkyl_array_allgather_t)(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *global,
   const struct gkyl_array *array_local, struct gkyl_array *array_global);
 
@@ -105,9 +105,9 @@ struct gkyl_comm {
   gkyl_array_isend_t gkyl_array_isend; // nonblocking send array.
   gkyl_array_recv_t gkyl_array_recv; // blocking recv array.
   gkyl_array_irecv_t gkyl_array_irecv; // nonblocking recv array.
-  all_reduce_t all_reduce; // all reduce function
-  all_reduce_t all_reduce_host; // all reduce using the host (MPI) communicator.
-  gkyl_array_all_gather_t gkyl_array_all_gather; // gather local arrays to global array
+  allreduce_t allreduce; // all reduce function
+  allreduce_t allreduce_host; // all reduce using the host (MPI) communicator.
+  gkyl_array_allgather_t gkyl_array_allgather; // gather local arrays to global array
   gkyl_array_sync_t gkyl_array_sync; // sync array
   gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
   barrier_t barrier; // barrier
@@ -229,10 +229,10 @@ gkyl_comm_array_irecv(struct gkyl_comm *comm, struct gkyl_array *array,
  * @return error code: 0 for success
  */
 static int
-gkyl_comm_all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
+gkyl_comm_allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp, void *out)
 {
-  return comm->all_reduce(comm, type, op, nelem, inp, out);
+  return comm->allreduce(comm, type, op, nelem, inp, out);
 }
 
 /**
@@ -247,10 +247,10 @@ gkyl_comm_all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
  * @return error code: 0 for success
  */
 static int
-gkyl_comm_all_reduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
+gkyl_comm_allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp, void *out)
 {
-  return comm->all_reduce_host(comm, type, op, nelem, inp, out);
+  return comm->allreduce_host(comm, type, op, nelem, inp, out);
 }
 
 /**
@@ -264,11 +264,11 @@ gkyl_comm_all_reduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
  * @return error code: 0 for success
  */
 static int
-gkyl_comm_array_all_gather(struct gkyl_comm *comm, 
+gkyl_comm_array_allgather(struct gkyl_comm *comm, 
   const struct gkyl_range *local, const struct gkyl_range *global,
   const struct gkyl_array *array_local, struct gkyl_array *array_global)
 {
-  return comm->gkyl_array_all_gather(comm, local, global, array_local, array_global);
+  return comm->gkyl_array_allgather(comm, local, global, array_local, array_global);
 }
 
 /**

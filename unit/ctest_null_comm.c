@@ -25,7 +25,7 @@ test_1d()
   TEST_CHECK( sz == 1 );  
 
   double out[3], inp[3] = { 2.0, 4.0, 8.0 };
-  gkyl_comm_all_reduce(comm, GKYL_DOUBLE, GKYL_MIN, 3, inp, out);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_MIN, 3, inp, out);
 
   for (int i=0; i<3; ++i)
     TEST_CHECK( out[i] == inp[i] );

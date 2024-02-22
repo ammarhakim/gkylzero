@@ -76,15 +76,15 @@ mpi_allreduce()
 
   double v_max[2], v_min[2], v_sum[2];
 
-  gkyl_comm_all_reduce(comm, GKYL_DOUBLE, GKYL_MAX, 2, vals, v_max);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_MAX, 2, vals, v_max);
   TEST_CHECK( v_max[0] == 3.0 );
   TEST_CHECK( v_max[1] == 2.0 );
 
-  gkyl_comm_all_reduce(comm, GKYL_DOUBLE, GKYL_MIN, 2, vals, v_min);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_MIN, 2, vals, v_min);
   TEST_CHECK( v_min[0] == 1.0 );
   TEST_CHECK( v_min[1] == -1.0 );
 
-  gkyl_comm_all_reduce(comm, GKYL_DOUBLE, GKYL_SUM, 2, vals, v_sum);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_SUM, 2, vals, v_sum);
   TEST_CHECK( v_sum[0] == 4.0 );
   TEST_CHECK( v_sum[1] == 1.0 );
 
@@ -93,7 +93,7 @@ mpi_allreduce()
 }
 
 void
-mpi_n2_all_gather_1d()
+mpi_n2_allgather_1d()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -131,7 +131,7 @@ mpi_n2_all_gather_1d()
     f[0] = idx+10.0*rank;
   }
 
-  gkyl_comm_array_all_gather(comm, &local, &global, arr_local, arr_global);
+  gkyl_comm_array_allgather(comm, &local, &global, arr_local, arr_global);
 
   struct gkyl_range_iter iter_global;
   gkyl_range_iter_init(&iter_global, &global);
@@ -152,7 +152,7 @@ mpi_n2_all_gather_1d()
 }
 
 void
-mpi_n4_all_gather_2d()
+mpi_n4_allgather_2d()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -192,7 +192,7 @@ mpi_n4_all_gather_2d()
     f[0] = iter.idx[0] + iter.idx[1]*(rank+1.0) + 10.0*rank;
   } 
 
-  gkyl_comm_array_all_gather(comm, &local, &global, arr_local, arr_global);
+  gkyl_comm_array_allgather(comm, &local, &global, arr_local, arr_global);
 
   struct gkyl_range_iter iter_global;
   gkyl_range_iter_init(&iter_global, &global);
@@ -863,8 +863,8 @@ mpi_n4_multicomm_2d()
 TEST_LIST = {
   {"mpi_1", mpi_1},
   {"mpi_allreduce", mpi_allreduce},
-  {"mpi_n2_all_gather_1d", mpi_n2_all_gather_1d},
-  {"mpi_n4_all_gather_2d", mpi_n4_all_gather_2d},
+  {"mpi_n2_allgather_1d", mpi_n2_allgather_1d},
+  {"mpi_n4_allgather_2d", mpi_n4_allgather_2d},
   {"mpi_n2_sync_1d", mpi_n2_sync_1d},
   {"mpi_n4_sync_2d_no_corner", mpi_n4_sync_2d_no_corner },
   {"mpi_n4_sync_2d_use_corner", mpi_n4_sync_2d_use_corner},

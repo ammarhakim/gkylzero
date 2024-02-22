@@ -61,17 +61,17 @@ nccl_allreduce()
   double *v_min = gkyl_cu_malloc(2*sizeof(double));
   double *v_sum = gkyl_cu_malloc(2*sizeof(double));
 
-  gkyl_comm_all_reduce(comm_dev, GKYL_DOUBLE, GKYL_MAX, 2, vals, v_max);
+  gkyl_comm_allreduce(comm_dev, GKYL_DOUBLE, GKYL_MAX, 2, vals, v_max);
   gkyl_cu_memcpy(v_max_ho, v_max, 2*sizeof(double), GKYL_CU_MEMCPY_D2H);
   TEST_CHECK( v_max_ho[0] == 3.0 );
   TEST_CHECK( v_max_ho[1] == 2.0 );
 
-  gkyl_comm_all_reduce(comm_dev, GKYL_DOUBLE, GKYL_MIN, 2, vals, v_min);
+  gkyl_comm_allreduce(comm_dev, GKYL_DOUBLE, GKYL_MIN, 2, vals, v_min);
   gkyl_cu_memcpy(v_min_ho, v_min, 2*sizeof(double), GKYL_CU_MEMCPY_D2H);
   TEST_CHECK( v_min_ho[0] == 1.0 );
   TEST_CHECK( v_min_ho[1] == -1.0 );
 
-  gkyl_comm_all_reduce(comm_dev, GKYL_DOUBLE, GKYL_SUM, 2, vals, v_sum);
+  gkyl_comm_allreduce(comm_dev, GKYL_DOUBLE, GKYL_SUM, 2, vals, v_sum);
   gkyl_cu_memcpy(v_sum_ho, v_sum, 2*sizeof(double), GKYL_CU_MEMCPY_D2H);
   TEST_CHECK( v_sum_ho[0] == 4.0 );
   TEST_CHECK( v_sum_ho[1] == 1.0 );
@@ -87,7 +87,7 @@ nccl_allreduce()
 }
 
 void
-nccl_n2_all_gather_1d()
+nccl_n2_allgather_1d()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -128,7 +128,7 @@ nccl_n2_all_gather_1d()
   }
   gkyl_array_copy(arr_local, arr_local_ho);
 
-  gkyl_comm_array_all_gather(comm, &local, &global, arr_local, arr_global);
+  gkyl_comm_array_allgather(comm, &local, &global, arr_local, arr_global);
 
   gkyl_array_copy(arr_global_ho, arr_global);
   struct gkyl_range_iter iter_global;
@@ -152,7 +152,7 @@ nccl_n2_all_gather_1d()
 }
 
 void
-nccl_n4_all_gather_2d()
+nccl_n4_allgather_2d()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -195,7 +195,7 @@ nccl_n4_all_gather_2d()
   } 
   gkyl_array_copy(arr_local, arr_local_ho);
 
-  gkyl_comm_array_all_gather(comm, &local, &global, arr_local, arr_global);
+  gkyl_comm_array_allgather(comm, &local, &global, arr_local, arr_global);
 
   gkyl_array_copy(arr_global_ho, arr_global);
   struct gkyl_range_iter iter_global;
@@ -1025,8 +1025,8 @@ nccl_n4_multicomm_2d()
   
 TEST_LIST = {
   {"nccl_allreduce", nccl_allreduce},
-  {"nccl_n2_all_gather_1d", nccl_n2_all_gather_1d},
-  {"nccl_n4_all_gather_2d", nccl_n4_all_gather_2d},
+  {"nccl_n2_allgather_1d", nccl_n2_allgather_1d},
+  {"nccl_n4_allgather_2d", nccl_n4_allgather_2d},
   {"nccl_n2_array_send_irecv_2d", nccl_n2_array_send_irecv_2d},
   {"nccl_n2_array_isend_irecv_2d", nccl_n2_array_isend_irecv_2d},
   {"nccl_n2_sync_1d", nccl_n2_sync_1d},

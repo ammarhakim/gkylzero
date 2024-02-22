@@ -417,7 +417,7 @@ gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm)
     // reduce to compute sum over whole domain, append to diagnostics
     gkyl_array_reduce_range(s->red_integ_diag, s->integ_moms.marr, GKYL_SUM, &(app->local));
 
-    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, s->red_integ_diag, s->red_integ_diag_global);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, s->red_integ_diag, s->red_integ_diag_global);
 
     if (app->use_gpu)
       gkyl_cu_memcpy(avals_global, s->red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
@@ -741,25 +741,25 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   struct gkyl_array *gxzj = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
   struct gkyl_array *eps2 = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
 
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> mc2p, mc2p);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> bmag, bmag);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> g_ij, g_ij);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> dxdz, dxdz);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> dzdx, dzdx);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> jacobgeo, jacobgeo);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> jacobgeo_inv, jacobgeo_inv);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> gij, gij);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> b_i, b_i);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> cmag, cmag);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> jacobtot, jacobtot);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> jacobtot_inv, jacobtot_inv);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> bmag_inv, bmag_inv);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> bmag_inv_sq, bmag_inv_sq);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> gxxj, gxxj);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> gxyj, gxyj);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> gyyj, gyyj);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> gxzj, gxzj);
-  gkyl_comm_array_all_gather(app->comm, &app->local, &app->global, app->gk_geom-> eps2, eps2);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> mc2p, mc2p);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> bmag, bmag);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> g_ij, g_ij);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> dxdz, dxdz);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> dzdx, dzdx);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> jacobgeo, jacobgeo);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> jacobgeo_inv, jacobgeo_inv);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> gij, gij);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> b_i, b_i);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> cmag, cmag);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> jacobtot, jacobtot);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> jacobtot_inv, jacobtot_inv);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> bmag_inv, bmag_inv);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> bmag_inv_sq, bmag_inv_sq);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> gxxj, gxxj);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> gxyj, gxyj);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> gyyj, gyyj);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> gxzj, gxzj);
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom-> eps2, eps2);
 
   struct gkyl_array *mc2p_ho, *bmag_ho, *g_ij_ho, *dxdz_ho, *dzdx_ho, *jacobgeo_ho, *jacobgeo_inv_ho,
      *gij_ho, *b_i_ho, *cmag_ho, *jacobtot_ho, *jacobtot_inv_ho, *bmag_inv_ho, *bmag_inv_sq_ho,
@@ -1151,7 +1151,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   // compute minimum time-step across all processors
   double dtmin_local = dtmin, dtmin_global;
-  gkyl_comm_all_reduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
   dtmin = dtmin_global;
   
   // don't take a time-step larger that input dt
@@ -1359,7 +1359,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   };
 
   int64_t l_red_global[L_END];
-  gkyl_comm_all_reduce_host(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
 
   global->nup = l_red_global[NUP];
   global->nfeuler = l_red_global[NFEULER];
@@ -1388,7 +1388,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   };
 
   double d_red_global[D_END];
-  gkyl_comm_all_reduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
   
   global->total_tm = d_red_global[TOTAL_TM];
   global->init_species_tm = d_red_global[INIT_SPECIES_TM];
@@ -1404,14 +1404,14 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
 
   // misc data needing reduction
 
-  gkyl_comm_all_reduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_2_dt_diff,
     global->stage_2_dt_diff);
-  gkyl_comm_all_reduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 2, local->stage_3_dt_diff,
     global->stage_3_dt_diff);
 
-  gkyl_comm_all_reduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_drag_tm,
     global->species_lbo_coll_drag_tm);
-  gkyl_comm_all_reduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, GKYL_MAX_SPECIES, local->species_lbo_coll_diff_tm,
     global->species_lbo_coll_diff_tm);
 }
 
