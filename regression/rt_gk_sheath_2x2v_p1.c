@@ -318,22 +318,22 @@ main(int argc, char **argv)
 #endif  
 
   // create global range
-  int cells[] = { NX, NZ };
-  int cdim = sizeof(cells)/sizeof(cells[0]);
-  struct gkyl_range globalr;
-  gkyl_create_global_range(cdim, cells, &globalr);
+  int ccells[] = { NX, NZ };
+  int cdim = sizeof(ccells)/sizeof(ccells[0]);
+  struct gkyl_range cglobal_r;
+  gkyl_create_global_range(cdim, ccells, &cglobal_r);
 
   // create decomposition
-  int cuts[] = { 1, 1 };
-#ifdef GKYL_HAVE_MPI  
-  if (app_args.use_mpi) {
-    cuts[0] = app_args.cuts[0];
-    cuts[1] = app_args.cuts[1];
-  }
-#endif  
+  int cuts[cdim];
+#ifdef GKYL_HAVE_MPI
+  for (int d=0; d<cdim; d++)
+    cuts[d] = app_args.use_mpi? app_args.cuts[d] : 1;
+#else
+  for (int d=0; d<cdim; d++) cuts[d] = 1;
+#endif
     
   struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts(globalr.ndim, cuts, &globalr);
+    gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
 
   // construct communcator for use in app
   struct gkyl_comm *comm;
@@ -374,17 +374,20 @@ main(int argc, char **argv)
   gkyl_comm_get_rank(comm, &my_rank);
   gkyl_comm_get_size(comm, &comm_sz);
 
-  int ncuts = cuts[0]*cuts[1];
+  int ncuts = 1;
+  for (int d=0; d<cdim; d++) ncuts *= cuts[d];
   if (ncuts != comm_sz) {
     if (my_rank == 0)
       fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
     goto mpifinalize;
-  }  
+  }
 
-  if (cuts[0] > 1) {
-    if (my_rank == 0)
-      fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in x cannot be > 1!\n", cuts[0]);
-    goto mpifinalize;
+  for (int d=0; d<cdim-1; d++) {
+    if (cuts[d] > 1) {
+      if (my_rank == 0)
+        fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
+      goto mpifinalize;
+    }
   }
 
   // electrons

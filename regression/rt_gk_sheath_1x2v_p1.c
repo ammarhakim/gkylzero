@@ -267,6 +267,8 @@ main(int argc, char **argv)
 #ifdef GKYL_HAVE_MPI  
   for (int d=0; d<cdim; d++)
     cuts[d] = app_args.use_mpi? app_args.cuts[d] : 1;
+#else
+  for (int d=0; d<cdim; d++) cuts[d] = 1;
 #endif  
     
   struct gkyl_rect_decomp *decomp =
