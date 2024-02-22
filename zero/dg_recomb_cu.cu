@@ -24,7 +24,7 @@ gkyl_recomb_react_rate_cu_ker(const struct gkyl_dg_recomb *up, const struct gkyl
   const struct gkyl_array *moms_ion, struct gkyl_array *vtSq_elc, struct gkyl_array *coef_recomb,
   struct gkyl_array *prim_vars_ion, struct gkyl_array *recomb_data, int num_basis,
   enum gkyl_react_self_type type_self, bool all_gk, double mass_elc, double elem_charge, double maxLogTe,
-  double minLogTe, double dlogTe, double maxLogM0, double minLogM0, double dlogM0, double resTe, double resM0)
+  double minLogTe, double dlogTe, double maxLogM0, double minLogM0, double dlogM0, int resTe, int resM0)
 {
   int cidx[GKYL_MAX_CDIM];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
