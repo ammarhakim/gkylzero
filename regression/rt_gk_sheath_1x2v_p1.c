@@ -433,7 +433,7 @@ main(int argc, char **argv)
 
     .cdim = 1, .vdim = 2,
     .lower = { -ctx.Lz/2.0 },
-    .upper = { ctx.Lz/2.0 },
+    .upper = {  ctx.Lz/2.0 },
     .cells = { NX },
     .poly_order = 1,
     .basis_type = app_args.basis_type,

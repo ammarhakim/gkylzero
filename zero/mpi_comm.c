@@ -215,6 +215,23 @@ array_allgather(struct gkyl_comm *comm,
 }
 
 static int
+array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
+  struct gkyl_array *arecv, int root)
+{
+  assert(asend->esznc == arecv->esznc);
+  assert(asend->size == arecv->size);
+
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
+
+  size_t nelem = asend->ncomp*asend->size;
+
+  int ret = 
+    MPI_Bcast(asend->data, nelem, g2_mpi_datatype[asend->type], root, mpi->mcomm);
+
+  return 0;
+}
+
+static int
 array_sync(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *local_ext,
   struct gkyl_array *array)
@@ -666,6 +683,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.gkyl_array_isend = array_isend;
   mpi->base.gkyl_array_recv = array_recv;
   mpi->base.gkyl_array_irecv = array_irecv;
+  mpi->base.gkyl_array_bcast = array_bcast;
   mpi->base.allreduce = allreduce;
   mpi->base.allreduce_host = allreduce;
   mpi->base.extend_comm = extend_comm;
