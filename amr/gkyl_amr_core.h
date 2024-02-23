@@ -51,18 +51,11 @@ struct ten_moment_2d_level1_init {
     double refined_x2;
     double refined_y2;
 
-    evalf_t eval;
+    evalf_t evalElc;
+    evalf_t evalIon;
+    evalf_t evalField;
     double k0;
 
     double cfl_frac;
     double t_end;
 };
-
-/**
-* Run a 2D 10-moment equations simulation, using static, block-structured mesh refinement with a single refinement patch of level 1.
-*
-* @param argc Number of command line arguments passed to the function.
-* @param argv Array of command line arguments passed to the function.
-* @param init Initialization data for the 2D 10-moment equations simulation.
-*/
-void ten_moment_2d_run_level1(int argc, char **argv, struct ten_moment_2d_level1_init* init);

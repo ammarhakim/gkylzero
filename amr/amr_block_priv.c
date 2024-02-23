@@ -240,9 +240,9 @@ euler_init_job_func(void* ctx)
 }
 
 void
-copy_job_func(void* ctx)
+euler_copy_job_func(void* ctx)
 {
-  struct copy_job_ctx *j_ctx = ctx;
+  struct euler_copy_job_ctx *j_ctx = ctx;
   gkyl_array_copy(j_ctx -> out, j_ctx -> inp);
 }
 
@@ -260,7 +260,7 @@ struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, con
     UPDATE_REDO,
   } state = PRE_UPDATE;
 
-  struct copy_job_ctx copy_ctx[num_blocks];
+  struct euler_copy_job_ctx copy_ctx[num_blocks];
   double dt = dt0;
 
   while (state != UPDATE_DONE)
@@ -271,7 +271,7 @@ struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, con
 
       for (int i = 0; i < num_blocks; i++)
       {
-        copy_ctx[i] = (struct copy_job_ctx) {
+        copy_ctx[i] = (struct euler_copy_job_ctx) {
           .bidx = i,
           .inp = bdata[i].f[0],
           .out = bdata[i].fdup
@@ -280,7 +280,7 @@ struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, con
 
       for (int i = 0; i < num_blocks; i++)
       {
-        gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
+        gkyl_job_pool_add_work(job_pool, euler_copy_job_func, &copy_ctx[i]);
       }
       gkyl_job_pool_wait(job_pool);
     }
@@ -307,7 +307,7 @@ struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, con
 
       for (int i = 0; i < num_blocks; i++)
       {
-        copy_ctx[i] = (struct copy_job_ctx) {
+        copy_ctx[i] = (struct euler_copy_job_ctx) {
           .bidx = i,
           .inp = bdata[i].f[2],
           .out = bdata[i].f[0]
@@ -316,7 +316,7 @@ struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, con
 
       for (int i = 0; i < num_blocks; i++)
       {
-        gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
+        gkyl_job_pool_add_work(job_pool, euler_copy_job_func, &copy_ctx[i]);
       }
       gkyl_job_pool_wait(job_pool);
     }
@@ -326,7 +326,7 @@ struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, con
 
       for (int i = 0; i < num_blocks; i++)
       {
-        copy_ctx[i] = (struct copy_job_ctx) {
+        copy_ctx[i] = (struct euler_copy_job_ctx) {
           .bidx = i,
           .inp = bdata[i].fdup,
           .out = bdata[i].f[0]
@@ -335,7 +335,7 @@ struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, con
 
       for (int i = 0; i < num_blocks; i++)
       {
-        gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
+        gkyl_job_pool_add_work(job_pool, euler_copy_job_func, &copy_ctx[i]);
       }
       gkyl_job_pool_wait(job_pool);
     }
@@ -370,362 +370,6 @@ euler_max_dt(int num_blocks, const struct euler_block_data bdata[])
   for (int i = 0; i < num_blocks; i++)
   {
     dt = fmin(dt, euler_block_data_max_dt(&bdata[i]));
-  }
-  
-  return dt;
-}
-
-static void
-ten_moment_transmissive_bc(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
-{
-  for (int i = 0; i < 10; i++)
-  {
-    ghost[i] = skin[i];
-  }
-}
-
-void
-ten_moment_block_bc_updaters_init(struct ten_moment_block_data* bdata, const struct gkyl_block_connections* conn)
-{
-  int nghost[] = { 2, 2, 2, 2, 2, 2, 2, 2, 2 };
-  
-  for (int d = 0; d < 2; d++)
-  {
-    bdata -> lower_bc[d] = bdata -> upper_bc[d] = 0;
-    
-    if (conn -> connections[d][0].edge == GKYL_PHYSICAL)
-    {
-      bdata -> lower_bc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> ten_moment, bdata -> geom, d, GKYL_LOWER_EDGE, nghost, ten_moment_transmissive_bc, 0);
-    }
-    
-    if (conn -> connections[d][1].edge == GKYL_PHYSICAL)
-    {
-      bdata -> upper_bc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> ten_moment, bdata -> geom, d, GKYL_UPPER_EDGE, nghost, ten_moment_transmissive_bc, 0);
-    }
-  }
-  
-  skin_ghost_ranges_init(&bdata -> skin_ghost, &bdata -> ext_range, nghost);
-  long buff_sz = 0;
-  
-  for (int d = 0; d < 2; d++)
-  {
-    long vol = bdata -> skin_ghost.lower_skin[d].volume;
-    
-    if (buff_sz <= vol)
-    {
-      buff_sz = vol;
-    }
-  }
-  
-  bdata -> bc_buffer = gkyl_array_new(GKYL_DOUBLE, 5, buff_sz);
-}
-
-void
-ten_moment_block_bc_updaters_release(struct ten_moment_block_data* bdata)
-{
-  for (int d = 0; d < 2; d++)
-  {
-    if (bdata -> lower_bc[d])
-    {
-      gkyl_wv_apply_bc_release(bdata -> lower_bc[d]);
-    }
-    if (bdata -> upper_bc[d])
-    {
-      gkyl_wv_apply_bc_release(bdata -> upper_bc[d]);
-    }
-  }
-  
-  gkyl_array_release(bdata -> bc_buffer);
-}
-
-void
-ten_moment_block_bc_updaters_apply(const struct ten_moment_block_data* bdata, double tm, struct gkyl_array* fld)
-{
-  for (int d = 0; d < 2; d++)
-  {
-    if (bdata -> lower_bc[d])
-    {
-      gkyl_wv_apply_bc_advance(bdata -> lower_bc[d], tm, &bdata -> range, fld);
-    }
-    if (bdata -> upper_bc[d])
-    {
-      gkyl_wv_apply_bc_advance(bdata -> upper_bc[d], tm, &bdata -> range, fld);
-    }
-  }
-}
-
-void
-ten_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct ten_moment_block_data bdata[], struct gkyl_array* fld[])
-{
-  long num_blocks = btopo -> num_blocks;
-  long ndim = btopo -> ndim;
-
-  for (int i = 0; i < num_blocks; i++)
-  {
-    for (int d = 0; d < ndim; d++)
-    {
-      const struct gkyl_target_edge *te = btopo -> conn[i].connections[d];
-
-      if (te[0].edge != GKYL_PHYSICAL)
-      {
-        struct gkyl_array *bc_buffer = bdata[i].bc_buffer;
-
-        gkyl_array_copy_to_buffer(bc_buffer -> data, fld[i], &(bdata[i].skin_ghost.lower_skin[d]));;
-
-        int tbid = te[0].bid;
-        int tdir = te[0].dir;
-
-        if (te[0].edge == GKYL_LOWER_POSITIVE)
-        {
-          gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
-        }
-        if (te[0].edge == GKYL_UPPER_POSITIVE)
-        {
-          gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
-        }
-      }
-
-      if (te[1].edge != GKYL_PHYSICAL)
-      {
-        struct gkyl_array *bc_buffer = bdata[i].bc_buffer;
-
-        gkyl_array_copy_to_buffer(bc_buffer -> data, fld[i], &(bdata[i].skin_ghost.upper_skin[d]));
-
-        int tbid = te[1].bid;
-        int tdir = te[1].dir;
-
-        if (te[1].edge == GKYL_LOWER_POSITIVE)
-        {
-          gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
-        }
-        if (te[1].edge == GKYL_UPPER_POSITIVE)
-        {
-          gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
-        }
-      }
-    }
-  }
-}
-
-void
-ten_moment_block_data_write(const char* fileNm, const struct ten_moment_block_data* bdata)
-{
-  gkyl_grid_sub_array_write(&bdata -> grid, &bdata -> range, bdata -> f[0], fileNm);
-}
-
-double
-ten_moment_block_data_max_dt(const struct ten_moment_block_data* bdata)
-{
-  double dt = DBL_MAX;
-
-  for (int d = 0; d < 2; d++)
-  {
-    dt = fmin(dt, gkyl_wave_prop_max_dt(bdata -> slvr[d], &bdata -> range, bdata -> f[0]));
-  }
-
-  return dt;
-}
-
-void
-ten_moment_update_block_job_func(void* ctx)
-{
-  struct ten_moment_update_block_ctx *ub_ctx = ctx;
-  const struct ten_moment_block_data *bdata = ub_ctx -> bdata;
-
-  int d = ub_ctx -> dir;
-  double t_curr = ub_ctx -> t_curr;
-  double dt = ub_ctx -> dt;
-
-  ub_ctx -> stat = gkyl_wave_prop_advance(bdata -> slvr[d], t_curr, dt, &bdata -> range, bdata -> f[d], bdata -> f[d + 1]);
-
-  ten_moment_block_bc_updaters_apply(bdata, t_curr, bdata -> f[d + 1]);
-}
-
-struct gkyl_update_status
-ten_moment_update_all_blocks(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo, const struct ten_moment_block_data bdata[], double t_curr, double dt)
-{
-  long num_blocks = btopo -> num_blocks;
-  long ndim = btopo -> ndim;
-
-  double dt_suggested = DBL_MAX;
-
-  for (int d = 0; d < ndim; d++)
-  {
-    struct ten_moment_update_block_ctx ten_moment_block_ctx[num_blocks];
-
-    for (int i = 0; i < num_blocks; i++)
-    {
-      ten_moment_block_ctx[i] = (struct ten_moment_update_block_ctx) {
-        .bdata = &bdata[i],
-        .t_curr = t_curr,
-        .dir = d,
-        .dt = dt,
-        .bidx = i,
-      };
-    }
-
-    for (int i = 0; i < num_blocks; i++)
-    {
-      gkyl_job_pool_add_work(job_pool, ten_moment_update_block_job_func, &ten_moment_block_ctx[i]);
-    }
-    gkyl_job_pool_wait(job_pool);
-
-    struct gkyl_array *fld[num_blocks];
-
-    for (int i = 0; i < num_blocks; i++)
-    {
-      if (ten_moment_block_ctx[i].stat.success == false)
-      {
-        return (struct gkyl_update_status) {
-          .success = false,
-          .dt_suggested = ten_moment_block_ctx[i].stat.dt_suggested
-        };
-      }
-
-      dt_suggested = fmin(dt_suggested, ten_moment_block_ctx[i].stat.dt_suggested);
-      fld[i] = bdata[i].f[d + 1];
-    }
-
-    ten_moment_sync_blocks(btopo, bdata, fld);
-  }
-
-  return (struct gkyl_update_status) {
-    .success = true,
-    .dt_suggested = dt_suggested
-  };
-}
-
-void
-ten_moment_init_job_func(void* ctx)
-{
-  struct ten_moment_block_data *bdata = ctx;
-  gkyl_fv_proj_advance(bdata -> fv_proj, 0.0, &bdata -> ext_range, bdata -> f[0]);
-}
-
-struct gkyl_update_status ten_moment_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo, const struct ten_moment_block_data bdata[],
-    double t_curr, double dt0, struct sim_stats* stats)
-{
-  long num_blocks = btopo -> num_blocks;
-  double dt_suggested = DBL_MAX;
-
-  enum {
-    UPDATE_DONE = 0,
-    PRE_UPDATE,
-    POST_UPDATE,
-    FLUID_UPDATE,
-    UPDATE_REDO,
-  } state = PRE_UPDATE;
-
-  struct copy_job_ctx copy_ctx[num_blocks];
-  double dt = dt0;
-
-  while (state != UPDATE_DONE)
-  {
-    if (state == PRE_UPDATE)
-    {
-      state = FLUID_UPDATE;
-
-      for (int i = 0; i < num_blocks; i++)
-      {
-        copy_ctx[i] = (struct copy_job_ctx) {
-          .bidx = i,
-          .inp = bdata[i].f[0],
-          .out = bdata[i].fdup
-        };
-      }
-
-      for (int i = 0; i < num_blocks; i++)
-      {
-        gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
-      }
-      gkyl_job_pool_wait(job_pool);
-    }
-    else if (state == FLUID_UPDATE)
-    {
-      state = POST_UPDATE;
-
-      struct gkyl_update_status s = ten_moment_update_all_blocks(job_pool, btopo, bdata, t_curr, dt);
-
-      if (!s.success)
-      {
-        stats -> nfail += 1;
-        dt = s.dt_suggested;
-        state = UPDATE_REDO;
-      }
-      else
-      {
-        dt_suggested = fmin(dt_suggested, s.dt_suggested);
-      }
-    }
-    else if (state == POST_UPDATE)
-    {
-      state = UPDATE_DONE;
-
-      for (int i = 0; i < num_blocks; i++)
-      {
-        copy_ctx[i] = (struct copy_job_ctx) {
-          .bidx = i,
-          .inp = bdata[i].f[2],
-          .out = bdata[i].f[0]
-        };
-      }
-
-      for (int i = 0; i < num_blocks; i++)
-      {
-        gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
-      }
-      gkyl_job_pool_wait(job_pool);
-    }
-    else if (state == UPDATE_REDO)
-    {
-      state = PRE_UPDATE;
-
-      for (int i = 0; i < num_blocks; i++)
-      {
-        copy_ctx[i] = (struct copy_job_ctx) {
-          .bidx = i,
-          .inp = bdata[i].fdup,
-          .out = bdata[i].f[0]
-        };
-      }
-
-      for (int i = 0; i < num_blocks; i++)
-      {
-        gkyl_job_pool_add_work(job_pool, copy_job_func, &copy_ctx[i]);
-      }
-      gkyl_job_pool_wait(job_pool);
-    }
-  }
-
-  return (struct gkyl_update_status) {
-    .success = true,
-    .dt_actual = dt,
-    .dt_suggested = dt_suggested,
-  };
-}
-
-void
-ten_moment_write_sol(const char* fbase, int num_blocks, const struct ten_moment_block_data bdata[])
-{
-  for (int i = 0; i < num_blocks; i++)
-  {
-    const char *fmt = "%s_b%d.gkyl";
-    int sz = snprintf(0, 0, fmt, fbase, i);
-    char fileNm[sz + 1];
-    
-    snprintf(fileNm, sizeof fileNm, fmt, fbase, i);
-    ten_moment_block_data_write(fileNm, &bdata[i]);
-  }
-}
-
-double
-ten_moment_max_dt(int num_blocks, const struct ten_moment_block_data bdata[])
-{
-  double dt = DBL_MAX;
-  
-  for (int i = 0; i < num_blocks; i++)
-  {
-    dt = fmin(dt, ten_moment_block_data_max_dt(&bdata[i]));
   }
   
   return dt;
