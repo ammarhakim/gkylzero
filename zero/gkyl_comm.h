@@ -40,8 +40,17 @@ typedef int (*gkyl_array_irecv_t)(struct gkyl_array *array, int src, int tag,
   struct gkyl_comm *comm, struct gkyl_comm_state *state);
 
 // "Reduce" all elements of @a type in array @a data and store output in @a out
-typedef int (*all_reduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
+typedef int (*allreduce_t)(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp, void *out);
+
+// Gather local arrays into global array on each process.
+typedef int (*gkyl_array_allgather_t)(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global);
+
+// Broadcast array to other processes.
+typedef int (*gkyl_array_bcast_t)(struct gkyl_comm *comm,
+  const struct gkyl_array *array_send, struct gkyl_array *array_recv, int root);
 
 // "Synchronize" @a array across the regions or blocks.
 typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm,
@@ -94,16 +103,19 @@ typedef void (*comm_group_call_end_t)();
 // Gkeyll objects across multi-region or multi-block domains
 struct gkyl_comm {
 
-  get_rank_t get_rank; // get local rank function
-  get_size_t get_size; // get number of ranks
+  get_rank_t get_rank; // get local rank function.
+  get_size_t get_size; // get number of ranks.
   gkyl_array_send_t gkyl_array_send; // blocking send array.
   gkyl_array_isend_t gkyl_array_isend; // nonblocking send array.
   gkyl_array_recv_t gkyl_array_recv; // blocking recv array.
   gkyl_array_irecv_t gkyl_array_irecv; // nonblocking recv array.
-  all_reduce_t all_reduce; // all reduce function
-  gkyl_array_sync_t gkyl_array_sync; // sync array
-  gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs
-  barrier_t barrier; // barrier
+  allreduce_t allreduce; // all reduce function
+  allreduce_t allreduce_host; // all reduce using the host (MPI) communicator.
+  gkyl_array_allgather_t gkyl_array_allgather; // gather local arrays to global array.
+  gkyl_array_bcast_t gkyl_array_bcast; // broadcast array to other processes.
+  gkyl_array_sync_t gkyl_array_sync; // sync array.
+  gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs.
+  barrier_t barrier; // barrier.
 
   gkyl_array_write_t gkyl_array_write; // array output
   gkyl_array_read_t gkyl_array_read; // array input
@@ -222,10 +234,62 @@ gkyl_comm_array_irecv(struct gkyl_comm *comm, struct gkyl_array *array,
  * @return error code: 0 for success
  */
 static int
-gkyl_comm_all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
+gkyl_comm_allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp, void *out)
 {
-  return comm->all_reduce(comm, type, op, nelem, inp, out);
+  return comm->allreduce(comm, type, op, nelem, inp, out);
+}
+
+/**
+ * All reduce values across domains on the host/MPI communicator.
+ *
+ * @param comm Communicator
+ * @param type Data-type of element
+ * @param op Operator to use in reduction
+ * @param nelem Number of elemets in inp and out
+ * @param inp Local values on domain
+ * @param out Reduced values
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp, void *out)
+{
+  return comm->allreduce_host(comm, type, op, nelem, inp, out);
+}
+
+/**
+ * Gather all local data into a global array on each process.
+ *
+ * @param comm Communicator
+ * @param local Local range for array
+ * @param global Global range for array
+ * @param array_local Local array
+ * @param array_global Global array
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_array_allgather(struct gkyl_comm *comm, 
+  const struct gkyl_range *local, const struct gkyl_range *global,
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
+{
+  return comm->gkyl_array_allgather(comm, local, global, array_local, array_global);
+}
+
+/**
+ * Broadcast an array to other processes.
+ *
+ * @param comm Communicator.
+ * @param array_send Array to send (only in rank 'root').
+ * @param array_recv Receive buffer array.
+ * @param root Broadcasting process.
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_array_bcast(struct gkyl_comm *comm, 
+  const struct gkyl_array *array_send, struct gkyl_array *array_recv, int root)
+{
+  return comm->gkyl_array_bcast(comm, array_send, array_recv, root);
 }
 
 /**

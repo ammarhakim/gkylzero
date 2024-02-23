@@ -23,7 +23,7 @@ struct gkyl_deflated_fem_poisson {
   struct gkyl_basis *deflated_basis_on_dev;
   struct gkyl_range local;
   struct gkyl_range deflated_local;
-  struct gkyl_range local_ext;
+  struct gkyl_range global_sub_range;
   struct gkyl_range deflated_local_ext;
   struct gkyl_range nrange;
   struct gkyl_range deflated_nrange;

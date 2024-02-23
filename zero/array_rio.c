@@ -157,7 +157,7 @@ gkyl_sub_array_read(const struct gkyl_range *range, struct gkyl_array *arr, FILE
 
 int
 gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
-  struct gkyl_array *arr, const char* fname)
+  struct gkyl_array *arr, const char *fname)
 {
   FILE *fp = 0;
   with_file (fp, fname, "r") {
