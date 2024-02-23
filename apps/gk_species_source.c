@@ -29,8 +29,15 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   for (int m=0; m<ndm; ++m)
     gk_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m]);
 
-  if (app->use_gpu) 
+
+  if (app->use_gpu) {
     s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    s->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
+  } else {
+    s->src.red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
+    s->src.red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+  }
+
   // allocate dynamic-vector to store all-reduced integrated moments 
   s->src.integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   s->src.is_first_integ_write_call = true;
@@ -71,7 +78,7 @@ void
 gkyl_gyrokinetic_app_calc_integrated_source_mom(gkyl_gyrokinetic_app* app, double tm)
 {
   int vdim = app->vdim;
-  double avals[2+vdim], avals_global[2+vdim];
+  double avals_global[2+vdim];
 
   struct timespec wst = gkyl_wall_clock();
 
@@ -82,17 +89,17 @@ gkyl_gyrokinetic_app_calc_integrated_source_mom(gkyl_gyrokinetic_app* app, doubl
       struct timespec wst = gkyl_wall_clock();
 
       gk_species_moment_calc(&s->src.integ_moms, s->local, app->local, s->src.source); 
-
+      
       // reduce to compute sum over whole domain, append to diagnostics
-      if (app->use_gpu) {
-        gkyl_array_reduce_range(s->src.red_integ_diag, s->src.integ_moms.marr, GKYL_SUM, &(app->local));
-        gkyl_cu_memcpy(avals, s->src.red_integ_diag, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
-      }
-      else {
-        gkyl_array_reduce_range(avals, s->src.integ_moms.marr_host, GKYL_SUM, &(app->local));
-      }
+      gkyl_array_reduce_range(s->src.red_integ_diag, s->src.integ_moms.marr, GKYL_SUM, &(app->local));
 
-      gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, avals, avals_global);
+      gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, s->src.red_integ_diag, s->src.red_integ_diag_global);
+
+      if (app->use_gpu)
+        gkyl_cu_memcpy(avals_global, s->src.red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);
+      else
+        memcpy(avals_global, s->src.red_integ_diag_global, sizeof(double[2+vdim]));
+
       gkyl_dynvec_append(s->src.integ_diag, tm, avals_global);
 
       app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
