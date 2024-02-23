@@ -79,6 +79,14 @@ array_allgather(struct gkyl_comm *comm,
 }
 
 static int
+array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
+  struct gkyl_array *arecv, int root)
+{
+  gkyl_array_copy(arecv, asend);
+  return 0;
+}
+
+static int
 array_sync(struct gkyl_comm *comm,
   const struct gkyl_range *local, const struct gkyl_range *local_ext,
   struct gkyl_array *array)
@@ -176,31 +184,6 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
 }
 
 struct gkyl_comm*
-gkyl_null_comm_new(void)
-{
-  struct null_comm *comm = gkyl_malloc(sizeof *comm);
-
-  comm->use_gpu = false;
-  comm->l2sgr = cmap_l2sgr_init();
-  comm->pbuff = gkyl_mem_buff_new(1);
-  comm->decomp = 0;
-  
-  comm->base.get_rank = get_rank;
-  comm->base.get_size = get_size;
-  comm->base.allreduce = allreduce;
-  comm->base.allreduce_host = allreduce_host;
-  comm->base.gkyl_array_allgather = array_allgather;
-  comm->base.gkyl_array_sync = array_sync;
-  comm->base.barrier = barrier;
-  comm->base.gkyl_array_write = array_write;
-  comm->base.gkyl_array_read = array_read;
-
-  comm->base.ref_count = gkyl_ref_count_init(comm_free);
-
-  return &comm->base;
-}
-
-struct gkyl_comm*
 gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 {
   struct null_comm *comm = gkyl_malloc(sizeof *comm);
@@ -225,6 +208,7 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   comm->base.allreduce = allreduce;
   comm->base.allreduce_host = allreduce_host;
   comm->base.gkyl_array_allgather = array_allgather;
+  comm->base.gkyl_array_bcast = array_bcast;
   comm->base.gkyl_array_sync = array_sync;
   comm->base.gkyl_array_per_sync = array_per_sync;
   comm->base.barrier = barrier;
@@ -236,3 +220,16 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
 
   return &comm->base;
 }
+
+struct gkyl_comm*
+gkyl_null_comm_new(void)
+{
+  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = 0,
+      .use_gpu = false,
+    }
+  );
+
+  return comm;
+}
+
