@@ -14,6 +14,7 @@
 #include <gkyl_block_topo.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
+#include <gkyl_moment_em_coupling.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -287,7 +288,7 @@ struct five_moment_copy_job_ctx {
   int bidx;
 
   const struct gkyl_array *inp_elc;
-  const struct gkyl_arary *inp_ion;
+  const struct gkyl_array *inp_ion;
   const struct gkyl_array *inp_maxwell;
 
   struct gkyl_array *out_elc;
@@ -355,12 +356,36 @@ void five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bd
 void five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_moment_block_data bdata[], struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
 
 /**
-* Write block-structured simulation data for the 5-moment equations onto disk.
+* Write block-structured simulation data for the electron species of the 5-moment equations onto disk.
 *
-* @param fileNm File name schema to use for the simulation output.
+* @param fileNm_elc File name schema to use for the electron species simulation output.
 * @param bdata Block-structured data for the 5-moment equations.
 */
-void five_moment_block_data_write(const char* fileNm, const struct five_moment_block_data* bdata);
+void five_moment_block_data_write_elc(const char* fileNm_elc, const struct five_moment_block_data* bdata);
+
+/**
+* Write block-structured simulation data for the ion species of the 5-moment equations onto disk.
+*
+* @param fileNm_ion File name schema to use for the ion species simulation output.
+* @param bdata Block-structured data for the 5-moment equations.
+*/
+void five_moment_block_data_write_ion(const char* fileNm_ion, const struct five_moment_block_data* bdata);
+
+/**
+* Write block-structured simulation data for the Maxwell (electromagnetic) field of the 5-moment equations onto disk.
+*
+* @param fileNm_maxwell File name schema to use for the Maxwell (electromagnetic) field simulation output.
+* @param bdata Block-structured data for the 5-moment equations.
+*/
+void five_moment_block_data_write_maxwell(const char* fileNm_maxwell, const struct five_moment_block_data* bdata);
+
+/**
+* Write block-structured simulation data for the electric field of the 5-moment equations onto disk.
+*
+* @param fileNmElc File name schema to use for the electric field simulation output.
+* @param bdata Block-structured data for the 5-moment equations.
+*/
+void five_moment_block_data_write_elc(const char* fileNmElc, const struct five_moment_block_data* bdata);
 
 /**
 * Calculate the maximum stable time-step for the block-structured 5-moment equations.
@@ -406,7 +431,7 @@ struct gkyl_update_status five_moment_update_all_blocks(const struct gkyl_job_po
 * @param dt Current stable time-step for the simulation.
 * @param nstrang Current iteration of the Strang splitting.
 */
-void five_moment_update_all_blocks_sources(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo, const struct five_moment_block_data bdata[], double t_curr, double dt, int nstrang);
+void five_moment_update_all_blocks_sources(const struct gkyl_block_topo* btopo, const struct five_moment_block_data bdata[], double t_curr, double dt, int nstrang);
 
 /**
 * Initialize a new job in the thread-based job pool for updating the block-structured 5-moment equations simulation data.
