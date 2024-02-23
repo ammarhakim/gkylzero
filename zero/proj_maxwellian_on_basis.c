@@ -149,8 +149,7 @@ gkyl_proj_maxwellian_on_basis_inew(const struct gkyl_proj_maxwellian_on_basis_in
   up->num_conf_basis = conf_basis->num_basis;
   up->num_phase_basis = phase_basis->num_basis;
   up->use_gpu = inp->use_gpu;
-  up->vmap = inp->vmap;
-  if (up->vmap != 0) {
+  if (inp->vmap != 0) {
     up->vel_range1d = inp->vel_range1d;
     up->vel_basis1d = inp->vel_basis1d;
   }
@@ -188,7 +187,6 @@ gkyl_proj_maxwellian_on_basis_inew(const struct gkyl_proj_maxwellian_on_basis_in
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     // Allocate device copies of arrays needed for quadrature.
-
     int p2c_qidx_ho[up->phase_qrange.volume];
     up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
 
@@ -199,7 +197,17 @@ gkyl_proj_maxwellian_on_basis_inew(const struct gkyl_proj_maxwellian_on_basis_in
       p2c_qidx_ho[n] = cqidx;
     }
     gkyl_cu_memcpy(up->p2c_qidx, p2c_qidx_ho, sizeof(int)*up->phase_qrange.volume, GKYL_CU_MEMCPY_H2D);
+
+    if (inp->vmap != 0) {
+      up->vmap = gkyl_cu_malloc(vdim*sizeof(struct gkyl_array*));
+      for (int d=0; d<vdim; d++)
+        gkyl_cu_memcpy(up->vmap[d], inp->vmap[d]->on_dev, sizeof(struct gkyl_array*), GKYL_CU_MEMCPY_D2D);
+    }
+  } else {
+    if (inp->vmap != 0) up->vmap = inp->vmap;
   }
+#else
+  if (inp->vmap != 0) up->vmap = inp->vmap;
 #endif
 
   return up;
@@ -627,10 +635,10 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
           int vidx[1];  long vlinidx;  double xcomp[1];
           for (int vd=0; vd<vdim; vd++) {
             vidx[0] = vel_iter.idx[vd];
-            vlinidx = gkyl_range_idx(&up->vel_range1d[vd], vidx);
+            vlinidx = gkyl_range_idx(up->vel_range1d[vd], vidx);
             const double *vmap_d = gkyl_array_cfetch(up->vmap[vd], vlinidx);
             xcomp[0] = xlog_d[cdim+vd];
-            xmu[cdim+vd] = up->vel_basis1d[vd].eval_expand(xcomp, vmap_d);
+            xmu[cdim+vd] = up->vel_basis1d[vd]->eval_expand(xcomp, vmap_d);
           }
         }
 
@@ -655,8 +663,10 @@ void
 gkyl_proj_maxwellian_on_basis_release(gkyl_proj_maxwellian_on_basis* up)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
     gkyl_cu_free(up->p2c_qidx);
+    if (up->vmap != 0)
+      gkyl_cu_free(up->vmap);
 #endif
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);

@@ -1,4 +1,5 @@
 #include <string.h>
+#include <assert.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
@@ -80,6 +81,10 @@ void
 gkyl_eval_on_nodes_advance(const struct gkyl_eval_on_nodes *up,
   double tm, const struct gkyl_range *update_range, struct gkyl_array *arr)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(arr)) assert(false);  // arr should be a host array.
+#endif
+
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
 
   int num_ret_vals = up->num_ret_vals;

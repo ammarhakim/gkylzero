@@ -28,71 +28,129 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
   if (s->info.mapc2p.is_mapped) {
 
+    struct gkyl_rect_grid grid_vel1d[vdim]; // velocity space grids.
+    struct gkyl_range local_vel1d_ho[vdim], local_ext_vel1d_ho[vdim]; // velocity space ranges.
+    struct gkyl_basis vel_basis1d_ho[vdim]; // velocity space bases.
+    struct gkyl_array *vmap_ho[vdim]; // velocity space mapping.
+
+    if (app->use_gpu) {
+      s->vel_basis1d     = gkyl_cu_malloc(vdim*sizeof(struct gkyl_basis*));
+      s->local_vel1d     = gkyl_cu_malloc(vdim*sizeof(struct gkyl_range*));
+      s->local_ext_vel1d = gkyl_cu_malloc(vdim*sizeof(struct gkyl_range*));
+    } else {
+      s->vel_basis1d     = gkyl_malloc(vdim*sizeof(struct gkyl_basis*));
+      s->local_vel1d     = gkyl_malloc(vdim*sizeof(struct gkyl_range*));
+      s->local_ext_vel1d = gkyl_malloc(vdim*sizeof(struct gkyl_range*));
+    }
+    s->vmap       = gkyl_malloc(vdim*sizeof(struct gkyl_array*));
+    s->vmap_prime = gkyl_malloc(vdim*sizeof(struct gkyl_array*));
+    s->vmapSq     = gkyl_malloc(vdim*sizeof(struct gkyl_array*));
+
     for (int d=0; d<vdim; d++) {
       int cells[] = {s->grid_vel.cells[d]}, ghost[] = {0};
       double lower[] = {s->grid_vel.lower[d]}, upper[] = {s->grid_vel.upper[d]};
 
-      gkyl_rect_grid_init(&s->grid_vel1d[d], 1, lower, upper, cells);
-      gkyl_create_grid_ranges(&s->grid_vel1d[d], ghost, &s->local_ext_vel1d[d], &s->local_vel1d[d]);
+      if (app->use_gpu) {
+        s->vel_basis1d[d]     = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+        s->local_vel1d[d]     = gkyl_cu_malloc(sizeof(struct gkyl_range));
+        s->local_ext_vel1d[d] = gkyl_cu_malloc(sizeof(struct gkyl_range));
+      } else {
+        s->vel_basis1d[d]     = gkyl_malloc(sizeof(struct gkyl_basis));
+        s->local_vel1d[d]     = gkyl_malloc(sizeof(struct gkyl_range));
+        s->local_ext_vel1d[d] = gkyl_malloc(sizeof(struct gkyl_range));
+      }
+
+      gkyl_rect_grid_init(&grid_vel1d[d], 1, lower, upper, cells);
+      gkyl_create_grid_ranges(&grid_vel1d[d], ghost, &local_ext_vel1d_ho[d], &local_vel1d_ho[d]);
+
+#ifdef GKYL_HAVE_CUDA
+      if (app->use_gpu) {
+        gkyl_cu_memcpy(s->local_vel1d[d], &local_vel1d_ho[d], sizeof(struct gkyl_range), GKYL_CU_MEMCPY_H2D);
+        gkyl_cu_memcpy(s->local_ext_vel1d[d], &local_ext_vel1d_ho[d], sizeof(struct gkyl_range), GKYL_CU_MEMCPY_H2D);
+      } else {
+        memcpy(s->local_vel1d[d], &local_vel1d_ho[d], sizeof(struct gkyl_range));
+        memcpy(s->local_ext_vel1d[d], &local_ext_vel1d_ho[d], sizeof(struct gkyl_range));
+      }
+#else
+      memcpy(s->local_vel1d[d], &local_vel1d_ho[d], sizeof(struct gkyl_range));
+      memcpy(s->local_ext_vel1d[d], &local_ext_vel1d_ho[d], sizeof(struct gkyl_range));
+#endif
 
       struct gkyl_basis velSq_basis1d;
-      gkyl_cart_modal_serendip(&s->vel_basis1d[d], 1, vmap_poly_order);
+      if (app->use_gpu) {
+        gkyl_cart_modal_serendip_cu_dev(s->vel_basis1d[d], 1, vmap_poly_order);
+        gkyl_cart_modal_serendip(&vel_basis1d_ho[d], 1, vmap_poly_order);
+      } else {
+        gkyl_cart_modal_serendip(s->vel_basis1d[d], 1, vmap_poly_order);
+        gkyl_cart_modal_serendip(&vel_basis1d_ho[d], 1, vmap_poly_order);
+      }
       gkyl_cart_modal_serendip(&velSq_basis1d, 1, vmapSq_poly_order);
 
-      s->vmap[d] = mkarr(app->use_gpu, s->vel_basis1d[d].num_basis, s->local_ext_vel1d[d].volume);
-      s->vmap_prime[d] = mkarr(app->use_gpu, 1, s->local_ext_vel1d[d].volume);
-      s->vmapSq[d] = mkarr(app->use_gpu, velSq_basis1d.num_basis, s->local_ext_vel1d[d].volume);
+      s->vmap[d] = mkarr(app->use_gpu, vel_basis1d_ho[d].num_basis, local_ext_vel1d_ho[d].volume);
+      s->vmap_prime[d] = mkarr(app->use_gpu, 1, local_ext_vel1d_ho[d].volume);
+      s->vmapSq[d] = mkarr(app->use_gpu, velSq_basis1d.num_basis, local_ext_vel1d_ho[d].volume);
 
       // Project the velocity mapping.
-      gkyl_eval_on_nodes *evup = gkyl_eval_on_nodes_new(&s->grid_vel1d[d], &s->vel_basis1d[d],
+      vmap_ho[d] = mkarr(false, vel_basis1d_ho[d].num_basis, local_ext_vel1d_ho[d].volume);
+      gkyl_eval_on_nodes *evup = gkyl_eval_on_nodes_new(&grid_vel1d[d], &vel_basis1d_ho[d],
         1, s->info.mapc2p.mapping[d], s->info.mapc2p.ctx); 
 
-      gkyl_eval_on_nodes_advance(evup, 0., &s->local_vel1d[d], s->vmap[d]);
+      gkyl_eval_on_nodes_advance(evup, 0., &local_vel1d_ho[d], vmap_ho[d]);
 
       gkyl_eval_on_nodes_release(evup);
+      gkyl_array_copy(s->vmap[d], vmap_ho[d]);
+      gkyl_array_release(vmap_ho[d]);
 
       // Compute the derivative of the mapping.
-      gkyl_array_set_offset(s->vmap_prime[d], sqrt(6.)/s->grid_vel1d[d].dx[0], s->vmap[d], 1);
+      gkyl_array_set_offset(s->vmap_prime[d], sqrt(6.)/grid_vel1d[d].dx[0], s->vmap[d], 1);
 
       // Compute the square mapping via weak multiplication.
-      struct gkyl_array *vmap_p2 = mkarr(app->use_gpu, velSq_basis1d.num_basis, s->local_ext_vel1d[d].volume);
+      struct gkyl_array *vmap_p2 = mkarr(app->use_gpu, velSq_basis1d.num_basis, local_ext_vel1d_ho[d].volume);
       gkyl_array_set_offset(s->vmapSq[d], 1., s->vmap[d], 0);
       gkyl_dg_mul_op(velSq_basis1d, 0, s->vmapSq[d], 0, vmap_p2, 0, vmap_p2);
       gkyl_array_release(vmap_p2);
     }
 
     // Compute the velocity space Jacobian (cell-wise constant).
+    struct gkyl_array *jacobvel_ho;
+    struct gkyl_array *vmap_prime_ho[vdim];
+    if (app->use_gpu) {
+      jacobvel_ho = mkarr(false, 1, s->local_ext.volume);
+      for (int d=0; d<vdim; d++) {
+        vmap_prime_ho[d] = mkarr(false, 1, local_ext_vel1d_ho[d].volume);
+        gkyl_array_copy(vmap_prime_ho[d], s->vmap_prime[d]);
+      }
+    } else {
+      jacobvel_ho = s->jacobvel;
+      for (int d=0; d<vdim; d++) vmap_prime_ho[d] = s->vmap_prime[d];
+    }
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &s->local);
     while (gkyl_range_iter_next(&iter)) {
       long linidx = gkyl_range_idx(&s->local, iter.idx);
-      double *jacv_d = gkyl_array_fetch(s->jacobvel, linidx);
+      double *jacv_d = gkyl_array_fetch(jacobvel_ho, linidx);
       jacv_d[0] = 1.;
 
       for (int d=0; d<vdim; d++) {
         int idx1d[] = {iter.idx[cdim+d]};
-        long linidx1d = gkyl_range_idx(&s->local_vel1d[d], idx1d);
-        double *vprime_d = gkyl_array_fetch(s->vmap_prime[d], linidx1d);
-
+        long linidx1d = gkyl_range_idx(&local_vel1d_ho[d], idx1d);
+        double *vprime_d = gkyl_array_fetch(vmap_prime_ho[d], linidx1d);
         jacv_d[0] *= fabs(vprime_d[0]);
       }
     }
+    if (app->use_gpu) gkyl_array_copy(s->jacobvel, jacobvel_ho);
 
     // Write out the velocity space Jacobian.
     const char *fmt = "%s-%s_jacobvel.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, s->info.name);
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name);
+    gkyl_comm_array_write(s->comm, &s->grid, &s->local, jacobvel_ho, fileNm);
 
     if (app->use_gpu) {
-      // copy data from device to host before writing it out
-//      gkyl_array_copy(s->jacobvel_host, s->jacobvel);
-//      gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->jacobvel_host, fileNm);
+      gkyl_array_release(jacobvel_ho);
+      for (int d=0; d<vdim; d++) gkyl_array_release(vmap_prime_ho[d]);
     }
-    else {
-      gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->jacobvel, fileNm);
-    }
-
   }
 }
 
@@ -620,9 +678,33 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   // Delete memory for velocity mappings.
   if (s->info.mapc2p.is_mapped) {
     for (int d=0; d<app->vdim; d++) {
+      if (app->use_gpu) {
+        gkyl_cu_free(s->vel_basis1d[d]);
+        gkyl_cu_free(s->local_vel1d[d]);
+        gkyl_cu_free(s->local_ext_vel1d[d]);
+      } else {
+        gkyl_free(s->vel_basis1d[d]);
+        gkyl_free(s->local_vel1d[d]);
+        gkyl_free(s->local_ext_vel1d[d]);
+      }
       gkyl_array_release(s->vmap[d]);
       gkyl_array_release(s->vmap_prime[d]);
       gkyl_array_release(s->vmapSq[d]);
+    }
+    if (app->use_gpu) {
+      gkyl_cu_free(s->vel_basis1d);
+      gkyl_cu_free(s->local_vel1d);
+      gkyl_cu_free(s->local_ext_vel1d);
+      gkyl_cu_free(s->vmap);
+      gkyl_cu_free(s->vmap_prime);
+      gkyl_cu_free(s->vmapSq);
+    } else {
+      gkyl_free(s->vel_basis1d);
+      gkyl_free(s->local_vel1d);
+      gkyl_free(s->local_ext_vel1d);
+      gkyl_free(s->vmap);
+      gkyl_free(s->vmap_prime);
+      gkyl_free(s->vmapSq);
     }
   }
   gkyl_array_release(s->jacobvel);
