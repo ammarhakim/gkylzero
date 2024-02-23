@@ -805,7 +805,7 @@ double kperpRhos = 0.1;
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
   int num_cell_z = 128;
   int poly_order = 1;
-  double final_time = 1-9;
+  double final_time = 1e-9;
   int num_frames = 1;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx

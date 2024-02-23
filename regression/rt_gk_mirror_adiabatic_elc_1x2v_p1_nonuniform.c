@@ -626,7 +626,7 @@ create_ctx(void)
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
   int num_cell_z = 128;
   int poly_order = 1;
-  double final_time = 1-9;
+  double final_time = 1e-9;
   int num_frames = 1;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx
@@ -826,6 +826,7 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
   printf("Starting main loop ...\n");
   long step = 1, num_steps = app_args.num_steps;
+  printf("tcurr = %g, tend = %g, dt = %g, num_steps = %ld\n", tcurr, tend, dt, num_steps);
   while ((tcurr < tend) && (step <= num_steps))
   {
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
