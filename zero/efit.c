@@ -15,9 +15,8 @@
 #include <gkyl_nodal_ops.h>
 #include <assert.h>
 
-
-
-gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool use_gpu)
+gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, 
+  enum gkyl_basis_type rz_basis_type, int flux_poly_order, bool use_gpu)
 {
   if (access(filepath, F_OK) == -1){
     fprintf(stderr, "efit file %s does not exist\n", filepath);
@@ -55,10 +54,19 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, enum gkyl_basi
 
   // Read the file
   status = fscanf(ptr,"%d%d", &up->nr, &up->nz);
-  status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", &up->rdim, 
-  &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, &up->simag, &up->sibry,
-  &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, &up->xdum, &up-> zmaxis, &up->xdum, 
-  &up->sibry, &up->xdum, &up->xdum);
+
+  // Read the non-array parameters, all are doubles:
+  // rdim,zdim,rcentr,rleft,zmid;
+  // rmaxis,zmaxis,simag,sibry,bcentr;
+  // current,simag,xdum,rmaxis,xdum;
+  // zmaxis,xdum,sibry,xdum,xdum;
+  //double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
+
+  status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", 
+    &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, 
+    &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, 
+    &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
+
 
   // Now we need to make the grid
   up->zmin = up->zmid - up->zdim/2;
@@ -115,7 +123,8 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, enum gkyl_basi
   }
 
   struct gkyl_nodal_ops *n2m_flux = gkyl_nodal_ops_new(up->fluxbasis, up->fluxgrid, false);
-  gkyl_nodal_ops_n2m(n2m_flux, up->fluxbasis, up->fluxgrid, &flux_nrange, up->fluxlocal, 1, fpolflux_n, up->fpolflux);
+  gkyl_nodal_ops_n2m(n2m_flux, up->fluxbasis, up->fluxgrid, 
+    &flux_nrange, up->fluxlocal, 1, fpolflux_n, up->fpolflux);
 
   // Now we 3 of the 1d arrays, all of length nr :
   // pres, ffprim, pprime
@@ -166,15 +175,21 @@ gkyl_efit* gkyl_efit_new(const char *filepath, int rz_poly_order, enum gkyl_basi
       double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
       status = fscanf(ptr,"%lf", q_n);
   }
-  gkyl_nodal_ops_n2m(n2m_flux, up->fluxbasis, up->fluxgrid, &flux_nrange, up->fluxlocal, 1, qflux_n, up->qflux);
+  gkyl_nodal_ops_n2m(n2m_flux, up->fluxbasis, up->fluxgrid, 
+    &flux_nrange, up->fluxlocal, 1, qflux_n, up->qflux);
   gkyl_nodal_ops_release(n2m_flux);
-
+  
+  // Free nodal arrays
+  gkyl_array_release(fpolflux_n);
+  gkyl_array_release(psizr_n);
+  gkyl_array_release(psibyrzr_n);
+  gkyl_array_release(psibyr2zr_n);
+  gkyl_array_release(qflux_n);
   // Done, don't care about the rest
-
+  
   fclose(ptr);
   return up;
 }
-
 
 void gkyl_efit_release(gkyl_efit* up){
   gkyl_free(up->rzbasis);

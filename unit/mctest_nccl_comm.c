@@ -61,17 +61,17 @@ nccl_allreduce()
   double *v_min = gkyl_cu_malloc(2*sizeof(double));
   double *v_sum = gkyl_cu_malloc(2*sizeof(double));
 
-  gkyl_comm_all_reduce(comm_dev, GKYL_DOUBLE, GKYL_MAX, 2, vals, v_max);
+  gkyl_comm_allreduce(comm_dev, GKYL_DOUBLE, GKYL_MAX, 2, vals, v_max);
   gkyl_cu_memcpy(v_max_ho, v_max, 2*sizeof(double), GKYL_CU_MEMCPY_D2H);
   TEST_CHECK( v_max_ho[0] == 3.0 );
   TEST_CHECK( v_max_ho[1] == 2.0 );
 
-  gkyl_comm_all_reduce(comm_dev, GKYL_DOUBLE, GKYL_MIN, 2, vals, v_min);
+  gkyl_comm_allreduce(comm_dev, GKYL_DOUBLE, GKYL_MIN, 2, vals, v_min);
   gkyl_cu_memcpy(v_min_ho, v_min, 2*sizeof(double), GKYL_CU_MEMCPY_D2H);
   TEST_CHECK( v_min_ho[0] == 1.0 );
   TEST_CHECK( v_min_ho[1] == -1.0 );
 
-  gkyl_comm_all_reduce(comm_dev, GKYL_DOUBLE, GKYL_SUM, 2, vals, v_sum);
+  gkyl_comm_allreduce(comm_dev, GKYL_DOUBLE, GKYL_SUM, 2, vals, v_sum);
   gkyl_cu_memcpy(v_sum_ho, v_sum, 2*sizeof(double), GKYL_CU_MEMCPY_D2H);
   TEST_CHECK( v_sum_ho[0] == 4.0 );
   TEST_CHECK( v_sum_ho[1] == 1.0 );
@@ -84,6 +84,148 @@ nccl_allreduce()
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm_ho);
   gkyl_comm_release(comm_dev);
+}
+
+void
+nccl_n2_allgather_1d()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 2) return;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  struct gkyl_range global;
+  gkyl_range_init(&global, 1, (int[]) { 1 }, (int[]) { 10 });
+
+  int cuts[] = { 2 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(global.ndim, cuts, &global);
+  
+  struct gkyl_comm *comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp,
+    }
+  );
+
+  int nghost[] = { 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arr_local = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, local_ext.volume);
+  struct gkyl_array *arr_global = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, global.volume);
+  struct gkyl_array *arr_local_ho = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
+  struct gkyl_array *arr_global_ho = gkyl_array_new(GKYL_DOUBLE, 1, global.volume);
+  gkyl_array_clear(arr_global, 0.0);
+
+  gkyl_array_clear(arr_local_ho, 200005.0);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long idx = gkyl_range_idx(&local, iter.idx);
+    double  *f = gkyl_array_fetch(arr_local_ho, idx);
+    f[0] = idx+10.0*rank;
+  }
+  gkyl_array_copy(arr_local, arr_local_ho);
+
+  gkyl_comm_array_allgather(comm, &local, &global, arr_local, arr_global);
+
+  gkyl_array_copy(arr_global_ho, arr_global);
+  struct gkyl_range_iter iter_global;
+  gkyl_range_iter_init(&iter_global, &global);
+  while (gkyl_range_iter_next(&iter_global)) {
+    long idx = gkyl_range_idx(&global, iter_global.idx);
+    double *f = gkyl_array_fetch(arr_global_ho, idx);
+    // first 5 entries are 1-5, second 5 entries are 11-15
+    if (idx < local.volume)
+      TEST_CHECK( idx+1.0 == f[0] );
+    else 
+      TEST_CHECK( idx+6.0 == f[0] );
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr_local);      
+  gkyl_array_release(arr_global); 
+  gkyl_array_release(arr_local_ho);      
+  gkyl_array_release(arr_global_ho); 
+}
+
+void
+nccl_n4_allgather_2d()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 4) return;
+
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  // create global range
+  int cells[] = { 10, 10 };
+  struct gkyl_range global;
+  gkyl_create_global_range(2, cells, &global);
+
+  int cuts[] = { 2, 2 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &global);  
+  
+  struct gkyl_comm *comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp,
+    }
+  );
+
+  int nghost[] = { 1, 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arr_local = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, local_ext.volume);
+  struct gkyl_array *arr_global = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, global.volume);
+  struct gkyl_array *arr_local_ho = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
+  struct gkyl_array *arr_global_ho = gkyl_array_new(GKYL_DOUBLE, 1, global.volume);
+  gkyl_array_clear(arr_global, 0.0);
+
+  gkyl_array_clear(arr_local_ho, 200005.0);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long idx = gkyl_range_idx(&local, iter.idx);
+    double  *f = gkyl_array_fetch(arr_local_ho, idx);
+    f[0] = iter.idx[0] + iter.idx[1]*(rank+1.0) + 10.0*rank;
+  } 
+  gkyl_array_copy(arr_local, arr_local_ho);
+
+  gkyl_comm_array_allgather(comm, &local, &global, arr_local, arr_global);
+
+  gkyl_array_copy(arr_global_ho, arr_global);
+  struct gkyl_range_iter iter_global;
+  gkyl_range_iter_init(&iter_global, &global);
+  while (gkyl_range_iter_next(&iter_global)) {
+    long idx = gkyl_range_idx(&global, iter_global.idx);
+    double *f = gkyl_array_fetch(arr_global_ho, idx);
+    // check value of {2, 2} decomp organized as 
+    // rank 0 owns {1, 1} to {5, 5}
+    // rank 1 owns {1, 6} to {5, 10} 
+    // rank 2 owns {6, 1} to {10, 5} 
+    // rank 3 owns {6, 6} to {10, 10}
+    double val;
+    if (iter_global.idx[0] <= cells[0]/cuts[0] && iter_global.idx[1] <= cells[1]/cuts[1])
+      val = iter_global.idx[0] + iter_global.idx[1];
+    else if (iter_global.idx[0] <= cells[0]/cuts[0] && iter_global.idx[1] > cells[1]/cuts[1])
+      val = iter_global.idx[0] + iter_global.idx[1]*2.0 + 10.0;
+    else if (iter_global.idx[0] > cells[0]/cuts[0] && iter_global.idx[1] <= cells[1]/cuts[1])
+      val = iter_global.idx[0] + iter_global.idx[1]*3.0 + 20.0;
+    else 
+      val = iter_global.idx[0] + iter_global.idx[1]*4.0 + 30.0;
+    TEST_CHECK( val == f[0] );
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr_local);
+  gkyl_array_release(arr_global);
+  gkyl_array_release(arr_local_ho);
+  gkyl_array_release(arr_global_ho);
 }
 
 void
@@ -881,8 +1023,151 @@ nccl_n4_multicomm_2d()
   gkyl_rect_decomp_release(confdecomp);
 }
   
+void
+nccl_bcast_1d()
+{
+  int bcast_rank = 1;
+
+  int m_sz, rank;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  struct gkyl_range global;
+  gkyl_range_init(&global, 1, (int[]) { 1 }, (int[]) { 8*27*125 });
+
+  int cuts[] = { m_sz };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(global.ndim, cuts, &global);
+  
+  struct gkyl_comm *comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp,
+    }
+  );
+
+  int nghost[] = { 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arr_ho = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
+  struct gkyl_array *arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, local_ext.volume);
+  gkyl_array_clear(arr_ho, 200005.0);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&local, iter.idx);
+    double *f = gkyl_array_fetch(arr_ho, linidx);
+    f[0] = linidx+10.0*rank;
+  }
+  gkyl_array_copy(arr, arr_ho);
+
+  gkyl_comm_array_bcast(comm, arr, arr, bcast_rank);
+
+  gkyl_array_copy(arr_ho, arr);
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&local, iter.idx);
+    double *f = gkyl_array_fetch(arr_ho, linidx);
+    TEST_CHECK( linidx+10.0*bcast_rank == f[0] );
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr); 
+  gkyl_array_release(arr_ho); 
+}
+
+void
+nccl_bcast_2d_test(int *cuts)
+{
+  int bcast_rank = 1;
+
+  int m_sz, rank;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  // create global range
+  int cells[] = { 4*9*25, 4*9*25 };
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  struct gkyl_range global;
+  gkyl_create_global_range(ndim, cells, &global);
+
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(ndim, cuts, &global);  
+  
+  struct gkyl_comm *comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+      .mpi_comm = MPI_COMM_WORLD,
+      .decomp = decomp,
+    }
+  );
+
+  int nghost[] = { 1, 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+  struct gkyl_array *arr_ho = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
+  struct gkyl_array *arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, local_ext.volume);
+  gkyl_array_clear(arr_ho, 200005.0);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&local, iter.idx);
+    double *f = gkyl_array_fetch(arr_ho, linidx);
+    f[0] = iter.idx[0] + iter.idx[1]*(rank+1.0) + 10.0*rank;
+  } 
+  gkyl_array_copy(arr, arr_ho);
+
+  gkyl_comm_array_bcast(comm, arr, arr, bcast_rank);
+
+  gkyl_array_copy(arr_ho, arr);
+  struct gkyl_range bcast_rank_local, bcast_rank_local_ext;
+  gkyl_create_ranges(&decomp->ranges[bcast_rank], nghost, &bcast_rank_local_ext, &bcast_rank_local);
+  gkyl_range_iter_init(&iter, &bcast_rank_local);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&bcast_rank_local, iter.idx);
+    double *f = gkyl_array_fetch(arr_ho, linidx);
+    double val = iter.idx[0] + iter.idx[1]*(bcast_rank+1.0) + 10.0*bcast_rank;
+    TEST_CHECK( val == f[0] );
+    TEST_MSG( "rank:%d | At idx=(%d,%d) | Expected: %.13e | Produced: %.13e", rank, iter.idx[0], iter.idx[1], val, f[0] );
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr);
+  gkyl_array_release(arr_ho);
+}
+
+void
+nccl_bcast_2d()
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+
+  if (m_sz == 2) {
+    int cuts12[] = {1, 2};
+    nccl_bcast_2d_test(cuts12);
+  
+    int cuts21[] = {2, 1};
+    nccl_bcast_2d_test(cuts21);
+  
+  } else if (m_sz == 3) {
+    int cuts13[] = {1, 3};
+    nccl_bcast_2d_test(cuts13);
+  
+    int cuts31[] = {3, 1};
+    nccl_bcast_2d_test(cuts31);
+
+  } else if (m_sz == 4) {
+    int cuts22[] = {2, 2};
+    nccl_bcast_2d_test(cuts22);
+  
+  }
+}
+  
 TEST_LIST = {
   {"nccl_allreduce", nccl_allreduce},
+  {"nccl_n2_allgather_1d", nccl_n2_allgather_1d},
+  {"nccl_n4_allgather_2d", nccl_n4_allgather_2d},
   {"nccl_n2_array_send_irecv_2d", nccl_n2_array_send_irecv_2d},
   {"nccl_n2_array_isend_irecv_2d", nccl_n2_array_isend_irecv_2d},
   {"nccl_n2_sync_1d", nccl_n2_sync_1d},
@@ -892,6 +1177,8 @@ TEST_LIST = {
   {"nccl_n1_per_sync_2d", nccl_n1_per_sync_2d },
   {"nccl_n2_per_sync_2d", nccl_n2_per_sync_2d },
   {"nccl_n4_multicomm_2d", nccl_n4_multicomm_2d},
+  {"nccl_bcast_1d", nccl_bcast_1d},
+  {"nccl_bcast_2d", nccl_bcast_2d},
   {NULL, NULL},
 };
 

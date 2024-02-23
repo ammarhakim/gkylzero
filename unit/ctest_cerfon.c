@@ -53,6 +53,8 @@ test_11()
 
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_CORE_R,
     .rclose = 6.0,
     .rright= 6.0,
@@ -63,7 +65,25 @@ test_11()
     .node_file_nm = "cerfon11_nodes.gkyl"
   }; 
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
+
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
 
 
   gkyl_gk_geometry_release(up);
@@ -98,6 +118,8 @@ test_12()
 
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_CORE_L,
     .rclose = 6.0,
     .rleft= 0.25,
@@ -106,8 +128,25 @@ test_12()
     .write_node_coord_array = true,
     .node_file_nm = "cerfon12_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
 
 
   gkyl_gk_geometry_release(up);
@@ -142,6 +181,8 @@ test_1()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_PF_LO_R,
     .rright = 6.0,
     .zmin = -5.8,
@@ -150,7 +191,24 @@ test_1()
     .node_file_nm = "cerfon1_nodes.gkyl"
   }; 
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -180,6 +238,8 @@ test_2()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_SOL_DN_OUT_LO,
     .rright = 6.0,
     .zmin = -5.8,
@@ -187,8 +247,25 @@ test_2()
     .write_node_coord_array = true,
     .node_file_nm = "cerfon2_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -218,6 +295,8 @@ test_3()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_SOL_DN_OUT_MID,
     .rright = 6.0,
     .zxpt_lo = -4.3,
@@ -225,8 +304,25 @@ test_3()
     .write_node_coord_array = true,
     .node_file_nm = "cerfon3_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -256,6 +352,8 @@ test_4()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_SOL_DN_OUT_UP,
     .rright = 6.0,
     .zmax = 5.8,
@@ -263,8 +361,25 @@ test_4()
     .write_node_coord_array = true,
     .node_file_nm = "cerfon4_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -294,6 +409,8 @@ test_7()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_SOL_DN_IN_UP,
     .rleft = 0.25,
     .zxpt_up = 4.3,
@@ -301,8 +418,25 @@ test_7()
     .write_node_coord_array = true,
     .node_file_nm = "cerfon7_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -332,6 +466,8 @@ test_8()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_SOL_DN_IN_MID,
     .rleft = 0.25,
     .zxpt_lo = -4.3,
@@ -339,8 +475,25 @@ test_8()
     .write_node_coord_array = true,
     .node_file_nm = "cerfon8_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -370,6 +523,8 @@ test_9()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_SOL_DN_IN_LO,
     .rleft = 0.25,
     .zmin = -5.8,
@@ -377,8 +532,25 @@ test_9()
     .write_node_coord_array = true,
     .node_file_nm = "cerfon9_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -408,6 +580,8 @@ test_10()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_PF_LO_L,
     .rleft= 0.25,
     .zmin = -5.8,
@@ -415,8 +589,25 @@ test_10()
     .write_node_coord_array = true,
     .node_file_nm = "cerfon10_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -446,6 +637,8 @@ test_5()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_PF_UP_R,
     .rright = 6.0,
     .zmax = 5.8,
@@ -453,8 +646,25 @@ test_5()
     .write_node_coord_array = true,
     .node_file_nm = "cerfon5_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -484,6 +694,8 @@ test_6()
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
   struct gkyl_tok_geo_grid_inp ginp = {
+    .rmin = 0.0,
+    .rmax = 10.0,
     .ftype = GKYL_PF_UP_L,
     .rleft = 0.25,
     .zmax = 5.8,
@@ -491,8 +703,25 @@ test_6()
     .write_node_coord_array = true,
     .node_file_nm = "cerfon6_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();

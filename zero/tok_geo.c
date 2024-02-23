@@ -393,9 +393,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
     dpsi = inp->cgrid.dx[PSI_IDX],
     dalpha = inp->cgrid.dx[AL_IDX];
   
-  double theta_lo = inp->cgrid.lower[TH_IDX],
-    psi_lo = inp->cgrid.lower[PSI_IDX],
-    alpha_lo = inp->cgrid.lower[AL_IDX];
+  double theta_lo = up->grid.lower[TH_IDX] + (up->local.lower[TH_IDX] - up->global.lower[TH_IDX])*up->grid.dx[TH_IDX],
+    psi_lo = up->grid.lower[PSI_IDX] + (up->local.lower[PSI_IDX] - up->global.lower[PSI_IDX])*up->grid.dx[PSI_IDX],
+    alpha_lo = up->grid.lower[AL_IDX] + (up->local.lower[AL_IDX] - up->global.lower[AL_IDX])*up->grid.dx[AL_IDX];
 
   double dx_fact = up->basis.poly_order == 1.0/up->basis.poly_order;
   dtheta *= dx_fact; dpsi *= dx_fact; dalpha *= dx_fact;
@@ -435,11 +435,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
     cidx[AL_IDX] = ia;
     for(int ia_delta = 0; ia_delta < 5; ia_delta++){ // should be <5
-      if(ia == nrange->lower[AL_IDX]){
+      if((ia == nrange->lower[AL_IDX]) && (up->local.lower[AL_IDX]== up->global.lower[AL_IDX]) ){
         if(ia_delta == 1 || ia_delta == 3)
           continue; // want to use one sided stencils at edge
       }
-      else if(ia == nrange->upper[AL_IDX]){
+      else if((ia == nrange->upper[AL_IDX])  && (up->local.upper[AL_IDX]== up->global.upper[AL_IDX])){
           if(ia_delta == 2 || ia_delta == 4)
             continue; // want to use one sided stencils at edge
       }
@@ -455,11 +455,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
         if(ia_delta != 0)
           ip_delta_max = 1;
         for(int ip_delta = 0; ip_delta < ip_delta_max; ip_delta++){
-          if(ip == nrange->lower[PSI_IDX]){
+          if((ip == nrange->lower[PSI_IDX]) && (up->local.lower[PSI_IDX]== up->global.lower[PSI_IDX]) ){
             if(ip_delta == 1 || ip_delta == 3)
               continue; // want to use one sided stencils at edge
           }
-          else if(ip == nrange->upper[PSI_IDX]){
+          else if((ip == nrange->upper[PSI_IDX]) && (up->local.upper[PSI_IDX]== up->global.upper[PSI_IDX])){
             if(ip_delta == 2 || ip_delta == 4)
               continue; // want to use one sided stencils at edge
           }
@@ -499,11 +499,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
             if(ia_delta != 0 || ip_delta != 0 )
               it_delta_max = 1;
             for(int it_delta = 0; it_delta < it_delta_max; it_delta++){
-              if(it == nrange->lower[TH_IDX]){
+              if((it == nrange->lower[TH_IDX]) && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])){
                 if(it_delta == 1 || it_delta == 3)
                   continue; // want to use one sided stencils at edge
               }
-              else if(it == nrange->upper[TH_IDX]){
+              else if((it == nrange->upper[TH_IDX]) && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])){
                 if(it_delta == 2 || it_delta == 4)
                   continue; // want to use one sided stencils at edge
               }
@@ -572,8 +572,8 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, double
     }
   }
   struct gkyl_nodal_ops *n2m =  gkyl_nodal_ops_new(&inp->cbasis, &inp->cgrid, false);
-  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->range, 3, mc2p_nodal, mc2p);
-  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->range, 3, mc2prz_nodal, mc2prz);
+  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2p_nodal, mc2p);
+  gkyl_nodal_ops_n2m(n2m, &inp->cbasis, &inp->cgrid, nrange, &up->local, 3, mc2prz_nodal, mc2prz);
   gkyl_nodal_ops_release(n2m);
 
   char str1[50] = "xyz";

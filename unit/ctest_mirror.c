@@ -56,8 +56,8 @@ struct gkyl_mirror_geo_grid_inp ginp = {
 
 void mirror_geometry_new(struct gkyl_gk *gk)
 {
-    // Copy directly from zero/gyrokinetic.c
-  disable_denorm_float();
+  // Copy directly from zero/gyrokinetic.c
+disable_denorm_float();
 
   assert(gk->num_species <= GKYL_MAX_SPECIES);
 
@@ -178,48 +178,74 @@ void mirror_geometry_new(struct gkyl_gk *gk)
 
 
   // Configuration space geometry initialization
-  struct gkyl_rect_grid geo_grid;
-  struct gkyl_range geo_local;
-  struct gkyl_range geo_local_ext;
-  struct gkyl_basis geo_basis;
-  bool geo_3d_use_gpu = app->use_gpu;
+
+  // Initialize the input struct from user side input struct
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = gk->geometry.geometry_id,
+    .c2p_ctx = gk->geometry.c2p_ctx,
+    .mapc2p = gk->geometry.mapc2p,
+    .bmag_ctx = gk->geometry.bmag_ctx,
+    .bmag_func = gk->geometry.bmag_func,
+    .tok_efit_info = gk->geometry.tok_efit_info,
+    .tok_grid_info = gk->geometry.tok_grid_info,
+    .mirror_efit_info = gk->geometry.mirror_efit_info,
+    .mirror_grid_info = gk->geometry.mirror_grid_info,
+    .grid = app->grid,
+    .local = app->local,
+    .local_ext = app->local_ext,
+    .global = app->global,
+    .global_ext = app->global_ext,
+    .basis = app->confBasis,
+  };
+  for(int i = 0; i<3; i++)
+    geometry_inp.world[i] = gk->geometry.world[i];
 
   if(app->cdim < 3){
-    geo_grid = agument_grid(app->grid, gk->geometry);
-    gkyl_create_grid_ranges(&geo_grid, ghost, &geo_local_ext, &geo_local);
-    geo_3d_use_gpu = false;
+    geometry_inp.geo_grid = gkyl_gk_geometry_augment_grid(app->grid, geometry_inp);
     switch (gk->basis_type) {
       case GKYL_BASIS_MODAL_SERENDIPITY:
-        gkyl_cart_modal_serendip(&geo_basis, 3, poly_order);
+        gkyl_cart_modal_serendip(&geometry_inp.geo_basis, 3, poly_order);
         break;
       default:
         assert(false);
         break;
     }
+
+    int ghost[] = { 1, 1, 1 };
+    gkyl_create_grid_ranges(&geometry_inp.geo_grid, ghost, &geometry_inp.geo_global_ext, &geometry_inp.geo_global);
+    if (gk->has_low_inp) {
+      // create local and local_ext from user-supplied local range
+      gkyl_gk_geometry_augment_local(&gk->low_inp.local_range, ghost, &geometry_inp.geo_local_ext, &geometry_inp.geo_local);
+    }
+    else {
+      // global and local ranges are same, and so just copy
+      memcpy(&geometry_inp.geo_local, &geometry_inp.geo_global, sizeof(struct gkyl_range));
+      memcpy(&geometry_inp.geo_local_ext, &geometry_inp.geo_global_ext, sizeof(struct gkyl_range));
+    }
+
   }
   else{
-    geo_grid = app->grid;
-    geo_local = app->local;
-    geo_local_ext = app->local_ext;
-    geo_basis = app->confBasis;
+    geometry_inp.geo_grid = app->grid;
+    geometry_inp.geo_local = app->local;
+    geometry_inp.geo_local_ext = app->local_ext;
+    geometry_inp.geo_global = app->global;
+    geometry_inp.geo_global_ext = app->global_ext;
+    geometry_inp.geo_basis = app->confBasis;
   }
 
   struct gk_geometry* gk_geom_3d;
-  switch (gk->geometry.geometry_id) {
+  switch (geometry_inp.geometry_id) {
     case GKYL_GEOMETRY_FROMFILE:
-      gk_geom_3d = gkyl_gk_geometry_fromfile_new(&app->grid, &app->local, &app->local_ext, &app->confBasis, app->use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, false);
       break;
     case GKYL_TOKAMAK:
-      gk_geom_3d = gkyl_gk_geometry_tok_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-          gk->geometry.tok_efit_info, gk->geometry.tok_grid_info, geo_3d_use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_tok_new(&geometry_inp);
       break;
     case GKYL_MIRROR:
-      gk_geom_3d = gkyl_gk_geometry_mirror_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-          gk->geometry.mirror_efit_info, gk->geometry.mirror_grid_info, geo_3d_use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_mirror_new(&geometry_inp);
       break;
     case GKYL_MAPC2P:
-      gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-          gk->geometry.mapc2p, gk->geometry.c2p_ctx, gk->geometry.bmag_func,  gk->geometry.bmag_ctx, geo_3d_use_gpu);
+      gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_inp);
       break;
   }
 }

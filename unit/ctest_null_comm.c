@@ -25,7 +25,7 @@ test_1d()
   TEST_CHECK( sz == 1 );  
 
   double out[3], inp[3] = { 2.0, 4.0, 8.0 };
-  gkyl_comm_all_reduce(comm, GKYL_DOUBLE, GKYL_MIN, 3, inp, out);
+  gkyl_comm_allreduce(comm, GKYL_DOUBLE, GKYL_MIN, 3, inp, out);
 
   for (int i=0; i<3; ++i)
     TEST_CHECK( out[i] == inp[i] );
@@ -203,7 +203,7 @@ test_io_2d()
 
   int status = gkyl_comm_array_write(comm, &grid, &local, arr, "ctest_null_comm_io_2d.gkyl");
 
- struct gkyl_array *arr_rw = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);  
+  struct gkyl_array *arr_rw = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);  
   status =
     gkyl_comm_array_read(comm, &grid, &local, arr_rw, "ctest_null_comm_io_2d.gkyl");
   TEST_CHECK( status == 0 );

@@ -188,7 +188,7 @@ gkyl_moment_app_max_dt(gkyl_moment_app* app)
     max_dt = fmin(max_dt, moment_field_max_dt(app, &app->field));
 
   double max_dt_global;
-  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &max_dt, &max_dt_global);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &max_dt, &max_dt_global);
 
   return max_dt_global;
 }
@@ -356,7 +356,7 @@ gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
       app->local, energy);
     
     double energy_global[6];
-    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
     gkyl_dynvec_append(app->field.integ_energy, tm, energy_global);
   }
 }
@@ -373,7 +373,7 @@ gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
       app->local, q_integ);
 
     double q_integ_global[num_diag];
-    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_diag, q_integ, q_integ_global);
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_diag, q_integ, q_integ_global);
     gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ_global);
   }
 }
@@ -405,7 +405,7 @@ comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *
   };
 
   int64_t l_red_global[L_END];
-  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
+  gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global);
 
   global->nup = l_red_global[NUP];
   global->nfail = l_red_global[NFAIL];
@@ -432,7 +432,7 @@ comm_reduce_app_stat(const gkyl_moment_app* app, const struct gkyl_moment_stat *
   };
 
   double_t d_red_global[D_END];
-  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, D_END, d_red, d_red_global);
 
   global->total_tm = d_red_global[TOTAL_TM];
   global->species_tm = d_red_global[SPECIES_TM];
@@ -465,7 +465,7 @@ comm_reduce_wave_prop_stats(const gkyl_moment_app* app, const struct gkyl_wave_p
   };
 
   int64_t l_red_global[L_END];
-  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global); 
+  gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_MAX, L_END, l_red, l_red_global); 
 
   global->n_calls = l_red_global[N_CALLS];
   global->n_bad_advance_calls = l_red_global[N_BAD_ADVANCE_CALLS];
@@ -473,7 +473,7 @@ comm_reduce_wave_prop_stats(const gkyl_moment_app* app, const struct gkyl_wave_p
 
   int64_t n_bad_cells_local = local->n_bad_cells, n_bad_cells = 0;
   
-  gkyl_comm_all_reduce(app->comm, GKYL_INT_64, GKYL_SUM, 1, &n_bad_cells_local, &n_bad_cells);
+  gkyl_comm_allreduce(app->comm, GKYL_INT_64, GKYL_SUM, 1, &n_bad_cells_local, &n_bad_cells);
   global->n_bad_cells = n_bad_cells;
 }
 

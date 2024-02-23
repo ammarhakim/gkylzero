@@ -21,16 +21,22 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   // allocate arrays for charge density
   f->rho_c = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  f->rho_c_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  f->rho_c_global_dg = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+  f->rho_c_global_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
 
   // allocate arrays for electrostatic potential
-  f->phi_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  // global phi (only used in 1x simulations)
+  f->phi_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+  // local phi (assuming domain decomposition is *only* in z right now)
   f->phi_smooth = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
   if (f->gkfield_id == GKYL_GK_FIELD_EM) {
     f->apar_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     f->apardot_fem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   }
+
+  // Create global subrange we'll copy the field solver solution from (into local).
+  int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
 
   f->weight = 0;
   f->epsilon = 0;
@@ -53,7 +59,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     if (app->cdim == 1) {
       // in 1D case need to set weight to kperpsq*polarizationWeight for use in potential smoothing
-      f->weight = mkarr(false, app->confBasis.num_basis, app->local_ext.volume); // fem_parproj expects weight on host
+      f->weight = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
       gkyl_array_shiftc(f->weight, sqrt(2.0), 0); // Sets weight=1.
       gkyl_array_scale(f->weight, polarization_weight);
       gkyl_array_scale(f->weight, f->info.kperpSq);
@@ -67,9 +73,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gxyj, 1*app->confBasis.num_basis);
         gkyl_array_set_offset(f->epsilon, polarization_weight, app->gk_geom->gyyj, 2*app->confBasis.num_basis);
       }
-
+      // deflated Poisson solve is performed on range assuming decomposition is *only* in z right now
+      // need sub range of global range corresponding to where we are in z to properly index global charge density
       f->deflated_fem_poisson = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev.confBasis, app->confBasis,
-        app->local, app->local_ext, f->epsilon, f->info.poisson_bcs, app->use_gpu);
+        app->local, f->global_sub_range, f->epsilon, f->info.poisson_bcs, app->use_gpu);
     }
   }
 
@@ -79,7 +86,8 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     if (app->cdim == 2) {
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_PERIODIC;
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
-    } else {
+    } 
+    else {
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_DIRICHLET;
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
     }
@@ -87,16 +95,17 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     double xLCFS = f->info.xLCFS;
     // Index of the cell that abuts the xLCFS from below.
     int idxLCFS_m = (xLCFS-1e-8 - app->grid.lower[0])/app->grid.dx[0]+1;
-    gkyl_range_shorten_from_below(&f->local_sol, &app->local, 0, app->grid.cells[0]-idxLCFS_m+1);
-    gkyl_range_shorten_from_below(&f->local_ext_sol, &app->local_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
-    gkyl_range_shorten_from_above(&f->local_core, &app->local, 0, idxLCFS_m+1);
-    gkyl_range_shorten_from_above(&f->local_ext_core, &app->local_ext, 0, idxLCFS_m+1);
-    f->fem_parproj_core = gkyl_fem_parproj_new(&f->local_core, &f->local_ext_core, 
+    gkyl_range_shorten_from_below(&f->global_sol, &app->global, 0, app->grid.cells[0]-idxLCFS_m+1);
+    gkyl_range_shorten_from_below(&f->global_ext_sol, &app->global_ext, 0, app->grid.cells[0]-idxLCFS_m+1);
+    gkyl_range_shorten_from_above(&f->global_core, &app->global, 0, idxLCFS_m+1);
+    gkyl_range_shorten_from_above(&f->global_ext_core, &app->global_ext, 0, idxLCFS_m+1);
+    f->fem_parproj_core = gkyl_fem_parproj_new(&f->global_core, &f->global_ext_core, 
       &app->confBasis, fem_parproj_bc_core, f->weight, app->use_gpu);
-    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->local_sol, &f->local_ext_sol, 
+    f->fem_parproj_sol = gkyl_fem_parproj_new(&f->global_sol, &f->global_ext_sol, 
       &app->confBasis, fem_parproj_bc_sol, f->weight, app->use_gpu);
-  } else {
-    f->fem_parproj = gkyl_fem_parproj_new(&app->local, &app->local_ext, 
+  } 
+  else {
+    f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->global_ext, 
       &app->confBasis, f->info.fem_parbc, f->weight, app->use_gpu);
   }
 
@@ -104,6 +113,10 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   if (app->use_gpu) {
     f->phi_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[1]));
+    f->em_energy_red_global = gkyl_cu_malloc(sizeof(double[1]));
+  } else {
+    f->em_energy_red = gkyl_malloc(sizeof(double[1]));
+    f->em_energy_red_global = gkyl_malloc(sizeof(double[1]));
   }
 
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 1);
@@ -223,6 +236,14 @@ gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *f
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_UPPER_EDGE, 
       &app->upper_skin[0], &app->upper_ghost[0], app->gk_geom->jacobgeo_inv, 
       s->bflux.gammai[1].marr, field->rho_c, field->sheath_vals[1]);
+
+    // Broadcast the sheath values from skin processes to other processes.
+    int comm_sz[1];
+    gkyl_comm_get_size(app->comm, comm_sz);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[0], field->sheath_vals[0], 0);
+    gkyl_comm_array_bcast(app->comm, field->sheath_vals[1], field->sheath_vals[1], comm_sz[0]-1);
+    gkyl_array_accumulate(field->sheath_vals[0], 1., field->sheath_vals[1]);
+    gkyl_array_scale(field->sheath_vals[0], 0.5);
   } 
 }
 
@@ -233,31 +254,39 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
   struct timespec wst = gkyl_wall_clock();
   if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) { 
     // This is not currently right. There's some subtlety in how the sheath_vals are stored
-    gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot,
-      &app->local, &app->local_ext,
-      app->gk_geom->jacobgeo_inv, field->rho_c,
-      field->sheath_vals[0], field->phi_fem);
-    gkyl_fem_parproj_set_rhs(field->fem_parproj, field->phi_fem, field->phi_fem);
-    gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
-  }
-  else if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL) { 
-    // input is rho_c and output should be in phi_smooth
-    gkyl_fem_parproj_set_rhs(field->fem_parproj_core, field->rho_c, field->rho_c);
-    gkyl_fem_parproj_solve(field->fem_parproj_core, field->rho_c_smooth);
-    gkyl_fem_parproj_set_rhs(field->fem_parproj_sol, field->rho_c, field->rho_c);
-    gkyl_fem_parproj_solve(field->fem_parproj_sol, field->rho_c_smooth);
-    gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_smooth, field->phi_smooth);
+    gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
+      app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[0], field->phi_smooth);
+
+    // gather potential into global array for smoothing in z
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->phi_smooth, field->rho_c_global_dg);
+
+    gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+    gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
+    // copy globally smoothed potential to local potential per process for update
+    gkyl_array_copy_range_to_range(field->phi_smooth, field->phi_fem, &app->local, &field->global_sub_range);
   }
   else {
+    // gather charge density into global array for smoothing in z
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, field->rho_c, field->rho_c_global_dg);
     if (app->cdim == 1) {
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, 0);
-      gkyl_fem_parproj_solve(field->fem_parproj, field->phi_smooth);
+      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+      gkyl_fem_parproj_solve(field->fem_parproj, field->phi_fem);
+      // copy globally smoothed potential to local potential per process for update
+      gkyl_array_copy_range_to_range(field->phi_smooth, field->phi_fem, &app->local, &field->global_sub_range);
     }
     else if (app->cdim > 1) {
-      // input is rho_c and output should be in phi_smooth
-      gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c, field->rho_c);
-      gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_smooth);
-      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_smooth, field->phi_smooth);
+      // input is rho_c_global_dg, globally smoothed in z, and then output should be in *local* phi_smooth
+      if (field->gkfield_id == GKYL_GK_FIELD_ES_IWL) {
+        gkyl_fem_parproj_set_rhs(field->fem_parproj_core, field->rho_c_global_dg, field->rho_c_global_dg);
+        gkyl_fem_parproj_solve(field->fem_parproj_core, field->rho_c_global_smooth);
+        gkyl_fem_parproj_set_rhs(field->fem_parproj_sol, field->rho_c_global_dg, field->rho_c_global_dg);
+        gkyl_fem_parproj_solve(field->fem_parproj_sol, field->rho_c_global_smooth);
+      }
+      else {
+        gkyl_fem_parproj_set_rhs(field->fem_parproj, field->rho_c_global_dg, field->rho_c_global_dg);
+        gkyl_fem_parproj_solve(field->fem_parproj, field->rho_c_global_smooth);
+      }
+      gkyl_deflated_fem_poisson_advance(field->deflated_fem_poisson, field->rho_c_global_smooth, field->phi_smooth);
     }
   }
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(wst);
@@ -266,22 +295,20 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 void
 gk_field_calc_energy(gkyl_gyrokinetic_app *app, double tm, const struct gk_field *field)
 {
-  double energy[1] = { 0.0 };
-  if (app->use_gpu) {
-    gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
-      app->grid.cellVolume, field->es_energy_fac, &app->local, field->em_energy_red);
-    gkyl_cu_memcpy(energy, field->em_energy_red, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
-    gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
-      app->grid.cellVolume, field->es_energy_fac, &app->local, energy);
-  }
-  if (app->cdim == 1)
-    energy[0] *= field->es_energy_fac_1d; 
+  gkyl_array_integrate_advance(field->calc_em_energy, field->phi_smooth, 
+    app->grid.cellVolume, field->es_energy_fac, &app->local, field->em_energy_red);
+
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, field->em_energy_red, field->em_energy_red_global);
 
   double energy_global[1] = { 0.0 };
-  gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, energy, energy_global);
+  if (app->use_gpu)
+    gkyl_cu_memcpy(energy_global, field->em_energy_red_global, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
+  else
+    energy_global[0] = field->em_energy_red_global[0];
   
+  if (app->cdim == 1)
+    energy_global[0] *= field->es_energy_fac_1d; 
+
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
 }
 
@@ -290,7 +317,8 @@ void
 gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
 {
   gkyl_array_release(f->rho_c);
-  gkyl_array_release(f->rho_c_smooth);
+  gkyl_array_release(f->rho_c_global_dg);
+  gkyl_array_release(f->rho_c_global_smooth);
   gkyl_array_release(f->phi_fem);
   gkyl_array_release(f->phi_smooth);
 
@@ -327,6 +355,10 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   if (app->use_gpu) {
     gkyl_array_release(f->phi_host);
     gkyl_cu_free(f->em_energy_red);
+    gkyl_cu_free(f->em_energy_red_global);
+  } else {
+    gkyl_free(f->em_energy_red);
+    gkyl_free(f->em_energy_red_global);
   }
 
   gkyl_array_release(f->phi_wall_lo);

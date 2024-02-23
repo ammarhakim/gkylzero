@@ -10,6 +10,13 @@
 #include <rt_arg_parse.h>
 #include <gkyl_tok_geo.h>
 
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#endif
+
 struct gk_step_ctx {
   double chargeElc; // electron charge
   double massElc; // electron mass
@@ -17,8 +24,6 @@ struct gk_step_ctx {
   double massIon; // ion mass
   double Te; // electron temperature
   double Ti; // ion temperature
-  double vtIon;
-  double vtElc;
   double nuElc; // electron collision frequency
   double nuIon; // ion collision frequency
   double B0; // reference magnetic field
@@ -41,7 +46,7 @@ struct gk_step_ctx {
 
 struct gkyl_tok_geo_efit_inp inp = {
   // psiRZ and related inputs
-  .filepath = "./efit_data/step.geqdsk",
+  .filepath = "./data/eqdsk/step.geqdsk",
   .rzpoly_order = 2,
   .fluxpoly_order = 1,
   .plate_spec = false,
@@ -52,10 +57,12 @@ struct gkyl_tok_geo_efit_inp inp = {
 struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
     .rclose = 6.2,
-    .zmin = -5.14213,
-    .zmax = 5.14226,
+    .rright= 6.2,
+    .rleft= 2.0,
     .rmin = 1.1,
     .rmax = 6.2,
+    .zmin = -5.14213,
+    .zmax = 5.14226,
     .write_node_coord_array = true,
     .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
@@ -191,7 +198,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 18*mi*vtIon*vtIon/(2.0*B0);
 
-  double finalTime = 1.0e-7; 
+  double finalTime = 1.0e-6; 
   double numFrames = 1;
 
   struct gk_step_ctx ctx = {
@@ -201,8 +208,6 @@ create_ctx(void)
     .massIon = mi,
     .Te = Te, 
     .Ti = Ti, 
-    .vtIon = vtIon,
-    .vtElc = vtElc,
     .nuElc = nuElc, 
     .nuIon = nuIon, 
     .B0 = B0, 
@@ -237,6 +242,11 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Init(&argc, &argv);
+#endif
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
@@ -244,10 +254,75 @@ main(int argc, char **argv)
 
   struct gk_step_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 4);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 2);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 8);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
+
+  int nrank = 1; // number of processors in simulation
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+#endif  
+
+  // create global range
+  int cells[] = { NX, NZ };
+  struct gkyl_range globalr;
+  gkyl_create_global_range(2, cells, &globalr);
+
+  // create decomposition
+  int cuts[] = { 1, 1 };
+#ifdef GKYL_HAVE_MPI  
+  if (app_args.use_mpi) {
+    cuts[0] = app_args.cuts[0];
+    cuts[1] = app_args.cuts[1];
+  }
+#endif  
+    
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(globalr.ndim, cuts, &globalr);
+
+  // construct communcator for use in app
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+  }
+  else
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .decomp = decomp,
+        .use_gpu = app_args.use_gpu
+      }
+    );
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp,
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+  int comm_sz;
+  gkyl_comm_get_size(comm, &comm_sz);
+
+  int ncuts = cuts[0]*cuts[1];
+  if (ncuts != comm_sz) {
+    if (my_rank == 0)
+      fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
+    goto mpifinalize;
+  }  
+
+  if (cuts[0] > 1) {
+    if (my_rank == 0)
+      fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in x cannot be > 1!\n", cuts[0]);
+    goto mpifinalize;
+  }
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -258,7 +333,6 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
@@ -266,28 +340,15 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
-      .temp = eval_temp_elc,
-    },
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
-    },
-    .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+      .temp = eval_temp_elc,      
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = true,
-      .self_nu_fac = ctx.nuElc*pow((2*ctx.vtElc*ctx.vtElc), 3.0/2.0)/ctx.n0,
-      .cross_nu_fac = {ctx.nuIon*pow(ctx.vtIon*ctx.vtIon + ctx.vtElc*ctx.vtElc , 3.0/2.0)/ctx.n0},
-      .bmag_mid = 2.51,
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -302,13 +363,21 @@ main(int argc, char **argv)
         .temp = eval_temp_source,      
       }, 
     },
-
     .diffusion = {
       .num_diff_dir = 1, 
       .diff_dirs = { 0 },
       .D = { 0.03 }, 
       .order = 2, 
     }, 
+
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
@@ -323,36 +392,22 @@ main(int argc, char **argv)
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
-
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .ctx_density = &ctx,
       .density = eval_density,
       .ctx_upar = &ctx,
-      .upar = eval_upar,
+      .upar= eval_upar,
       .ctx_temp = &ctx,
-      .temp = eval_temp_ion,
+      .temp = eval_temp_ion,      
     },
-    .bcx = {
-      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
-    }, 
-    .bcy = {
-      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
-    }, 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
-      .normNu = true,
-      .self_nu_fac = ctx.nuIon*pow((2*ctx.vtIon*ctx.vtIon), 3.0/2.0)/ctx.n0, 
-      .cross_nu_fac = {ctx.nuElc*pow(ctx.vtIon*ctx.vtIon + ctx.vtElc*ctx.vtElc , 3.0/2.0)/ctx.n0},
-      .bmag_mid = 2.51,
       .self_nu = evalNuIon,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .write_source = true,
@@ -373,6 +428,15 @@ main(int argc, char **argv)
       .D = { 0.03 }, 
       .order = 2, 
     }, 
+
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_ZERO_FLUX,},
+      .upper={.type = GKYL_SPECIES_ZERO_FLUX,},
+    },
+    .bcy = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
@@ -393,17 +457,16 @@ main(int argc, char **argv)
 
     .cdim = 2, .vdim = 2,
     .lower = { 0.934, -ctx.Lz/2.0 },
-    .upper = { 1.5098198350000001, ctx.Lz/2.0 },
+    .upper = { 1.4688, ctx.Lz/2.0 },
     .cells = { NX, NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_GEOMETRY_FROMFILE,
-      //.world = {0.0},
-      //.geometry_id = GKYL_TOKAMAK,
-      //.tok_efit_info = &inp,
-      //.tok_grid_info = &ginp,
+      .world = {0.0},
+      .geometry_id = GKYL_TOKAMAK,
+      .tok_efit_info = &inp,
+      .tok_grid_info = &ginp,
     },
 
     .num_periodic_dir = 0,
@@ -414,6 +477,12 @@ main(int argc, char **argv)
     .field = field,
 
     .use_gpu = app_args.use_gpu,
+
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
 
   // create app object
@@ -476,7 +545,16 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // simulation complete, free app
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
   gkyl_gyrokinetic_app_release(app);
-  
+
+  mpifinalize:
+  ;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif  
+
   return 0;
 }

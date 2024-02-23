@@ -399,7 +399,7 @@ struct gk_species {
   struct gk_species_moment m0; // for computing charge density
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
-  double *red_integ_diag; // for reduction of integrated moments on GPU
+  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
@@ -457,7 +457,7 @@ struct gk_species {
   struct gkyl_array *diffD; // array for diffusion tensor
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // gyrokinetic diffusion equation solver
 
-  double *omegaCfl_ptr;
+  double *omega_cfl;
 };
 
 // neutral species data
@@ -499,7 +499,7 @@ struct gk_neut_species {
   struct gk_species_moment m0; // for computing density
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
-  double *red_integ_diag; // for reduction of integrated moments on GPU
+  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
@@ -525,7 +525,7 @@ struct gk_neut_species {
   bool has_neutral_reactions;
   struct gk_react react_neut; // reaction object
 
-  double *omegaCfl_ptr;
+  double *omega_cfl_ptr;
 };
 
 // field data
@@ -535,10 +535,16 @@ struct gk_field {
   enum gkyl_gkfield_id gkfield_id;
 
   struct gkyl_job_pool *job_pool; // Job pool  
-  struct gkyl_array *rho_c, *rho_c_smooth; // arrays for charge density and smoothed charge density
+  // arrays for local charge density, global charge density, and global smoothed (in z) charge density
+  struct gkyl_array *rho_c;
+  struct gkyl_array *rho_c_global_dg;
+  struct gkyl_array *rho_c_global_smooth; 
   struct gkyl_array *phi_fem, *phi_smooth; // arrays for updates
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
+
+  struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
+                                      // for solving subset of Poisson solves with parallelization in z
 
   // organization of the different equation objects and the required data and solvers
   union {
@@ -568,7 +574,7 @@ struct gk_field {
                                                           // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 
   struct gkyl_array_integrate *calc_em_energy;
-  double *em_energy_red; // memory for use in GPU reduction of EM energy
+  double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy
   gkyl_dynvec integ_energy; // integrated energy components
 
   bool is_first_energy_write_call; // flag for energy dynvec written first time
@@ -586,7 +592,7 @@ struct gk_field {
   gkyl_proj_on_basis *phi_wall_up_proj; // projector for biased wall potential on upper wall 
 
   // Core and SOL ranges for IWL sims. 
-  struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
+  struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
 };
 
 // gyrokinetic object: used as opaque pointer in user code

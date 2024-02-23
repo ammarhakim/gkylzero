@@ -471,6 +471,20 @@ void gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app);
 void gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app);
 
 /**
+ * Write geometry file.
+ *
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app *app);
+
+/**
+ * Read geometry file.
+ *
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app *app);
+
+/**
  * Write stats to file. Data is written in json format.
  *
  * @param app App object.

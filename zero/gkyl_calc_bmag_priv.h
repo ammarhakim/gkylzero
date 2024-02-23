@@ -23,7 +23,6 @@ static const bmag_kernel_list tensor_bmag_kernel_list[] = {
   { NULL, NULL, NULL}
 };
 
-
 struct fpol_ctx{
    const struct gkyl_rect_grid* grid;
    const struct gkyl_rect_grid* rzgrid;

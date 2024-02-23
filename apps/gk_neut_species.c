@@ -74,9 +74,9 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
 
   if (app->use_gpu)
-    s->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
+    s->omega_cfl_ptr = gkyl_cu_malloc(sizeof(double));
   else 
-    s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
+    s->omega_cfl_ptr = gkyl_malloc(sizeof(double));
 
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
   struct gkyl_basis surf_basis, surf_quad_basis;
@@ -259,18 +259,18 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
 
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
-  gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
+  gkyl_array_reduce_range(species->omega_cfl_ptr, species->cflrate, GKYL_MAX, &species->local);
 
-  double omegaCfl_ho[1];
+  double omega_cfl_ho[1];
   if (app->use_gpu)
-    gkyl_cu_memcpy(omegaCfl_ho, species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
-    omegaCfl_ho[0] = species->omegaCfl_ptr[0];
-  double omegaCfl = omegaCfl_ho[0];
+    omega_cfl_ho[0] = species->omega_cfl_ptr[0];
+  double omega_cfl = omega_cfl_ho[0];
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   
-  return app->cfl/omegaCfl;
+  return app->cfl/omega_cfl;
 }
 
 // Determine which directions are periodic and which directions are not periodic,
@@ -411,10 +411,10 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   }
   
   if (app->use_gpu) {
-    gkyl_cu_free(s->omegaCfl_ptr);
+    gkyl_cu_free(s->omega_cfl_ptr);
     gkyl_cu_free(s->red_integ_diag);
   }
   else {
-    gkyl_free(s->omegaCfl_ptr);
+    gkyl_free(s->omega_cfl_ptr);
   }
 }

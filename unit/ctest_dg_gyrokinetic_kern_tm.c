@@ -71,8 +71,29 @@ test_3x2v_p1(bool use_gpu)
   gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
 
   // Initialize geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&confGrid, &confRange, &confRange_ext, &confBasis, 
-    mapc2p, 0, bmag_func, 0, use_gpu);
+  struct gkyl_gk_geometry_inp geometry_input = {
+      .geometry_id = GKYL_MAPC2P,
+      .world = {0.0, 0.0},
+      .mapc2p = mapc2p, // mapping of computational to physical space
+      .c2p_ctx = 0,
+      .bmag_func = bmag_func, // magnetic field magnitude
+      .bmag_ctx =0 ,
+      .grid = confGrid,
+      .local = confRange,
+      .local_ext = confRange_ext,
+      .global = confRange,
+      .global_ext = confRange_ext,
+      .basis = confBasis,
+      .geo_grid = confGrid,
+      .geo_local = confRange,
+      .geo_local_ext = confRange_ext,
+      .geo_global = confRange,
+      .geo_global_ext = confRange_ext,
+      .geo_basis = confBasis,
+  };
+
+
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
   // Initialize gyrokinetic variables
   struct gkyl_array *alpha_surf = mkarr1(use_gpu, 4*surf_basis.num_basis, phaseRange_ext.volume);

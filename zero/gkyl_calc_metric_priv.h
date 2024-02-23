@@ -13,5 +13,9 @@ struct gkyl_calc_metric {
   const int *num_cells;
   const struct gkyl_basis* cbasis;
   struct gkyl_nodal_ops *n2m;
+  struct gkyl_range global;
+  struct gkyl_range global_ext;
+  struct gkyl_range local;
+  struct gkyl_range local_ext;
 };
 

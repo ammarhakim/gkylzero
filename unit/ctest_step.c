@@ -74,8 +74,25 @@ test_core()
     .write_node_coord_array = true,
     .node_file_nm = "stepcore_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -111,8 +128,25 @@ test_11()
     .write_node_coord_array = true,
     .node_file_nm = "step11_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -148,8 +182,24 @@ test_12()
     .write_node_coord_array = true,
     .node_file_nm = "step12_nodes.gkyl"
   }; 
-
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -185,8 +235,25 @@ test_outer()
     .write_node_coord_array = true,
     .node_file_nm = "stepouter_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -223,8 +290,25 @@ test_2()
     .write_node_coord_array = true,
     .node_file_nm = "step2_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -260,8 +344,25 @@ test_3()
     .write_node_coord_array = true,
     .node_file_nm = "step3_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -298,8 +399,25 @@ test_4()
     .write_node_coord_array = true,
     .node_file_nm = "step4_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -335,8 +453,25 @@ test_8()
     .write_node_coord_array = true,
     .node_file_nm = "step8_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -370,8 +505,25 @@ test_5()
     .write_node_coord_array = true,
     .node_file_nm = "step5_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -405,8 +557,25 @@ test_6()
     .write_node_coord_array = true,
     .node_file_nm = "step6_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -441,8 +610,25 @@ test_7()
     .write_node_coord_array = true,
     .node_file_nm = "step7_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -476,8 +662,25 @@ test_9()
     .write_node_coord_array = true,
     .node_file_nm = "step9_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -511,8 +714,25 @@ test_1()
     .write_node_coord_array = true,
     .node_file_nm = "step1_nodes.gkyl"
   }; 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();
@@ -547,7 +767,24 @@ test_10()
     .node_file_nm = "step10_nodes.gkyl"
   }; 
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
 
   end = clock();

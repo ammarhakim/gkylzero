@@ -9,6 +9,8 @@
 #include <gkyl_nccl_comm.h>
 #include <gkyl_util.h>
 
+#include <errno.h>
+
 // Maximum number of recv neighbors: not sure hard-coding this is a
 // good idea.
 #define MAX_RECV_NEIGH 32
@@ -46,6 +48,21 @@ static ncclRedOp_t g2_nccl_op[] = {
   [GKYL_SUM] = ncclSum,
 };
 
+// Mapping of Gkeyll type to MPI_Datatype
+static MPI_Datatype g2_mpi_datatype[] = {
+  [GKYL_INT] = MPI_INT,
+  [GKYL_INT_64] = MPI_INT64_T,
+  [GKYL_FLOAT] = MPI_FLOAT,
+  [GKYL_DOUBLE] = MPI_DOUBLE
+};
+
+// Mapping of Gkeyll ops to MPI_Op
+static MPI_Op g2_mpi_op[] = {
+  [GKYL_MIN] = MPI_MIN,
+  [GKYL_MAX] = MPI_MAX,
+  [GKYL_SUM] = MPI_SUM
+};
+
 struct gkyl_comm_state {
   ncclComm_t *ncomm;
   int tag;
@@ -73,6 +90,7 @@ struct nccl_comm {
   cudaStream_t custream; // Cuda stream for NCCL comms.
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   bool sync_corners; // Whether to sync corners.
+  long local_range_offset; // Offset of the local region.
 
   struct gkyl_rect_decomp_neigh *neigh; // neighbors of local region
   struct gkyl_rect_decomp_neigh *per_neigh[GKYL_MAX_DIM]; // periodic neighbors
@@ -86,6 +104,10 @@ struct nccl_comm {
   struct gkyl_range dir_edge; // for use in computing tags
   int is_on_edge[2][GKYL_MAX_DIM]; // flags to indicate if local range is on edge
   bool touches_any_edge; // true if this range touches any edge
+
+  // buffers for for allgather
+  struct comm_buff_stat allgather_buff_local; 
+  struct comm_buff_stat allgather_buff_global; 
 };
 
 static struct gkyl_comm_state* comm_state_new(struct gkyl_comm *comm)
@@ -132,6 +154,9 @@ comm_free(const struct gkyl_ref_count *ref)
 
     for (int i=0; i<MAX_RECV_NEIGH; ++i)
       gkyl_mem_buff_release(nccl->send[i].buff);
+
+    gkyl_mem_buff_release(nccl->allgather_buff_local.buff);
+    gkyl_mem_buff_release(nccl->allgather_buff_global.buff);
   }
 
   // Finalize NCCL comm.
@@ -168,6 +193,121 @@ barrier(struct gkyl_comm *comm)
   } while(nstat == ncclInProgress);
   checkCuda(cudaStreamSynchronize(nccl->custream));
   return 0;
+}
+
+// set of functions to help with parallel array output using MPI-IO
+static void
+sub_array_decomp_write(struct nccl_comm *comm, const struct gkyl_rect_decomp *decomp,
+  const struct gkyl_range *range,
+  const struct gkyl_array *arr, MPI_File fp)
+{
+#define _F(loc) gkyl_array_cfetch(arr, loc)
+
+  int rank = comm->rank;
+
+  // seek to appropriate place in the file, depending on rank
+  size_t hdr_sz = gkyl_base_hdr_size(0) + gkyl_file_type_3_hrd_size(range->ndim);
+  size_t file_loc = hdr_sz +
+    arr->esznc*comm->local_range_offset +
+    rank*gkyl_file_type_3_range_hrd_size(range->ndim);
+
+  MPI_Offset fp_offset = file_loc;
+  MPI_File_seek(fp, fp_offset, MPI_SEEK_SET);
+
+  do {
+    char *buff; size_t buff_sz;
+    FILE *fbuff = open_memstream(&buff, &buff_sz);
+  
+    uint64_t loidx[GKYL_MAX_DIM] = {0}, upidx[GKYL_MAX_DIM] = {0};
+    for (int d = 0; d < range->ndim; ++d) {
+      loidx[d] = range->lower[d];
+      upidx[d] = range->upper[d];
+    }
+    
+    fwrite(loidx, sizeof(uint64_t), range->ndim, fbuff);
+    fwrite(upidx, sizeof(uint64_t), range->ndim, fbuff);
+    uint64_t sz = range->volume;
+    fwrite(&sz, sizeof(uint64_t), 1, fbuff);
+
+    fclose(fbuff);
+
+    MPI_Status status;
+    MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
+
+    free(buff);
+    
+  } while (0);
+
+  // construct skip iterator to allow writing (potentially) in chunks
+  // rather than element by element or requiring a copy of data. Note:
+  // We must use "range" here and not decomp->ranges[rank] as the
+  // latter is not a sub-range of the local extended
+  // range.
+  struct gkyl_range_skip_iter skip;
+  gkyl_range_skip_iter_init(&skip, range);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &skip.range);
+
+  MPI_Status status;
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(&skip.range, iter.idx);
+    MPI_File_write(fp, _F(start), arr->esznc*skip.delta, MPI_CHAR, &status);
+  }
+
+#undef _F
+}
+
+static int
+grid_sub_array_decomp_write_fp(struct nccl_comm *comm,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_rect_decomp *decomp, const struct gkyl_range *range,
+  const struct gkyl_array *arr, MPI_File fp)
+{
+  char *buff; size_t buff_sz;
+  FILE *fbuff = open_memstream(&buff, &buff_sz);
+
+  // write header to a char buffer
+  gkyl_grid_sub_array_header_write_fp(grid,
+    &(struct gkyl_array_header_info) {
+      .file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
+      .etype = arr->type,
+      .esznc = arr->esznc,
+      .tot_cells = decomp->parent_range.volume
+    },
+    fbuff
+  );
+  uint64_t nrange = decomp->ndecomp;
+  fwrite(&nrange, sizeof(uint64_t), 1, fbuff);
+  fclose(fbuff);
+
+  // actual header IO is only done by rank 0
+  int rank = comm->rank;
+  if (rank == 0) {
+    MPI_Status status;
+    MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
+  }
+  free(buff);
+  
+  // write data in array
+  sub_array_decomp_write(comm, decomp, range, arr, fp);
+  return errno;
+}
+
+static int
+array_write(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_array *arr, const char *fname)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  MPI_File fp;
+  int err =
+    MPI_File_open(nccl->mpi_comm, fname, MPI_MODE_CREATE|MPI_MODE_WRONLY, MPI_INFO_NULL, &fp);
+  if (err != MPI_SUCCESS)
+    return err;
+  err = grid_sub_array_decomp_write_fp(nccl, grid, nccl->decomp, range, arr, fp);
+  MPI_File_close(&fp);
+  return err;
 }
 
 static int
@@ -219,12 +359,89 @@ array_irecv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm, 
 }
 
 static int
-all_reduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
+allreduce(struct gkyl_comm *comm, enum gkyl_elem_type type,
   enum gkyl_array_op op, int nelem, const void *inp,
   void *out)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
   checkNCCL(ncclAllReduce(inp, out, nelem, g2_nccl_datatype[type], g2_nccl_op[op], nccl->ncomm, nccl->custream));
+  return 0;
+}
+
+static int
+allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
+  enum gkyl_array_op op, int nelem, const void *inp,
+  void *out)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);  
+  int ret =
+    MPI_Allreduce(inp, out, nelem, g2_mpi_datatype[type], g2_mpi_op[op], nccl->mpi_comm);
+  return ret == MPI_SUCCESS ? 0 : 1;
+}
+
+static int
+array_allgather(struct gkyl_comm *comm,
+  const struct gkyl_range *local, const struct gkyl_range *global, 
+  const struct gkyl_array *array_local, struct gkyl_array *array_global)
+{
+  assert(array_global->esznc == array_local->esznc);
+
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+
+  struct gkyl_range gather_range;
+
+  int rank = nccl->rank;
+
+  assert(local->volume == nccl->decomp->ranges[rank].volume);
+  assert(global->volume == nccl->decomp->parent_range.volume);
+
+  // potentially re-size local buffer volume
+  size_t send_vol = array_local->esznc*nccl->decomp->ranges[rank].volume;
+  if (gkyl_mem_buff_size(nccl->allgather_buff_local.buff) < send_vol)
+    gkyl_mem_buff_resize(nccl->allgather_buff_local.buff, send_vol);
+
+  // potentially re-size global buffer volume
+  size_t buff_global_vol = array_local->esznc*nccl->decomp->parent_range.volume;
+  if (gkyl_mem_buff_size(nccl->allgather_buff_global.buff) < buff_global_vol)
+    gkyl_mem_buff_resize(nccl->allgather_buff_global.buff, buff_global_vol);
+
+  // copy data to local buffer
+  gkyl_array_copy_to_buffer(gkyl_mem_buff_data(nccl->allgather_buff_local.buff), 
+    array_local, local);
+
+  size_t nelem = array_local->esznc*nccl->decomp->ranges[rank].volume;
+  // gather data into global buffer
+  checkNCCL(ncclAllGather(gkyl_mem_buff_data(nccl->allgather_buff_local.buff),
+                          gkyl_mem_buff_data(nccl->allgather_buff_global.buff),
+			  nelem, ncclChar, nccl->ncomm, nccl->custream));
+
+  // copy data to global array
+  int idx = 0;
+  for (int r=0; r<nccl->decomp->ndecomp; ++r) {
+    int isrecv = gkyl_sub_range_intersect(
+      &gather_range, global, &nccl->decomp->ranges[r]);
+    gkyl_array_copy_from_buffer(array_global, 
+      gkyl_mem_buff_data(nccl->allgather_buff_global.buff) + idx, &gather_range);
+    idx += array_local->esznc*gather_range.volume;
+  }
+
+  return 0;
+}
+
+static int
+array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
+  struct gkyl_array *arecv, int root)
+{
+  assert(asend->esznc == arecv->esznc);
+  assert(asend->size == arecv->size);
+
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+
+  size_t nelem = asend->ncomp*asend->size;
+
+  checkNCCL(ncclBroadcast(asend->data, arecv->data, nelem, g2_nccl_datatype[asend->type],
+			  root, nccl->ncomm, nccl->custream));
+
   return 0;
 }
 
@@ -543,6 +760,9 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
     for (int i=0; i<MAX_RECV_NEIGH; ++i)
       nccl->send[i].buff = gkyl_mem_buff_cu_new(16);
 
+    nccl->allgather_buff_local.buff = gkyl_mem_buff_cu_new(16);
+    nccl->allgather_buff_global.buff = gkyl_mem_buff_cu_new(16);
+
     gkyl_range_init(&nccl->dir_edge, 2, (int[]) { 0, 0 }, (int[]) { GKYL_MAX_DIM, 2 });
 
     int num_touches = 0;
@@ -555,18 +775,24 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
     }
     nccl->touches_any_edge = num_touches > 0 ? true : false;
   
+    nccl->local_range_offset = gkyl_rect_decomp_calc_offset(nccl->decomp, nccl->rank);
+
+    nccl->base.gkyl_array_allgather = array_allgather;
     nccl->base.gkyl_array_sync = array_sync;
     nccl->base.gkyl_array_per_sync = array_per_sync;
+    nccl->base.gkyl_array_write = array_write;
   }
   
   nccl->base.get_rank = get_rank;
   nccl->base.get_size = get_size;
   nccl->base.barrier = barrier;
-  nccl->base.all_reduce = all_reduce;
+  nccl->base.allreduce = allreduce;
+  nccl->base.allreduce_host = allreduce_host;
   nccl->base.gkyl_array_send = array_send;
   nccl->base.gkyl_array_isend = array_isend;
   nccl->base.gkyl_array_recv = array_recv;
   nccl->base.gkyl_array_irecv = array_irecv;
+  nccl->base.gkyl_array_bcast = array_bcast;
   nccl->base.comm_state_new = comm_state_new;
   nccl->base.comm_state_release = comm_state_release;
   nccl->base.comm_state_wait = comm_state_wait;

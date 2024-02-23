@@ -397,7 +397,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
         // all reduce of is_cfl_violated
         double is_cfl_violated_global = 0;
-        gkyl_comm_all_reduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 1, &is_cfl_violated, &is_cfl_violated_global);
+        gkyl_comm_allreduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 1, &is_cfl_violated, &is_cfl_violated_global);
         
         if (is_cfl_violated_global > 0) {
           // we need to use this goto to jump out of this deep loop to
@@ -522,7 +522,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   // compute actual CFL, status & max-speed across all domains
   double red_vars[3] = { cfla, is_cfl_violated, max_speed };
   double red_vars_global[3] = { 0.0 };
-  gkyl_comm_all_reduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 3, &red_vars, &red_vars_global);
+  gkyl_comm_allreduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 3, &red_vars, &red_vars_global);
 
   cfla = red_vars_global[0];
   is_cfl_violated = red_vars_global[1];
