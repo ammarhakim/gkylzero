@@ -85,7 +85,7 @@ gkyl_gyrokinetic_app_calc_integrated_source_mom(gkyl_gyrokinetic_app* app, doubl
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
 
-    if (s->src.source_id) {
+    if (s->source_id) {
       struct timespec wst = gkyl_wall_clock();
 
       gk_species_moment_calc(&s->src.integ_moms, s->local, app->local, s->src.source); 
@@ -93,7 +93,7 @@ gkyl_gyrokinetic_app_calc_integrated_source_mom(gkyl_gyrokinetic_app* app, doubl
       // reduce to compute sum over whole domain, append to diagnostics
       gkyl_array_reduce_range(s->src.red_integ_diag, s->src.integ_moms.marr, GKYL_SUM, &(app->local));
 
-      gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, s->src.red_integ_diag, s->src.red_integ_diag_global);
+      gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 2+vdim, s->src.red_integ_diag, s->src.red_integ_diag_global);
 
       if (app->use_gpu)
         gkyl_cu_memcpy(avals_global, s->src.red_integ_diag_global, sizeof(double[2+vdim]), GKYL_CU_MEMCPY_D2H);

@@ -394,7 +394,7 @@ gkyl_gyrokinetic_app_calc_mom(gkyl_gyrokinetic_app* app)
       struct timespec wst = gkyl_wall_clock();
       gk_species_moment_calc(&s->moms[m], s->local, app->local, s->f);
       app->stat.nmom += 1;
-      if (s->src.source_id) {
+      if (s->source_id) {
         gk_species_moment_calc(&s->src.moms[m], s->local, app->local, s->src.source);
         app->stat.nmom += 1;
       }
