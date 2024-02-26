@@ -160,7 +160,7 @@ evalEulerInit(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fo
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
 }
 
-void
+static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
   double x = zc[0], y = zc[1];
