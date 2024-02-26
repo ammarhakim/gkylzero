@@ -216,7 +216,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       if (react->type_self[i] == GKYL_SELF_ELC) {
-        // update is -n_elc*coeff_react*f_s where s = (electron, ion)
+        // update is -n_ion*coeff_react*f_elc
         gkyl_array_set(react->f_react, 1.0, fin);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
@@ -225,7 +225,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_array_accumulate(rhs, -1.0, react->f_react);
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
-        // update is -n_elc*coeff_react*f_s where s = (electron, ion)
+        // update is -n_elc*coeff_react*f_ion
         gkyl_array_set(react->f_react, 1.0, fin);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
