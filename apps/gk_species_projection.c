@@ -52,9 +52,9 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .vmap = 0,
     };
     if (s->info.mapc2p.is_mapped) {
-      proj_inp.vel_basis1d = s->vel_basis1d;
-      proj_inp.vel_range1d = s->local_vel1d_ps;
-      proj_inp.vmap = s->vmap_ps;
+      proj_inp.vmap_basis = s->vmap_basis;
+      proj_inp.vel_range = &s->local_vel;
+      proj_inp.vmap = s->vmap;
     }
     proj->proj_max = gkyl_proj_maxwellian_on_basis_inew( &proj_inp );
   }

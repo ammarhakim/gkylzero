@@ -15,9 +15,9 @@ struct gkyl_proj_maxwellian_on_basis_inp {
   int num_quad; // number of quadrature points
   bool use_gpu; // whether to use the GPU.
   // for nonuniform velocity mappings:
-  struct gkyl_basis *vel_basis1d; // Basis for velocity mappings.
-  struct gkyl_range **vel_range1d; // Local velocity-space ranges.
-  struct gkyl_array **vmap; // Velocity space mappings.
+  struct gkyl_basis *vmap_basis; // Basis for velocity mappings.
+  struct gkyl_range *vel_range; // Local velocity-space range.
+  struct gkyl_array *vmap; // Velocity space mappings.
 };
 
 /**

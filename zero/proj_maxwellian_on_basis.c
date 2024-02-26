@@ -151,8 +151,8 @@ gkyl_proj_maxwellian_on_basis_inew(const struct gkyl_proj_maxwellian_on_basis_in
   up->use_gpu = inp->use_gpu;
   up->vmap = inp->vmap;
   if (inp->vmap != 0) {
-    up->vel_range1d = inp->vel_range1d;
-    up->vel_basis1d = inp->vel_basis1d;
+    up->vel_range = inp->vel_range;
+    up->vmap_basis = inp->vmap_basis;
   }
 
   // MF 2022/08/09: device kernel has arrays hard-coded to 3x, vdim=3, p=2 for now.
@@ -623,13 +623,12 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
         } else {
           // convert comp velocity coordinate to phys velocity coord.
           const double *xlog_d = gkyl_array_cfetch(up->ordinates, pqidx);
-          int vidx[1];  long vlinidx;  double xcomp[1];
+          long vlinidx = gkyl_range_idx(up->vel_range, vel_iter.idx);
+          const double *vmap_d = gkyl_array_cfetch(up->vmap, vlinidx);
+          double xcomp[1];
           for (int vd=0; vd<vdim; vd++) {
-            vidx[0] = vel_iter.idx[vd];
-            vlinidx = gkyl_range_idx(up->vel_range1d[vd], vidx);
-            const double *vmap_d = gkyl_array_cfetch(up->vmap[vd], vlinidx);
             xcomp[0] = xlog_d[cdim+vd];
-            xmu[cdim+vd] = up->vel_basis1d->eval_expand(xcomp, vmap_d);
+            xmu[cdim+vd] = up->vmap_basis->eval_expand(xcomp, vmap_d+vd*up->vmap_basis->num_basis);
           }
         }
 

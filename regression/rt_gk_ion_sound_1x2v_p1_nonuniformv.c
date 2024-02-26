@@ -98,28 +98,20 @@ void bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx
 }
 
 // Velocity space mappings.
-void mapc2p_vpar_ion(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
-{
-  xp[0] = xc[0];
-}
-
-void mapc2p_mu_ion(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+void mapc2p_vel_ion(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double mu_max = app->mu_max_ion;
-  xp[0] = mu_max*pow(xc[0],2);
-}
-
-void mapc2p_vpar_elc(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
-{
   xp[0] = xc[0];
+  xp[1] = mu_max*pow(xc[1],2);
 }
 
-void mapc2p_mu_elc(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+void mapc2p_vel_elc(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   double mu_max = app->mu_max_elc;
-  xp[0] = mu_max*pow(xc[0],2);
+  xp[0] = xc[0];
+  xp[1] = mu_max*pow(xc[1],2);
 }
 
 struct gk_app_ctx
@@ -240,8 +232,7 @@ main(int argc, char **argv)
 
     .mapc2p = {
       .is_mapped = true,
-      .mapping[0] = mapc2p_vpar_elc,
-      .mapping[1] = mapc2p_mu_elc,
+      .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
 
@@ -270,8 +261,7 @@ main(int argc, char **argv)
 
     .mapc2p = {
       .is_mapped = true,
-      .mapping[0] = mapc2p_vpar_ion,
-      .mapping[1] = mapc2p_mu_ion,
+      .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
     },
 

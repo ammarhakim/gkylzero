@@ -442,16 +442,10 @@ struct gk_species {
 
   // Velocity mapping objects.
   struct gkyl_array *jacobvel; // Velocity space Jacobian.
-  struct gkyl_basis *vel_basis1d;  // Basis for velocity mappings.
-  struct gkyl_range **local_vel1d, **local_ext_vel1d; // local, local-ext velocity-space ranges
-  struct gkyl_array **vmap; // Velocity mapping in each velocity direction.
-  struct gkyl_array **vmap_prime; // Derivative of the velocity mappings.
-  struct gkyl_array **vmapSq; // Velocity mapping in each velocity direction squared.
-  // Pointers to the velocity mapping ranges and arrays.
-  struct gkyl_range **local_vel1d_ps, **local_ext_vel1d_ps;
-  struct gkyl_array **vmap_ps;
-  struct gkyl_array **vmap_prime_ps;
-  struct gkyl_array **vmapSq_ps;
+  struct gkyl_basis *vmap_basis;  // Basis for velocity mapping.
+  struct gkyl_array *vmap; // Velocity mapping in each velocity direction.
+  struct gkyl_array *vmap_prime; // Derivative of the velocity mappings.
+  struct gkyl_array *vmapSq; // Velocity mapping in each velocity direction squared.
 };
 
 // neutral species data

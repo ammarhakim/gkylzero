@@ -26,7 +26,7 @@ typedef void (*mapc2p_t)(double t, const double *xc, double *xp, void *ctx);
 // Velocity space mappings.
 struct gkyl_gyrokinetic_mapc2p {
   bool is_mapped;
-  mapc2p_t mapping[2];
+  mapc2p_t mapping;
   void *ctx; 
 };
 
