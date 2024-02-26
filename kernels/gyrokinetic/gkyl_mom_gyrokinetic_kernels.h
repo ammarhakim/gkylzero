@@ -9,7 +9,7 @@ GKYL_CU_DH void gyrokinetic_M2_par_1x1v_ser_p1(const double *w, const double *dx
 GKYL_CU_DH void gyrokinetic_M2_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M3_par_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_three_moments_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void gyrokinetic_int_mom_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *jacobgeo_inv, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void gyrokinetic_int_mom_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 
 GKYL_CU_DH void gyrokinetic_M0_1x1v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M1_1x1v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
@@ -17,7 +17,7 @@ GKYL_CU_DH void gyrokinetic_M2_par_1x1v_ser_p2(const double *w, const double *dx
 GKYL_CU_DH void gyrokinetic_M2_1x1v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M3_par_1x1v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_three_moments_1x1v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void gyrokinetic_int_mom_1x1v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *jacobgeo_inv, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void gyrokinetic_int_mom_1x1v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 
 GKYL_CU_DH void gyrokinetic_M0_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M1_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
@@ -29,7 +29,7 @@ GKYL_CU_DH void gyrokinetic_M3_perp_1x2v_ser_p1(const double *w, const double *d
 GKYL_CU_DH void gyrokinetic_three_moments_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M0_step1_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M0_step2_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void gyrokinetic_int_mom_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *jacobgeo_inv, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void gyrokinetic_int_mom_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 
 GKYL_CU_DH void gyrokinetic_M0_1x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M1_1x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
@@ -41,7 +41,7 @@ GKYL_CU_DH void gyrokinetic_M3_perp_1x2v_ser_p2(const double *w, const double *d
 GKYL_CU_DH void gyrokinetic_three_moments_1x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M0_step1_1x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M0_step2_1x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void gyrokinetic_int_mom_1x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *jacobgeo_inv, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void gyrokinetic_int_mom_1x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 
 GKYL_CU_DH void gyrokinetic_M0_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M1_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
@@ -53,7 +53,7 @@ GKYL_CU_DH void gyrokinetic_M3_perp_2x2v_ser_p1(const double *w, const double *d
 GKYL_CU_DH void gyrokinetic_three_moments_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M0_step1_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M0_step2_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void gyrokinetic_int_mom_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *jacobgeo_inv, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void gyrokinetic_int_mom_2x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 
 GKYL_CU_DH void gyrokinetic_M0_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M1_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
@@ -65,7 +65,7 @@ GKYL_CU_DH void gyrokinetic_M3_perp_2x2v_ser_p2(const double *w, const double *d
 GKYL_CU_DH void gyrokinetic_three_moments_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M0_step1_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M0_step2_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void gyrokinetic_int_mom_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *jacobgeo_inv, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void gyrokinetic_int_mom_2x2v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 
 GKYL_CU_DH void gyrokinetic_M0_3x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M1_3x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
@@ -77,6 +77,6 @@ GKYL_CU_DH void gyrokinetic_M3_perp_3x2v_ser_p1(const double *w, const double *d
 GKYL_CU_DH void gyrokinetic_three_moments_3x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M0_step1_3x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void gyrokinetic_M0_step2_3x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void gyrokinetic_int_mom_3x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *jacobgeo_inv, const double *f, double* GKYL_RESTRICT out); 
+GKYL_CU_DH void gyrokinetic_int_mom_3x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out); 
 
 EXTERN_C_END 
