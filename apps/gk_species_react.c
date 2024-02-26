@@ -114,19 +114,16 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         gk_neut_species_moment_calc(&react->moms_donor[i], app->neut_species[react->donor_idx[i]].local,
           app->local, fin_neut[react->donor_idx[i]]);
 
-      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->moms_elc[i].marr, 0, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 1, react->moms_elc[i].marr, 1, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 2, react->moms_elc[i].marr, 2, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-      
-      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->moms_donor[i].marr, 0, react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 1, react->moms_donor[i].marr, 1, react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 2, react->moms_donor[i].marr, 2, react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+      for (int j=0; j<3; ++j) {
+	gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, j, react->moms_elc[i].marr, j,
+	  react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+	gkyl_dg_div_op_range(react->moms_donor[i].mem_geo, app->confBasis, j, react->moms_donor[i].marr, j,
+	  react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+      }
       
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
       gkyl_array_set_range(react->m0_donor[i], 1.0, react->moms_donor[i].marr, &app->local);
 
-      // When do moments become infinitely large? 
-      //gkyl_grid_sub_array_write(&species->grid, &species->local, react->moms_elc[i].marr, "moms_elc.gkyl");
 
       // compute ionization reaction rate
       gkyl_dg_iz_coll(react->iz[i], react->moms_elc[i].marr, react->moms_donor[i].marr,
@@ -140,6 +137,7 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gk_species_moment_calc(&react->moms_ion[i], app->species[react->ion_idx[i]].local,
         app->local, fin[react->ion_idx[i]]);
 
+      // make a loop 
       gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->moms_elc[i].marr, 0, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
       gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 1, react->moms_elc[i].marr, 1, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
       gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 2, react->moms_elc[i].marr, 2, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
@@ -163,7 +161,6 @@ void
 gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  //fprintf(stdout, "\nspecies react");
   for (int i=0; i<react->num_react; ++i) {
     gkyl_array_clear(react->f_react, 0.0);
 
@@ -175,7 +172,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 	// scale to correct m0
 	gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react); 
-	gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
+	gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
 	  react->m0_elc[i], 0, s->m0.marr, &app->local);
 	gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
           react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
@@ -196,7 +193,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 	// scale to correct m0
 	gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react); 
-	gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
+	gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
 	  react->m0_donor[i], 0, s->m0.marr, &app->local);
 	gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
           react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
@@ -225,29 +222,27 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_array_set(react->f_react, 1.0, fin);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-	//gkyl_grid_sub_array_write(&app->grid, &app->local, react->coeff_react[i], "coef_recomb.gkyl");
+
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->m0_ion[i], react->f_react, &app->local, &s->local);
         gkyl_array_accumulate(rhs, -1.0, react->f_react);
-	//gkyl_grid_sub_array_write(&s->grid, &s->local, react->f_react, "f_recomb.gkyl");
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
         // update is -n_elc*coeff_react*f_s where s = (electron, ion)
         gkyl_array_set(react->f_react, 1.0, fin);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-	//gkyl_grid_sub_array_write(&app->grid, &app->local, react->coeff_react[i], "coef_recomb.gkyl");
+
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->m0_elc[i], react->f_react, &app->local, &s->local);
         gkyl_array_accumulate(rhs, -1.0, react->f_react);
-	//gkyl_grid_sub_array_write(&s->grid, &s->local, react->f_react, "f_recomb.gkyl");
       }
       else {
         gkyl_proj_gkmaxwellian_on_basis_lab_mom(react->proj_max, &s->local, &app->local,
           react->moms_ion[i].marr, app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
 	// scale to correct m0
 	gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react); 
-	gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
+	gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
 	  react->m0_ion[i], 0, s->m0.marr, &app->local);
 	gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
           react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
