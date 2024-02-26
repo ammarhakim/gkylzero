@@ -41,12 +41,13 @@ struct gkyl_dg_updater_diffusion_gyrokinetic* gkyl_dg_updater_diffusion_gyrokine
  * @param up diffusion updater object.
  * @param update_rng Range on which to compute.
  * @param coeff Diffusion coefficient/tensor.
+ * @param jacobgeo_inv Reciprocal of the configuration space jacobian.
  * @param fIn Input to updater.
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T])
  * @param rhs RHS output
  */
 void gkyl_dg_updater_diffusion_gyrokinetic_advance(struct gkyl_dg_updater_diffusion_gyrokinetic *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *coeff,
+  const struct gkyl_range *update_rng, const struct gkyl_array *coeff, const struct gkyl_array *jacobgeo_inv,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs);
 

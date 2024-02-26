@@ -27,7 +27,7 @@ void
 gkyl_dg_diffusion_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gyrokinetic_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(auxin.D)) {
+  if (gkyl_array_is_cu_dev(auxin.D) && gkyl_array_is_cu_dev(auxin.jacobgeo_inv)) {
     gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu(eqn->on_dev, auxin);
     return;
   }
@@ -35,6 +35,7 @@ gkyl_dg_diffusion_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struc
   
   struct dg_diffusion_gyrokinetic *diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
   diffusion->auxfields.D = auxin.D;
+  diffusion->auxfields.jacobgeo_inv = auxin.jacobgeo_inv;
 }
 
 struct gkyl_dg_eqn*
@@ -105,6 +106,7 @@ gkyl_dg_diffusion_gyrokinetic_new(const struct gkyl_basis *basis,
   for (int i=0; i<cdim; ++i) assert(diffusion->surf[i]);
 
   diffusion->auxfields.D = 0;
+  diffusion->auxfields.jacobgeo_inv = 0;
   diffusion->diff_range = *diff_range;
 
   diffusion->eqn.flags = 0;

@@ -67,6 +67,7 @@
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
+#include <gkyl_read_radiation.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
@@ -127,6 +128,9 @@ is_neut_moment_name_valid(const char *nm)
 struct gk_species_moment {
   struct gk_geometry *gk_geom; // geometry struct for dividing moments by Jacobian
   struct gkyl_dg_bin_op_mem *mem_geo; // memory needed in dividing moments by Jacobian
+  bool is_integrated; // boolean for if computing integrated moments 
+                      // integrated moments do not need to divide by Jacobian since
+                      // the inverse Jacobian is already included in the computation
 
   struct gkyl_dg_updater_moment *mcalc; // moment update
 
@@ -140,18 +144,25 @@ struct gk_rad_drag {
   int collide_with_idx[GKYL_MAX_SPECIES]; // index of species we collide with
 
   // drag coefficients in vparallel and mu for each species being collided with
-  struct gkyl_array *vnu[GKYL_MAX_SPECIES]; // vnu = 2/pi*|v|*nu(v)
-  struct gkyl_array *vsqnu[GKYL_MAX_SPECIES]; // vsqnu = 1/2*(m/B)^(3/2)*sqrt(mu)*|v|^2*nu(v)
-  struct gkyl_array *vnu_host[GKYL_MAX_SPECIES]; // host-side copy of vnu
-  struct gkyl_array *vsqnu_host[GKYL_MAX_SPECIES]; // host-side copy of vsqnu
+  struct gkyl_array *vnu_surf[GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vnu[GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vsqnu_surf[GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vsqnu[GKYL_MAX_SPECIES]; 
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[GKYL_MAX_SPECIES]; 
 
   struct gk_species_moment moms[GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
 
-  struct gkyl_array *nvnu_sum; // total vparallel radiation drag including density scaling
-  struct gkyl_array *nvsqnu_sum; // total mu radiation drag including density scaling
-  struct gkyl_array *nvnu_sum_host; // host-side copy of total vparallel radiation drag including density scaling
-  struct gkyl_array *nvsqnu_sum_host; // host-side copy of total mu radiation drag including density scaling
+  struct gkyl_array *nvnu_surf; // total vparallel radiation drag surface expansion including density scaling
+  struct gkyl_array *nvnu; // total vparallel radiation drag volume expansion including density scaling
+  struct gkyl_array *nvsqnu_surf; // total mu radiation drag surface expansion including density scaling
+  struct gkyl_array *nvsqnu; // total mu radiation drag volume expansion including density scaling
+
+  // host-side copies for I/O
+  struct gkyl_array *nvnu_surf_host; 
+  struct gkyl_array *nvnu_host; 
+  struct gkyl_array *nvsqnu_surf_host; 
+  struct gkyl_array *nvsqnu_host; 
+
   gkyl_dg_updater_collisions *drag_slvr; // radiation solver
 };
 
@@ -338,7 +349,8 @@ struct gk_source {
   bool write_source; // optional parameter to write out source distribution
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
-  struct gk_proj proj_source; // projector for source
+  struct gk_proj proj_source[GKYL_MAX_SOURCES]; // projector for source
+  int num_sources; // Number of sources.
 };
 
 // species data
@@ -391,15 +403,19 @@ struct gk_species {
   struct gk_species_moment m0; // for computing charge density
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
-  double *red_integ_diag; // for reduction of integrated moments on GPU
+  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
   gkyl_dg_updater_gyrokinetic *slvr; // Gyrokinetic solver 
   struct gkyl_dg_eqn *eqn_gyrokinetic; // Gyrokinetic equation object
   
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
+  bool bc_is_np[3]; // whether BC is nonperiodic.
+
   // boundary conditions on lower/upper edges in each direction  
-  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
   // gyrokinetic sheath boundary conditions
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_lo;
   struct gkyl_bc_sheath_gyrokinetic *bc_sheath_up;
@@ -411,6 +427,9 @@ struct gk_species {
   struct gkyl_range lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
+  // GK_IWL sims need SOL ghost and skin ranges.
+  struct gkyl_range lower_skin_par_sol, lower_ghost_par_sol;
+  struct gkyl_range upper_skin_par_sol, upper_ghost_par_sol;
 
   struct gk_proj proj_init; // projector for initial conditions
 
@@ -442,7 +461,7 @@ struct gk_species {
   struct gkyl_array *diffD; // array for diffusion tensor
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // gyrokinetic diffusion equation solver
 
-  double *omegaCfl_ptr;
+  double *omega_cfl;
 };
 
 // neutral species data
@@ -484,7 +503,7 @@ struct gk_neut_species {
   struct gk_species_moment m0; // for computing density
   struct gk_species_moment integ_moms; // integrated moments
   struct gk_species_moment *moms; // diagnostic moments
-  double *red_integ_diag; // for reduction of integrated moments on GPU
+  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 
@@ -510,7 +529,7 @@ struct gk_neut_species {
   bool has_neutral_reactions;
   struct gk_react react_neut; // reaction object
 
-  double *omegaCfl_ptr;
+  double *omega_cfl_ptr;
 };
 
 // field data
@@ -520,10 +539,16 @@ struct gk_field {
   enum gkyl_gkfield_id gkfield_id;
 
   struct gkyl_job_pool *job_pool; // Job pool  
-  struct gkyl_array *rho_c, *rho_c_smooth; // arrays for charge density and smoothed charge density
+  // arrays for local charge density, global charge density, and global smoothed (in z) charge density
+  struct gkyl_array *rho_c;
+  struct gkyl_array *rho_c_global_dg;
+  struct gkyl_array *rho_c_global_smooth; 
   struct gkyl_array *phi_fem, *phi_smooth; // arrays for updates
 
   struct gkyl_array *phi_host;  // host copy for use IO and initialization
+
+  struct gkyl_range global_sub_range; // sub range of intersection of global range and local range
+                                      // for solving subset of Poisson solves with parallelization in z
 
   // organization of the different equation objects and the required data and solvers
   union {
@@ -546,12 +571,14 @@ struct gk_field {
 
   struct gkyl_fem_parproj *fem_parproj; // FEM smoother for projecting DG functions onto continuous FEM basis
                                         // weight*phi_{fem} = phi_{dg} 
+  struct gkyl_fem_parproj *fem_parproj_sol;
+  struct gkyl_fem_parproj *fem_parproj_core;
 
   struct gkyl_deflated_fem_poisson *deflated_fem_poisson; // poisson solver which solves on lines in x or planes in xy
                                                           // - nabla . (epsilon * nabla phi) - kSq * phi = rho
 
   struct gkyl_array_integrate *calc_em_energy;
-  double *em_energy_red; // memory for use in GPU reduction of EM energy
+  double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy
   gkyl_dynvec integ_energy; // integrated energy components
 
   bool is_first_energy_write_call; // flag for energy dynvec written first time
@@ -567,6 +594,9 @@ struct gk_field {
   struct gkyl_array *phi_wall_up; // biased wall potential on upper wall
   struct gkyl_array *phi_wall_up_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *phi_wall_up_proj; // projector for biased wall potential on upper wall 
+
+  // Core and SOL ranges for IWL sims. 
+  struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
 };
 
 // gyrokinetic object: used as opaque pointer in user code
