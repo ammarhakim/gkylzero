@@ -47,7 +47,7 @@ struct sodshock_mp_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
-double gas_gamma = 1.4; // Adiabatic index.
+  double gas_gamma = 1.4; // Adiabatic index.
 
   double rhol = 3.0; // Left fluid mass density.
   double ul = 0.0; // Left fluid velocity.
