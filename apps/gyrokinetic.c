@@ -393,8 +393,12 @@ gkyl_gyrokinetic_app_calc_mom(gkyl_gyrokinetic_app* app)
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
       struct timespec wst = gkyl_wall_clock();
       gk_species_moment_calc(&s->moms[m], s->local, app->local, s->f);
-      app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
       app->stat.nmom += 1;
+      if (s->source_id) {
+        gk_species_moment_calc(&s->src.moms[m], s->local, app->local, s->src.source);
+        app->stat.nmom += 1;
+      }
+      app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
     }
   }
 }
@@ -532,22 +536,6 @@ gkyl_gyrokinetic_app_write_source_species(gkyl_gyrokinetic_app* app, int sidx, d
   else {
     gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->src.source, fileNm);
   }
-
-  // Write out density of the source
-  const char *fmt_M0 = "%s-%s_source_M0_%d.gkyl";
-  int sz_M0 = gkyl_calc_strlen(fmt_M0, app->name, s->info.name, frame);
-  char fileNm_M0[sz_M0+1]; // ensures no buffer overflow
-  snprintf(fileNm_M0, sizeof fileNm_M0, fmt_M0, app->name, s->info.name, frame); 
-
-  gk_species_moment_calc(&s->m0, s->local, app->local, s->src.source); 
-  // Rescale moment by inverse of Jacobian
-  gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 
-    0, s->m0.marr, 0, s->m0.marr, 0, app->gk_geom->jacobgeo, &app->local); 
-
-  if (app->use_gpu)
-    gkyl_array_copy(s->m0.marr_host, s->m0.marr);
-
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->m0.marr_host, fileNm_M0);   
 }
 
 void
@@ -661,6 +649,33 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
 }
 
 void
+gkyl_gyrokinetic_app_write_source_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
+
+      if (app->species[i].source_id) {
+        const char *fmt = "%s-%s_source_%s_%d.gkyl";
+        int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+          app->species[i].info.diag_moments[m], frame);
+        char fileNm[sz+1]; // ensures no buffer overflow
+        snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+          app->species[i].info.diag_moments[m], frame);
+
+        // Rescale moment by inverse of Jacobian
+        gkyl_dg_div_op_range(app->species[i].moms[m].mem_geo, app->confBasis, 
+          0, app->species[i].src.moms[m].marr, 0, app->species[i].src.moms[m].marr, 0, app->gk_geom->jacobgeo, &app->local);      
+
+        if (app->use_gpu)
+          gkyl_array_copy(app->species[i].src.moms[m].marr_host, app->species[i].src.moms[m].marr);
+
+        gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->species[i].src.moms[m].marr_host, fileNm);
+      }
+    }
+  }
+}
+
+void
 gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
 {
   for (int i=0; i<app->num_species; ++i) {
@@ -684,6 +699,36 @@ gkyl_gyrokinetic_app_write_integrated_mom(gkyl_gyrokinetic_app *app)
       }
     }
     gkyl_dynvec_clear(app->species[i].integ_diag);
+  }
+}
+
+void
+gkyl_gyrokinetic_app_write_integrated_source_mom(gkyl_gyrokinetic_app *app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+
+    if (app->species[i].source_id) {
+      int rank;
+      gkyl_comm_get_rank(app->comm, &rank);
+      if (rank == 0) {
+        // write out integrated diagnostic moments
+        const char *fmt = "%s-%s_source_%s.gkyl";
+        int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+          "integrated_moms");
+        char fileNm[sz+1]; // ensures no buffer overflow
+        snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+          "integrated_moms");
+
+        if (app->species[i].src.is_first_integ_write_call) {
+          gkyl_dynvec_write(app->species[i].src.integ_diag, fileNm);
+          app->species[i].src.is_first_integ_write_call = false;
+        }
+        else {
+          gkyl_dynvec_awrite(app->species[i].src.integ_diag, fileNm);
+        }
+      }
+      gkyl_dynvec_clear(app->species[i].src.integ_diag);
+    }
   }
 }
 
