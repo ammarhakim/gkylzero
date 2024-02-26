@@ -161,7 +161,6 @@ void
 gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  //fprintf(stdout, "\nspecies react");
   for (int i=0; i<react->num_react; ++i) {
     gkyl_array_clear(react->f_react, 0.0);
 
