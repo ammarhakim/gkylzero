@@ -239,7 +239,6 @@ test_2x_option(bool use_gpu)
   // Now calculate the integrated moments
   double avals_global[2+vdim];
   gkyl_dg_updater_moment_gyrokinetic_advance(mcalc, &local, &confLocal, f, marr);
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, marr, "momsout.gkyl");
   gkyl_array_reduce_range(red_integ_diag_global, marr, GKYL_SUM, &confLocal);
 
 
