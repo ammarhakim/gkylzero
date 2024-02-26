@@ -65,9 +65,6 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   minmax_from_numpy(data.logN, data.NN, minmax);
   fclose(data.logN);
   double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
-  // To check reaction rate min/max
-  /* fprintf(stdout, "\nT_min %g T_max %g", pow(10, logTmin), pow(10, logTmax)); */
-  /* fprintf(stdout, "\nM0_min %g M0_max %g", pow(10, logNmin), pow(10, logNmax)); */
 
   struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, 1, sz);
   array_from_numpy(data.logData, sz, data.Zmax, charge_state, adas_nodal);
@@ -224,7 +221,6 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
       double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
-      //fprintf(stdout, "\nadas iz = %g t_idx %d m0_idx %d", adas_eval, t_idx, m0_idx);
     }
   }
   

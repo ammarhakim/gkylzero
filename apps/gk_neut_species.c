@@ -258,7 +258,7 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  double omegaCfl = 1/DBL_MAX;
+  double omega_cfl = 1/DBL_MAX;
 
   if (!species->info.is_static) {
     gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
@@ -273,14 +273,14 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
       gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
     else
       omega_cfl_ho[0] = species->omega_cfl_ptr[0];
-    double omega_cfl = omega_cfl_ho[0];
+    omega_cfl = omega_cfl_ho[0];
 
     app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   }
   else if (species->has_neutral_reactions)
     gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
 
-  return app->cfl/omegaCfl;
+  return app->cfl/omega_cfl;
 
 }
 

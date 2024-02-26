@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <gkyl_array_rio.h>
 #include <gkyl_gyrokinetic_priv.h>
 
 void 
@@ -124,7 +123,6 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
       gkyl_array_set_range(react->m0_donor[i], 1.0, react->moms_donor[i].marr, &app->local);
 
-
       // compute ionization reaction rate
       gkyl_dg_iz_coll(react->iz[i], react->moms_elc[i].marr, react->moms_donor[i].marr,
     	app->gk_geom->b_i, react->vt_sq_iz[i], react->prim_vars[i],
@@ -222,7 +220,6 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_array_set(react->f_react, 1.0, fin);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->m0_ion[i], react->f_react, &app->local, &s->local);
         gkyl_array_accumulate(rhs, -1.0, react->f_react);
@@ -232,7 +229,6 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_array_set(react->f_react, 1.0, fin);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->m0_elc[i], react->f_react, &app->local, &s->local);
         gkyl_array_accumulate(rhs, -1.0, react->f_react);
