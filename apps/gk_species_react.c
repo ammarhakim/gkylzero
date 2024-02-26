@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <gkyl_array_rio.h>
 #include <gkyl_gyrokinetic_priv.h>
 
 void 
@@ -126,7 +125,6 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_array_set_range(react->m0_donor[i], 1.0, react->moms_donor[i].marr, &app->local);
 
       // When do moments become infinitely large? 
-      //gkyl_grid_sub_array_write(&species->grid, &species->local, react->moms_elc[i].marr, "moms_elc.gkyl");
 
       // compute ionization reaction rate
       gkyl_dg_iz_coll(react->iz[i], react->moms_elc[i].marr, react->moms_donor[i].marr,
@@ -225,22 +223,18 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_array_set(react->f_react, 1.0, fin);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-	//gkyl_grid_sub_array_write(&app->grid, &app->local, react->coeff_react[i], "coef_recomb.gkyl");
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->m0_ion[i], react->f_react, &app->local, &s->local);
         gkyl_array_accumulate(rhs, -1.0, react->f_react);
-	//gkyl_grid_sub_array_write(&s->grid, &s->local, react->f_react, "f_recomb.gkyl");
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
         // update is -n_elc*coeff_react*f_s where s = (electron, ion)
         gkyl_array_set(react->f_react, 1.0, fin);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
-	//gkyl_grid_sub_array_write(&app->grid, &app->local, react->coeff_react[i], "coef_recomb.gkyl");
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->m0_elc[i], react->f_react, &app->local, &s->local);
         gkyl_array_accumulate(rhs, -1.0, react->f_react);
-	//gkyl_grid_sub_array_write(&s->grid, &s->local, react->f_react, "f_recomb.gkyl");
       }
       else {
         gkyl_proj_gkmaxwellian_on_basis_lab_mom(react->proj_max, &s->local, &app->local,
