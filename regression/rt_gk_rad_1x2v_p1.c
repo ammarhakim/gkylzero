@@ -63,6 +63,7 @@ struct rad_ctx
   double Lv_ion; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion; // Domain size (ion velocity space: magnetic moment direction).
   double t_end; // Final simulation time.
+  int num_frames; // number of frames
 };
 
 struct rad_ctx
@@ -113,6 +114,7 @@ create_ctx(void)
   double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion = 0.75 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
   double t_end = 1.0e-7; // Final simulation time.
+  int num_frames = 1; // Number of frames.
   
   struct rad_ctx ctx = {
     .pi = pi,
@@ -146,6 +148,7 @@ create_ctx(void)
     .Lv_ion = Lv_ion,
     .Lmu_ion = Lmu_ion,
     .t_end = t_end,
+    .num_frames = num_frames,
   };
 
   return ctx;
@@ -229,6 +232,15 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 
   // Set magnetic field strength.
   fout[0] = B0;
+}
+
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+    gkyl_gyrokinetic_app_write(app, t_curr, iot->curr-1);
+    gkyl_gyrokinetic_app_calc_mom(app); gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr-1);
+  }
 }
 
 int
@@ -498,10 +510,13 @@ main(int argc, char **argv)
 
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
+  int num_frames = ctx.num_frames;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = t_end/num_frames };
 
   // Initialize simulation.
   gkyl_gyrokinetic_app_apply_ic(app, t_curr);
-  gkyl_gyrokinetic_app_write(app, t_curr, 0);
+  write_data(&io_trig, app, t_curr);
 
   gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
   gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
@@ -528,13 +543,16 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
+    write_data(&io_trig, app, t_curr);
+
     step += 1;
   }
 
   gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
   gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
   
-  gkyl_gyrokinetic_app_write(app, t_curr, 1);
+  gkyl_gyrokinetic_app_write_field_energy(app);
+  gkyl_gyrokinetic_app_write_integrated_mom(app);
   gkyl_gyrokinetic_app_stat_write(app);
   
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);
