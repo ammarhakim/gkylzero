@@ -87,7 +87,7 @@ create_ctx(void)
 
   double k_perp_rho_si = 0.1; // Product of perpendicular wavenumber and ion-sound gyroradius.
 
-  // Derived physical quantities (using normalized code units).
+  // Derived physical quantities (using non-normalized physical units).
   double log_lambda_elc = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Te / charge_ion); // Logarithm of electron wavelength.
   double nu_elc = nu_frac * log_lambda_elc * (charge_ion * charge_ion * charge_ion * charge_ion) * n0 /
     (6.0 * sqrt(2.0) * pi * sqrt(pi) * epsilon0 * epsilon0 * sqrt(mass_elc) * (Te * sqrt(Te))); // Electron collision frequency.
@@ -112,7 +112,7 @@ create_ctx(void)
   double Lmu_elc = 0.75 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
   double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion = 0.75 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
-  double t_end = 1.0e-7;
+  double t_end = 1.0e-7; // Final simulation time.
   
   struct rad_ctx ctx = {
     .pi = pi,
@@ -221,7 +221,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double *zc, double* GKYL_RESTRICT fout, void* ctx)
+bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct rad_ctx *app = ctx;
 
@@ -372,24 +372,24 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lv_elc, 0.0},
-    .upper = { 0.5 * ctx.Lv_elc, ctx.Lmu_elc}, 
+    .lower = { -0.5 * ctx.Lv_elc, 0.0 },
+    .upper = { 0.5 * ctx.Lv_elc, ctx.Lmu_elc },
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
-      .ctx_density = &ctx,
+      .proj_id = GKYL_PROJ_MAXWELLIAN,
       .density = evalDensityInit,
-      .ctx_upar = &ctx,
+      .ctx_density = &ctx,
       .upar = evalUparInit,
-      .ctx_temp = &ctx,
+      .ctx_upar = &ctx,
       .temp = evalTempElcInit,
+      .ctx_temp = &ctx,
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = evalNuElcInit,
+      .ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
@@ -420,24 +420,24 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -0.5 * ctx.Lv_ion, 0.0},
-    .upper = { 0.5 * ctx.Lv_ion, ctx.Lmu_ion}, 
+    .lower = { -0.5 * ctx.Lv_ion, 0.0 },
+    .upper = { 0.5 * ctx.Lv_ion, ctx.Lmu_ion },
     .cells = { NV, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
-      .ctx_density = &ctx,
+      .proj_id = GKYL_PROJ_MAXWELLIAN,
       .density = evalDensityInit,
-      .ctx_upar = &ctx,
+      .ctx_density = &ctx,
       .upar= evalUparInit,
+      .ctx_upar = &ctx,
+      .temp = evalTempIonInit,
       .ctx_temp = &ctx,
-      .temp = evalTempIonInit,      
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
       .self_nu = evalNuIonInit,
+      .ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
     },
@@ -475,11 +475,11 @@ main(int argc, char **argv)
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
-      .world = {0.0, 0.0},
+      .world = { 0.0, 0.0 },
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
-      .bmag_ctx = &ctx
+      .bmag_ctx = &ctx,
     },
 
     .num_periodic_dir = 1,
@@ -516,11 +516,8 @@ main(int argc, char **argv)
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
-    if (step % 10 == 0)
-    {
-      gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-      gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-    }
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
 
     if (!status.success)
     {
