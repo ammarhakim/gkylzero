@@ -49,7 +49,7 @@ gkyl_sub_array_write(const struct gkyl_range *range,
 
 int
 gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
-  struct gkyl_array_header_info *hdr, FILE *fp)
+  const struct gkyl_array_header_info *hdr, FILE *fp)
 {
   const char g0[5] = "gkyl0";
 
@@ -68,6 +68,55 @@ gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
 
   fwrite(&hdr->esznc, sizeof(uint64_t), 1, fp);
   fwrite(&hdr->tot_cells, sizeof(uint64_t), 1, fp);
+
+  return errno;
+}
+
+int
+gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
+  struct gkyl_array_header_info *hdr, FILE *fp)
+{
+  size_t frr;
+
+  char g0[6];
+  frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
+  g0[5] = '\0';                            // add the NULL
+  if (strcmp(g0, "gkyl0") != 0)
+    return 1;
+
+  uint64_t version;
+  frr = fread(&version, sizeof(uint64_t), 1, fp);
+  if (version != 1)
+    return 1;
+
+  uint64_t file_type;
+  frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+
+  uint64_t meta_size;
+  frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
+
+  // read ahead by specified bytes: meta-data is not read in this
+  // method
+  fseek(fp, meta_size, SEEK_CUR);
+
+  uint64_t real_type = 0;
+  if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
+    return 1;
+
+  gkyl_rect_grid_read(grid, fp);
+
+  uint64_t esznc = 0;
+  if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
+    return 1;
+
+  uint64_t tot_cells = 0;
+  if (1 != fread(&tot_cells, sizeof(uint64_t), 1, fp))
+    return 1;  
+
+  hdr->file_type = file_type;
+  hdr->etype = real_type;
+  hdr->esznc = esznc;
+  hdr->tot_cells = tot_cells;
 
   return errno;
 }

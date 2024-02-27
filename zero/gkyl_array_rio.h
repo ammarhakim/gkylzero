@@ -64,6 +64,17 @@ int gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
  * @return Status flag: 0 if write succeeded, 'errno' otherwise
  */
 int gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
+  const struct gkyl_array_header_info *hdr, FILE *fp);
+
+/**
+ * Read grid and array data header data from file. Note that only
+ * HEADER is read and NOT the array data itself.
+ *
+ * @param grid Grid object to read
+ * @param hrd On output, Header data.
+ * @return Status flag: 0 if read succeeded, 'errno' otherwise
+ */
+int gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, FILE *fp);
 
 /**

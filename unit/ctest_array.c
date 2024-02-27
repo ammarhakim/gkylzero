@@ -7,6 +7,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
+#include <gkyl_elem_type_priv.h>
 
 void test_array_0()
 {
@@ -1182,6 +1183,33 @@ test_grid_array_rio_1()
   gkyl_array_clear(arr2, 0.0);
 
   struct gkyl_rect_grid grid2;
+
+  // read just header
+  FILE *fp;
+  with_file(fp, "ctest_array_grid_array_1.gkyl", "r") {
+    struct gkyl_array_header_info hdr;
+    
+    int status = gkyl_grid_sub_array_header_read_fp(&grid2, &hdr, fp);
+    TEST_CHECK( status == 0 );
+
+    TEST_CHECK( hdr.file_type == 1);
+    TEST_CHECK( hdr.etype == gkyl_array_data_type[GKYL_DOUBLE]);
+
+    long tot_cells = 1L;
+    TEST_CHECK( grid.ndim == grid2.ndim );
+    for (int d=0; d<grid.ndim; ++d) {
+      TEST_CHECK( grid.lower[d] == grid2.lower[d] );
+      TEST_CHECK( grid.upper[d] == grid2.upper[d] );
+      TEST_CHECK( grid.cells[d] == grid2.cells[d] );
+      TEST_CHECK( grid.dx[d] == grid2.dx[d] );
+
+      tot_cells *= grid.cells[d];
+    }
+    TEST_CHECK( grid.cellVolume == grid2.cellVolume );
+
+    TEST_CHECK( hdr.esznc = arr->esznc );
+    TEST_CHECK( hdr.tot_cells = tot_cells );
+  }
   
   // read back the grid and the array
   int err =
@@ -1198,7 +1226,7 @@ test_grid_array_rio_1()
       TEST_CHECK( grid.cells[d] == grid2.cells[d] );
       TEST_CHECK( grid.dx[d] == grid2.dx[d] );
     }
-    TEST_CHECK( grid.cellVolume == grid2.cellVolume );  
+    TEST_CHECK( grid.cellVolume == grid2.cellVolume );
     
     gkyl_range_iter_init(&iter, &range);
     while (gkyl_range_iter_next(&iter)) {
@@ -1272,6 +1300,35 @@ test_grid_array_rio_2()
   
   gkyl_array_release(arr);
   gkyl_array_release(arr2);
+}
+
+void
+test_grid_array_read_1(void)
+{
+  // read just header
+  FILE *fp;
+  with_file(fp, "data/unit/euler_riem_2d_hllc-euler_1.gkyl", "r") {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    
+    int status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+    TEST_CHECK( status == 0 );
+
+    TEST_CHECK( hdr.file_type == gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE]);
+    TEST_CHECK( hdr.etype == gkyl_array_data_type[GKYL_DOUBLE]);
+
+    TEST_CHECK( hdr.esznc = 5*sizeof(double));
+    TEST_CHECK( hdr.tot_cells = 50*50 );
+
+    TEST_CHECK( 50 == grid.cells[0] );
+    TEST_CHECK( 50 == grid.cells[1] );
+    
+    TEST_CHECK( 0.0 == grid.lower[0] );
+    TEST_CHECK( 0.0 == grid.lower[1] );
+
+    TEST_CHECK( 1.0 == grid.upper[0] );
+    TEST_CHECK( 1.0 == grid.upper[1] );
+  }  
 }
 
 // Cuda specific tests
@@ -2345,6 +2402,7 @@ TEST_LIST = {
   { "rio_3", test_rio_3 },
   { "grid_array_rio_1", test_grid_array_rio_1 },
   { "grid_array_rio_2", test_grid_array_rio_2 },
+  { "grid_array_read_1", test_grid_array_read_1 },
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_base", test_cu_array_base },
   { "cu_array_clear", test_cu_array_clear},
