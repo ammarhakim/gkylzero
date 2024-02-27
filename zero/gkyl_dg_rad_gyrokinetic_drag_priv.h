@@ -227,7 +227,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
       (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_surf, pidxSkin),
       (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_surf, pidxEdge),
       (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_surf, pidxSkin),
-      edge, qInSkin, qInEdge, qRhsOut);
+      edge, qInEdge, qInSkin, qRhsOut);
   }
   return 0.;
 }
