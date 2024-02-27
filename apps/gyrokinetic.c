@@ -453,7 +453,9 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
   app->stat.nio += 1;
   struct timespec wtm = gkyl_wall_clock();
   
-  gkyl_gyrokinetic_app_write_field(app, tm, frame);
+  if (app->update_field) {
+    gkyl_gyrokinetic_app_write_field(app, tm, frame);
+  }
 
   for (int i=0; i<app->num_species; ++i) {
     gkyl_gyrokinetic_app_write_species(app, i, tm, frame);
