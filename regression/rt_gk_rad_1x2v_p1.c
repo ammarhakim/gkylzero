@@ -547,8 +547,6 @@ main(int argc, char **argv)
   }
 
   gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-  
-  gkyl_gyrokinetic_app_write_field_energy(app);
   gkyl_gyrokinetic_app_write_integrated_mom(app);
   gkyl_gyrokinetic_app_stat_write(app);
   
