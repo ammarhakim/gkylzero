@@ -78,9 +78,9 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
 
   if (app->use_gpu)
-    s->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
+    s->omega_cfl = gkyl_cu_malloc(sizeof(double));
   else 
-    s->omegaCfl_ptr = gkyl_malloc(sizeof(double));
+    s->omega_cfl = gkyl_malloc(sizeof(double));
 
   // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
   struct gkyl_basis surf_basis, surf_quad_basis;
@@ -180,8 +180,13 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   for (int m=0; m<ndm; ++m)
     gk_species_moment_init(app, s, &s->moms[m], s->info.diag_moments[m]);
 
-  if (app->use_gpu) 
+  if (app->use_gpu) {
     s->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
+  } else {
+    s->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
+    s->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+  }
   // allocate dynamic-vector to store all-reduced integrated moments 
   s->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
   s->is_first_integ_write_call = true;
@@ -376,33 +381,37 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   if (species->radiation_id == GKYL_GK_RADIATION)
     gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
 
+  if (species->has_reactions)
+    gk_species_react_rhs(app, species, &species->react, fin, rhs);
+  if (species->has_neutral_reactions)
+    gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
+  
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
-  gkyl_array_reduce_range(species->omegaCfl_ptr, species->cflrate, GKYL_MAX, &species->local);
+  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
 
-  double omegaCfl_ho[1];
+  double omega_cfl_ho[1];
   if (app->use_gpu)
-    gkyl_cu_memcpy(omegaCfl_ho, species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
   else
-    omegaCfl_ho[0] = species->omegaCfl_ptr[0];
-  double omegaCfl = omegaCfl_ho[0];
+    omega_cfl_ho[0] = species->omega_cfl[0];
 
   // If we are doing BGK collisions, find the maximum collision frequency and accumulate it
   // onto the CFL. Collision frequency is only a configuration space quantity, so do the reduce
   // here instead of utilizing species->cflrate, which is a phase space array. 
   if (species->collision_id == GKYL_BGK_COLLISIONS) {
-    gkyl_array_reduce_range(species->omegaCfl_ptr, species->bgk.max_nu, GKYL_MAX, &app->local);
-    double omegaCfl_bgk_ho[1];
+    gkyl_array_reduce_range(species->omega_cfl, species->bgk.max_nu, GKYL_MAX, &app->local);
+    double omega_cfl_bgk_ho[1];
     if (app->use_gpu)
-      gkyl_cu_memcpy(omegaCfl_bgk_ho, species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+      gkyl_cu_memcpy(omega_cfl_bgk_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
     else
-      omegaCfl_bgk_ho[0] = species->omegaCfl_ptr[0]; 
-    omegaCfl += omegaCfl_bgk_ho[0];
+      omega_cfl_bgk_ho[0] = species->omega_cfl[0]; 
+    omega_cfl_ho[0] += omega_cfl_bgk_ho[0];
   }
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   
-  return app->cfl/omegaCfl;
+  return app->cfl/omega_cfl_ho[0];
 }
 
 // Determine which directions are periodic and which directions are not periodic,
@@ -575,10 +584,13 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
   }
   
   if (app->use_gpu) {
-    gkyl_cu_free(s->omegaCfl_ptr);
+    gkyl_cu_free(s->omega_cfl);
     gkyl_cu_free(s->red_integ_diag);
+    gkyl_cu_free(s->red_integ_diag_global);
   }
   else {
-    gkyl_free(s->omegaCfl_ptr);
+    gkyl_free(s->red_integ_diag);
+    gkyl_free(s->red_integ_diag_global);
+    gkyl_free(s->omega_cfl);
   }
 }

@@ -17,6 +17,8 @@
 #include <gkyl_dg_recomb_priv.h>
 #include <gkyl_util.h>
 #include <gkyl_const.h>
+#include <gkyl_nodal_ops.h>
+#include <gkyl_rect_decomp.h>
 
 struct gkyl_dg_recomb*
 gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
@@ -26,6 +28,7 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   up->cbasis = inp->cbasis;
   up->pbasis = inp->pbasis;
   up->conf_rng = inp->conf_rng;
+  up->conf_rng_ext = inp->conf_rng_ext;
   up->phase_rng = inp->phase_rng;
   up->grid = inp->grid;
   up->mass_self = inp->mass_self;
@@ -68,8 +71,8 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
 
   // "duplicate symbol" error
-  struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, data.Zmax, sz);
-  array_from_numpy(data.logData, sz, data.Zmax, adas_nodal);
+  struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, 1, sz);
+  array_from_numpy(data.logData, sz, data.Zmax, charge_state, adas_nodal);
   fclose(data.logData);
 
   if (!adas_nodal) {
@@ -77,9 +80,9 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
     return 0;
   }
 
-  struct gkyl_range range_node;
-  gkyl_range_init_from_shape(&range_node, 2, (int[]) { data.NT, data.NN } );
-
+  struct gkyl_range range_nodal;
+  gkyl_range_init_from_shape(&range_nodal, 2, (int[]) { data.NT, data.NN } );
+  
   // allocate grid and DG array
   struct gkyl_rect_grid tn_grid;
   gkyl_rect_grid_init(&tn_grid, 2,
@@ -87,11 +90,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
     (double []) { logTmax, logNmax},
     (int[]) { data.NT-1, data.NN-1 }
   );
-  
-  struct gkyl_range adas_rng;
-  //int ghost[] = { 0, 0 };
-  //gkyl_create_grid_ranges(&tn_grid, ghost, &adas_rng_ext, &adas_rng);
-  gkyl_range_init_from_shape(&adas_rng, 2, tn_grid.cells);
 
   struct gkyl_basis adas_basis;
   up->adas_basis = adas_basis;
@@ -106,10 +104,21 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   if (use_gpu)
     gkyl_cart_modal_serendip_cu_dev(up->basis_on_dev, 2, 1);
 
-  struct gkyl_array *adas_dg =
-    gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
+  int ghost[GKYL_MAX_DIM] = { 1, 1};
+  struct gkyl_range modal_range;
+  struct gkyl_range modal_range_ext;
+  gkyl_create_grid_ranges(&tn_grid, ghost, &modal_range_ext, &modal_range);
 
-  create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state+1);
+  struct gkyl_array *adas_dg = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
+  
+  /* struct gkyl_array *adas_dg = */
+  /*   gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, (data.NT-1)*(data.NN-1)); */
+
+  //create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
+
+  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
+  gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg);
+  gkyl_nodal_ops_release(n2m);
 
   // ADAS data pointers
   up->recomb_data = adas_dg;
@@ -121,30 +130,32 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   up->dlogM0 = tn_grid.dx[1];
   up->resTe = tn_grid.cells[0];
   up->resM0 = tn_grid.cells[1];
-  up->adas_rng = adas_rng;
+  up->adas_rng = modal_range;
 
   if (use_gpu) {
     up->recomb_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
     gkyl_array_copy(up->recomb_data, adas_dg);
-    
-    up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume);
   }
   else {
-    up->recomb_data = adas_dg;
-    up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng->volume);
+    up->recomb_data = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
+    gkyl_array_copy(up->recomb_data, adas_dg);
+    up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume);
   }
 
   up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); 
   if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
     up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_vlasov", use_gpu);
   }
-  else { // create dummer updater to pass to cuda kernel which isn't used
+  else { // create dummy updater to pass to cuda kernel which isn't used
     up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_gk", use_gpu);
   }
   
   up->on_dev = up; // CPU eqn obj points to itself
 
   gkyl_array_release(adas_nodal);
+  gkyl_array_release(adas_dg);
+
   return up;
 }
 
@@ -201,11 +212,16 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     else m0_idx = (log_m0_av - up->minLogM0)/(up->dlogM0)+1;
     cell_center = (m0_idx - 0.5)*up->dlogM0 + up->minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
-    
-    double *recomb_dat_d = gkyl_array_fetch(up->recomb_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
-    double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
-    coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
 
+    if ((m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
+      coef_recomb_d[0] = 0.0; 
+    }
+    else {
+      double *recomb_dat_d = gkyl_array_fetch(up->recomb_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
+      double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, recomb_dat_d);
+      coef_recomb_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+    }
+    
     if ((up->all_gk==false) && (up->type_self == GKYL_SELF_RECVR)) {
       const double *moms_ion_d = gkyl_array_cfetch(moms_ion, loc);
       double *prim_vars_ion_d = gkyl_array_fetch(prim_vars_ion, loc);
@@ -215,6 +231,8 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
 					    moms_ion_d, prim_vars_ion_d);
     }
   }
+
+  //gkyl_grid_sub_array_write(&s->grid, &s->local, react->coef_react[i], "coef_recomb.gkyl");
 
   // cfl calculation
   //struct gkyl_range vel_rng;
@@ -243,10 +261,7 @@ gkyl_dg_recomb_release(struct gkyl_dg_recomb* up)
   //gkyl_array_release(up->vtSq_ion);
   //gkyl_proj_maxwellian_on_basis_release(up->proj_max);
   //gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion_udrift);
-  if ((up->all_gk == false) && (up->type_self == GKYL_SELF_RECVR)) {
-    gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
-    //gkyl_array_release(up->prim_vars_ion);
-  }
+  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_ion);
   free(up);
 }
 

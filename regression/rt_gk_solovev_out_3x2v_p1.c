@@ -53,6 +53,8 @@ struct gkyl_tok_geo_grid_inp ginp = {
   .rclose = 3.0, // any number larger than ~2 will do
   .zmin = -1.5,
   .zmax = 1.5,
+  .rmin = 1.0,
+  .rmax = 3.5,
   .write_node_coord_array = true,
   .node_file_nm = "solovev_nodes.gkyl"
 }; 

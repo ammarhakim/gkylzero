@@ -6,24 +6,60 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_const.h>
+#include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_eval_on_nodes.h>
+#include <gkyl_read_radiation.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 #include <math.h>
-#include <gkyl_gyrokinetic.h>
-#include <gkyl_app_priv.h>
-#include <gkyl_read_radiation.h>
-#include <gkyl_dg_bin_ops.h>
+
+static struct gkyl_array*
+mkarr(bool on_gpu, long nc, long size)
+{
+  struct gkyl_array* a;
+  if (on_gpu)
+    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  else
+    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
+void
+mapc2p_1x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  xp[0] = xc[0]; 
+}
+
+void
+bmag_func_1x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xc[0]; 
+  fout[0] = 1.0;
+}
+
+void
+mapc2p_2x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+{
+  xp[0] = xc[0]; xp[1] = xc[1]; 
+}
+
+void
+bmag_func_2x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xc[0], y = xc[1];
+  fout[0] = 1.0;
+}
 
 void
 mapc2p_3x(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
@@ -119,30 +155,43 @@ test_1x(int poly_order, bool use_gpu, double te)
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   // Initialize geometry
-  struct gkyl_gyrokinetic_geometry geometry_input = {
+  struct gkyl_gk_geometry_inp geometry_input = {
       .geometry_id = GKYL_MAPC2P,
       .world = {0.0, 0.0},
       .mapc2p = mapc2p_3x, // mapping of computational to physical space
       .c2p_ctx = 0,
       .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx = 0 
+      .bmag_ctx = 0 ,
+      .grid = confGrid,
+      .local = confLocal,
+      .local_ext = confLocal_ext,
+      .global = confLocal,
+      .global_ext = confLocal_ext,
+      .basis = confBasis,
   };
-  struct gkyl_rect_grid geo_grid;
-  struct gkyl_range geo_local;
-  struct gkyl_range geo_local_ext;
-  struct gkyl_basis geo_basis;
-  bool geo_3d_use_gpu = false; // initialize 3D geometry on host before deflation
-  geo_grid = agument_grid(confGrid, geometry_input);
-  gkyl_create_grid_ranges(&geo_grid, ghost, &geo_local_ext, &geo_local);
-  geo_3d_use_gpu = false;
-  gkyl_cart_modal_serendip(&geo_basis, 3, poly_order);
-  struct gk_geometry* gk_geom_3d;
-  gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-      geometry_input.mapc2p, geometry_input.c2p_ctx, geometry_input.bmag_func,  geometry_input.bmag_ctx, geo_3d_use_gpu);
+
+  int geo_ghost[3] = {1};
+  geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
+  gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext, &geometry_input.geo_global);
+  memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
+  memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
+
+
+  struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   // deflate geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &confGrid, &confLocal, &confLocal_ext, 
-      &confBasis, use_gpu);
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
 
   // allocate drag coefficients in vparallel and mu for each collision
   // vnu = v_par*nu(v)
@@ -387,30 +436,42 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_create_grid_ranges(&vGrid, vGhost, &vLocal_ext, &vLocal);
 
   // Initialize geometry
-  struct gkyl_gyrokinetic_geometry geometry_input = {
+  struct gkyl_gk_geometry_inp geometry_input = {
       .geometry_id = GKYL_MAPC2P,
       .world = {0.0},
       .mapc2p = mapc2p_3x, // mapping of computational to physical space
       .c2p_ctx = 0,
       .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx = 0 
+      .bmag_ctx = 0 ,
+      .grid = confGrid,
+      .local = confLocal,
+      .local_ext = confLocal_ext,
+      .global = confLocal,
+      .global_ext = confLocal_ext,
+      .basis = confBasis,
   };
-  struct gkyl_rect_grid geo_grid;
-  struct gkyl_range geo_local;
-  struct gkyl_range geo_local_ext;
-  struct gkyl_basis geo_basis;
-  bool geo_3d_use_gpu = false; // initialize 3D geometry on host before deflation
-  geo_grid = agument_grid(confGrid, geometry_input);
-  gkyl_create_grid_ranges(&geo_grid, ghost, &geo_local_ext, &geo_local);
-  geo_3d_use_gpu = false;
-  gkyl_cart_modal_serendip(&geo_basis, 3, poly_order);
-  struct gk_geometry* gk_geom_3d;
-  gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geo_grid, &geo_local, &geo_local_ext, &geo_basis, 
-      geometry_input.mapc2p, geometry_input.c2p_ctx, geometry_input.bmag_func,  geometry_input.bmag_ctx, geo_3d_use_gpu);
+
+  int geo_ghost[3] = {1};
+  geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
+  gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext, &geometry_input.geo_global);
+  memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
+  memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
+
+
+  struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   // deflate geometry
-  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &confGrid, &confLocal, &confLocal_ext, 
-      &confBasis, use_gpu);
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
   // allocate drag coefficients in vparallel and mu for each collision
   // vnu = v_par*nu(v)

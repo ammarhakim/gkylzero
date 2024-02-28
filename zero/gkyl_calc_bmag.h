@@ -33,7 +33,8 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
  * as well as Fpol = RB_phi on the poloidal flux grid).
  *
  * @param up calc_bmag updater object.
- * @param crange, _ext computational Config-space range and extended range.
+ * @param crange, _ext computational local Config-space range and extended range.
+ * @param crange_global, _ext computational global Config-space range and extended range.
  * @param prange, _ext physical RZ range and extended range.
  * @param frange, _ext poloidal flux range and extended range.
  * @param psidg, psibyrdg, psibyr2dg: DG Psi(R,Z), Psi(R,Z)/R, Psi(R,Z)/R^2 on the RZ grid
@@ -45,7 +46,7 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
  * @param gFld output field where metric coefficients will be placed
  */
 
-void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext, const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi);
+void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange, const struct gkyl_range *crange_ext,  const struct gkyl_range *crange_global, const struct gkyl_range *prange, const struct gkyl_range *prange_ext, const struct gkyl_range *frange, const struct gkyl_range* frange_ext, const struct gkyl_array *psidg, const struct gkyl_array *psibyrdg, const struct gkyl_array *psibyr2dg, struct gkyl_array* bmag_compdg, const struct gkyl_array* fpoldg, struct gkyl_array* mapc2p, bool calc_bphi);
 
 /**
  * Delete updater.

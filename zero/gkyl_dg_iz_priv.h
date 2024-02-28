@@ -11,8 +11,9 @@ struct gkyl_dg_iz {
   int cdim; // number of configuration space dimensions
   int poly_order; // polynomial order of DG basis
 
-  const struct gkyl_range *conf_rng;
-  const struct gkyl_range *phase_rng; 
+  const struct gkyl_range *conf_rng; // Configuration-space range
+  const struct gkyl_range *conf_rng_ext; // Configuration-space extended range
+  const struct gkyl_range *phase_rng; // Phase-space range
   bool use_gpu;
   bool all_gk; 
   

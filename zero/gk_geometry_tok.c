@@ -34,68 +34,65 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
 }
 
 struct gk_geometry*
-gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_range *range, const struct gkyl_range* range_ext, 
-  const struct gkyl_basis* basis, void* tok_rz_ctx, void* tok_comp_ctx, bool use_gpu)
+gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
-#ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
-    return gkyl_gk_geometry_tok_cu_dev_new(grid, range, range_ext, basis, tok_rz_ctx, tok_comp_ctx);
-  } 
-#endif 
 
   struct gk_geometry *up = gkyl_malloc(sizeof(struct gk_geometry));
-  up->basis = *basis;
-  up->range = *range;
-  up->range_ext = *range_ext;
-  up->grid = *grid;
+  up->basis = geometry_inp->geo_basis;
+  up->local = geometry_inp->geo_local;
+  up->local_ext = geometry_inp->geo_local_ext;
+  up->global = geometry_inp->geo_global;
+  up->global_ext = geometry_inp->geo_global_ext;
+  up->grid = geometry_inp->geo_grid;
+
   struct gkyl_range nrange;
   double dzc[3] = {0.0};
 
-  int poly_order = basis->poly_order;
-  int nodes[3] = { 1, 1, 1 };
-  if (poly_order == 1){
-    for (int d=0; d<grid->ndim; ++d)
-      nodes[d] = grid->cells[d] + 1;
+  int poly_order = up->basis.poly_order;
+  int nodes[GKYL_MAX_DIM];
+  if (poly_order == 1) {
+    for (int d=0; d<up->grid.ndim; ++d)
+      nodes[d] = gkyl_range_shape(&up->local, d) + 1;
   }
-  if (poly_order == 2){
-    for (int d=0; d<grid->ndim; ++d)
-      nodes[d] = 2*(grid->cells[d]) + 1;
+  if (poly_order == 2) {
+    for (int d=0; d<up->grid.ndim; ++d)
+      nodes[d] = 2*gkyl_range_shape(&up->local, d) + 1;
   }
 
   gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
   struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*13, nrange.volume);
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
+  up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   struct gkyl_array* mc2prz_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*13, nrange.volume);
   struct gkyl_array* mc2prz_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  struct gkyl_array* mc2prz = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->range_ext.volume);
+  struct gkyl_array* mc2prz = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   struct gkyl_array* dphidtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
   struct gkyl_array* bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, nrange.volume);
 
   // bmag, metrics and derived geo quantities
-  up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
-  up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
-  up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->range_ext.volume);
-  up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->range_ext.volume);
-  up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->range_ext.volume);
-  up->cmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->jacobtot = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->bmag_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->bmag_inv_sq = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->gxxj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
-  up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->range_ext.volume);
+  up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->g_ij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
+  up->dxdz = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
+  up->dzdx = gkyl_array_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
+  up->jacobgeo = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->jacobgeo_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->gij = gkyl_array_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
+  up->b_i = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
+  up->cmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->jacobtot = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->jacobtot_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->bmag_inv = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->bmag_inv_sq = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->gxxj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->gxyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 
-  const struct gkyl_tok_geo_efit_inp *inp = tok_rz_ctx;
-  struct gkyl_tok_geo_grid_inp *ginp = tok_comp_ctx;
+  const struct gkyl_tok_geo_efit_inp *inp = geometry_inp->tok_efit_info;
+  struct gkyl_tok_geo_grid_inp *ginp = geometry_inp->tok_grid_info;
   ginp->cgrid = up->grid;
   ginp->cbasis = up->basis;
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(inp);
@@ -104,25 +101,25 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
     mc2p_nodal_fd, mc2p_nodal, up->mc2p, mc2prz_nodal_fd, mc2prz_nodal, mc2prz, dphidtheta_nodal);
   // calculate bmag
   gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
-  gkyl_calc_bmag_advance(bcalculator, &up->range, &up->range_ext, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, up->mc2p, true);
+  gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, geo->fpoldg, up->mc2p, true);
   gkyl_calc_bmag_release(bcalculator);
 
   // Convert bmag to nodal so we can use it to calculate dphidtheta
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->basis, &up->grid, false);
-  gkyl_nodal_ops_m2n(n2m, &up->basis, &up->grid, &nrange, &up->range, 1, bmag_nodal, up->bmag);
+  gkyl_nodal_ops_m2n(n2m, &up->basis, &up->grid, &nrange, &up->local, 1, bmag_nodal, up->bmag);
   gkyl_nodal_ops_release(n2m);
 
 
 
   // now calculate the metrics and tangent vectors using cartesian coordinates
-  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, false);
-  gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, &up->range);
+  struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
+  gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, &up->local);
   // Recalculate the metrics and jacobian using cylindrical coordinates
-  gkyl_calc_metric_advance_rz(mcalc, &nrange, mc2prz_nodal_fd, dphidtheta_nodal, bmag_nodal, dzc, up->g_ij, up->jacobgeo, &up->range);
+  gkyl_calc_metric_advance_rz(mcalc, &nrange, mc2prz_nodal_fd, dphidtheta_nodal, bmag_nodal, dzc, up->g_ij, up->jacobgeo, &up->local);
   gkyl_calc_metric_release(mcalc);
   //// calculate the derived geometric quantities
   gkyl_tok_calc_derived_geo *jcalculator = gkyl_tok_calc_derived_geo_new(&up->basis, &up->grid, false);
-  gkyl_tok_calc_derived_geo_advance(jcalculator, &up->range, up->g_ij, up->bmag, 
+  gkyl_tok_calc_derived_geo_advance(jcalculator, &up->local, up->g_ij, up->bmag, 
     up->jacobgeo, up->jacobgeo_inv, up->gij, up->b_i, up->cmag, up->jacobtot, up->jacobtot_inv, 
     up->bmag_inv, up->bmag_inv_sq, up->gxxj, up->gxyj, up->gyyj, up->gxzj, up->eps2);
   gkyl_tok_calc_derived_geo_release(jcalculator);
@@ -131,26 +128,6 @@ gkyl_gk_geometry_tok_new(const struct gkyl_rect_grid* grid, const struct gkyl_ra
   GKYL_CLEAR_CU_ALLOC(up->flags);
   up->ref_count = gkyl_ref_count_init(gkyl_gk_geometry_free);
   up->on_dev = up; // CPU eqn obj points to itself
-                   
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->mc2p, "mapc2p.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->bmag, "bmag.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->g_ij, "g_ij.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->dxdz, "dxdz.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->dzdx, "dzdx.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->jacobgeo, "jacobgeo.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->jacobgeo_inv, "jacogeo_inv.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->gij, "gij.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->b_i, "b_i.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->cmag, "cmag.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->jacobtot, "jacobtot.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->jacobtot_inv, "jacobtot_inv.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->bmag_inv, "bmag_inv.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->bmag_inv_sq, "bmag_inv_sq.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->gxxj, "gxxj.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->gxyj,  "gxyj.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->gyyj,  "gyyj.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->gxzj,  "gxzj.gkyl");
-  gkyl_grid_sub_array_write(&up->grid, &up->range, up->eps2,  "eps2.gkyl");
 
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);

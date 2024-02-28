@@ -14,19 +14,19 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
     &app->basis, &app->local, &s->local_vel, s->info.mass, app->gk_geom,
     nm, sm->is_integrated, app->use_gpu);    
 
-  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
+  sm->num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(sm->mcalc);
 
   if (sm->is_integrated) {
-    sm->marr = mkarr(app->use_gpu, num_mom, app->local_ext.volume);
+    sm->marr = mkarr(app->use_gpu, sm->num_mom, app->local_ext.volume);
     sm->marr_host = sm->marr;
     if (app->use_gpu)
-      sm->marr_host = mkarr(false, num_mom, app->local_ext.volume);  
+      sm->marr_host = mkarr(false, sm->num_mom, app->local_ext.volume);  
   }
   else {
-    sm->marr = mkarr(app->use_gpu, num_mom*app->confBasis.num_basis, app->local_ext.volume);
+    sm->marr = mkarr(app->use_gpu, sm->num_mom*app->confBasis.num_basis, app->local_ext.volume);
     sm->marr_host = sm->marr;
     if (app->use_gpu)
-      sm->marr_host = mkarr(false, num_mom*app->confBasis.num_basis, app->local_ext.volume);
+      sm->marr_host = mkarr(false, sm->num_mom*app->confBasis.num_basis, app->local_ext.volume);
     // Bin Op memory for rescaling moment by inverse of Jacobian
     if (app->use_gpu)
       sm->mem_geo = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);

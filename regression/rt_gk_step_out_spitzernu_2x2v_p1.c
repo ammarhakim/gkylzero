@@ -54,6 +54,8 @@ struct gkyl_tok_geo_grid_inp ginp = {
     .rclose = 6.2,
     .zmin = -5.14213,
     .zmax = 5.14226,
+    .rmin = 1.1,
+    .rmax = 6.2,
     .write_node_coord_array = true,
     .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   };
@@ -275,7 +277,7 @@ main(int argc, char **argv)
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
     },
-
+    
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
