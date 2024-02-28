@@ -13,6 +13,7 @@
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
+#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_range.h>
@@ -160,7 +161,7 @@ test_1x(int poly_order, bool use_gpu, double te)
       .mapc2p = mapc2p_3x, // mapping of computational to physical space
       .c2p_ctx = 0,
       .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx =0 ,
+      .bmag_ctx = 0 ,
       .grid = confGrid,
       .local = confLocal,
       .local_ext = confLocal_ext,
@@ -168,16 +169,29 @@ test_1x(int poly_order, bool use_gpu, double te)
       .global_ext = confLocal_ext,
       .basis = confBasis,
   };
-  bool geo_3d_use_gpu = use_gpu;
+
+  int geo_ghost[3] = {1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
-  gkyl_create_grid_ranges(&geometry_input.geo_grid, ghost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
-  geo_3d_use_gpu = false;
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
-  struct gk_geometry* gk_geom_3d;
-  gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
-  // deflate geometry if necessary
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext, &geometry_input.geo_global);
+  memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
+  memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
+
+
+  struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+  // deflate geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
+
 
   // allocate drag coefficients in vparallel and mu for each collision
   // vnu = v_par*nu(v)
@@ -424,11 +438,11 @@ test_2x(int poly_order, bool use_gpu, double te)
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
       .geometry_id = GKYL_MAPC2P,
-      .world = {0.0, 0.0},
+      .world = {0.0},
       .mapc2p = mapc2p_3x, // mapping of computational to physical space
       .c2p_ctx = 0,
       .bmag_func = bmag_func_3x, // magnetic field magnitude
-      .bmag_ctx =0 ,
+      .bmag_ctx = 0 ,
       .grid = confGrid,
       .local = confLocal,
       .local_ext = confLocal_ext,
@@ -436,16 +450,28 @@ test_2x(int poly_order, bool use_gpu, double te)
       .global_ext = confLocal_ext,
       .basis = confBasis,
   };
-  bool geo_3d_use_gpu = use_gpu;
+
+  int geo_ghost[3] = {1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
-  gkyl_create_grid_ranges(&geometry_input.geo_grid, ghost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
-  geo_3d_use_gpu = false;
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
-  struct gk_geometry* gk_geom_3d;
-  gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
-  // deflate geometry if necessary
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext, &geometry_input.geo_global);
+  memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
+  memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
+
+
+  struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
+  // deflate geometry
   struct gk_geometry *gk_geom = gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input);
   gkyl_gk_geometry_release(gk_geom_3d);
+
+
+  // If we are on the gpu, copy from host
+  if (use_gpu) {
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(gk_geom, &geometry_input, use_gpu);
+    gkyl_gk_geometry_release(gk_geom);
+    gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
+    gkyl_gk_geometry_release(gk_geom_dev);
+  }
 
   // allocate drag coefficients in vparallel and mu for each collision
   // vnu = v_par*nu(v)
