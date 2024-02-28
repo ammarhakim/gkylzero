@@ -131,6 +131,7 @@ struct gk_species_moment {
   bool is_integrated; // boolean for if computing integrated moments 
                       // integrated moments do not need to divide by Jacobian since
                       // the inverse Jacobian is already included in the computation
+  int num_mom; // number of moments 
 
   struct gkyl_dg_updater_moment *mcalc; // moment update
 
