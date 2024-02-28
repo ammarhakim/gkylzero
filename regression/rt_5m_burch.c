@@ -120,7 +120,7 @@ create_ctx(void)
   double Ly = 20.48 * di; // Domain size (y-direction).
   double cfl_frac = 1.0; // CFL coefficient.
   double t_end = 250.0; // Final simulation time.
-  int num_frames = 2; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   
   struct burch_ctx ctx = {
     .pi = pi,
@@ -398,8 +398,8 @@ main(int argc, char **argv)
 
   struct burch_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  long NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  long NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Electron/ion equations.
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);

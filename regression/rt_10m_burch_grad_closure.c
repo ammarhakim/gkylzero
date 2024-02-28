@@ -70,6 +70,7 @@ struct burch_grad_closure_ctx
   double k0_ion; // Closure parameter for ions.
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  int num_frames; // Number of output frames.
 };
 
 struct burch_grad_closure_ctx
@@ -113,14 +114,15 @@ create_ctx(void)
     + n1 * (Ti1 + Te1) - n2 * Ti2) / n2; // Magnetosheath electron temperature (so that the system is in force balance).
 
   // Simulation parameters.
-  double Nx = 256; // Cell count (x-direction).
-  double Ny = 128; // Cell count (y-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 128; // Cell count (y-direction).
   double Lx = 40.96 * di; // Domain size (x-direction).
   double Ly = 20.48 * di; // Domain size (y-direction).
   double k0_elc = 10.0; // Closure parameter for electrons.
   double k0_ion = 1.0; // Closure parameter for ions.
   double cfl_frac = 1.0; // CFL coefficient.
   double t_end = 250.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   
   struct burch_grad_closure_ctx ctx = {
     .pi = pi,
@@ -159,6 +161,7 @@ create_ctx(void)
     .k0_ion = k0_ion,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .num_frames = num_frames,
   };
 
   return ctx;
@@ -379,6 +382,15 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
+void
+write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr))
+  {
+    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+  }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -435,20 +447,32 @@ main(int argc, char **argv)
 
   // Create global range.
   int cells[] = { NX, NY };
-  struct gkyl_range globalr;
-  gkyl_create_global_range(2, cells, &globalr);
+  int dim = sizeof(cells) / sizeof(cells[0]);
+  struct gkyl_range global_r;
+  gkyl_create_global_range(dim, cells, &global_r);
 
   // Create decomposition.
-  int cuts[] = { 1, 1 };
+  int cuts[dim];
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  for (int d = 0; d < dim; d++)
   {
-    cuts[0] = app_args.cuts[0];
-    cuts[1] = app_args.cuts[1];
+    if (app_args.use_mpi)
+    {
+      cuts[d] = app_args.cuts[d];
+    }
+    else
+    {
+      cuts[d] = 1;
+    }
+  }
+#else
+  for (int d = 0; d < dim; d++)
+  {
+    cuts[d] = 1;
   }
 #endif
 
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &globalr);
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(dim, cuts, &global_r);
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
@@ -485,7 +509,12 @@ main(int argc, char **argv)
   int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
-  int ncuts = cuts[0] * cuts[1];
+  int ncuts = 1;
+  for (int d = 0; d < dim; d++)
+  {
+    ncuts *= cuts[d];
+  }
+
   if (ncuts != comm_size)
   {
     if (my_rank == 0)
@@ -533,9 +562,13 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
+  // Create trigger for IO.
+  int num_frames = ctx.num_frames;
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+
   // Initialize simulation.
   gkyl_moment_app_apply_ic(app, t_curr);
-  gkyl_moment_app_write(app, t_curr, 0);
+  write_data(&io_trig, app, t_curr);
 
   // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
@@ -556,10 +589,12 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
+    write_data(&io_trig, app, t_curr);
+
     step += 1;
   }
 
-  gkyl_moment_app_write(app, t_curr, 1);
+  write_data(&io_trig, app, t_curr);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
