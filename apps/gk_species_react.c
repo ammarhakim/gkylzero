@@ -119,7 +119,6 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
         gkyl_dg_div_op_range(react->moms_donor[i].mem_geo, app->confBasis, j, react->moms_donor[i].marr, j,
           react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
       }
-      
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
       gkyl_array_set_range(react->m0_donor[i], 1.0, react->moms_donor[i].marr, &app->local);
 
@@ -135,15 +134,12 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gk_species_moment_calc(&react->moms_ion[i], app->species[react->ion_idx[i]].local,
         app->local, fin[react->ion_idx[i]]);
 
-      // make a loop 
-      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 0, react->moms_elc[i].marr, 0, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 1, react->moms_elc[i].marr, 1, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-      gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, 2, react->moms_elc[i].marr, 2, react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-
-      gkyl_dg_div_op_range(react->moms_ion[i].mem_geo, app->confBasis, 0, react->moms_ion[i].marr, 0, react->moms_ion[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-      gkyl_dg_div_op_range(react->moms_ion[i].mem_geo, app->confBasis, 1, react->moms_ion[i].marr, 1, react->moms_ion[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-      gkyl_dg_div_op_range(react->moms_ion[i].mem_geo, app->confBasis, 2, react->moms_ion[i].marr, 2, react->moms_ion[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-
+      for (int j=0; j<3; ++j) {
+        gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, j, react->moms_elc[i].marr, j,
+          react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+        gkyl_dg_div_op_range(react->moms_ion[i].mem_geo, app->confBasis, j, react->moms_ion[i].marr, j,
+          react->moms_ion[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+      }
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
       gkyl_array_set_range(react->m0_ion[i], 1.0, react->moms_ion[i].marr, &app->local);
       
