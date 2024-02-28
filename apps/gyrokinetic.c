@@ -260,11 +260,13 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   // allocated in gk_species_init and gk_neut_species_init
   for (int i=0; i<ns; ++i) {
     // initialize cross-species collisions (e.g, LBO or BGK)
-    if (app->species[i].lbo.num_cross_collisions || app->species[i].bgk.num_cross_collisions) {
-      if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+      if (app->species[i].lbo.num_cross_collisions) {
         gk_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
       }
-      else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+    }
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      if (app->species[i].bgk.num_cross_collisions) {
         gk_species_bgk_cross_init(app, &app->species[i], &app->species[i].bgk);
       }
     }
@@ -283,7 +285,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   }
   // initialize neutral species cross-species reactions with plasma species
   for (int i=0; i<neuts; ++i) {
-    if (app->neut_species[i].react_neut.num_react) {
+    if (app->neut_species[i].has_neutral_reactions) {
       gk_neut_species_react_cross_init(app, &app->neut_species[i], &app->neut_species[i].react_neut);
     }
   }
@@ -343,7 +345,7 @@ int
 gk_find_neut_species_idx(const gkyl_gyrokinetic_app *app, const char *nm)
 {
   for (int i=0; i<app->num_neut_species; ++i)
-    if (strcmp(nm, app->species[i].info.name) == 0)
+    if (strcmp(nm, app->neut_species[i].info.name) == 0)
       return i;
   return -1;
 }
@@ -466,6 +468,28 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
       gkyl_gyrokinetic_app_write_coll_mom(app, i, tm, frame);
     if (app->species[i].radiation_id == GKYL_GK_RADIATION)
       gkyl_gyrokinetic_app_write_rad_drag(app, i, tm, frame);
+
+    if (app->species[i].has_reactions) {
+      for (int j=0; j<app->species[i].react.num_react; ++j) {
+	if ((app->species[i].react.react_id[j] == GKYL_REACT_IZ) && (app->species[i].react.type_self[j] == GKYL_SELF_ELC)) {
+	  gkyl_gyrokinetic_app_write_iz_react(app, i, j, tm, frame);
+	}
+	if ((app->species[i].react.react_id[j] == GKYL_REACT_RECOMB) && (app->species[i].react.type_self[j] == GKYL_SELF_ELC)) {
+	  gkyl_gyrokinetic_app_write_recomb_react(app, i, j, tm, frame);
+	}
+      }
+    }
+    if (app->species[i].has_neutral_reactions) {
+      for (int j=0; j<app->species[i].react_neut.num_react; ++j) {
+    	if ((app->species[i].react_neut.react_id[j] == GKYL_REACT_IZ) && (app->species[i].react_neut.type_self[j] == GKYL_SELF_ELC)) {
+    	  gkyl_gyrokinetic_app_write_iz_react_neut(app, i, j, tm, frame);
+    	}
+    	if ((app->species[i].react_neut.react_id[j] == GKYL_REACT_RECOMB) && (app->species[i].react_neut.type_self[j] == GKYL_SELF_ELC)) {
+    	  gkyl_gyrokinetic_app_write_recomb_react_neut(app, i, j, tm, frame);
+    	}
+      }
+    }
+
   }
 
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
@@ -623,6 +647,118 @@ gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double 
   gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvnu_host, fileNm_nvnu);
   gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvsqnu_surf_host, fileNm_nvsqnu_surf);
   gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvsqnu_host, fileNm_nvsqnu);
+}
+
+void
+gkyl_gyrokinetic_app_write_iz_react(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
+{
+  struct gk_species *s = &app->species[sidx];
+
+  // Compute reaction rate
+  const struct gkyl_array *fin[app->num_species];
+  const struct gkyl_array *fin_neut[app->num_neut_species];
+  for (int i=0; i<app->num_species; ++i) 
+    fin[i] = app->species[i].f;
+  for (int i=0; i<app->num_neut_species; ++i)
+    fin_neut[i] = app->neut_species[i].f;
+  gk_species_react_cross_moms(app, s, &s->react, fin[sidx], fin, fin_neut);
+
+  const char *fmt = "%s-%s_%s_%s_iz_react_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name,
+    s->react.react_type[ridx].ion_nm, s->react.react_type[ridx].donor_nm, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name,
+    s->react.react_type[ridx].ion_nm, s->react.react_type[ridx].donor_nm, frame);
+  
+  if (app->use_gpu) {
+    gkyl_array_copy(s->react.coeff_react_host[ridx], s->react.coeff_react[ridx]);
+  }
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react.coeff_react_host[ridx], fileNm);
+
+}
+
+void
+gkyl_gyrokinetic_app_write_recomb_react(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
+{
+  struct gk_species *s = &app->species[sidx];
+
+  // Compute reaction rate
+  const struct gkyl_array *fin[app->num_species];
+  const struct gkyl_array *fin_neut[app->num_neut_species];
+  for (int i=0; i<app->num_species; ++i) 
+    fin[i] = app->species[i].f;
+  for (int i=0; i<app->num_neut_species; ++i) 
+    fin_neut[i] = app->neut_species[i].f;  
+  gk_species_react_cross_moms(app, s, &s->react, fin[sidx], fin, fin_neut);
+
+  const char *fmt = "%s-%s_%s_%s_recomb_react_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name,
+    s->react.react_type[ridx].ion_nm, s->react.react_type[ridx].recvr_nm, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name,
+    s->react.react_type[ridx].ion_nm, s->react.react_type[ridx].recvr_nm, frame);
+  
+  if (app->use_gpu) {
+    gkyl_array_copy(s->react.coeff_react_host[ridx], s->react.coeff_react[ridx]);
+  }
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react.coeff_react_host[ridx], fileNm);
+
+}
+
+void
+gkyl_gyrokinetic_app_write_iz_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
+{
+  struct gk_species *s = &app->species[sidx];
+
+  // Compute reaction rate
+  const struct gkyl_array *fin[app->num_species];
+  const struct gkyl_array *fin_neut[app->num_neut_species];
+  for (int i=0; i<app->num_species; ++i) 
+    fin[i] = app->species[i].f;
+  for (int i=0; i<app->num_neut_species; ++i)
+    fin_neut[i] = app->neut_species[i].f;
+  gk_species_react_cross_moms(app, s, &s->react_neut, fin[sidx], fin, fin_neut);
+
+  const char *fmt = "%s-%s_%s_%s_iz_react_neut_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name,
+    s->react_neut.react_type[ridx].ion_nm, s->react_neut.react_type[ridx].donor_nm, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name,
+    s->react_neut.react_type[ridx].ion_nm, s->react_neut.react_type[ridx].donor_nm, frame);
+  
+  if (app->use_gpu) {
+    gkyl_array_copy(s->react_neut.coeff_react_host[ridx], s->react_neut.coeff_react[ridx]);
+  }
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react_neut.coeff_react_host[ridx], fileNm);
+
+}
+
+void
+gkyl_gyrokinetic_app_write_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)
+{
+  struct gk_species *s = &app->species[sidx];
+
+  // Compute reaction rate
+  const struct gkyl_array *fin[app->num_species];
+  const struct gkyl_array *fin_neut[app->num_neut_species];
+  for (int i=0; i<app->num_species; ++i) 
+    fin[i] = app->species[i].f;
+  for (int i=0; i<app->num_neut_species; ++i) 
+    fin_neut[i] = app->neut_species[i].f;  
+  gk_species_react_cross_moms(app, s, &s->react_neut, fin[sidx], fin, fin_neut);
+
+  const char *fmt = "%s-%s_%s_%s_recomb_react_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, s->info.name,
+    s->react_neut.react_type[ridx].ion_nm, s->react_neut.react_type[ridx].recvr_nm, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name,
+    s->react_neut.react_type[ridx].ion_nm, s->react_neut.react_type[ridx].recvr_nm, frame);
+  
+  if (app->use_gpu) {
+    gkyl_array_copy(s->react_neut.coeff_react_host[ridx], s->react_neut.coeff_react[ridx]);
+  }
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react_neut.coeff_react_host[ridx], fileNm);
+
 }
 
 void
@@ -1114,14 +1250,16 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   // compute necessary moments for cross-species collisions
   // needs to be done after self-collisions moments, so separate loop over species
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].lbo.num_cross_collisions || app->species[i].bgk.num_cross_collisions) {
-      if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
+    if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) { 
+      if (app->species[i].lbo.num_cross_collisions) {
         gk_species_lbo_cross_moms(app, &app->species[i], 
-          &app->species[i].lbo, fin[i]);
+          &app->species[i].lbo, fin[i]);        
       }
-      else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+    }
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      if (app->species[i].bgk.num_cross_collisions) {
         gk_species_bgk_cross_moms(app, &app->species[i], 
-          &app->species[i].bgk, fin[i]);
+          &app->species[i].bgk, fin[i]);        
       }
     }
     // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
