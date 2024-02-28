@@ -11,7 +11,7 @@
 #include <assert.h>
 
 typedef int (*gyrokinetic_alpha_surf_t)(const double *w, const double *dxv, 
-  const double q_, const double m_, 
+  const double *vmap, const double *vmapSq, const double q_, const double m_, 
   const double *bmag, const double *jacobtot_inv, const double *cmag, const double *b_i, 
   const double *phi, double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 
@@ -37,6 +37,8 @@ struct gkyl_dg_calc_gyrokinetic_vars {
                                                // at upper configuration space edge
   double charge, mass;
   const struct gk_geometry *gk_geom; // Pointer to geometry struct
+  const struct gkyl_array *vmap; // Velocity space mappings.
+  const struct gkyl_array *vmapSq; // Velocity space mappings squared.
 
   uint32_t flags;
   struct gkyl_dg_calc_gyrokinetic_vars *on_dev; // pointer to itself or device data
@@ -243,3 +245,23 @@ choose_gyrokinetic_alpha_no_by_surf_vpar_kern(int cdim, int vdim, int poly_order
 {
   return ser_gyrokinetic_alpha_no_by_surfvpar_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 }
+
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Create new updater to compute gyrokinetic variables on
+ * NV-GPU. See new() method for documentation.
+ */
+struct gkyl_dg_calc_gyrokinetic_vars* 
+gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
+  double charge, double mass, enum gkyl_gkmodel_id gkmodel_id, 
+  const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, const struct gkyl_array *vmapSq);
+
+/**
+ * Host-side wrappers for gyrokinetic vars operations on device
+ */
+void gkyl_dg_calc_gyrokinetic_vars_alpha_surf_cu(struct gkyl_dg_calc_gyrokinetic_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
+  struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha);
+#endif

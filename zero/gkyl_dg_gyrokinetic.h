@@ -24,27 +24,22 @@ struct gkyl_dg_gyrokinetic_auxfields {
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis functions
  * @param conf_range Configuration space range for use in indexing EM field
+ * @param vel_range Velocity space range for use in indexing velocity mappping.
  * @param phase_range Phase space range for use in indexing surface expansion of alpha
  * @param charge Species charge
  * @param mass Species mass
  * @param gkmodel_id Model ID for gyrokinetics (e.g., general geometry vs. no toroidal field, see gkyl_eqn_type.h)
  * @param gk_geom Geometry struct
+ * @param vmap Velocity space mapping.
+ * @param vmapSq Velocity space mapping squared.
+ * @param vmap_prime Derivative of the velocity space mapping.
  * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
  * @return Pointer to Gyrokinetic equation object
  */
-struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, bool use_gpu);
-
-/**
- * Create new Gyrokinetic equation object on NV-GPU: 
- * see new() method above for documentation.
- */
-struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom);
+struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range, 
+  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, const struct gk_geometry *gk_geom, 
+  const struct gkyl_array *vmap, const struct gkyl_array *vmapSq, const struct gkyl_array *vmap_prime, bool use_gpu);
 
 /**
  * Set the auxiliary fields (e.g. EM fields) needed in computing
@@ -54,17 +49,5 @@ struct gkyl_dg_eqn* gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbas
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
-
-#ifdef GKYL_HAVE_CUDA
-/**
- * CUDA device function to set the auxiliary fields (e.g. geometry & EM fields)
- * needed in computing gyrokinetic updates.
- *
- * @param eqn Equation pointer
- * @param auxfields Pointer to struct of aux fields.
- */
-void gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin);
-
-#endif
 
 

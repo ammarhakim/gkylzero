@@ -98,20 +98,37 @@ void bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx
 }
 
 // Velocity space mappings.
-void mapc2p_vel_ion(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
+  double vpar_max = app->vpar_max_ion;
   double mu_max = app->mu_max_ion;
-  xp[0] = xc[0];
-  xp[1] = mu_max*pow(xc[1],2);
+
+  double cvpar = vc[0], cmu = vc[1];
+  vp[0] = cvpar;
+//  if (cvpar < 0.)
+//    vp[0] = vpar_max*pow(cvpar,1);
+//  else
+//    vp[0] =  vpar_max*pow(cvpar,1);
+
+  vp[1] = mu_max*pow(cmu,2);
 }
 
-void mapc2p_vel_elc(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
+void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
+  double vpar_max = app->vpar_max_elc;
   double mu_max = app->mu_max_elc;
-  xp[0] = xc[0];
-  xp[1] = mu_max*pow(xc[1],2);
+
+  double cvpar = vc[0], cmu = vc[1];
+//  vp[0] = cvpar;
+  if (cvpar < 0.)
+    vp[0] = vpar_max*pow(cvpar,1);
+  else
+    vp[0] =  vpar_max*pow(cvpar,1);
+
+  vp[1] = cmu;
+//  vp[1] = mu_max*pow(cmu,2);
 }
 
 struct gk_app_ctx
@@ -150,13 +167,18 @@ create_ctx(void)
   // Computational velocity space limits.
   double vpar_min_ion_c = -vpar_max_ion;
   double vpar_max_ion_c =  vpar_max_ion;
+//  double vpar_min_ion_c = -1.0;
+//  double vpar_max_ion_c =  1.0;
   double mu_min_ion_c = 0.;
   double mu_max_ion_c = 1.;
   // Computational velocity space limits.
-  double vpar_min_elc_c = -vpar_max_elc;
-  double vpar_max_elc_c =  vpar_max_elc;
+//  double vpar_min_elc_c = -vpar_max_elc;
+//  double vpar_max_elc_c =  vpar_max_elc;
+  double vpar_min_elc_c = -1.0;
+  double vpar_max_elc_c =  1.0;
   double mu_min_elc_c = 0.;
-  double mu_max_elc_c = 1.;
+  double mu_max_elc_c = mu_max_elc;
+//  double mu_max_elc_c = 1.;
 
   double finalTime = 2.0; 
   double numFrames = 100;

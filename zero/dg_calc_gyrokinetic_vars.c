@@ -13,7 +13,8 @@ gkyl_dg_calc_gyrokinetic_vars*
 gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom, bool use_gpu)
+  const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, const struct gkyl_array *vmapSq,
+  bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
@@ -34,6 +35,8 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
   up->charge = charge;
   up->mass = mass;
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
+  up->vmap = vmap;
+  up->vmapSq = vmapSq;
 
   if (gkmodel_id == GKYL_GK_MODEL_NO_BY) {
     for (int d=0; d<cdim; ++d) {
@@ -41,8 +44,7 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
       up->alpha_edge_surf[d] = choose_gyrokinetic_alpha_no_by_edge_surf_conf_kern(d, cdim, vdim, poly_order);
     }
     up->alpha_surf[cdim] = choose_gyrokinetic_alpha_no_by_surf_vpar_kern(cdim, vdim, poly_order);
-  }
-  else {
+  } else {
     for (int d=0; d<cdim; ++d) {
       up->alpha_surf[d] = choose_gyrokinetic_alpha_surf_conf_kern(d, cdim, vdim, poly_order);
       up->alpha_edge_surf[d] = choose_gyrokinetic_alpha_edge_surf_conf_kern(d, cdim, vdim, poly_order);
@@ -58,8 +60,8 @@ gkyl_dg_calc_gyrokinetic_vars_new(const struct gkyl_rect_grid *phase_grid,
 }
 
 void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,  const struct gkyl_range *phase_ext_range, 
-  const struct gkyl_array *phi, 
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
+  const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 {
 #ifdef GKYL_HAVE_CUDA
@@ -70,15 +72,20 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
 #endif
   int pdim = up->pdim;
   int cdim = up->cdim;
-  int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
+  int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM], idx_vel[2];
   double xc[GKYL_MAX_DIM];
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
 
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(pdim, iter.idx, idx);
+
+    for (int d=cdim; d<pdim; d++) idx_vel[d-cdim] = iter.idx[d];
+
     long loc_conf = gkyl_range_idx(conf_range, idx);
+    long loc_vel = gkyl_range_idx(vel_range, idx_vel);
     long loc_phase = gkyl_range_idx(phase_range, idx);
+
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
     const double *bmag_d = gkyl_array_cfetch(up->gk_geom->bmag, loc_conf);
@@ -86,13 +93,17 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
     const double *cmag_d = gkyl_array_cfetch(up->gk_geom->cmag, loc_conf);
     const double *b_i_d = gkyl_array_cfetch(up->gk_geom->b_i, loc_conf);
     const double *phi_d = gkyl_array_cfetch(phi, loc_conf);
+    const double *vmap_d = gkyl_array_cfetch(up->vmap, loc_vel);
+    const double *vmapSq_d = gkyl_array_cfetch(up->vmapSq, loc_vel);
 
-    double* alpha_surf_d = gkyl_array_fetch(alpha_surf, loc_phase);
-    double* sgn_alpha_surf_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase);
-    int* const_sgn_alpha_d = gkyl_array_fetch(const_sgn_alpha, loc_phase);
+    double *alpha_surf_d = gkyl_array_fetch(alpha_surf, loc_phase);
+    double *sgn_alpha_surf_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase);
+    int *const_sgn_alpha_d = gkyl_array_fetch(const_sgn_alpha, loc_phase);
+
     for (int dir = 0; dir<cdim+1; ++dir) {
       const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
-        up->charge, up->mass, bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, 
+        vmap_d, vmapSq_d, up->charge, up->mass,
+        bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, 
         alpha_surf_d, sgn_alpha_surf_d);
 
       // If the phase space index is at the local configuration space upper value, we
@@ -109,7 +120,8 @@ void gkyl_dg_calc_gyrokinetic_vars_alpha_surf(struct gkyl_dg_calc_gyrokinetic_va
         double* sgn_alpha_surf_ext_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
         int* const_sgn_alpha_ext_d = gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
         const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->phase_grid.dx, 
-          up->charge, up->mass, bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, 
+          vmap_d, vmapSq_d, up->charge, up->mass,
+          bmag_d, jacobtot_inv_d, cmag_d, b_i_d, phi_d, 
           alpha_surf_ext_d, sgn_alpha_surf_ext_d);
       }  
     }

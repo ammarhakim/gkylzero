@@ -42,8 +42,8 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     gkyl_cart_modal_serendip(&vmapSq_basis_ho, 1, vmapSq_poly_order);
 
     s->vmap       = mkarr(app->use_gpu, vdim*vmap_basis_ho.num_basis, s->local_ext_vel.volume);
-    s->vmap_prime = mkarr(app->use_gpu, vdim, s->local_ext_vel.volume);
     s->vmapSq     = mkarr(app->use_gpu, vdim*vmapSq_basis_ho.num_basis, s->local_ext_vel.volume);
+    s->vmap_prime = mkarr(app->use_gpu, vdim, s->local_ext_vel.volume);
 
     // Project the velocity mapping (onto a 2D basis).
     struct gkyl_array *vmap2d = mkarr(app->use_gpu, vdim*vmap_basis2d_ho.num_basis, s->local_ext_vel.volume);
@@ -74,14 +74,15 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     struct gkyl_array *vmap_prime1d = mkarr(app->use_gpu, 1, s->local_ext_vel.volume);
     struct gkyl_array *vmap1d_p2 = mkarr(app->use_gpu, vmapSq_basis_ho.num_basis, s->local_ext_vel.volume);
     for (int d=0; d<vdim; d++) {
-      // Compute the derivative of the mapping.
       gkyl_array_set_offset(vmap1d, 1., s->vmap, d*vmap_basis_ho.num_basis);
-      gkyl_array_set_offset(vmap_prime1d, sqrt(6.)/s->grid_vel.dx[d], vmap1d, 1);
-      gkyl_array_set_offset(s->vmap_prime, 1., vmap_prime1d, d);
 
       // Compute the square mapping via weak multiplication.
       gkyl_array_set_offset(vmap1d_p2, 1., vmap1d, 0);
       gkyl_dg_mul_op(vmapSq_basis_ho, d*vmapSq_basis_ho.num_basis, s->vmapSq, 0, vmap1d_p2, 0, vmap1d_p2);
+
+      // Compute the derivative of the mapping.
+      gkyl_array_set_offset(vmap_prime1d, sqrt(6.)/s->grid_vel.dx[d], vmap1d, 1);
+      gkyl_array_set_offset(s->vmap_prime, 1., vmap_prime1d, d);
     }
     gkyl_array_release(vmap1d);
     gkyl_array_release(vmap_prime1d);
@@ -110,7 +111,7 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
     int sz;
     // Write out the velocity mapping.
-    struct gkyl_array *vmap_ho = mkarr(false, vdim*vmap_basis_ho.num_basis, s->local_ext_vel.volume);
+    struct gkyl_array *vmap_ho = mkarr(false, s->vmap->ncomp, s->vmap->size);
     gkyl_array_copy(vmap_ho, s->vmap);
     const char *fmt0 = "%s-%s_mapc2p_vel.gkyl";
     sz = gkyl_calc_strlen(fmt0, app->name, s->info.name);
@@ -126,8 +127,26 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     snprintf(fileNm1, sizeof fileNm1, fmt1, app->name, s->info.name);
     gkyl_comm_array_write(s->comm, &s->grid, &s->local, jacobvel_ho, fileNm1);
 
+//    // Write out the velocity mapping derivative.
+//    const char *fmt2 = "%s-%s_mapc2p_vel_prime.gkyl";
+//    sz = gkyl_calc_strlen(fmt2, app->name, s->info.name);
+//    char fileNm2[sz+1]; // ensures no buffer overflow
+//    snprintf(fileNm2, sizeof fileNm2, fmt2, app->name, s->info.name);
+//    gkyl_comm_array_write(s->comm, &s->grid_vel, &s->local_vel, vmap_prime_ho, fileNm2);
+//
+//    // Write out the velocity mapping squared.
+//    struct gkyl_array *vmapSq_ho = mkarr(false, s->vmapSq->ncomp, s->vmapSq->size);
+//    gkyl_array_copy(vmapSq_ho, s->vmapSq);
+//    const char *fmt3 = "%s-%s_mapc2p_vel_sq.gkyl";
+//    sz = gkyl_calc_strlen(fmt3, app->name, s->info.name);
+//    char fileNm3[sz+1]; // ensures no buffer overflow
+//    snprintf(fileNm3, sizeof fileNm3, fmt3, app->name, s->info.name);
+//    gkyl_comm_array_write(s->comm, &s->grid_vel, &s->local_vel, vmapSq_ho, fileNm3);
+//    gkyl_array_release(vmapSq_ho);
+
     gkyl_array_release(vmap_prime_ho);
     gkyl_array_release(jacobvel_ho);
+
   }
 }
 
@@ -246,7 +265,7 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   s->apardot = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);    
 
   s->calc_gk_vars = gkyl_dg_calc_gyrokinetic_vars_new(&s->grid, &app->confBasis, &app->basis, 
-    s->info.charge, s->info.mass, s->gkmodel_id, app->gk_geom, app->use_gpu);
+    s->info.charge, s->info.mass, s->gkmodel_id, app->gk_geom, s->vmap, s->vmapSq, app->use_gpu);
 
   // by default, we do not have zero-flux boundary conditions in any direction
   bool is_zero_flux[GKYL_MAX_DIM] = {false};
@@ -280,9 +299,9 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     .phi = s->phi, .apar = s->apar, .apardot = s->apardot };
   // create solver
   s->slvr = gkyl_dg_updater_gyrokinetic_new(&s->grid, &app->confBasis, &app->basis, 
-    &app->local, &s->local, is_zero_flux, 
+    &app->local, &s->local_vel, &s->local, is_zero_flux, 
     s->info.charge, s->info.mass, s->gkmodel_id, 
-    app->gk_geom, &aux_inp, app->use_gpu);
+    app->gk_geom, s->vmap, s->vmapSq, s->vmap_prime, &aux_inp, app->use_gpu);
 
   // acquire equation object
   s->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(s->slvr);
@@ -458,7 +477,7 @@ gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   // to avoid evaluating quantities such as geometry in ghost cells
   // where they are not defined.
   gkyl_dg_calc_gyrokinetic_vars_alpha_surf(species->calc_gk_vars, 
-    &app->local, &species->local, &species->local_ext, 
+    &app->local, &species->local_vel, &species->local, &species->local_ext, 
     species->phi, species->alpha_surf, species->sgn_alpha_surf, species->const_sgn_alpha);
 
   gkyl_dg_updater_gyrokinetic_advance(species->slvr, &species->local, 
