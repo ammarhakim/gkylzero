@@ -30,6 +30,7 @@ struct burgers_shock_ctx
   double Lx; // Domain size (x-direction).
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  int num_frames; // Number of output frames.
 };
 
 struct burgers_shock_ctx
@@ -40,12 +41,14 @@ create_ctx(void)
   double Lx = 6.0; // Domain size (x-direction).
   double cfl_frac = 0.9; // CFL coefficient.
   double t_end = 0.4; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
 
   struct burgers_shock_ctx ctx = {
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .num_frames = num_frames,
   };
 
   return ctx;
@@ -65,6 +68,15 @@ evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, v
 
   // Set advected quantity.
   fout[0] = f;
+}
+
+void
+write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr))
+  {
+    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+  }
 }
 
 int
@@ -113,19 +125,32 @@ main(int argc, char **argv)
 
   // Create global range.
   int cells[] = { NX };
-  struct gkyl_range globalr;
-  gkyl_create_global_range(1, cells, &globalr);
+  int dim = sizeof(cells) / sizeof(cells[0]);
+  struct gkyl_range global_r;
+  gkyl_create_global_range(dim, cells, &global_r);
 
   // Create decomposition.
-  int cuts[] = { 1 };
+  int cuts[dim];
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  for (int d = 0; d < dim; d++)
   {
-    cuts[0] = app_args.cuts[0];
+    if (app_args.use_mpi)
+    {
+      cuts[d] = app_args.cuts[d];
+    }
+    else
+    {
+      cuts[d] = 1;
+    }
+  }
+#else
+  for (int d = 0; d < dim; d++)
+  {
+    cuts[d] = 1;
   }
 #endif
 
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(1, cuts, &globalr);
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(dim, cuts, &global_r);
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
@@ -162,7 +187,12 @@ main(int argc, char **argv)
   int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
-  int ncuts = cuts[0];
+  int ncuts = 1;
+  for (int d = 0; d < dim; d++)
+  {
+    ncuts *= cuts[d];
+  }
+
   if (ncuts != comm_size)
   {
     if (my_rank == 0)
@@ -199,9 +229,13 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
+  // Create trigger for IO.
+  int num_frames = ctx.num_frames;
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+
   // Initialize simulation.
   gkyl_moment_app_apply_ic(app, t_curr);
-  gkyl_moment_app_write(app, t_curr, 0);
+  write_data(&io_trig, app, t_curr);
 
   // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
@@ -222,10 +256,12 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
+    write_data(&io_trig, app, t_curr);
+
     step += 1;
   }
 
-  gkyl_moment_app_write(app, t_curr, 1);
+  write_data(&io_trig, app, t_curr);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
