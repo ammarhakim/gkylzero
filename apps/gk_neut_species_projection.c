@@ -25,11 +25,11 @@ gk_neut_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
     proj->m0 = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->udrift = mkarr(false, vdim*app->confBasis.num_basis, app->local_ext.volume);
     proj->vtsq = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-    proj->prim_moms = mkarr(false, (1+vdim)*app->confBasis.num_basis, app->local_ext.volume);
+    proj->prim_moms = mkarr(false, (2+vdim)*app->confBasis.num_basis, app->local_ext.volume);
     // for correcting the density
     proj->m0mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     if (app->use_gpu) {
-      proj->prim_moms_dev = mkarr(app->use_gpu, (1+vdim)*app->confBasis.num_basis, app->local_ext.volume);
+      proj->prim_moms_dev = mkarr(app->use_gpu, (2+vdim)*app->confBasis.num_basis, app->local_ext.volume);
       proj->m0_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
       proj->mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
     }

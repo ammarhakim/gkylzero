@@ -93,10 +93,10 @@ gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut
         app->local, fin_neut[react->donor_idx[i]]);  
 
       for (int j=0; j<5; ++j) {
-	gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, j, react->moms_elc[i].marr, j,
-	  react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);      
-	gkyl_dg_div_op_range(react->moms_donor[i].mem_geo, app->confBasis, j, react->moms_donor[i].marr, j,
-	  react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+        gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, j, react->moms_elc[i].marr, j,
+          react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);      
+        gkyl_dg_div_op_range(react->moms_donor[i].mem_geo, app->confBasis, j, react->moms_donor[i].marr, j,
+          react->moms_donor[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
       }
       
       gkyl_array_set_range(react->m0_elc[i], 1.0, react->moms_elc[i].marr, &app->local);
@@ -114,9 +114,9 @@ gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut
         app->local, fin[react->ion_idx[i]]);
 
       for (int j=0; j<5; ++j) {
-	gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, j, react->moms_elc[i].marr, j,
+        gkyl_dg_div_op_range(react->moms_elc[i].mem_geo, app->confBasis, j, react->moms_elc[i].marr, j,
           react->moms_elc[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-	gkyl_dg_div_op_range(react->moms_ion[i].mem_geo, app->confBasis, j, react->moms_ion[i].marr, j,
+        gkyl_dg_div_op_range(react->moms_ion[i].mem_geo, app->confBasis, j, react->moms_ion[i].marr, j,
           react->moms_ion[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
       }
       
@@ -152,7 +152,7 @@ gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_neut_specie
         react->moms_ion[i].marr, react->prim_vars[i], react->f_react);
       gk_neut_species_moment_calc(&s->m0, s->local_ext, app->local_ext, react->f_react); 
       gkyl_dg_div_op_range(s->m0.mem_geo, app->confBasis, 0, react->m0_mod[i], 0,
-			     react->moms_ion[i], 0, s->m0.marr, &app->local);
+			     react->moms_ion[i].marr, 0, s->m0.marr, &app->local);
       gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react, 
           react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
 

@@ -133,6 +133,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
     }
   }
 
+  s->has_neutral_reactions = false;
   if (!s->info.is_static) {
     struct gkyl_dg_vlasov_auxfields aux_inp = {.field = 0, .cot_vec = s->cot_vec, 
       .alpha_surf = s->alpha_surf, .sgn_alpha_surf = s->sgn_alpha_surf, .const_sgn_alpha = s->const_sgn_alpha };
@@ -144,6 +145,11 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
     // acquire equation object
     s->eqn_vlasov = gkyl_dg_updater_vlasov_acquire_eqn(s->slvr);
+
+    if (s->info.react_neut.num_react) {
+      s->has_neutral_reactions = true;
+      gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
+    }
   }
 
   // allocate date for density 
@@ -168,12 +174,6 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
   // set species source id
   s->source_id = s->info.source.source_id;
-
-  s->has_neutral_reactions = false;
-  if (s->info.react_neut.num_react) {
-    s->has_neutral_reactions = true;
-    gk_neut_species_react_init(app, s, s->info.react_neut, &s->react_neut);
-  }
 
   // create ranges and allocate buffers for applying periodic and non-periodic BCs
   long buff_sz = 0;
@@ -264,6 +264,9 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
     gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
       fin, species->cflrate, rhs);
 
+    if (species->has_neutral_reactions)
+      gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
+
     app->stat.nspecies_omega_cfl +=1;
     struct timespec tm = gkyl_wall_clock();
     gkyl_array_reduce_range(species->omega_cfl_ptr, species->cflrate, GKYL_MAX, &species->local);
@@ -277,11 +280,8 @@ gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
 
     app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   }
-  else if (species->has_neutral_reactions)
-    gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
 
   return app->cfl/omega_cfl;
-
 }
 
 // Determine which directions are periodic and which directions are not periodic,
