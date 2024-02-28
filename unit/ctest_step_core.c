@@ -63,8 +63,10 @@ test_deep_core()
     .rclose = 6.2,
     .rleft= 1.1,
     .rright= 6.2,
-    .zmin = -6.2,
-    .zmax = 6.2,
+    .zxpt_lo = -6.2,
+    .zxpt_up = 6.2,
+    .rmin = 1.5,
+    .rmax = 6.2,
 
     .write_node_coord_array = true,
     .node_file_nm = "stepcore_nodes.gkyl"
@@ -147,8 +149,10 @@ test_boundary()
     .rclose = 6.2,
     .rleft= 1.1,
     .rright= 6.2,
-    .zmin = -6.2,
-    .zmax = 6.2,
+    .zxpt_lo = -6.2,
+    .zxpt_up = 6.2,
+    .rmin = 1.5,
+    .rmax = 6.2,
 
     .write_node_coord_array = true,
     .node_file_nm = "stepbry_nodes.gkyl"
