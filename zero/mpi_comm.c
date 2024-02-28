@@ -532,7 +532,8 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
       .file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
       .etype = arr->type,
       .esznc = arr->esznc,
-      .tot_cells = decomp->parent_range.volume
+      .tot_cells = decomp->parent_range.volume,
+      .meta_size = 0
     },
     fbuff
   );

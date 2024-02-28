@@ -1208,7 +1208,9 @@ test_grid_array_rio_1()
     TEST_CHECK( grid.cellVolume == grid2.cellVolume );
 
     TEST_CHECK( hdr.esznc = arr->esznc );
-    TEST_CHECK( hdr.tot_cells = tot_cells );
+    TEST_CHECK( hdr.tot_cells == tot_cells );
+
+    TEST_CHECK( 0 == hdr.meta_size );
   }
   
   // read back the grid and the array
@@ -1318,7 +1320,8 @@ test_grid_array_read_1(void)
     TEST_CHECK( hdr.etype == gkyl_array_data_type[GKYL_DOUBLE]);
 
     TEST_CHECK( hdr.esznc = 5*sizeof(double));
-    TEST_CHECK( hdr.tot_cells = 50*50 );
+    TEST_CHECK( 50*50 == hdr.tot_cells );
+    TEST_CHECK( 0 == hdr.meta_size );
 
     TEST_CHECK( 50 == grid.cells[0] );
     TEST_CHECK( 50 == grid.cells[1] );

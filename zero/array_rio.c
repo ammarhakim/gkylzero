@@ -58,8 +58,10 @@ gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
   uint64_t version = 1;
   fwrite(&version, sizeof(uint64_t), 1, fp);
   fwrite(&hdr->file_type, sizeof(uint64_t), 1, fp);
-  uint64_t meta_size = 0; // THIS WILL CHANGE ONCE METADATA IS EMBEDDED
+  uint64_t meta_size = hdr->meta_size;
   fwrite(&meta_size, sizeof(uint64_t), 1, fp);
+  if (meta_size > 0)
+    fwrite(hdr->meta, meta_size, 1, fp);
   
   // Version 0 format is used for rest of the header
   uint64_t real_type = gkyl_array_data_type[hdr->etype];
@@ -117,6 +119,7 @@ gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
   hdr->etype = real_type;
   hdr->esznc = esznc;
   hdr->tot_cells = tot_cells;
+  hdr->meta_size = meta_size;
 
   return errno;
 }
@@ -131,7 +134,8 @@ gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
       .file_type = gkyl_file_type_int[GKYL_FIELD_DATA_FILE],
       .etype = arr->type,
       .esznc = arr->esznc,
-      .tot_cells = range->volume
+      .tot_cells = range->volume,
+      .meta = 0
     },
     fp
   );
@@ -204,16 +208,14 @@ gkyl_sub_array_read(const struct gkyl_range *range, struct gkyl_array *arr, FILE
 #undef _F
 }
 
-int
-gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+static int
+gkyl_grid_sub_array_read_ft_1(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   struct gkyl_array *arr, const char *fname)
 {
   FILE *fp = 0;
   with_file (fp, fname, "r") {
-
     size_t frr;
     // Version 1 header
-    
     char g0[6];
     frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
     g0[5] = '\0'; // add the NULL
@@ -245,6 +247,66 @@ gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *r
     gkyl_sub_array_read(range, arr, fp);
   }
   return errno;  
+}
+
+static int
+gkyl_grid_sub_array_read_ft_3(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char *fname)
+{
+  FILE *fp = 0;
+  with_file (fp, fname, "r") {
+    size_t frr;
+    // Version 1 header
+    char g0[6];
+    frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
+    g0[5] = '\0'; // add the NULL
+    if (strcmp(g0, "gkyl0") != 0)
+      return 1;
+
+    uint64_t version;
+    frr = fread(&version, sizeof(uint64_t), 1, fp);
+    if (version != 1)
+      return 1;
+
+    uint64_t file_type;
+    frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+    if (file_type != 3)
+      return 1;
+
+    uint64_t meta_size;
+    frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
+
+    // read ahead by specified bytes: meta-data is not read in this
+    // method
+    fseek(fp, meta_size, SEEK_CUR);
+    
+    uint64_t real_type = 0;
+    if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
+      break;
+    
+    gkyl_rect_grid_read(grid, fp);
+    gkyl_sub_array_read(range, arr, fp);
+  }
+  return errno;  
+}
+
+int
+gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char *fname)
+{
+  struct gkyl_rect_grid hdr_grid;
+  struct gkyl_array_header_info hdr;
+  FILE *fp = 0;
+  with_file (fp, fname, "r") {
+    gkyl_grid_sub_array_header_read_fp(&hdr_grid, &hdr, fp);
+  }
+
+  if (hdr.file_type == 1)
+    return gkyl_grid_sub_array_read_ft_1(grid, range, arr, fname);
+  if (hdr.file_type == 3)
+    return gkyl_grid_sub_array_read_ft_3(grid, range, arr, fname);
+
+  return 1;
 }
 
 struct gkyl_array*

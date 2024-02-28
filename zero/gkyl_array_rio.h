@@ -6,12 +6,14 @@
 #include <gkyl_rect_grid.h>
 
 // Array header data to write: this is for low-level control and is
-// typically not something most user would every encounter
+// typically not something most users would every encounter
 struct gkyl_array_header_info {
   uint64_t file_type; // file type
   enum gkyl_elem_type etype; // element type
   uint64_t esznc; // elem sz * number of components
   uint64_t tot_cells; // total number of cells in grid
+  uint64_t meta_size; // size in bytes of meta-data embedded in header
+  char *meta; // meta-data as byte array
 };
 
 /**
