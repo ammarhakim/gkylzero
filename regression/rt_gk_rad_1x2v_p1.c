@@ -14,6 +14,9 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
 #endif
 
 #include <rt_arg_parse.h>
@@ -54,16 +57,16 @@ struct rad_ctx
   double k_perp; // Perpendicular wavenumber (for Poisson solver).
 
   // Simulation parameters.
-  long Nx; // Cell count (configuration space: x-direction).
+  long Nz; // Cell count (configuration space: z-direction).
   long Nv; // Cell count (velocity space: parallel velocity direction).
   long Nmu; // Cell count (velocity space: magnetic moment direction).
-  double Lx; // Domain size (configuration space: x-direction).
+  double Lz; // Domain size (configuration space: z-direction).
   double Lv_elc; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc; // Domain size (electron velocity space: magnetic moment direction).
   double Lv_ion; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion; // Domain size (ion velocity space: magnetic moment direction).
   double t_end; // Final simulation time.
-  int num_frames; // Number of frames.
+  long num_frames; // Number of output frames.
 };
 
 struct rad_ctx
@@ -105,16 +108,16 @@ create_ctx(void)
   double k_perp = k_perp_rho_si / rho_si; // Perpendicular wavenumber (for Poisson solver).
 
   // Simulation parameters.
-  long Nx = 2; // Cell count (configuration space: x-direction).
+  long Nz = 2; // Cell count (configuration space: z-direction).
   long Nv = 16; // Cell count (velocity space: parallel velocity direction).
   long Nmu = 8; // Cell count (velocity space: magnetic moment direction).
-  double Lx = 100.0 * rho_si; // Domain size (configuration space: x-direction).
+  double Lz = 100.0 * rho_si; // Domain size (configuration space: z-direction).
   double Lv_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc = 0.75 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
   double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion = 0.75 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
   double t_end = 1.0e-7; // Final simulation time.
-  int num_frames = 1; // Number of frames.
+  long num_frames = 1; // Number of output frames.
   
   struct rad_ctx ctx = {
     .pi = pi,
@@ -139,10 +142,10 @@ create_ctx(void)
     .omega_ci = omega_ci,
     .rho_si = rho_si,
     .k_perp = k_perp,
-    .Nx = Nx,
+    .Nz = Nz,
     .Nv = Nv,
     .Nmu = Nmu,
-    .Lx = Lx,
+    .Lz = Lz,
     .Lv_elc = Lv_elc,
     .Lmu_elc = Lmu_elc,
     .Lv_ion = Lv_ion,
@@ -219,7 +222,7 @@ evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
-  // Set physical coordinates (x, v, mu) from computational coordinates (x, v, mu).
+  // Set physical coordinates (z, v, mu) from computational coordinates (z, v, mu).
   xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
 }
 
@@ -235,11 +238,13 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 }
 
 void
-write_data(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double t_curr)
+write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_gyrokinetic_app_write(app, t_curr, iot->curr-1);
-    gkyl_gyrokinetic_app_calc_mom(app); gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr-1);
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr))
+  {
+    gkyl_gyrokinetic_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_calc_mom(app);
+    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot -> curr - 1);
   }
 }
 
@@ -263,7 +268,7 @@ main(int argc, char **argv)
 
   struct rad_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
@@ -276,7 +281,7 @@ main(int argc, char **argv)
 #endif  
 
   // Create global range.
-  int ccells[] = { NX };
+  int ccells[] = { NZ };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
   struct gkyl_range cglobal_r;
   gkyl_create_global_range(cdim, ccells, &cglobal_r);
@@ -407,12 +412,12 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = {.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper = {.type = GKYL_SPECIES_ZERO_FLUX,},
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
-      .lower = {.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper = {.type = GKYL_SPECIES_ZERO_FLUX,},
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
 
     .radiation = {
@@ -455,12 +460,12 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = {.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper = {.type = GKYL_SPECIES_ZERO_FLUX,},
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcy = {
-      .lower = {.type = GKYL_SPECIES_ZERO_FLUX,},
-      .upper = {.type = GKYL_SPECIES_ZERO_FLUX,},
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     
     .num_diag_moments = 7,
@@ -479,9 +484,9 @@ main(int argc, char **argv)
     .name = "gk_rad_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
-    .lower = { -0.5 * ctx.Lx },
-    .upper = { 0.5 * ctx.Lx },
-    .cells = { NX },
+    .lower = { -0.5 * ctx.Lz },
+    .upper = { 0.5 * ctx.Lz },
+    .cells = { NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
@@ -503,6 +508,12 @@ main(int argc, char **argv)
     .field = field,
 
     .use_gpu = app_args.use_gpu,
+
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp -> ranges[my_rank],
+      .comm = comm
+    }
   };
   
   // Create app object.
@@ -510,9 +521,10 @@ main(int argc, char **argv)
 
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
-  int num_frames = ctx.num_frames;
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = t_end/num_frames };
+
+  // Create trigger for IO.
+  long num_frames = ctx.num_frames;
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // Initialize simulation.
   gkyl_gyrokinetic_app_apply_ic(app, t_curr);
@@ -547,7 +559,8 @@ main(int argc, char **argv)
   }
 
   gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-  gkyl_gyrokinetic_app_write_integrated_mom(app);
+  
+  write_data(&io_trig, app, t_curr);
   gkyl_gyrokinetic_app_stat_write(app);
   
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);
@@ -568,8 +581,13 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
 
   mpifinalize:
 #ifdef GKYL_HAVE_MPI
