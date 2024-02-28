@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include <gkyl_array_rio.h>
+#include <gkyl_array_rio_format_desc.h>
 #include <gkyl_elem_type_priv.h>
 
 void
@@ -113,13 +114,19 @@ gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
 
   uint64_t tot_cells = 0;
   if (1 != fread(&tot_cells, sizeof(uint64_t), 1, fp))
-    return 1;  
+    return 1;
+
+  uint64_t nrange = 1;
+  if (file_type == gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE])
+    if (1 != fread(&nrange, sizeof(uint64_t), 1, fp))
+      return 1;  
 
   hdr->file_type = file_type;
   hdr->etype = real_type;
   hdr->esznc = esznc;
   hdr->tot_cells = tot_cells;
   hdr->meta_size = meta_size;
+  hdr->nrange = nrange;
 
   return errno;
 }
@@ -209,104 +216,45 @@ gkyl_sub_array_read(const struct gkyl_range *range, struct gkyl_array *arr, FILE
 }
 
 static int
-gkyl_grid_sub_array_read_ft_1(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
-  struct gkyl_array *arr, const char *fname)
+gkyl_grid_sub_array_read_ft_1(const struct gkyl_rect_grid *grid,
+  struct gkyl_array_header_info *hdr, const struct gkyl_range *range,
+  struct gkyl_array *arr, FILE *fp)
 {
-  FILE *fp = 0;
-  with_file (fp, fname, "r") {
-    size_t frr;
-    // Version 1 header
-    char g0[6];
-    frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
-    g0[5] = '\0'; // add the NULL
-    if (strcmp(g0, "gkyl0") != 0)
-      return 1;
-
-    uint64_t version;
-    frr = fread(&version, sizeof(uint64_t), 1, fp);
-    if (version != 1)
-      return 1;
-
-    uint64_t file_type;
-    frr = fread(&file_type, sizeof(uint64_t), 1, fp);
-    if (file_type != 1)
-      return 1;
-
-    uint64_t meta_size;
-    frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
-
-    // read ahead by specified bytes: meta-data is not read in this
-    // method
-    fseek(fp, meta_size, SEEK_CUR);
-    
-    uint64_t real_type = 0;
-    if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
-      break;
-    
-    gkyl_rect_grid_read(grid, fp);
-    gkyl_sub_array_read(range, arr, fp);
-  }
-  return errno;  
+  size_t loc = gkyl_base_hdr_size(hdr->meta_size)
+    + gkyl_file_type_1_partial_hrd_size(grid->ndim);
+  fseek(fp, loc, SEEK_SET);
+  bool status = gkyl_sub_array_read(range, arr, fp);
+  return status ? 0 : errno;
 }
 
 static int
-gkyl_grid_sub_array_read_ft_3(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
-  struct gkyl_array *arr, const char *fname)
+gkyl_grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid,
+  struct gkyl_array_header_info *hdr, const struct gkyl_range *range,
+  struct gkyl_array *arr, FILE *fp)
 {
-  FILE *fp = 0;
-  with_file (fp, fname, "r") {
-    size_t frr;
-    // Version 1 header
-    char g0[6];
-    frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
-    g0[5] = '\0'; // add the NULL
-    if (strcmp(g0, "gkyl0") != 0)
-      return 1;
-
-    uint64_t version;
-    frr = fread(&version, sizeof(uint64_t), 1, fp);
-    if (version != 1)
-      return 1;
-
-    uint64_t file_type;
-    frr = fread(&file_type, sizeof(uint64_t), 1, fp);
-    if (file_type != 3)
-      return 1;
-
-    uint64_t meta_size;
-    frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
-
-    // read ahead by specified bytes: meta-data is not read in this
-    // method
-    fseek(fp, meta_size, SEEK_CUR);
-    
-    uint64_t real_type = 0;
-    if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
-      break;
-    
-    gkyl_rect_grid_read(grid, fp);
-    gkyl_sub_array_read(range, arr, fp);
-  }
-  return errno;  
+  size_t loc = gkyl_base_hdr_size(hdr->meta_size)
+    + gkyl_file_type_3_hrd_size(grid->ndim);
+  fseek(fp, loc, SEEK_SET);
+  
+  return errno;
 }
 
 int
 gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   struct gkyl_array *arr, const char *fname)
 {
-  struct gkyl_rect_grid hdr_grid;
+  int status = 0;
   struct gkyl_array_header_info hdr;
   FILE *fp = 0;
   with_file (fp, fname, "r") {
-    gkyl_grid_sub_array_header_read_fp(&hdr_grid, &hdr, fp);
+    gkyl_grid_sub_array_header_read_fp(grid, &hdr, fp);
+    
+    if (hdr.file_type == 1)
+      status = gkyl_grid_sub_array_read_ft_1(grid, &hdr, range, arr, fp);
+    if (hdr.file_type == 3)
+      status = gkyl_grid_sub_array_read_ft_3(grid, &hdr, range, arr, fp);
   }
-
-  if (hdr.file_type == 1)
-    return gkyl_grid_sub_array_read_ft_1(grid, range, arr, fname);
-  if (hdr.file_type == 3)
-    return gkyl_grid_sub_array_read_ft_3(grid, range, arr, fname);
-
-  return 1;
+  return status;
 }
 
 struct gkyl_array*

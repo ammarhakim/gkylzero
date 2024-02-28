@@ -20,7 +20,7 @@ gkyl_base_hdr_size(size_t meta_sz)
 }
 
 size_t
-gkyl_file_type_1_hrd_size(int ndim)
+gkyl_file_type_1_partial_hrd_size(int ndim)
 {
   size_t sz = 0;
   // real_type
@@ -31,11 +31,17 @@ gkyl_file_type_1_hrd_size(int ndim)
   sz += sizeof(uint64_t[ndim]);
   // lower, upper
   sz += sizeof(double[2*ndim]);
+  return sz;
+}
+
+size_t
+gkyl_file_type_1_hrd_size(int ndim)
+{
+  size_t sz = gkyl_file_type_1_partial_hrd_size(ndim);
   // esznc
   sz += sizeof(uint64_t);
   // size (total number of cells)
   sz += sizeof(uint64_t);
-
   return sz;
 }
 
@@ -56,7 +62,7 @@ size_t
 gkyl_file_type_3_hrd_size(int ndim)
 {
   size_t sz = gkyl_file_type_1_hrd_size(ndim);
-  sz += sizeof(uint64_t);
+  sz += sizeof(uint64_t); // nrange
   return sz;
 }
 

@@ -13,7 +13,8 @@ struct gkyl_array_header_info {
   uint64_t esznc; // elem sz * number of components
   uint64_t tot_cells; // total number of cells in grid
   uint64_t meta_size; // size in bytes of meta-data embedded in header
-  char *meta; // meta-data as byte array
+  char *meta;         // meta-data as byte array
+  uint64_t nrange; // number of ranges
 };
 
 /**

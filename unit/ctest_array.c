@@ -1211,13 +1211,14 @@ test_grid_array_rio_1()
     TEST_CHECK( hdr.tot_cells == tot_cells );
 
     TEST_CHECK( 0 == hdr.meta_size );
+    TEST_CHECK( 1 == hdr.nrange );
   }
   
   // read back the grid and the array
   int err =
     gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
 
-  TEST_CHECK( err < 1 );  
+  TEST_CHECK( err < 1 );
   
   if (err < 1) {
 
@@ -1305,13 +1306,13 @@ test_grid_array_rio_2()
 }
 
 void
-test_grid_array_read_1(void)
+test_grid_array_read_p1(void)
 {
   // read just header
-  FILE *fp;
+  struct gkyl_array_header_info hdr;
+  FILE *fp = 0;  
   with_file(fp, "data/unit/euler_riem_2d_hllc-euler_1.gkyl", "r") {
     struct gkyl_rect_grid grid;
-    struct gkyl_array_header_info hdr;
     
     int status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
     TEST_CHECK( status == 0 );
@@ -1331,7 +1332,10 @@ test_grid_array_read_1(void)
 
     TEST_CHECK( 1.0 == grid.upper[0] );
     TEST_CHECK( 1.0 == grid.upper[1] );
-  }  
+
+    TEST_CHECK( 4 == hdr.nrange );
+  }
+
 }
 
 // Cuda specific tests
@@ -2405,7 +2409,7 @@ TEST_LIST = {
   { "rio_3", test_rio_3 },
   { "grid_array_rio_1", test_grid_array_rio_1 },
   { "grid_array_rio_2", test_grid_array_rio_2 },
-  { "grid_array_read_1", test_grid_array_read_1 },
+  { "grid_array_read_1", test_grid_array_read_p1 },
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_base", test_cu_array_base },
   { "cu_array_clear", test_cu_array_clear},
