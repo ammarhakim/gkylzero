@@ -14,6 +14,9 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
 #endif
 
 #include <rt_arg_parse.h>
@@ -45,13 +48,14 @@ struct lbo_relax_varnu_ctx
   double cross_nu_fac_bump; // Bump cross-collision factor.
 
   // Simulation parameters.
-  long Nx; // Cell count (configuration space: x-direction).
+  long Nz; // Cell count (configuration space: z-direction).
   long Nv; // Cell count (velocity space: parallel velocity direction).
   long Nmu; // Cell count (velocity space: magnetic moment direction).
-  double Lx; // Domain size (configuration space: x-direction).
+  double Lz; // Domain size (configuration space: z-direction).
   double Lv; // Domain size (velocity space: parallel velocity direction).
   double Lmu; // Domain size (velocity space: magnetic moment direction).
   double t_end; // Final simulation time.
+  long num_frames; // Number of output frames.
 };
 
 struct lbo_relax_varnu_ctx
@@ -82,13 +86,14 @@ create_ctx(void)
   double cross_nu_fac_bump = nu * sqrt(0.39677 * 0.39677 * 0.39677) / 1.10187;
 
   // Simulation parameters.
-  long Nx = 2; // Cell count (configuration space: x-direction).
+  long Nz = 2; // Cell count (configuration space: z-direction).
   long Nv = 32; // Cell count (velocity space: parallel velocity direction).
   long Nmu = 16; // Cell count (velocity space: magnetic moment direction).
-  double Lx = 1.0; // Domain size (configuration space: x-direction).
+  double Lz = 1.0; // Domain size (configuration space: z-direction).
   double Lv = 16.0 * vt; // Domain size (velocity space: parallel velocity direction).
   double Lmu = 12.0 * vt * vt / 2.0 / B0; // Domain size (velocity space: magnetic moment direction).
   double t_end = 100.0; // Final simulation time.
+  long num_frames = 1; // Number of output frames.
   
   struct lbo_relax_varnu_ctx ctx = {
     .pi = pi,
@@ -106,13 +111,14 @@ create_ctx(void)
     .self_nu_fac = self_nu_fac,
     .cross_nu_fac_tophat = cross_nu_fac_tophat,
     .cross_nu_fac_bump = cross_nu_fac_bump,
-    .Nx = Nx,
+    .Nz = Nz,
     .Nv = Nv,
     .Nmu = Nmu,
-    .Lx = Lx,
+    .Lz = Lz,
     .Lv = Lv,
     .Lmu = Lmu,
     .t_end = t_end,
+    .num_frames = num_frames,
   };
 
   return ctx;
@@ -122,7 +128,7 @@ void
 evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_relax_varnu_ctx *app = ctx;
-  double x = xn[0], v = xn[1], mu = xn[2];
+  double v = xn[1];
 
   double n0 = app -> n0;
   double vt = app -> vt;
@@ -148,7 +154,7 @@ void
 evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   struct lbo_relax_varnu_ctx *app = ctx;
-  double x = xn[0], v = xn[1], mu = xn[2];
+  double v = xn[1], mu = xn[2];
 
   double pi = app -> pi;
 
@@ -184,7 +190,7 @@ evalNuInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
-  // Set physical coordinates (x, v, mu) from computational coordinates (x, v, mu).
+  // Set physical coordinates (z, v, mu) from computational coordinates (z, v, mu).
   xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
 }
 
@@ -197,6 +203,17 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 
   // Set magnetic field strength.
   fout[0] = B0;
+}
+
+void
+write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr))
+  {
+    gkyl_gyrokinetic_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_calc_mom(app);
+    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot -> curr - 1);
+  }
 }
 
 int
@@ -219,7 +236,7 @@ main(int argc, char **argv)
 
   struct lbo_relax_varnu_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
@@ -232,7 +249,7 @@ main(int argc, char **argv)
 #endif  
 
   // Create global range.
-  int ccells[] = { NX };
+  int ccells[] = { NZ };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
   struct gkyl_range cglobal_r;
   gkyl_create_global_range(cdim, ccells, &cglobal_r);
@@ -412,8 +429,8 @@ main(int argc, char **argv)
 
     .cdim = 1, .vdim = 2,
     .lower = { 0.0 },
-    .upper = { ctx.Lx },
-    .cells = { NX },
+    .upper = { ctx.Lz },
+    .cells = { NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
@@ -434,6 +451,12 @@ main(int argc, char **argv)
     .field = field,
 
     .use_gpu = app_args.use_gpu,
+
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp -> ranges[my_rank],
+      .comm = comm
+    }
   };
 
   // Create app object.
@@ -442,9 +465,13 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
+  // Create trigger for IO.
+  long num_frames = ctx.num_frames;
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+
   // Initialize simulation.
   gkyl_gyrokinetic_app_apply_ic(app, t_curr);
-  gkyl_gyrokinetic_app_write(app, t_curr, 0);
+  write_data(&io_trig, app, t_curr);
 
   gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
 
@@ -469,12 +496,14 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
+    write_data(&io_trig, app, t_curr);
+
     step += 1;
   }
 
   gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
 
-  gkyl_gyrokinetic_app_write(app, t_curr, 1);
+  write_data(&io_trig, app, t_curr);
   gkyl_gyrokinetic_app_stat_write(app);
   
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);
@@ -495,8 +524,13 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
+  gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
 
   mpifinalize:
 #ifdef GKYL_HAVE_MPI
