@@ -9,8 +9,6 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p2(const double *w, const double
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
-  // vmap: velocity space mapping in center cell.
-  // vmapSq: velocity space mapping squared in center cell.
   // vmap_prime_l,vmap_prime_c,vmap_prime_r: velocity space mapping derivative in left, center and right cells.
   // alpha_surf_l: Surface expansion of phase space flux on the left.
   // alpha_surf_r: Surface expansion of phase space flux on the right.
@@ -109,7 +107,8 @@ GKYL_CU_DH double gyrokinetic_surfvpar_1x1v_ser_p2(const double *w, const double
   out[6] += ((-1.224744871391589*GhatR[2])-1.224744871391589*GhatL[2])*rdvpar2; 
   out[7] += (1.58113883008419*GhatL[1]-1.58113883008419*GhatR[1])*rdvpar2; 
 
-  double cflFreq = fmax(fabs(alphaL[0]), fabs(alphaR[0])); 
+  double vmap_prime_min = fmin(fmin(fabs(vmap_prime_l[0]),fabs(vmap_prime_c[0])),fabs(vmap_prime_r[0]));
+  double cflFreq = fmax(fabs(alphaL[0]/vmap_prime_min), fabs(alphaR[0]/vmap_prime_min)); 
   return 1.767766952966369*rdvpar2*cflFreq; 
 
 } 
