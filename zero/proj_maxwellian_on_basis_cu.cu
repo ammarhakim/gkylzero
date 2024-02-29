@@ -303,15 +303,14 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu_ker(const struct gkyl_rect_grid grid,
 
 __global__ static void
 gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid,
-  const struct gkyl_range phase_r, const struct gkyl_range conf_r,
+  const struct gkyl_range phase_r, const struct gkyl_range conf_r, struct gkyl_range vel_r,
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
   const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx,
   const struct gkyl_array* GKYL_RESTRICT moms, const struct gkyl_array* GKYL_RESTRICT prim_moms,
   const struct gkyl_array* GKYL_RESTRICT bmag, const struct gkyl_array* GKYL_RESTRICT jacob_tot,
-  struct gkyl_basis* GKYL_RESTRICT vel_basis1d, struct gkyl_range** GKYL_RESTRICT vel_range1d,
-  struct gkyl_array** GKYL_RESTRICT vmap,
+  struct gkyl_array* GKYL_RESTRICT vmap, struct gkyl_basis* GKYL_RESTRICT vmap_basis,
   double mass, struct gkyl_array* GKYL_RESTRICT fmax)
 {
   double fJacB_floor = 1.e-40;
@@ -329,7 +328,7 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid
   double expamp_o[27], upar_o[27], vtsq_o[27], bmag_o[27];
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM] = {0.};
-  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
+  int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM], vidx[2];
 
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
       tid < phase_r.volume; tid += blockDim.x*gridDim.x) {
@@ -381,25 +380,29 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid
     const double *phase_w = (const double *) phase_weights->data;
     const double *phaseb_o = (const double *) phase_basis_at_ords->data;
   
+    const double *vmap_d;
+    if (vmap) {
+      for (unsigned int d=cdim; d<pdim; d++) vidx[d-cdim] = pidx[d];
+      long vlinidx = gkyl_range_idx(&vel_r, vidx);
+      vmap_d = (const double *) gkyl_array_cfetch(vmap, vlinidx);
+    }
+
     // compute Maxwellian at phase-space quadrature nodes
     for (int n=0; n<tot_phase_quad; ++n) {
 
       int cqidx = p2c_qidx[n];
 
-      if (vmap) {
-        // convert comp velocity coordinate to phys velocity coord.
-        const double *xlog_d = (const double *) gkyl_array_cfetch(phase_ordinates, n);
-        int vidx[1];  long vlinidx;  double xcomp[1];
-        for (int vd=0; vd<vdim; vd++) {
-          vidx[0] = pidx[cdim+vd];
-          vlinidx = gkyl_range_idx(vel_range1d[vd], vidx);
-          const double *vmap_d = (const double *) gkyl_array_cfetch(vmap[vd], vlinidx);
-          xcomp[0] = xlog_d[cdim+vd];
-          xmu[cdim+vd] = vel_basis1d->eval_expand(xcomp, vmap_d);
-        }
-      } else {
+      if (vmap == 0) {
         comp_to_phys(pdim, (const double *) gkyl_array_cfetch(phase_ordinates, n),
           grid.dx, xc, &xmu[0]);
+      } else {
+        // convert comp velocity coordinate to phys velocity coord.
+        const double *xlog_d = (const double *) gkyl_array_cfetch(phase_ordinates, n);
+        double xcomp[1];
+        for (int vd=0; vd<vdim; vd++) {
+          xcomp[0] = xlog_d[cdim+vd];
+          xmu[cdim+vd] = vmap_basis->eval_expand(xcomp, vmap_d+vd*vmap_basis->num_basis);
+        }
       }
 
       double efact = 0.0;
@@ -464,8 +467,8 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis 
 {
   int nblocks = phase_r->nblocks, nthreads = phase_r->nthreads;
   gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker<<<nblocks, nthreads>>>
-    (up->grid, *phase_r, *conf_r, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
-     up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
+    (up->grid, *phase_r, *conf_r, *(up->vel_range), up->conf_basis_at_ords->on_dev,
+     up->basis_at_ords->on_dev, up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
      moms->on_dev, prim_moms->on_dev, bmag->on_dev, jacob_tot->on_dev,
-     up->vel_basis1d, up->vel_range1d, up->vmap, mass, fmax->on_dev);
+     up->vmap, up->vmap_basis, mass, fmax->on_dev);
 }

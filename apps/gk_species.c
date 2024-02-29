@@ -36,11 +36,9 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
   // Create the velocity space bases.
   if (app->use_gpu) {
-    s->vmap_basis = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-    gkyl_cart_modal_serendip_cu_dev(s->vmap_basis, 1, vmap_poly_order);
+    s->vmap_basis = gkyl_cart_modal_serendip_cu_dev_new(1, vmap_poly_order);
   } else {
-    s->vmap_basis = gkyl_malloc(sizeof(struct gkyl_basis));
-    gkyl_cart_modal_serendip(s->vmap_basis, 1, vmap_poly_order);
+    s->vmap_basis = gkyl_cart_modal_serendip_new(1, vmap_poly_order);
   }
   struct gkyl_basis vmap_basis_ho, vmap_basis2d_ho, vmapSq_basis_ho;
   gkyl_cart_modal_serendip(&vmap_basis_ho, 1, vmap_poly_order);
@@ -53,9 +51,9 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   s->jacobvel = mkarr(app->use_gpu, 1, s->local_ext.volume);
 
   // Project the velocity mapping (onto a 2D basis).
-  struct gkyl_array *vmap2d = mkarr(app->use_gpu, vdim*vmap_basis2d_ho.num_basis, s->local_ext_vel.volume);
+  struct gkyl_array *vmap2d = mkarr(app->use_gpu, vdim*vmap_basis2d_ho.num_basis, s->vmap->size);
   struct gkyl_array *vmap2d_ho = mkarr(false, vmap2d->ncomp, vmap2d->size);
-  struct gkyl_array *vmapc1 = mkarr(app->use_gpu, 1, s->local_ext_vel.volume);
+  struct gkyl_array *vmapc1 = mkarr(app->use_gpu, 1, s->vmap->size);
 
   gkyl_eval_on_nodes *evup;
   if (s->info.mapc2p.is_mapped) {
@@ -85,9 +83,9 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   gkyl_array_release(vmap2d);
   gkyl_array_release(vmap2d_ho);
 
-  struct gkyl_array *vmap1d = mkarr(app->use_gpu, vmap_basis_ho.num_basis, s->local_ext_vel.volume);
-  struct gkyl_array *vmap_prime1d = mkarr(app->use_gpu, 1, s->local_ext_vel.volume);
-  struct gkyl_array *vmap1d_p2 = mkarr(app->use_gpu, vmapSq_basis_ho.num_basis, s->local_ext_vel.volume);
+  struct gkyl_array *vmap1d = mkarr(app->use_gpu, vmap_basis_ho.num_basis, s->vmap->size);
+  struct gkyl_array *vmap_prime1d = mkarr(app->use_gpu, 1, s->vmap_prime->size);
+  struct gkyl_array *vmap1d_p2 = mkarr(app->use_gpu, vmapSq_basis_ho.num_basis, s->vmap->size);
   for (int d=0; d<vdim; d++) {
     gkyl_array_set_offset(vmap1d, 1., s->vmap, d*vmap_basis_ho.num_basis);
 
@@ -105,6 +103,7 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
 
   // Compute the velocity space Jacobian (cell-wise constant).
   struct gkyl_array *jacobvel_ho = mkarr(false, s->jacobvel->ncomp, s->jacobvel->size);
+  
   struct gkyl_array *vmap_prime_ho = mkarr(false, s->vmap_prime->ncomp, s->vmap_prime->size);
   gkyl_array_copy(vmap_prime_ho, s->vmap_prime);
 
@@ -155,9 +154,9 @@ gk_species_release_vmap(const struct gkyl_gyrokinetic_app *app, const struct gk_
   gkyl_array_release(s->vmap_prime);
   gkyl_array_release(s->vmapSq);
   if (app->use_gpu)
-    gkyl_cu_free(s->vmap_basis);
+    gkyl_cart_modal_basis_release_cu(s->vmap_basis);
   else
-    gkyl_free(s->vmap_basis);
+    gkyl_cart_modal_basis_release(s->vmap_basis);
   gkyl_array_release(s->jacobvel);
 }
 
