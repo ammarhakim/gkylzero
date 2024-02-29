@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <gkyl_alloc.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
 #include <gkyl_elem_type_priv.h>
@@ -122,7 +123,7 @@ gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
       return 1;  
 
   hdr->file_type = file_type;
-  hdr->etype = real_type;
+  hdr->etype = gkyl_array_code_to_data_type[real_type];
   hdr->esznc = esznc;
   hdr->tot_cells = tot_cells;
   hdr->meta_size = meta_size;
@@ -194,7 +195,7 @@ gkyl_sub_array_read(const struct gkyl_range *range, struct gkyl_array *arr, FILE
   if (1 != fread(&size, sizeof(uint64_t), 1, fp))
     return false;
 
-  if ((size != range->volume) || (size > arr->size))
+  if ((size != range->volume) || (size > arr->size)) // WHY IS THE TEST size != range->volume needed?
     return false;
   
   // construct skip iterator to allow reading (potentially) in chunks
@@ -232,9 +233,56 @@ gkyl_grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, const struct gkyl_range *range,
   struct gkyl_array *arr, FILE *fp)
 {
-  size_t loc = gkyl_base_hdr_size(hdr->meta_size)
-    + gkyl_file_type_3_hrd_size(grid->ndim);
-  fseek(fp, loc, SEEK_SET);
+  size_t rng_sz = gkyl_file_type_3_range_hrd_size(grid->ndim);
+  size_t loc = gkyl_base_hdr_size(hdr->meta_size) + gkyl_file_type_3_hrd_size(grid->ndim);
+
+  gkyl_mem_buff buff = gkyl_mem_buff_new(10); // will be reallocated
+
+  for (int r=0; r<hdr->nrange; ++r) {
+    uint64_t sz, loidx[GKYL_MAX_DIM], upidx[GKYL_MAX_DIM];
+    fseek(fp, loc, SEEK_SET);
+
+    // read lower, upper indices and number of elements stored
+    if (1 != fread(loidx, sizeof(uint64_t[grid->ndim]), 1, fp))
+      return 1;
+    if (1 != fread(upidx, sizeof(uint64_t[grid->ndim]), 1, fp))
+      return 1;
+    if (1 != fread(&sz, sizeof(uint64_t), 1, fp))
+      return 1;
+
+    // construct range of indices corresponding to data in block
+    int loidx_i[GKYL_MAX_DIM], upidx_i[GKYL_MAX_DIM];
+    for (int d=0; d<grid->ndim; ++d) {
+      loidx_i[d] = loidx[d];
+      upidx_i[d] = upidx[d];
+    }
+    struct gkyl_range blk_rng; // block range
+    gkyl_range_init(&blk_rng, grid->ndim, loidx_i, upidx_i);
+
+    struct gkyl_range inter; // intersection
+    int not_empty = gkyl_range_intersect(&inter, &blk_rng, range);
+    if (not_empty) {
+
+      buff = gkyl_mem_buff_resize(buff, sz*hdr->esznc);
+      if (1 != fread(gkyl_mem_buff_data(buff), sz*hdr->esznc, 1, fp)) {
+        gkyl_mem_buff_release(buff);
+        return 1;
+      }
+
+      // SHOULD THIS BE A SKIP ITERATOR?!
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &inter);
+      while (gkyl_range_iter_next(&iter)) {
+        char *out = gkyl_array_fetch(arr, gkyl_range_idx(range, iter.idx));
+        const char *inp = gkyl_mem_buff_data(buff) + hdr->esznc*gkyl_range_idx(&blk_rng, iter.idx);
+        memcpy(out, inp, hdr->esznc);
+      }
+    }
+
+    loc += rng_sz + sz*hdr->esznc;
+  }
+
+  gkyl_mem_buff_release(buff);
   
   return errno;
 }
@@ -259,7 +307,7 @@ gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *r
 
 struct gkyl_array*
 gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid, const char* fname)
-{
+{ // REWRITE PROPERLY!!!
   struct gkyl_array *arr = 0;
   FILE *fp = 0;
   with_file (fp, fname, "r") {

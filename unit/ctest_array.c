@@ -1193,7 +1193,7 @@ test_grid_array_rio_1()
     TEST_CHECK( status == 0 );
 
     TEST_CHECK( hdr.file_type == 1);
-    TEST_CHECK( hdr.etype == gkyl_array_data_type[GKYL_DOUBLE]);
+    TEST_CHECK( hdr.etype == GKYL_DOUBLE);
 
     long tot_cells = 1L;
     TEST_CHECK( grid.ndim == grid2.ndim );
@@ -1309,16 +1309,16 @@ void
 test_grid_array_read_p1(void)
 {
   // read just header
+  struct gkyl_rect_grid grid;  
   struct gkyl_array_header_info hdr;
   FILE *fp = 0;  
   with_file(fp, "data/unit/euler_riem_2d_hllc-euler_1.gkyl", "r") {
-    struct gkyl_rect_grid grid;
     
     int status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
     TEST_CHECK( status == 0 );
 
     TEST_CHECK( hdr.file_type == gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE]);
-    TEST_CHECK( hdr.etype == gkyl_array_data_type[GKYL_DOUBLE]);
+    TEST_CHECK( hdr.etype == GKYL_DOUBLE);
 
     TEST_CHECK( hdr.esznc = 5*sizeof(double));
     TEST_CHECK( 50*50 == hdr.tot_cells );
@@ -1336,6 +1336,45 @@ test_grid_array_read_p1(void)
     TEST_CHECK( 4 == hdr.nrange );
   }
 
+  size_t nc = hdr.esznc/gkyl_elem_type_size[hdr.etype];
+
+  int nghost[] = { 0, 0 };
+  struct gkyl_range range, ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
+
+  // read serial data for comparison
+  struct gkyl_rect_grid s_grid;
+  struct gkyl_array *s_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
+  int s_status = gkyl_grid_sub_array_read(&s_grid, &range, s_arr,
+    "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+
+  // read parallel data
+  struct gkyl_rect_grid p_grid;  
+  struct gkyl_array *p_arr = gkyl_array_new(hdr.etype,  nc, ext_range.volume);
+  int p_status = gkyl_grid_sub_array_read(&p_grid, &range, p_arr,
+    "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+
+  TEST_CHECK( 0 == p_status );
+
+  for (int d=0; d<grid.ndim; ++d) {
+    TEST_CHECK( p_grid.cells[d] == s_grid.cells[d] );
+    TEST_CHECK( p_grid.lower[d] == s_grid.lower[d] );
+    TEST_CHECK( p_grid.upper[d] == s_grid.upper[d] );
+  }
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    const double *s_dat = gkyl_array_fetch(s_arr, loc);
+    const double *p_dat = gkyl_array_fetch(p_arr, loc);
+
+    for (int c=0; c<nc; ++c)
+      TEST_CHECK( gkyl_compare_double(s_dat[c], p_dat[c], 1e-15) );
+  }
+
+  gkyl_array_release(s_arr);
+  gkyl_array_release(p_arr);
 }
 
 // Cuda specific tests
