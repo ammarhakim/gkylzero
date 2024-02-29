@@ -84,14 +84,14 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   gkyl_array_release(vmap2d_ho);
 
   struct gkyl_array *vmap1d = mkarr(app->use_gpu, vmap_basis_ho.num_basis, s->vmap->size);
-  struct gkyl_array *vmap_prime1d = mkarr(app->use_gpu, 1, s->vmap_prime->size);
   struct gkyl_array *vmap1d_p2 = mkarr(app->use_gpu, vmapSq_basis_ho.num_basis, s->vmap->size);
+  struct gkyl_array *vmap_prime1d = mkarr(app->use_gpu, 1, s->vmap_prime->size);
   for (int d=0; d<vdim; d++) {
     gkyl_array_set_offset(vmap1d, 1., s->vmap, d*vmap_basis_ho.num_basis);
 
     // Compute the square mapping via weak multiplication.
     gkyl_array_set_offset(vmap1d_p2, 1., vmap1d, 0);
-    gkyl_dg_mul_op(vmapSq_basis_ho, d*vmapSq_basis_ho.num_basis, s->vmapSq, 0, vmap1d_p2, 0, vmap1d_p2);
+    gkyl_dg_mul_op(vmapSq_basis_ho, d, s->vmapSq, 0, vmap1d_p2, 0, vmap1d_p2);
 
     // Compute the derivative of the mapping.
     gkyl_array_set_offset(vmap_prime1d, sqrt(6.)/s->grid_vel.dx[d], vmap1d, 1);
