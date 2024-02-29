@@ -20,6 +20,7 @@ double h_ion_mass = GKYL_PROTON_MASS*2.01410177811;
 double li_ion_mass = GKYL_PROTON_MASS*6.94;
 double ar_ion_mass = GKYL_PROTON_MASS*39.948;
 double B0 = 0.5;
+double check_fac = 1.e10;
 
 void eval_m0(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -29,7 +30,7 @@ void eval_m0(double t, const double *xn, double* restrict fout, void *ctx)
 void eval_m2_1v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 4*echarge/emass*1.0e19*1.;  //fabs(x);
+  fout[0] = 4.*echarge/emass*1.0e19*1.;  //fabs(x);
 }
 void eval_m2_3v_elc(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -60,15 +61,15 @@ void eval_jac(double t, const double *xn, double* restrict fout, void *ctx)
 void
 test_coll_recomb_h(bool use_gpu)
 {
-  int charge_state = 1;
+  int charge_state = 0;
   bool all_gk = false;
   // use vt = 4 eV for all grids
-  double vmax_elc = 4*sqrt(4*echarge/emass);
+  double vmax_elc = 4.*sqrt(4.*echarge/emass);
   double vmin_elc = -vmax_elc;
-  double mumax_elc = 12*4*echarge/(2*B0);
-  double vmax_ion = 4*sqrt(4*echarge/h_ion_mass);
+  double mumax_elc = 12.*4.*echarge/(2.*B0);
+  double vmax_ion = 4.*sqrt(4.*echarge/h_ion_mass);
   double vmin_ion = -vmax_ion;
-  double mumax_ion = 12*4*echarge/(2*B0);
+  double mumax_ion = 12.*4.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 3, vdim_gk = 2, vdim_vl = 3;
   int pdim_gk = cdim + vdim_gk, pdim_vl = cdim + vdim_vl;
@@ -84,30 +85,30 @@ test_coll_recomb_h(bool use_gpu)
   double lower_vl[] = {-2.0,-2.0,-2.0,vmin_ion,vmin_ion,vmin_ion}, upper_vl[] = {2.0,2.0,2.0,vmax_ion,vmax_ion,vmax_ion};
   int ghost_vl[] = {0, 0, 0, 0, 0, 0};
   int cells_vl[] = {16, 16, 16, 4, 4, 4};
-  //int cells_vl[] = {2, 2, 2, 4, 4, 4};
+  int ghost[] = {0, 0, 0};
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
   struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
   gkyl_rect_grid_init(&phaseGrid_elc, pdim_gk, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&phaseGrid_elc, ghost_gk, &phaseRange_elc, &phaseRange_elc);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_ext_elc, &phaseRange_elc);
 
   // ion phase grid
   struct gkyl_rect_grid phaseGrid_ion;
   struct gkyl_range phaseRange_ion, phaseRange_ext_ion;
   gkyl_rect_grid_init(&phaseGrid_ion, pdim_gk, lower_ion, upper_ion, cells_gk);
-  gkyl_create_grid_ranges(&phaseGrid_ion, ghost_gk, &phaseRange_ion, &phaseRange_ion);
+  gkyl_create_grid_ranges(&phaseGrid_ion, ghost_gk, &phaseRange_ext_ion, &phaseRange_ion);
 
   // vlasov phase grid
   struct gkyl_rect_grid phaseGrid_vl;
   struct gkyl_range phaseRange_vl, phaseRange_ext_vl;
   gkyl_rect_grid_init(&phaseGrid_vl, pdim_vl, lower_vl, upper_vl, cells_vl);
-  gkyl_create_grid_ranges(&phaseGrid_vl, ghost_vl, &phaseRange_vl, &phaseRange_vl);
+  gkyl_create_grid_ranges(&phaseGrid_vl, ghost_vl, &phaseRange_ext_vl, &phaseRange_vl);
 
   // basis functions
   struct gkyl_basis phaseBasis_vl, phaseBasis_gk, basis; // phase-space, conf-space basis
@@ -141,6 +142,7 @@ test_coll_recomb_h(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_self = emass,
     .type_ion = GKYL_ION_H,
@@ -154,6 +156,7 @@ test_coll_recomb_h(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_ion,
     .mass_self = h_ion_mass,
     .type_ion = GKYL_ION_H,
@@ -167,6 +170,7 @@ test_coll_recomb_h(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_vl,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_vl,
     .mass_self = h_ion_mass,
     .type_ion = GKYL_ION_H,
@@ -251,19 +255,19 @@ test_coll_recomb_h(bool use_gpu)
     
   }
 
-  //  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_h_coef_recomb.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_h_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
   // test against predicted value
-  double p1_vals[] = {2.8362140482953747e-19, 0.0000000000000000e+00, 0.0000000000000000e+00,
+  double p1_vals[] = {4.0651315620487753e-19, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
 
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
@@ -280,21 +284,22 @@ test_coll_recomb_h(bool use_gpu)
 void
 test_coll_recomb_all_gk_li(bool use_gpu)
 {
-  int charge_state = 2;
+  int charge_state = 1;
   bool all_gk = true;
-  // use vt = 40 eV for all grids
-  double vmax_elc = 4*sqrt(4*echarge/emass);
+  // use vt = 4 eV for all grids
+  double vmax_elc = 4.*sqrt(4.*echarge/emass);
   double vmin_elc = -vmax_elc;
-  double mumax_elc = 12*4*echarge/(2*B0);
-  double vmax_ion = 4*sqrt(4*echarge/li_ion_mass);
+  double mumax_elc = 12.*4.*echarge/(2.*B0);
+  double vmax_ion = 4.*sqrt(4.*echarge/li_ion_mass);
   double vmin_ion = -vmax_ion;
-  double mumax_ion = 12*4*echarge/(2*B0);
+  double mumax_ion = 12.*4.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 3, vdim = 2;
   int pdim = cdim + vdim;
 
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
   double lower_ion[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_ion[] = {2.0,2.0,2.0,vmax_elc,mumax_ion};
+  int ghostc[] = {0, 0, 0};
   int ghost[] = {0, 0, 0, 0, 0};
   int cells[] = {2, 2, 2, 16, 8};
   char basepath[4000] = ".";
@@ -302,19 +307,19 @@ test_coll_recomb_all_gk_li(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&confGrid, ghost, &confRange, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghostc, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
   struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
   gkyl_rect_grid_init(&phaseGrid_elc, pdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_elc, &phaseRange_elc);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_ext_elc, &phaseRange_elc);
 
   // ion phase grid
   struct gkyl_rect_grid phaseGrid_ion;
   struct gkyl_range phaseRange_ion, phaseRange_ext_ion;
   gkyl_rect_grid_init(&phaseGrid_ion, pdim, lower_ion, upper_ion, cells);
-  gkyl_create_grid_ranges(&phaseGrid_ion, ghost, &phaseRange_ion, &phaseRange_ion);
+  gkyl_create_grid_ranges(&phaseGrid_ion, ghost, &phaseRange_ext_ion, &phaseRange_ion);
 
   // basis functions
   struct gkyl_basis phaseBasis, basis; // phase-space, conf-space basis
@@ -342,6 +347,7 @@ test_coll_recomb_all_gk_li(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_self = emass,
     .type_ion = GKYL_ION_LI,
@@ -355,6 +361,7 @@ test_coll_recomb_all_gk_li(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_ion,
     .mass_self = li_ion_mass,
     .type_ion = GKYL_ION_LI,
@@ -368,6 +375,7 @@ test_coll_recomb_all_gk_li(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_ion,
     .mass_self = li_ion_mass,
     .type_ion = GKYL_ION_LI,
@@ -452,19 +460,19 @@ test_coll_recomb_all_gk_li(bool use_gpu)
     
   }
 
-  //  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_li_coef_recomb.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_li_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
-  for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-12) );
+  for (int i=0; i<basis.num_basis; ++i) {
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
   // test against predicted value
-  double p1_vals[] = {8.63481872714444e-19, 0.0000000000000000e+00, 0.0000000000000000e+00,
-		      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
-		      0.0000000000000000e+00, 0.0000000000000000e+00};
-  for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-12) );
+  double p1_vals[] = {1.4761368114720401e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
+  		      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
+  		      0.0000000000000000e+00, 0.0000000000000000e+00};
+  for (int i=0; i<basis.num_basis; ++i) {
+    TEST_CHECK( gkyl_compare_double(p1_vals[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
   
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
@@ -480,21 +488,22 @@ test_coll_recomb_all_gk_li(bool use_gpu)
 void
 test_coll_recomb_all_gk_ar(bool use_gpu)
 {
-  int charge_state = 2;
+  int charge_state = 1;
   bool all_gk = true;
   // use vt = 4 eV for all grids
-  double vmax_elc = 4*sqrt(4*echarge/emass);
+  double vmax_elc = 4.*sqrt(4.*echarge/emass);
   double vmin_elc = -vmax_elc;
-  double mumax_elc = 12*4*echarge/(2*B0);
-  double vmax_ion = 4*sqrt(4*echarge/ar_ion_mass);
+  double mumax_elc = 12.*4.*echarge/(2.*B0);
+  double vmax_ion = 4.*sqrt(4.*echarge/ar_ion_mass);
   double vmin_ion = -vmax_ion;
-  double mumax_ion = 12*4*echarge/(2*B0);
+  double mumax_ion = 12.*4.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 3, vdim = 2;
   int pdim = cdim + vdim;
 
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
   double lower_ion[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_ion[] = {2.0,2.0,2.0,vmax_elc,mumax_ion};
+  int ghostc[] = {0, 0, 0};
   int ghost[] = {0, 0, 0, 0, 0};
   int cells[] = {2, 2, 2, 16, 8};
   char basepath[4000] = ".";
@@ -502,19 +511,19 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&confGrid, ghost, &confRange, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghostc, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
   struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
   gkyl_rect_grid_init(&phaseGrid_elc, pdim, lower_elc, upper_elc, cells);
-  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_elc, &phaseRange_elc);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost, &phaseRange_ext_elc, &phaseRange_elc);
 
   // ion phase grid
   struct gkyl_rect_grid phaseGrid_ion;
   struct gkyl_range phaseRange_ion, phaseRange_ext_ion;
   gkyl_rect_grid_init(&phaseGrid_ion, pdim, lower_ion, upper_ion, cells);
-  gkyl_create_grid_ranges(&phaseGrid_ion, ghost, &phaseRange_ion, &phaseRange_ion);
+  gkyl_create_grid_ranges(&phaseGrid_ion, ghost, &phaseRange_ext_ion, &phaseRange_ion);
 
   // basis functions
   struct gkyl_basis phaseBasis, basis; // phase-space, conf-space basis
@@ -542,6 +551,7 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_self = emass,
     .type_ion = GKYL_ION_AR,
@@ -555,6 +565,7 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_ion,
     .mass_self = ar_ion_mass,
     .type_ion = GKYL_ION_AR,
@@ -568,6 +579,7 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_ion,
     .mass_self = ar_ion_mass,
     .type_ion = GKYL_ION_AR,
@@ -652,19 +664,19 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
     
   }
 
-  //  gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_ar_coef_recomb.gkyl");
+  //gkyl_grid_sub_array_write(&confGrid, &confRange, coef_recomb, "ctest_ar_coef_recomb.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_i[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_i[i]*check_fac, 1e-12) );
   }
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(cv_e[i], cv_r[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(cv_e[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
   // test against predicted value
-  double p1_vals[] = {3.860577342565882e-20, 0.0000000000000000e+00, 0.0000000000000000e+00,
+  double p1_vals[] = {2.6716460249415115e-18, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00, 0.0000000000000000e+00,
 		      0.0000000000000000e+00, 0.0000000000000000e+00};
   for (int i=0; i<basis.num_basis; ++i) { 
-    TEST_CHECK( gkyl_compare_double(p1_vals[i], cv_r[i], 1e-12) );
+    TEST_CHECK( gkyl_compare_double(p1_vals[i]*check_fac, cv_r[i]*check_fac, 1e-12) );
   }
   
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
@@ -684,9 +696,9 @@ test_coll_recomb_init_elem(bool use_gpu)
   int charge_state = 0; // charge state of reacting species
   bool all_gk = false;
   // use vt = 4 eV for all grids
-  double vmax_elc = 4*sqrt(4*echarge/emass);
+  double vmax_elc = 4.*sqrt(4.*echarge/emass);
   double vmin_elc = -vmax_elc;
-  double mumax_elc = 12*4*echarge/(2*B0);
+  double mumax_elc = 12.*4.*echarge/(2.*B0);
   int poly_order = 1;
   int cdim = 3, vdim_gk = 2;
   int pdim_gk = cdim + vdim_gk;
@@ -694,6 +706,7 @@ test_coll_recomb_init_elem(bool use_gpu)
   
   // for gk grids 
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
+  int ghost[] = {0, 0, 0};
   int ghost_gk[] = {0, 0, 0, 0, 0};
   int cells_gk[] = {16, 16, 16, 8, 4};
   char basepath[4000] = ".";
@@ -701,13 +714,13 @@ test_coll_recomb_init_elem(bool use_gpu)
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
   gkyl_rect_grid_init(&confGrid, cdim, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&confGrid, ghost_gk, &confRange, &confRange);
+  gkyl_create_grid_ranges(&confGrid, ghost, &confRange_ext, &confRange);
 
   // elc phase grid
   struct gkyl_rect_grid phaseGrid_elc;
   struct gkyl_range phaseRange_elc, phaseRange_ext_elc;
   gkyl_rect_grid_init(&phaseGrid_elc, pdim_gk, lower_elc, upper_elc, cells_gk);
-  gkyl_create_grid_ranges(&phaseGrid_elc, ghost_gk, &phaseRange_elc, &phaseRange_elc);
+  gkyl_create_grid_ranges(&phaseGrid_elc, ghost_gk, &phaseRange_ext_elc, &phaseRange_elc);
 
   // basis functions
   struct gkyl_basis  phaseBasis_gk, basis; // phase-space, conf-space basis
@@ -721,6 +734,7 @@ test_coll_recomb_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_self = emass,
     .type_ion = GKYL_ION_HE,
@@ -734,6 +748,7 @@ test_coll_recomb_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_self = emass,
     .type_ion = GKYL_ION_BE,
@@ -747,6 +762,7 @@ test_coll_recomb_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_self = emass,
     .type_ion = GKYL_ION_B,
@@ -760,6 +776,7 @@ test_coll_recomb_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_self = emass,
     .type_ion = GKYL_ION_C,
@@ -773,6 +790,7 @@ test_coll_recomb_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_self = emass,
     .type_ion = GKYL_ION_N,
@@ -786,6 +804,7 @@ test_coll_recomb_init_elem(bool use_gpu)
     .cbasis = &basis,
     .pbasis = &phaseBasis_gk,
     .conf_rng = &confRange,
+    .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_elc,
     .mass_self = emass,
     .type_ion = GKYL_ION_O,

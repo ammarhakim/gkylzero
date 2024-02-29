@@ -46,8 +46,8 @@ GKYL_CU_DH void gyrokinetic_M2_perp_1x2v_ser_p1(const double *w, const double *d
   double tmp[2]; 
   tmp[0] = 2.0*f[0]*wx2+0.5773502691896258*f[3]*dv2; 
   tmp[1] = 2.0*f[1]*wx2+0.5773502691896258*f[5]*dv2; 
-  out[0] += ((0.7071067811865475*bmag[1]*tmp[1]+0.7071067811865475*bmag[0]*tmp[0])*volFact)/m_; 
-  out[1] += ((0.7071067811865475*bmag[0]*tmp[1]+0.7071067811865475*tmp[0]*bmag[1])*volFact)/m_; 
+  out[0] += (2.0*(0.7071067811865475*bmag[1]*tmp[1]+0.7071067811865475*bmag[0]*tmp[0])*volFact)/m_; 
+  out[1] += (2.0*(0.7071067811865475*bmag[0]*tmp[1]+0.7071067811865475*tmp[0]*bmag[1])*volFact)/m_; 
 } 
 GKYL_CU_DH void gyrokinetic_M3_par_1x2v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 

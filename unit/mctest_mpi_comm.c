@@ -868,6 +868,8 @@ mpi_bcast_1d()
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  if (m_sz == 1)
+    bcast_rank = 0;
 
   struct gkyl_range global;
   gkyl_range_init(&global, 1, (int[]) { 1 }, (int[]) { 8*27*125 });
@@ -918,7 +920,9 @@ mpi_bcast_2d_test(int *cuts)
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
+  if (m_sz == 1)
+    bcast_rank = 0;
+  
   // create global range
   int cells[] = { 4*9*25, 4*9*25 };
   int ndim = sizeof(cells)/sizeof(cells[0]);

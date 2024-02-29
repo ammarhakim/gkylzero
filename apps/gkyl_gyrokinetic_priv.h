@@ -131,6 +131,7 @@ struct gk_species_moment {
   bool is_integrated; // boolean for if computing integrated moments 
                       // integrated moments do not need to divide by Jacobian since
                       // the inverse Jacobian is already included in the computation
+  int num_mom; // number of moments 
 
   struct gkyl_dg_updater_moment *mcalc; // moment update
 
@@ -279,10 +280,12 @@ struct gk_react {
   struct gk_species_moment moms_donor[GKYL_MAX_SPECIES]; // for computing moments of donor species in reaction
 
   struct gkyl_array *coeff_react[GKYL_MAX_SPECIES]; // reaction rate
+  struct gkyl_array *coeff_react_host[GKYL_MAX_SPECIES]; // reaction rate
   struct gkyl_array *vt_sq_iz[GKYL_MAX_SPECIES]; // ionization temperature
   struct gkyl_array *m0_elc[GKYL_MAX_SPECIES]; // electron density
-  //struct gkyl_array *m0_ion[GKYL_MAX_SPECIES]; // ion density
+  struct gkyl_array *m0_ion[GKYL_MAX_SPECIES]; // ion density
   struct gkyl_array *m0_donor[GKYL_MAX_SPECIES]; // donor density
+  struct gkyl_array *m0_mod[GKYL_MAX_SPECIES]; // to rescale fmax to have correct density
   struct gkyl_array *prim_vars[GKYL_MAX_SPECIES]; // primitive variables of donor (gk) or ion (vlasov), used for fmax
   union {
     // ionization
@@ -308,7 +311,8 @@ struct gk_proj {
     // Maxwellian and Bi-Maxwellian projection
     struct {
       struct gkyl_array *m0; // host-side density
-      struct gkyl_array *upar; // host-side upar  
+      struct gkyl_array *upar; // host-side upar
+      struct gkyl_array *udrift; // host-side udrift
       struct gkyl_array *prim_moms; // host-side prim_moms 
 
       struct gkyl_array *m0mod; // array for correcting density
@@ -319,7 +323,8 @@ struct gk_proj {
 
       struct gkyl_proj_on_basis *proj_dens; // projection operator for density
       struct gkyl_proj_on_basis *proj_upar; // projection operator for upar
-
+      struct gkyl_proj_on_basis *proj_udrift; // projection operator for upar
+      
       union {
         // Maxwellian-specific arrays and functions
         struct {
@@ -347,6 +352,11 @@ struct gk_source {
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   struct gk_proj proj_source[GKYL_MAX_SOURCES]; // projector for source
   int num_sources; // Number of sources.
+  struct gk_species_moment integ_moms; // integrated moments
+  struct gk_species_moment *moms; // diagnostic moments
+  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
+  gkyl_dynvec integ_diag; // integrated moments reduced across grid
+  bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
 };
 
 // species data

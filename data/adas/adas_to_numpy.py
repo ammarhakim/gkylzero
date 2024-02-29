@@ -209,10 +209,11 @@ def write_files(elem_array, file_num):
     for i in range(len(elem_array)):
         name = elem_array[i][0]
         num = file_num[elem_array[i][1]]
+        zmax = elem_array[i][2]
         #print(name, num)
         ioniz_np = []
         recomb_np = []
-        for zi in range(0,i+1):
+        for zi in range(0,zmax):
             ioniz = adas_adf11("scd%s_%s.dat"%(num,name))
             ioniz_dat = ioniz.logdata[zi,:,:]-6.0
             ioniz_flat = numpy.ndarray.flatten(ioniz_dat)
@@ -222,6 +223,7 @@ def write_files(elem_array, file_num):
             recomb_dat = recomb.logdata[zi,:,:]-6.0
             recomb_flat = numpy.ndarray.flatten(recomb_dat)
             recomb_np.append(recomb_flat)
+ 
         #print('2d shape', numpy.shape(recomb_dat))
         ioniz_np = numpy.array(ioniz_np)
         recomb_np = numpy.array(recomb_np)
@@ -231,6 +233,6 @@ def write_files(elem_array, file_num):
         ioniz.logNe.tofile("logN_%s.npy"%name)
 
 file_num = ['12','96','89']
-elem = [['h',0],['he',1],['li',1],['be',1],['b',2],['c',1],['n',1],['o',1],['ar',2]]
+elem = [['h',0,1],['he',1,2],['li',1,3],['be',1,4],['b',2,5],['c',1,6],['n',1,7],['o',1,8],['ar',2,18]]
 
 write_files(elem, file_num)

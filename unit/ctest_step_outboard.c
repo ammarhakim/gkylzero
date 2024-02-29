@@ -123,9 +123,12 @@ test_fixed_z()
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_SOL_DN_OUT,
-    .rclose = 6.2,
+    .rright = 6.2,
+    .rleft = 1.1,
     .zmin = -6.14213,
     .zmax = 6.14226,
+    .rmin = 1.1,
+    .rmax = 6.2,
     .write_node_coord_array = true,
     .node_file_nm = "step_outboard_fixed_z_nodes.gkyl"
   }; 

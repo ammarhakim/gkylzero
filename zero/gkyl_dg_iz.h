@@ -12,8 +12,9 @@ struct gkyl_dg_iz_inp {
   const struct gkyl_rect_grid* grid; // Grid object needed for fmax
   struct gkyl_basis* cbasis; // Configuration-space basis-functions
   struct gkyl_basis* pbasis; // Phase-space basis-functions
-  const struct gkyl_range *conf_rng; // Configuration range
-  const struct gkyl_range *phase_rng; // Phase range
+  const struct gkyl_range *conf_rng; // Configuration-space range
+  const struct gkyl_range *conf_rng_ext; // Configuration-space extended range
+  const struct gkyl_range *phase_rng; // Phase-space range
   double mass_ion; // Mass of the ion 
   enum gkyl_ion_type type_ion; // Enum for type of ion for ionization (H thru 0)
   int charge_state; // Ion charge state
