@@ -31,8 +31,8 @@ void
 gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyrokinetic_auxfields auxin)
 {
   gkyl_gyrokinetic_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
-  auxin.alpha_surf->on_dev, auxin.sgn_alpha_surf->on_dev, auxin.const_sgn_alpha->on_dev, 
-  auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev);
+    auxin.alpha_surf->on_dev, auxin.sgn_alpha_surf->on_dev, auxin.const_sgn_alpha->on_dev, 
+    auxin.phi->on_dev, auxin.apar->on_dev, auxin.apardot->on_dev);
 }
 
 // CUDA kernel to set device pointers to range object and gyrokinetic kernel function
@@ -126,10 +126,10 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const struct gkyl_range* conf_range, const struct gkyl_range* phase_range, 
-  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, 
-  const struct gk_geometry *gk_geom)
+gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range, const struct gkyl_range *phase_range, 
+  const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, const struct gk_geometry *gk_geom,
+  const struct gkyl_array *vmap, const struct gkyl_array *vmapSq, const struct gkyl_array *vmap_prime)
 {
   struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(struct dg_gyrokinetic));
 
@@ -143,11 +143,16 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gky
   gyrokinetic->mass = mass;
 
   gyrokinetic->eqn.num_equations = 1;
-  // acquire pointer to geometry object
-  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
-  gyrokinetic->gk_geom = geom->on_dev; // this is so the memcpy below has geometry on_dev
+
+  // This is so the memcpy below has the on_dev pointer.
+  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);  // acquire pointer to geometry object
+  gyrokinetic->gk_geom = geom->on_dev;
+  gyrokinetic->vmap = vmap->on_dev;
+  gyrokinetic->vmapSq = vmapSq->on_dev;
+  gyrokinetic->vmap_prime = vmap_prime->on_dev;
 
   gyrokinetic->conf_range = *conf_range;
+  gyrokinetic->vel_range = *vel_range;
   gyrokinetic->phase_range = *phase_range;
 
   gyrokinetic->eqn.flags = 0;
@@ -166,6 +171,9 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gky
   
   // updater should store host pointers
   gyrokinetic->gk_geom = geom; 
+  gyrokinetic->vmap = vmap;
+  gyrokinetic->vmapSq = vmapSq;
+  gyrokinetic->vmap_prime = vmap_prime;
 
   return &gyrokinetic->eqn;
 }

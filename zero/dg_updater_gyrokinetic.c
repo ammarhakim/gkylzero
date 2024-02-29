@@ -29,6 +29,7 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
 
   up->eqn_gyrokinetic = gkyl_dg_gyrokinetic_new(cbasis, pbasis, conf_range, vel_range, phase_range, 
     charge, mass, gkmodel_id, gk_geom, vmap, vmapSq, vmap_prime, up->use_gpu);
+
   struct gkyl_dg_gyrokinetic_auxfields *gk_inp = aux_inp;
   gkyl_gyrokinetic_set_auxfields(up->eqn_gyrokinetic, *gk_inp);
 

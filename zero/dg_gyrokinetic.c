@@ -52,8 +52,8 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, phase_range, charge, mass,
-      gkmodel_id, gk_geom, vmap, vmapSq, vmap_prime);
+    return gkyl_dg_gyrokinetic_cu_dev_new(cbasis, pbasis, conf_range, vel_range, phase_range,
+      charge, mass, gkmodel_id, gk_geom, vmap, vmapSq, vmap_prime);
 #endif
 
   struct dg_gyrokinetic *gyrokinetic = gkyl_malloc(sizeof(struct dg_gyrokinetic));
