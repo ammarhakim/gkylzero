@@ -323,8 +323,10 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   // set species source id
   s->source_id = s->info.source.source_id;
   
-  // determine collision type to use in gyrokinetic update
+  // determine collision type to use in gyrokinetic update and initialize structs
   s->collision_id = s->info.collisions.collision_id;
+  s->lbo = (struct gk_lbo_collisions) { };
+  s->bgk = (struct gk_bgk_collisions) { };
   if (s->collision_id == GKYL_LBO_COLLISIONS) 
     gk_species_lbo_init(app, s, &s->lbo);
   else if (s->collision_id == GKYL_BGK_COLLISIONS)
