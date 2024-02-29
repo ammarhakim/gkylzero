@@ -1338,7 +1338,7 @@ test_grid_array_read_p1(void)
 
   size_t nc = hdr.esznc/gkyl_elem_type_size[hdr.etype];
 
-  int nghost[] = { 0, 0 };
+  int nghost[] = { 1, 2 };
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
@@ -1348,33 +1348,80 @@ test_grid_array_read_p1(void)
   int s_status = gkyl_grid_sub_array_read(&s_grid, &range, s_arr,
     "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
-  // read parallel data
-  struct gkyl_rect_grid p_grid;  
-  struct gkyl_array *p_arr = gkyl_array_new(hdr.etype,  nc, ext_range.volume);
-  int p_status = gkyl_grid_sub_array_read(&p_grid, &range, p_arr,
-    "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+  // read parallel data (whole domain)
+  do {
+    struct gkyl_rect_grid p_grid;  
+    struct gkyl_array *p_arr = gkyl_array_new(hdr.etype,  nc, ext_range.volume);
+    int p_status = gkyl_grid_sub_array_read(&p_grid, &range, p_arr,
+      "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
-  TEST_CHECK( 0 == p_status );
+    TEST_CHECK( 0 == p_status );
+    
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &range);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&range, iter.idx);
+      const double *s_dat = gkyl_array_fetch(s_arr, loc);
+      const double *p_dat = gkyl_array_fetch(p_arr, loc);
+      
+      for (int c=0; c<nc; ++c)
+        TEST_CHECK( gkyl_compare_double(s_dat[c], p_dat[c], 1e-15) );
+    }
+    gkyl_array_release(p_arr);
+  } while (0);
 
-  for (int d=0; d<grid.ndim; ++d) {
-    TEST_CHECK( p_grid.cells[d] == s_grid.cells[d] );
-    TEST_CHECK( p_grid.lower[d] == s_grid.lower[d] );
-    TEST_CHECK( p_grid.upper[d] == s_grid.upper[d] );
-  }
+  // read parallel data (partial domain)
+  do {
+    struct gkyl_range prange;
+    gkyl_range_init(&prange, 2, (int[]) { 10, 10 }, (int[]) { 30, 40 });
+    
+    struct gkyl_rect_grid p_grid;
+    struct gkyl_array *p_arr = gkyl_array_new(hdr.etype,  nc, prange.volume);
+    int p_status = gkyl_grid_sub_array_read(&p_grid, &prange, p_arr,
+      "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &range);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&range, iter.idx);
-    const double *s_dat = gkyl_array_fetch(s_arr, loc);
-    const double *p_dat = gkyl_array_fetch(p_arr, loc);
+    TEST_CHECK( 0 == p_status );
+    
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &prange);
+    while (gkyl_range_iter_next(&iter)) {
 
-    for (int c=0; c<nc; ++c)
-      TEST_CHECK( gkyl_compare_double(s_dat[c], p_dat[c], 1e-15) );
-  }
+      const double *s_dat = gkyl_array_fetch(s_arr, gkyl_range_idx(&range, iter.idx));
+      const double *p_dat = gkyl_array_fetch(p_arr, gkyl_range_idx(&prange, iter.idx));
+      
+      for (int c=0; c<nc; ++c)
+        TEST_CHECK( gkyl_compare_double(s_dat[c], p_dat[c], 1e-15) );
+    }
+    gkyl_array_release(p_arr);
+  } while (0);
+
+  // read parallel data (partial domain)
+  do {
+    struct gkyl_range prange;
+    gkyl_range_init(&prange, 2, (int[]) { 4, 5 }, (int[]) { 10, 10 });
+    
+    struct gkyl_rect_grid p_grid;
+    struct gkyl_array *p_arr = gkyl_array_new(hdr.etype,  nc, prange.volume);
+    int p_status = gkyl_grid_sub_array_read(&p_grid, &prange, p_arr,
+      "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+
+    TEST_CHECK( 0 == p_status );
+    
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &prange);
+    while (gkyl_range_iter_next(&iter)) {
+
+      const double *s_dat = gkyl_array_fetch(s_arr, gkyl_range_idx(&range, iter.idx));
+      const double *p_dat = gkyl_array_fetch(p_arr, gkyl_range_idx(&prange, iter.idx));
+      
+      for (int c=0; c<nc; ++c)
+        TEST_CHECK( gkyl_compare_double(s_dat[c], p_dat[c], 1e-15) );
+    }
+    gkyl_array_release(p_arr);
+  } while (0);    
 
   gkyl_array_release(s_arr);
-  gkyl_array_release(p_arr);
+
 }
 
 // Cuda specific tests
