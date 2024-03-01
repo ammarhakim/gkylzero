@@ -86,6 +86,7 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   struct gkyl_array *vmap1d = mkarr(app->use_gpu, vmap_basis_ho.num_basis, s->vmap->size);
   struct gkyl_array *vmap1d_p2 = mkarr(app->use_gpu, vmapSq_basis_ho.num_basis, s->vmap->size);
   struct gkyl_array *vmap_prime1d = mkarr(app->use_gpu, 1, s->vmap_prime->size);
+  gkyl_array_clear(vmap1d_p2, 0.);
   for (int d=0; d<vdim; d++) {
     gkyl_array_set_offset(vmap1d, 1., s->vmap, d*vmap_basis_ho.num_basis);
 

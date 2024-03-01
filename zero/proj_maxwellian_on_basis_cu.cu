@@ -391,16 +391,15 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid
     for (int n=0; n<tot_phase_quad; ++n) {
 
       int cqidx = p2c_qidx[n];
+      const double *xcomp_d = (const double *) gkyl_array_cfetch(phase_ordinates, n);
 
       if (vmap == 0) {
-        comp_to_phys(pdim, (const double *) gkyl_array_cfetch(phase_ordinates, n),
-          grid.dx, xc, &xmu[0]);
+        comp_to_phys(pdim, xcomp_d, grid.dx, xc, &xmu[0]);
       } else {
         // convert comp velocity coordinate to phys velocity coord.
-        const double *xlog_d = (const double *) gkyl_array_cfetch(phase_ordinates, n);
         double xcomp[1];
         for (int vd=0; vd<vdim; vd++) {
-          xcomp[0] = xlog_d[cdim+vd];
+          xcomp[0] = xcomp_d[cdim+vd];
           xmu[cdim+vd] = vmap_basis->eval_expand(xcomp, vmap_d+vd*vmap_basis->num_basis);
         }
       }
@@ -466,9 +465,10 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis 
   struct gkyl_array *fmax)
 {
   int nblocks = phase_r->nblocks, nthreads = phase_r->nthreads;
+  struct gkyl_array *vmap_cu = up->vmap? up->vmap->on_dev : NULL;
   gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker<<<nblocks, nthreads>>>
     (up->grid, *phase_r, *conf_r, *(up->vel_range), up->conf_basis_at_ords->on_dev,
      up->basis_at_ords->on_dev, up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
      moms->on_dev, prim_moms->on_dev, bmag->on_dev, jacob_tot->on_dev,
-     up->vmap, up->vmap_basis, mass, fmax->on_dev);
+     vmap_cu, up->vmap_basis, mass, fmax->on_dev);
 }

@@ -48,14 +48,11 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .conf_basis = &app->confBasis,
       .phase_basis = &app->basis,
       .num_quad = app->basis.poly_order+1,
+      .vel_range = &s->local_vel,
+      .vmap_basis = s->vmap_basis,
+      .vmap = s->vmap,
       .use_gpu = app->use_gpu,
-      .vmap = 0,
     };
-    if (s->info.mapc2p.is_mapped) {
-      proj_inp.vmap_basis = s->vmap_basis;
-      proj_inp.vel_range = &s->local_vel;
-      proj_inp.vmap = s->vmap;
-    }
     proj->proj_max = gkyl_proj_maxwellian_on_basis_inew( &proj_inp );
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
