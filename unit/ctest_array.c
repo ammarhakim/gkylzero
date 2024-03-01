@@ -1065,7 +1065,7 @@ test_grid_sub_array_read_1()
       d[k] = (10.5*iter.idx[0] + 220.5*iter.idx[1])*(k+0.5);
   }
 
-  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_array_grid_array_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_grid_sub_array_1.gkyl");
 
   struct gkyl_array *arr2 = gkyl_array_new(GKYL_DOUBLE, 2, ext_range.volume);
   gkyl_array_clear(arr2, 0.0);
@@ -1074,7 +1074,7 @@ test_grid_sub_array_read_1()
 
   // read just header
   FILE *fp;
-  with_file(fp, "ctest_array_grid_array_1.gkyl", "r") {
+  with_file(fp, "ctest_grid_sub_array_1.gkyl", "r") {
     struct gkyl_array_header_info hdr;
     
     int status = gkyl_grid_sub_array_header_read_fp(&grid2, &hdr, fp);
@@ -1104,7 +1104,7 @@ test_grid_sub_array_read_1()
   
   // read back the grid and the array
   int err =
-    gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_array_grid_array_1.gkyl");
+    gkyl_grid_sub_array_read(&grid2, &range, arr2, "ctest_grid_sub_array_1.gkyl");
 
   TEST_CHECK( err < 1 );
   
@@ -1160,7 +1160,7 @@ test_grid_sub_array_read_2()
       d[k] = (10.5*iter.idx[0] + 220.5*iter.idx[1])*(k+0.5);
   }
 
-  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_array_grid_array_b.gkyl");
+  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_grid_sub_array_2.gkyl");
 
   struct gkyl_rect_grid grid2;
 
@@ -1172,7 +1172,7 @@ test_grid_sub_array_read_2()
 
   // read back the grid and the array
   int err =
-    gkyl_grid_sub_array_read(&grid2, &srange, arr2, "ctest_array_grid_array_b.gkyl");
+    gkyl_grid_sub_array_read(&grid2, &srange, arr2, "ctest_grid_sub_array_2.gkyl");
 
   TEST_CHECK( err < 1 );
   
@@ -1226,10 +1226,10 @@ test_grid_array_new_from_file_1()
       d[k] = (10.5*iter.idx[0] + 220.5*iter.idx[1])*(k+0.5);
   }
 
-  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_array_grid_array_2.gkyl");
+  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_grid_array_new_from_file_1.gkyl");
 
   struct gkyl_rect_grid grid2;
-  struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid2, "ctest_array_grid_array_2.gkyl");
+  struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid2, "ctest_grid_array_new_from_file_1.gkyl");
 
   TEST_CHECK( arr2->type == GKYL_DOUBLE );
 

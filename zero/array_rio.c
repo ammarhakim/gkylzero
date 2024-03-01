@@ -159,48 +159,42 @@ array_new_from_file(enum gkyl_elem_type type, FILE *fp)
   return arr;
 }
 
-static bool
-sub_array_read(const struct gkyl_range *range, struct gkyl_array *arr, FILE *fp)
-{
-#define _F(loc) gkyl_array_fetch(arr, loc)
-  
-  uint64_t esznc, size;
-  if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
-    return false;
-  if (1 != fread(&size, sizeof(uint64_t), 1, fp))
-    return false;
-
-  if ((size < range->volume) || (size > arr->size))
-    return false;
-  
-  // construct skip iterator to allow reading (potentially) in chunks
-  // rather than element by element or requiring a copy of data
-  struct gkyl_range_skip_iter skip;
-  gkyl_range_skip_iter_init(&skip, range);
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &skip.range);
-
-  while (gkyl_range_iter_next(&iter)) {
-    long start = gkyl_range_idx(&skip.range, iter.idx);
-    if (1 != fread(_F(start), arr->esznc*skip.delta, 1, fp))
-      return false;
-  }
-
-  return true;
-#undef _F
-}
-
 static int
 gkyl_grid_sub_array_read_ft_1(const struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, const struct gkyl_range *range,
   struct gkyl_array *arr, FILE *fp)
 {
   size_t loc = gkyl_base_hdr_size(hdr->meta_size)
-    + gkyl_file_type_1_partial_hrd_size(grid->ndim);
+    + gkyl_file_type_1_hrd_size(grid->ndim);
   fseek(fp, loc, SEEK_SET);
-  bool status = sub_array_read(range, arr, fp);
-  return status ? 0 : errno;
+
+  struct gkyl_range blk_rng;
+  gkyl_range_init_from_shape1(&blk_rng, grid->ndim, grid->cells);
+
+  struct gkyl_range inter;
+  int not_empty = gkyl_range_intersect(&inter, &blk_rng, range);
+
+  if (not_empty) {
+    uint64_t sz = hdr->tot_cells;
+    gkyl_mem_buff buff = gkyl_mem_buff_new(sz*hdr->esznc);
+
+    if (1 != fread(gkyl_mem_buff_data(buff), sz*hdr->esznc, 1, fp)) {
+      gkyl_mem_buff_release(buff);
+      return 1;
+    }
+    
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &inter);
+    while (gkyl_range_iter_next(&iter)) {
+      char *out = gkyl_array_fetch(arr, gkyl_range_idx(range, iter.idx));
+      const char *inp = gkyl_mem_buff_data(buff) + hdr->esznc*gkyl_range_idx(&blk_rng, iter.idx);
+      memcpy(out, inp, hdr->esznc);
+    }    
+
+    gkyl_mem_buff_release(buff);
+  }
+    
+  return errno;
 }
 
 static int
@@ -281,43 +275,26 @@ gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *r
 
 struct gkyl_array*
 gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid, const char* fname)
-{ // REWRITE PROPERLY!!!
+{
   struct gkyl_array *arr = 0;
+  struct gkyl_array_header_info hdr;
+  
   FILE *fp = 0;
   with_file (fp, fname, "r") {
-
-    size_t frr;
-    // Version 1 header
-    
-    char g0[6];
-    frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
-    g0[5] = '\0'; // add the NULL
-    if (strcmp(g0, "gkyl0") != 0)
-      return 0;
-
-    uint64_t version;
-    frr = fread(&version, sizeof(uint64_t), 1, fp);
-    if (version != 1)
-      return 0;
-
-    uint64_t file_type;
-    frr = fread(&file_type, sizeof(uint64_t), 1, fp);
-    if (file_type != 1)
-      return 0;
-
-    uint64_t meta_size;
-    frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
-
-    // read ahead by specified bytes: READ META-DATA HERE
-    fseek(fp, meta_size, SEEK_CUR);    
-    
-    uint64_t real_type = 0;
-    if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
-      break;
-    
-    gkyl_rect_grid_read(grid, fp);
-    arr = array_new_from_file(gkyl_array_code_to_data_type[real_type],
-      fp);
+    gkyl_grid_sub_array_header_read_fp(grid, &hdr, fp);
   }
+
+  size_t nc = hdr.esznc/gkyl_elem_type_size[hdr.etype];
+  arr = gkyl_array_new(hdr.etype, nc, hdr.tot_cells);
+  struct gkyl_range range;
+  gkyl_range_init_from_shape1(&range, grid->ndim, grid->cells);
+
+  int status = gkyl_grid_sub_array_read(grid, &range, arr, fname);
+
+  if (status != 0) {
+    gkyl_array_release(arr);
+    arr = 0;
+  }
+    
   return arr;
 }
