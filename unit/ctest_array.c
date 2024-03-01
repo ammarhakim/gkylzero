@@ -1189,13 +1189,10 @@ test_grid_sub_array_read_2()
     
     gkyl_range_iter_init(&iter, &srange);
     while (gkyl_range_iter_next(&iter)) {
-
-      printf("%ld %ld\n", gkyl_range_idx(&range, iter.idx), gkyl_range_idx(&srange, iter.idx));
-      
-      /* const double *rhs = gkyl_array_cfetch(arr, gkyl_range_idx(&range, iter.idx)); */
-      /* const double *lhs = gkyl_array_cfetch(arr2, gkyl_range_idx(&srange, iter.idx)); */
-      /* for (int k=0; k<2; ++k) */
-      /*   TEST_CHECK( lhs[k] == rhs[k] ); */
+      const double *rhs = gkyl_array_cfetch(arr, gkyl_range_idx(&range, iter.idx));
+      const double *lhs = gkyl_array_cfetch(arr2, gkyl_range_idx(&srange, iter.idx));
+      for (int k=0; k<2; ++k)
+        TEST_CHECK( lhs[k] == rhs[k] );
     }
   }
   

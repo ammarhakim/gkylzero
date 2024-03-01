@@ -11,17 +11,8 @@
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_elem_type_priv.h>
 
-void
-gkyl_array_write(const struct gkyl_array *arr, FILE *fp)
-{
-  uint64_t esznc = arr->esznc, size = arr->size;
-  fwrite(&esznc, sizeof(uint64_t), 1, fp);
-  fwrite(&size, sizeof(uint64_t), 1, fp);
-  fwrite(arr->data, arr->esznc*arr->size, 1, fp);
-}
-
 static void
-gkyl_sub_array_write_priv(const struct gkyl_range *range,
+sub_array_write_priv(const struct gkyl_range *range,
   const struct gkyl_array *arr, FILE *fp)
 {
 #define _F(loc) gkyl_array_cfetch(arr, loc)
@@ -39,15 +30,6 @@ gkyl_sub_array_write_priv(const struct gkyl_range *range,
     fwrite(_F(start), arr->esznc*skip.delta, 1, fp);
   }
 #undef _F
-}
-
-void
-gkyl_sub_array_write(const struct gkyl_range *range,
-  const struct gkyl_array *arr, FILE *fp)
-{ 
-  fwrite(&arr->esznc, sizeof(uint64_t), 1, fp);
-  fwrite(&range->volume, sizeof(uint64_t), 1, fp);
-  gkyl_sub_array_write_priv(range, arr, fp);
 }
 
 int
@@ -134,39 +116,31 @@ gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
 }
 
 int
-gkyl_grid_sub_array_write_fp(const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *range,
-  const struct gkyl_array *arr, FILE *fp)
-{
-  gkyl_grid_sub_array_header_write_fp(grid,
-    &(struct gkyl_array_header_info) {
-      .file_type = gkyl_file_type_int[GKYL_FIELD_DATA_FILE],
-      .etype = arr->type,
-      .esznc = arr->esznc,
-      .tot_cells = range->volume,
-      .meta = 0
-    },
-    fp
-  );
-
-  gkyl_sub_array_write_priv(range, arr, fp);
-  return errno;
-}
-
-int
 gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_array *arr, const char *fname)
 {
   FILE *fp = 0;
   int err;
   with_file (fp, fname, "w") {
-    err = gkyl_grid_sub_array_write_fp(grid, range, arr, fp);
+    
+    gkyl_grid_sub_array_header_write_fp(grid,
+      &(struct gkyl_array_header_info) {
+        .file_type = gkyl_file_type_int[GKYL_FIELD_DATA_FILE],
+        .etype = arr->type,
+        .esznc = arr->esznc,
+        .tot_cells = range->volume,
+        .meta = 0
+      },
+      fp
+    );
+    
+    sub_array_write_priv(range, arr, fp);    
   }
-  return err;
+  return errno;
 }
 
-struct gkyl_array*
-gkyl_array_new_from_file(enum gkyl_elem_type type, FILE *fp)
+static struct gkyl_array*
+array_new_from_file(enum gkyl_elem_type type, FILE *fp)
 {
   struct gkyl_array* arr = 0;
   
@@ -185,8 +159,8 @@ gkyl_array_new_from_file(enum gkyl_elem_type type, FILE *fp)
   return arr;
 }
 
-bool
-gkyl_sub_array_read(const struct gkyl_range *range, struct gkyl_array *arr, FILE *fp)
+static bool
+sub_array_read(const struct gkyl_range *range, struct gkyl_array *arr, FILE *fp)
 {
 #define _F(loc) gkyl_array_fetch(arr, loc)
   
@@ -225,7 +199,7 @@ gkyl_grid_sub_array_read_ft_1(const struct gkyl_rect_grid *grid,
   size_t loc = gkyl_base_hdr_size(hdr->meta_size)
     + gkyl_file_type_1_partial_hrd_size(grid->ndim);
   fseek(fp, loc, SEEK_SET);
-  bool status = gkyl_sub_array_read(range, arr, fp);
+  bool status = sub_array_read(range, arr, fp);
   return status ? 0 : errno;
 }
 
@@ -342,7 +316,7 @@ gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid, const char* fname)
       break;
     
     gkyl_rect_grid_read(grid, fp);
-    arr = gkyl_array_new_from_file(gkyl_array_code_to_data_type[real_type],
+    arr = array_new_from_file(gkyl_array_code_to_data_type[real_type],
       fp);
   }
   return arr;
