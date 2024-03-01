@@ -511,7 +511,7 @@ gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
 void
 gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
 {
-  fprintf(fp, "%s = { ", nm);
+  fprintf(fp, "%s = { ndim = %d, ", nm, range->ndim);
 
   fprintf(fp, " lower = { ");
   for (int d=0; d<range->ndim; ++d)

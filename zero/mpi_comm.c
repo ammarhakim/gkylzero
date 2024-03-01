@@ -1,4 +1,3 @@
-
 #ifdef GKYL_HAVE_MPI
 
 #include <assert.h>
@@ -6,6 +5,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_comm_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_mpi_comm.h>

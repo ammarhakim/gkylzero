@@ -8,6 +8,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_elem_type_priv.h>
 
 void
@@ -195,7 +196,7 @@ gkyl_sub_array_read(const struct gkyl_range *range, struct gkyl_array *arr, FILE
   if (1 != fread(&size, sizeof(uint64_t), 1, fp))
     return false;
 
-  if ((size != range->volume) || (size > arr->size)) // WHY IS THE TEST size != range->volume needed?
+  if ((size < range->volume) || (size > arr->size))
     return false;
   
   // construct skip iterator to allow reading (potentially) in chunks
@@ -269,7 +270,6 @@ gkyl_grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid,
         return 1;
       }
 
-      // SHOULD THIS BE A SKIP ITERATOR?!
       struct gkyl_range_iter iter;
       gkyl_range_iter_init(&iter, &inter);
       while (gkyl_range_iter_next(&iter)) {
