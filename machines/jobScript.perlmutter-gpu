@@ -10,7 +10,6 @@
 
 #.Number of nodes to request (Perlmutter has 64 cores and 4 GPUs per node)
 #SBATCH -N 2
-#SBATCH -n 8
 
 #.Specify GPU needs:
 #SBATCH --constraint gpu
