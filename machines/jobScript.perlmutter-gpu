@@ -39,8 +39,8 @@ module unload darshan
 #.in the present directory. If it isn't, change `./` to point to the
 #.directory containing the executable.
 
-echo "srun -u --mpi=pmix -n 8 --gpus 8 ./rt_gk_sheath_2x2v_p1 -g -M -c 1 -d 8"
-srun -u --mpi=pmix -n 8 --gpus 8 ./rt_gk_sheath_2x2v_p1 -g -M -c 1 -d 8
+echo "srun -u --mpi=pmix -n 8 ./rt_gk_sheath_2x2v_p1 -g -M -c 1 -d 8"
+srun -u --mpi=pmix -n 8 ./rt_gk_sheath_2x2v_p1 -g -M -c 1 -d 8
 
 
 
