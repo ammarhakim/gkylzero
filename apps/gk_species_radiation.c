@@ -41,6 +41,8 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     gkyl_cart_modal_gkhybrid(&surf_mu_basis, cdim, 1);   
   }
 
+  rad->surf_vpar_basis=surf_vpar_basis;
+  rad->surf_mu_basis=surf_mu_basis; 
   // Fitting parameters
   double a[26], alpha[26], beta[26], gamma[26], v0[26];
   struct all_radiation_states *rad_data=gkyl_read_rad_fit_params();
@@ -76,7 +78,10 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       rad->vsqnu_surf[i], rad->vsqnu[i]);
 
     // allocate density calculation needed for radiation update
-    gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");  
+    gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");
+
+    //allocate emissivity
+    rad->emissivity[i]=mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   }
   gkyl_release_fit_params(rad_data);
   
@@ -128,6 +133,75 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
       rad->nvnu_surf, rad->nvnu, 
       rad->nvsqnu_surf, rad->nvsqnu);
   }
+}
+
+// computes emissivity
+void
+gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_rad_drag *rad, const struct gkyl_array *fin[])
+{
+  double mass = species->info.mass;
+  struct gkyl_array *nvnu_surf, *nvnu, *nvsqnu_surf, *nvsqnu, *rhs, *cflrate, *dem;
+  struct gkyl_basis vpar = rad->surf_vpar_basis;
+
+  rhs = mkarr(app->use_gpu, app->basis.num_basis, species->local_ext.volume);
+  dem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  cflrate = mkarr(app->use_gpu, 1, species->local_ext.volume);
+
+  // Radiation updater
+  /*  struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu,
+    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu };
+  gkyl_dg_updater_collisions *drag_slvr = gkyl_dg_updater_rad_gyrokinetic_new(&species->grid, 
+    &app->confBasis, &app->basis, &species->local, &drag_inp, app->use_gpu);
+  */  
+  gk_species_moment_calc(&species->m0, species->local, app->local, species->f);
+  //Calculate m2
+  for (int i=0; i<rad->num_cross_collisions; ++i) {
+    gkyl_array_clear(rad->nvnu_surf, 0.0);
+    gkyl_array_clear(rad->nvnu, 0.0);
+    gkyl_array_clear(rad->nvsqnu_surf, 0.0);
+    gkyl_array_clear(rad->nvsqnu, 0.0);
+    gkyl_array_clear(rhs, 0.0);
+    gkyl_array_clear(dem, 0.0);
+    gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
+    // divide out Jacobian from ion density before computation of final drag coefficient
+    gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
+      rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(rad->calc_gk_rad_vars[i], 
+      &app->local, &species->local, 
+      rad->vnu_surf[i], rad->vnu[i], 
+      rad->vsqnu_surf[i], rad->vsqnu[i], 
+      rad->moms[i].marr, 
+      rad->nvnu_surf, rad->nvnu, 
+      rad->nvsqnu_surf, rad->nvsqnu);
+
+    gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
+      species->f, cflrate, rhs);
+    //    gkyl_dg_updater_rad_gyrokinetic_advance(drag_slvr, &species->local,
+    //species->f, cflrate, rhs);
+    struct gk_species_moment m2;
+    gk_species_moment_init(app, species, &m2, "M2");
+    gk_species_moment_calc(&m2, species->local, app->local, rhs);
+    
+    gkyl_dg_mul_op(app->confBasis, 0, dem, 0, species->m0.marr, 0, rad->moms[i].marr);
+
+    gkyl_dg_div_op_range(m2.mem_geo ,app->confBasis, 0, rad->emissivity[i], 0, m2.marr, 0, dem, &app->local);
+
+    rad->emissivity[i] = gkyl_array_scale(rad->emissivity[i], -mass/2.0);
+    //    rad->emissivity[i] = 1/2*mass*m2/(species->m0*&rad->moms[i].marr);
+    gk_species_moment_release(app, &m2);
+    double *arr = gkyl_array_fetch(rad->emissivity[i],0);
+    double *arr2 =gkyl_array_fetch(m2.marr, 0);
+    double *arr3 = gkyl_array_fetch(dem,0);
+    double *arr4 = gkyl_array_fetch(rhs,0);
+    double *arr5 = gkyl_array_fetch(species->m0.marr,0);
+    double *arr6 = gkyl_array_fetch(rad->moms[i].marr,0);
+    const double *arr7 = gkyl_array_cfetch(fin[rad->collide_with_idx[i]],0);
+  }  
+  //  gkyl_dg_updater_rad_gyrokinetic_release(drag_slvr);
+  gkyl_array_release(dem);
+  gkyl_array_release(rhs);
+  gkyl_array_release(cflrate);
 }
 
 // updates the collision terms in the rhs
