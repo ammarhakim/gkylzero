@@ -1,7 +1,7 @@
 #include <gkyl_mom_gyrokinetic_kernels.h> 
 GKYL_CU_DH void gyrokinetic_int_mom_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
-  const double volFact = dxv[1]/2; 
+  const double volFact = dxv[0]*dxv[1]*0.25; 
   const double wx1 = w[1], dv1 = dxv[1]; 
   const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
  

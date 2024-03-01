@@ -63,14 +63,34 @@ test_deep_core()
     .rclose = 6.2,
     .rleft= 1.1,
     .rright= 6.2,
-    .zmin = -6.2,
-    .zmax = 6.2,
+    .zxpt_lo = -6.2,
+    .zxpt_up = 6.2,
+    .rmin = 1.5,
+    .rmax = 6.2,
 
     .write_node_coord_array = true,
     .node_file_nm = "stepcore_nodes.gkyl"
   }; 
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
+
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
 
 
   gkyl_gk_geometry_release(up);
@@ -129,14 +149,34 @@ test_boundary()
     .rclose = 6.2,
     .rleft= 1.1,
     .rright= 6.2,
-    .zmin = -6.2,
-    .zmax = 6.2,
+    .zxpt_lo = -6.2,
+    .zxpt_up = 6.2,
+    .rmin = 1.5,
+    .rmax = 6.2,
 
     .write_node_coord_array = true,
     .node_file_nm = "stepbry_nodes.gkyl"
   }; 
 
-  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&cgrid, &clocal, &clocal_ext, &cbasis, &inp, &ginp, false); 
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_TOKAMAK,
+    .tok_efit_info = &inp,
+    .tok_grid_info = &ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
+
+  struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
 
 
   gkyl_gk_geometry_release(up);

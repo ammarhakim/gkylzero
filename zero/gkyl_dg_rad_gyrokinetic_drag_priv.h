@@ -6,12 +6,14 @@
 #include <gkyl_rad_gyrokinetic_kernels.h>
 
 // Types for various kernels
-typedef double (*rad_gyrokinetic_drag_surf_t)(const double *w, const double *dxv, const double *nuField,
-  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
-
-typedef double (*rad_gyrokinetic_drag_boundary_surf_t)(const double *w, const double *dxv,
-  const double *nuField, const int edge, const double *fEdge, const double *fSkin,
+typedef double (*rad_gyrokinetic_surf_t)(const double *w, const double *dxv, 
+  const double *nvnu_l, const double *nvnu_r, const double *nvsqnu_l, const double *nvsqnu_r, 
+  const double *fl, const double *fc, const double *fr, 
   double* GKYL_RESTRICT out);
+
+typedef double (*rad_gyrokinetic_boundary_surf_t)(const double *w, const double *dxv, 
+  const double *nvnu_edge, const double *nvnu_skin, const double *nvsqnu_edge, const double *nvsqnu_skin, 
+  const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.
@@ -23,9 +25,9 @@ static struct { int vdim[3]; } cv_index[] = {
 };
 
 // for use in kernel tables
-typedef struct { vol_termf_t kernels[3]; } gkyl_dg_rad_gyrokinetic_drag_vol_kern_list;
-typedef struct { rad_gyrokinetic_drag_surf_t kernels[3]; } gkyl_dg_rad_gyrokinetic_drag_surf_kern_list;
-typedef struct { rad_gyrokinetic_drag_boundary_surf_t kernels[3]; } gkyl_dg_rad_gyrokinetic_drag_boundary_surf_kern_list;
+typedef struct { vol_termf_t kernels[3]; } gkyl_dg_rad_gyrokinetic_vol_kern_list;
+typedef struct { rad_gyrokinetic_surf_t kernels[3]; } gkyl_dg_rad_gyrokinetic_surf_kern_list;
+typedef struct { rad_gyrokinetic_boundary_surf_t kernels[3]; } gkyl_dg_rad_gyrokinetic_boundary_surf_kern_list;
 
 // "Choose Kernel" based on cdim, vdim and polyorder
 #define CK(lst, cdim, vd, poly_order) lst[cv_index[cdim].vdim[vd]].kernels[poly_order]
@@ -34,10 +36,10 @@ struct dg_rad_gyrokinetic_drag {
   struct gkyl_dg_eqn eqn; // Base object.
   int cdim; // Config-space dimensions.
   int pdim; // Phase-space dimensions.
-  rad_gyrokinetic_drag_surf_t surf[2]; // Surface terms for acceleration.
-  rad_gyrokinetic_drag_boundary_surf_t boundary_surf[2]; // Surface terms for acceleration.
+  rad_gyrokinetic_surf_t surf[2]; // Surface terms for acceleration.
+  rad_gyrokinetic_boundary_surf_t boundary_surf[2]; // Surface terms for acceleration.
   struct gkyl_range phase_range; // Phase-space range.
-  struct gkyl_dg_rad_gyrokinetic_drag_auxfields auxfields; // Auxiliary fields.
+  struct gkyl_dg_rad_gyrokinetic_auxfields auxfields; // Auxiliary fields.
 };
 
 //
@@ -47,163 +49,135 @@ struct dg_rad_gyrokinetic_drag {
 
 GKYL_CU_DH
 static double
-kernel_rad_gyrokinetic_drag_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+kernel_rad_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
   long pidx = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idx);
 
-  return rad_gyrokinetic_drag_vol_1x1v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_sum, pidx), 
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_sum, pidx), 
+  return rad_gyrokinetic_vol_1x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu, pidx), 
+    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu, pidx), 
     qIn, qRhsOut);
 }
 
 GKYL_CU_DH
 static double
-kernel_rad_gyrokinetic_drag_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+kernel_rad_gyrokinetic_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
   long pidx = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idx);
 
-  return rad_gyrokinetic_drag_vol_1x1v_ser_p2(xc, dx,
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_sum, pidx), 
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_sum, pidx), 
+  return rad_gyrokinetic_vol_1x2v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu, pidx), 
+    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu, pidx), 
     qIn, qRhsOut);
 }
 
 GKYL_CU_DH
 static double
-kernel_rad_gyrokinetic_drag_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+kernel_rad_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
   long pidx = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idx);
 
-  return rad_gyrokinetic_drag_vol_1x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_sum, pidx), 
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_sum, pidx), 
+  return rad_gyrokinetic_vol_2x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu, pidx), 
+    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu, pidx), 
     qIn, qRhsOut);
 }
 
 GKYL_CU_DH
 static double
-kernel_rad_gyrokinetic_drag_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+kernel_rad_gyrokinetic_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
   long pidx = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idx);
 
-  return rad_gyrokinetic_drag_vol_1x2v_ser_p2(xc, dx,
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_sum, pidx), 
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_sum, pidx), 
+  return rad_gyrokinetic_vol_2x2v_ser_p2(xc, dx,
+    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu, pidx), 
+    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu, pidx), 
     qIn, qRhsOut);
 }
 
 GKYL_CU_DH
 static double
-kernel_rad_gyrokinetic_drag_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
+kernel_rad_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
   long pidx = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idx);
 
-  return rad_gyrokinetic_drag_vol_2x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_sum, pidx), 
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_sum, pidx), 
-    qIn, qRhsOut);
-}
-
-GKYL_CU_DH
-static double
-kernel_rad_gyrokinetic_drag_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
-  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
-  long pidx = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idx);
-
-  return rad_gyrokinetic_drag_vol_2x2v_ser_p2(xc, dx,
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_sum, pidx), 
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_sum, pidx), 
-    qIn, qRhsOut);
-}
-
-GKYL_CU_DH
-static double
-kernel_rad_gyrokinetic_drag_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double*  xc, const double*  dx, 
-  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
-  long pidx = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idx);
-
-  return rad_gyrokinetic_drag_vol_3x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_sum, pidx), 
-    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_sum, pidx), 
+  return rad_gyrokinetic_vol_3x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu, pidx), 
+    (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu, pidx), 
     qIn, qRhsOut);
 }
 
 // Volume kernel list
 GKYL_CU_D
-static const gkyl_dg_rad_gyrokinetic_drag_vol_kern_list ser_vol_kernels[] = {
+static const gkyl_dg_rad_gyrokinetic_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
-  { NULL, kernel_rad_gyrokinetic_drag_vol_1x1v_ser_p1, kernel_rad_gyrokinetic_drag_vol_1x1v_ser_p2 }, // 0
-  { NULL, kernel_rad_gyrokinetic_drag_vol_1x2v_ser_p1, kernel_rad_gyrokinetic_drag_vol_1x2v_ser_p2 }, // 1
+  { NULL, NULL, NULL }, // 0
+  { NULL, kernel_rad_gyrokinetic_vol_1x2v_ser_p1, kernel_rad_gyrokinetic_vol_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, kernel_rad_gyrokinetic_drag_vol_2x2v_ser_p1, kernel_rad_gyrokinetic_drag_vol_2x2v_ser_p2 }, // 3
+  { NULL, kernel_rad_gyrokinetic_vol_2x2v_ser_p1, kernel_rad_gyrokinetic_vol_2x2v_ser_p2 }, // 3
   // 3x kernels
-  { NULL, kernel_rad_gyrokinetic_drag_vol_3x2v_ser_p1, NULL }, // 4
+  { NULL, kernel_rad_gyrokinetic_vol_3x2v_ser_p1, NULL }, // 4
 };
 
 // Surface kernel list: vpar-direction
 GKYL_CU_D
-static const gkyl_dg_rad_gyrokinetic_drag_surf_kern_list ser_surf_vpar_kernels[] = {
+static const gkyl_dg_rad_gyrokinetic_surf_kern_list ser_surf_vpar_kernels[] = {
   // 1x kernels
-  { NULL, rad_gyrokinetic_drag_surfvpar_1x1v_ser_p1, rad_gyrokinetic_drag_surfvpar_1x1v_ser_p2 }, // 0
-  { NULL, rad_gyrokinetic_drag_surfvpar_1x2v_ser_p1, rad_gyrokinetic_drag_surfvpar_1x2v_ser_p2 }, // 1
+  { NULL, NULL, NULL }, // 0
+  { NULL, rad_gyrokinetic_surfvpar_1x2v_ser_p1, rad_gyrokinetic_surfvpar_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, rad_gyrokinetic_drag_surfvpar_2x2v_ser_p1, rad_gyrokinetic_drag_surfvpar_2x2v_ser_p2 }, // 2
+  { NULL, rad_gyrokinetic_surfvpar_2x2v_ser_p1, rad_gyrokinetic_surfvpar_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, rad_gyrokinetic_drag_surfvpar_3x2v_ser_p1, NULL }, // 3
+  { NULL, rad_gyrokinetic_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
 
 // Surface kernel list: mu-direction
 GKYL_CU_D
-static const gkyl_dg_rad_gyrokinetic_drag_surf_kern_list ser_surf_mu_kernels[] = {
+static const gkyl_dg_rad_gyrokinetic_surf_kern_list ser_surf_mu_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
-  { NULL, rad_gyrokinetic_drag_surfmu_1x2v_ser_p1, rad_gyrokinetic_drag_surfmu_1x2v_ser_p2 }, // 1
+  { NULL, rad_gyrokinetic_surfmu_1x2v_ser_p1, rad_gyrokinetic_surfmu_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, rad_gyrokinetic_drag_surfmu_2x2v_ser_p1, rad_gyrokinetic_drag_surfmu_2x2v_ser_p2 }, // 2
+  { NULL, rad_gyrokinetic_surfmu_2x2v_ser_p1, rad_gyrokinetic_surfmu_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, rad_gyrokinetic_drag_surfmu_3x2v_ser_p1, NULL }, // 3
+  { NULL, rad_gyrokinetic_surfmu_3x2v_ser_p1, NULL }, // 3
 };
 
 // Boundary surface kernel (zero-flux BCs) list: vpar-direction
 GKYL_CU_D
-static const gkyl_dg_rad_gyrokinetic_drag_boundary_surf_kern_list ser_boundary_surf_vpar_kernels[] = {
+static const gkyl_dg_rad_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_vpar_kernels[] = {
   // 1x kernels
-  { NULL, rad_gyrokinetic_drag_boundary_surfvpar_1x1v_ser_p1, rad_gyrokinetic_drag_boundary_surfvpar_1x1v_ser_p2 }, // 0
-  { NULL, rad_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p1, rad_gyrokinetic_drag_boundary_surfvpar_1x2v_ser_p2 }, // 1
+  { NULL, NULL, NULL }, // 0
+  { NULL, rad_gyrokinetic_boundary_surfvpar_1x2v_ser_p1, rad_gyrokinetic_boundary_surfvpar_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, rad_gyrokinetic_drag_boundary_surfvpar_2x2v_ser_p1, rad_gyrokinetic_drag_boundary_surfvpar_2x2v_ser_p2 }, // 2
+  { NULL, rad_gyrokinetic_boundary_surfvpar_2x2v_ser_p1, rad_gyrokinetic_boundary_surfvpar_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, rad_gyrokinetic_drag_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
+  { NULL, rad_gyrokinetic_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: mu-direction
 GKYL_CU_D
-static const gkyl_dg_rad_gyrokinetic_drag_boundary_surf_kern_list ser_boundary_surf_mu_kernels[] = {
+static const gkyl_dg_rad_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_mu_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
-  { NULL, rad_gyrokinetic_drag_boundary_surfmu_1x2v_ser_p1, rad_gyrokinetic_drag_boundary_surfmu_1x2v_ser_p2 }, // 1
+  { NULL, rad_gyrokinetic_boundary_surfmu_1x2v_ser_p1, rad_gyrokinetic_boundary_surfmu_1x2v_ser_p2 }, // 1
   // 2x kernels
-  { NULL, rad_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p1, rad_gyrokinetic_drag_boundary_surfmu_2x2v_ser_p2 }, // 2
+  { NULL, rad_gyrokinetic_boundary_surfmu_2x2v_ser_p1, rad_gyrokinetic_boundary_surfmu_2x2v_ser_p2 }, // 2
   // 3x kernels
-  { NULL, rad_gyrokinetic_drag_boundary_surfmu_3x2v_ser_p1, NULL }, // 3
+  { NULL, rad_gyrokinetic_boundary_surfmu_3x2v_ser_p1, NULL }, // 3
 };
 
-void gkyl_rad_gyrokinetic_drag_free(const struct gkyl_ref_count* ref);
+void gkyl_rad_gyrokinetic_free(const struct gkyl_ref_count* ref);
 
 GKYL_CU_D
 static double
@@ -215,17 +189,19 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double* qInL, const double* qInC, const double* qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
-  long pidx = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idxC);
-
-  if (dir >= rad_gyrokinetic_drag->cdim+1) {
+  // Only in vpar,mu directions.
+  if (dir >= rad_gyrokinetic_drag->cdim) {
+    // Each cell owns the *lower* edge surface alpha
+    // Since alpha is continuous, fetch alpha_surf in center cell for lower edge
+    // and fetch alpha_surf in right cell for upper edge
+    long pidxC = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idxC);
+    long pidxR = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idxR);
     return rad_gyrokinetic_drag->surf[dir-rad_gyrokinetic_drag->cdim](xcC, dxC,
-      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_sum, pidx),
-      qInL, qInC, qInR, qRhsOut);
-  }
-  else if (dir >= rad_gyrokinetic_drag->cdim) {
-    return rad_gyrokinetic_drag->surf[dir-rad_gyrokinetic_drag->cdim](xcC, dxC,
-      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_sum, pidx),
-      qInL, qInC, qInR, qRhsOut);
+      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_surf, pidxC),
+      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_surf, pidxR),
+      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_surf, pidxC),
+      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_surf, pidxR),
+      qInL, qInC, qInR, qRhsOut);    
   }
   return 0.;
 }
@@ -240,17 +216,18 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
-  long pidx = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idxSkin);
 
-  if (dir >= rad_gyrokinetic_drag->cdim+1) {
+  // Only in vpar,mu directions.
+  if (dir >= rad_gyrokinetic_drag->cdim) {
+    // Each cell owns the *lower* edge surface alpha
+    long pidxEdge = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idxEdge);
+    long pidxSkin = gkyl_range_idx(&rad_gyrokinetic_drag->phase_range, idxSkin);
     return rad_gyrokinetic_drag->boundary_surf[dir-rad_gyrokinetic_drag->cdim](xcSkin, dxSkin,
-      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_sum, pidx),
-      edge, qInSkin, qInEdge, qRhsOut);
-  }
-  else if (dir >= rad_gyrokinetic_drag->cdim) {
-    return rad_gyrokinetic_drag->boundary_surf[dir-rad_gyrokinetic_drag->cdim](xcSkin, dxSkin,
-      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_sum, pidx),
-      edge, qInSkin, qInEdge, qRhsOut);
+      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_surf, pidxEdge),
+      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvnu_surf, pidxSkin),
+      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_surf, pidxEdge),
+      (const double*) gkyl_array_cfetch(rad_gyrokinetic_drag->auxfields.nvsqnu_surf, pidxSkin),
+      edge, qInEdge, qInSkin, qRhsOut);
   }
   return 0.;
 }
