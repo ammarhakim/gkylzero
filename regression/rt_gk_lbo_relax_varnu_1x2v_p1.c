@@ -190,7 +190,7 @@ evalNuInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
-  // Set physical coordinates (z, v, mu) from computational coordinates (z, v, mu).
+  // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
   xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
 }
 
