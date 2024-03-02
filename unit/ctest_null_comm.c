@@ -277,6 +277,8 @@ test_io_p1_p4(void)
 
   TEST_CHECK( 0 == status );  
 
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
   gkyl_array_release(s_arr);
   gkyl_array_release(p_arr);
 }
