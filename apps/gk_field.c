@@ -61,11 +61,17 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       polarization_weight += s->info.polarization_density*s->info.mass/(f->info.bmag_fac*f->info.bmag_fac);
     }
     if (app->cdim == 1) {
-      // in 1D case need to set weight to kperpsq*polarizationWeight for use in potential smoothing
+      // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.
       f->weight = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
-      gkyl_array_copy(f->weight, app->gk_geom->jacobgeo);
+ 
+      // Gather jacobgeo for smoothing in z.
+      struct gkyl_array *jacobgeo_global = mkarr(app->use_gpu, app->confBasis.num_basis, app->global_ext.volume);
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->jacobgeo, jacobgeo_global);
+      gkyl_array_copy(f->weight, jacobgeo_global);
+
       gkyl_array_scale(f->weight, polarization_weight);
       gkyl_array_scale(f->weight, f->info.kperpSq);
+
 
       if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
         // Add the contribution from adiabatic electrons (in principle any
@@ -75,13 +81,15 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
         double T_s = f->info.electron_temp;
         double quasineut_contr = q_s*n_s0*q_s/T_s;
         struct gkyl_array *weight_adiab = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
-        gkyl_array_copy(weight_adiab, app->gk_geom->jacobgeo);
+        gkyl_array_copy(weight_adiab, jacobgeo_global);
         gkyl_array_scale(weight_adiab, quasineut_contr);
         gkyl_array_accumulate(f->weight, 1., weight_adiab);
         gkyl_array_release(weight_adiab);
 
         es_energy_fac_1d_adiabatic = 0.5*quasineut_contr; 
       }
+
+      gkyl_array_release(jacobgeo_global);
     }
     else if (app->cdim > 1) {
       // set whatever epsilon we need
@@ -230,7 +238,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gk_species *s = &app->species[i];
 
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-    // if adiabatic electrons, we only need ion density, not charge density
+    // if Boltzmann electrons, we only need ion density, not charge density
     if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) 
       gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
     else
