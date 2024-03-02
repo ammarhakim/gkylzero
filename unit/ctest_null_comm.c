@@ -254,7 +254,7 @@ test_io_p1_p4(void)
   gkyl_array_clear(s_arr, 0.0);
 
   int status;
-  status =gkyl_grid_sub_array_read(&grid, &range, s_arr,
+  status = gkyl_grid_sub_array_read(&grid, &range, s_arr,
     "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
   TEST_CHECK( 0 == status );
