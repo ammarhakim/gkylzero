@@ -76,7 +76,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
         // Add the contribution from adiabatic electrons (in principle any
         // species can be adiabatic, which we can add suport for later).
-        double n_s0 = app->species[0].info.polarization_density; // MF 2024/03/01: hackish
+        double n_s0 = f->info.electron_density;
         double q_s = f->info.electron_charge;
         double T_s = f->info.electron_temp;
         double quasineut_contr = q_s*n_s0*q_s/T_s;
@@ -238,11 +238,18 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gk_species *s = &app->species[i];
 
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-    // if Boltzmann electrons, we only need ion density, not charge density
-    if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) 
+    if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+      // For Boltzmann electrons, we only need ion density, not charge density.
       gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
-    else
+    } else {
       gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0.marr, &app->local);
+      if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+        // Add the background (electron) charge density.
+        double n_s0 = field->info.electron_density;
+        double q_s = field->info.electron_charge;
+        gkyl_array_shiftc_range(field->rho_c, q_s*n_s0*sqrt(2.), 0, &app->local);
+      }
+    }
   } 
 }
 

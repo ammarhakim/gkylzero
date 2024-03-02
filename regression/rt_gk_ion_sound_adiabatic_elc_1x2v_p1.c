@@ -286,6 +286,7 @@ main(int argc, char **argv)
     .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
     .electron_mass = ctx.mass_elc,
     .electron_charge = ctx.charge_elc,
+    .electron_density = ctx.n0,
     .electron_temp = ctx.Te,
     .bmag_fac = ctx.B0, 
     .kperpSq = pow(ctx.kperp, 2.),
