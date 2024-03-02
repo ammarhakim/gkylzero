@@ -38,10 +38,14 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
 
+  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
+    assert(app->cdim == 1); // Not yet implemented for cdim>1.
+
   f->weight = 0;
   f->epsilon = 0;
   f->kSq = 0;  // not currently used by fem_perp_poisson
   double polarization_weight = 0.0; 
+  double es_energy_fac_1d_adiabatic = 0.0; 
   if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
     polarization_weight = 1.0; 
     f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->confBasis, 
@@ -50,8 +54,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       f->sheath_vals[2*j] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
       f->sheath_vals[2*j+1] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     }
-  }
-  else {
+  } else {
     // Linearized polarization density
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
@@ -60,9 +63,25 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     if (app->cdim == 1) {
       // in 1D case need to set weight to kperpsq*polarizationWeight for use in potential smoothing
       f->weight = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
-      gkyl_array_shiftc(f->weight, sqrt(2.0), 0); // Sets weight=1.
+      gkyl_array_copy(f->weight, app->gk_geom->jacobgeo);
       gkyl_array_scale(f->weight, polarization_weight);
       gkyl_array_scale(f->weight, f->info.kperpSq);
+
+      if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+        // Add the contribution from adiabatic electrons (in principle any
+        // species can be adiabatic, which we can add suport for later).
+        double n_s0 = app->species[0].info.polarization_density; // MF 2024/03/01: hackish
+        double q_s = f->info.electron_charge;
+        double T_s = f->info.electron_temp;
+        double quasineut_contr = q_s*n_s0*q_s/T_s;
+        struct gkyl_array *weight_adiab = mkarr(false, app->confBasis.num_basis, app->global_ext.volume); // fem_parproj expects weight on host
+        gkyl_array_copy(weight_adiab, app->gk_geom->jacobgeo);
+        gkyl_array_scale(weight_adiab, quasineut_contr);
+        gkyl_array_accumulate(f->weight, 1., weight_adiab);
+        gkyl_array_release(weight_adiab);
+
+        es_energy_fac_1d_adiabatic = 0.5*quasineut_contr; 
+      }
     }
     else if (app->cdim > 1) {
       // set whatever epsilon we need
@@ -86,8 +105,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     if (app->cdim == 2) {
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_PERIODIC;
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
-    } 
-    else {
+    } else {
       fem_parproj_bc_core = GKYL_FEM_PARPROJ_DIRICHLET;
       fem_parproj_bc_sol = GKYL_FEM_PARPROJ_NONE;
     }
@@ -128,7 +146,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
       f->es_energy_fac_1d = polarization_weight;
     else
-      f->es_energy_fac_1d = polarization_weight*f->info.kperpSq;
+      f->es_energy_fac_1d = polarization_weight*f->info.kperpSq + es_energy_fac_1d_adiabatic;
 
     f->calc_em_energy = gkyl_array_integrate_new(&app->grid, &app->confBasis, 
       1, GKYL_ARRAY_INTEGRATE_OP_SQ, app->use_gpu);
@@ -253,7 +271,6 @@ gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   struct timespec wst = gkyl_wall_clock();
   if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
-    // This is not currently right. There's some subtlety in how the sheath_vals are stored
     gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
       app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[0], field->phi_smooth);
 
