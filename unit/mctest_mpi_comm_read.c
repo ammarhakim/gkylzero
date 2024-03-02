@@ -15,11 +15,11 @@
 #include <gkyl_util.h>
 
 void
-mpi_n2_read()
+mpi_read(int nrank, int cuts[2])
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
-  if (m_sz != 2) return;
+  if (m_sz != nrank) return;
 
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -43,7 +43,6 @@ mpi_n2_read()
   status = gkyl_grid_sub_array_read(&grid, &global, s_arr,
     "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
-  int cuts[] = { m_sz, 1 };
   struct gkyl_rect_decomp *decomp =
     gkyl_rect_decomp_new_from_cuts(global.ndim, cuts, &global);
 
@@ -78,8 +77,13 @@ mpi_n2_read()
   gkyl_array_release(p_arr);
 }
 
+void mpi_n2_read() { mpi_read(2, (int[]){2, 1}); }
+void mpi_n4_read() { mpi_read(4, (int[]){2, 2}); }
+
+
 TEST_LIST = {
   {"mpi_n2_read", mpi_n2_read},
+  {"mpi_n4_read", mpi_n4_read},
   {NULL, NULL},
 };
 
