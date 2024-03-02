@@ -42,7 +42,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->epsilon = 0;
   f->kSq = 0;  // not currently used by fem_perp_poisson
   double polarization_weight = 0.0; 
-  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
     polarization_weight = 1.0; 
     f->ambi_pot = gkyl_ambi_bolt_potential_new(&app->grid, &app->confBasis, 
       f->info.electron_mass, f->info.electron_charge, f->info.electron_temp, app->use_gpu);
@@ -125,7 +125,7 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
   f->es_energy_fac = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   f->es_energy_fac_1d = 0.0;
   if (app->cdim==1) {
-    if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
+    if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
       f->es_energy_fac_1d = polarization_weight;
     else
       f->es_energy_fac_1d = polarization_weight*f->info.kperpSq;
@@ -213,7 +213,7 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
 
     gk_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
     // if adiabatic electrons, we only need ion density, not charge density
-    if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) 
+    if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) 
       gkyl_array_accumulate_range(field->rho_c, 1.0, s->m0.marr, &app->local);
     else
       gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0.marr, &app->local);
@@ -252,7 +252,7 @@ void
 gk_field_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) { 
+  if (field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) { 
     // This is not currently right. There's some subtlety in how the sheath_vals are stored
     gkyl_ambi_bolt_potential_phi_calc(field->ambi_pot, &app->local, &app->local_ext,
       app->gk_geom->jacobgeo_inv, field->rho_c, field->sheath_vals[0], field->phi_smooth);
@@ -328,7 +328,7 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   }
 
   gkyl_array_release(f->es_energy_fac);
-  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+  if (f->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
     gkyl_ambi_bolt_potential_release(f->ambi_pot);
     for (int i=0; i<2*app->cdim; ++i) 
       gkyl_array_release(f->sheath_vals[i]);

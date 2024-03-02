@@ -850,7 +850,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
@@ -859,7 +859,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_mirror_adiabatic_elc_1x2v_p1_uniform_comm",
+    .name = "gk_mirror_boltz_elc_1x2v_p1_uniform",
     .cdim = 1,
     .vdim = 2,
     .lower = {ctx.z_min},

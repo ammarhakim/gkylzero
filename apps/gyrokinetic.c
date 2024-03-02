@@ -511,7 +511,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     fout[i] = app->species[i].f1;
   }
   gk_field_accumulate_rho_c(app, app->field, fin);
-  if (app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+  if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
     gk_field_calc_ambi_pot_sheath_vals(app, app->field, fin, fout);
   }
   gk_field_rhs(app, app->field);
@@ -1323,7 +1323,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     // done here as the RHS update for all species should be complete before
     // boundary fluxes are computed (ion fluxes needed for sheath values) 
     // and these boundary fluxes are stored temporarily in ghost cells of RHS
-    if (app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)
+    if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
       gk_field_calc_ambi_pot_sheath_vals(app, app->field, fin, fout);
   }
 

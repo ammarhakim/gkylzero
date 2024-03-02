@@ -67,6 +67,13 @@ struct gk_mirror_ctx
   double Ti_perp_m;
   double Ti_par_m;
   double cs_m;
+  // Source parameters
+  double NSrcIon;
+  double lineLengthSrcIon;
+  double sigSrcIon;
+  double NSrcFloorIon;
+  double TSrc0Ion;
+  double TSrcFloorIon;
   // Grid parameters
   double vpar_max_ion;
   double mu_max_ion;
@@ -278,6 +285,53 @@ z_xi(double xi, double psi, void *ctx)
   return z;
 }
 
+void
+eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+  double z = z_xi(xn[0], psi, ctx);
+  double Z = Z_psiz(psi, z, ctx); // Cylindrical axial coordinate.
+  double NSrc = app->NSrcIon;
+  double zSrc = app->lineLengthSrcIon;
+  double sigSrc = app->sigSrcIon;
+  double NSrcFloor = app->NSrcFloorIon;
+  if (fabs(Z) <= app->Z_m)
+  {
+    fout[0] = fmax(NSrcFloor, (NSrc / sqrt(2.0 * M_PI * pow(sigSrc, 2))) *
+                                  exp(-1 * pow((z - zSrc), 2) / (2.0 * pow(sigSrc, 2))));
+  }
+  else
+  {
+    fout[0] = 1e-16;
+  }
+}
+
+void
+eval_upar_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  fout[0] = 0.0;
+}
+
+void
+eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+  double z = z_xi(xn[0], psi, ctx);
+  double sigSrc = app->sigSrcIon;
+  double TSrc0 = app->TSrc0Ion;
+  double Tfloor = app->TSrcFloorIon;
+  if (fabs(z) <= 2.0 * sigSrc)
+  {
+    fout[0] = TSrc0;
+  }
+  else
+  {
+    fout[0] = Tfloor;
+  }
+}
+
 // Ion initial conditions
 void
 eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
@@ -342,7 +396,7 @@ eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   double z = z_xi(xn[0], psi, ctx);
   double z_m = app->z_m;
   double z_max = app->z_max;
-    if (fabs(z) <= z_m)
+  if (fabs(z) <= z_m)
   {
     fout[0] = (app->Ti_perp_m - app->Ti_perp0) * ((tanh((fabs(z) - z_m * 0.8) * 10 * z_m)) / 2 + 0.5) + app->Ti_perp0;
   }
@@ -587,15 +641,23 @@ create_ctx(void)
   double gamma = 0.124904;
   double Z_m = 0.98;
 
+  // Source parameters
+  double NSrcIon = 3.1715e23 / 8.0;
+  double lineLengthSrcIon = 0.0;
+  double sigSrcIon = Z_m / 4.0;
+  double NSrcFloorIon = 0.05 * NSrcIon;
+  double TSrc0Ion = Ti0 * 1.25;
+  double TSrcFloorIon = TSrc0Ion / 8.0;
+
   // Grid parameters
-  double vpar_max_ion = 10 * vti;
+  double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
   int num_cell_vpar = 64; // Number of cells in the paralell velocity direction 96
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
   int num_cell_z = 128;
   int poly_order = 1;
-  double final_time = 100e-6;
-  int num_frames = 100;
+  double final_time = 50e-6;
+  int num_frames = 50;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx
   double B_bt = 1.058278;
@@ -659,6 +721,12 @@ create_ctx(void)
     .Ti_perp_m = Ti_perp_m,
     .Ti_par_m = Ti_par_m,
     .cs_m = cs_m,
+    .NSrcIon = NSrcIon,
+    .lineLengthSrcIon = lineLengthSrcIon,
+    .sigSrcIon = sigSrcIon,
+    .NSrcFloorIon = NSrcFloorIon,
+    .TSrc0Ion = TSrc0Ion,
+    .TSrcFloorIon = TSrcFloorIon,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
     .num_cell_z = num_cell_z,
@@ -736,12 +804,26 @@ int main(int argc, char **argv)
       .ctx_temppar = &ctx,
       .temppar = eval_temp_par_ion,      
       .ctx_tempperp = &ctx,
-      .tempperp = eval_temp_perp_ion,    
+      .tempperp = eval_temp_perp_ion,   
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuIon,
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .write_source = true,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .ctx_density = &ctx,
+        .density = eval_density_ion_source,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_ion_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_ion_source,      
+      }, 
     },
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -751,7 +833,7 @@ int main(int argc, char **argv)
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
@@ -759,7 +841,7 @@ int main(int argc, char **argv)
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_mirror_adiabatic_elc_1x2v_p1_nonuniform_nosource_10vt_128z_192Nmu",
+    .name = "gk_mirror_boltz_elc_1x2v_p1_nonuniform_20vt",
     .cdim = 1,
     .vdim = 2,
     .lower = {ctx.z_min},
