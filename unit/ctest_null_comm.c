@@ -1,5 +1,8 @@
 #include <acutest.h>
+
 #include <gkyl_null_comm.h>
+#include <gkyl_array_rio.h>
+#include <gkyl_elem_type_priv.h>
 
 void
 test_1d()
@@ -164,7 +167,7 @@ test_io_2d()
 {
   int cells[] = { 32, 32 };
   struct gkyl_range range;
-  gkyl_range_init_from_shape(&range, 2, cells);
+  gkyl_range_init_from_shape1(&range, 2, cells);
 
   int cuts[] = { 1, 1 };
   struct gkyl_rect_decomp *decomp =
@@ -221,12 +224,67 @@ test_io_2d()
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_array_release(arr);
-  gkyl_array_release(arr_rw);  
+  gkyl_array_release(arr_rw);
+}
+
+void
+test_io_p1_p4(void)
+{
+  struct gkyl_rect_grid grid;
+  struct gkyl_array_header_info hdr;
+  gkyl_grid_sub_array_header_read(&grid, &hdr,
+    "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+
+  size_t nc = hdr.esznc/gkyl_elem_type_size[hdr.etype];  
+  
+  int nghost[] = { 1, 2 };
+  struct gkyl_range range, ext_range;
+  gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
+
+  int cuts[] = { 1, 1 };
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
+  
+  struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp
+    }
+  );
+  
+  struct gkyl_array *s_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
+  gkyl_array_clear(s_arr, 0.0);
+
+  int status;
+  status =gkyl_grid_sub_array_read(&grid, &range, s_arr,
+    "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+
+  TEST_CHECK( 0 == status );
+
+  struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
+  gkyl_array_clear(p_arr, 0.0);
+
+  status = gkyl_comm_array_read(comm, &grid, &range, p_arr,
+    "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *s_dat = gkyl_array_cfetch(s_arr, gkyl_range_idx(&range, iter.idx));
+    const double *p_dat = gkyl_array_cfetch(p_arr, gkyl_range_idx(&range, iter.idx));
+
+    for (int c=0; c<nc; ++c)
+      TEST_CHECK( gkyl_compare_double(s_dat[c], p_dat[c], 1e-14) );
+  }
+
+  TEST_CHECK( 0 == status );  
+
+  gkyl_array_release(s_arr);
+  gkyl_array_release(p_arr);
 }
 
 TEST_LIST = {
   { "test_1d", test_1d },
   { "test_2d", test_2d },
   { "test_io_2d", test_io_2d },
+  { "test_io_p1_p4", test_io_p1_p4 },
   { NULL, NULL },
 };

@@ -116,6 +116,18 @@ gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
 }
 
 int
+gkyl_grid_sub_array_header_read(struct gkyl_rect_grid *grid,
+  struct gkyl_array_header_info *hdr, const char *fname)
+{
+  int status;
+  FILE *fp = 0;
+  with_file(fp, fname, "r") {
+    status = gkyl_grid_sub_array_header_read_fp(grid, hdr, fp);
+  }
+  return status;
+}
+
+int
 gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_array *arr, const char *fname)
 {
@@ -160,7 +172,7 @@ array_new_from_file(enum gkyl_elem_type type, FILE *fp)
 }
 
 static int
-gkyl_grid_sub_array_read_ft_1(const struct gkyl_rect_grid *grid,
+grid_sub_array_read_ft_1(const struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, const struct gkyl_range *range,
   struct gkyl_array *arr, FILE *fp)
 {
@@ -186,6 +198,7 @@ gkyl_grid_sub_array_read_ft_1(const struct gkyl_rect_grid *grid,
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &inter);
     while (gkyl_range_iter_next(&iter)) {
+      
       char *out = gkyl_array_fetch(arr, gkyl_range_idx(range, iter.idx));
       const char *inp = gkyl_mem_buff_data(buff) + hdr->esznc*gkyl_range_idx(&blk_rng, iter.idx);
       memcpy(out, inp, hdr->esznc);
@@ -198,7 +211,7 @@ gkyl_grid_sub_array_read_ft_1(const struct gkyl_rect_grid *grid,
 }
 
 static int
-gkyl_grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid,
+grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, const struct gkyl_range *range,
   struct gkyl_array *arr, FILE *fp)
 {
@@ -266,9 +279,9 @@ gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *r
     gkyl_grid_sub_array_header_read_fp(grid, &hdr, fp);
     
     if (hdr.file_type == 1)
-      status = gkyl_grid_sub_array_read_ft_1(grid, &hdr, range, arr, fp);
+      status = grid_sub_array_read_ft_1(grid, &hdr, range, arr, fp);
     if (hdr.file_type == 3)
-      status = gkyl_grid_sub_array_read_ft_3(grid, &hdr, range, arr, fp);
+      status = grid_sub_array_read_ft_3(grid, &hdr, range, arr, fp);
   }
   return status;
 }

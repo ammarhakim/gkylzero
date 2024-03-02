@@ -571,6 +571,20 @@ array_write(struct gkyl_comm *comm,
   return err;
 }
 
+static int
+array_read(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char *fname)
+{
+  struct gkyl_rect_grid fgrid;
+  int status = gkyl_grid_sub_array_read(&fgrid, range, arr, fname);
+  if (status == 0) {
+    if (!gkyl_rect_grid_cmp(grid, &fgrid))
+      status = 1;
+  }
+  return status;
+}
+
 static struct gkyl_comm*
 extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
 {
@@ -605,18 +619,21 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   return newcomm;
 }
 
-static struct gkyl_comm_state* comm_state_new(struct gkyl_comm *comm)
+static struct gkyl_comm_state *
+comm_state_new(struct gkyl_comm *comm)
 {
   struct gkyl_comm_state *state = gkyl_malloc(sizeof *state);
   return state;
 }
 
-static void comm_state_release(struct gkyl_comm_state *state)
+static void
+comm_state_release(struct gkyl_comm_state *state)
 {
   gkyl_free(state);
 }
 
-static void comm_state_wait(struct gkyl_comm_state *state)
+static void
+comm_state_wait(struct gkyl_comm_state *state)
 {
   MPI_Wait(&state->req, &state->stat);
 }
@@ -674,6 +691,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
     mpi->base.gkyl_array_sync = array_sync;
     mpi->base.gkyl_array_per_sync = array_per_sync;
     mpi->base.gkyl_array_write = array_write;
+    mpi->base.gkyl_array_read = array_read;
     mpi->base.gkyl_array_allgather = array_allgather;
   }
   
