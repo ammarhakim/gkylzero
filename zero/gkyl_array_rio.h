@@ -6,6 +6,14 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
+// Read status flags
+enum gkyl_array_rio_status {
+  GKYL_ARRAY_RIO_SUCCESS = 0,
+  GKYL_ARRAY_RIO_BAD_VERSION,
+  GKYL_ARRAY_RIO_FOPEN_FAILED,
+  GKYL_ARRAY_RIO_FREAD_FAILED,
+};  
+
 // Array header data to write: this is for low-level control and is
 // typically not something most users would every encounter
 struct gkyl_array_header_info {
@@ -25,22 +33,22 @@ struct gkyl_array_header_info {
  * @param grid Grid object to read
  * @param hrd On output, Header data.
  * @param fname Name of output file (include .gkyl extension)
- * @return Status flag: 0 if read succeeded, 'errno' otherwise
+ * @return Status flag
  */
-int gkyl_grid_sub_array_header_read(struct gkyl_rect_grid *grid,
+enum gkyl_array_rio_status gkyl_grid_sub_array_header_read(struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, const char *fname);
 
 /**
  * Write out grid and array data to file in .gkyl format so postgkyl
- * can understand it. 
- * 
+ * can understand it.
+ *
  * @param grid Grid object to write
  * @param range Range describing portion of the array to output.
  * @param arr Array object to write
  * @param fname Name of output file (include .gkyl extension)
- * @return Status flag: 0 if write succeeded, 'errno' otherwise
+ * @return Status flag
  */
-int gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid,
+enum gkyl_array_rio_status gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid,
   const struct gkyl_range *range,
   const struct gkyl_array *arr, const char *fname);
 
@@ -52,9 +60,9 @@ int gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid,
  * @param range Range describing portion of the array.
  * @param arr Array object to read
  * @param fname Name of input file
- * @return Status flag: 0 if write succeeded, 'errno' otherwise
+ * @return Status flag
  */
-int gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid,
+enum gkyl_array_rio_status gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid,
   const struct gkyl_range *range,
   struct gkyl_array *arr, const char* fname);
 
@@ -63,7 +71,7 @@ int gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid,
  * 
  * @param grid On outout, grid on which array is defined.
  * @param fname Name of input file
- * @return Newly created array object
+ * @return Newly created array object. NULL if failed
  */
 struct gkyl_array *gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid,
   const char* fname);

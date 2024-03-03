@@ -56,7 +56,7 @@ gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
   fwrite(&hdr->esznc, sizeof(uint64_t), 1, fp);
   fwrite(&hdr->tot_cells, sizeof(uint64_t), 1, fp);
 
-  return errno;
+  return GKYL_ARRAY_RIO_SUCCESS;
 }
 
 int
@@ -69,18 +69,22 @@ gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
   frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
   g0[5] = '\0';                            // add the NULL
   if (strcmp(g0, "gkyl0") != 0)
-    return 1;
-
+    return GKYL_ARRAY_RIO_BAD_VERSION;
+  
   uint64_t version;
   frr = fread(&version, sizeof(uint64_t), 1, fp);
   if (version != 1)
-    return 1;
+    return GKYL_ARRAY_RIO_BAD_VERSION;
 
   uint64_t file_type;
   frr = fread(&file_type, sizeof(uint64_t), 1, fp);
+  if (1 != frr)
+    return GKYL_ARRAY_RIO_FREAD_FAILED;
 
   uint64_t meta_size;
   frr = fread(&meta_size, sizeof(uint64_t), 1, fp);
+  if (1 != frr)
+    return GKYL_ARRAY_RIO_FREAD_FAILED;
 
   // read ahead by specified bytes: meta-data is not read in this
   // method
@@ -88,22 +92,22 @@ gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
 
   uint64_t real_type = 0;
   if (1 != fread(&real_type, sizeof(uint64_t), 1, fp))
-    return 1;
+    return GKYL_ARRAY_RIO_FREAD_FAILED;
 
   gkyl_rect_grid_read(grid, fp);
 
   uint64_t esznc = 0;
   if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
-    return 1;
+    return GKYL_ARRAY_RIO_FREAD_FAILED;;
 
   uint64_t tot_cells = 0;
   if (1 != fread(&tot_cells, sizeof(uint64_t), 1, fp))
-    return 1;
+    return GKYL_ARRAY_RIO_FREAD_FAILED;;
 
   uint64_t nrange = 1;
   if (file_type == gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE])
     if (1 != fread(&nrange, sizeof(uint64_t), 1, fp))
-      return 1;  
+      return GKYL_ARRAY_RIO_FREAD_FAILED;
 
   hdr->file_type = file_type;
   hdr->etype = gkyl_array_code_to_data_type[real_type];
@@ -112,14 +116,14 @@ gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
   hdr->meta_size = meta_size;
   hdr->nrange = nrange;
 
-  return errno;
+  return GKYL_ARRAY_RIO_SUCCESS;
 }
 
-int
+enum gkyl_array_rio_status
 gkyl_grid_sub_array_header_read(struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, const char *fname)
 {
-  int status;
+  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;
   FILE *fp = 0;
   with_file(fp, fname, "r") {
     status = gkyl_grid_sub_array_header_read_fp(grid, hdr, fp);
@@ -127,15 +131,16 @@ gkyl_grid_sub_array_header_read(struct gkyl_rect_grid *grid,
   return status;
 }
 
-int
+enum gkyl_array_rio_status
 gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   const struct gkyl_array *arr, const char *fname)
 {
+  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FREAD_FAILED;
   FILE *fp = 0;
   int err;
   with_file (fp, fname, "w") {
     
-    gkyl_grid_sub_array_header_write_fp(grid,
+    status = gkyl_grid_sub_array_header_write_fp(grid,
       &(struct gkyl_array_header_info) {
         .file_type = gkyl_file_type_int[GKYL_FIELD_DATA_FILE],
         .etype = arr->type,
@@ -145,33 +150,14 @@ gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid, const struct gkyl_r
       },
       fp
     );
-    
-    sub_array_write_priv(range, arr, fp);    
+
+    if (status == GKYL_ARRAY_RIO_SUCCESS)
+      sub_array_write_priv(range, arr, fp);
   }
-  return errno;
+  return status;
 }
 
-static struct gkyl_array*
-array_new_from_file(enum gkyl_elem_type type, FILE *fp)
-{
-  struct gkyl_array* arr = 0;
-  
-  uint64_t esznc, size;
-  if (1 != fread(&esznc, sizeof(uint64_t), 1, fp))
-    return 0;
-  if (1 != fread(&size, sizeof(uint64_t), 1, fp))
-    return 0;
-
-  int ncomp = esznc/gkyl_elem_type_size[type];
-  arr = gkyl_array_new(type, ncomp, size);
-  if (1 != fread(arr->data, arr->esznc*arr->size, 1, fp)) {
-    gkyl_array_release(arr);
-    arr = 0;
-  }
-  return arr;
-}
-
-static int
+static enum gkyl_array_rio_status
 grid_sub_array_read_ft_1(const struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, const struct gkyl_range *range,
   struct gkyl_array *arr, FILE *fp)
@@ -192,7 +178,7 @@ grid_sub_array_read_ft_1(const struct gkyl_rect_grid *grid,
 
     if (1 != fread(gkyl_mem_buff_data(buff), sz*hdr->esznc, 1, fp)) {
       gkyl_mem_buff_release(buff);
-      return 1;
+      return GKYL_ARRAY_RIO_FREAD_FAILED;
     }
     
     struct gkyl_range_iter iter;
@@ -207,10 +193,10 @@ grid_sub_array_read_ft_1(const struct gkyl_rect_grid *grid,
     gkyl_mem_buff_release(buff);
   }
     
-  return errno;
+  return GKYL_ARRAY_RIO_SUCCESS;
 }
 
-static int
+static enum gkyl_array_rio_status
 grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, const struct gkyl_range *range,
   struct gkyl_array *arr, FILE *fp)
@@ -226,11 +212,11 @@ grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid,
 
     // read lower, upper indices and number of elements stored
     if (1 != fread(loidx, sizeof(uint64_t[grid->ndim]), 1, fp))
-      return 1;
+      return GKYL_ARRAY_RIO_FREAD_FAILED;
     if (1 != fread(upidx, sizeof(uint64_t[grid->ndim]), 1, fp))
-      return 1;
+      return GKYL_ARRAY_RIO_FREAD_FAILED;
     if (1 != fread(&sz, sizeof(uint64_t), 1, fp))
-      return 1;
+      return GKYL_ARRAY_RIO_FREAD_FAILED;
 
     // construct range of indices corresponding to data in block
     int loidx_i[GKYL_MAX_DIM], upidx_i[GKYL_MAX_DIM];
@@ -248,7 +234,7 @@ grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid,
       buff = gkyl_mem_buff_resize(buff, sz*hdr->esznc);
       if (1 != fread(gkyl_mem_buff_data(buff), sz*hdr->esznc, 1, fp)) {
         gkyl_mem_buff_release(buff);
-        return 1;
+        return GKYL_ARRAY_RIO_FREAD_FAILED;
       }
 
       struct gkyl_range_iter iter;
@@ -265,14 +251,14 @@ grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid,
 
   gkyl_mem_buff_release(buff);
   
-  return errno;
+  return GKYL_ARRAY_RIO_SUCCESS;
 }
 
-int
+enum gkyl_array_rio_status
 gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid, const struct gkyl_range *range,
   struct gkyl_array *arr, const char *fname)
 {
-  int status = 0;
+  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;
   struct gkyl_array_header_info hdr;
   FILE *fp = 0;
   with_file (fp, fname, "r") {
@@ -291,20 +277,24 @@ gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid, const char* fname)
 {
   struct gkyl_array *arr = 0;
   struct gkyl_array_header_info hdr;
-  
+
+  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FREAD_FAILED;
   FILE *fp = 0;
   with_file (fp, fname, "r") {
-    gkyl_grid_sub_array_header_read_fp(grid, &hdr, fp);
+    status = gkyl_grid_sub_array_header_read_fp(grid, &hdr, fp);
   }
+
+  if (status != GKYL_ARRAY_RIO_SUCCESS)
+    return 0;
 
   size_t nc = hdr.esznc/gkyl_elem_type_size[hdr.etype];
   arr = gkyl_array_new(hdr.etype, nc, hdr.tot_cells);
   struct gkyl_range range;
   gkyl_range_init_from_shape1(&range, grid->ndim, grid->cells);
 
-  int status = gkyl_grid_sub_array_read(grid, &range, arr, fname);
+  status = gkyl_grid_sub_array_read(grid, &range, arr, fname);
 
-  if (status != 0) {
+  if (status != GKYL_ARRAY_RIO_SUCCESS) {
     gkyl_array_release(arr);
     arr = 0;
   }

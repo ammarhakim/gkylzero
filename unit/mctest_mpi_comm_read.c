@@ -24,13 +24,15 @@ mpi_read(int nrank, int cuts[2])
   int rank;
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  int status;  
+  enum gkyl_array_rio_status status;
 
   struct gkyl_rect_grid grid;
   struct gkyl_array_header_info hdr;
 
   status = gkyl_grid_sub_array_header_read(&grid, &hdr,
     "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+
+  TEST_CHECK( GKYL_ARRAY_RIO_SUCCESS == status );
 
   int nghost[] = { 2, 2 };
   struct gkyl_range global, ext_global;
@@ -42,6 +44,8 @@ mpi_read(int nrank, int cuts[2])
 
   status = gkyl_grid_sub_array_read(&grid, &global, s_arr,
     "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+
+  TEST_CHECK( GKYL_ARRAY_RIO_SUCCESS == status );
 
   struct gkyl_rect_decomp *decomp =
     gkyl_rect_decomp_new_from_cuts(global.ndim, cuts, &global);
@@ -61,6 +65,8 @@ mpi_read(int nrank, int cuts[2])
   status = gkyl_comm_array_read(comm, &grid, &local, p_arr,
     "data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
+  TEST_CHECK( GKYL_ARRAY_RIO_SUCCESS == status );
+
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
   while (gkyl_range_iter_next(&iter)) {
@@ -77,11 +83,12 @@ mpi_read(int nrank, int cuts[2])
   gkyl_array_release(p_arr);
 }
 
+void mpi_n1_read() { mpi_read(1, (int[]){1, 1}); }
 void mpi_n2_read() { mpi_read(2, (int[]){2, 1}); }
 void mpi_n4_read() { mpi_read(4, (int[]){2, 2}); }
 
-
 TEST_LIST = {
+  {"mpi_n1_read", mpi_n1_read},
   {"mpi_n2_read", mpi_n2_read},
   {"mpi_n4_read", mpi_n4_read},
   {NULL, NULL},
