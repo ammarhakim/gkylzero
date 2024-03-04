@@ -226,7 +226,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 0.75*mi*(4.0*vtIon)*(4.0*vtIon)/(2.0*B0);
 
-  double finalTime = 1.0e-4; 
+  double finalTime = 5.0e-3; 
   double numFrames = 100;
 
   struct gk_lapd_ctx ctx = {
@@ -502,6 +502,7 @@ main(int argc, char **argv)
     .cells = { NX, NY, NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
+    .cfl_frac = 0.1,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
