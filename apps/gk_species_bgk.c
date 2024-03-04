@@ -64,8 +64,8 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     .conf_local_ext = &app->local_ext,
     .mass = s->info.mass, 
     .gk_geom = app->gk_geom,
-    .max_iter = 50, 
-    .eps_err = 1.0e-14, 
+    .max_iter = 30,    // changed from 50 by D.L. 2024/03/02.
+    .eps_err = 1.0e-7,   // changed from 1.0e-14 by D.L. 2024/02/29. 
     .use_gpu = app->use_gpu
   };
   bgk->corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&inp);  

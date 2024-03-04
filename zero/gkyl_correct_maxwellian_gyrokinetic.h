@@ -42,12 +42,12 @@ gkyl_correct_maxwellian_gyrokinetic_new(const struct gkyl_correct_maxwellian_gyr
  *
  * @param cmax Maxwellian-fix updater
  * @param fM Distribution function to fix (modified in-place)
- * @param moms_in Input moments
+ * @param moms_tar Traget moments to match
  * @param conf_local Local configuration space range
  * @param phase_local Local phase-space range
  */
 void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokinetic *cmax,
-  struct gkyl_array *fM, const struct gkyl_array *moms_in, 
+  struct gkyl_array *fM, const struct gkyl_array *moms_tar, 
   const struct gkyl_range *conf_local, const struct gkyl_range *phase_local);
 
 /**
