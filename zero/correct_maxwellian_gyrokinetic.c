@@ -139,7 +139,6 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     mean[j] = mean[j] / conf_local->volume;
   }
   mean[1] = epsilon * sqrt((mean[2]-mean[1]*mean[1]/mean[0])/mean[0])*mean[0];
-  //printf("M0=%10.8e, M1=%10.8e, M2=%10.8e\n", mean[0], mean[1], mean[2]);
 
   // Calculate the absolute error
   gkyl_array_clear(up->mvals1, 0.0);
@@ -204,7 +203,13 @@ void gkyl_correct_maxwellian_gyrokinetic_advance(gkyl_correct_maxwellian_gyrokin
     
     i += 1;
   } // Main iteration loop ends
-  //printf("Iteration=%d\n", i);
+  
+  // Project maxwellian with the target moments if it fails to converge
+  if (i==up->max_iter) {
+    gkyl_array_set_offset(up->moms, 1., moms_tar, 0*up->conf_basis.num_basis);
+    gkyl_proj_gkmaxwellian_on_basis_lab_mom(up->proj_maxwellian, phase_local, conf_local, up->moms, 
+      up->gk_geom->bmag, up->gk_geom->bmag, up->mass, fM);
+  }
 }
 
 void
