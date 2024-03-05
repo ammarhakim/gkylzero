@@ -1,3 +1,9 @@
+// Parallel-propagating firehose instability test for the 10-moment equations.
+// Input parameters match the initial conditions in Section 4.4, from the article:
+// M. W. Kunz, J. M. Stone and X-N. Bai (2014), "Pegasus: A new hybrid-kinetic particle-in-cell code for astrophysical plasma dynamics",
+// Journal of Computational Physics, Volume 259: 154-174.
+// https://www.sciencedirect.com/science/article/pii/S0021999113007973
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,188 +23,248 @@
 
 #include <rt_arg_parse.h>
 
-struct par_firehose_ctx {
-  // Fundamental constants
-  double epsilon0; // permittivity of free space
-  double mu0; // permeability of free space
-  double chargeElc; // electron charge
-  double massElc; // electron mass
-  double chargeIon; // ion charge
-  double massIon; // ion mass
-  double n0; // reference density
-  double B0; // reference magnetic field strength
-  double TiPar; // parallel ion temperature
-  double TiPerp; // perpendicular ion temperature
-  double Te; // electron temperature
-  double k0_elc; // closure parameter for electrons
-  double k0_ion; // closure parameter for ions
-  double noise_amp; // amplitude of perturbation
-  int k_init; // initial wavenumber to perturb
-  int k_final; // final wavenumber to perturb
-  double Lx; // size of the box
-  double tend; // end time of the simulation
+struct par_firehose_ctx
+{
+  // Mathematical constants (dimensionless).
+  double pi;
+
+  // Physical constants (using normalized code units).
+  double epsilon0; // Permittivity of free space.
+  double mu0; // Permeability of free space.
+  double mass_ion; // Proton mass.
+  double charge_ion; // Proton charge.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
+
+  double vAe; // Electron Alfven velocity.
+  double n0; // Reference number density.
+
+  // Derived physical quantities (using normalized code units).
+  double light_speed; // Speed of light.
+  double B0; // Reference magnetic field strength.
+  double beta; // Trace proton plasma beta.
+  double dbeta; // Parallel proton plasma beta - perpendicular proton plasma beta.
+  double beta_par; // Parallel proton plasma beta.
+  double beta_perp; // Perpendicular proton plasma beta.
+
+  double vte; // Electron thermal velocity.
+  double Te; // Electron temperature.
+  
+  double Ti_par; // Parallel ion temperature.
+  double Ti_perp; // Perpendicular ion temperature.
+
+  double omega_ci; // Ion cyclotron frequency.
+  double omega_pe; // Electron plasma frequency.
+  double de; // Electron skin depth.
+  double omega_pi; // Ion plasma frequency.
+  double di; // Ion skin depth.
+  double lambdaD; // Electron Debye length.
+
+  double noise_amp; // Noise level for perturbation.
+  long mode_init; // Initial wave mode to perturb with noise.
+  long mode_final; // Final wave mode to perturb with noise.
+
+  // Simulation parameters.
+  double Nx; // Cell count (x-direction).
+  double Lx; // Domain size (x-direction).
+  double k0_elc; // Closure parameter for electrons.
+  double k0_ion; // Closure parameter for ions.
+  double cfl_frac; // CFL coefficient.
+  double t_end; // Final simulation time.
 };
 
+struct par_firehose_ctx
+create_ctx(void)
+{
+  // Mathematical constants (dimensionless).
+  double pi = M_PI;
+
+  // Physical constants (using normalized code units).
+  double epsilon0 = 1.0; // Permittivity of free space.
+  double mu0 = 1.0; // Permeability of free space.
+  double mass_ion = 1836.0; // Proton mass.
+  double charge_ion = 1.0; // Proton charge.
+  double mass_elc = 1.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
+
+  double vAe = 0.0125; // Electron Alfven velocity.
+  double n0 = 1.0; // Reference number density.
+
+  // Derived physical quantities (using normalized code units).
+  double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
+  double B0 = vAe * sqrt(mu0 * n0 * mass_elc); // Reference magnetic field strength.
+  double beta = 300.0 / pi; // Trace proton plasma beta.
+  double dbeta = 100.0; // Parallel proton plasma beta - perpendicular proton plasma beta.
+  double beta_par = beta + 2.0 * dbeta / 3.0; // Parallel proton plasma beta.
+  double beta_perp = beta - dbeta / 3.0; // Perpendicular proton plasma beta.
+
+  double vte = vAe * sqrt(beta); // Electron thermal velocity.
+  double Te = vte * vte * mass_elc / 2.0; // Electron temperature.
+  
+  double Ti_par = vAe * vAe * (beta_par * mass_elc / 2.0); // Parallel ion temperature.
+  double Ti_perp = vAe * vAe * (beta_perp * mass_elc / 2.0); // Perpendicular ion temperature.
+
+  double omega_ci = charge_ion * B0 / mass_ion; // Ion cyclotron frequency.
+  double omega_pe = sqrt(n0 * charge_elc * charge_elc / (epsilon0 * mass_elc)); // Electron plasma frequency.
+  double de = light_speed / omega_pe; // Electron skin depth.
+  double omega_pi = sqrt(n0 * charge_ion * charge_ion / (epsilon0 * mass_ion)); // Ion plasma frequency.
+  double di = light_speed / omega_pi; // Ion skin depth.
+  double lambdaD = vte / omega_pe; // Electron Debye length.
+
+  double noise_amp = 1.0e-6 * B0; // Noise level for perturbation.
+  long mode_init = 1; // Initial wave mode to perturb with noise.
+  long mode_final = 48; // Final wave mode to perturb with noise.
+
+  // Simulation parameters.
+  double Nx = 560; // Cell count (x-direction).
+  double Lx = 300.0 * di; // Domain size (x-direction).
+  double k0_elc = 0.1 / de; // Closure parameter for electrons.
+  double k0_ion = 0.1 / di; // Closure parameter for ions.
+  double cfl_frac = 1.0; // CFL coefficient.
+  double t_end = 10.0 / omega_ci; // Final simulation time.
+  
+  struct par_firehose_ctx ctx = {
+    .pi = pi,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_ion = mass_ion,
+    .charge_ion = charge_ion,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .vAe = vAe,
+    .n0 = n0,
+    .light_speed = light_speed,
+    .B0 = B0,
+    .beta = beta,
+    .dbeta = dbeta,
+    .beta_par = beta_par,
+    .beta_perp = beta_perp,
+    .vte = vte,
+    .Te = Te,
+    .Ti_par = Ti_par,
+    .Ti_perp = Ti_perp,
+    .omega_ci = omega_ci,
+    .omega_pe = omega_pe,
+    .de = de,
+    .omega_pi = omega_pi,
+    .di = di,
+    .lambdaD = lambdaD,
+    .noise_amp = noise_amp,
+    .mode_init = mode_init,
+    .mode_final = mode_final,
+    .Nx = Nx,
+    .Lx = Lx,
+    .k0_elc = k0_elc,
+    .k0_ion = k0_ion,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+  };
+
+  return ctx;
+}
+
 void
-evalElcInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
   struct par_firehose_ctx *app = ctx;
 
-  double massElc = app->massElc;
-  double Te = app->Te;
-  double n0 = app->n0;
+  double mass_elc = app -> mass_elc;
 
-  double rhoe = massElc*n0;
-  double momxe = 0.0;
-  double momye = 0.0;
-  double momze = 0.0;
-  double pxxe = n0*Te + momxe*momxe/rhoe;
-  double pxye = momxe*momye/rhoe;
-  double pxze = momxe*momze/rhoe;
-  double pyye = n0*Te + momye*momye/rhoe;
-  double pyze = momye*momye/rhoe;
-  double pzze = n0*Te + momze*momze/rhoe;
+  double n0 = app -> n0;
 
+  double Te = app -> Te;
+
+  double rhoe = mass_elc * n0; // Electron mass density.
+  double momxe = 0.0; // Electron momentum density (x-direction).
+  double momye = 0.0; // Electron momentum density (y-direction).
+  double momze = 0.0; // Electron momentum density (z-direction).
+  double pxxe = n0 * Te + momxe * momxe / rhoe; // Electron pressure tensor (x-x component).
+  double pxye = momxe * momye / rhoe; // Electron pressure tensor (x-y/y-x component).
+  double pxze = momxe * momze / rhoe; // Electron pressure tensor (x-z/z-x component).
+  double pyye = n0 * Te + momye * momye / rhoe; // Electron pressure tensor (y-y component).
+  double pyze = momye * momye / rhoe; // Electron pressure tensor (y-z/z-y component).
+  double pzze = n0 * Te + momze * momze / rhoe; // Electron pressure tensor (z-z component).
+
+  // Set electron mass density.
   fout[0] = rhoe;
+  // Set electron momentum density.
   fout[1] = momxe; fout[2] = momye; fout[3] = momze;
+  // Set electron pressure tensor.
   fout[4] = pxxe; fout[5] = pxye; fout[6] = pxze;  
   fout[7] = pyye; fout[8] = pyze; fout[9] = pzze;
 }
 
 void
-evalIonInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
   struct par_firehose_ctx *app = ctx;
 
-  double massIon = app->massIon;
-  double TiPar = app->TiPar;
-  double TiPerp = app->TiPerp;
-  double n0 = app->n0;
+  double mass_ion = app -> mass_ion;
 
-  double rhoi = massIon*n0;
-  double momxi = 0.0;
-  double momyi = 0.0;
-  double momzi = 0.0;
-  double pxxi = n0*TiPar + momxi*momxi/rhoi;
-  double pxyi = momxi*momyi/rhoi;
-  double pxzi = momxi*momzi/rhoi;
-  double pyyi = n0*TiPerp + momyi*momyi/rhoi;
-  double pyzi = momyi*momyi/rhoi;
-  double pzzi = n0*TiPerp + momzi*momzi/rhoi;
+  double n0 = app -> n0;
 
+  double Ti_par = app -> Ti_par;
+  double Ti_perp = app -> Ti_perp;
+
+  double rhoi = mass_ion * n0; // Ion mass density.
+  double momxi = 0.0; // Ion momentum density (x-direction).
+  double momyi = 0.0; // Ion momentum density (y-direction).
+  double momzi = 0.0; // Ion momentum density (z-direction).
+  double pxxi = n0 * Ti_par + momxi * momxi / rhoi; // Ion pressure tensor (x-x component).
+  double pxyi = momxi * momyi / rhoi; // Ion pressure tensor (x-y/y-x component).
+  double pxzi = momxi * momzi / rhoi; // Ion pressure tensor (x-z/z-x component).
+  double pyyi = n0 * Ti_perp + momyi * momyi / rhoi; // Ion pressure tensor (y-y component).
+  double pyzi = momyi * momyi / rhoi; // Ion pressure tensor (y-z/z-y component).
+  double pzzi = n0 * Ti_perp + momzi * momzi / rhoi; // Ion pressure tensor (z-z component).
+
+  // Set ion mass density.
   fout[0] = rhoi;
+  // Set ion momentum density.
   fout[1] = momxi; fout[2] = momyi; fout[3] = momzi;
+  // Set ion pressure tensor.
   fout[4] = pxxi; fout[5] = pxyi; fout[6] = pxzi;  
   fout[7] = pyyi; fout[8] = pyzi; fout[9] = pzzi;    
 }
 
 void
-evalFieldInit(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
   struct par_firehose_ctx *app = ctx;
 
-  pcg64_random_t rng = gkyl_pcg64_init(0);
+  double pi = app -> pi;
 
-  double Bx = app->B0;
-  double By = 0.0, Bz = 0.0;
+  double B0 = app -> B0;
 
-  double alpha = app->noise_amp*Bx;
-  double Lx = app->Lx;
-  double kx = 2.0*M_PI/Lx;
-  for (int i = app->k_init; i < app->k_final; ++i) {
-    By -= alpha*gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
-    Bz -= alpha*gkyl_pcg64_rand_double(&rng)*sin(i*kx*x + 2.0*M_PI*gkyl_pcg64_rand_double(&rng));
+  double noise_amp = app -> noise_amp;
+  double mode_init = app -> mode_init;
+  double mode_final = app -> mode_final;
+
+  double Lx = app -> Lx;
+
+  double Bx = B0; // Total magnetic field (x-direction).
+  double By = 0.0;
+  double Bz = 0.0;
+
+  double alpha = noise_amp * Bx; // Applied amplitude.
+  double kx = 2.0 * pi / Lx; // Wave number (x-direction).
+
+  pcg64_random_t rng = gkyl_pcg64_init(0); // Random number generator.
+
+  for (int i = mode_init; i < mode_final; i++)
+  {
+    By -= alpha * gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * pi * gkyl_pcg64_rand_double(&rng)); // Total magnetic field (y-direction).
+    Bz -= alpha * gkyl_pcg64_rand_double(&rng) * sin(i * kx * x + 2.0 * pi * gkyl_pcg64_rand_double(&rng)); // Total magnetic field (z-direction).
   }
 
-  // electric field
+  // Set electric field.
   fout[0] = 0.0; fout[1] = 0.0; fout[2] = 0.0;
-  // magnetic field
+  // Set magnetic field.
   fout[3] = Bx; fout[4] = By; fout[5] = Bz;
-
-  // correction potentials
+  // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
-}
-
-struct par_firehose_ctx
-create_ctx(void)
-{
-  double epsilon0 = 1.0; // permittivity of free space
-  double mu0 = 1.0; // pemiability of free space
-  double lightSpeed = 1.0/sqrt(epsilon0*mu0);
-
-  double massElc = 1.0; // electron mass
-  double chargeElc = -1.0; // electron charge
-  double massIon = 1836.0; // ion mass
-  double chargeIon = 1.0; // ion charge
-
-  // Ion and electron temperature assumed equal, Ti/Te = 1.0
-  double n0 = 1.0; // initial number density
-  double vAe = 0.0125;
-  double B0 = vAe*sqrt(mu0*n0*massElc);
-  // Parallel firehose unstable for betaPerp - betaPar + 2 < 0.
-  double beta = 300.0/M_PI; // Trace proton plasma beta = 2 mu0 ni Ti/B0^2 = (betaPar + 2 betaPerp)/3
-  double dbeta = 100.0; // dbeta = beta_parallel - beta_perp
-  double betaPar = beta + 2.0*dbeta/3.0; // parallel proton plasma beta = 2 mu0 ni T_paralleli/B0^2
-  double betaPerp = beta - dbeta/3.0; // perp proton plasma beta = 2 mu0 ni T_perpi/B0^2  
-
-  double vtElc = vAe*sqrt(beta);
-  double Te = vtElc*vtElc*massElc/2.0;
-
-  double TiPar = vAe*vAe*(betaPar*massElc/2.0);
-  double TiPerp = vAe*vAe*(betaPerp*massElc/2.0);
-
-  // frequencies, skin depths, and Debye length
-  double omegaCi = chargeIon*B0/massIon;
-  double wpe = sqrt(n0*chargeElc*chargeElc/(epsilon0*massElc));
-  double de = lightSpeed/wpe;
-  double wpi = sqrt(n0*chargeIon*chargeIon/(epsilon0*massIon));
-  double di = lightSpeed/wpi;
-  double lambdaD = vtElc/wpe;
-
-  // noise levels for perturbation
-  double noise_amp = 1.0e-6*B0;
-  int k_init = 1;   // first wave mode to perturb with noise, 1 correspond to box size
-  int k_final = 48; // last wave mode to perturb with noise
-
-  // k0 for closure
-  double k0_elc = 0.1/de; // rho_e ~ 10, k0e = 1.0/rho_e ~ 0.1
-  double k0_ion = 0.1/di; // rho_i ~ 420, k0e = 1.0/rho_i ~ 0.002
-
-  // domain size and simulation time
-  double Lx = 300.0*di;
-  double tend = 100.0/omegaCi;
-
-  struct par_firehose_ctx ctx = {
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .chargeElc = chargeElc,
-    .massElc = massElc,
-    .chargeIon = chargeIon,
-    .massIon = massIon,
-    .n0 = n0,
-    .B0 = B0,
-    .noise_amp = noise_amp,
-    .k_init = k_init,
-    .k_final = k_final,
-    .Te = vtElc,
-    .TiPar = TiPar,
-    .TiPerp = TiPerp, 
-    .k0_elc = k0_elc, 
-    .k0_ion = k0_ion, 
-    .Lx = Lx,
-    .tend = tend,
-  };
-  return ctx;
-}
-
-void
-write_data(struct gkyl_tm_trigger *iot, const gkyl_moment_app *app, double tcurr)
-{
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
-    gkyl_moment_app_write(app, tcurr, iot->curr-1);
 }
 
 int
@@ -208,98 +274,112 @@ main(int argc, char **argv)
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
+  {
     MPI_Init(&argc, &argv);
-#endif  
+  }
+#endif
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 560);
-
-  if (app_args.trace_mem) {
+  if (app_args.trace_mem)
+  {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
 
-  struct par_firehose_ctx ctx = create_ctx(); // context for init functions
+  struct par_firehose_ctx ctx = create_ctx(); // Context for initialization functions.
+
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   
-  // electron/ion equations
+  // Electron/ion equations.
   struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_elc);
   struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_ion);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
-    .charge = ctx.chargeElc, .mass = ctx.massElc,
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_ten_moment,
-    .evolve = 1,
+    .evolve = true,
     .init = evalElcInit,
     .ctx = &ctx,
   };
   struct gkyl_moment_species ion = {
     .name = "ion",
-    .charge = ctx.chargeIon, .mass = ctx.massIon,
+    .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_ten_moment,
-    .evolve = 1,
+    .evolve = true,
     .init = evalIonInit,
     .ctx = &ctx,
-  };  
+  };
 
-  int nrank = 1; // number of processors in simulation
+  int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
+  {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-#endif  
+  }
+#endif
 
-  // create global range
+  // Create global range.
   int cells[] = { NX };
   struct gkyl_range globalr;
   gkyl_create_global_range(1, cells, &globalr);
-  
-  // create decomposition
+
+  // Create decomposition.
   int cuts[] = { 1 };
-#ifdef GKYL_HAVE_MPI  
-  if (app_args.use_mpi) {
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+  {
     cuts[0] = app_args.cuts[0];
   }
-#endif 
-    
-  struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts(1, cuts, &globalr);
+#endif
 
-  // construct communcator for use in app
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &globalr);
+
+  // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+  if (app_args.use_mpi)
+  {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
+      {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
   }
   else
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+  {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
+      {
         .decomp = decomp,
-        .use_gpu = app_args.use_gpu        
+        .use_gpu = app_args.use_gpu
       }
     );
+  }
 #else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
+    {
       .decomp = decomp,
-      .use_gpu = app_args.use_gpu      
+      .use_gpu = app_args.use_gpu
     }
   );
 #endif
 
   int my_rank;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_sz;
-  gkyl_comm_get_size(comm, &comm_sz);
+  int comm_size;
+  gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = cuts[0];
-  if (ncuts != comm_sz) {
+  if (ncuts != comm_size)
+  {
     if (my_rank == 0)
-      fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
+    {
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+    }
     goto mpifinalize;
   }
 
-  // VM app
+  // Moment app.
   struct gkyl_moment app_inp = {
     .name = "10m_par_firehose",
 
@@ -319,7 +399,7 @@ main(int argc, char **argv)
       .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
       .mag_error_speed_fact = 1.0,
       
-      .evolve = 1,
+      .evolve = true,
       .init = evalFieldInit,
       .ctx = &ctx,
     }, 
@@ -331,78 +411,64 @@ main(int argc, char **argv)
     }
   };
 
-  // create app object
+  // Create app object.
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
-  // start, end and initial time-step
-  double tcurr = 0.0, tend = ctx.tend;
-  int nframe = 100;
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
+  // Initial and final simulation times.
+  double t_curr = 0.0, t_end = ctx.t_end;
 
-  // initialize simulation
-  gkyl_moment_app_apply_ic(app, tcurr);
-  write_data(&io_trig, app, tcurr);
-  gkyl_moment_app_calc_field_energy(app, tcurr);
-  gkyl_moment_app_calc_integrated_mom(app, tcurr);  
+  // Initialize simulation.
+  gkyl_moment_app_apply_ic(app, t_curr);
+  gkyl_moment_app_write(app, t_curr, 0);
 
-  // compute estimate of maximum stable time-step
+  // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
 
   long step = 1;
-  while ((tcurr < tend) && (step <= app_args.num_steps)) {
-    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, tcurr);
+  while ((t_curr < t_end) && (step <= app_args.num_steps))
+  {
+    gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-
-    // Only calculate the integrated moments and field energy every 100 steps
-    if (step % 100 == 0) {
-      gkyl_moment_app_calc_field_energy(app, tcurr);
-      gkyl_moment_app_calc_integrated_mom(app, tcurr);
-    }
     
-    if (!status.success) {
+    if (!status.success)
+    {
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
-    tcurr += status.dt_actual;
-    dt = status.dt_suggested;
 
-    write_data(&io_trig, app, tcurr);
+    t_curr += status.dt_actual;
+    dt = status.dt_suggested;
 
     step += 1;
   }
 
-  gkyl_moment_app_calc_field_energy(app, tcurr);
-  gkyl_moment_app_calc_integrated_mom(app, tcurr);
-  gkyl_moment_app_write_field_energy(app);
-  gkyl_moment_app_write_integrated_mom(app);
-    
+  gkyl_moment_app_write(app, t_curr, 1);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
+
   gkyl_moment_app_cout(app, stdout, "\n");
   gkyl_moment_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-  gkyl_moment_app_cout(
-    app, stdout, "Number of failed time-steps %ld\n", stat.nfail);
-  gkyl_moment_app_cout(
-    app, stdout, "Species updates took %g secs\n", stat.species_tm);
-  gkyl_moment_app_cout(
-    app, stdout, "Field updates took %g secs\n", stat.field_tm);
-  gkyl_moment_app_cout(
-    app, stdout, "Total updates took %g secs\n", stat.total_tm);
+  gkyl_moment_app_cout(app, stdout, "Number of failed time-steps %ld\n", stat.nfail);
+  gkyl_moment_app_cout(app, stdout, "Species updates took %g secs\n", stat.species_tm);
+  gkyl_moment_app_cout(app, stdout, "Field updates took %g secs\n", stat.field_tm);
+  gkyl_moment_app_cout(app, stdout, "Source updates took %g secs\n", stat.sources_tm);
+  gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
-  // simulation complete, free resources
+  // Free resources after simulation completion.
   gkyl_wv_eqn_release(elc_ten_moment);
   gkyl_wv_eqn_release(ion_ten_moment);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);
-
-mpifinalize:;
+  
+mpifinalize:
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
+  {
     MPI_Finalize();
+  }
 #endif
   
   return 0;
