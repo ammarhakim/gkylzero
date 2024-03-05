@@ -264,7 +264,47 @@ void gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app);
  *
  * @param app App object.
  */
-void gkyl_moment_app_stat_write(const gkyl_moment_app* app);
+void gkyl_moment_app_stat_write(const gkyl_moment_app *app);
+
+/**
+ * Check if fname is a compatible for performing restarts on field.
+ *
+ * @param app App object
+ * @param fname File name to check
+ * @return true if file is compatible
+ */
+bool gkyl_moment_app_check_field_restart_compat(gkyl_moment_app *app, const char *fname);
+
+/**
+ * Read field data from .gkyl file.
+ *
+ * @param app App object.
+ * @param fname File to read from.
+ * @param tm Time at which data is read
+ * @return 0 on success.
+ */
+int gkyl_moment_app_read_field(gkyl_moment_app *app, const char *fname, double tm);
+
+/**
+ * Check if fname is a compatible for performing restarts on species.
+ *
+ * @param app App object
+ * @param fname File name to check
+ * @return true if file is compatible
+ */
+bool gkyl_moment_app_check_species_restart_compat(gkyl_moment_app *app, const char *fname);
+
+/**
+ * Read species data from .gkyl file.
+ *
+ * @param app App object.
+ * @param sidx Index of species to read
+ * @param fname File to read from.
+ * @param tm Time at which data is read
+ * @return 0 on success.
+ */
+int gkyl_moment_app_read_species(gkyl_moment_app *app, int sidx,
+  const char *fname, double tm);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the

@@ -227,11 +227,22 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = 0.8;
+  int frame = 0;
 
   // initialize simulation
-  gkyl_moment_app_apply_ic(app, tcurr);
-  gkyl_moment_app_write(app, tcurr, 0);
-  gkyl_moment_app_calc_integrated_mom(app, tcurr);  
+  if (app_args.is_restart) {
+    int err;
+    err = gkyl_moment_app_read_species(
+      app, 0, "data/regression/euler_riem_2d_hllc-euler_0.gkyl", 10.0);
+    if (err)
+      goto freeresources;
+    frame = 100;
+  }
+  else {
+    gkyl_moment_app_apply_ic(app, tcurr);    
+  }
+  gkyl_moment_app_write(app, tcurr, frame++);
+  gkyl_moment_app_calc_integrated_mom(app, tcurr);
 
   // compute estimate of maximum stable time-step
   double dt = gkyl_moment_app_max_dt(app);
@@ -254,7 +265,7 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, 1);
+  gkyl_moment_app_write(app, tcurr, frame);
   gkyl_moment_app_write_integrated_mom(app);
     
   gkyl_moment_app_stat_write(app);
@@ -268,11 +279,13 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
   gkyl_moment_app_cout(app, stdout, "Field updates took %g secs\n", stat.field_tm);
   gkyl_moment_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
 
+  freeresources:
+  
   // simulation complete, free resources
   gkyl_wv_eqn_release(euler);
-  gkyl_moment_app_release(app);  
   gkyl_comm_release(comm);
   gkyl_rect_decomp_release(decomp);
+  gkyl_moment_app_release(app);  
 
   mpifinalize:
   ;

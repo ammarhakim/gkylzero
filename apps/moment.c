@@ -574,6 +574,41 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   cstr_drop(&fileNm);
 }
 
+bool
+gkyl_moment_app_check_field_restart_compat(gkyl_moment_app *app, const char *fname)
+{
+  return true;
+}
+
+bool
+gkyl_moment_app_check_species_restart_compat(gkyl_moment_app *app, const char *fname)
+{
+  return true;
+}
+
+int
+gkyl_moment_app_read_field(gkyl_moment_app *app, const char *fname,
+  double tm)
+{
+  if (app->has_field != 1) return 0;
+  int status =
+    gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field.fcurr, fname);
+  if (0 == status)
+    moment_field_apply_bc(app, tm, &app->field, app->field.fcurr);
+  return status;
+}
+
+int
+gkyl_moment_app_read_species(gkyl_moment_app *app, int sidx,
+  const char *fname, double tm)
+{
+  int status =
+    gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->species[sidx].fcurr, fname);
+  if (0 == status)
+    moment_species_apply_bc(app, tm, &app->species[sidx], app->species[sidx].fcurr);
+  return status;
+}
+
 // private function to handle variable argument list for printing
 static void
 v_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, va_list argp)

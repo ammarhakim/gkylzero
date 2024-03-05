@@ -29,6 +29,7 @@ struct gkyl_app_args {
   enum gkyl_basis_type basis_type; // type of basis functions to use
   enum gkyl_mp_recon mp_recon; // the XX in MP-XX
   bool skip_limiters; // should we skip limiters?
+  bool is_restart; // is this a restarted sim?
 };
 
 static int
@@ -75,6 +76,7 @@ parse_app_args(int argc, char **argv)
   bool use_mpi = false;
   bool step_mode = false;
   bool trace_mem = false;
+  bool is_restart = false;
   bool skip_limiters = false;
   int num_steps = INT_MAX;
   int num_threads = 1; // by default use only 1 thread
@@ -89,7 +91,7 @@ parse_app_args(int argc, char **argv)
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
   int c;
-  while ((c = getopt(argc, argv, "+hgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:")) != -1) {
+  while ((c = getopt(argc, argv, "+hjgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -104,6 +106,7 @@ parse_app_args(int argc, char **argv)
         printf(" -r     Recovery scheme. One of u1, u3, u5, c2, c4, c6\n");
         printf("        (Only used for MP-XX solvers)\n");
         printf(" -l     Turn off limiters\n");
+        printf(" -j     Restart the simulation\n");
         printf(" -m     Turn on memory allocation/deallocation tracing\n");
         printf("\n");
         printf(" Grid resolution in configuration space:\n");
@@ -129,6 +132,10 @@ parse_app_args(int argc, char **argv)
 
       case 'l':
         skip_limiters = true;
+        break;
+
+      case 'j':
+        is_restart = true;
         break;        
       
       case 's':
@@ -202,6 +209,7 @@ parse_app_args(int argc, char **argv)
   args.num_steps = num_steps;
   args.num_threads = num_threads;
   args.skip_limiters = skip_limiters;
+  args.is_restart = is_restart;
 
   return args;
 }
