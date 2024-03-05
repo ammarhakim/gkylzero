@@ -202,7 +202,8 @@ evalSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
 
   if (fabs(z) < 0.25 * Lz) {
     n = n_src;
-  } else {
+  }
+  else {
     n = 1.0e-40 * n_src;
   }
 
@@ -241,7 +242,8 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   if (fabs(z) <= 0.25 * Lz) {
     n = 0.5 * n_peak * (1.0 + sqrt(1.0 - (z / (0.25 * Lz)) * (z / (0.25 * Lz))));
-  } else {
+  }
+  else {
     n = 0.5 * n_peak;
   }
 
@@ -370,7 +372,8 @@ main(int argc, char **argv)
   for (int d = 0; d < cdim; d++) {
     if (app_args.use_mpi) {
       cuts[d] = app_args.cuts[d];
-    } else {
+    }
+    else {
       cuts[d] = 1;
     }
   }
@@ -396,13 +399,15 @@ main(int argc, char **argv)
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
-  } else if (app_args.use_mpi) {
+  }
+  else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
-  } else {
+  }
+  else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
         .use_gpu = app_args.use_gpu
@@ -453,7 +458,7 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN,
       .density = evalDensityInit,
       .ctx_density = &ctx,
       .upar = evalUparInit,
@@ -473,7 +478,7 @@ main(int argc, char **argv)
       .write_source = true,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN,
         .density = evalSourceDensityInit,
         .ctx_density = &ctx,
         .upar = evalSourceUparInit,
@@ -502,7 +507,7 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN, 
       .density = evalDensityInit,
       .ctx_density = &ctx,
       .upar = evalUparInit,
@@ -522,7 +527,7 @@ main(int argc, char **argv)
       .write_source = true,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN,
         .density = evalSourceDensityInit,
         .ctx_density = &ctx,
         .upar = evalSourceUparInit,

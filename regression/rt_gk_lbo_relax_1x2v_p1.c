@@ -128,7 +128,8 @@ evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 
   if (fabs(v) < v0) {
     dist = n0 / 2.0 / v0;
-  } else {
+  }
+  else {
     dist = 0.0;
   }
 
@@ -242,7 +243,8 @@ main(int argc, char **argv)
   for (int d = 0; d < cdim; d++) {
     if (app_args.use_mpi) {
       cuts[d] = app_args.cuts[d];
-    } else {
+    }
+    else {
       cuts[d] = 1;
     }
   }
@@ -268,13 +270,15 @@ main(int argc, char **argv)
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
-  } else if (app_args.use_mpi) {
+  }
+  else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
-  } else {
+  }
+  else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
         .use_gpu = app_args.use_gpu
@@ -371,7 +375,7 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.mass,
     .electron_charge = ctx.charge,
     .electron_temp = ctx.vt,

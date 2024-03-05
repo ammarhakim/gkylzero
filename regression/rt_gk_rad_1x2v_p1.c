@@ -288,7 +288,8 @@ main(int argc, char **argv)
   for (int d = 0; d < cdim; d++) {
     if (app_args.use_mpi) {
       cuts[d] = app_args.cuts[d];
-    } else {
+    }
+    else {
       cuts[d] = 1;
     }
   }
@@ -314,13 +315,15 @@ main(int argc, char **argv)
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
-  } else if (app_args.use_mpi) {
+  }
+  else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
-  } else {
+  }
+  else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
       {
         .decomp = decomp,
@@ -373,7 +376,7 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .proj_id = GKYL_PROJ_MAXWELLIAN,
       .density = evalDensityInit,
       .ctx_density = &ctx,
       .upar = evalUparInit,
@@ -421,7 +424,7 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .proj_id = GKYL_PROJ_MAXWELLIAN,
       .density = evalDensityInit,
       .ctx_density = &ctx,
       .upar= evalUparInit,
