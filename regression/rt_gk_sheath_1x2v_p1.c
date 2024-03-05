@@ -343,13 +343,10 @@ main(int argc, char **argv)
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
-  {
     MPI_Init(&argc, &argv);
-  }
 #endif
 
-  if (app_args.trace_mem) 
-  {
+  if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
@@ -363,9 +360,7 @@ main(int argc, char **argv)
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
-  {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
 #endif  
 
   // Create global range.
@@ -377,22 +372,15 @@ main(int argc, char **argv)
   // Create decomposition.
   int cuts[cdim];
 #ifdef GKYL_HAVE_MPI  
-  for (int d = 0; d < cdim; d++)
-  {
+  for (int d=0; d<cdim; d++) {
     if (app_args.use_mpi)
-    {
       cuts[d] = app_args.cuts[d];
-    }
     else
-    {
       cuts[d] = 1;
-    }
   }
 #else
-  for (int d = 0; d < cdim; d++)
-  {
+  for (int d=0; d<cdim; d++)
     cuts[d] = 1;
-  }
 #endif  
     
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
@@ -400,11 +388,9 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_gpu && app_args.use_mpi)
-  {
+  if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp)
-      {
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
@@ -413,62 +399,45 @@ main(int argc, char **argv)
     printf(" Using -g and -M together requires NCCL.\n");
     assert(0 == 1);
 #endif
-  }
-  else if (app_args.use_mpi) 
-  {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
-      {
+  } else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
-  }
-  else
-  {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-      {
+  } else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-    {
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
   );
 #endif
 
-  int my_rank;
+  int my_rank, comm_size;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;
-  for (int d = 0; d < cdim; d++)
-  {
+  for (int d=0; d<cdim; d++)
     ncuts *= cuts[d];
-  }
 
-  if (ncuts != comm_size)
-  {
+  if (ncuts != comm_size) {
     if (my_rank == 0)
-    {
       fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
-    }
     goto mpifinalize;
   }
 
-  for (int d = 0; d < cdim - 1; d++)
-  {
-    if (cuts[d] > 1)
-    {
+  for (int d=0; d<cdim-1; d++) {
+    if (cuts[d] > 1) {
       if (my_rank == 0)
-      {
         fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
-      }
       goto mpifinalize;
     }
   }
@@ -609,7 +578,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };
@@ -696,9 +665,7 @@ main(int argc, char **argv)
   mpifinalize:
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
-  {
     MPI_Finalize();
-  }
 #endif
 
   return 0;
