@@ -53,6 +53,10 @@ struct gkyl_gyrokinetic_projection {
   void (*temppar)(double t, const double *xn, double *fout, void *ctx);
   void *ctx_tempperp;
   void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
+
+  // pointer and context to lab moments (M0, M1, M2) function 
+  void *ctx_lab_moms; 
+  void (*lab_moms)(double t, const double *xn, double *fout, void *ctx); 
 };
 
 // Parameters for species collisions
@@ -242,7 +246,7 @@ struct gkyl_gyrokinetic_field {
   double xLCFS; // radial location of the LCFS.
 
   // parameters for adiabatic electrons simulations
-  double electron_mass, electron_charge, electron_temp;
+  double electron_mass, electron_charge, electron_density, electron_temp;
 
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;

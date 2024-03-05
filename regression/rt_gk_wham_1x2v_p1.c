@@ -805,7 +805,7 @@ int main(int argc, char **argv)
     .cells = {NV, NMU},
     .polarization_density = ctx.n0,
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
       .density = eval_density_elc,
       .ctx_upar = &ctx,
@@ -825,7 +825,7 @@ int main(int argc, char **argv)
       .write_source = true,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
         .density = eval_density_elc_source,
         .ctx_upar = &ctx,
@@ -850,7 +850,7 @@ int main(int argc, char **argv)
     .cells = {NV, NMU},
     .polarization_density = ctx.n0,
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
       .density = eval_density_ion,
       .ctx_upar = &ctx,
@@ -870,7 +870,7 @@ int main(int argc, char **argv)
       .write_source = true,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
         .density = eval_density_ion_source,
         .ctx_upar = &ctx,

@@ -396,7 +396,7 @@ main(int argc, char **argv)
     .cells = {  ctx.num_cell_vpar, ctx.num_cell_mu },
     .polarization_density = ctx.n0,
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
       .density = density_init,
       .ctx_upar = &ctx,
@@ -414,7 +414,7 @@ main(int argc, char **argv)
       .write_source = true,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
         .density = density_src,
         .ctx_upar = &ctx,
@@ -433,7 +433,7 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
@@ -443,7 +443,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_ltx_adiabatic_elc_1x2v_p1",
+    .name = "gk_ltx_boltz_elc_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { ctx.z_min },

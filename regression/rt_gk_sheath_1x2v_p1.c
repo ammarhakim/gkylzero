@@ -200,12 +200,10 @@ evalSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
 
   double n = 0.0;
 
-  if (fabs(z) < 0.25 * Lz)
-  {
+  if (fabs(z) < 0.25 * Lz) {
     n = n_src;
-  } 
-  else
-  {
+  }
+  else {
     n = 1.0e-40 * n_src;
   }
 
@@ -242,12 +240,10 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double n = 0.0;
 
-  if (fabs(z) <= 0.25 * Lz)
-  {
+  if (fabs(z) <= 0.25 * Lz) {
     n = 0.5 * n_peak * (1.0 + sqrt(1.0 - (z / (0.25 * Lz)) * (z / (0.25 * Lz))));
   }
-  else
-  {
+  else {
     n = 0.5 * n_peak;
   }
 
@@ -327,8 +323,7 @@ bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr))
-  {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     gkyl_gyrokinetic_app_write(app, t_curr, iot -> curr - 1);
     gkyl_gyrokinetic_app_calc_mom(app);
     gkyl_gyrokinetic_app_write_mom(app, t_curr, iot -> curr - 1);
@@ -342,14 +337,12 @@ main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
   }
 #endif
 
-  if (app_args.trace_mem) 
-  {
+  if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
@@ -362,8 +355,7 @@ main(int argc, char **argv)
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
   }
 #endif  
@@ -377,20 +369,16 @@ main(int argc, char **argv)
   // Create decomposition.
   int cuts[cdim];
 #ifdef GKYL_HAVE_MPI  
-  for (int d = 0; d < cdim; d++)
-  {
-    if (app_args.use_mpi)
-    {
+  for (int d = 0; d < cdim; d++) {
+    if (app_args.use_mpi) {
       cuts[d] = app_args.cuts[d];
     }
-    else
-    {
+    else {
       cuts[d] = 1;
     }
   }
 #else
-  for (int d = 0; d < cdim; d++)
-  {
+  for (int d = 0; d < cdim; d++) {
     cuts[d] = 1;
   }
 #endif  
@@ -400,11 +388,9 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_gpu && app_args.use_mpi)
-  {
+  if (app_args.use_gpu && app_args.use_mpi) {
 #ifdef GKYL_HAVE_NCCL
-    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp)
-      {
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
@@ -414,27 +400,22 @@ main(int argc, char **argv)
     assert(0 == 1);
 #endif
   }
-  else if (app_args.use_mpi) 
-  {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
-      {
+  else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
   }
-  else
-  {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-      {
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-    {
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
@@ -447,26 +428,20 @@ main(int argc, char **argv)
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;
-  for (int d = 0; d < cdim; d++)
-  {
+  for (int d = 0; d < cdim; d++) {
     ncuts *= cuts[d];
   }
 
-  if (ncuts != comm_size)
-  {
-    if (my_rank == 0)
-    {
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
       fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
   }
 
-  for (int d = 0; d < cdim - 1; d++)
-  {
-    if (cuts[d] > 1)
-    {
-      if (my_rank == 0)
-      {
+  for (int d = 0; d < cdim - 1; d++) {
+    if (cuts[d] > 1) {
+      if (my_rank == 0) {
         fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
       }
       goto mpifinalize;
@@ -483,7 +458,7 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN,
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
       .density = evalDensityInit,
       .ctx_density = &ctx,
       .upar = evalUparInit,
@@ -503,7 +478,7 @@ main(int argc, char **argv)
       .write_source = true,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN,
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .density = evalSourceDensityInit,
         .ctx_density = &ctx,
         .upar = evalSourceUparInit,
@@ -532,7 +507,7 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .density = evalDensityInit,
       .ctx_density = &ctx,
       .upar = evalUparInit,
@@ -552,7 +527,7 @@ main(int argc, char **argv)
       .write_source = true,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN,
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
         .density = evalSourceDensityInit,
         .ctx_density = &ctx,
         .upar = evalSourceUparInit,
@@ -636,8 +611,7 @@ main(int argc, char **argv)
   double dt = t_end - t_curr;
 
   long step = 1;
-  while ((t_curr < t_end) && (step <= app_args.num_steps))
-  {
+  while ((t_curr < t_end) && (step <= app_args.num_steps)) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
@@ -646,8 +620,7 @@ main(int argc, char **argv)
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
     gkyl_gyrokinetic_app_calc_integrated_source_mom(app, t_curr);
 
-    if (!status.success)
-    {
+    if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
@@ -673,8 +646,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
-  if (stat.nstage_2_fail > 0)
-  {
+  if (stat.nstage_2_fail > 0) {
     gkyl_gyrokinetic_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
     gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
   }  
@@ -695,8 +667,7 @@ main(int argc, char **argv)
 
   mpifinalize:
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Finalize();
   }
 #endif
