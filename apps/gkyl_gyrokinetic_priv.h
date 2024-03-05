@@ -217,6 +217,8 @@ struct gk_bgk_collisions {
   struct gkyl_array *nu_sum_host; // BGK collision frequency host-side for I/O
   struct gkyl_array *self_nu; // BGK self-collision frequency
 
+  struct gkyl_array *max_nu; // Maximum collision frequency in each cell for finding stable timestep
+
   bool normNu; // Boolean to determine if using Spitzer value
   struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
@@ -308,17 +310,17 @@ struct gk_proj {
       struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
       struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
     };
-    // Maxwellian and Bi-Maxwellian projection
+    // Maxwellian and Bi-Maxwellian projection from primitive moments
     struct {
-      struct gkyl_array *m0; // host-side density
+      struct gkyl_array *n; // host-side density
       struct gkyl_array *upar; // host-side upar
       struct gkyl_array *udrift; // host-side udrift
       struct gkyl_array *prim_moms; // host-side prim_moms 
 
-      struct gkyl_array *m0mod; // array for correcting density
+      struct gkyl_array *nmod; // array for correcting density
 
       struct gkyl_array *prim_moms_dev; // device-side prim_moms for GPU simulations
-      struct gkyl_array *m0_dev; // device-side density for GPU simulations
+      struct gkyl_array *n_dev; // device-side density for GPU simulations
       struct gkyl_dg_bin_op_mem *mem; // memory needed in correcting density
 
       struct gkyl_proj_on_basis *proj_dens; // projection operator for density
@@ -330,7 +332,7 @@ struct gk_proj {
         struct {
           struct gkyl_array *vtsq; // host-side vth^2 = T/m (temperature/mass)
           struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
-          struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+          struct gkyl_proj_maxwellian_on_basis *proj_max_prim; // Maxwellian projection object
         };
         // Bi-Maxwellian-specific arrays and functions
         struct {
@@ -341,6 +343,16 @@ struct gk_proj {
           struct gkyl_proj_bimaxwellian_on_basis *proj_bimax; // Bi-Maxwellian projection object
         };
       };
+    };
+    // Maxwellian from lab moments, includes correction to Maxwellian to produce desired moments
+    struct { 
+      struct gkyl_array *lab_moms; // lab moms (M0, M1, M2)
+      struct gkyl_array *lab_moms_host; // host-side lab moms (M0, M1, M2) for GPU simulations
+
+      struct gkyl_proj_on_basis *proj_lab_moms; // projection operator for (M0, M1, M2)
+
+      struct gkyl_correct_maxwellian_gyrokinetic *corr_max_lab; // Maxwellian correction
+      struct gkyl_proj_maxwellian_on_basis *proj_max_lab; // Maxwellian projection object      
     };
   };
 };

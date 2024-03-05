@@ -63,7 +63,8 @@ enum gkyl_source_id {
 // Identifiers for specific projection object types
 enum gkyl_projection_id {
   GKYL_PROJ_FUNC = 0, // Function projection. This is default
-  GKYL_PROJ_MAXWELLIAN, // Maxwellian projection
+  GKYL_PROJ_MAXWELLIAN_PRIM, // Maxwellian projection from primitive moments (n, u, T)
+  GKYL_PROJ_MAXWELLIAN_LAB, // Maxwellian projection from lab moments (M0, M1, M2)
   GKYL_PROJ_BIMAXWELLIAN, // Bi-Maxwellian projection
 };
 
