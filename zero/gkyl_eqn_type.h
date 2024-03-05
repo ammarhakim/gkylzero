@@ -22,9 +22,10 @@ enum gkyl_gkmodel_id {
 // Identifiers for specific gyrokinetic field object types
 enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default
-  GKYL_GK_FIELD_ADIABATIC = 1, // Adiabatic electrons GK field, phi = phi_sheath + (T_e/e)*ln(n_i/n_is)
-  GKYL_GK_FIELD_ES_IWL = 2, // Inner-wall limited ES.
-  GKYL_GK_FIELD_EM = 3, // Electromagnetic GK
+  GKYL_GK_FIELD_BOLTZMANN = 1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is)
+  GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
+  GKYL_GK_FIELD_ES_IWL = 3, // Inner-wall limited ES.
+  GKYL_GK_FIELD_EM = 4, // Electromagnetic GK
 };
 
 // Identifiers for specific field object types
@@ -62,7 +63,8 @@ enum gkyl_source_id {
 // Identifiers for specific projection object types
 enum gkyl_projection_id {
   GKYL_PROJ_FUNC = 0, // Function projection. This is default
-  GKYL_PROJ_MAXWELLIAN, // Maxwellian projection
+  GKYL_PROJ_MAXWELLIAN_PRIM, // Maxwellian projection from primitive moments (n, u, T)
+  GKYL_PROJ_MAXWELLIAN_LAB, // Maxwellian projection from lab moments (M0, M1, M2)
   GKYL_PROJ_BIMAXWELLIAN, // Bi-Maxwellian projection
 };
 

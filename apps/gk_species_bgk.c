@@ -20,6 +20,9 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   gkyl_array_copy(bgk->nu_sum, self_nu);
   gkyl_array_release(self_nu);
 
+  // array for finding the maximum stable time-step
+  bgk->max_nu = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
   bgk->spitzer_calc = 0;
   bgk->normNu = false;
   if (s->info.collisions.normNu) {
@@ -61,8 +64,8 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     .conf_local_ext = &app->local_ext,
     .mass = s->info.mass, 
     .gk_geom = app->gk_geom,
-    .max_iter = 50, 
-    .eps_err = 1.0e-14, 
+    .max_iter = 30,    // changed from 50 by D.L. 2024/03/02.
+    .eps_err = 1.0e-7,   // changed from 1.0e-14 by D.L. 2024/02/29. 
     .use_gpu = app->use_gpu
   };
   bgk->corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&inp);  
@@ -76,12 +79,6 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 void 
 gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_bgk_collisions *bgk)
 {  
-  bgk->greene_factor_mem = 0;
-  if (app->use_gpu)
-    bgk->greene_factor_mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
-  else
-    bgk->greene_factor_mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
-
   // set pointers to species we cross-collide with
   for (int i=0; i<bgk->num_cross_collisions; ++i) {
     bgk->collide_with[i] = gk_find_species(app, s->info.collisions.collide_with[i]);
@@ -89,9 +86,6 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     bgk->other_moms[i] = bgk->collide_with[i]->bgk.moms.marr;
     bgk->other_nu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     bgk->cross_nu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    bgk->greene_num[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    bgk->greene_den[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    bgk->greene_factor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     
     if (bgk->other_m[i] > s->info.mass) {
       gkyl_array_set(bgk->cross_nu[i], sqrt(2), bgk->self_nu);
@@ -100,17 +94,7 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       gkyl_array_set(bgk->cross_nu[i], sqrt(2)*(bgk->other_m[i])/(s->info.mass), bgk->collide_with[i]->bgk.self_nu);
       gkyl_array_set(bgk->other_nu[i], sqrt(2), bgk->collide_with[i]->bgk.self_nu);
     }
-    
     gkyl_array_accumulate(bgk->nu_sum, 1.0, bgk->cross_nu[i]);
-
-    bgk->other_mnu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    bgk->other_mnu_m0[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-    bgk->self_mnu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    bgk->self_mnu_m0[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-
-    gkyl_array_set(bgk->self_mnu[i], s->info.mass, bgk->cross_nu[i]);
-    gkyl_array_set(bgk->other_mnu[i], bgk->other_m[i], bgk->other_nu[i]);
 
     bgk->cross_moms[i] = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
   }
@@ -150,21 +134,6 @@ gk_species_bgk_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   
   wst = gkyl_wall_clock();  
   for (int i=0; i<bgk->num_cross_collisions; ++i) {
-    gkyl_dg_mul_op_range(app->confBasis, 0, bgk->self_mnu_m0[i], 0,
-      bgk->self_mnu[i], 0, bgk->m0, &app->local);
-    gkyl_dg_mul_op_range(app->confBasis, 0, bgk->other_mnu_m0[i], 0,
-      bgk->other_mnu[i], 0, bgk->collide_with[i]->bgk.m0, &app->local);
-
-    gkyl_dg_mul_op_range(app->confBasis, 0, bgk->greene_num[i], 0,
-      bgk->other_mnu_m0[i], 0, bgk->m0, &app->local);
-
-    gkyl_array_set(bgk->greene_den[i], 1.0, bgk->self_mnu_m0[i]);
-    gkyl_array_accumulate(bgk->greene_den[i], 1.0, bgk->other_mnu_m0[i]);
-
-    gkyl_dg_div_op_range(bgk->greene_factor_mem, app->confBasis, 0, bgk->greene_factor[i], 0,
-      bgk->greene_num[i], 0, bgk->greene_den[i], &app->local);
-    gkyl_array_scale(bgk->greene_factor[i], 2*bgk->betaGreenep1);
-
     gkyl_mom_cross_bgk_gyrokinetic_advance(bgk->cross_bgk, &app->local, bgk->betaGreenep1, 
       species->info.mass, bgk->moms.marr, bgk->other_m[i], bgk->other_moms[i], 
       bgk->self_nu, bgk->other_nu[i], bgk->cross_moms[i]);
@@ -208,6 +177,9 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   gkyl_array_accumulate(rhs, 1.0, bgk->nu_fmax);
   gkyl_array_accumulate(rhs, -1.0, bgk->nu_sum_f);
 
+  // Determine the maximum collision frequency in each cell for finding the stable time-step
+  gkyl_dg_calc_average_range(app->confBasis, 0, bgk->max_nu, 0, bgk->nu_sum, app->local);
+
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -216,6 +188,7 @@ gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_b
 {
   gkyl_array_release(bgk->self_nu);
   gkyl_array_release(bgk->nu_sum);
+  gkyl_array_release(bgk->max_nu);
   gkyl_array_release(bgk->m0);
 
   gkyl_array_release(bgk->fmax);
@@ -234,18 +207,10 @@ gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_b
   }
 
   if (bgk->num_cross_collisions) {
-    gkyl_dg_bin_op_mem_release(bgk->greene_factor_mem);
     for (int i=0; i<bgk->num_cross_collisions; ++i) {
       gkyl_array_release(bgk->other_moms[i]);
       gkyl_array_release(bgk->cross_nu[i]);
       gkyl_array_release(bgk->other_nu[i]);
-      gkyl_array_release(bgk->self_mnu[i]);
-      gkyl_array_release(bgk->self_mnu_m0[i]);
-      gkyl_array_release(bgk->other_mnu[i]);
-      gkyl_array_release(bgk->other_mnu_m0[i]);
-      gkyl_array_release(bgk->greene_num[i]);
-      gkyl_array_release(bgk->greene_den[i]);
-      gkyl_array_release(bgk->greene_factor[i]);
     }
     gkyl_mom_cross_bgk_gyrokinetic_release(bgk->cross_bgk);
   }

@@ -104,7 +104,7 @@ gyrokinetic_projection_lw_new(lua_State *L)
 {
   struct gkyl_gyrokinetic_projection gyrokinetic_projection = { };
 
-  gyrokinetic_projection.proj_id = GKYL_PROJ_MAXWELLIAN; 
+  gyrokinetic_projection.proj_id = GKYL_PROJ_MAXWELLIAN_PRIM; 
 
   // Register functions for density, upar, and temperature 
   int density_ref = LUA_NOREF;

@@ -9,9 +9,17 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_math.h>
-#include <rt_arg_parse.h>
-#include <gkyl_mirror_geo.h>
+#include <gkyl_null_comm.h>
 
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
+#endif
+
+#include <rt_arg_parse.h>
 
 // Define the context of the simulation. This is basically all the globals
 struct gk_mirror_ctx
@@ -58,9 +66,9 @@ struct gk_mirror_ctx
   double R_bt;
   double Z_bt;
   double z_bt;
+  double R_m;
   double B_m;
   double z_m;
-  double Z_m_computational;
   // Physics parameters at mirror throat
   double n_m;
   double Ti_m;
@@ -69,6 +77,13 @@ struct gk_mirror_ctx
   double Ti_perp_m;
   double Ti_par_m;
   double cs_m;
+  // Source parameters
+  double NSrcIon;
+  double lineLengthSrcIon;
+  double sigSrcIon;
+  double NSrcFloorIon;
+  double TSrc0Ion;
+  double TSrcFloorIon;
   // Grid parameters
   double vpar_max_ion;
   double mu_max_ion;
@@ -83,28 +98,8 @@ struct gk_mirror_ctx
   // For non-uniform mapping
   double diff_dz;
   double psi_in_diff;
-  int mapping_order_center;
-  int mapping_order_expander;
+  int mapping_order;
   double mapping_frac;
-};
-
-struct gkyl_mirror_geo_efit_inp inp = {
-  // psiRZ and related inputs
-  .filepath = "./data/eqdsk/wham_lorentzian.geqdsk",
-  .rzpoly_order = 2,
-  .fluxpoly_order = 1,
-  .plate_spec = false,
-  .quad_param = {  .eps = 1e-10 }
-};
-
-
-struct gkyl_mirror_geo_grid_inp ginp = {
-  .rclose = 0.2,
-  .zmin = -2.48,
-  .zmax =  2.48,
-  .write_node_coord_array = true,
-  .node_file_nm = "lorenzian_nodes.gkyl",
-  .nonuniform_mapping_fraction = 0.7,
 };
 
 double
@@ -224,34 +219,6 @@ dBdz(double z, void *ctx)
   return fabs(dBdz);
 }
 
-// double
-// z_xi_dBdz_inverse(double chi, double psi, void *ctx)
-// {
-//   struct gk_mirror_ctx *app = ctx;
-//   double map_strength = app->map_strength; // 1 is full strength, 0 is no mapping
-//   if (map_strength == 0.0)
-//   {
-//     return chi;
-//   }
-//   else
-//   {
-//     double psi = app->psi_in_diff;
-//     double z_min = app->z_min;
-//     double z_max = app->z_max;
-//     ;
-//     if (chi <= z_min || chi >= z_max)
-//     {
-//       return chi;
-//     }
-//     else
-//     {
-//       struct gkyl_qr_res integral = gkyl_dbl_exp(dBdz, ctx, z_min, chi, 7, 1e-14);
-//       double coord = (integral.res / app->map_integral_total * (z_max - z_min) + z_min) * map_strength + (1 - map_strength) * chi;
-//       return coord;
-//     }
-//   }
-// }
-
 double
 z_xi(double xi, double psi, void *ctx)
 {
@@ -259,9 +226,7 @@ z_xi(double xi, double psi, void *ctx)
   double z_min = app->z_min;
   double z_max = app->z_max;
   double z_m = app->z_m;
-  int n_ex = app->mapping_order_expander;
-  int n_ct = app->mapping_order_center;
-  int n;
+  int n = app->mapping_order;
   double frac = app->mapping_frac; // 1 is full mapping, 0 is no mapping
   double z, left, right;
   if (xi >= z_min && xi <= z_max)
@@ -270,25 +235,21 @@ z_xi(double xi, double psi, void *ctx)
     {
       left = -z_m;
       right = z_min;
-      n = n_ex;
     }
     else if (xi <= 0.0)
     {
       left = -z_m;
       right = 0.0;
-      n = n_ct;
     }
     else if (xi <= z_m)
     {
       left = z_m;
       right = 0.0;
-      n = n_ct;
     }
     else
     {
       left = z_m;
       right = z_max;
-      n = n_ex;
     }
     z = (pow(right - left, 1 - n) * pow(xi - left, n) + left) * frac + xi * (1 - frac);
   }
@@ -302,19 +263,48 @@ z_xi(double xi, double psi, void *ctx)
 void
 eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
+  struct gk_mirror_ctx *app = ctx;
+  double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+  double z = z_xi(xn[0], psi, ctx);
+  double Z = Z_psiz(psi, z, ctx); // Cylindrical axial coordinate.
+  double NSrc = app->NSrcIon;
+  double zSrc = app->lineLengthSrcIon;
+  double sigSrc = app->sigSrcIon;
+  double NSrcFloor = app->NSrcFloorIon;
+  if (fabs(Z) <= app->Z_m)
+  {
+    fout[0] = fmax(NSrcFloor, (NSrc / sqrt(2.0 * M_PI * pow(sigSrc, 2))) *
+                                  exp(-1 * pow((z - zSrc), 2) / (2.0 * pow(sigSrc, 2))));
+  }
+  else
+  {
     fout[0] = 1e-16;
+  }
 }
 
 void
 eval_upar_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 1e-16;
+  fout[0] = 0.0;
 }
 
 void
 eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 1e-16;
+  struct gk_mirror_ctx *app = ctx;
+  double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
+  double z = z_xi(xn[0], psi, ctx);
+  double sigSrc = app->sigSrcIon;
+  double TSrc0 = app->TSrc0Ion;
+  double Tfloor = app->TSrcFloorIon;
+  if (fabs(z) <= 2.0 * sigSrc)
+  {
+    fout[0] = TSrc0;
+  }
+  else
+  {
+    fout[0] = Tfloor;
+  }
 }
 
 // Ion initial conditions
@@ -324,15 +314,21 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
-  double z_m = app->z_m;
-  double z_max = app->z_max;
-  if (fabs(z) <= z_m)
+  double Z = Z_psiz(psi, z, ctx); // Cylindrical axial coordinate.
+  double R = R_psiZ(psi, Z, ctx); // Cylindrical radial coordinate.
+  double BRad, BZ, Bmag;
+  Bfield_psiZ(psi, Z, ctx, &BRad, &BZ, &Bmag);
+  if (fabs(Z) <= app->Z_bt)
   {
-    fout[0] = app->n0 * (tanh(10 * z_m * fabs(z_m - fabs(z))) / 2 + .5);
+    fout[0] = app->n0 * pow(1.0 - pow((R - app->R_bt) / app->alim, 2), app->alphaIC0 / 2);
+  }
+  else if (fabs(Z) <= app->Z_m)
+  {
+    fout[0] = app->n0 * pow(1.0 - pow((R - app->R_bt) / app->alim, 2), app->alphaIC1 / 2);
   }
   else
   {
-    fout[0] = app->n0 / 2 * exp(-5 * (fabs(z_m - fabs(z))));
+    fout[0] = app->n_m * sqrt(Bmag / app->B_m);
   }
 }
 
@@ -342,16 +338,17 @@ eval_upar_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   struct gk_mirror_ctx *app = ctx;
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
-  double cs_m = app->cs_m;
-  double z_m = app->z_m;
-  double z_max = app->z_max;
-  if (fabs(z) <= z_m)
+  if (fabs(z) <= app->z_m)
   {
     fout[0] = 0.0;
   }
+  else if (z > app->z_m)
+  {
+    fout[0] = app->cs_m * (z - app->z_m); //* (z -  / app->z_m);
+  }
   else
   {
-    fout[0] = 3.0 * fabs(z) / z * cs_m * tanh(3 * (z_max - z_m) * fabs(fabs(z) - z_m)); // Maybe put a 5 here
+    fout[0] = app->cs_m * (z + app->z_m); //* (z + app->z_m) / app->z_m;
   }
 }
 
@@ -362,15 +359,14 @@ eval_temp_par_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRIC
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
   double z_m = app->z_m;
-  double Ti_par0 = app->Ti_par0;
-  double Ti_par_m = app->Ti_par_m;
+  double z_max = app->z_max;
   if (fabs(z) <= z_m)
   {
-    fout[0] = Ti_par_m+(Ti_par0-Ti_par_m)*tanh(4 * fabs(z_m - fabs(z)));
+    fout[0] = (app->Ti_par0 - app->Ti_par_m) * tanh(3 * z_m * fabs(z_m - fabs(z))) + app->Ti_par_m;
   }
   else
   {
-    fout[0] = Ti_par_m;
+    fout[0] = app->Ti_par_m;
   }
 }
 
@@ -381,15 +377,14 @@ eval_temp_perp_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRI
   double psi = psi_RZ(app->RatZeq0, 0.0, ctx); // Magnetic flux function psi of field line.
   double z = z_xi(xn[0], psi, ctx);
   double z_m = app->z_m;
-  double Ti_perp0 = app->Ti_perp0;
-  double Ti_perp_m = app->Ti_perp_m;
+  double z_max = app->z_max;
   if (fabs(z) <= z_m)
   {
-    fout[0] = Ti_perp_m - Ti_perp0*tanh(3.*fabs(z_m-fabs(z)));
+    fout[0] = (app->Ti_perp_m - app->Ti_perp0) * ((tanh((fabs(z) - z_m * 0.8) * 10 * z_m)) / 2 + 0.5) + app->Ti_perp0;
   }
   else
   {
-    fout[0] = Ti_perp_m * GKYL_MAX2(1.e-3, exp(-5. * (fabs(z_m - fabs(z)))));
+    fout[0] = app->Ti_perp_m * exp(-5 * (fabs(z_m - fabs(z))));
   }
 }
 
@@ -441,134 +436,6 @@ bmag_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
   fout[0] = Bmag;
 }
 
-void
-calculate_mirror_throat_location(void *ctx)
-{
-  struct gk_mirror_ctx *app = ctx;
-  double psi = app->psi_eval;
-  int itterations = 10;
-  double interval_left = 0.0;
-  double interval_right = app->z_max;
-  int points_per_level = 20;
-  double maximum_Bmag = 0.0;
-  double maximum_Bmag_location = 0.0;
-  for (int j = 0; j < itterations; j++)
-  {
-    double dz = (interval_right - interval_left) / points_per_level;
-    double B_rad, B_Z, Bmag;
-    maximum_Bmag = 0.0;
-    maximum_Bmag_location = 0.0;
-    for (int i = 0; i < points_per_level; i++)
-    {
-      double z = interval_left + i * dz;
-      double Z = Z_psiz(psi, z, ctx);
-      Bfield_psiZ(psi, Z, ctx, &B_rad, &B_Z, &Bmag);
-      if (Bmag > maximum_Bmag)
-      {
-        maximum_Bmag = Bmag;
-        maximum_Bmag_location = z;
-      }
-    }
-    interval_left = maximum_Bmag_location - dz;
-    interval_right = maximum_Bmag_location + dz;
-  }
-  app->z_m = maximum_Bmag_location;
-  app->Z_m_computational = Z_psiz(psi, maximum_Bmag_location, ctx);
-  app->B_m = maximum_Bmag;
-}
-
-void
-calculate_optimal_mapping(void *ctx)
-{
-  // Determine optimal order for each region
-  // Expander region
-  struct gk_mirror_ctx *app = ctx;
-  double mapping_frac = app->mapping_frac;
-  app->mapping_order_center = 1;
-  double scan_cells = 50;
-  double scan_left = app->z_m;
-  double scan_right = app->z_max;
-  double scan_dxi = (scan_right - scan_left) / scan_cells;
-  int expander_order = 1;
-  double max_dB_dCell_prior = 99999999.99;
-  double max_dB_dCell;
-  double max_dB_dCell_order1 = 0.0;
-  while (1)
-  {
-    max_dB_dCell = 0.0;
-    app->mapping_order_expander = expander_order;
-    for (int iz = 0; iz < scan_cells; iz++)
-    {
-      double left_xi = scan_left + iz * scan_dxi;
-      double right_xi = scan_left + (iz + 1) * scan_dxi;
-      double psi = app->psi_eval;
-      double left_z = z_xi(left_xi, psi, app);
-      double right_z = z_xi(right_xi, psi, app);
-      double B_rad, B_Z, Bmag_left, Bmag_right;
-      Bfield_psiZ(psi, left_z, app, &B_rad, &B_Z, &Bmag_left);
-      Bfield_psiZ(psi, right_z, app, &B_rad, &B_Z, &Bmag_right);
-      double dB_dCell = (Bmag_right - Bmag_left);
-      if (fabs(dB_dCell) > max_dB_dCell)
-      {
-        max_dB_dCell = fabs(dB_dCell);
-      }
-    }
-    double improvement = max_dB_dCell_prior - max_dB_dCell;
-    if (app->mapping_order_expander == 1)
-    {
-      max_dB_dCell_order1 = max_dB_dCell;
-    }
-
-    if (improvement > 1e-3)
-    {
-      expander_order++;
-      max_dB_dCell_prior = max_dB_dCell;
-    }
-    else
-    {
-      break;
-    }
-  }
-  double max_dB_dCell_expander = max_dB_dCell;
-  //Center region
-  scan_left = 0.0;
-  scan_right = app->z_m;
-  scan_dxi = (scan_right - scan_left) / scan_cells;
-  int center_order = 1;
-  max_dB_dCell_prior = 99999999.99;
-  while (1)
-  {
-    max_dB_dCell = 0.0;
-    app->mapping_order_center = center_order;
-    for (int iz = 0; iz < scan_cells; iz++)
-    {
-      double left_xi = scan_left + iz * scan_dxi;
-      double right_xi = scan_left + (iz + 1) * scan_dxi;
-      double psi = app->psi_eval;
-      double left_z = z_xi(left_xi, psi, app);
-      double right_z = z_xi(right_xi, psi, app);
-      double B_rad, B_Z, Bmag_left, Bmag_right;
-      Bfield_psiZ(psi, left_z, app, &B_rad, &B_Z, &Bmag_left);
-      Bfield_psiZ(psi, right_z, app, &B_rad, &B_Z, &Bmag_right);
-      double dB_dCell = (Bmag_right - Bmag_left);
-      if (fabs(dB_dCell) > max_dB_dCell)
-      {
-        max_dB_dCell = fabs(dB_dCell);
-      }
-    }
-    double improvement = max_dB_dCell_prior - max_dB_dCell;
-    if (improvement > 1e-3 & max_dB_dCell > max_dB_dCell_expander)
-    {
-      center_order++;
-      max_dB_dCell_prior = max_dB_dCell;
-    }
-    else
-    {
-      break;
-    }
-  }
-}
-
 struct gk_mirror_ctx
 create_ctx(void)
 {
@@ -615,8 +482,8 @@ create_ctx(void)
   double RatZeq0 = 0.10; // Radius of the field line at Z=0.
   // Axial coordinate Z extents. Endure that Z=0 is not on
   // the boundary of a cell (due to AD errors).
-  double Z_min = -2.48;
-  double Z_max = 2.48;
+  double Z_min = -2.5;
+  double Z_max = 2.5;
   double z_min = -2.515312;
   double z_max = 2.515312;
   double psi_eval = 0.0026530898059565;
@@ -626,12 +493,20 @@ create_ctx(void)
   double gamma = 0.124904;
   double Z_m = 0.98;
 
+  // Source parameters
+  double NSrcIon = 3.1715e23 / 8.0;
+  double lineLengthSrcIon = 0.0;
+  double sigSrcIon = Z_m / 4.0;
+  double NSrcFloorIon = 0.05 * NSrcIon;
+  double TSrc0Ion = Ti0 * 1.25;
+  double TSrcFloorIon = TSrc0Ion / 8.0;
+
   // Grid parameters
-  double vpar_max_ion = 20 * vti;
+  double vpar_max_ion = 5 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int num_cell_vpar = 128; // Number of cells in the paralell velocity direction 96
+  int num_cell_vpar = 64; // Number of cells in the paralell velocity direction 96
   int num_cell_mu = 192;  // Number of cells in the mu direction 192
-  int num_cell_z = 128;
+  int num_cell_z = 288;
   int poly_order = 1;
   double final_time = 1e-9;
   int num_frames = 1;
@@ -641,6 +516,9 @@ create_ctx(void)
   double R_bt = 0.071022;
   double Z_bt = 0.467101;
   double z_bt = 0.468243;
+  double R_m = 0.017845;
+  double B_m = 16.662396;
+  double z_m = 0.982544;
 
   // Physics parameters at mirror throat
   double n_m = 1.105617e19;
@@ -649,12 +527,13 @@ create_ctx(void)
 
   // Initial conditions parameters
   double Ti_perp0 = 10000 * eV;
-  double Ti_perp_m = 15000 * eV;
   double Ti_par0 = 7500 * eV;
+  double Ti_perp_m = 15000 * eV;
   double Ti_par_m = 1000 * eV;
 
   // Non-uniform z mapping
-  double mapping_frac = 0.7; // 1 is full mapping, 0 is no mapping
+  int mapping_order = 20;  // Order of the polynomial to fit through points for mapc2p
+  double mapping_frac = 0.0;//0.72; // 1 is full mapping, 0 is no mapping
 
   struct gk_mirror_ctx ctx = {
     .mi = mi,
@@ -691,6 +570,9 @@ create_ctx(void)
     .R_bt = R_bt,
     .Z_bt = Z_bt,
     .z_bt = z_bt,
+    .R_m = R_m,
+    .B_m = B_m,
+    .z_m = z_m,
     .n_m = n_m,
     .Ti_m = Ti_m,
     .Ti_perp0 = Ti_perp0,
@@ -698,6 +580,12 @@ create_ctx(void)
     .Ti_perp_m = Ti_perp_m,
     .Ti_par_m = Ti_par_m,
     .cs_m = cs_m,
+    .NSrcIon = NSrcIon,
+    .lineLengthSrcIon = lineLengthSrcIon,
+    .sigSrcIon = sigSrcIon,
+    .NSrcFloorIon = NSrcFloorIon,
+    .TSrc0Ion = TSrc0Ion,
+    .TSrcFloorIon = TSrcFloorIon,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
     .num_cell_z = num_cell_z,
@@ -706,10 +594,68 @@ create_ctx(void)
     .poly_order = poly_order,
     .final_time = final_time,
     .num_frames = num_frames,
+    .mapping_order = mapping_order,  // Order of the polynomial to fit through points for mapc2p
     .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
-  calculate_mirror_throat_location(&ctx);
-  calculate_optimal_mapping(&ctx);
+  // Printing
+  double dxi = (ctx.z_max - ctx.z_min) / ctx.num_cell_z;
+  double diff_z_max = z_xi(ctx.z_m + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_p75 = z_xi(ctx.z_m * .75 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .75 - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_p50 = z_xi(ctx.z_m * .5  + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5  - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi/2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi/2, ctx.psi_eval, &ctx);
+  double diff_z_min = z_xi(dxi/2, ctx.psi_eval, &ctx) - z_xi(-dxi/2, ctx.psi_eval, &ctx);
+  if (ctx.mapping_frac == 0.0)
+  {
+    printf("Uniform cell spacing in z: %g m\n", dxi);
+  } else {
+    printf("Non-uniform cell spacings:\n");
+    printf("Total number of cells in z   : %d\n", ctx.num_cell_z);
+    printf("Polynomials order %i with mapping fraction %g\n", ctx.mapping_order, ctx.mapping_frac);
+    printf("Uniform computational spacing: %g m\n", dxi);
+    printf("Maximum cell spacing at z_m  : %g m\n", diff_z_max);
+    printf("Cell spacing at z_m * 0.75   : %g m\n", diff_z_p75);
+    printf("Cell spacing at z_m * 0.50   : %g m\n", diff_z_p50);
+    printf("Cell spacing at z_m * 0.25   : %g m\n", diff_z_p25);
+    printf("Minimum cell spacing at 0    : %g m\n", diff_z_min);
+  }
+
+  // Looking at calculating dB/dz in each cell
+  // xi is uniformly spaced computational coordinate
+  double dB_values[ctx.num_cell_z];
+  double mean = 0.0;
+  double max_dB = 0.0;
+  double loc_max_dB = 0.0;
+  for (int iz = 0; iz < ctx.num_cell_z; iz++)
+  {
+    double left_xi = ctx.z_min + iz * dxi;
+    double right_xi = ctx.z_min + (iz + 1) * dxi;
+    double psi = ctx.psi_eval;
+    double left_z = z_xi(left_xi, psi, &ctx);
+    double right_z = z_xi(right_xi, psi, &ctx);
+    double B_rad, B_Z, Bmag_left, Bmag_right;
+    Bfield_psiZ(psi, left_z, &ctx, &B_rad, &B_Z, &Bmag_left);
+    Bfield_psiZ(psi, right_z, &ctx, &B_rad, &B_Z, &Bmag_right);
+    double dB = (Bmag_right - Bmag_left);
+    dB_values[iz] = fabs(dB);
+    mean += fabs(dB);
+    if (fabs(dB) > max_dB)
+    {
+      max_dB = fabs(dB);
+      loc_max_dB = (left_z + right_z) / 2;
+    }
+  }
+  // Calculate mean and standard deviation of dBdz values
+  mean /= ctx.num_cell_z;
+  double std = 0.0;
+  for (int iz = 0; iz < ctx.num_cell_z; iz++)
+  {
+    std += pow(dB_values[iz] - mean, 2);
+  }
+  std = sqrt(std / ctx.num_cell_z);
+  printf("Mean dB: %g\n", mean);
+  printf("Std dB : %g\n", std);
+  printf("Max dB : %g\n", max_dB);
+  printf("Max dB location: %g\n", loc_max_dB);
   return ctx;
 }
 
@@ -727,23 +673,112 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double tcurr)
 int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Init(&argc, &argv);
+#endif
+
   if (app_args.trace_mem)
   {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
+
   struct gk_mirror_ctx ctx = create_ctx(); // context for init functions
+                                           //
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.num_cell_z);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.num_cell_vpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.num_cell_mu);
+
+  int nrank = 1; // number of processors in simulation
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+#endif  
+
+  // create global range
+  int ccells[] = { NZ };
+  int cdim = sizeof(ccells)/sizeof(ccells[0]);
+  struct gkyl_range cglobal_r;
+  gkyl_create_global_range(cdim, ccells, &cglobal_r);
+
+  // create decomposition
+  int cuts[cdim];
+#ifdef GKYL_HAVE_MPI  
+  for (int d=0; d<cdim; d++)
+    cuts[d] = app_args.use_mpi? app_args.cuts[d] : 1;
+#else
+  for (int d=0; d<cdim; d++) cuts[d] = 1;
+#endif  
+    
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
+
+  // construct communcator for use in app
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+#else
+    printf("Using -g and -M together requires NCCL.\n");
+    assert( 0 == 1);
+#endif
+  } else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+  } else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .decomp = decomp,
+        .use_gpu = app_args.use_gpu
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp,
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank, comm_sz;
+  gkyl_comm_get_rank(comm, &my_rank);
+  gkyl_comm_get_size(comm, &comm_sz);
+
+  int ncuts = 1;
+  for (int d=0; d<cdim; d++) ncuts *= cuts[d];
+  if (ncuts != comm_sz) {
+    if (my_rank == 0)
+      fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
+    goto mpifinalize;
+  }  
+
+  for (int d=0; d<cdim-1; d++) {
+    if (cuts[d] > 1) {
+      if (my_rank == 0)
+        fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
+      goto mpifinalize;
+    }
+  }
+
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.qi,
     .mass = ctx.mi,
     .lower = {-ctx.vpar_max_ion, 0.0},
-    .upper = {ctx.vpar_max_ion, ctx.mu_max_ion},
+    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = {NV, NMU},
     .polarization_density = ctx.n0,
+
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN, 
       .ctx_density = &ctx,
@@ -753,47 +788,84 @@ int main(int argc, char **argv)
       .ctx_temppar = &ctx,
       .temppar = eval_temp_par_ion,      
       .ctx_tempperp = &ctx,
-      .tempperp = eval_temp_perp_ion,    
+      .tempperp = eval_temp_perp_ion,   
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .self_nu = evalNuIon,
     },
-    .bcx = {GKYL_SPECIES_GK_SHEATH, GKYL_SPECIES_GK_SHEATH},
+
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .write_source = true,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+        .ctx_density = &ctx,
+        .density = eval_density_ion_source,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_ion_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_ion_source,      
+      }, 
+    },
+
+    .bcx = {
+      .lower={.type = GKYL_SPECIES_GK_SHEATH,},
+      .upper={.type = GKYL_SPECIES_GK_SHEATH,},
+    },
+
     .num_diag_moments = 7,
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
+
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
     .bmag_fac = ctx.B_p, // Issue here. B0 from soloviev, so not sure what to do. Ours is not constant
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
+
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_mirror_adiabatic_elc_1x2v_p1_nonuniform_nosource_eqdsk",
+    .name = "gk_mirror_boltz_elc_1x2v_p1_uniform",
     .cdim = 1,
     .vdim = 2,
-    .lower = {-M_PI + 1e-1},
-    .upper = {M_PI - 1e-1},
+    .lower = {ctx.z_min},
+    .upper = {ctx.z_max},
     .cells = {NZ},
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+
     .geometry = {
-      .geometry_id = GKYL_MIRROR,
+      .geometry_id = GKYL_MAPC2P,
       .world = {ctx.psi_eval, 0.0},
-      .mirror_efit_info = &inp,
-      .mirror_grid_info = &ginp,
+      .mapc2p = mapc2p, // mapping of computational to physical space
+      .c2p_ctx = &ctx,
+      .bmag_func = bmag_func, // magnetic field magnitude
+      .bmag_ctx = &ctx
     },
+
     .num_periodic_dir = 0,
     .periodic_dirs = {},
+
     .num_species = 1,
     .species = {ion},
+
     .field = field,
+
     .use_gpu = app_args.use_gpu,
+
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
+
   printf("Creating app object ...\n");
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);  // create app object
   double tcurr = 0.0, tend = ctx.final_time; // start, end and initial time-step
@@ -849,6 +921,18 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
-  gkyl_gyrokinetic_app_release(app); // simulation complete, free app
+
+  // simulation complete, free app
+  gkyl_gyrokinetic_app_release(app);
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  
+  mpifinalize:
+  ;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif
+
   return 0;
 }

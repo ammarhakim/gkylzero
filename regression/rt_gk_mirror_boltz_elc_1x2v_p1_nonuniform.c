@@ -764,7 +764,7 @@ int main(int argc, char **argv)
       .write_source = true,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
         .density = eval_density_ion_source,
         .ctx_upar = &ctx,
@@ -781,7 +781,7 @@ int main(int argc, char **argv)
     .diag_moments = {"M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp"},
   };
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
@@ -789,7 +789,7 @@ int main(int argc, char **argv)
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_mirror_adiabatic_elc_1x2v_p1_nonuniform",
+    .name = "gk_mirror_boltz_elc_1x2v_p1_nonuniform_20vt",
     .cdim = 1,
     .vdim = 2,
     .lower = {ctx.z_min},
