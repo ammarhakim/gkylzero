@@ -21,20 +21,19 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       proj->proj_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) {
-    proj->n = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    proj->dens = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->upar = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->vtsq = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->prim_moms = mkarr(false, 2*app->confBasis.num_basis, app->local_ext.volume);
     // for correcting the density
-    proj->nmod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    proj->dens_mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     if (app->use_gpu) {
       proj->prim_moms_dev = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
-      proj->n_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+      proj->dens_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
       proj->mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
     }
-    else {
+    else
       proj->mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
-    }
 
     proj->proj_dens = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       app->basis.poly_order+1, 1, inp.density, inp.ctx_density);
@@ -74,21 +73,20 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       app->basis.poly_order+1, app->use_gpu);
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
-    proj->n = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    proj->dens = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->upar = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->vtsqpar = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->vtsqperp = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
     proj->prim_moms = mkarr(false, 4*app->confBasis.num_basis, app->local_ext.volume);
     // for correcting the density
-    proj->nmod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    proj->dens_mod = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     if (app->use_gpu) {
       proj->prim_moms_dev = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
-      proj->n_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+      proj->dens_dev = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
       proj->mem = gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->confBasis.num_basis);
     }
-    else {
+    else
       proj->mem = gkyl_dg_bin_op_mem_new(app->local.volume, app->confBasis.num_basis);
-    }
 
     proj->proj_dens = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       app->basis.poly_order+1, 1, inp.density, inp.ctx_density);
@@ -113,12 +111,11 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
       gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, proj->proj_host);
       gkyl_array_copy(f, proj->proj_host);
     }
-    else {
+    else
       gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, f);
-    }
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) { 
-    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->n); 
+    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 
     gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local_ext, proj->upar);
     gkyl_proj_on_basis_advance(proj->proj_temp, tm, &app->local_ext, proj->vtsq);
     gkyl_array_scale(proj->vtsq, 1/s->info.mass);
@@ -129,31 +126,14 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 
     if (app->use_gpu) {
       gkyl_array_copy(proj->prim_moms_dev, proj->prim_moms);
-      gkyl_array_copy(proj->n_dev, proj->n);
+      gkyl_array_copy(proj->dens_dev, proj->dens);
       gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj->proj_max_prim, &s->local_ext, &app->local_ext, 
-        proj->n_dev, proj->prim_moms_dev,
+        proj->dens_dev, proj->prim_moms_dev,
         app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
     }
-    else {
-      gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj->proj_max_prim, &s->local_ext, &app->local_ext, 
-        proj->n, proj->prim_moms,
-        app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
-    }
-    // Now compute and scale the density to the desired density function 
-    // based on input density from Maxwellian projection. Also multiplies the
-    // final distribution function by the Jacobian since we evolve J*f 
-    gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, f); 
-    if (app->use_gpu)
-      gkyl_dg_div_op_range(proj->mem, app->confBasis, 
-        0, proj->nmod, 0, proj->n_dev, 0, s->m0.marr, &app->local);
     else
-      gkyl_dg_div_op_range(proj->mem, app->confBasis, 
-        0, proj->nmod, 0, proj->n, 0, s->m0.marr, &app->local);
-
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
-        proj->nmod, f, &app->local_ext, &s->local_ext);
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
-        app->gk_geom->jacobgeo, f, &app->local_ext, &s->local_ext);  
+      gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj->proj_max_prim, &s->local_ext, &app->local_ext, 
+        proj->dens, proj->prim_moms, app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_LAB) { 
     gkyl_proj_on_basis_advance(proj->proj_lab_moms, tm, &app->local, proj->lab_moms_host); 
@@ -163,11 +143,9 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     gkyl_proj_gkmaxwellian_on_basis_lab_mom(proj->proj_max_lab, &s->local, &app->local, proj->lab_moms,
       app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
     gkyl_correct_maxwellian_gyrokinetic_advance(proj->corr_max_lab, f, proj->lab_moms, &app->local, &s->local);
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
-        app->gk_geom->jacobgeo, f, &app->local, &s->local);      
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
-    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->n); 
+    gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 
     gkyl_proj_on_basis_advance(proj->proj_upar, tm, &app->local_ext, proj->upar);
     gkyl_proj_on_basis_advance(proj->proj_temppar, tm, &app->local_ext, proj->vtsqpar);
     gkyl_proj_on_basis_advance(proj->proj_tempperp, tm, &app->local_ext, proj->vtsqperp);
@@ -175,37 +153,40 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     gkyl_array_scale(proj->vtsqperp, 1.0/s->info.mass);
 
     // proj_bimaxwellian expects the primitive moments as a single array.
-    gkyl_array_set_offset(proj->prim_moms, 1.0, proj->n, 0*app->confBasis.num_basis);
+    gkyl_array_set_offset(proj->prim_moms, 1.0, proj->dens, 0*app->confBasis.num_basis);
     gkyl_array_set_offset(proj->prim_moms, 1.0, proj->upar, 1*app->confBasis.num_basis);
     gkyl_array_set_offset(proj->prim_moms, 1.0, proj->vtsqpar , 2*app->confBasis.num_basis);
     gkyl_array_set_offset(proj->prim_moms, 1.0, proj->vtsqperp , 3*app->confBasis.num_basis);  
 
     if (app->use_gpu) {
       gkyl_array_copy(proj->prim_moms_dev, proj->prim_moms);
-      gkyl_array_copy(proj->n_dev, proj->n);
+      gkyl_array_copy(proj->dens_dev, proj->dens);
       gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom(proj->proj_bimax, &s->local_ext, &app->local_ext, 
         proj->prim_moms_dev, app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
     }
-    else {
+    else
       gkyl_proj_bimaxwellian_on_basis_gyrokinetic_prim_mom(proj->proj_bimax, &s->local_ext, &app->local_ext, 
         proj->prim_moms, app->gk_geom->bmag, app->gk_geom->bmag, s->info.mass, f);
-    }
+  }
+
+  if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     // Now compute and scale the density to the desired density function 
-    // based on input density from Maxwellian projection. Also multiplies the
-    // final distribution function by the Jacobian since we evolve J*f 
+    // based on input density from Maxwellian projection.
     gk_species_moment_calc(&s->m0, s->local_ext, app->local_ext, f); 
     if (app->use_gpu)
       gkyl_dg_div_op_range(proj->mem, app->confBasis, 
-        0, proj->nmod, 0, proj->n_dev, 0, s->m0.marr, &app->local);
+        0, proj->dens_mod, 0, proj->dens_dev, 0, s->m0.marr, &app->local);
     else
       gkyl_dg_div_op_range(proj->mem, app->confBasis, 
-        0, proj->nmod, 0, proj->n, 0, s->m0.marr, &app->local);
+        0, proj->dens_mod, 0, proj->dens, 0, s->m0.marr, &app->local);
 
     gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
-        proj->nmod, f, &app->local_ext, &s->local_ext);
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
-        app->gk_geom->jacobgeo, f, &app->local_ext, &s->local_ext);  
+      proj->dens_mod, f, &app->local_ext, &s->local_ext);
   }
+
+  // Multiply by the configuration space jacobian.
+  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
+      app->gk_geom->jacobgeo, f, &app->local, &s->local);      
 }
 
 void
@@ -217,12 +198,12 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_array_release(proj->proj_host);
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM || proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) { 
-    gkyl_array_release(proj->n);
+    gkyl_array_release(proj->dens);
     gkyl_array_release(proj->upar); 
     gkyl_array_release(proj->prim_moms);
-    gkyl_array_release(proj->nmod); 
+    gkyl_array_release(proj->dens_mod); 
     if (app->use_gpu) {
-      gkyl_array_release(proj->n_dev);
+      gkyl_array_release(proj->dens_dev);
       gkyl_array_release(proj->prim_moms_dev);      
     }
     gkyl_proj_on_basis_release(proj->proj_dens);

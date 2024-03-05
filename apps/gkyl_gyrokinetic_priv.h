@@ -312,15 +312,15 @@ struct gk_proj {
     };
     // Maxwellian and Bi-Maxwellian projection from primitive moments
     struct {
-      struct gkyl_array *n; // host-side density
+      struct gkyl_array *dens; // host-side density
       struct gkyl_array *upar; // host-side upar
       struct gkyl_array *udrift; // host-side udrift
       struct gkyl_array *prim_moms; // host-side prim_moms 
 
-      struct gkyl_array *nmod; // array for correcting density
+      struct gkyl_array *dens_mod; // array for correcting density
 
       struct gkyl_array *prim_moms_dev; // device-side prim_moms for GPU simulations
-      struct gkyl_array *n_dev; // device-side density for GPU simulations
+      struct gkyl_array *dens_dev; // device-side density for GPU simulations
       struct gkyl_dg_bin_op_mem *mem; // memory needed in correcting density
 
       struct gkyl_proj_on_basis *proj_dens; // projection operator for density
