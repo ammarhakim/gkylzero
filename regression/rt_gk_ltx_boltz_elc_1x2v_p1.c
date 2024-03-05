@@ -433,7 +433,7 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
     .electron_charge = ctx.qe,
     .electron_temp = ctx.Te0,
@@ -443,7 +443,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_ltx_adiabatic_elc_1x2v_p1",
+    .name = "gk_ltx_boltz_elc_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { ctx.z_min },

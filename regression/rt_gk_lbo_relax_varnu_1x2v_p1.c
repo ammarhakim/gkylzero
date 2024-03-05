@@ -48,14 +48,14 @@ struct lbo_relax_varnu_ctx
   double cross_nu_fac_bump; // Bump cross-collision factor.
 
   // Simulation parameters.
-  long Nz; // Cell count (configuration space: z-direction).
-  long Nv; // Cell count (velocity space: parallel velocity direction).
-  long Nmu; // Cell count (velocity space: magnetic moment direction).
+  int Nz; // Cell count (configuration space: z-direction).
+  int Nv; // Cell count (velocity space: parallel velocity direction).
+  int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lz; // Domain size (configuration space: z-direction).
   double Lv; // Domain size (velocity space: parallel velocity direction).
   double Lmu; // Domain size (velocity space: magnetic moment direction).
   double t_end; // Final simulation time.
-  long num_frames; // Number of output frames.
+  int num_frames; // Number of output frames.
 };
 
 struct lbo_relax_varnu_ctx
@@ -86,14 +86,14 @@ create_ctx(void)
   double cross_nu_fac_bump = nu * sqrt(0.39677 * 0.39677 * 0.39677) / 1.10187;
 
   // Simulation parameters.
-  long Nz = 2; // Cell count (configuration space: z-direction).
-  long Nv = 32; // Cell count (velocity space: parallel velocity direction).
-  long Nmu = 16; // Cell count (velocity space: magnetic moment direction).
+  int Nz = 2; // Cell count (configuration space: z-direction).
+  int Nv = 32; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
   double Lv = 16.0 * vt; // Domain size (velocity space: parallel velocity direction).
   double Lmu = 12.0 * vt * vt / 2.0 / B0; // Domain size (velocity space: magnetic moment direction).
   double t_end = 100.0; // Final simulation time.
-  long num_frames = 1; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   
   struct lbo_relax_varnu_ctx ctx = {
     .pi = pi,
@@ -190,7 +190,7 @@ evalNuInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
-  // Set physical coordinates (z, v, mu) from computational coordinates (z, v, mu).
+  // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
   xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
 }
 
@@ -415,7 +415,7 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ADIABATIC,
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.mass,
     .electron_charge = ctx.charge,
     .electron_temp = ctx.vt,
@@ -425,7 +425,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_lborelax_1x2v_p1",
+    .name = "gk_lbo_relax_varnu_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { 0.0 },
@@ -466,7 +466,7 @@ main(int argc, char **argv)
   double t_curr = 0.0, t_end = ctx.t_end;
 
   // Create trigger for IO.
-  long num_frames = ctx.num_frames;
+  int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // Initialize simulation.

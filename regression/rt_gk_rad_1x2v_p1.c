@@ -57,16 +57,16 @@ struct rad_ctx
   double k_perp; // Perpendicular wavenumber (for Poisson solver).
 
   // Simulation parameters.
-  long Nz; // Cell count (configuration space: z-direction).
-  long Nv; // Cell count (velocity space: parallel velocity direction).
-  long Nmu; // Cell count (velocity space: magnetic moment direction).
+  int Nz; // Cell count (configuration space: z-direction).
+  int Nv; // Cell count (velocity space: parallel velocity direction).
+  int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lz; // Domain size (configuration space: z-direction).
   double Lv_elc; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc; // Domain size (electron velocity space: magnetic moment direction).
   double Lv_ion; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion; // Domain size (ion velocity space: magnetic moment direction).
   double t_end; // Final simulation time.
-  long num_frames; // Number of output frames.
+  int num_frames; // Number of output frames.
 };
 
 struct rad_ctx
@@ -108,16 +108,16 @@ create_ctx(void)
   double k_perp = k_perp_rho_si / rho_si; // Perpendicular wavenumber (for Poisson solver).
 
   // Simulation parameters.
-  long Nz = 2; // Cell count (configuration space: z-direction).
-  long Nv = 16; // Cell count (velocity space: parallel velocity direction).
-  long Nmu = 8; // Cell count (velocity space: magnetic moment direction).
+  int Nz = 2; // Cell count (configuration space: z-direction).
+  int Nv = 16; // Cell count (velocity space: parallel velocity direction).
+  int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
   double Lz = 100.0 * rho_si; // Domain size (configuration space: z-direction).
   double Lv_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc = 0.75 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
   double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion = 0.75 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
   double t_end = 1.0e-7; // Final simulation time.
-  long num_frames = 1; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   
   struct rad_ctx ctx = {
     .pi = pi,
@@ -222,7 +222,7 @@ evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
-  // Set physical coordinates (z, v, mu) from computational coordinates (z, v, mu).
+  // Set physical coordinates (X, Y, Z) from computational coordinates (x, y, z).
   xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
 }
 
@@ -523,7 +523,7 @@ main(int argc, char **argv)
   double t_curr = 0.0, t_end = ctx.t_end;
 
   // Create trigger for IO.
-  long num_frames = ctx.num_frames;
+  int num_frames = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // Initialize simulation.

@@ -235,7 +235,7 @@ struct gkyl_gyrokinetic_field {
   double xLCFS; // radial location of the LCFS.
 
   // parameters for adiabatic electrons simulations
-  double electron_mass, electron_charge, electron_temp;
+  double electron_mass, electron_charge, electron_density, electron_temp;
 
   enum gkyl_fem_parproj_bc_type fem_parbc;
   struct gkyl_poisson_bc poisson_bcs;
