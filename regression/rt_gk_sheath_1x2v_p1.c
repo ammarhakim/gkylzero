@@ -605,7 +605,6 @@ main(int argc, char **argv)
 
   gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
   gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-  gkyl_gyrokinetic_app_calc_integrated_source_mom(app, t_curr);
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
@@ -618,7 +617,6 @@ main(int argc, char **argv)
 
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-    gkyl_gyrokinetic_app_calc_integrated_source_mom(app, t_curr);
 
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -635,7 +633,6 @@ main(int argc, char **argv)
 
   gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
   gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-  gkyl_gyrokinetic_app_calc_integrated_source_mom(app, t_curr);
   
   write_data(&io_trig, app, t_curr);
   gkyl_gyrokinetic_app_stat_write(app);
