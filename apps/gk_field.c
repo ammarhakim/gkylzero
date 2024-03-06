@@ -396,9 +396,9 @@ gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f)
   gkyl_array_release(f->phi_wall_lo);
   gkyl_array_release(f->phi_wall_up);
   if (f->has_phi_wall_lo && app->use_gpu) 
-    gkyl_array_release(f->phi_wall_lo);
+    gkyl_array_release(f->phi_wall_lo_host);
   if (f->has_phi_wall_up && app->use_gpu) 
-    gkyl_array_release(f->phi_wall_up);
+    gkyl_array_release(f->phi_wall_up_host);
 
   gkyl_free(f);
 }
