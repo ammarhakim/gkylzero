@@ -33,7 +33,8 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   if (app->use_gpu) {
     s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
     s->src.red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
-  } else {
+  } 
+  else {
     s->src.red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
     s->src.red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
   }
