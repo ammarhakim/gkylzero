@@ -193,9 +193,9 @@ gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_b
 
   if (bgk->num_cross_collisions) {
     for (int i=0; i<bgk->num_cross_collisions; ++i) {
-      gkyl_array_release(bgk->other_moms[i]);
       gkyl_array_release(bgk->cross_nu[i]);
       gkyl_array_release(bgk->other_nu[i]);
+      gkyl_array_release(bgk->cross_moms[i]);
     }
     gkyl_mom_cross_bgk_gyrokinetic_release(bgk->cross_bgk);
   }
