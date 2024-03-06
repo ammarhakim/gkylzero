@@ -20,6 +20,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
+#include <gkyl_bgk_collisions.h>
 #include <gkyl_correct_maxwellian_gyrokinetic.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
@@ -217,19 +218,15 @@ struct gk_bgk_collisions {
   struct gkyl_array *nu_sum_host; // BGK collision frequency host-side for I/O
   struct gkyl_array *self_nu; // BGK self-collision frequency
 
-  struct gkyl_array *max_nu; // Maximum collision frequency in each cell for finding stable timestep
-
   bool normNu; // Boolean to determine if using Spitzer value
   struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
   struct gk_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
-  struct gkyl_array *m0;
 
   struct gkyl_array *fmax;
   struct gkyl_array *nu_fmax;
-  struct gkyl_array *nu_sum_f;
 
   // Cross collisions inputs, arrays, and updaters
   double betaGreenep1; // value of Greene's factor beta + 1
@@ -240,17 +237,13 @@ struct gk_bgk_collisions {
   struct gkyl_array *other_moms[GKYL_MAX_SPECIES]; // moments of species being collided with
   struct gkyl_array *other_nu[GKYL_MAX_SPECIES]; // cross-species collision frequencies
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // cross-species collision frequencies
-  struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *greene_num[GKYL_MAX_SPECIES], *greene_den[GKYL_MAX_SPECIES];
-  gkyl_dg_bin_op_mem *greene_factor_mem; // memory needed in computing Greene factor
-  struct gkyl_array *greene_factor[GKYL_MAX_SPECIES];
 
   struct gkyl_array *cross_moms[GKYL_MAX_SPECIES];
   struct gkyl_mom_cross_bgk_gyrokinetic *cross_bgk; // cross-species moment computation
 
   struct gkyl_correct_maxwellian_gyrokinetic *corr_max; // Maxwellian correction
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+  struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 };
 
 struct gk_boundary_fluxes {
