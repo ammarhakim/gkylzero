@@ -122,6 +122,9 @@ struct moment_field {
   double t_ramp_E; // linear ramp for turning on external E field
   gkyl_fv_proj *proj_ext_em; // pointer to projection operator for external fields
   bool was_ext_em_computed; // flag to indicate if we already computed external EM field
+  bool use_explicit_em_coupling; // flag to indicate if em coupling should be explicit, defaults implicit
+  struct gkyl_array *app_current1; // arrays for applied currents (for use_explicit_em_coupling stages)
+  struct gkyl_array *app_current2; // arrays for applied currents (for use_explicit_em_coupling stages)
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 

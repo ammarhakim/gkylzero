@@ -6,6 +6,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_SR_EULER,  // SR Euler equations
   GKYL_EQN_ISO_EULER, // Isothermal Euler equations
   GKYL_EQN_COLDFLUID, // Cold fluid equations
+  GKYL_EQN_COLDFLUID_SR, // Relativistic Cold fluid equations
   GKYL_EQN_TEN_MOMENT, // Ten-moment (with pressure tensor)
   GKYL_EQN_MAXWELL, // Maxwell equations
   GKYL_EQN_MHD,  // Ideal MHD equations
