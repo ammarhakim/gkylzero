@@ -24,7 +24,7 @@ struct gkyl_proj_maxwellian_on_basis_inp {
  * Create new updater to project Maxwellian on basis functions. Free
  * using gkyl_proj_maxwellian_on_basis_release method.
  *
- * @param inp Input parameters Grid object
+ * @param inp Input parameters
  * @return New updater pointer.
  */
 gkyl_proj_maxwellian_on_basis* gkyl_proj_maxwellian_on_basis_inew(

@@ -81,8 +81,18 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .use_gpu = app->use_gpu
     };
     proj->corr_max_lab = gkyl_correct_maxwellian_gyrokinetic_new(&inp);  
-    proj->proj_max_lab = gkyl_proj_maxwellian_on_basis_new(&s->grid, &app->confBasis, &app->basis, 
-      app->basis.poly_order+1, app->use_gpu);
+
+    struct gkyl_proj_maxwellian_on_basis_inp proj_inp = {
+      .grid = &s->grid,
+      .conf_basis = &app->confBasis,
+      .phase_basis = &app->basis,
+      .num_quad = app->basis.poly_order+1,
+      .vel_range = &s->local_vel,
+      .vmap_basis = s->vmap_basis,
+      .vmap = s->vmap,
+      .use_gpu = app->use_gpu,
+    };
+    proj->proj_max_lab = gkyl_proj_maxwellian_on_basis_inew( &proj_inp );
   }
   else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
     proj->dens = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
@@ -110,8 +120,17 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     proj->proj_tempperp = gkyl_proj_on_basis_new(&app->grid, &app->confBasis,
       app->basis.poly_order+1, 1, inp.tempperp, inp.ctx_tempperp);
 
-    proj->proj_bimax = gkyl_proj_bimaxwellian_on_basis_new(&s->grid,
-      &app->confBasis, &app->basis, app->basis.poly_order+1, app->use_gpu);
+    struct gkyl_proj_bimaxwellian_on_basis_inp proj_inp = {
+      .grid = &s->grid,
+      .conf_basis = &app->confBasis,
+      .phase_basis = &app->basis,
+      .num_quad = app->basis.poly_order+1,
+      .vel_range = &s->local_vel,
+      .vmap_basis = s->vmap_basis,
+      .vmap = s->vmap,
+      .use_gpu = app->use_gpu,
+    };
+    proj->proj_bimax = gkyl_proj_bimaxwellian_on_basis_inew( &proj_inp );
   }
 }
 

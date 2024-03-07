@@ -512,8 +512,20 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
         int cqidx = gkyl_range_idx(&up->conf_qrange, qiter.idx);
         int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
 
-        comp_to_phys(pdim, gkyl_array_cfetch(up->ordinates, pqidx),
-          up->grid.dx, xc, xmu);
+        const double *xcomp_d = gkyl_array_cfetch(up->ordinates, pqidx);
+
+        if (up->vmap == 0) {
+          comp_to_phys(pdim, xcomp_d, up->grid.dx, xc, xmu);
+        } else {
+          // convert comp velocity coordinate to phys velocity coord.
+          long vlinidx = gkyl_range_idx(up->vel_range, vel_iter.idx);
+          const double *vmap_d = gkyl_array_cfetch(up->vmap, vlinidx);
+          double xcomp[1];
+          for (int vd=0; vd<vdim; vd++) {
+            xcomp[0] = xcomp_d[cdim+vd];
+            xmu[cdim+vd] = up->vmap_basis->eval_expand(xcomp, vmap_d+vd*up->vmap_basis->num_basis);
+          }
+        }
 
         double efact = 0.0;        
         // vpar term.

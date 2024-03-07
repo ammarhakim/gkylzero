@@ -8,9 +8,32 @@
 // Object type
 typedef struct gkyl_proj_bimaxwellian_on_basis gkyl_proj_bimaxwellian_on_basis;
 
+// Object inputs packaged as a struct.
+struct gkyl_proj_bimaxwellian_on_basis_inp {
+  const struct gkyl_rect_grid *grid; // grid on which to project
+  const struct gkyl_basis *conf_basis, *phase_basis; // basis functions
+  int num_quad; // number of quadrature points
+  bool use_gpu; // whether to use the GPU.
+  // for nonuniform velocity mappings:
+  struct gkyl_basis *vmap_basis; // Basis for velocity mappings.
+  struct gkyl_range *vel_range; // Local velocity-space range.
+  struct gkyl_array *vmap; // Velocity space mappings.
+};
+
 /**
  * Create new updater to project a biMaxwellian on basis functions.
  * Free using gkyl_proj_bimaxwellian_on_basis_release method.
+ *
+ * @param inp Input parameters.
+ * @return New updater pointer.
+ */
+gkyl_proj_bimaxwellian_on_basis* gkyl_proj_bimaxwellian_on_basis_inew(
+  const struct gkyl_proj_bimaxwellian_on_basis_inp *inp);
+
+/**
+ * Create new updater to project a biMaxwellian on basis functions,
+ * passing inputs separately. Free using the
+ * gkyl_proj_bimaxwellian_on_basis_release method.
  *
  * @param grid Grid object
  * @param conf_basis Conf-space basis functions

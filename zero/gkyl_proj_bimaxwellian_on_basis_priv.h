@@ -28,6 +28,10 @@ struct gkyl_proj_bimaxwellian_on_basis {
 
   bool use_gpu;
 
+  struct gkyl_basis *vmap_basis; // Basis for velocity mappings.
+  struct gkyl_range *vel_range; // Local velocity-space range.
+  struct gkyl_array *vmap; // Velocity space mappings.
+
   struct gkyl_range conf_qrange; // Range of conf-space ordinates.
   struct gkyl_range phase_qrange; // Range of phase-space ordinates.
 
