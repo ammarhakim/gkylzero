@@ -56,7 +56,7 @@ struct sheath_ctx
   double vte; // Electron thermal velocity.
   double vti; // Ion thermal velocity.
   double omega_ci; // Ion cyclotron frequency.
-  double rho_si; // Ion-sound gyroradius.
+  double rho_s; // Ion-sound gyroradius.
 
   double n_src; // Source number density.
   double T_src; // Source temperature.
@@ -67,13 +67,13 @@ struct sheath_ctx
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
   int Nz; // Cell count (configuration space: z-direction).
-  int Nv; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lx; // Domain size (configuration space: x-direction).
   double Lz; // Domain size (configuration space: z-direction).
-  double Lv_elc; // Domain size (electron velocity space: parallel velocity direction).
+  double Lvpar_elc; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc; // Domain size (electron velocity space: magnetic moment direction).
-  double Lv_ion; // Domain size (ion velocity space: parallel velocity direction).
+  double Lvpar_ion; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion; // Domain size (ion velocity space: magnetic moment direction).
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -117,7 +117,7 @@ create_ctx(void)
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
   double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
-  double rho_si = c_s / omega_ci; // Ion-sound gyroradius.
+  double rho_s = c_s / omega_ci; // Ion-sound gyroradius.
 
   double n_src = 1.4690539 * 3.612270e23; // Source number density.
   double T_src = 2.0 * Te; // Source temperature.
@@ -128,13 +128,13 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 4; // Cell count (configuration space: x-direction).
   int Nz = 8; // Cell count (configuration space: z-direction).
-  int Nv = 6; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
-  double Lx = 50.0 * rho_si; // Domain size (configuration space: x-direction).
+  double Lx = 50.0 * rho_s; // Domain size (configuration space: x-direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
-  double Lv_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
+  double Lvpar_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc = (3.0 / 2.0) * 0.5 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
-  double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
+  double Lvpar_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion = (3.0 / 2.0) * 0.5 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
   double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -163,7 +163,7 @@ create_ctx(void)
     .vte = vte,
     .vti = vti,
     .omega_ci = omega_ci,
-    .rho_si = rho_si,
+    .rho_s = rho_s,
     .n_src = n_src,
     .T_src = T_src,
     .xmu_src = xmu_src,
@@ -171,13 +171,13 @@ create_ctx(void)
     .floor_src = floor_src,
     .Nx = Nx,
     .Nz = Nz,
-    .Nv = Nv,
+    .Nvpar = Nvpar,
     .Nmu = Nmu,
     .Lx = Lx,
     .Lz = Lz,
-    .Lv_elc = Lv_elc,
+    .Lvpar_elc = Lvpar_elc,
     .Lmu_elc = Lmu_elc,
-    .Lv_ion = Lv_ion,
+    .Lvpar_ion = Lvpar_ion,
     .Lmu_ion = Lmu_ion,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -422,7 +422,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nz);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   int nrank = 1; // Number of processors in simulation.
@@ -524,9 +524,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lv_elc, 0.0},
-    .upper = { 0.5 * ctx.Lv_elc, ctx.Lmu_elc},
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.Lvpar_elc, 0.0},
+    .upper = { 0.5 * ctx.Lvpar_elc, ctx.Lmu_elc},
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -577,9 +577,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -0.5 * ctx.Lv_ion, 0.0},
-    .upper = { 0.5 * ctx.Lv_ion, ctx.Lmu_ion},
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.Lvpar_ion, 0.0},
+    .upper = { 0.5 * ctx.Lvpar_ion, ctx.Lmu_ion},
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -630,9 +630,11 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .bmag_fac = ctx.B0,
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
-    .poisson_bcs = {.lo_type = { GKYL_POISSON_DIRICHLET },
-                    .up_type = { GKYL_POISSON_DIRICHLET },
-                    .lo_value = { 0.0 }, .up_value = { 0.0 }},
+    .poisson_bcs = {
+      .lo_type = { GKYL_POISSON_DIRICHLET },
+      .up_type = { GKYL_POISSON_DIRICHLET },
+      .lo_value = { 0.0 }, .up_value = { 0.0 }
+    },
   };
 
   // GK app.

@@ -43,7 +43,7 @@ struct sheath_ctx
 
   double nu_frac; // Collision frequency fraction.
 
-  double k_perp_rho_si; // Product of perpendicular wavenumber and ion-sound gyroradius.
+  double k_perp_rho_s; // Product of perpendicular wavenumber and ion-sound gyroradius.
 
   // Derived physical quantities (using non-normalized physical units).
   double R; // Radial coordinate (simple toroidal coordinates).
@@ -58,7 +58,7 @@ struct sheath_ctx
   double vte; // Electron thermal velocity.
   double vti; // Ion thermal velocity.
   double omega_ci; // Ion cyclotron frequency.
-  double rho_si; // Ion-sound gyroradius.
+  double rho_s; // Ion-sound gyroradius.
 
   double k_perp; // Perpendicular wavenumber (for Poisson solver).
 
@@ -70,12 +70,12 @@ struct sheath_ctx
 
   // Simulation parameters.
   int Nz; // Cell count (configuration space: z-direction).
-  int Nv; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lz; // Domain size (configuration space: z-direction).
-  double Lv_elc; // Domain size (electron velocity space: parallel velocity direction).
+  double Lvpar_elc; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc; // Domain size (electron velocity space: magnetic moment direction).
-  double Lv_ion; // Domain size (ion velocity space: parallel velocity direction).
+  double Lvpar_ion; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion; // Domain size (ion velocity space: magnetic moment direction).
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -104,7 +104,7 @@ create_ctx(void)
 
   double nu_frac = 0.1; // Collision frequency fraction.
 
-  double k_perp_rho_si = 0.3; // Product of perpendicular wavenumber and ion-sound gyroradius.
+  double k_perp_rho_s = 0.3; // Product of perpendicular wavenumber and ion-sound gyroradius.
 
   // Derived physical quantities (using non-normalized physical units).
   double R = R0 + a0; // Radial coordinate (simple toroidal coordinates).
@@ -121,9 +121,9 @@ create_ctx(void)
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
   double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
-  double rho_si = c_s / omega_ci; // Ion-sound gyroradius.
+  double rho_s = c_s / omega_ci; // Ion-sound gyroradius.
 
-  double k_perp = k_perp_rho_si / rho_si; // Perpendicular wavenumber (for Poisson solver).
+  double k_perp = k_perp_rho_s / rho_s; // Perpendicular wavenumber (for Poisson solver).
 
   double n_src = 2.870523e21; // Source number density.
   double T_src = 2.0 * Te; // Source temperature.
@@ -133,12 +133,12 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nz = 8; // Cell count (configuration space: z-direction).
-  int Nv = 6; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
-  double Lv_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
+  double Lvpar_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc = (3.0 / 2.0) * 0.5 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
-  double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
+  double Lvpar_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion = (3.0 / 2.0) * 0.5 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
   double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -157,7 +157,7 @@ create_ctx(void)
     .R0 = R0,
     .a0 = a0,
     .nu_frac = nu_frac,
-    .k_perp_rho_si = k_perp_rho_si,
+    .k_perp_rho_s = k_perp_rho_s,
     .R = R,
     .B0 = B0,
     .log_lambda_elc = log_lambda_elc,
@@ -168,19 +168,19 @@ create_ctx(void)
     .vte = vte,
     .vti = vti,
     .omega_ci = omega_ci,
-    .rho_si = rho_si,
+    .rho_s = rho_s,
     .k_perp = k_perp,
     .n_src = n_src,
     .T_src = T_src,
     .c_s_src = c_s_src,
     .n_peak = n_peak,
     .Nz = Nz,
-    .Nv = Nv,
+    .Nvpar = Nvpar,
     .Nmu = Nmu,
     .Lz = Lz,
-    .Lv_elc = Lv_elc,
+    .Lvpar_elc = Lvpar_elc,
     .Lmu_elc = Lmu_elc,
-    .Lv_ion = Lv_ion,
+    .Lvpar_ion = Lvpar_ion,
     .Lmu_ion = Lmu_ion,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -350,7 +350,7 @@ main(int argc, char **argv)
   struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   int nrank = 1; // Number of processors in simulation.
@@ -452,9 +452,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lv_elc, 0.0 },
-    .upper = { 0.5 * ctx.Lv_elc, ctx.Lmu_elc },
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.Lvpar_elc, 0.0 },
+    .upper = { 0.5 * ctx.Lvpar_elc, ctx.Lmu_elc },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -489,8 +489,8 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = {.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper = {.type = GKYL_SPECIES_GK_SHEATH,},
+      .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
+      .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
     },
 
     .num_diag_moments = 5,
@@ -501,9 +501,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -0.5 * ctx.Lv_ion, 0.0 },
-    .upper = { 0.5 * ctx.Lv_ion, ctx.Lmu_ion },
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.Lvpar_ion, 0.0 },
+    .upper = { 0.5 * ctx.Lvpar_ion, ctx.Lmu_ion },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -538,8 +538,8 @@ main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower = {.type = GKYL_SPECIES_GK_SHEATH,},
-      .upper = {.type = GKYL_SPECIES_GK_SHEATH,},
+      .lower = { .type = GKYL_SPECIES_GK_SHEATH, },
+      .upper = { .type = GKYL_SPECIES_GK_SHEATH, },
     },
     
     .num_diag_moments = 5,

@@ -58,12 +58,12 @@ struct rad_ctx
 
   // Simulation parameters.
   int Nz; // Cell count (configuration space: z-direction).
-  int Nv; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lz; // Domain size (configuration space: z-direction).
-  double Lv_elc; // Domain size (electron velocity space: parallel velocity direction).
+  double Lvpar_elc; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc; // Domain size (electron velocity space: magnetic moment direction).
-  double Lv_ion; // Domain size (ion velocity space: parallel velocity direction).
+  double Lvpar_ion; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion; // Domain size (ion velocity space: magnetic moment direction).
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -109,12 +109,12 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nz = 2; // Cell count (configuration space: z-direction).
-  int Nv = 16; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
   double Lz = 100.0 * rho_si; // Domain size (configuration space: z-direction).
-  double Lv_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
+  double Lvpar_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc = 0.75 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
-  double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
+  double Lvpar_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion = 0.75 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
   double t_end = 1.0e-7; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -143,12 +143,12 @@ create_ctx(void)
     .rho_si = rho_si,
     .k_perp = k_perp,
     .Nz = Nz,
-    .Nv = Nv,
+    .Nvpar = Nvpar,
     .Nmu = Nmu,
     .Lz = Lz,
-    .Lv_elc = Lv_elc,
+    .Lvpar_elc = Lvpar_elc,
     .Lmu_elc = Lmu_elc,
-    .Lv_ion = Lv_ion,
+    .Lvpar_ion = Lvpar_ion,
     .Lmu_ion = Lmu_ion,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -266,7 +266,7 @@ main(int argc, char **argv)
   struct rad_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   int nrank = 1; // Number of processors in simulation.
@@ -370,9 +370,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lv_elc, 0.0 },
-    .upper = { 0.5 * ctx.Lv_elc, ctx.Lmu_elc },
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.Lvpar_elc, 0.0 },
+    .upper = { 0.5 * ctx.Lvpar_elc, ctx.Lmu_elc },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -418,9 +418,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -0.5 * ctx.Lv_ion, 0.0 },
-    .upper = { 0.5 * ctx.Lv_ion, ctx.Lmu_ion },
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.Lvpar_ion, 0.0 },
+    .upper = { 0.5 * ctx.Lvpar_ion, ctx.Lmu_ion },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
