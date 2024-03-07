@@ -1,2 +1,5 @@
-: "${PREFIX:=$HOME/gkylsoft}"
-./configure CC=cc --prefix=$PREFIX
+module load intel/2021.1.2 
+module load openmpi/intel-2021.1/4.1.2 
+
+: "${PREFIX:=/scratch/gpfs/as6384/gkapp-cpu/gkylsoft}"
+./configure CC=cc --prefix=$PREFIX --use-adas=yes
