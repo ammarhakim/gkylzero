@@ -124,7 +124,7 @@ create_ctx(void)
   int Nmu = 5; // Cell count (velocity space: magnetic moment direction).
   double Lx = 100.0 * rho_s; // Domain size (configuration space: x-direction).
   double Ly = 100.0 * rho_s; // Domain size (configuration space: y-direction).
-  double Lz = 36.0 *  40.0 * rho_s; // Domain size (configuration space: z-direction).
+  double Lz = 36.0 * 40.0 * rho_s; // Domain size (configuration space: z-direction).
   double L_perp = Lx; // Perpendicular length of domain.
   double Lvpar_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc = (3.0 / 2.0) * 0.5 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
@@ -481,8 +481,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lvpar_elc, 0.0},
-    .upper = { 0.5 * ctx.Lvpar_elc, ctx.Lmu_elc},
+    .lower = { -0.5 * ctx.Lvpar_elc, 0.0 },
+    .upper = { 0.5 * ctx.Lvpar_elc, ctx.Lmu_elc },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -538,8 +538,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -0.5 * ctx.Lvpar_ion, 0.0},
-    .upper = { 0.5 * ctx.Lvpar_ion, ctx.Lmu_ion},
+    .lower = { -0.5 * ctx.Lvpar_ion, 0.0 },
+    .upper = { 0.5 * ctx.Lvpar_ion, ctx.Lmu_ion },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
