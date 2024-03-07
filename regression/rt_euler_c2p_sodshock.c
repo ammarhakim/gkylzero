@@ -103,14 +103,12 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double u = 0.0;
   double p = 0.0;
 
-  if (x < 0.5)
-  {
+  if (x < 0.5) {
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
     p = pl; // Fluid pressure (left).
   }
-  else
-  {
+  else {
     rho = rhor; // Fluid mass density (right).
     u = ur; // Fluid velocity (right).
     p = pr; // Fluid pressure (right).
@@ -135,8 +133,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr))
-  {
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
   }
 }
@@ -147,14 +144,12 @@ main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
   }
 #endif
 
-  if (app_args.trace_mem)
-  {
+  if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
@@ -178,8 +173,7 @@ main(int argc, char **argv)
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
   }
 #endif
@@ -193,20 +187,16 @@ main(int argc, char **argv)
   // Create decomposition.
   int cuts[dim];
 #ifdef GKYL_HAVE_MPI
-  for (int d = 0; d < dim; d++)
-  {
-    if (app_args.use_mpi)
-    {
+  for (int d = 0; d < dim; d++) {
+    if (app_args.use_mpi) {
       cuts[d] = app_args.cuts[d];
     }
-    else
-    {
+    else {
       cuts[d] = 1;
     }
   }
 #else
-  for (int d = 0; d < dim; d++)
-  {
+  for (int d = 0; d < dim; d++) {
     cuts[d] = 1;
   }
 #endif
@@ -216,27 +206,22 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
-      {
+  if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
   }
-  else
-  {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-      {
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-    {
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
@@ -249,15 +234,12 @@ main(int argc, char **argv)
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;
-  for (int d = 0; d < dim; d++)
-  {
+  for (int d = 0; d < dim; d++) {
     ncuts *= cuts[d];
   }
 
-  if (ncuts != comm_size)
-  {
-    if (my_rank == 0)
-    {
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
       fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
@@ -304,14 +286,12 @@ main(int argc, char **argv)
   double dt = gkyl_moment_app_max_dt(app);
 
   long step = 1;
-  while ((t_curr < t_end) && (step <= app_args.num_steps))
-  {
+  while ((t_curr < t_end) && (step <= app_args.num_steps)) {
     gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
-    if (!status.success)
-    {
+    if (!status.success) {
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
@@ -345,8 +325,7 @@ main(int argc, char **argv)
   
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Finalize();
   }
 #endif
