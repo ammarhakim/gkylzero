@@ -45,10 +45,10 @@ struct lbo_relax_ctx
 
   // Simulation parameters.
   int Nz; // Cell count (configuration space: z-direction).
-  int Nv; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lz; // Domain size (configuration space: z-direction).
-  double Lv; // Domain size (velocity space: parallel velocity direction).
+  double Lvpar; // Domain size (velocity space: parallel velocity direction).
   double Lmu; // Domain size (velocity space: magnetic moment direction).
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -79,10 +79,10 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nz = 2; // Cell count (configuration space: z-direction).
-  int Nv = 32; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar = 32; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
-  double Lv = 16.0 * vt; // Domain size (velocity space: parallel velocity direction).
+  double Lvpar = 16.0 * vt; // Domain size (velocity space: parallel velocity direction).
   double Lmu = 12.0 * vt * vt / 2.0 / B0; // Domain size (velocity space: magnetic moment direction).
   double t_end = 100.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -101,10 +101,10 @@ create_ctx(void)
     .vtb = vtb,
     .ub = ub,
     .Nz = Nz,
-    .Nv = Nv,
+    .Nvpar = Nvpar,
     .Nmu = Nmu,
     .Lz = Lz,
-    .Lv = Lv,
+    .Lvpar = Lvpar,
     .Lmu = Lmu,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -221,7 +221,7 @@ main(int argc, char **argv)
   struct lbo_relax_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   int nrank = 1; // Number of processors in simulation.
@@ -323,9 +323,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -0.5 * ctx.Lv, 0.0 },
-    .upper = { 0.5 * ctx.Lv, ctx.Lmu }, 
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.Lvpar, 0.0 },
+    .upper = { 0.5 * ctx.Lvpar, ctx.Lmu }, 
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -350,9 +350,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -0.5 * ctx.Lv, 0.0 },
-    .upper = { 0.5 * ctx.Lv, ctx.Lmu }, 
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.Lvpar, 0.0 },
+    .upper = { 0.5 * ctx.Lvpar, ctx.Lmu }, 
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {

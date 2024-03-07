@@ -50,7 +50,7 @@ struct lapd_cart_ctx
   double vte; // Electron thermal velocity.
   double vti; // Ion thermal velocity.
   double omega_ci; // Ion cyclotron frequency.
-  double rho_si; // Ion-sound gyroradius.
+  double rho_s; // Ion-sound gyroradius.
 
   double Te_src; // Source electron temperature.
   double r_src; // Source radial extent.
@@ -108,12 +108,12 @@ create_ctx(void)
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
   double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
-  double rho_si = c_s / omega_ci; // Ion-sound gyroradius.
+  double rho_s = c_s / omega_ci; // Ion-sound gyroradius.
 
-  double Te_src = 2.0 * Te; // Source electron temperature.
-  double r_src = 20.0 * rho_si; // Source radial extent.
-  double L_src = 0.5 * rho_si; // Source length.
-  double S0 = 1.08 * n0 * c_s * (36.0 * 40.0 * rho_si); // Source reference number density.
+  double Te_src = 6.8 * GKYL_ELEMENTARY_CHARGE; // Source electron temperature.
+  double r_src = 20.0 * rho_s; // Source radial extent.
+  double L_src = 0.5 * rho_s; // Source length.
+  double S0 = 1.08 * n0 * c_s * (36.0 * 40.0 * rho_s); // Source reference number density.
   double floor_src = 0.01; // Minimum source intensity.
 
   // Simulation parameters.
@@ -122,9 +122,9 @@ create_ctx(void)
   int Nz = 10; // Cell count (configuration space: z-direction).
   int Nvpar = 10; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 5; // Cell count (velocity space: magnetic moment direction).
-  double Lx = 100.0 * rho_si; // Domain size (configuration space: x-direction).
-  double Ly = 100.0 * rho_si; // Domain size (configuration space: y-direction).
-  double Lz = 36.0 *  40.0 * rho_si; // Domain size (configuration space: z-direction).
+  double Lx = 100.0 * rho_s; // Domain size (configuration space: x-direction).
+  double Ly = 100.0 * rho_s; // Domain size (configuration space: y-direction).
+  double Lz = 36.0 *  40.0 * rho_s; // Domain size (configuration space: z-direction).
   double L_perp = Lx; // Perpendicular length of domain.
   double Lvpar_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc = (3.0 / 2.0) * 0.5 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
@@ -153,7 +153,7 @@ create_ctx(void)
     .vte = vte,
     .vti = vti,
     .omega_ci = omega_ci,
-    .rho_si = rho_si,
+    .rho_s = rho_s,
     .Te_src = Te_src,
     .r_src = r_src,
     .L_src = L_src,

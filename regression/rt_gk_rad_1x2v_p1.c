@@ -40,7 +40,7 @@ struct rad_ctx
 
   double nu_frac; // Collision frequency fraction.
 
-  double k_perp_rho_si; // Product of perpendicular wavenumber and ion-sound gyroradius.
+  double k_perp_rho_s; // Product of perpendicular wavenumber and ion-sound gyroradius.
 
   // Derived physical quantities (using non-normalized physical units).
   double log_lambda_elc; // Logarithm of electron wavelength.
@@ -52,7 +52,7 @@ struct rad_ctx
   double vte; // Electron thermal velocity.
   double vti; // Ion thermal velocity.
   double omega_ci; // Ion cyclotron frequency.
-  double rho_si; // Ion-sound gyroradius.
+  double rho_s; // Ion-sound gyroradius.
 
   double k_perp; // Perpendicular wavenumber (for Poisson solver).
 
@@ -89,7 +89,7 @@ create_ctx(void)
 
   double nu_frac = 0.1; // Collision frequency fraction.
 
-  double k_perp_rho_si = 0.1; // Product of perpendicular wavenumber and ion-sound gyroradius.
+  double k_perp_rho_s = 0.1; // Product of perpendicular wavenumber and ion-sound gyroradius.
 
   // Derived physical quantities (using non-normalized physical units).
   double log_lambda_elc = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Te / charge_ion); // Logarithm of electron wavelength.
@@ -103,15 +103,15 @@ create_ctx(void)
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
   double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
-  double rho_si = c_s / omega_ci; // Ion-sound gyroradius.
+  double rho_s = c_s / omega_ci; // Ion-sound gyroradius.
 
-  double k_perp = k_perp_rho_si / rho_si; // Perpendicular wavenumber (for Poisson solver).
+  double k_perp = k_perp_rho_s / rho_s; // Perpendicular wavenumber (for Poisson solver).
 
   // Simulation parameters.
   int Nz = 2; // Cell count (configuration space: z-direction).
   int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
-  double Lz = 100.0 * rho_si; // Domain size (configuration space: z-direction).
+  double Lz = 100.0 * rho_s; // Domain size (configuration space: z-direction).
   double Lvpar_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc = 0.75 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
   double Lvpar_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
@@ -131,7 +131,7 @@ create_ctx(void)
     .B0 = B0,
     .n0 = n0,
     .nu_frac = nu_frac,
-    .k_perp_rho_si = k_perp_rho_si,
+    .k_perp_rho_s = k_perp_rho_s,
     .log_lambda_elc = log_lambda_elc,
     .nu_elc = nu_elc,
     .log_lambda_ion = log_lambda_ion,
@@ -140,7 +140,7 @@ create_ctx(void)
     .vte = vte,
     .vti = vti,
     .omega_ci = omega_ci,
-    .rho_si = rho_si,
+    .rho_s = rho_s,
     .k_perp = k_perp,
     .Nz = Nz,
     .Nvpar = Nvpar,

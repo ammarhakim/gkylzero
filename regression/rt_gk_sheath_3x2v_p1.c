@@ -56,7 +56,7 @@ struct sheath_ctx
   double vte; // Electron thermal velocity.
   double vti; // Ion thermal velocity.
   double omega_ci; // Ion cyclotron frequency.
-  double rho_si; // Ion-sound gyroradius.
+  double rho_s; // Ion-sound gyroradius.
 
   double n_src; // Source number density.
   double T_src; // Source temperature.
@@ -119,7 +119,7 @@ create_ctx(void)
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
   double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
-  double rho_si = c_s / omega_ci; // Ion-sound gyroradius.
+  double rho_s = c_s / omega_ci; // Ion-sound gyroradius.
 
   double n_src = 1.4690539 * 3.612270e23; // Source number density.
   double T_src = 2.0 * Te; // Source temperature.
@@ -133,8 +133,8 @@ create_ctx(void)
   int Nz = 8; // Cell count (configuration space: z-direction).
   int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
-  double Lx = 50.0 * rho_si; // Domain size (configuration space: x-direction).
-  double Ly = 100.0 * rho_si; // Domain size (configuration space: y-direction).
+  double Lx = 50.0 * rho_s; // Domain size (configuration space: x-direction).
+  double Ly = 100.0 * rho_s; // Domain size (configuration space: y-direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
   double Lvpar_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc = (3.0 / 2.0) * 0.5 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
@@ -167,7 +167,7 @@ create_ctx(void)
     .vte = vte,
     .vti = vti,
     .omega_ci = omega_ci,
-    .rho_si = rho_si,
+    .rho_s = rho_s,
     .n_src = n_src,
     .T_src = T_src,
     .xmu_src = xmu_src,
