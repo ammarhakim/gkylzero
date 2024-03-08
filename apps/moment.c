@@ -1,5 +1,7 @@
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_moment_priv.h>
 #include <gkyl_null_comm.h>
+#include <gkyl_util.h>
 
 static inline int
 int_max(int a, int b)
@@ -574,37 +576,53 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   cstr_drop(&fileNm);
 }
 
-bool
-gkyl_moment_app_check_field_restart_compat(gkyl_moment_app *app, const char *fname)
-{
-  return true;
-}
-
-bool
-gkyl_moment_app_check_species_restart_compat(gkyl_moment_app *app, const char *fname)
-{
-  return true;
-}
-
-int
-gkyl_moment_app_read_field(gkyl_moment_app *app, const char *fname,
+enum gkyl_array_rio_status
+gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname,
   double tm)
 {
-  if (app->has_field != 1) return 0;
+  if (app->has_field != 1)
+    return GKYL_ARRAY_RIO_SUCCESS;
+
+  FILE *fp = 0;
+  with_file(fp, fname, "r") {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    int err = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+    if (err) return err;
+
+    if (!gkyl_rect_grid_cmp(&app->grid, &grid))
+      return GKYL_ARRAY_RIO_DATA_MISMATCH;
+    if (hdr.etype != GKYL_DOUBLE)
+      return GKYL_ARRAY_RIO_DATA_MISMATCH;
+  }
+  
   int status =
     gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field.fcurr, fname);
-  if (0 == status)
+  if (GKYL_ARRAY_RIO_SUCCESS == status)
     moment_field_apply_bc(app, tm, &app->field, app->field.fcurr);
   return status;
 }
 
-int
-gkyl_moment_app_read_species(gkyl_moment_app *app, int sidx,
+enum gkyl_array_rio_status
+gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
   const char *fname, double tm)
 {
+  FILE *fp = 0;
+  with_file(fp, fname, "r") {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    int err = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+    if (err) return err;
+
+    if (!gkyl_rect_grid_cmp(&app->grid, &grid))
+      return GKYL_ARRAY_RIO_DATA_MISMATCH;
+    if (hdr.etype != GKYL_DOUBLE)
+      return GKYL_ARRAY_RIO_DATA_MISMATCH;
+  }
+  
   int status =
     gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->species[sidx].fcurr, fname);
-  if (0 == status)
+  if (GKYL_ARRAY_RIO_SUCCESS == status)
     moment_species_apply_bc(app, tm, &app->species[sidx], app->species[sidx].fcurr);
   return status;
 }

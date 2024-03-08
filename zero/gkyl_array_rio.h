@@ -12,7 +12,17 @@ enum gkyl_array_rio_status {
   GKYL_ARRAY_RIO_BAD_VERSION,
   GKYL_ARRAY_RIO_FOPEN_FAILED,
   GKYL_ARRAY_RIO_FREAD_FAILED,
-};  
+  GKYL_ARRAY_RIO_DATA_MISMATCH
+};
+
+// Error message strings
+static const char *gkyl_array_rio_status_msg[] = {
+  [GKYL_ARRAY_RIO_SUCCESS] = "Success",
+  [GKYL_ARRAY_RIO_BAD_VERSION] = "Incorrect header version",
+  [GKYL_ARRAY_RIO_FOPEN_FAILED] = "File open failed",
+  [GKYL_ARRAY_RIO_FREAD_FAILED] = "Data read failed",
+  [GKYL_ARRAY_RIO_DATA_MISMATCH] = "Data mismatch"
+};    
 
 // Array header data to write: this is for low-level control and is
 // typically not something most users would every encounter

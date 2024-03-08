@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <gkyl_array_rio.h>
 
 // Update status
 struct gkyl_update_status {

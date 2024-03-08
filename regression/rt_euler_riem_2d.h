@@ -232,10 +232,15 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
   // initialize simulation
   if (app_args.is_restart) {
     int err;
-    err = gkyl_moment_app_read_species(
+    err = gkyl_moment_app_from_file_species(
       app, 0, "data/regression/euler_riem_2d_hllc-euler_0.gkyl", 10.0);
-    if (err)
+    if (err) {
+      gkyl_moment_app_cout(app, stderr,
+        "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg[err]
+      );
       goto freeresources;
+    }      
     frame = 100;
   }
   else {

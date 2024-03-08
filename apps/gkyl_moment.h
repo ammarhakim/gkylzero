@@ -267,15 +267,6 @@ void gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app);
 void gkyl_moment_app_stat_write(const gkyl_moment_app *app);
 
 /**
- * Check if fname is a compatible for performing restarts on field.
- *
- * @param app App object
- * @param fname File name to check
- * @return true if file is compatible
- */
-bool gkyl_moment_app_check_field_restart_compat(gkyl_moment_app *app, const char *fname);
-
-/**
  * Read field data from .gkyl file.
  *
  * @param app App object.
@@ -283,16 +274,7 @@ bool gkyl_moment_app_check_field_restart_compat(gkyl_moment_app *app, const char
  * @param tm Time at which data is read
  * @return 0 on success.
  */
-int gkyl_moment_app_read_field(gkyl_moment_app *app, const char *fname, double tm);
-
-/**
- * Check if fname is a compatible for performing restarts on species.
- *
- * @param app App object
- * @param fname File name to check
- * @return true if file is compatible
- */
-bool gkyl_moment_app_check_species_restart_compat(gkyl_moment_app *app, const char *fname);
+enum gkyl_array_rio_status gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname, double tm);
 
 /**
  * Read species data from .gkyl file.
@@ -303,7 +285,7 @@ bool gkyl_moment_app_check_species_restart_compat(gkyl_moment_app *app, const ch
  * @param tm Time at which data is read
  * @return 0 on success.
  */
-int gkyl_moment_app_read_species(gkyl_moment_app *app, int sidx,
+enum gkyl_array_rio_status gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
   const char *fname, double tm);
 
 /**
