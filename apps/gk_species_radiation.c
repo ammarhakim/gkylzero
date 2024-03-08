@@ -145,7 +145,7 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
   struct gkyl_basis vpar = rad->surf_vpar_basis;
 
   rhs = mkarr(app->use_gpu, app->basis.num_basis, species->local_ext.volume);
-  dem = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  dem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   cflrate = mkarr(app->use_gpu, 1, species->local_ext.volume);
 
   // Radiation updater
@@ -184,7 +184,6 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
     gk_species_moment_calc(&m2, species->local, app->local, rhs);
     
     gkyl_dg_mul_op(app->confBasis, 0, dem, 0, species->m0.marr, 0, rad->moms[i].marr);
-
     gkyl_dg_div_op_range(m2.mem_geo ,app->confBasis, 0, rad->emissivity[i], 0, m2.marr, 0, dem, &app->local);
 
     rad->emissivity[i] = gkyl_array_scale(rad->emissivity[i], -mass/2.0);
