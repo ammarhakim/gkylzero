@@ -9,6 +9,16 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_math.h>
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
+#endif
+
 #include <rt_arg_parse.h>
 #include <gkyl_mirror_geo.h>
 
@@ -608,16 +618,16 @@ create_ctx(void)
   double TSrcFloorElc = TSrcFloorIon / tau;
 
   // Grid parameters
-  double vpar_max_elc = 5 * vte;
+  double vpar_max_elc = 20 * vte;
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
-  double vpar_max_ion = 5 * vti;
+  double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int num_cell_vpar = 20; // Number of cells in the paralell velocity direction 96
-  int num_cell_mu = 20;  // Number of cells in the mu direction 192
+  int num_cell_vpar = 32; // Number of cells in the paralell velocity direction 96
+  int num_cell_mu = 32;  // Number of cells in the mu direction 192
   int num_cell_z = 144;
   int poly_order = 1;
-  double final_time = 1e-6;
-  int num_frames = 10;
+  double final_time = 1e-10;
+  int num_frames = 1;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx
   double B_bt = 1.058278;
@@ -787,6 +797,12 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double tcurr)
 int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Init(&argc, &argv);
+#endif
+
   if (app_args.trace_mem)
   {
     gkyl_cu_dev_mem_debug_set(true);
@@ -796,6 +812,86 @@ int main(int argc, char **argv)
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.num_cell_z);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.num_cell_vpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.num_cell_mu);
+
+  int nrank = 1; // number of processors in simulation
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+#endif  
+
+  // create global range
+  int ccells[] = { NZ };
+  int cdim = sizeof(ccells)/sizeof(ccells[0]);
+  struct gkyl_range cglobal_r;
+  gkyl_create_global_range(cdim, ccells, &cglobal_r);
+
+  // create decomposition
+  int cuts[cdim];
+#ifdef GKYL_HAVE_MPI  
+  for (int d=0; d<cdim; d++)
+    cuts[d] = app_args.use_mpi? app_args.cuts[d] : 1;
+#else
+  for (int d=0; d<cdim; d++) cuts[d] = 1;
+#endif  
+    
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
+
+  // construct communcator for use in app
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+#else
+    printf("Using -g and -M together requires NCCL.\n");
+    assert( 0 == 1);
+#endif
+  } else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+  } else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .decomp = decomp,
+        .use_gpu = app_args.use_gpu
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp,
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank, comm_sz;
+  gkyl_comm_get_rank(comm, &my_rank);
+  gkyl_comm_get_size(comm, &comm_sz);
+
+  int ncuts = 1;
+  for (int d=0; d<cdim; d++) ncuts *= cuts[d];
+  if (ncuts != comm_sz) {
+    if (my_rank == 0)
+      fprintf(stderr, "*** Number of ranks, %d, do not match total cuts, %d!\n", comm_sz, ncuts);
+    goto mpifinalize;
+  }  
+
+  for (int d=0; d<cdim-1; d++) {
+    if (cuts[d] > 1) {
+      if (my_rank == 0)
+        fprintf(stderr, "*** Parallelization only allowed in z. Number of ranks, %d, in direction %d cannot be > 1!\n", cuts[d], d);
+      goto mpifinalize;
+    }
+  }
+  
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.qe,
@@ -805,7 +901,7 @@ int main(int argc, char **argv)
     .cells = {NV, NMU},
     .polarization_density = ctx.n0,
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
       .density = eval_density_elc,
       .ctx_upar = &ctx,
@@ -825,7 +921,7 @@ int main(int argc, char **argv)
       .write_source = true,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
         .density = eval_density_elc_source,
         .ctx_upar = &ctx,
@@ -850,7 +946,7 @@ int main(int argc, char **argv)
     .cells = {NV, NMU},
     .polarization_density = ctx.n0,
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .ctx_density = &ctx,
       .density = eval_density_ion,
       .ctx_upar = &ctx,
@@ -870,7 +966,7 @@ int main(int argc, char **argv)
       .write_source = true,
       .num_sources = 1,
       .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN, 
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
         .ctx_density = &ctx,
         .density = eval_density_ion_source,
         .ctx_upar = &ctx,
@@ -914,6 +1010,11 @@ int main(int argc, char **argv)
     .species = {elc, ion},
     .field = field,
     .use_gpu = app_args.use_gpu,
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
   printf("Creating app object ...\n");
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);  // create app object
@@ -970,6 +1071,17 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Updates took %g secs\n", stat.total_tm);
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
-  gkyl_gyrokinetic_app_release(app); // simulation complete, free app
+  
+    // simulation complete, free app
+  gkyl_gyrokinetic_app_release(app);
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  
+  mpifinalize:
+  ;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi)
+    MPI_Finalize();
+#endif
   return 0;
 }
