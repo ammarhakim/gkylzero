@@ -75,9 +75,6 @@ bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 struct gk_lbo_ctx
 create_ctx(void)
 {
-  double finalTime = 100.0; 
-  double numFrames = 1;
-
   double n0 = 1.0;
   double u0 = 0.0;
   double vt = 1.0/3.0;
@@ -88,6 +85,9 @@ create_ctx(void)
   double ub   = 4*sqrt( ((3*vt/2)*(3*vt/2))/3);         // Location of bump.
   double sb   = 0.12;                                // Softening factor to avoid divergence.
   double vtb  = 1.0;                                 // Thermal speed of Maxwellian in bump.
+
+  double finalTime = 1./nu; 
+  double numFrames = 1;
 
   struct gk_lbo_ctx ctx = {
     .n0 = n0,
