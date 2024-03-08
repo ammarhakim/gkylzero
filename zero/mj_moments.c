@@ -23,6 +23,8 @@ struct gkyl_mj_moments
   struct gkyl_dg_updater_moment *m2calc;
   struct gkyl_array *num_ratio; 
   struct gkyl_array *num_vb;  
+  struct gkyl_array *vb_dot_nvb;  
+  struct gkyl_array *n_minus_vb_dot_nvb;  
   struct gkyl_array *V_drift;   
   struct gkyl_array *gamma;
   struct gkyl_array *GammaV2;
@@ -50,6 +52,8 @@ gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
 
   up->num_ratio = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->num_vb = gkyl_array_new(GKYL_DOUBLE, vdim * conf_basis->num_basis, conf_local_ext_ncells);
+  up->vb_dot_nvb = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
+  up->n_minus_vb_dot_nvb = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->V_drift = gkyl_array_new(GKYL_DOUBLE, vdim * conf_basis->num_basis, conf_local_ext_ncells);
   up->Gamma_inv = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->gamma = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
@@ -105,21 +109,25 @@ gkyl_mj_moments_advance(gkyl_mj_moments *cmj,
   // compute the pressure moment (stationary frame)
   gkyl_dg_updater_moment_advance(cmj->m2calc, phase_local, conf_local, fout, cmj->pressure);
 
-  // (n = N/gamma) divide the number density by gamma, to account for the frame trans.
-  gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->num_ratio,
-    0, cmj->num_ratio, 0, cmj->gamma, conf_local);
+  // (n = gamma*(N - vb dot NVb)) Lorentz transform to our fluid-stationary density 
+  gkyl_array_clear_range(cmj->vb_dot_nvb, 0.0, conf_local);
+  gkyl_array_clear_range(cmj->n_minus_vb_dot_nvb, 0.0, conf_local);
+  gkyl_array_accumulate_range(cmj->n_minus_vb_dot_nvb, 1.0, cmj->num_ratio, conf_local);
+  gkyl_dg_dot_product_op_range(cmj->conf_basis,cmj->vb_dot_nvb,cmj->V_drift,cmj->num_vb, conf_local);
+  gkyl_array_accumulate_range(cmj->n_minus_vb_dot_nvb, -1.0, cmj->vb_dot_nvb, conf_local);
+  gkyl_dg_mul_op_range(cmj->conf_basis,0,cmj->num_ratio,0,cmj->gamma,0,cmj->n_minus_vb_dot_nvb, conf_local);
 
   // (T = P/n) Calculate from the restframe Pressure, the rest frame temperature
   gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->temperature,
     0, cmj->pressure, 0, cmj->num_ratio, conf_local);
 
   // Save the outputs to m0 m1i m2 (for n vb T):
-  gkyl_array_clear(m0, 0.0);
-  gkyl_array_clear(m1i, 0.0);
-  gkyl_array_clear(m2, 0.0);
-  gkyl_array_accumulate(m0, 1.0, cmj->num_ratio);
-  gkyl_array_accumulate(m1i, 1.0, cmj->V_drift);
-  gkyl_array_accumulate(m2, 1.0, cmj->temperature);
+  gkyl_array_clear_range(m0, 0.0, conf_local);
+  gkyl_array_clear_range(m1i, 0.0, conf_local);
+  gkyl_array_clear_range(m2, 0.0, conf_local);
+  gkyl_array_accumulate_range(m0, 1.0, cmj->num_ratio, conf_local);
+  gkyl_array_accumulate_range(m1i, 1.0, cmj->V_drift, conf_local);
+  gkyl_array_accumulate_range(m2, 1.0, cmj->temperature, conf_local);
 }
 
 void 
@@ -132,6 +140,8 @@ gkyl_mj_moments_release(gkyl_mj_moments *cmj)
   gkyl_dg_updater_moment_release(cmj->m2calc);
   gkyl_array_release(cmj->num_ratio);
   gkyl_array_release(cmj->num_vb);
+  gkyl_array_release(cmj->vb_dot_nvb);
+  gkyl_array_release(cmj->n_minus_vb_dot_nvb);
   gkyl_array_release(cmj->V_drift);
   gkyl_array_release(cmj->Gamma_inv);
   gkyl_array_release(cmj->gamma);
