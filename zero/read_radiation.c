@@ -1,10 +1,11 @@
 #include "gkyl_read_radiation.h"
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
 
 
 struct all_radiation_states* gkyl_read_rad_fit_params(){
 
-  const char* gs = getenv("GKYLSOFT");
-  char *filepath=concat(gs,"/gkylzero/share/adas/radiation_fit_parameters.txt");
+  char *filepath=concat(STR(GKYL_ADAS_SHARE),"/radiation_fit_parameters.txt");
   FILE *fptr = fopen(filepath,"r");
   if (fptr == NULL){
     printf("Error opening radiation fit file: %s\n", filepath);

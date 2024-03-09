@@ -18,6 +18,10 @@ LAPACK_INC = $(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
 
+# Default radiation fit directory
+GKYL_ADAS_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share/adas"
+CFLAGS += -DGKYL_ADAS_SHARE=$(GKYL_ADAS_SHARE_DIR)
+
 # SuperLU includes and librararies
 SUPERLU_INC = $(PREFIX)/superlu/include
 ifeq ($(UNAME_S),Linux)
@@ -324,6 +328,8 @@ $(ZERO_SH_INSTALL_LIB): $(OBJS)
 
 .PHONY: all
 all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/share/adas
+	cp ./data/adas/radiation_fit_parameters.txt ${INSTALL_PREFIX}/gkylzero/share/adas
 
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
