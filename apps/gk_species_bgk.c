@@ -109,9 +109,10 @@ gk_species_bgk_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   // compute needed moments
   gk_species_moment_calc(&bgk->moms, species->local, app->local, fin);
   // divide out Jacobian from computed moments
-  for (int i=0; i<3; i++)
+  for (int i=0; i<bgk->moms.num_mom; i++) {
     gkyl_dg_div_op_range(bgk->moms.mem_geo, app->confBasis, 
-      i, bgk->moms.marr, i, bgk->moms.marr, i, app->gk_geom->jacobgeo, &app->local); 
+      i, bgk->moms.marr, i, bgk->moms.marr, 0, app->gk_geom->jacobgeo, &app->local); 
+  }
   
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
