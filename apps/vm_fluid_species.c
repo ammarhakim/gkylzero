@@ -7,6 +7,20 @@
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
 
+// function to evaluate acceleration (this is needed as accel function
+// provided by the user returns 3 components, while the Vlasov solver
+// expects 8 components to match the EM field)
+static void
+eval_accel(double t, const double *xn, double *aout, void *ctx)
+{
+  struct vm_eval_accel_ctx *a_ctx = ctx;
+  double a[3]; // output acceleration
+  a_ctx->accel_func(t, xn, a, a_ctx->accel_ctx);
+  
+  for (int i=0; i<3; ++i) aout[i] = a[i];
+  for (int i=3; i<8; ++i) aout[i] = 0.0;
+}
+
 // initialize fluid species object
 void
 vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
@@ -32,6 +46,11 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
   else
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
+  // Arrays for fluid species coupled to EM fields 
+  // qmem : q/m*(E, B) for forces 
+  // m1i_fluid : (rhoux, rhouy, rhouz) for current accumulation
+  f->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  f->m1i_fluid = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
@@ -168,6 +187,27 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_integ_write_call = true;
 
+  f->has_accel = false;
+  // setup applied acceleration
+  if (f->info.accel) {
+    f->has_accel = true;
+    if (f->info.accel_evolve)
+      f->accel_evolve = f->info.accel_evolve;
+    // we need to ensure applied acceleration has same shape as EM
+    // field as it will get added to qmem
+    f->accel = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+
+    f->accel_host = f->accel;
+    if (app->use_gpu)
+      f->accel_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
+
+    f->accel_ctx = (struct vm_eval_accel_ctx) {
+      .accel_func = f->info.accel, .accel_ctx = f->info.accel_ctx
+    };
+    f->accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+      8, eval_accel, &f->accel_ctx);
+  }
+
   // set species source id
   f->source_id = f->info.source.source_id;
 
@@ -214,6 +254,12 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
       bctype = GKYL_BC_ABSORB;
       f->bc_is_absorb = true;
     }
+    else if (f->lower_bc[d] == GKYL_SPECIES_REFLECT) {
+      bctype = GKYL_BC_EULER_REFLECT;
+    }
+    else if (f->lower_bc[d] == GKYL_SPECIES_NO_SLIP) {
+      bctype = GKYL_BC_EULER_NO_SLIP;
+    }
 
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.confBasis,
       &app->lower_skin[d], &app->lower_ghost[d], f->fluid->ncomp, app->cdim, app->use_gpu);
@@ -225,6 +271,12 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     else if (f->upper_bc[d] == GKYL_SPECIES_ABSORB) {
       bctype = GKYL_BC_ABSORB;
       f->bc_is_absorb = true;
+    }
+    else if (f->upper_bc[d] == GKYL_SPECIES_REFLECT) {
+      bctype = GKYL_BC_EULER_REFLECT;
+    }
+    else if (f->upper_bc[d] == GKYL_SPECIES_NO_SLIP) {
+      bctype = GKYL_BC_EULER_NO_SLIP;
     }
 
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.confBasis,
@@ -244,11 +296,27 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
   gkyl_proj_on_basis_advance(proj, t0, &app->local, fluid_species->fluid_host);
   gkyl_proj_on_basis_release(proj);
 
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
+  }
+
+  // Pre-compute applied acceleration in case it's time-independent
+  vm_fluid_species_calc_accel(app, fluid_species, t0);
 
   // we are pre-computing source for now as it is time-independent
   vm_fluid_species_source_calc(app, fluid_species, t0);
+}
+
+void
+vm_fluid_species_calc_accel(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm)
+{
+  if (fluid_species->has_accel) {
+    gkyl_proj_on_basis_advance(fluid_species->accel_proj, tm, &app->local_ext, fluid_species->accel_host);
+    // note: accel_host is same as accel when not on GPUs
+    if (app->use_gpu) {
+      gkyl_array_copy(fluid_species->accel, fluid_species->accel_host);
+    }
+  }
 }
 
 void
@@ -258,12 +326,14 @@ vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_
   struct timespec tm = gkyl_wall_clock();
 
   // Compute flow velocity in both the volume and on surfaces
-  if (fluid_species->bc_is_absorb) 
+  if (fluid_species->bc_is_absorb) {
     gkyl_dg_calc_fluid_vars_advance(fluid_species->calc_fluid_vars,
       fluid, fluid_species->cell_avg_prim, fluid_species->u, fluid_species->u_surf); 
-  else 
+  }
+  else {
     gkyl_dg_calc_fluid_vars_advance(fluid_species->calc_fluid_vars_ext,
       fluid, fluid_species->cell_avg_prim, fluid_species->u, fluid_species->u_surf); 
+  }
 
   // Compute scalar pressure in the volume and at needed surfaces
   gkyl_dg_calc_fluid_vars_pressure(fluid_species->calc_fluid_vars, 
@@ -303,22 +373,42 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
     &app->local, fluid, fluid_species->cflrate, rhs);
 
+  if (app->has_field) {
+    double qbym = fluid_species->info.charge/fluid_species->info.mass;
+    gkyl_array_set(fluid_species->qmem, qbym, em);
+    // Accumulate applied acceleration and/or q/m*(external electromagnetic)
+    // fields onto qmem to get the total acceleration
+    if (fluid_species->has_accel) {
+      gkyl_array_accumulate(fluid_species->qmem, 1.0, fluid_species->accel);
+    }
+    if (app->field->has_ext_em) {
+      gkyl_array_accumulate(fluid_species->qmem, qbym, app->field->ext_em);
+    }
+    // Accumulate source contribution, e.g., adds forces (E + u x B) to momentum equation RHS
+    gkyl_dg_calc_fluid_vars_source(fluid_species->calc_fluid_vars, &app->local, 
+      fluid_species->qmem, fluid, fluid_species->p, rhs); 
+  }
+
   if (fluid_species->has_diffusion) {
-    if (fluid_species->info.diffusion.Dij) 
+    if (fluid_species->info.diffusion.Dij) {
       gkyl_dg_updater_diffusion_gen_advance(fluid_species->diff_slvr_gen,
         &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
-    else if (fluid_species->info.diffusion.D)
+    }
+    else if (fluid_species->info.diffusion.D) {
       gkyl_dg_updater_diffusion_fluid_advance(fluid_species->diff_slvr,
         &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
+    }
   }
 
   gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, &app->local);
 
   double omegaCfl_ho[1];
-  if (app->use_gpu)
+  if (app->use_gpu) {
     gkyl_cu_memcpy(omegaCfl_ho, fluid_species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
+  }
+  else {
     omegaCfl_ho[0] = fluid_species->omegaCfl_ptr[0];
+  }
   omegaCfl = omegaCfl_ho[0];
 
   app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(wst);

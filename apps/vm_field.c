@@ -223,8 +223,10 @@ vm_field_calc_ext_em(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
   if (field->has_ext_em) {
     gkyl_proj_on_basis_advance(field->ext_em_proj, tm, &app->local_ext, field->ext_em_host);
-    if (app->use_gpu) // note: ext_em_host is same as ext_em when not on GPUs
+    // note: ext_em_host is same as ext_em when not on GPUs
+    if (app->use_gpu) {
       gkyl_array_copy(field->ext_em, field->ext_em_host);
+    }
   }
 }
 
@@ -233,8 +235,10 @@ vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double t
 {
   if (field->has_app_current) {
     gkyl_proj_on_basis_advance(field->app_current_proj, tm, &app->local_ext, field->app_current_host);
-    if (app->use_gpu) // note: app_current_host is same as app_current when not on GPUs
+    // note: app_current_host is same as app_current when not on GPUs
+    if (app->use_gpu) {
       gkyl_array_copy(field->app_current, field->app_current_host);
+    }
   }
 }
 
@@ -250,9 +254,19 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
     vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
     gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
   } 
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    struct vm_fluid_species *s = &app->fluid_species[i];
+    double qbyeps = s->info.charge/app->field->info.epsilon0; 
+
+    // Need to fetch 1st-3rd components and divide out the mass 
+    // in fluid model since we evolve (rho, rhoux, rhouy, rhouz, ...)
+    gkyl_array_set_offset_range(s->m1i_fluid, 1.0/s->info.mass, fluidin[i], 1*app->confBasis.num_basis, &app->local);
+    gkyl_array_accumulate_range(emout, -qbyeps, s->m1i_fluid, &app->local);   
+  } 
   // Accumulate applied current to electric field terms
-  if (app->field->has_app_current)
+  if (app->field->has_app_current) {
     gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, &app->local);
+  }
 }
 
 // Compute the RHS for field update, returning maximum stable

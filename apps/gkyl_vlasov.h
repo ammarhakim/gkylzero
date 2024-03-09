@@ -162,6 +162,11 @@ struct gkyl_vlasov_fluid_species {
   
   // diffusion coupling to include
   struct gkyl_vlasov_fluid_diffusion diffusion;
+
+  void *accel_ctx; // context for applied acceleration function
+  // pointer to applied acceleration function
+  void (*accel)(double t, const double *xn, double *aout, void *ctx);
+  bool accel_evolve; // set to true if applied acceleration function is time dependent
   
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];

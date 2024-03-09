@@ -24,11 +24,21 @@ typedef void (*fluid_pressure_t)(double gas_gamma, const double *fluid, const do
 typedef void (*fluid_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, 
   double *fluid_l, double *fluid_c, double *fluid_r);
 
+typedef void (*fluid_int_t)(const double *fluid, 
+  const double* u_i, const double* p_ij, 
+  double* GKYL_RESTRICT int_fluid_vars); 
+
+typedef void (*fluid_source_t)(const double* qmem, 
+  const double* fluid, const double* p_ij, 
+  double* GKYL_RESTRICT out);
+
 // for use in kernel tables
 typedef struct { fluid_set_t kernels[3]; } gkyl_dg_fluid_set_kern_list;
 typedef struct { fluid_copy_t kernels[3]; } gkyl_dg_fluid_copy_kern_list;
 typedef struct { fluid_pressure_t kernels[3]; } gkyl_dg_fluid_pressure_kern_list;
 typedef struct { fluid_limiter_t kernels[3]; } gkyl_dg_fluid_limiter_kern_list;
+typedef struct { fluid_int_t kernels[3]; } gkyl_dg_fluid_int_kern_list;
+typedef struct { fluid_source_t kernels[3]; } gkyl_dg_fluid_source_kern_list;
 
 struct gkyl_dg_calc_fluid_vars {
   enum gkyl_eqn_type eqn_type; // Equation type
@@ -49,6 +59,8 @@ struct gkyl_dg_calc_fluid_vars {
   fluid_copy_t fluid_copy; // kernel for copying solution to output; also computed needed surface expansions
   fluid_pressure_t fluid_pressure; // kernel for computing pressure (Volume and surface expansion)
   fluid_limiter_t fluid_limiter[3]; // kernel for limiting slopes of fluid variables
+  fluid_int_t fluid_int; // kernel for computing integrated fluid variables
+  fluid_source_t fluid_source; // kernel for computing fluid source update
 
   uint32_t flags;
   struct gkyl_dg_calc_fluid_vars *on_dev; // pointer to itself or device data
@@ -150,6 +162,38 @@ static const gkyl_dg_fluid_limiter_kern_list ten_fluid_limiter_z_kernels[] = {
   { NULL, fluid_vars_limiterz_3x_ser_p1, NULL }, // 2
 };
 
+// Fluid integrated variables integral (rho, rhoux, rhouy, rhouz, rhou^2, p) (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_fluid_int_kern_list ser_fluid_int_kernels[] = {
+  { NULL, fluid_vars_integrated_1x_ser_p1, fluid_vars_integrated_1x_ser_p2 }, // 0
+  { NULL, fluid_vars_integrated_2x_ser_p1, NULL }, // 1
+  { NULL, fluid_vars_integrated_3x_ser_p1, NULL }, // 2
+};
+
+// Fluid integrated variables integral (rho, rhoux, rhouy, rhouz, rhou^2, p) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_fluid_int_kern_list ten_fluid_int_kernels[] = {
+  { NULL, fluid_vars_integrated_1x_ser_p1, fluid_vars_integrated_1x_ser_p2 }, // 0
+  { NULL, fluid_vars_integrated_2x_ser_p1, fluid_vars_integrated_2x_tensor_p2 }, // 1
+  { NULL, fluid_vars_integrated_3x_ser_p1, NULL }, // 2
+};
+
+// Fluid explicit source solve (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_fluid_source_kern_list ser_fluid_source_kernels[] = {
+  { NULL, fluid_vars_source_1x_ser_p1, fluid_vars_source_1x_ser_p2 }, // 0
+  { NULL, fluid_vars_source_2x_ser_p1, NULL }, // 1
+  { NULL, fluid_vars_source_3x_ser_p1, NULL }, // 2
+};
+
+// Fluid explicit source solve (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_fluid_source_kern_list ten_fluid_source_kernels[] = {
+  { NULL, fluid_vars_source_1x_ser_p1, fluid_vars_source_1x_ser_p2 }, // 0
+  { NULL, fluid_vars_source_2x_ser_p1, fluid_vars_source_2x_tensor_p2 }, // 1
+  { NULL, fluid_vars_source_3x_ser_p1, NULL }, // 2
+};
+
 GKYL_CU_D
 static fluid_set_t
 choose_fluid_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
@@ -225,6 +269,39 @@ choose_fluid_limiter_kern(int dir, enum gkyl_basis_type b_type, int cdim, int po
         return ten_fluid_limiter_z_kernels[cdim-1].kernels[poly_order];
       else
         return NULL;
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+static fluid_int_t
+choose_fluid_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_fluid_int_kernels[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_fluid_int_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static fluid_source_t
+choose_fluid_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_fluid_source_kernels[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_fluid_source_kernels[cdim-1].kernels[poly_order];
       break;
     default:
       assert(false);

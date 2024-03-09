@@ -313,6 +313,9 @@ struct vm_fluid_species {
 
   struct gkyl_array *fluid_host;  // host copy for use IO and initialization
 
+  struct gkyl_array *qmem; // array for q/m*(E,B)
+  struct gkyl_array *m1i_fluid; // array for (rhoux, rhouy, rhouz) for current accumulation
+
   enum gkyl_eqn_type eqn_type;  // type ID of equation
   int num_equations;            // number of equations in species
   struct gkyl_wv_eqn *equation; // equation object
@@ -359,6 +362,13 @@ struct vm_fluid_species {
   double *red_integ_diag; // for reduction on GPU
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for int-moments dynvec written first time
+
+  bool has_accel; // flag to indicate there is applied acceleration
+  bool accel_evolve; // flag to indicate applied acceleration is time dependent
+  struct gkyl_array *accel; // applied acceleration
+  struct gkyl_array *accel_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *accel_proj; // projector for acceleration
+  struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
 
   // fluid source
   enum gkyl_source_id source_id; // type of source
@@ -873,10 +883,19 @@ void vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, stru
 void vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0);
 
 /**
+ * Compute fluid species applied acceleration term
+ *
+ * @param app Vlasov app object
+ * @param fluid_species Fluid Species object
+ * @param tm Time for use in acceleration
+ */
+void vm_fluid_species_calc_accel(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
+
+/**
  * Compute primitive variables (bulk velocity, u, and pressure, p, if pressure present)
  *
  * @param app Vlasov app object
- * @param fluid_species Pointer to fluid species (where primitive variables are stored)
+ * @param fluid_species Fluid Species object (where primitive variables are stored)
  * @param fluid Input array fluid species
  */
 void vm_fluid_species_prim_vars(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,

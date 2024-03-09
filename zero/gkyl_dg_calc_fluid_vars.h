@@ -94,6 +94,40 @@ void gkyl_dg_calc_fluid_vars_limiter(struct gkyl_dg_calc_fluid_vars *up,
   const struct gkyl_range *conf_range, struct gkyl_array* fluid);
 
 /**
+ * Compute integrated fluid variables (rho, rhoux, rhouy, rhouz, rhou^2, ...).
+ * For isothermal Euler, integrated internal energy is just weighted integrated density (rho*vth)
+ * For Euler, computes integrated internal energy p (without the 1/(gas_gamma - 1) factor) 
+ * For 10 moment, computes integrated internal energy from sum over directions (Pxx + Pyy + Pzz)
+ * Note: post-processing requires the addition of the needed factors (such as 1/2 in rhou^2)
+ *
+ * @param up Updater for computing fluid variables 
+ * @param conf_range Configuration space range
+ * @param fluid Input array of fluid variables [rho, rhoux, rhouy, rhouz, ...]
+ * @param u_i Input array of flow velocity [ux, uy, uz]
+ * @param p_ij Input array of pressure 
+ * @param int_fluid_vars Output array of integrated variables (6 components)
+ */
+void gkyl_dg_calc_fluid_integrated_vars(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* fluid, 
+  const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
+  struct gkyl_array* fluid_int_vars);
+
+/**
+ * Compute fluid model source terms.
+ *
+ * @param up Updater for computing fluid variables 
+ * @param conf_range Configuration space range
+ * @param qmem Input array of q/m*EM fields
+ * @param fluid Input array of fluid variables [rho, rhoux, rhouy, rhouz, ...]
+ * @param p_ij Input array of pressure 
+ * @param rhs Output increment to fluid variables
+ */
+void gkyl_dg_calc_fluid_vars_source(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* qmem, 
+  const struct gkyl_array* fluid, const struct gkyl_array* p_ij, 
+  struct gkyl_array* rhs);
+
+/**
  * Delete pointer to updater to compute fluid variables.
  *
  * @param up Updater to delete.

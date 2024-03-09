@@ -379,6 +379,28 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
     app->stat.nmom += 1;
   }
 
+  double avals_fluid[6], avals_fluid_global[6];
+  for (int i=0; i<app->num_fluid_species; ++i) {
+    struct vm_fluid_species *f = &app->fluid_species[i];
+
+    gkyl_array_clear(f->integ_mom, 0.0);
+
+    vm_fluid_species_prim_vars(app, f, f->fluid);
+    gkyl_dg_calc_fluid_integrated_vars(f->calc_fluid_vars, &app->local, 
+      f->fluid, f->u, f->p, f->integ_mom);
+    gkyl_array_scale_range(f->integ_mom, app->grid.cellVolume, &app->local);
+    if (app->use_gpu) {
+      gkyl_array_reduce_range(f->red_integ_diag, f->integ_mom, GKYL_SUM, &app->local);
+      gkyl_cu_memcpy(avals_fluid, f->red_integ_diag, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
+    }
+    else { 
+      gkyl_array_reduce_range(avals_fluid, f->integ_mom, GKYL_SUM, &app->local);
+    }
+
+    gkyl_comm_all_reduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 5, avals_fluid, avals_fluid_global);
+    gkyl_dynvec_append(f->integ_diag, tm, avals_fluid_global);
+  }
+
   app->stat.diag_tm += gkyl_time_diff_now_sec(wst);
   app->stat.ndiag += 1;
 }
@@ -623,15 +645,18 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // Note: external EM field and  applied currents use proj_on_basis 
   // so does copy to GPU every call if app->use_gpu = true.
   if (app->has_field) {
-    if (app->field->ext_em_evolve)
+    if (app->field->ext_em_evolve) {
       vm_field_calc_ext_em(app, app->field, tcurr);
-    if (app->field->app_current_evolve)
+    }
+    if (app->field->app_current_evolve) {
       vm_field_calc_app_current(app, app->field, tcurr); 
+    }
   }
   // Compute applied acceleration if if present and time-dependent.
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].accel_evolve)
+    if (app->species[i].accel_evolve) {
       vm_species_calc_accel(app, &app->species[i], tcurr);
+    }
   }
 
   // compute necessary moments and boundary corrections for collisions

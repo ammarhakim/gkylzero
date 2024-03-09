@@ -39,6 +39,8 @@ gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn,
   up->fluid_set = choose_fluid_set_kern(b_type, cdim, poly_order);
   up->fluid_copy = choose_fluid_copy_kern(b_type, cdim, poly_order);
   up->fluid_pressure = choose_fluid_pressure_kern(b_type, cdim, poly_order);
+  up->fluid_int = choose_fluid_int_kern(b_type, cdim, poly_order);
+  up->fluid_source = choose_fluid_source_kern(b_type, cdim, poly_order);
   // Fetch the kernels in each direction
   for (int d=0; d<cdim; ++d) 
     up->fluid_limiter[d] = choose_fluid_limiter_kern(d, b_type, cdim, poly_order);
@@ -171,6 +173,58 @@ void gkyl_dg_calc_fluid_vars_limiter(struct gkyl_dg_calc_fluid_vars *up,
 
       up->fluid_limiter[dir](up->limiter_fac, up->wv_eqn, fluid_l, fluid_c, fluid_r);    
     }
+  }
+}
+
+void gkyl_dg_calc_fluid_integrated_vars(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* fluid, 
+  const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
+  struct gkyl_array* fluid_int_vars)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(fluid_int_vars)) {
+    return gkyl_dg_calc_fluid_integrated_vars_cu(up, conf_range, 
+      fluid, u_i, p_ij, fluid_int_vars);
+  }
+#endif
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+
+    const double *fluid_d = gkyl_array_cfetch(fluid, loc);
+    const double *u_i_d = gkyl_array_cfetch(u_i, loc);
+    const double *p_ij_d = gkyl_array_cfetch(p_ij, loc);
+    
+    double *fluid_int_vars_d = gkyl_array_fetch(fluid_int_vars, loc);
+    up->fluid_int(fluid_d, u_i_d, p_ij_d, fluid_int_vars_d);
+  }
+}
+
+void gkyl_dg_calc_fluid_vars_source(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* qmem, 
+  const struct gkyl_array* fluid, const struct gkyl_array* p_ij, 
+  struct gkyl_array* rhs)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(rhs)) {
+    return gkyl_dg_calc_fluid_vars_source_cu(up, conf_range, 
+      qmem, fluid, p_ij, rhs);
+  }
+#endif
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(conf_range, iter.idx);
+
+    const double *qmem_d = gkyl_array_cfetch(qmem, loc);
+    const double *fluid_d = gkyl_array_cfetch(fluid, loc);
+    const double *p_ij_d = gkyl_array_cfetch(p_ij, loc);
+
+    double *rhs_d = gkyl_array_fetch(rhs, loc);
+    up->fluid_source(qmem_d, fluid_d, p_ij_d, rhs_d);
   }
 }
 
