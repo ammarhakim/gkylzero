@@ -391,20 +391,20 @@ void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int s
 void gkyl_gyrokinetic_app_calc_mom(gkyl_gyrokinetic_app *app);
 
 /**
- * Calculate integrated diagnostic moments.
+ * Calculate integrated diagnostic moments for plasma species (including sources).
  *
- * @param tm Time at which integrated diagnostic are to be computed
+ * @param tm Time at which integrated diagnostics are to be computed
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_calc_integrated_mom(gkyl_gyrokinetic_app* app, double tm);
 
 /**
- * Calculate integrated diagnostic moments of the source.
+ * Calculate integrated diagnostic moments for neutral species (including sources).
  *
- * @param tm Time at which integrated diagnostic are to be computed
+ * @param tm Time at which integrated diagnostics are to be computed
  * @param app App object.
  */
-void gkyl_gyrokinetic_app_calc_integrated_source_mom(gkyl_gyrokinetic_app* app, double tm);
+void gkyl_gyrokinetic_app_calc_integrated_neut_mom(gkyl_gyrokinetic_app* app, double tm);
 
 /**
  * Calculate integrated field energy

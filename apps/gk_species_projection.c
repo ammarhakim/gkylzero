@@ -155,7 +155,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 
     // proj_maxwellian expects the primitive moments as a single array.
     gkyl_array_set_offset(proj->prim_moms, 1.0, proj->upar, 0*app->confBasis.num_basis);
-    gkyl_array_set_offset(proj->prim_moms, 1.0, proj->vtsq  , 1*app->confBasis.num_basis);
+    gkyl_array_set_offset(proj->prim_moms, 1.0, proj->vtsq, 1*app->confBasis.num_basis);
 
     if (app->use_gpu) {
       gkyl_array_copy(proj->prim_moms_dev, proj->prim_moms);

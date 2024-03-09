@@ -222,18 +222,19 @@ gkyl_correct_maxwellian_gyrokinetic_release(gkyl_correct_maxwellian_gyrokinetic*
   }
 
   gkyl_gk_geometry_release(up->gk_geom);
-  gkyl_array_release(up->m0_num);
   gkyl_array_release(up->m0_tar);
+  gkyl_array_release(up->m0_num);
   gkyl_array_release(up->m0_scl);
   gkyl_array_release(up->m12);
   gkyl_array_release(up->m12_tar);
   gkyl_array_release(up->m12_num);
   gkyl_array_release(up->delta_m12);
-  gkyl_array_release(up->mvals1);
-  gkyl_array_release(up->mvals2);
   gkyl_array_release(up->moms);
   gkyl_array_release(up->moms_num);
-
+  gkyl_array_release(up->mvals);
+  gkyl_array_release(up->mvals1);
+  gkyl_array_release(up->mvals2);
+  
   gkyl_dg_updater_moment_gyrokinetic_release(up->m0_calc);
   gkyl_dg_updater_moment_gyrokinetic_release(up->moms_calc);
 
