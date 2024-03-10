@@ -97,16 +97,26 @@ void ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
     gkyl_maxwell_flux(c, e_fact, b_fact, q_local, flux_local);
     eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
 
-    for (int m=0; m<8; ++m)
+    for (int m=0; m<8; ++m) {
       GKYL_CU_CHECK( flux[m] == fluxes[d][m], nfail );
+    }
 
     // check Riemann transform
     double w1[8], q1[8];
     eqn->cons_to_riem(eqn, q_local, q_local, w1);
     eqn->riem_to_cons(eqn, q_local, w1, q1);
     
-    for (int m=0; m<8; ++m)
-      GKYL_CU_CHECK( q[m] == q_g[m], nfail );    
+    for (int m=0; m<8; ++m) {
+      GKYL_CU_CHECK( q_local[m] == q1[m], nfail );    
+    }
+
+    double q_l[8], q_g[8];
+    for (int d=0; d<3; ++d) {
+      eqn->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_l);
+      eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], q_l, q_g);
+
+      for (int m=0; m<8; ++m) GKYL_CU_CHECK( q[m] == q_g[m], nfail );
+    }    
   }
 }
 
