@@ -10,7 +10,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_moment.h>
+#include <gkyl_vlasov.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
 
