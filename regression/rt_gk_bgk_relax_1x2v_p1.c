@@ -87,7 +87,7 @@ create_ctx(void)
   double vtb  = 1.0;                                 // Thermal speed of Maxwellian in bump.
 
   double finalTime = 1./nu; 
-  double numFrames = 1;
+  double numFrames = 20;
 
   struct gk_lbo_ctx ctx = {
     .n0 = n0,
@@ -150,8 +150,8 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .normNu = false,
       .self_nu = evalNu,
-      .num_cross_collisions = 1,
-      .collide_with = { "bump" },
+//      .num_cross_collisions = 1,
+//      .collide_with = { "bump" },
     },
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
@@ -177,8 +177,8 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .normNu = false,
       .self_nu = evalNu,
-      .num_cross_collisions = 1,
-      .collide_with = { "square" },
+//      .num_cross_collisions = 1,
+//      .collide_with = { "square" },
     },
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },

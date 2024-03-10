@@ -144,12 +144,15 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
 
   gyrokinetic->eqn.num_equations = 1;
 
-  // This is so the memcpy below has the on_dev pointer.
-  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);  // acquire pointer to geometry object
-  gyrokinetic->gk_geom = geom->on_dev;
-  gyrokinetic->vmap = vmap->on_dev;
-  gyrokinetic->vmapSq = vmapSq->on_dev;
-  gyrokinetic->vmap_prime = vmap_prime->on_dev;
+  // Acquire pointers to on_dev objects so memcpy below copies those too.
+  struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
+  struct gkyl_array *vmap_on_ho = gkyl_array_acquire(vmap);
+  struct gkyl_array *vmapSq_on_ho = gkyl_array_acquire(vmapSq);
+  struct gkyl_array *vmap_prime_on_ho = gkyl_array_acquire(vmap_prime);
+  mom_gk->gk_geom = geom->on_dev;
+  mom_gk->vmap = vmap_on_ho->on_dev;
+  mom_gk->vmapSq = vmapSq_on_ho->on_dev;
+  mom_gk->vmap_prime = vmap_prime_on_ho->on_dev;
 
   gyrokinetic->conf_range = *conf_range;
   gyrokinetic->vel_range = *vel_range;
@@ -169,11 +172,11 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   // set parent on_dev pointer
   gyrokinetic->eqn.on_dev = &gyrokinetic_cu->eqn;
   
-  // updater should store host pointers
-  gyrokinetic->gk_geom = geom; 
-  gyrokinetic->vmap = vmap;
-  gyrokinetic->vmapSq = vmapSq;
-  gyrokinetic->vmap_prime = vmap_prime;
+  // Updater should store host pointers.
+  mom_gk->gk_geom = geom; 
+  mom_gk->vmap = vmap_on_ho; 
+  mom_gk->vmapSq = vmapSq_on_ho; 
+  mom_gk->vmap_prime = vmap_prime_on_ho; 
 
   return &gyrokinetic->eqn;
 }

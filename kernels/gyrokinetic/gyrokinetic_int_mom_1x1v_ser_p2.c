@@ -1,11 +1,12 @@
 #include <gkyl_mom_gyrokinetic_kernels.h> 
-GKYL_CU_DH void gyrokinetic_int_mom_1x1v_ser_p2(const double *w, const double *dxv, const int *idx, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void gyrokinetic_int_mom_1x1v_ser_p2(const double *dxv, const double *vmap, double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out) 
 { 
-  const double volFact = dxv[0]*dxv[1]*0.25; 
-  const double wx1 = w[1], dv1 = dxv[1]; 
-  const double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
+  const double volFact = 0.25*dxv[0]*dxv[1]; 
  
+  const double vmap0R2 = pow(vmap[0],2);
+  const double vmap1R2 = pow(vmap[1],2);
+
   out[0] += 2.0*f[0]*volFact; 
-  out[1] += volFact*(2.0*f[0]*wx1+0.5773502691896258*f[2]*dv1); 
-  out[2] += volFact*(2.0*f[0]*wx1_sq+1.154700538379252*f[2]*dv1*wx1+0.149071198499986*f[5]*dv1_sq+0.1666666666666667*f[0]*dv1_sq); 
+  out[1] += (1.414213562373095*vmap[1]*f[2]+1.414213562373095*f[0]*vmap[0])*volFact; 
+  out[2] += (0.8944271909999159*vmap1R2*f[5]+2.0*vmap[0]*vmap[1]*f[2]+f[0]*vmap1R2+f[0]*vmap0R2)*volFact; 
 } 

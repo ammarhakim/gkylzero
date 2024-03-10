@@ -135,8 +135,8 @@ create_ctx(void)
   double Lmu_elc = mass_elc * pow(4.*vte,2)/(2.*B0); // Domain size (electron velocity space: magnetic moment direction).
   double Lmu_ion = mass_ion * pow(4.*vti,2)/(2.*B0); // Domain size (ion velocity space: magnetic moment direction).
 
-  double t_end = 30.e-9; //1.0/nu_elc; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  double t_end = 1.0/nu_elc; // Final simulation time.
+  int num_frames = 20; // Number of output frames.
   
   struct sheath_ctx ctx = {
     .pi = pi,
@@ -314,7 +314,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
     gkyl_gyrokinetic_app_write(app, t_curr, iot->curr - 1);
     gkyl_gyrokinetic_app_calc_mom(app);
     gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr - 1);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -571,7 +570,6 @@ main(int argc, char **argv)
 
   gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
   gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-  gkyl_gyrokinetic_app_calc_integrated_source_mom(app, t_curr);
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
@@ -584,7 +582,6 @@ main(int argc, char **argv)
 
     gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-    gkyl_gyrokinetic_app_calc_integrated_source_mom(app, t_curr);
 
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -601,7 +598,6 @@ main(int argc, char **argv)
 
   gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
   gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-  gkyl_gyrokinetic_app_calc_integrated_source_mom(app, t_curr);
   
   write_data(&io_trig, app, t_curr);
   gkyl_gyrokinetic_app_stat_write(app);

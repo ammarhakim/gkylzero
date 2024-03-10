@@ -24,6 +24,7 @@ typedef struct gkyl_dg_updater_moment_tm gkyl_dg_updater_moment_tm;
  * @param vel_range Velocity space range
  * @param mass Mass of species 
  * @param gk_geom Geometry struct 
+ * @param vmap Velocity space mapping.
  * @param mom Name of moment
  * @param is_integrated Boolean for if we are computing integrated moments
  * @param use_gpu Boolean to determine whether struct objects are on host or device
@@ -34,7 +35,8 @@ struct gkyl_dg_updater_moment*
 gkyl_dg_updater_moment_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
   const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  double mass, const struct gk_geometry *gk_geom, const char *mom, bool is_integrated, bool use_gpu);
+  double mass, const struct gkyl_array *vmap, const struct gk_geometry *gk_geom,
+  const char *mom, bool is_integrated, bool use_gpu);
 
 /**
  * Acquire moment object
