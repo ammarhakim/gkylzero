@@ -44,6 +44,9 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
+#include <gkyl_wave_geom.h>
+#include <gkyl_wv_eqn.h>
+#include <gkyl_wv_maxwell.h>
 #include <gkyl_pkpm.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -260,6 +263,9 @@ struct pkpm_field {
   struct gkyl_array *div_b; // Volume expansion of div(b) (for use in pkpm model)
   struct gkyl_array *max_b; // max(|b_i|) penalization (for use in pkpm model)
   struct gkyl_dg_calc_em_vars *calc_bvar; // Updater to compute magnetic field unit vector and tensor
+
+  bool limit_em; // boolean for whether or not we are limiting EM fields
+  struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to limit EM fields 
 
   gkyl_hyper_dg *slvr; // Maxwell solver
 
@@ -625,6 +631,15 @@ void pkpm_field_calc_ExB(gkyl_pkpm_app *app, struct pkpm_field *field, const str
  */
 void pkpm_field_accumulate_current(gkyl_pkpm_app *app, 
   const struct gkyl_array *fluidin[], struct gkyl_array *emout);
+
+/**
+ * Limit slopes of solution of EM variables
+ *
+ * @param app PKPM app object
+ * @param field Pointer to field 
+ * @param em Input (and Output after limiting) EM fields
+ */
+void pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_array *em);
 
 /**
  * Compute RHS from field equations

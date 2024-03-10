@@ -675,7 +675,7 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     }
   }
 
-  // Limit fluid solution and compute primitive moments for fluid species evolution
+  // Compute primitive moments for fluid species evolution
   for (int i=0; i<app->num_fluid_species; ++i) 
     vm_fluid_species_prim_vars(app, &app->fluid_species[i], fluidin[i]);
 
@@ -782,6 +782,10 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fluidin[i] = app->fluid_species[i].fluid;
           fluidout[i] = app->fluid_species[i].fluid1;
         }
+        if (app->has_field) {
+          // Limit EM field solution
+          vm_field_limiter(app, app->field, app->field->em);
+        }
         forward_euler(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em : 0,
           fout, fluidout, app->has_field ? app->field->em1 : 0,
           &st
@@ -801,12 +805,15 @@ rk3(gkyl_vlasov_app* app, double dt0)
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
         }
+        if (app->has_field) {
+          // Limit EM field solution
+          vm_field_limiter(app, app->field, app->field->em1);
+        }
         forward_euler(app, tcurr+dt, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
           fout, fluidout, app->has_field ? app->field->emnew : 0,
           &st
         );
         if (st.dt_actual < dt) {
-
           // collect stats
           double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
           app->stat.stage_2_dt_diff[0] = fmin(app->stat.stage_2_dt_diff[0],
@@ -817,8 +824,8 @@ rk3(gkyl_vlasov_app* app, double dt0)
 
           dt = st.dt_actual;
           state = RK_STAGE_1; // restart from stage 1
-
-        } else {
+        } 
+        else {
           for (int i=0; i<app->num_species; ++i)
             array_combine(app->species[i].f1,
               3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
@@ -843,6 +850,10 @@ rk3(gkyl_vlasov_app* app, double dt0)
           vm_fluid_species_limiter(app, &app->fluid_species[i], app->fluid_species[i].fluid1);
           fluidin[i] = app->fluid_species[i].fluid1;
           fluidout[i] = app->fluid_species[i].fluidnew;
+        }
+        if (app->has_field) {
+          // Limit EM field solution
+          vm_field_limiter(app, app->field, app->field->em1);
         }
         forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
           fout, fluidout, app->has_field ? app->field->emnew : 0,

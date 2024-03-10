@@ -58,6 +58,7 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
+#include <gkyl_wv_maxwell.h>
 
 // Definitions of private structs and APIs attached to these objects
 // for use in Vlasov app.
@@ -278,6 +279,9 @@ struct vm_field {
   struct vm_eval_app_current_ctx app_current_ctx; // context for applied current
 
   gkyl_hyper_dg *slvr; // Maxwell solver
+
+  bool limit_em; // boolean for whether or not we are limiting EM fields
+  struct gkyl_dg_calc_em_vars *calc_em_vars; // Updater to limit EM fields 
 
   struct gkyl_array *em_energy; // EM energy components in each cell
   double *em_energy_red; // memory for use in GPU reduction of EM energy
@@ -783,6 +787,15 @@ void vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, dou
  */
 void vm_field_accumulate_current(gkyl_vlasov_app *app, 
   const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], struct gkyl_array *emout);
+
+/**
+ * Limit slopes of solution of EM variables
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field 
+ * @param em Input (and Output after limiting) EM fields
+ */
+void vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em);
 
 /**
  * Compute RHS from field equations

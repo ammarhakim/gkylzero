@@ -63,27 +63,6 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_energy_write_call = true;
 
-  // Allocate arrays for diagonstics/parallel-kinetic-perpendicular-moment arrays:
-  // bvar = magnetic field unit vector (first 3 components) and unit tensor (last 6 components)
-  // ExB = E x B velocity, E x B/|B|^2
-  f->cell_avg_magB2 = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
-  f->bvar = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
-  // Surface magnetic field vector organized as:
-  // [bx_xl, bx_xr, bxbx_xl, bxbx_xr, bxby_xl, bxby_xr, bxbz_xl, bxbz_xr,
-  //  by_yl, by_yr, bxby_yl, bxby_yr, byby_yl, byby_yr, bybz_yl, bybz_yr,
-  //  bz_zl, bz_zr, bxbz_zl, bxbz_zr, bybz_zl, bybz_zr, bzbz_zl, bzbz_zr] 
-  int cdim = app->cdim;
-  int Ncomp_surf = 2*cdim*4;
-  int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
-  f->bvar_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf, app->local_ext.volume);
-  // Volume expansion of div(b)
-  f->div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-  // Surface expansion of max b penalization for streaming in PKPM system max(|b_i_l|, |b_i_r|)
-  f->max_b = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
-
-  // Create updaters for bvar (needed by PKPM model)
-  f->calc_bvar = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 0, app->use_gpu);
-
   f->has_ext_em = false;
   f->ext_em_evolve = false;
   // setup external electromagnetic field
@@ -147,6 +126,38 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   // Maxwell solver
   f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,
     app->cdim, up_dirs, zero_flux_flags, 1, app->use_gpu);
+
+  // Allocate arrays for diagonstics/parallel-kinetic-perpendicular-moment arrays:
+  // bvar = magnetic field unit vector (first 3 components) and unit tensor (last 6 components)
+  // ExB = E x B velocity, E x B/|B|^2
+  f->cell_avg_magB2 = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
+  f->bvar = mkarr(app->use_gpu, 9*app->confBasis.num_basis, app->local_ext.volume);
+  // Surface magnetic field vector organized as:
+  // [bx_xl, bx_xr, bxbx_xl, bxbx_xr, bxby_xl, bxby_xr, bxbz_xl, bxbz_xr,
+  //  by_yl, by_yr, bxby_yl, bxby_yr, byby_yl, byby_yr, bybz_yl, bybz_yr,
+  //  bz_zl, bz_zr, bxbz_zl, bxbz_zr, bybz_zl, bybz_zr, bzbz_zl, bzbz_zr] 
+  int cdim = app->cdim;
+  int Ncomp_surf = 2*cdim*4;
+  int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
+  f->bvar_surf = mkarr(app->use_gpu, Ncomp_surf*Nbasis_surf, app->local_ext.volume);
+  // Volume expansion of div(b)
+  f->div_b = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  // Surface expansion of max b penalization for streaming in PKPM system max(|b_i_l|, |b_i_r|)
+  f->max_b = mkarr(app->use_gpu, 2*cdim*Nbasis_surf, app->local_ext.volume);
+
+  // Check if limiter_fac is specified for adjusting how much diffusion is applied through slope limiter
+  // If not specified, set to 0.0 and updater sets default behavior (1/sqrt(3); see gkyl_dg_calc_em_vars.h)
+  double limiter_fac = f->info.limiter_fac == 0 ? 0.0 : f->info.limiter_fac;
+  f->limit_em = f->info.limit_em == 0 ? false : true;
+  
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf);
+  // Create updaters for bvar (needed by PKPM model)
+  f->calc_bvar = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 
+    maxwell, limiter_fac, 0, app->use_gpu);
+  // Create updaters for limiting EM fields
+  f->calc_em_vars = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 
+    maxwell, limiter_fac, 0, app->use_gpu);
+  gkyl_wv_eqn_release(maxwell);
 
   // determine which directions are not periodic
   int num_periodic_dir = app->num_periodic_dir, is_np[3] = {1, 1, 1};
@@ -297,6 +308,22 @@ pkpm_field_accumulate_current(gkyl_pkpm_app *app,
     gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, &app->local);
 }
 
+void
+pkpm_field_limiter(gkyl_pkpm_app *app, struct pkpm_field *field, struct gkyl_array *em)
+{
+  if (field->limit_em) {
+    struct timespec tm = gkyl_wall_clock();
+
+    // Limit the slopes of the solution
+    gkyl_dg_calc_em_vars_limiter(field->calc_em_vars, &app->local, em);
+
+    app->stat.field_em_vars_tm += gkyl_time_diff_now_sec(tm);
+
+    // Apply boundary conditions after limiting solution
+    pkpm_field_apply_bc(app, field, em);
+  }
+}
+
 // Compute the RHS for field update, returning maximum stable
 // time-step.
 double
@@ -427,6 +454,7 @@ pkpm_field_release(const gkyl_pkpm_app* app, struct pkpm_field *f)
   gkyl_array_release(f->div_b);
   gkyl_array_release(f->max_b);
   gkyl_dg_calc_em_vars_release(f->calc_bvar);
+  gkyl_dg_calc_em_vars_release(f->calc_em_vars);
 
   if (f->has_ext_em) {
     gkyl_array_release(f->ext_em);

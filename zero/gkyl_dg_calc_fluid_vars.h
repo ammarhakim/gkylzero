@@ -88,7 +88,6 @@ void gkyl_dg_calc_fluid_vars_pressure(struct gkyl_dg_calc_fluid_vars *up,
  * @param up         Updater for computing fluid variables 
  * @param conf_range Configuration space range
  * @param fluid      Input (and Output after limiting) array of fluid variables [rho, rho ux, rho uy, rho uz, ...]
-
  */
 void gkyl_dg_calc_fluid_vars_limiter(struct gkyl_dg_calc_fluid_vars *up, 
   const struct gkyl_range *conf_range, struct gkyl_array* fluid);
