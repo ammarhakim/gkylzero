@@ -285,6 +285,8 @@ gkyl_dg_calc_em_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
+
+  up->wv_eqn = eqn; // updater should store host pointer  
   
   return up;
 }

@@ -133,7 +133,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   double limiter_fac = f->info.limiter_fac == 0 ? 0.0 : f->info.limiter_fac;
   f->limit_em = f->info.limit_em == 0 ? false : true;
 
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf);
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, ef, mf, app->use_gpu);
   // Create updaters for limiting EM fields
   f->calc_em_vars = gkyl_dg_calc_em_vars_new(&app->grid, &app->confBasis, &app->local_ext, 
     maxwell, limiter_fac, 0, app->use_gpu);

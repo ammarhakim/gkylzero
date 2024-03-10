@@ -1,6 +1,6 @@
 #include <acutest.h>
-#include <gkyl_moment_prim_maxwell.h>
 #include <gkyl_wv_maxwell.h>
+#include <gkyl_wv_maxwell_priv.h>
 
 // Make indexing cleaner with the dir_shuffle
 #define EX 0
@@ -18,7 +18,7 @@ test_maxwell_basic()
   double c2 = c*c;
   double e_fact = 2.0;
   double b_fact = 2.5;
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, e_fact, b_fact);
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, e_fact, b_fact, false);
 
   TEST_CHECK( maxwell->num_equations == 8 );
   TEST_CHECK( maxwell->num_waves == 6 );
@@ -117,7 +117,7 @@ test_maxwell_waves()
   double c2 = c*c;
   double e_fact = 1.0;
   double b_fact = 1.0;
-  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, e_fact, b_fact);
+  struct gkyl_wv_eqn *maxwell = gkyl_wv_maxwell_new(c, e_fact, b_fact, false);
 
   double ql[8] = { 0.0, 1.0, 0.0, 1.0, -0.75, 0.0, 0.0, 0.0};
   double qr[8] = { 0.0, -1.0, 0.0, 1.0, 0.75, 0.0, 0.0, 0.0};
@@ -183,8 +183,34 @@ test_maxwell_waves()
   gkyl_wv_eqn_release(maxwell);
 }
 
+#ifdef GKYL_HAVE_CUDA
+
+int cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn);
+
+void
+test_cu_wv_maxwell()
+{
+  double c = 299792458.0;
+  double c2 = c*c;
+  double e_fact = 2.0;
+  double b_fact = 2.5;
+  struct gkyl_wv_eqn *eqn = gkyl_wv_maxwell_new(c, e_fact, b_fact, true);
+  
+  // call CUDA test
+  int nfail = cu_wv_maxwell_test(eqn->on_dev);
+
+  TEST_CHECK( nfail == 0 );
+
+  gkyl_wv_eqn_release(eqn);
+}
+
+#endif
+
 TEST_LIST = {
   { "maxwell_basic", test_maxwell_basic },
   { "maxwell_waves", test_maxwell_waves },
+#ifdef GKYL_HAVE_CUDA
+  { "cu_wv_maxwell", test_cu_wv_maxwell },
+#endif  
   { NULL, NULL },
 };
