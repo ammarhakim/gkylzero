@@ -16,11 +16,16 @@ void ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
 {
   *nfail = 0;
 
+  GKYL_CU_CHECK( eqn->num_equations == 8, nfail );
+  GKYL_CU_CHECK( eqn->num_waves == 6, nfail );
+
   // DO NOT DO THIS IN PRODUCTION! ONLY FOR TESTING
   struct wv_maxwell *maxwell = container_of(eqn, struct wv_maxwell, eqn);
 
-  GKYL_CU_CHECK( maxwell->num_equations == 8, nfail );
-  GKYL_CU_CHECK( maxwell->num_waves == 6, nfail );
+  double c = maxwell->c;
+  double c2 = c*c;
+  double e_fact = maxwell->e_fact;
+  double b_fact = maxwell->b_fact;
 
   double Ex = 1.0, Ey = 0.1, Ez = 0.2;
   double Bx = 10.0, By = 10.1, Bz = 10.2;
@@ -48,39 +53,39 @@ void ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   double fluxes[3][8] = {
     {
       e_fact*c2*q[6],
-      c2*q[BZ],
-      -c2*q[BY],
+      c2*q[5],
+      -c2*q[4],
       
       b_fact*q[7],
-      -q[EZ],
-      q[EY],
+      -q[2],
+      q[1],
       
-      e_fact*q[EX],
-      b_fact*c2*q[BX]
+      e_fact*q[0],
+      b_fact*c2*q[3]
     },
     {
-      -c2*q[BZ],
+      -c2*q[5],
       e_fact*c2*q[6],
-      c2*q[BX],
+      c2*q[3],
       
-      q[EZ],
+      q[2],
       b_fact*q[7],
-      -q[EX],
+      -q[0],
       
-      e_fact*q[EY],
-      b_fact*c2*q[BY]
+      e_fact*q[1],
+      b_fact*c2*q[4]
     },
     {
-      c2*q[BY],
-      -c2*q[BX],      
+      c2*q[4],
+      -c2*q[3],      
       e_fact*c2*q[6],
       
-      -q[EY],
-      q[EX],
+      -q[1],
+      q[0],
       b_fact*q[7],
       
-      e_fact*q[EZ],
-      b_fact*c2*q[BZ]
+      e_fact*q[2],
+      b_fact*c2*q[5]
     },
 
   };
@@ -88,17 +93,17 @@ void ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   double q_local[8], flux_local[8], flux[8];
 
   for (int d=0; d<3; ++d) {
-    maxwell->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
+    eqn->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_local);
     gkyl_maxwell_flux(c, e_fact, b_fact, q_local, flux_local);
-    maxwell->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
+    eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], flux_local, flux);
 
     for (int m=0; m<8; ++m)
       GKYL_CU_CHECK( gkyl_compare(flux[m], fluxes[d][m], 1e-15), nfail );
 
     // check Riemann transform
     double w1[8], q1[8];
-    maxwell->cons_to_riem(maxwell, q_local, q_local, w1);
-    maxwell->riem_to_cons(maxwell, q_local, w1, q1);
+    eqn->cons_to_riem(eqn, q_local, q_local, w1);
+    eqn->riem_to_cons(eqn, q_local, w1, q1);
     
     for (int m=0; m<8; ++m)
       GKYL_CU_CHECK( gkyl_compare_double(q_local[m], q1[m], 1e-14), nfail );    
