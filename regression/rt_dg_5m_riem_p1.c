@@ -43,15 +43,19 @@ struct riem_ctx
   double Bzl; // Left total magneic field (z-direction).
   double Bzr; // Right total magnetic field (z-direction).
 
+  bool has_collision; // Whether to include collisions.
+  double nu_base_ei; // Base electron-ion collision frequency.
+
   // Derived physical quantities (using normalized code units).
   double rhol_elc; // Left electron mass density.
   double rhor_elc; // Right electron mass density.
 
   // Simulation parameters.
-  double Nx; // Cell count (x-direction).
+  int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  int num_frames; // Number of output frames.
 };
 
 struct riem_ctx
@@ -75,15 +79,19 @@ create_ctx(void)
   double Bzl = 1.0e-2; // Left total magneic field (z-direction).
   double Bzr = -1.0e-2; // Right total magnetic field (z-direction).
 
+  bool has_collision = false; // Whether to include collisions.
+  double nu_base_ei = 0.5; // Base electron-ion collision frequency.
+
   // Derived physical quantities (using normalized code units).
   double rhol_elc = rhol_ion * mass_elc / mass_ion; // Left electron mass density.
   double rhor_elc = rhor_ion * mass_elc / mass_ion; // Right electron mass density.
 
   // Simulation parameters.
-  double Nx = 1024; // Cell count (x-direction).
+  int Nx = 1024; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.9; // CFL coefficient.
-  double t_end = 0.05; // Final simulation time.
+  double cfl_frac = 0.95; // CFL coefficient.
+  double t_end = 10.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   
   struct riem_ctx ctx = {
     .gas_gamma = gas_gamma,
@@ -100,12 +108,15 @@ create_ctx(void)
     .Bx = Bx,
     .Bzl = Bzl,
     .Bzr = Bzr,
+    .has_collision = has_collision,
+    .nu_base_ei = nu_base_ei,
     .rhol_elc = rhol_elc,
     .rhor_elc = rhor_elc,
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .num_frames = num_frames,
   };
 
   return ctx;
@@ -128,13 +139,11 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double rho = 0.0;
   double p = 0.0;
 
-  if (x < 0.5)
-  {
+  if (x < 0.5) {
     rho = rhol_elc; // Electron mass density (left).
     p = pl; // Electron pressure (left).
   }
-  else
-  {
+  else {
     rho = rhor_elc; // Electron mass density (right).
     p = pr; // Electron pressure (right).
   }
@@ -163,13 +172,11 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double rho = 0.0;
   double p = 0.0;
 
-  if (x < 0.5)
-  {
+  if (x < 0.5) {
     rho = rhol_ion; // Ion mass density (left).
     p = pl; // Ion pressure (left).
   }
-  else
-  {
+  else {
     rho = rhor_ion; // Ion mass density (right).
     p = pr; // Ion pressure (right).
   }
@@ -194,12 +201,10 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double Bz = 0.0;
 
-  if (x < 0.5)
-  {
+  if (x < 0.5) {
     Bz = Bzl; // Total magnetic field (z-direction, left).
   }
-  else
-  {
+  else {
     Bz = Bzr; // Total magnetic field (z-direction, right).
   }
 
@@ -217,14 +222,12 @@ main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
   }
 #endif
 
-  if (app_args.trace_mem) 
-  {
+  if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
@@ -266,52 +269,55 @@ main(int argc, char **argv)
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
   }
 #endif
 
   // Create global range.
   int cells[] = { NX };
-  struct gkyl_range globalr;
-  gkyl_create_global_range(1, cells, &globalr);
+  int dim = sizeof(cells) / sizeof(cells[0]);
+  struct gkyl_range global_r;
+  gkyl_create_global_range(dim, cells, &global_r);
 
   // Create decomposition.
-  int cuts[] = { 1 };
+  int cuts[dim];
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
-    cuts[0] = app_args.cuts[0];
+  for (int d = 0; d < dim; d++) {
+    if (app_args.use_mpi) {
+      cuts[d] = app_args.cuts[d];
+    }
+    else {
+      cuts[d] = 1;
+    }
+  }
+#else
+  for (int d = 0; d < dim; d++) {
+    cuts[d] = 1;
   }
 #endif
 
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(1, cuts, &globalr);
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(dim, cuts, &global_r);
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
-      {
+  if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
   }
-  else
-  {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-      {
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-    {
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
@@ -323,11 +329,13 @@ main(int argc, char **argv)
   int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
-  int ncuts = cuts[0];
-  if (ncuts != comm_size)
-  {
-    if (my_rank == 0)
-    {
+  int ncuts = 1;
+  for (int d = 0; d < dim; d++) {
+    ncuts *= cuts[d];
+  }
+
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
       fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
@@ -355,6 +363,8 @@ main(int argc, char **argv)
     .fluid_species = { elc, ion },
 
     .field = field,
+
+    .use_gpu = app_args.use_gpu,
 
     .has_low_inp = true,
     .low_inp = {
@@ -419,8 +429,7 @@ main(int argc, char **argv)
   
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Finalize();
   }
 #endif

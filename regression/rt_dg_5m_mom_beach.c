@@ -47,6 +47,7 @@ struct mom_beach_ctx
   double x_last_edge; // Location of center of last cell.
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  int num_frames; // Number of output frames.
 
   double deltaT; // Arbitrary constant, with units of time.
   double factor; // Numerical factor for calculation of electron number density.
@@ -66,7 +67,7 @@ create_ctx(void)
   double mass_elc = 9.10938215e-31; // Electron mass.
   double charge_elc = -1.602176487e-19; // Electron charge.
 
-  double J0 = 1.0e-12/epsilon0; // Reference current density (Amps / m^3).
+  double J0 = 1.0e-12; // Reference current density (Amps / m^3).
   
   // Derived physical quantities (using non-normalized physical units).
   double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
@@ -76,8 +77,9 @@ create_ctx(void)
   double Lx = 1.0; // Domain size (x-direction).
   double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
   double x_last_edge = Lx / Nx; // Location of center of last cell.
-  double cfl_frac = 0.5; // CFL coefficient.
-  double t_end = 5.0e-10; // Final simulation time.
+  double cfl_frac = 0.95; // CFL coefficient.
+  double t_end = 5.0e-9; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
 
   double deltaT = Lx100 / light_speed; // Arbitrary constant, with units of time.
   double factor = deltaT * deltaT * charge_elc * charge_elc / (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
@@ -98,6 +100,7 @@ create_ctx(void)
     .x_last_edge = x_last_edge,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .num_frames = num_frames,
     .deltaT = deltaT,
     .factor = factor,
     .omega_drive = omega_drive,
@@ -164,8 +167,7 @@ evalAppCurrent(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 
   double omega_drive = app -> omega_drive;
 
-  if (x > x_last_edge)
-  {
+  if (x > x_last_edge) {
     // Set applied current.
     fout[1] = -J0 * sin(omega_drive * t);
   }
@@ -177,14 +179,12 @@ main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
   }
 #endif
 
-  if (app_args.trace_mem) 
-  {
+  if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
@@ -220,52 +220,55 @@ main(int argc, char **argv)
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
   }
 #endif
 
   // Create global range.
   int cells[] = { NX };
-  struct gkyl_range globalr;
-  gkyl_create_global_range(1, cells, &globalr);
+  int dim = sizeof(cells) / sizeof(cells[0]);
+  struct gkyl_range global_r;
+  gkyl_create_global_range(dim, cells, &global_r);
 
   // Create decomposition.
-  int cuts[] = { 1 };
+  int cuts[dim];
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
-    cuts[0] = app_args.cuts[0];
+  for (int d = 0; d < dim; d++) {
+    if (app_args.use_mpi) {
+      cuts[d] = app_args.cuts[d];
+    }
+    else {
+      cuts[d] = 1;
+    }
+  }
+#else
+  for (int d = 0; d < dim; d++) {
+    cuts[d] = 1;
   }
 #endif
 
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(1, cuts, &globalr);
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(dim, cuts, &global_r);
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
-      {
+  if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
   }
-  else
-  {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-      {
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-    {
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
@@ -277,11 +280,13 @@ main(int argc, char **argv)
   int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
-  int ncuts = cuts[0];
-  if (ncuts != comm_size)
-  {
-    if (my_rank == 0)
-    {
+  int ncuts = 1;
+  for (int d = 0; d < dim; d++) {
+    ncuts *= cuts[d];
+  }
+
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
       fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
@@ -309,6 +314,8 @@ main(int argc, char **argv)
     .fluid_species = { elc },
 
     .field = field,
+
+    .use_gpu = app_args.use_gpu,
 
     .has_low_inp = true,
     .low_inp = {
@@ -372,8 +379,7 @@ main(int argc, char **argv)
   
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Finalize();
   }
 #endif
