@@ -109,14 +109,13 @@ void ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
     for (int m=0; m<8; ++m) {
       GKYL_CU_CHECK( q_local[m] == q1[m], nfail );    
     }
+  }
+  double q_l[8], q_g[8];
+  for (int d=0; d<3; ++d) {
+    eqn->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_l);
+    eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], q_l, q_g);
 
-    double q_l[8], q_g[8];
-    for (int d=0; d<3; ++d) {
-      eqn->rotate_to_local_func(tau1[d], tau2[d], norm[d], q, q_l);
-      eqn->rotate_to_global_func(tau1[d], tau2[d], norm[d], q_l, q_g);
-
-      for (int m=0; m<8; ++m) GKYL_CU_CHECK( q[m] == q_g[m], nfail );
-    }    
+    for (int m=0; m<8; ++m) GKYL_CU_CHECK( q[m] == q_g[m], nfail );
   }
 }
 
