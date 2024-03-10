@@ -515,6 +515,8 @@ main(int argc, char **argv)
 
     .field = field,
 
+    .use_gpu = app_args.use_gpu,
+
     .has_low_inp = true,
     .low_inp = {
       .local_range = decomp -> ranges[my_rank],
