@@ -16,7 +16,8 @@ gkyl_dg_calc_em_vars_new(const struct gkyl_rect_grid *conf_grid,
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_calc_em_vars_cu_dev_new(conf_grid, cbasis, mem_range, wv_eqn, is_ExB);
+    return gkyl_dg_calc_em_vars_cu_dev_new(conf_grid, cbasis, 
+      mem_range, wv_eqn, limiter_fac, is_ExB);
   } 
 #endif     
   gkyl_dg_calc_em_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_em_vars));

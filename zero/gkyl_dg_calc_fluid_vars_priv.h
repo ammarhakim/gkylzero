@@ -276,6 +276,7 @@ choose_fluid_limiter_kern(int dir, enum gkyl_basis_type b_type, int cdim, int po
   }
 }
 
+GKYL_CU_D
 static fluid_int_t
 choose_fluid_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
 {

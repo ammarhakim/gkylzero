@@ -147,3 +147,13 @@ void gkyl_dg_calc_fluid_vars_pressure_cu(struct gkyl_dg_calc_fluid_vars *up,
 
 void gkyl_dg_calc_fluid_vars_limiter_cu(struct gkyl_dg_calc_fluid_vars *up, 
   const struct gkyl_range *conf_range, struct gkyl_array* fluid);
+
+void gkyl_dg_calc_fluid_integrated_vars_cu(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* fluid, 
+  const struct gkyl_array* u_i, const struct gkyl_array* p_ij, 
+  struct gkyl_array* fluid_int_vars);
+
+void gkyl_dg_calc_fluid_vars_source_cu(struct gkyl_dg_calc_fluid_vars *up, 
+  const struct gkyl_range *conf_range, const struct gkyl_array* qmem, 
+  const struct gkyl_array* fluid, const struct gkyl_array* p_ij, 
+  struct gkyl_array* rhs);
