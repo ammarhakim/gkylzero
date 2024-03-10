@@ -10,7 +10,7 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
-#include <gkyl_vlasov.h>
+#include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
 
@@ -69,6 +69,7 @@ struct burch_ctx
   double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  int num_frames; // Number of output frames.
 };
 
 struct burch_ctx
@@ -113,12 +114,13 @@ create_ctx(void)
     + n1 * (Ti1 + Te1) - n2 * Ti2) / n2; // Magnetosheath electron temperature (so that the system is in force balance).
 
   // Simulation parameters.
-  double Nx = 256; // Cell count (x-direction).
-  double Ny = 128; // Cell count (y-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 128; // Cell count (y-direction).
   double Lx = 40.96 * di; // Domain size (x-direction).
   double Ly = 20.48 * di; // Domain size (y-direction).
   double cfl_frac = 1.0; // CFL coefficient.
   double t_end = 250.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   
   struct burch_ctx ctx = {
     .pi = pi,
@@ -156,6 +158,7 @@ create_ctx(void)
     .Ly = Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .num_frames = num_frames,
   };
 
   return ctx;
@@ -372,14 +375,12 @@ main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
   }
 #endif
 
-  if (app_args.trace_mem) 
-  {
+  if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
@@ -411,7 +412,7 @@ main(int argc, char **argv)
   struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 1.0,
     
     .init = evalFieldInit,
     .ctx = &ctx,
@@ -419,53 +420,55 @@ main(int argc, char **argv)
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
   }
 #endif
 
   // Create global range.
   int cells[] = { NX, NY };
-  struct gkyl_range globalr;
-  gkyl_create_global_range(2, cells, &globalr);
+  int dim = sizeof(cells) / sizeof(cells[0]);
+  struct gkyl_range global_r;
+  gkyl_create_global_range(dim, cells, &global_r);
 
   // Create decomposition.
-  int cuts[] = { 1, 1 };
+  int cuts[dim];
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
-    cuts[0] = app_args.cuts[0];
-    cuts[1] = app_args.cuts[1];
+  for (int d = 0; d < dim; d++) {
+    if (app_args.use_mpi) {
+      cuts[d] = app_args.cuts[d];
+    }
+    else {
+      cuts[d] = 1;
+    }
+  }
+#else
+  for (int d = 0; d < dim; d++) {
+    cuts[d] = 1;
   }
 #endif
 
-  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &globalr);
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(dim, cuts, &global_r);
 
   // Construct communicator for use in app.
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
-    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
-      {
+  if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
   }
-  else
-  {
-    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-      {
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
   }
 #else
-  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
-    {
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp,
       .use_gpu = app_args.use_gpu
     }
@@ -477,11 +480,13 @@ main(int argc, char **argv)
   int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
-  int ncuts = cuts[0] * cuts[1];
-  if (ncuts != comm_size)
-  {
-    if (my_rank == 0)
-    {
+  int ncuts = 1;
+  for (int d = 0; d < dim; d++) {
+    ncuts *= cuts[d];
+  }
+
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
       fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
     }
     goto mpifinalize;
@@ -573,8 +578,7 @@ main(int argc, char **argv)
   
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
-  {
+  if (app_args.use_mpi) {
     MPI_Finalize();
   }
 #endif
