@@ -241,6 +241,12 @@ struct gkyl_moment_app {
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 };
 
+// Meta-data for IO
+struct moment_output_meta {
+  int out_frame; // frame number
+  double out_tm; // output time
+};
+
 /** Some common functions to species and fields */
 
 // functions for use in integrated quantities calculation
@@ -386,3 +392,19 @@ struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app,
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app,
   double dt0);
+
+/**
+ * Create new array meta header from input struct. Free returned
+ * object with moment_array_meta_release.
+ *
+ * @param meta Meta-data for output.
+ * @return New meta object to pass to write method.
+ */
+struct gkyl_array_meta* moment_array_meta_new(struct moment_output_meta meta);
+
+/**
+ * Release meta struct
+ *
+ * @param mt Meta object to free
+ */
+void moment_array_meta_release(struct gkyl_array_meta *mt);

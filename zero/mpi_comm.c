@@ -535,7 +535,7 @@ static int grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
       .esznc = arr->esznc,
       .tot_cells = decomp->parent_range.volume,
       .meta_size = meta ? meta->meta_sz : 0,
-      .meta = meta ? (char*) meta->meta : 0
+      .meta = meta ? meta->meta : 0
     },
     fbuff
   );

@@ -27,7 +27,7 @@ static const char *gkyl_array_rio_status_msg[] = {
 // Structure to pass meta-data to write methods
 struct gkyl_array_meta {
   size_t meta_sz; // size in bytes of meta-data
-  const char *meta; // meta-data encoded in mpack format
+  char *meta; // meta-data encoded in mpack format
 };
 
 // Array header data to write: this is for low-level control and is

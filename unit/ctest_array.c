@@ -1,4 +1,5 @@
 #include <acutest.h>
+#include <mpack.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
@@ -1266,17 +1267,16 @@ test_grid_array_read_p1(void)
   struct gkyl_rect_grid grid;  
   struct gkyl_array_header_info hdr;
   FILE *fp = 0;  
-  with_file(fp, "data/unit/euler_riem_2d_hllc-euler_1.gkyl", "r") {
+  with_file(fp, "data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl", "r") {
     
     int status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
     TEST_CHECK( status == 0 );
 
-    TEST_CHECK( hdr.file_type == gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE]);
+    TEST_CHECK( hdr.file_type == gkyl_file_type_int[GKYL_FIELD_DATA_FILE]);
     TEST_CHECK( hdr.etype == GKYL_DOUBLE);
 
     TEST_CHECK( hdr.esznc = 5*sizeof(double));
     TEST_CHECK( 50*50 == hdr.tot_cells );
-    TEST_CHECK( 0 == hdr.meta_size );
 
     TEST_CHECK( 50 == grid.cells[0] );
     TEST_CHECK( 50 == grid.cells[1] );
@@ -1287,7 +1287,27 @@ test_grid_array_read_p1(void)
     TEST_CHECK( 1.0 == grid.upper[0] );
     TEST_CHECK( 1.0 == grid.upper[1] );
 
-    TEST_CHECK( 4 == hdr.nrange );
+    TEST_CHECK( 1 == hdr.nrange );
+
+    TEST_CHECK( hdr.meta_size > 0 );
+
+    mpack_tree_t tree;
+    mpack_tree_init_data(&tree, hdr.meta, hdr.meta_size);
+    mpack_tree_parse(&tree);
+
+    mpack_node_t root = mpack_tree_root(&tree);
+    TEST_CHECK(mpack_node_type(root) == mpack_type_map);
+
+    mpack_node_t tm_node = mpack_node_map_cstr(root, "time");
+    TEST_CHECK( mpack_node_double(tm_node) >  0.80675 );
+
+    mpack_node_t fr_node = mpack_node_map_cstr(root, "frame");
+    TEST_CHECK( mpack_node_i64(fr_node) == 1 );
+
+    status = mpack_tree_destroy(&tree);
+    TEST_CHECK( mpack_ok == status );
+
+    gkyl_free(hdr.meta);
   }
 
   size_t nc = hdr.esznc/gkyl_elem_type_size[hdr.etype];

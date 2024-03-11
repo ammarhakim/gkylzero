@@ -20,6 +20,12 @@ int gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
 /**
  * Read grid and array data header data from file. Note that only
  * HEADER is read and NOT the array data itself.
+ * 
+ * If the array header contains meta-data then the 'meta' char * is
+ * allocated in the @a hdr struct.
+ *
+ * YOU MUST FREE 'hdr->meta' using gkyl_free or else this will result
+ * in a memory leak!
  *
  * @param grid Grid object to read
  * @param hrd On output, Header data.
