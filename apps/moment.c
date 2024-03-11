@@ -98,7 +98,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
     // write DG projection of mapc2p to file
     cstr fileNm = cstr_from_fmt("%s-mapc2p.gkyl", app->name);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, c2p, fileNm.str);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, c2p, fileNm.str);
     cstr_drop(&fileNm);
 
     gkyl_array_release(c2p);
@@ -259,13 +259,13 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
   if (app->has_field != 1) return;
 
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field.fcurr, fileNm.str);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field.fcurr, fileNm.str);
   cstr_drop(&fileNm);
 
   // write external EM field if it is present
   if (app->field.ext_em) {
     cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "ext_em_field", frame);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field.ext_em, fileNm.str);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field.ext_em, fileNm.str);
     cstr_drop(&fileNm);
   }
 }
@@ -323,12 +323,12 @@ void
 gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame)
 {
   cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].name, frame);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->species[sidx].fcurr, fileNm.str);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->species[sidx].fcurr, fileNm.str);
   cstr_drop(&fileNm);
 
   if (app->scheme_type == GKYL_MOMENT_KEP) {
     cstr fileNm = cstr_from_fmt("%s-%s-alpha_%d.gkyl", app->name, app->species[sidx].name, frame);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->species[sidx].alpha, fileNm.str);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->species[sidx].alpha, fileNm.str);
     cstr_drop(&fileNm);
   }
 }

@@ -454,8 +454,8 @@ barrier(struct gkyl_comm *comm)
 }
 
 // set of functions to help with parallel array output using MPI-IO
-static void
-sub_array_decomp_write(struct mpi_comm *comm, const struct gkyl_rect_decomp *decomp,
+static void sub_array_decomp_write(struct mpi_comm *comm,
+  const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *range,
   const struct gkyl_array *arr, MPI_File fp)
 {
@@ -517,10 +517,11 @@ sub_array_decomp_write(struct mpi_comm *comm, const struct gkyl_rect_decomp *dec
 #undef _F
 }
 
-static int
-grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
+static int grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
   const struct gkyl_rect_grid *grid,
-  const struct gkyl_rect_decomp *decomp, const struct gkyl_range *range,
+  const struct gkyl_rect_decomp *decomp,
+  const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, MPI_File fp)
 {
   char *buff; size_t buff_sz;
@@ -533,7 +534,8 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
       .etype = arr->type,
       .esznc = arr->esznc,
       .tot_cells = decomp->parent_range.volume,
-      .meta_size = 0
+      .meta_size = meta ? meta->meta_sz : 0,
+      .meta = meta ? (char*) meta->meta : 0
     },
     fbuff
   );
@@ -555,9 +557,10 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
   return errno;
 }
 
-static int
-array_write(struct gkyl_comm *comm,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+static int array_write(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
@@ -566,7 +569,7 @@ array_write(struct gkyl_comm *comm,
     MPI_File_open(mpi->mcomm, fname, MPI_MODE_CREATE|MPI_MODE_WRONLY, MPI_INFO_NULL, &fp);
   if (err != MPI_SUCCESS)
     return err;
-  err = grid_sub_array_decomp_write_fp(mpi, grid, mpi->decomp, range, arr, fp);
+  err = grid_sub_array_decomp_write_fp(mpi, grid, mpi->decomp, range, meta, arr, fp);
   MPI_File_close(&fp);
   return err;
 }

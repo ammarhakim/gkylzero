@@ -205,7 +205,7 @@ test_io_2d()
   }  
 
   int status;
-  status = gkyl_comm_array_write(comm, &grid, &local, arr, "ctest_null_comm_io_2d.gkyl");
+  status = gkyl_comm_array_write(comm, &grid, &local, 0, arr, "ctest_null_comm_io_2d.gkyl");
 
   struct gkyl_array *arr_rw = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);  
   status = gkyl_comm_array_read(comm, &grid, &local, arr_rw, "ctest_null_comm_io_2d.gkyl");

@@ -22,7 +22,13 @@ static const char *gkyl_array_rio_status_msg[] = {
   [GKYL_ARRAY_RIO_FOPEN_FAILED] = "File open failed",
   [GKYL_ARRAY_RIO_FREAD_FAILED] = "Data read failed",
   [GKYL_ARRAY_RIO_DATA_MISMATCH] = "Data mismatch"
-};    
+};
+
+// Structure to pass meta-data to write methods
+struct gkyl_array_meta {
+  size_t meta_sz; // size in bytes of meta-data
+  const char *meta; // meta-data encoded in mpack format
+};
 
 // Array header data to write: this is for low-level control and is
 // typically not something most users would every encounter
@@ -32,7 +38,7 @@ struct gkyl_array_header_info {
   uint64_t esznc; // elem sz * number of components
   uint64_t tot_cells; // total number of cells in grid
   uint64_t meta_size; // size in bytes of meta-data embedded in header
-  char *meta;         // meta-data as byte array
+  char *meta; // meta-data as byte array
   uint64_t nrange; // number of ranges
 };
 
@@ -54,12 +60,13 @@ enum gkyl_array_rio_status gkyl_grid_sub_array_header_read(struct gkyl_rect_grid
  *
  * @param grid Grid object to write
  * @param range Range describing portion of the array to output.
+ * @param meta Meta-data to write. Set to NULL or 0 if no metadata
  * @param arr Array object to write
  * @param fname Name of output file (include .gkyl extension)
  * @return Status flag
  */
 enum gkyl_array_rio_status gkyl_grid_sub_array_write(const struct gkyl_rect_grid *grid,
-  const struct gkyl_range *range,
+  const struct gkyl_range *range, const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname);
 
 /**

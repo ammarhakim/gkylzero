@@ -496,7 +496,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
   else
     app->field->phi_host = app->field->phi_smooth;
 
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->phi_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field->phi_host, fileNm);
 }
 
 void
@@ -514,7 +514,7 @@ gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double t
     app->species[sidx].f_host = app->species[sidx].f;
 
   gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-    app->species[sidx].f_host, fileNm);
+    0, app->species[sidx].f_host, fileNm);
 }
 
 void
@@ -531,10 +531,10 @@ gkyl_gyrokinetic_app_write_source_species(gkyl_gyrokinetic_app* app, int sidx, d
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(s->src.source_host, s->src.source);
-    gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->src.source_host, fileNm);
+    gkyl_comm_array_write(s->comm, &s->grid, &s->local, 0, s->src.source_host, fileNm);
   }
   else {
-    gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->src.source, fileNm);
+    gkyl_comm_array_write(s->comm, &s->grid, &s->local, 0, s->src.source, fileNm);
   }
 }
 
@@ -572,9 +572,9 @@ gkyl_gyrokinetic_app_write_coll_mom(gkyl_gyrokinetic_app* app, int sidx, double 
     gkyl_array_copy(s->lbo.nu_prim_moms_host, s->lbo.nu_prim_moms);
   }
 
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->lbo.nu_sum_host, fileNm);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->lbo.prim_moms_host, fileNm_prim);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->lbo.nu_prim_moms_host, fileNm_nu_prim);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, s->lbo.nu_sum_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, s->lbo.prim_moms_host, fileNm_prim);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, s->lbo.nu_prim_moms_host, fileNm_nu_prim);
 }
 
 void
@@ -617,10 +617,10 @@ gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double 
     gkyl_array_copy(s->rad.nvsqnu_host, s->rad.nvsqnu);
   }
 
-  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvnu_surf_host, fileNm_nvnu_surf);
-  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvnu_host, fileNm_nvnu);
-  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvsqnu_surf_host, fileNm_nvsqnu_surf);
-  gkyl_comm_array_write(s->comm, &s->grid, &s->local, s->rad.nvsqnu_host, fileNm_nvsqnu);
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, 0, s->rad.nvnu_surf_host, fileNm_nvnu_surf);
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, 0, s->rad.nvnu_host, fileNm_nvnu);
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, 0, s->rad.nvsqnu_surf_host, fileNm_nvsqnu_surf);
+  gkyl_comm_array_write(s->comm, &s->grid, &s->local, 0, s->rad.nvsqnu_host, fileNm_nvsqnu);
 }
 
 void
@@ -643,7 +643,8 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
       if (app->use_gpu)
         gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
 
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0,
+        app->species[i].moms[m].marr_host, fileNm);
     }
   }
 }
@@ -669,7 +670,8 @@ gkyl_gyrokinetic_app_write_source_mom(gkyl_gyrokinetic_app* app, double tm, int 
         if (app->use_gpu)
           gkyl_array_copy(app->species[i].src.moms[m].marr_host, app->species[i].src.moms[m].marr);
 
-        gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->species[i].src.moms[m].marr_host, fileNm);
+        gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0,
+          app->species[i].src.moms[m].marr_host, fileNm);
       }
     }
   }
@@ -876,43 +878,43 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app)
   gkyl_comm_get_rank(app->comm, &rank);
   if (rank == 0) {
     sprintf(fileNm, fmt, app->name, "mapc2p");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, mc2p_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  mc2p_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "bmag");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, bmag_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  bmag_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "g_ij");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, g_ij_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  g_ij_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "dxdz");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, dxdz_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  dxdz_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "dzdx");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, dzdx_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  dzdx_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "jacobgeo");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, jacobgeo_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  jacobgeo_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "jacobgeo_inv");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, jacobgeo_inv_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  jacobgeo_inv_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "gij");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, gij_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  gij_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "b_i");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, b_i_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  b_i_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "cmag");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, cmag_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  cmag_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "jacobtot");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, jacobtot_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  jacobtot_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "jacobtot_inv");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, jacobtot_inv_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  jacobtot_inv_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "bmag_inv");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, bmag_inv_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  bmag_inv_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "bmag_inv_sq");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, bmag_inv_sq_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  bmag_inv_sq_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "gxxj");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, gxxj_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  gxxj_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "gxyj");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, gxyj_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  gxyj_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "gyyj");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, gyyj_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  gyyj_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "gxzj");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, gxzj_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0,  gxzj_ho, fileNm);
     sprintf(fileNm, fmt, app->name, "eps2");
-    gkyl_grid_sub_array_write(&app->grid, &app->global, eps2_ho, fileNm);
+    gkyl_grid_sub_array_write(&app->grid, &app->global, 0, eps2_ho, fileNm);
   }
 
   gkyl_array_release(mc2p);

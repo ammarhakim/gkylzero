@@ -44,6 +44,9 @@ test_map_1(void)
 
   TEST_CHECK( 4 == mpack_node_map_count(root) );
 
+  TEST_CHECK( mpack_node_map_contains_cstr(root, "time") );
+  TEST_CHECK( mpack_node_map_contains_cstr(root, "bogus") == false );
+
   mpack_node_t tm_node = mpack_node_map_cstr(root, "time");
   TEST_CHECK( mpack_node_double(tm_node) == 1.5 );
 
@@ -57,6 +60,14 @@ test_map_1(void)
 
   mpack_node_t vl_node = mpack_node_map_cstr(root, "values");
   TEST_CHECK( mpack_node_type(vl_node) == mpack_type_array );
+  TEST_CHECK( mpack_node_array_length(vl_node) == 3 );
+
+  double v = 0.1;
+  for (int i=0; i<3; ++i) {
+    mpack_node_t dn = mpack_node_array_at(vl_node, i);
+    TEST_CHECK( gkyl_compare_double(v, mpack_node_double(dn), 1e-15) );
+    v += 0.1;
+  }
     
   status = mpack_tree_destroy(&tree);
   TEST_CHECK( mpack_ok == status );

@@ -162,7 +162,7 @@ test_zdep_nd_nxnz(int nx, int ny){
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &rho_func_zdep_nd, 0);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont);
   gkyl_proj_on_basis_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field_discont, "in_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, field_discont, "in_field.gkyl");
 
   struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 #ifdef GKYL_HAVE_CUDA
@@ -204,14 +204,14 @@ test_zdep_nd_nxnz(int nx, int ny){
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
 #endif
-  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, phi, "out_field.gkyl");
 
   // project analytic solution
   struct gkyl_array *sol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj_sol = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &phi_func_zdep_nd, 0);
   gkyl_proj_on_basis_advance(proj_sol, 0.0, &local, sol);
   gkyl_proj_on_basis_release(proj_sol);
-  gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, sol, "sol_field.gkyl");
 
   double l2 = calc_l2(grid, local,local_ext, basis, phi, sol);
   printf("l2 = %g\n", l2);
@@ -264,7 +264,7 @@ test_simplez_dd_nxnz(int nx, int ny){
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &rho_func_simplez_dd, 0);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont);
   gkyl_proj_on_basis_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field_discont, "in_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, field_discont, "in_field.gkyl");
 
   struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 #ifdef GKYL_HAVE_CUDA
@@ -306,14 +306,14 @@ test_simplez_dd_nxnz(int nx, int ny){
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
 #endif
-  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, phi, "out_field.gkyl");
 
   // project analytic solution
   struct gkyl_array *sol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj_sol = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &phi_func_simplez_dd, 0);
   gkyl_proj_on_basis_advance(proj_sol, 0.0, &local, sol);
   gkyl_proj_on_basis_release(proj_sol);
-  gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, sol, "sol_field.gkyl");
 
   double l2 = calc_l2(grid, local,local_ext, basis, phi, sol);
   printf("l2 = %g\n", l2);
@@ -362,7 +362,7 @@ void test_fem_poisson_zind_dd_nx(int nx){
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &rho_func_zind_dd_1x, 0);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, field);
   gkyl_proj_on_basis_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field, "in_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, field, "in_field.gkyl");
 
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
@@ -392,14 +392,14 @@ void test_fem_poisson_zind_dd_nx(int nx){
   struct gkyl_fem_poisson* fem_poisson = gkyl_fem_poisson_new(&local, &grid, basis, &poisson_bc, epsilon_dev, 0, false, use_gpu);
   gkyl_fem_poisson_set_rhs(fem_poisson, field);
   gkyl_fem_poisson_solve(fem_poisson, phi);
-  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, phi, "out_field.gkyl");
   //
   // project analytic solution
   struct gkyl_array *sol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj_sol = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &phi_func_zind_dd_1x, 0);
   gkyl_proj_on_basis_advance(proj_sol, 0.0, &local, sol);
   gkyl_proj_on_basis_release(proj_sol);
-  gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, sol, "sol_field.gkyl");
 
 
   double l2 = calc_l2(grid, local,local_ext, basis, phi, sol);
@@ -452,7 +452,7 @@ test_zind_dd_nxnz(int nx, int ny){
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &rho_func_zind_dd, 0);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont);
   gkyl_proj_on_basis_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field_discont, "in_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, field_discont, "in_field.gkyl");
 
   struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 #ifdef GKYL_HAVE_CUDA
@@ -493,14 +493,14 @@ test_zind_dd_nxnz(int nx, int ny){
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
 #endif
-  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, phi, "out_field.gkyl");
 
   // project analytic solution
   struct gkyl_array *sol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj_sol = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &phi_func_zind_dd, 0);
   gkyl_proj_on_basis_advance(proj_sol, 0.0, &local, sol);
   gkyl_proj_on_basis_release(proj_sol);
-  gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, sol, "sol_field.gkyl");
 
 
   double l2 = calc_l2(grid, local,local_ext, basis, phi, sol);
@@ -554,7 +554,7 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz){
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &rho_func_3x_dd_dd, 0);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont);
   gkyl_proj_on_basis_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field_discont, "in_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, field_discont, "in_field.gkyl");
 
   struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 #ifdef GKYL_HAVE_CUDA
@@ -599,7 +599,7 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz){
   gkyl_array_shiftc(epsilon, sqrt(pow(2,3)), 0); 
   gkyl_array_shiftc(epsilon, sqrt(pow(2,3)), basis.num_basis); 
   gkyl_array_shiftc(epsilon, sqrt(pow(2,3)), 2*basis.num_basis); 
-  gkyl_grid_sub_array_write(&grid, &local, epsilon, "epsilon.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, epsilon, "epsilon.gkyl");
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *epsilon_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, local_ext.volume);
   gkyl_array_copy(epsilon_dev, epsilon);
@@ -614,14 +614,14 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz){
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(phi, phi_dev);
 #endif
-  gkyl_grid_sub_array_write(&grid, &local, phi, "out_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, phi, "out_field.gkyl");
 
   // project analytic solution
   struct gkyl_array *sol = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis *proj_sol = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &phi_func_3x_dd_dd, 0);
   gkyl_proj_on_basis_advance(proj_sol, 0.0, &local, sol);
   gkyl_proj_on_basis_release(proj_sol);
-  gkyl_grid_sub_array_write(&grid, &local, sol, "sol_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, sol, "sol_field.gkyl");
 
   double l2 = calc_l2(grid, local,local_ext, basis, phi, sol);
   printf("l2 = %g\n", l2);

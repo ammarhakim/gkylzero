@@ -64,7 +64,7 @@ test_p1(){
   struct gkyl_array *funcdg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   struct gkyl_eval_on_nodes *eon = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func, 0);
   gkyl_eval_on_nodes_advance(eon, 0.0, &local, funcdg);
-  gkyl_grid_sub_array_write(&grid, &local, funcdg, "proj_func.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, funcdg, "proj_func.gkyl");
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *funcdg_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_copy(funcdg_dev, funcdg);
@@ -103,7 +103,7 @@ test_p1(){
   gkyl_array_copy(funcdg2, funcdg2_dev);
 #endif
   check_same(local, basis, funcdg, funcdg2);
-  gkyl_grid_sub_array_write(&grid, &local, funcdg2, "proj_func2.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, funcdg2, "proj_func2.gkyl");
 
 
 
@@ -147,7 +147,7 @@ test_p1_deflated(){
   struct gkyl_array *funcdg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_eval_on_nodes *eon = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func, 0);
   gkyl_eval_on_nodes_advance(eon, 0.0, &local, funcdg);
-  gkyl_grid_sub_array_write(&grid, &local, funcdg, "proj_func.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, funcdg, "proj_func.gkyl");
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *funcdg_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_copy(funcdg_dev, funcdg);
@@ -229,7 +229,7 @@ test_p1_deflated(){
   gkyl_array_copy(funcdg2, funcdg2_dev);
 #endif
   check_same(local, basis, funcdg, funcdg2);
-  gkyl_grid_sub_array_write(&grid, &local, funcdg2, "proj_func2.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, funcdg2, "proj_func2.gkyl");
 
 #ifdef GKYL_HAVE_CUDA
   gkyl_cu_free(basis_on_dev);
@@ -274,7 +274,7 @@ void test_p1_deflated_3d(){
   struct gkyl_array *funcdg = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_eval_on_nodes *eon = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func3d, 0);
   gkyl_eval_on_nodes_advance(eon, 0.0, &local, funcdg);
-  gkyl_grid_sub_array_write(&grid, &local, funcdg, "proj_func.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, funcdg, "proj_func.gkyl");
 #ifdef GKYL_HAVE_CUDA
   struct gkyl_array *funcdg_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_array_copy(funcdg_dev, funcdg);
@@ -357,7 +357,7 @@ void test_p1_deflated_3d(){
   gkyl_array_copy(funcdg2, funcdg2_dev);
 #endif
   check_same(local, basis, funcdg, funcdg2);
-  gkyl_grid_sub_array_write(&grid, &local, funcdg2, "proj_func2.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, funcdg2, "proj_func2.gkyl");
 
 #ifdef GKYL_HAVE_CUDA
   gkyl_cu_free(basis_on_dev);
@@ -408,7 +408,7 @@ test_p2_btype(enum gkyl_basis_type basis_type){
   gkyl_eval_on_nodes *eon = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func, 0);
   gkyl_eval_on_nodes_advance(eon, 0.0, &local, funcdg);
   gkyl_eval_on_nodes_release(eon);
-  gkyl_grid_sub_array_write(&grid, &local, funcdg, "proj_func.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, funcdg, "proj_func.gkyl");
 
   int nodes[3] = { 1, 1, 1 };
                    
@@ -427,7 +427,7 @@ test_p2_btype(enum gkyl_basis_type basis_type){
   gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &local, 1, nodal_fld, funcdg2);
   gkyl_nodal_ops_release(n2m);
   check_same(local, basis, funcdg, funcdg2);
-  gkyl_grid_sub_array_write(&grid, &local, funcdg2, "proj_func2.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, funcdg2, "proj_func2.gkyl");
 
 }
 

@@ -1065,7 +1065,7 @@ test_grid_sub_array_read_1()
       d[k] = (10.5*iter.idx[0] + 220.5*iter.idx[1])*(k+0.5);
   }
 
-  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_grid_sub_array_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &range, 0, arr, "ctest_grid_sub_array_1.gkyl");
 
   struct gkyl_array *arr2 = gkyl_array_new(GKYL_DOUBLE, 2, ext_range.volume);
   gkyl_array_clear(arr2, 0.0);
@@ -1160,7 +1160,7 @@ test_grid_sub_array_read_2()
       d[k] = (10.5*iter.idx[0] + 220.5*iter.idx[1])*(k+0.5);
   }
 
-  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_grid_sub_array_2.gkyl");
+  gkyl_grid_sub_array_write(&grid, &range, 0, arr, "ctest_grid_sub_array_2.gkyl");
 
   struct gkyl_rect_grid grid2;
 
@@ -1226,7 +1226,7 @@ test_grid_array_new_from_file_1()
       d[k] = (10.5*iter.idx[0] + 220.5*iter.idx[1])*(k+0.5);
   }
 
-  gkyl_grid_sub_array_write(&grid, &range, arr, "ctest_grid_array_new_from_file_1.gkyl");
+  gkyl_grid_sub_array_write(&grid, &range, 0, arr, "ctest_grid_array_new_from_file_1.gkyl");
 
   struct gkyl_rect_grid grid2;
   struct gkyl_array *arr2 = gkyl_grid_array_new_from_file(&grid2, "ctest_grid_array_new_from_file_1.gkyl");

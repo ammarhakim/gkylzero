@@ -502,7 +502,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_proj_on_basis_advance(proj_udrift, 0.0, &confLocal, udrift);
   gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
   
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, m0, "ctest_dg_rad_gyrokinetic_m0.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, m0, "ctest_dg_rad_gyrokinetic_m0.gkyl");
   
   // proj_maxwellian expects the primitive moments as a single array.
   struct gkyl_array *prim_moms = mkarr(false, 2*confBasis.num_basis, confLocal_ext.volume);
