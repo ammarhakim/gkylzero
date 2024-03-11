@@ -113,7 +113,7 @@ create_ctx(void)
   double Te_src = 6.8 * GKYL_ELEMENTARY_CHARGE; // Source electron temperature.
   double r_src = 20.0 * rho_s; // Source radial extent.
   double L_src = 0.5 * rho_s; // Source length.
-  double S0 = 1.08 * n0 * c_s * (36.0 * 40.0 * rho_s); // Source reference number density.
+  double S0 = 1.08 * n0 * c_s / (36.0 * 40.0 * rho_s); // Source reference number density.
   double floor_src = 0.01; // Minimum source intensity.
 
   // Simulation parameters.
