@@ -31,13 +31,13 @@ struct axi_vac_riem_ctx
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
-  double rhol; // Left fluid mass density.
-  double ul; // Left fluid velocity.
-  double pl; // Left fluid pressure.
+  double rhol; // Left/inner fluid mass density.
+  double ul; // Left/inner fluid velocity.
+  double pl; // Left/inner fluid pressure.
 
-  double rhor; // Right fluid mass density.
-  double ur; // Right fluid velocity.
-  double pr; // Right fluid pressure.
+  double rhor; // Right/outer fluid mass density.
+  double ur; // Right/outer fluid velocity.
+  double pr; // Right/outer fluid pressure.
 
   // Simulation parameters.
   int Nr; // Cell count (radial direction).
