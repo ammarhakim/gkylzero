@@ -173,7 +173,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   
   double zeta_min = sqrt((R * R) - ((0.5 * bump_xlen) * (0.5 * bump_xlen)));
   
-  //Set physical coordinates (x, y) from computational coordinates (x, y).
+  // Set physical coordinates (x, y) from computational coordinates (x, y).
   xp[0] = x;
   xp[1] = y;
 
