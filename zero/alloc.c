@@ -201,19 +201,21 @@ gkyl_cu_malloc_(const char *file, int line, const char *func, size_t size)
     gkyl_exit("cudaMalloc failed!");
   
   GKYL_CU_MEMMSG("%p 0.cudaMalloc: %s %s:%d\n", ptr, file, func, line);
+
   return ptr;
 }
 
-// for pinned host memory
 void*
 gkyl_cu_malloc_host_(const char *file, int line, const char *func, size_t size)
 {
+  // Allocate pinned host memory.
   void *ptr;
   cudaError_t err = cudaMallocHost(&ptr, size);
   if (err != cudaSuccess)
     gkyl_exit("cudaMallocHost failed!");
 
   GKYL_CU_MEMMSG("%p 0.cudaMallocHost: %s %s:%d\n", ptr, file, func, line);
+
   return ptr;
 }
 
@@ -256,7 +258,9 @@ gkyl_cu_memcpy_async(void *dst, void *src, size_t count, enum gkyl_cu_memcpy_kin
 void
 gkyl_cu_memset(void *data, int val, size_t count)
 {
-  cudaMemset(data, val, count);
+  cudaError_t err = cudaMemset(data, val, count);
+  if (err != cudaSuccess)
+    gkyl_exit("gkyl_cu_memset failed!");
 }
 
 #else
