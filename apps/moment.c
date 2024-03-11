@@ -46,6 +46,25 @@ moment_array_meta_release(struct gkyl_array_meta *mt)
   gkyl_free(mt);
 }
 
+struct moment_output_meta
+moment_meta_from_mpack(struct gkyl_array_meta *mt)
+{
+  struct moment_output_meta meta = { .out_frame = 0, .out_tm = 0.0 };
+
+  if (mt->meta_sz > 0) {
+    mpack_tree_t tree;
+    mpack_tree_init_data(&tree, mt->meta, mt->meta_sz);
+    mpack_tree_parse(&tree);
+    mpack_node_t root = mpack_tree_root(&tree);
+    mpack_node_t tm_node = mpack_node_map_cstr(root, "time");
+    meta.out_tm = mpack_node_double(tm_node);
+    mpack_node_t fr_node = mpack_node_map_cstr(root, "frame");
+    meta.out_frame = mpack_node_i64(fr_node);
+    mpack_tree_destroy(&tree);
+  }
+  return meta;
+}
+
 gkyl_moment_app*
 gkyl_moment_app_new(struct gkyl_moment *mom)
 {
@@ -642,6 +661,8 @@ gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname)
       .r_time = tm
     };
 
+  struct moment_output_meta meta;
+  
   FILE *fp = 0;
   int status = 0;  
   with_file(fp, fname, "r") {
@@ -656,6 +677,13 @@ gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname)
       status = GKYL_ARRAY_RIO_DATA_MISMATCH;
     }
 
+    meta =
+      moment_meta_from_mpack( &(struct gkyl_array_meta) {
+          .meta = hdr.meta,
+          .meta_sz = hdr.meta_size
+        }
+      );
+
     gkyl_grid_sub_array_header_release(&hdr);    
   }
 
@@ -668,8 +696,8 @@ gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname)
   
   return (struct gkyl_app_restart_status) {
     .io_status = status,
-    .r_frame = frame,
-    .r_time = tm
+    .r_frame = meta.out_frame,
+    .r_time = meta.out_tm
   };
 }
 
@@ -679,6 +707,8 @@ gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
 {
   int frame = 0;
   double tm = 0.0;
+
+  struct moment_output_meta meta;
   
   FILE *fp = 0;
   int status = 0;
@@ -693,6 +723,13 @@ gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
       if (hdr.etype != GKYL_DOUBLE)
         status = GKYL_ARRAY_RIO_DATA_MISMATCH;
     }
+
+    meta =
+      moment_meta_from_mpack( &(struct gkyl_array_meta) {
+          .meta = hdr.meta,
+          .meta_sz = hdr.meta_size
+        }
+      );
     
     gkyl_grid_sub_array_header_release(&hdr);
   }
@@ -705,8 +742,8 @@ gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
   }
   return (struct gkyl_app_restart_status) {
     .io_status = status,
-    .r_frame = frame,
-    .r_time = tm
+    .r_frame = meta.out_frame,
+    .r_time = meta.out_tm
   };
 }
 

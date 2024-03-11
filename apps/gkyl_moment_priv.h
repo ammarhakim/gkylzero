@@ -408,3 +408,11 @@ struct gkyl_array_meta* moment_array_meta_new(struct moment_output_meta meta);
  * @param mt Meta object to free
  */
 void moment_array_meta_release(struct gkyl_array_meta *mt);
+
+/**
+ * Read meta-data from mpack formated binary input
+ *
+ * @param mt Mpack encoded meta-data
+ * @return Meta-data for simulation
+ */
+struct moment_output_meta moment_meta_from_mpack(struct gkyl_array_meta *mt);
