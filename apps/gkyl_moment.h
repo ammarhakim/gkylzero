@@ -272,9 +272,10 @@ void gkyl_moment_app_stat_write(const gkyl_moment_app *app);
  * @param app App object.
  * @param fname File to read from.
  * @param tm Time at which data is read
- * @return 0 on success.
+ * @return Status of read
  */
-enum gkyl_array_rio_status gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname, double tm);
+struct gkyl_app_restart_status gkyl_moment_app_from_file_field(gkyl_moment_app *app,
+  const char *fname);
 
 /**
  * Read species data from .gkyl file.
@@ -283,10 +284,10 @@ enum gkyl_array_rio_status gkyl_moment_app_from_file_field(gkyl_moment_app *app,
  * @param sidx Index of species to read
  * @param fname File to read from.
  * @param tm Time at which data is read
- * @return 0 on success.
+ * @return Status of read
  */
-enum gkyl_array_rio_status gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
-  const char *fname, double tm);
+struct gkyl_app_restart_status gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
+  const char *fname);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the

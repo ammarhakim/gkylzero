@@ -65,6 +65,9 @@ grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
 {
   size_t frr;
 
+  
+  hdr->meta_size = 0;
+
   char g0[6];
   frr = fread(g0, sizeof(char[5]), 1, fp); // no trailing '\0'
   g0[5] = '\0';                            // add the NULL
@@ -133,6 +136,15 @@ gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, FILE *fp)
 {
   return grid_sub_array_header_read_fp(grid, hdr, true, fp);
+}
+
+void
+gkyl_grid_sub_array_header_release(struct gkyl_array_header_info *hdr)
+{
+  if (hdr->meta_size>0) {
+    gkyl_free(hdr->meta);
+    hdr->meta_size = 0;
+  }
 }
 
 enum gkyl_array_rio_status

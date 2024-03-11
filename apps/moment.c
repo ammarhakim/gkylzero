@@ -629,55 +629,85 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   cstr_drop(&fileNm);
 }
 
-enum gkyl_array_rio_status
-gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname,
-  double tm)
+struct gkyl_app_restart_status
+gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname)
 {
+  int frame = 0;
+  double tm = 0.0;
+  
   if (app->has_field != 1)
-    return GKYL_ARRAY_RIO_SUCCESS;
+    return (struct gkyl_app_restart_status) {
+      .io_status = GKYL_ARRAY_RIO_SUCCESS,
+      .r_frame = frame,
+      .r_time = tm
+    };
 
   FILE *fp = 0;
+  int status = 0;  
   with_file(fp, fname, "r") {
     struct gkyl_rect_grid grid;
     struct gkyl_array_header_info hdr;
-    int err = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
-    if (err) return err;
+    status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
 
-    if (!gkyl_rect_grid_cmp(&app->grid, &grid))
-      return GKYL_ARRAY_RIO_DATA_MISMATCH;
+    if (0 == status) {
+      if (!gkyl_rect_grid_cmp(&app->grid, &grid))
+      status = GKYL_ARRAY_RIO_DATA_MISMATCH;
     if (hdr.etype != GKYL_DOUBLE)
-      return GKYL_ARRAY_RIO_DATA_MISMATCH;
+      status = GKYL_ARRAY_RIO_DATA_MISMATCH;
+    }
+
+    gkyl_grid_sub_array_header_release(&hdr);    
+  }
+
+  if (0 == status) {
+    status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field.fcurr, fname);
+    if (GKYL_ARRAY_RIO_SUCCESS == status)
+      moment_field_apply_bc(app, tm, &app->field, app->field.fcurr);
   }
   
-  int status =
-    gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field.fcurr, fname);
-  if (GKYL_ARRAY_RIO_SUCCESS == status)
-    moment_field_apply_bc(app, tm, &app->field, app->field.fcurr);
-  return status;
+  return (struct gkyl_app_restart_status) {
+    .io_status = status,
+    .r_frame = frame,
+    .r_time = tm
+  };
 }
 
-enum gkyl_array_rio_status
+struct gkyl_app_restart_status 
 gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
-  const char *fname, double tm)
+  const char *fname)
 {
+  int frame = 0;
+  double tm = 0.0;
+  
   FILE *fp = 0;
+  int status = 0;
   with_file(fp, fname, "r") {
+    
     struct gkyl_rect_grid grid;
     struct gkyl_array_header_info hdr;
-    int err = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
-    if (err) return err;
-
-    if (!gkyl_rect_grid_cmp(&app->grid, &grid))
-      return GKYL_ARRAY_RIO_DATA_MISMATCH;
-    if (hdr.etype != GKYL_DOUBLE)
-      return GKYL_ARRAY_RIO_DATA_MISMATCH;
+    status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+    if (0 == status) {
+      if (!gkyl_rect_grid_cmp(&app->grid, &grid))
+        status =  GKYL_ARRAY_RIO_DATA_MISMATCH;
+      if (hdr.etype != GKYL_DOUBLE)
+        status = GKYL_ARRAY_RIO_DATA_MISMATCH;
+    }
+    
+    gkyl_grid_sub_array_header_release(&hdr);
   }
-  
-  int status =
-    gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->species[sidx].fcurr, fname);
-  if (GKYL_ARRAY_RIO_SUCCESS == status)
-    moment_species_apply_bc(app, tm, &app->species[sidx], app->species[sidx].fcurr);
-  return status;
+
+  if (0 == status) {
+    int status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->species[sidx].fcurr, fname);
+    if (GKYL_ARRAY_RIO_SUCCESS == status)
+      moment_species_apply_bc(app, tm, &app->species[sidx], app->species[sidx].fcurr);
+  }
+  return (struct gkyl_app_restart_status) {
+    .io_status = status,
+    .r_frame = frame,
+    .r_time = tm
+  };
 }
 
 // private function to handle variable argument list for printing

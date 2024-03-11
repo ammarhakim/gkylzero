@@ -10,6 +10,13 @@ struct gkyl_update_status {
   double dt_suggested; // suggested stable time-step
 };
 
+// Status of restart
+struct gkyl_app_restart_status {
+  enum gkyl_array_rio_status io_status; // status of the file read
+  int r_frame; // frame number of file read
+  double r_time; // simulation time at which data was read 
+};  
+
 // Boundary conditions on particles
 enum gkyl_species_bc_type {
   GKYL_SPECIES_COPY = 0, // copy BCs

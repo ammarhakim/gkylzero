@@ -34,3 +34,9 @@ int gkyl_grid_sub_array_header_write_fp(const struct gkyl_rect_grid *grid,
 int gkyl_grid_sub_array_header_read_fp(struct gkyl_rect_grid *grid,
   struct gkyl_array_header_info *hdr, FILE *fp);
 
+/**
+ * Release memory for header.
+ *
+ * @param hdr Header memory to release
+ */
+void gkyl_grid_sub_array_header_release(struct gkyl_array_header_info *hdr);
