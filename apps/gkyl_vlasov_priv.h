@@ -17,6 +17,7 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_bgk_collisions.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
@@ -49,6 +50,7 @@
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
+#include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -129,6 +131,25 @@ struct vm_lbo_collisions {
   gkyl_prim_lbo_calc *coll_pcalc; // LBO primitive moment calculator
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
+};
+
+struct vm_bgk_collisions {  
+  struct gkyl_array *nu_sum; // BGK collision frequency 
+  struct gkyl_array *nu_sum_host; // BGK collision frequency host-side for I/O
+  struct gkyl_array *self_nu; // BGK self-collision frequency
+
+  bool normNu; // Boolean to determine if using Spitzer value
+  struct gkyl_array *norm_nu; // Array for normalization factor computed from Spitzer updater n/sqrt(2 vt^2)^3
+  struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
+  struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
+
+  struct vm_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
+
+  struct gkyl_array *fmax;
+  struct gkyl_array *nu_fmax;
+
+  struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+  struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 };
 
 struct vm_boundary_fluxes {
@@ -240,7 +261,15 @@ struct vm_species {
   struct vm_source src; // applied source
 
   enum gkyl_collision_id collision_id; // type of collisions
-  struct vm_lbo_collisions lbo; // collisions object
+  // collisions
+  union {
+    struct {
+      struct vm_lbo_collisions lbo; // LBO collisions object
+    };
+    struct {
+      struct vm_bgk_collisions bgk; // BGK collisions object
+    };
+  }; 
 
   double *omegaCfl_ptr;
 };
@@ -568,6 +597,53 @@ void vm_species_lbo_rhs(gkyl_vlasov_app *app,
  * @param sm Species LBO object to release
  */
 void vm_species_lbo_release(const struct gkyl_vlasov_app *app, const struct vm_lbo_collisions *lbo);
+
+/** vm_species_bgk API */
+
+/**
+ * Initialize species BGK collisions object.
+ *
+ * @param app Vlasov app object
+ * @param s Species object 
+ * @param bgk Species BGK object
+ */
+void vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_bgk_collisions *bgk);
+
+/**
+ * Compute necessary moments for BGK collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param bgk Pointer to BGK
+ * @param fin Input distribution function
+ */
+void vm_species_bgk_moms(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_bgk_collisions *bgk,
+  const struct gkyl_array *fin);
+
+/**
+ * Compute RHS from BGK collisions
+ *
+ * @param app Vlasov app object
+ * @param species Pointer to species
+ * @param bgk Pointer to BGK
+ * @param fin Input distribution function
+ * @param rhs On output, the RHS from bgk
+ */
+void vm_species_bgk_rhs(gkyl_vlasov_app *app,
+  const struct vm_species *species,
+  struct vm_bgk_collisions *bgk,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Release species BGK object.
+ *
+ * @param app Vlasov app object
+ * @param bgk Species BGK object to release
+ */
+void vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_collisions *bgk);
 
 /** vm_species_boundary_fluxes API */
 

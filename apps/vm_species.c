@@ -206,8 +206,13 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
+  s->lbo = (struct vm_lbo_collisions) { };
+  s->bgk = (struct vm_bgk_collisions) { };
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_init(app, s, &s->lbo);
+  }
+  else if (s->collision_id == GKYL_BGK_COLLISIONS) {
+    vm_species_bgk_init(app, s, &s->bgk);
   }
 
   // determine which directions are not periodic
@@ -341,8 +346,12 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
-  if (species->collision_id == GKYL_LBO_COLLISIONS)
+  if (species->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
+  }
+  else if (species->collision_id == GKYL_BGK_COLLISIONS) {
+    vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  }
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -528,8 +537,12 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     vm_species_source_release(app, &s->src);
   }
 
-  if (s->collision_id == GKYL_LBO_COLLISIONS)
+  if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_release(app, &s->lbo);
+  }
+  else if (s->collision_id == GKYL_LBO_COLLISIONS) {
+    vm_species_bgk_release(app, &s->bgk);
+  }
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
