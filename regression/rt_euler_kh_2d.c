@@ -49,8 +49,6 @@ struct kh_2d_ctx
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
-
-  double xloc; // Fluid boundary (x-coordinate).
 };
 
 struct kh_2d_ctx
