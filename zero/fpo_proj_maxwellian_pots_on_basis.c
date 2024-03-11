@@ -8,8 +8,8 @@
 #include <gkyl_const.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_gauss_quad_data.h>
-#include <gkyl_proj_maxwellian_pots_on_basis.h>
-#include <gkyl_proj_maxwellian_pots_on_basis_priv.h>
+#include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
+#include <gkyl_fpo_proj_maxwellian_pots_on_basis_priv.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 

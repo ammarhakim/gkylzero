@@ -4,10 +4,10 @@
 #include <gkyl_const.h>
 #include <gkyl_basis.h>
 #include <gkyl_eval_on_nodes.h>
+#include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_util.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_proj_maxwellian_pots_on_basis.h>
 
 
 struct gkyl_proj_maxwellian_pots_on_basis {
