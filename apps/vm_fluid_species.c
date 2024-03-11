@@ -483,6 +483,9 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
 
+  gkyl_array_release(f->qmem);
+  gkyl_array_release(f->m1i_fluid);
+
   gkyl_dg_updater_fluid_release(f->advect_slvr);
   if (f->has_diffusion) {
     gkyl_array_release(f->diffD);
