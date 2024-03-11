@@ -685,10 +685,6 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
     for (int i=0; i<MAX_RECV_NEIGH; ++i)
       mpi->send[i].buff = gkyl_mem_buff_new(16);
 
-    mpi->nsend = 0;
-    for (int i=0; i<MAX_RECV_NEIGH; ++i)
-      mpi->send[i].buff = gkyl_mem_buff_new(16);
-
     mpi->allgather_buff_local.buff = gkyl_mem_buff_new(16);
     mpi->allgather_buff_global.buff = gkyl_mem_buff_new(16);
 

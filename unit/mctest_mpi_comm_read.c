@@ -34,6 +34,9 @@ mpi_read(int nrank, int cuts[2])
 
   TEST_CHECK( GKYL_ARRAY_RIO_SUCCESS == status );
 
+  if (hdr.meta_size > 0)
+    free(hdr.meta);
+
   int nghost[] = { 2, 2 };
   struct gkyl_range global, ext_global;
   gkyl_create_grid_ranges(&grid, nghost, &ext_global, &global);
