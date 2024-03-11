@@ -457,6 +457,7 @@ barrier(struct gkyl_comm *comm)
 static void sub_array_decomp_write(struct mpi_comm *comm,
   const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, MPI_File fp)
 {
 #define _F(loc) gkyl_array_cfetch(arr, loc)
@@ -465,7 +466,7 @@ static void sub_array_decomp_write(struct mpi_comm *comm,
   MPI_Comm_rank(comm->mcomm, &rank);
 
   // seek to appropriate place in the file, depending on rank
-  size_t hdr_sz = gkyl_base_hdr_size(0) + gkyl_file_type_3_hrd_size(range->ndim);
+  size_t hdr_sz = gkyl_base_hdr_size(meta->meta_sz) + gkyl_file_type_3_hrd_size(range->ndim);
   size_t file_loc = hdr_sz +
     arr->esznc*comm->local_range_offset +
     rank*gkyl_file_type_3_range_hrd_size(range->ndim);
@@ -553,7 +554,7 @@ static int grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
   free(buff);
   
   // write data in array
-  sub_array_decomp_write(comm, decomp, range, arr, fp);
+  sub_array_decomp_write(comm, decomp, range, meta, arr, fp);
   return errno;
 }
 
