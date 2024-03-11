@@ -95,7 +95,7 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
         }
       }
       
-      diff_coeff_diag_recovery_stencil[d1][keri](grid->dx, gamma_c[0], 
+      diff_coeff_diag_recovery_stencil[d1][keri](grid->dx, gamma_c, 
         fpo_g_stencil, fpo_d2gdv2_surf_c, fpo_diff_coeff_c);
 
       for (int d2=0; d2<vdim; ++d2) {
@@ -141,7 +141,7 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
           in_grid = 1;
         }
 
-        diff_coeff_cross_recovery_stencil[d1][d2][keri](grid->dx, gamma_c[0], fpo_g_stencil,
+        diff_coeff_cross_recovery_stencil[d1][d2][keri](grid->dx, gamma_c, fpo_g_stencil,
           fpo_g_surf_stencil, fpo_dgdv_surf_c, fpo_diff_coeff_c);
       }
     }

@@ -54,7 +54,7 @@ gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
     (struct gkyl_dg_fpo_vlasov_diff_auxfields) { .diff_coeff = diff_coeff });
 
   struct timespec wst = gkyl_wall_clock();
-  gkyl_hyper_dg_gen_stencil_advance(fpo->drag, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(fpo->drag, update_rng, fIn, cflrate, rhs);
   fpo->drag_tm += gkyl_time_diff_now_sec(wst);
 
   // Fokker-Planck diffusion requires generalized hyper dg operator due to 
@@ -105,7 +105,7 @@ gkyl_dg_updater_fpo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *fpo,
   // Fokker-Planck diffusion requires generalized hyper dg operator due to 
   // off diagonal terms in diffusion tensor and mixed partial derivatives
   wst = gkyl_wall_clock();
-  //gkyl_hyper_dg_gen_stencil_advance_cu(fpo->diff, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_gen_stencil_advance_cu(fpo->diff, update_rng, fIn, cflrate, rhs);
   fpo->diff_tm += gkyl_time_diff_now_sec(wst);
 }
 

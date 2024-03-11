@@ -14,7 +14,7 @@
 #include <gkyl_util.h>
 
 gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, const struct gkyl_basis *surf_basis, int num_quad) 
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, int num_quad) 
 {
   gkyl_proj_maxwellian_pots_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_maxwellian_pots_on_basis));
   up->grid = *grid;
@@ -24,11 +24,13 @@ gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const
 
   up->phase_basis = phase_basis;
   up->conf_basis = conf_basis;
-  up->surf_basis = surf_basis;
+
+  gkyl_cart_modal_serendip(&up->surf_basis, up->pdim-1, phase_basis->poly_order);
+  // up->surf_basis = surf_basis;
 
   up->num_conf_basis = conf_basis->num_basis;
   up->num_phase_basis = phase_basis->num_basis;
-  up->num_surf_basis = surf_basis->num_basis;
+  up->num_surf_basis = up->surf_basis.num_basis;
 
   bool use_gpu = false;
   
@@ -37,7 +39,7 @@ gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const
     &up->ordinates, &up->weights, &up->basis_at_ords, use_gpu);
 
   // Initialize quadrature for surface expansion
-  up->tot_surf_quad = init_quad_values(up->cdim, surf_basis, num_quad, 
+  up->tot_surf_quad = init_quad_values(up->cdim, &up->surf_basis, num_quad,
     &up->surf_ordinates, &up->surf_weights, &up->surf_basis_at_ords, use_gpu);
 
   // Hybrid basis support: uses p=2 in velocity space
@@ -64,18 +66,17 @@ gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const
   up->fpo_d2gdv2_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
 
   // Nodes for nodal surface expansions
-  up->surf_nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim-1, surf_basis->num_basis);
-  surf_basis->node_list(gkyl_array_fetch(up->surf_nodes, 0));
+  up->surf_nodes = gkyl_array_new(GKYL_DOUBLE, grid->ndim-1, up->surf_basis.num_basis);
+  up->surf_basis.node_list(gkyl_array_fetch(up->surf_nodes, 0));
 
-  up->fpo_dgdv_at_surf_nodes = gkyl_array_new(GKYL_DOUBLE, 1, surf_basis->num_basis); 
+  up->fpo_dgdv_at_surf_nodes = gkyl_array_new(GKYL_DOUBLE, 1, up->surf_basis.num_basis);
 
   return up;
 }
 
 void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_on_basis *up,
     const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-    const struct gkyl_array* m0, const struct gkyl_array* u_drift, const struct gkyl_array* vtsq,
-    const struct gkyl_array *gamma,  
+    const struct gkyl_array* m0, const struct gkyl_array* prim_moms,
     struct gkyl_array *fpo_h, struct gkyl_array *fpo_g,
     struct gkyl_array *fpo_h_surf, struct gkyl_array *fpo_g_surf,
     struct gkyl_array *fpo_dhdv_surf, struct gkyl_array *fpo_dgdv_surf,
@@ -104,10 +105,12 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_range, conf_iter.idx);
 
+    // const double *m0_d = gkyl_array_cfetch(m0, midx);
+    // const double *u_drift_d = gkyl_array_cfetch(u_drift, midx);
+    // const double *vtsq_d = gkyl_array_cfetch(vtsq, midx);
     const double *m0_d = gkyl_array_cfetch(m0, midx);
-    const double *u_drift_d = gkyl_array_cfetch(u_drift, midx);
-    const double *vtsq_d = gkyl_array_cfetch(vtsq, midx);
-    const double *gamma_d = gkyl_array_cfetch(gamma, midx);
+    const double *u_drift_d = gkyl_array_cfetch(prim_moms, midx);
+    const double *vtsq_d = &u_drift_d[num_conf_basis*(vdim)];
 
     // Inner loop over velocity space
     // Should be able to replace this with a phase space loop
@@ -145,8 +148,8 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
         double* fpo_h_q = gkyl_array_fetch(up->fpo_h_at_ords, pqidx);
         double* fpo_g_q = gkyl_array_fetch(up->fpo_g_at_ords, pqidx);
 
-        fpo_h_q[0] = eval_fpo_h(gamma_d[0], den_q, rel_speed_q, vtsq_q);   
-        fpo_g_q[0] = eval_fpo_g(gamma_d[0], den_q, rel_speed_q, vtsq_q);
+        fpo_h_q[0] = eval_fpo_h(den_q, rel_speed_q, vtsq_q);
+        fpo_g_q[0] = eval_fpo_g(den_q, rel_speed_q, vtsq_q);
       }
 
       // Project potentials onto basis
@@ -197,9 +200,9 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
             double* fpo_g_at_surf_ords_q = gkyl_array_fetch(up->fpo_g_at_surf_ords, surf_qidx);
             double* fpo_dhdv_at_surf_ords_q = gkyl_array_fetch(up->fpo_dhdv_at_surf_ords, surf_qidx);
 
-            fpo_h_at_surf_ords_q[0] = eval_fpo_h(gamma_d[0], den_q, rel_speed_q, vtsq_q);
-            fpo_g_at_surf_ords_q[0] = eval_fpo_g(gamma_d[0], den_q, rel_speed_q, vtsq_q);
-            fpo_dhdv_at_surf_ords_q[0] = eval_fpo_dhdv(gamma_d[0], den_q, rel_vel_in_dir_q, vtsq_q, rel_speed_q);
+            fpo_h_at_surf_ords_q[0] = eval_fpo_h(den_q, rel_speed_q, vtsq_q);
+            fpo_g_at_surf_ords_q[0] = eval_fpo_g(den_q, rel_speed_q, vtsq_q);
+            fpo_dhdv_at_surf_ords_q[0] = eval_fpo_dhdv(den_q, rel_vel_in_dir_q, vtsq_q, rel_speed_q);
           }
 
           double *fpo_h_surf_n = gkyl_array_fetch(fpo_h_surf, lidx);
@@ -250,11 +253,11 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
 
               double *fpo_d2gdv2_at_surf_ords_q = gkyl_array_fetch(up->fpo_d2gdv2_at_surf_ords, surf_qidx);
               if (d1 == d2) {
-                fpo_d2gdv2_at_surf_ords_q[0] = eval_fpo_d2gdv2(gamma_d[0], den_q, 
+                fpo_d2gdv2_at_surf_ords_q[0] = eval_fpo_d2gdv2(den_q,
                   rel_vel_in_dir1_q, vtsq_q, rel_speed_q);
               }
               else {
-                fpo_d2gdv2_at_surf_ords_q[0] = eval_fpo_d2gdv2_cross(gamma_d[0], den_q,
+                fpo_d2gdv2_at_surf_ords_q[0] = eval_fpo_d2gdv2_cross(den_q,
                   rel_vel_in_dir1_q, rel_vel_in_dir2_q, rel_speed_q, vtsq_q); 
               } 
             }
@@ -300,13 +303,13 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
 
               double *fpo_dgdv_surf_n = gkyl_array_fetch(up->fpo_dgdv_at_surf_nodes, i);
 
-              fpo_dgdv_surf_n[0] = eval_fpo_dgdv(gamma_d[0], den_n, rel_vel_in_dir2_n,
+              fpo_dgdv_surf_n[0] = eval_fpo_dgdv(den_n, rel_vel_in_dir2_n,
                 vtsq_n, rel_speed_n);
             } 
 
             double *fpo_dgdv_surf_d = gkyl_array_fetch(fpo_dgdv_surf, lidx);
 
-            nod2mod(1, up->surf_basis, up->fpo_dgdv_at_surf_nodes, 
+            nod2mod(1, &up->surf_basis, up->fpo_dgdv_at_surf_nodes,
               &fpo_dgdv_surf_d[(d1*vdim+d2)*num_surf_basis]);
             gkyl_array_clear(up->fpo_dgdv_at_surf_nodes, 0.0);
           } 

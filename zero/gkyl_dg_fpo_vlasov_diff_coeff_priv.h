@@ -46,13 +46,13 @@ static int idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int
 }
 
 // Kernel function pointers
-typedef void (*fpo_diff_coeff_diag_t)(const double *dxv, double gamma, 
-    const double* fpo_g_stencil[3], const double* fpo_d2gdv2_surf, 
+typedef void (*fpo_diff_coeff_diag_t)(const double *dxv, const double *gamma,
+    const double* fpo_g_stencil[3], const double* fpo_d2gdv2_surf,
     double *diff_coeff);
 
-typedef void (*fpo_diff_coeff_cross_t)(const double *dxv, const double gamma, 
-    const double* fpo_g_stencil[9], const double* fpo_g_surf_stencil[9], 
-    const double* fpo_dgdv_surf, double *diff_coeff); 
+typedef void (*fpo_diff_coeff_cross_t)(const double *dxv, const double *gamma,
+    const double* fpo_g_stencil[9], const double* fpo_g_surf_stencil[9],
+    const double* fpo_dgdv_surf, double *diff_coeff);
 
 // For use in kernel tables
 typedef struct { fpo_diff_coeff_diag_t kernels[3]; } gkyl_dg_diff_coeff_diag_kern_list;

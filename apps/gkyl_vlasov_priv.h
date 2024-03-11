@@ -138,10 +138,14 @@ struct vm_lbo_collisions {
 struct vm_fpo_collisions {
   struct gkyl_array *gamma, *gamma_host; // FPO Gamma factor
   struct gkyl_array *h, *g; // Rosenbluth potentials
+  struct gkyl_array *m0;
 
   // Maxwellian potentials and derivatives on velocity space edges for boundary conditions
   struct gkyl_array *h_surf, *g_surf;
   struct gkyl_array *dhdv_surf, *dgdv_surf, *d2gdv2_surf;
+
+  struct gkyl_array *prim_moms, *boundary_corrections; // Primitive moments and boundary corrections (the latter is 0, used so we can reuse LBO infrastructure)
+  struct gkyl_mom_calc_bcorr *bcorr_calc; // FPO boundary corrections calculator
 
   struct gkyl_proj_maxwellian_pots_on_basis *pot_slvr; // potential solver for Maxwellian potentials
 
@@ -149,6 +153,8 @@ struct vm_fpo_collisions {
 
   struct gkyl_array *drag_coeff, *diff_coeff; // Drag and diffusion coefficients
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
+
+  gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator
 };
 
 struct vm_boundary_fluxes {

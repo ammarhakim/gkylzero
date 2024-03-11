@@ -108,6 +108,6 @@ GKYL_CU_DH double fpo_vlasov_drag_vol_1x3v_ser_p2(const double* dxv, const doubl
 
 
 
-  return fabs((1.25*a_vx[0]-1.3975424859373689*(a_vx[14]+a_vx[13]+a_vx[12]+a_vx[11]))*dv1_vx) + fabs((1.25*a_vy[0]-1.3975424859373689*(a_vy[14]+a_vy[13]+a_vy[12]+a_vy[11]))*dv1_vy) + fabs((1.25*a_vz[0]-1.3975424859373689*(a_vz[14]+a_vz[13]+a_vz[12]+a_vz[11]))*dv1_vz); 
+  return fabs(0.5*(1.25*a_vx[0]-1.3975424859373689*(a_vx[14]+a_vx[13]+a_vx[12]+a_vx[11]))*dv1_vx) + fabs(0.5*(1.25*a_vy[0]-1.3975424859373689*(a_vy[14]+a_vy[13]+a_vy[12]+a_vy[11]))*dv1_vy) + fabs(0.5*(1.25*a_vz[0]-1.3975424859373689*(a_vz[14]+a_vz[13]+a_vz[12]+a_vz[11]))*dv1_vz); 
 
 }

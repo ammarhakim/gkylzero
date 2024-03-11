@@ -5,18 +5,25 @@
 #include <string.h>
 
 // Types for various kernels
-typedef void (*fpo_vlasov_drag_surf_t)(const double *dxv, 
-  const double* drag_coeff_stencil[9], const double* f_stencil[9], double* out);
+typedef double (*fpo_vlasov_drag_surf_t)(const double *dxv,
+  const double *dragCoeffL, const double *dragCoeffC, const double *dragCoeffR,
+  const double *fL, const double *fC, const double *fR, double* GKYL_RESTRICT out);
+
+typedef double (*fpo_vlasov_drag_boundary_surf_t)(const double *dxv,
+  const double* dragCoeffEdge, const double* dragCoeffSkin,
+  const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_fpo_vlasov_drag_vol_kern_list;
 typedef struct { fpo_vlasov_drag_surf_t kernels[3]; } gkyl_dg_fpo_vlasov_drag_surf_kern_list;
+typedef struct { fpo_vlasov_drag_boundary_surf_t kernels[3]; } gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list;
 
 struct dg_fpo_vlasov_drag {
   struct gkyl_dg_eqn eqn; // Base object
   int cdim; // Config-space dimensions
   int pdim; // Phase-space dimensions
-  fpo_vlasov_drag_surf_t surf[3][3]; // Generic surface term domain stencil
+  fpo_vlasov_drag_surf_t surf[3]; // Surface terms
+  fpo_vlasov_drag_boundary_surf_t boundary_surf[3];
   struct gkyl_range phase_range; // Configuration space range.
   struct gkyl_dg_fpo_vlasov_drag_auxfields auxfields; // Auxiliary fields.
 };
@@ -31,7 +38,6 @@ kernel_fpo_vlasov_drag_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   struct dg_fpo_vlasov_drag* fpo_vlasov_drag = container_of(eqn, struct dg_fpo_vlasov_drag, eqn);
   
   long pidx = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idx);
-  
   return fpo_vlasov_drag_vol_1x3v_ser_p1( dx,
     (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, pidx),
     qIn, qRhsOut);
@@ -53,69 +59,80 @@ kernel_fpo_vlasov_drag_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const doub
 // Volume kernel list
 GKYL_CU_D
 static const gkyl_dg_fpo_vlasov_drag_vol_kern_list ser_vol_kernels[] = {
-  { kernel_fpo_vlasov_drag_vol_1x3v_ser_p1, kernel_fpo_vlasov_drag_vol_1x3v_ser_p2, NULL },
+  // 1x kernels
+  { NULL, kernel_fpo_vlasov_drag_vol_1x3v_ser_p1, kernel_fpo_vlasov_drag_vol_1x3v_ser_p2 },
+  // 2x kernels
   { NULL, NULL, NULL },
+  // 3x kernels
   { NULL, NULL, NULL },
 };
 
-// Surface kernels are handled generally using the domain decomp stencil.
-// These lists contain both surface and boundary surface
-// kernels, and the proper kernel is selected with the index returned from idx_to_inloup_ker 
-// in hyper_dg. 
-
+// Surface kernel lists
 // vx-direction surface kernels
 GKYL_CU_D
-static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_1x3v_vx_kernels[] = {
-  { fpo_vlasov_drag_surfvx_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p1_lovx, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p1_upvx },
-  {  fpo_vlasov_drag_surfvx_1x3v_ser_p2, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p2_lovx, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p2_upvx},
+static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vx_kernels[] = {
+  // 1x kernels
+  { NULL, fpo_vlasov_drag_surfvx_1x3v_ser_p1, fpo_vlasov_drag_surfvx_1x3v_ser_p2 },
+  // 2x kernels
+  { NULL, NULL, NULL},
+  // 3x kernels
   { NULL, NULL, NULL },
 };
 
 // vy-direction surface kernels
 GKYL_CU_D
-static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_1x3v_vy_kernels[] = {
-  { fpo_vlasov_drag_surfvy_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p1_lovy, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p1_upvy },
-  {  fpo_vlasov_drag_surfvy_1x3v_ser_p2, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p2_lovy, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p2_upvy},
+static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vy_kernels[] = {
+  // 1x kernels
+  { NULL, fpo_vlasov_drag_surfvy_1x3v_ser_p1, fpo_vlasov_drag_surfvy_1x3v_ser_p2 },
+  // 2x kernels
+  { NULL, NULL, NULL},
+  // 3x kernels
   { NULL, NULL, NULL },
 };
 
 // vz-direction surface kernels
 GKYL_CU_D
-static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_1x3v_vz_kernels[] = {
-  { fpo_vlasov_drag_surfvz_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p1_lovz, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p1_upvz },
-  {  fpo_vlasov_drag_surfvz_1x3v_ser_p2, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p2_lovz, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p2_upvz},
+static const gkyl_dg_fpo_vlasov_drag_surf_kern_list ser_surf_vz_kernels[] = {
+  // 1x kernels
+  { NULL, fpo_vlasov_drag_surfvz_1x3v_ser_p1, fpo_vlasov_drag_surfvz_1x3v_ser_p2 },
+  // 2x kernels
+  { NULL, NULL, NULL},
+  // 3x kernels
   { NULL, NULL, NULL },
 };
 
-// Lists of domain stencil kernel lists, ordered by cdim.
-GKYL_CU_DH
-static const gkyl_dg_fpo_vlasov_drag_surf_kern_list *ser_surf_vx_kernels[3] = {
-  ser_surf_1x3v_vx_kernels,
-  NULL,
-  NULL
-};
-
-GKYL_CU_DH
-static const gkyl_dg_fpo_vlasov_drag_surf_kern_list *ser_surf_vy_kernels[3] = {
-  ser_surf_1x3v_vy_kernels,
-  NULL,
-  NULL
-};
-
-GKYL_CU_DH
-static const gkyl_dg_fpo_vlasov_drag_surf_kern_list *ser_surf_vz_kernels[3] = {
-  ser_surf_1x3v_vz_kernels,
-  NULL,
-  NULL
-};
-
+// vx-direction boundary surf kernels
 GKYL_CU_D
-static void
-choose_fpo_vlasov_drag_surf_kern(fpo_vlasov_drag_surf_t surf[3],
-  const gkyl_dg_fpo_vlasov_drag_surf_kern_list** surf_kernel_list, int cdim, int poly_order)
-{
-  memcpy(surf, surf_kernel_list[cdim]->kernels[poly_order], 3 * sizeof(fpo_vlasov_drag_surf_t));
-}
+static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_vx_kernels[] = {
+  // 1x kernels
+  { NULL, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvx_1x3v_ser_p2 },
+  // 2x kernels
+  { NULL, NULL, NULL},
+  // 3x kernels
+  { NULL, NULL, NULL },
+};
+
+// vy-direction boundary surf kernels
+GKYL_CU_D
+static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_vy_kernels[] = {
+  // 1x kernels
+  { NULL, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvy_1x3v_ser_p2 },
+  // 2x kernels
+  { NULL, NULL, NULL},
+  // 3x kernels
+  { NULL, NULL, NULL },
+};
+
+// vz-direction boundary surf kernels
+GKYL_CU_D
+static const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list ser_boundary_surf_vz_kernels[] = {
+  // 1x kernels
+  { NULL, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p1, fpo_vlasov_drag_boundary_surfvz_1x3v_ser_p2 },
+  // 2x kernels
+  { NULL, NULL, NULL},
+  // 3x kernels
+  { NULL, NULL, NULL },
+};
 
 /* Free fpo_vlasov_diff equation object
  *
@@ -123,26 +140,53 @@ choose_fpo_vlasov_drag_surf_kern(fpo_vlasov_drag_surf_t surf[3],
 */
 void gkyl_fpo_vlasov_drag_free(const struct gkyl_ref_count* ref);
 
-// Gen surface term called by hyper_dg_gen_stencil_advance
+// Surface term called by gkyl_hyper_dg_advance
 GKYL_CU_D
-static void
-fpo_drag_gen_surf_term(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
-  const double* xc, const double* dxc, const int* idxc,
-  int keri, const int idx[9][GKYL_MAX_DIM], const double* qIn[9],
-  double* GKYL_RESTRICT qRhsOut)
+static double
+fpo_drag_surf_term(const struct gkyl_dg_eqn *eqn, 
+  int dir,
+  const double*  xcL, const double*  xcC, const double*  xcR, 
+  const double*  dxL, const double* dxC, const double* dxR,
+  const int*  idxL, const int*  idxC, const int*  idxR,
+  const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_fpo_vlasov_drag* fpo_vlasov_drag = container_of(eqn, struct dg_fpo_vlasov_drag, eqn);
-  long sz_dim = 9;
-  int cdim = fpo_vlasov_drag->cdim;
-  const double* drag_coeff_d[9];
-  for (int i=0; i<sz_dim; ++i) {
-    if (idx[i]) {
-      drag_coeff_d[i] = gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff,
-          gkyl_range_idx(&fpo_vlasov_drag->phase_range, idx[i]));
-    }
+
+  long linl = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idxL);
+  long linc = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idxC);
+  long linr = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idxR);
+
+  if (dir >= fpo_vlasov_drag->cdim) {
+    fpo_vlasov_drag->surf[dir-fpo_vlasov_drag->cdim](dxC, 
+        gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linl),
+        gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linc),
+        gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linr),
+        qInL, qInC, qInR, qRhsOut);
+  }
+  return 0.0;
+}
+
+GKYL_CU_D
+static double
+fpo_drag_boundary_surf_term(const struct gkyl_dg_eqn *eqn,
+  int dir,
+  const double*  xcEdge, const double*  xcSkin,
+  const double*  dxEdge, const double* dxSkin,
+  const int* idxEdge, const int* idxSkin, const int edge,
+  const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_fpo_vlasov_drag* fpo_vlasov_drag = container_of(eqn, struct dg_fpo_vlasov_drag, eqn);
+
+  long lin_edge = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idxEdge);
+  long lin_skin = gkyl_range_idx(&fpo_vlasov_drag->phase_range, idxSkin);
+
+  if (dir >= fpo_vlasov_drag->cdim) {
+    fpo_vlasov_drag->boundary_surf[dir-fpo_vlasov_drag->cdim](dxEdge,
+      gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, lin_edge),
+      gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, lin_skin),
+      edge, qInEdge, qInSkin, qRhsOut);
   }
 
-  if (dir1 >= cdim && dir1 == dir2) {
-    fpo_vlasov_drag->surf[dir1-cdim][keri](dxc, drag_coeff_d, qIn, qRhsOut);
-  }
+  return 0.0;
 }
+

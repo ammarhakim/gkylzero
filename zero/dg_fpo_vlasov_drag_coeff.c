@@ -76,7 +76,7 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid,
         }
       }
 
-      drag_coeff_recovery_stencil[d][keri](grid->dx, gamma_c[0], fpo_h_stencil, 
+      drag_coeff_recovery_stencil[d][keri](grid->dx, gamma_c, fpo_h_stencil, 
         fpo_dhdv_surf_c, fpo_drag_coeff_c);
     }
   }

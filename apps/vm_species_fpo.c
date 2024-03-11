@@ -1,12 +1,15 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
+#include <gkyl_array_rio.h>
+
 void 
 vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_fpo_collisions *fpo)
 {
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
   struct gkyl_basis surf_basis;
+
   // initialize surface basis for potentials on velocity space edges
   gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
 
@@ -31,10 +34,27 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   fpo->dgdv_surf = mkarr(app->use_gpu, 9*surf_basis.num_basis, s->local_ext.volume); 
   fpo->d2gdv2_surf = mkarr(app->use_gpu, 9*surf_basis.num_basis, s->local_ext.volume); 
 
-  fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid, &app->confBasis, &app->basis, &surf_basis, app->poly_order+1);
+  fpo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+
+  fpo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+  fpo->prim_moms = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+
+  fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid, &app->confBasis, &app->basis, app->poly_order+1);
 
   // allocate moments needed for FPO update
   vm_species_moment_init(app, s, &fpo->moms, "FiveMoments");
+
+  double v_bounds[2*GKYL_MAX_DIM];
+  for (int d=0; d<vdim; ++d) {
+    v_bounds[d] = s->info.lower[d];
+    v_bounds[d + vdim] = s->info.upper[d];
+  }
+  // edge of velocity space corrections to momentum and energy 
+  fpo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_new(&s->grid, 
+    &app->confBasis, &app->basis, v_bounds, app->use_gpu);
+
+  fpo->coll_pcalc = gkyl_prim_lbo_vlasov_calc_new(&s->grid,
+    &app->confBasis, &app->basis, &app->local, app->use_gpu);
 
   // initialize drag and diffusion coefficients
   fpo->drag_coeff = mkarr(app->use_gpu, 3*app->basis.num_basis, s->local_ext.volume);
@@ -50,15 +70,43 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
   struct vm_fpo_collisions *fpo, const struct gkyl_array *fin)
 {
   struct timespec wst = gkyl_wall_clock();
+  // gkyl_grid_sub_array_write(&s->grid, &s->local, fin, "f_square.gkyl");
+  // calculate needed moments
+  vm_species_moment_calc(&fpo->moms, s->local, app->local, fin);
+  gkyl_array_set_range(fpo->m0, 1.0, fpo->moms.marr, &app->local);
+
+  if (app->use_gpu) {
+    // construct boundary corrections
+    gkyl_mom_calc_bcorr_advance_cu(fpo->bcorr_calc,
+      &s->local, &app->local, fin, fpo->boundary_corrections);
+
+    // construct primitive moments
+    gkyl_prim_lbo_calc_advance_cu(fpo->coll_pcalc, &app->local,
+      fpo->moms.marr, fpo->boundary_corrections,
+      fpo->prim_moms);
+  } 
+  else {
+    // construct boundary corrections
+    gkyl_mom_calc_bcorr_advance(fpo->bcorr_calc,
+      &s->local, &app->local, fin, fpo->boundary_corrections);
+
+    // construct primitive moments  
+    gkyl_prim_lbo_calc_advance(fpo->coll_pcalc, &app->local,
+      fpo->moms.marr, fpo->boundary_corrections,
+      fpo->prim_moms);
+  }
+
   // calculate maxwellian potentials
-  gkyl_proj_maxwellian_pots_on_basis_lab_mom(fpo->pot_slvr, &s->local, &app->local, 
-    fpo->moms.marr, fpo->moms.marr, fpo->moms.marr, fpo->gamma, 
+  gkyl_proj_maxwellian_pots_on_basis_lab_mom(fpo->pot_slvr, &s->local, &app->local,
+    fpo->m0, fpo->prim_moms, 
     fpo->h, fpo->g, fpo->h_surf, fpo->g_surf, fpo->dhdv_surf, fpo->dgdv_surf, fpo->d2gdv2_surf);
+
   // Calculate drag and diffusion coefficients
-  gkyl_calc_fpo_drag_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma, 
+  gkyl_calc_fpo_drag_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
     fpo->h, fpo->dhdv_surf, fpo->drag_coeff); 
-  gkyl_calc_fpo_diff_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma, 
+  gkyl_calc_fpo_diff_coeff_recovery(&s->grid, app->basis, &s->local, &app->local, fpo->gamma,
     fpo->g, fpo->g_surf, fpo->dgdv_surf, fpo->d2gdv2_surf, fpo->diff_coeff); 
+
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -85,7 +133,7 @@ vm_species_fpo_rhs(gkyl_vlasov_app *app, const struct vm_species *s,
     // accumulate update due to collisions onto rhs
     gkyl_dg_updater_fpo_vlasov_advance(fpo->coll_slvr, &s->local,
       fpo->drag_coeff, fpo->diff_coeff, fin, s->cflrate, rhs);
-    
+
     app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
   }
 }

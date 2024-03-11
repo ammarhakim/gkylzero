@@ -156,7 +156,7 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
   while (gkyl_range_iter_next(&iter)) {
     long linc = gkyl_range_idx(update_range, iter.idx);
 
-    // Call volume kernel and get CLF rate
+    // Call volume kernel and get CFL rate
     gkyl_copy_int_arr(ndim, iter.idx, idxc);
     gkyl_rect_grid_cell_center(&hdg->grid, idxc, xcc);
     double cflr = hdg->equation->vol_term(
@@ -173,17 +173,28 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
         int dir2 = hdg->update_dirs[d2];
         int update_dirs[] = {dir1, dir2};
 
-        // Create offsets for 2D stencil
         long offsets[9];
-        int num_up_dirs = 2;
-        create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
+        int keri;
 
-        // Index into kernel list
-        int keri = idx_to_inloup_ker(2, idxc, update_dirs, update_range->upper);
+        // Create offsets for 2D stencil
+        if (dir1 != dir2) {
+          int num_up_dirs = 2;
+          create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
+
+          // Index into kernel list
+          keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range->upper);
+        } 
+        else {
+          int num_up_dirs = 1;
+          create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
+
+          // Index into kernel list
+          keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range->upper);
+        }
 
         // Get pointers to all neighbor values
         for (int i=0; i<9; ++i) {
-          gkyl_sub_range_inv_idx(update_range, linc+offsets[i], idx[i]);
+          gkyl_range_inv_idx(update_range, linc+offsets[i], idx[i]);
     
           // Check if index is in the domain
           // Assumes update_range owns lower and upper edges of the domain

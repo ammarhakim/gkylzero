@@ -207,7 +207,7 @@ static void
 choose_fpo_vlasov_diff_surf_kern(fpo_vlasov_diff_surf_t surf[9], 
   const fpo_vlasov_diff_surf_kern_list** surf_kernel_list, int cdim, int poly_order)
 {
-  memcpy(surf, surf_kernel_list[cdim]->kernels[poly_order], 9 * sizeof(fpo_vlasov_diff_surf_t));
+  memcpy(surf, &surf_kernel_list[cdim-1][poly_order-1], 9*sizeof(fpo_vlasov_diff_surf_t));
 }
 
 
@@ -228,6 +228,17 @@ fpo_diff_gen_surf_term(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
 {
   struct dg_fpo_vlasov_diff* fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
   long sz_dim = 9;
+
+  // Adjust 9-region indexing to 3-region indexing
+  if (dir1 == dir2) {
+    if (keri == 3 || keri == 4)
+      keri = 0;
+    else if (keri == 5 || keri == 6)
+      keri = 1;
+    else if (keri == 7 || keri == 8)
+      keri = 2;
+  }
+
   int cdim = fpo_vlasov_diff->cdim;
   const double* diff_coeff_d[9];
   for (int i=0; i<sz_dim; ++i) {
@@ -241,3 +252,4 @@ fpo_diff_gen_surf_term(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
     fpo_vlasov_diff->surf[dir1-cdim][dir2-cdim][keri](dxc, diff_coeff_d, qIn, qRhsOut);
   }
 }
+

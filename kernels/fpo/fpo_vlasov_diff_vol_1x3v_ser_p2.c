@@ -300,5 +300,5 @@ GKYL_CU_DH double fpo_vlasov_diff_vol_1x3v_ser_p2(const double* dxv, const doubl
 
 
 
-  return fabs((2.25*Dxx[0]-2.5155764746872635*(Dxx[14]+Dxx[13]+Dxx[12]+Dxx[11]))*dv1_sq_vxvx) + fabs((2.25*Dyx[0]-2.5155764746872635*(Dyx[14]+Dyx[13]+Dyx[12]+Dyx[11]))*dv1_sq_vyvx) + fabs((2.25*Dyy[0]-2.5155764746872635*(Dyy[14]+Dyy[13]+Dyy[12]+Dyy[11]))*dv1_sq_vyvy) + fabs((2.25*Dyz[0]-2.5155764746872635*(Dyz[14]+Dyz[13]+Dyz[12]+Dyz[11]))*dv1_sq_vyvz) + fabs((2.25*Dzx[0]-2.5155764746872635*(Dzx[14]+Dzx[13]+Dzx[12]+Dzx[11]))*dv1_sq_vzvx) + fabs((2.25*Dzy[0]-2.5155764746872635*(Dzy[14]+Dzy[13]+Dzy[12]+Dzy[11]))*dv1_sq_vzvy) + fabs((2.25*Dzz[0]-2.5155764746872635*(Dzz[14]+Dzz[13]+Dzz[12]+Dzz[11]))*dv1_sq_vzvz); 
+  return fabs(0.25*(2.25*Dxx[0]-2.5155764746872635*(Dxx[14]+Dxx[13]+Dxx[12]+Dxx[11]))*dv1_sq_vxvx) + fabs(0.25*(2.25*Dyx[0]-2.5155764746872635*(Dyx[14]+Dyx[13]+Dyx[12]+Dyx[11]))*dv1_sq_vyvx) + fabs(0.25*(2.25*Dyy[0]-2.5155764746872635*(Dyy[14]+Dyy[13]+Dyy[12]+Dyy[11]))*dv1_sq_vyvy) + fabs(0.25*(2.25*Dyz[0]-2.5155764746872635*(Dyz[14]+Dyz[13]+Dyz[12]+Dyz[11]))*dv1_sq_vyvz) + fabs(0.25*(2.25*Dzx[0]-2.5155764746872635*(Dzx[14]+Dzx[13]+Dzx[12]+Dzx[11]))*dv1_sq_vzvx) + fabs(0.25*(2.25*Dzy[0]-2.5155764746872635*(Dzy[14]+Dzy[13]+Dzy[12]+Dzy[11]))*dv1_sq_vzvy) + fabs(0.25*(2.25*Dzz[0]-2.5155764746872635*(Dzz[14]+Dzz[13]+Dzz[12]+Dzz[11]))*dv1_sq_vzvz); 
 } 

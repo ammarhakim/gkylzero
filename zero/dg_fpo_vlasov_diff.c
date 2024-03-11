@@ -9,7 +9,7 @@
 #include <gkyl_util.h>
 
 // "Choose Kernel" based on cdim and polynomial order
-#define CK(lst, cdim, poly_order) lst[cdim-1].kernels[poly_order]
+#define CK(lst, cdim, poly_order) lst[cdim-1].kernels[poly_order-1]
 
 void
 gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count* ref)
@@ -86,6 +86,20 @@ gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis* pbasis, const struct gkyl_r
 
       break;
 
+    case GKYL_BASIS_MODAL_HYBRID:
+      vol_kernels = ser_vol_kernels;
+      surf_vxvx_kernel_list = ser_surf_vxvx_kernels;
+      surf_vxvy_kernel_list = ser_surf_vxvy_kernels;
+      surf_vxvz_kernel_list = ser_surf_vxvz_kernels;
+      surf_vyvx_kernel_list = ser_surf_vyvx_kernels;
+      surf_vyvy_kernel_list = ser_surf_vyvy_kernels;
+      surf_vyvz_kernel_list = ser_surf_vyvz_kernels;
+      surf_vzvx_kernel_list = ser_surf_vzvx_kernels;
+      surf_vzvy_kernel_list = ser_surf_vzvy_kernels;
+      surf_vzvz_kernel_list = ser_surf_vzvz_kernels;
+
+      break;
+
     default:
       assert(false);
       break;    
@@ -105,8 +119,7 @@ gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   // ensure non-NULL pointers
   for (int i=0; i<vdim; ++i) 
     for (int j=0; j<vdim; ++j) 
-      for (int k=0; k<9; ++k)
-        assert(fpo_vlasov_diff->surf[i][j][k]);
+        assert(fpo_vlasov_diff->surf[i][j]);
 
   fpo_vlasov_diff->auxfields.diff_coeff = 0;
   fpo_vlasov_diff->phase_range = *phase_range;

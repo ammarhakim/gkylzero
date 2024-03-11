@@ -56,12 +56,17 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   fpo_vlasov_drag->pdim = pdim;
 
   fpo_vlasov_drag->eqn.num_equations = 1;
-  fpo_vlasov_drag->eqn.gen_surf_term = fpo_drag_gen_surf_term;
+  // fpo_vlasov_drag->eqn.gen_surf_term = fpo_drag_gen_surf_term;
+  fpo_vlasov_drag->eqn.surf_term = fpo_drag_surf_term;
+  fpo_vlasov_drag->eqn.boundary_surf_term = fpo_drag_boundary_surf_term;
 
   const gkyl_dg_fpo_vlasov_drag_vol_kern_list *vol_kernels;
-  const gkyl_dg_fpo_vlasov_drag_surf_kern_list** surf_vx_kernel_list;
-  const gkyl_dg_fpo_vlasov_drag_surf_kern_list** surf_vy_kernel_list;
-  const gkyl_dg_fpo_vlasov_drag_surf_kern_list** surf_vz_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_surf_kern_list *surf_vx_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_surf_kern_list *surf_vy_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_surf_kern_list *surf_vz_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vx_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vy_kernel_list;
+  const gkyl_dg_fpo_vlasov_drag_boundary_surf_kern_list *boundary_surf_vz_kernel_list;
 
   
   switch (pbasis->b_type) {
@@ -70,6 +75,19 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
       surf_vx_kernel_list = ser_surf_vx_kernels;
       surf_vy_kernel_list = ser_surf_vy_kernels;
       surf_vz_kernel_list = ser_surf_vz_kernels;
+      boundary_surf_vx_kernel_list = ser_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernel_list = ser_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernel_list = ser_boundary_surf_vz_kernels;
+      break;
+
+    case GKYL_BASIS_MODAL_HYBRID:
+      vol_kernels = ser_vol_kernels;
+      surf_vx_kernel_list = ser_surf_vx_kernels;
+      surf_vy_kernel_list = ser_surf_vy_kernels;
+      surf_vz_kernel_list = ser_surf_vz_kernels;
+      boundary_surf_vx_kernel_list = ser_boundary_surf_vx_kernels;
+      boundary_surf_vy_kernel_list = ser_boundary_surf_vy_kernels;
+      boundary_surf_vz_kernel_list = ser_boundary_surf_vz_kernels;
       break;
 
     default:
@@ -78,13 +96,16 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   }  
 
   fpo_vlasov_drag->eqn.vol_term = CK(vol_kernels, cdim, poly_order);
-
-  choose_fpo_vlasov_drag_surf_kern(fpo_vlasov_drag->surf[0], surf_vx_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_drag_surf_kern(fpo_vlasov_drag->surf[1], surf_vy_kernel_list, cdim, poly_order);
-  choose_fpo_vlasov_drag_surf_kern(fpo_vlasov_drag->surf[2], surf_vz_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->surf[0] = CK(surf_vx_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->surf[1] = CK(surf_vy_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->surf[2] = CK(surf_vz_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->boundary_surf[0] = CK(boundary_surf_vx_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->boundary_surf[1] = CK(boundary_surf_vy_kernel_list, cdim, poly_order);
+  fpo_vlasov_drag->boundary_surf[2] = CK(boundary_surf_vz_kernel_list, cdim, poly_order);
 
   // ensure non-NULL pointers
   for (int i=0; i<vdim; ++i) assert(fpo_vlasov_drag->surf[i]);
+  for (int i=0; i<vdim; ++i) assert(fpo_vlasov_drag->boundary_surf[i]);
 
   fpo_vlasov_drag->auxfields.drag_coeff = 0;
   fpo_vlasov_drag->phase_range = *phase_range;

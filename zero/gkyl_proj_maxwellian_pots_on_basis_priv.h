@@ -18,7 +18,7 @@ struct gkyl_proj_maxwellian_pots_on_basis {
 
   const struct gkyl_basis *phase_basis;
   const struct gkyl_basis *conf_basis;
-  const struct gkyl_basis *surf_basis;
+  struct gkyl_basis surf_basis;
 
   int num_conf_basis; // number of configuration space basis functions
   int num_phase_basis; // number of phase space basis functions
@@ -250,50 +250,50 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
 }
 
 
-static inline double eval_fpo_h(double gamma, double den, 
+static inline double eval_fpo_h(double den,
   double rel_speed, double vtsq) 
 {
   double sqrt2temp_over_m = sqrt(2.0*vtsq);
-  return gamma*den/rel_speed * erf(rel_speed/sqrt2temp_over_m);
+  return den/rel_speed * erf(rel_speed/sqrt2temp_over_m);
 }
 
-static inline double eval_fpo_g(double gamma, double den, double rel_speed, 
+static inline double eval_fpo_g(double den, double rel_speed,
   double vtsq) 
 {
   double rel_speedsq = pow(rel_speed, 2);
   double sqrt2temp_over_m = sqrt(2.0*vtsq);
-  return  gamma*den*sqrt2temp_over_m*
+  return  den*sqrt2temp_over_m*
     (1.0/(sqrt(GKYL_PI))*exp(-rel_speedsq/pow(sqrt2temp_over_m, 2)) + 
     erf(rel_speed/sqrt2temp_over_m)*(sqrt2temp_over_m/(2.0*rel_speed) + 
     rel_speed/sqrt2temp_over_m));
 }
 
-static inline double eval_fpo_dhdv(double gamma, double den, 
+static inline double eval_fpo_dhdv(double den,
   double rel_vel_in_dir, double vtsq, double rel_speed) 
 {
   double rel_speedsq = pow(rel_speed, 2);
   double sqrt2temp_over_m = sqrt(2.0*vtsq);
-  return gamma*den*rel_vel_in_dir * (
+  return den*rel_vel_in_dir * (
     2.0*exp(-rel_speedsq/pow(sqrt2temp_over_m,2))/(sqrt(GKYL_PI)*sqrt2temp_over_m*rel_speedsq) -
     erf(rel_speed/sqrt2temp_over_m)/pow(rel_speedsq, 1.5)
   );
 }
 
-static inline double eval_fpo_dgdv(double gamma, double den, double rel_vel_in_dir,
+static inline double eval_fpo_dgdv(double den, double rel_vel_in_dir,
   double vtsq, double rel_speed) {
   double rel_speedsq = pow(rel_speed,2);
   double sqrt2temp_over_m = sqrt(2.0*vtsq);
-  return gamma*den*rel_vel_in_dir * (
+  return den*rel_vel_in_dir * (
     exp(-rel_speedsq/pow(sqrt2temp_over_m,2))*sqrt2temp_over_m/(sqrt(GKYL_PI)*rel_speedsq) -
     erf(rel_speed/sqrt2temp_over_m)*(pow(sqrt2temp_over_m,2)/(2.0*pow(rel_speed,3)) - 1.0/rel_speed)
   );
 }
 
-static inline double eval_fpo_d2gdv2(double gamma, double den, 
+static inline double eval_fpo_d2gdv2(double den,
   double rel_vel_in_dir, double vtsq, double rel_speed) {
   double rel_speedsq = pow(rel_speed,2);
   double sqrt2temp_over_m = sqrt(2.0*vtsq);
-  return gamma*den*(exp(-rel_speedsq/pow(sqrt2temp_over_m,2))/sqrt(GKYL_PI)*(sqrt2temp_over_m/rel_speedsq - 
+  return den*(exp(-rel_speedsq/pow(sqrt2temp_over_m,2))/sqrt(GKYL_PI)*(sqrt2temp_over_m/rel_speedsq - 
     pow(rel_vel_in_dir,2)*2.0*sqrt2temp_over_m*(1.0/pow(rel_speedsq, 2) +
     1.0/(pow(sqrt2temp_over_m,2)*rel_speedsq) + (pow(sqrt2temp_over_m,2) - 
     2.0*rel_speedsq)/(2.0*pow(sqrt2temp_over_m,2)*pow(rel_speedsq, 2)))) +
@@ -302,12 +302,12 @@ static inline double eval_fpo_d2gdv2(double gamma, double den,
     pow(sqrt2temp_over_m, 2)/(2.0*pow(rel_speed, 3)) + 1.0/rel_speed));
 }
 
-static inline double eval_fpo_d2gdv2_cross(double gamma, double den,
+static inline double eval_fpo_d2gdv2_cross(double den,
   double rel_vel_in_dir1, double rel_vel_in_dir2, double rel_speed,
   double vtsq) {
   double rel_speedsq = pow(rel_speed,2);
   double sqrt2temp_over_m = sqrt(2.0*vtsq);
-  return gamma*den*rel_vel_in_dir1*rel_vel_in_dir2/pow(rel_speedsq,2)*(
+  return den*rel_vel_in_dir1*rel_vel_in_dir2/pow(rel_speedsq,2)*(
     erf(rel_speed/sqrt2temp_over_m)*(3.0*pow(sqrt2temp_over_m,2)-2.0*rel_speedsq)/(2.0*rel_speed) -
     3.0*exp(-rel_speedsq/pow(sqrt2temp_over_m,2))*sqrt2temp_over_m/sqrt(GKYL_PI)
   );
