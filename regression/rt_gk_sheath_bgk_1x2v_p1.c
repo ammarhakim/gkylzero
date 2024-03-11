@@ -472,11 +472,11 @@ main(int argc, char **argv)
     },
 
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
+      .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNuElcInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
+//      .num_cross_collisions = 1,
+//      .collide_with = { "ion" },
     },
 
     .source = {
@@ -523,11 +523,11 @@ main(int argc, char **argv)
     },
 
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
+      .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNuIonInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
+//      .num_cross_collisions = 1,
+//      .collide_with = { "elc" },
     },
 
     .source = {
@@ -563,7 +563,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_sheath_1x2v_p1",
+    .name = "gk_sheath_bgk_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { -0.5 * ctx.Lz},

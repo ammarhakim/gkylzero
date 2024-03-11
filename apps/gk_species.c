@@ -425,7 +425,8 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
     if (s->lower_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
       s->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, app->basis_on_dev.basis, 
-        &s->lower_skin[d], &s->lower_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
+        &s->lower_skin[d], &s->lower_ghost[d], &s->local_vel, s->vmap,
+        cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
     else if (s->lower_bc[d].type == GKYL_SPECIES_GK_IWL) {
       double xLCFS = s->lower_bc[d].aux_parameter;
@@ -435,7 +436,8 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
       gkyl_range_shorten_from_below(&s->lower_ghost_par_sol, &s->lower_ghost[d], 0, app->grid.cells[0]-idxLCFS_m+1);
 
       s->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, app->basis_on_dev.basis, 
-        &s->lower_skin_par_sol, &s->lower_ghost_par_sol, &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
+        &s->lower_skin_par_sol, &s->lower_ghost_par_sol, &s->local_vel, s->vmap,
+        cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
     else { 
       if (s->lower_bc[d].type == GKYL_SPECIES_COPY) 
@@ -453,7 +455,8 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
 
     if (s->upper_bc[d].type == GKYL_SPECIES_GK_SHEATH) {
       s->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, app->basis_on_dev.basis, 
-        &s->upper_skin[d], &s->upper_ghost[d], &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
+        &s->upper_skin[d], &s->upper_ghost[d], &s->local_vel, s->vmap,
+        cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
     else if (s->lower_bc[d].type == GKYL_SPECIES_GK_IWL) {
       double xLCFS = s->upper_bc[d].aux_parameter;
@@ -463,7 +466,8 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
       gkyl_range_shorten_from_below(&s->upper_ghost_par_sol, &s->upper_ghost[d], 0, app->grid.cells[0]-idxLCFS_m+1);
 
       s->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, app->basis_on_dev.basis, 
-        &s->upper_skin_par_sol, &s->upper_ghost_par_sol, &s->grid, cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
+        &s->upper_skin_par_sol, &s->upper_ghost_par_sol, &s->local_vel, s->vmap,
+        cdim, 2.0*(s->info.charge/s->info.mass), app->use_gpu);
     }
     else {
       // Upper BC updater. Copy BCs by default.

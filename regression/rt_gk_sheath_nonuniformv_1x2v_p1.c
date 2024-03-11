@@ -325,6 +325,40 @@ bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
   fout[0] = B0;
 }
 
+void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double Lvpar = app->Lvpar_elc;
+  double Lmu = app->Lmu_elc;
+
+  double cvpar = vc[0], cmu = vc[1];
+//  vp[0] = cvpar;
+  if (cvpar < 0.)
+    vp[0] = -(Lvpar/2.)*pow(cvpar,2);
+  else
+    vp[0] =  (Lvpar/2.)*pow(cvpar,2);
+
+//  vp[1] = cmu;
+  vp[1] = Lmu*pow(cmu,2);
+}
+
+void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double Lvpar = app->Lvpar_ion;
+  double Lmu = app->Lmu_ion;
+
+  double cvpar = vc[0], cmu = vc[1];
+//  vp[0] = cvpar;
+  if (cvpar < 0.)
+    vp[0] = -(Lvpar/2.)*pow(cvpar,2);
+  else
+    vp[0] =  (Lvpar/2.)*pow(cvpar,2);
+
+//  vp[1] = cmu;
+  vp[1] = Lmu*pow(cmu,2);
+}
+
 void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
 {
@@ -456,10 +490,16 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lvpar_elc, 0.0 },
-    .upper = { 0.5 * ctx.Lvpar_elc, ctx.Lmu_elc },
+    .lower = { -1.0, 0.0 },
+    .upper = {  1.0, 1.0 },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
+
+    .mapc2p = {
+      .is_mapped = true,
+      .mapping = mapc2p_vel_elc,
+      .ctx = &ctx,
+    },
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -471,13 +511,13 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
     },
 
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNuElcInit,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
-    },
+//    .collisions =  {
+//      .collision_id = GKYL_LBO_COLLISIONS,
+//      .self_nu = evalNuElcInit,
+//      .ctx = &ctx,
+//      .num_cross_collisions = 1,
+//      .collide_with = { "ion" },
+//    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -507,10 +547,16 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -0.5 * ctx.Lvpar_ion, 0.0 },
-    .upper = { 0.5 * ctx.Lvpar_ion, ctx.Lmu_ion },
+    .lower = { -1.0, 0.0 },
+    .upper = {  1.0, 1.0 },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
+
+    .mapc2p = {
+      .is_mapped = true,
+      .mapping = mapc2p_vel_ion,
+      .ctx = &ctx,
+    },
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
@@ -522,13 +568,13 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,      
     },
 
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .self_nu = evalNuIonInit,
-      .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
-    },
+//    .collisions =  {
+//      .collision_id = GKYL_LBO_COLLISIONS,
+//      .self_nu = evalNuIonInit,
+//      .ctx = &ctx,
+//      .num_cross_collisions = 1,
+//      .collide_with = { "elc" },
+//    },
 
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -563,7 +609,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_sheath_1x2v_p1",
+    .name = "gk_sheath_nonuniformv_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { -0.5 * ctx.Lz},

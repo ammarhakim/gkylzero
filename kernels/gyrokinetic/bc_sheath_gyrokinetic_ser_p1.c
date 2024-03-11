@@ -1,20 +1,26 @@
 #include <gkyl_bc_sheath_gyrokinetic_kernels.h> 
 
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
   double vcutSq;
   double fReflSurf[3] = {0.}; 
 
+  double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
+  double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
+
+  double vparAbsSqLo = vmap[0]>0.? vparLo*vparLo : vparUp*vparUp;
+  double vparAbsSqUp = vmap[0]>0.? vparUp*vparUp : vparLo*vparLo;
+
   vcutSq = -0.5*(2.449489742783178*phiWall[1]-2.449489742783178*phi[1]-1.414213562373095*phiWall[0]+1.414213562373095*phi[0])*q2Dm; 
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection) 
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurf[0] = 0.0; 
   fReflSurf[1] = 0.0; 
   fReflSurf[2] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection 
+  } else if (vcutSq > vparAbsSqUp) { // full reflection 
 
   fReflSurf[0] = -0.7071067811865475*(1.732050807568877*f[1]-1.0*f[0]); 
   fReflSurf[1] = -0.7071067811865475*(1.732050807568877*f[3]-1.0*f[2]); 
@@ -23,6 +29,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double 
   } else { // partial reflection 
 
     double xBar, xSqBar;
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     if (wv > 0.) {
       // vcut in logical space.
@@ -76,20 +85,26 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double 
   fRefl[5] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
   double vcutSq;
   double fReflSurf[3] = {0.}; 
 
+  double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
+  double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
+
+  double vparAbsSqLo = vmap[0]>0.? vparLo*vparLo : vparUp*vparUp;
+  double vparAbsSqUp = vmap[0]>0.? vparUp*vparUp : vparLo*vparLo;
+
   vcutSq = 0.5*(2.449489742783178*phiWall[1]-2.449489742783178*phi[1]+1.414213562373095*phiWall[0]-1.414213562373095*phi[0])*q2Dm; 
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection) 
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurf[0] = 0.0; 
   fReflSurf[1] = 0.0; 
   fReflSurf[2] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection 
+  } else if (vcutSq > vparAbsSqUp) { // full reflection 
 
   fReflSurf[0] = 0.7071067811865475*(1.732050807568877*f[1]+f[0]); 
   fReflSurf[1] = 0.7071067811865475*(1.732050807568877*f[3]+f[2]); 
@@ -98,6 +113,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double 
   } else { // partial reflection 
 
     double xBar, xSqBar;
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     if (wv > 0.) {
       // vcut in logical space.
@@ -151,14 +169,20 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double 
   fRefl[5] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
   double vcutSq;
   double fReflSurf[6] = {0.}; 
 
+  double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
+  double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
+
+  double vparAbsSqLo = vmap[0]>0.? vparLo*vparLo : vparUp*vparUp;
+  double vparAbsSqUp = vmap[0]>0.? vparUp*vparUp : vparLo*vparLo;
+
   vcutSq = -0.5*(2.449489742783178*phiWall[1]-2.449489742783178*phi[1]-1.414213562373095*phiWall[0]+1.414213562373095*phi[0])*q2Dm; 
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection) 
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurf[0] = 0.0; 
   fReflSurf[1] = 0.0; 
@@ -167,7 +191,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double 
   fReflSurf[4] = 0.0; 
   fReflSurf[5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection 
+  } else if (vcutSq > vparAbsSqUp) { // full reflection 
 
   fReflSurf[0] = -0.7071067811865475*(1.732050807568877*f[1]-1.0*f[0]); 
   fReflSurf[1] = -0.7071067811865475*(1.732050807568877*f[4]-1.0*f[2]); 
@@ -177,6 +201,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double 
   fReflSurf[5] = -0.1414213562373095*(8.660254037844387*f[11]-5.0*f[10]); 
 
   } else { // partial reflection 
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfMu[2][3] = {0.}; 
@@ -290,14 +317,20 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double 
   fRefl[11] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double wv, const double dv, const double vlowerSq, const double vupperSq, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
   double vcutSq;
   double fReflSurf[6] = {0.}; 
 
+  double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
+  double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
+
+  double vparAbsSqLo = vmap[0]>0.? vparLo*vparLo : vparUp*vparUp;
+  double vparAbsSqUp = vmap[0]>0.? vparUp*vparUp : vparLo*vparLo;
+
   vcutSq = 0.5*(2.449489742783178*phiWall[1]-2.449489742783178*phi[1]+1.414213562373095*phiWall[0]-1.414213562373095*phi[0])*q2Dm; 
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection) 
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurf[0] = 0.0; 
   fReflSurf[1] = 0.0; 
@@ -306,7 +339,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double 
   fReflSurf[4] = 0.0; 
   fReflSurf[5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection 
+  } else if (vcutSq > vparAbsSqUp) { // full reflection 
 
   fReflSurf[0] = 0.7071067811865475*(1.732050807568877*f[1]+f[0]); 
   fReflSurf[1] = 0.7071067811865475*(1.732050807568877*f[4]+f[2]); 
@@ -316,6 +349,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double 
   fReflSurf[5] = 0.1414213562373095*(8.660254037844387*f[11]+5.0*f[10]); 
 
   } else { // partial reflection 
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfMu[2][3] = {0.}; 
@@ -429,14 +465,20 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double 
   fRefl[11] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(double wv, double dv, double vlowerSq, double vupperSq, double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double *vmap, double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
   double vcutSq;
   double fReflSurfX[2][6] = {0.}; 
+  double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
+  double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
+
+  double vparAbsSqLo = vmap[0]>0.? vparLo*vparLo : vparUp*vparUp;
+  double vparAbsSqUp = vmap[0]>0.? vparUp*vparUp : vparLo*vparLo;
+
   // node (x)_0 
   vcutSq = 0.5*(1.732050807568877*phiWall[3]-1.732050807568877*(phi[3]+phiWall[2])+1.732050807568877*phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfX[0][0] = 0.0; 
   fReflSurfX[0][1] = 0.0; 
@@ -445,7 +487,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(double wv, do
   fReflSurfX[0][4] = 0.0; 
   fReflSurfX[0][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfX[0][0] = 0.5*(1.732050807568877*f[5]-1.0*(1.732050807568877*f[2]+f[1])+f[0]); 
   fReflSurfX[0][1] = 0.5*(1.732050807568877*f[11]-1.0*(1.732050807568877*f[7]+f[6])+f[3]); 
@@ -455,6 +497,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(double wv, do
   fReflSurfX[0][5] = 0.03333333333333333*(25.98076211353316*f[23]-8.660254037844387*(3.0*f[22]+1.732050807568877*f[21])+15.0*f[19]); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXMu[2][3] = {0.}; 
@@ -557,7 +602,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(double wv, do
   // node (x)_1 
   vcutSq = -0.5*(1.732050807568877*phiWall[3]-1.732050807568877*phi[3]+1.732050807568877*phiWall[2]-1.732050807568877*phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfX[1][0] = 0.0; 
   fReflSurfX[1][1] = 0.0; 
@@ -566,7 +611,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(double wv, do
   fReflSurfX[1][4] = 0.0; 
   fReflSurfX[1][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfX[1][0] = -0.5*(1.732050807568877*(f[5]+f[2])-1.0*(f[1]+f[0])); 
   fReflSurfX[1][1] = -0.5*(1.732050807568877*(f[11]+f[7])-1.0*(f[6]+f[3])); 
@@ -576,6 +621,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(double wv, do
   fReflSurfX[1][5] = -0.03333333333333333*(25.98076211353316*f[23]+25.98076211353316*f[22]-1.0*(15.0*f[21]+15.0*f[19])); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXMu[2][3] = {0.}; 
@@ -701,14 +749,20 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(double wv, do
   fRefl[23] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(double wv, double dv, double vlowerSq, double vupperSq, double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double *vmap, double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
   double vcutSq;
   double fReflSurfX[2][6] = {0.}; 
+  double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
+  double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
+
+  double vparAbsSqLo = vmap[0]>0.? vparLo*vparLo : vparUp*vparUp;
+  double vparAbsSqUp = vmap[0]>0.? vparUp*vparUp : vparLo*vparLo;
+
   // node (x)_0 
   vcutSq = -0.5*(1.732050807568877*phiWall[3]-1.732050807568877*(phi[3]+phiWall[2])+1.732050807568877*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfX[0][0] = 0.0; 
   fReflSurfX[0][1] = 0.0; 
@@ -717,7 +771,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(double wv, do
   fReflSurfX[0][4] = 0.0; 
   fReflSurfX[0][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfX[0][0] = -0.5*(1.732050807568877*(f[5]-1.0*f[2])+f[1]-1.0*f[0]); 
   fReflSurfX[0][1] = -0.5*(1.732050807568877*(f[11]-1.0*f[7])+f[6]-1.0*f[3]); 
@@ -727,6 +781,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(double wv, do
   fReflSurfX[0][5] = -0.03333333333333333*(25.98076211353316*f[23]+8.660254037844387*(1.732050807568877*f[21]-3.0*f[22])-15.0*f[19]); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXMu[2][3] = {0.}; 
@@ -829,7 +886,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(double wv, do
   // node (x)_1 
   vcutSq = 0.5*(1.732050807568877*phiWall[3]-1.732050807568877*phi[3]+1.732050807568877*phiWall[2]-1.732050807568877*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfX[1][0] = 0.0; 
   fReflSurfX[1][1] = 0.0; 
@@ -838,7 +895,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(double wv, do
   fReflSurfX[1][4] = 0.0; 
   fReflSurfX[1][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfX[1][0] = 0.5*(1.732050807568877*(f[5]+f[2])+f[1]+f[0]); 
   fReflSurfX[1][1] = 0.5*(1.732050807568877*(f[11]+f[7])+f[6]+f[3]); 
@@ -848,6 +905,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(double wv, do
   fReflSurfX[1][5] = 0.03333333333333333*(25.98076211353316*f[23]+8.660254037844387*(3.0*f[22]+1.732050807568877*f[21])+15.0*f[19]); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXMu[2][3] = {0.}; 
@@ -973,14 +1033,20 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(double wv, do
   fRefl[23] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, double dv, double vlowerSq, double vupperSq, double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double *vmap, double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
   double vcutSq;
   double fReflSurfXY[4][6] = {0.}; 
+  double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
+  double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
+
+  double vparAbsSqLo = vmap[0]>0.? vparLo*vparLo : vparUp*vparUp;
+  double vparAbsSqUp = vmap[0]>0.? vparUp*vparUp : vparLo*vparLo;
+
   // node (x,y)_0 
   vcutSq = -0.25*(2.449489742783178*phiWall[7]-2.449489742783178*(phi[7]+phiWall[6])+2.449489742783178*phi[6]-2.449489742783178*phiWall[5]+2.449489742783178*phi[5]-1.414213562373095*phiWall[4]+1.414213562373095*phi[4]+2.449489742783178*phiWall[3]-2.449489742783178*phi[3]+1.414213562373095*phiWall[2]-1.414213562373095*phi[2]+1.414213562373095*phiWall[1]-1.414213562373095*(phi[1]+phiWall[0])+1.414213562373095*phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfXY[0][0] = 0.0; 
   fReflSurfXY[0][1] = 0.0; 
@@ -989,7 +1055,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   fReflSurfXY[0][4] = 0.0; 
   fReflSurfXY[0][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfXY[0][0] = -0.3535533905932737*(1.732050807568877*f[16]-1.0*(1.732050807568877*(f[8]+f[7])+f[6])+1.732050807568877*f[3]+f[2]+f[1]-1.0*f[0]); 
   fReflSurfXY[0][1] = -0.3535533905932737*(1.732050807568877*f[26]-1.0*(1.732050807568877*(f[19]+f[18])+f[17])+1.732050807568877*f[11]+f[10]+f[9]-1.0*f[4]); 
@@ -999,6 +1065,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   fReflSurfXY[0][5] = -0.02357022603955158*(25.98076211353316*f[47]-5.0*(5.196152422706631*(f[46]+f[45])+3.0*f[44])+8.660254037844387*(3.0*f[42]+1.732050807568877*(f[41]+f[40]))-15.0*f[36]); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXYMu[2][3] = {0.}; 
@@ -1101,7 +1170,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   // node (x,y)_1 
   vcutSq = 0.25*(2.449489742783178*phiWall[7]-2.449489742783178*(phi[7]+phiWall[6])+2.449489742783178*(phi[6]+phiWall[5])-2.449489742783178*phi[5]-1.414213562373095*phiWall[4]+1.414213562373095*phi[4]-2.449489742783178*phiWall[3]+2.449489742783178*phi[3]+1.414213562373095*phiWall[2]-1.414213562373095*(phi[2]+phiWall[1])+1.414213562373095*(phi[1]+phiWall[0])-1.414213562373095*phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfXY[1][0] = 0.0; 
   fReflSurfXY[1][1] = 0.0; 
@@ -1110,7 +1179,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   fReflSurfXY[1][4] = 0.0; 
   fReflSurfXY[1][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfXY[1][0] = 0.3535533905932737*(1.732050807568877*(f[16]-1.0*f[8]+f[7])-1.0*(f[6]+1.732050807568877*f[3])+f[2]-1.0*f[1]+f[0]); 
   fReflSurfXY[1][1] = 0.3535533905932737*(1.732050807568877*(f[26]-1.0*f[19]+f[18])-1.0*(f[17]+1.732050807568877*f[11])+f[10]-1.0*f[9]+f[4]); 
@@ -1120,6 +1189,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   fReflSurfXY[1][5] = 0.02357022603955158*(25.98076211353316*f[47]+5.0*(5.196152422706631*(f[45]-1.0*f[46])-3.0*f[44])+8.660254037844387*(1.732050807568877*(f[41]-1.0*f[40])-3.0*f[42])+15.0*f[36]); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXYMu[2][3] = {0.}; 
@@ -1222,7 +1294,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   // node (x,y)_2 
   vcutSq = 0.25*(2.449489742783178*phiWall[7]-2.449489742783178*phi[7]+2.449489742783178*phiWall[6]-2.449489742783178*(phi[6]+phiWall[5])+2.449489742783178*phi[5]-1.414213562373095*phiWall[4]+1.414213562373095*phi[4]-2.449489742783178*phiWall[3]+2.449489742783178*phi[3]-1.414213562373095*phiWall[2]+1.414213562373095*(phi[2]+phiWall[1])-1.414213562373095*phi[1]+1.414213562373095*phiWall[0]-1.414213562373095*phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfXY[2][0] = 0.0; 
   fReflSurfXY[2][1] = 0.0; 
@@ -1231,7 +1303,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   fReflSurfXY[2][4] = 0.0; 
   fReflSurfXY[2][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfXY[2][0] = 0.3535533905932737*(1.732050807568877*(f[16]+f[8])-1.0*(1.732050807568877*f[7]+f[6]+1.732050807568877*f[3]+f[2])+f[1]+f[0]); 
   fReflSurfXY[2][1] = 0.3535533905932737*(1.732050807568877*(f[26]+f[19])-1.0*(1.732050807568877*f[18]+f[17]+1.732050807568877*f[11]+f[10])+f[9]+f[4]); 
@@ -1241,6 +1313,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   fReflSurfXY[2][5] = 0.02357022603955158*(25.98076211353316*f[47]+5.0*(5.196152422706631*f[46]-1.0*(5.196152422706631*f[45]+3.0*f[44]))+8.660254037844387*(1.732050807568877*(f[40]-1.0*f[41])-3.0*f[42])+15.0*f[36]); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXYMu[2][3] = {0.}; 
@@ -1343,7 +1418,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   // node (x,y)_3 
   vcutSq = -0.25*(2.449489742783178*phiWall[7]-2.449489742783178*phi[7]+2.449489742783178*phiWall[6]-2.449489742783178*phi[6]+2.449489742783178*phiWall[5]-2.449489742783178*phi[5]-1.414213562373095*phiWall[4]+1.414213562373095*phi[4]+2.449489742783178*phiWall[3]-2.449489742783178*phi[3]-1.414213562373095*phiWall[2]+1.414213562373095*phi[2]-1.414213562373095*phiWall[1]+1.414213562373095*phi[1]-1.414213562373095*phiWall[0]+1.414213562373095*phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfXY[3][0] = 0.0; 
   fReflSurfXY[3][1] = 0.0; 
@@ -1352,7 +1427,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   fReflSurfXY[3][4] = 0.0; 
   fReflSurfXY[3][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfXY[3][0] = -0.3535533905932737*(1.732050807568877*(f[16]+f[8]+f[7])-1.0*f[6]+1.732050807568877*f[3]-1.0*(f[2]+f[1]+f[0])); 
   fReflSurfXY[3][1] = -0.3535533905932737*(1.732050807568877*(f[26]+f[19]+f[18])-1.0*f[17]+1.732050807568877*f[11]-1.0*(f[10]+f[9]+f[4])); 
@@ -1362,6 +1437,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   fReflSurfXY[3][5] = -0.02357022603955158*(25.98076211353316*f[47]+25.98076211353316*(f[46]+f[45])+3.0*(8.660254037844387*f[42]-5.0*f[44])-1.0*(15.0*(f[41]+f[40])+15.0*f[36])); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXYMu[2][3] = {0.}; 
@@ -1511,14 +1589,20 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(double wv, do
   fRefl[47] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, double dv, double vlowerSq, double vupperSq, double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double *vmap, double q2Dm, const double *phi, const double *phiWall, const double *f, double *fRefl) 
 { 
   double vcutSq;
   double fReflSurfXY[4][6] = {0.}; 
+  double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
+  double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
+
+  double vparAbsSqLo = vmap[0]>0.? vparLo*vparLo : vparUp*vparUp;
+  double vparAbsSqUp = vmap[0]>0.? vparUp*vparUp : vparLo*vparLo;
+
   // node (x,y)_0 
   vcutSq = 0.25*(2.449489742783178*phiWall[7]-2.449489742783178*(phi[7]+phiWall[6])+2.449489742783178*phi[6]-2.449489742783178*phiWall[5]+2.449489742783178*phi[5]+1.414213562373095*phiWall[4]-1.414213562373095*phi[4]+2.449489742783178*phiWall[3]-2.449489742783178*phi[3]-1.414213562373095*phiWall[2]+1.414213562373095*phi[2]-1.414213562373095*phiWall[1]+1.414213562373095*(phi[1]+phiWall[0])-1.414213562373095*phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfXY[0][0] = 0.0; 
   fReflSurfXY[0][1] = 0.0; 
@@ -1527,7 +1611,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   fReflSurfXY[0][4] = 0.0; 
   fReflSurfXY[0][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfXY[0][0] = 0.3535533905932737*(1.732050807568877*(f[16]-1.0*(f[8]+f[7]))+f[6]+1.732050807568877*f[3]-1.0*(f[2]+f[1])+f[0]); 
   fReflSurfXY[0][1] = 0.3535533905932737*(1.732050807568877*(f[26]-1.0*(f[19]+f[18]))+f[17]+1.732050807568877*f[11]-1.0*(f[10]+f[9])+f[4]); 
@@ -1537,6 +1621,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   fReflSurfXY[0][5] = 0.02357022603955158*(25.98076211353316*f[47]+5.0*(3.0*f[44]-5.196152422706631*(f[46]+f[45]))+8.660254037844387*(3.0*f[42]-1.732050807568877*(f[41]+f[40]))+15.0*f[36]); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXYMu[2][3] = {0.}; 
@@ -1639,7 +1726,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   // node (x,y)_1 
   vcutSq = -0.25*(2.449489742783178*phiWall[7]-2.449489742783178*(phi[7]+phiWall[6])+2.449489742783178*(phi[6]+phiWall[5])-2.449489742783178*phi[5]+1.414213562373095*phiWall[4]-1.414213562373095*phi[4]-2.449489742783178*phiWall[3]+2.449489742783178*phi[3]-1.414213562373095*phiWall[2]+1.414213562373095*(phi[2]+phiWall[1])-1.414213562373095*(phi[1]+phiWall[0])+1.414213562373095*phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfXY[1][0] = 0.0; 
   fReflSurfXY[1][1] = 0.0; 
@@ -1648,7 +1735,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   fReflSurfXY[1][4] = 0.0; 
   fReflSurfXY[1][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfXY[1][0] = -0.3535533905932737*(1.732050807568877*(f[16]-1.0*f[8]+f[7])+f[6]-1.0*(1.732050807568877*f[3]+f[2])+f[1]-1.0*f[0]); 
   fReflSurfXY[1][1] = -0.3535533905932737*(1.732050807568877*(f[26]-1.0*f[19]+f[18])+f[17]-1.0*(1.732050807568877*f[11]+f[10])+f[9]-1.0*f[4]); 
@@ -1658,6 +1745,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   fReflSurfXY[1][5] = -0.02357022603955158*(25.98076211353316*f[47]+5.0*(5.196152422706631*(f[45]-1.0*f[46])+3.0*f[44])+8.660254037844387*(1.732050807568877*(f[40]-1.0*f[41])-3.0*f[42])-15.0*f[36]); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXYMu[2][3] = {0.}; 
@@ -1760,7 +1850,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   // node (x,y)_2 
   vcutSq = -0.25*(2.449489742783178*phiWall[7]-2.449489742783178*phi[7]+2.449489742783178*phiWall[6]-2.449489742783178*(phi[6]+phiWall[5])+2.449489742783178*phi[5]+1.414213562373095*phiWall[4]-1.414213562373095*phi[4]-2.449489742783178*phiWall[3]+2.449489742783178*phi[3]+1.414213562373095*phiWall[2]-1.414213562373095*(phi[2]+phiWall[1])+1.414213562373095*phi[1]-1.414213562373095*phiWall[0]+1.414213562373095*phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfXY[2][0] = 0.0; 
   fReflSurfXY[2][1] = 0.0; 
@@ -1769,7 +1859,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   fReflSurfXY[2][4] = 0.0; 
   fReflSurfXY[2][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfXY[2][0] = -0.3535533905932737*(1.732050807568877*(f[16]+f[8]-1.0*f[7])+f[6]-1.732050807568877*f[3]+f[2]-1.0*(f[1]+f[0])); 
   fReflSurfXY[2][1] = -0.3535533905932737*(1.732050807568877*(f[26]+f[19]-1.0*f[18])+f[17]-1.732050807568877*f[11]+f[10]-1.0*(f[9]+f[4])); 
@@ -1779,6 +1869,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   fReflSurfXY[2][5] = -0.02357022603955158*(25.98076211353316*f[47]+5.0*(5.196152422706631*(f[46]-1.0*f[45])+3.0*f[44])+8.660254037844387*(1.732050807568877*f[41]-3.0*f[42])-1.0*(15.0*f[40]+15.0*f[36])); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXYMu[2][3] = {0.}; 
@@ -1881,7 +1974,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   // node (x,y)_3 
   vcutSq = 0.25*(2.449489742783178*phiWall[7]-2.449489742783178*phi[7]+2.449489742783178*phiWall[6]-2.449489742783178*phi[6]+2.449489742783178*phiWall[5]-2.449489742783178*phi[5]+1.414213562373095*phiWall[4]-1.414213562373095*phi[4]+2.449489742783178*phiWall[3]-2.449489742783178*phi[3]+1.414213562373095*phiWall[2]-1.414213562373095*phi[2]+1.414213562373095*phiWall[1]-1.414213562373095*phi[1]+1.414213562373095*phiWall[0]-1.414213562373095*phi[0])*q2Dm;
 
-  if (vcutSq <= vlowerSq) { // absorb (no reflection)
+  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection)
 
   fReflSurfXY[3][0] = 0.0; 
   fReflSurfXY[3][1] = 0.0; 
@@ -1890,7 +1983,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   fReflSurfXY[3][4] = 0.0; 
   fReflSurfXY[3][5] = 0.0; 
 
-  } else if (vcutSq > vupperSq) { // full reflection
+  } else if (vcutSq > vparAbsSqUp) { // full reflection
 
   fReflSurfXY[3][0] = 0.3535533905932737*(1.732050807568877*(f[16]+f[8]+f[7])+f[6]+1.732050807568877*f[3]+f[2]+f[1]+f[0]); 
   fReflSurfXY[3][1] = 0.3535533905932737*(1.732050807568877*(f[26]+f[19]+f[18])+f[17]+1.732050807568877*f[11]+f[10]+f[9]+f[4]); 
@@ -1900,6 +1993,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(double wv, do
   fReflSurfXY[3][5] = 0.02357022603955158*(25.98076211353316*f[47]+5.0*(5.196152422706631*(f[46]+f[45])+3.0*f[44])+8.660254037844387*(3.0*f[42]+1.732050807568877*(f[41]+f[40]))+15.0*f[36]); 
 
   } else { // partial reflection
+
+    double wv = 0.5*(vparUp+vparLo);
+    double dv = vparUp-1.0*vparLo;
 
     double xBar, xSqBar;
     double fReflSurfXYMu[2][3] = {0.}; 

@@ -47,16 +47,17 @@ struct sheath_ctx
   double R; // Radial coordinate (simple toroidal coordinates).
   double B0; // Reference magnetic field strength (Tesla).
 
-  double log_lambda_elc; // Logarithm of electron wavelength.
+  double log_lambda_elc; // Electron Coulomb logarithm.
+  double log_lambda_ion; // Ion Coulomb logarithm.
+
   double nu_elc; // Electron collision frequency.
-  double log_lambda_ion; // Logarithm of ion wavelength.
   double nu_ion; // Ion collision frequency.
 
   double c_s; // Sound speed.
   double vte; // Electron thermal velocity.
   double vti; // Ion thermal velocity.
   double omega_ci; // Ion cyclotron frequency.
-  double rho_si; // Ion-sound gyroradius.
+  double rho_s; // Ion-sound gyroradius.
 
   double n_src; // Source number density.
   double T_src; // Source temperature.
@@ -68,15 +69,16 @@ struct sheath_ctx
   int Nx; // Cell count (configuration space: x-direction).
   int Ny; // Cell count (configuration space: y-direction).
   int Nz; // Cell count (configuration space: z-direction).
-  int Nv; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lx; // Domain size (configuration space: x-direction).
   double Ly; // Domain size (configuration space: y-direction).
   double Lz; // Domain size (configuration space: z-direction).
-  double Lv_elc; // Domain size (electron velocity space: parallel velocity direction).
+  double Lvpar_elc; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc; // Domain size (electron velocity space: magnetic moment direction).
-  double Lv_ion; // Domain size (ion velocity space: parallel velocity direction).
+  double Lvpar_ion; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion; // Domain size (ion velocity space: magnetic moment direction).
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
 };
@@ -89,13 +91,15 @@ create_ctx(void)
 
   // Physical constants (using non-normalized physical units).
   double epsilon0 = GKYL_EPSILON0; // Permittivity of free space.
-  double mass_elc = GKYL_ELECTRON_MASS; // Electron mass.
-  double charge_elc = -GKYL_ELEMENTARY_CHARGE; // Electron charge.
-  double mass_ion = 2.014 * GKYL_PROTON_MASS; // Proton mass.
-  double charge_ion = GKYL_ELEMENTARY_CHARGE; // Proton charge.
+  double eV = GKYL_ELEMENTARY_CHARGE; // Elementary charge.
 
-  double Te = 40.0 * GKYL_ELEMENTARY_CHARGE; // Electron temperature.
-  double Ti = 40.0 * GKYL_ELEMENTARY_CHARGE; // Ion temperature.
+  double mass_elc = GKYL_ELECTRON_MASS; // Electron mass.
+  double mass_ion = 2.014 * GKYL_PROTON_MASS; // Proton mass.
+  double charge_elc = -eV; // Electron charge.
+  double charge_ion = eV; // Proton charge.
+
+  double Te = 40.0 * eV; // Electron temperature.
+  double Ti = 40.0 * eV; // Ion temperature.
   double n0 = 7.0e18; //  Reference number density (1 / m^3).
 
   double B_axis = 0.5; // Magnetic field axis (simple toroidal coordinates).
@@ -108,18 +112,20 @@ create_ctx(void)
   double R = R0 + a0; // Radial coordinate (simple toroidal coordinates).
   double B0 = B_axis * (R0 / R); // Reference magnetic field strength (Tesla).
 
-  double log_lambda_elc = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Te / charge_ion); // Logarithm of electron wavelength.
-  double nu_elc = nu_frac * log_lambda_elc * (charge_ion * charge_ion * charge_ion * charge_ion) * n0 /
-    (6.0 * sqrt(2.0) * pi * sqrt(pi) * epsilon0 * epsilon0 * sqrt(mass_elc) * (Te * sqrt(Te))); // Electron collision frequency.
-  double log_lambda_ion = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Ti / charge_ion); // Logarithm of ion wavelength.
-  double nu_ion = nu_frac * log_lambda_ion * (charge_ion * charge_ion * charge_ion * charge_ion) * n0 /
-    (12.0 * pi * sqrt(pi) * epsilon0 * epsilon0 * sqrt(mass_ion) * (Ti * sqrt(Ti))); // Ion collision frequency.
+  // Coulomb logarithms.
+  double log_lambda_elc = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Te / charge_ion);
+  double log_lambda_ion = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Ti / charge_ion);
+
+  double nu_elc = nu_frac * log_lambda_elc * pow(charge_elc,4) * n0 /
+    (6.0 * sqrt(2.0) * pow(pi,3./2.) * pow(epsilon0,2) * sqrt(mass_elc) * pow(Te,3./2.));
+  double nu_ion = nu_frac * log_lambda_ion * pow(charge_ion,4) * n0 /
+    (12.0 * pow(pi,3./2.) * pow(epsilon0,2) * sqrt(mass_ion) * pow(Ti,3./2.));
   
   double c_s = sqrt(Te / mass_ion); // Sound speed.
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
   double vti = sqrt(Ti / mass_ion); // Ion thermal velocity.
   double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
-  double rho_si = c_s / omega_ci; // Ion-sound gyroradius.
+  double rho_s = c_s / omega_ci; // Ion-sound gyroradius.
 
   double n_src = 1.4690539 * 3.612270e23; // Source number density.
   double T_src = 2.0 * Te; // Source temperature.
@@ -131,14 +137,14 @@ create_ctx(void)
   int Nx = 4; // Cell count (configuration space: x-direction).
   int Ny = 1; // Cell count (configuration space: y-direction).
   int Nz = 8; // Cell count (configuration space: z-direction).
-  int Nv = 6; // Cell count (velocity space: parallel velocity direction).
+  int Nvpar = 6; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
-  double Lx = 50.0 * rho_si; // Domain size (configuration space: x-direction).
-  double Ly = 100.0 * rho_si; // Domain size (configuration space: y-direction).
+  double Lx = 50.0 * rho_s; // Domain size (configuration space: x-direction).
+  double Ly = 100.0 * rho_s; // Domain size (configuration space: y-direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
-  double Lv_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
+  double Lvpar_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc = (3.0 / 2.0) * 0.5 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
-  double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
+  double Lvpar_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion = (3.0 / 2.0) * 0.5 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
   double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -167,7 +173,7 @@ create_ctx(void)
     .vte = vte,
     .vti = vti,
     .omega_ci = omega_ci,
-    .rho_si = rho_si,
+    .rho_s = rho_s,
     .n_src = n_src,
     .T_src = T_src,
     .xmu_src = xmu_src,
@@ -176,14 +182,14 @@ create_ctx(void)
     .Nx = Nx,
     .Ny = Ny,
     .Nz = Nz,
-    .Nv = Nv,
+    .Nvpar = Nvpar,
     .Nmu = Nmu,
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
-    .Lv_elc = Lv_elc,
+    .Lvpar_elc = Lvpar_elc,
     .Lmu_elc = Lmu_elc,
-    .Lv_ion = Lv_ion,
+    .Lvpar_ion = Lvpar_ion,
     .Lmu_ion = Lmu_ion,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -198,12 +204,12 @@ evalSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
   struct sheath_ctx *app = ctx;
   double x = xn[0], z = xn[2];
 
-  double n_src = app -> n_src;
-  double xmu_src = app -> xmu_src;
-  double xsigma_src = app -> xsigma_src;
-  double floor_src = app -> floor_src;
+  double n_src = app->n_src;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
+  double floor_src = app->floor_src;
 
-  double Lz = app -> Lz;
+  double Lz = app->Lz;
 
   double n = 0.0;
 
@@ -231,9 +237,9 @@ evalSourceTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   struct sheath_ctx *app = ctx;
   double x = xn[0];
 
-  double T_src = app -> T_src;
-  double xmu_src = app -> xmu_src;
-  double xsigma_src = app -> xsigma_src;
+  double T_src = app->T_src;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
 
   double T = 0.0;
 
@@ -254,15 +260,15 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct sheath_ctx *app = ctx;
   double x = xn[0], z = xn[2];
 
-  double mass_ion = app -> mass_ion;
+  double mass_ion = app->mass_ion;
 
-  double n_src = app -> n_src;
-  double T_src = app -> T_src;
-  double xmu_src = app -> xmu_src;
-  double xsigma_src = app -> xsigma_src;
-  double floor_src = app -> floor_src;
+  double n_src = app->n_src;
+  double T_src = app->T_src;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
+  double floor_src = app->floor_src;
 
-  double Lz = app -> Lz;
+  double Lz = app->Lz;
 
   double src_density = GKYL_MAX2(exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))), floor_src) * n_src;
   double src_temp = 0.0;
@@ -302,10 +308,10 @@ evalTempElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct sheath_ctx *app = ctx;
   double x = xn[0];
 
-  double Te = app -> Te;
+  double Te = app->Te;
 
-  double xmu_src = app -> xmu_src;
-  double xsigma_src = app -> xsigma_src;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
 
   double T = 0.0;
 
@@ -326,10 +332,10 @@ evalTempIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct sheath_ctx *app = ctx;
   double x = xn[0];
 
-  double Ti = app -> Ti;
+  double Ti = app->Ti;
 
-  double xmu_src = app -> xmu_src;
-  double xsigma_src = app -> xsigma_src;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
 
   double T = 0.0;
 
@@ -349,7 +355,7 @@ evalNuElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct sheath_ctx *app = ctx;
 
-  double nu_elc = app -> nu_elc;
+  double nu_elc = app->nu_elc;
 
   // Set electron collision frequency.
   fout[0] = nu_elc;
@@ -360,7 +366,7 @@ evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct sheath_ctx *app = ctx;
 
-  double nu_ion = app -> nu_ion;
+  double nu_ion = app->nu_ion;
 
   // Set ion collision frequency.
   fout[0] = nu_ion;
@@ -372,8 +378,8 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   struct sheath_ctx *app = ctx;
   double x = zc[0], y = zc[1], z = zc[2];
 
-  double R0 = app -> R0;
-  double a0 = app -> a0;
+  double R0 = app->R0;
+  double a0 = app->a0;
 
   double R = x;
   double phi = z / (R0 + a0);
@@ -390,8 +396,8 @@ void bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT f
   struct sheath_ctx *app = ctx;
   double x = zc[0];
 
-  double B0 = app -> B0;
-  double R = app -> R;
+  double B0 = app->B0;
+  double R = app->R;
 
   // Set magnetic field strength.
   fout[0] = B0 * R / x;
@@ -401,10 +407,10 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_gyrokinetic_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write(app, t_curr, iot->curr - 1);
     gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot -> curr - 1);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -429,7 +435,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   int nrank = 1; // Number of processors in simulation.
@@ -501,9 +507,8 @@ main(int argc, char **argv)
   );
 #endif
 
-  int my_rank;
+  int my_rank, comm_size;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;
@@ -531,9 +536,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lv_elc, 0.0},
-    .upper = { 0.5 * ctx.Lv_elc, ctx.Lmu_elc},
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.Lvpar_elc, 0.0},
+    .upper = { 0.5 * ctx.Lvpar_elc, ctx.Lmu_elc},
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -584,9 +589,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -0.5 * ctx.Lv_ion, 0.0},
-    .upper = { 0.5 * ctx.Lv_ion, ctx.Lmu_ion},
-    .cells = { NV, NMU },
+    .lower = { -0.5 * ctx.Lvpar_ion, 0.0},
+    .upper = { 0.5 * ctx.Lvpar_ion, ctx.Lmu_ion},
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -672,7 +677,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

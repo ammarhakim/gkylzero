@@ -16,7 +16,8 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  * @param basis Basis on which coefficients in array are expanded (a device pointer if use_gpu=true).
  * @param skin_r Skin range.
  * @param ghost_r Ghost range.
- * @param grid cartesian grid dynamic field is defined on.
+ * @param vel_r Velocity space range.
+ * @param vmap Velocity space mapping.
  * @param cdim Configuration space dimensions.
  * @param q2Dm charge-to-mass ratio times 2.
  * @param use_gpu Boolean to indicate whether to use the GPU.
@@ -24,7 +25,7 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  */
 struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_basis *basis, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_rect_grid *grid, int cdim, double q2Dm, bool use_gpu);
+  const struct gkyl_range *vel_r, const struct gkyl_array *vmap, int cdim, double q2Dm, bool use_gpu);
 
 /**
  * Apply the sheath BC with the bc_sheath_gyrokinetic object.
