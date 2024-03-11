@@ -148,12 +148,6 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
   dem = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   cflrate = mkarr(app->use_gpu, 1, species->local_ext.volume);
 
-  // Radiation updater
-  /*  struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu,
-    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu };
-  gkyl_dg_updater_collisions *drag_slvr = gkyl_dg_updater_rad_gyrokinetic_new(&species->grid, 
-    &app->confBasis, &app->basis, &species->local, &drag_inp, app->use_gpu);
-  */  
   gk_species_moment_calc(&species->m0, species->local, app->local, species->f);
   //Calculate m2
   for (int i=0; i<rad->num_cross_collisions; ++i) {
@@ -177,8 +171,6 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
 
     gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
       species->f, cflrate, rhs);
-    //    gkyl_dg_updater_rad_gyrokinetic_advance(drag_slvr, &species->local,
-    //species->f, cflrate, rhs);
     struct gk_species_moment m2;
     gk_species_moment_init(app, species, &m2, "M2");
     gk_species_moment_calc(&m2, species->local, app->local, rhs);
@@ -187,7 +179,6 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
     gkyl_dg_div_op_range(m2.mem_geo ,app->confBasis, 0, rad->emissivity[i], 0, m2.marr, 0, dem, &app->local);
 
     rad->emissivity[i] = gkyl_array_scale(rad->emissivity[i], -mass/2.0);
-    //    rad->emissivity[i] = 1/2*mass*m2/(species->m0*&rad->moms[i].marr);
     gk_species_moment_release(app, &m2);
     double *arr = gkyl_array_fetch(rad->emissivity[i],0);
     double *arr2 =gkyl_array_fetch(m2.marr, 0);
@@ -197,7 +188,6 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
     double *arr6 = gkyl_array_fetch(rad->moms[i].marr,0);
     const double *arr7 = gkyl_array_cfetch(fin[rad->collide_with_idx[i]],0);
   }  
-  //  gkyl_dg_updater_rad_gyrokinetic_release(drag_slvr);
   gkyl_array_release(dem);
   gkyl_array_release(rhs);
   gkyl_array_release(cflrate);
@@ -209,6 +199,11 @@ gk_species_radiation_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *spe
   struct gk_rad_drag *rad, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
+  /* struct gkyl_array f_with_floor = gkyl_array_clone(fin);
+   *  gkyl_iter to loop over entire range
+   *  while (&iter) {
+   *     f_with_floor->data[i]=GKYL_MAX(f_with_floor->data[i], 1e-40)
+   */
 
   // accumulate update due to collisions onto rhs
   gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,

@@ -5,7 +5,7 @@
 
 struct all_radiation_states* gkyl_read_rad_fit_params(){
 
-  char *filepath=concat(STR(GKYL_ADAS_SHARE),"/radiation_fit_parameters.txt");
+  char *filepath=concat(STR(GKYL_SHARE),"/adas/radiation_fit_parameters.txt");
   FILE *fptr = fopen(filepath,"r");
   if (fptr == NULL){
     printf("Error opening radiation fit file: %s\n", filepath);

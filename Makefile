@@ -19,8 +19,8 @@ LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
 
 # Default radiation fit directory
-GKYL_ADAS_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share/adas"
-CFLAGS += -DGKYL_ADAS_SHARE=$(GKYL_ADAS_SHARE_DIR)
+GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
+CFLAGS += -DGKYL_SHARE=$(GKYL_SHARE_DIR)
 
 # SuperLU includes and librararies
 SUPERLU_INC = $(PREFIX)/superlu/include
