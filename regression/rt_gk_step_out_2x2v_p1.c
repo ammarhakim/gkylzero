@@ -24,6 +24,8 @@ struct gk_step_ctx {
   double massIon; // ion mass
   double Te; // electron temperature
   double Ti; // ion temperature
+  double vtIon;
+  double vtElc;
   double nuElc; // electron collision frequency
   double nuIon; // ion collision frequency
   double B0; // reference magnetic field
@@ -198,7 +200,7 @@ create_ctx(void)
   double vpar_max_ion = 4.0*vtIon;
   double mu_max_ion = 18*mi*vtIon*vtIon/(2.0*B0);
 
-  double finalTime = 1.0e-6; 
+  double finalTime = 2.0e-7; 
   double numFrames = 1;
 
   struct gk_step_ctx ctx = {
@@ -208,6 +210,8 @@ create_ctx(void)
     .massIon = mi,
     .Te = Te, 
     .Ti = Ti, 
+    .vtIon = vtIon,
+    .vtElc = vtElc,
     .nuElc = nuElc, 
     .nuIon = nuIon, 
     .B0 = B0, 
@@ -254,7 +258,7 @@ main(int argc, char **argv)
 
   struct gk_step_ctx ctx = create_ctx(); // context for init functions
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 2);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 4);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 8);
   int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
@@ -340,10 +344,15 @@ main(int argc, char **argv)
       .ctx_upar = &ctx,
       .upar= eval_upar,
       .ctx_temp = &ctx,
-      .temp = eval_temp_elc,      
+      .temp = eval_temp_elc,
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
+      .normNu = true,
+      .self_nu_fac = ctx.nuElc*pow((2*ctx.vtElc*ctx.vtElc), 3.0/2.0)/ctx.n0,
+      .cross_nu_fac = {ctx.nuIon*pow(ctx.vtIon*ctx.vtIon + ctx.vtElc*ctx.vtElc , 3.0/2.0)/ctx.n0},
+      .bmag_mid = 2.51,
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .num_cross_collisions = 1,
@@ -401,9 +410,14 @@ main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
     },
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
+      .normNu = true,
+      .self_nu_fac = ctx.nuIon*pow((2*ctx.vtIon*ctx.vtIon), 3.0/2.0)/ctx.n0, 
+      .cross_nu_fac = {ctx.nuElc*pow(ctx.vtIon*ctx.vtIon + ctx.vtElc*ctx.vtElc , 3.0/2.0)/ctx.n0},
+      .bmag_mid = 2.51,
       .self_nu = evalNuIon,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
