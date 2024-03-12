@@ -53,7 +53,7 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   // Project ADAS data
   struct adas_field data;
 
-  read_adas_field_recomb(type_ion, &data, base);
+  read_adas_field_recomb(type_ion, &data);
   
   long sz = data.NT*data.NN;
   double minmax[2];
