@@ -178,8 +178,8 @@ main(int argc, char **argv)
 
   struct axi_sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int Nr = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
-  int Ntheta = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
+  int NR = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nr);
+  int NTHETA = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ntheta);
 
   // Fluid equations.
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
@@ -202,7 +202,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { Nr, Ntheta };
+  int cells[] = { NR, NTHETA };
   int dim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range global_r;
   gkyl_create_global_range(dim, cells, &global_r);
@@ -275,7 +275,7 @@ main(int argc, char **argv)
     .ndim = 2,
     .lower = { 0.25, 0.0 },
     .upper = { 0.25 + ctx.Lr, 0.0 + ctx.Ltheta },
-    .cells = { Nr, Ntheta },
+    .cells = { NR, NTHETA },
 
     .mapc2p = mapc2p,
 

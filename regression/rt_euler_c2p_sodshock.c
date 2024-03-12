@@ -84,9 +84,9 @@ double gas_gamma = 1.4; // Adiabatic index.
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalEulerInit(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
+  double x = zc[0];
   struct c2p_sodshock_ctx *app = ctx;
 
   double gas_gamma = app -> gas_gamma;

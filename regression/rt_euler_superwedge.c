@@ -96,9 +96,9 @@ create_ctx(void)
 }
 
 void
-evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalEulerInit(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
+  double x = zc[0];
   struct superwedge_ctx *app = ctx;
 
   double gas_gamma = app -> gas_gamma;
