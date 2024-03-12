@@ -13,6 +13,10 @@ INSTALL_PREFIX ?= ${PREFIX}
 # determine OS we are running on
 UNAME = $(shell uname)
 
+# Directory for storing shared data, like ADAS
+GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
+CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
+
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC = $(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib

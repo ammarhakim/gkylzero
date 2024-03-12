@@ -51,7 +51,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   // Project ADAS data (H, He, Li)
   struct adas_field data;
 
-  read_adas_field_iz(type_ion, &data, base);
+  read_adas_field_iz(type_ion, &data);
   
   long sz = data.NT*data.NN;
   double minmax[2];
