@@ -40,7 +40,6 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     react->coeff_react[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->vt_sq_iz[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    //react->m0_donor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars[i] = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
@@ -55,7 +54,6 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
         .charge_state = react->react_type[i].charge_state, 
         .type_self = react->type_self[i], 
         .all_gk = false, 
-        .base = 0,
       };
       react->iz[i] = gkyl_dg_iz_new(&iz_inp, app->use_gpu); 
     }

@@ -72,8 +72,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
         .charge_state = react->react_type[i].charge_state,
         .type_self = react->type_self[i],
         .all_gk = react->all_gk,
-        .base = ".",
-      };
+       };
       react->iz[i] = gkyl_dg_iz_new(&iz_inp, app->use_gpu);
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {

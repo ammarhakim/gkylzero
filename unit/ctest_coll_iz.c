@@ -315,7 +315,6 @@ test_coll_iz_h_1x(bool use_gpu)
   int poly_order = 1;
   int cdim = 1, vdim_gk = 2, vdim_vl = 3;
   int pdim_gk = cdim + vdim_gk, pdim_vl = cdim + vdim_vl;
-  char basepath[4000] = ".";
 
   // for gk grids 
   double lower_elc[] = {-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,vmax_elc,mumax_elc};
@@ -384,7 +383,6 @@ test_coll_iz_h_1x(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
 
   struct gkyl_dg_iz_inp iz_inp_ion = {
@@ -399,7 +397,6 @@ test_coll_iz_h_1x(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ION,
     .all_gk = all_gk,
-    .base = basepath,
   };
 
   struct gkyl_dg_iz_inp iz_inp_donor = {
@@ -414,7 +411,6 @@ test_coll_iz_h_1x(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_DONOR,
     .all_gk = all_gk,
-    .base = basepath,
   };
 
   // coll struct.
@@ -537,7 +533,6 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   int poly_order = 1;
   int cdim = 1, vdim = 2;
   int pdim = cdim + vdim;
-  char basepath[4000] = ".";
   
   double lower_elc[] = {-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,vmax_elc,mumax_elc};
   double lower_ion[] = {-2.0,vmin_ion,0.0}, upper_ion[] = {2.0,vmax_ion,mumax_ion};
@@ -581,7 +576,6 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
 
   struct gkyl_dg_iz_inp iz_inp_ion = {
@@ -596,7 +590,6 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ION,
     .all_gk = all_gk,
-    .base = basepath,
   };
 
   struct gkyl_dg_iz_inp iz_inp_donor = {
@@ -611,7 +604,6 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_DONOR,
     .all_gk = all_gk,
-    .base = basepath,
   };
   
   // projection updater for moments
@@ -748,7 +740,6 @@ test_coll_iz_init_elem(bool use_gpu)
   int cdim = 3, vdim_gk = 2;
   int pdim_gk = cdim + vdim_gk;
   double imass = h_ion_mass;
-  char basepath[4000] = ".";
 
   // for gk grids 
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
@@ -787,7 +778,6 @@ test_coll_iz_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_iz_inp iz_inp_be = {
     .grid = &phaseGrid_elc,
@@ -801,7 +791,6 @@ test_coll_iz_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_iz_inp iz_inp_b = {
     .grid = &phaseGrid_elc,
@@ -815,7 +804,6 @@ test_coll_iz_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_iz_inp iz_inp_c = {
     .grid = &phaseGrid_elc,
@@ -829,7 +817,6 @@ test_coll_iz_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_iz_inp iz_inp_n = {
     .grid = &phaseGrid_elc,
@@ -843,7 +830,6 @@ test_coll_iz_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_iz_inp iz_inp_o = {
     .grid = &phaseGrid_elc,
@@ -857,7 +843,6 @@ test_coll_iz_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_iz_inp iz_inp_ar = {
     .grid = &phaseGrid_elc,
@@ -871,7 +856,6 @@ test_coll_iz_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
 
   

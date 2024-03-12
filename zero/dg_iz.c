@@ -35,7 +35,6 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   up->type_self = inp->type_self;
   up->all_gk = inp->all_gk;
 
-  const char *base = inp->base;
   int charge_state = inp->charge_state;
   enum gkyl_ion_type type_ion = inp->type_ion;
   
