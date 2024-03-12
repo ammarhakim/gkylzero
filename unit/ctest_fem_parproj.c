@@ -732,54 +732,52 @@ test_2x(int poly_order, const bool isperiodic, bool use_gpu)
 }
 
 void
-test_2x_dirichlet(){
+test_2x_dirichlet(int poly_order, bool use_gpu){
   double lower[] = { -M_PI, 0.0 }, upper[] = { 3*M_PI/4, 1.0 };
   int cells[] = { 12, 8 };
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 2, lower, upper, cells);
-  struct gkyl_range local, local_ext;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
   int nghost[GKYL_MAX_CDIM] = { 1, 1 };
+  struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
-  int poly_order = 1;
+
   struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 2, poly_order);
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+
+  struct gkyl_array *field_discont_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *field_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  struct gkyl_array *field = field_ho;
+  struct gkyl_array *field_discont = field_discont_ho;
+  if (use_gpu) {
+    field = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+    field_discont = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
+  }
   
   // project initial function on 2d field
-  struct gkyl_array *field_discont = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &evalFunc_2x_zdep_dirichlet, 0);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont);
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, &evalFunc_2x_zdep_dirichlet, 0);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, field_discont_ho);
   gkyl_proj_on_basis_release(proj);
-
-  struct gkyl_array *field = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  bool use_gpu = false;
-#ifdef GKYL_HAVE_CUDA
-  use_gpu = true;
-  struct gkyl_array *field_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_array_copy(field_dev, field);
-  struct gkyl_array *field_discont_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_array_copy(field_discont_dev, field_discont);
-#else
-  struct gkyl_array *field_dev = field;
-  struct gkyl_array *field_discont_dev = field_discont;
-#endif
+  gkyl_array_copy(field_discont, field_discont_ho);
 
   // Smooth it
-  struct gkyl_array *weight=0;
+  struct gkyl_array *weight = 0;
   struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &local_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, weight, use_gpu);
-  gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
-  gkyl_fem_parproj_solve(parproj, field_dev);
-#ifdef GKYL_HAVE_CUDA
-  gkyl_array_copy(field, field_dev);
-#endif
-  check_continuity_2x(grid, local, basis, field);
-  check_bc_2x(grid, local, basis, field, field_discont);
+  gkyl_fem_parproj_set_rhs(parproj, field_discont, field_discont);
+  gkyl_fem_parproj_solve(parproj, field);
 
-#ifdef GKYL_HAVE_CUDA
-  gkyl_array_release(field_dev);
-  gkyl_array_release(field_discont_dev);
-#endif
-  gkyl_array_release(field);
-  gkyl_array_release(field_discont);
+  gkyl_array_copy(field_ho, field);
+  check_continuity_2x(grid, local, basis, field_ho);
+  check_bc_2x(grid, local, basis, field, field_discont_ho);
+
+  if (use_gpu) {
+    gkyl_array_release(field);
+    gkyl_array_release(field_discont);
+  }
+  gkyl_array_release(field_ho);
+  gkyl_array_release(field_discont_ho);
   gkyl_fem_parproj_release(parproj);
 }
 
@@ -1215,6 +1213,8 @@ void test_3x_p1_periodic() {test_3x(1, true, false);}
 void test_3x_p2_nonperiodic() {test_3x(2, false, false);}
 void test_3x_p2_periodic() {test_3x(2, true, false);}
 
+void test_2x_p1_dirichlet() {test_2x_dirichlet(1, false);}
+
 #ifdef GKYL_HAVE_CUDA
 // ......... GPU tests ............ //
 void gpu_test_1x_p1_nonperiodic() {test_1x(1, false, true);}
@@ -1228,6 +1228,8 @@ void gpu_test_3x_p1_periodic() {test_3x(1, true, true);}
 
 void gpu_test_3x_p2_nonperiodic() {test_3x(2, false, true);}
 void gpu_test_3x_p2_periodic() {test_3x(2, true, true);}
+
+void gpu_test_2x_p1_dirichlet() {test_2x_dirichlet(1, true);}
 #endif
 
 
@@ -1244,7 +1246,7 @@ TEST_LIST = {
   { "test_3x_p1_periodic", test_3x_p1_periodic },
   { "test_3x_p2_nonperiodic", test_3x_p2_nonperiodic },
   { "test_3x_p2_periodic", test_3x_p2_periodic },
-  { "test_2x_dirichlet", test_2x_dirichlet},
+  { "test_2x_p1_dirichlet", test_2x_p1_dirichlet},
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_1x_p1_nonperiodic", gpu_test_1x_p1_nonperiodic },
   { "gpu_test_1x_p1_periodic", gpu_test_1x_p1_periodic },
@@ -1254,6 +1256,7 @@ TEST_LIST = {
   { "gpu_test_3x_p1_periodic", gpu_test_3x_p1_periodic },
   { "gpu_test_3x_p2_nonperiodic", gpu_test_3x_p2_nonperiodic },
   { "gpu_test_3x_p2_periodic", gpu_test_3x_p2_periodic },
+  { "gpu_test_2x_p1_dirichlet", gpu_test_2x_p1_dirichlet},
 #endif
   { NULL, NULL },
 };

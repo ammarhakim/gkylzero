@@ -116,7 +116,10 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     // compute needed moments
     gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
-
+    // divide out Jacobian from ion density before computation of final drag coefficient
+    gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
+      rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+    
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(rad->calc_gk_rad_vars[i], 
       &app->local, &species->local, 
       rad->vnu_surf[i], rad->vnu[i], 

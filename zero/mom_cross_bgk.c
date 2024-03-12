@@ -8,8 +8,9 @@ gkyl_mom_cross_bgk_gyrokinetic*
 gkyl_mom_cross_bgk_gyrokinetic_new(const struct gkyl_basis *phase_basis, const struct gkyl_basis *conf_basis, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (use_gpu) 
-    gkyl_mom_cross_bgk_gyrokinetic_cu_dev_new(phase_basis, conf_basis); 
+  if (use_gpu) {
+    return gkyl_mom_cross_bgk_gyrokinetic_cu_dev_new(phase_basis, conf_basis); 
+  }
 #endif
   gkyl_mom_cross_bgk_gyrokinetic *up = gkyl_malloc(sizeof(*up));
   up->use_gpu = use_gpu;
@@ -29,8 +30,11 @@ void gkyl_mom_cross_bgk_gyrokinetic_advance(gkyl_mom_cross_bgk_gyrokinetic *up,
   struct gkyl_array *moms_cross)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
-    return gkyl_mom_cross_bgk_gyrokinetic_advance_cu(up, conf_rng, beta, m_self, moms_self, m_other, moms_other, nu_sr, nu_rs, moms_cross);
+  if (up->use_gpu)  {
+    return gkyl_mom_cross_bgk_gyrokinetic_advance_cu(up, conf_rng, beta, 
+      m_self, moms_self, m_other, moms_other, 
+      nu_sr, nu_rs, moms_cross);
+  }
 #endif
   struct gkyl_range_iter conf_iter;  
   

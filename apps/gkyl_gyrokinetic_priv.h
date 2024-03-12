@@ -20,6 +20,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bc_sheath_gyrokinetic.h>
+#include <gkyl_bgk_collisions.h>
 #include <gkyl_correct_maxwellian_gyrokinetic.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
@@ -131,6 +132,7 @@ struct gk_species_moment {
   bool is_integrated; // boolean for if computing integrated moments 
                       // integrated moments do not need to divide by Jacobian since
                       // the inverse Jacobian is already included in the computation
+  int num_mom; // number of moments 
 
   struct gkyl_dg_updater_moment *mcalc; // moment update
 
@@ -222,11 +224,9 @@ struct gk_bgk_collisions {
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
   struct gk_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
-  struct gkyl_array *m0;
 
   struct gkyl_array *fmax;
   struct gkyl_array *nu_fmax;
-  struct gkyl_array *nu_sum_f;
 
   // Cross collisions inputs, arrays, and updaters
   double betaGreenep1; // value of Greene's factor beta + 1
@@ -237,17 +237,13 @@ struct gk_bgk_collisions {
   struct gkyl_array *other_moms[GKYL_MAX_SPECIES]; // moments of species being collided with
   struct gkyl_array *other_nu[GKYL_MAX_SPECIES]; // cross-species collision frequencies
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // cross-species collision frequencies
-  struct gkyl_array *self_mnu_m0[GKYL_MAX_SPECIES], *self_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *other_mnu_m0[GKYL_MAX_SPECIES], *other_mnu[GKYL_MAX_SPECIES];
-  struct gkyl_array *greene_num[GKYL_MAX_SPECIES], *greene_den[GKYL_MAX_SPECIES];
-  gkyl_dg_bin_op_mem *greene_factor_mem; // memory needed in computing Greene factor
-  struct gkyl_array *greene_factor[GKYL_MAX_SPECIES];
 
   struct gkyl_array *cross_moms[GKYL_MAX_SPECIES];
   struct gkyl_mom_cross_bgk_gyrokinetic *cross_bgk; // cross-species moment computation
 
   struct gkyl_correct_maxwellian_gyrokinetic *corr_max; // Maxwellian correction
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+  struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 };
 
 struct gk_boundary_fluxes {
@@ -279,10 +275,12 @@ struct gk_react {
   struct gk_species_moment moms_donor[GKYL_MAX_SPECIES]; // for computing moments of donor species in reaction
 
   struct gkyl_array *coeff_react[GKYL_MAX_SPECIES]; // reaction rate
+  struct gkyl_array *coeff_react_host[GKYL_MAX_SPECIES]; // reaction rate
   struct gkyl_array *vt_sq_iz[GKYL_MAX_SPECIES]; // ionization temperature
   struct gkyl_array *m0_elc[GKYL_MAX_SPECIES]; // electron density
-  //struct gkyl_array *m0_ion[GKYL_MAX_SPECIES]; // ion density
+  struct gkyl_array *m0_ion[GKYL_MAX_SPECIES]; // ion density
   struct gkyl_array *m0_donor[GKYL_MAX_SPECIES]; // donor density
+  struct gkyl_array *m0_mod[GKYL_MAX_SPECIES]; // to rescale fmax to have correct density
   struct gkyl_array *prim_vars[GKYL_MAX_SPECIES]; // primitive variables of donor (gk) or ion (vlasov), used for fmax
   union {
     // ionization
@@ -305,27 +303,29 @@ struct gk_proj {
       struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
       struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
     };
-    // Maxwellian and Bi-Maxwellian projection
+    // Maxwellian and Bi-Maxwellian projection from primitive moments
     struct {
-      struct gkyl_array *m0; // host-side density
-      struct gkyl_array *upar; // host-side upar  
+      struct gkyl_array *dens; // host-side density
+      struct gkyl_array *upar; // host-side upar
+      struct gkyl_array *udrift; // host-side udrift
       struct gkyl_array *prim_moms; // host-side prim_moms 
 
-      struct gkyl_array *m0mod; // array for correcting density
+      struct gkyl_array *dens_mod; // array for correcting density
 
       struct gkyl_array *prim_moms_dev; // device-side prim_moms for GPU simulations
-      struct gkyl_array *m0_dev; // device-side density for GPU simulations
+      struct gkyl_array *dens_dev; // device-side density for GPU simulations
       struct gkyl_dg_bin_op_mem *mem; // memory needed in correcting density
 
       struct gkyl_proj_on_basis *proj_dens; // projection operator for density
       struct gkyl_proj_on_basis *proj_upar; // projection operator for upar
-
+      struct gkyl_proj_on_basis *proj_udrift; // projection operator for upar
+      
       union {
         // Maxwellian-specific arrays and functions
         struct {
           struct gkyl_array *vtsq; // host-side vth^2 = T/m (temperature/mass)
           struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
-          struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+          struct gkyl_proj_maxwellian_on_basis *proj_max_prim; // Maxwellian projection object
         };
         // Bi-Maxwellian-specific arrays and functions
         struct {
@@ -337,6 +337,16 @@ struct gk_proj {
         };
       };
     };
+    // Maxwellian from lab moments, includes correction to Maxwellian to produce desired moments
+    struct { 
+      struct gkyl_array *lab_moms; // lab moms (M0, M1, M2)
+      struct gkyl_array *lab_moms_host; // host-side lab moms (M0, M1, M2) for GPU simulations
+
+      struct gkyl_proj_on_basis *proj_lab_moms; // projection operator for (M0, M1, M2)
+
+      struct gkyl_correct_maxwellian_gyrokinetic *corr_max_lab; // Maxwellian correction
+      struct gkyl_proj_maxwellian_on_basis *proj_max_lab; // Maxwellian projection object      
+    };
   };
 };
 
@@ -347,8 +357,10 @@ struct gk_source {
   struct gkyl_array *source_host; // host copy for use in IO and projecting
   struct gk_proj proj_source[GKYL_MAX_SOURCES]; // projector for source
   int num_sources; // Number of sources.
-  struct gk_species_moment integ_moms; // integrated moments
+
+  int num_diag_moments; // number of diagnostics moments
   struct gk_species_moment *moms; // diagnostic moments
+  struct gk_species_moment integ_moms; // integrated moments
   double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
