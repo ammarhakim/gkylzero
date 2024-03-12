@@ -229,25 +229,28 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
   double tcurr = 0.0, tend = 0.8;
   int frame = 0;
 
+  struct gkyl_app_restart_status status;  
   // initialize simulation
   if (app_args.is_restart) {
 
-    struct gkyl_app_restart_status status = gkyl_moment_app_from_file_species(
+    status = gkyl_moment_app_from_file_species(
       app, 0, "data/regression/euler_riem_2d_hllc-euler_0.gkyl");
     
-    if (status.io_status) {
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_moment_app_cout(app, stderr,
         "*** Failed to read restart file! (%s)\n",
         gkyl_array_rio_status_msg[status.io_status]
       );
       goto freeresources;
-    }      
-    frame = 100;
+    }
+    frame = status.frame;
+    tcurr = status.stime;
   }
   else {
-    gkyl_moment_app_apply_ic(app, tcurr);    
+    gkyl_moment_app_apply_ic(app, tcurr);
+    gkyl_moment_app_write(app, tcurr, frame);
   }
-  gkyl_moment_app_write(app, tcurr, frame++);
+
   gkyl_moment_app_calc_integrated_mom(app, tcurr);
 
   // compute estimate of maximum stable time-step
@@ -271,7 +274,7 @@ rt_euler_riem_2d_run(int argc, char **argv, enum gkyl_wv_euler_rp rp_type, enum 
     step += 1;
   }
 
-  gkyl_moment_app_write(app, tcurr, frame);
+  gkyl_moment_app_write(app, tcurr, 1);
   gkyl_moment_app_write_integrated_mom(app);
     
   gkyl_moment_app_stat_write(app);

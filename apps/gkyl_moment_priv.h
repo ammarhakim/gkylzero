@@ -95,7 +95,7 @@ struct moment_species {
   // boundary condition solvers on lower/upper edges in each direction
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
 
-  gkyl_dynvec integ_q;        // integrated conserved quantities
+  gkyl_dynvec integ_q; // integrated conserved quantities
   bool is_first_q_write_call; // flag for dynvec written first time
 };
 
@@ -243,8 +243,8 @@ struct gkyl_moment_app {
 
 // Meta-data for IO
 struct moment_output_meta {
-  int out_frame; // frame number
-  double out_tm; // output time
+  int frame; // frame number
+  double stime; // output time
 };
 
 /** Some common functions to species and fields */
