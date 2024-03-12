@@ -68,7 +68,10 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(const struct gkyl_rect_grid grid,
       vtsq[n] = (m2_n - den*usq)/(den*vdim);
 
       // Amplitude of the exponential.
-      exp_amp[n] = den/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim));
+      if ((den > 0.) && (vtsq[n]>0.))
+         exp_amp[n] = den/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim));
+      else
+         exp_amp[n] = 0.0
     }
 
     gkyl_rect_grid_cell_center(&grid, pidx, xc);
@@ -160,7 +163,10 @@ gkyl_proj_maxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid,
         vtsq_o[n] += vtsq_d[k]*b_ord[k];
       }
       // Amplitude of the exponential.
-      expamp_o[n] = m0_o/sqrt(pow(2.0*GKYL_PI*vtsq_o[n], vdim));
+      if ((m0_o > 0.) && (vtsq_o[n]>0.))
+         expamp_o[n] = m0_o/sqrt(pow(2.0*GKYL_PI*vtsq_o[n], vdim));
+      else
+         expamp_o[n] = 0.;
     }
 
     gkyl_rect_grid_cell_center(&grid, pidx, xc);
