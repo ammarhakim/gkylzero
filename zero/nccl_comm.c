@@ -586,7 +586,7 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
   MPI_Comm new_mcomm;
-  int ret = MPI_Comm_split(nccl->mpi_comm, color, nccl->rank, &new_mcomm);
+  int ret = MPI_Comm_split(nccl->mcomm, color, nccl->rank, &new_mcomm);
   assert(ret == MPI_SUCCESS);
 
   struct gkyl_comm *newcomm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
