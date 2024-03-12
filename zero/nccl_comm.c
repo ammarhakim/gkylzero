@@ -85,7 +85,7 @@ struct nccl_comm {
   int size; // Size of this communicator.
 
   ncclComm_t ncomm; // NCCL communicator to use.
-  MPI_Comm mpi_comm; // MPI comm this NCCL comm derives from.
+  struct gkyl_comm *mpi_comm; // MPI comm this NCCL comm derives from.
   bool has_decomp; // Whether this comm is associated with a decomposition (e.g. of a range)
   cudaStream_t custream; // Cuda stream for NCCL comms.
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
@@ -274,9 +274,7 @@ allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
   void *out)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);  
-  int ret =
-    MPI_Allreduce(inp, out, nelem, g2_mpi_datatype[type], g2_mpi_op[op], nccl->mpi_comm);
-  return ret == MPI_SUCCESS ? 0 : 1;
+  return gkyl_comm_allreduce(nccl->mpi_comm, type, op, nelem, inp, out);
 }
 
 static int
@@ -570,7 +568,7 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   // extend internal decomp object and create a new communicator
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, nccl->decomp);
   struct gkyl_comm *ext_comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-      .mpi_comm = nccl->mpi_comm,
+      .mpi_comm = nccl->mpi_comm->mcomm,
       .decomp = ext_decomp,
       .sync_corners = nccl->sync_corners,
       .device_set = 1,
@@ -585,9 +583,7 @@ static struct gkyl_comm*
 split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
-  MPI_Comm new_mpi_comm;
-  int ret = MPI_Comm_split(nccl->mpi_comm, color, nccl->rank, &new_mpi_comm);
-  assert(ret == MPI_SUCCESS);
+  struct gkyl_comm *new_mpi_comm = gkyl_comm_split_comm(nccl->mpi_comm, color, new_decomp);
 
   struct gkyl_comm *newcomm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
       .mpi_comm = new_mpi_comm,
@@ -605,8 +601,8 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
   struct nccl_comm *nccl = gkyl_malloc(sizeof *nccl);
 
   nccl->mpi_comm = gkyl_comm_acquire(inp->mpi_comm);
-  MPI_Comm_rank(inp->mpi_comm, &nccl->rank);
-  MPI_Comm_size(inp->mpi_comm, &nccl->size);
+  MPI_Comm_rank(nccl->mpi_comm->mcomm, &nccl->rank);
+  MPI_Comm_size(nccl->mpi_comm->mcomm, &nccl->size);
 
   if (inp->device_set == 0) {
     int num_devices[1];
@@ -618,7 +614,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
 
   ncclUniqueId nId;
   if (nccl->rank == 0) ncclGetUniqueId(&nId);
-  MPI_Bcast((void *)&nId, sizeof(nId), MPI_BYTE, 0, inp->mpi_comm);
+  MPI_Bcast((void *)&nId, sizeof(nId), MPI_BYTE, 0, nccl->mpi_comm->mcomm);
 
   if (inp->custream == 0)
     checkCuda(cudaStreamCreate(&nccl->custream));
