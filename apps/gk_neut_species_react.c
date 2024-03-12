@@ -70,7 +70,6 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
         .charge_state = react->react_type[i].charge_state, 
         .type_self = react->type_self[i], 
         .all_gk = false, 
-        .base = 0,
       };
       react->recomb[i] = gkyl_dg_recomb_new(&recomb_inp, app->use_gpu);       
     } 

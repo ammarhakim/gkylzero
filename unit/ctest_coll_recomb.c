@@ -73,7 +73,6 @@ test_coll_recomb_h(bool use_gpu)
   int poly_order = 1;
   int cdim = 3, vdim_gk = 2, vdim_vl = 3;
   int pdim_gk = cdim + vdim_gk, pdim_vl = cdim + vdim_vl;
-  char basepath[4000] = ".";
 
   // for gk grids 
   double lower_elc[] = {-2.0,-2.0,-2.0,vmin_elc,0.0}, upper_elc[] = {2.0,2.0,2.0,vmax_elc,mumax_elc};
@@ -149,7 +148,6 @@ test_coll_recomb_h(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_ion = {
     .grid = &phaseGrid_ion,
@@ -163,7 +161,6 @@ test_coll_recomb_h(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ION,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_rcvr = {
     .grid = &phaseGrid_vl,
@@ -177,7 +174,6 @@ test_coll_recomb_h(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_RECVR,
     .all_gk = all_gk,
-    .base = basepath,
   };
   
   // coll struct.
@@ -302,7 +298,6 @@ test_coll_recomb_all_gk_li(bool use_gpu)
   int ghostc[] = {0, 0, 0};
   int ghost[] = {0, 0, 0, 0, 0};
   int cells[] = {2, 2, 2, 16, 8};
-  char basepath[4000] = ".";
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -354,7 +349,6 @@ test_coll_recomb_all_gk_li(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_ion = {
     .grid = &phaseGrid_ion,
@@ -368,7 +362,6 @@ test_coll_recomb_all_gk_li(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ION,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_rcvr = {
     .grid = &phaseGrid_ion,
@@ -382,7 +375,6 @@ test_coll_recomb_all_gk_li(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_RECVR,
     .all_gk = all_gk,
-    .base = basepath,
   };
   
   // coll struct.
@@ -506,7 +498,6 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
   int ghostc[] = {0, 0, 0};
   int ghost[] = {0, 0, 0, 0, 0};
   int cells[] = {2, 2, 2, 16, 8};
-  char basepath[4000] = ".";
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -558,7 +549,6 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_ion = {
     .grid = &phaseGrid_ion,
@@ -572,7 +562,6 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ION,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_rcvr = {
     .grid = &phaseGrid_ion,
@@ -586,7 +575,6 @@ test_coll_recomb_all_gk_ar(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_RECVR,
     .all_gk = all_gk,
-    .base = basepath,
   };
   
   // coll struct.
@@ -709,7 +697,6 @@ test_coll_recomb_init_elem(bool use_gpu)
   int ghost[] = {0, 0, 0};
   int ghost_gk[] = {0, 0, 0, 0, 0};
   int cells_gk[] = {16, 16, 16, 8, 4};
-  char basepath[4000] = ".";
 
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -741,7 +728,6 @@ test_coll_recomb_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_be = {
     .grid = &phaseGrid_elc,
@@ -755,7 +741,6 @@ test_coll_recomb_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_b = {
     .grid = &phaseGrid_elc,
@@ -769,7 +754,6 @@ test_coll_recomb_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_c = {
     .grid = &phaseGrid_elc,
@@ -783,7 +767,6 @@ test_coll_recomb_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_n = {
     .grid = &phaseGrid_elc,
@@ -797,7 +780,6 @@ test_coll_recomb_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
   struct gkyl_dg_recomb_inp rec_inp_o = {
     .grid = &phaseGrid_elc,
@@ -811,7 +793,6 @@ test_coll_recomb_init_elem(bool use_gpu)
     .charge_state = charge_state,
     .type_self = GKYL_SELF_ELC,
     .all_gk = all_gk,
-    .base = basepath,
   };
     
   // coll struct.

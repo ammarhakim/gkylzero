@@ -46,7 +46,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   up->elem_charge = GKYL_ELEMENTARY_CHARGE;
   up->mass_elc = GKYL_ELECTRON_MASS;
 
-  const char *base = inp->base;
   int charge_state = inp->charge_state;
   enum gkyl_ion_type type_ion = inp->type_ion;
   

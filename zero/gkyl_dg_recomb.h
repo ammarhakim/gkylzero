@@ -20,7 +20,6 @@ struct gkyl_dg_recomb_inp {
   int charge_state; // Ion charge state
   enum gkyl_react_self_type type_self; // Species type (ion, electron, or receiver)
   bool all_gk; // To indicate if all 3 interacting species are GK or not
-  const char* base; // File path to locate adas data
 };
 
 
