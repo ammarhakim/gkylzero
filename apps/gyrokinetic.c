@@ -743,7 +743,7 @@ gkyl_gyrokinetic_app_write_iz_react(gkyl_gyrokinetic_app* app, int sidx, int rid
   if (app->use_gpu) {
     gkyl_array_copy(s->react.coeff_react_host[ridx], s->react.coeff_react[ridx]);
   }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react.coeff_react_host[ridx], fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, s->react.coeff_react_host[ridx], fileNm);
 
 }
 
@@ -771,7 +771,7 @@ gkyl_gyrokinetic_app_write_recomb_react(gkyl_gyrokinetic_app* app, int sidx, int
   if (app->use_gpu) {
     gkyl_array_copy(s->react.coeff_react_host[ridx], s->react.coeff_react[ridx]);
   }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react.coeff_react_host[ridx], fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, s->react.coeff_react_host[ridx], fileNm);
 
 }
 
@@ -799,7 +799,7 @@ gkyl_gyrokinetic_app_write_iz_react_neut(gkyl_gyrokinetic_app* app, int sidx, in
   if (app->use_gpu) {
     gkyl_array_copy(s->react_neut.coeff_react_host[ridx], s->react_neut.coeff_react[ridx]);
   }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react_neut.coeff_react_host[ridx], fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, s->react_neut.coeff_react_host[ridx], fileNm);
 
 }
 
@@ -827,7 +827,7 @@ gkyl_gyrokinetic_app_write_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx
   if (app->use_gpu) {
     gkyl_array_copy(s->react_neut.coeff_react_host[ridx], s->react_neut.coeff_react[ridx]);
   }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->react_neut.coeff_react_host[ridx], fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, s->react_neut.coeff_react_host[ridx], fileNm);
 
 }
 
