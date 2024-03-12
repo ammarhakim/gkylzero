@@ -310,12 +310,23 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
   };
+  
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_ten_moment,
     .evolve = true,
     .init = evalIonInit,
+    .ctx = &ctx,
+  };
+
+  // Field.
+  struct gkyl_moment_field field = {
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .mag_error_speed_fact = 1.0,
+    
+    .evolve = true,
+    .init = evalFieldInit,
     .ctx = &ctx,
   };
 
@@ -409,14 +420,7 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
 
-    .field = {
-      .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
-      .mag_error_speed_fact = 1.0,
-      
-      .evolve = true,
-      .init = evalFieldInit,
-      .ctx = &ctx,
-    }, 
+    .field = field, 
 
     .has_low_inp = true,
     .low_inp = {

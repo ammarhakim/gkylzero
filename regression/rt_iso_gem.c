@@ -263,6 +263,7 @@ main(int argc, char **argv)
 
     .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
+
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
@@ -272,6 +273,18 @@ main(int argc, char **argv)
     .ctx = &ctx,
 
     .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },    
+  };
+
+  // Field.
+  struct gkyl_moment_field field = {
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .mag_error_speed_fact = 1.0,
+    
+    .evolve = true,
+    .init = evalFieldInit,
+    .ctx = &ctx,
+    
+    .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -364,16 +377,7 @@ main(int argc, char **argv)
     .num_species = 2,
     .species = { elc, ion },
 
-    .field = {
-      .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
-      .mag_error_speed_fact = 1.0,
-      
-      .evolve = true,
-      .init = evalFieldInit,
-      .ctx = &ctx,
-      
-      .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
-    },
+    .field = field,
 
     .has_low_inp = true,
     .low_inp = {

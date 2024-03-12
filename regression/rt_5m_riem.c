@@ -256,12 +256,22 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
   };
+
   struct gkyl_moment_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_euler,
     .evolve = true,
     .init = evalIonInit,
+    .ctx = &ctx,
+  };
+
+  // Field.
+  struct gkyl_moment_field field = {
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    
+    .evolve = true,
+    .init = evalFieldInit,
     .ctx = &ctx,
   };
 
@@ -359,13 +369,7 @@ main(int argc, char **argv)
       {ctx.nu_base_ei, 0}
     },
 
-    .field = {
-      .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
-      
-      .evolve = true,
-      .init = evalFieldInit,
-      .ctx = &ctx,
-    },
+    .field = field,
 
     .has_low_inp = true,
     .low_inp = {

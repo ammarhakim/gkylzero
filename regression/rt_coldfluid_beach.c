@@ -212,6 +212,16 @@ main(int argc, char **argv)
     .ctx = &ctx,
   };
 
+  // Field.
+  struct gkyl_moment_field field = {
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    
+    .evolve = true,
+    .init = evalFieldInit,
+    .app_current_func = evalAppCurrent,
+    .ctx = &ctx,
+  };
+
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
@@ -300,14 +310,7 @@ main(int argc, char **argv)
     .num_species = 1,
     .species = { elc },
 
-    .field = {
-      .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
-      
-      .evolve = true,
-      .init = evalFieldInit,
-      .app_current_func = evalAppCurrent,
-      .ctx = &ctx,
-    },
+    .field = field,
 
     .has_low_inp = true,
     .low_inp = {
