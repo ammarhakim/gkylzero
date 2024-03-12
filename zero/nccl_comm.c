@@ -209,7 +209,7 @@ array_write(struct gkyl_comm *comm,
   const struct gkyl_array *arr, const char *fname)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
-  return gkyl_comm_array_write(nccl->mpi_comm, grid, meta, range, arr, fname);
+  return gkyl_comm_array_write(nccl->mpi_comm, grid, range, meta, arr, fname);
 }
 
 static int
