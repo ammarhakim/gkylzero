@@ -23,7 +23,7 @@
 
 #include <rt_arg_parse.h>
 
-struct wave_2d_ctx
+struct euler_wave_2d_mp_ctx
 {
   // Mathematical constants (dimensionless).
   double pi; 
@@ -45,7 +45,7 @@ struct wave_2d_ctx
   int num_frames; // Number of output frames.
 };
 
-struct wave_2d_ctx
+struct euler_wave_2d_mp_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
@@ -67,7 +67,7 @@ create_ctx(void)
   double t_end = 4.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
 
-  struct wave_2d_ctx ctx = {
+  struct euler_wave_2d_mp_ctx ctx = {
     .pi = pi,
     .gas_gamma = gas_gamma,
     .u = u,
@@ -89,7 +89,7 @@ void
 evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct wave_2d_ctx *app = ctx;
+  struct euler_wave_2d_mp_ctx *app = ctx;
 
   double pi = app -> pi;
   double gas_gamma = app -> gas_gamma;
@@ -132,7 +132,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct wave_2d_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct euler_wave_2d_mp_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);

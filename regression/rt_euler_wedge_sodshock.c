@@ -86,8 +86,8 @@ create_ctx(void)
     .Ltheta = Ltheta,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
-    .rloc = rloc,
     .num_frames = num_frames,
+    .rloc = rloc,
   };
 
   return ctx;
