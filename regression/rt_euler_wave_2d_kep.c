@@ -1,5 +1,6 @@
 // Smooth traveling wave problem, using kinetic energy-preserving reconstruction, for the 5-moment (Euler) equations.
-// Input parameters match the initial conditions found in entry JE22 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je22/je22-euler-2d.html#smooth-periodic-problem), adapted from Section 4.1, from the article:
+// Input parameters match the initial conditions found in entry JE22 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je22/je22-euler-2d.html#smooth-periodic-problem),
+// adapted from Section 4.1, from the article:
 // R. Liska and B. Wendroff (2003), "Comparison of Several Difference Schemes on 1D and 2D Test Problems for the Euler Equations",
 // SIAM Journal on Scientific Computing, Volume 25 (3): 995-1017.
 // https://epubs.siam.org/doi/10.1137/S1064827502402120

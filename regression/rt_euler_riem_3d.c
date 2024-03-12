@@ -1,3 +1,10 @@
+// 3D (spherical) Riemann problem for the 5-moment (Euler) equations.
+// Input parameters match the initial conditions found in Entry JE23 of Ammar's Simulation Journal (https://www.ammar-hakim.org/sj/je/je23/je23-euler-3d.html#spherical-riemann-problem),
+// adapted from Section 3.2, from the article:
+// J. O. Langseth and R. J. LeVeque (2000), "A Wave Propagation Method for Three-Dimensional Hyperbolic Conservation Laws",
+// Journal of Computational Physics, Volume 165 (1): 126-166.
+// https://www.sciencedirect.com/science/article/pii/S0021999100966063
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
