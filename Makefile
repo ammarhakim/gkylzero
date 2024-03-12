@@ -20,7 +20,7 @@ LAPACK_LIB = -lopenblas
 
 # Default radiation fit directory
 GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
-CFLAGS += -DGKYL_SHARE=$(GKYL_SHARE_DIR)
+CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
 
 # SuperLU includes and librararies
 SUPERLU_INC = $(PREFIX)/superlu/include
