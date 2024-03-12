@@ -212,6 +212,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
     return gkyl_proj_maxwellian_on_basis_lab_mom_cu(up, phase_rng, conf_rng, moms, fmax);
 #endif
 
+  double f_floor = 1.e-40;
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
   int tot_quad = up->tot_quad;
@@ -292,7 +293,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
           efact += pow(udrift[cqidx][d]-xmu[cdim+d],2);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx]));
+        fq[0] = vtsq[cqidx] > 0.0 ? f_floor + exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx])) : f_floor;
       }
 
       // compute expansion coefficients of Maxwellian on basis
@@ -315,6 +316,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
     return gkyl_proj_maxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, moms, prim_moms, fmax);
 #endif
 
+  double f_floor = 1.e-40;
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
   int tot_quad = up->tot_quad;
@@ -389,7 +391,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
           efact += pow(xmu[cdim+d]-udrift_o[cqidx][d],2);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx]));
+        fq[0] = vtsq_o[cqidx] > 0.0 ? f_floor + expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx])) : f_floor;
       }
 
       // compute expansion coefficients of Maxwellian on basis
