@@ -71,7 +71,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(const struct gkyl_rect_grid grid,
       if ((den > 0.) && (vtsq[n]>0.))
          exp_amp[n] = den/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim));
       else
-         exp_amp[n] = 0.0
+         exp_amp[n] = 0.0;
     }
 
     gkyl_rect_grid_cell_center(&grid, pidx, xc);
