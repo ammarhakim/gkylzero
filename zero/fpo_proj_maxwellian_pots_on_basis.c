@@ -25,7 +25,11 @@ gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const
   up->phase_basis = phase_basis;
   up->conf_basis = conf_basis;
 
-  gkyl_cart_modal_serendip(&up->surf_basis, up->pdim-1, phase_basis->poly_order);
+  if (phase_basis->poly_order == 1) {  
+    gkyl_cart_modal_hybrid(&up->surf_basis, up->cdim, up->pdim-up->cdim-1);
+  } else {
+    gkyl_cart_modal_serendip(&up->surf_basis, up->pdim-1, phase_basis->poly_order);
+  }
   // up->surf_basis = surf_basis;
 
   up->num_conf_basis = conf_basis->num_basis;

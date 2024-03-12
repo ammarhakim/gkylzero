@@ -39,6 +39,7 @@
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
@@ -53,7 +54,6 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_proj_on_basis.h>
-#include <gkyl_proj_maxwellian_pots_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
