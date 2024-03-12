@@ -6,7 +6,7 @@ source ./build-opts.sh
 PREFIX=$GKYLSOFT
 ADAS_DIR="$GKYLSOFT/gkylzero/share"
 
-mkdir $ADAS_DIR/adas
+mkdir -p $ADAS_DIR/adas
 #cd -
 python ../data/adas/download_adas.py
 echo "Converting ADAS data to numpy .."
