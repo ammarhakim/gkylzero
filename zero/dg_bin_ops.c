@@ -405,6 +405,74 @@ void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   }
 }
 
+void gkyl_dg_inv_op(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out, int c_iop, const struct gkyl_array* iop)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_inv_op_cu(basis, c_oop, out, c_iop, iop);
+  }
+#endif
+
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+  inv_op_t inv_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      inv_op = choose_ser_inv_kern(ndim, poly_order);
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
+
+  for (size_t i=0; i<out->size; ++i) {
+    const double *iop_d = gkyl_array_cfetch(iop, i);
+    double *out_d = gkyl_array_fetch(out, i);
+
+    inv_op(iop_d+c_iop*num_basis, out_d+c_oop*num_basis);
+  }
+}
+
+void gkyl_dg_inv_op_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out, int c_iop, const struct gkyl_array* iop,
+  const struct gkyl_range *range)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) {
+    return gkyl_dg_inv_op_range_cu(basis, c_oop, out, c_iop, iop, range);
+  }
+#endif
+
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+  inv_op_t inv_op;
+  switch (basis.b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      inv_op = choose_ser_inv_kern(ndim, poly_order);
+      break;
+
+    default:
+      assert(false);
+      break;    
+  }
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(range, iter.idx);
+
+    const double *iop_d = gkyl_array_cfetch(iop, loc);
+    double *out_d = gkyl_array_fetch(out, loc);
+
+    inv_op(iop_d+c_iop*num_basis, out_d+c_oop*num_basis);
+  }
+}
+
 void
 gkyl_dg_calc_op_range(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
   int c_iop, const struct gkyl_array *iop,
