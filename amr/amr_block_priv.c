@@ -34,7 +34,7 @@ euler_block_bc_updaters_init(struct euler_block_data* bdata, const struct gkyl_b
       bdata -> lower_bc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler, bdata -> geom, d, GKYL_LOWER_EDGE, nghost, euler_transmissive_bc, 0);
     }
 
-    if (conn -> connections[d][0].edge == GKYL_PHYSICAL) {
+    if (conn -> connections[d][1].edge == GKYL_PHYSICAL) {
       bdata -> upper_bc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler, bdata -> geom, d, GKYL_UPPER_EDGE, nghost, euler_transmissive_bc, 0);
     }
   }

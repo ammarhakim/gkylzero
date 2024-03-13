@@ -86,7 +86,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
     fine_bdata[i].fv_proj = gkyl_fv_proj_new(&fine_bdata[i].grid, 2, 5, eval, 0);
 #endif
   }
-
+  
   for (int i = 0; i < num_blocks; i++) {
     gkyl_create_grid_ranges(&coarse_bdata[i].grid, (int []) { 2, 2 }, &coarse_bdata[i].ext_range, &coarse_bdata[i].range);
     coarse_bdata[i].geom = gkyl_wave_geom_new(&coarse_bdata[i].grid, &coarse_bdata[i].ext_range, 0, 0, false);
@@ -243,4 +243,54 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   }
 
   double tm_total_sec = gkyl_time_diff_now_sec(tm_start);
+
+#ifdef AMR_DEBUG
+  euler_write_sol("euler_amr_coarse_1", num_blocks, coarse_bdata);
+  euler_write_sol("euler_amr_fine_1", num_blocks, fine_bdata);
+#else
+  euler_write_sol("euler_amr_1", num_blocks, coarse_bdata);
+#endif
+
+  printf("Total run-time %g. Failed steps: %d\n", tm_total_sec, stats.nfail);
+
+  for (int i = 0; i < num_blocks; i++) {
+    gkyl_fv_proj_release(coarse_bdata[i].fv_proj);
+    gkyl_wv_eqn_release(coarse_bdata[i].euler);
+    euler_block_bc_updaters_release(&coarse_bdata[i]);
+    gkyl_wave_geom_release(coarse_bdata[i].geom);
+
+#ifdef AMR_DEBUG
+    gkyl_fv_proj_release(fine_bdata[i].fv_proj);
+    gkyl_wv_eqn_release(fine_bdata[i].euler);
+    euler_block_bc_updaters_release(&fine_bdata[i]);
+    gkyl_wave_geom_release(fine_bdata[i].geom);
+#endif
+
+    for (int d = 0; d < ndim; d++) {
+      gkyl_wave_prop_release(coarse_bdata[i].slvr[d]);
+
+#ifdef AMR_DEBUG
+      gkyl_wave_prop_release(fine_bdata[i].slvr[d]);
+#endif
+    }
+    
+    gkyl_array_release(coarse_bdata[i].fdup);
+#ifdef AMR_DEBUG
+    gkyl_array_release(fine_bdata[i].fdup);
+#endif
+    
+    for (int d = 0; d < ndim; d++) {
+      gkyl_array_release(coarse_bdata[i].f[d]);
+
+#ifdef AMR_DEBUG
+      gkyl_array_release(fine_bdata[i].f[d]);
+#endif
+    }
+
+    gkyl_block_topo_release(btopo);
+    gkyl_job_pool_release(coarse_job_pool);
+#ifdef AMR_DEBUG
+    gkyl_job_pool_release(fine_job_pool);
+#endif
+  }
 }
