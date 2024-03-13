@@ -19,6 +19,7 @@
 #include <gkyl_const.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_array_ops_priv.h>
 
 struct gkyl_dg_iz*
 gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
@@ -177,6 +178,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
     const double *m0_elc_d = &moms_elc_d[0];
 
     double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
+    double *vtSq_iz_d = gkyl_array_fetch(vtSq_iz, loc);
     double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
 
     up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx,
@@ -200,6 +202,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
     int m0_idx, t_idx;
     double cell_vals_2d[2];
     double cell_center;
+    long nc = NCOM(vtSq_iz);
 
     if (log_Te_av < up->minLogTe) t_idx=1;
     else if (log_Te_av > up->maxLogTe) t_idx=up->resTe;
@@ -213,22 +216,27 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
     cell_center = (m0_idx - 0.5)*up->dlogM0 + up->minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
 
-    if ((up->E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
+    if ((m0_elc_av <= 0.) || (temp_elc_av <= 0.)) {
       coef_iz_d[0] = 0.0;
     }
     else {
       double *iz_dat_d = gkyl_array_fetch(up->ioniz_data, gkyl_range_idx(&up->adas_rng, (int[2]) {t_idx,m0_idx}));
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
+
+      // calculate vtSq_iz at each cell
+      if (up->E/temp_elc_av >= 3./2.) {
+      	// calculate vtSq_iz using current model
+      	// vtSq_iz = vtSq_elc/2.0 - Eiz/(3*me)
+      	array_set1(nc, vtSq_iz_d, 0.5, vtSq_elc_d);
+      	vtSq_iz_d[0] = vtSq_iz_d[0] - up->E*up->elem_charge/(3*up->mass_elc*cell_av_fac);
+      }
+      else {
+      	// calculate using Eavg = Eiz/4.
+      	// Tiz,Max = 2./3.*Eavg = Eiz/6. --> vtSq_iz = Eiz/(6*me)
+      	vtSq_iz_d[0] = up->E/(6.0*up->mass_elc)/cell_av_fac;
+      }
     }
-  }
-  
-  if (up->type_self == GKYL_SELF_ELC) {
-     
-    // Calculate vt_sq_iz
-    gkyl_array_copy_range(vtSq_iz, up->vtSq_elc, up->conf_rng);
-    gkyl_array_scale_range(vtSq_iz, 1/2.0, up->conf_rng);
-    gkyl_array_shiftc(vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
   }
   
   // cfl calculation
