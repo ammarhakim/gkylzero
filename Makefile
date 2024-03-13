@@ -18,10 +18,6 @@ LAPACK_INC = $(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
 LAPACK_LIB = -lopenblas
 
-# Default radiation fit directory
-GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
-CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
-
 # SuperLU includes and librararies
 SUPERLU_INC = $(PREFIX)/superlu/include
 ifeq ($(UNAME_S),Linux)
@@ -56,6 +52,10 @@ ifeq ($(CC), nvcc)
        endif
        CUDA_LIBS += -lcublas -lcusparse -lcusolver
 endif
+
+# Default radiation fit directory
+GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
+CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
 
 # Read MPI paths and flags if needed 
 USING_MPI =
