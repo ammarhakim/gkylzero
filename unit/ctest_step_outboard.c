@@ -199,7 +199,7 @@ test_fixed_z()
   };
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
-  write_geometry(up, cgrid, clocal, "step_outboard_fixed_z");
+  //write_geometry(up, cgrid, clocal, "step_outboard_fixed_z");
 
   gkyl_gk_geometry_release(up);
 
