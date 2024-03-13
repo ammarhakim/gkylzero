@@ -16,6 +16,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(const struct gkyl_rect_grid grid,
   const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx,
   const struct gkyl_array* GKYL_RESTRICT moms, struct gkyl_array* GKYL_RESTRICT fmax)
 {
+  double f_floor = 1.e-40;
   int pdim = phase_r.ndim, cdim = conf_r.ndim;
   int vdim = pdim-cdim;
 
@@ -67,7 +68,10 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(const struct gkyl_rect_grid grid,
       vtsq[n] = (m2_n - den*usq)/(den*vdim);
 
       // Amplitude of the exponential.
-      exp_amp[n] = den/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim));
+      if ((den > 0.) && (vtsq[n]>0.))
+         exp_amp[n] = den/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim));
+      else
+         exp_amp[n] = 0.0;
     }
 
     gkyl_rect_grid_cell_center(&grid, pidx, xc);
@@ -94,7 +98,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom_cu_ker(const struct gkyl_rect_grid grid,
       for (int d=0; d<vdim; ++d)
         efact += pow(xmu[cdim+d]-udrift[cqidx][d],2);
 
-      double fmax_o = exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx]));
+      double fmax_o = vtsq[cqidx] > 0.0 ? f_floor + exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx])) : f_floor;
 
       double tmp = phase_w[n]*fmax_o;
       for (int k=0; k<num_phase_basis; ++k)
@@ -114,6 +118,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid,
   const struct gkyl_array* GKYL_RESTRICT moms, const struct gkyl_array* GKYL_RESTRICT prim_moms,
   struct gkyl_array* GKYL_RESTRICT fmax)
 {
+  double f_floor = 1.e-40;
   int pdim = phase_r.ndim, cdim = conf_r.ndim;
   int vdim = pdim-cdim;
 
@@ -158,7 +163,10 @@ gkyl_proj_maxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid,
         vtsq_o[n] += vtsq_d[k]*b_ord[k];
       }
       // Amplitude of the exponential.
-      expamp_o[n] = m0_o/sqrt(pow(2.0*GKYL_PI*vtsq_o[n], vdim));
+      if ((m0_o > 0.) && (vtsq_o[n]>0.))
+         expamp_o[n] = m0_o/sqrt(pow(2.0*GKYL_PI*vtsq_o[n], vdim));
+      else
+         expamp_o[n] = 0.;
     }
 
     gkyl_rect_grid_cell_center(&grid, pidx, xc);
@@ -185,7 +193,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid,
       for (int d=0; d<vdim; ++d)
         efact += pow(xmu[cdim+d]-udrift_o[cqidx][d],2);
 
-      double fmax_o = expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx]));
+      double fmax_o = vtsq_o[cqidx] > 0.0 ? f_floor + expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx])) : f_floor;
 
       double tmp = phase_w[n]*fmax_o;
       for (int k=0; k<num_phase_basis; ++k)
@@ -292,7 +300,7 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu_ker(const struct gkyl_rect_grid grid,
       // mu term (only for 2v, vdim_phys=3).
       efact += (vdim_phys-1)*xmu[cdim+1]*bfield[cqidx]/mass;
 
-      double fmax_o = fJacB_floor+exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx]));
+      double fmax_o = vtsq[cqidx] > 0.0 ?  fJacB_floor+exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx])): fJacB_floor;
 
       double tmp = phase_w[n]*fmax_o;
       for (int k=0; k<num_phase_basis; ++k)
@@ -393,7 +401,7 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu_ker(const struct gkyl_rect_grid grid
       // mu term (only for 2v, vdim_phys=3).
       efact += (vdim_phys-1)*xmu[cdim+1]*bmag_o[cqidx]/mass;
 
-      double fmax_o = fJacB_floor+expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx]));
+      double fmax_o = vtsq_o[cqidx] > 0.0 ? fJacB_floor+expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx])) : fJacB_floor;
 
       double tmp = phase_w[n]*fmax_o;
       for (int k=0; k<num_phase_basis; ++k)

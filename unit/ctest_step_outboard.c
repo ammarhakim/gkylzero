@@ -108,7 +108,7 @@ test_fixed_z()
   double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
 
-  int ccells[] = { 1, 1, 16 };
+  int ccells[] = { 1, 1, 8 };
 
 
 
