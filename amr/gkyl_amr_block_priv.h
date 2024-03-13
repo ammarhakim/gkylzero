@@ -29,6 +29,9 @@
 
 #include <thpool.h>
 
+#define AMR_DEBUG
+#define AMR_USETHREADS
+
 // Definitions of private structs and APIs attached to these objects, for use in the block AMR subsystem.
 
 // Ranges indicating the extents of the skin and ghost regions, for the purpose of applying inter-block boundary conditions.
@@ -197,3 +200,25 @@ void euler_copy_job_func(void* ctx);
 */
 struct gkyl_update_status euler_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
   const struct euler_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats);
+
+/**
+* Write the complete simulation output for the entire block hierarchy for the Euler equations onto disk.
+*
+* @param fbase Base file name schema to use for the simulation output.
+* @param num_blocks Number of blocks in the block hierarchy.
+* @param bdata Array of block-structured data for the Euler equations.
+*/
+void euler_write_sol(const char* fbase, int num_blocks, const struct euler_block_data bdata[]);
+
+/**
+* Calculate the maximum stable time-step across all blocks in the block hierarchy for the Euler equations.
+*
+* @param num_blocks Number of blocks in the block hierarchy.
+* @param bdata Array of block-structured data for the Euler equations.
+*/
+double euler_max_dt(int num_blocks, const struct euler_block_data bdata[]);
+
+/**
+* Set up the topology/connectivity information for the block hierarchy for a mesh containing a single refinement patch.
+*/
+struct gkyl_block_topo* create_block_topo();
