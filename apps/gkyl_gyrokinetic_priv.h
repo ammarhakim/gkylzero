@@ -144,8 +144,6 @@ struct gk_rad_drag {
   int num_cross_collisions; // number of species we cross-collide with
   struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
   int collide_with_idx[GKYL_MAX_SPECIES]; // index of species we collide with
-
-  struct gkyl_basis surf_vpar_basis, surf_mu_basis; // Surface basis functions for drag
   
   // drag coefficients in vparallel and mu for each species being collided with
   struct gkyl_array *vnu_surf[GKYL_MAX_SPECIES]; 
@@ -155,7 +153,10 @@ struct gk_rad_drag {
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[GKYL_MAX_SPECIES]; 
 
   struct gk_species_moment moms[GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
+
+  struct gk_species_moment m2; // m2 of radiation update (needed for emissivity)
   struct gkyl_array *emissivity[GKYL_MAX_SPECIES];
+  struct gkyl_array *emissivity_host[GKYL_MAX_SPECIES];
   struct gkyl_array *emissivity_rhs;
   struct gkyl_array *emissivity_denominator;
 

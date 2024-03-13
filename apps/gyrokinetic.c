@@ -729,14 +729,17 @@ gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app* app, int sidx, d
     fin[i] = app->species[i].f;
   gk_species_radiation_emissivity(app, s, &s->rad, fin);
   for (int i=0; i<s->rad.num_cross_collisions; i++) {
+    // copy data from device to host before writing it out
+    if (app->use_gpu) {
+      gkyl_array_copy(s->rad.emissivity_host[i], s->rad.emissivity[i]);
+    }
     // Construct the file handles for vparallel and mu drag
     const char *fmt_emissivity = "%s-%s_emissivity_%s_%d.gkyl";
     int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, s->info.name, app->species[s->rad.collide_with_idx[i]].info.name, frame);
     char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
     snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name, s->info.name, app->species[s->rad.collide_with_idx[i]].info.name, frame);
-    gkyl_comm_array_write(s->comm, &app->grid, &app->local, s->rad.emissivity[i], fileNm_emissivity);
+    gkyl_comm_array_write(s->comm, &app->grid, &app->local, s->rad.emissivity_host[i], fileNm_emissivity);
   }
-
 }
 
 
