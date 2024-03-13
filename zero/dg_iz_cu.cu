@@ -113,15 +113,6 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *mo
     coef_iz->on_dev, up->ioniz_data->on_dev, up->cbasis->num_basis,
     up->type_self, up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe,
     up->dlogTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resTe, up->resM0, nc);
-
-  // if (up->type_self == GKYL_SELF_ELC) {
-     
-  //   // Calculate vt_sq_iz
-  //   gkyl_array_copy_range(vtSq_iz, up->vtSq_elc, up->conf_rng);
-  //   gkyl_array_scale_range(vtSq_iz, 1/2.0, up->conf_rng);
-  //   gkyl_array_shiftc(vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
-
-  // }
   
   // cfl calculation
   //struct gkyl_range vel_rng;

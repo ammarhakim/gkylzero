@@ -16,8 +16,7 @@
 void
 read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data) {
   char fname[4000];
-  char *base = STR(GKYL_SHARE_DIR);
-    
+  char *base = STR(GKYL_SHARE_DIR);    
   if (type_ion == GKYL_ION_H) {
     strcpy(fname, base);
     data->NT = 29, data->NN = 24;
