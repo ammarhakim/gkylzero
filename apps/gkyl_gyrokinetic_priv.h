@@ -156,6 +156,8 @@ struct gk_rad_drag {
 
   struct gk_species_moment moms[GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
   struct gkyl_array *emissivity[GKYL_MAX_SPECIES];
+  struct gkyl_array *emissivity_rhs;
+  struct gkyl_array *emissivity_denominator;
 
   struct gkyl_array *nvnu_surf; // total vparallel radiation drag surface expansion including density scaling
   struct gkyl_array *nvnu; // total vparallel radiation drag volume expansion including density scaling

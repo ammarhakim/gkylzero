@@ -57,10 +57,10 @@ static inline void read_two_numbers(FILE *fptr, int *num1, int *num2){
  */
 static inline char* concat(const char *s1, const char *s2)
 {
-    char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
-    strcpy(result, s1);
-    strcat(result, s2);
-    return result;
+  char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
+  strcpy(result, s1);
+  strcat(result, s2);
+  return result;
 }
 
 /* Function to read in all the radiation fit parameters stored in "radiation_fit_params.txt"
