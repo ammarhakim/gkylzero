@@ -149,6 +149,37 @@ void gkyl_dg_div_op_range(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
   int c_rop, const struct gkyl_array* rop, const struct gkyl_range *range);
 
 /**
+ * Compute out = 1/iop. The c_oop and c_iop are the
+ * components into the DG fields to use (in case the fields are
+ * vector fields). For scalar fields c_oop = c_iop = 0, for
+ * example.
+ *
+ * @param basis Basis functions used in expansions.
+ * @param c_oop Component of output field in which to store product.
+ * @param out Output DG field.
+ * @param c_iop Component of input operand.
+ * @param iop Input operand DG field.
+ */
+void gkyl_dg_inv_op(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out, int c_iop, const struct gkyl_array* iop);
+
+/**
+ * Compute out = 1/iop on specified range. The c_oop and c_iop are
+ * the components into the DG fields to use (in case the fields are
+ * vector fields). For scalar fields c_oop = c_iop = 0, for
+ * example.
+ *
+ * @param basis Basis functions used in expansions.
+ * @param c_oop Component of output field in which to store product.
+ * @param out Output DG field.
+ * @param c_iop Component of input operand.
+ * @param iop Input operand DG field.
+ */
+void gkyl_dg_inv_op_range(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out, int c_iop, const struct gkyl_array* iop,
+  const struct gkyl_range *range);
+
+/**
  * Compute the cell-average of input array iop and store it in out
  * array.
  *
