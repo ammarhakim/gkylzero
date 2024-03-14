@@ -33,8 +33,8 @@ arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
   // Allocate temporary storage in shared memory.
   __shared__ typename BlockReduceT::TempStorage temp;
 
+  long nCells = inp->size;
   size_t nComp = inp->ncomp;
-  size_t nCells = inp->size;
 
   const double *inp_d = (const double*) inp->data;
 
@@ -124,8 +124,8 @@ arrayMin_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
   // Allocate temporary storage in shared memory.
   __shared__ typename BlockReduceT::TempStorage temp;
 
+  long nCells = inp->size;
   size_t nComp = inp->ncomp;
-  size_t nCells = inp->size;
 
   const double *inp_d = (const double*) inp->data;
 
@@ -202,8 +202,8 @@ arraySum_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
   // Allocate temporary storage in shared memory.
   __shared__ typename BlockReduceT::TempStorage temp;
 
+  long nCells = inp->size;
   size_t nComp = inp->ncomp;
-  size_t nCells = inp->size;
 
   const double *inp_d = (const double*) inp->data;
 
