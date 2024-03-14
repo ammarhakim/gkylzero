@@ -622,12 +622,12 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int num_cell_vpar = 32; // Number of cells in the paralell velocity direction 96
-  int num_cell_mu = 32;  // Number of cells in the mu direction 192
-  int num_cell_z = 144;
+  int num_cell_vpar = 128; // Number of cells in the paralell velocity direction 96
+  int num_cell_mu = 192;  // Number of cells in the mu direction 192
+  int num_cell_z = 240;
   int poly_order = 1;
-  double final_time = 1e-10;
-  int num_frames = 1;
+  double final_time = 1e-9;
+  int num_frames = 10;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx
   double B_bt = 1.058278;
@@ -719,67 +719,6 @@ create_ctx(void)
     .mapping_order = mapping_order,  // Order of the polynomial to fit through points for mapc2p
     .mapping_frac = mapping_frac, // 1 is full mapping, 0 is no mapping
   };
-  // Printing
-  double dxi = (ctx.z_max - ctx.z_min) / ctx.num_cell_z;
-  double diff_z_max = z_xi(ctx.z_m + dxi / 2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m - dxi / 2, ctx.psi_eval, &ctx);
-  double diff_z_p75 = z_xi(ctx.z_m * .75 + dxi / 2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .75 - dxi / 2, ctx.psi_eval, &ctx);
-  double diff_z_p50 = z_xi(ctx.z_m * .5 + dxi / 2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .5 - dxi / 2, ctx.psi_eval, &ctx);
-  double diff_z_p25 = z_xi(ctx.z_m * .25 + dxi / 2, ctx.psi_eval, &ctx) - z_xi(ctx.z_m * .25 - dxi / 2, ctx.psi_eval, &ctx);
-  double diff_z_min = z_xi(dxi / 2, ctx.psi_eval, &ctx) - z_xi(-dxi / 2, ctx.psi_eval, &ctx);
-  if (ctx.mapping_frac == 0.0)
-  {
-    printf("Uniform cell spacing in z: %g m\n", dxi);
-  }
-  else
-  {
-    printf("Non-uniform cell spacings:\n");
-    printf("Total number of cells in z   : %d\n", ctx.num_cell_z);
-    printf("Polynomials order %i with mapping fraction %g\n", ctx.mapping_order, ctx.mapping_frac);
-    printf("Uniform computational spacing: %g m\n", dxi);
-    printf("Maximum cell spacing at z_m  : %g m\n", diff_z_max);
-    printf("Cell spacing at z_m * 0.75   : %g m\n", diff_z_p75);
-    printf("Cell spacing at z_m * 0.50   : %g m\n", diff_z_p50);
-    printf("Cell spacing at z_m * 0.25   : %g m\n", diff_z_p25);
-    printf("Minimum cell spacing at 0    : %g m\n", diff_z_min);
-  }
-
-  // Looking at calculating dB/dz in each cell
-  // xi is uniformly spaced computational coordinate
-  double dB_values[ctx.num_cell_z];
-  double mean = 0.0;
-  double max_dB = 0.0;
-  double loc_max_dB = 0.0;
-  for (int iz = 0; iz < ctx.num_cell_z; iz++)
-  {
-    double left_xi = ctx.z_min + iz * dxi;
-    double right_xi = ctx.z_min + (iz + 1) * dxi;
-    double psi = ctx.psi_eval;
-    double left_z = z_xi(left_xi, psi, &ctx);
-    double right_z = z_xi(right_xi, psi, &ctx);
-    double B_rad, B_Z, Bmag_left, Bmag_right;
-    Bfield_psiZ(psi, left_z, &ctx, &B_rad, &B_Z, &Bmag_left);
-    Bfield_psiZ(psi, right_z, &ctx, &B_rad, &B_Z, &Bmag_right);
-    double dB = (Bmag_right - Bmag_left);
-    dB_values[iz] = fabs(dB);
-    mean += fabs(dB);
-    if (fabs(dB) > max_dB)
-    {
-      max_dB = fabs(dB);
-      loc_max_dB = (left_z + right_z) / 2;
-    }
-  }
-  // Calculate mean and standard deviation of dBdz values
-  mean /= ctx.num_cell_z;
-  double std = 0.0;
-  for (int iz = 0; iz < ctx.num_cell_z; iz++)
-  {
-    std += pow(dB_values[iz] - mean, 2);
-  }
-  std = sqrt(std / ctx.num_cell_z);
-  printf("Mean dB: %g\n", mean);
-  printf("Std dB : %g\n", std);
-  printf("Max dB : %g\n", max_dB);
-  printf("Max dB location: %g\n", loc_max_dB);
   return ctx;
 }
 
@@ -909,27 +848,27 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = eval_temp_elc,      
     },
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
-      .self_nu = evalNuElc,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
-    },
-    .source = {
-      .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
-      .num_sources = 1,
-      .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-        .ctx_density = &ctx,
-        .density = eval_density_elc_source,
-        .ctx_upar = &ctx,
-        .upar= eval_upar_elc_source,
-        .ctx_temp = &ctx,
-        .temp = eval_temp_elc_source,      
-      }, 
-    },
+    // .collisions =  {
+    //   .collision_id = GKYL_LBO_COLLISIONS,
+    //   .ctx = &ctx,
+    //   .self_nu = evalNuElc,
+    //   .num_cross_collisions = 1,
+    //   .collide_with = { "ion" },
+    // },
+    // .source = {
+    //   .source_id = GKYL_PROJ_SOURCE,
+    //   .write_source = true,
+    //   .num_sources = 1,
+    //   .projection[0] = {
+    //     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+    //     .ctx_density = &ctx,
+    //     .density = eval_density_elc_source,
+    //     .ctx_upar = &ctx,
+    //     .upar= eval_upar_elc_source,
+    //     .ctx_temp = &ctx,
+    //     .temp = eval_temp_elc_source,      
+    //   }, 
+    // },
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -954,27 +893,27 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
     },
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .ctx = &ctx,
-      .self_nu = evalNuIon,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
-    },
-    .source = {
-      .source_id = GKYL_PROJ_SOURCE,
-      .write_source = true,
-      .num_sources = 1,
-      .projection[0] = {
-        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-        .ctx_density = &ctx,
-        .density = eval_density_ion_source,
-        .ctx_upar = &ctx,
-        .upar= eval_upar_ion_source,
-        .ctx_temp = &ctx,
-        .temp = eval_temp_ion_source,      
-      }, 
-    },
+    // .collisions =  {
+    //   .collision_id = GKYL_LBO_COLLISIONS,
+    //   .ctx = &ctx,
+    //   .self_nu = evalNuIon,
+    //   .num_cross_collisions = 1,
+    //   .collide_with = { "elc" },
+    // },
+    // .source = {
+    //   .source_id = GKYL_PROJ_SOURCE,
+    //   .write_source = true,
+    //   .num_sources = 1,
+    //   .projection[0] = {
+    //     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+    //     .ctx_density = &ctx,
+    //     .density = eval_density_ion_source,
+    //     .ctx_upar = &ctx,
+    //     .upar= eval_upar_ion_source,
+    //     .ctx_temp = &ctx,
+    //     .temp = eval_temp_ion_source,      
+    //   }, 
+    // },
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -988,7 +927,7 @@ int main(int argc, char **argv)
     .kperpSq = pow(ctx.kperp, 2.),
   };
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_wham_elc_1x2v_p1",
+    .name = "gk_wham_elc_1x2v_p1_1gpu",
     .cdim = 1,
     .vdim = 2,
     .lower = {ctx.z_min},
@@ -1002,8 +941,9 @@ int main(int argc, char **argv)
       .world = {ctx.psi_eval, 0.0},
       .mirror_efit_info = &inp,
       .mirror_grid_info = &ginp,
+      // .geometry_id = GKYL_GEOMETRY_FROMFILE,
     },
-
+    .skip_field = true,
     .num_periodic_dir = 0,
     .periodic_dirs = {},
     .num_species = 2,
@@ -1016,19 +956,20 @@ int main(int argc, char **argv)
       .comm = comm
     }
   };
-  printf("Creating app object ...\n");
+
+  if (my_rank==0) printf("Creating app object ...\n");
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);  // create app object
   double tcurr = 0.0, tend = ctx.final_time; // start, end and initial time-step
   double dt = tend - tcurr;
   int nframe = ctx.num_frames;
   struct gkyl_tm_trigger io_trig = {.dt = tend / nframe}; // create trigger for IO
-  printf("Applying initial conditions ...\n");
+  if (my_rank==0) printf("Applying initial conditions ...\n");
   gkyl_gyrokinetic_app_apply_ic(app, tcurr);  // initialize simulation
-  printf("Computing initial diagnostics ...\n");
+  if (my_rank==0) printf("Computing initial diagnostics ...\n");
   write_data(&io_trig, app, tcurr);
-  printf("Computing initial field energy ...\n");
+  if (my_rank==0) printf("Computing initial field energy ...\n");
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
-  printf("Starting main loop ...\n");
+  if (my_rank==0) printf("Starting main loop ...\n");
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps))
   {
@@ -1049,7 +990,7 @@ int main(int argc, char **argv)
     write_data(&io_trig, app, tcurr);
     step += 1;
   }
-  printf(" ... finished\n");
+  if (my_rank==0) printf(" ... finished\n");
   gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
   gkyl_gyrokinetic_app_write_field_energy(app);
   gkyl_gyrokinetic_app_stat_write(app);
