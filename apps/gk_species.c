@@ -169,7 +169,7 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   // acquire equation object
   s->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(s->slvr);
 
-  // allocate date for density (for use in charge density accumulation and weak division for upar)
+  // allocate data for density (for use in charge density accumulation and weak division for upar)
   gk_species_moment_init(app, s, &s->m0, "M0");
   // allocate data for integrated moments
   gk_species_moment_init(app, s, &s->integ_moms, "Integrated");
