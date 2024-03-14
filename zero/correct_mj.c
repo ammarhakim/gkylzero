@@ -5,6 +5,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_correct_mj.h>
+#include <gkyl_correct_mj_priv.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_updater_moment.h>
@@ -13,29 +14,6 @@
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
-
-struct gkyl_correct_mj
-{
-  struct gkyl_rect_grid grid;
-  struct gkyl_basis conf_basis, phase_basis;
-
-  struct gkyl_dg_updater_moment *m0calc;  
-  struct gkyl_dg_updater_moment *m1icalc; 
-  struct gkyl_array *num_ratio;  
-  struct gkyl_array *num_vb;   
-  struct gkyl_array *V_drift;  
-  struct gkyl_array *gamma;   
-  struct gkyl_array *vb_dot_nvb; 
-  struct gkyl_array *n_minus_vb_dot_nvb; 
-
-  struct gkyl_dg_bin_op_mem *mem;     
-  struct gkyl_array *m0, *m1i, *m2;
-  struct gkyl_array *dm0, *dm1i, *dm2;
-  struct gkyl_array *ddm0, *ddm1i, *ddm2;
-
-  struct gkyl_mj_moments *mj_moms;
-  struct gkyl_proj_mj_on_basis *proj_mj;
-};
 
 gkyl_correct_mj *
 gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
@@ -166,16 +144,20 @@ gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
 
   // tolerance of the iterative scheme
   double tol = 1e-12;
-  int i = 0;
-  double error_n = 1.0;
-  double error_vbx = 1.0;
-  double error_vby = 0.0;
-  double error_vbz = 0.0;
-  double error_T = 1.0;
+  cmj->niter = 0;
+  cmj->error_n = 1.0;
+  cmj->error_vb[0] = 1.0;
+  cmj->error_vb[1] = 0.0;
+  if (vdim > 1)
+    cmj->error_vb[1] = 1.0;
+  cmj->error_vb[2] = 0.0;
+  if (vdim > 2)
+    cmj->error_vb[2] = 1.0;
+  cmj->error_T = 1.0;
 
   // Iteration loop, 100 iterations is usually sufficient (for all vdim) for machine precision moments
-  while ((i < 100) && ((fabs(error_n) > tol) || (fabs(error_vbx) > tol) ||
-    (fabs(error_vby) > tol) || (fabs(error_vbz) > tol) || (fabs(error_T) > tol)))
+  while ((cmj->niter < 100) && ((fabs(cmj->error_n) > tol) || (fabs(cmj->error_vb[0]) > tol) ||
+    (fabs(cmj->error_vb[1]) > tol) || (fabs(cmj->error_vb[2]) > tol) || (fabs(cmj->error_T) > tol)))
   {
 
     // 1. Calculate the new moments
@@ -202,8 +184,14 @@ gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
     gkyl_array_accumulate_range(cmj->dm2, 1.0, cmj->ddm2, conf_local);
 
     // End the iteration early if all moments converge
-    if ((i % 5) == 0){
+    if ((cmj->niter % 1) == 0){
       struct gkyl_range_iter biter;
+
+      // Reset the maximum error
+      cmj->error_n = 0; cmj->error_T = 0;
+      cmj->error_vb[0] = 0; cmj->error_vb[1] = 0; cmj->error_vb[2] = 0;
+
+      // Iterate over the grid to find the maximum error
       gkyl_range_iter_init(&biter, conf_local);
       while (gkyl_range_iter_next(&biter)){
         long midx = gkyl_range_idx(conf_local, biter.idx);
@@ -213,13 +201,13 @@ gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
         const double *m0_original_local = gkyl_array_cfetch(m0_corr, midx);
         const double *m1i_original_local = gkyl_array_cfetch(m1i_corr, midx);
         const double *m2_original_local = gkyl_array_cfetch(m2_corr, midx);
-        error_n = m0_local[0] - m0_original_local[0];
-        error_vbx = m1i_local[0] - m1i_original_local[0];
-        error_T = m2_local[0] - m2_original_local[0];
+        cmj->error_n = fmax(fabs(m0_local[0] - m0_original_local[0]),fabs(cmj->error_n));
+        cmj->error_vb[0] = fmax(fabs(m1i_local[0] - m1i_original_local[0]),fabs(cmj->error_vb[0]));
+        cmj->error_T = fmax(fabs(m2_local[0] - m2_original_local[0]),fabs(cmj->error_T));
         if (vdim > 1)
-          error_vby = m1i_local[poly_order + 1] - m1i_original_local[poly_order + 1];
+          cmj->error_vb[1] = fmax(fabs(m1i_local[poly_order + 1] - m1i_original_local[poly_order + 1]),fabs(cmj->error_vb[1]));
         if (vdim > 2)
-          error_vbz = m1i_local[2 * (poly_order + 1)] - m1i_original_local[2 * (poly_order + 1)];
+          cmj->error_vb[2] = fmax(fabs(m1i_local[2 * (poly_order + 1)] - m1i_original_local[2 * (poly_order + 1)]),fabs(cmj->error_vb[2]));
       }
     }
 
@@ -242,8 +230,13 @@ gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
     // 3. Correct the M0 moment to fix the asymptotically approximated MJ function
     gkyl_correct_mj_fix_m0(cmj, distf_mj, cmj->m0, cmj->m1i, phase_local, conf_local);
 
-    i += 1;
+    cmj->niter += 1;
   }
+  if ((cmj->niter < 100) && ((fabs(cmj->error_n) < tol) && (fabs(cmj->error_vb[0]) < tol) &&
+    (fabs(cmj->error_vb[1]) < tol) && (fabs(cmj->error_vb[2]) < tol) && (fabs(cmj->error_T) < tol)))
+    cmj->status = 0;
+  else
+    cmj->status = 1;
 
   // If the algorithm fails (density fails to converge)!
   // Project the distribution function with the basic moments and correct m0

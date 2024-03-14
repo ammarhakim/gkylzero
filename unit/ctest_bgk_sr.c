@@ -59,21 +59,6 @@ eval_M0(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 void 
-eval_M1i_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  double x = xn[0];
-  fout[0] = 0.0;
-}
-
-void 
-eval_M2_1v_no_drift(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  double T = 1.0;
-  double x = xn[0];
-  fout[0] = T;
-}
-
-void 
 eval_M1i_1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
@@ -88,21 +73,6 @@ eval_M2_1v(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = T;
 }
 
-void 
-eval_M1i_2v(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  double x = xn[0];
-  fout[0] = 0.5;
-  fout[1] = 0.25;
-}
-
-void 
-eval_M2_2v(double t, const double *xn, double *restrict fout, void *ctx)
-{
-  double T = 1.0;
-  double x = xn[0];
-  fout[0] = T;
-}
 
 // waterbag distribution
 void 
@@ -142,7 +112,7 @@ void
 test_1x1v(int poly_order)
 {
   double lower[] = {0.1, -10.0}, upper[] = {1.0, 10.0};
-  int cells[] = {2, 32}; // 1000
+  int cells[] = {2, 320}; // 1000
   int vdim = 1, cdim = 1;
   int ndim = cdim + vdim;
 
