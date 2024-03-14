@@ -427,6 +427,7 @@ void gkyl_dg_inv_op(struct gkyl_basis basis,
       assert(false);
       break;    
   }
+  assert(inv_op);
 
   for (size_t i=0; i<out->size; ++i) {
     const double *iop_d = gkyl_array_cfetch(iop, i);
@@ -459,6 +460,7 @@ void gkyl_dg_inv_op_range(struct gkyl_basis basis,
       assert(false);
       break;    
   }
+  assert(inv_op);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);

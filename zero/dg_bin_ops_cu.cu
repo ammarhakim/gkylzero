@@ -394,6 +394,7 @@ gkyl_dg_inv_op_cu_kernel(struct gkyl_basis basis,
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
   inv_op_t inv_op = choose_ser_inv_kern(ndim, poly_order);
+  assert(inv_op);
 
   for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x) {
     const double *iop_d = (const double*) gkyl_array_cfetch(iop, linc);
@@ -422,6 +423,7 @@ gkyl_dg_inv_op_range_cu_kernel(struct gkyl_basis basis,
   int ndim = basis.ndim;
   int poly_order = basis.poly_order;
   inv_op_t inv_op = choose_ser_inv_kern(ndim, poly_order);
+  assert(inv_op);
 
   int idx[GKYL_MAX_DIM];
 
