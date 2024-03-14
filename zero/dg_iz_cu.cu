@@ -76,7 +76,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     cell_center = (m0_idx - 0.5)*dlogM0 + minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/dlogM0; // M0 value on cell interval
  
-    if ((E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.)) {
+    if ((temp_elc_av <= 0.) || (m0_elc_av <= 0.)) {
       coef_iz_d[0] = 0.0;
     }
     else {
@@ -84,7 +84,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
       double *iz_dat_d = (double*) gkyl_array_fetch(ioniz_data, gkyl_range_idx(&adas_rng, ad_idx));
       double adas_eval = adas_basis->eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
-      if (temp_elc_av <= 0.) {
+      if (E/temp_elc_av >= 3./2.) {
 	array_set1(nc, vtSq_iz_d, 0.5, vtSq_elc_d);
       	vtSq_iz_d[0] = vtSq_iz_d[0] - E*elem_charge/(3*mass_elc*cell_av_fac);
       }

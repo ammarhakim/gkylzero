@@ -409,10 +409,10 @@ main(int argc, char **argv)
   struct gk_app_ctx ctx = create_ctx(); // context for init functions
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 4);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[0], 1);
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], 8);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 6);
-  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 4);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], 1);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 8);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -515,7 +515,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = {  ctx.vpar_max_elc, ctx.mu_max_elc}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -551,16 +551,16 @@ main(int argc, char **argv)
     .react = {
       .num_react = 2,
       .react_type = {
-        { .react_id = GKYL_REACT_IZ, 
-          .type_self = GKYL_SELF_ELC, 
-          .ion_id = GKYL_ION_LI, 
-          .elc_nm = "elc", 
-          .ion_nm = "Li2", 
-          .donor_nm = "Li1", 
-          .charge_state = 1, 
-          .ion_mass = ctx.massLi, 
-          .elc_mass = ctx.massElc, 
-        }, 
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_ELC,
+          .ion_id = GKYL_ION_LI,
+          .elc_nm = "elc",
+          .ion_nm = "Li2",
+          .donor_nm = "Li1",
+          .charge_state = 1,
+          .ion_mass = ctx.massLi,
+          .elc_mass = ctx.massElc,
+        },
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_ELC,
           .ion_id = GKYL_ION_LI,
@@ -592,7 +592,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -644,7 +644,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massLi,
     .lower = { -ctx.vpar_max_Li, 0.0},
     .upper = { ctx.vpar_max_Li, ctx.mu_max_Li}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = 0.05*ctx.n0,
 
     .projection = {
@@ -673,16 +673,16 @@ main(int argc, char **argv)
     .react = {
       .num_react = 2,
       .react_type = {
-        { .react_id = GKYL_REACT_IZ, 
-          .type_self = GKYL_SELF_DONOR, 
-          .ion_id = GKYL_ION_LI, 
-          .elc_nm = "elc", 
-          .ion_nm = "Li2", 
-          .donor_nm = "Li1", 
-          .charge_state = 1, 
-          .ion_mass = ctx.massLi, 
-          .elc_mass = ctx.massElc, 
-        }, 
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_DONOR,
+          .ion_id = GKYL_ION_LI,
+          .elc_nm = "elc",
+          .ion_nm = "Li2",
+          .donor_nm = "Li1",
+          .charge_state = 1,
+          .ion_mass = ctx.massLi,
+          .elc_mass = ctx.massElc,
+        },
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_RECVR,
           .ion_id = GKYL_ION_LI,
@@ -715,7 +715,7 @@ main(int argc, char **argv)
     .charge = 2.*ctx.chargeIon, .mass = ctx.massLi,
     .lower = { -ctx.vpar_max_Li, 0.0},
     .upper = { ctx.vpar_max_Li, ctx.mu_max_Li}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = 0.05*ctx.n0,
 
     .projection = { 
@@ -744,16 +744,16 @@ main(int argc, char **argv)
     .react = {
       .num_react = 2,
       .react_type = {
-        { .react_id = GKYL_REACT_IZ, 
-          .type_self = GKYL_SELF_ION, 
-          .ion_id = GKYL_ION_LI, 
-          .elc_nm = "elc", 
-          .ion_nm = "Li2", 
-          .donor_nm = "Li1", 
-          .charge_state = 1, 
-          .ion_mass = ctx.massLi, 
-          .elc_mass = ctx.massElc, 
-        }, 
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_ION,
+          .ion_id = GKYL_ION_LI,
+          .elc_nm = "elc",
+          .ion_nm = "Li2",
+          .donor_nm = "Li1",
+          .charge_state = 1,
+          .ion_mass = ctx.massLi,
+          .elc_mass = ctx.massElc,
+        },
         { .react_id = GKYL_REACT_RECOMB,
           .type_self = GKYL_SELF_ION,
           .ion_id = GKYL_ION_LI,

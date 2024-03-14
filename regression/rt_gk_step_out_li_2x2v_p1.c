@@ -311,7 +311,7 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 8);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 16);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
 
   // electrons
@@ -320,7 +320,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -403,7 +403,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -461,7 +461,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massLi,
     .lower = { -ctx.vpar_max_Li, 0.0},
     .upper = { ctx.vpar_max_Li, ctx.mu_max_Li}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = 0.05*ctx.n0,
 
     .projection = {
@@ -531,7 +531,7 @@ main(int argc, char **argv)
     .charge = 2.*ctx.chargeIon, .mass = ctx.massLi,
     .lower = { -ctx.vpar_max_Li, 0.0},
     .upper = { ctx.vpar_max_Li, ctx.mu_max_Li}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = 0.05*ctx.n0,
 
     .projection = {

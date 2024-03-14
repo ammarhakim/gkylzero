@@ -319,7 +319,7 @@ create_ctx(void)
   double vpar_max_Ar = 6.0*vtAr;
   double mu_max_Ar = 12.*mAr*vtAr*vtAr/(2.0*B0);
 
-  double finalTime = 1.0e-5; 
+  double finalTime = 1.0e-7; 
   double numFrames = 10;
 
   struct gk_step_ctx ctx = {
@@ -375,16 +375,16 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 4);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], 8);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], 16);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], 8);
-
+  
   // electrons
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.chargeElc, .mass = ctx.massElc,
     .lower = { -ctx.vpar_max_elc, 0.0},
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -494,7 +494,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massIon,
     .lower = { -ctx.vpar_max_ion, 0.0},
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = 0.9*ctx.n0,
 
     .projection = {
@@ -553,7 +553,7 @@ main(int argc, char **argv)
     .charge = ctx.chargeIon, .mass = ctx.massAr,
     .lower = { -ctx.vpar_max_Ar, 0.0},
     .upper = { ctx.vpar_max_Ar, ctx.mu_max_Ar}, 
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = 0.1*ctx.n0,
 
     .projection = {
@@ -609,7 +609,7 @@ main(int argc, char **argv)
     .name = "Ar0", .mass = ctx.massAr,
     .lower = { -ctx.vpar_max_Ar, -ctx.vpar_max_Ar, -ctx.vpar_max_Ar},
     .upper = { ctx.vpar_max_Ar, ctx.vpar_max_Ar, ctx.vpar_max_Ar },
-    .cells = { NV, NV, NV},
+    .cells = { NVPAR, NVPAR, NVPAR},
     .is_static = true,
 
     //.projection = {
@@ -665,11 +665,11 @@ main(int argc, char **argv)
     //  .bmag_ctx = &ctx
     //},
     .geometry = {
-      .geometry_id = GKYL_GEOMETRY_FROMFILE,
-      //.world = {0.0},
-      //.geometry_id = GKYL_TOKAMAK,
-      //.tok_efit_info = &inp,
-      //.tok_grid_info = &ginp,
+      //.geometry_id = GKYL_GEOMETRY_FROMFILE,
+      .world = {0.0},
+      .geometry_id = GKYL_TOKAMAK,
+      .tok_efit_info = &inp,
+      .tok_grid_info = &ginp,
     },
 
     .num_periodic_dir = 0,

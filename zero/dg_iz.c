@@ -106,11 +106,6 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
 
   struct gkyl_array *adas_dg = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
   
-  /* struct gkyl_array *adas_dg = */
-  /*   gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, (data.NT-1)*(data.NN-1)); */
-
-  //create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
-
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
   gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg);
   gkyl_nodal_ops_release(n2m);
@@ -234,7 +229,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
       else {
       	// calculate using Eavg = Eiz/4.
       	// Tiz,Max = 2./3.*Eavg = Eiz/6. --> vtSq_iz = Eiz/(6*me)
-      	vtSq_iz_d[0] = up->E/(6.0*up->mass_elc)/cell_av_fac;
+        vtSq_iz_d[0] = up->E/(6.0*up->mass_elc)/cell_av_fac;
       }
     }
   }
