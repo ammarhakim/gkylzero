@@ -125,6 +125,170 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
           gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
         }
       }
+#else
+      if (te[0].edge != GKYL_PHYSICAL) {
+        struct gkyl_array *bc_buffer = bdata[i].bc_buffer;
+
+        gkyl_array_copy_to_buffer(bc_buffer -> data, fld[i], &(bdata[i].skin_ghost.lower_skin[d]));
+
+        int tbid = te[0].bid;
+        int tdir = te[0].dir;
+
+        if (te[0].edge == GKYL_LOWER_POSITIVE) {
+          if (bdata[i].skin_ghost.lower_skin[d].volume >= bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+          }
+          else if (bdata[i].skin_ghost.lower_skin[d].volume < bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            struct gkyl_range subrange_ul;
+            struct gkyl_range subrange_ur;
+            struct gkyl_range subrange_ll;
+            struct gkyl_range subrange_lr;
+
+            int corner_topleft[] = {bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0], bdata[tbid].skin_ghost.lower_ghost[tdir].lower[1]};
+            int edge_top[] = {0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]),
+              bdata[tbid].skin_ghost.lower_ghost[tdir].lower[1]};
+
+            int edge_left[] = {bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0],
+              0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[1])};
+            int mid[] = {0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]),
+              0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[1])};
+            int edge_right[] = {bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0],
+              0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[1])};
+
+            int edge_bottom[] = {0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]),
+              bdata[tbid].skin_ghost.lower_ghost[tdir].upper[1]};
+            int corner_bottomright[] = {bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0], bdata[tbid].skin_ghost.lower_ghost[tdir].upper[1]};
+
+            gkyl_sub_range_init(&subrange_ul, &(bdata[tbid].skin_ghost.lower_ghost[tdir]), corner_topleft, mid);
+            gkyl_sub_range_init(&subrange_ur, &(bdata[tbid].skin_ghost.lower_ghost[tdir]), edge_top, edge_right);
+            gkyl_sub_range_init(&subrange_ll, &(bdata[tbid].skin_ghost.lower_ghost[tdir]), edge_left, edge_bottom);
+            gkyl_sub_range_init(&subrange_lr, &(bdata[tbid].skin_ghost.lower_ghost[tdir]), mid, corner_bottomright);
+
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ul);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ur);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ll);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_lr);
+          }
+        }
+        else if (te[0].edge == GKYL_UPPER_POSITIVE) {
+          if (bdata[i].skin_ghost.lower_skin[d].volume >= bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
+          }
+          else if (bdata[i].skin_ghost.lower_skin[d].volume < bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            struct gkyl_range subrange_ul;
+            struct gkyl_range subrange_ur;
+            struct gkyl_range subrange_ll;
+            struct gkyl_range subrange_lr;
+
+            int corner_topleft[] = {bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0], bdata[tbid].skin_ghost.upper_ghost[tdir].lower[1]};
+            int edge_top[] = {0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]),
+              bdata[tbid].skin_ghost.upper_ghost[tdir].lower[1]};
+
+            int edge_left[] = {bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0],
+              0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[1])};
+            int mid[] = {0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]),
+              0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[1])};
+            int edge_right[] = {bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0],
+              0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[1])};
+
+            int edge_bottom[] = {0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]),
+              bdata[tbid].skin_ghost.upper_ghost[tdir].upper[1]};
+            int corner_bottomright[] = {bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0], bdata[tbid].skin_ghost.upper_ghost[tdir].upper[1]};
+
+            gkyl_sub_range_init(&subrange_ul, &(bdata[tbid].skin_ghost.upper_ghost[tdir]), corner_topleft, mid);
+            gkyl_sub_range_init(&subrange_ur, &(bdata[tbid].skin_ghost.upper_ghost[tdir]), edge_top, edge_right);
+            gkyl_sub_range_init(&subrange_ll, &(bdata[tbid].skin_ghost.upper_ghost[tdir]), edge_left, edge_bottom);
+            gkyl_sub_range_init(&subrange_lr, &(bdata[tbid].skin_ghost.upper_ghost[tdir]), mid, corner_bottomright);
+
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ul);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ur);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ll);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_lr);
+          }
+        }
+      }
+
+      if (te[1].edge != GKYL_PHYSICAL) {
+        struct gkyl_array *bc_buffer = bdata[i].bc_buffer;
+
+        gkyl_array_copy_to_buffer(bc_buffer -> data, fld[i], &(bdata[i].skin_ghost.upper_skin[d]));
+
+        int tbid = te[1].bid;
+        int tdir = te[1].dir;
+
+        if (te[1].edge == GKYL_LOWER_POSITIVE) {
+          if (bdata[i].skin_ghost.upper_skin[d].volume >= bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+          }
+          else if (bdata[i].skin_ghost.upper_skin[d].volume < bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            struct gkyl_range subrange_ul;
+            struct gkyl_range subrange_ur;
+            struct gkyl_range subrange_ll;
+            struct gkyl_range subrange_lr;
+
+            int corner_topleft[] = {bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0], bdata[tbid].skin_ghost.lower_ghost[tdir].lower[1]};
+            int edge_top[] = {0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]),
+              bdata[tbid].skin_ghost.lower_ghost[tdir].lower[1]};
+
+            int edge_left[] = {bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0],
+              0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[1])};
+            int mid[] = {0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]),
+              0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[1])};
+            int edge_right[] = {bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0],
+              0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[1])};
+
+            int edge_bottom[] = {0.5 * (bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]),
+              bdata[tbid].skin_ghost.lower_ghost[tdir].upper[1]};
+            int corner_bottomright[] = {bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0], bdata[tbid].skin_ghost.lower_ghost[tdir].upper[1]};
+
+            gkyl_sub_range_init(&subrange_ul, &(bdata[tbid].skin_ghost.lower_ghost[tdir]), corner_topleft, mid);
+            gkyl_sub_range_init(&subrange_ur, &(bdata[tbid].skin_ghost.lower_ghost[tdir]), edge_top, edge_right);
+            gkyl_sub_range_init(&subrange_ll, &(bdata[tbid].skin_ghost.lower_ghost[tdir]), edge_left, edge_bottom);
+            gkyl_sub_range_init(&subrange_lr, &(bdata[tbid].skin_ghost.lower_ghost[tdir]), mid, corner_bottomright);
+
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ul);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ur);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ll);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_lr);
+          }
+        }
+        else if (te[1].edge == GKYL_UPPER_POSITIVE) {
+          if (bdata[i].skin_ghost.upper_skin[d].volume >= bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
+          }
+          else if (bdata[i].skin_ghost.upper_skin[d].volume < bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            struct gkyl_range subrange_ul;
+            struct gkyl_range subrange_ur;
+            struct gkyl_range subrange_ll;
+            struct gkyl_range subrange_lr;
+
+            int corner_topleft[] = {bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0], bdata[tbid].skin_ghost.upper_ghost[tdir].lower[1]};
+            int edge_top[] = {0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]),
+              bdata[tbid].skin_ghost.upper_ghost[tdir].lower[1]};
+
+            int edge_left[] = {bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0],
+              0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[1])};
+            int mid[] = {0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]),
+              0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[1])};
+            int edge_right[] = {bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0],
+              0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[1] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[1])};
+
+            int edge_bottom[] = {0.5 * (bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0] + bdata[tbid].skin_ghost.upper_ghost[tdir].lower[0]),
+              bdata[tbid].skin_ghost.upper_ghost[tdir].upper[1]};
+            int corner_bottomright[] = {bdata[tbid].skin_ghost.upper_ghost[tdir].upper[0], bdata[tbid].skin_ghost.upper_ghost[tdir].upper[1]};
+
+            gkyl_sub_range_init(&subrange_ul, &(bdata[tbid].skin_ghost.upper_ghost[tdir]), corner_topleft, mid);
+            gkyl_sub_range_init(&subrange_ur, &(bdata[tbid].skin_ghost.upper_ghost[tdir]), edge_top, edge_right);
+            gkyl_sub_range_init(&subrange_ll, &(bdata[tbid].skin_ghost.upper_ghost[tdir]), edge_left, edge_bottom);
+            gkyl_sub_range_init(&subrange_lr, &(bdata[tbid].skin_ghost.upper_ghost[tdir]), mid, corner_bottomright);
+
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ul);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ur);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_ll);
+            gkyl_array_copy_from_buffer(fld[tbid], bc_buffer -> data, &subrange_lr);
+          }
+        }
+      }
 #endif
     }
   }
