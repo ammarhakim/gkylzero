@@ -50,7 +50,7 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 16; // Coarse cell count (x-direction).
   int Ny = 16; // Coarse cell count (y-direction).
-  int ref_factor = 4; // Refinement factor.
+  int ref_factor = 2; // Refinement factor.
   double Lx = 2.5; // Coarse domain size (x-direction).
   double Ly = 2.5; // Coarse domain size (y-direction).
   double fine_Lx = 1.5; // Fine domain size (x-direction).
