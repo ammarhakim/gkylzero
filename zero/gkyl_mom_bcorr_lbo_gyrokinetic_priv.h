@@ -58,7 +58,7 @@ struct mom_type_bcorr_lbo_gyrokinetic {
   struct gkyl_mom_type momt;
   lbo_gyrokinetic_momf_t kernel; // moment calculation kernel
   double _m; // mass of species
-  double vBoundary[2*GKYL_MAX_DIM];
+  double vBoundary[2*GKYL_MAX_VDIM];
 };
 
 void gk_mom_free(const struct gkyl_ref_count *ref);
