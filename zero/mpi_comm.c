@@ -454,7 +454,8 @@ barrier(struct gkyl_comm *comm)
 }
 
 // set of functions to help with parallel array output using MPI-IO
-static void sub_array_decomp_write(struct mpi_comm *comm,
+static void
+sub_array_decomp_write(struct mpi_comm *comm,
   const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *range,
   const struct gkyl_array_meta *meta,
@@ -518,7 +519,8 @@ static void sub_array_decomp_write(struct mpi_comm *comm,
 #undef _F
 }
 
-static int grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
+static int
+grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
   const struct gkyl_rect_grid *grid,
   const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *range,
@@ -552,9 +554,16 @@ static int grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
     MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
   }
   free(buff);
+
+  struct gkyl_array_meta zero_meta = (struct gkyl_array_meta) {
+    .meta_sz = 0,
+    .meta = 0
+  };
   
   // write data in array
-  sub_array_decomp_write(comm, decomp, range, meta, arr, fp);
+  sub_array_decomp_write(comm, decomp, range,
+    meta ? meta : &zero_meta,
+    arr, fp);
   return errno;
 }
 
