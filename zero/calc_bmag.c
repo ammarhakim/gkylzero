@@ -35,7 +35,10 @@ static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx
   struct gkyl_range_iter citer;
   gkyl_range_iter_init(&iter, gc->crange);
   for(int i = 0; i < gc->cgrid->ndim; i++){
-    citer.idx[i] = fmin(gc->crange_global->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]), gc->crange->upper[i]);
+    int idxtemp = gc->crange_global->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]);
+    idxtemp = GKYL_MIN2(idxtemp, gc->crange->upper[i]);
+    idxtemp = GKYL_MAX2(idxtemp, gc->crange->lower[i]);
+    citer.idx[i] = idxtemp;
   }
 
   long lidx = gkyl_range_idx(gc->crange, citer.idx);
