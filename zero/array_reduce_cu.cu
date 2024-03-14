@@ -9,11 +9,33 @@ extern "C" {
 #include <gkyl_array_reduce.h>
 }
 
+// CUDA does not natively support atomics for MAX and MIN on doubles (addition/sum is fine).
+// These functions utilize the atomicCAS (compare and swap) to thread-by-thread find if the
+// input value is greater than (for max) or less than (for min) the output and swap the values
+// if the condition is satisfied, along the way doing the double_as_longlong and longlong_as_double
+// conversions needed to determine if the double (as a long long) is indeed greater than or less than
+// the output. Note that because this operation is done thread-by-thread we still use CUB to perform
+// the reduction over CUDA blocks, but then the threads are compared thread-by-thread. 
+// These particular functions are adapted from (adapted by JJ on 03/14/24): 
+// https://github.com/treecode/Bonsai/blob/master/runtime/profiling/derived_atomic_functions.h
 __device__ static __forceinline__ double 
 atomicMax_double(double *address, double val)
 {
   unsigned long long int ret = __double_as_longlong(*address);
   while(val > __longlong_as_double(ret))
+  {
+    unsigned long long int old = ret;
+    if((ret = atomicCAS((unsigned long long int*)address, old, __double_as_longlong(val))) == old)
+      break;
+  }
+  return __longlong_as_double(ret);
+}
+
+__device__ static __forceinline__ double 
+atomicMin_double(double *address, double val)
+{
+  unsigned long long int ret = __double_as_longlong(*address);
+  while(val < __longlong_as_double(ret))
   {
     unsigned long long int old = ret;
     if((ret = atomicCAS((unsigned long long int*)address, old, __double_as_longlong(val))) == old)
@@ -101,19 +123,6 @@ gkyl_array_reduce_range_max_cu(double *out_d, const struct gkyl_array* inp, cons
   arrayMax_range_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(inp->on_dev, *range, out_d);
   // device synchronize required because out_d may be host pinned memory
   cudaDeviceSynchronize();
-}
-
-__device__ static __forceinline__ double 
-atomicMin_double(double *address, double val)
-{
-  unsigned long long int ret = __double_as_longlong(*address);
-  while(val < __longlong_as_double(ret))
-  {
-    unsigned long long int old = ret;
-    if((ret = atomicCAS((unsigned long long int*)address, old, __double_as_longlong(val))) == old)
-      break;
-  }
-  return __longlong_as_double(ret);
 }
 
 template <unsigned int BLOCKSIZE> 
