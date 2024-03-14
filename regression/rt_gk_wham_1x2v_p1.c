@@ -943,7 +943,6 @@ int main(int argc, char **argv)
       .mirror_grid_info = &ginp,
       // .geometry_id = GKYL_GEOMETRY_FROMFILE,
     },
-    .skip_field = true,
     .num_periodic_dir = 0,
     .periodic_dirs = {},
     .num_species = 2,
