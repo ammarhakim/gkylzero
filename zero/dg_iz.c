@@ -167,7 +167,6 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
   int rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<up->conf_rng->ndim; ++d) rem_dir[d] = 1;
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
-  long nc = vtSq_iz->ncomp;
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
@@ -223,7 +222,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
       if (up->E/temp_elc_av >= 3./2.) {
       	// calculate vtSq_iz using current model
       	// vtSq_iz = vtSq_elc/2.0 - Eiz/(3*me)
-      	array_set1(nc, vtSq_iz_d, 0.5, vtSq_elc_d);
+      	array_set1(vtSq_iz->ncomp, vtSq_iz_d, 0.5, vtSq_elc_d);
       	vtSq_iz_d[0] = vtSq_iz_d[0] - up->E*up->elem_charge/(3*up->mass_elc*cell_av_fac);
       }
       else {
