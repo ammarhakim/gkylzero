@@ -9,17 +9,17 @@ extern "C" {
 #include <gkyl_array_reduce.h>
 }
 
-__device__ static double
-atomicMax_double(double* address, double val)
+__device__ static __forceinline__
+double atomicMax_double(double *address, double val)
 {
-  unsigned long long int* address_as_ull = (unsigned long long int*) address;
-  unsigned long long int old = *address_as_ull, assumed;
-  do {
-    assumed = old;
-    old = atomicCAS(address_as_ull, assumed,
-      __double_as_longlong(fmax(val, __longlong_as_double(assumed))));
-  } while (assumed != old);
-  return __longlong_as_double(old);
+    unsigned long long int ret = __double_as_longlong(*address);
+    while(val > __longlong_as_double(ret))
+    {
+        unsigned long long int old = ret;
+        if((ret = atomicCAS((unsigned long long int*)address, old, __double_as_longlong(val))) == old)
+            break;
+    }
+    return __longlong_as_double(ret);
 }
 
 template <unsigned int BLOCKSIZE> __global__ void
@@ -44,7 +44,7 @@ arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out)
     if (linc < nCells) f = inp_d[linc*nComp+k];
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f, cub::Max());
-    if (threadIdx.x == 0)
+    if (threadIdx.x < BLOCKSIZE)
       atomicMax_double(&out[k], bResult);
   }
 }
@@ -75,7 +75,7 @@ arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, const struct gky
     if (linc < nCells) f = fptr[k];
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(f, cub::Max());
-    if (threadIdx.x == 0)
+    if (threadIdx.x < BLOCKSIZE)
       atomicMax_double(&out[k], bResult);
   }
 }
