@@ -149,30 +149,30 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   if (y > loc) {
     if (x < loc) {
-        rho = rho_ul; // Fluid mass density (upper-left).
-        u = u_ul; // Fluid x-velocity (upper-left).
-        v = v_ul; // Fluid y-velocity (upper-left).
-        p = p_ul; // Fluid pressure (upper-left).
+      rho = rho_ul; // Fluid mass density (upper-left).
+      u = u_ul; // Fluid x-velocity (upper-left).
+      v = v_ul; // Fluid y-velocity (upper-left).
+      p = p_ul; // Fluid pressure (upper-left).
     }
     else {
-        rho = rho_ur; // Fluid mass density (upper-right).
-        u = u_ur; // Fluid x-velocity (upper-right).
-        v = v_ur; // Fluid y-velocity (upper-right).
-        p = p_ur; // Fluid pressure (upper-right).
+      rho = rho_ur; // Fluid mass density (upper-right).
+      u = u_ur; // Fluid x-velocity (upper-right).
+      v = v_ur; // Fluid y-velocity (upper-right).
+      p = p_ur; // Fluid pressure (upper-right).
     }
   }
   else {
     if (x < loc) {
-        rho = rho_ll; // Fluid mass density (lower-left).
-        u = u_ll; // Fluid x-velocity (lower-left).
-        v = v_ll; // Fluid y-velocity (lower-left).
-        p = p_ll; // Fluid pressure (lower-left).
+      rho = rho_ll; // Fluid mass density (lower-left).
+      u = u_ll; // Fluid x-velocity (lower-left).
+      v = v_ll; // Fluid y-velocity (lower-left).
+      p = p_ll; // Fluid pressure (lower-left).
     }
     else {
-        rho = rho_lr; // Fluid mass density (lower-right).
-        u = u_lr; // Fluid x-velocity (lower-right).
-        v = v_lr; // Fluid y-velocity (lower-right).
-        p = p_lr; // Fluid pressure (lower-right).
+      rho = rho_lr; // Fluid mass density (lower-right).
+      u = u_lr; // Fluid x-velocity (lower-right).
+      v = v_lr; // Fluid y-velocity (lower-right).
+      p = p_lr; // Fluid pressure (lower-right).
     }
   }
   

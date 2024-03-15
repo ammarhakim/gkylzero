@@ -40,20 +40,29 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   struct gkyl_job_pool *coarse_job_pool = gkyl_thread_pool_new(app_args.num_threads);
 
 #ifdef AMR_DEBUG
-  gkyl_rect_grid_init(&coarse_bdata[0].grid, 2, (double []) { refined_x1, refined_y1 }, (double []) { refined_x2, refined_y2 }, (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[0].grid, 2, (double []) { refined_x1, refined_y1 }, (double []) { refined_x2, refined_y2 },
+    (int []) { Nx, Ny });
 #else
   gkyl_rect_grid_init(&coarse_bdata[0].grid, 2, (double []) { refined_x1, refined_y1 }, (double []) { refined_x2, refined_y2 },
     (int []) { Nx * ref_factor, Ny * ref_factor });
 #endif
 
-  gkyl_rect_grid_init(&coarse_bdata[1].grid, 2, (double []) { coarse_x1, refined_y2 }, (double []) { refined_x1, coarse_y2 }, (int []) { Nx, Ny });
-  gkyl_rect_grid_init(&coarse_bdata[2].grid, 2, (double []) { refined_x1, refined_y2 }, (double []) { refined_x2, coarse_y2 }, (int []) { Nx, Ny });
-  gkyl_rect_grid_init(&coarse_bdata[3].grid, 2, (double []) { refined_x2, refined_y2 }, (double []) { coarse_x2, coarse_y2 }, (int []) { Nx, Ny });
-  gkyl_rect_grid_init(&coarse_bdata[4].grid, 2, (double []) { coarse_x1, refined_y1 }, (double []) { refined_x1, refined_y2 }, (int []) { Nx, Ny });
-  gkyl_rect_grid_init(&coarse_bdata[5].grid, 2, (double []) { refined_x2, refined_y1 }, (double []) { coarse_x2, refined_y2 }, (int []) { Nx, Ny });
-  gkyl_rect_grid_init(&coarse_bdata[6].grid, 2, (double []) { coarse_x1, coarse_y1 }, (double []) { refined_x1, refined_y1 }, (int []) { Nx, Ny });
-  gkyl_rect_grid_init(&coarse_bdata[7].grid, 2, (double []) { refined_x1, coarse_y1 }, (double []) { refined_x2, refined_y1 }, (int []) { Nx, Ny });
-  gkyl_rect_grid_init(&coarse_bdata[8].grid, 2, (double []) { refined_x2, coarse_y1 }, (double []) { coarse_x2, refined_y1 }, (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[1].grid, 2, (double []) { coarse_x1, refined_y2 }, (double []) { refined_x1, coarse_y2 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[2].grid, 2, (double []) { refined_x1, refined_y2 }, (double []) { refined_x2, coarse_y2 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[3].grid, 2, (double []) { refined_x2, refined_y2 }, (double []) { coarse_x2, coarse_y2 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[4].grid, 2, (double []) { coarse_x1, refined_y1 }, (double []) { refined_x1, refined_y2 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[5].grid, 2, (double []) { refined_x2, refined_y1 }, (double []) { coarse_x2, refined_y2 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[6].grid, 2, (double []) { coarse_x1, coarse_y1 }, (double []) { refined_x1, refined_y1 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[7].grid, 2, (double []) { refined_x1, coarse_y1 }, (double []) { refined_x2, refined_y1 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[8].grid, 2, (double []) { refined_x2, coarse_y1 }, (double []) { coarse_x2, refined_y1 },
+    (int []) { Nx, Ny });
 
 #ifdef AMR_DEBUG
   struct euler_block_data fine_bdata[num_blocks];
@@ -183,6 +192,22 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
 #ifdef AMR_DEBUG
   euler_write_sol("euler_amr_coarse_0", num_blocks, coarse_bdata);
   euler_write_sol("euler_amr_fine_0", num_blocks, fine_bdata);
+
+  rename("euler_amr_fine_0_b0.gkyl", "euler_amr_0_b0.gkyl");
+  remove("euler_amr_coarse_0_b0.gkyl");
+
+  for (int i = 1; i < 9; i++) {
+    char buf_old[32];
+    char buf_new[32];
+    char buf_del[32];
+
+    snprintf(buf_old, 32, "euler_amr_coarse_0_b%d.gkyl", i);
+    snprintf(buf_new, 32, "euler_amr_0_b%d.gkyl", i);
+    snprintf(buf_del, 32, "euler_amr_fine_0_b%d.gkyl", i);
+
+    rename(buf_old, buf_new);
+    remove(buf_del);
+  }
 #else
   euler_write_sol("euler_amr_0", num_blocks, coarse_bdata);
 #endif
@@ -247,6 +272,22 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
 #ifdef AMR_DEBUG
   euler_write_sol("euler_amr_coarse_1", num_blocks, coarse_bdata);
   euler_write_sol("euler_amr_fine_1", num_blocks, fine_bdata);
+
+  rename("euler_amr_fine_1_b0.gkyl", "euler_amr_1_b0.gkyl");
+  remove("euler_amr_coarse_1_b0.gkyl");
+
+  for (int i = 1; i < 9; i++) {
+    char buf_old[32];
+    char buf_new[32];
+    char buf_del[32];
+
+    snprintf(buf_old, 32, "euler_amr_coarse_1_b%d.gkyl", i);
+    snprintf(buf_new, 32, "euler_amr_1_b%d.gkyl", i);
+    snprintf(buf_del, 32, "euler_amr_fine_1_b%d.gkyl", i);
+
+    rename(buf_old, buf_new);
+    remove(buf_del);
+  }
 #else
   euler_write_sol("euler_amr_1", num_blocks, coarse_bdata);
 #endif
