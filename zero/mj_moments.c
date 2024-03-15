@@ -8,32 +8,10 @@
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_mj_moments.h>
+#include <gkyl_mj_moments_priv.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_proj_on_basis.h>
-
-struct gkyl_mj_moments
-{
-  struct gkyl_rect_grid grid;
-  struct gkyl_basis conf_basis, phase_basis;
-
-  // struct gkyl_mom_calc *ncalc;
-  struct gkyl_dg_updater_moment *ncalc; 
-  struct gkyl_dg_updater_moment *vbicalc;
-  struct gkyl_dg_updater_moment *Pcalc;
-  struct gkyl_array *num_ratio; 
-  struct gkyl_array *num_vb;  
-  struct gkyl_array *vb_dot_nvb;  
-  struct gkyl_array *n_minus_vb_dot_nvb;  
-  struct gkyl_array *V_drift;   
-  struct gkyl_array *gamma;
-  struct gkyl_array *GammaV2;
-  struct gkyl_array *Gamma_inv;
-  struct gkyl_array *pressure;
-  struct gkyl_array *temperature;
-
-  struct gkyl_dg_bin_op_mem *mem;
-};
 
 gkyl_mj_moments *
 gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
@@ -83,7 +61,17 @@ gkyl_mj_moments_advance(gkyl_mj_moments *cmj,
   struct gkyl_array *n, struct gkyl_array *vbi, struct gkyl_array *T,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local)
 {
+//gkyl_mj_moments_advance(gkyl_mj_moments *cmj,
+//  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
+//  const struct gkyl_array *fout, struct gkyl_array *sr_five_moms)
+//{
+
   int vdim = cmj->phase_basis.ndim - cmj->conf_basis.ndim;
+
+  // grab the arrays from the larger array object
+  //double *n = sr_five_moms;
+  //double *vbi = &sr_five_moms[cmj->conf_basis.num_basis*conf_local.volume];
+  //double *T = &sr_five_moms[(1+vdim)*cmj->conf_basis.num_basis*conf_local.volume];
 
   // compute the sr moments, lab frame <N> and <Nvb>
   gkyl_dg_updater_moment_advance(cmj->ncalc, phase_local, conf_local, fout, cmj->num_ratio);
@@ -124,8 +112,6 @@ gkyl_mj_moments_advance(gkyl_mj_moments *cmj,
   gkyl_array_set(n, 1.0, cmj->num_ratio);
   gkyl_array_set(vbi, 1.0, cmj->V_drift);
   gkyl_array_set(T, 1.0, cmj->temperature);
-
-
 }
 
 void 

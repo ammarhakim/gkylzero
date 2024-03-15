@@ -76,6 +76,7 @@ static const char *const valid_moment_names[] = {
   "M3i",
   "M3ijk",
   "FiveMoments",
+  "SRFiveMoments", // relativistic moments n, vb, P
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
@@ -96,6 +97,15 @@ struct vm_species_moment {
 
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
+
+  struct gkyl_mj_moments *mj_moms;
+  const char *nm; // Moment name
+  struct gkyl_array *n;
+  struct gkyl_array *vbi;
+  struct gkyl_array *T;
+  int vdim;
+  int num_basis;
+  bool is_sr_five_moments;
 };
 
 // forward declare species struct

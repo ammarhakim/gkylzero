@@ -30,37 +30,37 @@ gkyl_correct_mj *gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
   bool use_gpu);
 
 /**
- * Fix the Maxwell-Juttner so that it's moments match desired m0 moment.
+ * Fix the Maxwell-Juttner so that it's moments match desired n_stationary moment.
  *
  * @param cmj MJ correction updater
  * @param fout Distribution function to fix (modified in-place)
- * @param m0 Desired lab-frame number density
- * @param m1i specified velocity of f in the stationary frame
+ * @param n_stationary Desired lab-frame number density
+ * @param vbi specified velocity of f in the stationary frame
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
  */
 void gkyl_correct_mj_fix_n_stationary(gkyl_correct_mj *cmj, 
   struct gkyl_array *fout,
-  const struct gkyl_array *m0, const struct gkyl_array *m1i,
+  const struct gkyl_array *n_stationary, const struct gkyl_array *vbi,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
 
 /**
  * Fix the Maxwell-Juttner so that it's moments match desired moments.
  * NOTE: If this algorithm fails, the returns the original distribution function
- * with only the m0 moment corrected (i.e. runs: gkyl_correct_mj_fix_n_stationary())
+ * with only the n_stationary moment corrected (i.e. runs: gkyl_correct_mj_fix_n_stationary())
  *
  * @param cmj MJ correction updater
  * @param fout Distribution function to fix (modified in-place)
- * @param m0 Desired lab-frame number density
- * @param m1i Desired lab-frame velocity
- * @param m2 Desired lab-frame temperature
+ * @param n_stationary Desired lab-frame number density
+ * @param vbi Desired lab-frame velocity
+ * @param T_stationary Desired lab-frame temperature
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
  * @param poly_order 
  */
 void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
   struct gkyl_array *fout,
-  const struct gkyl_array *m0, const struct gkyl_array *m1i, const struct gkyl_array *m2,
+  const struct gkyl_array *n_stationary, const struct gkyl_array *vbi, const struct gkyl_array *T_stationary,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
   int poly_order);
 

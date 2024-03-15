@@ -103,8 +103,10 @@ main(int argc, char **argv)
       .self_nu = evalNu,
     },
 
-    .num_diag_moments = 2,
-    .diag_moments = { "M0", "M1i" }, //, "Pressure"
+    //.num_diag_moments = 2,
+    //.diag_moments = { "M0", "M1i" }, //, "Pressure"
+    .num_diag_moments = 1,
+    .diag_moments = { "SRFiveMoments" },
   };
 
   // VM app
