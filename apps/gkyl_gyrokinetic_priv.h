@@ -143,7 +143,9 @@ struct gk_species_moment {
 struct gk_rad_drag {  
   int num_cross_collisions; // number of species we cross-collide with
   struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
+  struct gk_neut_species *collide_with_neut[GKYL_MAX_SPECIES]; // pointers to neutral cross-species we collide with
   int collide_with_idx[GKYL_MAX_SPECIES]; // index of species we collide with
+  bool is_neut_species[GKYL_MAX_SPECIES]; // Flag of whether neutral or gk species
   
   // drag coefficients in vparallel and mu for each species being collided with
   struct gkyl_array *vnu_surf[GKYL_MAX_SPECIES]; 
@@ -760,10 +762,11 @@ void gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
  * @param species Pointer to species
  * @param rad Species radiation drag object
  * @param fin Input distribution functions (size num_species)
+ * @param fin_neut Input neutral distribution functions (size num_species)
  */
 void gk_species_radiation_moms(gkyl_gyrokinetic_app *app,
   const struct gk_species *species, struct gk_rad_drag *rad, 
-  const struct gkyl_array *fin[]);
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute emissivities 

@@ -278,7 +278,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     if (app->species[i].has_neutral_reactions) {
       gk_species_react_cross_init(app, &app->species[i], &app->species[i].react_neut);
     }
-    // initial radiation (e.g., bremmstrahlung model from cross-collisions of electrons with ions)
+    // initial radiation (e.g., line radiation from cross-collisions of electrons with ions)
     if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_init(app, &app->species[i], &app->species[i].rad);
     }
@@ -700,12 +700,6 @@ gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double 
   char fileNm_nvsqnu[sz_nvsqnu+1]; // ensures no buffer overflow
   snprintf(fileNm_nvsqnu, sizeof fileNm_nvsqnu, fmt_nvsqnu, app->name, s->info.name, frame);
 
-  // Compute radiation drag coefficients
-  const struct gkyl_array *fin[app->num_species];
-  for (int i=0; i<app->num_species; ++i) 
-    fin[i] = app->species[i].f;
-  gk_species_radiation_moms(app, s, &s->rad, fin);
-
   // copy data from device to host before writing it out
   if (app->use_gpu) {
     gkyl_array_copy(s->rad.nvnu_surf_host, s->rad.nvnu_surf);
@@ -724,9 +718,14 @@ void
 gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
   struct gk_species *s = &app->species[sidx];
+  const struct gkyl_array *fin_neut[app->num_neut_species];
   const struct gkyl_array *fin[app->num_species];
   for (int i=0; i<app->num_species; ++i) 
     fin[i] = app->species[i].f;
+  for (int i=0; i<app->num_neut_species; ++i)
+    fin_neut[i] = app->neut_species[i].f;
+
+  //  gk_species_radiation_moms(app, s, &s->rad, fin, fin_neut);
   gk_species_radiation_emissivity(app, s, &s->rad, fin);
   for (int i=0; i<s->rad.num_cross_collisions; i++) {
     // copy data from device to host before writing it out
@@ -734,11 +733,18 @@ gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app* app, int sidx, d
       gkyl_array_copy(s->rad.emissivity_host[i], s->rad.emissivity[i]);
     }
     // Construct the file handles for vparallel and mu drag
-    const char *fmt_emissivity = "%s-%s_emissivity_%s_%d.gkyl";
-    int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, s->info.name, app->species[s->rad.collide_with_idx[i]].info.name, frame);
-    char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
-    snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name, s->info.name, app->species[s->rad.collide_with_idx[i]].info.name, frame);
-    gkyl_comm_array_write(s->comm, &app->grid, &app->local, s->rad.emissivity_host[i], fileNm_emissivity);
+    const char *fmt_emissivity = "%s-%s_emissivity_%s_%d.gkyl";  
+    if (s->rad.is_neut_species[i]) {
+      int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, s->info.name, app->neut_species[s->rad.collide_with_idx[i]].info.name, frame);
+      char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
+      snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name, s->info.name, app->neut_species[s->rad.collide_with_idx[i]].info.name, frame);
+      gkyl_comm_array_write(s->comm, &app->grid, &app->local, s->rad.emissivity_host[i], fileNm_emissivity);
+    } else {
+      int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, s->info.name, app->species[s->rad.collide_with_idx[i]].info.name, frame);
+      char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
+      snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name, s->info.name, app->species[s->rad.collide_with_idx[i]].info.name, frame);
+      gkyl_comm_array_write(s->comm, &app->grid, &app->local, s->rad.emissivity_host[i], fileNm_emissivity);
+    }  
   }
 }
 
@@ -1368,7 +1374,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     // compute necessary drag coefficients for radiation operator
     if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_moms(app, &app->species[i], 
-        &app->species[i].rad, fin);
+        &app->species[i].rad, fin, fin_neut);
     }
   }
 

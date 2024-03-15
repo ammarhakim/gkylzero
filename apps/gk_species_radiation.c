@@ -59,8 +59,19 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     rad->vsqnu[i] = mkarr(app->use_gpu, rad_basis.num_basis, s->local_ext.volume);
 
     // Fetch the species we are colliding with and the fitting parameters for that species
-    rad->collide_with[i] = gk_find_species(app, s->info.radiation.collide_with[i]);
     rad->collide_with_idx[i] = gk_find_species_idx(app, s->info.radiation.collide_with[i]);
+    if (rad->collide_with_idx[i] == -1) {
+      rad->collide_with_idx[i] = gk_find_neut_species_idx(app, s->info.radiation.collide_with[i]);
+      rad->collide_with_neut[i] = gk_find_neut_species(app, s->info.radiation.collide_with[i]);
+      rad->is_neut_species[i] = true;
+      gk_neut_species_moment_init(app, rad->collide_with_neut[i], &rad->moms[i], "M0");
+    } else {
+      rad->collide_with[i] = gk_find_species(app, s->info.radiation.collide_with[i]);
+      rad->is_neut_species[i] = false;
+      // allocate density calculation needed for radiation update
+      gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");
+    }
+
     int status = gkyl_get_fit_params(*rad_data, s->info.radiation.z[i], s->info.radiation.charge_state[i], a, alpha, beta, gamma, v0, s->info.radiation.num_of_densities[i]);
     if (status == 1) {
       printf("No radiation fits exist for z=%d, charge state=%d\n",s->info.radiation.z[i], s->info.radiation.charge_state[i]);
@@ -74,9 +85,6 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       &app->local, &s->local, 
       rad->vnu_surf[i], rad->vnu[i], 
       rad->vsqnu_surf[i], rad->vsqnu[i]);
-
-    // allocate density calculation needed for radiation update
-    gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");
 
     //allocate emissivity
     rad->emissivity[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -119,7 +127,7 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
 // computes density for computation of total radiation drag
 void
 gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-  struct gk_rad_drag *rad, const struct gkyl_array *fin[])
+  struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
   gkyl_array_clear(rad->nvnu_surf, 0.0);
   gkyl_array_clear(rad->nvnu, 0.0);
@@ -127,7 +135,11 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   gkyl_array_clear(rad->nvsqnu, 0.0);
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     // compute needed moments
-    gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
+    if (rad->is_neut_species[i])
+      gk_neut_species_moment_calc(&rad->moms[i], species->local, app->local, fin_neut[rad->collide_with_idx[i]]);
+    else
+      gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
+    
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
       rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
@@ -157,7 +169,11 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
     gkyl_array_clear(rad->nvsqnu, 0.0);
     gkyl_array_clear(rad->emissivity_rhs, 0.0);
     gkyl_array_clear(rad->emissivity_denominator, 0.0);
-    gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
+    if (rad->is_neut_species[i])
+      gk_neut_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
+    else
+      gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
+
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
       rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
@@ -168,7 +184,7 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
       rad->moms[i].marr, 
       rad->nvnu_surf, rad->nvnu, 
       rad->nvsqnu_surf, rad->nvsqnu);
-
+    
     gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
       species->f, species->cflrate, rad->emissivity_rhs);
     gk_species_moment_calc(&rad->m2, species->local, app->local, rad->emissivity_rhs);
