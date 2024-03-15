@@ -1,4 +1,3 @@
-
 #ifdef GKYL_HAVE_MPI
 
 #include <assert.h>
@@ -6,6 +5,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_array_rio_format_desc.h>
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_comm_priv.h>
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_mpi_comm.h>
@@ -455,8 +455,10 @@ barrier(struct gkyl_comm *comm)
 
 // set of functions to help with parallel array output using MPI-IO
 static void
-sub_array_decomp_write(struct mpi_comm *comm, const struct gkyl_rect_decomp *decomp,
+sub_array_decomp_write(struct mpi_comm *comm,
+  const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, MPI_File fp)
 {
 #define _F(loc) gkyl_array_cfetch(arr, loc)
@@ -465,7 +467,7 @@ sub_array_decomp_write(struct mpi_comm *comm, const struct gkyl_rect_decomp *dec
   MPI_Comm_rank(comm->mcomm, &rank);
 
   // seek to appropriate place in the file, depending on rank
-  size_t hdr_sz = gkyl_base_hdr_size(0) + gkyl_file_type_3_hrd_size(range->ndim);
+  size_t hdr_sz = gkyl_base_hdr_size(meta->meta_sz) + gkyl_file_type_3_hrd_size(range->ndim);
   size_t file_loc = hdr_sz +
     arr->esznc*comm->local_range_offset +
     rank*gkyl_file_type_3_range_hrd_size(range->ndim);
@@ -520,7 +522,9 @@ sub_array_decomp_write(struct mpi_comm *comm, const struct gkyl_rect_decomp *dec
 static int
 grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
   const struct gkyl_rect_grid *grid,
-  const struct gkyl_rect_decomp *decomp, const struct gkyl_range *range,
+  const struct gkyl_rect_decomp *decomp,
+  const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, MPI_File fp)
 {
   char *buff; size_t buff_sz;
@@ -532,7 +536,9 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
       .file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
       .etype = arr->type,
       .esznc = arr->esznc,
-      .tot_cells = decomp->parent_range.volume
+      .tot_cells = decomp->parent_range.volume,
+      .meta_size = meta ? meta->meta_sz : 0,
+      .meta = meta ? meta->meta : 0
     },
     fbuff
   );
@@ -548,15 +554,23 @@ grid_sub_array_decomp_write_fp(struct mpi_comm *comm,
     MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
   }
   free(buff);
+
+  struct gkyl_array_meta zero_meta = (struct gkyl_array_meta) {
+    .meta_sz = 0,
+    .meta = 0
+  };
   
   // write data in array
-  sub_array_decomp_write(comm, decomp, range, arr, fp);
+  sub_array_decomp_write(comm, decomp, range,
+    meta ? meta : &zero_meta,
+    arr, fp);
   return errno;
 }
 
-static int
-array_write(struct gkyl_comm *comm,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+static int array_write(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
@@ -565,9 +579,23 @@ array_write(struct gkyl_comm *comm,
     MPI_File_open(mpi->mcomm, fname, MPI_MODE_CREATE|MPI_MODE_WRONLY, MPI_INFO_NULL, &fp);
   if (err != MPI_SUCCESS)
     return err;
-  err = grid_sub_array_decomp_write_fp(mpi, grid, mpi->decomp, range, arr, fp);
+  err = grid_sub_array_decomp_write_fp(mpi, grid, mpi->decomp, range, meta, arr, fp);
   MPI_File_close(&fp);
   return err;
+}
+
+static int
+array_read(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char *fname)
+{
+  struct gkyl_rect_grid fgrid;
+  int status = gkyl_grid_sub_array_read(&fgrid, range, arr, fname);
+  if (status == 0) {
+    if (!gkyl_rect_grid_cmp(grid, &fgrid))
+      status = 1;
+  }
+  return status;
 }
 
 static struct gkyl_comm*
@@ -604,18 +632,21 @@ split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new
   return newcomm;
 }
 
-static struct gkyl_comm_state* comm_state_new(struct gkyl_comm *comm)
+static struct gkyl_comm_state *
+comm_state_new(struct gkyl_comm *comm)
 {
   struct gkyl_comm_state *state = gkyl_malloc(sizeof *state);
   return state;
 }
 
-static void comm_state_release(struct gkyl_comm_state *state)
+static void
+comm_state_release(struct gkyl_comm_state *state)
 {
   gkyl_free(state);
 }
 
-static void comm_state_wait(struct gkyl_comm_state *state)
+static void
+comm_state_wait(struct gkyl_comm_state *state)
 {
   MPI_Wait(&state->req, &state->stat);
 }
@@ -663,16 +694,13 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
     for (int i=0; i<MAX_RECV_NEIGH; ++i)
       mpi->send[i].buff = gkyl_mem_buff_new(16);
 
-    mpi->nsend = 0;
-    for (int i=0; i<MAX_RECV_NEIGH; ++i)
-      mpi->send[i].buff = gkyl_mem_buff_new(16);
-
     mpi->allgather_buff_local.buff = gkyl_mem_buff_new(16);
     mpi->allgather_buff_global.buff = gkyl_mem_buff_new(16);
 
     mpi->base.gkyl_array_sync = array_sync;
     mpi->base.gkyl_array_per_sync = array_per_sync;
     mpi->base.gkyl_array_write = array_write;
+    mpi->base.gkyl_array_read = array_read;
     mpi->base.gkyl_array_allgather = array_allgather;
   }
   

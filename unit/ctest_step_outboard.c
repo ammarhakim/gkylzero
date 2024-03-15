@@ -35,43 +35,43 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
   char fileNm[sz+1]; // ensure no buffer overflow
 
   sprintf(fileNm, fmt, name, "mapc2p");
-  gkyl_grid_sub_array_write(&grid, &local, up->mc2p, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->mc2p, fileNm);
   sprintf(fileNm, fmt, name, "bmag");
-  gkyl_grid_sub_array_write(&grid, &local, up->bmag, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag, fileNm);
   sprintf(fileNm, fmt, name, "g_ij");
-  gkyl_grid_sub_array_write(&grid, &local, up->g_ij, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->g_ij, fileNm);
   sprintf(fileNm, fmt, name, "dxdz");
-  gkyl_grid_sub_array_write(&grid, &local, up->dxdz, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->dxdz, fileNm);
   sprintf(fileNm, fmt, name, "dzdx");
-  gkyl_grid_sub_array_write(&grid, &local, up->dzdx, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->dzdx, fileNm);
   sprintf(fileNm, fmt, name, "jacobgeo");
-  gkyl_grid_sub_array_write(&grid, &local, up->jacobgeo, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobgeo, fileNm);
   sprintf(fileNm, fmt, name, "jacobgeo_inv");
-  gkyl_grid_sub_array_write(&grid, &local, up->jacobgeo_inv, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobgeo_inv, fileNm);
   sprintf(fileNm, fmt, name, "gij");
-  gkyl_grid_sub_array_write(&grid, &local, up->gij, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gij, fileNm);
   sprintf(fileNm, fmt, name, "b_i");
-  gkyl_grid_sub_array_write(&grid, &local, up->b_i, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->b_i, fileNm);
   sprintf(fileNm, fmt, name, "cmag");
-  gkyl_grid_sub_array_write(&grid, &local, up->cmag, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->cmag, fileNm);
   sprintf(fileNm, fmt, name, "jacobtot");
-  gkyl_grid_sub_array_write(&grid, &local, up->jacobtot, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobtot, fileNm);
   sprintf(fileNm, fmt, name, "jacobtot_inv");
-  gkyl_grid_sub_array_write(&grid, &local, up->jacobtot_inv, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobtot_inv, fileNm);
   sprintf(fileNm, fmt, name, "bmag_inv");
-  gkyl_grid_sub_array_write(&grid, &local, up->bmag_inv, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag_inv, fileNm);
   sprintf(fileNm, fmt, name, "bmag_inv_sq");
-  gkyl_grid_sub_array_write(&grid, &local, up->bmag_inv_sq, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag_inv_sq, fileNm);
   sprintf(fileNm, fmt, name, "gxxj");
-  gkyl_grid_sub_array_write(&grid, &local, up->gxxj, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxxj, fileNm);
   sprintf(fileNm, fmt, name, "gxyj");
-  gkyl_grid_sub_array_write(&grid, &local, up->gxyj, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxyj, fileNm);
   sprintf(fileNm, fmt, name, "gyyj");
-  gkyl_grid_sub_array_write(&grid, &local, up->gyyj, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gyyj, fileNm);
   sprintf(fileNm, fmt, name, "gxzj");
-  gkyl_grid_sub_array_write(&grid, &local, up->gxzj, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxzj, fileNm);
   sprintf(fileNm, fmt, name, "eps2");
-  gkyl_grid_sub_array_write(&grid, &local, up->eps2, fileNm);
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->eps2, fileNm);
 }
 
 

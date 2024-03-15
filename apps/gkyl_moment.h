@@ -265,7 +265,49 @@ void gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app);
  *
  * @param app App object.
  */
-void gkyl_moment_app_stat_write(const gkyl_moment_app* app);
+void gkyl_moment_app_stat_write(const gkyl_moment_app *app);
+
+/**
+ * Read field data from .gkyl file.
+ *
+ * @param app App object.
+ * @param fname File to read from.
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_app_from_file_field(gkyl_moment_app *app,
+  const char *fname);
+
+/**
+ * Read species data from .gkyl file.
+ *
+ * @param app App object.
+ * @param sidx Index of species to read
+ * @param fname File to read from.
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_app_from_file_species(gkyl_moment_app *app,
+  int sidx, const char *fname);
+
+/**
+ * Read field data from specified frame of previous simulation.
+ *
+ * @param app App object.
+ * @param frame Frame number to read from
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_app_from_frame_field(gkyl_moment_app *app,
+  int frame);
+
+/**
+ * Read species data from specified frame of previous simulation.
+ *
+ * @param app App object.
+ * @param sidx Index of species to read
+ * @param frame Frame number to read from
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_app_from_frame_species(gkyl_moment_app *app,
+  int sidx, int frame);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the

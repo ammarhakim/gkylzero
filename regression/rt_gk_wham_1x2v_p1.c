@@ -627,7 +627,7 @@ create_ctx(void)
   int num_cell_z = 240;
   int poly_order = 1;
   double final_time = 1e-9;
-  int num_frames = 10;
+  int num_frames = 1;
 
   // Bananna tip info. Hardcoad to avoid dependency on ctx
   double B_bt = 1.058278;
@@ -848,27 +848,27 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = eval_temp_elc,      
     },
-    // .collisions =  {
-    //   .collision_id = GKYL_LBO_COLLISIONS,
-    //   .ctx = &ctx,
-    //   .self_nu = evalNuElc,
-    //   .num_cross_collisions = 1,
-    //   .collide_with = { "ion" },
-    // },
-    // .source = {
-    //   .source_id = GKYL_PROJ_SOURCE,
-    //   .write_source = true,
-    //   .num_sources = 1,
-    //   .projection[0] = {
-    //     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-    //     .ctx_density = &ctx,
-    //     .density = eval_density_elc_source,
-    //     .ctx_upar = &ctx,
-    //     .upar= eval_upar_elc_source,
-    //     .ctx_temp = &ctx,
-    //     .temp = eval_temp_elc_source,      
-    //   }, 
-    // },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .ctx = &ctx,
+      .self_nu = evalNuElc,
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .write_source = true,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+        .ctx_density = &ctx,
+        .density = eval_density_elc_source,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_elc_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_elc_source,      
+      }, 
+    },
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -893,27 +893,27 @@ int main(int argc, char **argv)
       .ctx_temp = &ctx,
       .temp = eval_temp_ion,      
     },
-    // .collisions =  {
-    //   .collision_id = GKYL_LBO_COLLISIONS,
-    //   .ctx = &ctx,
-    //   .self_nu = evalNuIon,
-    //   .num_cross_collisions = 1,
-    //   .collide_with = { "elc" },
-    // },
-    // .source = {
-    //   .source_id = GKYL_PROJ_SOURCE,
-    //   .write_source = true,
-    //   .num_sources = 1,
-    //   .projection[0] = {
-    //     .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-    //     .ctx_density = &ctx,
-    //     .density = eval_density_ion_source,
-    //     .ctx_upar = &ctx,
-    //     .upar= eval_upar_ion_source,
-    //     .ctx_temp = &ctx,
-    //     .temp = eval_temp_ion_source,      
-    //   }, 
-    // },
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .ctx = &ctx,
+      .self_nu = evalNuIon,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .write_source = true,
+      .num_sources = 1,
+      .projection[0] = {
+        .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+        .ctx_density = &ctx,
+        .density = eval_density_ion_source,
+        .ctx_upar = &ctx,
+        .upar= eval_upar_ion_source,
+        .ctx_temp = &ctx,
+        .temp = eval_temp_ion_source,      
+      }, 
+    },
     .bcx = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
       .upper={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -927,7 +927,7 @@ int main(int argc, char **argv)
     .kperpSq = pow(ctx.kperp, 2.),
   };
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_wham_elc_1x2v_p1_1gpu",
+    .name = "gk_wham_kinetic_1x2v_p1",
     .cdim = 1,
     .vdim = 2,
     .lower = {ctx.z_min},
@@ -943,7 +943,6 @@ int main(int argc, char **argv)
       .mirror_grid_info = &ginp,
       // .geometry_id = GKYL_GEOMETRY_FROMFILE,
     },
-    .skip_field = true,
     .num_periodic_dir = 0,
     .periodic_dirs = {},
     .num_species = 2,

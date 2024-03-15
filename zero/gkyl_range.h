@@ -101,6 +101,18 @@ void gkyl_range_init_from_shape(struct gkyl_range *rng, int ndim,
   const int *shape);
 
 /**
+ * Create new range object from specified shape. This sets the lower
+ * indices to [1,...] and upper indices to [shape[0], ...].
+ *
+ * @param rng Range object to initialize
+ * @param ndim Dimensiom of range to create.
+ * @param shape Shape of region
+ */
+
+void gkyl_range_init_from_shape1(struct gkyl_range *rng, int ndim,
+  const int *shape);
+
+/**
  * Create a new range which is a tensor product of @a a and @a b input
  * ranges.
  *
