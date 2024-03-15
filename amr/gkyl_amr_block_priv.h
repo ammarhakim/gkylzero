@@ -176,14 +176,14 @@ struct gkyl_update_status euler_update_all_blocks(const struct gkyl_job_pool* jo
   const struct euler_block_data bdata[], double t_curr, double dt);
 
 /**
-* Initialize a new job in the thread-based pool for updating the block-structured simulation data for the Euler equations.
+* Initialize a new job in the thread-based job pool for updating the block-structured simulation data for the Euler equations.
 *
 * @param ctx Context to pass to the function.
 */
 void euler_init_job_func(void* ctx);
 
 /**
-* Copy an existing job between two thread-based based job pools for updating the block-structured simulation data for the Euler equations.
+* Copy an existing job between two thread-based job pools for updating the block-structured simulation data for the Euler equations.
 *
 * @param ctx Context to pass to the function.
 */

@@ -29,8 +29,8 @@ struct five_moment_block_data {
   struct gkyl_array *rhs_source_elc;
   struct gkyl_array *rhs_source_ion;
 
-  struct gkyl_array *nT_src_elc;
-  struct gkyl_array *nT_src_ion;
+  struct gkyl_array *nT_source_elc;
+  struct gkyl_array *nT_source_ion;
 
   struct gkyl_array *app_current;
   struct gkyl_array *ext_em;
@@ -73,6 +73,8 @@ struct five_moment_update_block_ctx {
   struct gkyl_wave_prop_status stat_elc;
   struct gkyl_wave_prop_status stat_ion;
   struct gkyl_wave_prop_status stat_maxwell;
+
+  int nstrang;
 };
 
 // Context for copying job pool information for the block-structured, coupled five-moment equations.
@@ -154,3 +156,63 @@ void five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct f
 * @param bdata Block-structured data for the coupled five-moment equations.
 */
 void five_moment_block_data_write(const char* file_nm_elc, const char* file_nm_ion, const char* file_nm_maxwell, const struct five_moment_block_data* bdata);
+
+/**
+* Calculate the maximum stable time-step for the block-structured, coupled five-moment equations.
+*
+* @param bdata Block-structured data for the coupled five-moment equations.
+*/
+double five_moment_block_data_max_dt(const struct five_moment_block_data* bdata);
+
+/**
+* Update the block-structured simulation data for the coupled five-moment equations using the thread-based job pool.
+*
+* @param ctx Context to pass to the function.
+*/
+void five_moment_update_block_job_func(void* ctx);
+
+/**
+* Update the source terms of the block-structured simulation data for the coupled five-moment equations using the thread-based job pool.
+*
+* @param ctx Context to pass to the function.
+*/
+void five_moment_update_block_job_func_source(void* ctx);
+
+/**
+* Update all blocks in the block hierarchy by using the thread-based job pool for the coupled five-moment equations.
+*
+* @param job_pool Job pool for updating block-structured data for the coupled five-moment equations using threads.
+* @param btopo Topology/connectivity information for the entire block hierarchy.
+* @param bdata Block-structured data for the coupled five-moment equations.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step for the simulation.
+*/
+struct gkyl_update_status five_moment_update_all_blocks(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
+  const struct five_moment_block_data bdata[], double t_curr, double dt);
+
+/**
+* Update the source terms for all blocks in the block hierarchy by using the thread-based job pool for the coupled five-moment equations.
+*
+* @param job_pool Job pool for updating block-structured data for the coupled five-moment equations using threads.
+* @param btopo Topology/connectivity information for the entire block hierarchy.
+* @param bdata Block-structured data for the coupled five-moment equations.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step for the simulation.
+* @param nstrang Iteration number in the Strang splitting.
+*/
+void five_moment_update_all_blocks_source(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
+  const struct five_moment_block_data bdata[], double t_curr, double dt, int nstrang);
+
+/**
+* Initialize a new job in the thread-based job pool for updating the block-structured simulation data for the coupled five-moment equations.
+*
+* @param ctx Context to pass to the function.
+*/
+void five_moment_init_job_func(void* ctx);
+
+/**
+* Copy an existing job between two thread-based job pools for updating the block-structured simulation data for the coupled five-moment equations.
+*
+* @param ctx Context to pass to the function.
+*/
+void five_moment_copy_job_func(void* ctx);
