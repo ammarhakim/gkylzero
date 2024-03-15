@@ -146,17 +146,28 @@ struct vm_bgk_collisions {
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
-  struct vm_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
-
   struct gkyl_array *fmax;
   struct gkyl_array *nu_fmax;
 
-  struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
-  struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+  enum gkyl_model_id model_id;
 
-  struct gkyl_proj_mj_on_basis *proj_mj; // Maxwell-Juttner projection object
-  struct gkyl_correct_mj *corr_mj; // Maxwell-Juttner correction object
-  struct gkyl_mj_moments *mj_moms;// Maxwell-Juttner moments object
+  // organization of the different models for BGK collisions
+  union {
+    // special relativistic Vlasov-Maxwell model
+    struct {
+      struct gkyl_proj_mj_on_basis *proj_mj; // Maxwell-Juttner projection object
+      struct gkyl_correct_mj *corr_mj; // Maxwell-Juttner correction object
+      struct gkyl_mj_moments *mj_moms;// Maxwell-Juttner moments object
+      struct gkyl_array *n_stationary, *vb, *T_stationary;
+    };
+    // non-relativistic vlasov model
+    struct {
+      struct vm_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
+      struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+    };
+  };
+
+  struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 };
 
 struct vm_boundary_fluxes {

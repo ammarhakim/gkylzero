@@ -640,11 +640,8 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
     else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
-      if (app->species[i].model_id == GKYL_MODEL_SR) {
-      } else {
-        vm_species_bgk_moms(app, &app->species[i], 
-          &app->species[i].bgk, fin[i]);
-      }
+      vm_species_bgk_moms(app, &app->species[i], 
+        &app->species[i].bgk, fin[i]);
     }
   }
 

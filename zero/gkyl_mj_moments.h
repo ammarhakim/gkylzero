@@ -31,20 +31,20 @@ gkyl_mj_moments *gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
   bool use_gpu);
 
 /**
- * Update the m0, m1, and m2 moments (n, vb, T) moments of an arbitary sr
+ * Update the n_stationary, vb, and T_stationary moments (n, vb, T) moments of an arbitary sr
  * distribution so they are ready as inputs to the mj routine
  *
  * @param cmj Maxwell-Juttner correction updater
  * @param fin Distribution function
- * @param m0 Desired number density
- * @param m1i Desired velocity
- * @param m2 Desired Temperature
+ * @param n_stationary Desired number density
+ * @param vb Desired velocity
+ * @param T_stationary Desired Temperature
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
  */
 void gkyl_mj_moments_advance(gkyl_mj_moments *cmj, 
   const struct gkyl_array *fin,
-  struct gkyl_array *m0, struct gkyl_array *m1i, struct gkyl_array *m2,
+  struct gkyl_array *n_stationary, struct gkyl_array *vb, struct gkyl_array *T_stationary,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
 
 /**

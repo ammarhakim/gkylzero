@@ -266,7 +266,7 @@ test_1x1v_no_drift(int poly_order)
   // correct the mj distribution m0 Moment
   gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix_m0(corr_mj, distf, m0, m1i, &local, &confLocal);
+  gkyl_correct_mj_fix_n_stationary(corr_mj, distf, m0, m1i, &local, &confLocal);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {5.3918752026566863e-01, -1.0910243387206232e-17, -6.0196985297046972e-02,
@@ -397,7 +397,7 @@ test_1x1v(int poly_order)
   // correct the mj distribution m0 Moment
   gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix_m0(corr_mj, distf, m0, m1i, &local, &confLocal);
+  gkyl_correct_mj_fix_n_stationary(corr_mj, distf, m0, m1i, &local, &confLocal);
 
   // test accuracy of the projection:
   gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, 
@@ -530,7 +530,7 @@ test_1x2v(int poly_order)
   // correct the mj distribution m0 Moment
   gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix_m0(corr_mj, distf, m0, m1i, &local, &confLocal);
+  gkyl_correct_mj_fix_n_stationary(corr_mj, distf, m0, m1i, &local, &confLocal);
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
   double p2_vals[] = {1.7020667884226476e-01, -7.7674914557148726e-18, -3.9516229859383111e-03,
@@ -660,7 +660,7 @@ test_1x3v(int poly_order)
   // correct the mj distribution m0 Moment
   gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix_m0(corr_mj, distf, m0, m1i, &local, &confLocal);
+  gkyl_correct_mj_fix_n_stationary(corr_mj, distf, m0, m1i, &local, &confLocal);
 
   // values to compare  at index (1, 9, 9, 9) [remember, lower-left index is (1,1,1,1)]
   double p2_vals[] = {1.6326923473662415e-02, -2.7779798362812092e-19, -5.7251397678571113e-06,

@@ -39,7 +39,7 @@ gkyl_correct_mj *gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
  */
-void gkyl_correct_mj_fix_m0(gkyl_correct_mj *cmj, 
+void gkyl_correct_mj_fix_n_stationary(gkyl_correct_mj *cmj, 
   struct gkyl_array *fout,
   const struct gkyl_array *m0, const struct gkyl_array *m1i,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
@@ -47,7 +47,7 @@ void gkyl_correct_mj_fix_m0(gkyl_correct_mj *cmj,
 /**
  * Fix the Maxwell-Juttner so that it's moments match desired moments.
  * NOTE: If this algorithm fails, the returns the original distribution function
- * with only the m0 moment corrected (i.e. runs: gkyl_correct_mj_fix_m0())
+ * with only the m0 moment corrected (i.e. runs: gkyl_correct_mj_fix_n_stationary())
  *
  * @param cmj MJ correction updater
  * @param fout Distribution function to fix (modified in-place)
