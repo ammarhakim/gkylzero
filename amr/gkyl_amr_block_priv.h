@@ -14,6 +14,7 @@
 #include <gkyl_block_topo.h>
 #include <gkyl_fv_proj.h>
 #include <gkyl_moment.h>
+#include <gkyl_moment_em_coupling.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -29,7 +30,7 @@
 
 #include <thpool.h>
 
-#define AMR_DEBUG
+//#define AMR_DEBUG
 //#define AMR_USETHREADS
 
 // Definitions of private structs and APIs attached to these objects, for use in the block AMR subsystem.
