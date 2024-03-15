@@ -19,7 +19,7 @@ struct five_moment_block_data {
   struct gkyl_array *fdup_ion;
   struct gkyl_array *fdup_maxwell;
 
-  struct gkyl_array *f_eld[9];
+  struct gkyl_array *f_elc[9];
   struct gkyl_array *f_ion[9];
   struct gkyl_array *f_maxwell[9];
 
@@ -144,3 +144,13 @@ void five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bd
 */
 void five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_moment_block_data bdata[],
   struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);
+
+/**
+* Write block-structured simulation data for the coupled five-moment equations onto disk.
+*
+* @param file_nm_elc File name schema to use for the electron simulation output.
+* @param file_nm_ion File name schema to use for the ion simulation output.
+* @param file_nm_maxwell File name schema to use for the Maxwell field simulation output.
+* @param bdata Block-structured data for the coupled five-moment equations.
+*/
+void five_moment_block_data_write(const char* file_nm_elc, const char* file_nm_ion, const char* file_nm_maxwell, const struct five_moment_block_data* bdata);

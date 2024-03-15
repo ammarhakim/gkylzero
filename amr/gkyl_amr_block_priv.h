@@ -144,10 +144,10 @@ void euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_b
 /**
 * Write block-structured simulation data for the Euler equations onto disk.
 *
-* @param fileNm File name schema to use for the simulation output.
+* @param file_nm File name schema to use for the simulation output.
 * @param bdata Block-structured data for the Euler equations.
 */
-void euler_block_data_write(const char* fileNm, const struct euler_block_data* bdata);
+void euler_block_data_write(const char* file_nm, const struct euler_block_data* bdata);
 
 /**
 * Calculate the maximum stable time-step for the block-structured Euler equations.

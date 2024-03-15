@@ -285,9 +285,9 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
 }
 
 void
-euler_block_data_write(const char* fileNm, const struct euler_block_data* bdata)
+euler_block_data_write(const char* file_nm, const struct euler_block_data* bdata)
 {
-  gkyl_grid_sub_array_write(&bdata -> grid, &bdata -> range, bdata -> f[0], fileNm);
+  gkyl_grid_sub_array_write(&bdata -> grid, &bdata -> range, bdata -> f[0], file_nm);
 }
 
 double
@@ -503,10 +503,10 @@ euler_write_sol(const char* fbase, int num_blocks, const struct euler_block_data
   for (int i = 0; i < num_blocks; i++) {
     const char *fmt = "%s_b%d.gkyl";
     int sz = snprintf(0, 0, fmt, fbase, i);
-    char fileNm[sz + 1];
+    char file_nm[sz + 1];
 
-    snprintf(fileNm, sizeof fileNm, fmt, fbase, i);
-    euler_block_data_write(fileNm, &bdata[i]);
+    snprintf(file_nm, sizeof file_nm, fmt, fbase, i);
+    euler_block_data_write(file_nm, &bdata[i]);
   }
 }
 
