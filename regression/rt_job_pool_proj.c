@@ -105,7 +105,7 @@ proj_with_job_pool(const struct gkyl_job_pool *job_pool, const char *pname)
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt, pname, max_thread);
   
-  gkyl_grid_sub_array_write(&grid, &arr_range, distf, fileNm);
+  gkyl_grid_sub_array_write(&grid, &arr_range, 0, distf, fileNm);
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);

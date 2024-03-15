@@ -5,10 +5,13 @@
 #include <math.h>
 #include <mpi.h>
 #include <stc/cstr.h>
-#include <gkyl_util.h>
+
+#include <gkyl_array_rio.h>
+#include <gkyl_elem_type_priv.h>
+#include <gkyl_mpi_comm.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
-#include <gkyl_mpi_comm.h>
+#include <gkyl_util.h>
 
 void
 mpi_1()
@@ -782,7 +785,7 @@ mpi_n4_multicomm_2d()
   int worldrank;
   gkyl_comm_get_rank(worldcomm, &worldrank);
 
-  int confcolor = floor(worldrank/confdecomp->ndecomp);
+  int confcolor = floor(1.0*worldrank/confdecomp->ndecomp);
   struct gkyl_comm *confcomm = gkyl_comm_split_comm(worldcomm, confcolor, confdecomp);
   int confrank;
   gkyl_comm_get_rank(confcomm, &confrank);
@@ -996,6 +999,7 @@ mpi_bcast_2d()
   
   }
 }
+
 
 TEST_LIST = {
   {"mpi_1", mpi_1},

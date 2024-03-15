@@ -378,6 +378,14 @@ clean: ## Clean build output
 cleanur: ## Delete the unit and regression test executables
 	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/xglua
 
+.PHONY: cleanr
+cleanr: ## Delete the regression test executables
+	rm -rf ${BUILD_DIR}/regression
+
+.PHONY: cleanu
+cleanu: ## Delete the regression test executables
+	rm -rf ${BUILD_DIR}/unit
+
 # include dependencies
 -include $(DEPS)
 
