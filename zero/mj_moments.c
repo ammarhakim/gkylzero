@@ -79,7 +79,7 @@ gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
 
 void 
 gkyl_mj_moments_advance(gkyl_mj_moments *cmj, 
-  struct gkyl_array *fout,
+  const struct gkyl_array *fout,
   struct gkyl_array *m0, struct gkyl_array *m1i, struct gkyl_array *m2,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local)
 {

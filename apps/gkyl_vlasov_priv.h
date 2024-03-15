@@ -18,6 +18,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bgk_collisions.h>
+#include <gkyl_correct_mj.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
@@ -40,6 +41,7 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_mj_moments.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
@@ -51,6 +53,7 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
+#include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -150,6 +153,10 @@ struct vm_bgk_collisions {
 
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
+
+  struct gkyl_proj_mj_on_basis *proj_mj; // Maxwell-Juttner projection object
+  struct gkyl_correct_mj *corr_mj; // Maxwell-Juttner correction object
+  struct gkyl_mj_moments *mj_moms;// Maxwell-Juttner moments object
 };
 
 struct vm_boundary_fluxes {

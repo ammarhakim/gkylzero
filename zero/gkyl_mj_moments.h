@@ -9,8 +9,7 @@
 typedef struct gkyl_mj_moments gkyl_mj_moments;
 
 /**
- * Create new updater to correct a Maxwellian to match specified
- * moments.
+ * Create new updater to compute the moments.
  *
  * @param grid Grid on which updater lives
  * @param conf_basis Conf space basis functions
@@ -19,6 +18,10 @@ typedef struct gkyl_mj_moments gkyl_mj_moments;
  * @param vel_range velocity space range
  * @param conf_local_cells Number of cells in local config-space
  * @param conf_local_ext_cells Number of cells in local extended config-space
+ * @param p_over_gamma sr quantitiy: velocity
+ * @param gamma sr quantitiy: gamma
+ * @param gamma_inv sr quantitiy: 1/gamma
+ * @param use_gpu bool for gpu useage
  */
 gkyl_mj_moments *gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
@@ -32,10 +35,7 @@ gkyl_mj_moments *gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
  * distribution so they are ready as inputs to the mj routine
  *
  * @param cmj Maxwell-Juttner correction updater
- * @param p_over_gamma velocity array
- * @param gamma array
- * @param gamma_inv array
- * @param fout Distribution function to fix (modified in-place)
+ * @param fin Distribution function
  * @param m0 Desired number density
  * @param m1i Desired velocity
  * @param m2 Desired Temperature
@@ -43,7 +43,7 @@ gkyl_mj_moments *gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
  * @param conf_local Local configuration space range
  */
 void gkyl_mj_moments_advance(gkyl_mj_moments *cmj, 
-  struct gkyl_array *fout,
+  const struct gkyl_array *fin,
   struct gkyl_array *m0, struct gkyl_array *m1i, struct gkyl_array *m2,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
 

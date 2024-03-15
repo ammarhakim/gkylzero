@@ -16,9 +16,12 @@ typedef struct gkyl_correct_mj gkyl_correct_mj;
  * @param conf_basis Conf space basis functions
  * @param phase_basis Phase space basis functions
  * @param conf_range configuration space range
+ * @param conf_range_ext Number of cells in local extended config-
  * @param vel_range velocity space range
- * @param conf_local_cells Number of cells in local config-space
- * @param conf_local_ext_cells Number of cells in local extended config-space
+ * @param p_over_gamma sr quantitiy: velocity
+ * @param gamma sr quantitiy: gamma
+ * @param gamma_inv sr quantitiy: 1/gamma
+ * @param use_gpu bool for gpu useage
  */
 gkyl_correct_mj *gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
@@ -30,7 +33,6 @@ gkyl_correct_mj *gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
  * Fix the Maxwell-Juttner so that it's moments match desired m0 moment.
  *
  * @param cmj MJ correction updater
- * @param p_over_gamma velocity array
  * @param fout Distribution function to fix (modified in-place)
  * @param m0 Desired lab-frame number density
  * @param m1i specified velocity of f in the stationary frame
@@ -54,8 +56,7 @@ void gkyl_correct_mj_fix_m0(gkyl_correct_mj *cmj,
  * @param m2 Desired lab-frame temperature
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
- * @param vel_basis Vel space basis functions
- * @param vel_grid Vel-Grid on which updater lives
+ * @param poly_order 
  */
 void gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
   struct gkyl_array *fout,
