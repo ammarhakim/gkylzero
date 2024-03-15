@@ -601,10 +601,10 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       gkyl_gyrokinetic_app_write_coll_mom(app, i, tm, frame);
     }
-    if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
+    if (app->species[i].radiation_id == GKYL_GK_RADIATION){
       gkyl_gyrokinetic_app_write_rad_drag(app, i, tm, frame);
+      gkyl_gyrokinetic_app_write_rad_emissivity(app, i, tm, frame);
     }
-
     if (app->species[i].has_reactions) {
       for (int j=0; j<app->species[i].react.num_react; ++j) {
         if ((app->species[i].react.react_id[j] == GKYL_REACT_IZ) 
@@ -824,6 +824,38 @@ gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double 
 
   gyrokinetic_array_meta_release(mt);   
 }
+
+void
+gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+      .frame = frame,
+      .stime= tm
+    }
+  );
+  
+  struct gk_species *s = &app->species[sidx];
+  const struct gkyl_array *fin[app->num_species];
+  for (int i=0; i<app->num_species; ++i) 
+    fin[i] = app->species[i].f;
+  gk_species_radiation_emissivity(app, s, &s->rad, fin);
+  for (int i=0; i<s->rad.num_cross_collisions; i++) {
+    // copy data from device to host before writing it out
+    if (app->use_gpu) {
+      gkyl_array_copy(s->rad.emissivity_host[i], s->rad.emissivity[i]);
+    }
+    // Construct the file handles for vparallel and mu drag
+    const char *fmt_emissivity = "%s-%s_emissivity_%s_%d.gkyl";
+    int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, s->info.name, app->species[s->rad.collide_with_idx[i]].info.name, frame);
+    char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
+    snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name,
+      s->info.name, app->species[s->rad.collide_with_idx[i]].info.name, frame);
+    gkyl_comm_array_write(s->comm, &app->grid, &app->local, mt, s->rad.emissivity_host[i], fileNm_emissivity);
+  }
+
+  gyrokinetic_array_meta_release(mt);   
+}
+
 
 void
 gkyl_gyrokinetic_app_write_iz_react(gkyl_gyrokinetic_app* app, int sidx, int ridx, double tm, int frame)

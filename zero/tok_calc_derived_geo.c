@@ -4,6 +4,7 @@
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_array_ops_priv.h>
+#include <gkyl_dg_bin_ops.h>
 
 gkyl_tok_calc_derived_geo*
 gkyl_tok_calc_derived_geo_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid, bool use_gpu)
@@ -12,6 +13,7 @@ gkyl_tok_calc_derived_geo_new(const struct gkyl_basis *cbasis, const struct gkyl
   up->cdim = cbasis->ndim;
   up->cnum_basis = cbasis->num_basis;
   up->poly_order = cbasis->poly_order;
+  up->cbasis = *cbasis;
   up->grid = grid;
   up->use_gpu = use_gpu;
   up->kernel = tok_derived_geo_choose_kernel(up->cdim, cbasis->b_type, up->poly_order);
@@ -35,15 +37,15 @@ gkyl_tok_calc_derived_geo_advance(const gkyl_tok_calc_derived_geo *up, const str
     double *cmag_i = gkyl_array_fetch(cmagFld, loc);
     double *jtot_i = gkyl_array_fetch(jtotFld, loc);
     double *jtotinv_i = gkyl_array_fetch(jtotinvFld, loc);
-    double *bmaginv_i = gkyl_array_fetch(bmaginvFld, loc);
-    double *bmaginvsq_i = gkyl_array_fetch(bmaginvsqFld, loc);
     double *gxxJ_i= gkyl_array_fetch(gxxJFld, loc);
     double *gxyJ_i= gkyl_array_fetch(gxyJFld, loc);
     double *gyyJ_i= gkyl_array_fetch(gyyJFld, loc);
     double *gxzJ_i= gkyl_array_fetch(gxzJFld, loc);
     double *eps2_i= gkyl_array_fetch(eps2Fld, loc);
-    up->kernel(gij, bmag_i, j_i, jinv_i, grij, bi_i, cmag_i, jtot_i, jtotinv_i, bmaginv_i, bmaginvsq_i, gxxJ_i, gxyJ_i, gyyJ_i, gxzJ_i, eps2_i);
+    up->kernel(gij, bmag_i, j_i, jinv_i, grij, bi_i, cmag_i, jtot_i, jtotinv_i, gxxJ_i, gxyJ_i, gyyJ_i, gxzJ_i, eps2_i);
   }
+  gkyl_dg_inv_op_range(up->cbasis, 0, bmaginvFld, 0, bmagFld, crange);
+  gkyl_dg_mul_op_range(up->cbasis, 0, bmaginvsqFld, 0, bmaginvFld, 0, bmaginvFld, crange);
 }
 
 void
