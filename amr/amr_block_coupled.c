@@ -390,3 +390,171 @@ five_moment_copy_job_func(void* ctx)
   gkyl_array_copy(j_ctx -> out_ion, j_ctx -> inp_ion);
   gkyl_array_copy(j_ctx -> out_maxwell, j_ctx -> inp_maxwell);
 }
+
+struct gkyl_update_status
+five_moment_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
+  const struct five_moment_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats)
+  {
+    int num_blocks = btopo -> num_blocks;
+    double dt_suggested = DBL_MAX;
+
+    enum {
+      UPDATE_DONE = 0,
+      PRE_UPDATE,
+      POST_UPDATE,
+      FIRST_COUPLING_UPDATE,
+      BLOCK_UPDATE,
+      SECOND_COUPLING_UPDATE,
+      UPDATE_REDO,
+    } state = PRE_UPDATE;
+
+    struct five_moment_copy_job_ctx five_moment_copy_ctx[num_blocks];
+    double dt = dt0;
+
+    while (state != UPDATE_DONE) {
+      if (state == PRE_UPDATE) {
+        state = FIRST_COUPLING_UPDATE;
+
+        for (int i = 0; i < num_blocks; i++) {
+          five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx) {
+            .bidx = i,
+            .inp_elc = bdata[i].f_elc[0],
+            .inp_ion = bdata[i].f_ion[0],
+            .inp_maxwell = bdata[i].f_maxwell[0],
+            .out_elc = bdata[i].fdup_elc,
+            .out_ion = bdata[i].fdup_ion,
+            .out_maxwell = bdata[i].fdup_maxwell,
+          };
+        }
+
+#ifdef AMR_USETHREADS
+        for (int i = 0; i < num_blocks; i++) {
+          gkyl_job_pool_add_work(job_pool, five_moment_copy_job_func, &five_moment_copy_ctx[i]);
+        }
+        gkyl_job_pool_wait(job_pool);
+#else
+        for (int i = 0; i < num_blocks; i++) {
+          five_moment_copy_job_func(&five_moment_copy_ctx[i]);
+        }
+#endif
+      }
+      else if (state == FIRST_COUPLING_UPDATE) {
+        state = BLOCK_UPDATE;
+
+        five_moment_update_all_blocks_source(job_pool, btopo, bdata, t_curr, 0.5 * dt, 0);
+      }
+      else if (state == BLOCK_UPDATE) {
+        state = SECOND_COUPLING_UPDATE;
+
+        struct gkyl_update_status s = five_moment_update_all_blocks(job_pool, btopo, bdata, t_curr, dt);
+
+        if (!s.success) {
+          stats -> nfail += 1;
+          dt = s.dt_suggested;
+          state = UPDATE_REDO;
+        }
+        else {
+          dt_suggested = fmin(dt_suggested, s.dt_suggested);
+        }
+      }
+      else if (state == SECOND_COUPLING_UPDATE) {
+        state = POST_UPDATE;
+
+        five_moment_update_all_blocks_source(job_pool, btopo, bdata, t_curr, 0.5 * dt, 2);
+      }
+      else if (state == POST_UPDATE) {
+        state = UPDATE_DONE;
+
+        for (int i = 0; i < num_blocks; i++) {
+          five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx) {
+            .bidx = i,
+            .inp_elc = bdata[i].f_elc[2],
+            .inp_ion = bdata[i].f_ion[2],
+            .inp_maxwell = bdata[i].f_maxwell[2],
+            .out_elc = bdata[i].f_elc[0],
+            .out_ion = bdata[i].f_ion[0],
+            .out_maxwell = bdata[i].f_maxwell[0],
+          };
+        }
+
+#ifdef AMR_USETHREADS
+        for (int i = 0; i < num_blocks; i++) {
+          gkyl_job_pool_add_work(job_pool, five_moment_copy_job_func, &five_moment_copy_ctx[i]);
+        }
+        gkyl_job_pool_wait(job_pool);
+#else
+        for (int i = 0; i < num_blocks; i++) {
+          five_moment_copy_job_func(&five_moment_copy_ctx[i]);
+        }
+#endif
+      }
+      else if (state == UPDATE_REDO) {
+        state = PRE_UPDATE;
+
+        for (int i = 0; i < num_blocks; i++) {
+          five_moment_copy_ctx[i] = (struct five_moment_copy_job_ctx) {
+            .bidx = i,
+            .inp_elc = bdata[i].fdup_elc,
+            .inp_ion = bdata[i].fdup_ion,
+            .inp_maxwell = bdata[i].fdup_maxwell,
+            .out_elc = bdata[i].f_elc[0],
+            .out_ion = bdata[i].f_ion[0],
+            .out_maxwell = bdata[i].f_maxwell[0],
+          };
+        }
+
+#ifdef AMR_USETHREADS
+        for (int i = 0; i < num_blocks; i++) {
+          gkyl_job_pool_add_work(job_pool, five_moment_copy_job_func, &five_moment_copy_ctx[i]);
+        }
+        gkyl_job_pool_wait(job_pool);
+#else
+        for (int i = 0; i < num_blocks; i++) {
+          five_moment_copy_job_func(&five_moment_copy_ctx[i]);
+        }
+#endif
+      }
+    }
+
+    return (struct gkyl_update_status) {
+      .success = true,
+      .dt_actual = dt,
+      .dt_suggested = dt_suggested,
+    };
+  }
+
+  void
+  five_moment_write_sol(const char* fbase, int num_blocks, const struct five_moment_block_data bdata[])
+  {
+    for (int i = 0; i < num_blocks; i++) {
+      const char *fmt_elc = "%s_elc_b%d.gkyl";
+      int sz_elc = snprintf(0, 0, fmt_elc, fbase, i);
+      char file_nm_elc[sz_elc + 1];
+
+      const char *fmt_ion = "%s_ion_b%d.gkyl";
+      int sz_ion = snprintf(0, 0, fmt_ion, fbase, i);
+      char file_nm_ion[sz_ion + 1];
+
+      const char *fmt_field = "%s_field_b%d.gkyl";
+      int sz_field = snprintf(0, 0, fmt_field, fbase, i);
+      char file_nm_field[sz_field + 1];
+
+      snprintf(file_nm_elc, sizeof file_nm_elc, fbase, i);
+      snprintf(file_nm_ion, sizeof file_nm_ion, fbase, i);
+      snprintf(file_nm_field, sizeof file_nm_field, fbase, i);
+
+      five_moment_block_data_write(file_nm_elc, file_nm_ion, file_nm_field, &bdata[i]);
+    }
+  }
+
+  double
+  five_moment_max_dt(int num_blocks, const struct five_moment_block_data bdata[])
+  {
+    double dt = DBL_MAX;
+
+    for (int i = 0; i < num_blocks; i++) {
+      dt = fmin(dt, five_moment_block_data_max_dt(&bdata[i]));
+    }
+
+    return dt;
+  }

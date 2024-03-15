@@ -19,9 +19,9 @@ struct five_moment_block_data {
   struct gkyl_array *fdup_ion;
   struct gkyl_array *fdup_maxwell;
 
-  struct gkyl_array *f_elc[9];
-  struct gkyl_array *f_ion[9];
-  struct gkyl_array *f_maxwell[9];
+  struct gkyl_array *f_elc[3];
+  struct gkyl_array *f_ion[3];
+  struct gkyl_array *f_maxwell[3];
 
   struct gkyl_array *app_accel_elc;
   struct gkyl_array *app_accel_ion;
@@ -216,3 +216,33 @@ void five_moment_init_job_func(void* ctx);
 * @param ctx Context to pass to the function.
 */
 void five_moment_copy_job_func(void* ctx);
+
+/**
+* Take a single time-step across the entire block hierarchy for the coupled five-moment equations.
+*
+* @param job_pool Job pool for updating block-structured data for the coupled five-moment equations using threads.
+* @param btopo Topology/connectivity information for the entire block hierarchy.
+* @param bdata Block-structured data for the coupled five-moment equations.
+* @param t_curr Current simulation time.
+* @param dt0 Initial guess for the maximum stable time-step.
+* @param stats Simulation statistics (allowing for tracking of the number of failed time-steps).
+*/
+struct gkyl_update_status five_moment_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block_topo* btopo,
+  const struct five_moment_block_data bdata[], double t_curr, double dt0, struct sim_stats* stats);
+
+/**
+* Write the complete simulation output for the entire block hierarchy for the coupled five-moment equations onto disk.
+*
+* @param fbase Base file name schema to use for the simulation output.
+* @param num_blocks Number of blocks in the block hierarchy.
+* @param bdata Array of block-structured data for the coupled five-moment equations.
+*/
+void five_moment_write_sol(const char* fbase, int num_blocks, const struct five_moment_block_data bdata[]);
+
+/**
+* Calculate the maximum stable time-step across all blocks in the block hierarchy for the coupled five-moment equations.
+*
+* @param num_blocks Number of blocks in the block hierarchy.
+* @param bdata Array of block-structured data for the coupled five-moment equations.
+*/
+double five_moment_max_dt(int num_blocks, const struct five_moment_block_data bdata[]);

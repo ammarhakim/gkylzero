@@ -52,7 +52,7 @@ struct euler_block_data {
   struct gkyl_range ext_range;
   struct gkyl_range range;
   struct gkyl_array *fdup;
-  struct gkyl_array *f[9];
+  struct gkyl_array *f[3];
 
   struct gkyl_wave_geom *geom;
 
