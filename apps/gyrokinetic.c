@@ -744,7 +744,7 @@ gkyl_gyrokinetic_app_write_coll_mom(gkyl_gyrokinetic_app* app, int sidx, double 
       .frame = frame,
       .stime= tm,
       .poly_order = app->poly_order,
-      .basis_type = app->basis.id      
+      .basis_type = app->confBasis.id
     }
   );
 
@@ -849,7 +849,7 @@ gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app* app, int sidx, d
       .frame = frame,
       .stime= tm,
       .poly_order = app->poly_order,
-      .basis_type = app->basis.id      
+      .basis_type = app->confBasis.id
     }
   );
   
@@ -883,7 +883,7 @@ gkyl_gyrokinetic_app_write_iz_react(gkyl_gyrokinetic_app* app, int sidx, int rid
       .frame = frame,
       .stime= tm,
       .poly_order = app->poly_order,
-      .basis_type = app->basis.id      
+      .basis_type = app->confBasis.id
     }
   );
 
@@ -920,7 +920,7 @@ gkyl_gyrokinetic_app_write_recomb_react(gkyl_gyrokinetic_app* app, int sidx, int
       .frame = frame,
       .stime= tm,
       .poly_order = app->poly_order,
-      .basis_type = app->basis.id      
+      .basis_type = app->confBasis.id
     }
   );
 
@@ -957,7 +957,7 @@ gkyl_gyrokinetic_app_write_iz_react_neut(gkyl_gyrokinetic_app* app, int sidx, in
       .frame = frame,
       .stime= tm,
       .poly_order = app->poly_order,
-      .basis_type = app->basis.id      
+      .basis_type = app->confBasis.id
     }
   );
 
@@ -994,7 +994,7 @@ gkyl_gyrokinetic_app_write_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx
       .frame = frame,
       .stime= tm,
       .poly_order = app->poly_order,
-      .basis_type = app->basis.id
+      .basis_type = app->confBasis.id
     }
   );
 
@@ -1031,7 +1031,7 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
       .frame = frame,
       .stime= tm,
       .poly_order = app->poly_order,
-      .basis_type = app->basis.id
+      .basis_type = app->confBasis.id
     }
   );
 
@@ -1069,7 +1069,7 @@ gkyl_gyrokinetic_app_write_source_mom(gkyl_gyrokinetic_app* app, double tm, int 
       .frame = frame,
       .stime= tm,
       .poly_order = app->poly_order,
-      .basis_type = app->basis.id
+      .basis_type = app->confBasis.id
     }
   );
 
