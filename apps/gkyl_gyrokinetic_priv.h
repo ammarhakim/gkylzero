@@ -144,21 +144,21 @@ struct gk_rad_drag {
   int num_cross_collisions; // number of species we cross-collide with
   struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
   struct gk_neut_species *collide_with_neut[GKYL_MAX_SPECIES]; // pointers to neutral cross-species we collide with
-  int collide_with_idx[GKYL_MAX_SPECIES]; // index of species we collide with
-  bool is_neut_species[GKYL_MAX_SPECIES]; // Flag of whether neutral or gk species
+  int collide_with_idx[2*GKYL_MAX_SPECIES]; // index of species we collide with
+  bool is_neut_species[2*GKYL_MAX_SPECIES]; // Flag of whether neutral or gk species
   
   // drag coefficients in vparallel and mu for each species being collided with
-  struct gkyl_array *vnu_surf[GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vnu[GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vsqnu_surf[GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vsqnu[GKYL_MAX_SPECIES]; 
-  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vnu_surf[2*GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vnu[2*GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vsqnu_surf[2*GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vsqnu[2*GKYL_MAX_SPECIES]; 
+  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[2*GKYL_MAX_SPECIES]; 
 
-  struct gk_species_moment moms[GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
+  struct gk_species_moment moms[2*GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
 
   struct gk_species_moment m2; // m2 of radiation update (needed for emissivity)
-  struct gkyl_array *emissivity[GKYL_MAX_SPECIES];
-  struct gkyl_array *emissivity_host[GKYL_MAX_SPECIES];
+  struct gkyl_array *emissivity[2*GKYL_MAX_SPECIES];
+  struct gkyl_array *emissivity_host[2*GKYL_MAX_SPECIES];
   struct gkyl_array *emissivity_rhs;
   struct gkyl_array *emissivity_denominator;
 
