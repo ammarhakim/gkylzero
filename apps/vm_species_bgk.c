@@ -100,8 +100,6 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   // Obtain self-collisions nu*fmax
   if (bgk->model_id == GKYL_MODEL_SR) {
 
-    // Build memory for custom SR moments
-  
     // Compute MJ via the moments
     gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(bgk->proj_mj, &species->local, &app->local,
       bgk->n_stationary, bgk->vb, bgk->T_stationary, bgk->fmax);
@@ -109,23 +107,6 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
       &species->local, &app->local);
     //gkyl_correct_mj_fix(bgk->corr_mj, bgk->fmax, bgk->n_stationary, bgk->vb, bgk->T_stationary,
     // &species->local, &app->local, app->poly_order);
-
-
-    //printf("\n%%------- Exact Moments 1x1v bgk ------\n");
-    //struct gkyl_range_iter biter;
-    //gkyl_range_iter_init(&biter, &app->local);
-    //while (gkyl_range_iter_next(&biter)) {
-    //    long midx = gkyl_range_idx(&app->local, biter.idx);
-    //    if (midx == 1){
-    //      const double *gamma_val = gkyl_array_cfetch(&species->gamma, midx);
-    //      const double *num = gkyl_array_cfetch(m0, midx);
-    //      const double *vb = gkyl_array_cfetch(m1i, midx);
-    //      const double *T = gkyl_array_cfetch(m2, midx);
-    //      printf("n = %1.16e;\n",num[0]/sqrt(2));
-    //      printf("v = %1.16e;\n",vb[0]/sqrt(2));
-    //      printf("T = %1.16e;\n",T[0]/sqrt(2));
-    //    }
-    //}
   }
   else { 
     gkyl_proj_maxwellian_on_basis_lab_mom(bgk->proj_max, &species->local, &app->local, 

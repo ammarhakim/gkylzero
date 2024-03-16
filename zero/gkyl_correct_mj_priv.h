@@ -20,7 +20,7 @@ struct gkyl_correct_mj
   struct gkyl_array *n_minus_vb_dot_nvb; 
 
   struct gkyl_dg_bin_op_mem *mem;     
-  struct gkyl_array *n, *vbi, *T;
+  struct gkyl_array *n_stationary, *vbi, *T_stationary;
   struct gkyl_array *dn, *dvbi, *dT;
   struct gkyl_array *ddn, *ddvbi, *ddT;
 

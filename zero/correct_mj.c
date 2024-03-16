@@ -53,9 +53,9 @@ gkyl_correct_mj_new(const struct gkyl_rect_grid *grid,
   up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, conf_basis->num_basis);
 
   // Moment memory
-  up->n = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
+  up->n_stationary = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->vbi = gkyl_array_new(GKYL_DOUBLE, vdim * conf_basis->num_basis, conf_local_ext_ncells);
-  up->T = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
+  up->T_stationary = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
 
   // Create a copy for differences (d) and differences of differences (dd)
   up->dn = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
@@ -116,7 +116,7 @@ gkyl_correct_mj_fix_n_stationary(gkyl_correct_mj *cmj,
     fout, cmj->num_ratio, fout, conf_local, phase_local);
 
   // Hand back rescaled n:
-  gkyl_array_set(cmj->n, 1.0, cmj->num_ratio);
+  gkyl_array_set(cmj->n_stationary, 1.0, cmj->num_ratio);
 }
 
 void 
@@ -129,9 +129,9 @@ gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
   int vdim = cmj->phase_basis.ndim - cmj->conf_basis.ndim;
 
   // Copy the intial moments for m*_corr -> m*
-  gkyl_array_set(cmj->n, 1.0, n_target);
+  gkyl_array_set(cmj->n_stationary, 1.0, n_target);
   gkyl_array_set(cmj->vbi, 1.0, vbi_target);
-  gkyl_array_set(cmj->T, 1.0, T_target);
+  gkyl_array_set(cmj->T_stationary, 1.0, T_target);
 
   // 0. Project the MJ with the intially correct moments
   gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(cmj->proj_mj, phase_local, 
@@ -157,16 +157,16 @@ gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
 
     // 1. Calculate the new moments
     // calculate the moments of the dist (n, vb, T -> n, vbi, T)
-    gkyl_mj_moments_advance(cmj->mj_moms, distf_mj, cmj->n, cmj->vbi, cmj->T, phase_local, conf_local);
+    gkyl_mj_moments_advance(cmj->mj_moms, distf_mj, cmj->n_stationary, cmj->vbi, cmj->T_stationary, phase_local, conf_local);
 
     // a. Calculate  ddMi^(k+1) =  Mi_corr - Mi_new
     // ddn = n_target - n;
     //  Compute out = out + a*inp. Returns out.
-    gkyl_array_set(cmj->ddn, -1.0, cmj->n);
+    gkyl_array_set(cmj->ddn, -1.0, cmj->n_stationary);
     gkyl_array_accumulate(cmj->ddn, 1.0, n_target);
     gkyl_array_set(cmj->ddvbi, -1.0, cmj->vbi);
     gkyl_array_accumulate(cmj->ddvbi, 1.0, vbi_target);
-    gkyl_array_set(cmj->ddT, -1.0, cmj->T);
+    gkyl_array_set(cmj->ddT, -1.0, cmj->T_stationary);
     gkyl_array_accumulate(cmj->ddT, 1.0, T_target);
 
     // b. Calculate  dMi^(k+1) = dn^k + ddMi^(k+1) | where dn^0 = 0
@@ -187,9 +187,9 @@ gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
       gkyl_range_iter_init(&biter, conf_local);
       while (gkyl_range_iter_next(&biter)){
         long midx = gkyl_range_idx(conf_local, biter.idx);
-        const double *n_local = gkyl_array_cfetch(cmj->n, midx);
+        const double *n_local = gkyl_array_cfetch(cmj->n_stationary, midx);
         const double *vbi_local = gkyl_array_cfetch(cmj->vbi, midx);
-        const double *T_local = gkyl_array_cfetch(cmj->T, midx);
+        const double *T_local = gkyl_array_cfetch(cmj->T_stationary, midx);
         const double *n_original_local = gkyl_array_cfetch(n_target, midx);
         const double *vbi_original_local = gkyl_array_cfetch(vbi_target, midx);
         const double *T_original_local = gkyl_array_cfetch(T_target, midx);
@@ -205,19 +205,19 @@ gkyl_correct_mj_fix(gkyl_correct_mj *cmj,
 
     // c. Calculate  n^(k+1) = M^k + dM^(k+1)
     // n = n_target + dm_new;
-    gkyl_array_set(cmj->n, 1.0, n_target);
-    gkyl_array_accumulate(cmj->n, 1.0, cmj->dn);
+    gkyl_array_set(cmj->n_stationary, 1.0, n_target);
+    gkyl_array_accumulate(cmj->n_stationary, 1.0, cmj->dn);
     gkyl_array_set(cmj->vbi, 1.0, vbi_target);
     gkyl_array_accumulate(cmj->vbi, 1.0, cmj->dvbi);
-    gkyl_array_set(cmj->T, 1.0, T_target);
-    gkyl_array_accumulate(cmj->T, 1.0, cmj->dT);
+    gkyl_array_set(cmj->T_stationary, 1.0, T_target);
+    gkyl_array_accumulate(cmj->T_stationary, 1.0, cmj->dT);
 
     // 2. Update the dist_mj using the corrected moments
     gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(cmj->proj_mj, phase_local, 
-      conf_local, cmj->n, cmj->vbi, cmj->T, distf_mj);
+      conf_local, cmj->n_stationary, cmj->vbi, cmj->T_stationary, distf_mj);
 
     // 3. Correct the n moment to fix the asymptotically approximated MJ function
-    gkyl_correct_mj_fix_n_stationary(cmj, distf_mj, cmj->n, cmj->vbi, phase_local, conf_local);
+    gkyl_correct_mj_fix_n_stationary(cmj, distf_mj, cmj->n_stationary, cmj->vbi, phase_local, conf_local);
 
     cmj->niter += 1;
   }
@@ -251,9 +251,9 @@ gkyl_correct_mj_release(gkyl_correct_mj *cmj)
   gkyl_array_release(cmj->gamma);
   gkyl_dg_bin_op_mem_release(cmj->mem);
 
-  gkyl_array_release(cmj->n);
+  gkyl_array_release(cmj->n_stationary);
   gkyl_array_release(cmj->vbi);
-  gkyl_array_release(cmj->T);
+  gkyl_array_release(cmj->T_stationary);
   gkyl_array_release(cmj->dn);
   gkyl_array_release(cmj->dvbi);
   gkyl_array_release(cmj->dT);
