@@ -82,6 +82,8 @@
 struct gyrokinetic_output_meta {
   int frame; // frame number
   double stime; // output time
+  int poly_order; // polynomial order
+  const char *basis_type; // name of basis functions
 };
 
 // list of valid moment names for gyrokinetics
