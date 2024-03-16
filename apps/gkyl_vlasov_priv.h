@@ -18,6 +18,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bgk_collisions.h>
+#include <gkyl_correct_mj.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
@@ -40,6 +41,7 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
+#include <gkyl_mj_moments.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
@@ -51,6 +53,7 @@
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
+#include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -73,6 +76,7 @@ static const char *const valid_moment_names[] = {
   "M3i",
   "M3ijk",
   "FiveMoments",
+  "SRFiveMoments", // relativistic moments n, vb, P
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
@@ -93,6 +97,15 @@ struct vm_species_moment {
 
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
+
+  struct gkyl_mj_moments *mj_moms;
+  const char *nm; // Moment name
+  struct gkyl_array *n;
+  struct gkyl_array *vbi;
+  struct gkyl_array *T;
+  int vdim;
+  int num_basis;
+  bool is_sr_five_moments;
 };
 
 // forward declare species struct
@@ -143,12 +156,27 @@ struct vm_bgk_collisions {
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
-  struct vm_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
-
   struct gkyl_array *fmax;
   struct gkyl_array *nu_fmax;
 
-  struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+  enum gkyl_model_id model_id;
+
+  // organization of the different models for BGK collisions
+  union {
+    // special relativistic Vlasov-Maxwell model
+    struct {
+      struct gkyl_proj_mj_on_basis *proj_mj; // Maxwell-Juttner projection object
+      struct gkyl_correct_mj *corr_mj; // Maxwell-Juttner correction object
+      struct gkyl_mj_moments *mj_moms;// Maxwell-Juttner moments object
+      struct gkyl_array *n_stationary, *vb, *T_stationary;
+    };
+    // non-relativistic vlasov model
+    struct {
+      struct vm_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
+      struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+    };
+  };
+
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 };
 

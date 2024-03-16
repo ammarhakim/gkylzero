@@ -28,16 +28,15 @@ gkyl_proj_mj_on_basis* gkyl_proj_mj_on_basis_new(
  * lab-frame moments to compute the projection of mj on basis
  * functions.
  *
- * @param pob Project on basis updater to run
+ * @param proj_on_basis Project on basis updater to run
  * @param phase_rng Phase-space range
  * @param conf_rng Config-space range
  * @param n Number density moment in the stationary fluid frame
  * @param v velocity of the fluid relative to the lab-frame
  * @param T Temperature in the fluid rest frame
-
  * @param f_mj Output mj
  */
-void gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(const gkyl_proj_mj_on_basis *pob,
+void gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(const gkyl_proj_mj_on_basis *proj_on_basis,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *n_stationary_frame, const struct gkyl_array *vel_stationary_frame, const struct gkyl_array *T_stationary_frame,
   struct gkyl_array *f_mj);

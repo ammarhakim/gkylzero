@@ -8,32 +8,10 @@
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_mj_moments.h>
+#include <gkyl_mj_moments_priv.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_proj_on_basis.h>
-
-struct gkyl_mj_moments
-{
-  struct gkyl_rect_grid grid;
-  struct gkyl_basis conf_basis, phase_basis;
-
-  // struct gkyl_mom_calc *m0calc;
-  struct gkyl_dg_updater_moment *m0calc; 
-  struct gkyl_dg_updater_moment *m1icalc;
-  struct gkyl_dg_updater_moment *m2calc;
-  struct gkyl_array *num_ratio; 
-  struct gkyl_array *num_vb;  
-  struct gkyl_array *vb_dot_nvb;  
-  struct gkyl_array *n_minus_vb_dot_nvb;  
-  struct gkyl_array *V_drift;   
-  struct gkyl_array *gamma;
-  struct gkyl_array *GammaV2;
-  struct gkyl_array *Gamma_inv;
-  struct gkyl_array *pressure;
-  struct gkyl_array *temperature;
-
-  struct gkyl_dg_bin_op_mem *mem;
-};
 
 gkyl_mj_moments *
 gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
@@ -68,26 +46,36 @@ gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,
     .GammaV2 = up->GammaV2, .GammaV_inv = up->Gamma_inv};  
 
   // updated moment calculator for sr N and N*vb moments
-  up->m0calc = gkyl_dg_updater_moment_new(grid, conf_basis,
+  up->ncalc = gkyl_dg_updater_moment_new(grid, conf_basis,
     phase_basis, conf_range, vel_range, GKYL_MODEL_SR, &sr_inp, "M0", 0, 1, use_gpu);
-  up->m1icalc = gkyl_dg_updater_moment_new(grid, conf_basis,
+  up->vbicalc = gkyl_dg_updater_moment_new(grid, conf_basis,
     phase_basis, conf_range, vel_range, GKYL_MODEL_SR, &sr_inp, "M1i", 0, 1, use_gpu);
-  up->m2calc = gkyl_dg_updater_moment_new(grid, conf_basis,
+  up->Pcalc = gkyl_dg_updater_moment_new(grid, conf_basis,
     phase_basis, conf_range, vel_range, GKYL_MODEL_SR, &sr_inp, "Pressure", 0, 1, use_gpu);
   return up;
 }
 
 void 
 gkyl_mj_moments_advance(gkyl_mj_moments *cmj, 
-  struct gkyl_array *fout,
-  struct gkyl_array *m0, struct gkyl_array *m1i, struct gkyl_array *m2,
+  const struct gkyl_array *fout,
+  struct gkyl_array *n, struct gkyl_array *vbi, struct gkyl_array *T,
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local)
 {
+//gkyl_mj_moments_advance(gkyl_mj_moments *cmj,
+//  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
+//  const struct gkyl_array *fout, struct gkyl_array *sr_five_moms)
+//{
+
   int vdim = cmj->phase_basis.ndim - cmj->conf_basis.ndim;
 
+  // grab the arrays from the larger array object
+  //double *n = sr_five_moms;
+  //double *vbi = &sr_five_moms[cmj->conf_basis.num_basis*conf_local.volume];
+  //double *T = &sr_five_moms[(1+vdim)*cmj->conf_basis.num_basis*conf_local.volume];
+
   // compute the sr moments, lab frame <N> and <Nvb>
-  gkyl_dg_updater_moment_advance(cmj->m0calc, phase_local, conf_local, fout, cmj->num_ratio);
-  gkyl_dg_updater_moment_advance(cmj->m1icalc, phase_local, conf_local, fout, cmj->num_vb);
+  gkyl_dg_updater_moment_advance(cmj->ncalc, phase_local, conf_local, fout, cmj->num_ratio);
+  gkyl_dg_updater_moment_advance(cmj->vbicalc, phase_local, conf_local, fout, cmj->num_vb);
 
   // (vb = <Nvb>/<N>) isolate vb by dividing <N*vb> by <N>
   for (int d = 0; d < vdim; ++d)
@@ -107,12 +95,11 @@ gkyl_mj_moments_advance(gkyl_mj_moments *cmj,
     conf_local, cmj->V_drift, cmj->Gamma_inv);
 
   // compute the pressure moment (stationary frame)
-  gkyl_dg_updater_moment_advance(cmj->m2calc, phase_local, conf_local, fout, cmj->pressure);
+  gkyl_dg_updater_moment_advance(cmj->Pcalc, phase_local, conf_local, fout, cmj->pressure);
 
   // (n = gamma*(N - vb dot NVb)) Lorentz transform to our fluid-stationary density 
   gkyl_array_clear_range(cmj->vb_dot_nvb, 0.0, conf_local);
-  gkyl_array_clear_range(cmj->n_minus_vb_dot_nvb, 0.0, conf_local);
-  gkyl_array_accumulate_range(cmj->n_minus_vb_dot_nvb, 1.0, cmj->num_ratio, conf_local);
+  gkyl_array_set(cmj->n_minus_vb_dot_nvb, 1.0, cmj->num_ratio);
   gkyl_dg_dot_product_op_range(cmj->conf_basis,cmj->vb_dot_nvb,cmj->V_drift,cmj->num_vb, conf_local);
   gkyl_array_accumulate_range(cmj->n_minus_vb_dot_nvb, -1.0, cmj->vb_dot_nvb, conf_local);
   gkyl_dg_mul_op_range(cmj->conf_basis,0,cmj->num_ratio,0,cmj->gamma,0,cmj->n_minus_vb_dot_nvb, conf_local);
@@ -121,23 +108,20 @@ gkyl_mj_moments_advance(gkyl_mj_moments *cmj,
   gkyl_dg_div_op_range(cmj->mem, cmj->conf_basis, 0, cmj->temperature,
     0, cmj->pressure, 0, cmj->num_ratio, conf_local);
 
-  // Save the outputs to m0 m1i m2 (for n vb T):
-  gkyl_array_clear_range(m0, 0.0, conf_local);
-  gkyl_array_clear_range(m1i, 0.0, conf_local);
-  gkyl_array_clear_range(m2, 0.0, conf_local);
-  gkyl_array_accumulate_range(m0, 1.0, cmj->num_ratio, conf_local);
-  gkyl_array_accumulate_range(m1i, 1.0, cmj->V_drift, conf_local);
-  gkyl_array_accumulate_range(m2, 1.0, cmj->temperature, conf_local);
+  // Save the outputs to n vbi T (for n vb T):
+  gkyl_array_set(n, 1.0, cmj->num_ratio);
+  gkyl_array_set(vbi, 1.0, cmj->V_drift);
+  gkyl_array_set(T, 1.0, cmj->temperature);
 }
 
 void 
 gkyl_mj_moments_release(gkyl_mj_moments *cmj)
 {
 
-  // gkyl_mom_calc_release(cmj->m0calc);
-  gkyl_dg_updater_moment_release(cmj->m0calc);
-  gkyl_dg_updater_moment_release(cmj->m1icalc);
-  gkyl_dg_updater_moment_release(cmj->m2calc);
+  // gkyl_mom_calc_release(cmj->ncalc);
+  gkyl_dg_updater_moment_release(cmj->ncalc);
+  gkyl_dg_updater_moment_release(cmj->vbicalc);
+  gkyl_dg_updater_moment_release(cmj->Pcalc);
   gkyl_array_release(cmj->num_ratio);
   gkyl_array_release(cmj->num_vb);
   gkyl_array_release(cmj->vb_dot_nvb);

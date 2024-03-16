@@ -42,11 +42,29 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   if (app->use_gpu) 
     bgk->nu_sum_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
 
-  // allocate moments needed for BGK collisions update
-  vm_species_moment_init(app, s, &bgk->moms, "FiveMoments");
 
-  bgk->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid, &app->confBasis, &app->basis, 
-    app->poly_order+1, app->use_gpu);
+  bgk->model_id = s->model_id;
+
+  if (bgk->model_id == GKYL_MODEL_SR) {
+
+    bgk->n_stationary = mkarr(app->use_gpu, app->confBasis.num_basis,   app->local_ext.volume);
+    bgk->vb = mkarr(app->use_gpu, app->vdim *  app->confBasis.num_basis,  app->local_ext.volume);
+    bgk->T_stationary = mkarr(app->use_gpu, app->confBasis.num_basis,   app->local_ext.volume);
+
+    bgk->mj_moms = gkyl_mj_moments_new(&s->grid, &app->confBasis,
+      &app->basis, &app->local, &s->local_vel, app->local.volume, app->local_ext.volume, 
+      s->p_over_gamma, s->gamma, s->gamma_inv, false);
+    bgk->proj_mj = gkyl_proj_mj_on_basis_new(&s->grid, &app->confBasis, &app->basis,app->poly_order+1);
+    bgk->corr_mj = gkyl_correct_mj_new(&s->grid, &app->confBasis,
+      &app->basis, &app->local, &app->local_ext, &s->local_vel, s->p_over_gamma, s->gamma, s->gamma_inv, false);
+        // Correct the distribution function
+  }
+  else {
+     // allocate moments needed for BGK collisions update
+    vm_species_moment_init(app, s, &bgk->moms, "FiveMoments");
+    bgk->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid, &app->confBasis, &app->basis, 
+      app->poly_order+1, app->use_gpu);
+  }
   bgk->fmax = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   bgk->nu_fmax = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   // BGK updater (also computes stable timestep)
@@ -61,7 +79,12 @@ vm_species_bgk_moms(gkyl_vlasov_app *app, const struct vm_species *species,
   struct timespec wst = gkyl_wall_clock();
 
   // compute needed moments
-  vm_species_moment_calc(&bgk->moms, species->local, app->local, fin);
+  if (bgk->model_id == GKYL_MODEL_SR) {
+    gkyl_mj_moments_advance(bgk->mj_moms, fin, bgk->n_stationary, bgk->vb, bgk->T_stationary, &species->local, &app->local);
+  }
+  else {
+    vm_species_moment_calc(&bgk->moms, species->local, app->local, fin);
+  }
   
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
@@ -75,8 +98,20 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   gkyl_array_clear(bgk->nu_fmax, 0.0);
 
   // Obtain self-collisions nu*fmax
-  gkyl_proj_maxwellian_on_basis_lab_mom(bgk->proj_max, &species->local, &app->local, 
-    bgk->moms.marr, bgk->fmax);
+  if (bgk->model_id == GKYL_MODEL_SR) {
+
+    // Compute MJ via the moments
+    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(bgk->proj_mj, &species->local, &app->local,
+      bgk->n_stationary, bgk->vb, bgk->T_stationary, bgk->fmax);
+    gkyl_correct_mj_fix_n_stationary(bgk->corr_mj, bgk->fmax, bgk->n_stationary, bgk->vb,
+      &species->local, &app->local);
+    //gkyl_correct_mj_fix(bgk->corr_mj, bgk->fmax, bgk->n_stationary, bgk->vb, bgk->T_stationary,
+    // &species->local, &app->local, app->poly_order);
+  }
+  else { 
+    gkyl_proj_maxwellian_on_basis_lab_mom(bgk->proj_max, &species->local, &app->local, 
+      bgk->moms.marr, bgk->fmax);
+  }
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
     bgk->self_nu, bgk->fmax, &app->local, &species->local);
   gkyl_array_accumulate(bgk->nu_fmax, 1.0, bgk->fmax);
@@ -100,7 +135,6 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
     gkyl_array_release(bgk->nu_sum_host);
   }
 
-  vm_species_moment_release(app, &bgk->moms);
 
   if (bgk->normNu) {
     gkyl_array_release(bgk->norm_nu);
@@ -108,6 +142,17 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
     gkyl_spitzer_coll_freq_release(bgk->spitzer_calc);
   }
 
-  gkyl_proj_maxwellian_on_basis_release(bgk->proj_max);
+  if (bgk->model_id == GKYL_MODEL_SR){
+    gkyl_proj_mj_on_basis_release(bgk->proj_mj);
+    gkyl_correct_mj_release(bgk->corr_mj);
+    gkyl_mj_moments_release(bgk->mj_moms);
+    gkyl_array_release(bgk->n_stationary);
+    gkyl_array_release(bgk->vb);
+    gkyl_array_release(bgk->T_stationary);
+  } 
+  else {
+    vm_species_moment_release(app, &bgk->moms);
+    gkyl_proj_maxwellian_on_basis_release(bgk->proj_max);
+  }
   gkyl_bgk_collisions_release(bgk->up_bgk);
  }
