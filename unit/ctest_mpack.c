@@ -56,7 +56,7 @@ test_map_1(void)
   mpack_node_t bs_node = mpack_node_map_cstr(root, "basis");
   char *basis_str = mpack_node_cstr_alloc(bs_node, 128);
   TEST_CHECK( strcmp("ms", basis_str) == 0 );
-  free(basis_str);
+  MPACK_FREE(basis_str);
 
   mpack_node_t vl_node = mpack_node_map_cstr(root, "values");
   TEST_CHECK( mpack_node_type(vl_node) == mpack_type_array );

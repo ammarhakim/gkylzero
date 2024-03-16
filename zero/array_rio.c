@@ -11,6 +11,21 @@
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_elem_type_priv.h>
 
+// Error message strings
+static const char *array_rio_status_msg[] = {
+  [GKYL_ARRAY_RIO_SUCCESS] = "Success",
+  [GKYL_ARRAY_RIO_BAD_VERSION] = "Incorrect header version",
+  [GKYL_ARRAY_RIO_FOPEN_FAILED] = "File open failed",
+  [GKYL_ARRAY_RIO_FREAD_FAILED] = "Data read failed",
+  [GKYL_ARRAY_RIO_DATA_MISMATCH] = "Data mismatch"
+};
+
+const char*
+gkyl_array_rio_status_msg(enum gkyl_array_rio_status status)
+{
+  return array_rio_status_msg[status];
+}
+
 static void
 sub_array_write_priv(const struct gkyl_range *range,
   const struct gkyl_array *arr, FILE *fp)

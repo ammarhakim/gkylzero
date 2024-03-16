@@ -51,7 +51,7 @@ gyrokinetic_array_meta_new(struct gyrokinetic_output_meta meta)
   return mt;
 }
 
-void
+static void
 gyrokinetic_array_meta_release(struct gkyl_array_meta *mt)
 {
   if (!mt) return;
@@ -59,7 +59,7 @@ gyrokinetic_array_meta_release(struct gkyl_array_meta *mt)
   gkyl_free(mt);
 }
 
-struct gyrokinetic_output_meta
+static struct gyrokinetic_output_meta
 gyrokinetic_meta_from_mpack(struct gkyl_array_meta *mt)
 {
   struct gyrokinetic_output_meta meta = { .frame = 0, .stime = 0.0 };
@@ -69,10 +69,22 @@ gyrokinetic_meta_from_mpack(struct gkyl_array_meta *mt)
     mpack_tree_init_data(&tree, mt->meta, mt->meta_sz);
     mpack_tree_parse(&tree);
     mpack_node_t root = mpack_tree_root(&tree);
+
     mpack_node_t tm_node = mpack_node_map_cstr(root, "time");
     meta.stime = mpack_node_double(tm_node);
+
     mpack_node_t fr_node = mpack_node_map_cstr(root, "frame");
     meta.frame = mpack_node_i64(fr_node);
+
+    mpack_node_t po_node = mpack_node_map_cstr(root, "polyOrder");
+    meta.poly_order = mpack_node_i64(po_node);
+
+    mpack_node_t bt_node = mpack_node_map_cstr(root, "basisType");
+    char *basis_type = mpack_node_cstr_alloc(bt_node, 64);
+    strcpy(meta.basis_type_nm, basis_type);
+    meta.basis_type = meta.basis_type_nm;
+    MPACK_FREE(basis_type);
+
     mpack_tree_destroy(&tree);
   }
   return meta;

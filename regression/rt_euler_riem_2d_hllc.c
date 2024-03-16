@@ -354,7 +354,7 @@ main(int argc, char **argv)
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_moment_app_cout(app, stderr,
         "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg[status.io_status]
+        gkyl_array_rio_status_msg(status.io_status)
       );
       goto freeresources;
     }
