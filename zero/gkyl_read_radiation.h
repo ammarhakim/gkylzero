@@ -38,30 +38,6 @@ struct all_radiation_states{
   struct radiating_state *all_states; // indecies are z-1,charge_state
 };
 
-/* Function to read a line with two numbers in the format:
- * STRING 'DELIM' #1 'DELIM' STRING 'DELIM' #2 
- * DELIM can be any of: ,:;=
- */ 
-static inline void read_two_numbers(FILE *fptr, int *num1, int *num2){
-  char str[BUFFER_LEN];
-  char delim[5]="=,;:";
-  if(fgets(str,BUFFER_LEN,fptr)!=NULL) {
-    strtok(str,delim);
-    *num1=atoi(strtok(NULL,delim));
-    strtok(NULL,delim);
-    *num2=atoi(strtok(NULL,delim));
-  }
-}
-
-/* Concatenate two strings 
- */
-static inline char* concat(const char *s1, const char *s2)
-{
-  char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
-  strcpy(result, s1);
-  strcat(result, s2);
-  return result;
-}
 
 /* Function to read in all the radiation fit parameters stored in "radiation_fit_params.txt"
  * @return pointer to structure of all_radiation_states
@@ -77,7 +53,8 @@ struct all_radiation_states* gkyl_read_rad_fit_params();
  * @return 1 if fit doesn't exist
  * Note: Untested for num_densities>1
  */
-int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int num_densities);
+int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z,
+  int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int num_densities);
 
 /* Function to return the fit emissivity (Lz) and temperature closest to a given input temperature
  * @param all_radiation_states rad data: Struct containing radiation fit data
