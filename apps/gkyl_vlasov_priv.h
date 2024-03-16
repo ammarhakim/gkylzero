@@ -27,7 +27,6 @@
 #include <gkyl_dg_fpo_vlasov_diff_coeff.h>
 #include <gkyl_dg_fpo_vlasov_drag_coeff.h>
 #include <gkyl_dg_maxwell.h>
-#include <gkyl_dg_prim_vars_vlasov.h>
 #include <gkyl_dg_updater_fluid.h>
 #include <gkyl_dg_updater_diffusion_fluid.h>
 #include <gkyl_dg_updater_diffusion_gen.h>
@@ -145,8 +144,8 @@ struct vm_fpo_collisions {
   struct gkyl_array *h_surf, *g_surf;
   struct gkyl_array *dhdv_surf, *dgdv_surf, *d2gdv2_surf;
 
-  struct gkyl_dg_prim_vars_type *prim_calc; // Primitive moment calculator
-  struct gkyl_array *prim_moms; // Primitive moment arrays
+  struct gkyl_array *prim_moms, *boundary_corrections; // Primitive moments and boundary corrections (the latter is 0, used so we can reuse LBO infrastructure)
+  struct gkyl_mom_calc_bcorr *bcorr_calc; // FPO boundary corrections calculator
 
   struct gkyl_proj_maxwellian_pots_on_basis *pot_slvr; // potential solver for Maxwellian potentials
 

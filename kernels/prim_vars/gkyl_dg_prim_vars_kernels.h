@@ -6,7 +6,6 @@
 EXTERN_C_BEG 
 
 GKYL_CU_DH void vlasov_prim_vars_1x1v_ser_p1(const double *moms, double* prim_vars); 
-GKYL_CU_DH void vlasov_prim_vars_1x1v_ser_p2(const double *moms, double* prim_vars); 
 GKYL_CU_DH void vlasov_prim_vars_u_i_1x1v_ser_p1(const double *moms, double* prim_vars); 
 GKYL_CU_DH void vlasov_prim_vars_vtSq_1x1v_ser_p1(const double *moms, double* prim_vars); 
 GKYL_CU_DH void transform_vlasov_gk_prim_vars_u_par_1x1v_ser_p1(const double *b_i, const double *moms, double* prim_vars); 
@@ -14,7 +13,6 @@ GKYL_CU_DH void transform_vlasov_gk_prim_vars_u_par_i_1x1v_ser_p1(const double *
 GKYL_CU_DH void transform_vlasov_gk_prim_vars_1x1v_ser_p1(const double *b_i, const double *moms, double* prim_vars); 
 
 GKYL_CU_DH void vlasov_prim_vars_1x2v_ser_p1(const double *moms, double* prim_vars); 
-GKYL_CU_DH void vlasov_prim_vars_1x2v_ser_p2(const double *moms, double* prim_vars); 
 GKYL_CU_DH void vlasov_prim_vars_u_i_1x2v_ser_p1(const double *moms, double* prim_vars); 
 GKYL_CU_DH void vlasov_prim_vars_vtSq_1x2v_ser_p1(const double *moms, double* prim_vars); 
 GKYL_CU_DH void transform_vlasov_gk_prim_vars_u_par_1x2v_ser_p1(const double *b_i, const double *moms, double* prim_vars); 
@@ -22,7 +20,6 @@ GKYL_CU_DH void transform_vlasov_gk_prim_vars_u_par_i_1x2v_ser_p1(const double *
 GKYL_CU_DH void transform_vlasov_gk_prim_vars_1x2v_ser_p1(const double *b_i, const double *moms, double* prim_vars); 
 
 GKYL_CU_DH void vlasov_prim_vars_1x3v_ser_p1(const double *moms, double* prim_vars); 
-GKYL_CU_DH void vlasov_prim_vars_1x3v_ser_p2(const double *moms, double* prim_vars); 
 GKYL_CU_DH void vlasov_prim_vars_u_i_1x3v_ser_p1(const double *moms, double* prim_vars); 
 GKYL_CU_DH void vlasov_prim_vars_vtSq_1x3v_ser_p1(const double *moms, double* prim_vars); 
 GKYL_CU_DH void transform_vlasov_gk_prim_vars_u_par_1x3v_ser_p1(const double *b_i, const double *moms, double* prim_vars); 

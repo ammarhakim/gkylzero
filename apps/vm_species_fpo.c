@@ -36,15 +36,25 @@ vm_species_fpo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
 
   fpo->m0 = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
-  // fpo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
+  fpo->boundary_corrections = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
   fpo->prim_moms = mkarr(app->use_gpu, (vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
 
   fpo->pot_slvr = gkyl_proj_maxwellian_pots_on_basis_new(&s->grid, &app->confBasis, &app->basis, app->poly_order+1);
 
   // allocate moments needed for FPO update
   vm_species_moment_init(app, s, &fpo->moms, "FiveMoments");
-  
-  fpo->prim_calc = gkyl_dg_prim_vars_vlasov_new(&app->confBasis, &app->basis, "prim", app->use_gpu);
+
+  double v_bounds[2*GKYL_MAX_DIM];
+  for (int d=0; d<vdim; ++d) {
+    v_bounds[d] = s->info.lower[d];
+    v_bounds[d + vdim] = s->info.upper[d];
+  }
+  // edge of velocity space corrections to momentum and energy 
+  fpo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_vlasov_new(&s->grid, 
+    &app->confBasis, &app->basis, v_bounds, app->use_gpu);
+
+  fpo->coll_pcalc = gkyl_prim_lbo_vlasov_calc_new(&s->grid,
+    &app->confBasis, &app->basis, &app->local, app->use_gpu);
 
   // initialize drag and diffusion coefficients
   fpo->drag_coeff = mkarr(app->use_gpu, 3*app->basis.num_basis, s->local_ext.volume);
@@ -60,21 +70,30 @@ vm_species_fpo_drag_diff_coeffs(gkyl_vlasov_app *app, const struct vm_species *s
   struct vm_fpo_collisions *fpo, const struct gkyl_array *fin)
 {
   struct timespec wst = gkyl_wall_clock();
-
-  // Calculate five moments
+  // gkyl_grid_sub_array_write(&s->grid, &s->local, fin, "f_square.gkyl");
+  // calculate needed moments
   vm_species_moment_calc(&fpo->moms, s->local, app->local, fin);
   gkyl_array_set_range(fpo->m0, 1.0, fpo->moms.marr, &app->local);
 
-  // Calculate primitive moments vtsq and u_i
-  struct gkyl_range_iter conf_iter;
-  gkyl_range_iter_init(&conf_iter, &app->local);
-  while (gkyl_range_iter_next(&conf_iter)) {
-    long linc = gkyl_range_idx(&app->local, conf_iter.idx);
+  if (app->use_gpu) {
+    // construct boundary corrections
+    gkyl_mom_calc_bcorr_advance_cu(fpo->bcorr_calc,
+      &s->local, &app->local, fin, fpo->boundary_corrections);
 
-    const double *moms_d = gkyl_array_cfetch(fpo->moms.marr, linc);
-    double *prim_moms_d = gkyl_array_fetch(fpo->prim_moms, linc);
+    // construct primitive moments
+    gkyl_prim_lbo_calc_advance_cu(fpo->coll_pcalc, &app->local,
+      fpo->moms.marr, fpo->boundary_corrections,
+      fpo->prim_moms);
+  } 
+  else {
+    // construct boundary corrections
+    gkyl_mom_calc_bcorr_advance(fpo->bcorr_calc,
+      &s->local, &app->local, fin, fpo->boundary_corrections);
 
-    fpo->prim_calc->kernel(fpo->prim_calc, conf_iter.idx, moms_d, prim_moms_d);
+    // construct primitive moments  
+    gkyl_prim_lbo_calc_advance(fpo->coll_pcalc, &app->local,
+      fpo->moms.marr, fpo->boundary_corrections,
+      fpo->prim_moms);
   }
 
   // calculate maxwellian potentials

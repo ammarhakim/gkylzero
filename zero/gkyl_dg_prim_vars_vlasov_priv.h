@@ -245,7 +245,7 @@ static void
 kernel_dg_prim_vars_vlasov_1x1v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  vlasov_prim_vars_1x1v_ser_p2(in, out);
+
 }
 
 GKYL_CU_DH
@@ -269,7 +269,7 @@ static void
 kernel_dg_prim_vars_vlasov_1x3v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  vlasov_prim_vars_1x3v_ser_p1(in, out);
+  return vlasov_prim_vars_1x3v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
@@ -277,7 +277,7 @@ static void
 kernel_dg_prim_vars_vlasov_1x3v_ser_p2(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  vlasov_prim_vars_1x3v_ser_p2(in, out);
+
 }
 
 GKYL_CU_DH
@@ -285,7 +285,7 @@ static void
 kernel_dg_prim_vars_vlasov_2x2v_ser_p1(const struct gkyl_dg_prim_vars_type *pvt, 
   const int *idx, const double *in, double* out)
 {
-  vlasov_prim_vars_2x2v_ser_p1(in, out);
+  return vlasov_prim_vars_2x2v_ser_p1(in, out);
 }
 
 GKYL_CU_DH
