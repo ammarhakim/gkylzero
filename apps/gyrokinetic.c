@@ -973,7 +973,7 @@ gkyl_gyrokinetic_app_write_iz_react_neut(gkyl_gyrokinetic_app* app, int sidx, in
     }
   );
 
-  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
+  struct gk_species *gk_s = &app->species[sidx];
 
   // Compute reaction rate
   const struct gkyl_array *fin[app->num_species];
@@ -982,19 +982,19 @@ gkyl_gyrokinetic_app_write_iz_react_neut(gkyl_gyrokinetic_app* app, int sidx, in
     fin[i] = app->species[i].f;
   for (int i=0; i<app->num_neut_species; ++i)
     fin_neut[i] = app->neut_species[i].f;
-  gk_neut_species_react_cross_moms(app, gk_ns, &gk_ns->react_neut, fin[sidx], fin, fin_neut);
+  gk_species_react_cross_moms(app, gk_s, &gk_s->react_neut, fin[sidx], fin, fin_neut);
 
   const char *fmt = "%s-%s_%s_%s_iz_react_neut_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name,
-    gk_ns->react_neut.react_type[ridx].ion_nm, gk_ns->react_neut.react_type[ridx].donor_nm, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, gk_s->info.name,
+    gk_s->react_neut.react_type[ridx].ion_nm, gk_s->react_neut.react_type[ridx].donor_nm, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name,
-    gk_ns->react_neut.react_type[ridx].ion_nm, gk_ns->react_neut.react_type[ridx].donor_nm, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_s->info.name,
+    gk_s->react_neut.react_type[ridx].ion_nm, gk_s->react_neut.react_type[ridx].donor_nm, frame);
   
   if (app->use_gpu) {
-    gkyl_array_copy(gk_ns->react_neut.coeff_react_host[ridx], gk_ns->react_neut.coeff_react[ridx]);
+    gkyl_array_copy(gk_s->react_neut.coeff_react_host[ridx], gk_s->react_neut.coeff_react[ridx]);
   }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gk_ns->react_neut.coeff_react_host[ridx], fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gk_s->react_neut.coeff_react_host[ridx], fileNm);
 
   gyrokinetic_array_meta_release(mt); 
 }
@@ -1010,7 +1010,7 @@ gkyl_gyrokinetic_app_write_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx
     }
   );
 
-  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
+  struct gk_species *gk_s = &app->species[sidx];
 
   // Compute reaction rate
   const struct gkyl_array *fin[app->num_species];
@@ -1019,19 +1019,19 @@ gkyl_gyrokinetic_app_write_recomb_react_neut(gkyl_gyrokinetic_app* app, int sidx
     fin[i] = app->species[i].f;
   for (int i=0; i<app->num_neut_species; ++i) 
     fin_neut[i] = app->neut_species[i].f;  
-  gk_neut_species_react_cross_moms(app, gk_ns, &gk_ns->react_neut, fin[sidx], fin, fin_neut);
+  gk_species_react_cross_moms(app, gk_s, &gk_s->react_neut, fin[sidx], fin, fin_neut);
 
   const char *fmt = "%s-%s_%s_%s_recomb_react_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name,
-    gk_ns->react_neut.react_type[ridx].ion_nm, gk_ns->react_neut.react_type[ridx].recvr_nm, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, gk_s->info.name,
+    gk_s->react_neut.react_type[ridx].ion_nm, gk_s->react_neut.react_type[ridx].recvr_nm, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name,
-    gk_ns->react_neut.react_type[ridx].ion_nm, gk_ns->react_neut.react_type[ridx].recvr_nm, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_s->info.name,
+    gk_s->react_neut.react_type[ridx].ion_nm, gk_s->react_neut.react_type[ridx].recvr_nm, frame);
   
   if (app->use_gpu) {
-    gkyl_array_copy(gk_ns->react_neut.coeff_react_host[ridx], gk_ns->react_neut.coeff_react[ridx]);
+    gkyl_array_copy(gk_s->react_neut.coeff_react_host[ridx], gk_s->react_neut.coeff_react[ridx]);
   }
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, gk_ns->react_neut.coeff_react_host[ridx], fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gk_s->react_neut.coeff_react_host[ridx], fileNm);
 
   gyrokinetic_array_meta_release(mt); 
 }
