@@ -12,6 +12,13 @@
 // alignment boundary is 32 bytes to be compatible with AVX
 static const size_t ARRAY_ALIGN_BND = 32;
 
+#define set_arr_dat_zero_ho(arr, data) \
+  for (size_t i=0; i<arr->size*arr->ncomp; ++i) data[i] = 0
+
+#define set_arr_dat_zero_dev(arr, data_ho) \
+  for (size_t i=0; i<arr->size*arr->ncomp; ++i) data_ho[i] = 0; \
+  gkyl_cu_memcpy(arr->data, data_ho, arr->size*arr->esznc, GKYL_CU_MEMCPY_H2D);
+
 static void*
 g_array_alloc(size_t num, size_t sz)
 {
@@ -82,6 +89,18 @@ gkyl_array_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   arr->nblocks = 1;
 
   arr->on_dev = arr; // on_dev reference
+
+  // Zero out array elements (not for user-defined type).
+  if (type == GKYL_INT) {
+    int *dat_p = arr->data;
+    set_arr_dat_zero_ho(arr, dat_p);
+  } else if (type == GKYL_FLOAT) {
+    float *dat_p = arr->data;
+    set_arr_dat_zero_ho(arr, dat_p);
+  } else if (type == GKYL_DOUBLE) {
+    double *dat_p = arr->data;
+    set_arr_dat_zero_ho(arr, dat_p);
+  }
 
   return arr;
 }
@@ -227,6 +246,21 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   // (which is the host-side pointer to the device data)
   gkyl_cu_memcpy(&((arr->on_dev)->data), &arr->data, sizeof(void*), GKYL_CU_MEMCPY_H2D);
 
+  // Zero out array elements (not for user-defined type).
+  if (type == GKYL_INT) {
+    int *data_ho = gkyl_malloc(arr->size*arr->esznc);
+    set_arr_dat_zero_dev(arr, data_ho);
+    gkyl_free(data_ho);
+  } else if (type == GKYL_FLOAT) {
+    float *data_ho = gkyl_malloc(arr->size*arr->esznc);
+    set_arr_dat_zero_dev(arr, data_ho);
+    gkyl_free(data_ho);
+  } else if (type == GKYL_DOUBLE) {
+    double *data_ho = gkyl_malloc(arr->size*arr->esznc);
+    set_arr_dat_zero_dev(arr, data_ho);
+    gkyl_free(data_ho);
+  }
+
   return arr;
 }
 
@@ -257,6 +291,18 @@ gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
 
   arr->on_dev = arr; // on_dev reference
   
+  // Zero out array elements (not for user-defined type).
+  if (type == GKYL_INT) {
+    int *dat_p = arr->data;
+    set_arr_dat_zero_ho(arr, dat_p);
+  } else if (type == GKYL_FLOAT) {
+    float *dat_p = arr->data;
+    set_arr_dat_zero_ho(arr, dat_p);
+  } else if (type == GKYL_DOUBLE) {
+    double *dat_p = arr->data;
+    set_arr_dat_zero_ho(arr, dat_p);
+  }
+
   return arr;
 }
 

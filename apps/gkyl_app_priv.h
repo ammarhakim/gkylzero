@@ -2,7 +2,6 @@
 // in any public facing header!
 #pragma once
 
-#include "gkyl_gyrokinetic.h"
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_comm.h>

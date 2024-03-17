@@ -46,22 +46,20 @@ gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
   struct gkyl_range_iter piter;
   gkyl_range_iter_init(&piter, prange);
   while (gkyl_range_iter_next(&piter)) {
-    long ploc = gkyl_range_idx(prange, piter.idx);
 
-    int cidx[3];
-    for (int d=0; d<up->cdim; d++) cidx[d] = piter.idx[d];
-    long cloc = gkyl_range_idx(crange, cidx);
+    long ploc = gkyl_range_idx(prange, piter.idx);
+    long cloc = gkyl_range_idx(crange, piter.idx);
 
     const double *nu_d = gkyl_array_cfetch(nu, cloc);
     double *out_d = gkyl_array_fetch(out, ploc);
 
     // Add nu*f_M.
-    array_set1(up->pnum_basis, out_d, 1., gkyl_array_cfetch(nufM, ploc));
+    array_acc1(up->pnum_basis, out_d, 1., gkyl_array_cfetch(nufM, ploc));
 
-    // Calculate -nu*f.
+    // Calculate and add -nu*f.
     double incr[160]; // mul_op assigns, but need increment, so use a buffer.
     up->mul_op(nu_d, gkyl_array_cfetch(fin, ploc), incr);
-    for (int i=0; i<up->pnum_basis; i++) out_d[i] += -incr[i];
+    array_acc1(up->pnum_basis, out_d, -1., incr);
 
     // Add contribution to CFL frequency.
     double *cflfreq_d = gkyl_array_fetch(cflfreq, ploc);

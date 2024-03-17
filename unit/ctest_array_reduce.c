@@ -49,6 +49,43 @@ void test_cu_array_reduce_max()
 
 }
 
+void test_cu_array_reduce_max_big()
+{
+
+  unsigned long numComp = 12, numCells = 1000;
+  // Create host array and device copy
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, numComp, numCells);
+  struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, numComp, numCells);
+  // Initialize data
+  double *a1_d = a1->data;
+  for (unsigned i=0; i<numCells; ++i) {
+    for (unsigned k=0; k<numComp; ++k) {
+      a1_d[i*numComp+k] = (double)i+(double)k*0.10;
+  }}
+  gkyl_array_copy(a1_cu, a1);
+  // create a device and host arrays to store reduction
+  double* a1max = gkyl_malloc(numComp*sizeof(double));
+  double* a1max_cu = (double*) gkyl_cu_malloc(numComp*sizeof(double));
+
+  // Component-wise reduce array.
+  gkyl_array_reduce(a1max_cu, a1_cu, GKYL_MAX);
+
+  // Copy to host and check values.
+  gkyl_cu_memcpy(a1max, a1max_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  for (unsigned k=0; k<numComp; ++k) {
+    // Make print statements to manually check the comparison
+    printf("a1max[%d] = %g\n", k, a1max[k]);
+    printf("numCells-1+(double)k*0.10 = %g\n", (double)(numCells-1)+(double)k*0.10);
+    TEST_CHECK( gkyl_compare(a1max[k], (double)(numCells-1)+(double)k*0.10, 1e-14) );
+  }
+
+  gkyl_free(a1max);
+  gkyl_cu_free(a1max_cu);
+  gkyl_array_release(a1);
+  gkyl_array_release(a1_cu);
+
+}
+
 void test_cu_array_reduce_range_1d_max()
 {
   unsigned long numComp = 1, numCells = 10;
@@ -246,6 +283,7 @@ TEST_LIST = {
   { "dummy", test_dummy },
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_reduce_max", test_cu_array_reduce_max },
+  { "cu_array_reduce_max_big", test_cu_array_reduce_max_big },
   { "cu_array_reduce_range_1d_max", test_cu_array_reduce_range_1d_max },
   { "cu_array_reduce_range_2d_max", test_cu_array_reduce_range_2d_max },
   { "cu_array_reduce_range_max_timer_32x32x40x40", test_cu_array_reduce_range_max_timer_32x32x40x40  },

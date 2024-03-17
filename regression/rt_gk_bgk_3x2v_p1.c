@@ -190,7 +190,7 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double r = sqrt(x * x + y * y);
 
-  pcg32_random_t rng;
+  pcg32_random_t rng = gkyl_pcg32_init(0);
   double perturb = 2.0e-3 * (1.0 - 0.5 * gkyl_pcg32_rand_double(&rng));
 
   double n = 0.0;

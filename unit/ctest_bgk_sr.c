@@ -283,7 +283,7 @@ test_1x1v(int poly_order)
     if (i == 300 || i == 100 || i == 0)
     {
       sprintf(fname, "ctest_bgk_sr_1x1v_p%d_time_%03d.gkyl", poly_order, i);
-      gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+      gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
     }
 
     // calculate the moments of the dist (n, vb, T -> m0, m1i, m2)

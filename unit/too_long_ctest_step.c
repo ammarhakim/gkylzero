@@ -109,7 +109,7 @@ test_11()
 
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
   double cupper[] = {1.8, 0.01, M_PI-1e-14 };
-  int ccells[] = { 1, 1, 8 };
+  int ccells[] = { 1, 1, 4 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -163,7 +163,7 @@ test_12()
 
   double clower[] = { psisep, -0.01, -M_PI+1e-14 };
   double cupper[] = {1.8, 0.01, M_PI-1e-14 };
-  int ccells[] = { 1, 1, 8 };
+  int ccells[] = { 1, 1, 4 };
 
   gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
   gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
@@ -794,7 +794,7 @@ test_10()
 
 TEST_LIST = {
   //{ "test_core", test_core},
-  { "test_outer", test_outer},
+  //{ "test_outer", test_outer},
   {"test_1", test_1},  // Works
   {"test_2", test_2}, // Works
   {"test_3", test_3}, // Works

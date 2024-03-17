@@ -54,7 +54,7 @@ eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double r = xn[0], th = xn[1], z = xn[2];
   double n0 = app->n0;
   double Lperp = app->Lperp;
-  pcg32_random_t rng; // RNG for use in IC
+  pcg32_random_t rng = gkyl_pcg32_init(0);; // RNG for use in IC
   double perturb = 2e-3*(1.0 - 0.5*gkyl_pcg32_rand_double(&rng));
   double n = n0*profileA(r, 1.0/20.0, Lperp)*(1.0 + perturb);
   fout[0] = n;
