@@ -833,10 +833,14 @@ gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double 
   snprintf(fileNm_nvsqnu, sizeof fileNm_nvsqnu, fmt_nvsqnu, app->name, gk_s->info.name, frame);
 
   // Compute radiation drag coefficients
+    const struct gkyl_array *fin_neut[app->num_neut_species];
   const struct gkyl_array *fin[app->num_species];
   for (int i=0; i<app->num_species; ++i) 
     fin[i] = app->species[i].f;
-  gk_species_radiation_moms(app, gk_s, &gk_s->rad, fin);
+  for (int i=0; i<app->num_neut_species; ++i)
+    fin_neut[i] = app->neut_species[i].f;
+
+  gk_species_radiation_moms(app, gk_s, &gk_s->rad, fin, fin_neut);
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
@@ -886,12 +890,12 @@ gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app* app, int sidx, d
       int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, s->info.name, app->neut_species[s->rad.collide_with_idx[i]].info.name, frame);
       char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
       snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name, s->info.name, app->neut_species[s->rad.collide_with_idx[i]].info.name, frame);
-      gkyl_comm_array_write(s->comm, &app->grid, &app->local, s->rad.emissivity_host[i], fileNm_emissivity);
+      gkyl_comm_array_write(s->comm, &app->grid, &app->local, mt, s->rad.emissivity_host[i], fileNm_emissivity);
     } else {
       int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, s->info.name, app->species[s->rad.collide_with_idx[i]].info.name, frame);
       char fileNm_emissivity[sz_emissivity+1]; // ensures no buffer overflow
       snprintf(fileNm_emissivity, sizeof fileNm_emissivity, fmt_emissivity, app->name, s->info.name, app->species[s->rad.collide_with_idx[i]].info.name, frame);
-      gkyl_comm_array_write(s->comm, &app->grid, &app->local, s->rad.emissivity_host[i], fileNm_emissivity);
+      gkyl_comm_array_write(s->comm, &app->grid, &app->local, mt, s->rad.emissivity_host[i], fileNm_emissivity);
     }  
   }
 
