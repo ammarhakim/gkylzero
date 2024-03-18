@@ -1,5 +1,5 @@
 #include <gkyl_amr_core.h>
-#include <gkyl_amr_block_priv.h>
+#include <gkyl_amr_block_coupled_priv.h>
 
 void
 euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
@@ -332,6 +332,251 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
     gkyl_job_pool_release(coarse_job_pool);
 #ifdef AMR_DEBUG
     gkyl_job_pool_release(fine_job_pool);
+#endif
+  }
+}
+
+void
+five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_init* init)
+{
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
+
+  if (app_args.trace_mem) {
+    gkyl_cu_dev_mem_debug_set(true);
+    gkyl_mem_debug_set(true);
+  }
+
+  int base_Nx = init -> base_Nx;
+  int base_Ny = init -> base_Ny;
+  int ref_factor = init -> ref_factor;
+
+  double coarse_x1 = init -> coarse_x1;
+  double coarse_y1 = init -> coarse_y1;
+  double coarse_x2 = init -> coarse_x2;
+  double coarse_y2 = init -> coarse_y2;
+
+  double refined_x1 = init -> refined_x1;
+  double refined_y1 = init -> refined_y1;
+  double refined_x2 = init -> refined_x2;
+  double refined_y2 = init -> refined_y2;
+
+  evalf_t eval_elc = init -> eval_elc;
+  evalf_t eval_ion = init -> eval_ion;
+  evalf_t eval_field = init -> eval_field;
+
+  double gas_gamma = init -> gas_gamma;
+  double k0_elc = init -> k0_elc;
+  double k0_ion = init -> k0_ion;
+
+  double light_speed = init -> light_speed;
+  double e_fact = init -> e_fact;
+  double b_fact = init -> b_fact;
+
+  double epsilon0 = init -> epsilon0;
+  double mass_elc = init -> mass_elc;
+  double charge_elc = init -> charge_elc;
+  double mass_ion = init -> mass_ion;
+  double charge_ion = init -> charge_ion;
+
+  double cfl_frac = init -> cfl_frac;
+  double t_end = init -> t_end;
+
+  int ndim = 2;
+  int num_blocks = 9;
+  int Nx = base_Nx;
+  int Ny = base_Ny;
+
+  struct five_moment_block_data coarse_bdata[num_blocks];
+  struct gkyl_job_pool *coarse_job_pool = gkyl_thread_pool_new(app_args.num_threads);
+
+#ifdef AMR_DEBUG
+  gkyl_rect_grid_init(&coarse_bdata[0].grid, 2, (double []) { refined_x1, refined_y1 }, (double []) { refined_x2, refined_y2 },
+    (int []) { Nx, Ny });
+#else
+  gkyl_rect_grid_init(&coarse_bdata[0].grid, 2, (double []) { refined_x1, refined_y1 }, (double []) { refined_x2, refined_y2 },
+    (int []) { Nx * ref_factor, Ny * ref_factor });
+#endif
+
+  gkyl_rect_grid_init(&coarse_bdata[1].grid, 2, (double []) { coarse_x1, refined_y2 }, (double []) { refined_x1, coarse_y2 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[2].grid, 2, (double []) { refined_x1, refined_y2 }, (double []) { refined_x2, coarse_y2 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[3].grid, 2, (double []) { refined_x2, refined_y2 }, (double []) { coarse_x2, coarse_y2 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[4].grid, 2, (double []) { coarse_x1, refined_y1 }, (double []) { refined_x1, refined_y2 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[5].grid, 2, (double []) { refined_x2, refined_y1 }, (double []) { coarse_x2, refined_y2 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[6].grid, 2, (double []) { coarse_x1, coarse_y1 }, (double []) { refined_x1, refined_y1 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[7].grid, 2, (double []) { refined_x1, coarse_y1 }, (double []) { refined_x2, refined_y1 },
+    (int []) { Nx, Ny });
+  gkyl_rect_grid_init(&coarse_bdata[8].grid, 2, (double []) { refined_x2, coarse_y1 }, (double []) { coarse_x2, refined_y1 },
+    (int []) { Nx, Ny });
+
+#ifdef AMR_DEBUG
+  struct five_moment_block_data fine_bdata[num_blocks];
+  struct gkyl_job_pool *fine_job_pool = gkyl_thread_pool_new(app_args.num_threads);
+
+  gkyl_rect_grid_init(&fine_bdata[0].grid, 2, (double []) { refined_x1, refined_y1 }, (double []) { refined_x2, refined_y2 },
+    (int []) { Nx * ref_factor, Ny * ref_factor });
+  gkyl_rect_grid_init(&fine_bdata[1].grid, 2, (double []) { coarse_x1, refined_y2 }, (double []) { refined_x1, coarse_y2 },
+    (int []) { Nx * ref_factor, Ny * ref_factor });
+  gkyl_rect_grid_init(&fine_bdata[2].grid, 2, (double []) { refined_x1, refined_y2 }, (double []) { refined_x2, coarse_y2 },
+    (int []) { Nx * ref_factor, Ny * ref_factor });
+  gkyl_rect_grid_init(&fine_bdata[3].grid, 2, (double []) { refined_x2, refined_y2 }, (double []) { coarse_x2, coarse_y2 },
+    (int []) { Nx * ref_factor, Ny * ref_factor });
+  gkyl_rect_grid_init(&fine_bdata[4].grid, 2, (double []) { coarse_x1, refined_y1 }, (double []) { refined_x1, refined_y2 },
+    (int []) { Nx * ref_factor, Ny * ref_factor });
+  gkyl_rect_grid_init(&fine_bdata[5].grid, 2, (double []) { refined_x2, refined_y1 }, (double []) { coarse_x2, refined_y2 },
+    (int []) { Nx * ref_factor, Ny * ref_factor });
+  gkyl_rect_grid_init(&fine_bdata[6].grid, 2, (double []) { coarse_x1, coarse_y1 }, (double []) { refined_x1, refined_y1 },
+    (int []) { Nx * ref_factor, Ny * ref_factor });
+  gkyl_rect_grid_init(&fine_bdata[7].grid, 2, (double []) { refined_x1, coarse_y1 }, (double []) { refined_x2, refined_y1 },
+    (int []) { Nx * ref_factor, Ny * ref_factor });
+  gkyl_rect_grid_init(&fine_bdata[8].grid, 2, (double []) { refined_x2, coarse_y1 }, (double []) { coarse_x2, refined_y1 },
+    (int []) { Nx * ref_factor, Ny * ref_factor });
+#endif
+
+  for (int i = 0; i < num_blocks; i++) {
+    coarse_bdata[i].fv_proj_elc = gkyl_fv_proj_new(&coarse_bdata[i].grid, 2, 5, eval_elc, 0);
+    coarse_bdata[i].fv_proj_ion = gkyl_fv_proj_new(&coarse_bdata[i].grid, 2, 5, eval_ion, 0);
+    coarse_bdata[i].fv_proj_maxwell = gkyl_fv_proj_new(&coarse_bdata[i].grid, 2, 8, eval_field, 0);
+
+#ifdef AMR_DEBUG
+    fine_bdata[i].fv_proj_elc = gkyl_fv_proj_new(&fine_bdata[i].grid, 2, 5, eval_elc, 0);
+    fine_bdata[i].fv_proj_ion = gkyl_fv_proj_new(&fine_bdata[i].grid, 2, 5, eval_ion, 0);
+    fine_bdata[i].fv_proj_maxwell = gkyl_fv_proj_new(&fine_bdata[i].grid, 2, 8, eval_field, 0);
+#endif
+  }
+
+  for (int i = 0; i < num_blocks; i++) {
+    gkyl_create_grid_ranges(&coarse_bdata[i].grid, (int []) { 2, 2 }, &coarse_bdata[i].ext_range, &coarse_bdata[i].range);
+    coarse_bdata[i].geom = gkyl_wave_geom_new(&coarse_bdata[i].grid, &coarse_bdata[i].ext_range, 0, 0, false);
+
+#ifdef AMR_DEBUG
+    gkyl_create_grid_ranges(&fine_bdata[i].grid, (int []) { 2, 2 }, &fine_bdata[i].ext_range, &fine_bdata[i].range);
+    fine_bdata[i].geom = gkyl_wave_geom_new(&fine_bdata[i].grid, &fine_bdata[i].ext_range, 0, 0, false);
+#endif
+  }
+
+  for (int i = 0; i < num_blocks; i++) {
+    coarse_bdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    coarse_bdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    coarse_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
+
+    for (int d = 0; d < ndim; d++) {
+      coarse_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
+          .grid = &coarse_bdata[i].grid,
+          .equation = coarse_bdata[i].euler_elc,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = coarse_bdata[i].geom,
+        }
+      );
+      coarse_bdata[i].slvr_ion[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
+          .grid = &coarse_bdata[i].grid,
+          .equation = coarse_bdata[i].euler_ion,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = coarse_bdata[i].geom,
+        }
+      );
+      coarse_bdata[i].slvr_maxwell[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
+          .grid = &coarse_bdata[i].grid,
+          .equation = coarse_bdata[i].maxwell,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = coarse_bdata[i].geom,
+        }
+      );
+    }
+
+    struct gkyl_moment_em_coupling_inp coarse_src_inp = {
+      .grid = &coarse_bdata[i].grid,
+      .nfluids = 2,
+      .epsilon0 = epsilon0,
+    };
+
+    coarse_src_inp.param[0] = (struct gkyl_moment_em_coupling_data) {
+      .type = coarse_bdata[i].euler_elc -> type,
+      .charge = charge_elc,
+      .mass = mass_elc,
+      .k0 = k0_elc,
+    };
+    coarse_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
+      .type = coarse_bdata[i].euler_ion -> type,
+      .charge = charge_ion,
+      .mass = mass_ion,
+      .k0 = k0_ion,
+    };
+
+    coarse_bdata[i].src_slvr = gkyl_moment_em_coupling_new(coarse_src_inp);
+
+#ifdef AMR_DEBUG
+    fine_bdata[i].euler_elc = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    fine_bdata[i].euler_ion = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    fine_bdata[i].maxwell = gkyl_wv_maxwell_new(light_speed, e_fact, b_fact);
+
+    for (int d = 0; d < ndim; d++) {
+      fine_bdata[i].slvr_elc[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
+          .grid = &fine_bdata[i].grid,
+          .equation = fine_bdata[i].euler_elc,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = fine_bdata[i].geom,
+        }
+      );
+      fine_bdata[i].slvr_ion[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
+          .grid = &fine_bdata[i].grid,
+          .equation = fine_bdata[i].euler_ion,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = fine_bdata[i].geom,
+        }
+      );
+      fine_bdata[i].slvr_maxwell[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
+          .grid = &fine_bdata[i].grid,
+          .equation = fine_bdata[i].maxwell,
+          .limiter = GKYL_MONOTONIZED_CENTERED,
+          .num_up_dirs = 1,
+          .update_dirs = { d },
+          .cfl = cfl_frac,
+          .geom = fine_bdata[i].geom,
+        }
+      );
+    }
+
+    struct gkyl_moment_em_coupling_inp fine_src_inp = {
+      .grid = &fine_bdata[i].grid,
+      .nfluids = 2,
+      .epsilon0 = epsilon0,
+    };
+
+    fine_src_inp.param[0] = (struct gkyl_moment_em_coupling_data) {
+      .type = fine_bdata[i].euler_elc -> type,
+      .charge = charge_elc,
+      .mass = mass_elc,
+      .k0 = k0_elc,
+    };
+    fine_src_inp.param[1] = (struct gkyl_moment_em_coupling_data) {
+      .type = fine_bdata[i].euler_ion -> type,
+      .charge = charge_ion,
+      .mass = mass_ion,
+      .k0 = k0_ion,
+    };
+
+    fine_bdata[i].src_slvr = gkyl_moment_em_coupling_new(fine_src_inp);
 #endif
   }
 }

@@ -23,6 +23,29 @@ maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL
   }
 }
 
+static void
+five_moment_block_apply_periodic_bc(const struct five_moment_block_data* bdata, int dir,
+  struct gkyl_array* fld_elc, struct gkyl_array* fld_ion, struct gkyl_array* fld_maxwell)
+{
+  gkyl_array_copy_to_buffer(bdata -> bc_buffer_elc -> data, fld_elc, &(bdata -> skin_ghost.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(fld_elc, bdata -> bc_buffer_elc -> data, &(bdata -> skin_ghost.upper_ghost[dir]));
+
+  gkyl_array_copy_to_buffer(bdata -> bc_buffer_elc -> data, fld_elc, &(bdata -> skin_ghost.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(fld_elc, bdata ->bc_buffer_elc -> data, &(bdata -> skin_ghost.lower_ghost[dir]));
+
+  gkyl_array_copy_to_buffer(bdata -> bc_buffer_ion -> data, fld_ion, &(bdata -> skin_ghost.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(fld_ion, bdata -> bc_buffer_ion -> data, &(bdata -> skin_ghost.upper_ghost[dir]));
+
+  gkyl_array_copy_to_buffer(bdata -> bc_buffer_ion -> data, fld_ion, &(bdata -> skin_ghost.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(fld_ion, bdata -> bc_buffer_ion -> data, &(bdata -> skin_ghost.lower_ghost[dir]));
+
+  gkyl_array_copy_to_buffer(bdata -> bc_buffer_maxwell -> data, fld_maxwell, &(bdata -> skin_ghost.lower_skin[dir]));
+  gkyl_array_copy_from_buffer(fld_maxwell, bdata -> bc_buffer_maxwell -> data, &(bdata -> skin_ghost.upper_ghost[dir]));
+
+  gkyl_array_copy_to_buffer(bdata -> bc_buffer_maxwell -> data, fld_maxwell, &(bdata -> skin_ghost.upper_skin[dir]));
+  gkyl_array_copy_from_buffer(fld_maxwell, bdata -> bc_buffer_maxwell -> data, &(bdata -> skin_ghost.lower_ghost[dir]));
+}
+
 void
 five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const struct gkyl_block_connections* conn)
 {
@@ -32,26 +55,28 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
   }
 
   for (int d = 0; d < 2; d++) {
-    bdata -> lower_bc_elc[d] = bdata -> upper_bc_elc[d] = 0;
-    bdata -> lower_bc_ion[d] = bdata -> upper_bc_ion[d] = 0;
-    bdata -> lower_bc_maxwell[d] = bdata -> upper_bc_maxwell[d] = 0;
+    if (bdata -> wall_dir[d]) {
+      bdata -> lower_bc_elc[d] = bdata -> upper_bc_elc[d] = 0;
+      bdata -> lower_bc_ion[d] = bdata -> upper_bc_ion[d] = 0;
+      bdata -> lower_bc_maxwell[d] = bdata -> upper_bc_maxwell[d] = 0;
 
-    if (conn -> connections[d][0].edge == GKYL_PHYSICAL) {
-      bdata -> lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler_elc, bdata -> geom, d, GKYL_LOWER_EDGE, nghost,
-        five_moment_wall_bc, 0);
-      bdata -> lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler_ion, bdata -> geom, d, GKYL_LOWER_EDGE, nghost,
-        five_moment_wall_bc, 0);
-      bdata -> lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> maxwell, bdata -> geom, d, GKYL_LOWER_EDGE, nghost,
-        maxwell_wall_bc, 0);
-    }
+      if (conn -> connections[d][0].edge == GKYL_PHYSICAL) {
+        bdata -> lower_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler_elc, bdata -> geom, d, GKYL_LOWER_EDGE, nghost,
+          five_moment_wall_bc, 0);
+        bdata -> lower_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler_ion, bdata -> geom, d, GKYL_LOWER_EDGE, nghost,
+          five_moment_wall_bc, 0);
+        bdata -> lower_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> maxwell, bdata -> geom, d, GKYL_LOWER_EDGE, nghost,
+          maxwell_wall_bc, 0);
+      }
 
-    if (conn -> connections[d][1].edge == GKYL_PHYSICAL) {
-      bdata -> upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler_elc, bdata -> geom, d, GKYL_UPPER_EDGE, nghost,
-        five_moment_wall_bc, 0);
-      bdata -> upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler_ion, bdata -> geom, d, GKYL_UPPER_EDGE, nghost,
-        five_moment_wall_bc, 0);
-      bdata -> upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> maxwell, bdata -> geom, d, GKYL_UPPER_EDGE, nghost,
-        maxwell_wall_bc, 0);
+      if (conn -> connections[d][1].edge == GKYL_PHYSICAL) {
+        bdata -> upper_bc_elc[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler_elc, bdata -> geom, d, GKYL_UPPER_EDGE, nghost,
+          five_moment_wall_bc, 0);
+        bdata -> upper_bc_ion[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> euler_ion, bdata -> geom, d, GKYL_UPPER_EDGE, nghost,
+          five_moment_wall_bc, 0);
+        bdata -> upper_bc_maxwell[d] = gkyl_wv_apply_bc_new(&bdata -> grid, bdata -> maxwell, bdata -> geom, d, GKYL_UPPER_EDGE, nghost,
+          maxwell_wall_bc, 0);
+      }
     }
   }
 
@@ -71,24 +96,26 @@ void
 five_moment_block_bc_updaters_release(struct five_moment_block_data* bdata)
 {
   for (int d = 0; d < 2; d++) {
-    if (bdata -> lower_bc_elc[d]) {
-      gkyl_wv_apply_bc_release(bdata -> lower_bc_elc[d]);
-    }
-    if (bdata -> lower_bc_ion[d]) {
-      gkyl_wv_apply_bc_release(bdata -> lower_bc_ion[d]);
-    }
-    if (bdata -> lower_bc_maxwell[d]) {
-      gkyl_wv_apply_bc_release(bdata -> lower_bc_maxwell[d]);
-    }
+    if (bdata -> wall_dir[d]) {
+      if (bdata -> lower_bc_elc[d]) {
+        gkyl_wv_apply_bc_release(bdata -> lower_bc_elc[d]);
+      }
+      if (bdata -> lower_bc_ion[d]) {
+        gkyl_wv_apply_bc_release(bdata -> lower_bc_ion[d]);
+      }
+      if (bdata -> lower_bc_maxwell[d]) {
+        gkyl_wv_apply_bc_release(bdata -> lower_bc_maxwell[d]);
+      }
 
-    if (bdata -> upper_bc_elc[d]) {
-      gkyl_wv_apply_bc_release(bdata -> upper_bc_elc[d]);
-    }
-    if (bdata -> upper_bc_ion[d]) {
-      gkyl_wv_apply_bc_release(bdata -> upper_bc_ion[d]);
-    }
-    if (bdata -> upper_bc_maxwell[d]) {
-      gkyl_wv_apply_bc_release(bdata -> upper_bc_maxwell[d]);
+      if (bdata -> upper_bc_elc[d]) {
+        gkyl_wv_apply_bc_release(bdata -> upper_bc_elc[d]);
+      }
+      if (bdata -> upper_bc_ion[d]) {
+        gkyl_wv_apply_bc_release(bdata -> upper_bc_ion[d]);
+      }
+      if (bdata -> upper_bc_maxwell[d]) {
+        gkyl_wv_apply_bc_release(bdata -> upper_bc_maxwell[d]);
+      }
     }
   }
 
@@ -102,24 +129,32 @@ five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bdata, 
   struct gkyl_array* fld_elc, struct gkyl_array* fld_ion, struct gkyl_array* fld_maxwell)
 {
   for (int d = 0; d < 2; d++) {
-    if (bdata -> lower_bc_elc[d]) {
-      gkyl_wv_apply_bc_advance(bdata -> lower_bc_elc[d], tm, &bdata -> range, fld_elc);
+    if (bdata -> periodic_dir[d]) {
+      five_moment_block_apply_periodic_bc(bdata, d, fld_elc, fld_ion, fld_maxwell);
     }
-    if (bdata -> lower_bc_ion[d]) {
-      gkyl_wv_apply_bc_advance(bdata -> lower_bc_ion[d], tm, &bdata -> range, fld_ion);
-    }
-    if (bdata -> lower_bc_maxwell[d]) {
-      gkyl_wv_apply_bc_advance(bdata -> lower_bc_maxwell[d], tm, &bdata -> range, fld_maxwell);
-    }
+  }
 
-    if (bdata -> upper_bc_elc[d]) {
-      gkyl_wv_apply_bc_advance(bdata -> upper_bc_elc[d], tm, &bdata -> range, fld_elc);
-    }
-    if (bdata -> upper_bc_ion[d]) {
-      gkyl_wv_apply_bc_advance(bdata -> upper_bc_ion[d], tm, &bdata -> range, fld_ion);
-    }
-    if (bdata -> upper_bc_maxwell[d]) {
-      gkyl_wv_apply_bc_advance(bdata -> upper_bc_maxwell[d], tm, &bdata -> range, fld_maxwell);
+  for (int d = 0; d < 2; d++) {
+    if (bdata -> wall_dir[d]) {
+      if (bdata -> lower_bc_elc[d]) {
+        gkyl_wv_apply_bc_advance(bdata -> lower_bc_elc[d], tm, &bdata -> range, fld_elc);
+      }
+      if (bdata -> lower_bc_ion[d]) {
+        gkyl_wv_apply_bc_advance(bdata -> lower_bc_ion[d], tm, &bdata -> range, fld_ion);
+      }
+      if (bdata -> lower_bc_maxwell[d]) {
+        gkyl_wv_apply_bc_advance(bdata -> lower_bc_maxwell[d], tm, &bdata -> range, fld_maxwell);
+      }
+
+      if (bdata -> upper_bc_elc[d]) {
+        gkyl_wv_apply_bc_advance(bdata -> upper_bc_elc[d], tm, &bdata -> range, fld_elc);
+      }
+      if (bdata -> upper_bc_ion[d]) {
+        gkyl_wv_apply_bc_advance(bdata -> upper_bc_ion[d], tm, &bdata -> range, fld_ion);
+      }
+      if (bdata -> upper_bc_maxwell[d]) {
+        gkyl_wv_apply_bc_advance(bdata -> upper_bc_maxwell[d], tm, &bdata -> range, fld_maxwell);
+      }
     }
   }
 }
@@ -141,9 +176,9 @@ five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_m
         struct gkyl_array *bc_buffer_ion = bdata[i].bc_buffer_ion;
         struct gkyl_array *bc_buffer_maxwell = bdata[i].bc_buffer_maxwell;
 
-        gkyl_array_copy_to_buffer(bc_buffer_elc -> data, fld_elc[i], bdata[i].skin_ghost.lower_skin[d]);
-        gkyl_array_copy_to_buffer(bc_buffer_ion -> data, fld_ion[i], bdata[i].skin_ghost.lower_skin[d]);
-        gkyl_array_copy_to_buffer(bc_buffer_maxwell -> data, fld_maxwell[i], bdata[i].skin_ghost.lower_skin[d]);
+        gkyl_array_copy_to_buffer(bc_buffer_elc -> data, fld_elc[i], &(bdata[i].skin_ghost.lower_skin[d]));
+        gkyl_array_copy_to_buffer(bc_buffer_ion -> data, fld_ion[i], &(bdata[i].skin_ghost.lower_skin[d]));
+        gkyl_array_copy_to_buffer(bc_buffer_maxwell -> data, fld_maxwell[i], &(bdata[i].skin_ghost.lower_skin[d]));
 
         int tbid = te[0].bid;
         int tdir = te[0].dir;
@@ -165,9 +200,9 @@ five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_m
         struct gkyl_array *bc_buffer_ion = bdata[i].bc_buffer_ion;
         struct gkyl_array *bc_buffer_maxwell = bdata[i].bc_buffer_maxwell;
 
-        gkyl_array_copy_to_buffer(bc_buffer_elc -> data, fld_elc[i], bdata[i].skin_ghost.upper_skin[d]);
-        gkyl_array_copy_to_buffer(bc_buffer_ion -> data, fld_ion[i], bdata[i].skin_ghost.upper_skin[d]);
-        gkyl_array_copy_to_buffer(bc_buffer_maxwell -> data, fld_maxwell[i], bdata[i].skin_ghost.upper_skin[d]);
+        gkyl_array_copy_to_buffer(bc_buffer_elc -> data, fld_elc[i], &(bdata[i].skin_ghost.upper_skin[d]));
+        gkyl_array_copy_to_buffer(bc_buffer_ion -> data, fld_ion[i], &(bdata[i].skin_ghost.upper_skin[d]));
+        gkyl_array_copy_to_buffer(bc_buffer_maxwell -> data, fld_maxwell[i], &(bdata[i].skin_ghost.upper_skin[d]));
 
         int tbid = te[1].bid;
         int tdir = te[1].dir;

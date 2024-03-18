@@ -60,6 +60,9 @@ struct five_moment_block_data {
   struct gkyl_wv_apply_bc *upper_bc_maxwell[2];
 
   gkyl_moment_em_coupling *src_slvr;
+
+  bool *periodic_dir[2];
+  bool *wall_dir[2];
 };
 
 // Job pool information context for updating block-structured data for the coupled five-moment equations using threads.
@@ -113,6 +116,18 @@ static void five_moment_wall_bc(double t, int nc, const double* GKYL_RESTRICT sk
 static void maxwell_wall_bc(double t, int nc, const double* GKYL_RESTRICT skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
+*
+* Apply block-structured periodic boundary conditions for the coupled five-moment equations.
+* @param bdata Block-structured data for the coupled five-moment equations.
+* @param dir Direction in which to apply periodic boundary conditions.
+* @param fld_elc Output array (electrons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
+*/
+static void five_moment_block_apply_periodic_bc(const struct five_moment_block_data* bdata, int dir,
+  struct gkyl_array* fld_elc, struct gkyl_array* fld_ion, struct gkyl_array* fld_maxwell);
+
+/**
 * Initialize updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.
 *
 * @param bdata Block-structured data for the coupled five-moment equations.
@@ -132,7 +147,9 @@ void five_moment_block_bc_updaters_release(struct five_moment_block_data* bdata)
 *
 * @param bdata Block-structured data for the coupled five-moment equations.
 * @param tm Simulation time at which the boundary conditions are applied.
-* @param fld Output array.
+* @param fld_elc Output array (electrons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
 */
 void five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bdata, double tm,
   struct gkyl_array* fld_elc, struct gkyl_array *fld_ion, struct gkyl_array* fld_maxwell);
@@ -142,7 +159,9 @@ void five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bd
 *
 * @param btopo Topology/connectivity information for the block hierarchy.
 * @param bdata Block-structured data for the coupled five-moment equations.
-* @param fld Output array.
+* @param fld_elc Output array (electrons).
+* @param fld_ion Output array (ions).
+* @param fld_maxwell Output array (Maxwell field).
 */
 void five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_moment_block_data bdata[],
   struct gkyl_array* fld_elc[], struct gkyl_array* fld_ion[], struct gkyl_array* fld_maxwell[]);

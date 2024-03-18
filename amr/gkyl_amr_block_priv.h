@@ -30,7 +30,7 @@
 
 #include <thpool.h>
 
-//#define AMR_DEBUG
+#define AMR_DEBUG
 //#define AMR_USETHREADS
 
 // Definitions of private structs and APIs attached to these objects, for use in the block AMR subsystem.
