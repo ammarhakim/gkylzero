@@ -31,7 +31,7 @@ five_moment_block_apply_periodic_bc(const struct five_moment_block_data* bdata, 
   gkyl_array_copy_from_buffer(fld_elc, bdata -> bc_buffer_elc -> data, &(bdata -> skin_ghost.upper_ghost[dir]));
 
   gkyl_array_copy_to_buffer(bdata -> bc_buffer_elc -> data, fld_elc, &(bdata -> skin_ghost.upper_skin[dir]));
-  gkyl_array_copy_from_buffer(fld_elc, bdata ->bc_buffer_elc -> data, &(bdata -> skin_ghost.lower_ghost[dir]));
+  gkyl_array_copy_from_buffer(fld_elc, bdata -> bc_buffer_elc -> data, &(bdata -> skin_ghost.lower_ghost[dir]));
 
   gkyl_array_copy_to_buffer(bdata -> bc_buffer_ion -> data, fld_ion, &(bdata -> skin_ghost.lower_skin[dir]));
   gkyl_array_copy_from_buffer(fld_ion, bdata -> bc_buffer_ion -> data, &(bdata -> skin_ghost.upper_ghost[dir]));
@@ -232,6 +232,153 @@ five_moment_sync_blocks(const struct gkyl_block_topo* btopo, const struct five_m
           gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
           gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
           gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
+        }
+      }
+#else
+      if (te[0].edge != GKYL_PHYSICAL) {
+        struct gkyl_array *bc_buffer_elc = bdata[i].bc_buffer_elc;
+        struct gkyl_array *bc_buffer_ion = bdata[i].bc_buffer_ion;
+        struct gkyl_array *bc_buffer_maxwell = bdata[i].bc_buffer_maxwell;
+
+        gkyl_array_copy_to_buffer(bc_buffer_elc -> data, fld_elc[i], &(bdata[i].skin_ghost.lower_skin[d]));
+        gkyl_array_copy_to_buffer(bc_buffer_ion -> data, fld_ion[i], &(bdata[i].skin_ghost.lower_skin[d]));
+        gkyl_array_copy_to_buffer(bc_buffer_maxwell -> data, fld_maxwell[i], &(bdata[i].skin_ghost.lower_skin[d]));
+
+        int tbid = te[0].bid;
+        int tdir = te[0].dir;
+
+        if (te[0].edge == GKYL_LOWER_POSITIVE) {
+          if (bdata[i].skin_ghost.lower_skin[d].volume == bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc -> data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+            gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion -> data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+            gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell -> data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+          }
+          else if (bdata[i].skin_ghost.lower_skin[d].volume > bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            struct gkyl_range_iter iter;
+            gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+
+            int ref_factor = (int)(bdata[i].skin_ghost.lower_skin[d].volume / bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
+
+            long count = 0;
+            while (gkyl_range_iter_next(&iter)) {
+              long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.lower_ghost[tdir]), iter.idx);
+
+              memcpy(gkyl_array_fetch(fld_elc[tbid], start),
+                ((char*) bc_buffer_elc -> data) + fld_elc[tbid] -> esznc * (ref_factor * count), fld_elc[tbid] -> esznc);
+              memcpy(gkyl_array_fetch(fld_ion[tbid], start),
+                ((char*) bc_buffer_ion -> data) + fld_ion[tbid] -> esznc * (ref_factor * count), fld_ion[tbid] -> esznc);
+              memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
+                ((char*) bc_buffer_maxwell -> data) + fld_maxwell[tbid] -> esznc * (ref_factor * count++), fld_maxwell[tbid] -> esznc);
+            }
+          }
+          else if (bdata[i].skin_ghost.lower_skin[d].volume < bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            struct gkyl_range_iter iter;
+            gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+
+            double ref_factor_inv = (double)(bdata[i].skin_ghost.lower_skin[d].volume / bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
+
+            long count = 0;
+            while (gkyl_range_iter_next(&iter)) {
+              long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.lower_ghost[tdir]), iter.idx);
+
+              memcpy(gkyl_array_fetch(fld_elc[tbid], start),
+                ((char*) bc_buffer_elc -> data) + fld_elc[tbid] -> esznc * ((int)(ref_factor_inv * count)), fld_elc[tbid] -> esznc);
+              memcpy(gkyl_array_fetch(fld_ion[tbid], start),
+                ((char*) bc_buffer_ion -> data) + fld_ion[tbid] -> esznc * ((int)(ref_factor_inv * count)), fld_ion[tbid] -> esznc);
+              memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
+                ((char*) bc_buffer_maxwell -> data) + fld_maxwell[tbid] -> esznc * ((int)(ref_factor_inv * count++)), fld_maxwell[tbid] -> esznc);
+            }
+          }
+        }
+        else if (te[0].edge == GKYL_UPPER_POSITIVE) {
+          if (bdata[i].skin_ghost.lower_skin[d].volume == bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
+            gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
+            gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell -> data, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
+          }
+          else if (bdata[i].skin_ghost.lower_skin[d].volume > bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            struct gkyl_range_iter iter;
+            gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
+
+            int ref_factor = (int)(bdata[i].skin_ghost.lower_skin[d].volume / bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
+
+            long count = 0;
+            while (gkyl_range_iter_next(&iter)) {
+              long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.upper_ghost[tdir]), iter.idx);
+
+              memcpy(gkyl_array_fetch(fld_elc[tbid], start),
+                ((char*) bc_buffer_elc -> data) + fld_elc[tbid] -> esznc * (ref_factor * count), fld_elc[tbid] -> esznc);
+              memcpy(gkyl_array_fetch(fld_ion[tbid], start),
+                ((char*) bc_buffer_ion -> data) + fld_ion[tbid] -> esznc * (ref_factor * count), fld_ion[tbid] -> esznc);
+              memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
+                ((char*) bc_buffer_maxwell -> data) + fld_maxwell[tbid] -> esznc * (ref_factor * count++), fld_maxwell[tbid] -> esznc);
+            }
+          }
+          else if (bdata[i].skin_ghost.lower_skin[d].volume < bdata[tbid].skin_ghost.upper_ghost[tdir].volume) {
+            struct gkyl_range_iter iter;
+            gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
+
+            double ref_factor_inv = (double)(bdata[i].skin_ghost.lower_skin[d].volume / bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
+
+            long count = 0;
+            while (gkyl_range_iter_next(&iter)) {
+              long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.upper_ghost[tdir]), iter.idx);
+
+              memcpy(gkyl_array_fetch(fld_elc[tbid], start),
+                ((char*) bc_buffer_elc -> data) + fld_elc[tbid] -> esznc * ((int)(ref_factor_inv * count)), fld_elc[tbid] -> esznc);
+              memcpy(gkyl_array_fetch(fld_ion[tbid], start),
+                ((char*) bc_buffer_ion -> data) + fld_ion[tbid] -> esznc * ((int)(ref_factor_inv * count)), fld_ion[tbid] -> esznc);
+              memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
+                ((char*) bc_buffer_maxwell -> data) + fld_maxwell[tbid] -> esznc * ((int)(ref_factor_inv * count++)), fld_maxwell[tbid] -> esznc);
+            }
+          }
+        }
+      }
+
+      if (te[1].edge != GKYL_PHYSICAL) {
+        struct gkyl_array *bc_buffer_elc = bdata[i].bc_buffer_elc;
+        struct gkyl_array *bc_buffer_ion = bdata[i].bc_buffer_ion;
+        struct gkyl_array *bc_buffer_maxwell = bdata[i].bc_buffer_maxwell;
+
+        gkyl_array_copy_to_buffer(bc_buffer_elc -> data, fld_elc[i], &(bdata[i].skin_ghost.upper_skin[d]));
+        gkyl_array_copy_to_buffer(bc_buffer_ion -> data, fld_ion[i], &(bdata[i].skin_ghost.upper_skin[d]));
+        gkyl_array_copy_to_buffer(bc_buffer_maxwell -> data, fld_maxwell[i], &(bdata[i].skin_ghost.upper_skin[d]));
+
+        int tbid = te[1].bid;
+        int tdir = te[1].dir;
+
+        if (te[1].edge == GKYL_LOWER_POSITIVE) {
+          if (bdata[i].skin_ghost.upper_skin[d].volume == bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            gkyl_array_copy_from_buffer(fld_elc[tbid], bc_buffer_elc -> data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+            gkyl_array_copy_from_buffer(fld_ion[tbid], bc_buffer_ion -> data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+            gkyl_array_copy_from_buffer(fld_maxwell[tbid], bc_buffer_maxwell -> data, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+          }
+          else if (bdata[i].skin_ghost.upper_skin[d].volume > bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            struct gkyl_range_iter iter;
+            gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+
+            int ref_factor = (int)(bdata[i].skin_ghost.upper_skin[d].volume / bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
+
+            long count = 0;
+            while (gkyl_range_iter_next(&iter)) {
+              long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.lower_ghost[tdir]), iter.idx);
+
+              memcpy(gkyl_array_fetch(fld_elc[tbid], start),
+                ((char*) bc_buffer_elc -> data) + fld_elc[tbid] -> esznc * (ref_factor * count), fld_elc[tbid] -> esznc);
+              memcpy(gkyl_array_fetch(fld_ion[tbid], start),
+                ((char*) bc_buffer_ion -> data) + fld_ion[tbid] -> esznc * (ref_factor * count), fld_ion[tbid] -> esznc);
+              memcpy(gkyl_array_fetch(fld_maxwell[tbid], start),
+                ((char*) bc_buffer_maxwell -> data) + fld_maxwell[tbid] -> esznc * (ref_factor * count++), fld_maxwell[tbid] -> esznc);
+            }
+          }
+          else if (bdata[i].skin_ghost.upper_skin[d].volume < bdata[tbid].skin_ghost.lower_ghost[tdir].volume) {
+            struct gkyl_range_iter iter;
+            gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
+
+            double ref_factor_inv = (double)(bdata[i].skin_ghost.upper_skin[d].volume / bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
+
+            // INCOMPLETE
+          }
         }
       }
 #endif

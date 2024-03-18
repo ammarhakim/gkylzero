@@ -158,7 +158,7 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
             struct gkyl_range_iter iter;
             gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
 
-            double ref_factor_inv = (double)(bdata[i].skin_ghost.lower_skin[d].volume / bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
+            double ref_factor_inv = ((double)bdata[i].skin_ghost.lower_skin[d].volume / (double)bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
 
             long count = 0;
             while (gkyl_range_iter_next(&iter)) {
@@ -191,7 +191,7 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
             struct gkyl_range_iter iter;
             gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
 
-            double ref_factor_inv = (double)(bdata[i].skin_ghost.lower_skin[d].volume / bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
+            double ref_factor_inv = ((double)bdata[i].skin_ghost.lower_skin[d].volume / (double)bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
 
             long count = 0;
             while (gkyl_range_iter_next(&iter)) {
@@ -234,7 +234,7 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
             struct gkyl_range_iter iter;
             gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.lower_ghost[tdir]));
 
-            double ref_factor_inv = (double)(bdata[i].skin_ghost.upper_skin[d].volume / bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
+            double ref_factor_inv = ((double)bdata[i].skin_ghost.upper_skin[d].volume / (double)bdata[tbid].skin_ghost.lower_ghost[tdir].volume);
 
             long count = 0;
             while (gkyl_range_iter_next(&iter)) {
@@ -267,7 +267,7 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
             struct gkyl_range_iter iter;
             gkyl_range_iter_init(&iter, &(bdata[tbid].skin_ghost.upper_ghost[tdir]));
 
-            double ref_factor_inv = (double)(bdata[i].skin_ghost.upper_skin[d].volume / bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
+            double ref_factor_inv = ((double)bdata[i].skin_ghost.upper_skin[d].volume / (double)bdata[tbid].skin_ghost.upper_ghost[tdir].volume);
 
             long count = 0;
             while (gkyl_range_iter_next(&iter)) {
