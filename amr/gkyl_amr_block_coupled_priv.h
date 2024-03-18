@@ -61,8 +61,8 @@ struct five_moment_block_data {
 
   gkyl_moment_em_coupling *src_slvr;
 
-  bool *periodic_dir[2];
-  bool *wall_dir[2];
+  bool *periodic_dirs[2];
+  bool *wall_dirs[2];
 };
 
 // Job pool information context for updating block-structured data for the coupled five-moment equations using threads.
@@ -133,7 +133,7 @@ static void five_moment_block_apply_periodic_bc(const struct five_moment_block_d
 * @param bdata Block-structured data for the coupled five-moment equations.
 * @param conn Topology/connectivity data for the block hierarchy.
 */
-void five_moment_block_bc_init(struct five_moment_block_data* bdata, const struct gkyl_block_connections* conn);
+void five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const struct gkyl_block_connections* conn);
 
 /**
 * Release updaters for both physical (outer-block) and non-physical (inter-block) boundary conditions for the coupled five-moment equations.

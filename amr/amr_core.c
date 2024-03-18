@@ -292,7 +292,7 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   euler_write_sol("euler_amr_1", num_blocks, coarse_bdata);
 #endif
 
-  printf("Total run-time %g. Failed steps: %d\n", tm_total_sec, stats.nfail);
+  printf("Total run-time: %g. Failed steps: %d\n", tm_total_sec, stats.nfail);
 
   for (int i = 0; i < num_blocks; i++) {
     gkyl_fv_proj_release(coarse_bdata[i].fv_proj);
@@ -327,13 +327,13 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
       gkyl_array_release(fine_bdata[i].f[d]);
 #endif
     }
-
-    gkyl_block_topo_release(btopo);
-    gkyl_job_pool_release(coarse_job_pool);
-#ifdef AMR_DEBUG
-    gkyl_job_pool_release(fine_job_pool);
-#endif
   }
+
+  gkyl_block_topo_release(btopo);
+  gkyl_job_pool_release(coarse_job_pool);
+#ifdef AMR_DEBUG
+  gkyl_job_pool_release(fine_job_pool);
+#endif
 }
 
 void
@@ -453,10 +453,20 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   for (int i = 0; i < num_blocks; i++) {
     gkyl_create_grid_ranges(&coarse_bdata[i].grid, (int []) { 2, 2 }, &coarse_bdata[i].ext_range, &coarse_bdata[i].range);
     coarse_bdata[i].geom = gkyl_wave_geom_new(&coarse_bdata[i].grid, &coarse_bdata[i].ext_range, 0, 0, false);
+    
+    for (int d = 0; d < ndim; d++) {
+      coarse_bdata[i].periodic_dirs[d] = &(init -> periodic_dirs)[d];
+      coarse_bdata[i].wall_dirs[d] = &(init -> wall_dirs)[d];
+    }
 
 #ifdef AMR_DEBUG
     gkyl_create_grid_ranges(&fine_bdata[i].grid, (int []) { 2, 2 }, &fine_bdata[i].ext_range, &fine_bdata[i].range);
     fine_bdata[i].geom = gkyl_wave_geom_new(&fine_bdata[i].grid, &fine_bdata[i].ext_range, 0, 0, false);
+
+    for (int d = 0; d < ndim; d++) {
+      fine_bdata[i].periodic_dirs[d] = &(init -> periodic_dirs)[d];
+      fine_bdata[i].wall_dirs[d] = &(init -> wall_dirs)[d];
+    }
 #endif
   }
 
@@ -579,4 +589,270 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     fine_bdata[i].src_slvr = gkyl_moment_em_coupling_new(fine_src_inp);
 #endif
   }
+
+  struct gkyl_block_topo *btopo = create_block_topo();
+
+  for (int i = 0; i < num_blocks; i++) {
+    five_moment_block_bc_updaters_init(&coarse_bdata[i], &btopo -> conn[i]);
+
+#ifdef AMR_DEBUG
+    five_moment_block_bc_updaters_init(&fine_bdata[i], &btopo -> conn[i]);
+#endif
+  }
+
+  for (int i = 0; i < num_blocks; i++) {
+    coarse_bdata[i].fdup_elc = gkyl_array_new(GKYL_DOUBLE, 5, coarse_bdata[i].ext_range.volume);
+    coarse_bdata[i].fdup_ion = gkyl_array_new(GKYL_DOUBLE, 5, coarse_bdata[i].ext_range.volume);
+    coarse_bdata[i].fdup_maxwell = gkyl_array_new(GKYL_DOUBLE, 8, coarse_bdata[i].ext_range.volume);
+
+    for (int d = 0; d < ndim + 1; d++) {
+      coarse_bdata[i].f_elc[d] = gkyl_array_new(GKYL_DOUBLE, 5, coarse_bdata[i].ext_range.volume);
+      coarse_bdata[i].f_ion[d] = gkyl_array_new(GKYL_DOUBLE, 5, coarse_bdata[i].ext_range.volume);
+      coarse_bdata[i].f_maxwell[d] = gkyl_array_new(GKYL_DOUBLE, 8, coarse_bdata[i].ext_range.volume);
+    }
+
+    coarse_bdata[i].app_accel_elc = gkyl_array_new(GKYL_DOUBLE, 3, coarse_bdata[i].ext_range.volume);
+    coarse_bdata[i].app_accel_ion = gkyl_array_new(GKYL_DOUBLE, 3, coarse_bdata[i].ext_range.volume);
+    coarse_bdata[i].rhs_source_elc = gkyl_array_new(GKYL_DOUBLE, 5, coarse_bdata[i].ext_range.volume);
+    coarse_bdata[i].rhs_source_ion = gkyl_array_new(GKYL_DOUBLE, 5, coarse_bdata[i].ext_range.volume);
+    coarse_bdata[i].ext_em = gkyl_array_new(GKYL_DOUBLE, 6, coarse_bdata[i].ext_range.volume);
+    coarse_bdata[i].app_current = gkyl_array_new(GKYL_DOUBLE, 3, coarse_bdata[i].ext_range.volume);
+    coarse_bdata[i].nT_source_elc = gkyl_array_new(GKYL_DOUBLE, 2, coarse_bdata[i].ext_range.volume);
+    coarse_bdata[i].nT_source_ion = gkyl_array_new(GKYL_DOUBLE, 2, coarse_bdata[i].ext_range.volume);
+
+#ifdef AMR_DEBUG
+    fine_bdata[i].fdup_elc = gkyl_array_new(GKYL_DOUBLE, 5, fine_bdata[i].ext_range.volume);
+    fine_bdata[i].fdup_ion = gkyl_array_new(GKYL_DOUBLE, 5, fine_bdata[i].ext_range.volume);
+    fine_bdata[i].fdup_maxwell = gkyl_array_new(GKYL_DOUBLE, 8, fine_bdata[i].ext_range.volume);
+
+    for (int d = 0; d < ndim + 1; d++) {
+      fine_bdata[i].f_elc[d] = gkyl_array_new(GKYL_DOUBLE, 5, fine_bdata[i].ext_range.volume);
+      fine_bdata[i].f_ion[d] = gkyl_array_new(GKYL_DOUBLE, 5, fine_bdata[i].ext_range.volume);
+      fine_bdata[i].f_maxwell[d] = gkyl_array_new(GKYL_DOUBLE, 8, fine_bdata[i].ext_range.volume);
+    }
+
+    fine_bdata[i].app_accel_elc = gkyl_array_new(GKYL_DOUBLE, 3, fine_bdata[i].ext_range.volume);
+    fine_bdata[i].app_accel_ion = gkyl_array_new(GKYL_DOUBLE, 3, fine_bdata[i].ext_range.volume);
+    fine_bdata[i].rhs_source_elc = gkyl_array_new(GKYL_DOUBLE, 5, fine_bdata[i].ext_range.volume);
+    fine_bdata[i].rhs_source_ion = gkyl_array_new(GKYL_DOUBLE, 5, fine_bdata[i].ext_range.volume);
+    fine_bdata[i].ext_em = gkyl_array_new(GKYL_DOUBLE, 6, fine_bdata[i].ext_range.volume);
+    fine_bdata[i].app_current = gkyl_array_new(GKYL_DOUBLE, 3, fine_bdata[i].ext_range.volume);
+    fine_bdata[i].nT_source_elc = gkyl_array_new(GKYL_DOUBLE, 2, fine_bdata[i].ext_range.volume);
+    fine_bdata[i].nT_source_ion = gkyl_array_new(GKYL_DOUBLE, 2, fine_bdata[i].ext_range.volume);
+#endif
+  }
+
+#ifdef AMR_USETHREADS
+  for (int i = 0; i < num_blocks; i++) {
+    gkyl_job_pool_add_work(coarse_job_pool, five_moment_init_job_func, &coarse_bdata[i]);
+
+#ifdef AMR_DEBUG
+    gkyl_job_pool_add_work(fine_job_pool, five_moment_init_job_func, &fine_bdata[i]);
+#endif
+  }
+  gkyl_job_pool_wait(coarse_job_pool);
+
+#ifdef AMR_DEBUG
+  gkyl_job_pool_wait(fine_job_pool);
+#endif
+#else
+  for (int i = 0; i < num_blocks; i++) {
+    five_moment_init_job_func(&coarse_bdata[i]);
+
+#ifdef AMR_DEBUG
+    five_moment_init_job_func(&fine_bdata[i]);
+#endif
+  }
+#endif
+
+#ifdef AMR_DEBUG
+  five_moment_write_sol("5m_amr_coarse_0", num_blocks, coarse_bdata);
+  five_moment_write_sol("5m_amr_fine_0", num_blocks, fine_bdata);
+
+  rename("5m_amr_fine_0_b0.gkyl", "5m_amr_0_b0.gkyl");
+  remove("5m_amr_coarse_0_b0.gkyl");
+
+  for (int i = 1; i < 9; i++) {
+    char buf_old[32];
+    char buf_new[32];
+    char buf_del[32];
+
+    snprintf(buf_old, 32, "5m_amr_coarse_0_b%d.gkyl", i);
+    snprintf(buf_new, 32, "5m_amr_0_b%d.gkyl", i);
+    snprintf(buf_del, 32, "5m_amr_fine_0_b%d.gkyl", i);
+
+    rename(buf_old, buf_new);
+    remove(buf_del);
+  }
+#else
+  five_moment_write_sol("5m_amr_0", num_blocks, coarse_bdata);
+#endif
+
+  double coarse_t_curr = 0.0;
+  double fine_t_curr = 0.0;
+  double coarse_dt = five_moment_max_dt(num_blocks, coarse_bdata);
+
+#ifdef AMR_DEBUG
+  double fine_dt = five_moment_max_dt(num_blocks, fine_bdata);
+#else
+  double fine_dt = (1.0 / ref_factor) * coarse_dt;
+#endif
+
+  struct sim_stats stats = { };
+
+  struct timespec tm_start = gkyl_wall_clock();
+
+  long coarse_step = 1;
+  long num_steps = app_args.num_steps;
+
+  while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
+    printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
+    struct gkyl_update_status coarse_status = five_moment_update(coarse_job_pool, btopo, coarse_bdata, coarse_t_curr, coarse_dt, &stats);
+    printf(" dt = %g\n", coarse_status.dt_actual);
+
+    if (!coarse_status.success) {
+      printf("** Update method failed! Aborting simulation ....\n");
+      break;
+    }
+
+    for (long fine_step = 1; fine_step < ref_factor + 1; fine_step++) {
+#ifdef AMR_DEBUG
+      printf("   Taking fine (level 1) time-step %ld at t = %g; ", fine_step, fine_t_curr);
+      struct gkyl_update_status fine_status = five_moment_update(fine_job_pool, btopo, fine_bdata, fine_t_curr, fine_dt, &stats);
+      printf(" dt = %g\n", fine_status.dt_actual);
+
+      if (!fine_status.success) {
+        printf("** Update method failed! Aborting simulation ....\n");
+        break;
+      }
+
+      fine_t_curr += fine_status.dt_actual;
+      fine_dt += fine_status.dt_suggested;
+#else
+      printf("   Taking fine (level 1) time-step %ld at t = %g", fine_step, fine_t_curr);
+      printf(" dt = %g\n", (1.0 / ref_factor) * coarse_status.dt_actual);
+
+      fine_t_curr += (1.0 / ref_factor) * coarse_status.dt_actual;
+      fine_dt = (1.0 / ref_factor) * coarse_status.dt_suggested;
+#endif
+    }
+
+    coarse_t_curr += coarse_status.dt_actual;
+    coarse_dt = coarse_status.dt_suggested;
+
+    coarse_step += 1;
+  }
+
+  double tm_total_sec = gkyl_time_diff_now_sec(tm_start);
+
+#ifdef AMR_DEBUG
+  five_moment_write_sol("5m_amr_coarse_1", num_blocks, coarse_bdata);
+  five_moment_write_sol("5m_amr_fine_1", num_blocks, fine_bdata);
+
+  rename("5m_amr_fine_1_b0.gkyl", "5m_amr_1_b0.gkyl");
+  remove("5m_amr_coarse_1_b0.gkyl");
+
+  for (int i = 1; i < 9; i++) {
+    char buf_old[32];
+    char buf_new[32];
+    char buf_del[32];
+
+    snprintf(buf_old, 32, "5m_amr_coarse_1_b%d.gkyl", i);
+    snprintf(buf_new, 32, "5m_amr_1_b%d.gkyl", i);
+    snprintf(buf_del, 32, "5m_amr_fine_1_b%d.gkyl", i);
+
+    rename(buf_old, buf_new);
+    remove(buf_del);
+  }
+#else
+  five_moment_write_sol("5m_amr_1", num_blocks, coarse_bdata);
+#endif
+
+  printf("Total run-time: %g. Failed steps: %d\n", tm_total_sec, stats.nfail);
+
+  for (int i = 0; i < num_blocks; i++) {
+    gkyl_fv_proj_release(coarse_bdata[i].fv_proj_elc);
+    gkyl_fv_proj_release(coarse_bdata[i].fv_proj_ion);
+    gkyl_fv_proj_release(coarse_bdata[i].fv_proj_maxwell);
+
+    gkyl_wv_eqn_release(coarse_bdata[i].euler_elc);
+    gkyl_wv_eqn_release(coarse_bdata[i].euler_ion);
+    gkyl_wv_eqn_release(coarse_bdata[i].maxwell);
+
+    five_moment_block_bc_updaters_release(&coarse_bdata[i]);
+    gkyl_wave_geom_release(coarse_bdata[i].geom);
+
+#ifdef AMR_DEBUG
+    gkyl_fv_proj_release(fine_bdata[i].fv_proj_elc);
+    gkyl_fv_proj_release(fine_bdata[i].fv_proj_ion);
+    gkyl_fv_proj_release(fine_bdata[i].fv_proj_maxwell);
+
+    gkyl_wv_eqn_release(fine_bdata[i].euler_elc);
+    gkyl_wv_eqn_release(fine_bdata[i].euler_ion);
+    gkyl_wv_eqn_release(fine_bdata[i].maxwell);
+
+    five_moment_block_bc_updaters_release(&fine_bdata[i]);
+    gkyl_wave_geom_release(fine_bdata[i].geom);
+#endif
+
+    for (int d = 0; d < ndim; d++) {
+      gkyl_wave_prop_release(coarse_bdata[i].slvr_elc[d]);
+      gkyl_wave_prop_release(coarse_bdata[i].slvr_ion[d]);
+      gkyl_wave_prop_release(coarse_bdata[i].slvr_maxwell[d]);
+
+#ifdef AMR_DEBUG
+      gkyl_wave_prop_release(fine_bdata[i].slvr_elc[d]);
+      gkyl_wave_prop_release(fine_bdata[i].slvr_ion[d]);
+      gkyl_wave_prop_release(fine_bdata[i].slvr_maxwell[d]);
+#endif
+    }
+
+    gkyl_array_release(coarse_bdata[i].fdup_elc);
+    gkyl_array_release(coarse_bdata[i].fdup_ion);
+    gkyl_array_release(coarse_bdata[i].fdup_maxwell);
+
+#ifdef AMR_DEBUG
+    gkyl_array_release(fine_bdata[i].fdup_elc);
+    gkyl_array_release(fine_bdata[i].fdup_ion);
+    gkyl_array_release(fine_bdata[i].fdup_maxwell);
+#endif
+
+    for(int d = 0; d < ndim; d++) {
+      gkyl_array_release(coarse_bdata[i].f_elc[d]);
+      gkyl_array_release(coarse_bdata[i].f_ion[d]);
+      gkyl_array_release(coarse_bdata[i].f_maxwell[d]);
+
+#ifdef AMR_DEBUG
+      gkyl_array_release(fine_bdata[i].f_elc[d]);
+      gkyl_array_release(fine_bdata[i].f_ion[d]);
+      gkyl_array_release(fine_bdata[i].f_maxwell[d]);
+#endif
+    }
+
+    gkyl_array_release(coarse_bdata[i].app_accel_elc);
+    gkyl_array_release(coarse_bdata[i].app_accel_ion);
+    gkyl_array_release(coarse_bdata[i].rhs_source_elc);
+    gkyl_array_release(coarse_bdata[i].rhs_source_ion);
+    gkyl_array_release(coarse_bdata[i].ext_em);
+    gkyl_array_release(coarse_bdata[i].app_current);
+    gkyl_array_release(coarse_bdata[i].nT_source_elc);
+    gkyl_array_release(coarse_bdata[i].nT_source_ion);
+
+#ifdef AMR_DEBUG
+    gkyl_array_release(fine_bdata[i].app_accel_elc);
+    gkyl_array_release(fine_bdata[i].app_accel_ion);
+    gkyl_array_release(fine_bdata[i].rhs_source_elc);
+    gkyl_array_release(fine_bdata[i].rhs_source_ion);
+    gkyl_array_release(fine_bdata[i].ext_em);
+    gkyl_array_release(fine_bdata[i].app_current);
+    gkyl_array_release(fine_bdata[i].nT_source_elc);
+    gkyl_array_release(fine_bdata[i].nT_source_ion);
+#endif
+  }
+
+  gkyl_block_topo_release(btopo);
+  gkyl_job_pool_release(coarse_job_pool);
+#ifdef AMR_DEBUG
+  gkyl_job_pool_release(fine_job_pool);
+#endif
 }

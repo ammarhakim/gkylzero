@@ -55,7 +55,7 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
   }
 
   for (int d = 0; d < 2; d++) {
-    if (bdata -> wall_dir[d]) {
+    if (bdata -> wall_dirs[d]) {
       bdata -> lower_bc_elc[d] = bdata -> upper_bc_elc[d] = 0;
       bdata -> lower_bc_ion[d] = bdata -> upper_bc_ion[d] = 0;
       bdata -> lower_bc_maxwell[d] = bdata -> upper_bc_maxwell[d] = 0;
@@ -90,13 +90,17 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
       buff_sz = vol;
     }
   }
+
+  bdata -> bc_buffer_elc = gkyl_array_new(GKYL_DOUBLE, 5, buff_sz);
+  bdata -> bc_buffer_ion = gkyl_array_new(GKYL_DOUBLE, 5, buff_sz);
+  bdata -> bc_buffer_maxwell = gkyl_array_new(GKYL_DOUBLE, 8, buff_sz);
 }
 
 void
 five_moment_block_bc_updaters_release(struct five_moment_block_data* bdata)
 {
   for (int d = 0; d < 2; d++) {
-    if (bdata -> wall_dir[d]) {
+    if (bdata -> wall_dirs[d]) {
       if (bdata -> lower_bc_elc[d]) {
         gkyl_wv_apply_bc_release(bdata -> lower_bc_elc[d]);
       }
@@ -129,13 +133,13 @@ five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bdata, 
   struct gkyl_array* fld_elc, struct gkyl_array* fld_ion, struct gkyl_array* fld_maxwell)
 {
   for (int d = 0; d < 2; d++) {
-    if (bdata -> periodic_dir[d]) {
+    if (bdata -> periodic_dirs[d]) {
       five_moment_block_apply_periodic_bc(bdata, d, fld_elc, fld_ion, fld_maxwell);
     }
   }
 
   for (int d = 0; d < 2; d++) {
-    if (bdata -> wall_dir[d]) {
+    if (bdata -> wall_dirs[d]) {
       if (bdata -> lower_bc_elc[d]) {
         gkyl_wv_apply_bc_advance(bdata -> lower_bc_elc[d], tm, &bdata -> range, fld_elc);
       }
