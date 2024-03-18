@@ -70,11 +70,11 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 32; // Coarse cell count (x-direction).
   int Ny = 16; // Coarse cell count (y-direction).
-  int ref_factor = 1; // Refinement factor.
+  int ref_factor = 2; // Refinement factor.
   double Lx = 25.6; // Coarse domain size (x-direction).
   double Ly = 12.8; // Coarse domain size (y-direction).
   double fine_Lx = 12.8; // Fine domain size (x-direction).
-  double fine_Ly = 6.4; // Fine domain size (y-direction).
+  double fine_Ly = 3.2; // Fine domain size (y-direction).
   double cfl_frac = 1.0; // CFL coefficient.
   double t_end = 250.0; // Final simulation time.
 
@@ -244,14 +244,17 @@ int main(int argc, char **argv)
     .e_fact = 0.0,
     .b_fact = 1.0,
 
-    .epsilon0 = 1.0,
-    .mass_elc = 1.0 / 25.0,
-    .charge_elc = -1.0,
-    .mass_ion = 1.0,
-    .charge_ion = 1.0,
+    .epsilon0 = ctx.epsilon0,
+    .mass_elc = ctx.mass_elc,
+    .charge_elc = ctx.charge_elc,
+    .mass_ion = ctx.mass_ion,
+    .charge_ion = ctx.charge_ion,
 
-    .periodic_dirs = { true, false },
-    .wall_dirs = { false, true },
+    .periodic_x = true,
+    .periodic_y = false,
+
+    .wall_x = false,
+    .wall_y = true,
 
     .cfl_frac = ctx.cfl_frac,
     .t_end = ctx.t_end,

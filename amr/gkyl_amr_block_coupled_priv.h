@@ -61,8 +61,11 @@ struct five_moment_block_data {
 
   gkyl_moment_em_coupling *src_slvr;
 
-  bool *periodic_dirs[2];
-  bool *wall_dirs[2];
+  bool periodic_x;
+  bool periodic_y;
+
+  bool wall_x;
+  bool wall_y;
 };
 
 // Job pool information context for updating block-structured data for the coupled five-moment equations using threads.

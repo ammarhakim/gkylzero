@@ -54,8 +54,11 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
     nghost[i] = 2;
   }
 
+  bool wall_x = bdata -> wall_x;
+  bool wall_y = bdata -> wall_y;
+
   for (int d = 0; d < 2; d++) {
-    if (bdata -> wall_dirs[d]) {
+    if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
       bdata -> lower_bc_elc[d] = bdata -> upper_bc_elc[d] = 0;
       bdata -> lower_bc_ion[d] = bdata -> upper_bc_ion[d] = 0;
       bdata -> lower_bc_maxwell[d] = bdata -> upper_bc_maxwell[d] = 0;
@@ -99,8 +102,11 @@ five_moment_block_bc_updaters_init(struct five_moment_block_data* bdata, const s
 void
 five_moment_block_bc_updaters_release(struct five_moment_block_data* bdata)
 {
+  bool wall_x = bdata -> wall_x;
+  bool wall_y = bdata -> wall_y;
+
   for (int d = 0; d < 2; d++) {
-    if (bdata -> wall_dirs[d]) {
+    if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
       if (bdata -> lower_bc_elc[d]) {
         gkyl_wv_apply_bc_release(bdata -> lower_bc_elc[d]);
       }
@@ -132,14 +138,20 @@ void
 five_moment_block_bc_updaters_apply(const struct five_moment_block_data* bdata, double tm,
   struct gkyl_array* fld_elc, struct gkyl_array* fld_ion, struct gkyl_array* fld_maxwell)
 {
+  bool periodic_x = bdata -> periodic_x;
+  bool periodic_y = bdata -> periodic_y;
+
+  bool wall_x = bdata -> wall_x;
+  bool wall_y = bdata -> wall_y;
+
   for (int d = 0; d < 2; d++) {
-    if (bdata -> periodic_dirs[d]) {
+    if ((d == 0 && periodic_x) || (d == 1 && periodic_y)) {
       five_moment_block_apply_periodic_bc(bdata, d, fld_elc, fld_ion, fld_maxwell);
     }
   }
 
   for (int d = 0; d < 2; d++) {
-    if (bdata -> wall_dirs[d]) {
+    if ((d == 0 && wall_x) || (d == 1 && wall_y)) {
       if (bdata -> lower_bc_elc[d]) {
         gkyl_wv_apply_bc_advance(bdata -> lower_bc_elc[d], tm, &bdata -> range, fld_elc);
       }
@@ -578,9 +590,9 @@ five_moment_update(const struct gkyl_job_pool* job_pool, const struct gkyl_block
       int sz_field = snprintf(0, 0, fmt_field, fbase, i);
       char file_nm_field[sz_field + 1];
 
-      snprintf(file_nm_elc, sizeof file_nm_elc, fbase, i);
-      snprintf(file_nm_ion, sizeof file_nm_ion, fbase, i);
-      snprintf(file_nm_field, sizeof file_nm_field, fbase, i);
+      snprintf(file_nm_elc, sizeof file_nm_elc, fmt_elc, fbase, i);
+      snprintf(file_nm_ion, sizeof file_nm_ion, fmt_ion, fbase, i);
+      snprintf(file_nm_field, sizeof file_nm_field, fmt_field, fbase, i);
 
       five_moment_block_data_write(file_nm_elc, file_nm_ion, file_nm_field, &bdata[i]);
     }

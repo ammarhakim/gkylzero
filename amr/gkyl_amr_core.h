@@ -69,8 +69,11 @@ struct five_moment_2d_single_init {
   double mass_ion;
   double charge_ion;
 
-  bool periodic_dirs[2];
-  bool wall_dirs[2];
+  bool periodic_x;
+  bool periodic_y;
+
+  bool wall_x;
+  bool wall_y;
 
   double cfl_frac;
   double t_end;

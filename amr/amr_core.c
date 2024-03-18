@@ -378,6 +378,12 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   double mass_ion = init -> mass_ion;
   double charge_ion = init -> charge_ion;
 
+  bool periodic_x = init -> periodic_x;
+  bool periodic_y = init -> periodic_y;
+
+  bool wall_x = init -> wall_x;
+  bool wall_y = init -> wall_y;
+
   double cfl_frac = init -> cfl_frac;
   double t_end = init -> t_end;
 
@@ -454,19 +460,21 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
     gkyl_create_grid_ranges(&coarse_bdata[i].grid, (int []) { 2, 2 }, &coarse_bdata[i].ext_range, &coarse_bdata[i].range);
     coarse_bdata[i].geom = gkyl_wave_geom_new(&coarse_bdata[i].grid, &coarse_bdata[i].ext_range, 0, 0, false);
     
-    for (int d = 0; d < ndim; d++) {
-      coarse_bdata[i].periodic_dirs[d] = &(init -> periodic_dirs)[d];
-      coarse_bdata[i].wall_dirs[d] = &(init -> wall_dirs)[d];
-    }
+    coarse_bdata[i].periodic_x = periodic_x;
+    coarse_bdata[i].periodic_y = periodic_y;
+
+    coarse_bdata[i].wall_x = wall_x;
+    coarse_bdata[i].wall_y = wall_y;
 
 #ifdef AMR_DEBUG
     gkyl_create_grid_ranges(&fine_bdata[i].grid, (int []) { 2, 2 }, &fine_bdata[i].ext_range, &fine_bdata[i].range);
     fine_bdata[i].geom = gkyl_wave_geom_new(&fine_bdata[i].grid, &fine_bdata[i].ext_range, 0, 0, false);
 
-    for (int d = 0; d < ndim; d++) {
-      fine_bdata[i].periodic_dirs[d] = &(init -> periodic_dirs)[d];
-      fine_bdata[i].wall_dirs[d] = &(init -> wall_dirs)[d];
-    }
+    fine_bdata[i].periodic_x = periodic_x;
+    fine_bdata[i].periodic_y = periodic_y;
+
+    fine_bdata[i].wall_x = wall_x;
+    fine_bdata[i].wall_y = wall_y;
 #endif
   }
 
@@ -669,20 +677,46 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   five_moment_write_sol("5m_amr_coarse_0", num_blocks, coarse_bdata);
   five_moment_write_sol("5m_amr_fine_0", num_blocks, fine_bdata);
 
-  rename("5m_amr_fine_0_b0.gkyl", "5m_amr_0_b0.gkyl");
-  remove("5m_amr_coarse_0_b0.gkyl");
+  rename("5m_amr_fine_0_elc_b0.gkyl", "5m_amr_0_elc_b0.gkyl");
+  rename("5m_amr_fine_0_ion_b0.gkyl", "5m_amr_0_ion_b0.gkyl");
+  rename("5m_amr_fine_0_field_b0.gkyl", "5m_amr_0_field_b0.gkyl");
+
+  remove("5m_amr_coarse_0_elc_b0.gkyl");
+  remove("5m_amr_coarse_0_ion_b0.gkyl");
+  remove("5m_amr_coarse_0_field_b0.gkyl");
 
   for (int i = 1; i < 9; i++) {
-    char buf_old[32];
-    char buf_new[32];
-    char buf_del[32];
+    char buf_old_elc[32];
+    char buf_old_ion[32];
+    char buf_old_field[32];
 
-    snprintf(buf_old, 32, "5m_amr_coarse_0_b%d.gkyl", i);
-    snprintf(buf_new, 32, "5m_amr_0_b%d.gkyl", i);
-    snprintf(buf_del, 32, "5m_amr_fine_0_b%d.gkyl", i);
+    char buf_new_elc[32];
+    char buf_new_ion[32];
+    char buf_new_field[32];
 
-    rename(buf_old, buf_new);
-    remove(buf_del);
+    char buf_del_elc[32];
+    char buf_del_ion[32];
+    char buf_del_field[32];
+
+    snprintf(buf_old_elc, 32, "5m_amr_coarse_0_elc_b%d.gkyl", i);
+    snprintf(buf_old_ion, 32, "5m_amr_coarse_0_ion_b%d.gkyl", i);
+    snprintf(buf_old_field, 32, "5m_amr_coarse_0_field_b%d.gkyl", i);
+
+    snprintf(buf_new_elc, 32, "5m_amr_0_elc_b%d.gkyl", i);
+    snprintf(buf_new_ion, 32, "5m_amr_0_ion_b%d.gkyl", i);
+    snprintf(buf_new_field, 32, "5m_amr_0_field_b%d.gkyl", i);
+    
+    snprintf(buf_del_elc, 32, "5m_amr_fine_0_elc_b%d.gkyl", i);
+    snprintf(buf_del_ion, 32, "5m_amr_fine_0_ion_b%d.gkyl", i);
+    snprintf(buf_del_field, 32, "5m_amr_fine_0_field_b%d.gkyl", i);
+
+    rename(buf_old_elc, buf_new_elc);
+    rename(buf_old_ion, buf_new_ion);
+    rename(buf_old_field, buf_new_field);
+
+    remove(buf_del_elc);
+    remove(buf_del_ion);
+    remove(buf_del_field);
   }
 #else
   five_moment_write_sol("5m_amr_0", num_blocks, coarse_bdata);
@@ -749,20 +783,46 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
   five_moment_write_sol("5m_amr_coarse_1", num_blocks, coarse_bdata);
   five_moment_write_sol("5m_amr_fine_1", num_blocks, fine_bdata);
 
-  rename("5m_amr_fine_1_b0.gkyl", "5m_amr_1_b0.gkyl");
-  remove("5m_amr_coarse_1_b0.gkyl");
+  rename("5m_amr_fine_1_elc_b0.gkyl", "5m_amr_1_elc_b0.gkyl");
+  rename("5m_amr_fine_1_ion_b0.gkyl", "5m_amr_1_ion_b0.gkyl");
+  rename("5m_amr_fine_1_field_b0.gkyl", "5m_amr_1_field_b0.gkyl");
+
+  remove("5m_amr_coarse_1_elc_b0.gkyl");
+  remove("5m_amr_coarse_1_ion_b0.gkyl");
+  remove("5m_amr_coarse_1_field_b0.gkyl");
 
   for (int i = 1; i < 9; i++) {
-    char buf_old[32];
-    char buf_new[32];
-    char buf_del[32];
+    char buf_old_elc[32];
+    char buf_old_ion[32];
+    char buf_old_field[32];
+    
+    char buf_new_elc[32];
+    char buf_new_ion[32];
+    char buf_new_field[32];
 
-    snprintf(buf_old, 32, "5m_amr_coarse_1_b%d.gkyl", i);
-    snprintf(buf_new, 32, "5m_amr_1_b%d.gkyl", i);
-    snprintf(buf_del, 32, "5m_amr_fine_1_b%d.gkyl", i);
+    char buf_del_elc[32];
+    char buf_del_ion[32];
+    char buf_del_field[32];
 
-    rename(buf_old, buf_new);
-    remove(buf_del);
+    snprintf(buf_old_elc, 32, "5m_amr_coarse_1_elc_b%d.gkyl", i);
+    snprintf(buf_old_ion, 32, "5m_amr_coarse_1_ion_b%d.gkyl", i);
+    snprintf(buf_old_field, 32, "5m_amr_coarse_1_field_b%d.gkyl", i);
+
+    snprintf(buf_new_elc, 32, "5m_amr_1_elc_b%d.gkyl", i);
+    snprintf(buf_new_ion, 32, "5m_amr_1_ion_b%d.gkyl", i);
+    snprintf(buf_new_field, 32, "5m_amr_1_field_b%d.gkyl", i);
+
+    snprintf(buf_del_elc, 32, "5m_amr_fine_1_elc_b%d.gkyl", i);
+    snprintf(buf_del_ion, 32, "5m_amr_fine_1_ion_b%d.gkyl", i);
+    snprintf(buf_del_field, 32, "5m_amr_fine_1_field_b%d.gkyl", i);
+
+    rename(buf_old_elc, buf_new_elc);
+    rename(buf_old_ion, buf_new_ion);
+    rename(buf_old_field, buf_new_field);
+
+    remove(buf_del_elc);
+    remove(buf_del_ion);
+    remove(buf_del_field);
   }
 #else
   five_moment_write_sol("5m_amr_1", num_blocks, coarse_bdata);
