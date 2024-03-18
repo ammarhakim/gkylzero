@@ -2,11 +2,14 @@
 #include "gkyl_util.h"
 #include <acutest.h>
 
+#include <gkyl_array_ops.h>
+#include <gkyl_array_ops_priv.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_correct_maxwellian.h>
 #include <gkyl_correct_mj.h>
 #include <gkyl_dg_calc_sr_vars.h>
-#include <gkyl_mj_moments.h>
+#include <gkyl_eqn_type.h>
+#include <gkyl_maxwellian_moments.h>
 #include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -352,10 +355,11 @@ test_1x1v(int poly_order)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
-  struct gkyl_array *m0, *m1i, *m2;
+  struct gkyl_array *m0, *m1i, *m2, *moms;
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  moms = mkarr((vdim+2)*confBasis.num_basis, confLocal_ext.volume);
 
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order + 1, 1, eval_M0, NULL);
@@ -400,10 +404,14 @@ test_1x1v(int poly_order)
   gkyl_correct_mj_fix_n_stationary(corr_mj, distf, m0, m1i, &local, &confLocal);
 
   // test accuracy of the projection:
-  gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, 
-    &basis, &confLocal, &velLocal, confLocal.volume, confLocal_ext.volume, 
-    p_over_gamma, gamma, gamma_inv, false);
-  gkyl_mj_moments_advance(mj_moms, distf, m0, m1i, m2, &local, &confLocal);
+  gkyl_maxwellian_moments *maxwellian_moms = gkyl_maxwellian_moments_new(&grid, &confBasis, &basis, 
+    &confLocal, &confLocal_ext, &velLocal, 
+    p_over_gamma, gamma, gamma_inv, 
+    GKYL_MODEL_SR, 1.0, false);
+  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf, moms);
+  gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {5.9020018022791720e-01, 1.8856465819367569e-17, 1.6811060851198739e-02,
@@ -423,10 +431,11 @@ test_1x1v(int poly_order)
 
   // release memory for moment data object
   gkyl_correct_mj_release(corr_mj);
-  gkyl_mj_moments_release(mj_moms);
+  gkyl_maxwellian_moments_release(maxwellian_moms);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
+  gkyl_array_release(moms);
   gkyl_array_release(distf);
   gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);

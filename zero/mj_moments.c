@@ -9,9 +9,7 @@
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_mj_moments.h>
 #include <gkyl_mj_moments_priv.h>
-#include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov_sr.h>
-#include <gkyl_proj_on_basis.h>
 
 gkyl_mj_moments *
 gkyl_mj_moments_new(const struct gkyl_rect_grid *grid,

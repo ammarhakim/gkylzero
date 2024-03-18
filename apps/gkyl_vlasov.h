@@ -93,7 +93,7 @@ struct gkyl_vlasov_species {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
   int num_diag_moments; // number of diagnostic moments
-  char diag_moments[16][16]; // list of diagnostic moments
+  char diag_moments[24][24]; // list of diagnostic moments
 
   // collisions to include
   struct gkyl_vlasov_collisions collisions;

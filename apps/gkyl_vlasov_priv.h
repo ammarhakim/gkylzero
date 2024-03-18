@@ -41,7 +41,7 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
-#include <gkyl_mj_moments.h>
+#include <gkyl_maxwellian_moments.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
@@ -76,7 +76,7 @@ static const char *const valid_moment_names[] = {
   "M3i",
   "M3ijk",
   "FiveMoments",
-  "SRFiveMoments", // relativistic moments n, vb, P
+  "MaxwellianMoments", // this is an internal flag for computing Maxwellian moments (n, V_drift, T/m)
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
@@ -93,19 +93,21 @@ is_moment_name_valid(const char *nm)
 
 // data for moments
 struct vm_species_moment {
-  struct gkyl_dg_updater_moment *mcalc; // moment update
-
   struct gkyl_array *marr; // array to moment data
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
+  // Options for moment calculation: 
+  // 1. Compute the moment directly with dg_updater_moment
+  // 2. Compute the moments of an equivalent Maxwellian (n, V_drift, T/m) with specialized updater
+  union {
+    struct {
+      struct gkyl_maxwellian_moments *maxwellian_moms; // updater for computing Maxwellian moments
+    };
+    struct {
+      struct gkyl_dg_updater_moment *mcalc; // moment update
+    };
+  };
 
-  struct gkyl_mj_moments *mj_moms;
-  const char *nm; // Moment name
-  struct gkyl_array *n;
-  struct gkyl_array *vbi;
-  struct gkyl_array *T;
-  int vdim;
-  int num_basis;
-  bool is_sr_five_moments;
+  bool is_maxwellian_moments;
 };
 
 // forward declare species struct
@@ -160,19 +162,20 @@ struct vm_bgk_collisions {
   struct gkyl_array *nu_fmax;
 
   enum gkyl_model_id model_id;
+  struct vm_species_moment moms; // moments needed in BGK 
+                                 // Computes Maxwellian moments (n, V_drift, T/m)
 
   // organization of the different models for BGK collisions
   union {
-    // special relativistic Vlasov-Maxwell model
+    // special-relativistic Vlasov-Maxwell model
     struct {
       struct gkyl_proj_mj_on_basis *proj_mj; // Maxwell-Juttner projection object
       struct gkyl_correct_mj *corr_mj; // Maxwell-Juttner correction object
-      struct gkyl_mj_moments *mj_moms;// Maxwell-Juttner moments object
       struct gkyl_array *n_stationary, *vb, *T_stationary;
     };
-    // non-relativistic vlasov model
+    // non-relativistic Vlasov-Maxwell model
     struct {
-      struct vm_species_moment moms; // moments needed in BGK (single array includes Zeroth, First, and Second moment)
+      struct gkyl_array *prim_moms;
       struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
     };
   };
