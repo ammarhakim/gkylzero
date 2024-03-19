@@ -68,15 +68,15 @@ create_ctx(void)
   double T_tot = beta * (B0 * B0) / 2.0 / n0; // Total temperature;
 
   // Simulation parameters.
-  int Nx = 16; // Coarse cell count (x-direction).
-  int Ny = 8; // Coarse cell count (y-direction).
+  int Nx = 32; // Coarse cell count (x-direction).
+  int Ny = 16; // Coarse cell count (y-direction).
   int ref_factor = 4; // Refinement factor.
   double Lx = 25.6; // Coarse domain size (x-direction).
   double Ly = 12.8; // Coarse domain size (y-direction).
   double fine_Lx = 12.8; // Fine domain size (x-direction).
-  double fine_Ly = 3.2; // Fine domain size (y-direction).
+  double fine_Ly = 6.4; // Fine domain size (y-direction).
   double cfl_frac = 1.0; // CFL coefficient.
-  double t_end = 250.0; // Final simulation time.
+  double t_end = 50.0; // Final simulation time.
 
   struct amr_5m_gem_ctx ctx = {
     .pi = pi,
