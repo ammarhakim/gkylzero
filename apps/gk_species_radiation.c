@@ -136,9 +136,9 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   for (int i=0; i<rad->num_cross_collisions; ++i) {
     // compute needed moments
     if (rad->is_neut_species[i])
-      gk_neut_species_moment_calc(&rad->moms[i], species->local, app->local, fin_neut[rad->collide_with_idx[i]]);
+      gk_neut_species_moment_calc(&rad->moms[i], rad->collide_with_neut[i]->local, app->local, fin_neut[rad->collide_with_idx[i]]);
     else
-      gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
+      gk_species_moment_calc(&rad->moms[i], rad->collide_with[i]->local, app->local, fin[rad->collide_with_idx[i]]);
     
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
@@ -157,7 +157,7 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 // computes emissivity
 void
 gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_rad_drag *rad, const struct gkyl_array *fin[])
+				struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
 
   gk_species_moment_calc(&species->m0, species->local, app->local, species->f);
@@ -170,9 +170,9 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
     gkyl_array_clear(rad->emissivity_rhs, 0.0);
     gkyl_array_clear(rad->emissivity_denominator, 0.0);
     if (rad->is_neut_species[i])
-      gk_neut_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
+      gk_neut_species_moment_calc(&rad->moms[i], rad->collide_with_neut[i]->local, app->local, fin_neut[rad->collide_with_idx[i]]);
     else
-      gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
+      gk_species_moment_calc(&rad->moms[i], rad->collide_with[i]->local, app->local, fin[rad->collide_with_idx[i]]);
 
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,

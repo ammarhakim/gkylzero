@@ -877,8 +877,7 @@ gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app* app, int sidx, d
   for (int i=0; i<app->num_neut_species; ++i)
     fin_neut[i] = app->neut_species[i].f;
 
-  //  gk_species_radiation_moms(app, s, &s->rad, fin, fin_neut);
-  gk_species_radiation_emissivity(app, s, &s->rad, fin);
+  gk_species_radiation_emissivity(app, s, &s->rad, fin, fin_neut);
   for (int i=0; i<s->rad.num_cross_collisions; i++) {
     // copy data from device to host before writing it out
     if (app->use_gpu) {

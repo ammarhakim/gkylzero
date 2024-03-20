@@ -784,10 +784,11 @@ void gk_species_radiation_moms(gkyl_gyrokinetic_app *app,
  * @param species Pointer to species
  * @param rad Species radiation drag object
  * @param fin Input distribution functions (size num_species)
+ * @param fin_neut Input neutral distribution functions (size num_species)
  */
 void gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app,
   struct gk_species *species, struct gk_rad_drag *rad, 
-  const struct gkyl_array *fin[]);
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute RHS from radiation drag object.
