@@ -8,7 +8,7 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_correct_mj.h>
+#include <gkyl_correct_lte.h>
 #include <gkyl_maxwellian_moments.h>
 #include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
@@ -199,11 +199,11 @@ test_1x1v(int poly_order)
   distf_mj = mkarr(basis.num_basis, local_ext.volume);
 
   // Create a MJ with corrected moments
-  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
     &local, &confLocal, poly_order);
-  gkyl_correct_mj_release(corr_mj);
+  gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Write the output
   char fname[1024];
@@ -340,11 +340,11 @@ test_1x1v_spatially_varied(int poly_order)
   distf_mj = mkarr(basis.num_basis, local_ext.volume);
 
   // Create a MJ with corrected moments
-  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
     &local, &confLocal, poly_order);
-  gkyl_correct_mj_release(corr_mj);
+  gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Write the output
   char fname[1024];
@@ -506,11 +506,11 @@ test_1x2v(int poly_order)
   distf_mj = mkarr(basis.num_basis, local_ext.volume);
 
   // Create a MJ with corrected moments
-  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
     &local, &confLocal, poly_order);
-  gkyl_correct_mj_release(corr_mj);
+  gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Correct the distribution function
   gkyl_maxwellian_moments *maxwellian_moms = gkyl_maxwellian_moments_new(&grid, &confBasis, &basis, 
@@ -650,11 +650,11 @@ test_1x3v(int poly_order)
   distf_mj = mkarr(basis.num_basis, local_ext.volume);
 
   // Create a MJ with corrected moments
-  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
     &local, &confLocal, poly_order);
-  gkyl_correct_mj_release(corr_mj);
+  gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Correct the distribution function
   gkyl_maxwellian_moments *maxwellian_moms = gkyl_maxwellian_moments_new(&grid, &confBasis, &basis, 

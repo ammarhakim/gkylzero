@@ -5,8 +5,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_correct_maxwellian.h>
-#include <gkyl_correct_mj.h>
+#include <gkyl_correct_lte.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_maxwellian_moments.h>
@@ -267,9 +266,9 @@ test_1x1v_no_drift(int poly_order)
     p_over_gamma, gamma, gamma_inv);
 
   // correct the mj distribution m0 Moment
-  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix_n_stationary(corr_mj, distf, m0, m1i, &local, &confLocal);
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, m0, &local, &confLocal);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {5.3918752026566863e-01, -1.0910243387206232e-17, -6.0196985297046972e-02,
@@ -294,7 +293,7 @@ test_1x1v_no_drift(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_correct_mj_release(corr_mj);
+  gkyl_correct_vlasov_lte_release(corr_mj);\
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
@@ -399,9 +398,9 @@ test_1x1v(int poly_order)
     p_over_gamma, gamma, gamma_inv);
 
   // correct the mj distribution m0 Moment
-  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix_n_stationary(corr_mj, distf, m0, m1i, &local, &confLocal);
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, m0, &local, &confLocal);
 
   // test accuracy of the projection:
   gkyl_maxwellian_moments *maxwellian_moms = gkyl_maxwellian_moments_new(&grid, &confBasis, &basis, 
@@ -430,7 +429,7 @@ test_1x1v(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_correct_mj_release(corr_mj);
+  gkyl_correct_vlasov_lte_release(corr_mj);
   gkyl_maxwellian_moments_release(maxwellian_moms);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
@@ -537,9 +536,9 @@ test_1x2v(int poly_order)
     p_over_gamma, gamma, gamma_inv);
 
   // correct the mj distribution m0 Moment
-  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix_n_stationary(corr_mj, distf, m0, m1i, &local, &confLocal);
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, m0, &local, &confLocal);
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
   double p2_vals[] = {1.7020667884226476e-01, -7.7674914557148726e-18, -3.9516229859383111e-03,
@@ -563,7 +562,7 @@ test_1x2v(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_correct_mj_release(corr_mj);
+  gkyl_correct_vlasov_lte_release(corr_mj);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
@@ -667,9 +666,9 @@ test_1x3v(int poly_order)
     p_over_gamma, gamma, gamma_inv);
 
   // correct the mj distribution m0 Moment
-  gkyl_correct_mj *corr_mj = gkyl_correct_mj_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, false);
-  gkyl_correct_mj_fix_n_stationary(corr_mj, distf, m0, m1i, &local, &confLocal);
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
+    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, m0, &local, &confLocal);
 
   // values to compare  at index (1, 9, 9, 9) [remember, lower-left index is (1,1,1,1)]
   double p2_vals[] = {1.6326923473662415e-02, -2.7779798362812092e-19, -5.7251397678571113e-06,
@@ -699,7 +698,7 @@ test_1x3v(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_correct_mj_release(corr_mj);
+  gkyl_correct_vlasov_lte_release(corr_mj);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);

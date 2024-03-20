@@ -3,7 +3,8 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_correct_maxwellian.h>
+//#include <gkyl_correct_maxwellian.h>
+#include <gkyl_correct_lte.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
@@ -112,12 +113,22 @@ test_1x1v(int poly_order, bool use_gpu)
 
   double confLower[] = {lower[0]}, confUpper[] = {upper[0]};
   int confCells[] = {cells[0]};
+  double velLower[] = {lower[1]}, velUpper[] = {upper[1]};
+  int velCells[] = {cells[1]};
 
   // grids
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
   struct gkyl_rect_grid confGrid;
   gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+
+    struct gkyl_rect_grid vel_grid;
+  gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
+
+  // velocity range
+  int velGhost[] = {0};
+  struct gkyl_range velLocal, velLocal_ext; 
+  gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
   // basis functions
   struct gkyl_basis basis, confBasis;
@@ -167,8 +178,10 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
     &confBasis, &basis, poly_order+1, use_gpu);
   // correction updater
-  gkyl_correct_maxwellian *corr_max = gkyl_correct_maxwellian_new(&grid, &confBasis, &basis,
-    confLocal.volume, confLocal_ext.volume);
+  //gkyl_correct_maxwellian *corr_max = gkyl_correct_maxwellian_new(&grid, &confBasis, &basis,
+  //  confLocal.volume, confLocal_ext.volume);
+  gkyl_correct_vlasov_lte *corr_max = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
+    &basis, &confLocal, &confLocal_ext, &velLocal, 0, 0, 0, GKYL_MODEL_DEFAULT, 1.0, false);
   
   // project the Maxwellian
   gkyl_proj_maxwellian_on_basis_lab_mom(proj_max, &local, &confLocal, moms, distf);
@@ -183,7 +196,8 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_array_scale(gkyl_array_copy(m0_r, m0), 2.5);
   
   // correct the Maxwellian
-  gkyl_correct_maxwellian_fix(corr_max, distf, m0_r, &local, &confLocal);
+  //gkyl_correct_maxwellian_fix(corr_max, distf, m0_r, &local, &confLocal);
+  gkyl_correct_density_moment_vlasov_lte(corr_max, distf, m0_r, &local, &confLocal);
 
  // write distribution function to file
   sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d.gkyl", poly_order);
@@ -217,7 +231,7 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_mom_calc_release(m0calc);
   gkyl_array_release(distf);
   gkyl_proj_maxwellian_on_basis_release(proj_max);
-  gkyl_correct_maxwellian_release(corr_max);
+  gkyl_correct_vlasov_lte_release(corr_max);
 }
 
 void test_1x1v_p1() { test_1x1v(1, false); }

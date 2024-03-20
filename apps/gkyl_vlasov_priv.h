@@ -18,7 +18,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bgk_collisions.h>
-#include <gkyl_correct_mj.h>
+#include <gkyl_correct_lte.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
@@ -164,13 +164,15 @@ struct vm_bgk_collisions {
   enum gkyl_model_id model_id;
   struct vm_species_moment moms; // moments needed in BGK 
                                  // Computes Maxwellian moments (n, V_drift, T/m)
+                                 
+  struct gkyl_correct_vlasov_lte *corr_lte; // Maxwellian/Maxwell-Juttner correction object
+                            
 
   // organization of the different models for BGK collisions
   union {
     // special-relativistic Vlasov-Maxwell model
     struct {
       struct gkyl_proj_mj_on_basis *proj_mj; // Maxwell-Juttner projection object
-      struct gkyl_correct_mj *corr_mj; // Maxwell-Juttner correction object
       struct gkyl_array *n_stationary, *vb, *T_stationary;
     };
     // non-relativistic Vlasov-Maxwell model

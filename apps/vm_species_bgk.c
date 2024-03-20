@@ -47,15 +47,16 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   // allocate moments needed for BGK collisions update
   vm_species_moment_init(app, s, &bgk->moms, "MaxwellianMoments");
 
+  bgk->corr_lte = gkyl_correct_vlasov_lte_new(&s->grid, &app->confBasis, &app->basis, 
+    &app->local, &app->local_ext, &s->local_vel, 
+    s->p_over_gamma, s->gamma, s->gamma_inv, bgk->model_id, s->info.mass, false);
+
   if (bgk->model_id == GKYL_MODEL_SR) {
     bgk->n_stationary = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     bgk->vb = mkarr(app->use_gpu, app->vdim*app->confBasis.num_basis, app->local_ext.volume);
     bgk->T_stationary = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
 
     bgk->proj_mj = gkyl_proj_mj_on_basis_new(&s->grid, &app->confBasis, &app->basis, app->poly_order+1);
-    bgk->corr_mj = gkyl_correct_mj_new(&s->grid, &app->confBasis, &app->basis, 
-      &app->local, &app->local_ext, &s->local_vel, 
-      s->p_over_gamma, s->gamma, s->gamma_inv, false);
   }
   else {
     bgk->prim_moms = mkarr(app->use_gpu, (app->vdim+1)*app->confBasis.num_basis, app->local_ext.volume);
@@ -98,16 +99,19 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     // Compute MJ via the moments
     gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(bgk->proj_mj, &species->local, &app->local,
       bgk->n_stationary, bgk->vb, bgk->T_stationary, bgk->fmax);
-    gkyl_correct_mj_fix_n_stationary(bgk->corr_mj, bgk->fmax, bgk->n_stationary, bgk->vb,
-      &species->local, &app->local);
-    //gkyl_correct_mj_fix(bgk->corr_mj, bgk->fmax, bgk->n_stationary, bgk->vb, bgk->T_stationary,
-    // &species->local, &app->local, app->poly_order);
   }
   else { 
     gkyl_array_set_offset_range(bgk->prim_moms, 1.0, bgk->moms.marr, 1*app->confBasis.num_basis, &app->local);
     gkyl_proj_maxwellian_on_basis_prim_mom(bgk->proj_max, &species->local, &app->local, 
       bgk->moms.marr, bgk->prim_moms, bgk->fmax);
   }
+
+  // Correct the projected distribution function
+  gkyl_correct_density_moment_vlasov_lte(bgk->corr_lte, bgk->fmax, bgk->n_stationary,
+    &species->local, &app->local);
+  //gkyl_correct_all_moments_vlasov_lte(bgk->corr_lte, bgk->fmax, bgk->n_stationary, bgk->vb, bgk->T_stationary,
+  // &species->local, &app->local, app->poly_order);
+
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
     bgk->self_nu, bgk->fmax, &app->local, &species->local);
   gkyl_array_accumulate(bgk->nu_fmax, 1.0, bgk->fmax);
@@ -144,7 +148,7 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
     gkyl_array_release(bgk->vb);
     gkyl_array_release(bgk->T_stationary);
     gkyl_proj_mj_on_basis_release(bgk->proj_mj);
-    gkyl_correct_mj_release(bgk->corr_mj);
+    gkyl_correct_vlasov_lte_release(bgk->corr_lte);
   } 
   else {
     gkyl_array_release(bgk->prim_moms);
