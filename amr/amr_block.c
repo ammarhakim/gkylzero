@@ -155,15 +155,9 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
                   ((char*) bc_buffer -> data) + fld[tbid] -> esznc * (ref_factor * count++), fld[tbid] -> esznc);
               }
               else {
-                if ((count % 2) == 0) {
-                  memcpy(gkyl_array_fetch(fld[tbid], start),
-                    ((char*) bc_buffer -> data) + fld[tbid] -> esznc * (ref_factor * count++), fld[tbid] -> esznc);
-                }
-                else {
-                  memcpy(gkyl_array_fetch(fld[tbid], start),
-                    ((char*) bc_buffer -> data) + fld[tbid] -> esznc * ((ref_factor * (count - 1)) + 1), fld[tbid] -> esznc);
-                  count += 1;
-                }
+                memcpy(gkyl_array_fetch(fld[tbid], start),
+                  ((char*) bc_buffer -> data) + fld[tbid] -> esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld[tbid] -> esznc);
+                count += 1;
               }
             }
           }
@@ -177,8 +171,7 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
             while (gkyl_range_iter_next(&iter)) {
               long start = gkyl_range_idx(&(bdata[tbid].skin_ghost.lower_ghost[tdir]), iter.idx);
 
-              if ((bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] - bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]) == 1)
-              {
+              if ((bdata[tbid].skin_ghost.lower_ghost[tdir].upper[0] - bdata[tbid].skin_ghost.lower_ghost[tdir].lower[0]) == 1) {
                 memcpy(gkyl_array_fetch(fld[tbid], start),
                   ((char*) bc_buffer -> data) + fld[tbid] -> esznc * ((int)(ref_factor_inv * count++)), fld[tbid] -> esznc);
               }
@@ -209,15 +202,9 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
                   ((char*) bc_buffer -> data) + fld[tbid] -> esznc * (ref_factor * count++), fld[tbid] -> esznc);
               }
               else {
-                if ((count % 2) == 0) {
-                  memcpy(gkyl_array_fetch(fld[tbid], start),
-                    ((char*) bc_buffer -> data) + fld[tbid] -> esznc * (ref_factor * count++), fld[tbid] -> esznc);
-                }
-                else {
-                  memcpy(gkyl_array_fetch(fld[tbid], start),
-                    ((char*) bc_buffer -> data) + fld[tbid] -> esznc * ((ref_factor * (count - 1)) + 1), fld[tbid] -> esznc);
-                  count += 1;
-                }
+                memcpy(gkyl_array_fetch(fld[tbid], start),
+                  ((char*) bc_buffer -> data) + fld[tbid] -> esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld[tbid] -> esznc);
+                count += 1;
               }
             }
           }
@@ -272,15 +259,9 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
                   ((char*) bc_buffer -> data) + fld[tbid] -> esznc * (ref_factor * count++), fld[tbid] -> esznc);
               }
               else {
-                if ((count % 2) == 0) {
-                  memcpy(gkyl_array_fetch(fld[tbid], start),
-                    ((char*) bc_buffer -> data) + fld[tbid] -> esznc * (ref_factor * count++), fld[tbid] -> esznc);
-                }
-                else {
-                  memcpy(gkyl_array_fetch(fld[tbid], start),
-                    ((char*) bc_buffer -> data) + fld[tbid] -> esznc * ((ref_factor * (count - 1)) + 1), fld[tbid] -> esznc);
-                  count += 1;
-                }
+                memcpy(gkyl_array_fetch(fld[tbid], start),
+                  ((char*) bc_buffer -> data) + fld[tbid] -> esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld[tbid] -> esznc);
+                count += 1;
               }
             }
           }
@@ -325,15 +306,9 @@ euler_sync_blocks(const struct gkyl_block_topo* btopo, const struct euler_block_
                   ((char*) bc_buffer -> data) + fld[tbid] -> esznc * (ref_factor * count++), fld[tbid] -> esznc);
               }
               else {
-                if ((count % 2) == 0) {
-                  memcpy(gkyl_array_fetch(fld[tbid], start),
-                    ((char*) bc_buffer -> data) + fld[tbid] -> esznc * (ref_factor * count++), fld[tbid] -> esznc);
-                }
-                else {
-                  memcpy(gkyl_array_fetch(fld[tbid], start),
-                    ((char*) bc_buffer -> data) + fld[tbid] -> esznc * ((ref_factor * (count - 1)) + 1), fld[tbid] -> esznc);
-                  count += 1;
-                }
+                memcpy(gkyl_array_fetch(fld[tbid], start),
+                  ((char*) bc_buffer -> data) + fld[tbid] -> esznc * ((ref_factor * (count - (count % 2))) + (count % 2)), fld[tbid] -> esznc);
+                count += 1;
               }
             }
           }
