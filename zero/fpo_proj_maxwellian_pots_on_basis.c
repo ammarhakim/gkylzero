@@ -63,6 +63,8 @@ gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const
 
   up->fpo_h_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
   up->fpo_g_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+  up->fpo_dhdv_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
+  up->fpo_d2gdv2_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad);
 
   up->fpo_h_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
   up->fpo_g_at_surf_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_surf_quad);
@@ -269,7 +271,6 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
             double *fpo_d2gdv2_surf_n = gkyl_array_fetch(fpo_d2gdv2_surf, lidx);
             proj_on_surf_basis(up, d1*vdim+d2, up->fpo_d2gdv2_at_surf_ords,
               fpo_d2gdv2_surf_n);
-              // &fpo_d2gdv2_surf_n[(d1*vdim+d2)*num_surf_basis]); 
 
             // Calculate dG/dv with Gauss-Lobatto quadrature notes for continuity
             // i.e. similar to eval_on_nodes
@@ -317,6 +318,109 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
               &fpo_dgdv_surf_d[(d1*vdim+d2)*num_surf_basis]);
             gkyl_array_clear(up->fpo_dgdv_at_surf_nodes, 0.0);
           } 
+        }
+      }
+    }
+  }
+}
+
+void gkyl_proj_maxwellian_pots_deriv_on_basis_lab_mom(
+  const gkyl_proj_maxwellian_pots_on_basis *up,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array *m0, const struct gkyl_array *prim_moms,
+  struct gkyl_array *fpo_dhdv, struct gkyl_array *fpo_d2gdv2)
+{
+  // Calculate Maxwellian potentials using primitive moments
+  int cdim = up->cdim, pdim = up->pdim;
+  int vdim = pdim-cdim;
+  int tot_quad = up->tot_quad;
+  int num_phase_basis = up->num_phase_basis;
+  int num_conf_basis = up->num_conf_basis;
+  int num_surf_basis = up->num_surf_basis;
+
+  struct gkyl_range vel_range;
+  struct gkyl_range_iter conf_iter, vel_iter;
+
+  int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<conf_range->ndim; ++d) rem_dir[d] = 1;
+
+  // struct gkyl_array *fpo_dgdv_at_surf_nodes = gkyl_array_new(GKYL_DOUBLE, 1, num_surf_basis);
+
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
+
+  // Loop over configuration space cells for quad integration of moments
+  gkyl_range_iter_init(&conf_iter, conf_range);
+  while (gkyl_range_iter_next(&conf_iter)) {
+    long midx = gkyl_range_idx(conf_range, conf_iter.idx);
+
+    const double *m0_d = gkyl_array_cfetch(m0, midx);
+    const double *u_drift_d = gkyl_array_cfetch(prim_moms, midx);
+    const double *vtsq_d = &u_drift_d[num_conf_basis*(vdim)];
+
+    // Inner loop over velocity space
+    gkyl_range_deflate(&vel_range, phase_range, rem_dir, conf_iter.idx);
+    gkyl_range_iter_no_split_init(&vel_iter, &vel_range);
+    while (gkyl_range_iter_next(&vel_iter)) {
+      copy_idx_arrays(conf_range->ndim, phase_range->ndim, conf_iter.idx, vel_iter.idx, pidx);
+      gkyl_rect_grid_cell_center(&up->grid, pidx, xc);
+ 
+      long lidx = gkyl_range_idx(&vel_range, vel_iter.idx);
+
+      // Project potential onto basis
+      proj_on_basis(up, up->fpo_dhdv_at_ords, gkyl_array_fetch(fpo_dhdv, lidx));
+
+      // Iterate over directions to calculate derivatives of H and G 
+      for (int d1=0; d1<vdim; ++d1) {
+        for (int d2=0; d2<vdim; ++d2) {
+          struct gkyl_range_iter qiter;
+          gkyl_range_iter_init(&qiter, &up->phase_qrange);
+    
+          // Iterate over quadrature points and compute compute potentials
+          while (gkyl_range_iter_next(&qiter)) {
+            int pqidx = gkyl_range_idx(&up->phase_qrange, qiter.idx);
+            const double* quad_node = gkyl_array_cfetch(up->ordinates, pqidx);
+    
+            comp_to_phys(pdim, quad_node, up->grid.dx, xc, xmu);
+    
+            // Evaluate moments at quadrature node
+            double den_q = up->conf_basis->eval_expand(quad_node, m0_d);
+            double u_drift_q = up->conf_basis->eval_expand(quad_node, u_drift_d);
+            double vtsq_q = up->conf_basis->eval_expand(quad_node, vtsq_d);
+    
+            double rel_speedsq_q = 0.0;
+            double rel_vel_in_dir1_q = 0.0;
+            double rel_vel_in_dir2_q = 0.0;
+            for (int d=0; d<vdim; ++d) {
+              double udrift_q = up->conf_basis->eval_expand(quad_node, &u_drift_d[d*num_conf_basis]);
+              rel_speedsq_q += pow(xmu[cdim+d]-udrift_q,2);
+              if (d == d1)
+                rel_vel_in_dir1_q += xmu[d1+cdim]-udrift_q;
+              if (d == d2)
+                rel_vel_in_dir2_q += xmu[d2+cdim]-udrift_q;
+            }
+            double rel_speed_q = sqrt(rel_speedsq_q);
+    
+            double* fpo_dhdv_q = gkyl_array_fetch(up->fpo_dhdv_at_ords, pqidx);
+            double* fpo_d2gdv2_q = gkyl_array_fetch(up->fpo_d2gdv2_at_ords, pqidx);
+
+            if (d1 == d2) {
+              fpo_dhdv_q[0] = eval_fpo_dhdv(den_q, rel_vel_in_dir1_q, vtsq_q, rel_speed_q);
+
+              fpo_d2gdv2_q[0] = eval_fpo_d2gdv2(den_q,
+                rel_vel_in_dir1_q, vtsq_q, rel_speed_q);
+            }
+            else {
+              fpo_d2gdv2_q[0] = eval_fpo_d2gdv2_cross(den_q,
+                rel_vel_in_dir1_q, rel_vel_in_dir2_q, rel_speed_q, vtsq_q); 
+            }
+          }
+          double *fpo_d2gdv2_d = gkyl_array_fetch(fpo_d2gdv2, lidx);
+          proj_on_basis(up, up->fpo_d2gdv2_at_ords, &fpo_d2gdv2_d[(d1*vdim+d2)*up->num_phase_basis]);
+
+          if (d1 == d2) {
+            double *fpo_dhdv_d = gkyl_array_fetch(fpo_dhdv, lidx);
+            proj_on_basis(up, up->fpo_dhdv_at_ords, &fpo_dhdv_d[d1*up->num_phase_basis]);
+          }
         }
       }
     }

@@ -36,9 +36,13 @@ struct gkyl_proj_maxwellian_pots_on_basis {
   struct gkyl_array *surf_weights;
   struct gkyl_array *surf_basis_at_ords;
 
+  // Potentials and derivatives evaluated at quadrature nodes
   struct gkyl_array *fpo_h_at_ords;
   struct gkyl_array *fpo_g_at_ords;
+  struct gkyl_array *fpo_dhdv_at_ords;
+  struct gkyl_array *fpo_d2gdv2_at_ords;
 
+  // Potentials and derivatives evaluated at surface quadrature nodes
   struct gkyl_array *fpo_h_at_surf_ords;
   struct gkyl_array *fpo_g_at_surf_ords;
   struct gkyl_array *fpo_dhdv_at_surf_ords;

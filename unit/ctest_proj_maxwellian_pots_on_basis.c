@@ -85,7 +85,7 @@ test_1x3v(int poly_order)
 
   // create moment and potential arrays
   struct gkyl_array *m0, *u_drift, *vtsq, *prim_moms, *gamma;
-  struct gkyl_array *fpo_h, *fpo_g, *fpo_h_surf, *fpo_g_surf;
+  struct gkyl_array *fpo_h, *fpo_g, *fpo_dhdv, *fpo_d2gdv2, *fpo_h_surf, *fpo_g_surf;
   struct gkyl_array *fpo_dhdv_surf, *fpo_dgdv_surf, *fpo_d2gdv2_surf;
   m0 = mkarr(confBasis.num_basis, confLocal.volume);
   u_drift = mkarr(vdim*confBasis.num_basis, confLocal.volume);
@@ -95,6 +95,8 @@ test_1x3v(int poly_order)
 
   fpo_h = mkarr(basis.num_basis, local.volume);
   fpo_g = mkarr(basis.num_basis, local.volume);
+  fpo_dhdv = mkarr(vdim*basis.num_basis, local.volume);
+  fpo_d2gdv2 = mkarr(vdim*vdim*basis.num_basis, local.volume);
  
   fpo_h_surf = mkarr(3*surfBasis.num_basis, local.volume);
   fpo_g_surf = mkarr(3*surfBasis.num_basis, local.volume); 
@@ -125,25 +127,31 @@ test_1x3v(int poly_order)
   mpob = gkyl_proj_maxwellian_pots_on_basis_new(&grid, &confBasis, &basis, num_quad);
   gkyl_proj_maxwellian_pots_on_basis_lab_mom(mpob, &local, &confLocal, m0, prim_moms, fpo_h, 
     fpo_g, fpo_h_surf, fpo_g_surf, fpo_dhdv_surf, fpo_dgdv_surf, fpo_d2gdv2_surf);
+  gkyl_proj_maxwellian_pots_deriv_on_basis_lab_mom(mpob, &local, &confLocal, m0, prim_moms,
+    fpo_dhdv, fpo_d2gdv2);
 
   // Write potentials to files
-  char fname_H[1024], fname_G[1024];
+  char fname_H[1024], fname_G[1024], fname_dHdv[1024], fname_d2Gdv2[1024];
   sprintf(fname_H, "ctest_proj_max_pots_H_p%d.gkyl", poly_order);
   sprintf(fname_G, "ctest_proj_max_pots_G_p%d.gkyl", poly_order);
+  sprintf(fname_dHdv, "ctest_proj_max_pots_dHdv_p%d.gkyl", poly_order);
+  sprintf(fname_d2Gdv2, "ctest_proj_max_pots_d2Gdv2_p%d.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, fpo_h, fname_H);
   gkyl_grid_sub_array_write(&grid, &local, fpo_g, fname_G);
+  gkyl_grid_sub_array_write(&grid, &local, fpo_dhdv, fname_dHdv);
+  gkyl_grid_sub_array_write(&grid, &local, fpo_d2gdv2, fname_d2Gdv2);
 
   int idxc[GKYL_MAX_DIM] = {1, 4, 4, 4};
   const double *h_d = gkyl_array_cfetch(fpo_h, gkyl_range_idx(&local, idxc));
 
   // values to compare at index (1, 4, 4, 4)
-  double p1_vals[] = {
+  double p1_H_vals[] = {
     6.2150679410041698e-01, 7.7260531932436161e-17, 1.2598270479977382e-02,
     1.2598270479977382e-02, 1.0975947323022133e-02, 7.3258164081454418e-18,
     -6.5519713996690150e-18, 7.6568765677525823e-04, 3.8692250423821360e-19,
     6.6734911584838039e-04
   };
-  double p2_vals[] = {
+  double p2_H_vals[] = {
     6.2150679410041709e-01, -3.9131161402363641e-17, 1.2598270479977382e-02,
     1.2598270479977391e-02, 1.0975947323022123e-02, -1.1444419625373463e-17,
     -1.0360787695126197e-18, 7.6568765677526604e-04, 7.2242128683151019e-19,
@@ -152,12 +160,12 @@ test_1x3v(int poly_order)
 
   if (poly_order == 1) {
     for (int i=0; i<10; ++i)
-      TEST_CHECK( gkyl_compare_double(p1_vals[i], h_d[i], 1e-12) );
+      TEST_CHECK( gkyl_compare_double(p1_H_vals[i], h_d[i], 1e-12) );
   }
 
   if (poly_order == 2) {
     for (int i=0; i<10; ++i)
-      TEST_CHECK( gkyl_compare_double(p2_vals[i], h_d[i], 1e-12) );
+      TEST_CHECK( gkyl_compare_double(p2_H_vals[i], h_d[i], 1e-12) );
   }
 
   gkyl_array_release(m0);
