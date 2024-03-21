@@ -181,17 +181,17 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
     double *fac_felc_d = gkyl_array_fetch(fac_felc, loc);
     double *fac_fmax_d = gkyl_array_fetch(fac_fmax, loc);
     double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
-
+    const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
+    double *prim_vars_donor_d = gkyl_array_fetch(prim_vars_donor, loc);
+    
     // change to prim_vars_elc (both upar and vtSq)
     up->calc_prim_vars_elc->kernel(up->calc_prim_vars_elc, conf_iter.idx,
 					moms_elc_d, prim_vars_elc_d);
 
-    //if ( (up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION) ) {
-    const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
-    double *prim_vars_donor_d = gkyl_array_fetch(prim_vars_donor, loc);
-    up->calc_prim_vars_donor->kernel(up->calc_prim_vars_donor, conf_iter.idx,
-				     moms_donor_d, prim_vars_donor_d);
-      //}
+    if ( (up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION) ) {
+      up->calc_prim_vars_donor->kernel(up->calc_prim_vars_donor, conf_iter.idx,
+				       moms_donor_d, prim_vars_donor_d);
+    }
 
     //Find cell containing value of n,T
     double cell_av_fac = pow(1/sqrt(2),up->cdim);

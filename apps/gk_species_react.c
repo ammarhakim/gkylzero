@@ -271,6 +271,9 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
       gk_neut_species_moment_release(app, &react->moms_donor[i]);
 
     gkyl_array_release(react->coeff_react[i]);
+    gkyl_array_release(react->fac_felc[i]);
+    gkyl_array_release(react->fac_fmax[i]);
+    gkyl_array_release(react->upar_iz[i]);
     gkyl_array_release(react->vt_sq_iz[i]);
     gkyl_array_release(react->m0_elc[i]);
     gkyl_array_release(react->m0_ion[i]);
