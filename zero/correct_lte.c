@@ -85,9 +85,6 @@ gkyl_correct_density_moment_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   // rescale distribution function
   gkyl_dg_mul_conf_phase_op_range(&c_corr->conf_basis, &c_corr->phase_basis,
     f_lte, c_corr->num_ratio, f_lte, conf_local, phase_local);
-
-  // Hand back rescaled n:
-  gkyl_array_set_offset_range(c_corr->moms_iter, 1.0, c_corr->num_ratio, 0*nc, conf_local);
 }
 
 void 
