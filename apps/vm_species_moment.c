@@ -11,9 +11,9 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
   bool is_integrated = strcmp(nm, "Integrated") == 0;
   int num_mom;
 
-  sm->is_maxwellian_moments = strcmp("MaxwellianMoments", nm) == 0;
-  if (sm->is_maxwellian_moments) {
-    sm->maxwellian_moms = gkyl_maxwellian_moments_new(&s->grid, &app->confBasis, &app->basis, 
+  sm->is_vlasov_lte_moms = strcmp("LTEMoments", nm) == 0;
+  if (sm->is_vlasov_lte_moms) {
+    sm->vlasov_lte_moms = gkyl_maxwellian_moments_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &app->local_ext, &s->local_vel, 
       s->p_over_gamma, s->gamma, s->gamma_inv,
       s->model_id, s->info.mass, false);
@@ -61,8 +61,8 @@ vm_species_moment_calc(const struct vm_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin)
 {
-  if (sm->is_maxwellian_moments) {
-    gkyl_maxwellian_moments_advance(sm->maxwellian_moms, 
+  if (sm->is_vlasov_lte_moms) {
+    gkyl_maxwellian_moments_advance(sm->vlasov_lte_moms, 
       &phase_rng, &conf_rng, fin, sm->marr);
   }
   else {
@@ -80,8 +80,8 @@ vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_spe
   }
   gkyl_array_release(sm->marr);
 
-  if(sm->is_maxwellian_moments) {
-    gkyl_maxwellian_moments_release(sm->maxwellian_moms);
+  if(sm->is_vlasov_lte_moms) {
+    gkyl_maxwellian_moments_release(sm->vlasov_lte_moms);
   }
   else {
     gkyl_dg_updater_moment_release(sm->mcalc);

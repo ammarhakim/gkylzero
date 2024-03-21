@@ -94,7 +94,7 @@ gkyl_proj_mj_on_basis*
 gkyl_proj_mj_on_basis_new(
   const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  int num_quad)
+  int num_quad, bool use_gpu)
 {
   gkyl_proj_mj_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_mj_on_basis));
 
@@ -154,10 +154,11 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 
 void
 gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(const gkyl_proj_mj_on_basis *up,
-  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *num_fluid_frame, const struct gkyl_array *vel_fluid_frame, const struct gkyl_array *T_fluid_frame,
-  struct gkyl_array *f_mj)
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng, 
+  const struct gkyl_array *moms_lte, struct gkyl_array *f_mj)
 {
+
+  double f_floor = 1.e-40;  
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
   int num_quad = up->num_quad;
@@ -195,9 +196,10 @@ gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(const gkyl_proj_mj_on_basis *up
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_rng, conf_iter.idx);
 
-    const double *num_fluid_frame_d = gkyl_array_cfetch(num_fluid_frame, midx);
-    const double *vel_fluid_frame_d = gkyl_array_cfetch(vel_fluid_frame, midx);
-    const double *T_fluid_frame_d = gkyl_array_cfetch(T_fluid_frame, midx);
+    const double *moms_lte_d = gkyl_array_cfetch(moms_lte, midx);
+    const double *num_fluid_frame_d = moms_lte_d;
+    const double *vel_fluid_frame_d = &moms_lte_d[num_conf_basis];
+    const double *T_fluid_frame_d = &moms_lte_d[num_conf_basis*(vdim+1)];
 
     // Sum over basis for given primative moments n,vector(v),T in the flow frame
     for (int n=0; n<tot_conf_quad; ++n) {
@@ -239,8 +241,11 @@ gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(const gkyl_proj_mj_on_basis *up
       while (gkyl_range_iter_next(&qiter)) {
 
         long cqidx = gkyl_range_idx(&conf_qrange, qiter.idx);
+        double norm = 0.0;
         double Theta = T[cqidx]; // T = vth2[cqidx]; (?) - Need to re-write the moments
-        double norm = num[cqidx] * (1.0/(4.0*GKYL_PI*Theta)) * (sqrt(2*Theta/GKYL_PI));
+        if ((num[cqidx] > 0.0) && (Theta > 0.0)) {
+          norm = num[cqidx] * (1.0/(4.0*GKYL_PI*Theta)) * (sqrt(2*Theta/GKYL_PI));
+        }
 
         long pqidx = gkyl_range_idx(&phase_qrange, qiter.idx);
 
@@ -261,7 +266,7 @@ gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(const gkyl_proj_mj_on_basis *up
         // f_mj uses a leading order expansion of the modified bessel function
         // c = 1 assumed
         double *fq = gkyl_array_fetch(fun_at_ords, pqidx);
-        fq[0] = norm*exp( (1.0/Theta) - (gamma_shifted/Theta)*(sqrt(1+uu) - vu) );
+        fq[0] = Theta > 0.0 ? f_floor + norm*exp( (1.0/Theta) - (gamma_shifted/Theta)*(sqrt(1+uu) - vu) ) : f_floor;
       }
 
       // compute expansion coefficients of mj on basis

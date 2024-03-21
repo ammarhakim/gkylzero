@@ -153,10 +153,11 @@ test_1x1v(int poly_order)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // Create a copy for comparison
-  struct gkyl_array *m0_corr, *m1i_corr, *m2_corr;
+  struct gkyl_array *m0_corr, *m1i_corr, *m2_corr, *moms_corr;
   m0_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
   m1i_corr = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
   m2_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  moms_corr = gkyl_array_new(GKYL_DOUBLE, (vdim+2) * confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *m0, *m1i, *m2, *moms;
   m0 = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
   m1i = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
@@ -174,6 +175,10 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0_corr);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i_corr);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2_corr);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m0_corr, 0*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m1i_corr, 1*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m2_corr, (vdim+1)*confBasis.num_basis, &confLocal);
+
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
@@ -201,8 +206,7 @@ test_1x1v(int poly_order)
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
-    &local, &confLocal, poly_order);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Write the output
@@ -239,6 +243,7 @@ test_1x1v(int poly_order)
   gkyl_array_release(m0_corr);
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
+  gkyl_array_release(moms_corr);
   gkyl_array_release(distf_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
@@ -294,10 +299,11 @@ test_1x1v_spatially_varied(int poly_order)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // Create a copy for comparison
-  struct gkyl_array *m0_corr, *m1i_corr, *m2_corr;
+  struct gkyl_array *m0_corr, *m1i_corr, *m2_corr, *moms_corr;
   m0_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
   m1i_corr = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
   m2_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  moms_corr = gkyl_array_new(GKYL_DOUBLE, (vdim+2) * confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *m0, *m1i, *m2, *moms;
   m0 = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
   m1i = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
@@ -315,6 +321,10 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0_corr);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i_corr);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2_corr);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m0_corr, 0*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m1i_corr, 1*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m2_corr, (vdim+1)*confBasis.num_basis, &confLocal);
+
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
@@ -342,8 +352,7 @@ test_1x1v_spatially_varied(int poly_order)
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
-    &local, &confLocal, poly_order);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Write the output
@@ -405,6 +414,7 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_array_release(m0_corr);
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
+  gkyl_array_release(moms_corr);
   gkyl_array_release(distf_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
@@ -460,10 +470,11 @@ test_1x2v(int poly_order)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // Create a copy for comparison
-  struct gkyl_array *m0_corr, *m1i_corr, *m2_corr;
+  struct gkyl_array *m0_corr, *m1i_corr, *m2_corr, *moms_corr;
   m0_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
   m1i_corr = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
   m2_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  moms_corr = gkyl_array_new(GKYL_DOUBLE, (vdim+2) * confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *m0, *m1i, *m2, *moms;
   m0 = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
   m1i = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
@@ -473,7 +484,7 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order + 1, 1, eval_M0, NULL);
   gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-     poly_order + 1, vdim, eval_M1i_2v, NULL);
+    poly_order + 1, vdim, eval_M1i_2v, NULL);
   gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order + 1, 1, eval_M2, NULL);
 
@@ -481,6 +492,10 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0_corr);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i_corr);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2_corr);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m0_corr, 0*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m1i_corr, 1*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m2_corr, (vdim+1)*confBasis.num_basis, &confLocal);
+
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
@@ -508,8 +523,7 @@ test_1x2v(int poly_order)
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
-    &local, &confLocal, poly_order);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Correct the distribution function
@@ -550,6 +564,7 @@ test_1x2v(int poly_order)
   gkyl_array_release(m0_corr);
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
+  gkyl_array_release(moms_corr);
   gkyl_array_release(distf_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
@@ -604,10 +619,11 @@ test_1x3v(int poly_order)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // Create a copy for comparison
-  struct gkyl_array *m0_corr, *m1i_corr, *m2_corr;
+  struct gkyl_array *m0_corr, *m1i_corr, *m2_corr, *moms_corr;
   m0_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
   m1i_corr = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
   m2_corr = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
+  moms_corr = gkyl_array_new(GKYL_DOUBLE, (vdim+2) * confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *m0, *m1i, *m2, *moms;
   m0 = gkyl_array_new(GKYL_DOUBLE, confBasis.num_basis, confLocal_ext.volume);
   m1i = gkyl_array_new(GKYL_DOUBLE, vdim * confBasis.num_basis, confLocal_ext.volume);
@@ -617,7 +633,7 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order + 1, 1, eval_M0, NULL);
   gkyl_proj_on_basis *proj_m1i = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-     poly_order + 1, vdim, eval_M1i_3v, NULL);
+    poly_order + 1, vdim, eval_M1i_3v, NULL);
   gkyl_proj_on_basis *proj_m2 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order + 1, 1, eval_M2, NULL);
 
@@ -625,6 +641,10 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0_corr);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i_corr);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2_corr);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m0_corr, 0*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m1i_corr, 1*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms_corr, 1.0, m2_corr, (vdim+1)*confBasis.num_basis, &confLocal);
+
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
@@ -652,8 +672,7 @@ test_1x3v(int poly_order)
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, m0_corr, m1i_corr, m2_corr, 
-    &local, &confLocal, poly_order);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Correct the distribution function
@@ -703,6 +722,7 @@ test_1x3v(int poly_order)
   gkyl_array_release(m0_corr);
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
+  gkyl_array_release(moms_corr);
   gkyl_array_release(distf_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);

@@ -34,38 +34,38 @@ gkyl_correct_vlasov_lte *gkyl_correct_vlasov_lte_new(const struct gkyl_rect_grid
   enum gkyl_model_id model_id, double mass, bool use_gpu);
 
 /**
- * Fix the Maxwellian/Maxwell-Juttner so that it's moments match desired n/n_stationary moment.
+ * Fix the LTE (local thermodynamic equlibrium) distribution function
+ * (Maxwellian for non-relativistic/Maxwell-Juttner for relativisticy)
+ * so that its 0th moment matches desired stationary-frame density moment.
  *
- * @param c_corr MJ correction updater
- * @param fout Distribution function to fix (modified in-place)
- * @param n_stationary Desired lab-frame number density
+ * @param c_corr LTE distribution function moment correction updater
+ * @param f_lte LTE distribution function to fix (modified in-place)
+ * @param moms_target Target stationary-frame moments (n, V_drift, T/m)
+ *                    Target density is the 0th component
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
  */
 void gkyl_correct_density_moment_vlasov_lte(gkyl_correct_vlasov_lte *c_corr, 
-  struct gkyl_array *fout,
-  const struct gkyl_array *n_stationary, 
+  struct gkyl_array *f_lte, const struct gkyl_array *moms_target, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
 
 /**
- * Fix the Maxwellian/Maxwell-Juttner so that it's moments match desired moments.
+ * Fix the LTE (local thermodynamic equlibrium) distribution function
+ * (Maxwellian for non-relativistic/Maxwell-Juttner for relativisticy)
+ * so that *all* its stationary-frame moments (n, V_drift, T/m) match target moments.
  * NOTE: If this algorithm fails, the returns the original distribution function
- * with only the n/n_stationary moment corrected (i.e. runs: gkyl_correct_density_moment_vlasov_lte())
+ * with only the desired stationary-frame density moment corrected 
+ * (i.e. runs: gkyl_correct_density_moment_vlasov_lte)
  *
- * @param c_corr MJ correction updater
- * @param fout Distribution function to fix (modified in-place)
- * @param n_stationary Desired lab-frame number density
- * @param vbi Desired lab-frame velocity
- * @param T_stationary Desired lab-frame temperature
+ * @param c_corr LTE distribution function moment correction updater
+ * @param f_lte LTE distribution function to fix (modified in-place)
+ * @param moms_target Target stationary-frame moments (n, V_drift, T/m)
  * @param phase_local Local phase-space range
  * @param conf_local Local configuration space range
- * @param poly_order 
  */
 void gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
-  struct gkyl_array *fout,
-  const struct gkyl_array *n_stationary, const struct gkyl_array *vbi, const struct gkyl_array *T_stationary,
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local,
-  int poly_order);
+  struct gkyl_array *f_lte, const struct gkyl_array *moms_target, 
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
 
 /**
  * Delete updater.

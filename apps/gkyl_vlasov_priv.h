@@ -76,7 +76,8 @@ static const char *const valid_moment_names[] = {
   "M3i",
   "M3ijk",
   "FiveMoments",
-  "MaxwellianMoments", // this is an internal flag for computing Maxwellian moments (n, V_drift, T/m)
+  "LTEMoments", // this is an internal flag for computing moments (n, V_drift, T/m)
+                // of the LTE (local thermodynamic equilibrium) distribution
   "Integrated", // this is an internal flag, not for passing to moment type
 };
 
@@ -97,17 +98,18 @@ struct vm_species_moment {
   struct gkyl_array *marr_host; // host copy (same as marr if not on GPUs)
   // Options for moment calculation: 
   // 1. Compute the moment directly with dg_updater_moment
-  // 2. Compute the moments of an equivalent Maxwellian (n, V_drift, T/m) with specialized updater
+  // 2. Compute the moments of the equivalent LTE (local thermodynamic equilibrium)
+  //    distribution (n, V_drift, T/m) with specialized updater
   union {
     struct {
-      struct gkyl_maxwellian_moments *maxwellian_moms; // updater for computing Maxwellian moments
+      struct gkyl_maxwellian_moments *vlasov_lte_moms; // updater for computing LTE moments
     };
     struct {
       struct gkyl_dg_updater_moment *mcalc; // moment update
     };
   };
 
-  bool is_maxwellian_moments;
+  bool is_vlasov_lte_moms;
 };
 
 // forward declare species struct
@@ -158,29 +160,27 @@ struct vm_bgk_collisions {
   struct gkyl_array *nu_init; // Array for initial collisionality when using Spitzer updater
   struct gkyl_spitzer_coll_freq* spitzer_calc; // Updater for Spitzer collisionality if computing Spitzer value
 
-  struct gkyl_array *fmax;
-  struct gkyl_array *nu_fmax;
+  struct gkyl_array *f_lte;
+  struct gkyl_array *nu_f_lte;
 
   enum gkyl_model_id model_id;
-  struct vm_species_moment moms; // moments needed in BGK 
-                                 // Computes Maxwellian moments (n, V_drift, T/m)
-                                 
-  struct gkyl_correct_vlasov_lte *corr_lte; // Maxwellian/Maxwell-Juttner correction object
-                            
+  struct vm_species_moment moms; // moments needed in BGK (n, V_drift, T/m) for LTE distribution
 
-  // organization of the different models for BGK collisions
+  // organization of the different models for BGK collisions for different LTE distributions
+  // e.g., Maxwellian for non-relativistic and Maxwell-Juttner for relativistic
   union {
     // special-relativistic Vlasov-Maxwell model
     struct {
       struct gkyl_proj_mj_on_basis *proj_mj; // Maxwell-Juttner projection object
-      struct gkyl_array *n_stationary, *vb, *T_stationary;
     };
     // non-relativistic Vlasov-Maxwell model
     struct {
-      struct gkyl_array *prim_moms;
       struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
     };
   };
+  // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
+  bool correct_all_moms; // boolean if we are correcting all the moments or only density
+  struct gkyl_correct_vlasov_lte *corr_lte; 
 
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 };

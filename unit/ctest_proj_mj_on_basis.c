@@ -223,10 +223,11 @@ test_1x1v_no_drift(int poly_order)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
-  struct gkyl_array *m0, *m1i, *m2;
+  struct gkyl_array *m0, *m1i, *m2, *moms;
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  moms = mkarr((vdim+2) * confBasis.num_basis, confLocal_ext.volume);
 
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order + 1, 1, eval_M0, NULL);
@@ -238,6 +239,9 @@ test_1x1v_no_drift(int poly_order)
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
+  gkyl_array_set_offset_range(moms, 1.0, m0, 0*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -245,9 +249,9 @@ test_1x1v_no_drift(int poly_order)
 
   // projection updater to compute mj
   gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-    &confBasis, &basis, poly_order + 1);
+    &confBasis, &basis, poly_order + 1, false);
 
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf);
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms, distf);
 
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
@@ -297,6 +301,7 @@ test_1x1v_no_drift(int poly_order)
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
+  gkyl_array_release(moms);
   gkyl_array_release(distf);
   gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
@@ -370,6 +375,9 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
+  gkyl_array_set_offset_range(moms, 1.0, m0, 0*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -377,9 +385,9 @@ test_1x1v(int poly_order)
 
   // projection updater to compute mj
   gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-    &confBasis, &basis, poly_order + 1);
+    &confBasis, &basis, poly_order + 1, false);
 
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf);
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms, distf);
 
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
@@ -493,10 +501,11 @@ test_1x2v(int poly_order)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
-  struct gkyl_array *m0, *m1i, *m2;
+  struct gkyl_array *m0, *m1i, *m2, *moms;
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  moms = mkarr((vdim+2)*confBasis.num_basis, confLocal_ext.volume);
 
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order + 1, 1, eval_M0, NULL);
@@ -508,6 +517,9 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
+  gkyl_array_set_offset_range(moms, 1.0, m0, 0*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -515,9 +527,9 @@ test_1x2v(int poly_order)
 
   // projection updater to compute mj
   gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-    &confBasis, &basis, poly_order + 1);
+    &confBasis, &basis, poly_order + 1, false);
 
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf);
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms, distf);
 
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
@@ -566,6 +578,7 @@ test_1x2v(int poly_order)
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
+  gkyl_array_release(moms);
   gkyl_array_release(distf);
   gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
@@ -623,10 +636,11 @@ test_1x3v(int poly_order)
   skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
-  struct gkyl_array *m0, *m1i, *m2;
+  struct gkyl_array *m0, *m1i, *m2, *moms;
   m0 = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i = mkarr(vdim * confBasis.num_basis, confLocal_ext.volume);
   m2 = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  moms = mkarr((vdim+2)*confBasis.num_basis, confLocal_ext.volume);
 
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order + 1, 1, eval_M0, NULL);
@@ -638,6 +652,9 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m0, 0.0, &confLocal, m0);
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
+  gkyl_array_set_offset_range(moms, 1.0, m0, 0*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
+  gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -645,9 +662,9 @@ test_1x3v(int poly_order)
 
   // projection updater to compute mj
   gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-    &confBasis, &basis, poly_order + 1);
+    &confBasis, &basis, poly_order + 1, false);
 
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, m0, m1i, m2, distf);
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms, distf);
 
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
@@ -702,6 +719,7 @@ test_1x3v(int poly_order)
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
+  gkyl_array_release(moms);
   gkyl_array_release(distf);
   gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);

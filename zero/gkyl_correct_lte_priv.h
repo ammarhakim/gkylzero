@@ -9,25 +9,22 @@
 
 struct gkyl_correct_vlasov_lte
 {
-  struct gkyl_rect_grid grid;
-  struct gkyl_basis conf_basis, phase_basis;
+  struct gkyl_basis conf_basis; // Configuration-space basis
+  struct gkyl_basis phase_basis; // Phase-space basis
+  int num_conf_basis; // Number of configuration-space basis functions
+  int vdim; // Number of velocity dimensions
+  enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
 
-  struct gkyl_array *num_ratio;  
-  struct gkyl_array *num_vb;   
-  struct gkyl_array *V_drift;  
+  struct gkyl_array *num_ratio; 
+  struct gkyl_dg_bin_op_mem *mem;  
 
-  struct gkyl_dg_bin_op_mem *mem;     
-  struct gkyl_array *n_stationary, *vbi, *T_stationary;
-  struct gkyl_array *dn, *dvbi, *dT;
-  struct gkyl_array *ddn, *ddvbi, *ddT;
+  struct gkyl_array *moms_iter;
+  struct gkyl_array *d_moms;
+  struct gkyl_array *dd_moms;
 
   struct gkyl_maxwellian_moments *moments_up;
-  struct gkyl_array *moms;
-  struct gkyl_array *moms_target;
   struct gkyl_proj_mj_on_basis *proj_mj;
   struct gkyl_proj_maxwellian_on_basis *proj_max;
-
-  enum gkyl_model_id model_id;
 
   // error estimate n, vb, T, 0 - success., num. picard iterations
   double error_n; 

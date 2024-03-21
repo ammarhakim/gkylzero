@@ -33,6 +33,10 @@ struct gkyl_vlasov_collisions {
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar; // Planck's constant/2 pi 
 
+  // boolean if we are correcting all the moments or only density
+  // Only used by BGK collisions
+  bool correct_all_moms; 
+
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
 
@@ -93,7 +97,7 @@ struct gkyl_vlasov_species {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
   int num_diag_moments; // number of diagnostic moments
-  char diag_moments[24][24]; // list of diagnostic moments
+  char diag_moments[16][16]; // list of diagnostic moments
 
   // collisions to include
   struct gkyl_vlasov_collisions collisions;
