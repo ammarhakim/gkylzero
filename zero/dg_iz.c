@@ -105,11 +105,6 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   gkyl_create_grid_ranges(&tn_grid, ghost, &modal_range_ext, &modal_range);
 
   struct gkyl_array *adas_dg = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
-  
-  /* struct gkyl_array *adas_dg = */
-  /*   gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, (data.NT-1)*(data.NN-1)); */
-
-  //create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
   gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg);
@@ -131,15 +126,15 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
     // allocate fields for prim mom calculation
     up->ioniz_data = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
     gkyl_array_copy(up->ioniz_data, adas_dg);
-    up->vtSq_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume);
+    up->prim_vars_elc = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng_ext->volume);
   }
   else {
     up->ioniz_data = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, data.NT*data.NN);
     gkyl_array_copy(up->ioniz_data, adas_dg);
-    up->vtSq_elc = gkyl_array_new(GKYL_DOUBLE, up->cbasis->num_basis, up->conf_rng_ext->volume); // all
+    up->prim_vars_elc = gkyl_array_new(GKYL_DOUBLE, 2*up->cbasis->num_basis, up->conf_rng_ext->volume);
   }
   
-  up->calc_prim_vars_elc_vtSq = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "vtSq", use_gpu); // all
+  up->calc_prim_vars_elc = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "prim", use_gpu); // all
   if (up->all_gk) up->calc_prim_vars_donor = gkyl_dg_prim_vars_gyrokinetic_new(up->cbasis, up->pbasis, "prim", use_gpu);
   else up->calc_prim_vars_donor = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_gk", use_gpu); // for Vlasov donor
   
@@ -153,8 +148,10 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
 
 void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_elc,
   const struct gkyl_array *moms_donor, const struct gkyl_array *b_i,
-  struct gkyl_array *vtSq_iz, struct gkyl_array *prim_vars_donor,		 
-  struct gkyl_array *coef_iz, struct gkyl_array *cflrate)
+  struct gkyl_array *prim_vars_donor, struct gkyl_array *upar_iz,
+  struct gkyl_array *vtSq_iz, struct gkyl_array *fac_felc,
+  struct gkyl_array *fac_fmax, struct gkyl_array *coef_iz,
+  struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(coef_iz)) {
@@ -178,12 +175,16 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];
 
-    double *vtSq_elc_d = gkyl_array_fetch(up->vtSq_elc, loc);
+    double *prim_vars_elc_d = gkyl_array_fetch(up->prim_vars_elc, loc);
     double *vtSq_iz_d = gkyl_array_fetch(vtSq_iz, loc);
+    double *upar_iz_d = gkyl_array_fetch(upar_iz, loc);
+    double *fac_felc_d = gkyl_array_fetch(fac_felc, loc);
+    double *fac_fmax_d = gkyl_array_fetch(fac_fmax, loc);
     double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
 
-    up->calc_prim_vars_elc_vtSq->kernel(up->calc_prim_vars_elc_vtSq, conf_iter.idx,
-					moms_elc_d, vtSq_elc_d);
+    // change to prim_vars_elc (both upar and vtSq)
+    up->calc_prim_vars_elc->kernel(up->calc_prim_vars_elc, conf_iter.idx,
+					moms_elc_d, prim_vars_elc_d);
 
     if ( (up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION) ) {
       const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
@@ -195,7 +196,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
     //Find cell containing value of n,T
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
     double m0_elc_av = m0_elc_d[0]*cell_av_fac;
-    double temp_elc_av = vtSq_elc_d[0]*cell_av_fac*up->mass_elc/up->elem_charge;
+    double temp_elc_av = prim_vars_elc_d[nc]*cell_av_fac*up->mass_elc/up->elem_charge;
     double log_Te_av = log10(temp_elc_av);
     double log_m0_av = log10(m0_elc_av);
     double cell_val_t;
@@ -224,17 +225,24 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
       double adas_eval = up->adas_basis.eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
 
-      // calculate vtSq_iz at each cell
-      if (up->E/temp_elc_av >= 3./2.) {
-      	// calculate vtSq_iz using current model
-      	// vtSq_iz = vtSq_elc/2.0 - Eiz/(3*me)
-      	array_set1(nc, vtSq_iz_d, 0.5, vtSq_elc_d);
-      	vtSq_iz_d[0] = vtSq_iz_d[0] - up->E*up->elem_charge/(3*up->mass_elc*cell_av_fac);
-      }
-      else {
-      	// calculate using Eavg = Eiz/4.
-      	// Tiz,Max = 2./3.*Eavg = Eiz/6. --> vtSq_iz = Eiz/(6*me)
-      	vtSq_iz_d[0] = up->E/(6.0*up->mass_elc)/cell_av_fac;
+      if (up->type_self == GKYL_SELF_ELC) {
+	// calculate vtSq_iz at each cell
+	if (up->E/temp_elc_av >= 3./2.) {
+	  // vtSq_iz = vtSq_elc + 2.0*Eiz/(3*me)
+	  array_set2(nc, vtSq_iz_d, 1.0, nc, prim_vars_elc_d);
+	  vtSq_iz_d[0] = vtSq_iz_d[0] + 2.0*up->E*up->elem_charge/(3.0*up->mass_elc*cell_av_fac);
+	  fac_felc_d[0] = 2.0/cell_av_fac;
+	  fac_fmax_d[0] = -1.0/cell_av_fac;
+	  array_set1(nc, upar_iz_d, 0.5, prim_vars_elc_d);
+	}
+	else {
+	  // vtSq_iz = vtSq_elc/2 - Eiz/(3*me)
+	  array_set2(nc, vtSq_iz_d, 0.5, nc, prim_vars_elc_d);
+	  vtSq_iz_d[0] = vtSq_iz_d[0] + 2.0*up->E*up->elem_charge/(3.0*up->mass_elc*cell_av_fac);
+	  fac_felc_d[0] = -1.0/cell_av_fac;
+	  fac_fmax_d[0] = 2.0/cell_av_fac;
+	  array_set1(nc, upar_iz_d, 0.5, prim_vars_donor_d);
+	}
       }
     }
   }
