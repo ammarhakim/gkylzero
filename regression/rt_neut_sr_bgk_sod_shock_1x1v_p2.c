@@ -106,7 +106,7 @@ main(int argc, char **argv)
     //.num_diag_moments = 2,
     //.diag_moments = { "M0", "M1i" }, //, "Pressure"
     .num_diag_moments = 1,
-    .diag_moments = { "MaxwellianMoments" },
+    .diag_moments = { "LTEMoments" },
   };
 
   // VM app
