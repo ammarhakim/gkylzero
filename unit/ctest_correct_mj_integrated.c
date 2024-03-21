@@ -687,7 +687,7 @@ test_1x3v(int poly_order)
   gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
     &confBasis, &basis, poly_order + 1, false);
 
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms, distf);
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms_corr, distf);
 
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
