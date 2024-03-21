@@ -36,6 +36,7 @@ gkyl_correct_vlasov_lte_new(const struct gkyl_rect_grid *phase_grid,
 
   // Number density ratio: num_ratio = n_target/n0 and bin_op memory to compute ratio
   // Used for fixing the density with simple rescaling
+  up->moms_dens_corr = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*conf_basis->num_basis, conf_local_ext_ncells);
   up->num_ratio = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
   up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, conf_basis->num_basis);
 
@@ -71,10 +72,10 @@ gkyl_correct_density_moment_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   int nc = c_corr->num_conf_basis;
   
   // compute the moments
-  gkyl_maxwellian_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_iter);
+  gkyl_maxwellian_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_dens_corr);
 
   // Fetch the density moment from the input LTE moments (0th component)
-  gkyl_array_set_offset_range(c_corr->num_ratio, 1.0, c_corr->moms_iter, 0*nc, conf_local);
+  gkyl_array_set_offset_range(c_corr->num_ratio, 1.0, c_corr->moms_dens_corr, 0*nc, conf_local);
 
   // compute number density ratio: num_ratio = n/n0
   // 0th component of moms_target is the target density

@@ -15,6 +15,7 @@ struct gkyl_correct_vlasov_lte
   int vdim; // Number of velocity dimensions
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
 
+  struct gkyl_array *moms_dens_corr;
   struct gkyl_array *num_ratio; 
   struct gkyl_dg_bin_op_mem *mem;  
 
