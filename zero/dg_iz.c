@@ -176,8 +176,8 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
     const double *m0_elc_d = &moms_elc_d[0];
 
     double *prim_vars_elc_d = gkyl_array_fetch(up->prim_vars_elc, loc);
-    double *vtSq_iz_d = gkyl_array_fetch(vtSq_iz, loc);
     double *upar_iz_d = gkyl_array_fetch(upar_iz, loc);
+    double *vtSq_iz_d = gkyl_array_fetch(vtSq_iz, loc);
     double *fac_felc_d = gkyl_array_fetch(fac_felc, loc);
     double *fac_fmax_d = gkyl_array_fetch(fac_fmax, loc);
     double *coef_iz_d = gkyl_array_fetch(coef_iz, loc);
@@ -240,7 +240,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
 	  // vtSq_iz = vtSq_elc/2 - Eiz/(3*me)
 	  // f_react ~ 2*f_max,iz - f_elc
 	  array_set2(nc, vtSq_iz_d, 0.5, nc, prim_vars_elc_d);
-	  vtSq_iz_d[0] = vtSq_iz_d[0] + 2.0*up->E*up->elem_charge/(3.0*up->mass_elc*cell_av_fac);
+	  vtSq_iz_d[0] = vtSq_iz_d[0] - up->E*up->elem_charge/(3.0*up->mass_elc*cell_av_fac);
 	  fac_felc_d[0] = -1.0/cell_av_fac;
 	  fac_fmax_d[0] = 2.0/cell_av_fac;
 	  array_set1(nc, upar_iz_d, 1.0, prim_vars_donor_d);

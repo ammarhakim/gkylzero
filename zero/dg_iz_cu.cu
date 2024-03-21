@@ -20,9 +20,10 @@ extern "C" {
 
 __global__ static void
 gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range conf_rng, const struct gkyl_range adas_rng,
-  const struct gkyl_basis *adas_basis, const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc_vtSq,
+  const struct gkyl_basis *adas_basis, const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc,
   const struct gkyl_dg_prim_vars_type *calc_prim_vars_donor_gk, const struct gkyl_array* moms_elc,
-  const struct gkyl_array* moms_donor, struct gkyl_array* vtSq_elc, struct gkyl_array* vtSq_iz, struct gkyl_array* prim_vars_donor,
+  const struct gkyl_array* moms_donor, struct gkyl_array* prim_vars_elc, struct gkyl_array* prim_vars_donor,
+  struct gkyl_array *upar_iz, struct gkyl_array *vtSq_iz, struct gkyl_array *fac_felc, struct gkyl_array *fac_fmax, 
   struct gkyl_array* coef_iz, struct gkyl_array* ioniz_data, int num_basis, enum gkyl_react_self_type type_self,
   double mass_elc, double elem_charge, double E, double maxLogTe, double minLogTe, double dlogTe,
   double maxLogM0, double minLogM0, double dlogM0, int resTe, int resM0)
@@ -32,22 +33,26 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
       tid < conf_rng.volume; tid += blockDim.x*gridDim.x) {
     gkyl_sub_range_inv_idx(&conf_rng, tid, cidx);
     long loc = gkyl_range_idx(&conf_rng, cidx);
+    long nc = vtSq_iz->ncomp;
 
     int cdim = conf_rng.ndim;
     const double *moms_elc_d = (const double*) gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];
     
-    double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
+    double *prim_vars_elc_d = (double*) gkyl_array_fetch(prim_vars_elc, loc);
+    double *upar_iz_d = (double*) gkyl_array_fetch(upar_iz, loc);
     double *vtSq_iz_d = (double*) gkyl_array_fetch(vtSq_iz, loc);
+    double *fac_felc_d = (double*) gkyl_array_fetch(fac_felc_iz, loc);
+    double *fac_fmax_d = (double*) gkyl_array_fetch(fac_fmax_iz, loc);
     double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc);
+
+    const double *moms_donor_d = (const double*) gkyl_array_cfetch(moms_donor, loc);
+    double *prim_vars_donor_d = (double*) gkyl_array_fetch(prim_vars_donor, loc);
     
-    calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d,
-				    vtSq_elc_d);
+    calc_prim_vars_elc->kernel(calc_prim_vars_elc, cidx, moms_elc_d,
+				    prim_vars_elc_d);
 
     if ((type_self == GKYL_SELF_ELC) || (type_self == GKYL_SELF_ION)) {
-      const double *moms_donor_d = (const double*) gkyl_array_cfetch(moms_donor, loc);
-      const double *m0_donor_d = &moms_donor_d[0];
-      double *prim_vars_donor_d = (double*) gkyl_array_fetch(prim_vars_donor, loc);
       calc_prim_vars_donor_gk->kernel(calc_prim_vars_donor_gk, cidx,
 				      moms_donor_d, prim_vars_donor_d);
     }   
@@ -84,12 +89,22 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
       double *iz_dat_d = (double*) gkyl_array_fetch(ioniz_data, gkyl_range_idx(&adas_rng, ad_idx));
       double adas_eval = adas_basis->eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
-      if (E/temp_elc_av >= 3./2.) {
-	array_set1(vtSq_iz->ncomp, vtSq_iz_d, 0.5, vtSq_elc_d);
-      	vtSq_iz_d[0] = vtSq_iz_d[0] - E*elem_charge/(3*mass_elc*cell_av_fac);
-      }
-      else {
-	vtSq_iz_d[0] = E/(6.0*mass_elc)/cell_av_fac;
+
+      if (type_self == GKYL_SELF_ELC) {
+	if (E/temp_elc_av >= 3./2.) {
+	  array_set2(nc, vtSq_iz_d, 1.0, nc, prim_vars_elc_d);
+	  vtSq_iz_d[0] = vtSq_iz_d[0] + 2.0*E*elem_charge/(3*mass_elc*cell_av_fac);
+	  fac_felc_d[0] = 2.0/cell_av_fac;
+	  fac_fmax_d[0] = -1.0/cell_av_fac;
+	  array_set1(nc, upar_iz_d, 1.0, prim_vars_elc_d);
+	}
+	else {
+	  array_set2(nc, vtSq_iz_d, 0.5, nc, prim_vars_elc_d);
+	  vtSq_iz_d[0] = vtSq_iz_d[0] - E*elem_charge/(3*mass_elc*cell_av_fac);
+	  fac_felc_d[0] = -1.0/cell_av_fac;
+	  fac_fmax_d[0] = 2.0/cell_av_fac;
+	  array_set1(nc, upar_iz_d, 1.0, prim_vars_donor_d);
+	}
       }
     }
   }
@@ -97,8 +112,10 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
 
 void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_elc,
   const struct gkyl_array *moms_donor, const struct gkyl_array *b_i,
-  struct gkyl_array *vtSq_iz, struct gkyl_array *prim_vars_donor,		 
-  struct gkyl_array *coef_iz, struct gkyl_array *cflrate)
+  struct gkyl_array *prim_vars_donor, struct gkyl_array *upar_iz,
+  struct gkyl_array *vtSq_iz, struct gkyl_array *fac_felc,
+  struct gkyl_array *fac_fmax, struct gkyl_array *coef_iz,
+  struct gkyl_array *cflrate)  
 {
   if ((up->all_gk==false) && ((up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION))) {
     // Set auxiliary variable (b_i) for computation of gk neut prim vars
@@ -107,8 +124,9 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *mo
   }
 
   gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng,
-    up->basis_on_dev, up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_donor->on_dev, 
-    moms_elc->on_dev, moms_donor->on_dev, up->vtSq_elc->on_dev, vtSq_iz->on_dev, prim_vars_donor->on_dev,
+    up->basis_on_dev, up->calc_prim_vars_elc->on_dev, up->calc_prim_vars_donor->on_dev, 
+    moms_elc->on_dev, moms_donor->on_dev, up->prim_vars_elc->on_dev, prim_vars_donor->on_dev,
+    upar_iz->on_dev, vtSq_iz->on_dev, fac_elc->on_dev, fac_fmax->on_dev,
     coef_iz->on_dev, up->ioniz_data->on_dev, up->cbasis->num_basis,
     up->type_self, up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe,
     up->dlogTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resTe, up->resM0);
