@@ -226,22 +226,24 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
 
       if (up->type_self == GKYL_SELF_ELC) {
-	// calculate vtSq_iz at each cell
+	//calculate vtSq_iz at each cell
 	if (up->E/temp_elc_av >= 3./2.) {
 	  // vtSq_iz = vtSq_elc + 2.0*Eiz/(3*me)
+	  // f_react ~ 2*f_elc - f_max,iz
 	  array_set2(nc, vtSq_iz_d, 1.0, nc, prim_vars_elc_d);
 	  vtSq_iz_d[0] = vtSq_iz_d[0] + 2.0*up->E*up->elem_charge/(3.0*up->mass_elc*cell_av_fac);
 	  fac_felc_d[0] = 2.0/cell_av_fac;
 	  fac_fmax_d[0] = -1.0/cell_av_fac;
-	  array_set1(nc, upar_iz_d, 0.5, prim_vars_elc_d);
+	  array_set1(nc, upar_iz_d, 1.0, prim_vars_elc_d);
 	}
 	else {
 	  // vtSq_iz = vtSq_elc/2 - Eiz/(3*me)
+	  // f_react ~ 2*f_max,iz - f_elc
 	  array_set2(nc, vtSq_iz_d, 0.5, nc, prim_vars_elc_d);
 	  vtSq_iz_d[0] = vtSq_iz_d[0] + 2.0*up->E*up->elem_charge/(3.0*up->mass_elc*cell_av_fac);
 	  fac_felc_d[0] = -1.0/cell_av_fac;
 	  fac_fmax_d[0] = 2.0/cell_av_fac;
-	  array_set1(nc, upar_iz_d, 0.5, prim_vars_donor_d);
+	  array_set1(nc, upar_iz_d, 1.0, prim_vars_donor_d);
 	}
       }
     }
