@@ -42,8 +42,8 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     double *prim_vars_elc_d = (double*) gkyl_array_fetch(prim_vars_elc, loc);
     double *upar_iz_d = (double*) gkyl_array_fetch(upar_iz, loc);
     double *vtSq_iz_d = (double*) gkyl_array_fetch(vtSq_iz, loc);
-    double *fac_felc_d = (double*) gkyl_array_fetch(fac_felc_iz, loc);
-    double *fac_fmax_d = (double*) gkyl_array_fetch(fac_fmax_iz, loc);
+    double *fac_felc_d = (double*) gkyl_array_fetch(fac_felc, loc);
+    double *fac_fmax_d = (double*) gkyl_array_fetch(fac_fmax, loc);
     double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc);
 
     const double *moms_donor_d = (const double*) gkyl_array_cfetch(moms_donor, loc);
@@ -60,7 +60,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     //Find nearest neighbor for n, Te in ADAS interpolated data
     double cell_av_fac = pow(1.0/sqrt(2.0),cdim);
     double m0_elc_av = m0_elc_d[0]*cell_av_fac;
-    double temp_elc_av = vtSq_elc_d[0]*cell_av_fac*mass_elc/elem_charge;
+    double temp_elc_av = prim_vars_elc_d[nc]*cell_av_fac*mass_elc/elem_charge;
     double log_Te_av = log10(temp_elc_av);
     double log_m0_av = log10(m0_elc_av);
     double cell_val_t;
@@ -126,7 +126,7 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *mo
   gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng,
     up->basis_on_dev, up->calc_prim_vars_elc->on_dev, up->calc_prim_vars_donor->on_dev, 
     moms_elc->on_dev, moms_donor->on_dev, up->prim_vars_elc->on_dev, prim_vars_donor->on_dev,
-    upar_iz->on_dev, vtSq_iz->on_dev, fac_elc->on_dev, fac_fmax->on_dev,
+    upar_iz->on_dev, vtSq_iz->on_dev, fac_felc->on_dev, fac_fmax->on_dev,
     coef_iz->on_dev, up->ioniz_data->on_dev, up->cbasis->num_basis,
     up->type_self, up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe,
     up->dlogTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resTe, up->resM0);
