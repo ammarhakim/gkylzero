@@ -183,6 +183,12 @@ struct gk_rad_drag {
   struct gkyl_array *nvsqnu_host; 
 
   gkyl_dg_updater_collisions *drag_slvr; // radiation solver
+
+  struct gk_species_moment integ_moms; // integrated moments
+  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
+  gkyl_dynvec integ_diag; // integrated moments reduced across grid
+  bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+  struct gkyl_array *integrated_moms_rhs;
 };
 
 // forward declare species struct
@@ -789,6 +795,19 @@ void gk_species_radiation_moms(gkyl_gyrokinetic_app *app,
 void gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app,
   struct gk_species *species, struct gk_rad_drag *rad, 
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+
+/**
+ * Compute integrated moments of radiation drag object
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param rad Species radiation drag object
+ * @param fin Input distribution functions (size num_species)
+ * @param fin_neut Input neutral distribution functions (size num_species)
+ */
+void
+gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
+				struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute RHS from radiation drag object.

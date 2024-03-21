@@ -111,6 +111,23 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     rad->nvsqnu_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
   }
 
+  // Allocate data and updaters for integrated moments.
+  gk_species_moment_init(app, s, &rad->integ_moms, "Integrated");
+  if (app->use_gpu) {
+    rad->red_integ_diag = gkyl_cu_malloc(sizeof(double[vdim+2]));
+    rad->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[vdim+2]));
+  } 
+  else {
+    rad->red_integ_diag = gkyl_malloc(sizeof(double[vdim+2]));
+    rad->red_integ_diag_global = gkyl_malloc(sizeof(double[vdim+2]));
+  }
+  // allocate dynamic-vector to store all-reduced integrated moments 
+  rad->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, vdim+2);
+  rad->is_first_integ_write_call = true;
+  // Allocate rhs arry to be used for calculation of integrated moments
+  rad->integrated_moms_rhs = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+
+
   // Arrays for emissivity
   rad->emissivity_rhs = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   rad->emissivity_denominator = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
@@ -196,6 +213,16 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
   }  
 }
 
+void
+gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
+				struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
+{
+    gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
+      species->f, species->cflrate, rad->integrated_moms_rhs);
+    gk_species_moment_calc(&rad->integ_moms, species->local, app->local, rad->integrated_moms_rhs);
+}
+
+
 // updates the collision terms in the rhs
 void
 gk_species_radiation_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
@@ -224,6 +251,17 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
    
     gk_species_moment_release(app, &rad->moms[i]);
   }
+  gk_species_moment_release(app, &rad->integ_moms); 
+  if (app->use_gpu) {
+    gkyl_cu_free(rad->red_integ_diag);
+    gkyl_cu_free(rad->red_integ_diag_global);
+  }
+  else {
+    gkyl_free(rad->red_integ_diag);
+    gkyl_free(rad->red_integ_diag_global);
+  }  
+  gkyl_dynvec_release(rad->integ_diag);
+  gkyl_array_release(rad->integrated_moms_rhs);
   gk_species_moment_release(app, &rad->m2);
   gkyl_array_release(rad->emissivity_denominator);
   gkyl_array_release(rad->emissivity_rhs);
