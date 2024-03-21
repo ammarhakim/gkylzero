@@ -115,6 +115,23 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
+  // Linear advection equation.
+  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect);
+
+  struct gkyl_vlasov_fluid_species fluid = {
+    .name = "q",
+    .charge = 0.0, .mass = 1.0,
+
+    .init = evalInit,
+    .ctx = &ctx,
+
+    .equation = advect,
+    .advection = {
+      .velocity = evalVelInit,
+      .velocity_ctx = &ctx,
+    },
+  };
+
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
@@ -201,23 +218,6 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Linear advection equation.
-  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect);
-
-  struct gkyl_vlasov_fluid_species fluid = {
-    .name = "q",
-    .charge = 0.0, .mass = 1.0,
-
-    .init = evalInit,
-    .ctx = &ctx,
-
-    .equation = advect,
-    .advection = {
-      .velocity = evalVelInit,
-      .velocity_ctx = &ctx,
-    },
-  };
-
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
     .name = "advect_1x",
@@ -226,9 +226,9 @@ main(int argc, char **argv)
     .lower = { 0.0 },
     .upper = { ctx.Lx},
     .cells = { NX },
+
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-
     .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 1,

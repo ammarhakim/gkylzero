@@ -142,6 +142,36 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nvx);
 
+  // Electron species.
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .lower = { -0.5 * ctx.Lvx },
+    .upper = { 0.5 * ctx.Lvx }, 
+    .cells = { NVX },
+
+    .init = evalElcInit,
+    .ctx = &ctx,
+
+    .accel = evalAppAccel,
+    .accel_ctx = &ctx,
+
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2" },
+  };
+
+  // Field.
+  struct gkyl_vlasov_field field = {
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
+    .elcErrorSpeedFactor = 0.0,
+    .mgnErrorSpeedFactor = 0.0,
+
+    .is_static = true,
+
+    .init = evalFieldInit,
+    .ctx = &ctx,
+  };
+
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
@@ -228,36 +258,6 @@ main(int argc, char **argv)
     goto mpifinalize;
   }
 
-  // Electron species.
-  struct gkyl_vlasov_species elc = {
-    .name = "elc",
-    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lvx },
-    .upper = { 0.5 * ctx.Lvx }, 
-    .cells = { NVX },
-
-    .init = evalElcInit,
-    .ctx = &ctx,
-
-    .accel = evalAppAccel,
-    .accel_ctx = &ctx,
-
-    .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
-  };
-
-  // Field.
-  struct gkyl_vlasov_field field = {
-    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
-    .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
-
-    .is_static = true,
-
-    .init = evalFieldInit,
-    .ctx = &ctx,
-  };
-
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
     .name = "accel_1x1v",
@@ -266,9 +266,9 @@ main(int argc, char **argv)
     .lower = { 0.0 },
     .upper = { ctx.Lx },
     .cells = { NX },
+
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
-
     .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 1,
