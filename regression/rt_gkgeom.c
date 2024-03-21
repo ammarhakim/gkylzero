@@ -145,7 +145,7 @@ cerforn_rt(void)
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
-      .ftype = GKYL_SOL_DN,
+      .ftype = GKYL_GEOM_SOL_DN,
       .rclose = upper[0],
       .zmin = lower[1],
       .zmax = upper[1],
@@ -190,7 +190,7 @@ cerforn_rt(void)
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
-      .ftype = GKYL_SOL_DN,
+      .ftype = GKYL_GEOM_SOL_DN,
       .rclose = lower[0],
       .zmin = lower[1],
       .zmax = upper[1],
@@ -313,7 +313,7 @@ wham_2l_rt(void)
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
-      .ftype = GKYL_SOL_DN,
+      .ftype = GKYL_GEOM_SOL_DN,
       .rclose = upper[0],
       .zmin = lower[1],
       .zmax = upper[1],
@@ -394,7 +394,7 @@ wham_beta0_rt(void)
     struct gkyl_gkgeom_geo_inp ginp = {
       .cgrid = &cgrid,
       .cbasis = &cbasis,
-      .ftype = GKYL_SOL_DN,
+      .ftype = GKYL_GEOM_SOL_DN,
       .rclose = rzgrid.upper[0],
       .zmin = -2.0, //rzgrid.lower[1],
       .zmax = 2.0, //rzgrid.upper[1],

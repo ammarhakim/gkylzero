@@ -1,5 +1,6 @@
+#pragma once
+
 #include <gkyl_alloc.h>
-#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>

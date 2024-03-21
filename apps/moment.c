@@ -42,7 +42,7 @@ void
 moment_array_meta_release(struct gkyl_array_meta *mt)
 {
   if (!mt) return;
-  free(mt->meta);  // we need to use free here as mpack does its own malloc
+  MPACK_FREE(mt->meta);
   gkyl_free(mt);
 }
 

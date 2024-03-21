@@ -9,4 +9,4 @@
 # Errors are written to cppcheck-err.txt. Please ensure all code is
 # "cppcheck clean"
 
-cppcheck --suppressions-list=cppcheck-suppress.txt -Izero -Iminus -Iapps  --enable=warning,performance,portability,information zero apps 2>cppcheck-err.txt
+cppcheck --force --suppressions-list=cppcheck-suppress.txt -Izero -Iminus -Iapps  --enable=warning,performance,portability,information zero apps 2>cppcheck-err.txt

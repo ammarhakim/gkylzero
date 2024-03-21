@@ -15,14 +15,14 @@ enum gkyl_array_rio_status {
   GKYL_ARRAY_RIO_DATA_MISMATCH
 };
 
-// Error message strings
-static const char *gkyl_array_rio_status_msg[] = {
-  [GKYL_ARRAY_RIO_SUCCESS] = "Success",
-  [GKYL_ARRAY_RIO_BAD_VERSION] = "Incorrect header version",
-  [GKYL_ARRAY_RIO_FOPEN_FAILED] = "File open failed",
-  [GKYL_ARRAY_RIO_FREAD_FAILED] = "Data read failed",
-  [GKYL_ARRAY_RIO_DATA_MISMATCH] = "Data mismatch"
-};
+/**
+ * Return character string corresponding to the status enum flag.
+ *
+ * @param status Status flag
+ * @return string corresponding to flag
+ */
+const char* gkyl_array_rio_status_msg(enum gkyl_array_rio_status status);
+
 
 // Structure to pass meta-data to write methods
 struct gkyl_array_meta {
