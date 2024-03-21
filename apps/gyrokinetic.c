@@ -1998,8 +1998,6 @@ header_from_file(gkyl_gyrokinetic_app *app, const char *fname)
     rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
 
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      if (!gkyl_rect_grid_cmp(&app->grid, &grid))
-        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
       if (hdr.etype != GKYL_DOUBLE)
         rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
     }
