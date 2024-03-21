@@ -20,19 +20,19 @@ struct gkyl_dg_lbo_gyrokinetic_diff_auxfields {
  * @param cbasis Configuration space basis functions
  * @param pbasis Phase-space basis functions
  * @param conf_range Configuration space range for use in indexing primitive moments
+ * @param vel_range Velocity space range for use in indexing velocity mappping.
  * @param pgrid Phase-space grid object.
  * @param mass Species mass
- * @param gk_geom Geometry struct
+ * @param gk_geom Gyrokinetic geometry object.
+ * @param vmap Velocity space mapping.
+ * @param vmap_prime Derivative of the velocity space mapping.
+ * @param jacobvel Velocity space mapping Jacobian.
  * @return Pointer to LBO equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass, const struct gk_geometry *gk_geom, bool use_gpu);
-
-/**
- * Create a new LBO equation object that lives on NV-GPU
- */
-struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* conf_range, const struct gkyl_rect_grid *pgrid, double mass,  const struct gk_geometry *gk_geom);
+  const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const struct gkyl_rect_grid *pgrid,
+  double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, 
+  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, bool use_gpu);
 
 /**
  * Set auxiliary fields needed in updating the diffusion flux term.
@@ -42,12 +42,3 @@ struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_ba
  * @param auxfields Pointer to struct of aux fields.
  */
 void gkyl_lbo_gyrokinetic_diff_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxin);
-
-#ifdef GKYL_HAVE_CUDA
-
-/**
- * CUDA device function to set auxiliary fields needed in updating the diffusion flux term.
- */
-void gkyl_lbo_gyrokinetic_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields auxin);
-
-#endif

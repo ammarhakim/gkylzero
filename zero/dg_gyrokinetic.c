@@ -15,6 +15,9 @@ gkyl_gyrokinetic_free(const struct gkyl_ref_count *ref)
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_gyrokinetic *gyrokinetic = container_of(base, struct dg_gyrokinetic, eqn);
   gkyl_gk_geometry_release(gyrokinetic->gk_geom);
+  gkyl_array_release(gyrokinetic->vmap);
+  gkyl_array_release(gyrokinetic->vmapSq);
+  gkyl_array_release(gyrokinetic->vmap_prime);
 
   if (gkyl_dg_eqn_is_cu_dev(base)) {
     // free inner on_dev object
@@ -152,9 +155,9 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   assert(gyrokinetic->boundary_surf[cdim]);
 
   gyrokinetic->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
-  gyrokinetic->vmap = vmap;
-  gyrokinetic->vmapSq = vmapSq;
-  gyrokinetic->vmap_prime = vmap_prime;
+  gyrokinetic->vmap = gkyl_array_acquire(vmap);
+  gyrokinetic->vmapSq = gkyl_array_acquire(vmapSq);
+  gyrokinetic->vmap_prime = gkyl_array_acquire(vmap_prime);
   gyrokinetic->auxfields.alpha_surf = 0;
   gyrokinetic->auxfields.sgn_alpha_surf = 0;
   gyrokinetic->auxfields.const_sgn_alpha = 0;

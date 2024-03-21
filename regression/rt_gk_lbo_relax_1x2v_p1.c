@@ -338,8 +338,8 @@ main(int argc, char **argv)
       .normNu = false,
       .self_nu = evalNuInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "bump" },
+//      .num_cross_collisions = 1,
+//      .collide_with = { "bump" },
     },
     
     .num_diag_moments = 7,
@@ -365,8 +365,8 @@ main(int argc, char **argv)
       .normNu = false,
       .self_nu = evalNuInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "square" },
+//      .num_cross_collisions = 1,
+//      .collide_with = { "square" },
     },
 
     .num_diag_moments = 7,

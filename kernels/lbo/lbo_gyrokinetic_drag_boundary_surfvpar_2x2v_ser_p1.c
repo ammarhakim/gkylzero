@@ -1,16 +1,17 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
 #include <gkyl_basis_gkhyb_2x2v_p1_surfx3_eval_quad.h> 
 #include <gkyl_basis_gkhyb_2x2v_p1_upwind_quad_to_modal.h> 
-GKYL_CU_DH double lbo_gyrokinetic_drag_boundary_surfvpar_2x2v_ser_p1(const double *w, const double *dxv, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fSkin, const double *fEdge, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_gyrokinetic_drag_boundary_surfvpar_2x2v_ser_p1(const double *dxv, const double *vmap, const double *vmap_prime_edge, const double *vmap_prime_skin, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out) 
 { 
-  // w[4]:     cell-center coordinates. 
-  // dxv[4]:   cell spacing. 
-  // m_:        species mass.
-  // bmag_inv:  1/(magnetic field magnitude). 
-  // nuSum:     collisionalities added (self and cross species collisionalities). 
+  // dxv[4]: cell spacing. 
+  // vmap: velocity space mapping in skin cell.
+  // vmap_prime_edge,vmap_prime_skin: velocity space mapping derivative in edge and skin cells.
+  // m_: species mass.
+  // bmag_inv: 1/(magnetic field magnitude). 
+  // nuSum: collisionalities added (self and cross species collisionalities). 
   // nuPrimMomsSum[8]: sum of bulk velocities and thermal speeds squared times their respective collisionalities. 
-  // fSkin/Edge:    Distribution function in cells 
-  // out:           Incremented distribution function in cell 
+  // fEdge,fSkin: Distribution function in edge and skin cells 
+  // out: Incremented distribution function in skin cell 
 
   const double *nuUSum = nuPrimMomsSum;
 
@@ -24,38 +25,38 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_boundary_surfvpar_2x2v_ser_p1(const doubl
 
   if (edge == -1) { 
 
-  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(2.0*w[2]+dxv[2])-2.0*nuUSum[0]); 
-  alphaDrSurf[1] = 0.7071067811865475*(nuSum[1]*(2.0*w[2]+dxv[2])-2.0*nuUSum[1]); 
-  alphaDrSurf[2] = 0.7071067811865475*(2.0*nuSum[2]*w[2]-2.0*nuUSum[2]+dxv[2]*nuSum[2]); 
-  alphaDrSurf[4] = -0.7071067811865475*(2.0*nuUSum[3]+((-2.0*w[2])-1.0*dxv[2])*nuSum[3]); 
+  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(2.449489742783178*vmap[1]+1.414213562373095*vmap[0])-2.0*nuUSum[0]); 
+  alphaDrSurf[1] = 0.7071067811865475*(2.449489742783178*nuSum[1]*vmap[1]-2.0*nuUSum[1]+1.414213562373095*vmap[0]*nuSum[1]); 
+  alphaDrSurf[2] = -0.7071067811865475*(2.0*nuUSum[2]+((-2.449489742783178*vmap[1])-1.414213562373095*vmap[0])*nuSum[2]); 
+  alphaDrSurf[4] = -0.7071067811865475*(2.0*nuUSum[3]+((-2.449489742783178*vmap[1])-1.414213562373095*vmap[0])*nuSum[3]); 
 
-  if (alphaDrSurf[4]-alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[0] = gkhyb_2x2v_p1_surfx3_eval_quad_node_0_r(fSkin); 
-    fUpwindQuad[1] = gkhyb_2x2v_p1_surfx3_eval_quad_node_1_r(fSkin); 
+  if (alphaDrSurf[4]-alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0.0) { 
+    fUpwindQuad[0] = gkhyb_2x2v_p1_surfx3_eval_quad_node_0_r(fSkin)/vmap_prime_skin[0]; 
+    fUpwindQuad[1] = gkhyb_2x2v_p1_surfx3_eval_quad_node_1_r(fSkin)/vmap_prime_skin[0]; 
   } else { 
-    fUpwindQuad[0] = gkhyb_2x2v_p1_surfx3_eval_quad_node_0_l(fEdge); 
-    fUpwindQuad[1] = gkhyb_2x2v_p1_surfx3_eval_quad_node_1_l(fEdge); 
+    fUpwindQuad[0] = gkhyb_2x2v_p1_surfx3_eval_quad_node_0_l(fEdge)/vmap_prime_edge[0]; 
+    fUpwindQuad[1] = gkhyb_2x2v_p1_surfx3_eval_quad_node_1_l(fEdge)/vmap_prime_edge[0]; 
   } 
-  if (alphaDrSurf[4]-alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[2] = gkhyb_2x2v_p1_surfx3_eval_quad_node_2_r(fSkin); 
-    fUpwindQuad[3] = gkhyb_2x2v_p1_surfx3_eval_quad_node_3_r(fSkin); 
+  if (alphaDrSurf[4]-alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0.0) { 
+    fUpwindQuad[2] = gkhyb_2x2v_p1_surfx3_eval_quad_node_2_r(fSkin)/vmap_prime_skin[0]; 
+    fUpwindQuad[3] = gkhyb_2x2v_p1_surfx3_eval_quad_node_3_r(fSkin)/vmap_prime_skin[0]; 
   } else { 
-    fUpwindQuad[2] = gkhyb_2x2v_p1_surfx3_eval_quad_node_2_l(fEdge); 
-    fUpwindQuad[3] = gkhyb_2x2v_p1_surfx3_eval_quad_node_3_l(fEdge); 
+    fUpwindQuad[2] = gkhyb_2x2v_p1_surfx3_eval_quad_node_2_l(fEdge)/vmap_prime_edge[0]; 
+    fUpwindQuad[3] = gkhyb_2x2v_p1_surfx3_eval_quad_node_3_l(fEdge)/vmap_prime_edge[0]; 
   } 
-  if ((-alphaDrSurf[4])+alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[4] = gkhyb_2x2v_p1_surfx3_eval_quad_node_4_r(fSkin); 
-    fUpwindQuad[5] = gkhyb_2x2v_p1_surfx3_eval_quad_node_5_r(fSkin); 
+  if ((-alphaDrSurf[4])+alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0.0) { 
+    fUpwindQuad[4] = gkhyb_2x2v_p1_surfx3_eval_quad_node_4_r(fSkin)/vmap_prime_skin[0]; 
+    fUpwindQuad[5] = gkhyb_2x2v_p1_surfx3_eval_quad_node_5_r(fSkin)/vmap_prime_skin[0]; 
   } else { 
-    fUpwindQuad[4] = gkhyb_2x2v_p1_surfx3_eval_quad_node_4_l(fEdge); 
-    fUpwindQuad[5] = gkhyb_2x2v_p1_surfx3_eval_quad_node_5_l(fEdge); 
+    fUpwindQuad[4] = gkhyb_2x2v_p1_surfx3_eval_quad_node_4_l(fEdge)/vmap_prime_edge[0]; 
+    fUpwindQuad[5] = gkhyb_2x2v_p1_surfx3_eval_quad_node_5_l(fEdge)/vmap_prime_edge[0]; 
   } 
-  if ((-alphaDrSurf[4])+alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[6] = gkhyb_2x2v_p1_surfx3_eval_quad_node_6_r(fSkin); 
-    fUpwindQuad[7] = gkhyb_2x2v_p1_surfx3_eval_quad_node_7_r(fSkin); 
+  if ((-alphaDrSurf[4])+alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0.0) { 
+    fUpwindQuad[6] = gkhyb_2x2v_p1_surfx3_eval_quad_node_6_r(fSkin)/vmap_prime_skin[0]; 
+    fUpwindQuad[7] = gkhyb_2x2v_p1_surfx3_eval_quad_node_7_r(fSkin)/vmap_prime_skin[0]; 
   } else { 
-    fUpwindQuad[6] = gkhyb_2x2v_p1_surfx3_eval_quad_node_6_l(fEdge); 
-    fUpwindQuad[7] = gkhyb_2x2v_p1_surfx3_eval_quad_node_7_l(fEdge); 
+    fUpwindQuad[6] = gkhyb_2x2v_p1_surfx3_eval_quad_node_6_l(fEdge)/vmap_prime_edge[0]; 
+    fUpwindQuad[7] = gkhyb_2x2v_p1_surfx3_eval_quad_node_7_l(fEdge)/vmap_prime_edge[0]; 
   } 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
@@ -97,38 +98,38 @@ GKYL_CU_DH double lbo_gyrokinetic_drag_boundary_surfvpar_2x2v_ser_p1(const doubl
 
   } else { 
 
-  alphaDrSurf[0] = 0.7071067811865475*(nuSum[0]*(2.0*w[2]-1.0*dxv[2])-2.0*nuUSum[0]); 
-  alphaDrSurf[1] = 0.7071067811865475*(nuSum[1]*(2.0*w[2]-1.0*dxv[2])-2.0*nuUSum[1]); 
-  alphaDrSurf[2] = 0.7071067811865475*(2.0*nuSum[2]*w[2]-2.0*nuUSum[2]-1.0*dxv[2]*nuSum[2]); 
-  alphaDrSurf[4] = -0.7071067811865475*(2.0*nuUSum[3]+(dxv[2]-2.0*w[2])*nuSum[3]); 
+  alphaDrSurf[0] = -0.7071067811865475*(nuSum[0]*(2.449489742783178*vmap[1]-1.414213562373095*vmap[0])+2.0*nuUSum[0]); 
+  alphaDrSurf[1] = -0.7071067811865475*(2.449489742783178*nuSum[1]*vmap[1]+2.0*nuUSum[1]-1.414213562373095*vmap[0]*nuSum[1]); 
+  alphaDrSurf[2] = -0.7071067811865475*(2.0*nuUSum[2]+(2.449489742783178*vmap[1]-1.414213562373095*vmap[0])*nuSum[2]); 
+  alphaDrSurf[4] = -0.7071067811865475*(2.0*nuUSum[3]+(2.449489742783178*vmap[1]-1.414213562373095*vmap[0])*nuSum[3]); 
 
-  if (alphaDrSurf[4]-alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[0] = gkhyb_2x2v_p1_surfx3_eval_quad_node_0_r(fEdge); 
-    fUpwindQuad[1] = gkhyb_2x2v_p1_surfx3_eval_quad_node_1_r(fEdge); 
+  if (alphaDrSurf[4]-alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0.0) { 
+    fUpwindQuad[0] = gkhyb_2x2v_p1_surfx3_eval_quad_node_0_r(fEdge)/vmap_prime_edge[0]; 
+    fUpwindQuad[1] = gkhyb_2x2v_p1_surfx3_eval_quad_node_1_r(fEdge)/vmap_prime_edge[0]; 
   } else { 
-    fUpwindQuad[0] = gkhyb_2x2v_p1_surfx3_eval_quad_node_0_l(fSkin); 
-    fUpwindQuad[1] = gkhyb_2x2v_p1_surfx3_eval_quad_node_1_l(fSkin); 
+    fUpwindQuad[0] = gkhyb_2x2v_p1_surfx3_eval_quad_node_0_l(fSkin)/vmap_prime_skin[0]; 
+    fUpwindQuad[1] = gkhyb_2x2v_p1_surfx3_eval_quad_node_1_l(fSkin)/vmap_prime_skin[0]; 
   } 
-  if (alphaDrSurf[4]-alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[2] = gkhyb_2x2v_p1_surfx3_eval_quad_node_2_r(fEdge); 
-    fUpwindQuad[3] = gkhyb_2x2v_p1_surfx3_eval_quad_node_3_r(fEdge); 
+  if (alphaDrSurf[4]-alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0.0) { 
+    fUpwindQuad[2] = gkhyb_2x2v_p1_surfx3_eval_quad_node_2_r(fEdge)/vmap_prime_edge[0]; 
+    fUpwindQuad[3] = gkhyb_2x2v_p1_surfx3_eval_quad_node_3_r(fEdge)/vmap_prime_edge[0]; 
   } else { 
-    fUpwindQuad[2] = gkhyb_2x2v_p1_surfx3_eval_quad_node_2_l(fSkin); 
-    fUpwindQuad[3] = gkhyb_2x2v_p1_surfx3_eval_quad_node_3_l(fSkin); 
+    fUpwindQuad[2] = gkhyb_2x2v_p1_surfx3_eval_quad_node_2_l(fSkin)/vmap_prime_skin[0]; 
+    fUpwindQuad[3] = gkhyb_2x2v_p1_surfx3_eval_quad_node_3_l(fSkin)/vmap_prime_skin[0]; 
   } 
-  if ((-alphaDrSurf[4])+alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[4] = gkhyb_2x2v_p1_surfx3_eval_quad_node_4_r(fEdge); 
-    fUpwindQuad[5] = gkhyb_2x2v_p1_surfx3_eval_quad_node_5_r(fEdge); 
+  if ((-alphaDrSurf[4])+alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0.0) { 
+    fUpwindQuad[4] = gkhyb_2x2v_p1_surfx3_eval_quad_node_4_r(fEdge)/vmap_prime_edge[0]; 
+    fUpwindQuad[5] = gkhyb_2x2v_p1_surfx3_eval_quad_node_5_r(fEdge)/vmap_prime_edge[0]; 
   } else { 
-    fUpwindQuad[4] = gkhyb_2x2v_p1_surfx3_eval_quad_node_4_l(fSkin); 
-    fUpwindQuad[5] = gkhyb_2x2v_p1_surfx3_eval_quad_node_5_l(fSkin); 
+    fUpwindQuad[4] = gkhyb_2x2v_p1_surfx3_eval_quad_node_4_l(fSkin)/vmap_prime_skin[0]; 
+    fUpwindQuad[5] = gkhyb_2x2v_p1_surfx3_eval_quad_node_5_l(fSkin)/vmap_prime_skin[0]; 
   } 
-  if ((-alphaDrSurf[4])+alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0) { 
-    fUpwindQuad[6] = gkhyb_2x2v_p1_surfx3_eval_quad_node_6_r(fEdge); 
-    fUpwindQuad[7] = gkhyb_2x2v_p1_surfx3_eval_quad_node_7_r(fEdge); 
+  if ((-alphaDrSurf[4])+alphaDrSurf[2]-alphaDrSurf[1]+alphaDrSurf[0] < 0.0) { 
+    fUpwindQuad[6] = gkhyb_2x2v_p1_surfx3_eval_quad_node_6_r(fEdge)/vmap_prime_edge[0]; 
+    fUpwindQuad[7] = gkhyb_2x2v_p1_surfx3_eval_quad_node_7_r(fEdge)/vmap_prime_edge[0]; 
   } else { 
-    fUpwindQuad[6] = gkhyb_2x2v_p1_surfx3_eval_quad_node_6_l(fSkin); 
-    fUpwindQuad[7] = gkhyb_2x2v_p1_surfx3_eval_quad_node_7_l(fSkin); 
+    fUpwindQuad[6] = gkhyb_2x2v_p1_surfx3_eval_quad_node_6_l(fSkin)/vmap_prime_skin[0]; 
+    fUpwindQuad[7] = gkhyb_2x2v_p1_surfx3_eval_quad_node_7_l(fSkin)/vmap_prime_skin[0]; 
   } 
 
   // Project tensor nodal quadrature basis back onto modal basis. 
