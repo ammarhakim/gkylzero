@@ -269,8 +269,8 @@ struct gk_react {
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_SPECIES]; // input struct for type of reactions
 
   struct gkyl_array *f_react; // distribution function array which holds update for each reaction
-                              // form depend on react->type_self, e.g., for ionization and react->type_self == GKYL_SELF_ELC
-                              // f_react = n_elc*coeff_react*(2*fmax(n_elc, upar_donor, vtiz^2) - f_elc)
+                              // form depends on react->type_self, e.g., for ionization and react->type_self == GKYL_SELF_ELC
+  struct gkyl_array *f_elc_iz; // needed for elc f_react term
 
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
 

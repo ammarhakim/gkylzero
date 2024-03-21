@@ -426,6 +426,9 @@ test_coll_iz_h_1x(bool use_gpu)
   
   // moment arrays
   struct gkyl_array *prim_vars = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, confRange.volume);
+  struct gkyl_array *fac_felc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+  struct gkyl_array *fac_fmax = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+  struct gkyl_array *upar_iz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *vtSq_iz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *coef_iz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   
@@ -454,41 +457,44 @@ test_coll_iz_h_1x(bool use_gpu)
   
   // cuda stuff
   if (use_gpu) {
-    struct gkyl_array *moms_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim_vl+2)*basis.num_basis, confRange.volume);
-    struct gkyl_array *moms_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
-    struct gkyl_array *vtSq_iz_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-    struct gkyl_array *prim_vars_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*basis.num_basis, confRange.volume);
-    struct gkyl_array *coef_iz_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-    struct gkyl_array *b_i_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+    /* struct gkyl_array *moms_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim_vl+2)*basis.num_basis, confRange.volume); */
+    /* struct gkyl_array *moms_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume); */
+    /* struct gkyl_array *vtSq_iz_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume); */
+    /* struct gkyl_array *prim_vars_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*basis.num_basis, confRange.volume); */
+    /* struct gkyl_array *coef_iz_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume); */
+    /* struct gkyl_array *b_i_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume); */
 
-    gkyl_array_copy(moms_neut_cu, moms_neut);
-    gkyl_array_copy(moms_elc_cu, moms_elc);
-    gkyl_array_copy(vtSq_iz_cu, vtSq_iz);
-    gkyl_array_copy(prim_vars_cu, prim_vars_cu);
-    gkyl_array_copy(coef_iz_cu, coef_iz);
-    gkyl_array_copy(b_i_cu, b_i);
+    /* gkyl_array_copy(moms_neut_cu, moms_neut); */
+    /* gkyl_array_copy(moms_elc_cu, moms_elc); */
+    /* gkyl_array_copy(vtSq_iz_cu, vtSq_iz); */
+    /* gkyl_array_copy(prim_vars_cu, prim_vars_cu); */
+    /* gkyl_array_copy(coef_iz_cu, coef_iz); */
+    /* gkyl_array_copy(b_i_cu, b_i); */
     
-    gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc_cu, moms_neut_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0);
-    gkyl_array_copy(coef_iz, coef_iz_cu);
-    cv_e = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
-    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc_cu, moms_neut_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0);
-    gkyl_array_copy(coef_iz, coef_iz_cu);
-    cv_i = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
-    gkyl_dg_iz_coll(coll_iz_up_neut, moms_elc_cu, moms_neut_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0);
-    gkyl_array_copy(coef_iz, coef_iz_cu);
-    cv_d = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
+    /* gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc_cu, moms_neut_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0); */
+    /* gkyl_array_copy(coef_iz, coef_iz_cu); */
+    /* cv_e = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1})); */
+    /* gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc_cu, moms_neut_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0); */
+    /* gkyl_array_copy(coef_iz, coef_iz_cu); */
+    /* cv_i = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1})); */
+    /* gkyl_dg_iz_coll(coll_iz_up_neut, moms_elc_cu, moms_neut_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0); */
+    /* gkyl_array_copy(coef_iz, coef_iz_cu); */
+    /* cv_d = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1})); */
     
-    gkyl_array_release(moms_elc_cu); gkyl_array_release(moms_neut_cu);
-    gkyl_array_release(prim_vars_cu);
-    gkyl_array_release(b_i_cu); gkyl_array_release(vtSq_iz_cu);
-    gkyl_array_release(coef_iz_cu);
+    /* gkyl_array_release(moms_elc_cu); gkyl_array_release(moms_neut_cu); */
+    /* gkyl_array_release(prim_vars_cu); */
+    /* gkyl_array_release(b_i_cu); gkyl_array_release(vtSq_iz_cu); */
+    /* gkyl_array_release(coef_iz_cu); */
   }
   else {   
-    gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc, moms_neut, b_i, vtSq_iz, prim_vars, coef_iz, 0);
+    gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc, moms_neut, b_i, prim_vars, vtSq_iz, upar_iz,
+		    fac_felc, fac_fmax, coef_iz, 0);
     cv_e = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
-    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc, moms_neut, b_i, vtSq_iz, prim_vars, coef_iz, 0);
+    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc, moms_neut, b_i, prim_vars, vtSq_iz, upar_iz,
+		    fac_felc, fac_fmax, coef_iz, 0);
     cv_i = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
-    gkyl_dg_iz_coll(coll_iz_up_neut, moms_elc, moms_neut, b_i, vtSq_iz, prim_vars, coef_iz, 0);
+    gkyl_dg_iz_coll(coll_iz_up_neut, moms_elc, moms_neut, b_i, prim_vars, vtSq_iz, upar_iz,
+		    fac_felc, fac_fmax, coef_iz, 0);
     cv_d = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
   }
 
@@ -507,6 +513,7 @@ test_coll_iz_h_1x(bool use_gpu)
   }
   
   gkyl_array_release(coef_iz); gkyl_array_release(vtSq_iz); gkyl_array_release(prim_vars);
+  gkyl_array_release(upar_iz); gkyl_array_release(fac_felc); gkyl_array_release(fac_fmax);
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
   gkyl_array_release(b_x); gkyl_array_release(b_y); gkyl_array_release(b_z);
   gkyl_array_release(moms_elc); gkyl_array_release(moms_neut);
@@ -636,6 +643,9 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
 
   // moment arrays
   struct gkyl_array *prim_vars = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, confRange.volume);
+  struct gkyl_array *fac_felc = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+  struct gkyl_array *fac_fmax = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
+  struct gkyl_array *upar_iz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *vtSq_iz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   struct gkyl_array *coef_iz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
 
@@ -664,41 +674,44 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   
   // cuda stuff
   if (use_gpu) {
-    struct gkyl_array *moms_donor_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
-    struct gkyl_array *moms_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
-    struct gkyl_array *vtSq_iz_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-    struct gkyl_array *prim_vars_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*basis.num_basis, confRange.volume);
-    struct gkyl_array *coef_iz_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
-    struct gkyl_array *b_i_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
+    /* struct gkyl_array *moms_donor_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume); */
+    /* struct gkyl_array *moms_elc_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume); */
+    /* struct gkyl_array *vtSq_iz_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume); */
+    /* struct gkyl_array *prim_vars_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*basis.num_basis, confRange.volume); */
+    /* struct gkyl_array *coef_iz_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume); */
+    /* struct gkyl_array *b_i_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume); */
 
-    gkyl_array_copy(moms_donor_cu, moms_donor);
-    gkyl_array_copy(moms_elc_cu, moms_elc);
-    gkyl_array_copy(vtSq_iz_cu, vtSq_iz);
-    gkyl_array_copy(prim_vars_cu, prim_vars_cu);
-    gkyl_array_copy(coef_iz_cu, coef_iz);
-    gkyl_array_copy(b_i_cu, b_i);
+    /* gkyl_array_copy(moms_donor_cu, moms_donor); */
+    /* gkyl_array_copy(moms_elc_cu, moms_elc); */
+    /* gkyl_array_copy(vtSq_iz_cu, vtSq_iz); */
+    /* gkyl_array_copy(prim_vars_cu, prim_vars_cu); */
+    /* gkyl_array_copy(coef_iz_cu, coef_iz); */
+    /* gkyl_array_copy(b_i_cu, b_i); */
     
-    gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc_cu, moms_donor_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0);
-    gkyl_array_copy(coef_iz, coef_iz_cu);
-    cv_e = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
-    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc_cu, moms_donor_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0);
-    gkyl_array_copy(coef_iz, coef_iz_cu);
-    cv_i = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
-    gkyl_dg_iz_coll(coll_iz_up_donor, moms_elc_cu, moms_donor_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0);
-    gkyl_array_copy(coef_iz, coef_iz_cu);
-    cv_d = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
+    /* gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc_cu, moms_donor_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0); */
+    /* gkyl_array_copy(coef_iz, coef_iz_cu); */
+    /* cv_e = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1})); */
+    /* gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc_cu, moms_donor_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0); */
+    /* gkyl_array_copy(coef_iz, coef_iz_cu); */
+    /* cv_i = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1})); */
+    /* gkyl_dg_iz_coll(coll_iz_up_donor, moms_elc_cu, moms_donor_cu, b_i_cu, vtSq_iz_cu, prim_vars_cu, coef_iz_cu, 0); */
+    /* gkyl_array_copy(coef_iz, coef_iz_cu); */
+    /* cv_d = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1})); */
     
-    gkyl_array_release(moms_elc_cu); gkyl_array_release(moms_donor_cu);
-    gkyl_array_release(prim_vars_cu);
-    gkyl_array_release(b_i_cu); gkyl_array_release(vtSq_iz_cu);
-    gkyl_array_release(coef_iz_cu);
+    /* gkyl_array_release(moms_elc_cu); gkyl_array_release(moms_donor_cu); */
+    /* gkyl_array_release(prim_vars_cu); */
+    /* gkyl_array_release(b_i_cu); gkyl_array_release(vtSq_iz_cu); */
+    /* gkyl_array_release(coef_iz_cu); */
   }
   else {
-    gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc, moms_donor, b_i, vtSq_iz, prim_vars, coef_iz, 0);
+    gkyl_dg_iz_coll(coll_iz_up_elc, moms_elc, moms_donor, b_i, prim_vars, vtSq_iz, upar_iz,
+		    fac_felc, fac_fmax, coef_iz, 0);
     cv_e = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
-    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc, moms_donor, b_i, vtSq_iz, prim_vars, coef_iz, 0);
+    gkyl_dg_iz_coll(coll_iz_up_ion, moms_elc, moms_donor, b_i, prim_vars, vtSq_iz, upar_iz,
+		    fac_felc, fac_fmax, coef_iz, 0);
     cv_i = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
-    gkyl_dg_iz_coll(coll_iz_up_donor, moms_elc, moms_donor, b_i, vtSq_iz, prim_vars, coef_iz, 0);
+    gkyl_dg_iz_coll(coll_iz_up_donor, moms_elc, moms_donor, b_i, prim_vars, vtSq_iz, upar_iz,
+		    fac_felc, fac_fmax, coef_iz, 0);
     cv_d = gkyl_array_cfetch(coef_iz, gkyl_range_idx(&confRange, (int[1]) { 1}));
   }
     
@@ -717,6 +730,7 @@ test_coll_iz_all_gk_li_1x(bool use_gpu)
   }
   
   gkyl_array_release(coef_iz); gkyl_array_release(vtSq_iz); gkyl_array_release(prim_vars);
+  gkyl_array_release(upar_iz); gkyl_array_release(fac_felc); gkyl_array_release(fac_fmax);
   gkyl_array_release(m0); gkyl_array_release(m2_elc); gkyl_array_release(m2_ion);
   gkyl_array_release(b_x); gkyl_array_release(b_y); gkyl_array_release(b_z);
   gkyl_array_release(moms_elc); gkyl_array_release(moms_donor);

@@ -19,6 +19,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   // form depend on react->type_self, e.g., for ionization and react->type_self == GKYL_SELF_ELC
   // react->f_react = n_elc*coeff_react*(2*fmax(n_elc, upar_donor, vtiz^2) - f_elc)
   react->f_react = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  react->f_elc_iz = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   react->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid,
     &app->confBasis, &app->basis, app->basis.poly_order+1, app->use_gpu);
 
@@ -167,7 +168,8 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
 
     if (react->react_id[i] == GKYL_REACT_IZ) {
       if (react->type_self[i] == GKYL_SELF_ELC) {
-        gkyl_array_set_offset(react->prim_vars[i], 1.0, react->vt_sq_iz[i], 1*app->confBasis.num_basis);
+	gkyl_array_set_offset(react->prim_vars[i], 1.0, react->upar_iz[i], 0);
+	gkyl_array_set_offset(react->prim_vars[i], 1.0, react->vt_sq_iz[i], 1*app->confBasis.num_basis);
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->moms_elc[i].marr, react->prim_vars[i],
           app->gk_geom->bmag, app->gk_geom->jacobtot, s->info.mass, react->f_react);
@@ -178,10 +180,16 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
           react->m0_elc[i], 0, s->m0.marr, &app->local);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
           react->m0_mod[i], react->f_react, &app->local_ext, &s->local_ext);
-
-        // electron update is n_elc*coeff_react*(2*fmax(n_elc, upar_donor, vtiz^2) - f_elc)
-        gkyl_array_scale(react->f_react, 2.0);
-        gkyl_array_accumulate(react->f_react, -1.0, fin);
+       
+	
+        // electron update is n_elc*coeff_react*(fac_fmax*fmax(n_elc, upar_iz, vtiz^2) + fac_felc*f_elc)
+        gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
+          react->fac_fmax[i], react->f_react, &app->local_ext, &s->local_ext);
+	gkyl_array_set(react->f_elc_iz, 1.0, fin);
+	gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_elc_iz,
+          react->fac_felc[i], react->f_elc_iz, &app->local_ext, &s->local_ext);
+        gkyl_array_accumulate(react->f_react, 1.0, react->f_elc_iz);
+	
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
             react->coeff_react[i], react->f_react, &app->local, &s->local);
         gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
@@ -261,6 +269,7 @@ void
 gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk_react *react)
 {
   gkyl_array_release(react->f_react);
+  gkyl_array_release(react->f_elc_iz);
   gkyl_proj_maxwellian_on_basis_release(react->proj_max);
   for (int i=0; i<react->num_react; ++i) {
     gk_species_moment_release(app, &react->moms_elc[i]);
