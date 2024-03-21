@@ -1,5 +1,8 @@
-// WARNING: This regression test currently (as of March 21st, 2024) fails.
-// There is an unhandled segmentation fault occurring somewhere in the Vlasov app for the case of the linear advection equation.
+// Sod-type shock tube test for the Euler equations using the DG/Vlasov solver, with first-order polynomial reconstruction.
+// Input parameters match the initial conditions in Section 2.6.2, with the contact discontinuity placed at x = 0.75 rather than x = 0.5, from the thesis:
+// A. Hakim (2006), "High Resolution Wave Propagation Schemes for Two-Fluid Plasma Simulations",
+// PhD Thesis, University of Washington.
+// https://www.aa.washington.edu/sites/aa/files/research/cpdlab/docs/PhDthesis_hakim.pdf
 
 #include <math.h>
 #include <stdio.h>
@@ -9,7 +12,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
-#include <gkyl_wv_advect.h>
+#include <gkyl_wv_euler.h>
 
 #include <gkyl_null_comm.h>
 
@@ -20,13 +23,18 @@
 
 #include <rt_arg_parse.h>
 
-struct advect_ctx
+struct sodshock_ctx
 {
-  // Mathematical constants (dimensionless).
-  double pi;
-
   // Physical constants (using normalized code units).
-  double v_advect; // Advection velocity.
+  double gas_gamma; // Adiabatic index.
+
+  double rhol; // Left fluid mass density.
+  double ul; // Left fluid velocity.
+  double pl; // Left fluid pressure.
+
+  double rhor; // Right fluid mass density.
+  double ur; // Right fluid velocity.
+  double pr; // Right fluid pressure.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -37,26 +45,36 @@ struct advect_ctx
   int num_frames; // Number of output frames.
 };
 
-struct advect_ctx
+struct sodshock_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
   // Physical constants (using normalized code units).
-  double v_advect = 1.0; // Advection velocity.
+  double gas_gamma = 1.4; // Adiabatic index.
+
+  double rhol = 3.0; // Left fluid mass density.
+  double ul = 0.0; // Left fluid velocity.
+  double pl = 3.0; // Left fluid pressure.
+
+  double rhor = 1.0; // Right fluid mass density.
+  double ur = 0.0; // Right fluid velocity.
+  double pr = 1.0; // Right fluid pressure.
 
   // Simulation parameters.
-  int Nx = 16; // Cell count (configuration space: x-direction).
-  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
-  int poly_order = 2; // Polynomial order.
-  double cfl_frac = 0.5; // CFL coefficient.
-  double t_end = 20.0 * pi; // Final simulation time.
+  int Nx = 512; // Cell count (configuration space: x-direction).
+  double Lx = 1.0; // Domain size (configuration space: x-direction).
+  int poly_order = 1; // Polynomial order.
+  double cfl_frac = 0.9; // CFL coefficient.
+  double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
-  
-  struct advect_ctx ctx = {
-    .pi = pi,
-    .v_advect = v_advect,
+
+  struct sodshock_ctx ctx = {
+    .gas_gamma = gas_gamma,
+    .rhol = rhol,
+    .ul = ul,
+    .pl = pl,
+    .rhor = rhor,
+    .ur = ur,
+    .pr = pr,
     .Nx = Nx,
     .Lx = Lx,
     .poly_order = poly_order,
@@ -69,23 +87,42 @@ create_ctx(void)
 }
 
 void
-evalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
+  struct sodshock_ctx *app = ctx;
 
-  // Set advected quantity.
-  fout[0] = sin(x);
-}
+  double gas_gamma = app -> gas_gamma;
 
-void
-evalVelInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct advect_ctx *app = ctx;
+  double rhol = app -> rhol;
+  double ul = app -> ul;
+  double pl = app -> pl;
 
-  double v_advect = app -> v_advect;
+  double rhor = app -> rhor;
+  double ur = app -> ur;
+  double pr = app -> pr;
 
-  // Set advection velocity.
-  fout[0] = v_advect;
+  double rho = 0.0;
+  double u = 0.0;
+  double p = 0.0;
+
+  if (x < 0.75) {
+    rho = rhol; // Fluid mass density (left).
+    u = ul; // Fluid velocity (left).
+    p = pl; // Fluid pressure (left).
+  }
+  else {
+    rho = rhor; // Fluid mass density (right).
+    u = ur; // Fluid velocity (right).
+    p = pr; // Fluid pressure (right).
+  }
+
+  // Set fluid mass density.
+  fout[0] = rho;
+  // Set fluid momentum density.
+  fout[1] = rho * u; fout[2] = 0.0; fout[3] = 0.0;
+  // Set fluid total energy density.
+  fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * u * u;
 }
 
 void
@@ -93,8 +130,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     gkyl_vlasov_app_write(app, t_curr, iot -> curr - 1);
-    gkyl_vlasov_app_calc_mom(app);
-    gkyl_vlasov_app_write_mom(app, t_curr, iot -> curr - 1);
   }
 }
 
@@ -114,25 +149,18 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct advect_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Linear advection equation.
-  struct gkyl_wv_eqn *advect = gkyl_wv_advect_new(ctx.v_advect);
+  // Fluid equations.
+  struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
   struct gkyl_vlasov_fluid_species fluid = {
-    .name = "q",
-    .charge = 0.0, .mass = 1.0,
-
-    .init = evalInit,
+    .name = "euler",
+    .equation = euler,
+    .init = evalEulerInit,
     .ctx = &ctx,
-
-    .equation = advect,
-    .advection = {
-      .velocity = evalVelInit,
-      .velocity_ctx = &ctx,
-    },
   };
 
   int nrank = 1; // Number of processors in simulation.
@@ -223,37 +251,37 @@ main(int argc, char **argv)
 
   // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
-    .name = "advect_1x",
+   .name = "dg_euler_sod_shock_p1",
 
-    .cdim = 1, .vdim = 0,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx},
-    .cells = { NX },
+   .cdim = 1, .vdim = 0, 
+   .lower = { 0.25 },
+   .upper = { 0.25 + ctx.Lx },
+   .cells = { NX },
 
-    .poly_order = ctx.poly_order,
-    .basis_type = app_args.basis_type,
-    .cfl_frac = ctx.cfl_frac,
+   .poly_order = ctx.poly_order,
+   .basis_type = app_args.basis_type,
+   .cfl_frac = ctx.cfl_frac,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+   .num_periodic_dir = 0,
+   .periodic_dirs = { },
 
-    .num_species = 0,
-    .species = { },
-    
-    .num_fluid_species = 1,
-    .fluid_species = { fluid },
+   .num_species = 0,
+   .species = { },
 
-    .skip_field = true,
+   .num_fluid_species = 1,
+   .fluid_species = { fluid },
 
-    .use_gpu = app_args.use_gpu,
+   .skip_field = true,
 
-    .has_low_inp = true,
+   .use_gpu = app_args.use_gpu,
+
+   .has_low_inp = true,
     .low_inp = {
       .local_range = decomp -> ranges[my_rank],
       .comm = comm
     }
   };
-  
+
   // Create app object.
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
@@ -314,6 +342,7 @@ main(int argc, char **argv)
   gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
   // Free resources after simulation completion.
+  gkyl_wv_eqn_release(euler);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
@@ -324,6 +353,6 @@ mpifinalize:
     MPI_Finalize();
   }
 #endif
-  
+
   return 0;
 }

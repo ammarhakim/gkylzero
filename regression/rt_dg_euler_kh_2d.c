@@ -1,3 +1,9 @@
+// 2D Kelvin-Helmholtz instability test for the Euler equations using the DG/Vlasov solver.
+// Input parameters match the initial conditions found in Section 4 of the article:
+// M. Sementilli, R. Zangeneh and J. Chen (2024), "Influence of Cross Perturbations on Turbulent Kelvin-Helmholtz Instability",
+// Fluids, Volume 9 (3): 52.
+// https://www.mdpi.com/2311-5521/9/3/52
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
