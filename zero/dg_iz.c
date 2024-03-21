@@ -171,6 +171,7 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
+    long nc = vtSq_iz->ncomp;
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);
     const double *m0_elc_d = &moms_elc_d[0];
 
@@ -185,12 +186,12 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
     up->calc_prim_vars_elc->kernel(up->calc_prim_vars_elc, conf_iter.idx,
 					moms_elc_d, prim_vars_elc_d);
 
-    if ( (up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION) ) {
-      const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
-      double *prim_vars_donor_d = gkyl_array_fetch(prim_vars_donor, loc);
-      up->calc_prim_vars_donor->kernel(up->calc_prim_vars_donor, conf_iter.idx,
-				       moms_donor_d, prim_vars_donor_d);
-    }
+    //if ( (up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION) ) {
+    const double *moms_donor_d = gkyl_array_cfetch(moms_donor, loc);
+    double *prim_vars_donor_d = gkyl_array_fetch(prim_vars_donor, loc);
+    up->calc_prim_vars_donor->kernel(up->calc_prim_vars_donor, conf_iter.idx,
+				     moms_donor_d, prim_vars_donor_d);
+      //}
 
     //Find cell containing value of n,T
     double cell_av_fac = pow(1/sqrt(2),up->cdim);
@@ -265,8 +266,8 @@ void
 gkyl_dg_iz_release(struct gkyl_dg_iz* up)
 {
   gkyl_array_release(up->ioniz_data);
-  gkyl_array_release(up->vtSq_elc);
+  gkyl_array_release(up->prim_vars_elc);
   gkyl_dg_prim_vars_type_release(up->calc_prim_vars_donor);
-  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc_vtSq);
+  gkyl_dg_prim_vars_type_release(up->calc_prim_vars_elc);
   free(up);
 }

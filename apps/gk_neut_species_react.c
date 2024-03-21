@@ -38,6 +38,9 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     gk_neut_species_moment_init(app, &app->neut_species[react->donor_idx[i]], &react->moms_donor[i], "FiveMoments");   
 
     react->coeff_react[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->fac_felc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->fac_fmax[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->upar_iz[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->vt_sq_iz[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars[i] = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
@@ -100,9 +103,9 @@ gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut
       }
 
       // compute ionization reaction rate
-      gkyl_dg_iz_coll(react->iz[i], react->moms_elc[i].marr, react->moms_donor[i].marr, 
-        app->gk_geom->b_i, react->vt_sq_iz[i], react->prim_vars[i],
-        react->coeff_react[i], 0);
+      gkyl_dg_iz_coll(react->iz[i], react->moms_elc[i].marr, react->moms_donor[i].marr,
+    	app->gk_geom->b_i, react->prim_vars[i], react->upar_iz[i], react->vt_sq_iz[i], 
+        react->fac_felc[i], react->fac_fmax[i], react->coeff_react[i], 0);
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       // compute needed moments
