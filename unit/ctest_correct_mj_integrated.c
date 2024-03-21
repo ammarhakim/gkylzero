@@ -212,6 +212,9 @@ test_1x1v(int poly_order)
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  // Correct the density of the projected LTE distribution function through rescaling
+  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
+  // Correct the other moments (V_drift, T/m)
   gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
@@ -365,6 +368,9 @@ test_1x1v_spatially_varied(int poly_order)
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  // Correct the density of the projected LTE distribution function through rescaling
+  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
+  // Correct the other moments (V_drift, T/m)
   gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
@@ -543,6 +549,9 @@ test_1x2v(int poly_order)
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  // Correct the density of the projected LTE distribution function through rescaling
+  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
+  // Correct the other moments (V_drift, T/m)
   gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
@@ -699,6 +708,9 @@ test_1x3v(int poly_order)
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  // Correct the density of the projected LTE distribution function through rescaling
+  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
+  // Correct the other moments (V_drift, T/m)
   gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
