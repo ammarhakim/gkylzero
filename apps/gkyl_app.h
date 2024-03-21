@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <gkyl_array_rio.h>
 
 // Update status
 struct gkyl_update_status {
@@ -8,6 +9,13 @@ struct gkyl_update_status {
   double dt_actual; // actual time-step taken
   double dt_suggested; // suggested stable time-step
 };
+
+// Status of restart
+struct gkyl_app_restart_status {
+  enum gkyl_array_rio_status io_status; // status of the file read
+  int frame; // frame number of file read
+  double stime; // simulation time at which data was read 
+};  
 
 // Boundary conditions on particles
 enum gkyl_species_bc_type {

@@ -25,7 +25,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
   const struct gkyl_array* moms_donor, struct gkyl_array* vtSq_elc, struct gkyl_array* vtSq_iz, struct gkyl_array* prim_vars_donor,
   struct gkyl_array* coef_iz, struct gkyl_array* ioniz_data, int num_basis, enum gkyl_react_self_type type_self,
   double mass_elc, double elem_charge, double E, double maxLogTe, double minLogTe, double dlogTe,
-  double maxLogM0, double minLogM0, double dlogM0, int resTe, int resM0, long nc)
+  double maxLogM0, double minLogM0, double dlogM0, int resTe, int resM0)
 {
   int cidx[GKYL_MAX_CDIM];
   for(unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
@@ -76,7 +76,7 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     cell_center = (m0_idx - 0.5)*dlogM0 + minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/dlogM0; // M0 value on cell interval
  
-    if ((E/temp_elc_av >= 3./2.) || (m0_elc_av <= 0.)) {
+    if ((temp_elc_av <= 0.) || (m0_elc_av <= 0.)) {
       coef_iz_d[0] = 0.0;
     }
     else {
@@ -84,8 +84,8 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
       double *iz_dat_d = (double*) gkyl_array_fetch(ioniz_data, gkyl_range_idx(&adas_rng, ad_idx));
       double adas_eval = adas_basis->eval_expand(cell_vals_2d, iz_dat_d);
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
-      if (temp_elc_av <= 0.) {
-	array_set1(nc, vtSq_iz_d, 0.5, vtSq_elc_d);
+      if (E/temp_elc_av >= 3./2.) {
+	array_set1(vtSq_iz->ncomp, vtSq_iz_d, 0.5, vtSq_elc_d);
       	vtSq_iz_d[0] = vtSq_iz_d[0] - E*elem_charge/(3*mass_elc*cell_av_fac);
       }
       else {
@@ -106,22 +106,12 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *mo
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   }
 
-  long nc = vtSq_iz->ncomp; 
   gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng,
     up->basis_on_dev, up->calc_prim_vars_elc_vtSq->on_dev, up->calc_prim_vars_donor->on_dev, 
     moms_elc->on_dev, moms_donor->on_dev, up->vtSq_elc->on_dev, vtSq_iz->on_dev, prim_vars_donor->on_dev,
     coef_iz->on_dev, up->ioniz_data->on_dev, up->cbasis->num_basis,
     up->type_self, up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe,
-    up->dlogTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resTe, up->resM0, nc);
-
-  // if (up->type_self == GKYL_SELF_ELC) {
-     
-  //   // Calculate vt_sq_iz
-  //   gkyl_array_copy_range(vtSq_iz, up->vtSq_elc, up->conf_rng);
-  //   gkyl_array_scale_range(vtSq_iz, 1/2.0, up->conf_rng);
-  //   gkyl_array_shiftc(vtSq_iz, -up->E*up->elem_charge/(3*up->mass_elc)*pow(sqrt(2),up->cdim), 0);
-
-  // }
+    up->dlogTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resTe, up->resM0);
   
   // cfl calculation
   //struct gkyl_range vel_rng;

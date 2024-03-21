@@ -360,7 +360,7 @@ write_nodal_coordinates(const char *nm, struct gkyl_range *nrange,
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
 
-  gkyl_grid_sub_array_write(&grid, nrange, nodes, nm);
+  gkyl_grid_sub_array_write(&grid, nrange, 0, nodes, nm);
 }
 
 

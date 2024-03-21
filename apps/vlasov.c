@@ -167,7 +167,7 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
     // write DG projection of mapc2p to file
     cstr fileNm = cstr_from_fmt("%s-mapc2p.gkyl", app->name);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, c2p, fileNm.str);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, c2p, fileNm.str);
     cstr_drop(&fileNm);
 
     gkyl_array_release(c2p);
@@ -435,10 +435,10 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->field->em_host, app->field->em);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em_host, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field->em_host, fileNm);
   }
   else {
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field->em, fileNm);
   }
 }
 
@@ -454,11 +454,11 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
     // copy data from device to host before writing it out
     gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      app->species[sidx].f_host, fileNm);
+      0, app->species[sidx].f_host, fileNm);
   }
   else {
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      app->species[sidx].f, fileNm);
+      0, app->species[sidx].f, fileNm);
   }
 }
 
@@ -498,7 +498,7 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
   if (app->use_gpu) 
     gkyl_array_copy(app->fluid_species[sidx].fluid_host, app->fluid_species[sidx].fluid);
 
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local,
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0,
     app->fluid_species[sidx].fluid_host, fileNm);
 }
 
@@ -518,7 +518,7 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
       if (app->use_gpu)
         gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
 
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->species[i].moms[m].marr_host, fileNm);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->species[i].moms[m].marr_host, fileNm);
     }
   }
 }

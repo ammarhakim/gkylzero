@@ -56,7 +56,7 @@ test_eval_1(enum gkyl_basis_type type)
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes");
   
-  gkyl_grid_sub_array_write(&grid, &arr_range, distf, fileNm);
+  gkyl_grid_sub_array_write(&grid, &arr_range, 0, distf, fileNm);
   
   gkyl_eval_on_nodes_release(evalDistf);
   gkyl_array_release(distf);
@@ -118,14 +118,14 @@ test_eval_2(enum gkyl_basis_type type)
     int sz = snprintf(0, 0, fmt[type], "rt_eval_on_nodes_rtheta");
     char fileNm[sz+1]; // ensures no buffer overflow  
     snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes_rtheta");
-    gkyl_grid_sub_array_write(&grid, &arr_range, rtheta, fileNm);
+    gkyl_grid_sub_array_write(&grid, &arr_range, 0, rtheta, fileNm);
   } while (0);
 
   do {
     int sz = snprintf(0, 0, fmt[type], "rt_eval_on_nodes_f");
     char fileNm[sz+1]; // ensures no buffer overflow  
     snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes_f");
-    gkyl_grid_sub_array_write(&grid, &arr_range, f, fileNm);
+    gkyl_grid_sub_array_write(&grid, &arr_range, 0, f, fileNm);
   } while (0);
   
   gkyl_eval_on_nodes_release(eval_mapc2p);
@@ -179,14 +179,14 @@ test_eval_3(enum gkyl_basis_type type)
     int sz = snprintf(0, 0, fmt[type], "rt_eval_on_nodes_rtheta_shock");
     char fileNm[sz+1]; // ensures no buffer overflow  
     snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes_rtheta_shock");
-    gkyl_grid_sub_array_write(&grid, &arr_range, rtheta, fileNm);
+    gkyl_grid_sub_array_write(&grid, &arr_range, 0, rtheta, fileNm);
   } while (0);
 
   do {
     int sz = snprintf(0, 0, fmt[type], "rt_eval_on_nodes_f_shock");
     char fileNm[sz+1]; // ensures no buffer overflow  
     snprintf(fileNm, sizeof fileNm, fmt[type], "rt_eval_on_nodes_f_shock");
-    gkyl_grid_sub_array_write(&grid, &arr_range, f, fileNm);
+    gkyl_grid_sub_array_write(&grid, &arr_range, 0, f, fileNm);
   } while (0);
   
   gkyl_eval_on_nodes_release(eval_mapc2p);

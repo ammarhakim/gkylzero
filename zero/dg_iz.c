@@ -169,7 +169,6 @@ void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_
   int rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<up->conf_rng->ndim; ++d) rem_dir[d] = 1;
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
-  long nc = vtSq_iz->ncomp;
   while (gkyl_range_iter_next(&conf_iter)) {
     long loc = gkyl_range_idx(up->conf_rng, conf_iter.idx);
     const double *moms_elc_d = gkyl_array_cfetch(moms_elc, loc);

@@ -13,10 +13,6 @@ INSTALL_PREFIX ?= ${PREFIX}
 # determine OS we are running on
 UNAME = $(shell uname)
 
-# Directory for storing shared data, like ADAS
-GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
-CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
-
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC = $(PREFIX)/OpenBLAS/include
 LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
@@ -56,6 +52,10 @@ ifeq ($(CC), nvcc)
        endif
        CUDA_LIBS += -lcublas -lcusparse -lcusolver
 endif
+
+# Directory for storing shared data, like ADAS reaction rates and radiation fits
+GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
+CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
 
 # Read MPI paths and flags if needed 
 USING_MPI =
@@ -328,6 +328,8 @@ $(ZERO_SH_INSTALL_LIB): $(OBJS)
 
 .PHONY: all
 all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/share/adas
+	cp ./data/adas/radiation_fit_parameters.txt ${INSTALL_PREFIX}/gkylzero/share/adas
 
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
@@ -375,6 +377,14 @@ clean: ## Clean build output
 .PHONY: cleanur
 cleanur: ## Delete the unit and regression test executables
 	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/xglua
+
+.PHONY: cleanr
+cleanr: ## Delete the regression test executables
+	rm -rf ${BUILD_DIR}/regression
+
+.PHONY: cleanu
+cleanu: ## Delete the regression test executables
+	rm -rf ${BUILD_DIR}/unit
 
 # include dependencies
 -include $(DEPS)
