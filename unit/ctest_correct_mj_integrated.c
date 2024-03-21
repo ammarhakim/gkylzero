@@ -183,6 +183,16 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
+  // create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+
+  // projection updater to compute mj
+  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
+    &confBasis, &basis, poly_order + 1, false);
+
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms_corr, distf);
+
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
@@ -199,27 +209,23 @@ test_1x1v(int poly_order)
   gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
     p_over_gamma, gamma, gamma_inv);
 
-  // create distribution function array
-  struct gkyl_array *distf_mj;
-  distf_mj = mkarr(basis.num_basis, local_ext.volume);
-
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, moms_corr, &local, &confLocal);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Write the output
   char fname[1024];
   sprintf(fname, "ctest_correct_mj_integrated_1x1v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
+  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // Correct the distribution function
   gkyl_maxwellian_moments *maxwellian_moms = gkyl_maxwellian_moments_new(&grid, &confBasis, &basis, 
     &confLocal, &confLocal_ext, &velLocal, 
     p_over_gamma, gamma, gamma_inv, 
     GKYL_MODEL_SR, 1.0, false);
-  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf_mj, moms);
+  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -229,7 +235,7 @@ test_1x1v(int poly_order)
     0.06572788982671821, 8.645045365809577e-18, -5.979556483302724e-17,
     -0.001036545017544019, 2.229425706102836e-17, 2.764128755933108e-17};
 
-  const double *fv = gkyl_array_cfetch(distf_mj, gkyl_range_idx(&local_ext, (int[2]){1, 16}));
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){1, 16}));
 
   if (poly_order == 2)
     for (int i = 0; i < basis.num_basis; ++i)
@@ -244,7 +250,8 @@ test_1x1v(int poly_order)
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
   gkyl_array_release(moms_corr);
-  gkyl_array_release(distf_mj);
+  gkyl_array_release(distf);
+  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -329,6 +336,16 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
+  // create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+
+  // projection updater to compute mj
+  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
+    &confBasis, &basis, poly_order + 1, false);
+
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms_corr, distf);
+
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
@@ -345,27 +362,23 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
     p_over_gamma, gamma, gamma_inv);
 
-  // create distribution function array
-  struct gkyl_array *distf_mj;
-  distf_mj = mkarr(basis.num_basis, local_ext.volume);
-
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, moms_corr, &local, &confLocal);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Write the output
   char fname[1024];
   sprintf(fname, "ctest_correct_mj_integrated_1x1v_p%d_x.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
+  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // Correct the distribution function
   gkyl_maxwellian_moments *maxwellian_moms = gkyl_maxwellian_moments_new(&grid, &confBasis, &basis, 
     &confLocal, &confLocal_ext, &velLocal, 
     p_over_gamma, gamma, gamma_inv, 
     GKYL_MODEL_SR, 1.0, false);
-  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf_mj, moms);
+  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -394,7 +407,7 @@ test_1x1v_spatially_varied(int poly_order)
   double m2_vals[] = {2.2057459659974712e+00,3.4938172762332981e-01,-2.4953670224477753e-02};
 
 
-  //const double *fv = gkyl_array_cfetch(distf_mj, gkyl_range_idx(&local_ext, (int[2]){1, 16}));
+  //const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){1, 16}));
   const double *m0_fixed = gkyl_array_cfetch(m0, gkyl_range_idx(&confLocal_ext, (int[1]){1}));
   const double *m1i_fixed = gkyl_array_cfetch(m1i, gkyl_range_idx(&confLocal_ext, (int[1]){1}));
   const double *m2_fixed = gkyl_array_cfetch(m2, gkyl_range_idx(&confLocal_ext, (int[1]){1}));
@@ -415,7 +428,8 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
   gkyl_array_release(moms_corr);
-  gkyl_array_release(distf_mj);
+  gkyl_array_release(distf);
+  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -500,6 +514,16 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
+  // create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+
+  // projection updater to compute mj
+  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
+    &confBasis, &basis, poly_order + 1, false);
+
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms_corr, distf);
+
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
@@ -516,14 +540,10 @@ test_1x2v(int poly_order)
   gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
     p_over_gamma, gamma, gamma_inv);
 
-  // create distribution function array
-  struct gkyl_array *distf_mj;
-  distf_mj = mkarr(basis.num_basis, local_ext.volume);
-
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, moms_corr, &local, &confLocal);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Correct the distribution function
@@ -531,7 +551,7 @@ test_1x2v(int poly_order)
     &confLocal, &confLocal_ext, &velLocal, 
     p_over_gamma, gamma, gamma_inv, 
     GKYL_MODEL_SR, 1.0, false);
-  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf_mj, moms);
+  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -539,7 +559,7 @@ test_1x2v(int poly_order)
   // Write the output
   char fname[1024];
   sprintf(fname, "ctest_correct_mj_integrated_1x2v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
+  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.1196584827807841, -3.488028281807569e-18,
@@ -550,7 +570,7 @@ test_1x2v(int poly_order)
     -4.291622780592622e-05, 2.924904640105737e-19, -0.0002003167531638971,
     2.378358894760202e-18, -2.237263192050087e-19, -2.237263192050087e-19};
 
-  const double *fv = gkyl_array_cfetch(distf_mj, gkyl_range_idx(&local_ext, (int[3]){1, 16, 16}));
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]){1, 16, 16}));
 
   if (poly_order == 2)
     for (int i = 0; i < basis.num_basis; ++i)
@@ -565,7 +585,8 @@ test_1x2v(int poly_order)
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
   gkyl_array_release(moms_corr);
-  gkyl_array_release(distf_mj);
+  gkyl_array_release(distf);
+  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -649,6 +670,16 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_advance(proj_m1i, 0.0, &confLocal, m1i);
   gkyl_proj_on_basis_advance(proj_m2, 0.0, &confLocal, m2);
 
+  // create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+
+  // projection updater to compute mj
+  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
+    &confBasis, &basis, poly_order + 1, false);
+
+  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms, distf);
+
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
@@ -665,14 +696,10 @@ test_1x3v(int poly_order)
   gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
     p_over_gamma, gamma, gamma_inv);
 
-  // create distribution function array
-  struct gkyl_array *distf_mj;
-  distf_mj = mkarr(basis.num_basis, local_ext.volume);
-
   // Create a MJ with corrected moments
   gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
     &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf_mj, moms_corr, &local, &confLocal);
+  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Correct the distribution function
@@ -680,7 +707,7 @@ test_1x3v(int poly_order)
     &confLocal, &confLocal_ext, &velLocal, 
     p_over_gamma, gamma, gamma_inv, 
     GKYL_MODEL_SR, 1.0, false);
-  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf_mj, moms);
+  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -688,7 +715,7 @@ test_1x3v(int poly_order)
   // Write the output
   char fname[1024];
   sprintf(fname, "ctest_correct_mj_integrated_1x3v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
+  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.002127623222951445, -2.162483920741371e-19, 0.001142561434831357,
@@ -708,7 +735,7 @@ test_1x3v(int poly_order)
     7.33114714188532e-20, 7.168010462744468e-05, -3.388438170490261e-19,
     3.636875421167469e-20, -3.907432934183393e-20, 3.636875421167467e-20};
 
-  const double *fv = gkyl_array_cfetch(distf_mj, gkyl_range_idx(&local_ext, (int[4]){1, 8, 8, 8}));
+  const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[4]){1, 8, 8, 8}));
 
   if (poly_order == 2)
     for (int i = 0; i < basis.num_basis; ++i)
@@ -723,7 +750,8 @@ test_1x3v(int poly_order)
   gkyl_array_release(m1i_corr);
   gkyl_array_release(m2_corr);
   gkyl_array_release(moms_corr);
-  gkyl_array_release(distf_mj);
+  gkyl_array_release(distf);
+  gkyl_proj_mj_on_basis_release(proj_mj);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);

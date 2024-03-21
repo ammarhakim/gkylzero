@@ -97,17 +97,6 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   int vdim = c_corr->vdim;
   int nc = c_corr->num_conf_basis;
 
-  // 0. Project the LTE distribution with the target moments and correct the density
-  if (c_corr->model_id == GKYL_MODEL_SR) {
-    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(c_corr->proj_mj, phase_local, 
-      conf_local, moms_target, f_lte);
-  }
-  else {
-    gkyl_proj_maxwellian_on_basis_prim_mom(c_corr->proj_max, phase_local, 
-      conf_local, moms_target, f_lte);
-  }
-  gkyl_correct_density_moment_vlasov_lte(c_corr, f_lte, moms_target, phase_local, conf_local);
-
   // tolerance of the iterative scheme
   double tol = 1e-12;
   c_corr->niter = 0;
@@ -172,12 +161,12 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
 
     // 2. Update the LTE distribution function using the corrected moments
     if (c_corr->model_id == GKYL_MODEL_SR) {
-      gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(c_corr->proj_mj, phase_local, 
-        conf_local, c_corr->moms_iter, f_lte);
+      gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(c_corr->proj_mj, 
+        phase_local, conf_local, c_corr->moms_iter, f_lte);
     }
     else {
-      gkyl_proj_maxwellian_on_basis_lab_mom(c_corr->proj_max, phase_local, 
-        conf_local, c_corr->moms_iter, f_lte);
+      gkyl_proj_maxwellian_on_basis_prim_mom(c_corr->proj_max, 
+        phase_local, conf_local, c_corr->moms_iter, f_lte);
     }
     // 3. Correct the n moment to fix the asymptotically approximated MJ function
     gkyl_correct_density_moment_vlasov_lte(c_corr, f_lte, c_corr->moms_iter, phase_local, conf_local);
@@ -194,12 +183,12 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   // Project the distribution function with the basic moments and correct n
   if (c_corr->status == 1) {
     if (c_corr->model_id == GKYL_MODEL_SR) {
-      gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(c_corr->proj_mj, phase_local, 
-        conf_local, moms_target, f_lte);
+      gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(c_corr->proj_mj, 
+        phase_local, conf_local, moms_target, f_lte);
     }
     else {
-      gkyl_proj_maxwellian_on_basis_lab_mom(c_corr->proj_max, phase_local, 
-        conf_local, moms_target, f_lte);
+      gkyl_proj_maxwellian_on_basis_prim_mom(c_corr->proj_max, 
+        phase_local, conf_local, moms_target, f_lte);
     }
     gkyl_correct_density_moment_vlasov_lte(c_corr, f_lte, moms_target, phase_local, conf_local);
   }

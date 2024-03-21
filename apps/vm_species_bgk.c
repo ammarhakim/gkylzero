@@ -101,16 +101,14 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
     gkyl_proj_maxwellian_on_basis_prim_mom(bgk->proj_max, &species->local, &app->local, 
       bgk->moms.marr, bgk->f_lte);
   }
-
-  // Correct the projected LTE distribution function to have the desired LTE moments
+  // Correct the density of the projected LTE distribution function through rescaling
+  gkyl_correct_density_moment_vlasov_lte(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
+    &species->local, &app->local);
+  // Correct all the moments of the projected LTE distribution function 
   if (bgk->correct_all_moms) {
     gkyl_correct_all_moments_vlasov_lte(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
       &species->local, &app->local);
   } 
-  else {
-    gkyl_correct_density_moment_vlasov_lte(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
-      &species->local, &app->local);
-  }
 
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->f_lte, 
     bgk->self_nu, bgk->f_lte, &app->local, &species->local);
