@@ -64,7 +64,7 @@ gkyl_correct_vlasov_lte_new(const struct gkyl_rect_grid *phase_grid,
   return up;
 }
 
-void 
+struct gkyl_correct_vlasov_lte_status
 gkyl_correct_density_moment_vlasov_lte(gkyl_correct_vlasov_lte *c_corr, 
   struct gkyl_array *f_lte, const struct gkyl_array *moms_target, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local)
@@ -85,9 +85,14 @@ gkyl_correct_density_moment_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   // rescale distribution function
   gkyl_dg_mul_conf_phase_op_range(&c_corr->conf_basis, &c_corr->phase_basis,
     f_lte, c_corr->num_ratio, f_lte, conf_local, phase_local);
+
+  return (struct gkyl_correct_vlasov_lte_status) {
+    .iter_converged = true,
+    .num_iter = 1
+  };
 }
 
-void 
+struct gkyl_correct_vlasov_lte_status
 gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   struct gkyl_array *f_lte, const struct gkyl_array *moms_target, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local)
@@ -96,8 +101,10 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   int nc = c_corr->num_conf_basis;
 
   // tolerance of the iterative scheme
-  double tol = 1e-12;
-  c_corr->niter = 0;
+  double tol = 1e-12; // SET MAX TOL FROM INPUT
+  int niter = 0;
+  bool corr_status = true;
+  
   c_corr->error_n = 1.0;
   c_corr->error_vb[0] = 1.0;
   c_corr->error_vb[1] = 0.0;
@@ -112,8 +119,10 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   gkyl_array_clear(c_corr->d_moms, 0.0);
   gkyl_array_clear(c_corr->dd_moms, 0.0);
 
-  // Iteration loop, 100 iterations is usually sufficient (for all vdim) for machine precision moments
-  while ((c_corr->niter < 100) && ((fabs(c_corr->error_n) > tol) || (fabs(c_corr->error_vb[0]) > tol) ||
+  int max_iter = 100; // SET TO MAX ITER FROM INPUT
+
+  // Iteration loop, max_iter iterations is usually sufficient (for all vdim) for machine precision moments
+  while ((niter < max_iter) && ((fabs(c_corr->error_n) > tol) || (fabs(c_corr->error_vb[0]) > tol) ||
     (fabs(c_corr->error_vb[1]) > tol) || (fabs(c_corr->error_vb[2]) > tol) || (fabs(c_corr->error_T) > tol)))
   {
     // 1. Calculate the LTE moments (n, V_drift, T) from the projected LTE distribution
@@ -130,7 +139,7 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
     gkyl_array_accumulate(c_corr->d_moms, 1.0, c_corr->dd_moms);
 
     // End the iteration early if all moments converge
-    if ((c_corr->niter % 1) == 0){
+    if ((niter % 1) == 0){
       struct gkyl_range_iter biter;
 
       // Reset the maximum error
@@ -169,19 +178,19 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
     // 3. Correct the n moment to fix the asymptotically approximated MJ function
     gkyl_correct_density_moment_vlasov_lte(c_corr, f_lte, c_corr->moms_iter, phase_local, conf_local);
 
-    c_corr->niter += 1;
+    niter += 1;
   }
-  if ((c_corr->niter < 100) && ((fabs(c_corr->error_n) < tol) && (fabs(c_corr->error_vb[0]) < tol) &&
+  if ((niter < max_iter) && ((fabs(c_corr->error_n) < tol) && (fabs(c_corr->error_vb[0]) < tol) &&
     (fabs(c_corr->error_vb[1]) < tol) && (fabs(c_corr->error_vb[2]) < tol) && (fabs(c_corr->error_T) < tol))) {
-    c_corr->status = 0;
+    corr_status = 0;
   } 
   else {
-    c_corr->status = 1;
+    corr_status = 1;
   }
 
   // If the algorithm fails (density fails to converge)!
   // Project the distribution function with the basic moments and correct n
-  if (c_corr->status == 1) {
+  if (corr_status == 1) {
     if (c_corr->model_id == GKYL_MODEL_SR) {
       gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(c_corr->proj_mj, 
         phase_local, conf_local, moms_target, f_lte);
@@ -192,6 +201,11 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
     }
     gkyl_correct_density_moment_vlasov_lte(c_corr, f_lte, moms_target, phase_local, conf_local);
   }
+
+  return (struct gkyl_correct_vlasov_lte_status) {
+    .iter_converged = corr_status,
+    .num_iter = niter
+  };  
 }
 
 void 

@@ -31,6 +31,4 @@ struct gkyl_correct_vlasov_lte
   double error_n; 
   double error_vb[3];
   double error_T;
-  int status; 
-  int niter;
 };
