@@ -172,10 +172,12 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
     c_corr->niter += 1;
   }
   if ((c_corr->niter < 100) && ((fabs(c_corr->error_n) < tol) && (fabs(c_corr->error_vb[0]) < tol) &&
-    (fabs(c_corr->error_vb[1]) < tol) && (fabs(c_corr->error_vb[2]) < tol) && (fabs(c_corr->error_T) < tol)))
+    (fabs(c_corr->error_vb[1]) < tol) && (fabs(c_corr->error_vb[2]) < tol) && (fabs(c_corr->error_T) < tol))) {
     c_corr->status = 0;
-  else
+  } 
+  else {
     c_corr->status = 1;
+  }
 
   // If the algorithm fails (density fails to converge)!
   // Project the distribution function with the basic moments and correct n

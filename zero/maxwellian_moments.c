@@ -139,8 +139,10 @@ gkyl_maxwellian_moments_advance(struct gkyl_maxwellian_moments *maxwell_moms,
     gkyl_array_set(maxwell_moms->M0_minus_V_drift_dot_M1i, 1.0, maxwell_moms->M0);
     gkyl_array_accumulate_range(maxwell_moms->M0_minus_V_drift_dot_M1i, -1.0, 
       maxwell_moms->V_drift_dot_M1i, conf_local);
-    gkyl_dg_mul_op_range(maxwell_moms->conf_basis, 0, moms, 
-      0, maxwell_moms->Gamma, 0, maxwell_moms->M0_minus_V_drift_dot_M1i, conf_local);
+    //gkyl_dg_mul_op_range(maxwell_moms->conf_basis, 0, moms, 
+    //  0, maxwell_moms->Gamma, 0, maxwell_moms->M0_minus_V_drift_dot_M1i, conf_local);
+    gkyl_dg_div_op_range(maxwell_moms->mem,maxwell_moms->conf_basis, 0, moms, 
+      0, maxwell_moms->M0_minus_V_drift_dot_M1i, 0, maxwell_moms->Gamma_inv, conf_local);
   }
   else {
     // Compute the lab frame M2 = vdim*P/m + V_drift dot M1i.

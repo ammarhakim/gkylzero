@@ -101,6 +101,7 @@ main(int argc, char **argv)
 
       .ctx = &ctx,
       .self_nu = evalNu,
+      .correct_all_moms = false,
     },
 
     //.num_diag_moments = 2,
