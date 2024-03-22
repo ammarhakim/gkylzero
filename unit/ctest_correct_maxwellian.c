@@ -3,7 +3,6 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
-//#include <gkyl_correct_maxwellian.h>
 #include <gkyl_correct_lte.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov.h>
@@ -196,7 +195,7 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_array_scale(gkyl_array_copy(m0_r, m0), 2.5);
   
   // correct the Maxwellian
-  //gkyl_correct_maxwellian_fix(corr_max, distf, m0_r, &local, &confLocal);
+  //gkyl_correct_all_moments_vlasov_lte(corr_max, distf, m0_r, &local, &confLocal); // TODO
   gkyl_correct_density_moment_vlasov_lte(corr_max, distf, m0_r, &local, &confLocal);
 
  // write distribution function to file
