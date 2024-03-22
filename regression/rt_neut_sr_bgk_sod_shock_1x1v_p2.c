@@ -28,7 +28,7 @@ maxwelljuttner1D(double n, double px, double ux, double T)
 
   // Set the normalization  
   double K1;
-  if (T == 1.0){
+  if (T == 1.0) {
     K1 = 0.601907230197235;
   } else {
     K1 = 0.495079105512939;
@@ -89,8 +89,8 @@ main(int argc, char **argv)
     .name = "neut",
     .model_id = GKYL_MODEL_SR,
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -10.0*ctx.vt},
-    .upper = { 10.0*ctx.vt}, 
+    .lower = { -20.0*ctx.vt},
+    .upper = { 20.0*ctx.vt}, 
     .cells = { NV },
 
     .ctx = &ctx,
