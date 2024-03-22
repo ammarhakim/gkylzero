@@ -20,6 +20,32 @@ struct gkyl_vm_low_inp {
   struct gkyl_comm *comm;
 };
 
+// Parameters for projection
+struct gkyl_vlasov_projection {
+  enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
+
+  union {
+    struct {
+      // pointer and context to initialization function 
+      void *ctx_func; 
+      void (*func)(double t, const double *xn, double *fout, void *ctx); 
+    };
+    struct {
+      // pointers and contexts to initialization functions for LTE distribution projection
+      // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
+      void *ctx_density;
+      void (*density)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_V_drift;
+      void (*V_drift)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_temp;
+      void (*temp)(double t, const double *xn, double *fout, void *ctx);
+
+      // boolean if we are correcting all the moments or only density
+      bool correct_all_moms;       
+    };
+  };
+};
+
 // Parameters for species collisions
 struct gkyl_vlasov_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -50,9 +76,8 @@ struct gkyl_vlasov_source {
   double source_length; // required for boundary flux source
   char source_species[128];
   
-  void *ctx; // context for source function
-  // function for computing source profile
-  void (*profile)(double t, const double *xn, double *aout, void *ctx);
+  // sources using projection routine
+  struct gkyl_vlasov_projection projection;
 };
 
 // Parameters for fluid species source
@@ -92,9 +117,8 @@ struct gkyl_vlasov_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
-  void *ctx; // context for initial condition init function
-  // pointer to initialization function
-  void (*init)(double t, const double *xn, double *fout, void *ctx);
+  // initial conditions using projection routine
+  struct gkyl_vlasov_projection projection;
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments

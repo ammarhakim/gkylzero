@@ -93,8 +93,11 @@ main(int argc, char **argv)
     .upper = { 20.0*ctx.vt}, 
     .cells = { NV },
 
-    .ctx = &ctx,
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFunc,
+      .ctx_func = &ctx,
+    },
 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
@@ -104,10 +107,8 @@ main(int argc, char **argv)
       .correct_all_moms = false,
     },
 
-    //.num_diag_moments = 2,
-    //.diag_moments = { "M0", "M1i" }, //, "Pressure"
-    .num_diag_moments = 1,
-    .diag_moments = { "LTEMoments" },
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "LTEMoments" },
   };
 
   // VM app

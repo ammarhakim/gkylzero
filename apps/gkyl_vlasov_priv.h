@@ -190,6 +190,46 @@ struct vm_boundary_fluxes {
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
 };
 
+struct vm_proj {
+  enum gkyl_projection_id proj_id; // type of projection
+  enum gkyl_model_id model_id;
+  // organization of the different projection objects and the required data and solvers
+  union {
+    // function projection
+    struct {
+      struct gkyl_proj_on_basis *proj_func; // projection operator for specified function
+      struct gkyl_array *proj_host; // array for projection on host-side if running on GPUs
+    };
+    // LTE (Local thermodynamic equilibrium) distribution function project with moment correction
+    // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
+    struct {
+      struct gkyl_array *dens; // host-side density
+      struct gkyl_array *V_drift; // host-side V_drift
+      struct gkyl_array *T_over_m; // host-side T/m (temperature/mass)
+
+      struct gkyl_array *vlasov_lte_moms_host; // host-side LTE moms (n, V_drift, T/m)
+      struct gkyl_array *vlasov_lte_moms; // LTE moms (n, V_drift, T/m) for passing to updaters
+
+      struct gkyl_proj_on_basis *proj_dens; // projection operator for density
+      struct gkyl_proj_on_basis *proj_V_drift; // projection operator for V_drift
+      struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
+      union {
+        // special-relativistic Vlasov-Maxwell model
+        struct {
+          struct gkyl_proj_mj_on_basis *proj_mj; // Maxwell-Juttner projection object
+        };
+        // non-relativistic Vlasov-Maxwell model
+        struct {
+          struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
+        };
+      };
+      // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
+      bool correct_all_moms; // boolean if we are correcting all the moments or only density
+      struct gkyl_correct_vlasov_lte *corr_lte;      
+    };
+  };
+};
+
 struct vm_source {
   struct vm_species_moment moms; // source moments
 
@@ -198,7 +238,7 @@ struct vm_source {
 
   struct gkyl_array *source; // applied source
   struct gkyl_array *source_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *source_proj; // projector for source
+  struct vm_proj proj_source; // projector for source
 
   struct vm_species *source_species; // species to use for the source
   int source_species_idx; // index of source species
@@ -289,6 +329,8 @@ struct vm_species {
   struct gkyl_array *accel_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *accel_proj; // projector for acceleration
   struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
+
+  struct vm_proj proj_init; // projector for initial conditions
 
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
@@ -710,6 +752,39 @@ void vm_species_bflux_rhs(gkyl_vlasov_app *app, const struct vm_species *species
  */
 void vm_species_bflux_release(const struct gkyl_vlasov_app *app, const struct vm_boundary_fluxes *bflux);
 
+/** vm_species_projection API */
+
+/**
+ * Initialize species projection object.
+ *
+ * @param app vlasov app object
+ * @param s Species object 
+ * @param inp Input struct for projection (contains functions pointers for type of projection)
+ * @param proj Species projection object
+ */
+void vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s, 
+  struct gkyl_vlasov_projection inp, struct vm_proj *proj);
+
+/**
+ * Compute species projection
+ *
+ * @param app vlasov app object
+ * @param species Species object
+ * @param proj Species projection object
+ * @param f Output distribution function from projection
+ * @param tm Time for use in projection
+ */
+void vm_species_projection_calc(gkyl_vlasov_app *app, const struct vm_species *species, 
+  struct vm_proj *proj, struct gkyl_array *f, double tm);
+
+/**
+ * Release species projection object.
+ *
+ * @param app vlasov app object
+ * @param proj Species projection object to release
+ */
+void vm_species_projection_release(const struct gkyl_vlasov_app *app, const struct vm_proj *proj);
+
 /** vm_species_source API */
 
 /**
@@ -726,9 +801,11 @@ void vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, s
  *
  * @param app Vlasov app object
  * @param species Species object
+ * @param src Pointer to source
  * @param tm Time for use in source
  */
-void vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *species, double tm);
+void vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *species, 
+  struct vm_source *src, double tm);
 
 /**
  * Compute RHS contribution from source

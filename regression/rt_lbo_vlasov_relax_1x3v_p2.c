@@ -80,8 +80,11 @@ main(int argc, char **argv)
     .upper = { 8.0*ctx.vt, 8.0*ctx.vt, 8.0*ctx.vt }, 
     .cells = { 16, 16, 16},
 
-    .ctx = &ctx,
-    .init = evalDistFuncSquare,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFuncSquare,
+      .ctx_func = &ctx,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -99,8 +102,11 @@ main(int argc, char **argv)
     .upper = { 8.0*ctx.vt, 8.0*ctx.vt, 8.0*ctx.vt }, 
     .cells = { 16, 16, 16},
 
-    .ctx = &ctx,
-    .init = evalDistFuncBump,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFuncBump,
+      .ctx_func = &ctx,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
