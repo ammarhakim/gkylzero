@@ -61,7 +61,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
     react->m0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_ion[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_donor[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    react->m0_mod[i] =  mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->m0_mod[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars[i] = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
@@ -76,7 +76,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
         .charge_state = react->react_type[i].charge_state,
         .type_self = react->type_self[i],
         .all_gk = react->all_gk,
-       };
+      };
       react->iz[i] = gkyl_dg_iz_new(&iz_inp, app->use_gpu);
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
@@ -287,6 +287,7 @@ gk_species_react_release(const struct gkyl_gyrokinetic_app *app, const struct gk
     gkyl_array_release(react->m0_elc[i]);
     gkyl_array_release(react->m0_ion[i]);
     gkyl_array_release(react->m0_donor[i]);
+    gkyl_array_release(react->m0_mod[i]);
     gkyl_array_release(react->prim_vars[i]); 
 
     if(app->use_gpu)
