@@ -7,30 +7,26 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_updater_moment.h>
-#include <gkyl_maxwellian_moments.h>
-#include <gkyl_maxwellian_moments_priv.h>
+#include <gkyl_lte_moments.h>
+#include <gkyl_lte_moments_priv.h>
 #include <gkyl_mom_vlasov_sr.h>
 
-struct gkyl_maxwellian_moments*
-gkyl_maxwellian_moments_new(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, const struct gkyl_range *vel_range, 
-  const struct gkyl_array *p_over_gamma, const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv, 
-  enum gkyl_model_id model_id, double mass, bool use_gpu)
+struct gkyl_lte_moments*
+gkyl_lte_moments_inew(const struct gkyl_lte_moments_vlasov_inp *inp)
 {
-  gkyl_maxwellian_moments *up = gkyl_malloc(sizeof(*up));
+  gkyl_lte_moments *up = gkyl_malloc(sizeof(*up));
 
-  up->conf_basis = *conf_basis;
-  up->phase_basis = *phase_basis;
-  up->num_conf_basis = conf_basis->num_basis;
+  up->conf_basis = *inp->conf_basis;
+  up->phase_basis = *inp->phase_basis;
+  up->num_conf_basis = inp->conf_basis->num_basis;
   up->vdim = up->phase_basis.ndim - up->conf_basis.ndim;
-  up->model_id = model_id;
-  up->mass = mass;
+  up->model_id = inp->model_id;
+  up->mass = inp->mass;
 
-  long conf_local_ncells = conf_range->volume;
-  long conf_local_ext_ncells = conf_range_ext->volume;
+  long conf_local_ncells = inp->conf_range->volume;
+  long conf_local_ext_ncells = inp->conf_range_ext->volume;
 
-  if (use_gpu) {
+  if (inp->use_gpu) {
     up->M0 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
     up->M1i = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->vdim*up->num_conf_basis, conf_local_ext_ncells);
     up->V_drift = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->vdim*up->num_conf_basis, conf_local_ext_ncells);
@@ -50,7 +46,7 @@ gkyl_maxwellian_moments_new(const struct gkyl_rect_grid *phase_grid,
   }
 
   if (up->model_id == GKYL_MODEL_SR) {
-    if (use_gpu) {
+    if (inp->use_gpu) {
       up->Gamma = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
       up->GammaV2 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
       up->Gamma_inv = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
@@ -63,32 +59,32 @@ gkyl_maxwellian_moments_new(const struct gkyl_rect_grid *phase_grid,
       up->M0_minus_V_drift_dot_M1i = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
     }
     // Set auxiliary fields for moment updates. 
-    struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = p_over_gamma, 
-      .gamma = gamma, .gamma_inv = gamma_inv, .V_drift = up->V_drift, 
+    struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = inp->p_over_gamma, 
+      .gamma = inp->gamma, .gamma_inv = inp->gamma_inv, .V_drift = up->V_drift, 
       .GammaV2 = up->GammaV2, .GammaV_inv = up->Gamma_inv};  
     // Moment calculator for needed moments (M0, M1i, and P for relativistic)
-    up->M0_calc = gkyl_dg_updater_moment_new(phase_grid, conf_basis,
-      phase_basis, conf_range, vel_range, up->model_id, &sr_inp, "M0", 0, up->mass, use_gpu);
-    up->M1i_calc = gkyl_dg_updater_moment_new(phase_grid, conf_basis,
-      phase_basis, conf_range, vel_range, up->model_id, &sr_inp, "M1i", 0, up->mass, use_gpu);
-    up->Pcalc = gkyl_dg_updater_moment_new(phase_grid, conf_basis,
-      phase_basis, conf_range, vel_range, up->model_id, &sr_inp, "Pressure", 0, up->mass, use_gpu);
+    up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
+      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, &sr_inp, "M0", 0, up->mass, inp->use_gpu);
+    up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
+      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, &sr_inp, "M1i", 0, up->mass, inp->use_gpu);
+    up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
+      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, &sr_inp, "Pressure", 0, up->mass, inp->use_gpu);
   }
   else {
     // Moment calculator for needed moments (M0, M1i, and M2 for non-relativistic)
     // Note: auxiliary field input is NULL (not used by non-relativistic simulations)
-    up->M0_calc = gkyl_dg_updater_moment_new(phase_grid, conf_basis,
-      phase_basis, conf_range, vel_range, up->model_id, 0, "M0", 0, up->mass, use_gpu);
-    up->M1i_calc = gkyl_dg_updater_moment_new(phase_grid, conf_basis,
-      phase_basis, conf_range, vel_range, up->model_id, 0, "M1i", 0, up->mass, use_gpu);
-    up->Pcalc = gkyl_dg_updater_moment_new(phase_grid, conf_basis,
-      phase_basis, conf_range, vel_range, up->model_id, 0, "M2", 0, up->mass, use_gpu);    
+    up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
+      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M0", 0, up->mass, inp->use_gpu);
+    up->M1i_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
+      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M1i", 0, up->mass, inp->use_gpu);
+    up->Pcalc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
+      inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, 0, "M2", 0, up->mass, inp->use_gpu);    
   }
   return up;
 }
 
 void 
-gkyl_maxwellian_moments_advance(struct gkyl_maxwellian_moments *maxwell_moms, 
+gkyl_lte_moments_advance(struct gkyl_lte_moments *maxwell_moms, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
   const struct gkyl_array *fin, struct gkyl_array *moms)
 {
@@ -166,7 +162,7 @@ gkyl_maxwellian_moments_advance(struct gkyl_maxwellian_moments *maxwell_moms,
 }
 
 void 
-gkyl_maxwellian_moments_release(gkyl_maxwellian_moments *maxwell_moms)
+gkyl_lte_moments_release(gkyl_lte_moments *maxwell_moms)
 {
   gkyl_array_release(maxwell_moms->M0);
   gkyl_array_release(maxwell_moms->M1i);

@@ -9,7 +9,7 @@
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_updater_moment.h>
-#include <gkyl_maxwellian_moments.h>
+#include <gkyl_lte_moments.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_vlasov_sr.h>
 #include <gkyl_proj_maxwellian_on_basis.h>
@@ -17,48 +17,57 @@
 #include <gkyl_proj_on_basis.h>
 
 gkyl_correct_vlasov_lte *
-gkyl_correct_vlasov_lte_new(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, const struct gkyl_range *vel_range, 
-  const struct gkyl_array *p_over_gamma, const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv,
-  enum gkyl_model_id model_id, double mass, bool use_gpu)
+gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp)
 {
   gkyl_correct_vlasov_lte *up = gkyl_malloc(sizeof(*up));
+  up->eps = inp->eps;
+  up->max_iter = inp->max_iter;
 
-  up->model_id = model_id;
-  up->conf_basis = *conf_basis;
-  up->phase_basis = *phase_basis;
+  up->model_id = inp->model_id;
+  up->conf_basis = *inp->conf_basis;
+  up->phase_basis = *inp->phase_basis;
   up->vdim = up->phase_basis.ndim - up->conf_basis.ndim;
   up->num_conf_basis = up->conf_basis.num_basis;
 
-  long conf_local_ncells = conf_range->volume;
-  long conf_local_ext_ncells = conf_range_ext->volume;
+  long conf_local_ncells = inp->conf_range->volume;
+  long conf_local_ext_ncells = inp->conf_range_ext->volume;
 
   // Number density ratio: num_ratio = n_target/n0 and bin_op memory to compute ratio
   // Used for fixing the density with simple rescaling
-  up->moms_dens_corr = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*conf_basis->num_basis, conf_local_ext_ncells);
-  up->num_ratio = gkyl_array_new(GKYL_DOUBLE, conf_basis->num_basis, conf_local_ext_ncells);
-  up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, conf_basis->num_basis);
+  up->moms_dens_corr = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+  up->num_ratio = gkyl_array_new(GKYL_DOUBLE, inp->conf_basis->num_basis, conf_local_ext_ncells);
+  up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, inp->conf_basis->num_basis);
 
   // Individual moment memory: the iteration of the moments, the differences (d) and differences of differences (dd)
-  up->moms_iter = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*conf_basis->num_basis, conf_local_ext_ncells);
-  up->d_moms = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*conf_basis->num_basis, conf_local_ext_ncells);
-  up->dd_moms = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*conf_basis->num_basis, conf_local_ext_ncells);
+  up->moms_iter = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+  up->d_moms = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+  up->dd_moms = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
 
   // Moments structure 
-  up->moments_up = gkyl_maxwellian_moments_new(phase_grid, conf_basis, phase_basis, 
-    conf_range, conf_range_ext, vel_range, 
-    p_over_gamma, gamma, gamma_inv,
-    up->model_id, mass, use_gpu);
+  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+    .phase_grid = inp->phase_grid,
+    .conf_basis = inp->conf_basis,
+    .phase_basis = inp->phase_basis,
+    .conf_range =  inp->conf_range,
+    .conf_range_ext = inp->conf_range_ext,
+    .vel_range = inp->vel_range,
+    .p_over_gamma = inp->p_over_gamma,
+    .gamma = inp->gamma,
+    .gamma_inv = inp->gamma_inv,
+    .model_id = inp->model_id,
+    .mass = inp->mass,
+    .use_gpu = inp->use_gpu,
+    };
+   up->moments_up = gkyl_lte_moments_inew( &inp_mom );
 
   // For relativistic/nonrelativistic models:
   if (up->model_id == GKYL_MODEL_SR) {
-    up->proj_mj = gkyl_proj_mj_on_basis_new(phase_grid, conf_basis, phase_basis, 
-      conf_basis->poly_order+1, use_gpu);
+    up->proj_mj = gkyl_proj_mj_on_basis_new(inp->phase_grid, inp->conf_basis, inp->phase_basis, 
+      inp->conf_basis->poly_order+1, inp->use_gpu);
   } 
   else {
-    up->proj_max = gkyl_proj_maxwellian_on_basis_new(phase_grid, conf_basis, phase_basis, 
-      conf_basis->poly_order+1, use_gpu);
+    up->proj_max = gkyl_proj_maxwellian_on_basis_new(inp->phase_grid, inp->conf_basis, inp->phase_basis, 
+      inp->conf_basis->poly_order+1, inp->use_gpu);
   }
 
   return up;
@@ -72,7 +81,7 @@ gkyl_correct_density_moment_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   int nc = c_corr->num_conf_basis;
   
   // compute the moments
-  gkyl_maxwellian_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_dens_corr);
+  gkyl_lte_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_dens_corr);
 
   // Fetch the density moment from the input LTE moments (0th component)
   gkyl_array_set_offset_range(c_corr->num_ratio, 1.0, c_corr->moms_dens_corr, 0*nc, conf_local);
@@ -99,9 +108,11 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
 {
   int vdim = c_corr->vdim;
   int nc = c_corr->num_conf_basis;
+  double eps = c_corr->eps;
+  int max_iter = c_corr->max_iter;
 
   // tolerance of the iterative scheme
-  double tol = 1e-12; // SET MAX TOL FROM INPUT
+  double tol = eps;
   int niter = 0;
   bool corr_status = true;
   
@@ -119,14 +130,12 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   gkyl_array_clear(c_corr->d_moms, 0.0);
   gkyl_array_clear(c_corr->dd_moms, 0.0);
 
-  int max_iter = 100; // SET TO MAX ITER FROM INPUT
-
   // Iteration loop, max_iter iterations is usually sufficient (for all vdim) for machine precision moments
   while ((niter < max_iter) && ((fabs(c_corr->error_n) > tol) || (fabs(c_corr->error_vb[0]) > tol) ||
     (fabs(c_corr->error_vb[1]) > tol) || (fabs(c_corr->error_vb[2]) > tol) || (fabs(c_corr->error_T) > tol)))
   {
     // 1. Calculate the LTE moments (n, V_drift, T) from the projected LTE distribution
-    gkyl_maxwellian_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_iter);
+    gkyl_lte_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_iter);
 
     // a. Calculate  ddMi^(k+1) =  Mi_corr - Mi_new
     // ddn = n_target - n;
@@ -218,7 +227,7 @@ gkyl_correct_vlasov_lte_release(gkyl_correct_vlasov_lte *c_corr)
   gkyl_array_release(c_corr->d_moms);
   gkyl_array_release(c_corr->dd_moms);
 
-  gkyl_maxwellian_moments_release(c_corr->moments_up);
+  gkyl_lte_moments_release(c_corr->moments_up);
   if (c_corr->model_id == GKYL_MODEL_SR) {
     gkyl_proj_mj_on_basis_release(c_corr->proj_mj);
   }

@@ -10,6 +10,24 @@
 // Object type
 typedef struct gkyl_correct_vlasov_lte gkyl_correct_vlasov_lte;
 
+// input packaged as a struct
+struct gkyl_correct_vlasov_lte_inp {
+  const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments
+  const struct gkyl_basis *conf_basis; // Configuration-space basis functions
+  const struct gkyl_basis *phase_basis; // Phase-space basis functions
+  const struct gkyl_range *conf_range; // Configuration-space range
+  const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
+  const struct gkyl_range *vel_range; // velocity space range
+  const struct gkyl_array *p_over_gamma; // SR quantitiy: velocity
+  const struct gkyl_array *gamma; // SR quantitiy: gamma = sqrt(1 + p^2)
+  const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
+  enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
+  double mass; // Mass factor 
+  bool use_gpu; // bool for gpu useage
+  double eps; // tolerance for the iterator
+  int max_iter; // number of total iterations
+};
+
 // Correction status
 struct gkyl_correct_vlasov_lte_status {
   bool iter_converged; // true if iterations converged
@@ -20,24 +38,10 @@ struct gkyl_correct_vlasov_lte_status {
  * Create new updater to correct a Maxwellian/Maxwell-Juttner to match specified
  * moments.
  *
- * @param grid Grid on which updater lives
- * @param conf_basis Conf space basis functions
- * @param phase_basis Phase space basis functions
- * @param conf_range configuration space range
- * @param conf_range_ext Number of cells in local extended config-
- * @param vel_range velocity space range
- * @param p_over_gamma sr quantitiy: velocity
- * @param gamma sr quantitiy: gamma
- * @param gamma_inv sr quantitiy: 1/gamma
- * @param model_id either GKYL_MODEL_SR (MJ) or GKYL_MODEL_DEFAULT (Maxwellian)
- * @param mass mass of the species
- * @param use_gpu bool for gpu useage
+ * @param inp Input parameters
+ * @return New updater pointer.
  */
-gkyl_correct_vlasov_lte *gkyl_correct_vlasov_lte_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, const struct gkyl_range *vel_range, 
-  const struct gkyl_array *p_over_gamma, const struct gkyl_array *gamma, const struct gkyl_array *gamma_inv, 
-  enum gkyl_model_id model_id, double mass, bool use_gpu);
+gkyl_correct_vlasov_lte *gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp);
 
 /**
  * Fix the LTE (local thermodynamic equlibrium) distribution function

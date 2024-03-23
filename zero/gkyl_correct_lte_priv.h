@@ -23,7 +23,7 @@ struct gkyl_correct_vlasov_lte
   struct gkyl_array *d_moms;
   struct gkyl_array *dd_moms;
 
-  struct gkyl_maxwellian_moments *moments_up;
+  struct gkyl_lte_moments *moments_up;
   struct gkyl_proj_mj_on_basis *proj_mj;
   struct gkyl_proj_maxwellian_on_basis *proj_max;
 
@@ -31,4 +31,6 @@ struct gkyl_correct_vlasov_lte
   double error_n; 
   double error_vb[3];
   double error_T;
+  double eps; // tolerance for the iterator
+  int max_iter; // number of total iterations
 };

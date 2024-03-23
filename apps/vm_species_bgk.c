@@ -60,10 +60,23 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   if (s->info.collisions.correct_all_moms) {
     bgk->correct_all_moms = true;
   }
-  bgk->corr_lte = gkyl_correct_vlasov_lte_new(&s->grid, &app->confBasis, &app->basis, 
-    &app->local, &app->local_ext, &s->local_vel, 
-    s->p_over_gamma, s->gamma, s->gamma_inv, 
-    bgk->model_id, s->info.mass, app->use_gpu);
+  struct gkyl_correct_vlasov_lte_inp inp_corr = { 
+    .phase_grid = &s->grid,
+    .conf_basis = &app->confBasis,
+    .phase_basis = &app->basis,
+    .conf_range =  &app->local,
+    .conf_range_ext = &app->local_ext,
+    .vel_range = &s->local_vel,
+    .p_over_gamma = s->p_over_gamma,
+    .gamma = s->gamma,
+    .gamma_inv = s->gamma_inv,
+    .model_id = bgk->model_id,
+    .mass = s->info.mass,
+    .use_gpu = app->use_gpu,
+    .max_iter = 100,
+    .eps = 1e-12,
+  };
+  bgk->corr_lte = gkyl_correct_vlasov_lte_inew( &inp_corr );
 
   bgk->f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   bgk->nu_f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);

@@ -9,7 +9,7 @@
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_correct_lte.h>
-#include <gkyl_maxwellian_moments.h>
+#include <gkyl_lte_moments.h>
 #include <gkyl_proj_mj_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -210,8 +210,23 @@ test_1x1v(int poly_order)
     p_over_gamma, gamma, gamma_inv);
 
   // Create a MJ with corrected moments
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .p_over_gamma = p_over_gamma,
+    .gamma = gamma,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .mass = 1.0,
+    .use_gpu = false,
+    .max_iter = 100,
+    .eps = 1e-12,
+  };
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
   // Correct the density of the projected LTE distribution function through rescaling
   gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   // Correct the other moments (V_drift, T/m)
@@ -224,11 +239,22 @@ test_1x1v(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // Correct the distribution function
-  gkyl_maxwellian_moments *maxwellian_moms = gkyl_maxwellian_moments_new(&grid, &confBasis, &basis, 
-    &confLocal, &confLocal_ext, &velLocal, 
-    p_over_gamma, gamma, gamma_inv, 
-    GKYL_MODEL_SR, 1.0, false);
-  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf, moms);
+  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .p_over_gamma = p_over_gamma,
+    .gamma = gamma,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .mass = 1.0,
+    .use_gpu = false,
+  };
+  gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
+  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -366,8 +392,23 @@ test_1x1v_spatially_varied(int poly_order)
     p_over_gamma, gamma, gamma_inv);
 
   // Create a MJ with corrected moments
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .p_over_gamma = p_over_gamma,
+    .gamma = gamma,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .mass = 1.0,
+    .use_gpu = false,
+    .max_iter = 100,
+    .eps = 1e-12,
+  };
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
   // Correct the density of the projected LTE distribution function through rescaling
   gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   // Correct the other moments (V_drift, T/m)
@@ -380,11 +421,22 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // Correct the distribution function
-  gkyl_maxwellian_moments *maxwellian_moms = gkyl_maxwellian_moments_new(&grid, &confBasis, &basis, 
-    &confLocal, &confLocal_ext, &velLocal, 
-    p_over_gamma, gamma, gamma_inv, 
-    GKYL_MODEL_SR, 1.0, false);
-  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf, moms);
+  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .p_over_gamma = p_over_gamma,
+    .gamma = gamma,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .mass = 1.0,
+    .use_gpu = false,
+  };
+  gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
+  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -547,8 +599,23 @@ test_1x2v(int poly_order)
     p_over_gamma, gamma, gamma_inv);
 
   // Create a MJ with corrected moments
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .p_over_gamma = p_over_gamma,
+    .gamma = gamma,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .mass = 1.0,
+    .use_gpu = false,
+    .max_iter = 100,
+    .eps = 1e-12,
+  };
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
   // Correct the density of the projected LTE distribution function through rescaling
   gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   // Correct the other moments (V_drift, T/m)
@@ -556,11 +623,22 @@ test_1x2v(int poly_order)
   gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Correct the distribution function
-  gkyl_maxwellian_moments *maxwellian_moms = gkyl_maxwellian_moments_new(&grid, &confBasis, &basis, 
-    &confLocal, &confLocal_ext, &velLocal, 
-    p_over_gamma, gamma, gamma_inv, 
-    GKYL_MODEL_SR, 1.0, false);
-  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf, moms);
+  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .p_over_gamma = p_over_gamma,
+    .gamma = gamma,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .mass = 1.0,
+    .use_gpu = false,
+  };
+  gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
+  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -706,8 +784,23 @@ test_1x3v(int poly_order)
     p_over_gamma, gamma, gamma_inv);
 
   // Create a MJ with corrected moments
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_new(&grid, &confBasis, 
-    &basis, &confLocal, &confLocal_ext, &velLocal, p_over_gamma, gamma, gamma_inv, GKYL_MODEL_SR, 1.0, false);
+  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .p_over_gamma = p_over_gamma,
+    .gamma = gamma,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .mass = 1.0,
+    .use_gpu = false,
+    .max_iter = 100,
+    .eps = 1e-12,
+  };
+  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
   // Correct the density of the projected LTE distribution function through rescaling
   gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
   // Correct the other moments (V_drift, T/m)
@@ -715,11 +808,22 @@ test_1x3v(int poly_order)
   gkyl_correct_vlasov_lte_release(corr_mj);
 
   // Correct the distribution function
-  gkyl_maxwellian_moments *maxwellian_moms = gkyl_maxwellian_moments_new(&grid, &confBasis, &basis, 
-    &confLocal, &confLocal_ext, &velLocal, 
-    p_over_gamma, gamma, gamma_inv, 
-    GKYL_MODEL_SR, 1.0, false);
-  gkyl_maxwellian_moments_advance(maxwellian_moms, &local, &confLocal, distf, moms);
+  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .p_over_gamma = p_over_gamma,
+    .gamma = gamma,
+    .gamma_inv = gamma_inv,
+    .model_id = GKYL_MODEL_SR,
+    .mass = 1.0,
+    .use_gpu = false,
+  };
+  gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
+  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);

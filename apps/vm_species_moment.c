@@ -13,10 +13,21 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 
   sm->is_vlasov_lte_moms = strcmp("LTEMoments", nm) == 0;
   if (sm->is_vlasov_lte_moms) {
-    sm->vlasov_lte_moms = gkyl_maxwellian_moments_new(&s->grid, &app->confBasis, &app->basis, 
-      &app->local, &app->local_ext, &s->local_vel, 
-      s->p_over_gamma, s->gamma, s->gamma_inv,
-      s->model_id, s->info.mass, false);
+    struct gkyl_lte_moments_vlasov_inp inp_mom = {
+      .phase_grid = &s->grid,
+      .conf_basis = &app->confBasis,
+      .phase_basis = &app->basis,
+      .conf_range =  &app->local,
+      .conf_range_ext = &app->local_ext,
+      .vel_range = &s->local_vel,
+      .p_over_gamma = s->p_over_gamma,
+      .gamma = s->gamma,
+      .gamma_inv = s->gamma_inv,
+      .model_id = s->model_id,
+      .mass = s->info.mass,
+      .use_gpu = false,
+    };
+    sm->vlasov_lte_moms = gkyl_lte_moments_inew(  &inp_mom  );
     num_mom = app->vdim + 2;
   }
   else {
@@ -62,7 +73,7 @@ vm_species_moment_calc(const struct vm_species_moment *sm,
   const struct gkyl_array *fin)
 {
   if (sm->is_vlasov_lte_moms) {
-    gkyl_maxwellian_moments_advance(sm->vlasov_lte_moms, 
+    gkyl_lte_moments_advance(sm->vlasov_lte_moms, 
       &phase_rng, &conf_rng, fin, sm->marr);
   }
   else {
@@ -81,7 +92,7 @@ vm_species_moment_release(const struct gkyl_vlasov_app *app, const struct vm_spe
   gkyl_array_release(sm->marr);
 
   if(sm->is_vlasov_lte_moms) {
-    gkyl_maxwellian_moments_release(sm->vlasov_lte_moms);
+    gkyl_lte_moments_release(sm->vlasov_lte_moms);
   }
   else {
     gkyl_dg_updater_moment_release(sm->mcalc);

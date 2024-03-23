@@ -41,7 +41,7 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
-#include <gkyl_maxwellian_moments.h>
+#include <gkyl_lte_moments.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
@@ -102,7 +102,7 @@ struct vm_species_moment {
   //    distribution (n, V_drift, T/m) with specialized updater
   union {
     struct {
-      struct gkyl_maxwellian_moments *vlasov_lte_moms; // updater for computing LTE moments
+      struct gkyl_lte_moments *vlasov_lte_moms; // updater for computing LTE moments
     };
     struct {
       struct gkyl_dg_updater_moment *mcalc; // moment update
