@@ -12,6 +12,10 @@ void
 gk_mom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
+
+  struct mom_type_bcorr_lbo_gyrokinetic *mom_bcorr = container_of(momt, struct mom_type_bcorr_lbo_gyrokinetic, momt);
+  gkyl_array_release(mom_bcorr->vmap_prime);
+
   if (GKYL_IS_CU_ALLOC(momt->flags))
     gkyl_cu_free(momt->on_dev);
   gkyl_free(momt);
@@ -20,12 +24,13 @@ gk_mom_free(const struct gkyl_ref_count *ref)
 
 struct gkyl_mom_type*
 gkyl_mom_bcorr_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const double* vBoundary, double mass, bool use_gpu)
+  const double* vBoundary, double mass, const struct gkyl_range *vel_range, const struct gkyl_array *vmap_prime,
+  bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(cbasis, pbasis, vBoundary, mass);
   } 
 #endif    
@@ -67,6 +72,8 @@ gkyl_mom_bcorr_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct
   mom_bcorr->momt.num_mom = 2;
 
   mom_bcorr->_m = mass;
+  mom_bcorr->vel_range = *vel_range;
+  mom_bcorr->vmap_prime = gkyl_array_acquire(vmap_prime);
   
   mom_bcorr->momt.flags = 0;
   GKYL_CLEAR_CU_ALLOC(mom_bcorr->momt.flags);
@@ -76,14 +83,3 @@ gkyl_mom_bcorr_lbo_gyrokinetic_new(const struct gkyl_basis* cbasis, const struct
     
   return &mom_bcorr->momt;
 }
-
-#ifndef GKYL_HAVE_CUDA
-
-struct gkyl_mom_type*
-gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
-  const double* vBoundary, double mass)
-{
-  assert(false);
-}
-
-#endif

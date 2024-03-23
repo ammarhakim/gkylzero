@@ -154,6 +154,9 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   for (int i=0; i<cdim; ++i) assert(gyrokinetic->boundary_surf[i]);
   assert(gyrokinetic->boundary_surf[cdim]);
 
+  gyrokinetic->conf_range = *conf_range;
+  gyrokinetic->vel_range = *vel_range;
+  gyrokinetic->phase_range = *phase_range;
   gyrokinetic->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   gyrokinetic->vmap = gkyl_array_acquire(vmap);
   gyrokinetic->vmapSq = gkyl_array_acquire(vmapSq);
@@ -164,9 +167,6 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->auxfields.phi = 0;
   gyrokinetic->auxfields.apar = 0;
   gyrokinetic->auxfields.apardot = 0;
-  gyrokinetic->conf_range = *conf_range;
-  gyrokinetic->vel_range = *vel_range;
-  gyrokinetic->phase_range = *phase_range;
 
   gyrokinetic->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(gyrokinetic->eqn.flags);

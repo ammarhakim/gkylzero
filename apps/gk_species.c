@@ -42,7 +42,7 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   }
   struct gkyl_basis vmap_basis_ho, vmap_basis2d_ho, vmapSq_basis_ho;
   gkyl_cart_modal_serendip(&vmap_basis_ho, 1, vmap_poly_order);
-  gkyl_cart_modal_serendip(&vmap_basis2d_ho, 2, vmap_poly_order);
+  gkyl_cart_modal_serendip(&vmap_basis2d_ho, vdim, vmap_poly_order);
   gkyl_cart_modal_serendip(&vmapSq_basis_ho, 1, vmapSq_poly_order);
 
   s->vmap = mkarr(app->use_gpu, vdim*vmap_basis_ho.num_basis, s->local_ext_vel.volume);
@@ -50,7 +50,7 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   s->vmap_prime = mkarr(app->use_gpu, vdim, s->local_ext_vel.volume);
   s->jacobvel = mkarr(app->use_gpu, 1, s->local_ext.volume);
 
-  // Project the velocity mapping (onto a 2D basis).
+  // Project the velocity mapping (onto a 2D basis for vdim=2).
   struct gkyl_array *vmap2d = mkarr(app->use_gpu, vdim*vmap_basis2d_ho.num_basis, s->vmap->size);
   struct gkyl_array *vmap2d_ho = mkarr(false, vmap2d->ncomp, vmap2d->size);
   struct gkyl_array *vmapc1 = mkarr(app->use_gpu, 1, s->vmap->size);
@@ -72,9 +72,9 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   for (int d=0; d<vdim; d++) {
     int numb_1d = vmap_basis_ho.num_basis;
     int numb_2d = vmap_basis2d_ho.num_basis;
-    gkyl_array_set_offset(vmapc1, 1./sqrt(2.), vmap2d, d*numb_2d);
+    gkyl_array_set_offset(vmapc1, 1./sqrt(vdim), vmap2d, d*numb_2d);
     gkyl_array_set_offset(s->vmap, 1., vmapc1, d*numb_1d);
-    gkyl_array_set_offset(vmapc1, 1./sqrt(2.), vmap2d, d*numb_2d+d+1);
+    gkyl_array_set_offset(vmapc1, 1./sqrt(vdim), vmap2d, d*numb_2d+d+1);
     gkyl_array_set_offset(s->vmap, 1., vmapc1, d*numb_1d+1);
   }
 
@@ -241,8 +241,14 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
   }
   else {
-    gkyl_cart_modal_gkhybrid(&surf_basis, cdim-1, vdim); // p=2 in vparallel
-    gkyl_cart_modal_gkhybrid(&surf_quad_basis, cdim-1, vdim); 
+    if (vdim>1) {
+      gkyl_cart_modal_gkhybrid(&surf_basis, cdim-1, vdim); // p=2 in vparallel
+      gkyl_cart_modal_gkhybrid(&surf_quad_basis, cdim-1, vdim); 
+    }
+    else {
+      gkyl_cart_modal_serendip(&surf_basis, pdim-1, 2); // p=2 in vparallel
+      gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, 2); 
+    }
   }
   int alpha_surf_sz = (cdim+1)*surf_basis.num_basis;
   int sgn_alpha_surf_sz = (cdim+1)*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points

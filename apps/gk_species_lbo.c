@@ -73,7 +73,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
 
   // edge of velocity space corrections to momentum and energy 
   lbo->bcorr_calc = gkyl_mom_calc_bcorr_lbo_gyrokinetic_new(&s->grid, 
-    &app->confBasis, &app->basis, v_bounds, s->info.mass, app->use_gpu);
+    &app->confBasis, &app->basis, v_bounds, s->info.mass, &s->local_vel, s->vmap_prime, app->use_gpu);
   
   // primitive moment calculator
   lbo->coll_pcalc = gkyl_prim_lbo_gyrokinetic_calc_new(&s->grid, 

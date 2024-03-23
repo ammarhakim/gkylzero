@@ -346,32 +346,32 @@ main(int argc, char **argv)
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
   };
 
-  // Bump species.
-  struct gkyl_gyrokinetic_species bump = {
-    .name = "bump",
-    .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -0.5 * ctx.Lv, 0.0 },
-    .upper = { 0.5 * ctx.Lv, ctx.Lmu }, 
-    .cells = { NV, NMU },
-    .polarization_density = ctx.n0,
-
-    .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalBumpInit,
-      .ctx_func = &ctx,
-    },
-    .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
-      .normNu = false,
-      .self_nu = evalNuInit,
-      .ctx = &ctx,
-//      .num_cross_collisions = 1,
-//      .collide_with = { "square" },
-    },
-
-    .num_diag_moments = 7,
-    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
-  };
+//  // Bump species.
+//  struct gkyl_gyrokinetic_species bump = {
+//    .name = "bump",
+//    .charge = ctx.charge, .mass = ctx.mass,
+//    .lower = { -0.5 * ctx.Lv, 0.0 },
+//    .upper = { 0.5 * ctx.Lv, ctx.Lmu }, 
+//    .cells = { NV, NMU },
+//    .polarization_density = ctx.n0,
+//
+//    .projection = {
+//      .proj_id = GKYL_PROJ_FUNC,
+//      .func = evalBumpInit,
+//      .ctx_func = &ctx,
+//    },
+//    .collisions =  {
+//      .collision_id = GKYL_LBO_COLLISIONS,
+//      .normNu = false,
+//      .self_nu = evalNuInit,
+//      .ctx = &ctx,
+////      .num_cross_collisions = 1,
+////      .collide_with = { "square" },
+//    },
+//
+//    .num_diag_moments = 7,
+//    .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+//  };
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
@@ -405,8 +405,10 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
-    .num_species = 2,
-    .species = { square, bump },
+//    .num_species = 2,
+//    .species = { square, bump },
+    .num_species = 1,
+    .species = { square },
     .skip_field = true,
     .field = field,
 
