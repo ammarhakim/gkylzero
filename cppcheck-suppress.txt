@@ -1,2 +1,3 @@
-useClosedFile:zero/array_rio.c
 useClosedFile:zero/dynvec.c
+varFuncNullUB:minus/mpack.h
+selfAssignment:minus/mpack.h

@@ -218,7 +218,7 @@ void test_1x1v(int poly_order, bool use_gpu)
   // Write out on host
   char fname[1024];
   sprintf(fname, "ctest_mom_cross_bgk_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, moms_cross, fname);
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms_cross, fname);
 
   // Compare with the expected cross moments
   for (int k=0; k<cells[0]; k++) {
@@ -395,7 +395,7 @@ void test_1x2v(int poly_order, bool use_gpu)
   // Write out on host
   char fname[1024];
   sprintf(fname, "ctest_mom_cross_bgk_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, moms_cross, fname);
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms_cross, fname);
 
   // Compare with the expected cross moments
   for (int k=0; k<cells[0]; k++) {
@@ -555,7 +555,7 @@ void test_2x2v(int poly_order, bool use_gpu)
   // Write out on host
   char fname[1024];
   sprintf(fname, "ctest_mom_cross_bgk_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, moms_cross, fname);
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms_cross, fname);
 
   // Compare with the expected cross moments
   for (int k=0; k<cells[0]; k++) {
@@ -717,7 +717,7 @@ void test_3x2v(int poly_order, bool use_gpu)
   // Write out on host
   char fname[1024];
   sprintf(fname, "ctest_mom_cross_bgk_%dx%dv_p%d.gkyl", cdim, vdim, poly_order);
-  gkyl_grid_sub_array_write(&confGrid, &confLocal, moms_cross, fname);
+  gkyl_grid_sub_array_write(&confGrid, &confLocal, 0, moms_cross, fname);
 
   // Compare with the expected cross moments
   for (int k=0; k<cells[0]; k++) {

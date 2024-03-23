@@ -76,7 +76,13 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       rad->vsqnu_surf[i], rad->vsqnu[i]);
 
     // allocate density calculation needed for radiation update
-    gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");  
+    gk_species_moment_init(app, rad->collide_with[i], &rad->moms[i], "M0");
+
+    //allocate emissivity
+    rad->emissivity[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    rad->emissivity_host[i] = rad->emissivity[i];
+    if (app->use_gpu)
+      rad->emissivity_host[i] = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
   }
   gkyl_release_fit_params(rad_data);
   
@@ -96,6 +102,12 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     rad->nvsqnu_surf_host = mkarr(false, surf_mu_basis.num_basis, s->local_ext.volume);
     rad->nvsqnu_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
   }
+
+  // Arrays for emissivity
+  rad->emissivity_rhs = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  rad->emissivity_denominator = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+  // allocate M2 for emissivity
+  gk_species_moment_init(app, s, &rad->m2, "M2");
 
   // Radiation updater
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = rad->nvnu_surf, .nvnu = rad->nvnu,
@@ -130,13 +142,50 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   }
 }
 
+// computes emissivity
+void
+gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_rad_drag *rad, const struct gkyl_array *fin[])
+{
+
+  gk_species_moment_calc(&species->m0, species->local, app->local, species->f);
+  //Calculate m2
+  for (int i=0; i<rad->num_cross_collisions; ++i) {
+    gkyl_array_clear(rad->nvnu_surf, 0.0);
+    gkyl_array_clear(rad->nvnu, 0.0);
+    gkyl_array_clear(rad->nvsqnu_surf, 0.0);
+    gkyl_array_clear(rad->nvsqnu, 0.0);
+    gkyl_array_clear(rad->emissivity_rhs, 0.0);
+    gkyl_array_clear(rad->emissivity_denominator, 0.0);
+    gk_species_moment_calc(&rad->moms[i], species->local, app->local, fin[rad->collide_with_idx[i]]);
+    // divide out Jacobian from ion density before computation of final drag coefficient
+    gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
+      rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
+    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(rad->calc_gk_rad_vars[i], 
+      &app->local, &species->local, 
+      rad->vnu_surf[i], rad->vnu[i], 
+      rad->vsqnu_surf[i], rad->vsqnu[i], 
+      rad->moms[i].marr, 
+      rad->nvnu_surf, rad->nvnu, 
+      rad->nvsqnu_surf, rad->nvsqnu);
+
+    gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
+      species->f, species->cflrate, rad->emissivity_rhs);
+    gk_species_moment_calc(&rad->m2, species->local, app->local, rad->emissivity_rhs);
+    
+    gkyl_dg_mul_op(app->confBasis, 0, rad->emissivity_denominator, 0, species->m0.marr, 0, rad->moms[i].marr);
+    gkyl_dg_div_op_range(rad->m2.mem_geo ,app->confBasis, 0, rad->emissivity[i], 0, rad->m2.marr, 0, rad->emissivity_denominator, &app->local);
+
+    rad->emissivity[i] = gkyl_array_scale(rad->emissivity[i], -species->info.mass/2.0);
+  }  
+}
+
 // updates the collision terms in the rhs
 void
 gk_species_radiation_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct gk_rad_drag *rad, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-
   // accumulate update due to collisions onto rhs
   gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
     fin, species->cflrate, rhs);
@@ -148,15 +197,20 @@ void
 gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struct gk_rad_drag *rad)
 {
   for (int i=0; i<rad->num_cross_collisions; ++i) {
+    gkyl_array_release(rad->emissivity[i]);
+    if (app->use_gpu)
+      gkyl_array_release(rad->emissivity_host[i]);
     gkyl_array_release(rad->vnu_surf[i]);
     gkyl_array_release(rad->vnu[i]);
     gkyl_array_release(rad->vsqnu_surf[i]);
     gkyl_array_release(rad->vsqnu[i]);
     gkyl_dg_calc_gk_rad_vars_release(rad->calc_gk_rad_vars[i]);
-
+   
     gk_species_moment_release(app, &rad->moms[i]);
   }
-
+  gk_species_moment_release(app, &rad->m2);
+  gkyl_array_release(rad->emissivity_denominator);
+  gkyl_array_release(rad->emissivity_rhs);
   gkyl_array_release(rad->nvnu_surf);
   gkyl_array_release(rad->nvnu);
   gkyl_array_release(rad->nvsqnu_surf);

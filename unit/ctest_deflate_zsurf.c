@@ -66,7 +66,7 @@ test_deflate(){
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &proj_func, 0);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, field);
   gkyl_proj_on_basis_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field, "xzfunc.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, field, "xzfunc.gkyl");
 
   // create deflated grid, ranges, basis, and field
   // create xz grid
@@ -95,11 +95,8 @@ test_deflate(){
   int zidx = 1;
   gkyl_deflate_zsurf_advance(deflator, zidx, &local, &deflated_local, field, deflated_field, 1);
 
-
-
-
-  gkyl_grid_sub_array_write(&deflated_grid, &deflated_local, deflated_field, "xzfunc_deflated.gkyl");
-
+  gkyl_grid_sub_array_write(&deflated_grid, &deflated_local, 0,
+    deflated_field, "xzfunc_deflated.gkyl");
 }
 
 
@@ -127,7 +124,7 @@ test_reconstruct(){
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis, 2, 1, &proj_func, 0);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, field);
   gkyl_proj_on_basis_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field, "in_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, field, "in_field.gkyl");
 
 
 
@@ -257,7 +254,7 @@ test_reconstruct(){
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
   gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &local, 1, nodal_fld, out_field);
-  gkyl_grid_sub_array_write(&grid, &local, out_field, "out_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, out_field, "out_field.gkyl");
 
 }
 
@@ -285,7 +282,7 @@ test_poisson_slices(){
   gkyl_eval_on_nodes *proj = gkyl_eval_on_nodes_new(&grid, &basis, 1, &proj_func, 0);
   gkyl_eval_on_nodes_advance(proj, 0.0, &local, field);
   gkyl_eval_on_nodes_release(proj);
-  gkyl_grid_sub_array_write(&grid, &local, field, "in_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, field, "in_field.gkyl");
 
 
 
@@ -426,7 +423,7 @@ test_poisson_slices(){
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, false);
   gkyl_nodal_ops_n2m(n2m, &basis, &grid, &nrange, &local, 1, nodal_fld, out_field);
   gkyl_nodal_ops_release(n2m);
-  gkyl_grid_sub_array_write(&grid, &local, out_field, "out_field.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, out_field, "out_field.gkyl");
 
 }
 

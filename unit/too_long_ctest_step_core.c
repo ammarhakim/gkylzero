@@ -126,7 +126,7 @@ test_boundary()
   //double clower[] = { 1.5098198350000001, -0.01, -2.8 };
   //double cupper[] = {1.8, 0.01, 2.8 };
 
-  int ccells[] = { 1, 1, 16 };
+  int ccells[] = { 1, 1, 8 };
 
 
 

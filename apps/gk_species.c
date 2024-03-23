@@ -124,24 +124,25 @@ gk_species_init_vmap(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   }
   gkyl_array_copy(s->jacobvel, jacobvel_ho);
 
-  int sz;
-  // Write out the velocity mapping.
   struct gkyl_array *vmap_ho = mkarr(false, s->vmap->ncomp, s->vmap->size);
   gkyl_array_copy(vmap_ho, s->vmap);
-  const char *fmt0 = "%s-%s_mapc2p_vel.gkyl";
-  sz = gkyl_calc_strlen(fmt0, app->name, s->info.name);
-  char fileNm0[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm0, sizeof fileNm0, fmt0, app->name, s->info.name);
-  gkyl_comm_array_write(s->comm, &s->grid_vel, &s->local_vel, vmap_ho, fileNm0);
+
+//  int sz;
+//  // Write out the velocity mapping.
+//  const char *fmt0 = "%s-%s_mapc2p_vel.gkyl";
+//  sz = gkyl_calc_strlen(fmt0, app->name, s->info.name);
+//  char fileNm0[sz+1]; // ensures no buffer overflow
+//  snprintf(fileNm0, sizeof fileNm0, fmt0, app->name, s->info.name);
+//  gkyl_comm_array_write(s->comm, &s->grid_vel, &s->local_vel, NULL, vmap_ho, fileNm0);
+//
+//  // Write out the velocity space Jacobian.
+//  const char *fmt1 = "%s-%s_jacobvel.gkyl";
+//  sz = gkyl_calc_strlen(fmt1, app->name, s->info.name);
+//  char fileNm1[sz+1]; // ensures no buffer overflow
+//  snprintf(fileNm1, sizeof fileNm1, fmt1, app->name, s->info.name);
+//  gkyl_comm_array_write(s->comm, &s->grid, &s->local, NULL, jacobvel_ho, fileNm1);
+
   gkyl_array_release(vmap_ho);
-
-  // Write out the velocity space Jacobian.
-  const char *fmt1 = "%s-%s_jacobvel.gkyl";
-  sz = gkyl_calc_strlen(fmt1, app->name, s->info.name);
-  char fileNm1[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm1, sizeof fileNm1, fmt1, app->name, s->info.name);
-  gkyl_comm_array_write(s->comm, &s->grid, &s->local, jacobvel_ho, fileNm1);
-
   gkyl_array_release(vmap_prime_ho);
   gkyl_array_release(jacobvel_ho);
 
@@ -327,7 +328,7 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   // acquire equation object
   s->eqn_gyrokinetic = gkyl_dg_updater_gyrokinetic_acquire_eqn(s->slvr);
 
-  // allocate date for density (for use in charge density accumulation and weak division for upar)
+  // allocate data for density (for use in charge density accumulation and weak division for upar)
   gk_species_moment_init(app, s, &s->m0, "M0");
   // allocate data for integrated moments
   gk_species_moment_init(app, s, &s->integ_moms, "Integrated");

@@ -146,6 +146,10 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     else {
       gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, f);
     }
+
+    // Multiply by the gyrocenter coord jacobian (bmag).
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
+        app->gk_geom->bmag, f, &app->local, &s->local);      
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) { 
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 

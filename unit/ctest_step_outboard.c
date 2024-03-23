@@ -27,6 +27,54 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_tok.h>
 
+void
+write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range local, const char *name)
+{
+  const char *fmt = "%s-%s.gkyl";
+  int sz = gkyl_calc_strlen(fmt, name, "jacobtot_inv");
+  char fileNm[sz+1]; // ensure no buffer overflow
+
+  sprintf(fileNm, fmt, name, "mapc2p");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->mc2p, fileNm);
+  sprintf(fileNm, fmt, name, "bmag");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag, fileNm);
+  sprintf(fileNm, fmt, name, "g_ij");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->g_ij, fileNm);
+  sprintf(fileNm, fmt, name, "dxdz");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->dxdz, fileNm);
+  sprintf(fileNm, fmt, name, "dzdx");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->dzdx, fileNm);
+  sprintf(fileNm, fmt, name, "jacobgeo");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobgeo, fileNm);
+  sprintf(fileNm, fmt, name, "jacobgeo_inv");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobgeo_inv, fileNm);
+  sprintf(fileNm, fmt, name, "gij");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gij, fileNm);
+  sprintf(fileNm, fmt, name, "b_i");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->b_i, fileNm);
+  sprintf(fileNm, fmt, name, "cmag");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->cmag, fileNm);
+  sprintf(fileNm, fmt, name, "jacobtot");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobtot, fileNm);
+  sprintf(fileNm, fmt, name, "jacobtot_inv");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->jacobtot_inv, fileNm);
+  sprintf(fileNm, fmt, name, "bmag_inv");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag_inv, fileNm);
+  sprintf(fileNm, fmt, name, "bmag_inv_sq");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->bmag_inv_sq, fileNm);
+  sprintf(fileNm, fmt, name, "gxxj");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxxj, fileNm);
+  sprintf(fileNm, fmt, name, "gxyj");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxyj, fileNm);
+  sprintf(fileNm, fmt, name, "gyyj");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gyyj, fileNm);
+  sprintf(fileNm, fmt, name, "gxzj");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->gxzj, fileNm);
+  sprintf(fileNm, fmt, name, "eps2");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->eps2, fileNm);
+}
+
+
 
 
 
@@ -108,7 +156,7 @@ test_fixed_z()
   double clower[] = { 0.934, -0.01, -M_PI+1e-14 };
   double cupper[] = {psisep, 0.01, M_PI-1e-14 };
 
-  int ccells[] = { 1, 1, 16 };
+  int ccells[] = { 1, 1, 8 };
 
 
 
@@ -125,8 +173,8 @@ test_fixed_z()
     .ftype = GKYL_SOL_DN_OUT,
     .rright = 6.2,
     .rleft = 1.1,
-    .zmin = -6.14213,
-    .zmax = 6.14226,
+    .zmin = -8.3,
+    .zmax = 8.3,
     .rmin = 1.1,
     .rmax = 6.2,
     .write_node_coord_array = true,
@@ -151,6 +199,7 @@ test_fixed_z()
   };
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
+  //write_geometry(up, cgrid, clocal, "step_outboard_fixed_z");
 
   gkyl_gk_geometry_release(up);
 

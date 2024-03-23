@@ -147,8 +147,8 @@ cubic_1d(void)
     gkyl_dg_calc_cubic_1d_from_nodal_vals(mem, cells[0], grid.dx[0],
       psi_nodal, psi_cubic);
     
-    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_1d_a.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_1d_a.gkyl");
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, psi_nodal, "nodal_1d_a.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic, "cubic_1d_a.gkyl");
   } while (0);
 
   do {
@@ -167,8 +167,8 @@ cubic_1d(void)
     gkyl_dg_calc_cubic_1d_from_nodal_vals(mem, cells[0], grid.dx[0],
       psi_nodal, psi_cubic);
     
-    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_1d_b.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_1d_b.gkyl");
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, psi_nodal, "nodal_1d_b.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic, "cubic_1d_b.gkyl");
   } while (0);
 
   do {
@@ -206,8 +206,8 @@ cubic_1d(void)
     }
     printf("Max error for a 1D quadratic is %lg\n", err);
     
-    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_1d_c.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_1d_c.gkyl");
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, psi_nodal, "nodal_1d_c.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic, "cubic_1d_c.gkyl");
   } while (0);
 
   gkyl_array_release(psi_nodal);
@@ -263,8 +263,8 @@ cubic_2d(void)
     gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, grid.dx,
       psi_nodal, psi_cubic);
     
-    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_2d_a1.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_2d_a1.gkyl");
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, psi_nodal, "nodal_2d_a1.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic, "cubic_2d_a1.gkyl");
   } while (0);
 
   do {
@@ -283,8 +283,8 @@ cubic_2d(void)
     gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, grid.dx,
       psi_nodal, psi_cubic);
     
-    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_2d_a2.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_2d_a2.gkyl");
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, psi_nodal, "nodal_2d_a2.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic, "cubic_2d_a2.gkyl");
   } while (0);
 
   do {
@@ -303,8 +303,8 @@ cubic_2d(void)
     gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, grid.dx,
       psi_nodal, psi_cubic);
     
-    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_2d_b.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_2d_b.gkyl");
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, psi_nodal, "nodal_2d_b.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic, "cubic_2d_b.gkyl");
   } while (0);
 
   do {
@@ -344,8 +344,8 @@ cubic_2d(void)
     }
     printf("Max error for a quadratic in x in 2D is %lg\n", err);
     
-    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_2d_c1.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_2d_c1.gkyl");
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, psi_nodal, "nodal_2d_c1.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic, "cubic_2d_c1.gkyl");
   } while (0);
 
   do {
@@ -385,8 +385,8 @@ cubic_2d(void)
     }
     printf("Max error for a quadratic in y in 2D is %lg\n", err);
     
-    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_2d_c2.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_2d_c2.gkyl");
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, psi_nodal, "nodal_2d_c2.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic, "cubic_2d_c2.gkyl");
   } while (0);  
 
   do {
@@ -482,8 +482,8 @@ cubic_2d(void)
       printf("Error in y-gradient across cell: %lg\n", fabs(dpsiyL-dpsiyR));
     } while (0);
     
-    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_2d_d.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_2d_d.gkyl");
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, psi_nodal, "nodal_2d_d.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic, "cubic_2d_d.gkyl");
   } while (0);
   
   gkyl_array_release(psi_nodal);
@@ -539,8 +539,8 @@ cubic_evalf_2d(void)
     gkyl_dg_calc_cubic_2d_from_nodal_vals(mem, cells, grid.dx,
       psi_nodal, psi_cubic);
     
-    gkyl_grid_sub_array_write(&nc_grid, &nc_local, psi_nodal, "nodal_evf.gkyl");
-    gkyl_grid_sub_array_write(&grid, &local, psi_cubic, "cubic_evf.gkyl");
+    gkyl_grid_sub_array_write(&nc_grid, &nc_local, 0, psi_nodal, "nodal_evf.gkyl");
+    gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic, "cubic_evf.gkyl");
   } while (0);
 
   // compute evalf function from nodal values
@@ -560,7 +560,7 @@ cubic_evalf_2d(void)
   struct gkyl_array *psi_cubic_DG = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis_advance(projCub, 0.0, &local, psi_cubic_DG);
 
-  gkyl_grid_sub_array_write(&grid, &local, psi_cubic_DG, "cubic_DG_evf.gkyl");
+  gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic_DG, "cubic_DG_evf.gkyl");
   
   gkyl_array_release(psi_nodal);
   gkyl_array_release(psi_cubic);
