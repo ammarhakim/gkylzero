@@ -119,14 +119,14 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_boundary_surfmu_3x2v_ser_p1(const double 
   double rdvSq4 = 4.0/(dxv[4]*dxv[4]); 
 
   double facDiff[8]; 
-  facDiff[0] = 0.7071067811865475*vmap_prime[1]*bmag_inv[5]*nuVtSqSum[5]*m_+0.7071067811865475*vmap_prime[1]*bmag_inv[3]*nuVtSqSum[3]*m_+0.7071067811865475*bmag_inv[1]*nuVtSqSum[1]*vmap_prime[1]*m_+0.7071067811865475*bmag_inv[0]*nuVtSqSum[0]*vmap_prime[1]*m_; 
-  facDiff[1] = 0.7071067811865475*vmap_prime[1]*bmag_inv[3]*nuVtSqSum[5]*m_+0.7071067811865475*vmap_prime[1]*nuVtSqSum[3]*bmag_inv[5]*m_+0.7071067811865475*bmag_inv[0]*nuVtSqSum[1]*vmap_prime[1]*m_+0.7071067811865475*nuVtSqSum[0]*bmag_inv[1]*vmap_prime[1]*m_; 
-  facDiff[2] = 0.7071067811865475*vmap_prime[1]*bmag_inv[5]*nuVtSqSum[7]*m_+0.7071067811865475*vmap_prime[1]*bmag_inv[3]*nuVtSqSum[6]*m_+0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[4]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[2]*m_; 
-  facDiff[3] = 0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[5]*m_+0.7071067811865475*nuVtSqSum[1]*vmap_prime[1]*bmag_inv[5]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[3]*m_+0.7071067811865475*nuVtSqSum[0]*vmap_prime[1]*bmag_inv[3]*m_; 
-  facDiff[4] = 0.7071067811865475*vmap_prime[1]*bmag_inv[3]*nuVtSqSum[7]*m_+0.7071067811865475*vmap_prime[1]*bmag_inv[5]*nuVtSqSum[6]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[4]*m_+0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[2]*m_; 
-  facDiff[5] = 0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[5]*m_+0.7071067811865475*nuVtSqSum[0]*vmap_prime[1]*bmag_inv[5]*m_+0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[3]*m_+0.7071067811865475*nuVtSqSum[1]*vmap_prime[1]*bmag_inv[3]*m_; 
-  facDiff[6] = 0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[7]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[6]*m_+0.7071067811865475*vmap_prime[1]*nuVtSqSum[4]*bmag_inv[5]*m_+0.7071067811865475*vmap_prime[1]*nuVtSqSum[2]*bmag_inv[3]*m_; 
-  facDiff[7] = 0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[7]*m_+0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[6]*m_+0.7071067811865475*vmap_prime[1]*nuVtSqSum[2]*bmag_inv[5]*m_+0.7071067811865475*vmap_prime[1]*bmag_inv[3]*nuVtSqSum[4]*m_; 
+  facDiff[0] = 0.7071067811865475*vmap_prime[0]*bmag_inv[5]*nuVtSqSum[5]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[3]*nuVtSqSum[3]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[1]*m_+0.7071067811865475*bmag_inv[0]*nuVtSqSum[0]*vmap_prime[0]*m_; 
+  facDiff[1] = 0.7071067811865475*vmap_prime[0]*bmag_inv[3]*nuVtSqSum[5]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[3]*bmag_inv[5]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[1]*m_+0.7071067811865475*nuVtSqSum[0]*vmap_prime[0]*bmag_inv[1]*m_; 
+  facDiff[2] = 0.7071067811865475*vmap_prime[0]*bmag_inv[5]*nuVtSqSum[7]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[3]*nuVtSqSum[6]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[4]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[2]*m_; 
+  facDiff[3] = 0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[5]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[1]*bmag_inv[5]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[3]*m_+0.7071067811865475*nuVtSqSum[0]*vmap_prime[0]*bmag_inv[3]*m_; 
+  facDiff[4] = 0.7071067811865475*vmap_prime[0]*bmag_inv[3]*nuVtSqSum[7]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[5]*nuVtSqSum[6]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[4]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[2]*m_; 
+  facDiff[5] = 0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[5]*m_+0.7071067811865475*nuVtSqSum[0]*vmap_prime[0]*bmag_inv[5]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[3]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[1]*bmag_inv[3]*m_; 
+  facDiff[6] = 0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[7]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[6]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[4]*bmag_inv[5]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[2]*bmag_inv[3]*m_; 
+  facDiff[7] = 0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[7]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[6]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[2]*bmag_inv[5]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[3]*nuVtSqSum[4]*m_; 
 
   double surfVar_l = 0.7071067811865475*vmap_skin[2]-1.224744871391589*vmap_skin[3];
   double surfVar_r = 1.224744871391589*vmap_skin[3]+0.7071067811865475*vmap_skin[2];

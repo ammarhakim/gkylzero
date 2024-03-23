@@ -119,24 +119,24 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_surfvpar_2x2v_ser_p1(const double *dxv, c
   fprimer[12] = (2.683281572999748*fr_over_jacv[23]-4.763139720814412*fr_over_jacv[15]+3.75*fr_over_jacv[12])/dvr+((-2.683281572999748*fc_over_jacv[23])-4.763139720814412*fc_over_jacv[15]-3.75*fc_over_jacv[12])/dvc; 
 
   double incrl[24] = {0.0}; 
-  incrl[0] = 0.5*vmap_prime[2]*nuVtSqSum[3]*fprimel[5]+0.5*fprimel[2]*nuVtSqSum[2]*vmap_prime[2]+0.5*fprimel[1]*nuVtSqSum[1]*vmap_prime[2]+0.5*fprimel[0]*nuVtSqSum[0]*vmap_prime[2]; 
-  incrl[1] = 0.5*nuVtSqSum[2]*vmap_prime[2]*fprimel[5]+0.5*fprimel[2]*vmap_prime[2]*nuVtSqSum[3]+0.5*fprimel[0]*nuVtSqSum[1]*vmap_prime[2]+0.5*nuVtSqSum[0]*fprimel[1]*vmap_prime[2]; 
-  incrl[2] = 0.5*nuVtSqSum[1]*vmap_prime[2]*fprimel[5]+0.5*fprimel[1]*vmap_prime[2]*nuVtSqSum[3]+0.5*fprimel[0]*nuVtSqSum[2]*vmap_prime[2]+0.5*nuVtSqSum[0]*fprimel[2]*vmap_prime[2]; 
-  incrl[4] = 0.5*vmap_prime[2]*nuVtSqSum[3]*fprimel[12]+0.5*nuVtSqSum[2]*vmap_prime[2]*fprimel[9]+0.5*nuVtSqSum[1]*vmap_prime[2]*fprimel[8]+0.5*nuVtSqSum[0]*vmap_prime[2]*fprimel[4]; 
-  incrl[5] = 0.5*nuVtSqSum[0]*vmap_prime[2]*fprimel[5]+0.5*fprimel[0]*vmap_prime[2]*nuVtSqSum[3]+0.5*fprimel[1]*nuVtSqSum[2]*vmap_prime[2]+0.5*nuVtSqSum[1]*fprimel[2]*vmap_prime[2]; 
-  incrl[8] = 0.5*nuVtSqSum[2]*vmap_prime[2]*fprimel[12]+0.5*vmap_prime[2]*nuVtSqSum[3]*fprimel[9]+0.5*nuVtSqSum[0]*vmap_prime[2]*fprimel[8]+0.5*nuVtSqSum[1]*vmap_prime[2]*fprimel[4]; 
-  incrl[9] = 0.5*nuVtSqSum[1]*vmap_prime[2]*fprimel[12]+0.5*nuVtSqSum[0]*vmap_prime[2]*fprimel[9]+0.5*vmap_prime[2]*nuVtSqSum[3]*fprimel[8]+0.5*nuVtSqSum[2]*vmap_prime[2]*fprimel[4]; 
-  incrl[12] = 0.5*nuVtSqSum[0]*vmap_prime[2]*fprimel[12]+0.5*nuVtSqSum[1]*vmap_prime[2]*fprimel[9]+0.5*nuVtSqSum[2]*vmap_prime[2]*fprimel[8]+0.5*vmap_prime[2]*nuVtSqSum[3]*fprimel[4]; 
+  incrl[0] = 0.5*vmap_prime[1]*nuVtSqSum[3]*fprimel[5]+0.5*vmap_prime[1]*fprimel[2]*nuVtSqSum[2]+0.5*fprimel[1]*nuVtSqSum[1]*vmap_prime[1]+0.5*fprimel[0]*nuVtSqSum[0]*vmap_prime[1]; 
+  incrl[1] = 0.5*vmap_prime[1]*nuVtSqSum[2]*fprimel[5]+0.5*vmap_prime[1]*fprimel[2]*nuVtSqSum[3]+0.5*fprimel[0]*nuVtSqSum[1]*vmap_prime[1]+0.5*nuVtSqSum[0]*fprimel[1]*vmap_prime[1]; 
+  incrl[2] = 0.5*nuVtSqSum[1]*vmap_prime[1]*fprimel[5]+0.5*fprimel[1]*vmap_prime[1]*nuVtSqSum[3]+0.5*fprimel[0]*vmap_prime[1]*nuVtSqSum[2]+0.5*nuVtSqSum[0]*vmap_prime[1]*fprimel[2]; 
+  incrl[4] = 0.5*vmap_prime[1]*nuVtSqSum[3]*fprimel[12]+0.5*vmap_prime[1]*nuVtSqSum[2]*fprimel[9]+0.5*nuVtSqSum[1]*vmap_prime[1]*fprimel[8]+0.5*nuVtSqSum[0]*vmap_prime[1]*fprimel[4]; 
+  incrl[5] = 0.5*nuVtSqSum[0]*vmap_prime[1]*fprimel[5]+0.5*fprimel[0]*vmap_prime[1]*nuVtSqSum[3]+0.5*fprimel[1]*vmap_prime[1]*nuVtSqSum[2]+0.5*nuVtSqSum[1]*vmap_prime[1]*fprimel[2]; 
+  incrl[8] = 0.5*vmap_prime[1]*nuVtSqSum[2]*fprimel[12]+0.5*vmap_prime[1]*nuVtSqSum[3]*fprimel[9]+0.5*nuVtSqSum[0]*vmap_prime[1]*fprimel[8]+0.5*nuVtSqSum[1]*vmap_prime[1]*fprimel[4]; 
+  incrl[9] = 0.5*nuVtSqSum[1]*vmap_prime[1]*fprimel[12]+0.5*nuVtSqSum[0]*vmap_prime[1]*fprimel[9]+0.5*vmap_prime[1]*nuVtSqSum[3]*fprimel[8]+0.5*vmap_prime[1]*nuVtSqSum[2]*fprimel[4]; 
+  incrl[12] = 0.5*nuVtSqSum[0]*vmap_prime[1]*fprimel[12]+0.5*nuVtSqSum[1]*vmap_prime[1]*fprimel[9]+0.5*vmap_prime[1]*nuVtSqSum[2]*fprimel[8]+0.5*vmap_prime[1]*nuVtSqSum[3]*fprimel[4]; 
 
   double incrr[24] = {0.0}; 
-  incrr[0] = 0.5*vmap_prime[2]*nuVtSqSum[3]*fprimer[5]+0.5*fprimer[2]*nuVtSqSum[2]*vmap_prime[2]+0.5*fprimer[1]*nuVtSqSum[1]*vmap_prime[2]+0.5*fprimer[0]*nuVtSqSum[0]*vmap_prime[2]; 
-  incrr[1] = 0.5*nuVtSqSum[2]*vmap_prime[2]*fprimer[5]+0.5*fprimer[2]*vmap_prime[2]*nuVtSqSum[3]+0.5*fprimer[0]*nuVtSqSum[1]*vmap_prime[2]+0.5*nuVtSqSum[0]*fprimer[1]*vmap_prime[2]; 
-  incrr[2] = 0.5*nuVtSqSum[1]*vmap_prime[2]*fprimer[5]+0.5*fprimer[1]*vmap_prime[2]*nuVtSqSum[3]+0.5*fprimer[0]*nuVtSqSum[2]*vmap_prime[2]+0.5*nuVtSqSum[0]*fprimer[2]*vmap_prime[2]; 
-  incrr[4] = 0.5*vmap_prime[2]*nuVtSqSum[3]*fprimer[12]+0.5*nuVtSqSum[2]*vmap_prime[2]*fprimer[9]+0.5*nuVtSqSum[1]*vmap_prime[2]*fprimer[8]+0.5*nuVtSqSum[0]*vmap_prime[2]*fprimer[4]; 
-  incrr[5] = 0.5*nuVtSqSum[0]*vmap_prime[2]*fprimer[5]+0.5*fprimer[0]*vmap_prime[2]*nuVtSqSum[3]+0.5*fprimer[1]*nuVtSqSum[2]*vmap_prime[2]+0.5*nuVtSqSum[1]*fprimer[2]*vmap_prime[2]; 
-  incrr[8] = 0.5*nuVtSqSum[2]*vmap_prime[2]*fprimer[12]+0.5*vmap_prime[2]*nuVtSqSum[3]*fprimer[9]+0.5*nuVtSqSum[0]*vmap_prime[2]*fprimer[8]+0.5*nuVtSqSum[1]*vmap_prime[2]*fprimer[4]; 
-  incrr[9] = 0.5*nuVtSqSum[1]*vmap_prime[2]*fprimer[12]+0.5*nuVtSqSum[0]*vmap_prime[2]*fprimer[9]+0.5*vmap_prime[2]*nuVtSqSum[3]*fprimer[8]+0.5*nuVtSqSum[2]*vmap_prime[2]*fprimer[4]; 
-  incrr[12] = 0.5*nuVtSqSum[0]*vmap_prime[2]*fprimer[12]+0.5*nuVtSqSum[1]*vmap_prime[2]*fprimer[9]+0.5*nuVtSqSum[2]*vmap_prime[2]*fprimer[8]+0.5*vmap_prime[2]*nuVtSqSum[3]*fprimer[4]; 
+  incrr[0] = 0.5*vmap_prime[1]*nuVtSqSum[3]*fprimer[5]+0.5*vmap_prime[1]*fprimer[2]*nuVtSqSum[2]+0.5*fprimer[1]*nuVtSqSum[1]*vmap_prime[1]+0.5*fprimer[0]*nuVtSqSum[0]*vmap_prime[1]; 
+  incrr[1] = 0.5*vmap_prime[1]*nuVtSqSum[2]*fprimer[5]+0.5*vmap_prime[1]*fprimer[2]*nuVtSqSum[3]+0.5*fprimer[0]*nuVtSqSum[1]*vmap_prime[1]+0.5*nuVtSqSum[0]*fprimer[1]*vmap_prime[1]; 
+  incrr[2] = 0.5*nuVtSqSum[1]*vmap_prime[1]*fprimer[5]+0.5*fprimer[1]*vmap_prime[1]*nuVtSqSum[3]+0.5*fprimer[0]*vmap_prime[1]*nuVtSqSum[2]+0.5*nuVtSqSum[0]*vmap_prime[1]*fprimer[2]; 
+  incrr[4] = 0.5*vmap_prime[1]*nuVtSqSum[3]*fprimer[12]+0.5*vmap_prime[1]*nuVtSqSum[2]*fprimer[9]+0.5*nuVtSqSum[1]*vmap_prime[1]*fprimer[8]+0.5*nuVtSqSum[0]*vmap_prime[1]*fprimer[4]; 
+  incrr[5] = 0.5*nuVtSqSum[0]*vmap_prime[1]*fprimer[5]+0.5*fprimer[0]*vmap_prime[1]*nuVtSqSum[3]+0.5*fprimer[1]*vmap_prime[1]*nuVtSqSum[2]+0.5*nuVtSqSum[1]*vmap_prime[1]*fprimer[2]; 
+  incrr[8] = 0.5*vmap_prime[1]*nuVtSqSum[2]*fprimer[12]+0.5*vmap_prime[1]*nuVtSqSum[3]*fprimer[9]+0.5*nuVtSqSum[0]*vmap_prime[1]*fprimer[8]+0.5*nuVtSqSum[1]*vmap_prime[1]*fprimer[4]; 
+  incrr[9] = 0.5*nuVtSqSum[1]*vmap_prime[1]*fprimer[12]+0.5*nuVtSqSum[0]*vmap_prime[1]*fprimer[9]+0.5*vmap_prime[1]*nuVtSqSum[3]*fprimer[8]+0.5*vmap_prime[1]*nuVtSqSum[2]*fprimer[4]; 
+  incrr[12] = 0.5*nuVtSqSum[0]*vmap_prime[1]*fprimer[12]+0.5*nuVtSqSum[1]*vmap_prime[1]*fprimer[9]+0.5*vmap_prime[1]*nuVtSqSum[2]*fprimer[8]+0.5*vmap_prime[1]*nuVtSqSum[3]*fprimer[4]; 
 
   out[0] += (incrr[0]-1.0*incrl[0])*rdvSq4; 
   out[1] += (incrr[1]-1.0*incrl[1])*rdvSq4; 

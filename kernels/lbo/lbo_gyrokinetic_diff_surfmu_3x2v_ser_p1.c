@@ -169,14 +169,14 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_surfmu_3x2v_ser_p1(const double *dxv, con
   double rdvSq4 = 4.0/(dxv[4]*dxv[4]); 
 
   double diffFac[8] = {0.}; 
-  diffFac[0] = 0.7071067811865475*vmap_prime[1]*bmag_inv[5]*nuVtSqSum[5]*m_+0.7071067811865475*vmap_prime[1]*bmag_inv[3]*nuVtSqSum[3]*m_+0.7071067811865475*bmag_inv[1]*nuVtSqSum[1]*vmap_prime[1]*m_+0.7071067811865475*bmag_inv[0]*nuVtSqSum[0]*vmap_prime[1]*m_; 
-  diffFac[1] = 0.7071067811865475*vmap_prime[1]*bmag_inv[3]*nuVtSqSum[5]*m_+0.7071067811865475*vmap_prime[1]*nuVtSqSum[3]*bmag_inv[5]*m_+0.7071067811865475*bmag_inv[0]*nuVtSqSum[1]*vmap_prime[1]*m_+0.7071067811865475*nuVtSqSum[0]*bmag_inv[1]*vmap_prime[1]*m_; 
-  diffFac[2] = 0.7071067811865475*vmap_prime[1]*bmag_inv[5]*nuVtSqSum[7]*m_+0.7071067811865475*vmap_prime[1]*bmag_inv[3]*nuVtSqSum[6]*m_+0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[4]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[2]*m_; 
-  diffFac[3] = 0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[5]*m_+0.7071067811865475*nuVtSqSum[1]*vmap_prime[1]*bmag_inv[5]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[3]*m_+0.7071067811865475*nuVtSqSum[0]*vmap_prime[1]*bmag_inv[3]*m_; 
-  diffFac[4] = 0.7071067811865475*vmap_prime[1]*bmag_inv[3]*nuVtSqSum[7]*m_+0.7071067811865475*vmap_prime[1]*bmag_inv[5]*nuVtSqSum[6]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[4]*m_+0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[2]*m_; 
-  diffFac[5] = 0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[5]*m_+0.7071067811865475*nuVtSqSum[0]*vmap_prime[1]*bmag_inv[5]*m_+0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[3]*m_+0.7071067811865475*nuVtSqSum[1]*vmap_prime[1]*bmag_inv[3]*m_; 
-  diffFac[6] = 0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[7]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[6]*m_+0.7071067811865475*vmap_prime[1]*nuVtSqSum[4]*bmag_inv[5]*m_+0.7071067811865475*vmap_prime[1]*nuVtSqSum[2]*bmag_inv[3]*m_; 
-  diffFac[7] = 0.7071067811865475*bmag_inv[0]*vmap_prime[1]*nuVtSqSum[7]*m_+0.7071067811865475*bmag_inv[1]*vmap_prime[1]*nuVtSqSum[6]*m_+0.7071067811865475*vmap_prime[1]*nuVtSqSum[2]*bmag_inv[5]*m_+0.7071067811865475*vmap_prime[1]*bmag_inv[3]*nuVtSqSum[4]*m_; 
+  diffFac[0] = 0.7071067811865475*vmap_prime[0]*bmag_inv[5]*nuVtSqSum[5]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[3]*nuVtSqSum[3]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[1]*m_+0.7071067811865475*bmag_inv[0]*nuVtSqSum[0]*vmap_prime[0]*m_; 
+  diffFac[1] = 0.7071067811865475*vmap_prime[0]*bmag_inv[3]*nuVtSqSum[5]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[3]*bmag_inv[5]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[1]*m_+0.7071067811865475*nuVtSqSum[0]*vmap_prime[0]*bmag_inv[1]*m_; 
+  diffFac[2] = 0.7071067811865475*vmap_prime[0]*bmag_inv[5]*nuVtSqSum[7]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[3]*nuVtSqSum[6]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[4]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[2]*m_; 
+  diffFac[3] = 0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[5]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[1]*bmag_inv[5]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[3]*m_+0.7071067811865475*nuVtSqSum[0]*vmap_prime[0]*bmag_inv[3]*m_; 
+  diffFac[4] = 0.7071067811865475*vmap_prime[0]*bmag_inv[3]*nuVtSqSum[7]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[5]*nuVtSqSum[6]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[4]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[2]*m_; 
+  diffFac[5] = 0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[5]*m_+0.7071067811865475*nuVtSqSum[0]*vmap_prime[0]*bmag_inv[5]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[3]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[1]*bmag_inv[3]*m_; 
+  diffFac[6] = 0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[7]*m_+0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[6]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[4]*bmag_inv[5]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[2]*bmag_inv[3]*m_; 
+  diffFac[7] = 0.7071067811865475*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[7]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[6]*m_+0.7071067811865475*vmap_prime[0]*nuVtSqSum[2]*bmag_inv[5]*m_+0.7071067811865475*vmap_prime[0]*bmag_inv[3]*nuVtSqSum[4]*m_; 
 
   double fprimel[48] = {0.0}; 
 

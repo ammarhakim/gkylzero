@@ -53,12 +53,12 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_surfvpar_1x1v_ser_p1(const double *dxv, c
   fprimer[1] = (2.683281572999748*fr_over_jacv[5]-4.763139720814412*fr_over_jacv[3]+3.75*fr_over_jacv[1])/dvr+((-2.683281572999748*fc_over_jacv[5])-4.763139720814412*fc_over_jacv[3]-3.75*fc_over_jacv[1])/dvc; 
 
   double incrl[6] = {0.0}; 
-  incrl[0] = 0.7071067811865475*fprimel[1]*nuVtSqSum[1]*vmap_prime[2]+0.7071067811865475*fprimel[0]*nuVtSqSum[0]*vmap_prime[2]; 
-  incrl[1] = 0.7071067811865475*fprimel[0]*nuVtSqSum[1]*vmap_prime[2]+0.7071067811865475*nuVtSqSum[0]*fprimel[1]*vmap_prime[2]; 
+  incrl[0] = 0.7071067811865475*fprimel[1]*nuVtSqSum[1]+0.7071067811865475*fprimel[0]*nuVtSqSum[0]; 
+  incrl[1] = 0.7071067811865475*fprimel[0]*nuVtSqSum[1]+0.7071067811865475*nuVtSqSum[0]*fprimel[1]; 
 
   double incrr[6] = {0.0}; 
-  incrr[0] = 0.7071067811865475*fprimer[1]*nuVtSqSum[1]*vmap_prime[2]+0.7071067811865475*fprimer[0]*nuVtSqSum[0]*vmap_prime[2]; 
-  incrr[1] = 0.7071067811865475*fprimer[0]*nuVtSqSum[1]*vmap_prime[2]+0.7071067811865475*nuVtSqSum[0]*fprimer[1]*vmap_prime[2]; 
+  incrr[0] = 0.7071067811865475*fprimer[1]*nuVtSqSum[1]+0.7071067811865475*fprimer[0]*nuVtSqSum[0]; 
+  incrr[1] = 0.7071067811865475*fprimer[0]*nuVtSqSum[1]+0.7071067811865475*nuVtSqSum[0]*fprimer[1]; 
 
   out[0] += (incrr[0]-1.0*incrl[0])*rdvSq4; 
   out[1] += (incrr[1]-1.0*incrl[1])*rdvSq4; 

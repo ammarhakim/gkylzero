@@ -97,10 +97,10 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_surfmu_2x2v_ser_p1(const double *dxv, con
   double rdvSq4 = 4.0/(dxv[3]*dxv[3]); 
 
   double diffFac[4] = {0.}; 
-  diffFac[0] = bmag_inv[1]*nuVtSqSum[1]*vmap_prime[1]*m_+bmag_inv[0]*nuVtSqSum[0]*vmap_prime[1]*m_; 
-  diffFac[1] = bmag_inv[0]*nuVtSqSum[1]*vmap_prime[1]*m_+nuVtSqSum[0]*bmag_inv[1]*vmap_prime[1]*m_; 
-  diffFac[2] = bmag_inv[1]*vmap_prime[1]*nuVtSqSum[3]*m_+bmag_inv[0]*vmap_prime[1]*nuVtSqSum[2]*m_; 
-  diffFac[3] = bmag_inv[0]*vmap_prime[1]*nuVtSqSum[3]*m_+bmag_inv[1]*vmap_prime[1]*nuVtSqSum[2]*m_; 
+  diffFac[0] = vmap_prime[0]*bmag_inv[1]*nuVtSqSum[1]*m_+bmag_inv[0]*nuVtSqSum[0]*vmap_prime[0]*m_; 
+  diffFac[1] = bmag_inv[0]*vmap_prime[0]*nuVtSqSum[1]*m_+nuVtSqSum[0]*vmap_prime[0]*bmag_inv[1]*m_; 
+  diffFac[2] = vmap_prime[0]*bmag_inv[1]*nuVtSqSum[3]*m_+bmag_inv[0]*vmap_prime[0]*nuVtSqSum[2]*m_; 
+  diffFac[3] = bmag_inv[0]*vmap_prime[0]*nuVtSqSum[3]*m_+vmap_prime[0]*bmag_inv[1]*nuVtSqSum[2]*m_; 
 
   double fprimel[24] = {0.0}; 
 

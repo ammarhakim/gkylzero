@@ -61,8 +61,8 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_surfmu_1x2v_ser_p1(const double *dxv, con
   double rdvSq4 = 4.0/(dxv[2]*dxv[2]); 
 
   double diffFac[2] = {0.}; 
-  diffFac[0] = 1.414213562373095*bmag_inv[1]*nuVtSqSum[1]*vmap_prime[1]*m_+1.414213562373095*bmag_inv[0]*nuVtSqSum[0]*vmap_prime[1]*m_; 
-  diffFac[1] = 1.414213562373095*bmag_inv[0]*nuVtSqSum[1]*vmap_prime[1]*m_+1.414213562373095*nuVtSqSum[0]*bmag_inv[1]*vmap_prime[1]*m_; 
+  diffFac[0] = 1.414213562373095*vmap_prime[0]*bmag_inv[1]*nuVtSqSum[1]*m_+1.414213562373095*bmag_inv[0]*nuVtSqSum[0]*vmap_prime[0]*m_; 
+  diffFac[1] = 1.414213562373095*bmag_inv[0]*vmap_prime[0]*nuVtSqSum[1]*m_+1.414213562373095*nuVtSqSum[0]*vmap_prime[0]*bmag_inv[1]*m_; 
 
   double fprimel[12] = {0.0}; 
   const double dvlR2 = pow(dvl,2);
