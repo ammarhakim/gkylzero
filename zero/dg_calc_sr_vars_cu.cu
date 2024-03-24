@@ -58,7 +58,7 @@ gkyl_calc_sr_vars_GammaV2_cu(const struct gkyl_basis* cbasis, const struct gkyl_
 
 __global__ void
 gkyl_calc_sr_vars_GammaV_inv_cu_kernel(struct gkyl_basis cbasis, struct gkyl_basis pbasis, 
-  struct gkyl_range range, const struct gkyl_array* V, struct gkyl_array* GammaV2)
+  struct gkyl_range range, const struct gkyl_array* V, struct gkyl_array* GammaV_inv)
 {
   int cdim = cbasis.ndim, pdim = pbasis.ndim, vdim = pdim-cdim;
   int poly_order = cbasis.poly_order;
