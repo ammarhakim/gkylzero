@@ -2,7 +2,7 @@
 # Get cppcheck from github and build it as instructed there. In brief
 # do:
 #
-# https://github.com/danmar/cppcheck
+# git clone https://github.com/danmar/cppcheck.git
 # cd cppcheck
 # mkdir build; cd build
 # cmake -DCMAKE_INSTALL_PREFIX=$HOME/gkylsoft/cppcheck -DCMAKE_BUILD_TYPE=Release ..
