@@ -25,7 +25,7 @@ vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .gamma_inv = s->gamma_inv,
       .model_id = s->model_id,
       .mass = s->info.mass,
-      .use_gpu = false,
+      .use_gpu = app->use_gpu,
     };
     sm->vlasov_lte_moms = gkyl_lte_moments_inew(  &inp_mom  );
     num_mom = app->vdim + 2;
