@@ -53,7 +53,7 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
 
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
     for (int n=0; n<tot_conf_quad; ++n) {
-      const double *b_ord = gkyl_array_cfetch(conf_basis_at_ords, n);
+      const double *b_ord = (const double*) gkyl_array_cfetch(conf_basis_at_ords, n);
 
       // Zero out quadrature values
       n_quad[n] = 0.0;
@@ -88,7 +88,7 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
     gkyl_rect_grid_cell_center(&phase_grid, pidx, xc);
 
     long lidx = gkyl_range_idx(&phase_range, pidx);
-    double *f_lte_d = (double *) gkyl_array_fetch(f_lte, lidx);
+    double *f_lte_d = (double*) gkyl_array_fetch(f_lte, lidx);
 
     for (int k=0; k<num_phase_basis; ++k) {
       f_lte_d[k] = 0.0;
@@ -96,15 +96,15 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
 
     // compute expansion coefficients of LTE distribution function on basis
     // The following is modeled after proj_on_basis in the private header.
-    const double *phase_w = (const double *) phase_weights->data;
-    const double *phaseb_o = (const double *) phase_basis_at_ords->data;
+    const double *phase_w = (const double*) phase_weights->data;
+    const double *phaseb_o = (const double*) phase_basis_at_ords->data;
   
     // compute Maxwellian at phase-space quadrature nodes
     for (int n=0; n<tot_phase_quad; ++n) {
 
       int cqidx = p2c_qidx[n];
 
-      comp_to_phys(pdim, (const double *) gkyl_array_cfetch(phase_ordinates, n),
+      comp_to_phys(pdim, (const double*) gkyl_array_cfetch(phase_ordinates, n),
         phase_grid.dx, xc, &xmu[0]);
 
       double fq = f_floor;
