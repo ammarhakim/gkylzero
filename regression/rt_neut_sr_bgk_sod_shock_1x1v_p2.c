@@ -6,62 +6,59 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-struct free_stream_ctx {
+struct sr_bgk_sod_shock_ctx {
   double charge; // charge
   double mass; // mass
   double vt; // thermal velocity
   double Lx; // size of the box
 };
 
-static inline double sq(double x) { return x*x; }
-
-static inline double
-maxwellian(double n, double v, double u, double vth)
+void
+evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double v2 = (v - u)*(v - u);
-  return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
-}
-
-static inline double
-maxwelljuttner1D(double n, double px, double ux, double T)
-{
-
-  // Set the normalization  
-  double K1;
-  if (T == 1.0) {
-    K1 = 0.601907230197235;
-  } else {
-    K1 = 0.495079105512939;
+  struct sr_bgk_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  if (x<0.5) {
+    fout[0] = 1.0;
   }
-
-  // All constants = 1 (c, m0, kb)
-  double gamma = 1.0/sqrt(1.0 - ux*ux);
-  return n/(2*K1)*exp(-(gamma/T)*(sqrt(1 + px*px) - ux*px ));
+  else {
+    fout[0] = 0.125;
+  }
 }
 
 void
-evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct free_stream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  if (x<0.5)
-    fout[0] = maxwelljuttner1D(1.0, v, 0.0, 1.0); //maxwellian(1.0, v, 0.0, 1.0);
-  else
-    fout[0] = maxwelljuttner1D(0.125, v, 0.0, sqrt(0.1/0.125)); //maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
+  struct sr_bgk_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  fout[0] = 0.0;
+}
+
+void
+evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sr_bgk_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  if (x<0.5) {
+    fout[0] = 1.0;
+  }
+  else {
+    fout[0] = sqrt(0.1/0.125);
+  }
 }
 
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct free_stream_ctx *app = ctx;
+  struct sr_bgk_sod_shock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   fout[0] = 100.0;
 }
 
-struct free_stream_ctx
+struct sr_bgk_sod_shock_ctx
 create_ctx(void)
 {
-  struct free_stream_ctx ctx = {
+  struct sr_bgk_sod_shock_ctx ctx = {
     .mass = 1.0,
     .charge = 1.0,
     .vt = 1.0,
@@ -76,13 +73,13 @@ main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32); //16
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32); 
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct free_stream_ctx ctx = create_ctx(); // context for init functions
+  struct sr_bgk_sod_shock_ctx ctx = create_ctx(); // context for init functions
 
   // electrons
   struct gkyl_vlasov_species neut = {
@@ -94,9 +91,14 @@ main(int argc, char **argv)
     .cells = { NV },
 
     .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalDistFunc,
-      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .correct_all_moms = true, 
     },
 
     .collisions =  {
