@@ -92,6 +92,14 @@ gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_ran
   return decomp;
 }
 
+struct gkyl_rect_decomp*
+gkyl_rect_decomp_new_from_cuts_and_cells(int ndim, const int cuts[], const int cells[])
+{
+  struct gkyl_range range;
+  gkyl_create_global_range(ndim, cells, &range);
+  return gkyl_rect_decomp_new_from_cuts(ndim, cuts, &range);
+}
+
 // ext_range = a X b 
 static void
 init_extend_range(struct gkyl_range *ext_range,
