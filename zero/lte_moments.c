@@ -47,21 +47,19 @@ gkyl_lte_moments_inew(const struct gkyl_lte_moments_vlasov_inp *inp)
 
   if (up->model_id == GKYL_MODEL_SR) {
     if (inp->use_gpu) {
-      up->Gamma = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
       up->GammaV2 = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
-      up->Gamma_inv = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
+      up->GammaV_inv = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
       up->M0_minus_V_drift_dot_M1i = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
     }
     else {
-      up->Gamma = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
       up->GammaV2 = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
-      up->Gamma_inv = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
+      up->GammaV_inv = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
       up->M0_minus_V_drift_dot_M1i = gkyl_array_new(GKYL_DOUBLE, up->num_conf_basis, conf_local_ext_ncells);
     }
     // Set auxiliary fields for moment updates. 
     struct gkyl_mom_vlasov_sr_auxfields sr_inp = {.p_over_gamma = inp->p_over_gamma, 
       .gamma = inp->gamma, .gamma_inv = inp->gamma_inv, .V_drift = up->V_drift, 
-      .GammaV2 = up->GammaV2, .GammaV_inv = up->Gamma_inv};  
+      .GammaV2 = up->GammaV2, .GammaV_inv = up->GammaV_inv};  
     // Moment calculator for needed moments (M0, M1i, and P for relativistic)
     up->M0_calc = gkyl_dg_updater_moment_new(inp->phase_grid, inp->conf_basis,
       inp->phase_basis, inp->conf_range, inp->vel_range, up->model_id, &sr_inp, "M0", 0, up->mass, inp->use_gpu);
@@ -111,17 +109,17 @@ gkyl_lte_density_moment_advance(struct gkyl_lte_moments *maxwell_moms,
     gkyl_dg_dot_product_op_range(maxwell_moms->conf_basis, 
       maxwell_moms->V_drift_dot_M1i, maxwell_moms->V_drift, maxwell_moms->M1i, conf_local); 
         
-    gkyl_calc_sr_vars_Gamma_inv(&maxwell_moms->conf_basis, &maxwell_moms->phase_basis,
-      conf_local, maxwell_moms->V_drift, maxwell_moms->Gamma_inv);
+    gkyl_calc_sr_vars_GammaV_inv(&maxwell_moms->conf_basis, &maxwell_moms->phase_basis,
+      conf_local, maxwell_moms->V_drift, maxwell_moms->GammaV_inv);
 
-    // ( n = Gamma*(M0 - V_drift dot M1i) ) Lorentz transform to our fluid-stationary density 
-    // This expression follows from the fact that M0 = Gamma*n and M1i = Gamma*n*V_drift so
-    // n = Gamma^2*n*(1 - V_drift^2) = n*(1 - V_drift^2)/(1 - V_drift^2) = n
+    // ( n = GammaV*(M0 - V_drift dot M1i) ) Lorentz transform to our fluid-stationary density 
+    // This expression follows from the fact that M0 = GammaV*n and M1i = GammaV*n*V_drift so
+    // n = GammaV^2*n*(1 - V_drift^2) = n*(1 - V_drift^2)/(1 - V_drift^2) = n
     gkyl_array_set(maxwell_moms->M0_minus_V_drift_dot_M1i, 1.0, maxwell_moms->M0);
     gkyl_array_accumulate_range(maxwell_moms->M0_minus_V_drift_dot_M1i, -1.0, 
       maxwell_moms->V_drift_dot_M1i, conf_local);
     gkyl_dg_div_op_range(maxwell_moms->mem,maxwell_moms->conf_basis, 0, density, 
-      0, maxwell_moms->M0_minus_V_drift_dot_M1i, 0, maxwell_moms->Gamma_inv, conf_local);
+      0, maxwell_moms->M0_minus_V_drift_dot_M1i, 0, maxwell_moms->GammaV_inv, conf_local);
   }
   else {
     gkyl_array_set_range(density, 1.0, maxwell_moms->M0, conf_local);
@@ -157,12 +155,12 @@ gkyl_lte_moments_advance(struct gkyl_lte_moments *maxwell_moms,
   // boost factors and perform the Lorentz transformation to go from
   // the lab frame to the stationary frame. 
   if (maxwell_moms->model_id == GKYL_MODEL_SR) {
-    // (Gamma^2 = 1/(1-V_drift^2)) 
-    gkyl_calc_sr_vars_Gamma2(&maxwell_moms->conf_basis, &maxwell_moms->phase_basis,
+    // (GammaV^2 = 1/(1-V_drift^2)) 
+    gkyl_calc_sr_vars_GammaV2(&maxwell_moms->conf_basis, &maxwell_moms->phase_basis,
       conf_local, maxwell_moms->V_drift, maxwell_moms->GammaV2);
-    // (Gamma_inv = sqrt(1-V_drift^2))
-    gkyl_calc_sr_vars_Gamma_inv(&maxwell_moms->conf_basis, &maxwell_moms->phase_basis,
-      conf_local, maxwell_moms->V_drift, maxwell_moms->Gamma_inv);
+    // (GammaV_inv = sqrt(1-V_drift^2))
+    gkyl_calc_sr_vars_GammaV_inv(&maxwell_moms->conf_basis, &maxwell_moms->phase_basis,
+      conf_local, maxwell_moms->V_drift, maxwell_moms->GammaV_inv);
 
     // Compute the pressure moment.
     // This moment is computed *in the stationary frame* in the relativistic moment calculator.
@@ -171,14 +169,14 @@ gkyl_lte_moments_advance(struct gkyl_lte_moments *maxwell_moms,
     gkyl_dg_updater_moment_advance(maxwell_moms->Pcalc, phase_local, conf_local, 
       fin, maxwell_moms->pressure);
 
-    // ( n = Gamma*(M0 - V_drift dot M1i) ) Lorentz transform to our fluid-stationary density 
-    // This expression follows from the fact that M0 = Gamma*n and M1i = Gamma*n*V_drift so
-    // n = Gamma^2*n*(1 - V_drift^2) = n*(1 - V_drift^2)/(1 - V_drift^2) = n
+    // ( n = GammaV*(M0 - V_drift dot M1i) ) Lorentz transform to our fluid-stationary density 
+    // This expression follows from the fact that M0 = GammaV*n and M1i = GammaV*n*V_drift so
+    // n = GammaV^2*n*(1 - V_drift^2) = n*(1 - V_drift^2)/(1 - V_drift^2) = n
     gkyl_array_set(maxwell_moms->M0_minus_V_drift_dot_M1i, 1.0, maxwell_moms->M0);
     gkyl_array_accumulate_range(maxwell_moms->M0_minus_V_drift_dot_M1i, -1.0, 
       maxwell_moms->V_drift_dot_M1i, conf_local);
     gkyl_dg_div_op_range(maxwell_moms->mem,maxwell_moms->conf_basis, 0, moms, 
-      0, maxwell_moms->M0_minus_V_drift_dot_M1i, 0, maxwell_moms->Gamma_inv, conf_local);
+      0, maxwell_moms->M0_minus_V_drift_dot_M1i, 0, maxwell_moms->GammaV_inv, conf_local);
   }
   else {
     // Compute the lab frame M2 = vdim*P/m + V_drift dot M1i.
@@ -213,8 +211,7 @@ gkyl_lte_moments_release(gkyl_lte_moments *maxwell_moms)
   gkyl_dg_bin_op_mem_release(maxwell_moms->mem);
   if (maxwell_moms->model_id == GKYL_MODEL_SR) {
     gkyl_array_release(maxwell_moms->M0_minus_V_drift_dot_M1i);
-    gkyl_array_release(maxwell_moms->Gamma_inv);
-    gkyl_array_release(maxwell_moms->Gamma);
+    gkyl_array_release(maxwell_moms->GammaV_inv);
     gkyl_array_release(maxwell_moms->GammaV2);    
   }
   gkyl_dg_updater_moment_release(maxwell_moms->M0_calc);
