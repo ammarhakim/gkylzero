@@ -14,6 +14,7 @@
 #include <gkyl_lua_utils.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov_lw.h>
+#include <gkyl_zero_lw.h>
 
 static int
 calc_output_prefix_len(const char *fn)
@@ -34,6 +35,7 @@ main(int argc, char **argv)
   lua_State *L = luaL_newstate();
   lua_gc(L, LUA_GCSTOP, 0);
   luaL_openlibs(L);
+  gkyl_zero_lw_openlibs(L);
   gkyl_vlasov_lw_openlibs(L);
   lua_gc(L, LUA_GCRESTART, -1);
 

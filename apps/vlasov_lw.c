@@ -72,7 +72,7 @@ eval_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
 /* *****************/
 
 // Metatable name for species input struct
-#define VLASOV_SPECIES_METATABLE_NM "GkeyllZero.Vlasov.Species"
+#define VLASOV_SPECIES_METATABLE_NM "GkeyllZero.App.Vlasov.Species"
 
 // Lua userdata object for constructing species input
 struct vlasov_species_lw {
@@ -162,7 +162,7 @@ static struct luaL_Reg vm_species_ctor[] = {
 /* *****************/
 
 // Metatable name for field input struct
-#define VLASOV_FIELD_METATABLE_NM "GkeyllZero.Vlasov.Field"
+#define VLASOV_FIELD_METATABLE_NM "GkeyllZero.App.Vlasov.Field"
 
 // Lua userdata object for constructing field input
 struct vlasov_field_lw {
@@ -225,7 +225,7 @@ static struct luaL_Reg vm_field_ctor[] = {
 /* *************/
 
 // Metatable name for top-level Vlasov App
-#define VLASOV_APP_METATABLE_NM "GkeyllZero.Vlasov.App"
+#define VLASOV_APP_METATABLE_NM "GkeyllZero.App.Vlasov"
 
 // Lua userdata object for holding Vlasov app and run parameters
 struct vlasov_app_lw {
