@@ -47,7 +47,7 @@ gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp);
 
 /**
  * Fix the LTE (local thermodynamic equlibrium) distribution function
- * (Maxwellian for non-relativistic/Maxwell-Juttner for relativisticy)
+ * (Maxwellian for non-relativistic/Maxwell-Juttner for relativistic)
  * so that *all* its stationary-frame moments (n, V_drift, T/m) match target moments.
  * NOTE: If this algorithm fails, the returns the original distribution function
  * with only the desired stationary-frame density moment corrected.
@@ -62,6 +62,14 @@ gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp);
 struct gkyl_correct_vlasov_lte_status gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   struct gkyl_array *f_lte, const struct gkyl_array *moms_target, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
+
+/**
+ * Host-side wrapper for computing the absolute value of the 
+ * difference in cell averages between the target moments and iterative moments.
+ */
+void gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(const struct gkyl_range *conf_range, int vdim, 
+  const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
+  struct gkyl_array *moms_abs_diff);
 
 /**
  * Delete updater.

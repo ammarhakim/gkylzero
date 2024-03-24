@@ -4,6 +4,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
+#include <gkyl_array_reduce.h>
 #include <gkyl_correct_lte.h>
 #include <gkyl_correct_lte_priv.h>
 #include <gkyl_dg_bin_ops.h>
@@ -11,7 +12,9 @@
 #include <gkyl_lte_moments.h>
 #include <gkyl_proj_vlasov_lte_on_basis.h>
 
-gkyl_correct_vlasov_lte *
+#include <assert.h>
+
+struct gkyl_correct_vlasov_lte*
 gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp)
 {
   gkyl_correct_vlasov_lte *up = gkyl_malloc(sizeof(*up));
@@ -33,6 +36,10 @@ gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp)
     up->moms_iter = gkyl_array_cu_dev_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
     up->d_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
     up->dd_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+    // Two additional GPU-specific allocations for iterating over the grid to find the absolute value of 
+    // the difference between the target and iterative moments, and the GPU-side array for performing the
+    // thread-safe reduction to find the maximum error on the grid.
+    up->abs_diff_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, (up->vdim+2), conf_local_ext_ncells);
     up->error_cu = gkyl_cu_malloc(sizeof(double[5]));
   }
   else {
@@ -93,7 +100,7 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   int niter = 0;
   bool corr_status = true;
 
-  // Set initial max error 
+  // Set initial max error to start the iteration.
   for (int i=0; i<5; ++i) {
     if (i < vdim+2) {
       c_corr->error[i] = 1.0;  
@@ -101,6 +108,10 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
     else {
       c_corr->error[i] = 0.0;
     }
+  }
+  // Copy the initial max error to GPU so initial error is set correctly (no uninitialized values).
+  if (c_corr->use_gpu) {
+    gkyl_cu_memcpy(c_corr->error_cu, c_corr->error, sizeof(double[5]), GKYL_CU_MEMCPY_H2D);
   }
 
   // Clear the differences prior to iteration
@@ -127,8 +138,13 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
     // End the iteration early if all moments converge
     if ((niter % 1) == 0) {
       if (c_corr->use_gpu) {
-        // Call specialized kernel for finding the error and copying back to CPU
-
+        // We insure the reduction to find the maximum error is thread-safe on GPUs
+        // by first calling a specialized kernel for computing the absolute value 
+        // of the difference of the cell averages, then calling reduce_range.
+        gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(conf_local, c_corr->vdim, 
+          moms_target, c_corr->moms_iter, c_corr->abs_diff_moms);
+        gkyl_array_reduce_range(c_corr->error_cu, c_corr->abs_diff_moms, GKYL_MAX, conf_local);
+        gkyl_cu_memcpy(c_corr->error, c_corr->error_cu, sizeof(double[5]), GKYL_CU_MEMCPY_D2H);
       }
       else {
         struct gkyl_range_iter biter;
@@ -137,7 +153,7 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
         for (int i=0; i<vdim+2; ++i) {
           c_corr->error[i] = 0.0;
         }
-        // Iterate over the input configuration space range to find the maximum error
+        // Iterate over the input configuration-space range to find the maximum error
         gkyl_range_iter_init(&biter, conf_local);
         while (gkyl_range_iter_next(&biter)){
           long midx = gkyl_range_idx(conf_local, biter.idx);
@@ -191,9 +207,25 @@ gkyl_correct_vlasov_lte_release(gkyl_correct_vlasov_lte *c_corr)
   gkyl_array_release(c_corr->moms_iter);
   gkyl_array_release(c_corr->d_moms);
   gkyl_array_release(c_corr->dd_moms);
+  if (c_corr->use_gpu) {
+    gkyl_array_release(c_corr->abs_diff_moms);
+    gkyl_cu_free(c_corr->error_cu);
+  }
 
   gkyl_lte_moments_release(c_corr->moments_up);
   gkyl_proj_vlasov_lte_on_basis_release(c_corr->proj_lte);
 
   gkyl_free(c_corr);
 }
+
+#ifndef GKYL_HAVE_CUDA
+
+void 
+gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(const struct gkyl_range *conf_range, int vdim, 
+  const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
+  struct gkyl_array *moms_abs_diff)
+{
+  assert(false);
+}
+
+#endif

@@ -27,6 +27,8 @@ struct gkyl_correct_vlasov_lte
   double error[5]; // absolute value of difference in cell averages between iteration and target
   double eps; // tolerance for the iterator
   int max_iter; // number of total iterations
+  
   bool use_gpu; // Boolean if we are performing projection on device.
-  double *error_cu; // error on device if using GPUs
+  double *error_cu; // error on device if using GPUs 
+  struct gkyl_array *abs_diff_moms;
 };
