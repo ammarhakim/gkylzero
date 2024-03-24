@@ -141,8 +141,8 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
         // We insure the reduction to find the maximum error is thread-safe on GPUs
         // by first calling a specialized kernel for computing the absolute value 
         // of the difference of the cell averages, then calling reduce_range.
-        gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(conf_local, c_corr->vdim, 
-          moms_target, c_corr->moms_iter, c_corr->abs_diff_moms);
+        gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(conf_local, 
+          vdim, nc, moms_target, c_corr->moms_iter, c_corr->abs_diff_moms);
         gkyl_array_reduce_range(c_corr->error_cu, c_corr->abs_diff_moms, GKYL_MAX, conf_local);
         gkyl_cu_memcpy(c_corr->error, c_corr->error_cu, sizeof(double[5]), GKYL_CU_MEMCPY_D2H);
       }
@@ -221,7 +221,8 @@ gkyl_correct_vlasov_lte_release(gkyl_correct_vlasov_lte *c_corr)
 #ifndef GKYL_HAVE_CUDA
 
 void 
-gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(const struct gkyl_range *conf_range, int vdim, 
+gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(const struct gkyl_range *conf_range, 
+  int vdim, int nc, 
   const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
   struct gkyl_array *moms_abs_diff)
 {

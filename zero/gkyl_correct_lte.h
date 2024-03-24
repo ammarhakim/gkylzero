@@ -67,7 +67,8 @@ struct gkyl_correct_vlasov_lte_status gkyl_correct_all_moments_vlasov_lte(gkyl_c
  * Host-side wrapper for computing the absolute value of the 
  * difference in cell averages between the target moments and iterative moments.
  */
-void gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(const struct gkyl_range *conf_range, int vdim, 
+void gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(const struct gkyl_range *conf_range, 
+  int vdim, int nc, 
   const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
   struct gkyl_array *moms_abs_diff);
 
