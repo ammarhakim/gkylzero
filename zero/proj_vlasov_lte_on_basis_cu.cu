@@ -1,9 +1,12 @@
 /* -*- c++ -*- */
 
 extern "C" {
-#include <gkyl_proj_maxwellian_on_basis.h>
-#include <gkyl_proj_maxwellian_on_basis_priv.h>
+#include <gkyl_alloc.h>
+#include <gkyl_array.h>
 #include <gkyl_const.h>
+#include <gkyl_gauss_quad_data.h>
+#include <gkyl_proj_vlasov_lte_on_basis.h>
+#include <gkyl_proj_vlasov_lte_on_basis_priv.h>
 #include <gkyl_range.h>
 }
 
@@ -139,7 +142,7 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid grid,
 }
 
 void
-gkyl_proj_vlasov_lte_on_basis_advance_cu(gkyl_proj_maxwellian_on_basis *up,
+gkyl_proj_vlasov_lte_on_basis_advance_cu(gkyl_proj_vlasov_lte_on_basis *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *moms_lte, struct gkyl_array *f_lte)
 {
