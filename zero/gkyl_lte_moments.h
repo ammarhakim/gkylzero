@@ -26,28 +26,47 @@ struct gkyl_lte_moments_vlasov_inp {
 
 
 /**
- * Create new updater to compute the moments for a Maxwellian distribution.
- * Updater is agnostic to relativistic vs. non-relativistic and always returns
- * (n, V_drift, T/m) where n and T/m are the stationary frame density and temperature/mass
- * (the frame moving at velocity V_drift).
+ * Create new updater to compute the moments for the equivalent LTE (local thermodynamic equlibrium) 
+ * distribution function (Maxwellian for non-relativistic/Maxwell-Juttner for relativistic)
+ * Updater always returns (n, V_drift, T/m) where n and T/m are the stationary frame 
+ * density and temperature/mass (the frame moving at velocity V_drift).
  * 
- * @param inp Input parameters
+ * @param inp Input parameters defined in gkyl_lte_moments_vlasov_inp struct.
  * @return New updater pointer.
  */
 struct gkyl_lte_moments*
 gkyl_lte_moments_inew(const struct gkyl_lte_moments_vlasov_inp *inp);
 
 /**
- * Compute the moments of an arbitrary distribution function for an equivalent Maxwellian.
- * Computes (n, V_drift, T/m) where n and T/m are the stationary frame density and temperature/mass
+ * Compute the density moments of an arbitrary distribution function for the equivalent 
+ * LTE (local thermodynamic equlibrium) distribution function.
+ * (Maxwellian for non-relativistic/Maxwell-Juttner for relativistic)
+ * Computes n, the stationary frame density (the frame moving at velocity V_drift).
  *
- * @param maxwell_moms Maxwellian moments updater
+ * @param lte_moms LTE moments updater
  * @param phase_local Phase-space range on which to compute moments.
  * @param conf_local Configuration-space range on which to compute moments.
  * @param fin Input distribution function
- * @param moms Output maxwellian moments (n, V_drift, T/m)
+ * @param density Output stationary-frame density
  */
-void gkyl_lte_moments_advance(struct gkyl_lte_moments *maxwell_moms, 
+void gkyl_lte_density_moment_advance(struct gkyl_lte_moments *lte_moms, 
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
+  const struct gkyl_array *fin, struct gkyl_array *density);
+
+/**
+ * Compute the moments of an arbitrary distribution function for the equivalent 
+ * LTE (local thermodynamic equlibrium) distribution function.
+ * (Maxwellian for non-relativistic/Maxwell-Juttner for relativistic)
+ * Computes (n, V_drift, T/m) where n and T/m are the stationary frame 
+ * density and temperature/mass (the frame moving at velocity V_drift).
+ *
+ * @param lte_moms LTE moments updater
+ * @param phase_local Phase-space range on which to compute moments.
+ * @param conf_local Configuration-space range on which to compute moments.
+ * @param fin Input distribution function
+ * @param moms Output LTE moments (n, V_drift, T/m)
+ */
+void gkyl_lte_moments_advance(struct gkyl_lte_moments *lte_moms, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
   const struct gkyl_array *fin, struct gkyl_array *moms);
 
@@ -56,4 +75,4 @@ void gkyl_lte_moments_advance(struct gkyl_lte_moments *maxwell_moms,
  *
  * @param cmj Updater to delete.
  */
-void gkyl_lte_moments_release(gkyl_lte_moments* maxwell_moms);
+void gkyl_lte_moments_release(gkyl_lte_moments* lte_moms);

@@ -4,10 +4,8 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_correct_lte.h>
-#include <gkyl_mom_calc.h>
-#include <gkyl_mom_vlasov.h>
 #include <gkyl_lte_moments.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
+#include <gkyl_proj_vlasov_lte_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -20,29 +18,6 @@ mkarr(long nc, long size)
 {
   struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
-}
-
-struct skin_ghost_ranges {
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-};
-
-// Create ghost and skin sub-ranges given a parent range
-static void
-skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
-  const struct gkyl_range *parent, const int *ghost)
-{
-  int ndim = parent->ndim;
-
-  for (int d=0; d<ndim; ++d) {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
-      d, GKYL_LOWER_EDGE, parent, ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
-      d, GKYL_UPPER_EDGE, parent, ghost);
-  }
 }
 
 void eval_M0(double t, const double *xn, double* restrict fout, void *ctx)
@@ -138,14 +113,10 @@ test_1x1v(int poly_order, bool use_gpu)
   int confGhost[] = { 1 };
   struct gkyl_range confLocal, confLocal_ext; // local, local-ext conf-space ranges
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost; // conf-space skin/ghost
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
   int ghost[] = { confGhost[0], 0 };
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost; // phase-space skin/ghost
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *moms, *moms_diag;
@@ -175,9 +146,23 @@ test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_array *distf;
   distf = mkarr(basis.num_basis, local_ext.volume);
 
-  // projection updater to compute Maxwellian
-  gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
-    &confBasis, &basis, poly_order+1, use_gpu);
+  // projection updater to compute LTE distribution
+  struct gkyl_proj_vlasov_lte_inp inp_lte = {
+    .phase_grid = &grid,
+    .conf_basis = &confBasis,
+    .phase_basis = &basis,
+    .conf_range =  &confLocal,
+    .conf_range_ext = &confLocal_ext,
+    .vel_range = &velLocal,
+    .p_over_gamma = 0,
+    .gamma = 0,
+    .gamma_inv = 0,
+    .model_id = GKYL_MODEL_DEFAULT,
+    .mass = 1.0,
+    .use_gpu = false,
+  };  
+  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
+  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // Compute the moments of our corrected distribution function
   struct gkyl_lte_moments_vlasov_inp inp_mom = {
@@ -197,8 +182,6 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
 
   // correction updater
-  //gkyl_correct_maxwellian *corr_max = gkyl_correct_maxwellian_new(&grid, &confBasis, &basis,
-  //  confLocal.volume, confLocal_ext.volume);
   struct gkyl_correct_vlasov_lte_inp inp = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
@@ -215,29 +198,14 @@ test_1x1v(int poly_order, bool use_gpu)
     .max_iter = 100,
     .eps = 1e-12,
   };
-  gkyl_correct_vlasov_lte *corr_max = gkyl_correct_vlasov_lte_inew( &inp );
-
-  // project the Maxwellian
-  gkyl_proj_maxwellian_on_basis_prim_mom(proj_max, &local, &confLocal, moms, distf);
+  gkyl_correct_vlasov_lte *corr_lte = gkyl_correct_vlasov_lte_inew( &inp );
 
  // write distribution function to file
   char fname[1024];
-  sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d_uc.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
-  
-  // correct the Maxwellian
-  gkyl_correct_density_moment_vlasov_lte(corr_max, distf, m0, &local, &confLocal);
-
- // write distribution function to file
   sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d_corr_m0.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
-  // compute the number density
-  struct gkyl_mom_type *m0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", use_gpu);
-  struct gkyl_mom_calc *m0calc = gkyl_mom_calc_new(&grid, m0_t, use_gpu);
-  gkyl_mom_type_release(m0_t);
-
-  // Computed - Mo_corr_only
+  // Moments computed from *only* density-corrected LTE distribution function
   gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms_diag);
   struct gkyl_array *m0_n_corr_only, *m1i_n_corr_only, *m2_n_corr_only;
   m0_n_corr_only = mkarr(confBasis.num_basis, confLocal_ext.volume);
@@ -247,9 +215,10 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_array_set_offset_range(m1i_n_corr_only, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2_n_corr_only, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
 
-  struct gkyl_correct_vlasov_lte_status stat_corr = gkyl_correct_all_moments_vlasov_lte(corr_max, distf, moms, &local, &confLocal);
+  struct gkyl_correct_vlasov_lte_status stat_corr = gkyl_correct_all_moments_vlasov_lte(corr_lte, 
+    distf, moms, &local, &confLocal);
 
-  // Computed 
+  // Moments computed from all-moment-corrected LTE distribution function 
   gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   struct gkyl_array *m0_corr, *m1i_corr, *m2_corr;
   m0_corr = mkarr(confBasis.num_basis, confLocal_ext.volume);
@@ -262,7 +231,6 @@ test_1x1v(int poly_order, bool use_gpu)
    // write distribution function to file
   sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d_corr_all_moms.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
-
 
   // Compare m0 to the computed m0 (density correction only)
   struct gkyl_range_iter iter;
@@ -308,10 +276,9 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
 
-  gkyl_mom_calc_release(m0calc);
   gkyl_array_release(distf);
-  gkyl_proj_maxwellian_on_basis_release(proj_max);
-  gkyl_correct_vlasov_lte_release(corr_max);
+  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
+  gkyl_correct_vlasov_lte_release(corr_lte);
   gkyl_lte_moments_release(lte_moms);
 }
 

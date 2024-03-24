@@ -1,7 +1,6 @@
-#include "gkyl_array.h"
-#include "gkyl_util.h"
 #include <acutest.h>
 
+#include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_rio.h>
@@ -9,11 +8,12 @@
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_lte_moments.h>
-#include <gkyl_proj_mj_on_basis.h>
+#include <gkyl_proj_vlasov_lte_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_util.h>
 #include <math.h>
 
 // allocate array (filled with zeros)
@@ -22,92 +22,6 @@ mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
-}
-
-// Projection functions for p/(gamma) = v in special relativistic systems
-// Simplifies to p/sqrt(1 + p^2) where c = 1
-static void
-ev_p_over_gamma_1p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = xn[0] / sqrt(1.0 + xn[0] * xn[0]);
-}
-static void
-ev_p_over_gamma_2p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = xn[0] / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1]);
-  out[1] = xn[1] / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1]);
-}
-static void
-ev_p_over_gamma_3p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = xn[0] / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1] + xn[2] * xn[2]);
-  out[1] = xn[1] / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1] + xn[2] * xn[2]);
-  out[2] = xn[2] / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1] + xn[2] * xn[2]);
-}
-
-static const evalf_t p_over_gamma_func[3] = {ev_p_over_gamma_1p, ev_p_over_gamma_2p, ev_p_over_gamma_3p};
-
-// Projection functions for gamma = sqrt(1 + p^2) in special relativistic systems
-static void
-ev_gamma_1p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = sqrt(1.0 + xn[0] * xn[0]);
-}
-static void
-ev_gamma_2p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1]);
-}
-static void
-ev_gamma_3p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1] + xn[2] * xn[2]);
-}
-
-static const evalf_t gamma_func[3] = {ev_gamma_1p, ev_gamma_2p, ev_gamma_3p};
-
-// Projection functions for gamma_inv = 1/sqrt(1 + p^2) in special relativistic systems
-static void
-ev_gamma_inv_1p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = 1.0 / sqrt(1.0 + xn[0] * xn[0]);
-}
-static void
-ev_gamma_inv_2p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = 1.0 / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1]);
-}
-static void
-ev_gamma_inv_3p(double t, const double *xn, double *out, void *ctx)
-{
-  out[0] = 1.0 / sqrt(1.0 + xn[0] * xn[0] + xn[1] * xn[1] + xn[2] * xn[2]);
-}
-
-static const evalf_t gamma_inv_func[3] = {ev_gamma_inv_1p, ev_gamma_inv_2p, ev_gamma_inv_3p};
-
-struct skin_ghost_ranges
-{
-  struct gkyl_range lower_skin[GKYL_MAX_DIM];
-  struct gkyl_range lower_ghost[GKYL_MAX_DIM];
-
-  struct gkyl_range upper_skin[GKYL_MAX_DIM];
-  struct gkyl_range upper_ghost[GKYL_MAX_DIM];
-};
-
-// Create ghost and skin sub-ranges given a parent range
-static void
-skin_ghost_ranges_init(struct skin_ghost_ranges *sgr,
-                       const struct gkyl_range *parent, const int *ghost)
-{
-  int ndim = parent->ndim;
-
-  for (int d = 0; d < ndim; ++d)
-  {
-    gkyl_skin_ghost_ranges(&sgr->lower_skin[d], &sgr->lower_ghost[d],
-                           d, GKYL_LOWER_EDGE, parent, ghost);
-    gkyl_skin_ghost_ranges(&sgr->upper_skin[d], &sgr->upper_ghost[d],
-                           d, GKYL_UPPER_EDGE, parent, ghost);
-  }
 }
 
 void 
@@ -136,7 +50,7 @@ void
 eval_M1i_1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
-  fout[0] = 0.5; // 0.5;
+  fout[0] = 0.5; 
 }
 
 void 
@@ -213,14 +127,10 @@ test_1x1v_no_drift(int poly_order)
   int confGhost[] = {1};
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost;
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
   int ghost[] = {confGhost[0], 0};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost;
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *moms;
@@ -243,16 +153,6 @@ test_1x1v_no_drift(int poly_order)
   gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
 
-  // create distribution function array
-  struct gkyl_array *distf;
-  distf = mkarr(basis.num_basis, local_ext.volume);
-
-  // projection updater to compute mj
-  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-    &confBasis, &basis, poly_order + 1, false);
-
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms, distf);
-
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
@@ -269,8 +169,12 @@ test_1x1v_no_drift(int poly_order)
   gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
     p_over_gamma, gamma, gamma_inv);
 
-  // correct the mj distribution m0 Moment
-  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+  // create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+
+  // projection updater to compute LTE distribution
+  struct gkyl_proj_vlasov_lte_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -283,11 +187,9 @@ test_1x1v_no_drift(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .mass = 1.0,
     .use_gpu = false,
-    .max_iter = 100,
-    .eps = 1e-12,
-  };
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
-  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, m0, &local, &confLocal);
+  };  
+  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
+  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {5.3918752026566863e-01, -1.0910243387206232e-17, -6.0196985297046972e-02,
@@ -312,13 +214,12 @@ test_1x1v_no_drift(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_correct_vlasov_lte_release(corr_mj);\
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
   gkyl_array_release(moms);
   gkyl_array_release(distf);
-  gkyl_proj_mj_on_basis_release(proj_mj);
+  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -364,14 +265,10 @@ test_1x1v(int poly_order)
   int confGhost[] = {1};
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost;
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
   int ghost[] = {confGhost[0], 0};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost;
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *moms;
@@ -394,16 +291,6 @@ test_1x1v(int poly_order)
   gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
 
-  // create distribution function array
-  struct gkyl_array *distf;
-  distf = mkarr(basis.num_basis, local_ext.volume);
-
-  // projection updater to compute mj
-  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-    &confBasis, &basis, poly_order + 1, false);
-
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms, distf);
-
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
@@ -420,8 +307,12 @@ test_1x1v(int poly_order)
   gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
     p_over_gamma, gamma, gamma_inv);
 
-  // correct the mj distribution m0 Moment
-  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+  // create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+
+  // projection updater to compute LTE distribution
+  struct gkyl_proj_vlasov_lte_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -434,11 +325,9 @@ test_1x1v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .mass = 1.0,
     .use_gpu = false,
-    .max_iter = 100,
-    .eps = 1e-12,
-  };
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
-  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, m0, &local, &confLocal);
+  };  
+  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
+  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // test accuracy of the projection:
   struct gkyl_lte_moments_vlasov_inp inp_mom = {
@@ -468,24 +357,25 @@ test_1x1v(int poly_order)
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[2]){1, 17}));
 
-  if (poly_order == 2)
-    for (int i = 0; i < basis.num_basis; ++i)
+  if (poly_order == 2) {
+    for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
-
+    }
+  }
+  
   // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_proj_mj_on_basis_test_1x1v_p%d.gkyl", poly_order);
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_correct_vlasov_lte_release(corr_mj);
   gkyl_lte_moments_release(lte_moms);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
   gkyl_array_release(moms);
   gkyl_array_release(distf);
-  gkyl_proj_mj_on_basis_release(proj_mj);
+  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -532,14 +422,10 @@ test_1x2v(int poly_order)
   int confGhost[] = {1};
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost;
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
   int ghost[] = {confGhost[0], 0, 0};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost;
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *moms;
@@ -562,16 +448,6 @@ test_1x2v(int poly_order)
   gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
 
-  // create distribution function array
-  struct gkyl_array *distf;
-  distf = mkarr(basis.num_basis, local_ext.volume);
-
-  // projection updater to compute mj
-  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-    &confBasis, &basis, poly_order + 1, false);
-
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms, distf);
-
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
@@ -588,8 +464,12 @@ test_1x2v(int poly_order)
   gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
     p_over_gamma, gamma, gamma_inv);
 
-  // correct the mj distribution m0 Moment
-  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+  // create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+
+  // projection updater to compute LTE distribution
+  struct gkyl_proj_vlasov_lte_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -602,11 +482,9 @@ test_1x2v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .mass = 1.0,
     .use_gpu = false,
-    .max_iter = 100,
-    .eps = 1e-12,
-  };
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
-  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, m0, &local, &confLocal);
+  };  
+  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
+  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
   double p2_vals[] = {1.7020667884226476e-01, -7.7674914557148726e-18, -3.9516229859383111e-03,
@@ -619,10 +497,11 @@ test_1x2v(int poly_order)
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]){1, 9, 9}));
 
-  if (poly_order == 2)
-    for (int i = 0; i < basis.num_basis; ++i)
-      // printf("(1x2v) fv[%d] = %1.16e\n",i,fv[i]);
+  if (poly_order == 2) {
+    for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
+    }
+  }
 
   // write distribution function to file
   char fname[1024];
@@ -630,13 +509,12 @@ test_1x2v(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_correct_vlasov_lte_release(corr_mj);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
   gkyl_array_release(moms);
   gkyl_array_release(distf);
-  gkyl_proj_mj_on_basis_release(proj_mj);
+  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -682,14 +560,10 @@ test_1x3v(int poly_order)
   int confGhost[] = {1};
   struct gkyl_range confLocal, confLocal_ext;
   gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
-  struct skin_ghost_ranges confSkin_ghost;
-  skin_ghost_ranges_init(&confSkin_ghost, &confLocal_ext, confGhost);
 
   int ghost[] = {confGhost[0], 0, 0, 0};
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
-  struct skin_ghost_ranges skin_ghost;
-  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
 
   // create moment arrays
   struct gkyl_array *m0, *m1i, *m2, *moms;
@@ -712,16 +586,6 @@ test_1x3v(int poly_order)
   gkyl_array_set_offset_range(moms, 1.0, m1i, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(moms, 1.0, m2, (vdim+1)*confBasis.num_basis, &confLocal);
 
-  // create distribution function array
-  struct gkyl_array *distf;
-  distf = mkarr(basis.num_basis, local_ext.volume);
-
-  // projection updater to compute mj
-  gkyl_proj_mj_on_basis *proj_mj = gkyl_proj_mj_on_basis_new(&grid,
-    &confBasis, &basis, poly_order + 1, false);
-
-  gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(proj_mj, &local, &confLocal, moms, distf);
-
   // build the p_over_gamma
   struct gkyl_array *p_over_gamma;
   p_over_gamma = mkarr(vdim * velBasis.num_basis, velLocal.volume);
@@ -738,8 +602,12 @@ test_1x3v(int poly_order)
   gkyl_calc_sr_vars_init_p_vars(&vel_grid, &velBasis, &velLocal,
     p_over_gamma, gamma, gamma_inv);
 
-  // correct the mj distribution m0 Moment
-  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+  // create distribution function array
+  struct gkyl_array *distf;
+  distf = mkarr(basis.num_basis, local_ext.volume);
+
+  // projection updater to compute LTE distribution
+  struct gkyl_proj_vlasov_lte_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -752,11 +620,9 @@ test_1x3v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .mass = 1.0,
     .use_gpu = false,
-    .max_iter = 100,
-    .eps = 1e-12,
-  };
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
-  gkyl_correct_density_moment_vlasov_lte(corr_mj, distf, m0, &local, &confLocal);
+  };  
+  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
+  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 9, 9, 9) [remember, lower-left index is (1,1,1,1)]
   double p2_vals[] = {1.6326923473662415e-02, -2.7779798362812092e-19, -5.7251397678571113e-06,
@@ -775,10 +641,11 @@ test_1x3v(int poly_order)
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[4]){1, 9, 9, 9}));
 
-  if (poly_order == 2)
-    for (int i = 0; i < basis.num_basis; ++i)
-      // printf("%1.16e,\n",fv[i]);
+  if (poly_order == 2) {
+    for (int i = 0; i < basis.num_basis; ++i) {
       TEST_CHECK(gkyl_compare_double(p2_vals[i], fv[i], 1e-12));
+    }
+  }
 
   // write distribution function to file
   char fname[1024];
@@ -786,13 +653,12 @@ test_1x3v(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_correct_vlasov_lte_release(corr_mj);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
   gkyl_array_release(moms);
   gkyl_array_release(distf);
-  gkyl_proj_mj_on_basis_release(proj_mj);
+  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);

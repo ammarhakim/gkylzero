@@ -1,3 +1,4 @@
+// Private header: not for direct use
 #pragma once
 
 #include <gkyl_array.h>

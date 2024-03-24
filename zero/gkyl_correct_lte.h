@@ -35,39 +35,22 @@ struct gkyl_correct_vlasov_lte_status {
 };  
 
 /**
- * Create new updater to correct a Maxwellian/Maxwell-Juttner to match specified
- * moments.
+ * Create new updater to correct the LTE (local thermodynamic equlibrium) distribution 
+ * function (Maxwellian for non-relativistic/Maxwell-Juttner for relativistic)
+ * so that its moments match desired input moments.
  *
- * @param inp Input parameters
+ * @param inp Input parameters defined in gkyl_correct_vlasov_lte_inp struct.
  * @return New updater pointer.
  */
-gkyl_correct_vlasov_lte *gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp);
+struct gkyl_correct_vlasov_lte* 
+gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp);
 
 /**
  * Fix the LTE (local thermodynamic equlibrium) distribution function
  * (Maxwellian for non-relativistic/Maxwell-Juttner for relativisticy)
- * so that its 0th moment matches desired stationary-frame density moment.
- *
- * @param c_corr LTE distribution function moment correction updater
- * @param f_lte LTE distribution function to fix (modified in-place)
- * @param moms_target Target stationary-frame moments (n, V_drift, T/m)
- *                    Target density is the 0th component
- * @param phase_local Local phase-space range
- * @param conf_local Local configuration space range
- * @return Status of correction
- */
-struct gkyl_correct_vlasov_lte_status gkyl_correct_density_moment_vlasov_lte(gkyl_correct_vlasov_lte *c_corr, 
-  struct gkyl_array *f_lte, const struct gkyl_array *moms_target, 
-  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
-
-/**
- * Fix the LTE (local thermodynamic equlibrium) distribution function
- * (Maxwellian for non-relativistic/Maxwell-Juttner for relativisticy)
- * so that *all* its stationary-frame moments (n, V_drift, T/m) match target
-moments.
+ * so that *all* its stationary-frame moments (n, V_drift, T/m) match target moments.
  * NOTE: If this algorithm fails, the returns the original distribution function
- * with only the desired stationary-frame density moment corrected
- * (i.e. runs: gkyl_correct_density_moment_vlasov_lte)
+ * with only the desired stationary-frame density moment corrected.
  *
  * @param c_corr LTE distribution function moment correction updater
  * @param f_lte LTE distribution function to fix (modified in-place)

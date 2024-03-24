@@ -52,8 +52,7 @@
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
-#include <gkyl_proj_maxwellian_on_basis.h>
-#include <gkyl_proj_mj_on_basis.h>
+#include <gkyl_proj_vlasov_lte_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -166,20 +165,11 @@ struct vm_bgk_collisions {
   enum gkyl_model_id model_id;
   struct vm_species_moment moms; // moments needed in BGK (n, V_drift, T/m) for LTE distribution
 
-  // organization of the different models for BGK collisions for different LTE distributions
-  // e.g., Maxwellian for non-relativistic and Maxwell-Juttner for relativistic
-  union {
-    // special-relativistic Vlasov-Maxwell model
-    struct {
-      struct gkyl_proj_mj_on_basis *proj_mj; // Maxwell-Juttner projection object
-    };
-    // non-relativistic Vlasov-Maxwell model
-    struct {
-      struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
-    };
-  };
+  struct gkyl_proj_vlasov_lte_on_basis *proj_lte; // LTE distribution function projection object
+                                                  // also corrects the density of projected distribution function
+
   // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
-  bool correct_all_moms; // boolean if we are correcting all the moments or only density
+  bool correct_all_moms; // boolean if we are correcting all the moments
   struct gkyl_correct_vlasov_lte *corr_lte; 
 
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
@@ -213,19 +203,13 @@ struct vm_proj {
       struct gkyl_proj_on_basis *proj_dens; // projection operator for density
       struct gkyl_proj_on_basis *proj_V_drift; // projection operator for V_drift
       struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
-      union {
-        // special-relativistic Vlasov-Maxwell model
-        struct {
-          struct gkyl_proj_mj_on_basis *proj_mj; // Maxwell-Juttner projection object
-        };
-        // non-relativistic Vlasov-Maxwell model
-        struct {
-          struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
-        };
-      };
+      
+      struct gkyl_proj_vlasov_lte_on_basis *proj_lte; // LTE distribution function projection object
+                                                      // also corrects the density of projected distribution function
+      
       // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
-      bool correct_all_moms; // boolean if we are correcting all the moments or only density
-      struct gkyl_correct_vlasov_lte *corr_lte;      
+      bool correct_all_moms; // boolean if we are correcting all the moments
+      struct gkyl_correct_vlasov_lte *corr_lte;     
     };
   };
 };

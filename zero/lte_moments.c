@@ -84,6 +84,51 @@ gkyl_lte_moments_inew(const struct gkyl_lte_moments_vlasov_inp *inp)
 }
 
 void 
+gkyl_lte_density_moment_advance(struct gkyl_lte_moments *maxwell_moms, 
+  const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
+  const struct gkyl_array *fin, struct gkyl_array *density)
+{
+  int vdim = maxwell_moms->vdim;
+  // compute lab frame moment M0
+  gkyl_dg_updater_moment_advance(maxwell_moms->M0_calc, phase_local, conf_local, 
+    fin, maxwell_moms->M0);
+
+  // If we are relativistic, we need to compute the relevant Lorentz 
+  // boost factors and perform the Lorentz transformation to go from
+  // the lab frame to the stationary frame. 
+  if (maxwell_moms->model_id == GKYL_MODEL_SR) {
+    // Need V_drift in relativity to compute the Lorentz boost factors
+    gkyl_dg_updater_moment_advance(maxwell_moms->M1i_calc, phase_local, conf_local, 
+      fin, maxwell_moms->M1i);
+    // Isolate drift velocity by dividing M1i by M0
+    for (int d = 0; d < vdim; ++d) {
+      gkyl_dg_div_op_range(maxwell_moms->mem, maxwell_moms->conf_basis, 
+        d, maxwell_moms->V_drift,
+        d, maxwell_moms->M1i, 0, maxwell_moms->M0, conf_local);
+    }
+    // Compute V_drift dot M1i (needed to compute stationary frame moments).
+    gkyl_array_clear(maxwell_moms->V_drift_dot_M1i, 0.0);
+    gkyl_dg_dot_product_op_range(maxwell_moms->conf_basis, 
+      maxwell_moms->V_drift_dot_M1i, maxwell_moms->V_drift, maxwell_moms->M1i, conf_local); 
+        
+    gkyl_calc_sr_vars_Gamma_inv(&maxwell_moms->conf_basis, &maxwell_moms->phase_basis,
+      conf_local, maxwell_moms->V_drift, maxwell_moms->Gamma_inv);
+
+    // ( n = Gamma*(M0 - V_drift dot M1i) ) Lorentz transform to our fluid-stationary density 
+    // This expression follows from the fact that M0 = Gamma*n and M1i = Gamma*n*V_drift so
+    // n = Gamma^2*n*(1 - V_drift^2) = n*(1 - V_drift^2)/(1 - V_drift^2) = n
+    gkyl_array_set(maxwell_moms->M0_minus_V_drift_dot_M1i, 1.0, maxwell_moms->M0);
+    gkyl_array_accumulate_range(maxwell_moms->M0_minus_V_drift_dot_M1i, -1.0, 
+      maxwell_moms->V_drift_dot_M1i, conf_local);
+    gkyl_dg_div_op_range(maxwell_moms->mem,maxwell_moms->conf_basis, 0, density, 
+      0, maxwell_moms->M0_minus_V_drift_dot_M1i, 0, maxwell_moms->Gamma_inv, conf_local);
+  }
+  else {
+    gkyl_array_set_range(density, 1.0, maxwell_moms->M0, conf_local);
+  }
+}
+
+void 
 gkyl_lte_moments_advance(struct gkyl_lte_moments *maxwell_moms, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
   const struct gkyl_array *fin, struct gkyl_array *moms)
@@ -112,9 +157,6 @@ gkyl_lte_moments_advance(struct gkyl_lte_moments *maxwell_moms,
   // boost factors and perform the Lorentz transformation to go from
   // the lab frame to the stationary frame. 
   if (maxwell_moms->model_id == GKYL_MODEL_SR) {
-    // (Gamma = 1/sqrt(1-V_drift^2)) 
-    gkyl_calc_sr_vars_Gamma(&maxwell_moms->conf_basis, &maxwell_moms->phase_basis,
-         conf_local, maxwell_moms->V_drift, maxwell_moms->Gamma);
     // (Gamma^2 = 1/(1-V_drift^2)) 
     gkyl_calc_sr_vars_Gamma2(&maxwell_moms->conf_basis, &maxwell_moms->phase_basis,
       conf_local, maxwell_moms->V_drift, maxwell_moms->GammaV2);
@@ -135,8 +177,6 @@ gkyl_lte_moments_advance(struct gkyl_lte_moments *maxwell_moms,
     gkyl_array_set(maxwell_moms->M0_minus_V_drift_dot_M1i, 1.0, maxwell_moms->M0);
     gkyl_array_accumulate_range(maxwell_moms->M0_minus_V_drift_dot_M1i, -1.0, 
       maxwell_moms->V_drift_dot_M1i, conf_local);
-    //gkyl_dg_mul_op_range(maxwell_moms->conf_basis, 0, moms, 
-    //  0, maxwell_moms->Gamma, 0, maxwell_moms->M0_minus_V_drift_dot_M1i, conf_local);
     gkyl_dg_div_op_range(maxwell_moms->mem,maxwell_moms->conf_basis, 0, moms, 
       0, maxwell_moms->M0_minus_V_drift_dot_M1i, 0, maxwell_moms->Gamma_inv, conf_local);
   }

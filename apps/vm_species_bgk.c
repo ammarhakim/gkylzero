@@ -47,20 +47,7 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   // allocate moments needed for BGK collisions update
   vm_species_moment_init(app, s, &bgk->moms, "LTEMoments");
 
-  if (bgk->model_id == GKYL_MODEL_SR) {
-    bgk->proj_mj = gkyl_proj_mj_on_basis_new(&s->grid, &app->confBasis, &app->basis, 
-      app->poly_order+1, app->use_gpu);
-  }
-  else {
-    bgk->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid, &app->confBasis, &app->basis, 
-      app->poly_order+1, app->use_gpu);
-  }
-
-  bgk->correct_all_moms = false; 
-  if (s->info.collisions.correct_all_moms) {
-    bgk->correct_all_moms = true;
-  }
-  struct gkyl_correct_vlasov_lte_inp inp_corr = { 
+  struct gkyl_proj_vlasov_lte_inp inp_proj = {
     .phase_grid = &s->grid,
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
@@ -70,13 +57,34 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     .p_over_gamma = s->p_over_gamma,
     .gamma = s->gamma,
     .gamma_inv = s->gamma_inv,
-    .model_id = bgk->model_id,
+    .model_id = s->model_id,
     .mass = s->info.mass,
     .use_gpu = app->use_gpu,
-    .max_iter = 100,
-    .eps = 1e-12,
   };
-  bgk->corr_lte = gkyl_correct_vlasov_lte_inew( &inp_corr );
+  bgk->proj_lte = gkyl_proj_vlasov_lte_on_basis_inew( &inp_proj );
+
+  bgk->correct_all_moms = false; 
+  if (s->info.collisions.correct_all_moms) {
+    bgk->correct_all_moms = true;
+
+    struct gkyl_correct_vlasov_lte_inp inp_corr = {
+      .phase_grid = &s->grid,
+      .conf_basis = &app->confBasis,
+      .phase_basis = &app->basis,
+      .conf_range =  &app->local,
+      .conf_range_ext = &app->local_ext,
+      .vel_range = &s->local_vel,
+      .p_over_gamma = s->p_over_gamma,
+      .gamma = s->gamma,
+      .gamma_inv = s->gamma_inv,
+      .model_id = s->model_id,
+      .mass = s->info.mass,
+      .use_gpu = app->use_gpu,
+      .max_iter = 100,
+      .eps = 1e-12,
+    };
+    bgk->corr_lte = gkyl_correct_vlasov_lte_inew( &inp_corr );
+  }
 
   bgk->f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   bgk->nu_f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -104,20 +112,13 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct timespec wst = gkyl_wall_clock();
   gkyl_array_clear(bgk->nu_f_lte, 0.0);
 
-  // Obtain self-collisions nu*f_lte where f_lte is the LTE distribution 
-  // e.g., Maxwellian for non-relativistic and Maxwell-Juttner for relativistic
-  if (bgk->model_id == GKYL_MODEL_SR) {
-    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(bgk->proj_mj, &species->local, &app->local,
-      bgk->moms.marr, bgk->f_lte);
-  }
-  else { 
-    gkyl_proj_maxwellian_on_basis_prim_mom(bgk->proj_max, &species->local, &app->local, 
-      bgk->moms.marr, bgk->f_lte);
-  }
-  // Correct the density of the projected LTE distribution function through rescaling
-  gkyl_correct_density_moment_vlasov_lte(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
-    &species->local, &app->local);
-  // Correct all the moments of the projected LTE distribution function 
+  // Project the LTE distribution function to obtain self-collisions nu*f_lte.
+  // e.g., Maxwellian for non-relativistic and Maxwell-Juttner for relativistic.
+  // Projection routine also corrects the density of the projected distribution function.
+  gkyl_proj_vlasov_lte_on_basis_advance(bgk->proj_lte, &species->local, &app->local, 
+    bgk->moms.marr, bgk->f_lte);
+
+  // Correct all the moments of the projected LTE distribution function.
   if (bgk->correct_all_moms) {
     gkyl_correct_all_moments_vlasov_lte(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
       &species->local, &app->local);
@@ -154,13 +155,10 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
 
   vm_species_moment_release(app, &bgk->moms);
 
-  if (bgk->model_id == GKYL_MODEL_SR) {
-    gkyl_proj_mj_on_basis_release(bgk->proj_mj);
-  } 
-  else {
-    gkyl_proj_maxwellian_on_basis_release(bgk->proj_max);
+  gkyl_proj_vlasov_lte_on_basis_release(bgk->proj_lte);
+  if (bgk->correct_all_moms) {
+    gkyl_correct_vlasov_lte_release(bgk->corr_lte);
   }
-  gkyl_correct_vlasov_lte_release(bgk->corr_lte);
 
   gkyl_bgk_collisions_release(bgk->up_bgk);
 }
