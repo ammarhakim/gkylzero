@@ -40,21 +40,20 @@ void gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *
   const struct gkyl_array *moms, struct gkyl_array *fmax);
 
 /**
- * Compute projection of non-relativistic Maxwellian (or LTE) distribution on basis. 
- * This method takes the LTE moments as a single array moms = (n, V_drift, T/m)
- * to compute the projection of the Maxwellian distribution function on basis functions.
- * Note: these moments are *defined in the stationary frame moving at V_drift*.
+ * Compute projection of Maxwellian on basis. This method takes
+ * primitive (fluid-frame) moments to compute the projection of
+ * Maxwellian on basis functions.
  *
  * @param pob Project on basis updater to run
  * @param phase_rng Phase-space range
- * @param conf_rng Configuration-space range
- * @param moms_lte LTE moments for computing Maxwellian distribution (n, V_drift, T/m)
- *                 Note: LTE moments are defined in stationary frame (frame moving at V_drift)
+ * @param conf_rng Config-space range
+ * @param moms velocity moments (m0, m1i, m2)
+ * @param prim_moms (primitive moments udrift, vtsq=T/m)
  * @param fmax Output Maxwellian
  */
 void gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *mob,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *moms_lte, struct gkyl_array *fmax);
+  const struct gkyl_array *moms, const struct gkyl_array *prim_moms, struct gkyl_array *fmax);
 
 /**
  * Compute projection of a gyrokinetic Maxwellian on basis.
