@@ -11,12 +11,12 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid grid,
+gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_grid,
   const struct gkyl_range phase_range, const struct gkyl_range conf_range,
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
-  const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx,
+  const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx, bool is_relativistic, 
   const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT f_lte)
 {
   double f_floor = 1.e-40;
@@ -46,14 +46,14 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid grid,
     }
     long lincC = gkyl_range_idx(&conf_range, cidx);
 
-    const double *moms_lte_d = gkyl_array_cfetch(moms_lte, lincC);
+    const double *moms_lte_d = (const double*) gkyl_array_cfetch(moms_lte, lincC);
     const double *n_d = moms_lte_d;
     const double *V_drift_d = &moms_lte_d[num_conf_basis];
     const double *T_over_m_d = &moms_lte_d[num_conf_basis*(vdim+1)];
 
     // Sum over basis for given LTE moments (n, V_drift, T/m) in the stationary frame
     for (int n=0; n<tot_conf_quad; ++n) {
-      const double *b_ord = gkyl_array_cfetch(up->conf_basis_at_ords, n);
+      const double *b_ord = gkyl_array_cfetch(conf_basis_at_ords, n);
 
       // Zero out quadrature values
       n_quad[n] = 0.0;
@@ -73,7 +73,7 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid grid,
 
       // Amplitude of the exponential.
       if ((n_quad[n] > 0.0) && (T_over_m_quad[n] > 0.0)) {
-        if (up->is_relativistic) {
+        if (is_relativistic) {
           expamp_quad[n] = n_quad[n]*(1.0/(4.0*GKYL_PI*T_over_m_quad[n]))*(sqrt(2*T_over_m_quad[n]/GKYL_PI));;
         }
         else {
@@ -85,7 +85,7 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid grid,
       }      
     }
 
-    gkyl_rect_grid_cell_center(&grid, pidx, xc);
+    gkyl_rect_grid_cell_center(&phase_grid, pidx, xc);
 
     long lidx = gkyl_range_idx(&phase_range, pidx);
     double *f_lte_d = (double *) gkyl_array_fetch(f_lte, lidx);
@@ -105,11 +105,11 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid grid,
       int cqidx = p2c_qidx[n];
 
       comp_to_phys(pdim, (const double *) gkyl_array_cfetch(phase_ordinates, n),
-        grid.dx, xc, &xmu[0]);
+        phase_grid.dx, xc, &xmu[0]);
 
       double fq = f_floor;
       if (T_over_m_quad[cqidx] > 0.0) {
-        if (up->is_relativistic) {
+        if (is_relativistic) {
           double uu = 0.0;
           double vu = 0.0;
           double vv = 0.0;
@@ -148,9 +148,9 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu(gkyl_proj_vlasov_lte_on_basis *up,
 {
   int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
   gkyl_proj_vlasov_lte_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
-    (up->grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
+    (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
      up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
-     moms_lte->on_dev, f_lte->on_dev);
+     up->is_relativistic, moms_lte->on_dev, f_lte->on_dev);
 
   // Correct the density of the projected LTE distribution function through rescaling.
   // This correction is needed especially for the relativistic LTE, whose pre-factor
