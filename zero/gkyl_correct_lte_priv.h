@@ -23,10 +23,10 @@ struct gkyl_correct_vlasov_lte
   struct gkyl_lte_moments *moments_up;
   struct gkyl_proj_vlasov_lte_on_basis *proj_lte;
 
-  // error estimate n, vb, T, 0 - success., num. picard iterations
-  double error_n; 
-  double error_vb[3];
-  double error_T;
+  // error estimate (n, V_drift, T/m), 0 - success., num. picard iterations
+  double error[5]; // absolute value of difference in cell averages between iteration and target
   double eps; // tolerance for the iterator
   int max_iter; // number of total iterations
+  bool use_gpu; // Boolean if we are performing projection on device.
+  double *error_cu; // error on device if using GPUs
 };

@@ -132,12 +132,12 @@ gkyl_proj_vlasov_lte_on_basis_inew(const struct gkyl_proj_vlasov_lte_inp *inp)
   gkyl_proj_vlasov_lte_on_basis *up = gkyl_malloc(sizeof(*up));
 
   up->phase_grid = *inp->phase_grid;
-
-  up->cdim = inp->conf_basis->ndim;
-  up->pdim = inp->phase_basis->ndim;
-  int vdim = up->pdim - up->cdim;
   up->conf_basis = *inp->conf_basis;
   up->phase_basis = *inp->phase_basis;
+
+  up->cdim = up->conf_basis.ndim;
+  up->pdim = up->phase_basis.ndim;
+  int vdim = up->pdim - up->cdim;
   up->num_conf_basis = up->conf_basis.num_basis;
   up->num_phase_basis = up->phase_basis.num_basis;
   up->use_gpu = inp->use_gpu;
@@ -216,8 +216,14 @@ gkyl_proj_vlasov_lte_on_basis_inew(const struct gkyl_proj_vlasov_lte_inp *inp)
 
   // Number density ratio: num_ratio = n_target/n0 and bin_op memory to compute ratio
   // Used for fixing the density with simple rescaling
-  up->num_ratio = gkyl_array_new(GKYL_DOUBLE, inp->conf_basis->num_basis, conf_local_ext_ncells);
-  up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, inp->conf_basis->num_basis);
+  if (up->use_gpu) {
+    up->num_ratio = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->conf_basis.num_basis, conf_local_ext_ncells);
+    up->mem = gkyl_dg_bin_op_mem_cu_dev_new(conf_local_ncells, up->conf_basis.num_basis);
+  }
+  else {
+    up->num_ratio = gkyl_array_new(GKYL_DOUBLE, up->conf_basis.num_basis, conf_local_ext_ncells);
+    up->mem = gkyl_dg_bin_op_mem_new(conf_local_ncells, up->conf_basis.num_basis);
+  }
 
   return up;
 }

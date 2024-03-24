@@ -17,6 +17,7 @@ gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp)
   gkyl_correct_vlasov_lte *up = gkyl_malloc(sizeof(*up));
   up->eps = inp->eps;
   up->max_iter = inp->max_iter;
+  up->use_gpu = inp->use_gpu;
 
   up->model_id = inp->model_id;
   up->conf_basis = *inp->conf_basis;
@@ -28,9 +29,17 @@ gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp)
   long conf_local_ext_ncells = inp->conf_range_ext->volume;
 
   // Individual moment memory: the iteration of the moments, the differences (d) and differences of differences (dd)
-  up->moms_iter = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
-  up->d_moms = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
-  up->dd_moms = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+  if (up->use_gpu) {
+    up->moms_iter = gkyl_array_cu_dev_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+    up->d_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+    up->dd_moms = gkyl_array_cu_dev_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+    up->error_cu = gkyl_cu_malloc(sizeof(double[5]));
+  }
+  else {
+    up->moms_iter = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+    up->d_moms = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+    up->dd_moms = gkyl_array_new(GKYL_DOUBLE, (up->vdim+2)*inp->conf_basis->num_basis, conf_local_ext_ncells);
+  }
 
   // Moments structure 
   struct gkyl_lte_moments_vlasov_inp inp_mom = {
@@ -78,31 +87,29 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
 {
   int vdim = c_corr->vdim;
   int nc = c_corr->num_conf_basis;
-  double eps = c_corr->eps;
+  double tol = c_corr->eps;  // tolerance of the iterative scheme
   int max_iter = c_corr->max_iter;
 
-  // tolerance of the iterative scheme
-  double tol = eps;
   int niter = 0;
   bool corr_status = true;
-  
-  c_corr->error_n = 1.0;
-  c_corr->error_vb[0] = 1.0;
-  c_corr->error_vb[1] = 0.0;
-  if (c_corr->vdim > 1)
-    c_corr->error_vb[1] = 1.0;
-  c_corr->error_vb[2] = 0.0;
-  if (c_corr->vdim > 2)
-    c_corr->error_vb[2] = 1.0;
-  c_corr->error_T = 1.0;
+
+  // Set initial max error 
+  for (int i=0; i<5; ++i) {
+    if (i < vdim+2) {
+      c_corr->error[i] = 1.0;  
+    }
+    else {
+      c_corr->error[i] = 0.0;
+    }
+  }
 
   // Clear the differences prior to iteration
   gkyl_array_clear(c_corr->d_moms, 0.0);
   gkyl_array_clear(c_corr->dd_moms, 0.0);
 
   // Iteration loop, max_iter iterations is usually sufficient (for all vdim) for machine precision moments
-  while ((niter < max_iter) && ((fabs(c_corr->error_n) > tol) || (fabs(c_corr->error_vb[0]) > tol) ||
-    (fabs(c_corr->error_vb[1]) > tol) || (fabs(c_corr->error_vb[2]) > tol) || (fabs(c_corr->error_T) > tol)))
+  while ((niter < max_iter) && ((fabs(c_corr->error[0]) > tol) || (fabs(c_corr->error[1]) > tol) ||
+    (fabs(c_corr->error[2]) > tol) || (fabs(c_corr->error[3]) > tol) || (fabs(c_corr->error[4]) > tol)))
   {
     // 1. Calculate the LTE moments (n, V_drift, T) from the projected LTE distribution
     gkyl_lte_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_iter);
@@ -118,25 +125,29 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
     gkyl_array_accumulate(c_corr->d_moms, 1.0, c_corr->dd_moms);
 
     // End the iteration early if all moments converge
-    if ((niter % 1) == 0){
-      struct gkyl_range_iter biter;
+    if ((niter % 1) == 0) {
+      if (c_corr->use_gpu) {
+        // Call specialized kernel for finding the error and copying back to CPU
 
-      // Reset the maximum error
-      c_corr->error_n = 0; c_corr->error_T = 0;
-      c_corr->error_vb[0] = 0; c_corr->error_vb[1] = 0; c_corr->error_vb[2] = 0;
+      }
+      else {
+        struct gkyl_range_iter biter;
 
-      // Iterate over the input configuration space range to find the maximum error
-      gkyl_range_iter_init(&biter, conf_local);
-      while (gkyl_range_iter_next(&biter)){
-        long midx = gkyl_range_idx(conf_local, biter.idx);
-        const double *moms_local = gkyl_array_cfetch(c_corr->moms_iter, midx);
-        const double *moms_target_local = gkyl_array_cfetch(moms_target, midx);
-
-        c_corr->error_n = fmax(fabs(moms_local[0] - moms_target_local[0]),fabs(c_corr->error_n));
-        for (int d=0; d<vdim; ++d) {
-          c_corr->error_vb[d] = fmax(fabs(moms_local[(d+1)*nc] - moms_target_local[(d+1)*nc]), fabs(c_corr->error_vb[d]));
+        // Reset the maximum error
+        for (int i=0; i<vdim+2; ++i) {
+          c_corr->error[i] = 0.0;
         }
-        c_corr->error_T = fmax(fabs(moms_local[(vdim+1)*nc] - moms_target_local[(vdim+1)*nc]), fabs(c_corr->error_T));
+        // Iterate over the input configuration space range to find the maximum error
+        gkyl_range_iter_init(&biter, conf_local);
+        while (gkyl_range_iter_next(&biter)){
+          long midx = gkyl_range_idx(conf_local, biter.idx);
+          const double *moms_local = gkyl_array_cfetch(c_corr->moms_iter, midx);
+          const double *moms_target_local = gkyl_array_cfetch(moms_target, midx);
+          // Check the error in the absolute value of the cell average
+          for (int d=0; d<vdim+2; ++d) {
+            c_corr->error[d] = fmax(fabs(moms_local[d*nc] - moms_target_local[d*nc]),fabs(c_corr->error[d]));
+          }
+        }
       }
     }
 
@@ -152,8 +163,8 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
 
     niter += 1;
   }
-  if ((niter < max_iter) && ((fabs(c_corr->error_n) < tol) && (fabs(c_corr->error_vb[0]) < tol) &&
-    (fabs(c_corr->error_vb[1]) < tol) && (fabs(c_corr->error_vb[2]) < tol) && (fabs(c_corr->error_T) < tol))) {
+  if ((niter < max_iter) && ((fabs(c_corr->error[0]) < tol) && (fabs(c_corr->error[1]) < tol) &&
+    (fabs(c_corr->error[2]) < tol) && (fabs(c_corr->error[3]) < tol) && (fabs(c_corr->error[4]) < tol))) {
     corr_status = 0;
   } 
   else {
