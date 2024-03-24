@@ -99,7 +99,7 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
 
   int niter = 0;
   bool corr_status = true;
-  int isreal_flte = true;
+  int ispositive_flte = true;
 
   // Set initial max error to start the iteration.
   for (int i=0; i<5; ++i) {
@@ -120,7 +120,7 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   gkyl_array_clear(c_corr->dd_moms, 0.0);
 
   // Iteration loop, max_iter iterations is usually sufficient (for all vdim) for machine precision moments
-  while ((isreal_flte) &&  ((niter < max_iter) && ((fabs(c_corr->error[0]) > tol) || (fabs(c_corr->error[1]) > tol) ||
+  while ((ispositive_flte) &&  ((niter < max_iter) && ((fabs(c_corr->error[0]) > tol) || (fabs(c_corr->error[1]) > tol) ||
     (fabs(c_corr->error[2]) > tol) || (fabs(c_corr->error[3]) > tol) || (fabs(c_corr->error[4]) > tol))))
   {
     // 1. Calculate the LTE moments (n, V_drift, T) from the projected LTE distribution
@@ -163,7 +163,8 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
           // Check the error in the absolute value of the cell average
           for (int d=0; d<vdim+2; ++d) {
             c_corr->error[d] = fmax(fabs(moms_local[d*nc] - moms_target_local[d*nc]),fabs(c_corr->error[d]));
-            isreal_flte = !(isnan(moms_local[d*nc])) && isreal_flte ;
+            if (d == 0 || d == vdim+1) // Temp or density
+              ispositive_flte = ((moms_local[d*nc]>0)) && ispositive_flte ;
           }
         }
       }
@@ -181,7 +182,7 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
 
     niter += 1;
   }
-  if ((niter < max_iter) && (isreal_flte) && ((fabs(c_corr->error[0]) < tol) && (fabs(c_corr->error[1]) < tol) &&
+  if ((niter < max_iter) && (ispositive_flte) && ((fabs(c_corr->error[0]) < tol) && (fabs(c_corr->error[1]) < tol) &&
     (fabs(c_corr->error[2]) < tol) && (fabs(c_corr->error[3]) < tol) && (fabs(c_corr->error[4]) < tol))) {
     corr_status = 0;
   } 
