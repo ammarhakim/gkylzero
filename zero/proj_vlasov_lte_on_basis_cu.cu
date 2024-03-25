@@ -31,6 +31,7 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
   // JJ 2024/03/23: hard-coded to 3x, vdim=3, p=2 for now.
   // This hard-coding avoids issues with GPUs and dynamic memory allocation.
   double n_quad[27], V_drift_quad[27][3], T_over_m_quad[27];
+  double V_drift_quad_cell_avg[27][3];
   double expamp_quad[27];
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
@@ -59,6 +60,8 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
       n_quad[n] = 0.0;
       for (int d=0; d<vdim; ++d) {
         V_drift_quad[n][d] = 0.0;
+        // Store the cell average of V_drift to use if V_drift^2 > c^2 at quadrature points
+        V_drift_quad_cell_avg[n][d] = V_drift_d[num_conf_basis*d]*b_ord[0];
       }
       T_over_m_quad[n] = 0.0;
 
@@ -119,7 +122,19 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
              uu += (xmu[cdim+d]*xmu[cdim+d]);
           }
           double gamma_shifted = 0.0;
-          gamma_shifted = 1/sqrt(1-vv);
+          if (vv > 1.0) {
+            // Check if V_drift^2 > c^2 (where c = 1.0) at quadrature points 
+            // If it is, switch to just using the cell average of V_drift for
+            // computing the Lorentz boost factor
+            double V_drift_sq_avg = 0.0;
+            for (int d=0; d<vdim; ++d) { 
+              V_drift_sq_avg += (V_drift_quad_cell_avg[cqidx][d]*V_drift_quad_cell_avg[cqidx][d]);
+            }
+            gamma_shifted = 1.0/sqrt(1.0-V_drift_sq_avg);
+          } 
+          else {
+            gamma_shifted = 1.0/sqrt(1.0-vv);
+          }
 
           fq += expamp_quad[cqidx]*exp( (1.0/T_over_m_quad[cqidx]) 
             - (gamma_shifted/T_over_m_quad[cqidx])*(sqrt(1+uu) - vu) );

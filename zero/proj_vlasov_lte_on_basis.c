@@ -276,6 +276,7 @@ gkyl_proj_vlasov_lte_on_basis_advance(gkyl_proj_vlasov_lte_on_basis *up,
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   double n_quad[tot_conf_quad], V_drift_quad[tot_conf_quad][vdim], T_over_m_quad[tot_conf_quad];
+  double V_drift_quad_cell_avg[tot_conf_quad][vdim];
   double expamp_quad[tot_conf_quad];
 
   // outer loop over configuration space cells; for each
@@ -297,6 +298,8 @@ gkyl_proj_vlasov_lte_on_basis_advance(gkyl_proj_vlasov_lte_on_basis *up,
       n_quad[n] = 0.0;
       for (int d=0; d<vdim; ++d) {
         V_drift_quad[n][d] = 0.0;
+        // Store the cell average of V_drift to use if V_drift^2 > c^2 at quadrature points
+        V_drift_quad_cell_avg[n][d] = V_drift_d[num_conf_basis*d]*b_ord[0];
       }
       T_over_m_quad[n] = 0.0;
 
@@ -349,13 +352,25 @@ gkyl_proj_vlasov_lte_on_basis_advance(gkyl_proj_vlasov_lte_on_basis *up,
             double uu = 0.0;
             double vu = 0.0;
             double vv = 0.0;
-            for (int d=0; d<vdim; ++d){
-               vv += (V_drift_quad[cqidx][d]*V_drift_quad[cqidx][d]);
-               vu += (V_drift_quad[cqidx][d]*xmu[cdim+d]);
-               uu += (xmu[cdim+d]*xmu[cdim+d]);
+            for (int d=0; d<vdim; ++d) {
+              vv += (V_drift_quad[cqidx][d]*V_drift_quad[cqidx][d]);
+              vu += (V_drift_quad[cqidx][d]*xmu[cdim+d]);
+              uu += (xmu[cdim+d]*xmu[cdim+d]);
             }
             double gamma_shifted = 0.0;
-            gamma_shifted = 1/sqrt(1-vv);
+            if (vv > 1.0) {
+              // Check if V_drift^2 > c^2 (where c = 1.0) at quadrature points 
+              // If it is, switch to just using the cell average of V_drift for
+              // computing the Lorentz boost factor
+              double V_drift_sq_avg = 0.0;
+              for (int d=0; d<vdim; ++d) { 
+                V_drift_sq_avg += (V_drift_quad_cell_avg[cqidx][d]*V_drift_quad_cell_avg[cqidx][d]);
+              }
+              gamma_shifted = 1.0/sqrt(1.0-V_drift_sq_avg);
+            } 
+            else {
+              gamma_shifted = 1.0/sqrt(1.0-vv);
+            }
 
             fq[0] += expamp_quad[cqidx]*exp( (1.0/T_over_m_quad[cqidx]) 
               - (gamma_shifted/T_over_m_quad[cqidx])*(sqrt(1+uu) - vu) );
