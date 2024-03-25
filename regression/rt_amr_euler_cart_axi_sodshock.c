@@ -26,6 +26,7 @@ struct amr_euler_cart_axi_sodshock_ctx
   double fine_Ly; // Fine domain size (y-direction).
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  int num_frames; // Number of output frames.
 
   double rloc; // Fluid boundary (radial coordinate).
 };
@@ -57,6 +58,7 @@ create_ctx(void)
   double fine_Ly = 1.0; // Fine domain size (y-direction).
   double cfl_frac = 0.9; // CFL coefficient.
   double t_end = 0.2; // Final simulation time.
+  int num_frames = 5; // Number of output frames.
 
   double rloc = 0.5 * (0.25 + 1.25); // Fluid boundary (radial coordinate).
 
@@ -78,6 +80,7 @@ create_ctx(void)
     .fine_Ly = fine_Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .num_frames = num_frames,
     .rloc = rloc,
   };
 
@@ -152,6 +155,7 @@ int main(int argc, char **argv)
 
     .cfl_frac = ctx.cfl_frac,
     .t_end = ctx.t_end,
+    .num_frames = ctx.num_frames,
   };
 
   euler2d_run_single(argc, argv, &init);

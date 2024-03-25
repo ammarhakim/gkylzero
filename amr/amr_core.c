@@ -27,7 +27,8 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
 
   evalf_t eval = init -> eval;
   double gas_gamma = init -> gas_gamma;
-
+  
+  int num_frames = init -> num_frames;
   double cfl_frac = init -> cfl_frac;
   double t_end = init -> t_end;
 
@@ -107,7 +108,13 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   }
 
   for (int i = 0; i < num_blocks; i++) {
-    coarse_bdata[i].euler = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    //coarse_bdata[i].euler = gkyl_wv_euler_new(gas_gamma, app_args.use_gpu);
+    struct gkyl_wv_euler_inp inp = {
+      .gas_gamma = gas_gamma,
+      .rp_type = WV_EULER_RP_HLLC,
+      .use_gpu = app_args.use_gpu,
+    };
+    coarse_bdata[i].euler = gkyl_wv_euler_inew(&inp);
 
     for (int d = 0; d < ndim; d++) {
       coarse_bdata[i].slvr[d] = gkyl_wave_prop_new(& (struct gkyl_wave_prop_inp) {
@@ -229,6 +236,8 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   long coarse_step = 1;
   long num_steps = app_args.num_steps;
 
+  double io_trigger = t_end / num_frames;
+
   while ((coarse_t_curr < t_end) && (coarse_step <= num_steps)) {
     printf("Taking coarse (level 0) time-step %ld at t = %g; ", coarse_step, coarse_t_curr);
     struct gkyl_update_status coarse_status = euler_update(coarse_job_pool, btopo, coarse_bdata, coarse_t_curr, coarse_dt, &stats);
@@ -261,6 +270,50 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
 #endif
     }
 
+    for (int i = 1; i < num_frames; i++) {
+      if (coarse_t_curr < (i * io_trigger) && (coarse_t_curr + coarse_status.dt_actual) > (i * io_trigger)) {
+#ifdef AMR_DEBUG
+      char buf_coarse[32];
+      char buf_fine[32];
+
+      snprintf(buf_coarse, 32, "euler_amr_coarse_%d", i);
+      snprintf(buf_fine, 32, "euler_amr_fine_%d", i);
+
+      euler_write_sol(buf_coarse, num_blocks, coarse_bdata);
+      euler_write_sol(buf_fine, num_blocks, fine_bdata);
+
+      char buf_fine_old[32];
+      char buf_fine_new[32];
+      char buf_coarse_old[32];
+
+      snprintf(buf_fine_old, 32, "euler_amr_fine_%d_b0.gkyl", i);
+      snprintf(buf_fine_new, 32, "euler_amr_%d_b0.gkyl", i);
+      snprintf(buf_coarse_old, 32, "euler_amr_coarse_%d_b0.gkyl", i);
+
+      rename(buf_fine_old, buf_fine_new);
+      remove(buf_coarse_old);
+
+      for (int j = 1; j < 9; j++) {
+        char buf_old[32];
+        char buf_new[32];
+        char buf_del[32];
+
+        snprintf(buf_old, 32, "euler_amr_coarse_%d_b%d.gkyl", i, j);
+        snprintf(buf_new, 32, "euler_amr_%d_b%d.gkyl", i, j);
+        snprintf(buf_del, 32, "euler_amr_fine_%d_b%d.gkyl", i, j);
+
+        rename(buf_old, buf_new);
+        remove(buf_del);
+      }
+#else
+      char buf[32];
+      snprintf(buf, 32, "euler_amr_%d", i);
+
+      euler_write_sol(buf, num_blocks, coarse_bdata);
+#endif
+      }
+    }
+
     coarse_t_curr += coarse_status.dt_actual;
     coarse_dt = coarse_status.dt_suggested;
 
@@ -270,26 +323,43 @@ euler2d_run_single(int argc, char **argv, struct euler2d_single_init* init)
   double tm_total_sec = gkyl_time_diff_now_sec(tm_start);
 
 #ifdef AMR_DEBUG
-  euler_write_sol("euler_amr_coarse_1", num_blocks, coarse_bdata);
-  euler_write_sol("euler_amr_fine_1", num_blocks, fine_bdata);
+  char buf_coarse[32];
+  char buf_fine[32];
 
-  rename("euler_amr_fine_1_b0.gkyl", "euler_amr_1_b0.gkyl");
-  remove("euler_amr_coarse_1_b0.gkyl");
+  snprintf(buf_coarse, 32, "euler_amr_coarse_%d", num_frames);
+  snprintf(buf_fine, 32, "euler_amr_fine_%d", num_frames);
+
+  euler_write_sol(buf_coarse, num_blocks, coarse_bdata);
+  euler_write_sol(buf_fine, num_blocks, fine_bdata);
+
+  char buf_fine_old[32];
+  char buf_fine_new[32];
+  char buf_coarse_old[32];
+
+  snprintf(buf_fine_old, 32, "euler_amr_fine_%d_b0.gkyl", num_frames);
+  snprintf(buf_fine_new, 32, "euler_amr_%d_b0.gkyl", num_frames);
+  snprintf(buf_coarse_old, 32, "euler_amr_coarse_%d_b0.gkyl", num_frames);
+
+  rename(buf_fine_old, buf_fine_new);
+  remove(buf_coarse_old);
 
   for (int i = 1; i < 9; i++) {
     char buf_old[32];
     char buf_new[32];
     char buf_del[32];
 
-    snprintf(buf_old, 32, "euler_amr_coarse_1_b%d.gkyl", i);
-    snprintf(buf_new, 32, "euler_amr_1_b%d.gkyl", i);
-    snprintf(buf_del, 32, "euler_amr_fine_1_b%d.gkyl", i);
+    snprintf(buf_old, 32, "euler_amr_coarse_%d_b%d.gkyl", num_frames, i);
+    snprintf(buf_new, 32, "euler_amr_%d_b%d.gkyl", num_frames, i);
+    snprintf(buf_del, 32, "euler_amr_fine_%d_b%d.gkyl", num_frames, i);
 
     rename(buf_old, buf_new);
     remove(buf_del);
   }
 #else
-  euler_write_sol("euler_amr_1", num_blocks, coarse_bdata);
+  char buf[32];
+  snprintf(buf, 32, "euler_amr_%d", num_frames);
+
+  euler_write_sol(buf, num_blocks, coarse_bdata);
 #endif
 
   printf("Total run-time: %g. Failed steps: %d\n", tm_total_sec, stats.nfail);
@@ -570,7 +640,7 @@ five_moment_2d_run_single(int argc, char **argv, struct five_moment_2d_single_in
           .num_up_dirs = 1,
           .update_dirs = { d },
           .cfl = cfl_frac,
-          .geom = fine_bdata[i].geom,
+          .geom = fine_bdata[i].geom, 
         }
       );
     }

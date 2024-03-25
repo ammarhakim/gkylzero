@@ -35,6 +35,7 @@ struct amr_euler_riem_2d_ctx
   double fine_Ly; // Fine domain size (y-direction).
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  int num_frames; // Number of output frames.
 
   double loc; // Fluid boundaries (both x and y coordinates).
 };
@@ -75,6 +76,7 @@ create_ctx(void)
   double fine_Ly = 0.5; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
   double t_end = 0.8; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
 
   double loc = 0.8; // Fluid boundaries (both x and y coordinates).
 
@@ -105,6 +107,7 @@ create_ctx(void)
     .fine_Ly = fine_Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .num_frames = num_frames,
     .loc = loc,
   };
 
@@ -208,6 +211,7 @@ int main(int argc, char **argv)
 
     .cfl_frac = ctx.cfl_frac,
     .t_end = ctx.t_end,
+    .num_frames = ctx.num_frames,
   };
 
   euler2d_run_single(argc, argv, &init);

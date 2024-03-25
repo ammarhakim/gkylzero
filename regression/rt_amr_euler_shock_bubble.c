@@ -27,6 +27,7 @@ struct amr_euler_shock_bubble_ctx
   double fine_Ly; // Fine domain size (y-direction).
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  int num_frames; // Number of output frames.
 
   double x_loc; // Shock location (x-direction).
   double bub_loc; // Bubble location (x-direction).
@@ -54,13 +55,14 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 32; // Coarse cell count (x-direction).
   int Ny = 32; // Coarse cell count (y-direction).
-  int ref_factor = 4; // Refinement factor.
+  int ref_factor = 1; // Refinement factor.
   double Lx = 1.0; // Coarse domain size (x-direction).
   double Ly = 1.0; // Coarse domain size (y-direction).
-  double fine_Lx = 0.75; // Fine domain size (x-direction).
-  double fine_Ly = 0.25; // Fine domain size (y-direction).
+  double fine_Lx = 0.33; // Fine domain size (x-direction).
+  double fine_Ly = 0.33; // Fine domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
   double t_end = 0.075; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
 
   double x_loc = 0.05; // Shock location (x-direction).
   double bub_loc = 0.25; // Bubble location (x-direction).
@@ -86,6 +88,7 @@ create_ctx(void)
     .fine_Ly = fine_Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .num_frames = num_frames,
     .x_loc = x_loc,
     .bub_loc = bub_loc,
     .bub_rad = bub_rad,
@@ -174,6 +177,7 @@ int main(int argc, char **argv)
 
     .cfl_frac = ctx.cfl_frac,
     .t_end = ctx.t_end,
+    .num_frames = ctx.num_frames,
   };
 
   euler2d_run_single(argc, argv, &init);

@@ -24,6 +24,7 @@ struct euler2d_single_init {
 
   double cfl_frac;
   double t_end;
+  int num_frames;
 };
 
 /**
