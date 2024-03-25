@@ -98,13 +98,15 @@ main(int argc, char **argv)
       .ctx_V_drift = &ctx,
       .temp = evalTempInit,
       .ctx_temp = &ctx,
+      .correct_all_moms = true, 
     },
 
     .collisions =  {
-      .collision_id = GKYL_LBO_COLLISIONS,
+      .collision_id = GKYL_BGK_COLLISIONS,
 
       .ctx = &ctx,
       .self_nu = evalNu,
+      .correct_all_moms = true,
     },
 
     .num_diag_moments = 3,
@@ -113,7 +115,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "neut_lbo_sod_shock_1x1v_p2",
+    .name = "neut_bgk_sod_shock_1x1v_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
