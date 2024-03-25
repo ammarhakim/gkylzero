@@ -62,6 +62,15 @@
 // Definitions of private structs and APIs attached to these objects
 // for use in Vlasov app.
 
+// Meta-data for IO
+struct vlasov_output_meta {
+  int frame; // frame number
+  double stime; // output time
+  int poly_order; // polynomial order
+  const char *basis_type; // name of basis functions
+  char basis_type_nm[64]; // used during read
+};
+
 // list of valid moment names
 static const char *const valid_moment_names[] = {
   "M0",

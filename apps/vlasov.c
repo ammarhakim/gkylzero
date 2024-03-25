@@ -1,5 +1,7 @@
 #include <stdarg.h>
 
+#include <mpack.h>
+
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
@@ -8,6 +10,52 @@
 #include <gkyl_null_comm.h>
 
 #include <gkyl_vlasov_priv.h>
+
+// returned gkyl_array_meta must be freed using gyrokinetic_array_meta_release
+static struct gkyl_array_meta*
+vlasov_array_meta_new(struct vlasov_output_meta meta)
+{
+  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+
+  mt->meta_sz = 0;
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
+
+  // add some data to mpack
+  mpack_build_map(&writer);
+  
+  mpack_write_cstr(&writer, "time");
+  mpack_write_double(&writer, meta.stime);
+
+  mpack_write_cstr(&writer, "frame");
+  mpack_write_i64(&writer, meta.frame);
+
+  mpack_write_cstr(&writer, "polyOrder");
+  mpack_write_i64(&writer, meta.poly_order);
+
+  mpack_write_cstr(&writer, "basisType");
+  mpack_write_cstr(&writer, meta.basis_type);
+
+  mpack_complete_map(&writer);
+
+  int status = mpack_writer_destroy(&writer);
+
+  if (status != mpack_ok) {
+    free(mt->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mt);
+    mt = 0;
+  }
+
+  return mt;
+}
+
+static void
+vlasov_array_meta_release(struct gkyl_array_meta *mt)
+{
+  if (!mt) return;
+  MPACK_FREE(mt->meta);
+  gkyl_free(mt);
+}
 
 gkyl_vlasov_app*
 gkyl_vlasov_app_new(struct gkyl_vm *vm)
@@ -427,6 +475,14 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
+  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->confBasis.id
+    }
+  );
+  
   const char *fmt = "%s-field_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
@@ -435,16 +491,26 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->field->em_host, app->field->em);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field->em_host, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->em_host, fileNm);
   }
   else {
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field->em, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->em, fileNm);
   }
+
+  vlasov_array_meta_release(mt);
 }
 
 void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
+  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->basis.id
+    }
+  );
+  
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
@@ -454,12 +520,14 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
     // copy data from device to host before writing it out
     gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      0, app->species[sidx].f_host, fileNm);
+      mt, app->species[sidx].f_host, fileNm);
   }
   else {
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      0, app->species[sidx].f, fileNm);
+      mt, app->species[sidx].f, fileNm);
   }
+
+  vlasov_array_meta_release(mt);  
 }
 
 void
@@ -505,6 +573,14 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
 void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 {
+  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->basis.id
+    }
+  );
+  
   for (int i=0; i<app->num_species; ++i) {
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
 
@@ -518,9 +594,12 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
       if (app->use_gpu)
         gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
 
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->species[i].moms[m].marr_host, fileNm);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local,
+        mt, app->species[i].moms[m].marr_host, fileNm);
     }
   }
+
+  vlasov_array_meta_release(mt);
 }
 
 void

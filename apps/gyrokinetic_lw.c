@@ -86,7 +86,7 @@ eval_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
 /* ***************** */
 
 // Metatable name for field input struct
-#define GYROKINETIC_PROJECTION_METATABLE_NM "GkeyllZero.Gyrokinetic.Projection"
+#define GYROKINETIC_PROJECTION_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Projection"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_projection_lw {
@@ -167,7 +167,7 @@ static struct luaL_Reg gyrokinetic_projection_ctor[] = {
 /* ***************** */
 
 // Metatable name for field input struct
-#define GYROKINETIC_GEOMETRY_METATABLE_NM "GkeyllZero.Gyrokinetic.Geometry"
+#define GYROKINETIC_GEOMETRY_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Geometry"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_geometry_lw {
@@ -233,7 +233,7 @@ static struct luaL_Reg gyrokinetic_geometry_ctor[] = {
 /* ************** */
 
 // Metatable name for field input struct
-#define GYROKINETIC_SOURCE_METATABLE_NM "GkeyllZero.Gyrokinetic.Source"
+#define GYROKINETIC_SOURCE_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Source"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_source_lw {
@@ -290,7 +290,7 @@ static struct luaL_Reg gyrokinetic_source_ctor[] = {
 /* ***************** */
 
 // Metatable name for field input struct
-#define GYROKINETIC_DIFFUSION_METATABLE_NM "GkeyllZero.Gyrokinetic.Diffusion"
+#define GYROKINETIC_DIFFUSION_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Diffusion"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_diffusion_lw {
@@ -340,7 +340,7 @@ static struct luaL_Reg gyrokinetic_diffusion_ctor[] = {
 /* ****************** */
 
 // Metatable name for field input struct
-#define GYROKINETIC_COLLISIONS_METATABLE_NM "GkeyllZero.Gyrokinetic.Collisions"
+#define GYROKINETIC_COLLISIONS_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Collisions"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_collisions_lw {
@@ -393,7 +393,7 @@ static struct luaL_Reg gyrokinetic_collisions_ctor[] = {
 /* *****************/
 
 // Metatable name for species input struct
-#define GYROKINETIC_SPECIES_METATABLE_NM "GkeyllZero.Gyrokinetic.Species"
+#define GYROKINETIC_SPECIES_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Species"
 
 // Lua userdata object for constructing species input
 struct gyrokinetic_species_lw {
@@ -540,7 +540,7 @@ static struct luaL_Reg gyrokinetic_species_ctor[] = {
 /* *****************/
 
 // Metatable name for field input struct
-#define GYROKINETIC_FIELD_METATABLE_NM "GkeyllZero.Gyrokinetic.Field"
+#define GYROKINETIC_FIELD_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Field"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_field_lw {
@@ -621,7 +621,7 @@ static struct luaL_Reg gyrokinetic_field_ctor[] = {
 /* *************/
 
 // Metatable name for top-level Gyrokinetic App
-#define GYROKINETIC_APP_METATABLE_NM "GkeyllZero.Gyrokinetic.App"
+#define GYROKINETIC_APP_METATABLE_NM "GkeyllZero.App.Gyrokinetic"
 
 // Lua userdata object for holding Gyrokinetic app and run parameters
 struct gyrokinetic_app_lw {

@@ -78,6 +78,7 @@ bmag_choose_kernel(int dim, int basis_type, int poly_order)
       assert(false);
       break;
   }
+  return 0;
 }
 
 

@@ -49,6 +49,7 @@ derived_geo_choose_kernel(int dim, int basis_type, int poly_order)
       assert(false);
       break;
   }
+  return 0;
 }
 
 GKYL_CU_DH

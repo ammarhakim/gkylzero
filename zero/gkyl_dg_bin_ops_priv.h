@@ -159,7 +159,7 @@ static mul_op_t
 choose_mul_conf_phase_kern(enum gkyl_basis_type btype, int cdim, int vdim, int poly_order)
 {
   int pdim = cdim+vdim;
-
+  
   switch (btype) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       return ser_cross_mul_list[pdim-2].list[cdim-1].kernels[poly_order];
@@ -177,6 +177,7 @@ choose_mul_conf_phase_kern(enum gkyl_basis_type btype, int cdim, int vdim, int p
       assert(false);
       break;
   }
+  return 0;
 }
 
 static mul_op_count_t
