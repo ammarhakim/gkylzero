@@ -15,23 +15,40 @@ struct free_stream_ctx {
 
 static inline double sq(double x) { return x*x; }
 
-static inline double
-maxwellian(double n, double vx, double vy, double vz, double u, double vth)
+void
+evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double v2 = (vx - u)*(vx - u) + vy*vy + vz*vz;
-  return n/pow(sqrt(2*M_PI*vth*vth),3)*exp(-v2/(2*vth*vth));
+  struct bgk_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  if (x<0.5) {
+    fout[0] = 1.0;
+  }
+  else {
+    fout[0] = 0.125;
+  }
 }
 
 void
-evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct free_stream_ctx *app = ctx;
+  struct bgk_sod_shock_ctx *app = ctx;
   double x = xn[0];
-  double vx = xn[1], vy = xn[2], vz = xn[3];
-  if (x<0.5)
-    fout[0] = maxwellian(1.0, vx, vy, vz, 0.0, 1.0);
-  else
-    fout[0] = maxwellian(0.125, vx, vy, vz, 0.0, sqrt(0.1/0.125));
+  fout[0] = 0.0; 
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+}
+
+void
+evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct bgk_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  if (x<0.5) {
+    fout[0] = 1.0;
+  }
+  else {
+    fout[0] = sqrt(0.1/0.125);
+  }
 }
 
 void
@@ -81,9 +98,13 @@ main(int argc, char **argv)
     .cells = {VX, VY, VZ},
 
     .projection = {
-      .proj_id = GKYL_PROJ_FUNC,
-      .func = evalDistFunc,
-      .ctx_func = &ctx,
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
     },
 
     .collisions =  {
@@ -94,7 +115,7 @@ main(int argc, char **argv)
     },    
 
     .num_diag_moments = 3,
-    .diag_moments = { "M0", "M1i", "M2" },
+    .diag_moments = { "M0", "M1i", "LTEMoments" },
   };
 
   // VM app
