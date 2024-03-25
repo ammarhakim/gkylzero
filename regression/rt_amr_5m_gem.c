@@ -37,6 +37,7 @@ struct amr_5m_gem_ctx
   double fine_Ly; // Fine domain size (y-direction).
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  int num_frames; // Number of output frames.
 };
 
 struct amr_5m_gem_ctx
@@ -70,13 +71,14 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 32; // Coarse cell count (x-direction).
   int Ny = 16; // Coarse cell count (y-direction).
-  int ref_factor = 4; // Refinement factor.
+  int ref_factor = 2; // Refinement factor.
   double Lx = 25.6; // Coarse domain size (x-direction).
   double Ly = 12.8; // Coarse domain size (y-direction).
-  double fine_Lx = 12.8; // Fine domain size (x-direction).
-  double fine_Ly = 6.4; // Fine domain size (y-direction).
+  double fine_Lx = 9.6; // Fine domain size (x-direction).
+  double fine_Ly = 4.8; // Fine domain size (y-direction).
   double cfl_frac = 1.0; // CFL coefficient.
-  double t_end = 50.0; // Final simulation time.
+  double t_end = 10.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
 
   struct amr_5m_gem_ctx ctx = {
     .pi = pi,
@@ -106,6 +108,7 @@ create_ctx(void)
     .fine_Ly = fine_Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .num_frames = num_frames,
   };
 
   return ctx;
@@ -206,9 +209,9 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electric field.
-  fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
+  fout[0] = 0.0; fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = Bx; fout[4] = By; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
@@ -258,6 +261,7 @@ int main(int argc, char **argv)
 
     .cfl_frac = ctx.cfl_frac,
     .t_end = ctx.t_end,
+    .num_frames = ctx.num_frames,
   };
 
   five_moment_2d_run_single(argc, argv, &init);

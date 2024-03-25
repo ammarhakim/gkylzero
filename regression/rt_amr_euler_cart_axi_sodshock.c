@@ -58,7 +58,7 @@ create_ctx(void)
   double fine_Ly = 1.0; // Fine domain size (y-direction).
   double cfl_frac = 0.9; // CFL coefficient.
   double t_end = 0.2; // Final simulation time.
-  int num_frames = 5; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
 
   double rloc = 0.5 * (0.25 + 1.25); // Fluid boundary (radial coordinate).
 
