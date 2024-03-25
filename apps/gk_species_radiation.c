@@ -217,6 +217,7 @@ void
 gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
 				struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
 {
+    gkyl_array_clear(rad->integrated_moms_rhs, 0.0);
     gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
       species->f, species->cflrate, rad->integrated_moms_rhs);
     gk_species_moment_calc(&rad->integ_moms, species->local, app->local, rad->integrated_moms_rhs);
