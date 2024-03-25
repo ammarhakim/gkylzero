@@ -129,7 +129,7 @@ vm_species_projection_release(const struct gkyl_vlasov_app *app, const struct vm
       gkyl_array_release(proj->proj_host);
     }
   }
-  else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) { 
+  else if (proj->proj_id == GKYL_PROJ_VLASOV_LTE) { 
     gkyl_array_release(proj->dens);
     gkyl_array_release(proj->V_drift); 
     gkyl_array_release(proj->T_over_m);
