@@ -525,7 +525,6 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     gkyl_proj_on_basis_release(s->accel_proj);
   }
 
-  vm_species_projection_release(app, &s->proj_init);
   if (s->source_id) {
     vm_species_source_release(app, &s->src);
   }
