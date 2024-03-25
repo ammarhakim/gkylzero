@@ -14,7 +14,8 @@ GKYL_CU_DH void sr_Gamma2_2x2v_ser_p1(const double *V, double* GKYL_RESTRICT Gam
   double V_1_sq[4] = {0.0}; 
   ser_2x_p1_exp_sq(V_1, V_1_sq); 
  
-  double V_sq_avg = (V_0_sq[0]+V_1_sq[0])/(2.0); 
+  double V_sq_avg = (V_0_sq[0] + V_1_sq[0])/(2.0); 
+  double V_sq_avg_lo = (V_0[0]*V_0[0] + V_1[0]*V_1[0])/(4.0); 
  
   double Gamma2_inv[4] = {0.0}; 
   Gamma2_inv[0] = (-1.0*V_1_sq[0])-1.0*V_0_sq[0]+2.0; 
@@ -23,8 +24,8 @@ GKYL_CU_DH void sr_Gamma2_2x2v_ser_p1(const double *V, double* GKYL_RESTRICT Gam
   Gamma2_inv[3] = (-1.0*V_1_sq[3])-1.0*V_0_sq[3]; 
 
   // Check if cell average of Gamma^{-2} = 1 - V^2/c^2 < 0. 
-  if (V_sq_avg > 1.0) { 
-    Gamma2_inv[0] = 2.0 - V_sq_avg; 
+  if (V_sq_avg >= 1.0) { 
+    Gamma2_inv[0] = 2.0*(1.0 - V_sq_avg_lo); 
     Gamma2_inv[1] = 0.0; 
     Gamma2_inv[2] = 0.0; 
     Gamma2_inv[3] = 0.0; 
