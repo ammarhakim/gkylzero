@@ -21,19 +21,20 @@ GKYL_CU_DH void sr_Gamma_inv_2x2v_ser_p1(const double *V, double* GKYL_RESTRICT 
   Gamma2_inv[2] = (-1.0*V_1_sq[2])-1.0*V_0_sq[2]; 
   Gamma2_inv[3] = (-1.0*V_1_sq[3])-1.0*V_0_sq[3]; 
 
-  bool notCellAvg = true;
-  if (notCellAvg && (1.5*Gamma2_inv[3]-0.8660254037844386*Gamma2_inv[2]-0.8660254037844386*Gamma2_inv[1]+0.5*Gamma2_inv[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-1.5*Gamma2_inv[3])-0.8660254037844386*Gamma2_inv[2]+0.8660254037844386*Gamma2_inv[1]+0.5*Gamma2_inv[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-1.5*Gamma2_inv[3])+0.8660254037844386*Gamma2_inv[2]-0.8660254037844386*Gamma2_inv[1]+0.5*Gamma2_inv[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (1.5*Gamma2_inv[3]+0.8660254037844386*Gamma2_inv[2]+0.8660254037844386*Gamma2_inv[1]+0.5*Gamma2_inv[0] < 0)) notCellAvg = false; 
+  int cell_avg = 0;
+  // Check if Gamma^{-2} = 1 - V^2/c^2 < 0 at control points. 
+  if (1.5*Gamma2_inv[3]-0.8660254037844386*Gamma2_inv[2]-0.8660254037844386*Gamma2_inv[1]+0.5*Gamma2_inv[0] < 0.0) cell_avg = 1; 
+  if ((-1.5*Gamma2_inv[3])-0.8660254037844386*Gamma2_inv[2]+0.8660254037844386*Gamma2_inv[1]+0.5*Gamma2_inv[0] < 0.0) cell_avg = 1; 
+  if ((-1.5*Gamma2_inv[3])+0.8660254037844386*Gamma2_inv[2]-0.8660254037844386*Gamma2_inv[1]+0.5*Gamma2_inv[0] < 0.0) cell_avg = 1; 
+  if (1.5*Gamma2_inv[3]+0.8660254037844386*Gamma2_inv[2]+0.8660254037844386*Gamma2_inv[1]+0.5*Gamma2_inv[0] < 0.0) cell_avg = 1; 
  
-  if (notCellAvg) { 
-  ser_2x_p1_sqrt(Gamma2_inv, Gamma_inv); 
+  if (cell_avg) { 
+    Gamma2_inv[1] = 0.0; 
+    Gamma2_inv[2] = 0.0; 
+    Gamma2_inv[3] = 0.0; 
+    ser_2x_p1_sqrt(Gamma2_inv, Gamma_inv); 
   } else { 
-  Gamma2_inv[1] = 0.0; 
-  Gamma2_inv[2] = 0.0; 
-  Gamma2_inv[3] = 0.0; 
-  ser_2x_p1_sqrt(Gamma2_inv, Gamma_inv); 
+    ser_2x_p1_sqrt(Gamma2_inv, Gamma_inv); 
   } 
 } 
  

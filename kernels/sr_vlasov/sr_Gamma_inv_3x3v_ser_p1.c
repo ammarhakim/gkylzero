@@ -29,27 +29,28 @@ GKYL_CU_DH void sr_Gamma_inv_3x3v_ser_p1(const double *V, double* GKYL_RESTRICT 
   Gamma2_inv[6] = (-1.0*V_2_sq[6])-1.0*V_1_sq[6]-1.0*V_0_sq[6]; 
   Gamma2_inv[7] = (-1.0*V_2_sq[7])-1.0*V_1_sq[7]-1.0*V_0_sq[7]; 
 
-  bool notCellAvg = true;
-  if (notCellAvg && ((-1.837117307087383*Gamma2_inv[7])+1.060660171779821*Gamma2_inv[6]+1.060660171779821*Gamma2_inv[5]+1.060660171779821*Gamma2_inv[4]-0.6123724356957944*Gamma2_inv[3]-0.6123724356957944*Gamma2_inv[2]-0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (1.837117307087383*Gamma2_inv[7]+1.060660171779821*Gamma2_inv[6]-1.060660171779821*Gamma2_inv[5]-1.060660171779821*Gamma2_inv[4]-0.6123724356957944*Gamma2_inv[3]-0.6123724356957944*Gamma2_inv[2]+0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (1.837117307087383*Gamma2_inv[7]-1.060660171779821*Gamma2_inv[6]+1.060660171779821*Gamma2_inv[5]-1.060660171779821*Gamma2_inv[4]-0.6123724356957944*Gamma2_inv[3]+0.6123724356957944*Gamma2_inv[2]-0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-1.837117307087383*Gamma2_inv[7])-1.060660171779821*Gamma2_inv[6]-1.060660171779821*Gamma2_inv[5]+1.060660171779821*Gamma2_inv[4]-0.6123724356957944*Gamma2_inv[3]+0.6123724356957944*Gamma2_inv[2]+0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (1.837117307087383*Gamma2_inv[7]-1.060660171779821*Gamma2_inv[6]-1.060660171779821*Gamma2_inv[5]+1.060660171779821*Gamma2_inv[4]+0.6123724356957944*Gamma2_inv[3]-0.6123724356957944*Gamma2_inv[2]-0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-1.837117307087383*Gamma2_inv[7])-1.060660171779821*Gamma2_inv[6]+1.060660171779821*Gamma2_inv[5]-1.060660171779821*Gamma2_inv[4]+0.6123724356957944*Gamma2_inv[3]-0.6123724356957944*Gamma2_inv[2]+0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && ((-1.837117307087383*Gamma2_inv[7])+1.060660171779821*Gamma2_inv[6]-1.060660171779821*Gamma2_inv[5]-1.060660171779821*Gamma2_inv[4]+0.6123724356957944*Gamma2_inv[3]+0.6123724356957944*Gamma2_inv[2]-0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0)) notCellAvg = false; 
-  if (notCellAvg && (1.837117307087383*Gamma2_inv[7]+1.060660171779821*Gamma2_inv[6]+1.060660171779821*Gamma2_inv[5]+1.060660171779821*Gamma2_inv[4]+0.6123724356957944*Gamma2_inv[3]+0.6123724356957944*Gamma2_inv[2]+0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0)) notCellAvg = false; 
+  int cell_avg = 0;
+  // Check if Gamma^{-2} = 1 - V^2/c^2 < 0 at control points. 
+  if ((-1.837117307087383*Gamma2_inv[7])+1.060660171779821*Gamma2_inv[6]+1.060660171779821*Gamma2_inv[5]+1.060660171779821*Gamma2_inv[4]-0.6123724356957944*Gamma2_inv[3]-0.6123724356957944*Gamma2_inv[2]-0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0.0) cell_avg = 1; 
+  if (1.837117307087383*Gamma2_inv[7]+1.060660171779821*Gamma2_inv[6]-1.060660171779821*Gamma2_inv[5]-1.060660171779821*Gamma2_inv[4]-0.6123724356957944*Gamma2_inv[3]-0.6123724356957944*Gamma2_inv[2]+0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0.0) cell_avg = 1; 
+  if (1.837117307087383*Gamma2_inv[7]-1.060660171779821*Gamma2_inv[6]+1.060660171779821*Gamma2_inv[5]-1.060660171779821*Gamma2_inv[4]-0.6123724356957944*Gamma2_inv[3]+0.6123724356957944*Gamma2_inv[2]-0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0.0) cell_avg = 1; 
+  if ((-1.837117307087383*Gamma2_inv[7])-1.060660171779821*Gamma2_inv[6]-1.060660171779821*Gamma2_inv[5]+1.060660171779821*Gamma2_inv[4]-0.6123724356957944*Gamma2_inv[3]+0.6123724356957944*Gamma2_inv[2]+0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0.0) cell_avg = 1; 
+  if (1.837117307087383*Gamma2_inv[7]-1.060660171779821*Gamma2_inv[6]-1.060660171779821*Gamma2_inv[5]+1.060660171779821*Gamma2_inv[4]+0.6123724356957944*Gamma2_inv[3]-0.6123724356957944*Gamma2_inv[2]-0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0.0) cell_avg = 1; 
+  if ((-1.837117307087383*Gamma2_inv[7])-1.060660171779821*Gamma2_inv[6]+1.060660171779821*Gamma2_inv[5]-1.060660171779821*Gamma2_inv[4]+0.6123724356957944*Gamma2_inv[3]-0.6123724356957944*Gamma2_inv[2]+0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0.0) cell_avg = 1; 
+  if ((-1.837117307087383*Gamma2_inv[7])+1.060660171779821*Gamma2_inv[6]-1.060660171779821*Gamma2_inv[5]-1.060660171779821*Gamma2_inv[4]+0.6123724356957944*Gamma2_inv[3]+0.6123724356957944*Gamma2_inv[2]-0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0.0) cell_avg = 1; 
+  if (1.837117307087383*Gamma2_inv[7]+1.060660171779821*Gamma2_inv[6]+1.060660171779821*Gamma2_inv[5]+1.060660171779821*Gamma2_inv[4]+0.6123724356957944*Gamma2_inv[3]+0.6123724356957944*Gamma2_inv[2]+0.6123724356957944*Gamma2_inv[1]+0.3535533905932737*Gamma2_inv[0] < 0.0) cell_avg = 1; 
  
-  if (notCellAvg) { 
-  ser_3x_p1_sqrt(Gamma2_inv, Gamma_inv); 
+  if (cell_avg) { 
+    Gamma2_inv[1] = 0.0; 
+    Gamma2_inv[2] = 0.0; 
+    Gamma2_inv[3] = 0.0; 
+    Gamma2_inv[4] = 0.0; 
+    Gamma2_inv[5] = 0.0; 
+    Gamma2_inv[6] = 0.0; 
+    Gamma2_inv[7] = 0.0; 
+    ser_3x_p1_sqrt(Gamma2_inv, Gamma_inv); 
   } else { 
-  Gamma2_inv[1] = 0.0; 
-  Gamma2_inv[2] = 0.0; 
-  Gamma2_inv[3] = 0.0; 
-  Gamma2_inv[4] = 0.0; 
-  Gamma2_inv[5] = 0.0; 
-  Gamma2_inv[6] = 0.0; 
-  Gamma2_inv[7] = 0.0; 
-  ser_3x_p1_sqrt(Gamma2_inv, Gamma_inv); 
+    ser_3x_p1_sqrt(Gamma2_inv, Gamma_inv); 
   } 
 } 
  
