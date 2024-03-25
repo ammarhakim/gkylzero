@@ -2032,7 +2032,9 @@ gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fnam
 
   if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
     rstat.io_status =
-      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->phi_smooth, fname);
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->phi_host, fname);
+    if (app->use_gpu)
+      gkyl_array_copy(app->field->phi_smooth, app->field->phi_host);
   }
   
   return rstat;
@@ -2048,7 +2050,9 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
   
   if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
     rstat.io_status =
-      gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f, fname);
+      gkyl_comm_array_read(gk_s->comm, &gk_s->grid, &gk_s->local, gk_s->f_host, fname);
+    if (app->use_gpu)
+      gkyl_array_copy(gk_s->f, gk_s->f_host);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       gk_species_apply_bc(app, gk_s, gk_s->f);
     }
@@ -2067,7 +2071,9 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
   
   if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
     rstat.io_status =
-      gkyl_comm_array_read(gk_ns->comm, &gk_ns->grid, &gk_ns->local, gk_ns->f, fname);
+      gkyl_comm_array_read(gk_ns->comm, &gk_ns->grid, &gk_ns->local, gk_ns->f_host, fname);
+    if (app->use_gpu)
+      gkyl_array_copy(gk_ns->f, gk_ns->f_host);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       gk_neut_species_apply_bc(app, gk_ns, gk_ns->f);
     }
