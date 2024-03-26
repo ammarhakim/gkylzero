@@ -50,6 +50,7 @@ struct lbo_relax_ctx
   double Lz; // Domain size (configuration space: z-direction).
   double Lvpar; // Domain size (velocity space: parallel velocity direction).
   double Lmu; // Domain size (velocity space: magnetic moment direction).
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
 };
@@ -75,7 +76,7 @@ create_ctx(void)
   double vtb = 1.0; // Bump Maxwellian thermal velocity.
 
   // Derived physical quantities (using normalized code units).
-  double ub = 4.0 * sqrt(((3.0 * vt / 2.0) * (3.0 * vt / 2.0)) / 3.0); // Bump location (in velocity space).
+  double ub = 4.0 * sqrt((pow(3.0 * vt / 2.0, 2)) / 3.0); // Bump location (in velocity space).
 
   // Simulation parameters.
   int Nz = 2; // Cell count (configuration space: z-direction).
@@ -83,7 +84,8 @@ create_ctx(void)
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
   double Lvpar = 16.0 * vt; // Domain size (velocity space: parallel velocity direction).
-  double Lmu = 12.0 * vt * vt / 2.0 / B0; // Domain size (velocity space: magnetic moment direction).
+  double Lmu = 12.0 * pow(vt,2) / 2.0 / B0; // Domain size (velocity space: magnetic moment direction).
+
   double t_end = 100.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   
@@ -119,8 +121,8 @@ evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   struct lbo_relax_ctx *app = ctx;
   double v = xn[1];
 
-  double n0 = app -> n0;
-  double vt = app -> vt;
+  double n0 = app->n0;
+  double vt = app->vt;
 
   double v0 = sqrt(3.0) * vt;
 
@@ -143,18 +145,18 @@ evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   struct lbo_relax_ctx *app = ctx;
   double v = xn[1], mu = xn[2];
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double B0 = app -> B0;
-  double n0 = app -> n0;
-  double u0 = app -> u0;
-  double vt = app -> vt;
+  double B0 = app->B0;
+  double n0 = app->n0;
+  double u0 = app->u0;
+  double vt = app->vt;
 
-  double ab = app -> ab;
-  double sb = app -> sb;
-  double vtb = app -> vtb;
+  double ab = app->ab;
+  double sb = app->sb;
+  double vtb = app->vtb;
 
-  double ub = app -> ub;
+  double ub = app->ub;
 
   double v_sq = ((v - u0) / (sqrt(2.0) * vt)) * ((v - u0) / (sqrt(2.0) * vt)) + mu * B0;
   double vb_sq = ((v - u0) / (sqrt(2.0) * vtb)) * ((v - u0) / (sqrt(2.0) * vtb)) + mu * B0;
@@ -168,7 +170,7 @@ evalNuInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 {
   struct lbo_relax_ctx *app = ctx;
 
-  double nu = app -> nu;
+  double nu = app->nu;
 
   // Set collision frequency.
   fout[0] = nu;
@@ -186,7 +188,7 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 {
   struct lbo_relax_ctx *app = ctx;
   
-  double B0 = app -> B0;
+  double B0 = app->B0;
 
   // Set magnetic field strength.
   fout[0] = B0;
@@ -196,9 +198,9 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_gyrokinetic_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write(app, t_curr, iot->curr - 1);
     gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -293,9 +295,8 @@ main(int argc, char **argv)
   );
 #endif
 
-  int my_rank;
+  int my_rank, comm_size;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;
@@ -323,8 +324,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -0.5 * ctx.Lvpar, 0.0 },
-    .upper = { 0.5 * ctx.Lvpar, ctx.Lmu }, 
+    .lower = { -ctx.Lvpar/2.0, 0.0 },
+    .upper = {  ctx.Lvpar/2.0, ctx.Lmu }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -350,8 +351,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -0.5 * ctx.Lvpar, 0.0 },
-    .upper = { 0.5 * ctx.Lvpar, ctx.Lmu }, 
+    .lower = { -ctx.Lvpar/2.0, 0.0 },
+    .upper = {  ctx.Lvpar/2.0, ctx.Lmu }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -414,7 +415,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

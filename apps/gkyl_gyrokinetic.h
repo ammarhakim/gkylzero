@@ -10,17 +10,6 @@
 
 #include <stdbool.h>
 
-// Lower-level inputs: in general this does not need to be set by the
-// user. It is needed when the App is being created on a sub-range of
-// the global range, and is meant for use in higher-level drivers that
-// use MPI or other parallel mechanism.
-struct gkyl_gk_low_inp {
-  // local range over which App operates
-  struct gkyl_range local_range;
-  // communicator to used
-  struct gkyl_comm *comm;
-};
-
 // Parameters for projection
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
@@ -282,7 +271,7 @@ struct gkyl_gk {
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
   bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_gk_low_inp low_inp; // low-level inputs  
+  struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
 };
 
 // Simulation statistics
@@ -460,6 +449,16 @@ void gkyl_gyrokinetic_app_write_coll_mom(gkyl_gyrokinetic_app *app, int sidx, do
  * @param frame Frame number
  */
 void gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
+/**
+ * Write radiation emissivity of each species that species sidx collides with
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
  * Write iz react rate coefficients for species to file.

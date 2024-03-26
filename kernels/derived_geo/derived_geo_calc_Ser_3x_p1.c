@@ -1,6 +1,6 @@
 #include "gkyl_calc_derived_geo_kernels.h"
 
-GKYL_CU_DH void derived_geo_3x_Ser_p1(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *bmaginv, double *bmaginvsq, double *gxxJ, double *gxyJ, double *gyyJ, double *gxzJ, double *eps2) 
+GKYL_CU_DH void derived_geo_3x_Ser_p1(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *gxxJ, double *gxyJ, double *gyyJ, double *gxzJ, double *eps2) 
 { 
 const double *g11  = &gij[0 * 8];
 const double *g12  = &gij[1 * 8];
@@ -199,15 +199,6 @@ bmaginv_n[4] = 1.0/bmag_n[4];
 bmaginv_n[5] = 1.0/bmag_n[5]; 
 bmaginv_n[6] = 1.0/bmag_n[6]; 
 bmaginv_n[7] = 1.0/bmag_n[7]; 
-// Convert nodal to modal for bmaginv 
-  bmaginv[0] = 0.353553390593274*bmaginv_n[7]+0.3535533905932739*bmaginv_n[6]+0.3535533905932739*bmaginv_n[5]+0.3535533905932739*bmaginv_n[4]+0.3535533905932737*bmaginv_n[3]+0.3535533905932737*bmaginv_n[2]+0.3535533905932737*bmaginv_n[1]+0.3535533905932737*bmaginv_n[0]; 
-  bmaginv[1] = 0.2041241452319316*bmaginv_n[7]-0.2041241452319316*bmaginv_n[6]+0.2041241452319316*bmaginv_n[5]-0.2041241452319316*bmaginv_n[4]+0.2041241452319315*bmaginv_n[3]-0.2041241452319315*bmaginv_n[2]+0.2041241452319315*bmaginv_n[1]-0.2041241452319315*bmaginv_n[0]; 
-  bmaginv[2] = 0.2041241452319316*bmaginv_n[7]+0.2041241452319316*bmaginv_n[6]-0.2041241452319316*bmaginv_n[5]-0.2041241452319316*bmaginv_n[4]+0.2041241452319315*bmaginv_n[3]+0.2041241452319315*bmaginv_n[2]-0.2041241452319315*bmaginv_n[1]-0.2041241452319315*bmaginv_n[0]; 
-  bmaginv[3] = 0.2041241452319315*bmaginv_n[7]+0.2041241452319316*bmaginv_n[6]+0.2041241452319316*bmaginv_n[5]+0.2041241452319316*bmaginv_n[4]-0.2041241452319315*bmaginv_n[3]-0.2041241452319315*bmaginv_n[2]-0.2041241452319315*bmaginv_n[1]-0.2041241452319315*bmaginv_n[0]; 
-  bmaginv[4] = 0.117851130197758*bmaginv_n[7]-0.117851130197758*bmaginv_n[6]-0.117851130197758*bmaginv_n[5]+0.117851130197758*bmaginv_n[4]+0.1178511301977579*bmaginv_n[3]-0.1178511301977579*bmaginv_n[2]-0.1178511301977579*bmaginv_n[1]+0.1178511301977579*bmaginv_n[0]; 
-  bmaginv[5] = 0.1178511301977579*bmaginv_n[7]-0.117851130197758*bmaginv_n[6]+0.117851130197758*bmaginv_n[5]-0.117851130197758*bmaginv_n[4]-0.1178511301977579*bmaginv_n[3]+0.1178511301977579*bmaginv_n[2]-0.1178511301977579*bmaginv_n[1]+0.1178511301977579*bmaginv_n[0]; 
-  bmaginv[6] = 0.1178511301977579*bmaginv_n[7]+0.117851130197758*bmaginv_n[6]-0.1178511301977579*bmaginv_n[5]-0.1178511301977579*bmaginv_n[4]-0.1178511301977579*bmaginv_n[3]-0.1178511301977579*bmaginv_n[2]+0.1178511301977579*bmaginv_n[1]+0.1178511301977579*bmaginv_n[0]; 
-  bmaginv[7] = 0.0680413817439772*bmaginv_n[7]-0.06804138174397721*bmaginv_n[6]-0.06804138174397721*bmaginv_n[5]+0.06804138174397721*bmaginv_n[4]-0.06804138174397717*bmaginv_n[3]+0.06804138174397717*bmaginv_n[2]+0.06804138174397717*bmaginv_n[1]-0.06804138174397717*bmaginv_n[0]; 
 // Calculate bmaginvsq at nodes 
 bmaginvsq_n[0] = bmaginv_n[0]*bmaginv_n[0]; 
 bmaginvsq_n[1] = bmaginv_n[1]*bmaginv_n[1]; 
@@ -217,15 +208,6 @@ bmaginvsq_n[4] = bmaginv_n[4]*bmaginv_n[4];
 bmaginvsq_n[5] = bmaginv_n[5]*bmaginv_n[5]; 
 bmaginvsq_n[6] = bmaginv_n[6]*bmaginv_n[6]; 
 bmaginvsq_n[7] = bmaginv_n[7]*bmaginv_n[7]; 
-// Convert nodal to modal for bmaginvsq 
-  bmaginvsq[0] = 0.353553390593274*bmaginvsq_n[7]+0.3535533905932739*bmaginvsq_n[6]+0.3535533905932739*bmaginvsq_n[5]+0.3535533905932739*bmaginvsq_n[4]+0.3535533905932737*bmaginvsq_n[3]+0.3535533905932737*bmaginvsq_n[2]+0.3535533905932737*bmaginvsq_n[1]+0.3535533905932737*bmaginvsq_n[0]; 
-  bmaginvsq[1] = 0.2041241452319316*bmaginvsq_n[7]-0.2041241452319316*bmaginvsq_n[6]+0.2041241452319316*bmaginvsq_n[5]-0.2041241452319316*bmaginvsq_n[4]+0.2041241452319315*bmaginvsq_n[3]-0.2041241452319315*bmaginvsq_n[2]+0.2041241452319315*bmaginvsq_n[1]-0.2041241452319315*bmaginvsq_n[0]; 
-  bmaginvsq[2] = 0.2041241452319316*bmaginvsq_n[7]+0.2041241452319316*bmaginvsq_n[6]-0.2041241452319316*bmaginvsq_n[5]-0.2041241452319316*bmaginvsq_n[4]+0.2041241452319315*bmaginvsq_n[3]+0.2041241452319315*bmaginvsq_n[2]-0.2041241452319315*bmaginvsq_n[1]-0.2041241452319315*bmaginvsq_n[0]; 
-  bmaginvsq[3] = 0.2041241452319315*bmaginvsq_n[7]+0.2041241452319316*bmaginvsq_n[6]+0.2041241452319316*bmaginvsq_n[5]+0.2041241452319316*bmaginvsq_n[4]-0.2041241452319315*bmaginvsq_n[3]-0.2041241452319315*bmaginvsq_n[2]-0.2041241452319315*bmaginvsq_n[1]-0.2041241452319315*bmaginvsq_n[0]; 
-  bmaginvsq[4] = 0.117851130197758*bmaginvsq_n[7]-0.117851130197758*bmaginvsq_n[6]-0.117851130197758*bmaginvsq_n[5]+0.117851130197758*bmaginvsq_n[4]+0.1178511301977579*bmaginvsq_n[3]-0.1178511301977579*bmaginvsq_n[2]-0.1178511301977579*bmaginvsq_n[1]+0.1178511301977579*bmaginvsq_n[0]; 
-  bmaginvsq[5] = 0.1178511301977579*bmaginvsq_n[7]-0.117851130197758*bmaginvsq_n[6]+0.117851130197758*bmaginvsq_n[5]-0.117851130197758*bmaginvsq_n[4]-0.1178511301977579*bmaginvsq_n[3]+0.1178511301977579*bmaginvsq_n[2]-0.1178511301977579*bmaginvsq_n[1]+0.1178511301977579*bmaginvsq_n[0]; 
-  bmaginvsq[6] = 0.1178511301977579*bmaginvsq_n[7]+0.117851130197758*bmaginvsq_n[6]-0.1178511301977579*bmaginvsq_n[5]-0.1178511301977579*bmaginvsq_n[4]-0.1178511301977579*bmaginvsq_n[3]-0.1178511301977579*bmaginvsq_n[2]+0.1178511301977579*bmaginvsq_n[1]+0.1178511301977579*bmaginvsq_n[0]; 
-  bmaginvsq[7] = 0.0680413817439772*bmaginvsq_n[7]-0.06804138174397721*bmaginvsq_n[6]-0.06804138174397721*bmaginvsq_n[5]+0.06804138174397721*bmaginvsq_n[4]-0.06804138174397717*bmaginvsq_n[3]+0.06804138174397717*bmaginvsq_n[2]+0.06804138174397717*bmaginvsq_n[1]-0.06804138174397717*bmaginvsq_n[0]; 
 // Calculate g^ij at nodes without factor of 1/det
   gr11_n[0] = g22_n[0]*g33_n[0]-1.0*g23_n[0]*g32_n[0]; 
   gr11_n[1] = g22_n[1]*g33_n[1]-1.0*g23_n[1]*g32_n[1]; 

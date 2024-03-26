@@ -118,6 +118,10 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
     else {
       gkyl_proj_on_basis_advance(proj->proj_func, tm, &s->local_ext, f);
     }
+
+    // Multiply by the gyrocenter coord jacobian (bmag).
+    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, f, 
+        app->gk_geom->bmag, f, &app->local, &s->local);      
   }
   else if (proj->proj_id == GKYL_PROJ_MAXWELLIAN_PRIM) { 
     gkyl_proj_on_basis_advance(proj->proj_dens, tm, &app->local_ext, proj->dens); 
@@ -127,7 +131,7 @@ gk_species_projection_calc(gkyl_gyrokinetic_app *app, const struct gk_species *s
 
     // proj_maxwellian expects the primitive moments as a single array.
     gkyl_array_set_offset(proj->prim_moms, 1.0, proj->upar, 0*app->confBasis.num_basis);
-    gkyl_array_set_offset(proj->prim_moms, 1.0, proj->vtsq  , 1*app->confBasis.num_basis);
+    gkyl_array_set_offset(proj->prim_moms, 1.0, proj->vtsq, 1*app->confBasis.num_basis);
 
     if (app->use_gpu) {
       gkyl_array_copy(proj->prim_moms_dev, proj->prim_moms);

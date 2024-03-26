@@ -1,12 +1,41 @@
-#include "gkyl_read_radiation.h"
+#include <gkyl_read_radiation.h>
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
+/* Function to read a line with two numbers in the format:
+ * STRING 'DELIM' #1 'DELIM' STRING 'DELIM' #2 
+ * DELIM can be any of: ,:;=
+ */
+static inline void
+read_two_numbers(FILE *fptr, int *num1, int *num2){
+  char str[BUFFER_LEN];
+  char delim[5]="=,;:";
+  if(fgets(str,BUFFER_LEN,fptr)!=NULL) {
+    strtok(str,delim);
+    *num1=atoi(strtok(NULL,delim));
+    strtok(NULL,delim);
+    *num2=atoi(strtok(NULL,delim));
+  }
+}
+
+/* Concatenate two strings 
+ */
+static inline char *
+concat(const char *s1, const char *s2)
+{
+  char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
+  strcpy(result, s1);
+  strcat(result, s2);
+  return result;
+}
 
 struct all_radiation_states* gkyl_read_rad_fit_params(){
 
-  char *filepath="./data/adas/radiation_fit_parameters.txt";
+  char *filepath=concat(STR(GKYL_SHARE_DIR),"/adas/radiation_fit_parameters.txt");
   FILE *fptr = fopen(filepath,"r");
   if (fptr == NULL){
-    printf("Error opening radiation fit file\n");
+    printf("Error opening radiation fit file: %s\n", filepath);
     exit(EXIT_FAILURE);
   }
   

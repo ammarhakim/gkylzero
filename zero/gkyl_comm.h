@@ -2,10 +2,11 @@
 
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_elem_type.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>
-#include <gkyl_rect_decomp.h>
 
 // The return value of the functions is an error code. Success is
 // denoted by 0 and failure by other values.
@@ -65,7 +66,9 @@ typedef int (*gkyl_array_per_sync_t)(struct gkyl_comm *comm,
 
 // Write array to specified file
 typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,                                
   const struct gkyl_array *arr, const char *fname);
 
 // Read array from specified file
@@ -393,16 +396,18 @@ gkyl_comm_group_call_end(struct gkyl_comm *comm)
  * @param comm Communicator
  * @param grid Grid object to write
  * @param range Range describing portion of the array to output.
+ * @param meta Meta-data to write. Set to NULL or 0 if no metadata
  * @param arr Array object to write
  * @param fname Name of output file (include .gkyl extension)
  * @return Status flag: 0 if write succeeded, 'errno' otherwise
  */
-static int
-gkyl_comm_array_write(struct gkyl_comm *comm,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+static int gkyl_comm_array_write(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname)
 {
-  return comm->gkyl_array_write(comm, grid, range, arr, fname);
+  return comm->gkyl_array_write(comm, grid, range, meta, arr, fname);
 }
 
 /**

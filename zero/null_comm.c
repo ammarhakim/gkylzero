@@ -145,12 +145,13 @@ barrier(struct gkyl_comm *comm)
   return 0;
 }
 
-static int
-array_write(struct gkyl_comm *comm,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+static int array_write(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname)
 {
-  return gkyl_grid_sub_array_write(grid, range, arr, fname);
+  return gkyl_grid_sub_array_write(grid, range, meta, arr, fname);
 }
 
 static int

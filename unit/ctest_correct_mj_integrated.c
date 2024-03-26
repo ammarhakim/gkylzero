@@ -222,7 +222,7 @@ test_1x1v(int poly_order)
   // Write the output
   char fname[1024];
   sprintf(fname, "ctest_correct_mj_integrated_1x1v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf_mj, fname);
 
   // Correct the distribution function
   gkyl_mj_moments *mj_moms = gkyl_mj_moments_new(&grid, &confBasis, 
@@ -362,7 +362,7 @@ test_1x2v(int poly_order)
   // Write the output
   char fname[1024];
   sprintf(fname, "ctest_correct_mj_integrated_1x2v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf_mj, fname);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.1196584827807841, -3.488028281807569e-18,
@@ -500,7 +500,7 @@ test_1x3v(int poly_order)
   // Write the output
   char fname[1024];
   sprintf(fname, "ctest_correct_mj_integrated_1x3v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf_mj, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf_mj, fname);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p2_vals[] = {0.002127623222951445, -2.162483920741371e-19, 0.001142561434831357,

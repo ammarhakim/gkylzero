@@ -176,7 +176,7 @@ test_1x1v(int poly_order, bool use_gpu)
  // write distribution function to file
   char fname[1024];
   sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d_uc.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   struct gkyl_array *m0_r;
   m0_r = mkarr(confBasis.num_basis, confLocal_ext.volume);  
@@ -187,7 +187,7 @@ test_1x1v(int poly_order, bool use_gpu)
 
  // write distribution function to file
   sprintf(fname, "ctest_correct_maxwellian_test_1x1v_p%d.gkyl", poly_order);
-  gkyl_grid_sub_array_write(&grid, &local, distf, fname);
+  gkyl_grid_sub_array_write(&grid, &local, 0, distf, fname);
 
   // compute the number density
   struct gkyl_mom_type *m0_t = gkyl_mom_vlasov_new(&confBasis, &basis, "M0", use_gpu);

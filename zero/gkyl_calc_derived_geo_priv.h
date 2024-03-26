@@ -3,7 +3,7 @@
 #include <gkyl_calc_derived_geo_kernels.h>
 #include <assert.h>
 
-typedef void (*derived_geo_kernel)(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *bmaginv, double *bmaginvsq, double *gxxJ, double *gxyJ, double *gyyJ, double *gxzJ, double *eps2);
+typedef void (*derived_geo_kernel)(const double *gij, const double *bmag, double *J, double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *gxxJ, double *gxyJ, double *gyyJ, double *gxzJ, double *eps2);
 
 typedef void (*adjust_bmag_kernel)(const double *cmag, const double *cmag_ref, double *gzz, const double *J, const double *bmag, double *gij);
 
@@ -31,6 +31,7 @@ struct gkyl_calc_derived_geo{
   unsigned cdim; // Configuration-space dimension.
   unsigned cnum_basis; // Number of conf-space basis functions.
   unsigned poly_order; // Polynomial order of the basis.
+  struct gkyl_basis cbasis; // configuration space basis
   const struct gkyl_rect_grid* grid;
   bool use_gpu;
   derived_geo_kernel kernel;
@@ -48,6 +49,7 @@ derived_geo_choose_kernel(int dim, int basis_type, int poly_order)
       assert(false);
       break;
   }
+  return 0;
 }
 
 GKYL_CU_DH

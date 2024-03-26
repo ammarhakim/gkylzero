@@ -85,6 +85,7 @@ void test_ranges_3d()
   TEST_CHECK( range.upper[2] == 10 );  
 
   TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );
+
 }
 
 void
@@ -466,6 +467,21 @@ test_rect_decomp_2d_2v(void)
   gkyl_rect_decomp_release(ext_decomp);
 }
 
+void
+test_rect_decomp_from_cuts_and_cells(void)
+{
+  int cuts[] = { 5, 6, 7 };
+  int cells[] = { 100, 200, 300 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts_and_cells(3, cuts, cells);
+
+  TEST_CHECK( decomp->ndim == 3 );
+  TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1]*cuts[2] );
+
+  TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
+
+  gkyl_rect_decomp_release(decomp);
+}
+
 TEST_LIST = {
   { "ranges_1d", test_ranges_1d },
   { "ranges_2d", test_ranges_2d },
@@ -483,6 +499,8 @@ TEST_LIST = {
   { "rect_decomp_per_3d", test_rect_decomp_per_3d },
 
   { "rect_decomp_2d_2v", test_rect_decomp_2d_2v },
+
+  { "rect_decomp_from_cuts_and_cells", test_rect_decomp_from_cuts_and_cells },
   
   { NULL, NULL },
 };

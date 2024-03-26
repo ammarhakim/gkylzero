@@ -86,17 +86,6 @@ enum gkyl_moment_scheme {
   GKYL_MOMENT_KEP // Kinetic-energy preserving scheme
 };
 
-// Lower-level inputs: in general this does not need to be set by the
-// user. It is needed when the App is being created on a sub-range of
-// the global range, and is meant for use in higher-level drivers that
-// use MPI or other parallel mechanism.
-struct gkyl_moment_low_inp {
-  // local range over which App operates
-  struct gkyl_range local_range;
-  // communicator to used
-  struct gkyl_comm *comm;
-};
-
 // Top-level app parameters
 struct gkyl_moment {
   char name[128]; // name of app: used as output prefix
@@ -139,7 +128,7 @@ struct gkyl_moment {
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
   bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_moment_low_inp low_inp; // low-level inputs
+  struct gkyl_app_comm_low_inp low_inp; // low-level inputs
 };
 
 // Simulation statistics
@@ -265,7 +254,49 @@ void gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app);
  *
  * @param app App object.
  */
-void gkyl_moment_app_stat_write(const gkyl_moment_app* app);
+void gkyl_moment_app_stat_write(const gkyl_moment_app *app);
+
+/**
+ * Read field data from .gkyl file.
+ *
+ * @param app App object.
+ * @param fname File to read from.
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_app_from_file_field(gkyl_moment_app *app,
+  const char *fname);
+
+/**
+ * Read species data from .gkyl file.
+ *
+ * @param app App object.
+ * @param sidx Index of species to read
+ * @param fname File to read from.
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_app_from_file_species(gkyl_moment_app *app,
+  int sidx, const char *fname);
+
+/**
+ * Read field data from specified frame of previous simulation.
+ *
+ * @param app App object.
+ * @param frame Frame number to read from
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_app_from_frame_field(gkyl_moment_app *app,
+  int frame);
+
+/**
+ * Read species data from specified frame of previous simulation.
+ *
+ * @param app App object.
+ * @param sidx Index of species to read
+ * @param frame Frame number to read from
+ * @return Status of read
+ */
+struct gkyl_app_restart_status gkyl_moment_app_from_frame_species(gkyl_moment_app *app,
+  int sidx, int frame);
 
 /**
  * Write output to console: this is mainly for diagnostic messages the

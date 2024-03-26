@@ -12,6 +12,11 @@
 
 #include <string.h>
 
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#endif
+
 // Get basis type from string
 static enum gkyl_basis_type
 get_basis_type(const char *bnm)
@@ -72,7 +77,7 @@ eval_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
 /* *****************/
 
 // Metatable name for species input struct
-#define VLASOV_SPECIES_METATABLE_NM "GkeyllZero.Vlasov.Species"
+#define VLASOV_SPECIES_METATABLE_NM "GkeyllZero.App.Vlasov.Species"
 
 // Lua userdata object for constructing species input
 struct vlasov_species_lw {
@@ -162,7 +167,7 @@ static struct luaL_Reg vm_species_ctor[] = {
 /* *****************/
 
 // Metatable name for field input struct
-#define VLASOV_FIELD_METATABLE_NM "GkeyllZero.Vlasov.Field"
+#define VLASOV_FIELD_METATABLE_NM "GkeyllZero.App.Vlasov.Field"
 
 // Lua userdata object for constructing field input
 struct vlasov_field_lw {
@@ -225,7 +230,7 @@ static struct luaL_Reg vm_field_ctor[] = {
 /* *************/
 
 // Metatable name for top-level Vlasov App
-#define VLASOV_APP_METATABLE_NM "GkeyllZero.Vlasov.App"
+#define VLASOV_APP_METATABLE_NM "GkeyllZero.App.Vlasov"
 
 // Lua userdata object for holding Vlasov app and run parameters
 struct vlasov_app_lw {
@@ -290,12 +295,22 @@ vm_app_new(lua_State *L)
   struct gkyl_vm vm = { }; // input table for app
 
   strcpy(vm.name, sim_name);
+  
   int cdim = 0;
   with_lua_tbl_tbl(L, "cells") {
     vm.cdim = cdim = glua_objlen(L);
     for (int d=0; d<cdim; ++d)
       vm.cells[d] = glua_tbl_iget_integer(L, d+1, 0);
   }
+
+  int cuts[GKYL_MAX_DIM];
+  for (int d=0; d<cdim; ++d) cuts[d] = 1;
+  
+  with_lua_tbl_tbl(L, "decompCuts") {
+    int ncuts = glua_objlen(L);
+    for (int d=0; d<ncuts; ++d)
+      cuts[d] = glua_tbl_iget_integer(L, d+1, 0);
+  }  
 
   with_lua_tbl_tbl(L, "lower") {
     for (int d=0; d<cdim; ++d)
@@ -353,8 +368,44 @@ vm_app_new(lua_State *L)
       }
     }
   }
+
+  // create decomp and communicator
+  struct gkyl_rect_decomp *decomp
+    = gkyl_rect_decomp_new_from_cuts_and_cells(cdim, cuts, vm.cells);
+
+  struct gkyl_comm *comm = 0;
+
+  vm.has_low_inp = false;
+  
+#ifdef GKYL_HAVE_MPI
+  with_lua_global(L, "GKYL_MPI_COMM") {
+
+    if (lua_islightuserdata(L, -1)) {
+      MPI_Comm mpi_comm = lua_touserdata(L, -1);
+      //printf("%p %p\n", mpi_comm_p, MPI_COMM_WORLD);
+      
+     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+         .mpi_comm = mpi_comm,
+         .decomp = decomp
+       }
+     );
+
+     int rank;
+     MPI_Comm_rank(mpi_comm, &rank);
+
+     vm.has_low_inp = true;
+     vm.low_inp = (struct gkyl_app_comm_low_inp) {
+       .comm = comm,
+       .local_range = decomp->ranges[rank]
+     };
+    }
+  }
+#endif
   
   app_lw->app = gkyl_vlasov_app_new(&vm);
+
+  gkyl_rect_decomp_release(decomp);
+  if (comm) gkyl_comm_release(comm);
   
   // create Lua userdata ...
   struct vlasov_app_lw **l_app_lw = lua_newuserdata(L, sizeof(struct vlasov_app_lw*));
