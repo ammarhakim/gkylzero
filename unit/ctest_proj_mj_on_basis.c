@@ -4,15 +4,15 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_correct_lte.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_lte_moments.h>
-#include <gkyl_proj_vlasov_lte_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_vlasov_lte_correct.h>
+#include <gkyl_vlasov_lte_moments.h>
+#include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_util.h>
 #include <math.h>
 
@@ -174,7 +174,7 @@ test_1x1v_no_drift(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_proj_vlasov_lte_inp inp_lte = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -188,8 +188,8 @@ test_1x1v_no_drift(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };  
-  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
-  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 17) [remember, lower-left index is (1,1)]
   double p1_vals[] = {5.3918752026566863e-01, -1.0910243387206232e-17, -6.0196985297046972e-02,
@@ -219,7 +219,7 @@ test_1x1v_no_drift(int poly_order)
   gkyl_array_release(m2);
   gkyl_array_release(moms);
   gkyl_array_release(distf);
-  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
+  gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -312,7 +312,7 @@ test_1x1v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_proj_vlasov_lte_inp inp_lte = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -326,11 +326,11 @@ test_1x1v(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };  
-  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
-  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // test accuracy of the projection:
-  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+  struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -344,8 +344,8 @@ test_1x1v(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };
-  gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
-  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
+  gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
+  gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -369,13 +369,13 @@ test_1x1v(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // release memory for moment data object
-  gkyl_lte_moments_release(lte_moms);
+  gkyl_vlasov_lte_moments_release(lte_moms);
   gkyl_array_release(m0);
   gkyl_array_release(m1i);
   gkyl_array_release(m2);
   gkyl_array_release(moms);
   gkyl_array_release(distf);
-  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
+  gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -469,7 +469,7 @@ test_1x2v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_proj_vlasov_lte_inp inp_lte = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -483,8 +483,8 @@ test_1x2v(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };  
-  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
-  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
   double p2_vals[] = {1.7020667884226476e-01, -7.7674914557148726e-18, -3.9516229859383111e-03,
@@ -514,7 +514,7 @@ test_1x2v(int poly_order)
   gkyl_array_release(m2);
   gkyl_array_release(moms);
   gkyl_array_release(distf);
-  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
+  gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -607,7 +607,7 @@ test_1x3v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_proj_vlasov_lte_inp inp_lte = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -621,8 +621,8 @@ test_1x3v(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };  
-  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
-  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // values to compare  at index (1, 9, 9, 9) [remember, lower-left index is (1,1,1,1)]
   double p2_vals[] = {1.6326923473662415e-02, -2.7779798362812092e-19, -5.7251397678571113e-06,
@@ -658,7 +658,7 @@ test_1x3v(int poly_order)
   gkyl_array_release(m2);
   gkyl_array_release(moms);
   gkyl_array_release(distf);
-  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
+  gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);

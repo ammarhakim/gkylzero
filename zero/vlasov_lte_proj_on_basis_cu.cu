@@ -5,13 +5,13 @@ extern "C" {
 #include <gkyl_array.h>
 #include <gkyl_const.h>
 #include <gkyl_gauss_quad_data.h>
-#include <gkyl_proj_vlasov_lte_on_basis.h>
-#include <gkyl_proj_vlasov_lte_on_basis_priv.h>
+#include <gkyl_vlasov_lte_proj_on_basis.h>
+#include <gkyl_vlasov_lte_proj_on_basis_priv.h>
 #include <gkyl_range.h>
 }
 
 __global__ static void
-gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_grid,
+gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_grid,
   const struct gkyl_range phase_range, const struct gkyl_range conf_range,
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
@@ -157,12 +157,12 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
 }
 
 void
-gkyl_proj_vlasov_lte_on_basis_advance_cu(gkyl_proj_vlasov_lte_on_basis *up,
+gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *moms_lte, struct gkyl_array *f_lte)
 {
   int nblocks = phase_range->nblocks, nthreads = phase_range->nthreads;
-  gkyl_proj_vlasov_lte_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
+  gkyl_vlasov_lte_proj_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
     (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
      up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
      up->is_relativistic, moms_lte->on_dev, f_lte->on_dev);
@@ -172,7 +172,7 @@ gkyl_proj_vlasov_lte_on_basis_advance_cu(gkyl_proj_vlasov_lte_on_basis *up,
   // we construct through an expansion of the Bessel functions to avoid finite 
   // precision effects in such a way that we can recover arbitrary temperature 
   // relativistic LTE distributions by rescaling the distribution to the desired density.  
-  gkyl_lte_density_moment_advance(up->moments_up, phase_range, conf_range, f_lte, up->num_ratio);
+  gkyl_vlasov_lte_density_moment_advance(up->moments_up, phase_range, conf_range, f_lte, up->num_ratio);
 
   // compute number density ratio: num_ratio = n/n0
   // 0th component of moms_target is the target density

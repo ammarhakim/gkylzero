@@ -3,13 +3,13 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_correct_lte.h>
-#include <gkyl_lte_moments.h>
-#include <gkyl_proj_vlasov_lte_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_vlasov_lte_correct.h>
+#include <gkyl_vlasov_lte_moments.h>
+#include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_util.h>
 
 // allocate array (filled with zeros)
@@ -147,7 +147,7 @@ test_1x1v(int poly_order, bool use_gpu)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_proj_vlasov_lte_inp inp_lte = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -161,11 +161,11 @@ test_1x1v(int poly_order, bool use_gpu)
     .mass = 1.0,
     .use_gpu = false,
   };  
-  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
-  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
 
   // Compute the moments of our corrected distribution function
-  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+  struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -179,10 +179,10 @@ test_1x1v(int poly_order, bool use_gpu)
     .mass = 1.0,
     .use_gpu = false,
   };
-  gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
+  gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
 
   // correction updater
-  struct gkyl_correct_vlasov_lte_inp inp = {
+  struct gkyl_vlasov_lte_correct_inp inp = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -198,7 +198,7 @@ test_1x1v(int poly_order, bool use_gpu)
     .max_iter = 100,
     .eps = 1e-12,
   };
-  gkyl_correct_vlasov_lte *corr_lte = gkyl_correct_vlasov_lte_inew( &inp );
+  gkyl_vlasov_lte_correct *corr_lte = gkyl_vlasov_lte_correct_inew( &inp );
 
  // write distribution function to file
   char fname[1024];
@@ -206,7 +206,7 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // Moments computed from *only* density-corrected LTE distribution function
-  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms_diag);
+  gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms_diag);
   struct gkyl_array *m0_n_corr_only, *m1i_n_corr_only, *m2_n_corr_only;
   m0_n_corr_only = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i_n_corr_only = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
@@ -215,11 +215,11 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_array_set_offset_range(m1i_n_corr_only, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2_n_corr_only, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
 
-  struct gkyl_correct_vlasov_lte_status stat_corr = gkyl_correct_all_moments_vlasov_lte(corr_lte, 
+  struct gkyl_vlasov_lte_correct_status stat_corr = gkyl_vlasov_lte_correct_all_moments(corr_lte, 
     distf, moms, &local, &confLocal);
 
   // Moments computed from all-moment-corrected LTE distribution function 
-  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
+  gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   struct gkyl_array *m0_corr, *m1i_corr, *m2_corr;
   m0_corr = mkarr(confBasis.num_basis, confLocal_ext.volume);
   m1i_corr = mkarr(vdim*confBasis.num_basis, confLocal_ext.volume);
@@ -277,9 +277,9 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_m2);
 
   gkyl_array_release(distf);
-  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
-  gkyl_correct_vlasov_lte_release(corr_lte);
-  gkyl_lte_moments_release(lte_moms);
+  gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
+  gkyl_vlasov_lte_correct_release(corr_lte);
+  gkyl_vlasov_lte_moments_release(lte_moms);
 }
 
 void test_1x1v_p1() { test_1x1v(1, false); }

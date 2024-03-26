@@ -18,7 +18,6 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
 #include <gkyl_bgk_collisions.h>
-#include <gkyl_correct_lte.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_em_vars.h>
@@ -41,7 +40,6 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_ghost_surf_calc.h>
 #include <gkyl_hyper_dg.h>
-#include <gkyl_lte_moments.h>
 #include <gkyl_mom_bcorr_lbo_vlasov.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
@@ -52,7 +50,6 @@
 #include <gkyl_prim_lbo_cross_calc.h>
 #include <gkyl_prim_lbo_type.h>
 #include <gkyl_prim_lbo_vlasov.h>
-#include <gkyl_proj_vlasov_lte_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -60,6 +57,9 @@
 #include <gkyl_spitzer_coll_freq.h>
 #include <gkyl_util.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_vlasov_lte_correct.h>
+#include <gkyl_vlasov_lte_moments.h>
+#include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 
@@ -101,7 +101,7 @@ struct vm_species_moment {
   //    distribution (n, V_drift, T/m) with specialized updater
   union {
     struct {
-      struct gkyl_lte_moments *vlasov_lte_moms; // updater for computing LTE moments
+      struct gkyl_vlasov_lte_moments *vlasov_lte_moms; // updater for computing LTE moments
     };
     struct {
       struct gkyl_dg_updater_moment *mcalc; // moment update
@@ -165,12 +165,13 @@ struct vm_bgk_collisions {
   enum gkyl_model_id model_id;
   struct vm_species_moment moms; // moments needed in BGK (n, V_drift, T/m) for LTE distribution
 
-  struct gkyl_proj_vlasov_lte_on_basis *proj_lte; // LTE distribution function projection object
-                                                  // also corrects the density of projected distribution function
+  // LTE distribution function projection object
+  // also corrects the density of projected distribution function
+  struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
 
   // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
   bool correct_all_moms; // boolean if we are correcting all the moments
-  struct gkyl_correct_vlasov_lte *corr_lte; 
+  struct gkyl_vlasov_lte_correct *corr_lte; 
 
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 };
@@ -204,12 +205,13 @@ struct vm_proj {
       struct gkyl_proj_on_basis *proj_V_drift; // projection operator for V_drift
       struct gkyl_proj_on_basis *proj_temp; // projection operator for temperature
       
-      struct gkyl_proj_vlasov_lte_on_basis *proj_lte; // LTE distribution function projection object
-                                                      // also corrects the density of projected distribution function
-      
+      // LTE distribution function projection object
+      // also corrects the density of projected distribution function
+      struct gkyl_vlasov_lte_proj_on_basis *proj_lte; 
+
       // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
       bool correct_all_moms; // boolean if we are correcting all the moments
-      struct gkyl_correct_vlasov_lte *corr_lte;     
+      struct gkyl_vlasov_lte_correct *corr_lte;    
     };
   };
 };

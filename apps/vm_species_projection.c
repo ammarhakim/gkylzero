@@ -38,7 +38,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 
     proj->vlasov_lte_moms = mkarr(app->use_gpu, (vdim+2)*app->confBasis.num_basis, app->local_ext.volume);
 
-    struct gkyl_proj_vlasov_lte_inp inp_proj = {
+    struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
       .phase_grid = &s->grid,
       .conf_basis = &app->confBasis,
       .phase_basis = &app->basis,
@@ -52,13 +52,13 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
       .mass = s->info.mass,
       .use_gpu = app->use_gpu,
     };
-    proj->proj_lte = gkyl_proj_vlasov_lte_on_basis_inew( &inp_proj );
+    proj->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
     proj->correct_all_moms = false; 
     if (inp.correct_all_moms) {
       proj->correct_all_moms = true;
 
-      struct gkyl_correct_vlasov_lte_inp inp_corr = {
+      struct gkyl_vlasov_lte_correct_inp inp_corr = {
         .phase_grid = &s->grid,
         .conf_basis = &app->confBasis,
         .phase_basis = &app->basis,
@@ -74,7 +74,7 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *s,
         .max_iter = 100,
         .eps = 1e-12,
       };
-      proj->corr_lte = gkyl_correct_vlasov_lte_inew( &inp_corr );
+      proj->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
     }
   }
 }
@@ -109,12 +109,12 @@ vm_species_projection_calc(gkyl_vlasov_app *app, const struct vm_species *s,
 
     // Project the LTE distribution function.
     // Projection routine also corrects the density of the projected distribution function.
-    gkyl_proj_vlasov_lte_on_basis_advance(proj->proj_lte, &s->local, &app->local, 
+    gkyl_vlasov_lte_proj_on_basis_advance(proj->proj_lte, &s->local, &app->local, 
       proj->vlasov_lte_moms, f);
 
     // Correct all the moments of the projected LTE distribution function.
     if (proj->correct_all_moms) {
-      gkyl_correct_all_moments_vlasov_lte(proj->corr_lte, f, proj->vlasov_lte_moms, 
+      gkyl_vlasov_lte_correct_all_moments(proj->corr_lte, f, proj->vlasov_lte_moms, 
         &s->local, &app->local);
     } 
   } 
@@ -140,9 +140,9 @@ vm_species_projection_release(const struct gkyl_vlasov_app *app, const struct vm
     gkyl_proj_on_basis_release(proj->proj_V_drift);
     gkyl_proj_on_basis_release(proj->proj_temp);
 
-    gkyl_proj_vlasov_lte_on_basis_release(proj->proj_lte);
+    gkyl_vlasov_lte_proj_on_basis_release(proj->proj_lte);
     if (proj->correct_all_moms) {
-      gkyl_correct_vlasov_lte_release(proj->corr_lte);
+      gkyl_vlasov_lte_correct_release(proj->corr_lte);
     }
   } 
 }

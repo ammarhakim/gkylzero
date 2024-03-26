@@ -8,10 +8,10 @@
 #include <gkyl_rect_grid.h>
 
 // Object type
-typedef struct gkyl_correct_vlasov_lte gkyl_correct_vlasov_lte;
+typedef struct gkyl_vlasov_lte_correct gkyl_vlasov_lte_correct;
 
 // input packaged as a struct
-struct gkyl_correct_vlasov_lte_inp {
+struct gkyl_vlasov_lte_correct_inp {
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions
   const struct gkyl_basis *phase_basis; // Phase-space basis functions
@@ -29,7 +29,7 @@ struct gkyl_correct_vlasov_lte_inp {
 };
 
 // Correction status
-struct gkyl_correct_vlasov_lte_status {
+struct gkyl_vlasov_lte_correct_status {
   bool iter_converged; // true if iterations converged
   int num_iter; // number of iterations for the correction
 };  
@@ -39,11 +39,11 @@ struct gkyl_correct_vlasov_lte_status {
  * function (Maxwellian for non-relativistic/Maxwell-Juttner for relativistic)
  * so that its moments match desired input moments.
  *
- * @param inp Input parameters defined in gkyl_correct_vlasov_lte_inp struct.
+ * @param inp Input parameters defined in gkyl_vlasov_lte_correct_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_correct_vlasov_lte* 
-gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp);
+struct gkyl_vlasov_lte_correct* 
+gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp);
 
 /**
  * Fix the LTE (local thermodynamic equlibrium) distribution function
@@ -59,7 +59,7 @@ gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp);
  * @param conf_local Local configuration space range
  * @return Status of correction
  */
-struct gkyl_correct_vlasov_lte_status gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
+struct gkyl_vlasov_lte_correct_status gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *c_corr,
   struct gkyl_array *f_lte, const struct gkyl_array *moms_target, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local);
 
@@ -67,7 +67,7 @@ struct gkyl_correct_vlasov_lte_status gkyl_correct_all_moments_vlasov_lte(gkyl_c
  * Host-side wrapper for computing the absolute value of the 
  * difference in cell averages between the target moments and iterative moments.
  */
-void gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(const struct gkyl_range *conf_range, 
+void gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range, 
   int vdim, int nc, 
   const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
   struct gkyl_array *moms_abs_diff);
@@ -77,4 +77,4 @@ void gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(const struct gkyl_range *co
  *
  * @param c_corr Updater to delete.
  */
-void gkyl_correct_vlasov_lte_release(gkyl_correct_vlasov_lte *c_corr);
+void gkyl_vlasov_lte_correct_release(gkyl_vlasov_lte_correct *c_corr);

@@ -5,8 +5,8 @@
 #include <gkyl_array.h>
 #include <gkyl_const.h>
 #include <gkyl_gauss_quad_data.h>
-#include <gkyl_proj_vlasov_lte_on_basis.h>
-#include <gkyl_proj_vlasov_lte_on_basis_priv.h>
+#include <gkyl_vlasov_lte_proj_on_basis.h>
+#include <gkyl_vlasov_lte_proj_on_basis_priv.h>
 #include <gkyl_range.h>
 #include <assert.h>
 
@@ -126,10 +126,10 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
   return tot_quad;
 }
 
-struct gkyl_proj_vlasov_lte_on_basis* 
-gkyl_proj_vlasov_lte_on_basis_inew(const struct gkyl_proj_vlasov_lte_inp *inp)
+struct gkyl_vlasov_lte_proj_on_basis* 
+gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_inp *inp)
 {
-  gkyl_proj_vlasov_lte_on_basis *up = gkyl_malloc(sizeof(*up));
+  gkyl_vlasov_lte_proj_on_basis *up = gkyl_malloc(sizeof(*up));
 
   up->phase_grid = *inp->phase_grid;
   up->conf_basis = *inp->conf_basis;
@@ -195,7 +195,7 @@ gkyl_proj_vlasov_lte_on_basis_inew(const struct gkyl_proj_vlasov_lte_inp *inp)
 #endif
 
   // Store a LTE moment calculation updater to compute and correct the density
-  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+  struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = inp->phase_grid,
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
@@ -209,7 +209,7 @@ gkyl_proj_vlasov_lte_on_basis_inew(const struct gkyl_proj_vlasov_lte_inp *inp)
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
   };
-  up->moments_up = gkyl_lte_moments_inew( &inp_mom );
+  up->moments_up = gkyl_vlasov_lte_moments_inew( &inp_mom );
 
   long conf_local_ncells = inp->conf_range->volume;
   long conf_local_ext_ncells = inp->conf_range_ext->volume;
@@ -229,7 +229,7 @@ gkyl_proj_vlasov_lte_on_basis_inew(const struct gkyl_proj_vlasov_lte_inp *inp)
 }
 
 static void
-proj_on_basis(const gkyl_proj_vlasov_lte_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
+proj_on_basis(const gkyl_vlasov_lte_proj_on_basis *up, const struct gkyl_array *fun_at_ords, double* f)
 {
   int num_basis = up->num_phase_basis;
   int tot_quad = up->tot_quad;
@@ -249,14 +249,14 @@ proj_on_basis(const gkyl_proj_vlasov_lte_on_basis *up, const struct gkyl_array *
 }
 
 void
-gkyl_proj_vlasov_lte_on_basis_advance(gkyl_proj_vlasov_lte_on_basis *up,
+gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
   const struct gkyl_array *moms_lte, struct gkyl_array *f_lte)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_proj_vlasov_lte_on_basis_advance_cu(up, phase_range, conf_range, moms_lte, f_lte);
+    return gkyl_vlasov_lte_proj_on_basis_advance_cu(up, phase_range, conf_range, moms_lte, f_lte);
 #endif
 
   double f_floor = 1.e-40;  
@@ -394,7 +394,7 @@ gkyl_proj_vlasov_lte_on_basis_advance(gkyl_proj_vlasov_lte_on_basis *up,
   // we construct through an expansion of the Bessel functions to avoid finite 
   // precision effects in such a way that we can recover arbitrary temperature 
   // relativistic LTE distributions by rescaling the distribution to the desired density.  
-  gkyl_lte_density_moment_advance(up->moments_up, phase_range, conf_range, f_lte, up->num_ratio);
+  gkyl_vlasov_lte_density_moment_advance(up->moments_up, phase_range, conf_range, f_lte, up->num_ratio);
 
   // compute number density ratio: num_ratio = n/n0
   // 0th component of moms_target is the target density
@@ -407,7 +407,7 @@ gkyl_proj_vlasov_lte_on_basis_advance(gkyl_proj_vlasov_lte_on_basis *up,
 }
 
 void
-gkyl_proj_vlasov_lte_on_basis_release(gkyl_proj_vlasov_lte_on_basis* up)
+gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
@@ -421,7 +421,7 @@ gkyl_proj_vlasov_lte_on_basis_release(gkyl_proj_vlasov_lte_on_basis* up)
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->fun_at_ords);
 
-  gkyl_lte_moments_release(up->moments_up);
+  gkyl_vlasov_lte_moments_release(up->moments_up);
   gkyl_array_release(up->num_ratio);
   gkyl_dg_bin_op_mem_release(up->mem);
 

@@ -5,19 +5,19 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_reduce.h>
-#include <gkyl_correct_lte.h>
-#include <gkyl_correct_lte_priv.h>
+#include <gkyl_vlasov_lte_correct.h>
+#include <gkyl_vlasov_lte_correct_priv.h>
 #include <gkyl_dg_bin_ops.h>
 #include <gkyl_dg_calc_sr_vars.h>
-#include <gkyl_lte_moments.h>
-#include <gkyl_proj_vlasov_lte_on_basis.h>
+#include <gkyl_vlasov_lte_moments.h>
+#include <gkyl_vlasov_lte_proj_on_basis.h>
 
 #include <assert.h>
 
-struct gkyl_correct_vlasov_lte*
-gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp)
+struct gkyl_vlasov_lte_correct*
+gkyl_vlasov_lte_correct_inew(const struct gkyl_vlasov_lte_correct_inp *inp)
 {
-  gkyl_correct_vlasov_lte *up = gkyl_malloc(sizeof(*up));
+  gkyl_vlasov_lte_correct *up = gkyl_malloc(sizeof(*up));
   up->eps = inp->eps;
   up->max_iter = inp->max_iter;
   up->use_gpu = inp->use_gpu;
@@ -49,7 +49,7 @@ gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp)
   }
 
   // Moments structure 
-  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+  struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = inp->phase_grid,
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
@@ -63,12 +63,12 @@ gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp)
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
   };
-  up->moments_up = gkyl_lte_moments_inew( &inp_mom );
+  up->moments_up = gkyl_vlasov_lte_moments_inew( &inp_mom );
 
   // Create a projection updater for projecting the LTE distribution function
   // Projection routine also corrects the density before returning 
   // the LTE distribution function.
-  struct gkyl_proj_vlasov_lte_inp inp_proj = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = inp->phase_grid,
     .conf_basis = inp->conf_basis,
     .phase_basis = inp->phase_basis,
@@ -82,13 +82,13 @@ gkyl_correct_vlasov_lte_inew(const struct gkyl_correct_vlasov_lte_inp *inp)
     .mass = inp->mass,
     .use_gpu = inp->use_gpu,
   };
-  up->proj_lte = gkyl_proj_vlasov_lte_on_basis_inew( &inp_proj );
+  up->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
   return up;
 }
 
-struct gkyl_correct_vlasov_lte_status
-gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
+struct gkyl_vlasov_lte_correct_status
+gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *c_corr,
   struct gkyl_array *f_lte, const struct gkyl_array *moms_target, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local)
 {
@@ -124,7 +124,7 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
     (fabs(c_corr->error[2]) > tol) || (fabs(c_corr->error[3]) > tol) || (fabs(c_corr->error[4]) > tol))))
   {
     // 1. Calculate the LTE moments (n, V_drift, T) from the projected LTE distribution
-    gkyl_lte_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_iter);
+    gkyl_vlasov_lte_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_iter);
 
     // a. Calculate  ddMi^(k+1) =  Mi_corr - Mi_new
     // ddn = n_target - n;
@@ -142,7 +142,7 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
         // We insure the reduction to find the maximum error is thread-safe on GPUs
         // by first calling a specialized kernel for computing the absolute value 
         // of the difference of the cell averages, then calling reduce_range.
-        gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(conf_local, 
+        gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(conf_local, 
           vdim, nc, moms_target, c_corr->moms_iter, c_corr->abs_diff_moms);
         gkyl_array_reduce_range(c_corr->error_cu, c_corr->abs_diff_moms, GKYL_MAX, conf_local);
         gkyl_cu_memcpy(c_corr->error, c_corr->error_cu, sizeof(double[5]), GKYL_CU_MEMCPY_D2H);
@@ -177,7 +177,7 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
 
     // 2. Update the LTE distribution function using the corrected moments.
     // Projection routine also corrects the density before the next iteration.
-    gkyl_proj_vlasov_lte_on_basis_advance(c_corr->proj_lte, 
+    gkyl_vlasov_lte_proj_on_basis_advance(c_corr->proj_lte, 
       phase_local, conf_local, c_corr->moms_iter, f_lte);
 
     niter += 1;
@@ -194,18 +194,18 @@ gkyl_correct_all_moments_vlasov_lte(gkyl_correct_vlasov_lte *c_corr,
   // Project the distribution function with the basic moments.
   // Projection routine internally corrects the density.
   if (corr_status == 1) {
-    gkyl_proj_vlasov_lte_on_basis_advance(c_corr->proj_lte, 
+    gkyl_vlasov_lte_proj_on_basis_advance(c_corr->proj_lte, 
       phase_local, conf_local, moms_target, f_lte);
   }
 
-  return (struct gkyl_correct_vlasov_lte_status) {
+  return (struct gkyl_vlasov_lte_correct_status) {
     .iter_converged = corr_status,
     .num_iter = niter
   };  
 }
 
 void 
-gkyl_correct_vlasov_lte_release(gkyl_correct_vlasov_lte *c_corr)
+gkyl_vlasov_lte_correct_release(gkyl_vlasov_lte_correct *c_corr)
 {
   gkyl_array_release(c_corr->moms_iter);
   gkyl_array_release(c_corr->d_moms);
@@ -215,8 +215,8 @@ gkyl_correct_vlasov_lte_release(gkyl_correct_vlasov_lte *c_corr)
     gkyl_cu_free(c_corr->error_cu);
   }
 
-  gkyl_lte_moments_release(c_corr->moments_up);
-  gkyl_proj_vlasov_lte_on_basis_release(c_corr->proj_lte);
+  gkyl_vlasov_lte_moments_release(c_corr->moments_up);
+  gkyl_vlasov_lte_proj_on_basis_release(c_corr->proj_lte);
 
   gkyl_free(c_corr);
 }
@@ -224,7 +224,7 @@ gkyl_correct_vlasov_lte_release(gkyl_correct_vlasov_lte *c_corr)
 #ifndef GKYL_HAVE_CUDA
 
 void 
-gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(const struct gkyl_range *conf_range, 
+gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range, 
   int vdim, int nc, 
   const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
   struct gkyl_array *moms_abs_diff)

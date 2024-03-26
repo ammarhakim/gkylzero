@@ -7,7 +7,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 
-struct gkyl_lte_moments
+struct gkyl_vlasov_lte_moments
 {
   struct gkyl_basis conf_basis; // Configuration-space basis
   struct gkyl_basis phase_basis; // Phase-space basis

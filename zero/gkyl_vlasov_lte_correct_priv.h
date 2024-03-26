@@ -8,7 +8,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
-struct gkyl_correct_vlasov_lte
+struct gkyl_vlasov_lte_correct
 {
   struct gkyl_basis conf_basis; // Configuration-space basis
   struct gkyl_basis phase_basis; // Phase-space basis
@@ -20,8 +20,8 @@ struct gkyl_correct_vlasov_lte
   struct gkyl_array *d_moms;
   struct gkyl_array *dd_moms;
 
-  struct gkyl_lte_moments *moments_up;
-  struct gkyl_proj_vlasov_lte_on_basis *proj_lte;
+  struct gkyl_vlasov_lte_moments *moments_up;
+  struct gkyl_vlasov_lte_proj_on_basis *proj_lte;
 
   // error estimate (n, V_drift, T/m), 0 - success., num. picard iterations
   double error[5]; // absolute value of difference in cell averages between iteration and target

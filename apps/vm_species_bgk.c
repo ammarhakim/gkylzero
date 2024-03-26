@@ -47,7 +47,7 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   // allocate moments needed for BGK collisions update
   vm_species_moment_init(app, s, &bgk->moms, "LTEMoments");
 
-  struct gkyl_proj_vlasov_lte_inp inp_proj = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
     .phase_grid = &s->grid,
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
@@ -61,7 +61,7 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     .mass = s->info.mass,
     .use_gpu = app->use_gpu,
   };
-  bgk->proj_lte = gkyl_proj_vlasov_lte_on_basis_inew( &inp_proj );
+  bgk->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
   bgk->correct_all_moms = false;
   int max_iter = s->info.collisions.max_iter > 0 ? s->info.collisions.max_iter : 100;
@@ -70,7 +70,7 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   if (s->info.collisions.correct_all_moms) {
     bgk->correct_all_moms = true;
 
-    struct gkyl_correct_vlasov_lte_inp inp_corr = {
+    struct gkyl_vlasov_lte_correct_inp inp_corr = {
       .phase_grid = &s->grid,
       .conf_basis = &app->confBasis,
       .phase_basis = &app->basis,
@@ -86,7 +86,7 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
       .max_iter = max_iter,
       .eps = iter_eps,
     };
-    bgk->corr_lte = gkyl_correct_vlasov_lte_inew( &inp_corr );
+    bgk->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
   }
 
   bgk->f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -118,12 +118,12 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   // Project the LTE distribution function to obtain self-collisions nu*f_lte.
   // e.g., Maxwellian for non-relativistic and Maxwell-Juttner for relativistic.
   // Projection routine also corrects the density of the projected distribution function.
-  gkyl_proj_vlasov_lte_on_basis_advance(bgk->proj_lte, &species->local, &app->local, 
+  gkyl_vlasov_lte_proj_on_basis_advance(bgk->proj_lte, &species->local, &app->local, 
     bgk->moms.marr, bgk->f_lte);
 
   // Correct all the moments of the projected LTE distribution function.
   if (bgk->correct_all_moms) {
-    gkyl_correct_all_moments_vlasov_lte(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
+    gkyl_vlasov_lte_correct_all_moments(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
       &species->local, &app->local);
   } 
 
@@ -158,9 +158,9 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
 
   vm_species_moment_release(app, &bgk->moms);
 
-  gkyl_proj_vlasov_lte_on_basis_release(bgk->proj_lte);
+  gkyl_vlasov_lte_proj_on_basis_release(bgk->proj_lte);
   if (bgk->correct_all_moms) {
-    gkyl_correct_vlasov_lte_release(bgk->corr_lte);
+    gkyl_vlasov_lte_correct_release(bgk->corr_lte);
   }
 
   gkyl_bgk_collisions_release(bgk->up_bgk);

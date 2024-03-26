@@ -6,7 +6,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_lte_moments.h>
+#include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h> 
 #include <gkyl_util.h>
@@ -30,7 +30,7 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
     out[i] = vidx[i-cdim];
 }
 
-struct gkyl_proj_vlasov_lte_on_basis {
+struct gkyl_vlasov_lte_proj_on_basis {
   struct gkyl_rect_grid phase_grid;
   int cdim; // Configuration-space dimension
   int pdim; // Phase-space dimension
@@ -64,7 +64,7 @@ struct gkyl_proj_vlasov_lte_on_basis {
 
   int *p2c_qidx;  // Mapping between Configuration-space and Phase-space ordinates.
 
-  struct gkyl_lte_moments *moments_up; // LTE moment calculation routine for computing density
+  struct gkyl_vlasov_lte_moments *moments_up; // LTE moment calculation routine for computing density
   struct gkyl_array *num_ratio; // Number density ratio: num_ratio = n_target/n0
   struct gkyl_dg_bin_op_mem *mem; // bin_op memory to compute ratio and rescale distribution function
 };

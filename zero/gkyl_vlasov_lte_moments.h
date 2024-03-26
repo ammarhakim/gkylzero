@@ -6,10 +6,10 @@
 #include <gkyl_rect_grid.h> 
 
 // Object type
-typedef struct gkyl_lte_moments gkyl_lte_moments;
+typedef struct gkyl_vlasov_lte_moments gkyl_vlasov_lte_moments;
 
 // input packaged as a struct
-struct gkyl_lte_moments_vlasov_inp {
+struct gkyl_vlasov_lte_moments_inp {
   const struct gkyl_rect_grid *phase_grid; // Phase-space grid on which to compute moments
   const struct gkyl_basis *conf_basis; // Configuration-space basis functions
   const struct gkyl_basis *phase_basis; // Phase-space basis functions
@@ -31,11 +31,11 @@ struct gkyl_lte_moments_vlasov_inp {
  * Updater always returns (n, V_drift, T/m) where n and T/m are the stationary frame 
  * density and temperature/mass (the frame moving at velocity V_drift).
  * 
- * @param inp Input parameters defined in gkyl_lte_moments_vlasov_inp struct.
+ * @param inp Input parameters defined in gkyl_vlasov_lte_moments_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_lte_moments*
-gkyl_lte_moments_inew(const struct gkyl_lte_moments_vlasov_inp *inp);
+struct gkyl_vlasov_lte_moments*
+gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp);
 
 /**
  * Compute the density moments of an arbitrary distribution function for the equivalent 
@@ -49,7 +49,7 @@ gkyl_lte_moments_inew(const struct gkyl_lte_moments_vlasov_inp *inp);
  * @param fin Input distribution function
  * @param density Output stationary-frame density
  */
-void gkyl_lte_density_moment_advance(struct gkyl_lte_moments *lte_moms, 
+void gkyl_vlasov_lte_density_moment_advance(struct gkyl_vlasov_lte_moments *lte_moms, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
   const struct gkyl_array *fin, struct gkyl_array *density);
 
@@ -66,13 +66,13 @@ void gkyl_lte_density_moment_advance(struct gkyl_lte_moments *lte_moms,
  * @param fin Input distribution function
  * @param moms Output LTE moments (n, V_drift, T/m)
  */
-void gkyl_lte_moments_advance(struct gkyl_lte_moments *lte_moms, 
+void gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
   const struct gkyl_array *fin, struct gkyl_array *moms);
 
 /**
  * Delete updater.
  *
- * @param cmj Updater to delete.
+ * @param lte_moms Updater to delete.
  */
-void gkyl_lte_moments_release(gkyl_lte_moments* lte_moms);
+void gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments* lte_moms);

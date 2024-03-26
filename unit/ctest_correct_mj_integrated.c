@@ -4,15 +4,15 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_correct_lte.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_eqn_type.h>
-#include <gkyl_lte_moments.h>
-#include <gkyl_proj_vlasov_lte_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_vlasov_lte_correct.h>
+#include <gkyl_vlasov_lte_moments.h>
+#include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_util.h>
 #include <math.h>
 
@@ -175,7 +175,7 @@ test_1x1v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_proj_vlasov_lte_inp inp_lte = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -189,12 +189,12 @@ test_1x1v(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };  
-  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
-  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms_corr, distf);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms_corr, distf);
 
   // Create a MJ with corrected moments
-  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+  struct gkyl_vlasov_lte_correct_inp inp_corr = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -210,10 +210,10 @@ test_1x1v(int poly_order)
     .max_iter = 100,
     .eps = 1e-12,
   };
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
+  gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew( &inp_corr );
   // Correct the other moments (V_drift, T/m) 
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
-  gkyl_correct_vlasov_lte_release(corr_mj);
+  gkyl_vlasov_lte_correct_all_moments(corr_mj, distf, moms_corr, &local, &confLocal);
+  gkyl_vlasov_lte_correct_release(corr_mj);
 
   // Write the output
   char fname[1024];
@@ -221,7 +221,7 @@ test_1x1v(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // Correct the distribution function
-  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+  struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -235,8 +235,8 @@ test_1x1v(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };
-  gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
-  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
+  gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
+  gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -262,7 +262,8 @@ test_1x1v(int poly_order)
   gkyl_array_release(m2_corr);
   gkyl_array_release(moms_corr);
   gkyl_array_release(distf);
-  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
+  gkyl_vlasov_lte_moments_release(lte_moms);
+  gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -364,7 +365,7 @@ test_1x1v_spatially_varied(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_proj_vlasov_lte_inp inp_lte = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -378,12 +379,12 @@ test_1x1v_spatially_varied(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };  
-  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
-  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms_corr, distf);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms_corr, distf);
 
   // Create a MJ with corrected moments
-  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+  struct gkyl_vlasov_lte_correct_inp inp_corr = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -399,10 +400,10 @@ test_1x1v_spatially_varied(int poly_order)
     .max_iter = 100,
     .eps = 1e-12,
   };
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
+  gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew( &inp_corr );
   // Correct the other moments (V_drift, T/m)
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
-  gkyl_correct_vlasov_lte_release(corr_mj);
+  gkyl_vlasov_lte_correct_all_moments(corr_mj, distf, moms_corr, &local, &confLocal);
+  gkyl_vlasov_lte_correct_release(corr_mj);
 
   // Write the output
   char fname[1024];
@@ -410,7 +411,7 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_grid_sub_array_write(&grid, &local, distf, fname);
 
   // Correct the distribution function
-  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+  struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -424,8 +425,8 @@ test_1x1v_spatially_varied(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };
-  gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
-  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
+  gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
+  gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -476,7 +477,8 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_array_release(m2_corr);
   gkyl_array_release(moms_corr);
   gkyl_array_release(distf);
-  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
+  gkyl_vlasov_lte_moments_release(lte_moms);
+  gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -578,7 +580,7 @@ test_1x2v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_proj_vlasov_lte_inp inp_lte = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -592,12 +594,12 @@ test_1x2v(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };  
-  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
-  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms_corr, distf);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms_corr, distf);
 
   // Create a MJ with corrected moments
-  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+  struct gkyl_vlasov_lte_correct_inp inp_corr = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -613,13 +615,13 @@ test_1x2v(int poly_order)
     .max_iter = 100,
     .eps = 1e-12,
   };
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
+  gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew( &inp_corr );
   // Correct the other moments (V_drift, T/m)
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
-  gkyl_correct_vlasov_lte_release(corr_mj);
+  gkyl_vlasov_lte_correct_all_moments(corr_mj, distf, moms_corr, &local, &confLocal);
+  gkyl_vlasov_lte_correct_release(corr_mj);
 
   // Correct the distribution function
-  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+  struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -633,8 +635,8 @@ test_1x2v(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };
-  gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
-  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
+  gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
+  gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -669,7 +671,8 @@ test_1x2v(int poly_order)
   gkyl_array_release(m2_corr);
   gkyl_array_release(moms_corr);
   gkyl_array_release(distf);
-  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
+  gkyl_vlasov_lte_moments_release(lte_moms);
+  gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
@@ -770,7 +773,7 @@ test_1x3v(int poly_order)
   distf = mkarr(basis.num_basis, local_ext.volume);
 
   // projection updater to compute LTE distribution
-  struct gkyl_proj_vlasov_lte_inp inp_lte = {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -784,12 +787,12 @@ test_1x3v(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };  
-  gkyl_proj_vlasov_lte_on_basis *proj_lte = gkyl_proj_vlasov_lte_on_basis_inew(&inp_lte);
+  gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
-  gkyl_proj_vlasov_lte_on_basis_advance(proj_lte, &local, &confLocal, moms_corr, distf);
+  gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms_corr, distf);
 
   // Create a MJ with corrected moments
-  struct gkyl_correct_vlasov_lte_inp inp_corr = {
+  struct gkyl_vlasov_lte_correct_inp inp_corr = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -805,13 +808,13 @@ test_1x3v(int poly_order)
     .max_iter = 100,
     .eps = 1e-12,
   };
-  gkyl_correct_vlasov_lte *corr_mj = gkyl_correct_vlasov_lte_inew( &inp_corr );
+  gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew( &inp_corr );
   // Correct the other moments (V_drift, T/m)
-  gkyl_correct_all_moments_vlasov_lte(corr_mj, distf, moms_corr, &local, &confLocal);
-  gkyl_correct_vlasov_lte_release(corr_mj);
+  gkyl_vlasov_lte_correct_all_moments(corr_mj, distf, moms_corr, &local, &confLocal);
+  gkyl_vlasov_lte_correct_release(corr_mj);
 
   // Correct the distribution function
-  struct gkyl_lte_moments_vlasov_inp inp_mom = {
+  struct gkyl_vlasov_lte_moments_inp inp_mom = {
     .phase_grid = &grid,
     .conf_basis = &confBasis,
     .phase_basis = &basis,
@@ -825,8 +828,8 @@ test_1x3v(int poly_order)
     .mass = 1.0,
     .use_gpu = false,
   };
-  gkyl_lte_moments *lte_moms = gkyl_lte_moments_inew( &inp_mom );
-  gkyl_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
+  gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
+  gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
   gkyl_array_set_offset_range(m0, 1.0, moms, 0*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m1i, 1.0, moms, 1*confBasis.num_basis, &confLocal);
   gkyl_array_set_offset_range(m2, 1.0, moms, (vdim+1)*confBasis.num_basis, &confLocal);
@@ -870,7 +873,8 @@ test_1x3v(int poly_order)
   gkyl_array_release(m2_corr);
   gkyl_array_release(moms_corr);
   gkyl_array_release(distf);
-  gkyl_proj_vlasov_lte_on_basis_release(proj_lte);
+  gkyl_vlasov_lte_moments_release(lte_moms);
+  gkyl_vlasov_lte_proj_on_basis_release(proj_lte);
   gkyl_proj_on_basis_release(proj_m0);
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
