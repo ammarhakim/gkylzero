@@ -91,7 +91,7 @@ create_ctx(void)
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
   double Lvpar = 16.0 * vt; // Domain size (velocity space: parallel velocity direction).
-  double Lmu = 12.0 * vt * vt / 2.0 / B0; // Domain size (velocity space: magnetic moment direction).
+  double Lmu = 12.0 * (vt * vt) / 2.0 / B0; // Domain size (velocity space: magnetic moment direction).
   double t_end = 100.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   
