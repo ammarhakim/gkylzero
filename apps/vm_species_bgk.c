@@ -63,7 +63,10 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
   };
   bgk->proj_lte = gkyl_proj_vlasov_lte_on_basis_inew( &inp_proj );
 
-  bgk->correct_all_moms = false; 
+  bgk->correct_all_moms = false;
+  int max_iter = s->info.collisions.max_iter > 0 ? s->info.collisions.max_iter : 100;
+  double iter_eps = s->info.collisions.iter_eps > 0 ? s->info.collisions.iter_eps  : 1e-12;
+  
   if (s->info.collisions.correct_all_moms) {
     bgk->correct_all_moms = true;
 
@@ -80,8 +83,8 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
       .model_id = s->model_id,
       .mass = s->info.mass,
       .use_gpu = app->use_gpu,
-      .max_iter = 100,
-      .eps = 1e-12,
+      .max_iter = max_iter,
+      .eps = iter_eps,
     };
     bgk->corr_lte = gkyl_correct_vlasov_lte_inew( &inp_corr );
   }

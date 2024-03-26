@@ -107,6 +107,8 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .self_nu = evalNu,
       .correct_all_moms = true,
+      .iter_eps = 1e-6,
+      .max_iter = 20,
     },
 
     .num_diag_moments = 3,
