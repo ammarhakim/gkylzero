@@ -310,7 +310,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 }
 
 void
-bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct sheath_ctx *app = ctx;
 
