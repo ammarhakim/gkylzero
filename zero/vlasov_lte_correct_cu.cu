@@ -1,13 +1,13 @@
 /* -*- c++ -*- */
 
 extern "C" {
-#include <gkyl_correct_lte.h>
-#include <gkyl_correct_lte_priv.h>
+#include <gkyl_vlasov_lte_correct.h>
+#include <gkyl_vlasov_lte_correct_priv.h>
 #include <gkyl_range.h>
 }
 
 __global__ static void
-gkyl_correct_all_moments_vlasov_lte_abs_diff_cu_ker(struct gkyl_range conf_range, 
+gkyl_vlasov_lte_correct_all_moments_abs_diff_cu_ker(struct gkyl_range conf_range, 
   int vdim, int nc, 
   const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
   struct gkyl_array *abs_diff_moms)
@@ -39,12 +39,12 @@ gkyl_correct_all_moments_vlasov_lte_abs_diff_cu_ker(struct gkyl_range conf_range
 }
 
 void
-gkyl_correct_all_moments_vlasov_lte_abs_diff_cu(const struct gkyl_range *conf_range, 
+gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range, 
   int vdim, int nc, 
   const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter, 
   struct gkyl_array *moms_abs_diff)
 {
   int nblocks = conf_range->nblocks, nthreads = conf_range->nthreads;
-  gkyl_correct_all_moments_vlasov_lte_abs_diff_cu_ker<<<nblocks, nthreads>>>(*conf_range, 
+  gkyl_vlasov_lte_correct_all_moments_abs_diff_cu_ker<<<nblocks, nthreads>>>(*conf_range, 
     vdim, nc, moms_target->on_dev, moms_iter->on_dev, moms_abs_diff->on_dev);
 }
