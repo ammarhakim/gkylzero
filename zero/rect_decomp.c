@@ -251,8 +251,8 @@ gkyl_rect_decomp_calc_neigh(const struct gkyl_rect_decomp *decomp,
   return calc_neigh_no_corners(decomp, nidx);
 }
 
-static struct gkyl_rect_decomp_neigh*
-calc_periodic_neigh_no_corners(const struct gkyl_rect_decomp *decomp,
+struct gkyl_rect_decomp_neigh*
+gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
   int dir, bool inc_corners, int nidx)
 {
   struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
@@ -261,7 +261,11 @@ calc_periodic_neigh_no_corners(const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *curr = &decomp->ranges[nidx];
 
   int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
-  elo[dir] = eup[dir] = 1; // only extend in 1 direction
+  if (inc_corners)
+    for (int i=0; i<decomp->ndim; ++i)
+      elo[i] = eup[i] = 1;
+  else
+    elo[dir] = eup[dir] = 1;
   
   if (gkyl_range_is_on_lower_edge(dir, curr, &decomp->parent_range)) {
     int delta[GKYL_MAX_DIM] = { 0 };
@@ -306,23 +310,6 @@ calc_periodic_neigh_no_corners(const struct gkyl_rect_decomp *decomp,
   cont->neigh.neigh = cvec_int_front(&cont->l_neigh);  
   
   return &cont->neigh;
-}
-
-static struct gkyl_rect_decomp_neigh*
-calc_periodic_neigh_with_corners(const struct gkyl_rect_decomp *decomp,
-  int dir, bool inc_corners, int nidx)
-{
-  // THIS METHOD MUST BE WRITTEN
-  return 0;
-}
-
-struct gkyl_rect_decomp_neigh*
-gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
-  int dir, bool inc_corners, int nidx)
-{
-  if (inc_corners)
-    return calc_periodic_neigh_with_corners(decomp, dir, inc_corners, nidx);
-  return calc_periodic_neigh_no_corners(decomp, dir, inc_corners, nidx);
 }
 
 void

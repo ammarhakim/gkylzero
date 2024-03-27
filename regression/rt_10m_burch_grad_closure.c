@@ -458,7 +458,8 @@ main(int argc, char **argv)
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
       {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
+        .decomp = decomp,
+        .sync_corners = true
       }
     );
   }

@@ -360,6 +360,9 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
           struct gkyl_range neigh_shift;
           gkyl_range_shift(&neigh_shift, &mpi->decomp->ranges[nid], delta);
 
+          /* struct gkyl_range neigh_shift_ext; */
+          /* gkyl_range_extend(&neigh_shift_ext, &neigh_shift, elo, eup); */
+
           int isrecv = gkyl_sub_range_intersect(
             &mpi->recv[nridx].range, local_ext, &neigh_shift);
           size_t recv_vol = array->esznc*mpi->recv[nridx].range.volume;
@@ -399,7 +402,7 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
           gkyl_range_extend(&neigh_shift_ext, &neigh_shift, elo, eup);
           int issend = gkyl_sub_range_intersect(
             &mpi->send[nsidx].range, local, &neigh_shift_ext);
-          
+
           size_t send_vol = array->esznc*mpi->send[nsidx].range.volume;
 
           if (issend) {
