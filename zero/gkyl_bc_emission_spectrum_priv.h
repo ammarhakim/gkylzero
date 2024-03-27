@@ -9,7 +9,7 @@
 #include <assert.h>
 
 typedef void (*emission_spectrum_func_t)(const double *inp, int cdim, int dir, enum gkyl_edge_loc edge, double xc[GKYL_MAX_DIM], const double *gain, double *weight);
-typedef double (*emission_spectrum_norm_func_t)(double *out, const double *flux, double *param, double effective_gamma);
+typedef void (*emission_spectrum_norm_func_t)(double *out, const double *flux, double *param, double effective_gamma);
 typedef void (*emission_spectrum_gamma_func_t)(double *out, int cdim, int vdim, double xc[GKYL_MAX_DIM], double *param);
 
 struct gkyl_bc_emission_spectrum_funcs {
@@ -45,7 +45,7 @@ bc_weighted_gamma(const double *inp, int cdim, int dir, enum gkyl_edge_loc edge,
 
 // Chung-Everhart normalization factor
 GKYL_CU_D
-static double
+static void
 chung_everhart_norm(double *out, const double *flux, double *param, double effective_gamma)
   
 {
@@ -58,7 +58,7 @@ chung_everhart_norm(double *out, const double *flux, double *param, double effec
 
 // Gaussian normalization factor
 GKYL_CU_D
-static double
+static void
 gaussian_norm(double *out, const double *flux, double *param, double effective_gamma)
 {
   double E_0 = param[2];
@@ -71,7 +71,7 @@ gaussian_norm(double *out, const double *flux, double *param, double effective_g
 
 // Maxwellian normalization factor
 GKYL_CU_D
-static double
+static void
 maxwellian_norm(double *out, const double *flux, double *param, double effective_gamma)
 {
   double vt = param[2];
