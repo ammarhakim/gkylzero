@@ -44,6 +44,11 @@ struct gkyl_vlasov_lte_proj_on_basis {
   bool is_relativistic; // Boolean for if we are projecting the relativistic LTE
   bool use_gpu; // Boolean if we are performing projection on device.
 
+  bool use_quad2m; // Boolean for if we are using special nodal to modal kernels
+                   // These kernels are if num_quad = p+1 and there is a one-to-one
+                   // transformation of the Gauss-Legendre quadrature nodal basis
+                   // and our modal basis.
+
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
   struct gkyl_range phase_qrange; // Range of Phase-space ordinates.
 

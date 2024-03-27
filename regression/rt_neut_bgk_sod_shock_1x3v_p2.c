@@ -31,7 +31,9 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
   struct vlasov_sod_shock_ctx *app = ctx;
   double x = xn[0];
-  fout[0] = 0.0;
+  fout[0] = 0.0; 
+  fout[1] = 0.0;
+  fout[2] = 0.0;
 }
 
 void
@@ -72,23 +74,23 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32); 
-
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
   struct vlasov_sod_shock_ctx ctx = create_ctx(); // context for init functions
 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 8); 
+
   // neutrals
   struct gkyl_vlasov_species neut = {
     .name = "neut",
     .model_id = GKYL_MODEL_DEFAULT,
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -8.0*ctx.vt},
-    .upper = { 8.0*ctx.vt}, 
-    .cells = { NV },
+    .lower = { -8.0*ctx.vt, -8.0*ctx.vt, -8.0*ctx.vt },
+    .upper = { 8.0*ctx.vt, 8.0*ctx.vt, 8.0*ctx.vt }, 
+    .cells = { NV, NV, NV },
 
     .projection = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
@@ -115,9 +117,9 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "neut_bgk_sod_shock_1x1v_p2",
+    .name = "neut_bgk_sod_shock_1x3v_p2",
 
-    .cdim = 1, .vdim = 1,
+    .cdim = 1, .vdim = 3,
     .lower = { 0.0 },
     .upper = { ctx.Lx },
     .cells = { NX },

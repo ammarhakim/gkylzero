@@ -6,19 +6,17 @@
 #include <gkyl_vlasov.h>
 #include <rt_arg_parse.h>
 
-struct free_stream_ctx {
+struct vlasov_sod_shock_ctx {
   double charge; // charge
   double mass; // mass
   double vt; // thermal velocity
   double Lx; // size of the box
 };
 
-static inline double sq(double x) { return x*x; }
-
 void
 evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct bgk_sod_shock_ctx *app = ctx;
+  struct vlasov_sod_shock_ctx *app = ctx;
   double x = xn[0];
   if (x<0.5) {
     fout[0] = 1.0;
@@ -31,7 +29,7 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct bgk_sod_shock_ctx *app = ctx;
+  struct vlasov_sod_shock_ctx *app = ctx;
   double x = xn[0];
   fout[0] = 0.0; 
   fout[1] = 0.0;
@@ -40,7 +38,7 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void
 evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct bgk_sod_shock_ctx *app = ctx;
+  struct vlasov_sod_shock_ctx *app = ctx;
   double x = xn[0];
   if (x<0.5) {
     fout[0] = 1.0;
@@ -53,15 +51,15 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct free_stream_ctx *app = ctx;
+  struct vlasov_sod_shock_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   fout[0] = 100.0;
 }
 
-struct free_stream_ctx
+struct vlasov_sod_shock_ctx
 create_ctx(void)
 {
-  struct free_stream_ctx ctx = {
+  struct vlasov_sod_shock_ctx ctx = {
     .mass = 1.0,
     .charge = 1.0,
     .vt = 1.0,
@@ -82,9 +80,9 @@ main(int argc, char **argv)
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
-  struct free_stream_ctx ctx = create_ctx(); // context for init functions
+  struct vlasov_sod_shock_ctx ctx = create_ctx(); // context for init functions
 
-  // electrons
+  // neutrals
   struct gkyl_vlasov_species neut = {
     .name = "neut",
     .model_id = GKYL_MODEL_DEFAULT,
@@ -101,6 +99,7 @@ main(int argc, char **argv)
       .ctx_V_drift = &ctx,
       .temp = evalTempInit,
       .ctx_temp = &ctx,
+      .correct_all_moms = true, 
     },
 
     .collisions =  {
