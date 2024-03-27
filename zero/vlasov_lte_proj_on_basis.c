@@ -186,7 +186,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    up->phase_basis_on_dev = in->phase_basis_on_dev; // device-side basis for quad_nodal_to_modal kernels
+    up->phase_basis_on_dev = inp->phase_basis_on_dev; // device-side basis for quad_nodal_to_modal kernels
     up->fun_at_ords_on_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->tot_quad);
 
     // Allocate device copies of arrays needed for quadrature.
