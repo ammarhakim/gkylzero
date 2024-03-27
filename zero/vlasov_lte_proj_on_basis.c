@@ -168,7 +168,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, num_quad,
     &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
 
-  up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
+  up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); 
 
   // To avoid creating iterators over ranges in device kernel, we'll
   // create a map between phase-space and conf-space ordinates.
@@ -186,8 +186,10 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    // Allocate device copies of arrays needed for quadrature.
+    up->phase_basis_on_dev = in->phase_basis_on_dev; // device-side basis for quad_nodal_to_modal kernels
+    up->fun_at_ords_on_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->tot_quad);
 
+    // Allocate device copies of arrays needed for quadrature.
     int p2c_qidx_ho[up->phase_qrange.volume];
     up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
 
@@ -397,7 +399,9 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
       // quadrature nodal basis and our modal basis
       long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
       if (up->use_quad2m) {
-        up->phase_basis.quad_nodal_to_modal(gkyl_array_cfetch(up->fun_at_ords,0), gkyl_array_fetch(f_lte, lidx));
+        up->phase_basis.quad_nodal_to_modal(
+          gkyl_array_cfetch(up->fun_at_ords,0), gkyl_array_fetch(f_lte, lidx)
+        );
       }
       else {
         proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(f_lte, lidx));
@@ -425,8 +429,10 @@ void
 gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
+  if (up->use_gpu) {
+    gkyl_array_release(up->fun_at_ords_on_dev);
     gkyl_cu_free(up->p2c_qidx);
+  }
 #endif
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);

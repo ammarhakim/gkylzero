@@ -38,6 +38,9 @@ struct gkyl_vlasov_lte_proj_on_basis {
 
   struct gkyl_basis conf_basis; // Configuration-space basis
   struct gkyl_basis phase_basis; // Phase-space basis
+  struct gkyl_basis* phase_basis_on_dev; // Device-side Phase-space basis for storing
+                                         // nodal-to-modal kernels.
+
   int num_conf_basis; // number of Configuration-space basis functions
   int num_phase_basis; // number of Phase-space basis functions
 
@@ -66,6 +69,7 @@ struct gkyl_vlasov_lte_proj_on_basis {
 
   struct gkyl_array *fun_at_ords; // function LTE distribution evaluated at
                                   // ordinates in a cell.
+  struct gkyl_array *fun_at_ords_on_dev; // device-side function at ordinates
 
   int *p2c_qidx;  // Mapping between Configuration-space and Phase-space ordinates.
 
