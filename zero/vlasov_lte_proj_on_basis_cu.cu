@@ -16,9 +16,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
   const struct gkyl_array* GKYL_RESTRICT conf_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_basis_at_ords, 
   const struct gkyl_array* GKYL_RESTRICT phase_ordinates, 
-  const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx, 
-  const struct gkyl_basis* phase_basis_on_dev, struct gkyl_array* fun_at_ords_on_dev, 
-  bool is_relativistic, bool use_quad2m, 
+  const struct gkyl_array* GKYL_RESTRICT phase_weights, const int *p2c_qidx, bool is_relativistic, 
   const struct gkyl_array* GKYL_RESTRICT moms_lte, struct gkyl_array* GKYL_RESTRICT f_lte)
 {
   double f_floor = 1.e-40;
@@ -35,7 +33,6 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
   double n_quad[27], V_drift_quad[27][3], T_over_m_quad[27];
   double V_drift_quad_cell_avg[27][3];
   double expamp_quad[27];
-  double fq[216];
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
   int pidx[GKYL_MAX_DIM], cidx[GKYL_MAX_CDIM];
@@ -113,7 +110,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
       comp_to_phys(pdim, (const double*) gkyl_array_cfetch(phase_ordinates, n),
         phase_grid.dx, xc, &xmu[0]);
 
-      fq[n] = f_floor;
+      double fq = f_floor;
       if (T_over_m_quad[cqidx] > 0.0) {
         if (is_relativistic) {
           double uu = 0.0;
@@ -139,7 +136,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
             gamma_shifted = 1.0/sqrt(1.0-vv);
           }
 
-          fq[n] += expamp_quad[cqidx]*exp( (1.0/T_over_m_quad[cqidx]) 
+          fq += expamp_quad[cqidx]*exp( (1.0/T_over_m_quad[cqidx]) 
             - (gamma_shifted/T_over_m_quad[cqidx])*(sqrt(1+uu) - vu) );
         }
         else {
@@ -147,19 +144,13 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu_ker(const struct gkyl_rect_grid phase_g
           for (int d=0; d<vdim; ++d) {
             efact += (xmu[cdim+d]-V_drift_quad[cqidx][d])*(xmu[cdim+d]-V_drift_quad[cqidx][d]);
           }
-          fq[n] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
+          fq += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
         }
       }
-    }
-    if (use_quad2m) { 
-      phase_basis_on_dev->quad_nodal_to_modal(fq, f_lte_d); 
-    }
-    else {
-      for (int n=0; n<tot_phase_quad; ++n) {    
-        double tmp = phase_w[n]*fq;
-        for (int k=0; k<num_phase_basis; ++k) {
-          f_lte_d[k] += tmp*phaseb_o[k+num_phase_basis*n];
-        }
+
+      double tmp = phase_w[n]*fq;
+      for (int k=0; k<num_phase_basis; ++k) {
+        f_lte_d[k] += tmp*phaseb_o[k+num_phase_basis*n];
       }
     }
   }
@@ -174,9 +165,7 @@ gkyl_vlasov_lte_proj_on_basis_advance_cu(gkyl_vlasov_lte_proj_on_basis *up,
   gkyl_vlasov_lte_proj_on_basis_advance_cu_ker<<<nblocks, nthreads>>>
     (up->phase_grid, *phase_range, *conf_range, up->conf_basis_at_ords->on_dev, up->basis_at_ords->on_dev,
      up->ordinates->on_dev, up->weights->on_dev, up->p2c_qidx,
-     up->phase_basis_on_dev, up->fun_at_ords_on_dev->on_dev, 
-     up->is_relativistic, up->use_quad2m, 
-     moms_lte->on_dev, f_lte->on_dev);
+     up->is_relativistic, moms_lte->on_dev, f_lte->on_dev);
 
   // Correct the density of the projected LTE distribution function through rescaling.
   // This correction is needed especially for the relativistic LTE, whose pre-factor

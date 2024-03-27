@@ -38,19 +38,11 @@ struct gkyl_vlasov_lte_proj_on_basis {
 
   struct gkyl_basis conf_basis; // Configuration-space basis
   struct gkyl_basis phase_basis; // Phase-space basis
-  struct gkyl_basis* phase_basis_on_dev; // Device-side Phase-space basis for storing
-                                         // nodal-to-modal kernels.
-
   int num_conf_basis; // number of Configuration-space basis functions
   int num_phase_basis; // number of Phase-space basis functions
 
   bool is_relativistic; // Boolean for if we are projecting the relativistic LTE
   bool use_gpu; // Boolean if we are performing projection on device.
-
-  bool use_quad2m; // Boolean for if we are using special nodal to modal kernels
-                   // These kernels are if num_quad = p+1 and there is a one-to-one
-                   // transformation of the Gauss-Legendre quadrature nodal basis
-                   // and our modal basis.
 
   struct gkyl_range conf_qrange; // Range of Configuration-space ordinates.
   struct gkyl_range phase_qrange; // Range of Phase-space ordinates.
@@ -69,7 +61,6 @@ struct gkyl_vlasov_lte_proj_on_basis {
 
   struct gkyl_array *fun_at_ords; // function LTE distribution evaluated at
                                   // ordinates in a cell.
-  struct gkyl_array *fun_at_ords_on_dev; // device-side function at ordinates
 
   int *p2c_qidx;  // Mapping between Configuration-space and Phase-space ordinates.
 

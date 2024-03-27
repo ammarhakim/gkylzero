@@ -51,7 +51,6 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     .phase_grid = &s->grid,
     .conf_basis = &app->confBasis,
     .phase_basis = &app->basis,
-    .phase_basis_on_dev = app->basis_on_dev.basis, 
     .conf_range =  &app->local,
     .conf_range_ext = &app->local_ext,
     .vel_range = &s->local_vel,
@@ -74,8 +73,7 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
     struct gkyl_vlasov_lte_correct_inp inp_corr = {
       .phase_grid = &s->grid,
       .conf_basis = &app->confBasis,
-      .phase_basis = &app->basis, 
-      .phase_basis_on_dev = app->basis_on_dev.basis, 
+      .phase_basis = &app->basis,
       .conf_range =  &app->local,
       .conf_range_ext = &app->local_ext,
       .vel_range = &s->local_vel,

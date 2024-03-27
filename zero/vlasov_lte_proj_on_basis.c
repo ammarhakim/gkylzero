@@ -153,13 +153,6 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   }
 
   int num_quad = up->conf_basis.poly_order+1;
-  // Check if we are using more efficient unrolled nodal to model conversion
-  // for the transformation between a Gauss-Legendre nodal basis of order p+1
-  // to our modal basis
-  up->use_quad2m = false;
-  if (num_quad == up->conf_basis.poly_order+1) {
-    up->use_quad2m = true;
-  }
   // initialize data needed for conf-space quadrature 
   up->tot_conf_quad = init_quad_values(up->cdim, &up->conf_basis, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, up->use_gpu);
@@ -168,7 +161,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
   up->tot_quad = init_quad_values(up->cdim, &up->phase_basis, num_quad,
     &up->ordinates, &up->weights, &up->basis_at_ords, up->use_gpu);
 
-  up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); 
+  up->fun_at_ords = gkyl_array_new(GKYL_DOUBLE, 1, up->tot_quad); // Only used in CPU implementation.
 
   // To avoid creating iterators over ranges in device kernel, we'll
   // create a map between phase-space and conf-space ordinates.
@@ -186,10 +179,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
 
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    up->phase_basis_on_dev = inp->phase_basis_on_dev; // device-side basis for quad_nodal_to_modal kernels
-    up->fun_at_ords_on_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, up->tot_quad);
-
     // Allocate device copies of arrays needed for quadrature.
+
     int p2c_qidx_ho[up->phase_qrange.volume];
     up->p2c_qidx = (int*) gkyl_cu_malloc(sizeof(int)*up->phase_qrange.volume);
 
@@ -393,19 +384,9 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
           }
         }
       }
-      // compute expansion coefficients of LTE distribution function on basis
-      // if num_quad = p+1, use more efficient quad_nodal_to_modal kernels which
-      // unroll the loops for the one-to-one transformation between the Gauss-Legendre
-      // quadrature nodal basis and our modal basis
+      // compute expansion coefficients of Maxwell-Juttner on basis
       long lidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
-      if (up->use_quad2m) {
-        up->phase_basis.quad_nodal_to_modal(
-          gkyl_array_cfetch(up->fun_at_ords,0), gkyl_array_fetch(f_lte, lidx)
-        );
-      }
-      else {
-        proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(f_lte, lidx));
-      }
+      proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(f_lte, lidx));
     }
   }
   // Correct the density of the projected LTE distribution function through rescaling.
@@ -429,10 +410,8 @@ void
 gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    gkyl_array_release(up->fun_at_ords_on_dev);
+  if (up->use_gpu)
     gkyl_cu_free(up->p2c_qidx);
-  }
 #endif
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
