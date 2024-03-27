@@ -67,6 +67,8 @@ enum gkyl_projection_id {
   GKYL_PROJ_MAXWELLIAN_PRIM, // Maxwellian projection from primitive moments (n, u, T)
   GKYL_PROJ_MAXWELLIAN_LAB, // Maxwellian projection from lab moments (M0, M1, M2)
   GKYL_PROJ_BIMAXWELLIAN, // Bi-Maxwellian projection
+  GKYL_PROJ_VLASOV_LTE, // LTE (Local thermodynamic equilibrium) projection for Vlasov
+                        // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
 };
 
 // Identifiers for specific radiation object types
