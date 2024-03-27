@@ -21,6 +21,7 @@ struct gkyl_dg_updater_rad_gyrokinetic_tm {
  * @param conf_basis Configuration-space basis functions
  * @param phase_basis Phase-space basis function
  * @param phase_range Phase-space range
+ * @param conf_range Configuration-space range
  * @param aux_inp Void pointer to auxiliary fields. Void to be flexible to different auxfields structs
  * @param use_gpu Boolean to determine if gyrokinetic equation object is on device
  * @return Pointer to updater object for Radiation operator in Gyrokinetic equation
@@ -28,7 +29,7 @@ struct gkyl_dg_updater_rad_gyrokinetic_tm {
 struct gkyl_dg_updater_collisions* 
 gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *phase_range, void *aux_inp, bool use_gpu);
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,  void *aux_inp, bool use_gpu);
 
 
 /**

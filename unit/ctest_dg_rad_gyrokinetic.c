@@ -103,8 +103,8 @@ test_1x(int poly_order, bool use_gpu, double te)
   double confLower[cdim], confUpper[cdim], vLower[vdim], vUpper[vdim];
   int confCells[cdim], vCells[vdim];
 
+  double vtsq_min = 0.0;
   double vth = sqrt(te*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS);
-  double vth10eV = sqrt(10.0*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS);
   // Phase space and Configuration space extents and resolution
   double lower[] = {-1.0, -4*vth, 0.0};
   double upper[] = {1.0, 4*vth, 9*vth*vth*GKYL_ELECTRON_MASS};
@@ -221,7 +221,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid, &confBasis, &basis, 
 		  charge, mass, gk_geom, a[0], alpha[0], beta[0], gamma[0], v0[0], use_gpu);
-
+  
   gkyl_dg_calc_gk_rad_vars_nu_advance(calc_gk_rad_vars, &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu);
 
   nvnu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -276,8 +276,8 @@ test_1x(int poly_order, bool use_gpu, double te)
   // initialize solver 
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu, 
-    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu};
-  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &drag_inp, use_gpu);
+    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu, .vtsq = vtsq,.vtsq_min = vtsq_min};
+  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &confLocal, &drag_inp, use_gpu);
 
   struct gkyl_array *cflrate, *rhs, *fmax;
   cflrate = mkarr(use_gpu, 1, local_ext.volume);
@@ -382,7 +382,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   int confCells[cdim], vCells[vdim];
 
   double vth = sqrt(te*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS);
-  double vth10eV = sqrt(10.0*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS);
+  double vtsq_min = 0.0;
   // Phase space and Configuration space extents and resolution
   double lower[] = {-2.0, -1.0, -4*vth, 0.0};
   double upper[] = {2.0, 1.0, 4*vth, 9*vth*vth*GKYL_ELECTRON_MASS};
@@ -558,8 +558,8 @@ test_2x(int poly_order, bool use_gpu, double te)
   // initialize solver 
   struct gkyl_dg_updater_collisions *slvr;
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = nvnu_surf, .nvnu = nvnu, 
-    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu};
-  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &drag_inp, use_gpu);
+    .nvsqnu_surf = nvsqnu_surf, .nvsqnu = nvsqnu, .vtsq = vtsq, .vtsq_min = vtsq_min};
+  slvr = gkyl_dg_updater_rad_gyrokinetic_new(&grid, &confBasis, &basis, &local, &confLocal, &drag_inp, use_gpu);
 
   struct gkyl_array *cflrate, *rhs, *fmax;
   cflrate = mkarr(use_gpu, 1, local_ext.volume);

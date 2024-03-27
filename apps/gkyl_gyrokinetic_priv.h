@@ -176,6 +176,15 @@ struct gk_rad_drag {
   struct gkyl_array *nvsqnu_surf; // total mu radiation drag surface expansion including density scaling
   struct gkyl_array *nvsqnu; // total mu radiation drag volume expansion including density scaling
 
+  double vtsq_min; // Smallest vtsq that radiation is calculated
+  struct gkyl_array *prim_moms;
+  struct gkyl_array *boundary_corrections; // boundary corrections
+  struct gkyl_array *vtsq;
+  
+  gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator to find te
+  struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator for prim_lbo_calc
+  struct gk_species_moment lab_moms; // moments needed for te (single array includes Zeroth, First, and Second moment)
+
   // host-side copies for I/O
   struct gkyl_array *nvnu_surf_host; 
   struct gkyl_array *nvnu_host; 
