@@ -782,7 +782,7 @@ gkyl_gyrokinetic_app_write_coll_mom(gkyl_gyrokinetic_app* app, int sidx, double 
   const struct gkyl_array *fin[app->num_species];
   gk_species_lbo_moms(app, gk_s, &gk_s->lbo, gk_s->f);
   if (gk_s->lbo.num_cross_collisions)
-    gk_species_lbo_moms(app, gk_s, &gk_s->lbo, gk_s->f);
+    gk_species_lbo_cross_moms(app, gk_s, &gk_s->lbo, gk_s->f);
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
