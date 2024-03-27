@@ -605,6 +605,41 @@ gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
   gkyl_dynvec_clear(app->field->integ_energy);
 }
 
+
+void
+gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app* app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    struct vm_species *s = &app->species[i];
+
+    if (s->collision_id == GKYL_BGK_COLLISIONS) {
+       // write out diagnostic moments
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+        "corr-lte-stat");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+        "corr-lte-stat");
+
+      int rank;
+      gkyl_comm_get_rank(app->comm, &rank);
+
+      if (rank == 0) {
+        if (s->bgk.is_first_corr_status_write_call) {
+          // write to a new file (this ensure previous output is removed)
+          gkyl_dynvec_write(s->bgk.corr_stat, fileNm);
+          s->bgk.is_first_corr_status_write_call = false;
+        }
+        else {
+          // append to existing file
+          gkyl_dynvec_awrite(s->bgk.corr_stat, fileNm);
+        }
+      }
+      gkyl_dynvec_clear(s->bgk.corr_stat);
+    }
+  } 
+}
+
 // Take a forward Euler step with the suggested time-step dt. This may
 // not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by

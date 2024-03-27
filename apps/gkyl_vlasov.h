@@ -442,6 +442,14 @@ void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
 void gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app *app);
 
 /**
+ * Write integrated correct lte status of the species distribution function to file. Correct
+ * lte status is appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app *app);
+
+/**
  * Write field energy to file. Field energy data is appended to the
  * same file.
  * 
