@@ -53,14 +53,20 @@ void gkyl_calc_sr_vars_init_p_vars(const struct gkyl_rect_grid *vgrid,
   gkyl_proj_on_basis_release(gamma_inv_proj);
 }
 
-void gkyl_calc_sr_vars_Gamma2(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+void gkyl_calc_sr_vars_GammaV2(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* range, 
   const struct gkyl_array* V, struct gkyl_array* GammaV2)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(GammaV2)) {
+    return gkyl_calc_sr_vars_GammaV2_cu(cbasis, pbasis, range, V, GammaV2);
+  }
+#endif
+
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
 
-  sr_t sr_Gamma2 = choose_ser_sr_Gamma2_kern(cdim, vdim, poly_order);
+  sr_t sr_GammaV2 = choose_ser_sr_GammaV2_kern(cdim, vdim, poly_order);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
   while (gkyl_range_iter_next(&iter)) {
@@ -69,38 +75,24 @@ void gkyl_calc_sr_vars_Gamma2(const struct gkyl_basis* cbasis, const struct gkyl
     const double *V_d = gkyl_array_cfetch(V, loc);
 
     double *GammaV2_d = gkyl_array_fetch(GammaV2, loc);
-    sr_Gamma2(V_d, GammaV2_d);
+    sr_GammaV2(V_d, GammaV2_d);
   }
 }
 
-void gkyl_calc_sr_vars_Gamma(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* range, 
-  const struct gkyl_array* V, struct gkyl_array* GammaV)
-{
-  int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
-  int poly_order = cbasis->poly_order;
-
-  sr_t sr_Gamma = choose_ser_sr_Gamma_kern(cdim, vdim, poly_order);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, range);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(range, iter.idx);
-
-    const double *V_d = gkyl_array_cfetch(V, loc);
-
-    double *GammaV_d = gkyl_array_fetch(GammaV, loc);
-    sr_Gamma(V_d, GammaV_d);
-  }
-}
-
-void gkyl_calc_sr_vars_Gamma_inv(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+void gkyl_calc_sr_vars_GammaV_inv(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* range, 
   const struct gkyl_array* V, struct gkyl_array* GammaV_inv)
 {
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(GammaV_inv)) {
+    return gkyl_calc_sr_vars_GammaV_inv_cu(cbasis, pbasis, range, V, GammaV_inv);
+  }
+#endif
+
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
 
-  sr_t sr_Gamma_inv = choose_ser_sr_Gamma_inv_kern(cdim, vdim, poly_order);
+  sr_t sr_GammaV_inv = choose_ser_sr_GammaV_inv_kern(cdim, vdim, poly_order);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
   while (gkyl_range_iter_next(&iter)) {
@@ -109,6 +101,6 @@ void gkyl_calc_sr_vars_Gamma_inv(const struct gkyl_basis* cbasis, const struct g
     const double *V_d = gkyl_array_cfetch(V, loc);
 
     double *GammaV_inv_d = gkyl_array_fetch(GammaV_inv, loc);
-    sr_Gamma_inv(V_d, GammaV_inv_d);
+    sr_GammaV_inv(V_d, GammaV_inv_d);
   }
 }

@@ -403,12 +403,12 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
 
     if (s->model_id == GKYL_MODEL_SR) {
       // Compute the necessary factors to correctly integrate relativistic quantities such as:
-      // 1/Gamma = sqrt(1 - V_drift^2/c^2) where V_drift is computed from weak division: M0 * V_drift = M1i
+      // GammaV_inv = sqrt(1 - V_drift^2/c^2) where V_drift is computed from weak division: M0 * V_drift = M1i
       vm_species_moment_calc(&s->m0, s->local, app->local, s->f);
       vm_species_moment_calc(&s->m1i, s->local, app->local, s->f);
       gkyl_calc_prim_vars_u_from_rhou(s->V_drift_mem, app->confBasis, &app->local, 
         s->m0.marr, s->m1i.marr, s->V_drift); 
-      gkyl_calc_sr_vars_Gamma_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);
+      gkyl_calc_sr_vars_GammaV_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);
     }
     vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
     // reduce to compute sum over whole domain, append to diagnostics
@@ -717,6 +717,10 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
+    }
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      vm_species_bgk_moms(app, &app->species[i], 
+        &app->species[i].bgk, fin[i]);
     }
   }
 
