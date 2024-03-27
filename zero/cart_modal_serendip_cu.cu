@@ -31,6 +31,7 @@ gkyl_cart_modal_serendip_cu_dev_kern(struct gkyl_basis *basis, int ndim, int pol
   basis->flip_even_sign = fes_list[ndim].fs[poly_order];
   basis->node_list = nl_list[ndim].nl[poly_order];
   basis->nodal_to_modal = n2m_list[ndim].n2m[poly_order];
+  basis->quad_nodal_to_modal = qn2m_list[ndim].n2m[poly_order];
 }
 
 void

@@ -81,16 +81,19 @@ main(int argc, char **argv)
     .upper = { 8.0 * ctx.vt}, 
     .cells = { 48 },
 
-    .ctx = &ctx,
-    .init = evalDistFuncSquare,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFuncSquare,
+      .ctx_func = &ctx,
+    },
 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNu,
     },
     
-    //.num_diag_moments = 3,
-    //.diag_moments = { "M0", "M1i", "M2" },
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "LTEMoments" },
   };
 
   struct gkyl_vlasov_species bump = {
@@ -101,16 +104,19 @@ main(int argc, char **argv)
     .upper = { 8.0 * ctx.vt}, 
     .cells = { 48 },
 
-    .ctx = &ctx,
-    .init = evalDistFuncBump,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFuncBump,
+      .ctx_func = &ctx,
+    },
 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNu,
     },
     
-    //.num_diag_moments = 3,
-    //.diag_moments = { "M0", "M1i", "M2" },
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "LTEMoments" },
   };
 
   // VM app

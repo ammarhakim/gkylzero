@@ -80,8 +80,11 @@ main(int argc, char **argv)
     .upper = { 6.0*ctx.vth }, 
     .cells = { VX },
 
-    .ctx = &ctx,
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFunc,
+      .ctx_func = &ctx,
+    },
 
     .num_diag_moments = 2,
     .diag_moments = { "M0", "M1i" },
