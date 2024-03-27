@@ -355,6 +355,34 @@ analyzeTestOutput(const char* test_name)
   }
 }
 
+void
+regenerateTest(const char* test_name)
+{
+  int counter = 0;
+
+  char counter_buffer[64];
+  snprintf(counter_buffer, 64, "output/%s_counter.dat", test_name);
+  FILE *counter_ptr = fopen(counter_buffer, "r");
+  if (counter_ptr != NULL) {
+    fscanf(counter_ptr, "%d", &counter);
+  }
+  fclose(counter_ptr);
+
+  for (int i = 1 ; i < counter + 1; i++) {
+    char command_buffer[128];
+    snprintf(command_buffer, 128, "rm -rf output/rt_%s_%d.dat", test_name, i);
+    system(command_buffer);
+
+    char command_buffer2[128];
+    snprintf(command_buffer2, 128, "rm -rf output/%s-stat_%d.json", test_name, i);
+    system(command_buffer2);
+  }
+
+  counter_ptr = fopen(counter_buffer, "w");
+  fprintf(counter_ptr, "%d", 0);
+  fclose(counter_ptr);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -448,6 +476,39 @@ main(int argc, char **argv)
       runTest("gk_lapd_cart_3x2v_p1", "3x2v LAPD Test (in Cartesian coordinates) with p = 1");
     }
     else if (option2 == 5) {
+      runTest("gk_lapd_cyl_3x2v_p1", "3x2v LAPD Test (in cylindrical coordinates) with p = 1");
+    }
+  }
+  else if (option == 5) {
+    printf("Please select the test result that you wish to regenerate:\n\n");
+    printf("1 - 1x2v Sheath Boundary Test with p = 1\n");
+    printf("2 - 2x2v Sheath Boundary Test with p = 1\n");
+    printf("3 - 3x3v Sheath Boundary Test with p = 1\n");
+    printf("4 - 3x2v LAPD Test (in Cartesian coordinates) with p = 1\n");
+    printf("5 - 3x2v LAPD Test (in cylindrical coordinates) with p = 1\n");
+
+    int option2;
+    scanf("%d", &option2);
+    printf("\n");
+
+    if (option2 == 1) {
+      regenerateTest("gk_sheath_1x2v_p1");
+      runTest("gk_sheath_1x2v_p1", "1x2v Sheath Boundary Test with p = 1");
+    }
+    else if (option2 == 2) {
+      regenerateTest("gk_sheath_2x2v_p1");
+      runTest("gk_sheath_2x2v_p1", "2x2v Sheath Boundary Test with p = 1");
+    }
+    else if (option2 == 3) {
+      regenerateTest("gk_sheath_3x2v_p1");
+      runTest("gk_sheath_3x2v_p1", "3x2v Sheath Boundary Test with p = 1");
+    }
+    else if (option2 == 4) {
+      regenerateTest("gk_lapd_cart_3x2v_p1");
+      runTest("gk_lapd_cart_3x2v_p1", "3x2v LAPD Test (in Cartesian coordinates) with p = 1");
+    }
+    else if (option2 == 5) {
+      regenerateTest("gk_lapd_cyl_3x2v_p1");
       runTest("gk_lapd_cyl_3x2v_p1", "3x2v LAPD Test (in cylindrical coordinates) with p = 1");
     }
   }
