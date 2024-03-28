@@ -755,7 +755,7 @@ main(int argc, char **argv)
   mpifinalize:
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
-    MPI_NVPARize();
+    MPI_Finalize();
   }
 #endif
   
