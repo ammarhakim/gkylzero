@@ -14,7 +14,7 @@
 
 // Maximum number of recv neighbors: not sure hard-coding this is a
 // good idea.
-#define MAX_RECV_NEIGH 32
+#define MAX_RECV_NEIGH 128
 
 #define MPI_BASE_TAG 4242
 #define MPI_BASE_PER_TAG 5252
@@ -354,8 +354,8 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
         int delta[GKYL_MAX_DIM] = { 0 };
         delta[dir] = shift_sign[e]*gkyl_range_shape(&mpi->decomp->parent_range, dir);
 
-        if (mpi->per_neigh[dir]->num_neigh == 1) { // really should  be a loop
-          int nid = mpi->per_neigh[dir]->neigh[0];
+        for (int pn=0; pn<mpi->per_neigh[dir]->num_neigh; ++pn) {
+          int nid = mpi->per_neigh[dir]->neigh[pn];
 
           struct gkyl_range neigh_shift;
           gkyl_range_shift(&neigh_shift, &mpi->decomp->ranges[nid], delta);
@@ -393,8 +393,8 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
         int delta[GKYL_MAX_DIM] = { 0 };
         delta[dir] = shift_sign[e]*gkyl_range_shape(&mpi->decomp->parent_range, dir);
 
-        if (mpi->per_neigh[dir]->num_neigh == 1) { // really should  be a loop
-          int nid = mpi->per_neigh[dir]->neigh[0];
+        for (int pn=0; pn<mpi->per_neigh[dir]->num_neigh; ++pn) {
+          int nid = mpi->per_neigh[dir]->neigh[pn];
 
           struct gkyl_range neigh_shift, neigh_shift_ext;
           gkyl_range_shift(&neigh_shift, &mpi->decomp->ranges[nid], delta);
@@ -675,7 +675,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
     mpi->neigh = gkyl_rect_decomp_calc_neigh(mpi->decomp, inp->sync_corners, rank);
     for (int d=0; d<mpi->decomp->ndim; ++d)
       mpi->per_neigh[d] =
-        gkyl_rect_decomp_calc_periodic_neigh(mpi->decomp, d, false, rank);
+        gkyl_rect_decomp_calc_periodic_neigh(mpi->decomp, d, inp->sync_corners, rank);
   
     gkyl_range_init(&mpi->dir_edge, 2, (int[]) { 0, 0 }, (int[]) { GKYL_MAX_DIM, 2 });
   

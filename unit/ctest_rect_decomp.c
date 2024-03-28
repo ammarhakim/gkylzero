@@ -404,7 +404,7 @@ test_rect_decomp_per_2d_corner(void)
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]) { 1, 2 }, (int[]) { 100, 100 });
   
-  int cuts[] = { 1, 1 };
+  int cuts[] = { 2, 2 };
   struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
 
   struct gkyl_range crange;
@@ -420,7 +420,7 @@ test_rect_decomp_per_2d_corner(void)
         d, true, gkyl_range_idx(&crange, iter.idx));
 
       if (is_on_dir_edge(range.ndim, d, iter.idx, cuts)) {
-        TEST_CHECK( neigh->num_neigh == 1 );
+        TEST_CHECK( neigh->num_neigh == 2 ); // each domain has 2 neighbors
       }
       
       gkyl_rect_decomp_neigh_release(neigh);
@@ -529,6 +529,8 @@ TEST_LIST = {
   { "rect_decomp_per_2d", test_rect_decomp_per_2d },
   { "rect_decomp_per_2d_2", test_rect_decomp_per_2d_2 },
   { "rect_decomp_per_3d", test_rect_decomp_per_3d },
+
+  { "rect_decomp_per_2d_corner", test_rect_decomp_per_2d_corner },
 
   { "rect_decomp_2d_2v", test_rect_decomp_2d_2v },
 
