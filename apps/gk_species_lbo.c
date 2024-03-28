@@ -31,8 +31,8 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   if (s->info.collisions.normNu) {
     lbo->normNu = true;
     lbo->self_nu_fac = s->info.collisions.self_nu_fac;
-    double tpar_min = (s->info.mass/6.0)*s->grid.dx[cdim];
-    double tperp_min = (s->info.collisions.bmag_mid/3.0)*s->grid.dx[cdim+1];
+    double tpar_min = (s->info.mass/6.0)*s->grid.dx[cdim]*s->grid.dx[cdim];
+    double tperp_min = vdim>1 ? (s->info.collisions.bmag_mid/3.0)*s->grid.dx[cdim+1] : tpar_min;
     lbo->vtsq_min = (tpar_min + 2*tperp_min)/(3*s->info.mass);
     double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
     double eps0 = 1.0;
