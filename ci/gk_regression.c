@@ -2,13 +2,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define ANSI_COLOR_RED     "\x1b[31m"
-#define ANSI_COLOR_GREEN   "\x1b[32m"
-#define ANSI_COLOR_YELLOW  "\x1b[33m"
-#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_RED "\x1b[31m"
+#define ANSI_COLOR_GREEN "\x1b[32m"
+#define ANSI_COLOR_YELLOW "\x1b[33m"
+#define ANSI_COLOR_BLUE "\x1b[34m"
 #define ANSI_COLOR_MAGENTA "\x1b[35m"
-#define ANSI_COLOR_CYAN    "\x1b[36m"
-#define ANSI_COLOR_RESET   "\x1b[0m"
+#define ANSI_COLOR_CYAN "\x1b[36m"
+#define ANSI_COLOR_RESET "\x1b[0m"
 
 int system(const char *command);
 
@@ -53,8 +53,10 @@ runTest(const char* test_name, const char* test_name_human)
 }
 
 void
-analyzeTestOutput(const char* test_name)
+analyzeTestOutput(const char* test_name, const char* test_name_human)
 {
+  printf("%s:\n\n", test_name_human);
+
   int counter = 0;
 
   char counter_buffer[64];
@@ -345,7 +347,8 @@ analyzeTestOutput(const char* test_name)
         printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
       }
 
-      if ((updatecalls[i] != updatecalls[i - 1]) || (forwardeuler[i] != forwardeuler[i - 1]) || (rk2failures[i] != rk2failures[i - 1]) || (rk3failures[i] != rk3failures[i - 1])) {
+      if ((updatecalls[i] != updatecalls[i - 1]) || (forwardeuler[i] != forwardeuler[i - 1]) ||
+        (rk2failures[i] != rk2failures[i - 1]) || (rk3failures[i] != rk3failures[i - 1])) {
         printf("Correct: " ANSI_COLOR_RED "No" ANSI_COLOR_RESET "\n\n");
       }
       else {
@@ -386,130 +389,114 @@ regenerateTest(const char* test_name)
 int
 main(int argc, char **argv)
 {
+  int test_count = 7;
+  char test_names[7][32] = {
+    "gk_sheath_1x2v_p1",
+    "gk_sheath_2x2v_p1",
+    "gk_sheath_3x2v_p1",
+    "gk_lapd_cart_3x2v_p1",
+    "gk_lapd_cyl_3x2v_p1",
+    "gk_lbo_relax_1x2v_p1",
+    "gk_lbo_relax_varnu_1x2v_p1",
+  };
+  char test_names_human[7][128] = {
+    "1x2v Sheath Boundary Test with p = 1",
+    "2x2v Sheath Boundary Test with p = 1",
+    "3x2v Sheath Boundary Test with p = 1",
+    "3x2v LAPD Test (in Cartesian coordinates) with p = 1",
+    "3x3v LAPD Test (in cylindrical coordinates) with p = 1",
+    "1x2v LBO Relaxation Test with p = 1",
+    "1x2v LBO Relaxation Test (with variable collision frequency) with p = 1",
+  };
+
   system("clear");
   system("mkdir -p output");
 
   printf("** Gkeyll Gyrokinetics Automated Regression System **\n");
-  printf("Please select an option to proceed:\n\n");
-  printf("1 - Run Full Regression Suite\n");
-  printf("2 - View Regression Results\n");
-  printf("3 - (Re)generate Accepted Results\n");
-  printf("4 - Run Specific Test\n");
-  printf("5 - (Re)generate Specific Accepted Result\n");
+  while (1) {
+    printf("Please select an option to proceed:\n\n");
+    printf("1 - Run Full Regression Suite\n");
+    printf("2 - View All Regression Results\n");
+    printf("3 - Run Specific Regression Test\n");
+    printf("4 - View Specific Regression Result\n");
+    printf("5 - (Re)generate All Accepted Results\n");
+    printf("6 - (Re)generate Specific Accepted Result\n");
+    printf("7 - Exit\n");
 
-  int option;
-  scanf("%d", &option);
-  printf("\n");
-
-  if (option == 1) {
-    runTest("gk_sheath_1x2v_p1", "1x2v Sheath Boundary Test with p = 1");
-    runTest("gk_sheath_2x2v_p1", "2x2v Sheath Boundary Test with p = 1");
-    runTest("gk_sheath_3x2v_p1", "3x2v Sheath Boundary Test with p = 1");
-    runTest("gk_lapd_cart_3x2v_p1", "3x2v LAPD Test (in Cartesian coordinates) with p = 1");
-    runTest("gk_lapd_cyl_3x2v_p1", "3x2v LAPD Test (in cylindrical coordinates) with p = 1");
-  }
-  else if (option == 2) {
-    printf("Please select the test whose results you wish to view:\n\n");
-    printf("1 - 1x2v Sheath Boundary Test with p = 1\n");
-    printf("2 - 2x2v Sheath Boundary Test with p = 1\n");
-    printf("3 - 3x3v Sheath Boundary Test with p = 1\n");
-    printf("4 - 3x2v LAPD Test (in Cartesian coordinates) with p = 1\n");
-    printf("5 - 3x2v LAPD Test (in cylindrical coordinates) with p = 1\n");
-
-    int option2;
-    scanf("%d", &option2);
+    int option;
+    scanf("%d", &option);
     printf("\n");
 
-    if (option2 == 1) {
-      printf("1x2v Sheath Boundary Test with p = 1:\n\n");
-      analyzeTestOutput("gk_sheath_1x2v_p1");
+    if (option == 1) {
+      for (int i = 0; i < test_count; i++) {
+        runTest(test_names[i], test_names_human[i]);
+      }
     }
-    else if (option2 == 2) {
-      printf("2x2v Sheath Boundary Test with p = 1:\n\n");
-      analyzeTestOutput("gk_sheath_2x2v_p1");
+    else if (option == 2) {
+      for (int i = 0; i < test_count; i++) {
+        analyzeTestOutput(test_names[i], test_names_human[i]);
+      }
     }
-    else if (option2 == 3) {
-      printf("3x2v Sheath Boundary Test with p = 1:\n\n");
-      analyzeTestOutput("gk_sheath_3x2v_p1");
-    }
-    else if (option2 == 4) {
-      printf("3x2v LAPD Test (in Cartesian coordinates) with p = 1:\n\n");
-      analyzeTestOutput("gk_lapd_cart_3x2v_p1");
-    }
-    else if (option2 == 5) {
-      printf("3x2v LAPD Test (in cylindrical coordinates) with p = 1:\n\n");
-      analyzeTestOutput("gk_lapd_cyl_3x2v_p1");
-    }
-  }
-  else if (option == 3) {
-    system("rm -rf output");
-    system("mkdir output");
+    else if (option == 3) {
+      printf("Please select the test you wish to run:\n\n");
+      for (int i = 0; i < test_count; i++) {
+        printf("%d - %s\n", i + 1, test_names_human[i]);
+      }
 
-    runTest("gk_sheath_1x2v_p1", "1x2v Sheath Boundary Test with p = 1");
-    runTest("gk_sheath_2x2v_p1", "2x2v Sheath Boundary Test with p = 1");
-    runTest("gk_sheath_3x2v_p1", "3x2v Sheath Boundary Test with p = 1");
-    runTest("gk_lapd_cart_3x2v_p1", "3x2v LAPD Test (in Cartesian coordinates) with p = 1");
-    runTest("gk_lapd_cyl_3x2v_p1", "3x2v LAPD Test (in cylindrical coordinates) with p = 1");
-  }
-  else if (option == 4) {
-    printf("Please select the test you wish to run:\n\n");
-    printf("1 - 1x2v Sheath Boundary Test with p = 1\n");
-    printf("2 - 2x2v Sheath Boundary Test with p = 1\n");
-    printf("3 - 3x3v Sheath Boundary Test with p = 1\n");
-    printf("4 - 3x2v LAPD Test (in Cartesian coordinates) with p = 1\n");
-    printf("5 - 3x2v LAPD Test (in cylindrical coordinates) with p = 1\n");
+      int option2;
+      scanf("%d", &option2);
+      printf("\n");
 
-    int option2;
-    scanf("%d", &option2);
-    printf("\n");
+      if (option2 >= 1 && option2 <= test_count) {
+        runTest(test_names[option2 - 1], test_names_human[option2 - 1]);
+      }
+      else {
+        printf("Invalid selection!\n");
+      }
+    }
+    else if (option == 4) {
+      printf("Please select the test whose results you wish to view:\n\n");
+      for (int i = 0; i < test_count; i++) {
+        printf("%d - %s\n", i + 1, test_names_human[i]);
+      }
 
-    if (option2 == 1) {
-      runTest("gk_sheath_1x2v_p1", "1x2v Sheath Boundary Test with p = 1");
-    }
-    else if (option2 == 2) {
-      runTest("gk_sheath_2x2v_p1", "2x2v Sheath Boundary Test with p = 1");
-    }
-    else if (option2 == 3) {
-      runTest("gk_sheath_3x2v_p1", "3x2v Sheath Boundary Test with p = 1");
-    }
-    else if (option2 == 4) {
-      runTest("gk_lapd_cart_3x2v_p1", "3x2v LAPD Test (in Cartesian coordinates) with p = 1");
-    }
-    else if (option2 == 5) {
-      runTest("gk_lapd_cyl_3x2v_p1", "3x2v LAPD Test (in cylindrical coordinates) with p = 1");
-    }
-  }
-  else if (option == 5) {
-    printf("Please select the test result that you wish to regenerate:\n\n");
-    printf("1 - 1x2v Sheath Boundary Test with p = 1\n");
-    printf("2 - 2x2v Sheath Boundary Test with p = 1\n");
-    printf("3 - 3x3v Sheath Boundary Test with p = 1\n");
-    printf("4 - 3x2v LAPD Test (in Cartesian coordinates) with p = 1\n");
-    printf("5 - 3x2v LAPD Test (in cylindrical coordinates) with p = 1\n");
+      int option2;
+      scanf("%d", &option2);
+      printf("\n");
 
-    int option2;
-    scanf("%d", &option2);
-    printf("\n");
+      if (option2 >= 1 && option2 <= test_count) {
+        analyzeTestOutput(test_names[option2 - 1], test_names_human[option2 - 1]);
+      }
+      else {
+        printf("Invalid selection!\n");
+      }
+    }
+    else if (option == 5) {
+      for (int i = 0; i < test_count; i++) {
+        regenerateTest(test_names[i]);
+        runTest(test_names[i], test_names_human[i]);
+      }
+    }
+    else if (option == 6) {
+      printf("Please select the test whose accepted result you wish to regenerate:\n\n");
+      for (int i = 0; i < test_count; i++) {
+        printf("%d - %s\n", i + 1, test_names_human[i]);
+      }
 
-    if (option2 == 1) {
-      regenerateTest("gk_sheath_1x2v_p1");
-      runTest("gk_sheath_1x2v_p1", "1x2v Sheath Boundary Test with p = 1");
+      int option2;
+      scanf("%d", &option2);
+      printf("\n");
+
+      if (option2 >= 1 && option2 <= test_count) {
+        regenerateTest(test_names[option2 - 1]);
+        runTest(test_names[option2 - 1], test_names_human[option2 - 1]);
+      }
+      else {
+        printf("Invalid selection!\n");
+      }
     }
-    else if (option2 == 2) {
-      regenerateTest("gk_sheath_2x2v_p1");
-      runTest("gk_sheath_2x2v_p1", "2x2v Sheath Boundary Test with p = 1");
-    }
-    else if (option2 == 3) {
-      regenerateTest("gk_sheath_3x2v_p1");
-      runTest("gk_sheath_3x2v_p1", "3x2v Sheath Boundary Test with p = 1");
-    }
-    else if (option2 == 4) {
-      regenerateTest("gk_lapd_cart_3x2v_p1");
-      runTest("gk_lapd_cart_3x2v_p1", "3x2v LAPD Test (in Cartesian coordinates) with p = 1");
-    }
-    else if (option2 == 5) {
-      regenerateTest("gk_lapd_cyl_3x2v_p1");
-      runTest("gk_lapd_cyl_3x2v_p1", "3x2v LAPD Test (in cylindrical coordinates) with p = 1");
+    else if (option == 7) {
+      break;
     }
   }
 
