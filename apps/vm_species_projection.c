@@ -114,8 +114,8 @@ vm_species_projection_calc(gkyl_vlasov_app *app, const struct vm_species *s,
 
     // Correct all the moments of the projected LTE distribution function.
     if (proj->correct_all_moms) {
-      gkyl_vlasov_lte_correct_all_moments(proj->corr_lte, f, proj->vlasov_lte_moms, 
-        &s->local, &app->local);
+      struct gkyl_vlasov_lte_correct_status status_corr = gkyl_vlasov_lte_correct_all_moments(proj->corr_lte, 
+        f, proj->vlasov_lte_moms, &s->local, &app->local);
     } 
   } 
 }

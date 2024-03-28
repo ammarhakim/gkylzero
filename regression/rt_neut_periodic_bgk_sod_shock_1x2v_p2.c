@@ -18,7 +18,7 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct vlasov_sod_shock_ctx *app = ctx;
   double x = xn[0];
-  if (x<0.5) {
+  if (fabs(x)<0.5) {
     fout[0] = 1.0;
   }
   else {
@@ -31,7 +31,8 @@ evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 {
   struct vlasov_sod_shock_ctx *app = ctx;
   double x = xn[0];
-  fout[0] = 0.0;
+  fout[0] = 0.0; 
+  fout[1] = 0.0;
 }
 
 void
@@ -39,7 +40,7 @@ evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 {
   struct vlasov_sod_shock_ctx *app = ctx;
   double x = xn[0];
-  if (x<0.5) {
+  if (fabs(x)<0.5) {
     fout[0] = 1.0;
   }
   else {
@@ -72,8 +73,8 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 128);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 32); 
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
+  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], 16); 
 
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
@@ -86,9 +87,9 @@ main(int argc, char **argv)
     .name = "neut",
     .model_id = GKYL_MODEL_DEFAULT,
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -8.0*ctx.vt},
-    .upper = { 8.0*ctx.vt}, 
-    .cells = { NV },
+    .lower = { -8.0*ctx.vt, -8.0*ctx.vt },
+    .upper = { 8.0*ctx.vt, 8.0*ctx.vt }, 
+    .cells = { NV, NV },
 
     .projection = {
       .proj_id = GKYL_PROJ_VLASOV_LTE,
@@ -115,17 +116,17 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "neut_bgk_sod_shock_1x1v_p2",
+    .name = "neut_periodic_bgk_sod_shock_1x2v_p2",
 
-    .cdim = 1, .vdim = 1,
-    .lower = { 0.0 },
+    .cdim = 1, .vdim = 2,
+    .lower = { -ctx.Lx },
     .upper = { ctx.Lx },
     .cells = { NX },
     .poly_order = 2,
     .basis_type = app_args.basis_type,
 
-    .num_periodic_dir = 0,
-    .periodic_dirs = {  },
+    .num_periodic_dir = 1,
+    .periodic_dirs = { 0 },
 
     .num_species = 1,
     .species = { neut },
@@ -146,12 +147,18 @@ main(int argc, char **argv)
   
   gkyl_vlasov_app_write(app, tcurr, 0);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
 
   long step = 1, num_steps = app_args.num_steps;
   while ((tcurr < tend) && (step <= num_steps)) {
     printf("Taking time-step at t = %g ...", tcurr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
+    if (step % 5 == 0) {
+      gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+      gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+    }
     
     if (!status.success) {
       printf("** Update method failed! Aborting simulation ....\n");
@@ -164,6 +171,10 @@ main(int argc, char **argv)
 
   gkyl_vlasov_app_write(app, tcurr, 1);
   gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
+  gkyl_vlasov_app_calc_integrated_L2_f(app, tcurr);
+  gkyl_vlasov_app_calc_integrated_mom(app, tcurr);
+  gkyl_vlasov_app_write_integrated_L2_f(app);
+  gkyl_vlasov_app_write_integrated_mom(app);
   gkyl_vlasov_app_write_lte_corr_status(app);
   gkyl_vlasov_app_stat_write(app);
 
