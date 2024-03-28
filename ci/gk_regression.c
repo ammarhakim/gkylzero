@@ -389,8 +389,8 @@ regenerateTest(const char* test_name)
 int
 main(int argc, char **argv)
 {
-  int test_count = 7;
-  char test_names[7][32] = {
+  int test_count = 8;
+  char test_names[8][32] = {
     "gk_sheath_1x2v_p1",
     "gk_sheath_2x2v_p1",
     "gk_sheath_3x2v_p1",
@@ -398,8 +398,9 @@ main(int argc, char **argv)
     "gk_lapd_cyl_3x2v_p1",
     "gk_lbo_relax_1x2v_p1",
     "gk_lbo_relax_varnu_1x2v_p1",
+    "gk_rad_1x2v_p1",
   };
-  char test_names_human[7][128] = {
+  char test_names_human[8][128] = {
     "1x2v Sheath Boundary Test with p = 1",
     "2x2v Sheath Boundary Test with p = 1",
     "3x2v Sheath Boundary Test with p = 1",
@@ -407,96 +408,163 @@ main(int argc, char **argv)
     "3x3v LAPD Test (in cylindrical coordinates) with p = 1",
     "1x2v LBO Relaxation Test with p = 1",
     "1x2v LBO Relaxation Test (with variable collision frequency) with p = 1",
+    "1x2v Radiation Operator Test with p = 1",
   };
 
   system("clear");
   system("mkdir -p output");
 
   printf("** Gkeyll Gyrokinetics Automated Regression System **\n");
-  while (1) {
-    printf("Please select an option to proceed:\n\n");
-    printf("1 - Run Full Regression Suite\n");
-    printf("2 - View All Regression Results\n");
-    printf("3 - Run Specific Regression Test\n");
-    printf("4 - View Specific Regression Result\n");
-    printf("5 - (Re)generate All Accepted Results\n");
-    printf("6 - (Re)generate Specific Accepted Result\n");
-    printf("7 - Exit\n");
 
-    int option;
-    scanf("%d", &option);
-    printf("\n");
+  if (argc > 1) {
+    char *arg_ptr;
 
-    if (option == 1) {
+    if (strtol(argv[1], &arg_ptr, 10) == 1) {
       for (int i = 0; i < test_count; i++) {
         runTest(test_names[i], test_names_human[i]);
       }
     }
-    else if (option == 2) {
+    else if (strtol(argv[1], &arg_ptr, 10) == 2) {
       for (int i = 0; i < test_count; i++) {
         analyzeTestOutput(test_names[i], test_names_human[i]);
       }
     }
-    else if (option == 3) {
-      printf("Please select the test you wish to run:\n\n");
-      for (int i = 0; i < test_count; i++) {
-        printf("%d - %s\n", i + 1, test_names_human[i]);
-      }
-
-      int option2;
-      scanf("%d", &option2);
-      printf("\n");
-
-      if (option2 >= 1 && option2 <= test_count) {
-        runTest(test_names[option2 - 1], test_names_human[option2 - 1]);
+    else if (strtol(argv[1], &arg_ptr, 10) == 3) {
+      if (argc > 2) {
+        if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
+          runTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1]);
+        }
+        else {
+          printf("Invalid test!\n");
+        }
       }
       else {
-        printf("Invalid selection!\n");
+        printf("Must specify which test to run!\n");
       }
     }
-    else if (option == 4) {
-      printf("Please select the test whose results you wish to view:\n\n");
-      for (int i = 0; i < test_count; i++) {
-        printf("%d - %s\n", i + 1, test_names_human[i]);
-      }
-
-      int option2;
-      scanf("%d", &option2);
-      printf("\n");
-
-      if (option2 >= 1 && option2 <= test_count) {
-        analyzeTestOutput(test_names[option2 - 1], test_names_human[option2 - 1]);
+    else if (strtol(argv[1], &arg_ptr, 10) == 4) {
+      if (argc > 2) {
+        if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
+          analyzeTestOutput(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1]);
+        }
+        else {
+          printf("Invalid test!\n");
+        }
       }
       else {
-        printf("Invalid selection!\n");
+        printf("Must specify which test results to view!\n");
       }
     }
-    else if (option == 5) {
+    else if (strtol(argv[1], &arg_ptr, 10) == 5) {
       for (int i = 0; i < test_count; i++) {
         regenerateTest(test_names[i]);
         runTest(test_names[i], test_names_human[i]);
       }
     }
-    else if (option == 6) {
-      printf("Please select the test whose accepted result you wish to regenerate:\n\n");
-      for (int i = 0; i < test_count; i++) {
-        printf("%d - %s\n", i + 1, test_names_human[i]);
-      }
-
-      int option2;
-      scanf("%d", &option2);
-      printf("\n");
-
-      if (option2 >= 1 && option2 <= test_count) {
-        regenerateTest(test_names[option2 - 1]);
-        runTest(test_names[option2 - 1], test_names_human[option2 - 1]);
+    else if (strtol(argv[1], &arg_ptr, 10) == 6) {
+      if (argc > 2) {
+        if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
+          regenerateTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1]);
+          runTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1]);
+        }
+        else {
+          printf("Invalid test!\n");
+        }
       }
       else {
-        printf("Invalid selection!\n");
+        printf("Must specify which test results to (re)generate!\n");
       }
     }
-    else if (option == 7) {
-      break;
+  }
+  else {
+    while (1) {
+      printf("Please select an option to proceed:\n\n");
+      printf("1 - Run Full Regression Suite\n");
+      printf("2 - View All Regression Results\n");
+      printf("3 - Run Specific Regression Test\n");
+      printf("4 - View Specific Regression Result\n");
+      printf("5 - (Re)generate All Accepted Results\n");
+      printf("6 - (Re)generate Specific Accepted Result\n");
+      printf("7 - Exit\n");
+
+      int option;
+      scanf("%d", &option);
+      printf("\n");
+
+      if (option == 1) {
+        for (int i = 0; i < test_count; i++) {
+          runTest(test_names[i], test_names_human[i]);
+        }
+      }
+      else if (option == 2) {
+        for (int i = 0; i < test_count; i++) {
+          analyzeTestOutput(test_names[i], test_names_human[i]);
+        }
+      }
+      else if (option == 3) {
+        printf("Please select the test you wish to run:\n\n");
+        for (int i = 0; i < test_count; i++) {
+          printf("%d - %s\n", i + 1, test_names_human[i]);
+        }
+
+        int option2;
+        scanf("%d", &option2);
+        printf("\n");
+
+        if (option2 >= 1 && option2 <= test_count) {
+          runTest(test_names[option2 - 1], test_names_human[option2 - 1]);
+        }
+        else {
+          printf("Invalid test!\n\n");
+        }
+      }
+      else if (option == 4) {
+        printf("Please select the test whose results you wish to view:\n\n");
+        for (int i = 0; i < test_count; i++) {
+          printf("%d - %s\n", i + 1, test_names_human[i]);
+        }
+
+        int option2;
+        scanf("%d", &option2);
+        printf("\n");
+
+        if (option2 >= 1 && option2 <= test_count) {
+          analyzeTestOutput(test_names[option2 - 1], test_names_human[option2 - 1]);
+        }
+        else {
+          printf("Invalid test!\n\n");
+        }
+      }
+      else if (option == 5) {
+        for (int i = 0; i < test_count; i++) {
+          regenerateTest(test_names[i]);
+          runTest(test_names[i], test_names_human[i]);
+        }
+      }
+      else if (option == 6) {
+        printf("Please select the test whose accepted result you wish to (re)generate:\n\n");
+        for (int i = 0; i < test_count; i++) {
+          printf("%d - %s\n", i + 1, test_names_human[i]);
+        }
+
+        int option2;
+        scanf("%d", &option2);
+        printf("\n");
+
+        if (option2 >= 1 && option2 <= test_count) {
+          regenerateTest(test_names[option2 - 1]);
+          runTest(test_names[option2 - 1], test_names_human[option2 - 1]);
+        }
+        else {
+          printf("Invalid test!\n\n");
+        }
+      }
+      else if (option == 7) {
+        break;
+      }
+      else {
+        printf("Invalid selection!\n\n");
+      }
     }
   }
 
