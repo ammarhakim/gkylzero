@@ -87,6 +87,9 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
       .eps = iter_eps,
     };
     bgk->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
+
+    bgk->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE,7);
+    bgk->is_first_corr_status_write_call = true;
   }
 
   bgk->f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -123,8 +126,17 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
 
   // Correct all the moments of the projected LTE distribution function.
   if (bgk->correct_all_moms) {
-    gkyl_vlasov_lte_correct_all_moments(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
+    struct gkyl_vlasov_lte_correct_status status_corr = gkyl_vlasov_lte_correct_all_moments(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
       &species->local, &app->local);
+    double corr_vec[7];
+    corr_vec[0] = status_corr.num_iter;
+    corr_vec[1] = status_corr.iter_converged;
+    corr_vec[2] = status_corr.error[0];
+    corr_vec[3] = status_corr.error[1];
+    corr_vec[4] = status_corr.error[2];
+    corr_vec[5] = status_corr.error[3];
+    corr_vec[6] = status_corr.error[4];
+    gkyl_dynvec_append(bgk->corr_stat,app->tcurr,corr_vec);
   } 
 
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->f_lte, 
@@ -161,6 +173,7 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
   gkyl_vlasov_lte_proj_on_basis_release(bgk->proj_lte);
   if (bgk->correct_all_moms) {
     gkyl_vlasov_lte_correct_release(bgk->corr_lte);
+    gkyl_dynvec_release(bgk->corr_stat);
   }
 
   gkyl_bgk_collisions_release(bgk->up_bgk);

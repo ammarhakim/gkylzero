@@ -181,6 +181,8 @@ struct vm_bgk_collisions {
   // Correction updater for insuring LTE distribution has desired LTE (n, V_drift, T/m) moments
   bool correct_all_moms; // boolean if we are correcting all the moments
   struct gkyl_vlasov_lte_correct *corr_lte; 
+  gkyl_dynvec corr_stat;
+  bool is_first_corr_status_write_call;
 
   struct gkyl_bgk_collisions *up_bgk; // BGK updater (also computes stable timestep)
 };
@@ -576,6 +578,7 @@ void vm_species_moment_init(struct gkyl_vlasov_app *app, struct vm_species *s,
 /**
  * Calculate moment, given distribution function @a fin.
  *
+ * @param sm vm species moment
  * @param phase_rng Phase-space range
  * @param conf_rng Config-space range
  * @param fin Input distribution function array

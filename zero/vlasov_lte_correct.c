@@ -193,14 +193,51 @@ gkyl_vlasov_lte_correct_all_moments(gkyl_vlasov_lte_correct *c_corr,
   // If the algorithm fails (density fails to converge)!
   // Project the distribution function with the basic moments.
   // Projection routine internally corrects the density.
+  // Recomputes moments/errors for this new projections
   if (corr_status == 1) {
     gkyl_vlasov_lte_proj_on_basis_advance(c_corr->proj_lte, 
       phase_local, conf_local, moms_target, f_lte);
+
+    gkyl_vlasov_lte_moments_advance(c_corr->moments_up, phase_local, conf_local, f_lte, c_corr->moms_iter);
+
+    if (c_corr->use_gpu) {
+      // We insure the reduction to find the maximum error is thread-safe on GPUs
+      // by first calling a specialized kernel for computing the absolute value 
+      // of the difference of the cell averages, then calling reduce_range.
+      gkyl_vlasov_lte_correct_all_moments_abs_diff_cu(conf_local, 
+        vdim, nc, moms_target, c_corr->moms_iter, c_corr->abs_diff_moms);
+      gkyl_array_reduce_range(c_corr->error_cu, c_corr->abs_diff_moms, GKYL_MAX, conf_local);
+      gkyl_cu_memcpy(c_corr->error, c_corr->error_cu, sizeof(double[5]), GKYL_CU_MEMCPY_D2H);
+    }
+    else {
+      struct gkyl_range_iter biter;
+
+      // Reset the maximum error
+      for (int i=0; i<vdim+2; ++i) {
+        c_corr->error[i] = 0.0;
+      }
+      // Iterate over the input configuration-space range to find the maximum error
+      gkyl_range_iter_init(&biter, conf_local);
+      while (gkyl_range_iter_next(&biter)){
+        long midx = gkyl_range_idx(conf_local, biter.idx);
+        const double *moms_local = gkyl_array_cfetch(c_corr->moms_iter, midx);
+        const double *moms_target_local = gkyl_array_cfetch(moms_target, midx);
+        // Check the error in the absolute value of the cell average
+        for (int d=0; d<vdim+2; ++d) {
+          c_corr->error[d] = fmax(fabs(moms_local[d*nc] - moms_target_local[d*nc]),fabs(c_corr->error[d]));
+        }
+      }
+    }
   }
 
   return (struct gkyl_vlasov_lte_correct_status) {
     .iter_converged = corr_status,
-    .num_iter = niter
+    .num_iter = niter,
+    .error[0] = c_corr->error[0], 
+    .error[1] = c_corr->error[1],
+    .error[2] = c_corr->error[2], 
+    .error[3] = c_corr->error[3], 
+    .error[4] = c_corr->error[4], 
   };  
 }
 
