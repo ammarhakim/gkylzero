@@ -32,6 +32,7 @@ struct gkyl_vlasov_lte_correct_inp {
 struct gkyl_vlasov_lte_correct_status {
   bool iter_converged; // true if iterations converged
   int num_iter; // number of iterations for the correction
+  double error[5]; // error in each moment
 };  
 
 /**
