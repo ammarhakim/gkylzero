@@ -48,7 +48,7 @@ struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const struct gkyl_rect_grid *pgrid,
   double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, 
-  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, bool use_gpu)
+  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -67,8 +67,8 @@ gkyl_dg_lbo_gyrokinetic_drag_new(const struct gkyl_basis* cbasis, const struct g
   lbo->eqn.surf_term = surf;
   lbo->eqn.boundary_surf_term = boundary_surf;
 
-  lbo->vparMax = pgrid->upper[cdim];
-  lbo->vparMaxSq = pow(pgrid->upper[cdim],2);
+  lbo->vparMax = GKYL_MAX2(fabs(bounds_vel[0]),bounds_vel[vdim]);
+  lbo->vparMaxSq = pow(lbo->vparMax,2);
   lbo->num_cbasis = cbasis->num_basis;
 
   const gkyl_dg_lbo_gyrokinetic_drag_vol_kern_list *vol_kernels;

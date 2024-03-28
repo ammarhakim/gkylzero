@@ -18,12 +18,12 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_vol_1x2v_ser_p1(const double *dxv, const 
   rdvVmapPrimeSq4[0] = 4.0/(dxv[1]*dxv[1]*vmap_prime[0]*vmap_prime[0]); 
   rdvVmapPrimeSq4[1] = 4.0/(dxv[2]*dxv[2]*vmap_prime[1]*vmap_prime[1]); 
 
-  // Expand nuVtSqSum/vmap_prime[0]^2 in conf basis.
+  // Expand nuVtSqSum/vpar'^2 in conf basis.
   double facDiffVpar[2] = {0.};
   facDiffVpar[0] = nuVtSqSum[0]*rdvVmapPrimeSq4[0]; 
   facDiffVpar[1] = rdvVmapPrimeSq4[0]*nuVtSqSum[1]; 
 
-  // Expand mu diffusion coefficient in phase basis.
+  // Expand 2*m*nuVtSqSum/bmag/mu'^2 in conf basis.
   double facDiffMu[2] = {0.};
   facDiffMu[0] = 1.414213562373095*(bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0])*rdvVmapPrimeSq4[1]*m_; 
   facDiffMu[1] = 1.414213562373095*(bmag_inv[0]*nuVtSqSum[1]+nuVtSqSum[0]*bmag_inv[1])*rdvVmapPrimeSq4[1]*m_; 

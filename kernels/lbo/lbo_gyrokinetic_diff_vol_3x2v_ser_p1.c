@@ -18,7 +18,7 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_vol_3x2v_ser_p1(const double *dxv, const 
   rdvVmapPrimeSq4[0] = 4.0/(dxv[3]*dxv[3]*vmap_prime[0]*vmap_prime[0]); 
   rdvVmapPrimeSq4[1] = 4.0/(dxv[4]*dxv[4]*vmap_prime[1]*vmap_prime[1]); 
 
-  // Expand nuVtSqSum/vmap_prime[0]^2 in conf basis.
+  // Expand nuVtSqSum/vpar'^2 in conf basis.
   double facDiffVpar[8] = {0.};
   facDiffVpar[0] = nuVtSqSum[0]*rdvVmapPrimeSq4[0]; 
   facDiffVpar[1] = rdvVmapPrimeSq4[0]*nuVtSqSum[1]; 
@@ -29,7 +29,7 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_vol_3x2v_ser_p1(const double *dxv, const 
   facDiffVpar[6] = rdvVmapPrimeSq4[0]*nuVtSqSum[6]; 
   facDiffVpar[7] = rdvVmapPrimeSq4[0]*nuVtSqSum[7]; 
 
-  // Expand mu diffusion coefficient in phase basis.
+  // Expand 2*m*nuVtSqSum/bmag/mu'^2 in conf basis.
   double facDiffMu[8] = {0.};
   facDiffMu[0] = 0.7071067811865475*rdvVmapPrimeSq4[1]*(bmag_inv[5]*nuVtSqSum[5]+bmag_inv[3]*nuVtSqSum[3]+bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0])*m_; 
   facDiffMu[1] = 0.7071067811865475*rdvVmapPrimeSq4[1]*(bmag_inv[3]*nuVtSqSum[5]+nuVtSqSum[3]*bmag_inv[5]+bmag_inv[0]*nuVtSqSum[1]+nuVtSqSum[0]*bmag_inv[1])*m_; 
