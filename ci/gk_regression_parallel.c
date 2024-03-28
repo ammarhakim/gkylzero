@@ -88,6 +88,8 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
   double fieldrhs[counter + 1];
   double speciescollisionalmoments[counter + 1];
   double totalupdate[counter + 1];
+  int memoryleakcount[counter + 1];
+  char *memoryleaks[counter + 1];
 
   for (int i = 1; i < counter + 1; i++) {
     char *output;
@@ -264,6 +266,48 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
       char *end_ptr;
       totalupdate[i] = strtod(substring, &end_ptr);
     }
+
+    char *temp = output;
+    memoryleakcount[i] = 0;
+    memoryleaks[i] = (char*)calloc(2048, sizeof(char));
+    while (strstr(temp, "0x") != NULL) {
+      temp = strstr(temp, "0x");
+
+      char substring[64];
+      for (int j = 0; j < 64; j++) {
+        substring[j] = '\0';
+      }
+
+      int substring_index = 0;
+      int valid_substring = 1;
+      while (temp[substring_index] != ' ' && temp[substring_index] != '\n') {
+        if (temp[substring_index] != '0' && temp[substring_index] != '1' && temp[substring_index] != '2' && temp[substring_index] != '3' && temp[substring_index] != '4'
+          && temp[substring_index] != '5' && temp[substring_index] != '6' && temp[substring_index] != '7' && temp[substring_index] != '8' && temp[substring_index] != '9'
+          && temp[substring_index] != 'a' && temp[substring_index] != 'b' && temp[substring_index] != 'c' && temp[substring_index] != 'd' && temp[substring_index] != 'e'
+          && temp[substring_index] != 'f' && temp[substring_index] != 'x') {
+          valid_substring = 0;
+        }
+
+        substring[substring_index] = temp[substring_index];
+        substring_index += 1;
+      }
+
+      char *temp2 = output;
+      int count = 0;
+      while (strstr(temp2, substring) != NULL) {
+        temp2 = strstr(temp2, substring);
+
+        count += 1;
+        temp2 += 1;
+      }
+      if (count == 1 && valid_substring == 1) {
+        memoryleakcount[i] += 1;
+        memoryleaks[i] = strcat(memoryleaks[i], substring);
+        memoryleaks[i] = strcat(memoryleaks[i], " ");
+      }
+      
+      temp += 1;
+    }
   }
 
   for (int i = 1; i < counter + 1; i++) {
@@ -278,6 +322,12 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
       printf("Field RHS time: %f\n", fieldrhs[i]);
       printf("Species collisional moments time: %f\n", speciescollisionalmoments[i]);
       printf("Total update time: %f\n", totalupdate[i]);
+      if (memoryleakcount[i] != 0) {
+        printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
+      }
+      else {
+        printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
+      }
       printf("Correct: N/A\n\n");
     }
     else {
@@ -382,6 +432,13 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
         else {
           printf("Species collisional moments time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i]);
         }
+      }
+
+      if (memoryleakcount[i] != 0) {
+        printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
+      }
+      else {
+        printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
       }
 
       if ((updatecalls[i] != updatecalls[i - 1]) || (forwardeuler[i] != forwardeuler[i - 1]) ||

@@ -258,7 +258,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
     
     char *temp = output;
     memoryleakcount[i] = 0;
-    memoryleaks[i] = (char*)calloc(1024, sizeof(char));
+    memoryleaks[i] = (char*)calloc(2048, sizeof(char));
     while (strstr(temp, "0x") != NULL) {
       temp = strstr(temp, "0x");
 
@@ -268,7 +268,15 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
       }
 
       int substring_index = 0;
+      int valid_substring = 1;
       while (temp[substring_index] != ' ' && temp[substring_index] != '\n') {
+        if (temp[substring_index] != '0' && temp[substring_index] != '1' && temp[substring_index] != '2' && temp[substring_index] != '3' && temp[substring_index] != '4'
+          && temp[substring_index] != '5' && temp[substring_index] != '6' && temp[substring_index] != '7' && temp[substring_index] != '8' && temp[substring_index] != '9'
+          && temp[substring_index] != 'a' && temp[substring_index] != 'b' && temp[substring_index] != 'c' && temp[substring_index] != 'd' && temp[substring_index] != 'e'
+          && temp[substring_index] != 'f' && temp[substring_index] != 'x') {
+          valid_substring = 0;
+        }
+
         substring[substring_index] = temp[substring_index];
         substring_index += 1;
       }
@@ -281,7 +289,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
         count += 1;
         temp2 += 1;
       }
-      if (count == 1) {
+      if (count == 1 && valid_substring == 1) {
         memoryleakcount[i] += 1;
         memoryleaks[i] = strcat(memoryleaks[i], substring);
         memoryleaks[i] = strcat(memoryleaks[i], " ");
