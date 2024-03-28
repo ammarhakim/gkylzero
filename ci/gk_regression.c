@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -89,7 +90,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
     fseek(output_ptr, 0, SEEK_END);
     file_size = ftell(output_ptr);
     rewind(output_ptr);
-    output = malloc(file_size * (sizeof(char)));
+    output = calloc(file_size, (sizeof(char)));
     fread(output, sizeof(char), file_size, output_ptr);
     fclose(output_ptr);
 
@@ -340,31 +341,78 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
       }
 
       if (speciesrhs[i] > speciesrhs[i - 1]) {
-        printf("Species RHS time: " ANSI_COLOR_RED "%f" ANSI_COLOR_RESET "\n", speciesrhs[i]);
+        if (speciesrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Species RHS time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", speciesrhs[i],
+            (((double)speciesrhs[i] / (double)speciesrhs[i - 1]) - 1.0) * 100.0);
+        } else {
+          printf("Species RHS time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", speciesrhs[i]);
+        }
       }
       else {
-        printf("Species RHS time: " ANSI_COLOR_GREEN "%f" ANSI_COLOR_RESET "\n", speciesrhs[i]);
+        if(speciesrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Species RHS time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciesrhs[i],
+            (((double)speciesrhs[i] / (double)speciesrhs[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Species RHS time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciesrhs[i]);
+        }
       }
 
       if (speciescollisionsrhs[i] > speciescollisionsrhs[i - 1]) {
-        printf("Species collision RHS time: " ANSI_COLOR_RED "%f" ANSI_COLOR_RESET "\n", speciescollisionsrhs[i]);
+        if (speciescollisionsrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Species collision RHS time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", speciescollisionsrhs[i],
+            (((double)speciescollisionsrhs[i] / (double)speciescollisionsrhs[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Species collision RHS time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET, speciescollisionsrhs[i]);
+        }
       }
       else {
-        printf("Species collision RHS time: " ANSI_COLOR_GREEN "%f" ANSI_COLOR_RESET "\n", speciescollisionsrhs[i]);
+        if (speciescollisionsrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Species collision RHS time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciescollisionsrhs[i],
+            (((double)speciescollisionsrhs[i] / (double)speciescollisionsrhs[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Species collision RHS time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciescollisionsrhs[i]);
+        }
       }
 
       if (fieldrhs[i] > fieldrhs[i - 1]) {
-        printf("Field RHS time: " ANSI_COLOR_RED "%f" ANSI_COLOR_RESET "\n", fieldrhs[i]);
+        if (fieldrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Field RHS time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", fieldrhs[i],
+            (((double)fieldrhs[i] / (double)fieldrhs[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Field RHS time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", fieldrhs[i]);
+        }
       }
       else {
-        printf("Field RHS time: " ANSI_COLOR_GREEN "%f" ANSI_COLOR_RESET "\n", fieldrhs[i]);
+        if (fieldrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Field RHS time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", fieldrhs[i],
+            (((double)fieldrhs[i] / (double)fieldrhs[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Field RHS time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", fieldrhs[i]);
+        }
       }
 
       if (speciescollisionalmoments[i] > speciescollisionalmoments[i - 1]) {
-        printf("Species collisional moments time: " ANSI_COLOR_RED "%f" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i]);
+        if (speciescollisionalmoments[i - 1] > pow(10.0, -8.0)) {
+          printf("Species collisional moments time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i],
+            (((double)speciescollisionalmoments[i] / (double)speciescollisionalmoments[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Species collisional moments time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i]);
+        }
       }
       else {
-        printf("Species collisional moments time: " ANSI_COLOR_GREEN "%f" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i]);
+        if (speciescollisionalmoments[i - 1] > pow(10.0, -8.0)) {
+          printf("Species collisional moments time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i],
+            (((double)speciescollisionalmoments[i] / (double)speciescollisionalmoments[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Species collisional moments time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i]);
+        }
       }
 
       if (memoryleakcount[i] != 0) {

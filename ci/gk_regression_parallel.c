@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #define ANSI_COLOR_RED "\x1b[31m"
 #define ANSI_COLOR_GREEN "\x1b[32m"
@@ -75,8 +76,8 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
   FILE *counter_ptr = fopen(counter_buffer, "r");
   if (counter_ptr != NULL) {
     fscanf(counter_ptr, "%d", &counter);
+    fclose(counter_ptr);
   }
-  fclose(counter_ptr);
 
   int updatecalls[counter + 1];
   int forwardeuler[counter + 1];
@@ -87,8 +88,6 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
   double fieldrhs[counter + 1];
   double speciescollisionalmoments[counter + 1];
   double totalupdate[counter + 1];
-  int memoryleakcount[counter + 1];
-  char *memoryleaks[counter + 1];
 
   for (int i = 1; i < counter + 1; i++) {
     char *output;
@@ -100,7 +99,7 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
     fseek(output_ptr, 0, SEEK_END);
     file_size = ftell(output_ptr);
     rewind(output_ptr);
-    output = malloc(file_size * (sizeof(char)));
+    output = calloc(file_size, (sizeof(char)));
     fread(output, sizeof(char), file_size, output_ptr);
     fclose(output_ptr);
 
@@ -108,6 +107,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
     if (strstr(output, "Number of update calls ") != NULL) {
       char *full_substring = strstr(output, "Number of update calls ");
       char substring[64];
+      for (int j = 0; j < 64; j++) {
+        substring[j] = '\0';
+      }
       int substring_index = 0;
 
       while (full_substring[substring_index + strlen("Number of update calls ")] != '\n') {
@@ -123,6 +125,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
     if (strstr(output, "Number of forward-Euler calls ") != NULL) {
       char *full_substring = strstr(output, "Number of forward-Euler calls ");
       char substring[64];
+      for (int j = 0; j < 64; j++) {
+        substring[j] = '\0';
+      }
       int substring_index = 0;
 
       while (full_substring[substring_index + strlen("Number of forward-Euler calls ")] != '\n') {
@@ -138,6 +143,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
     if (strstr(output, "Number of RK stage-2 failures ") != NULL) {
       char *full_substring = strstr(output, "Number of RK stage-2 failures ");
       char substring[64];
+      for (int j = 0; j < 64; j++) {
+        substring[j] = '\0';
+      }
       int substring_index = 0;
 
       while (full_substring[substring_index + strlen("Number of RK stage-2 failures ")] != '\n') {
@@ -153,6 +161,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
     if (strstr(output, "Number of RK stage-3 failures ") != NULL) {
       char *full_substring = strstr(output, "Number of RK stage-3 failures ");
       char substring[64];
+      for (int j = 0; j < 64; j++) {
+        substring[j] = '\0';
+      }
       int substring_index = 0;
 
       while (full_substring[substring_index + strlen("Number of RK stage-3 failures ")] != '\n') {
@@ -168,6 +179,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
     if (strstr(output, "Species RHS calc took ") != NULL) {
       char *full_substring = strstr(output, "Species RHS calc took ");
       char substring[64];
+      for (int j = 0; j < 64; j++) {
+        substring[j] = '\0';
+      }
       int substring_index = 0;
 
       while (full_substring[substring_index + strlen("Species RHS calc took ")] != '\n') {
@@ -183,6 +197,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
     if (strstr(output, "Species collisions RHS calc took ") != NULL) {
       char *full_substring = strstr(output, "Species collisions RHS calc took ");
       char substring[64];
+      for (int j = 0; j < 64; j++) {
+        substring[j] = '\0';
+      }
       int substring_index = 0;
 
       while (full_substring[substring_index + strlen("Species collisions RHS calc took ")] != '\n') {
@@ -198,6 +215,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
     if (strstr(output, "Field RHS calc took ") != NULL) {
       char *full_substring = strstr(output, "Field RHS calc took ");
       char substring[64];
+      for (int j = 0; j < 64; j++) {
+        substring[j] = '\0';
+      }
       int substring_index = 0;
 
       while (full_substring[substring_index + strlen("Field RHS calc took ")] != '\n') {
@@ -213,6 +233,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
     if (strstr(output, "Species collisional moments took ") != NULL) {
       char *full_substring = strstr(output, "Species collisional moments took ");
       char substring[64];
+      for (int j = 0; j < 64; j++) {
+        substring[j] = '\0';
+      }
       int substring_index = 0;
 
       while (full_substring[substring_index + strlen("Species collisional moments took ")] != '\n') {
@@ -228,6 +251,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
     if (strstr(output, "Total updates took ") != NULL) {
       char *full_substring = strstr(output, "Total updates took ");
       char substring[64];
+      for (int j = 0; j < 64; j++) {
+        substring[j] = '\0';
+      }
       int substring_index = 0;
 
       while (full_substring[substring_index + strlen("Total updates took ")] != '\n') {
@@ -237,40 +263,6 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
 
       char *end_ptr;
       totalupdate[i] = strtod(substring, &end_ptr);
-    }
-    
-    char *temp = output;
-    memoryleakcount[i] = 0;
-    memoryleaks[i] = (char*)malloc(1624 * sizeof(char));
-    while (strstr(temp, "0x") != NULL) {
-      temp = strstr(temp, "0x");
-
-      char substring[64];
-      for (int j = 0; j < 64; j++) {
-        substring[j] = '\0';
-      }
-
-      int substring_index = 0;
-      while (temp[substring_index] != ' ' && temp[substring_index] != '\n') {
-        substring[substring_index] = temp[substring_index];
-        substring_index += 1;
-      }
-
-      char *temp2 = output;
-      int count = 0;
-      while (strstr(temp2, substring) != NULL) {
-        temp2 = strstr(temp2, substring);
-
-        count += 1;
-        temp2 += 1;
-      }
-      if (count == 1) {
-        memoryleakcount[i] += 1;
-        memoryleaks[i] = strcat(memoryleaks[i], substring);
-        memoryleaks[i] = strcat(memoryleaks[i], " ");
-      }
-      
-      temp += 1;
     }
   }
 
@@ -286,12 +278,6 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
       printf("Field RHS time: %f\n", fieldrhs[i]);
       printf("Species collisional moments time: %f\n", speciescollisionalmoments[i]);
       printf("Total update time: %f\n", totalupdate[i]);
-      if (memoryleakcount[i] != 0) {
-        printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
-      }
-      else {
-        printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
-      }
       printf("Correct: N/A\n\n");
     }
     else {
@@ -324,38 +310,78 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human)
       }
 
       if (speciesrhs[i] > speciesrhs[i - 1]) {
-        printf("Species RHS time: " ANSI_COLOR_RED "%f" ANSI_COLOR_RESET "\n", speciesrhs[i]);
+        if (speciesrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Species RHS time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", speciesrhs[i],
+            (((double)speciesrhs[i] / (double)speciesrhs[i - 1]) - 1.0) * 100.0);
+        } else {
+          printf("Species RHS time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", speciesrhs[i]);
+        }
       }
       else {
-        printf("Species RHS time: " ANSI_COLOR_GREEN "%f" ANSI_COLOR_RESET "\n", speciesrhs[i]);
+        if(speciesrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Species RHS time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciesrhs[i],
+            (((double)speciesrhs[i] / (double)speciesrhs[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Species RHS time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciesrhs[i]);
+        }
       }
 
       if (speciescollisionsrhs[i] > speciescollisionsrhs[i - 1]) {
-        printf("Species collision RHS time: " ANSI_COLOR_RED "%f" ANSI_COLOR_RESET "\n", speciescollisionsrhs[i]);
+        if (speciescollisionsrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Species collision RHS time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", speciescollisionsrhs[i],
+            (((double)speciescollisionsrhs[i] / (double)speciescollisionsrhs[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Species collision RHS time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET, speciescollisionsrhs[i]);
+        }
       }
       else {
-        printf("Species collision RHS time: " ANSI_COLOR_GREEN "%f" ANSI_COLOR_RESET "\n", speciescollisionsrhs[i]);
+        if (speciescollisionsrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Species collision RHS time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciescollisionsrhs[i],
+            (((double)speciescollisionsrhs[i] / (double)speciescollisionsrhs[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Species collision RHS time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciescollisionsrhs[i]);
+        }
       }
 
       if (fieldrhs[i] > fieldrhs[i - 1]) {
-        printf("Field RHS time: " ANSI_COLOR_RED "%f" ANSI_COLOR_RESET "\n", fieldrhs[i]);
+        if (fieldrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Field RHS time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", fieldrhs[i],
+            (((double)fieldrhs[i] / (double)fieldrhs[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Field RHS time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", fieldrhs[i]);
+        }
       }
       else {
-        printf("Field RHS time: " ANSI_COLOR_GREEN "%f" ANSI_COLOR_RESET "\n", fieldrhs[i]);
+        if (fieldrhs[i - 1] > pow(10.0, -8.0)) {
+          printf("Field RHS time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", fieldrhs[i],
+            (((double)fieldrhs[i] / (double)fieldrhs[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Field RHS time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", fieldrhs[i]);
+        }
       }
 
       if (speciescollisionalmoments[i] > speciescollisionalmoments[i - 1]) {
-        printf("Species collisional moments time: " ANSI_COLOR_RED "%f" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i]);
+        if (speciescollisionalmoments[i - 1] > pow(10.0, -8.0)) {
+          printf("Species collisional moments time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i],
+            (((double)speciescollisionalmoments[i] / (double)speciescollisionalmoments[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Species collisional moments time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i]);
+        }
       }
       else {
-        printf("Species collisional moments time: " ANSI_COLOR_GREEN "%f" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i]);
-      }
-
-      if (memoryleakcount[i] != 0) {
-        printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
-      }
-      else {
-        printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
+        if (speciescollisionalmoments[i - 1] > pow(10.0, -8.0)) {
+          printf("Species collisional moments time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i],
+            (((double)speciescollisionalmoments[i] / (double)speciescollisionalmoments[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Species collisional moments time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i]);
+        }
       }
 
       if ((updatecalls[i] != updatecalls[i - 1]) || (forwardeuler[i] != forwardeuler[i - 1]) ||
