@@ -1100,6 +1100,43 @@ void test_extend(void)
   TEST_CHECK( ext_range.upper[1] == 10 );
 }
 
+static void
+test_perp_extend(void)
+{
+  int lo[] = {1, 1}, up[] = { 4, 8 };
+  
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lo, up);
+
+  int elo[] = { 1, 2 }, eup[] = { 3, 4 };
+
+  do {
+    struct gkyl_range ext_range;
+    gkyl_range_perp_extend(&ext_range, 0, &range, elo, eup);
+    
+    TEST_CHECK( ext_range.volume == (4+0)*(8+2+4) );
+    
+    TEST_CHECK( ext_range.lower[0] == 1 );
+    TEST_CHECK( ext_range.upper[0] == 4 );
+    
+    TEST_CHECK( ext_range.lower[1] == 1-2 );
+    TEST_CHECK( ext_range.upper[1] == 8+4 );
+  } while (0);
+
+  do {
+    struct gkyl_range ext_range;
+    gkyl_range_perp_extend(&ext_range, 1, &range, elo, eup);
+    
+    TEST_CHECK( ext_range.volume == (4+1+3)*8 );
+    
+    TEST_CHECK( ext_range.lower[0] == 1-1 );
+    TEST_CHECK( ext_range.upper[0] == 4+3 );
+    
+    TEST_CHECK( ext_range.lower[1] == 1 );
+    TEST_CHECK( ext_range.upper[1] == 8 );
+  } while (0);  
+}
+
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
@@ -1158,6 +1195,7 @@ TEST_LIST = {
   { "intersect_2", test_intersect_2 },
   { "sub_intersect", test_sub_intersect },
   { "extend", test_extend },
+  { "perp_extend", test_perp_extend },  
 #ifdef GKYL_HAVE_CUDA
   { "cu_range", test_cu_range },
 #endif  

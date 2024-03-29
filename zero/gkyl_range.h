@@ -252,7 +252,22 @@ void gkyl_range_shorten_from_below(struct gkyl_range *rng,
  * @param elo Lower in dir is reduced by elo[dir]
  * @param eup Upper in dir is increased by eup[dir]
  */
-void gkyl_range_extend(struct gkyl_range *erng,
+void gkyl_range_extend(struct gkyl_range *erng, const struct gkyl_range *rng,
+  const int *elo, const int *eup);
+
+/**
+ * Return a new range that is an extension of the input range. The
+ * lower index in dir is reduced by elo[dir] and upper index increased
+ * by eup[dir]. This method only extends the range in the directions
+ * other than the input @a dir.
+ *
+ * @param erng Extended range
+ * @param dir Direction to skip extension
+ * @param rng Range to extend
+ * @param elo Lower in dir is reduced by elo[dir]
+ * @param eup Upper in dir is increased by eup[dir]
+ */
+void gkyl_range_perp_extend(struct gkyl_range *erng, int dir,
   const struct gkyl_range* rng, const int *elo, const int *eup);
 
 /**
