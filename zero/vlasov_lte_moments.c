@@ -104,6 +104,24 @@ gkyl_vlasov_lte_density_moment_advance(struct gkyl_vlasov_lte_moments *lte_moms,
         d, lte_moms->V_drift,
         d, lte_moms->M1i, 0, lte_moms->M0, conf_local);
     }
+
+    // Correct velocity overshoots
+    struct gkyl_range_iter biter;
+    int nc = lte_moms->num_conf_basis;
+    // Iterate over the input configuration-space range to find the maximum error
+    gkyl_range_iter_init(&biter, conf_local);
+    while (gkyl_range_iter_next(&biter)) {
+      long midx = gkyl_range_idx(conf_local, biter.idx);
+      double *V_drift_local = gkyl_array_fetch(lte_moms->V_drift, midx);
+      if (V_drift_local[0]/(pow(sqrt(2),vdim)) > 1.0) {
+        for (int i = 0; i < nc; ++i) {
+          V_drift_local[i] = 0.0;
+        }
+        double *m0_local = gkyl_array_fetch(lte_moms->M0, midx);
+        double *m1i_local = gkyl_array_fetch(lte_moms->M1i, midx);
+        V_drift_local[0] = m1i_local[0]/m0_local[0];
+      }
+    }
     // Compute V_drift dot M1i (needed to compute stationary frame moments).
     gkyl_array_clear(lte_moms->V_drift_dot_M1i, 0.0);
     gkyl_dg_dot_product_op_range(lte_moms->conf_basis, 
@@ -146,6 +164,25 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
       d, lte_moms->V_drift,
       d, lte_moms->M1i, 0, lte_moms->M0, conf_local);
   }
+
+  // Correct velocity overshoots
+  struct gkyl_range_iter biter;
+  int nc = lte_moms->num_conf_basis;
+  // Iterate over the input configuration-space range to find the maximum error
+  gkyl_range_iter_init(&biter, conf_local);
+  while (gkyl_range_iter_next(&biter)) {
+    long midx = gkyl_range_idx(conf_local, biter.idx);
+    double *V_drift_local = gkyl_array_fetch(lte_moms->V_drift, midx);
+    if (V_drift_local[0]/(pow(sqrt(2),vdim)) > 1.0) {
+      for (int i = 0; i < nc; ++i) {
+        V_drift_local[i] = 0.0;
+      }
+      double *m0_local = gkyl_array_fetch(lte_moms->M0, midx);
+      double *m1i_local = gkyl_array_fetch(lte_moms->M1i, midx);
+      V_drift_local[0] = m1i_local[0]/m0_local[0];
+    }
+  }
+
   // Compute V_drift dot M1i (needed to compute stationary frame moments).
   gkyl_array_clear(lte_moms->V_drift_dot_M1i, 0.0);
   gkyl_dg_dot_product_op_range(lte_moms->conf_basis, 
