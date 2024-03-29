@@ -283,17 +283,37 @@ void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *
   struct sheath_ctx *app = ctx;
   double Lvpar = app->Lvpar_elc;
   double Lmu = app->Lmu_elc;
+  double Nvpar = app->Nvpar;
+  double Nmu = app->Nmu;
 
   double cvpar = vc[0], cmu = vc[1];
+//  // Identity map.
 //  vp[0] = cvpar;
 //  vp[1] = cmu;
+//  // Uniform scaling map
+//  vp[0] = (Lvpar/2.0)*cvpar;
+//  vp[1] = Lmu*cmu;
+  // Quadratic map.
   if (cvpar < 0.)
     vp[0] = -(Lvpar/2.)*pow(cvpar,2);
   else
     vp[0] =  (Lvpar/2.)*pow(cvpar,2);
-//  vp[1] = Lmu*pow(cmu,2);
-//  vp[0] = (Lvpar/2.0)*cvpar;
-  vp[1] = Lmu*cmu;
+  vp[1] = Lmu*pow(cmu,2);
+//  // Doubling map.
+//  double cvpar_min = -1.0, cvpar_max = 1.0;
+//  double Lcvpar = cvpar_max-cvpar_min;
+//  double dcvpar = Lcvpar/Nvpar;
+//  double dcvpar_1 = (cvpar_max/(pow(2.0,cvpar_max/dcvpar)-1));
+//  if (cvpar < 0.)
+//    vp[0] = -(Lvpar/2.)*dcvpar_1*(pow(2.0, fabs(cvpar/dcvpar))-1.0);
+//  else
+//    vp[0] =  (Lvpar/2.)*dcvpar_1*(pow(2.0, fabs(cvpar/dcvpar))-1.0);
+//  double cmu_min = 0.0, cmu_max = 1.0;
+//  double Lcmu = cmu_max-cmu_min;
+//  double dcmu = Lcmu/Nmu;
+//  double dcmu_1 = (cmu_max/(pow(2.0,cmu_max/dcmu)-1));
+//  vp[1] =  Lmu*dcmu_1*(pow(2.0, fabs(cmu/dcmu))-1.0);
+//  if (fabs(vc[1]) < 1e-16) printf("cvpar = %g | vparp = %g\n",cvpar,vp[0]);
 }
 
 

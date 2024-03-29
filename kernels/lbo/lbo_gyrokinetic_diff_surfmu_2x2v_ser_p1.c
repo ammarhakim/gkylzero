@@ -1,92 +1,92 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
-GKYL_CU_DH double lbo_gyrokinetic_diff_surfmu_2x2v_ser_p1(const double *dxv, const double *vmapl, const double *vmapc, const double *vmapr, const double *vmap_prime, const double *jacobvel, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_gyrokinetic_diff_surfmu_2x2v_ser_p1(const double *dxv, const double *vmapl, const double *vmapc, const double *vmapr, const double *vmap_prime, const double *jacobvell, const double *jacobvelc, const double *jacobvelr, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
-  // dxv[4]: cell spacing. 
+  // dxv: cell spacing. 
   // vmapl,vmapc,vmapr: velocity space mapping.
   // vmap_prime: velocity space mapping derivative.
   // jacobvel: velocity space jacobian.
   // m_: species mass.
   // bmag_inv: 1/(magnetic field magnitude). 
   // nuSum: collisionalities added (self and cross species collisionalities). 
-  // nuPrimMomsSum[2*NC]: sum of bulk velocities and thermal speeds squared times their respective collisionalities. 
+  // nuPrimMomsSum: sum of bulk velocities and thermal speeds squared times their respective collisionalities. 
   // fl/fc/fr: distribution function in cells 
   // out: incremented distribution function in cell 
 
   double fl_over_jacv[24], fc_over_jacv[24], fr_over_jacv[24];
-  fl_over_jacv[0] = fl[0]/jacobvel[0]; 
-  fl_over_jacv[1] = fl[1]/jacobvel[0]; 
-  fl_over_jacv[2] = fl[2]/jacobvel[0]; 
-  fl_over_jacv[3] = fl[3]/jacobvel[0]; 
-  fl_over_jacv[4] = fl[4]/jacobvel[0]; 
-  fl_over_jacv[5] = fl[5]/jacobvel[0]; 
-  fl_over_jacv[6] = fl[6]/jacobvel[0]; 
-  fl_over_jacv[7] = fl[7]/jacobvel[0]; 
-  fl_over_jacv[8] = fl[8]/jacobvel[0]; 
-  fl_over_jacv[9] = fl[9]/jacobvel[0]; 
-  fl_over_jacv[10] = fl[10]/jacobvel[0]; 
-  fl_over_jacv[11] = fl[11]/jacobvel[0]; 
-  fl_over_jacv[12] = fl[12]/jacobvel[0]; 
-  fl_over_jacv[13] = fl[13]/jacobvel[0]; 
-  fl_over_jacv[14] = fl[14]/jacobvel[0]; 
-  fl_over_jacv[15] = fl[15]/jacobvel[0]; 
-  fl_over_jacv[16] = fl[16]/jacobvel[0]; 
-  fl_over_jacv[17] = fl[17]/jacobvel[0]; 
-  fl_over_jacv[18] = fl[18]/jacobvel[0]; 
-  fl_over_jacv[19] = fl[19]/jacobvel[0]; 
-  fl_over_jacv[20] = fl[20]/jacobvel[0]; 
-  fl_over_jacv[21] = fl[21]/jacobvel[0]; 
-  fl_over_jacv[22] = fl[22]/jacobvel[0]; 
-  fl_over_jacv[23] = fl[23]/jacobvel[0]; 
+  fl_over_jacv[0] = fl[0]/jacobvell[0]; 
+  fl_over_jacv[1] = fl[1]/jacobvell[0]; 
+  fl_over_jacv[2] = fl[2]/jacobvell[0]; 
+  fl_over_jacv[3] = fl[3]/jacobvell[0]; 
+  fl_over_jacv[4] = fl[4]/jacobvell[0]; 
+  fl_over_jacv[5] = fl[5]/jacobvell[0]; 
+  fl_over_jacv[6] = fl[6]/jacobvell[0]; 
+  fl_over_jacv[7] = fl[7]/jacobvell[0]; 
+  fl_over_jacv[8] = fl[8]/jacobvell[0]; 
+  fl_over_jacv[9] = fl[9]/jacobvell[0]; 
+  fl_over_jacv[10] = fl[10]/jacobvell[0]; 
+  fl_over_jacv[11] = fl[11]/jacobvell[0]; 
+  fl_over_jacv[12] = fl[12]/jacobvell[0]; 
+  fl_over_jacv[13] = fl[13]/jacobvell[0]; 
+  fl_over_jacv[14] = fl[14]/jacobvell[0]; 
+  fl_over_jacv[15] = fl[15]/jacobvell[0]; 
+  fl_over_jacv[16] = fl[16]/jacobvell[0]; 
+  fl_over_jacv[17] = fl[17]/jacobvell[0]; 
+  fl_over_jacv[18] = fl[18]/jacobvell[0]; 
+  fl_over_jacv[19] = fl[19]/jacobvell[0]; 
+  fl_over_jacv[20] = fl[20]/jacobvell[0]; 
+  fl_over_jacv[21] = fl[21]/jacobvell[0]; 
+  fl_over_jacv[22] = fl[22]/jacobvell[0]; 
+  fl_over_jacv[23] = fl[23]/jacobvell[0]; 
 
-  fc_over_jacv[0] = fc[0]/jacobvel[0]; 
-  fc_over_jacv[1] = fc[1]/jacobvel[0]; 
-  fc_over_jacv[2] = fc[2]/jacobvel[0]; 
-  fc_over_jacv[3] = fc[3]/jacobvel[0]; 
-  fc_over_jacv[4] = fc[4]/jacobvel[0]; 
-  fc_over_jacv[5] = fc[5]/jacobvel[0]; 
-  fc_over_jacv[6] = fc[6]/jacobvel[0]; 
-  fc_over_jacv[7] = fc[7]/jacobvel[0]; 
-  fc_over_jacv[8] = fc[8]/jacobvel[0]; 
-  fc_over_jacv[9] = fc[9]/jacobvel[0]; 
-  fc_over_jacv[10] = fc[10]/jacobvel[0]; 
-  fc_over_jacv[11] = fc[11]/jacobvel[0]; 
-  fc_over_jacv[12] = fc[12]/jacobvel[0]; 
-  fc_over_jacv[13] = fc[13]/jacobvel[0]; 
-  fc_over_jacv[14] = fc[14]/jacobvel[0]; 
-  fc_over_jacv[15] = fc[15]/jacobvel[0]; 
-  fc_over_jacv[16] = fc[16]/jacobvel[0]; 
-  fc_over_jacv[17] = fc[17]/jacobvel[0]; 
-  fc_over_jacv[18] = fc[18]/jacobvel[0]; 
-  fc_over_jacv[19] = fc[19]/jacobvel[0]; 
-  fc_over_jacv[20] = fc[20]/jacobvel[0]; 
-  fc_over_jacv[21] = fc[21]/jacobvel[0]; 
-  fc_over_jacv[22] = fc[22]/jacobvel[0]; 
-  fc_over_jacv[23] = fc[23]/jacobvel[0]; 
+  fc_over_jacv[0] = fc[0]/jacobvelc[0]; 
+  fc_over_jacv[1] = fc[1]/jacobvelc[0]; 
+  fc_over_jacv[2] = fc[2]/jacobvelc[0]; 
+  fc_over_jacv[3] = fc[3]/jacobvelc[0]; 
+  fc_over_jacv[4] = fc[4]/jacobvelc[0]; 
+  fc_over_jacv[5] = fc[5]/jacobvelc[0]; 
+  fc_over_jacv[6] = fc[6]/jacobvelc[0]; 
+  fc_over_jacv[7] = fc[7]/jacobvelc[0]; 
+  fc_over_jacv[8] = fc[8]/jacobvelc[0]; 
+  fc_over_jacv[9] = fc[9]/jacobvelc[0]; 
+  fc_over_jacv[10] = fc[10]/jacobvelc[0]; 
+  fc_over_jacv[11] = fc[11]/jacobvelc[0]; 
+  fc_over_jacv[12] = fc[12]/jacobvelc[0]; 
+  fc_over_jacv[13] = fc[13]/jacobvelc[0]; 
+  fc_over_jacv[14] = fc[14]/jacobvelc[0]; 
+  fc_over_jacv[15] = fc[15]/jacobvelc[0]; 
+  fc_over_jacv[16] = fc[16]/jacobvelc[0]; 
+  fc_over_jacv[17] = fc[17]/jacobvelc[0]; 
+  fc_over_jacv[18] = fc[18]/jacobvelc[0]; 
+  fc_over_jacv[19] = fc[19]/jacobvelc[0]; 
+  fc_over_jacv[20] = fc[20]/jacobvelc[0]; 
+  fc_over_jacv[21] = fc[21]/jacobvelc[0]; 
+  fc_over_jacv[22] = fc[22]/jacobvelc[0]; 
+  fc_over_jacv[23] = fc[23]/jacobvelc[0]; 
 
-  fr_over_jacv[0] = fr[0]/jacobvel[0]; 
-  fr_over_jacv[1] = fr[1]/jacobvel[0]; 
-  fr_over_jacv[2] = fr[2]/jacobvel[0]; 
-  fr_over_jacv[3] = fr[3]/jacobvel[0]; 
-  fr_over_jacv[4] = fr[4]/jacobvel[0]; 
-  fr_over_jacv[5] = fr[5]/jacobvel[0]; 
-  fr_over_jacv[6] = fr[6]/jacobvel[0]; 
-  fr_over_jacv[7] = fr[7]/jacobvel[0]; 
-  fr_over_jacv[8] = fr[8]/jacobvel[0]; 
-  fr_over_jacv[9] = fr[9]/jacobvel[0]; 
-  fr_over_jacv[10] = fr[10]/jacobvel[0]; 
-  fr_over_jacv[11] = fr[11]/jacobvel[0]; 
-  fr_over_jacv[12] = fr[12]/jacobvel[0]; 
-  fr_over_jacv[13] = fr[13]/jacobvel[0]; 
-  fr_over_jacv[14] = fr[14]/jacobvel[0]; 
-  fr_over_jacv[15] = fr[15]/jacobvel[0]; 
-  fr_over_jacv[16] = fr[16]/jacobvel[0]; 
-  fr_over_jacv[17] = fr[17]/jacobvel[0]; 
-  fr_over_jacv[18] = fr[18]/jacobvel[0]; 
-  fr_over_jacv[19] = fr[19]/jacobvel[0]; 
-  fr_over_jacv[20] = fr[20]/jacobvel[0]; 
-  fr_over_jacv[21] = fr[21]/jacobvel[0]; 
-  fr_over_jacv[22] = fr[22]/jacobvel[0]; 
-  fr_over_jacv[23] = fr[23]/jacobvel[0]; 
+  fr_over_jacv[0] = fr[0]/jacobvelr[0]; 
+  fr_over_jacv[1] = fr[1]/jacobvelr[0]; 
+  fr_over_jacv[2] = fr[2]/jacobvelr[0]; 
+  fr_over_jacv[3] = fr[3]/jacobvelr[0]; 
+  fr_over_jacv[4] = fr[4]/jacobvelr[0]; 
+  fr_over_jacv[5] = fr[5]/jacobvelr[0]; 
+  fr_over_jacv[6] = fr[6]/jacobvelr[0]; 
+  fr_over_jacv[7] = fr[7]/jacobvelr[0]; 
+  fr_over_jacv[8] = fr[8]/jacobvelr[0]; 
+  fr_over_jacv[9] = fr[9]/jacobvelr[0]; 
+  fr_over_jacv[10] = fr[10]/jacobvelr[0]; 
+  fr_over_jacv[11] = fr[11]/jacobvelr[0]; 
+  fr_over_jacv[12] = fr[12]/jacobvelr[0]; 
+  fr_over_jacv[13] = fr[13]/jacobvelr[0]; 
+  fr_over_jacv[14] = fr[14]/jacobvelr[0]; 
+  fr_over_jacv[15] = fr[15]/jacobvelr[0]; 
+  fr_over_jacv[16] = fr[16]/jacobvelr[0]; 
+  fr_over_jacv[17] = fr[17]/jacobvelr[0]; 
+  fr_over_jacv[18] = fr[18]/jacobvelr[0]; 
+  fr_over_jacv[19] = fr[19]/jacobvelr[0]; 
+  fr_over_jacv[20] = fr[20]/jacobvelr[0]; 
+  fr_over_jacv[21] = fr[21]/jacobvelr[0]; 
+  fr_over_jacv[22] = fr[22]/jacobvelr[0]; 
+  fr_over_jacv[23] = fr[23]/jacobvelr[0]; 
 
   double dvl = 2.449489742783178*vmapl[3];
   double dvc = 2.449489742783178*vmapc[3];
@@ -103,15 +103,13 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_surfmu_2x2v_ser_p1(const double *dxv, con
   confFac[2] = bmag_inv[1]*nuVtSqSum[3]*m_+bmag_inv[0]*nuVtSqSum[2]*m_; 
   confFac[3] = bmag_inv[0]*nuVtSqSum[3]*m_+bmag_inv[1]*nuVtSqSum[2]*m_; 
 
-  double vmap_primeSq[2];
-  vmap_primeSq[0] = pow(vmap_prime[0],2);
-  vmap_primeSq[1] = pow(vmap_prime[1],2);
+  double vmap_primeSq = pow(vmap_prime[1],2);
 
   double dfVfac_l = vmap_prime[0]*(0.7071067811865475*vmapc[2]-1.224744871391589*vmapc[3]); 
   double dfVfac_r = vmap_prime[0]*(1.224744871391589*vmapc[3]+0.7071067811865475*vmapc[2]); 
 
-  double fVfac_l = (jacobvel[0]*(0.7071067811865475*vmapc[2]-1.224744871391589*vmapc[3]))/vmap_primeSq[1]; 
-  double fVfac_r = (jacobvel[0]*(1.224744871391589*vmapc[3]+0.7071067811865475*vmapc[2]))/vmap_primeSq[1]; 
+  double fVfac_l = (jacobvelc[0]*(0.7071067811865475*vmapc[2]-1.224744871391589*vmapc[3]))/vmap_primeSq; 
+  double fVfac_r = (jacobvelc[0]*(1.224744871391589*vmapc[3]+0.7071067811865475*vmapc[2]))/vmap_primeSq; 
 
   double phaseFacl[24] = {0.0}; 
   const double dvlR2 = pow(dvl,2);

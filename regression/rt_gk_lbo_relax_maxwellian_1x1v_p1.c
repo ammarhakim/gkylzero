@@ -129,7 +129,7 @@ create_ctx(void)
   double Lvpar_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
 
   double t_end = 1.0/nu_elc; // Final simulation time.
-  int num_frames = 20; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   
   struct sheath_ctx ctx = {
     .pi = pi,
@@ -269,6 +269,34 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   xp[0] = zc[0]; xp[1] = zc[1]; xp[2] = zc[2];
 }
 
+void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
+{
+  struct sheath_ctx *app = ctx;
+  double Lvpar = app->Lvpar_elc;
+  double Nvpar = app->Nvpar;
+
+  double cvpar = vc[0];
+//  // Identity map.
+//  vp[0] = cvpar;
+//  // Uniform scaling map
+//  vp[0] = (Lvpar/2.0)*cvpar;
+  // Quadratic map.
+  if (cvpar < 0.)
+    vp[0] = -(Lvpar/2.)*pow(cvpar,2);
+  else
+    vp[0] =  (Lvpar/2.)*pow(cvpar,2);
+//  // Doubling map.
+//  double cvpar_min = -1.0, cvpar_max = 1.0;
+//  double Lcvpar = cvpar_max-cvpar_min;
+//  double dcvpar = Lcvpar/Nvpar;
+//  double dcvpar_1 = (cvpar_max/(pow(2.0,cvpar_max/dcvpar)-1));
+//  if (cvpar < 0.)
+//    vp[0] = -(Lvpar/2.)*dcvpar_1*(pow(2.0, fabs(cvpar/dcvpar))-1.0);
+//  else
+//    vp[0] =  (Lvpar/2.)*dcvpar_1*(pow(2.0, fabs(cvpar/dcvpar))-1.0);
+//  printf("cvpar = %g | vparp = %g\n",cvpar,vp[0]);
+}
+
 void
 bmag_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -309,7 +337,7 @@ main(int argc, char **argv)
   struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
 
   int nrank = 1; // Number of processors in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -410,10 +438,18 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -ctx.Lvpar_elc/2 },
-    .upper = {  ctx.Lvpar_elc/2 },
-    .cells = { NV },
+//    .lower = { -ctx.Lvpar_elc/2 },
+//    .upper = {  ctx.Lvpar_elc/2 },
+    .lower = { -1.0 },
+    .upper = {  1.0 },
+    .cells = { NVPAR },
     .polarization_density = ctx.n0,
+
+    .mapc2p = {
+      .is_mapped = true,
+      .mapping = mapc2p_vel_elc,
+      .ctx = &ctx,
+    },
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
@@ -442,7 +478,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { -ctx.Lvpar_ion/2 },
     .upper = {  ctx.Lvpar_ion/2 },
-    .cells = { NV },
+    .cells = { NVPAR },
     .polarization_density = ctx.n0,
 
     .projection = {

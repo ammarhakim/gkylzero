@@ -1,10 +1,10 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
-GKYL_CU_DH double lbo_gyrokinetic_diff_boundary_surfvpar_3x2v_ser_p1(const double *dxv, const double *vmap_edge, const double *vmap_skin, const double *vmap_prime, const double *jacobvel, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_gyrokinetic_diff_boundary_surfvpar_3x2v_ser_p1(const double *dxv, const double *vmap_edge, const double *vmap_skin, const double *vmap_prime, const double *jacobvel_edge, const double *jacobvel_skin, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out) 
 { 
   // dxv: Cell spacing. 
   // vmap_edge,vmap_skin: velocity space mapping.
   // vmap_prime: velocity space mapping derivative (in the skin cell).
-  // jacobvel: velocity space jacobian.
+  // jacobvel_edge,jacobvel_skin: velocity space jacobian.
   // m_: species mass.
   // bmag_inv: 1/(magnetic field magnitude). 
   // nuSum: collisionalities added (self and cross species collisionalities). 
@@ -13,103 +13,103 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_boundary_surfvpar_3x2v_ser_p1(const doubl
   // out: Incremented distribution function in cell 
 
   double fedge_over_jacv[48], fskin_over_jacv[48];
-  fedge_over_jacv[0] = fedge[0]/jacobvel[0]; 
-  fedge_over_jacv[1] = fedge[1]/jacobvel[0]; 
-  fedge_over_jacv[2] = fedge[2]/jacobvel[0]; 
-  fedge_over_jacv[3] = fedge[3]/jacobvel[0]; 
-  fedge_over_jacv[4] = fedge[4]/jacobvel[0]; 
-  fedge_over_jacv[5] = fedge[5]/jacobvel[0]; 
-  fedge_over_jacv[6] = fedge[6]/jacobvel[0]; 
-  fedge_over_jacv[7] = fedge[7]/jacobvel[0]; 
-  fedge_over_jacv[8] = fedge[8]/jacobvel[0]; 
-  fedge_over_jacv[9] = fedge[9]/jacobvel[0]; 
-  fedge_over_jacv[10] = fedge[10]/jacobvel[0]; 
-  fedge_over_jacv[11] = fedge[11]/jacobvel[0]; 
-  fedge_over_jacv[12] = fedge[12]/jacobvel[0]; 
-  fedge_over_jacv[13] = fedge[13]/jacobvel[0]; 
-  fedge_over_jacv[14] = fedge[14]/jacobvel[0]; 
-  fedge_over_jacv[15] = fedge[15]/jacobvel[0]; 
-  fedge_over_jacv[16] = fedge[16]/jacobvel[0]; 
-  fedge_over_jacv[17] = fedge[17]/jacobvel[0]; 
-  fedge_over_jacv[18] = fedge[18]/jacobvel[0]; 
-  fedge_over_jacv[19] = fedge[19]/jacobvel[0]; 
-  fedge_over_jacv[20] = fedge[20]/jacobvel[0]; 
-  fedge_over_jacv[21] = fedge[21]/jacobvel[0]; 
-  fedge_over_jacv[22] = fedge[22]/jacobvel[0]; 
-  fedge_over_jacv[23] = fedge[23]/jacobvel[0]; 
-  fedge_over_jacv[24] = fedge[24]/jacobvel[0]; 
-  fedge_over_jacv[25] = fedge[25]/jacobvel[0]; 
-  fedge_over_jacv[26] = fedge[26]/jacobvel[0]; 
-  fedge_over_jacv[27] = fedge[27]/jacobvel[0]; 
-  fedge_over_jacv[28] = fedge[28]/jacobvel[0]; 
-  fedge_over_jacv[29] = fedge[29]/jacobvel[0]; 
-  fedge_over_jacv[30] = fedge[30]/jacobvel[0]; 
-  fedge_over_jacv[31] = fedge[31]/jacobvel[0]; 
-  fedge_over_jacv[32] = fedge[32]/jacobvel[0]; 
-  fedge_over_jacv[33] = fedge[33]/jacobvel[0]; 
-  fedge_over_jacv[34] = fedge[34]/jacobvel[0]; 
-  fedge_over_jacv[35] = fedge[35]/jacobvel[0]; 
-  fedge_over_jacv[36] = fedge[36]/jacobvel[0]; 
-  fedge_over_jacv[37] = fedge[37]/jacobvel[0]; 
-  fedge_over_jacv[38] = fedge[38]/jacobvel[0]; 
-  fedge_over_jacv[39] = fedge[39]/jacobvel[0]; 
-  fedge_over_jacv[40] = fedge[40]/jacobvel[0]; 
-  fedge_over_jacv[41] = fedge[41]/jacobvel[0]; 
-  fedge_over_jacv[42] = fedge[42]/jacobvel[0]; 
-  fedge_over_jacv[43] = fedge[43]/jacobvel[0]; 
-  fedge_over_jacv[44] = fedge[44]/jacobvel[0]; 
-  fedge_over_jacv[45] = fedge[45]/jacobvel[0]; 
-  fedge_over_jacv[46] = fedge[46]/jacobvel[0]; 
-  fedge_over_jacv[47] = fedge[47]/jacobvel[0]; 
+  fedge_over_jacv[0] = fedge[0]/jacobvel_edge[0]; 
+  fedge_over_jacv[1] = fedge[1]/jacobvel_edge[0]; 
+  fedge_over_jacv[2] = fedge[2]/jacobvel_edge[0]; 
+  fedge_over_jacv[3] = fedge[3]/jacobvel_edge[0]; 
+  fedge_over_jacv[4] = fedge[4]/jacobvel_edge[0]; 
+  fedge_over_jacv[5] = fedge[5]/jacobvel_edge[0]; 
+  fedge_over_jacv[6] = fedge[6]/jacobvel_edge[0]; 
+  fedge_over_jacv[7] = fedge[7]/jacobvel_edge[0]; 
+  fedge_over_jacv[8] = fedge[8]/jacobvel_edge[0]; 
+  fedge_over_jacv[9] = fedge[9]/jacobvel_edge[0]; 
+  fedge_over_jacv[10] = fedge[10]/jacobvel_edge[0]; 
+  fedge_over_jacv[11] = fedge[11]/jacobvel_edge[0]; 
+  fedge_over_jacv[12] = fedge[12]/jacobvel_edge[0]; 
+  fedge_over_jacv[13] = fedge[13]/jacobvel_edge[0]; 
+  fedge_over_jacv[14] = fedge[14]/jacobvel_edge[0]; 
+  fedge_over_jacv[15] = fedge[15]/jacobvel_edge[0]; 
+  fedge_over_jacv[16] = fedge[16]/jacobvel_edge[0]; 
+  fedge_over_jacv[17] = fedge[17]/jacobvel_edge[0]; 
+  fedge_over_jacv[18] = fedge[18]/jacobvel_edge[0]; 
+  fedge_over_jacv[19] = fedge[19]/jacobvel_edge[0]; 
+  fedge_over_jacv[20] = fedge[20]/jacobvel_edge[0]; 
+  fedge_over_jacv[21] = fedge[21]/jacobvel_edge[0]; 
+  fedge_over_jacv[22] = fedge[22]/jacobvel_edge[0]; 
+  fedge_over_jacv[23] = fedge[23]/jacobvel_edge[0]; 
+  fedge_over_jacv[24] = fedge[24]/jacobvel_edge[0]; 
+  fedge_over_jacv[25] = fedge[25]/jacobvel_edge[0]; 
+  fedge_over_jacv[26] = fedge[26]/jacobvel_edge[0]; 
+  fedge_over_jacv[27] = fedge[27]/jacobvel_edge[0]; 
+  fedge_over_jacv[28] = fedge[28]/jacobvel_edge[0]; 
+  fedge_over_jacv[29] = fedge[29]/jacobvel_edge[0]; 
+  fedge_over_jacv[30] = fedge[30]/jacobvel_edge[0]; 
+  fedge_over_jacv[31] = fedge[31]/jacobvel_edge[0]; 
+  fedge_over_jacv[32] = fedge[32]/jacobvel_edge[0]; 
+  fedge_over_jacv[33] = fedge[33]/jacobvel_edge[0]; 
+  fedge_over_jacv[34] = fedge[34]/jacobvel_edge[0]; 
+  fedge_over_jacv[35] = fedge[35]/jacobvel_edge[0]; 
+  fedge_over_jacv[36] = fedge[36]/jacobvel_edge[0]; 
+  fedge_over_jacv[37] = fedge[37]/jacobvel_edge[0]; 
+  fedge_over_jacv[38] = fedge[38]/jacobvel_edge[0]; 
+  fedge_over_jacv[39] = fedge[39]/jacobvel_edge[0]; 
+  fedge_over_jacv[40] = fedge[40]/jacobvel_edge[0]; 
+  fedge_over_jacv[41] = fedge[41]/jacobvel_edge[0]; 
+  fedge_over_jacv[42] = fedge[42]/jacobvel_edge[0]; 
+  fedge_over_jacv[43] = fedge[43]/jacobvel_edge[0]; 
+  fedge_over_jacv[44] = fedge[44]/jacobvel_edge[0]; 
+  fedge_over_jacv[45] = fedge[45]/jacobvel_edge[0]; 
+  fedge_over_jacv[46] = fedge[46]/jacobvel_edge[0]; 
+  fedge_over_jacv[47] = fedge[47]/jacobvel_edge[0]; 
 
-  fskin_over_jacv[0] = fskin[0]/jacobvel[0]; 
-  fskin_over_jacv[1] = fskin[1]/jacobvel[0]; 
-  fskin_over_jacv[2] = fskin[2]/jacobvel[0]; 
-  fskin_over_jacv[3] = fskin[3]/jacobvel[0]; 
-  fskin_over_jacv[4] = fskin[4]/jacobvel[0]; 
-  fskin_over_jacv[5] = fskin[5]/jacobvel[0]; 
-  fskin_over_jacv[6] = fskin[6]/jacobvel[0]; 
-  fskin_over_jacv[7] = fskin[7]/jacobvel[0]; 
-  fskin_over_jacv[8] = fskin[8]/jacobvel[0]; 
-  fskin_over_jacv[9] = fskin[9]/jacobvel[0]; 
-  fskin_over_jacv[10] = fskin[10]/jacobvel[0]; 
-  fskin_over_jacv[11] = fskin[11]/jacobvel[0]; 
-  fskin_over_jacv[12] = fskin[12]/jacobvel[0]; 
-  fskin_over_jacv[13] = fskin[13]/jacobvel[0]; 
-  fskin_over_jacv[14] = fskin[14]/jacobvel[0]; 
-  fskin_over_jacv[15] = fskin[15]/jacobvel[0]; 
-  fskin_over_jacv[16] = fskin[16]/jacobvel[0]; 
-  fskin_over_jacv[17] = fskin[17]/jacobvel[0]; 
-  fskin_over_jacv[18] = fskin[18]/jacobvel[0]; 
-  fskin_over_jacv[19] = fskin[19]/jacobvel[0]; 
-  fskin_over_jacv[20] = fskin[20]/jacobvel[0]; 
-  fskin_over_jacv[21] = fskin[21]/jacobvel[0]; 
-  fskin_over_jacv[22] = fskin[22]/jacobvel[0]; 
-  fskin_over_jacv[23] = fskin[23]/jacobvel[0]; 
-  fskin_over_jacv[24] = fskin[24]/jacobvel[0]; 
-  fskin_over_jacv[25] = fskin[25]/jacobvel[0]; 
-  fskin_over_jacv[26] = fskin[26]/jacobvel[0]; 
-  fskin_over_jacv[27] = fskin[27]/jacobvel[0]; 
-  fskin_over_jacv[28] = fskin[28]/jacobvel[0]; 
-  fskin_over_jacv[29] = fskin[29]/jacobvel[0]; 
-  fskin_over_jacv[30] = fskin[30]/jacobvel[0]; 
-  fskin_over_jacv[31] = fskin[31]/jacobvel[0]; 
-  fskin_over_jacv[32] = fskin[32]/jacobvel[0]; 
-  fskin_over_jacv[33] = fskin[33]/jacobvel[0]; 
-  fskin_over_jacv[34] = fskin[34]/jacobvel[0]; 
-  fskin_over_jacv[35] = fskin[35]/jacobvel[0]; 
-  fskin_over_jacv[36] = fskin[36]/jacobvel[0]; 
-  fskin_over_jacv[37] = fskin[37]/jacobvel[0]; 
-  fskin_over_jacv[38] = fskin[38]/jacobvel[0]; 
-  fskin_over_jacv[39] = fskin[39]/jacobvel[0]; 
-  fskin_over_jacv[40] = fskin[40]/jacobvel[0]; 
-  fskin_over_jacv[41] = fskin[41]/jacobvel[0]; 
-  fskin_over_jacv[42] = fskin[42]/jacobvel[0]; 
-  fskin_over_jacv[43] = fskin[43]/jacobvel[0]; 
-  fskin_over_jacv[44] = fskin[44]/jacobvel[0]; 
-  fskin_over_jacv[45] = fskin[45]/jacobvel[0]; 
-  fskin_over_jacv[46] = fskin[46]/jacobvel[0]; 
-  fskin_over_jacv[47] = fskin[47]/jacobvel[0]; 
+  fskin_over_jacv[0] = fskin[0]/jacobvel_skin[0]; 
+  fskin_over_jacv[1] = fskin[1]/jacobvel_skin[0]; 
+  fskin_over_jacv[2] = fskin[2]/jacobvel_skin[0]; 
+  fskin_over_jacv[3] = fskin[3]/jacobvel_skin[0]; 
+  fskin_over_jacv[4] = fskin[4]/jacobvel_skin[0]; 
+  fskin_over_jacv[5] = fskin[5]/jacobvel_skin[0]; 
+  fskin_over_jacv[6] = fskin[6]/jacobvel_skin[0]; 
+  fskin_over_jacv[7] = fskin[7]/jacobvel_skin[0]; 
+  fskin_over_jacv[8] = fskin[8]/jacobvel_skin[0]; 
+  fskin_over_jacv[9] = fskin[9]/jacobvel_skin[0]; 
+  fskin_over_jacv[10] = fskin[10]/jacobvel_skin[0]; 
+  fskin_over_jacv[11] = fskin[11]/jacobvel_skin[0]; 
+  fskin_over_jacv[12] = fskin[12]/jacobvel_skin[0]; 
+  fskin_over_jacv[13] = fskin[13]/jacobvel_skin[0]; 
+  fskin_over_jacv[14] = fskin[14]/jacobvel_skin[0]; 
+  fskin_over_jacv[15] = fskin[15]/jacobvel_skin[0]; 
+  fskin_over_jacv[16] = fskin[16]/jacobvel_skin[0]; 
+  fskin_over_jacv[17] = fskin[17]/jacobvel_skin[0]; 
+  fskin_over_jacv[18] = fskin[18]/jacobvel_skin[0]; 
+  fskin_over_jacv[19] = fskin[19]/jacobvel_skin[0]; 
+  fskin_over_jacv[20] = fskin[20]/jacobvel_skin[0]; 
+  fskin_over_jacv[21] = fskin[21]/jacobvel_skin[0]; 
+  fskin_over_jacv[22] = fskin[22]/jacobvel_skin[0]; 
+  fskin_over_jacv[23] = fskin[23]/jacobvel_skin[0]; 
+  fskin_over_jacv[24] = fskin[24]/jacobvel_skin[0]; 
+  fskin_over_jacv[25] = fskin[25]/jacobvel_skin[0]; 
+  fskin_over_jacv[26] = fskin[26]/jacobvel_skin[0]; 
+  fskin_over_jacv[27] = fskin[27]/jacobvel_skin[0]; 
+  fskin_over_jacv[28] = fskin[28]/jacobvel_skin[0]; 
+  fskin_over_jacv[29] = fskin[29]/jacobvel_skin[0]; 
+  fskin_over_jacv[30] = fskin[30]/jacobvel_skin[0]; 
+  fskin_over_jacv[31] = fskin[31]/jacobvel_skin[0]; 
+  fskin_over_jacv[32] = fskin[32]/jacobvel_skin[0]; 
+  fskin_over_jacv[33] = fskin[33]/jacobvel_skin[0]; 
+  fskin_over_jacv[34] = fskin[34]/jacobvel_skin[0]; 
+  fskin_over_jacv[35] = fskin[35]/jacobvel_skin[0]; 
+  fskin_over_jacv[36] = fskin[36]/jacobvel_skin[0]; 
+  fskin_over_jacv[37] = fskin[37]/jacobvel_skin[0]; 
+  fskin_over_jacv[38] = fskin[38]/jacobvel_skin[0]; 
+  fskin_over_jacv[39] = fskin[39]/jacobvel_skin[0]; 
+  fskin_over_jacv[40] = fskin[40]/jacobvel_skin[0]; 
+  fskin_over_jacv[41] = fskin[41]/jacobvel_skin[0]; 
+  fskin_over_jacv[42] = fskin[42]/jacobvel_skin[0]; 
+  fskin_over_jacv[43] = fskin[43]/jacobvel_skin[0]; 
+  fskin_over_jacv[44] = fskin[44]/jacobvel_skin[0]; 
+  fskin_over_jacv[45] = fskin[45]/jacobvel_skin[0]; 
+  fskin_over_jacv[46] = fskin[46]/jacobvel_skin[0]; 
+  fskin_over_jacv[47] = fskin[47]/jacobvel_skin[0]; 
 
   double dv_edge = 2.449489742783178*vmap_edge[1];
   double dv_skin = 2.449489742783178*vmap_skin[1];
@@ -119,15 +119,13 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_boundary_surfvpar_3x2v_ser_p1(const doubl
   double rdv2 = 2.0/dxv[3]; 
   double rdv2Sq = rdv2*rdv2; 
 
-  double vmap_primeSq[2];
-  vmap_primeSq[0] = pow(vmap_prime[0],2);
-  vmap_primeSq[1] = pow(vmap_prime[1],2);
+  double vmap_primeSq = pow(vmap_prime[0],2);
 
   double dfVfac_l = vmap_prime[1]; 
   double dfVfac_r = vmap_prime[1]; 
 
-  double fVfac_l = jacobvel[0]/vmap_primeSq[0]; 
-  double fVfac_r = jacobvel[0]/vmap_primeSq[0]; 
+  double fVfac_l = jacobvel_skin[0]/vmap_primeSq; 
+  double fVfac_r = jacobvel_skin[0]/vmap_primeSq; 
 
   if (edge == -1) { 
 

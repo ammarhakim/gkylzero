@@ -9,12 +9,14 @@
 // Types for various kernels
 typedef double (*lbo_gyrokinetic_diff_surf_t)(const double *dxv,
   const double *vmapl, const double *vmapc, const double *vmapr, const double *vmap_prime,
-  const double *jacobvel, const double m_, const double *bmag_inv, const double *nuSum,
-  const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
+  const double *jacobvell, const double *jacobvelc, const double *jacobvelr, const double m_,
+  const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum,
+  const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef double (*lbo_gyrokinetic_diff_boundary_surf_t)(const double *dxv,
   const double *vmap_edge, const double *vmap_skin, const double *vmap_prime,
-  const double *jacobvel, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum,
+  const double *jacobvel_edge, const double *jacobvel_skin, const double m_,
+  const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum,
   const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -275,14 +277,19 @@ surf(const struct gkyl_dg_eqn *eqn,
     long vidxC = gkyl_range_idx(&lbo->vel_range, vel_idxC);
     long vidxR = gkyl_range_idx(&lbo->vel_range, vel_idxR);
 
+    long pidxL = gkyl_range_idx(&lbo->phase_range, idxL);
     long pidxC = gkyl_range_idx(&lbo->phase_range, idxC);
+    long pidxR = gkyl_range_idx(&lbo->phase_range, idxR);
 
     return lbo->surf[dir-lbo->cdim](dxC,
       (const double*) gkyl_array_cfetch(lbo->vmap, vidxL),
       (const double*) gkyl_array_cfetch(lbo->vmap, vidxC),
       (const double*) gkyl_array_cfetch(lbo->vmap, vidxR),
       (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidxC),
-      (const double*) gkyl_array_cfetch(lbo->jacobvel, pidxC), lbo->mass,
+      (const double*) gkyl_array_cfetch(lbo->jacobvel, pidxL),
+      (const double*) gkyl_array_cfetch(lbo->jacobvel, pidxC),
+      (const double*) gkyl_array_cfetch(lbo->jacobvel, pidxR),
+      lbo->mass,
       (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, qInL, qInC, qInR, qRhsOut);
   }
@@ -317,12 +324,14 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
     long vidxEdge = gkyl_range_idx(&lbo->vel_range, vel_idxEdge);
     long vidxSkin = gkyl_range_idx(&lbo->vel_range, vel_idxSkin);
 
+    long pidxEdge = gkyl_range_idx(&lbo->phase_range, idxEdge);
     long pidxSkin = gkyl_range_idx(&lbo->phase_range, idxSkin);
 
     return lbo->boundary_surf[dir-lbo->cdim](dxSkin, 
       (const double*) gkyl_array_cfetch(lbo->vmap, vidxEdge),
       (const double*) gkyl_array_cfetch(lbo->vmap, vidxSkin),
       (const double*) gkyl_array_cfetch(lbo->vmap_prime, vidxSkin),
+      (const double*) gkyl_array_cfetch(lbo->jacobvel, pidxEdge),
       (const double*) gkyl_array_cfetch(lbo->jacobvel, pidxSkin), lbo->mass,
       (const double*) gkyl_array_cfetch(lbo->gk_geom->bmag_inv, cidx), 
       nuSum_p, nuPrimMomsSum_p, edge, qInEdge, qInSkin, qRhsOut);
