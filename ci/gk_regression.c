@@ -357,7 +357,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
         }
       }
       else {
-        if(speciesrhs[i - 1] > pow(10.0, -8.0)) {
+        if (speciesrhs[i - 1] > pow(10.0, -8.0)) {
           printf("Species RHS time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciesrhs[i],
             (((double)speciesrhs[i] / (double)speciesrhs[i - 1]) - 1.0) * 100.0);
         }
@@ -420,6 +420,25 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
         }
         else {
           printf("Species collisional moments time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciescollisionalmoments[i]);
+        }
+      }
+
+      if (totalupdate[i] > totalupdate[i - 1]) {
+        if (totalupdate[i  - 1] > pow(10.0, -8.0)) {
+          printf("Total update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", totalupdate[i],
+            (((double)totalupdate[i] / (double)totalupdate[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Total update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", totalupdate[i]);
+        }
+      }
+      else {
+        if (totalupdate[i - 1] > pow(10.0, -8.0)) {
+          printf("Total update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", totalupdate[i],
+            (((double)totalupdate[i] / (double)totalupdate[i - 1]) - 1.0) * 100.0);
+        }
+        else {
+          printf("Total update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", totalupdate[i]);
         }
       }
 
