@@ -297,9 +297,36 @@ void gkyl_range_upper_skin(struct gkyl_range* srng,
   const struct gkyl_range* range, int dir, int nskin);
 
 /**
- * Create ghost and skin sub-ranges given parent range. The skin and
- * ghost ranges are sub-ranges of the parent range and DO NOT include
- * corners.
+ * Create ghost and skin sub-ranges given parent *extended* range. The
+ * skin and ghost ranges are sub-ranges of the parent range and DO NOT
+ * include corners. For 2D, dir=1 and nghost = { 1, 1} skin and ghost
+ * are the cells marked below ("S"kin, "G"ghost)
+ *
+ * Lower-edge:
+ * +--+--+--+
+ * |  |  |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |  |  |  |
+ * +--+--+--+
+ *
+ * Upper-edge:
+ * +--+--+--+
+ * |  |  |  |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |  |  |
+ * +--+--+--+
  *
  * @param skin On output, skin range
  * @param ghost On outout, ghost range
@@ -309,6 +336,48 @@ void gkyl_range_upper_skin(struct gkyl_range* srng,
  * @param nghost Number of ghost cells in 'dir' are nghost[dir]
  */
 void gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost);
+
+/**
+ * Create ghost and skin sub-ranges given parent *extended* range. The
+ * skin and ghost ranges are sub-ranges of the parent range. The
+ * ranges include the corners.  For 2D, dir=1 and nghost = { 1, 1}
+ * skin and ghost are the cells marked below ("S"kin, "G"ghost)
+ *
+ * Lower-edge:
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ * |G |S |  |
+ * +--+--+--+
+ *
+ * Upper-edge:
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ * |  |S |G |
+ * +--+--+--+
+ *
+ * @param skin On output, skin range
+ * @param ghost On outout, ghost range
+ * @param dir Direction in which skin/ghost are computed
+ * @param edge Edge on which skin/ghost are computed
+ * @param parent Range for which skin/ghost are computed
+ * @param nghost Number of ghost cells in 'dir' are nghost[dir]
+ */
+void gkyl_skin_ghost_with_corners_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost);
 
 /**

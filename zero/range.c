@@ -425,6 +425,41 @@ gkyl_skin_ghost_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
   }
 }
 
+void
+gkyl_skin_ghost_with_corners_ranges(struct gkyl_range *skin, struct gkyl_range *ghost,
+  int dir, enum gkyl_edge_loc edge, const struct gkyl_range *parent, const int *nghost)
+{
+  int ndim = parent->ndim;
+  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+
+  for (int i=0; i<ndim; ++i) {
+    lo[i] = parent->lower[i];
+    up[i] = parent->upper[i];
+  }
+
+  if (edge == GKYL_LOWER_EDGE) {
+
+    lo[dir] = parent->lower[dir]+nghost[dir];
+    up[dir] = lo[dir]+nghost[dir]-1;
+    gkyl_sub_range_init(skin, parent, lo, up);    
+
+    lo[dir] = parent->lower[dir];
+    up[dir] = lo[dir]+nghost[dir]-1;
+    gkyl_sub_range_init(ghost, parent, lo, up);
+
+  }
+  else {
+
+    up[dir] = parent->upper[dir]-nghost[dir];
+    lo[dir] = up[dir]-nghost[dir]+1;
+    gkyl_sub_range_init(skin, parent, lo, up);
+
+    up[dir] = parent->upper[dir];
+    lo[dir] = up[dir]-nghost[dir]+1;
+    gkyl_sub_range_init(ghost, parent, lo, up);
+  }
+}
+
 int
 gkyl_range_intersect(struct gkyl_range* irng,
   const struct gkyl_range *r1, const struct gkyl_range *r2)

@@ -5,6 +5,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
 
 void test_range_0()
 {
@@ -1134,7 +1135,107 @@ test_perp_extend(void)
     
     TEST_CHECK( ext_range.lower[1] == 1 );
     TEST_CHECK( ext_range.upper[1] == 8 );
+  } while (0);
+}
+
+static void
+test_skin_ghost(void)
+{
+  struct gkyl_range rng;
+  gkyl_range_init(&rng, 2, (int[]) { 2, 3 }, (int[]) { 100, 85 });
+
+  int nghost[] = { 2, 3 };
+  
+  struct gkyl_range range, ext_range;
+  gkyl_create_ranges(&rng, nghost, &ext_range, &range);
+
+  do {
+    struct gkyl_range skin, ghost;
+    gkyl_skin_ghost_ranges(&skin, &ghost, 0, GKYL_LOWER_EDGE, &ext_range, nghost);
+
+    TEST_CHECK( skin.lower[0] == range.lower[0] );
+    TEST_CHECK( skin.upper[0] == range.lower[0]+nghost[0]-1 );
+
+    TEST_CHECK( skin.lower[1] == range.lower[1] );
+    TEST_CHECK( skin.upper[1] == range.upper[1] );
+
+    TEST_CHECK( ghost.lower[0] == ext_range.lower[0] );
+    TEST_CHECK( ghost.upper[0] == ext_range.lower[0]+nghost[0]-1 );
+
+    TEST_CHECK( ghost.lower[1] == range.lower[1] );
+    TEST_CHECK( ghost.upper[1] == range.upper[1] );  
+
+    TEST_CHECK( skin.volume == ghost.volume );
+  } while (0);
+
+  do {
+    struct gkyl_range skin, ghost;
+    gkyl_skin_ghost_ranges(&skin, &ghost, 0, GKYL_UPPER_EDGE, &ext_range, nghost);
+
+    TEST_CHECK( skin.lower[0] == range.upper[0]-nghost[0]+1);
+    TEST_CHECK( skin.upper[0] == range.upper[0] );
+
+    TEST_CHECK( skin.lower[1] == range.lower[1] );
+    TEST_CHECK( skin.upper[1] == range.upper[1] );
+
+    TEST_CHECK( ghost.lower[0] == range.upper[0]+1 );
+    TEST_CHECK( ghost.upper[0] == range.upper[0]+nghost[0] );
+
+    TEST_CHECK( ghost.lower[1] == range.lower[1] );
+    TEST_CHECK( ghost.upper[1] == range.upper[1] );  
+
+    TEST_CHECK( skin.volume == ghost.volume );
   } while (0);  
+}
+
+static void
+test_skin_ghost_with_corners(void)
+{
+  struct gkyl_range rng;
+  gkyl_range_init(&rng, 2, (int[]) { 2, 3 }, (int[]) { 100, 85 });
+
+  int nghost[] = { 2, 3 };
+  
+  struct gkyl_range range, ext_range;
+  gkyl_create_ranges(&rng, nghost, &ext_range, &range);
+
+  do {
+    struct gkyl_range skin, ghost;
+    gkyl_skin_ghost_with_corners_ranges(&skin, &ghost, 0, GKYL_LOWER_EDGE, &ext_range, nghost);
+
+    TEST_CHECK( skin.lower[0] == range.lower[0] );
+    TEST_CHECK( skin.upper[0] == range.lower[0]+nghost[0]-1 );
+
+    TEST_CHECK( skin.lower[1] == ext_range.lower[1] );
+    TEST_CHECK( skin.upper[1] == ext_range.upper[1] );
+
+    TEST_CHECK( ghost.lower[0] == ext_range.lower[0] );
+    TEST_CHECK( ghost.upper[0] == ext_range.lower[0]+nghost[0]-1);
+
+    TEST_CHECK( ghost.lower[1] == ext_range.lower[1] );
+    TEST_CHECK( ghost.upper[1] == ext_range.upper[1] );  
+
+    TEST_CHECK( skin.volume == ghost.volume );
+  } while (0);
+
+  do {
+    struct gkyl_range skin, ghost;
+    gkyl_skin_ghost_with_corners_ranges(&skin, &ghost, 0, GKYL_UPPER_EDGE, &ext_range, nghost);
+
+    TEST_CHECK( skin.lower[0] == range.upper[0]-nghost[0]+1 );
+    TEST_CHECK( skin.upper[0] == range.upper[0] );
+
+    TEST_CHECK( skin.lower[1] == ext_range.lower[1] );
+    TEST_CHECK( skin.upper[1] == ext_range.upper[1] );
+
+    TEST_CHECK( ghost.lower[0] == ext_range.upper[0]-nghost[0]+1 );
+    TEST_CHECK( ghost.upper[0] == ext_range.upper[0] );
+
+    TEST_CHECK( ghost.lower[1] == ext_range.lower[1] );
+    TEST_CHECK( ghost.upper[1] == ext_range.upper[1] );
+
+    TEST_CHECK( skin.volume == ghost.volume );
+  } while (0);
 }
 
 // CUDA specific tests
@@ -1195,7 +1296,9 @@ TEST_LIST = {
   { "intersect_2", test_intersect_2 },
   { "sub_intersect", test_sub_intersect },
   { "extend", test_extend },
-  { "perp_extend", test_perp_extend },  
+  { "perp_extend", test_perp_extend },
+  { "skin_ghost", test_skin_ghost },
+  { "skin_ghost_with_corners", test_skin_ghost_with_corners },
 #ifdef GKYL_HAVE_CUDA
   { "cu_range", test_cu_range },
 #endif  
