@@ -196,7 +196,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "advect",
+    .name = "advect_wv",
 
     .ndim = 1,
     .lower = { -0.5 * ctx.Lx },
