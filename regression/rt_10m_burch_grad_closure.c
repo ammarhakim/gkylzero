@@ -468,7 +468,8 @@ main(int argc, char **argv)
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
       {
         .decomp = decomp,
-        .use_gpu = app_args.use_gpu
+        .use_gpu = app_args.use_gpu,
+        .sync_corners = true
       }
     );
   }
@@ -476,7 +477,8 @@ main(int argc, char **argv)
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp)
     {
       .decomp = decomp,
-      .use_gpu = app_args.use_gpu
+      .use_gpu = app_args.use_gpu,
+      .sync_corners = true
     }
   );
 #endif

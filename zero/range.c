@@ -327,6 +327,20 @@ gkyl_range_extend(struct gkyl_range *erng,
 }
 
 void
+gkyl_range_perp_extend(struct gkyl_range *erng, int dir,
+  const struct gkyl_range* rng, const int *elo, const int *eup)
+{
+  int ndim = rng->ndim;
+  int elo_p[GKYL_MAX_DIM] = {0}, eup_p[GKYL_MAX_DIM] = {0};
+  for (int i=0; i<ndim; ++i) {
+    elo_p[i] = elo[i];
+    eup_p[i] = eup[i];
+  }
+  elo_p[dir] = 0; eup_p[dir] = 0;
+  gkyl_range_extend(erng, rng, elo_p, eup_p);
+}
+
+void
 gkyl_range_lower_skin(struct gkyl_range *rng,
   const struct gkyl_range* range, int dir, int nskin)
 {

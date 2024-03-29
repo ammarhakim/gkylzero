@@ -258,8 +258,6 @@ moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
   for (int d=0; d<num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
 
-  if (ndim == 2)
-    moment_apply_periodic_corner_sync_2d(app, f); // TODO: SHOULD BE IN PER_SYNC
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
       // handle non-wedge BCs
