@@ -483,21 +483,24 @@ main(int argc, char **argv)
   if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
+        .decomp = decomp,
+        .sync_corners = true
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
-        .use_gpu = app_args.use_gpu
+        .use_gpu = app_args.use_gpu,
+        .sync_corners = true
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp,
-      .use_gpu = app_args.use_gpu
+      .use_gpu = app_args.use_gpu,
+      .sync_corners = true
     }
   );
 #endif
