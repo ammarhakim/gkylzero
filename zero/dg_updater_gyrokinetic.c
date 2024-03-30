@@ -59,10 +59,7 @@ gkyl_dg_updater_gyrokinetic_advance(struct gkyl_dg_updater_gyrokinetic *gyrokine
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (gyrokinetic->use_gpu)
-    gkyl_hyper_dg_advance_cu(gyrokinetic->up_gyrokinetic, update_rng, fIn, cflrate, rhs);
-  else 
-    gkyl_hyper_dg_advance(gyrokinetic->up_gyrokinetic, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(gyrokinetic->up_gyrokinetic, update_rng, fIn, cflrate, rhs);
   gyrokinetic->gyrokinetic_tm += gkyl_time_diff_now_sec(wst);
 }
 

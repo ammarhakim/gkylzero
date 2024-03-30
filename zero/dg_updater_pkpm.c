@@ -61,17 +61,11 @@ gkyl_dg_updater_pkpm_advance(gkyl_dg_updater_pkpm *pkpm,
   struct gkyl_array* GKYL_RESTRICT rhs_f, struct gkyl_array* GKYL_RESTRICT rhs_fluid)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (pkpm->use_gpu) 
-    gkyl_hyper_dg_advance_cu(pkpm->up_vlasov, update_phase_rng, fIn, cflrate_f, rhs_f);
-  else 
-    gkyl_hyper_dg_advance(pkpm->up_vlasov, update_phase_rng, fIn, cflrate_f, rhs_f);
+  gkyl_hyper_dg_advance(pkpm->up_vlasov, update_phase_rng, fIn, cflrate_f, rhs_f);
   pkpm->vlasov_tm += gkyl_time_diff_now_sec(wst);
 
   wst = gkyl_wall_clock();
-  if (pkpm->use_gpu) 
-    gkyl_hyper_dg_advance_cu(pkpm->up_fluid, update_conf_rng, fluidIn, cflrate_fluid, rhs_fluid);
-  else
-    gkyl_hyper_dg_advance(pkpm->up_fluid, update_conf_rng, fluidIn, cflrate_fluid, rhs_fluid);
+  gkyl_hyper_dg_advance(pkpm->up_fluid, update_conf_rng, fluidIn, cflrate_fluid, rhs_fluid);
   pkpm->fluid_tm += gkyl_time_diff_now_sec(wst);
 }
 

@@ -58,10 +58,7 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (fluid->use_gpu)
-    gkyl_hyper_dg_advance_cu(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
-  else
-    gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
   fluid->fluid_tm += gkyl_time_diff_now_sec(wst);
 }
 

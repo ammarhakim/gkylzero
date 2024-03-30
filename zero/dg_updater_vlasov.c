@@ -67,10 +67,7 @@ gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (vlasov->use_gpu)
-    gkyl_hyper_dg_advance_cu(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
-  else 
-    gkyl_hyper_dg_advance(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
   vlasov->vlasov_tm += gkyl_time_diff_now_sec(wst);
 }
 

@@ -60,14 +60,7 @@ gkyl_dg_updater_diffusion_vlasov_advance(struct gkyl_dg_updater_diffusion_vlasov
   struct timespec wst = gkyl_wall_clock();
   // Set arrays needed and call the specific advance method required
   gkyl_dg_diffusion_vlasov_set_auxfields(up->dgeqn, (struct gkyl_dg_diffusion_vlasov_auxfields) { .D = coeff });
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu)
-    gkyl_hyper_dg_advance_cu(up->hyperdg, update_rng, fIn, cflrate, rhs);
-  else
-    gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
-#else
   gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
-#endif
   up->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
 

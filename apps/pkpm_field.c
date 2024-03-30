@@ -311,10 +311,7 @@ pkpm_field_rhs(gkyl_pkpm_app *app, struct pkpm_field *field,
   gkyl_array_clear(rhs, 0.0);
 
   if (!field->info.is_static) {
-    if (app->use_gpu)
-      gkyl_hyper_dg_advance_cu(field->slvr, &app->local, em, field->cflrate, rhs);
-    else
-      gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+    gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
     
     gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &app->local);
 

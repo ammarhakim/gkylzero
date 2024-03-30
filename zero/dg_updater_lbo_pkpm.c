@@ -50,17 +50,11 @@ gkyl_dg_updater_lbo_pkpm_advance(struct gkyl_dg_updater_collisions *lbo,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (lbo->use_gpu) 
-    gkyl_hyper_dg_advance_cu(lbo->drag, update_rng, fIn, cflrate, rhs);
-  else
-    gkyl_hyper_dg_advance(lbo->drag, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(lbo->drag, update_rng, fIn, cflrate, rhs);
   lbo->drag_tm += gkyl_time_diff_now_sec(wst);
 
   wst = gkyl_wall_clock();
-  if (lbo->use_gpu) 
-    gkyl_hyper_dg_advance_cu(lbo->diff, update_rng, fIn, cflrate, rhs);
-  else
-    gkyl_hyper_dg_advance(lbo->diff, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(lbo->diff, update_rng, fIn, cflrate, rhs);
   lbo->diff_tm += gkyl_time_diff_now_sec(wst);
 }
 
