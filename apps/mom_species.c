@@ -252,9 +252,6 @@ moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
   
   int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
 
-  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
-    app->periodic_dirs, f);
-  
   for (int d=0; d<num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
 
@@ -272,7 +269,11 @@ moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
           sp->bc_buffer, d, sp->lower_bc[d], sp->upper_bc[d], f);
     }
 
+  // sync interior ghost cells
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+  // sync periodic ghost cells
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
+    app->periodic_dirs, f);
 
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
