@@ -655,16 +655,7 @@ mpi_n4_per_sync_corner_2d(void)
   gkyl_range_iter_init(&iter, &local_ext);
   while (gkyl_range_iter_next(&iter)) {
     const double *d = gkyl_array_cfetch(arr, gkyl_range_idx(&local_ext, iter.idx));
-
-    if (
-      ((iter.idx[0] == 0) && (iter.idx[1] == 0)) ||
-      ((iter.idx[0] == 0) && (iter.idx[1] == 11)) ||
-      ((iter.idx[0] == 11) && (iter.idx[1] == 0)) ||
-      ((iter.idx[0] == 11) && (iter.idx[1] == 11))
-      ) {
-    }
-    else
-      TEST_CHECK( d[0] == 1.5 );
+    TEST_CHECK( d[0] == 1.5 );
   }
 
   gkyl_rect_decomp_release(decomp);

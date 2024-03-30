@@ -55,6 +55,8 @@ struct mpi_comm {
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
   long local_range_offset; // offset of the local region
 
+  bool sync_corners; // should we sync corners?
+
   struct gkyl_rect_decomp_neigh *neigh; // neighbors of local region
   struct gkyl_rect_decomp_neigh *per_neigh[GKYL_MAX_DIM]; // periodic neighbors
 
@@ -330,20 +332,20 @@ per_recv_tag(const struct gkyl_range *dir_edge,
 }
 
 static int
-array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
+per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   const struct gkyl_range *local_ext,
-  int nper_dirs, const int *per_dirs, struct gkyl_array *array)
+  int nper_dirs, const int *per_dirs, struct gkyl_array *array, bool use_corners)
 {
   struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);
 
   if (!mpi->touches_any_edge) return 0; // nothing to sync
 
-  int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
+  int nghost[GKYL_MAX_DIM];
   for (int i=0; i<mpi->decomp->ndim; ++i)
-    elo[i] = eup[i] = local_ext->upper[i]-local->upper[i];
+    nghost[i] = local_ext->upper[i]-local->upper[i];
 
   int nridx = 0;
-  int shift_sign[] = { -1, 1 };
+  int edge_type[] = { GKYL_LOWER_EDGE, GKYL_UPPER_EDGE };
 
   // post nonblocking recv to get data into ghost-cells
   for (int i=0; i<nper_dirs; ++i) {
@@ -351,20 +353,21 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 
     for (int e=0; e<2; ++e) {
       if (mpi->is_on_edge[e][dir]) {
-        int delta[GKYL_MAX_DIM] = { 0 };
-        delta[dir] = shift_sign[e]*gkyl_range_shape(&mpi->decomp->parent_range, dir);
 
         for (int pn=0; pn<mpi->per_neigh[dir]->num_neigh; ++pn) {
           int nid = mpi->per_neigh[dir]->neigh[pn];
 
-          struct gkyl_range neigh_shift;
-          gkyl_range_shift(&neigh_shift, &mpi->decomp->ranges[nid], delta);
+          struct gkyl_range skin;
+          if (use_corners)
+            gkyl_skin_ghost_with_corners_ranges(&skin, &mpi->recv[nridx].range, dir, edge_type[e],
+              local_ext, nghost);
+          else
+            gkyl_skin_ghost_ranges(&skin, &mpi->recv[nridx].range, dir, edge_type[e],
+              local_ext, nghost);
 
-          int isrecv = gkyl_sub_range_intersect(
-            &mpi->recv[nridx].range, local_ext, &neigh_shift);
           size_t recv_vol = array->esznc*mpi->recv[nridx].range.volume;
 
-          if (isrecv) {
+          if (recv_vol>0) {
             if (gkyl_mem_buff_size(mpi->recv[nridx].buff) < recv_vol)
               gkyl_mem_buff_resize(mpi->recv[nridx].buff, recv_vol);
 
@@ -387,22 +390,21 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 
     for (int e=0; e<2; ++e) {
       if (mpi->is_on_edge[e][dir]) {
-        int delta[GKYL_MAX_DIM] = { 0 };
-        delta[dir] = shift_sign[e]*gkyl_range_shape(&mpi->decomp->parent_range, dir);
 
         for (int pn=0; pn<mpi->per_neigh[dir]->num_neigh; ++pn) {
           int nid = mpi->per_neigh[dir]->neigh[pn];
 
-          struct gkyl_range neigh_shift, neigh_shift_ext;
-          gkyl_range_shift(&neigh_shift, &mpi->decomp->ranges[nid], delta);
-          gkyl_range_extend(&neigh_shift_ext, &neigh_shift, elo, eup);
-
-          int issend = gkyl_sub_range_intersect(
-            &mpi->send[nsidx].range, local, &neigh_shift_ext);
+          struct gkyl_range ghost;
+          if (use_corners)
+            gkyl_skin_ghost_with_corners_ranges(&mpi->send[nsidx].range, &ghost, dir, edge_type[e],
+              local_ext, nghost);
+          else
+            gkyl_skin_ghost_ranges(&mpi->send[nsidx].range, &ghost, dir, edge_type[e],
+              local_ext, nghost);          
 
           size_t send_vol = array->esznc*mpi->send[nsidx].range.volume;
 
-          if (issend) {
+          if (send_vol>0) {
             if (gkyl_mem_buff_size(mpi->send[nsidx].buff) < send_vol)
               gkyl_mem_buff_resize(mpi->send[nsidx].buff, send_vol);
             
@@ -441,6 +443,19 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   }
 
   mpi->nrecv = nridx > mpi->nrecv ? nridx : mpi->nrecv;
+  
+  return 0;
+}
+
+static int
+array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
+  int nper_dirs, const int *per_dirs, struct gkyl_array *array)
+{
+  struct mpi_comm *mpi = container_of(comm, struct mpi_comm, base);  
+  per_sync(comm, local, local_ext, nper_dirs, per_dirs, array, false);
+  if (mpi->sync_corners)
+    per_sync(comm, local, local_ext, nper_dirs, per_dirs, array, true);
   
   return 0;
 }
@@ -656,6 +671,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
 {
   struct mpi_comm *mpi = gkyl_malloc(sizeof *mpi);
   mpi->mcomm = inp->mpi_comm;
+  mpi->sync_corners = inp->sync_corners;
 
   mpi->has_decomp = false;
   // In case this mpi_comm purely an object holding an MPI_Comm,
@@ -671,8 +687,11 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   
     mpi->neigh = gkyl_rect_decomp_calc_neigh(mpi->decomp, inp->sync_corners, rank);
     for (int d=0; d<mpi->decomp->ndim; ++d)
+      // NOTE: we are not computing corner periodic neighbors as the
+      // corner syncs are handled by two calls to periodic sync method
+      // instead
       mpi->per_neigh[d] =
-        gkyl_rect_decomp_calc_periodic_neigh(mpi->decomp, d, inp->sync_corners, rank);
+        gkyl_rect_decomp_calc_periodic_neigh(mpi->decomp, d, false, rank);
   
     gkyl_range_init(&mpi->dir_edge, 2, (int[]) { 0, 0 }, (int[]) { GKYL_MAX_DIM, 2 });
   
