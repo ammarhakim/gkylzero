@@ -58,7 +58,8 @@ gkyl_hyper_dg_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_range update_ran
       gkyl_copy_int_arr(ndim, idxc, idxl);
       gkyl_copy_int_arr(ndim, idxc, idxr);
       // TODO: fix for arbitrary subrange
-      if (hdg->zero_flux_flags[dir] && (idxc[dir] == update_range.lower[dir] || idxc[dir] == update_range.upper[dir])) {
+      if ((hdg->zero_flux_flags[dir]      && idxc[dir] == update_range.lower[dir]) ||
+          (hdg->zero_flux_flags[dir+ndim] && idxc[dir] == update_range.upper[dir])) {
         edge = (idxc[dir] == update_range.lower[dir]) ? -1 : 1;
         // use idxl to store interior edge index (first index away from skin cell)
         idxl[dir] = idxl[dir]-edge;
@@ -116,7 +117,7 @@ gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term)
 gkyl_hyper_dg*
 gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[2*GKYL_MAX_DIM],
   int update_vol_term)
 {
   gkyl_hyper_dg *up = (gkyl_hyper_dg*) gkyl_malloc(sizeof(gkyl_hyper_dg));
@@ -128,7 +129,8 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid,
 
   for (int i=0; i<num_up_dirs; ++i)
     up->update_dirs[i] = update_dirs[i];
-  for (int i=0; i<GKYL_MAX_DIM; ++i)
+
+  for (int i=0; i<2*GKYL_MAX_DIM; ++i)
     up->zero_flux_flags[i] = zero_flux_flags[i];
     
   up->update_vol_term = update_vol_term;

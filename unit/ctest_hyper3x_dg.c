@@ -67,7 +67,7 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   // initialize hyper_dg slvr 
   // FIELD_NULL so only configuration space update, no velocity space update
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
-  int zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
+  int zero_flux_flags[2*GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
   int num_up_dirs = cdim; 
 
   gkyl_hyper_dg *slvr;

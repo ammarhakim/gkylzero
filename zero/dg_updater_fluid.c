@@ -38,10 +38,10 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
   }
 
   int cdim = cbasis->ndim;
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
+  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[2*GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
     up_dirs[d] = d;
-    zero_flux_flags[d] = 0;
+    zero_flux_flags[d] = zero_flux_flags[d+cdim] = 0;
   }
   int num_up_dirs = cdim;
 

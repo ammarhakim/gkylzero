@@ -34,9 +34,9 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid,
   for (int d=0; d<vdim; ++d)
     up_dirs[d] = d + phase_basis->ndim - vdim;
 
-  int zero_flux_flags[GKYL_MAX_DIM] = { 0 };
+  int zero_flux_flags[2*GKYL_MAX_DIM] = { 0 };
   for (int d=cdim; d<pdim; ++d)
-    zero_flux_flags[d] = 1;
+    zero_flux_flags[d] = zero_flux_flags[d+pdim] = 1;
   
   up->drag = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
   up->diff = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);

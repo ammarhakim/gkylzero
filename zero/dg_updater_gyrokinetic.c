@@ -37,11 +37,11 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   int num_up_dirs = cdim+1;
   for (int d=0; d<num_up_dirs; ++d) up_dirs[d] = d;
 
-  int zero_flux_flags[GKYL_MAX_DIM] = {0};
+  int zero_flux_flags[2*GKYL_MAX_DIM] = {0};
   for (int d=0; d<cdim; ++d)
-    zero_flux_flags[d] = is_zero_flux_dir[d]? 1 : 0;
+    zero_flux_flags[d] = zero_flux_flags[d+pdim] = is_zero_flux_dir[d]? 1 : 0;
   for (int d=cdim; d<pdim; ++d)
-    zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
+    zero_flux_flags[d] = zero_flux_flags[d+pdim] = 1; // zero-flux BCs in vel-space
 
   up->up_gyrokinetic = gkyl_hyper_dg_new(grid, pbasis, up->eqn_gyrokinetic,
     num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);

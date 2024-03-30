@@ -70,8 +70,8 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *hdg, const struct gkyl_range *update
       int dir = hdg->update_dirs[d];
       double cfls = 0.0;
       // Assumes update_range owns lower and upper edges of the domain
-      if (hdg->zero_flux_flags[dir] &&
-        (idxc[dir] == update_range->lower[dir] || idxc[dir] == update_range->upper[dir]) ) {
+      if ((hdg->zero_flux_flags[dir]      && idxc[dir] == update_range->lower[dir]) ||
+          (hdg->zero_flux_flags[dir+ndim] && idxc[dir] == update_range->upper[dir]) ) {
         gkyl_copy_int_arr(ndim, iter.idx, idx_edge);
         edge = (idxc[dir] == update_range->lower[dir]) ? -1 : 1;
         // idx_edge stores interior edge index (first index away from skin cell)
@@ -206,11 +206,11 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 gkyl_hyper_dg*
 gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[2*GKYL_MAX_DIM],
   int update_vol_term, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_hyper_dg_cu_dev_new(grid, basis, equation, num_up_dirs, update_dirs, zero_flux_flags, update_vol_term);
   } 
 #endif
@@ -223,7 +223,8 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
 
   for (int i=0; i<num_up_dirs; ++i)
     up->update_dirs[i] = update_dirs[i];
-  for (int i=0; i<GKYL_MAX_DIM; ++i)
+
+  for (int i=0; i<2*GKYL_MAX_DIM; ++i)
     up->zero_flux_flags[i] = zero_flux_flags[i];
     
   up->update_vol_term = update_vol_term;

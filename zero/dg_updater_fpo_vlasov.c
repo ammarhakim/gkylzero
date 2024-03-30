@@ -28,9 +28,9 @@ gkyl_dg_updater_fpo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
   for (int d=0; d<vdim; ++d)
     up_dirs[d] = d + pbasis->ndim - vdim;
 
-  int zero_flux_flags[GKYL_MAX_DIM] = { 0 };
+  int zero_flux_flags[2*GKYL_MAX_DIM] = { 0 };
   for (int d=cdim; d<pdim; ++d)
-    zero_flux_flags[d] = 1;
+    zero_flux_flags[d] = zero_flux_flags[d+pdim] = 1;
   
   up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
   up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);

@@ -11,7 +11,7 @@ struct gkyl_hyper_dg {
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
   // zero_flux_flags[d] == 1 means zero-flux BC in 'd'
-  int zero_flux_flags[GKYL_MAX_DIM];
+  int zero_flux_flags[2*GKYL_MAX_DIM];
   int update_vol_term; // should we update volume term?
   const struct gkyl_dg_eqn *equation; // equation object
 

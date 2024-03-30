@@ -122,7 +122,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   struct gkyl_dg_eqn *eqn;
   eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf, app->use_gpu);
 
-  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2*GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
 
   // Maxwell solver
   f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,

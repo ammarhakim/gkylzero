@@ -28,19 +28,19 @@ gkyl_dg_updater_pkpm_new(const struct gkyl_rect_grid *conf_grid, const struct gk
 
   int cdim = conf_basis->ndim, pdim = phase_basis->ndim;
   int vdim = pdim-cdim;
-  int up_dirs_conf[GKYL_MAX_DIM], zero_flux_flags_conf[GKYL_MAX_DIM];
-  int up_dirs_phase[GKYL_MAX_DIM], zero_flux_flags_phase[GKYL_MAX_DIM];
+  int up_dirs_conf[GKYL_MAX_DIM], zero_flux_flags_conf[2*GKYL_MAX_DIM];
+  int up_dirs_phase[GKYL_MAX_DIM], zero_flux_flags_phase[2*GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
     up_dirs_conf[d] = d;
     up_dirs_phase[d] = d;
-    zero_flux_flags_conf[d] = is_zero_flux_dir[d] ? 1 : 0;
-    zero_flux_flags_phase[d] = is_zero_flux_dir[d] ? 1 : 0;
+    zero_flux_flags_conf[d] = zero_flux_flags_conf[d+cdim] = is_zero_flux_dir[d] ? 1 : 0;
+    zero_flux_flags_phase[d] = zero_flux_flags_phase[d+pdim] = is_zero_flux_dir[d] ? 1 : 0;
   }
   int num_up_dirs_conf = cdim;
 
   for (int d=cdim; d<pdim; ++d) {
     up_dirs_phase[d] = d;
-    zero_flux_flags_phase[d] = 1; // zero-flux BCs in vel-space
+    zero_flux_flags_phase[d] = zero_flux_flags_phase[d+pdim] = 1; // zero-flux BCs in vel-space
   }
   int num_up_dirs_phase = pdim;
 

@@ -18,13 +18,13 @@ typedef struct gkyl_hyper_dg gkyl_hyper_dg;
  * @param equation Equation object
  * @param num_up_dirs Number of directions to update
  * @param update_dirs List of directions to update (size 'num_up_dirs')
- * @param zero_flux_flags Flags to indicate if direction has zero-flux BCs
+ * @param zero_flux_flags[2*GKYL_MAX_DIM] Flags to indicate if boundary has zero-flux BCs
  * @param update_vol_term Set to 0 to skip volume update
  * @param use_gpu bool to determine if on GPU
  */
 gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[2*GKYL_MAX_DIM],
   int update_vol_term, bool use_gpu);
 
 /**
@@ -35,12 +35,12 @@ gkyl_hyper_dg* gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
  * @param equation Equation object
  * @param num_up_dirs Number of directions to update
  * @param update_dirs List of directions to update (size 'num_up_dirs')
- * @param zero_flux_flags Flags to indicate if direction has zero-flux BCs
+ * @param zero_flux_flags[2*GKYL_MAX_DIM] Flags to indicate if boundary has zero-flux BCs
  * @param update_vol_term Set to 0 to skip volume update
  */
 gkyl_hyper_dg* gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[2*GKYL_MAX_DIM],
   int update_vol_term);
 
 /**
