@@ -676,12 +676,12 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   int frame = 0;
   double t_curr = 0.0, t_end = ctx.t_end;
-  double dt = t_end-t_curr;
   int nframe = ctx.num_frames;
   if (app_args.is_restart) {
     frame = app_args.restart_frame;
     t_curr = ctx.t_end * (double) app_args.restart_frame/ (double) ctx.num_frames;
   }
+  double dt = t_end-t_curr;
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = t_end/nframe, .tcurr = t_curr, .curr=frame };
 
