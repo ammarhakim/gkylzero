@@ -111,10 +111,11 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
     s->info.charge, s->info.mass, s->gkmodel_id, app->gk_geom, app->use_gpu);
 
   // by default, we do not have zero-flux boundary conditions in any direction
-  bool is_zero_flux[GKYL_MAX_DIM] = {false};
+  bool is_zero_flux[2*GKYL_MAX_DIM] = {false};
 
-  // determine which directions are not periodic, if any directions are zero-flux, need to set is_zero_flux
-  // keep a copy of num_periodic_dir and periodic_dirs in species so we can
+  // Determine which directions are not periodic. If any BCs are zero-flux,
+  // need to set it in is_zero_flux.
+  // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.
   s->num_periodic_dir = app->num_periodic_dir;
   for (int d=0; d<s->num_periodic_dir; ++d)
@@ -137,9 +138,11 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
 
       s->lower_bc[dir] = bc->lower;
       s->upper_bc[dir] = bc->upper;
-      if (s->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX || s->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
-        // Zero flux BCs can only be applied jointly on lower and upper boundary
+      if (s->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
         is_zero_flux[dir] = true;
+      }
+      else if (s->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+        is_zero_flux[dir+pdim] = true;
       }
       else if (s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL || s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) {
         // Make the parallel direction periodic so that we sync the core before
@@ -429,10 +432,6 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
           break;
-        case GKYL_SPECIES_NO_SLIP:
-        case GKYL_SPECIES_WEDGE:
-          assert(false);
-          break;
         case GKYL_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
           break;
@@ -453,10 +452,6 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
           break;
         case GKYL_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
-          break;
-        case GKYL_SPECIES_NO_SLIP:
-        case GKYL_SPECIES_WEDGE:
-          assert(false);
           break;
         case GKYL_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux

@@ -13,9 +13,13 @@ struct null_comm {
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
 
   bool use_gpu; // flag to use if this communicator is on GPUs
+  bool sync_corners; // should we sync corners?
+  
   struct gkyl_range grange; // range to "hash" ghost layout
-  cmap_l2sgr l2sgr; // map from long -> skin_ghost_ranges
 
+  cmap_l2sgr l2sgr; // map from long -> skin_ghost_ranges
+  cmap_l2sgr l2sgr_wc; // map from long -> skin_ghost_ranges with corners
+  
   gkyl_mem_buff pbuff; // CUDA buffer for periodic BCs
 };
 
@@ -26,6 +30,7 @@ comm_free(const struct gkyl_ref_count *ref)
   struct null_comm *null_comm = container_of(comm, struct null_comm, base);
 
   cmap_l2sgr_drop(&null_comm->l2sgr);
+  cmap_l2sgr_drop(&null_comm->l2sgr_wc);
   if (null_comm->decomp)
     gkyl_rect_decomp_release(null_comm->decomp);
   gkyl_mem_buff_release(null_comm->pbuff);
@@ -107,7 +112,7 @@ apply_periodic_bc(const struct skin_ghost_ranges *sgr, char *data,
 }
 
 static int
-array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
+array_per_no_corners_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   const struct gkyl_range *local_ext,
   int nper_dirs, const int *per_dirs, struct gkyl_array *array)
 {
@@ -135,6 +140,52 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
 
   for (int d=0; d<nper_dirs; ++d)
     apply_periodic_bc(&val->second, data, per_dirs[d], array);
+
+  return 0;
+}
+
+static int
+array_per_with_corners_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
+  int nper_dirs, const int *per_dirs, struct gkyl_array *array)
+{
+  struct null_comm *null_comm = container_of(comm, struct null_comm, base);
+
+  int nghost[GKYL_MAX_DIM];
+  for (int d=0; d<null_comm->decomp->ndim; ++d)
+    nghost[d] = local_ext->upper[d]-local->upper[d];
+  
+  long lkey = gkyl_range_idx(&null_comm->grange, nghost);
+
+  if (!cmap_l2sgr_contains(&null_comm->l2sgr_wc, lkey)) {
+    struct skin_ghost_ranges sgr;
+    skin_ghost_ranges_with_corners_init(&sgr, local_ext, nghost);
+    cmap_l2sgr_insert(&null_comm->l2sgr_wc, lkey, sgr);
+  }
+
+  const cmap_l2sgr_value *val = cmap_l2sgr_get(&null_comm->l2sgr_wc, lkey);
+  long max_vol_esnz = val->second.max_vol*array->esznc;
+  
+  if (max_vol_esnz > gkyl_mem_buff_size(null_comm->pbuff))
+    gkyl_mem_buff_resize(null_comm->pbuff, max_vol_esnz);
+
+  char *data = gkyl_mem_buff_data(null_comm->pbuff);
+
+  for (int d=0; d<nper_dirs; ++d)
+    apply_periodic_bc(&val->second, data, per_dirs[d], array);
+
+  return 0;
+}
+
+static int
+array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
+  int nper_dirs, const int *per_dirs, struct gkyl_array *array)
+{
+  struct null_comm *null_comm = container_of(comm, struct null_comm, base);  
+  array_per_no_corners_sync(comm, local, local_ext, nper_dirs, per_dirs, array);
+  if (null_comm->sync_corners)
+    array_per_with_corners_sync(comm, local, local_ext, nper_dirs, per_dirs, array);
 
   return 0;
 }
@@ -176,7 +227,8 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, null_comm->decomp);
   struct gkyl_comm *ext_comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = ext_decomp,
-      .use_gpu = null_comm->use_gpu
+      .use_gpu = null_comm->use_gpu,
+      .sync_corners = null_comm->sync_corners
     }
   );
   gkyl_rect_decomp_release(ext_decomp);
@@ -197,7 +249,9 @@ gkyl_null_comm_inew(const struct gkyl_null_comm_inp *inp)
   gkyl_range_init(&comm->grange, inp->decomp->ndim, lower, upper);
 
   comm->use_gpu = inp->use_gpu;
+  comm->sync_corners = inp->sync_corners;
   comm->l2sgr = cmap_l2sgr_init();
+  comm->l2sgr_wc = cmap_l2sgr_init();
 
   if (comm->use_gpu)
     comm->pbuff = gkyl_mem_buff_cu_new(1024); // will be reallocated
@@ -228,6 +282,7 @@ gkyl_null_comm_new(void)
   struct gkyl_comm *comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = 0,
       .use_gpu = false,
+      .sync_corners = false
     }
   );
 
