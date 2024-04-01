@@ -137,7 +137,7 @@ create_ctx(void)
   double Lv_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_ion = (3.0 / 2.0) * 0.5 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
   double t_end = 6.0e-6; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  int num_frames = 2; // Number of output frames.
   
   struct sheath_ctx ctx = {
     .pi = pi,
@@ -674,21 +674,51 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
   // Initial and final simulation times.
+  int frame = 0;
   double t_curr = 0.0, t_end = ctx.t_end;
+  double dt = t_end-t_curr;
+  int nframe = ctx.num_frames;
+  if (app_args.is_restart) {
+    frame = app_args.restart_frame;
+    t_curr = ctx.t_end * (double) app_args.restart_frame/ (double) ctx.num_frames;
+  }
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = t_end/nframe, .tcurr = t_curr, .curr=frame };
 
-  // Create trigger for IO.
-  int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
-  // Initialize simulation.
-  gkyl_gyrokinetic_app_apply_ic(app, t_curr);
-  write_data(&io_trig, app, t_curr);
+  // initialize simulation
+  struct gkyl_app_restart_status status;  
+  if (app_args.is_restart) {
+    printf("Restarting from frame %d at time = %g\n", frame, t_curr);
+    for ( int i = 0; i<app_inp.num_species; i++) {
+      status = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
+    }
+    for ( int i = 0; i<app_inp.num_neut_species; i++) {
+      status = gkyl_gyrokinetic_app_from_frame_neut_species(app, i, frame);
+    }
+    gkyl_gyrokinetic_app_from_frame_field(app, frame);
 
-  gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-  gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_gyrokinetic_app_cout(app, stderr,
+        "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status)
+      );
+      goto freeresources;
+    }
 
-  // Compute initial guess of maximum stable time-step.
-  double dt = t_end - t_curr;
+    status.frame = frame;
+    status.stime = t_curr;
+
+    write_data(&io_trig, app, t_curr);
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+  }
+  else {
+    gkyl_gyrokinetic_app_apply_ic(app, t_curr);
+    write_data(&io_trig, app, t_curr);
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+  }  
 
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
@@ -738,6 +768,7 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
+  freeresources:
   // Free resources after simulation completion.
   gkyl_gyrokinetic_app_release(app);
   gkyl_rect_decomp_release(decomp);
