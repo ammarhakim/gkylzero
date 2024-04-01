@@ -2055,6 +2055,8 @@ gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
       gkyl_array_copy(gk_s->f, gk_s->f_host);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
       gk_species_apply_bc(app, gk_s, gk_s->f);
+      if (gk_s->source_id)
+        gk_species_source_calc(app, gk_s, &gk_s->src, 0.0);
     }
   }
 
