@@ -253,7 +253,7 @@ calc_neigh_no_corners(const struct gkyl_rect_decomp *decomp, int nidx)
             gkyl_range_edge_match(&decomp->ranges[nidx], &decomp->ranges[i]);
           
           cvec_int_push_back(&cont->l_dir, dir_ed.dir);
-          cvec_int_push_back(&cont->l_edge, dir_ed.eloc);          
+          cvec_int_push_back(&cont->l_edge, dir_ed.eloc);
         }
       }
   }
