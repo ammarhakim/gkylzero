@@ -195,8 +195,8 @@ evalSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
   struct sheath_ctx *app = ctx;
   double z = xn[0];
 
-  double n_src = app -> n_src;
-  double Lz = app -> Lz;
+  double n_src = app->n_src;
+  double Lz = app->Lz;
 
   double n = 0.0;
 
@@ -223,7 +223,7 @@ evalSourceTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
 {
   struct sheath_ctx *app = ctx;
 
-  double T_src = app -> T_src;
+  double T_src = app->T_src;
 
   // Set source temperature.
   fout[0] = T_src;
@@ -235,8 +235,8 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct sheath_ctx *app = ctx;
   double z = xn[0];
 
-  double n_peak = app -> n_peak;
-  double Lz = app -> Lz;
+  double n_peak = app->n_peak;
+  double Lz = app->Lz;
 
   double n = 0.0;
 
@@ -263,7 +263,7 @@ evalTempElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct sheath_ctx *app = ctx;
 
-  double Te = app -> Te;
+  double Te = app->Te;
 
   // Set electron temperature.
   fout[0] = Te;
@@ -274,7 +274,7 @@ evalTempIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct sheath_ctx *app = ctx;
 
-  double Ti = app -> Ti;
+  double Ti = app->Ti;
 
   // Set ion temperature.
   fout[0] = Ti;
@@ -285,7 +285,7 @@ evalNuElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct sheath_ctx *app = ctx;
 
-  double nu_elc = app -> nu_elc;
+  double nu_elc = app->nu_elc;
 
   // Set electron collision frequency.
   fout[0] = nu_elc;
@@ -296,7 +296,7 @@ evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct sheath_ctx *app = ctx;
 
-  double nu_ion = app -> nu_ion;
+  double nu_ion = app->nu_ion;
 
   // Set ion collision frequency.
   fout[0] = nu_ion;
@@ -314,7 +314,7 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 {
   struct sheath_ctx *app = ctx;
 
-  double B0 = app -> B0;
+  double B0 = app->B0;
 
   // Set magnetic field strength.
   fout[0] = B0;
@@ -324,10 +324,10 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_gyrokinetic_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write(app, t_curr, iot->curr - 1);
     gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot -> curr - 1);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -584,7 +584,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

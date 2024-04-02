@@ -185,8 +185,8 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct lapd_cart_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
-  double n0 = app -> n0;
-  double L_perp = app -> L_perp;
+  double n0 = app->n0;
+  double L_perp = app->L_perp;
 
   double r = sqrt(x * x + y * y);
 
@@ -219,8 +219,8 @@ evalTempElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct lapd_cart_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
-  double Te = app -> Te;
-  double L_perp = app -> L_perp;
+  double Te = app->Te;
+  double L_perp = app->L_perp;
 
   double r = sqrt(x * x + y * y);
 
@@ -242,7 +242,7 @@ evalTempIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   struct lapd_cart_ctx *app = ctx;
 
-  double Ti = app -> Ti;
+  double Ti = app->Ti;
 
   // Set ion temperature.
   fout[0] = Ti;
@@ -254,10 +254,10 @@ evalSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
   struct lapd_cart_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
-  double r_src = app -> r_src;
-  double L_src = app -> L_src;
-  double S0 = app -> S0;
-  double floor_src = app -> floor_src;
+  double r_src = app->r_src;
+  double L_src = app->L_src;
+  double S0 = app->S0;
+  double floor_src = app->floor_src;
 
   double r = sqrt(x * x + y * y);
 
@@ -278,8 +278,8 @@ evalSourceTempElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
   struct lapd_cart_ctx *app = ctx;
   double x = xn[0], y = xn[1];
 
-  double Te_src = app -> Te_src;
-  double L_perp = app -> L_perp;
+  double Te_src = app->Te_src;
+  double L_perp = app->L_perp;
 
   double r = sqrt(x * x + y * y);
 
@@ -301,7 +301,7 @@ evalSourceTempIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
 {
   struct lapd_cart_ctx *app = ctx;
 
-  double Ti = app -> Ti;
+  double Ti = app->Ti;
 
   // Set ion source temperature.
   fout[0] = Ti;
@@ -312,7 +312,7 @@ evalNuElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct lapd_cart_ctx *app = ctx;
 
-  double nu_elc = app -> nu_elc;
+  double nu_elc = app->nu_elc;
 
   // Set electron collision frequency.
   fout[0] = nu_elc;
@@ -323,7 +323,7 @@ evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct lapd_cart_ctx *app = ctx;
 
-  double nu_ion = app -> nu_ion;
+  double nu_ion = app->nu_ion;
 
   // Set ion collision frequency.
   fout[0] = nu_ion;
@@ -341,7 +341,7 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 {
   struct lapd_cart_ctx *app = ctx;
 
-  double B0 = app -> B0;
+  double B0 = app->B0;
 
   // Set magnetic field strength.
   fout[0] = B0;
@@ -351,10 +351,10 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_gyrokinetic_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write(app, t_curr, iot->curr - 1);
     gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot -> curr - 1);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -632,7 +632,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

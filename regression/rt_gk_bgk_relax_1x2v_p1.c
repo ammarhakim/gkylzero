@@ -121,8 +121,8 @@ evalTopHatInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   struct bgk_relax_ctx *app = ctx;
   double v = xn[1];
 
-  double n0 = app -> n0;
-  double vt = app -> vt;
+  double n0 = app->n0;
+  double vt = app->vt;
 
   double v0 = sqrt(3.0) * vt;
 
@@ -145,18 +145,18 @@ evalBumpInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   struct bgk_relax_ctx *app = ctx;
   double v = xn[1], mu = xn[2];
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double B0 = app -> B0;
-  double n0 = app -> n0;
-  double u0 = app -> u0;
-  double vt = app -> vt;
+  double B0 = app->B0;
+  double n0 = app->n0;
+  double u0 = app->u0;
+  double vt = app->vt;
 
-  double ab = app -> ab;
-  double sb = app -> sb;
-  double vtb = app -> vtb;
+  double ab = app->ab;
+  double sb = app->sb;
+  double vtb = app->vtb;
 
-  double ub = app -> ub;
+  double ub = app->ub;
 
   double v_sq = ((v - u0) / (sqrt(2.0) * vt)) * ((v - u0) / (sqrt(2.0) * vt)) + mu * B0;
   double vb_sq = ((v - u0) / (sqrt(2.0) * vtb)) * ((v - u0) / (sqrt(2.0) * vtb)) + mu * B0;
@@ -170,7 +170,7 @@ evalNuInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 {
   struct bgk_relax_ctx *app = ctx;
 
-  double nu = app -> nu;
+  double nu = app->nu;
 
   // Set collision frequency.
   fout[0] = nu;
@@ -188,7 +188,7 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 {
   struct bgk_relax_ctx *app = ctx;
   
-  double B0 = app -> B0;
+  double B0 = app->B0;
 
   // Set magnetic field strength.
   fout[0] = B0;
@@ -198,9 +198,9 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_gyrokinetic_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write(app, t_curr, iot->curr - 1);
     gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -415,7 +415,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };
