@@ -9,15 +9,30 @@
 
 #include <stdbool.h>
 
-// Lower-level inputs: in general this does not need to be set by the
-// user. It is needed when the App is being created on a sub-range of
-// the global range, and is meant for use in higher-level drivers that
-// use MPI or other parallel mechanism.
-struct gkyl_vm_low_inp {
-  // local range over which App operates
-  struct gkyl_range local_range;
-  // communicator to used
-  struct gkyl_comm *comm;
+// Parameters for projection
+struct gkyl_vlasov_projection {
+  enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
+
+  union {
+    struct {
+      // pointer and context to initialization function 
+      void *ctx_func; 
+      void (*func)(double t, const double *xn, double *fout, void *ctx); 
+    };
+    struct {
+      // pointers and contexts to initialization functions for LTE distribution projection
+      // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
+      void *ctx_density;
+      void (*density)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_V_drift;
+      void (*V_drift)(double t, const double *xn, double *fout, void *ctx);
+      void *ctx_temp;
+      void (*temp)(double t, const double *xn, double *fout, void *ctx);
+
+      // boolean if we are correcting all the moments or only density
+      bool correct_all_moms;       
+    };
+  };
 };
 
 // Parameters for species collisions
@@ -33,6 +48,12 @@ struct gkyl_vlasov_collisions {
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar; // Planck's constant/2 pi 
 
+  // boolean if we are correcting all the moments or only density:
+  // only used by BGK collisions
+  bool correct_all_moms;
+  double iter_eps; // error tolerance for moment fixes (density is always exact)
+  int max_iter; // maximum number of iteration
+
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
 
@@ -46,9 +67,8 @@ struct gkyl_vlasov_source {
   double source_length; // required for boundary flux source
   char source_species[128];
   
-  void *ctx; // context for source function
-  // function for computing source profile
-  void (*profile)(double t, const double *xn, double *aout, void *ctx);
+  // sources using projection routine
+  struct gkyl_vlasov_projection projection;
 };
 
 // Parameters for fluid species source
@@ -88,9 +108,8 @@ struct gkyl_vlasov_species {
   double lower[3], upper[3]; // lower, upper bounds of velocity-space
   int cells[3]; // velocity-space cells
 
-  void *ctx; // context for initial condition init function
-  // pointer to initialization function
-  void (*init)(double t, const double *xn, double *fout, void *ctx);
+  // initial conditions using projection routine
+  struct gkyl_vlasov_projection projection;
 
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
@@ -202,7 +221,7 @@ struct gkyl_vm {
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
   bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_vm_low_inp low_inp; // low-level inputs  
+  struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
 };
 
 // Simulation statistics
@@ -410,6 +429,14 @@ void gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app);
  * @param app App object.
  */
 void gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app *app);
+
+/**
+ * Write integrated correct lte status of the species distribution function to file. Correct
+ * lte status is appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app *app);
 
 /**
  * Write field energy to file. Field energy data is appended to the

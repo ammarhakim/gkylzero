@@ -92,6 +92,14 @@ gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[], const struct gkyl_ran
   return decomp;
 }
 
+struct gkyl_rect_decomp*
+gkyl_rect_decomp_new_from_cuts_and_cells(int ndim, const int cuts[], const int cells[])
+{
+  struct gkyl_range range;
+  gkyl_create_global_range(ndim, cells, &range);
+  return gkyl_rect_decomp_new_from_cuts(ndim, cuts, &range);
+}
+
 // ext_range = a X b 
 static void
 init_extend_range(struct gkyl_range *ext_range,
@@ -253,7 +261,11 @@ gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
   const struct gkyl_range *curr = &decomp->ranges[nidx];
 
   int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
-  elo[dir] = eup[dir] = 1; // only extend in 1 direction
+  if (inc_corners)
+    for (int i=0; i<decomp->ndim; ++i)
+      elo[i] = eup[i] = 1;
+  else
+    elo[dir] = eup[dir] = 1;
   
   if (gkyl_range_is_on_lower_edge(dir, curr, &decomp->parent_range)) {
     int delta[GKYL_MAX_DIM] = { 0 };
