@@ -38,10 +38,10 @@ gkyl_dg_updater_fluid_new(const struct gkyl_rect_grid *grid,
   }
 
   int cdim = cbasis->ndim;
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
+  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[2*GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
     up_dirs[d] = d;
-    zero_flux_flags[d] = 0;
+    zero_flux_flags[d] = zero_flux_flags[d+cdim] = 0;
   }
   int num_up_dirs = cdim;
 
@@ -58,10 +58,7 @@ gkyl_dg_updater_fluid_advance(gkyl_dg_updater_fluid *fluid,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (fluid->use_gpu)
-    gkyl_hyper_dg_advance_cu(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
-  else
-    gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(fluid->up_fluid, update_rng, fluidIn, cflrate, rhs);
   fluid->fluid_tm += gkyl_time_diff_now_sec(wst);
 }
 

@@ -30,29 +30,11 @@ void gkyl_calc_sr_vars_init_p_vars(const struct gkyl_rect_grid *vgrid,
  * @param basis Basis functions used in expansions
  * @param range Range to apply division operator
  * @param V Input array which contain bulk velocity
- * @param Gamma2V Output array of the square of the Lorentz boost factor
+ * @param GammaV2 Output array of the square of the Lorentz boost factor
  */
-void gkyl_calc_sr_vars_Gamma2(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+void gkyl_calc_sr_vars_GammaV2(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* range, 
   const struct gkyl_array* V, struct gkyl_array* GammaV2);
-
-/**
- * Compute the Lorentz boost factor for a given bulk velocity, V.
- * GammaV = 1/sqrt(1 - V^2/c^2)
- * Note order of operations is designed to minimize aliasing errors
- * 1. Compute 1/(1 - V^2/c^2) using basis_exp_sq and basis_inv
- *    (see gkyl_basis_*_exp_sq.h and gkyl_basis_*_inv.h in kernels/basis/)
- * 2. Project onto quadrature points, evaluate square root point wise, 
- *    and project back onto modal basis using basis_sqrt (see gkyl_basis_*_sqrt.h in kernels/basis/)
- *
- * @param basis Basis functions used in expansions
- * @param range Range to apply division operator
- * @param V Input array which contain bulk velocity
- * @param Gamma Output array of Lorentz boost factor
- */
-void gkyl_calc_sr_vars_Gamma(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const struct gkyl_range* range, 
-  const struct gkyl_array* V, struct gkyl_array* GammaV);
 
 /**
  * Compute the inverse of the Lorentz boost factor for a given bulk velocity, V.
@@ -66,8 +48,20 @@ void gkyl_calc_sr_vars_Gamma(const struct gkyl_basis* cbasis, const struct gkyl_
  * @param basis Basis functions used in expansions
  * @param range Range to apply division operator
  * @param V Input array which contain bulk velocity
- * @param Gamma Output array of Lorentz boost factor
+ * @param GammaV_inv Output array of inverse Lorentz boost factor
  */
-void gkyl_calc_sr_vars_Gamma_inv(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+void gkyl_calc_sr_vars_GammaV_inv(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* range, 
+  const struct gkyl_array* V, struct gkyl_array* GammaV_inv);
+
+/**
+ * Host-side wrappers for sr vars operations on device
+ */
+
+void gkyl_calc_sr_vars_GammaV2_cu(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
+  const struct gkyl_range* range, 
+  const struct gkyl_array* V, struct gkyl_array* GammaV2);
+
+void gkyl_calc_sr_vars_GammaV_inv_cu(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* range, 
   const struct gkyl_array* V, struct gkyl_array* GammaV_inv);

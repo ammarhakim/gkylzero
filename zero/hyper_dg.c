@@ -11,14 +11,14 @@
 #include <gkyl_util.h>
 
 static void
-create_offsets(struct gkyl_hyper_dg *hdg, const struct gkyl_range *range, long offsets[])
+create_offsets(struct gkyl_hyper_dg *up, const struct gkyl_range *range, long offsets[])
 {
   // Construct the offsets *only* in the directions being updated.
   // No need to load the neighbors that are not needed for the update.
   int lower_offset[GKYL_MAX_DIM] = {0};
   int upper_offset[GKYL_MAX_DIM] = {0};
-  for (int d=0; d<hdg->num_up_dirs; ++d) {
-    int dir = hdg->update_dirs[d];
+  for (int d=0; d<up->num_up_dirs; ++d) {
+    int dir = up->update_dirs[d];
     lower_offset[dir] = -1;
     upper_offset[dir] = 1;
   }  
@@ -35,16 +35,29 @@ create_offsets(struct gkyl_hyper_dg *hdg, const struct gkyl_range *range, long o
 }
 
 void
-gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
+gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *up, int update_vol_term)
 {
-  hdg->update_vol_term = update_vol_term;
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_hyper_dg_set_update_vol_cu(up, update_vol_term);
+    return;
+  }
+#endif
+  up->update_vol_term = update_vol_term;
 }
 
 void
-gkyl_hyper_dg_advance(struct gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
+gkyl_hyper_dg_advance(struct gkyl_hyper_dg *up, const struct gkyl_range *update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
-  int ndim = hdg->ndim;
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_hyper_dg_advance_cu(up, update_range, fIn, cflrate, rhs);
+    return;
+  }
+#endif
+
+  int ndim = up->ndim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
   double xcl[GKYL_MAX_DIM], xcc[GKYL_MAX_DIM], xcr[GKYL_MAX_DIM], xc_edge[GKYL_MAX_DIM];
   // integer used for selecting between left-edge zero-flux BCs and right-edge zero-flux BCs
@@ -54,34 +67,34 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *hdg, const struct gkyl_range *update
   gkyl_range_iter_init(&iter, update_range);
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(ndim, iter.idx, idxc);
-    gkyl_rect_grid_cell_center(&hdg->grid, idxc, xcc);
+    gkyl_rect_grid_cell_center(&up->grid, idxc, xcc);
 
     long linc = gkyl_range_idx(update_range, idxc);
-    if (hdg->update_vol_term) {
-      double cflr = hdg->equation->vol_term(
-        hdg->equation, xcc, hdg->grid.dx, idxc,
+    if (up->update_vol_term) {
+      double cflr = up->equation->vol_term(
+        up->equation, xcc, up->grid.dx, idxc,
         gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc)
       );
       double *cflrate_d = gkyl_array_fetch(cflrate, linc);
       cflrate_d[0] += cflr; // frequencies are additive
     }
     
-    for (int d=0; d<hdg->num_up_dirs; ++d) {
-      int dir = hdg->update_dirs[d];
+    for (int d=0; d<up->num_up_dirs; ++d) {
+      int dir = up->update_dirs[d];
       double cfls = 0.0;
       // Assumes update_range owns lower and upper edges of the domain
-      if (hdg->zero_flux_flags[dir] &&
-        (idxc[dir] == update_range->lower[dir] || idxc[dir] == update_range->upper[dir]) ) {
+      if ((up->zero_flux_flags[dir]      && idxc[dir] == update_range->lower[dir]) ||
+          (up->zero_flux_flags[dir+ndim] && idxc[dir] == update_range->upper[dir]) ) {
         gkyl_copy_int_arr(ndim, iter.idx, idx_edge);
         edge = (idxc[dir] == update_range->lower[dir]) ? -1 : 1;
         // idx_edge stores interior edge index (first index away from skin cell)
         idx_edge[dir] = idx_edge[dir]-edge;
 
-        gkyl_rect_grid_cell_center(&hdg->grid, idx_edge, xc_edge);
+        gkyl_rect_grid_cell_center(&up->grid, idx_edge, xc_edge);
         long lin_edge = gkyl_range_idx(update_range, idx_edge);
 
-        cfls = hdg->equation->boundary_surf_term(hdg->equation,
-          dir, xc_edge, xcc, hdg->grid.dx, hdg->grid.dx,
+        cfls = up->equation->boundary_surf_term(up->equation,
+          dir, xc_edge, xcc, up->grid.dx, up->grid.dx,
           idx_edge, idxc, edge,
           gkyl_array_cfetch(fIn, lin_edge), gkyl_array_cfetch(fIn, linc),
           gkyl_array_fetch(rhs, linc)
@@ -92,13 +105,13 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *hdg, const struct gkyl_range *update
         gkyl_copy_int_arr(ndim, iter.idx, idxr);
         idxl[dir] = idxl[dir]-1; idxr[dir] = idxr[dir]+1;
         
-        gkyl_rect_grid_cell_center(&hdg->grid, idxl, xcl);
-        gkyl_rect_grid_cell_center(&hdg->grid, idxr, xcr);
+        gkyl_rect_grid_cell_center(&up->grid, idxl, xcl);
+        gkyl_rect_grid_cell_center(&up->grid, idxr, xcr);
         long linl = gkyl_range_idx(update_range, idxl); 
         long linr = gkyl_range_idx(update_range, idxr);
 
-        cfls = hdg->equation->surf_term(hdg->equation,
-          dir, xcl, xcc, xcr, hdg->grid.dx, hdg->grid.dx, hdg->grid.dx,
+        cfls = up->equation->surf_term(up->equation,
+          dir, xcl, xcc, xcr, up->grid.dx, up->grid.dx, up->grid.dx,
           idxl, idxc, idxr,
           gkyl_array_cfetch(fIn, linl), gkyl_array_cfetch(fIn, linc), gkyl_array_cfetch(fIn, linr),
           gkyl_array_fetch(rhs, linc)
@@ -111,14 +124,14 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *hdg, const struct gkyl_range *update
 }
 
 void
-gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *update_range,
+gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *up, const struct gkyl_range *update_range,
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
-  int ndim = hdg->ndim;
+  int ndim = up->ndim;
   long sz[] = { 3, 9, 27 };
-  long sz_dim = sz[hdg->num_up_dirs-1];
+  long sz_dim = sz[up->num_up_dirs-1];
   long offsets[sz_dim];
-  create_offsets(hdg, update_range, offsets);
+  create_offsets(up, update_range, offsets);
 
   // idx, xc, and dx for volume update
   int idxc[GKYL_MAX_DIM];
@@ -140,9 +153,9 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 
     // Call volume kernel and get CFL rate
     gkyl_copy_int_arr(ndim, iter.idx, idxc);
-    gkyl_rect_grid_cell_center(&hdg->grid, idxc, xcc);
-    double cflr = hdg->equation->vol_term(
-      hdg->equation, xcc, hdg->grid.dx, idxc,
+    gkyl_rect_grid_cell_center(&up->grid, idxc, xcc);
+    double cflr = up->equation->vol_term(
+      up->equation, xcc, up->grid.dx, idxc,
       gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc)
     );
     double *cflrate_d = gkyl_array_fetch(cflrate, linc);
@@ -155,8 +168,8 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
       
       // Check if the index is in the domain
       // Assumes update_range owns lower and upper edges of the domain
-      for (int d=0; d<hdg->num_up_dirs; ++d) {
-        int dir = hdg->update_dirs[d];
+      for (int d=0; d<up->num_up_dirs; ++d) {
+        int dir = up->update_dirs[d];
         if (idx[i][dir] < update_range->lower[dir] || idx[i][dir] > update_range->upper[dir]) {
           in_grid = 0;
         }
@@ -164,9 +177,9 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
           
       // Only if the index is in the domain, fetch the pointer (otherwise pointer stays NULL)
       if (in_grid) {
-        gkyl_rect_grid_cell_center(&hdg->grid, idx[i], xc[i]);
+        gkyl_rect_grid_cell_center(&up->grid, idx[i], xc[i]);
         for (int j=0; j<ndim; ++j)
-          dx[i][j] = hdg->grid.dx[j];
+          dx[i][j] = up->grid.dx[j];
         fIn_d[i] = gkyl_array_cfetch(fIn, linc + offsets[i]);
       }
       // reset in_grid for next neighbor value check
@@ -175,23 +188,23 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 
     // Loop over surfaces and update using any/all neighbors needed
     // NOTE: ASSUMES UNIFORM GRIDS FOR NOW
-    for (int d1=0; d1<hdg->num_up_dirs; ++d1) {
-      for (int d2=0; d2<hdg->num_up_dirs; ++d2) {
+    for (int d1=0; d1<up->num_up_dirs; ++d1) {
+      for (int d2=0; d2<up->num_up_dirs; ++d2) {
         double cfls = 0.0;
-        int dir1 = hdg->update_dirs[d1];
-        int dir2 = hdg->update_dirs[d2];
+        int dir1 = up->update_dirs[d1];
+        int dir2 = up->update_dirs[d2];
         // Assumes update_range owns lower and upper edges of the domain
         if (idxc[dir1] == update_range->lower[dir1] || idxc[dir1] == update_range->upper[dir1]
              || idxc[dir2] == update_range->lower[dir2] || idxc[dir2] == update_range->upper[dir2]) {
-          cfls = hdg->equation->gen_boundary_surf_term(hdg->equation,
-            dir1, dir2, xcc, hdg->grid.dx, idxc,
+          cfls = up->equation->gen_boundary_surf_term(up->equation,
+            dir1, dir2, xcc, up->grid.dx, idxc,
             sz_dim, idx, fIn_d,
             gkyl_array_fetch(rhs, linc)
           );
         }
         else {
-          cfls = hdg->equation->gen_surf_term(hdg->equation,
-            dir1, dir2, xcc, hdg->grid.dx, idxc,
+          cfls = up->equation->gen_surf_term(up->equation,
+            dir1, dir2, xcc, up->grid.dx, idxc,
             sz_dim, idx, fIn_d,
             gkyl_array_fetch(rhs, linc)
           );
@@ -206,11 +219,11 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 gkyl_hyper_dg*
 gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation,
-  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[GKYL_MAX_DIM],
+  int num_up_dirs, int update_dirs[GKYL_MAX_DIM], int zero_flux_flags[2*GKYL_MAX_DIM],
   int update_vol_term, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if(use_gpu) {
+  if (use_gpu) {
     return gkyl_hyper_dg_cu_dev_new(grid, basis, equation, num_up_dirs, update_dirs, zero_flux_flags, update_vol_term);
   } 
 #endif
@@ -223,7 +236,8 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
 
   for (int i=0; i<num_up_dirs; ++i)
     up->update_dirs[i] = update_dirs[i];
-  for (int i=0; i<GKYL_MAX_DIM; ++i)
+
+  for (int i=0; i<2*GKYL_MAX_DIM; ++i)
     up->zero_flux_flags[i] = zero_flux_flags[i];
     
   up->update_vol_term = update_vol_term;
@@ -233,41 +247,16 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid,
   GKYL_CLEAR_CU_ALLOC(up->flags);
   
   up->on_dev = up; // on host, on_dev points to itself
+  up->use_gpu = use_gpu;
 
   return up;
 }
 
-void gkyl_hyper_dg_release(struct gkyl_hyper_dg* hdg)
+void gkyl_hyper_dg_release(struct gkyl_hyper_dg* up)
 {
-  gkyl_dg_eqn_release(hdg->equation);
-  if (GKYL_IS_CU_ALLOC(hdg->flags))
-    gkyl_cu_free(hdg->on_dev);
-  gkyl_free(hdg);
+  gkyl_dg_eqn_release(up->equation);
+  if (GKYL_IS_CU_ALLOC(up->flags))
+    gkyl_cu_free(up->on_dev);
+  gkyl_free(up);
 }
 
-#ifndef GKYL_HAVE_CUDA
-
-// default functions
-gkyl_hyper_dg*
-gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
-  const struct gkyl_basis *basis, const struct gkyl_dg_eqn *equation_cu,
-  int num_up_dirs, int update_dirs[], int zero_flux_flags[], int update_vol_term)
-{
-  assert(false);
-  return 0;
-}
-
-void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
-  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
-  struct gkyl_array* GKYL_RESTRICT rhs)
-{
-  assert(false);
-}
-
-void
-gkyl_hyper_dg_set_update_vol_cu(gkyl_hyper_dg *hdg, int update_vol_term)
-{
-  assert(false);
-}
-
-#endif

@@ -8,7 +8,6 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_util.h>
-
 #include <gkyl_null_comm.h>
 
 #ifdef GKYL_HAVE_MPI
@@ -198,12 +197,12 @@ evalSourceDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
   struct sheath_ctx *app = ctx;
   double x = xn[0], z = xn[2];
 
-  double n_src = app -> n_src;
-  double xmu_src = app -> xmu_src;
-  double xsigma_src = app -> xsigma_src;
-  double floor_src = app -> floor_src;
+  double n_src = app->n_src;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
+  double floor_src = app->floor_src;
 
-  double Lz = app -> Lz;
+  double Lz = app->Lz;
 
   double n = 0.0;
 
@@ -231,9 +230,9 @@ evalSourceTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   struct sheath_ctx *app = ctx;
   double x = xn[0];
 
-  double T_src = app -> T_src;
-  double xmu_src = app -> xmu_src;
-  double xsigma_src = app -> xsigma_src;
+  double T_src = app->T_src;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
 
   double T = 0.0;
 
@@ -254,15 +253,15 @@ evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct sheath_ctx *app = ctx;
   double x = xn[0], z = xn[2];
 
-  double mass_ion = app -> mass_ion;
+  double mass_ion = app->mass_ion;
 
-  double n_src = app -> n_src;
-  double T_src = app -> T_src;
-  double xmu_src = app -> xmu_src;
-  double xsigma_src = app -> xsigma_src;
-  double floor_src = app -> floor_src;
+  double n_src = app->n_src;
+  double T_src = app->T_src;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
+  double floor_src = app->floor_src;
 
-  double Lz = app -> Lz;
+  double Lz = app->Lz;
 
   double src_density = GKYL_MAX2(exp(-((x - xmu_src) * (x - xmu_src)) / ((2.0 * xsigma_src) * (2.0 * xsigma_src))), floor_src) * n_src;
   double src_temp = 0.0;
@@ -302,10 +301,10 @@ evalTempElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct sheath_ctx *app = ctx;
   double x = xn[0];
 
-  double Te = app -> Te;
+  double Te = app->Te;
 
-  double xmu_src = app -> xmu_src;
-  double xsigma_src = app -> xsigma_src;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
 
   double T = 0.0;
 
@@ -326,10 +325,10 @@ evalTempIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   struct sheath_ctx *app = ctx;
   double x = xn[0];
 
-  double Ti = app -> Ti;
+  double Ti = app->Ti;
 
-  double xmu_src = app -> xmu_src;
-  double xsigma_src = app -> xsigma_src;
+  double xmu_src = app->xmu_src;
+  double xsigma_src = app->xsigma_src;
 
   double T = 0.0;
 
@@ -349,7 +348,7 @@ evalNuElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct sheath_ctx *app = ctx;
 
-  double nu_elc = app -> nu_elc;
+  double nu_elc = app->nu_elc;
 
   // Set electron collision frequency.
   fout[0] = nu_elc;
@@ -360,7 +359,7 @@ evalNuIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct sheath_ctx *app = ctx;
 
-  double nu_ion = app -> nu_ion;
+  double nu_ion = app->nu_ion;
 
   // Set ion collision frequency.
   fout[0] = nu_ion;
@@ -372,8 +371,8 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   struct sheath_ctx *app = ctx;
   double x = zc[0], y = zc[1], z = zc[2];
 
-  double R0 = app -> R0;
-  double a0 = app -> a0;
+  double R0 = app->R0;
+  double a0 = app->a0;
 
   double R = x;
   double phi = z / (R0 + a0);
@@ -390,8 +389,8 @@ void bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT f
   struct sheath_ctx *app = ctx;
   double x = zc[0];
 
-  double B0 = app -> B0;
-  double R = app -> R;
+  double B0 = app->B0;
+  double R = app->R;
 
   // Set magnetic field strength.
   fout[0] = B0 * R / x;
@@ -401,10 +400,10 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_gyrokinetic_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write(app, t_curr, iot->curr - 1);
     gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot -> curr - 1);
-    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, iot -> curr - 1);
+    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -674,7 +673,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

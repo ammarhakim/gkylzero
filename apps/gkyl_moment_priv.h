@@ -284,11 +284,6 @@ void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
 // Check array "q" for nans
 bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng);
 
-// Apply periodic BCs to array "f" in direction "dir"
-void moment_apply_periodic_bc(const gkyl_moment_app *app,
-  struct gkyl_array *bc_buffer, int dir,
-  struct gkyl_array *f);
-
 // Apply periodic BCs to corner cells of "f" (ONLY WORKS IN 2D)
 void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app,
   struct gkyl_array *f);
