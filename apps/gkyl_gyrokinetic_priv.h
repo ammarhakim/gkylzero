@@ -615,13 +615,13 @@ struct gk_field {
   bool phi_wall_lo_evolve; // flag to indicate biased wall potential on lower wall is time dependent
   struct gkyl_array *phi_wall_lo; // biased wall potential on lower wall
   struct gkyl_array *phi_wall_lo_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *phi_wall_lo_proj; // projector for biased wall potential on lower wall 
+  gkyl_eval_on_nodes *phi_wall_lo_proj; // projector for biased wall potential on lower wall 
 
   bool has_phi_wall_up; // flag to indicate there is biased wall potential on upper wall
   bool phi_wall_up_evolve; // flag to indicate biased wall potential on upper wall is time dependent
   struct gkyl_array *phi_wall_up; // biased wall potential on upper wall
   struct gkyl_array *phi_wall_up_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *phi_wall_up_proj; // projector for biased wall potential on upper wall 
+  gkyl_eval_on_nodes *phi_wall_up_proj; // projector for biased wall potential on upper wall 
 
   // Core and SOL ranges for IWL sims. 
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
