@@ -574,6 +574,8 @@ main(int argc, char **argv)
     "1x2v BGK Collision Relaxation Test with p = 1",
     "1x2v Ion Sound Test (with adiabatic electrons) with p = 1",
   };
+  int test_dimensions[11] = { 1, 2, 3, 3, 3, 1, 1, 1, 3, 1, 1 };
+  int test_cuts[11] = { 4, 4, 4, 5, 5, 2, 2, 2, 5, 2, 4 };
   int test_output_count[11] = { 4, 4, 4, 4, 4, 2, 2, 4, 4, 2, 1 };
   char test_outputs[11][64][64] = {
     { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
