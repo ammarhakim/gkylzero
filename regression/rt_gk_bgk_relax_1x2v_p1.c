@@ -386,7 +386,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_lbo_relax_1x2v_p1",
+    .name = "gk_bgk_relax_1x2v_p1",
 
     .cdim = 1, .vdim = 2,
     .lower = { 0.0 },

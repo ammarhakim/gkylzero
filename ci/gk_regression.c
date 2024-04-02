@@ -535,8 +535,8 @@ regenerateTest(const char* test_name, const int test_output_count, const char te
 int
 main(int argc, char **argv)
 {
-  int test_count = 8;
-  char test_names[8][64] = {
+  int test_count = 11;
+  char test_names[11][64] = {
     "gk_sheath_1x2v_p1",
     "gk_sheath_2x2v_p1",
     "gk_sheath_3x2v_p1",
@@ -545,19 +545,25 @@ main(int argc, char **argv)
     "gk_lbo_relax_1x2v_p1",
     "gk_lbo_relax_varnu_1x2v_p1",
     "gk_rad_1x2v_p1",
+    "gk_bgk_3x2v_p1",
+    "gk_bgk_relax_1x2v_p1",
+    "gk_ion_sound_adiabatic_elc_1x2v_p1",
   };
-  char test_names_human[8][128] = {
+  char test_names_human[11][128] = {
     "1x2v Sheath Boundary Test with p = 1",
     "2x2v Sheath Boundary Test with p = 1",
     "3x2v Sheath Boundary Test with p = 1",
     "3x2v LAPD Test (in Cartesian coordinates) with p = 1",
-    "3x3v LAPD Test (in cylindrical coordinates) with p = 1",
-    "1x2v LBO Relaxation Test with p = 1",
-    "1x2v LBO Relaxation Test (with variable collision frequency) with p = 1",
+    "3x2v LAPD Test (in cylindrical coordinates) with p = 1",
+    "1x2v LBO Collision Relaxation Test with p = 1",
+    "1x2v LBO Collision Relaxation Test (with variable collision frequency) with p = 1",
     "1x2v Radiation Operator Test with p = 1",
+    "3x2v BGK Collision Test with p = 1",
+    "1x2v BGK Collision Relaxation Test with p = 1",
+    "1x2v Ion Sound Test (with adiabatic electrons) with p = 1",
   };
-  int test_output_count[8] = { 4, 4, 4, 4, 4, 2, 2, 4 };
-  char test_outputs[8][64][64] = {
+  int test_output_count[11] = { 4, 4, 4, 4, 4, 2, 2, 4, 4, 2, 1 };
+  char test_outputs[11][64][64] = {
     { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
     { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
     { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
@@ -566,6 +572,9 @@ main(int argc, char **argv)
     { "bump_1", "square_1" },
     { "bump_1", "square_1" },
     { "elc_1", "elc_nvnu_1", "elc_nvsqnu_1", "ion_1" },
+    { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
+    { "bump_1", "square_1" },
+    { "ion_1" },
   };
 
   system("clear");
