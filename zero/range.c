@@ -511,7 +511,50 @@ gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
     return true;
   return false;  
 }
-    
+
+struct gkyl_range_dir_edge
+gkyl_range_edge_match(const struct gkyl_range *base,
+  const struct gkyl_range *targ)
+{
+  struct gkyl_range_dir_edge no_dir_ed = {
+    .dir = 0,
+    .eloc = GKYL_NO_EDGE
+  };
+
+  if (base->ndim != targ->ndim)
+    return no_dir_ed; // different dimensions do not count
+
+  struct gkyl_range irng;
+  if (gkyl_range_intersect(&irng, base, targ))
+    return no_dir_ed; // overlapping ranges do not count
+
+  for (int d=0; d<base->ndim; ++d) {
+
+    do {
+      int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };
+
+      // check lower-edge overlap
+      elo[d] = 1;
+      struct gkyl_range erng;
+      gkyl_range_extend(&erng, base, elo, eup);
+      if (gkyl_range_intersect(&irng, &erng, targ))
+        return (struct gkyl_range_dir_edge) { .dir = d, .eloc = GKYL_LOWER_EDGE };
+    } while (0);
+
+    do {
+      int elo[GKYL_MAX_DIM] = { 0 }, eup[GKYL_MAX_DIM] = { 0 };    
+      // check upper-edge overlap
+      eup[d] = 1;
+      struct gkyl_range erng;
+      gkyl_range_extend(&erng, base, elo, eup);
+      if (gkyl_range_intersect(&irng, &erng, targ))
+        return (struct gkyl_range_dir_edge) { .dir = d, .eloc = GKYL_UPPER_EDGE };
+    } while (0);
+  }
+
+  return no_dir_ed;
+}
+
 void
 gkyl_range_iter_init(struct gkyl_range_iter *iter,
   const struct gkyl_range* range)
