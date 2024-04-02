@@ -38,11 +38,11 @@ gkyl_mom_bcorr_lbo_gyrokinetic_set_cu_dev_ptrs(struct mom_type_bcorr_lbo_gyrokin
 
 struct gkyl_mom_type*
 gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
-  const double *vBoundary, double mass)
+  const double *vBoundary, double mass, const struct gkyl_range *vel_range, const struct gkyl_array *vmap_prime)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
-  struct mom_type_bcorr_lbo_gyrokinetic *mom_bcorr = (struct mom_type_bcorr_lbo_gyrokinetic*) gkyl_malloc(sizeof(struct mom_type_bcorr_lbo_gyrokinetic));
+  struct mom_type_bcorr_lbo_gyrokinetic *mom_bcorr = (struct mom_type_bcorr_lbo_gyrokinetic*) gkyl_malloc(sizeof(*mom_bcorr));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
@@ -59,6 +59,10 @@ gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const
   mom_bcorr->momt.num_mom = 2; // number of moments
 
   mom_bcorr->_m = mass;
+  mom_bcorr->vel_range = *vel_range;
+  // Acquire pointers to on_dev objects so memcpy below copies those too.
+  struct gkyl_array *vmap_prime_on_ho = gkyl_array_acquire(vmap_prime);
+  mom_bcorr->vmap_prime = vmap_prime_on_ho->on_dev;
 
   mom_bcorr->momt.flags = 0;
   GKYL_SET_CU_ALLOC(mom_bcorr->momt.flags);
@@ -75,6 +79,9 @@ gkyl_mom_bcorr_lbo_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const
     vdim, poly_order, cv_index[cdim].vdim[vdim]);
 
   mom_bcorr->momt.on_dev = &mom_bcorr_cu->momt;
+
+  // Updater should store host pointers.
+  mom_bcorr->vmap_prime = vmap_prime_on_ho;
 
   return &mom_bcorr->momt;
 }

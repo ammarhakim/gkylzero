@@ -269,8 +269,8 @@ gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struc
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
   struct gkyl_array *vmap_on_ho = gkyl_array_acquire(vmap);
-  mom_gk->gk_geom = geom->on_dev;
-  mom_gk->vmap = vmap_on_ho->on_dev;
+  momt->gk_geom = geom->on_dev;
+  momt->vmap = vmap_on_ho->on_dev;
 
   momt->conf_range = *conf_range;
   momt->vel_range = *vel_range;
@@ -290,8 +290,8 @@ gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis* cbasis, const struc
   momt->momt.on_dev = &momt_cu->momt;
 
   // Updater should store host pointers.
-  mom_gk->gk_geom = geom; 
-  mom_gk->vmap = vmap_on_ho; 
+  momt->gk_geom = geom; 
+  momt->vmap = vmap_on_ho; 
   
   return &momt->momt;
 }

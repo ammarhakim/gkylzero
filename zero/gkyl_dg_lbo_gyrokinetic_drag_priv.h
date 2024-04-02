@@ -332,7 +332,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const struct gkyl_rect_grid *pgrid,
   double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, 
-  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel);
+  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel);
 
 /**
  * CUDA device function to set auxiliary fields needed in updating the drag flux term.

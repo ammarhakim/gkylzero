@@ -61,9 +61,13 @@ struct sheath_ctx
   double vti; // Ion thermal velocity.
   double omega_ci; // Ion cyclotron frequency.
 
+  int Nx; // Cell count (configuration space: x-direction).
+  int Ny; // Cell count (configuration space: y-direction).
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
+  double Lx; // Domain size (configuration space: x-direction).
+  double Ly; // Domain size (configuration space: y-direction).
   double Lz; // Domain size (configuration space: z-direction).
   double Lvpar_elc; // Domain size (electron velocity space: parallel velocity direction).
   double Lmu_elc; // Domain size (electron velocity space: magnetic moment direction).
@@ -125,10 +129,14 @@ create_ctx(void)
   double omega_ci = fabs(charge_ion * B0 / mass_ion); // Ion cyclotron frequency.
 
   // Simulation parameters.
+  int Nx = 2; // Cell count (configuration space: x-direction).
+  int Ny = 2; // Cell count (configuration space: y-direction).
   int Nz = 4; // Cell count (configuration space: z-direction).
   int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
-  double Lz = 4.0; // Domain size (configuration space: z-direction).
+  double Lx = 1.0; // Domain size (configuration space: z-direction).
+  double Ly = 1.0; // Domain size (configuration space: z-direction).
+  double Lz = 1.0; // Domain size (configuration space: z-direction).
   double Lvpar_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
   double Lvpar_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
   double Lmu_elc = mass_elc * pow(4.*vte,2)/(2.*B0); // Domain size (electron velocity space: magnetic moment direction).
@@ -164,9 +172,13 @@ create_ctx(void)
     .vte = vte,
     .vti = vti,
     .omega_ci = omega_ci,
+    .Nx = Nx,
+    .Ny = Ny,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
+    .Lx = Lx,
+    .Ly = Ly,
     .Lz = Lz,
     .Lvpar_elc = Lvpar_elc,
     .Lmu_elc = Lmu_elc,
@@ -356,8 +368,10 @@ main(int argc, char **argv)
 
   struct sheath_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  int NZ = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nz);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
+  int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   int nrank = 1; // Number of processors in simulation.
@@ -368,7 +382,7 @@ main(int argc, char **argv)
 #endif  
 
   // Create global range.
-  int ccells[] = { NZ };
+  int ccells[] = { NX, NY, NZ };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);
   struct gkyl_range cglobal_r;
   gkyl_create_global_range(cdim, ccells, &cglobal_r);
@@ -429,9 +443,8 @@ main(int argc, char **argv)
   );
 #endif
 
-  int my_rank;
+  int my_rank, comm_size;
   gkyl_comm_get_rank(comm, &my_rank);
-  int comm_size;
   gkyl_comm_get_size(comm, &comm_size);
 
   int ncuts = 1;
@@ -463,7 +476,7 @@ main(int argc, char **argv)
 //    .upper = {  ctx.Lvpar_elc/2, ctx.Lmu_elc },
     .lower = { -1.0, 0.0 },
     .upper = {  1.0, 1.0 },
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .mapc2p = {
@@ -501,7 +514,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { -ctx.Lvpar_ion/2, 0.0 },
     .upper = {  ctx.Lvpar_ion/2, ctx.Lmu_ion },
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -530,36 +543,34 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
-    .electron_mass = ctx.mass_elc,
-    .electron_charge = ctx.charge_elc,
-    .electron_temp = ctx.Te,
-    .bmag_fac = ctx.B0, 
-    .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
+    .bmag_fac = ctx.B0,
+    .fem_parbc = GKYL_FEM_PARPROJ_NONE,
+    .poisson_bcs = {.lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },
+                    .up_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },
+                    .lo_value = { 0.0, 0.0 }, .up_value = { 0.0, 0.0}},
   };
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_lbo_relax_bimaxwellian_1x2v_p1",
+    .name = "gk_lbo_relax_bimaxwellian_3x2v_p1",
 
-    .cdim = 1, .vdim = 2,
-    .lower = { -ctx.Lz/2},
-    .upper = {  ctx.Lz/2},
-    .cells = { NZ },
+    .cdim = cdim, .vdim = 2,
+    .lower = { -ctx.Lx/2, -ctx.Ly/2, -ctx.Lz/2},
+    .upper = {  ctx.Lx/2,  ctx.Ly/2,  ctx.Lz/2},
+    .cells = { NX, NY, NZ },
     .poly_order = 1,
     .basis_type = app_args.basis_type,
 
     .geometry = {
       .geometry_id = GKYL_MAPC2P,
-      .world = { 0.0, 0.0 },
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
       .bmag_func = bmag_func,
       .bmag_ctx = &ctx
     },
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .num_periodic_dir = 3,
+    .periodic_dirs = { 0, 1, 2 },
     .skip_field = true,
 
     .num_species = 2,

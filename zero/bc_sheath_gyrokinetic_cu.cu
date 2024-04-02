@@ -39,6 +39,7 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_r
 {
   int fidx[GKYL_MAX_DIM]; // Flipped index.
   int pidx[GKYL_MAX_DIM];
+  int vidx[2];
 
   int pdim = skin_r.ndim;
   int vpar_dir = cdim;
@@ -64,7 +65,7 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_r
     const double *inp = (const double*) gkyl_array_cfetch(distf, skin_loc);
     double *out = (double*) gkyl_array_fetch(distf, ghost_loc);
 
-    for (int d=cdim; d<pdim; d++) vidx[d-up->cdim] = pidx[d]; 
+    for (int d=cdim; d<pdim; d++) vidx[d-cdim] = pidx[d]; 
     long conf_loc = gkyl_range_idx(&conf_r, pidx);
     long vel_loc = gkyl_range_idx(&vel_r, vidx);
 
@@ -93,7 +94,7 @@ gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *u
     int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
 
     gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, *up->skin_r, *up->ghost_r,
-      *conf_r, *up->vel_r, up->basis, *up->grid, up->q2Dm, up->vmap->on_dev, phi->on_dev, phi_wall->on_dev,
+      *conf_r, *up->vel_r, up->basis, up->vmap->on_dev, up->q2Dm, phi->on_dev, phi_wall->on_dev,
       up->kernels_cu, distf->on_dev);
   }
 }

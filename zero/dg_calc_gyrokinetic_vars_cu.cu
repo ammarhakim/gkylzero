@@ -154,11 +154,11 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
-  struct gkyl_array *vmap_on_ho = gkyl_array_acquire(vmap);
-  struct gkyl_array *vmapSq_on_ho = gkyl_array_acquire(vmapSq);
-  mom_gk->gk_geom = geom->on_dev;
-  mom_gk->vmap = vmap_on_ho->on_dev;
-  mom_gk->vmapSq = vmapSq_on_ho->on_dev;
+  struct gkyl_array *vmap_ho = gkyl_array_acquire(vmap);
+  struct gkyl_array *vmapSq_ho = gkyl_array_acquire(vmapSq);
+  up->gk_geom = geom->on_dev;
+  up->vmap = vmap_ho->on_dev;
+  up->vmapSq = vmapSq_ho->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -172,9 +172,9 @@ gkyl_dg_calc_gyrokinetic_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid
   up->on_dev = up_cu;
 
   // Updater should store host pointers.
-  mom_gk->gk_geom = geom; 
-  mom_gk->vmap = vmap_on_ho; 
-  mom_gk->vmapSq = vmapSq_on_ho; 
+  up->gk_geom = geom; 
+  up->vmap = vmap_ho; 
+  up->vmapSq = vmapSq_ho; 
   
   return up;
 }

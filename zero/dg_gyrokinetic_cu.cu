@@ -131,7 +131,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   const double charge, const double mass, enum gkyl_gkmodel_id gkmodel_id, const struct gk_geometry *gk_geom,
   const struct gkyl_array *vmap, const struct gkyl_array *vmapSq, const struct gkyl_array *vmap_prime)
 {
-  struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(struct dg_gyrokinetic));
+  struct dg_gyrokinetic *gyrokinetic = (struct dg_gyrokinetic*) gkyl_malloc(sizeof(*gyrokinetic));
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim, vdim = pdim-cdim;
   int poly_order = cbasis->poly_order;
@@ -146,13 +146,13 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
 
   // Acquire pointers to on_dev objects so memcpy below copies those too.
   struct gk_geometry *geom = gkyl_gk_geometry_acquire(gk_geom);
-  struct gkyl_array *vmap_on_ho = gkyl_array_acquire(vmap);
-  struct gkyl_array *vmapSq_on_ho = gkyl_array_acquire(vmapSq);
-  struct gkyl_array *vmap_prime_on_ho = gkyl_array_acquire(vmap_prime);
-  mom_gk->gk_geom = geom->on_dev;
-  mom_gk->vmap = vmap_on_ho->on_dev;
-  mom_gk->vmapSq = vmapSq_on_ho->on_dev;
-  mom_gk->vmap_prime = vmap_prime_on_ho->on_dev;
+  struct gkyl_array *vmap_ho = gkyl_array_acquire(vmap);
+  struct gkyl_array *vmapSq_ho = gkyl_array_acquire(vmapSq);
+  struct gkyl_array *vmap_prime_ho = gkyl_array_acquire(vmap_prime);
+  gyrokinetic->gk_geom = geom->on_dev;
+  gyrokinetic->vmap = vmap_ho->on_dev;
+  gyrokinetic->vmapSq = vmapSq_ho->on_dev;
+  gyrokinetic->vmap_prime = vmap_prime_ho->on_dev;
 
   gyrokinetic->conf_range = *conf_range;
   gyrokinetic->vel_range = *vel_range;
@@ -173,10 +173,10 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   gyrokinetic->eqn.on_dev = &gyrokinetic_cu->eqn;
   
   // Updater should store host pointers.
-  mom_gk->gk_geom = geom; 
-  mom_gk->vmap = vmap_on_ho; 
-  mom_gk->vmapSq = vmapSq_on_ho; 
-  mom_gk->vmap_prime = vmap_prime_on_ho; 
+  gyrokinetic->gk_geom = geom; 
+  gyrokinetic->vmap = vmap_ho; 
+  gyrokinetic->vmapSq = vmapSq_ho; 
+  gyrokinetic->vmap_prime = vmap_prime_ho; 
 
   return &gyrokinetic->eqn;
 }

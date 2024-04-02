@@ -50,8 +50,8 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(cbasis, pbasis, conf_range, vel_range, pgrid,
-      mass, gk_geom, vmap, vmap_prime, jacobvel);
+    return gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(cbasis, pbasis, conf_range, vel_range, phase_range,
+      pgrid, mass, gk_geom, vmap, vmap_prime, jacobvel, bounds_vel);
 #endif
   struct dg_lbo_gyrokinetic_diff* lbo = gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_diff));
 
