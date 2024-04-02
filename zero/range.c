@@ -632,3 +632,17 @@ gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp)
   fprintf(fp, " }\n");
   fflush(fp);
 }
+
+bool
+gkyl_range_compare(const struct gkyl_range* r1, const struct gkyl_range* r2)
+{
+  if (r1->ndim != r2->ndim)
+    return false;
+  for (int i=0; i<r1->ndim; ++i) {
+    if (r1->lower[i] != r2->lower[i])
+      return false;
+    if (r1->upper[i] != r2->upper[i])
+      return false;    
+  }
+  return true;
+}

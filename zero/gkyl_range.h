@@ -595,3 +595,13 @@ void gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
  * @param fp File object to print range information
  */
 void gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp);
+
+/**
+ * Compares two ranges: ranges are the same if they have the same
+ * dimensions and lower and upper indices.
+ *
+ * @param r1 Range 1 to compare
+ * @param r2 Range 2 to compare
+ * @return true if ranges are same, false otherwise
+ */
+bool gkyl_range_compare(const struct gkyl_range* r1, const struct gkyl_range* r2);
