@@ -429,21 +429,24 @@ main(int argc, char **argv)
   if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
-        .decomp = decomp
+        .decomp = decomp,
+        .sync_corners = true
       }
     );
   }
   else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
-        .use_gpu = app_args.use_gpu
+        .use_gpu = app_args.use_gpu,
+        .sync_corners = true
       }
     );
   }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp,
-      .use_gpu = app_args.use_gpu
+      .use_gpu = app_args.use_gpu,
+      .sync_corners = true
     }
   );
 #endif
@@ -526,7 +529,8 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  write_data(&io_trig, app, t_curr);
+  gkyl_moment_app_write(app, t_curr, 1000);
+  //write_data(&io_trig, app, t_curr);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
