@@ -264,7 +264,7 @@ grid_sub_array_read_ft_3(const struct gkyl_rect_grid *grid,
       return GKYL_ARRAY_RIO_FREAD_FAILED;
 
     // construct range of indices corresponding to data in block
-    int loidx_i[GKYL_MAX_DIM], upidx_i[GKYL_MAX_DIM];
+    int loidx_i[GKYL_MAX_DIM]= { 0 } , upidx_i[GKYL_MAX_DIM] = { 0 };
     for (int d=0; d<grid->ndim; ++d) {
       loidx_i[d] = loidx[d];
       upidx_i[d] = upidx[d];

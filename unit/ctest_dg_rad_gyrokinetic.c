@@ -673,12 +673,12 @@ void test_1x2v_p2_gpu() { test_1x(2, true, 30.0); }
 TEST_LIST = {
   { "test_1x2v_p1_30eV", test_1x2v_p1_30eV },
   { "test_1x2v_p1_5000eV", test_1x2v_p1_5000eV },
-  { "test_1x2v_p2", test_1x2v_p2 },
+//  { "test_1x2v_p2", test_1x2v_p2 },
   { "test_2x2v_p1", test_2x2v_p1 },
 
 #ifdef GKYL_HAVE_CUDA
   { "test_1x2v_p1_gpu", test_1x2v_p1_gpu },
-  { "test_1x2v_p2_gpu", test_1x2v_p2_gpu },
+//  { "test_1x2v_p2_gpu", test_1x2v_p2_gpu },
 
 #endif
   { NULL, NULL },

@@ -142,7 +142,7 @@ pkpm_field_new(struct gkyl_pkpm *pkpm, struct gkyl_pkpm_app *app)
   struct gkyl_dg_eqn *eqn;
   eqn = gkyl_dg_maxwell_new(&app->confBasis, c, ef, mf, app->use_gpu);
 
-  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
+  int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2*GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
 
   // Maxwell solver
   f->slvr = gkyl_hyper_dg_new(&app->grid, &app->confBasis, eqn,
@@ -311,10 +311,7 @@ pkpm_field_rhs(gkyl_pkpm_app *app, struct pkpm_field *field,
   gkyl_array_clear(rhs, 0.0);
 
   if (!field->info.is_static) {
-    if (app->use_gpu)
-      gkyl_hyper_dg_advance_cu(field->slvr, &app->local, em, field->cflrate, rhs);
-    else
-      gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
+    gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
     
     gkyl_array_reduce_range(field->omegaCfl_ptr, field->cflrate, GKYL_MAX, &app->local);
 

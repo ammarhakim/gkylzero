@@ -8,7 +8,6 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_util.h>
-
 #include <gkyl_null_comm.h>
 
 #ifdef GKYL_HAVE_MPI

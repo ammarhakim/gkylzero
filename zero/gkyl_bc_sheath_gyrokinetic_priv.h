@@ -68,6 +68,7 @@ bc_gksheath_choose_reflectedf_kernel(const struct gkyl_basis *basis, enum gkyl_e
       assert(false);
       break;
   }
+  return 0;
 }
 
 GKYL_CU_D

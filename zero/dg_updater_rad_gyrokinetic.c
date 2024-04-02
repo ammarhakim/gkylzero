@@ -29,9 +29,9 @@ gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   for (int d=0; d<vdim; ++d)
     up_dirs[d] = d + phase_basis->ndim - vdim;
 
-  int zero_flux_flags[GKYL_MAX_DIM] = { 0 };
+  int zero_flux_flags[2*GKYL_MAX_DIM] = { 0 };
   for (int d=cdim; d<pdim; ++d)
-    zero_flux_flags[d] = 1;
+    zero_flux_flags[d] = zero_flux_flags[d+pdim] = 1;
 
   up->drag = gkyl_hyper_dg_new(grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
   
@@ -46,10 +46,7 @@ gkyl_dg_updater_rad_gyrokinetic_advance(struct gkyl_dg_updater_collisions *rad,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (rad->use_gpu)
-    gkyl_hyper_dg_advance_cu(rad->drag, update_rng, fIn, cflrate, rhs);
-  else 
-    gkyl_hyper_dg_advance(rad->drag, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(rad->drag, update_rng, fIn, cflrate, rhs);
   rad->drag_tm += gkyl_time_diff_now_sec(wst);
 }
 

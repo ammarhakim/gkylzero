@@ -26,10 +26,10 @@ gkyl_dg_updater_diffusion_gen_new(const struct gkyl_rect_grid *grid,
   up->dgeqn = gkyl_dg_diffusion_gen_new(basis, diff_range, up->use_gpu);
 
   int ndim = basis->ndim;
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
+  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[2*GKYL_MAX_DIM];
   for (int d=0; d<ndim; ++d) {
     up_dirs[d] = d;
-    zero_flux_flags[d] = 0;
+    zero_flux_flags[d] = zero_flux_flags[d+ndim] = 0;
   }
 
   up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, ndim, up_dirs, zero_flux_flags, 1, up->use_gpu);

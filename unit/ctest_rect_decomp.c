@@ -85,6 +85,7 @@ void test_ranges_3d()
   TEST_CHECK( range.upper[2] == 10 );  
 
   TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );
+
 }
 
 void
@@ -398,6 +399,38 @@ test_rect_decomp_per_2d_2(void)
 }
 
 void
+test_rect_decomp_per_2d_corner(void)
+{
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 2 }, (int[]) { 100, 100 });
+  
+  int cuts[] = { 2, 2 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(2, cuts, &range);
+
+  struct gkyl_range crange;
+  gkyl_range_init_from_shape(&crange, 2, cuts);  
+
+  struct gkyl_range_iter iter;
+
+  gkyl_range_iter_init(&iter, &crange);
+  while ( gkyl_range_iter_next(&iter) ) {
+    
+    for (int d=0; d<range.ndim; ++d) {
+      struct gkyl_rect_decomp_neigh *neigh = gkyl_rect_decomp_calc_periodic_neigh(decomp,
+        d, true, gkyl_range_idx(&crange, iter.idx));
+
+      if (is_on_dir_edge(range.ndim, d, iter.idx, cuts)) {
+        TEST_CHECK( neigh->num_neigh == 2 ); // each domain has 2 neighbors
+      }
+      
+      gkyl_rect_decomp_neigh_release(neigh);
+    }
+  }
+
+  gkyl_rect_decomp_release(decomp);
+}
+
+void
 test_rect_decomp_per_3d(void)
 {
   struct gkyl_range range;
@@ -466,6 +499,21 @@ test_rect_decomp_2d_2v(void)
   gkyl_rect_decomp_release(ext_decomp);
 }
 
+void
+test_rect_decomp_from_cuts_and_cells(void)
+{
+  int cuts[] = { 5, 6, 7 };
+  int cells[] = { 100, 200, 300 };
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts_and_cells(3, cuts, cells);
+
+  TEST_CHECK( decomp->ndim == 3 );
+  TEST_CHECK( decomp->ndecomp == cuts[0]*cuts[1]*cuts[2] );
+
+  TEST_CHECK( gkyl_rect_decomp_check_covering(decomp) );
+
+  gkyl_rect_decomp_release(decomp);
+}
+
 TEST_LIST = {
   { "ranges_1d", test_ranges_1d },
   { "ranges_2d", test_ranges_2d },
@@ -482,7 +530,11 @@ TEST_LIST = {
   { "rect_decomp_per_2d_2", test_rect_decomp_per_2d_2 },
   { "rect_decomp_per_3d", test_rect_decomp_per_3d },
 
+  { "rect_decomp_per_2d_corner", test_rect_decomp_per_2d_corner },
+
   { "rect_decomp_2d_2v", test_rect_decomp_2d_2v },
+
+  { "rect_decomp_from_cuts_and_cells", test_rect_decomp_from_cuts_and_cells },
   
   { NULL, NULL },
 };
