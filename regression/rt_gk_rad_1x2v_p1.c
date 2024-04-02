@@ -391,7 +391,11 @@ main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
     },
-
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 0,
+    },
+    
     .bcx = {
       .lower = { .type = GKYL_SPECIES_ZERO_FLUX, },
       .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
@@ -438,6 +442,10 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
+    },
+    .source = {
+      .source_id = GKYL_PROJ_SOURCE,
+      .num_sources = 0,
     },
 
     .bcx = {

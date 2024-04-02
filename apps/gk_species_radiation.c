@@ -104,10 +104,8 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   // Needed arrays for calculating temperature
   rad->boundary_corrections = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
   rad->prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
-  double tpar_min = (s->info.mass/6.0)*s->grid.dx[cdim]*s->grid.dx[cdim];
-  /*double tperp_min = (s->info.collisions.bmag_mid/3.0)*s->grid.dx[cdim+1];*/
-  double tperp_min = tpar_min;
-  rad->vtsq_min = (tpar_min + 2*tperp_min)/(3*s->info.mass);
+
+  rad->vtsq_min = 1.0;
 
 
   // allocate moments needed for temperature update
