@@ -16,12 +16,13 @@
 int system(const char *command);
 
 void
-runTest(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64])
+runTestParallel(const char* test_name, const char* test_name_human, const int test_dimensions, const int test_cuts,
+  const int test_output_count, const char test_outputs[][64])
 {
   int counter = 0;
 
   char counter_buffer[128];
-  snprintf(counter_buffer, 128, "output/%s_counter.dat", test_name);
+  snprintf(counter_buffer, 128, "output_parallel/%s_counter.dat", test_name);
   FILE *counter_ptr = fopen(counter_buffer, "r");
   if (counter_ptr != NULL) {
     fscanf(counter_ptr, "%d", &counter);
@@ -41,20 +42,31 @@ runTest(const char* test_name, const char* test_name_human, const int test_outpu
   system(command_buffer1);
   
   char command_buffer2[256];
-  snprintf(command_buffer2, 256, "cd ../; make build/regression/rt_%s > /dev/null 2>&1", test_name);
+  snprintf(command_buffer2, 256, "cd ../; make cuda-build/regression/rt_%s > /dev/null 2>&1", test_name);
   system(command_buffer2);
 
   char command_buffer3[256];
-  snprintf(command_buffer3, 256, "cd ../; ./build/regression/rt_%s -m > ./ci/output/rt_%s_%d.dat 2>&1", test_name, test_name, counter);
+  if (test_dimensions == 1) {
+    snprintf(command_buffer3, 256, "cd ../; mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
+      test_cuts, test_name, test_cuts, test_name, counter);
+  }
+  else if (test_dimensions == 2) {
+    snprintf(command_buffer3, 256, "cd ../; mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d -d %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
+      test_cuts * test_cuts, test_name, test_cuts, test_cuts, test_name, counter);
+  }
+  else if (test_dimensions == 3) {
+    snprintf(command_buffer3, 256, "cd ../; mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d -d %d -e %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
+      test_cuts * test_cuts * test_cuts, test_name, test_cuts, test_cuts, test_cuts, test_name, counter);
+  }
   system(command_buffer3);
 
   char command_buffer4[256];
-  snprintf(command_buffer4, 256, "cd ../; mv ./%s-stat.json ci/output/%s-stat_%d.json", test_name, test_name, counter);
+  snprintf(command_buffer4, 256, "cd ../; mv ./%s-stat.json ci/output_parallel/%s-stat_%d.json", test_name, test_name, counter);
   system(command_buffer4);
 
   for (int i = 0; i < test_output_count; i++) {
     char command_buffer5[256];
-    snprintf(command_buffer5, 256, "cd ../; mv ./%s-%s.gkyl ci/output/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
+    snprintf(command_buffer5, 256, "cd ../; mv ./%s-%s.gkyl ci/output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
     system(command_buffer5);
   }
 
@@ -62,14 +74,14 @@ runTest(const char* test_name, const char* test_name_human, const int test_outpu
 }
 
 void
-analyzeTestOutput(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64])
+analyzeTestOutputParallel(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64])
 {
   printf("%s:\n\n", test_name_human);
 
   int counter = 0;
 
   char counter_buffer[64];
-  snprintf(counter_buffer, 64, "output/%s_counter.dat", test_name);
+  snprintf(counter_buffer, 64, "output_parallel/%s_counter.dat", test_name);
   FILE *counter_ptr = fopen(counter_buffer, "r");
   if (counter_ptr != NULL) {
     fscanf(counter_ptr, "%d", &counter);
@@ -90,7 +102,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human, const int 
     char *output;
     long file_size;
     char buffer[128];
-    snprintf(buffer, 128, "output/rt_%s_%d.dat", test_name, i);
+    snprintf(buffer, 128, "output_parallel/rt_%s_%d.dat", test_name, i);
 
     FILE *output_ptr = fopen(buffer, "rb");
     fseek(output_ptr, 0, SEEK_END);
@@ -254,7 +266,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human, const int 
       char *data;
       long data_file_size;
       char data_buffer[256];
-      snprintf(data_buffer, 256, "output/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
+      snprintf(data_buffer, 256, "output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
 
       FILE *data_ptr = fopen(data_buffer, "rb");
       fseek(data_ptr, 0, SEEK_END);
@@ -405,12 +417,12 @@ analyzeTestOutput(const char* test_name, const char* test_name_human, const int 
 }
 
 void
-regenerateTest(const char* test_name, const int test_output_count, const char test_outputs[][64])
+regenerateTestParallel(const char* test_name, const int test_output_count, const char test_outputs[][64])
 {
   int counter = 0;
 
   char counter_buffer[64];
-  snprintf(counter_buffer, 64, "output/%s_counter.dat", test_name);
+  snprintf(counter_buffer, 64, "output_parallel/%s_counter.dat", test_name);
   FILE *counter_ptr = fopen(counter_buffer, "r");
   if (counter_ptr != NULL) {
     fscanf(counter_ptr, "%d", &counter);
@@ -419,16 +431,16 @@ regenerateTest(const char* test_name, const int test_output_count, const char te
 
   for (int i = 1 ; i < counter + 1; i++) {
     char command_buffer[128];
-    snprintf(command_buffer, 128, "rm -rf output/rt_%s_%d.dat", test_name, i);
+    snprintf(command_buffer, 128, "rm -rf output_parallel/rt_%s_%d.dat", test_name, i);
     system(command_buffer);
 
     char command_buffer2[128];
-    snprintf(command_buffer2, 128, "rm -rf output/%s-stat_%d.json", test_name, i);
+    snprintf(command_buffer2, 128, "rm -rf output_parallel/%s-stat_%d.json", test_name, i);
     system(command_buffer2);
 
     for (int j = 0; j < test_output_count; j++) {
       char command_buffer3[256];
-      snprintf(command_buffer3, 256, "rm -rf output/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
+      snprintf(command_buffer3, 256, "rm -rf output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
       system(command_buffer3);
     }
   }
@@ -540,6 +552,10 @@ main(int argc, char **argv)
     "Sod-Type Shock Tube Test, with Lax fluxes (isothermal Euler equations)",
     "Geospace Environment Modeling Reconnection Test (isothermal Euler equations)",
   };
+  int test_dimensions[47] = { 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 2, 2, 1, 1, 2, 2, 2, 2, 2, 3, 1,
+    1, 1, 2, 1, 1, 2, 2, 2, 2, 1, 1, 2 };
+  int test_cuts[47] = { 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 1, 4, 4, 4,
+    5, 5, 4, 5, 5, 5, 2, 4, 4, 4 };
   int test_output_count[47] = { 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 4, 4, 3, 4, 1, 1, 1, 1, 3, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 4 };
   char test_outputs[47][64][64] = {
@@ -593,27 +609,28 @@ main(int argc, char **argv)
   };
 
   system("clear");
-  system("mkdir -p output");
+  system("mkdir -p output_parallel");
 
-  printf("** Gkeyll Moment App Automated Regression System **\n\n");
+  printf("** Gkeyll Moment App Automated Regression System (Parallel Version) **\n\n");
 
   if (argc > 1) {
     char *arg_ptr;
 
     if (strtol(argv[1], &arg_ptr, 10) == 1) {
       for (int i = 0; i < test_count; i++) {
-        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+        runTestParallel(test_names[i], test_names_human[i], test_dimensions[i], test_cuts[i], test_output_count[i], test_outputs[i]);
       }
     }
     else if (strtol(argv[1], &arg_ptr, 10) == 2) {
       for (int i = 0; i < test_count; i++) {
-        analyzeTestOutput(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+        analyzeTestOutputParallel(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
       }
     }
     else if (strtol(argv[1], &arg_ptr, 10) == 3) {
       if (argc > 2) {
         if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
-          runTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
+          runTestParallel(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
+            test_dimensions[strtol(argv[2], &arg_ptr, 10) - 1], test_cuts[strtol(argv[2], &arg_ptr, 10) - 1],
             test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
@@ -627,7 +644,7 @@ main(int argc, char **argv)
     else if (strtol(argv[1], &arg_ptr, 10) == 4) {
       if (argc > 2) {
         if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
-          analyzeTestOutput(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
+          analyzeTestOutputParallel(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
             test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
@@ -640,16 +657,17 @@ main(int argc, char **argv)
     }
     else if (strtol(argv[1], &arg_ptr, 10) == 5) {
       for (int i = 0; i < test_count; i++) {
-        regenerateTest(test_names[i], test_output_count[i], test_outputs[i]);
-        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+        regenerateTestParallel(test_names[i], test_output_count[i], test_outputs[i]);
+        runTestParallel(test_names[i], test_names_human[i], test_dimensions[i], test_cuts[i], test_output_count[i], test_outputs[i]);
       }
     }
     else if (strtol(argv[1], &arg_ptr, 10) == 6) {
       if (argc > 2) {
         if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
-          regenerateTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_output_count[strtol(argv[2], &arg_ptr, 10) - 1],
+          regenerateTestParallel(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_output_count[strtol(argv[2], &arg_ptr, 10) - 1],
             test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
-          runTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
+          runTestParallel(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
+            test_dimensions[strtol(argv[2], &arg_ptr, 10) - 1], test_cuts[strtol(argv[2], &arg_ptr, 10) - 1],
             test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
@@ -681,12 +699,12 @@ main(int argc, char **argv)
 
       if (option == 1) {
         for (int i = 0; i < test_count; i++) {
-          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+          runTestParallel(test_names[i], test_names_human[i], test_dimensions[i], test_cuts[i], test_output_count[i], test_outputs[i]);
         }
       }
       else if (option == 2) {
         for (int i = 0; i < test_count; i++) {
-          analyzeTestOutput(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+          analyzeTestOutputParallel(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
         }
       }
       else if (option == 3) {
@@ -700,7 +718,8 @@ main(int argc, char **argv)
         printf("\n");
 
         if (option2 >= 1 && option2 <= test_count) {
-          runTest(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
+          runTestParallel(test_names[option2 - 1], test_names_human[option2 - 1], test_dimensions[option2 - 1], test_cuts[option2 - 1],
+            test_output_count[option2 - 1], test_outputs[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
@@ -717,7 +736,7 @@ main(int argc, char **argv)
         printf("\n");
 
         if (option2 >= 1 && option2 <= test_count) {
-          analyzeTestOutput(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
+          analyzeTestOutputParallel(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
@@ -725,8 +744,8 @@ main(int argc, char **argv)
       }
       else if (option == 5) {
         for (int i = 0; i < test_count; i++) {
-          regenerateTest(test_names[i], test_output_count[i], test_outputs[i]);
-          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
+          regenerateTestParallel(test_names[i], test_output_count[i], test_outputs[i]);
+          runTestParallel(test_names[i], test_names_human[i], test_dimensions[i], test_cuts[i], test_output_count[i], test_outputs[i]);
         }
       }
       else if (option == 6) {
@@ -740,8 +759,9 @@ main(int argc, char **argv)
         printf("\n");
 
         if (option2 >= 1 && option2 <= test_count) {
-          regenerateTest(test_names[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
-          runTest(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
+          regenerateTestParallel(test_names[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
+          runTestParallel(test_names[option2 - 1], test_names_human[option2 - 1], test_dimensions[option2 - 1], test_cuts[option2 - 1],
+            test_output_count[option2 - 1], test_outputs[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
