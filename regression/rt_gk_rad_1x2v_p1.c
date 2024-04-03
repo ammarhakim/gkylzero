@@ -242,8 +242,16 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     gkyl_gyrokinetic_app_write(app, t_curr, iot->curr - 1);
+
     gkyl_gyrokinetic_app_calc_mom(app);
     gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, iot->curr - 1);
+
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_write_field_energy(app);
+
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_write_integrated_mom(app);
   }
 }
 
@@ -511,8 +519,6 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app_apply_ic(app, t_curr);
   write_data(&io_trig, app, t_curr);
 
-  gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
-
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
 
@@ -522,6 +528,7 @@ main(int argc, char **argv)
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
     gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
 
     if (!status.success) {
@@ -536,8 +543,6 @@ main(int argc, char **argv)
 
     step += 1;
   }
-
-  gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
   
   write_data(&io_trig, app, t_curr);
   gkyl_gyrokinetic_app_stat_write(app);
