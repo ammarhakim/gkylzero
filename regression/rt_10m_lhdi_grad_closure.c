@@ -529,7 +529,6 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  gkyl_moment_app_write(app, t_curr, 1000);
   write_data(&io_trig, app, t_curr);
   gkyl_moment_app_stat_write(app);
 
