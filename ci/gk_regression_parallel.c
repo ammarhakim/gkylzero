@@ -576,19 +576,19 @@ main(int argc, char **argv)
   };
   int test_dimensions[11] = { 1, 2, 3, 3, 3, 1, 1, 1, 3, 1, 1 };
   int test_cuts[11] = { 4, 4, 4, 5, 5, 2, 2, 2, 5, 2, 4 };
-  int test_output_count[11] = { 4, 4, 4, 4, 4, 2, 2, 4, 4, 2, 1 };
+  int test_output_count[11] = { 6, 6, 6, 6, 6, 4, 4, 6, 6, 4, 2 };
   char test_outputs[11][64][64] = {
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
-    { "bump_1", "square_1" },
-    { "bump_1", "square_1" },
-    { "elc_1", "elc_nvnu_1", "elc_nvsqnu_1", "ion_1" },
-    { "elc_1", "elc_source_1", "ion_1", "ion_source_1" },
-    { "bump_1", "square_1" },
-    { "ion_1" },
+    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
+    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
+    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
+    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
+    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
+    { "bump_1", "square_1", "bump_integrated_moms", "square_integrated_moms" },
+    { "bump_1", "square_1", "bump_integrated_moms", "square_integrated_moms" },
+    { "elc_1", "elc_nvnu_1", "elc_nvsqnu_1", "ion_1", "elc_integrated_moms", "ion_integrated_moms" },
+    { "elc_1", "elc_source_1", "ion_1", "ion_source_1", "elc_integrated_moms", "ion_integrated_moms" },
+    { "bump_1", "square_1", "bump_integrated_moms", "square_integrated_moms" },
+    { "ion_1", "ion_integrated_moms" },
   };
 
   system("clear");
