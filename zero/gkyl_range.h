@@ -32,7 +32,13 @@
 #define gkyl_ridxn(r, idx) gkyl_range_idx(&(r), idx)
 
 // Constants to represent lower/upper edges
-enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE = 1 };
+enum gkyl_edge_loc { GKYL_LOWER_EDGE = 0, GKYL_UPPER_EDGE, GKYL_NO_EDGE };
+
+// Direction and location of range
+struct gkyl_range_dir_edge {
+  int dir;
+  enum gkyl_edge_loc eloc;
+};  
 
 /**
  * Range object, representing an N-dimensional integer index
@@ -429,6 +435,19 @@ bool gkyl_range_is_on_upper_edge(int dir, const struct gkyl_range *range,
   const struct gkyl_range *parent);
 
 /**
+ * Check if @a targ range shares an edge with the @a base range. The
+ * edges do not be fully shared but any edge overlap will be
+ * checked.
+ *
+ * @param base Base range wrt which edge overlap is checked
+ * @param targ Target range to check
+ * @return direction and edge. Returned struct eloc is set
+ *   to GKYL_NO_EDGE if ranges dont match.
+ */
+struct gkyl_range_dir_edge gkyl_range_edge_match(const struct gkyl_range *base,
+  const struct gkyl_range *targ);
+                                                     
+/**
  * General indexing function. Returns linear index into the index
  * range mapped by 'range'.
  *
@@ -576,3 +595,13 @@ void gkyl_range_skip_iter_init(struct gkyl_range_skip_iter *iter,
  * @param fp File object to print range information
  */
 void gkyl_print_range(const struct gkyl_range* range, const char *nm, FILE *fp);
+
+/**
+ * Compares two ranges: ranges are the same if they have the same
+ * dimensions and lower and upper indices.
+ *
+ * @param r1 Range 1 to compare
+ * @param r2 Range 2 to compare
+ * @return true if ranges are same, false otherwise
+ */
+bool gkyl_range_compare(const struct gkyl_range* r1, const struct gkyl_range* r2);
