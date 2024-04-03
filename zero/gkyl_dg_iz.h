@@ -46,27 +46,24 @@ struct gkyl_dg_iz* gkyl_dg_iz_cu_dev_new(struct gkyl_dg_iz_inp *inp);
  * @param moms_elc Input electron moments
  * @param moms_donor Input neutral moments
  * @param b_i Unit bmag vector in Cartesian (X,Y,Z) components
- * @param prim_vars_donor Primitive variables for donor species
- * @param upar_iz Parallel flow for ionization fmax
- * @param vtSq_iz Thermal speed for ionization fmax
- * @param fac_felc Factor to multiply elc distf
- * @param fac_fmax Factor to multiply fmax
+ * @param prim_vars_elc Primitive variables for elc species
+ * @param prim_vars_donor Primitive variables for elc species
+ * @param vtSq_iz1 Thermal speed for ionization fmax
+ * @param vtSq_iz2 Thermal speed for ionization fmax
  * @param coef_iz Output reaction rate coefficient
  */
 
 void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_elc,
   const struct gkyl_array *moms_donor, const struct gkyl_array *b_i,
-  struct gkyl_array *prim_vars_donor, struct gkyl_array *upar_iz,
-  struct gkyl_array *vtSq_iz, struct gkyl_array *fac_felc,
-  struct gkyl_array *fac_fmax, struct gkyl_array *coef_iz,
-  struct gkyl_array *cflrate);
+  struct gkyl_array *prim_vars_elc, struct gkyl_array *prim_vars_donor,
+  struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2,
+  struct gkyl_array *coef_iz, struct gkyl_array *cflrate);
 
 void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_elc,
   const struct gkyl_array *moms_donor, const struct gkyl_array *b_i,
-  struct gkyl_array *prim_vars_donor, struct gkyl_array *upar_iz,
-  struct gkyl_array *vtSq_iz, struct gkyl_array *fac_felc,
-  struct gkyl_array *fac_fmax, struct gkyl_array *coef_iz,
-  struct gkyl_array *cflrate);
+  struct gkyl_array *prim_vars_elc, struct gkyl_array *prim_vars_donor,
+  struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2,
+  struct gkyl_array *coef_iz, struct gkyl_array *cflrate);
   
 /**
  * Delete updater.

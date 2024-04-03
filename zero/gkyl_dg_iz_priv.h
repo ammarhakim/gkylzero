@@ -35,7 +35,6 @@ struct gkyl_dg_iz {
   struct gkyl_basis *pbasis;
 
   struct gkyl_array *ioniz_data;
-  struct gkyl_array *prim_vars_elc;
   struct gkyl_range adas_rng;
   struct gkyl_basis adas_basis;
   struct gkyl_basis *basis_on_dev;

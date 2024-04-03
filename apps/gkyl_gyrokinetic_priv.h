@@ -291,15 +291,14 @@ struct gk_react {
 
   struct gkyl_array *coeff_react[GKYL_MAX_SPECIES]; // reaction rate
   struct gkyl_array *coeff_react_host[GKYL_MAX_SPECIES]; // reaction rate
-  struct gkyl_array *upar_iz[GKYL_MAX_SPECIES]; // ionization flow
-  struct gkyl_array *vt_sq_iz[GKYL_MAX_SPECIES]; // ionization temperature
-  struct gkyl_array *fac_felc[GKYL_MAX_SPECIES]; // factor multiplies felc in elc collision term
-  struct gkyl_array *fac_fmax[GKYL_MAX_SPECIES]; // factor multiplies fmax in elc collision term
+  struct gkyl_array *vt_sq_iz1[GKYL_MAX_SPECIES]; // ionization temperature
+  struct gkyl_array *vt_sq_iz2[GKYL_MAX_SPECIES]; // ionization temperature
   struct gkyl_array *m0_elc[GKYL_MAX_SPECIES]; // electron density
   struct gkyl_array *m0_ion[GKYL_MAX_SPECIES]; // ion density
   struct gkyl_array *m0_donor[GKYL_MAX_SPECIES]; // donor density
   struct gkyl_array *m0_mod[GKYL_MAX_SPECIES]; // to rescale fmax to have correct density
   struct gkyl_array *prim_vars[GKYL_MAX_SPECIES]; // primitive variables of donor (gk) or ion (vlasov), used for fmax
+  struct gkyl_array *prim_vars_donor[GKYL_MAX_SPECIES]; // primitive variables of donor (gk) or ion (vlasov), used for fmax
   union {
     // ionization
     struct {

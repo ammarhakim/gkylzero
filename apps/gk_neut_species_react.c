@@ -38,12 +38,11 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     gk_neut_species_moment_init(app, &app->neut_species[react->donor_idx[i]], &react->moms_donor[i], "FiveMoments");   
 
     react->coeff_react[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    react->fac_felc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    react->fac_fmax[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    react->upar_iz[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
-    react->vt_sq_iz[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->vt_sq_iz1[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
+    react->vt_sq_iz2[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->m0_elc[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     react->prim_vars[i] = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
+    react->prim_vars_donor[i] = mkarr(app->use_gpu, 4*app->confBasis.num_basis, app->local_ext.volume);
     if (react->react_id[i] == GKYL_REACT_IZ) {
       struct gkyl_dg_iz_inp iz_inp = {
         .grid = &s->grid, 
@@ -104,8 +103,8 @@ gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut
 
       // compute ionization reaction rate
       gkyl_dg_iz_coll(react->iz[i], react->moms_elc[i].marr, react->moms_donor[i].marr,
-    	app->gk_geom->b_i, react->prim_vars[i], react->upar_iz[i], react->vt_sq_iz[i], 
-        react->fac_felc[i], react->fac_fmax[i], react->coeff_react[i], 0);
+    	app->gk_geom->b_i, react->prim_vars[i], react->prim_vars_donor[i],
+        react->vt_sq_iz1[i], react->vt_sq_iz2[i], react->coeff_react[i], 0);
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
       // compute needed moments
@@ -181,12 +180,11 @@ gk_neut_species_react_release(const struct gkyl_gyrokinetic_app *app, const stru
     gk_neut_species_moment_release(app, &react->moms_donor[i]);
 
     gkyl_array_release(react->coeff_react[i]);
-    gkyl_array_release(react->fac_felc[i]);
-    gkyl_array_release(react->fac_fmax[i]);
-    gkyl_array_release(react->upar_iz[i]);
-    gkyl_array_release(react->vt_sq_iz[i]);
+    gkyl_array_release(react->vt_sq_iz1[i]);
+    gkyl_array_release(react->vt_sq_iz2[i]);
     gkyl_array_release(react->m0_elc[i]);
-    gkyl_array_release(react->prim_vars[i]); 
+    gkyl_array_release(react->prim_vars[i]);
+    gkyl_array_release(react->prim_vars_donor[i]); 
     if (react->react_id[i] == GKYL_REACT_IZ) 
       gkyl_dg_iz_release(react->iz[i]);
     else if (react->react_id[i] == GKYL_REACT_RECOMB)  
