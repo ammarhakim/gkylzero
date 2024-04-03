@@ -18,6 +18,10 @@ struct gkyl_rect_decomp {
 struct gkyl_rect_decomp_neigh {
   int num_neigh; // number of neighbors
   const int *neigh; // list of neighbors
+
+  // following information is not typically needed
+  const int *dir; // direction in which neigh[i] range is located
+  const int *edge; // edge on which neigh[i] range is located
 };
 
 /**

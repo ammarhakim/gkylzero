@@ -14,6 +14,8 @@
 struct rect_decomp_neigh_cont {
   struct gkyl_rect_decomp_neigh neigh;
   cvec_int l_neigh;
+  cvec_int l_dir;
+  cvec_int l_edge;
 };
 
 static void
@@ -187,6 +189,8 @@ calc_neigh_with_corners(const struct gkyl_rect_decomp *decomp, int nidx)
 {
   struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
   cont->l_neigh = cvec_int_init();
+  cont->l_dir = cvec_int_init();
+  cont->l_edge = cvec_int_init();
   
   int elo[GKYL_MAX_DIM], eup[GKYL_MAX_DIM];
   for (int i=0; i<decomp->ndim; ++i)
@@ -200,12 +204,21 @@ calc_neigh_with_corners(const struct gkyl_rect_decomp *decomp, int nidx)
       struct gkyl_range irng;
       int is_inter = gkyl_range_intersect(&irng, &erng,
         &decomp->ranges[i]);
-      if (is_inter)
+      if (is_inter) {
         cvec_int_push_back(&cont->l_neigh, i);
+        
+        struct gkyl_range_dir_edge dir_ed =
+          gkyl_range_edge_match(&decomp->ranges[nidx], &decomp->ranges[i]);
+
+        cvec_int_push_back(&cont->l_dir, dir_ed.dir);
+        cvec_int_push_back(&cont->l_edge, dir_ed.eloc);
+      }
     }
 
   cont->neigh.num_neigh = cvec_int_size(cont->l_neigh);
   cont->neigh.neigh = cvec_int_front(&cont->l_neigh);
+  cont->neigh.dir = cvec_int_front(&cont->l_dir);
+  cont->neigh.edge = cvec_int_front(&cont->l_edge);
   
   return &cont->neigh;
 }
@@ -217,6 +230,8 @@ calc_neigh_no_corners(const struct gkyl_rect_decomp *decomp, int nidx)
 {
   struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
   cont->l_neigh = cvec_int_init();
+  cont->l_dir = cvec_int_init();
+  cont->l_edge = cvec_int_init();  
   
   struct gkyl_range erng;
 
@@ -231,13 +246,22 @@ calc_neigh_no_corners(const struct gkyl_rect_decomp *decomp, int nidx)
         struct gkyl_range irng;
         int is_inter = gkyl_range_intersect(&irng, &erng,
           &decomp->ranges[i]);
-        if (is_inter)
+        if (is_inter) {
           cvec_int_push_back(&cont->l_neigh, i);
+
+          struct gkyl_range_dir_edge dir_ed =
+            gkyl_range_edge_match(&decomp->ranges[nidx], &decomp->ranges[i]);
+          
+          cvec_int_push_back(&cont->l_dir, dir_ed.dir);
+          cvec_int_push_back(&cont->l_edge, dir_ed.eloc);
+        }
       }
   }
   
   cont->neigh.num_neigh = cvec_int_size(cont->l_neigh);
   cont->neigh.neigh = cvec_int_front(&cont->l_neigh);
+  cont->neigh.dir = cvec_int_front(&cont->l_dir);
+  cont->neigh.edge = cvec_int_front(&cont->l_edge);  
   
   return &cont->neigh;
 }
@@ -257,6 +281,8 @@ gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
 {
   struct rect_decomp_neigh_cont *cont = gkyl_malloc(sizeof(*cont));
   cont->l_neigh = cvec_int_init();
+  cont->l_dir = cvec_int_init();
+  cont->l_edge = cvec_int_init();  
 
   const struct gkyl_range *curr = &decomp->ranges[nidx];
 
@@ -282,8 +308,13 @@ gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
         struct gkyl_range irng;
         int is_inter = gkyl_range_intersect(&irng, &shift_erng,
           &decomp->ranges[i]);
-        if (is_inter)
+        if (is_inter) {
           cvec_int_push_back(&cont->l_neigh, i);
+          cvec_int_push_back(&cont->l_dir, dir);
+          // this is not exactly correct: corner neighbors should not
+          // be on any edge
+          cvec_int_push_back(&cont->l_edge, GKYL_LOWER_EDGE);
+        }
       }
   }
   else if (gkyl_range_is_on_upper_edge(dir, curr, &decomp->parent_range)) {
@@ -301,13 +332,20 @@ gkyl_rect_decomp_calc_periodic_neigh(const struct gkyl_rect_decomp *decomp,
         struct gkyl_range irng;
         int is_inter = gkyl_range_intersect(&irng, &shift_erng,
           &decomp->ranges[i]);
-        if (is_inter)
-          cvec_int_push_back(&cont->l_neigh, i);        
+        if (is_inter) {
+          cvec_int_push_back(&cont->l_neigh, i);
+          cvec_int_push_back(&cont->l_dir, dir);
+          // this is not exactly correct: corner neighbors should not
+          // be on any edge          
+          cvec_int_push_back(&cont->l_edge, GKYL_UPPER_EDGE);
+        }
       }
   }
 
   cont->neigh.num_neigh = cvec_int_size(cont->l_neigh);  
-  cont->neigh.neigh = cvec_int_front(&cont->l_neigh);  
+  cont->neigh.neigh = cvec_int_front(&cont->l_neigh);
+  cont->neigh.dir = cvec_int_front(&cont->l_dir);
+  cont->neigh.edge = cvec_int_front(&cont->l_edge);  
   
   return &cont->neigh;
 }
@@ -318,6 +356,8 @@ gkyl_rect_decomp_neigh_release(struct gkyl_rect_decomp_neigh *ng)
   struct rect_decomp_neigh_cont *cont = container_of(ng,
     struct rect_decomp_neigh_cont, neigh);
   cvec_int_drop(&cont->l_neigh);
+  cvec_int_drop(&cont->l_dir);
+  cvec_int_drop(&cont->l_edge);
   gkyl_free(cont);
 }
 
