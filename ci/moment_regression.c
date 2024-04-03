@@ -11,10 +11,12 @@
 #define ANSI_COLOR_CYAN "\x1b[36m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
+#define RELATIVE_TOLERANCE pow(10.0, -16.0)
+
 int system(const char *command);
 
 void
-runTest(const char* test_name, const char* test_name_human)
+runTest(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64])
 {
   int counter = 0;
 
@@ -50,11 +52,17 @@ runTest(const char* test_name, const char* test_name_human)
   snprintf(command_buffer4, 256, "cd ../; mv ./%s-stat.json ci/output/%s-stat_%d.json", test_name, test_name, counter);
   system(command_buffer4);
 
+  for (int i = 0; i < test_output_count; i++) {
+    char command_buffer5[256];
+    snprintf(command_buffer5, 256, "cd ../; mv ./%s-%s.gkyl ci/output/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
+    system(command_buffer5);
+  }
+
   printf("Finished %s.\n\n", test_name_human);
 }
 
 void
-analyzeTestOutput(const char* test_name, const char* test_name_human)
+analyzeTestOutput(const char* test_name, const char* test_name_human, const int test_output_count, const char test_outputs[][64])
 {
   printf("%s:\n\n", test_name_human);
 
@@ -76,6 +84,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
   double totalupdate[counter + 1];
   int memoryleakcount[counter + 1];
   char *memoryleaks[counter + 1];
+  long double averages[counter + 1][test_output_count];
 
   for (int i = 1; i < counter + 1; i++) {
     char *output;
@@ -106,7 +115,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
       }
 
       char *end_ptr;
-      updatecalls[i] = strtol(substring, &end_ptr, 16);
+      updatecalls[i] = strtol(substring, &end_ptr, 10);
     }
 
     failedsteps[i] = 0;
@@ -124,7 +133,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
       }
 
       char *end_ptr;
-      failedsteps[i] = strtol(substring, &end_ptr, 16);
+      failedsteps[i] = strtol(substring, &end_ptr, 10);
     }
 
     speciesupdate[i] = 0.0;
@@ -239,6 +248,28 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
       }
       
       temp += 1;
+    }
+
+    for (int j = 0; j < test_output_count; j++) {
+      char *data;
+      long data_file_size;
+      char data_buffer[256];
+      snprintf(data_buffer, 256, "output/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
+
+      FILE *data_ptr = fopen(data_buffer, "rb");
+      fseek(data_ptr, 0, SEEK_END);
+      data_file_size = ftell(data_ptr);
+      rewind(data_ptr);
+      data = calloc(data_file_size, (sizeof(char)));
+      fread(data, sizeof(char), data_file_size, data_ptr);
+      fclose(data_ptr);
+
+      long long total = 0;
+      for (long k = 0; k < data_file_size; k++) {
+        total += (long long)abs((int)data[k]);
+      }
+
+      averages[i][j] = (long double)total / (long double)data_file_size;
     }
   }
 
@@ -356,7 +387,14 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
         printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
       }
 
-      if ((updatecalls[i] != updatecalls[i - 1]) || (failedsteps[i] != failedsteps[i - 1])) {
+      int correct = 1;
+      for (int j = 0; j < test_output_count; j++) {
+        if (fabsl(averages[i][j] - averages[i - 1][j]) > RELATIVE_TOLERANCE) {
+          correct = 0;
+        }
+      }
+
+      if ((updatecalls[i] != updatecalls[i - 1]) || (failedsteps[i] != failedsteps[i - 1]) || (correct != 1)) {
         printf("Correct: " ANSI_COLOR_RED "No" ANSI_COLOR_RESET "\n\n");
       }
       else {
@@ -367,7 +405,7 @@ analyzeTestOutput(const char* test_name, const char* test_name_human)
 }
 
 void
-regenerateTest(const char* test_name)
+regenerateTest(const char* test_name, const int test_output_count, const char test_outputs[][64])
 {
   int counter = 0;
 
@@ -387,6 +425,12 @@ regenerateTest(const char* test_name)
     char command_buffer2[128];
     snprintf(command_buffer2, 128, "rm -rf output/%s-stat_%d.json", test_name, i);
     system(command_buffer2);
+
+    for (int j = 0; j < test_output_count; j++) {
+      char command_buffer3[256];
+      snprintf(command_buffer3, 256, "rm -rf output/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
+      system(command_buffer3);
+    }
   }
 
   counter_ptr = fopen(counter_buffer, "w");
@@ -496,6 +540,57 @@ main(int argc, char **argv)
     "Sod-Type Shock Tube Test, with Lax fluxes (isothermal Euler equations)",
     "Geospace Environment Modeling Reconnection Test (isothermal Euler equations)",
   };
+  int test_output_count[47] = { 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 4, 4, 3, 4, 1, 1, 1, 1, 3, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 4 };
+  char test_outputs[47][64][64] = {
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "10m_1" },
+    { "10m_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "elc_1", "field_1", "ext_em_field_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+    { "q_1" },
+    { "q_1" },
+    { "burgers_1" },
+    { "burgers_1" },
+    { "elc_1", "field_1", "ext_em_field_1" },
+    { "cold_1" },
+    { "euler_1", "mapc2p" },
+    { "euler_1", "mapc2p" },
+    { "euler_1", "mapc2p" },
+    { "euler_1", "mapc2p" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1", "euler-alpha_1" },
+    { "euler_1" },
+    { "euler_1" },
+    { "euler_1", "mapc2p" },
+    { "iso_euler_1" },
+    { "iso_euler_1" },
+    { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
+  };
 
   system("clear");
   system("mkdir -p output");
@@ -505,20 +600,21 @@ main(int argc, char **argv)
   if (argc > 1) {
     char *arg_ptr;
 
-    if (strtol(argv[1], &arg_ptr, 16) == 1) {
+    if (strtol(argv[1], &arg_ptr, 10) == 1) {
       for (int i = 0; i < test_count; i++) {
-        runTest(test_names[i], test_names_human[i]);
+        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
       }
     }
-    else if (strtol(argv[1], &arg_ptr, 16) == 2) {
+    else if (strtol(argv[1], &arg_ptr, 10) == 2) {
       for (int i = 0; i < test_count; i++) {
-        analyzeTestOutput(test_names[i], test_names_human[i]);
+        analyzeTestOutput(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
       }
     }
-    else if (strtol(argv[1], &arg_ptr, 16) == 3) {
+    else if (strtol(argv[1], &arg_ptr, 10) == 3) {
       if (argc > 2) {
-        if (strtol(argv[2], &arg_ptr, 16) >= 1 && strtol(argv[2], &arg_ptr, 16) <= test_count) {
-          runTest(test_names[strtol(argv[2], &arg_ptr, 16) - 1], test_names_human[strtol(argv[2], &arg_ptr, 16) - 1]);
+        if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
+          runTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
+            test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
           printf("Invalid test!\n");
@@ -528,10 +624,11 @@ main(int argc, char **argv)
         printf("Must specify which test to run!\n");
       }
     }
-    else if (strtol(argv[1], &arg_ptr, 16) == 4) {
+    else if (strtol(argv[1], &arg_ptr, 10) == 4) {
       if (argc > 2) {
-        if (strtol(argv[2], &arg_ptr, 16) >= 1 && strtol(argv[2], &arg_ptr, 16) <= test_count) {
-          analyzeTestOutput(test_names[strtol(argv[2], &arg_ptr, 16) - 1], test_names_human[strtol(argv[2], &arg_ptr, 16) - 1]);
+        if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
+          analyzeTestOutput(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
+            test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
           printf("Invalid test!\n");
@@ -541,17 +638,19 @@ main(int argc, char **argv)
         printf("Must specify which test results to view!\n");
       }
     }
-    else if (strtol(argv[1], &arg_ptr, 16) == 5) {
+    else if (strtol(argv[1], &arg_ptr, 10) == 5) {
       for (int i = 0; i < test_count; i++) {
-        regenerateTest(test_names[i]);
-        runTest(test_names[i], test_names_human[i]);
+        regenerateTest(test_names[i], test_output_count[i], test_outputs[i]);
+        runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
       }
     }
-    else if (strtol(argv[1], &arg_ptr, 16) == 6) {
+    else if (strtol(argv[1], &arg_ptr, 10) == 6) {
       if (argc > 2) {
-        if (strtol(argv[2], &arg_ptr, 16) >= 1 && strtol(argv[2], &arg_ptr, 16) <= test_count) {
-          regenerateTest(test_names[strtol(argv[2], &arg_ptr, 16) - 1]);
-          runTest(test_names[strtol(argv[2], &arg_ptr, 16) - 1], test_names_human[strtol(argv[2], &arg_ptr, 16) - 1]);
+        if (strtol(argv[2], &arg_ptr, 10) >= 1 && strtol(argv[2], &arg_ptr, 10) <= test_count) {
+          regenerateTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_output_count[strtol(argv[2], &arg_ptr, 10) - 1],
+            test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
+          runTest(test_names[strtol(argv[2], &arg_ptr, 10) - 1], test_names_human[strtol(argv[2], &arg_ptr, 10) - 1],
+            test_output_count[strtol(argv[2], &arg_ptr, 10) - 1], test_outputs[strtol(argv[2], &arg_ptr, 10) - 1]);
         }
         else {
           printf("Invalid test!\n");
@@ -582,12 +681,12 @@ main(int argc, char **argv)
 
       if (option == 1) {
         for (int i = 0; i < test_count; i++) {
-          runTest(test_names[i], test_names_human[i]);
+          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
         }
       }
       else if (option == 2) {
         for (int i = 0; i < test_count; i++) {
-          analyzeTestOutput(test_names[i], test_names_human[i]);
+          analyzeTestOutput(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
         }
       }
       else if (option == 3) {
@@ -601,7 +700,7 @@ main(int argc, char **argv)
         printf("\n");
 
         if (option2 >= 1 && option2 <= test_count) {
-          runTest(test_names[option2 - 1], test_names_human[option2 - 1]);
+          runTest(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
@@ -618,7 +717,7 @@ main(int argc, char **argv)
         printf("\n");
 
         if (option2 >= 1 && option2 <= test_count) {
-          analyzeTestOutput(test_names[option2 - 1], test_names_human[option2 - 1]);
+          analyzeTestOutput(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
@@ -626,8 +725,8 @@ main(int argc, char **argv)
       }
       else if (option == 5) {
         for (int i = 0; i < test_count; i++) {
-          regenerateTest(test_names[i]);
-          runTest(test_names[i], test_names_human[i]);
+          regenerateTest(test_names[i], test_output_count[i], test_outputs[i]);
+          runTest(test_names[i], test_names_human[i], test_output_count[i], test_outputs[i]);
         }
       }
       else if (option == 6) {
@@ -641,8 +740,8 @@ main(int argc, char **argv)
         printf("\n");
 
         if (option2 >= 1 && option2 <= test_count) {
-          regenerateTest(test_names[option2 - 1]);
-          runTest(test_names[option2 - 1], test_names_human[option2 - 1]);
+          regenerateTest(test_names[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
+          runTest(test_names[option2 - 1], test_names_human[option2 - 1], test_output_count[option2 - 1], test_outputs[option2 - 1]);
         }
         else {
           printf("Invalid test!\n\n");
