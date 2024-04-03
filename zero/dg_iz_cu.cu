@@ -23,8 +23,8 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
   const struct gkyl_basis *adas_basis, const struct gkyl_dg_prim_vars_type *calc_prim_vars_elc,
   const struct gkyl_dg_prim_vars_type *calc_prim_vars_donor_gk, const struct gkyl_array* moms_elc,
   const struct gkyl_array* moms_donor, struct gkyl_array* prim_vars_elc, struct gkyl_array* prim_vars_donor,
-  struct gkyl_array *upar_iz, struct gkyl_array *vtSq_iz, struct gkyl_array *fac_felc, struct gkyl_array *fac_fmax, 
-  struct gkyl_array* coef_iz, struct gkyl_array* ioniz_data, int num_basis, enum gkyl_react_self_type type_self,
+  struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array* coef_iz,
+  struct gkyl_array* ioniz_data, int num_basis, enum gkyl_react_self_type type_self,
   double mass_elc, double elem_charge, double E, double maxLogTe, double minLogTe, double dlogTe,
   double maxLogM0, double minLogM0, double dlogM0, int resTe, int resM0)
 {
@@ -33,22 +33,19 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
       tid < conf_rng.volume; tid += blockDim.x*gridDim.x) {
     gkyl_sub_range_inv_idx(&conf_rng, tid, cidx);
     long loc = gkyl_range_idx(&conf_rng, cidx);
-    long nc = vtSq_iz->ncomp;
+    long nc = vtSq_iz1->ncomp;
 
     int cdim = conf_rng.ndim;
     const double *moms_elc_d = (const double*) gkyl_array_cfetch(moms_elc, loc);
+    const double *moms_donor_d = (const double*) gkyl_array_cfetch(moms_donor, loc);    
     const double *m0_elc_d = &moms_elc_d[0];
     
     double *prim_vars_elc_d = (double*) gkyl_array_fetch(prim_vars_elc, loc);
-    double *upar_iz_d = (double*) gkyl_array_fetch(upar_iz, loc);
-    double *vtSq_iz_d = (double*) gkyl_array_fetch(vtSq_iz, loc);
-    double *fac_felc_d = (double*) gkyl_array_fetch(fac_felc, loc);
-    double *fac_fmax_d = (double*) gkyl_array_fetch(fac_fmax, loc);
-    double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc);
-
-    const double *moms_donor_d = (const double*) gkyl_array_cfetch(moms_donor, loc);
     double *prim_vars_donor_d = (double*) gkyl_array_fetch(prim_vars_donor, loc);
-    
+    double *vtSq_iz1_d = (double*) gkyl_array_fetch(vtSq_iz1, loc);
+    double *vtSq_iz2_d = (double*) gkyl_array_fetch(vtSq_iz2, loc);
+    double *coef_iz_d = (double*) gkyl_array_fetch(coef_iz, loc);
+   
     calc_prim_vars_elc->kernel(calc_prim_vars_elc, cidx, moms_elc_d,
 				    prim_vars_elc_d);
 
@@ -68,6 +65,8 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     int m0_idx, t_idx;
     double cell_vals_2d[2];
     double cell_center;
+    double temp_elc_2;
+    double temp_flr = 3.0; 
     
     if (log_Te_av < minLogTe) t_idx=1;
     else if (log_Te_av > maxLogTe) t_idx=resTe;
@@ -91,19 +90,26 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
       coef_iz_d[0] = pow(10.0,adas_eval)/cell_av_fac;
 
       if (type_self == GKYL_SELF_ELC) {
-	if (E/temp_elc_av >= 3./2.) {
-	  array_set2(nc, vtSq_iz_d, 1.0, nc, prim_vars_elc_d);
-	  vtSq_iz_d[0] = vtSq_iz_d[0] + 2.0*E*elem_charge/(3*mass_elc*cell_av_fac);
-	  fac_felc_d[0] = 2.0/cell_av_fac;
-	  fac_fmax_d[0] = -1.0/cell_av_fac;
-	  array_set1(nc, upar_iz_d, 1.0, prim_vars_elc_d);
+	//calculate vtSq_iz at each cell for primary and secondary elc
+	if ( 3./2.*temp_elc_av >= 2.*E) {
+	  // T_e2 = 1/3*sqrt(3./2.*T_e*E_iz - E_iz)
+	  temp_elc_2 = pow(E*(3./2.*temp_elc_av - E), 0.5);
+	  vtSq_iz2_d[0] = temp_elc_2*elem_charge/(mass_elc*cell_av_fac);
+	  // T_e1 = T_e - 2/3*E_iz - T_e2
+	  array_set2(nc, nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
+	  vtSq_iz1_d[0] = vtSq_iz1_d[0] - elem_charge*(2./3.*E - temp_elc_2)/(mass_elc*cell_av_fac);
+	}
+	else if (3./2.*temp_elc_av >= E) {
+	  // T_e2 = 1/3*(3/2*T_e - E_iz)
+	  temp_elc_2 = temp_elc_av/2.0 - E/3.0;
+	  vtSq_iz2_d[0] = temp_elc_2*elem_charge/(mass_elc*cell_av_fac);
+	  // T_e1 = T_e - 2/3*E_iz - T_e2
+	  array_set2(nc, nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
+	  vtSq_iz1_d[0] = vtSq_iz1_d[0] - elem_charge*(2./3.*E - temp_elc_2)/(mass_elc*cell_av_fac);
 	}
 	else {
-	  array_set2(nc, vtSq_iz_d, 0.5, nc, prim_vars_elc_d);
-	  vtSq_iz_d[0] = vtSq_iz_d[0] - E*elem_charge/(3*mass_elc*cell_av_fac);
-	  fac_felc_d[0] = -1.0/cell_av_fac;
-	  fac_fmax_d[0] = 2.0/cell_av_fac;
-	  array_set1(nc, upar_iz_d, 1.0, prim_vars_donor_d);
+	  vtSq_iz2_d[0] = temp_flr*elem_charge/(mass_elc*cell_av_fac);
+	  vtSq_iz1_d[0] = temp_flr*elem_charge/(mass_elc*cell_av_fac);	  
 	}
       }
     }
@@ -112,10 +118,9 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
 
 void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *moms_elc,
   const struct gkyl_array *moms_donor, const struct gkyl_array *b_i,
-  struct gkyl_array *prim_vars_donor, struct gkyl_array *upar_iz,
-  struct gkyl_array *vtSq_iz, struct gkyl_array *fac_felc,
-  struct gkyl_array *fac_fmax, struct gkyl_array *coef_iz,
-  struct gkyl_array *cflrate)  
+  struct gkyl_array *prim_vars_elc, struct gkyl_array *prim_vars_donor,
+  struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2,
+  struct gkyl_array *coef_iz, struct gkyl_array *cflrate) 
 {
   if ((up->all_gk==false) && ((up->type_self == GKYL_SELF_ELC) || (up->type_self == GKYL_SELF_ION))) {
     // Set auxiliary variable (b_i) for computation of gk neut prim vars
@@ -126,8 +131,7 @@ void gkyl_dg_iz_coll_cu(const struct gkyl_dg_iz *up, const struct gkyl_array *mo
   gkyl_iz_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng, up->adas_rng,
     up->basis_on_dev, up->calc_prim_vars_elc->on_dev, up->calc_prim_vars_donor->on_dev, 
     moms_elc->on_dev, moms_donor->on_dev, up->prim_vars_elc->on_dev, prim_vars_donor->on_dev,
-    upar_iz->on_dev, vtSq_iz->on_dev, fac_felc->on_dev, fac_fmax->on_dev,
-    coef_iz->on_dev, up->ioniz_data->on_dev, up->cbasis->num_basis,
+    vtSq_iz1->on_dev, vtSq_iz2->on_dev, coef_iz->on_dev, up->ioniz_data->on_dev, up->cbasis->num_basis,
     up->type_self, up->mass_elc, up->elem_charge, up->E, up->maxLogTe, up->minLogTe,
     up->dlogTe, up->maxLogM0, up->minLogM0, up->dlogM0, up->resTe, up->resM0);
   
