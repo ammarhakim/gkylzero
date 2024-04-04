@@ -12,6 +12,8 @@ struct gkyl_dg_rad_gyrokinetic_auxfields {
   const struct gkyl_array *nvnu;
   const struct gkyl_array *nvsqnu_surf;
   const struct gkyl_array *nvsqnu;
+  const struct gkyl_array *vtsq;
+  double vtsq_min;
 };
 
 /**
@@ -20,10 +22,12 @@ struct gkyl_dg_rad_gyrokinetic_auxfields {
  * @param conf_basis Configuration-space basis functions
  * @param phase_basis Phase-space basis functions
  * @param phase_range Phase-space range for use in indexing drag coefficients
+ * @param conf_range Configuration-space range for use in indexing temperature
  * @return Pointer to RAD equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* conf_basis, 
-  const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range, bool use_gpu);
+  const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range, bool use_gpu);
 
 /**
  * Create a new RAD equation object that lives on NV-GPU
@@ -31,10 +35,12 @@ struct gkyl_dg_eqn* gkyl_dg_rad_gyrokinetic_drag_new(const struct gkyl_basis* co
  * @param conf_basis Configuration-space basis functions
  * @param phase_basis Phase-space basis functions
  * @param phase_range Phase-space range for use in indexing drag coefficients
+ * @param conf_range Configuration-space range for use in indexing temperature
  * @return Pointer to RAD equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis, 
-  const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range);
+  const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range);
 
 /**
  * Set auxiliary fields needed in updating the drag flux term.
