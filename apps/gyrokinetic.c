@@ -841,7 +841,7 @@ gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double 
   snprintf(fileNm_nvsqnu, sizeof fileNm_nvsqnu, fmt_nvsqnu, app->name, gk_s->info.name, frame);
 
   // Compute radiation drag coefficients
-    const struct gkyl_array *fin_neut[app->num_neut_species];
+  const struct gkyl_array *fin_neut[app->num_neut_species];
   const struct gkyl_array *fin[app->num_species];
   for (int i=0; i<app->num_species; ++i) 
     fin[i] = app->species[i].f;

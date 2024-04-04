@@ -6,6 +6,9 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
 {
   int cdim = app->cdim, vdim = app->vdim;
   int pdim = cdim+vdim;
+  // Cutoff below which radiation is set to 0. Set to 1eV. Keep the radiation from driving Te negative.
+  // Very little radiation below 1eV for most elements.
+  rad->vtsq_min = s->info.charge/s->info.mass;
   // make appropriate reduced bases and surface bases for radiation variables
   struct gkyl_basis rad_basis, surf_rad_vpar_basis, surf_rad_mu_basis, surf_vpar_basis, surf_mu_basis;
   if (app->poly_order > 1) {
@@ -104,9 +107,6 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   // Needed arrays for calculating temperature
   rad->boundary_corrections = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
   rad->prim_moms = mkarr(app->use_gpu, 2*app->confBasis.num_basis, app->local_ext.volume);
-
-  rad->vtsq_min = 1.0;
-
 
   // allocate moments needed for temperature update
   gk_species_moment_init(app, s, &rad->lab_moms, "ThreeMoments");

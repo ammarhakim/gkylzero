@@ -7,13 +7,18 @@
 #include <gkyl_rect_grid.h>
 
 // Struct containing the pointers to auxiliary fields. These are all summed over radiating species
-struct gkyl_dg_rad_gyrokinetic_auxfields { 
-  const struct gkyl_array *nvnu_surf;
-  const struct gkyl_array *nvnu;
-  const struct gkyl_array *nvsqnu_surf;
-  const struct gkyl_array *nvsqnu;
-  const struct gkyl_array *vtsq;
-  double vtsq_min;
+struct gkyl_dg_rad_gyrokinetic_auxfields {
+  // A, alpha, beta, gamma, and V0 are fitting parameters.
+  // C = 8/sqrt(pi)*(2*charge/mass)^(gamma/2)
+  // D = A*(alpha+beta)/C
+  // vmag = sqrt(vpar^2 + 2*B*mu/mass)
+  // nu(vpar,mu) = D*vmag^(gamma)/(beta*(vmag/V0)^-alpha + alpha*(vmag/V0)^beta)
+  const struct gkyl_array *nvnu_surf;  // surface drag for vpar direction: n*vpar*nu(vpar,mu)
+  const struct gkyl_array *nvnu;  // volume drag for vpar direction: n*vpar*nu(vpar,mu)
+  const struct gkyl_array *nvsqnu_surf;  // surface drag for mu direction: 2*n*mu*nu(vpar,mu)
+  const struct gkyl_array *nvsqnu;  // volume drag for mu direction: 2*n*mu*nu(vpar,mu)
+  const struct gkyl_array *vtsq;  // Vth squared of all configuration space
+  double vtsq_min;  // Vth squared of lowest temperature at which radiation is evaluated
 };
 
 /**
