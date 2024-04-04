@@ -89,8 +89,9 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     //allocate emissivity
     rad->emissivity[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     rad->emissivity_host[i] = rad->emissivity[i];
-    if (app->use_gpu)
+    if (app->use_gpu) {
       rad->emissivity_host[i] = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
+    }
   }
   gkyl_release_fit_params(rad_data);
   
@@ -158,6 +159,8 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
   rad->emissivity_denominator = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
   // allocate M2 for emissivity
   gk_species_moment_init(app, s, &rad->m2, "M2");
+  // allocate M1
+  gk_species_moment_init(app, s, &rad->m1, "M1");
 
   // Radiation updater
   struct gkyl_dg_rad_gyrokinetic_auxfields drag_inp = { .nvnu_surf = rad->nvnu_surf, .nvnu = rad->nvnu,
@@ -249,6 +252,13 @@ gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app, struct gk_species *sp
   }  
 }
 
+void gk_species_radiation_momentum_loss(gkyl_gyrokinetic_app *app, struct gk_species *species,
+   struct gk_rad_drag *rad){
+  gkyl_dg_updater_rad_gyrokinetic_advance(rad->drag_slvr, &species->local,
+      species->f, species->cflrate, rad->emissivity_rhs);
+  gk_species_moment_calc(&rad->m1, species->local, app->local, rad->emissivity_rhs);
+}
+
 void
 gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
 				struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[])
@@ -300,6 +310,7 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
   gkyl_dynvec_release(rad->integ_diag);
   gkyl_array_release(rad->integrated_moms_rhs);
   gk_species_moment_release(app, &rad->m2);
+  gk_species_moment_release(app, &rad->m1);
   gkyl_array_release(rad->emissivity_denominator);
   gkyl_array_release(rad->emissivity_rhs);
   gkyl_array_release(rad->nvnu_surf);

@@ -623,6 +623,7 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
     if (app->species[i].radiation_id == GKYL_GK_RADIATION){
       gkyl_gyrokinetic_app_write_rad_drag(app, i, tm, frame);
       gkyl_gyrokinetic_app_write_rad_emissivity(app, i, tm, frame);
+      gkyl_gyrokinetic_app_write_rad_momentum(app, i, tm, frame);
       gkyl_gyrokinetic_app_write_rad_integrated_moms(app, i, tm);
     }
     if (app->species[i].has_reactions) {
@@ -841,7 +842,7 @@ gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app* app, int sidx, double 
   snprintf(fileNm_nvsqnu, sizeof fileNm_nvsqnu, fmt_nvsqnu, app->name, gk_s->info.name, frame);
 
   // Compute radiation drag coefficients
-    const struct gkyl_array *fin_neut[app->num_neut_species];
+  const struct gkyl_array *fin_neut[app->num_neut_species];
   const struct gkyl_array *fin[app->num_species];
   for (int i=0; i<app->num_species; ++i) 
     fin[i] = app->species[i].f;
@@ -891,7 +892,7 @@ gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app* app, int sidx, d
     if (app->use_gpu) {
       gkyl_array_copy(s->rad.emissivity_host[i], s->rad.emissivity[i]);
     }
-    // Construct the file handles for vparallel and mu drag
+    // Construct the file handles for emissivity of ith species
     const char *fmt_emissivity = "%s-%s_emissivity_%s_%d.gkyl";  
     if (s->rad.is_neut_species[i]) {
       int sz_emissivity = gkyl_calc_strlen(fmt_emissivity, app->name, s->info.name, app->neut_species[s->rad.collide_with_idx[i]].info.name, frame);
@@ -906,6 +907,33 @@ gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app* app, int sidx, d
     }  
   }
 
+  gyrokinetic_array_meta_release(mt);   
+}
+
+void
+gkyl_gyrokinetic_app_write_rad_momentum(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+      .frame = frame,
+      .stime= tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->confBasis.id
+    }
+  );
+  
+  struct gk_species *s = &app->species[sidx];
+  
+  gk_species_radiation_momentum_loss(app, s, &s->rad);
+
+  /*  if (app->use_gpu) {
+    gkyl_array_copy(s->rad.momentum_rhs_host, s->rad.momentum_rhs);
+    }*/
+  const char *fmt_momentum = "%s-%s_radiation_M1_%d.gkyl";  
+  int sz_momentum = gkyl_calc_strlen(fmt_momentum, app->name, s->info.name, frame);
+  char fileNm_momentum[sz_momentum+1]; // ensures no buffer overflow
+  snprintf(fileNm_momentum, sizeof fileNm_momentum, fmt_momentum, app->name, s->info.name, frame);
+  gkyl_comm_array_write(s->comm, &app->grid, &app->local, mt, s->rad.m1.marr, fileNm_momentum);
+      
   gyrokinetic_array_meta_release(mt);   
 }
 

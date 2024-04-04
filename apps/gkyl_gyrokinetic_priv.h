@@ -165,6 +165,7 @@ struct gk_rad_drag {
 
   struct gk_species_moment moms[2*GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
 
+  struct gk_species_moment m1; // m1 of radiation update
   struct gk_species_moment m2; // m2 of radiation update (needed for emissivity)
   struct gkyl_array *emissivity[2*GKYL_MAX_SPECIES];
   struct gkyl_array *emissivity_host[2*GKYL_MAX_SPECIES];
@@ -804,6 +805,16 @@ void gk_species_radiation_moms(gkyl_gyrokinetic_app *app,
 void gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app,
   struct gk_species *species, struct gk_rad_drag *rad, 
   const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+
+/**
+ * Compute momentum loss from radiation
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param rad Species radiation drag object
+ */
+void gk_species_radiation_momentum_loss(gkyl_gyrokinetic_app *app,
+  struct gk_species *species, struct gk_rad_drag *rad);
 
 /**
  * Compute integrated moments of radiation drag object

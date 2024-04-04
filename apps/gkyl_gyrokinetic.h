@@ -461,6 +461,17 @@ void gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app *app, int sidx, do
 void gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
+ * Write radiation momentum loss (m1 momentum of radiation rhs)
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_rad_momentum(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
+
+/**
  * Write integrated moments of radiation rhs for radiating species 
  * 
  * @param app App object.
