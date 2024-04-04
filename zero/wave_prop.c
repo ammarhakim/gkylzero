@@ -520,7 +520,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   // compute actual CFL, status & max-speed across all domains
   double red_vars[3] = { cfla, is_cfl_violated, max_speed };
   double red_vars_global[3] = { 0.0, 0.0, 0.0 };
-  gkyl_comm_allreduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 3, &red_vars, &red_vars_global);
+  gkyl_comm_all_reduce(wv->comm, GKYL_DOUBLE, GKYL_MAX, 3, &red_vars, &red_vars_global);
 
   cfla = red_vars_global[0];
   is_cfl_violated = red_vars_global[1];

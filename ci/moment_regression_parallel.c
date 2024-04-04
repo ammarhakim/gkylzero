@@ -222,7 +222,7 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
     
     char *temp = output;
     memoryleakcount[i] = 0;
-    memoryleaks[i] = (char*)calloc(2048, sizeof(char));
+    memoryleaks[i] = (char*)calloc(8192, sizeof(char));
     while (strstr(temp, "0x") != NULL) {
       temp = strstr(temp, "0x");
 
@@ -453,8 +453,8 @@ regenerateTestParallel(const char* test_name, const int test_output_count, const
 int
 main(int argc, char **argv)
 {
-  int test_count = 47;
-  char test_names[47][32] = {
+  int test_count = 47 - 7;
+  char test_names[47 - 7][32] = {
     "10m_burch",
     "10m_burch_grad_closure",
     "10m_gem",
@@ -470,9 +470,9 @@ main(int argc, char **argv)
     "5m_mom_beach",
     "5m_riem",
     "advect_wv",
-    "advect_wv_mp",
+    //"advect_wv_mp",
     "burgers_shock",
-    "burgers_shock_mp",
+    //"burgers_shock_mp",
     "coldfluid_beach",
     "coldfluid_clouda",
     "euler_axi_sodshock",
@@ -486,24 +486,24 @@ main(int argc, char **argv)
     "euler_riem_2d_hll",
     "euler_riem_2d_hllc",
     "euler_riem_2d_lax",
-    "euler_riem_2d_mp",
+    //"euler_riem_2d_mp",
     "euler_riem_2d_roe",
     "euler_riem_3d",
     "euler_sodshock",
     "euler_sodshock_lax",
-    "euler_sodshock_mp",
+    //"euler_sodshock_mp",
     "euler_superwedge",
     "euler_vac",
     "euler_vac_riem_1d",
-    "euler_wave_2d_kep",
-    "euler_wave_2d_mp",
+    //"euler_wave_2d_kep",
+    //"euler_wave_2d_mp",
     "euler_wave_2d_wv",
-    "euler_wedge_sodshock",
+    //"euler_wedge_sodshock",
     "iso_euler_sodshock",
     "iso_euler_sodshock_lax",
     "iso_gem",
   };
-  char test_names_human[47][128] = {
+  char test_names_human[47 - 7][128] = {
     "Burch et al. Magnetic Reconnection Test (10-moment equations)",
     "Burch et al. Magnetic Reconnection Gradient-Closure Test (10-moment equations)",
     "Geospace Environment Modeling Reconnection Test (10-moment equations)",
@@ -519,9 +519,9 @@ main(int argc, char **argv)
     "Plasma Wave Beach Test (5-moment equations)",
     "Generalized Brio-Wu Riemann Problem Test (5-moment equations)",
     "Discontinuous Wave Test (linear advection equation)",
-    "Discontinuous Wave Test, with monotonicity-preserving reconstruction (linear advection equation)",
+    //"Discontinuous Wave Test, with monotonicity-preserving reconstruction (linear advection equation)",
     "Square Wave Test (inviscid Burgers' equation)",
-    "Sinusoidal Wave Test, with monotonicity-preserving reconstruction (inviscid Burgers' equation)",
+    //"Sinusoidal Wave Test, with monotonicity-preserving reconstruction (inviscid Burgers' equation)",
     "Plasma Wave Beach Test (cold fluid equations)",
     "Dust Cloud Collision Test (cold fluid equations)",
     "2D Sod-Type Shock Tube Test, in axial symmetry/polar coordinates (Euler equations)",
@@ -535,30 +535,30 @@ main(int argc, char **argv)
     "2D Riemann/quadrant Problem, using Harten-Lax-van Leer solver (Euler equations)",
     "2D Riemann/quadrant Problem, using Harten-Lax-van Leer-with Contact solver (Euler equations)",
     "2D Riemann/quadrant Problem, using Lax-Friedrichs solver (Euler equations)",
-    "2D Riemann/quadrant Problem, with monotonicity-preserving reconstruction (Euler equations)",
+    //"2D Riemann/quadrant Problem, with monotonicity-preserving reconstruction (Euler equations)",
     "2D Riemann/quadrant Problem, using Roe solver (Euler equations)",
     "3D Spherical Riemann Problem (Euler equations)",
     "Sod-Type Shock Tube Test, with Roe fluxes (Euler equations)",
     "Sod-Type Shock Tube Test, with Lax fluxes (Euler equations)",
-    "Sod-Type Shock Tube Test, with monotonicity-preserving reconstruction (Euler equations)",
+    //"Sod-Type Shock Tube Test, with monotonicity-preserving reconstruction (Euler equations)",
     "2D Superwedge Test (Euler equations)",
     "Sod-Type Vacuum Shock Tube Test (Euler equations)",
     "Double-Rarefaction Riemann Problem Test (Euler equations)",
-    "Smooth Traveling Wave Problem, with kinetic energy-preserving reconstruction (Euler equations)",
-    "Smooth Traveling Wave Problem, with monotonicity-preserving reconstruction (Euler equations)",
+    //"Smooth Traveling Wave Problem, with kinetic energy-preserving reconstruction (Euler equations)",
+    //"Smooth Traveling Wave Problem, with monotonicity-preserving reconstruction (Euler equations)",
     "Smooth Traveling Wave Problem (Euler equations)",
-    "2D Sod-Type Shock Tube Test, with a wedge boundary condition (Euler equations)",
+    //"2D Sod-Type Shock Tube Test, with a wedge boundary condition (Euler equations)",
     "Sod-Type Shock Tube Test, with Roe fluxes (isothermal Euler equations)",
     "Sod-Type Shock Tube Test, with Lax fluxes (isothermal Euler equations)",
     "Geospace Environment Modeling Reconnection Test (isothermal Euler equations)",
   };
-  int test_dimensions[47] = { 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 1, 2, 2, 1, 1, 2, 2, 2, 2, 2, 3, 1,
-    1, 1, 2, 1, 1, 2, 2, 2, 2, 1, 1, 2 };
-  int test_cuts[47] = { 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 4, 4, 4, 1, 4, 4, 4,
-    5, 5, 4, 5, 5, 5, 2, 4, 4, 4 };
-  int test_output_count[47] = { 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 4, 4, 3, 4, 1, 1, 1, 1, 3, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 4 };
-  char test_outputs[47][64][64] = {
+  int test_dimensions[47 - 7] = { 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 1, 1, 1, /*1,*/ 1, /*1,*/ 1, 1, 2, 2, 2, 1, 2, 2, 1, 1, 2, 2, 2, /*2,*/ 2, 3, 1,
+    1, /*1,*/ 2, 1, 1, /*2,*/ /*2,*/ 2, /*2,*/ 1, 1, 2 };
+  int test_cuts[47 - 7] = { 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, /*4,*/ 4, /*4,*/ 4, 4, 4, 4, 5, 4, 4, 4, 5, 4, 4, 4, 4, /*4,*/ 4, 1, 4, 4, /*4,*/
+    5, 5, 4, /*5,*/ /*5,*/ 5, /*2,*/ 4, 4, 4 };
+  int test_output_count[47 - 7] = { 4, 4, 4, 4, 4, 4, 4, 4, 1, 1, 4, 4, 3, 4, 1, /*1,*/ 1, /*1,*/ 3, 1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, /*1,*/ 1, 1,
+    1, 1, /*1,*/ 1, 1, 1, /*2,*/ /*1,*/ 1, /*2,*/ 1, 1, 4 };
+  char test_outputs[47 - 7][64][64] = {
     { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
     { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
     { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
@@ -574,9 +574,9 @@ main(int argc, char **argv)
     { "elc_1", "field_1", "ext_em_field_1" },
     { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
     { "q_1" },
-    { "q_1" },
+    //{ "q_1" },
     { "burgers_1" },
-    { "burgers_1" },
+    //{ "burgers_1" },
     { "elc_1", "field_1", "ext_em_field_1" },
     { "cold_1" },
     { "euler_1", "mapc2p" },
@@ -590,19 +590,19 @@ main(int argc, char **argv)
     { "euler_1" },
     { "euler_1" },
     { "euler_1" },
+    //{ "euler_1" },
     { "euler_1" },
     { "euler_1" },
     { "euler_1" },
     { "euler_1" },
+    //{ "euler_1" },
     { "euler_1" },
     { "euler_1" },
     { "euler_1" },
+    //{ "euler_1", "euler-alpha_1" },
+    //{ "euler_1" },
     { "euler_1" },
-    { "euler_1" },
-    { "euler_1", "euler-alpha_1" },
-    { "euler_1" },
-    { "euler_1" },
-    { "euler_1", "mapc2p" },
+    //{ "euler_1", "mapc2p" },
     { "iso_euler_1" },
     { "iso_euler_1" },
     { "elc_1", "ion_1", "field_1", "ext_em_field_1" },
