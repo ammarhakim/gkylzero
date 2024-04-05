@@ -73,8 +73,7 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
 
       // Diagonal terms of the diffusion tensor.
       // Always a 1D, 3-cell stencil.
-      const long sz_dim = 3;
-      long offsets[sz_dim] = {0};
+      long offsets[3] = {0};
       int update_dir[] = {dir1};
 
       bool is_edge_upper[1], is_edge_lower[1];
@@ -85,10 +84,10 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
       create_offsets(1, is_edge_lower, is_edge_upper, update_dir, range, offsets);
       int keri = idx_to_inloup_ker(1, idxc, update_dir, range->upper);
 
-      const double* fpo_g_stencil[sz_dim];
-      int idx[sz_dim][GKYL_MAX_DIM];
+      const double* fpo_g_stencil[3];
+      int idx[3][GKYL_MAX_DIM];
       int in_grid = 1;
-      for (int i=0; i<sz_dim; ++i) {
+      for (int i=0; i<3; ++i) {
         gkyl_range_inv_idx(range, linc+offsets[i], idx[i]);
         if (!(idx[i][dir1] < range->lower[dir1] || idx[i][dir1] > range->upper[dir1])) {
           fpo_g_stencil[i] = gkyl_array_cfetch(fpo_g, linc+offsets[i]);
@@ -105,8 +104,7 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
         // Off-diagonal terms of the diffusion tensor.
         // Offsets that would be outside the grid will point to center cell.
         // Always 2D and we need 9 cell stencil for 2D recovery.
-        const long sz_dim = 9;
-        long offsets[sz_dim] = {0};
+        long offsets[9] = {0};
         int update_dirs[] = {dir1, dir2};
 
         bool is_edge_lower[2], is_edge_upper[2];
@@ -121,10 +119,10 @@ void gkyl_calc_fpo_diff_coeff_recovery(const struct gkyl_rect_grid *grid,
         // Index into kernel list
         int keri = idx_to_inloup_ker(2, idxc, update_dirs, range->upper);
 
-        const double *fpo_g_stencil[sz_dim], *fpo_g_surf_stencil[sz_dim];
-        int idx[sz_dim][GKYL_MAX_DIM];
+        const double *fpo_g_stencil[9], *fpo_g_surf_stencil[9];
+        int idx[9][GKYL_MAX_DIM];
         int in_grid = 1;
-        for (int i=0; i<sz_dim; ++i) {
+        for (int i=0; i<9; ++i) {
           gkyl_range_inv_idx(range, linc+offsets[i], idx[i]);
 
           for (int d=0; d<2; ++d) {

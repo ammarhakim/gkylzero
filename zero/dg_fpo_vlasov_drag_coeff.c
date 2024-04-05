@@ -54,8 +54,7 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid,
       int dir = d + cdim;
 
       // Always a 1D, 3-cell stencil.
-      const long sz_dim = 3;
-      long offsets[sz_dim] = {0};
+      long offsets[3] = {0};
       int update_dir[] = {dir};
 
       bool is_edge_upper[1], is_edge_lower[1];
@@ -66,10 +65,10 @@ void gkyl_calc_fpo_drag_coeff_recovery(const struct gkyl_rect_grid *grid,
       create_offsets(1, is_edge_lower, is_edge_upper, update_dir, range, offsets);
       int keri = idx_to_inloup_ker(1, idxc, update_dir, range->upper);
 
-      const double* fpo_h_stencil[sz_dim];
-      int idx[sz_dim][GKYL_MAX_DIM];
+      const double* fpo_h_stencil[3];
+      int idx[3][GKYL_MAX_DIM];
       int in_grid = 1;
-      for (int i=0; i<sz_dim; ++i) {
+      for (int i=0; i<3; ++i) {
         gkyl_range_inv_idx(range, linc+offsets[i], idx[i]);
         if (!(idx[i][dir] < range->lower[dir] || idx[i][dir] > range->upper[dir])) {
           fpo_h_stencil[i] = gkyl_array_cfetch(fpo_h, linc+offsets[i]);
