@@ -81,7 +81,7 @@ runTestParallel(const char* test_name, const char* test_name_human, const int te
     }
     else {
       char command_buffer5[256];
-      snprintf(command_buffer5, 256, "cd ../; mv ./%s-%s.gkyl ci/output/_parallel/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
+      snprintf(command_buffer5, 256, "cd ../; mv ./%s-%s.gkyl ci/output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
       system(command_buffer5);
     }
   }
