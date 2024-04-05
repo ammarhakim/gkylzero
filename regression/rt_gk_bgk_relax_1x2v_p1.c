@@ -48,8 +48,8 @@ struct bgk_relax_ctx
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lz; // Domain size (configuration space: z-direction).
-  double Lvpar; // Domain size (velocity space: parallel velocity direction).
-  double Lmu; // Domain size (velocity space: magnetic moment direction).
+  double vpar_max; // Domain boundary (velocity space: parallel velocity direction).
+  double mu_max; // Domain boundary (velocity space: magnetic moment direction).
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -85,8 +85,8 @@ create_ctx(void)
   int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
-  double Lvpar = 16.0 * vt; // Domain size (velocity space: parallel velocity direction).
-  double Lmu = 12.0 * (vt * vt) / 2.0 / B0; // Domain size (velocity space: magnetic moment direction).
+  double vpar_max = 8.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
+  double mu_max = 12.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
 
   double t_end = 100.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -110,8 +110,8 @@ create_ctx(void)
     .Nvpar = Nvpar,
     .Nmu = Nmu,
     .Lz = Lz,
-    .Lvpar = Lvpar,
-    .Lmu = Lmu,
+    .vpar_max = vpar_max,
+    .mu_max = mu_max,
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
@@ -338,8 +338,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -0.5 * ctx.Lvpar, 0.0 },
-    .upper = { 0.5 * ctx.Lvpar, ctx.Lmu }, 
+    .lower = { -ctx.vpar_max, 0.0 },
+    .upper = { ctx.vpar_max, ctx.mu_max }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -365,8 +365,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -0.5 * ctx.Lvpar, 0.0 },
-    .upper = { 0.5 * ctx.Lvpar, ctx.Lmu }, 
+    .lower = { -ctx.vpar_max, 0.0 },
+    .upper = { ctx.vpar_max, ctx.mu_max }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 

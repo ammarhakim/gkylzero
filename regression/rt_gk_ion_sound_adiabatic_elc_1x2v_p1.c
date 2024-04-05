@@ -50,8 +50,8 @@ struct ion_sound_adiabatic_elc_ctx
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lz; // Domain size (configuration space: z-direction).
-  double Lvpar_ion; // Domain size (ion velocity space: parallel velocity direction).
-  double Lmu_ion; // Domain size (ion velocity space: magnetic moment direction).
+  double vpar_max_ion; // Domain boundary (ion velocity space: parallel velocity direction).
+  double mu_max_ion; // Domain boundary (ion velocity space: magnetic moment direction).
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -89,8 +89,8 @@ create_ctx(void)
   int Nvpar = 48; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
   double Lz = 2.0 * pi / k_ion; // Domain size (configuration space: z-direction).
-  double Lvpar_ion = 12.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
-  double Lmu_ion = mass_ion * ((5.0 * vti) * (5.0 * vti)) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
+  double vpar_max_ion = 6.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
+  double mu_max_ion = mass_ion * ((5.0 * vti) * (5.0 * vti)) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
   double t_end = 50.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -115,8 +115,8 @@ create_ctx(void)
     .Nvpar = Nvpar,
     .Nmu = Nmu,
     .Lz = Lz,
-    .Lvpar_ion = Lvpar_ion,
-    .Lmu_ion = Lmu_ion,
+    .vpar_max_ion = vpar_max_ion,
+    .mu_max_ion = mu_max_ion,
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
@@ -326,8 +326,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -0.5 * ctx.Lvpar_ion, 0.0 },
-    .upper = { 0.5 * ctx.Lvpar_ion, ctx.Lmu_ion },
+    .lower = { -ctx.vpar_max_ion, 0.0 },
+    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 

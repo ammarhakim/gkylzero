@@ -71,10 +71,10 @@ struct sheath_ctx
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lx; // Domain size (configuration space: x-direction).
   double Lz; // Domain size (configuration space: z-direction).
-  double Lvpar_elc; // Domain size (electron velocity space: parallel velocity direction).
-  double Lmu_elc; // Domain size (electron velocity space: magnetic moment direction).
-  double Lvpar_ion; // Domain size (ion velocity space: parallel velocity direction).
-  double Lmu_ion; // Domain size (ion velocity space: magnetic moment direction).
+  double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
+  double mu_max_elc; // Domain boundary (electron velocity space: magnetic moment direction).
+  double vpar_max_ion; // Domain boundary (ion velocity space: parallel velocity direction).
+  double mu_max_ion; // Domain boundary (ion velocity space: magnetic moment direction).
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
@@ -135,11 +135,11 @@ create_ctx(void)
   int Nmu = 4; // Cell count (velocity space: magnetic moment direction).
   double Lx = 50.0 * rho_s; // Domain size (configuration space: x-direction).
   double Lz = 4.0; // Domain size (configuration space: z-direction).
-  double Lvpar_elc = 8.0 * vte; // Domain size (electron velocity space: parallel velocity direction).
-  double Lmu_elc = (3.0 / 2.0) * 0.5 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain size (electron velocity space: magnetic moment direction).
-  double Lvpar_ion = 8.0 * vti; // Domain size (ion velocity space: parallel velocity direction).
-  double Lmu_ion = (3.0 / 2.0) * 0.5 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain size (ion velocity space: magnetic moment direction).
-  
+  double vpar_max_elc = 4.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
+  double mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
+  double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
+  double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
+
   double t_end = 6.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -181,10 +181,10 @@ create_ctx(void)
     .Nmu = Nmu,
     .Lx = Lx,
     .Lz = Lz,
-    .Lvpar_elc = Lvpar_elc,
-    .Lmu_elc = Lmu_elc,
-    .Lvpar_ion = Lvpar_ion,
-    .Lmu_ion = Lmu_ion,
+    .vpar_max_elc = vpar_max_elc,
+    .mu_max_elc = mu_max_elc,
+    .vpar_max_ion = vpar_max_ion,
+    .mu_max_ion = mu_max_ion,
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
@@ -539,8 +539,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
-    .lower = { -0.5 * ctx.Lvpar_elc, 0.0},
-    .upper = { 0.5 * ctx.Lvpar_elc, ctx.Lmu_elc},
+    .lower = { -ctx.vpar_max_elc, 0.0},
+    .upper = { ctx.vpar_max_elc, ctx.mu_max_elc},
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -592,8 +592,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
-    .lower = { -0.5 * ctx.Lvpar_ion, 0.0},
-    .upper = { 0.5 * ctx.Lvpar_ion, ctx.Lmu_ion},
+    .lower = { -ctx.vpar_max_ion, 0.0},
+    .upper = { ctx.vpar_max_ion, ctx.mu_max_ion},
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
