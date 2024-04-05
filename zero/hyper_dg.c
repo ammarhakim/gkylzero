@@ -168,7 +168,6 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
 
     for (int d1=0; d1<hdg->num_up_dirs; ++d1) {
       for (int d2=0; d2<hdg->num_up_dirs; ++d2) {
-        double cfls = 0.0;
         int dir1 = hdg->update_dirs[d1];
         int dir2 = hdg->update_dirs[d2];
         int update_dirs[] = {dir1, dir2};
@@ -208,9 +207,6 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
           // If the index is in the domain, fetch the pointer
           // otherwise, point to the central cell
           if (in_grid) {
-            gkyl_rect_grid_cell_center(&hdg->grid, idx[i], xc[i]);
-            for (int j=0; j<ndim; ++j)
-              dx[i][j] = hdg->grid.dx[j];
             fIn_d[i] = gkyl_array_cfetch(fIn, linc + offsets[i]);
           }
           else {
