@@ -214,7 +214,11 @@ However, these options can also be passed in as command line arguments, so that:
 ./build/ci/gk_regression 3 4
 ```
 will specifically run regression test number 4 in serial, with no additional
-interaction required from the user.
+interaction required from the user. The complete automatic CI framework can be
+built in a single step using:
+```
+make ci
+```
 
 Development philosophy
 ---------------------
