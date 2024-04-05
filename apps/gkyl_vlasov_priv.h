@@ -202,7 +202,7 @@ struct vm_fpo_collisions {
   gkyl_dg_updater_collisions *coll_slvr; // collision solver
 
   gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator
-}
+};
 
 struct vm_boundary_fluxes {
   struct vm_species_moment integ_moms[2*GKYL_MAX_CDIM]; // integrated moments
