@@ -60,14 +60,30 @@ runTestParallel(const char* test_name, const char* test_name_human, const int te
   }
   system(command_buffer3);
 
-  char command_buffer4[256];
-  snprintf(command_buffer4, 256, "cd ../; mv ./%s-stat.json ci/output_parallel/%s-stat_%d.json", test_name, test_name, counter);
-  system(command_buffer4);
+  char file_buffer1[128];
+  snprintf(file_buffer1, 128, "../%s-stat.json", test_name);
+  FILE *file_ptr1 = fopen(file_buffer1, "r");
+  if (file_ptr1 == NULL) {
+    printf("*** Something catastrophic happened. Test aborting... ***\n");
+  }
+  else {
+    char command_buffer4[256];
+    snprintf(command_buffer4, 256, "cd ../; mv ./%s-stat.json ci/output_parallel/%s-stat_%d.json", test_name, test_name, counter);
+    system(command_buffer4);
+  }
 
   for (int i = 0; i < test_output_count; i++) {
-    char command_buffer5[256];
-    snprintf(command_buffer5, 256, "cd ../; mv ./%s-%s.gkyl ci/output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
-    system(command_buffer5);
+    char file_buffer2[128];
+    snprintf(file_buffer2, 128, "../%s-%s.gkyl", test_name, test_outputs[i]);
+    FILE *file_ptr2 = fopen(file_buffer2, "r");
+    if (file_ptr2 == NULL) {
+      printf("*** Something catastrophic happened. Test aborting... ***\n");
+    }
+    else {
+      char command_buffer5[256];
+      snprintf(command_buffer5, 256, "cd ../; mv ./%s-%s.gkyl ci/output/_parallel/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
+      system(command_buffer5);
+    }
   }
 
   printf("Finished %s.\n\n", test_name_human);
@@ -88,6 +104,7 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
     fclose(counter_ptr);
   }
 
+  int failure[counter + 1];
   int updatecalls[counter + 1];
   int failedsteps[counter + 1];
   double speciesupdate[counter + 1];
@@ -129,6 +146,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
       char *end_ptr;
       updatecalls[i] = strtol(substring, &end_ptr, 10);
     }
+    else {
+      failure[i] = 1;
+    }
 
     failedsteps[i] = 0;
     if (strstr(output, "Number of failed time-steps ") != NULL) {
@@ -146,6 +166,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
 
       char *end_ptr;
       failedsteps[i] = strtol(substring, &end_ptr, 10);
+    }
+    else {
+      failure[i] = 1;
     }
 
     speciesupdate[i] = 0.0;
@@ -165,6 +188,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
       char *end_ptr;
       speciesupdate[i] = strtod(substring, &end_ptr);
     }
+    else {
+      failure[i] = 1;
+    }
 
     fieldupdate[i] = 0.0;
     if (strstr(output, "Field updates took ") != NULL) {
@@ -182,6 +208,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
 
       char *end_ptr;
       fieldupdate[i] = strtod(substring, &end_ptr);
+    }
+    else {
+      failure[i] = 1;
     }
 
     sourceupdate[i] = 0.0;
@@ -201,6 +230,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
       char *end_ptr;
       sourceupdate[i] = strtod(substring, &end_ptr);
     }
+    else {
+      failure[i] = 1;
+    }
 
     totalupdate[i] = 0.0;
     if (strstr(output, "Total updates took ") != NULL) {
@@ -218,6 +250,9 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
 
       char *end_ptr;
       totalupdate[i] = strtod(substring, &end_ptr);
+    }
+    else {
+      failure[i] = 1;
     }
     
     char *temp = output;
@@ -269,148 +304,160 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
       snprintf(data_buffer, 256, "output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
 
       FILE *data_ptr = fopen(data_buffer, "rb");
-      fseek(data_ptr, 0, SEEK_END);
-      data_file_size = ftell(data_ptr);
-      rewind(data_ptr);
-      data = calloc(data_file_size, (sizeof(char)));
-      fread(data, sizeof(char), data_file_size, data_ptr);
-      fclose(data_ptr);
 
-      long long total = 0;
-      for (long k = 0; k < data_file_size; k++) {
-        total += (long long)abs((int)data[k]);
+      if (data_ptr == NULL) {
+        failure[i] = 1;
       }
+      else {
+        fseek(data_ptr, 0, SEEK_END);
+        data_file_size = ftell(data_ptr);
+        rewind(data_ptr);
+        data = calloc(data_file_size, (sizeof(char)));
+        fread(data, sizeof(char), data_file_size, data_ptr);
+        fclose(data_ptr);
 
-      averages[i][j] = (long double)total / (long double)data_file_size;
+        long long total = 0;
+        for (long k = 0; k < data_file_size; k++) {
+          total += (long long)abs((int)data[k]);
+        }
+
+        averages[i][j] = (long double)total / (long double)data_file_size;
+      }
     }
   }
 
   for (int i = 1; i < counter + 1; i++) {
     printf("Build number: %d\n", i);
-    if (i == 1) {
-      printf("Update calls: %d\n", updatecalls[i]);
-      printf("Failed time-steps: %d\n", failedsteps[i]);
-      printf("Species update time: %f\n", speciesupdate[i]);
-      printf("Field update time: %f\n", fieldupdate[i]);
-      printf("Source update time: %f\n", sourceupdate[i]);
-      printf("Total update time: %f\n", totalupdate[i]);
-      if (memoryleakcount[i] != 0) {
-        printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
-      }
-      else {
-        printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
-      }
-      printf("Correct: N/A\n\n");
+
+    if (failure[i] == 1) {
+      printf(ANSI_COLOR_RED "*** Catastrophic test failure ***" ANSI_COLOR_RESET "\n\n");
     }
     else {
-      if (updatecalls[i] != updatecalls[i - 1]) {
-        printf("Update calls: " ANSI_COLOR_RED "%d" ANSI_COLOR_RESET "\n", updatecalls[i]);
-      }
-      else {
-        printf("Update calls: " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "\n", updatecalls[i]);
-      }
-
-      if (failedsteps[i] != failedsteps[i - 1]) {
-        printf("Failed time-steps: " ANSI_COLOR_RED "%d" ANSI_COLOR_RESET "\n", failedsteps[i]);
-      }
-      else {
-        printf("Failed time-steps: " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "\n", failedsteps[i]);
-      }
-
-      if (speciesupdate[i] > speciesupdate[i - 1]) {
-        if (speciesupdate[i - 1] > pow(10.0, -8.0)) {
-          printf("Species update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", speciesupdate[i],
-            (((double)speciesupdate[i] / (double)speciesupdate[i - 1]) - 1.0) * 100.0);
-        } else {
-          printf("Species update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", speciesupdate[i]);
-        }
-      }
-      else {
-        if (speciesupdate[i - 1] > pow(10.0, -8.0)) {
-          printf("Species update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciesupdate[i],
-            (((double)speciesupdate[i] / (double)speciesupdate[i - 1]) - 1.0) * 100.0);
+      if (i == 1 || failure[i - 1] == 1) {
+        printf("Update calls: %d\n", updatecalls[i]);
+        printf("Failed time-steps: %d\n", failedsteps[i]);
+        printf("Species update time: %f\n", speciesupdate[i]);
+        printf("Field update time: %f\n", fieldupdate[i]);
+        printf("Source update time: %f\n", sourceupdate[i]);
+        printf("Total update time: %f\n", totalupdate[i]);
+        if (memoryleakcount[i] != 0) {
+          printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
         }
         else {
-          printf("Species update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciesupdate[i]);
+          printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
         }
-      }
-
-      if (fieldupdate[i] > fieldupdate[i - 1]) {
-        if (fieldupdate[i - 1] > pow(10.0, -8.0)) {
-          printf("Field update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", fieldupdate[i],
-            (((double)fieldupdate[i] / (double)fieldupdate[i - 1]) - 1.0) * 100.0);
-        }
-        else {
-          printf("Field update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET, fieldupdate[i]);
-        }
+        printf("Correct: N/A\n\n");
       }
       else {
-        if (fieldupdate[i - 1] > pow(10.0, -8.0)) {
-          printf("Field update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", fieldupdate[i],
-            (((double)fieldupdate[i] / (double)fieldupdate[i - 1]) - 1.0) * 100.0);
+        if (updatecalls[i] != updatecalls[i - 1]) {
+          printf("Update calls: " ANSI_COLOR_RED "%d" ANSI_COLOR_RESET "\n", updatecalls[i]);
         }
         else {
-          printf("Field update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", fieldupdate[i]);
+          printf("Update calls: " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "\n", updatecalls[i]);
         }
-      }
 
-      if (sourceupdate[i] > sourceupdate[i - 1]) {
-        if (sourceupdate[i - 1] > pow(10.0, -8.0)) {
-          printf("Source update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", sourceupdate[i],
-            (((double)sourceupdate[i] / (double)sourceupdate[i - 1]) - 1.0) * 100.0);
+        if (failedsteps[i] != failedsteps[i - 1]) {
+          printf("Failed time-steps: " ANSI_COLOR_RED "%d" ANSI_COLOR_RESET "\n", failedsteps[i]);
         }
         else {
-          printf("Source update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", sourceupdate[i]);
+          printf("Failed time-steps: " ANSI_COLOR_GREEN "%d" ANSI_COLOR_RESET "\n", failedsteps[i]);
         }
-      }
-      else {
-        if (sourceupdate[i - 1] > pow(10.0, -8.0)) {
-          printf("Source update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", sourceupdate[i],
-            (((double)sourceupdate[i] / (double)sourceupdate[i - 1]) - 1.0) * 100.0);
+
+        if (speciesupdate[i] > speciesupdate[i - 1]) {
+          if (speciesupdate[i - 1] > pow(10.0, -8.0)) {
+            printf("Species update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", speciesupdate[i],
+              (((double)speciesupdate[i] / (double)speciesupdate[i - 1]) - 1.0) * 100.0);
+          } else {
+            printf("Species update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", speciesupdate[i]);
+          }
         }
         else {
-          printf("Source update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", sourceupdate[i]);
+          if (speciesupdate[i - 1] > pow(10.0, -8.0)) {
+            printf("Species update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", speciesupdate[i],
+              (((double)speciesupdate[i] / (double)speciesupdate[i - 1]) - 1.0) * 100.0);
+          }
+          else {
+            printf("Species update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", speciesupdate[i]);
+          }
         }
-      }
 
-      if (totalupdate[i] > totalupdate[i - 1]) {
-        if (totalupdate[i  - 1] > pow(10.0, -8.0)) {
-          printf("Total update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", totalupdate[i],
-            (((double)totalupdate[i] / (double)totalupdate[i - 1]) - 1.0) * 100.0);
+        if (fieldupdate[i] > fieldupdate[i - 1]) {
+          if (fieldupdate[i - 1] > pow(10.0, -8.0)) {
+            printf("Field update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", fieldupdate[i],
+              (((double)fieldupdate[i] / (double)fieldupdate[i - 1]) - 1.0) * 100.0);
+          }
+          else {
+            printf("Field update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET, fieldupdate[i]);
+          }
         }
         else {
-          printf("Total update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", totalupdate[i]);
+          if (fieldupdate[i - 1] > pow(10.0, -8.0)) {
+            printf("Field update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", fieldupdate[i],
+              (((double)fieldupdate[i] / (double)fieldupdate[i - 1]) - 1.0) * 100.0);
+          }
+          else {
+            printf("Field update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", fieldupdate[i]);
+          }
         }
-      }
-      else {
-        if (totalupdate[i - 1] > pow(10.0, -8.0)) {
-          printf("Total update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", totalupdate[i],
-            (((double)totalupdate[i] / (double)totalupdate[i - 1]) - 1.0) * 100.0);
+
+        if (sourceupdate[i] > sourceupdate[i - 1]) {
+          if (sourceupdate[i - 1] > pow(10.0, -8.0)) {
+            printf("Source update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", sourceupdate[i],
+              (((double)sourceupdate[i] / (double)sourceupdate[i - 1]) - 1.0) * 100.0);
+          }
+          else {
+            printf("Source update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", sourceupdate[i]);
+          }
         }
         else {
-          printf("Total update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", totalupdate[i]);
+          if (sourceupdate[i - 1] > pow(10.0, -8.0)) {
+            printf("Source update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", sourceupdate[i],
+              (((double)sourceupdate[i] / (double)sourceupdate[i - 1]) - 1.0) * 100.0);
+          }
+          else {
+            printf("Source update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", sourceupdate[i]);
+          }
         }
-      }
 
-      if (memoryleakcount[i] != 0) {
-        printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
-      }
-      else {
-        printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
-      }
-
-      int correct = 1;
-      for (int j = 0; j < test_output_count; j++) {
-        if (fabsl(averages[i][j] - averages[i - 1][j]) > RELATIVE_TOLERANCE) {
-          correct = 0;
+        if (totalupdate[i] > totalupdate[i - 1]) {
+          if (totalupdate[i  - 1] > pow(10.0, -8.0)) {
+            printf("Total update time: " ANSI_COLOR_RED "%f (+%.2f%%)" ANSI_COLOR_RESET "\n", totalupdate[i],
+              (((double)totalupdate[i] / (double)totalupdate[i - 1]) - 1.0) * 100.0);
+          }
+          else {
+            printf("Total update time: " ANSI_COLOR_RED "%f (N/A)" ANSI_COLOR_RESET "\n", totalupdate[i]);
+          }
         }
-      }
+        else {
+          if (totalupdate[i - 1] > pow(10.0, -8.0)) {
+            printf("Total update time: " ANSI_COLOR_GREEN "%f (%.2f%%)" ANSI_COLOR_RESET "\n", totalupdate[i],
+              (((double)totalupdate[i] / (double)totalupdate[i - 1]) - 1.0) * 100.0);
+          }
+          else {
+            printf("Total update time: " ANSI_COLOR_GREEN "%f (N/A)" ANSI_COLOR_RESET "\n", totalupdate[i]);
+          }
+        }
 
-      if ((updatecalls[i] != updatecalls[i - 1]) || (failedsteps[i] != failedsteps[i - 1]) || (correct != 1)) {
-        printf("Correct: " ANSI_COLOR_RED "No" ANSI_COLOR_RESET "\n\n");
-      }
-      else {
-        printf("Correct: " ANSI_COLOR_GREEN "Yes" ANSI_COLOR_RESET "\n\n");
+        if (memoryleakcount[i] != 0) {
+          printf("Memory leaks: " ANSI_COLOR_RED "%s" ANSI_COLOR_RESET "\n", memoryleaks[i]);
+        }
+        else {
+          printf("Memory leaks: " ANSI_COLOR_GREEN "None" ANSI_COLOR_RESET "\n");
+        }
+
+        int correct = 1;
+        for (int j = 0; j < test_output_count; j++) {
+          if (fabsl(averages[i][j] - averages[i - 1][j]) > RELATIVE_TOLERANCE) {
+            correct = 0;
+          }
+        }
+
+        if ((updatecalls[i] != updatecalls[i - 1]) || (failedsteps[i] != failedsteps[i - 1]) || (correct != 1)) {
+          printf("Correct: " ANSI_COLOR_RED "No" ANSI_COLOR_RESET "\n\n");
+        }
+        else {
+          printf("Correct: " ANSI_COLOR_GREEN "Yes" ANSI_COLOR_RESET "\n\n");
+        }
       }
     }
   }
