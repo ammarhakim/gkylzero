@@ -198,28 +198,28 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct lhdi_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double mass_elc = app -> mass_elc;
-  double charge_elc = app -> charge_elc;
+  double mass_elc = app->mass_elc;
+  double charge_elc = app->charge_elc;
 
-  double n0 = app -> n0;
+  double n0 = app->n0;
 
-  double noise_amp = app -> noise_amp;
-  double mode = app -> mode;
+  double noise_amp = app->noise_amp;
+  double mode = app->mode;
   
-  double Te = app -> Te;
+  double Te = app->Te;
 
-  double B0 = app -> B0;
+  double B0 = app->B0;
   
-  double l = app -> l;
+  double l = app->l;
 
-  double Te_frac = app -> Te_frac;
-  double ix = app -> ix;
-  double iy = app -> iy;
+  double Te_frac = app->Te_frac;
+  double ix = app->ix;
+  double iy = app->iy;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double sech_sq = (1.0 / cosh(y / l)) * (1.0 / cosh(y / l)); // Hyperbolic secant squared.
 
@@ -250,28 +250,28 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct lhdi_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double mass_ion = app -> mass_ion;
-  double charge_ion = app -> charge_ion;
+  double mass_ion = app->mass_ion;
+  double charge_ion = app->charge_ion;
 
-  double n0 = app -> n0;
+  double n0 = app->n0;
 
-  double noise_amp = app -> noise_amp;
-  double mode = app -> mode;
+  double noise_amp = app->noise_amp;
+  double mode = app->mode;
   
-  double Ti = app -> Ti;
+  double Ti = app->Ti;
 
-  double B0 = app -> B0;
+  double B0 = app->B0;
   
-  double l = app -> l;
+  double l = app->l;
 
-  double Ti_frac = app -> Ti_frac;
-  double ix = app -> ix;
-  double iy = app -> iy;
+  double Ti_frac = app->Ti_frac;
+  double ix = app->ix;
+  double iy = app->iy;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double sech_sq = (1.0 / cosh(y / l)) * (1.0 / cosh(y / l)); // Hyperbolic secant squared.
 
@@ -302,20 +302,20 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0], y = xn[1];
   struct lhdi_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double noise_amp = app -> noise_amp;
-  double mode = app -> mode;
+  double noise_amp = app->noise_amp;
+  double mode = app->mode;
 
-  double B0 = app -> B0;
+  double B0 = app->B0;
 
-  double l = app -> l;
+  double l = app->l;
 
-  double ix = app -> ix;
-  double iy = app -> iy;
+  double ix = app->ix;
+  double iy = app->iy;
   
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double Bz_noise = noise_amp * cos(iy * pi * y / Ly) * sin(ix * 2.0 * pi * x / Lx) / mode;
   double Bx = 0.0;
@@ -334,7 +334,7 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_moment_app_write(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -491,7 +491,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

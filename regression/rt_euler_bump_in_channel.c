@@ -134,17 +134,17 @@ evalEulerInit(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fo
   double x = zc[0];
   struct bump_in_channel_ctx *app = ctx;
 
-  double gas_gamma = app -> gas_gamma;
+  double gas_gamma = app->gas_gamma;
 
-  double rhol = app -> rhol;
-  double ul = app -> ul;
-  double pl = app -> pl;
+  double rhol = app->rhol;
+  double ul = app->ul;
+  double pl = app->pl;
 
-  double rhor = app -> rhor;
-  double ur = app -> ur;
-  double pr = app -> pr;
+  double rhor = app->rhor;
+  double ur = app->ur;
+  double pr = app->pr;
 
-  double half_xlen = app -> half_xlen;
+  double half_xlen = app->half_xlen;
 
   double rho = 0.0;
   double u = 0.0;
@@ -175,9 +175,9 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
   double x = zc[0], y = zc[1];
   struct bump_in_channel_ctx *app = ctx;
   
-  double bump_xlen = app -> bump_xlen;
-  double height = app -> height;
-  double R = app -> R;
+  double bump_xlen = app->bump_xlen;
+  double height = app->height;
+  double R = app->R;
   
   double zeta_min = sqrt((R * R) - ((0.5 * bump_xlen) * (0.5 * bump_xlen)));
   
@@ -198,7 +198,7 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_moment_app_write(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -330,7 +330,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

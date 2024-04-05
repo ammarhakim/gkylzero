@@ -181,27 +181,27 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct burch_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double mass_elc = app -> mass_elc;
-  double charge_elc = app -> charge_elc;
+  double mass_elc = app->mass_elc;
+  double charge_elc = app->charge_elc;
 
-  double omega0 = app -> omega0;
-  double psi0 = app -> psi0;
-  double guide1 = app -> guide1;
-  double guide2 = app -> guide2;
-  double b1 = app -> b1;
-  double b2 = app -> b2;
-  double n1 = app -> n1;
-  double Ti2 = app -> Ti2;
+  double omega0 = app->omega0;
+  double psi0 = app->psi0;
+  double guide1 = app->guide1;
+  double guide2 = app->guide2;
+  double b1 = app->b1;
+  double b2 = app->b2;
+  double n1 = app->n1;
+  double Ti2 = app->Ti2;
 
-  double Te1 = app -> Te1;
-  double Ti1 = app -> Ti1;
+  double Te1 = app->Te1;
+  double Ti1 = app->Ti1;
 
-  double Te2 = app -> Te2;
+  double Te2 = app->Te2;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double b1x = 0.5 * (b2 + b1) * (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0)
     + tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) + 0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
@@ -264,27 +264,27 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct burch_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double mass_ion = app -> mass_ion;
-  double charge_ion = app -> charge_ion;
+  double mass_ion = app->mass_ion;
+  double charge_ion = app->charge_ion;
 
-  double omega0 = app -> omega0;
-  double psi0 = app -> psi0;
-  double guide1 = app -> guide1;
-  double guide2 = app -> guide2;
-  double b1 = app -> b1;
-  double b2 = app -> b2;
-  double n1 = app -> n1;
-  double Ti2 = app -> Ti2;
+  double omega0 = app->omega0;
+  double psi0 = app->psi0;
+  double guide1 = app->guide1;
+  double guide2 = app->guide2;
+  double b1 = app->b1;
+  double b2 = app->b2;
+  double n1 = app->n1;
+  double Ti2 = app->Ti2;
 
-  double Te1 = app -> Te1;
-  double Ti1 = app -> Ti1;
+  double Te1 = app->Te1;
+  double Ti1 = app->Ti1;
 
-  double Te2 = app -> Te2;
+  double Te2 = app->Te2;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double b1x = 0.5 * (b2 + b1) * (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0)
     + tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) + 0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
@@ -347,24 +347,24 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0], y = xn[1];
   struct burch_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double omega0 = app -> omega0;
-  double psi0 = app -> psi0;
-  double guide1 = app -> guide1;
-  double guide2 = app -> guide2;
-  double b1 = app -> b1;
-  double b2 = app -> b2;
-  double n1 = app -> n1;
-  double Ti2 = app -> Ti2;
+  double omega0 = app->omega0;
+  double psi0 = app->psi0;
+  double guide1 = app->guide1;
+  double guide2 = app->guide2;
+  double b1 = app->b1;
+  double b2 = app->b2;
+  double n1 = app->n1;
+  double Ti2 = app->Ti2;
 
-  double Te1 = app -> Te1;
-  double Ti1 = app -> Ti1;
+  double Te1 = app->Te1;
+  double Ti1 = app->Ti1;
 
-  double Te2 = app -> Te2;
+  double Te2 = app->Te2;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double b1x = 0.5 * (b2 + b1) * (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0)
     + tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) + 0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
@@ -394,7 +394,7 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_moment_app_write(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -545,7 +545,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

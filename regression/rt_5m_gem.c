@@ -142,17 +142,17 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct gem_ctx *app = ctx;
 
-  double gas_gamma = app -> gas_gamma;
-  double mass_elc = app -> mass_elc;
-  double charge_elc = app -> charge_elc;
-  double lambda = app -> lambda;
-  double n0 = app -> n0;
-  double nb_over_n0 = app -> nb_over_n0;
-  double B0 = app -> B0;
-  double beta = app -> beta;
+  double gas_gamma = app->gas_gamma;
+  double mass_elc = app->mass_elc;
+  double charge_elc = app->charge_elc;
+  double lambda = app->lambda;
+  double n0 = app->n0;
+  double nb_over_n0 = app->nb_over_n0;
+  double B0 = app->B0;
+  double beta = app->beta;
 
-  double Te_frac = app -> Te_frac;
-  double T_tot = app -> T_tot;
+  double Te_frac = app->Te_frac;
+  double T_tot = app->T_tot;
 
   double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
 
@@ -177,17 +177,17 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct gem_ctx *app = ctx;
 
-  double gas_gamma = app -> gas_gamma;
-  double mass_ion = app -> mass_ion;
-  double charge_ion = app -> charge_ion;
-  double lambda = app -> lambda;
-  double n0 = app -> n0;
-  double nb_over_n0 = app -> nb_over_n0;
-  double B0 = app -> B0;
-  double beta = app -> beta;
+  double gas_gamma = app->gas_gamma;
+  double mass_ion = app->mass_ion;
+  double charge_ion = app->charge_ion;
+  double lambda = app->lambda;
+  double n0 = app->n0;
+  double nb_over_n0 = app->nb_over_n0;
+  double B0 = app->B0;
+  double beta = app->beta;
 
-  double Ti_frac = app -> Ti_frac;
-  double T_tot = app -> T_tot;
+  double Ti_frac = app->Ti_frac;
+  double T_tot = app->T_tot;
 
   double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
 
@@ -212,15 +212,15 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0], y = xn[1];
   struct gem_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double lambda = app -> lambda;
-  double B0 = app -> B0;
+  double lambda = app->lambda;
+  double B0 = app->B0;
 
-  double psi0 = app -> psi0;
+  double psi0 = app->psi0;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double Bxb = B0 * tanh(y / lambda); // Total magnetic field strength.
   double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) * sin(pi * y / Ly); // Total magnetic field (x-direction).
@@ -239,7 +239,7 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_moment_app_write(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -396,7 +396,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

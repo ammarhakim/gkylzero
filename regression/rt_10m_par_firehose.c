@@ -180,11 +180,11 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0];
   struct par_firehose_ctx *app = ctx;
 
-  double mass_elc = app -> mass_elc;
+  double mass_elc = app->mass_elc;
 
-  double n0 = app -> n0;
+  double n0 = app->n0;
 
-  double Te = app -> Te;
+  double Te = app->Te;
 
   double rhoe = mass_elc * n0; // Electron mass density.
   double momxe = 0.0; // Electron momentum density (x-direction).
@@ -212,12 +212,12 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0];
   struct par_firehose_ctx *app = ctx;
 
-  double mass_ion = app -> mass_ion;
+  double mass_ion = app->mass_ion;
 
-  double n0 = app -> n0;
+  double n0 = app->n0;
 
-  double Ti_par = app -> Ti_par;
-  double Ti_perp = app -> Ti_perp;
+  double Ti_par = app->Ti_par;
+  double Ti_perp = app->Ti_perp;
 
   double rhoi = mass_ion * n0; // Ion mass density.
   double momxi = 0.0; // Ion momentum density (x-direction).
@@ -245,15 +245,15 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0];
   struct par_firehose_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double B0 = app -> B0;
+  double B0 = app->B0;
 
-  double noise_amp = app -> noise_amp;
-  double mode_init = app -> mode_init;
-  double mode_final = app -> mode_final;
+  double noise_amp = app->noise_amp;
+  double mode_init = app->mode_init;
+  double mode_final = app->mode_final;
 
-  double Lx = app -> Lx;
+  double Lx = app->Lx;
 
   double Bx = B0; // Total magnetic field (x-direction).
   double By = 0.0;
@@ -282,7 +282,7 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_moment_app_write(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -432,7 +432,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

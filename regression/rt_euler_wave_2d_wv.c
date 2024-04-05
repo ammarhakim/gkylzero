@@ -100,12 +100,12 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0], y = xn[1];
   struct euler_wave_2d_ctx *app = ctx;
 
-  double pi = app -> pi;
-  double gas_gamma = app -> gas_gamma;
+  double pi = app->pi;
+  double gas_gamma = app->gas_gamma;
 
-  double u = app -> u;
-  double v = app -> v;
-  double p = app -> p;
+  double u = app->u;
+  double v = app->v;
+  double p = app->p;
 
   double rho = 1.0 + 0.2 * sin(pi * (x + y));
 
@@ -121,7 +121,7 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_moment_app_write(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -250,7 +250,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

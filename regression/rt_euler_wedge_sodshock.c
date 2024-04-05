@@ -113,17 +113,17 @@ evalEulerInit(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fo
   double r = zc[0];
   struct wedge_sodshock_ctx *app = ctx;
 
-  double gas_gamma = app -> gas_gamma;
+  double gas_gamma = app->gas_gamma;
 
-  double rhol = app -> rhol;
-  double ul = app -> ul;
-  double pl = app -> pl;
+  double rhol = app->rhol;
+  double ul = app->ul;
+  double pl = app->pl;
 
-  double rhor = app -> rhor;
-  double ur = app -> ur;
-  double pr = app -> pr;
+  double rhor = app->rhor;
+  double ur = app->ur;
+  double pr = app->pr;
 
-  double rloc = app -> rloc;
+  double rloc = app->rloc;
 
   double rho = 0.0;
   double u = 0.0;
@@ -162,7 +162,7 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_moment_app_write(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -293,7 +293,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

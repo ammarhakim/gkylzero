@@ -155,21 +155,21 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct rt_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double gas_gamma = app -> gas_gamma;
-  double mass_elc = app -> mass_elc;
-  double pert_max = app -> pert_max;
+  double gas_gamma = app->gas_gamma;
+  double mass_elc = app->mass_elc;
+  double pert_max = app->pert_max;
 
-  double nl = app -> nl;
-  double nr = app -> nr;
-  double Te = app -> Te;
-  double vAi = app -> vAi;
+  double nl = app->nl;
+  double nr = app->nr;
+  double Te = app->Te;
+  double vAi = app->vAi;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
-  double xloc = app -> xloc;
+  double xloc = app->xloc;
 
   double n = 0.0;
 
@@ -208,21 +208,21 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct rt_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double gas_gamma = app -> gas_gamma;
-  double mass_ion = app -> mass_ion;
-  double pert_max = app -> pert_max;
+  double gas_gamma = app->gas_gamma;
+  double mass_ion = app->mass_ion;
+  double pert_max = app->pert_max;
 
-  double nl = app -> nl;
-  double nr = app -> nr;
-  double Ti = app -> Ti;
-  double vAi = app -> vAi;
+  double nl = app->nl;
+  double nr = app->nr;
+  double Ti = app->Ti;
+  double vAi = app->vAi;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
-  double xloc = app -> xloc;
+  double xloc = app->xloc;
 
   double n = 0.0;
 
@@ -261,16 +261,16 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0], y = xn[1];
   struct rt_ctx *app = ctx;
 
-  double mu0 = app -> mu0;
-  double mass_ion = app -> mass_ion;
-  double B0 = app -> B0;
+  double mu0 = app->mu0;
+  double mass_ion = app->mass_ion;
+  double B0 = app->B0;
 
-  double nl = app -> nl;
-  double nr = app -> nr;
-  double T = app -> T;
-  double grav = app -> grav;
+  double nl = app->nl;
+  double nr = app->nr;
+  double T = app->T;
+  double grav = app->grav;
 
-  double xloc = app -> xloc;
+  double xloc = app->xloc;
 
   double Bz = 0.0;
 
@@ -294,7 +294,7 @@ evalAppAccel(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct rt_ctx *app = ctx;
 
-  double grav = app -> grav; // Gravitational acceleration.
+  double grav = app->grav; // Gravitational acceleration.
 
   // Set applied acceleration.
   fout[0] = grav; fout[1] = 0.0; fout[2] = 0.0;
@@ -304,7 +304,7 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_moment_app_write(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -463,7 +463,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };

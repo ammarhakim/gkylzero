@@ -123,14 +123,14 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0];
   struct mom_beach_ctx *app = ctx;
 
-  double gas_gamma = app -> gas_gamma;
-  double epsilon0 = app -> epsilon0;
-  double mass_elc = app -> mass_elc;
-  double charge_elc = app -> charge_elc;
+  double gas_gamma = app->gas_gamma;
+  double epsilon0 = app->epsilon0;
+  double mass_elc = app->mass_elc;
+  double charge_elc = app->charge_elc;
 
-  double light_speed = app -> light_speed;
+  double light_speed = app->light_speed;
 
-  double Lx100 = app -> Lx100;
+  double Lx100 = app->Lx100;
 
   double factor = app ->factor;
 
@@ -162,18 +162,18 @@ evalAppCurrent(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double x = xn[0];
   struct mom_beach_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double J0 = app -> J0;
+  double J0 = app->J0;
 
-  double light_speed = app -> light_speed;
+  double light_speed = app->light_speed;
 
-  double Lx = app -> Lx;
-  double Nx = app -> Nx;
-  double Lx100 = app -> Lx100;
-  double x_last_edge = app -> x_last_edge;
+  double Lx = app->Lx;
+  double Nx = app->Nx;
+  double Lx100 = app->Lx100;
+  double x_last_edge = app->x_last_edge;
 
-  double omega_drive = app -> omega_drive;
+  double omega_drive = app->omega_drive;
 
   if (x > x_last_edge) {
     // Set applied current.
@@ -185,7 +185,7 @@ void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    gkyl_moment_app_write(app, t_curr, iot->curr - 1);
   }
 }
 
@@ -323,7 +323,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };
