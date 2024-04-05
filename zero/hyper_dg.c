@@ -139,13 +139,13 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
   int ndim = hdg->ndim;
 
   // idxc, xc, and dx for volume update
-  int idxc[GKYL_MAX_DIM];
-  double xcc[GKYL_MAX_DIM];
+  int idxc[GKYL_MAX_DIM] = {0};
+  double xcc[GKYL_MAX_DIM] = {0.0};
 
   // idx, xc, and dx for generic surface update
-  int idx[9][GKYL_MAX_DIM];
-  double xc[9][GKYL_MAX_DIM];
-  double dx[9][GKYL_MAX_DIM];
+  int idx[9][GKYL_MAX_DIM] = {0};
+  double xc[9][GKYL_MAX_DIM] = {0.0};
+  double dx[9][GKYL_MAX_DIM] = {0.0};
   const double* fIn_d[9];
 
   // bool for checking if index is in the domain
@@ -173,8 +173,8 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
         int dir2 = hdg->update_dirs[d2];
         int update_dirs[] = {dir1, dir2};
 
-        long offsets[9];
-        int keri;
+        long offsets[9] = {0};
+        int keri = 0;
 
         // Create offsets for 2D stencil
         if (dir1 != dir2) {
@@ -200,8 +200,7 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
           // Assumes update_range owns lower and upper edges of the domain
           for (int d=0; d<hdg->num_up_dirs; ++d) {
             int dir = hdg->update_dirs[d];
-            if (idx[i][dir] < update_range->lower[dir] || 
-              idx[i][dir] > update_range->upper[dir]) {
+            if (idx[i][dir] < update_range->lower[dir] || idx[i][dir] > update_range->upper[dir]) {
               in_grid = 0;
             }
           }
