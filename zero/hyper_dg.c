@@ -142,10 +142,8 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
   int idxc[GKYL_MAX_DIM] = {0};
   double xcc[GKYL_MAX_DIM] = {0.0};
 
-  // idx, xc, and dx for generic surface update
+  // idx for generic surface update
   int idx[9][GKYL_MAX_DIM] = {0};
-  double xc[9][GKYL_MAX_DIM] = {0.0};
-  double dx[9][GKYL_MAX_DIM] = {0.0};
   const double* fIn_d[9];
 
   // bool for checking if index is in the domain
