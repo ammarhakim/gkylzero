@@ -45,8 +45,11 @@ struct bump_in_channel_ctx
   int Nx; // Cell count (x-direction).
   int Ny; // Cell count (y-direction).
   double cfl_frac; // CFL coefficient.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 
   double inlet_xlen; // Length of inlet (x-direction).
   double bump_xlen; // Length of bump (x-direction).
@@ -81,8 +84,11 @@ create_ctx(void)
   int Nx = 150; // Cell count (x-direction).
   int Ny = 75; // Cell count (y-direction).
   double cfl_frac = 0.9; // CFL coefficient.
+
   double t_end = 10.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   double inlet_xlen = 1.0; // Length of inlet (x-direction).
   double bump_xlen = 2.0; // Length of bump (x-direction).
@@ -108,6 +114,8 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
     .inlet_xlen = inlet_xlen,
     .bump_xlen = bump_xlen,
     .height = height,
@@ -344,6 +352,10 @@ main(int argc, char **argv)
   // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
 
+  // Initialize small time-step check.
+  double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
+  int num_failures = 0, num_failures_max = ctx.num_failures_max;
+
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
     gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
@@ -359,6 +371,25 @@ main(int argc, char **argv)
     dt = status.dt_suggested;
 
     write_data(&io_trig, app, t_curr);
+
+    if (dt_init < 0.0) {
+      dt_init = status.dt_actual;
+    }
+    else if (dt < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      gkyl_moment_app_cout(app, stdout, "WARNING: Time-step dt = %g", dt);
+      gkyl_moment_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
 
     step += 1;
   }
