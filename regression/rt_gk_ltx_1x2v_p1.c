@@ -386,8 +386,8 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(1.5*4*vti,2)/(2*B0);
 
-  double final_time = 1e-3;
-  int num_frames = 200;
+  double final_time = 1e-7;
+  int num_frames = 1;
 
   struct gk_app_ctx ctx = {
     .R_axis = R_axis,
