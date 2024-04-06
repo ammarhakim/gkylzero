@@ -118,16 +118,17 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
   gkyl_proj_on_basis_advance(proj_gamma, 0.0, &confLocal, gamma);
 
-  gkyl_array_set_offset(prim_moms, 1., u_drift, 0);
-  gkyl_array_set_offset(prim_moms, 1., vtsq, vdim*confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms, 1.0, m0, 0*confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms, 1.0, u_drift, 1*confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms, 1.0, vtsq, (vdim+1)*confBasis.num_basis);
 
   // initialize potential projection updater
   gkyl_proj_maxwellian_pots_on_basis *mpob;
   int num_quad = poly_order+1;
   mpob = gkyl_proj_maxwellian_pots_on_basis_new(&grid, &confBasis, &basis, num_quad);
-  gkyl_proj_maxwellian_pots_on_basis_lab_mom(mpob, &local, &confLocal, m0, prim_moms, fpo_h, 
-    fpo_g, fpo_h_surf, fpo_g_surf, fpo_dhdv_surf, fpo_dgdv_surf, fpo_d2gdv2_surf);
-  gkyl_proj_maxwellian_pots_deriv_on_basis_lab_mom(mpob, &local, &confLocal, m0, prim_moms,
+  gkyl_proj_maxwellian_pots_on_basis_advance(mpob, &local, &confLocal, prim_moms, 
+    fpo_h, fpo_g, fpo_h_surf, fpo_g_surf, fpo_dhdv_surf, fpo_dgdv_surf, fpo_d2gdv2_surf);
+  gkyl_proj_maxwellian_pots_deriv_on_basis_advance(mpob, &local, &confLocal, prim_moms,
     fpo_dhdv, fpo_d2gdv2);
 
   // Write potentials to files

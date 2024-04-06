@@ -1,4 +1,3 @@
-#include "gkyl_eval_on_nodes.h"
 #include <math.h>
 #include <string.h>
 
@@ -6,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_const.h>
+#include <gkyl_eval_on_nodes.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_fpo_proj_maxwellian_pots_on_basis.h>
@@ -13,7 +13,8 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid, 
+struct gkyl_proj_maxwellian_pots_on_basis* 
+gkyl_proj_maxwellian_pots_on_basis_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, int num_quad) 
 {
   gkyl_proj_maxwellian_pots_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_maxwellian_pots_on_basis));
@@ -50,12 +51,10 @@ gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const
   int vdim = up->pdim-up->cdim;
   int num_quad_v = num_quad;
   bool is_vdim_p2[] = {false, false, false};  // 3 is the max vdim.
-  if ((phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID) ||
-      (phase_basis->b_type == GKYL_BASIS_MODAL_GKHYBRID)) {
+  if (phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID) {
     num_quad_v = num_quad+1;
-    is_vdim_p2[0] = true;  // for gkhybrid.
-    if (phase_basis->b_type == GKYL_BASIS_MODAL_HYBRID)
-      for (int d=0; d<vdim; d++) is_vdim_p2[d] = true;
+    // Maxwellian potentials are always 3V
+    is_vdim_p2[0] = true, is_vdim_p2[1] = true, is_vdim_p2[2] = true;
   }
 
   up->phase_qrange = get_qrange(up->cdim, up->pdim, num_quad, num_quad_v, is_vdim_p2);
@@ -80,13 +79,14 @@ gkyl_proj_maxwellian_pots_on_basis* gkyl_proj_maxwellian_pots_on_basis_new(const
   return up;
 }
 
-void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_on_basis *up,
-    const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-    const struct gkyl_array* m0, const struct gkyl_array* prim_moms,
-    struct gkyl_array *fpo_h, struct gkyl_array *fpo_g,
-    struct gkyl_array *fpo_h_surf, struct gkyl_array *fpo_g_surf,
-    struct gkyl_array *fpo_dhdv_surf, struct gkyl_array *fpo_dgdv_surf,
-    struct gkyl_array *fpo_d2gdv2_surf)
+void 
+gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_basis *up,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_array* prim_moms,
+  struct gkyl_array *fpo_h, struct gkyl_array *fpo_g,
+  struct gkyl_array *fpo_h_surf, struct gkyl_array *fpo_g_surf,
+  struct gkyl_array *fpo_dhdv_surf, struct gkyl_array *fpo_dgdv_surf,
+  struct gkyl_array *fpo_d2gdv2_surf)
 {
   // Calculate Maxwellian potentials using primitive moments
   int cdim = up->cdim, pdim = up->pdim;
@@ -102,8 +102,6 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
   int pidx[GKYL_MAX_DIM], rem_dir[GKYL_MAX_DIM] = { 0 };
   for (int d=0; d<conf_range->ndim; ++d) rem_dir[d] = 1;
 
-  // struct gkyl_array *fpo_dgdv_at_surf_nodes = gkyl_array_new(GKYL_DOUBLE, 1, num_surf_basis);
-
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
 
   // Loop over configuration space cells for quad integration of moments
@@ -111,12 +109,10 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_range, conf_iter.idx);
 
-    // const double *m0_d = gkyl_array_cfetch(m0, midx);
-    // const double *u_drift_d = gkyl_array_cfetch(u_drift, midx);
-    // const double *vtsq_d = gkyl_array_cfetch(vtsq, midx);
-    const double *m0_d = gkyl_array_cfetch(m0, midx);
-    const double *u_drift_d = gkyl_array_cfetch(prim_moms, midx);
-    const double *vtsq_d = &u_drift_d[num_conf_basis*(vdim)];
+    const double *prim_moms_d = gkyl_array_cfetch(prim_moms, midx);
+    const double *m0_d = &prim_moms_d[0];
+    const double *u_drift_d = &prim_moms_d[num_conf_basis];
+    const double *vtsq_d = &prim_moms_d[num_conf_basis*(vdim+1)];
 
     // Inner loop over velocity space
     // Should be able to replace this with a phase space loop
@@ -324,10 +320,10 @@ void gkyl_proj_maxwellian_pots_on_basis_lab_mom(const gkyl_proj_maxwellian_pots_
   }
 }
 
-void gkyl_proj_maxwellian_pots_deriv_on_basis_lab_mom(
-  const gkyl_proj_maxwellian_pots_on_basis *up,
+void 
+gkyl_proj_maxwellian_pots_deriv_on_basis_advance(const gkyl_proj_maxwellian_pots_on_basis *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *m0, const struct gkyl_array *prim_moms,
+  const struct gkyl_array *prim_moms,
   struct gkyl_array *fpo_dhdv, struct gkyl_array *fpo_d2gdv2)
 {
   // Calculate Maxwellian potentials using primitive moments
@@ -353,9 +349,10 @@ void gkyl_proj_maxwellian_pots_deriv_on_basis_lab_mom(
   while (gkyl_range_iter_next(&conf_iter)) {
     long midx = gkyl_range_idx(conf_range, conf_iter.idx);
 
-    const double *m0_d = gkyl_array_cfetch(m0, midx);
-    const double *u_drift_d = gkyl_array_cfetch(prim_moms, midx);
-    const double *vtsq_d = &u_drift_d[num_conf_basis*(vdim)];
+    const double *prim_moms_d = gkyl_array_cfetch(prim_moms, midx);
+    const double *m0_d = &prim_moms_d[0];
+    const double *u_drift_d = &prim_moms_d[num_conf_basis];
+    const double *vtsq_d = &prim_moms_d[num_conf_basis*(vdim+1)];
 
     // Inner loop over velocity space
     gkyl_range_deflate(&vel_range, phase_range, rem_dir, conf_iter.idx);
@@ -427,7 +424,8 @@ void gkyl_proj_maxwellian_pots_deriv_on_basis_lab_mom(
   }
 }
 
-void gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *up)
+void 
+gkyl_proj_maxwellian_pots_on_basis_release(gkyl_proj_maxwellian_pots_on_basis *up)
 {
   gkyl_array_release(up->ordinates);
   gkyl_array_release(up->weights);
