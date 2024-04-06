@@ -143,7 +143,7 @@ void gkyl_fpo_vlasov_drag_free(const struct gkyl_ref_count* ref);
 // Surface term called by gkyl_hyper_dg_advance
 GKYL_CU_D
 static double
-fpo_drag_surf_term(const struct gkyl_dg_eqn *eqn, 
+surf(const struct gkyl_dg_eqn *eqn, 
   int dir,
   const double*  xcL, const double*  xcC, const double*  xcR, 
   const double*  dxL, const double* dxC, const double* dxR,
@@ -158,17 +158,17 @@ fpo_drag_surf_term(const struct gkyl_dg_eqn *eqn,
 
   if (dir >= fpo_vlasov_drag->cdim) {
     fpo_vlasov_drag->surf[dir-fpo_vlasov_drag->cdim](dxC, 
-        gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linl),
-        gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linc),
-        gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linr),
-        qInL, qInC, qInR, qRhsOut);
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linl),
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linc),
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, linr),
+      qInL, qInC, qInR, qRhsOut);
   }
   return 0.0;
 }
 
 GKYL_CU_D
 static double
-fpo_drag_boundary_surf_term(const struct gkyl_dg_eqn *eqn,
+boundary_surf(const struct gkyl_dg_eqn *eqn,
   int dir,
   const double*  xcEdge, const double*  xcSkin,
   const double*  dxEdge, const double* dxSkin,
@@ -182,8 +182,8 @@ fpo_drag_boundary_surf_term(const struct gkyl_dg_eqn *eqn,
 
   if (dir >= fpo_vlasov_drag->cdim) {
     fpo_vlasov_drag->boundary_surf[dir-fpo_vlasov_drag->cdim](dxEdge,
-      gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, lin_edge),
-      gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, lin_skin),
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, lin_edge),
+      (const double*) gkyl_array_cfetch(fpo_vlasov_drag->auxfields.drag_coeff, lin_skin),
       edge, qInEdge, qInSkin, qRhsOut);
   }
 

@@ -56,8 +56,8 @@ gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis* pbasis, const struct gkyl_r
   fpo_vlasov_drag->pdim = pdim;
 
   fpo_vlasov_drag->eqn.num_equations = 1;
-  fpo_vlasov_drag->eqn.surf_term = fpo_drag_surf_term;
-  fpo_vlasov_drag->eqn.boundary_surf_term = fpo_drag_boundary_surf_term;
+  fpo_vlasov_drag->eqn.surf_term = surf;
+  fpo_vlasov_drag->eqn.boundary_surf_term = boundary_surf;
 
   const gkyl_dg_fpo_vlasov_drag_vol_kern_list *vol_kernels;
   const gkyl_dg_fpo_vlasov_drag_surf_kern_list *surf_vx_kernel_list;
