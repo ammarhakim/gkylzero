@@ -174,7 +174,7 @@ gkyl_hyper_dg_gen_stencil_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_rang
 
         // Get pointers to all neighbor values
         for (int i=0; i<9; ++i) {
-          gkyl_range_inv_idx(update_range, linc+offsets[i], idx[i]);
+          gkyl_range_inv_idx(&update_range, linc+offsets[i], idx[i]);
     
           // Check if index is in the domain
           // Assumes update_range owns lower and upper edges of the domain
