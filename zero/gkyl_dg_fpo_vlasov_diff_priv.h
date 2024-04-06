@@ -66,7 +66,7 @@ static const gkyl_dg_fpo_vlasov_diff_vol_kern_list ser_vol_kernels[] = {
 // in hyper_dg. Diagonal terms only have in/lo/up as options, so keri is either 0/1/2
 
 // vx-vx direction surface kernels
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vxvx_kernels[] = {
   { fpo_vlasov_diff_surfvxvx_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvxvx_1x3v_ser_p1_lovx, fpo_vlasov_diff_boundary_surfvxvx_1x3v_ser_p1_upvx, NULL, NULL, NULL, NULL, NULL, NULL },
   { fpo_vlasov_diff_surfvxvx_1x3v_ser_p2, fpo_vlasov_diff_boundary_surfvxvx_1x3v_ser_p2_lovx, fpo_vlasov_diff_boundary_surfvxvx_1x3v_ser_p2_upvx, NULL, NULL, NULL, NULL, NULL, NULL },
@@ -74,7 +74,7 @@ static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vxvx_kernels[] = {
 };
 
 // vx-vy direction surface kernels
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vxvy_kernels[] = {
   { fpo_vlasov_diff_surfvxvy_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_lovx_invy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_upvx_invy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_invx_lovy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_invx_upvy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_lovx_lovy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_lovx_upvy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_upvx_lovy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p1_upvx_upvy },
   { fpo_vlasov_diff_surfvxvy_1x3v_ser_p2, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p2_lovx_invy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p2_upvx_invy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p2_invx_lovy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p2_invx_upvy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p2_lovx_lovy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p2_lovx_upvy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p2_upvx_lovy, fpo_vlasov_diff_boundary_surfvxvy_1x3v_ser_p2_upvx_upvy },
@@ -82,7 +82,7 @@ static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vxvy_kernels[] = {
 };
 
 // vx-vz direction surface kernels
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vxvz_kernels[] = {
   { fpo_vlasov_diff_surfvxvz_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_lovx_invz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_upvx_invz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_invx_lovz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_invx_upvz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_lovx_lovz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_lovx_upvz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_upvx_lovz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p1_upvx_upvz },
   { fpo_vlasov_diff_surfvxvz_1x3v_ser_p2, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p2_lovx_invz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p2_upvx_invz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p2_invx_lovz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p2_invx_upvz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p2_lovx_lovz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p2_lovx_upvz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p2_upvx_lovz, fpo_vlasov_diff_boundary_surfvxvz_1x3v_ser_p2_upvx_upvz },
@@ -90,7 +90,7 @@ static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vxvz_kernels[] = {
 };
 
 // vy-vx direction surface kernels
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vyvx_kernels[] = {
   { fpo_vlasov_diff_surfvyvx_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_lovy_invx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_upvy_invx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_invy_lovx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_invy_upvx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_lovy_lovx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_lovy_upvx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_upvy_lovx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p1_upvy_upvx },
   { fpo_vlasov_diff_surfvyvx_1x3v_ser_p2, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p2_lovy_invx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p2_upvy_invx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p2_invy_lovx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p2_invy_upvx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p2_lovy_lovx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p2_lovy_upvx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p2_upvy_lovx, fpo_vlasov_diff_boundary_surfvyvx_1x3v_ser_p2_upvy_upvx },
@@ -98,7 +98,7 @@ static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vyvx_kernels[] = {
 };
 
 // vy-vy direction surface kernels
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vyvy_kernels[] = {
   { fpo_vlasov_diff_surfvyvy_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvyvy_1x3v_ser_p1_lovy, fpo_vlasov_diff_boundary_surfvyvy_1x3v_ser_p1_upvy, NULL, NULL, NULL, NULL, NULL, NULL },
   { fpo_vlasov_diff_surfvyvy_1x3v_ser_p2, fpo_vlasov_diff_boundary_surfvyvy_1x3v_ser_p2_lovy, fpo_vlasov_diff_boundary_surfvyvy_1x3v_ser_p2_upvy, NULL, NULL, NULL, NULL, NULL, NULL },
@@ -106,7 +106,7 @@ static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vyvy_kernels[] = {
 };
 
 // vy-vz direction surface kernels
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vyvz_kernels[] = {
   { fpo_vlasov_diff_surfvyvz_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_lovy_invz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_upvy_invz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_invy_lovz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_invy_upvz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_lovy_lovz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_lovy_upvz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_upvy_lovz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p1_upvy_upvz },
   { fpo_vlasov_diff_surfvyvz_1x3v_ser_p2, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p2_lovy_invz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p2_upvy_invz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p2_invy_lovz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p2_invy_upvz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p2_lovy_lovz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p2_lovy_upvz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p2_upvy_lovz, fpo_vlasov_diff_boundary_surfvyvz_1x3v_ser_p2_upvy_upvz },
@@ -114,7 +114,7 @@ static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vyvz_kernels[] = {
 };
 
 // vz-vx direction surface kernels
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vzvx_kernels[] = {
   { fpo_vlasov_diff_surfvzvx_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_lovz_invx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_upvz_invx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_invz_lovx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_invz_upvx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_lovz_lovx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_lovz_upvx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_upvz_lovx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p1_upvz_upvx },
   { fpo_vlasov_diff_surfvzvx_1x3v_ser_p2, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p2_lovz_invx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p2_upvz_invx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p2_invz_lovx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p2_invz_upvx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p2_lovz_lovx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p2_lovz_upvx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p2_upvz_lovx, fpo_vlasov_diff_boundary_surfvzvx_1x3v_ser_p2_upvz_upvx },
@@ -122,7 +122,7 @@ static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vzvx_kernels[] = {
 };
 
 // vz-vy direction surface kernels
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vzvy_kernels[] = {
   { fpo_vlasov_diff_surfvzvy_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_lovz_invy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_upvz_invy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_invz_lovy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_invz_upvy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_lovz_lovy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_lovz_upvy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_upvz_lovy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p1_upvz_upvy },
   { fpo_vlasov_diff_surfvzvy_1x3v_ser_p2, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p2_lovz_invy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p2_upvz_invy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p2_invz_lovy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p2_invz_upvy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p2_lovz_lovy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p2_lovz_upvy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p2_upvz_lovy, fpo_vlasov_diff_boundary_surfvzvy_1x3v_ser_p2_upvz_upvy },
@@ -130,7 +130,7 @@ static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vzvy_kernels[] = {
 };
 
 // vz-vz direction surface kernels
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vzvz_kernels[] = {
   { fpo_vlasov_diff_surfvzvz_1x3v_ser_p1, fpo_vlasov_diff_boundary_surfvzvz_1x3v_ser_p1_lovz, fpo_vlasov_diff_boundary_surfvzvz_1x3v_ser_p1_upvz, NULL, NULL, NULL, NULL, NULL, NULL },
   { fpo_vlasov_diff_surfvzvz_1x3v_ser_p2, fpo_vlasov_diff_boundary_surfvzvz_1x3v_ser_p2_lovz, fpo_vlasov_diff_boundary_surfvzvz_1x3v_ser_p2_upvz, NULL, NULL, NULL, NULL, NULL, NULL },
@@ -139,63 +139,63 @@ static const fpo_vlasov_diff_surf_kern_list ser_surf_1x3v_vzvz_kernels[] = {
 
 
 // Lists of domain stencil kernel lists, ordered by cdim.
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list *ser_surf_vxvx_kernels[3] = {
   ser_surf_1x3v_vxvx_kernels,
   NULL,
   NULL
 };
 
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list *ser_surf_vxvy_kernels[3] = {
   ser_surf_1x3v_vxvy_kernels,
   NULL,
   NULL
 };
 
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list *ser_surf_vxvz_kernels[3] = {
   ser_surf_1x3v_vxvz_kernels,
   NULL,
   NULL
 };
 
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list *ser_surf_vyvx_kernels[3] = {
   ser_surf_1x3v_vyvx_kernels,
   NULL,
   NULL
 };
 
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list *ser_surf_vyvy_kernels[3] = {
   ser_surf_1x3v_vyvy_kernels,
   NULL,
   NULL
 };
 
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list *ser_surf_vyvz_kernels[3] = {
   ser_surf_1x3v_vyvz_kernels,
   NULL,
   NULL
 };
 
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list *ser_surf_vzvx_kernels[3] = {
   ser_surf_1x3v_vzvx_kernels,
   NULL,
   NULL
 };
 
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list *ser_surf_vzvy_kernels[3] = {
   ser_surf_1x3v_vzvy_kernels,
   NULL,
   NULL
 };
 
-GKYL_CU_DH
+GKYL_CU_D
 static const fpo_vlasov_diff_surf_kern_list *ser_surf_vzvz_kernels[3] = {
   ser_surf_1x3v_vzvz_kernels,
   NULL,
@@ -243,7 +243,7 @@ fpo_diff_gen_surf_term(const struct gkyl_dg_eqn* eqn, int dir1, int dir2,
   const double* diff_coeff_d[9];
   for (int i=0; i<sz_dim; ++i) {
     if (idx[i]) {
-      diff_coeff_d[i] = gkyl_array_cfetch(fpo_vlasov_diff->auxfields.diff_coeff,
+      diff_coeff_d[i] = (const double*) gkyl_array_cfetch(fpo_vlasov_diff->auxfields.diff_coeff,
         gkyl_range_idx(&fpo_vlasov_diff->phase_range, idx[i]));
     }
   }

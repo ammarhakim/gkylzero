@@ -19,7 +19,7 @@ __global__ static void
 gkyl_fpo_vlasov_diff_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, const struct gkyl_array *diff_coeff)
 {
   struct dg_fpo_vlasov_diff *fpo_vlasov_diff = container_of(eqn, struct dg_fpo_vlasov_diff, eqn);
-  fpo_vlasov_diff->auxin.diff_coeff = diff_coeff;
+  fpo_vlasov_diff->auxfields.diff_coeff = diff_coeff;
 }
 
 //// Host-side wrapper for device kernels setting g (second Rosenbluth potential).
@@ -36,8 +36,7 @@ dg_fpo_vlasov_diff_set_cu_dev_ptrs(struct dg_fpo_vlasov_diff *fpo_vlasov_diff, e
 {
   fpo_vlasov_diff->auxfields.diff_coeff = 0; 
 
-  fpo_vlasov_diff->eqn.gen_surf_term = surf;
-  fpo_vlasov_diff->eqn.gen_boundary_surf_term = boundary_surf;
+  fpo_vlasov_diff->eqn.gen_surf_term = fpo_diff_gen_surf_term;
 
   const gkyl_dg_fpo_vlasov_diff_vol_kern_list* vol_kernels;
   const fpo_vlasov_diff_surf_kern_list** surf_vxvx_kernel_list;

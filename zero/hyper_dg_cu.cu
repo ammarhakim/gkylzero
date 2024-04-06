@@ -143,7 +143,7 @@ gkyl_hyper_dg_gen_stencil_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_rang
       hdg->equation, xcc, hdg->grid.dx, idxc,
       (const double*) gkyl_array_cfetch(fIn, linc), (double*) gkyl_array_fetch(rhs, linc)
     );
-    double *cflrate_d = gkyl_array_fetch(cflrate, linc);
+    double *cflrate_d = (double*) gkyl_array_fetch(cflrate, linc);
     cflrate_d[0] += cflr;
     for (int d1=0; d1<hdg->num_up_dirs; ++d1) {
       for (int d2=0; d2<hdg->num_up_dirs; ++d2) {
@@ -159,17 +159,17 @@ gkyl_hyper_dg_gen_stencil_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_rang
         // Create offsets for 2D stencil
         if (dir1 != dir2) {
           int num_up_dirs = 2;
-          create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
+          create_offsets(hdg, num_up_dirs, update_dirs, &update_range, idxc, offsets);
 
           // Index into kernel list
-          keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range->upper);
+          keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range.upper);
         } 
         else {
           int num_up_dirs = 1;
-          create_offsets(hdg, num_up_dirs, update_dirs, update_range, idxc, offsets);
+          create_offsets(hdg, num_up_dirs, update_dirs, &update_range, idxc, offsets);
 
           // Index into kernel list
-          keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range->upper);
+          keri = idx_to_inloup_ker(num_up_dirs, idxc, update_dirs, update_range.upper);
         }
 
         // Get pointers to all neighbor values
@@ -180,7 +180,7 @@ gkyl_hyper_dg_gen_stencil_advance_cu_kernel(gkyl_hyper_dg* hdg, struct gkyl_rang
           // Assumes update_range owns lower and upper edges of the domain
           for (int d=0; d<hdg->num_up_dirs; ++d) {
             int dir = hdg->update_dirs[d];
-            if (idx[i][dir] < update_range->lower[dir] || idx[i][dir] > update_range->upper[dir]) {
+            if (idx[i][dir] < update_range.lower[dir] || idx[i][dir] > update_range.upper[dir]) {
               in_grid = 0;
             }
           }
