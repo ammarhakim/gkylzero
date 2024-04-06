@@ -82,6 +82,10 @@ void gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg* hdg, const struct gkyl_ran
   const struct gkyl_array *fIn, struct gkyl_array *cflrate, 
   struct gkyl_array *rhs);
 
+void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_rng,
+  const struct gkyl_array *fIn, struct gkyl_array *cflrate, 
+  struct gkyl_array *rhs);
+
 /**
  * Set if volume term should be computed or not.
  *

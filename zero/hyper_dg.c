@@ -10,52 +10,6 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-static void
-create_offsets(gkyl_hyper_dg *hdg, const int num_up_dirs, const int update_dirs[], 
-  const struct gkyl_range *range, const int idxc[GKYL_MAX_DIM], long offsets[9])
-{
-  // Check if we're at an upper or lower edge in each direction
-  bool is_edge_upper[2], is_edge_lower[2];
-  for (int i=0; i<num_up_dirs; ++i) {
-    is_edge_lower[i] = idxc[update_dirs[i]] == range->lower[update_dirs[i]];
-    is_edge_upper[i] = idxc[update_dirs[i]] == range->upper[update_dirs[i]];
-  }
-
-  // Construct the offsets *only* in the directions being updated.
-  // No need to load the neighbors that are not needed for the update.
-  int lower_offset[GKYL_MAX_DIM] = {0};
-  int upper_offset[GKYL_MAX_DIM] = {0};
-  for (int d=0; d<num_up_dirs; ++d) {
-    int dir = update_dirs[d];
-    lower_offset[dir] = -1 + is_edge_lower[d];
-    upper_offset[dir] = 1 - is_edge_upper[d];
-  }  
-
-  // box spanning stencil
-  struct gkyl_range box3;
-  gkyl_range_init(&box3, range->ndim, lower_offset, upper_offset);
-  struct gkyl_range_iter iter3;
-  gkyl_range_iter_init(&iter3, &box3);
-  // construct list of offsets
-  int count = 0;
-  while (gkyl_range_iter_next(&iter3))
-    offsets[count++] = gkyl_range_offset(range, iter3.idx);
-
-}
-
-static int idx_to_inloup_ker(int dim, const int *idx, const int *dirs, const int *num_cells) {
-  int iout = 0;
-
-  for (int d=0; d<dim; ++d) {
-    if (idx[dirs[d]] == 1) {
-      iout = 2*iout+(int)(pow(3,d)+0.5);
-    } else if (idx[dirs[d]] == num_cells[dirs[d]]) {
-      iout = 2*iout+(int)(pow(3,d)+0.5)+1;
-    }
-  }
-  return iout;
-}
-
 void
 gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *hdg, int update_vol_term)
 {
@@ -168,7 +122,9 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *hdg, const struct gkyl_range *u
       for (int d2=0; d2<hdg->num_up_dirs; ++d2) {
         int dir1 = hdg->update_dirs[d1];
         int dir2 = hdg->update_dirs[d2];
-        int update_dirs[] = {dir1, dir2};
+        int update_dirs[2];
+        update_dirs[0] = dir1;
+        update_dirs[1] = dir2;
 
         long offsets[9] = {0};
         int keri = 0;
@@ -280,6 +236,13 @@ gkyl_hyper_dg_cu_dev_new(const struct gkyl_rect_grid *grid_cu,
 }
 
 void gkyl_hyper_dg_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
+  const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
+  struct gkyl_array* GKYL_RESTRICT rhs)
+{
+  assert(false);
+}
+
+void gkyl_hyper_dg_gen_stencil_advance_cu(gkyl_hyper_dg* hdg, const struct gkyl_range *update_range,
   const struct gkyl_array* GKYL_RESTRICT fIn, struct gkyl_array* GKYL_RESTRICT cflrate,
   struct gkyl_array* GKYL_RESTRICT rhs)
 {

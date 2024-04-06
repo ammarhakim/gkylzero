@@ -83,25 +83,13 @@ vm_species_fpo_rhs(gkyl_vlasov_app *app, const struct vm_species *s,
 {
   struct timespec wst = gkyl_wall_clock();
 
-  if (app->use_gpu) {
-    wst = gkyl_wall_clock();
-    
-    // accumulate update due to collisions onto rhs
-    gkyl_dg_updater_fpo_vlasov_advance_cu(fpo->coll_slvr, &s->local,
-      fpo->drag_coeff, fpo->diff_coeff, fin, s->cflrate, rhs);
-    
-    app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
-    
-  } 
-  else {
-    wst = gkyl_wall_clock();
-    
-    // accumulate update due to collisions onto rhs
-    gkyl_dg_updater_fpo_vlasov_advance(fpo->coll_slvr, &s->local,
-      fpo->drag_coeff, fpo->diff_coeff, fin, s->cflrate, rhs);
+  wst = gkyl_wall_clock();
+  
+  // accumulate update due to collisions onto rhs
+  gkyl_dg_updater_fpo_vlasov_advance(fpo->coll_slvr, &s->local,
+    fpo->drag_coeff, fpo->diff_coeff, fin, s->cflrate, rhs);
 
-    app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
-  }
+  app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void 

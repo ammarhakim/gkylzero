@@ -47,12 +47,6 @@ void gkyl_dg_updater_fpo_vlasov_advance(struct gkyl_dg_updater_collisions *fpo,
   const struct gkyl_array* GKYL_RESTRICT fIn,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
 
-void gkyl_dg_updater_fpo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *fpo,
-  const struct gkyl_range *update_rng,
-  const struct gkyl_array *h, const struct gkyl_array *g, 
-  const struct gkyl_array* GKYL_RESTRICT fIn,
-  struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs);
-
 /**
  * Return total time spent in drag and diffusion terms
  *
