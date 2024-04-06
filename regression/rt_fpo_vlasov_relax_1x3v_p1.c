@@ -31,7 +31,8 @@ evalDistFuncSquare(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTR
 {
   struct free_stream_ctx *app = ctx;
   double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
-  if(vx>-1.0 && vx<1.0 && vy>-1.0 && vy<1.0 && vz>-1.0 && vz<1.0) {
+  double square_fac = 4.0*app->vt;
+  if(vx>-square_fac && vx<square_fac && vy>-square_fac && vy<square_fac && vz>-square_fac && vz<square_fac) {
     fout[0] = 0.5;
   } else {
     fout[0] = 0.0;
@@ -43,7 +44,8 @@ evalDistFuncBump(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
 {
   struct free_stream_ctx *app = ctx;
   double x = xn[0], vx = xn[1], vy = xn[2], vz = xn[3];
-  fout[0] = bump_maxwellian(1.0, vx, vy, vz, 0.0, 0.0, 0.0, 1.0/3.0, sqrt(0.1), 4*sqrt(0.25/3), 0.0, 0.0, 0.12, 1.0);
+  fout[0] = bump_maxwellian(1.0, vx, vy, vz, 0.0, 0.0, 0.0, app->vt, 
+    sqrt(0.1), 4*sqrt(0.25/3), 0.0, 0.0, 0.12, 3.0*app->vt);
 }
 
 void
@@ -94,8 +96,8 @@ main(int argc, char **argv)
   struct gkyl_vlasov_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -5.0*ctx.vt, -5.0*ctx.vt, -5.0*ctx.vt },
-    .upper = { 5.0*ctx.vt, 5.0*ctx.vt, 5.0*ctx.vt }, 
+    .lower = { -8.0*ctx.vt, -8.0*ctx.vt, -8.0*ctx.vt },
+    .upper = { 8.0*ctx.vt, 8.0*ctx.vt, 8.0*ctx.vt }, 
     .cells = { NV, NV, NV },
 
     .projection = {
