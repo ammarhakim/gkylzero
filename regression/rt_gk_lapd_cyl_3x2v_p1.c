@@ -683,10 +683,10 @@ main(int argc, char **argv)
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
     }
-    else if (dt < dt_failure_tol * dt_init) {
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
-      gkyl_gyrokinetic_app_cout(app, stdout, "WARNING: Time-step dt = %g", dt);
+      gkyl_gyrokinetic_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
       gkyl_gyrokinetic_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
       gkyl_gyrokinetic_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
