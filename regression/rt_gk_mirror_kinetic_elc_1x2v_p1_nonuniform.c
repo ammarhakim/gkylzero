@@ -1167,7 +1167,7 @@ int main(int argc, char **argv)
     .kperpSq = pow(ctx.kperp, 2.),
   };
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_mirror_kinetic_elc_1x2v_p1_nonuniform_128vt20_128z_192Nmu",
+    .name = "gk_mirror_kinetic_elc_1x2v_p1_nonuniform",
     .cdim = 1,
     .vdim = 2,
     .lower = {ctx.z_min},

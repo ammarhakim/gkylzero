@@ -944,7 +944,7 @@ int main(int argc, char **argv)
     .fem_parbc = GKYL_FEM_PARPROJ_NONE,
   };
   struct gkyl_gk gk = {  // GK app
-    .name = "gk_mirror_boltz_elc_1x2v_p1_nonuniform_20vt",
+    .name = "gk_mirror_boltz_elc_1x2v_p1_nonuniform",
     .cdim = 1,
     .vdim = 2,
     .lower = {ctx.z_min},
