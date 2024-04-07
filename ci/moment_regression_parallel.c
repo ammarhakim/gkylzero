@@ -22,7 +22,7 @@ runTestParallel(const char* test_name, const char* test_name_human, const int te
   int counter = 0;
 
   char counter_buffer[128];
-  snprintf(counter_buffer, 128, "output_parallel/%s_counter.dat", test_name);
+  snprintf(counter_buffer, 128, "ci/output_parallel/%s_counter.dat", test_name);
   FILE *counter_ptr = fopen(counter_buffer, "r");
   if (counter_ptr != NULL) {
     fscanf(counter_ptr, "%d", &counter);
@@ -42,46 +42,46 @@ runTestParallel(const char* test_name, const char* test_name_human, const int te
   system(command_buffer1);
   
   char command_buffer2[256];
-  snprintf(command_buffer2, 256, "cd ../; make cuda-build/regression/rt_%s > /dev/null 2>&1", test_name);
+  snprintf(command_buffer2, 256, "make cuda-build/regression/rt_%s > /dev/null 2>&1", test_name);
   system(command_buffer2);
 
   char command_buffer3[256];
   if (test_dimensions == 1) {
-    snprintf(command_buffer3, 256, "cd ../; mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
+    snprintf(command_buffer3, 256, "mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
       test_cuts, test_name, test_cuts, test_name, counter);
   }
   else if (test_dimensions == 2) {
-    snprintf(command_buffer3, 256, "cd ../; mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d -d %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
+    snprintf(command_buffer3, 256, "mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d -d %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
       test_cuts * test_cuts, test_name, test_cuts, test_cuts, test_name, counter);
   }
   else if (test_dimensions == 3) {
-    snprintf(command_buffer3, 256, "cd ../; mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d -d %d -e %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
+    snprintf(command_buffer3, 256, "mpirun -np %d ./cuda-build/regression/rt_%s -m -M -c %d -d %d -e %d > ./ci/output_parallel/rt_%s_%d.dat 2>&1",
       test_cuts * test_cuts * test_cuts, test_name, test_cuts, test_cuts, test_cuts, test_name, counter);
   }
   system(command_buffer3);
 
   char file_buffer1[128];
-  snprintf(file_buffer1, 128, "../%s-stat.json", test_name);
+  snprintf(file_buffer1, 128, "./%s-stat.json", test_name);
   FILE *file_ptr1 = fopen(file_buffer1, "r");
   if (file_ptr1 == NULL) {
     printf("*** Something catastrophic happened. Test aborting... ***\n");
   }
   else {
     char command_buffer4[256];
-    snprintf(command_buffer4, 256, "cd ../; mv ./%s-stat.json ci/output_parallel/%s-stat_%d.json", test_name, test_name, counter);
+    snprintf(command_buffer4, 256, "mv ./%s-stat.json ci/output_parallel/%s-stat_%d.json", test_name, test_name, counter);
     system(command_buffer4);
   }
 
   for (int i = 0; i < test_output_count; i++) {
     char file_buffer2[128];
-    snprintf(file_buffer2, 128, "../%s-%s.gkyl", test_name, test_outputs[i]);
+    snprintf(file_buffer2, 128, "./%s-%s.gkyl", test_name, test_outputs[i]);
     FILE *file_ptr2 = fopen(file_buffer2, "r");
     if (file_ptr2 == NULL) {
       printf("*** Something catastrophic happened. Test aborting... ***\n");
     }
     else {
       char command_buffer5[256];
-      snprintf(command_buffer5, 256, "cd ../; mv ./%s-%s.gkyl ci/output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
+      snprintf(command_buffer5, 256, "mv ./%s-%s.gkyl ci/output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[i], test_name, test_outputs[i], counter);
       system(command_buffer5);
     }
   }
@@ -97,7 +97,7 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
   int counter = 0;
 
   char counter_buffer[64];
-  snprintf(counter_buffer, 64, "output_parallel/%s_counter.dat", test_name);
+  snprintf(counter_buffer, 64, "ci/output_parallel/%s_counter.dat", test_name);
   FILE *counter_ptr = fopen(counter_buffer, "r");
   if (counter_ptr != NULL) {
     fscanf(counter_ptr, "%d", &counter);
@@ -119,7 +119,7 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
     char *output;
     long file_size;
     char buffer[128];
-    snprintf(buffer, 128, "output_parallel/rt_%s_%d.dat", test_name, i);
+    snprintf(buffer, 128, "ci/output_parallel/rt_%s_%d.dat", test_name, i);
 
     FILE *output_ptr = fopen(buffer, "rb");
     fseek(output_ptr, 0, SEEK_END);
@@ -255,53 +255,55 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
       failure[i] = 1;
     }
     
-    char *temp = output;
-    memoryleakcount[i] = 0;
-    memoryleaks[i] = (char*)calloc(8192, sizeof(char));
-    while (strstr(temp, "0x") != NULL) {
-      temp = strstr(temp, "0x");
+    if (failure[i] == 0) {
+      char *temp = output;
+      memoryleakcount[i] = 0;
+      memoryleaks[i] = (char*)calloc(8192, sizeof(char));
+      while (strstr(temp, "0x") != NULL) {
+        temp = strstr(temp, "0x");
 
-      char substring[64];
-      for (int j = 0; j < 64; j++) {
-        substring[j] = '\0';
-      }
-
-      int substring_index = 0;
-      int valid_substring = 1;
-      while (temp[substring_index] != ' ' && temp[substring_index] != '\n') {
-        if (temp[substring_index] != '0' && temp[substring_index] != '1' && temp[substring_index] != '2' && temp[substring_index] != '3' && temp[substring_index] != '4'
-          && temp[substring_index] != '5' && temp[substring_index] != '6' && temp[substring_index] != '7' && temp[substring_index] != '8' && temp[substring_index] != '9'
-          && temp[substring_index] != 'a' && temp[substring_index] != 'b' && temp[substring_index] != 'c' && temp[substring_index] != 'd' && temp[substring_index] != 'e'
-          && temp[substring_index] != 'f' && temp[substring_index] != 'x') {
-          valid_substring = 0;
+        char substring[64];
+        for (int j = 0; j < 64; j++) {
+          substring[j] = '\0';
         }
 
-        substring[substring_index] = temp[substring_index];
-        substring_index += 1;
-      }
+        int substring_index = 0;
+        int valid_substring = 1;
+        while (temp[substring_index] != ' ' && temp[substring_index] != '\n') {
+          if (temp[substring_index] != '0' && temp[substring_index] != '1' && temp[substring_index] != '2' && temp[substring_index] != '3' && temp[substring_index] != '4'
+            && temp[substring_index] != '5' && temp[substring_index] != '6' && temp[substring_index] != '7' && temp[substring_index] != '8' && temp[substring_index] != '9'
+            && temp[substring_index] != 'a' && temp[substring_index] != 'b' && temp[substring_index] != 'c' && temp[substring_index] != 'd' && temp[substring_index] != 'e'
+            && temp[substring_index] != 'f' && temp[substring_index] != 'x') {
+            valid_substring = 0;
+          }
 
-      char *temp2 = output;
-      int count = 0;
-      while (strstr(temp2, substring) != NULL) {
-        temp2 = strstr(temp2, substring);
+          substring[substring_index] = temp[substring_index];
+          substring_index += 1;
+        }
 
-        count += 1;
-        temp2 += 1;
+        char *temp2 = output;
+        int count = 0;
+        while (strstr(temp2, substring) != NULL) {
+          temp2 = strstr(temp2, substring);
+
+          count += 1;
+          temp2 += 1;
+        }
+        if (count == 1 && valid_substring == 1) {
+          memoryleakcount[i] += 1;
+          memoryleaks[i] = strcat(memoryleaks[i], substring);
+          memoryleaks[i] = strcat(memoryleaks[i], " ");
+        }
+        
+        temp += 1;
       }
-      if (count == 1 && valid_substring == 1) {
-        memoryleakcount[i] += 1;
-        memoryleaks[i] = strcat(memoryleaks[i], substring);
-        memoryleaks[i] = strcat(memoryleaks[i], " ");
-      }
-      
-      temp += 1;
     }
 
     for (int j = 0; j < test_output_count; j++) {
       char *data;
       long data_file_size;
       char data_buffer[256];
-      snprintf(data_buffer, 256, "output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
+      snprintf(data_buffer, 256, "ci/output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
 
       FILE *data_ptr = fopen(data_buffer, "rb");
 
@@ -469,7 +471,7 @@ regenerateTestParallel(const char* test_name, const int test_output_count, const
   int counter = 0;
 
   char counter_buffer[64];
-  snprintf(counter_buffer, 64, "output_parallel/%s_counter.dat", test_name);
+  snprintf(counter_buffer, 64, "ci/output_parallel/%s_counter.dat", test_name);
   FILE *counter_ptr = fopen(counter_buffer, "r");
   if (counter_ptr != NULL) {
     fscanf(counter_ptr, "%d", &counter);
@@ -478,16 +480,16 @@ regenerateTestParallel(const char* test_name, const int test_output_count, const
 
   for (int i = 1 ; i < counter + 1; i++) {
     char command_buffer[128];
-    snprintf(command_buffer, 128, "rm -rf output_parallel/rt_%s_%d.dat", test_name, i);
+    snprintf(command_buffer, 128, "rm -rf ci/output_parallel/rt_%s_%d.dat", test_name, i);
     system(command_buffer);
 
     char command_buffer2[128];
-    snprintf(command_buffer2, 128, "rm -rf output_parallel/%s-stat_%d.json", test_name, i);
+    snprintf(command_buffer2, 128, "rm -rf ci/output_parallel/%s-stat_%d.json", test_name, i);
     system(command_buffer2);
 
     for (int j = 0; j < test_output_count; j++) {
       char command_buffer3[256];
-      snprintf(command_buffer3, 256, "rm -rf output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
+      snprintf(command_buffer3, 256, "rm -rf ci/output_parallel/%s-%s_%d.gkyl", test_name, test_outputs[j], i);
       system(command_buffer3);
     }
   }
@@ -656,7 +658,7 @@ main(int argc, char **argv)
   };
 
   system("clear");
-  system("mkdir -p output_parallel");
+  system("mkdir -p ci/output_parallel");
 
   printf("** Gkeyll Moment App Automated Regression System (Parallel Version) **\n\n");
 
