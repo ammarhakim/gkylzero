@@ -394,7 +394,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
   int NZ = APP_ARGS_CHOOSE(app_args.xcells[2], ctx.Nz);
-  int NV = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
+  int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nv);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
   int nrank = 1; // Number of processors in simulation.
@@ -498,7 +498,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .lower = { -ctx.vpar_max_elc, 0.0 },
     .upper = { ctx.vpar_max_elc, ctx.mu_max_elc },
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
@@ -555,7 +555,7 @@ main(int argc, char **argv)
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .lower = { -ctx.vpar_max_ion, 0.0 },
     .upper = { ctx.vpar_max_ion, ctx.mu_max_ion },
-    .cells = { NV, NMU },
+    .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
     .projection = {
