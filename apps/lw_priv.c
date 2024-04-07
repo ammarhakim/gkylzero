@@ -21,7 +21,7 @@ gkyl_lw_eval_cb(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   if (lua_pcall(L, 2, nret, 0)) {
     const char* ret = lua_tostring(L, -1);
-    luaL_error(L, "*** eval_ic ERROR: %s\n", ret);
+    luaL_error(L, "*** gkyl_lw_eval_cb ERROR: %s\n", ret);
   }
 
   for (int i=nret-1; i>=0; --i) { // need to fetch in reverse order
