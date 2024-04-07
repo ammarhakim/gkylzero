@@ -40,10 +40,9 @@ struct lapd_cyl_ctx
 
   double nu_frac; // Collision frequency fraction.
 
-  // Derived physical quantities (using non-normalized physical units).
-  double log_lambda_elc; // Logarithm of electron wavelength.
+  double log_lambda_elc; // Electron Coulomb logarithm.
+  double log_lambda_ion; // Ion Coulomb logarithm.
   double nu_elc; // Electron collision frequency.
-  double log_lambda_ion; // Logarithm of ion wavelength.
   double nu_ion; // Ion collision frequency.
 
   double c_s; // Sound speed.
@@ -99,13 +98,15 @@ create_ctx(void)
 
   double nu_frac = 0.1; // Collision frequency fraction.
 
-  // Derived physical quantities (using non-normalized physical units).
-  double log_lambda_elc = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Te / charge_ion); // Logarithm of electron wavelength.
-  double nu_elc = nu_frac * log_lambda_elc * (charge_ion * charge_ion * charge_ion * charge_ion) * n0 /
-    (6.0 * sqrt(2.0) * pi * sqrt(pi) * epsilon0 * epsilon0 * sqrt(mass_elc) * (Te * sqrt(Te))); // Electron collision frequency.
-  double log_lambda_ion = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Ti / charge_ion); // Logarithm of ion wavelength.
-  double nu_ion = nu_frac * log_lambda_ion * (charge_ion * charge_ion * charge_ion * charge_ion) * n0 /
-    (12.0 * pi * sqrt(pi) * epsilon0 * epsilon0 * sqrt(mass_ion) * (Ti * sqrt(Ti))); // Ion collision frequency.
+  // Coulomb logarithms.
+  double log_lambda_elc = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Te / charge_ion);
+  double log_lambda_ion = 6.6 - 0.5 * log(n0 / 1.0e20) + 1.5 * log(Ti / charge_ion);
+
+  // Collision frequencies.
+  double nu_elc = nu_frac * log_lambda_elc * pow(charge_ion,4) * n0 /
+    (6.0 * sqrt(2.0) * pow(pi,3.0/2.0) * pow(epsilon0,2) * sqrt(mass_elc) * pow(Te,3.0/2.0));
+  double nu_ion = nu_frac * log_lambda_ion * pow(charge_ion,4) * n0 /
+    (12.0 * pow(pi,3.0/2.0) * pow(epsilon0,2) * sqrt(mass_ion) * pow(Ti,3.0/2.0));
   
   double c_s = sqrt(Te / mass_ion); // Sound speed.
   double vte = sqrt(Te / mass_elc); // Electron thermal velocity.
@@ -130,9 +131,9 @@ create_ctx(void)
   double Lz = 36.0 * 40.0 * rho_s; // Domain size (configuration space: z-direction).
   double L_perp = 100.0 * rho_s; // Perpendicular length of domain.
   double vpar_max_elc = 4.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
-  double mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * (4.0 * vte) * (4.0 * vte) / (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
+  double mu_max_elc = (3.0 / 2.0) * 0.5 * mass_elc * pow(4.0 * vte,2) / (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
   double vpar_max_ion = 4.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
-  double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * (4.0 * vti) * (4.0 * vti) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
+  double mu_max_ion = (3.0 / 2.0) * 0.5 * mass_ion * pow(4.0 * vti,2) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
   double t_end = 1.0e-6; // Final simulation time.
   int num_frames = 1; // Number of output frames.

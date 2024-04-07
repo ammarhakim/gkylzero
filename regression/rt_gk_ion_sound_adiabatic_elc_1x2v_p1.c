@@ -90,7 +90,7 @@ create_ctx(void)
   int Nmu = 8; // Cell count (velocity space: magnetic moment direction).
   double Lz = 2.0 * pi / k_ion; // Domain size (configuration space: z-direction).
   double vpar_max_ion = 6.0 * vti; // Domain boundary (ion velocity space: parallel velocity direction).
-  double mu_max_ion = mass_ion * ((5.0 * vti) * (5.0 * vti)) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
+  double mu_max_ion = mass_ion * (pow(5.0 * vti,2)) / (2.0 * B0); // Domain boundary (ion velocity space: magnetic moment direction).
 
   double t_end = 50.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
