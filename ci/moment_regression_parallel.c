@@ -129,6 +129,8 @@ analyzeTestOutputParallel(const char* test_name, const char* test_name_human, co
     fread(output, sizeof(char), file_size, output_ptr);
     fclose(output_ptr);
 
+    failure[i] = 0;
+
     updatecalls[i] = 0;
     if (strstr(output, "Number of update calls ") != NULL) {
       char *full_substring = strstr(output, "Number of update calls ");
