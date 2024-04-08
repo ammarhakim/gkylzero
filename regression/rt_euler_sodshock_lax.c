@@ -131,10 +131,15 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
-write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
+write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot->curr - 1);
+    int frame = iot->curr - 1;
+    if (force_write) {
+      frame = iot->curr;
+    }
+
+    gkyl_moment_app_write(app, t_curr, frame);
   }
 }
 
@@ -279,7 +284,7 @@ main(int argc, char **argv)
 
   // Initialize simulation.
   gkyl_moment_app_apply_ic(app, t_curr);
-  write_data(&io_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
 
   // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
@@ -302,15 +307,15 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    write_data(&io_trig, app, t_curr);
+    write_data(&io_trig, app, t_curr, false);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
     }
-    else if (dt < dt_failure_tol * dt_init) {
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
       num_failures += 1;
 
-      gkyl_moment_app_cout(app, stdout, "WARNING: Time-step dt = %g", dt);
+      gkyl_moment_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
       gkyl_moment_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
@@ -326,7 +331,7 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  write_data(&io_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
