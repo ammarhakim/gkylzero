@@ -8,8 +8,8 @@ gasGamma = 1.4 -- gas adiabatic constant
 eulerApp = Moments.App.new {
    logToFile = true,
 
-   tEnd = 0.3, -- end time
-   nFrame = 1, -- number of output frame
+   tEnd = 0.8, -- end time
+   nFrame = 4, -- number of output frame
    lower = {0.0, 0.0}, -- lower left corner
    upper = {1.0, 1.0}, -- upper right corner
    cells = {200, 200}, -- number of cells
@@ -46,7 +46,7 @@ eulerApp = Moments.App.new {
 	       pr, rho, u, v = loRight[1], loRight[2], loRight[3], loRight[4]
 	    end
 	 end
-	 return rho, rho*u, rho*v, 0.0, pr/(gasGamma-1) + 0.5*rho*(u^2+v^2)	 
+	 return rho, rho*u, rho*v, 0.0, pr/(gasGamma-1) + 0.5*rho*(u^2+v^2)
       end,
       
       evolve = true, -- evolve species?

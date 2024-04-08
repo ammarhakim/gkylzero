@@ -180,7 +180,7 @@ moment_species_lw_new(lua_State *L)
   moms_lw->init_ref = (struct lua_func_ctx) {
     .func_ref = init_ref,
     .ndim = 0, // this will be set later
-    .nret = 1,
+    .nret = mom_species.equation->num_equations,
     .L = L,
   };
   
