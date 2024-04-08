@@ -38,7 +38,7 @@ struct gk_asdex_ctx {
 
   double t_end; // end time
   int num_frames; // number of output frames
-  int int_diag_calc_num; // number integrated diagnostics are calculated.
+  int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
@@ -504,12 +504,12 @@ main(int argc, char **argv)
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
 
   // start, end and initial time-step
-  double t_curr = 0.0, tend = ctx.t_end;
-  double dt = tend-t_curr;
-  int nframe = ctx.num_frames, nint_diag_calc = ctx.int_diag_calc_num;
-  // create triggers for IO
-  struct gkyl_tm_trigger io_trig_int_diag = { .dt = tend/GKYL_MAX2(nframe, nint_diag_calc) };
-  struct gkyl_tm_trigger io_trig_write = { .dt = tend/nframe };
+  double t_curr = 0.0, t_end = ctx.t_end;
+  double dt = t_end-t_curr;
+  // Create triggers for IO.
+  int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
+  struct gkyl_tm_trigger io_trig_int_diag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc) };
+  struct gkyl_tm_trigger io_trig_write = { .dt = t_end/num_frames };
 
   // initialize simulation
   gkyl_gyrokinetic_app_apply_ic(app, t_curr);
@@ -521,7 +521,7 @@ main(int argc, char **argv)
   int num_failures = 0, num_failures_max = ctx.num_failures_max;
 
   long step = 1, num_steps = app_args.num_steps;
-  while ((t_curr < tend) && (step <= num_steps)) {
+  while ((t_curr < t_end) && (step <= num_steps)) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
