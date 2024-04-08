@@ -185,6 +185,7 @@ struct gkyl_array* mapc2p, bool calc_bphi)
     b_ctx->cgrid = up->cgrid;
     b_ctx->range = prange;
     b_ctx->crange = crange;
+    b_ctx->crange_global = crange_global;
     b_ctx->bmagdg = bmagrz;
     b_ctx->basis = up->pbasis;
     b_ctx->cbasis = up->cbasis;
