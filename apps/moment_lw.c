@@ -28,7 +28,7 @@ enum moment_magic_ids {
   MOMENT_EQN_DEFAULT
 };
 
-#define MOMENT_WAVE_EQN_METATABLE_NM "GkeyllZero.App.Moment.Eq"
+#define MOMENT_WAVE_EQN_METATABLE_NM "GkeyllZero.App.Moments.Eq"
 
 /** For manipulating gkyl_wv_eqn objects */
 
@@ -125,7 +125,7 @@ eqn_openlibs(lua_State *L)
     lua_pushcfunction(L, wv_eqn_lw_gc);
     lua_settable(L, -3);
 
-    luaL_register(L, "G0.Moment.Eq.Euler", eqn_euler_ctor);
+    luaL_register(L, "G0.Moments.Eq.Euler", eqn_euler_ctor);
     
   } while (0);
 }
@@ -135,7 +135,7 @@ eqn_openlibs(lua_State *L)
 /* *****************/
 
 // Metatable name for species input struct
-#define MOMENT_SPECIES_METATABLE_NM "GkeyllZero.App.Moment.Species"
+#define MOMENT_SPECIES_METATABLE_NM "GkeyllZero.App.Moments.Species"
 
 // Lua userdata object for constructing species input
 struct moment_species_lw {
@@ -155,7 +155,8 @@ moment_species_lw_new(lua_State *L)
   mom_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   mom_species.mass = glua_tbl_get_number(L, "mass", 1.0);
 
-  bool evolve = glua_tbl_get_integer(L, "evolve", true);
+  bool evolve = mom_species.evolve = glua_tbl_get_bool(L, "evolve", true);
+  mom_species.force_low_order_flux = glua_tbl_get_bool(L, "forceLowOrderFlux", false);
 
   bool has_eqn = false;
   with_lua_tbl_key(L, "equation") {
@@ -202,7 +203,7 @@ static struct luaL_Reg mom_species_ctor[] = {
 /* *****************/
 
 // Metatable name for field input struct
-#define MOMENT_FIELD_METATABLE_NM "GkeyllZero.App.Moment.Field"
+#define MOMENT_FIELD_METATABLE_NM "GkeyllZero.App.Moments.Field"
 
 // Lua userdata object for constructing field input
 struct moment_field_lw {
@@ -729,7 +730,6 @@ static struct luaL_Reg mom_app_funcs[] = {
   { 0, 0 }
 };
 
-
 static void
 app_openlibs(lua_State *L)
 {
@@ -745,20 +745,20 @@ app_openlibs(lua_State *L)
     lua_setfield(L, -2, "__index");
     luaL_register(L, NULL, mom_app_funcs);
     
-    luaL_register(L, "G0.Moment.App", mom_app_ctor);
+    luaL_register(L, "G0.Moments.App", mom_app_ctor);
     
   } while (0);
 
   // Register Species input struct
   do {
     luaL_newmetatable(L, MOMENT_SPECIES_METATABLE_NM);
-    luaL_register(L, "G0.Moment.Species", mom_species_ctor);
+    luaL_register(L, "G0.Moments.Species", mom_species_ctor);
   } while (0);
 
   // Register Field input struct
   do {
     luaL_newmetatable(L, MOMENT_FIELD_METATABLE_NM);
-    luaL_register(L, "G0.Moment.Field", mom_field_ctor);
+    luaL_register(L, "G0.Moments.Field", mom_field_ctor);
   } while (0);
 }
 

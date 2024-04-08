@@ -33,6 +33,20 @@ struct lua_func_ctx {
 };
 
 /**
+ * Add boundary condition flags for species into interpreter
+ *
+ * @param L Lua state to use
+ */
+void gkyl_register_species_bc_types(lua_State *L);
+
+/**
+ * Add boundary condition flags for field into interpreter
+ *
+ * @param L Lua state to use
+ */
+void gkyl_register_field_bc_types(lua_State *L);
+
+/**
  * Wrapper around Lua function for use in eval callbacks.
  */
 void gkyl_lw_eval_cb(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx);

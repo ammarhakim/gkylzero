@@ -86,6 +86,19 @@ long glua_tbl_get_integer(lua_State *L, const char *key, long def);
 long glua_tbl_iget_integer(lua_State *L, long key, long def);
 
 /**
+ * Return boolean from table, keyed by @a key. Table must be on top of
+ * the stack. If bool does not exist, @a def is returned. (In Lua, all
+ * values except false and nil are true).
+ *
+ * @param L Lua state
+ * @param key Key
+ * @param def Default value if key is not present in table
+ * @return integer corresponding to key, or def
+ */
+int glua_tbl_get_bool(lua_State *L, const char *key, int def);
+int glua_tbl_iget_bool(lua_State *L, long key, int def);
+
+/**
  * Return string from table, keyed by @a key. Table must be on top of
  * the stack. If string does not exist, @a def is returned.
  *

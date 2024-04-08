@@ -1,9 +1,10 @@
 #ifdef GKYL_HAVE_LUA
 
-#include <gkyl_zero_lw.h>
-#include <gkyl_rect_decomp.h>
 #include <gkyl_alloc.h>
 #include <gkyl_lua_utils.h>
+#include <gkyl_lw_priv.h>
+#include <gkyl_rect_decomp.h>
+#include <gkyl_zero_lw.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -102,7 +103,15 @@ rect_decomp_openlibs(lua_State *L)
 void
 gkyl_zero_lw_openlibs(lua_State *L)
 {
+  // push empty global table called "G0"
+  lua_newtable(L);
+  lua_setglobal(L, "G0");
+  
   rect_decomp_openlibs(L);
+
+  // species and field BCs
+  gkyl_register_species_bc_types(L);
+  gkyl_register_field_bc_types(L);
 }
 
 #endif

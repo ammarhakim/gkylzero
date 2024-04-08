@@ -1,6 +1,6 @@
 -- Gkyl ------------------------------------------------------------------------
-local Moments = G0.Moment
-local Euler = G0.Moment.Eq.Euler
+local Moments = G0.Moments
+local Euler = G0.Moments.Eq.Euler
 
 gasGamma = 1.4 -- gas adiabatic constant
 
@@ -52,8 +52,8 @@ eulerApp = Moments.App.new {
       
       evolve = true, -- evolve species?
 
-      bcx = { Moments.Species.bcCopy, Moments.Species.bcCopy },
-      bcy = { Moments.Species.bcCopy, Moments.Species.bcCopy },
+      bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy },
+      bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy },
    },   
 }
 -- run application
