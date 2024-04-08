@@ -1,8 +1,9 @@
 -- Gkyl ------------------------------------------------------------------------
 local Moments = G0.Moment
+local Euler = G0.Moment.Eq.Euler
 
 gasGamma = 1.4 -- gas adiabatic constant
-   
+
 -- create app
 eulerApp = Moments.App.new {
    logToFile = true,
@@ -20,8 +21,8 @@ eulerApp = Moments.App.new {
    -- electrons
    fluid = Moments.Species.new {
       charge = 0.0, mass = 1.0,
-
       equation = Euler.new { gasGamma = gasGamma },
+
       -- initial conditions
       init = function (t, xn)
 	 -- Case 3 from Liska and Wendroff 2003 (see Table 4.3) these tables

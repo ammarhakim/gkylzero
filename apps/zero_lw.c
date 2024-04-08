@@ -53,11 +53,10 @@ rect_decomp_lw_new(lua_State *L)
   luaL_getmetatable(L, RECT_DECOMP_METATABLE_NM);
   lua_setmetatable(L, -2);  
   
-  
   return 1;
 }
 
-// Clean up memory allocated for simulation
+// Clean up memory allocated for decomp
 static int
 rect_decomp_lw_gc(lua_State *L)
 {
