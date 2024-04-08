@@ -14,7 +14,7 @@ struct wv_coldfluid {
 };
 
 static void
-coldfluid_flux(const double q[5], double flux[5])
+coldfluid_flux(const double q[4], double flux[4])
 {
   double u = q[RHOU]/q[0];
   flux[0] = q[RHOU]; // rho*u

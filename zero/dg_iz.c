@@ -86,8 +86,6 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
     (int[]) { data.NT-1, data.NN-1 }
   );
 
-  struct gkyl_basis adas_basis;
-  up->adas_basis = adas_basis;
   if (use_gpu) {
     // allocate device basis if we are using GPUs
     up->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));

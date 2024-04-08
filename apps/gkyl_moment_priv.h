@@ -95,7 +95,7 @@ struct moment_species {
   // boundary condition solvers on lower/upper edges in each direction
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
 
-  gkyl_dynvec integ_q;        // integrated conserved quantities
+  gkyl_dynvec integ_q; // integrated conserved quantities
   bool is_first_q_write_call; // flag for dynvec written first time
 };
 
@@ -122,6 +122,9 @@ struct moment_field {
   double t_ramp_E; // linear ramp for turning on external E field
   gkyl_fv_proj *proj_ext_em; // pointer to projection operator for external fields
   bool was_ext_em_computed; // flag to indicate if we already computed external EM field
+  bool use_explicit_em_coupling; // flag to indicate if em coupling should be explicit, defaults implicit
+  struct gkyl_array *app_current1; // arrays for applied currents (for use_explicit_em_coupling stages)
+  struct gkyl_array *app_current2; // arrays for applied currents (for use_explicit_em_coupling stages)
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 
@@ -241,6 +244,12 @@ struct gkyl_moment_app {
   double nu_base[GKYL_MAX_SPECIES][GKYL_MAX_SPECIES];
 };
 
+// Meta-data for IO
+struct moment_output_meta {
+  int frame; // frame number
+  double stime; // output time
+};
+
 /** Some common functions to species and fields */
 
 // functions for use in integrated quantities calculation
@@ -274,11 +283,6 @@ void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
 
 // Check array "q" for nans
 bool check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng);
-
-// Apply periodic BCs to array "f" in direction "dir"
-void moment_apply_periodic_bc(const gkyl_moment_app *app,
-  struct gkyl_array *bc_buffer, int dir,
-  struct gkyl_array *f);
 
 // Apply periodic BCs to corner cells of "f" (ONLY WORKS IN 2D)
 void moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app,
@@ -386,3 +390,27 @@ struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app,
 // Take a single time-step using a SSP-RK3 stepper
 struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app,
   double dt0);
+
+/**
+ * Create new array meta header from input struct. Free returned
+ * object with moment_array_meta_release.
+ *
+ * @param meta Meta-data for output.
+ * @return New meta object to pass to write method.
+ */
+struct gkyl_array_meta* moment_array_meta_new(struct moment_output_meta meta);
+
+/**
+ * Release meta struct
+ *
+ * @param mt Meta object to free
+ */
+void moment_array_meta_release(struct gkyl_array_meta *mt);
+
+/**
+ * Read meta-data from mpack formated binary input
+ *
+ * @param mt Mpack encoded meta-data
+ * @return Meta-data for simulation
+ */
+struct moment_output_meta moment_meta_from_mpack(struct gkyl_array_meta *mt);

@@ -41,9 +41,9 @@ gkyl_deflated_fem_poisson_new(struct gkyl_rect_grid grid,
   gkyl_range_init_from_shape(&up->nrange, up->cdim, nodes);
 
   // Create deflated 1d/2d grid, ranges, basis, and nodal range
-  double deflated_lower[GKYL_MAX_DIM];
-  double deflated_upper[GKYL_MAX_DIM];
-  int deflated_cells[GKYL_MAX_DIM];
+  double deflated_lower[GKYL_MAX_DIM] = { 0.0 } ;
+  double deflated_upper[GKYL_MAX_DIM] = { 0.0 };
+  int deflated_cells[GKYL_MAX_DIM] = { 0 };
   for(int i = 0; i < up->cdim-1; i++){
     deflated_lower[i] = up->grid.lower[i];
     deflated_upper[i] = up->grid.upper[i];

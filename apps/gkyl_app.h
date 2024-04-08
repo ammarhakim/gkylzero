@@ -1,12 +1,26 @@
 #pragma once
 
 #include <stdbool.h>
+#include <gkyl_array_rio.h>
 
 // Update status
 struct gkyl_update_status {
   bool success; // status of update
   double dt_actual; // actual time-step taken
   double dt_suggested; // suggested stable time-step
+};
+
+// Status of restart
+struct gkyl_app_restart_status {
+  enum gkyl_array_rio_status io_status; // status of the file read
+  int frame; // frame number of file read
+  double stime; // simulation time at which data was read
+};
+
+// inputs from user for specifying range and communicator to use
+struct gkyl_app_comm_low_inp {
+  struct gkyl_range local_range; // local range over which App operates
+  struct gkyl_comm *comm; // communicator to used
 };
 
 // Boundary conditions on particles

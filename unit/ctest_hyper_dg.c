@@ -66,7 +66,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
 
   // initialize hyper_dg slvr
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
-  int zero_flux_flags[GKYL_MAX_DIM] = {0, 1, 1};
+  int zero_flux_flags[2*GKYL_MAX_DIM] = {0, 1, 1, 0, 1, 1};
 
   gkyl_hyper_dg *slvr;
   slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
@@ -121,10 +121,8 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     gkyl_vlasov_set_auxfields(eqn,
       (struct gkyl_dg_vlasov_auxfields) {.field = qmem, .cot_vec = 0, 
       .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0 }); // Must set EM fields to use.
-    if (use_gpu)
-      gkyl_hyper_dg_advance_cu(slvr, &phaseRange, fin, cflrate, rhs);
-    else
-      gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
+
+    gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
 
     gkyl_array_reduce(cfl_ptr, cflrate, GKYL_MAX);
   }
@@ -273,7 +271,7 @@ test_vlasov_2x3v_p1_(bool use_gpu)
 
   // initialize hyper_dg slvr
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2, 3, 4};
-  int zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 1, 1, 1};
+  int zero_flux_flags[2*GKYL_MAX_DIM] = {0, 0, 1, 1, 1, 0, 0, 1, 1, 1};
 
   gkyl_hyper_dg *slvr;
   slvr = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn, pdim, up_dirs, zero_flux_flags, 1, use_gpu);
@@ -322,10 +320,8 @@ test_vlasov_2x3v_p1_(bool use_gpu)
     gkyl_vlasov_set_auxfields(eqn,
       (struct gkyl_dg_vlasov_auxfields) {.field = qmem, .cot_vec = 0, 
       .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0 }); // must set EM fields to use
-    if (use_gpu)
-      gkyl_hyper_dg_advance_cu(slvr, &phaseRange, fin, cflrate, rhs);
-    else
-      gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
+
+    gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell

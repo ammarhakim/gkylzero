@@ -28,19 +28,19 @@ gkyl_dg_updater_pkpm_new(const struct gkyl_rect_grid *conf_grid, const struct gk
 
   int cdim = conf_basis->ndim, pdim = phase_basis->ndim;
   int vdim = pdim-cdim;
-  int up_dirs_conf[GKYL_MAX_DIM], zero_flux_flags_conf[GKYL_MAX_DIM];
-  int up_dirs_phase[GKYL_MAX_DIM], zero_flux_flags_phase[GKYL_MAX_DIM];
+  int up_dirs_conf[GKYL_MAX_DIM], zero_flux_flags_conf[2*GKYL_MAX_DIM];
+  int up_dirs_phase[GKYL_MAX_DIM], zero_flux_flags_phase[2*GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
     up_dirs_conf[d] = d;
     up_dirs_phase[d] = d;
-    zero_flux_flags_conf[d] = is_zero_flux_dir[d] ? 1 : 0;
-    zero_flux_flags_phase[d] = is_zero_flux_dir[d] ? 1 : 0;
+    zero_flux_flags_conf[d] = zero_flux_flags_conf[d+cdim] = is_zero_flux_dir[d] ? 1 : 0;
+    zero_flux_flags_phase[d] = zero_flux_flags_phase[d+pdim] = is_zero_flux_dir[d] ? 1 : 0;
   }
   int num_up_dirs_conf = cdim;
 
   for (int d=cdim; d<pdim; ++d) {
     up_dirs_phase[d] = d;
-    zero_flux_flags_phase[d] = 1; // zero-flux BCs in vel-space
+    zero_flux_flags_phase[d] = zero_flux_flags_phase[d+pdim] = 1; // zero-flux BCs in vel-space
   }
   int num_up_dirs_phase = pdim;
 
@@ -61,17 +61,11 @@ gkyl_dg_updater_pkpm_advance(gkyl_dg_updater_pkpm *pkpm,
   struct gkyl_array* GKYL_RESTRICT rhs_f, struct gkyl_array* GKYL_RESTRICT rhs_fluid)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (pkpm->use_gpu) 
-    gkyl_hyper_dg_advance_cu(pkpm->up_vlasov, update_phase_rng, fIn, cflrate_f, rhs_f);
-  else 
-    gkyl_hyper_dg_advance(pkpm->up_vlasov, update_phase_rng, fIn, cflrate_f, rhs_f);
+  gkyl_hyper_dg_advance(pkpm->up_vlasov, update_phase_rng, fIn, cflrate_f, rhs_f);
   pkpm->vlasov_tm += gkyl_time_diff_now_sec(wst);
 
   wst = gkyl_wall_clock();
-  if (pkpm->use_gpu) 
-    gkyl_hyper_dg_advance_cu(pkpm->up_fluid, update_conf_rng, fluidIn, cflrate_fluid, rhs_fluid);
-  else
-    gkyl_hyper_dg_advance(pkpm->up_fluid, update_conf_rng, fluidIn, cflrate_fluid, rhs_fluid);
+  gkyl_hyper_dg_advance(pkpm->up_fluid, update_conf_rng, fluidIn, cflrate_fluid, rhs_fluid);
   pkpm->fluid_tm += gkyl_time_diff_now_sec(wst);
 }
 

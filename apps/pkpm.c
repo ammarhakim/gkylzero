@@ -309,10 +309,10 @@ gkyl_pkpm_app_write_field(gkyl_pkpm_app* app, double tm, int frame)
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->field->em_host, app->field->em);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em_host, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field->em_host, fileNm);
   }
   else {
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, app->field->em, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field->em, fileNm);
   }
 }
 
@@ -328,11 +328,11 @@ gkyl_pkpm_app_write_species(gkyl_pkpm_app* app, int sidx, double tm, int frame)
     // copy data from device to host before writing it out
     gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      app->species[sidx].f_host, fileNm);
+      0, app->species[sidx].f_host, fileNm);
   }
   else {
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      app->species[sidx].f, fileNm);
+      0, app->species[sidx].f, fileNm);
   }
 }
 
@@ -374,9 +374,9 @@ gkyl_pkpm_app_write_mom(gkyl_pkpm_app* app, int sidx, double tm, int frame)
     gkyl_array_copy(s->pkpm_vars_io_host, s->pkpm_vars_io);
   }
 
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->pkpm_moms_diag.marr_host, fileNm);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->fluid_io_host, fileNm_fluid);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, s->pkpm_vars_io_host, fileNm_pkpm_vars);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, s->pkpm_moms_diag.marr_host, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, s->fluid_io_host, fileNm_fluid);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, s->pkpm_vars_io_host, fileNm_pkpm_vars);
 }
 
 void

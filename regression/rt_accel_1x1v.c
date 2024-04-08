@@ -56,7 +56,11 @@ main(int argc, char **argv)
     .upper = { 6.0 }, 
     .cells = { VX },
 
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFunc,
+      .ctx_func = 0,
+    },
 
     .accel = evalAccelFunc,
     .accel_ctx = 0,

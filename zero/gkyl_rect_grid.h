@@ -42,7 +42,7 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
  */
 GKYL_CU_DH
 void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
-			      bool pick_lower, const int *known_index, int *cell_index);
+  bool pick_lower, const int *known_index, int *cell_index);
 
 /**
  * Get cell-center coordinates. Note that idx is a 1-based cell index,

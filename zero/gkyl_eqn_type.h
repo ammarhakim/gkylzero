@@ -6,6 +6,7 @@ enum gkyl_eqn_type {
   GKYL_EQN_SR_EULER,  // SR Euler equations
   GKYL_EQN_ISO_EULER, // Isothermal Euler equations
   GKYL_EQN_COLDFLUID, // Cold fluid equations
+  GKYL_EQN_COLDFLUID_SR, // Relativistic Cold fluid equations
   GKYL_EQN_TEN_MOMENT, // Ten-moment (with pressure tensor)
   GKYL_EQN_MAXWELL, // Maxwell equations
   GKYL_EQN_MHD,  // Ideal MHD equations
@@ -66,6 +67,8 @@ enum gkyl_projection_id {
   GKYL_PROJ_MAXWELLIAN_PRIM, // Maxwellian projection from primitive moments (n, u, T)
   GKYL_PROJ_MAXWELLIAN_LAB, // Maxwellian projection from lab moments (M0, M1, M2)
   GKYL_PROJ_BIMAXWELLIAN, // Bi-Maxwellian projection
+  GKYL_PROJ_VLASOV_LTE, // LTE (Local thermodynamic equilibrium) projection for Vlasov
+                        // (Maxwellian for non-relativistic, Maxwell-Juttner for relativistic)
 };
 
 // Identifiers for specific radiation object types

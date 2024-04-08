@@ -386,6 +386,80 @@ gkyl_dg_div_op_range_cu(gkyl_dg_bin_op_mem *mem, struct gkyl_basis basis,
 }
 
 __global__ void
+gkyl_dg_inv_op_cu_kernel(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop)
+{
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+  inv_op_t inv_op = choose_ser_inv_kern(ndim, poly_order);
+  assert(inv_op);
+
+  for (unsigned long linc = START_ID; linc < NSIZE(out); linc += blockDim.x*gridDim.x) {
+    const double *iop_d = (const double*) gkyl_array_cfetch(iop, linc);
+    double *out_d = (double*) gkyl_array_fetch(out, linc);
+
+    inv_op(iop_d+c_iop*num_basis, out_d+c_oop*num_basis);
+  }  
+}
+
+// Host-side wrapper for dg inversion operation.
+void
+gkyl_dg_inv_op_cu(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop)
+{
+  gkyl_dg_inv_op_cu_kernel<<<out->nblocks, out->nthreads>>>(basis, c_oop, out->on_dev,
+    c_iop, iop->on_dev);
+}
+
+__global__ void
+gkyl_dg_inv_op_range_cu_kernel(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop, struct gkyl_range range)
+{
+  int num_basis = basis.num_basis;
+  int ndim = basis.ndim;
+  int poly_order = basis.poly_order;
+  inv_op_t inv_op = choose_ser_inv_kern(ndim, poly_order);
+  assert(inv_op);
+
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long start = gkyl_range_idx(&range, idx);
+
+    const double *iop_d = (const double*) gkyl_array_cfetch(iop, start);
+    double *out_d = (double*) gkyl_array_fetch(out, start);
+
+    inv_op(iop_d+c_iop*num_basis, out_d+c_oop*num_basis);
+  }
+}
+
+// Host-side wrapper for range-based dg invtiplication operation
+void
+gkyl_dg_inv_op_range_cu(struct gkyl_basis basis,
+  int c_oop, struct gkyl_array* out,
+  int c_iop, const struct gkyl_array* iop, const struct gkyl_range *range)
+{
+  int nblocks = range->nblocks;
+  int nthreads = range->nthreads;
+  gkyl_dg_inv_op_range_cu_kernel<<<nblocks, nthreads>>>(basis, c_oop, out->on_dev,
+    c_iop, iop->on_dev, *range);
+}
+
+__global__ void
 gkyl_dg_calc_op_range_cu_kernel(struct gkyl_basis basis, int c_oop, struct gkyl_array *out,
   int c_iop, const struct gkyl_array *iop,
   struct gkyl_range range, enum gkyl_dg_op op)

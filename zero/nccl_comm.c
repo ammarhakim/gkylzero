@@ -6,6 +6,7 @@
 #include <gkyl_array_rio_format_desc.h>
 #include <gkyl_comm_priv.h>
 #include <gkyl_elem_type_priv.h>
+#include <gkyl_mpi_comm.h>
 #include <gkyl_nccl_comm.h>
 #include <gkyl_util.h>
 
@@ -85,7 +86,8 @@ struct nccl_comm {
   int size; // Size of this communicator.
 
   ncclComm_t ncomm; // NCCL communicator to use.
-  MPI_Comm mpi_comm; // MPI comm this NCCL comm derives from.
+  MPI_Comm mcomm; // MPI communicator to use
+  struct gkyl_comm *mpi_comm; // MPI comm this NCCL comm derives from.
   bool has_decomp; // Whether this comm is associated with a decomposition (e.g. of a range)
   cudaStream_t custream; // Cuda stream for NCCL comms.
   struct gkyl_rect_decomp *decomp; // pre-computed decomposition
@@ -110,7 +112,8 @@ struct nccl_comm {
   struct comm_buff_stat allgather_buff_global; 
 };
 
-static struct gkyl_comm_state* comm_state_new(struct gkyl_comm *comm)
+static struct gkyl_comm_state *
+comm_state_new(struct gkyl_comm *comm)
 {
   struct gkyl_comm_state *state = gkyl_malloc(sizeof *state);
 
@@ -121,12 +124,14 @@ static struct gkyl_comm_state* comm_state_new(struct gkyl_comm *comm)
   return state;
 }
 
-static void comm_state_release(struct gkyl_comm_state *state)
+static void
+comm_state_release(struct gkyl_comm_state *state)
 {
   gkyl_free(state);
 }
 
-static void comm_state_wait(struct gkyl_comm_state *state)
+static void
+comm_state_wait(struct gkyl_comm_state *state)
 {
   ncclResult_t nstat;
   do {
@@ -164,6 +169,7 @@ comm_free(const struct gkyl_ref_count *ref)
   checkCuda(cudaDeviceSynchronize());
   ncclCommDestroy(nccl->ncomm);
 
+  gkyl_comm_release(nccl->mpi_comm);
   gkyl_free(nccl);
 }
 
@@ -195,119 +201,15 @@ barrier(struct gkyl_comm *comm)
   return 0;
 }
 
-// set of functions to help with parallel array output using MPI-IO
-static void
-sub_array_decomp_write(struct nccl_comm *comm, const struct gkyl_rect_decomp *decomp,
-  const struct gkyl_range *range,
-  const struct gkyl_array *arr, MPI_File fp)
-{
-#define _F(loc) gkyl_array_cfetch(arr, loc)
-
-  int rank = comm->rank;
-
-  // seek to appropriate place in the file, depending on rank
-  size_t hdr_sz = gkyl_base_hdr_size(0) + gkyl_file_type_3_hrd_size(range->ndim);
-  size_t file_loc = hdr_sz +
-    arr->esznc*comm->local_range_offset +
-    rank*gkyl_file_type_3_range_hrd_size(range->ndim);
-
-  MPI_Offset fp_offset = file_loc;
-  MPI_File_seek(fp, fp_offset, MPI_SEEK_SET);
-
-  do {
-    char *buff; size_t buff_sz;
-    FILE *fbuff = open_memstream(&buff, &buff_sz);
-  
-    uint64_t loidx[GKYL_MAX_DIM] = {0}, upidx[GKYL_MAX_DIM] = {0};
-    for (int d = 0; d < range->ndim; ++d) {
-      loidx[d] = range->lower[d];
-      upidx[d] = range->upper[d];
-    }
-    
-    fwrite(loidx, sizeof(uint64_t), range->ndim, fbuff);
-    fwrite(upidx, sizeof(uint64_t), range->ndim, fbuff);
-    uint64_t sz = range->volume;
-    fwrite(&sz, sizeof(uint64_t), 1, fbuff);
-
-    fclose(fbuff);
-
-    MPI_Status status;
-    MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
-
-    free(buff);
-    
-  } while (0);
-
-  // construct skip iterator to allow writing (potentially) in chunks
-  // rather than element by element or requiring a copy of data. Note:
-  // We must use "range" here and not decomp->ranges[rank] as the
-  // latter is not a sub-range of the local extended
-  // range.
-  struct gkyl_range_skip_iter skip;
-  gkyl_range_skip_iter_init(&skip, range);
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &skip.range);
-
-  MPI_Status status;
-  while (gkyl_range_iter_next(&iter)) {
-    long start = gkyl_range_idx(&skip.range, iter.idx);
-    MPI_File_write(fp, _F(start), arr->esznc*skip.delta, MPI_CHAR, &status);
-  }
-
-#undef _F
-}
-
-static int
-grid_sub_array_decomp_write_fp(struct nccl_comm *comm,
-  const struct gkyl_rect_grid *grid,
-  const struct gkyl_rect_decomp *decomp, const struct gkyl_range *range,
-  const struct gkyl_array *arr, MPI_File fp)
-{
-  char *buff; size_t buff_sz;
-  FILE *fbuff = open_memstream(&buff, &buff_sz);
-
-  // write header to a char buffer
-  gkyl_grid_sub_array_header_write_fp(grid,
-    &(struct gkyl_array_header_info) {
-      .file_type = gkyl_file_type_int[GKYL_MULTI_RANGE_DATA_FILE],
-      .etype = arr->type,
-      .esznc = arr->esznc,
-      .tot_cells = decomp->parent_range.volume
-    },
-    fbuff
-  );
-  uint64_t nrange = decomp->ndecomp;
-  fwrite(&nrange, sizeof(uint64_t), 1, fbuff);
-  fclose(fbuff);
-
-  // actual header IO is only done by rank 0
-  int rank = comm->rank;
-  if (rank == 0) {
-    MPI_Status status;
-    MPI_File_write(fp, buff, buff_sz, MPI_CHAR, &status);
-  }
-  free(buff);
-  
-  // write data in array
-  sub_array_decomp_write(comm, decomp, range, arr, fp);
-  return errno;
-}
-
 static int
 array_write(struct gkyl_comm *comm,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
-  MPI_File fp;
-  int err =
-    MPI_File_open(nccl->mpi_comm, fname, MPI_MODE_CREATE|MPI_MODE_WRONLY, MPI_INFO_NULL, &fp);
-  if (err != MPI_SUCCESS)
-    return err;
-  err = grid_sub_array_decomp_write_fp(nccl, grid, nccl->decomp, range, arr, fp);
-  MPI_File_close(&fp);
-  return err;
+  return gkyl_comm_array_write(nccl->mpi_comm, grid, range, meta, arr, fname);
 }
 
 static int
@@ -374,9 +276,7 @@ allreduce_host(struct gkyl_comm *comm, enum gkyl_elem_type type,
   void *out)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);  
-  int ret =
-    MPI_Allreduce(inp, out, nelem, g2_mpi_datatype[type], g2_mpi_op[op], nccl->mpi_comm);
-  return ret == MPI_SUCCESS ? 0 : 1;
+  return gkyl_comm_allreduce(nccl->mpi_comm, type, op, nelem, inp, out);
 }
 
 static int
@@ -440,7 +340,7 @@ array_bcast(struct gkyl_comm *comm, const struct gkyl_array *asend,
   size_t nelem = asend->ncomp*asend->size;
 
   checkNCCL(ncclBroadcast(asend->data, arecv->data, nelem, g2_nccl_datatype[asend->type],
-			  root, nccl->ncomm, nccl->custream));
+      root, nccl->ncomm, nccl->custream));
 
   return 0;
 }
@@ -670,7 +570,7 @@ extend_comm(const struct gkyl_comm *comm, const struct gkyl_range *erange)
   // extend internal decomp object and create a new communicator
   struct gkyl_rect_decomp *ext_decomp = gkyl_rect_decomp_extended_new(erange, nccl->decomp);
   struct gkyl_comm *ext_comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-      .mpi_comm = nccl->mpi_comm,
+      .mpi_comm = nccl->mcomm,
       .decomp = ext_decomp,
       .sync_corners = nccl->sync_corners,
       .device_set = 1,
@@ -685,12 +585,12 @@ static struct gkyl_comm*
 split_comm(const struct gkyl_comm *comm, int color, struct gkyl_rect_decomp *new_decomp)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
-  MPI_Comm new_mpi_comm;
-  int ret = MPI_Comm_split(nccl->mpi_comm, color, nccl->rank, &new_mpi_comm);
+  MPI_Comm new_mcomm;
+  int ret = MPI_Comm_split(nccl->mcomm, color, nccl->rank, &new_mcomm);
   assert(ret == MPI_SUCCESS);
 
   struct gkyl_comm *newcomm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
-      .mpi_comm = new_mpi_comm,
+      .mpi_comm = new_mcomm,
       .decomp = new_decomp,
       .device_set = 1,
       .custream = nccl->custream,
@@ -703,10 +603,17 @@ struct gkyl_comm*
 gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
 {
   struct nccl_comm *nccl = gkyl_malloc(sizeof *nccl);
+  nccl->mcomm = inp->mpi_comm;
 
-  nccl->mpi_comm = inp->mpi_comm;
-  MPI_Comm_rank(inp->mpi_comm, &nccl->rank);
-  MPI_Comm_size(inp->mpi_comm, &nccl->size);
+  nccl->mpi_comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp)
+      {
+        .mpi_comm = nccl->mcomm,
+        .decomp = inp->decomp, 
+        .sync_corners = inp->sync_corners, 
+      }
+    );
+  MPI_Comm_rank(nccl->mcomm, &nccl->rank);
+  MPI_Comm_size(nccl->mcomm, &nccl->size);
 
   if (inp->device_set == 0) {
     int num_devices[1];
@@ -718,7 +625,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
 
   ncclUniqueId nId;
   if (nccl->rank == 0) ncclGetUniqueId(&nId);
-  MPI_Bcast((void *)&nId, sizeof(nId), MPI_BYTE, 0, inp->mpi_comm);
+  MPI_Bcast((void *)&nId, sizeof(nId), MPI_BYTE, 0, nccl->mcomm);
 
   if (inp->custream == 0)
     checkCuda(cudaStreamCreate(&nccl->custream));

@@ -106,8 +106,11 @@ main(int argc, char **argv)
     .upper = { 1.0, 1.0 }, 
     .cells = { VX, VY },
 
-    .ctx = &ctx,
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFunc,
+      .ctx_func = &ctx,
+    },
 
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },

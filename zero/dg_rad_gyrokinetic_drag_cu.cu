@@ -15,13 +15,16 @@ extern "C" {
 __global__ static void
 gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn, 
   const struct gkyl_array* nvnu_surf, const struct gkyl_array* nvnu, 
-  const struct gkyl_array* nvsqnu_surf, const struct gkyl_array* nvsqnu)
+  const struct gkyl_array* nvsqnu_surf, const struct gkyl_array* nvsqnu, const struct gkyl_array* vtsq,
+  const double vtsq_min)
 {
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
   rad_gyrokinetic_drag->auxfields.nvnu_surf = nvnu_surf;
   rad_gyrokinetic_drag->auxfields.nvnu = nvnu;
   rad_gyrokinetic_drag->auxfields.nvsqnu_surf = nvsqnu_surf;
   rad_gyrokinetic_drag->auxfields.nvsqnu = nvsqnu;
+  rad_gyrokinetic_drag->auxfields.vtsq = vtsq;
+  rad_gyrokinetic_drag->auxfields.vtsq_min = vtsq_min;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
@@ -29,8 +32,8 @@ void
 gkyl_rad_gyrokinetic_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin)
 {
   gkyl_rad_gyrokinetic_drag_set_auxfields_cu_kernel<<<1,1>>>(eqn, 
-  auxin.nvnu_surf->on_dev, auxin.nvnu->on_dev, 
-  auxin.nvsqnu_surf->on_dev, auxin.nvsqnu->on_dev);
+    auxin.nvnu_surf->on_dev, auxin.nvnu->on_dev, 
+    auxin.nvsqnu_surf->on_dev, auxin.nvsqnu->on_dev, auxin.vtsq->on_dev, auxin.vtsq_min);
 }
 
 // CUDA kernel to set device pointers to range object and rad_gyrokinetic_drag kernel function
@@ -42,7 +45,8 @@ dg_rad_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_rad_gyrokinetic_drag *rad_gyro
   rad_gyrokinetic_drag->auxfields.nvnu_surf = 0; 
   rad_gyrokinetic_drag->auxfields.nvnu = 0; 
   rad_gyrokinetic_drag->auxfields.nvsqnu_surf = 0; 
-  rad_gyrokinetic_drag->auxfields.nvsqnu = 0; 
+  rad_gyrokinetic_drag->auxfields.nvsqnu = 0;
+  rad_gyrokinetic_drag->auxfields.vtsq = 0; 
 
   rad_gyrokinetic_drag->eqn.surf_term = surf;
   rad_gyrokinetic_drag->eqn.boundary_surf_term = boundary_surf;
@@ -77,7 +81,8 @@ dg_rad_gyrokinetic_drag_set_cu_dev_ptrs(struct dg_rad_gyrokinetic_drag *rad_gyro
 
 struct gkyl_dg_eqn*
 gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis, 
-  const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range){
+  const struct gkyl_basis* phase_basis, const struct gkyl_range *phase_range,
+  const struct gkyl_range *conf_range){
   struct dg_rad_gyrokinetic_drag *rad_gyrokinetic_drag = (struct dg_rad_gyrokinetic_drag*) gkyl_malloc(sizeof(struct dg_rad_gyrokinetic_drag));
 
   int cdim = conf_basis->ndim, pdim = phase_basis->ndim, vdim = pdim-cdim;
@@ -86,6 +91,7 @@ gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis* conf_basis,
   rad_gyrokinetic_drag->cdim = cdim;
   rad_gyrokinetic_drag->pdim = pdim;
   rad_gyrokinetic_drag->phase_range = *phase_range;
+  rad_gyrokinetic_drag->conf_range = *conf_range;
 
   rad_gyrokinetic_drag->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(rad_gyrokinetic_drag->eqn.flags);

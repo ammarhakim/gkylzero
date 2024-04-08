@@ -18,7 +18,7 @@ gkyl_dg_updater_gyrokinetic_acquire_eqn(const gkyl_dg_updater_gyrokinetic* gyrok
 struct gkyl_dg_updater_gyrokinetic*
 gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const bool *is_zero_flux_dir,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const bool *is_zero_flux_bc,
   double charge, double mass, enum gkyl_gkmodel_id gkmodel_id, 
   const struct gk_geometry *gk_geom, void *aux_inp, bool use_gpu)
 {
@@ -37,11 +37,13 @@ gkyl_dg_updater_gyrokinetic_new(const struct gkyl_rect_grid *grid,
   int num_up_dirs = cdim+1;
   for (int d=0; d<num_up_dirs; ++d) up_dirs[d] = d;
 
-  int zero_flux_flags[GKYL_MAX_DIM] = {0};
-  for (int d=0; d<cdim; ++d)
-    zero_flux_flags[d] = is_zero_flux_dir[d]? 1 : 0;
+  int zero_flux_flags[2*GKYL_MAX_DIM] = {0};
+  for (int d=0; d<cdim; ++d) {
+    zero_flux_flags[d] = is_zero_flux_bc[d]? 1 : 0;
+    zero_flux_flags[d+pdim] = is_zero_flux_bc[d+pdim]? 1 : 0;
+  }
   for (int d=cdim; d<pdim; ++d)
-    zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
+    zero_flux_flags[d] = zero_flux_flags[d+pdim] = 1; // zero-flux BCs in vel-space
 
   up->up_gyrokinetic = gkyl_hyper_dg_new(grid, pbasis, up->eqn_gyrokinetic,
     num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
@@ -57,10 +59,7 @@ gkyl_dg_updater_gyrokinetic_advance(struct gkyl_dg_updater_gyrokinetic *gyrokine
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (gyrokinetic->use_gpu)
-    gkyl_hyper_dg_advance_cu(gyrokinetic->up_gyrokinetic, update_rng, fIn, cflrate, rhs);
-  else 
-    gkyl_hyper_dg_advance(gyrokinetic->up_gyrokinetic, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(gyrokinetic->up_gyrokinetic, update_rng, fIn, cflrate, rhs);
   gyrokinetic->gyrokinetic_tm += gkyl_time_diff_now_sec(wst);
 }
 

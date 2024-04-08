@@ -36,18 +36,6 @@ check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng)
   return false;
 }
 
-// apply periodic BCs
-void
-moment_apply_periodic_bc(const gkyl_moment_app *app, struct gkyl_array *bc_buffer,
-  int dir, struct gkyl_array *f)
-{
-  gkyl_array_copy_to_buffer(bc_buffer->data, f,   &(app->skin_ghost.lower_skin[dir]));
-  gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.upper_ghost[dir]));
-
-  gkyl_array_copy_to_buffer(bc_buffer->data, f,   &(app->skin_ghost.upper_skin[dir]));
-  gkyl_array_copy_from_buffer(f, bc_buffer->data, &(app->skin_ghost.lower_ghost[dir]));
-}
-
 void
 moment_apply_periodic_corner_sync_2d(const gkyl_moment_app *app, struct gkyl_array *f)
 {

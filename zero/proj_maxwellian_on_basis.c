@@ -11,7 +11,9 @@
 #include <assert.h>
 
 // create range to loop over quadrature points.
-static inline struct gkyl_range get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2) {
+static inline struct gkyl_range
+get_qrange(int cdim, int dim, int num_quad, int num_quad_v, bool *is_vdim_p2)
+{
   int qshape[GKYL_MAX_DIM];
   for (int i=0; i<cdim; ++i) qshape[i] = num_quad;
   for (int i=cdim; i<dim; ++i) qshape[i] = is_vdim_p2[i-cdim]? num_quad_v : num_quad;
@@ -67,7 +69,8 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
   if (use_gpu) {
     *ordinates = gkyl_array_cu_dev_new(GKYL_DOUBLE, ndim, tot_quad);
     *weights = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, tot_quad);
-  } else {
+  }
+  else {
     *ordinates = gkyl_array_new(GKYL_DOUBLE, ndim, tot_quad);
     *weights = gkyl_array_new(GKYL_DOUBLE, 1, tot_quad);
   }
@@ -84,7 +87,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
       ord[i] = ordinates1[iter.idx[i]-qrange.lower[i]];
     for (int i=cdim; i<ndim; ++i)
       ord[i] = is_vdim_p2[i-cdim]? ordinates1_v[iter.idx[i]-qrange.lower[i]] :
-                                   ordinates1[iter.idx[i]-qrange.lower[i]];
+        ordinates1[iter.idx[i]-qrange.lower[i]];
     
     // set weights
     double *wgt = gkyl_array_fetch(weights_ho, node);
@@ -93,7 +96,7 @@ init_quad_values(int cdim, const struct gkyl_basis *basis, int num_quad, struct 
       wgt[0] *= weights1[iter.idx[i]-qrange.lower[i]];
     for (int i=cdim; i<ndim; ++i)
       wgt[0] *= is_vdim_p2[i-cdim]? weights1_v[iter.idx[i]-qrange.lower[i]] :
-                                    weights1[iter.idx[i]-qrange.lower[i]];
+        weights1[iter.idx[i]-qrange.lower[i]];
   }
 
   // pre-compute basis functions at ordinates
@@ -123,7 +126,7 @@ gkyl_proj_maxwellian_on_basis_new(
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
   int num_quad, bool use_gpu)
 {
-  gkyl_proj_maxwellian_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_maxwellian_on_basis));
+  gkyl_proj_maxwellian_on_basis *up = gkyl_malloc(sizeof(*up));
 
   up->grid = *grid;
   up->cdim = conf_basis->ndim;
@@ -212,6 +215,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
     return gkyl_proj_maxwellian_on_basis_lab_mom_cu(up, phase_rng, conf_rng, moms, fmax);
 #endif
 
+  double f_floor = 1.e-40;
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
   int tot_quad = up->tot_quad;
@@ -265,7 +269,10 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
       vtsq[n] = (m2_n - den*usq)/(den*vdim);
 
       // Amplitude of the exponential.
-      exp_amp[n] = den/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim));
+      if ((den > 0.) && (vtsq[n]>0.))
+        exp_amp[n] = den/sqrt(pow(2.0*GKYL_PI*vtsq[n], vdim));
+      else
+        exp_amp[n] = 0.;
     }
 
     // inner loop over velocity space
@@ -292,7 +299,7 @@ gkyl_proj_maxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
           efact += pow(udrift[cqidx][d]-xmu[cdim+d],2);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx]));
+        fq[0] = vtsq[cqidx] > 0.0 ? f_floor + exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx])) : f_floor;
       }
 
       // compute expansion coefficients of Maxwellian on basis
@@ -315,6 +322,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
     return gkyl_proj_maxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, moms, prim_moms, fmax);
 #endif
 
+  double f_floor = 1.e-40;
   int cdim = up->cdim, pdim = up->pdim;
   int vdim = pdim-cdim;
   int tot_quad = up->tot_quad;
@@ -361,7 +369,10 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
       }
 
       // Amplitude of the exponential.
-      expamp_o[n] = m0_o/sqrt(pow(2.0*GKYL_PI*vtsq_o[n], vdim));
+      if ((m0_o > 0.) && (vtsq_o[n]>0.))
+        expamp_o[n] = m0_o/sqrt(pow(2.0*GKYL_PI*vtsq_o[n], vdim));
+      else
+        expamp_o[n] = 0.;
 
     }
 
@@ -389,7 +400,7 @@ gkyl_proj_maxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up,
           efact += pow(xmu[cdim+d]-udrift_o[cqidx][d],2);
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx]));
+        fq[0] = vtsq_o[cqidx] > 0.0 ? f_floor + expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx])) : f_floor;
       }
 
       // compute expansion coefficients of Maxwellian on basis
@@ -410,7 +421,7 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     return gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu(up, phase_rng, conf_rng, moms, 
-                                                      bmag, jacob_tot, mass, fmax);
+      bmag, jacob_tot, mass, fmax);
 #endif
 
   double fJacB_floor = 1.e-40;
@@ -499,7 +510,7 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom(const gkyl_proj_maxwellian_on_basis *up,
         efact += (vdim_phys-1)*xmu[cdim+1]*bfield[cqidx]/mass;
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = fJacB_floor+exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx]));
+        fq[0] = vtsq[cqidx] > 0.0 ? fJacB_floor+exp_amp[cqidx]*exp(-efact/(2.0*vtsq[cqidx])) : fJacB_floor;
       }
 
       // compute expansion coefficients of Maxwellian on basis
@@ -519,7 +530,7 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     return gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(up, phase_rng, conf_rng, moms, prim_moms,
-                                                       bmag, jacob_tot, mass, fmax);
+      bmag, jacob_tot, mass, fmax);
 #endif
 
   double fJacB_floor = 1.e-40;
@@ -605,7 +616,7 @@ gkyl_proj_gkmaxwellian_on_basis_prim_mom(const gkyl_proj_maxwellian_on_basis *up
         efact += (vdim_phys-1)*xmu[cdim+1]*bmag_o[cqidx]/mass;
 
         double *fq = gkyl_array_fetch(up->fun_at_ords, pqidx);
-        fq[0] = fJacB_floor+expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx]));
+        fq[0] = vtsq_o[cqidx] > 0.0 ? fJacB_floor+expamp_o[cqidx]*exp(-efact/(2.0*vtsq_o[cqidx])) : fJacB_floor;
       }
 
       // compute expansion coefficients of Maxwellian on basis

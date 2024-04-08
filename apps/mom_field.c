@@ -183,11 +183,15 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->proj_app_current = 0;
   if (mom_fld->app_current_func)
     fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, 3, mom_fld->app_current_func, fld->ctx);
-
   
   fld->ext_em = mkarr(false, 6, app->local_ext.volume);
   fld->is_ext_em_static = mom_fld->is_ext_em_static;
+  fld->use_explicit_em_coupling = mom_fld->use_explicit_em_coupling;
   fld->was_ext_em_computed = false;
+  if(mom_fld->use_explicit_em_coupling){
+    fld->app_current1 = mkarr(false, 3, app->local_ext.volume);
+    fld->app_current2 = mkarr(false, 3, app->local_ext.volume);
+  }
 
   fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;
   fld->proj_ext_em = 0;
@@ -217,8 +221,6 @@ moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
   struct timespec wst = gkyl_wall_clock();
   
   int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
-  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
-    app->periodic_dirs, f);
   
   for (int d=0; d<num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
@@ -237,7 +239,11 @@ moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
           field->bc_buffer, d, field->lower_bc[d], field->upper_bc[d], f);
     }
 
+  // sync interior ghost cells
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+  // sync periodic ghost cells
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
+    app->periodic_dirs, f);
 
   app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);  
 }
@@ -338,6 +344,10 @@ moment_field_release(const struct moment_field *fld)
   gkyl_array_release(fld->app_current);
   if (fld->proj_app_current)
     gkyl_fv_proj_release(fld->proj_app_current);
+  if(fld->use_explicit_em_coupling)
+    gkyl_array_release(fld->app_current1);
+  if(fld->use_explicit_em_coupling)
+    gkyl_array_release(fld->app_current2);
   
   gkyl_array_release(fld->ext_em);
   if (fld->proj_ext_em)

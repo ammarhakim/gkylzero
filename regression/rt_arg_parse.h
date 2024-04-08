@@ -29,6 +29,8 @@ struct gkyl_app_args {
   enum gkyl_basis_type basis_type; // type of basis functions to use
   enum gkyl_mp_recon mp_recon; // the XX in MP-XX
   bool skip_limiters; // should we skip limiters?
+  bool is_restart; // is this a restarted sim?
+  int restart_frame; // frame to restart from
 };
 
 static int
@@ -75,6 +77,8 @@ parse_app_args(int argc, char **argv)
   bool use_mpi = false;
   bool step_mode = false;
   bool trace_mem = false;
+  bool is_restart = false;
+  int restart_frame = INT_MAX;
   bool skip_limiters = false;
   int num_steps = INT_MAX;
   int num_threads = 1; // by default use only 1 thread
@@ -89,7 +93,7 @@ parse_app_args(int argc, char **argv)
   args.basis_type = GKYL_BASIS_MODAL_SERENDIPITY;
 
   int c;
-  while ((c = getopt(argc, argv, "+hgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:")) != -1) {
+  while ((c = getopt(argc, argv, "+hjgmMt:s:i:b:x:y:z:u:v:w:r:c:d:e:")) != -1) {
     switch (c)
     {
       case 'h':
@@ -101,9 +105,10 @@ parse_app_args(int argc, char **argv)
         printf(" -tN    Use N threads (when available)\n");
         printf(" -b     Basis function to use (ms: Modal serendipity; mt: Modal tensor-product)\n");
         printf("        (Ignored for finite-volume solvers)\n");
-        printf(" -r     Recovery scheme. One of u1, u3, u5, c2, c4, c6\n");
+        printf(" -j     Recovery scheme. One of u1, u3, u5, c2, c4, c6\n");
         printf("        (Only used for MP-XX solvers)\n");
         printf(" -l     Turn off limiters\n");
+        printf(" -rN    Restart the simulation from frame N\n");
         printf(" -m     Turn on memory allocation/deallocation tracing\n");
         printf("\n");
         printf(" Grid resolution in configuration space:\n");
@@ -129,6 +134,11 @@ parse_app_args(int argc, char **argv)
 
       case 'l':
         skip_limiters = true;
+        break;
+
+      case 'r':
+        is_restart = true;
+        restart_frame = atoi(optarg);
         break;        
       
       case 's':
@@ -185,7 +195,7 @@ parse_app_args(int argc, char **argv)
         assert(args.basis_type != -1);
         break;
 
-     case 'r':
+     case 'j':
         args.mp_recon = get_mp_recon_type(optarg);
         assert(args.mp_recon != -1);
         break;        
@@ -202,6 +212,8 @@ parse_app_args(int argc, char **argv)
   args.num_steps = num_steps;
   args.num_threads = num_threads;
   args.skip_limiters = skip_limiters;
+  args.is_restart = is_restart;
+  args.restart_frame = restart_frame;
 
   return args;
 }

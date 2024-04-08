@@ -7,10 +7,10 @@ typedef struct gkyl_gkgeom gkyl_gkgeom;
 
 // Type of flux surface
 enum gkyl_gkgeom_type {
-  GKYL_SOL_DN, // SOL of double-null configuration
-  GKYL_SOL_SN, // SOL of single-null configuration
-  GKYL_PF, // Private flux region
-  GKYL_CORE // Core (closed flux-surface)
+  GKYL_GEOM_SOL_DN, // SOL of double-null configuration
+  GKYL_GEOM_SOL_SN, // SOL of single-null configuration
+  GKYL_GEOM_PF, // Private flux region
+  GKYL_GEOM_CORE // Core (closed flux-surface)
 };  
 
 // Inputs to create a new GK geometry creation object

@@ -67,7 +67,7 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   // initialize hyper_dg slvr 
   // FIELD_NULL so only configuration space update, no velocity space update
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2};
-  int zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
+  int zero_flux_flags[2*GKYL_MAX_DIM] = {0, 0, 0, 0, 0, 0};
   int num_up_dirs = cdim; 
 
   gkyl_hyper_dg *slvr;
@@ -103,10 +103,8 @@ test_vlasov_3x3v_p1_(bool use_gpu)
     gkyl_vlasov_set_auxfields(eqn,
       (struct gkyl_dg_vlasov_auxfields){.field = 0, .cot_vec = 0, 
       .alpha_surf = 0, .sgn_alpha_surf = 0, .const_sgn_alpha = 0 }); // must set EM fields to use
-    if (use_gpu)
-      gkyl_hyper_dg_advance_cu(slvr, &phaseRange, fin, cflrate, rhs);
-    else
-      gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
+
+    gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
 
   // get linear index of first non-ghost cell

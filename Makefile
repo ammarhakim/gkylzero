@@ -53,6 +53,10 @@ ifeq ($(CC), nvcc)
        CUDA_LIBS += -lcublas -lcusparse -lcusolver
 endif
 
+# Default radiation fit directory
+GKYL_SHARE_DIR ?= "${INSTALL_PREFIX}/gkylzero/share"
+CFLAGS += -DGKYL_SHARE_DIR=$(GKYL_SHARE_DIR)
+
 # Read MPI paths and flags if needed 
 USING_MPI =
 MPI_INC_DIR = zero # dummy
@@ -144,6 +148,7 @@ REGS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard regression/rt_*.c))
 UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/ctest_*.c))
 MPI_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/mctest_*.c))
 LUA_UNITS := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard unit/lctest_*.c))
+CI := $(patsubst %.c,${BUILD_DIR}/%,$(wildcard ci/*.c))
 
 # list of includes from kernels
 KERN_INC_DIRS = $(shell find $(SRC_DIRS) -type d)
@@ -183,6 +188,11 @@ ${BUILD_DIR}/unit/%: unit/%.c ${BUILD_DIR}/libgkylzero.so ${UNIT_CU_OBJS}
 # Regression tests
 ${BUILD_DIR}/regression/%: regression/%.c ${BUILD_DIR}/libgkylzero.so
 	$(MKDIR_P) ${BUILD_DIR}/regression
+	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
+
+# Automated regression system
+${BUILD_DIR}/ci/%: ci/%.c ${BUILD_DIR}/libgkylzero.so
+	$(MKDIR_P) ${BUILD_DIR}/ci
 	${CC} ${CFLAGS} ${LDFLAGS} -o $@ $< -I. $(INCLUDES) ${EXEC_LIB_DIRS} ${EXEC_RPATH} ${EXEC_LIBS}
 
 # Lua interpreter for testing Lua regression tests
@@ -324,10 +334,13 @@ $(ZERO_SH_INSTALL_LIB): $(OBJS)
 
 .PHONY: all
 all: ${BUILD_DIR}/gkylzero.h ${ZERO_SH_LIB} ## Build libraries and amalgamated header
+	${MKDIR_P} ${INSTALL_PREFIX}/gkylzero/share/adas
+	cp ./data/adas/radiation_fit_parameters.txt ${INSTALL_PREFIX}/gkylzero/share/adas
 
 # Explicit targets to build unit and regression tests
 unit: ${ZERO_SH_LIB} ${UNITS} ${MPI_UNITS} ${LUA_UNITS} ## Build unit tests
 regression: ${ZERO_SH_LIB} ${REGS} regression/rt_arg_parse.h ${BUILD_DIR}/xglua ## Build regression tests
+ci: ${ZERO_SH_LIB} ${CI} ## Build automated regression system
 xglua: ${BUILD_DIR}/xglua ## Build Lua interpreter
 
 .PHONY: check mpicheck
@@ -370,7 +383,19 @@ clean: ## Clean build output
 
 .PHONY: cleanur
 cleanur: ## Delete the unit and regression test executables
-	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/xglua
+	rm -rf ${BUILD_DIR}/unit ${BUILD_DIR}/regression ${BUILD_DIR}/ci ${BUILD_DIR}/xglua
+
+.PHONY: cleanr
+cleanr: ## Delete the regression test executables
+	rm -rf ${BUILD_DIR}/regression
+
+.PHONY: cleanu
+cleanu: ## Delete the unit test executables
+	rm -rf ${BUILD_DIR}/unit
+
+.PHONY: cleanc
+cleanc: ## Delete the automated regression test executables
+	rm -rf ${BUILD_DIR}/ci
 
 # include dependencies
 -include $(DEPS)

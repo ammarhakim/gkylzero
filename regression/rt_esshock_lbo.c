@@ -188,8 +188,11 @@ main(int argc, char **argv)
     .upper = { 6.0 * ctx.vte}, 
     .cells = { VX },
 
-    .ctx = &ctx,
-    .init = evalDistFuncElc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFuncElc,
+      .ctx_func = &ctx,
+    },
 
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -213,8 +216,11 @@ main(int argc, char **argv)
     .upper = { 16.0 * ctx.vti}, 
     .cells = { VX },
 
-    .ctx = &ctx,
-    .init = evalDistFuncIon,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFuncIon,
+      .ctx_func = &ctx,
+    },
 
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,

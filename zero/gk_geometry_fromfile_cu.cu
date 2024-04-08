@@ -4,7 +4,6 @@ extern "C" {
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
-#include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
 #include <gkyl_math.h>
 #include <gkyl_util.h>
@@ -24,7 +23,6 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   up->global = geometry_inp->global;
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
-
 
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
@@ -46,7 +44,6 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   struct gkyl_array *gyyj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   struct gkyl_array *gxzj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   struct gkyl_array *eps2_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-
 
   gkyl_array_copy(mc2p_dev, geo_host->mc2p);
   gkyl_array_copy(bmag_dev, geo_host->bmag);

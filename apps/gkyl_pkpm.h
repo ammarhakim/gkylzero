@@ -8,17 +8,6 @@
 
 #include <stdbool.h>
 
-// Lower-level inputs: in general this does not need to be set by the
-// user. It is needed when the App is being created on a sub-range of
-// the global range, and is meant for use in higher-level drivers that
-// use MPI or other parallel mechanism.
-struct gkyl_pkpm_low_inp {
-  // local range over which App operates
-  struct gkyl_range local_range;
-  // communicator to used
-  struct gkyl_comm *comm;
-};
-
 // Parameters for species collisions
 struct gkyl_pkpm_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
@@ -131,7 +120,7 @@ struct gkyl_pkpm {
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
   bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_pkpm_low_inp low_inp; // low-level inputs  
+  struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
 };
 
 // Simulation statistics

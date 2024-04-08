@@ -2,10 +2,11 @@
 
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
 #include <gkyl_elem_type.h>
+#include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_ref_count.h>
-#include <gkyl_rect_decomp.h>
 
 // The return value of the functions is an error code. Success is
 // denoted by 0 and failure by other values.
@@ -59,13 +60,16 @@ typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm,
 
 // "Synchronize" @a array across the periodic directions
 typedef int (*gkyl_array_per_sync_t)(struct gkyl_comm *comm,
-  const struct gkyl_range *local, const struct gkyl_range *local_ext,
+  const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
   int nper_dirs, const int *per_dirs,
   struct gkyl_array *array);
 
 // Write array to specified file
 typedef int (*gkyl_array_write_t)(struct gkyl_comm *comm,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,                                
   const struct gkyl_array *arr, const char *fname);
 
 // Read array from specified file
@@ -115,11 +119,11 @@ struct gkyl_comm {
   gkyl_array_bcast_t gkyl_array_bcast; // broadcast array to other processes.
   gkyl_array_sync_t gkyl_array_sync; // sync array.
   gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs.
+
   barrier_t barrier; // barrier.
 
   gkyl_array_write_t gkyl_array_write; // array output
   gkyl_array_read_t gkyl_array_read; // array input
-
 
   extend_comm_t extend_comm; // extend communcator
   split_comm_t split_comm; // split communicator.
@@ -393,16 +397,18 @@ gkyl_comm_group_call_end(struct gkyl_comm *comm)
  * @param comm Communicator
  * @param grid Grid object to write
  * @param range Range describing portion of the array to output.
+ * @param meta Meta-data to write. Set to NULL or 0 if no metadata
  * @param arr Array object to write
  * @param fname Name of output file (include .gkyl extension)
  * @return Status flag: 0 if write succeeded, 'errno' otherwise
  */
-static int
-gkyl_comm_array_write(struct gkyl_comm *comm,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+static int gkyl_comm_array_write(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid,
+  const struct gkyl_range *range,
+  const struct gkyl_array_meta *meta,
   const struct gkyl_array *arr, const char *fname)
 {
-  return comm->gkyl_array_write(comm, grid, range, arr, fname);
+  return comm->gkyl_array_write(comm, grid, range, meta, arr, fname);
 }
 
 /**

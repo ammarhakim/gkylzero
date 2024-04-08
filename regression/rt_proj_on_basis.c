@@ -58,7 +58,7 @@ test_proj_1(enum gkyl_basis_type type)
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt[type], "rt_proj_on_basis");
   
-  gkyl_grid_sub_array_write(&grid, &arr_range, distf, fileNm);
+  gkyl_grid_sub_array_write(&grid, &arr_range, 0, distf, fileNm);
   
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
@@ -110,7 +110,7 @@ test_proj_2(enum gkyl_basis_type type)
   char fileNm[sz+1]; // ensures no buffer overflow  
   snprintf(fileNm, sizeof fileNm, fmt[type], "rt_proj_on_basis_rtheta");
   
-  gkyl_grid_sub_array_write(&grid, &arr_range, rtheta, fileNm);
+  gkyl_grid_sub_array_write(&grid, &arr_range, 0, rtheta, fileNm);
   
   gkyl_proj_on_basis_release(proj_mapc2p);
   gkyl_array_release(rtheta);

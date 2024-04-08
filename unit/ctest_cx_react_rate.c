@@ -130,13 +130,13 @@ test_cx_react_rate()
   gkyl_dg_mul_op_range(basis, 1, moms_neut, 1, moms_neut, 0, m0, &confRange);
   gkyl_array_set_offset(moms_neut, 1.0, m2_temp, 2*basis.num_basis);
 
-  gkyl_grid_sub_array_write(&confGrid, &confRange, moms_neut, "ctest_cx_moms_neut_1x.gkyl");
-  gkyl_grid_sub_array_write(&confGrid, &confRange, moms_ion, "ctest_cx_moms_ion_1x.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confRange, 0, moms_neut, "ctest_cx_moms_neut_1x.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confRange, 0, moms_ion, "ctest_cx_moms_ion_1x.gkyl");
  
   struct gkyl_dg_cx *reactRate = gkyl_dg_cx_new(&confGrid, &basis, &phaseBasis, &confRange, &phaseRange, imass, GKYL_CX_H, false, false);
 
   gkyl_dg_cx_react_rate(reactRate, moms_ion, moms_neut, b_hat, cflRate, coefCx);
-  gkyl_grid_sub_array_write(&confGrid, &confRange, coefCx, "ctest_cx_react_rate_1x.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confRange, 0, coefCx, "ctest_cx_react_rate_1x.gkyl");
 
   // Calculate reaction rate analytically to compare
   double m0_n = 1e19;

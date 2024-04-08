@@ -28,9 +28,9 @@ gkyl_dg_updater_fpo_vlasov_new(const struct gkyl_rect_grid *grid, const struct g
   for (int d=0; d<vdim; ++d)
     up_dirs[d] = d + pbasis->ndim - vdim;
 
-  int zero_flux_flags[GKYL_MAX_DIM] = { 0 };
+  int zero_flux_flags[2*GKYL_MAX_DIM] = { 0 };
   for (int d=cdim; d<pdim; ++d)
-    zero_flux_flags[d] = 1;
+    zero_flux_flags[d] = zero_flux_flags[d+pdim] = 1;
   
   up->diff = gkyl_hyper_dg_new(grid, pbasis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
   up->drag = gkyl_hyper_dg_new(grid, pbasis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
@@ -99,7 +99,7 @@ gkyl_dg_updater_fpo_vlasov_advance_cu(struct gkyl_dg_updater_collisions *fpo,
     (struct gkyl_dg_fpo_vlasov_diff_auxfields) { .g = g });
 
   struct timespec wst = gkyl_wall_clock();
-  gkyl_hyper_dg_advance_cu(fpo->drag, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(fpo->drag, update_rng, fIn, cflrate, rhs);
   fpo->drag_tm += gkyl_time_diff_now_sec(wst);
 
   // Fokker-Planck diffusion requires generalized hyper dg operator due to 
