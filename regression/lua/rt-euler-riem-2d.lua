@@ -33,14 +33,15 @@ eulerApp = Moments.App.new {
 	 local loRight = {0.3, 0.5323, 0.0, 1.206}
 	 local rho, u, v, pr      
 	 local x, y = xn[1], xn[2]
-	 if y>0.5 then
-	    if x<0.5 then
+	 local loc = 0.8
+	 if y>loc then
+	    if x<loc then
 	       pr, rho, u, v = upLeft[1], upLeft[2], upLeft[3], upLeft[4]
 	    else
 	       pr, rho, u, v = upRight[1], upRight[2], upRight[3], upRight[4]
 	    end
 	 else
-	    if x<0.5 then
+	    if x<loc then
 	       pr, rho, u, v = loLeft[1], loLeft[2], loLeft[3], loLeft[4]
 	    else
 	       pr, rho, u, v = loRight[1], loRight[2], loRight[3], loRight[4]
