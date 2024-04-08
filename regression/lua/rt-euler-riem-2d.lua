@@ -6,7 +6,6 @@ gasGamma = 1.4 -- gas adiabatic constant
 
 -- create app
 eulerApp = Moments.App.new {
-   logToFile = true,
 
    tEnd = 0.8, -- end time
    nFrame = 4, -- number of output frame
