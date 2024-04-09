@@ -514,10 +514,8 @@ mom_app_new(lua_State *L)
     = gkyl_rect_decomp_new_from_cuts_and_cells(cdim, cuts, mom.cells);
 
   struct gkyl_comm *comm = 0;
-
-  int rank = 0;
-
   bool has_mpi = false;
+  
 #ifdef GKYL_HAVE_MPI
   with_lua_global(L, "GKYL_MPI_COMM") {
     if (lua_islightuserdata(L, -1)) {
@@ -529,7 +527,7 @@ mom_app_new(lua_State *L)
           .sync_corners = true
         }
       );
-      MPI_Comm_rank(mpi_comm, &rank);
+
     }
   }
 #endif
@@ -544,6 +542,19 @@ mom_app_new(lua_State *L)
     );
   }
 
+  int rank;
+  gkyl_comm_get_rank(comm, &rank);
+
+  int comm_sz;
+  gkyl_comm_get_size(comm, &comm_sz);
+
+  int tot_cuts = 1; for (int d=0; d<cdim; ++d) tot_cuts *= cuts[d];
+
+  if (tot_cuts != comm_sz) {
+    printf("tot_cuts = %d (%d)\n", tot_cuts, comm_sz);
+    luaL_error(L, "Number of ranks and cuts do not match!");
+  }
+  
   mom.has_low_inp = true;  
   mom.low_inp = (struct gkyl_app_comm_low_inp) {
     .comm = comm,
@@ -553,7 +564,7 @@ mom_app_new(lua_State *L)
   app_lw->app = gkyl_moment_app_new(&mom); // create the Moment app
 
   gkyl_rect_decomp_release(decomp);
-  if (comm) gkyl_comm_release(comm);
+  gkyl_comm_release(comm);
   
   // create Lua userdata ...
   struct moment_app_lw **l_app_lw = lua_newuserdata(L, sizeof(struct moment_app_lw*));
@@ -749,8 +760,11 @@ mom_app_stat_write(lua_State *L)
 static void
 write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double tcurr)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr))
+  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
     gkyl_moment_app_write(app, tcurr, iot->curr-1);
+    gkyl_moment_app_write_integrated_mom(app);
+    gkyl_moment_app_write_field_energy(app);
+  }
 }
 
 // Run simulation. (num_steps) -> bool. num_steps is optional
@@ -775,9 +789,10 @@ mom_app_run(lua_State *L)
 
   // initialize simulation
   gkyl_moment_app_apply_ic(app, tcurr);
-  write_data(&io_trig, app, tcurr);
   gkyl_moment_app_calc_integrated_mom(app, tcurr);
   gkyl_moment_app_calc_field_energy(app, tcurr);
+  
+  write_data(&io_trig, app, tcurr);
 
   long step = 1;
   while ((tcurr < tend) && (step <= num_steps)) {
@@ -801,8 +816,6 @@ mom_app_run(lua_State *L)
   }
 
   gkyl_moment_app_stat_write(app);
-  gkyl_moment_app_write_integrated_mom(app); // SHOULD GO INTO time-trigger
-  gkyl_moment_app_write_field_energy(app);
 
   lua_pushboolean(L, ret_status);
   return 1;
