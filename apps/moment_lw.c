@@ -9,6 +9,7 @@
 #include <gkyl_moment_priv.h>
 #include <gkyl_null_comm.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_ten_moment.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -110,7 +111,39 @@ eqn_euler_lw_new(lua_State *L)
 
 // Equation constructor
 static struct luaL_Reg eqn_euler_ctor[] = {
-  { "new",  eqn_euler_lw_new },
+  {"new", eqn_euler_lw_new},
+  {0, 0}
+};
+
+/* ********************/
+/* Tenmoment Equation */
+/* ********************/
+
+// Eq.Tenmoment.new { k0 = 1 }
+static int
+eqn_tenmoment_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *tenm_lw = gkyl_malloc(sizeof(*tenm_lw));
+
+  double k0 = glua_tbl_get_number(L, "k0", 1.0);
+
+  tenm_lw->magic = MOMENT_EQN_DEFAULT;
+  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0);
+
+  // create Lua userdata ...
+  struct wv_eqn_lw **l_tenm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_tenm_lw = tenm_lw; // ... point it to proper object
+  
+  // set metatable
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor
+static struct luaL_Reg eqn_tenmoment_ctor[] = {
+  { "new",  eqn_tenmoment_lw_new },
   { 0, 0 }
 };
 
@@ -126,6 +159,7 @@ eqn_openlibs(lua_State *L)
     lua_settable(L, -3);
 
     luaL_register(L, "G0.Moments.Eq.Euler", eqn_euler_ctor);
+    luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor);
     
   } while (0);
 }

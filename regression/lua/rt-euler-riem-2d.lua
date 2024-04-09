@@ -20,7 +20,11 @@ eulerApp = Moments.App.new {
    -- electrons
    fluid = Moments.Species.new {
       charge = 0.0, mass = 1.0,
-      equation = Euler.new { gasGamma = gasGamma },
+
+      equation = Euler.new { 
+	 gasGamma = gasGamma,
+	 rpType = "roe" -- one of "roe", "hllc", "lax", "hll"
+      },
 
       -- initial conditions
       init = function (t, xn)
