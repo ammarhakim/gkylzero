@@ -66,7 +66,7 @@ momentApp = Moments.App.new {
 	 return rhoe, 0.0, 0.0, ezmom, ere
       end,
       evolve = true, -- evolve species?
-      bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy },
+      bcy = { G0.SpeciesBc.bcWall, G0.SpeciesBc.bcWall },
    },
 
    -- ions
@@ -91,7 +91,7 @@ momentApp = Moments.App.new {
 	 return rhoi, 0.0, 0.0, izmom, eri
       end,
       evolve = true, -- evolve species?
-      bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy },
+      bcy = { G0.SpeciesBc.bcWall, G0.SpeciesBc.bcWall },
    },
 
    field = Moments.Field.new {
@@ -112,4 +112,4 @@ momentApp = Moments.App.new {
 
 }
 -- run application
-momentApp:run(0)
+momentApp:run()

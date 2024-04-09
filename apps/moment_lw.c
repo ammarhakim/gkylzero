@@ -173,6 +173,18 @@ moment_species_lw_new(lua_State *L)
   else
     return luaL_error(L, "Species must have an \"init\" function for initial conditions!");
 
+  with_lua_tbl_tbl(L, "bcx") {
+    int nbc = glua_objlen(L);
+    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
+      mom_species.bcx[i] = glua_tbl_iget_integer(L, i+1, 0);
+  }
+
+  with_lua_tbl_tbl(L, "bcy") {
+    int nbc = glua_objlen(L);
+    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
+      mom_species.bcy[i] = glua_tbl_iget_integer(L, i+1, 0);
+  }  
+
   struct moment_species_lw *moms_lw = lua_newuserdata(L, sizeof(*moms_lw));
   moms_lw->magic = MOMENT_SPECIES_DEFAULT;
   moms_lw->evolve = evolve;
@@ -223,7 +235,7 @@ moment_field_lw_new(lua_State *L)
   mom_field.epsilon0 = glua_tbl_get_number(L, "epsilon0", 1.0);
   mom_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
   mom_field.elc_error_speed_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
-  mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+  mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 1.0);
 
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
 
@@ -232,6 +244,18 @@ moment_field_lw_new(lua_State *L)
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   else
     return luaL_error(L, "Field must have an \"init\" function for initial conditions!");
+
+  with_lua_tbl_tbl(L, "bcx") {
+    int nbc = glua_objlen(L);
+    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
+      mom_field.bcx[i] = glua_tbl_iget_integer(L, i+1, 0);
+  }
+
+  with_lua_tbl_tbl(L, "bcy") {
+    int nbc = glua_objlen(L);
+    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
+      mom_field.bcy[i] = glua_tbl_iget_integer(L, i+1, 0);
+  }  
 
   struct moment_field_lw *vmf_lw = lua_newuserdata(L, sizeof(*vmf_lw));
 
@@ -412,7 +436,8 @@ mom_app_new(lua_State *L)
       MPI_Comm mpi_comm = lua_touserdata(L, -1);
       comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
           .mpi_comm = mpi_comm,
-          .decomp = decomp
+          .decomp = decomp,
+          .sync_corners = true
         }
       );
       MPI_Comm_rank(mpi_comm, &rank);
