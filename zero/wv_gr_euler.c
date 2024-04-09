@@ -50,10 +50,10 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[5], double v[5])
   double h = 1.0 / (C * guess);
 
   v[0] = D / W;
-  v[1] = momx / (D * h * (W * W));
-  v[2] = momy / (D * h * (W * W));
-  v[3] = momz / (D * h * (W * W));
-  v[4] = (D * h * (W * W)) - D - Etot;
+  v[1] = momx / (v[0] * h * (W * W));
+  v[2] = momy / (v[0] * h * (W * W));
+  v[3] = momz / (v[0] * h * (W * W));
+  v[4] = (v[0] * h * (W * W)) - D - Etot;
 
   if (v[0] < pow(10.0, -8.0)) {
     v[0] = pow(10.0, -8.0);
