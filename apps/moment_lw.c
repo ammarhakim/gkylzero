@@ -8,6 +8,7 @@
 #include <gkyl_moment_lw.h>
 #include <gkyl_moment_priv.h>
 #include <gkyl_null_comm.h>
+#include <gkyl_wave_prop.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_ten_moment.h>
 
@@ -28,6 +29,50 @@ enum moment_magic_ids {
   MOMENT_FIELD_DEFAULT, // Maxwell equations
   MOMENT_EQN_DEFAULT
 };
+
+// (string, int) pair
+struct str_int_pair {
+  const char *str;
+  int val;
+};
+
+// wave limiter -> enum map
+static const struct str_int_pair wave_limiter[] = {
+  { "no-limiter", GKYL_NO_LIMITER },
+  { "min-mod", GKYL_MIN_MOD },
+  { "superbee", GKYL_SUPERBEE },
+  { "van-leer", GKYL_VAN_LEER },
+  { "beam-warming", GKYL_BEAM_WARMING },
+  { "zero", GKYL_ZERO },
+  { 0, 0 }
+};
+
+// edge-splitting -> enum map
+static const struct str_int_pair wave_split_type[] = {
+  { "qwave", GKYL_WAVE_QWAVE },
+  { "fwave", GKYL_WAVE_FWAVE },
+  { 0, 0 }
+};
+
+// RP -> enum map
+static const struct str_int_pair euler_rp_type[] = {
+  { "roe", WV_EULER_RP_ROE },
+  { "hllc", WV_EULER_RP_HLLC },
+  { "lax", WV_EULER_RP_LAX },
+  { "hll", WV_EULER_RP_HLL },
+  { 0, 0 }
+};
+
+// simple linear search in list of pairs
+static int
+search_str_int_pair(const struct str_int_pair pairs[], const char *str, int def)
+{
+  for (int i=0; pairs[i].str != 0; ++i) {
+    if (strcmp(pairs[i].str, str) == 0)
+      return pairs[i].val;
+  }
+  return def;
+}
 
 #define MOMENT_WAVE_EQN_METATABLE_NM "GkeyllZero.App.Moments.Eq"
 
@@ -88,7 +133,7 @@ eqn_euler_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
   const char *rp_str = glua_tbl_get_string(L, "rpType", "roe");
-  enum gkyl_wv_euler_rp rp_type = euler_rp_type_from_str(rp_str);
+  enum gkyl_wv_euler_rp rp_type = search_str_int_pair(euler_rp_type, rp_str, WV_EULER_RP_ROE);
 
   euler_lw->magic = MOMENT_EQN_DEFAULT;
   euler_lw->eqn = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
@@ -190,9 +235,6 @@ moment_species_lw_new(lua_State *L)
   mom_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   mom_species.mass = glua_tbl_get_number(L, "mass", 1.0);
 
-  bool evolve = mom_species.evolve = glua_tbl_get_bool(L, "evolve", true);
-  mom_species.force_low_order_flux = glua_tbl_get_bool(L, "forceLowOrderFlux", false);
-
   bool has_eqn = false;
   with_lua_tbl_key(L, "equation") {
     mom_species.equation = wv_eqn_get(L);
@@ -201,6 +243,15 @@ moment_species_lw_new(lua_State *L)
 
   if (!has_eqn)
     return luaL_error(L, "Species \"equation\" not specfied or incorrect type!");
+
+  const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");
+  mom_species.limiter = search_str_int_pair(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+
+  const char *split_str = glua_tbl_get_string(L, "split_type", "qwave");
+  mom_species.split_type = search_str_int_pair(wave_split_type, split_str, GKYL_WAVE_QWAVE);
+
+  bool evolve = mom_species.evolve = glua_tbl_get_bool(L, "evolve", true);
+  mom_species.force_low_order_flux = glua_tbl_get_bool(L, "forceLowOrderFlux", false);
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init"))
@@ -272,6 +323,9 @@ moment_field_lw_new(lua_State *L)
   mom_field.elc_error_speed_fact = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 1.0);
 
+  const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");  
+  mom_field.limiter = search_str_int_pair(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
 
   int init_ref = LUA_NOREF;

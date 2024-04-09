@@ -129,21 +129,21 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       else
         bc = mom_sp->bcz;
 
-      void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      wv_bc_func_t bc_lower_func;
       if (dir == 0)
-        bc_lower_func = mom_sp->bcx_lower_func;
+        bc_lower_func = mom_sp->bcx_func[0];
       else if (dir == 1)
-        bc_lower_func = mom_sp->bcy_lower_func;
+        bc_lower_func = mom_sp->bcy_func[0];
       else
-        bc_lower_func = mom_sp->bcz_lower_func;
+        bc_lower_func = mom_sp->bcz_func[0];
 
-      void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      wv_bc_func_t bc_upper_func;
       if (dir == 0)
-        bc_upper_func = mom_sp->bcx_upper_func;
+        bc_upper_func = mom_sp->bcx_func[1];
       else if (dir == 1)
-        bc_upper_func = mom_sp->bcy_upper_func;
+        bc_upper_func = mom_sp->bcy_func[1];
       else
-        bc_upper_func = mom_sp->bcz_upper_func;
+        bc_upper_func = mom_sp->bcz_func[1];
 
       sp->lower_bct[dir] = bc[0];
       sp->upper_bct[dir] = bc[1];
