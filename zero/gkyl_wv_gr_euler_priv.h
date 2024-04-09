@@ -129,3 +129,111 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
 GKYL_CU_D
 static inline void
 rot_to_global(const double* tau1, const double* tau2, const double* norm, const double* GKYL_RESTRICT qlocal, double* GKYL_RESTRICT qglobal);
+
+/**
+* Compute waves and speeds using Lax fluxes.
+*
+* @param eqn Base equation object.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
+/**
+* Compute fluctuations using Lax fluxes.
+*
+* @param eqn Base equation object.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
+
+/**
+* Compute waves and speeds using Lax fluxes (with potential fallback).
+*
+* @param eqn Base equation object
+* @param type Type of Riemann-solver flux to use.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
+/**
+* Compute fluctuations using Lax fluxes (with potential fallback),
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
+
+/**
+* Compute jump in flux given two conserved variable states.
+*
+* @param eqn Base equation object.
+* @param ql Conserved variable vector on the left of the interface (input).
+* @param qr Conserved variable vector on the right of the interface (input).
+* @param flux_jump Jump in flux vector (output).
+* @return Maximum wave speeds for states ql and qr.
+*/
+GKYL_CU_D
+static double
+flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump);
+
+/**
+* Determine whether invariant domain of the general relativistic Euler equations is satisfied.
+*
+* @param eqn Base equation object.
+* @param q Conserved variable vector.
+* @return Whether the invariant domain is satisfied.
+*/
+GKYL_CU_D
+static bool
+check_inv(const struct gkyl_wv_eqn* eqn, const double* q);
+
+/**
+* Compute maximum wave speed from a conserved variable vector.
+*
+* @param eqn Base equation object.
+* @param q Conserved variable vector.
+* @return Maximum absolute wave speed.
+*/
+GKYL_CU_D
+static double
+max_speed(const struct gkyl_wv_eqn* eqn, const double* q);
+
+/**
+* Convert conserved variables to diagnostic variables.
+*
+* @param eqn Base equation object.
+* @param qin Conserved variable vector (input).
+* @param diag Diagnostic variable vector (output).
+*/
+GKYL_CU_D
+static inline void
+gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
