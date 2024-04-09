@@ -30,10 +30,6 @@ struct mild_shock_ctx
   double ur; // Right fluid velocity.
   double pr; // Right fluid pressure.
 
-  // Derived physical quantities (using normalized code units).
-  double hl; // Left fluid specific enthalpy.
-  double hr; // Right fluid specific enthalpy.
-
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
@@ -59,10 +55,6 @@ create_ctx(void)
   double ur = 0.0; // Right fluid velocity.
   double pr = pow(10.0, -6.0); // Right fluid pressure.
 
-  // Derived physical quantities (using normalized code units).
-  double hl = 1.0 + ((pl / rhol) * (gas_gamma / (gas_gamma - 1.0)));
-  double hr = 1.0 + ((pr / rhor) * (gas_gamma / (gas_gamma - 1.0)));
-
   // Simulation parameters.
   int Nx = 4096; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
@@ -81,8 +73,6 @@ create_ctx(void)
     .rhor = rhor,
     .ur = ur,
     .pr = pr,
-    .hl = hl,
-    .hr = hr,
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
@@ -106,30 +96,27 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double rhol = app->rhol;
   double ul = app->ul;
   double pl = app->pl;
-  double hl = app->hl;
 
   double rhor = app->rhor;
   double ur = app->ur;
   double pr = app->pr;
-  double hr = app->hr;
 
   double rho = 0.0;
   double u = 0.0;
   double p = 0.0;
-  double h = 0.0;
 
   if (x < 0.5) {
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
     p = pl; // Fluid pressure (left).
-    h = hl; // Fluid specific enthalpy (left).
   }
   else {
     rho = rhor; // Fluid mass density (right).
     u = ur; // Fluid velocity (right).
     p = pr; // Fluid pressure (right).
-    h = hr; // Fluid specific enthalpy (right).
   }
+
+  double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 
   // Set fluid mass density.
   fout[0] = rho;

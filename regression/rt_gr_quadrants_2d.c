@@ -17,69 +17,114 @@
 
 #include <rt_arg_parse.h>
 
-struct strong_blast_ctx
+struct quadrants_2d_ctx
 {
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
-  double rhol; // Left fluid mass density.
-  double ul; // Left fluid velocity.
-  double pl; // Left fluid pressure.
+  double rho_ul; // Upper left fluid mass density.
+  double u_ul; // Upper left fluid x-velocity.
+  double v_ul; // Upper left fluid y-velocity.
+  double p_ul; // Upper left fluid pressure.
 
-  double rhor; // Right fluid mass density.
-  double ur; // Right fluid velocity.
-  double pr; // Right fluid pressure.
+  double rho_ur; // Upper right fluid mass density.
+  double u_ur; // Upper right fluid x-velocity.
+  double v_ur; // Upper right fluid y-velocity.
+  double p_ur; // Upper left fluid pressure.
+  
+  double rho_ll; // Lower left fluid mass density.
+  double u_ll; // Lower left fluid x-velocity.
+  double v_ll; // Lower left fluid y-velocity.
+  double p_ll; // Lower left fluid pressure.
+
+  double rho_lr; // Lower right fluid mass density.
+  double u_lr; // Lower right fluid x-velocity.
+  double v_lr; // Lower right fluid y-velocity.
+  double p_lr; // Lower right fluid pressure.
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
+  int Ny; // Cell count (y-direction).
   double Lx; // Domain size (x-direction).
+  double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+
+  double loc; // Fluid boundaries (both x and y coordinates).
 };
 
-struct strong_blast_ctx
+struct quadrants_2d_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
 
-  double rhol = 1.0; // Left fluid mass density.
-  double ul = 0.0; // Left fluid velocity.
-  double pl = 1000.0; // Left fluid pressure.
+  double rho_ul = 0.1; // Upper-left fluid mass density.
+  double u_ul = 0.99; // Upper-left fluid x-velocity.
+  double v_ul = 0.0; // Upper-left fluid y-velocity.
+  double p_ul = 1.0; // Upper-left fluid pressure.
 
-  double rhor = 1.0; // Right fluid mass density.
-  double ur = 0.0; // Right fluid velocity.
-  double pr = 0.01; // Right fluid pressure.
+  double rho_ur = 0.1; // Upper-right fluid mass density.
+  double u_ur = 0.0; // Upper-right fluid x-velocity.
+  double v_ur = 0.0; // Upper-right fluid y-velocity.
+  double p_ur = 0.01; // Upper-right fluid pressure.
+  
+  double rho_ll = 0.5; // Lower-left fluid mass density.
+  double u_ll = 0.0; // Lower-left fluid x-velocity.
+  double v_ll = 0.0; // Lower-left fluid y-velocity.
+  double p_ll = 1.0; // Lower-left fluid pressure.
+
+  double rho_lr = 0.1; // Lower-right fluid mass density.
+  double u_lr = 0.0; // Lower-right fluid x-velocity.
+  double v_lr = 0.99; // Lower-right fluid y-velocity.
+  double p_lr = 1.0; // Lower-right fluid pressure.
 
   // Simulation parameters.
-  int Nx = 8192; // Cell count (x-direction).
+  int Nx = 800; // Cell count (x-direction).
+  int Ny = 800; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
+  double Ly = 1.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 0.35; // Final simulation time.
+  double t_end = 0.4; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct strong_blast_ctx ctx = {
+  double loc = 0.5; // Fluid boundaries (both x and y coordinates).
+
+  struct quadrants_2d_ctx ctx = {
     .gas_gamma = gas_gamma,
-    .rhol = rhol,
-    .ul = ul,
-    .pl = pl,
-    .rhor = rhor,
-    .ur = ur,
-    .pr = pr,
+    .rho_ul = rho_ul,
+    .u_ul = u_ul,
+    .v_ul = v_ul,
+    .p_ul = p_ul,
+    .rho_ur = rho_ur,
+    .u_ur = u_ur,
+    .v_ur = v_ur,
+    .p_ur = p_ur,
+    .rho_ll = rho_ll,
+    .u_ll = u_ll,
+    .v_ll = v_ll,
+    .p_ll = p_ll,
+    .rho_lr = rho_lr,
+    .u_lr = u_lr,
+    .v_lr = v_lr,
+    .p_lr = p_lr,
     .Nx = Nx,
+    .Ny = Ny,
     .Lx = Lx,
+    .Ly = Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
+    .loc = loc,
   };
 
   return ctx;
@@ -88,42 +133,76 @@ create_ctx(void)
 void
 evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0];
-  struct strong_blast_ctx *app = ctx;
+  double x = xn[0], y = xn[1];
+  struct quadrants_2d_ctx *app = ctx;
 
   double gas_gamma = app->gas_gamma;
 
-  double rhol = app->rhol;
-  double ul = app->ul;
-  double pl = app->pl;
+  double rho_ul = app->rho_ul;
+  double u_ul = app->u_ul;
+  double v_ul = app->v_ul;
+  double p_ul = app->p_ul;
 
-  double rhor = app->rhor;
-  double ur = app->ur;
-  double pr = app->pr;
+  double rho_ur = app->rho_ur;
+  double u_ur = app->u_ur;
+  double v_ur = app->v_ur;
+  double p_ur = app->p_ur;
+
+  double rho_ll = app->rho_ll;
+  double u_ll = app->u_ll;
+  double v_ll = app->v_ll;
+  double p_ll = app->p_ll;
+
+  double rho_lr = app->rho_lr;
+  double u_lr = app->u_lr;
+  double v_lr = app->v_lr;
+  double p_lr = app->p_lr;
+
+  double loc = app->loc;
 
   double rho = 0.0;
   double u = 0.0;
+  double v = 0.0;
   double p = 0.0;
 
-  if (x < 0.5) {
-    rho = rhol; // Fluid mass density (left).
-    u = ul; // Fluid velocity (left).
-    p = pl; // Fluid pressure (left).
+  if (y > loc) {
+    if (x < loc) {
+      rho = rho_ul; // Fluid mass density (upper-left).
+      u = u_ul; // Fluid x-velocity (upper-left).
+      v = v_ul; // Fluid y-velocity (upper-left).
+      p = p_ul; // Fluid pressure (upper-left).
+    }
+    else {
+      rho = rho_ur; // Fluid mass density (upper-right).
+      u = u_ur; // Fluid x-velocity (upper-right).
+      v = v_ur; // Fluid y-velocity (upper-right).
+      p = p_ur; // Fluid pressure (upper-right).
+    }
   }
   else {
-    rho = rhor; // Fluid mass density (right).
-    u = ur; // Fluid velocity (right).
-    p = pr; // Fluid pressure (right).
+    if (x < loc) {
+      rho = rho_ll; // Fluid mass density (lower-left).
+      u = u_ll; // Fluid x-velocity (lower-left).
+      v = v_ll; // Fluid y-velocity (lower-left).
+      p = p_ll; // Fluid pressure (lower-left).
+    }
+    else {
+      rho = rho_lr; // Fluid mass density (lower-right).
+      u = u_lr; // Fluid x-velocity (lower-right).
+      v = v_lr; // Fluid y-velocity (lower-right).
+      p = p_lr; // Fluid pressure (lower-right).
+    }
   }
 
+  double W = 1.0 / sqrt(1.0 - ((u * u) + (v * v)));
   double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
-
+  
   // Set fluid mass density.
-  fout[0] = rho;
+  fout[0] = rho * W;
   // Set fluid momentum density.
-  fout[1] = rho * h * u; fout[2] = 0.0; fout[3] = 0.0;
+  fout[1] = rho * h * (W * W) * u; fout[2] = rho * h * (W * W) * v; fout[3] = 0.0;
   // Set fluid total energy density.
-  fout[4] = (rho * h) - p - rho;
+  fout[4] = (rho * h * (W * W)) - p - (rho * W);
 }
 
 void
@@ -155,22 +234,26 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct strong_blast_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct quadrants_2d_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_inew(
+    &(struct gkyl_wv_gr_euler_inp) {
+        .gas_gamma = ctx.gas_gamma,
+        .rp_type = WV_GR_EULER_RP_LAX,
+        .use_gpu = app_args.use_gpu,
+    }
+  );
 
   struct gkyl_moment_species fluid = {
     .name = "gr_euler",
     .equation = gr_euler,
     .evolve = true,
     .init = evalGREulerInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
-
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -181,7 +264,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX };
+  int cells[] = { NX, NY };
   int dim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range global_r;
   gkyl_create_global_range(dim, cells, &global_r);
@@ -246,15 +329,18 @@ main(int argc, char **argv)
     }
     goto mpifinalize;
   }
-
+  
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_strong_blast",
+    .name = "gr_quadrants_2d",
 
-    .ndim = 1,
-    .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
-    .cells = { NX },
+    .ndim = 2,
+    .lower = { 0.0, 0.0 },
+    .upper = { ctx.Lx, ctx.Ly },
+    .cells = { NX, NY },
+
+    .scheme_type = GKYL_MOMENT_WAVE_PROP,
+    .mp_recon = app_args.mp_recon,
 
     .cfl_frac = ctx.cfl_frac,
 
@@ -352,6 +438,6 @@ mpifinalize:
     MPI_Finalize();
   }
 #endif
-  
+
   return 0;
 }
