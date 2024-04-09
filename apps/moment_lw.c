@@ -126,9 +126,10 @@ eqn_tenmoment_lw_new(lua_State *L)
   struct wv_eqn_lw *tenm_lw = gkyl_malloc(sizeof(*tenm_lw));
 
   double k0 = glua_tbl_get_number(L, "k0", 1.0);
+  bool has_grad_closure = glua_tbl_get_bool(L, "has_grad_closure", false);
 
   tenm_lw->magic = MOMENT_EQN_DEFAULT;
-  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0);
+  tenm_lw->eqn = gkyl_wv_ten_moment_new(k0, has_grad_closure);
 
   // create Lua userdata ...
   struct wv_eqn_lw **l_tenm_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
@@ -291,13 +292,13 @@ moment_field_lw_new(lua_State *L)
       mom_field.bcy[i] = glua_tbl_iget_integer(L, i+1, 0);
   }  
 
-  struct moment_field_lw *vmf_lw = lua_newuserdata(L, sizeof(*vmf_lw));
+  struct moment_field_lw *momf_lw = lua_newuserdata(L, sizeof(*momf_lw));
 
-  vmf_lw->magic = MOMENT_FIELD_DEFAULT;
-  vmf_lw->evolve = evolve;
-  vmf_lw->mom_field = mom_field;
+  momf_lw->magic = MOMENT_FIELD_DEFAULT;
+  momf_lw->evolve = evolve;
+  momf_lw->mom_field = mom_field;
   
-  vmf_lw->init_ref = (struct lua_func_ctx) {
+  momf_lw->init_ref = (struct lua_func_ctx) {
     .func_ref = init_ref,
     .ndim = 0, // this will be set later
     .nret = 6,
@@ -440,14 +441,14 @@ mom_app_new(lua_State *L)
   // set field input
   with_lua_tbl_key(L, "field") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
-      struct moment_field_lw *vmf = lua_touserdata(L, -1);
-      if (vmf->magic == MOMENT_FIELD_DEFAULT) {
+      struct moment_field_lw *momf = lua_touserdata(L, -1);
+      if (momf->magic == MOMENT_FIELD_DEFAULT) {
 
-        vmf->init_ref.ndim = cdim;
+        momf->init_ref.ndim = cdim;
 
-        mom.field = vmf->mom_field;
+        mom.field = momf->mom_field;
 
-        app_lw->field_func_ctx = vmf->init_ref;
+        app_lw->field_func_ctx = momf->init_ref;
         mom.field.init = gkyl_lw_eval_cb;
         mom.field.ctx = &app_lw->field_func_ctx;
       }
@@ -746,7 +747,7 @@ mom_app_run(lua_State *L)
   }
 
   gkyl_moment_app_stat_write(app);
-  gkyl_moment_app_write_integrated_mom(app);
+  gkyl_moment_app_write_integrated_mom(app); // SHOULD GO INTO time-trigger
   gkyl_moment_app_write_field_energy(app);
 
   lua_pushboolean(L, ret_status);

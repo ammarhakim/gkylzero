@@ -18,8 +18,6 @@ struct gkyl_moment_species {
   enum gkyl_wave_limiter limiter; // limiter to use
   enum gkyl_wave_split_type split_type; // edge splitting to use
 
-  bool has_grad_closure; // has gradient-based closure (only for 10 moment)  
-
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
 
@@ -31,8 +29,10 @@ struct gkyl_moment_species {
   // pointer to user-defined number density and temperature sources
   void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
   bool nT_source_set_only_once;
+
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  
   // pointer to boundary condition functions along x
   void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
   void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);

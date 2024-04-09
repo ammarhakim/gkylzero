@@ -39,7 +39,7 @@ momentApp = Moments.App.new {
    nFrame = 1,
    lower = {-Lx/2, -Ly/2},
    upper = {Lx/2, Ly/2},
-   cells = {64, 32},
+   cells = {2*64, 2*32},
    cflFrac = 1.0,
 
    -- boundary conditions for configuration space
