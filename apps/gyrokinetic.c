@@ -1543,6 +1543,11 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_field_rhs(app, app->field);
   }
 
+  // Apply sheath boundary conditions to the input distribution.
+  for (int i=0; i<app->num_species; ++i) {
+    gk_species_apply_bc_sheath(app, &app->species[i], fin[i]);
+  }
+
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
