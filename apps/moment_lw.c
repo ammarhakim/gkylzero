@@ -10,6 +10,8 @@
 #include <gkyl_null_comm.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_iso_euler.h>
+#include <gkyl_wv_sr_euler.h>
 #include <gkyl_wv_ten_moment.h>
 
 #include <lua.h>
@@ -109,22 +111,7 @@ wv_eqn_get(lua_State *L)
 /* Euler Equation */
 /* ****************/
 
-static enum gkyl_wv_euler_rp
-euler_rp_type_from_str(const char *str)
-{
-  if (strcmp(str, "roe") == 0)
-    return WV_EULER_RP_ROE;
-  if (strcmp(str, "hllc") == 0)
-    return WV_EULER_RP_HLLC;
-  if (strcmp(str, "lax") == 0)
-    return WV_EULER_RP_LAX;
-  if (strcmp(str, "hll") == 0)
-    return WV_EULER_RP_HLL;
-
-  return WV_EULER_RP_ROE;
-}
-
-// Eq.Euler.new { gasgamma = 1.4, rpType = "roe" }
+// Euler.new { gasgamma = 1.4, rpType = "roe" }
 // rpType is one of "roe", "hllc", "lax", "hll"
 static int
 eqn_euler_lw_new(lua_State *L)
@@ -160,11 +147,45 @@ static struct luaL_Reg eqn_euler_ctor[] = {
   {0, 0}
 };
 
+/* ***************************/
+/* Isothermal Euler Equation */
+/* ***************************/
+
+// IsoEuler.new { vThermal = 1.0 }
+static int
+eqn_iso_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *iso_euler_lw = gkyl_malloc(sizeof(*iso_euler_lw));
+
+  double vt = glua_tbl_get_number(L, "vThermal", -1.0);
+  if (vt < 0)
+    return luaL_error(L, "Thermal velocity \"vThermal\" not specified properly!");
+  
+  iso_euler_lw->magic = MOMENT_EQN_DEFAULT;
+  iso_euler_lw->eqn = gkyl_wv_iso_euler_new(vt);
+
+  // create Lua userdata ...
+  struct wv_eqn_lw **l_iso_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_iso_euler_lw = iso_euler_lw; // ... point it to proper object
+  
+  // set metatable
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor
+static struct luaL_Reg eqn_iso_euler_ctor[] = {
+  {"new", eqn_iso_euler_lw_new},
+  {0, 0}
+};
+
 /* ********************/
 /* Tenmoment Equation */
 /* ********************/
 
-// Eq.Tenmoment.new { k0 = 1 }
+// Tenmoment.new { k0 = 1, has_grad_closure = false }
 static int
 eqn_tenmoment_lw_new(lua_State *L)
 {
@@ -205,8 +226,8 @@ eqn_openlibs(lua_State *L)
     lua_settable(L, -3);
 
     luaL_register(L, "G0.Moments.Eq.Euler", eqn_euler_ctor);
+    luaL_register(L, "G0.Moments.Eq.IsoEuler", eqn_iso_euler_ctor);
     luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor);
-    
   } while (0);
 }
 
