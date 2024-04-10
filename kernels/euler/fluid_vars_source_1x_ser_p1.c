@@ -1,17 +1,13 @@
 #include <gkyl_euler_kernels.h> 
-GKYL_CU_DH void fluid_vars_source_1x_ser_p1(const double* qmem, const double* fluid, const double* p_ij, double* GKYL_RESTRICT out) 
+GKYL_CU_DH void fluid_vars_source_1x_ser_p1(const double* app_accel, const double* fluid, double* GKYL_RESTRICT out) 
 { 
-  // qmem:  q/m*EM fields.
-  // fluid: [rho, rho ux, rho uy, rho uz...], Fluid input state vector.
-  // p_ij:  Input pressure tensor (only used by 10 moment).
-  // out:   Output increment
+  // app_accel: External applied acceleration (external forces).
+  // fluid:     [rho, rho ux, rho uy, rho uz...], Fluid input state vector.
+  // out:       Output increment
 
-  const double *Ex = &qmem[0]; 
-  const double *Ey = &qmem[2]; 
-  const double *Ez = &qmem[4]; 
-  const double *Bx = &qmem[6]; 
-  const double *By = &qmem[8]; 
-  const double *Bz = &qmem[10]; 
+  const double *app_accel_x = &app_accel[0]; 
+  const double *app_accel_y = &app_accel[2]; 
+  const double *app_accel_z = &app_accel[4]; 
 
   const double *rho = &fluid[0]; 
   const double *rhoux = &fluid[2]; 
@@ -23,16 +19,16 @@ GKYL_CU_DH void fluid_vars_source_1x_ser_p1(const double* qmem, const double* fl
   double *out_rhouz = &out[6]; 
   double *out_energy = &out[8]; 
 
-  out_rhoux[0] += (-0.7071067811865475*By[1]*rhouz[1])+0.7071067811865475*Bz[1]*rhouy[1]+0.7071067811865475*Ex[1]*rho[1]-0.7071067811865475*By[0]*rhouz[0]+0.7071067811865475*Bz[0]*rhouy[0]+0.7071067811865475*Ex[0]*rho[0]; 
-  out_rhoux[1] += (-0.7071067811865475*By[0]*rhouz[1])+0.7071067811865475*Bz[0]*rhouy[1]+0.7071067811865475*Ex[0]*rho[1]+0.7071067811865475*rho[0]*Ex[1]+0.7071067811865475*rhouy[0]*Bz[1]-0.7071067811865475*rhouz[0]*By[1]; 
+  out_rhoux[0] += 0.7071067811865475*app_accel_x[1]*rho[1]+0.7071067811865475*app_accel_x[0]*rho[0]; 
+  out_rhoux[1] += 0.7071067811865475*app_accel_x[0]*rho[1]+0.7071067811865475*rho[0]*app_accel_x[1]; 
 
-  out_rhouy[0] += 0.7071067811865475*Bx[1]*rhouz[1]-0.7071067811865475*Bz[1]*rhoux[1]+0.7071067811865475*Ey[1]*rho[1]+0.7071067811865475*Bx[0]*rhouz[0]-0.7071067811865475*Bz[0]*rhoux[0]+0.7071067811865475*Ey[0]*rho[0]; 
-  out_rhouy[1] += 0.7071067811865475*Bx[0]*rhouz[1]-0.7071067811865475*Bz[0]*rhoux[1]+0.7071067811865475*Ey[0]*rho[1]+0.7071067811865475*rho[0]*Ey[1]-0.7071067811865475*rhoux[0]*Bz[1]+0.7071067811865475*rhouz[0]*Bx[1]; 
+  out_rhouy[0] += 0.7071067811865475*app_accel_y[1]*rho[1]+0.7071067811865475*app_accel_y[0]*rho[0]; 
+  out_rhouy[1] += 0.7071067811865475*app_accel_y[0]*rho[1]+0.7071067811865475*rho[0]*app_accel_y[1]; 
 
-  out_rhouz[0] += (-0.7071067811865475*Bx[1]*rhouy[1])+0.7071067811865475*By[1]*rhoux[1]+0.7071067811865475*Ez[1]*rho[1]-0.7071067811865475*Bx[0]*rhouy[0]+0.7071067811865475*By[0]*rhoux[0]+0.7071067811865475*Ez[0]*rho[0]; 
-  out_rhouz[1] += (-0.7071067811865475*Bx[0]*rhouy[1])+0.7071067811865475*By[0]*rhoux[1]+0.7071067811865475*Ez[0]*rho[1]+0.7071067811865475*rho[0]*Ez[1]+0.7071067811865475*rhoux[0]*By[1]-0.7071067811865475*rhouy[0]*Bx[1]; 
+  out_rhouz[0] += 0.7071067811865475*app_accel_z[1]*rho[1]+0.7071067811865475*app_accel_z[0]*rho[0]; 
+  out_rhouz[1] += 0.7071067811865475*app_accel_z[0]*rho[1]+0.7071067811865475*rho[0]*app_accel_z[1]; 
 
-  out_energy[0] += 0.7071067811865475*Ez[1]*rhouz[1]+0.7071067811865475*Ey[1]*rhouy[1]+0.7071067811865475*Ex[1]*rhoux[1]+0.7071067811865475*Ez[0]*rhouz[0]+0.7071067811865475*Ey[0]*rhouy[0]+0.7071067811865475*Ex[0]*rhoux[0]; 
-  out_energy[1] += 0.7071067811865475*Ez[0]*rhouz[1]+0.7071067811865475*Ey[0]*rhouy[1]+0.7071067811865475*Ex[0]*rhoux[1]+0.7071067811865475*rhouz[0]*Ez[1]+0.7071067811865475*rhouy[0]*Ey[1]+0.7071067811865475*rhoux[0]*Ex[1]; 
+  out_energy[0] += 0.7071067811865475*app_accel_z[1]*rhouz[1]+0.7071067811865475*app_accel_y[1]*rhouy[1]+0.7071067811865475*app_accel_x[1]*rhoux[1]+0.7071067811865475*app_accel_z[0]*rhouz[0]+0.7071067811865475*app_accel_y[0]*rhouy[0]+0.7071067811865475*app_accel_x[0]*rhoux[0]; 
+  out_energy[1] += 0.7071067811865475*app_accel_z[0]*rhouz[1]+0.7071067811865475*app_accel_y[0]*rhouy[1]+0.7071067811865475*app_accel_x[0]*rhoux[1]+0.7071067811865475*rhouz[0]*app_accel_z[1]+0.7071067811865475*rhouy[0]*app_accel_y[1]+0.7071067811865475*rhoux[0]*app_accel_x[1]; 
 
 } 

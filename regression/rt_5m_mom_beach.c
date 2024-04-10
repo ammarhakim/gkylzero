@@ -66,7 +66,7 @@ create_ctx(void)
   double mass_elc = 9.10938215e-31; // Electron mass.
   double charge_elc = -1.602176487e-19; // Electron charge.
 
-  double J0 = 1.0e-12; // Reference current density (Amps / m^3).
+  double J0 = 1.0; // Reference current density (Amps / m^3).
   
   // Derived physical quantities (using non-normalized physical units).
   double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
@@ -77,7 +77,7 @@ create_ctx(void)
   double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
   double x_last_edge = Lx / Nx; // Location of center of last cell.
   double cfl_frac = 0.95; // CFL coefficient.
-  double t_end = 5.0e-9; // Final simulation time.
+  double t_end = 1.0e-9; // Final simulation time.
 
   double deltaT = Lx100 / light_speed; // Arbitrary constant, with units of time.
   double factor = deltaT * deltaT * charge_elc * charge_elc / (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.

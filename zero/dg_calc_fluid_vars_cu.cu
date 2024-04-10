@@ -136,6 +136,46 @@ void gkyl_dg_calc_fluid_vars_pressure_cu(struct gkyl_dg_calc_fluid_vars *up, con
 }
 
 __global__ void
+gkyl_calc_fluid_vars_ke_cu_kernel(struct gkyl_dg_calc_fluid_vars *up, struct gkyl_range conf_range, 
+  const struct gkyl_array* fluid, const struct gkyl_array* u, 
+  struct gkyl_array* ke)
+{ 
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < conf_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long loc = gkyl_range_idx(&conf_range, idx);
+
+    const double *fluid_d = (const double*) gkyl_array_cfetch(fluid, loc);
+    const double *u_d = (const double*) gkyl_array_cfetch(u, loc);
+
+    double *ke_d = (double*) gkyl_array_fetch(ke, loc);
+    up->fluid_ke(fluid_d, u_d, ke_d);
+  }
+}
+
+// Host-side wrapper for kinetic energy calculation
+void gkyl_dg_calc_fluid_vars_ke_cu(struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range, 
+  const struct gkyl_array* fluid, const struct gkyl_array* u, 
+  struct gkyl_array* ke)
+{
+  int nblocks = conf_range->nblocks;
+  int nthreads = conf_range->nthreads;
+  gkyl_calc_fluid_vars_ke_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, 
+    fluid->on_dev, u->on_dev, 
+    ke->on_dev);
+}
+
+__global__ void
 gkyl_dg_calc_fluid_vars_limiter_cu_kernel(struct gkyl_dg_calc_fluid_vars *up, struct gkyl_range conf_range, 
   struct gkyl_array* fluid)
 {
@@ -228,8 +268,8 @@ gkyl_dg_calc_fluid_integrated_vars_cu(struct gkyl_dg_calc_fluid_vars *up,
 
 __global__ void
 gkyl_dg_calc_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_fluid_vars *up, 
-  struct gkyl_range conf_range, const struct gkyl_array* qmem, 
-  const struct gkyl_array* fluid, const struct gkyl_array* p_ij, 
+  struct gkyl_range conf_range, 
+  const struct gkyl_array* app_accel, const struct gkyl_array* fluid, 
   struct gkyl_array* rhs)
 {
   int idx[GKYL_MAX_DIM];
@@ -247,26 +287,25 @@ gkyl_dg_calc_fluid_vars_source_cu_kernel(struct gkyl_dg_calc_fluid_vars *up,
     // linc will have jumps in it to jump over ghost cells
     long loc = gkyl_range_idx(&conf_range, idx);
 
-    const double *qmem_d = (const double*) gkyl_array_cfetch(qmem, loc);
+    const double *app_accel_d = (const double*) gkyl_array_cfetch(app_accel, loc);
     const double *fluid_d = (const double*) gkyl_array_cfetch(fluid, loc);
-    const double *p_ij_d = (const double*) gkyl_array_cfetch(p_ij, loc);
 
     double *rhs_d = (double*) gkyl_array_fetch(rhs, loc);
-    up->fluid_source(qmem_d, fluid_d, p_ij_d, rhs_d);
+    up->fluid_source(app_accel_d, fluid_d, rhs_d);
   }
 }
 
 // Host-side wrapper for fluid source term calculations
 void
 gkyl_dg_calc_fluid_vars_source_cu(struct gkyl_dg_calc_fluid_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_array* qmem, 
-  const struct gkyl_array* fluid, const struct gkyl_array* p_ij, 
+  const struct gkyl_range *conf_range, 
+  const struct gkyl_array* app_accel, const struct gkyl_array* fluid, 
   struct gkyl_array* rhs)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
   gkyl_dg_calc_fluid_vars_source_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range, 
-    qmem->on_dev, fluid->on_dev, p_ij->on_dev, rhs->on_dev);
+    app_accel->on_dev, fluid->on_dev, rhs->on_dev);
 }
 
 // CUDA kernel to set device pointers to fluid vars kernel functions
@@ -278,6 +317,7 @@ dg_calc_fluid_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_fluid_vars *up, const str
   up->fluid_set = choose_fluid_set_kern(b_type, cdim, poly_order);
   up->fluid_copy = choose_fluid_copy_kern(b_type, cdim, poly_order);
   up->fluid_pressure = choose_fluid_pressure_kern(b_type, cdim, poly_order);
+  up->fluid_ke = choose_fluid_ke_kern(b_type, cdim, poly_order);
   up->fluid_int = choose_fluid_int_kern(b_type, cdim, poly_order);
   up->fluid_source = choose_fluid_source_kern(b_type, cdim, poly_order);
   // Fetch the kernels in each direction

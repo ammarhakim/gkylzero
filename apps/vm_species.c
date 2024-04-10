@@ -12,20 +12,6 @@
 #include <assert.h>
 #include <time.h>
 
-// function to evaluate acceleration (this is needed as accel function
-// provided by the user returns 3 components, while the Vlasov solver
-// expects 8 components to match the EM field)
-static void
-eval_accel(double t, const double *xn, double *aout, void *ctx)
-{
-  struct vm_eval_accel_ctx *a_ctx = ctx;
-  double a[3]; // output acceleration
-  a_ctx->accel_func(t, xn, a, a_ctx->accel_ctx);
-  
-  for (int i=0; i<3; ++i) aout[i] = a[i];
-  for (int i=3; i<8; ++i) aout[i] = 0.0;
-}
-
 // initialize species object
 void
 vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_species *s)
@@ -180,25 +166,24 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   s->is_first_integ_L2_write_call = true;
   s->is_first_integ_write_call = true;
 
-  s->has_accel = false;
+  // Initialize applied acceleration for use in force update. 
+  s->app_accel = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(s->app_accel, 0.0);
+  s->has_app_accel = false;
+  s->app_accel_evolve = false;
   // setup applied acceleration
-  if (s->info.accel) {
-    s->has_accel = true;
-    if (s->info.accel_evolve)
-      s->accel_evolve = s->info.accel_evolve;
-    // we need to ensure applied acceleration has same shape as EM
-    // field as it will get added to qmem
-    s->accel = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  if (s->info.app_accel) {
+    s->has_app_accel = true;
+    if (s->info.app_accel_evolve) {
+      s->app_accel_evolve = s->info.app_accel_evolve;
+    }
 
-    s->accel_host = s->accel;
-    if (app->use_gpu)
-      s->accel_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
-
-    s->accel_ctx = (struct vm_eval_accel_ctx) {
-      .accel_func = s->info.accel, .accel_ctx = s->info.accel_ctx
-    };
-    s->accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
-      8, eval_accel, &s->accel_ctx);
+    s->app_accel_host = s->app_accel;
+    if (app->use_gpu) {
+      s->app_accel_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+    }
+    s->app_accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+      3, s->info.app_accel, s->info.app_accel_ctx);
   }
 
   // set species source id
@@ -296,7 +281,7 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
     gkyl_array_copy(species->f, species->f_host);
 
   // Pre-compute applied acceleration in case it's time-independent
-  vm_species_calc_accel(app, species, t0);
+  vm_species_calc_app_accel(app, species, t0);
 
   // we are pre-computing source for now as it is time-independent
   vm_species_source_calc(app, species, t0);
@@ -308,12 +293,12 @@ vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 }
 
 void
-vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm)
+vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm)
 {
-  if (species->has_accel) {
-    gkyl_proj_on_basis_advance(species->accel_proj, tm, &app->local_ext, species->accel_host);
-    if (app->use_gpu) // note: accel_host is same as accel when not on GPUs
-      gkyl_array_copy(species->accel, species->accel_host);
+  if (species->has_app_accel) {
+    gkyl_proj_on_basis_advance(species->app_accel_proj, tm, &app->local_ext, species->app_accel_host);
+    if (app->use_gpu) // note: app_accel_host is same as app_accel when not on GPUs
+      gkyl_array_copy(species->app_accel, species->app_accel_host);
   }
 }
 
@@ -329,10 +314,12 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
 
     // Accumulate applied acceleration and/or q/m*(external electromagnetic)
     // fields onto qmem to get the total acceleration
-    if (species->has_accel)
-      gkyl_array_accumulate(species->qmem, 1.0, species->accel);
-    if (app->field->has_ext_em)
-      gkyl_array_accumulate(species->qmem, qbym, app->field->ext_em);
+    if (species->has_app_accel) {
+      gkyl_array_accumulate_range(species->qmem, 1.0, species->app_accel, &app->local);
+    }
+    if (app->field->has_ext_em) {
+      gkyl_array_accumulate_range(species->qmem, qbym, app->field->ext_em, &app->local);
+    }
   }
 
   gkyl_array_clear(species->cflrate, 0.0);
@@ -516,12 +503,12 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_dynvec_release(s->integ_L2_f);
   gkyl_dynvec_release(s->integ_diag);
   
-  if (s->has_accel) {
-    gkyl_array_release(s->accel);
+  gkyl_array_release(s->app_accel);
+  if (s->has_app_accel) {
     if (app->use_gpu)
-      gkyl_array_release(s->accel_host);
+      gkyl_array_release(s->app_accel_host);
 
-    gkyl_proj_on_basis_release(s->accel_proj);
+    gkyl_proj_on_basis_release(s->app_accel_proj);
   }
 
   if (s->source_id) {

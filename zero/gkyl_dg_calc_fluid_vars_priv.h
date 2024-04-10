@@ -21,6 +21,9 @@ typedef void (*fluid_copy_t)(int count, struct gkyl_nmat *x,
 typedef void (*fluid_pressure_t)(double gas_gamma, const double *fluid, const double *u, 
   double* GKYL_RESTRICT p, double* GKYL_RESTRICT p_surf);
 
+typedef void (*fluid_ke_t)(const double *fluid, const double *u, 
+  double* GKYL_RESTRICT ke);
+
 typedef void (*fluid_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn, 
   double *fluid_l, double *fluid_c, double *fluid_r);
 
@@ -28,14 +31,14 @@ typedef void (*fluid_int_t)(const double *fluid,
   const double* u_i, const double* p_ij, 
   double* GKYL_RESTRICT int_fluid_vars); 
 
-typedef void (*fluid_source_t)(const double* qmem, 
-  const double* fluid, const double* p_ij, 
+typedef void (*fluid_source_t)(const double* app_accel, const double* fluid, 
   double* GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct { fluid_set_t kernels[3]; } gkyl_dg_fluid_set_kern_list;
 typedef struct { fluid_copy_t kernels[3]; } gkyl_dg_fluid_copy_kern_list;
 typedef struct { fluid_pressure_t kernels[3]; } gkyl_dg_fluid_pressure_kern_list;
+typedef struct { fluid_ke_t kernels[3]; } gkyl_dg_fluid_ke_kern_list;
 typedef struct { fluid_limiter_t kernels[3]; } gkyl_dg_fluid_limiter_kern_list;
 typedef struct { fluid_int_t kernels[3]; } gkyl_dg_fluid_int_kern_list;
 typedef struct { fluid_source_t kernels[3]; } gkyl_dg_fluid_source_kern_list;
@@ -58,6 +61,7 @@ struct gkyl_dg_calc_fluid_vars {
   fluid_set_t fluid_set;  // kernel for setting matrices for linear solve
   fluid_copy_t fluid_copy; // kernel for copying solution to output; also computed needed surface expansions
   fluid_pressure_t fluid_pressure; // kernel for computing pressure (Volume and surface expansion)
+  fluid_ke_t fluid_ke; // kernel for computing kinetic energy (Volume expansion)
   fluid_limiter_t fluid_limiter[3]; // kernel for limiting slopes of fluid variables
   fluid_int_t fluid_int; // kernel for computing integrated fluid variables
   fluid_source_t fluid_source; // kernel for computing fluid source update
@@ -112,6 +116,22 @@ static const gkyl_dg_fluid_pressure_kern_list ten_fluid_pressure_kernels[] = {
   { NULL, fluid_vars_pressure_1x_ser_p1, fluid_vars_pressure_1x_ser_p2 }, // 0
   { NULL, fluid_vars_pressure_2x_ser_p1, fluid_vars_pressure_2x_tensor_p2 }, // 1
   { NULL, fluid_vars_pressure_3x_ser_p1, NULL }, // 2
+};
+
+// Kinetic energy = 1/2 (rho ux^2 + rho uy^2 + rho uz^2) (Serendipity kernels)
+GKYL_CU_D
+static const gkyl_dg_fluid_ke_kern_list ser_fluid_ke_kernels[] = {
+  { NULL, fluid_vars_ke_1x_ser_p1, fluid_vars_ke_1x_ser_p2 }, // 0
+  { NULL, fluid_vars_ke_2x_ser_p1, NULL }, // 1
+  { NULL, fluid_vars_ke_3x_ser_p1, NULL }, // 2
+};
+
+// Kinetic energy = 1/2 (rho ux^2 + rho uy^2 + rho uz^2) (Tensor kernels)
+GKYL_CU_D
+static const gkyl_dg_fluid_ke_kern_list ten_fluid_ke_kernels[] = {
+  { NULL, fluid_vars_ke_1x_ser_p1, fluid_vars_ke_1x_ser_p2 }, // 0
+  { NULL, fluid_vars_ke_2x_ser_p1, fluid_vars_ke_2x_tensor_p2 }, // 1
+  { NULL, fluid_vars_ke_3x_ser_p1, NULL }, // 2
 };
 
 // Characteristic limiter in x (Serendipity kernels)
@@ -238,6 +258,23 @@ choose_fluid_pressure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       return ten_fluid_pressure_kernels[cdim-1].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;  
+  }
+}
+
+GKYL_CU_D
+static fluid_ke_t
+choose_fluid_ke_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+{
+  switch (b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      return ser_fluid_ke_kernels[cdim-1].kernels[poly_order];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_fluid_ke_kernels[cdim-1].kernels[poly_order];
       break;
     default:
       assert(false);

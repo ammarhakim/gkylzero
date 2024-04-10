@@ -1,8 +1,8 @@
-// Geospace Environmental Modeling (GEM) magnetic reconnection test for the 5-moment equations.
-// Input parameters match the equilibrium and initial conditions in Section 2, from the article:
-// J. Birn et al. (2001), "Geospace Environmental Modeling (GEM) Magnetic Reconnection Challenge",
-// Journal of Geophysical Research: Space Physics, Volume 106 (A3): 3715-3719.
-// https://agupubs.onlinelibrary.wiley.com/doi/10.1029/1999JA900449
+// Generalized Brio-Wu Riemann problem for the 5-moment equations.
+// Input parameters match the initial conditions found in entry JE4 of Ammar's Simulation Journal (https://ammar-hakim.org/sj/je/je4/je4-twofluid-shock.html), adapted from Section 7.1 of the article:
+// A. Hakim, J. Loverich and U. Shumlak (2006), "A high resolution wave propagation scheme for ideal Two-Fluid plasma equations",
+// Journal of Computational Physics, Volume 219 (1): 418-442.
+// https://www.sciencedirect.com/science/article/pii/S0021999106001707
 
 #include <math.h>
 #include <stdio.h>
@@ -23,82 +23,80 @@
 
 #include <rt_arg_parse.h>
 
-struct gem_ctx
+struct riem_ctx
 {
-  // Mathematical constants (dimensionless).
-  double pi;
-  
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
   double epsilon0; // Permittivity of free space.
   double mu0; // Permeability of free space.
-  double mass_ion; // Ion mass.
-  double charge_ion; // Ion charge.
+  double mass_ion; // Proton mass.
+  double charge_ion; // Proton charge.
   double mass_elc; // Electron mass.
   double charge_elc; // Electron charge.
-  double Ti_over_Te; // Ion temperature / electron temperature.
-  double lambda; // Wavelength.
-  double n0; // Reference number density.
-  double nb_over_n0; // Background number density / reference number density.
-  double B0; // Reference magnetic field strength.
-  double beta; // Plasma beta.
-  
-  // Derived physical quantities (using normalized code units).
-  double psi0; // Reference magnetic scalar potential.
 
-  double Ti_frac; // Fraction of total temperature from ions.
-  double Te_frac; // Fraction of total temperature from electrons.
-  double T_tot; // Total temperature.
+  double rhol_ion; // Left ion mass density.
+  double rhor_ion; // Right ion mass density;
+  double pl; // Left electron/ion pressure.
+  double pr; // Right electron/ion pressure.
+
+  double Bx; // Total magnetic field (x-direction).
+  double Bzl; // Left total magneic field (z-direction).
+  double Bzr; // Right total magnetic field (z-direction).
+
+  bool has_collision; // Whether to include collisions.
+  double nu_base_ei; // Base electron-ion collision frequency.
+
+  // Derived physical quantities (using normalized code units).
+  double rhol_elc; // Left electron mass density.
+  double rhor_elc; // Right electron mass density.
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
-  int Ny; // Cell count (y-direction).
   double Lx; // Domain size (x-direction).
-  double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  double init_dt; // Initial time step guess so first step does not generate NaN
   int num_frames; // Number of output frames.
 };
 
-struct gem_ctx
+struct riem_ctx
 create_ctx(void)
 {
-  // Mathematical constants (dimensionless).
-  double pi = M_PI;
-
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
   double epsilon0 = 1.0; // Permittivity of free space.
   double mu0 = 1.0; // Permeability of free space.
-  double mass_ion = 1.0; // Ion mass.
-  double charge_ion = 1.0; // Ion charge.
-  double mass_elc = 1.0 / 25.0; // Electron mass.
+  double mass_ion = 1.0; // Proton mass.
+  double charge_ion = 1.0; // Proton charge.
+  double mass_elc = 1.0 / 1836.2; // Electron mass.
   double charge_elc = -1.0; // Electron charge.
-  double Ti_over_Te = 5.0; // Ion temperature / electron temperature.
-  double lambda = 0.5; // Wavelength
-  double n0 = 1.0; // Reference number density.
-  double nb_over_n0 = 0.2; // Background number density / reference number density.
-  double B0 = 0.1; // Reference magnetic field strength.
-  double beta = 1.0; // Plasma beta.
-  
-  // Derived physical quantities (using normalized code units).
-  double psi0 = 0.1 * B0; // Reference magnetic scalar potential.
 
-  double Ti_frac = Ti_over_Te / (1.0 + Ti_over_Te); // Fraction of total temperature from ions.
-  double Te_frac = 1.0 / (1.0 + Ti_over_Te); // Fraction of total temperature from electrons.
-  double T_tot = beta * (B0 * B0) / 2.0 / n0; // Total temperature;
+  double rhol_ion = 1.0; // Left ion mass density.
+  double rhor_ion = 0.125; // Right ion mass density;
+  double pl = 5.0e-5; // Left electron/ion pressure.
+  double pr = 5.0e-6; // Right electron/ion pressure.
+
+  double Bx = 0.75e-2; // Total magnetic field (x-direction).
+  double Bzl = 1.0e-2; // Left total magneic field (z-direction).
+  double Bzr = -1.0e-2; // Right total magnetic field (z-direction).
+
+  bool has_collision = false; // Whether to include collisions.
+  double nu_base_ei = 0.5; // Base electron-ion collision frequency.
+
+  // Derived physical quantities (using normalized code units).
+  double rhol_elc = rhol_ion * mass_elc / mass_ion; // Left electron mass density.
+  double rhor_elc = rhor_ion * mass_elc / mass_ion; // Right electron mass density.
 
   // Simulation parameters.
-  int Nx = 64; // Cell count (x-direction).
-  int Ny = 32; // Cell count (y-direction).
-  double Lx = 25.6; // Domain size (x-direction).
-  double Ly = 12.8; // Domain size (y-direction).
+  int Nx = 1024; // Cell count (x-direction).
+  double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 1.0; // CFL coefficient.
-  double t_end = 250.0; // Final simulation time.
+  double t_end = 0.05; // Final simulation time.
+  // initial dt guess so first step does not generate NaN (speed of light = 1.0)
+  double init_dt = (Lx/Nx)/5.0;
   int num_frames = 1; // Number of output frames.
-
-  struct gem_ctx ctx = {
-    .pi = pi,
+  
+  struct riem_ctx ctx = {
     .gas_gamma = gas_gamma,
     .epsilon0 = epsilon0,
     .mu0 = mu0,
@@ -106,22 +104,22 @@ create_ctx(void)
     .charge_ion = charge_ion,
     .mass_elc = mass_elc,
     .charge_elc = charge_elc,
-    .Ti_over_Te = Ti_over_Te,
-    .lambda = lambda,
-    .n0 = n0,
-    .nb_over_n0 = nb_over_n0,
-    .B0 = B0,
-    .beta = beta,
-    .psi0 = psi0,
-    .Ti_frac = Ti_frac,
-    .Te_frac = Te_frac,
-    .T_tot = T_tot,
+    .rhol_ion = rhol_ion,
+    .rhor_ion = rhor_ion,
+    .pl = pl,
+    .pr = pr,
+    .Bx = Bx,
+    .Bzl = Bzl,
+    .Bzr = Bzr,
+    .has_collision = has_collision,
+    .nu_base_ei = nu_base_ei,
+    .rhol_elc = rhol_elc,
+    .rhor_elc = rhor_elc,
     .Nx = Nx,
-    .Ny = Ny,
     .Lx = Lx,
-    .Ly = Ly,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .init_dt = init_dt, 
     .num_frames = num_frames,
   };
 
@@ -131,98 +129,93 @@ create_ctx(void)
 void
 evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0], y = xn[1];
-  struct gem_ctx *app = ctx;
+  double x = xn[0];
+  struct riem_ctx *app = ctx;
 
   double gas_gamma = app -> gas_gamma;
-  double mass_elc = app -> mass_elc;
-  double charge_elc = app -> charge_elc;
-  double lambda = app -> lambda;
-  double n0 = app -> n0;
-  double nb_over_n0 = app -> nb_over_n0;
-  double B0 = app -> B0;
-  double beta = app -> beta;
 
-  double Te_frac = app -> Te_frac;
-  double T_tot = app -> T_tot;
+  double pl = app -> pl;
+  double pr = app -> pr;
 
-  double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
+  double rhol_elc = app -> rhol_elc;
+  double rhor_elc = app -> rhor_elc;
 
-  double n = n0 * (sech_sq + nb_over_n0); // Total number density.
-  double Jz = -(B0 / lambda) * sech_sq; // Total current density (z-direction).
+  double rho = 0.0;
+  double p = 0.0;
 
-  double rhoe = n * mass_elc; // Electron mass density.
-  double momze = (mass_elc / charge_elc) * Jz * Te_frac; // Electron momentum density (z-direction).
-  double Ee_tot = n * T_tot * Te_frac / (gas_gamma - 1.0) + 0.5 * momze * momze / rhoe; // Electron total energy density.
+  if (x < 0.5) {
+    rho = rhol_elc; // Electron mass density (left).
+    p = pl; // Electron pressure (left).
+  }
+  else {
+    rho = rhor_elc; // Electron mass density (right).
+    p = pr; // Electron pressure (right).
+  }
 
   // Set electron mass density.
-  fout[0] = rhoe;
+  fout[0] = rho;
   // Set electron momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = momze;
+  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
   // Set electron total energy density.
-  fout[4] = Ee_tot;
+  fout[4] = p / (gas_gamma - 1.0);  
 }
 
 void
 evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0], y = xn[1];
-  struct gem_ctx *app = ctx;
+  double x = xn[0];
+  struct riem_ctx *app = ctx;
 
   double gas_gamma = app -> gas_gamma;
-  double mass_ion = app -> mass_ion;
-  double charge_ion = app -> charge_ion;
-  double lambda = app -> lambda;
-  double n0 = app -> n0;
-  double nb_over_n0 = app -> nb_over_n0;
-  double B0 = app -> B0;
-  double beta = app -> beta;
 
-  double Ti_frac = app -> Ti_frac;
-  double T_tot = app -> T_tot;
+  double rhol_ion = app -> rhol_ion;
+  double rhor_ion = app -> rhor_ion;
+  double pl = app -> pl;
+  double pr = app -> pr;
 
-  double sech_sq = (1.0 / cosh(y / lambda)) * (1.0 / cosh(y / lambda)); // Hyperbolic secant squared.
+  double rho = 0.0;
+  double p = 0.0;
 
-  double n = n0 * (sech_sq + nb_over_n0); // Total number density.
-  double Jz = -(B0 / lambda) * sech_sq; // Total current density (z-direction).
-
-  double rhoi = n * mass_ion; // Ion mass density.
-  double momzi = (mass_ion / charge_ion) * Jz * Ti_frac; // Ion momentum density (z-direction).
-  double Ei_tot = n * T_tot * Ti_frac / (gas_gamma - 1.0) + 0.5 * momzi * momzi / rhoi; // Ion total energy density.
+  if (x < 0.5) {
+    rho = rhol_ion; // Ion mass density (left).
+    p = pl; // Ion pressure (left).
+  }
+  else {
+    rho = rhor_ion; // Ion mass density (right).
+    p = pr; // Ion pressure (right).
+  }
 
   // Set ion mass density.
-  fout[0] = rhoi;
+  fout[0] = rho;
   // Set ion momentum density.
-  fout[1] = 0.0; fout[2] = 0.0; fout[3] = momzi;
+  fout[1] = 0.0; fout[2] = 0.0; fout[3] = 0.0;
   // Set ion total energy density.
-  fout[4] = Ei_tot;
+  fout[4] = p / (gas_gamma - 1.0);  
 }
 
 void
 evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0], y = xn[1];
-  struct gem_ctx *app = ctx;
+  double x = xn[0];
+  struct riem_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double Bx = app -> Bx;
+  double Bzl = app -> Bzl;
+  double Bzr = app -> Bzr;
 
-  double lambda = app -> lambda;
-  double B0 = app -> B0;
+  double Bz = 0.0;
 
-  double psi0 = app -> psi0;
-
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
-
-  double Bxb = B0 * tanh(y / lambda); // Total magnetic field strength.
-  double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) * sin(pi * y / Ly); // Total magnetic field (x-direction).
-  double By = psi0 * (2.0 * pi / Lx) * sin(2.0 * pi * x / Lx) * cos(pi * y / Ly); // Total magnetic field (y-direction).
-  double Bz = 0.0; // Total magnetic field (z-direction).
+  if (x < 0.5) {
+    Bz = Bzl; // Total magnetic field (z-direction, left).
+  }
+  else {
+    Bz = Bzr; // Total magnetic field (z-direction, right).
+  }
 
   // Set electric field.
   fout[0] = 0.0, fout[1] = 0.0; fout[2] = 0.0;
   // Set magnetic field.
-  fout[3] = Bx, fout[4] = By; fout[5] = Bz;
+  fout[3] = Bx, fout[4] = 0.0; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
@@ -243,10 +236,9 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct gem_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct riem_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Electron/ion equations.
   struct gkyl_wv_eqn *elc_euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
@@ -258,29 +250,26 @@ main(int argc, char **argv)
     .equation = elc_euler,
     .init = evalElcInit,
     .ctx = &ctx,
-
-    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
   struct gkyl_vlasov_fluid_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_euler,
     .init = evalIonInit,
-    .ctx = &ctx,
-
-    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },    
+    .ctx = &ctx, 
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
   // field
   struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 1.0,
+    .mgnErrorSpeedFactor = 0.0,
     .limit_em = true, 
     
     .init = evalFieldInit,
     .ctx = &ctx,
-    
-    .bcy = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL },
+    .bcx = { GKYL_FIELD_COPY, GKYL_FIELD_COPY }, 
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -291,7 +280,7 @@ main(int argc, char **argv)
 #endif
 
   // Create global range.
-  int cells[] = { NX, NY };
+  int cells[] = { NX };
   int dim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range global_r;
   gkyl_create_global_range(dim, cells, &global_r);
@@ -359,18 +348,18 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "dg_5m_gem",
+    .name = "dg_5m_riem_p2",
 
-    .cdim = 2,
-    .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },
-    .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly }, 
-    .cells = { NX, NY },
-    .poly_order = 1,
+    .cdim = 1,
+    .lower = { 0.0 },
+    .upper = { ctx.Lx }, 
+    .cells = { NX },
+    .poly_order = 2,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 0 },
+    .num_periodic_dir = 0,
+    .periodic_dirs = { },
 
     .num_species = 0,
     .species = {},
@@ -394,7 +383,7 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double t_curr = 0.0, t_end = ctx.t_end;
-  double dt = t_end-t_curr;
+  double dt = ctx.init_dt;
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, t_curr);

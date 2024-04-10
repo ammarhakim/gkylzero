@@ -55,6 +55,7 @@ struct riem_ctx
   double Lx; // Domain size (x-direction).
   double cfl_frac; // CFL coefficient.
   double t_end; // Final simulation time.
+  double init_dt; // Initial time step guess so first step does not generate NaN
   int num_frames; // Number of output frames.
 };
 
@@ -89,8 +90,10 @@ create_ctx(void)
   // Simulation parameters.
   int Nx = 1024; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
-  double cfl_frac = 0.95; // CFL coefficient.
-  double t_end = 10.0; // Final simulation time.
+  double cfl_frac = 1.0; // CFL coefficient.
+  double t_end = 0.05; // Final simulation time.
+  // initial dt guess so first step does not generate NaN (speed of light = 1.0)
+  double init_dt = (Lx/Nx)/3.0;
   int num_frames = 1; // Number of output frames.
   
   struct riem_ctx ctx = {
@@ -116,6 +119,7 @@ create_ctx(void)
     .Lx = Lx,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
+    .init_dt = init_dt, 
     .num_frames = num_frames,
   };
 
@@ -261,6 +265,7 @@ main(int argc, char **argv)
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
+    .limit_em = true, 
     
     .init = evalFieldInit,
     .ctx = &ctx,
@@ -343,7 +348,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "dg_5m_riem",
+    .name = "dg_5m_riem_p1",
 
     .cdim = 1,
     .lower = { 0.0 },
@@ -378,7 +383,7 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double t_curr = 0.0, t_end = ctx.t_end;
-  double dt = t_end-t_curr;
+  double dt = ctx.init_dt;
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, t_curr);

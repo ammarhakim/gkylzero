@@ -52,6 +52,7 @@ struct mom_beach_ctx
   double deltaT; // Arbitrary constant, with units of time.
   double factor; // Numerical factor for calculation of electron number density.
   double omega_drive; // Drive current angular frequency.
+  double init_dt; // Initial time step guess so first step does not generate NaN
 };
 
 struct mom_beach_ctx
@@ -67,7 +68,7 @@ create_ctx(void)
   double mass_elc = 9.10938215e-31; // Electron mass.
   double charge_elc = -1.602176487e-19; // Electron charge.
 
-  double J0 = 1.0e-12; // Reference current density (Amps / m^3).
+  double J0 = 1.0; // Reference current density (Amps / m^3).
   
   // Derived physical quantities (using non-normalized physical units).
   double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
@@ -77,13 +78,15 @@ create_ctx(void)
   double Lx = 1.0; // Domain size (x-direction).
   double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
   double x_last_edge = Lx / Nx; // Location of center of last cell.
-  double cfl_frac = 0.95; // CFL coefficient.
-  double t_end = 5.0e-9; // Final simulation time.
+  double cfl_frac = 1.0; // CFL coefficient.
+  double t_end = 1.0e-9; // Final simulation time.
   int num_frames = 1; // Number of output frames.
 
   double deltaT = Lx100 / light_speed; // Arbitrary constant, with units of time.
   double factor = deltaT * deltaT * charge_elc * charge_elc / (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
   double omega_drive = pi / 10.0 / deltaT; // Drive current angular frequency.
+  // initial dt guess so first step does not generate NaN
+  double init_dt = ((Lx/Nx)/light_speed)/(3.0);
 
   struct mom_beach_ctx ctx = {
     .pi = pi,
@@ -104,6 +107,7 @@ create_ctx(void)
     .deltaT = deltaT,
     .factor = factor,
     .omega_drive = omega_drive,
+    .init_dt = init_dt, 
   };
 
   return ctx;
@@ -294,7 +298,7 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "dg_5m_mom_beach",
+    .name = "dg_5m_mom_beach_p1",
 
     .cdim = 1,
     .lower = { 0.0 },
@@ -329,7 +333,7 @@ main(int argc, char **argv)
 
   // start, end and initial time-step
   double t_curr = 0.0, t_end = ctx.t_end;
-  double dt = t_end-t_curr;
+  double dt = ctx.init_dt;
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, t_curr);

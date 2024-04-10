@@ -58,8 +58,8 @@ main(int argc, char **argv)
 
     .init = evalDistFunc,
 
-    .accel = evalAccelFunc,
-    .accel_ctx = 0,
+    .app_accel = evalAccelFunc,
+    .app_accel_ctx = 0,
 
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },

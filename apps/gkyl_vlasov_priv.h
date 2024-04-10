@@ -22,6 +22,7 @@
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_fluid_vars.h>
+#include <gkyl_dg_calc_fluid_em_coupling.h>
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_maxwell.h>
@@ -155,9 +156,6 @@ struct vm_source {
   double *scale_ptr;
 };
 
-// context for use in computing applied acceleration
-struct vm_eval_accel_ctx { evalf_t accel_func; void *accel_ctx; };
-
 // species data
 struct vm_species {
   struct gkyl_vlasov_species info; // data for species
@@ -230,12 +228,11 @@ struct vm_species {
   struct gkyl_range upper_skin[GKYL_MAX_DIM];
   struct gkyl_range upper_ghost[GKYL_MAX_DIM];
 
-  bool has_accel; // flag to indicate there is applied acceleration
-  bool accel_evolve; // flag to indicate applied acceleration is time dependent
-  struct gkyl_array *accel; // applied acceleration
-  struct gkyl_array *accel_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *accel_proj; // projector for acceleration
-  struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
+  bool has_app_accel; // flag to indicate there is applied acceleration
+  bool app_accel_evolve; // flag to indicate applied acceleration is time dependent
+  struct gkyl_array *app_accel; // applied acceleration
+  struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
 
   enum gkyl_source_id source_id; // type of source
   struct vm_source src; // applied source
@@ -245,12 +242,6 @@ struct vm_species {
 
   double *omegaCfl_ptr;
 };
-
-// context for use in computing external electromagnetic fields
-struct vm_eval_ext_em_ctx { evalf_t ext_em_func; void *ext_em_ctx; };
-
-// context for use in computing applied current
-struct vm_eval_app_current_ctx { evalf_t app_current_func; void *app_current_ctx; };
 
 // field data
 struct vm_field {
@@ -263,20 +254,24 @@ struct vm_field {
 
   struct gkyl_array *em_host;  // host copy for use IO and initialization
 
+  // Duplicate copy of EM data in case time step fails.
+  // Needed because of implicit source split which modifies solution and 
+  // is always successful, so if a time step fails due to the SSP RK3 
+  // we must restore the old solution before restarting the time step
+  struct gkyl_array *em_dup;  
+
   bool has_ext_em; // flag to indicate there is external electromagnetic field
   bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
   struct gkyl_array *ext_em; // external electromagnetic field
   struct gkyl_array *ext_em_host; // host copy for use in IO and projecting
   struct gkyl_array *tot_em; // total electromagnetic field
   gkyl_proj_on_basis *ext_em_proj; // projector for external electromagnetic field 
-  struct vm_eval_ext_em_ctx ext_em_ctx; // context for external electromagnetic field 
 
   bool has_app_current; // flag to indicate there is an applied current 
   bool app_current_evolve; // flag to indicate applied current is time dependent
   struct gkyl_array *app_current; // applied current
   struct gkyl_array *app_current_host; // host copy for use in IO and projecting
   gkyl_proj_on_basis *app_current_proj; // projector for applied current 
-  struct vm_eval_app_current_ctx app_current_ctx; // context for applied current
 
   gkyl_hyper_dg *slvr; // Maxwell solver
 
@@ -317,8 +312,11 @@ struct vm_fluid_species {
 
   struct gkyl_array *fluid_host;  // host copy for use IO and initialization
 
-  struct gkyl_array *qmem; // array for q/m*(E,B)
-  struct gkyl_array *m1i_fluid; // array for (rhoux, rhouy, rhouz) for current accumulation
+  // Duplicate copy of fluid data in case time step fails.
+  // Needed because of implicit source split which modifies solution and 
+  // is always successful, so if a time step fails due to the SSP RK3 
+  // we must restore the old solution before restarting the time step
+  struct gkyl_array *fluid_dup;  
 
   enum gkyl_eqn_type eqn_type;  // type ID of equation
   int num_equations;            // number of equations in species
@@ -338,6 +336,13 @@ struct vm_fluid_species {
       struct gkyl_array *p; 
       struct gkyl_array *cell_avg_prim; // Integer array for whether e.g., rho *only* uses cell averages for weak division
                                         // Determined when constructing the matrix if rho < 0.0 at control points
+
+      // Arrays for kinetic energy at old and new time steps.
+      // These are used because implicit source solve updates momentum but does not affect 
+      // the pressure, so we can construct the updated energy from the updated momentum.
+      struct gkyl_array *ke_old; 
+      struct gkyl_array *ke_new; 
+
       struct gkyl_array *u_surf; 
       struct gkyl_array *p_surf;
       struct gkyl_dg_calc_fluid_vars *calc_fluid_vars; // Updater to compute fluid variables (flow velocity and pressure)
@@ -367,18 +372,23 @@ struct vm_fluid_species {
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for int-moments dynvec written first time
 
-  bool has_accel; // flag to indicate there is applied acceleration
-  bool accel_evolve; // flag to indicate applied acceleration is time dependent
-  struct gkyl_array *accel; // applied acceleration
-  struct gkyl_array *accel_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *accel_proj; // projector for acceleration
-  struct vm_eval_accel_ctx accel_ctx; // context for applied acceleration
+  bool has_app_accel; // flag to indicate there is applied acceleration
+  bool app_accel_evolve; // flag to indicate applied acceleration is time dependent
+  struct gkyl_array *app_accel; // applied acceleration
+  struct gkyl_array *app_accel_host; // host copy for use in IO and projecting
+  gkyl_proj_on_basis *app_accel_proj; // projector for acceleration
 
   // fluid source
   enum gkyl_source_id source_id; // type of source
   struct vm_fluid_source src; // applied source
 
   double* omegaCfl_ptr;
+};
+
+// fluid-EM coupling data
+struct vm_fluid_em_coupling {
+  double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each species
+  struct gkyl_dg_calc_fluid_em_coupling* slvr; // fluid-EM coupling solver
 };
 
 // Vlasov object: used as opaque pointer in user code
@@ -432,9 +442,31 @@ struct gkyl_vlasov_app {
   // fluid data
   int num_fluid_species;
   struct vm_fluid_species *fluid_species; // data for each fluid species
+
+  bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
+  struct vm_fluid_em_coupling *fl_em; // fluid-EM coupling data
+
+  // pointer to function that takes a single-step of simulation
+  struct gkyl_update_status (*update_func)(gkyl_vlasov_app *app, double dt0);
   
   struct gkyl_vlasov_stat stat; // statistics
 };
+
+// Take a single forward Euler step of the Vlasov-Maxwell system 
+// with the suggested time-step dt. Also supports just Maxwell's equations
+// and fluid equations (Euler's) with potential Vlasov-fluid coupling. 
+void vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
+  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
+  struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
+  struct gkyl_update_status *st);
+
+// Take a single time-step using a Strang split implicit fluid-EM coupling + SSP RK3
+struct gkyl_update_status vlasov_update_strang_split(gkyl_vlasov_app *app,
+  double dt0);
+
+// Take a single time-step using a SSP-RK3 stepper
+struct gkyl_update_status vlasov_update_ssp_rk3(gkyl_vlasov_app *app,
+  double dt0);
 
 /** gkyl_vlasov_app private API */
 
@@ -682,7 +714,7 @@ void vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, doubl
  * @param species Species object
  * @param tm Time for use in acceleration
  */
-void vm_species_calc_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm);
+void vm_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_species *species, double tm);
 
 /**
  * Compute RHS from species distribution function
@@ -902,7 +934,7 @@ void vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fl
  * @param fluid_species Fluid Species object
  * @param tm Time for use in acceleration
  */
-void vm_fluid_species_calc_accel(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
+void vm_fluid_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm);
 
 /**
  * Compute primitive variables (bulk velocity, u, and pressure, p, if pressure present)
@@ -954,3 +986,33 @@ void vm_fluid_species_apply_bc(gkyl_vlasov_app *app, const struct vm_fluid_speci
  * @param f Fluid_Species object to release
  */
 void vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f);
+
+/** vm_fluid_em_coupling API */
+
+/**
+ * Create new fluid-EM coupling updater
+ *
+ * @param app Vlasov app object
+ * @return Newly created fluid-EM coupling updater
+ */
+struct vm_fluid_em_coupling* vm_fluid_em_coupling_init(struct gkyl_vlasov_app *app);
+
+/**
+ * Compute implicit update of fluid-EM coupling 
+ *
+ * @param app Vlasov app object
+ * @param fl_em fluid-EM coupling updater
+ * @param tcurr Current time
+ * @param dt Time step size
+ */
+void vm_fluid_em_coupling_update(struct gkyl_vlasov_app *app, 
+  struct vm_fluid_em_coupling *fl_em, double tcurr, double dt);
+
+/**
+ * Release resources allocated by fluid-EM coupling object
+ *
+ * @param app Vlasov app object
+ * @param fl_em fluid-EM coupling updater to release
+ */
+void vm_fluid_em_coupling_release(struct gkyl_vlasov_app *app, 
+  struct vm_fluid_em_coupling *fl_em);

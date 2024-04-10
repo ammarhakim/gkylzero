@@ -9,35 +9,6 @@
 #include <float.h>
 #include <time.h>
 
-// function to evaluate external electromagnetic field (this is needed 
-// as external electromagnetic field function provided by the user
-// returns 6 components, while the Vlasov solver
-// expects 8 components to match the EM field)
-static void
-eval_ext_em(double t, const double *xn, double *ext_em_out, void *ctx)
-{
-  struct vm_eval_ext_em_ctx *ext_em_ctx = ctx;
-  double ext_em[6]; // output external EM field
-  ext_em_ctx->ext_em_func(t, xn, ext_em, ext_em_ctx->ext_em_ctx);
-  
-  for (int i=0; i<6; ++i) ext_em_out[i] = ext_em[i];
-  for (int i=6; i<8; ++i) ext_em_out[i] = 0.0;
-}
-
-// function to evaluate applied current (this is needed as 
-// applied current function provided by the user returns 3 components,
-// while the EM solver expects 8 components to match the EM field)
-static void
-eval_app_current(double t, const double *xn, double *app_current_out, void *ctx)
-{
-  struct vm_eval_app_current_ctx *app_current_ctx = ctx;
-  double app_current[3]; // output applied current
-  app_current_ctx->app_current_func(t, xn, app_current, app_current_ctx->app_current_ctx);
-  
-  for (int i=0; i<3; ++i) app_current_out[i] = app_current[i];
-  for (int i=3; i<8; ++i) app_current_out[i] = 0.0;
-}
-
 // initialize field object
 struct vm_field* 
 vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
@@ -61,51 +32,53 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[6]));
   }
 
+  // Duplicate copy of EM data in case time step fails.
+  // Needed because of implicit source split which modifies solution and 
+  // is always successful, so if a time step fails due to the SSP RK3 
+  // we must restore the old solution before restarting the time step
+  f->em_dup = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+
   f->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_energy_write_call = true;
 
+  // Initialize external EM fields (always used by implicit fluid sources, so always initialize) 
+  f->ext_em = mkarr(app->use_gpu, 6*app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->ext_em, 0.0);
   f->has_ext_em = false;
   f->ext_em_evolve = false;
   // setup external electromagnetic field
   if (f->info.ext_em) {
     f->has_ext_em = true;
-    if (f->info.ext_em_evolve)
+    if (f->info.ext_em_evolve) {
       f->ext_em_evolve = f->info.ext_em_evolve;
-    // we need to ensure external electromagnetic field has same shape as EM
-    // field as it will get added to qmem
-    f->ext_em = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+    }
 
     f->ext_em_host = f->ext_em;
-    if (app->use_gpu)
-      f->ext_em_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
-
-    f->ext_em_ctx = (struct vm_eval_ext_em_ctx) {
-      .ext_em_func = f->info.ext_em, .ext_em_ctx = f->info.ext_em_ctx
-    };
+    if (app->use_gpu) {
+      f->ext_em_host = mkarr(false, 6*app->confBasis.num_basis, app->local_ext.volume);
+    }
     f->ext_em_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
-      8, eval_ext_em, &f->ext_em_ctx);
+      6, f->info.ext_em, f->info.ext_em_ctx);
   }
 
+  // Initialize applied currents (always used by implicit fluid sources, so always initialize) 
+  f->app_current = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->app_current, 0.0);
   f->has_app_current = false;
   f->app_current_evolve = false;
   // setup external currents
   if (f->info.app_current) {
     f->has_app_current = true;
-    if (f->info.app_current_evolve)
+    if (f->info.app_current_evolve) {
       f->app_current_evolve = f->info.app_current_evolve;
-    // we need to ensure external electromagnetic field has same shape as EM
-    // field as it will get added to qmem
-    f->app_current = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+    }
 
     f->app_current_host = f->app_current;
-    if (app->use_gpu)
-      f->app_current_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
-
-    f->app_current_ctx = (struct vm_eval_app_current_ctx) {
-      .app_current_func = f->info.app_current, .app_current_ctx = f->info.app_current_ctx
-    };
+    if (app->use_gpu) {
+      f->app_current_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+    }
     f->app_current_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
-      8, eval_app_current, &f->app_current_ctx);
+      3, f->info.app_current, f->info.app_current_ctx);
   }
 
   // allocate cflrate (scalar array)
@@ -265,17 +238,11 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
     vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
     gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
   } 
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    struct vm_fluid_species *fs = &app->fluid_species[i];
-    double qbyeps = fs->info.charge/app->field->info.epsilon0; 
-
-    // Need to fetch 1st-3rd components and divide out the mass 
-    // in fluid model since we evolve (rho, rhoux, rhouy, rhouz, ...)
-    gkyl_array_set_offset_range(fs->m1i_fluid, 1.0/fs->info.mass, fluidin[i], 1*app->confBasis.num_basis, &app->local);
-    gkyl_array_accumulate_range(emout, -qbyeps, fs->m1i_fluid, &app->local);   
-  } 
   // Accumulate applied current to electric field terms
-  if (app->field->has_app_current) {
+  // *Only* accumulate applied currents if num_fluid_species = 0 and there is no fluid-EM coupling.
+  // If there are fluid species, then applied current coupling handled by implicit fluid-EM coupling
+  // See vm_fluid_em_coupling.c
+  if (app->field->has_app_current && !app->has_fluid_em_coupling) {
     gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, &app->local);
   }
 }
@@ -410,25 +377,25 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
   gkyl_array_release(f->tot_em);
+  gkyl_array_release(f->em_dup);
   
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
   gkyl_array_release(f->em_energy);
   gkyl_dynvec_release(f->integ_energy);
 
+  gkyl_array_release(f->ext_em);
   if (f->has_ext_em) {
-    gkyl_array_release(f->ext_em);
-    if (app->use_gpu)
+    if (app->use_gpu) {
       gkyl_array_release(f->ext_em_host);
-
+    }
     gkyl_proj_on_basis_release(f->ext_em_proj);
   }
-
+  gkyl_array_release(f->app_current);
   if (f->has_app_current) {
-    gkyl_array_release(f->app_current);
-    if (app->use_gpu)
+    if (app->use_gpu) {
       gkyl_array_release(f->app_current_host);
-
+    }
     gkyl_proj_on_basis_release(f->app_current_proj);
   }
 

@@ -7,20 +7,6 @@
 #include <gkyl_util.h>
 #include <gkyl_vlasov_priv.h>
 
-// function to evaluate acceleration (this is needed as accel function
-// provided by the user returns 3 components, while the Vlasov solver
-// expects 8 components to match the EM field)
-static void
-eval_accel(double t, const double *xn, double *aout, void *ctx)
-{
-  struct vm_eval_accel_ctx *a_ctx = ctx;
-  double a[3]; // output acceleration
-  a_ctx->accel_func(t, xn, a, a_ctx->accel_ctx);
-  
-  for (int i=0; i<3; ++i) aout[i] = a[i];
-  for (int i=3; i<8; ++i) aout[i] = 0.0;
-}
-
 // initialize fluid species object
 void
 vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_fluid_species *f)
@@ -40,17 +26,18 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   if (app->use_gpu)
     f->fluid_host = mkarr(false, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
 
+  // Duplicate copy of fluid data in case time step fails.
+  // Needed because of implicit source split which modifies solution and 
+  // is always successful, so if a time step fails due to the SSP RK3 
+  // we must restore the old solution before restarting the time step
+  f->fluid_dup = mkarr(app->use_gpu, f->num_equations*app->confBasis.num_basis, app->local_ext.volume);
+
   // allocate cflrate (scalar array)
   f->cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
   if (app->use_gpu)
     f->omegaCfl_ptr = gkyl_cu_malloc(sizeof(double));
   else
     f->omegaCfl_ptr = gkyl_malloc(sizeof(double));
-  // Arrays for fluid species coupled to EM fields 
-  // qmem : q/m*(E, B) for forces 
-  // m1i_fluid : (rhoux, rhouy, rhouz) for current accumulation
-  f->qmem = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
-  f->m1i_fluid = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[GKYL_MAX_DIM] = {0, 0, 0};
 
@@ -94,6 +81,12 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
     f->p = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
     // boolean array for if we are only using the cell average for primitive variables
     f->cell_avg_prim = mk_int_arr(app->use_gpu, 1, app->local_ext.volume);
+
+    // Allocate arrays for kinetic energy at old and new time steps.
+    // These are used because implicit source solve updates momentum but does not affect 
+    // the pressure, so we can construct the updated energy from the updated momentum.
+    f->ke_old = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);    
+    f->ke_new = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);    
 
     int Nbasis_surf = app->confBasis.num_basis/(app->confBasis.poly_order + 1); // *only valid for tensor bases for cdim > 1*
     // Surface primitive variables (2*cdim*3 components). Ordered as:
@@ -187,25 +180,25 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   f->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   f->is_first_integ_write_call = true;
 
-  f->has_accel = false;
+  // Initialize applied acceleration for use in force update. 
+  // Always used by fluid implicit sources, so always initialize.
+  f->app_accel = mkarr(app->use_gpu, 3*app->confBasis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->app_accel, 0.0);
+  f->has_app_accel = false;
+  f->app_accel_evolve = false;
   // setup applied acceleration
-  if (f->info.accel) {
-    f->has_accel = true;
-    if (f->info.accel_evolve)
-      f->accel_evolve = f->info.accel_evolve;
-    // we need to ensure applied acceleration has same shape as EM
-    // field as it will get added to qmem
-    f->accel = mkarr(app->use_gpu, 8*app->confBasis.num_basis, app->local_ext.volume);
+  if (f->info.app_accel) {
+    f->has_app_accel = true;
+    if (f->info.app_accel_evolve) {
+      f->app_accel_evolve = f->info.app_accel_evolve;
+    }
 
-    f->accel_host = f->accel;
-    if (app->use_gpu)
-      f->accel_host = mkarr(false, 8*app->confBasis.num_basis, app->local_ext.volume);
-
-    f->accel_ctx = (struct vm_eval_accel_ctx) {
-      .accel_func = f->info.accel, .accel_ctx = f->info.accel_ctx
-    };
-    f->accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
-      8, eval_accel, &f->accel_ctx);
+    f->app_accel_host = f->app_accel;
+    if (app->use_gpu) {
+      f->app_accel_host = mkarr(false, 3*app->confBasis.num_basis, app->local_ext.volume);
+    }
+    f->app_accel_proj = gkyl_proj_on_basis_new(&app->grid, &app->confBasis, app->confBasis.poly_order+1,
+      3, f->info.app_accel, f->info.app_accel_ctx);
   }
 
   // set species source id
@@ -301,20 +294,20 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
   }
 
   // Pre-compute applied acceleration in case it's time-independent
-  vm_fluid_species_calc_accel(app, fluid_species, t0);
+  vm_fluid_species_calc_app_accel(app, fluid_species, t0);
 
   // we are pre-computing source for now as it is time-independent
   vm_fluid_species_source_calc(app, fluid_species, t0);
 }
 
 void
-vm_fluid_species_calc_accel(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm)
+vm_fluid_species_calc_app_accel(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double tm)
 {
-  if (fluid_species->has_accel) {
-    gkyl_proj_on_basis_advance(fluid_species->accel_proj, tm, &app->local_ext, fluid_species->accel_host);
-    // note: accel_host is same as accel when not on GPUs
+  if (fluid_species->has_app_accel) {
+    gkyl_proj_on_basis_advance(fluid_species->app_accel_proj, tm, &app->local_ext, fluid_species->app_accel_host);
+    // note: app_accel_host is same as app_accel when not on GPUs
     if (app->use_gpu) {
-      gkyl_array_copy(fluid_species->accel, fluid_species->accel_host);
+      gkyl_array_copy(fluid_species->app_accel, fluid_species->app_accel_host);
     }
   }
 }
@@ -373,20 +366,12 @@ vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_specie
   gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
     &app->local, fluid, fluid_species->cflrate, rhs);
 
-  if (app->has_field) {
-    double qbym = fluid_species->info.charge/fluid_species->info.mass;
-    gkyl_array_set(fluid_species->qmem, qbym, em);
-    // Accumulate applied acceleration and/or q/m*(external electromagnetic)
-    // fields onto qmem to get the total acceleration
-    if (fluid_species->has_accel) {
-      gkyl_array_accumulate(fluid_species->qmem, 1.0, fluid_species->accel);
-    }
-    if (app->field->has_ext_em) {
-      gkyl_array_accumulate(fluid_species->qmem, qbym, app->field->ext_em);
-    }
-    // Accumulate source contribution, e.g., adds forces (E + u x B) to momentum equation RHS
+  // Accumulate explicit source contribution, e.g., external forces
+  // Only done if there are external forces and no EM fields, as fluid-EM coupling
+  // is handled by implicit source solve, see vm_fluid_em_coupling.c
+  if (fluid_species->has_app_accel && !app->has_field) {
     gkyl_dg_calc_fluid_vars_source(fluid_species->calc_fluid_vars, &app->local, 
-      fluid_species->qmem, fluid, fluid_species->p, rhs); 
+      fluid_species->app_accel, fluid, rhs); 
   }
 
   if (fluid_species->has_diffusion) {
@@ -482,9 +467,7 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
   gkyl_array_release(f->fluidnew);
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
-
-  gkyl_array_release(f->qmem);
-  gkyl_array_release(f->m1i_fluid);
+  gkyl_array_release(f->fluid_dup);
 
   gkyl_dg_updater_fluid_release(f->advect_slvr);
   if (f->has_diffusion) {
@@ -506,12 +489,22 @@ vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_species *f)
     gkyl_array_release(f->cell_avg_prim);
     gkyl_array_release(f->u_surf);
     gkyl_array_release(f->p_surf);
+    gkyl_array_release(f->ke_old);
+    gkyl_array_release(f->ke_new);
     gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars);
     gkyl_dg_calc_fluid_vars_release(f->calc_fluid_vars_ext);
   }
 
   gkyl_array_release(f->integ_mom);
   gkyl_dynvec_release(f->integ_diag);
+
+  gkyl_array_release(f->app_accel);
+  if (f->has_app_accel) {
+    if (app->use_gpu) {
+      gkyl_array_release(f->app_accel_host);
+    }
+    gkyl_proj_on_basis_release(f->app_accel_proj);
+  }
 
   if (f->source_id) {
     vm_fluid_species_source_release(app, &f->src);
