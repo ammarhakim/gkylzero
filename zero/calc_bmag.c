@@ -62,7 +62,6 @@ void gkyl_calc_bmag_comp(double t, const double *xn, double *fout, void *ctx)
     iter.idx[1] = 1;
   long loc = gkyl_range_idx(gc->range, iter.idx);
   const double *coeffs = gkyl_array_cfetch(gc->bmagdg,loc);
-
   double xc[2];
   gkyl_rect_grid_cell_center(gc->grid, iter.idx, xc);
   double xy[2];
@@ -186,7 +185,7 @@ struct gkyl_array* mapc2p, bool calc_bphi)
     b_ctx->range = prange;
     b_ctx->crange = crange;
     b_ctx->crange_global = crange_global;
-    b_ctx->bmagdg = bmagrz;
+    b_ctx->bmagdg = gkyl_array_acquire(bmagrz);
     b_ctx->basis = up->pbasis;
     b_ctx->cbasis = up->cbasis;
     b_ctx->mapc2p = mapc2p;

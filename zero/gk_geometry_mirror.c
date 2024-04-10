@@ -111,6 +111,9 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   } else {
     printf("Invalid nonuniform mapping fraction");
   }
+  // need to release the bmag_ctx_inp, including comp_bmagdg
+  gkyl_array_release(bmag_ctx_inp->bmagdg);
+  gkyl_free(bmag_ctx_inp);
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
   gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, &up->local);

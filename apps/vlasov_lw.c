@@ -2,6 +2,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_lua_utils.h>
+#include <gkyl_lw_priv.h>
 #include <gkyl_vlasov.h>
 #include <gkyl_vlasov_lw.h>
 #include <gkyl_vlasov_priv.h>
@@ -17,60 +18,11 @@
 #include <gkyl_mpi_comm.h>
 #endif
 
-// Get basis type from string
-static enum gkyl_basis_type
-get_basis_type(const char *bnm)
-{
-  if (strcmp(bnm, "serendipity") == 0)
-    return GKYL_BASIS_MODAL_SERENDIPITY;
-  if (strcmp(bnm, "tensor") == 0)
-    return GKYL_BASIS_MODAL_TENSOR;
-  if (strcmp(bnm, "hybrid") == 0)
-    return GKYL_BASIS_MODAL_HYBRID;
-
-  return GKYL_BASIS_MODAL_SERENDIPITY;
-}
-
 // Magic IDs for use in distinguishing various species and field types
 enum vlasov_magic_ids {
   VLASOV_SPECIES_DEFAULT = 100, // non-relativistic kinetic species
   VLASOV_FIELD_DEFAULT, // Maxwell equations
 };
-
-// Used in call back passed to the initial conditions
-struct lua_func_ctx {
-  int func_ref; // reference to Lua function in registery
-  int ndim, nret; // dimensions of function, number of return values
-  lua_State *L; // Lua state
-};
-
-static void
-eval_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct lua_func_ctx *fr = ctx;
-  lua_State *L = fr->L;
-
-  int ndim = fr->ndim;
-  int nret = fr->nret;
-  lua_rawgeti(L, LUA_REGISTRYINDEX, fr->func_ref);
-  lua_pushnumber(L, t);
-  lua_createtable(L, GKYL_MAX_DIM, 0);
-
-  for (int i=0; i<ndim; ++i) {
-    lua_pushnumber(L, xn[i]);
-    lua_rawseti(L, -2, i+1); 
-  }
-
-  if (lua_pcall(L, 2, nret, 0)) {
-    const char* ret = lua_tostring(L, -1);
-    luaL_error(L, "*** eval_ic ERROR: %s\n", ret);
-  }
-
-  for (int i=nret-1; i>=0; --i) { // need to fetch in reverse order
-    fout[i] = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-  }
-}
 
 /* *****************/
 /* Species methods */
@@ -346,7 +298,7 @@ vm_app_new(lua_State *L)
     vm.vdim = species[s]->vdim;
     
     app_lw->species_func_ctx[s] = species[s]->init_ref;
-    vm.species[s].projection.func = eval_ic;
+    vm.species[s].projection.func = gkyl_lw_eval_cb;
     vm.species[s].projection.ctx_func = &app_lw->species_func_ctx[s];
   }
 
@@ -363,7 +315,7 @@ vm_app_new(lua_State *L)
         vm.skip_field = !vmf->evolve;
 
         app_lw->field_func_ctx = vmf->init_ref;
-        vm.field.init = eval_ic;
+        vm.field.init = gkyl_lw_eval_cb;
         vm.field.ctx = &app_lw->field_func_ctx;
       }
     }

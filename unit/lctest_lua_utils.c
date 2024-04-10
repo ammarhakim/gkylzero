@@ -15,6 +15,34 @@ new_lua_State(void)
 }
 
 void
+test_0(void)
+{
+  lua_State *L = new_lua_State();
+
+  const char *lcode1 = "tbl = { x = 1 }";
+  glua_run_lua(L, lcode1, strlen(lcode1), stderr);
+
+  with_lua_global(L, "tbl") {
+
+    with_lua_tbl_tbl(L, "nope") {
+      TEST_CHECK(  false );
+    }
+
+    with_lua_tbl_tbl(L, "x") {
+      TEST_CHECK(  false );
+    }
+
+    with_lua_tbl_key(L, "nope") {
+      TEST_CHECK(  false );
+    }
+
+    TEST_CHECK( 1 == glua_tbl_get_integer(L, "x", 0) );
+  }
+  
+  lua_close(L);  
+}
+
+void
 test_1(void)
 {
   lua_State *L = new_lua_State();
@@ -85,6 +113,10 @@ test_2(void)
   glua_run_lua(L, lcode1, strlen(lcode1), stderr);
 
   with_lua_global(L, "kvpairs") {
+
+    with_lua_tbl_tbl(L, "nope") {
+      TEST_CHECK( false );
+    }
 
     with_lua_tbl_tbl(L, "nums") {
       TEST_CHECK(glua_tbl_has_key(L, "v"));
@@ -222,6 +254,7 @@ test_4(void)
 }
 
 TEST_LIST = {
+  { "test_0", test_0 },
   { "test_1", test_1 },
   { "test_2", test_2 },
   { "test_3", test_3 },
