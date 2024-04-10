@@ -7,6 +7,7 @@
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_gr_euler.h>
+#include <gkyl_gr_minkowski.h>
 
 #include <gkyl_null_comm.h>
 
@@ -41,6 +42,9 @@ struct quadrants_2d_ctx
   double u_lr; // Lower right fluid x-velocity.
   double v_lr; // Lower right fluid y-velocity.
   double p_lr; // Lower right fluid pressure.
+
+  // Pointer to spacetime metric.
+  struct gkyl_gr_spacetime *spacetime;
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
@@ -83,6 +87,9 @@ create_ctx(void)
   double v_lr = 0.99; // Lower-right fluid y-velocity.
   double p_lr = 1.0; // Lower-right fluid pressure.
 
+  // Pointer to spacetime metric.
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+
   // Simulation parameters.
   int Nx = 800; // Cell count (x-direction).
   int Ny = 800; // Cell count (y-direction).
@@ -115,6 +122,7 @@ create_ctx(void)
     .u_lr = u_lr,
     .v_lr = v_lr,
     .p_lr = p_lr,
+    .spacetime = spacetime,
     .Nx = Nx,
     .Ny = Ny,
     .Lx = Lx,
@@ -158,6 +166,8 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double v_lr = app->v_lr;
   double p_lr = app->p_lr;
 
+  struct gkyl_gr_spacetime *spacetime = app->spacetime;
+
   double loc = app->loc;
 
   double rho = 0.0;
@@ -194,15 +204,67 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
     }
   }
 
-  double W = 1.0 / sqrt(1.0 - ((u * u) + (v * v)));
+  double spatial_det, lapse;
+  double *shift = malloc(sizeof(double) * 3);
+  bool in_excision_region;
+
+  double **spatial_metric = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = malloc(sizeof(double) * 3);
+  }
+
+  spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_det);
+  spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse);
+  spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift);
+  spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
+  
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
+
+  double *vel = malloc(sizeof(double) * 3);
+  double v_sq = 0.0;
+  vel[0] = u; vel[1] = v; vel[2] = 0.0;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+    }
+  }
+
+  double W = 1.0 / (sqrt(1.0 - v_sq));
+  if (v_sq > 1.0 - pow(10.0, -8.0)) {
+    W = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
+  }
+
   double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
   
   // Set fluid mass density.
-  fout[0] = rho * W;
+  fout[0] = sqrt(spatial_det) * rho * W;
   // Set fluid momentum density.
-  fout[1] = rho * h * (W * W) * u; fout[2] = rho * h * (W * W) * v; fout[3] = 0.0;
+  fout[1] = sqrt(spatial_det) * rho * h * (W * W) * u;
+  fout[2] = sqrt(spatial_det) * rho * h * (W * W) * v;
+  fout[3] = 0.0;
   // Set fluid total energy density.
-  fout[4] = (rho * h * (W * W)) - p - (rho * W);
+  fout[4] = sqrt(spatial_det) * ((rho * h * (W * W)) - p - (rho * W));
+
+  // Set spatial metric determinant.
+  fout[5] = spatial_det;
+  // Set lapse gauge variable.
+  fout[6] = lapse;
+  // Set shift gauge variables.
+  fout[7] = shift[0]; fout[8] = shift[1]; fout[9] = shift[2];
+
+  // Set spatial metric tensor.
+  fout[10] = spatial_metric[0][0]; fout[11] = spatial_metric[0][1]; fout[12] = spatial_metric[0][2];
+  fout[13] = spatial_metric[1][0]; fout[14] = spatial_metric[1][1]; fout[15] = spatial_metric[1][2];
+  fout[16] = spatial_metric[2][0]; fout[17] = spatial_metric[2][1]; fout[18] = spatial_metric[2][2];
+
+  // Set excision boundary conditions.
+  if (in_excision_region) {
+    fout[19] = -1.0;
+  }
+  else {
+    fout[19] = 1.0;
+  }
 }
 
 void
@@ -243,6 +305,7 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_inew(
     &(struct gkyl_wv_gr_euler_inp) {
         .gas_gamma = ctx.gas_gamma,
+        .spacetime = ctx.spacetime,
         .rp_type = WV_GR_EULER_RP_LAX,
         .use_gpu = app_args.use_gpu,
     }

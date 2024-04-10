@@ -25,7 +25,7 @@ struct wv_gr_euler {
 */
 GKYL_CU_D
 static inline void
-gkyl_gr_euler_prim_vars(double gas_gamma, const double q[19], double v[19]);
+gkyl_gr_euler_prim_vars(double gas_gamma, const double q[20], double v[20]);
 
 /**
 * Compute maximum absolute wave speed.
@@ -36,7 +36,7 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[19], double v[19]);
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[19]);
+gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[20]);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
@@ -47,7 +47,7 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[19]);
 */
 GKYL_CU_D
 static void
-gkyl_gr_euler_flux(double gas_gamma, const double q[19], double flux[19]);
+gkyl_gr_euler_flux(double gas_gamma, const double q[20], double flux[20]);
 
 /**
 * Compute Riemann variables given the conserved variables.
