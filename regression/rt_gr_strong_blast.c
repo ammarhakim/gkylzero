@@ -135,12 +135,18 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
     spatial_metric[i] = malloc(sizeof(double) * 3);
   }
 
+  double **inv_spatial_metric = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+  }
+
   spacetime->spatial_metric_det_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_det);
   spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &lapse);
   spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &shift);
   spacetime->excision_region_func(spacetime, 0.0, x, 0.0, 0.0, &in_excision_region);
 
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
+  spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &inv_spatial_metric);
 
   double *vel = malloc(sizeof(double) * 3);
   double v_sq = 0.0;
@@ -180,16 +186,21 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[13] = spatial_metric[1][0]; fout[14] = spatial_metric[1][1]; fout[15] = spatial_metric[1][2];
   fout[16] = spatial_metric[2][0]; fout[17] = spatial_metric[2][1]; fout[18] = spatial_metric[2][2];
 
+  // Set inverse spatial metric tensor.
+  fout[19] = inv_spatial_metric[0][0]; fout[20] = inv_spatial_metric[0][1]; fout[21] = inv_spatial_metric[0][2];
+  fout[22] = inv_spatial_metric[1][0]; fout[23] = inv_spatial_metric[1][1]; fout[24] = inv_spatial_metric[1][2];
+  fout[25] = inv_spatial_metric[2][0]; fout[26] = inv_spatial_metric[2][1]; fout[27] = inv_spatial_metric[2][2];
+
   // Set excision boundary conditions.
   if (in_excision_region) {
-    for (int i = 0; i < 19; i++) {
+    for (int i = 0; i < 28; i++) {
       fout[i] = 0.0;
     }
 
-    fout[19] = -1.0;
+    fout[28] = -1.0;
   }
   else {
-    fout[19] = 1.0;
+    fout[28] = 1.0;
   }
 }
 

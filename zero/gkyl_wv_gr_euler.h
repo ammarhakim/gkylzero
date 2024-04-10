@@ -20,7 +20,7 @@ struct gkyl_wv_gr_euler_inp {
 * Create a new general relativistic Euler equations object.
 *
 * @param gas_gamma Adiabatic index.
-* @param spacetime Pointer to base spcaetime object.
+* @param spacetime Pointer to base spacetime object.
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the general relativistic Euler equations object.
 */
