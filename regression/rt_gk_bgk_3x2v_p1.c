@@ -360,6 +360,15 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 }
 
 void
+calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+void
 write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
