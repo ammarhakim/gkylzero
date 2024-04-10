@@ -67,11 +67,22 @@ static const struct str_int_pair euler_rp_type[] = {
 
 // simple linear search in list of pairs
 static int
-search_str_int_pair(const struct str_int_pair pairs[], const char *str, int def)
+search_str_int_pair_by_str(const struct str_int_pair pairs[], const char *str, int def)
 {
   for (int i=0; pairs[i].str != 0; ++i) {
     if (strcmp(pairs[i].str, str) == 0)
       return pairs[i].val;
+  }
+  return def;
+}
+
+// simple linear search in list of pairs
+static const char *
+search_str_int_pair_by_int(const struct str_int_pair pairs[], int val, const char *def)
+{
+  for (int i=0; pairs[i].str != 0; ++i) {
+    if (pairs[i].val == val)
+      return pairs[i].str;
   }
   return def;
 }
@@ -120,7 +131,7 @@ eqn_euler_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
   const char *rp_str = glua_tbl_get_string(L, "rpType", "roe");
-  enum gkyl_wv_euler_rp rp_type = search_str_int_pair(euler_rp_type, rp_str, WV_EULER_RP_ROE);
+  enum gkyl_wv_euler_rp rp_type = search_str_int_pair_by_str(euler_rp_type, rp_str, WV_EULER_RP_ROE);
 
   euler_lw->magic = MOMENT_EQN_DEFAULT;
   euler_lw->eqn = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
@@ -266,10 +277,10 @@ moment_species_lw_new(lua_State *L)
     return luaL_error(L, "Species \"equation\" not specfied or incorrect type!");
 
   const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");
-  mom_species.limiter = search_str_int_pair(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  mom_species.limiter = search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
 
   const char *split_str = glua_tbl_get_string(L, "split_type", "qwave");
-  mom_species.split_type = search_str_int_pair(wave_split_type, split_str, GKYL_WAVE_QWAVE);
+  mom_species.split_type = search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
 
   bool evolve = mom_species.evolve = glua_tbl_get_bool(L, "evolve", true);
   mom_species.force_low_order_flux = glua_tbl_get_bool(L, "forceLowOrderFlux", false);
@@ -345,7 +356,7 @@ moment_field_lw_new(lua_State *L)
   mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 1.0);
 
   const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");  
-  mom_field.limiter = search_str_int_pair(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  mom_field.limiter = search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
   
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
 
@@ -409,6 +420,16 @@ struct moment_app_lw {
   double tstart, tend; // start and end times of simulation
   int nframe; // number of data frames to write
 };
+
+// find index of species in table given its name
+static int
+app_find_species(const gkyl_moment_app *app, const char *nm)
+{
+  for (int i=0; i<app->num_species; ++i)
+    if (strcmp(app->species[i].name, nm) == 0)
+      return i;
+  return -1;
+}
 
 // Gets all species objects from the App table, which must on top of
 // the stack. The number of species is returned and the appropriate
@@ -598,6 +619,19 @@ mom_app_new(lua_State *L)
   return 1;
 }
 
+// Compute maximum time-step () -> double
+static int
+mom_app_max_dt(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  double maxdt = gkyl_moment_app_max_dt(app_lw->app);
+
+  lua_pushnumber(L, maxdt);  
+  return 1;
+}
+
 // Apply initial conditions. (time) -> bool
 static int
 mom_app_apply_ic(lua_State *L)
@@ -630,7 +664,7 @@ mom_app_apply_ic_field(lua_State *L)
   return 1;
 }
 
-// Apply initial conditions to species. (sidx, time) -> bool
+// Apply initial conditions to species. (name, time) -> bool
 static int
 mom_app_apply_ic_species(lua_State *L)
 {
@@ -639,11 +673,132 @@ mom_app_apply_ic_species(lua_State *L)
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
 
-  int sidx = luaL_checkinteger(L, 2);
+  const char *sp_name = luaL_checkstring(L, 2);
+  int sidx = app_find_species(app_lw->app, sp_name);
+  if (sidx < 0)
+    return luaL_error(L, "Incorrect species name '%s' in apply_ic_species!", sp_name);
+  
   double t0 = luaL_optnumber(L, 3, app_lw->tstart);
   gkyl_moment_app_apply_ic_species(app_lw->app, sidx, t0);
 
   lua_pushboolean(L, status);  
+  return 1;
+}
+
+// The status table for reads has the following structure
+//
+// {
+//   io_status = true or false.
+//   io_status_str = "success", "bad-version", "fopen-failed", "fread-failed", "data-mismatch"
+//   frame = frame_num (integer)
+//   stime = time in file read
+// }
+
+static const struct str_int_pair rio_status[] = {
+  { "success", GKYL_ARRAY_RIO_SUCCESS },
+  { "bad-version", GKYL_ARRAY_RIO_BAD_VERSION },
+  { "fopen-failed", GKYL_ARRAY_RIO_FOPEN_FAILED },
+  { "fread-failed", GKYL_ARRAY_RIO_FREAD_FAILED },
+  { "data-mismatch", GKYL_ARRAY_RIO_DATA_MISMATCH },
+  { 0, 0 }
+};
+
+// pushes table with status on stack. Table is left on stack
+static void
+push_restart_status_table(lua_State *L, struct gkyl_app_restart_status status)
+{
+  lua_newtable(L);
+
+  lua_pushstring(L, "io_status");
+  lua_pushboolean(L, status.io_status == GKYL_ARRAY_RIO_SUCCESS ? true : false);
+  lua_rawset(L, -3);
+
+  lua_pushstring(L, "io_status_str");
+  lua_pushstring(L, search_str_int_pair_by_int(rio_status, status.io_status, "success"));
+  lua_rawset(L, -3);
+
+  lua_pushstring(L, "frame");
+  lua_pushinteger(L, status.frame);
+  lua_rawset(L, -3);
+
+  lua_pushstring(L, "stime");
+  lua_pushnumber(L, status.stime);
+  lua_rawset(L, -3);  
+}
+
+// Read field from file. (file-name) -> status table. See above
+static int
+mom_app_from_file_field(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  const char *fname = luaL_checkstring(L, 2);
+  struct gkyl_app_restart_status status =
+    gkyl_moment_app_from_file_field(app_lw->app, fname);
+
+  push_restart_status_table(L, status);
+  
+  return 1;
+}
+
+// Read field from file. (file-name, species-name) -> status table. See above
+static int
+mom_app_from_file_species(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  const char *fname = luaL_checkstring(L, 2);
+  const char *sp_name = luaL_checkstring(L, 3);
+
+  int sidx = app_find_species(app_lw->app, sp_name);
+  if (sidx < 0)
+    return luaL_error(L, "Incorrect species name '%s' in from_file_species!", sp_name);
+  
+  struct gkyl_app_restart_status status =
+    gkyl_moment_app_from_file_species(app_lw->app, sidx, fname);
+
+  push_restart_status_table(L, status);
+  
+  return 1;
+}
+
+// Read field from file. (frame) -> status table. See above
+static int
+mom_app_from_frame_field(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  int frame = luaL_checkinteger(L, 2);
+  struct gkyl_app_restart_status status =
+    gkyl_moment_app_from_frame_field(app_lw->app, frame);
+
+  push_restart_status_table(L, status);
+  
+  return 1;
+}
+
+// Read field from file. (frame, species-name) -> status table. See above
+static int
+mom_app_from_frame_species(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  int frame = luaL_checkinteger(L, 2);
+  const char *sp_name = luaL_checkstring(L, 3);
+
+  int sidx = app_find_species(app_lw->app, sp_name);
+  if (sidx < 0)
+    return luaL_error(L, "Incorrect species name '%s' in from_frame_species!", sp_name);
+  
+  struct gkyl_app_restart_status status =
+    gkyl_moment_app_from_frame_species(app_lw->app, sidx, frame);
+
+  push_restart_status_table(L, status);
+  
   return 1;
 }
 
@@ -714,7 +869,7 @@ mom_app_write_field(lua_State *L)
   return 1;
 }
 
-// Write species solution to file (sidx, time, frame) -> bool
+// Write species solution to file (name, time, frame) -> bool
 static int
 mom_app_write_species(lua_State *L)
 {
@@ -723,7 +878,11 @@ mom_app_write_species(lua_State *L)
   struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
   struct moment_app_lw *app_lw = *l_app_lw;
 
-  int sidx = luaL_checkinteger(L, 2);
+  const char *sp_name = luaL_checkstring(L, 2);
+  int sidx = app_find_species(app_lw->app, sp_name);
+  if (sidx < 0)
+    return luaL_error(L, "Incorrect species name '%s' in write_species!", sp_name);
+
   double tm = luaL_checknumber(L, 3);
   int frame = luaL_checkinteger(L, 4);
   gkyl_moment_app_write_species(app_lw->app, sidx, tm, frame);
@@ -786,6 +945,41 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double tcurr)
     gkyl_moment_app_write_integrated_mom(app);
     gkyl_moment_app_write_field_energy(app);
   }
+}
+
+// Update status table is as follows
+// {
+//    success = true or false
+//    dt_actual = actual time-step taken
+//    dt_suggested = suggested stable time-step
+// }
+
+// Update the solution by a suggested time-step. (dt) -> update status
+// table. See above. For details see the C API doc for this function
+static int
+mom_app_update(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  double dt = luaL_checknumber(L, 2);
+  struct gkyl_update_status status = gkyl_moment_update(app_lw->app, dt);
+
+  // return status table on stack
+  lua_newtable(L);
+  lua_pushstring(L, "success");
+  lua_pushboolean(L, status.success);
+  lua_rawset(L, -3);  
+
+  lua_pushstring(L, "dt_actual");
+  lua_pushnumber(L, status.dt_actual);
+  lua_rawset(L, -3);    
+
+  lua_pushstring(L, "dt_suggested");
+  lua_pushnumber(L, status.dt_suggested);
+  lua_rawset(L, -3);
+  
+  return 1;
 }
 
 // Run simulation. (num_steps) -> bool. num_steps is optional
@@ -863,17 +1057,29 @@ static struct luaL_Reg mom_app_ctor[] = {
 
 // App methods
 static struct luaL_Reg mom_app_funcs[] = {
-  { "apply_ic", mom_app_apply_ic },
-  { "apply_ic_field", mom_app_apply_ic_field },
-  { "apply_ic_species", mom_app_apply_ic_species },
-  { "calc_integrated_mom", mom_app_calc_integrated_mom },
-  { "calc_field_energy", mom_app_calc_field_energy },
-  { "write", mom_app_write },
-  { "write_field", mom_app_write_field },
-  { "write_species", mom_app_write_species },
-  { "write_integrated_mom", mom_app_write_integrated_mom },
-  { "write_field_energy", mom_app_write_field_energy },
-  { "stat_write", mom_app_stat_write },
+  {"max_dt", mom_app_max_dt},
+
+  {"apply_ic", mom_app_apply_ic},
+  {"apply_ic_field", mom_app_apply_ic_field},
+  {"apply_ic_species", mom_app_apply_ic_species},
+  
+  {"from_file_field", mom_app_from_file_field},
+  {"from_file_species", mom_app_from_file_species},
+
+  {"from_frame_field", mom_app_from_frame_field},
+  {"from_frame_species", mom_app_from_frame_species},
+
+  {"write", mom_app_write},
+  {"write_field", mom_app_write_field},
+  {"write_species", mom_app_write_species},
+  {"write_field_energy", mom_app_write_field_energy},
+  {"write_integrated_mom", mom_app_write_integrated_mom},
+  {"stat_write", mom_app_stat_write},
+
+  {"calc_field_energy", mom_app_calc_field_energy},
+  {"calc_integrated_mom", mom_app_calc_integrated_mom},
+
+  { "update", mom_app_update },
   { "run", mom_app_run },
   { 0, 0 }
 };
