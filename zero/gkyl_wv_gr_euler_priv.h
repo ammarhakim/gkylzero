@@ -15,13 +15,6 @@ struct wv_gr_euler {
 };
 
 /**
-* Free general relativistic Euler equations object.
-*
-* @param ref Reference counter for general relativistic Euler equations.
-*/
-void gkyl_gr_euler_free(const struct gkyl_ref_count* ref);
-
-/**
 * Compute primitive variables given the conserved variables.
 *
 * @param gas_gamma Adiabatic index.
@@ -237,3 +230,10 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q);
 GKYL_CU_D
 static inline void
 gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
+
+/**
+* Free general relativistic Euler equations object.
+*
+* @param ref Reference counter for general relativistic Euler equations.
+*/
+void gkyl_gr_euler_free(const struct gkyl_ref_count* ref);

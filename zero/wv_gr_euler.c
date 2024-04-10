@@ -270,7 +270,7 @@ gkyl_gr_euler_free(const struct gkyl_ref_count* ref)
 
   if (gkyl_wv_eqn_is_cu_dev(base)) {
     // Free inner on_dev object.
-    struct wv_gr_euler* gr_euler = container_of(base->on_dev, struct wv_gr_euler, eqn);
+    struct wv_gr_euler *gr_euler = container_of(base->on_dev, struct wv_gr_euler, eqn);
     gkyl_cu_free(gr_euler);
   }
 

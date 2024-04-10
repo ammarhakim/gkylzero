@@ -88,6 +88,7 @@ struct gkyl_gr_spacetime {
 
   uint32_t flags;
   struct gkyl_ref_count ref_count; // Reference count.
+  struct gkyl_gr_spacetime *on_dev; // Pointer to itself, or device data.
 };
 
 /**
