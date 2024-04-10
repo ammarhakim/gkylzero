@@ -7,6 +7,7 @@
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_gr_euler.h>
+#include <gkyl_gr_minkowski.h>
 
 #include <gkyl_null_comm.h>
 
@@ -29,6 +30,9 @@ struct mild_shock_ctx
   double rhor; // Right fluid mass density.
   double ur; // Right fluid velocity.
   double pr; // Right fluid pressure.
+
+  // Pointer to spacetime metric.
+  struct gkyl_gr_spacetime *spacetime;
 
   // Simulation parameters.
   int Nx; // Cell count (x-direction).
@@ -55,6 +59,9 @@ create_ctx(void)
   double ur = 0.0; // Right fluid velocity.
   double pr = pow(10.0, -6.0); // Right fluid pressure.
 
+  // Pointer to spacetime metric.
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+
   // Simulation parameters.
   int Nx = 4096; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
@@ -73,6 +80,7 @@ create_ctx(void)
     .rhor = rhor,
     .ur = ur,
     .pr = pr,
+    .spacetime = spacetime,
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
@@ -105,6 +113,8 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double u = 0.0;
   double p = 0.0;
 
+  struct gkyl_gr_spacetime *spacetime = app->spacetime;
+
   if (x < 0.5) {
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
@@ -118,12 +128,36 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 
+  double spatial_det, lapse;
+  double *shift = malloc(sizeof(double) * 3);
+  double **spatial_metric = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = malloc(sizeof(double) * 3);
+  }
+
+  spacetime->spatial_metric_det_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_det);
+  spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &lapse);
+  spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &shift);
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
+
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
   fout[1] = rho * h * u; fout[2] = 0.0; fout[3] = 0.0;
   // Set fluid total energy density.
   fout[4] = (rho * h) - p - rho;
+
+  // Set spatial metric determinant.
+  fout[5] = spatial_det;
+  // Set lapse gauge variable.
+  fout[6] = lapse;
+  // Set shift gauge variables.
+  fout[7] = shift[0]; fout[8] = shift[1]; fout[9] = shift[2];
+
+  // Set spatial metric tensor;
+  fout[10] = spatial_metric[0][0]; fout[11] = spatial_metric[0][1]; fout[12] = spatial_metric[0][2];
+  fout[13] = spatial_metric[1][0]; fout[14] = spatial_metric[1][1]; fout[15] = spatial_metric[1][2];
+  fout[16] = spatial_metric[2][0]; fout[17] = spatial_metric[2][1]; fout[18] = spatial_metric[2][2];
 }
 
 void
@@ -160,7 +194,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(ctx.gas_gamma, app_args.use_gpu);
+  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(ctx.gas_gamma, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_euler",

@@ -7,15 +7,15 @@
 
 static void
 minkowski_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double** spatial_metric_tensor)
+  double*** spatial_metric_tensor)
 {
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       if (i == j) {
-        spatial_metric_tensor[i][j] = 1.0;
+        (*spatial_metric_tensor)[i][j] = 1.0;
       }
       else {
-        spatial_metric_tensor[i][j] = 0.0;
+        (*spatial_metric_tensor)[i][j] = 0.0;
       }
     }
   }
@@ -23,20 +23,20 @@ minkowski_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const
 
 static void
 minkowski_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double** spacetime_metric_tensor)
+  double*** spacetime_metric_tensor)
 {
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       if (i == j) {
         if (i == 0) {
-          spacetime_metric_tensor[i][j] = -1.0;
+          (*spacetime_metric_tensor)[i][j] = -1.0;
         }
         else {
-          spacetime_metric_tensor[i][j] = 1.0;
+          (*spacetime_metric_tensor)[i][j] = 1.0;
         }
       }
       else {
-        spacetime_metric_tensor[i][j] = 0.0;
+        (*spacetime_metric_tensor)[i][j] = 0.0;
       }
     }
   }
@@ -44,40 +44,40 @@ minkowski_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spacetime, con
 
 static void
 minkowski_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double** spatial_inv_metric_tensor)
+  double*** spatial_inv_metric_tensor)
 {
   minkowski_spatial_metric_tensor(spacetime, t, x, y, z, spatial_inv_metric_tensor);
 }
 
 static void
 minkowski_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double** spacetime_inv_metric_tensor)
+  double*** spacetime_inv_metric_tensor)
 {
   minkowski_spacetime_metric_tensor(spacetime, t, x, y, z, spacetime_inv_metric_tensor);
 }
 
 static void
 minkowski_spatial_metric_det(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double spatial_metric_det)
+  double* spatial_metric_det)
 {
-  spatial_metric_det = 1.0;
+  *spatial_metric_det = 1.0;
 }
 
 static void
 minkowski_spacetime_metric_det(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double spacetime_metric_det)
+  double* spacetime_metric_det)
 {
-  spacetime_metric_det = -1.0;
+  *spacetime_metric_det = -1.0;
 }
 
 static void
 minkowski_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-   const double dx, const double dy, const double dz, double*** spatial_metric_tensor_der)
+   const double dx, const double dy, const double dz, double**** spatial_metric_tensor_der)
 {
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       for (int k = 0; k < 3; k++) {
-        spatial_metric_tensor_der[i][j][k] = 0.0;
+        (*spatial_metric_tensor_der)[i][j][k] = 0.0;
       }
     }
   }
@@ -85,12 +85,12 @@ minkowski_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, c
 
 static void
 minkowski_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dt, const double dx, const double dy, const double dz, double*** spacetime_metric_tensor_der)
+  const double dt, const double dx, const double dy, const double dz, double**** spacetime_metric_tensor_der)
 {
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
       for (int k = 0; k < 4; k++) {
-        spacetime_metric_tensor_der[i][j][k] = 0.0;
+        (*spacetime_metric_tensor_der)[i][j][k] = 0.0;
       }
     }
   }
@@ -98,56 +98,56 @@ minkowski_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime,
 
 static void
 minkowski_lapse_function(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double lapse_function)
+  double* lapse_function)
 {
-  lapse_function = 1.0;
+  *lapse_function = 1.0;
 }
 
 static void
 minkowski_shift_vector(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double* shift_vector)
+  double** shift_vector)
 {
   for (int i = 0; i < 3; i++) {
-    shift_vector[i] = 0.0;
+    (*shift_vector)[i] = 0.0;
   }
 }
 
 static void
 minkowski_lapse_function_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double* lapse_function_der)
+  const double dx, const double dy, const double dz, double** lapse_function_der)
 {
   for (int i = 0; i < 3; i++) {
-    lapse_function_der[i] = 0.0;
+    (*lapse_function_der)[i] = 0.0;
   }
 }
 
 static void
 minkowski_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double** shift_vector_der)
+  const double dx, const double dy, const double dz, double*** shift_vector_der)
 {
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      shift_vector_der[i][j] = 0.0;
+      (*shift_vector_der)[i][j] = 0.0;
     }
   }
 }
 
 static void
 minkowski_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double** extrinsic_curvature_tensor)
+  const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor)
 {
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      extrinsic_curvature_tensor[i][j] = 0.0;
+      (*extrinsic_curvature_tensor)[i][j] = 0.0;
     }
   }
 }
 
 static void
 minkowski_excision_region(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  bool in_excision_region)
+  bool* in_excision_region)
 {
-  in_excision_region = false;
+  *in_excision_region = false;
 }
 
 void

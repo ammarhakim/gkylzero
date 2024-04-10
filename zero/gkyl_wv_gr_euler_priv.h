@@ -6,11 +6,13 @@
 #include <gkyl_array.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_gr_minkowski.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
 struct wv_gr_euler {
   struct gkyl_wv_eqn eqn; // Base equation object.
+  struct gkyl_gr_spacetime *spacetime; // Pointer to base spacetime object.
   double gas_gamma; // Adiabatic index.
 };
 
@@ -23,7 +25,7 @@ struct wv_gr_euler {
 */
 GKYL_CU_D
 static inline void
-gkyl_gr_euler_prim_vars(double gas_gamma, const double q[5], double v[5]);
+gkyl_gr_euler_prim_vars(double gas_gamma, const double q[19], double v[19]);
 
 /**
 * Compute maximum absolute wave speed.
@@ -34,7 +36,7 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[5], double v[5]);
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[5]);
+gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[19]);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
@@ -45,7 +47,7 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[5]);
 */
 GKYL_CU_D
 static void
-gkyl_gr_euler_flux(double gas_gamma, const double q[5], double flux[5]);
+gkyl_gr_euler_flux(double gas_gamma, const double q[19], double flux[19]);
 
 /**
 * Compute Riemann variables given the conserved variables.
@@ -183,7 +185,8 @@ wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 */
 GKYL_CU_D
 static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq);
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq);
 
 /**
 * Compute jump in flux given two conserved variable states.

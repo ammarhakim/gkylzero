@@ -7,13 +7,28 @@
 #include <gkyl_wv_gr_euler_priv.h>
 
 static inline void
-gkyl_gr_euler_prim_vars(double gas_gamma, const double q[5], double v[5])
+gkyl_gr_euler_prim_vars(double gas_gamma, const double q[19], double v[19])
 {
-  double D = q[0];
-  double momx = q[1];
-  double momy = q[2];
-  double momz = q[3];
-  double Etot = q[4];
+  double spatial_det = q[5];
+  double lapse = q[6];
+  double shift_x = q[7];
+  double shift_y = q[8];
+  double shift_z = q[9];
+
+  double **spatial_metric = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = malloc(sizeof(double) * 3);
+  }
+
+  spatial_metric[0][0] = q[10]; spatial_metric[0][1] = q[11]; spatial_metric[0][2] = q[12];
+  spatial_metric[1][0] = q[13]; spatial_metric[1][1] = q[14]; spatial_metric[1][2] = q[15];
+  spatial_metric[2][0] = q[16]; spatial_metric[2][1] = q[17]; spatial_metric[2][2] = q[18];
+
+  double D = q[0] / sqrt(spatial_det);
+  double momx = q[1] / sqrt(spatial_det);
+  double momy = q[2] / sqrt(spatial_det);
+  double momz = q[3] / sqrt(spatial_det);
+  double Etot = q[4] / sqrt(spatial_det);
 
   double C = D / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
   double C0 = (D + Etot) / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
@@ -61,12 +76,22 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[5], double v[5])
   if (v[4] < pow(10.0, -8.0)) {
     v[4] = pow(10.0, -8.0);
   }
+
+  v[5] = spatial_det;
+  v[6] = lapse;
+  v[7] = shift_x;
+  v[8] = shift_y;
+  v[9] = shift_z;
+
+  v[10] = spatial_metric[0][0]; v[11] = spatial_metric[0][1]; v[12] = spatial_metric[0][2];
+  v[13] = spatial_metric[1][0]; v[14] = spatial_metric[1][1]; v[15] = spatial_metric[1][2];
+  v[16] = spatial_metric[2][0]; v[17] = spatial_metric[2][1]; v[18] = spatial_metric[2][2];
 }
 
 static inline double
-gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[5])
+gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[19])
 {
-  double v[5] = { 0.0 };
+  double v[19] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, q, v);
   double rho = v[0];
   double p = v[4];
@@ -80,9 +105,9 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[5])
 }
 
 static void
-gkyl_gr_euler_flux(double gas_gamma, const double q[5], double flux[5])
+gkyl_gr_euler_flux(double gas_gamma, const double q[19], double flux[19])
 {
-  double v[5] = { 0.0 };
+  double v[19] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, q, v);
   double rho =  v[0];
   double vx = v[1];
@@ -90,21 +115,54 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[5], double flux[5])
   double vz = v[3];
   double p = v[4];
 
-  double W = 1.0 / (sqrt(1.0 - ((vx * vx) + (vy * vy) + (vz * vz))));
+  double spatial_det = v[5];
+  double lapse = v[6];
+  double shift_x = v[7];
+  double shift_y = v[8];
+  double shift_z = v[9];
+
+  double **spatial_metric = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = malloc(sizeof(double) * 3);
+  }
+
+  spatial_metric[0][0] = v[10]; spatial_metric[0][1] = v[11]; spatial_metric[0][2] = v[12];
+  spatial_metric[1][0] = v[13]; spatial_metric[1][1] = v[14]; spatial_metric[1][2] = v[15];
+  spatial_metric[2][0] = v[16]; spatial_metric[2][1] = v[17]; spatial_metric[2][2] = v[18];
+
+  double *vel = malloc(sizeof(double) * 3);
+  double v_sq = 0.0;
+  vel[0] = vx; vel[1] = vy; vel[2] = vz;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+    }
+  }
+
+  double W = 1.0 / (sqrt(1.0 - v_sq));
+  if (v_sq > 1.0 - pow(10.0, -8.0)) {
+    W = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
+  }
+
   double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 
-  flux[0] = rho * W * vx;
-  flux[1] = rho * h * (W * W) * (vx * vx) + p;
-  flux[2] = rho * h * (W * W) * (vx * vy);
-  flux[3] = rho * h * (W * W) * (vx * vz);
-  flux[4] = ((rho * h * (W * W)) - p - (rho * W)) * vx + (p * vx);
+  flux[0] = (lapse * sqrt(spatial_det)) * (rho * W * (vx - (shift_x / lapse)));
+  flux[1] = (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vx * (vx - (shift_x / lapse))) + p);
+  flux[2] = (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vy * (vx - (shift_x / lapse))));
+  flux[3] = (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vz * (vx - (shift_x / lapse))));
+  flux[4] = (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vx - (shift_x / lapse)) + (p * vx));
+
+  for (int i = 5; i < 19; i++) {
+    flux[i] = 0.0;
+  }
 }
 
 static inline void
 cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout)
 {
   // TODO: This should use a proper L matrix.
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 19; i++) {
     wout[i] = qin[i];
   }
 }
@@ -113,7 +171,7 @@ static inline void
 riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* win, double* qout)
 {
   // TODO: This should use a proper L matrix.
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 19; i++) {
     qout[i] = win[i];
   }
 }
@@ -121,7 +179,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 static void
 gr_euler_wall(double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 19; i++) {
     ghost[i] = skin[i];
   }
 
@@ -137,6 +195,10 @@ gr_euler_no_slip(double t, int nc, const double* skin, double* GKYL_RESTRICT gho
 
   ghost[0] = skin[0];
   ghost[4] = skin[4];
+
+  for (int i = 5; i < 19; i++) {
+    ghost[i] = skin[i];
+  }
 }
 
 static inline void
@@ -147,6 +209,45 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
   qlocal[2] = (qglobal[1] * tau1[0]) + (qglobal[2] * tau1[1]) + (qglobal[3] * tau1[2]);
   qlocal[3] = (qglobal[1] * tau2[0]) + (qglobal[2] * tau2[1]) + (qglobal[3] * tau2[2]);
   qlocal[4] = qglobal[4];
+
+  qlocal[5] = qglobal[5];
+  qlocal[6] = qglobal[6];
+  qlocal[7] = (qglobal[7] * norm[0]) + (qglobal[8] * norm[1]) + (qglobal[9] * norm[2]);
+  qlocal[8] = (qglobal[7] * tau1[0]) + (qglobal[8] * tau1[1]) + (qglobal[9] * tau1[2]);
+  qlocal[9] = (qglobal[7] * tau2[0]) + (qglobal[8] * tau2[1]) + (qglobal[9] * tau2[2]);
+
+  // Temporary arrays to store rotated column vectors.
+  double r1[3], r2[3], r3[3];
+  r1[0] = (qglobal[10] * norm[0]) + (qglobal[11] * norm[1]) + (qglobal[12] * norm[2]);
+  r1[1] = (qglobal[10] * tau1[0]) + (qglobal[11] * tau1[1]) + (qglobal[12] * tau1[2]);
+  r1[2] = (qglobal[10] * tau2[0]) + (qglobal[11] * tau2[1]) + (qglobal[12] * tau2[2]);
+
+  r2[0] = (qglobal[13] * norm[0]) + (qglobal[14] * norm[1]) + (qglobal[15] * norm[2]);
+  r2[1] = (qglobal[13] * tau1[0]) + (qglobal[14] * tau1[1]) + (qglobal[15] * tau1[2]);
+  r2[2] = (qglobal[13] * tau2[0]) + (qglobal[14] * tau2[1]) + (qglobal[15] * tau2[2]);
+
+  r3[0] = (qglobal[16] * norm[0]) + (qglobal[17] * norm[1]) + (qglobal[18] * norm[2]);
+  r3[1] = (qglobal[16] * tau1[0]) + (qglobal[17] * tau1[1]) + (qglobal[18] * tau1[2]);
+  r3[2] = (qglobal[16] * tau2[0]) + (qglobal[17] * tau2[1]) + (qglobal[18] * tau2[2]);
+
+  // Temporary arrays to store rotated row vectors.
+  double v1[3], v2[3], v3[3];
+  v1[0] = (r1[0] * norm[0]) + (r2[0] * norm[1]) + (r3[0] * norm[2]);
+  v1[1] = (r1[0] * tau1[0]) + (r2[0] * tau1[1]) + (r3[0] * tau1[2]);
+  v1[2] = (r1[0] * tau2[0]) + (r2[0] * tau2[1]) + (r3[0] * tau2[2]);
+
+  v2[0] = (r1[1] * norm[0]) + (r2[1] * norm[1]) + (r3[1] * norm[2]);
+  v2[1] = (r1[1] * tau1[0]) + (r2[1] * tau1[1]) + (r3[1] * tau1[2]);
+  v2[2] = (r1[1] * tau2[0]) + (r2[1] * tau2[1]) + (r3[1] * tau2[2]);
+
+  v3[0] = (r1[2] * norm[0]) + (r2[2] * norm[1]) + (r3[2] * norm[2]);
+  v3[1] = (r1[2] * tau1[0]) + (r2[2] * tau1[1]) + (r3[2] * tau1[2]);
+  v3[2] = (r1[2] * tau2[0]) + (r2[2] * tau2[1]) + (r3[2] * tau2[2]);
+
+  // Rotate spatial metric tensor to global coordinate frame.
+  qlocal[10] = v1[0]; qlocal[11] = v1[1]; qlocal[12] = v1[2];
+  qlocal[13] = v2[0]; qlocal[14] = v2[1]; qlocal[15] = v2[2];
+  qlocal[16] = v3[0]; qlocal[17] = v3[1]; qlocal[18] = v3[2];
 }
 
 static inline void
@@ -157,6 +258,45 @@ rot_to_global(const double* tau1, const double* tau2, const double* norm, const 
   qglobal[2] = (qlocal[1] * norm[1]) + (qlocal[2] * tau1[1]) + (qlocal[3] * tau2[1]);
   qglobal[3] = (qlocal[1] * norm[2]) + (qlocal[2] * tau1[2]) + (qlocal[3] * tau2[2]);
   qglobal[4] = qlocal[4];
+
+  qglobal[5] = qlocal[5];
+  qglobal[6] = qlocal[6];
+  qglobal[7] = (qlocal[7] * norm[0]) + (qlocal[8] * tau1[0]) + (qlocal[9] * tau2[0]);
+  qglobal[8] = (qlocal[7] * norm[1]) + (qlocal[8] * tau1[1]) + (qlocal[9] * tau2[1]);
+  qglobal[9] = (qlocal[7] * norm[2]) + (qlocal[8] * tau1[2]) + (qlocal[9] * tau2[2]);
+
+  // Temporary arrays to store rotated column vectors.
+  double r1[3], r2[3], r3[3];
+  r1[0] = (qlocal[10] * norm[0]) + (qlocal[11] * tau1[0]) + (qlocal[12] * tau2[0]);
+  r1[1] = (qlocal[10] * norm[1]) + (qlocal[11] * tau1[1]) + (qlocal[12] * tau2[1]);
+  r1[2] = (qlocal[10] * norm[2]) + (qlocal[11] * tau1[2]) + (qlocal[12] * tau2[2]);
+
+  r2[0] = (qlocal[13] * norm[0]) + (qlocal[14] * tau1[0]) + (qlocal[15] * tau2[0]);
+  r2[1] = (qlocal[13] * norm[1]) + (qlocal[14] * tau1[1]) + (qlocal[15] * tau2[1]);
+  r2[2] = (qlocal[13] * norm[2]) + (qlocal[14] * tau1[2]) + (qlocal[15] * tau2[2]);
+
+  r3[0] = (qlocal[16] * norm[0]) + (qlocal[17] * tau1[0]) + (qlocal[18] * tau2[0]);
+  r3[1] = (qlocal[16] * norm[1]) + (qlocal[17] * tau1[1]) + (qlocal[18] * tau2[1]);
+  r3[2] = (qlocal[16] * norm[2]) + (qlocal[17] * tau1[2]) + (qlocal[18] * tau2[2]);
+
+  // Temporary arrays to store rotated row vectors.
+  double v1[3], v2[3], v3[3];
+  v1[0] = (r1[0] * norm[0]) + (r2[0] * tau1[0]) + (r3[0] * tau2[0]);
+  v1[1] = (r1[0] * norm[1]) + (r2[0] * tau1[1]) + (r3[0] * tau2[1]);
+  v1[2] = (r1[0] * norm[2]) + (r2[0] * tau1[2]) + (r3[0] * tau2[2]);
+
+  v2[0] = (r1[1] * norm[0]) + (r2[1] * tau1[0]) + (r3[1] * tau2[0]);
+  v2[1] = (r1[1] * norm[1]) + (r2[1] * tau1[1]) + (r3[1] * tau2[1]);
+  v2[2] = (r1[1] * norm[2]) + (r2[1] * tau1[2]) + (r3[1] * tau2[2]);
+
+  v3[0] = (r1[2] * norm[0]) + (r2[2] * tau1[0]) + (r3[2] * tau2[0]);
+  v3[1] = (r1[2] * norm[1]) + (r2[2] * tau1[1]) + (r3[2] * tau2[1]);
+  v3[2] = (r1[2] * norm[2]) + (r2[2] * tau1[2]) + (r3[2] * tau2[2]);
+
+  // Rotate spatial metric tensor back to local coordinate frame.
+  qglobal[10] = v1[0]; qglobal[11] = v1[1]; qglobal[12] = v1[2];
+  qglobal[13] = v2[0]; qglobal[14] = v2[1]; qglobal[15] = v2[2];
+  qglobal[16] = v3[0]; qglobal[17] = v3[1]; qglobal[18] = v3[2];
 }
 
 static double
@@ -169,12 +309,12 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double sr = gkyl_gr_euler_max_abs_speed(gas_gamma, qr);
   double amax = fmax(sl, sr);
 
-  double fl[5], fr[5];
+  double fl[19], fr[19];
   gkyl_gr_euler_flux(gas_gamma, ql, fl);
   gkyl_gr_euler_flux(gas_gamma, qr, fr);
 
-  double *w0 = &waves[0], *w1 = &waves[5];
-  for (int i = 0; i < 5; i++) {
+  double *w0 = &waves[0], *w1 = &waves[19];
+  for (int i = 0; i < 19; i++) {
     w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / amax);
     w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / amax);
   }
@@ -188,11 +328,11 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 static void
 qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
 {
-  const double *w0 = &waves[0], *w1 = &waves[5];
+  const double *w0 = &waves[0], *w1 = &waves[19];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
   double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
 
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 19; i++) {
     amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
     apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
   }
@@ -205,7 +345,8 @@ wave_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
 }
 
 static void
-qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
@@ -215,11 +356,11 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 {
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
 
-  double fr[5], fl[5];
+  double fr[19], fl[19];
   gkyl_gr_euler_flux(gr_euler->gas_gamma, ql, fl);
   gkyl_gr_euler_flux(gr_euler->gas_gamma, qr, fr);
 
-  for (int m = 0; m < 5; m++) {
+  for (int m = 0; m < 19; m++) {
     flux_jump[m] = fr[m] - fl[m];
   }
 
@@ -235,7 +376,7 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
   double gas_gamma = gr_euler->gas_gamma;
 
-  double v[5] = { 0.0 };
+  double v[19] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, q, v);
 
   if (v[0] < 0.0 || v[4] < 0.0) {
@@ -279,10 +420,11 @@ gkyl_gr_euler_free(const struct gkyl_ref_count* ref)
 }
 
 struct gkyl_wv_eqn*
-gkyl_wv_gr_euler_new(double gas_gamma, bool use_gpu)
+gkyl_wv_gr_euler_new(double gas_gamma, struct gkyl_gr_spacetime* spacetime, bool use_gpu)
 {
   return gkyl_wv_gr_euler_inew(&(struct gkyl_wv_gr_euler_inp) {
       .gas_gamma = gas_gamma,
+      .spacetime = spacetime,
       .rp_type = WV_GR_EULER_RP_LAX,
       .use_gpu = use_gpu,
     }
@@ -295,10 +437,11 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
   struct wv_gr_euler *gr_euler = gkyl_malloc(sizeof(struct wv_gr_euler));
 
   gr_euler->eqn.type = GKYL_EQN_GR_EULER;
-  gr_euler->eqn.num_equations = 5;
+  gr_euler->eqn.num_equations = 19;
   gr_euler->eqn.num_diag = 5;
 
   gr_euler->gas_gamma = inp->gas_gamma;
+  gr_euler->spacetime = inp->spacetime;
 
   if (inp->rp_type == WV_GR_EULER_RP_LAX) {
     gr_euler->eqn.num_waves = 2;

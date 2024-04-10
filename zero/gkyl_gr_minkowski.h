@@ -28,7 +28,7 @@ struct gkyl_gr_minkowski_inp {
 GKYL_CU_D
 static void
 minkowski_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double** spatial_metric_tensor);
+  double*** spatial_metric_tensor);
 
 /**
 * Compute the rank-2 spacetime metric tensor at a given point in Minkowki space.
@@ -43,7 +43,7 @@ minkowski_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const
 GKYL_CU_D
 static void
 minkowski_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double** spacetime_metric_tensor);
+  double*** spacetime_metric_tensor);
 
 /**
 * Compute the rank-2 inverse spatial metric tensor at a given point in Minkowski space.
@@ -58,7 +58,7 @@ minkowski_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spacetime, con
 GKYL_CU_D
 static void
 minkowski_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double** spatial_inv_metric_tensor);
+  double*** spatial_inv_metric_tensor);
 
 /**
 * Compute the rank-2 inverse spacetime metric tensor at a given point in Minkowski space.
@@ -73,7 +73,7 @@ minkowski_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, c
 GKYL_CU_D
 static void
 minkowski_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double** spacetime_inv_metric_tensor);
+  double*** spacetime_inv_metric_tensor);
 
 /**
 * Compute the (scalar) spatial metric determinant at a given point in Minkowski space.
@@ -88,7 +88,7 @@ minkowski_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime,
 GKYL_CU_D
 static void
 minkowski_spatial_metric_det(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double spatial_metric_det);
+  double* spatial_metric_det);
 
 /**
 * Compute the (scalar) spacetime metric determinant at a given point in Minkowski space.
@@ -103,7 +103,7 @@ minkowski_spatial_metric_det(const struct gkyl_gr_spacetime* spacetime, const do
 GKYL_CU_D
 static void
 minkowski_spacetime_metric_det(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double spacetime_metric_det);
+  double* spacetime_metric_det);
 
 /**
 * Compute the rank-3 (spatial) partial derivative of the spatial metric tensor at a given point in Minkowski space.
@@ -121,7 +121,7 @@ minkowski_spacetime_metric_det(const struct gkyl_gr_spacetime* spacetime, const 
 GKYL_CU_D
 static void
 minkowski_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double*** spatal_metric_tensor_der);
+  const double dx, const double dy, const double dz, double**** spatial_metric_tensor_der);
 
 /**
 * Compute the rank-3 (spacetime) partial derivative of the spacetime metric tensor at a given point in Minkowski space.
@@ -140,7 +140,7 @@ minkowski_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, c
 GKYL_CU_D
 static void
 minkowski_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dt, const double dx, const double dy, const double dz, double*** spacetime_metric_tensor_der);
+  const double dt, const double dx, const double dy, const double dz, double**** spacetime_metric_tensor_der);
 
 /**
 * Compute the (scalar) lapse function at a given point in Minkowski space.
@@ -155,7 +155,7 @@ minkowski_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime,
 GKYL_CU_D
 static void
 minkowski_lapse_function(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double lapse_function);
+  double* lapse_function);
 
 /**
 * Compute the rank-1 shift vector at a given point in Minkowski space.
@@ -170,7 +170,7 @@ minkowski_lapse_function(const struct gkyl_gr_spacetime* spacetime, const double
 GKYL_CU_D
 static void
 minkowski_shift_vector(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  double* shift_vector);
+  double** shift_vector);
 
 /**
 * Compute the rank-1 (spatial) partial derivative of the lapse function at a given point in Minkowski space.
@@ -188,7 +188,7 @@ minkowski_shift_vector(const struct gkyl_gr_spacetime* spacetime, const double t
 GKYL_CU_D
 static void
 minkowski_lapse_function_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double* lapse_function_der);
+  const double dx, const double dy, const double dz, double** lapse_function_der);
 
 /**
 * Compute the rank-2 (spatial) partial derivative of the shift vector at a given point in Minkowski space.
@@ -206,7 +206,7 @@ minkowski_lapse_function_der(const struct gkyl_gr_spacetime* spacetime, const do
 GKYL_CU_D
 static void
 minkowski_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double** shift_vector_der);
+  const double dx, const double dy, const double dz, double*** shift_vector_der);
 
 /**
 * Compute the rank-2 extrinsic curvature tensor at a given point in Minkowski space.
@@ -224,7 +224,7 @@ minkowski_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const doub
 GKYL_CU_D
 static void
 minkowski_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  const double dx, const double dy, const double dz, double** extrinsic_curvature_tensor);
+  const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor);
 
 /**
 * Determine whether a given point in Minkowski space lies within an excision region.
@@ -239,7 +239,7 @@ minkowski_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, 
 GKYL_CU_D
 static void
 minkowski_excision_region(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
-  bool in_excision_region);
+  bool* in_excision_region);
 
 /**
 * Free Minkowski spacetime object.
