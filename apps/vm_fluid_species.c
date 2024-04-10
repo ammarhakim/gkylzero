@@ -286,12 +286,14 @@ vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_s
     poly_order+1, fluid_species->num_equations, fluid_species->info.init, fluid_species->info.ctx);
 
   // run updater
-  gkyl_proj_on_basis_advance(proj, t0, &app->local, fluid_species->fluid_host);
+  gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, fluid_species->fluid_host);
   gkyl_proj_on_basis_release(proj);
 
   if (app->use_gpu) {
     gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
   }
+  // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
+  vm_fluid_species_limiter(app, fluid_species, fluid_species->fluid);
 
   // Pre-compute applied acceleration in case it's time-independent
   vm_fluid_species_calc_app_accel(app, fluid_species, t0);

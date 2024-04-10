@@ -79,7 +79,7 @@ create_ctx(void)
   double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
   double x_last_edge = Lx / Nx; // Location of center of last cell.
   double cfl_frac = 1.0; // CFL coefficient.
-  double t_end = 1.0e-9; // Final simulation time.
+  double t_end = 5.0e-10; // Final simulation time.
   int num_frames = 1; // Number of output frames.
 
   double deltaT = Lx100 / light_speed; // Arbitrary constant, with units of time.
@@ -213,7 +213,8 @@ main(int argc, char **argv)
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
-    
+    .limit_em = true, 
+
     .init = evalFieldInit,
     .ctx = &ctx,
     .app_current = evalAppCurrent,
