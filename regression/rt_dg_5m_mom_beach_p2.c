@@ -79,8 +79,8 @@ create_ctx(void)
   double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
   double x_last_edge = Lx / Nx; // Location of center of last cell.
   double cfl_frac = 1.0; // CFL coefficient.
-  double t_end = 5.0e-10; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  double t_end = 5.0e-9; // Final simulation time.
+  int num_frames = 100; // Number of output frames.
 
   double deltaT = Lx100 / light_speed; // Arbitrary constant, with units of time.
   double factor = deltaT * deltaT * charge_elc * charge_elc / (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
@@ -176,6 +176,15 @@ evalAppCurrent(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
     fout[1] = -J0 * sin(omega_drive * t);
   }
 }
+
+void
+write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+    gkyl_vlasov_app_write(app, t_curr, iot->curr-1);
+  }
+}
+
 
 int
 main(int argc, char **argv)
@@ -335,30 +344,39 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double t_curr = 0.0, t_end = ctx.t_end;
   double dt = ctx.init_dt;
+  int num_frames = ctx.num_frames;
+  // create trigger for IO
+  struct gkyl_tm_trigger io_trig = { .dt = t_end/num_frames };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, t_curr);
-  
-  gkyl_vlasov_app_write(app, t_curr, 0);
+  write_data(&io_trig, app, t_curr);
+  gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
+  gkyl_vlasov_app_calc_field_energy(app, t_curr);  
 
   long step = 1, num_steps = app_args.num_steps;
   while ((t_curr < t_end) && (step <= num_steps)) {
     printf("Taking time-step at t = %g ...", t_curr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
     printf(" dt = %g\n", status.dt_actual);
+
+    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
+    gkyl_vlasov_app_calc_field_energy(app, t_curr);    
     
     if (!status.success) {
-      fprintf(stderr, "** Update method failed! Aborting simulation ....\n");
+      printf("** Update method failed! Aborting simulation ....\n");
       break;
     }
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
+    write_data(&io_trig, app, t_curr);
+
     step += 1;
   }
 
-  gkyl_vlasov_app_write(app, t_curr, 1);
   gkyl_vlasov_app_stat_write(app);
-
+  gkyl_vlasov_app_write_integrated_mom(app);
+  gkyl_vlasov_app_write_field_energy(app); 
   // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
