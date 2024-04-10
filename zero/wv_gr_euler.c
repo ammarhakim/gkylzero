@@ -24,12 +24,9 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[20], double v[20])
   spatial_metric[1][0] = q[13]; spatial_metric[1][1] = q[14]; spatial_metric[1][2] = q[15];
   spatial_metric[2][0] = q[16]; spatial_metric[2][1] = q[17]; spatial_metric[2][2] = q[18];
 
-  bool in_excision_region;
-  if (q[19] < 0.0) {
+  bool in_excision_region = false;
+  if (q[19] < pow(10.0, -8.0)) {
     in_excision_region = true;
-  }
-  else {
-    in_excision_region = false;
   }
 
   if (!in_excision_region) {
@@ -96,14 +93,14 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[20], double v[20])
     v[13] = spatial_metric[1][0]; v[14] = spatial_metric[1][1]; v[15] = spatial_metric[1][2];
     v[16] = spatial_metric[2][0]; v[17] = spatial_metric[2][1]; v[18] = spatial_metric[2][2];
 
-    v[20] = 1.0;
+    v[19] = 1.0;
   }
   else {
     for (int i = 0; i < 19; i++) {
       v[i] = 0.0;
     }
     
-    v[20] = -1.0;
+    v[19] = -1.0;
   }
 }
 
@@ -112,15 +109,26 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[20])
 {
   double v[20] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, q, v);
-  double rho = v[0];
-  double p = v[4];
 
-  double num = (gas_gamma * p) / rho;
-  double den = 1.0 * ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
-  double cs = sqrt(num / den);
+  bool in_excision_region = false;
+  if (v[19] < pow(10.0, -8.0)) {
+    in_excision_region = true;
+  }
 
-  double v_sq = sqrt((v[1] * v[1]) + (v[2] * v[2]) + (v[3] * v[3]));
-  return fabs(v_sq) + cs;
+  if (v[19] > 0.0) {
+    double rho = v[0];
+    double p = v[4];
+
+    double num = (gas_gamma * p) / rho;
+    double den = 1.0 * ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+    double cs = sqrt(num / den);
+
+    double v_sq = sqrt((v[1] * v[1]) + (v[2] * v[2]) + (v[3] * v[3]));
+    return fabs(v_sq) + cs;
+  }
+  else {
+    return pow(10.0, -8.0);
+  }
 }
 
 static void
@@ -149,12 +157,9 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[20], double flux[20])
   spatial_metric[1][0] = v[13]; spatial_metric[1][1] = v[14]; spatial_metric[1][2] = v[15];
   spatial_metric[2][0] = v[16]; spatial_metric[2][1] = v[17]; spatial_metric[2][2] = v[18];
 
-  bool in_excision_region;
-  if (v[19] < 0.0) {
+  bool in_excision_region = false;
+  if (v[19] < pow(10.0, -8.0)) {
     in_excision_region = true;
-  }
-  else {
-    in_excision_region = false;
   }
 
   if (!in_excision_region) {
@@ -282,6 +287,8 @@ rot_to_local(const double* tau1, const double* tau2, const double* norm, const d
   qlocal[10] = v1[0]; qlocal[11] = v1[1]; qlocal[12] = v1[2];
   qlocal[13] = v2[0]; qlocal[14] = v2[1]; qlocal[15] = v2[2];
   qlocal[16] = v3[0]; qlocal[17] = v3[1]; qlocal[18] = v3[2];
+
+  qlocal[19] = qglobal[19];
 }
 
 static inline void
@@ -331,6 +338,8 @@ rot_to_global(const double* tau1, const double* tau2, const double* norm, const 
   qglobal[10] = v1[0]; qglobal[11] = v1[1]; qglobal[12] = v1[2];
   qglobal[13] = v2[0]; qglobal[14] = v2[1]; qglobal[15] = v2[2];
   qglobal[16] = v3[0]; qglobal[17] = v3[1]; qglobal[18] = v3[2];
+
+  qglobal[19] = qlocal[19];
 }
 
 static double
@@ -347,10 +356,28 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   gkyl_gr_euler_flux(gas_gamma, ql, fl);
   gkyl_gr_euler_flux(gas_gamma, qr, fr);
 
+  bool in_excision_region_l = false;
+  if (ql[19] < pow(10.0, -8.0)) {
+    in_excision_region_l = true;
+  }
+
+  bool in_excision_region_r = false;
+  if (qr[19] < pow(10.0, -8.0)) {
+    in_excision_region_r = true;
+  }
+
   double *w0 = &waves[0], *w1 = &waves[20];
-  for (int i = 0; i < 20; i++) {
-    w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / amax);
-    w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / amax);
+  if (!in_excision_region_l && !in_excision_region_r) {
+    for (int i = 0; i < 20; i++) {
+      w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / amax);
+      w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / amax);
+    }
+  }
+  else {
+    for (int i = 0; i < 20; i++) {
+      w0[i] = 0.0;
+      w1[i] = 0.0;
+    }
   }
 
   s[0] = -amax;
@@ -394,8 +421,25 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   gkyl_gr_euler_flux(gr_euler->gas_gamma, ql, fl);
   gkyl_gr_euler_flux(gr_euler->gas_gamma, qr, fr);
 
-  for (int m = 0; m < 20; m++) {
-    flux_jump[m] = fr[m] - fl[m];
+  bool in_excision_region_l = false;
+  if (ql[19] < pow(10.0, -8.0)) {
+    in_excision_region_l = true;
+  }
+
+  bool in_excision_region_r = false;
+  if (qr[19] < pow(10.0, -8.0)) {
+    in_excision_region_r = true;
+  }
+
+  if (!in_excision_region_l && !in_excision_region_r) {
+    for (int m = 0; m < 20; m++) {
+      flux_jump[m] = fr[m] - fl[m];
+    }
+  }
+  else {
+    for (int m = 0; m < 20; m++) {
+      flux_jump[m] = 0.0;
+    }
   }
 
   double amaxl = gkyl_gr_euler_max_abs_speed(gr_euler->gas_gamma, ql);

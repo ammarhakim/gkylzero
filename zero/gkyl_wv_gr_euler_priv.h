@@ -31,6 +31,7 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[20], double v[20]);
 * Compute maximum absolute wave speed.
 *
 * @param gas_gamma Adiabatic index.
+* @param spacetime Base spacetime object.
 * @param q Conserved variable vector.
 * @return Maximum absolute wave speed for a given q.
 */

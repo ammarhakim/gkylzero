@@ -182,6 +182,10 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   // Set excision boundary conditions.
   if (in_excision_region) {
+    for (int i = 0; i < 19; i++) {
+      fout[i] = 0.0;
+    }
+
     fout[19] = -1.0;
   }
   else {
