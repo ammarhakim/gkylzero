@@ -97,3 +97,15 @@ static struct { void (*n2m[4])(const double *fnodal, double *fmodal); } n2m_list
   { NULL, nodal_to_modal_5d_ser_p1, nodal_to_modal_5d_ser_p2, NULL },
   { NULL, nodal_to_modal_6d_ser_p1, NULL, NULL },
 };
+
+// Gauss-Legendre quadrature nodes nodal basis -> modal basis conversion functions: ev_list[ndim].ev[poly_order]
+GKYL_CU_D
+static struct { void (*n2m[4])(const double *fnodal, double *fmodal); } qn2m_list[] = {
+  { NULL, NULL, NULL, NULL }, // No 0D basis functions
+  { NULL, quad_to_modal_1d_ser_p1, quad_to_modal_1d_ser_p2, NULL },
+  { NULL, quad_to_modal_2d_ser_p1, quad_to_modal_2d_ser_p2, NULL },
+  { NULL, quad_to_modal_3d_ser_p1, quad_to_modal_3d_ser_p2, NULL },
+  { NULL, quad_to_modal_4d_ser_p1, quad_to_modal_4d_ser_p2, NULL },
+  { NULL, quad_to_modal_5d_ser_p1, quad_to_modal_5d_ser_p2, NULL },
+  { NULL, quad_to_modal_6d_ser_p1, NULL, NULL },
+};

@@ -1,37 +1,138 @@
-#include <assert.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
+#include <gkyl_util.h>
+
+#include <gkyl_null_comm.h>
+
+#ifdef GKYL_HAVE_MPI
+#include <mpi.h>
+#include <gkyl_mpi_comm.h>
+#endif
+
 #include <rt_arg_parse.h>
 
-static inline double sq(double x) { return x*x; }
-
-void
-evalDistFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+struct accel_ctx
 {
-  double x = xn[0], v = xn[1];
+  // Mathematical constants (dimensionless).
+  double pi;
 
-  fout[0] = 1/sqrt(2*M_PI)*exp(-sq(v)/2);
+  // Physical constants (using normalized code units).
+  double epsilon0; // Permittivity of free space.
+  double mu0; // Permeability of free space.
+  double mass_elc; // Electron mass.
+  double charge_elc; // Electron charge.
+
+  // Simulation parameters.
+  int Nx; // Cell count (configuration space: x-direction).
+  int Nvx; // Cell count (velocity space: vx-direction).
+  double Lx; // Domain size (configuration space: x-direction).
+  double Lvx; // Domain size (velocity space: vx-direction).
+  int poly_order; // Polynomial order.
+  double cfl_frac; // CFL coefficient.
+
+  double t_end; // Final simulation time.
+  int num_frames; // Number of output frames.
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
+};
+
+struct accel_ctx
+create_ctx(void)
+{
+  // Mathematical constants (dimensionless).
+  double pi = M_PI;
+
+  // Physical constants (using normalized code units).
+  double epsilon0 = 1.0; // Permittivity of free spcae.
+  double mu0 = 1.0; // Permeability of free space.
+  double mass_elc = 1.0; // Electron mass.
+  double charge_elc = -1.0; // Electron charge.
+
+  // Simulation parameters.
+  int Nx = 32; // Cell count (configuration space: x-direction).
+  int Nvx = 24; // Cell count (velocity space: vx-direction).
+  double Lx = 2.0 * pi; // Domain size (configuration space: x-direction).
+  double Lvx = 12.0; // Domain size (velocity space: vx-direction).
+  int poly_order = 2; // Polynomial order.
+  double cfl_frac = 1.0; // CFL coefficient.
+  
+  double t_end = 3.0; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+  
+  struct accel_ctx ctx = {
+    .pi = pi,
+    .epsilon0 = epsilon0,
+    .mu0 = mu0,
+    .mass_elc = mass_elc,
+    .charge_elc = charge_elc,
+    .Nx = Nx,
+    .Nvx = Nvx,
+    .Lx = Lx,
+    .Lvx = Lvx,
+    .poly_order = poly_order,
+    .cfl_frac = cfl_frac,
+    .t_end = t_end,
+    .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
+  };
+
+  return ctx;
 }
 
 void
-evalFieldFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
+  double vx = xn[1];
+  struct accel_ctx *app = ctx;
+
+  double pi = app->pi;
+  
+  // Set electron distribution function.
+  fout[0] = 1 / sqrt(2.0 * pi) * exp(-0.5 * (vx * vx));
+}
+
+void
+evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  // Set electric field.
   fout[0] = 0.0; fout[1] = 0.0, fout[2] = 0.0;
+  // Set magnetic field.
   fout[3] = 0.0; fout[4] = 0.0; fout[5] = 0.0;
+  // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
 }
 
 void
-evalAccelFunc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+evalAppAccel(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
+
+  // Set applied acceleration.
   fout[0] = sin(x); fout[1] = 0.0, fout[2] = 0.0;
+}
+
+void
+write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+    int frame = iot->curr - 1;
+    if (force_write) {
+      frame = iot->curr;
+    }
+
+    gkyl_vlasov_app_write(app, t_curr, iot->curr - 1);
+
+    gkyl_vlasov_app_calc_mom(app);
+    gkyl_vlasov_app_write_mom(app, t_curr, iot->curr - 1);
+  }
 }
 
 int
@@ -39,115 +140,264 @@ main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Init(&argc, &argv);
+  }
+#endif
+
   if (app_args.trace_mem) {
     gkyl_cu_dev_mem_debug_set(true);
     gkyl_mem_debug_set(true);
   }
 
-  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], 32);
-  int VX = APP_ARGS_CHOOSE(app_args.vcells[0], 24);
+  struct accel_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  // electrons
+  int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
+  int NVX = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Nvx);
+
+  // Electron species.
   struct gkyl_vlasov_species elc = {
     .name = "elc",
-    .charge = -1.0,
-    .mass = 1.0,
-    .lower = { -6.0 },
-    .upper = { 6.0 }, 
-    .cells = { VX },
+    .charge = ctx.charge_elc, .mass = ctx.mass_elc,
+    .lower = { -0.5 * ctx.Lvx },
+    .upper = { 0.5 * ctx.Lvx }, 
+    .cells = { NVX },
 
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalElcInit,
+      .ctx_func = &ctx,
+    },
 
-    .app_accel = evalAccelFunc,
-    .app_accel_ctx = 0,
+    .app_accel = evalAppAccel,
+    .app_accel_ctx = &ctx,
 
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },
   };
 
-  // field
+  // Field.
   struct gkyl_vlasov_field field = {
-    .epsilon0 = 1.0, .mu0 = 1.0,
+    .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
 
     .is_static = true,
 
-    .init = evalFieldFunc,
+    .init = evalFieldInit,
+    .ctx = &ctx,
   };
 
-  // VM app
-  struct gkyl_vm vm = {
+  int nrank = 1; // Number of processors in simulation.
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+  }
+#endif  
+
+  // Create global range.
+  int ccells[] = { NX };
+  int cdim = sizeof(ccells) / sizeof(ccells[0]);
+  struct gkyl_range cglobal_r;
+  gkyl_create_global_range(cdim, ccells, &cglobal_r);
+
+  // Create decomposition.
+  int cuts[cdim];
+#ifdef GKYL_HAVE_MPI  
+  for (int d = 0; d < cdim; d++) {
+    if (app_args.use_mpi) {
+      cuts[d] = app_args.cuts[d];
+    }
+    else {
+      cuts[d] = 1;
+    }
+  }
+#else
+  for (int d = 0; d < cdim; d++) {
+    cuts[d] = 1;
+  }
+#endif  
+    
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(cdim, cuts, &cglobal_r);
+
+  // Construct communicator for use in app.
+  struct gkyl_comm *comm;
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
+    comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+  }
+  else {
+    comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+        .decomp = decomp,
+        .use_gpu = app_args.use_gpu
+      }
+    );
+  }
+#else
+  comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
+      .decomp = decomp,
+      .use_gpu = app_args.use_gpu
+    }
+  );
+#endif
+
+  int my_rank;
+  gkyl_comm_get_rank(comm, &my_rank);
+  int comm_size;
+  gkyl_comm_get_size(comm, &comm_size);
+
+  int ncuts = 1;
+  for (int d = 0; d < cdim; d++) {
+    ncuts *= cuts[d];
+  }
+
+  if (ncuts != comm_size) {
+    if (my_rank == 0) {
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+    }
+    goto mpifinalize;
+  }
+
+  // Vlasov-Maxwell app.
+  struct gkyl_vm app_inp = {
     .name = "accel_1x1v",
     
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
-    .upper = { 2*M_PI },
+    .upper = { ctx.Lx },
     .cells = { NX },
-    .poly_order = 2,
+
+    .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
+    .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 0 },
 
     .num_species = 1,
     .species = { elc },
+
     .field = field,
 
     .use_gpu = app_args.use_gpu,
+
+    .has_low_inp = true,
+    .low_inp = {
+      .local_range = decomp->ranges[my_rank],
+      .comm = comm
+    }
   };
-  
-  // create app object
-  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);
 
-  // start, end and initial time-step
-  double tcurr = 0.0, tend = 3.0;
-  double dt = tend-tcurr;
+  // Create app object.
+  gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
-  // initialize simulation
-  gkyl_vlasov_app_apply_ic(app, tcurr);
-  
-  gkyl_vlasov_app_write(app, tcurr, 0);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 0);
+  // Initial and final simulation times.
+  double t_curr = 0.0, t_end = ctx.t_end;
 
-  long step = 1, num_steps = app_args.num_steps;
-  while ((tcurr < tend) && (step <= num_steps)) {
-    printf("Taking time-step at t = %g ...", tcurr);
+  // Create trigger for IO.
+  int num_frames = ctx.num_frames;
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+
+  // Initialize simulation.
+  gkyl_vlasov_app_apply_ic(app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
+
+  // Compute initial guess of maximum stable time-step.
+  double dt = t_end - t_curr;
+
+  // Initialize small time-step check.
+  double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
+  int num_failures = 0, num_failures_max = ctx.num_failures_max;
+
+  long step = 1;
+  while ((t_curr < t_end) && (step <= app_args.num_steps)) {
+    gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
-    printf(" dt = %g\n", status.dt_actual);
+    gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
     if (!status.success) {
-      fprintf(stderr, "** Update method failed! Aborting simulation ....\n");
+      gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
-    tcurr += status.dt_actual;
+
+    t_curr += status.dt_actual;
     dt = status.dt_suggested;
+
+    write_data(&io_trig, app, t_curr, false);
+
+    if (dt_init < 0.0) {
+      dt_init = status.dt_actual;
+    }
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_vlasov_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
+
     step += 1;
   }
 
-  gkyl_vlasov_app_write(app, tcurr, 1);
-  gkyl_vlasov_app_calc_mom(app); gkyl_vlasov_app_write_mom(app, tcurr, 1);
+  write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_app_stat_write(app);
 
-  // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
-  // simulation complete, free objects
+  gkyl_vlasov_app_cout(app, stdout, "\n");
+  gkyl_vlasov_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
+  gkyl_vlasov_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+  if (stat.nstage_2_fail > 0) {
+    gkyl_vlasov_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
+    gkyl_vlasov_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+  }  
+  gkyl_vlasov_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+  gkyl_vlasov_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
+  gkyl_vlasov_app_cout(app, stdout, "Total updates took %g secs\n", stat.total_tm);
+
+  gkyl_vlasov_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
+  gkyl_vlasov_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
+
+  // Free resources after simulation completion.
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
   gkyl_vlasov_app_release(app);
 
-  printf("\n");
-  printf("Number of update calls %ld\n", stat.nup);
-  printf("Number of forward-Euler calls %ld\n", stat.nfeuler);
-  printf("Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
-  if (stat.nstage_2_fail > 0) {
-    printf("Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    printf("Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+mpifinalize:
+#ifdef GKYL_HAVE_MPI
+  if (app_args.use_mpi) {
+    MPI_Finalize();
   }
-  printf("Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  printf("Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  printf("Field RHS calc took %g secs\n", stat.field_rhs_tm);
-  printf("Current evaluation and accumulate took %g secs\n", stat.current_tm);
-  printf("Updates took %g secs\n", stat.total_tm);
+#endif
   
   return 0;
 }

@@ -272,7 +272,7 @@ gkyl_range_deflate(struct gkyl_range* srng,
 }
 
 void
-gkyl_range_shorten(struct gkyl_range *rng,
+gkyl_range_shorten_from_above(struct gkyl_range *rng,
   const struct gkyl_range* range, int dir, int len)
 {
   int ndim = range->ndim;
@@ -283,6 +283,21 @@ gkyl_range_shorten(struct gkyl_range *rng,
     up[i] = range->upper[i];
   }
   up[dir] = lo[dir]+len-1;
+  gkyl_sub_range_init(rng, range, lo, up);
+}
+
+void
+gkyl_range_shorten_from_below(struct gkyl_range *rng,
+  const struct gkyl_range* range, int dir, int len)
+{
+  int ndim = range->ndim;
+  int lo[GKYL_MAX_DIM] = {0}, up[GKYL_MAX_DIM] = {0};
+  
+  for (int i=0; i<ndim; ++i) {
+    lo[i] = range->lower[i];
+    up[i] = range->upper[i];
+  }
+  lo[dir] = up[dir]-len+1;
   gkyl_sub_range_init(rng, range, lo, up);
 }
 

@@ -186,13 +186,21 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
       3, s->info.app_accel, s->info.app_accel_ctx);
   }
 
+  // initialize projection routine for initial conditions
+  vm_species_projection_init(app, s, s->info.projection, &s->proj_init);
+
   // set species source id
   s->source_id = s->info.source.source_id;
   
   // determine collision type to use in vlasov update
   s->collision_id = s->info.collisions.collision_id;
+  s->lbo = (struct vm_lbo_collisions) { };
+  s->bgk = (struct vm_bgk_collisions) { };
   if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_init(app, s, &s->lbo);
+  }
+  else if (s->collision_id == GKYL_BGK_COLLISIONS) {
+    vm_species_bgk_init(app, s, &s->bgk);
   }
 
   // determine which directions are not periodic
@@ -265,26 +273,13 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 void
 vm_species_apply_ic(gkyl_vlasov_app *app, struct vm_species *species, double t0)
 {
-  int poly_order = app->poly_order;
-  gkyl_proj_on_basis *proj;
-  proj = gkyl_proj_on_basis_new(&species->grid, &app->basis,
-    poly_order+1, 1, species->info.init, species->info.ctx);
-
-  // run updater; need to project onto extended range for ease of handling
-  // subsequent operations over extended range such as primitive variable computations
-  // This is needed to fill the corner cells as the corner cells may not be filled by
-  // boundary conditions and we cannot divide by 0 anywhere or the weak divisions will fail
-  gkyl_proj_on_basis_advance(proj, t0, &species->local_ext, species->f_host);
-  gkyl_proj_on_basis_release(proj);    
-
-  if (app->use_gpu) // note: f_host is same as f when not on GPUs
-    gkyl_array_copy(species->f, species->f_host);
+  vm_species_projection_calc(app, species, &species->proj_init, species->f, t0);
 
   // Pre-compute applied acceleration in case it's time-independent
   vm_species_calc_app_accel(app, species, t0);
 
   // we are pre-computing source for now as it is time-independent
-  vm_species_source_calc(app, species, t0);
+  vm_species_source_calc(app, species, &species->src, t0);
 
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
@@ -328,8 +323,12 @@ vm_species_rhs(gkyl_vlasov_app *app, struct vm_species *species,
   gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
-  if (species->collision_id == GKYL_LBO_COLLISIONS)
+  if (species->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_rhs(app, species, &species->lbo, fin, rhs);
+  }
+  else if (species->collision_id == GKYL_BGK_COLLISIONS) {
+    vm_species_bgk_rhs(app, species, &species->bgk, fin, rhs);
+  }
   
   app->stat.nspecies_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -463,6 +462,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   gkyl_array_release(s->bc_buffer_lo_fixed);
   gkyl_array_release(s->bc_buffer_up_fixed);
 
+  vm_species_projection_release(app, &s->proj_init);
+
   gkyl_comm_release(s->comm);
 
   if (app->use_gpu)
@@ -515,8 +516,12 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
     vm_species_source_release(app, &s->src);
   }
 
-  if (s->collision_id == GKYL_LBO_COLLISIONS)
+  if (s->collision_id == GKYL_LBO_COLLISIONS) {
     vm_species_lbo_release(app, &s->lbo);
+  }
+  else if (s->collision_id == GKYL_BGK_COLLISIONS) {
+    vm_species_bgk_release(app, &s->bgk);
+  }
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {

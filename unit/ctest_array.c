@@ -29,8 +29,10 @@ void test_array_base()
   TEST_CHECK( gkyl_array_is_cu_dev(arr) == false );
 
   double *arrData  = arr->data;
-  for (unsigned i=0; i<arr->size; ++i)
+  for (unsigned i=0; i<arr->size; ++i){
+    TEST_CHECK( arrData[i] == 0. );
     arrData[i] = (i+0.5)*0.1;
+  }
 
   // clone array
   struct gkyl_array *brr = gkyl_array_clone(arr);
@@ -1295,9 +1297,13 @@ void test_cu_array_base()
   // create host array and initialize it
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
 
-  double *arrData  = arr->data;
-  for (unsigned i=0; i<arr->size; ++i)
+  gkyl_array_copy(arr, arr_cu);
+
+  double *arrData = arr->data;
+  for (unsigned i=0; i<arr->size; ++i) {
+    TEST_CHECK( arrData[i] == 0. );
     arrData[i] = (i+0.5)*0.1;  
+  }
 
   // copy to device
   gkyl_array_copy(arr_cu, arr);

@@ -32,23 +32,21 @@ gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned pol
     // convert back to a linear index on the super-range (with ghost cells)
     // linc will have jumps in it to jump over ghost cells
     long pstart = gkyl_range_idx(&prange, pidx);
+    long cstart = gkyl_range_idx(&crange, pidx);
 
     const double *nufM_d = (const double*) gkyl_array_cfetch(nufM, pstart);
     const double *fin_d = (const double*) gkyl_array_cfetch(fin, pstart);
     double *out_d = (double*) gkyl_array_fetch(out, pstart);
 
-    int cidx[3];
-    for (int d=0; d<cdim; d++) cidx[d] = pidx[d];
-    long cstart = gkyl_range_idx(&crange, cidx);
     const double *nu_d = (const double*) gkyl_array_cfetch(nu, cstart);
+
+    // Add nu*f_M.
+    array_acc1(pnum_basis, out_d, 1., nufM_d);
 
     // Calculate -nu*f.
     double incr[160]; // mul_op assigns, but need increment, so use a buffer.
     mul_op(nu_d, fin_d, incr);
-    for (int i=0; i<pnum_basis; i++) out_d[i] += -incr[i];
-
-    // Add nu*f_M.
-    array_acc1(pnum_basis, out_d, 1., nufM_d);
+    array_acc1(pnum_basis, out_d, -1., incr);
 
     // Add contribution to CFL frequency.
     double *cflfreq_d = (double *) gkyl_array_fetch(cflfreq, pstart);
