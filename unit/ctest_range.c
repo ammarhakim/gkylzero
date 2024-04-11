@@ -1238,6 +1238,44 @@ test_skin_ghost_with_corners(void)
   } while (0);
 }
 
+static void
+test_range_edge_match(void)
+{
+  struct gkyl_range base;
+  gkyl_range_init(&base, 2, (int []) { 5, 6 }, (int []) { 15, 20 });
+
+  struct gkyl_range_dir_edge dir_ed;
+  
+  struct gkyl_range r1;
+  gkyl_range_init(&r1, 2, (int []) { 16, 10 }, (int []) { 30, 30 });
+  dir_ed = gkyl_range_edge_match(&base, &r1);
+  TEST_CHECK( dir_ed.dir == 0 );
+  TEST_CHECK( dir_ed.eloc == GKYL_UPPER_EDGE );
+
+  struct gkyl_range r2;
+  gkyl_range_init(&r2, 2, (int []) { 10, 21 }, (int []) { 30, 30 });
+  dir_ed = gkyl_range_edge_match(&base, &r2);
+  TEST_CHECK( dir_ed.dir == 1 );
+  TEST_CHECK( dir_ed.eloc == GKYL_UPPER_EDGE );
+
+  struct gkyl_range r3;
+  gkyl_range_init(&r3, 2, (int []) { 0, 0 }, (int []) { 4, 30 });
+  dir_ed = gkyl_range_edge_match(&base, &r3);
+  TEST_CHECK( dir_ed.dir == 0 );
+  TEST_CHECK( dir_ed.eloc == GKYL_LOWER_EDGE );
+
+  struct gkyl_range r4;
+  gkyl_range_init(&r4, 2, (int []) { 0, 0 }, (int []) { 18, 5 });
+  dir_ed = gkyl_range_edge_match(&base, &r4);
+  TEST_CHECK( dir_ed.dir == 1 );
+  TEST_CHECK( dir_ed.eloc == GKYL_LOWER_EDGE );
+
+  struct gkyl_range nor;
+  gkyl_range_init(&nor, 2, (int []) { 0, 0 }, (int []) { 4, 4 });
+  dir_ed = gkyl_range_edge_match(&base, &nor);
+  TEST_CHECK( dir_ed.eloc == GKYL_NO_EDGE );
+}
+
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
@@ -1299,6 +1337,7 @@ TEST_LIST = {
   { "perp_extend", test_perp_extend },
   { "skin_ghost", test_skin_ghost },
   { "skin_ghost_with_corners", test_skin_ghost_with_corners },
+  { "range_edge_match", test_range_edge_match },
 #ifdef GKYL_HAVE_CUDA
   { "cu_range", test_cu_range },
 #endif  

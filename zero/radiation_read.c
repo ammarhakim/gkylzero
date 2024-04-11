@@ -1,4 +1,4 @@
-#include <gkyl_read_radiation.h>
+#include <gkyl_radiation_read.h>
 
 #define XSTR(x) #x
 #define STR(x) XSTR(x)
@@ -38,7 +38,7 @@ struct all_radiation_states* gkyl_read_rad_fit_params(){
     printf("Error opening radiation fit file: %s\n", filepath);
     exit(EXIT_FAILURE);
   }
-  
+  free(filepath);
   // Read header: Max z of elements, number of elements
   int number_elements, max_atomic_number;
   read_two_numbers(fptr, &max_atomic_number, &number_elements);

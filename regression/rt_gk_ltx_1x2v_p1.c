@@ -58,6 +58,9 @@ struct gk_app_ctx {
   double vpar_max_elc;  double mu_max_elc;
   double vpar_max_ion;  double mu_max_ion;
   double final_time;   int num_frames;
+  int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
 double qprofile(double r, double a_mid, double qSep, double sSep) 
@@ -386,8 +389,11 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(1.5*4*vti,2)/(2*B0);
 
-  double final_time = 1e-3;
-  int num_frames = 200;
+  double final_time = 1e-7;
+  int num_frames = 1;
+  int int_diag_calc_num = num_frames*100;
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_app_ctx ctx = {
     .R_axis = R_axis,
@@ -421,16 +427,39 @@ create_ctx(void)
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
 
     .final_time = final_time,  .num_frames = num_frames,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
   };
   return ctx;
 }
 
 void
-write_data(struct gkyl_tm_trigger *iot, gkyl_gyrokinetic_app *app, double tcurr)
+calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, tcurr)) {
-    gkyl_gyrokinetic_app_write(app, tcurr, iot->curr-1);
-    gkyl_gyrokinetic_app_calc_mom(app); gkyl_gyrokinetic_app_write_mom(app, tcurr, iot->curr-1);
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+void
+write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_write)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
+    int frame = force_write? iot->curr : iot->curr -1;
+
+    gkyl_gyrokinetic_app_write(app, t_curr, frame);
+
+    gkyl_gyrokinetic_app_calc_mom(app);
+    gkyl_gyrokinetic_app_write_mom(app, t_curr, frame);
+    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, frame);
+
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_write_field_energy(app);
+
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_write_integrated_mom(app);
   }
 }
 
@@ -677,43 +706,70 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
 
   // start, end and initial time-step
-  double tcurr = 0.0, tend = ctx.final_time;
-  double dt = tend-tcurr;
-  int nframe = ctx.num_frames;
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = tend/nframe };
+  double t_curr = 0.0, t_end = ctx.final_time;
+  double dt = t_end-t_curr;
+  // Create triggers for IO.
+  int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
+  struct gkyl_tm_trigger io_trig_int_diag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc) };
+  struct gkyl_tm_trigger io_trig_write = { .dt = t_end/num_frames };
 
   // initialize simulation
   printf("Applying initial conditions ...\n");
-  gkyl_gyrokinetic_app_apply_ic(app, tcurr);
+  gkyl_gyrokinetic_app_apply_ic(app, t_curr);
   printf("Computing initial diagnostics ...\n");
-  write_data(&io_trig, app, tcurr);
+  calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
+  write_data(&io_trig_write, app, t_curr, false);
   printf("Computing initial field energy ...\n");
-  gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
+  gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+
+  // Initialize small time-step check.
+  double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
+  int num_failures = 0, num_failures_max = ctx.num_failures_max;
 
   printf("Starting main loop ...\n");
   long step = 1, num_steps = app_args.num_steps;
-  while ((tcurr < tend) && (step <= num_steps)) {
-    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", tcurr);
+  while ((t_curr < t_end) && (step <= num_steps)) {
+    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-    if (step % 100 == 0) {
-      gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
-    }
+
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
-    tcurr += status.dt_actual;
+    t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    write_data(&io_trig, app, tcurr);
+    calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
+    write_data(&io_trig_write, app, t_curr, false);
+
+    if (dt_init < 0.0) {
+      dt_init = status.dt_actual;
+    }
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      gkyl_gyrokinetic_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_gyrokinetic_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_gyrokinetic_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        gkyl_gyrokinetic_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_gyrokinetic_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, true);
+        write_data(&io_trig_write, app, t_curr, true);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
 
     step += 1;
   }
   printf(" ... finished\n");
-  gkyl_gyrokinetic_app_calc_field_energy(app, tcurr);
-  gkyl_gyrokinetic_app_write_field_energy(app);
+
+  calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
+  write_data(&io_trig_write, app, t_curr, false);
   gkyl_gyrokinetic_app_stat_write(app);
   
   // fetch simulation statistics

@@ -8,15 +8,20 @@
 /* Data for a single radiation fit
  */
 struct rad_fit_parameters{
-  double electron_density;
+  // A, alpha, beta, gamma, and V0 are fitting parameters.
+  // C = 8/sqrt(pi)*(2*charge/mass)^(gamma/2)
+  // D = A*(alpha+beta)/C
+  // vmag = sqrt(vpar^2 + 2*B*mu/mass)
+  // nu(vpar,mu) = D*vmag^(gamma)/(beta*(vmag/V0)^-alpha + alpha*(vmag/V0)^beta)
+  double electron_density;  // Electron density at which this fit is at
   double A;
   double alpha;
   double beta;
   double gamma;
   double V0;
-  int te_intervals;
-  double *te;
-  double *Lz;
+  int te_intervals;  // Number of temperature intervals for fit emissivity
+  double *te;  // electron temperatures at which the fit emissivity is calculated
+  double *Lz;  // fit emissivity when assuming a maxwellian of corresponding temperature
 };
 
 /* Radiation data for a single charge state (for all electron densities).

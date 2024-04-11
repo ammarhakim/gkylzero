@@ -109,23 +109,22 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         bc = mom_fld->bcy;
       else
         bc = mom_fld->bcz;
-
-      void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      
+      wv_bc_func_t bc_lower_func;
       if (dir == 0)
-        bc_lower_func = mom_fld->bcx_lower_func;
+        bc_lower_func = mom_fld->bcx_func[0];
       else if (dir == 1)
-        bc_lower_func = mom_fld->bcy_lower_func;
+        bc_lower_func = mom_fld->bcy_func[0];
       else
-        bc_lower_func = mom_fld->bcz_lower_func;
+        bc_lower_func = mom_fld->bcz_func[0];
 
-      void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      wv_bc_func_t bc_upper_func;
       if (dir == 0)
-        bc_upper_func = mom_fld->bcx_upper_func;
+        bc_upper_func = mom_fld->bcx_func[0];
       else if (dir == 1)
-        bc_upper_func = mom_fld->bcy_upper_func;
+        bc_upper_func = mom_fld->bcy_func[0];
       else
-        bc_upper_func = mom_fld->bcz_upper_func;
-
+        bc_upper_func = mom_fld->bcz_func[0];
 
       fld->lower_bct[dir] = bc[0];
       fld->upper_bct[dir] = bc[1];

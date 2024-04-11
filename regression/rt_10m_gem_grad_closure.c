@@ -257,14 +257,13 @@ main(int argc, char **argv)
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);  
 
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0);
-  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0);
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, true);
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0, true);
   
   struct gkyl_moment_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
     .equation = elc_ten_moment,
-    .has_grad_closure = true, // Include gradient closure.
     .evolve = true,
     .init = evalElcInit,
     .ctx = &ctx,
@@ -276,7 +275,6 @@ main(int argc, char **argv)
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
     .equation = ion_ten_moment,
-    .has_grad_closure = true, // Include gradient closure.
     .evolve = true,
     .init = evalIonInit,
     .ctx = &ctx,

@@ -532,6 +532,16 @@ void gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app *app, int sidx, do
 void gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
 
 /**
+ * Write integrated moments of radiation rhs for radiating species 
+ * 
+ * @param app App object.
+ * @param sidx Index of species from which to write radiation.
+ * @param tm Time-stamp
+ */
+void gkyl_gyrokinetic_app_write_rad_integrated_moms(gkyl_gyrokinetic_app *app, int sidx, double tm);
+
+
+/**
  * Write iz react rate coefficients for species to file.
  * 
  * @param app App object.

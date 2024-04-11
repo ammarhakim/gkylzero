@@ -48,11 +48,14 @@ struct lbo_relax_ctx
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   double Lz; // Domain size (configuration space: z-direction).
-  double Lvpar; // Domain size (velocity space: parallel velocity direction).
-  double Lmu; // Domain size (velocity space: magnetic moment direction).
+  double vpar_max; // Domain boundary (velocity space: parallel velocity direction).
+  double mu_max; // Domain boundary (velocity space: magnetic moment direction).
 
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
 struct lbo_relax_ctx
@@ -76,18 +79,21 @@ create_ctx(void)
   double vtb = 1.0; // Bump Maxwellian thermal velocity.
 
   // Derived physical quantities (using normalized code units).
-  double ub = 4.0 * sqrt((pow(3.0 * vt / 2.0, 2)) / 3.0); // Bump location (in velocity space).
+  double ub = 4.0 * sqrt(((3.0 * vt / 2.0) * (3.0 * vt / 2.0)) / 3.0); // Bump location (in velocity space).
 
   // Simulation parameters.
   int Nz = 2; // Cell count (configuration space: z-direction).
   int Nvpar = 32; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
-  double Lvpar = 16.0 * vt; // Domain size (velocity space: parallel velocity direction).
-  double Lmu = 12.0 * pow(vt,2) / 2.0 / B0; // Domain size (velocity space: magnetic moment direction).
+  double vpar_max = 8.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
+  double mu_max = 12.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
 
   double t_end = 100.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  int int_diag_calc_num = num_frames*100;
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
   struct lbo_relax_ctx ctx = {
     .pi = pi,
@@ -106,10 +112,13 @@ create_ctx(void)
     .Nvpar = Nvpar,
     .Nmu = Nmu,
     .Lz = Lz,
-    .Lvpar = Lvpar,
-    .Lmu = Lmu,
+    .vpar_max = vpar_max,
+    .mu_max = mu_max,
     .t_end = t_end,
     .num_frames = num_frames,
+    .int_diag_calc_num = int_diag_calc_num,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
@@ -195,12 +204,31 @@ bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, 
 }
 
 void
-write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr)
+calc_integrated_diagnostics(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_calc)
 {
-  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_gyrokinetic_app_write(app, t_curr, iot->curr - 1);
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_calc) {
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+void
+write_data(struct gkyl_tm_trigger* iot, gkyl_gyrokinetic_app* app, double t_curr, bool force_write)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
+    int frame = force_write? iot->curr : iot->curr -1;
+
+    gkyl_gyrokinetic_app_write(app, t_curr, frame);
+
     gkyl_gyrokinetic_app_calc_mom(app);
-    gkyl_gyrokinetic_app_write_mom(app, t_curr, iot->curr - 1);
+    gkyl_gyrokinetic_app_write_mom(app, t_curr, frame);
+    gkyl_gyrokinetic_app_write_source_mom(app, t_curr, frame);
+
+    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+    gkyl_gyrokinetic_app_write_field_energy(app);
+
+    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
+    gkyl_gyrokinetic_app_write_integrated_mom(app);
   }
 }
 
@@ -324,8 +352,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species square = {
     .name = "square",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.Lvpar/2.0, 0.0 },
-    .upper = {  ctx.Lvpar/2.0, ctx.Lmu }, 
+    .lower = { -ctx.vpar_max, 0.0 },
+    .upper = { ctx.vpar_max, ctx.mu_max }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -351,8 +379,8 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_species bump = {
     .name = "bump",
     .charge = ctx.charge, .mass = ctx.mass,
-    .lower = { -ctx.Lvpar/2.0, 0.0 },
-    .upper = {  ctx.Lvpar/2.0, ctx.Lmu }, 
+    .lower = { -ctx.vpar_max, 0.0 },
+    .upper = { ctx.vpar_max, ctx.mu_max }, 
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
@@ -426,26 +454,28 @@ main(int argc, char **argv)
   // Initial and final simulation times.
   double t_curr = 0.0, t_end = ctx.t_end;
 
-  // Create trigger for IO.
-  int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
+  // Create triggers for IO.
+  int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
+  struct gkyl_tm_trigger io_trig_int_diag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc) };
+  struct gkyl_tm_trigger io_trig_write = { .dt = t_end/num_frames };
 
   // Initialize simulation.
   gkyl_gyrokinetic_app_apply_ic(app, t_curr);
-  write_data(&io_trig, app, t_curr);
-
-  gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+  calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
+  write_data(&io_trig_write, app, t_curr, false);
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
+
+  // Initialize small time-step check.
+  double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
+  int num_failures = 0, num_failures_max = ctx.num_failures_max;
 
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-
-    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
 
     if (!status.success) {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -455,14 +485,35 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    write_data(&io_trig, app, t_curr);
+    calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
+    write_data(&io_trig_write, app, t_curr, false);
+
+    if (dt_init < 0.0) {
+      dt_init = status.dt_actual;
+    }
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      gkyl_gyrokinetic_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_gyrokinetic_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_gyrokinetic_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        gkyl_gyrokinetic_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_gyrokinetic_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, true);
+        write_data(&io_trig_write, app, t_curr, true);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
 
     step += 1;
   }
 
-  gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-
-  write_data(&io_trig, app, t_curr);
+  calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
+  write_data(&io_trig_write, app, t_curr, false);
   gkyl_gyrokinetic_app_stat_write(app);
   
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);

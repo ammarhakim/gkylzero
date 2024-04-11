@@ -68,7 +68,7 @@
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
-#include <gkyl_read_radiation.h>
+#include <gkyl_radiation_read.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_spitzer_coll_freq.h>
@@ -152,20 +152,22 @@ struct gk_species_moment {
 struct gk_rad_drag {  
   int num_cross_collisions; // number of species we cross-collide with
   struct gk_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
-  int collide_with_idx[GKYL_MAX_SPECIES]; // index of species we collide with
+  struct gk_neut_species *collide_with_neut[GKYL_MAX_SPECIES]; // pointers to neutral cross-species we collide with
+  int collide_with_idx[2*GKYL_MAX_SPECIES]; // index of species we collide with
+  bool is_neut_species[2*GKYL_MAX_SPECIES]; // Flag of whether neutral or gk species
   
   // drag coefficients in vparallel and mu for each species being collided with
-  struct gkyl_array *vnu_surf[GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vnu[GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vsqnu_surf[GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vsqnu[GKYL_MAX_SPECIES]; 
-  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vnu_surf[2*GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vnu[2*GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vsqnu_surf[2*GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vsqnu[2*GKYL_MAX_SPECIES]; 
+  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[2*GKYL_MAX_SPECIES]; 
 
-  struct gk_species_moment moms[GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
+  struct gk_species_moment moms[2*GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
 
   struct gk_species_moment m2; // m2 of radiation update (needed for emissivity)
-  struct gkyl_array *emissivity[GKYL_MAX_SPECIES];
-  struct gkyl_array *emissivity_host[GKYL_MAX_SPECIES];
+  struct gkyl_array *emissivity[2*GKYL_MAX_SPECIES];
+  struct gkyl_array *emissivity_host[2*GKYL_MAX_SPECIES];
   struct gkyl_array *emissivity_rhs;
   struct gkyl_array *emissivity_denominator;
 
@@ -174,6 +176,15 @@ struct gk_rad_drag {
   struct gkyl_array *nvsqnu_surf; // total mu radiation drag surface expansion including density scaling
   struct gkyl_array *nvsqnu; // total mu radiation drag volume expansion including density scaling
 
+  double vtsq_min; // Smallest vtsq that radiation is calculated
+  struct gkyl_array *prim_moms;
+  struct gkyl_array *boundary_corrections; // boundary corrections
+  struct gkyl_array *vtsq;
+  
+  gkyl_prim_lbo_calc *coll_pcalc; // primitive moment calculator to find te
+  struct gkyl_mom_calc_bcorr *bcorr_calc; // LBO boundary corrections calculator for prim_lbo_calc
+  struct gk_species_moment lab_moms; // moments needed for te (single array includes Zeroth, First, and Second moment)
+
   // host-side copies for I/O
   struct gkyl_array *nvnu_surf_host; 
   struct gkyl_array *nvnu_host; 
@@ -181,6 +192,12 @@ struct gk_rad_drag {
   struct gkyl_array *nvsqnu_host; 
 
   gkyl_dg_updater_collisions *drag_slvr; // radiation solver
+
+  struct gk_species_moment integ_moms; // integrated moments
+  double *red_integ_diag, *red_integ_diag_global; // for reduction of integrated moments
+  gkyl_dynvec integ_diag; // integrated moments reduced across grid
+  bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+  struct gkyl_array *integrated_moms_rhs;
 };
 
 // forward declare species struct
@@ -615,13 +632,13 @@ struct gk_field {
   bool phi_wall_lo_evolve; // flag to indicate biased wall potential on lower wall is time dependent
   struct gkyl_array *phi_wall_lo; // biased wall potential on lower wall
   struct gkyl_array *phi_wall_lo_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *phi_wall_lo_proj; // projector for biased wall potential on lower wall 
+  gkyl_eval_on_nodes *phi_wall_lo_proj; // projector for biased wall potential on lower wall 
 
   bool has_phi_wall_up; // flag to indicate there is biased wall potential on upper wall
   bool phi_wall_up_evolve; // flag to indicate biased wall potential on upper wall is time dependent
   struct gkyl_array *phi_wall_up; // biased wall potential on upper wall
   struct gkyl_array *phi_wall_up_host; // host copy for use in IO and projecting
-  gkyl_proj_on_basis *phi_wall_up_proj; // projector for biased wall potential on upper wall 
+  gkyl_eval_on_nodes *phi_wall_up_proj; // projector for biased wall potential on upper wall 
 
   // Core and SOL ranges for IWL sims. 
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
@@ -769,10 +786,11 @@ void gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
  * @param species Pointer to species
  * @param rad Species radiation drag object
  * @param fin Input distribution functions (size num_species)
+ * @param fin_neut Input neutral distribution functions (size num_species)
  */
 void gk_species_radiation_moms(gkyl_gyrokinetic_app *app,
   const struct gk_species *species, struct gk_rad_drag *rad, 
-  const struct gkyl_array *fin[]);
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute emissivities 
@@ -781,10 +799,24 @@ void gk_species_radiation_moms(gkyl_gyrokinetic_app *app,
  * @param species Pointer to species
  * @param rad Species radiation drag object
  * @param fin Input distribution functions (size num_species)
+ * @param fin_neut Input neutral distribution functions (size num_species)
  */
 void gk_species_radiation_emissivity(gkyl_gyrokinetic_app *app,
   struct gk_species *species, struct gk_rad_drag *rad, 
-  const struct gkyl_array *fin[]);
+  const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
+
+/**
+ * Compute integrated moments of radiation drag object
+ *
+ * @param app gyrokinetic app object
+ * @param species Pointer to species
+ * @param rad Species radiation drag object
+ * @param fin Input distribution functions (size num_species)
+ * @param fin_neut Input neutral distribution functions (size num_species)
+ */
+void
+gk_species_radiation_integrated_moms(gkyl_gyrokinetic_app *app, struct gk_species *species,
+				struct gk_rad_drag *rad, const struct gkyl_array *fin[], const struct gkyl_array *fin_neut[]);
 
 /**
  * Compute RHS from radiation drag object.

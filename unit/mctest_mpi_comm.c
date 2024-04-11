@@ -1033,17 +1033,18 @@ mpi_bcast_2d()
     int cuts21[] = {2, 1};
     mpi_bcast_2d_test(cuts21);
   
-  } else if (m_sz == 3) {
+  }
+  else if (m_sz == 3) {
     int cuts13[] = {1, 3};
     mpi_bcast_2d_test(cuts13);
   
     int cuts31[] = {3, 1};
     mpi_bcast_2d_test(cuts31);
 
-  } else if (m_sz == 4) {
+  }
+  else if (m_sz == 4) {
     int cuts22[] = {2, 2};
     mpi_bcast_2d_test(cuts22);
-  
   }
 }
 

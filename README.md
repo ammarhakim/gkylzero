@@ -183,6 +183,43 @@ to your desired directory, change ```rt_twostream``` for the name of your test
 there in (best to use search & replace), and run the makefile with ```make -j #```,
 where ```#``` is a responsibly chosen number of cores.
 
+Automatic regression testing
+----------------------------
+
+There is also an automatic regression testing system implemented within GkeyllZero,
+included as part of our larger automatic CI framework, which can be built in serial
+(for instance, for the gyrokinetics system) with:
+```
+make build/ci/gk_regression
+```
+or, in parallel, with:
+```
+make build/ci/gk_regression_parallel
+```
+and then run with:
+```
+./build/ci/gk_regression
+```
+or:
+```
+./build/ci/gk_regression_parallel
+```
+as necessary. By default, running the automatic regression testing system
+presents the user with an interactive list of numerical options (1 to run the
+full regression suite, 2 to view all regression results, 3 to run a specific
+regression test, 4 to view a specific regression result, 5 to (re)generate
+all accepted results, and 6 to (re)generate a specific accepted result).
+However, these options can also be passed in as command line arguments, so that:
+```
+./build/ci/gk_regression 3 4
+```
+will specifically run regression test number 4 in serial, with no additional
+interaction required from the user. The complete automatic CI framework can be
+built in a single step using:
+```
+make ci
+```
+
 Development philosophy
 ---------------------
 
