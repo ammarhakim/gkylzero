@@ -25,6 +25,7 @@
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_fluid_vars.h>
 #include <gkyl_dg_calc_sr_vars.h>
+#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_updater_fluid.h>
@@ -249,6 +250,11 @@ struct vm_species {
       struct gkyl_array *GammaV_inv; // Gamma_inv = sqrt(1 - V_drift^2/c^2), inverse Lorentz boost factor from bulk fluid velocity
 
       struct gkyl_dg_bin_op_mem *V_drift_mem; // memory used in the div-op for V_drift from M1i and M0
+    };
+    // Canonical Poisson Bracket using specified hamiltonian
+    struct {
+      struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
+      struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
     };
   };
 

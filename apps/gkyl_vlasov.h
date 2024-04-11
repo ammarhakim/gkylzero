@@ -106,6 +106,10 @@ struct gkyl_vlasov_species {
   void (*accel)(double t, const double *xn, double *aout, void *ctx);
   bool accel_evolve; // set to true if applied acceleration function is time dependent
 
+  void *hamil_ctx; // context for hamiltonian function
+  // pointer to hamilonian function
+  void (*hamil)(double t, const double *xn, double *aout, void *ctx);
+
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };

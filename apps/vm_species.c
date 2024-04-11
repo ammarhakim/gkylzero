@@ -142,6 +142,31 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
   }
+  else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
+    // Allocate arrays for specified hamiltonian
+    s->hamil = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+    s->hamil_host = s->hamil;
+    if (app->use_gpu){
+      s->hamil_host = mkarr(false, app->basis.num_basis, s->local_ext.volume);
+    }
+
+    // Evaluate specified hamiltonian function at nodes to insure continuity of hamiltoniam
+    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&s->grid, &app->basis, 1, s->info.hamil, s->info.hamil_ctx);
+    gkul_eval_on_nodes_advance(hamil_proj, 0.0, s->local_ext, s->hamil_host);
+    if (app->use_gpu){
+      gkyl_array_copy(s->hamil, s->hamil_host);
+    }
+    gkyl_eval_on_nodes_release(hamil_proj);
+
+    // By default we do not have zero-flux boundary cond in any dir
+    bool is_zero_flux[GKYL_MAX_DIM] = {false};
+    struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil};
+
+    //create solver
+    s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
+      &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+
+  }
   else {
     // by default, we do not have zero-flux boundary conditions in any direction
     bool is_zero_flux[GKYL_MAX_DIM] = {false};
@@ -507,6 +532,12 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
       gkyl_array_release(s->gamma_inv_host);
     }
     gkyl_dg_bin_op_mem_release(s->V_drift_mem);
+  }
+  else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
+    gkyl_array_release(s->hamil);
+    if (app->use_gpu){
+      gkyl_array_rlease(s->hamil_host);
+    }
   }
 
   // release equation object and solver
