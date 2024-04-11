@@ -43,9 +43,6 @@ struct riem_ctx
   double Bzl; // Left total magneic field (z-direction).
   double Bzr; // Right total magnetic field (z-direction).
 
-  bool has_collision; // Whether to include collisions.
-  double nu_base_ei; // Base electron-ion collision frequency.
-
   // Derived physical quantities (using normalized code units).
   double rhol_elc; // Left electron mass density.
   double rhor_elc; // Right electron mass density.
@@ -54,9 +51,12 @@ struct riem_ctx
   int Nx; // Cell count (x-direction).
   double Lx; // Domain size (x-direction).
   double cfl_frac; // CFL coefficient.
+
   double t_end; // Final simulation time.
   double init_dt; // Initial time step guess so first step does not generate NaN
   int num_frames; // Number of output frames.
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
 struct riem_ctx
@@ -80,9 +80,6 @@ create_ctx(void)
   double Bzl = 1.0e-2; // Left total magneic field (z-direction).
   double Bzr = -1.0e-2; // Right total magnetic field (z-direction).
 
-  bool has_collision = false; // Whether to include collisions.
-  double nu_base_ei = 0.5; // Base electron-ion collision frequency.
-
   // Derived physical quantities (using normalized code units).
   double rhol_elc = rhol_ion * mass_elc / mass_ion; // Left electron mass density.
   double rhor_elc = rhor_ion * mass_elc / mass_ion; // Right electron mass density.
@@ -92,9 +89,11 @@ create_ctx(void)
   double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 1.0; // CFL coefficient.
   double t_end = 0.05; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.  
   // initial dt guess so first step does not generate NaN (speed of light = 1.0)
   double init_dt = (Lx/Nx)/5.0;
-  int num_frames = 1; // Number of output frames.
   
   struct riem_ctx ctx = {
     .gas_gamma = gas_gamma,
@@ -111,16 +110,16 @@ create_ctx(void)
     .Bx = Bx,
     .Bzl = Bzl,
     .Bzr = Bzr,
-    .has_collision = has_collision,
-    .nu_base_ei = nu_base_ei,
     .rhol_elc = rhol_elc,
     .rhor_elc = rhor_elc,
     .Nx = Nx,
     .Lx = Lx,
     .cfl_frac = cfl_frac,
     .t_end = t_end,
-    .init_dt = init_dt, 
     .num_frames = num_frames,
+    .init_dt = init_dt, 
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
@@ -132,13 +131,13 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0];
   struct riem_ctx *app = ctx;
 
-  double gas_gamma = app -> gas_gamma;
+  double gas_gamma = app->gas_gamma;
 
-  double pl = app -> pl;
-  double pr = app -> pr;
+  double pl = app->pl;
+  double pr = app->pr;
 
-  double rhol_elc = app -> rhol_elc;
-  double rhor_elc = app -> rhor_elc;
+  double rhol_elc = app->rhol_elc;
+  double rhor_elc = app->rhor_elc;
 
   double rho = 0.0;
   double p = 0.0;
@@ -166,12 +165,12 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0];
   struct riem_ctx *app = ctx;
 
-  double gas_gamma = app -> gas_gamma;
+  double gas_gamma = app->gas_gamma;
 
-  double rhol_ion = app -> rhol_ion;
-  double rhor_ion = app -> rhor_ion;
-  double pl = app -> pl;
-  double pr = app -> pr;
+  double rhol_ion = app->rhol_ion;
+  double rhor_ion = app->rhor_ion;
+  double pl = app->pl;
+  double pr = app->pr;
 
   double rho = 0.0;
   double p = 0.0;
@@ -199,9 +198,9 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0];
   struct riem_ctx *app = ctx;
 
-  double Bx = app -> Bx;
-  double Bzl = app -> Bzl;
-  double Bzr = app -> Bzr;
+  double Bx = app->Bx;
+  double Bzl = app->Bzl;
+  double Bzr = app->Bzr;
 
   double Bz = 0.0;
 
@@ -218,6 +217,19 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[3] = Bx, fout[4] = 0.0; fout[5] = Bz;
   // Set correction potentials.
   fout[6] = 0.0; fout[7] = 0.0;
+}
+
+void
+write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
+{
+  if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+    int frame = iot->curr - 1;
+    if (force_write) {
+      frame = iot->curr;
+    }
+
+    gkyl_vlasov_app_write(app, t_curr, frame);
+  }
 }
 
 int
@@ -385,30 +397,59 @@ main(int argc, char **argv)
   double t_curr = 0.0, t_end = ctx.t_end;
   double dt = ctx.init_dt;
 
-  // initialize simulation
-  gkyl_vlasov_app_apply_ic(app, t_curr);
-  
-  gkyl_vlasov_app_write(app, t_curr, 0);
+  // Create trigger for IO.
+  int num_frames = ctx.num_frames;
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
-  long step = 1, num_steps = app_args.num_steps;
-  while ((t_curr < t_end) && (step <= num_steps)) {
-    printf("Taking time-step at t = %g ...", t_curr);
+  // Initialize simulation.
+  gkyl_vlasov_app_apply_ic(app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
+
+  // Initialize small time-step check.
+  double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
+  int num_failures = 0, num_failures_max = ctx.num_failures_max;
+
+  long step = 1;
+  while ((t_curr < t_end) && (step <= app_args.num_steps)) {
+    gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
-    printf(" dt = %g\n", status.dt_actual);
+    gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
     if (!status.success) {
-      fprintf(stderr, "** Update method failed! Aborting simulation ....\n");
+      gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
+
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
+
+    write_data(&io_trig, app, t_curr, false);
+
+    if (dt_init < 0.0) {
+      dt_init = status.dt_actual;
+    }
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_vlasov_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
+
     step += 1;
   }
 
-  gkyl_vlasov_app_write(app, t_curr, 1);
+  write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_app_stat_write(app);
 
-  // fetch simulation statistics
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
   printf("\n");

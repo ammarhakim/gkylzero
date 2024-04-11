@@ -93,7 +93,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.  
   // initial dt guess so first step does not generate NaN (speed of light = 1.0)
-  double init_dt = (Lx/Nx)/3.0;
+  double init_dt = (Lx/Nx)/7.0;
   
   struct riem_ctx ctx = {
     .gas_gamma = gas_gamma,
@@ -360,13 +360,13 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "dg_5m_riem_p1",
+    .name = "dg_5m_riem_p3",
 
     .cdim = 1,
     .lower = { 0.0 },
     .upper = { ctx.Lx }, 
     .cells = { NX },
-    .poly_order = 1,
+    .poly_order = 3,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
