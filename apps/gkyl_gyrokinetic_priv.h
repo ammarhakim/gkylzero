@@ -1154,23 +1154,13 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Apply BCs to species distribution function
- * (note that sheath BCs are applied in gk_species_apply_bc_sheath.
+ * Apply BCs to species distribution function.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to species
  * @param f Field to apply BCs
  */
 void gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
-
-/**
- * Apply sheath BCs to species distribution function.
- *
- * @param app gyrokinetic app object
- * @param species Pointer to species
- * @param f Field to apply BCs
- */
-void gk_species_apply_bc_sheath(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
 
 /**
  * Fill stat object in app with collision timers.

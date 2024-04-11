@@ -418,12 +418,11 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     if (species->bc_is_np[d]) {
 
       switch (species->lower_bc[d].type) {
-//        // Apply sheath BCs at a different time (after computing phi).
-//        case GKYL_SPECIES_GK_SHEATH:
-//        case GKYL_SPECIES_GK_IWL:
-//          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
-//            app->field->phi_wall_lo, f, &app->local);
-//          break;
+        case GKYL_SPECIES_GK_SHEATH:
+        case GKYL_SPECIES_GK_IWL:
+          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
+            app->field->phi_wall_lo, f, &app->local);
+          break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
@@ -440,12 +439,11 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
       }
 
       switch (species->upper_bc[d].type) {
-//        // Apply sheath BCs at a different time (after computing phi).
-//        case GKYL_SPECIES_GK_SHEATH:
-//        case GKYL_SPECIES_GK_IWL:
-//          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
-//            app->field->phi_wall_up, f, &app->local);
-//          break;
+        case GKYL_SPECIES_GK_SHEATH:
+        case GKYL_SPECIES_GK_IWL:
+          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
+            app->field->phi_wall_up, f, &app->local);
+          break;
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
@@ -463,44 +461,6 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   }
 
   gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, f);
-
-  app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
-}
-
-// Apply sheath BCs to the distribution function.
-void
-gk_species_apply_bc_sheath(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
-{
-  struct timespec wst = gkyl_wall_clock();
-  
-  int cdim = app->cdim;
-
-  for (int d=0; d<cdim; ++d) {
-    if (species->bc_is_np[d]) {
-
-      switch (species->lower_bc[d].type) {
-        // Apply sheath BCs at a different time (after computing phi).
-        case GKYL_SPECIES_GK_SHEATH:
-        case GKYL_SPECIES_GK_IWL:
-          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
-            app->field->phi_wall_lo, f, &app->local);
-          break;
-        default:
-          break;
-      }
-
-      switch (species->upper_bc[d].type) {
-        // Apply sheath BCs at a different time (after computing phi).
-        case GKYL_SPECIES_GK_SHEATH:
-        case GKYL_SPECIES_GK_IWL:
-          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
-            app->field->phi_wall_up, f, &app->local);
-          break;
-        default:
-          break;
-      }      
-    }
-  }
 
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }

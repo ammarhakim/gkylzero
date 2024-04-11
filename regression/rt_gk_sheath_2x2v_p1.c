@@ -685,18 +685,11 @@ main(int argc, char **argv)
   // create trigger for IO
   struct gkyl_tm_trigger io_trig = { .dt = t_end/nframe, .tcurr = t_curr, .curr=frame };
 
-
   // initialize simulation
   struct gkyl_app_restart_status status;  
   if (app_args.is_restart) {
     printf("Restarting from frame %d at time = %g\n", frame, t_curr);
-    for ( int i = 0; i<app_inp.num_species; i++) {
-      status = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
-    }
-    for ( int i = 0; i<app_inp.num_neut_species; i++) {
-      status = gkyl_gyrokinetic_app_from_frame_neut_species(app, i, frame);
-    }
-    gkyl_gyrokinetic_app_from_frame_field(app, frame);
+    status = gkyl_gyrokinetic_app_read_from_frame(app, frame);
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_gyrokinetic_app_cout(app, stderr,
@@ -708,10 +701,6 @@ main(int argc, char **argv)
 
     status.frame = frame;
     status.stime = t_curr;
-
-    write_data(&io_trig, app, t_curr);
-    gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
-    gkyl_gyrokinetic_app_calc_integrated_mom(app, t_curr);
   }
   else {
     gkyl_gyrokinetic_app_apply_ic(app, t_curr);

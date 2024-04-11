@@ -394,6 +394,15 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
   const char *fname);
 
 /**
+ * Initialize the gyrokinetic app from a specific frame.
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame);
+
+/**
  * Initialize field from frame
  *
  * @param app App object
@@ -401,7 +410,6 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
  */
 struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame);
-
 
 /**
  * Initialize gyrokinetic species from file
