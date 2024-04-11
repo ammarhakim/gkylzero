@@ -7,6 +7,7 @@
 #include <gkyl_moment.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_gr_euler.h>
+#include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
 #include <gkyl_null_comm.h>
@@ -18,7 +19,7 @@
 
 #include <rt_arg_parse.h>
 
-struct blackhole_spherical_ctx
+struct blackhole_static_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -26,13 +27,17 @@ struct blackhole_spherical_ctx
   // Physical constants (using normalized code units).
   double gas_gamma; // Adiabatic index.
 
-  double rhol; // Left/inner fluid mass density.
-  double ul; // Left/inner fluid velocity.
-  double pl; // Left/inner fluid pressure.
+  double rhob; // Background fluid mass density.
+  double ub; // Background fluid velocity.
+  double pb; // Background fluid pressure.
 
-  double rhor; // Right/outer fluid mass density.
-  double ur; // Right/outer fluid velocity.
-  double pr; // Right/outer fluid pressure.
+  double rhol; // Left ring fluid mass density.
+  double ul; // Left ring fluid velocity.
+  double pl; // Left ring fluid pressure.
+
+  double rhor; // Right ring fluid mass density.
+  double ur; // Right ring fluid velocity.
+  double pr; // Right ring fluid pressure.
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime;
@@ -49,46 +54,55 @@ struct blackhole_spherical_ctx
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 
-  double rloc; // Fluid boundary (radial coordinate).
+  double r_inner; // Ring inner radius.
+  double r_outer; // Ring outer radius.
 };
 
-struct blackhole_spherical_ctx
+struct blackhole_static_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double gas_gamma = 1.4; // Adiabatic index.
+  double gas_gamma = 5.0 / 3.0; // Adiabatic index.
 
-  double rhol = 100.0; // Left/inner fluid mass density.
-  double ul = 0.0; // Left/inner fluid velocity.
-  double pl = 10.0; // Left/inner fluid pressure.
+  double rhob = 0.01; // Background fluid mass density.
+  double ub = 0.0; // Background fluid velocity.
+  double pb = 0.01; // Background fluid pressure.
 
-  double rhor = 0.01; // Right/outer fluid mass density.
-  double ur = 0.0; // Right/outer fluid velocity.
-  double pr = 0.01; // Right/outer fluid pressure.
+  double rhol = 1.0; // Left ring fluid mass density.
+  double ul = 0.0; // Left ring fluid velocity.
+  double pl = 0.1; // Left ring fluid pressure.
+
+  double rhor = 2.0; // Right ring fluid mass density.
+  double ur = 0.0; // Right ring fluid velocity.
+  double pr = 0.1; // Right ring fluid pressure.
 
   // Pointer to spacetime metric.
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.99, 0.5, 0.5, 0.0);
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.3, 0.0, 2.5, 2.5, 0.0);
 
   // Simulation parameters.
-  int Nx = 200; // Cell count (x-direction).
-  int Ny = 200; // Cell count (y-direction).
-  double Lx = 1.0; // Domain size (x-direction).
-  double Ly = 1.0; // Domain size (y-direction).
-  double cfl_frac = 0.3; // CFL coefficient.
+  int Nx = 800; // Cell count (x-direction).
+  int Ny = 800; // Cell count (y-direction).
+  double Lx = 5.0; // Domain size (x-direction).
+  double Ly = 5.0; // Domain size (y-direction).
+  double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 0.25; // Final simulation time.
+  double t_end = 5.0; // Final simulation time.
   int num_frames = 100; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  double rloc = 0.5 * (0.25 + 1.25); // Fluid boundary (radial coordinate).
+  double r_inner = 1.2; // Ring inner radius.
+  double r_outer = 2.4; // Ring outer radius.
 
-  struct blackhole_spherical_ctx ctx = {
+  struct blackhole_static_ctx ctx = {
     .pi = pi,
     .gas_gamma = gas_gamma,
+    .rhob = rhob,
+    .ub = ub,
+    .pb = pb,
     .rhol = rhol,
     .ul = ul,
     .pl = pl,
@@ -105,7 +119,8 @@ create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .rloc = rloc,
+    .r_inner = r_inner,
+    .r_outer = r_outer,
   };
 
   return ctx;
@@ -115,9 +130,13 @@ void
 evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct blackhole_spherical_ctx *app = ctx;
+  struct blackhole_static_ctx *app = ctx;
 
   double gas_gamma = app->gas_gamma;
+
+  double rhob = app->rhob;
+  double ub = app->ub;
+  double pb = app->pb;
 
   double rhol = app->rhol;
   double ul = app->ul;
@@ -129,23 +148,34 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
-  double rloc = app->rloc;
+  double r_inner = app->r_inner;
+  double r_outer = app->r_outer;
+
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double rho = 0.0;
   double u = 0.0;
   double p = 0.0;
 
-  double r = sqrt((x - 0.2) * (x - 0.2) + (y - 0.2) * (y - 0.2));
+  double r = sqrt((x - (0.5 * Lx)) * (x - (0.5 * Lx)) + (y - (0.5 * Ly)) * (y - (0.5 * Ly)));
 
-  if (r < 0.3) {
-    rho = rhol; // Fluid mass density (left/inner).
-    u = ul; // Fluid velocity (left/inner).
-    p = pl; // Fluid pressure (left/inner).
+  if (r > r_inner && r < r_outer) {
+    if (x < (0.5 * Lx)) {
+      rho = rhol; // Fluid mass density (left ring).
+      u = ul; // Fluid velocity (left ring).
+      p = pl; // Fluid pressure (left ring).
+    }
+    else {
+      rho = rhor; // Fluid mass density (right ring).
+      u = ur; // Fluid velocity (right ring).
+      p = pr; // Fluid pressure (right ring).
+    }
   }
   else {
-    rho = rhor; // Fluid mass density (right/outer).
-    u = ur; // Fluid velocity (right/outer).
-    p = pr; // Fluid pressure (right/outer).
+    rho = rhob; // Fluid mass density (background).
+    u = ub; // Fluid velocity (background).
+    p = pb; // Fluid pressure (background).
   }
   
   double spatial_det, lapse;
@@ -255,7 +285,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct blackhole_spherical_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct blackhole_static_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -349,12 +379,15 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_blackhole_spherical",
+    .name = "gr_blackhole_static",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
-    .upper = { 1.0, 1.0 },
+    .upper = { ctx.Lx, ctx.Ly },
     .cells = { NX, NY },
+
+    .scheme_type = GKYL_MOMENT_WAVE_PROP,
+    .mp_recon = app_args.mp_recon,
 
     .cfl_frac = ctx.cfl_frac,
 

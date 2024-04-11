@@ -202,7 +202,7 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29])
       }
     }
 
-    return max_eig;
+    return fabs(v_sq) + max_eig;
   }
   else {
     return pow(10.0, -8.0);
