@@ -102,7 +102,7 @@ create_ctx(void)
   double t_end = 5.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   // initial dt guess so first step does not generate NaN, light speed is 1.0 in code units
-  double init_dt = (Lx/Nx)/(6.0);
+  double init_dt = (Lx/Nx)/(10.0);
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -390,8 +390,8 @@ main(int argc, char **argv)
     .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },
     .upper = { 0.5 * ctx.Lx, 0.5 * ctx.Ly }, 
     .cells = { NX, NY },
-    .poly_order = 1,
-    .basis_type = app_args.basis_type,
+    .poly_order = 2,
+    .basis_type = GKYL_BASIS_MODAL_TENSOR,
     .cfl_frac = ctx.cfl_frac,
 
     .num_periodic_dir = 1,

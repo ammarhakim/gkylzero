@@ -230,7 +230,7 @@ static const gkyl_dg_em_limiter_kern_list ser_em_limiter_z_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_em_limiter_kern_list ten_em_limiter_x_kernels[] = {
   { NULL, em_vars_limiterx_1x_ser_p1, em_vars_limiterx_1x_ser_p2, em_vars_limiterx_1x_ser_p3 }, // 0
-  { NULL, em_vars_limiterx_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, em_vars_limiterx_2x_ser_p1, em_vars_limiterx_2x_tensor_p2, NULL }, // 1
   { NULL, em_vars_limiterx_3x_ser_p1, NULL, NULL }, // 2
 };
 
@@ -238,7 +238,7 @@ static const gkyl_dg_em_limiter_kern_list ten_em_limiter_x_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_em_limiter_kern_list ten_em_limiter_y_kernels[] = {
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, em_vars_limitery_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, em_vars_limitery_2x_ser_p1, em_vars_limitery_2x_tensor_p2, NULL }, // 1
   { NULL, em_vars_limitery_3x_ser_p1, NULL, NULL }, // 2
 };
 
