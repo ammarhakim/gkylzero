@@ -22,14 +22,14 @@ GKYL_CU_DH void fluid_em_coupling_set_2x_tensor_p2(int count,
   // Clear matrix and rhs source solve. 
   gkyl_mat_clear(&lhs, 0.0); gkyl_mat_clear(&rhs, 0.0); 
 
-  double rho[num_species][9]; 
-  double rhoux[num_species][9]; 
-  double rhouy[num_species][9]; 
-  double rhouz[num_species][9]; 
+  double rho[GKYL_MAX_SPECIES][9]; 
+  double rhoux[GKYL_MAX_SPECIES][9]; 
+  double rhouy[GKYL_MAX_SPECIES][9]; 
+  double rhouz[GKYL_MAX_SPECIES][9]; 
 
-  double app_accel_x[num_species][9]; 
-  double app_accel_y[num_species][9]; 
-  double app_accel_z[num_species][9]; 
+  double app_accel_x[GKYL_MAX_SPECIES][9]; 
+  double app_accel_y[GKYL_MAX_SPECIES][9]; 
+  double app_accel_z[GKYL_MAX_SPECIES][9]; 
 
   for (int i = 0; i < num_species; ++i) { 
     double *inp_fluid = fluid[i]; 

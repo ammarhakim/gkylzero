@@ -148,7 +148,7 @@ void gkyl_dg_calc_fluid_vars_ke(struct gkyl_dg_calc_fluid_vars *up,
   struct gkyl_array* ke)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(p)) {
+  if (gkyl_array_is_cu_dev(ke)) {
     return gkyl_dg_calc_fluid_vars_ke_cu(up, conf_range, 
       fluid, u, ke);
   }

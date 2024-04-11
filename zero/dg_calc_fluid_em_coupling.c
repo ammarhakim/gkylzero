@@ -16,7 +16,7 @@ gkyl_dg_calc_fluid_em_coupling_new(const struct gkyl_basis* cbasis,
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_calc_fluid_em_coupling_cu_dev_new(wv_eqn, cbasis, mem_range, 
+    return gkyl_dg_calc_fluid_em_coupling_cu_dev_new(cbasis, mem_range, 
       num_fluids, qbym, epsilon0);
   } 
 #endif     
