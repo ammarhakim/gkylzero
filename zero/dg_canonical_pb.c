@@ -61,7 +61,6 @@ gkyl_dg_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   canonical_pb->eqn.boundary_surf_term = boundary_surf;
 
   // TODO: Change naming convention for Canonical PB
-  const gkyl_dg_canonical_pb_stream_vol_kern_list *stream_vol_kernels;
   const gkyl_dg_canonical_pb_vol_kern_list *vol_kernels;
   const gkyl_dg_canonical_pb_stream_surf_kern_list *stream_surf_x_kernels, *stream_surf_y_kernels, *stream_surf_z_kernels;
   const gkyl_dg_canonical_pb_accel_surf_kern_list *accel_surf_vx_kernels, *accel_surf_vy_kernels, *accel_surf_vz_kernels;
@@ -70,7 +69,6 @@ gkyl_dg_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      stream_vol_kernels = ser_stream_vol_kernels;
       vol_kernels = ser_vol_kernels;
       stream_surf_x_kernels = ser_stream_surf_x_kernels;
       stream_surf_y_kernels = ser_stream_surf_y_kernels;
