@@ -68,14 +68,26 @@ gkyl_iz_react_rate_cu_ker(const struct gkyl_dg_iz *up, const struct gkyl_range c
     double temp_elc_2;
     double temp_flr = 3.0; 
     
-    if (log_Te_av < minLogTe) t_idx=1;
-    else if (log_Te_av > maxLogTe) t_idx=resTe;
+    if (log_Te_av < minLogTe) {
+      t_idx=1;
+      log_Te_av = minLogTe;
+    }
+    else if (log_Te_av > maxLogTe) {
+      t_idx=resTe;
+      log_Te_av = maxLogTe;
+    }
     else t_idx = (log_Te_av - minLogTe)/(dlogTe)+1;
     cell_center = (t_idx - 0.5)*dlogTe + minLogTe;
     cell_vals_2d[0] = 2.0*(log_Te_av - cell_center)/dlogTe; // Te value on cell interval
       
-    if (log_m0_av < minLogM0) m0_idx=1;
-    else if (log_m0_av > maxLogM0) m0_idx=resM0;
+    if (log_m0_av < minLogM0) {
+      m0_idx=1;
+      log_m0_av = minLogM0;
+    }
+    else if (log_m0_av > maxLogM0) {
+      m0_idx=resM0;
+      log_m0_av = maxLogM0;
+    }
     else m0_idx = (log_m0_av - minLogM0)/(dlogM0)+1;
     cell_center = (m0_idx - 0.5)*dlogM0 + minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/dlogM0; // M0 value on cell interval

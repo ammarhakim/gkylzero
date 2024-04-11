@@ -198,14 +198,26 @@ void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up,
     double cell_vals_2d[2];
     double cell_center; 
 
-    if (log_Te_av < up->minLogTe) t_idx=1;
-    else if (log_Te_av > up->maxLogTe) t_idx=up->resTe;
+    if (log_Te_av < up->minLogTe) {
+      t_idx=1;
+      log_Te_av = up->minLogTe;
+    }
+    else if (log_Te_av > up->maxLogTe) {
+      t_idx=up->resTe;
+      log_Te_av = up->maxLogTe;
+    }
     else t_idx = (log_Te_av - up->minLogTe)/(up->dlogTe)+1;
     cell_center = (t_idx - 0.5)*up->dlogTe + up->minLogTe;
     cell_vals_2d[0] = 2.0*(log_Te_av - cell_center)/up->dlogTe; // Te value on cell interval
       
-    if (log_m0_av < up->minLogM0) m0_idx=1;
-    else if (log_m0_av > up->maxLogM0) m0_idx=up->resM0;
+    if (log_m0_av < up->minLogM0) {
+      m0_idx=1;
+      log_m0_av = up->minLogM0;
+    }
+    else if (log_m0_av > up->maxLogM0) {
+      m0_idx=up->resM0;
+      log_m0_av = up->maxLogM0;
+    }
     else m0_idx = (log_m0_av - up->minLogM0)/(up->dlogM0)+1;
     cell_center = (m0_idx - 0.5)*up->dlogM0 + up->minLogM0;
     cell_vals_2d[1] = 2.0*(log_m0_av - cell_center)/up->dlogM0; // M0 value on cell interval
