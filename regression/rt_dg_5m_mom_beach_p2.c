@@ -46,13 +46,16 @@ struct mom_beach_ctx
   double Lx100; // Domain size over 100 (x-direction).
   double x_last_edge; // Location of center of last cell.
   double cfl_frac; // CFL coefficient.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  double init_dt; // Initial time step guess so first step does not generate NaN
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 
   double deltaT; // Arbitrary constant, with units of time.
   double factor; // Numerical factor for calculation of electron number density.
   double omega_drive; // Drive current angular frequency.
-  double init_dt; // Initial time step guess so first step does not generate NaN
 };
 
 struct mom_beach_ctx
@@ -68,19 +71,21 @@ create_ctx(void)
   double mass_elc = 9.10938215e-31; // Electron mass.
   double charge_elc = -1.602176487e-19; // Electron charge.
 
-  double J0 = 1.0; // Reference current density (Amps / m^3).
+  double J0 = 1.0e-12; // Reference current density (Amps / m^3).
   
   // Derived physical quantities (using non-normalized physical units).
   double light_speed = 1.0 / sqrt(mu0 * epsilon0); // Speed of light.
 
   // Simulation parameters.
-  int Nx = 400; // Cell count (x-direction).
+  int Nx = 100; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Lx100 = Lx / 100.0; // Domain size over 100 (x-direction).
-  double x_last_edge = Lx / Nx; // Location of center of last cell.
+  double x_last_edge = Lx - Lx / Nx; // Location of center of last upper cell (low density side).
   double cfl_frac = 1.0; // CFL coefficient.
   double t_end = 5.0e-9; // Final simulation time.
   int num_frames = 100; // Number of output frames.
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   double deltaT = Lx100 / light_speed; // Arbitrary constant, with units of time.
   double factor = deltaT * deltaT * charge_elc * charge_elc / (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
@@ -104,6 +109,8 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
     .deltaT = deltaT,
     .factor = factor,
     .omega_drive = omega_drive,
@@ -119,14 +126,14 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0];
   struct mom_beach_ctx *app = ctx;
 
-  double gas_gamma = app -> gas_gamma;
-  double epsilon0 = app -> epsilon0;
-  double mass_elc = app -> mass_elc;
-  double charge_elc = app -> charge_elc;
+  double gas_gamma = app->gas_gamma;
+  double epsilon0 = app->epsilon0;
+  double mass_elc = app->mass_elc;
+  double charge_elc = app->charge_elc;
 
-  double light_speed = app -> light_speed;
+  double light_speed = app->light_speed;
 
-  double Lx100 = app -> Lx100;
+  double Lx100 = app->Lx100;
 
   double factor = app ->factor;
 
@@ -158,19 +165,20 @@ evalAppCurrent(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
   double x = xn[0];
   struct mom_beach_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double J0 = app -> J0;
+  double J0 = app->J0;
 
-  double light_speed = app -> light_speed;
+  double light_speed = app->light_speed;
 
-  double Lx = app -> Lx;
-  double Nx = app -> Nx;
-  double Lx100 = app -> Lx100;
-  double x_last_edge = app -> x_last_edge;
+  double Lx = app->Lx;
+  double Nx = app->Nx;
+  double Lx100 = app->Lx100;
+  double x_last_edge = app->x_last_edge;
 
-  double omega_drive = app -> omega_drive;
-
+  double omega_drive = app->omega_drive;
+  fout[0] = 0.0;
+  fout[2] = 0.0;
   if (x > x_last_edge) {
     // Set applied current.
     fout[1] = -J0 * sin(omega_drive * t);
@@ -178,13 +186,17 @@ evalAppCurrent(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 }
 
 void
-write_data(struct gkyl_tm_trigger *iot, gkyl_vlasov_app *app, double t_curr)
+write_data(struct gkyl_tm_trigger* iot, gkyl_vlasov_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
+    int frame = iot->curr - 1;
+    if (force_write) {
+      frame = iot->curr;
+    }
+
     gkyl_vlasov_app_write(app, t_curr, iot->curr-1);
   }
 }
-
 
 int
 main(int argc, char **argv)
@@ -223,7 +235,7 @@ main(int argc, char **argv)
     .elcErrorSpeedFactor = 0.0,
     .mgnErrorSpeedFactor = 0.0,
     .limit_em = true, 
-
+    
     .init = evalFieldInit,
     .ctx = &ctx,
     .app_current = evalAppCurrent,
@@ -344,40 +356,60 @@ main(int argc, char **argv)
   // start, end and initial time-step
   double t_curr = 0.0, t_end = ctx.t_end;
   double dt = ctx.init_dt;
+
+  // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  // create trigger for IO
-  struct gkyl_tm_trigger io_trig = { .dt = t_end/num_frames };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames };
 
   // initialize simulation
   gkyl_vlasov_app_apply_ic(app, t_curr);
-  write_data(&io_trig, app, t_curr);
-  gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
-  gkyl_vlasov_app_calc_field_energy(app, t_curr);  
+  write_data(&io_trig, app, t_curr, false);  
 
-  long step = 1, num_steps = app_args.num_steps;
-  while ((t_curr < t_end) && (step <= num_steps)) {
-    printf("Taking time-step at t = %g ...", t_curr);
+  // Initialize small time-step check.
+  double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
+  int num_failures = 0, num_failures_max = ctx.num_failures_max;
+
+  long step = 1;
+  while ((t_curr < t_end) && (step <= app_args.num_steps)) {
+    gkyl_vlasov_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_vlasov_update(app, dt);
-    printf(" dt = %g\n", status.dt_actual);
-
-    gkyl_vlasov_app_calc_integrated_mom(app, t_curr);
-    gkyl_vlasov_app_calc_field_energy(app, t_curr);    
+    gkyl_vlasov_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
     
     if (!status.success) {
-      printf("** Update method failed! Aborting simulation ....\n");
+      gkyl_vlasov_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
+
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
-    write_data(&io_trig, app, t_curr);
+
+    write_data(&io_trig, app, t_curr, false);
+
+    if (dt_init < 0.0) {
+      dt_init = status.dt_actual;
+    }
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      gkyl_vlasov_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_vlasov_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_vlasov_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        gkyl_vlasov_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_vlasov_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
 
     step += 1;
   }
 
+  write_data(&io_trig, app, t_curr, false);
   gkyl_vlasov_app_stat_write(app);
-  gkyl_vlasov_app_write_integrated_mom(app);
-  gkyl_vlasov_app_write_field_energy(app); 
-  // fetch simulation statistics
+
   struct gkyl_vlasov_stat stat = gkyl_vlasov_app_stat(app);
 
   printf("\n");

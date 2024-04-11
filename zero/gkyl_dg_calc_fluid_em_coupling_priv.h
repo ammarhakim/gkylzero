@@ -25,9 +25,9 @@ typedef void (*fluid_em_coupling_energy_t)(const double* ke_old, const double* k
   double* GKYL_RESTRICT fluid);
 
 // for use in kernel tables
-typedef struct { fluid_em_coupling_set_t kernels[3]; } gkyl_dg_fluid_em_coupling_set_kern_list;
-typedef struct { fluid_em_coupling_copy_t kernels[3]; } gkyl_dg_fluid_em_coupling_copy_kern_list;
-typedef struct { fluid_em_coupling_energy_t kernels[3]; } gkyl_dg_fluid_em_coupling_energy_kern_list;
+typedef struct { fluid_em_coupling_set_t kernels[4]; } gkyl_dg_fluid_em_coupling_set_kern_list;
+typedef struct { fluid_em_coupling_copy_t kernels[4]; } gkyl_dg_fluid_em_coupling_copy_kern_list;
+typedef struct { fluid_em_coupling_energy_t kernels[4]; } gkyl_dg_fluid_em_coupling_energy_kern_list;
 
 struct gkyl_dg_calc_fluid_em_coupling {
   int cdim; // Configuration space dimensionality
@@ -52,49 +52,49 @@ struct gkyl_dg_calc_fluid_em_coupling {
 // Set matrices for computing implicit source solve for fluid-em coupling (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_fluid_em_coupling_set_kern_list ser_fluid_em_coupling_set_kernels[] = {
-  { NULL, fluid_em_coupling_set_1x_ser_p1, fluid_em_coupling_set_1x_ser_p2 }, // 0
-  { NULL, fluid_em_coupling_set_2x_ser_p1, NULL }, // 1
-  { NULL, fluid_em_coupling_set_3x_ser_p1, NULL }, // 2
+  { NULL, fluid_em_coupling_set_1x_ser_p1, fluid_em_coupling_set_1x_ser_p2, fluid_em_coupling_set_1x_ser_p3 }, // 0
+  { NULL, fluid_em_coupling_set_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, fluid_em_coupling_set_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // Set matrices for computing implicit source solve for fluid-em coupling (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_fluid_em_coupling_set_kern_list ten_fluid_em_coupling_set_kernels[] = {
-  { NULL, fluid_em_coupling_set_1x_ser_p1, fluid_em_coupling_set_1x_ser_p2 }, // 0
-  { NULL, fluid_em_coupling_set_2x_ser_p1, fluid_em_coupling_set_2x_tensor_p2 }, // 1
-  { NULL, fluid_em_coupling_set_3x_ser_p1, NULL }, // 2
+  { NULL, fluid_em_coupling_set_1x_ser_p1, fluid_em_coupling_set_1x_ser_p2, fluid_em_coupling_set_1x_ser_p3 }, // 0
+  { NULL, fluid_em_coupling_set_2x_ser_p1, fluid_em_coupling_set_2x_tensor_p2, NULL }, // 1
+  { NULL, fluid_em_coupling_set_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // Copy solution for implicit source solve for fluid-em coupling (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_fluid_em_coupling_copy_kern_list ser_fluid_em_coupling_copy_kernels[] = {
-  { NULL, fluid_em_coupling_copy_1x_ser_p1, fluid_em_coupling_copy_1x_ser_p2 }, // 0
-  { NULL, fluid_em_coupling_copy_2x_ser_p1, NULL }, // 1
-  { NULL, fluid_em_coupling_copy_3x_ser_p1, NULL }, // 2
+  { NULL, fluid_em_coupling_copy_1x_ser_p1, fluid_em_coupling_copy_1x_ser_p2, fluid_em_coupling_copy_1x_ser_p3 }, // 0
+  { NULL, fluid_em_coupling_copy_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, fluid_em_coupling_copy_3x_ser_p1, NULL, NULL }, // 2
 };
 
 // Copy solution for implicit source solve for fluid-em coupling (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_fluid_em_coupling_copy_kern_list ten_fluid_em_coupling_copy_kernels[] = {
-  { NULL, fluid_em_coupling_copy_1x_ser_p1, fluid_em_coupling_copy_1x_ser_p2 }, // 0
-  { NULL, fluid_em_coupling_copy_2x_ser_p1, fluid_em_coupling_copy_2x_tensor_p2 }, // 1
-  { NULL, fluid_em_coupling_copy_3x_ser_p1, NULL }, // 2
+  { NULL, fluid_em_coupling_copy_1x_ser_p1, fluid_em_coupling_copy_1x_ser_p2, fluid_em_coupling_copy_1x_ser_p3 }, // 0
+  { NULL, fluid_em_coupling_copy_2x_ser_p1, fluid_em_coupling_copy_2x_tensor_p2, NULL }, // 1
+  { NULL, fluid_em_coupling_copy_3x_ser_p1, NULL, NULL }, // 2
 };
 
-// Compute energy from updated momentum and old pressure (Euler/5-moment) (Serendipity kernels)
+// Compute energy from updated kinetic energy and old kinetic energy (Euler/5-moment) (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_fluid_em_coupling_energy_kern_list ser_fluid_em_coupling_energy_kernels[] = {
-  { NULL, fluid_em_coupling_energy_1x_ser_p1, fluid_em_coupling_energy_1x_ser_p2 }, // 0
-  { NULL, fluid_em_coupling_energy_2x_ser_p1, NULL }, // 1
-  { NULL, fluid_em_coupling_energy_3x_ser_p1, NULL }, // 2
+  { NULL, fluid_em_coupling_energy_1x_ser_p1, fluid_em_coupling_energy_1x_ser_p2, fluid_em_coupling_energy_1x_ser_p3 }, // 0
+  { NULL, fluid_em_coupling_energy_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, fluid_em_coupling_energy_3x_ser_p1, NULL, NULL }, // 2
 };
 
-// Compute energy from updated momentum and old pressure (Euler/5-moment) (Tensor kernels)
+// Compute energy from updated kinetic energy and old kinetic energy (Euler/5-moment) (Tensor kernels)
 GKYL_CU_D
 static const gkyl_dg_fluid_em_coupling_energy_kern_list ten_fluid_em_coupling_energy_kernels[] = {
-  { NULL, fluid_em_coupling_energy_1x_ser_p1, fluid_em_coupling_energy_1x_ser_p2 }, // 0
-  { NULL, fluid_em_coupling_energy_2x_ser_p1, fluid_em_coupling_energy_2x_tensor_p2 }, // 1
-  { NULL, fluid_em_coupling_energy_3x_ser_p1, NULL }, // 2
+  { NULL, fluid_em_coupling_energy_1x_ser_p1, fluid_em_coupling_energy_1x_ser_p2, fluid_em_coupling_energy_1x_ser_p3 }, // 0
+  { NULL, fluid_em_coupling_energy_2x_ser_p1, fluid_em_coupling_energy_2x_tensor_p2, NULL }, // 1
+  { NULL, fluid_em_coupling_energy_3x_ser_p1, NULL, NULL }, // 2
 };
 
 GKYL_CU_D

@@ -91,7 +91,7 @@ create_ctx(void)
   double factor = deltaT * deltaT * charge_elc * charge_elc / (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
   double omega_drive = pi / 10.0 / deltaT; // Drive current angular frequency.
   // initial dt guess so first step does not generate NaN
-  double init_dt = ((Lx/Nx)/light_speed)/(3.0);
+  double init_dt = ((Lx/Nx)/light_speed)/(7.0);
 
   struct mom_beach_ctx ctx = {
     .pi = pi,
@@ -320,13 +320,13 @@ main(int argc, char **argv)
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "dg_5m_mom_beach_p1",
+    .name = "dg_5m_mom_beach_p3",
 
     .cdim = 1,
     .lower = { 0.0 },
     .upper = { ctx.Lx }, 
     .cells = { NX },
-    .poly_order = 1,
+    .poly_order = 3,
     .basis_type = app_args.basis_type,
     .cfl_frac = ctx.cfl_frac,
 
