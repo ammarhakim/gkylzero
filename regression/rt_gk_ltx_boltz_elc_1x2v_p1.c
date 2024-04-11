@@ -54,7 +54,7 @@ struct gk_app_ctx {
   int num_cell_mu;
   int poly_order;
   double vpar_max_ion;  double mu_max_ion;
-  double final_time;   int num_frames;
+  double t_end;   int num_frames;
   int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
@@ -343,7 +343,7 @@ create_ctx(void)
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = mi*pow(1.5*4*vti,2)/(2*B0);
 
-  double final_time = 1e-3;
+  double t_end = 1e-3;
   int num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -377,7 +377,7 @@ create_ctx(void)
     .poly_order = poly_order,
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
 
-    .final_time = final_time,  .num_frames = num_frames,
+    .t_end = t_end,  .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
@@ -600,27 +600,49 @@ int main(int argc, char **argv)
       .comm = comm
     }
   };
+  
 
-  // create app object
-  printf("Creating app object ...\n");
+  // Create app object.
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&gk);
 
-  // start, end and initial time-step
-  double t_curr = 0.0, t_end = ctx.final_time;
-  double dt = t_end-t_curr;
+  // Initial and final simulation times.
+  int frame_curr = 0;
+  double t_curr = 0.0, t_end = ctx.t_end;
+  // Initialize simulation.
+  if (app_args.is_restart) {
+    struct gkyl_app_restart_status status = gkyl_gyrokinetic_app_read_from_frame(app, app_args.restart_frame);
+
+    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
+      gkyl_gyrokinetic_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
+        gkyl_array_rio_status_msg(status.io_status));
+      goto freeresources;
+    }
+
+    frame_curr = status.frame;
+    t_curr = status.stime;
+
+    gkyl_gyrokinetic_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
+    gkyl_gyrokinetic_app_cout(app, stdout, " at time = %g\n", t_curr);
+  }
+  else {
+    gkyl_gyrokinetic_app_apply_ic(app, t_curr);
+  }  
+
   // Create triggers for IO.
   int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
-  struct gkyl_tm_trigger io_trig_int_diag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc) };
-  struct gkyl_tm_trigger io_trig_write = { .dt = t_end/num_frames };
+  struct gkyl_tm_trigger io_trig_write = { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig_int_diag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc),
+    .tcurr = t_curr, .curr = frame_curr };
 
-  // initialize simulation
-  printf("Applying initial conditions ...\n");
-  gkyl_gyrokinetic_app_apply_ic(app, t_curr);
-  printf("Computing initial diagnostics ...\n");
-  write_data(&io_trig_write, app, t_curr, false);
-  calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
-  printf("Computing initial field energy ...\n");
-  gkyl_gyrokinetic_app_calc_field_energy(app, t_curr);
+  if (!app_args.is_restart) {
+    // Write out ICs if not a restart.
+    calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
+    write_data(&io_trig_write, app, t_curr, false);
+  }
+
+
+  // initial time-step
+  double dt = t_end-t_curr;
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -693,7 +715,8 @@ int main(int argc, char **argv)
   gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld,\n", stat.nio);
   gkyl_gyrokinetic_app_cout(app, stdout, "IO time took %g secs \n", stat.io_tm);
 
-    // simulation complete, free app
+  freeresources:
+  // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
