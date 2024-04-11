@@ -31,7 +31,7 @@ minkowski_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const
   double*** spatial_metric_tensor);
 
 /**
-* Compute the rank-2 spacetime metric tensor at a given point in Minkowki space.
+* Compute the rank-2 spacetime metric tensor at a given point in Minkowski space.
 *
 * @param spacetime Base spacetime object.
 * @param t Time coordinate.

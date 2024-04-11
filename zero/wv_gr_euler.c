@@ -122,6 +122,35 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29])
 {
   double v[29] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, q, v);
+  double rho =  v[0];
+  double vx = v[1];
+  double vy = v[2];
+  double vz = v[3];
+  double p = v[4];
+
+  double spatial_det = v[5];
+  double lapse = v[6];
+  double shift_x = v[7];
+  double shift_y = v[8];
+  double shift_z = v[9];
+
+  double **spatial_metric = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = malloc(sizeof(double) * 3);
+  }
+
+  spatial_metric[0][0] = v[10]; spatial_metric[0][1] = v[11]; spatial_metric[0][2] = v[12];
+  spatial_metric[1][0] = v[13]; spatial_metric[1][1] = v[14]; spatial_metric[1][2] = v[15];
+  spatial_metric[2][0] = v[16]; spatial_metric[2][1] = v[17]; spatial_metric[2][2] = v[18];
+
+  double **inv_spatial_metric = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+  }
+
+  inv_spatial_metric[0][0] = v[19]; inv_spatial_metric[0][1] = v[20]; inv_spatial_metric[0][2] = v[21];
+  inv_spatial_metric[1][0] = v[22]; inv_spatial_metric[1][1] = v[23]; inv_spatial_metric[1][2] = v[24];
+  inv_spatial_metric[2][0] = v[25]; inv_spatial_metric[2][1] = v[26]; inv_spatial_metric[2][2] = v[27];
 
   bool in_excision_region = false;
   if (v[28] < pow(10.0, -8.0)) {
@@ -129,15 +158,51 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29])
   }
 
   if (!in_excision_region) {
-    double rho = v[0];
-    double p = v[4];
+    double *vel = malloc(sizeof(double) * 3);
+    double v_sq = 0.0;
+    vel[0] = vx; vel[1] = vy; vel[2] = vz;
+
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+      }
+    }
+
+    double *shift = malloc(sizeof(double) * 3);
+    shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
 
     double num = (gas_gamma * p) / rho;
-    double den = 1.0 * ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
-    double cs = sqrt(num / den);
+    double den = 1.0 * ((p / rho) * (gas_gamma) / (gas_gamma - 1.0));
+    double c_s = sqrt(num / den);
 
-    double v_sq = sqrt((v[1] * v[1]) + (v[2] * v[2]) + (v[3] * v[3]));
-    return fabs(v_sq) + cs;
+    double *material_eigs = malloc(sizeof(double) * 3);
+    double *fast_acoustic_eigs = malloc(sizeof(double) * 3);
+    double *slow_acoustic_eigs = malloc(sizeof(double) * 3);
+
+    for (int i = 0; i < 3; i++) {
+      material_eigs[i] = (lapse * vel[i]) - shift[i];
+
+      fast_acoustic_eigs[i] = (lapse / (1.0 - (v_sq * (c_s * c_s)))) * ((vel[i] * (1.0 - (c_s * c_s))) +
+        (c_s * sqrt((1.0 - v_sq) * (inv_spatial_metric[i][i] * (1.0 - (v_sq * (c_s * c_s))) - (vel[i] * vel[i]) * (1.0 - (c_s * c_s)))))) - shift[i];
+      
+      slow_acoustic_eigs[i] = (lapse / (1.0 - (v_sq * (c_s * c_s)))) * ((vel[i] * (1.0 - (c_s * c_s))) -
+        (c_s * sqrt((1.0 - v_sq) * (inv_spatial_metric[i][i] * (1.0 - (v_sq * (c_s * c_s))) - (vel[i] * vel[i]) * (1.0 - (c_s * c_s)))))) - shift[i];
+    }
+
+    double max_eig = 0.0;
+    for (int i = 0; i < 3; i++) {
+      if (fabs(material_eigs[i]) > max_eig) {
+        max_eig = fabs(material_eigs[i]);
+      }
+      if (fabs(fast_acoustic_eigs[i]) > max_eig) {
+        max_eig = fabs(fast_acoustic_eigs[i]);
+      }
+      if (fabs(slow_acoustic_eigs[i]) > max_eig) {
+        max_eig = fabs(slow_acoustic_eigs[i]);
+      }
+    }
+
+    return max_eig;
   }
   else {
     return pow(10.0, -8.0);
