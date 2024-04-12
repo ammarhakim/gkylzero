@@ -36,6 +36,9 @@ gkyl_canonical_pb_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_ca
 
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   canonical_pb->auxfields.hamil = auxin.hamil;
+  canonical_pb->auxfields.alpha_surf = auxin.alpha_surf;
+  canonical_pb->auxfields.sgn_alpha_surf = auxin.sgn_alpha_surf;
+  canonical_pb->auxfields.const_sgn_alpha = auxin.const_sgn_alpha;
 }
 
 struct gkyl_dg_eqn*
@@ -112,6 +115,9 @@ gkyl_dg_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
   for (int i=0; i<vdim; ++i) assert(canonical_pb->accel_boundary_surf[i]);
 
   canonical_pb->auxfields.hamil = 0;  
+  canonical_pb->auxfields.alpha_surf = 0;
+  canonical_pb->auxfields.sgn_alpha_surf = 0;
+  canonical_pb->auxfields.const_sgn_alpha = 0;
   canonical_pb->phase_range = *phase_range;
 
   canonical_pb->eqn.flags = 0;

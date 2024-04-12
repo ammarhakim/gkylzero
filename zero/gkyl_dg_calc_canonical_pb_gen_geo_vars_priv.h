@@ -21,7 +21,7 @@ struct gkyl_dg_calc_canonical_pb_gen_geo_vars {
   struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
   int cdim; // Configuration space dimensionality
   int pdim; // Phase space dimensionality
-  canonical_pb_gen_geo_alpha_surf_t alpha_surf[3]; // kernel for computing surface expansion of phase space flux alpha
+  canonical_pb_gen_geo_alpha_surf_t alpha_surf[6]; // kernel for computing surface expansion of phase space flux alpha
   canonical_pb_gen_geo_alpha_surf_t alpha_edge_surf[3]; // kernel for computing surface expansion of phase space flux alpha
                                                // at upper configuration space edge
   uint32_t flags;
@@ -113,11 +113,11 @@ static canonical_pb_gen_geo_alpha_surf_t
 choose_canonical_pb_gen_geo_alpha_surf_kern(int dir, int cdim, int poly_order)
 {
   if (dir == 0)
-    return ser_canonical_pb_gen_geo_alpha_surfx_kernels[cdim].kernels[poly_order];
+    return ser_canonical_pb_gen_geo_alpha_surfx_kernels[cdim-1].kernels[poly_order];
   else if (dir == 1)
-    return ser_canonical_pb_gen_geo_alpha_surfy_kernels[cdim].kernels[poly_order];
+    return ser_canonical_pb_gen_geo_alpha_surfy_kernels[cdim-1].kernels[poly_order];
   else if (dir == 2)
-    return ser_canonical_pb_gen_geo_alpha_surfz_kernels[cdim].kernels[poly_order];
+    return ser_canonical_pb_gen_geo_alpha_surfz_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
 }
@@ -127,11 +127,11 @@ static canonical_pb_gen_geo_alpha_surf_t
 choose_canonical_pb_gen_geo_alpha_edge_surf_kern(int dir, int cdim, int poly_order)
 {
   if (dir == 0)
-    return ser_canonical_pb_gen_geo_alpha_edge_surfx_kernels[cdim].kernels[poly_order];
+    return ser_canonical_pb_gen_geo_alpha_edge_surfx_kernels[cdim-1].kernels[poly_order];
   else if (dir == 1)
-    return ser_canonical_pb_gen_geo_alpha_edge_surfy_kernels[cdim].kernels[poly_order];
+    return ser_canonical_pb_gen_geo_alpha_edge_surfy_kernels[cdim-1].kernels[poly_order];
   else if (dir == 2)
-    return ser_canonical_pb_gen_geo_alpha_edge_surfz_kernels[cdim].kernels[poly_order];
+    return ser_canonical_pb_gen_geo_alpha_edge_surfz_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
 }
@@ -142,11 +142,11 @@ static canonical_pb_gen_geo_alpha_surf_t
 choose_canonical_pb_gen_geo_alpha_surf_v_kern(int dir, int cdim, int poly_order)
 {
   if (dir == 0)
-    return ser_canonical_pb_gen_geo_alpha_surfvx_kernels[cdim].kernels[poly_order];
+    return ser_canonical_pb_gen_geo_alpha_surfvx_kernels[cdim-1].kernels[poly_order];
   else if (dir == 1)
-    return ser_canonical_pb_gen_geo_alpha_surfvy_kernels[cdim].kernels[poly_order];
+    return ser_canonical_pb_gen_geo_alpha_surfvy_kernels[cdim-1].kernels[poly_order];
   else if (dir == 2)
-    return ser_canonical_pb_gen_geo_alpha_surfvz_kernels[cdim].kernels[poly_order];
+    return ser_canonical_pb_gen_geo_alpha_surfvz_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
 }

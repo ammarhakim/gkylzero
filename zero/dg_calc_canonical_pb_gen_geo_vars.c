@@ -70,8 +70,12 @@ void gkyl_dg_calc_canonical_pb_gen_geo_vars_alpha_surf(struct gkyl_dg_calc_canon
     int* const_sgn_alpha_d = gkyl_array_fetch(const_sgn_alpha, loc_phase);
     for (int dir = 0; dir<cdim; ++dir) {
       const double *hamil_local =  gkyl_array_cfetch(hamil, loc_phase);
-      printf("hamil[0]: %1.3e, dir: %d, xc[0]: %1.3e, alpha_surf_d[0]: %1.3e, sgn_alpha_surf_d[0]: %1.3e\n",hamil_local[0],dir,xc[dir],alpha_surf_d[0],sgn_alpha_surf_d[0]);
+      
       const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
+        (const double*) gkyl_array_cfetch(hamil, loc_phase),
+        alpha_surf_d, sgn_alpha_surf_d);
+
+      const_sgn_alpha_d[dir+cdim] = up->alpha_surf[dir+cdim](xc, up->phase_grid.dx, 
         (const double*) gkyl_array_cfetch(hamil, loc_phase),
         alpha_surf_d, sgn_alpha_surf_d);
 

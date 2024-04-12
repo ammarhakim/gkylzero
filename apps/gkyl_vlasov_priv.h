@@ -256,6 +256,10 @@ struct vm_species {
     struct {
       struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket
       struct gkyl_array *hamil_host; // Host side hamiltonian array for intial projection
+
+      struct gkyl_array *alpha_surf; // Surface phase space velocity
+      struct gkyl_array *sgn_alpha_surf; // sign(alpha_surf) at quadrature points
+      struct gkyl_array *const_sgn_alpha; // boolean for if sign(alpha_surf) is a constant, either +1 or -1
     };
   };
 
