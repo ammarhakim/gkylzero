@@ -15,7 +15,7 @@ extern "C" {
 
 __global__ static void
 gkyl_dg_calc_fluid_em_coupling_set_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up,
-  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range, double dt, 
   const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], 
   const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
   struct gkyl_array* fluid[GKYL_MAX_SPECIES], struct gkyl_array* em)
@@ -80,7 +80,7 @@ gkyl_dg_calc_fluid_em_coupling_copy_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up
     }
     double *em_d = (double*) gkyl_array_fetch(em, loc);
 
-    up->fluid_copy(count, up->num_fluids, up->qbym, up->epsilon0, 
+    up->fluid_em_coupling_copy(linc1, up->num_fluids, up->qbym, up->epsilon0, 
       up->xs, fluids, em_d);
   }
 }
@@ -101,8 +101,8 @@ void gkyl_dg_calc_fluid_em_coupling_advance_cu(struct gkyl_dg_calc_fluid_em_coup
     app_accels[n] = app_accel[n]->on_dev;
   }
 
-  gkyl_dg_calc_fluid_em_coupling_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev, dt
-    up->As->on_dev, up->xs->on_dev, conf_range, 
+  gkyl_dg_calc_fluid_em_coupling_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev, 
+    up->As->on_dev, up->xs->on_dev, conf_range, dt, 
     app_accels, ext_em->on_dev, app_current->on_dev,
     fluids, em->on_dev);
 
@@ -116,7 +116,7 @@ void gkyl_dg_calc_fluid_em_coupling_advance_cu(struct gkyl_dg_calc_fluid_em_coup
 // CUDA kernel to set device pointers to fluid vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
-dg_calc_fluid_em_coupling_set_cu_dev_ptrs(struct gkyl_dg_calc_fluid_em_coupling *up, const struct gkyl_wv_eqn *wv_eqn, 
+dg_calc_fluid_em_coupling_set_cu_dev_ptrs(struct gkyl_dg_calc_fluid_em_coupling *up, 
   enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   up->fluid_em_coupling_set = choose_fluid_em_coupling_set_kern(b_type, cdim, poly_order);
@@ -127,7 +127,7 @@ dg_calc_fluid_em_coupling_set_cu_dev_ptrs(struct gkyl_dg_calc_fluid_em_coupling 
 gkyl_dg_calc_fluid_em_coupling*
 gkyl_dg_calc_fluid_em_coupling_cu_dev_new(const struct gkyl_basis* cbasis, 
   const struct gkyl_range *mem_range, 
-  int num_fluids, double qbym[GKYL_MAX_SPECIES], double epsilon)
+  int num_fluids, double qbym[GKYL_MAX_SPECIES], double epsilon0)
 {
   struct gkyl_dg_calc_fluid_em_coupling *up = (struct gkyl_dg_calc_fluid_em_coupling*) gkyl_malloc(sizeof(gkyl_dg_calc_fluid_em_coupling));
 
@@ -157,7 +157,7 @@ gkyl_dg_calc_fluid_em_coupling_cu_dev_new(const struct gkyl_basis* cbasis,
   struct gkyl_dg_calc_fluid_em_coupling *up_cu = (struct gkyl_dg_calc_fluid_em_coupling*) gkyl_cu_malloc(sizeof(gkyl_dg_calc_fluid_em_coupling));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_fluid_em_coupling), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_fluid_em_coupling_set_cu_dev_ptrs<<<1,1>>>(up_cu, wv_eqn->on_dev, b_type, cdim, poly_order);
+  dg_calc_fluid_em_coupling_set_cu_dev_ptrs<<<1,1>>>(up_cu, b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
