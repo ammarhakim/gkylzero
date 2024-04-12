@@ -171,12 +171,9 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     // 1. alpha_surf (surface phase space flux)
     // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
     // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
-    const struct gkyl_array *alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
-    const struct gkyl_array *sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
-    const struct gkyl_array *const_sgn_alpha = mk_int_arr(app->use_gpu, 3, s->local_ext.volume);
-
-    // Populate alpha_surf, sgn_alpha_surf, const_sgn_alpha
-    canonical_pb_alpha_surf_advance();
+    struct gkyl_array *alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
+    struct gkyl_array *sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
+    struct gkyl_array *const_sgn_alpha = mk_int_arr(app->use_gpu, 3, s->local_ext.volume);
 
     // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
     struct gkyl_dg_calc_canonical_pb_gen_geo_vars *calc_vars = gkyl_dg_calc_canonical_pb_gen_geo_vars_new(&s->grid, 
@@ -568,7 +565,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
     gkyl_array_release(s->hamil);
     if (app->use_gpu){
-      gkyl_array_rlease(s->hamil_host);
+      gkyl_array_release(s->hamil_host);
     }
   }
 

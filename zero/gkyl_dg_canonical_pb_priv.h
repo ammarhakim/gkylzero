@@ -12,15 +12,25 @@
 // Types for various kernels
 typedef double (*canonical_pb_stream_surf_t)(const double *w, const double *dxv,
   const double *hamil, 
+  const double *alpha_surf_edge, const double *alpha_surf_skin, 
+  const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+  const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef double (*canonical_pb_accel_surf_t)(const double *w, const double *dxv,
   const double *hamil,
+  const double *alpha_surf_l, const double *alpha_surf_r, 
+  const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+  const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef double (*canonical_pb_accel_boundary_surf_t)(const double *w, const double *dxv,
   const double *hamil, 
-  const int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out);
+  const double *alpha_surf_edge, const double *alpha_surf_skin, 
+  const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+  const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+  const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
+  
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[3]; } gkyl_dg_canonical_pb_vol_kern_list;
@@ -243,13 +253,22 @@ surf(const struct gkyl_dg_eqn *eqn,
   const double*  dxL, const double* dxC, const double* dxR,
   const int*  idxL, const int*  idxC, const int*  idxR,
   const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
-{
+{    
+  
+  // Each cell owns the *lower* edge surface alpha
+  // Since alpha is continuous, fetch alpha_surf in center cell for lower edge
+  // and fetch alpha_surf in right cell for upper edge
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
-  long pidx = gkyl_range_idx(&canonical_pb->phase_range, idxC);
-
-  return canonical_pb->accel_surf[dir-canonical_pb->cdim]
-    (xcC, dxC,
-      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx),
+  long pidxC = gkyl_range_idx(&canonical_pb->phase_range, idxC);
+  long pidxR = gkyl_range_idx(&canonical_pb->phase_range, idxR);
+  return canonical_pb->accel_surf[dir-canonical_pb->cdim](xcC, dxC,
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxC),
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxC), 
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxR), 
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxC), 
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxR), 
+      (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxC), 
+      (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxR), 
       qInL, qInC, qInR, qRhsOut);
 }
 
@@ -263,14 +282,20 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   const double* qInEdge, const double* qInSkin, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
-  long pidx = gkyl_range_idx(&canonical_pb->phase_range, idxSkin);  
 
   if (dir >= canonical_pb->cdim) {
-    long cidx = gkyl_range_idx(&canonical_pb->conf_range, idxSkin);
-    return canonical_pb->accel_boundary_surf[dir-canonical_pb->cdim]
-      (xcSkin, dxSkin,
-        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx),
-        edge, qInEdge, qInSkin, qRhsOut);
+    // Each cell owns the *lower* edge surface alpha
+    long pidxEdge = gkyl_range_idx(&canonical_pb->phase_range, idxEdge);
+    long pidxSkin = gkyl_range_idx(&canonical_pb->phase_range, idxSkin);
+    return canonical_pb->accel_boundary_surf[dir-canonical_pb->cdim](xcSkin, dxSkin,
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxSkin),
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxEdge), 
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxSkin), 
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxEdge), 
+      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxSkin), 
+      (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxEdge), 
+      (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxSkin), 
+      edge, qInEdge, qInSkin, qRhsOut);
   }
   return 0.;
 }

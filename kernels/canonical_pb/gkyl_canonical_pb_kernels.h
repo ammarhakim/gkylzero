@@ -92,8 +92,6 @@ GKYL_CU_DH double canonical_pb_boundary_surfy_2x2v_ser_p1(const double *w, const
           const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH int canonical_pb_alpha_surfvx_2x2v_ser_p1(const double *w, const double *dxv, const double *hamil, 
             double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
-GKYL_CU_DH int canonical_pb_alpha_edge_surfvx_2x2v_ser_p1(const double *w, const double *dxv, const double *hamil,
-              double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH double canonical_pb_surfvx_2x2v_ser_p1(const double *w, const double *dxv, const double *hamil, 
           const double *alpha_surf_l, const double *alpha_surf_r, 
           const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
@@ -148,8 +146,6 @@ GKYL_CU_DH double canonical_pb_boundary_surfy_2x2v_ser_p2(const double *w, const
           const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH int canonical_pb_alpha_surfvx_2x2v_ser_p2(const double *w, const double *dxv, const double *hamil, 
             double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
-GKYL_CU_DH int canonical_pb_alpha_edge_surfvx_2x2v_ser_p2(const double *w, const double *dxv, const double *hamil,
-              double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH double canonical_pb_surfvx_2x2v_ser_p2(const double *w, const double *dxv, const double *hamil, 
           const double *alpha_surf_l, const double *alpha_surf_r, 
           const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
@@ -218,8 +214,6 @@ GKYL_CU_DH double canonical_pb_boundary_surfz_3x3v_ser_p1(const double *w, const
           const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH int canonical_pb_alpha_surfvx_3x3v_ser_p1(const double *w, const double *dxv, const double *hamil, 
             double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
-GKYL_CU_DH int canonical_pb_alpha_edge_surfvx_3x3v_ser_p1(const double *w, const double *dxv, const double *hamil,
-              double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH double canonical_pb_surfvx_3x3v_ser_p1(const double *w, const double *dxv, const double *hamil, 
           const double *alpha_surf_l, const double *alpha_surf_r, 
           const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
@@ -232,8 +226,6 @@ GKYL_CU_DH double canonical_pb_boundary_surfvx_3x3v_ser_p1(const double *w, cons
           const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH int canonical_pb_alpha_surfvy_3x3v_ser_p1(const double *w, const double *dxv, const double *hamil, 
             double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
-GKYL_CU_DH int canonical_pb_alpha_edge_surfvy_3x3v_ser_p1(const double *w, const double *dxv, const double *hamil,
-              double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 GKYL_CU_DH double canonical_pb_surfvy_3x3v_ser_p1(const double *w, const double *dxv, const double *hamil, 
           const double *alpha_surf_l, const double *alpha_surf_r, 
           const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
