@@ -675,13 +675,13 @@ main(int argc, char **argv)
 
   // Create triggers for IO.
   int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
-  struct gkyl_tm_trigger io_trig_int_diag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc) };
-  struct gkyl_tm_trigger io_trig_write = { .dt = t_end/num_frames };
+  struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc) };
+  struct gkyl_tm_trigger trig_write = { .dt = t_end/num_frames };
 
   // Initialize simulation.
   gkyl_gyrokinetic_app_apply_ic(app, t_curr);
-  calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
-  write_data(&io_trig_write, app, t_curr, false);
+  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
+  write_data(&trig_write, app, t_curr, false);
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
@@ -704,8 +704,8 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
-    write_data(&io_trig_write, app, t_curr, false);
+    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
+    write_data(&trig_write, app, t_curr, false);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -719,8 +719,8 @@ main(int argc, char **argv)
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-        calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, true);
-        write_data(&io_trig_write, app, t_curr, true);
+        calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, true);
+        write_data(&trig_write, app, t_curr, true);
         break;
       }
     }
@@ -731,8 +731,8 @@ main(int argc, char **argv)
     step += 1;
   }
 
-  calc_integrated_diagnostics(&io_trig_int_diag, app, t_curr, false);
-  write_data(&io_trig_write, app, t_curr, false);
+  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, false);
+  write_data(&trig_write, app, t_curr, false);
   gkyl_gyrokinetic_app_stat_write(app);
   
   struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_app_stat(app);
