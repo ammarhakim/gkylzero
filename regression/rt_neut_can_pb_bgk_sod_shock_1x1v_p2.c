@@ -15,21 +15,20 @@ struct free_stream_ctx {
 
 static inline double sq(double x) { return x*x; }
 
-static inline double
-maxwelljuttner1D(double n, double px, double ux, double T)
+
+void
+hamil(double t, const double* xn, double* fout, void* ctx)
 {
+  double x = xn[0], v = xn[1];
+  fout[0] = 0.5*v*v;
+}
 
-  // Set the normalization  
-  double K1;
-  if (T == 1.0){
-    K1 = 0.601907230197235;
-  } else {
-    K1 = 0.495079105512939;
-  }
 
-  // All constants = 1 (c, m0, kb)
-  double gamma = 1.0/sqrt(1.0 - ux*ux);
-  return n/(2*K1)*exp(-(gamma/T)*(sqrt(1 + px*px) - ux*px ));
+static inline double
+maxwellian(double n, double v, double u, double vth)
+{
+  double v2 = (v - u)*(v - u);
+  return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
 }
 
 void
@@ -38,9 +37,9 @@ evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   struct free_stream_ctx *app = ctx;
   double x = xn[0], v = xn[1];
   if (x<0.5)
-    fout[0] = maxwelljuttner1D(1.0, v, 0.0, 1.0); //maxwellian(1.0, v, 0.0, 1.0);
+    fout[0] = maxwellian(1.0, v, 0.0, 1.0);
   else
-    fout[0] = maxwelljuttner1D(0.125, v, 0.0, sqrt(0.1/0.125)); //maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
+    fout[0] = maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
 }
 
 void
@@ -80,11 +79,13 @@ main(int argc, char **argv)
   // electrons
   struct gkyl_vlasov_species neut = {
     .name = "neut",
-    .model_id = GKYL_MODEL_SR,
+    .model_id = GKYL_MODEL_CANONICAL_PB,
     .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -10.0*ctx.vt},
     .upper = { 10.0*ctx.vt}, 
     .cells = { NV },
+    .hamil = hamil,
+    .hamil_ctx = &ctx,
 
     .ctx = &ctx,
     .init = evalDistFunc,
@@ -99,12 +100,12 @@ main(int argc, char **argv)
     //.num_diag_moments = 2,
     //.diag_moments = { "M0", "M1i" }, //, "Pressure"
     .num_diag_moments = 1,
-    .diag_moments = { "SRFiveMoments" },
+    .diag_moments = { "FiveMoments" },
   };
 
   // VM app
   struct gkyl_vm vm = {
-    .name = "neut_sr_bgk_sod_shock_1x1v_p2",
+    .name = "neut_can_pb_bgk_sod_shock_1x1v_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
