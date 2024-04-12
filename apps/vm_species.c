@@ -152,19 +152,51 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
 
     // Evaluate specified hamiltonian function at nodes to insure continuity of hamiltoniam
     struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&s->grid, &app->basis, 1, s->info.hamil, s->info.hamil_ctx);
-    gkul_eval_on_nodes_advance(hamil_proj, 0.0, s->local_ext, s->hamil_host);
+    gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &s->local_ext, s->hamil_host);
     if (app->use_gpu){
       gkyl_array_copy(s->hamil, s->hamil_host);
     }
     gkyl_eval_on_nodes_release(hamil_proj);
 
+    // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
+    struct gkyl_basis surf_basis, surf_quad_basis;
+    gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
+    gkyl_cart_modal_tensor(&surf_quad_basis, pdim-1, app->poly_order);
+
+    // always 3v
+    int alpha_surf_sz = 3*surf_basis.num_basis; 
+    int sgn_alpha_surf_sz = 3*surf_quad_basis.num_basis; // sign(alpha) is store at quadrature points
+
+    // allocate arrays to store fields: 
+    // 1. alpha_surf (surface phase space flux)
+    // 2. sgn_alpha_surf (sign(alpha_surf) at quadrature points)
+    // 3. const_sgn_alpha (boolean for if sign(alpha_surf) is a constant, either +1 or -1)
+    const struct gkyl_array *alpha_surf = mkarr(app->use_gpu, alpha_surf_sz, s->local_ext.volume);
+    const struct gkyl_array *sgn_alpha_surf = mkarr(app->use_gpu, sgn_alpha_surf_sz, s->local_ext.volume);
+    const struct gkyl_array *const_sgn_alpha = mk_int_arr(app->use_gpu, 3, s->local_ext.volume);
+
+    // Populate alpha_surf, sgn_alpha_surf, const_sgn_alpha
+    canonical_pb_alpha_surf_advance();
+
+    // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
+    struct gkyl_dg_calc_canonical_pb_gen_geo_vars *calc_vars = gkyl_dg_calc_canonical_pb_gen_geo_vars_new(&s->grid, 
+      &app->confBasis, &app->basis, app->use_gpu);
+    gkyl_dg_calc_canonical_pb_gen_geo_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, 
+      alpha_surf, sgn_alpha_surf, const_sgn_alpha);
+
     // By default we do not have zero-flux boundary cond in any dir
     bool is_zero_flux[GKYL_MAX_DIM] = {false};
-    struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil};
+    struct gkyl_dg_canonical_pb_auxfields aux_inp = {.hamil = s->hamil, .alpha_surf = alpha_surf, 
+      .sgn_alpha_surf = sgn_alpha_surf, .const_sgn_alpha = const_sgn_alpha};
 
     //create solver
     s->slvr = gkyl_dg_updater_vlasov_new(&s->grid, &app->confBasis, &app->basis, 
       &app->local, &s->local_vel, &s->local, is_zero_flux, s->model_id, s->field_id, &aux_inp, app->use_gpu);
+
+    // release memory
+    gkyl_array_release(alpha_surf);
+    gkyl_array_release(sgn_alpha_surf);
+    gkyl_array_release(const_sgn_alpha);
 
   }
   else {

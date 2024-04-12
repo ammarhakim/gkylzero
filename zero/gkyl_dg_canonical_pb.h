@@ -11,6 +11,9 @@
 // Specified hamiltonian in *Canonical* cordinates
 struct gkyl_dg_canonical_pb_auxfields { 
   const struct gkyl_array *hamil;
+  const struct gkyl_array *alpha_surf;
+  const struct gkyl_array *sgn_alpha_surf;
+  const struct gkyl_array *const_sgn_alpha;
 };
 
 /**
