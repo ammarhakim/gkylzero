@@ -1259,6 +1259,31 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
     }
   }
 
+
+  for (int i=0; i<app->num_neut_species; ++i) {
+    for (int m=0; m<app->neut_species[i].info.num_diag_moments; ++m) {
+
+      const char *fmt = "%s-%s_%s_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, app->neut_species[i].info.name,
+        app->neut_species[i].info.diag_moments[m], frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->neut_species[i].info.name,
+        app->neut_species[i].info.diag_moments[m], frame);
+
+      // Rescale moment by inverse of Jacobian
+      gkyl_dg_div_op_range(app->neut_species[i].moms[m].mem_geo, app->confBasis, 
+        0, app->neut_species[i].moms[m].marr, 0, app->neut_species[i].moms[m].marr, 0, 
+        app->gk_geom->jacobgeo, &app->local);      
+
+      if (app->use_gpu) {
+        gkyl_array_copy(app->neut_species[i].moms[m].marr_host, app->neut_species[i].moms[m].marr);
+      }
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
+        app->neut_species[i].moms[m].marr_host, fileNm);
+    }
+  }
+
   gyrokinetic_array_meta_release(mt);   
 }
 
