@@ -236,7 +236,7 @@ static const gkyl_dg_canonical_pb_accel_boundary_surf_kern_list ser_accel_bounda
 };
 
 // "Choose Kernel" based on cdim, vdim and polyorder
-#define CK(lst,cdim,poly_order) lst[cdim].kernels[poly_order]
+#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
 /**
  * Free vlasov eqn object.
@@ -254,22 +254,35 @@ surf(const struct gkyl_dg_eqn *eqn,
   const int*  idxL, const int*  idxC, const int*  idxR,
   const double* qInL, const double*  qInC, const double*  qInR, double* GKYL_RESTRICT qRhsOut)
 {    
-  
   // Each cell owns the *lower* edge surface alpha
   // Since alpha is continuous, fetch alpha_surf in center cell for lower edge
   // and fetch alpha_surf in right cell for upper edge
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidxC = gkyl_range_idx(&canonical_pb->phase_range, idxC);
   long pidxR = gkyl_range_idx(&canonical_pb->phase_range, idxR);
-  return canonical_pb->accel_surf[dir-canonical_pb->cdim](xcC, dxC,
-      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxC),
-      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxC), 
-      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxR), 
-      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxC), 
-      (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxR), 
-      (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxC), 
-      (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxR), 
-      qInL, qInC, qInR, qRhsOut);
+  if (dir < canonical_pb->cdim) {
+    return canonical_pb->stream_surf[dir](xcC, dxC,
+        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxC),
+        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxC), 
+        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxR), 
+        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxC), 
+        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxR), 
+        (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxC), 
+        (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxR), 
+        qInL, qInC, qInR, qRhsOut);    
+  }
+  else {
+    return canonical_pb->accel_surf[dir-canonical_pb->cdim](xcC, dxC,
+        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxC),
+        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxC), 
+        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxR), 
+        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxC), 
+        (const double*) gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxR), 
+        (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxC), 
+        (const int*) gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxR), 
+        qInL, qInC, qInR, qRhsOut);
+  }
+  return 0.;
 }
 
 GKYL_CU_D
