@@ -47,9 +47,7 @@ gkyl_dg_calc_fluid_em_coupling_set_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up,
     double *em_d = (double*) gkyl_array_fetch(em, loc);
 
     up->fluid_em_coupling_set(linc1, up->num_fluids, up->qbym, up->epsilon0, dt, 
-      up->As, up->xs, 
-      app_accels, ext_em_d, app_current_d,
-      fluids, em_d);
+      As, xs, app_accels, ext_em_d, app_current_d, fluids, em_d);
   }
 }
 
@@ -81,7 +79,7 @@ gkyl_dg_calc_fluid_em_coupling_copy_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up
     double *em_d = (double*) gkyl_array_fetch(em, loc);
 
     up->fluid_em_coupling_copy(linc1, up->num_fluids, up->qbym, up->epsilon0, 
-      up->xs, fluids, em_d);
+      xs, fluids, em_d);
   }
 }
 
