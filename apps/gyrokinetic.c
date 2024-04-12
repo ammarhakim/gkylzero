@@ -710,10 +710,12 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
-    gkyl_gyrokinetic_app_write_neut_species(app, i, tm, frame);
-    if (app->neut_species[i].source_id) {
-      if (app->neut_species[i].src.write_source) {
-        gkyl_gyrokinetic_app_write_source_neut_species(app, i, tm, frame);
+    if(frame == 0 || !app->neut_species[i].info.is_static) {
+      gkyl_gyrokinetic_app_write_neut_species(app, i, tm, frame);
+      if (app->neut_species[i].source_id) {
+        if (app->neut_species[i].src.write_source) {
+          gkyl_gyrokinetic_app_write_source_neut_species(app, i, tm, frame);
+        }
       }
     }
   }
