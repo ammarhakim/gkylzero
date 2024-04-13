@@ -63,7 +63,13 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
 
   // determine field-type 
   s->gkfield_id = app->field->gkfield_id;
-  s->gkmodel_id = GKYL_GK_MODEL_GEN_GEO;
+  if (s->info.no_by) {
+    printf("Here\n");
+    s->gkmodel_id = GKYL_GK_MODEL_NO_BY;
+  }
+  else {
+    s->gkmodel_id = GKYL_GK_MODEL_GEN_GEO;
+  }
 
   // allocate distribution function arrays
   s->f = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
