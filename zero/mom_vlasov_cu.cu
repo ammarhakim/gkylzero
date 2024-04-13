@@ -113,6 +113,16 @@ set_cu_ptrs(struct mom_type_vlasov* momt, int mom_id, enum gkyl_basis_type b_typ
       five_moments_kernels = ser_five_moments_kernels;
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      m0_kernels = tensor_m0_kernels;
+      m1i_kernels = tensor_m1i_kernels;
+      m2_kernels = tensor_m2_kernels;
+      m2ij_kernels = tensor_m2ij_kernels;
+      m3i_kernels = tensor_m3i_kernels;
+      m3ijk_kernels = tensor_m3ijk_kernels;
+      five_moments_kernels = tensor_five_moments_kernels;
+      break;
+
     default:
       assert(false);
       break;    
@@ -211,6 +221,10 @@ set_int_cu_ptrs(struct mom_type_vlasov* momt, enum gkyl_basis_type b_type, int v
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       momt->kernel = ser_int_mom_kernels[tblidx].kernels[poly_order];
+      break;
+
+    case GKYL_BASIS_MODAL_TENSOR:      
+      momt->kernel = tensor_int_mom_kernels[tblidx].kernels[poly_order];
       break;
 
     default:
