@@ -64,7 +64,6 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
   // determine field-type 
   s->gkfield_id = app->field->gkfield_id;
   if (s->info.no_by) {
-    printf("Here\n");
     s->gkmodel_id = GKYL_GK_MODEL_NO_BY;
   }
   else {
