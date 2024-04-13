@@ -553,6 +553,22 @@ gkyl_gyrokinetic_app_calc_mom(gkyl_gyrokinetic_app* app)
       }
     }    
   }
+
+  for (int i=0; i<app->num_neut_species; ++i) {
+    struct gk_neut_species *gk_ns = &app->neut_species[i];
+
+    for (int m=0; m<gk_ns->info.num_diag_moments; ++m) {
+      gk_neut_species_moment_calc(&gk_ns->moms[m], gk_ns->local, app->local, gk_ns->f);
+      app->stat.nmom += 1;
+    }
+    for (int m=0; m<gk_ns->src.num_diag_moments; ++m) {
+      if (gk_ns->source_id) {
+        gk_neut_species_moment_calc(&gk_ns->src.moms[m], gk_ns->local, app->local, gk_ns->src.source);
+        app->stat.nmom += 1;
+      }
+    }    
+  }
+
   app->stat.mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -716,6 +732,17 @@ gkyl_gyrokinetic_app_write(gkyl_gyrokinetic_app* app, double tm, int frame)
     }
   }
 
+  for (int i=0; i<app->num_neut_species; ++i) {
+    if(frame == 0 || !app->neut_species[i].info.is_static) {
+      gkyl_gyrokinetic_app_write_neut_species(app, i, tm, frame);
+      if (app->neut_species[i].source_id) {
+        if (app->neut_species[i].src.write_source) {
+          gkyl_gyrokinetic_app_write_source_neut_species(app, i, tm, frame);
+        }
+      }
+    }
+  }
+
   app->stat.io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
@@ -773,6 +800,35 @@ gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double t
   gyrokinetic_array_meta_release(mt);  
 }
 
+
+void
+gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+      .frame = frame,
+      .stime= tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->basis.id
+    }
+  );
+
+  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
+
+  const char *fmt = "%s-%s_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name, frame);
+
+  // copy data from device to host before writing it out
+  if (app->use_gpu) {
+    gkyl_array_copy(gk_ns->f_host, gk_ns->f);
+  }
+
+  gkyl_comm_array_write(gk_ns->comm, &gk_ns->grid, &gk_ns->local, mt, gk_ns->f_host, fileNm);
+
+  gyrokinetic_array_meta_release(mt);  
+}
+
 void
 gkyl_gyrokinetic_app_write_source_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
@@ -798,6 +854,36 @@ gkyl_gyrokinetic_app_write_source_species(gkyl_gyrokinetic_app* app, int sidx, d
   }
 
   gkyl_comm_array_write(gk_s->comm, &gk_s->grid, &gk_s->local, mt, gk_s->src.source_host, fileNm);
+
+  gyrokinetic_array_meta_release(mt);   
+}
+
+
+void
+gkyl_gyrokinetic_app_write_source_neut_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
+{
+  struct gkyl_array_meta *mt = gyrokinetic_array_meta_new( (struct gyrokinetic_output_meta) {
+      .frame = frame,
+      .stime= tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->basis.id
+    }
+  );
+
+  struct gk_neut_species *gk_ns = &app->neut_species[sidx];
+
+  // Write out the source distribution function
+  const char *fmt = "%s-%s_source_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gk_ns->info.name, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gk_ns->info.name, frame);
+
+  // copy data from device to host before writing it out
+  if (app->use_gpu) {
+    gkyl_array_copy(gk_ns->src.source_host, gk_ns->src.source);
+  }
+
+  gkyl_comm_array_write(gk_ns->comm, &gk_ns->grid, &gk_ns->local, mt, gk_ns->src.source_host, fileNm);
 
   gyrokinetic_array_meta_release(mt);   
 }
@@ -1195,6 +1281,31 @@ gkyl_gyrokinetic_app_write_mom(gkyl_gyrokinetic_app* app, double tm, int frame)
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
         app->species[i].moms[m].marr_host, fileNm);
+    }
+  }
+
+
+  for (int i=0; i<app->num_neut_species; ++i) {
+    for (int m=0; m<app->neut_species[i].info.num_diag_moments; ++m) {
+
+      const char *fmt = "%s-%s_%s_%d.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, app->neut_species[i].info.name,
+        app->neut_species[i].info.diag_moments[m], frame);
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->neut_species[i].info.name,
+        app->neut_species[i].info.diag_moments[m], frame);
+
+      // Rescale moment by inverse of Jacobian
+      gkyl_dg_div_op_range(app->neut_species[i].moms[m].mem_geo, app->confBasis, 
+        0, app->neut_species[i].moms[m].marr, 0, app->neut_species[i].moms[m].marr, 0, 
+        app->gk_geom->jacobgeo, &app->local);      
+
+      if (app->use_gpu) {
+        gkyl_array_copy(app->neut_species[i].moms[m].marr_host, app->neut_species[i].moms[m].marr);
+      }
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
+        app->neut_species[i].moms[m].marr_host, fileNm);
     }
   }
 
@@ -2272,7 +2383,11 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
   }
   for (int i=0; i<app->num_neut_species; i++) {
-    rstat = gkyl_gyrokinetic_app_from_frame_neut_species(app, i, frame);
+    int neut_frame = frame;
+    if (app->neut_species[i].info.is_static) {
+      neut_frame = 0;
+    }
+    rstat = gkyl_gyrokinetic_app_from_frame_neut_species(app, i, neut_frame);
   }
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
