@@ -14,11 +14,11 @@ extern "C" {
 }
 
 __global__ static void
-gkyl_dg_calc_fluid_em_coupling_set_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up,
+gkyl_dg_calc_fluid_em_coupling_set_one_fluid_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up,
   struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range, double dt, 
-  const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], 
+  const struct gkyl_array* app_accel, 
   const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
-  struct gkyl_array* fluid[GKYL_MAX_SPECIES], struct gkyl_array* em)
+  struct gkyl_array* fluid, struct gkyl_array* em)
 {
   int num_fluids = up->num_fluids;
   double *fluids[GKYL_MAX_SPECIES];
@@ -38,10 +38,8 @@ gkyl_dg_calc_fluid_em_coupling_set_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up,
     // linc will have jumps in it to jump over ghost cells
     long loc = gkyl_range_idx(&conf_range, idx);
 
-    for (int n=0; n<num_fluids; ++n) {
-      fluids[n] = (double*) gkyl_array_fetch(fluid[n], loc);
-      app_accels[n] = (const double*) gkyl_array_cfetch(app_accel[n], loc);
-    }
+    fluids[0] = (double*) gkyl_array_fetch(fluid, loc);
+    app_accels[0] = (const double*) gkyl_array_cfetch(app_accel, loc);
     const double *ext_em_d = (const double*) gkyl_array_cfetch(ext_em, loc);
     const double *app_current_d = (const double*) gkyl_array_cfetch(app_current, loc);
     double *em_d = (double*) gkyl_array_fetch(em, loc);
@@ -52,9 +50,9 @@ gkyl_dg_calc_fluid_em_coupling_set_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up,
 }
 
 __global__ static void
-gkyl_dg_calc_fluid_em_coupling_copy_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up, 
+gkyl_dg_calc_fluid_em_coupling_copy_one_fluid_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up, 
   struct gkyl_nmat *xs, struct gkyl_range conf_range,
-  struct gkyl_array* fluid[GKYL_MAX_SPECIES], struct gkyl_array* em)
+  struct gkyl_array* fluid, struct gkyl_array* em)
 {
   int num_fluids = up->num_fluids;
   double *fluids[GKYL_MAX_SPECIES];  
@@ -73,9 +71,76 @@ gkyl_dg_calc_fluid_em_coupling_copy_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up
     // linc will have jumps in it to jump over ghost cells
     long loc = gkyl_range_idx(&conf_range, idx);
 
-    for (int n=0; n<num_fluids; ++n) {
-      fluids[n] = (double*) gkyl_array_fetch(fluid[n], loc);
-    }
+    fluids[0] = (double*) gkyl_array_fetch(fluid, loc);
+    double *em_d = (double*) gkyl_array_fetch(em, loc);
+
+    up->fluid_em_coupling_copy(linc1, up->num_fluids, up->qbym, up->epsilon0, 
+      xs, fluids, em_d);
+  }
+}
+
+__global__ static void
+gkyl_dg_calc_fluid_em_coupling_set_two_fluids_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up,
+  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range, double dt, 
+  const struct gkyl_array* app_accel_1, const struct gkyl_array* app_accel_2, 
+  const struct gkyl_array* ext_em, const struct gkyl_array* app_current, 
+  struct gkyl_array* fluid_1, struct gkyl_array* fluid_2, struct gkyl_array* em)
+{
+  int num_fluids = up->num_fluids;
+  double *fluids[GKYL_MAX_SPECIES];
+  const double *app_accels[GKYL_MAX_SPECIES];  
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < conf_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long loc = gkyl_range_idx(&conf_range, idx);
+
+    fluids[0] = (double*) gkyl_array_fetch(fluid_1, loc);
+    fluids[1] = (double*) gkyl_array_fetch(fluid_2, loc);
+    app_accels[0] = (const double*) gkyl_array_cfetch(app_accel_1, loc);
+    app_accels[0] = (const double*) gkyl_array_cfetch(app_accel_2, loc);
+    const double *ext_em_d = (const double*) gkyl_array_cfetch(ext_em, loc);
+    const double *app_current_d = (const double*) gkyl_array_cfetch(app_current, loc);
+    double *em_d = (double*) gkyl_array_fetch(em, loc);
+
+    up->fluid_em_coupling_set(linc1, up->num_fluids, up->qbym, up->epsilon0, dt, 
+      As, xs, app_accels, ext_em_d, app_current_d, fluids, em_d);
+  }
+}
+
+__global__ static void
+gkyl_dg_calc_fluid_em_coupling_copy_two_fluids_cu_kernel(gkyl_dg_calc_fluid_em_coupling* up, 
+  struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  struct gkyl_array* fluid_1, struct gkyl_array* fluid_2, struct gkyl_array* em)
+{
+  int num_fluids = up->num_fluids;
+  double *fluids[GKYL_MAX_SPECIES];  
+  int idx[GKYL_MAX_DIM];
+
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < conf_range.volume;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // inverse index from linc1 to idx
+    // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
+    // since update_range is a subrange
+    gkyl_sub_range_inv_idx(&conf_range, linc1, idx);
+
+    // convert back to a linear index on the super-range (with ghost cells)
+    // linc will have jumps in it to jump over ghost cells
+    long loc = gkyl_range_idx(&conf_range, idx);
+
+    fluids[0] = (double*) gkyl_array_fetch(fluid_1, loc);
+    fluids[1] = (double*) gkyl_array_fetch(fluid_2, loc);
     double *em_d = (double*) gkyl_array_fetch(em, loc);
 
     up->fluid_em_coupling_copy(linc1, up->num_fluids, up->qbym, up->epsilon0, 
@@ -92,23 +157,31 @@ void gkyl_dg_calc_fluid_em_coupling_advance_cu(struct gkyl_dg_calc_fluid_em_coup
   struct gkyl_range conf_range = up->mem_range;
 
   int num_fluids = up->num_fluids;
-  struct gkyl_array* fluids[GKYL_MAX_SPECIES];
-  const struct gkyl_array* app_accels[GKYL_MAX_SPECIES];
-  for (int n=0; n<num_fluids; ++n) {
-    fluids[n] = fluid[n]->on_dev;
-    app_accels[n] = app_accel[n]->on_dev;
-  }
 
-  gkyl_dg_calc_fluid_em_coupling_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev, 
-    up->As->on_dev, up->xs->on_dev, conf_range, dt, 
-    app_accels, ext_em->on_dev, app_current->on_dev,
-    fluids, em->on_dev);
+  if (num_fluids == 1) {
+    gkyl_dg_calc_fluid_em_coupling_set_one_fluid_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev, 
+      up->As->on_dev, up->xs->on_dev, conf_range, dt, 
+      app_accel[0]->on_dev, ext_em->on_dev, app_current->on_dev,
+      fluid[0]->on_dev, em->on_dev);
+  }
+  else if (num_fluids == 2) {
+    gkyl_dg_calc_fluid_em_coupling_set_two_fluids_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev, 
+      up->As->on_dev, up->xs->on_dev, conf_range, dt, 
+      app_accel[0]->on_dev, app_accel[1]->on_dev, ext_em->on_dev, app_current->on_dev,
+      fluid[0]->on_dev, fluid[1]->on_dev, em->on_dev);
+  }
 
   bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
   assert(status);
 
-  gkyl_dg_calc_fluid_em_coupling_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
-    up->xs->on_dev, conf_range, fluids, em->on_dev);
+  if (num_fluids == 1) {
+    gkyl_dg_calc_fluid_em_coupling_copy_one_fluid_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
+      up->xs->on_dev, conf_range, fluid[0]->on_dev, em->on_dev);
+  }
+  else if (num_fluids == 2) {
+    gkyl_dg_calc_fluid_em_coupling_copy_two_fluids_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
+      up->xs->on_dev, conf_range, fluid[0]->on_dev, fluid[1]->on_dev, em->on_dev);
+  }
 }
 
 __global__ void
