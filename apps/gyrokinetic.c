@@ -399,14 +399,23 @@ static void
 calc_field(gkyl_gyrokinetic_app* app, double tcurr, const struct gkyl_array *fin[])
 {
   if (app->update_field) {
+    // Compute electrostatic potential from gyrokinetic Poisson's equation.
+    gk_field_accumulate_rho_c(app, app->field, fin);
+
+    // Compute ambipolar potential sheath values if using adiabatic electrons
+    // done here as the RHS update for all species should be complete before
+    // boundary fluxes are computed (ion fluxes needed for sheath values) 
+    // and these boundary fluxes are stored temporarily in ghost cells of RHS
+    if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+      gk_field_calc_ambi_pot_sheath_vals(app, app->field);
+
     // Compute biased wall potential if present and time-dependent.
     // Note: biased wall potential use eval_on_nodes. 
     // so does copy to GPU every call if app->use_gpu = true.
     if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
       gk_field_calc_phi_wall(app, app->field, tcurr);
 
-    // Compute electrostatic potential from gyrokinetic Poisson's equation.
-    gk_field_accumulate_rho_c(app, app->field, fin);
+    // Solve the field equation.
     gk_field_rhs(app, app->field);
   }
 }
@@ -482,6 +491,20 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     distf_neut[i] = app->neut_species[i].f;
+  }
+  if (app->update_field || app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+    for (int i=0; i<app->num_species; ++i) {
+      struct gk_species *s = &app->species[i];
+
+      // Compute advection speeds so we can compute the initial boundary flux.
+      gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars,
+        &app->local, &s->local, &s->local_ext,
+        app->field->phi_smooth, s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+
+      // Compute and store (in the ghost cell of of out) the boundary fluxes.
+      // NOTE: this overwrites ghost cells that may be used for sourcing.
+      gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+    }
   }
   calc_field_and_apply_bc(app, 0., distf, distf_neut);
 }
@@ -1628,7 +1651,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   double dtmin = DBL_MAX;
 
-  // compute necessary moments and boundary corrections for collisions
+  // Compute necessary moments and boundary corrections for collisions.
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       gk_species_lbo_moms(app, &app->species[i], 
@@ -1640,8 +1663,8 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
-  // compute necessary moments for cross-species collisions
-  // needs to be done after self-collisions moments, so separate loop over species
+  // Compute necessary moments for cross-species collisions.
+  // Needs to be done after self-collisions moments, so separate loop over species.
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) { 
       if (app->species[i].lbo.num_cross_collisions) {
@@ -1655,7 +1678,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
           &app->species[i].bgk, fin[i]);        
       }
     }
-    // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
+    // Compute reaction rates (e.g., ionization, recombination, or charge exchange).
     if (app->species[i].has_reactions) {
       gk_species_react_cross_moms(app, &app->species[i], 
         &app->species[i].react, fin[i], fin, fin_neut);
@@ -1664,7 +1687,7 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
       gk_species_react_cross_moms(app, &app->species[i], 
         &app->species[i].react_neut, fin[i], fin, fin_neut);
     }
-    // compute necessary drag coefficients for radiation operator
+    // Compute necessary drag coefficients for radiation operator.
     if (app->species[i].radiation_id == GKYL_GK_RADIATION) {
       gk_species_radiation_moms(app, &app->species[i], 
         &app->species[i].rad, fin, fin_neut);
@@ -1672,27 +1695,33 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   }
 
   for (int i=0; i<app->num_neut_species; ++i) {
-    // compute necessary reaction rates (e.g., ionization, recombination, or charge exchange)
+    // Compute reaction cross moments (e.g., ionization, recombination, or charge exchange).
     if (app->neut_species[i].has_neutral_reactions) {
       gk_neut_species_react_cross_moms(app, &app->neut_species[i], 
         &app->neut_species[i].react_neut, fin[i], fin, fin_neut);
     }
   }
 
-  // compute RHS of Gyrokinetic equation
+  // Compute RHS of Gyrokinetic equation.
   for (int i=0; i<app->num_species; ++i) {
-    double dt1 = gk_species_rhs(app, &app->species[i], fin[i], fout[i]);
+    struct gk_species *s = &app->species[i];
+    double dt1 = gk_species_rhs(app, s, fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
+
+    // Compute and store (in the ghost cell of of out) the boundary fluxes.
+    // NOTE: this overwrites ghost cells that may be used for sourcing.
+    if (app->update_field || app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
+      gk_species_bflux_rhs(app, s, &s->bflux, fin[i], fout[i]);
   }
 
-  // compute RHS of Neutrals 
+  // Compute RHS of neutrals.
   for (int i=0; i<app->num_neut_species; ++i) {
     double dt1 = gk_neut_species_rhs(app, &app->neut_species[i], fin_neut[i], fout_neut[i]);
     dtmin = fmin(dtmin, dt1);
   }
 
-  // compute plasma source term
-  // done here as the RHS update for all species should be complete before
+  // Compute plasma source term.
+  // Done here as the RHS update for all species should be complete before
   // in case we are using boundary fluxes as a component of our source function
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].source_id) {
@@ -1701,9 +1730,9 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
-  // compute neutral source term
-  // done here as the RHS update for all species should be complete before
-  // in case we are using boundary fluxes as a component of our source function
+  // Compute neutral source term.
+  // Done here as the RHS update for all species should be complete before
+  // in case we are using boundary fluxes as a component of our source function.
   for (int i=0; i<app->num_neut_species; ++i) {
     if (app->neut_species[i].source_id) {
       gk_neut_species_source_rhs(app, &app->neut_species[i], 
@@ -1711,28 +1740,19 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     }
   }
 
-  if (app->update_field) {
-    // Compute ambipolar potential sheath values if using adiabatic electrons
-    // done here as the RHS update for all species should be complete before
-    // boundary fluxes are computed (ion fluxes needed for sheath values) 
-    // and these boundary fluxes are stored temporarily in ghost cells of RHS
-    if (app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN)
-      gk_field_calc_ambi_pot_sheath_vals(app, app->field, fin, fout);
-  }
-
   double dt_max_rel_diff = 0.01;
-  // check if dtmin is slightly smaller than dt. Use dt if it is
+  // Check if dtmin is slightly smaller than dt. Use dt if it is
   // (avoids retaking steps if dt changes are very small).
   double dt_rel_diff = (dt-dtmin)/dt;
   if (dt_rel_diff > 0 && dt_rel_diff < dt_max_rel_diff)
     dtmin = dt;
 
-  // compute minimum time-step across all processors
+  // Compute minimum time-step across all processors.
   double dtmin_local = dtmin, dtmin_global;
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
   dtmin = dtmin_global;
   
-  // don't take a time-step larger that input dt
+  // Don't take a time-step larger that input dt.
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
 
@@ -2264,6 +2284,20 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       distf_neut[i] = app->neut_species[i].f;
+    }
+    if (app->update_field || app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN) {
+      for (int i=0; i<app->num_species; ++i) {
+        struct gk_species *s = &app->species[i];
+
+        // Compute advection speeds so we can compute the initial boundary flux.
+        gkyl_dg_calc_gyrokinetic_vars_alpha_surf(s->calc_gk_vars,
+          &app->local, &s->local, &s->local_ext,
+          app->field->phi_smooth, s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
+
+        // Compute and store (in the ghost cell of of out) the boundary fluxes.
+        // NOTE: this overwrites ghost cells that may be used for sourcing.
+        gk_species_bflux_rhs(app, s, &s->bflux, distf[i], distf[i]);
+      }
     }
     calc_field_and_apply_bc(app, rstat.stime, distf, distf_neut);
   }
