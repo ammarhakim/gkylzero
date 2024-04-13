@@ -17,7 +17,7 @@ gkyl_cart_modal_tensor_cu_dev_kern(struct gkyl_basis *basis, int ndim, int poly_
 
   basis->ndim = ndim;
   basis->poly_order = poly_order;
-  basis->num_basis = num_basis_list[ndim].count[poly_order];
+  basis->num_basis = pow(poly_order+1, ndim);
   basis->b_type = GKYL_BASIS_MODAL_TENSOR;  
   
   // function pointers
