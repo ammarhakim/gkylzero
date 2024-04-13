@@ -18,8 +18,8 @@ GKYL_CU_DH int canonical_pb_alpha_surfvx_1x1v_ser_p2(const double *w, const doub
 
   double *alphaL = &alpha_surf[3];
   double *sgn_alpha_surfL = &sgn_alpha_surf[3];
-  alphaL[0] = (-2.738612787525831*hamil[7]*rdvx2*rdx2)+2.121320343559642*hamil[3]*rdvx2*rdx2-1.224744871391589*hamil[1]*rdvx2*rdx2; 
-  alphaL[1] = 4.743416490252569*hamil[6]*rdvx2*rdx2-2.738612787525831*hamil[4]*rdvx2*rdx2; 
+  alphaL[0] = (-2.738612787525831*hamil[7]*rdx2)+2.121320343559642*hamil[3]*rdx2-1.224744871391589*hamil[1]*rdx2; 
+  alphaL[1] = 4.743416490252569*hamil[6]*rdx2-2.738612787525831*hamil[4]*rdx2; 
 
   int const_sgn_alpha_surf = 1;  
   

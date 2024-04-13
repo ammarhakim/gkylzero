@@ -26,22 +26,22 @@ GKYL_CU_DH int canonical_pb_alpha_surfvx_3x3v_ser_p1(const double *w, const doub
 
   double *alphaL = &alpha_surf[96];
   double *sgn_alpha_surfL = &sgn_alpha_surf[96];
-  alphaL[0] = (-2.738612787525831*hamil[65]*rdvx2*rdx2)+2.121320343559642*hamil[10]*rdvx2*rdx2-1.224744871391589*hamil[1]*rdvx2*rdx2; 
-  alphaL[2] = (-2.738612787525831*hamil[70]*rdvx2*rdx2)+2.121320343559642*hamil[23]*rdvx2*rdx2-1.224744871391589*hamil[7]*rdvx2*rdx2; 
-  alphaL[3] = (-2.738612787525831*hamil[71]*rdvx2*rdx2)+2.121320343559642*hamil[24]*rdvx2*rdx2-1.224744871391589*hamil[8]*rdvx2*rdx2; 
-  alphaL[4] = (-2.738612787525831*hamil[73]*rdvx2*rdx2)+2.121320343559642*hamil[29]*rdvx2*rdx2-1.224744871391589*hamil[13]*rdvx2*rdx2; 
-  alphaL[5] = (-2.738612787525831*hamil[76]*rdvx2*rdx2)+2.121320343559642*hamil[35]*rdvx2*rdx2-1.224744871391589*hamil[17]*rdvx2*rdx2; 
-  alphaL[8] = (-2.738612787525831*hamil[80]*rdvx2*rdx2)+2.121320343559642*hamil[42]*rdvx2*rdx2-1.224744871391589*hamil[22]*rdvx2*rdx2; 
-  alphaL[10] = (-2.738612787525831*hamil[81]*rdvx2*rdx2)+2.121320343559642*hamil[44]*rdvx2*rdx2-1.224744871391589*hamil[26]*rdvx2*rdx2; 
-  alphaL[11] = (-2.738612787525831*hamil[82]*rdvx2*rdx2)+2.121320343559642*hamil[45]*rdvx2*rdx2-1.224744871391589*hamil[27]*rdvx2*rdx2; 
-  alphaL[13] = (-2.738612787525831*hamil[84]*rdvx2*rdx2)+2.121320343559642*hamil[48]*rdvx2*rdx2-1.224744871391589*hamil[32]*rdvx2*rdx2; 
-  alphaL[14] = (-2.738612787525831*hamil[85]*rdvx2*rdx2)+2.121320343559642*hamil[49]*rdvx2*rdx2-1.224744871391589*hamil[33]*rdvx2*rdx2; 
-  alphaL[15] = (-2.738612787525831*hamil[87]*rdvx2*rdx2)+2.121320343559642*hamil[54]*rdvx2*rdx2-1.224744871391589*hamil[38]*rdvx2*rdx2; 
-  alphaL[19] = (-2.738612787525831*hamil[90]*rdvx2*rdx2)+2.121320343559642*hamil[57]*rdvx2*rdx2-1.224744871391589*hamil[43]*rdvx2*rdx2; 
-  alphaL[22] = (-2.738612787525831*hamil[91]*rdvx2*rdx2)+2.121320343559642*hamil[58]*rdvx2*rdx2-1.224744871391589*hamil[47]*rdvx2*rdx2; 
-  alphaL[24] = (-2.738612787525831*hamil[92]*rdvx2*rdx2)+2.121320343559642*hamil[60]*rdvx2*rdx2-1.224744871391589*hamil[51]*rdvx2*rdx2; 
-  alphaL[25] = (-2.738612787525831*hamil[93]*rdvx2*rdx2)+2.121320343559642*hamil[61]*rdvx2*rdx2-1.224744871391589*hamil[52]*rdvx2*rdx2; 
-  alphaL[30] = (-2.738612787525831*hamil[95]*rdvx2*rdx2)+2.121320343559642*hamil[63]*rdvx2*rdx2-1.224744871391589*hamil[59]*rdvx2*rdx2; 
+  alphaL[0] = (-2.738612787525831*hamil[65]*rdx2)+2.121320343559642*hamil[10]*rdx2-1.224744871391589*hamil[1]*rdx2; 
+  alphaL[2] = (-2.738612787525831*hamil[70]*rdx2)+2.121320343559642*hamil[23]*rdx2-1.224744871391589*hamil[7]*rdx2; 
+  alphaL[3] = (-2.738612787525831*hamil[71]*rdx2)+2.121320343559642*hamil[24]*rdx2-1.224744871391589*hamil[8]*rdx2; 
+  alphaL[4] = (-2.738612787525831*hamil[73]*rdx2)+2.121320343559642*hamil[29]*rdx2-1.224744871391589*hamil[13]*rdx2; 
+  alphaL[5] = (-2.738612787525831*hamil[76]*rdx2)+2.121320343559642*hamil[35]*rdx2-1.224744871391589*hamil[17]*rdx2; 
+  alphaL[8] = (-2.738612787525831*hamil[80]*rdx2)+2.121320343559642*hamil[42]*rdx2-1.224744871391589*hamil[22]*rdx2; 
+  alphaL[10] = (-2.738612787525831*hamil[81]*rdx2)+2.121320343559642*hamil[44]*rdx2-1.224744871391589*hamil[26]*rdx2; 
+  alphaL[11] = (-2.738612787525831*hamil[82]*rdx2)+2.121320343559642*hamil[45]*rdx2-1.224744871391589*hamil[27]*rdx2; 
+  alphaL[13] = (-2.738612787525831*hamil[84]*rdx2)+2.121320343559642*hamil[48]*rdx2-1.224744871391589*hamil[32]*rdx2; 
+  alphaL[14] = (-2.738612787525831*hamil[85]*rdx2)+2.121320343559642*hamil[49]*rdx2-1.224744871391589*hamil[33]*rdx2; 
+  alphaL[15] = (-2.738612787525831*hamil[87]*rdx2)+2.121320343559642*hamil[54]*rdx2-1.224744871391589*hamil[38]*rdx2; 
+  alphaL[19] = (-2.738612787525831*hamil[90]*rdx2)+2.121320343559642*hamil[57]*rdx2-1.224744871391589*hamil[43]*rdx2; 
+  alphaL[22] = (-2.738612787525831*hamil[91]*rdx2)+2.121320343559642*hamil[58]*rdx2-1.224744871391589*hamil[47]*rdx2; 
+  alphaL[24] = (-2.738612787525831*hamil[92]*rdx2)+2.121320343559642*hamil[60]*rdx2-1.224744871391589*hamil[51]*rdx2; 
+  alphaL[25] = (-2.738612787525831*hamil[93]*rdx2)+2.121320343559642*hamil[61]*rdx2-1.224744871391589*hamil[52]*rdx2; 
+  alphaL[30] = (-2.738612787525831*hamil[95]*rdx2)+2.121320343559642*hamil[63]*rdx2-1.224744871391589*hamil[59]*rdx2; 
 
   int const_sgn_alpha_surf = 1;  
   

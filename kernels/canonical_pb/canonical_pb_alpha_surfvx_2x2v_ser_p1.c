@@ -22,10 +22,10 @@ GKYL_CU_DH int canonical_pb_alpha_surfvx_2x2v_ser_p1(const double *w, const doub
 
   double *alphaL = &alpha_surf[16];
   double *sgn_alpha_surfL = &sgn_alpha_surf[16];
-  alphaL[0] = (-2.738612787525831*hamil[17]*rdvx2*rdx2)+2.121320343559642*hamil[6]*rdvx2*rdx2-1.224744871391589*hamil[1]*rdvx2*rdx2; 
-  alphaL[2] = (-2.738612787525831*hamil[20]*rdvx2*rdx2)+2.121320343559642*hamil[11]*rdvx2*rdx2-1.224744871391589*hamil[5]*rdvx2*rdx2; 
-  alphaL[3] = (-2.738612787525831*hamil[21]*rdvx2*rdx2)+2.121320343559642*hamil[13]*rdvx2*rdx2-1.224744871391589*hamil[8]*rdvx2*rdx2; 
-  alphaL[6] = (-2.738612787525831*hamil[23]*rdvx2*rdx2)+2.121320343559642*hamil[15]*rdvx2*rdx2-1.224744871391589*hamil[12]*rdvx2*rdx2; 
+  alphaL[0] = (-2.738612787525831*hamil[17]*rdx2)+2.121320343559642*hamil[6]*rdx2-1.224744871391589*hamil[1]*rdx2; 
+  alphaL[2] = (-2.738612787525831*hamil[20]*rdx2)+2.121320343559642*hamil[11]*rdx2-1.224744871391589*hamil[5]*rdx2; 
+  alphaL[3] = (-2.738612787525831*hamil[21]*rdx2)+2.121320343559642*hamil[13]*rdx2-1.224744871391589*hamil[8]*rdx2; 
+  alphaL[6] = (-2.738612787525831*hamil[23]*rdx2)+2.121320343559642*hamil[15]*rdx2-1.224744871391589*hamil[12]*rdx2; 
 
   int const_sgn_alpha_surf = 1;  
   
