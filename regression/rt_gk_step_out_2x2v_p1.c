@@ -1,12 +1,13 @@
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_const.h>
 #include <gkyl_fem_parproj.h>
-#include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_util.h>
 #include <rt_arg_parse.h>
 #include <gkyl_tok_geo.h>
 
@@ -15,6 +16,9 @@
 #ifdef GKYL_HAVE_MPI
 #include <mpi.h>
 #include <gkyl_mpi_comm.h>
+#ifdef GKYL_HAVE_NCCL
+#include <gkyl_nccl_comm.h>
+#endif
 #endif
 
 struct gk_step_ctx {
@@ -295,8 +299,8 @@ create_ctx(void)
   double vpar_max_Ar = 4.0*vtAr;
   double mu_max_Ar = 18.*mAr*vtAr*vtAr/(2.0*B0);
 
-  double t_end = 2.0e-7; 
-  double num_frames = 1;
+  double t_end = 4.0e-7; 
+  double num_frames = 2;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
@@ -375,8 +379,9 @@ main(int argc, char **argv)
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Init(&argc, &argv);
+  }
 #endif
 
   if (app_args.trace_mem) {
@@ -393,8 +398,9 @@ main(int argc, char **argv)
 
   int nrank = 1; // number of processors in simulation
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi)
+  if (app_args.use_mpi) {
     MPI_Comm_size(MPI_COMM_WORLD, &nrank);
+  }
 #endif  
 
   // create global range
@@ -402,34 +408,55 @@ main(int argc, char **argv)
   struct gkyl_range globalr;
   gkyl_create_global_range(2, cells, &globalr);
 
-  // create decomposition
-  int cuts[] = { 1, 1 };
+
+  // Create decomposition.
+  int cuts[2];
 #ifdef GKYL_HAVE_MPI  
-  if (app_args.use_mpi) {
-    cuts[0] = app_args.cuts[0];
-    cuts[1] = app_args.cuts[1];
+  for (int d = 0; d < 2; d++) {
+    if (app_args.use_mpi) {
+      cuts[d] = app_args.cuts[d];
+    }
+    else {
+      cuts[d] = 1;
+    }
+  }
+#else
+  for (int d = 0; d < cdim; d++) {
+    cuts[d] = 1;
   }
 #endif  
     
-  struct gkyl_rect_decomp *decomp =
-    gkyl_rect_decomp_new_from_cuts(globalr.ndim, cuts, &globalr);
+  struct gkyl_rect_decomp *decomp = gkyl_rect_decomp_new_from_cuts(globalr.ndim, cuts, &globalr);
 
-  // construct communcator for use in app
+  // Construct communcator for use in app
   struct gkyl_comm *comm;
 #ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
+  if (app_args.use_gpu && app_args.use_mpi) {
+#ifdef GKYL_HAVE_NCCL
+    comm = gkyl_nccl_comm_new( &(struct gkyl_nccl_comm_inp) {
+        .mpi_comm = MPI_COMM_WORLD,
+        .decomp = decomp
+      }
+    );
+#else
+    printf(" Using -g and -M together requires NCCL.\n");
+    assert(0 == 1);
+#endif
+  }
+  else if (app_args.use_mpi) {
     comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
         .mpi_comm = MPI_COMM_WORLD,
         .decomp = decomp
       }
     );
   }
-  else
+  else {
     comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
         .decomp = decomp,
         .use_gpu = app_args.use_gpu
       }
     );
+  }
 #else
   comm = gkyl_null_comm_inew( &(struct gkyl_null_comm_inp) {
       .decomp = decomp,
