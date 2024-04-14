@@ -404,11 +404,17 @@ GKYL_CU_DH double vlasov_boundary_surfvz_3x3v_ser_p1(const double *w, const doub
 GKYL_CU_DH double vlasov_poisson_vol_1x1v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_1x1v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_1x1v_tensor_p1(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_gen_geo_vol_1x1v_tensor_p1(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_1x1v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_1x1v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_1x1v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_1x1v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_1x1v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_1x1v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_1x1v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_1x1v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_1x1v_tensor_p1(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
@@ -419,11 +425,17 @@ GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_tensor_p1(const double *w, const d
 GKYL_CU_DH double vlasov_poisson_vol_1x1v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_1x1v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_1x1v_tensor_p2(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_gen_geo_vol_1x1v_tensor_p2(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_1x1v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_1x1v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_1x1v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_1x1v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_1x1v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_1x1v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_1x1v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_1x1v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_1x1v_tensor_p2(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
@@ -434,11 +446,17 @@ GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_tensor_p2(const double *w, const d
 GKYL_CU_DH double vlasov_poisson_vol_1x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_1x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_1x2v_tensor_p1(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_gen_geo_vol_1x2v_tensor_p1(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_1x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_1x2v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_1x2v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_1x2v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_1x2v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_1x2v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_1x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_1x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_1x2v_tensor_p1(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
@@ -454,11 +472,17 @@ GKYL_CU_DH double vlasov_boundary_surfvy_1x2v_tensor_p1(const double *w, const d
 GKYL_CU_DH double vlasov_poisson_vol_1x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_1x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_1x2v_tensor_p2(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_gen_geo_vol_1x2v_tensor_p2(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_1x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_1x2v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_1x2v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_1x2v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_1x2v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_1x2v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_1x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_1x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_1x2v_tensor_p2(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
@@ -474,11 +498,17 @@ GKYL_CU_DH double vlasov_boundary_surfvy_1x2v_tensor_p2(const double *w, const d
 GKYL_CU_DH double vlasov_poisson_vol_1x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_1x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_1x3v_tensor_p1(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_gen_geo_vol_1x3v_tensor_p1(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_1x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_1x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_1x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_1x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_1x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_1x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_1x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_1x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_1x3v_tensor_p1(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
@@ -499,11 +529,17 @@ GKYL_CU_DH double vlasov_boundary_surfvz_1x3v_tensor_p1(const double *w, const d
 GKYL_CU_DH double vlasov_poisson_vol_1x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_1x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_1x3v_tensor_p2(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_gen_geo_vol_1x3v_tensor_p2(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_1x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_1x3v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_1x3v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_1x3v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_1x3v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_1x3v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_1x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_1x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_1x3v_tensor_p2(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
@@ -524,15 +560,28 @@ GKYL_CU_DH double vlasov_boundary_surfvz_1x3v_tensor_p2(const double *w, const d
 GKYL_CU_DH double vlasov_poisson_vol_2x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_2x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_2x2v_tensor_p1(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_gen_geo_vol_2x2v_tensor_p1(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_2x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_2x2v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_2x2v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_2x2v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_2x2v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_2x2v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_2x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfy_2x2v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfy_2x2v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfy_2x2v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfy_2x2v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfy_2x2v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvy_2x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_2x2v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_2x2v_tensor_p1(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
@@ -548,15 +597,28 @@ GKYL_CU_DH double vlasov_boundary_surfvy_2x2v_tensor_p1(const double *w, const d
 GKYL_CU_DH double vlasov_poisson_vol_2x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_2x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_2x2v_tensor_p2(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_gen_geo_vol_2x2v_tensor_p2(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_2x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_2x2v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_2x2v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_2x2v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_2x2v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_2x2v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_2x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfy_2x2v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfy_2x2v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfy_2x2v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfy_2x2v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfy_2x2v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvy_2x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_2x2v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_2x2v_tensor_p2(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
@@ -572,15 +634,28 @@ GKYL_CU_DH double vlasov_boundary_surfvy_2x2v_tensor_p2(const double *w, const d
 GKYL_CU_DH double vlasov_poisson_vol_2x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_2x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_2x3v_tensor_p1(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_gen_geo_vol_2x3v_tensor_p1(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_2x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_2x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_2x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_2x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_2x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_2x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_2x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfy_2x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfy_2x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfy_2x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfy_2x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfy_2x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvy_2x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_2x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_2x3v_tensor_p1(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
@@ -601,15 +676,28 @@ GKYL_CU_DH double vlasov_boundary_surfvz_2x3v_tensor_p1(const double *w, const d
 GKYL_CU_DH double vlasov_poisson_vol_2x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_vol_2x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_vol_2x3v_tensor_p2(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_stream_gen_geo_vol_2x3v_tensor_p2(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_2x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_2x3v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_2x3v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_2x3v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_2x3v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_2x3v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_2x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfy_2x3v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfy_2x3v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfy_2x3v_tensor_p2(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfy_2x3v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfy_2x3v_tensor_p2(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvy_2x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_2x3v_tensor_p2(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_2x3v_tensor_p2(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
@@ -632,17 +720,68 @@ GKYL_CU_DH double vlasov_poisson_extem_vol_3x3v_tensor_p1(const double *w, const
 GKYL_CU_DH double vlasov_stream_vol_3x3v_tensor_p1(const double *w, const double *dxv, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_stream_gen_geo_vol_3x3v_tensor_p1(const double *w, const double *dxv, const double *cot_vec, const double *f, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_vol_3x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *f, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfx_3x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfx_3x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfx_3x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfx_3x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfx_3x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_gen_geo_surfx_3x3v_tensor_p1(const double *w, const double *dxv, 
+        const double *alpha_surf_l, const double *alpha_surf_r, 
+        const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+        const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+        const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_gen_geo_surfx_3x3v_tensor_p1(const double *w, const double *dxv, 
+        const double *alpha_surf_edge, const double *alpha_surf_skin, 
+        const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+        const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+        const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvx_3x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfy_3x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfy_3x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfy_3x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfy_3x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfy_3x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_gen_geo_surfy_3x3v_tensor_p1(const double *w, const double *dxv, 
+        const double *alpha_surf_l, const double *alpha_surf_r, 
+        const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+        const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+        const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_gen_geo_surfy_3x3v_tensor_p1(const double *w, const double *dxv, 
+        const double *alpha_surf_edge, const double *alpha_surf_skin, 
+        const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+        const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+        const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvy_3x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_surfz_3x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_boundary_surfz_3x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double vlasov_gen_geo_surfz_3x3v_tensor_p1(const double *w, const double *dxv, const double *alpha_geo, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_surfz_3x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_l, const double *alpha_surf_r, 
+      const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+      const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+      const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_surfz_3x3v_tensor_p1(const double *w, const double *dxv, 
+      const double *alpha_surf_edge, const double *alpha_surf_skin, 
+      const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+      const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+      const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_gen_geo_surfz_3x3v_tensor_p1(const double *w, const double *dxv, 
+        const double *alpha_surf_l, const double *alpha_surf_r, 
+        const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r, 
+        const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, 
+        const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
+GKYL_CU_DH double vlasov_boundary_gen_geo_surfz_3x3v_tensor_p1(const double *w, const double *dxv, 
+        const double *alpha_surf_edge, const double *alpha_surf_skin, 
+        const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin, 
+        const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, 
+        const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_surfvz_3x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_surfvx_3x3v_tensor_p1(const double *w, const double *dxv, const double *field, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_poisson_extem_boundary_surfvx_3x3v_tensor_p1(const double *w, const double *dxv, const double *field, int edge, const double *fEdge, const double *fSkin, double* GKYL_RESTRICT out); 
