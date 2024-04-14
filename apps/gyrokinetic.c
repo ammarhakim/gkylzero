@@ -2379,15 +2379,15 @@ struct gkyl_app_restart_status
 gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
-  for (int i=0; i<app->num_species; i++) {
-    rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
-  }
   for (int i=0; i<app->num_neut_species; i++) {
     int neut_frame = frame;
     if (app->neut_species[i].info.is_static) {
       neut_frame = 0;
     }
     rstat = gkyl_gyrokinetic_app_from_frame_neut_species(app, i, neut_frame);
+  }
+  for (int i=0; i<app->num_species; i++) {
+    rstat = gkyl_gyrokinetic_app_from_frame_species(app, i, frame);
   }
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
