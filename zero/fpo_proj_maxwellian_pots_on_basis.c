@@ -164,7 +164,7 @@ gkyl_proj_maxwellian_pots_on_basis_advance(const gkyl_proj_maxwellian_pots_on_ba
   
         if (pidx[dir1] == vel_range.lower[d1] || pidx[dir1] == vel_range.upper[d1]) { 
           // Velocity value at boundary for surface expansion
-          int vmax = pidx[dir1] == vel_range.lower[d1] ? up->grid.lower[dir1] : up->grid.upper[dir1]; 
+          double vmax = pidx[dir1] == vel_range.lower[d1] ? up->grid.lower[dir1] : up->grid.upper[dir1]; 
 
           // Surface expansions of H, dH/dv, and G using Gauss-Legendre quadrature 
           // i.e. similar to proj_on_basis
