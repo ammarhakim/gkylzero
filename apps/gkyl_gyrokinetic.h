@@ -34,9 +34,8 @@ struct gkyl_gyrokinetic_projection {
   void *ctx_tempperp;
   void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
 
-  // pointer and context to lab moments (M0, M1, M2) function 
-  void *ctx_lab_moms; 
-  void (*lab_moms)(double t, const double *xn, double *fout, void *ctx); 
+  // boolean if we are correcting all the moments or only density
+  bool correct_all_moms;   
 };
 
 // Parameters for species collisions
@@ -54,6 +53,12 @@ struct gkyl_gyrokinetic_collisions {
   double bmag_mid; // bmag at the middle of the domain
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar; // Planck's constant/2 pi 
+
+  // boolean if we are correcting all the moments or only density:
+  // only used by BGK collisions
+  bool correct_all_moms;
+  double iter_eps; // error tolerance for moment fixes (density is always exact)
+  int max_iter; // maximum number of iteration
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -171,7 +176,7 @@ struct gkyl_gyrokinetic_species {
               // calculations where there is no toroidal field. 
 
   int num_diag_moments; // number of diagnostic moments
-  char diag_moments[16][16]; // list of diagnostic moments
+  char diag_moments[24][24]; // list of diagnostic moments
 
   // collisions to include
   struct gkyl_gyrokinetic_collisions collisions;
@@ -559,6 +564,14 @@ void gkyl_gyrokinetic_app_write_integrated_source_mom(gkyl_gyrokinetic_app *app)
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app);
+
+/**
+ * Write integrated correct Maxwellian status of the species distribution function to file. Correct
+ * Maxwellian status is appended to the same file.
+ * 
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_app_write_max_corr_status(gkyl_gyrokinetic_app *app);
 
 /**
  * Write geometry file.

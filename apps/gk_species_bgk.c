@@ -45,24 +45,33 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     bgk->nu_sum_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
 
   // allocate moments needed for BGK collisions update
-  gk_species_moment_init(app, s, &bgk->moms, "ThreeMoments");
+  gk_species_moment_init(app, s, &bgk->moms, "MaxwellianMoments");
 
-  // Maxwellian correction updater
-  struct gkyl_correct_maxwellian_gyrokinetic_inp inp = {
+  bgk->correct_all_moms = false;
+  int max_iter = s->info.collisions.max_iter > 0 ? s->info.collisions.max_iter : 50;
+  double iter_eps = s->info.collisions.iter_eps > 0 ? s->info.collisions.iter_eps  : 1e-10;
+
+  struct gkyl_gyrokinetic_maxwellian_correct_inp inp_corr = {
     .phase_grid = &s->grid,
-    .conf_grid = &app->grid,
-    .phase_basis = &app->basis,
     .conf_basis = &app->confBasis,
-
-    .conf_local = &app->local,
-    .conf_local_ext = &app->local_ext,
-    .mass = s->info.mass, 
+    .phase_basis = &app->basis,
+    .conf_range =  &app->local,
+    .conf_range_ext = &app->local_ext,
+    .vel_range = &s->local_vel,
     .gk_geom = app->gk_geom,
-    .max_iter = 30,    // changed from 50 by D.L. 2024/03/02.
-    .eps_err = 1.0e-7,   // changed from 1.0e-14 by D.L. 2024/02/29. 
-    .use_gpu = app->use_gpu
+    .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
+    .mass = s->info.mass,
+    .use_gpu = app->use_gpu,
+    .max_iter = max_iter,
+    .eps = iter_eps,
   };
-  bgk->corr_max = gkyl_correct_maxwellian_gyrokinetic_new(&inp);  
+  bgk->corr_max = gkyl_gyrokinetic_maxwellian_correct_inew( &inp_corr );
+  if (s->info.collisions.correct_all_moms) {
+    bgk->correct_all_moms = true;
+    bgk->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE, 5);
+    bgk->is_first_corr_status_write_call = true;
+  }
+
   bgk->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid, &app->confBasis, &app->basis, 
     app->poly_order+1, app->use_gpu);
   bgk->fmax = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
@@ -106,13 +115,8 @@ gk_species_bgk_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // compute needed moments
+  // compute needed Maxwellian moments (n, u_par, T/m) (Jacobian factors already eliminated)
   gk_species_moment_calc(&bgk->moms, species->local, app->local, fin);
-  // divide out Jacobian from computed moments
-  for (int i=0; i<bgk->moms.num_mom; i++) {
-    gkyl_dg_div_op_range(bgk->moms.mem_geo, app->confBasis, 
-      i, bgk->moms.marr, i, bgk->moms.marr, 0, app->gk_geom->jacobgeo, &app->local); 
-  }
   
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
@@ -141,9 +145,28 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct timespec wst = gkyl_wall_clock();
 
   // Compute the self-collisions Maxwellian.
-  gkyl_proj_gkmaxwellian_on_basis_lab_mom(bgk->proj_max, &species->local_ext, &app->local_ext, bgk->moms.marr,
+  gkyl_proj_gkmaxwellian_on_basis_prim_mom(bgk->proj_max, &species->local, &app->local, bgk->moms.marr,
     app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, bgk->fmax);
-  gkyl_correct_maxwellian_gyrokinetic_advance(bgk->corr_max, bgk->fmax, bgk->moms.marr, &app->local, &species->local);
+  // First correct the density
+  gkyl_gyrokinetic_maxwellian_correct_density_moment(bgk->corr_max, 
+    bgk->fmax, bgk->moms.marr, &species->local, &app->local);
+  // Correct all the moments of the projected gyrokinetic maxwellian distribution function.
+  if (bgk->correct_all_moms) {
+    struct gkyl_gyrokinetic_maxwellian_correct_status status_corr;
+    status_corr = gkyl_gyrokinetic_maxwellian_correct_all_moments(bgk->corr_max, 
+      bgk->fmax, bgk->moms.marr, &species->local, &app->local);
+    double corr_vec[5] = { 0.0 };
+    corr_vec[0] = status_corr.num_iter;
+    corr_vec[1] = status_corr.iter_converged;
+    corr_vec[2] = status_corr.error[0];
+    corr_vec[3] = status_corr.error[1];
+    corr_vec[4] = status_corr.error[2];
+
+    double corr_vec_global[5] = { 0.0 };
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 5, corr_vec, corr_vec_global);    
+    gkyl_dynvec_append(bgk->corr_stat, app->tcurr, corr_vec_global);
+  } 
+  // multiple the Maxwellian by the configuration-space Jacobian
   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
     app->gk_geom->jacobgeo, bgk->fmax, &app->local, &species->local);
 
@@ -152,19 +175,19 @@ gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *species,
     bgk->self_nu, bgk->fmax, &app->local, &species->local);
   gkyl_array_set(bgk->nu_fmax, 1.0, bgk->fmax);
 
-  // Cross-collisions nu*fmax.
-  for (int i=0; i<bgk->num_cross_collisions; ++i) {
-    // Compute the Maxwellian.
-    gkyl_proj_gkmaxwellian_on_basis_lab_mom(bgk->proj_max, &species->local_ext, &app->local_ext, bgk->cross_moms[i],
-      app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, bgk->fmax);
-    gkyl_correct_maxwellian_gyrokinetic_advance(bgk->corr_max, bgk->fmax, bgk->cross_moms[i], &app->local, &species->local);
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
-      app->gk_geom->jacobgeo, bgk->fmax, &app->local, &species->local);
-    // Compute and accumulate nu*fmax.
-    gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
-      bgk->cross_nu[i], bgk->fmax, &app->local, &species->local);
-    gkyl_array_accumulate(bgk->nu_fmax, 1.0, bgk->fmax);
-  }
+  // // Cross-collisions nu*fmax.
+  // for (int i=0; i<bgk->num_cross_collisions; ++i) {
+  //   // Compute the Maxwellian.
+  //   gkyl_proj_gkmaxwellian_on_basis_lab_mom(bgk->proj_max, &species->local_ext, &app->local_ext, bgk->cross_moms[i],
+  //     app->gk_geom->bmag, app->gk_geom->bmag, species->info.mass, bgk->fmax);
+  //   gkyl_correct_maxwellian_gyrokinetic_advance(bgk->corr_max, bgk->fmax, bgk->cross_moms[i], &app->local, &species->local);
+  //   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
+  //     app->gk_geom->jacobgeo, bgk->fmax, &app->local, &species->local);
+  //   // Compute and accumulate nu*fmax.
+  //   gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
+  //     bgk->cross_nu[i], bgk->fmax, &app->local, &species->local);
+  //   gkyl_array_accumulate(bgk->nu_fmax, 1.0, bgk->fmax);
+  // }
 
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &species->local, 
     bgk->nu_sum, bgk->nu_fmax, fin, rhs, species->cflrate);
@@ -200,7 +223,10 @@ gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_b
     }
     gkyl_mom_cross_bgk_gyrokinetic_release(bgk->cross_bgk);
   }
-  gkyl_correct_maxwellian_gyrokinetic_release(bgk->corr_max);
+  gkyl_gyrokinetic_maxwellian_correct_release(bgk->corr_max);
+  if (bgk->correct_all_moms) {
+    gkyl_dynvec_release(bgk->corr_stat);
+  }  
   gkyl_proj_maxwellian_on_basis_release(bgk->proj_max);
   gkyl_bgk_collisions_release(bgk->up_bgk);
  }

@@ -193,9 +193,10 @@ test_2x_option(bool use_gpu)
   gkyl_proj_on_basis_advance(proj_vtsq, 0.0, &confLocal, vtsq);
   
   // proj_maxwellian expects the primitive moments as a single array.
-  struct gkyl_array *prim_moms = mkarr(false, 2*confBasis.num_basis, confLocal_ext.volume);
-  gkyl_array_set_offset(prim_moms, 1.0, udrift, 0*confBasis.num_basis);
-  gkyl_array_set_offset(prim_moms, 1.0, vtsq, 1*confBasis.num_basis);
+  struct gkyl_array *prim_moms = mkarr(false, 3*confBasis.num_basis, confLocal_ext.volume);
+  gkyl_array_set_offset(prim_moms, 1.0, m0, 0*confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms, 1.0, udrift, 1*confBasis.num_basis);
+  gkyl_array_set_offset(prim_moms, 1.0, vtsq, 2*confBasis.num_basis);
 
   // Initialize Maxwellian projection object
   gkyl_proj_maxwellian_on_basis *proj_max = gkyl_proj_maxwellian_on_basis_new(&grid,
@@ -206,16 +207,16 @@ test_2x_option(bool use_gpu)
   // If on GPUs, need to copy n, udrift, and vt^2 onto device
   struct gkyl_array *prim_moms_dev, *m0_dev;
   if (use_gpu) {
-    prim_moms_dev = mkarr(use_gpu, 2*confBasis.num_basis, confLocal_ext.volume);
+    prim_moms_dev = mkarr(use_gpu, 3*confBasis.num_basis, confLocal_ext.volume);
     m0_dev = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
     
     gkyl_array_copy(prim_moms_dev, prim_moms);
     gkyl_array_copy(m0_dev, m0);
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, m0_dev, prim_moms_dev,
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, prim_moms_dev,
       gk_geom->bmag, gk_geom->bmag, mi, f);
   }
   else {
-    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, m0, prim_moms,
+    gkyl_proj_gkmaxwellian_on_basis_prim_mom(proj_max, &local_ext, &confLocal_ext, prim_moms,
       gk_geom->bmag, gk_geom->bmag, mi, f);
   }
 

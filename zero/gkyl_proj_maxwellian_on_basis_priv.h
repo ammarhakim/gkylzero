@@ -68,6 +68,6 @@ gkyl_proj_gkmaxwellian_on_basis_lab_mom_cu(const gkyl_proj_maxwellian_on_basis *
 void
 gkyl_proj_gkmaxwellian_on_basis_prim_mom_cu(const gkyl_proj_maxwellian_on_basis *up,
   const struct gkyl_range *phase_r, const struct gkyl_range *conf_r,
-  const struct gkyl_array *moms, const struct gkyl_array *prim_moms,
+  const struct gkyl_array *prim_moms,
   const struct gkyl_array *bmag, const struct gkyl_array *jacob_tot, double mass,
   struct gkyl_array *fmax);
