@@ -1015,9 +1015,6 @@ mom_app_run(lua_State *L)
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
-    gkyl_moment_app_calc_integrated_mom(app, tcurr);
-    gkyl_moment_app_calc_field_energy(app, tcurr);    
-    
     if (!status.success) {
       ret_status = false;
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -1025,6 +1022,10 @@ mom_app_run(lua_State *L)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+
+    gkyl_moment_app_calc_integrated_mom(app, tcurr);
+    gkyl_moment_app_calc_field_energy(app, tcurr);
+    
     write_data(&io_trig, app, tcurr);
 
     step += 1;
