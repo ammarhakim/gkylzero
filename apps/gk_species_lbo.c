@@ -30,12 +30,12 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   lbo->normNu = false;
   if (s->info.collisions.normNu) {
     lbo->normNu = true;
-    lbo->self_nu_fac = s->info.collisions.self_nu_fac;
+    double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
+    lbo->self_nu_fac = nuFrac*calc_norm_nu(s->info.collisions.n_ref, s->info.collisions.n_ref, s->info.mass, s->info.mass, s->info.charge, s->info.charge, s->info.collisions.T_ref, s->info.collisions.T_ref);
     double tpar_min = (s->info.mass/6.0)*pow(s->grid.dx[cdim],2);
     double tperp_min = vdim>1 ? (s->info.collisions.bmag_mid/3.0)*s->grid.dx[cdim+1] : tpar_min;
     lbo->vtsq_min = (tpar_min + 2.0*tperp_min)/(3.0*s->info.mass);
 
-    double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
     double eps0 = 1.0, hbar = 1.0; // Not used by spitzer_coll_freq if doing normnu.
     lbo->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->confBasis, app->poly_order+1,
       nuFrac, eps0, hbar, app->use_gpu);
@@ -104,9 +104,11 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
 
   // set pointers to species we cross-collide with
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
-    if (s->info.collisions.normNu)
-      lbo->cross_nu_fac[i] = s->info.collisions.cross_nu_fac[i];
     lbo->collide_with[i] = gk_find_species(app, s->info.collisions.collide_with[i]);
+    if (s->info.collisions.normNu) {
+      double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
+      lbo->cross_nu_fac[i] = nuFrac*calc_norm_nu(s->info.collisions.n_ref, lbo->collide_with[i]->info.collisions.n_ref, s->info.mass, lbo->collide_with[i]->info.mass, s->info.charge, lbo->collide_with[i]->info.charge, s->info.collisions.T_ref, lbo->collide_with[i]->info.collisions.T_ref);
+    }
     lbo->other_m[i] = lbo->collide_with[i]->info.mass;
     lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
     lbo->other_nu[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);

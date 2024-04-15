@@ -9,6 +9,42 @@
 #include <gkyl_spitzer_coll_freq_priv.h>
 #include <gkyl_range.h>
 
+// Calculate the plasma frequency
+double plasma_frequency(double n, double m)
+{
+  double eps0 = GKYL_EPSILON0;
+  double eV = GKYL_ELEMENTARY_CHARGE;
+  return sqrt(n*eV*eV/m/eps0);
+}
+
+// Calculate the Coulomb Logarithm
+double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr)
+{
+
+  double eps0 = GKYL_EPSILON0;
+  double eV = GKYL_ELEMENTARY_CHARGE;
+  double hbar = GKYL_PLANCKS_CONSTANT_H/2/M_PI;
+  double vts = sqrt(Ts/ms);
+  double vtr = sqrt(Tr/mr);
+  double wps = plasma_frequency(ns,ms);
+  double wpr = plasma_frequency(nr,mr);
+  double inner1 = wps*wps/(Ts/ms + 3*Ts/ms) + wpr*wpr/(Tr/mr + 3*Ts/ms);
+  double u = 3*(vts*vts + vtr*vtr);
+  double msr = ms*mr/(ms+mr);
+  double inner2 = fmax(fabs(qs*qr)/(4*M_PI*eps0*msr*u*u), hbar/(2*sqrt(eV)*msr*u));
+  double inner = (1/inner1)*(1/inner2/inner2) + 1;
+  return 0.5*log(inner);
+}
+
+// Calculate the normNu
+double calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr)
+{
+  double eps0 = GKYL_EPSILON0;
+  double eV = GKYL_ELEMENTARY_CHARGE;
+  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr);
+  return 1.0/ms*(1/mr+1/ms)*qs*qs*qr*qr*clog/(6*pow(M_PI,1.5)*eps0*eps0);
+}
+
 // create range to loop over quadrature points.
 static inline struct gkyl_range get_qrange(int dim, int num_quad) {
   int qshape[GKYL_MAX_DIM];
