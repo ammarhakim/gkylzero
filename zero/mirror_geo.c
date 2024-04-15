@@ -346,5 +346,10 @@ void
 gkyl_mirror_geo_release(gkyl_mirror_geo *geo)
 {
   gkyl_efit_release(geo->efit);
+  gkyl_array_release(geo->psiRZ);
+  gkyl_array_release(geo->psibyrRZ);
+  gkyl_array_release(geo->psibyr2RZ);
+  gkyl_array_release(geo->fpoldg);
+  gkyl_array_release(geo->qdg);
   gkyl_free(geo);
 }

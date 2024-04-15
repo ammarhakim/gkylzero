@@ -98,6 +98,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
     gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange,
     &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, bmag_ctx_inp, geo->fpoldg, up->mc2p, false);
+    gkyl_calc_bmag_release(bcalculator);
   } else if (ginp->nonuniform_mapping_fraction <= 1.0 & ginp->nonuniform_mapping_fraction > 0.0){
     gkyl_calc_bmag *bcalculator_uniform = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
     gkyl_calc_bmag_advance(bcalculator_uniform, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange,
@@ -108,12 +109,16 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
     gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange, 
     &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, NULL, geo->fpoldg, up->mc2p, false);
+    gkyl_calc_bmag_release(bcalculator_uniform);
+    gkyl_calc_bmag_release(bcalculator);
   } else {
     printf("Invalid nonuniform mapping fraction");
+    gkyl_calc_bmag *bcalculator = gkyl_calc_bmag_new(&up->basis, &geo->rzbasis, &geo->fbasis, &up->grid, &geo->rzgrid, &geo->fgrid, geo->psisep, false);
+    gkyl_calc_bmag_advance(bcalculator, &up->local, &up->local_ext, &up->global, &geo->rzlocal, &geo->rzlocal_ext, &geo->frange,
+    &geo->frange_ext, geo->psiRZ, geo->psibyrRZ, geo->psibyr2RZ, up->bmag, bmag_ctx_inp, geo->fpoldg, up->mc2p, false);
+    gkyl_calc_bmag_release(bcalculator);
   }
-  // need to release the bmag_ctx_inp, including comp_bmagdg
-  gkyl_array_release(bmag_ctx_inp->bmagdg);
-  gkyl_free(bmag_ctx_inp);
+  gkyl_mirror_geo_release(geo);
   // now calculate the metrics
   struct gkyl_calc_metric* mcalc = gkyl_calc_metric_new(&up->basis, &up->grid, &up->global, &up->global_ext, &up->local, &up->local_ext, false);
   gkyl_calc_metric_advance(mcalc, &nrange, mc2p_nodal_fd, dzc, up->g_ij, up->dxdz, up->dzdx, &up->local);
@@ -134,6 +139,9 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_array_release(mc2p_nodal_fd);
   gkyl_array_release(mc2p_nodal);
 
+  // need to release the bmag_ctx_inp, including comp_bmagdg
+  gkyl_array_release(bmag_ctx_inp->bmagdg);
+  gkyl_free(bmag_ctx_inp);
   return up;
 }
 
