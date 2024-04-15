@@ -332,6 +332,38 @@ void gkyl_moment_app_calc_field_energy(gkyl_moment_app *app, double tm);
 void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
 
 /**
+ * Return ghost cell layout for grid.
+ *
+ * @param app App object.
+ * @param nghost On output, ghost-cells used for grid.
+ *
+ */
+void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
+
+/**
+ * Get a pointer to the species array that needs to be written out. If
+ * you want to store the pointer, you must gkyl_array_acquire a
+ * pointer to it. In general, this is not a method most users should
+ * every mess around with!
+ *
+ * @param app App object.
+ * @param sidx Species index
+ * @return pointer to the species array for output
+ */
+struct gkyl_array* gkyl_moment_app_get_write_array_species(const gkyl_moment_app* app, int sidx);
+
+/**
+ * Get a pointer to the field array that needs to be written out. If
+ * you want to store the pointer, you must gkyl_array_acquire a
+ * pointer to it. In general, this is not a method most users should
+ * every mess around with!
+ *
+ * @param app App object.
+ * @return pointer to the field array for output
+ */
+struct gkyl_array* gkyl_moment_app_get_write_array_field(const gkyl_moment_app* app);
+
+/**
  * Return simulation statistics.
  * 
  * @return Return statistics.

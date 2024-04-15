@@ -1009,6 +1009,28 @@ mom_app_run(lua_State *L)
   return 1;
 }
 
+// Return ghost cell as table of 2 elements
+static int
+mom_app_nghost(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+  struct gkyl_moment_app *app = app_lw->app;
+
+  int nghost[3] = { 0 };
+  gkyl_moment_app_nghost(app, nghost);
+  
+  lua_createtable(L, 3, 0);
+
+  for (int i=0; i<3; ++i) {
+    lua_pushinteger(L, i+1);
+    lua_pushinteger(L, nghost[i]);
+    lua_rawset(L, -3);
+  }
+  
+  return 1;
+}
+
 // Clean up memory allocated for simulation
 static int
 mom_app_gc(lua_State *L)
@@ -1030,30 +1052,34 @@ static struct luaL_Reg mom_app_ctor[] = {
 
 // App methods
 static struct luaL_Reg mom_app_funcs[] = {
-  {"max_dt", mom_app_max_dt},
+  { "max_dt", mom_app_max_dt },
 
-  {"apply_ic", mom_app_apply_ic},
-  {"apply_ic_field", mom_app_apply_ic_field},
-  {"apply_ic_species", mom_app_apply_ic_species},
+  { "apply_ic", mom_app_apply_ic },
+  { "apply_ic_field", mom_app_apply_ic_field },
+  { "apply_ic_species", mom_app_apply_ic_species },
   
-  {"from_file_field", mom_app_from_file_field},
-  {"from_file_species", mom_app_from_file_species},
+  { "from_file_field", mom_app_from_file_field },
+  { "from_file_species", mom_app_from_file_species },
 
-  {"from_frame_field", mom_app_from_frame_field},
-  {"from_frame_species", mom_app_from_frame_species},
+  { "from_frame_field", mom_app_from_frame_field },
+  { "from_frame_species", mom_app_from_frame_species },
 
-  {"write", mom_app_write},
-  {"write_field", mom_app_write_field},
-  {"write_species", mom_app_write_species},
-  {"write_field_energy", mom_app_write_field_energy},
-  {"write_integrated_mom", mom_app_write_integrated_mom},
-  {"stat_write", mom_app_stat_write},
+  { "write", mom_app_write },
+  { "write_field", mom_app_write_field },
+  { "write_species", mom_app_write_species },
+  { "write_field_energy", mom_app_write_field_energy },
+  { "write_integrated_mom", mom_app_write_integrated_mom },
+  { "stat_write", mom_app_stat_write },
 
-  {"calc_field_energy", mom_app_calc_field_energy},
-  {"calc_integrated_mom", mom_app_calc_integrated_mom},
+  { "calc_field_energy", mom_app_calc_field_energy },
+  { "calc_integrated_mom", mom_app_calc_integrated_mom },
 
   { "update", mom_app_update },
   { "run", mom_app_run },
+
+  // some low-level functions typically not used by ordinary users
+  { "nghost", mom_app_nghost },
+  
   { 0, 0 }
 };
 

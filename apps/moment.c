@@ -452,6 +452,28 @@ gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
   }
 }
 
+void
+gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3])
+{
+  for (int i=0; i<app->ndim; ++i)
+    nghost[i] = app->nghost[i];
+}
+
+struct gkyl_array*
+gkyl_moment_app_get_write_array_species(const gkyl_moment_app* app, int sidx)
+{
+  // this needs to be consistent with the write_species method
+  return app->species[sidx].fcurr;
+}
+
+struct gkyl_array*
+gkyl_moment_app_get_write_array_field(const gkyl_moment_app* app)
+{
+  if (app->has_field != 1) return 0;
+// this needs to be consistent with the write_field method
+  return app->field.fcurr;
+}
+
 struct gkyl_moment_stat
 gkyl_moment_app_stat(gkyl_moment_app* app)
 {
