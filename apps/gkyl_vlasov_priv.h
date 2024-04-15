@@ -21,7 +21,7 @@
 #include <gkyl_correct_mj.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_calc_canonical_pb_gen_geo_vars.h>
+#include <gkyl_dg_calc_canonical_pb_vars.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_calc_prim_vars.h>
 #include <gkyl_dg_calc_fluid_vars.h>

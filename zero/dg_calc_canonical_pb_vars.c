@@ -5,21 +5,21 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_bin_ops_priv.h>
-#include <gkyl_dg_calc_canonical_pb_gen_geo_vars.h>
-#include <gkyl_dg_calc_canonical_pb_gen_geo_vars_priv.h>
+#include <gkyl_dg_calc_canonical_pb_vars.h>
+#include <gkyl_dg_calc_canonical_pb_vars_priv.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_canonical_pb_gen_geo_vars*
-gkyl_dg_calc_canonical_pb_gen_geo_vars_new(const struct gkyl_rect_grid *phase_grid, 
+gkyl_dg_calc_canonical_pb_vars*
+gkyl_dg_calc_canonical_pb_vars_new(const struct gkyl_rect_grid *phase_grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_calc_canonical_pb_gen_geo_vars_cu_dev_new(phase_grid, 
+    return gkyl_dg_calc_canonical_pb_vars_cu_dev_new(phase_grid, 
       conf_basis, phase_basis, gk_geom);
   } 
 #endif     
-  gkyl_dg_calc_canonical_pb_gen_geo_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_canonical_pb_gen_geo_vars));
+  gkyl_dg_calc_canonical_pb_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_canonical_pb_vars));
 
   up->phase_grid = *phase_grid;
   int cdim = conf_basis->ndim;
@@ -29,9 +29,9 @@ gkyl_dg_calc_canonical_pb_gen_geo_vars_new(const struct gkyl_rect_grid *phase_gr
   up->pdim = pdim;
 
   for (int d=0; d<cdim; ++d) {
-    up->alpha_surf[d] = choose_canonical_pb_gen_geo_alpha_surf_kern(d, cdim, poly_order);
-    up->alpha_surf[d+cdim] = choose_canonical_pb_gen_geo_alpha_surf_v_kern(d, cdim, poly_order);
-    up->alpha_edge_surf[d] = choose_canonical_pb_gen_geo_alpha_edge_surf_kern(d, cdim, poly_order);
+    up->alpha_surf[d] = choose_canonical_pb_alpha_surf_kern(d, cdim, poly_order);
+    up->alpha_surf[d+cdim] = choose_canonical_pb_alpha_surf_v_kern(d, cdim, poly_order);
+    up->alpha_edge_surf[d] = choose_canonical_pb_alpha_edge_surf_kern(d, cdim, poly_order);
   }
 
   up->flags = 0;
@@ -41,14 +41,14 @@ gkyl_dg_calc_canonical_pb_gen_geo_vars_new(const struct gkyl_rect_grid *phase_gr
   return up;
 }
 
-void gkyl_dg_calc_canonical_pb_gen_geo_vars_alpha_surf(struct gkyl_dg_calc_canonical_pb_gen_geo_vars *up, 
+void gkyl_dg_calc_canonical_pb_vars_alpha_surf(struct gkyl_dg_calc_canonical_pb_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,  const struct gkyl_range *phase_ext_range, 
   struct gkyl_array *hamil,
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_surf)) {
-    return gkyl_dg_calc_canonical_pb_gen_geo_vars_alpha_surf_cu(up, conf_range, phase_range, phase_ext_range, 
+    return gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(up, conf_range, phase_range, phase_ext_range, 
       alpha_surf, sgn_alpha_surf, const_sgn_alpha);
   }
 #endif
@@ -100,7 +100,7 @@ void gkyl_dg_calc_canonical_pb_gen_geo_vars_alpha_surf(struct gkyl_dg_calc_canon
   }
 }
 
-void gkyl_dg_calc_canonical_pb_gen_geo_vars_release(gkyl_dg_calc_canonical_pb_gen_geo_vars *up)
+void gkyl_dg_calc_canonical_pb_vars_release(gkyl_dg_calc_canonical_pb_vars *up)
 {
   
   if (GKYL_IS_CU_ALLOC(up->flags))

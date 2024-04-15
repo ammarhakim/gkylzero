@@ -11,21 +11,21 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef int (*canonical_pb_gen_geo_alpha_surf_t)(const double *w, const double *dxv, const double *hamil,
+typedef int (*canonical_pb_alpha_surf_t)(const double *w, const double *dxv, const double *hamil,
   double* GKYL_RESTRICT alpha_surf, double* GKYL_RESTRICT sgn_alpha_surf); 
 
 // for use in kernel tables
-typedef struct { canonical_pb_gen_geo_alpha_surf_t kernels[3]; } gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list;
+typedef struct { canonical_pb_alpha_surf_t kernels[3]; } gkyl_dg_canonical_pb_alpha_surf_kern_list;
 
-struct gkyl_dg_calc_canonical_pb_gen_geo_vars {
+struct gkyl_dg_calc_canonical_pb_vars {
   struct gkyl_rect_grid phase_grid; // Phase space grid for cell spacing and cell center
   int cdim; // Configuration space dimensionality
   int pdim; // Phase space dimensionality
-  canonical_pb_gen_geo_alpha_surf_t alpha_surf[6]; // kernel for computing surface expansion of phase space flux alpha
-  canonical_pb_gen_geo_alpha_surf_t alpha_edge_surf[3]; // kernel for computing surface expansion of phase space flux alpha
+  canonical_pb_alpha_surf_t alpha_surf[6]; // kernel for computing surface expansion of phase space flux alpha
+  canonical_pb_alpha_surf_t alpha_edge_surf[3]; // kernel for computing surface expansion of phase space flux alpha
                                                // at upper configuration space edge
   uint32_t flags;
-  struct gkyl_dg_calc_canonical_pb_gen_geo_vars *on_dev; // pointer to itself or device data
+  struct gkyl_dg_calc_canonical_pb_vars *on_dev; // pointer to itself or device data
 };
 
 //
@@ -33,7 +33,7 @@ struct gkyl_dg_calc_canonical_pb_gen_geo_vars {
 //
 // canonical_pb general geometry phase space flux alpha surface expansions in x (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_gen_geo_alpha_surfx_kernels[] = {
+static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfx_kernels[] = {
   { NULL, canonical_pb_alpha_surfx_1x1v_ser_p1, canonical_pb_alpha_surfx_1x1v_ser_p2 }, // 0
   { NULL, canonical_pb_alpha_surfx_2x2v_ser_p1, canonical_pb_alpha_surfx_2x2v_ser_p2 }, // 1
   { NULL, canonical_pb_alpha_surfx_3x3v_ser_p1, NULL }, // 2
@@ -41,7 +41,7 @@ static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_
 
 // canonical_pb general geometry phase space flux alpha edge surface expansions in x (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_gen_geo_alpha_edge_surfx_kernels[] = {
+static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_edge_surfx_kernels[] = {
   { NULL, canonical_pb_alpha_edge_surfx_1x1v_ser_p1, canonical_pb_alpha_edge_surfx_1x1v_ser_p2 }, // 0
   { NULL, canonical_pb_alpha_edge_surfx_2x2v_ser_p1, canonical_pb_alpha_edge_surfx_2x2v_ser_p2 }, // 1
   { NULL, canonical_pb_alpha_edge_surfx_3x3v_ser_p1, NULL }, // 2
@@ -49,7 +49,7 @@ static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_
 
 // canonical_pb general geometry phase space flux alpha surface expansions in y (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_gen_geo_alpha_surfy_kernels[] = {
+static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, canonical_pb_alpha_surfy_2x2v_ser_p1, canonical_pb_alpha_surfy_2x2v_ser_p2 }, // 1
   { NULL, canonical_pb_alpha_surfy_3x3v_ser_p1, NULL }, // 2
@@ -57,7 +57,7 @@ static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_
 
 // canonical_pb general geometry phase space flux alpha edge surface expansions in y (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_gen_geo_alpha_edge_surfy_kernels[] = {
+static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_edge_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, canonical_pb_alpha_edge_surfy_2x2v_ser_p1, canonical_pb_alpha_edge_surfy_2x2v_ser_p2 }, // 1
   { NULL, canonical_pb_alpha_edge_surfy_3x3v_ser_p1, NULL }, // 2
@@ -65,7 +65,7 @@ static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_
 
 // canonical_pb general geometry phase space flux alpha surface expansions in z (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_gen_geo_alpha_surfz_kernels[] = {
+static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfz_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, canonical_pb_alpha_surfz_3x3v_ser_p1, NULL }, // 2
@@ -73,7 +73,7 @@ static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_
 
 // canonical_pb general geometry phase space flux alpha edge surface expansions in z (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_gen_geo_alpha_edge_surfz_kernels[] = {
+static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_edge_surfz_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, canonical_pb_alpha_edge_surfz_3x3v_ser_p1, NULL }, // 2
@@ -84,7 +84,7 @@ static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_
 //
 // canonical_pb general geometry phase space flux alpha surface expansions in vx (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_gen_geo_alpha_surfvx_kernels[] = {
+static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfvx_kernels[] = {
   { NULL, canonical_pb_alpha_surfvx_1x1v_ser_p1, canonical_pb_alpha_surfvx_1x1v_ser_p2 }, // 0
   { NULL, canonical_pb_alpha_surfvx_2x2v_ser_p1, canonical_pb_alpha_surfvx_2x2v_ser_p2 }, // 1
   { NULL, canonical_pb_alpha_surfvx_3x3v_ser_p1, NULL }, // 2
@@ -93,7 +93,7 @@ static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_
 
 // canonical_pb general geometry phase space flux alpha surface expansions in vy (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_gen_geo_alpha_surfvy_kernels[] = {
+static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfvy_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, canonical_pb_alpha_surfvy_2x2v_ser_p1, canonical_pb_alpha_surfvy_2x2v_ser_p2 }, // 1
   { NULL, canonical_pb_alpha_surfvy_3x3v_ser_p1, NULL }, // 2
@@ -101,7 +101,7 @@ static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_
 
 // canonical_pb general geometry phase space flux alpha surface expansions in vz (Serendipity kernels)
 GKYL_CU_D
-static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_gen_geo_alpha_surfvz_kernels[] = {
+static const gkyl_dg_canonical_pb_alpha_surf_kern_list ser_canonical_pb_alpha_surfvz_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   { NULL, canonical_pb_alpha_surfvz_3x3v_ser_p1, NULL }, // 2
@@ -109,44 +109,44 @@ static const gkyl_dg_canonical_pb_gen_geo_alpha_surf_kern_list ser_canonical_pb_
 
 
 GKYL_CU_D
-static canonical_pb_gen_geo_alpha_surf_t
-choose_canonical_pb_gen_geo_alpha_surf_kern(int dir, int cdim, int poly_order)
+static canonical_pb_alpha_surf_t
+choose_canonical_pb_alpha_surf_kern(int dir, int cdim, int poly_order)
 {
   if (dir == 0)
-    return ser_canonical_pb_gen_geo_alpha_surfx_kernels[cdim-1].kernels[poly_order];
+    return ser_canonical_pb_alpha_surfx_kernels[cdim-1].kernels[poly_order];
   else if (dir == 1)
-    return ser_canonical_pb_gen_geo_alpha_surfy_kernels[cdim-1].kernels[poly_order];
+    return ser_canonical_pb_alpha_surfy_kernels[cdim-1].kernels[poly_order];
   else if (dir == 2)
-    return ser_canonical_pb_gen_geo_alpha_surfz_kernels[cdim-1].kernels[poly_order];
+    return ser_canonical_pb_alpha_surfz_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
 }
 
 GKYL_CU_D
-static canonical_pb_gen_geo_alpha_surf_t
-choose_canonical_pb_gen_geo_alpha_edge_surf_kern(int dir, int cdim, int poly_order)
+static canonical_pb_alpha_surf_t
+choose_canonical_pb_alpha_edge_surf_kern(int dir, int cdim, int poly_order)
 {
   if (dir == 0)
-    return ser_canonical_pb_gen_geo_alpha_edge_surfx_kernels[cdim-1].kernels[poly_order];
+    return ser_canonical_pb_alpha_edge_surfx_kernels[cdim-1].kernels[poly_order];
   else if (dir == 1)
-    return ser_canonical_pb_gen_geo_alpha_edge_surfy_kernels[cdim-1].kernels[poly_order];
+    return ser_canonical_pb_alpha_edge_surfy_kernels[cdim-1].kernels[poly_order];
   else if (dir == 2)
-    return ser_canonical_pb_gen_geo_alpha_edge_surfz_kernels[cdim-1].kernels[poly_order];
+    return ser_canonical_pb_alpha_edge_surfz_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
 }
 
 
 GKYL_CU_D
-static canonical_pb_gen_geo_alpha_surf_t
-choose_canonical_pb_gen_geo_alpha_surf_v_kern(int dir, int cdim, int poly_order)
+static canonical_pb_alpha_surf_t
+choose_canonical_pb_alpha_surf_v_kern(int dir, int cdim, int poly_order)
 {
   if (dir == 0)
-    return ser_canonical_pb_gen_geo_alpha_surfvx_kernels[cdim-1].kernels[poly_order];
+    return ser_canonical_pb_alpha_surfvx_kernels[cdim-1].kernels[poly_order];
   else if (dir == 1)
-    return ser_canonical_pb_gen_geo_alpha_surfvy_kernels[cdim-1].kernels[poly_order];
+    return ser_canonical_pb_alpha_surfvy_kernels[cdim-1].kernels[poly_order];
   else if (dir == 2)
-    return ser_canonical_pb_gen_geo_alpha_surfvz_kernels[cdim-1].kernels[poly_order];
+    return ser_canonical_pb_alpha_surfvz_kernels[cdim-1].kernels[poly_order];
   else
     return NULL;
 }

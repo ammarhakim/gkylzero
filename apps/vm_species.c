@@ -176,11 +176,11 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     s->const_sgn_alpha = mk_int_arr(app->use_gpu, (2*cdim), s->local_ext.volume);
 
     // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
-    struct gkyl_dg_calc_canonical_pb_gen_geo_vars *calc_vars = gkyl_dg_calc_canonical_pb_gen_geo_vars_new(&s->grid, 
+    struct gkyl_dg_calc_canonical_pb_vars *calc_vars = gkyl_dg_calc_canonical_pb_vars_new(&s->grid, 
       &app->confBasis, &app->basis, app->use_gpu);
-    gkyl_dg_calc_canonical_pb_gen_geo_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, s->hamil,
+    gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &app->local, &s->local, &s->local_ext, s->hamil,
       s->alpha_surf, s->sgn_alpha_surf, s->const_sgn_alpha);
-    gkyl_dg_calc_canonical_pb_gen_geo_vars_release(calc_vars);
+    gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 
     // By default we do not have zero-flux boundary cond in any dir
     bool is_zero_flux[GKYL_MAX_DIM] = {false};
