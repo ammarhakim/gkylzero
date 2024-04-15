@@ -32,14 +32,8 @@ enum moment_magic_ids {
   MOMENT_EQN_DEFAULT
 };
 
-// (string, int) pair
-struct str_int_pair {
-  const char *str;
-  int val;
-};
-
 // wave limiter -> enum map
-static const struct str_int_pair wave_limiter[] = {
+static const struct gkyl_str_int_pair wave_limiter[] = {
   { "no-limiter", GKYL_NO_LIMITER },
   { "min-mod", GKYL_MIN_MOD },
   { "superbee", GKYL_SUPERBEE },
@@ -50,42 +44,20 @@ static const struct str_int_pair wave_limiter[] = {
 };
 
 // edge-splitting -> enum map
-static const struct str_int_pair wave_split_type[] = {
+static const struct gkyl_str_int_pair wave_split_type[] = {
   { "qwave", GKYL_WAVE_QWAVE },
   { "fwave", GKYL_WAVE_FWAVE },
   { 0, 0 }
 };
 
 // RP -> enum map
-static const struct str_int_pair euler_rp_type[] = {
+static const struct gkyl_str_int_pair euler_rp_type[] = {
   { "roe", WV_EULER_RP_ROE },
   { "hllc", WV_EULER_RP_HLLC },
   { "lax", WV_EULER_RP_LAX },
   { "hll", WV_EULER_RP_HLL },
   { 0, 0 }
 };
-
-// simple linear search in list of pairs
-static int
-search_str_int_pair_by_str(const struct str_int_pair pairs[], const char *str, int def)
-{
-  for (int i=0; pairs[i].str != 0; ++i) {
-    if (strcmp(pairs[i].str, str) == 0)
-      return pairs[i].val;
-  }
-  return def;
-}
-
-// simple linear search in list of pairs
-static const char *
-search_str_int_pair_by_int(const struct str_int_pair pairs[], int val, const char *def)
-{
-  for (int i=0; pairs[i].str != 0; ++i) {
-    if (pairs[i].val == val)
-      return pairs[i].str;
-  }
-  return def;
-}
 
 #define MOMENT_WAVE_EQN_METATABLE_NM "GkeyllZero.App.Moments.Eq"
 
@@ -131,7 +103,7 @@ eqn_euler_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
   const char *rp_str = glua_tbl_get_string(L, "rpType", "roe");
-  enum gkyl_wv_euler_rp rp_type = search_str_int_pair_by_str(euler_rp_type, rp_str, WV_EULER_RP_ROE);
+  enum gkyl_wv_euler_rp rp_type = gkyl_search_str_int_pair_by_str(euler_rp_type, rp_str, WV_EULER_RP_ROE);
 
   euler_lw->magic = MOMENT_EQN_DEFAULT;
   euler_lw->eqn = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
@@ -277,10 +249,10 @@ moment_species_lw_new(lua_State *L)
     return luaL_error(L, "Species \"equation\" not specfied or incorrect type!");
 
   const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");
-  mom_species.limiter = search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  mom_species.limiter = gkyl_search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
 
   const char *split_str = glua_tbl_get_string(L, "split_type", "qwave");
-  mom_species.split_type = search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
+  mom_species.split_type = gkyl_search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
 
   bool evolve = mom_species.evolve = glua_tbl_get_bool(L, "evolve", true);
   mom_species.force_low_order_flux = glua_tbl_get_bool(L, "forceLowOrderFlux", false);
@@ -356,7 +328,7 @@ moment_field_lw_new(lua_State *L)
   mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 1.0);
 
   const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");  
-  mom_field.limiter = search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  mom_field.limiter = gkyl_search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
   
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
 
@@ -694,7 +666,7 @@ mom_app_apply_ic_species(lua_State *L)
 //   stime = time in file read
 // }
 
-static const struct str_int_pair rio_status[] = {
+static const struct gkyl_str_int_pair rio_status[] = {
   { "success", GKYL_ARRAY_RIO_SUCCESS },
   { "bad-version", GKYL_ARRAY_RIO_BAD_VERSION },
   { "fopen-failed", GKYL_ARRAY_RIO_FOPEN_FAILED },
@@ -714,7 +686,7 @@ push_restart_status_table(lua_State *L, struct gkyl_app_restart_status status)
   lua_rawset(L, -3);
 
   lua_pushstring(L, "io_status_str");
-  lua_pushstring(L, search_str_int_pair_by_int(rio_status, status.io_status, "success"));
+  lua_pushstring(L, gkyl_search_str_int_pair_by_int(rio_status, status.io_status, "success"));
   lua_rawset(L, -3);
 
   lua_pushstring(L, "frame");
