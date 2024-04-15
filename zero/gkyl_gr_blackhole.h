@@ -29,11 +29,44 @@ struct gkyl_gr_blackhole_inp {
   double pos_z; // Position of the black hole (z-direction).
 };
 
+/**
+* Compute the scalar quantity V appearing in the generalized Kerr-Schild form of the metric, at a given point in a black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @return The Kerr-Schild scalar V.
+*/
 double
 blackhole_kerrschildscalar(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
 
+/**
+* Compute the spatial (co)vector quantity l appearing in the generalized Kerr-Schild form of the metric, at a given point in a black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @return The spatial Kerr-Schild (co)vector l.
+*/
 double*
 blackhole_kerrschildvector(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
+
+/**
+* Compute the spacetime (co)vector quantity l appearing in the generalized Kerr-Schild form of the metric, at a given point in a black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @return The spacetime Kerr-Schild (co)vector l.
+*/
+double*
+blackhole_kerrschildvector_spacetime(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
 
 /**
 * Compute the rank-2 spatial metric tensor at a given point in a black hole spacetime.

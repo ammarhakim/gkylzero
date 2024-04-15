@@ -51,6 +51,32 @@ blackhole_kerrschildvector(const struct gkyl_gr_spacetime* spacetime, const doub
   return kerrschild_vector;
 }
 
+double*
+blackhole_kerrschildvector_spacetime(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z)
+{
+  const struct gr_blackhole *blackhole = container_of(spacetime, struct gr_blackhole, spacetime);
+
+  double mass = blackhole->mass;
+  double spin = blackhole->spin;
+
+  double pos_x = blackhole->pos_x;
+  double pos_y = blackhole->pos_y;
+  double pos_z = blackhole->pos_z;
+
+  double norm_sq = ((x - pos_x) * (x - pos_x)) + ((y - pos_y) * (y - pos_y)) + ((z - pos_z) * (z - pos_z));
+
+  double rad_dist = sqrt(0.5 * (norm_sq - ((mass * mass) * (spin * spin)) + sqrt(((norm_sq - ((mass * mass) * (spin * spin))) *
+    (norm_sq - ((mass * mass) * (spin * spin)))) + (4.0 * ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z)))))));
+  
+  double *kerrschild_vector_spacetime = malloc(sizeof(double) * 4);
+  kerrschild_vector_spacetime[0] = -1.0;
+  kerrschild_vector_spacetime[1] = - ((rad_dist * (x - pos_x)) + (spin * mass * (y - pos_y))) / ((rad_dist * rad_dist) + ((mass * mass) * (spin * spin)));
+  kerrschild_vector_spacetime[2] = - ((rad_dist * (y - pos_y)) - (spin * mass * (x - pos_x))) / ((rad_dist * rad_dist) + ((mass * mass) * (spin * spin)));
+  kerrschild_vector_spacetime[3] = - (z - pos_z) / rad_dist;
+
+  return kerrschild_vector_spacetime;
+}
+
 static void
 blackhole_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double*** spatial_metric_tensor)
@@ -93,6 +119,15 @@ blackhole_spacetime_metric_tensor(const struct gkyl_gr_spacetime* spacetime, con
       else {
         (*spacetime_metric_tensor)[i][j] = 0.0;
       }
+    }
+  }
+
+  double kerrschild_scalar = blackhole_kerrschildscalar(spacetime, x, y, z);
+  double *kerrschild_vector_spacetime = blackhole_kerrschildvector_spacetime(spacetime, x, y, z);
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      (*spacetime_metric_tensor)[i][j] = (*spacetime_metric_tensor)[i][j] - (2.0 * kerrschild_scalar * kerrschild_vector_spacetime[i] * kerrschild_vector_spacetime[j]);
     }
   }
 }
