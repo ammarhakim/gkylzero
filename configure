@@ -17,7 +17,7 @@ USE_MPI=
 USE_LUA=
 USE_ADAS=
 # Lua link to static library
-CONF_LUA_LIB=luajit-5.1
+CONF_LUA_LIB=$PREFIX/luajit/lib/libluajit-5.1.a
 
 # Location of CUDA math libraries
 CUDAMATH_LIBS=

@@ -29,4 +29,6 @@ then
 
     # soft-link 
     ln -sfn $PREFIX $GKYLSOFT/OpenBLAS
+    # remove shared libraries
+    rm -rf $GKYLSOFT/OpenBLAS/lib/*.so*
 fi
