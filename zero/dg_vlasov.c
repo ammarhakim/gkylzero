@@ -141,6 +141,28 @@ gkyl_dg_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pba
       
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      stream_vol_kernels = tensor_stream_vol_kernels;
+      vol_kernels = tensor_vol_kernels;
+
+      stream_surf_x_kernels = tensor_stream_surf_x_kernels;
+      stream_surf_y_kernels = tensor_stream_surf_y_kernels;
+      stream_surf_z_kernels = tensor_stream_surf_z_kernels;
+
+      accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
+      accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
+      accel_surf_vz_kernels = tensor_accel_surf_vz_kernels;
+
+      stream_boundary_surf_x_kernels = tensor_stream_boundary_surf_x_kernels;
+      stream_boundary_surf_y_kernels = tensor_stream_boundary_surf_y_kernels;
+      stream_boundary_surf_z_kernels = tensor_stream_boundary_surf_z_kernels;
+
+      accel_boundary_surf_vx_kernels = tensor_accel_boundary_surf_vx_kernels;
+      accel_boundary_surf_vy_kernels = tensor_accel_boundary_surf_vy_kernels;
+      accel_boundary_surf_vz_kernels = tensor_accel_boundary_surf_vz_kernels;
+      
+      break;      
+
     default:
       assert(false);
       break;    
