@@ -15,6 +15,8 @@ struct gkyl_gyrokinetic_maxwellian_correct
   int num_conf_basis; // Number of configuration-space basis functions
   const struct gk_geometry *gk_geom; // Geometry struct
   bool divide_jacobgeo; // Boolean for if we are dividing out the configuration-space Jacobian from density
+  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
+                           // *even if* the scheme fails to converge. 
   double mass; // Species mass
 
   struct gkyl_array *moms_iter;

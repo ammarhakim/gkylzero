@@ -45,6 +45,7 @@ gk_species_projection_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       .vel_range = &s->local_vel,
       .gk_geom = app->gk_geom,
       .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
+      .use_last_converged = false, // do not use the unconverged moments if the scheme fails to converge
       .mass = s->info.mass,
       .use_gpu = app->use_gpu,
       .max_iter = 50,

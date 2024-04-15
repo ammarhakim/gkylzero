@@ -50,6 +50,7 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   bgk->correct_all_moms = false;
   int max_iter = s->info.collisions.max_iter > 0 ? s->info.collisions.max_iter : 50;
   double iter_eps = s->info.collisions.iter_eps > 0 ? s->info.collisions.iter_eps  : 1e-10;
+  bool use_last_converged = s->info.collisions.use_last_converged ? s->info.collisions.use_last_converged  : false;
 
   struct gkyl_gyrokinetic_maxwellian_correct_inp inp_corr = {
     .phase_grid = &s->grid,
@@ -60,6 +61,8 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     .vel_range = &s->local_vel,
     .gk_geom = app->gk_geom,
     .divide_jacobgeo = false, // final Jacobian multiplication will be handled in advance
+    .use_last_converged = use_last_converged, // flag for if we utilizing the results of the scheme 
+                                              // *even if* it doesn't converge
     .mass = s->info.mass,
     .use_gpu = app->use_gpu,
     .max_iter = max_iter,

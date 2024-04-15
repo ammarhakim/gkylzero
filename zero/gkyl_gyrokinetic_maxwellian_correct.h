@@ -20,6 +20,8 @@ struct gkyl_gyrokinetic_maxwellian_correct_inp {
   const struct gkyl_range *vel_range; // velocity space range
   const struct gk_geometry *gk_geom; // Geometry object
   bool divide_jacobgeo; // Boolean for if we are dividing out the configuration-space Jacobian from density
+  bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
+                           // *even if* the scheme fails to converge. 
   double mass; // Mass factor 
   bool use_gpu; // bool for gpu useage
   double eps; // tolerance for the iterator

@@ -26,6 +26,7 @@ gkyl_gyrokinetic_maxwellian_correct_inew(const struct gkyl_gyrokinetic_maxwellia
   up->num_conf_basis = up->conf_basis.num_basis;
   up->gk_geom = gkyl_gk_geometry_acquire(inp->gk_geom);
   up->divide_jacobgeo = inp->divide_jacobgeo;
+  up->use_last_converged = inp->use_last_converged;
   up->mass = inp->mass;
   
   long conf_range_ncells = inp->conf_range->volume;
@@ -197,10 +198,10 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
     corr_status = 1;
   }
 
-  // If the algorithm fails (density fails to converge)!
-  // Project the distribution function with the basic moments.
+  // If the algorithm fails to converge and we are *not* using the results of the failed convergence,
+  // we project the distribution function with the basic target moments.
   // We correct the density and then recompute moments/errors for this new projections
-  if (corr_status == 1) { 
+  if (corr_status == 1 && !up->use_last_converged) { 
     gkyl_proj_gkmaxwellian_on_basis_prim_mom(up->proj_max_prim,
       phase_range, conf_range, moms_target, 
       up->gk_geom->bmag, up->gk_geom->bmag, up->mass, f_max);

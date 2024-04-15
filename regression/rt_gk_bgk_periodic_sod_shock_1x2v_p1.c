@@ -68,10 +68,10 @@ create_ctx(void)
   // Simulation parameters.
   int Nz = 64; // Cell count (configuration space: z-direction).
   int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
-  int Nmu = 24; // Cell count (velocity space: magnetic moment direction).
+  int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
   double vpar_max = 6.0 * vt; // Domain boundary (velocity space: parallel velocity direction).
-  double mu_max = 24.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
+  double mu_max = 18.0 * (vt * vt) / 2.0 / B0; // Domain boundary (velocity space: magnetic moment direction).
 
   double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -337,8 +337,9 @@ main(int argc, char **argv)
       .self_nu = evalNuInit,
       .ctx = &ctx, 
       .correct_all_moms = true, 
-      .iter_eps = 1e-4,
-      .max_iter = 50,
+      .use_last_converged = true, 
+      .iter_eps = 1e-10,
+      .max_iter = 10,
     },
 
     .num_diag_moments = 6,
