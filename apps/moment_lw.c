@@ -9,6 +9,7 @@
 #include <gkyl_moment_priv.h>
 #include <gkyl_null_comm.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_coldfluid.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_sr_euler.h>
@@ -164,6 +165,68 @@ static struct luaL_Reg eqn_iso_euler_ctor[] = {
   {0, 0}
 };
 
+/* *******************************/
+/* Special-Relativistic Equation */
+/* *******************************/
+
+// SrEuler.new { gasgamma = 1.4 }
+static int
+eqn_sr_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *sr_euler_lw = gkyl_malloc(sizeof(*sr_euler_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0/3.0);
+
+  sr_euler_lw->magic = MOMENT_EQN_DEFAULT;
+  sr_euler_lw->eqn = gkyl_wv_sr_euler_new(gas_gamma);
+
+  // create Lua userdata ...
+  struct wv_eqn_lw **l_sr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_sr_euler_lw = sr_euler_lw; // ... point it to proper object
+  
+  // set metatable
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor
+static struct luaL_Reg eqn_sr_euler_ctor[] = {
+  {"new", eqn_sr_euler_lw_new},
+  {0, 0}
+};
+
+/* *******************************/
+/* Cold-fluid Equation */
+/* *******************************/
+
+// ColFluid.new {  }
+static int
+eqn_coldfluid_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *coldfluid_lw = gkyl_malloc(sizeof(*coldfluid_lw));
+
+  coldfluid_lw->magic = MOMENT_EQN_DEFAULT;
+  coldfluid_lw->eqn = gkyl_wv_coldfluid_new();
+
+  // create Lua userdata ...
+  struct wv_eqn_lw **l_coldfluid_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_coldfluid_lw = coldfluid_lw; // ... point it to proper object
+  
+  // set metatable
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor
+static struct luaL_Reg eqn_coldfluid_ctor[] = {
+  {"new", eqn_coldfluid_lw_new},
+  {0, 0}
+};
+
 /* ********************/
 /* Tenmoment Equation */
 /* ********************/
@@ -193,9 +256,10 @@ eqn_tenmoment_lw_new(lua_State *L)
 
 // Equation constructor
 static struct luaL_Reg eqn_tenmoment_ctor[] = {
-  { "new",  eqn_tenmoment_lw_new },
-  { 0, 0 }
+  {"new", eqn_tenmoment_lw_new},
+  {0, 0}
 };
+
 
 // Register and load all wave equation objects
 static void
@@ -210,6 +274,8 @@ eqn_openlibs(lua_State *L)
 
     luaL_register(L, "G0.Moments.Eq.Euler", eqn_euler_ctor);
     luaL_register(L, "G0.Moments.Eq.IsoEuler", eqn_iso_euler_ctor);
+    luaL_register(L, "G0.Moments.Eq.SrEuler", eqn_sr_euler_ctor);
+    luaL_register(L, "G0.Moments.Eq.ColdFluid", eqn_coldfluid_ctor);
     luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor);
   } while (0);
 }
@@ -790,6 +856,39 @@ mom_app_calc_integrated_mom(lua_State *L)
   return 1;
 }
 
+// get number of field-energy diagnostics stored () -> int
+static int
+mom_app_field_energy_ndiag(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  lua_pushinteger(L, gkyl_moment_app_field_energy_ndiag(app_lw->app));
+  return 1;
+}
+
+// Return the field energy as a table () -> table
+static int
+mom_app_get_field_energy(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  int nvals = gkyl_moment_app_field_energy_ndiag(app_lw->app);
+  double vals[nvals];
+  gkyl_moment_app_get_field_energy(app_lw->app, vals);
+
+  lua_createtable(L, nvals, 0);
+
+  for (int i=0; i<nvals; ++i) {
+    lua_pushinteger(L, i+1);
+    lua_pushnumber(L, vals[i]);
+    lua_rawset(L, -3);
+  }  
+
+  return 1;
+}
+
 // Compute integrated field energy (L2 norm of each field
 // component). (tm) -> bool
 static int
@@ -1079,6 +1178,8 @@ static struct luaL_Reg mom_app_funcs[] = {
 
   // some low-level functions typically not used by ordinary users
   { "nghost", mom_app_nghost },
+  { "field_energy_ndiag", mom_app_field_energy_ndiag },
+  { "get_field_energy", mom_app_get_field_energy },
   
   { 0, 0 }
 };

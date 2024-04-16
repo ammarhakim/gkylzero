@@ -316,20 +316,39 @@ void gkyl_moment_app_stat_write(const gkyl_moment_app *app);
 struct gkyl_update_status gkyl_moment_update(gkyl_moment_app *app, double dt);
 
 /**
- * Calculate integrated field energy
+ * Get number of values stored for field energy diagnostics
+ *
+ * @param app App object.
+ */
+int gkyl_moment_app_field_energy_ndiag(gkyl_moment_app *app);
+
+/**
+ * Calculate integrated field energy. The "calc" method computes the
+ * integrated moments and stores it. The "get" method returns the
+ * values in the vals array, without storing it.
  *
  * @param tm Time at which integrated diagnostic are to be computed
  * @param app App object.
  */
 void gkyl_moment_app_calc_field_energy(gkyl_moment_app *app, double tm);
+void gkyl_moment_app_get_field_energy(gkyl_moment_app *app, double *vals);
 
 /**
- * Calculate integrated moments
+ * Calculate integrated moments.
  *
  * @param app App object.
  * @param tm Time at which integrated diagnostic are to be computed
  */
 void gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm);
+
+/**
+ * Get the integrated moments for species @a sidx.
+ *
+ * @param app App object.
+ * @param sidx Species index
+ * @param vals On output, value of the integrate moments for species
+ */
+void gkyl_moment_app_get_integrated_mom(gkyl_moment_app *app, double *vals);
 
 /**
  * Return ghost cell layout for grid.
