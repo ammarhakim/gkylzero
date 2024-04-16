@@ -66,7 +66,7 @@ create_ctx(void)
   double nu = 100.0; // Collision frequency.
 
   // Simulation parameters.
-  int Nz = 64; // Cell count (configuration space: z-direction).
+  int Nz = 128; // Cell count (configuration space: z-direction).
   int Nvpar = 16; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 16; // Cell count (velocity space: magnetic moment direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
@@ -338,7 +338,7 @@ main(int argc, char **argv)
       .ctx = &ctx, 
       .correct_all_moms = true, 
       .use_last_converged = true, 
-      .iter_eps = 1e-10,
+      .iter_eps = 1e-12,
       .max_iter = 10,
     },
 

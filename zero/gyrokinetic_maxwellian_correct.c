@@ -164,9 +164,11 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
           const double *moms_local = gkyl_array_cfetch(up->moms_iter, midx);
           const double *moms_target_local = gkyl_array_cfetch(moms_target, midx);
           // Check the error in the absolute value of the cell average
-          // Note that this is a relative error compared to the target moment value
+          // Note: for density and temperature, this error is a relative error compared to the target moment value
+          // so that we can converge to the correct target moments in SI units and minimize finite precision issues.
+          // However, we use absolute error for the u_par convergence because u_par may be ~ 0
           up->error[0] = fmax(fabs(moms_local[0*nc] - moms_target_local[0*nc])/moms_target_local[0*nc],fabs(up->error[0]));
-          up->error[1] = fmax(fabs(moms_local[1*nc] - moms_target_local[1*nc])/moms_target_local[1*nc],fabs(up->error[1]));
+          up->error[1] = fmax(fabs(moms_local[1*nc] - moms_target_local[1*nc]),fabs(up->error[1]));
           up->error[2] = fmax(fabs(moms_local[2*nc] - moms_target_local[2*nc])/moms_target_local[2*nc],fabs(up->error[2]));
           // Check if density and temperature are positive, if they aren't we will break out of the iteration
           ispositive_flte = (moms_local[0*nc]>0.0) && ispositive_flte;
