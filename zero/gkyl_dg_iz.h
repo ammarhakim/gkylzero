@@ -16,7 +16,7 @@ struct gkyl_dg_iz_inp {
   const struct gkyl_range *conf_rng_ext; // Configuration-space extended range
   const struct gkyl_range *phase_rng; // Phase-space range
   double mass_ion; // Mass of the ion 
-  enum gkyl_ion_type type_ion; // Enum for type of ion for ionization (H thru 0)
+  enum gkyl_ion_type type_ion; // Enum for type of ion for ionization (H thru O, Ar)
   int charge_state; // Ion charge state
   enum gkyl_react_self_type type_self; // Species type (ion, electron or donor)
   bool all_gk; // To indicate if all 3 interacting species are GK or not

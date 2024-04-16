@@ -61,7 +61,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   if (data.logN == NULL) fprintf(stderr, "Unable to load ADAS 'logN_<elem>.npy' file.");
   if (data.logData == NULL) fprintf(stderr, "Unable to load ADAS 'recomb_<elem>.npy' file.");
 
-  // "duplicate symbol" error
   minmax_from_numpy(data.logT, data.NT, minmax);
   fclose(data.logT);
   double logTmin = minmax[0], logTmax = minmax[1];
@@ -69,7 +68,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   fclose(data.logN);
   double logNmin = minmax[0]+6., logNmax = minmax[1]+6.; //adjust for 1/cm^3 to 1/m^3 conversion
 
-  // "duplicate symbol" error
   struct gkyl_array *adas_nodal = gkyl_array_new(GKYL_DOUBLE, 1, sz);
   array_from_numpy(data.logData, sz, data.Zmax, charge_state, adas_nodal);
   fclose(data.logData);
@@ -107,9 +105,6 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   gkyl_create_grid_ranges(&tn_grid, ghost, &modal_range_ext, &modal_range);
 
   struct gkyl_array *adas_dg = gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
-  
-  /* struct gkyl_array *adas_dg = */
-  /*   gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, (data.NT-1)*(data.NN-1)); */
 
   //create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
 
