@@ -152,57 +152,84 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29])
   inv_spatial_metric[1][0] = v[22]; inv_spatial_metric[1][1] = v[23]; inv_spatial_metric[1][2] = v[24];
   inv_spatial_metric[2][0] = v[25]; inv_spatial_metric[2][1] = v[26]; inv_spatial_metric[2][2] = v[27];
 
+  double num = (gas_gamma * p) / rho;
+  double den = 1.0 + ((p / rho) * (gas_gamma) / (gas_gamma - 1.0));
+  double c_s = sqrt(num / den);
+
   bool in_excision_region = false;
   if (v[28] < pow(10.0, -8.0)) {
     in_excision_region = true;
   }
 
+  bool curved_spacetime = false;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      if (i == j) {
+        if (fabs(spatial_metric[i][j] - 1.0) > pow(10.0, -8.0)) {
+          curved_spacetime = true;
+        }
+      }
+      else {
+        if (fabs(spatial_metric[i][j]) > pow(10.0, -8.0)) {
+          curved_spacetime = true;
+        }
+      }
+    }
+  }
+  if (fabs(spatial_det - 1.0) > pow(10.0, -8.0) || fabs(lapse - 1.0) > pow(10.0, -8.0) || fabs(shift_x) > pow(10.0, -8.0) ||
+    fabs(shift_y) > pow(10.0, -8.0) || fabs(shift_z) > pow(10.0, -8.0)) {
+    curved_spacetime = true;
+  }
+
   if (!in_excision_region) {
-    double *vel = malloc(sizeof(double) * 3);
-    double v_sq = 0.0;
-    vel[0] = vx; vel[1] = vy; vel[2] = vz;
+    if (curved_spacetime) {
+      double *vel = malloc(sizeof(double) * 3);
+      double v_sq = 0.0;
+      vel[0] = vx; vel[1] = vy; vel[2] = vz;
 
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+        }
       }
+
+      double *shift = malloc(sizeof(double) * 3);
+      shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
+
+      double *material_eigs = malloc(sizeof(double) * 3);
+      double *fast_acoustic_eigs = malloc(sizeof(double) * 3);
+      double *slow_acoustic_eigs = malloc(sizeof(double) * 3);
+
+      for (int i = 0; i < 3; i++) {
+        material_eigs[i] = (lapse * vel[i]) - shift[i];
+
+        fast_acoustic_eigs[i] = (lapse / (1.0 - (v_sq * (c_s * c_s)))) * ((vel[i] * (1.0 - (c_s * c_s))) +
+          (c_s * sqrt((1.0 - v_sq) * (inv_spatial_metric[i][i] * (1.0 - (v_sq * (c_s * c_s))) - (vel[i] * vel[i]) * (1.0 - (c_s * c_s)))))) - shift[i];
+        
+        slow_acoustic_eigs[i] = (lapse / (1.0 - (v_sq * (c_s * c_s)))) * ((vel[i] * (1.0 - (c_s * c_s))) -
+          (c_s * sqrt((1.0 - v_sq) * (inv_spatial_metric[i][i] * (1.0 - (v_sq * (c_s * c_s))) - (vel[i] * vel[i]) * (1.0 - (c_s * c_s)))))) - shift[i];
+      }
+
+      double max_eig = 0.0;
+      for (int i = 0; i < 3; i++) {
+        if (fabs(material_eigs[i]) > max_eig) {
+          max_eig = fabs(material_eigs[i]);
+        }
+        if (fabs(fast_acoustic_eigs[i]) > max_eig) {
+          max_eig = fabs(fast_acoustic_eigs[i]);
+        }
+        if (fabs(slow_acoustic_eigs[i]) > max_eig) {
+          max_eig = fabs(slow_acoustic_eigs[i]);
+        }
+      }
+
+      return fabs(v_sq) + max_eig;
     }
+    else {
+      double v_sq = sqrt((vx * vx) + (vy * vy) + (vz * vz));
 
-    double *shift = malloc(sizeof(double) * 3);
-    shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
-
-    double num = (gas_gamma * p) / rho;
-    double den = 1.0 * ((p / rho) * (gas_gamma) / (gas_gamma - 1.0));
-    double c_s = sqrt(num / den);
-
-    double *material_eigs = malloc(sizeof(double) * 3);
-    double *fast_acoustic_eigs = malloc(sizeof(double) * 3);
-    double *slow_acoustic_eigs = malloc(sizeof(double) * 3);
-
-    for (int i = 0; i < 3; i++) {
-      material_eigs[i] = (lapse * vel[i]) - shift[i];
-
-      fast_acoustic_eigs[i] = (lapse / (1.0 - (v_sq * (c_s * c_s)))) * ((vel[i] * (1.0 - (c_s * c_s))) +
-        (c_s * sqrt((1.0 - v_sq) * (inv_spatial_metric[i][i] * (1.0 - (v_sq * (c_s * c_s))) - (vel[i] * vel[i]) * (1.0 - (c_s * c_s)))))) - shift[i];
-      
-      slow_acoustic_eigs[i] = (lapse / (1.0 - (v_sq * (c_s * c_s)))) * ((vel[i] * (1.0 - (c_s * c_s))) -
-        (c_s * sqrt((1.0 - v_sq) * (inv_spatial_metric[i][i] * (1.0 - (v_sq * (c_s * c_s))) - (vel[i] * vel[i]) * (1.0 - (c_s * c_s)))))) - shift[i];
+      return fabs(v_sq) + c_s;
     }
-
-    double max_eig = 0.0;
-    for (int i = 0; i < 3; i++) {
-      if (fabs(material_eigs[i]) > max_eig) {
-        max_eig = fabs(material_eigs[i]);
-      }
-      if (fabs(fast_acoustic_eigs[i]) > max_eig) {
-        max_eig = fabs(fast_acoustic_eigs[i]);
-      }
-      if (fabs(slow_acoustic_eigs[i]) > max_eig) {
-        max_eig = fabs(slow_acoustic_eigs[i]);
-      }
-    }
-
-    return fabs(v_sq) + max_eig;
   }
   else {
     return pow(10.0, -8.0);
