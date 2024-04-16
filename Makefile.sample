@@ -95,20 +95,21 @@ endif
 endif
 
 # Read LUA paths and flags if needed 
-USING_LUA =
+LUA_RPATH = 
 LUA_INC_DIR = zero # dummy
 LUA_LIB_DIR = .
 ifeq (${USE_LUA}, 1)
 	USING_LUA = yes
 	LUA_INC_DIR = ${CONF_LUA_INC_DIR}
 	LUA_LIB_DIR = ${CONF_LUA_LIB_DIR}
-	LUA_LIBS = ${CONF_LUA_LIB}
+	LUA_RPATH = -Wl,-rpath,${CONF_LUA_LIB_DIR}
+	LUA_LIBS = -l${CONF_LUA_LIB}
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
 
 INCLUDES = -I${G0_INC_DIR} -I${LAPACK_INC} -I${SUPERLU_INC} -I${MPI_INC_DIR} -I${LUA_INC_DIR} -I${NCCL_INC_DIR}
 LIB_DIRS = -L${LAPACK_LIB_DIR} -L${SUPERLU_LIB_DIR} -L${MPI_LIB_DIR} -L${LUA_LIB_DIR} -L${NCCL_LIB_DIR}
-EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_LIBS} ${LUA_LIBS} ${NCCL_LIBS} -lm -lpthread -ldl
+EXT_LIBS = ${LAPACK_LIB} ${SUPERLU_LIB} ${MPI_LIBS} ${LUA_RPATH} ${LUA_LIBS} ${NCCL_LIBS} -lm -lpthread -ldl
 
 all: rt_twostream
 
