@@ -141,10 +141,10 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
       if (s->lower_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
         is_zero_flux[dir] = true;
       }
-      else if (s->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
+      if (s->upper_bc[dir].type == GKYL_SPECIES_ZERO_FLUX) {
         is_zero_flux[dir+pdim] = true;
       }
-      else if (s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL || s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) {
+      if (s->lower_bc[dir].type == GKYL_SPECIES_GK_IWL || s->upper_bc[dir].type == GKYL_SPECIES_GK_IWL) {
         // Make the parallel direction periodic so that we sync the core before
         // applying sheath BCs in the SOL.
         s->periodic_dirs[s->num_periodic_dir] = app->cdim-1; // The last direction is the parallel one.
@@ -233,7 +233,6 @@ gk_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_
 
     int szD = cdim*app->confBasis.num_basis;
     s->diffD = mkarr(app->use_gpu, szD, app->local_ext.volume);
-    bool is_zero_flux[GKYL_MAX_CDIM] = {false};
     bool diff_dir[GKYL_MAX_CDIM] = {false};
 
     int num_diff_dir = s->info.diffusion.num_diff_dir ? s->info.diffusion.num_diff_dir : app->cdim;
