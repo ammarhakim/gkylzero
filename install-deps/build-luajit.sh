@@ -28,6 +28,4 @@ then
 
     # soft-link 
     ln -sfn $PREFIX $GKYLSOFT/luajit
-    # remove shared libraries
-    rm -rf $GKYLSOFT/luajit/lib/*.so*
 fi
