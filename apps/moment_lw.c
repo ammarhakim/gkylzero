@@ -12,6 +12,7 @@
 #include <gkyl_wv_coldfluid.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_iso_euler.h>
+#include <gkyl_wv_mhd.h>
 #include <gkyl_wv_sr_euler.h>
 #include <gkyl_wv_ten_moment.h>
 
@@ -51,12 +52,28 @@ static const struct gkyl_str_int_pair wave_split_type[] = {
   { 0, 0 }
 };
 
-// RP -> enum map
+// Euler RP -> enum map
 static const struct gkyl_str_int_pair euler_rp_type[] = {
   { "roe", WV_EULER_RP_ROE },
   { "hllc", WV_EULER_RP_HLLC },
   { "lax", WV_EULER_RP_LAX },
   { "hll", WV_EULER_RP_HLL },
+  { 0, 0 }
+};
+
+// Ideal MHD RP -> enum map
+static const struct gkyl_str_int_pair mhd_rp_type[] = {
+  { "roe", WV_MHD_RP_ROE },
+  { "hlld", WV_MHD_RP_HLLD },
+  { "lax", WV_MHD_RP_LAX },
+  { 0, 0 }
+};
+
+// Ideal divB correction -> enum map
+static const struct gkyl_str_int_pair mhd_divb_type[] = {
+  { "none", GKYL_MHD_DIVB_NONE },
+  { "glm",  GKYL_MHD_DIVB_GLM },
+  { "eight_waves", GKYL_MHD_DIVB_EIGHT_WAVES },
   { 0, 0 }
 };
 
@@ -260,6 +277,56 @@ static struct luaL_Reg eqn_tenmoment_ctor[] = {
   {0, 0}
 };
 
+/* ****************/
+/* Mhd Equation */
+/* ****************/
+
+// Mhd.new { gasgamma = 1.4, rpType = "roe", divB = "glm", glmCh = 0.0, glmAlpha = 0.0 }
+// rpType is one of "roe", "hlld", "lax"
+// divB is "none", "glm", "eight_waves"
+static int
+eqn_mhd_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *mhd_lw = gkyl_malloc(sizeof(*mhd_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
+  
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "roe");
+  enum gkyl_wv_mhd_rp rp_type = gkyl_search_str_int_pair_by_str(mhd_rp_type, rp_str, WV_MHD_RP_ROE);
+
+  const char *divb_str = glua_tbl_get_string(L, "divergenceConstraint", "none");
+  enum gkyl_wv_mhd_div_constraint divb = gkyl_search_str_int_pair_by_str(
+    mhd_divb_type, divb_str, GKYL_MHD_DIVB_NONE);
+
+  double glm_ch = glua_tbl_get_number(L, "glmCh", 1.0);
+  double glm_alpha = glua_tbl_get_number(L, "glmAlpha", 0.4);
+
+  mhd_lw->magic = MOMENT_EQN_DEFAULT;
+  mhd_lw->eqn = gkyl_wv_mhd_new( &(struct gkyl_wv_mhd_inp) {
+      .gas_gamma = gas_gamma,
+      .rp_type = rp_type,
+      .divergence_constraint = divb,
+      .glm_alpha = glm_alpha,
+      .glm_ch = glm_ch
+    }
+  );
+
+  // create Lua userdata ...
+  struct wv_eqn_lw **l_mhd_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_mhd_lw = mhd_lw; // ... point it to proper object
+  
+  // set metatable
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor
+static struct luaL_Reg eqn_mhd_ctor[] = {
+  {"new", eqn_mhd_lw_new},
+  {0, 0}
+};
 
 // Register and load all wave equation objects
 static void
@@ -276,7 +343,8 @@ eqn_openlibs(lua_State *L)
     luaL_register(L, "G0.Moments.Eq.IsoEuler", eqn_iso_euler_ctor);
     luaL_register(L, "G0.Moments.Eq.SrEuler", eqn_sr_euler_ctor);
     luaL_register(L, "G0.Moments.Eq.ColdFluid", eqn_coldfluid_ctor);
-    luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor);
+    luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor); 
+    luaL_register(L, "G0.Moments.Eq.Mhd", eqn_mhd_ctor);
   } while (0);
 }
 
