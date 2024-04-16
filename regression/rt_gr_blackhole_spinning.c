@@ -39,6 +39,14 @@ struct blackhole_spinning_ctx
   double ur; // Right ring fluid velocity.
   double pr; // Right ring fluid pressure.
 
+  // Spacetime parameters (using geometric units).
+  double mass; // Mass of the black hole.
+  double spin; // Spin of the black hole.
+
+  double pos_x; // Position of the black hole (x-direction).
+  double pos_y; // Position of the black hole (y-direction).
+  double pos_z; // Position of the black hole (z-direction).
+
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime;
 
@@ -79,18 +87,26 @@ create_ctx(void)
   double ur = 0.0; // Right ring fluid velocity.
   double pr = 0.1; // Right ring fluid pressure.
 
+  // Spacetime parameters (using geometric units).
+  double mass = 0.3; // Mass of the black hole.
+  double spin = -0.99; // Spin of the black hole.
+
+  double pos_x = 2.5; // Position of the black hole (x-direction).
+  double pos_y = 2.5; // Position of the black hole (y-direction).
+  double pos_z = 0.0; // Position of the black hole (z-direction).
+
   // Pointer to spacetime metric.
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.3, -0.9, 2.5, 2.5, 0.0);
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 800; // Cell count (x-direction).
-  int Ny = 800; // Cell count (y-direction).
+  int Nx = 400; // Cell count (x-direction).
+  int Ny = 400; // Cell count (y-direction).
   double Lx = 5.0; // Domain size (x-direction).
   double Ly = 5.0; // Domain size (y-direction).
-  double cfl_frac = 0.9; // CFL coefficient.
+  double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 5.0; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -109,6 +125,11 @@ create_ctx(void)
     .rhor = rhor,
     .ur = ur,
     .pr = pr,
+    .mass = mass,
+    .spin = spin,
+    .pos_x = pos_x,
+    .pos_y = pos_y,
+    .pos_z = pos_z,
     .spacetime = spacetime,
     .Nx = Nx,
     .Ny = Ny,
