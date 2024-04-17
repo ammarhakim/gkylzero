@@ -256,12 +256,12 @@ double
 gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gkyl_array_clear(species->cflrate, 0.0);
-  gkyl_array_clear(rhs, 0.0);
-
   double omega_cfl = 1/DBL_MAX;
 
   if (!species->info.is_static) {
+    gkyl_array_clear(species->cflrate, 0.0);
+    gkyl_array_clear(rhs, 0.0);
+    
     gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
       fin, species->cflrate, rhs);
 
