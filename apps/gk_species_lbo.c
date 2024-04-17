@@ -1,5 +1,7 @@
 #include <assert.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_const.h>
+#include <gkyl_array_rio.h>
 
 void 
 gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, struct gk_lbo_collisions *lbo)
@@ -31,14 +33,16 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   if (s->info.collisions.normNu) {
     lbo->normNu = true;
     double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
-    lbo->self_nu_fac = nuFrac*calc_norm_nu(s->info.collisions.n_ref, s->info.collisions.n_ref, s->info.mass, s->info.mass, s->info.charge, s->info.charge, s->info.collisions.T_ref, s->info.collisions.T_ref);
     double tpar_min = (s->info.mass/6.0)*pow(s->grid.dx[cdim],2);
     double tperp_min = vdim>1 ? (s->info.collisions.bmag_mid/3.0)*s->grid.dx[cdim+1] : tpar_min;
     lbo->vtsq_min = (tpar_min + 2.0*tperp_min)/(3.0*s->info.mass);
 
-    double eps0 = 1.0, hbar = 1.0; // Not used by spitzer_coll_freq if doing normnu.
+    double eps0 = s->info.collisions.eps0? s->info.collisions.eps0: GKYL_EPSILON0;
+    double hbar = s->info.collisions.hbar? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
+    double eV = s->info.collisions.eV? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
     lbo->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->confBasis, app->poly_order+1,
-      nuFrac, eps0, hbar, app->use_gpu);
+      nuFrac, 1.0, 1.0, app->use_gpu);
+    lbo->self_nu_fac = nuFrac*calc_norm_nu(s->info.collisions.n_ref, s->info.collisions.n_ref, s->info.mass, s->info.mass, s->info.charge, s->info.charge, s->info.collisions.T_ref, s->info.collisions.T_ref, eps0, hbar, eV);
     // Create arrays for scaling collisionality by normalization factor
     // norm_nu is computed from Spitzer calc and is the normalization factor for the local
     // density and thermal velocity, norm_nu_sr = n/(vth_s^2 + vth_r^2)^(3/2)
@@ -107,7 +111,10 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     lbo->collide_with[i] = gk_find_species(app, s->info.collisions.collide_with[i]);
     if (s->info.collisions.normNu) {
       double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
-      lbo->cross_nu_fac[i] = nuFrac*calc_norm_nu(s->info.collisions.n_ref, lbo->collide_with[i]->info.collisions.n_ref, s->info.mass, lbo->collide_with[i]->info.mass, s->info.charge, lbo->collide_with[i]->info.charge, s->info.collisions.T_ref, lbo->collide_with[i]->info.collisions.T_ref);
+      double eps0 = s->info.collisions.eps0? s->info.collisions.eps0: GKYL_EPSILON0;
+      double hbar = s->info.collisions.hbar? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
+      double eV = s->info.collisions.eV? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
+      lbo->cross_nu_fac[i] = nuFrac*calc_norm_nu(s->info.collisions.n_ref, lbo->collide_with[i]->info.collisions.n_ref, s->info.mass, lbo->collide_with[i]->info.mass, s->info.charge, lbo->collide_with[i]->info.charge, s->info.collisions.T_ref, lbo->collide_with[i]->info.collisions.T_ref, eps0, hbar, eV);
     }
     lbo->other_m[i] = lbo->collide_with[i]->info.mass;
     lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
@@ -181,6 +188,7 @@ gk_species_lbo_moms(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   if (lbo->normNu) {
     gkyl_array_set_offset(lbo->vtsq, 1.0, lbo->prim_moms, 1*app->confBasis.num_basis);
     gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, lbo->vtsq, lbo->vtsq_min, lbo->m0, lbo->vtsq, lbo->vtsq_min, lbo->self_nu_fac, lbo->self_nu);
+    gkyl_grid_sub_array_write(&app->grid, &app->local, NULL, lbo->self_nu, "nu.gkyl");
   }
 
   // Scale upar and vth2 by nu

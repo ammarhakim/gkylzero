@@ -10,24 +10,19 @@
 #include <gkyl_range.h>
 
 // Calculate the plasma frequency
-double plasma_frequency(double n, double m)
+double plasma_frequency(double n, double m, double eps0, double hbar, double eV)
 {
-  double eps0 = GKYL_EPSILON0;
-  double eV = GKYL_ELEMENTARY_CHARGE;
   return sqrt(n*eV*eV/m/eps0);
 }
 
 // Calculate the Coulomb Logarithm
-double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr)
+double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr, double eps0, double hbar, double eV)
 {
 
-  double eps0 = GKYL_EPSILON0;
-  double eV = GKYL_ELEMENTARY_CHARGE;
-  double hbar = GKYL_PLANCKS_CONSTANT_H/2/M_PI;
   double vts = sqrt(Ts/ms);
   double vtr = sqrt(Tr/mr);
-  double wps = plasma_frequency(ns,ms);
-  double wpr = plasma_frequency(nr,mr);
+  double wps = plasma_frequency(ns,ms, eps0, hbar, eV);
+  double wpr = plasma_frequency(nr,mr, eps0, hbar, eV);
   double inner1 = wps*wps/(Ts/ms + 3*Ts/ms) + wpr*wpr/(Tr/mr + 3*Ts/ms);
   double u = 3*(vts*vts + vtr*vtr);
   double msr = ms*mr/(ms+mr);
@@ -37,11 +32,9 @@ double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double
 }
 
 // Calculate the normNu
-double calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr)
+double calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr, double eps0, double hbar, double eV)
 {
-  double eps0 = GKYL_EPSILON0;
-  double eV = GKYL_ELEMENTARY_CHARGE;
-  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr);
+  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr, eps0, hbar, eV);
   return 1.0/ms*(1/mr+1/ms)*qs*qs*qr*qr*clog/(6*pow(M_PI,1.5)*eps0*eps0);
 }
 
