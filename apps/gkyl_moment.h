@@ -25,8 +25,10 @@ struct gkyl_moment_species {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+  
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);
+  
   // pointer to user-defined number density and temperature sources
   void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
   bool nT_source_set_only_once;
@@ -50,11 +52,14 @@ struct gkyl_moment_field {
   void *ctx; // context for initial condition init function (and potentially other functions)
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  void *app_current_ctx; // context for applied current
   // pointer to applied current function
   void (*app_current_func)(double t, const double *xn, double *fout, void *ctx);
   double t_ramp_curr; // linear ramp for turning on applied currents
-  
+
   bool is_ext_em_static; // flag to indicate if external field is time-independent
+  void *ext_em_ctx; // context for applied current
   // pointer to external fields
   void (*ext_em_func)(double t, const double *xn, double *fout, void *ctx);
   double t_ramp_E; // linear ramp for turning on external E field

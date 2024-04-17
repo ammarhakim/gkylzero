@@ -385,7 +385,7 @@ moment_species_lw_new(lua_State *L)
   const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");
   mom_species.limiter = gkyl_search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
 
-  const char *split_str = glua_tbl_get_string(L, "split_type", "qwave");
+  const char *split_str = glua_tbl_get_string(L, "splitType", "qwave");
   mom_species.split_type = gkyl_search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
 
   bool evolve = mom_species.evolve = glua_tbl_get_bool(L, "evolve", true);
@@ -447,7 +447,11 @@ struct moment_field_lw {
   
   struct gkyl_moment_field mom_field; // input struct to construct field
   bool evolve; // is this field evolved?
-  struct lua_func_ctx init_ref; // Lua registery reference to initilization function
+  
+  struct lua_func_ctx init_ctx; // Lua registery reference to initilization function
+
+  bool has_app_current; // true if applied current 
+  struct lua_func_ctx app_current_ctx; // Lua registery reference to applied current
 };
 
 static int
@@ -471,7 +475,7 @@ moment_field_lw_new(lua_State *L)
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   else
     return luaL_error(L, "Field must have an \"init\" function for initial conditions!");
-
+  
   with_lua_tbl_tbl(L, "bcx") {
     int nbc = glua_objlen(L);
     for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
@@ -482,20 +486,35 @@ moment_field_lw_new(lua_State *L)
     int nbc = glua_objlen(L);
     for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
       mom_field.bcy[i] = glua_tbl_iget_integer(L, i+1, 0);
-  }  
+  }
+
+  bool has_app_current = false;
+  int app_current_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "appliedCurrent")) {
+    has_app_current = true;
+    app_current_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
 
   struct moment_field_lw *momf_lw = lua_newuserdata(L, sizeof(*momf_lw));
 
   momf_lw->magic = MOMENT_FIELD_DEFAULT;
   momf_lw->evolve = evolve;
   momf_lw->mom_field = mom_field;
-  
-  momf_lw->init_ref = (struct lua_func_ctx) {
+
+  momf_lw->init_ctx = (struct lua_func_ctx) {
     .func_ref = init_ref,
     .ndim = 0, // this will be set later
     .nret = 6,
     .L = L,
   };  
+
+  momf_lw->has_app_current = has_app_current;
+  momf_lw->app_current_ctx = (struct lua_func_ctx) {
+    .func_ref = app_current_ref,
+    .ndim = 0, // this will be set later
+    .nret = 3,
+    .L = L,
+  };
   
   // set metatable
   luaL_getmetatable(L, MOMENT_FIELD_METATABLE_NM);
@@ -520,8 +539,10 @@ static struct luaL_Reg mom_field_ctor[] = {
 // Lua userdata object for holding Moment app and run parameters
 struct moment_app_lw {
   gkyl_moment_app *app; // Moment app object
+  
   struct lua_func_ctx species_func_ctx[GKYL_MAX_SPECIES]; // function context for each species
   struct lua_func_ctx field_func_ctx; // function context for field
+  struct lua_func_ctx field_app_current_ctx; // function context for applied current
   
   double tstart, tend; // start and end times of simulation
   int nframe; // number of data frames to write
@@ -646,13 +667,21 @@ mom_app_new(lua_State *L)
       struct moment_field_lw *momf = lua_touserdata(L, -1);
       if (momf->magic == MOMENT_FIELD_DEFAULT) {
 
-        momf->init_ref.ndim = cdim;
-
         mom.field = momf->mom_field;
 
-        app_lw->field_func_ctx = momf->init_ref;
+        app_lw->field_func_ctx = momf->init_ctx;
+        momf->init_ctx.ndim = cdim;
+        
         mom.field.init = gkyl_lw_eval_cb;
         mom.field.ctx = &app_lw->field_func_ctx;
+
+        if (momf->has_app_current) {
+          app_lw->field_app_current_ctx = momf->app_current_ctx;
+          momf->app_current_ctx.ndim = cdim;
+          
+          mom.field.app_current_func = gkyl_lw_eval_cb;
+          mom.field.app_current_ctx = &app_lw->field_app_current_ctx;
+        }
       }
     }
   }
