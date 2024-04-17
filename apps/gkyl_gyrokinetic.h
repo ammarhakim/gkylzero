@@ -152,71 +152,74 @@ struct gkyl_gyrokinetic_react {
   struct gkyl_gyrokinetic_react_type react_type[GKYL_MAX_SPECIES];
 };
 
-// Parameters for gk species
+// Parameters for gk species.
 struct gkyl_gyrokinetic_species {
-  char name[128]; // species name
+  char name[128]; // Species name.
 
   enum gkyl_gkmodel_id gkmodel_id;
-  double charge, mass; // charge and mass
-  double lower[3], upper[3]; // lower, upper bounds of velocity-space
-  int cells[3]; // velocity-space cells
+  double charge, mass; // Charge and mass.
+  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
+  int cells[3]; // Velocity-space cells.
 
-  // initial conditions using projection routine
+  // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
   double polarization_density;
 
-  int num_diag_moments; // number of diagnostic moments
-  char diag_moments[16][16]; // list of diagnostic moments
+  int num_diag_moments; // Number of diagnostic moments.
+  char diag_moments[16][16]; // List of diagnostic moments.
 
-  // collisions to include
+  // Collisions to include.
   struct gkyl_gyrokinetic_collisions collisions;
 
-  // diffusion coupling to include
+  // Diffusion coupling to include.
   struct gkyl_gyrokinetic_diffusion diffusion;
 
-  // source to include
+  // Source to include.
   struct gkyl_gyrokinetic_source source;
 
-  // radiation to include
+  // Radiation to include.
   struct gkyl_gyrokinetic_radiation radiation;
 
-  // reactions between plasma species to include
+  // Reactions between plasma species to include.
   struct gkyl_gyrokinetic_react react;
-  // reactions with neutral species to include
+  // Reactions with neutral species to include.
   struct gkyl_gyrokinetic_react react_neut;
 
-  // boundary conditions
+  // Boundary conditions.
   struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
+
+  // Positivity enforcement via shift in f.
+  bool enforce_positivity;
 };
 
 // Parameters for neutral species
 struct gkyl_gyrokinetic_neut_species {
-  char name[128]; // species name
+  char name[128]; // Species name.
 
-  double mass; // mass
-  double lower[3], upper[3]; // lower, upper bounds of velocity-space
-  int cells[3]; // velocity-space cells
+  double mass; // Mass.
+  double lower[3], upper[3]; // Lower, upper bounds of velocity-space.
+  int cells[3]; // Velocity-space cells.
 
-  bool is_static; // set to true if neutral species does not change in time
+  bool is_static; // Set to true if neutral species does not change in time.
 
-  // initial conditions using projection routine
+  // Initial conditions using projection routine.
   struct gkyl_gyrokinetic_projection projection;
 
-  int num_diag_moments; // number of diagnostic moments
-  char diag_moments[16][16]; // list of diagnostic moments
+  int num_diag_moments; // Number of diagnostic moments.
+  char diag_moments[16][16]; // List of diagnostic moments.
 
-  // source to include
+  // Source to include.
   struct gkyl_gyrokinetic_source source;
 
-  // reactions with plasma species to include
+  // Reactions with plasma species to include.
   struct gkyl_gyrokinetic_react react_neut;
 
-  // boundary conditions
+  // Boundary conditions.
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
-// Parameter for gk field
+// Parameter for gk field.
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   double bmag_fac; 
