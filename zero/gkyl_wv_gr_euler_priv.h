@@ -158,7 +158,7 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 /**
 * Compute waves and speeds using Lax fluxes (with potential fallback).
 *
-* @param eqn Base equation object
+* @param eqn Base equation object.
 * @param type Type of Riemann-solver flux to use.
 * @param delta Jump across interface to split.
 * @param ql Conserved variables on the left of the interface.
@@ -200,6 +200,23 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 GKYL_CU_D
 static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump);
+
+/**
+* Compute waves and speeds using Roe fluxes.
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver flux to use.
+* @param delta Jump across interface to split.
+* @param ql Conserved variables on the left of the interface.
+* @param qr Conserved variables on the right of the interface.
+* @param waves Waves (output).
+* @param s Wave speeds (output).
+* @return Maximum wave speed.
+*/
+GKYL_CU_D
+static double
+wave_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
+
 
 /**
 * Determine whether invariant domain of the general relativistic Euler equations is satisfied.

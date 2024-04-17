@@ -593,6 +593,269 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  double gas_gamma = gr_euler->gas_gamma;
+
+  double vl[29] = { 0.0 };
+  double vr[29] = { 0.0 };
+  gkyl_gr_euler_prim_vars(gas_gamma, ql, vl);
+  gkyl_gr_euler_prim_vars(gas_gamma, qr, vr);
+
+  double rho_l = vl[0];
+  double vx_l = vl[1];
+  double vy_l = vl[2];
+  double vz_l = vl[3];
+  double p_l = vl[4];
+
+  double spatial_det_l = vl[5];
+  double lapse_l = vl[6];
+  double shift_x_l = vl[7];
+  double shift_y_l = vl[8];
+  double shift_z_l = vl[9];
+
+  double **spatial_metric_l = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_l[i] = malloc(sizeof(double) * 3);
+  }
+
+  spatial_metric_l[0][0] = vl[10]; spatial_metric_l[0][1] = vl[11]; spatial_metric_l[0][2] = vl[12];
+  spatial_metric_l[1][0] = vl[13]; spatial_metric_l[1][1] = vl[14]; spatial_metric_l[1][2] = vl[15];
+  spatial_metric_l[2][0] = vl[16]; spatial_metric_l[2][1] = vl[17]; spatial_metric_l[2][2] = vl[18];
+
+  double **inv_spatial_metric_l = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    inv_spatial_metric_l[i] = malloc(sizeof(double) * 3);
+  }
+
+  inv_spatial_metric_l[0][0] = vl[19]; inv_spatial_metric_l[0][1] = vl[20]; inv_spatial_metric_l[0][2] = vl[21];
+  inv_spatial_metric_l[1][0] = vl[22]; inv_spatial_metric_l[1][1] = vl[23]; inv_spatial_metric_l[1][2] = vl[24];
+  inv_spatial_metric_l[2][0] = vl[25]; inv_spatial_metric_l[2][1] = vl[26]; inv_spatial_metric_l[2][2] = vl[27];
+
+  bool in_excision_region_l = false;
+  if (ql[28] < pow(10.0, -8.0)) {
+    in_excision_region_l = true;
+  }
+
+  double rho_r = vr[0];
+  double vx_r = vr[1];
+  double vy_r = vr[2];
+  double vz_r = vr[3];
+  double p_r = vr[4];
+
+  double spatial_det_r = vr[5];
+  double lapse_r = vr[6];
+  double shift_x_r = vr[7];
+  double shift_y_r = vr[8];
+  double shift_z_r = vr[9];
+
+  double **spatial_metric_r = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_r[i] = malloc(sizeof(double) * 3);
+  }
+
+  spatial_metric_r[0][0] = vr[10]; spatial_metric_r[0][1] = vr[11]; spatial_metric_r[0][2] = vr[12];
+  spatial_metric_r[1][0] = vr[13]; spatial_metric_r[1][1] = vr[14]; spatial_metric_r[1][2] = vr[15];
+  spatial_metric_r[2][0] = vr[16]; spatial_metric_r[2][1] = vr[17]; spatial_metric_r[2][2] = vr[18];
+
+  double **inv_spatial_metric_r = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    inv_spatial_metric_r[i] = malloc(sizeof(double) * 3);
+  }
+
+  inv_spatial_metric_r[0][0] = vr[19]; inv_spatial_metric_r[0][1] = vr[20]; inv_spatial_metric_r[0][2] = vr[21];
+  inv_spatial_metric_r[1][0] = vr[22]; inv_spatial_metric_r[1][1] = vr[23]; inv_spatial_metric_r[1][2] = vr[24];
+  inv_spatial_metric_r[2][0] = vr[25]; inv_spatial_metric_r[2][1] = vr[26]; inv_spatial_metric_r[2][2] = vr[27];
+
+  bool in_excision_region_r = false;
+  if (qr[28] < pow(10.0, -8.0)) {
+    in_excision_region_r = true;
+  }
+
+  double *vel_l = malloc(sizeof(double) * 3);
+  double v_sq_l = 0.0;
+  vel_l[0] = vx_l; vel_l[1] = vy_l; vel_l[2] = vz_l;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      v_sq_l += spatial_metric_l[i][j] * vel_l[i] * vel_l[j];
+    }
+  }
+
+  double W_l = 1.0 / sqrt(1.0 - v_sq_l);
+  if (v_sq_l > 1.0 - pow(10.0, -8.0)) {
+    W_l = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
+  }
+
+  double *vel_r = malloc(sizeof(double) * 3);
+  double v_sq_r = 0.0;
+  vel_r[0] = vx_r; vel_r[1] = vy_r; vel_r[2] = vz_r;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      v_sq_r += spatial_metric_r[i][j] * vel_r[i] * vel_r[j];
+    }
+  }
+
+  double W_r = 1.0 / sqrt(1.0 - v_sq_r);
+  if (v_sq_r > 1.0 - pow(10.0, -8.0)) {
+    W_r = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
+  }
+
+  double *shift_l = malloc(sizeof(double) * 3);
+  double *coshift_l = malloc(sizeof(double) * 3);
+  shift_l[0] = shift_x_l; shift_l[1] = shift_y_l; shift_l[2] = shift_z_l;
+  coshift_l[0] = 0.0; coshift_l[1] = 0.0; coshift_l[2] = 0.0;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      coshift_l[i] = spatial_metric_l[i][j] * shift_l[j];
+    }
+  }
+
+  double **spacetime_metric_l = malloc(sizeof(double*) * 4);
+  for (int i = 0; i < 4; i++) {
+    spacetime_metric_l = malloc(sizeof(double) * 4);
+
+    for (int j = 0; j < 4; j++) {
+      spacetime_metric_l[i][j] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    spacetime_metric_l[0][0] += shift_l[i] * coshift_l[i];
+  }
+  spacetime_metric_l[0][0] -= (lapse_l * lapse_l);
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      spacetime_metric_l[0][i + 1] += spatial_metric_l[i][j] * shift_l[j];
+      spacetime_metric_l[i + 1][0] += spatial_metric_l[i][j] * shift_l[j];
+
+      spacetime_metric_l[i + 1][j + 1] = spatial_metric_l[i][j];
+    }
+  }
+
+  double **inv_spacetime_metric_l = malloc(sizeof(double*) * 4);
+  for (int i = 0; i < 4; i++) {
+    inv_spacetime_metric_l = malloc(sizeof(double) * 4);
+
+    for (int j = 0; j < 4; j++) {
+      inv_spacetime_metric_l[i][j] = 0.0;
+    }
+  }
+
+  inv_spacetime_metric_l[0][0] = -1.0 / (lapse_l * lapse_l);
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      inv_spacetime_metric_l[0][i + 1] += (spatial_metric_l[i][j] * shift_l[j]) / (lapse_l * lapse_l);
+      inv_spacetime_metric_l[i + 1][0] += (spatial_metric_l[i][j] * shift_l[j]) / (lapse_l * lapse_l);
+
+      inv_spacetime_metric_l[i + 1][j + 1] = inv_spatial_metric_l[i][j] - (shift_l[i] * shift_l[j]) / (lapse_l * lapse_l);
+    }
+  }
+
+  double *shift_r = malloc(sizeof(double) * 3);
+  double *coshift_r = malloc(sizeof(double) * 3);
+  shift_r[0] = shift_x_r; shift_r[1] = shift_y_r; shift_r[2] = shift_z_r;
+  coshift_r[0] = 0.0; coshift_r[1] = 0.0; coshift_r[2] = 0.0;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      coshift_r[i] = spatial_metric_r[i][j] * shift_r[j];
+    }
+  }
+
+  double **spacetime_metric_r = malloc(sizeof(double*) * 4);
+  for (int i = 0; i < 4; i++) {
+    spacetime_metric_r = malloc(sizeof(double) * 4);
+
+    for (int j = 0; j < 4; j++) {
+      spacetime_metric_r[i][j] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    spacetime_metric_r[0][0] += shift_r[i] * coshift_r[i];
+  }
+  spacetime_metric_r[0][0] -= (lapse_r * lapse_r);
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      spacetime_metric_r[0][i + 1] += spatial_metric_r[i][j] * shift_r[j];
+      spacetime_metric_r[i + 1][0] += spatial_metric_r[i][j] * shift_r[j];
+
+      spacetime_metric_r[i + 1][j + 1] = spatial_metric_r[i][j];
+    }
+  }
+
+  double **inv_spacetime_metric_r = malloc(sizeof(double*) * 4);
+  for (int i = 0; i < 4; i++) {
+    inv_spacetime_metric_r = malloc(sizeof(double) * 4);
+
+    for (int j = 0; j < 4; j++) {
+      inv_spacetime_metric_r[i][j] = 0.0;
+    }
+  }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      inv_spacetime_metric_r[0][i + 1] += (spatial_metric_r[i][j] * shift_r[j]) / (lapse_r * lapse_r);
+      inv_spacetime_metric_r[i + 1][0] += (spatial_metric_r[i][j] * shift_r[j]) / (lapse_r * lapse_r);
+
+      inv_spacetime_metric_r[i + 1][j + 1] = inv_spatial_metric_r[i][j] - (shift_r[i] * shift_r[j]) / (lapse_r * lapse_r);
+    }
+  }
+
+  double h_l = 1.0 + ((p_l / rho_l) * (gas_gamma / (gas_gamma - 1.0)));
+  double h_r = 1.0 + ((p_r / rho_r) * (gas_gamma / (gas_gamma - 1.0)));
+
+  double K_l = sqrt(lapse_l * sqrt(spatial_det_l) * rho_l * h_l);
+  double K_r = sqrt(lapse_r * sqrt(spatial_det_r) * rho_r * h_r);
+  double inv_K_avg = 1.0 / (K_l + K_r);
+
+  double v0 = ((K_l * sqrt(spatial_det_l) * W_l) + (K_r * sqrt(spatial_det_r) * W_r)) * inv_K_avg;
+  double v1 = ((K_l * sqrt(spatial_det_l) * W_l * vx_l) + (K_r * sqrt(spatial_det_r) * W_r * vx_r)) * inv_K_avg;
+  double v2 = ((K_l * sqrt(spatial_det_l) * W_l * vy_l) + (K_r * sqrt(spatial_det_r) * W_r * vy_r)) * inv_K_avg;
+  double v3 = ((K_l * sqrt(spatial_det_l) * W_l * vz_l) + (K_r * sqrt(spatial_det_r) * W_r * vz_r)) * inv_K_avg;
+  double v4 = (((K_l * p_l) / (rho_l * h_l)) + ((K_r * p_r) / (rho_r * h_r))) * inv_K_avg;
+  double c_minus = 1.0 - (gas_gamma / (gas_gamma - 1.0)) * v4;
+  double c_plus = 1.0 + (gas_gamma / (gas_gamma - 1.0)) * v4;
+
+  double *v_vect = malloc(sizeof(double) * 4);
+  double *v_covect = malloc(sizeof(double) * 4);
+  v_vect[0] = v0; v_vect[1] = v1; v_vect[2] = v2; v_vect[3] = v3;
+  v_covect[0] = 0.0; v_covect[1] = 0.0; v_covect[2] = 0.0; v_covect[3] = 0.0;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      v_covect[i] = spacetime_metric_l[i][j] * v_vect[j];
+    }
+  }
+
+  double v_contr = 0.0;
+  for (int i = 0; i < 3; i++) {
+    v_contr = v_vect[i] * v_covect[i];
+  }
+
+  double **inv_spacetime_metric_avg = malloc(sizeof(double*) * 4);
+  for (int i = 0; i < 4; i++) {
+    inv_spacetime_metric_avg[i] = malloc(sizeof(double) * 4);
+  }
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      inv_spacetime_metric_avg[i][j] = (0.5 * inv_spacetime_metric_l[i][j]) + (0.5 * inv_spacetime_metric_r[i][j]);
+    }
+  }
+
+  double s_sq = (0.5 * gas_gamma * v4 * (1.0 - v_contr)) - (0.5 * (gas_gamma - 1.0) * (1.0 + v_contr));
+  double e = (inv_spacetime_metric_avg[0][0] * (v1 * v1)) - (2.0 * inv_spacetime_metric_avg[0][1] * (v0 * v1)) + (inv_spacetime_metric_avg[1][1] * (v0 * v0));
+  double y = sqrt((1.0 - gas_gamma * v4) * e + s_sq * ((inv_spacetime_metric_avg[0][1] * inv_spacetime_metric_avg[0][1]) - (inv_spacetime_metric_avg[0][0] - inv_spacetime_metric_avg[1][1])));
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
