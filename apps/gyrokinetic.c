@@ -1803,8 +1803,10 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
               3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
-            array_combine(app->neut_species[i].f1,
-              3.0/4.0, app->neut_species[i].f, 1.0/4.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
+            if (!app->neut_species[i].info.is_static) {
+              array_combine(app->neut_species[i].f1,
+                3.0/4.0, app->neut_species[i].f, 1.0/4.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
+            }
           }
           state = RK_STAGE_3;
         }
@@ -1846,9 +1848,11 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
             gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
-            array_combine(app->neut_species[i].f1,
-              1.0/3.0, app->neut_species[i].f, 2.0/3.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
-            gkyl_array_copy_range(app->neut_species[i].f, app->neut_species[i].f1, &app->neut_species[i].local_ext);
+            if (!app->neut_species[i].info.is_static) {
+              array_combine(app->neut_species[i].f1,
+                1.0/3.0, app->neut_species[i].f, 2.0/3.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
+              gkyl_array_copy_range(app->neut_species[i].f, app->neut_species[i].f1, &app->neut_species[i].local_ext);
+            }
           }
           state = RK_COMPLETE;
         }
