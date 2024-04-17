@@ -20,7 +20,7 @@
 #endif
 #endif
 
-struct gk_mpdx_ctx {
+struct gk_mdpx_ctx {
   double chargeElc; // electron charge
   double massElc; // electron mass
   double chargeIon; // ion charge
@@ -59,7 +59,7 @@ struct gk_mpdx_ctx {
 void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_mpdx_ctx *app = ctx;
+  struct gk_mdpx_ctx *app = ctx;
   double x = xn[0], y = xn[1], z = xn[2];
 
   double r_prof = app->r_prof;
@@ -96,7 +96,7 @@ eval_udrift(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 void
 eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_mpdx_ctx *app = ctx;
+  struct gk_mdpx_ctx *app = ctx;
   double T = app->Te;
   fout[0] = T;
 }
@@ -104,7 +104,7 @@ eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void
 eval_temp_ar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_mpdx_ctx *app = ctx;
+  struct gk_mdpx_ctx *app = ctx;
   double T = app->TAr;
   fout[0] = T;
 }
@@ -112,14 +112,14 @@ eval_temp_ar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalNuElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_mpdx_ctx *app = ctx;
+  struct gk_mdpx_ctx *app = ctx;
   fout[0] = app->nuElc;
 }
 
 void
 evalNuIon(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_mpdx_ctx *app = ctx;
+  struct gk_mdpx_ctx *app = ctx;
   fout[0] = app->nuIon;
 }
 
@@ -133,7 +133,7 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 void
 bmag_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct gk_mpdx_ctx *app = ctx;
+  struct gk_mdpx_ctx *app = ctx;
 
   double B0 = app->B0;
 
@@ -175,7 +175,7 @@ double norm_nu_func(double nuFrac, double ns, double nr, double ms, double mr, d
   return nuFrac/ms*(1/mr+1/ms)*qs*qs*qr*qr*clog/(6*pow(M_PI,1.5)*eps0*eps0);
 }
 
-struct gk_mpdx_ctx
+struct gk_mdpx_ctx
 create_ctx(void)
 {
   double eps0 = GKYL_EPSILON0;
@@ -227,7 +227,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct gk_mpdx_ctx ctx = {
+  struct gk_mdpx_ctx ctx = {
     .chargeElc = qe, 
     .massElc = me, 
     .chargeIon = qi, 
@@ -308,7 +308,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct gk_mpdx_ctx ctx = create_ctx(); // context for init functions
+  struct gk_mdpx_ctx ctx = create_ctx(); // context for init functions
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
@@ -606,7 +606,7 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk gk = {
-    .name = "gk_mpdx_cart_3x2v_p1",
+    .name = "gk_mdpx_cart_3x2v_p1",
 
     .cdim = 3, .vdim = 2,
     .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly, -0.5 * ctx.Lz },
