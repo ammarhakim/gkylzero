@@ -421,17 +421,35 @@ gkyl_moment_update(gkyl_moment_app* app, double dt)
   return status;
 }
 
+int
+gkyl_moment_app_field_energy_ndiag(gkyl_moment_app *app)
+{
+  return 6;
+}
+
+void
+gkyl_moment_app_get_field_energy(gkyl_moment_app *app, double *vals)
+{
+  double energy_global[6] = { 0.0 };
+  if (app->has_field) {
+    double energy[6];
+    calc_integ_quant(app->field.maxwell, app->grid.cellVolume, app->field.fcurr, app->geom,
+      app->local, energy);
+    
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
+  }
+  for (int i=0; i<6; ++i)
+    vals[i] = energy_global[i];
+}
+
 void
 gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
 {
   if (app->has_field) {
     double energy[6] = { 0.0 };
-    calc_integ_quant(app->field.maxwell, app->grid.cellVolume, app->field.fcurr, app->geom,
-      app->local, energy);
-    
-    double energy_global[6];
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
-    gkyl_dynvec_append(app->field.integ_energy, tm, energy_global);
+    gkyl_moment_app_get_field_energy(app, energy);
+    gkyl_dynvec_append(app->field.integ_energy, tm, energy);
+
   }
 }
 
@@ -450,6 +468,28 @@ gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_diag, q_integ, q_integ_global);
     gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ_global);
   }
+}
+
+void
+gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3])
+{
+  for (int i=0; i<app->ndim; ++i)
+    nghost[i] = app->nghost[i];
+}
+
+struct gkyl_array*
+gkyl_moment_app_get_write_array_species(const gkyl_moment_app* app, int sidx)
+{
+  // this needs to be consistent with the write_species method
+  return app->species[sidx].fcurr;
+}
+
+struct gkyl_array*
+gkyl_moment_app_get_write_array_field(const gkyl_moment_app* app)
+{
+  if (app->has_field != 1) return 0;
+// this needs to be consistent with the write_field method
+  return app->field.fcurr;
 }
 
 struct gkyl_moment_stat

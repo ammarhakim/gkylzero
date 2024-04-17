@@ -87,12 +87,14 @@ endif
 
 # Read LUA paths and flags if needed 
 USING_LUA =
+LUA_RPATH = 
 LUA_INC_DIR = zero # dummy
 LUA_LIB_DIR = .
 ifeq (${USE_LUA}, 1)
 	USING_LUA = yes
 	LUA_INC_DIR = ${CONF_LUA_INC_DIR}
 	LUA_LIB_DIR = ${CONF_LUA_LIB_DIR}
+	LUA_RPATH = -Wl,-rpath,${CONF_LUA_LIB_DIR}
 	LUA_LIBS = -l${CONF_LUA_LIB}
 	CFLAGS += -DGKYL_HAVE_LUA
 endif
@@ -166,7 +168,7 @@ endif
 
 # List of link directories and libraries for unit and regression tests
 EXEC_LIB_DIRS = -L${SUPERLU_LIB_DIR} -L${LAPACK_LIB_DIR} -L${BUILD_DIR} -L${MPI_LIB_DIR} -L${NCCL_LIB_DIR} -L${LUA_LIB_DIR}
-EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_LIBS} ${NCCL_LIBS} ${LUA_LIBS} -lm -lpthread -ldl
+EXEC_EXT_LIBS = -lsuperlu ${LAPACK_LIB} ${CUDA_LIBS} ${MPI_LIBS} ${NCCL_LIBS} ${LUA_RPATH} ${LUA_LIBS} -lm -lpthread -ldl
 EXEC_LIBS = ${BUILD_DIR}/libgkylzero.so ${EXEC_EXT_LIBS}
 EXEC_RPATH = 
 

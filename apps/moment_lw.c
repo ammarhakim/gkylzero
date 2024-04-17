@@ -9,6 +9,7 @@
 #include <gkyl_moment_priv.h>
 #include <gkyl_null_comm.h>
 #include <gkyl_wave_prop.h>
+#include <gkyl_wv_coldfluid.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_sr_euler.h>
@@ -32,14 +33,8 @@ enum moment_magic_ids {
   MOMENT_EQN_DEFAULT
 };
 
-// (string, int) pair
-struct str_int_pair {
-  const char *str;
-  int val;
-};
-
 // wave limiter -> enum map
-static const struct str_int_pair wave_limiter[] = {
+static const struct gkyl_str_int_pair wave_limiter[] = {
   { "no-limiter", GKYL_NO_LIMITER },
   { "min-mod", GKYL_MIN_MOD },
   { "superbee", GKYL_SUPERBEE },
@@ -50,42 +45,20 @@ static const struct str_int_pair wave_limiter[] = {
 };
 
 // edge-splitting -> enum map
-static const struct str_int_pair wave_split_type[] = {
+static const struct gkyl_str_int_pair wave_split_type[] = {
   { "qwave", GKYL_WAVE_QWAVE },
   { "fwave", GKYL_WAVE_FWAVE },
   { 0, 0 }
 };
 
 // RP -> enum map
-static const struct str_int_pair euler_rp_type[] = {
+static const struct gkyl_str_int_pair euler_rp_type[] = {
   { "roe", WV_EULER_RP_ROE },
   { "hllc", WV_EULER_RP_HLLC },
   { "lax", WV_EULER_RP_LAX },
   { "hll", WV_EULER_RP_HLL },
   { 0, 0 }
 };
-
-// simple linear search in list of pairs
-static int
-search_str_int_pair_by_str(const struct str_int_pair pairs[], const char *str, int def)
-{
-  for (int i=0; pairs[i].str != 0; ++i) {
-    if (strcmp(pairs[i].str, str) == 0)
-      return pairs[i].val;
-  }
-  return def;
-}
-
-// simple linear search in list of pairs
-static const char *
-search_str_int_pair_by_int(const struct str_int_pair pairs[], int val, const char *def)
-{
-  for (int i=0; pairs[i].str != 0; ++i) {
-    if (pairs[i].val == val)
-      return pairs[i].str;
-  }
-  return def;
-}
 
 #define MOMENT_WAVE_EQN_METATABLE_NM "GkeyllZero.App.Moments.Eq"
 
@@ -131,7 +104,7 @@ eqn_euler_lw_new(lua_State *L)
 
   double gas_gamma = glua_tbl_get_number(L, "gasGamma", 1.4);
   const char *rp_str = glua_tbl_get_string(L, "rpType", "roe");
-  enum gkyl_wv_euler_rp rp_type = search_str_int_pair_by_str(euler_rp_type, rp_str, WV_EULER_RP_ROE);
+  enum gkyl_wv_euler_rp rp_type = gkyl_search_str_int_pair_by_str(euler_rp_type, rp_str, WV_EULER_RP_ROE);
 
   euler_lw->magic = MOMENT_EQN_DEFAULT;
   euler_lw->eqn = gkyl_wv_euler_inew( &(struct gkyl_wv_euler_inp) {
@@ -192,6 +165,68 @@ static struct luaL_Reg eqn_iso_euler_ctor[] = {
   {0, 0}
 };
 
+/* *******************************/
+/* Special-Relativistic Equation */
+/* *******************************/
+
+// SrEuler.new { gasgamma = 1.4 }
+static int
+eqn_sr_euler_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *sr_euler_lw = gkyl_malloc(sizeof(*sr_euler_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0/3.0);
+
+  sr_euler_lw->magic = MOMENT_EQN_DEFAULT;
+  sr_euler_lw->eqn = gkyl_wv_sr_euler_new(gas_gamma);
+
+  // create Lua userdata ...
+  struct wv_eqn_lw **l_sr_euler_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_sr_euler_lw = sr_euler_lw; // ... point it to proper object
+  
+  // set metatable
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor
+static struct luaL_Reg eqn_sr_euler_ctor[] = {
+  {"new", eqn_sr_euler_lw_new},
+  {0, 0}
+};
+
+/* *******************************/
+/* Cold-fluid Equation */
+/* *******************************/
+
+// ColFluid.new {  }
+static int
+eqn_coldfluid_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *coldfluid_lw = gkyl_malloc(sizeof(*coldfluid_lw));
+
+  coldfluid_lw->magic = MOMENT_EQN_DEFAULT;
+  coldfluid_lw->eqn = gkyl_wv_coldfluid_new();
+
+  // create Lua userdata ...
+  struct wv_eqn_lw **l_coldfluid_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_coldfluid_lw = coldfluid_lw; // ... point it to proper object
+  
+  // set metatable
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+}
+
+// Equation constructor
+static struct luaL_Reg eqn_coldfluid_ctor[] = {
+  {"new", eqn_coldfluid_lw_new},
+  {0, 0}
+};
+
 /* ********************/
 /* Tenmoment Equation */
 /* ********************/
@@ -221,9 +256,10 @@ eqn_tenmoment_lw_new(lua_State *L)
 
 // Equation constructor
 static struct luaL_Reg eqn_tenmoment_ctor[] = {
-  { "new",  eqn_tenmoment_lw_new },
-  { 0, 0 }
+  {"new", eqn_tenmoment_lw_new},
+  {0, 0}
 };
+
 
 // Register and load all wave equation objects
 static void
@@ -238,6 +274,8 @@ eqn_openlibs(lua_State *L)
 
     luaL_register(L, "G0.Moments.Eq.Euler", eqn_euler_ctor);
     luaL_register(L, "G0.Moments.Eq.IsoEuler", eqn_iso_euler_ctor);
+    luaL_register(L, "G0.Moments.Eq.SrEuler", eqn_sr_euler_ctor);
+    luaL_register(L, "G0.Moments.Eq.ColdFluid", eqn_coldfluid_ctor);
     luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor);
   } while (0);
 }
@@ -277,10 +315,10 @@ moment_species_lw_new(lua_State *L)
     return luaL_error(L, "Species \"equation\" not specfied or incorrect type!");
 
   const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");
-  mom_species.limiter = search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  mom_species.limiter = gkyl_search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
 
   const char *split_str = glua_tbl_get_string(L, "split_type", "qwave");
-  mom_species.split_type = search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
+  mom_species.split_type = gkyl_search_str_int_pair_by_str(wave_split_type, split_str, GKYL_WAVE_QWAVE);
 
   bool evolve = mom_species.evolve = glua_tbl_get_bool(L, "evolve", true);
   mom_species.force_low_order_flux = glua_tbl_get_bool(L, "forceLowOrderFlux", false);
@@ -356,7 +394,7 @@ moment_field_lw_new(lua_State *L)
   mom_field.mag_error_speed_fact = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 1.0);
 
   const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");  
-  mom_field.limiter = search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
+  mom_field.limiter = gkyl_search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
   
   bool evolve = glua_tbl_get_integer(L, "evolve", true);
 
@@ -694,7 +732,7 @@ mom_app_apply_ic_species(lua_State *L)
 //   stime = time in file read
 // }
 
-static const struct str_int_pair rio_status[] = {
+static const struct gkyl_str_int_pair rio_status[] = {
   { "success", GKYL_ARRAY_RIO_SUCCESS },
   { "bad-version", GKYL_ARRAY_RIO_BAD_VERSION },
   { "fopen-failed", GKYL_ARRAY_RIO_FOPEN_FAILED },
@@ -714,7 +752,7 @@ push_restart_status_table(lua_State *L, struct gkyl_app_restart_status status)
   lua_rawset(L, -3);
 
   lua_pushstring(L, "io_status_str");
-  lua_pushstring(L, search_str_int_pair_by_int(rio_status, status.io_status, "success"));
+  lua_pushstring(L, gkyl_search_str_int_pair_by_int(rio_status, status.io_status, "success"));
   lua_rawset(L, -3);
 
   lua_pushstring(L, "frame");
@@ -815,6 +853,39 @@ mom_app_calc_integrated_mom(lua_State *L)
   gkyl_moment_app_calc_integrated_mom(app_lw->app, tm);
 
   lua_pushboolean(L, status);  
+  return 1;
+}
+
+// get number of field-energy diagnostics stored () -> int
+static int
+mom_app_field_energy_ndiag(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  lua_pushinteger(L, gkyl_moment_app_field_energy_ndiag(app_lw->app));
+  return 1;
+}
+
+// Return the field energy as a table () -> table
+static int
+mom_app_get_field_energy(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+
+  int nvals = gkyl_moment_app_field_energy_ndiag(app_lw->app);
+  double vals[nvals];
+  gkyl_moment_app_get_field_energy(app_lw->app, vals);
+
+  lua_createtable(L, nvals, 0);
+
+  for (int i=0; i<nvals; ++i) {
+    lua_pushinteger(L, i+1);
+    lua_pushnumber(L, vals[i]);
+    lua_rawset(L, -3);
+  }  
+
   return 1;
 }
 
@@ -1015,9 +1086,6 @@ mom_app_run(lua_State *L)
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
-    gkyl_moment_app_calc_integrated_mom(app, tcurr);
-    gkyl_moment_app_calc_field_energy(app, tcurr);    
-    
     if (!status.success) {
       ret_status = false;
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
@@ -1025,6 +1093,10 @@ mom_app_run(lua_State *L)
     }
     tcurr += status.dt_actual;
     dt = status.dt_suggested;
+
+    gkyl_moment_app_calc_integrated_mom(app, tcurr);
+    gkyl_moment_app_calc_field_energy(app, tcurr);
+    
     write_data(&io_trig, app, tcurr);
 
     step += 1;
@@ -1033,6 +1105,28 @@ mom_app_run(lua_State *L)
   gkyl_moment_app_stat_write(app);
 
   lua_pushboolean(L, ret_status);
+  return 1;
+}
+
+// Return ghost cell as table of 2 elements
+static int
+mom_app_nghost(lua_State *L)
+{
+  struct moment_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, MOMENT_APP_METATABLE_NM);
+  struct moment_app_lw *app_lw = *l_app_lw;
+  struct gkyl_moment_app *app = app_lw->app;
+
+  int nghost[3] = { 0 };
+  gkyl_moment_app_nghost(app, nghost);
+  
+  lua_createtable(L, 3, 0);
+
+  for (int i=0; i<3; ++i) {
+    lua_pushinteger(L, i+1);
+    lua_pushinteger(L, nghost[i]);
+    lua_rawset(L, -3);
+  }
+  
   return 1;
 }
 
@@ -1057,30 +1151,36 @@ static struct luaL_Reg mom_app_ctor[] = {
 
 // App methods
 static struct luaL_Reg mom_app_funcs[] = {
-  {"max_dt", mom_app_max_dt},
+  { "max_dt", mom_app_max_dt },
 
-  {"apply_ic", mom_app_apply_ic},
-  {"apply_ic_field", mom_app_apply_ic_field},
-  {"apply_ic_species", mom_app_apply_ic_species},
+  { "apply_ic", mom_app_apply_ic },
+  { "apply_ic_field", mom_app_apply_ic_field },
+  { "apply_ic_species", mom_app_apply_ic_species },
   
-  {"from_file_field", mom_app_from_file_field},
-  {"from_file_species", mom_app_from_file_species},
+  { "from_file_field", mom_app_from_file_field },
+  { "from_file_species", mom_app_from_file_species },
 
-  {"from_frame_field", mom_app_from_frame_field},
-  {"from_frame_species", mom_app_from_frame_species},
+  { "from_frame_field", mom_app_from_frame_field },
+  { "from_frame_species", mom_app_from_frame_species },
 
-  {"write", mom_app_write},
-  {"write_field", mom_app_write_field},
-  {"write_species", mom_app_write_species},
-  {"write_field_energy", mom_app_write_field_energy},
-  {"write_integrated_mom", mom_app_write_integrated_mom},
-  {"stat_write", mom_app_stat_write},
+  { "write", mom_app_write },
+  { "write_field", mom_app_write_field },
+  { "write_species", mom_app_write_species },
+  { "write_field_energy", mom_app_write_field_energy },
+  { "write_integrated_mom", mom_app_write_integrated_mom },
+  { "stat_write", mom_app_stat_write },
 
-  {"calc_field_energy", mom_app_calc_field_energy},
-  {"calc_integrated_mom", mom_app_calc_integrated_mom},
+  { "calc_field_energy", mom_app_calc_field_energy },
+  { "calc_integrated_mom", mom_app_calc_integrated_mom },
 
   { "update", mom_app_update },
   { "run", mom_app_run },
+
+  // some low-level functions typically not used by ordinary users
+  { "nghost", mom_app_nghost },
+  { "field_energy_ndiag", mom_app_field_energy_ndiag },
+  { "get_field_energy", mom_app_get_field_energy },
+  
   { 0, 0 }
 };
 
