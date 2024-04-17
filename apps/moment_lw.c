@@ -541,6 +541,7 @@ struct moment_app_lw {
   gkyl_moment_app *app; // Moment app object
   
   struct lua_func_ctx species_func_ctx[GKYL_MAX_SPECIES]; // function context for each species
+
   struct lua_func_ctx field_func_ctx; // function context for field
   struct lua_func_ctx field_app_current_ctx; // function context for applied current
   
@@ -667,18 +668,19 @@ mom_app_new(lua_State *L)
       struct moment_field_lw *momf = lua_touserdata(L, -1);
       if (momf->magic == MOMENT_FIELD_DEFAULT) {
 
+        momf->init_ctx.ndim = cdim;
+        
         mom.field = momf->mom_field;
 
         app_lw->field_func_ctx = momf->init_ctx;
-        momf->init_ctx.ndim = cdim;
-        
         mom.field.init = gkyl_lw_eval_cb;
         mom.field.ctx = &app_lw->field_func_ctx;
 
         if (momf->has_app_current) {
-          app_lw->field_app_current_ctx = momf->app_current_ctx;
+
           momf->app_current_ctx.ndim = cdim;
-          
+
+          app_lw->field_app_current_ctx = momf->app_current_ctx;
           mom.field.app_current_func = gkyl_lw_eval_cb;
           mom.field.app_current_ctx = &app_lw->field_app_current_ctx;
         }
