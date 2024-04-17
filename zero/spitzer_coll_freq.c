@@ -16,14 +16,16 @@ double plasma_frequency(double n, double m, double eps0, double hbar, double eV)
 }
 
 // Calculate the Coulomb Logarithm
-double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr, double eps0, double hbar, double eV)
+double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr, double bmag_mid, double eps0, double hbar, double eV)
 {
 
   double vts = sqrt(Ts/ms);
   double vtr = sqrt(Tr/mr);
   double wps = plasma_frequency(ns,ms, eps0, hbar, eV);
   double wpr = plasma_frequency(nr,mr, eps0, hbar, eV);
-  double inner1 = wps*wps/(Ts/ms + 3*Ts/ms) + wpr*wpr/(Tr/mr + 3*Ts/ms);
+  double wcs = qs*bmag_mid/ms;
+  double wcr = qr*bmag_mid/mr;
+  double inner1 = (wps*wps + wcs*wcs)/(Ts/ms + 3*Ts/ms) + (wpr*wpr + wcr*wcr)/(Tr/mr + 3*Ts/ms);
   double u = 3*(vts*vts + vtr*vtr);
   double msr = ms*mr/(ms+mr);
   double inner2 = fmax(fabs(qs*qr)/(4*M_PI*eps0*msr*u*u), hbar/(2*sqrt(eV)*msr*u));
@@ -32,9 +34,9 @@ double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double
 }
 
 // Calculate the normNu
-double calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr, double eps0, double hbar, double eV)
+double calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr, double bmag_mid, double eps0, double hbar, double eV)
 {
-  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr, eps0, hbar, eV);
+  double clog = coulomb_log(ns,nr,ms,mr,Ts, Tr, qs, qr, bmag_mid, eps0, hbar, eV);
   return 1.0/ms*(1/mr+1/ms)*qs*qs*qr*qr*clog/(6*pow(M_PI,1.5)*eps0*eps0);
 }
 

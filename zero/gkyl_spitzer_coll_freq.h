@@ -19,7 +19,7 @@ typedef struct gkyl_spitzer_coll_freq gkyl_spitzer_coll_freq;
  * @param Ts Temperature of species s
  * @param Tr Temperature of species r
  */
-double calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr, double eps0, double hbar, double eV);
+double calc_norm_nu(double ns, double nr, double ms, double mr, double qs, double qr, double Ts, double Tr, double bmag_mid, double eps0, double hbar, double eV);
 
 /**
  * Create new updater to either compute the Spitzer collision frequency from
