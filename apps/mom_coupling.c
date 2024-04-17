@@ -12,7 +12,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0, 
     .mu0 = app->field.mu0 ? app->field.mu0 : 0.0, 
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
-    .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
+    .t_ramp_E = app->field.t_ramp_ext_em ? app->field.t_ramp_ext_em : 0.0,
     .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0,
   };
 

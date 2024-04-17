@@ -196,7 +196,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     fld->app_current2 = mkarr(false, 3, app->local_ext.volume);
   }
 
-  fld->t_ramp_E = mom_fld->t_ramp_E ? mom_fld->t_ramp_E : 0.0;
+  fld->t_ramp_ext_em = mom_fld->t_ramp_ext_em ? mom_fld->t_ramp_ext_em : 0.0;
   fld->proj_ext_em = 0;
   if (mom_fld->ext_em_func) {
     void *ctx = fld->ctx;

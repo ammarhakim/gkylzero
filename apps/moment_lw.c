@@ -444,14 +444,17 @@ static struct luaL_Reg mom_species_ctor[] = {
 // Lua userdata object for constructing field input
 struct moment_field_lw {
   int magic; // this must be first element in the struct
-  
+
+  bool evolve; // is this field evolved?  
   struct gkyl_moment_field mom_field; // input struct to construct field
-  bool evolve; // is this field evolved?
   
   struct lua_func_ctx init_ctx; // Lua registery reference to initilization function
 
   bool has_app_current; // true if applied current 
   struct lua_func_ctx app_current_ctx; // Lua registery reference to applied current
+
+  bool has_ext_em; // is there an external EM function?
+  struct lua_func_ctx ext_em_ctx; // Lua registery reference to applied current
 };
 
 static int
@@ -494,6 +497,16 @@ moment_field_lw_new(lua_State *L)
     has_app_current = true;
     app_current_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
+  mom_field.t_ramp_curr = glua_tbl_get_number(L, "currentRampTime", 0.0);
+
+  bool has_ext_em = false;
+  int ext_em_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "externalEm")) {
+    has_ext_em = true;
+    ext_em_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
+  mom_field.t_ramp_ext_em = glua_tbl_get_number(L, "externalEmRampTime", 0.0);
+  mom_field.is_ext_em_static = glua_tbl_get_bool(L, "isExternalEmStatic", false);
 
   struct moment_field_lw *momf_lw = lua_newuserdata(L, sizeof(*momf_lw));
 
@@ -515,6 +528,14 @@ moment_field_lw_new(lua_State *L)
     .nret = 3,
     .L = L,
   };
+
+  momf_lw->has_ext_em = has_ext_em;
+  momf_lw->ext_em_ctx = (struct lua_func_ctx) {
+    .func_ref = ext_em_ref,
+    .ndim = 0, // this will be set later
+    .nret = 6,
+    .L = L,
+  };  
   
   // set metatable
   luaL_getmetatable(L, MOMENT_FIELD_METATABLE_NM);
@@ -544,6 +565,7 @@ struct moment_app_lw {
 
   struct lua_func_ctx field_func_ctx; // function context for field
   struct lua_func_ctx field_app_current_ctx; // function context for applied current
+  struct lua_func_ctx field_ext_em_ctx; // function context for external EM field
   
   double tstart, tend; // start and end times of simulation
   int nframe; // number of data frames to write
@@ -684,6 +706,15 @@ mom_app_new(lua_State *L)
           mom.field.app_current_func = gkyl_lw_eval_cb;
           mom.field.app_current_ctx = &app_lw->field_app_current_ctx;
         }
+
+        if (momf->has_ext_em) {
+
+          momf->ext_em_ctx.ndim = cdim;
+
+          app_lw->field_ext_em_ctx = momf->ext_em_ctx;
+          mom.field.ext_em_func = gkyl_lw_eval_cb;
+          mom.field.ext_em_ctx = &app_lw->field_app_current_ctx;
+        }        
       }
     }
   }
