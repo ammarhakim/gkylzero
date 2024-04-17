@@ -217,6 +217,22 @@ GKYL_CU_D
 static double
 wave_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, double* waves, double* s);
 
+/**
+* Compute flucuations using Roe fluxes.
+*
+* @param eqn Base equation object.
+* @param type Type of Riemann-solver to use.
+* @param ql Conserved variable vector on the left of the interface.
+* @param qr Conserved variable vector on the right of the interface.
+* @param waves Waves (input).
+* @param s Wave speeds (input).
+* @param amdq Left-moving fluctuations (output).
+* @param apdq Right-moving fluctuations (output).
+*/
+GKYL_CU_D
+static void
+qfluct_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double* waves, const double* s,
+  double* amdq, double* apdq);
 
 /**
 * Determine whether invariant domain of the general relativistic Euler equations is satisfied.
