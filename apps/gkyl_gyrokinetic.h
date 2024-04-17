@@ -166,6 +166,10 @@ struct gkyl_gyrokinetic_species {
 
   double polarization_density;
 
+  bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
+              // These more computationally efficient kernels are for slab or mirror 
+              // calculations where there is no toroidal field. 
+
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
 

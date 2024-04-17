@@ -433,7 +433,9 @@ calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr, struct gkyl_arr
     gk_species_apply_bc(app, &app->species[i], distf[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
-    gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
+    if (!app->neut_species[i].info.is_static) {
+      gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
+    }
   }
 
 }
@@ -1872,7 +1874,9 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gkyl_array_accumulate(gkyl_array_scale(fout[i], dta), 1.0, fin[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
-    gkyl_array_accumulate(gkyl_array_scale(fout_neut[i], dta), 1.0, fin_neut[i]);
+    if (!app->neut_species[i].info.is_static) {
+      gkyl_array_accumulate(gkyl_array_scale(fout_neut[i], dta), 1.0, fin_neut[i]);
+    }
   }
 
 }
@@ -1902,7 +1906,9 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           fin_neut[i] = app->neut_species[i].f;
-          fout_neut[i] = app->neut_species[i].f1;
+          if (!app->neut_species[i].info.is_static) {
+            fout_neut[i] = app->neut_species[i].f1;
+          }
         }
 
         forward_euler(app, tcurr, dt, fin, fout, fin_neut, fout_neut, &st);
@@ -1919,8 +1925,13 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          fin_neut[i] = app->neut_species[i].f1;
-          fout_neut[i] = app->neut_species[i].fnew;
+          if (!app->neut_species[i].info.is_static) {
+            fin_neut[i] = app->neut_species[i].f1;
+            fout_neut[i] = app->neut_species[i].fnew;
+          }
+          else {
+            fin_neut[i] = app->neut_species[i].f;
+          }
         }
 
         forward_euler(app, tcurr+dt, dt, fin, fout, fin_neut, fout_neut, &st);
@@ -1950,8 +1961,10 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
               3.0/4.0, app->species[i].f, 1.0/4.0, app->species[i].fnew, &app->species[i].local_ext);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
-            array_combine(app->neut_species[i].f1,
-              3.0/4.0, app->neut_species[i].f, 1.0/4.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
+            if (!app->neut_species[i].info.is_static) {
+              array_combine(app->neut_species[i].f1,
+                3.0/4.0, app->neut_species[i].f, 1.0/4.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
+            }
           }
 
           // Compute the fields and apply BCs.
@@ -1973,8 +1986,13 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          fin_neut[i] = app->neut_species[i].f1;
-          fout_neut[i] = app->neut_species[i].fnew;
+          if (!app->neut_species[i].info.is_static) {
+            fin_neut[i] = app->neut_species[i].f1;
+            fout_neut[i] = app->neut_species[i].fnew;
+          }
+          else {
+            fin_neut[i] = app->neut_species[i].f;
+          }          
         }
 
         forward_euler(app, tcurr+dt/2, dt, fin, fout, fin_neut, fout_neut, &st);
@@ -2005,9 +2023,11 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
             gkyl_array_copy_range(app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
           }
           for (int i=0; i<app->num_neut_species; ++i) {
-            array_combine(app->neut_species[i].f1,
-              1.0/3.0, app->neut_species[i].f, 2.0/3.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
-            gkyl_array_copy_range(app->neut_species[i].f, app->neut_species[i].f1, &app->neut_species[i].local_ext);
+            if (!app->neut_species[i].info.is_static) {
+              array_combine(app->neut_species[i].f1,
+                1.0/3.0, app->neut_species[i].f, 2.0/3.0, app->neut_species[i].fnew, &app->neut_species[i].local_ext);
+              gkyl_array_copy_range(app->neut_species[i].f, app->neut_species[i].f1, &app->neut_species[i].local_ext);
+            }
           }
 
           // Compute the fields and apply BCs
