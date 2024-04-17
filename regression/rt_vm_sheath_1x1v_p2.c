@@ -119,7 +119,10 @@ main(int argc, char **argv)
       .ctx_func = &ctx,
     },
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_SPECIES_ABSORB, },
+    },
 
     .source = {
       .source_id = GKYL_BFLUX_SOURCE,
@@ -150,7 +153,10 @@ main(int argc, char **argv)
       .ctx_func = &ctx,
     },
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
+    .bcx = {
+      .lower = { .type = GKYL_SPECIES_ABSORB, },
+      .upper = { .type = GKYL_SPECIES_ABSORB, },
+    },
 
     .source = {
       .source_id = GKYL_BFLUX_SOURCE,

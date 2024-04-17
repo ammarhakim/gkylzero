@@ -310,7 +310,7 @@ struct vm_species {
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
   
   // boundary conditions on lower/upper edges in each direction  
-  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  struct gkyl_vlasov_bc lower_bc[3], upper_bc[3];
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];

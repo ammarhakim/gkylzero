@@ -72,6 +72,18 @@ struct gkyl_vlasov_source {
   struct gkyl_vlasov_projection projection;
 };
 
+// Parameters for boundary conditions
+struct gkyl_vlasov_bc {
+  enum gkyl_species_bc_type type;
+  void *aux_ctx;
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);  
+  double aux_parameter;
+};
+
+struct gkyl_vlasov_bcs {
+  struct gkyl_vlasov_bc lower, upper;
+};
+
 // Parameters for fluid species source
 struct gkyl_vlasov_fluid_source {
   enum gkyl_source_id source_id; // type of source
@@ -127,7 +139,7 @@ struct gkyl_vlasov_species {
   bool accel_evolve; // set to true if applied acceleration function is time dependent
 
   // boundary conditions
-  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  struct gkyl_vlasov_bcs bcx, bcy, bcz;
 };
 
 // Parameter for EM field

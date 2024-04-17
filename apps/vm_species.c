@@ -225,18 +225,18 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
     is_np[app->periodic_dirs[d]] = 0;
 
   for (int dir=0; dir<app->cdim; ++dir) {
-    s->lower_bc[dir] = s->upper_bc[dir] = GKYL_SPECIES_COPY;
+    s->lower_bc[dir].type = s->upper_bc[dir].type = GKYL_SPECIES_COPY;
     if (is_np[dir]) {
-      const enum gkyl_species_bc_type *bc;
+      const struct gkyl_vlasov_bcs *bc;
       if (dir == 0)
-        bc = s->info.bcx;
+        bc = &s->info.bcx;
       else if (dir == 1)
-        bc = s->info.bcy;
+        bc = &s->info.bcy;
       else
-        bc = s->info.bcz;
+        bc = &s->info.bcz;
 
-      s->lower_bc[dir] = bc[0];
-      s->upper_bc[dir] = bc[1];
+      s->lower_bc[dir] = bc->lower;
+      s->upper_bc[dir] = bc->upper;
     }
     // Create local lower skin and ghost ranges for distribution function
     gkyl_skin_ghost_ranges(&s->lower_skin[dir], &s->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &s->local_ext, ghost);
@@ -259,26 +259,26 @@ vm_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_speci
   for (int d=0; d<cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
     enum gkyl_bc_basic_type bctype = GKYL_BC_COPY;
-    if (s->lower_bc[d] == GKYL_SPECIES_COPY) 
+    if (s->lower_bc[d].type == GKYL_SPECIES_COPY) 
       bctype = GKYL_BC_COPY;
-    else if (s->lower_bc[d] == GKYL_SPECIES_ABSORB) 
+    else if (s->lower_bc[d].type == GKYL_SPECIES_ABSORB) 
       bctype = GKYL_BC_ABSORB;
-    else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) 
+    else if (s->lower_bc[d].type == GKYL_SPECIES_REFLECT) 
       bctype = GKYL_BC_REFLECT;
-    else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
+    else if (s->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) 
       bctype = GKYL_BC_FIXED_FUNC;
 
     s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
       &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
 
     // Upper BC updater. Copy BCs by default.
-    if (s->upper_bc[d] == GKYL_SPECIES_COPY) 
+    if (s->upper_bc[d].type == GKYL_SPECIES_COPY) 
       bctype = GKYL_BC_COPY;
-    else if (s->upper_bc[d] == GKYL_SPECIES_ABSORB) 
+    else if (s->upper_bc[d].type == GKYL_SPECIES_ABSORB) 
       bctype = GKYL_BC_ABSORB;
-    else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) 
+    else if (s->upper_bc[d].type == GKYL_SPECIES_REFLECT) 
       bctype = GKYL_BC_REFLECT;
-    else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
+    else if (s->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) 
       bctype = GKYL_BC_FIXED_FUNC;
 
     s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
@@ -378,7 +378,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
   for (int d=0; d<cdim; ++d) {
     if (is_np_bc[d]) {
 
-      switch (species->lower_bc[d]) {
+      switch (species->lower_bc[d].type) {
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
@@ -395,7 +395,7 @@ vm_species_apply_bc(gkyl_vlasov_app *app, const struct vm_species *species, stru
           break;
       }
 
-      switch (species->upper_bc[d]) {
+      switch (species->upper_bc[d].type) {
         case GKYL_SPECIES_COPY:
         case GKYL_SPECIES_REFLECT:
         case GKYL_SPECIES_ABSORB:
