@@ -1727,8 +1727,10 @@ forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
 
   // complete update of neutral distribution functions and apply boundary conditions
   for (int i=0; i<app->num_neut_species; ++i) {
-    gkyl_array_accumulate(gkyl_array_scale(fout_neut[i], dta), 1.0, fin_neut[i]);
-    gk_neut_species_apply_bc(app, &app->neut_species[i], fout_neut[i]);
+    if (!app->neut_species[i].info.is_static) {
+      gkyl_array_accumulate(gkyl_array_scale(fout_neut[i], dta), 1.0, fin_neut[i]);
+      gk_neut_species_apply_bc(app, &app->neut_species[i], fout_neut[i]);
+    }
   }
 }
 
@@ -1757,7 +1759,9 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
         }
         for (int i=0; i<app->num_neut_species; ++i) {
           fin_neut[i] = app->neut_species[i].f;
-          fout_neut[i] = app->neut_species[i].f1;
+          if (!app->neut_species[i].info.is_static) {
+            fout_neut[i] = app->neut_species[i].f1;
+          }
         }
         forward_euler(app, tcurr, dt, fin, fout, fin_neut, fout_neut, &st);
         dt = st.dt_actual;
@@ -1770,8 +1774,13 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          fin_neut[i] = app->neut_species[i].f1;
-          fout_neut[i] = app->neut_species[i].fnew;
+          if (!app->neut_species[i].info.is_static) {
+            fin_neut[i] = app->neut_species[i].f1;
+            fout_neut[i] = app->neut_species[i].fnew;
+          }
+          else {
+            fin_neut[i] = app->neut_species[i].f;
+          }
         }
         forward_euler(app, tcurr+dt, dt, fin, fout, fin_neut, fout_neut, &st);
         if (st.dt_actual < dt) {
@@ -1807,8 +1816,13 @@ rk3(gkyl_gyrokinetic_app* app, double dt0)
           fout[i] = app->species[i].fnew;
         }
         for (int i=0; i<app->num_neut_species; ++i) {
-          fin_neut[i] = app->neut_species[i].f1;
-          fout_neut[i] = app->neut_species[i].fnew;
+          if (!app->neut_species[i].info.is_static) {
+            fin_neut[i] = app->neut_species[i].f1;
+            fout_neut[i] = app->neut_species[i].fnew;
+          }
+          else {
+            fin_neut[i] = app->neut_species[i].f;
+          }          
         }
         forward_euler(app, tcurr+dt/2, dt, fin, fout, fin_neut, fout_neut, &st);
         if (st.dt_actual < dt) {
