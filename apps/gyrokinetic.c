@@ -303,7 +303,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   int comm_sz;
   int bcast_rank;
   gkyl_comm_get_size(app->comm, &comm_sz);
-  if (comm_sz == 0)
+  if (comm_sz == 1)
     bcast_rank = 0;
   else
     bcast_rank = comm_sz%2 == 0 ? comm_sz/2 - 1 : comm_sz/2;
