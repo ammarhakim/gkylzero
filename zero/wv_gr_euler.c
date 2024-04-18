@@ -289,7 +289,7 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[29], double flux[29])
 
     double W = 1.0 / (sqrt(1.0 - v_sq));
     if (v_sq > 1.0 - pow(10.0, -8.0)) {
-      W = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
+      W = 1.0 / sqrt(pow(10.0, -8.0));
     }
 
     double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
@@ -685,7 +685,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const doubl
 
   double W_l = 1.0 / sqrt(1.0 - v_sq_l);
   if (v_sq_l > 1.0 - pow(10.0, -8.0)) {
-    W_l = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
+    W_l = 1.0 / sqrt(pow(10.0, -8.0));
   }
 
   double *vel_r = malloc(sizeof(double) * 3);
@@ -700,7 +700,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const doubl
 
   double W_r = 1.0 / sqrt(1.0 - v_sq_r);
   if (v_sq_r > 1.0 - pow(10.0, -8.0)) {
-    W_r = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
+    W_r = 1.0 / sqrt(pow(10.0, -8.0));
   }
 
   double *shift_l = malloc(sizeof(double) * 3);
@@ -710,7 +710,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const doubl
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      coshift_l[i] = spatial_metric_l[i][j] * shift_l[j];
+      coshift_l[i] += spatial_metric_l[i][j] * shift_l[j];
     }
   }
 
@@ -763,7 +763,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const doubl
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      coshift_r[i] = spatial_metric_r[i][j] * shift_r[j];
+      coshift_r[i] += spatial_metric_r[i][j] * shift_r[j];
     }
   }
 
@@ -811,8 +811,10 @@ wave_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const doubl
   double h_l = 1.0 + ((p_l / rho_l) * (gas_gamma / (gas_gamma - 1.0)));
   double h_r = 1.0 + ((p_r / rho_r) * (gas_gamma / (gas_gamma - 1.0)));
 
-  double K_l = sqrt(lapse_l * sqrt(spatial_det_l) * rho_l * h_l);
-  double K_r = sqrt(lapse_r * sqrt(spatial_det_r) * rho_r * h_r);
+  double K_l = lapse_l * sqrt(spatial_det_l) * rho_l * h_l;
+  double K_r = lapse_r * sqrt(spatial_det_r) * rho_r * h_r;
+  //double K_l = sqrt(rho_l * vx_l + p_l) / W_l;
+  //double K_r = sqrt(rho_r * vx_r + p_r) / W_r;
   double inv_K_avg = 1.0 / (K_l + K_r);
 
   double v0 = ((K_l * sqrt(spatial_det_l) * W_l) + (K_r * sqrt(spatial_det_r) * W_r)) * inv_K_avg;
@@ -820,23 +822,35 @@ wave_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const doubl
   double v2 = ((K_l * sqrt(spatial_det_l) * W_l * vy_l) + (K_r * sqrt(spatial_det_r) * W_r * vy_r)) * inv_K_avg;
   double v3 = ((K_l * sqrt(spatial_det_l) * W_l * vz_l) + (K_r * sqrt(spatial_det_r) * W_r * vz_r)) * inv_K_avg;
   double v4 = (((K_l * p_l) / (rho_l * h_l)) + ((K_r * p_r) / (rho_r * h_r))) * inv_K_avg;
+  //double v4 = (p_l / K_l + p_r / K_r) * inv_K_avg;
   double c_minus = 1.0 - (gas_gamma / (gas_gamma - 1.0)) * v4;
   double c_plus = 1.0 + (gas_gamma / (gas_gamma - 1.0)) * v4;
+
+  double **spacetime_metric_avg = malloc(sizeof(double*) * 4);
+  for (int i = 0; i < 4; i++) {
+    spacetime_metric_avg = malloc(sizeof(double) * 4);
+  }
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      spacetime_metric_avg[i][j] = (0.5 * spacetime_metric_l[i][j]) + (0.5 * spacetime_metric_r[i][j]);
+    }
+  }
 
   double *v_vect = malloc(sizeof(double) * 4);
   double *v_covect = malloc(sizeof(double) * 4);
   v_vect[0] = v0; v_vect[1] = v1; v_vect[2] = v2; v_vect[3] = v3;
   v_covect[0] = 0.0; v_covect[1] = 0.0; v_covect[2] = 0.0; v_covect[3] = 0.0;
 
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      v_covect[i] = spacetime_metric_l[i][j] * v_vect[j];
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      v_covect[i] += spacetime_metric_l[i][j] * v_vect[j];
     }
   }
 
   double v_contr = 0.0;
   for (int i = 0; i < 4; i++) {
-    v_contr = v_vect[i] * v_covect[i];
+    v_contr += v_vect[i] * v_covect[i];
   }
 
   double **inv_spacetime_metric_avg = malloc(sizeof(double*) * 4);
@@ -853,8 +867,8 @@ wave_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const doubl
   double s_sq = (0.5 * gas_gamma * v4 * (1.0 - v_contr)) - (0.5 * (gas_gamma - 1.0) * (1.0 + v_contr));
   double e = (inv_spacetime_metric_avg[0][0] * (v1 * v1)) - (2.0 * inv_spacetime_metric_avg[0][1] * (v0 * v1)) +
     (inv_spacetime_metric_avg[1][1] * (v0 * v0));
-  double y = sqrt((1.0 - gas_gamma * v4) * e + s_sq * ((inv_spacetime_metric_avg[0][1] * inv_spacetime_metric_avg[0][1]) -
-    (inv_spacetime_metric_avg[0][0] - inv_spacetime_metric_avg[1][1])));
+  double y = sqrt(((1.0 - gas_gamma * v4) * e) + (s_sq * ((inv_spacetime_metric_avg[0][1] * inv_spacetime_metric_avg[0][1]) -
+    (inv_spacetime_metric_avg[0][0] - inv_spacetime_metric_avg[1][1]))));
   
   double k = (inv_spacetime_metric_avg[0][0] * v1 * delta[2]) - (inv_spacetime_metric_avg[0][1] * ((v0 * delta[2]) +
     (v1 * delta[1]))) + (inv_spacetime_metric_avg[1][1] * v0 * delta[1]);
@@ -921,7 +935,7 @@ qfluct_roe(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const dou
   const double* w2 = &waves[58];
 
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
-  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[0]), s2p = fmax(0.0, s[2]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
 
   for (int i = 0; i < 5; i++) {
     amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]);
