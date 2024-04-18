@@ -48,7 +48,7 @@ void gkyl_dg_calc_canonical_pb_vars_alpha_surf(struct gkyl_dg_calc_canonical_pb_
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(alpha_surf)) {
-    return gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(up, conf_range, phase_range, phase_ext_range, 
+    return gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(up, conf_range, phase_range, phase_ext_range, hamil, 
       alpha_surf, sgn_alpha_surf, const_sgn_alpha);
   }
 #endif
