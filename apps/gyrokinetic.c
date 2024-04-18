@@ -1,4 +1,3 @@
-#include "gkyl_comm.h"
 #include <stdarg.h>
 
 #include <gkyl_alloc.h>
