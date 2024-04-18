@@ -17,7 +17,7 @@ extern "C" {
 
 __global__ void
 gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_canonical_pb_vars *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,  const struct gkyl_range *phase_ext_range, 
+  const struct gkyl_range conf_range, const struct gkyl_range phase_range,  const struct gkyl_range phase_ext_range, 
   struct gkyl_array *hamil,
   struct gkyl_array* alpha_surf, struct gkyl_array* sgn_alpha_surf, struct gkyl_array* const_sgn_alpha)
 {
@@ -25,7 +25,6 @@ gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_canonica
   int cdim = up->cdim;
   int idx[GKYL_MAX_DIM], idx_edge[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
-  int idx[GKYL_MAX_DIM];
   for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
       linc1 < phase_range.volume;
       linc1 += gridDim.x*blockDim.x)
@@ -34,16 +33,15 @@ gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_canonica
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
     gkyl_sub_range_inv_idx(&phase_range, linc1, idx);
-    gkyl_copy_int_arr(pdim, iter.idx, idx);
     long loc_conf = gkyl_range_idx(conf_range, idx);
     long loc_phase = gkyl_range_idx(phase_range, idx);
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
-    double* alpha_surf_d = gkyl_array_fetch(alpha_surf, loc_phase);
-    double* sgn_alpha_surf_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase);
-    int* const_sgn_alpha_d = gkyl_array_fetch(const_sgn_alpha, loc_phase);
+    double* alpha_surf_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase);
+    double* sgn_alpha_surf_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase);
+    int* const_sgn_alpha_d = (double*) gkyl_array_fetch(const_sgn_alpha, loc_phase);
     for (int dir = 0; dir<cdim; ++dir) {
-      const double *hamil_local =  gkyl_array_cfetch(hamil, loc_phase);
+      const double *hamil_local =  (const double*) gkyl_array_fetch(hamil, loc_phase);
       
       const_sgn_alpha_d[dir] = up->alpha_surf[dir](xc, up->phase_grid.dx, 
         (const double*) gkyl_array_cfetch(hamil, loc_phase),
@@ -63,17 +61,18 @@ gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_canonica
         idx_edge[dir] = idx_edge[dir]+1;
         long loc_phase_ext = gkyl_range_idx(phase_ext_range, idx_edge);
 
-        double* alpha_surf_ext_d = gkyl_array_fetch(alpha_surf, loc_phase_ext);
-        double* sgn_alpha_surf_ext_d = gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
-        int* const_sgn_alpha_ext_d = gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
+        double* alpha_surf_ext_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase_ext);
+        double* sgn_alpha_surf_ext_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
+        int* const_sgn_alpha_ext_d = (double*) gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
         const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->phase_grid.dx, 
-          (const double*) gkyl_array_cfetch(hamil, loc_phase),
+          (const double*) gkyl_array_fetch(hamil, loc_phase),
           alpha_surf_ext_d, sgn_alpha_surf_ext_d);
       }  
     }
   }
 }
 // Host-side wrapper
+void 
 gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(struct gkyl_dg_calc_canonical_pb_vars *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,  const struct gkyl_range *phase_ext_range, 
   struct gkyl_array *hamil,
@@ -124,7 +123,7 @@ gkyl_dg_calc_canonical_pb_vars_cu_dev_new(const struct gkyl_rect_grid *phase_gri
   dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, poly_order);
 
   // set parent on_dev pointer
-  up->on_dev = up_cu; // self-reference on host
+  up->on_dev = up_cu;
   
   return up;
 }
