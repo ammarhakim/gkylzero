@@ -332,20 +332,18 @@ static struct luaL_Reg eqn_mhd_ctor[] = {
 static void
 eqn_openlibs(lua_State *L)
 {
-  do {
-    luaL_newmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  luaL_newmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
 
-    lua_pushstring(L, "__gc");
-    lua_pushcfunction(L, wv_eqn_lw_gc);
-    lua_settable(L, -3);
+  lua_pushstring(L, "__gc");
+  lua_pushcfunction(L, wv_eqn_lw_gc);
+  lua_settable(L, -3);
 
-    luaL_register(L, "G0.Moments.Eq.Euler", eqn_euler_ctor);
-    luaL_register(L, "G0.Moments.Eq.IsoEuler", eqn_iso_euler_ctor);
-    luaL_register(L, "G0.Moments.Eq.SrEuler", eqn_sr_euler_ctor);
-    luaL_register(L, "G0.Moments.Eq.ColdFluid", eqn_coldfluid_ctor);
-    luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor); 
-    luaL_register(L, "G0.Moments.Eq.Mhd", eqn_mhd_ctor);
-  } while (0);
+  luaL_register(L, "G0.Moments.Eq.Euler", eqn_euler_ctor);
+  luaL_register(L, "G0.Moments.Eq.IsoEuler", eqn_iso_euler_ctor);
+  luaL_register(L, "G0.Moments.Eq.SrEuler", eqn_sr_euler_ctor);
+  luaL_register(L, "G0.Moments.Eq.ColdFluid", eqn_coldfluid_ctor);
+  luaL_register(L, "G0.Moments.Eq.TenMoment", eqn_tenmoment_ctor); 
+  luaL_register(L, "G0.Moments.Eq.Mhd", eqn_mhd_ctor);
 }
 
 /* *****************/
@@ -361,7 +359,14 @@ struct moment_species_lw {
   
   struct gkyl_moment_species mom_species; // input struct to construct species
   bool evolve; // is this species evolved?
-  struct lua_func_ctx init_ref; // Lua registery reference to initilization function
+
+  struct lua_func_ctx init_ctx; // Lua registery reference to initilization function
+
+  bool has_app_accel; // do we have applied acceleration?
+  struct lua_func_ctx app_accel_func_ctx; // Lua registery reference to applied acceleration
+
+  bool has_nT_source; // do we have applied acceleration?
+  struct lua_func_ctx nT_source_func_ctx; // Lua registery reference to nT sources
 };
 
 static int
@@ -407,19 +412,56 @@ moment_species_lw_new(lua_State *L)
     int nbc = glua_objlen(L);
     for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
       mom_species.bcy[i] = glua_tbl_iget_integer(L, i+1, 0);
-  }  
+  }
+
+  with_lua_tbl_tbl(L, "bcz") {
+    int nbc = glua_objlen(L);
+    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
+      mom_species.bcz[i] = glua_tbl_iget_integer(L, i+1, 0);
+  }
+
+  bool has_app_accel = false;
+  int app_accel_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "appliedAcceleration")) {
+    has_app_accel = true;
+    app_accel_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
+
+  bool has_nT_source = false;
+  int nT_source_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "nTSource")) {
+    has_nT_source = true;
+    nT_source_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
+  mom_species.nT_source_set_only_once = glua_tbl_get_bool(L, "nTSourceSetOnlyOnce", false);
 
   struct moment_species_lw *moms_lw = lua_newuserdata(L, sizeof(*moms_lw));
   moms_lw->magic = MOMENT_SPECIES_DEFAULT;
   moms_lw->evolve = evolve;
   moms_lw->mom_species = mom_species;
 
-  moms_lw->init_ref = (struct lua_func_ctx) {
+  moms_lw->init_ctx = (struct lua_func_ctx) {
     .func_ref = init_ref,
     .ndim = 0, // this will be set later
     .nret = mom_species.equation->num_equations,
     .L = L,
   };
+
+  moms_lw->has_app_accel = has_app_accel;
+  moms_lw->app_accel_func_ctx = (struct lua_func_ctx) {
+    .func_ref = app_accel_ref,
+    .ndim = 0, // this will be set later
+    .nret = GKYL_MOM_APP_NUM_APPLIED_ACCELERATION,
+    .L = L,
+  };
+
+  moms_lw->has_nT_source = has_nT_source;
+  moms_lw->nT_source_func_ctx = (struct lua_func_ctx) {
+    .func_ref = nT_source_ref,
+    .ndim = 0, // this will be set later
+    .nret = GKYL_MOM_APP_NUM_NT_SOURCE,
+    .L = L,
+  };    
   
   // set metatable
   luaL_getmetatable(L, MOMENT_SPECIES_METATABLE_NM);
@@ -491,6 +533,12 @@ moment_field_lw_new(lua_State *L)
       mom_field.bcy[i] = glua_tbl_iget_integer(L, i+1, 0);
   }
 
+  with_lua_tbl_tbl(L, "bcz") {
+    int nbc = glua_objlen(L);
+    for (int i=0; i < (nbc>2 ? 2 : nbc); ++i)
+      mom_field.bcz[i] = glua_tbl_iget_integer(L, i+1, 0);
+  }  
+
   bool has_app_current = false;
   int app_current_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "appliedCurrent")) {
@@ -507,6 +555,8 @@ moment_field_lw_new(lua_State *L)
   }
   mom_field.t_ramp_ext_em = glua_tbl_get_number(L, "externalEmRampTime", 0.0);
   mom_field.is_ext_em_static = glua_tbl_get_bool(L, "isExternalEmStatic", false);
+
+  mom_field.use_explicit_em_coupling = glua_tbl_get_bool(L, "useExplicitEmCoupling", false);
 
   struct moment_field_lw *momf_lw = lua_newuserdata(L, sizeof(*momf_lw));
 
@@ -525,7 +575,7 @@ moment_field_lw_new(lua_State *L)
   momf_lw->app_current_ctx = (struct lua_func_ctx) {
     .func_ref = app_current_ref,
     .ndim = 0, // this will be set later
-    .nret = 3,
+    .nret = GKYL_MOM_APP_NUM_APPLIED_CURRENT,
     .L = L,
   };
 
@@ -533,7 +583,7 @@ moment_field_lw_new(lua_State *L)
   momf_lw->ext_em_ctx = (struct lua_func_ctx) {
     .func_ref = ext_em_ref,
     .ndim = 0, // this will be set later
-    .nret = 6,
+    .nret = GKYL_MOM_APP_NUM_EXT_EM,
     .L = L,
   };  
   
@@ -561,9 +611,11 @@ static struct luaL_Reg mom_field_ctor[] = {
 struct moment_app_lw {
   gkyl_moment_app *app; // Moment app object
   
-  struct lua_func_ctx species_func_ctx[GKYL_MAX_SPECIES]; // function context for each species
+  struct lua_func_ctx species_init_ctx[GKYL_MAX_SPECIES];
+  struct lua_func_ctx species_app_accel_func_ctx[GKYL_MAX_SPECIES];
+  struct lua_func_ctx species_nT_source_func_ctx[GKYL_MAX_SPECIES];
 
-  struct lua_func_ctx field_func_ctx; // function context for field
+  struct lua_func_ctx field_init_ctx; // function context for field
   struct lua_func_ctx field_app_current_ctx; // function context for applied current
   struct lua_func_ctx field_ext_em_ctx; // function context for external EM field
   
@@ -597,7 +649,9 @@ get_species_inp(lua_State *L, int cdim, struct moment_species_lw *species[GKYL_M
       struct moment_species_lw *vms = lua_touserdata(L, TVAL);
       if (vms->magic == MOMENT_SPECIES_DEFAULT) {
         
-        vms->init_ref.ndim = cdim;
+        vms->init_ctx.ndim = cdim;
+        vms->app_accel_func_ctx.ndim = cdim;
+        vms->nT_source_func_ctx.ndim = cdim;
         
         if (lua_type(L,TKEY) == LUA_TSTRING) {
           const char *key = lua_tolstring(L, TKEY, 0);
@@ -679,9 +733,21 @@ mom_app_new(lua_State *L)
   for (int s=0; s<mom.num_species; ++s) {
     mom.species[s] = species[s]->mom_species;
     
-    app_lw->species_func_ctx[s] = species[s]->init_ref;
+    app_lw->species_init_ctx[s] = species[s]->init_ctx;
     mom.species[s].init = gkyl_lw_eval_cb;
-    mom.species[s].ctx = &app_lw->species_func_ctx[s];
+    mom.species[s].ctx = &app_lw->species_init_ctx[s];
+
+    if (species[s]->has_app_accel) {
+      app_lw->species_app_accel_func_ctx[s] = species[s]->app_accel_func_ctx;
+      mom.species[s].app_accel_func = gkyl_lw_eval_cb;
+      mom.species[s].app_accel_ctx = &app_lw->species_app_accel_func_ctx[s];
+    }
+
+    if (species[s]->has_nT_source) {
+      app_lw->species_nT_source_func_ctx[s] = species[s]->nT_source_func_ctx;
+      mom.species[s].nT_source_func = gkyl_lw_eval_cb;
+      mom.species[s].nT_source_ctx = &app_lw->species_nT_source_func_ctx[s];
+    }
   }
 
   // set field input
@@ -694,9 +760,9 @@ mom_app_new(lua_State *L)
         
         mom.field = momf->mom_field;
 
-        app_lw->field_func_ctx = momf->init_ctx;
+        app_lw->field_init_ctx = momf->init_ctx;
         mom.field.init = gkyl_lw_eval_cb;
-        mom.field.ctx = &app_lw->field_func_ctx;
+        mom.field.ctx = &app_lw->field_init_ctx;
 
         if (momf->has_app_current) {
 
@@ -714,7 +780,7 @@ mom_app_new(lua_State *L)
           app_lw->field_ext_em_ctx = momf->ext_em_ctx;
           mom.field.ext_em_func = gkyl_lw_eval_cb;
           mom.field.ext_em_ctx = &app_lw->field_app_current_ctx;
-        }        
+        }
       }
     }
   }

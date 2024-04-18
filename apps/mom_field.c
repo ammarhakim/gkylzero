@@ -184,7 +184,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     void *ctx = fld->ctx;
     if (mom_fld->app_current_ctx)
       ctx = mom_fld->app_current_ctx;
-    fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, 3, mom_fld->app_current_func, ctx);
+    fld->proj_app_current = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_APPLIED_CURRENT,
+      mom_fld->app_current_func, ctx);
   }
   
   fld->ext_em = mkarr(false, 6, app->local_ext.volume);
@@ -202,7 +203,8 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
     void *ctx = fld->ctx;
     if (mom_fld->ext_em_ctx)
       ctx = mom_fld->ext_em_ctx;
-    fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, 6, mom_fld->ext_em_func, ctx);
+    fld->proj_ext_em = gkyl_fv_proj_new(&app->grid, 2, GKYL_MOM_APP_NUM_EXT_EM,
+      mom_fld->ext_em_func, ctx);
   }
 
   // allocate buffer for applying BCs (used for periodic BCs)

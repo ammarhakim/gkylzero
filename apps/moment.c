@@ -206,7 +206,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   if (app->has_field && ns>0) {
     app->update_sources = 1; // only update if field and species are present
     moment_coupling_init(app, &app->sources);
-  }
+  } // BUG BUG
 
   app->update_mhd_source = false;
   if (ns==1 && mom->species[0].equation->type==GKYL_EQN_MHD) {
