@@ -155,10 +155,12 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
       nT_sources);
 
-  for (int i=0; i<app->num_species; ++i)
+  for (int i=0; i<app->num_species; ++i) {
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
-
-  moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
+  }
+  if (app->has_field) {
+    moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
+  }
 }
 
 // free sources

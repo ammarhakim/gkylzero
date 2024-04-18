@@ -84,12 +84,13 @@ evalEulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 
   double gas_gamma = app->gas_gamma;
   double gravity = app->gravity;
+  double Lx = app->Lx;
 
   double rhoTop = 2.0, rhoBot = 1.0;
   double pr0 = 0.01, pert = 0.01;
   double rho, pr;
 
-  double yloc = 0.5 + pert*cos(6*M_PI*x);
+  double yloc = 0.5 + pert*cos(2.0*M_PI*x/Lx);
 
   if (y>yloc) {
     rho = rhoTop;

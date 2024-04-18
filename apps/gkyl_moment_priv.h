@@ -219,6 +219,8 @@ struct gkyl_moment_app {
 
   // species data
   int num_species;
+  int has_app_accel; // flag to indicate if we have an applied acceleration
+                     // needed if we are doing neutral fluids with an applied acceleration
   struct moment_species *species; // species data
 
   // work arrays for use in the KEP and MP scheme: these are stored
