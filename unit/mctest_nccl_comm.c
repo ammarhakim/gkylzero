@@ -1190,7 +1190,6 @@ nccl_bcast_1d_host()
   gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
 
   struct gkyl_array *arr_ho = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
-  struct gkyl_array *arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, local_ext.volume);
   gkyl_array_clear(arr_ho, 200005.0);
 
   struct gkyl_range_iter iter;
@@ -1200,7 +1199,6 @@ nccl_bcast_1d_host()
     double *f = gkyl_array_fetch(arr_ho, linidx);
     f[0] = linidx+10.0*rank;
   }
-  gkyl_array_copy(arr, arr_ho);
 
   gkyl_comm_array_bcast_host(comm, arr_ho, arr_ho, bcast_rank);
 
@@ -1213,7 +1211,6 @@ nccl_bcast_1d_host()
 
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
-  gkyl_array_release(arr); 
   gkyl_array_release(arr_ho); 
 }
 
@@ -1245,7 +1242,6 @@ nccl_bcast_2d_host_test(int *cuts)
   gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
 
   struct gkyl_array *arr_ho = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
-  struct gkyl_array *arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, local_ext.volume);
   gkyl_array_clear(arr_ho, 200005.0);
 
   struct gkyl_range_iter iter;
@@ -1255,7 +1251,6 @@ nccl_bcast_2d_host_test(int *cuts)
     double *f = gkyl_array_fetch(arr_ho, linidx);
     f[0] = iter.idx[0] + iter.idx[1]*(rank+1.0) + 10.0*rank;
   } 
-  gkyl_array_copy(arr, arr_ho);
 
   gkyl_comm_array_bcast_host(comm, arr_ho, arr_ho, bcast_rank);
 
@@ -1272,7 +1267,6 @@ nccl_bcast_2d_host_test(int *cuts)
 
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
-  gkyl_array_release(arr);
   gkyl_array_release(arr_ho);
 }
 

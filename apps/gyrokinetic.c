@@ -301,10 +301,12 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
   int comm_sz;
+  int bcast_rank;
   gkyl_comm_get_size(app->comm, &comm_sz);
-  int bcast_rank = comm_sz > 1 ? comm_sz/2 - 1 : 0;
-  if (comm_sz%2 !=0)
-    bcast_rank+=1;
+  if (comm_sz == 0)
+    bcast_rank = 0;
+  else
+    bcast_rank = comm_sz%2 == 0 ? comm_sz/2 - 1 : comm_sz/2;
   gkyl_comm_array_bcast_host(app->comm, app->gk_geom->bmag_mid, app->gk_geom->bmag_mid, bcast_rank);
   
   double *bmid = gkyl_array_fetch(app->gk_geom->bmag_mid,0);

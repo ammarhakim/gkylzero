@@ -349,17 +349,8 @@ static int
 array_bcast_host(struct gkyl_comm *comm, const struct gkyl_array *asend,
   struct gkyl_array *arecv, int root)
 {
-  assert(asend->esznc == arecv->esznc);
-  assert(asend->size == arecv->size);
-
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
-
-  size_t nelem = asend->ncomp*asend->size;
-
-  checkNCCL(ncclBroadcast(asend->data, arecv->data, nelem, g2_nccl_datatype[asend->type],
-      root, nccl->mpi_comm, nccl->custream));
-
-  return 0;
+  return gkyl_comm_array_bcast_host(nccl->mpi_comm, asend, arecv, root);
 }
 
 static void
