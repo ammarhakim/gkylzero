@@ -156,8 +156,6 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(
     &(struct gkyl_wv_euler_inp) {
         .gas_gamma = ctx.gas_gamma,
-        .rp_type = WV_EULER_RP_HLLC,
-        .use_gpu = app_args.use_gpu,
     }
   );
 
@@ -167,7 +165,10 @@ main(int argc, char **argv)
     .evolve = true,
     .init = evalEulerInit,
     .ctx = &ctx,
-    .app_accel_func = applied_acceleration
+    .app_accel_func = applied_acceleration,
+
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
+    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
   };
 
   int nrank = 1; // Number of processes in simulation.
