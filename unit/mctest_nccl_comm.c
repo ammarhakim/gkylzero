@@ -1202,9 +1202,8 @@ nccl_bcast_1d_host()
   }
   gkyl_array_copy(arr, arr_ho);
 
-  gkyl_comm_array_bcast_host(comm, arr, arr, bcast_rank);
+  gkyl_comm_array_bcast_host(comm, arr_ho, arr_ho, bcast_rank);
 
-  gkyl_array_copy(arr_ho, arr);
   gkyl_range_iter_init(&iter, &local);
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(&local, iter.idx);
@@ -1258,9 +1257,8 @@ nccl_bcast_2d_host_test(int *cuts)
   } 
   gkyl_array_copy(arr, arr_ho);
 
-  gkyl_comm_array_bcast_host(comm, arr, arr, bcast_rank);
+  gkyl_comm_array_bcast_host(comm, arr_ho, arr_ho, bcast_rank);
 
-  gkyl_array_copy(arr_ho, arr);
   struct gkyl_range bcast_rank_local, bcast_rank_local_ext;
   gkyl_create_ranges(&decomp->ranges[bcast_rank], nghost, &bcast_rank_local_ext, &bcast_rank_local);
   gkyl_range_iter_init(&iter, &bcast_rank_local);
