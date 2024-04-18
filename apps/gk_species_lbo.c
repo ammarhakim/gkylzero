@@ -50,12 +50,12 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
   if (s->info.collisions.normNu) {
     lbo->normNu = true;
     lbo->self_nu_fac = s->info.collisions.self_nu_fac;
-    double tpar_min = (s->info.mass/6.0)*s->grid.dx[cdim]*s->grid.dx[cdim];
+    double tpar_min = (s->info.mass/6.0)*pow(s->grid.dx[cdim],2);
     double tperp_min = vdim>1 ? (s->info.collisions.bmag_mid/3.0)*s->grid.dx[cdim+1] : tpar_min;
-    lbo->vtsq_min = (tpar_min + 2*tperp_min)/(3*s->info.mass);
+    lbo->vtsq_min = (tpar_min + 2.0*tperp_min)/(3.0*s->info.mass);
+
     double nuFrac = s->info.collisions.nuFrac ? s->info.collisions.nuFrac : 1.0;
-    double eps0 = 1.0;
-    double hbar = 1.0;
+    double eps0 = 1.0, hbar = 1.0; // Not used by spitzer_coll_freq if doing normnu.
     lbo->spitzer_calc = gkyl_spitzer_coll_freq_new(&app->confBasis, app->poly_order+1,
       nuFrac, eps0, hbar, app->use_gpu);
     // Create arrays for scaling collisionality by normalization factor

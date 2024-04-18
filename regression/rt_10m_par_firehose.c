@@ -70,8 +70,11 @@ struct par_firehose_ctx
   double k0_elc; // Closure parameter for electrons.
   double k0_ion; // Closure parameter for ions.
   double cfl_frac; // CFL coefficient.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
 struct par_firehose_ctx
@@ -122,8 +125,11 @@ create_ctx(void)
   double k0_elc = 0.1 / de; // Closure parameter for electrons.
   double k0_ion = 0.1 / di; // Closure parameter for ions.
   double cfl_frac = 1.0; // CFL coefficient.
+
   double t_end = 10.0 / omega_ci; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
   struct par_firehose_ctx ctx = {
     .pi = pi,
@@ -161,6 +167,8 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
@@ -172,11 +180,11 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0];
   struct par_firehose_ctx *app = ctx;
 
-  double mass_elc = app -> mass_elc;
+  double mass_elc = app->mass_elc;
 
-  double n0 = app -> n0;
+  double n0 = app->n0;
 
-  double Te = app -> Te;
+  double Te = app->Te;
 
   double rhoe = mass_elc * n0; // Electron mass density.
   double momxe = 0.0; // Electron momentum density (x-direction).
@@ -204,12 +212,12 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0];
   struct par_firehose_ctx *app = ctx;
 
-  double mass_ion = app -> mass_ion;
+  double mass_ion = app->mass_ion;
 
-  double n0 = app -> n0;
+  double n0 = app->n0;
 
-  double Ti_par = app -> Ti_par;
-  double Ti_perp = app -> Ti_perp;
+  double Ti_par = app->Ti_par;
+  double Ti_perp = app->Ti_perp;
 
   double rhoi = mass_ion * n0; // Ion mass density.
   double momxi = 0.0; // Ion momentum density (x-direction).
@@ -237,15 +245,15 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0];
   struct par_firehose_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double B0 = app -> B0;
+  double B0 = app->B0;
 
-  double noise_amp = app -> noise_amp;
-  double mode_init = app -> mode_init;
-  double mode_final = app -> mode_final;
+  double noise_amp = app->noise_amp;
+  double mode_init = app->mode_init;
+  double mode_final = app->mode_final;
 
-  double Lx = app -> Lx;
+  double Lx = app->Lx;
 
   double Bx = B0; // Total magnetic field (x-direction).
   double By = 0.0;
@@ -271,10 +279,15 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
-write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
+write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    int frame = iot->curr - 1;
+    if (force_write) {
+      frame = iot->curr;
+    }
+
+    gkyl_moment_app_write(app, t_curr, frame);
   }
 }
 
@@ -299,8 +312,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   
   // Electron/ion equations.
-  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_elc);
-  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_ion);
+  struct gkyl_wv_eqn *elc_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_elc, false);
+  struct gkyl_wv_eqn *ion_ten_moment = gkyl_wv_ten_moment_new(ctx.k0_ion, false);
 
   struct gkyl_moment_species elc = {
     .name = "elc",
@@ -424,7 +437,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };
@@ -441,10 +454,14 @@ main(int argc, char **argv)
 
   // Initialize simulation.
   gkyl_moment_app_apply_ic(app, t_curr);
-  write_data(&io_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
 
   // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
+
+  // Initialize small time-step check.
+  double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
+  int num_failures = 0, num_failures_max = ctx.num_failures_max;
 
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
@@ -460,12 +477,31 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    write_data(&io_trig, app, t_curr);
+    write_data(&io_trig, app, t_curr, false);
+
+    if (dt_init < 0.0) {
+      dt_init = status.dt_actual;
+    }
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      gkyl_moment_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_moment_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
 
     step += 1;
   }
 
-  write_data(&io_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);

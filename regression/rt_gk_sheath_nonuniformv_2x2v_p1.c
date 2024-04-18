@@ -465,13 +465,6 @@ main(int argc, char **argv)
   int NVPAR = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvpar);
   int NMU = APP_ARGS_CHOOSE(app_args.vcells[1], ctx.Nmu);
 
-  int nrank = 1; // Number of processors in simulation.
-#ifdef GKYL_HAVE_MPI
-  if (app_args.use_mpi) {
-    MPI_Comm_size(MPI_COMM_WORLD, &nrank);
-  }
-#endif  
-
   // Create global range.
   int ccells[] = { NX, NZ };
   int cdim = sizeof(ccells) / sizeof(ccells[0]);

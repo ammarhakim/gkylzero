@@ -184,7 +184,7 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .density = eval_density_elc,
       .upar = eval_upar_elc,
       .temp = eval_temp_elc,      
@@ -207,7 +207,7 @@ main(int argc, char **argv)
     .polarization_density = ctx.n0,
 
     .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN, 
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
       .density = eval_density_ion,
       .upar = eval_upar_ion,
       .temp = eval_temp_ion,      

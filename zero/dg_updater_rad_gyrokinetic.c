@@ -13,12 +13,12 @@
 struct gkyl_dg_updater_collisions*
 gkyl_dg_updater_rad_gyrokinetic_new(const struct gkyl_rect_grid *grid, 
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *phase_range, void *aux_inp, bool use_gpu)
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range, void *aux_inp, bool use_gpu)
 {
 
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
   up->use_gpu = use_gpu;
-  up->coll_drag = gkyl_dg_rad_gyrokinetic_drag_new(conf_basis, phase_basis, phase_range, use_gpu);
+  up->coll_drag = gkyl_dg_rad_gyrokinetic_drag_new(conf_basis, phase_basis, phase_range, conf_range, use_gpu);
   struct gkyl_dg_rad_gyrokinetic_auxfields *rad_inp = aux_inp;
   gkyl_rad_gyrokinetic_drag_set_auxfields(up->coll_drag, *rad_inp);
 
