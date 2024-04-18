@@ -41,7 +41,7 @@ gkyl_canonical_pb_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb, enum gkyl_basis_type b_type,
-  int cdim, int poly_order)
+  int cdim, int cdim, int poly_order)
 {
 
   canonical_pb->auxfields.hamil = 0;  
@@ -77,7 +77,7 @@ dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb, enum gkyl_
       assert(false);
       break;    
   }  
-  
+
   canonical_pb->eqn.vol_term = CK(vol_kernels,cdim,poly_order);
 
   canonical_pb->stream_surf[0] = CK(stream_surf_x_kernels,cdim,poly_order);
@@ -125,7 +125,7 @@ gkyl_dg_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   struct dg_canonical_pb *canonical_pb_cu = (struct dg_canonical_pb*) gkyl_cu_malloc(sizeof(struct dg_canonical_pb));
   gkyl_cu_memcpy(canonical_pb_cu, canonical_pb, sizeof(struct dg_canonical_pb), GKYL_CU_MEMCPY_H2D);
 
-  dg_canonical_pb_set_cu_dev_ptrs<<<1,1>>>(canonical_pb_cu, cbasis->b_type, cdim, poly_order);
+  dg_canonical_pb_set_cu_dev_ptrs<<<1,1>>>(canonical_pb_cu, cbasis->b_type, cdim, vdim, poly_order);
 
   // set parent on_dev pointer
   canonical_pb->eqn.on_dev = &canonical_pb->eqn;

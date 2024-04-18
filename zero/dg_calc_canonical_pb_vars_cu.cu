@@ -55,7 +55,7 @@ gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_canonica
       // alpha = +1 to avoid evaluating the geometry information in the ghost cells 
       // where it is not defined when computing the final surface alpha we need
       // (since the surface alpha array stores only the *lower* surface expansion)
-      if (idx[dir] == &conf_range.upper[dir]) {
+      if (idx[dir] == conf_range.upper[dir]) {
         gkyl_copy_int_arr(pdim, idx, idx_edge);
         idx_edge[dir] = idx_edge[dir]+1;
         long loc_phase_ext = gkyl_range_idx(&phase_ext_range, idx_edge);
