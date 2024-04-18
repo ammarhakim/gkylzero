@@ -213,6 +213,15 @@ array_write(struct gkyl_comm *comm,
 }
 
 static int
+array_read(struct gkyl_comm *comm,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
+  struct gkyl_array *arr, const char *fname)
+{
+  struct nccl_comm *nccl = container_of(comm, struct nccl_comm, base);
+  return gkyl_comm_array_read(nccl->mpi_comm, grid, range, arr, fname);
+}
+
+static int
 array_send(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm)
 {
   size_t vol = array->ncomp*array->size;
@@ -696,6 +705,7 @@ gkyl_nccl_comm_new(const struct gkyl_nccl_comm_inp *inp)
     nccl->base.gkyl_array_sync = array_sync;
     nccl->base.gkyl_array_per_sync = array_per_sync;
     nccl->base.gkyl_array_write = array_write;
+    nccl->base.gkyl_array_read = array_read;
   }
   
   nccl->base.get_rank = get_rank;
