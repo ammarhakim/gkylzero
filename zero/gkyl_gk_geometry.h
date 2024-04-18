@@ -19,6 +19,7 @@ struct gk_geometry {
   struct gkyl_range global_ext;
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
+  double bmag_mid;
 
   struct gkyl_array* mc2p;
   struct gkyl_array* bmag;
@@ -109,6 +110,12 @@ gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gk_geometr
  */
 void 
 gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
+
+
+/**
+ * Evaluate and set bmag at the center of the domain
+ */
+void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up);
 
 /**
  * deflate geometry to lower dimensionality

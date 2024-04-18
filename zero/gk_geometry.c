@@ -108,6 +108,30 @@ void gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange,
   }
 }
 
+void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up) {
+  int cdim = up->grid.ndim;
+  int idx_mid[cdim];
+  double xc[cdim];
+  for(int i = 0; i <cdim; i++) {
+    if (up->grid.cells[i]%2 == 0) {
+      idx_mid[i] = up->grid.cells[i]/2;
+      xc[i] = 1.0;
+    }
+    else {
+      idx_mid[i] = up->grid.cells[i]/2+1 ;
+      xc[i] = 0.0;
+    }
+  }
+  double bmag_mid = 0.0;
+  if ( (idx_mid[cdim-1] >= up->local.lower[cdim-1]) && (idx_mid[cdim-1] <= up->local.upper[cdim-1]) ) {
+    long lidx = gkyl_range_idx(&up->local, idx_mid);
+    const double *bcoeffs = gkyl_array_cfetch(up->bmag, lidx);
+    bmag_mid = up->basis.eval_expand(xc, bcoeffs);
+    printf("bmag_mid = %g\n", bmag_mid);
+  }
+  up->bmag_mid = bmag_mid;
+}
+
 struct gk_geometry*
 gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {

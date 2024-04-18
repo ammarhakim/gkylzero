@@ -23,6 +23,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   up->global = geometry_inp->global;
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
+  up->bmag_mid = geo_host->bmag_mid;
 
   // Copy the host-side initialized geometry object to the device
   struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);

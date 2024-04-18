@@ -299,6 +299,8 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
 
+  gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
+
   // If we are on the gpu, copy from host
   if (app->use_gpu) {
     struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, app->use_gpu);
