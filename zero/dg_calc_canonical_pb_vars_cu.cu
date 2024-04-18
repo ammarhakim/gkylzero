@@ -1,6 +1,6 @@
 /* -*- c++ -*- */
 
-#include <assert.h>
+#include <math.h>
 #include <time.h>
 
 extern "C" {
@@ -82,18 +82,15 @@ gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu(struct gkyl_dg_calc_canonical_pb_va
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, *phase_range, 
-    pkpm_prim->on_dev, nu_prim_moms_sum->on_dev, 
-    div_b->on_dev, pkpm_accel->on_dev, 
-    fIn->on_dev, F_k_p_1->on_dev, 
-    g_dist_source->on_dev, F_k_m_1->on_dev);
+    *conf_range, *phase_range, *phase_ext_range, 
+    hamil->on_dev, alpha_surf->on_dev, sgn_alpha_surf->on_dev, const_sgn_alpha->on_dev);
 }
 
 
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
-  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_canonical_pb_vars *up, enum gkyl_basis_type b_type,
+  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_canonical_pb_vars *up,
   int cdim,int poly_order)
 {
 
@@ -119,12 +116,12 @@ gkyl_dg_calc_canonical_pb_vars_cu_dev_new(const struct gkyl_rect_grid *phase_gri
   up->pdim = pdim;
 
   up->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(up->flags);
+  GKYL_SET_CU_ALLOC(up->flags);
 
   struct gkyl_dg_calc_canonical_pb_vars *up_cu = (struct gkyl_dg_calc_canonical_pb_vars *) gkyl_cu_malloc(sizeof(gkyl_dg_calc_canonical_pb_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_canonical_pb_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, b_type, cdim, poly_order);
+  dg_calc_canoncial_pb_vars_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu; // self-reference on host
