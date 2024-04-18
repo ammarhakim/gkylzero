@@ -16,7 +16,7 @@ gkyl_dg_calc_canonical_pb_vars_new(const struct gkyl_rect_grid *phase_grid,
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
     return gkyl_dg_calc_canonical_pb_vars_cu_dev_new(phase_grid, 
-      conf_basis, phase_basis, gk_geom);
+      conf_basis, phase_basis);
   } 
 #endif     
   gkyl_dg_calc_canonical_pb_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_canonical_pb_vars));

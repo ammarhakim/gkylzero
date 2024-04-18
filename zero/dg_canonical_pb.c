@@ -47,7 +47,7 @@ gkyl_dg_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_dg_canonical_pb_cu_dev_new(cbasis, pbasis, conf_range, vel_range, field_id);
+    return gkyl_dg_canonical_pb_cu_dev_new(cbasis, pbasis, phase_range);
   } 
 #endif
   struct dg_canonical_pb *canonical_pb = gkyl_malloc(sizeof(struct dg_canonical_pb));
