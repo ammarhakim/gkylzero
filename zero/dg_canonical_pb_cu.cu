@@ -41,7 +41,7 @@ gkyl_canonical_pb_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void 
 dg_canonical_pb_set_cu_dev_ptrs(struct dg_canonical_pb *canonical_pb, enum gkyl_basis_type b_type,
-  int cdim, int cdim, int poly_order)
+  int cdim, int vdim, int poly_order)
 {
 
   canonical_pb->auxfields.hamil = 0;  
