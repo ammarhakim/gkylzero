@@ -32,14 +32,13 @@ gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_canonica
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&phase_range, linc1, idx);
-    long loc_conf = gkyl_range_idx(conf_range, idx);
-    long loc_phase = gkyl_range_idx(phase_range, idx);
+    gkyl_sub_range_inv_idx(&phase_range, linc1, idx);  
+    long loc_phase = gkyl_range_idx(&phase_range, idx);
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
     double* alpha_surf_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase);
     double* sgn_alpha_surf_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase);
-    int* const_sgn_alpha_d = (double*) gkyl_array_fetch(const_sgn_alpha, loc_phase);
+    int* const_sgn_alpha_d = (int*) gkyl_array_fetch(const_sgn_alpha, loc_phase);
     for (int dir = 0; dir<cdim; ++dir) {
       const double *hamil_local =  (const double*) gkyl_array_fetch(hamil, loc_phase);
       
@@ -56,14 +55,14 @@ gkyl_dg_calc_canonical_pb_vars_alpha_surf_cu_kernel(struct gkyl_dg_calc_canonica
       // alpha = +1 to avoid evaluating the geometry information in the ghost cells 
       // where it is not defined when computing the final surface alpha we need
       // (since the surface alpha array stores only the *lower* surface expansion)
-      if (idx[dir] == conf_range->upper[dir]) {
+      if (idx[dir] == &conf_range.upper[dir]) {
         gkyl_copy_int_arr(pdim, idx, idx_edge);
         idx_edge[dir] = idx_edge[dir]+1;
-        long loc_phase_ext = gkyl_range_idx(phase_ext_range, idx_edge);
+        long loc_phase_ext = gkyl_range_idx(&phase_ext_range, idx_edge);
 
         double* alpha_surf_ext_d = (double*) gkyl_array_fetch(alpha_surf, loc_phase_ext);
         double* sgn_alpha_surf_ext_d = (double*) gkyl_array_fetch(sgn_alpha_surf, loc_phase_ext);
-        int* const_sgn_alpha_ext_d = (double*) gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
+        int* const_sgn_alpha_ext_d = (int*) gkyl_array_fetch(const_sgn_alpha, loc_phase_ext);
         const_sgn_alpha_ext_d[dir] = up->alpha_edge_surf[dir](xc, up->phase_grid.dx, 
           (const double*) gkyl_array_fetch(hamil, loc_phase),
           alpha_surf_ext_d, sgn_alpha_surf_ext_d);
