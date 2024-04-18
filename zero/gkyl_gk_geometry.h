@@ -19,7 +19,6 @@ struct gk_geometry {
   struct gkyl_range global_ext;
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
-  double bmag_mid;
 
   struct gkyl_array* mc2p;
   struct gkyl_array* bmag;
@@ -40,6 +39,7 @@ struct gk_geometry {
   struct gkyl_array* gyyj;
   struct gkyl_array* gxzj;
   struct gkyl_array* eps2; // eps2 = Jg^33 - J/g_33
+  struct gkyl_array* bmag_mid;
 
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
