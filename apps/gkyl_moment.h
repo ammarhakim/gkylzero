@@ -34,6 +34,7 @@ struct gkyl_moment_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
+  bool is_app_accel_static; // flag to indicate if applied acceleration is static
   void *app_accel_ctx; // context for applied acceleration
   // pointer to applied acceleration/forces function
   void (*app_accel_func)(double t, const double *xn, double *fout, void *ctx);

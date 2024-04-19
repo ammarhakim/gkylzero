@@ -166,6 +166,8 @@ main(int argc, char **argv)
     .evolve = true,
     .init = evalEulerInit,
     .ctx = &ctx,
+
+    .is_app_accel_static = true,
     .app_accel_func = applied_acceleration,
 
     .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },

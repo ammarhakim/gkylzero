@@ -53,9 +53,11 @@ struct moment_species {
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
+  bool is_app_accel_static; // flag to indicate if applied acceleration is static  
   struct gkyl_array *app_accel; // array for applied acceleration/forces
   // pointer to projection operator for applied acceleration/forces function
   gkyl_fv_proj *proj_app_accel;
+  bool was_app_accel_computed; // flag to indicate if we already computed acceleration
 
   struct gkyl_array *nT_source; // array for num density and temperature sources
   // projection func for num density and temperature sources

@@ -426,6 +426,7 @@ moment_species_lw_new(lua_State *L)
     has_app_accel = true;
     app_accel_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
+  mom_species.is_app_accel_static = glua_tbl_get_bool(L, "isAppliedAccelerationStatic", false);
 
   bool has_nT_source = false;
   int nT_source_ref = LUA_NOREF;

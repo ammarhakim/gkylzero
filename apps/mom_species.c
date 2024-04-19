@@ -214,6 +214,8 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   // allocate array for applied acceleration/forces for each species
   sp->app_accel = mkarr(false, 3, app->local_ext.volume);
+  sp->was_app_accel_computed = false;
+  sp->is_app_accel_static = mom_sp->is_app_accel_static;
   sp->proj_app_accel = 0;
   if (mom_sp->app_accel_func) {
     void *ctx = sp->ctx;
