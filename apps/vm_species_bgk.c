@@ -39,34 +39,61 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm
 
   // Host-side copy for I/O
   bgk->nu_sum_host = bgk->nu_sum;
-  if (app->use_gpu) 
+  if (app->use_gpu) {
     bgk->nu_sum_host = mkarr(false, app->confBasis.num_basis, app->local_ext.volume);
-
+  }
 
   bgk->model_id = s->model_id;
+  // allocate moments needed for BGK collisions update
+  vm_species_moment_init(app, s, &bgk->moms, "LTEMoments");
 
-  if (bgk->model_id == GKYL_MODEL_SR) {
+  struct gkyl_vlasov_lte_proj_on_basis_inp inp_proj = {
+    .phase_grid = &s->grid,
+    .conf_basis = &app->confBasis,
+    .phase_basis = &app->basis,
+    .conf_range =  &app->local,
+    .conf_range_ext = &app->local_ext,
+    .vel_range = &s->local_vel,
+    .p_over_gamma = s->p_over_gamma,
+    .gamma = s->gamma,
+    .gamma_inv = s->gamma_inv,
+    .model_id = s->model_id,
+    .mass = s->info.mass,
+    .use_gpu = app->use_gpu,
+  };
+  bgk->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
-    bgk->n_stationary = mkarr(app->use_gpu, app->confBasis.num_basis,   app->local_ext.volume);
-    bgk->vb = mkarr(app->use_gpu, app->vdim *  app->confBasis.num_basis,  app->local_ext.volume);
-    bgk->T_stationary = mkarr(app->use_gpu, app->confBasis.num_basis,   app->local_ext.volume);
+  bgk->correct_all_moms = false;
+  int max_iter = s->info.collisions.max_iter > 0 ? s->info.collisions.max_iter : 100;
+  double iter_eps = s->info.collisions.iter_eps > 0 ? s->info.collisions.iter_eps  : 1e-12;
+  
+  if (s->info.collisions.correct_all_moms) {
+    bgk->correct_all_moms = true;
 
-    bgk->mj_moms = gkyl_mj_moments_new(&s->grid, &app->confBasis,
-      &app->basis, &app->local, &s->local_vel, app->local.volume, app->local_ext.volume, 
-      s->p_over_gamma, s->gamma, s->gamma_inv, false);
-    bgk->proj_mj = gkyl_proj_mj_on_basis_new(&s->grid, &app->confBasis, &app->basis,app->poly_order+1);
-    bgk->corr_mj = gkyl_correct_mj_new(&s->grid, &app->confBasis,
-      &app->basis, &app->local, &app->local_ext, &s->local_vel, s->p_over_gamma, s->gamma, s->gamma_inv, false);
-        // Correct the distribution function
+    struct gkyl_vlasov_lte_correct_inp inp_corr = {
+      .phase_grid = &s->grid,
+      .conf_basis = &app->confBasis,
+      .phase_basis = &app->basis,
+      .conf_range =  &app->local,
+      .conf_range_ext = &app->local_ext,
+      .vel_range = &s->local_vel,
+      .p_over_gamma = s->p_over_gamma,
+      .gamma = s->gamma,
+      .gamma_inv = s->gamma_inv,
+      .model_id = s->model_id,
+      .mass = s->info.mass,
+      .use_gpu = app->use_gpu,
+      .max_iter = max_iter,
+      .eps = iter_eps,
+    };
+    bgk->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
+
+    bgk->corr_stat = gkyl_dynvec_new(GKYL_DOUBLE,7);
+    bgk->is_first_corr_status_write_call = true;
   }
-  else {
-     // allocate moments needed for BGK collisions update
-    vm_species_moment_init(app, s, &bgk->moms, "FiveMoments");
-    bgk->proj_max = gkyl_proj_maxwellian_on_basis_new(&s->grid, &app->confBasis, &app->basis, 
-      app->poly_order+1, app->use_gpu);
-  }
-  bgk->fmax = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
-  bgk->nu_fmax = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+
+  bgk->f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
+  bgk->nu_f_lte = mkarr(app->use_gpu, app->basis.num_basis, s->local_ext.volume);
   // BGK updater (also computes stable timestep)
   bgk->up_bgk = gkyl_bgk_collisions_new(&app->confBasis, &app->basis, app->use_gpu);
 }
@@ -78,13 +105,7 @@ vm_species_bgk_moms(gkyl_vlasov_app *app, const struct vm_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // compute needed moments
-  if (bgk->model_id == GKYL_MODEL_SR) {
-    gkyl_mj_moments_advance(bgk->mj_moms, fin, bgk->n_stationary, bgk->vb, bgk->T_stationary, &species->local, &app->local);
-  }
-  else {
-    vm_species_moment_calc(&bgk->moms, species->local, app->local, fin);
-  }
+  vm_species_moment_calc(&bgk->moms, species->local, app->local, fin);
   
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
@@ -95,29 +116,35 @@ vm_species_bgk_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  gkyl_array_clear(bgk->nu_fmax, 0.0);
+  gkyl_array_clear(bgk->nu_f_lte, 0.0);
 
-  // Obtain self-collisions nu*fmax
-  if (bgk->model_id == GKYL_MODEL_SR) {
+  // Project the LTE distribution function to obtain self-collisions nu*f_lte.
+  // e.g., Maxwellian for non-relativistic and Maxwell-Juttner for relativistic.
+  // Projection routine also corrects the density of the projected distribution function.
+  gkyl_vlasov_lte_proj_on_basis_advance(bgk->proj_lte, &species->local, &app->local, 
+    bgk->moms.marr, bgk->f_lte);
 
-    // Compute MJ via the moments
-    gkyl_proj_mj_on_basis_fluid_stationary_frame_mom(bgk->proj_mj, &species->local, &app->local,
-      bgk->n_stationary, bgk->vb, bgk->T_stationary, bgk->fmax);
-    gkyl_correct_mj_fix_n_stationary(bgk->corr_mj, bgk->fmax, bgk->n_stationary, bgk->vb,
+  // Correct all the moments of the projected LTE distribution function.
+  if (bgk->correct_all_moms) {
+    struct gkyl_vlasov_lte_correct_status status_corr = gkyl_vlasov_lte_correct_all_moments(bgk->corr_lte, bgk->f_lte, bgk->moms.marr,
       &species->local, &app->local);
-    //gkyl_correct_mj_fix(bgk->corr_mj, bgk->fmax, bgk->n_stationary, bgk->vb, bgk->T_stationary,
-    // &species->local, &app->local, app->poly_order);
-  }
-  else { 
-    gkyl_proj_maxwellian_on_basis_lab_mom(bgk->proj_max, &species->local, &app->local, 
-      bgk->moms.marr, bgk->fmax);
-  }
-  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->fmax, 
-    bgk->self_nu, bgk->fmax, &app->local, &species->local);
-  gkyl_array_accumulate(bgk->nu_fmax, 1.0, bgk->fmax);
+    double corr_vec[7];
+    corr_vec[0] = status_corr.num_iter;
+    corr_vec[1] = status_corr.iter_converged;
+    corr_vec[2] = status_corr.error[0];
+    corr_vec[3] = status_corr.error[1];
+    corr_vec[4] = status_corr.error[2];
+    corr_vec[5] = status_corr.error[3];
+    corr_vec[6] = status_corr.error[4];
+    gkyl_dynvec_append(bgk->corr_stat,app->tcurr,corr_vec);
+  } 
+
+  gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, bgk->f_lte, 
+    bgk->self_nu, bgk->f_lte, &app->local, &species->local);
+  gkyl_array_accumulate(bgk->nu_f_lte, 1.0, bgk->f_lte);
 
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &species->local, 
-    bgk->nu_sum, bgk->nu_fmax, fin, rhs, species->cflrate);
+    bgk->nu_sum, bgk->nu_f_lte, fin, rhs, species->cflrate);
 
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -128,13 +155,12 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
   gkyl_array_release(bgk->self_nu);
   gkyl_array_release(bgk->nu_sum);
 
-  gkyl_array_release(bgk->fmax);
-  gkyl_array_release(bgk->nu_fmax);
+  gkyl_array_release(bgk->f_lte);
+  gkyl_array_release(bgk->nu_f_lte);
 
   if (app->use_gpu) {
     gkyl_array_release(bgk->nu_sum_host);
   }
-
 
   if (bgk->normNu) {
     gkyl_array_release(bgk->norm_nu);
@@ -142,17 +168,13 @@ vm_species_bgk_release(const struct gkyl_vlasov_app *app, const struct vm_bgk_co
     gkyl_spitzer_coll_freq_release(bgk->spitzer_calc);
   }
 
-  if (bgk->model_id == GKYL_MODEL_SR){
-    gkyl_proj_mj_on_basis_release(bgk->proj_mj);
-    gkyl_correct_mj_release(bgk->corr_mj);
-    gkyl_mj_moments_release(bgk->mj_moms);
-    gkyl_array_release(bgk->n_stationary);
-    gkyl_array_release(bgk->vb);
-    gkyl_array_release(bgk->T_stationary);
-  } 
-  else {
-    vm_species_moment_release(app, &bgk->moms);
-    gkyl_proj_maxwellian_on_basis_release(bgk->proj_max);
+  vm_species_moment_release(app, &bgk->moms);
+
+  gkyl_vlasov_lte_proj_on_basis_release(bgk->proj_lte);
+  if (bgk->correct_all_moms) {
+    gkyl_vlasov_lte_correct_release(bgk->corr_lte);
+    gkyl_dynvec_release(bgk->corr_stat);
   }
+
   gkyl_bgk_collisions_release(bgk->up_bgk);
- }
+}

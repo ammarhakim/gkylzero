@@ -85,6 +85,15 @@ struct gkyl_basis {
  * @param fmodal On output, coefficients of modal expansion
  */
   void (*nodal_to_modal)(const double *fnodal, double *fmodal);
+
+/**
+ * Given expansion coefficients on nodal basis defined by Gauss-Legendre
+ * quadrature points, compute modal expansion coefficients.
+ *
+ * @param fquad Coefficients of nodal expansion in quadrature node basis
+ * @param fmodal On output, coefficients of modal expansion
+ */
+  void (*quad_nodal_to_modal)(const double *fquad, double *fmodal);  
 };
 
 /**
