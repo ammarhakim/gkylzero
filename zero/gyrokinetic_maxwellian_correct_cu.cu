@@ -33,15 +33,15 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments_abs_diff_cu_ker(struct gkyl_rang
     // Note: max error found by follow-up thread-safe reduction operation
     // Also: for density and temperature, this error is a relative error compared to the target moment value
     // so that we can converge to the correct target moments in SI units and minimize finite precision issues.
-    abs_diff_moms_local[0] = fmax(fabs(moms_local[0*nc] - moms_target_local[0*nc])/moms_target_local[0*nc],fabs(up->error[0]));
-    abs_diff_moms_local[2] = fmax(fabs(moms_local[2*nc] - moms_target_local[2*nc])/moms_target_local[2*nc],fabs(up->error[2]));
+    abs_diff_moms_local[0] = fabs(moms_local[0*nc] - moms_target_local[0*nc])/moms_target_local[0*nc];
+    abs_diff_moms_local[2] = fabs(moms_local[2*nc] - moms_target_local[2*nc])/moms_target_local[2*nc];
     // However, u_par may be ~ 0 and if it is, we need to use absolute error. We can converge safely using
     // absolute error if u_par ~ O(1). Otherwise, we use relative error for u_par. 
     if (fabs(moms_target_local[1*nc]) < 1.0) {
-      abs_diff_moms_local[1] = fmax(fabs(moms_local[1*nc] - moms_target_local[1*nc]),fabs(up->error[1]));
+      abs_diff_moms_local[1] = fabs(moms_local[1*nc] - moms_target_local[1*nc]);
     }
     else {
-      abs_diff_moms_local[1] = fmax(fabs(moms_local[1*nc] - moms_target_local[1*nc])/moms_target_local[1*nc],fabs(up->error[1]));
+      abs_diff_moms_local[1] = fabs(moms_local[1*nc] - moms_target_local[1*nc])/moms_target_local[1*nc];
     }
   }
 }
