@@ -23,25 +23,6 @@ hamil(double t, const double* xn, double* fout, void* ctx)
   fout[0] = 0.5*v*v;
 }
 
-
-static inline double
-maxwellian(double n, double v, double u, double vth)
-{
-  double v2 = (v - u)*(v - u);
-  return n/sqrt(2*M_PI*vth*vth)*exp(-v2/(2*vth*vth));
-}
-
-void
-evalDistFunc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct free_stream_ctx *app = ctx;
-  double x = xn[0], v = xn[1];
-  if (x<0.5)
-    fout[0] = maxwellian(1.0, v, 0.0, 1.0);
-  else
-    fout[0] = maxwellian(0.125, v, 0.0, sqrt(0.1/0.125));
-}
-
 void
 evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -49,6 +30,48 @@ evalNu(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, vo
   double x = xn[0], v = xn[1];
   fout[0] = 100.0;
 }
+
+struct vlasov_sod_shock_ctx {
+  double charge; // charge
+  double mass; // mass
+  double vt; // thermal velocity
+  double Lx; // size of the box
+};
+
+void
+evalDensityInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct vlasov_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  if (x<0.5) {
+    fout[0] = 1.0;
+  }
+  else {
+    fout[0] = 0.125;
+  }
+}
+
+void
+evalVDriftInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct vlasov_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  fout[0] = 0.0;
+}
+
+void
+evalTempInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct vlasov_sod_shock_ctx *app = ctx;
+  double x = xn[0];
+  if (x<0.5) {
+    fout[0] = 1.0;
+  }
+  else {
+    fout[0] = sqrt(0.1/0.125);
+  }
+}
+
 
 struct free_stream_ctx
 create_ctx(void)
@@ -87,8 +110,16 @@ main(int argc, char **argv)
     .hamil = hamil,
     .hamil_ctx = &ctx,
 
-    .ctx = &ctx,
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_VLASOV_LTE,
+      .density = evalDensityInit,
+      .ctx_density = &ctx,
+      .V_drift = evalVDriftInit,
+      .ctx_V_drift = &ctx,
+      .temp = evalTempInit,
+      .ctx_temp = &ctx,
+      .correct_all_moms = true, 
+    },
 
     .collisions =  {
       .collision_id = GKYL_BGK_COLLISIONS,
@@ -97,10 +128,8 @@ main(int argc, char **argv)
       .self_nu = evalNu,
     },
 
-    //.num_diag_moments = 2,
-    //.diag_moments = { "M0", "M1i" }, //, "Pressure"
-    .num_diag_moments = 1,
-    .diag_moments = { "FiveMoments" },
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "LTEMoments" },
   };
 
   // VM app
