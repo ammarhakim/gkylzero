@@ -241,18 +241,18 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_notmapped_boundary_surfmu_1x2v_ser_p1(con
 
   double phaseFacr[12] = {0.0}; 
 
-  phaseFacr[0] = (-0.5412658773652741*fskin[3]*dfVfac_r*rdv2)-0.5412658773652741*fedge[3]*dfVfac_r*rdv2-0.5625*fskin[0]*dfVfac_r*rdv2+0.5625*fedge[0]*dfVfac_r*rdv2; 
-  phaseFacr[1] = (-0.5412658773652741*fskin[5]*dfVfac_r*rdv2)-0.5412658773652741*fedge[5]*dfVfac_r*rdv2-0.5625*fskin[1]*dfVfac_r*rdv2+0.5625*fedge[1]*dfVfac_r*rdv2; 
-  phaseFacr[2] = (-0.5412658773652741*fskin[6]*dfVfac_r*rdv2)-0.5412658773652741*fedge[6]*dfVfac_r*rdv2-0.5625*fskin[2]*dfVfac_r*rdv2+0.5625*fedge[2]*dfVfac_r*rdv2; 
-  phaseFacr[3] = (-0.5*fskin[3]*fVfac_r*rdv2Sq)+0.5*fedge[3]*fVfac_r*rdv2Sq-0.4330127018922193*fskin[0]*fVfac_r*rdv2Sq-0.4330127018922193*fedge[0]*fVfac_r*rdv2Sq-0.9375*fskin[3]*dfVfac_r*rdv2-0.9375*fedge[3]*dfVfac_r*rdv2-0.9742785792574932*fskin[0]*dfVfac_r*rdv2+0.9742785792574932*fedge[0]*dfVfac_r*rdv2; 
-  phaseFacr[4] = (-0.5412658773652741*fskin[7]*dfVfac_r*rdv2)-0.5412658773652741*fedge[7]*dfVfac_r*rdv2-0.5625*fskin[4]*dfVfac_r*rdv2+0.5625*fedge[4]*dfVfac_r*rdv2; 
-  phaseFacr[5] = (-0.5*fskin[5]*fVfac_r*rdv2Sq)+0.5*fedge[5]*fVfac_r*rdv2Sq-0.4330127018922193*fskin[1]*fVfac_r*rdv2Sq-0.4330127018922193*fedge[1]*fVfac_r*rdv2Sq-0.9375*fskin[5]*dfVfac_r*rdv2-0.9375*fedge[5]*dfVfac_r*rdv2-0.9742785792574932*fskin[1]*dfVfac_r*rdv2+0.9742785792574932*fedge[1]*dfVfac_r*rdv2; 
-  phaseFacr[6] = (-0.5*fskin[6]*fVfac_r*rdv2Sq)+0.5*fedge[6]*fVfac_r*rdv2Sq-0.4330127018922193*fskin[2]*fVfac_r*rdv2Sq-0.4330127018922193*fedge[2]*fVfac_r*rdv2Sq-0.9375*fskin[6]*dfVfac_r*rdv2-0.9375*fedge[6]*dfVfac_r*rdv2-0.9742785792574932*fskin[2]*dfVfac_r*rdv2+0.9742785792574932*fedge[2]*dfVfac_r*rdv2; 
-  phaseFacr[7] = (-0.5*fskin[7]*fVfac_r*rdv2Sq)+0.5*fedge[7]*fVfac_r*rdv2Sq-0.4330127018922193*fskin[4]*fVfac_r*rdv2Sq-0.4330127018922193*fedge[4]*fVfac_r*rdv2Sq-0.9375*fskin[7]*dfVfac_r*rdv2-0.9375*fedge[7]*dfVfac_r*rdv2-0.9742785792574932*fskin[4]*dfVfac_r*rdv2+0.9742785792574932*fedge[4]*dfVfac_r*rdv2; 
-  phaseFacr[8] = (-0.5412658773652742*fskin[10]*dfVfac_r*rdv2)-0.5412658773652742*fedge[10]*dfVfac_r*rdv2-0.5625*fskin[8]*dfVfac_r*rdv2+0.5625*fedge[8]*dfVfac_r*rdv2; 
-  phaseFacr[9] = (-0.5412658773652742*fskin[11]*dfVfac_r*rdv2)-0.5412658773652742*fedge[11]*dfVfac_r*rdv2-0.5625*fskin[9]*dfVfac_r*rdv2+0.5625*fedge[9]*dfVfac_r*rdv2; 
-  phaseFacr[10] = (-0.5*fskin[10]*fVfac_r*rdv2Sq)+0.5*fedge[10]*fVfac_r*rdv2Sq-0.4330127018922194*fskin[8]*fVfac_r*rdv2Sq-0.4330127018922194*fedge[8]*fVfac_r*rdv2Sq-0.9375*fskin[10]*dfVfac_r*rdv2-0.9375*fedge[10]*dfVfac_r*rdv2-0.9742785792574935*fskin[8]*dfVfac_r*rdv2+0.9742785792574935*fedge[8]*dfVfac_r*rdv2; 
-  phaseFacr[11] = (-0.5*fskin[11]*fVfac_r*rdv2Sq)+0.5*fedge[11]*fVfac_r*rdv2Sq-0.4330127018922194*fskin[9]*fVfac_r*rdv2Sq-0.4330127018922194*fedge[9]*fVfac_r*rdv2Sq-0.9375*fskin[11]*dfVfac_r*rdv2-0.9375*fedge[11]*dfVfac_r*rdv2-0.9742785792574935*fskin[9]*dfVfac_r*rdv2+0.9742785792574935*fedge[9]*dfVfac_r*rdv2; 
+  phaseFacr[0] = (-0.5412658773652741*fskin[3]*dfVfac_r*rdv2Sq)-0.5412658773652741*fedge[3]*dfVfac_r*rdv2Sq-0.5625*fskin[0]*dfVfac_r*rdv2Sq+0.5625*fedge[0]*dfVfac_r*rdv2Sq; 
+  phaseFacr[1] = (-0.5412658773652741*fskin[5]*dfVfac_r*rdv2Sq)-0.5412658773652741*fedge[5]*dfVfac_r*rdv2Sq-0.5625*fskin[1]*dfVfac_r*rdv2Sq+0.5625*fedge[1]*dfVfac_r*rdv2Sq; 
+  phaseFacr[2] = (-0.5412658773652741*fskin[6]*dfVfac_r*rdv2Sq)-0.5412658773652741*fedge[6]*dfVfac_r*rdv2Sq-0.5625*fskin[2]*dfVfac_r*rdv2Sq+0.5625*fedge[2]*dfVfac_r*rdv2Sq; 
+  phaseFacr[3] = (-0.5*fskin[3]*fVfac_r*rdv2Sq)+0.5*fedge[3]*fVfac_r*rdv2Sq-0.4330127018922193*fskin[0]*fVfac_r*rdv2Sq-0.4330127018922193*fedge[0]*fVfac_r*rdv2Sq-0.9375*fskin[3]*dfVfac_r*rdv2Sq-0.9375*fedge[3]*dfVfac_r*rdv2Sq-0.9742785792574932*fskin[0]*dfVfac_r*rdv2Sq+0.9742785792574932*fedge[0]*dfVfac_r*rdv2Sq; 
+  phaseFacr[4] = (-0.5412658773652741*fskin[7]*dfVfac_r*rdv2Sq)-0.5412658773652741*fedge[7]*dfVfac_r*rdv2Sq-0.5625*fskin[4]*dfVfac_r*rdv2Sq+0.5625*fedge[4]*dfVfac_r*rdv2Sq; 
+  phaseFacr[5] = (-0.5*fskin[5]*fVfac_r*rdv2Sq)+0.5*fedge[5]*fVfac_r*rdv2Sq-0.4330127018922193*fskin[1]*fVfac_r*rdv2Sq-0.4330127018922193*fedge[1]*fVfac_r*rdv2Sq-0.9375*fskin[5]*dfVfac_r*rdv2Sq-0.9375*fedge[5]*dfVfac_r*rdv2Sq-0.9742785792574932*fskin[1]*dfVfac_r*rdv2Sq+0.9742785792574932*fedge[1]*dfVfac_r*rdv2Sq; 
+  phaseFacr[6] = (-0.5*fskin[6]*fVfac_r*rdv2Sq)+0.5*fedge[6]*fVfac_r*rdv2Sq-0.4330127018922193*fskin[2]*fVfac_r*rdv2Sq-0.4330127018922193*fedge[2]*fVfac_r*rdv2Sq-0.9375*fskin[6]*dfVfac_r*rdv2Sq-0.9375*fedge[6]*dfVfac_r*rdv2Sq-0.9742785792574932*fskin[2]*dfVfac_r*rdv2Sq+0.9742785792574932*fedge[2]*dfVfac_r*rdv2Sq; 
+  phaseFacr[7] = (-0.5*fskin[7]*fVfac_r*rdv2Sq)+0.5*fedge[7]*fVfac_r*rdv2Sq-0.4330127018922193*fskin[4]*fVfac_r*rdv2Sq-0.4330127018922193*fedge[4]*fVfac_r*rdv2Sq-0.9375*fskin[7]*dfVfac_r*rdv2Sq-0.9375*fedge[7]*dfVfac_r*rdv2Sq-0.9742785792574932*fskin[4]*dfVfac_r*rdv2Sq+0.9742785792574932*fedge[4]*dfVfac_r*rdv2Sq; 
+  phaseFacr[8] = (-0.5412658773652742*fskin[10]*dfVfac_r*rdv2Sq)-0.5412658773652742*fedge[10]*dfVfac_r*rdv2Sq-0.5625*fskin[8]*dfVfac_r*rdv2Sq+0.5625*fedge[8]*dfVfac_r*rdv2Sq; 
+  phaseFacr[9] = (-0.5412658773652742*fskin[11]*dfVfac_r*rdv2Sq)-0.5412658773652742*fedge[11]*dfVfac_r*rdv2Sq-0.5625*fskin[9]*dfVfac_r*rdv2Sq+0.5625*fedge[9]*dfVfac_r*rdv2Sq; 
+  phaseFacr[10] = (-0.5*fskin[10]*fVfac_r*rdv2Sq)+0.5*fedge[10]*fVfac_r*rdv2Sq-0.4330127018922194*fskin[8]*fVfac_r*rdv2Sq-0.4330127018922194*fedge[8]*fVfac_r*rdv2Sq-0.9375*fskin[10]*dfVfac_r*rdv2Sq-0.9375*fedge[10]*dfVfac_r*rdv2Sq-0.9742785792574935*fskin[8]*dfVfac_r*rdv2Sq+0.9742785792574935*fedge[8]*dfVfac_r*rdv2Sq; 
+  phaseFacr[11] = (-0.5*fskin[11]*fVfac_r*rdv2Sq)+0.5*fedge[11]*fVfac_r*rdv2Sq-0.4330127018922194*fskin[9]*fVfac_r*rdv2Sq-0.4330127018922194*fedge[9]*fVfac_r*rdv2Sq-0.9375*fskin[11]*dfVfac_r*rdv2Sq-0.9375*fedge[11]*dfVfac_r*rdv2Sq-0.9742785792574935*fskin[9]*dfVfac_r*rdv2Sq+0.9742785792574935*fedge[9]*dfVfac_r*rdv2Sq; 
 
   double incrl[12] = {0.0}; 
   incrl[3] = 0.7071067811865475*confFac[1]*phaseFacl[5]+0.7071067811865475*confFac[0]*phaseFacl[3]; 
@@ -294,18 +294,18 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_notmapped_boundary_surfmu_1x2v_ser_p1(con
 
   double phaseFacl[12] = {0.0}; 
 
-  phaseFacl[0] = (-0.5412658773652741*fskin[3]*dfVfac_l*rdv2)-0.5412658773652741*fedge[3]*dfVfac_l*rdv2+0.5625*fskin[0]*dfVfac_l*rdv2-0.5625*fedge[0]*dfVfac_l*rdv2; 
-  phaseFacl[1] = (-0.5412658773652741*fskin[5]*dfVfac_l*rdv2)-0.5412658773652741*fedge[5]*dfVfac_l*rdv2+0.5625*fskin[1]*dfVfac_l*rdv2-0.5625*fedge[1]*dfVfac_l*rdv2; 
-  phaseFacl[2] = (-0.5412658773652741*fskin[6]*dfVfac_l*rdv2)-0.5412658773652741*fedge[6]*dfVfac_l*rdv2+0.5625*fskin[2]*dfVfac_l*rdv2-0.5625*fedge[2]*dfVfac_l*rdv2; 
-  phaseFacl[3] = 0.5*fskin[3]*fVfac_l*rdv2Sq-0.5*fedge[3]*fVfac_l*rdv2Sq-0.4330127018922193*fskin[0]*fVfac_l*rdv2Sq-0.4330127018922193*fedge[0]*fVfac_l*rdv2Sq+0.9375*fskin[3]*dfVfac_l*rdv2+0.9375*fedge[3]*dfVfac_l*rdv2-0.9742785792574932*fskin[0]*dfVfac_l*rdv2+0.9742785792574932*fedge[0]*dfVfac_l*rdv2; 
-  phaseFacl[4] = (-0.5412658773652741*fskin[7]*dfVfac_l*rdv2)-0.5412658773652741*fedge[7]*dfVfac_l*rdv2+0.5625*fskin[4]*dfVfac_l*rdv2-0.5625*fedge[4]*dfVfac_l*rdv2; 
-  phaseFacl[5] = 0.5*fskin[5]*fVfac_l*rdv2Sq-0.5*fedge[5]*fVfac_l*rdv2Sq-0.4330127018922193*fskin[1]*fVfac_l*rdv2Sq-0.4330127018922193*fedge[1]*fVfac_l*rdv2Sq+0.9375*fskin[5]*dfVfac_l*rdv2+0.9375*fedge[5]*dfVfac_l*rdv2-0.9742785792574932*fskin[1]*dfVfac_l*rdv2+0.9742785792574932*fedge[1]*dfVfac_l*rdv2; 
-  phaseFacl[6] = 0.5*fskin[6]*fVfac_l*rdv2Sq-0.5*fedge[6]*fVfac_l*rdv2Sq-0.4330127018922193*fskin[2]*fVfac_l*rdv2Sq-0.4330127018922193*fedge[2]*fVfac_l*rdv2Sq+0.9375*fskin[6]*dfVfac_l*rdv2+0.9375*fedge[6]*dfVfac_l*rdv2-0.9742785792574932*fskin[2]*dfVfac_l*rdv2+0.9742785792574932*fedge[2]*dfVfac_l*rdv2; 
-  phaseFacl[7] = 0.5*fskin[7]*fVfac_l*rdv2Sq-0.5*fedge[7]*fVfac_l*rdv2Sq-0.4330127018922193*fskin[4]*fVfac_l*rdv2Sq-0.4330127018922193*fedge[4]*fVfac_l*rdv2Sq+0.9375*fskin[7]*dfVfac_l*rdv2+0.9375*fedge[7]*dfVfac_l*rdv2-0.9742785792574932*fskin[4]*dfVfac_l*rdv2+0.9742785792574932*fedge[4]*dfVfac_l*rdv2; 
-  phaseFacl[8] = (-0.5412658773652742*fskin[10]*dfVfac_l*rdv2)-0.5412658773652742*fedge[10]*dfVfac_l*rdv2+0.5625*fskin[8]*dfVfac_l*rdv2-0.5625*fedge[8]*dfVfac_l*rdv2; 
-  phaseFacl[9] = (-0.5412658773652742*fskin[11]*dfVfac_l*rdv2)-0.5412658773652742*fedge[11]*dfVfac_l*rdv2+0.5625*fskin[9]*dfVfac_l*rdv2-0.5625*fedge[9]*dfVfac_l*rdv2; 
-  phaseFacl[10] = 0.5*fskin[10]*fVfac_l*rdv2Sq-0.5*fedge[10]*fVfac_l*rdv2Sq-0.4330127018922194*fskin[8]*fVfac_l*rdv2Sq-0.4330127018922194*fedge[8]*fVfac_l*rdv2Sq+0.9375*fskin[10]*dfVfac_l*rdv2+0.9375*fedge[10]*dfVfac_l*rdv2-0.9742785792574935*fskin[8]*dfVfac_l*rdv2+0.9742785792574935*fedge[8]*dfVfac_l*rdv2; 
-  phaseFacl[11] = 0.5*fskin[11]*fVfac_l*rdv2Sq-0.5*fedge[11]*fVfac_l*rdv2Sq-0.4330127018922194*fskin[9]*fVfac_l*rdv2Sq-0.4330127018922194*fedge[9]*fVfac_l*rdv2Sq+0.9375*fskin[11]*dfVfac_l*rdv2+0.9375*fedge[11]*dfVfac_l*rdv2-0.9742785792574935*fskin[9]*dfVfac_l*rdv2+0.9742785792574935*fedge[9]*dfVfac_l*rdv2; 
+  phaseFacl[0] = (-0.5412658773652741*fskin[3]*dfVfac_l*rdv2Sq)-0.5412658773652741*fedge[3]*dfVfac_l*rdv2Sq+0.5625*fskin[0]*dfVfac_l*rdv2Sq-0.5625*fedge[0]*dfVfac_l*rdv2Sq; 
+  phaseFacl[1] = (-0.5412658773652741*fskin[5]*dfVfac_l*rdv2Sq)-0.5412658773652741*fedge[5]*dfVfac_l*rdv2Sq+0.5625*fskin[1]*dfVfac_l*rdv2Sq-0.5625*fedge[1]*dfVfac_l*rdv2Sq; 
+  phaseFacl[2] = (-0.5412658773652741*fskin[6]*dfVfac_l*rdv2Sq)-0.5412658773652741*fedge[6]*dfVfac_l*rdv2Sq+0.5625*fskin[2]*dfVfac_l*rdv2Sq-0.5625*fedge[2]*dfVfac_l*rdv2Sq; 
+  phaseFacl[3] = 0.5*fskin[3]*fVfac_l*rdv2Sq-0.5*fedge[3]*fVfac_l*rdv2Sq-0.4330127018922193*fskin[0]*fVfac_l*rdv2Sq-0.4330127018922193*fedge[0]*fVfac_l*rdv2Sq+0.9375*fskin[3]*dfVfac_l*rdv2Sq+0.9375*fedge[3]*dfVfac_l*rdv2Sq-0.9742785792574932*fskin[0]*dfVfac_l*rdv2Sq+0.9742785792574932*fedge[0]*dfVfac_l*rdv2Sq; 
+  phaseFacl[4] = (-0.5412658773652741*fskin[7]*dfVfac_l*rdv2Sq)-0.5412658773652741*fedge[7]*dfVfac_l*rdv2Sq+0.5625*fskin[4]*dfVfac_l*rdv2Sq-0.5625*fedge[4]*dfVfac_l*rdv2Sq; 
+  phaseFacl[5] = 0.5*fskin[5]*fVfac_l*rdv2Sq-0.5*fedge[5]*fVfac_l*rdv2Sq-0.4330127018922193*fskin[1]*fVfac_l*rdv2Sq-0.4330127018922193*fedge[1]*fVfac_l*rdv2Sq+0.9375*fskin[5]*dfVfac_l*rdv2Sq+0.9375*fedge[5]*dfVfac_l*rdv2Sq-0.9742785792574932*fskin[1]*dfVfac_l*rdv2Sq+0.9742785792574932*fedge[1]*dfVfac_l*rdv2Sq; 
+  phaseFacl[6] = 0.5*fskin[6]*fVfac_l*rdv2Sq-0.5*fedge[6]*fVfac_l*rdv2Sq-0.4330127018922193*fskin[2]*fVfac_l*rdv2Sq-0.4330127018922193*fedge[2]*fVfac_l*rdv2Sq+0.9375*fskin[6]*dfVfac_l*rdv2Sq+0.9375*fedge[6]*dfVfac_l*rdv2Sq-0.9742785792574932*fskin[2]*dfVfac_l*rdv2Sq+0.9742785792574932*fedge[2]*dfVfac_l*rdv2Sq; 
+  phaseFacl[7] = 0.5*fskin[7]*fVfac_l*rdv2Sq-0.5*fedge[7]*fVfac_l*rdv2Sq-0.4330127018922193*fskin[4]*fVfac_l*rdv2Sq-0.4330127018922193*fedge[4]*fVfac_l*rdv2Sq+0.9375*fskin[7]*dfVfac_l*rdv2Sq+0.9375*fedge[7]*dfVfac_l*rdv2Sq-0.9742785792574932*fskin[4]*dfVfac_l*rdv2Sq+0.9742785792574932*fedge[4]*dfVfac_l*rdv2Sq; 
+  phaseFacl[8] = (-0.5412658773652742*fskin[10]*dfVfac_l*rdv2Sq)-0.5412658773652742*fedge[10]*dfVfac_l*rdv2Sq+0.5625*fskin[8]*dfVfac_l*rdv2Sq-0.5625*fedge[8]*dfVfac_l*rdv2Sq; 
+  phaseFacl[9] = (-0.5412658773652742*fskin[11]*dfVfac_l*rdv2Sq)-0.5412658773652742*fedge[11]*dfVfac_l*rdv2Sq+0.5625*fskin[9]*dfVfac_l*rdv2Sq-0.5625*fedge[9]*dfVfac_l*rdv2Sq; 
+  phaseFacl[10] = 0.5*fskin[10]*fVfac_l*rdv2Sq-0.5*fedge[10]*fVfac_l*rdv2Sq-0.4330127018922194*fskin[8]*fVfac_l*rdv2Sq-0.4330127018922194*fedge[8]*fVfac_l*rdv2Sq+0.9375*fskin[10]*dfVfac_l*rdv2Sq+0.9375*fedge[10]*dfVfac_l*rdv2Sq-0.9742785792574935*fskin[8]*dfVfac_l*rdv2Sq+0.9742785792574935*fedge[8]*dfVfac_l*rdv2Sq; 
+  phaseFacl[11] = 0.5*fskin[11]*fVfac_l*rdv2Sq-0.5*fedge[11]*fVfac_l*rdv2Sq-0.4330127018922194*fskin[9]*fVfac_l*rdv2Sq-0.4330127018922194*fedge[9]*fVfac_l*rdv2Sq+0.9375*fskin[11]*dfVfac_l*rdv2Sq+0.9375*fedge[11]*dfVfac_l*rdv2Sq-0.9742785792574935*fskin[9]*dfVfac_l*rdv2Sq+0.9742785792574935*fedge[9]*dfVfac_l*rdv2Sq; 
 
   double phaseFacr[12] = {0.0}; 
 

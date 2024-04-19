@@ -186,33 +186,33 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_notmapped_surfmu_1x2v_ser_p1(const double
 
   double phaseFacl[12] = {0.0}; 
 
-  phaseFacl[0] = (-0.5412658773652741*fl[3]*dfVfac_l*rdv2)-0.5412658773652741*fc[3]*dfVfac_l*rdv2-0.5625*fl[0]*dfVfac_l*rdv2+0.5625*fc[0]*dfVfac_l*rdv2; 
-  phaseFacl[1] = (-0.5412658773652741*fl[5]*dfVfac_l*rdv2)-0.5412658773652741*fc[5]*dfVfac_l*rdv2-0.5625*fl[1]*dfVfac_l*rdv2+0.5625*fc[1]*dfVfac_l*rdv2; 
-  phaseFacl[2] = (-0.5412658773652741*fl[6]*dfVfac_l*rdv2)-0.5412658773652741*fc[6]*dfVfac_l*rdv2-0.5625*fl[2]*dfVfac_l*rdv2+0.5625*fc[2]*dfVfac_l*rdv2; 
-  phaseFacl[3] = (-0.5*fl[3]*fVfac_l*rdv2Sq)+0.5*fc[3]*fVfac_l*rdv2Sq-0.4330127018922193*fl[0]*fVfac_l*rdv2Sq-0.4330127018922193*fc[0]*fVfac_l*rdv2Sq+0.9375*fl[3]*dfVfac_l*rdv2+0.9375*fc[3]*dfVfac_l*rdv2+0.9742785792574932*fl[0]*dfVfac_l*rdv2-0.9742785792574932*fc[0]*dfVfac_l*rdv2; 
-  phaseFacl[4] = (-0.5412658773652741*fl[7]*dfVfac_l*rdv2)-0.5412658773652741*fc[7]*dfVfac_l*rdv2-0.5625*fl[4]*dfVfac_l*rdv2+0.5625*fc[4]*dfVfac_l*rdv2; 
-  phaseFacl[5] = (-0.5*fl[5]*fVfac_l*rdv2Sq)+0.5*fc[5]*fVfac_l*rdv2Sq-0.4330127018922193*fl[1]*fVfac_l*rdv2Sq-0.4330127018922193*fc[1]*fVfac_l*rdv2Sq+0.9375*fl[5]*dfVfac_l*rdv2+0.9375*fc[5]*dfVfac_l*rdv2+0.9742785792574932*fl[1]*dfVfac_l*rdv2-0.9742785792574932*fc[1]*dfVfac_l*rdv2; 
-  phaseFacl[6] = (-0.5*fl[6]*fVfac_l*rdv2Sq)+0.5*fc[6]*fVfac_l*rdv2Sq-0.4330127018922193*fl[2]*fVfac_l*rdv2Sq-0.4330127018922193*fc[2]*fVfac_l*rdv2Sq+0.9375*fl[6]*dfVfac_l*rdv2+0.9375*fc[6]*dfVfac_l*rdv2+0.9742785792574932*fl[2]*dfVfac_l*rdv2-0.9742785792574932*fc[2]*dfVfac_l*rdv2; 
-  phaseFacl[7] = (-0.5*fl[7]*fVfac_l*rdv2Sq)+0.5*fc[7]*fVfac_l*rdv2Sq-0.4330127018922193*fl[4]*fVfac_l*rdv2Sq-0.4330127018922193*fc[4]*fVfac_l*rdv2Sq+0.9375*fl[7]*dfVfac_l*rdv2+0.9375*fc[7]*dfVfac_l*rdv2+0.9742785792574932*fl[4]*dfVfac_l*rdv2-0.9742785792574932*fc[4]*dfVfac_l*rdv2; 
-  phaseFacl[8] = (-0.5412658773652742*fl[10]*dfVfac_l*rdv2)-0.5412658773652742*fc[10]*dfVfac_l*rdv2-0.5625*fl[8]*dfVfac_l*rdv2+0.5625*fc[8]*dfVfac_l*rdv2; 
-  phaseFacl[9] = (-0.5412658773652742*fl[11]*dfVfac_l*rdv2)-0.5412658773652742*fc[11]*dfVfac_l*rdv2-0.5625*fl[9]*dfVfac_l*rdv2+0.5625*fc[9]*dfVfac_l*rdv2; 
-  phaseFacl[10] = (-0.5*fl[10]*fVfac_l*rdv2Sq)+0.5*fc[10]*fVfac_l*rdv2Sq-0.4330127018922194*fl[8]*fVfac_l*rdv2Sq-0.4330127018922194*fc[8]*fVfac_l*rdv2Sq+0.9375*fl[10]*dfVfac_l*rdv2+0.9375*fc[10]*dfVfac_l*rdv2+0.9742785792574935*fl[8]*dfVfac_l*rdv2-0.9742785792574935*fc[8]*dfVfac_l*rdv2; 
-  phaseFacl[11] = (-0.5*fl[11]*fVfac_l*rdv2Sq)+0.5*fc[11]*fVfac_l*rdv2Sq-0.4330127018922194*fl[9]*fVfac_l*rdv2Sq-0.4330127018922194*fc[9]*fVfac_l*rdv2Sq+0.9375*fl[11]*dfVfac_l*rdv2+0.9375*fc[11]*dfVfac_l*rdv2+0.9742785792574935*fl[9]*dfVfac_l*rdv2-0.9742785792574935*fc[9]*dfVfac_l*rdv2; 
+  phaseFacl[0] = (-0.5412658773652741*fl[3]*dfVfac_l*rdv2Sq)-0.5412658773652741*fc[3]*dfVfac_l*rdv2Sq-0.5625*fl[0]*dfVfac_l*rdv2Sq+0.5625*fc[0]*dfVfac_l*rdv2Sq; 
+  phaseFacl[1] = (-0.5412658773652741*fl[5]*dfVfac_l*rdv2Sq)-0.5412658773652741*fc[5]*dfVfac_l*rdv2Sq-0.5625*fl[1]*dfVfac_l*rdv2Sq+0.5625*fc[1]*dfVfac_l*rdv2Sq; 
+  phaseFacl[2] = (-0.5412658773652741*fl[6]*dfVfac_l*rdv2Sq)-0.5412658773652741*fc[6]*dfVfac_l*rdv2Sq-0.5625*fl[2]*dfVfac_l*rdv2Sq+0.5625*fc[2]*dfVfac_l*rdv2Sq; 
+  phaseFacl[3] = (-0.5*fl[3]*fVfac_l*rdv2Sq)+0.5*fc[3]*fVfac_l*rdv2Sq-0.4330127018922193*fl[0]*fVfac_l*rdv2Sq-0.4330127018922193*fc[0]*fVfac_l*rdv2Sq+0.9375*fl[3]*dfVfac_l*rdv2Sq+0.9375*fc[3]*dfVfac_l*rdv2Sq+0.9742785792574932*fl[0]*dfVfac_l*rdv2Sq-0.9742785792574932*fc[0]*dfVfac_l*rdv2Sq; 
+  phaseFacl[4] = (-0.5412658773652741*fl[7]*dfVfac_l*rdv2Sq)-0.5412658773652741*fc[7]*dfVfac_l*rdv2Sq-0.5625*fl[4]*dfVfac_l*rdv2Sq+0.5625*fc[4]*dfVfac_l*rdv2Sq; 
+  phaseFacl[5] = (-0.5*fl[5]*fVfac_l*rdv2Sq)+0.5*fc[5]*fVfac_l*rdv2Sq-0.4330127018922193*fl[1]*fVfac_l*rdv2Sq-0.4330127018922193*fc[1]*fVfac_l*rdv2Sq+0.9375*fl[5]*dfVfac_l*rdv2Sq+0.9375*fc[5]*dfVfac_l*rdv2Sq+0.9742785792574932*fl[1]*dfVfac_l*rdv2Sq-0.9742785792574932*fc[1]*dfVfac_l*rdv2Sq; 
+  phaseFacl[6] = (-0.5*fl[6]*fVfac_l*rdv2Sq)+0.5*fc[6]*fVfac_l*rdv2Sq-0.4330127018922193*fl[2]*fVfac_l*rdv2Sq-0.4330127018922193*fc[2]*fVfac_l*rdv2Sq+0.9375*fl[6]*dfVfac_l*rdv2Sq+0.9375*fc[6]*dfVfac_l*rdv2Sq+0.9742785792574932*fl[2]*dfVfac_l*rdv2Sq-0.9742785792574932*fc[2]*dfVfac_l*rdv2Sq; 
+  phaseFacl[7] = (-0.5*fl[7]*fVfac_l*rdv2Sq)+0.5*fc[7]*fVfac_l*rdv2Sq-0.4330127018922193*fl[4]*fVfac_l*rdv2Sq-0.4330127018922193*fc[4]*fVfac_l*rdv2Sq+0.9375*fl[7]*dfVfac_l*rdv2Sq+0.9375*fc[7]*dfVfac_l*rdv2Sq+0.9742785792574932*fl[4]*dfVfac_l*rdv2Sq-0.9742785792574932*fc[4]*dfVfac_l*rdv2Sq; 
+  phaseFacl[8] = (-0.5412658773652742*fl[10]*dfVfac_l*rdv2Sq)-0.5412658773652742*fc[10]*dfVfac_l*rdv2Sq-0.5625*fl[8]*dfVfac_l*rdv2Sq+0.5625*fc[8]*dfVfac_l*rdv2Sq; 
+  phaseFacl[9] = (-0.5412658773652742*fl[11]*dfVfac_l*rdv2Sq)-0.5412658773652742*fc[11]*dfVfac_l*rdv2Sq-0.5625*fl[9]*dfVfac_l*rdv2Sq+0.5625*fc[9]*dfVfac_l*rdv2Sq; 
+  phaseFacl[10] = (-0.5*fl[10]*fVfac_l*rdv2Sq)+0.5*fc[10]*fVfac_l*rdv2Sq-0.4330127018922194*fl[8]*fVfac_l*rdv2Sq-0.4330127018922194*fc[8]*fVfac_l*rdv2Sq+0.9375*fl[10]*dfVfac_l*rdv2Sq+0.9375*fc[10]*dfVfac_l*rdv2Sq+0.9742785792574935*fl[8]*dfVfac_l*rdv2Sq-0.9742785792574935*fc[8]*dfVfac_l*rdv2Sq; 
+  phaseFacl[11] = (-0.5*fl[11]*fVfac_l*rdv2Sq)+0.5*fc[11]*fVfac_l*rdv2Sq-0.4330127018922194*fl[9]*fVfac_l*rdv2Sq-0.4330127018922194*fc[9]*fVfac_l*rdv2Sq+0.9375*fl[11]*dfVfac_l*rdv2Sq+0.9375*fc[11]*dfVfac_l*rdv2Sq+0.9742785792574935*fl[9]*dfVfac_l*rdv2Sq-0.9742785792574935*fc[9]*dfVfac_l*rdv2Sq; 
 
   double phaseFacr[12] = {0.0}; 
 
-  phaseFacr[0] = (-0.5412658773652741*fr[3]*dfVfac_r*rdv2)-0.5412658773652741*fc[3]*dfVfac_r*rdv2+0.5625*fr[0]*dfVfac_r*rdv2-0.5625*fc[0]*dfVfac_r*rdv2; 
-  phaseFacr[1] = (-0.5412658773652741*fr[5]*dfVfac_r*rdv2)-0.5412658773652741*fc[5]*dfVfac_r*rdv2+0.5625*fr[1]*dfVfac_r*rdv2-0.5625*fc[1]*dfVfac_r*rdv2; 
-  phaseFacr[2] = (-0.5412658773652741*fr[6]*dfVfac_r*rdv2)-0.5412658773652741*fc[6]*dfVfac_r*rdv2+0.5625*fr[2]*dfVfac_r*rdv2-0.5625*fc[2]*dfVfac_r*rdv2; 
-  phaseFacr[3] = 0.5*fr[3]*fVfac_r*rdv2Sq-0.5*fc[3]*fVfac_r*rdv2Sq-0.4330127018922193*fr[0]*fVfac_r*rdv2Sq-0.4330127018922193*fc[0]*fVfac_r*rdv2Sq-0.9375*fr[3]*dfVfac_r*rdv2-0.9375*fc[3]*dfVfac_r*rdv2+0.9742785792574932*fr[0]*dfVfac_r*rdv2-0.9742785792574932*fc[0]*dfVfac_r*rdv2; 
-  phaseFacr[4] = (-0.5412658773652741*fr[7]*dfVfac_r*rdv2)-0.5412658773652741*fc[7]*dfVfac_r*rdv2+0.5625*fr[4]*dfVfac_r*rdv2-0.5625*fc[4]*dfVfac_r*rdv2; 
-  phaseFacr[5] = 0.5*fr[5]*fVfac_r*rdv2Sq-0.5*fc[5]*fVfac_r*rdv2Sq-0.4330127018922193*fr[1]*fVfac_r*rdv2Sq-0.4330127018922193*fc[1]*fVfac_r*rdv2Sq-0.9375*fr[5]*dfVfac_r*rdv2-0.9375*fc[5]*dfVfac_r*rdv2+0.9742785792574932*fr[1]*dfVfac_r*rdv2-0.9742785792574932*fc[1]*dfVfac_r*rdv2; 
-  phaseFacr[6] = 0.5*fr[6]*fVfac_r*rdv2Sq-0.5*fc[6]*fVfac_r*rdv2Sq-0.4330127018922193*fr[2]*fVfac_r*rdv2Sq-0.4330127018922193*fc[2]*fVfac_r*rdv2Sq-0.9375*fr[6]*dfVfac_r*rdv2-0.9375*fc[6]*dfVfac_r*rdv2+0.9742785792574932*fr[2]*dfVfac_r*rdv2-0.9742785792574932*fc[2]*dfVfac_r*rdv2; 
-  phaseFacr[7] = 0.5*fr[7]*fVfac_r*rdv2Sq-0.5*fc[7]*fVfac_r*rdv2Sq-0.4330127018922193*fr[4]*fVfac_r*rdv2Sq-0.4330127018922193*fc[4]*fVfac_r*rdv2Sq-0.9375*fr[7]*dfVfac_r*rdv2-0.9375*fc[7]*dfVfac_r*rdv2+0.9742785792574932*fr[4]*dfVfac_r*rdv2-0.9742785792574932*fc[4]*dfVfac_r*rdv2; 
-  phaseFacr[8] = (-0.5412658773652742*fr[10]*dfVfac_r*rdv2)-0.5412658773652742*fc[10]*dfVfac_r*rdv2+0.5625*fr[8]*dfVfac_r*rdv2-0.5625*fc[8]*dfVfac_r*rdv2; 
-  phaseFacr[9] = (-0.5412658773652742*fr[11]*dfVfac_r*rdv2)-0.5412658773652742*fc[11]*dfVfac_r*rdv2+0.5625*fr[9]*dfVfac_r*rdv2-0.5625*fc[9]*dfVfac_r*rdv2; 
-  phaseFacr[10] = 0.5*fr[10]*fVfac_r*rdv2Sq-0.5*fc[10]*fVfac_r*rdv2Sq-0.4330127018922194*fr[8]*fVfac_r*rdv2Sq-0.4330127018922194*fc[8]*fVfac_r*rdv2Sq-0.9375*fr[10]*dfVfac_r*rdv2-0.9375*fc[10]*dfVfac_r*rdv2+0.9742785792574935*fr[8]*dfVfac_r*rdv2-0.9742785792574935*fc[8]*dfVfac_r*rdv2; 
-  phaseFacr[11] = 0.5*fr[11]*fVfac_r*rdv2Sq-0.5*fc[11]*fVfac_r*rdv2Sq-0.4330127018922194*fr[9]*fVfac_r*rdv2Sq-0.4330127018922194*fc[9]*fVfac_r*rdv2Sq-0.9375*fr[11]*dfVfac_r*rdv2-0.9375*fc[11]*dfVfac_r*rdv2+0.9742785792574935*fr[9]*dfVfac_r*rdv2-0.9742785792574935*fc[9]*dfVfac_r*rdv2; 
+  phaseFacr[0] = (-0.5412658773652741*fr[3]*dfVfac_r*rdv2Sq)-0.5412658773652741*fc[3]*dfVfac_r*rdv2Sq+0.5625*fr[0]*dfVfac_r*rdv2Sq-0.5625*fc[0]*dfVfac_r*rdv2Sq; 
+  phaseFacr[1] = (-0.5412658773652741*fr[5]*dfVfac_r*rdv2Sq)-0.5412658773652741*fc[5]*dfVfac_r*rdv2Sq+0.5625*fr[1]*dfVfac_r*rdv2Sq-0.5625*fc[1]*dfVfac_r*rdv2Sq; 
+  phaseFacr[2] = (-0.5412658773652741*fr[6]*dfVfac_r*rdv2Sq)-0.5412658773652741*fc[6]*dfVfac_r*rdv2Sq+0.5625*fr[2]*dfVfac_r*rdv2Sq-0.5625*fc[2]*dfVfac_r*rdv2Sq; 
+  phaseFacr[3] = 0.5*fr[3]*fVfac_r*rdv2Sq-0.5*fc[3]*fVfac_r*rdv2Sq-0.4330127018922193*fr[0]*fVfac_r*rdv2Sq-0.4330127018922193*fc[0]*fVfac_r*rdv2Sq-0.9375*fr[3]*dfVfac_r*rdv2Sq-0.9375*fc[3]*dfVfac_r*rdv2Sq+0.9742785792574932*fr[0]*dfVfac_r*rdv2Sq-0.9742785792574932*fc[0]*dfVfac_r*rdv2Sq; 
+  phaseFacr[4] = (-0.5412658773652741*fr[7]*dfVfac_r*rdv2Sq)-0.5412658773652741*fc[7]*dfVfac_r*rdv2Sq+0.5625*fr[4]*dfVfac_r*rdv2Sq-0.5625*fc[4]*dfVfac_r*rdv2Sq; 
+  phaseFacr[5] = 0.5*fr[5]*fVfac_r*rdv2Sq-0.5*fc[5]*fVfac_r*rdv2Sq-0.4330127018922193*fr[1]*fVfac_r*rdv2Sq-0.4330127018922193*fc[1]*fVfac_r*rdv2Sq-0.9375*fr[5]*dfVfac_r*rdv2Sq-0.9375*fc[5]*dfVfac_r*rdv2Sq+0.9742785792574932*fr[1]*dfVfac_r*rdv2Sq-0.9742785792574932*fc[1]*dfVfac_r*rdv2Sq; 
+  phaseFacr[6] = 0.5*fr[6]*fVfac_r*rdv2Sq-0.5*fc[6]*fVfac_r*rdv2Sq-0.4330127018922193*fr[2]*fVfac_r*rdv2Sq-0.4330127018922193*fc[2]*fVfac_r*rdv2Sq-0.9375*fr[6]*dfVfac_r*rdv2Sq-0.9375*fc[6]*dfVfac_r*rdv2Sq+0.9742785792574932*fr[2]*dfVfac_r*rdv2Sq-0.9742785792574932*fc[2]*dfVfac_r*rdv2Sq; 
+  phaseFacr[7] = 0.5*fr[7]*fVfac_r*rdv2Sq-0.5*fc[7]*fVfac_r*rdv2Sq-0.4330127018922193*fr[4]*fVfac_r*rdv2Sq-0.4330127018922193*fc[4]*fVfac_r*rdv2Sq-0.9375*fr[7]*dfVfac_r*rdv2Sq-0.9375*fc[7]*dfVfac_r*rdv2Sq+0.9742785792574932*fr[4]*dfVfac_r*rdv2Sq-0.9742785792574932*fc[4]*dfVfac_r*rdv2Sq; 
+  phaseFacr[8] = (-0.5412658773652742*fr[10]*dfVfac_r*rdv2Sq)-0.5412658773652742*fc[10]*dfVfac_r*rdv2Sq+0.5625*fr[8]*dfVfac_r*rdv2Sq-0.5625*fc[8]*dfVfac_r*rdv2Sq; 
+  phaseFacr[9] = (-0.5412658773652742*fr[11]*dfVfac_r*rdv2Sq)-0.5412658773652742*fc[11]*dfVfac_r*rdv2Sq+0.5625*fr[9]*dfVfac_r*rdv2Sq-0.5625*fc[9]*dfVfac_r*rdv2Sq; 
+  phaseFacr[10] = 0.5*fr[10]*fVfac_r*rdv2Sq-0.5*fc[10]*fVfac_r*rdv2Sq-0.4330127018922194*fr[8]*fVfac_r*rdv2Sq-0.4330127018922194*fc[8]*fVfac_r*rdv2Sq-0.9375*fr[10]*dfVfac_r*rdv2Sq-0.9375*fc[10]*dfVfac_r*rdv2Sq+0.9742785792574935*fr[8]*dfVfac_r*rdv2Sq-0.9742785792574935*fc[8]*dfVfac_r*rdv2Sq; 
+  phaseFacr[11] = 0.5*fr[11]*fVfac_r*rdv2Sq-0.5*fc[11]*fVfac_r*rdv2Sq-0.4330127018922194*fr[9]*fVfac_r*rdv2Sq-0.4330127018922194*fc[9]*fVfac_r*rdv2Sq-0.9375*fr[11]*dfVfac_r*rdv2Sq-0.9375*fc[11]*dfVfac_r*rdv2Sq+0.9742785792574935*fr[9]*dfVfac_r*rdv2Sq-0.9742785792574935*fc[9]*dfVfac_r*rdv2Sq; 
 
   double incrl[12] = {0.0}; 
   incrl[0] = 0.7071067811865475*confFac[1]*phaseFacl[1]+0.7071067811865475*confFac[0]*phaseFacl[0]; 
