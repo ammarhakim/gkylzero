@@ -9,8 +9,6 @@ GKYL_CU_DH double gyrokinetic_no_by_boundary_surfx_2x2v_ser_p1(const double *w, 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
-  // vmap: velocity space mapping (in the skin cell).
-  // vmapSq: velocity space mapping squared (in the skin cell).
   // vmap_prime_edge,vmap_prime_skin: velocity space mapping derivative in edge and skin cells.
   // alpha_surf_edge: Surface expansion of phase space flux on the lower edges of the edge cell.
   // alpha_surf_skin: Surface expansion of phase space flux on the lower edges of the skin cell.

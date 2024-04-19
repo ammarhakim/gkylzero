@@ -9,8 +9,6 @@ GKYL_CU_DH double gyrokinetic_no_by_surfz_3x2v_ser_p1(const double *w, const dou
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
-  // vmap: velocity space mapping in center cell.
-  // vmapSq: velocity space mapping squared in center cell.
   // vmap_prime_l,vmap_prime_c,vmap_prime_r: velocity space mapping derivative in left, center and right cells.
   // alpha_surf_l: Surface expansion of phase space flux on the left.
   // alpha_surf_r: Surface expansion of phase space flux on the right.
