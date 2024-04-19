@@ -34,7 +34,7 @@ gkyl_lbo_gyrokinetic_diff_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
 __global__ static void
 dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_diff *lbo, enum gkyl_basis_type b_type,
-  int cv_index, int cdim, int vdim, int poly_order)
+  int cv_index, int cdim, int vdim, int poly_order, bool is_mapped)
 {
   lbo->auxfields.nuSum = 0; 
   lbo->auxfields.nuPrimMomsSum = 0; 
@@ -50,10 +50,18 @@ dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs(struct dg_lbo_gyrokinetic_diff *lbo, enu
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
-      surf_vpar_kernels = ser_surf_vpar_kernels;
-      surf_mu_kernels = ser_surf_mu_kernels;
-      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
-      boundary_surf_mu_kernels = ser_boundary_surf_mu_kernels;
+      if (is_mapped) {
+        surf_vpar_kernels = ser_surf_vpar_mapped_kernels;
+        surf_mu_kernels = ser_surf_mu_mapped_kernels;
+        boundary_surf_vpar_kernels = ser_boundary_surf_vpar_mapped_kernels;
+        boundary_surf_mu_kernels = ser_boundary_surf_mu_mapped_kernels;
+      }
+      else {
+        surf_vpar_kernels = ser_surf_vpar_notmapped_kernels;
+        surf_mu_kernels = ser_surf_mu_notmapped_kernels;
+        boundary_surf_vpar_kernels = ser_boundary_surf_vpar_notmapped_kernels;
+        boundary_surf_mu_kernels = ser_boundary_surf_mu_notmapped_kernels;
+      }
       break;
 
     default:
@@ -77,7 +85,7 @@ struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis,
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const struct gkyl_range* phase_range,
   const struct gkyl_rect_grid *pgrid, double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap,
-  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel)
+  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel, bool is_mapped)
 {
   struct dg_lbo_gyrokinetic_diff *lbo =
     (struct dg_lbo_gyrokinetic_diff*) gkyl_malloc(sizeof(*lbo));
@@ -120,7 +128,7 @@ gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const s
     sizeof(struct dg_lbo_gyrokinetic_diff), GKYL_CU_MEMCPY_H2D);
 
   dg_lbo_gyrokinetic_diff_set_cu_dev_ptrs<<<1,1>>>(lbo_cu,
-    cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order);
+    cbasis->b_type, cv_index[cdim].vdim[vdim], cdim, vdim, poly_order, is_mapped);
 
   lbo->eqn.on_dev = &lbo_cu->eqn;  
 

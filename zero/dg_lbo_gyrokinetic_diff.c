@@ -46,12 +46,12 @@ struct gkyl_dg_eqn*
 gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const struct gkyl_range* phase_range,
   const struct gkyl_rect_grid *pgrid, double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, 
-  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel, bool use_gpu)
+  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel, bool is_mapped, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
     return gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(cbasis, pbasis, conf_range, vel_range, phase_range,
-      pgrid, mass, gk_geom, vmap, vmap_prime, jacobvel, bounds_vel);
+      pgrid, mass, gk_geom, vmap, vmap_prime, jacobvel, bounds_vel, is_mapped);
 #endif
   struct dg_lbo_gyrokinetic_diff* lbo = gkyl_malloc(sizeof(struct dg_lbo_gyrokinetic_diff));
 
@@ -76,10 +76,18 @@ gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct g
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
-      surf_vpar_kernels = ser_surf_vpar_kernels;
-      surf_mu_kernels = ser_surf_mu_kernels;
-      boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
-      boundary_surf_mu_kernels = ser_boundary_surf_mu_kernels;
+      if (is_mapped) {
+        surf_vpar_kernels = ser_surf_vpar_mapped_kernels;
+        surf_mu_kernels = ser_surf_mu_mapped_kernels;
+        boundary_surf_vpar_kernels = ser_boundary_surf_vpar_mapped_kernels;
+        boundary_surf_mu_kernels = ser_boundary_surf_mu_mapped_kernels;
+      }
+      else {
+        surf_vpar_kernels = ser_surf_vpar_notmapped_kernels;
+        surf_mu_kernels = ser_surf_mu_notmapped_kernels;
+        boundary_surf_vpar_kernels = ser_boundary_surf_vpar_notmapped_kernels;
+        boundary_surf_mu_kernels = ser_boundary_surf_mu_notmapped_kernels;
+      }
       break;
 
     default:

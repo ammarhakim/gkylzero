@@ -198,50 +198,90 @@ static const gkyl_dg_lbo_gyrokinetic_diff_vol_kern_list ser_vol_kernels[] = {
 
 // Surface kernel list: vpar-direction
 GKYL_CU_D
-static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_vpar_kernels[] = {
+static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_vpar_mapped_kernels[] = {
   // 1x kernels
-  { NULL, lbo_gyrokinetic_diff_surfvpar_1x1v_ser_p1, NULL }, // 0
-  { NULL, lbo_gyrokinetic_diff_surfvpar_1x2v_ser_p1, NULL }, // 1
+  { NULL, lbo_gyrokinetic_diff_mapped_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, lbo_gyrokinetic_diff_mapped_surfvpar_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, lbo_gyrokinetic_diff_surfvpar_2x2v_ser_p1, NULL }, // 2
+  { NULL, lbo_gyrokinetic_diff_mapped_surfvpar_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
-  { NULL, lbo_gyrokinetic_diff_surfvpar_3x2v_ser_p1, NULL }, // 3
+  { NULL, lbo_gyrokinetic_diff_mapped_surfvpar_3x2v_ser_p1, NULL }, // 3
+};
+GKYL_CU_D
+static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_vpar_notmapped_kernels[] = {
+  // 1x kernels
+  { NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_1x2v_ser_p1, NULL }, // 1
+  // 2x kernels
+  { NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_2x2v_ser_p1, NULL }, // 2
+  // 3x kernels
+  { NULL, lbo_gyrokinetic_diff_notmapped_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
 
 // Surface kernel list: mu-direction
 GKYL_CU_D
-static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_mu_kernels[] = {
+static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_mu_mapped_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
-  { NULL, lbo_gyrokinetic_diff_surfmu_1x2v_ser_p1, NULL }, // 1
+  { NULL, lbo_gyrokinetic_diff_mapped_surfmu_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, lbo_gyrokinetic_diff_surfmu_2x2v_ser_p1, NULL }, // 2
+  { NULL, lbo_gyrokinetic_diff_mapped_surfmu_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
-  { NULL, lbo_gyrokinetic_diff_surfmu_3x2v_ser_p1, NULL }, // 3
+  { NULL, lbo_gyrokinetic_diff_mapped_surfmu_3x2v_ser_p1, NULL }, // 3
+};
+GKYL_CU_D
+static const gkyl_dg_lbo_gyrokinetic_diff_surf_kern_list ser_surf_mu_notmapped_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, lbo_gyrokinetic_diff_notmapped_surfmu_1x2v_ser_p1, NULL }, // 1
+  // 2x kernels
+  { NULL, lbo_gyrokinetic_diff_notmapped_surfmu_2x2v_ser_p1, NULL }, // 2
+  // 3x kernels
+  { NULL, lbo_gyrokinetic_diff_notmapped_surfmu_3x2v_ser_p1, NULL }, // 3
 };
 
 // Boundary surface kernel (zero-flux BCs) list: vpar-direction
 GKYL_CU_D
-static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ser_boundary_surf_vpar_kernels[] = {
+static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ser_boundary_surf_vpar_mapped_kernels[] = {
   // 1x kernels
-  { NULL, lbo_gyrokinetic_diff_boundary_surfvpar_1x1v_ser_p1, NULL }, // 0
-  { NULL, lbo_gyrokinetic_diff_boundary_surfvpar_1x2v_ser_p1, NULL }, // 1
+  { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, lbo_gyrokinetic_diff_boundary_surfvpar_2x2v_ser_p1, NULL }, // 2
+  { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
-  { NULL, lbo_gyrokinetic_diff_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
+  { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
+};
+GKYL_CU_D
+static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ser_boundary_surf_vpar_notmapped_kernels[] = {
+  // 1x kernels
+  { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_1x2v_ser_p1, NULL }, // 1
+  // 2x kernels
+  { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_2x2v_ser_p1, NULL }, // 2
+  // 3x kernels
+  { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
 
 // Constant nu boundary surface kernel (zero-flux BCs) list: mu-direction
 GKYL_CU_D
-static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ser_boundary_surf_mu_kernels[] = {
+static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ser_boundary_surf_mu_mapped_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL }, // 0
-  { NULL, lbo_gyrokinetic_diff_boundary_surfmu_1x2v_ser_p1, NULL }, // 1
+  { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfmu_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, lbo_gyrokinetic_diff_boundary_surfmu_2x2v_ser_p1, NULL }, // 2
+  { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfmu_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
-  { NULL, lbo_gyrokinetic_diff_boundary_surfmu_3x2v_ser_p1, NULL }, // 3
+  { NULL, lbo_gyrokinetic_diff_mapped_boundary_surfmu_3x2v_ser_p1, NULL }, // 3
+};
+GKYL_CU_D
+static const gkyl_dg_lbo_gyrokinetic_diff_boundary_surf_kern_list ser_boundary_surf_mu_notmapped_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL }, // 0
+  { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfmu_1x2v_ser_p1, NULL }, // 1
+  // 2x kernels
+  { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfmu_2x2v_ser_p1, NULL }, // 2
+  // 3x kernels
+  { NULL, lbo_gyrokinetic_diff_notmapped_boundary_surfmu_3x2v_ser_p1, NULL }, // 3
 };
 
 void gkyl_lbo_gyrokinetic_diff_free(const struct gkyl_ref_count* ref);
@@ -347,7 +387,7 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_diff_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const struct gkyl_range* phase_range,
   const struct gkyl_rect_grid *pgrid, double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, 
-  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel);
+  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel, bool is_mapped);
 
 /**
  * CUDA device function to set auxiliary fields needed in updating the diffusion flux term.

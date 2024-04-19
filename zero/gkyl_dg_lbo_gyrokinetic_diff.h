@@ -29,12 +29,13 @@ struct gkyl_dg_lbo_gyrokinetic_diff_auxfields {
  * @param vmap_prime Derivative of the velocity space mapping.
  * @param jacobvel Velocity space mapping Jacobian.
  * @param bounds_vel Velocity at the boundaries.
+ * @param is_mapped Indicate whether a velocity map is used.
  * @return Pointer to LBO equation object
  */
 struct gkyl_dg_eqn* gkyl_dg_lbo_gyrokinetic_diff_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
   const struct gkyl_range* conf_range, const struct gkyl_range* vel_range, const struct gkyl_range* phase_range,
   const struct gkyl_rect_grid *pgrid, double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap, 
-  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel, bool use_gpu);
+  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel, bool is_mapped, bool use_gpu);
 
 /**
  * Set auxiliary fields needed in updating the diffusion flux term.

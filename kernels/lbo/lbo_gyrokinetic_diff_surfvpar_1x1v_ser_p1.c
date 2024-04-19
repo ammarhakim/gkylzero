@@ -1,5 +1,5 @@
 #include <gkyl_lbo_gyrokinetic_kernels.h> 
-GKYL_CU_DH double lbo_gyrokinetic_diff_surfvpar_1x1v_ser_p1(const double *dxv, const double *vmapl, const double *vmapc, const double *vmapr, const double *vmap_prime, const double *jacobvell, const double *jacobvelc, const double *jacobvelr, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double lbo_gyrokinetic_diff_mapped_surfvpar_1x1v_ser_p1(const double *dxv, const double *vmapl, const double *vmapc, const double *vmapr, const double *vmap_prime, const double *jacobvell, const double *jacobvelc, const double *jacobvelr, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
 { 
   // dxv: cell spacing. 
   // vmapl,vmapc,vmapr: velocity space mapping.
@@ -11,6 +11,8 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_surfvpar_1x1v_ser_p1(const double *dxv, c
   // nuPrimMomsSum: sum of bulk velocities and thermal speeds squared times their respective collisionalities. 
   // fl/fc/fr: distribution function in cells 
   // out: incremented distribution function in cell 
+
+  double vmap_primeSq = pow(vmap_prime[0],2);
 
   double fl_over_jacv[6], fc_over_jacv[6], fr_over_jacv[6];
   fl_over_jacv[0] = fl[0]/jacobvell[0]; 
@@ -42,8 +44,6 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_surfvpar_1x1v_ser_p1(const double *dxv, c
 
   double rdv2 = 2.0/dxv[1]; 
   double rdv2Sq = rdv2*rdv2; 
-
-  double vmap_primeSq = pow(vmap_prime[0],2);
 
   double dfVfac_l = 1.0; 
   double dfVfac_r = 1.0; 
@@ -83,6 +83,74 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_surfvpar_1x1v_ser_p1(const double *dxv, c
   phaseFacr[3] = (dvcR5*((-19.36491673103708*fr_over_jacv[5]*fVfac_r*rdv2Sq)+15.0*fr_over_jacv[3]*fVfac_r*rdv2Sq-8.660254037844386*fr_over_jacv[1]*fVfac_r*rdv2Sq))/(10.0*dvrR5+50.0*dvc*dvrR4+100.0*dvcR2*dvrR3+100.0*dvcR3*dvrR2+50.0*dvcR4*dvr+10.0*dvcR5)+(dvcR3*dvrR2*((-54.22176684690384*fr_over_jacv[5]*fVfac_r*rdv2Sq)+105.0*fr_over_jacv[3]*fVfac_r*rdv2Sq-86.60254037844386*fr_over_jacv[1]*fVfac_r*rdv2Sq))/(10.0*dvrR5+50.0*dvc*dvrR4+100.0*dvcR2*dvrR3+100.0*dvcR3*dvrR2+50.0*dvcR4*dvr+10.0*dvcR5)+(dvcR4*dvr*((-61.96773353931867*fr_over_jacv[5]*fVfac_r*rdv2Sq)+75.0*fr_over_jacv[3]*fVfac_r*rdv2Sq-43.30127018922193*fr_over_jacv[1]*fVfac_r*rdv2Sq))/(10.0*dvrR5+50.0*dvc*dvrR4+100.0*dvcR2*dvrR3+100.0*dvcR3*dvrR2+50.0*dvcR4*dvr+10.0*dvcR5)+(dvrR5*((-19.36491673103708*fc_over_jacv[5]*fVfac_r*rdv2Sq)-15.0*fc_over_jacv[3]*fVfac_r*rdv2Sq-8.660254037844386*fc_over_jacv[1]*fVfac_r*rdv2Sq))/(10.0*dvrR5+50.0*dvc*dvrR4+100.0*dvcR2*dvrR3+100.0*dvcR3*dvrR2+50.0*dvcR4*dvr+10.0*dvcR5)+(dvcR2*dvrR3*((-54.22176684690384*fc_over_jacv[5]*fVfac_r*rdv2Sq)-105.0*fc_over_jacv[3]*fVfac_r*rdv2Sq-86.60254037844386*fc_over_jacv[1]*fVfac_r*rdv2Sq))/(10.0*dvrR5+50.0*dvc*dvrR4+100.0*dvcR2*dvrR3+100.0*dvcR3*dvrR2+50.0*dvcR4*dvr+10.0*dvcR5)+(dvc*dvrR4*((-61.96773353931867*fc_over_jacv[5]*fVfac_r*rdv2Sq)-75.0*fc_over_jacv[3]*fVfac_r*rdv2Sq-43.30127018922193*fc_over_jacv[1]*fVfac_r*rdv2Sq))/(10.0*dvrR5+50.0*dvc*dvrR4+100.0*dvcR2*dvrR3+100.0*dvcR3*dvrR2+50.0*dvcR4*dvr+10.0*dvcR5)+(dvcR3*dvrR3*(325.330601081423*fr_over_jacv[5]*dfVfac_r*rdv2-325.330601081423*fc_over_jacv[5]*dfVfac_r*rdv2-630.0*fr_over_jacv[3]*dfVfac_r*rdv2-630.0*fc_over_jacv[3]*dfVfac_r*rdv2+519.6152422706631*fr_over_jacv[1]*dfVfac_r*rdv2-519.6152422706631*fc_over_jacv[1]*dfVfac_r*rdv2))/(5.0*dvc*dvrR6+25.0*dvcR2*dvrR5+50.0*dvcR3*dvrR4+50.0*dvcR4*dvrR3+25.0*dvcR5*dvrR2+5.0*dvcR6*dvr)+(dvcR4*dvrR2*(185.903200617956*fr_over_jacv[5]*dfVfac_r*rdv2-120.0*fr_over_jacv[3]*dfVfac_r*rdv2))/(5.0*dvc*dvrR6+25.0*dvcR2*dvrR5+50.0*dvcR3*dvrR4+50.0*dvcR4*dvrR3+25.0*dvcR5*dvrR2+5.0*dvcR6*dvr)+(dvcR6*(15.0*fr_over_jacv[3]*dfVfac_r*rdv2-58.09475019311126*fr_over_jacv[5]*dfVfac_r*rdv2))/(5.0*dvc*dvrR6+25.0*dvcR2*dvrR5+50.0*dvcR3*dvrR4+50.0*dvcR4*dvrR3+25.0*dvcR5*dvrR2+5.0*dvcR6*dvr)+(dvcR5*dvr*(75.0*fr_over_jacv[3]*dfVfac_r*rdv2-81.33265027035576*fr_over_jacv[5]*dfVfac_r*rdv2))/(5.0*dvc*dvrR6+25.0*dvcR2*dvrR5+50.0*dvcR3*dvrR4+50.0*dvcR4*dvrR3+25.0*dvcR5*dvrR2+5.0*dvcR6*dvr)+(dvc*dvrR5*(81.33265027035576*fc_over_jacv[5]*dfVfac_r*rdv2+75.0*fc_over_jacv[3]*dfVfac_r*rdv2))/(5.0*dvc*dvrR6+25.0*dvcR2*dvrR5+50.0*dvcR3*dvrR4+50.0*dvcR4*dvrR3+25.0*dvcR5*dvrR2+5.0*dvcR6*dvr)+(dvrR6*(58.09475019311126*fc_over_jacv[5]*dfVfac_r*rdv2+15.0*fc_over_jacv[3]*dfVfac_r*rdv2))/(5.0*dvc*dvrR6+25.0*dvcR2*dvrR5+50.0*dvcR3*dvrR4+50.0*dvcR4*dvrR3+25.0*dvcR5*dvrR2+5.0*dvcR6*dvr)+(dvcR2*dvrR4*((-185.903200617956*fc_over_jacv[5]*dfVfac_r*rdv2)-120.0*fc_over_jacv[3]*dfVfac_r*rdv2))/(5.0*dvc*dvrR6+25.0*dvcR2*dvrR5+50.0*dvcR3*dvrR4+50.0*dvcR4*dvrR3+25.0*dvcR5*dvrR2+5.0*dvcR6*dvr); 
   phaseFacr[4] = (dvcR5*((-15.0*fr_over_jacv[4]*fVfac_r*rdv2Sq)+11.61895003862225*fr_over_jacv[2]*fVfac_r*rdv2Sq-6.708203932499369*fr_over_jacv[0]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvcR3*dvrR2*((-42.0*fr_over_jacv[4]*fVfac_r*rdv2Sq)+81.33265027035574*fr_over_jacv[2]*fVfac_r*rdv2Sq-67.0820393249937*fr_over_jacv[0]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvcR4*dvr*((-48.0*fr_over_jacv[4]*fVfac_r*rdv2Sq)+58.09475019311126*fr_over_jacv[2]*fVfac_r*rdv2Sq-33.54101966249685*fr_over_jacv[0]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvrR5*((-15.0*fc_over_jacv[4]*fVfac_r*rdv2Sq)-11.61895003862225*fc_over_jacv[2]*fVfac_r*rdv2Sq-6.708203932499369*fc_over_jacv[0]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvcR2*dvrR3*((-42.0*fc_over_jacv[4]*fVfac_r*rdv2Sq)-81.33265027035574*fc_over_jacv[2]*fVfac_r*rdv2Sq-67.0820393249937*fc_over_jacv[0]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvc*dvrR4*((-48.0*fc_over_jacv[4]*fVfac_r*rdv2Sq)-58.09475019311126*fc_over_jacv[2]*fVfac_r*rdv2Sq-33.54101966249685*fc_over_jacv[0]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvcR3*dvrR3*(84.0*fr_over_jacv[4]*dfVfac_r*rdv2-84.0*fc_over_jacv[4]*dfVfac_r*rdv2-162.6653005407115*fr_over_jacv[2]*dfVfac_r*rdv2-162.6653005407115*fc_over_jacv[2]*dfVfac_r*rdv2+134.1640786499874*fr_over_jacv[0]*dfVfac_r*rdv2-134.1640786499874*fc_over_jacv[0]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvcR4*dvrR2*(48.0*fr_over_jacv[4]*dfVfac_r*rdv2-30.98386676965934*fr_over_jacv[2]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvcR6*(3.872983346207417*fr_over_jacv[2]*dfVfac_r*rdv2-15.0*fr_over_jacv[4]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvcR5*dvr*(19.36491673103709*fr_over_jacv[2]*dfVfac_r*rdv2-21.0*fr_over_jacv[4]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvc*dvrR5*(21.0*fc_over_jacv[4]*dfVfac_r*rdv2+19.36491673103709*fc_over_jacv[2]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvrR6*(15.0*fc_over_jacv[4]*dfVfac_r*rdv2+3.872983346207417*fc_over_jacv[2]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvcR2*dvrR4*((-48.0*fc_over_jacv[4]*dfVfac_r*rdv2)-30.98386676965934*fc_over_jacv[2]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr); 
   phaseFacr[5] = (dvcR5*((-15.0*fr_over_jacv[5]*fVfac_r*rdv2Sq)+11.61895003862225*fr_over_jacv[3]*fVfac_r*rdv2Sq-6.708203932499369*fr_over_jacv[1]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvcR3*dvrR2*((-42.0*fr_over_jacv[5]*fVfac_r*rdv2Sq)+81.33265027035576*fr_over_jacv[3]*fVfac_r*rdv2Sq-67.08203932499369*fr_over_jacv[1]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvcR4*dvr*((-48.0*fr_over_jacv[5]*fVfac_r*rdv2Sq)+58.09475019311126*fr_over_jacv[3]*fVfac_r*rdv2Sq-33.54101966249684*fr_over_jacv[1]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvrR5*((-15.0*fc_over_jacv[5]*fVfac_r*rdv2Sq)-11.61895003862225*fc_over_jacv[3]*fVfac_r*rdv2Sq-6.708203932499369*fc_over_jacv[1]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvcR2*dvrR3*((-42.0*fc_over_jacv[5]*fVfac_r*rdv2Sq)-81.33265027035576*fc_over_jacv[3]*fVfac_r*rdv2Sq-67.08203932499369*fc_over_jacv[1]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvc*dvrR4*((-48.0*fc_over_jacv[5]*fVfac_r*rdv2Sq)-58.09475019311126*fc_over_jacv[3]*fVfac_r*rdv2Sq-33.54101966249684*fc_over_jacv[1]*fVfac_r*rdv2Sq))/(2.0*dvrR5+10.0*dvc*dvrR4+20.0*dvcR2*dvrR3+20.0*dvcR3*dvrR2+10.0*dvcR4*dvr+2.0*dvcR5)+(dvcR3*dvrR3*(84.0*fr_over_jacv[5]*dfVfac_r*rdv2-84.0*fc_over_jacv[5]*dfVfac_r*rdv2-162.6653005407115*fr_over_jacv[3]*dfVfac_r*rdv2-162.6653005407115*fc_over_jacv[3]*dfVfac_r*rdv2+134.1640786499874*fr_over_jacv[1]*dfVfac_r*rdv2-134.1640786499874*fc_over_jacv[1]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvcR4*dvrR2*(48.0*fr_over_jacv[5]*dfVfac_r*rdv2-30.98386676965934*fr_over_jacv[3]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvcR6*(3.872983346207417*fr_over_jacv[3]*dfVfac_r*rdv2-15.0*fr_over_jacv[5]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvcR5*dvr*(19.36491673103708*fr_over_jacv[3]*dfVfac_r*rdv2-21.0*fr_over_jacv[5]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvc*dvrR5*(21.0*fc_over_jacv[5]*dfVfac_r*rdv2+19.36491673103708*fc_over_jacv[3]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvrR6*(15.0*fc_over_jacv[5]*dfVfac_r*rdv2+3.872983346207417*fc_over_jacv[3]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr)+(dvcR2*dvrR4*((-48.0*fc_over_jacv[5]*dfVfac_r*rdv2)-30.98386676965934*fc_over_jacv[3]*dfVfac_r*rdv2))/(dvc*dvrR6+5.0*dvcR2*dvrR5+10.0*dvcR3*dvrR4+10.0*dvcR4*dvrR3+5.0*dvcR5*dvrR2+dvcR6*dvr); 
+
+  double incrl[6] = {0.0}; 
+  incrl[0] = 0.7071067811865475*nuVtSqSum[1]*phaseFacl[1]+0.7071067811865475*nuVtSqSum[0]*phaseFacl[0]; 
+  incrl[1] = 0.7071067811865475*nuVtSqSum[0]*phaseFacl[1]+0.7071067811865475*phaseFacl[0]*nuVtSqSum[1]; 
+  incrl[2] = 0.7071067811865475*nuVtSqSum[1]*phaseFacl[3]+0.7071067811865475*nuVtSqSum[0]*phaseFacl[2]; 
+  incrl[3] = 0.7071067811865475*nuVtSqSum[0]*phaseFacl[3]+0.7071067811865475*nuVtSqSum[1]*phaseFacl[2]; 
+  incrl[4] = 0.7071067811865475*nuVtSqSum[1]*phaseFacl[5]+0.7071067811865475*nuVtSqSum[0]*phaseFacl[4]; 
+  incrl[5] = 0.7071067811865475*nuVtSqSum[0]*phaseFacl[5]+0.7071067811865475*nuVtSqSum[1]*phaseFacl[4]; 
+
+  double incrr[6] = {0.0}; 
+  incrr[0] = 0.7071067811865475*nuVtSqSum[1]*phaseFacr[1]+0.7071067811865475*nuVtSqSum[0]*phaseFacr[0]; 
+  incrr[1] = 0.7071067811865475*nuVtSqSum[0]*phaseFacr[1]+0.7071067811865475*phaseFacr[0]*nuVtSqSum[1]; 
+  incrr[2] = 0.7071067811865475*nuVtSqSum[1]*phaseFacr[3]+0.7071067811865475*nuVtSqSum[0]*phaseFacr[2]; 
+  incrr[3] = 0.7071067811865475*nuVtSqSum[0]*phaseFacr[3]+0.7071067811865475*nuVtSqSum[1]*phaseFacr[2]; 
+  incrr[4] = 0.7071067811865475*nuVtSqSum[1]*phaseFacr[5]+0.7071067811865475*nuVtSqSum[0]*phaseFacr[4]; 
+  incrr[5] = 0.7071067811865475*nuVtSqSum[0]*phaseFacr[5]+0.7071067811865475*nuVtSqSum[1]*phaseFacr[4]; 
+
+  out[0] += incrr[0]-1.0*incrl[0]; 
+  out[1] += incrr[1]-1.0*incrl[1]; 
+  out[2] += incrr[2]-1.0*incrl[2]; 
+  out[3] += incrr[3]-1.0*incrl[3]; 
+  out[4] += incrr[4]-1.0*incrl[4]; 
+  out[5] += incrr[5]-1.0*incrl[5]; 
+
+  return 0.;
+
+} 
+GKYL_CU_DH double lbo_gyrokinetic_diff_notmapped_surfvpar_1x1v_ser_p1(const double *dxv, const double *vmapl, const double *vmapc, const double *vmapr, const double *vmap_prime, const double *jacobvell, const double *jacobvelc, const double *jacobvelr, const double m_, const double *bmag_inv, const double *nuSum, const double *nuPrimMomsSum, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+{ 
+  // dxv: cell spacing. 
+  // vmapl,vmapc,vmapr: velocity space mapping.
+  // vmap_prime: velocity space mapping derivative.
+  // jacobvel: velocity space jacobian.
+  // m_: species mass.
+  // bmag_inv: 1/(magnetic field magnitude). 
+  // nuSum: collisionalities added (self and cross species collisionalities). 
+  // nuPrimMomsSum: sum of bulk velocities and thermal speeds squared times their respective collisionalities. 
+  // fl/fc/fr: distribution function in cells 
+  // out: incremented distribution function in cell 
+
+  const double *nuVtSqSum = &nuPrimMomsSum[2];
+
+  double rdv2 = 2.0/dxv[1]; 
+  double rdv2Sq = rdv2*rdv2; 
+
+  double dfVfac_l = 1.0; 
+  double dfVfac_r = 1.0; 
+
+  double fVfac_l = 1.0; 
+  double fVfac_r = 1.0; 
+
+  double phaseFacl[6] = {0.0}; 
+
+  phaseFacl[0] = (-0.6708203932499369*fl[4]*dfVfac_l*rdv2)+0.6708203932499369*fc[4]*dfVfac_l*rdv2-1.190784930203603*fl[2]*dfVfac_l*rdv2-1.190784930203603*fc[2]*dfVfac_l*rdv2-0.9375*fl[0]*dfVfac_l*rdv2+0.9375*fc[0]*dfVfac_l*rdv2; 
+  phaseFacl[1] = (-0.6708203932499369*fl[5]*dfVfac_l*rdv2)+0.6708203932499369*fc[5]*dfVfac_l*rdv2-1.190784930203603*fl[3]*dfVfac_l*rdv2-1.190784930203603*fc[3]*dfVfac_l*rdv2-0.9375*fl[1]*dfVfac_l*rdv2+0.9375*fc[1]*dfVfac_l*rdv2; 
+  phaseFacl[2] = (-0.4236075534914363*fl[4]*fVfac_l*rdv2Sq)-0.4236075534914363*fc[4]*fVfac_l*rdv2Sq-0.609375*fl[2]*fVfac_l*rdv2Sq+0.609375*fc[2]*fVfac_l*rdv2Sq-0.4330127018922193*fl[0]*fVfac_l*rdv2Sq-0.4330127018922193*fc[0]*fVfac_l*rdv2Sq+1.161895003862225*fl[4]*dfVfac_l*rdv2-1.161895003862225*fc[4]*dfVfac_l*rdv2+2.0625*fl[2]*dfVfac_l*rdv2+2.0625*fc[2]*dfVfac_l*rdv2+1.623797632095822*fl[0]*dfVfac_l*rdv2-1.623797632095822*fc[0]*dfVfac_l*rdv2; 
+  phaseFacl[3] = (-0.4236075534914363*fl[5]*fVfac_l*rdv2Sq)-0.4236075534914363*fc[5]*fVfac_l*rdv2Sq-0.609375*fl[3]*fVfac_l*rdv2Sq+0.609375*fc[3]*fVfac_l*rdv2Sq-0.4330127018922193*fl[1]*fVfac_l*rdv2Sq-0.4330127018922193*fc[1]*fVfac_l*rdv2Sq+1.161895003862225*fl[5]*dfVfac_l*rdv2-1.161895003862225*fc[5]*dfVfac_l*rdv2+2.0625*fl[3]*dfVfac_l*rdv2+2.0625*fc[3]*dfVfac_l*rdv2+1.623797632095822*fl[1]*dfVfac_l*rdv2-1.623797632095822*fc[1]*dfVfac_l*rdv2; 
+  phaseFacl[4] = 1.640625*fl[4]*fVfac_l*rdv2Sq+1.640625*fc[4]*fVfac_l*rdv2Sq+2.360099226595144*fl[2]*fVfac_l*rdv2Sq-2.360099226595144*fc[2]*fVfac_l*rdv2Sq+1.677050983124842*fl[0]*fVfac_l*rdv2Sq+1.677050983124842*fc[0]*fVfac_l*rdv2Sq-1.5*fl[4]*dfVfac_l*rdv2+1.5*fc[4]*dfVfac_l*rdv2-2.662676050517599*fl[2]*dfVfac_l*rdv2-2.662676050517599*fc[2]*dfVfac_l*rdv2-2.096313728906053*fl[0]*dfVfac_l*rdv2+2.096313728906053*fc[0]*dfVfac_l*rdv2; 
+  phaseFacl[5] = 1.640625*fl[5]*fVfac_l*rdv2Sq+1.640625*fc[5]*fVfac_l*rdv2Sq+2.360099226595145*fl[3]*fVfac_l*rdv2Sq-2.360099226595145*fc[3]*fVfac_l*rdv2Sq+1.677050983124842*fl[1]*fVfac_l*rdv2Sq+1.677050983124842*fc[1]*fVfac_l*rdv2Sq-1.5*fl[5]*dfVfac_l*rdv2+1.5*fc[5]*dfVfac_l*rdv2-2.662676050517599*fl[3]*dfVfac_l*rdv2-2.662676050517599*fc[3]*dfVfac_l*rdv2-2.096313728906053*fl[1]*dfVfac_l*rdv2+2.096313728906053*fc[1]*dfVfac_l*rdv2; 
+
+  double phaseFacr[6] = {0.0}; 
+
+  phaseFacr[0] = 0.6708203932499369*fr[4]*dfVfac_r*rdv2-0.6708203932499369*fc[4]*dfVfac_r*rdv2-1.190784930203603*fr[2]*dfVfac_r*rdv2-1.190784930203603*fc[2]*dfVfac_r*rdv2+0.9375*fr[0]*dfVfac_r*rdv2-0.9375*fc[0]*dfVfac_r*rdv2; 
+  phaseFacr[1] = 0.6708203932499369*fr[5]*dfVfac_r*rdv2-0.6708203932499369*fc[5]*dfVfac_r*rdv2-1.190784930203603*fr[3]*dfVfac_r*rdv2-1.190784930203603*fc[3]*dfVfac_r*rdv2+0.9375*fr[1]*dfVfac_r*rdv2-0.9375*fc[1]*dfVfac_r*rdv2; 
+  phaseFacr[2] = (-0.4236075534914363*fr[4]*fVfac_r*rdv2Sq)-0.4236075534914363*fc[4]*fVfac_r*rdv2Sq+0.609375*fr[2]*fVfac_r*rdv2Sq-0.609375*fc[2]*fVfac_r*rdv2Sq-0.4330127018922193*fr[0]*fVfac_r*rdv2Sq-0.4330127018922193*fc[0]*fVfac_r*rdv2Sq+1.161895003862225*fr[4]*dfVfac_r*rdv2-1.161895003862225*fc[4]*dfVfac_r*rdv2-2.0625*fr[2]*dfVfac_r*rdv2-2.0625*fc[2]*dfVfac_r*rdv2+1.623797632095822*fr[0]*dfVfac_r*rdv2-1.623797632095822*fc[0]*dfVfac_r*rdv2; 
+  phaseFacr[3] = (-0.4236075534914363*fr[5]*fVfac_r*rdv2Sq)-0.4236075534914363*fc[5]*fVfac_r*rdv2Sq+0.609375*fr[3]*fVfac_r*rdv2Sq-0.609375*fc[3]*fVfac_r*rdv2Sq-0.4330127018922193*fr[1]*fVfac_r*rdv2Sq-0.4330127018922193*fc[1]*fVfac_r*rdv2Sq+1.161895003862225*fr[5]*dfVfac_r*rdv2-1.161895003862225*fc[5]*dfVfac_r*rdv2-2.0625*fr[3]*dfVfac_r*rdv2-2.0625*fc[3]*dfVfac_r*rdv2+1.623797632095822*fr[1]*dfVfac_r*rdv2-1.623797632095822*fc[1]*dfVfac_r*rdv2; 
+  phaseFacr[4] = (-1.640625*fr[4]*fVfac_r*rdv2Sq)-1.640625*fc[4]*fVfac_r*rdv2Sq+2.360099226595144*fr[2]*fVfac_r*rdv2Sq-2.360099226595144*fc[2]*fVfac_r*rdv2Sq-1.677050983124842*fr[0]*fVfac_r*rdv2Sq-1.677050983124842*fc[0]*fVfac_r*rdv2Sq+1.5*fr[4]*dfVfac_r*rdv2-1.5*fc[4]*dfVfac_r*rdv2-2.662676050517599*fr[2]*dfVfac_r*rdv2-2.662676050517599*fc[2]*dfVfac_r*rdv2+2.096313728906053*fr[0]*dfVfac_r*rdv2-2.096313728906053*fc[0]*dfVfac_r*rdv2; 
+  phaseFacr[5] = (-1.640625*fr[5]*fVfac_r*rdv2Sq)-1.640625*fc[5]*fVfac_r*rdv2Sq+2.360099226595145*fr[3]*fVfac_r*rdv2Sq-2.360099226595145*fc[3]*fVfac_r*rdv2Sq-1.677050983124842*fr[1]*fVfac_r*rdv2Sq-1.677050983124842*fc[1]*fVfac_r*rdv2Sq+1.5*fr[5]*dfVfac_r*rdv2-1.5*fc[5]*dfVfac_r*rdv2-2.662676050517599*fr[3]*dfVfac_r*rdv2-2.662676050517599*fc[3]*dfVfac_r*rdv2+2.096313728906053*fr[1]*dfVfac_r*rdv2-2.096313728906053*fc[1]*dfVfac_r*rdv2; 
 
   double incrl[6] = {0.0}; 
   incrl[0] = 0.7071067811865475*nuVtSqSum[1]*phaseFacl[1]+0.7071067811865475*nuVtSqSum[0]*phaseFacl[0]; 

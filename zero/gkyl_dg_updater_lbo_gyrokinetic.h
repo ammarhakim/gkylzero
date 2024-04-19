@@ -34,6 +34,7 @@ struct gkyl_dg_updater_lbo_gyrokinetic_tm {
  * @param vmap_prime Derivative of the velocity space mapping.
  * @param jacobvel Velocity space mapping Jacobian.
  * @param bounds_vel Velocity at the boundaries.
+ * @param is_mapped Indicates whether to use a velocity mapping.
  * @param use_gpu Bool for whether updater is on host or device
  * @return New gyrokinetic LBO updater object
  */
@@ -43,7 +44,7 @@ gkyl_dg_updater_lbo_gyrokinetic_new(const struct gkyl_rect_grid *phase_grid,
   const struct gkyl_range *conf_range, const struct gkyl_range* vel_range, const struct gkyl_range* phase_range,
   struct gkyl_dg_lbo_gyrokinetic_drag_auxfields *drag_inp, struct gkyl_dg_lbo_gyrokinetic_diff_auxfields *diff_inp, 
   double mass, const struct gk_geometry *gk_geom, const struct gkyl_array *vmap,
-  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel, bool use_gpu);
+  const struct gkyl_array *vmap_prime, const struct gkyl_array *jacobvel, double *bounds_vel, bool is_mapped, bool use_gpu);
 
 /**
  * Compute RHS of DG update. The update_rng MUST be a sub-range of the

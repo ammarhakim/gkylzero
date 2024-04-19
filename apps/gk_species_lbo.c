@@ -105,7 +105,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     .nuPrimMomsSum = lbo->nu_prim_moms, .m2self = lbo->m2self };
   lbo->coll_slvr = gkyl_dg_updater_lbo_gyrokinetic_new(&s->grid, 
     &app->confBasis, &app->basis, &app->local, &s->local_vel, &s->local, &drag_inp, &diff_inp, s->info.mass,
-    app->gk_geom, s->vmap, s->vmap_prime, s->jacobvel, v_bounds, app->use_gpu);
+    app->gk_geom, s->vmap, s->vmap_prime, s->jacobvel, v_bounds, s->info.mapc2p.is_mapped, app->use_gpu);
 }
 
 void 
