@@ -560,6 +560,9 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *s)
   }
   else if (s->model_id == GKYL_MODEL_CANONICAL_PB) {
     gkyl_array_release(s->hamil);
+    gkyl_array_release(s->alpha_surf);
+    gkyl_array_release(s->sgn_alpha_surf);
+    gkyl_array_release(s->const_sgn_alpha);
     if (app->use_gpu){
       gkyl_array_release(s->hamil_host);
     }
