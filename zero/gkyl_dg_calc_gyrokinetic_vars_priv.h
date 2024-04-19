@@ -50,18 +50,18 @@ struct gkyl_dg_calc_gyrokinetic_vars {
 // Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_surfx_kernels[] = {
-  { NULL, gyrokinetic_alpha_surfx_1x1v_ser_p1, gyrokinetic_alpha_surfx_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_alpha_surfx_1x2v_ser_p1, gyrokinetic_alpha_surfx_1x2v_ser_p2 }, // 1
-  { NULL, gyrokinetic_alpha_surfx_2x2v_ser_p1, gyrokinetic_alpha_surfx_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_alpha_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_alpha_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_alpha_surfx_2x2v_ser_p1, NULL }, // 2
   { NULL, gyrokinetic_alpha_surfx_3x2v_ser_p1, NULL }, // 3
 };
 
 // Gyrokinetic phase space flux alpha edge surface expansions in x (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_edge_surfx_kernels[] = {
-  { NULL, gyrokinetic_alpha_edge_surfx_1x1v_ser_p1, gyrokinetic_alpha_edge_surfx_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_alpha_edge_surfx_1x2v_ser_p1, gyrokinetic_alpha_edge_surfx_1x2v_ser_p2 }, // 1
-  { NULL, gyrokinetic_alpha_edge_surfx_2x2v_ser_p1, gyrokinetic_alpha_edge_surfx_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_alpha_edge_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_alpha_edge_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_alpha_edge_surfx_2x2v_ser_p1, NULL }, // 2
   { NULL, gyrokinetic_alpha_edge_surfx_3x2v_ser_p1, NULL }, // 3
 };
 
@@ -70,7 +70,7 @@ GKYL_CU_D
 static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, gyrokinetic_alpha_surfy_2x2v_ser_p1, gyrokinetic_alpha_surfy_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_alpha_surfy_2x2v_ser_p1, NULL }, // 2
   { NULL, gyrokinetic_alpha_surfy_3x2v_ser_p1, NULL }, // 3
 };
 
@@ -79,7 +79,7 @@ GKYL_CU_D
 static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_edge_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, gyrokinetic_alpha_edge_surfy_2x2v_ser_p1, gyrokinetic_alpha_edge_surfy_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_alpha_edge_surfy_2x2v_ser_p1, NULL }, // 2
   { NULL, gyrokinetic_alpha_edge_surfy_3x2v_ser_p1, NULL }, // 3
 };
 
@@ -104,9 +104,9 @@ static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_edge
 // Gyrokinetic phase space flux alpha surface expansions in vpar (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_surfvpar_kernels[] = {
-  { NULL, gyrokinetic_alpha_surfvpar_1x1v_ser_p1, gyrokinetic_alpha_surfvpar_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_alpha_surfvpar_1x2v_ser_p1, gyrokinetic_alpha_surfvpar_1x2v_ser_p2 }, // 1
-  { NULL, gyrokinetic_alpha_surfvpar_2x2v_ser_p1, gyrokinetic_alpha_surfvpar_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_alpha_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_alpha_surfvpar_1x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_alpha_surfvpar_2x2v_ser_p1, NULL }, // 2
   { NULL, gyrokinetic_alpha_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
 
@@ -116,18 +116,18 @@ static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_surf
 // Gyrokinetic phase space flux alpha surface expansions in x (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_no_by_surfx_kernels[] = {
-  { NULL, gyrokinetic_alpha_surfx_1x1v_ser_p1, gyrokinetic_alpha_surfx_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_alpha_surfx_1x2v_ser_p1, gyrokinetic_alpha_surfx_1x2v_ser_p2 }, // 1
-  { NULL, gyrokinetic_alpha_no_by_surfx_2x2v_ser_p1, gyrokinetic_alpha_no_by_surfx_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_alpha_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_alpha_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_alpha_no_by_surfx_2x2v_ser_p1, NULL }, // 2
   { NULL, gyrokinetic_alpha_no_by_surfx_3x2v_ser_p1, NULL }, // 3
 };
 
 // Gyrokinetic phase space flux alpha edge surface expansions in x (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_no_by_edge_surfx_kernels[] = {
-  { NULL, gyrokinetic_alpha_edge_surfx_1x1v_ser_p1, gyrokinetic_alpha_edge_surfx_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_alpha_edge_surfx_1x2v_ser_p1, gyrokinetic_alpha_edge_surfx_1x2v_ser_p2 }, // 1
-  { NULL, gyrokinetic_alpha_no_by_edge_surfx_2x2v_ser_p1, gyrokinetic_alpha_no_by_edge_surfx_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_alpha_edge_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_alpha_edge_surfx_1x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_alpha_no_by_edge_surfx_2x2v_ser_p1, NULL }, // 2
   { NULL, gyrokinetic_alpha_no_by_edge_surfx_3x2v_ser_p1, NULL }, // 3
 };
 
@@ -136,7 +136,7 @@ GKYL_CU_D
 static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_no_by_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, gyrokinetic_alpha_no_by_surfy_2x2v_ser_p1, gyrokinetic_alpha_no_by_surfy_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_alpha_no_by_surfy_2x2v_ser_p1, NULL }, // 2
   { NULL, gyrokinetic_alpha_no_by_surfy_3x2v_ser_p1, NULL }, // 3
 };
 
@@ -145,7 +145,7 @@ GKYL_CU_D
 static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_no_by_edge_surfy_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
-  { NULL, gyrokinetic_alpha_no_by_edge_surfy_2x2v_ser_p1, gyrokinetic_alpha_no_by_edge_surfy_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_alpha_no_by_edge_surfy_2x2v_ser_p1, NULL }, // 2
   { NULL, gyrokinetic_alpha_no_by_edge_surfy_3x2v_ser_p1, NULL }, // 3
 };
 
@@ -170,9 +170,9 @@ static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_no_b
 // Gyrokinetic phase space flux alpha surface expansions in vpar (Serendipity kernels)
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_alpha_surf_kern_list ser_gyrokinetic_alpha_no_by_surfvpar_kernels[] = {
-  { NULL, gyrokinetic_alpha_surfvpar_1x1v_ser_p1, gyrokinetic_alpha_surfvpar_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_alpha_surfvpar_1x2v_ser_p1, gyrokinetic_alpha_surfvpar_1x2v_ser_p2 }, // 1
-  { NULL, gyrokinetic_alpha_no_by_surfvpar_2x2v_ser_p1, gyrokinetic_alpha_no_by_surfvpar_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_alpha_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_alpha_surfvpar_1x2v_ser_p1, NULL }, // 1
+  { NULL, gyrokinetic_alpha_no_by_surfvpar_2x2v_ser_p1, NULL }, // 2
   { NULL, gyrokinetic_alpha_no_by_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
 

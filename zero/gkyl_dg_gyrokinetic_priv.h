@@ -96,33 +96,6 @@ kernel_gyrokinetic_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
 
 GKYL_CU_DH
 static double
-kernel_gyrokinetic_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
-  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-
-  int vel_idx[2];
-  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
-
-  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  return gyrokinetic_vol_1x1v_ser_p2(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->cmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->b_i, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
-    qIn, qRhsOut);
-}
-
-GKYL_CU_DH
-static double
 kernel_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
@@ -150,33 +123,6 @@ kernel_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
 
 GKYL_CU_DH
 static double
-kernel_gyrokinetic_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
-  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-
-  int vel_idx[2];
-  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
-
-  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  return gyrokinetic_vol_1x2v_ser_p2(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->cmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->b_i, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
-    qIn, qRhsOut);
-}
-
-GKYL_CU_DH
-static double
 kernel_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
@@ -189,33 +135,6 @@ kernel_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
   long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return gyrokinetic_vol_2x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->cmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->b_i, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
-    qIn, qRhsOut);
-}
-
-GKYL_CU_DH
-static double
-kernel_gyrokinetic_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
-  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-
-  int vel_idx[2];
-  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
-
-  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  return gyrokinetic_vol_2x2v_ser_p2(xc, dx,
     (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
@@ -260,10 +179,10 @@ kernel_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* 
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_vol_kern_list ser_vol_kernels[] = {
   // 1x kernels
-  { NULL, kernel_gyrokinetic_vol_1x1v_ser_p1, kernel_gyrokinetic_vol_1x1v_ser_p2 }, // 0
-  { NULL, kernel_gyrokinetic_vol_1x2v_ser_p1, kernel_gyrokinetic_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_gyrokinetic_vol_1x1v_ser_p1, NULL }, // 0
+  { NULL, kernel_gyrokinetic_vol_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, kernel_gyrokinetic_vol_2x2v_ser_p1, kernel_gyrokinetic_vol_2x2v_ser_p2 }, // 2
+  { NULL, kernel_gyrokinetic_vol_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, kernel_gyrokinetic_vol_3x2v_ser_p1, NULL }, // 3
 };
@@ -272,8 +191,8 @@ static const gkyl_dg_gyrokinetic_vol_kern_list ser_vol_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_step2_vol_kern_list ser_step2_vol_kernels[] = {
   // 1x kernels
-  { NULL, gyrokinetic_step2_vol_1x1v_ser_p1, gyrokinetic_step2_vol_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_step2_vol_1x2v_ser_p1, gyrokinetic_step2_vol_1x2v_ser_p2 }, // 1
+  { NULL, gyrokinetic_step2_vol_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_step2_vol_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
   { NULL, NULL, NULL }, // 2
   // 3x kernels
@@ -299,33 +218,6 @@ kernel_gyrokinetic_no_by_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const do
   long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
   long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
   return gyrokinetic_no_by_vol_2x2v_ser_p1(xc, dx,
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
-    gyrokinetic->charge, gyrokinetic->mass,
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->bmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->jacobtot_inv, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->cmag, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->b_i, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apar, cidx),
-    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.apardot, cidx),
-    qIn, qRhsOut);
-}
-
-GKYL_CU_DH
-static double
-kernel_gyrokinetic_no_by_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx, 
-  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
-{
-  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
-
-  int vel_idx[2];
-  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
-
-  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
-  long vidx = gkyl_range_idx(&gyrokinetic->vel_range, vel_idx);
-  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
-  return gyrokinetic_no_by_vol_2x2v_ser_p2(xc, dx,
     (const double*) gkyl_array_cfetch(gyrokinetic->vmap, vidx),
     (const double*) gkyl_array_cfetch(gyrokinetic->vmapSq, vidx),
     gyrokinetic->charge, gyrokinetic->mass,
@@ -370,10 +262,10 @@ kernel_gyrokinetic_no_by_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const do
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_vol_kern_list ser_no_by_vol_kernels[] = {
   // 1x kernels
-  { NULL, kernel_gyrokinetic_vol_1x1v_ser_p1, kernel_gyrokinetic_vol_1x1v_ser_p2 }, // 0
-  { NULL, kernel_gyrokinetic_vol_1x2v_ser_p1, kernel_gyrokinetic_vol_1x2v_ser_p2 }, // 1
+  { NULL, kernel_gyrokinetic_vol_1x1v_ser_p1, NULL }, // 0
+  { NULL, kernel_gyrokinetic_vol_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, kernel_gyrokinetic_no_by_vol_2x2v_ser_p1, kernel_gyrokinetic_no_by_vol_2x2v_ser_p2 }, // 2
+  { NULL, kernel_gyrokinetic_no_by_vol_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, kernel_gyrokinetic_no_by_vol_3x2v_ser_p1, NULL }, // 3
 };
@@ -385,10 +277,10 @@ static const gkyl_dg_gyrokinetic_vol_kern_list ser_no_by_vol_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_x_kernels[] = {
   // 1x kernels
-  { NULL, gyrokinetic_surfx_1x1v_ser_p1, gyrokinetic_surfx_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_surfx_1x2v_ser_p1, gyrokinetic_surfx_1x2v_ser_p2 }, // 1
+  { NULL, gyrokinetic_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_surfx_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_surfx_2x2v_ser_p1, gyrokinetic_surfx_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_surfx_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_surfx_3x2v_ser_p1, NULL }, // 3
 };
@@ -400,7 +292,7 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_surfy_2x2v_ser_p1, gyrokinetic_surfy_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_surfy_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_surfy_3x2v_ser_p1, NULL }, // 3
 };
@@ -421,10 +313,10 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_z_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_vpar_kernels[] = {
   // 1x kernels
-  { NULL, gyrokinetic_surfvpar_1x1v_ser_p1, gyrokinetic_surfvpar_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_surfvpar_1x2v_ser_p1, gyrokinetic_surfvpar_1x2v_ser_p2 }, // 1
+  { NULL, gyrokinetic_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_surfvpar_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_surfvpar_2x2v_ser_p1, gyrokinetic_surfvpar_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_surfvpar_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
@@ -433,10 +325,10 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_surf_vpar_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_x_kernels[] = {
   // 1x kernels
-  { NULL, gyrokinetic_boundary_surfx_1x1v_ser_p1, gyrokinetic_boundary_surfx_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_boundary_surfx_1x2v_ser_p1, gyrokinetic_boundary_surfx_1x2v_ser_p2 }, // 1
+  { NULL, gyrokinetic_boundary_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_boundary_surfx_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_boundary_surfx_2x2v_ser_p1, gyrokinetic_boundary_surfx_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_boundary_surfx_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_boundary_surfx_3x2v_ser_p1, NULL }, // 3
 };
@@ -448,7 +340,7 @@ static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_y_ker
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_boundary_surfy_2x2v_ser_p1, gyrokinetic_boundary_surfy_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_boundary_surfy_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_boundary_surfy_3x2v_ser_p1, NULL }, // 3
 };
@@ -469,10 +361,10 @@ static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_z_ker
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_vpar_kernels[] = {
   // 1x kernels
-  { NULL, gyrokinetic_boundary_surfvpar_1x1v_ser_p1, gyrokinetic_boundary_surfvpar_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_boundary_surfvpar_1x2v_ser_p1, gyrokinetic_boundary_surfvpar_1x2v_ser_p2 }, // 1
+  { NULL, gyrokinetic_boundary_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_boundary_surfvpar_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_boundary_surfvpar_2x2v_ser_p1, gyrokinetic_boundary_surfvpar_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_boundary_surfvpar_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
@@ -484,10 +376,10 @@ static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_boundary_surf_vpar_
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_surf_kern_list ser_no_by_surf_x_kernels[] = {
   // 1x kernels
-  { NULL, gyrokinetic_surfx_1x1v_ser_p1, gyrokinetic_surfx_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_surfx_1x2v_ser_p1, gyrokinetic_surfx_1x2v_ser_p2 }, // 1
+  { NULL, gyrokinetic_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_surfx_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_no_by_surfx_2x2v_ser_p1, gyrokinetic_no_by_surfx_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_no_by_surfx_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_no_by_surfx_3x2v_ser_p1, NULL }, // 3
 };
@@ -499,7 +391,7 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_no_by_surf_y_kernels[] = {
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_no_by_surfy_2x2v_ser_p1, gyrokinetic_no_by_surfy_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_no_by_surfy_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_no_by_surfy_3x2v_ser_p1, NULL }, // 3
 };
@@ -520,10 +412,10 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_no_by_surf_z_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_surf_kern_list ser_no_by_surf_vpar_kernels[] = {
   // 1x kernels
-  { NULL, gyrokinetic_surfvpar_1x1v_ser_p1, gyrokinetic_surfvpar_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_surfvpar_1x2v_ser_p1, gyrokinetic_surfvpar_1x2v_ser_p2 }, // 1
+  { NULL, gyrokinetic_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_surfvpar_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_no_by_surfvpar_2x2v_ser_p1, gyrokinetic_no_by_surfvpar_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_no_by_surfvpar_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_no_by_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
@@ -532,10 +424,10 @@ static const gkyl_dg_gyrokinetic_surf_kern_list ser_no_by_surf_vpar_kernels[] = 
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_no_by_boundary_surf_x_kernels[] = {
   // 1x kernels
-  { NULL, gyrokinetic_boundary_surfx_1x1v_ser_p1, gyrokinetic_boundary_surfx_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_boundary_surfx_1x2v_ser_p1, gyrokinetic_boundary_surfx_1x2v_ser_p2 }, // 1
+  { NULL, gyrokinetic_boundary_surfx_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_boundary_surfx_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_no_by_boundary_surfx_2x2v_ser_p1, gyrokinetic_no_by_boundary_surfx_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_no_by_boundary_surfx_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_no_by_boundary_surfx_3x2v_ser_p1, NULL }, // 3
 };
@@ -547,7 +439,7 @@ static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_no_by_boundary_surf
   { NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_no_by_boundary_surfy_2x2v_ser_p1, gyrokinetic_no_by_boundary_surfy_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_no_by_boundary_surfy_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_no_by_boundary_surfy_3x2v_ser_p1, NULL }, // 3
 };
@@ -568,10 +460,10 @@ static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_no_by_boundary_surf
 GKYL_CU_D
 static const gkyl_dg_gyrokinetic_boundary_surf_kern_list ser_no_by_boundary_surf_vpar_kernels[] = {
   // 1x kernels
-  { NULL, gyrokinetic_boundary_surfvpar_1x1v_ser_p1, gyrokinetic_boundary_surfvpar_1x1v_ser_p2 }, // 0
-  { NULL, gyrokinetic_boundary_surfvpar_1x2v_ser_p1, gyrokinetic_boundary_surfvpar_1x2v_ser_p2 }, // 1
+  { NULL, gyrokinetic_boundary_surfvpar_1x1v_ser_p1, NULL }, // 0
+  { NULL, gyrokinetic_boundary_surfvpar_1x2v_ser_p1, NULL }, // 1
   // 2x kernels
-  { NULL, gyrokinetic_no_by_boundary_surfvpar_2x2v_ser_p1, gyrokinetic_no_by_boundary_surfvpar_2x2v_ser_p2 }, // 2
+  { NULL, gyrokinetic_no_by_boundary_surfvpar_2x2v_ser_p1, NULL }, // 2
   // 3x kernels
   { NULL, gyrokinetic_no_by_boundary_surfvpar_3x2v_ser_p1, NULL }, // 3
 };
