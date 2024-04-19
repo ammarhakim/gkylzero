@@ -89,6 +89,30 @@ static const cross_mul_op_kern_list ser_cross_mul_list[] = {
              { binop_cross_mul_3d_6d_ser_p0, binop_cross_mul_3d_6d_ser_p1, NULL, NULL },} },
 };
 
+GKYL_CU_D
+static const cross_mul_op_kern_list ten_cross_mul_list[] = {
+  // pdim=2
+  { .list = {{ binop_cross_mul_1d_2d_ser_p0, binop_cross_mul_1d_2d_ser_p1, NULL, NULL },
+             { NULL, NULL, NULL, NULL },
+             { NULL, NULL, NULL, NULL },} },
+  // pdim=3
+  { .list = {{ binop_cross_mul_1d_3d_ser_p0, binop_cross_mul_1d_3d_ser_p1, NULL, NULL },
+             { NULL, NULL, NULL, NULL },
+             { NULL, NULL, NULL, NULL },} },
+  // pdim=4
+  { .list = {{ binop_cross_mul_1d_4d_ser_p0, binop_cross_mul_1d_4d_ser_p1, NULL, NULL },
+             { binop_cross_mul_2d_4d_ser_p0, binop_cross_mul_2d_4d_ser_p1, NULL, NULL },
+             { NULL, NULL, NULL, NULL },} },
+  // pdim=5
+  { .list = {{ NULL, NULL, NULL, NULL },
+             { binop_cross_mul_2d_5d_ser_p0, binop_cross_mul_2d_5d_ser_p1, NULL, NULL },
+             { binop_cross_mul_3d_5d_ser_p0, binop_cross_mul_3d_5d_ser_p1, NULL, NULL },} },
+  // pdim=6
+  { .list = {{ NULL, NULL, NULL, NULL },
+             { NULL, NULL, NULL, NULL },
+             { binop_cross_mul_3d_6d_ser_p0, binop_cross_mul_3d_6d_ser_p1, NULL, NULL },} },
+};
+
 // Hybrid basis multiplication kernels
 GKYL_CU_D
 static const mul_op_kern_list hyb_cross_mul_list[] = {
@@ -170,9 +194,9 @@ choose_mul_conf_phase_kern(enum gkyl_basis_type btype, int cdim, int vdim, int p
     case GKYL_BASIS_MODAL_GKHYBRID:
       return gkhyb_cross_mul_list[cdim-1].kernels[vdim-1];
       break;
-//    case GKYL_BASIS_MODAL_TENSOR:
-//      return tensor_cross_mul_list[pdim-2].list[cdim-1].kernels[poly_order];
-//      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      return ten_cross_mul_list[pdim-2].list[cdim-1].kernels[poly_order];
+      break;
     default:
       assert(false);
       break;

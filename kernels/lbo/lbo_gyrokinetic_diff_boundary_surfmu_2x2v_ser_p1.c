@@ -19,10 +19,10 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_boundary_surfmu_2x2v_ser_p1(const double 
 
   double facDiff[4]; 
   // Expand diffusion coefficient in conf basis.
-  facDiff[0] = (bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0])*m_; 
-  facDiff[1] = (bmag_inv[0]*nuVtSqSum[1]+nuVtSqSum[0]*bmag_inv[1])*m_; 
-  facDiff[2] = (bmag_inv[1]*nuVtSqSum[3]+bmag_inv[0]*nuVtSqSum[2])*m_; 
-  facDiff[3] = (bmag_inv[0]*nuVtSqSum[3]+bmag_inv[1]*nuVtSqSum[2])*m_; 
+  facDiff[0] = (bmag_inv[3]*nuVtSqSum[3]+bmag_inv[2]*nuVtSqSum[2]+bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0])*m_; 
+  facDiff[1] = (bmag_inv[2]*nuVtSqSum[3]+nuVtSqSum[2]*bmag_inv[3]+bmag_inv[0]*nuVtSqSum[1]+nuVtSqSum[0]*bmag_inv[1])*m_; 
+  facDiff[2] = (bmag_inv[1]*nuVtSqSum[3]+nuVtSqSum[1]*bmag_inv[3]+bmag_inv[0]*nuVtSqSum[2]+nuVtSqSum[0]*bmag_inv[2])*m_; 
+  facDiff[3] = (bmag_inv[0]*nuVtSqSum[3]+nuVtSqSum[0]*bmag_inv[3]+bmag_inv[1]*nuVtSqSum[2]+nuVtSqSum[1]*bmag_inv[2])*m_; 
 
   double bFacFskin[24] = {0.0}; 
   bFacFskin[4] = 0.8660254037844386*fskin[0]*dxv[3]; 

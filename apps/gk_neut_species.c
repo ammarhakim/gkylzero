@@ -61,24 +61,25 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
   gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
 
-  // allocate distribution function arrays
+  // allocate distribution function array for initialization and I/O
   s->f = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
-  s->f1 = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
-  s->fnew = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
 
   s->f_host = s->f;
   if (app->use_gpu)
     s->f_host = mkarr(false, app->neut_basis.num_basis, s->local_ext.volume);
 
-  // allocate cflrate (scalar array)
-  s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
-
-  if (app->use_gpu)
-    s->omega_cfl_ptr = gkyl_cu_malloc(sizeof(double));
-  else 
-    s->omega_cfl_ptr = gkyl_malloc(sizeof(double));
-
   if (!s->info.is_static) {
+    // allocate additional distribution function arrays for time stepping
+    s->f1 = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
+    s->fnew = mkarr(app->use_gpu, app->neut_basis.num_basis, s->local_ext.volume);
+    // allocate cflrate (scalar array)
+    s->cflrate = mkarr(app->use_gpu, 1, s->local_ext.volume);
+
+    if (app->use_gpu)
+      s->omega_cfl_ptr = gkyl_cu_malloc(sizeof(double));
+    else 
+      s->omega_cfl_ptr = gkyl_malloc(sizeof(double));
+
     // Need to figure out size of alpha_surf and sgn_alpha_surf by finding size of surface basis set 
     struct gkyl_basis surf_basis, surf_quad_basis;
     gkyl_cart_modal_serendip(&surf_basis, pdim-1, app->poly_order);
@@ -255,12 +256,12 @@ double
 gk_neut_species_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gkyl_array_clear(species->cflrate, 0.0);
-  gkyl_array_clear(rhs, 0.0);
-
   double omega_cfl = 1/DBL_MAX;
 
   if (!species->info.is_static) {
+    gkyl_array_clear(species->cflrate, 0.0);
+    gkyl_array_clear(rhs, 0.0);
+    
     gkyl_dg_updater_vlasov_advance(species->slvr, &species->local, 
       fin, species->cflrate, rhs);
 
@@ -370,9 +371,6 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
 {
   // release various arrays
   gkyl_array_release(s->f);
-  gkyl_array_release(s->f1);
-  gkyl_array_release(s->fnew);
-  gkyl_array_release(s->cflrate);
   gkyl_array_release(s->bc_buffer);
   if (app->cdim > 1) {
     gkyl_array_release(s->bc_buffer_lo_fixed);
@@ -386,6 +384,16 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
     gkyl_array_release(s->f_host);
 
   if (!s->info.is_static) {
+    gkyl_array_release(s->f1);
+    gkyl_array_release(s->fnew);
+    gkyl_array_release(s->cflrate);
+    if (app->use_gpu) {
+      gkyl_cu_free(s->omega_cfl_ptr);
+    }
+    else {
+      gkyl_free(s->omega_cfl_ptr);
+    }
+
     gkyl_array_release(s->alpha_surf);
     gkyl_array_release(s->sgn_alpha_surf);
     gkyl_array_release(s->const_sgn_alpha);
@@ -424,10 +432,6 @@ gk_neut_species_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_sp
   }
   
   if (app->use_gpu) {
-    gkyl_cu_free(s->omega_cfl_ptr);
     gkyl_cu_free(s->red_integ_diag);
-  }
-  else {
-    gkyl_free(s->omega_cfl_ptr);
   }
 }

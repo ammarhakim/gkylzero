@@ -63,13 +63,16 @@ struct burch_ctx
   double Te2; // Magnetosheath electron temperature (so that the system is in force balance).
 
   // Simulation parameters.
-  int Nx; // Cell count (x-direction);
+  int Nx; // Cell count (x-direction).
   int Ny; // Cell count (y-direction);
   double Lx; // Domain size (x-direction).
   double Ly; // Domain size (y-direction).
   double cfl_frac; // CFL coefficient.
+
   double t_end; // Final simulation time.
   int num_frames; // Number of output frames.
+  double dt_failure_tol; // Minimum allowable fraction of initial time-step.
+  int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
 struct burch_ctx
@@ -119,8 +122,11 @@ create_ctx(void)
   double Lx = 40.96 * di; // Domain size (x-direction).
   double Ly = 20.48 * di; // Domain size (y-direction).
   double cfl_frac = 1.0; // CFL coefficient.
+
   double t_end = 250.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
+  double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
+  int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
   struct burch_ctx ctx = {
     .pi = pi,
@@ -159,6 +165,8 @@ create_ctx(void)
     .cfl_frac = cfl_frac,
     .t_end = t_end,
     .num_frames = num_frames,
+    .dt_failure_tol = dt_failure_tol,
+    .num_failures_max = num_failures_max,
   };
 
   return ctx;
@@ -170,28 +178,28 @@ evalElcInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct burch_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double gas_gamma = app -> gas_gamma;
-  double mass_elc = app -> mass_elc;
-  double charge_elc = app -> charge_elc;
+  double gas_gamma = app->gas_gamma;
+  double mass_elc = app->mass_elc;
+  double charge_elc = app->charge_elc;
 
-  double omega0 = app -> omega0;
-  double psi0 = app -> psi0;
-  double guide1 = app -> guide1;
-  double guide2 = app -> guide2;
-  double b1 = app -> b1;
-  double b2 = app -> b2;
-  double n1 = app -> n1;
-  double Ti2 = app -> Ti2;
+  double omega0 = app->omega0;
+  double psi0 = app->psi0;
+  double guide1 = app->guide1;
+  double guide2 = app->guide2;
+  double b1 = app->b1;
+  double b2 = app->b2;
+  double n1 = app->n1;
+  double Ti2 = app->Ti2;
 
-  double Te1 = app -> Te1;
-  double Ti1 = app -> Ti1;
+  double Te1 = app->Te1;
+  double Ti1 = app->Ti1;
 
-  double Te2 = app -> Te2;
+  double Te2 = app->Te2;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double b1x = 0.5 * (b2 + b1) * (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0)
     + tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) + 0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
@@ -248,28 +256,28 @@ evalIonInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double x = xn[0], y = xn[1];
   struct burch_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double gas_gamma = app -> gas_gamma;
-  double mass_ion = app -> mass_ion;
-  double charge_ion = app -> charge_ion;
+  double gas_gamma = app->gas_gamma;
+  double mass_ion = app->mass_ion;
+  double charge_ion = app->charge_ion;
 
-  double omega0 = app -> omega0;
-  double psi0 = app -> psi0;
-  double guide1 = app -> guide1;
-  double guide2 = app -> guide2;
-  double b1 = app -> b1;
-  double b2 = app -> b2;
-  double n1 = app -> n1;
-  double Ti2 = app -> Ti2;
+  double omega0 = app->omega0;
+  double psi0 = app->psi0;
+  double guide1 = app->guide1;
+  double guide2 = app->guide2;
+  double b1 = app->b1;
+  double b2 = app->b2;
+  double n1 = app->n1;
+  double Ti2 = app->Ti2;
 
-  double Te1 = app -> Te1;
-  double Ti1 = app -> Ti1;
+  double Te1 = app->Te1;
+  double Ti1 = app->Ti1;
 
-  double Te2 = app -> Te2;
+  double Te2 = app->Te2;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double b1x = 0.5 * (b2 + b1) * (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0)
     + tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) + 0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
@@ -326,24 +334,24 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double x = xn[0], y = xn[1];
   struct burch_ctx *app = ctx;
 
-  double pi = app -> pi;
+  double pi = app->pi;
 
-  double omega0 = app -> omega0;
-  double psi0 = app -> psi0;
-  double guide1 = app -> guide1;
-  double guide2 = app -> guide2;
-  double b1 = app -> b1;
-  double b2 = app -> b2;
-  double n1 = app -> n1;
-  double Ti2 = app -> Ti2;
+  double omega0 = app->omega0;
+  double psi0 = app->psi0;
+  double guide1 = app->guide1;
+  double guide2 = app->guide2;
+  double b1 = app->b1;
+  double b2 = app->b2;
+  double n1 = app->n1;
+  double Ti2 = app->Ti2;
 
-  double Te1 = app -> Te1;
-  double Ti1 = app -> Ti1;
+  double Te1 = app->Te1;
+  double Ti1 = app->Ti1;
 
-  double Te2 = app -> Te2;
+  double Te2 = app->Te2;
 
-  double Lx = app -> Lx;
-  double Ly = app -> Ly;
+  double Lx = app->Lx;
+  double Ly = app->Ly;
 
   double b1x = 0.5 * (b2 + b1) * (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0)
     + tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) + 0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
@@ -370,10 +378,15 @@ evalFieldInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 }
 
 void
-write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr)
+write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
-    gkyl_moment_app_write(app, t_curr, iot -> curr - 1);
+    int frame = iot->curr - 1;
+    if (force_write) {
+      frame = iot->curr;
+    }
+
+    gkyl_moment_app_write(app, t_curr, frame);
   }
 }
 
@@ -524,7 +537,7 @@ main(int argc, char **argv)
 
     .has_low_inp = true,
     .low_inp = {
-      .local_range = decomp -> ranges[my_rank],
+      .local_range = decomp->ranges[my_rank],
       .comm = comm
     }
   };
@@ -541,10 +554,14 @@ main(int argc, char **argv)
 
   // Initialize simulation.
   gkyl_moment_app_apply_ic(app, t_curr);
-  write_data(&io_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
 
   // Compute estimate of maximum stable time-step.
   double dt = gkyl_moment_app_max_dt(app);
+
+  // Initialize small time-step check.
+  double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
+  int num_failures = 0, num_failures_max = ctx.num_failures_max;
 
   long step = 1;
   while ((t_curr < t_end) && (step <= app_args.num_steps)) {
@@ -560,12 +577,31 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    write_data(&io_trig, app, t_curr);
+    write_data(&io_trig, app, t_curr, false);
+
+    if (dt_init < 0.0) {
+      dt_init = status.dt_actual;
+    }
+    else if (status.dt_actual < dt_failure_tol * dt_init) {
+      num_failures += 1;
+
+      gkyl_moment_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
+      gkyl_moment_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
+      gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
+      if (num_failures >= num_failures_max) {
+        gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        break;
+      }
+    }
+    else {
+      num_failures = 0;
+    }
 
     step += 1;
   }
 
-  write_data(&io_trig, app, t_curr);
+  write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);

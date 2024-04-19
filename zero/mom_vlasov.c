@@ -54,6 +54,16 @@ gkyl_mom_vlasov_new(const struct gkyl_basis* cbasis,
       five_moments_kernels = ser_five_moments_kernels;
       break;
 
+    case GKYL_BASIS_MODAL_TENSOR:
+      m0_kernels = tensor_m0_kernels;
+      m1i_kernels = tensor_m1i_kernels;
+      m2_kernels = tensor_m2_kernels;
+      m2ij_kernels = tensor_m2ij_kernels;
+      m3i_kernels = tensor_m3i_kernels;
+      m3ijk_kernels = tensor_m3ijk_kernels;
+      five_moments_kernels = tensor_five_moments_kernels;
+      break;
+
     default:
       assert(false);
       break;    
@@ -155,6 +165,15 @@ gkyl_int_mom_vlasov_new(const struct gkyl_basis* cbasis, const struct gkyl_basis
       mom_vm->kernel = ser_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
 
       break;
+
+    case GKYL_BASIS_MODAL_TENSOR:
+      assert(cv_index[cdim].vdim[vdim] != -1);
+      assert(NULL != tensor_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+      
+      mom_vm->kernel = tensor_int_mom_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+
+      break;
+
 
     default:
       assert(false);

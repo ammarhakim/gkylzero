@@ -16,10 +16,10 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_surfmu_2x2v_ser_p1(const double *w, const
   double incr[24] = {0.0}; 
 
   double diffFac[4] = {0.}; 
-  diffFac[0] = bmag_inv[1]*nuVtSqSum[1]*m_+bmag_inv[0]*nuVtSqSum[0]*m_; 
-  diffFac[1] = bmag_inv[0]*nuVtSqSum[1]*m_+nuVtSqSum[0]*bmag_inv[1]*m_; 
-  diffFac[2] = bmag_inv[1]*nuVtSqSum[3]*m_+bmag_inv[0]*nuVtSqSum[2]*m_; 
-  diffFac[3] = bmag_inv[0]*nuVtSqSum[3]*m_+bmag_inv[1]*nuVtSqSum[2]*m_; 
+  diffFac[0] = bmag_inv[3]*nuVtSqSum[3]*m_+bmag_inv[2]*nuVtSqSum[2]*m_+bmag_inv[1]*nuVtSqSum[1]*m_+bmag_inv[0]*nuVtSqSum[0]*m_; 
+  diffFac[1] = bmag_inv[2]*nuVtSqSum[3]*m_+nuVtSqSum[2]*bmag_inv[3]*m_+bmag_inv[0]*nuVtSqSum[1]*m_+nuVtSqSum[0]*bmag_inv[1]*m_; 
+  diffFac[2] = bmag_inv[1]*nuVtSqSum[3]*m_+nuVtSqSum[1]*bmag_inv[3]*m_+bmag_inv[0]*nuVtSqSum[2]*m_+nuVtSqSum[0]*bmag_inv[2]*m_; 
+  diffFac[3] = bmag_inv[0]*nuVtSqSum[3]*m_+nuVtSqSum[0]*bmag_inv[3]*m_+bmag_inv[1]*nuVtSqSum[2]*m_+nuVtSqSum[1]*bmag_inv[2]*m_; 
 
   double f_xx[24] = {0.0}; 
   f_xx[0] = (-0.5412658773652741*w[3]*fr[4])-0.270632938682637*dxv[3]*fr[4]+0.5412658773652741*w[3]*fl[4]-0.270632938682637*dxv[3]*fl[4]-0.5412658773652741*dxv[3]*fc[4]+0.5625*fr[0]*w[3]+0.5625*fl[0]*w[3]-1.125*fc[0]*w[3]+0.28125*fr[0]*dxv[3]-0.28125*fl[0]*dxv[3]; 

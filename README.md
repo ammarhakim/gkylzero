@@ -204,6 +204,23 @@ or:
 ```
 ./build/ci/gk_regression_parallel
 ```
+or (for instance, for the moment app) with:
+```
+make build/ci/moment_regression
+```
+or, in parallel, with (note that the parallel regression system requires you to have
+built GkeyllZero using CUDA and MPI):
+```
+make cuda-build/ci/moment_regression_parallel
+```
+and then run with either:
+```
+./build/ci/moment_regression
+```
+or:
+```
+./cuda-build/ci/moment_regression_parallel
+```
 as necessary. By default, running the automatic regression testing system
 presents the user with an interactive list of numerical options (1 to run the
 full regression suite, 2 to view all regression results, 3 to run a specific
@@ -212,6 +229,7 @@ all accepted results, and 6 to (re)generate a specific accepted result).
 However, these options can also be passed in as command line arguments, so that:
 ```
 ./build/ci/gk_regression 3 4
+./build/ci/moment_regression 3 4
 ```
 will specifically run regression test number 4 in serial, with no additional
 interaction required from the user. The complete automatic CI framework can be
