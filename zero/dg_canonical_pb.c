@@ -132,7 +132,7 @@ gkyl_dg_canonical_pb_new(const struct gkyl_basis* cbasis, const struct gkyl_basi
 
 struct gkyl_dg_eqn*
 gkyl_dg_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct gkyl_basis* pbasis, 
- const struct gkyl_range* phase_range, bool use_gpu)
+ const struct gkyl_range* phase_range)
 {
   assert(false);
   return 0;
