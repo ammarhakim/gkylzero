@@ -128,7 +128,7 @@ gkyl_dg_canonical_pb_cu_dev_new(const struct gkyl_basis* cbasis, const struct gk
   dg_canonical_pb_set_cu_dev_ptrs<<<1,1>>>(canonical_pb_cu, cbasis->b_type, cdim, vdim, poly_order);
 
   // set parent on_dev pointer
-  canonical_pb->eqn.on_dev = &canonical_pb->eqn;
+  canonical_pb->eqn.on_dev = &canonical_pb_cu->eqn;
 
   return &canonical_pb->eqn;
 }
