@@ -81,7 +81,7 @@ static const struct gkyl_str_int_pair mhd_divb_type[] = {
 
 /** For manipulating gkyl_wv_eqn objects */
 
-// Lua userdata object for constructing field input
+// Lua userdata object for constructing wave equation objs
 struct wv_eqn_lw {
   int magic; // must be first
   struct gkyl_wv_eqn *eqn;
@@ -384,8 +384,24 @@ moment_species_lw_new(lua_State *L)
     has_eqn = true;
   }
 
-  if (!has_eqn)
+  if (has_eqn) {
+    // we need to store a reference to equation object in a global
+    // table as otherwise it gets garbage-collected while the
+    // simulation is being setup
+    lua_getfield(L, -1, "equation");
+    int eq_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    
+    lua_getglobal(L, "__moment_ref_table");
+    int eqtbl_len = glua_objlen(L);
+    lua_pushinteger(L, eqtbl_len+1);    
+    lua_rawgeti(L, LUA_REGISTRYINDEX, eq_ref);
+    lua_rawset(L, -3);
+
+    lua_pop(L, 1);
+  }
+  else {
     return luaL_error(L, "Species \"equation\" not specfied or incorrect type!");
+  }
 
   const char *lim_str = glua_tbl_get_string(L, "limiter", "monotonized-centered");
   mom_species.limiter = gkyl_search_str_int_pair_by_str(wave_limiter, lim_str, GKYL_MONOTONIZED_CENTERED);
@@ -612,11 +628,13 @@ static struct luaL_Reg mom_field_ctor[] = {
 struct moment_app_lw {
   gkyl_moment_app *app; // Moment app object
   
+  struct lua_func_ctx mapc2p_ctx;
+
   struct lua_func_ctx species_init_ctx[GKYL_MAX_SPECIES];
   struct lua_func_ctx species_app_accel_func_ctx[GKYL_MAX_SPECIES];
   struct lua_func_ctx species_nT_source_func_ctx[GKYL_MAX_SPECIES];
 
-  struct lua_func_ctx field_init_ctx; // function context for field
+  struct lua_func_ctx field_init_ctx; // function context for field IC
   struct lua_func_ctx field_app_current_ctx; // function context for applied current
   struct lua_func_ctx field_ext_em_ctx; // function context for external EM field
   
@@ -726,6 +744,27 @@ mom_app_new(lua_State *L)
         // indexes are off by 1 between Lua and C
         mom.periodic_dirs[d] = glua_tbl_iget_integer(L, d+1, 0)-1;
     }
+  }
+
+  // mapc2p
+  mom.c2p_ctx = 0;
+  mom.mapc2p = 0;
+  bool has_mapc2p = false;
+  int mapc2p_ref = LUA_NOREF;
+  if (glua_tbl_get_func(L, "mapc2p")) {
+    has_mapc2p = true;
+    mapc2p_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+  }
+
+  if (has_mapc2p) {
+    app_lw->mapc2p_ctx = (struct lua_func_ctx) {
+      .func_ref = mapc2p_ref,
+      .ndim = cdim,
+      .nret = cdim,
+      .L = L,
+    };
+    mom.mapc2p = gkyl_lw_eval_cb;
+    mom.c2p_ctx = &app_lw->mapc2p_ctx;
   }
 
   struct moment_species_lw *species[GKYL_MAX_SPECIES];
@@ -1410,6 +1449,14 @@ app_openlibs(lua_State *L)
   do {
     luaL_newmetatable(L, MOMENT_FIELD_METATABLE_NM);
     luaL_register(L, "G0.Moments.Field", mom_field_ctor);
+  } while (0);
+
+  // add globals and other parameters
+  do {
+    // table to store references so the objects do not get garbage
+    // collected
+    lua_newtable(L);
+    lua_setglobal(L, "__moment_ref_table");
   } while (0);
 }
 
