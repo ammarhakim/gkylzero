@@ -42,7 +42,9 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     }
     double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
     double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : bmag_mid_ptr[0];
-    gkyl_array_release(bmag_mid_host);
+    if (app->use_gpu)
+      gkyl_array_release(bmag_mid_host);
+    printf("in lbo bmag mid = %g\n", bmag_mid);
     double tpar_min = (s->info.mass/6.0)*pow(s->grid.dx[cdim],2);
     double tperp_min = vdim>1 ? (bmag_mid/3.0)*s->grid.dx[cdim+1] : tpar_min;
     lbo->vtsq_min = (tpar_min + 2.0*tperp_min)/(3.0*s->info.mass);
@@ -127,7 +129,9 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       }
       double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
       double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : bmag_mid_ptr[0];
-      gkyl_array_release(bmag_mid_host);
+      if (app->use_gpu)
+        gkyl_array_release(bmag_mid_host);
+      printf("in lbo cross bmag mid = %g\n", bmag_mid);
       lbo->cross_nu_fac[i] = nuFrac*gkyl_calc_norm_nu(s->info.collisions.n_ref, lbo->collide_with[i]->info.collisions.n_ref, s->info.mass, lbo->collide_with[i]->info.mass, s->info.charge, lbo->collide_with[i]->info.charge, s->info.collisions.T_ref, lbo->collide_with[i]->info.collisions.T_ref, bmag_mid, eps0, hbar, eV);
     }
     lbo->other_m[i] = lbo->collide_with[i]->info.mass;

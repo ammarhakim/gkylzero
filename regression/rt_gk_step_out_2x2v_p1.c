@@ -509,7 +509,6 @@ main(int argc, char **argv)
       .nuFrac = ctx.nuFrac,
       .n_ref = ctx.n0,
       .T_ref = ctx.Te,
-      .bmag_mid = 2.51,
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .num_cross_collisions = 2,
@@ -612,7 +611,6 @@ main(int argc, char **argv)
       .nuFrac = ctx.nuFrac,
       .n_ref = ctx.n0,
       .T_ref = ctx.Ti,
-      .bmag_mid = 2.51,
       .self_nu = evalNuIon,
       .num_cross_collisions = 2,
       .collide_with = { "elc", "Ar1" },
@@ -676,7 +674,6 @@ main(int argc, char **argv)
       .nuFrac = ctx.nuFrac,
       .n_ref = ctx.n0Ar,
       .T_ref = ctx.TAr,
-      .bmag_mid = 2.51,
       .ctx = &ctx,
       .self_nu = evalNuIon,
       .num_cross_collisions = 2,
@@ -758,7 +755,6 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, 
                     .up_type = {GKYL_POISSON_DIRICHLET}, 

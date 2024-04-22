@@ -62,7 +62,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
     }
     double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
     double bmag_fac = f->info.bmag_fac ? f->info.bmag_fac : bmag_mid_ptr[0];
-    gkyl_array_release(bmag_mid_host);
+    if (app->use_gpu)
+      gkyl_array_release(bmag_mid_host);
+    printf("in field bmag mid = %g\n", bmag_fac);
     // Linearized polarization density
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
