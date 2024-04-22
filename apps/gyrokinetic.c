@@ -309,9 +309,6 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
     bcast_rank = comm_sz%2 == 0 ? comm_sz/2 - 1 : comm_sz/2;
   gkyl_comm_array_bcast_host(app->comm, app->gk_geom->bmag_mid, app->gk_geom->bmag_mid, bcast_rank);
   
-  double *bmid = gkyl_array_fetch(app->gk_geom->bmag_mid,0);
-  printf("bmag mid = %g\n", bmid[0]);
-
   // If we are on the gpu, copy from host
   if (app->use_gpu) {
     struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, app->use_gpu);
