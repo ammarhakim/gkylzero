@@ -407,7 +407,6 @@ main(int argc, char **argv)
     .electron_mass = ctx.mass,
     .electron_charge = ctx.charge,
     .electron_temp = ctx.vt*ctx.vt*ctx.mass,
-    .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
   };
 

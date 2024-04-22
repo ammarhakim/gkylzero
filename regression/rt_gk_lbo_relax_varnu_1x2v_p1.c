@@ -377,7 +377,6 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
-      .bmag_mid = ctx.B0,
       .n_ref = ctx.n0,
       .T_ref = ctx.vt*ctx.vt*ctx.mass,
       .hbar = 1.0,
@@ -409,7 +408,6 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
-      .bmag_mid = ctx.B0,
       .n_ref = ctx.n0,
       .T_ref = ctx.vt*ctx.vt*ctx.mass,
       .hbar = 1.0,
@@ -430,7 +428,6 @@ main(int argc, char **argv)
     .electron_mass = ctx.mass,
     .electron_charge = ctx.charge,
     .electron_temp = ctx.vt*ctx.vt*ctx.mass,
-    .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
   };
 

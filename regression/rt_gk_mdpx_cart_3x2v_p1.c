@@ -434,11 +434,8 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
-      .self_nu_fac = norm_nu_func(ctx.nuFrac, ctx.n0, ctx.n0, ctx.massElc, ctx.massElc, ctx.chargeElc, ctx.chargeElc, ctx.Te, ctx.Te),
-      .cross_nu_fac = {
-        norm_nu_func(ctx.nuFrac, ctx.n0, ctx.n0, ctx.massElc, ctx.massAr, ctx.chargeElc, ctx.chargeIon, ctx.Te, ctx.TAr)
-      },
-      .bmag_mid = ctx.B0,
+      .n_ref = ctx.n0,
+      .T_ref = ctx.Te,
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .num_cross_collisions = 1,
@@ -511,11 +508,8 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
-      .self_nu_fac = norm_nu_func(ctx.nuFrac, ctx.n0, ctx.n0, ctx.massAr, ctx.massAr, ctx.chargeIon, ctx.chargeIon, ctx.TAr, ctx.TAr),
-      .cross_nu_fac = {
-        norm_nu_func(ctx.nuFrac, ctx.n0, ctx.n0, ctx.massAr, ctx.massElc, ctx.chargeIon, ctx.chargeElc, ctx.TAr, ctx.Te), 
-      },
-      .bmag_mid = ctx.B0,
+      .n_ref = ctx.n0,
+      .T_ref = ctx.TAr,
       .ctx = &ctx,
       .self_nu = evalNuIon,
       .num_cross_collisions = 1,
@@ -595,7 +589,6 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
     .poisson_bcs = {
       .lo_type = { GKYL_POISSON_DIRICHLET, GKYL_POISSON_DIRICHLET },
