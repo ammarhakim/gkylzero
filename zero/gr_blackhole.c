@@ -203,7 +203,36 @@ static void
 blackhole_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double*** spacetime_inv_metric_tensor)
 {
-  blackhole_spacetime_metric_tensor(spacetime, t, x, y, z, spacetime_inv_metric_tensor);
+  double** spatial_metric = malloc(sizeof(double*) * 3);
+  double** inv_spatial_metric = malloc(sizeof(double*) * 3);
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = malloc(sizeof(double) * 3);
+    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+  }
+
+  blackhole_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
+  blackhole_spatial_inv_metric_tensor(spacetime, t, x, y, z, &inv_spatial_metric);
+
+  double lapse_function;
+  double* shift_vector = malloc(sizeof(double) * 3);
+  blackhole_lapse_function(spacetime, t, x, y, z, &lapse_function);
+  blackhole_shift_vector(spacetime, t, x, y, z, &shift_vector);
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      (*spacetime_inv_metric_tensor)[i][j] = 0.0;
+    }
+  }
+
+  (*spacetime_inv_metric_tensor)[0][0] = -1.0 / (lapse_function * lapse_function);
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      (*spacetime_inv_metric_tensor)[0][i + 1] += (spatial_metric[i][j] * shift_vector[j]) / (lapse_function * lapse_function);
+      (*spacetime_inv_metric_tensor)[i + 1][0] += (spatial_metric[i][j] * shift_vector[j]) / (lapse_function * lapse_function);
+
+      (*spacetime_inv_metric_tensor)[i][j] = inv_spatial_metric[i][j] - (shift_vector[i] * shift_vector[j]) / (lapse_function * lapse_function);
+    }
+  }
 }
 
 static void
@@ -226,18 +255,51 @@ static void
 blackhole_spacetime_metric_det(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double* spacetime_metric_det)
 {
-  *spacetime_metric_det = -1.0;
+  double spatial_metric_det;
+  double lapse_function;
+  blackhole_spatial_metric_det(spacetime, t, x, y, z, &spatial_metric_det);
+  blackhole_lapse_function(spacetime, t, x, y, z, &lapse_function);
+
+  *spacetime_metric_det = - (lapse_function * lapse_function) * spatial_metric_det;
 }
 
 static void
 blackhole_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
    const double dx, const double dy, const double dz, double**** spatial_metric_tensor_der)
 {
+  double** spatial_metric_x_forward = malloc(sizeof(double*) * 3);
+  double** spatial_metric_y_forward = malloc(sizeof(double*) * 3);
+  double** spatial_metric_z_forward = malloc(sizeof(double*) * 3);
+
+  double** spatial_metric_x_backward = malloc(sizeof(double*) * 3);
+  double** spatial_metric_y_backward = malloc(sizeof(double*) * 3);
+  double** spatial_metric_z_backward = malloc(sizeof(double*) * 3);
+
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        (*spatial_metric_tensor_der)[i][j][k] = 0.0;
-      }
+      spatial_metric_x_forward = malloc(sizeof(double) * 3);
+      spatial_metric_y_forward = malloc(sizeof(double) * 3);
+      spatial_metric_z_forward = malloc(sizeof(double) * 3);
+
+      spatial_metric_x_backward = malloc(sizeof(double) * 3);
+      spatial_metric_y_backward = malloc(sizeof(double) * 3);
+      spatial_metric_z_backward = malloc(sizeof(double) * 3);
+    }
+  }
+
+  blackhole_spatial_metric_tensor(spacetime, t, x + (0.5 * dx), y, z, &spatial_metric_x_forward);
+  blackhole_spatial_metric_tensor(spacetime, t, x, y + (0.5 * dy), z, &spatial_metric_y_forward);
+  blackhole_spatial_metric_tensor(spacetime, t, x, y, z + (0.5 * dz), &spatial_metric_z_forward);
+
+  blackhole_spatial_metric_tensor(spacetime, t, x - (0.5 * dx), y, z, &spatial_metric_x_backward);
+  blackhole_spatial_metric_tensor(spacetime, t, x, y - (0.5 * dy), z, &spatial_metric_y_backward);
+  blackhole_spatial_metric_tensor(spacetime, t, x, y, z - (0.5 * dz), &spatial_metric_z_backward);
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      (*spatial_metric_tensor_der)[0][i][j] = (1.0 / dx) * (spatial_metric_x_forward[i][j] - spatial_metric_x_backward[i][j]);
+      (*spatial_metric_tensor_der)[1][i][j] = (1.0 / dy) * (spatial_metric_y_forward[i][j] - spatial_metric_y_backward[i][j]);
+      (*spatial_metric_tensor_der)[2][i][j] = (1.0 / dz) * (spatial_metric_z_forward[i][j] - spatial_metric_z_backward[i][j]);
     }
   }
 }
@@ -246,11 +308,46 @@ static void
 blackhole_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double**** spacetime_metric_tensor_der)
 {
+  double** spacetime_metric_t_forward = malloc(sizeof(double*) * 4);
+  double** spacetime_metric_x_forward = malloc(sizeof(double*) * 4);
+  double** spacetime_metric_y_forward = malloc(sizeof(double*) * 4);
+  double** spacetime_metric_z_forward = malloc(sizeof(double*) * 4);
+
+  double** spacetime_metric_t_backward = malloc(sizeof(double*) * 4);
+  double** spacetime_metric_x_backward = malloc(sizeof(double*) * 4);
+  double** spacetime_metric_y_backward = malloc(sizeof(double*) * 4);
+  double** spacetime_metric_z_backward = malloc(sizeof(double*) * 4);
+
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      for (int k = 0; k < 4; k++) {
-        (*spacetime_metric_tensor_der)[i][j][k] = 0.0;
-      }
+      spacetime_metric_t_forward = malloc(sizeof(double) * 4);
+      spacetime_metric_x_forward = malloc(sizeof(double) * 4);
+      spacetime_metric_y_forward = malloc(sizeof(double) * 4);
+      spacetime_metric_z_forward = malloc(sizeof(double) * 4);
+      
+      spacetime_metric_t_backward = malloc(sizeof(double) * 4);
+      spacetime_metric_x_backward = malloc(sizeof(double) * 4);
+      spacetime_metric_y_backward = malloc(sizeof(double) * 4);
+      spacetime_metric_z_backward = malloc(sizeof(double) * 4);
+    }
+  }
+
+  blackhole_spacetime_metric_tensor(spacetime, t + (0.5 * dt), x, y, z, &spacetime_metric_t_forward);
+  blackhole_spacetime_metric_tensor(spacetime, t, x + (0.5 * dx), y, z, &spacetime_metric_x_forward);
+  blackhole_spacetime_metric_tensor(spacetime, t, x, y + (0.5 * dy), z, &spacetime_metric_y_forward);
+  blackhole_spacetime_metric_tensor(spacetime, t, x, y, z + (0.5 * dz), &spacetime_metric_z_forward);
+
+  blackhole_spacetime_metric_tensor(spacetime, t - (0.5 * dt), x, y, z, &spacetime_metric_t_backward);
+  blackhole_spacetime_metric_tensor(spacetime, t, x - (0.5 * dx), y, z, &spacetime_metric_x_backward);
+  blackhole_spacetime_metric_tensor(spacetime, t, x, y - (0.5 * dy), z, &spacetime_metric_y_backward);
+  blackhole_spacetime_metric_tensor(spacetime, t, x, y, z - (0.5 * dz), &spacetime_metric_z_backward);
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      (*spacetime_metric_tensor_der)[0][i][j] = (1.0 / dt) * (spacetime_metric_t_forward[i][j] - spacetime_metric_t_backward[i][j]);
+      (*spacetime_metric_tensor_der)[1][i][j] = (1.0 / dx) * (spacetime_metric_x_forward[i][j] - spacetime_metric_x_backward[i][j]);
+      (*spacetime_metric_tensor_der)[2][i][j] = (1.0 / dy) * (spacetime_metric_y_forward[i][j] - spacetime_metric_y_backward[i][j]);
+      (*spacetime_metric_tensor_der)[3][i][j] = (1.0 / dz) * (spacetime_metric_z_forward[i][j] - spacetime_metric_z_backward[i][j]);
     }
   }
 }
@@ -280,19 +377,51 @@ static void
 blackhole_lapse_function_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double** lapse_function_der)
 {
-  for (int i = 0; i < 3; i++) {
-    (*lapse_function_der)[i] = 0.0;
-  }
+  double lapse_function_x_forward;
+  double lapse_function_y_forward;
+  double lapse_function_z_forward;
+
+  double lapse_function_x_backward;
+  double lapse_function_y_backward;
+  double lapse_function_z_backward;
+
+  blackhole_lapse_function(spacetime, t, x + (0.5 * dx), y, z, &lapse_function_x_forward);
+  blackhole_lapse_function(spacetime, t, x, y + (0.5 * dy), z, &lapse_function_y_forward);
+  blackhole_lapse_function(spacetime, t, x, y, z + (0.5 * dz), &lapse_function_z_forward);
+
+  blackhole_lapse_function(spacetime, t, x - (0.5 * dx), y, z, &lapse_function_x_backward);
+  blackhole_lapse_function(spacetime, t, x, y - (0.5 * dy), z, &lapse_function_y_backward);
+  blackhole_lapse_function(spacetime, t, x, y, z - (0.5 * dz), &lapse_function_z_backward);
+
+  (*lapse_function_der)[0] = (1.0 / dx) * (lapse_function_x_forward - lapse_function_x_backward);
+  (*lapse_function_der)[1] = (1.0 / dy) * (lapse_function_y_forward - lapse_function_y_backward);
+  (*lapse_function_der)[2] = (1.0 / dz) * (lapse_function_z_forward - lapse_function_z_backward);
 }
 
 static void
 blackhole_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** shift_vector_der)
 {
+  double* shift_vector_x_forward = malloc(sizeof(double) * 3);
+  double* shift_vector_y_forward = malloc(sizeof(double) * 3);
+  double* shift_vector_z_forward = malloc(sizeof(double) * 3);
+  
+  double* shift_vector_x_backward = malloc(sizeof(double) * 3);
+  double* shift_vector_y_backward = malloc(sizeof(double) * 3);
+  double* shift_vector_z_backward = malloc(sizeof(double) * 3);
+
+  blackhole_shift_vector(spacetime, t, x + (0.5 * dx), y, z, &shift_vector_x_forward);
+  blackhole_shift_vector(spacetime, t, x, y + (0.5 * dy), z, &shift_vector_y_forward);
+  blackhole_shift_vector(spacetime, t, x, y, z + (0.5 * dz), &shift_vector_z_forward);
+
+  blackhole_shift_vector(spacetime, t, x - (0.5 * dx), y, z, &shift_vector_x_backward);
+  blackhole_shift_vector(spacetime, t, x, y - (0.5 * dy), z, &shift_vector_y_backward);
+  blackhole_shift_vector(spacetime, t, x, y, z - (0.5 * dz), &shift_vector_z_backward);
+  
   for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      (*shift_vector_der)[i][j] = 0.0;
-    }
+    (*shift_vector_der)[0][i] = (1.0 / dx) * (shift_vector_x_forward[i] - shift_vector_x_backward[i]);
+    (*shift_vector_der)[1][i] = (1.0 / dy) * (shift_vector_y_forward[i] - shift_vector_y_backward[i]);
+    (*shift_vector_der)[2][i] = (1.0 / dz) * (shift_vector_z_forward[i] - shift_vector_z_backward[i]);
   }
 }
 
