@@ -37,7 +37,7 @@ gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
  *    X_LL2, Y_LL2, Z_LL2, X_RR2, Y_RR2, Z_RR2,
  *    X_LL3, Y_LL3, Z_LL3, X_RR3, Y_RR3, Z_RR3
  *    where L#/R# indicates a node shifted to the left/right by epsilon in coordinate #
- *    and LL#/R# indicates a node shifted to the left/right by 2 epsilon in coordinate #
+ *    and LL#/RR# indicates a node shifted to the left/right by 2 epsilon in coordinate #
  * @param gFld output field where metric modal coefficients will be placed
  * @param tanvecFld output field where tangent vector modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
