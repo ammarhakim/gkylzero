@@ -53,23 +53,29 @@ struct gkyl_positivity_shift_gyrokinetic {
 };
 
 #ifdef GKYL_HAVE_CUDA
+// Declaration of cuda device functions.
+
 void pos_shift_gk_choose_shift_kernel_cu(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  int cdim, struct gkyl_basis pbasis);
+  struct gkyl_basis pbasis);
+
+void gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* up,
+  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
+  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT mom);
 #endif
 
 GKYL_CU_D
-void pos_shift_gk_choose_shift_kernel(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  int cdim, struct gkyl_basis pbasis, bool use_gpu)
+static void pos_shift_gk_choose_shift_kernel(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
+  struct gkyl_basis pbasis, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    pos_shift_gk_choose_shift_kernel_cu(kernels, cdim, pbasis);
+  if (use_gpu) {
+    pos_shift_gk_choose_shift_kernel_cu(kernels, pbasis);
     return;
   }
 #endif
-  int pdim = pbasis.ndim;
 
   enum gkyl_basis_type basis_type = pbasis.b_type;
+  int pdim = pbasis.ndim;
   int poly_order = pbasis.poly_order;
 
   switch (basis_type) {

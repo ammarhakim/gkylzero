@@ -36,7 +36,7 @@ gkyl_positivity_shift_gyrokinetic_new(int cdim, struct gkyl_basis pbasis, struct
 #endif
 
   // Choose kernels that shift f and compute int moms of Deltaf.
-  pos_shift_gk_choose_shift_kernel(up->kernels, cdim, pbasis, use_gpu);
+  pos_shift_gk_choose_shift_kernel(up->kernels, pbasis, use_gpu);
 
   return up;
 }
