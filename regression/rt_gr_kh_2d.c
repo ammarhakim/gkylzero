@@ -81,7 +81,7 @@ create_ctx(void)
   int Ny = 64; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Ly = 0.5; // Domain size (y-direction).
-  double cfl_frac = 0.95; // CFL coefficient.
+  double cfl_frac = 0.5; // CFL coefficient.
 
   double t_end = 5.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -160,17 +160,17 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   }
 
   double spatial_det, lapse;
-  double *shift = malloc(sizeof(double) * 3);
+  double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
 
-  double **spatial_metric = malloc(sizeof(double*) * 3);
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = malloc(sizeof(double) * 3);
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  double **inv_spatial_metric = malloc(sizeof(double*) * 3);
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_det);
@@ -181,7 +181,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
   spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
 
-  double *vel = malloc(sizeof(double) * 3);
+  double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
   vel[0] = u; vel[1] = v; vel[2] = 0.0;
 
@@ -276,7 +276,7 @@ main(int argc, char **argv)
     &(struct gkyl_wv_gr_euler_inp) {
         .gas_gamma = ctx.gas_gamma,
         .spacetime = ctx.spacetime,
-        .rp_type = WV_GR_EULER_RP_LAX,
+        .rp_type = WV_GR_EULER_RP_ROE,
         .use_gpu = app_args.use_gpu,
     }
   );

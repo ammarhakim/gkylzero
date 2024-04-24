@@ -15,18 +15,18 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29])
   double shift_y = q[8];
   double shift_z = q[9];
 
-  double **spatial_metric = malloc(sizeof(double*) * 3);
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = malloc(sizeof(double) * 3);
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   spatial_metric[0][0] = q[10]; spatial_metric[0][1] = q[11]; spatial_metric[0][2] = q[12];
   spatial_metric[1][0] = q[13]; spatial_metric[1][1] = q[14]; spatial_metric[1][2] = q[15];
   spatial_metric[2][0] = q[16]; spatial_metric[2][1] = q[17]; spatial_metric[2][2] = q[18];
   
-  double **inv_spatial_metric = malloc(sizeof(double*) * 3);
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   inv_spatial_metric[0][0] = q[19]; inv_spatial_metric[0][1] = q[20]; inv_spatial_metric[0][2] = q[21];
@@ -134,18 +134,18 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29])
   double shift_y = v[8];
   double shift_z = v[9];
 
-  double **spatial_metric = malloc(sizeof(double*) * 3);
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = malloc(sizeof(double) * 3);
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   spatial_metric[0][0] = v[10]; spatial_metric[0][1] = v[11]; spatial_metric[0][2] = v[12];
   spatial_metric[1][0] = v[13]; spatial_metric[1][1] = v[14]; spatial_metric[1][2] = v[15];
   spatial_metric[2][0] = v[16]; spatial_metric[2][1] = v[17]; spatial_metric[2][2] = v[18];
 
-  double **inv_spatial_metric = malloc(sizeof(double*) * 3);
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   inv_spatial_metric[0][0] = v[19]; inv_spatial_metric[0][1] = v[20]; inv_spatial_metric[0][2] = v[21];
@@ -183,7 +183,7 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29])
 
   if (!in_excision_region) {
     if (curved_spacetime) {
-      double *vel = malloc(sizeof(double) * 3);
+      double *vel = gkyl_malloc(sizeof(double[3]));
       double v_sq = 0.0;
       vel[0] = vx; vel[1] = vy; vel[2] = vz;
 
@@ -193,12 +193,12 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29])
         }
       }
 
-      double *shift = malloc(sizeof(double) * 3);
+      double *shift = gkyl_malloc(sizeof(double[3]));
       shift[0] = shift_x; shift[1] = shift_y; shift[2] = shift_z;
 
-      double *material_eigs = malloc(sizeof(double) * 3);
-      double *fast_acoustic_eigs = malloc(sizeof(double) * 3);
-      double *slow_acoustic_eigs = malloc(sizeof(double) * 3);
+      double *material_eigs = gkyl_malloc(sizeof(double[3]));
+      double *fast_acoustic_eigs = gkyl_malloc(sizeof(double[3]));
+      double *slow_acoustic_eigs = gkyl_malloc(sizeof(double[3]));
 
       for (int i = 0; i < 3; i++) {
         material_eigs[i] = (lapse * vel[i]) - shift[i];
@@ -253,18 +253,18 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[29], double flux[29])
   double shift_y = v[8];
   double shift_z = v[9];
 
-  double **spatial_metric = malloc(sizeof(double*) * 3);
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = malloc(sizeof(double) * 3);
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   spatial_metric[0][0] = v[10]; spatial_metric[0][1] = v[11]; spatial_metric[0][2] = v[12];
   spatial_metric[1][0] = v[13]; spatial_metric[1][1] = v[14]; spatial_metric[1][2] = v[15];
   spatial_metric[2][0] = v[16]; spatial_metric[2][1] = v[17]; spatial_metric[2][2] = v[18];
 
-  double **inv_spatial_metric = malloc(sizeof(double*) * 3);
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   inv_spatial_metric[0][0] = v[19]; inv_spatial_metric[0][1] = v[20]; inv_spatial_metric[0][2] = v[21];
@@ -277,7 +277,7 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[29], double flux[29])
   }
 
   if (!in_excision_region) {
-    double *vel = malloc(sizeof(double) * 3);
+    double *vel = gkyl_malloc(sizeof(double[3]));
     double v_sq = 0.0;
     vel[0] = vx; vel[1] = vy; vel[2] = vz;
 
@@ -615,18 +615,18 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double shift_y_l = vl[8];
   double shift_z_l = vl[9];
 
-  double **spatial_metric_l = malloc(sizeof(double*) * 3);
+  double **spatial_metric_l = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric_l[i] = malloc(sizeof(double) * 3);
+    spatial_metric_l[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   spatial_metric_l[0][0] = vl[10]; spatial_metric_l[0][1] = vl[11]; spatial_metric_l[0][2] = vl[12];
   spatial_metric_l[1][0] = vl[13]; spatial_metric_l[1][1] = vl[14]; spatial_metric_l[1][2] = vl[15];
   spatial_metric_l[2][0] = vl[16]; spatial_metric_l[2][1] = vl[17]; spatial_metric_l[2][2] = vl[18];
 
-  double **inv_spatial_metric_l = malloc(sizeof(double*) * 3);
+  double **inv_spatial_metric_l = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    inv_spatial_metric_l[i] = malloc(sizeof(double) * 3);
+    inv_spatial_metric_l[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   inv_spatial_metric_l[0][0] = vl[19]; inv_spatial_metric_l[0][1] = vl[20]; inv_spatial_metric_l[0][2] = vl[21];
@@ -650,18 +650,18 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double shift_y_r = vr[8];
   double shift_z_r = vr[9];
 
-  double **spatial_metric_r = malloc(sizeof(double*) * 3);
+  double **spatial_metric_r = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric_r[i] = malloc(sizeof(double) * 3);
+    spatial_metric_r[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   spatial_metric_r[0][0] = vr[10]; spatial_metric_r[0][1] = vr[11]; spatial_metric_r[0][2] = vr[12];
   spatial_metric_r[1][0] = vr[13]; spatial_metric_r[1][1] = vr[14]; spatial_metric_r[1][2] = vr[15];
   spatial_metric_r[2][0] = vr[16]; spatial_metric_r[2][1] = vr[17]; spatial_metric_r[2][2] = vr[18];
 
-  double **inv_spatial_metric_r = malloc(sizeof(double*) * 3);
+  double **inv_spatial_metric_r = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    inv_spatial_metric_r[i] = malloc(sizeof(double) * 3);
+    inv_spatial_metric_r[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   inv_spatial_metric_r[0][0] = vr[19]; inv_spatial_metric_r[0][1] = vr[20]; inv_spatial_metric_r[0][2] = vr[21];
@@ -673,7 +673,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     in_excision_region_r = true;
   }
 
-  double *vel_l = malloc(sizeof(double) * 3);
+  double *vel_l = gkyl_malloc(sizeof(double[3]));
   double v_sq_l = 0.0;
   vel_l[0] = vx_l; vel_l[1] = vy_l; vel_l[2] = vz_l;
 
@@ -688,7 +688,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     W_l = 1.0 / sqrt(pow(10.0, -8.0));
   }
 
-  double *vel_r = malloc(sizeof(double) * 3);
+  double *vel_r = gkyl_malloc(sizeof(double[3]));
   double v_sq_r = 0.0;
   vel_r[0] = vx_r; vel_r[1] = vy_r; vel_r[2] = vz_r;
 
@@ -703,8 +703,8 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     W_r = 1.0 / sqrt(pow(10.0, -8.0));
   }
 
-  double *shift_l = malloc(sizeof(double) * 3);
-  double *coshift_l = malloc(sizeof(double) * 3);
+  double *shift_l = gkyl_malloc(sizeof(double[3]));
+  double *coshift_l = gkyl_malloc(sizeof(double[3]));
   shift_l[0] = shift_x_l; shift_l[1] = shift_y_l; shift_l[2] = shift_z_l;
   coshift_l[0] = 0.0; coshift_l[1] = 0.0; coshift_l[2] = 0.0;
 
@@ -714,9 +714,9 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     }
   }
 
-  double **spacetime_metric_l = malloc(sizeof(double*) * 4);
+  double **spacetime_metric_l = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
-    spacetime_metric_l[i] = malloc(sizeof(double) * 4);
+    spacetime_metric_l[i] = gkyl_malloc(sizeof(double[4]));
 
     for (int j = 0; j < 4; j++) {
       spacetime_metric_l[i][j] = 0.0;
@@ -737,9 +737,9 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     }
   }
 
-  double **inv_spacetime_metric_l = malloc(sizeof(double*) * 4);
+  double **inv_spacetime_metric_l = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
-    inv_spacetime_metric_l[i] = malloc(sizeof(double) * 4);
+    inv_spacetime_metric_l[i] = gkyl_malloc(sizeof(double[4]));
 
     for (int j = 0; j < 4; j++) {
       inv_spacetime_metric_l[i][j] = 0.0;
@@ -756,8 +756,8 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     }
   }
 
-  double *shift_r = malloc(sizeof(double) * 3);
-  double *coshift_r = malloc(sizeof(double) * 3);
+  double *shift_r = gkyl_malloc(sizeof(double[3]));
+  double *coshift_r = gkyl_malloc(sizeof(double[3]));
   shift_r[0] = shift_x_r; shift_r[1] = shift_y_r; shift_r[2] = shift_z_r;
   coshift_r[0] = 0.0; coshift_r[1] = 0.0; coshift_r[2] = 0.0;
 
@@ -767,9 +767,9 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     }
   }
 
-  double **spacetime_metric_r = malloc(sizeof(double*) * 4);
+  double **spacetime_metric_r = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
-    spacetime_metric_r[i] = malloc(sizeof(double) * 4);
+    spacetime_metric_r[i] = gkyl_malloc(sizeof(double[4]));
 
     for (int j = 0; j < 4; j++) {
       spacetime_metric_r[i][j] = 0.0;
@@ -790,9 +790,9 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     }
   }
 
-  double **inv_spacetime_metric_r = malloc(sizeof(double*) * 4);
+  double **inv_spacetime_metric_r = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
-    inv_spacetime_metric_r[i] = malloc(sizeof(double) * 4);
+    inv_spacetime_metric_r[i] = gkyl_malloc(sizeof(double[4]));
 
     for (int j = 0; j < 4; j++) {
       inv_spacetime_metric_r[i][j] = 0.0;
@@ -809,7 +809,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     }
   }
 
-  double* delta_mod = malloc(sizeof(double) * 5);
+  double* delta_mod = gkyl_malloc(sizeof(double[5]));
   delta_mod[0] = delta[0];
   delta_mod[1] = delta[4];
   delta_mod[2] = delta[1];
@@ -834,9 +834,9 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double c_minus = 1.0 - (gas_gamma / (gas_gamma - 1.0)) * v4;
   double c_plus = 1.0 + (gas_gamma / (gas_gamma - 1.0)) * v4;
 
-  double **spacetime_metric_avg = malloc(sizeof(double*) * 4);
+  double **spacetime_metric_avg = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
-    spacetime_metric_avg[i] = malloc(sizeof(double) * 4);
+    spacetime_metric_avg[i] = gkyl_malloc(sizeof(double[4]));
   }
 
   for (int i = 0; i < 4; i++) {
@@ -845,8 +845,8 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     }
   }
 
-  double *v_vect = malloc(sizeof(double) * 4);
-  double *v_covect = malloc(sizeof(double) * 4);
+  double *v_vect = gkyl_malloc(sizeof(double[4]));
+  double *v_covect = gkyl_malloc(sizeof(double[4]));
   v_vect[0] = v0; v_vect[1] = v1; v_vect[2] = v2; v_vect[3] = v3;
   v_covect[0] = 0.0; v_covect[1] = 0.0; v_covect[2] = 0.0; v_covect[3] = 0.0;
 
@@ -861,9 +861,9 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     v_contr += v_vect[i] * v_covect[i];
   }
 
-  double **inv_spacetime_metric_avg = malloc(sizeof(double*) * 4);
+  double **inv_spacetime_metric_avg = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
-    inv_spacetime_metric_avg[i] = malloc(sizeof(double) * 4);
+    inv_spacetime_metric_avg[i] = gkyl_malloc(sizeof(double[4]));
   }
 
   for (int i = 0; i < 4; i++) {
@@ -931,7 +931,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   s[2] = (((1.0 - (gas_gamma * v4)) * (v0 * v1)) - (s_sq * inv_spacetime_metric_avg[0][1]) + (sqrt(s_sq) * y)) /
     (((1.0 - (gas_gamma * v4)) * (v0 * v0)) - (s_sq * inv_spacetime_metric_avg[0][0]));
 
-  return (((1.0 - (gas_gamma * v4)) * (v0 * fabs(v1))) - (s_sq * inv_spacetime_metric_avg[0][1]) + (sqrt(s_sq) * y)) /
+  return (((1.0 - (gas_gamma * v4)) * (v0 * v1)) - (s_sq * inv_spacetime_metric_avg[0][1]) + (sqrt(s_sq) * y)) /
     (((1.0 - (gas_gamma * v4)) * (v0 * v0)) - (s_sq * inv_spacetime_metric_avg[0][0]));
 }
 

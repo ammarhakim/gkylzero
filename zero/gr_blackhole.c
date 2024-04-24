@@ -43,7 +43,7 @@ blackhole_kerrschildvector(const struct gkyl_gr_spacetime* spacetime, const doub
   double rad_dist = sqrt(0.5 * (norm_sq - ((mass * mass) * (spin * spin)) + sqrt(((norm_sq - ((mass * mass) * (spin * spin))) *
     (norm_sq - ((mass * mass) * (spin * spin)))) + (4.0 * ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z)))))));
   
-  double *kerrschild_vector = malloc(sizeof(double) * 3);
+  double *kerrschild_vector = gkyl_malloc(sizeof(double[3]));
   kerrschild_vector[0] = - ((rad_dist * (x - pos_x)) + (spin * mass * (y - pos_y))) / ((rad_dist * rad_dist) + ((mass * mass) * (spin * spin)));
   kerrschild_vector[1] = - ((rad_dist * (y - pos_y)) - (spin * mass * (x - pos_x))) / ((rad_dist * rad_dist) + ((mass * mass) * (spin * spin)));
   kerrschild_vector[2] = - (z - pos_z) / rad_dist;
@@ -68,7 +68,7 @@ blackhole_kerrschildvector_spacetime(const struct gkyl_gr_spacetime* spacetime, 
   double rad_dist = sqrt(0.5 * (norm_sq - ((mass * mass) * (spin * spin)) + sqrt(((norm_sq - ((mass * mass) * (spin * spin))) *
     (norm_sq - ((mass * mass) * (spin * spin)))) + (4.0 * ((mass * mass) * (spin * spin) * ((z - pos_z) * (z - pos_z)))))));
   
-  double *kerrschild_vector_spacetime = malloc(sizeof(double) * 4);
+  double *kerrschild_vector_spacetime = gkyl_malloc(sizeof(double[4]));
   kerrschild_vector_spacetime[0] = -1.0;
   kerrschild_vector_spacetime[1] = - ((rad_dist * (x - pos_x)) + (spin * mass * (y - pos_y))) / ((rad_dist * rad_dist) + ((mass * mass) * (spin * spin)));
   kerrschild_vector_spacetime[2] = - ((rad_dist * (y - pos_y)) - (spin * mass * (x - pos_x))) / ((rad_dist * rad_dist) + ((mass * mass) * (spin * spin)));
@@ -89,7 +89,7 @@ blackhole_kerrschildscalar_der(const struct gkyl_gr_spacetime* spacetime, const 
   double kerrschild_scalar_y_backward = blackhole_kerrschildscalar(spacetime, x, y - (0.5 * dy), z);
   double kerrschild_scalar_z_backward = blackhole_kerrschildscalar(spacetime, x, y, z - (0.5 * dz));
 
-  double *kerrschild_scalar_der = malloc(sizeof(double) * 3);
+  double *kerrschild_scalar_der = gkyl_malloc(sizeof(double[3]));
   kerrschild_scalar_der[0] = (1.0 / dx) * (kerrschild_scalar_x_forward - kerrschild_scalar_x_backward);
   kerrschild_scalar_der[1] = (1.0 / dy) * (kerrschild_scalar_y_forward - kerrschild_scalar_y_backward);
   kerrschild_scalar_der[2] = (1.0 / dz) * (kerrschild_scalar_z_forward - kerrschild_scalar_z_backward);
@@ -109,9 +109,9 @@ blackhole_kerrschildvector_der(const struct gkyl_gr_spacetime* spacetime, const 
   double *kerrschild_vector_y_backward = blackhole_kerrschildvector(spacetime, x, y - (0.5 * dy), z);
   double *kerrschild_vector_z_backward = blackhole_kerrschildvector(spacetime, x, y, z - (0.5 * dz));
 
-  double **kerrschild_vector_der = malloc(sizeof(double*) * 3);
+  double **kerrschild_vector_der = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    kerrschild_vector_der[i] = malloc(sizeof(double) * 3);
+    kerrschild_vector_der[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   for (int i = 0; i < 3; i++) {
@@ -182,9 +182,9 @@ static void
 blackhole_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double*** spatial_inv_metric_tensor)
 {
-  double **spatial_metric = malloc(sizeof(double*) * 3);
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = malloc(sizeof(double) * 3);
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   blackhole_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
@@ -197,9 +197,9 @@ blackhole_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, c
     trace += spatial_metric[i][i];
   }
 
-  double **spatial_metric_sq = malloc(sizeof(double*) * 3);
+  double **spatial_metric_sq = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric_sq[i] = malloc(sizeof(double) * 3);
+    spatial_metric_sq[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   for (int i = 0; i < 3; i++) {
@@ -221,9 +221,9 @@ blackhole_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, c
     sq_trace += spatial_metric_sq[i][i];
   }
 
-  double **euclidean_metric = malloc(sizeof(double*) * 3);
+  double **euclidean_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    euclidean_metric[i] = malloc(sizeof(double) * 3);
+    euclidean_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   for (int i = 0; i < 3; i++) {
@@ -249,18 +249,18 @@ static void
 blackhole_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double*** spacetime_inv_metric_tensor)
 {
-  double** spatial_metric = malloc(sizeof(double*) * 3);
-  double** inv_spatial_metric = malloc(sizeof(double*) * 3);
+  double** spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  double** inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = malloc(sizeof(double) * 3);
-    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   blackhole_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
   blackhole_spatial_inv_metric_tensor(spacetime, t, x, y, z, &inv_spatial_metric);
 
   double lapse_function;
-  double* shift_vector = malloc(sizeof(double) * 3);
+  double* shift_vector = gkyl_malloc(sizeof(double[3]));
   blackhole_lapse_function(spacetime, t, x, y, z, &lapse_function);
   blackhole_shift_vector(spacetime, t, x, y, z, &shift_vector);
 
@@ -285,9 +285,9 @@ static void
 blackhole_spatial_metric_det(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   double* spatial_metric_det)
 {
-  double** spatial_metric = malloc(sizeof(double*) * 3);
+  double** spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = malloc(sizeof(double) * 3);
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   blackhole_spatial_metric_tensor(spacetime, t, x, y, z, &spatial_metric);
@@ -313,23 +313,23 @@ static void
 blackhole_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
    const double dx, const double dy, const double dz, double**** spatial_metric_tensor_der)
 {
-  double **spatial_metric_x_forward = malloc(sizeof(double*) * 3);
-  double **spatial_metric_y_forward = malloc(sizeof(double*) * 3);
-  double **spatial_metric_z_forward = malloc(sizeof(double*) * 3);
+  double **spatial_metric_x_forward = gkyl_malloc(sizeof(double*[3]));
+  double **spatial_metric_y_forward = gkyl_malloc(sizeof(double*[3]));
+  double **spatial_metric_z_forward = gkyl_malloc(sizeof(double*[3]));
 
-  double **spatial_metric_x_backward = malloc(sizeof(double*) * 3);
-  double **spatial_metric_y_backward = malloc(sizeof(double*) * 3);
-  double **spatial_metric_z_backward = malloc(sizeof(double*) * 3);
+  double **spatial_metric_x_backward = gkyl_malloc(sizeof(double*[3]));
+  double **spatial_metric_y_backward = gkyl_malloc(sizeof(double*[3]));
+  double **spatial_metric_z_backward = gkyl_malloc(sizeof(double*[3]));
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      spatial_metric_x_forward = malloc(sizeof(double) * 3);
-      spatial_metric_y_forward = malloc(sizeof(double) * 3);
-      spatial_metric_z_forward = malloc(sizeof(double) * 3);
+      spatial_metric_x_forward = gkyl_malloc(sizeof(double[3]));
+      spatial_metric_y_forward = gkyl_malloc(sizeof(double[3]));
+      spatial_metric_z_forward = gkyl_malloc(sizeof(double[3]));
 
-      spatial_metric_x_backward = malloc(sizeof(double) * 3);
-      spatial_metric_y_backward = malloc(sizeof(double) * 3);
-      spatial_metric_z_backward = malloc(sizeof(double) * 3);
+      spatial_metric_x_backward = gkyl_malloc(sizeof(double[3]));
+      spatial_metric_y_backward = gkyl_malloc(sizeof(double[3]));
+      spatial_metric_z_backward = gkyl_malloc(sizeof(double[3]));
     }
   }
 
@@ -354,27 +354,27 @@ static void
 blackhole_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double**** spacetime_metric_tensor_der)
 {
-  double **spacetime_metric_t_forward = malloc(sizeof(double*) * 4);
-  double **spacetime_metric_x_forward = malloc(sizeof(double*) * 4);
-  double **spacetime_metric_y_forward = malloc(sizeof(double*) * 4);
-  double **spacetime_metric_z_forward = malloc(sizeof(double*) * 4);
+  double **spacetime_metric_t_forward = gkyl_malloc(sizeof(double*[4]));
+  double **spacetime_metric_x_forward = gkyl_malloc(sizeof(double*[4]));
+  double **spacetime_metric_y_forward = gkyl_malloc(sizeof(double*[4]));
+  double **spacetime_metric_z_forward = gkyl_malloc(sizeof(double*[4]));
 
-  double **spacetime_metric_t_backward = malloc(sizeof(double*) * 4);
-  double **spacetime_metric_x_backward = malloc(sizeof(double*) * 4);
-  double **spacetime_metric_y_backward = malloc(sizeof(double*) * 4);
-  double **spacetime_metric_z_backward = malloc(sizeof(double*) * 4);
+  double **spacetime_metric_t_backward = gkyl_malloc(sizeof(double*[4]));
+  double **spacetime_metric_x_backward = gkyl_malloc(sizeof(double*[4]));
+  double **spacetime_metric_y_backward = gkyl_malloc(sizeof(double*[4]));
+  double **spacetime_metric_z_backward = gkyl_malloc(sizeof(double*[4]));
 
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 4; j++) {
-      spacetime_metric_t_forward = malloc(sizeof(double) * 4);
-      spacetime_metric_x_forward = malloc(sizeof(double) * 4);
-      spacetime_metric_y_forward = malloc(sizeof(double) * 4);
-      spacetime_metric_z_forward = malloc(sizeof(double) * 4);
+      spacetime_metric_t_forward = gkyl_malloc(sizeof(double[4]));
+      spacetime_metric_x_forward = gkyl_malloc(sizeof(double[4]));
+      spacetime_metric_y_forward = gkyl_malloc(sizeof(double[4]));
+      spacetime_metric_z_forward = gkyl_malloc(sizeof(double[4]));
       
-      spacetime_metric_t_backward = malloc(sizeof(double) * 4);
-      spacetime_metric_x_backward = malloc(sizeof(double) * 4);
-      spacetime_metric_y_backward = malloc(sizeof(double) * 4);
-      spacetime_metric_z_backward = malloc(sizeof(double) * 4);
+      spacetime_metric_t_backward = gkyl_malloc(sizeof(double[4]));
+      spacetime_metric_x_backward = gkyl_malloc(sizeof(double[4]));
+      spacetime_metric_y_backward = gkyl_malloc(sizeof(double[4]));
+      spacetime_metric_z_backward = gkyl_malloc(sizeof(double[4]));
     }
   }
 
@@ -448,13 +448,13 @@ static void
 blackhole_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** shift_vector_der)
 {
-  double* shift_vector_x_forward = malloc(sizeof(double) * 3);
-  double* shift_vector_y_forward = malloc(sizeof(double) * 3);
-  double* shift_vector_z_forward = malloc(sizeof(double) * 3);
+  double* shift_vector_x_forward = gkyl_malloc(sizeof(double[3]));
+  double* shift_vector_y_forward = gkyl_malloc(sizeof(double[3]));
+  double* shift_vector_z_forward = gkyl_malloc(sizeof(double[3]));
   
-  double* shift_vector_x_backward = malloc(sizeof(double) * 3);
-  double* shift_vector_y_backward = malloc(sizeof(double) * 3);
-  double* shift_vector_z_backward = malloc(sizeof(double) * 3);
+  double* shift_vector_x_backward = gkyl_malloc(sizeof(double[3]));
+  double* shift_vector_y_backward = gkyl_malloc(sizeof(double[3]));
+  double* shift_vector_z_backward = gkyl_malloc(sizeof(double[3]));
 
   blackhole_shift_vector(spacetime, t, x + (0.5 * dx), y, z, &shift_vector_x_forward);
   blackhole_shift_vector(spacetime, t, x, y + (0.5 * dy), z, &shift_vector_y_forward);
@@ -475,17 +475,17 @@ static void
 blackhole_spatial_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double**** spatial_christoffel)
 {
-  double **inv_spatial_metric = malloc(sizeof(double*) * 3);
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  double ***spatial_metric_der = malloc(sizeof(double**) * 3);
+  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric_der[i] = malloc(sizeof(double*) * 3);
+    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
 
     for (int j = 0; j < 3; j++) {
-      spatial_metric_der[i][j] = malloc(sizeof(double) * 3);
+      spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
     }
   }
 
@@ -516,17 +516,17 @@ static void
 blackhole_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double**** spacetime_christoffel)
 {
-  double **inv_spacetime_metric = malloc(sizeof(double*) * 4);
+  double **inv_spacetime_metric = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
-    inv_spacetime_metric[i] = malloc(sizeof(double) * 4);
+    inv_spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
   }
 
-  double ***spacetime_metric_der = malloc(sizeof(double**) * 4);
+  double ***spacetime_metric_der = gkyl_malloc(sizeof(double**[4]));
   for (int i = 0; i < 4; i++) {
-    spacetime_metric_der[i] = malloc(sizeof(double*) * 4);
+    spacetime_metric_der[i] = gkyl_malloc(sizeof(double*[4]));
 
     for (int j = 0; j < 4; j++) {
-      spacetime_metric_der[i][j] = malloc(sizeof(double) * 4);
+      spacetime_metric_der[i][j] = gkyl_malloc(sizeof(double[4]));
     }
   }
 

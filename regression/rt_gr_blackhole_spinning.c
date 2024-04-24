@@ -200,17 +200,17 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   }
   
   double spatial_det, lapse;
-  double *shift = malloc(sizeof(double) * 3);
+  double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
 
-  double **spatial_metric = malloc(sizeof(double*) * 3);
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = malloc(sizeof(double) * 3);
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  double **inv_spatial_metric = malloc(sizeof(double*) * 3);
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_det);
@@ -221,7 +221,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
   spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
 
-  double *vel = malloc(sizeof(double) * 3);
+  double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
   vel[0] = u; vel[1] = 0.0; vel[2] = 0.0;
 

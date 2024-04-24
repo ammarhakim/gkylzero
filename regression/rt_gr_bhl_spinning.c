@@ -58,7 +58,7 @@ struct bhl_spinning_ctx
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 
-  double x_pos; // Shock position (x-direction).
+  double x_loc; // Shock location (x-direction).
 };
 
 struct bhl_spinning_ctx
@@ -97,11 +97,11 @@ create_ctx(void)
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 15.0; // Final simulation time.
-  int num_frames = 1; // Number of output frames.
+  int num_frames = 100; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  double x_pos = 1.0; // Shock position (x-direction).
+  double x_loc = 1.0; // Shock location (x-direction).
 
   struct bhl_spinning_ctx ctx = {
     .pi = pi,
@@ -127,7 +127,7 @@ create_ctx(void)
     .num_frames = num_frames,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
-    .x_pos = x_pos,
+    .x_loc = x_loc,
   };
 
   return ctx;
@@ -151,7 +151,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
-  double x_pos = app->x_pos;
+  double x_loc = app->x_loc;
 
   double Lx = app->Lx;
   double Ly = app->Ly;
@@ -160,7 +160,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   double u = 0.0;
   double p = 0.0;
 
-  if (x < x_pos) {
+  if (x < x_loc) {
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
     p = pl; // Fluid pressure (left).
@@ -172,17 +172,17 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   }
   
   double spatial_det, lapse;
-  double *shift = malloc(sizeof(double) * 3);
+  double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
 
-  double **spatial_metric = malloc(sizeof(double*) * 3);
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric[i] = malloc(sizeof(double) * 3);
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  double **inv_spatial_metric = malloc(sizeof(double*) * 3);
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
-    inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+    inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
   spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_det);
@@ -193,7 +193,7 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
   spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
 
-  double *vel = malloc(sizeof(double) * 3);
+  double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
   vel[0] = u; vel[1] = 0.0; vel[2] = 0.0;
 

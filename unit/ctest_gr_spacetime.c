@@ -14,18 +14,18 @@ test_gr_minkowski()
       double x = 0.1 * x_ind;
       double y = 0.1 * y_ind;
 
-      double **spatial_metric = malloc(sizeof(double*) * 3);
-      double **inv_spatial_metric = malloc(sizeof(double*) * 3);
+      double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+      double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
       for (int i = 0; i < 3; i++) {
-        spatial_metric[i] = malloc(sizeof(double) * 3);
-        inv_spatial_metric[i] = malloc(sizeof(double) * 3);
+        spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+        inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
       }
 
-      double **spacetime_metric = malloc(sizeof(double*) * 4);
-      double **inv_spacetime_metric = malloc(sizeof(double*) * 4);
+      double **spacetime_metric = gkyl_malloc(sizeof(double*[4]));
+      double **inv_spacetime_metric = gkyl_malloc(sizeof(double*[4]));
       for (int i = 0; i < 4; i++) {
-        spacetime_metric[i] = malloc(sizeof(double) * 4);
-        inv_spacetime_metric[i] = malloc(sizeof(double) * 4);
+        spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
+        inv_spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
       }
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
@@ -75,27 +75,27 @@ test_gr_minkowski()
       TEST_CHECK( gkyl_compare(spatial_metric_det, 1.0, 1e-10) );
       TEST_CHECK( gkyl_compare(spacetime_metric_det, -1.0, 1e-10) );
 
-      double ***spatial_metric_der = malloc(sizeof(double**) * 3);
-      double ***spatial_christoffel = malloc(sizeof(double**) * 3);
+      double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+      double ***spatial_christoffel = gkyl_malloc(sizeof(double**[3]));
       for (int i = 0; i < 3; i++) {
-        spatial_metric_der[i] = malloc(sizeof(double*) * 3);
-        spatial_christoffel[i] = malloc(sizeof(double*) * 3);
+        spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+        spatial_christoffel[i] = gkyl_malloc(sizeof(double*[3]));
 
         for (int j = 0; j < 3; j++) {
-          spatial_metric_der[i][j] = malloc(sizeof(double) * 3);
-          spatial_christoffel[i][j] = malloc(sizeof(double) * 3);
+          spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+          spatial_christoffel[i][j] = gkyl_malloc(sizeof(double[3]));
         }
       }
 
-      double ***spacetime_metric_der = malloc(sizeof(double**) * 4);
-      double ***spacetime_christoffel = malloc(sizeof(double**) * 4);
+      double ***spacetime_metric_der = gkyl_malloc(sizeof(double**[4]));
+      double ***spacetime_christoffel = gkyl_malloc(sizeof(double**[4]));
       for (int i = 0; i < 4; i++) {
-        spacetime_metric_der[i] = malloc(sizeof(double*) * 4);
-        spacetime_christoffel[i] = malloc(sizeof(double*) * 4);
+        spacetime_metric_der[i] = gkyl_malloc(sizeof(double*[4]));
+        spacetime_christoffel[i] = gkyl_malloc(sizeof(double*[4]));
 
         for (int j = 0; j < 4; j++) {
-          spacetime_metric_der[i][j] = malloc(sizeof(double) * 4);
-          spacetime_christoffel[i][j] = malloc(sizeof(double) * 4);
+          spacetime_metric_der[i][j] = gkyl_malloc(sizeof(double[4]));
+          spacetime_christoffel[i][j] = gkyl_malloc(sizeof(double[4]));
         }
       }
 
@@ -124,7 +124,7 @@ test_gr_minkowski()
       }
 
       double lapse_function;
-      double *shift_vector = malloc(sizeof(double) * 3);
+      double *shift_vector = gkyl_malloc(sizeof(double[3]));
 
       spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse_function);
       spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift_vector);
@@ -134,13 +134,13 @@ test_gr_minkowski()
         TEST_CHECK( gkyl_compare(shift_vector[i], 0.0, 1e-10) );
       }
 
-      double *lapse_function_der = malloc(sizeof(double) * 3);
-      double **shift_vector_der = malloc(sizeof(double*) * 3);
-      double **extrinsic_curvature = malloc(sizeof(double*) * 3);
+      double *lapse_function_der = gkyl_malloc(sizeof(double[3]));
+      double **shift_vector_der = gkyl_malloc(sizeof(double*[3]));
+      double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
 
       for (int i = 0; i < 3; i++) {
-        shift_vector_der[i] = malloc(sizeof(double) * 3);
-        extrinsic_curvature[i] = malloc(sizeof(double) * 3);
+        shift_vector_der[i] = gkyl_malloc(sizeof(double[3]));
+        extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
       }
 
       spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &lapse_function_der);
