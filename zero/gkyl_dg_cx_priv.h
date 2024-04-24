@@ -39,6 +39,7 @@ struct gkyl_dg_cx {
 
   struct gkyl_dg_prim_vars_type *calc_prim_vars_ion;
   struct gkyl_dg_prim_vars_type *calc_prim_vars_neut;
+  struct gkyl_dg_prim_vars_type *calc_prim_vars_neut_gk;
 
   bool use_gpu;
   struct gkyl_dg_cx *on_dev; // pointer to itself or device data

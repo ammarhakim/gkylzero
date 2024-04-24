@@ -150,6 +150,7 @@ test_coll_cx_d(bool use_gpu)
   struct gkyl_array *moms_neut = gkyl_array_new(GKYL_DOUBLE, (2+vdim_vl)*basis.num_basis, confRange.volume);
   struct gkyl_array *prim_vars_ion = gkyl_array_new(GKYL_DOUBLE, (vdim_vl+1)*basis.num_basis, confRange.volume);
   struct gkyl_array *prim_vars_neut = gkyl_array_new(GKYL_DOUBLE, (vdim_vl+1)*basis.num_basis, confRange.volume);
+  struct gkyl_array *prim_vars_neut_gk = gkyl_array_new(GKYL_DOUBLE, 2*basis.num_basis, confRange.volume);
   struct gkyl_array *coef_cx = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
   
   // arrays necessary for prim_vars
@@ -182,6 +183,7 @@ test_coll_cx_d(bool use_gpu)
     struct gkyl_array *b_i_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*basis.num_basis, confRange.volume);
     struct gkyl_array *prim_vars_ion_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim_vl+1)*basis.num_basis, confRange.volume);
     struct gkyl_array *prim_vars_neut_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, (vdim_vl+1)*basis.num_basis, confRange.volume);
+    struct gkyl_array *prim_vars_neut_gk_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 2*basis.num_basis, confRange.volume);
     struct gkyl_array *coef_cx_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, confRange.volume);
 
     gkyl_array_copy(moms_ion_cu, moms_ion);
@@ -189,24 +191,30 @@ test_coll_cx_d(bool use_gpu)
     gkyl_array_copy(b_i_cu, b_i);
     gkyl_array_copy(prim_vars_ion_cu, prim_vars_ion);
     gkyl_array_copy(prim_vars_neut_cu, prim_vars_neut);
+    gkyl_array_copy(prim_vars_neut_gk_cu, prim_vars_neut_gk);
     gkyl_array_copy(coef_cx_cu, coef_cx);
 	
-    gkyl_dg_cx_coll(coll_cx_up_neut, moms_ion_cu, moms_neut_cu, b_i_cu, prim_vars_ion_cu, prim_vars_neut_cu, coef_cx_cu, 0);
+    gkyl_dg_cx_coll(coll_cx_up_neut, moms_ion_cu, moms_neut_cu, b_i_cu, prim_vars_ion_cu, prim_vars_neut_cu,
+		    prim_vars_neut_gk_cu, coef_cx_cu, 0);
     gkyl_array_copy(coef_cx, coef_cx_cu);
     cv_n = gkyl_array_cfetch(coef_cx, gkyl_range_idx(&confRange, (int[2]) { 1, 1}));
-    gkyl_dg_cx_coll(coll_cx_up_ion, moms_ion_cu, moms_neut_cu, b_i_cu, prim_vars_ion_cu, prim_vars_neut_cu, coef_cx_cu, 0);
+    gkyl_dg_cx_coll(coll_cx_up_ion, moms_ion_cu, moms_neut_cu, b_i_cu, prim_vars_ion_cu, prim_vars_neut_cu,
+		    prim_vars_neut_gk_cu, coef_cx_cu, 0);
     gkyl_array_copy(coef_cx, coef_cx_cu);
     cv_i = gkyl_array_cfetch(coef_cx, gkyl_range_idx(&confRange, (int[2]) { 1, 1}));
 
     gkyl_array_release(moms_neut_cu); gkyl_array_release(moms_ion_cu);
     gkyl_array_release(b_i_cu); gkyl_array_release(prim_vars_ion_cu);
-    gkyl_array_release(prim_vars_neut_cu); gkyl_array_release(coef_cx_cu);
+    gkyl_array_release(prim_vars_neut_cu); gkyl_array_release(prim_vars_neut_gk_cu);
+    gkyl_array_release(coef_cx_cu);
   }
   else {
 
-    gkyl_dg_cx_coll(coll_cx_up_ion, moms_ion, moms_neut, b_i, prim_vars_ion, prim_vars_neut, coef_cx, 0);
+    gkyl_dg_cx_coll(coll_cx_up_ion, moms_ion, moms_neut, b_i, prim_vars_ion, prim_vars_neut,
+		    prim_vars_neut_gk, coef_cx, 0);
     cv_i = gkyl_array_cfetch(coef_cx, gkyl_range_idx(&confRange, (int[2]) { 1, 1}));
-    gkyl_dg_cx_coll(coll_cx_up_neut, moms_ion, moms_neut, b_i, prim_vars_ion, prim_vars_neut, coef_cx, 0);
+    gkyl_dg_cx_coll(coll_cx_up_neut, moms_ion, moms_neut, b_i, prim_vars_ion, prim_vars_neut,
+		    prim_vars_neut_gk, coef_cx, 0);
     cv_n = gkyl_array_cfetch(coef_cx, gkyl_range_idx(&confRange, (int[2]) { 1, 1}));
     
   }
@@ -228,9 +236,9 @@ test_coll_cx_d(bool use_gpu)
   gkyl_array_release(moms_neut); gkyl_array_release(moms_ion);
   gkyl_array_release(b_i); gkyl_array_release(coef_cx);
   gkyl_array_release(prim_vars_ion); gkyl_array_release(prim_vars_neut);
-  gkyl_proj_on_basis_release(projM0); gkyl_proj_on_basis_release(projM2_neut); gkyl_proj_on_basis_release(projM2_ion);
-  gkyl_dg_cx_release(coll_cx_up_ion);
-  gkyl_dg_cx_release(coll_cx_up_neut);
+  gkyl_array_release(prim_vars_neut_gk); gkyl_proj_on_basis_release(projM0);
+  gkyl_proj_on_basis_release(projM2_neut); gkyl_proj_on_basis_release(projM2_ion);
+  gkyl_dg_cx_release(coll_cx_up_ion); gkyl_dg_cx_release(coll_cx_up_neut);
 }
 
 

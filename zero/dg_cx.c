@@ -12,9 +12,6 @@
 #include <gkyl_dg_cx_priv.h>
 #include <gkyl_util.h>
 
-// "Choose Kernel" based on cdim and polyorder
-#define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
-
 gkyl_dg_cx*
 gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
 {
@@ -59,6 +56,7 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
 
   up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_vlasov", use_gpu);
   up->calc_prim_vars_neut = gkyl_dg_prim_vars_vlasov_new(up->cbasis, up->pbasis, "prim", use_gpu);
+  up->calc_prim_vars_neut_gk = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_gk", use_gpu);
   
   up->on_dev = up; // CPU eqn obj points to itself
   
@@ -71,21 +69,21 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
 void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const struct gkyl_array *moms_ion,
   const struct gkyl_array *moms_neut, const struct gkyl_array *b_i,
   struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
-  struct gkyl_array *coef_cx, struct gkyl_array *cflrate)
+  struct gkyl_array *prim_vars_neut_gk, struct gkyl_array *coef_cx, struct gkyl_array *cflrate)
 {
   #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(coef_recomb)) {
-    return gkyl_dg_cx_coll_cu(up, moms_elc, moms_ion, b_i, prim_vars_ion, prim_vars_neut, coef_cx, cflrate);
+    return gkyl_dg_cx_coll_cu(up, moms_ion, moms_neut, b_i, prim_vars_ion, prim_vars_neut,
+      prim_vars_neut_gk, coef_cx, cflrate);
   }
 #endif
   gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_ion, 
       (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
+  gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_neut_gk, 
+      (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   
   struct gkyl_range vel_rng;
   struct gkyl_range_iter conf_iter, vel_iter;
-
-  /* int rem_dir[GKYL_MAX_DIM] = { 0 }; */
-  /* for (int d=0; d<up->conf_rng->ndim; ++d) rem_dir[d] = 1; */
 
   gkyl_range_iter_init(&conf_iter, up->conf_rng);
   while (gkyl_range_iter_next(&conf_iter)) {
@@ -97,13 +95,16 @@ void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const struct gkyl_array *moms_
 
     double *prim_vars_ion_d = gkyl_array_fetch(prim_vars_ion, loc);
     double *prim_vars_neut_d = gkyl_array_fetch(prim_vars_neut, loc);
+    double *prim_vars_neut_gk_d = gkyl_array_fetch(prim_vars_neut_gk, loc);
     double *coef_cx_d = gkyl_array_fetch(coef_cx, loc);
 
     up->calc_prim_vars_ion->kernel(up->calc_prim_vars_ion, conf_iter.idx,
 				   moms_ion_d, prim_vars_ion_d);
     up->calc_prim_vars_neut->kernel(up->calc_prim_vars_neut, conf_iter.idx,
 				    moms_neut_d, prim_vars_neut_d);
-
+    up->calc_prim_vars_neut_gk->kernel(up->calc_prim_vars_neut_gk, conf_iter.idx,
+				    moms_neut_d, prim_vars_neut_gk_d);
+    
     double cflr = up->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
       m0_neut_d, prim_vars_ion_d, prim_vars_neut_d, coef_cx_d);
     
