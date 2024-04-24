@@ -88,6 +88,20 @@ gkyl_gr_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const double
 }
 
 static inline void
+gkyl_gr_spatial_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double**** spatial_christoffel)
+{
+  return spacetime->spatial_christoffel_func(spacetime, t, x, y, z, dx, dy, dz, spatial_christoffel);
+}
+
+static inline void
+gkyl_gr_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double**** spacetime_christoffel)
+{
+  return spacetime->spacetime_christoffel_func(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_christoffel);
+}
+
+static inline void
 gkyl_gr_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor)
 {

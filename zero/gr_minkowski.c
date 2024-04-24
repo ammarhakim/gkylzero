@@ -133,6 +133,32 @@ minkowski_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const doub
 }
 
 static void
+minkowski_spatial_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double**** spatial_christoffel)
+{
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        (*spatial_christoffel)[i][j][k] = 0.0;
+      }
+    }
+  }
+}
+
+static void
+minkowski_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double**** spacetime_christoffel)
+{
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < 4; k++) {
+        (*spacetime_christoffel)[i][j][k] = 0.0;
+      }
+    }
+  }
+}
+
+static void
 minkowski_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor)
 {
@@ -196,6 +222,9 @@ gkyl_gr_minkowski_inew(const struct gkyl_gr_minkowski_inp* inp)
 
   gr_minkowski->spacetime.lapse_function_der_func = minkowski_lapse_function_der;
   gr_minkowski->spacetime.shift_vector_der_func = minkowski_shift_vector_der;
+
+  gr_minkowski->spacetime.spatial_christoffel_func = minkowski_spatial_christoffel;
+  gr_minkowski->spacetime.spacetime_christoffel_func = minkowski_spacetime_christoffel;
 
   gr_minkowski->spacetime.extrinsic_curvature_tensor_func = minkowski_extrinsic_curvature_tensor;
 

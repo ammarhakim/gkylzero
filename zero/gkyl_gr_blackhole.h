@@ -69,6 +69,42 @@ double*
 blackhole_kerrschildvector_spacetime(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z);
 
 /**
+* Compute the rank-1 (spatial) partial derivative of the scalar quantity V appearing in the generalized Kerr-Schild form of the metric,
+* at a given point in a black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @return The rank-1 (spatial) partial derivative of the Kerr-Schild scalar V.
+*/
+double*
+blackhole_kerrschildscalar_der(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz);
+
+/**
+* Compute the rank-2 (spatial) partial derivative of the (co)vector quantity l appearing in the generalized Kerr-Schild form of the metric,
+* at a given point in a black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @return The rank-2 (spatial) partial derivative of the (spatial) Kerr-Schild (co)vector l.
+*/
+double**
+blackhole_kerrschildvector_der(const struct gkyl_gr_spacetime* spacetime, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz);
+
+/**
 * Compute the rank-2 spatial metric tensor at a given point in a black hole spacetime.
 *
 * @param spacetime Base spacetime object.
@@ -260,6 +296,43 @@ GKYL_CU_D
 static void
 blackhole_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** shift_vector_der);
+
+/**
+* Compute the rank-3 (spatial) Christoffel symbols at a given point in a black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spatial_christoffel Rank-3 spatial Christoffel symbols (output).
+*/
+GKYL_CU_D
+static void
+blackhole_spatial_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double**** spatial_christoffel);
+
+/**
+* Compute the rank-3 (spacetime) Christoffel symbols at a given point in a black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dt Time coordinate spacing.
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_christoffel Rank-3 spacetime Christoffel symbols (output).
+*/
+GKYL_CU_D
+static void
+blackhole_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double**** spacetime_christoffel);
 
 /**
 * Compute the rank-2 extrinsic curvature tensor at a given point in a black hole spacetime.
