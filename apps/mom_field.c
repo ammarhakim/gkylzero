@@ -109,23 +109,22 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
         bc = mom_fld->bcy;
       else
         bc = mom_fld->bcz;
-
-      void (*bc_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      
+      wv_bc_func_t bc_lower_func;
       if (dir == 0)
-        bc_lower_func = mom_fld->bcx_lower_func;
+        bc_lower_func = mom_fld->bcx_func[0];
       else if (dir == 1)
-        bc_lower_func = mom_fld->bcy_lower_func;
+        bc_lower_func = mom_fld->bcy_func[0];
       else
-        bc_lower_func = mom_fld->bcz_lower_func;
+        bc_lower_func = mom_fld->bcz_func[0];
 
-      void (*bc_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+      wv_bc_func_t bc_upper_func;
       if (dir == 0)
-        bc_upper_func = mom_fld->bcx_upper_func;
+        bc_upper_func = mom_fld->bcx_func[0];
       else if (dir == 1)
-        bc_upper_func = mom_fld->bcy_upper_func;
+        bc_upper_func = mom_fld->bcy_func[0];
       else
-        bc_upper_func = mom_fld->bcz_upper_func;
-
+        bc_upper_func = mom_fld->bcz_func[0];
 
       fld->lower_bct[dir] = bc[0];
       fld->upper_bct[dir] = bc[1];
@@ -221,8 +220,6 @@ moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
   struct timespec wst = gkyl_wall_clock();
   
   int num_periodic_dir = app->num_periodic_dir, ndim = app->ndim, is_non_periodic[3] = {1, 1, 1};
-  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
-    app->periodic_dirs, f);
   
   for (int d=0; d<num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
@@ -241,7 +238,11 @@ moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
           field->bc_buffer, d, field->lower_bc[d], field->upper_bc[d], f);
     }
 
+  // sync interior ghost cells
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
+  // sync periodic ghost cells
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
+    app->periodic_dirs, f);
 
   app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);  
 }

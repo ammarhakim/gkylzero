@@ -127,8 +127,11 @@ main(int argc, char **argv)
     .upper = { 0.9, 0.9 }, 
     .cells = { VX, VY },
 
-    .ctx = &ctx,
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFunc,
+      .ctx_func = &ctx,
+    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,

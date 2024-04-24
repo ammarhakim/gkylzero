@@ -5,6 +5,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_range.h>
+#include <gkyl_rect_decomp.h>
 
 void test_range_0()
 {
@@ -1100,6 +1101,181 @@ void test_extend(void)
   TEST_CHECK( ext_range.upper[1] == 10 );
 }
 
+static void
+test_perp_extend(void)
+{
+  int lo[] = {1, 1}, up[] = { 4, 8 };
+  
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, lo, up);
+
+  int elo[] = { 1, 2 }, eup[] = { 3, 4 };
+
+  do {
+    struct gkyl_range ext_range;
+    gkyl_range_perp_extend(&ext_range, 0, &range, elo, eup);
+    
+    TEST_CHECK( ext_range.volume == (4+0)*(8+2+4) );
+    
+    TEST_CHECK( ext_range.lower[0] == 1 );
+    TEST_CHECK( ext_range.upper[0] == 4 );
+    
+    TEST_CHECK( ext_range.lower[1] == 1-2 );
+    TEST_CHECK( ext_range.upper[1] == 8+4 );
+  } while (0);
+
+  do {
+    struct gkyl_range ext_range;
+    gkyl_range_perp_extend(&ext_range, 1, &range, elo, eup);
+    
+    TEST_CHECK( ext_range.volume == (4+1+3)*8 );
+    
+    TEST_CHECK( ext_range.lower[0] == 1-1 );
+    TEST_CHECK( ext_range.upper[0] == 4+3 );
+    
+    TEST_CHECK( ext_range.lower[1] == 1 );
+    TEST_CHECK( ext_range.upper[1] == 8 );
+  } while (0);
+}
+
+static void
+test_skin_ghost(void)
+{
+  struct gkyl_range rng;
+  gkyl_range_init(&rng, 2, (int[]) { 2, 3 }, (int[]) { 100, 85 });
+
+  int nghost[] = { 2, 3 };
+  
+  struct gkyl_range range, ext_range;
+  gkyl_create_ranges(&rng, nghost, &ext_range, &range);
+
+  do {
+    struct gkyl_range skin, ghost;
+    gkyl_skin_ghost_ranges(&skin, &ghost, 0, GKYL_LOWER_EDGE, &ext_range, nghost);
+
+    TEST_CHECK( skin.lower[0] == range.lower[0] );
+    TEST_CHECK( skin.upper[0] == range.lower[0]+nghost[0]-1 );
+
+    TEST_CHECK( skin.lower[1] == range.lower[1] );
+    TEST_CHECK( skin.upper[1] == range.upper[1] );
+
+    TEST_CHECK( ghost.lower[0] == ext_range.lower[0] );
+    TEST_CHECK( ghost.upper[0] == ext_range.lower[0]+nghost[0]-1 );
+
+    TEST_CHECK( ghost.lower[1] == range.lower[1] );
+    TEST_CHECK( ghost.upper[1] == range.upper[1] );  
+
+    TEST_CHECK( skin.volume == ghost.volume );
+  } while (0);
+
+  do {
+    struct gkyl_range skin, ghost;
+    gkyl_skin_ghost_ranges(&skin, &ghost, 0, GKYL_UPPER_EDGE, &ext_range, nghost);
+
+    TEST_CHECK( skin.lower[0] == range.upper[0]-nghost[0]+1);
+    TEST_CHECK( skin.upper[0] == range.upper[0] );
+
+    TEST_CHECK( skin.lower[1] == range.lower[1] );
+    TEST_CHECK( skin.upper[1] == range.upper[1] );
+
+    TEST_CHECK( ghost.lower[0] == range.upper[0]+1 );
+    TEST_CHECK( ghost.upper[0] == range.upper[0]+nghost[0] );
+
+    TEST_CHECK( ghost.lower[1] == range.lower[1] );
+    TEST_CHECK( ghost.upper[1] == range.upper[1] );  
+
+    TEST_CHECK( skin.volume == ghost.volume );
+  } while (0);  
+}
+
+static void
+test_skin_ghost_with_corners(void)
+{
+  struct gkyl_range rng;
+  gkyl_range_init(&rng, 2, (int[]) { 2, 3 }, (int[]) { 100, 85 });
+
+  int nghost[] = { 2, 3 };
+  
+  struct gkyl_range range, ext_range;
+  gkyl_create_ranges(&rng, nghost, &ext_range, &range);
+
+  do {
+    struct gkyl_range skin, ghost;
+    gkyl_skin_ghost_with_corners_ranges(&skin, &ghost, 0, GKYL_LOWER_EDGE, &ext_range, nghost);
+
+    TEST_CHECK( skin.lower[0] == range.lower[0] );
+    TEST_CHECK( skin.upper[0] == range.lower[0]+nghost[0]-1 );
+
+    TEST_CHECK( skin.lower[1] == ext_range.lower[1] );
+    TEST_CHECK( skin.upper[1] == ext_range.upper[1] );
+
+    TEST_CHECK( ghost.lower[0] == ext_range.lower[0] );
+    TEST_CHECK( ghost.upper[0] == ext_range.lower[0]+nghost[0]-1);
+
+    TEST_CHECK( ghost.lower[1] == ext_range.lower[1] );
+    TEST_CHECK( ghost.upper[1] == ext_range.upper[1] );  
+
+    TEST_CHECK( skin.volume == ghost.volume );
+  } while (0);
+
+  do {
+    struct gkyl_range skin, ghost;
+    gkyl_skin_ghost_with_corners_ranges(&skin, &ghost, 0, GKYL_UPPER_EDGE, &ext_range, nghost);
+
+    TEST_CHECK( skin.lower[0] == range.upper[0]-nghost[0]+1 );
+    TEST_CHECK( skin.upper[0] == range.upper[0] );
+
+    TEST_CHECK( skin.lower[1] == ext_range.lower[1] );
+    TEST_CHECK( skin.upper[1] == ext_range.upper[1] );
+
+    TEST_CHECK( ghost.lower[0] == ext_range.upper[0]-nghost[0]+1 );
+    TEST_CHECK( ghost.upper[0] == ext_range.upper[0] );
+
+    TEST_CHECK( ghost.lower[1] == ext_range.lower[1] );
+    TEST_CHECK( ghost.upper[1] == ext_range.upper[1] );
+
+    TEST_CHECK( skin.volume == ghost.volume );
+  } while (0);
+}
+
+static void
+test_range_edge_match(void)
+{
+  struct gkyl_range base;
+  gkyl_range_init(&base, 2, (int []) { 5, 6 }, (int []) { 15, 20 });
+
+  struct gkyl_range_dir_edge dir_ed;
+  
+  struct gkyl_range r1;
+  gkyl_range_init(&r1, 2, (int []) { 16, 10 }, (int []) { 30, 30 });
+  dir_ed = gkyl_range_edge_match(&base, &r1);
+  TEST_CHECK( dir_ed.dir == 0 );
+  TEST_CHECK( dir_ed.eloc == GKYL_UPPER_EDGE );
+
+  struct gkyl_range r2;
+  gkyl_range_init(&r2, 2, (int []) { 10, 21 }, (int []) { 30, 30 });
+  dir_ed = gkyl_range_edge_match(&base, &r2);
+  TEST_CHECK( dir_ed.dir == 1 );
+  TEST_CHECK( dir_ed.eloc == GKYL_UPPER_EDGE );
+
+  struct gkyl_range r3;
+  gkyl_range_init(&r3, 2, (int []) { 0, 0 }, (int []) { 4, 30 });
+  dir_ed = gkyl_range_edge_match(&base, &r3);
+  TEST_CHECK( dir_ed.dir == 0 );
+  TEST_CHECK( dir_ed.eloc == GKYL_LOWER_EDGE );
+
+  struct gkyl_range r4;
+  gkyl_range_init(&r4, 2, (int []) { 0, 0 }, (int []) { 18, 5 });
+  dir_ed = gkyl_range_edge_match(&base, &r4);
+  TEST_CHECK( dir_ed.dir == 1 );
+  TEST_CHECK( dir_ed.eloc == GKYL_LOWER_EDGE );
+
+  struct gkyl_range nor;
+  gkyl_range_init(&nor, 2, (int []) { 0, 0 }, (int []) { 4, 4 });
+  dir_ed = gkyl_range_edge_match(&base, &nor);
+  TEST_CHECK( dir_ed.eloc == GKYL_NO_EDGE );
+}
+
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
@@ -1158,6 +1334,10 @@ TEST_LIST = {
   { "intersect_2", test_intersect_2 },
   { "sub_intersect", test_sub_intersect },
   { "extend", test_extend },
+  { "perp_extend", test_perp_extend },
+  { "skin_ghost", test_skin_ghost },
+  { "skin_ghost_with_corners", test_skin_ghost_with_corners },
+  { "range_edge_match", test_range_edge_match },
 #ifdef GKYL_HAVE_CUDA
   { "cu_range", test_cu_range },
 #endif  

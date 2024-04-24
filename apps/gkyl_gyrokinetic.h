@@ -10,17 +10,6 @@
 
 #include <stdbool.h>
 
-// Lower-level inputs: in general this does not need to be set by the
-// user. It is needed when the App is being created on a sub-range of
-// the global range, and is meant for use in higher-level drivers that
-// use MPI or other parallel mechanism.
-struct gkyl_gk_low_inp {
-  // local range over which App operates
-  struct gkyl_range local_range;
-  // communicator to used
-  struct gkyl_comm *comm;
-};
-
 // Parameters for projection
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
@@ -179,6 +168,10 @@ struct gkyl_gyrokinetic_species {
 
   double polarization_density;
 
+  bool no_by; // Boolean for whether we are using specialized GK kernels with no b_y.
+              // These more computationally efficient kernels are for slab or mirror 
+              // calculations where there is no toroidal field. 
+
   int num_diag_moments; // number of diagnostic moments
   char diag_moments[16][16]; // list of diagnostic moments
 
@@ -284,7 +277,7 @@ struct gkyl_gk {
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
   bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_gk_low_inp low_inp; // low-level inputs  
+  struct gkyl_app_comm_low_inp low_inp; // low-level inputs  
 };
 
 // Simulation statistics
@@ -374,6 +367,77 @@ void gkyl_gyrokinetic_app_apply_ic_species(gkyl_gyrokinetic_app* app, int sidx, 
  */
 void gkyl_gyrokinetic_app_apply_ic_neut_species(gkyl_gyrokinetic_app* app, int sidx, double t0);
 
+
+/**
+ * Initialize field from file
+ *
+ * @param app App object
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_file_field(gkyl_gyrokinetic_app *app, const char *fname);
+
+/**
+ * Initialize gyrokinetic species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_gyrokinetic_app_from_file_species(gkyl_gyrokinetic_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize neutral species from file
+ *
+ * @param app App object
+ * @param sidx neut species index
+ * @param fname file to read
+ */
+struct gkyl_app_restart_status 
+gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
+  const char *fname);
+
+/**
+ * Initialize the gyrokinetic app from a specific frame.
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame);
+
+/**
+ * Initialize field from frame
+ *
+ * @param app App object
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_frame_field(gkyl_gyrokinetic_app *app, int frame);
+
+/**
+ * Initialize gyrokinetic species from file
+ *
+ * @param app App object
+ * @param sidx gk species index
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int frame);
+
+/**
+ * Initialize neutral species from file
+ *
+ * @param app App object
+ * @param sidx neut species index
+ * @param frame frame to read
+ */
+struct gkyl_app_restart_status
+gkyl_gyrokinetic_app_from_frame_neut_species(gkyl_gyrokinetic_app *app, int sidx, int frame);
+
+
 /**
  * Calculate diagnostic moments.
  *
@@ -433,6 +497,17 @@ void gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int 
  */
 void gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
 
+
+/**
+ * Write neutral species data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_neut_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+
 /**
  * Write source species data to file.
  * 
@@ -442,6 +517,16 @@ void gkyl_gyrokinetic_app_write_species(gkyl_gyrokinetic_app* app, int sidx, dou
  * @param frame Frame number
  */
 void gkyl_gyrokinetic_app_write_source_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write source neutral species data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to initialize.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_gyrokinetic_app_write_source_neut_species(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame);
 
 /**
  * Write collisional moments for species to file.
@@ -472,6 +557,16 @@ void gkyl_gyrokinetic_app_write_rad_drag(gkyl_gyrokinetic_app *app, int sidx, do
  * @param frame Frame number
  */
 void gkyl_gyrokinetic_app_write_rad_emissivity(gkyl_gyrokinetic_app *app, int sidx, double tm, int frame);
+
+/**
+ * Write integrated moments of radiation rhs for radiating species 
+ * 
+ * @param app App object.
+ * @param sidx Index of species from which to write radiation.
+ * @param tm Time-stamp
+ */
+void gkyl_gyrokinetic_app_write_rad_integrated_moms(gkyl_gyrokinetic_app *app, int sidx, double tm);
+
 
 /**
  * Write iz react rate coefficients for species to file.

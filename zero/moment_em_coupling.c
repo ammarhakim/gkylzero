@@ -179,10 +179,10 @@ em_source_update(const gkyl_moment_em_coupling *mes, double tcurr, double dt,
   if (mes->ramp_app_curr)
     scale_fac_curr = fmin(1.0, tcurr/mes->t_ramp_curr);
   // Add contributions from applied currents to electric field
-  // Note: Conversion from applied current to electric field units occurs here
-  F[0] = FOld[0] - 0.5*dt*app_current[0]/epsilon0*scale_fac_curr;
-  F[1] = FOld[1] - 0.5*dt*app_current[1]/epsilon0*scale_fac_curr;
-  F[2] = FOld[2] - 0.5*dt*app_current[2]/epsilon0*scale_fac_curr;
+  // Note: We solve for epsilon0*E so no additional 1.0/epsilon0 factor in applied current
+  F[0] = FOld[0] - 0.5*dt*app_current[0]*scale_fac_curr;
+  F[1] = FOld[1] - 0.5*dt*app_current[1]*scale_fac_curr;
+  F[2] = FOld[2] - 0.5*dt*app_current[2]*scale_fac_curr;
 
   F_halfK[0] = F[0] + 0.5*K[0];
   F_halfK[1] = F[1] + 0.5*K[1];

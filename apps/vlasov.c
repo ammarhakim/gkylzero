@@ -1,5 +1,7 @@
 #include <stdarg.h>
 
+#include <mpack.h>
+
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
@@ -8,6 +10,52 @@
 #include <gkyl_null_comm.h>
 
 #include <gkyl_vlasov_priv.h>
+
+// returned gkyl_array_meta must be freed using gyrokinetic_array_meta_release
+static struct gkyl_array_meta*
+vlasov_array_meta_new(struct vlasov_output_meta meta)
+{
+  struct gkyl_array_meta *mt = gkyl_malloc(sizeof(*mt));
+
+  mt->meta_sz = 0;
+  mpack_writer_t writer;
+  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
+
+  // add some data to mpack
+  mpack_build_map(&writer);
+  
+  mpack_write_cstr(&writer, "time");
+  mpack_write_double(&writer, meta.stime);
+
+  mpack_write_cstr(&writer, "frame");
+  mpack_write_i64(&writer, meta.frame);
+
+  mpack_write_cstr(&writer, "polyOrder");
+  mpack_write_i64(&writer, meta.poly_order);
+
+  mpack_write_cstr(&writer, "basisType");
+  mpack_write_cstr(&writer, meta.basis_type);
+
+  mpack_complete_map(&writer);
+
+  int status = mpack_writer_destroy(&writer);
+
+  if (status != mpack_ok) {
+    free(mt->meta); // we need to use free here as mpack does its own malloc
+    gkyl_free(mt);
+    mt = 0;
+  }
+
+  return mt;
+}
+
+static void
+vlasov_array_meta_release(struct gkyl_array_meta *mt)
+{
+  if (!mt) return;
+  MPACK_FREE(mt->meta);
+  gkyl_free(mt);
+}
 
 gkyl_vlasov_app*
 gkyl_vlasov_app_new(struct gkyl_vm *vm)
@@ -55,31 +103,26 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   switch (vm->basis_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       gkyl_cart_modal_serendip(&app->confBasis, cdim, poly_order);
-      if (poly_order > 1) {
-        if (vdim > 0) {
-          gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
-          gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
-        }
-      } 
-      else if (poly_order == 1) {
-        if (vdim > 0) {
+      if (vdim > 0) { 
+        if (poly_order == 1) {
           /* Force hybrid basis (p=2 in velocity space). */
           gkyl_cart_modal_hybrid(&app->basis, cdim, vdim);
           gkyl_cart_modal_serendip(&app->velBasis, vdim, 2);
         }
+        else {
+          gkyl_cart_modal_serendip(&app->basis, pdim, poly_order);
+          gkyl_cart_modal_serendip(&app->velBasis, vdim, poly_order);
+        }
       }
-
       if (app->use_gpu) {
         gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
-        if (poly_order > 1) {
-          if (vdim > 0) {
-            gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
-          }
-        } 
-        else if (poly_order == 1) {
-          if (vdim > 0) {
+        if (vdim > 0) {
+          if (poly_order == 1) {
             /* Force hybrid basis (p=2 in velocity space). */
             gkyl_cart_modal_hybrid_cu_dev(app->basis_on_dev.basis, cdim, vdim); 
+          }
+          else {
+            gkyl_cart_modal_serendip_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
           }
         }
       }
@@ -90,6 +133,12 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       if (vdim > 0) {
         gkyl_cart_modal_tensor(&app->basis, pdim, poly_order);
         gkyl_cart_modal_tensor(&app->velBasis, vdim, poly_order);
+      }
+      if (app->use_gpu) {
+        gkyl_cart_modal_tensor_cu_dev(app->basis_on_dev.confBasis, cdim, poly_order);
+        if (vdim > 0) {
+          gkyl_cart_modal_tensor_cu_dev(app->basis_on_dev.basis, pdim, poly_order);
+        }
       }
       break;
 
@@ -355,12 +404,12 @@ gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
 
     if (s->model_id == GKYL_MODEL_SR) {
       // Compute the necessary factors to correctly integrate relativistic quantities such as:
-      // 1/Gamma = sqrt(1 - V_drift^2/c^2) where V_drift is computed from weak division: M0 * V_drift = M1i
+      // GammaV_inv = sqrt(1 - V_drift^2/c^2) where V_drift is computed from weak division: M0 * V_drift = M1i
       vm_species_moment_calc(&s->m0, s->local, app->local, s->f);
       vm_species_moment_calc(&s->m1i, s->local, app->local, s->f);
       gkyl_calc_prim_vars_u_from_rhou(s->V_drift_mem, app->confBasis, &app->local, 
         s->m0.marr, s->m1i.marr, s->V_drift); 
-      gkyl_calc_sr_vars_Gamma_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);
+      gkyl_calc_sr_vars_GammaV_inv(&app->confBasis, &app->basis, &app->local, s->V_drift, s->GammaV_inv);
     }
     vm_species_moment_calc(&s->integ_moms, s->local, app->local, s->f);
     // reduce to compute sum over whole domain, append to diagnostics
@@ -427,6 +476,14 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
+  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->confBasis.id
+    }
+  );
+  
   const char *fmt = "%s-field_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
@@ -435,16 +492,26 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
   if (app->use_gpu) {
     // copy data from device to host before writing it out
     gkyl_array_copy(app->field->em_host, app->field->em);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field->em_host, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->em_host, fileNm);
   }
   else {
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->field->em, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->em, fileNm);
   }
+
+  vlasov_array_meta_release(mt);
 }
 
 void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
+  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->basis.id
+    }
+  );
+  
   const char *fmt = "%s-%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, app->species[sidx].info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
@@ -454,12 +521,14 @@ gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int fra
     // copy data from device to host before writing it out
     gkyl_array_copy(app->species[sidx].f_host, app->species[sidx].f);
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      0, app->species[sidx].f_host, fileNm);
+      mt, app->species[sidx].f_host, fileNm);
   }
   else {
     gkyl_comm_array_write(app->species[sidx].comm, &app->species[sidx].grid, &app->species[sidx].local,
-      0, app->species[sidx].f, fileNm);
+      mt, app->species[sidx].f, fileNm);
   }
+
+  vlasov_array_meta_release(mt);  
 }
 
 void
@@ -505,6 +574,14 @@ gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, i
 void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
 {
+  struct gkyl_array_meta *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+      .frame = frame,
+      .stime = tm,
+      .poly_order = app->poly_order,
+      .basis_type = app->basis.id
+    }
+  );
+  
   for (int i=0; i<app->num_species; ++i) {
     for (int m=0; m<app->species[i].info.num_diag_moments; ++m) {
 
@@ -518,9 +595,12 @@ gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
       if (app->use_gpu)
         gkyl_array_copy(app->species[i].moms[m].marr_host, app->species[i].moms[m].marr);
 
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, 0, app->species[i].moms[m].marr_host, fileNm);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local,
+        mt, app->species[i].moms[m].marr_host, fileNm);
     }
   }
+
+  vlasov_array_meta_release(mt);
 }
 
 void
@@ -605,6 +685,41 @@ gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
   gkyl_dynvec_clear(app->field->integ_energy);
 }
 
+
+void
+gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app* app)
+{
+  for (int i=0; i<app->num_species; ++i) {
+    struct vm_species *s = &app->species[i];
+
+    if (s->collision_id == GKYL_BGK_COLLISIONS) {
+       // write out diagnostic moments
+      const char *fmt = "%s-%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, app->species[i].info.name,
+        "corr-lte-stat");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, app->species[i].info.name,
+        "corr-lte-stat");
+
+      int rank;
+      gkyl_comm_get_rank(app->comm, &rank);
+
+      if (rank == 0) {
+        if (s->bgk.is_first_corr_status_write_call) {
+          // write to a new file (this ensure previous output is removed)
+          gkyl_dynvec_write(s->bgk.corr_stat, fileNm);
+          s->bgk.is_first_corr_status_write_call = false;
+        }
+        else {
+          // append to existing file
+          gkyl_dynvec_awrite(s->bgk.corr_stat, fileNm);
+        }
+      }
+      gkyl_dynvec_clear(s->bgk.corr_stat);
+    }
+  } 
+}
+
 // Take a forward Euler step with the suggested time-step dt. This may
 // not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by
@@ -638,6 +753,10 @@ forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS) {
       vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
+    }
+    else if (app->species[i].collision_id == GKYL_BGK_COLLISIONS) {
+      vm_species_bgk_moms(app, &app->species[i], 
+        &app->species[i].bgk, fin[i]);
     }
   }
 

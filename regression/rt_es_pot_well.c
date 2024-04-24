@@ -52,7 +52,11 @@ main(int argc, char **argv)
     .upper = { 6.0 }, 
     .cells = { VX },
 
-    .init = evalDistFunc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFunc,
+      .ctx_func = 0,
+    },
 
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2" },

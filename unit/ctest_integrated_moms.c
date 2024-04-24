@@ -15,7 +15,7 @@
 #include <gkyl_proj_maxwellian_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_eval_on_nodes.h>
-#include <gkyl_read_radiation.h>
+#include <gkyl_radiation_read.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
@@ -224,7 +224,7 @@ test_2x_option(bool use_gpu)
 
   int num_mom = 4;
 
-  struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext.volume);
+  struct gkyl_array *marr = mkarr(use_gpu, num_mom, confLocal_ext.volume);
   struct gkyl_array *marr_host = marr;
   if (use_gpu)
     marr_host = mkarr(false, num_mom, local_ext.volume);  
@@ -275,6 +275,7 @@ test_2x_option(bool use_gpu)
     gkyl_array_release(prim_moms_dev);   
   }
 
+  gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
   gkyl_gk_geometry_release(gk_geom);
 }
 

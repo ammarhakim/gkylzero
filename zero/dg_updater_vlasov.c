@@ -40,17 +40,17 @@ gkyl_dg_updater_vlasov_new(const struct gkyl_rect_grid *grid,
 
   int cdim = cbasis->ndim, pdim = pbasis->ndim;
   int vdim = pdim-cdim;
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[GKYL_MAX_DIM];
+  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[2*GKYL_MAX_DIM];
   for (int d=0; d<cdim; ++d) {
     up_dirs[d] = d;
-    zero_flux_flags[d] = is_zero_flux_dir[d]? 1 : 0;
+    zero_flux_flags[d] = zero_flux_flags[d+pdim] = is_zero_flux_dir[d]? 1 : 0;
   }
   int num_up_dirs = cdim;
   // update velocity space only when field is present 
   if (field_id != GKYL_FIELD_NULL) {
     for (int d=cdim; d<pdim; ++d) {
       up_dirs[d] = d;
-      zero_flux_flags[d] = 1; // zero-flux BCs in vel-space
+      zero_flux_flags[d] = zero_flux_flags[d+pdim] = 1; // zero-flux BCs in vel-space
     }
     num_up_dirs = pdim;
   }
@@ -67,10 +67,7 @@ gkyl_dg_updater_vlasov_advance(gkyl_dg_updater_vlasov *vlasov,
   struct gkyl_array* GKYL_RESTRICT cflrate, struct gkyl_array* GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
-  if (vlasov->use_gpu)
-    gkyl_hyper_dg_advance_cu(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
-  else 
-    gkyl_hyper_dg_advance(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
+  gkyl_hyper_dg_advance(vlasov->up_vlasov, update_rng, fIn, cflrate, rhs);
   vlasov->vlasov_tm += gkyl_time_diff_now_sec(wst);
 }
 

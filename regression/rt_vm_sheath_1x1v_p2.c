@@ -113,8 +113,11 @@ main(int argc, char **argv)
     .upper = { 6.0 * ctx.vte}, 
     .cells = { 64 },
 
-    .ctx = &ctx,
-    .init = evalDistFuncElc,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFuncElc,
+      .ctx_func = &ctx,
+    },
 
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
 
@@ -122,8 +125,11 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = 100.0,
       .source_species = "ion",
-      .profile = evalDistFuncElcSource,
-      .ctx = &ctx,
+      .projection = {
+        .proj_id = GKYL_PROJ_FUNC,
+        .func = evalDistFuncElcSource,
+        .ctx_func = &ctx,
+      },
     },
     
     .num_diag_moments = 3,
@@ -138,8 +144,11 @@ main(int argc, char **argv)
     .upper = { 6.0 * ctx.vti}, 
     .cells = { 64 },
 
-    .ctx = &ctx,
-    .init = evalDistFuncIon,
+    .projection = {
+      .proj_id = GKYL_PROJ_FUNC,
+      .func = evalDistFuncIon,
+      .ctx_func = &ctx,
+    },
 
     .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ABSORB },
 
@@ -147,8 +156,11 @@ main(int argc, char **argv)
       .source_id = GKYL_BFLUX_SOURCE,
       .source_length = 100.0,
       .source_species = "ion",
-      .profile = evalDistFuncIonSource,
-      .ctx = &ctx,
+      .projection = {
+        .proj_id = GKYL_PROJ_FUNC,
+        .func = evalDistFuncIonSource,
+        .ctx_func = &ctx,
+      },
     },
     
     .num_diag_moments = 3,

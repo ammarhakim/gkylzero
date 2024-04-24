@@ -5,7 +5,7 @@ void
 vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_lbo_collisions *lbo)
 {
   int cdim = app->cdim, vdim = app->vdim;
-  double v_bounds[2*GKYL_MAX_DIM];
+  double v_bounds[2*GKYL_MAX_DIM] = { 0.0 };
   for (int d=0; d<vdim; ++d) {
     v_bounds[d] = s->info.lower[d];
     v_bounds[d + vdim] = s->info.upper[d];

@@ -60,7 +60,8 @@ typedef int (*gkyl_array_sync_t)(struct gkyl_comm *comm,
 
 // "Synchronize" @a array across the periodic directions
 typedef int (*gkyl_array_per_sync_t)(struct gkyl_comm *comm,
-  const struct gkyl_range *local, const struct gkyl_range *local_ext,
+  const struct gkyl_range *local,
+  const struct gkyl_range *local_ext,
   int nper_dirs, const int *per_dirs,
   struct gkyl_array *array);
 
@@ -118,11 +119,11 @@ struct gkyl_comm {
   gkyl_array_bcast_t gkyl_array_bcast; // broadcast array to other processes.
   gkyl_array_sync_t gkyl_array_sync; // sync array.
   gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs.
+
   barrier_t barrier; // barrier.
 
   gkyl_array_write_t gkyl_array_write; // array output
   gkyl_array_read_t gkyl_array_read; // array input
-
 
   extend_comm_t extend_comm; // extend communcator
   split_comm_t split_comm; // split communicator.

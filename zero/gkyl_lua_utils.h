@@ -11,8 +11,9 @@
 
 // Gets a table with given name from a table, pushing it on the
 // stack. Table is popped when the scope ends
-#define with_lua_tbl_tbl(L, tname)                            \
-    for (bool _break = glua_tbl_get_tbl(L, tname); _break;    \
+#define with_lua_tbl_tbl(L, key)                                      \
+    for (bool _break = (lua_getfield(L, -1, key), (lua_isnil(L,-1) || !lua_istable(L, -1) ? (lua_pop(L, 1), false) : true)); \
+         _break;                                                        \
          _break = false, lua_pop(L, 1))
 
 // Pushes the value associated with key on stack, popping it when the scope exits
@@ -84,6 +85,19 @@ double glua_tbl_iget_number(lua_State *L, long key, double def);
  */
 long glua_tbl_get_integer(lua_State *L, const char *key, long def);
 long glua_tbl_iget_integer(lua_State *L, long key, long def);
+
+/**
+ * Return boolean from table, keyed by @a key. Table must be on top of
+ * the stack. If bool does not exist, @a def is returned. (In Lua, all
+ * values except false and nil are true).
+ *
+ * @param L Lua state
+ * @param key Key
+ * @param def Default value if key is not present in table
+ * @return integer corresponding to key, or def
+ */
+int glua_tbl_get_bool(lua_State *L, const char *key, int def);
+int glua_tbl_iget_bool(lua_State *L, long key, int def);
 
 /**
  * Return string from table, keyed by @a key. Table must be on top of

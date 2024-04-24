@@ -18,6 +18,10 @@ struct gkyl_rect_decomp {
 struct gkyl_rect_decomp_neigh {
   int num_neigh; // number of neighbors
   const int *neigh; // list of neighbors
+
+  // following information is not typically needed
+  const int *dir; // direction in which neigh[i] range is located
+  const int *edge; // edge on which neigh[i] range is located
 };
 
 /**
@@ -31,8 +35,21 @@ struct gkyl_rect_decomp_neigh {
  * @param range Range to decompose
  * @return Decomposition of @a range
  */
-struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts(int ndim,
-  const int cuts[], const struct gkyl_range *range);
+struct gkyl_rect_decomp* gkyl_rect_decomp_new_from_cuts(int ndim, const int cuts[],
+  const struct gkyl_range *range);
+
+/**
+ * Create a new decomposition given @a cuts and cells in each
+ * direction. The total number of decomposed ranges are product of all
+ * cuts.
+ *
+ * @param ndim Number of dimensions
+ * @param cuts Cuts in each direction.
+ * @param cells Number of cells in each direction
+ * @return Decomposition of range based on cuts
+ */
+struct gkyl_rect_decomp *gkyl_rect_decomp_new_from_cuts_and_cells(int ndim,
+  const int cuts[], const int cells[]);
 
 /**
  * Create a new decomposition from a given decomposition. The new

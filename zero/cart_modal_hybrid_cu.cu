@@ -31,6 +31,7 @@ gkyl_cart_modal_hybrid_cu_dev_kern(struct gkyl_basis *basis, int cdim, int vdim)
   basis->flip_even_sign = fes_list[cdim].fs[vdim];
   basis->node_list = nl_list[cdim].nl[vdim];
   basis->nodal_to_modal = n2m_list[cdim].n2m[vdim];
+  basis->quad_nodal_to_modal = qn2m_list[cdim].n2m[vdim];
 }
 
 void

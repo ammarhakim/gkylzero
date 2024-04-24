@@ -560,7 +560,7 @@ mpi_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
 
   // Redefine local_ext_x so it's local shifted in the right direction
   // so it covers the ghost cells of interest.
-  int decomp_dir = cuts[0]>1? 0 : 1;
+  int decomp_dir = cuts[0] > 1 ? 0 : 1;
   int delta[] = {0, 0};
   delta[decomp_dir] = 2*rank-1;
   struct gkyl_range local_ext_x_shifted;
@@ -609,6 +609,53 @@ mpi_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
 	}
       }
     }
+  }
+
+  gkyl_rect_decomp_release(decomp);
+  gkyl_comm_release(comm);
+  gkyl_array_release(arr);
+}
+
+static void
+mpi_n4_per_sync_corner_2d(void)
+{
+  int m_sz;
+  MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
+  if (m_sz != 4) return;
+  
+  struct gkyl_range range;
+  gkyl_range_init(&range, 2, (int[]) { 1, 1 }, (int[]) { 10, 10 });
+
+  int cuts[] = { 2, 2 };
+  struct gkyl_rect_decomp *decomp =
+    gkyl_rect_decomp_new_from_cuts(range.ndim, cuts, &range);
+
+  struct gkyl_comm *comm = gkyl_mpi_comm_new( &(struct gkyl_mpi_comm_inp) {
+      .decomp = decomp,
+      .mpi_comm = MPI_COMM_WORLD,
+      .sync_corners = true
+    }
+  );
+
+  int rank;
+  gkyl_comm_get_rank(comm, &rank);
+
+  int nghost[] = { 1, 1 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_ranges(&decomp->ranges[rank], nghost, &local_ext, &local);
+
+
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
+  gkyl_array_clear_range(arr, 1.5, &local);
+
+  gkyl_comm_array_sync(comm, &local, &local_ext, arr);
+  gkyl_comm_array_per_sync(comm, &local, &local_ext, 2, (int[]) { 0, 1 }, arr);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *d = gkyl_array_cfetch(arr, gkyl_range_idx(&local_ext, iter.idx));
+    TEST_CHECK( d[0] == 1.5 );
   }
 
   gkyl_rect_decomp_release(decomp);
@@ -986,17 +1033,18 @@ mpi_bcast_2d()
     int cuts21[] = {2, 1};
     mpi_bcast_2d_test(cuts21);
   
-  } else if (m_sz == 3) {
+  }
+  else if (m_sz == 3) {
     int cuts13[] = {1, 3};
     mpi_bcast_2d_test(cuts13);
   
     int cuts31[] = {3, 1};
     mpi_bcast_2d_test(cuts31);
 
-  } else if (m_sz == 4) {
+  }
+  else if (m_sz == 4) {
     int cuts22[] = {2, 2};
     mpi_bcast_2d_test(cuts22);
-  
   }
 }
 
@@ -1004,17 +1052,24 @@ mpi_bcast_2d()
 TEST_LIST = {
   {"mpi_1", mpi_1},
   {"mpi_allreduce", mpi_allreduce},
+  
   {"mpi_n2_allgather_1d", mpi_n2_allgather_1d},
   {"mpi_n4_allgather_2d", mpi_n4_allgather_2d},
+  
   {"mpi_n2_sync_1d", mpi_n2_sync_1d},
   {"mpi_n4_sync_2d_no_corner", mpi_n4_sync_2d_no_corner },
   {"mpi_n4_sync_2d_use_corner", mpi_n4_sync_2d_use_corner},
   {"mpi_n2_sync_1x1v", mpi_n4_sync_1x1v },
+  
   {"mpi_n1_per_sync_2d", mpi_n1_per_sync_2d },
   {"mpi_n2_per_sync_2d", mpi_n2_per_sync_2d },
+  {"mpi_n4_per_sync_corner_2d", mpi_n4_per_sync_corner_2d },
+  
   {"mpi_n2_array_send_irecv_1d", mpi_n2_array_send_irecv_1d},
   {"mpi_n2_array_isend_irecv_2d", mpi_n2_array_isend_irecv_2d},
+  
   {"mpi_n4_multicomm_2d", mpi_n4_multicomm_2d},
+  
   {"mpi_bcast_1d", mpi_bcast_1d},
   {"mpi_bcast_2d", mpi_bcast_2d},
   {NULL, NULL},

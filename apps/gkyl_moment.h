@@ -2,6 +2,7 @@
 
 #include <gkyl_app.h>
 #include <gkyl_comm.h>
+#include <gkyl_evalf_def.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_prop.h>
@@ -18,8 +19,6 @@ struct gkyl_moment_species {
   enum gkyl_wave_limiter limiter; // limiter to use
   enum gkyl_wave_split_type split_type; // edge splitting to use
 
-  bool has_grad_closure; // has gradient-based closure (only for 10 moment)  
-
   int evolve; // evolve species? 1-yes, 0-no
   bool force_low_order_flux; // should  we force low-order flux?
 
@@ -31,17 +30,12 @@ struct gkyl_moment_species {
   // pointer to user-defined number density and temperature sources
   void (*nT_source_func)(double t, const double *xn, double *fout, void *ctx);
   bool nT_source_set_only_once;
+
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
-  // pointer to boundary condition functions along x
-  void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  // pointer to boundary condition functions along y
-  void (*bcy_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcy_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  // pointer to boundary condition functions along z
-  void (*bcz_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+
+  // for function BCs these should be set
+  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];  
 };
 
 // Parameter for EM field
@@ -68,15 +62,8 @@ struct gkyl_moment_field {
 
   // boundary conditions
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
-  // pointer to boundary condition functions along x
-  void (*bcx_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcx_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  // pointer to boundary condition functions along y
-  void (*bcy_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcy_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  // pointer to boundary condition functions along z
-  void (*bcz_lower_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
-  void (*bcz_upper_func)(double t, int nc, const double *skin, double * GKYL_RESTRICT ghost, void *ctx);
+  // for function BCs these should be set
+  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
 };
 
 // Choices of schemes to use in the fluid solver
@@ -84,17 +71,6 @@ enum gkyl_moment_scheme {
   GKYL_MOMENT_WAVE_PROP = 0, // default, 2nd-order FV
   GKYL_MOMENT_MP, // monotonicity-preserving Suresh-Huynh scheme
   GKYL_MOMENT_KEP // Kinetic-energy preserving scheme
-};
-
-// Lower-level inputs: in general this does not need to be set by the
-// user. It is needed when the App is being created on a sub-range of
-// the global range, and is meant for use in higher-level drivers that
-// use MPI or other parallel mechanism.
-struct gkyl_moment_low_inp {
-  // local range over which App operates
-  struct gkyl_range local_range;
-  // communicator to used
-  struct gkyl_comm *comm;
 };
 
 // Top-level app parameters
@@ -139,7 +115,7 @@ struct gkyl_moment {
   // this should not be set by typical user-facing code but only by
   // higher-level drivers
   bool has_low_inp; // should one use low-level inputs?
-  struct gkyl_moment_low_inp low_inp; // low-level inputs
+  struct gkyl_app_comm_low_inp low_inp; // low-level inputs
 };
 
 // Simulation statistics
@@ -219,55 +195,6 @@ void gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0);
 void gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0);
 
 /**
- * Write field and species data to file.
- * 
- * @param app App object.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame);
-
-/**
- * Write field data to file.
- * 
- * @param app App object.
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int frame);
-
-/**
- * Write species data to file.
- * 
- * @param app App object.
- * @param sidx Index of species to write
- * @param tm Time-stamp
- * @param frame Frame number
- */
-void gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame);
-
-/**
- * Write field energy to file.
- *
- * @param app App object.
- */
-void gkyl_moment_app_write_field_energy(gkyl_moment_app *app);
-
-/**
- * Write integrated moments to file.
- *
- * @param app App object.
- */
-void gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app);
-
-/**
- * Write stats to file. Data is written in json format.
- *
- * @param app App object.
- */
-void gkyl_moment_app_stat_write(const gkyl_moment_app *app);
-
-/**
  * Read field data from .gkyl file.
  *
  * @param app App object.
@@ -320,6 +247,55 @@ struct gkyl_app_restart_status gkyl_moment_app_from_frame_species(gkyl_moment_ap
  * @param argp Objects to write
  */
 void gkyl_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, ...);
+
+/**
+ * Write field and species data to file.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame);
+
+/**
+ * Write field data to file.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int frame);
+
+/**
+ * Write species data to file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species to write
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame);
+
+/**
+ * Write field energy to file.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_app_write_field_energy(gkyl_moment_app *app);
+
+/**
+ * Write integrated moments to file.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app);
+
+/**
+ * Write stats to file. Data is written in json format.
+ *
+ * @param app App object.
+ */
+void gkyl_moment_app_stat_write(const gkyl_moment_app *app);
 
 /**
  * Advance simulation by a suggested time-step 'dt'. The dt may be too

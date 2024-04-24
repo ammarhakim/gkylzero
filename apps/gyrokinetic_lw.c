@@ -1,39 +1,17 @@
 #ifdef GKYL_HAVE_LUA
 
 #include <gkyl_alloc.h>
-#include <gkyl_lua_utils.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_lw.h>
 #include <gkyl_gyrokinetic_priv.h>
+#include <gkyl_lua_utils.h>
+#include <gkyl_lw_priv.h>
 
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
 
 #include <string.h>
-
-// Check and fetch user-data based on metatable name
-#define CHECK_UDATA(L, mnm) luaL_checkudata(L, 1, mnm)
-
-// For debugging
-#define trace_stack_top(L, fnm) do { \
-      fprintf(stdout, "Inside function %s\n", fnm);                              \
-      fprintf(stdout, "--> Top of stack is %s\n", lua_typename(L, lua_type(L, -1))); \
-    } while (0);
-
-// Get basis type from string
-static enum gkyl_basis_type
-get_basis_type(const char *bnm)
-{
-  if (strcmp(bnm, "serendipity") == 0)
-    return GKYL_BASIS_MODAL_SERENDIPITY;
-  if (strcmp(bnm, "tensor") == 0)
-    return GKYL_BASIS_MODAL_TENSOR;
-  if (strcmp(bnm, "hybrid") == 0)
-    return GKYL_BASIS_MODAL_HYBRID;
-
-  return GKYL_BASIS_MODAL_SERENDIPITY;
-}
 
 // Magic IDs for use in distinguishing various species and field types
 enum gyrokinetic_magic_ids {
@@ -46,47 +24,12 @@ enum gyrokinetic_magic_ids {
   GYROKINETIC_PROJECTION_DEFAULT, // Geometry
 };
 
-// Used in call back passed to the initial conditions
-struct lua_func_ctx {
-  int func_ref; // reference to Lua function in registery
-  int ndim, nret; // dimensions of function, number of return values
-  lua_State *L; // Lua state
-};
-
-static void
-eval_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
-{
-  struct lua_func_ctx *fr = ctx;
-  lua_State *L = fr->L;
-
-  int ndim = fr->ndim;
-  int nret = fr->nret;
-  lua_rawgeti(L, LUA_REGISTRYINDEX, fr->func_ref);
-  lua_pushnumber(L, t);
-  lua_createtable(L, GKYL_MAX_DIM, 0);
-
-  for (int i=0; i<ndim; ++i) {
-    lua_pushnumber(L, xn[i]);
-    lua_rawseti(L, -2, i+1); 
-  }
-
-  if (lua_pcall(L, 2, nret, 0)) {
-    const char* ret = lua_tostring(L, -1);
-    luaL_error(L, "*** eval_ic ERROR: %s\n", ret);
-  }
-
-  for (int i=nret-1; i>=0; --i) { // need to fetch in reverse order
-    fout[i] = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-  }
-}
-
 /* ***************** */
 /* Projection methods */
 /* ***************** */
 
 // Metatable name for field input struct
-#define GYROKINETIC_PROJECTION_METATABLE_NM "GkeyllZero.Gyrokinetic.Projection"
+#define GYROKINETIC_PROJECTION_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Projection"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_projection_lw {
@@ -167,7 +110,7 @@ static struct luaL_Reg gyrokinetic_projection_ctor[] = {
 /* ***************** */
 
 // Metatable name for field input struct
-#define GYROKINETIC_GEOMETRY_METATABLE_NM "GkeyllZero.Gyrokinetic.Geometry"
+#define GYROKINETIC_GEOMETRY_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Geometry"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_geometry_lw {
@@ -233,7 +176,7 @@ static struct luaL_Reg gyrokinetic_geometry_ctor[] = {
 /* ************** */
 
 // Metatable name for field input struct
-#define GYROKINETIC_SOURCE_METATABLE_NM "GkeyllZero.Gyrokinetic.Source"
+#define GYROKINETIC_SOURCE_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Source"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_source_lw {
@@ -290,7 +233,7 @@ static struct luaL_Reg gyrokinetic_source_ctor[] = {
 /* ***************** */
 
 // Metatable name for field input struct
-#define GYROKINETIC_DIFFUSION_METATABLE_NM "GkeyllZero.Gyrokinetic.Diffusion"
+#define GYROKINETIC_DIFFUSION_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Diffusion"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_diffusion_lw {
@@ -340,7 +283,7 @@ static struct luaL_Reg gyrokinetic_diffusion_ctor[] = {
 /* ****************** */
 
 // Metatable name for field input struct
-#define GYROKINETIC_COLLISIONS_METATABLE_NM "GkeyllZero.Gyrokinetic.Collisions"
+#define GYROKINETIC_COLLISIONS_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Collisions"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_collisions_lw {
@@ -393,7 +336,7 @@ static struct luaL_Reg gyrokinetic_collisions_ctor[] = {
 /* *****************/
 
 // Metatable name for species input struct
-#define GYROKINETIC_SPECIES_METATABLE_NM "GkeyllZero.Gyrokinetic.Species"
+#define GYROKINETIC_SPECIES_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Species"
 
 // Lua userdata object for constructing species input
 struct gyrokinetic_species_lw {
@@ -540,7 +483,7 @@ static struct luaL_Reg gyrokinetic_species_ctor[] = {
 /* *****************/
 
 // Metatable name for field input struct
-#define GYROKINETIC_FIELD_METATABLE_NM "GkeyllZero.Gyrokinetic.Field"
+#define GYROKINETIC_FIELD_METATABLE_NM "GkeyllZero.App.Gyrokinetic.Field"
 
 // Lua userdata object for constructing field input
 struct gyrokinetic_field_lw {
@@ -621,7 +564,7 @@ static struct luaL_Reg gyrokinetic_field_ctor[] = {
 /* *************/
 
 // Metatable name for top-level Gyrokinetic App
-#define GYROKINETIC_APP_METATABLE_NM "GkeyllZero.Gyrokinetic.App"
+#define GYROKINETIC_APP_METATABLE_NM "GkeyllZero.App.Gyrokinetic"
 
 // Lua userdata object for holding Gyrokinetic app and run parameters
 struct gyrokinetic_app_lw {
@@ -761,12 +704,12 @@ gyrokinetic_app_new(lua_State *L)
         // get context for mapc2p and bmag functions
         gyrokinetic_g_lw->mapc2p_ref.ndim = cdim;
         app_lw->mapc2p_func_ctx = gyrokinetic_g_lw->mapc2p_ref;
-        gyrokinetic.geometry.mapc2p = eval_ic;
+        gyrokinetic.geometry.mapc2p = gkyl_lw_eval_cb;
         gyrokinetic.geometry.c2p_ctx = &app_lw->mapc2p_func_ctx;
 
         gyrokinetic_g_lw->bmag_ref.ndim = cdim;
         app_lw->bmag_func_ctx = gyrokinetic_g_lw->bmag_ref;
-        gyrokinetic.geometry.bmag_func = eval_ic;
+        gyrokinetic.geometry.bmag_func = gkyl_lw_eval_cb;
         gyrokinetic.geometry.bmag_ctx = &app_lw->bmag_func_ctx;
       }
     }
@@ -786,15 +729,15 @@ gyrokinetic_app_new(lua_State *L)
       gyrokinetic.species[s].projection = gyrokinetic_s_lw[s]->projection_lw->gyrokinetic_projection;
       // get context for density, upar, and temperature
       app_lw->species_density_func_ctx[s] = gyrokinetic_s_lw[s]->projection_lw->density_ref;
-      gyrokinetic.species[s].projection.density = eval_ic;
+      gyrokinetic.species[s].projection.density = gkyl_lw_eval_cb;
       gyrokinetic.species[s].projection.ctx_density = &app_lw->species_density_func_ctx[s];
 
       app_lw->species_upar_func_ctx[s] = gyrokinetic_s_lw[s]->projection_lw->upar_ref;
-      gyrokinetic.species[s].projection.upar = eval_ic;
+      gyrokinetic.species[s].projection.upar = gkyl_lw_eval_cb;
       gyrokinetic.species[s].projection.ctx_upar = &app_lw->species_upar_func_ctx[s];
 
       app_lw->species_temp_func_ctx[s] = gyrokinetic_s_lw[s]->projection_lw->temp_ref;
-      gyrokinetic.species[s].projection.temp = eval_ic;
+      gyrokinetic.species[s].projection.temp = gkyl_lw_eval_cb;
       gyrokinetic.species[s].projection.ctx_temp = &app_lw->species_temp_func_ctx[s];
     }
     if (gyrokinetic_s_lw[s]->has_collisions) {
@@ -802,7 +745,7 @@ gyrokinetic_app_new(lua_State *L)
       gyrokinetic.species[s].collisions = gyrokinetic_s_lw[s]->collisions_lw->gyrokinetic_collisions;
       // get context for (self) collision frequency
       app_lw->collisions_func_ctx[s] = gyrokinetic_s_lw[s]->collisions_lw->init_nu_ref;
-      gyrokinetic.species[s].collisions.self_nu = eval_ic;
+      gyrokinetic.species[s].collisions.self_nu = gkyl_lw_eval_cb;
       gyrokinetic.species[s].collisions.ctx = &app_lw->collisions_func_ctx[s];
     }
     if (gyrokinetic_s_lw[s]->has_diffusion) {
@@ -815,15 +758,15 @@ gyrokinetic_app_new(lua_State *L)
       // get context for distribution functions or density, upar, and temperature for Maxwellian initialization
       if (gyrokinetic_s_lw[s]->source_lw->has_projection) {
         app_lw->src_density_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->projection_lw->density_ref;
-        gyrokinetic.species[s].source.projection[0].density = eval_ic;
+        gyrokinetic.species[s].source.projection[0].density = gkyl_lw_eval_cb;
         gyrokinetic.species[s].source.projection[0].ctx_density = &app_lw->species_density_func_ctx[s];
 
         app_lw->src_upar_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->projection_lw->upar_ref;
-        gyrokinetic.species[s].source.projection[0].upar = eval_ic;
+        gyrokinetic.species[s].source.projection[0].upar = gkyl_lw_eval_cb;
         gyrokinetic.species[s].source.projection[0].ctx_upar = &app_lw->src_upar_func_ctx[s];
 
         app_lw->src_temp_func_ctx[s] = gyrokinetic_s_lw[s]->source_lw->projection_lw->temp_ref;
-        gyrokinetic.species[s].source.projection[0].temp = eval_ic;
+        gyrokinetic.species[s].source.projection[0].temp = gkyl_lw_eval_cb;
         gyrokinetic.species[s].source.projection[0].ctx_temp = &app_lw->src_temp_func_ctx[s];
       }   
     }      
@@ -840,14 +783,14 @@ gyrokinetic_app_new(lua_State *L)
         if (gyrokinetic_f_lw->has_phi_wall_lo) {
           gyrokinetic_f_lw->phi_wall_lo_ref.ndim = cdim;
           app_lw->phi_wall_lo_func_ctx = gyrokinetic_f_lw->phi_wall_lo_ref;
-          gyrokinetic.field.phi_wall_lo = eval_ic;
+          gyrokinetic.field.phi_wall_lo = gkyl_lw_eval_cb;
           gyrokinetic.field.phi_wall_lo_ctx = &app_lw->phi_wall_lo_func_ctx;
         }
         // get context for biasing potential on upper wall if it exists
         if (gyrokinetic_f_lw->has_phi_wall_up) {
           gyrokinetic_f_lw->phi_wall_up_ref.ndim = cdim;
           app_lw->phi_wall_up_func_ctx = gyrokinetic_f_lw->phi_wall_up_ref;
-          gyrokinetic.field.phi_wall_up = eval_ic;
+          gyrokinetic.field.phi_wall_up = gkyl_lw_eval_cb;
           gyrokinetic.field.phi_wall_up_ctx = &app_lw->phi_wall_up_func_ctx;
         }
       }
@@ -873,7 +816,7 @@ gyrokinetic_app_apply_ic(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   double t0 = luaL_optnumber(L, 2, app_lw->tstart);
@@ -889,7 +832,7 @@ gyrokinetic_app_apply_ic_species(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   int sidx = luaL_checkinteger(L, 2);
@@ -906,7 +849,7 @@ gyrokinetic_app_calc_integrated_mom(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -922,7 +865,7 @@ gyrokinetic_app_calc_field_energy(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -938,7 +881,7 @@ gyrokinetic_app_write(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -955,7 +898,7 @@ gyrokinetic_app_write_field(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -972,7 +915,7 @@ gyrokinetic_app_write_species(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   int sidx = luaL_checkinteger(L, 2);
@@ -990,7 +933,7 @@ gyrokinetic_app_write_mom(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   double tm = luaL_checknumber(L, 2);
@@ -1007,7 +950,7 @@ gyrokinetic_app_write_integrated_mom(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   gkyl_gyrokinetic_app_write_integrated_mom(app_lw->app);
@@ -1022,7 +965,7 @@ gyrokinetic_app_write_field_energy(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   gkyl_gyrokinetic_app_write_field_energy(app_lw->app);
@@ -1037,7 +980,7 @@ gyrokinetic_app_stat_write(lua_State *L)
 {
   bool status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   gkyl_gyrokinetic_app_stat_write(app_lw->app);
@@ -1060,7 +1003,7 @@ gyrokinetic_app_run(lua_State *L)
 {
   bool ret_status = true;
 
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
   struct gkyl_gyrokinetic_app *app = app_lw->app;
 
@@ -1113,7 +1056,7 @@ gyrokinetic_app_run(lua_State *L)
 static int
 gyrokinetic_app_gc(lua_State *L)
 {
-  struct gyrokinetic_app_lw **l_app_lw = CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
+  struct gyrokinetic_app_lw **l_app_lw = GKYL_CHECK_UDATA(L, GYROKINETIC_APP_METATABLE_NM);
   struct gyrokinetic_app_lw *app_lw = *l_app_lw;
 
   gkyl_gyrokinetic_app_release(app_lw->app);
