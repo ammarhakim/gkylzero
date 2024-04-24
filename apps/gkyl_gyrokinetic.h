@@ -149,9 +149,11 @@ struct gkyl_gyrokinetic_react_type {
   char ion_nm[128]; // name of ion species in reaction
   char donor_nm[128]; // name of donor species in reaction
   char recvr_nm[128]; // name of receiver species in reaction
+  char partner_nm[128]; // name of neut species in cx reaction
   int charge_state; // charge state of species in reaction
   double ion_mass; // mass of ion in reaction
   double elc_mass; // mass of electron in reaction
+  double partner_mass; // mass of neutral in cx reaction
 };
 
 // Parameters for species radiation

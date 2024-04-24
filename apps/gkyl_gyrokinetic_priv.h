@@ -27,6 +27,7 @@
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_dg_calc_gyrokinetic_vars.h>
 #include <gkyl_dg_calc_vlasov_gen_geo_vars.h>
+#include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
@@ -273,7 +274,7 @@ struct gk_react {
 
   struct gkyl_array *f_react; // distribution function array which holds update for each reaction
                               // form depends on react->type_self, e.g., for ionization and react->type_self == GKYL_SELF_ELC
-  struct gkyl_array *f_elc_iz; // needed for elc f_react term
+  struct gkyl_array *f_react_other; // needed for iz elc f_react term and cx f_react term
 
   struct gkyl_proj_maxwellian_on_basis *proj_max; // Maxwellian projection object
 
@@ -284,10 +285,12 @@ struct gk_react {
   int elc_idx[GKYL_MAX_SPECIES]; // integer index of electron species being reacted with 
   int ion_idx[GKYL_MAX_SPECIES]; // integer index of ion species being reacted with 
   int donor_idx[GKYL_MAX_SPECIES]; // integer index of donor species being reacted with 
-
+  int partner_idx[GKYL_MAX_SPECIES]; // integer index of neut species in cx reaction
+  
   struct gk_species_moment moms_elc[GKYL_MAX_SPECIES]; // for computing moments of electron species in reaction
   struct gk_species_moment moms_ion[GKYL_MAX_SPECIES]; // for computing moments of ion species in reaction
   struct gk_species_moment moms_donor[GKYL_MAX_SPECIES]; // for computing moments of donor species in reaction
+  struct gk_species_moment moms_partner[GKYL_MAX_SPECIES]; // for computing moments of neut species in reaction
 
   struct gkyl_array *coeff_react[GKYL_MAX_SPECIES]; // reaction rate
   struct gkyl_array *coeff_react_host[GKYL_MAX_SPECIES]; // reaction rate
@@ -296,9 +299,12 @@ struct gk_react {
   struct gkyl_array *m0_elc[GKYL_MAX_SPECIES]; // electron density
   struct gkyl_array *m0_ion[GKYL_MAX_SPECIES]; // ion density
   struct gkyl_array *m0_donor[GKYL_MAX_SPECIES]; // donor density
+  struct gkyl_array *m0_partner[GKYL_MAX_SPECIES]; // neut density (CX)
   struct gkyl_array *m0_mod[GKYL_MAX_SPECIES]; // to rescale fmax to have correct density
   struct gkyl_array *prim_vars[GKYL_MAX_SPECIES]; // primitive variables of donor (gk) or ion (vlasov), used for fmax
   struct gkyl_array *prim_vars_donor[GKYL_MAX_SPECIES]; // primitive variables of donor (gk) or ion (vlasov), used for fmax
+  struct gkyl_array *prim_vars_cxi[GKYL_MAX_SPECIES]; // primitive variables of ion cx, used for fmax
+  struct gkyl_array *prim_vars_cxn[GKYL_MAX_SPECIES]; // primitive variables of neut cx, used for fmax
   union {
     // ionization
     struct {
@@ -308,7 +314,10 @@ struct gk_react {
     struct {
       struct gkyl_dg_recomb *recomb[GKYL_MAX_SPECIES];
     };
-  };  
+    struct {
+      struct gkyl_dg_cx *cx[GKYL_MAX_SPECIES];
+    };
+  };
 };
 
 struct gk_proj {
