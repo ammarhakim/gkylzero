@@ -1,3 +1,9 @@
+// 2D quadrants test for the general relativistic Euler equations.
+// Input parameters taken from the initial conditions in Section 4.2 (Riemann 2-D), from the article:
+// L. Del Zanna and N. Bucciantini (2002), "An efficient shock-capturing central-type scheme for multdimensional flows. I. Hydrodynamics",
+// Astronomy and Astrophysics, Volume 390 (3): 1177-1186.
+// https://arxiv.org/abs/astro-ph/0205290
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,11 +97,11 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
   // Simulation parameters.
-  int Nx = 400; // Cell count (x-direction).
-  int Ny = 400; // Cell count (y-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 256; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Ly = 1.0; // Domain size (y-direction).
-  double cfl_frac = 0.9; // CFL coefficient.
+  double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 0.4; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -317,20 +323,14 @@ main(int argc, char **argv)
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_inew(
-    &(struct gkyl_wv_gr_euler_inp) {
-        .gas_gamma = ctx.gas_gamma,
-        .spacetime = ctx.spacetime,
-        .rp_type = WV_GR_EULER_RP_LAX,
-        .use_gpu = app_args.use_gpu,
-    }
-  );
+  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(ctx.gas_gamma, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_euler",
     .equation = gr_euler,
     .evolve = true,
     .init = evalGREulerInit,
+    .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
   };
 
@@ -416,9 +416,6 @@ main(int argc, char **argv)
     .lower = { 0.0, 0.0 },
     .upper = { ctx.Lx, ctx.Ly },
     .cells = { NX, NY },
-
-    .scheme_type = GKYL_MOMENT_WAVE_PROP,
-    .mp_recon = app_args.mp_recon,
 
     .cfl_frac = ctx.cfl_frac,
 

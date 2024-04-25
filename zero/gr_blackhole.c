@@ -243,6 +243,15 @@ blackhole_spatial_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime, c
         ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) - (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(spatial_metric_sq[i]);
+    gkyl_free(euclidean_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(spatial_metric_sq);
+  gkyl_free(euclidean_metric);
 }
 
 static void
@@ -279,6 +288,14 @@ blackhole_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime,
       (*spacetime_inv_metric_tensor)[i + 1][j + 1] = inv_spatial_metric[i][j] - (shift_vector[i] * shift_vector[j]) / (lapse_function * lapse_function);
     }
   }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(inv_spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(inv_spatial_metric);
+  gkyl_free(shift_vector);
 }
 
 static void
@@ -295,6 +312,11 @@ blackhole_spatial_metric_det(const struct gkyl_gr_spacetime* spacetime, const do
   *spatial_metric_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
     (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
     (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+  
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
 }
 
 static void
@@ -346,6 +368,23 @@ blackhole_spatial_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime, c
       (*spatial_metric_tensor_der)[2][i][j] = (1.0 / dz) * (spatial_metric_z_forward[i][j] - spatial_metric_z_backward[i][j]);
     }
   }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric_x_forward[i]);
+    gkyl_free(spatial_metric_y_forward[i]);
+    gkyl_free(spatial_metric_z_forward[i]);
+
+    gkyl_free(spatial_metric_x_backward[i]);
+    gkyl_free(spatial_metric_y_backward[i]);
+    gkyl_free(spatial_metric_z_backward[i]);
+  }
+  gkyl_free(spatial_metric_x_forward);
+  gkyl_free(spatial_metric_y_forward);
+  gkyl_free(spatial_metric_z_forward);
+
+  gkyl_free(spatial_metric_x_backward);
+  gkyl_free(spatial_metric_y_backward);
+  gkyl_free(spatial_metric_z_backward);
 }
 
 static void
@@ -392,6 +431,27 @@ blackhole_spacetime_metric_tensor_der(const struct gkyl_gr_spacetime* spacetime,
       (*spacetime_metric_tensor_der)[3][i][j] = (1.0 / dz) * (spacetime_metric_z_forward[i][j] - spacetime_metric_z_backward[i][j]);
     }
   }
+
+  for (int i = 0; i < 4; i++) {
+    gkyl_free(spacetime_metric_t_forward[i]);
+    gkyl_free(spacetime_metric_x_forward[i]);
+    gkyl_free(spacetime_metric_y_forward[i]);
+    gkyl_free(spacetime_metric_z_forward[i]);
+
+    gkyl_free(spacetime_metric_t_backward[i]);
+    gkyl_free(spacetime_metric_x_backward[i]);
+    gkyl_free(spacetime_metric_y_backward[i]);
+    gkyl_free(spacetime_metric_z_backward[i]);
+  }
+  gkyl_free(spacetime_metric_t_forward);
+  gkyl_free(spacetime_metric_x_forward);
+  gkyl_free(spacetime_metric_y_forward);
+  gkyl_free(spacetime_metric_z_forward);
+
+  gkyl_free(spacetime_metric_t_backward);
+  gkyl_free(spacetime_metric_x_backward);
+  gkyl_free(spacetime_metric_y_backward);
+  gkyl_free(spacetime_metric_z_backward);
 }
 
 static void
@@ -465,6 +525,14 @@ blackhole_shift_vector_der(const struct gkyl_gr_spacetime* spacetime, const doub
     (*shift_vector_der)[1][i] = (1.0 / dy) * (shift_vector_y_forward[i] - shift_vector_y_backward[i]);
     (*shift_vector_der)[2][i] = (1.0 / dz) * (shift_vector_z_forward[i] - shift_vector_z_backward[i]);
   }
+
+  gkyl_free(shift_vector_x_forward);
+  gkyl_free(shift_vector_y_forward);
+  gkyl_free(shift_vector_z_forward);
+
+  gkyl_free(shift_vector_x_backward);
+  gkyl_free(shift_vector_y_backward);
+  gkyl_free(shift_vector_z_backward);
 }
 
 static void
@@ -506,6 +574,17 @@ blackhole_spatial_christoffel(const struct gkyl_gr_spacetime* spacetime, const d
       }
     }
   }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      gkyl_free(spatial_metric_der[i][j]);
+    }
+
+    gkyl_free(inv_spatial_metric[i]);
+    gkyl_free(spatial_metric_der[i]);
+  }
+  gkyl_free(inv_spatial_metric);
+  gkyl_free(spatial_metric_der);
 }
 
 static void
@@ -547,6 +626,17 @@ blackhole_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const
       }
     }
   }
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      gkyl_free(spacetime_metric_der[i][j]);
+    }
+
+    gkyl_free(inv_spacetime_metric[i]);
+    gkyl_free(spacetime_metric_der[i]);
+  }
+  gkyl_free(inv_spacetime_metric);
+  gkyl_free(spacetime_metric_der);
 }
 
 static void

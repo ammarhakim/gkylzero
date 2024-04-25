@@ -61,14 +61,14 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29])
     double guess = 1.0;
     int iter = 0;
 
-    while (iter < 1000) {
+    while (iter < 100) {
       double poly = (alpha4 * (guess * guess * guess) * (guess - eta)) + (alpha2 * (guess * guess)) + (alpha1 * guess) + alpha0;
       double poly_der = alpha1 + (2.0 * alpha2 * guess) + (4.0 * alpha4 * (guess * guess * guess)) - (3.0 * eta * alpha4 * (guess * guess));
 
       double guess_new = guess - (poly / poly_der);
 
       if (fabs(guess - guess_new) < pow(10.0, -8.0)) {
-        iter = 1000;
+        iter = 100;
       }
       else {
         iter += 1;
@@ -115,6 +115,13 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29])
     
     v[28] = -1.0;
   }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(inv_spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(inv_spatial_metric);
 }
 
 static inline double
@@ -223,15 +230,42 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[29])
         }
       }
 
+      gkyl_free(vel);
+      gkyl_free(shift);
+      gkyl_free(material_eigs);
+      gkyl_free(fast_acoustic_eigs);
+      gkyl_free(slow_acoustic_eigs);
+
+      for (int i = 0; i < 3; i++) {
+        gkyl_free(spatial_metric[i]);
+        gkyl_free(inv_spatial_metric[i]);
+      }
+      gkyl_free(spatial_metric);
+      gkyl_free(inv_spatial_metric);
+
       return fabs(v_sq) + max_eig;
     }
     else {
       double v_sq = sqrt((vx * vx) + (vy * vy) + (vz * vz));
 
+      for (int i = 0; i < 3; i++) {
+        gkyl_free(spatial_metric[i]);
+        gkyl_free(inv_spatial_metric[i]);
+      }
+      gkyl_free(spatial_metric);
+      gkyl_free(inv_spatial_metric);
+
       return fabs(v_sq) + c_s;
     }
   }
   else {
+    for (int i = 0; i < 3; i++) {
+      gkyl_free(spatial_metric[i]);
+      gkyl_free(inv_spatial_metric[i]);
+    }
+    gkyl_free(spatial_metric);
+    gkyl_free(inv_spatial_metric);
+
     return pow(10.0, -8.0);
   }
 }
@@ -303,12 +337,21 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[29], double flux[29])
     for (int i = 5; i < 29; i++) {
       flux[i] = 0.0;
     }
+
+    gkyl_free(vel);
   }
   else {
     for (int i = 0; i < 29; i++) {
       flux[i] = 0.0;
     }
   }
+
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(inv_spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(inv_spatial_metric);
 }
 
 static inline void
