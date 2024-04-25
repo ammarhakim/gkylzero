@@ -16,6 +16,7 @@ test_gr_minkowski()
 
       double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
       double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+
       for (int i = 0; i < 3; i++) {
         spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
         inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
@@ -23,6 +24,7 @@ test_gr_minkowski()
 
       double **spacetime_metric = gkyl_malloc(sizeof(double*[4]));
       double **inv_spacetime_metric = gkyl_malloc(sizeof(double*[4]));
+
       for (int i = 0; i < 4; i++) {
         spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
         inv_spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
@@ -77,6 +79,7 @@ test_gr_minkowski()
 
       double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
       double ***spatial_christoffel = gkyl_malloc(sizeof(double**[3]));
+
       for (int i = 0; i < 3; i++) {
         spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
         spatial_christoffel[i] = gkyl_malloc(sizeof(double*[3]));
@@ -89,6 +92,7 @@ test_gr_minkowski()
 
       double ***spacetime_metric_der = gkyl_malloc(sizeof(double**[4]));
       double ***spacetime_christoffel = gkyl_malloc(sizeof(double**[4]));
+
       for (int i = 0; i < 4; i++) {
         spacetime_metric_der[i] = gkyl_malloc(sizeof(double*[4]));
         spacetime_christoffel[i] = gkyl_malloc(sizeof(double*[4]));
@@ -179,6 +183,7 @@ void test_gr_schwarzschild()
         double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
         double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
         double** spatial_metric_prod = gkyl_malloc(sizeof(double*[3]));
+
         for (int i = 0; i < 3; i++) {
           spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
           inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
@@ -192,6 +197,7 @@ void test_gr_schwarzschild()
         double **spacetime_metric = gkyl_malloc(sizeof(double*[4]));
         double **inv_spacetime_metric = gkyl_malloc(sizeof(double*[4]));
         double **spacetime_metric_prod = gkyl_malloc(sizeof(double*[4]));
+
         for (int i = 0; i < 4; i++) {
           spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
           inv_spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
@@ -251,6 +257,7 @@ void test_gr_schwarzschild()
         double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
         double ***spatial_christoffel = gkyl_malloc(sizeof(double**[3]));
         double ***spatial_metric_cov_der = gkyl_malloc(sizeof(double**[3]));
+
         for (int i = 0; i < 3; i++) {
           spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
           spatial_christoffel[i] = gkyl_malloc(sizeof(double*[3]));
@@ -284,6 +291,7 @@ void test_gr_schwarzschild()
         double ***spacetime_metric_der = gkyl_malloc(sizeof(double**[4]));
         double ***spacetime_christoffel = gkyl_malloc(sizeof(double**[4]));
         double ***spacetime_metric_cov_der = gkyl_malloc(sizeof(double**[4]));
+
         for (int i = 0; i < 4; i++) {
           spacetime_metric_der[i] = gkyl_malloc(sizeof(double*[4]));
           spacetime_christoffel[i] = gkyl_malloc(sizeof(double*[4]));
@@ -311,6 +319,52 @@ void test_gr_schwarzschild()
 
               TEST_CHECK( gkyl_compare(spacetime_metric_cov_der[i][j][k], 0.0, 1e-10) );
             }
+          }
+        }
+
+        double **shift_vector_der = gkyl_malloc(sizeof(double*[3]));
+        double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+        double **shift_vector_cov_der = gkyl_malloc(sizeof(double*[3]));
+        double **shift_covector_cov_der = gkyl_malloc(sizeof(double*[3]));
+
+        for (int i = 0; i < 3; i++) {
+          shift_vector_der[i] = gkyl_malloc(sizeof(double[3]));
+          extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+          shift_vector_cov_der[i] = gkyl_malloc(sizeof(double[3]));
+          shift_covector_cov_der[i] = gkyl_malloc(sizeof(double[3]));
+
+          for (int j = 0; j < 3; j++){
+            shift_covector_cov_der[i][j] = 0.0;
+          }
+        }
+
+        spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
+        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &extrinsic_curvature);
+
+        double *shift_vector = gkyl_malloc(sizeof(double[3]));
+        spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift_vector);
+
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+            shift_vector_cov_der[i][j] = shift_vector_der[i][j];
+
+            for (int k = 0; k < 3; k++) {
+              shift_vector_cov_der[i][j] += spatial_christoffel[j][i][k] * shift_vector[k];
+            }
+          }
+        }
+
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 3; k++) {
+              shift_covector_cov_der[i][j] += spatial_metric[j][k] * shift_vector_cov_der[i][k];
+            }
+          }
+        }
+
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+            TEST_CHECK( gkyl_compare(2.0 * lapse_function * extrinsic_curvature[i][j], -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]), 1e-6) );
           }
         }
 
@@ -342,6 +396,7 @@ void test_gr_kerr()
         double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
         double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
         double** spatial_metric_prod = gkyl_malloc(sizeof(double*[3]));
+
         for (int i = 0; i < 3; i++) {
           spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
           inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
@@ -355,6 +410,7 @@ void test_gr_kerr()
         double **spacetime_metric = gkyl_malloc(sizeof(double*[4]));
         double **inv_spacetime_metric = gkyl_malloc(sizeof(double*[4]));
         double **spacetime_metric_prod = gkyl_malloc(sizeof(double*[4]));
+
         for (int i = 0; i < 4; i++) {
           spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
           inv_spacetime_metric[i] = gkyl_malloc(sizeof(double[4]));
@@ -414,6 +470,7 @@ void test_gr_kerr()
         double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
         double ***spatial_christoffel = gkyl_malloc(sizeof(double**[3]));
         double ***spatial_metric_cov_der = gkyl_malloc(sizeof(double**[3]));
+
         for (int i = 0; i < 3; i++) {
           spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
           spatial_christoffel[i] = gkyl_malloc(sizeof(double*[3]));
@@ -447,6 +504,7 @@ void test_gr_kerr()
         double ***spacetime_metric_der = gkyl_malloc(sizeof(double**[4]));
         double ***spacetime_christoffel = gkyl_malloc(sizeof(double**[4]));
         double ***spacetime_metric_cov_der = gkyl_malloc(sizeof(double**[4]));
+
         for (int i = 0; i < 4; i++) {
           spacetime_metric_der[i] = gkyl_malloc(sizeof(double*[4]));
           spacetime_christoffel[i] = gkyl_malloc(sizeof(double*[4]));
@@ -474,6 +532,52 @@ void test_gr_kerr()
 
               TEST_CHECK( gkyl_compare(spacetime_metric_cov_der[i][j][k], 0.0, 1e-10) );
             }
+          }
+        }
+
+        double **shift_vector_der = gkyl_malloc(sizeof(double*[3]));
+        double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+        double **shift_vector_cov_der = gkyl_malloc(sizeof(double*[3]));
+        double **shift_covector_cov_der = gkyl_malloc(sizeof(double*[3]));
+
+        for (int i = 0; i < 3; i++) {
+          shift_vector_der[i] = gkyl_malloc(sizeof(double[3]));
+          extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+          shift_vector_cov_der[i] = gkyl_malloc(sizeof(double[3]));
+          shift_covector_cov_der[i] = gkyl_malloc(sizeof(double[3]));
+
+          for (int j = 0; j < 3; j++){
+            shift_covector_cov_der[i][j] = 0.0;
+          }
+        }
+
+        spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
+        spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &extrinsic_curvature);
+
+        double *shift_vector = gkyl_malloc(sizeof(double[3]));
+        spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift_vector);
+
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+            shift_vector_cov_der[i][j] = shift_vector_der[i][j];
+
+            for (int k = 0; k < 3; k++) {
+              shift_vector_cov_der[i][j] += spatial_christoffel[j][i][k] * shift_vector[k];
+            }
+          }
+        }
+
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+            for (int k = 0; k < 3; k++) {
+              shift_covector_cov_der[i][j] += spatial_metric[j][k] * shift_vector_cov_der[i][k];
+            }
+          }
+        }
+
+        for (int i = 0; i < 3; i++) {
+          for (int j = 0; j < 3; j++) {
+            TEST_CHECK( gkyl_compare(2.0 * lapse_function * extrinsic_curvature[i][j], -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]), 1e-6) );
           }
         }
 
