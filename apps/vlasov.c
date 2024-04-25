@@ -253,14 +253,22 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   for (int i=0; i<ns; ++i) 
     vm_species_init(vm, app, &app->species[i]);
 
+  // initialize species wall emission terms: these rely
+  // on other species which must be allocated in the previous step
+  for (int i=0; i<ns; ++i) {
+    if (app->species[i].emit_bc && app->species[i].bc_emission_lo)
+      vm_species_emission_cross_init(app, &app->species[i], app->species[i].bc_emission_up);
+    if (app->species[i].emit_bc && app->species[i].bc_emission_up)
+      vm_species_emission_cross_init(app, &app->species[i], app->species[i].bc_emission_up);
+  }
+
   // initialize each species cross-species terms: this has to be done here
   // as need pointers to colliding species' collision objects
   // allocated in the previous step
   for (int i=0; i<ns; ++i)
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS
-      && app->species[i].lbo.num_cross_collisions) {
+      && app->species[i].lbo.num_cross_collisions)
       vm_species_lbo_cross_init(app, &app->species[i], &app->species[i].lbo);
-    }
 
   // initialize each species source terms: this has to be done here
   // as they may initialize a bflux updater for their source species

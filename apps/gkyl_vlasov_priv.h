@@ -17,6 +17,7 @@
 #include <gkyl_array_reduce.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_bc_basic.h>
+#include <gkyl_bc_emission_spectrum.h>
 #include <gkyl_bgk_collisions.h>
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_bin_ops.h>
@@ -192,6 +193,27 @@ struct vm_boundary_fluxes {
   gkyl_ghost_surf_calc *flux_slvr; // boundary flux solver
 };
 
+// context for use in computing applied acceleration
+struct vm_emission_ctx { int num_species; enum gkyl_bc_emission_spectrum_norm_type norm_type[GKYL_MAX_SPECIES]; enum gkyl_bc_emission_spectrum_yield_type yield_type[GKYL_MAX_SPECIES]; void *norm_params[GKYL_MAX_SPECIES]; void *yield_params[GKYL_MAX_SPECIES]; char in_species[GKYL_MAX_SPECIES][128]; };
+
+struct vm_emitting_wall {
+  // emitting wall sheath boundary conditions
+  int num_species;
+  int dir;
+  enum gkyl_edge_loc edge;
+
+  struct gkyl_bc_emission_spectrum *update[GKYL_MAX_SPECIES];
+  struct gkyl_array *yield[GKYL_MAX_SPECIES]; // projected secondary electron yield
+  struct gkyl_array *spectrum[GKYL_MAX_SPECIES]; // projected secondary electron spectrum
+  struct gkyl_array *f_emit; // emitted distribution function
+  struct gkyl_range *emit_skin_r; // velocity space range leaving domain edge
+  struct gkyl_range *emit_ghost_r; // velocity space range leaving domain edge
+  struct gkyl_range *impact_skin_r[GKYL_MAX_SPECIES]; // velocity space range leaving domain edge
+  struct gkyl_range *impact_ghost_r[GKYL_MAX_SPECIES]; // velocity space range leaving domain edge
+  struct vm_species *impact_species[GKYL_MAX_SPECIES]; // pointers to impacting species
+  struct vm_emission_ctx *params;
+};
+
 struct vm_proj {
   enum gkyl_projection_id proj_id; // type of projection
   enum gkyl_model_id model_id;
@@ -311,6 +333,10 @@ struct vm_species {
   
   // boundary conditions on lower/upper edges in each direction  
   struct gkyl_vlasov_bc lower_bc[3], upper_bc[3];
+  // emitting wall sheath boundary conditions
+  struct vm_emitting_wall *bc_emission_lo;
+  struct vm_emitting_wall *bc_emission_up;
+  bool emit_bc; // flag to indicate if there emission BCs
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
@@ -595,6 +621,14 @@ void vm_species_moment_calc(const struct vm_species_moment *sm,
  */
 void vm_species_moment_release(const struct gkyl_vlasov_app *app,
   const struct vm_species_moment *sm);
+
+/** vm_species_emission API */
+
+void vm_species_emission_init(struct gkyl_vlasov_app *app, struct vm_emitting_wall *emit,
+  int dir, enum gkyl_edge_loc edge, struct gkyl_range *ghost_r, void *ctx);
+
+void vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+  struct vm_emitting_wall *emit);
 
 /** vm_species_lbo API */
 
