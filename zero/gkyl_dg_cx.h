@@ -56,12 +56,14 @@ struct gkyl_dg_cx* gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
  * @param coef_cx Output reaction rate coefficient
  */
 
-void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const struct gkyl_array *moms_ion,
+void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const double vtsq_min_ion,
+  const double vtsq_min_neut, const struct gkyl_array *moms_ion,
   const struct gkyl_array *moms_neut, const struct gkyl_array *b_i,
   struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
   struct gkyl_array *prim_vars_neut_gk, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
 
-void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, const struct gkyl_array *moms_ion,
+void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, const double vtsq_min_ion,
+  const double vtsq_min_neut, const struct gkyl_array *moms_ion,
   const struct gkyl_array *moms_neut, const struct gkyl_array *b_i,
   struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
   struct gkyl_array *prim_vars_neut_gk, struct gkyl_array *coef_cx, struct gkyl_array *cflrate);

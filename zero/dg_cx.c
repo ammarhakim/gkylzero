@@ -66,15 +66,16 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
   return up;
 }
 
-void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const struct gkyl_array *moms_ion,
+void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const double vtsq_min_ion,
+  const double vtsq_min_neut, const struct gkyl_array *moms_ion,
   const struct gkyl_array *moms_neut, const struct gkyl_array *b_i,
   struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut,
   struct gkyl_array *prim_vars_neut_gk, struct gkyl_array *coef_cx, struct gkyl_array *cflrate)
 {
   #ifdef GKYL_HAVE_CUDA
   if(gkyl_array_is_cu_dev(coef_recomb)) {
-    return gkyl_dg_cx_coll_cu(up, moms_ion, moms_neut, b_i, prim_vars_ion, prim_vars_neut,
-      prim_vars_neut_gk, coef_cx, cflrate);
+    return gkyl_dg_cx_coll_cu(up, vtsq_min_ion, vtsq_min_neut, moms_ion, moms_neut, b_i,
+      prim_vars_ion, prim_vars_neut, prim_vars_neut_gk, coef_cx, cflrate);
   }
 #endif
   gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_ion, 
@@ -105,7 +106,7 @@ void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up, const struct gkyl_array *moms_
     up->calc_prim_vars_neut_gk->kernel(up->calc_prim_vars_neut_gk, conf_iter.idx,
 				    moms_neut_d, prim_vars_neut_gk_d);
     
-    double cflr = up->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
+    double cflr = up->react_rate(up->a, up->b, vtsq_min_ion, vtsq_min_neut,
       m0_neut_d, prim_vars_ion_d, prim_vars_neut_d, coef_cx_d);
     
     /* gkyl_range_deflate(&vel_rng, up->phase_rng, rem_dir, conf_iter.idx); */

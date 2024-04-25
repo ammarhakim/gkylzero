@@ -30,6 +30,7 @@ struct gk_step_ctx {
   double Te; // electron temperature
   double Ti; // ion temperature
   double TAr; // Argon temperature
+  double TD0; // neutral D temperature 
   double vtIon;
   double vtElc;
   double vtAr;
@@ -47,6 +48,8 @@ struct gk_step_ctx {
   // Simulation parameters
   double Ly; // Box size in y
   double Lz; // Box size in z
+  double vt_sq_min_ion;
+  double vt_sq_min_neut;
   double vpar_max_elc; // Velocity space extents in vparallel for electrons
   double mu_max_elc; // Velocity space extents in mu for electrons
   double vpar_max_ion; // Velocity space extents in vparallel for ions
@@ -118,6 +121,25 @@ eval_density_ar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT
 }
 
 void
+eval_density_neut(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_step_ctx *app = ctx;
+  double x = xn[0], z = xn[1];
+  double n0 = app->n0;
+  double cz = app->cz/1.4/2.0;
+  double zcenter = 3.14;
+  double n = 0.0;
+  if (z>0)
+    n = n0 * exp(-(z-zcenter)*(z-zcenter)/(2.0*cz*cz));
+  else
+    n = n0 * exp(-(z+zcenter)*(z+zcenter)/(2.0*cz*cz));
+  if (n < 1.0e8)
+    n = 1.0e8;
+
+  fout[0] = n0;
+}
+
+void
 eval_density_arion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 1.0e5;
@@ -161,6 +183,14 @@ eval_temp_ar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 {
   struct gk_step_ctx *app = ctx;
   double T = app->TAr;
+  fout[0] = T;
+}
+
+void
+eval_temp_neut(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_step_ctx *app = ctx;
+  double T = app->TD0;
   fout[0] = T;
 }
 
@@ -263,6 +293,7 @@ create_ctx(void)
   double Te = 100*2.8*eV;
   double Ti = 150*2.8*eV;
   double TAr = 40.0*eV;
+  double TD0 = 40.0*eV;
   double B0 = 2.51; // Magnetic field magnitude in Tesla
   double n0 = 3.0e19/2.8; // Particle density in 1/m^3
   double n0Ar = n0*0.0001/3.0; // Particle density in 1/m^3
@@ -313,7 +344,8 @@ create_ctx(void)
     .massAr = mAr,
     .Te = Te, 
     .Ti = Ti, 
-    .TAr = TAr, 
+    .TAr = TAr,
+    .TD0 = TD0,
     .vtIon = vtIon,
     .vtElc = vtElc,
     .vtAr = vtAr,
@@ -422,7 +454,7 @@ main(int argc, char **argv)
     }
   }
 #else
-  for (int d = 0; d < cdim; d++) {
+  for (int d = 0; d < 2; d++) {
     cuts[d] = 1;
   }
 #endif  
@@ -541,31 +573,31 @@ main(int argc, char **argv)
       .num_of_densities = 1, // Must be 1 for now
       },
 
-    .react_neut = {
-      .num_react = 2,
-      .react_type = {
-        { .react_id = GKYL_REACT_IZ,
-          .type_self = GKYL_SELF_ELC,
-          .ion_id = GKYL_ION_AR,
-          .elc_nm = "elc",
-          .ion_nm = "Ar1", // ion is always the higher charge state
-          .donor_nm = "Ar0", // interacts with elc to give up charge
-          .charge_state = 0, // corresponds to lower charge state (donor)
-          .ion_mass = ctx.massAr,
-          .elc_mass = ctx.massElc,
-        },
-        { .react_id = GKYL_REACT_RECOMB,
-          .type_self = GKYL_SELF_ELC,
-          .ion_id = GKYL_ION_AR,
-          .elc_nm = "elc",
-          .ion_nm = "Ar1",
-          .recvr_nm = "Ar0",
-          .charge_state = 0,
-          .ion_mass = ctx.massAr,
-          .elc_mass = ctx.massElc,
-        },
-      },
-    }, 
+    /* .react_neut = { */
+    /*   .num_react = 2, */
+    /*   .react_type = { */
+    /*     { .react_id = GKYL_REACT_IZ, */
+    /*       .type_self = GKYL_SELF_ELC, */
+    /*       .ion_id = GKYL_ION_AR, */
+    /*       .elc_nm = "elc", */
+    /*       .ion_nm = "Ar1", // ion is always the higher charge state */
+    /*       .donor_nm = "Ar0", // interacts with elc to give up charge */
+    /*       .charge_state = 0, // corresponds to lower charge state (donor) */
+    /*       .ion_mass = ctx.massAr, */
+    /*       .elc_mass = ctx.massElc, */
+    /*     }, */
+    /*     { .react_id = GKYL_REACT_RECOMB, */
+    /*       .type_self = GKYL_SELF_ELC, */
+    /*       .ion_id = GKYL_ION_AR, */
+    /*       .elc_nm = "elc", */
+    /*       .ion_nm = "Ar1", */
+    /*       .recvr_nm = "Ar0", */
+    /*       .charge_state = 0, */
+    /*       .ion_mass = ctx.massAr, */
+    /*       .elc_mass = ctx.massElc, */
+    /*     }, */
+    /*   }, */
+    /* },  */
 
 
     .diffusion = {
@@ -635,6 +667,42 @@ main(int argc, char **argv)
         .temp = eval_temp_source,      
       }, 
     },
+
+    .react_neut = {
+      .num_react = 1,
+      .react_type = {
+        { .react_id = GKYL_REACT_CX,
+          .type_self = GKYL_SELF_ION,
+          .ion_id = GKYL_ION_D,
+    	  .elc_nm = "elc", // gets called for other rxn. fix this?
+          .ion_nm = "ion",
+          .partner_nm = "D0",
+          .ion_mass = ctx.massIon,
+          .partner_mass = ctx.massIon,
+        },
+        /* { .react_id = GKYL_REACT_IZ, */
+        /*   .type_self = GKYL_SELF_ELC, */
+        /*   .ion_id = GKYL_ION_AR, */
+        /*   .elc_nm = "elc", */
+        /*   .ion_nm = "ion", // ion is always the higher charge state */
+        /*   .donor_nm = "D0", // interacts with elc to give up charge */
+        /*   .charge_state = 0, // corresponds to lower charge state (donor) */
+        /*   .ion_mass = ctx.massIon, */
+        /*   .elc_mass = ctx.massElc, */
+        /* }, */
+        /* { .react_id = GKYL_REACT_RECOMB, */
+        /*   .type_self = GKYL_SELF_ELC, */
+        /*   .ion_id = GKYL_ION_AR, */
+        /*   .elc_nm = "elc", */
+        /*   .ion_nm = "ion", */
+        /*   .recvr_nm = "D0", */
+        /*   .charge_state = 0, */
+        /*   .ion_mass = ctx.massIon, */
+        /*   .elc_mass = ctx.massElc, */
+        /* }, */
+      },
+    },
+    
     .diffusion = {
       .num_diff_dir = 1, 
       .diff_dirs = { 0 },
@@ -653,6 +721,31 @@ main(int argc, char **argv)
     
     .num_diag_moments = 7,
     .diag_moments = { "M0", "M1", "M2", "M2par", "M2perp", "M3par", "M3perp" },
+  };
+
+  // neutral D
+  struct gkyl_gyrokinetic_neut_species D0 = {
+    .name = "D0", .mass = ctx.massIon,
+    .lower = { -ctx.vpar_max_ion, -ctx.vpar_max_ion, -ctx.vpar_max_ion},
+    .upper = { ctx.vpar_max_ion, ctx.vpar_max_ion, ctx.vpar_max_ion },
+    .cells = { NVPAR, NVPAR, NVPAR},
+    .is_static = true,
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+      .ctx_density = &ctx,
+      .density = eval_density_neut,
+      .ctx_upar = &ctx,
+      .udrift= eval_udrift,
+      .ctx_temp = &ctx,
+      .temp = eval_temp_neut,      
+    },
+
+    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ZERO_FLUX },
+    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    
+    .num_diag_moments = 3,
+    .diag_moments = { "M0", "M1i", "M2"},
   };
 
   // Ar1+ ions
@@ -689,31 +782,31 @@ main(int argc, char **argv)
       .collide_with = { "elc", "ion"},
     },
 
-    .react_neut = {
-      .num_react = 2,
-      .react_type = {
-        { .react_id = GKYL_REACT_IZ,
-          .type_self = GKYL_SELF_ION,
-          .ion_id = GKYL_ION_AR,
-          .elc_nm = "elc",
-          .ion_nm = "Ar1",
-          .donor_nm = "Ar0",
-          .charge_state = 0,
-          .ion_mass = ctx.massAr,
-          .elc_mass = ctx.massElc,
-        },
-        { .react_id = GKYL_REACT_RECOMB,
-          .type_self = GKYL_SELF_ION,
-          .ion_id = GKYL_ION_AR,
-          .elc_nm = "elc",
-          .ion_nm = "Ar1",
-          .recvr_nm = "Ar0",
-          .charge_state = 0,
-          .ion_mass = ctx.massAr,
-          .elc_mass = ctx.massElc,
-        },
-      },
-    },
+    /* .react_neut = { */
+    /*   .num_react = 2, */
+    /*   .react_type = { */
+    /*     { .react_id = GKYL_REACT_IZ, */
+    /*       .type_self = GKYL_SELF_ION, */
+    /*       .ion_id = GKYL_ION_AR, */
+    /*       .elc_nm = "elc", */
+    /*       .ion_nm = "Ar1", */
+    /*       .donor_nm = "Ar0", */
+    /*       .charge_state = 0, */
+    /*       .ion_mass = ctx.massAr, */
+    /*       .elc_mass = ctx.massElc, */
+    /*     }, */
+    /*     { .react_id = GKYL_REACT_RECOMB, */
+    /*       .type_self = GKYL_SELF_ION, */
+    /*       .ion_id = GKYL_ION_AR, */
+    /*       .elc_nm = "elc", */
+    /*       .ion_nm = "Ar1", */
+    /*       .recvr_nm = "Ar0", */
+    /*       .charge_state = 0, */
+    /*       .ion_mass = ctx.massAr, */
+    /*       .elc_mass = ctx.massElc, */
+    /*     }, */
+    /*   }, */
+    /* }, */
 
     .diffusion = {
       .num_diff_dir = 1, 
@@ -795,8 +888,8 @@ main(int argc, char **argv)
     .num_species = 3,
     .species = { elc, ion, Ar1 },
 
-    .num_neut_species = 1,
-    .neut_species = { Ar0 },
+    .num_neut_species = 2,
+    .neut_species = { D0, Ar0 },
 
     .field = field,
 

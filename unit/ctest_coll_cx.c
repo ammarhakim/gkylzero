@@ -135,9 +135,10 @@ test_coll_cx_d(bool use_gpu)
     .mass_ion = d_ion_mass,
     .mass_neut = d_ion_mass,
     .type_ion = GKYL_ION_D,
-    .vt_sq_neut_min = 1*echarge/d_ion_mass,
-    .vt_sq_ion_min = 1*echarge/d_ion_mass,
   };
+
+  double vt_sq_neut_min = 1*echarge/d_ion_mass;
+  double vt_sq_ion_min = 1*echarge/d_ion_mass;
   
   // coll struct.
   struct gkyl_dg_cx *coll_cx_up_ion = gkyl_dg_cx_new(&cx_inp_ion, use_gpu);
@@ -194,12 +195,12 @@ test_coll_cx_d(bool use_gpu)
     gkyl_array_copy(prim_vars_neut_gk_cu, prim_vars_neut_gk);
     gkyl_array_copy(coef_cx_cu, coef_cx);
 	
-    gkyl_dg_cx_coll(coll_cx_up_neut, moms_ion_cu, moms_neut_cu, b_i_cu, prim_vars_ion_cu, prim_vars_neut_cu,
-		    prim_vars_neut_gk_cu, coef_cx_cu, 0);
+    gkyl_dg_cx_coll(coll_cx_up_neut, vt_sq_ion_min, vt_sq_neut_min, moms_ion_cu, moms_neut_cu, b_i_cu,
+      prim_vars_ion_cu, prim_vars_neut_cu, prim_vars_neut_gk_cu, coef_cx_cu, 0);
     gkyl_array_copy(coef_cx, coef_cx_cu);
     cv_n = gkyl_array_cfetch(coef_cx, gkyl_range_idx(&confRange, (int[2]) { 1, 1}));
-    gkyl_dg_cx_coll(coll_cx_up_ion, moms_ion_cu, moms_neut_cu, b_i_cu, prim_vars_ion_cu, prim_vars_neut_cu,
-		    prim_vars_neut_gk_cu, coef_cx_cu, 0);
+    gkyl_dg_cx_coll(coll_cx_up_ion, vt_sq_ion_min, vt_sq_neut_min, moms_ion_cu, moms_neut_cu, b_i_cu,
+      prim_vars_ion_cu, prim_vars_neut_cu, prim_vars_neut_gk_cu, coef_cx_cu, 0);
     gkyl_array_copy(coef_cx, coef_cx_cu);
     cv_i = gkyl_array_cfetch(coef_cx, gkyl_range_idx(&confRange, (int[2]) { 1, 1}));
 
@@ -210,11 +211,11 @@ test_coll_cx_d(bool use_gpu)
   }
   else {
 
-    gkyl_dg_cx_coll(coll_cx_up_ion, moms_ion, moms_neut, b_i, prim_vars_ion, prim_vars_neut,
-		    prim_vars_neut_gk, coef_cx, 0);
+    gkyl_dg_cx_coll(coll_cx_up_ion, vt_sq_ion_min, vt_sq_neut_min, moms_ion, moms_neut, b_i,
+      prim_vars_ion, prim_vars_neut, prim_vars_neut_gk, coef_cx, 0);
     cv_i = gkyl_array_cfetch(coef_cx, gkyl_range_idx(&confRange, (int[2]) { 1, 1}));
-    gkyl_dg_cx_coll(coll_cx_up_neut, moms_ion, moms_neut, b_i, prim_vars_ion, prim_vars_neut,
-		    prim_vars_neut_gk, coef_cx, 0);
+    gkyl_dg_cx_coll(coll_cx_up_neut, vt_sq_ion_min, vt_sq_neut_min, moms_ion, moms_neut, b_i,
+      prim_vars_ion, prim_vars_neut, prim_vars_neut_gk, coef_cx, 0);
     cv_n = gkyl_array_cfetch(coef_cx, gkyl_range_idx(&confRange, (int[2]) { 1, 1}));
     
   }

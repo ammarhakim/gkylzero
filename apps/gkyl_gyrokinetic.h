@@ -143,6 +143,8 @@ struct gkyl_gyrokinetic_react_type {
   double ion_mass; // mass of ion in reaction
   double elc_mass; // mass of electron in reaction
   double partner_mass; // mass of neutral in cx reaction
+  double vt_sq_ion_min;
+  double vt_sq_partner_min; 
 };
 
 // Parameters for species radiation

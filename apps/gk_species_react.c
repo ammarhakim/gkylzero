@@ -26,9 +26,11 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
   for (int i=0; i<react->num_react; ++i) {
     react->react_id[i] = react->react_type[i].react_id;
     react->type_self[i] = react->react_type[i].type_self;
+
     // Fetch pointers to species objects
     react->species_elc[i] = gk_find_species(app, react->react_type[i].elc_nm);
     react->species_ion[i] = gk_find_species(app, react->react_type[i].ion_nm);
+
     // Fetch index of species for indexing arrays
     react->elc_idx[i] = gk_find_species_idx(app, react->react_type[i].elc_nm);
     react->ion_idx[i] = gk_find_species_idx(app, react->react_type[i].ion_nm);
@@ -48,6 +50,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       gk_neut_species_moment_init(app, &app->neut_species[react->donor_idx[i]], &react->moms_donor[i], "FiveMoments");   
     }
     else if (gk_find_neut_species(app, react->react_type[i].partner_nm)) {
+
       react->partner_idx[i] = gk_find_neut_species_idx(app, react->react_type[i].partner_nm);
       gk_neut_species_moment_init(app, &app->neut_species[react->partner_idx[i]], &react->moms_partner[i], "FiveMoments");
 
@@ -102,7 +105,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       };
       react->recomb[i] = gkyl_dg_recomb_new(&recomb_inp, app->use_gpu);
     }
-    else if (react->react_id[i] == GKYL_REACT_RECOMB) {
+    else if (react->react_id[i] == GKYL_REACT_CX) {
       struct gkyl_dg_cx_inp cx_inp = {
         .grid = &s->grid,
 	.cbasis = &app->confBasis,
@@ -112,9 +115,7 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 	.phase_rng = &s->local,
 	.mass_ion = react->react_type[i].ion_mass,
 	.mass_neut = react->react_type[i].partner_mass,
-	.type_ion = GKYL_ION_D,
-	.vt_sq_ion_min = 0., //1.*echarge/react->react_type[i].ion_mass, //fix
-	.vt_sq_neut_min = 0., //1.*echarge/react->react_type[i].partner_mass,	//fix		      
+	.type_ion = react->react_type[i].ion_id,
       };
       react->cx[i] = gkyl_dg_cx_new(&cx_inp, app->use_gpu);
     }
@@ -198,9 +199,9 @@ gk_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *
       gkyl_array_set_range(react->m0_partner[i], 1.0, react->moms_partner[i].marr, &app->local);
 
       // prim_vars_neut_gk is returned to prim_vars[i] here.
-      gkyl_dg_cx_coll(react->cx[i], react->moms_ion[i].marr, react->moms_partner[i].marr, app->gk_geom->b_i,
-		      react->prim_vars_cxi[i], react->prim_vars_cxn[i], react->prim_vars[i],
-		      react->coeff_react[i], 0);
+      gkyl_dg_cx_coll(react->cx[i], app->species[react->ion_idx[i]].vtsq_min, app->neut_species[react->partner_idx[i]].vtsq_min,
+        react->moms_ion[i].marr, react->moms_partner[i].marr, app->gk_geom->b_i, react->prim_vars_cxi[i],
+        react->prim_vars_cxn[i], react->prim_vars[i], react->coeff_react[i], 0);
     }
   }
 }
@@ -349,7 +350,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
       gkyl_array_accumulate(react->f_react, -1.0, react->f_react_other);
       gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
         react->coeff_react[i], react->f_react, &app->local, &s->local);
-      gkyl_array_accumulate(rhs, 1.0, react->f_react);      
+      gkyl_array_accumulate(rhs, 1.0, react->f_react_other);      
       
     }
   }

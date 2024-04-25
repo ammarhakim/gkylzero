@@ -176,6 +176,9 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
   // set species source id
   s->source_id = s->info.source.source_id;
 
+  // vtsq_min
+  s->vtsq_min = s->grid.dx[cdim]*s->grid.dx[cdim]/6.0;
+
   // create ranges and allocate buffers for applying periodic and non-periodic BCs
   long buff_sz = 0;
   // compute buffer size needed

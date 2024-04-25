@@ -518,6 +518,9 @@ struct gk_species {
   struct gkyl_dg_updater_diffusion_gyrokinetic *diff_slvr; // gyrokinetic diffusion equation solver
 
   double *omega_cfl;
+
+  // vtsq_min
+  double vtsq_min; 
 };
 
 // neutral species data
@@ -586,6 +589,9 @@ struct gk_neut_species {
   struct gk_react react_neut; // reaction object
 
   double *omega_cfl_ptr;
+
+  // vtsq_min
+  double vtsq_min; 
 };
 
 // field data
