@@ -272,11 +272,11 @@ blackhole_spacetime_inv_metric_tensor(const struct gkyl_gr_spacetime* spacetime,
 
   (*spacetime_inv_metric_tensor)[0][0] = -1.0 / (lapse_function * lapse_function);
   for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      (*spacetime_inv_metric_tensor)[0][i + 1] += (spatial_metric[i][j] * shift_vector[j]) / (lapse_function * lapse_function);
-      (*spacetime_inv_metric_tensor)[i + 1][0] += (spatial_metric[i][j] * shift_vector[j]) / (lapse_function * lapse_function);
+    (*spacetime_inv_metric_tensor)[0][i + 1] = shift_vector[i] / (lapse_function * lapse_function);
+    (*spacetime_inv_metric_tensor)[i + 1][0] = shift_vector[i] / (lapse_function * lapse_function);
 
-      (*spacetime_inv_metric_tensor)[i][j] = inv_spatial_metric[i][j] - (shift_vector[i] * shift_vector[j]) / (lapse_function * lapse_function);
+    for (int j = 0; j < 3; j++) {
+      (*spacetime_inv_metric_tensor)[i + 1][j + 1] = inv_spatial_metric[i][j] - (shift_vector[i] * shift_vector[j]) / (lapse_function * lapse_function);
     }
   }
 }
