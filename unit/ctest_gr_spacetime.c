@@ -205,6 +205,8 @@ test_gr_minkowski()
       gkyl_free(spacetime_christoffel);
     }
   }
+
+  gkyl_gr_spacetime_release(spacetime);
 }
 
 void
@@ -470,6 +472,8 @@ test_gr_schwarzschild()
       }
     }
   }
+
+  gkyl_gr_spacetime_release(spacetime);
 }
 
 void
@@ -735,6 +739,8 @@ test_gr_kerr()
       }
     }
   }
+
+  gkyl_gr_spacetime_release(spacetime);
 }
 
 TEST_LIST = {

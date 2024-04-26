@@ -473,6 +473,7 @@ main(int argc, char **argv)
 
   // Free resources after simulation completion.
   gkyl_wv_eqn_release(gr_euler);
+  gkyl_gr_spacetime_release(ctx.spacetime);
   gkyl_rect_decomp_release(decomp);
   gkyl_comm_release(comm);
   gkyl_moment_app_release(app);  
