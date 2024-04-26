@@ -1,3 +1,10 @@
+// 2D Bondi-Hoyle-Lyttleton accretion problem onto a static (Schwarzschild) black hole, for the general relativistic Euler equations.
+// Input parameters describe wind accretion of a cold relativistic gas onto a non-rotating black hole.
+// Based on the analytical solution for stiff relativistic fluids presented in the article:
+// L. I. Petrich, S. L. Shapiro and S. A. Teukolsky (1988), "Accretion onto a moving black hole: An exact solution",
+// Physical Review Letters, Volume 60 (18): 1781-1784.
+// https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.60.1781
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,14 +97,14 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 400; // Cell count (x-direction).
-  int Ny = 400; // Cell count (y-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 256; // Cell count (y-direction).
   double Lx = 5.0; // Domain size (x-direction).
   double Ly = 5.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 15.0; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  int num_frames = 1; // Number of output frames.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
@@ -247,6 +254,16 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   else {
     fout[28] = 1.0;
   }
+
+  // Free all tensorial quantities.
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(inv_spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(inv_spatial_metric);
+  gkyl_free(shift);
+  gkyl_free(vel);
 }
 
 void
@@ -291,6 +308,7 @@ main(int argc, char **argv)
     .equation = gr_euler,
     .evolve = true,
     .init = evalGREulerInit,
+    .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },

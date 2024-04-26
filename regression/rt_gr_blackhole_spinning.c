@@ -1,3 +1,6 @@
+// 2D ring-accretion problem onto a non-static (Kerr) black hole, for the general relativistic Euler equations.
+// Input parameters describe an asymmetrical ring of cold relativistic gas accreting onto a spinning black hole.
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,8 +102,8 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, mass, spin, pos_x, pos_y, pos_z);
 
   // Simulation parameters.
-  int Nx = 400; // Cell count (x-direction).
-  int Ny = 400; // Cell count (y-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 256; // Cell count (y-direction).
   double Lx = 5.0; // Domain size (x-direction).
   double Ly = 5.0; // Domain size (y-direction).
   double cfl_frac = 0.95; // CFL coefficient.
@@ -275,6 +278,16 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   else {
     fout[28] = 1.0;
   }
+
+  // Free all tensorial quantities.
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(inv_spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(inv_spatial_metric);
+  gkyl_free(shift);
+  gkyl_free(vel);
 }
 
 void
@@ -319,6 +332,7 @@ main(int argc, char **argv)
     .equation = gr_euler,
     .evolve = true,
     .init = evalGREulerInit,
+    .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },

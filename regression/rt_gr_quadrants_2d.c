@@ -286,6 +286,16 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   else {
     fout[28] = 1.0;
   }
+
+  // Free all tensorial quantities.
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(inv_spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(inv_spatial_metric);
+  gkyl_free(shift);
+  gkyl_free(vel);
 }
 
 void

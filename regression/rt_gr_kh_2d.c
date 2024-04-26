@@ -1,3 +1,9 @@
+// 2D relativistic Kelvin-Helmholtz instability test for the general relativistic Euler equations.
+// Input parameters lightly adapted from the initial conditions in Section 4.3.2, from the article:
+// J. M. Stone, K. Tomida, C. J. White and K. G. Felker (2020), "The Athena++ Adaptive Mesh Refinement Framework: Design and Magnetohydrodynamic Solvers",
+// The Astrophysical Journal Supplement Series, Volume 249 (1): 1-40.
+// https://arxiv.org/abs/2005.06651
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,11 +83,11 @@ create_ctx(void)
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
   // Simulation parameters.
-  int Nx = 128; // Cell count (x-direction).
-  int Ny = 64; // Cell count (y-direction).
+  int Nx = 256; // Cell count (x-direction).
+  int Ny = 128; // Cell count (y-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double Ly = 0.5; // Domain size (y-direction).
-  double cfl_frac = 0.5; // CFL coefficient.
+  double cfl_frac = 0.95; // CFL coefficient.
 
   double t_end = 5.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
@@ -235,6 +241,16 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   else {
     fout[28] = 1.0;
   }
+
+  // Free all tensorial quantities.
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]);
+    gkyl_free(inv_spatial_metric[i]);
+  }
+  gkyl_free(spatial_metric);
+  gkyl_free(inv_spatial_metric);
+  gkyl_free(shift);
+  gkyl_free(vel);
 }
 
 void
@@ -272,20 +288,14 @@ main(int argc, char **argv)
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
   // Fluid equations.
-  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_inew(
-    &(struct gkyl_wv_gr_euler_inp) {
-        .gas_gamma = ctx.gas_gamma,
-        .spacetime = ctx.spacetime,
-        .rp_type = WV_GR_EULER_RP_ROE,
-        .use_gpu = app_args.use_gpu,
-    }
-  );
+  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(ctx.gas_gamma, ctx.spacetime, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_euler",
     .equation = gr_euler,
     .evolve = true,
     .init = evalGREulerInit,
+    .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
   };
 
