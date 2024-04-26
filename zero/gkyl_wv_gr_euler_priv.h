@@ -24,7 +24,7 @@ struct wv_gr_euler {
 * @param v Primitive variable vector (output).
 */
 GKYL_CU_D
-static inline void
+void
 gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29]);
 
 /**

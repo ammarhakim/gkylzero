@@ -6,7 +6,7 @@
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_gr_euler_priv.h>
 
-static inline void
+void
 gkyl_gr_euler_prim_vars(double gas_gamma, const double q[29], double v[29])
 {
   double spatial_det = q[5];

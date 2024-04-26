@@ -166,11 +166,49 @@ test_gr_minkowski()
       spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
 
       TEST_CHECK( (in_excision_region == false) );
+
+      for (int i = 0; i < 3; i++) {
+        gkyl_free(spatial_metric[i]);
+        gkyl_free(inv_spatial_metric[i]);
+        gkyl_free(extrinsic_curvature[i]);
+        gkyl_free(shift_vector_der[i]);
+
+        for (int j = 0; j < 3; j++) {
+          gkyl_free(spatial_metric_der[i][j]);
+          gkyl_free(spatial_christoffel[i][j]);
+        }
+        gkyl_free(spatial_metric_der[i]);
+        gkyl_free(spatial_christoffel[i]);
+      }
+      gkyl_free(spatial_metric);
+      gkyl_free(inv_spatial_metric);
+      gkyl_free(spatial_metric_der);
+      gkyl_free(spatial_christoffel);
+      gkyl_free(extrinsic_curvature);
+      gkyl_free(shift_vector_der);
+      gkyl_free(lapse_function_der);
+
+      for (int i = 0; i < 4; i++) {
+        gkyl_free(spacetime_metric[i]);
+        gkyl_free(inv_spacetime_metric[i]);
+
+        for (int j = 0; j < 4; j++) {
+          gkyl_free(spacetime_metric_der[i][j]);
+          gkyl_free(spacetime_christoffel[i][j]);
+        }
+        gkyl_free(spacetime_metric_der[i]);
+        gkyl_free(spacetime_christoffel[i]);
+      }
+      gkyl_free(spacetime_metric);
+      gkyl_free(inv_spacetime_metric);
+      gkyl_free(spacetime_metric_der);
+      gkyl_free(spacetime_christoffel);
     }
   }
 }
 
-void test_gr_schwarzschild()
+void
+test_gr_schwarzschild()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
 
@@ -182,7 +220,7 @@ void test_gr_schwarzschild()
       if (sqrt((x * x) + (y * y)) > 0.2) {
         double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
         double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
-        double** spatial_metric_prod = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_metric_prod = gkyl_malloc(sizeof(double*[3]));
 
         for (int i = 0; i < 3; i++) {
           spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
@@ -372,6 +410,57 @@ void test_gr_schwarzschild()
         spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
 
         TEST_CHECK( (in_excision_region == false) );
+
+        for (int i = 0; i < 3; i++) {
+          gkyl_free(spatial_metric[i]);
+          gkyl_free(inv_spatial_metric[i]);
+          gkyl_free(spatial_metric_prod[i]);
+          gkyl_free(shift_vector_der[i]);
+          gkyl_free(extrinsic_curvature[i]);
+          gkyl_free(shift_vector_cov_der[i]);
+          gkyl_free(shift_covector_cov_der[i]);
+          
+          for (int j = 0; j < 3; j++) {
+            gkyl_free(spatial_metric_der[i][j]);
+            gkyl_free(spatial_christoffel[i][j]);
+            gkyl_free(spatial_metric_cov_der[i][j]);
+          }
+          gkyl_free(spatial_metric_der[i]);
+          gkyl_free(spatial_christoffel[i]);
+          gkyl_free(spatial_metric_cov_der[i]);
+        }
+        gkyl_free(spatial_metric);
+        gkyl_free(inv_spatial_metric);
+        gkyl_free(spatial_metric_prod);
+        gkyl_free(spatial_metric_der);
+        gkyl_free(spatial_christoffel);
+        gkyl_free(spatial_metric_cov_der);
+        gkyl_free(shift_vector_der);
+        gkyl_free(extrinsic_curvature);
+        gkyl_free(shift_vector_cov_der);
+        gkyl_free(shift_covector_cov_der);
+        gkyl_free(shift_vector);
+
+        for (int i = 0; i < 4; i++) {
+          gkyl_free(spacetime_metric[i]);
+          gkyl_free(inv_spacetime_metric[i]);
+          gkyl_free(spacetime_metric_prod[i]);
+
+          for (int j = 0; j < 4; j++) {
+            gkyl_free(spacetime_metric_der[i][j]);
+            gkyl_free(spacetime_christoffel[i][j]);
+            gkyl_free(spacetime_metric_cov_der[i][j]);
+          }
+          gkyl_free(spacetime_metric_der[i]);
+          gkyl_free(spacetime_christoffel[i]);
+          gkyl_free(spacetime_metric_cov_der[i]);
+        }
+        gkyl_free(spacetime_metric);
+        gkyl_free(inv_spacetime_metric);
+        gkyl_free(spacetime_metric_prod);
+        gkyl_free(spacetime_metric_der);
+        gkyl_free(spacetime_christoffel);
+        gkyl_free(spacetime_metric_cov_der);
       }
       else {
         bool in_excision_region;
@@ -383,7 +472,8 @@ void test_gr_schwarzschild()
   }
 }
 
-void test_gr_kerr()
+void
+test_gr_kerr()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
 
@@ -395,7 +485,7 @@ void test_gr_kerr()
       if (sqrt((x * x) + (y * y)) > 0.1 * (1.0 + sqrt(0.19))) {
         double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
         double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
-        double** spatial_metric_prod = gkyl_malloc(sizeof(double*[3]));
+        double **spatial_metric_prod = gkyl_malloc(sizeof(double*[3]));
 
         for (int i = 0; i < 3; i++) {
           spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
@@ -585,6 +675,57 @@ void test_gr_kerr()
         spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
 
         TEST_CHECK( (in_excision_region == false) );
+
+        for (int i = 0; i < 3; i++) {
+          gkyl_free(spatial_metric[i]);
+          gkyl_free(inv_spatial_metric[i]);
+          gkyl_free(spatial_metric_prod[i]);
+          gkyl_free(shift_vector_der[i]);
+          gkyl_free(extrinsic_curvature[i]);
+          gkyl_free(shift_vector_cov_der[i]);
+          gkyl_free(shift_covector_cov_der[i]);
+          
+          for (int j = 0; j < 3; j++) {
+            gkyl_free(spatial_metric_der[i][j]);
+            gkyl_free(spatial_christoffel[i][j]);
+            gkyl_free(spatial_metric_cov_der[i][j]);
+          }
+          gkyl_free(spatial_metric_der[i]);
+          gkyl_free(spatial_christoffel[i]);
+          gkyl_free(spatial_metric_cov_der[i]);
+        }
+        gkyl_free(spatial_metric);
+        gkyl_free(inv_spatial_metric);
+        gkyl_free(spatial_metric_prod);
+        gkyl_free(spatial_metric_der);
+        gkyl_free(spatial_christoffel);
+        gkyl_free(spatial_metric_cov_der);
+        gkyl_free(shift_vector_der);
+        gkyl_free(extrinsic_curvature);
+        gkyl_free(shift_vector_cov_der);
+        gkyl_free(shift_covector_cov_der);
+        gkyl_free(shift_vector);
+
+        for (int i = 0; i < 4; i++) {
+          gkyl_free(spacetime_metric[i]);
+          gkyl_free(inv_spacetime_metric[i]);
+          gkyl_free(spacetime_metric_prod[i]);
+
+          for (int j = 0; j < 4; j++) {
+            gkyl_free(spacetime_metric_der[i][j]);
+            gkyl_free(spacetime_christoffel[i][j]);
+            gkyl_free(spacetime_metric_cov_der[i][j]);
+          }
+          gkyl_free(spacetime_metric_der[i]);
+          gkyl_free(spacetime_christoffel[i]);
+          gkyl_free(spacetime_metric_cov_der[i]);
+        }
+        gkyl_free(spacetime_metric);
+        gkyl_free(inv_spacetime_metric);
+        gkyl_free(spacetime_metric_prod);
+        gkyl_free(spacetime_metric_der);
+        gkyl_free(spacetime_christoffel);
+        gkyl_free(spacetime_metric_cov_der);
       }
       else {
         bool in_excision_region;
