@@ -159,6 +159,72 @@ minkowski_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const
 }
 
 static void
+minkowski_spatial_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double***** spatial_riemann_tensor)
+{
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        for (int l = 0; l < 3; l++) {
+          (*spatial_riemann_tensor)[i][j][k][l] = 0.0;
+        }
+      }
+    }
+  }
+}
+
+static void
+minkowski_spacetime_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double***** spacetime_riemann_tensor)
+{
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < 4; k++) {
+        for (int l = 0; l < 4; l++) {
+          (*spacetime_riemann_tensor)[i][j][k][l] = 0.0;
+        }
+      }
+    }
+  }
+}
+
+static void
+minkowski_spatial_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** spatial_ricci_tensor)
+{
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      (*spatial_ricci_tensor)[i][j] = 0.0;
+    }
+  }
+}
+
+static void
+minkowski_spacetime_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double*** spacetime_ricci_tensor)
+{
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      (*spacetime_ricci_tensor)[i][j] = 0.0;
+    }
+  }
+}
+
+static void
+minkowski_spatial_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double* spatial_ricci_scalar)
+{
+  *spatial_ricci_scalar = 0.0;
+}
+
+static void
+minkowski_spacetime_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double* spacetime_ricci_scalar)
+{
+  *spacetime_ricci_scalar = 0.0;
+}
+
+static void
 minkowski_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor)
 {
@@ -225,6 +291,15 @@ gkyl_gr_minkowski_inew(const struct gkyl_gr_minkowski_inp* inp)
 
   gr_minkowski->spacetime.spatial_christoffel_func = minkowski_spatial_christoffel;
   gr_minkowski->spacetime.spacetime_christoffel_func = minkowski_spacetime_christoffel;
+
+  gr_minkowski->spacetime.spatial_riemann_tensor_func = minkowski_spatial_riemann_tensor;
+  gr_minkowski->spacetime.spacetime_riemann_tensor_func = minkowski_spacetime_riemann_tensor;
+
+  gr_minkowski->spacetime.spatial_ricci_tensor_func = minkowski_spatial_ricci_tensor;
+  gr_minkowski->spacetime.spacetime_ricci_tensor_func = minkowski_spacetime_ricci_tensor;
+
+  gr_minkowski->spacetime.spatial_ricci_scalar_func = minkowski_spatial_ricci_scalar;
+  gr_minkowski->spacetime.spacetime_ricci_scalar_func = minkowski_spacetime_ricci_scalar;
 
   gr_minkowski->spacetime.extrinsic_curvature_tensor_func = minkowski_extrinsic_curvature_tensor;
 

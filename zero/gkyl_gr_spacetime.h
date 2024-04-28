@@ -56,12 +56,36 @@ typedef void (*gr_shift_vector_der_t)(const struct gkyl_gr_spacetime* spacetime,
   const double z, const double dx, const double dy, const double dz, double*** shift_vector_der);
 
 // Function pointer to compute the rank-3 (spatial) Christoffel symbols at a given point in spacetime.
-typedef void (*gr_spatial_christoffel)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+typedef void (*gr_spatial_christoffel_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
   const double z, const double dx, const double dy, const double dz, double**** spatial_christoffel);
 
 // Function pointer to compute the rank-3 (spacetime) Christoffel symbols at a given point in spacetime.
-typedef void (*gr_spacetime_christoffel)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+typedef void (*gr_spacetime_christoffel_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
   const double z, const double dt, const double dx, const double dy, const double dz, double**** spacetime_christoffel);
+
+// Function pointer to compute the rank-4 (spatial) Riemann curvature tensor at a given point in spacetime.
+typedef void (*gr_spatial_riemann_tensor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double***** spatial_riemann_tensor);
+
+// Function pointer to compute the rank-4 (spacetime) Riemann curvature tensor at a given point in spacetime.
+typedef void (*gr_spacetime_riemann_tensor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz, double***** spacetime_riemann_tensor);
+
+// Function pointer to compute the rank-2 (spatial) Ricci curvature tensor at a given point in spacetime.
+typedef void (*gr_spatial_ricci_tensor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double*** spatial_ricci_tensor);
+
+// Function pointer to compute the rank-2 (spacetime) Ricci curvature tensor at a given point in spacetime.
+typedef void (*gr_spacetime_ricci_tensor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz, double*** spacetime_ricci_tensor);
+
+// Function pointer to compute the (spatial) Ricci scalar curvature at a given point in spacetime.
+typedef void (*gr_spatial_ricci_scalar_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dx, const double dy, const double dz, double* spatial_ricci_scalar);
+
+// Function pointer to compute the (spacetime) Ricci scalar curvature at a given point in spacetime.
+typedef void (*gr_spacetime_ricci_scalar_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
+  const double z, const double dt, const double dx, const double dy, const double dz, double* spacetime_ricci_scalar);
 
 // Function pointer to compute the rank-2 extrinsic curvature tensor at a given point in spacetime.
 typedef void (*gr_extrinsic_curvature_tensor_t)(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y,
@@ -90,8 +114,17 @@ struct gkyl_gr_spacetime {
   gr_lapse_function_der_t lapse_function_der_func; // Function to compute partial derivative of lapse function.
   gr_shift_vector_der_t shift_vector_der_func; // Function to compute partial derivative of shift vector.
 
-  gr_spatial_christoffel spatial_christoffel_func; // Function to compute spatial Christoffel symbols.
-  gr_spacetime_christoffel spacetime_christoffel_func; // Function to compute spacetime Christoffel symbols.
+  gr_spatial_christoffel_t spatial_christoffel_func; // Function to compute spatial Christoffel symbols.
+  gr_spacetime_christoffel_t spacetime_christoffel_func; // Function to compute spacetime Christoffel symbols.
+
+  gr_spatial_riemann_tensor_t spatial_riemann_tensor_func; // Function to compute spatial Riemann curvature tensor.
+  gr_spacetime_riemann_tensor_t spacetime_riemann_tensor_func; // Function to compute spacetime Riemann curvature tensor.
+
+  gr_spatial_ricci_tensor_t spatial_ricci_tensor_func; // Function to compute spatial Ricci curvature tensor.
+  gr_spacetime_ricci_tensor_t spacetime_ricci_tensor_func; // Function to compute spacetime Ricci curvature tensor.
+
+  gr_spatial_ricci_scalar_t spatial_ricci_scalar_func; // Function to compute spatial Ricci scalar curvature.
+  gr_spacetime_ricci_scalar_t spacetime_ricci_scalar_func; // Function to compute spacetime Ricci scalar curvature.
 
   gr_extrinsic_curvature_tensor_t extrinsic_curvature_tensor_func; // Function to compute extrinsic curvature tensor.
 
@@ -331,6 +364,117 @@ GKYL_CU_DH
 static inline void
 gkyl_gr_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double**** spacetime_christoffel);
+
+/**
+* Compute the rank-4 (spatial) Riemann curvature tensor at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spatial_riemann_tensor Rank-4 spatial Riemann curvature tensor (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_spatial_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double***** spatial_riemann_tensor);
+
+/**
+* Compute the rank-4 (spacetime) Riemann curvature tensor at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dt Time coordinate spacing.
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_riemann_tensor Rank-4 spacetime Riemann curvature tensor (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_spacetime_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double***** spacetime_riemann_tensor);
+
+/**
+* Compute the rank-2 (spatial) Ricci curvature tensor at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spatial_ricci_tensor Rank-2 spatial Ricci curvature tensor (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_spatial_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** spatial_ricci_tensor);
+
+/**
+* Compute the rank-2 (spacetime) Ricci curvature tensor at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dt Time coordinate spacing.
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_ricci_tensor Rank-2 spatial Ricci curvature tensor (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_spacetime_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double*** spacetime_ricci_tensor);
+
+/**
+* Compute the (spatial) Ricci scalar curvature at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spatial_ricci_scalar Spatial Ricci scalar curvature (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_spatial_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double* spatial_ricci_scalar);
+
+/**
+* Compute the (spacetime) Ricci scalar curvature at a given point in spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dt Time coordinate spacing.
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_ricci_scalar Spatial Ricci scalar curvature (output).
+*/
+GKYL_CU_DH
+static inline void
+gkyl_gr_spacetime_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double* spacetime_ricci_scalar);
 
 /**
 * Compute the rank-2 extrinsic curvature tensor at a given point in spacetime.

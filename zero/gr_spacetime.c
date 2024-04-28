@@ -102,6 +102,48 @@ gkyl_gr_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const d
 }
 
 static inline void
+gkyl_gr_spatial_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double***** spatial_riemann_tensor)
+{
+  return spacetime->spatial_riemann_tensor_func(spacetime, t, x, y, z, dx, dy, dz, spatial_riemann_tensor);
+}
+
+static inline void
+gkyl_gr_spacetime_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double***** spacetime_riemann_tensor)
+{
+  return spacetime->spacetime_riemann_tensor_func(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_riemann_tensor);
+}
+
+static inline void
+gkyl_gr_spatial_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** spatial_ricci_tensor)
+{
+  return spacetime->spatial_ricci_tensor_func(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_tensor);
+}
+
+static inline void
+gkyl_gr_spacetime_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double*** spacetime_ricci_tensor)
+{
+  return spacetime->spacetime_ricci_tensor_func(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_tensor);
+}
+
+static inline void
+gkyl_gr_spatial_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double* spatial_ricci_scalar)
+{
+  return spacetime->spatial_ricci_scalar_func(spacetime, t, x, y, z, dx, dy, dz, spatial_ricci_scalar);
+}
+
+static inline void
+gkyl_gr_spacetime_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double* spacetime_ricci_scalar)
+{
+  return spacetime->spacetime_ricci_scalar_func(spacetime, t, x, y, z, dt, dx, dy, dz, spacetime_ricci_scalar);
+}
+
+static inline void
 gkyl_gr_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor)
 {

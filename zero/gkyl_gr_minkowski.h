@@ -238,11 +238,123 @@ minkowski_spatial_christoffel(const struct gkyl_gr_spacetime* spacetime, const d
 * @param dx Spatial coordinate spacing (x-direction).
 * @param dy Spatial coordinate spacing (y-direction).
 * @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_christoffel Rank-3 spacetime Christoffel symbols (output).
 */
 GKYL_CU_D
 static void
 minkowski_spacetime_christoffel(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dt, const double dx, const double dy, const double dz, double**** spacetime_christoffel);
+
+/**
+* Compute the rank-4 (spatial) Riemann curvature tensor at a given pont in Minkowski space.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spatial_riemann_tensor Rank-4 spatial Riemann curvature tensor (output).
+*/
+GKYL_CU_D
+static void
+minkowski_spatial_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double***** spatial_riemann_tensor);
+
+/**
+* Compute the rank-4 (spacetime) Riemann curvature tensor at a given point in Minkowski space.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dt Time coordinate spacing.
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_riemann_tensor Rank-4 spacetime Riemann curvature tensor (output).
+*/
+GKYL_CU_D
+static void
+minkowski_spacetime_riemann_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double***** spacetime_riemann_tensor);
+
+/**
+* Compute the rank-2 (spatial) Ricci curvature tensor at a given pont in Minkowski space.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spatial_ricci_tensor Rank-2 spatial Ricci curvature tensor (output).
+*/
+GKYL_CU_D
+static void
+minkowski_spatial_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** spatial_ricci_tensor);
+
+/**
+* Compute the rank-2 (spacetime) Ricci curvature tensor at a given point in Minkowski space.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dt Time coordinate spacing.
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_ricci_tensor Rank-2 spacetime Ricci curvature tensor (output).
+*/
+GKYL_CU_D
+static void
+minkowski_spacetime_ricci_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double*** spacetime_ricci_tensor);
+
+/**
+* Compute the (spatial) Ricci scalar curvature at a given pont in Minkowski space.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spatial_ricci_scalar Spatial Ricci scalar curvature (output).
+*/
+GKYL_CU_D
+static void
+minkowski_spatial_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double* spatial_ricci_scalar);
+
+/**
+* Compute the (spacetime) Ricci scalar curvature at a given point in Minkowski space.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dt Time coordinate spacing.
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param spacetime_ricci_scalar Spacetime Ricci scalar curvature (output).
+*/
+GKYL_CU_D
+static void
+minkowski_spacetime_ricci_scalar(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dt, const double dx, const double dy, const double dz, double* spacetime_ricci_scalar);
 
 /**
 * Compute the rank-2 extrinsic curvature tensor at a given point in Minkowski space.
