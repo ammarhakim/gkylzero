@@ -109,7 +109,7 @@ double Ti_perp0;
   int mapping_order_center;
   int mapping_order_expander;
   double mapping_frac;
-  void *mapc2p;
+  void *arcL_evaluator_ctx;
 };
 
 
@@ -129,8 +129,88 @@ struct gkyl_mirror_geo_grid_inp ginp = {
   .zmax =  2.48,
   .write_node_coord_array = true,
   .node_file_nm = "wham_nodes.gkyl",
-  .nonuniform_mapping_fraction = 0.7,
+  .nonuniform_mapping_fraction = 0.0,
 };
+
+void calc_arcL_advance(double t, const double *xn, double *fout, void *ctx)
+{
+  struct arcL_evaluator *gc = ctx;
+  struct gkyl_range_iter iter;
+  double XYZ[gc->cgrid.ndim];
+  struct gkyl_range_iter citer;
+  // printf("crange->ndim = %d\n", gc->crange.ndim);
+  // printf("range->ndim = %d\n", gc->range.ndim);
+  // printf("crange_global->ndim = %d\n", gc->crange_global.ndim);
+  // printf("cgrid->ndim = %d\n", gc->cgrid.ndim);
+  // printf("grid->ndim = %d\n", gc->grid.ndim);
+  // printf("cbasis->ndim = %d\n", gc->cbasis.ndim);
+  // printf("basis->ndim = %i\n", gc->basis.ndim);
+
+  printf("xn[0] = %f\n", xn[0]);
+  printf("xn[1] = %f\n", xn[1]);
+  printf("xn[2] = %f\n", xn[2]);
+  double xeval[3];
+  xeval[0] = 0.0026530898059565; // Hardcoded to avoid dependency on ctx for psi_eval in 1D
+  xeval[1] = 0.0;
+  xeval[2] = xn[0];
+  printf("xeval[0] = %f\n", xeval[0]);
+  printf("xeval[1] = %f\n", xeval[1]);
+  printf("xeval[2] = %f\n", xeval[2]);
+  gkyl_range_iter_init(&iter, &gc->crange);
+  for(int i = 0; i < gc->cgrid.ndim; i++){
+    int idxtemp = gc->crange_global.lower[i] + (int) floor((xeval[i] - (gc->cgrid.lower[i]) )/gc->cgrid.dx[i]);
+    idxtemp = GKYL_MIN2(idxtemp, gc->crange.upper[i]);
+    idxtemp = GKYL_MAX2(idxtemp, gc->crange.lower[i]);
+    citer.idx[i] = idxtemp;
+    printf("citer.idx[%d] = %d\n", i, citer.idx[i]);
+  }
+  long lidx = gkyl_range_idx(&gc->crange, citer.idx);
+  const double *mcoeffs = gkyl_array_cfetch(gc->map_arcL, lidx);
+  
+  double cxc[gc->cgrid.ndim];
+  double xyz[gc->cgrid.ndim];
+  gkyl_rect_grid_cell_center(&gc->cgrid, citer.idx, cxc);
+  for(int i = 0; i < gc->cgrid.ndim; i++){
+    xyz[i] = (xeval[i]-cxc[i])/(gc->cgrid.dx[i]*0.5);
+    printf("xeval[%d] = %f\n", i, xeval[i]);
+    printf("cxc[%d] = %f\n", i, cxc[i]);
+    printf("xeval[i] - cxc[i] = %f\n", xeval[i] - cxc[i]);
+    printf("gc->cgrid.dx[%d] = %f\n", i, gc->cgrid.dx[i]);
+    printf("xyz[%d] = %f\n", i, xyz[i]);
+  }
+  // if(xyz[2]>1.0)
+  //   xyz[2]=1.0;
+  // if(xyz[2]<-1.0)
+  //   xyz[2]=-1.0;
+  printf("xyz[2] = %f\n", xyz[2]);
+  // for (int i = 0; i < 10; i++){
+  //   printf("mcoeffs[%d] = %f\n", i, mcoeffs[i]);
+  // }
+  for(int i = 0; i < gc->cgrid.ndim; i++){
+    printf("mcoeffs[%d] = %f\n", i * gc->cbasis.num_basis, mcoeffs[i*gc->cbasis.num_basis]);
+    XYZ[i] = gc->cbasis.eval_expand(xyz, &mcoeffs[i*gc->cbasis.num_basis]);
+    printf("XYZ[%d] = %f\n", i, XYZ[i]);
+  }
+  fout[0] = xn[0];
+  // double R = sqrt(XYZ[0]*XYZ[0] + XYZ[1]*XYZ[1]);
+  // double Z = XYZ[2];
+  // gkyl_range_iter_init(&iter, gc->range);
+  // iter.idx[0] = fmin(gc->range->lower[0] + (int) floor((R - gc->grid->lower[0])/gc->grid->dx[0]), gc->range->upper[0]);
+  // iter.idx[1] = fmin(gc->range->lower[1] + (int) floor((Z - gc->grid->lower[1])/gc->grid->dx[1]), gc->range->upper[1]);
+  // // 4 Lines below are to prevent issues cause by floating point comparison
+  // if(iter.idx[0]<1)
+  //   iter.idx[0] = 1;
+  // if(iter.idx[1]<1)
+  //   iter.idx[1] = 1;
+  // long loc = gkyl_range_idx(gc->range, iter.idx);
+  // const double *coeffs = gkyl_array_cfetch(gc->map_arcL,loc);
+  // double xc[2];
+  // gkyl_rect_grid_cell_center(gc->grid, iter.idx, xc);
+  // double xy[2];
+  // xy[0] = (R-xc[0])/(gc->grid->dx[0]*0.5);
+  // xy[1] = (Z-xc[1])/(gc->grid->dx[1]*0.5);
+  // fout[0] = gc->basis->eval_expand(xy, coeffs);
+}
 
 // -- Source functions.
 void
@@ -318,7 +398,9 @@ eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT
 {
   struct gk_mirror_ctx *app = ctx;
   double psi = app->psi_eval; // Magnetic flux function psi of field line.
-  double z = xn[0];
+  calc_arcL_advance(t, xn, fout, app->arcL_evaluator_ctx);
+  double z = fout[0]; //Alocate seperate space for this with a descriptive name
+  // double z = xn[0];
   double z_m = app->z_m;
   double sigma = 0.9*z_m;
   if (fabs(z) <= sigma)
@@ -595,6 +677,7 @@ create_ctx(void)
     .num_frames = num_frames,
   };
   ctx.z_m = 1;
+  ctx.arcL_evaluator_ctx = gkyl_malloc(sizeof(struct arcL_evaluator));
   return ctx;
 }
 
@@ -687,6 +770,7 @@ int main(int argc, char **argv)
       .world = {ctx.psi_eval, 0.0},
       .mirror_efit_info = &inp,
       .mirror_grid_info = &ginp,
+      .arcL_map_ctx = ctx.arcL_evaluator_ctx
     },
     .num_periodic_dir = 0,
     .periodic_dirs = {},

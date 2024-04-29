@@ -219,6 +219,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = gk->geometry.geometry_id,
     .c2p_ctx = gk->geometry.c2p_ctx,
+    .arcL_map_ctx = gk->geometry.arcL_map_ctx,
     .mapc2p = gk->geometry.mapc2p,
     .bmag_ctx = gk->geometry.bmag_ctx,
     .bmag_func = gk->geometry.bmag_func,

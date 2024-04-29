@@ -406,6 +406,7 @@ main(int argc, char **argv)
 
   // create global range
   int cells[] = { NX, NZ };
+  int cdim = sizeof(cells)/sizeof(cells[0]);
   struct gkyl_range globalr;
   gkyl_create_global_range(2, cells, &globalr);
 

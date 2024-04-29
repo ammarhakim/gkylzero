@@ -54,6 +54,9 @@ struct gkyl_gk_geometry_inp {
   // pointer to mapc2p function: xc are the computational space
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
+
+  void *arcL_map_ctx; // context for arcL mapping used in the non-uniform grids
+
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
   void *bmag_ctx; // context for bmag function
