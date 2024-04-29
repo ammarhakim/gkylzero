@@ -67,7 +67,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   struct arcL_evaluator *arcL_app = geometry_inp->arcL_map_ctx;
   struct gkyl_array* map_arcL_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*13, nrange.volume);
   struct gkyl_array* map_arcL_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
-  arcL_app->map_arcL = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, up->local_ext.volume);
+  arcL_app->map_arcL = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   // bmag, metrics and derived geo quantities
   up->bmag = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
@@ -132,16 +132,6 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   arcL_app->crange_global = up->global;
   arcL_app->basis = geo->rzbasis;
   arcL_app->cbasis = up->basis;
-
-  printf("correct answers\n");
-  printf("crange_global->ndim = %d\n", arcL_app->crange_global.ndim);
-  printf("cgrid->ndim = %d\n", arcL_app->cgrid.ndim);
-  printf("grid->ndim = %d\n", arcL_app->grid.ndim);
-  printf("cbasis->ndim = %d\n", arcL_app->cbasis.ndim);
-  printf("basis->ndim = %d\n", arcL_app->basis.ndim);
-  printf("crange->ndim = %d\n", arcL_app->crange.ndim);
-  printf("range->ndim = %d\n", arcL_app->range.ndim);
-  printf("end correct answers\n");
 
   gkyl_mirror_geo_release(geo);
   // now calculate the metrics

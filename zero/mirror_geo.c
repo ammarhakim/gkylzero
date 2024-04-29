@@ -324,7 +324,7 @@ void gkyl_mirror_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, dou
               if(ip_delta==0 && ia_delta==0 && it_delta==0) {
                 map_arcL_n[X_IDX] = psi_curr;
                 map_arcL_n[Y_IDX] = alpha_curr;
-                map_arcL_n[Z_IDX] = arcL_curr;
+                map_arcL_n[Z_IDX] = theta_curr;
               }
             }
           }
