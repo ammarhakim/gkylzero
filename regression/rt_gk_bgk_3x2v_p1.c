@@ -529,8 +529,12 @@ main(int argc, char **argv)
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNuElcInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "ion" },
+      .correct_all_moms = true,   // 
+      .use_last_converged = true,   //
+      .iter_eps = 1e-12,   //
+      .max_iter = 50,   //
+      //.num_cross_collisions = 1,
+      //.collide_with = { "ion" },
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -586,8 +590,12 @@ main(int argc, char **argv)
       .collision_id = GKYL_BGK_COLLISIONS,
       .self_nu = evalNuIonInit,
       .ctx = &ctx,
-      .num_cross_collisions = 1,
-      .collide_with = { "elc" },
+      .correct_all_moms = true,   // 
+      .use_last_converged = true,   //
+      .iter_eps = 1e-12,   //
+      .max_iter = 50,   //
+      //.num_cross_collisions = 1,
+      //.collide_with = { "elc" },
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
