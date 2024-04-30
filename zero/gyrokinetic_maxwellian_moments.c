@@ -152,7 +152,7 @@ gkyl_gyrokinetic_maxwellian_moments_advance(struct gkyl_gyrokinetic_maxwellian_m
 }
 
 void 
-gkyl_gyrokinetic_bi_maxwellian_moments_advance(struct gkyl_gyrokinetic_maxwellian_moments *up, 
+gkyl_gyrokinetic_bimaxwellian_moments_advance(struct gkyl_gyrokinetic_maxwellian_moments *up, 
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range, 
   const struct gkyl_array *fin, struct gkyl_array *moms_out)
 {

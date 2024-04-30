@@ -11,8 +11,8 @@ gk_species_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   sm->is_integrated = strcmp(nm, "Integrated") == 0;
 
   sm->is_maxwellian_moms = strcmp("MaxwellianMoments", nm) == 0;
-  sm->is_bi_maxwellian_moms = strcmp("BiMaxwellianMoments", nm) == 0;
-  if (sm->is_maxwellian_moms || sm->is_bi_maxwellian_moms) {
+  sm->is_bimaxwellian_moms = strcmp("BiMaxwellianMoments", nm) == 0;
+  if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
     struct gkyl_gyrokinetic_maxwellian_moments_inp inp_mom = {
       .phase_grid = &s->grid,
       .conf_basis = &app->confBasis,
@@ -73,8 +73,8 @@ gk_species_moment_calc(const struct gk_species_moment *sm,
     gkyl_gyrokinetic_maxwellian_moments_advance(sm->gyrokinetic_maxwellian_moms, 
       &phase_rng, &conf_rng, fin, sm->marr);
   }
-  else if (sm->is_bi_maxwellian_moms) {
-    gkyl_gyrokinetic_bi_maxwellian_moments_advance(sm->gyrokinetic_maxwellian_moms, 
+  else if (sm->is_bimaxwellian_moms) {
+    gkyl_gyrokinetic_bimaxwellian_moments_advance(sm->gyrokinetic_maxwellian_moms, 
       &phase_rng, &conf_rng, fin, sm->marr);
   } 
   else {
@@ -91,7 +91,7 @@ gk_species_moment_release(const struct gkyl_gyrokinetic_app *app, const struct g
     gkyl_array_release(sm->marr_host);
   }
 
-  if (sm->is_maxwellian_moms || sm->is_bi_maxwellian_moms) {
+  if (sm->is_maxwellian_moms || sm->is_bimaxwellian_moms) {
     gkyl_gyrokinetic_maxwellian_moments_release(sm->gyrokinetic_maxwellian_moms);
   }
   else {

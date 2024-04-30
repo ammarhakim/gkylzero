@@ -166,7 +166,7 @@ struct gk_species_moment {
     };
   };
   bool is_maxwellian_moms;
-  bool is_bi_maxwellian_moms;
+  bool is_bimaxwellian_moms;
 };
 
 struct gk_rad_drag {  

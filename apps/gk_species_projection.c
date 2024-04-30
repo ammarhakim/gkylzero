@@ -172,6 +172,7 @@ gk_species_projection_release(const struct gkyl_gyrokinetic_app *app, const stru
       gkyl_array_release(proj->vtsq);
       gkyl_proj_on_basis_release(proj->proj_temp);
       gkyl_proj_maxwellian_on_basis_release(proj->proj_max_prim);
+      gkyl_gyrokinetic_maxwellian_correct_release(proj->corr_max);
     }
     else if (proj->proj_id == GKYL_PROJ_BIMAXWELLIAN) {
       gkyl_array_release(proj->vtsqpar);

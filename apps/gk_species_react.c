@@ -168,7 +168,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
 
     if (react->react_id[i] == GKYL_REACT_IZ) {
       if (react->type_self[i] == GKYL_SELF_ELC) {
-        gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->moms_elc[i].marr, 0*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->m0_elc[i], 0*app->confBasis.num_basis);
         gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->vt_sq_iz[i], 2*app->confBasis.num_basis);
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->prim_vars_proj_inp[i],
@@ -191,7 +191,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
         gkyl_array_accumulate(rhs, 1.0, react->f_react);
       }
       else if (react->type_self[i] == GKYL_SELF_ION) {
-        gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->moms_donor[i].marr, 0*app->confBasis.num_basis);
+        gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->m0_donor[i], 0*app->confBasis.num_basis);
         gkyl_array_set_offset(react->prim_vars_proj_inp[i], 1.0, react->prim_vars[i], 1*app->confBasis.num_basis);        
         gkyl_proj_gkmaxwellian_on_basis_prim_mom(react->proj_max, &s->local, &app->local,
           react->prim_vars_proj_inp[i], 

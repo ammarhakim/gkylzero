@@ -84,7 +84,7 @@ void gkyl_gyrokinetic_maxwellian_moments_advance(struct gkyl_gyrokinetic_maxwell
  * @param fin Input distribution function
  * @param moms_out Output Maxwellian moments (n, u_par, T_par/m, T_perp/m)
  */
-void gkyl_gyrokinetic_bi_maxwellian_moments_advance(struct gkyl_gyrokinetic_maxwellian_moments *up, 
+void gkyl_gyrokinetic_bimaxwellian_moments_advance(struct gkyl_gyrokinetic_maxwellian_moments *up, 
   const struct gkyl_range *phase_local, const struct gkyl_range *conf_local, 
   const struct gkyl_array *fin, struct gkyl_array *moms_out);
 

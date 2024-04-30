@@ -107,7 +107,7 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
 
   int niter = 0;
   bool corr_status = true;
-  int ispositive_flte = true;
+  int ispositive_f_max = true;
 
   // Set initial max error to start the iteration.
   up->error[0] = 1.0;
@@ -123,7 +123,7 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
   gkyl_array_clear(up->dd_moms, 0.0);
 
   // Iteration loop, max_iter iterations is usually sufficient for machine precision moments
-  while ((ispositive_flte) &&  ((niter < max_iter) && ((fabs(up->error[0]) > tol) || (fabs(up->error[1]) > tol) ||
+  while ((ispositive_f_max) &&  ((niter < max_iter) && ((fabs(up->error[0]) > tol) || (fabs(up->error[1]) > tol) ||
     (fabs(up->error[2]) > tol))))
   {
     // 1. Calculate the Maxwellian moments (n, u_par, T/m) from the projected Maxwellian distribution
@@ -177,8 +177,8 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
             up->error[1] = fmax(fabs(moms_local[1*nc] - moms_target_local[1*nc])/moms_target_local[1*nc],fabs(up->error[1]));
           }
           // Check if density and temperature are positive, if they aren't we will break out of the iteration
-          ispositive_flte = (moms_local[0*nc]>0.0) && ispositive_flte;
-          ispositive_flte = (moms_local[2*nc]>0.0) && ispositive_flte;
+          ispositive_f_max = (moms_local[0*nc]>0.0) && ispositive_f_max;
+          ispositive_f_max = (moms_local[2*nc]>0.0) && ispositive_f_max;
         }
       }
     }
@@ -198,7 +198,7 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
 
     niter += 1;
   }
-  if ((niter < max_iter) && (ispositive_flte) && ((fabs(up->error[0]) < tol) && (fabs(up->error[1]) < tol) &&
+  if ((niter < max_iter) && (ispositive_f_max) && ((fabs(up->error[0]) < tol) && (fabs(up->error[1]) < tol) &&
     (fabs(up->error[2]) < tol))) {
     corr_status = 0;
   } 
