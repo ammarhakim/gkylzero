@@ -109,7 +109,8 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       struct gkyl_dg_cx_inp cx_inp = {
         .grid = &s->grid,
 	.cbasis = &app->confBasis,
-	.pbasis = &app->basis,
+	.pbasis_gk = &app->basis,
+	.pbasis_vl = &app->neut_basis,
 	.conf_rng = &app->local,
 	.conf_rng_ext = &app->local_ext,
 	.phase_rng = &s->local,

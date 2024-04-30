@@ -75,19 +75,18 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
       };
       react->recomb[i] = gkyl_dg_recomb_new(&recomb_inp, app->use_gpu);       
     }
-    else if (react->react_id[i] == GKYL_REACT_RECOMB) {
+    else if (react->react_id[i] == GKYL_REACT_CX) {
       struct gkyl_dg_cx_inp cx_inp = {
         .grid = &s->grid,
 	.cbasis = &app->confBasis,
-	.pbasis = &app->basis,
+	.pbasis_gk = &app->basis,
+	.pbasis_vl = &app->neut_basis,
 	.conf_rng = &app->local,
 	.conf_rng_ext = &app->local_ext,
 	.phase_rng = &s->local,
 	.mass_ion = react->react_type[i].ion_mass,
 	.mass_neut = react->react_type[i].partner_mass,
 	.type_ion = GKYL_ION_D,
-	.vt_sq_ion_min = 0., //1.*echarge/react->react_type[i].ion_mass, //fix
-	.vt_sq_neut_min = 0., //1.*echarge/react->react_type[i].partner_mass,	//fix		      
       };
       react->cx[i] = gkyl_dg_cx_new(&cx_inp, app->use_gpu);
     }

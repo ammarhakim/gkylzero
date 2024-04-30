@@ -159,8 +159,6 @@ eval_udrift(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
   fout[2] = 0.0;
 }
 
-
-
 void
 eval_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
@@ -674,32 +672,32 @@ main(int argc, char **argv)
         { .react_id = GKYL_REACT_CX,
           .type_self = GKYL_SELF_ION,
           .ion_id = GKYL_ION_D,
-    	  .elc_nm = "elc", // gets called for other rxn. fix this?
+    	  .elc_nm = "elc",
           .ion_nm = "ion",
           .partner_nm = "D0",
           .ion_mass = ctx.massIon,
           .partner_mass = ctx.massIon,
         },
-        /* { .react_id = GKYL_REACT_IZ, */
-        /*   .type_self = GKYL_SELF_ELC, */
-        /*   .ion_id = GKYL_ION_AR, */
-        /*   .elc_nm = "elc", */
-        /*   .ion_nm = "ion", // ion is always the higher charge state */
-        /*   .donor_nm = "D0", // interacts with elc to give up charge */
-        /*   .charge_state = 0, // corresponds to lower charge state (donor) */
-        /*   .ion_mass = ctx.massIon, */
-        /*   .elc_mass = ctx.massElc, */
-        /* }, */
-        /* { .react_id = GKYL_REACT_RECOMB, */
-        /*   .type_self = GKYL_SELF_ELC, */
-        /*   .ion_id = GKYL_ION_AR, */
-        /*   .elc_nm = "elc", */
-        /*   .ion_nm = "ion", */
-        /*   .recvr_nm = "D0", */
-        /*   .charge_state = 0, */
-        /*   .ion_mass = ctx.massIon, */
-        /*   .elc_mass = ctx.massElc, */
-        /* }, */
+        { .react_id = GKYL_REACT_IZ,
+          .type_self = GKYL_SELF_ELC,
+          .ion_id = GKYL_ION_AR,
+          .elc_nm = "elc",
+          .ion_nm = "ion", // ion is always the higher charge state
+          .donor_nm = "D0", // interacts with elc to give up charge
+          .charge_state = 0, // corresponds to lower charge state (donor)
+          .ion_mass = ctx.massIon,
+          .elc_mass = ctx.massElc,
+        },
+        { .react_id = GKYL_REACT_RECOMB,
+          .type_self = GKYL_SELF_ELC,
+          .ion_id = GKYL_ION_AR,
+          .elc_nm = "elc",
+          .ion_nm = "ion",
+          .recvr_nm = "D0",
+          .charge_state = 0,
+          .ion_mass = ctx.massIon,
+          .elc_mass = ctx.massElc,
+        },
       },
     },
     
