@@ -27,7 +27,17 @@ gkyl_calc_metric* gkyl_calc_metric_new(const struct gkyl_basis *cbasis,
  *
  * @param up calc_metric updater object.
  * @param nrange nodal range.
- * @param mc2p_nodal_fd nodal array containing cartesian coordinates at nodes and nearby nodes used for FD
+ * @param mc2p_nodal_fd nodal array containing cartesian coordinates at nodes and nearby nodes (epsilon and 2 epsilon away) used for FD
+ *    At each array location 39 values are stored.
+ *    The arrangement is as follows: X_c, Y_c, Z_c, 
+ *    X_L1, Y_L1, Z_L1, X_R1, Y_R1, Z_R1,
+ *    X_L2, Y_L2, Z_L2, X_R2, Y_R2, Z_R2,
+ *    X_L3, Y_L3, Z_L3, X_R3, Y_R3, Z_R3,
+ *    X_LL1, Y_LL1, Z_LL1, X_RR1, Y_RR1, Z_RR1,
+ *    X_LL2, Y_LL2, Z_LL2, X_RR2, Y_RR2, Z_RR2,
+ *    X_LL3, Y_LL3, Z_LL3, X_RR3, Y_RR3, Z_RR3
+ *    where L#/R# indicates a node shifted to the left/right by epsilon in coordinate #
+ *    and LL#/RR# indicates a node shifted to the left/right by 2 epsilon in coordinate #
  * @param gFld output field where metric modal coefficients will be placed
  * @param tanvecFld output field where tangent vector modal coefficients will be placed
  * @param update range. Modal range over which metric coefficients and tangent vectors will be calculated
