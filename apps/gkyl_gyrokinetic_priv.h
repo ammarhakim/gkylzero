@@ -52,13 +52,13 @@
 #include <gkyl_gk_geometry_tok.h>
 #include <gkyl_gk_geometry_mirror.h>
 #include <gkyl_gyrokinetic.h>
+#include <gkyl_gyrokinetic_cross_prim_moms_bgk.h>
 #include <gkyl_gyrokinetic_maxwellian_correct.h>
 #include <gkyl_gyrokinetic_maxwellian_moments.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
-#include <gkyl_mom_cross_bgk.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_prim_lbo_calc.h>
@@ -291,7 +291,7 @@ struct gk_bgk_collisions {
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // cross-species collision frequencies
 
   struct gkyl_array *cross_moms[GKYL_MAX_SPECIES];
-  struct gkyl_mom_cross_bgk_gyrokinetic *cross_bgk; // cross-species moment computation
+  struct gkyl_gyrokinetic_cross_prim_moms_bgk *cross_bgk; // cross-species moment computation
 
   // Correction updater for insuring Maxwellian distribution has desired moments (n, u_par, T/m)
   struct gkyl_gyrokinetic_maxwellian_correct *corr_max; 

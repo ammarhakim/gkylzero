@@ -108,7 +108,7 @@ gk_species_bgk_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
     
   bgk->betaGreenep1 = 1.0;
 
-  bgk->cross_bgk = gkyl_mom_cross_bgk_gyrokinetic_new(&app->basis, &app->confBasis, app->use_gpu);
+  bgk->cross_bgk = gkyl_gyrokinetic_cross_prim_moms_bgk_new(&app->basis, &app->confBasis, app->use_gpu);
 }
 
 // computes moments, boundary corrections, and primitive moments
@@ -133,7 +133,7 @@ gk_species_bgk_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   
   wst = gkyl_wall_clock();  
   for (int i=0; i<bgk->num_cross_collisions; ++i) {
-    gkyl_mom_cross_bgk_gyrokinetic_advance(bgk->cross_bgk, &app->local, bgk->betaGreenep1, 
+    gkyl_gyrokinetic_cross_prim_moms_bgk_advance(bgk->cross_bgk, &app->local, bgk->betaGreenep1, 
       species->info.mass, bgk->moms.marr, bgk->other_m[i], bgk->other_moms[i], 
       bgk->self_nu, bgk->other_nu[i], bgk->cross_moms[i]);
   }
@@ -224,7 +224,7 @@ gk_species_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_b
       gkyl_array_release(bgk->other_nu[i]);
       gkyl_array_release(bgk->cross_moms[i]);
     }
-    gkyl_mom_cross_bgk_gyrokinetic_release(bgk->cross_bgk);
+    gkyl_gyrokinetic_cross_prim_moms_bgk_release(bgk->cross_bgk);
   }
   gkyl_gyrokinetic_maxwellian_correct_release(bgk->corr_max);
   if (bgk->correct_all_moms) {
