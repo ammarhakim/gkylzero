@@ -66,7 +66,7 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
   struct arcL_evaluator *arcL_app = geometry_inp->arcL_map_ctx;
-  struct gkyl_array* map_arcL_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*13, nrange.volume);
+  struct gkyl_array* map_arcL_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
   struct gkyl_array* map_arcL_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   arcL_app->map_arcL = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 
