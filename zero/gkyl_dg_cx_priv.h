@@ -22,7 +22,8 @@ struct gkyl_dg_cx {
   int vdim_gk;
   int poly_order; // polynomial order of DG basis
   struct gkyl_basis *cbasis;
-  struct gkyl_basis *pbasis;
+  struct gkyl_basis *pbasis_gk;
+  struct gkyl_basis *pbasis_vl;
   const struct gkyl_range *conf_rng;
   const struct gkyl_range *conf_rng_ext;
   const struct gkyl_range *phase_rng; 

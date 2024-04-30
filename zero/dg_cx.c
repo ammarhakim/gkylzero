@@ -18,7 +18,8 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
   gkyl_dg_cx *up = gkyl_malloc(sizeof(struct gkyl_dg_cx));
 
   up->cbasis = inp->cbasis;
-  up->pbasis = inp->pbasis;
+  up->pbasis_gk = inp->pbasis_gk;
+  up->pbasis_vl = inp->pbasis_vl;
   up->conf_rng = inp->conf_rng;
   up->conf_rng_ext = inp->conf_rng_ext;
   up->phase_rng = inp->phase_rng;
@@ -30,12 +31,11 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
   up->vt_sq_neut_min = inp->vt_sq_neut_min;
 
   int cdim = up->cbasis->ndim;
-  int pdim = up->pbasis->ndim;
   int poly_order = up->cbasis->poly_order;
   up->cdim = cdim;
   up->use_gpu = use_gpu;
-  up->vdim_gk = 2; 
-  up->vdim_vl = 3; // assume 2x3v or 3x3v (will change for true axisym Vlasov)  
+  up->vdim_gk = up->pbasis_gk->ndim - cdim; 
+  up->vdim_vl = up->pbasis_vl->ndim - cdim; 
 
   if (up->type_ion == GKYL_ION_H) {
     up->a = 1.12e-18;
@@ -54,9 +54,9 @@ gkyl_dg_cx_new(struct gkyl_dg_cx_inp *inp, bool use_gpu)
     up->b = 5.65e-20;
   }
 
-  up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_vlasov", use_gpu);
-  up->calc_prim_vars_neut = gkyl_dg_prim_vars_vlasov_new(up->cbasis, up->pbasis, "prim", use_gpu);
-  up->calc_prim_vars_neut_gk = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis, up->conf_rng, "prim_gk", use_gpu);
+  up->calc_prim_vars_ion = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis_vl, up->conf_rng, "prim_vlasov", use_gpu);
+  up->calc_prim_vars_neut = gkyl_dg_prim_vars_vlasov_new(up->cbasis, up->pbasis_vl, "prim", use_gpu);
+  up->calc_prim_vars_neut_gk = gkyl_dg_prim_vars_transform_new(up->cbasis, up->pbasis_gk, up->conf_rng, "prim_gk", use_gpu);
   
   up->on_dev = up; // CPU eqn obj points to itself
   

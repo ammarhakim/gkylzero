@@ -18,7 +18,7 @@ double echarge = GKYL_ELEMENTARY_CHARGE;
 double emass = GKYL_ELECTRON_MASS;
 double d_ion_mass = GKYL_PROTON_MASS*2.01410177811;
 double B0 = 0.5;
-double check_fac = 1.e10;
+double check_fac = 1.0e10;
 
 void eval_m0(double t, const double *xn, double* restrict fout, void *ctx)
 {
@@ -69,13 +69,6 @@ test_coll_cx_d(bool use_gpu)
   double lower_vl[] = {-2.0,-2.0,vmin_ion,vmin_ion,vmin_ion}, upper_vl[] = {2.0,2.0,vmax_ion,vmax_ion,vmax_ion};
   int ghost_vl[] = {0, 0, 0, 0, 0};
   int cells_vl[] = {2, 2, 16, 16, 16};
-
-  double vtsqi = 40.*echarge/d_ion_mass;
-  double vtsqn = 4.*echarge/d_ion_mass;
-  double v_cx = sqrt(4.0/M_PI*(vtsqi + vtsqn));
-  printf("\nv_cx = %g", v_cx);
-  double sig_cx = 1.09e-18 - 7.15e-20*log(v_cx);
-  printf("\nVcx*sigma = %g", v_cx*sig_cx);
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -115,7 +108,8 @@ test_coll_cx_d(bool use_gpu)
   struct gkyl_dg_cx_inp cx_inp_ion = {
     .grid = &phaseGrid_ion,
     .cbasis = &basis,
-    .pbasis = &phaseBasis_gk,
+    .pbasis_gk = &phaseBasis_gk,
+    .pbasis_vl = &phaseBasis_vl,
     .conf_rng = &confRange,
     .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_ion,
@@ -126,7 +120,8 @@ test_coll_cx_d(bool use_gpu)
   struct gkyl_dg_cx_inp cx_inp_neut = {
     .grid = &phaseGrid_vl,
     .cbasis = &basis,
-    .pbasis = &phaseBasis_vl,
+    .pbasis_gk = &phaseBasis_gk,
+    .pbasis_vl = &phaseBasis_vl,
     .conf_rng = &confRange,
     .conf_rng_ext = &confRange_ext,
     .phase_rng = &phaseRange_vl,
@@ -218,7 +213,7 @@ test_coll_cx_d(bool use_gpu)
     
   }
 
-  gkyl_grid_sub_array_write(&confGrid, &confRange, 0, coef_cx, "ctest_coef_cx.gkyl");
+  // gkyl_grid_sub_array_write(&confGrid, &confRange, 0, coef_cx, "ctest_coef_cx.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(cv_i[i]*check_fac, cv_n[i]*check_fac, 1e-12) );
   }

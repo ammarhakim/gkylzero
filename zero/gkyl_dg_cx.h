@@ -11,7 +11,8 @@
 struct gkyl_dg_cx_inp {
   const struct gkyl_rect_grid* grid; // Grid object needed for fmax
   struct gkyl_basis* cbasis; // Configuration-space basis-functions
-  struct gkyl_basis* pbasis; // Phase-space basis-functions
+  struct gkyl_basis* pbasis_gk; // Phase-space basis-functions for ion (GK)`
+  struct gkyl_basis* pbasis_vl; // Phase-space basis-functions for neut (Vlasov)
   const struct gkyl_range *conf_rng; // Configuration-space range
   const struct gkyl_range *conf_rng_ext; // Configuration-space extended range
   const struct gkyl_range *phase_rng; // Phase-space range
