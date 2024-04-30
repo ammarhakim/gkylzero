@@ -350,7 +350,7 @@ gk_species_react_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *s,
       gkyl_array_accumulate(react->f_react, -1.0, react->f_react_other);
       gkyl_dg_mul_conf_phase_op_range(&app->confBasis, &app->basis, react->f_react,
         react->coeff_react[i], react->f_react, &app->local, &s->local);
-      gkyl_array_accumulate(rhs, 1.0, react->f_react_other);      
+      gkyl_array_accumulate(rhs, 1.0, react->f_react);      
       
     }
   }

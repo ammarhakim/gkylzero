@@ -62,14 +62,20 @@ test_coll_cx_d(bool use_gpu)
 
   // for gk grids 
   double lower_ion[] = {-2.0,-2.0,vmin_ion,0.0}, upper_ion[] = {2.0,2.0,vmax_ion,mumax_ion};
-  int ghost_gk[] = {0, 0, 0, 0, 0};
+  int ghost_gk[] = {0, 0, 0, 0};
   int cells_gk[] = {2, 2, 16, 8};
 
   // for vlasov grid
   double lower_vl[] = {-2.0,-2.0,vmin_ion,vmin_ion,vmin_ion}, upper_vl[] = {2.0,2.0,vmax_ion,vmax_ion,vmax_ion};
-  int ghost_vl[] = {0, 0, 0, 0, 0, 0};
+  int ghost_vl[] = {0, 0, 0, 0, 0};
   int cells_vl[] = {2, 2, 16, 16, 16};
-  int ghost[] = {0, 0, 0};
+
+  double vtsqi = 40.*echarge/d_ion_mass;
+  double vtsqn = 4.*echarge/d_ion_mass;
+  double v_cx = sqrt(4.0/M_PI*(vtsqi + vtsqn));
+  printf("\nv_cx = %g", v_cx);
+  double sig_cx = 1.09e-18 - 7.15e-20*log(v_cx);
+  printf("\nVcx*sigma = %g", v_cx*sig_cx);
   
   struct gkyl_rect_grid confGrid;
   struct gkyl_range confRange, confRange_ext;
@@ -106,12 +112,6 @@ test_coll_cx_d(bool use_gpu)
   gkyl_proj_on_basis *projM2_neut = gkyl_proj_on_basis_new(&confGrid, &basis,
     poly_order+1, 1, eval_m2_3v_neut, NULL);
 
-  // maxwellian on basis for fdist
-  /* gkyl_proj_maxwellian_on_basis *proj_max_ion = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_ion, */
-  /*   &basis, &phaseBasis_gk, poly_order+1, use_gpu); */
-  /* gkyl_proj_maxwellian_on_basis *proj_max_neut = gkyl_proj_maxwellian_on_basis_new(&phaseGrid_vl, */
-  /*   &basis, &phaseBasis_vl, poly_order+1, use_gpu); */
-
   struct gkyl_dg_cx_inp cx_inp_ion = {
     .grid = &phaseGrid_ion,
     .cbasis = &basis,
@@ -122,8 +122,6 @@ test_coll_cx_d(bool use_gpu)
     .mass_ion = d_ion_mass,
     .mass_neut = d_ion_mass,
     .type_ion = GKYL_ION_D,
-    .vt_sq_neut_min = 1*echarge/d_ion_mass,
-    .vt_sq_ion_min = 1*echarge/d_ion_mass,
   };
   struct gkyl_dg_cx_inp cx_inp_neut = {
     .grid = &phaseGrid_vl,
@@ -220,7 +218,7 @@ test_coll_cx_d(bool use_gpu)
     
   }
 
-  //gkyl_grid_sub_array_write(&confGrid, &confRange, 0, coef_cx, "ctest_coef_cx.gkyl");
+  gkyl_grid_sub_array_write(&confGrid, &confRange, 0, coef_cx, "ctest_coef_cx.gkyl");
   for (int i=0; i<basis.num_basis; ++i) {
     TEST_CHECK( gkyl_compare_double(cv_i[i]*check_fac, cv_n[i]*check_fac, 1e-12) );
   }

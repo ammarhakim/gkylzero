@@ -862,8 +862,8 @@ main(int argc, char **argv)
   freeresources:
   // simulation complete, free app
   gkyl_gyrokinetic_app_release(app);
-  gkyl_rect_decomp_release(decomp);
-  gkyl_comm_release(comm);
+  //gkyl_rect_decomp_release(decomp);
+  //gkyl_comm_release(comm);
 
   mpifinalize:
 #ifdef GKYL_HAVE_MPI
