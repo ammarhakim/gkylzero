@@ -54,6 +54,11 @@
 # define GKYL_MAX_CHARGE_STATE 18
 #endif
 
+// Maximum number of supported densities for radiation
+#ifndef GKYL_MAX_RAD_DENSITIES
+# define GKYL_MAX_RAD_DENSITIES 26
+#endif
+
 // Maximum number of ghost cells in each direction
 #ifndef GKYL_MAX_NGHOST
 # define GKYL_MAX_NGHOST 8
