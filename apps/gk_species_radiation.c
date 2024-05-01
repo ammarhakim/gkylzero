@@ -81,19 +81,19 @@ gk_species_radiation_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s
       // where |v| = sqrt(v_par^2 + 2 mu B/m)
       // Note that through the spatial variation of B = B(x,z), 
       // both these drag coefficients depend on phase space, but a reduced (x,z,vpar,mu) phase space
-      rad->vnu_surf[n][i] = mkarr(app->use_gpu, surf_rad_vpar_basis.num_basis, s->local_ext.volume);
-      rad->vnu[n][i] = mkarr(app->use_gpu, rad_basis.num_basis, s->local_ext.volume);
-      rad->vsqnu_surf[n][i] = mkarr(app->use_gpu,surf_rad_mu_basis.num_basis, s->local_ext.volume);
-      rad->vsqnu[n][i] = mkarr(app->use_gpu, rad_basis.num_basis, s->local_ext.volume);
+      rad->vnu_surf[i][n] = mkarr(app->use_gpu, surf_rad_vpar_basis.num_basis, s->local_ext.volume);
+      rad->vnu[i][n] = mkarr(app->use_gpu, rad_basis.num_basis, s->local_ext.volume);
+      rad->vsqnu_surf[i][n] = mkarr(app->use_gpu,surf_rad_mu_basis.num_basis, s->local_ext.volume);
+      rad->vsqnu[i][n] = mkarr(app->use_gpu, rad_basis.num_basis, s->local_ext.volume);
       
-      rad->calc_gk_rad_vars[n][i] = gkyl_dg_calc_gk_rad_vars_new(&s->grid, &app->confBasis,
+      rad->calc_gk_rad_vars[i][n] = gkyl_dg_calc_gk_rad_vars_new(&s->grid, &app->confBasis,
 	&app->basis, s->info.charge, s->info.mass, app->gk_geom, s->vel_map,
 	a[n], alpha[n], beta[n], gamma[n], v0[n], app->use_gpu);
 
-      gkyl_dg_calc_gk_rad_vars_nu_advance(rad->calc_gk_rad_vars[n][i], 
+      gkyl_dg_calc_gk_rad_vars_nu_advance(rad->calc_gk_rad_vars[i][n], 
 					  &app->local, &s->local, 
-					  rad->vnu_surf[n][i], rad->vnu[n][i], 
-					  rad->vsqnu_surf[n][i], rad->vsqnu[n][i]);
+					  rad->vnu_surf[i][n], rad->vnu[i][n], 
+					  rad->vsqnu_surf[i][n], rad->vsqnu[i][n]);
 
       double* ne0 = (double*) gkyl_array_fetch(rad->rad_fit_ne[i], n);
       ne0[0] = ne[n];
@@ -189,7 +189,9 @@ gk_species_radiation_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
     // divide out Jacobian from ion density before computation of final drag coefficient
     gkyl_dg_div_op_range(rad->moms[i].mem_geo, app->confBasis, 0, rad->moms[i].marr, 0,
       rad->moms[i].marr, 0, app->gk_geom->jacobgeo, &app->local);
-    
+
+    // struct gkyl_dg_calc_gk_rad_vars **temp=(struct gkyl_dg_calc_gk_rad_vars **)rad->calc_gk_rad_vars[i];
+    //printf("pdim=%d",temp[0]->pdim);
     gkyl_dg_calc_gk_rad_vars_nI_nu_advance(
       (const struct gkyl_dg_calc_gk_rad_vars **)rad->calc_gk_rad_vars[i], 
       &app->local, &species->local, 
