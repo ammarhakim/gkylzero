@@ -422,7 +422,7 @@ main(int argc, char **argv)
     }
   }
 #else
-  for (int d = 0; d < cdim; d++) {
+  for (int d = 0; d < 2; d++) {
     cuts[d] = 1;
   }
 #endif  
