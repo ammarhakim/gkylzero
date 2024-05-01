@@ -254,13 +254,10 @@ gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field,
 }
 
 void
-gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field, 
-  const struct gkyl_array *fin[], struct gkyl_array *rhs[])
+gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-
-    gk_species_bflux_rhs(app, s, &s->bflux, fin[i], rhs[i]);
 
     // Assumes symmetric sheath BCs for now only in 1D
     gkyl_ambi_bolt_potential_sheath_calc(field->ambi_pot, GKYL_LOWER_EDGE, 

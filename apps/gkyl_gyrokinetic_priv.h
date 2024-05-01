@@ -1209,7 +1209,7 @@ double gk_species_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 /**
- * Apply BCs to species distribution function
+ * Apply BCs to species distribution function.
  *
  * @param app gyrokinetic app object
  * @param species Pointer to species
@@ -1502,11 +1502,8 @@ void gk_field_accumulate_rho_c(gkyl_gyrokinetic_app *app, struct gk_field *field
  *
  * @param app gyrokinetic app object
  * @param field Pointer to field
- * @param fin[] Input distribution function (num_species size)
- * @param rhs[] Input rhs array, used for storing ion flux values (num_species size)
  */
-void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field, 
-  const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
+void gk_field_calc_ambi_pot_sheath_vals(gkyl_gyrokinetic_app *app, struct gk_field *field);
 
 /**
  * Compute EM field 

@@ -60,7 +60,8 @@ gkyl_gk_geometry_mirror_new(struct gkyl_gk_geometry_inp *geometry_inp)
   }
 
   gkyl_range_init_from_shape(&nrange, up->grid.ndim, nodes);
-  struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*13, nrange.volume);
+  int num_fd_nodes = 13;
+  struct gkyl_array* mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*num_fd_nodes, nrange.volume);
   struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim, nrange.volume);
   up->mc2p = gkyl_array_new(GKYL_DOUBLE, up->grid.ndim*up->basis.num_basis, up->local_ext.volume);
 

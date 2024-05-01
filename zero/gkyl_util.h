@@ -172,8 +172,8 @@ struct gkyl_kern_op_count {
  * struct gkyl_tm_trigger tmt = { .dt = tend/nframe };
  */
 struct gkyl_tm_trigger {
-  int curr; // current counter
-  double dt, tcurr; // Time-interval, current time
+  int curr; // Current counter.
+  double dt, tcurr; // Time-interval, current time.
 };
 
 /**
