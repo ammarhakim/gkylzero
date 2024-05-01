@@ -3,6 +3,8 @@
 // Private header, not for direct use in user code
 
 #include <gkyl_dg_cx_kernels.h>
+#include <gkyl_util.h>
+#include <assert.h>
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -14,6 +16,28 @@ static struct { int vdim[4]; } cv_index[] = {
 };
 
 typedef double (*dg_cx_react_ratef_t)(const double a, const double b, double vt_sq_ion_min, double vt_sq_neut_min, const double *m0, const double *prim_vars_ion, const double *prim_vars_neut, double* GKYL_RESTRICT v_sigma_cx) ;
+
+// for use in kernel tables
+typedef struct { dg_cx_react_ratef_t kernels[3]; } gkyl_cx_react_rate_kern_list;
+
+//
+// Serendipity basis kernels
+// 
+
+// CX reaction rate kernel list
+GKYL_CU_D
+static const gkyl_cx_react_rate_kern_list ser_cx_react_rate_kernels[] = {
+  { NULL, sigma_cx_1x1v_ser_p1, sigma_cx_1x1v_ser_p2 }, // 0
+  { NULL, sigma_cx_1x2v_ser_p1, sigma_cx_1x2v_ser_p2 }, // 1
+  { NULL, sigma_cx_1x3v_ser_p1, sigma_cx_1x3v_ser_p2 }, // 2
+  { NULL, sigma_cx_2x2v_ser_p1, sigma_cx_2x2v_ser_p2 }, // 3
+  { NULL, sigma_cx_2x3v_ser_p1, sigma_cx_2x3v_ser_p2 }, // 4
+  { NULL, sigma_cx_3x3v_ser_p1, sigma_cx_3x3v_ser_p2 }, // 5
+};
+
+struct gkyl_dg_cx_kernels {
+  dg_cx_react_ratef_t react_rate;
+};
 
 struct gkyl_dg_cx {
   const struct gkyl_rect_grid *grid; // grid object
@@ -45,24 +69,34 @@ struct gkyl_dg_cx {
   bool use_gpu;
   struct gkyl_dg_cx *on_dev; // pointer to itself or device data
 
-  dg_cx_react_ratef_t react_rate; // pointer to reaction rate kernel
+  struct gkyl_dg_cx_kernels *kernels;
+  //dg_cx_react_ratef_t react_rate; // pointer to reaction rate kernel
 };
 
-// for use in kernel tables
-typedef struct { dg_cx_react_ratef_t kernels[3]; } gkyl_cx_react_rate_kern_list;
-
-//
-// Serendipity basis kernels
-// 
-
-// CX reaction rate kernel list
 GKYL_CU_D
-static const gkyl_cx_react_rate_kern_list ser_cx_react_rate_kernels[] = {
-  { NULL, sigma_cx_1x1v_ser_p1, sigma_cx_1x1v_ser_p2 }, // 0
-  { NULL, sigma_cx_1x2v_ser_p1, sigma_cx_1x2v_ser_p2 }, // 1
-  { NULL, sigma_cx_1x3v_ser_p1, sigma_cx_1x3v_ser_p2 }, // 2
-  { NULL, sigma_cx_2x2v_ser_p1, sigma_cx_2x2v_ser_p2 }, // 3
-  { NULL, sigma_cx_2x3v_ser_p1, sigma_cx_2x3v_ser_p2 }, // 4
-  { NULL, sigma_cx_3x3v_ser_p1, sigma_cx_3x3v_ser_p2 }, // 5
-};
+static void dg_cx_choose_kernel(struct gkyl_dg_cx_kernels *kernels,
+  struct gkyl_basis pbasis_vl, struct gkyl_basis cbasis, bool use_gpu)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu) {
+    dg_cx_choose_kernel_cu(kernels, pbasis_vl, cbasis);
+    return;
+  }
+#endif
 
+  enum gkyl_basis_type basis_type = pbasis_vl.b_type;
+  int pdim = pbasis_vl.ndim;
+  int cdim = cbasis.ndim;
+  int vdim = pdim - cdim;
+  int poly_order = pbasis_vl.poly_order;
+
+  switch (basis_type) {
+    case GKYL_BASIS_MODAL_HYBRID:
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kernels->react_rate = ser_cx_react_rate_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      break;
+    default:
+      assert(false);
+      break;
+  }
+}
