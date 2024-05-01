@@ -20,18 +20,15 @@ extern "C" {
 // CUDA kernel to set device pointers to kernels.
 __global__ static void
 gkyl_dg_cx_set_cu_ker_ptrs(struct gkyl_dg_cx_kernels *kernels,
-  struct gkyl_basis pbasis_vl, struct gkyl_basis cbasis)
+  struct gkyl_basis pbasis_vl, int tblidx)
 {
-  int pdim = pbasis_vl.ndim;
-  int cdim = cbasis.ndim;
-  int vdim = pdim - cdim;
   enum gkyl_basis_type b_type = pbasis_vl.b_type;
   int poly_order = pbasis_vl.poly_order;
 
-  switch (basis_type) {
+  switch (b_type) {
     case GKYL_BASIS_MODAL_HYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kernels->react_rate = ser_cx_react_rate_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      kernels->react_rate = ser_cx_react_rate_kernels[tblidx].kernels[poly_order];
       break;
     default:
       assert(false);
@@ -43,14 +40,20 @@ void
 dg_cx_choose_kernel_cu(struct gkyl_dg_cx_kernels *kernels,
   struct gkyl_basis pbasis_vl, struct gkyl_basis cbasis)
 {
-  gkyl_dg_cx_set_cu_ker_ptrs<<<1,1>>>(kernels, pbasis_vl, cbasis);
+  int pdim = pbasis_vl.ndim;
+  int cdim = cbasis.ndim;
+  int vdim = pdim - cdim;
+
+  assert(cv_index[cdim].vdim[vdim] != -1);
+  gkyl_dg_cx_set_cu_ker_ptrs<<<1,1>>>(kernels, pbasis_vl, cv_index[cdim].vdim[vdim]);
 }
 
 __global__ static void
 gkyl_cx_react_rate_cu_ker(struct gkyl_dg_cx_kernels *kernels, const struct gkyl_range conf_rng, 
   const struct gkyl_dg_prim_vars_type *calc_prim_vars_ion, const struct gkyl_dg_prim_vars_type *calc_prim_vars_neut,
   const struct gkyl_dg_prim_vars_type *calc_prim_vars_neut_gk, const struct gkyl_array *moms_ion,
-  const struct gkyl_array *moms_neut, double vtsq_min_ion, double vtsq_min_neut, struct gkyl_array *coef_cx,
+  const struct gkyl_array *moms_neut, struct gkyl_array *prim_vars_ion, struct gkyl_array *prim_vars_neut, 
+  struct gkyl_array *prim_vars_neut_gk, double vtsq_min_ion, double vtsq_min_neut, struct gkyl_array *coef_cx,
   double a, double b)
 {
   int cidx[GKYL_MAX_CDIM];
@@ -68,17 +71,11 @@ gkyl_cx_react_rate_cu_ker(struct gkyl_dg_cx_kernels *kernels, const struct gkyl_
     double *prim_vars_neut_gk_d = (double*) gkyl_array_fetch(prim_vars_neut_gk, loc);
     double *coef_cx_d = (double*) gkyl_array_fetch(coef_cx, loc);
     
-    double *vtSq_elc_d = (double*) gkyl_array_fetch(vtSq_elc, loc);
-    double *coef_recomb_d = (double*) gkyl_array_fetch(coef_recomb, loc);
-
-    calc_prim_vars_elc_vtSq->kernel(calc_prim_vars_elc_vtSq, cidx, moms_elc_d,
-				    vtSq_elc_d);
-
-    calc_prim_vars_ion->kernel(calc_prim_vars_ion, conf_iter.idx,
+    calc_prim_vars_ion->kernel(calc_prim_vars_ion, cidx,
 				   moms_ion_d, prim_vars_ion_d);
-    calc_prim_vars_neut->kernel(calc_prim_vars_neut, conf_iter.idx,
+    calc_prim_vars_neut->kernel(calc_prim_vars_neut, cidx,
 				    moms_neut_d, prim_vars_neut_d);
-    calc_prim_vars_neut_gk->kernel(calc_prim_vars_neut_gk, conf_iter.idx,
+    calc_prim_vars_neut_gk->kernel(calc_prim_vars_neut_gk, cidx,
 				    moms_neut_d, prim_vars_neut_gk_d);
 
     // call the cx kernel
@@ -99,8 +96,8 @@ void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, const double vtsq_min_ion,
   gkyl_dg_prim_vars_transform_set_auxfields(up->calc_prim_vars_neut_gk, 
     (struct gkyl_dg_prim_vars_auxfields) {.b_i = b_i});
   
-  gkyl_cx_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev, *up->conf_rng,
+  gkyl_cx_react_rate_cu_ker<<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->kernels, *up->conf_rng,
     up->calc_prim_vars_ion->on_dev, up->calc_prim_vars_neut->on_dev, up->calc_prim_vars_neut_gk->on_dev,
-    moms_ion->on_dev, moms_neut->on_dev, vtsq_min_ion, vtsq_min_neut, coef_cx->on_dev,
-    up->vtSq_elc->on_dev, coef_recomb->on_dev, prim_vars_ion->on_dev, up->a, up->b);
+    moms_ion->on_dev, moms_neut->on_dev, prim_vars_ion->on_dev, prim_vars_neut->on_dev,
+    prim_vars_neut_gk->on_dev,vtsq_min_ion, vtsq_min_neut, coef_cx->on_dev, up->a, up->b);
 }

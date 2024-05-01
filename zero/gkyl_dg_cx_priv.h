@@ -73,6 +73,10 @@ struct gkyl_dg_cx {
   //dg_cx_react_ratef_t react_rate; // pointer to reaction rate kernel
 };
 
+void
+dg_cx_choose_kernel_cu(struct gkyl_dg_cx_kernels *kernels,
+  struct gkyl_basis pbasis_vl, struct gkyl_basis cbasis);
+
 GKYL_CU_D
 static void dg_cx_choose_kernel(struct gkyl_dg_cx_kernels *kernels,
   struct gkyl_basis pbasis_vl, struct gkyl_basis cbasis, bool use_gpu)
