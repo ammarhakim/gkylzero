@@ -211,11 +211,12 @@ test_1x(int poly_order, bool use_gpu, double te)
   vsqnu_surf = mkarr(use_gpu, surf_mu_basis.num_basis, local_ext.volume);
 
   struct all_radiation_states *rad_data=gkyl_read_rad_fit_params();
-  double a[1], alpha[1], beta[1], gamma[1], v0[1];
+  double a[1], alpha[1], beta[1], gamma[1], v0[1], n_elc_d[1];
   int atomic_z = 3;
   int charge_state = 0;
-  int num_ne = 1;
-  int status = gkyl_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne);
+  int num_ne[1] = {1};
+  int status = gkyl_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne, n_elc_d);
+  struct gkyl_array *n_elc = mkarr(use_gpu, 1, num_ne[0]);
   if (status == 1) {
     printf("No radiation fits exist for z=%d, charge state=%d\n",atomic_z, charge_state);
     TEST_CHECK( status==0 );
@@ -301,14 +302,18 @@ test_1x(int poly_order, bool use_gpu, double te)
 
   // Assumed electron and ion density are the same and uniform
   if (use_gpu) {
-    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-      &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-      m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+    gkyl_dg_calc_gk_rad_vars_nI_nu_advance((const struct gkyl_dg_calc_gk_rad_vars **)&calc_gk_rad_vars, 
+      &confLocal, &local, (const struct gkyl_array **)&vnu_surf,
+      (const struct gkyl_array **)&vnu, (const struct gkyl_array **)&vsqnu_surf,
+      (const struct gkyl_array **)&vsqnu, n_elc,
+      m0_dev, m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
   }
   else {
-    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-      &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-      m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+    gkyl_dg_calc_gk_rad_vars_nI_nu_advance((const struct gkyl_dg_calc_gk_rad_vars **)&calc_gk_rad_vars, 
+      &confLocal, &local, (const struct gkyl_array **)&vnu_surf,
+      (const struct gkyl_array **)&vnu, (const struct gkyl_array **)&vsqnu_surf,
+      (const struct gkyl_array **)&vsqnu, n_elc,
+      m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
   }
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);
@@ -499,11 +504,12 @@ test_2x(int poly_order, bool use_gpu, double te)
   vsqnu_surf = mkarr(use_gpu, surf_mu_basis.num_basis, local_ext.volume);
 
   struct all_radiation_states *rad_data=gkyl_read_rad_fit_params();
-  double a[1], alpha[1], beta[1], gamma[1], v0[1];
+  double a[1], alpha[1], beta[1], gamma[1], v0[1], n_elc_d[1];
   int atomic_z = 3;
   int charge_state = 0;
-  int num_ne = 1;
-  int status = gkyl_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne);
+  int num_ne[1] = {1};
+  int status = gkyl_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne, n_elc_d);
+  struct gkyl_array *n_elc = mkarr(use_gpu, 1, num_ne[0]);
   if (status == 1) {
     printf("No radiation fits exist for z=%d, charge state=%d\n",atomic_z, charge_state);
     TEST_CHECK( status==0 );
@@ -591,17 +597,21 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_array_clear(nvnu, 0.0);
   gkyl_array_clear(nvsqnu_surf, 0.0);
   gkyl_array_clear(nvsqnu, 0.0);
-
+ 
   // Assumed electron and ion density are the same and uniform
   if (use_gpu) {
-    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-      &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-      m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+    gkyl_dg_calc_gk_rad_vars_nI_nu_advance((const struct gkyl_dg_calc_gk_rad_vars **)&calc_gk_rad_vars, 
+      &confLocal, &local, (const struct gkyl_array **)&vnu_surf,
+      (const struct gkyl_array **)&vnu, (const struct gkyl_array **)&vsqnu_surf,
+      (const struct gkyl_array **)&vsqnu, n_elc,
+      m0_dev, m0_dev, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
   }
   else {
-    gkyl_dg_calc_gk_rad_vars_nI_nu_advance(calc_gk_rad_vars, 
-      &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu, 
-      m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
+    gkyl_dg_calc_gk_rad_vars_nI_nu_advance((const struct gkyl_dg_calc_gk_rad_vars **)&calc_gk_rad_vars, 
+      &confLocal, &local, (const struct gkyl_array **)&vnu_surf,
+      (const struct gkyl_array **)&vnu, (const struct gkyl_array **)&vsqnu_surf,
+      (const struct gkyl_array **)&vsqnu, n_elc,
+      m0, m0, nvnu_surf, nvnu, nvsqnu_surf, nvsqnu);
   }
 
   gkyl_dg_updater_rad_gyrokinetic_advance(slvr, &local, f, cflrate, rhs);

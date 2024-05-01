@@ -136,6 +136,23 @@ struct gkyl_array* gkyl_array_clone(const struct gkyl_array* arr);
  * @param loc Element to fetch
  * @return Element at location 'loc'
  */
+
+static inline int gkyl_find_nearest_idx(const struct gkyl_array* arr, double target){
+  int left = 0;
+  int right = arr->size - 1;
+  double *data = (double*)arr->data;
+  while (left < right) {
+    if (abs(data[left] - target)
+	<= abs(data[right] - target)) {
+      right--;
+    }
+    else {
+      left++;
+    }
+  }
+  return left;
+}
+
 GKYL_CU_DH
 static inline void*
 gkyl_array_fetch(struct gkyl_array* arr, long loc)

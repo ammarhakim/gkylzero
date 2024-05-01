@@ -1,4 +1,5 @@
-#include <gkyl_radiation_read.h>
+#include <gkyl_read_radiation.h>
+#include <gkyl_util.h>
 
 #define XSTR(x) #x
 #define STR(x) XSTR(x)
@@ -122,17 +123,14 @@ struct all_radiation_states* gkyl_read_rad_fit_params(){
   return rad_data;
 }
 
-int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int num_densities){
+int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z, int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double electron_densities[GKYL_MAX_RAD_DENSITIES]){
   int location = 0;
   double ref_dens = 19;
   atomic_z = atomic_z-1;
   int index = atomic_z*rad_data.max_atomic_number+charge_state;
   if (!rad_data.all_states[index].state_exists)
     return 1;
-  if (num_densities>1)
-    return 2;
-  
-  if (num_densities==1) {
+  if (num_densities[0]==1) {
     for (int i = 0; i<rad_data.all_states[index].number_of_densities; i++){
       if ( fabs(rad_data.all_states[index].electron_densities[i]-ref_dens)<
 	   fabs(rad_data.all_states[index].electron_densities[location]-ref_dens)) {
@@ -144,16 +142,25 @@ int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z
     beta[0] = rad_data.all_states[index].rad_fits[location].beta;
     gamma[0] = rad_data.all_states[index].rad_fits[location].gamma;
     V0[0] = rad_data.all_states[index].rad_fits[location].V0;
+    electron_densities[0] = pow(10.0, ref_dens);
   } else { // More than 1 density untested
     int count = 0;
-    for (int i=0; i<rad_data.all_states[index].number_of_densities;
-	 i=i+rad_data.all_states[index].number_of_densities/num_densities) {
+    int increment = (rad_data.all_states[index].number_of_densities-1)/(num_densities[0]-1);
+    int n_remain = rad_data.all_states[index].number_of_densities-increment*num_densities[0];
+    for (int i=n_remain/2; i<rad_data.all_states[index].number_of_densities && i<num_densities[0];
+	 i=i+increment) {
       a[count] = rad_data.all_states[index].rad_fits[i].A;
       alpha[count] = rad_data.all_states[index].rad_fits[i].alpha;
       beta[count] = rad_data.all_states[index].rad_fits[i].beta;
       gamma[count] = rad_data.all_states[index].rad_fits[i].gamma;
       V0[count] = rad_data.all_states[index].rad_fits[i].V0;
+      electron_densities[count] = pow(10.0, rad_data.all_states[index].electron_densities[i]);
+      count = count + 1;
     }
+    num_densities[0]=count;
+    for (int i=0; i<num_densities[0]; i++) 
+      printf("Total densities=%d, Input densities=%d, i=%d, ne=%g\n",rad_data.all_states[index].number_of_densities, num_densities[0], i, electron_densities[i]);
+    return 2;
   }
   return 0;
 }

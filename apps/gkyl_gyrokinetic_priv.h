@@ -183,11 +183,12 @@ struct gk_rad_drag {
   bool is_neut_species[2*GKYL_MAX_SPECIES]; // Flag of whether neutral or gk species
   
   // drag coefficients in vparallel and mu for each species being collided with
-  struct gkyl_array *vnu_surf[2*GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vnu[2*GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vsqnu_surf[2*GKYL_MAX_SPECIES]; 
-  struct gkyl_array *vsqnu[2*GKYL_MAX_SPECIES]; 
-  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[2*GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vnu_surf[GKYL_MAX_RAD_DENSITIES][2*GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vnu[GKYL_MAX_RAD_DENSITIES][2*GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vsqnu_surf[GKYL_MAX_RAD_DENSITIES][2*GKYL_MAX_SPECIES]; 
+  struct gkyl_array *vsqnu[GKYL_MAX_RAD_DENSITIES][2*GKYL_MAX_SPECIES]; 
+  struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars[GKYL_MAX_RAD_DENSITIES][2*GKYL_MAX_SPECIES];
+  struct gkyl_array *rad_fit_ne[2*GKYL_MAX_SPECIES];
 
   struct gk_species_moment moms[2*GKYL_MAX_SPECIES]; // moments needed in radiation update (need number density)
 

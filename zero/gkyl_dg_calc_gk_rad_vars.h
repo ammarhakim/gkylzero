@@ -67,16 +67,22 @@ void gkyl_dg_calc_gk_rad_vars_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *
  * @param vnu Input volume expansion of vpar drag coefficient for a given collision producing radiation drag
  * @param vsqnu_surf Input surface expansion of mu drag coefficient for a given collision producing radiation drag
  * @param vsqnu Input volume expansion of mu drag coefficient for a given collision producing radiation drag
+ * @param n_elc_rad Array of electron densities where the vnuXXX arrays lie
+ * @param n_elc Input volume expansion of electron density
  * @param nI Input volume expansion of ion density for a given collision producing radiation drag
  * @param nvnu_surf Output surface expansion of vpar component of sum_s n_{i_s} nu_s(v)
  * @param nvnu Output volume expansion of vpar component of sum_s n_{i_s} nu_s(v)
  * @param nvsqnu_surf Output surface expansion of mu component of sum_s n_{i_s} nu_s(v)
  * @param nvsqnu Output volume expansion of mu drag component of sum_s n_{i_s} nu_s(v)
  */
-void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up,
+void gkyl_dg_calc_gk_rad_vars_nI_nu_advance(const struct gkyl_dg_calc_gk_rad_vars *up[GKYL_MAX_RAD_DENSITIES],
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array* vnu_surf, const struct gkyl_array* vnu, 
-  const struct gkyl_array* vsqnu_surf, const struct gkyl_array* vsqnu, 
+  const struct gkyl_array* vnu_surf[GKYL_MAX_RAD_DENSITIES],
+  const struct gkyl_array* vnu[GKYL_MAX_RAD_DENSITIES], 
+  const struct gkyl_array* vsqnu_surf[GKYL_MAX_RAD_DENSITIES],
+  const struct gkyl_array* vsqnu[GKYL_MAX_RAD_DENSITIES],
+  const struct gkyl_array* n_elc_rad,
+  const struct gkyl_array* n_elc,
   const struct gkyl_array* nI, 
   struct gkyl_array* nvnu_surf, struct gkyl_array* nvnu, 
   struct gkyl_array* nvsqnu_surf, struct gkyl_array* nvsqnu);
