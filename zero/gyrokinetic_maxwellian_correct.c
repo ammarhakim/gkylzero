@@ -269,6 +269,7 @@ gkyl_gyrokinetic_maxwellian_correct_all_moments(gkyl_gyrokinetic_maxwellian_corr
 void 
 gkyl_gyrokinetic_maxwellian_correct_release(gkyl_gyrokinetic_maxwellian_correct *up)
 {
+  gkyl_gk_geometry_release(up->gk_geom);  
   gkyl_array_release(up->moms_iter);
   gkyl_array_release(up->d_moms);
   gkyl_array_release(up->dd_moms);
