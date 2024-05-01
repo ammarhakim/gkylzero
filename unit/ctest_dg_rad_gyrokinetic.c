@@ -75,7 +75,15 @@ bmag_func_3x(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 void
 eval_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  fout[0] = 1.0e19;
+  double *arr = ctx;
+  double ne = arr[1];
+  fout[0] = ne*1.1;
+}
+
+void
+eval_cdensity(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  fout[0] = 1e19;
 }
 
 void
@@ -87,12 +95,13 @@ eval_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 void
 eval_vthsq(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  double *te=ctx;
-  fout[0] = te[0]*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS;
+  double *arr=ctx;
+  double te = arr[0];
+  fout[0] = te*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS;
 }
 
 void
-test_1x(int poly_order, bool use_gpu, double te)
+test_1x(int poly_order, bool use_gpu, double te, int atomic_z, int charge_state, int num_ne[1], int ne_interval)
 {
   double mass = GKYL_ELECTRON_MASS;
   double charge = -1.0*GKYL_ELEMENTARY_CHARGE;
@@ -211,24 +220,25 @@ test_1x(int poly_order, bool use_gpu, double te)
   vsqnu_surf = mkarr(use_gpu, surf_mu_basis.num_basis, local_ext.volume);
 
   struct all_radiation_states *rad_data=gkyl_read_rad_fit_params();
-  double a[1], alpha[1], beta[1], gamma[1], v0[1], n_elc_d[1];
-  int atomic_z = 3;
-  int charge_state = 0;
-  int num_ne[1] = {1};
+  double a[GKYL_MAX_RAD_DENSITIES], alpha[GKYL_MAX_RAD_DENSITIES], beta[GKYL_MAX_RAD_DENSITIES],
+    gamma[GKYL_MAX_RAD_DENSITIES], v0[GKYL_MAX_RAD_DENSITIES], n_elc_d[GKYL_MAX_RAD_DENSITIES];
   int status = gkyl_get_fit_params(*rad_data, atomic_z, charge_state, a, alpha, beta, gamma, v0, num_ne, n_elc_d);
-  struct gkyl_array *n_elc = mkarr(use_gpu, 1, num_ne[0]);
   if (status == 1) {
     printf("No radiation fits exist for z=%d, charge state=%d\n",atomic_z, charge_state);
     TEST_CHECK( status==0 );
   }
-  double ctx[1], Lz[1];
+  struct gkyl_array *n_elc = mkarr(use_gpu, 1, num_ne[0]);
+  double ctx[2], Lz[1];
+  ne_interval = fmin(ne_interval, num_ne[0]);
   ctx[0]=te;
-  gkyl_get_fit_lz(*rad_data, atomic_z, charge_state, log10(1e19), ctx, Lz);
+  ctx[1]=n_elc_d[ne_interval-1];
+  gkyl_get_fit_lz(*rad_data, atomic_z, charge_state, log10(n_elc_d[ne_interval-1]), ctx, Lz);
   gkyl_release_fit_params(rad_data);
   
   struct gkyl_dg_calc_gk_rad_vars *calc_gk_rad_vars = gkyl_dg_calc_gk_rad_vars_new(&grid, &confBasis, &basis, 
-		  charge, mass, gk_geom, gvm, a[0], alpha[0], beta[0], gamma[0], v0[0], use_gpu);
-  
+		  charge, mass, gk_geom, a[ne_interval-1], alpha[ne_interval-1], beta[ne_interval-1],
+		  gamma[ne_interval-1], v0[ne_interval-1], use_gpu);
+
   gkyl_dg_calc_gk_rad_vars_nu_advance(calc_gk_rad_vars, &confLocal, &local, vnu_surf, vnu, vsqnu_surf, vsqnu);
 
   nvnu = mkarr(use_gpu, basis.num_basis, local_ext.volume);
@@ -245,7 +255,7 @@ test_1x(int poly_order, bool use_gpu, double te)
   struct gkyl_array *vtsq = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *vtsq_imp = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_density, NULL);
+    poly_order+1, 1, eval_density, ctx);
 
   gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, vdim, eval_upar, 0);
@@ -538,7 +548,7 @@ test_2x(int poly_order, bool use_gpu, double te)
   struct gkyl_array *vtsq = mkarr(false, confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *vtsq_imp = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
   gkyl_proj_on_basis *proj_m0 = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_density, NULL);
+    poly_order+1, 1, eval_cdensity, NULL);
 
   gkyl_proj_on_basis *proj_udrift = gkyl_proj_on_basis_new(&confGrid, &confBasis,
     poly_order+1, vdim, eval_upar, 0);
@@ -683,32 +693,43 @@ test_2x(int poly_order, bool use_gpu, double te)
   gkyl_gk_geometry_release(gk_geom);
 }
 
-void test_1x2v_p1_10eV() { test_1x(1, false, 10.0); }
-void test_1x2v_p1_30eV() { test_1x(1, false, 30.0); }
-void test_1x2v_p1_50eV() { test_1x(1, false, 50.0); }
-void test_1x2v_p1_100eV() { test_1x(1, false, 100.0); }
-void test_1x2v_p1_500eV() { test_1x(1, false, 500.0); }
-void test_1x2v_p1_1000eV() { test_1x(1, false, 1000.0); }
-void test_1x2v_p1_5000eV() { test_1x(1, false, 5000.0); }
-void test_1x2v_p1_10000eV() { test_1x(1, false, 10000.0); }
-void test_1x2v_p2() { test_1x(2, false, 30.0); }
+static int num_ne[1] = {1};
+static int num_ne2[1] = {20};
+void test_1x2v_p1_10eV() { test_1x(1, false, 10.0, 3, 0, num_ne, 1); }
+void test_1x2v_p1_30eV() { test_1x(1, false, 30.0, 3, 0, num_ne, 1); }
+void test_1x2v_p1_H() { test_1x(1, false, 30.0, 1, 0, num_ne, 1); }
+void test_1x2v_p1_100eV() { test_1x(1, false, 100.0, 3, 0, num_ne, 1); }
+void test_1x2v_p1_500eV() { test_1x(1, false, 500.0, 3, 0, num_ne, 1); }
+void test_1x2v_p1_1000eV() { test_1x(1, false, 1000.0, 3, 0, num_ne, 1); }
+void test_1x2v_p1_5000eV() { test_1x(1, false, 5000.0, 3, 0, num_ne, 1); }
+void test_1x2v_p1_10000eV() { test_1x(1, false, 10000.0, 3, 0, num_ne, 1); }
+void test_1x2v_p2() { test_1x(2, false, 30.0, 3, 0, num_ne, 1); }
 void test_2x2v_p1() { test_2x(1, false, 30.0); }
+
+void test_1x2v_p1_Li1_lowNe() { test_1x(1, false, 30.0, 3, 1, num_ne2, 1); }
+void test_1x2v_p1_Li1_midNe() { test_1x(1, false, 30.0, 3, 1, num_ne2, 6); }
+void test_1x2v_p1_Li1_highNe() { test_1x(1, false, 30.0, 3, 1, num_ne2, 13); }
 
 #ifdef GKYL_HAVE_CUDA
 
-void test_1x2v_p1_gpu() { test_1x(1, true, 30.0); }
+void test_1x2v_p1_gpu() { test_1x(1, true, 30.0, 3, 0, num_ne, 1); }
+void test_1x2v_p1_L1_midNe_gpu() { printf("XFAIL"); test_1x(1, true, 30.0, 3, 1, num_ne2, 6); }
 void test_1x2v_p2_gpu() { test_1x(2, true, 30.0); }
 
 #endif
 
 TEST_LIST = {
-  { "test_1x2v_p1_30eV", test_1x2v_p1_30eV },
-  { "test_1x2v_p1_5000eV", test_1x2v_p1_5000eV },
-//  { "test_1x2v_p2", test_1x2v_p2 },
+  { "test_1x2v_p1_Li0_30eV", test_1x2v_p1_30eV },
+  { "test_1x2v_p1_Li0_5000eV", test_1x2v_p1_5000eV },
+  { "test_1x2v_p1_H", test_1x2v_p1_H },
+  { "test_1x2v_p1_Li1_lowNe", test_1x2v_p1_Li1_lowNe },
+  { "test_1x2v_p1_Li1_midNe", test_1x2v_p1_Li1_midNe },
+  { "test_1x2v_p1_Li1_highNe", test_1x2v_p1_Li1_highNe },
   { "test_2x2v_p1", test_2x2v_p1 },
 
 #ifdef GKYL_HAVE_CUDA
   { "test_1x2v_p1_gpu", test_1x2v_p1_gpu },
+  { "test_1x2v_p1_L1_midNe_gpu", test_1x2v_p1_L1_midNe_gpu},
 //  { "test_1x2v_p2_gpu", test_1x2v_p2_gpu },
 
 #endif

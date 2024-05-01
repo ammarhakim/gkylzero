@@ -126,18 +126,12 @@ struct gkyl_gyrokinetic_radiation {
   enum gkyl_radiation_id radiation_id; // type of radiation
 
   int num_cross_collisions; // number of species to cross-collide with
-  char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
-  // fitting parameters associated with cross-collisions
-  double a[GKYL_MAX_SPECIES];
-  double alpha[GKYL_MAX_SPECIES];
-  double beta[GKYL_MAX_SPECIES];
-  double gamma[GKYL_MAX_SPECIES];
-  double v0[GKYL_MAX_SPECIES];
+  char collide_with[2*GKYL_MAX_SPECIES][128]; // names of species to cross collide with
 
   // Atomic z and charge state of species colliding with
-  int z[GKYL_MAX_SPECIES];
-  int charge_state[GKYL_MAX_SPECIES];
-  int num_of_densities[GKYL_MAX_SPECIES]; // Max number of densities to use per charge state
+  int z[2*GKYL_MAX_SPECIES];
+  int charge_state[2*GKYL_MAX_SPECIES];
+  int num_of_densities[2*GKYL_MAX_SPECIES]; // Max number of densities to use per charge state
 };
 
 struct gkyl_gyrokinetic_react_type {

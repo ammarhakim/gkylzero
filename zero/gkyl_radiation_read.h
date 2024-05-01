@@ -57,7 +57,6 @@ struct all_radiation_states* gkyl_read_rad_fit_params();
  * @param num_densities: maximum number of densities to return fit parameters for
  * @param electron densities: Array of electron densities
  * @return 1 if fit doesn't exist
- * Note: Untested for num_densities>1
  */
 int gkyl_get_fit_params(const struct all_radiation_states rad_data, int atomic_z,
   int charge_state, double *a, double *alpha, double *beta, double *gamma, double *V0, int *num_densities, double *electron_densities);
