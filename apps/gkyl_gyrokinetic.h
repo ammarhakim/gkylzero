@@ -88,10 +88,11 @@ struct gkyl_gyrokinetic_source {
 
 // Parameters for boundary conditions
 struct gkyl_gyrokinetic_bc {
-  enum gkyl_species_bc_type type;
-  void *aux_ctx;
-  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);  
-  double aux_parameter;
+  enum gkyl_species_bc_type type; // BC type flag.
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
+  void *aux_ctx; // Context for aux_profile.
+  double aux_parameter; // Parameter for aux_profile (maybe redundant).
+  struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
 };
 
 struct gkyl_gyrokinetic_bcs {

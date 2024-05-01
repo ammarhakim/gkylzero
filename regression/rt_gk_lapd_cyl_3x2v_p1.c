@@ -537,7 +537,7 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_FIXED_FUNC, },
+      .lower = { .type = GKYL_SPECIES_INITIAL_SKIN, },
       .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcz = {
@@ -590,7 +590,7 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_FIXED_FUNC, },
+      .lower = { .type = GKYL_SPECIES_INITIAL_SKIN, },
       .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcz = {

@@ -630,8 +630,8 @@ int main(int argc, char **argv)
     },
 
     .bcx = {
-      .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
-      .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
+      .lower={.type = GKYL_SPECIES_INITIAL_SKIN,},
+      .upper={.type = GKYL_SPECIES_INITIAL_SKIN,},
     },
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},
@@ -680,8 +680,8 @@ int main(int argc, char **argv)
       .tempperp = eval_temp_perp_ion,   
     },
     .bcx = {
-      .lower={.type = GKYL_SPECIES_FIXED_FUNC,},
-      .upper={.type = GKYL_SPECIES_FIXED_FUNC,},
+      .lower={.type = GKYL_SPECIES_INITIAL_SKIN,},
+      .upper={.type = GKYL_SPECIES_INITIAL_SKIN,},
     },
     .bcy = {
       .lower={.type = GKYL_SPECIES_GK_SHEATH,},

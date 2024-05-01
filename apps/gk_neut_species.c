@@ -206,7 +206,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
         bctype = GKYL_BC_ABSORB;
       else if (s->lower_bc[d] == GKYL_SPECIES_REFLECT) 
         bctype = GKYL_BC_REFLECT;
-      else if (s->lower_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
+      else if (s->lower_bc[d] == GKYL_SPECIES_INITIAL_SKIN) 
         bctype = GKYL_BC_FIXED_FUNC;
 
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.neut_basis,
@@ -224,7 +224,7 @@ gk_neut_species_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struc
         bctype = GKYL_BC_ABSORB;
       else if (s->upper_bc[d] == GKYL_SPECIES_REFLECT) 
         bctype = GKYL_BC_REFLECT;
-      else if (s->upper_bc[d] == GKYL_SPECIES_FIXED_FUNC) 
+      else if (s->upper_bc[d] == GKYL_SPECIES_INITIAL_SKIN) 
         bctype = GKYL_BC_FIXED_FUNC;
 
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.neut_basis,
@@ -312,7 +312,7 @@ gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
-        case GKYL_SPECIES_FIXED_FUNC:
+        case GKYL_SPECIES_INITIAL_SKIN:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
           break;
         case GKYL_SPECIES_NO_SLIP:
@@ -334,7 +334,7 @@ gk_neut_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_neut_species
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
           break;
-        case GKYL_SPECIES_FIXED_FUNC:
+        case GKYL_SPECIES_INITIAL_SKIN:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
           break;
         case GKYL_SPECIES_NO_SLIP:
