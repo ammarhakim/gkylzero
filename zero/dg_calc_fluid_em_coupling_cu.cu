@@ -107,7 +107,7 @@ gkyl_dg_calc_fluid_em_coupling_set_two_fluids_cu_kernel(gkyl_dg_calc_fluid_em_co
     fluids[0] = (double*) gkyl_array_fetch(fluid_1, loc);
     fluids[1] = (double*) gkyl_array_fetch(fluid_2, loc);
     app_accels[0] = (const double*) gkyl_array_cfetch(app_accel_1, loc);
-    app_accels[0] = (const double*) gkyl_array_cfetch(app_accel_2, loc);
+    app_accels[1] = (const double*) gkyl_array_cfetch(app_accel_2, loc);
     const double *ext_em_d = (const double*) gkyl_array_cfetch(ext_em, loc);
     const double *app_current_d = (const double*) gkyl_array_cfetch(app_current, loc);
     double *em_d = (double*) gkyl_array_fetch(em, loc);
