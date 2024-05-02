@@ -61,13 +61,13 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
       gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
     }
     double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
-    double bmag_fac = f->info.bmag_fac ? f->info.bmag_fac : bmag_mid_ptr[0];
+    double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : bmag_mid_ptr[0];
     if (app->use_gpu)
       gkyl_array_release(bmag_mid_host);
     // Linearized polarization density
     for (int i=0; i<app->num_species; ++i) {
       struct gk_species *s = &app->species[i];
-      polarization_weight += s->info.polarization_density*s->info.mass/(bmag_fac*bmag_fac);
+      polarization_weight += s->info.polarization_density*s->info.mass/(polarization_bmag*polarization_bmag);
     }
     if (app->cdim == 1) {
       // Need to set weight to kperpsq*polarizationWeight for use in potential smoothing.

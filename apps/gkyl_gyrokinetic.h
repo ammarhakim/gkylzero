@@ -223,7 +223,7 @@ struct gkyl_gyrokinetic_neut_species {
 // Parameter for gk field
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
-  double bmag_fac; 
+  double polarization_bmag; 
   double kperpSq; // kperp^2 parameter for 1D field equations
   double xLCFS; // radial location of the LCFS.
 
