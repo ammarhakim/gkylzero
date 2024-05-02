@@ -54,8 +54,8 @@ gk_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
       react->partner_idx[i] = gk_find_neut_species_idx(app, react->react_type[i].partner_nm);
       gk_neut_species_moment_init(app, &app->neut_species[react->partner_idx[i]], &react->moms_partner[i], "FiveMoments");
 
-      react->prim_vars_cxi[i] = mkarr(app->use_gpu, (1+app->vdim)*app->confBasis.num_basis, app->local_ext.volume);
-      react->prim_vars_cxn[i] = mkarr(app->use_gpu, (1+app->vdim)*app->confBasis.num_basis, app->local_ext.volume);
+      react->prim_vars_cxi[i] = mkarr(app->use_gpu, (2+app->vdim)*app->confBasis.num_basis, app->local_ext.volume);
+      react->prim_vars_cxn[i] = mkarr(app->use_gpu, (2+app->vdim)*app->confBasis.num_basis, app->local_ext.volume);
     }
 
     react->coeff_react[i] = mkarr(app->use_gpu, app->confBasis.num_basis, app->local_ext.volume);
