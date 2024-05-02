@@ -35,15 +35,11 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s, stru
     double eps0 = s->info.collisions.eps0 ? s->info.collisions.eps0: GKYL_EPSILON0;
     double hbar = s->info.collisions.hbar ? s->info.collisions.hbar: GKYL_PLANCKS_CONSTANT_H/2/M_PI;
     double eV = s->info.collisions.eV ? s->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
-    struct gkyl_array* bmag_mid_host = app->gk_geom->bmag_mid;
-    if (app->use_gpu) {
-      bmag_mid_host = mkarr(false, 1, 1);
-      gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
-    }
+    struct gkyl_array* bmag_mid_host = app->use_gpu? mkarr(false, 1, 1) : gkyl_array_acquire(app->gk_geom->bmag_mid);
+    gkyl_array_copy(bmag_mid_host, app->gk_geom->bmag_mid);
     double *bmag_mid_ptr = gkyl_array_fetch(bmag_mid_host, 0);
     double bmag_mid = s->info.collisions.bmag_mid ? s->info.collisions.bmag_mid : bmag_mid_ptr[0];
-    if (app->use_gpu)
-      gkyl_array_release(bmag_mid_host);
+    gkyl_array_release(bmag_mid_host);
     double tpar_min = (s->info.mass/6.0)*pow(s->grid.dx[cdim],2);
     double tperp_min = vdim>1 ? (bmag_mid/3.0)*s->grid.dx[cdim+1] : tpar_min;
     lbo->vtsq_min = (tpar_min + 2.0*tperp_min)/(3.0*s->info.mass);

@@ -49,8 +49,8 @@ struct gkyl_gyrokinetic_collisions {
 
   // inputs for Spitzer collisionality
   bool normNu; // Set to true if you want to rescale collision frequency
-  double n_ref;
-  double T_ref;
+  double n_ref; // Density used to calculate coulomb logarithm
+  double T_ref; // Temperature used to calculate coulomb logarithm
   double bmag_mid; // bmag at the middle of the domain
   double nuFrac; // Parameter for rescaling collision frequency from SI values
   double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permativity, elementary charge
