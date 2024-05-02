@@ -292,11 +292,11 @@ gk_species_radiation_release(const struct gkyl_gyrokinetic_app *app, const struc
     if (app->use_gpu)
       gkyl_array_release(rad->emissivity_host[i]);
     for (int j=0; j<rad->rad_fit_ne[i]->size; j++) {
-      gkyl_array_release(rad->vnu_surf[j][i]);
-      gkyl_array_release(rad->vnu[j][i]);
-      gkyl_array_release(rad->vsqnu_surf[j][i]);
-      gkyl_array_release(rad->vsqnu[j][i]);
-      gkyl_dg_calc_gk_rad_vars_release(rad->calc_gk_rad_vars[j][i]);
+      gkyl_array_release(rad->vnu_surf[i][j]);
+      gkyl_array_release(rad->vnu[i][j]);
+      gkyl_array_release(rad->vsqnu_surf[i][j]);
+      gkyl_array_release(rad->vsqnu[i][j]);
+      gkyl_dg_calc_gk_rad_vars_release(rad->calc_gk_rad_vars[i][j]);
     }
     gkyl_array_release(rad->rad_fit_ne[i]);
     gk_species_moment_release(app, &rad->moms[i]);
