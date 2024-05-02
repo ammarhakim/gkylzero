@@ -406,6 +406,7 @@ main(int argc, char **argv)
 
   // create global range
   int cells[] = { NX, NZ };
+  int cdim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range globalr;
   gkyl_create_global_range(2, cells, &globalr);
 
@@ -773,10 +774,11 @@ main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .world = {0.0},
-      .geometry_id = GKYL_TOKAMAK,
-      .tok_efit_info = &inp,
-      .tok_grid_info = &ginp,
+      .geometry_id = GKYL_GEOMETRY_FROMFILE,
+      //.world = {0.0},
+      //.geometry_id = GKYL_TOKAMAK,
+      //.tok_efit_info = &inp,
+      //.tok_grid_info = &ginp,
     },
 
     .num_periodic_dir = 0,
