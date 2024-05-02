@@ -576,9 +576,18 @@ main(int argc, char **argv)
       .temp = eval_temp_ar,      
     },
 
-    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
-    .bcy = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
-    .bcz = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_REFLECT },
+    .bcx = { 
+      .lower = { .type = GKYL_SPECIES_REFLECT },
+      .upper = { .type = GKYL_SPECIES_REFLECT },
+    },
+    .bcy = { 
+      .lower = { .type = GKYL_SPECIES_REFLECT },
+      .upper = { .type = GKYL_SPECIES_REFLECT },
+    },
+    .bcz = { 
+      .lower = { .type = GKYL_SPECIES_REFLECT },
+      .upper = { .type = GKYL_SPECIES_REFLECT },
+    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"},

@@ -459,30 +459,22 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
         cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
     }
     else { 
-      struct gkyl_gyrokinetic_projection proj_inp_bc_lo;
-
       if (gks->lower_bc[d].type == GKYL_SPECIES_COPY) 
         bctype = GKYL_BC_COPY;
       else if (gks->lower_bc[d].type == GKYL_SPECIES_ABSORB) 
         bctype = GKYL_BC_ABSORB;
       else if (gks->lower_bc[d].type == GKYL_SPECIES_REFLECT) 
         bctype = GKYL_BC_REFLECT;
-      else if (gks->lower_bc[d].type == GKYL_SPECIES_INITIAL_SKIN) {
+      else if (gks->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
         bctype = GKYL_BC_FIXED_FUNC;
-        proj_inp_bc_lo = gks->info.projection;
-      }
-      else if (gks->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
-        bctype = GKYL_BC_FIXED_FUNC;
-        proj_inp_bc_lo = gks->lower_bc[d].projection;
-      }
 
       gks->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev.basis,
         &gks->lower_skin[d], &gks->lower_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu);
 
-      if (gks->lower_bc[d].type == GKYL_SPECIES_INITIAL_SKIN || gks->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+      if (gks->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
         // Fill the buffer used for BCs.
         struct gk_proj gk_proj_bc_lo;
-        gk_species_projection_init(app, gks, proj_inp_bc_lo, &gk_proj_bc_lo);
+        gk_species_projection_init(app, gks, gks->lower_bc[d].projection, &gk_proj_bc_lo);
         gk_species_projection_calc(app, gks, &gk_proj_bc_lo, gks->f1, 0.0); // Temporarily use f1.
         gkyl_bc_basic_buffer_fixed_func(gks->bc_lo[d], gks->bc_buffer_lo_fixed, gks->f1);
         gkyl_array_clear(gks->f1, 0.0);
@@ -508,31 +500,22 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
         cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
     }
     else {
-      struct gkyl_gyrokinetic_projection proj_inp_bc_up;
-
       if (gks->upper_bc[d].type == GKYL_SPECIES_COPY) 
         bctype = GKYL_BC_COPY;
       else if (gks->upper_bc[d].type == GKYL_SPECIES_ABSORB) 
         bctype = GKYL_BC_ABSORB;
       else if (gks->upper_bc[d].type == GKYL_SPECIES_REFLECT) 
         bctype = GKYL_BC_REFLECT;
-      else if (gks->upper_bc[d].type == GKYL_SPECIES_INITIAL_SKIN) {
+      else if (gks->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
         bctype = GKYL_BC_FIXED_FUNC;
-        proj_inp_bc_up = gks->info.projection;
-      }
-      else if (gks->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
-        bctype = GKYL_BC_FIXED_FUNC;
-        proj_inp_bc_up = gks->upper_bc[d].projection;
-      }
 
       gks->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev.basis,
         &gks->upper_skin[d], &gks->upper_ghost[d], gks->f->ncomp, app->cdim, app->use_gpu);
 
-      if (gks->upper_bc[d].type == GKYL_SPECIES_INITIAL_SKIN || gks->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+      if (gks->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
         // Fill the buffer used for BCs.
         struct gk_proj gk_proj_bc_up;
-        struct gkyl_gyrokinetic_projection proj_inp_bc_up;
-        gk_species_projection_init(app, gks, proj_inp_bc_up, &gk_proj_bc_up);
+        gk_species_projection_init(app, gks, gks->upper_bc[d].projection, &gk_proj_bc_up);
         gk_species_projection_calc(app, gks, &gk_proj_bc_up, gks->f1, 0.0); // Temporarily use f1.
         gkyl_bc_basic_buffer_fixed_func(gks->bc_up[d], gks->bc_buffer_up_fixed, gks->f1);
         gkyl_array_clear(gks->f1, 0.0);
@@ -633,13 +616,11 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer, f);
           break;
-        case GKYL_SPECIES_INITIAL_SKIN:
         case GKYL_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_lo[d], species->bc_buffer_lo_fixed, f);
           break;
         case GKYL_SPECIES_ZERO_FLUX:
           break; // do nothing, BCs already applied in hyper_dg loop by not updating flux
-          break;
         default:
           break;
       }
@@ -655,7 +636,6 @@ gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
         case GKYL_SPECIES_ABSORB:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer, f);
           break;
-        case GKYL_SPECIES_INITIAL_SKIN:
         case GKYL_SPECIES_FIXED_FUNC:
           gkyl_bc_basic_advance(species->bc_up[d], species->bc_buffer_up_fixed, f);
           break;
@@ -777,9 +757,9 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
     gkyl_cu_free(s->red_integ_diag_global);
   }
   else {
+    gkyl_free(s->omega_cfl);
     gkyl_free(s->red_integ_diag);
     gkyl_free(s->red_integ_diag_global);
-    gkyl_free(s->omega_cfl);
   }
 
   gk_species_release_vmap(app, s);

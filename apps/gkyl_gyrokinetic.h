@@ -229,7 +229,7 @@ struct gkyl_gyrokinetic_neut_species {
   struct gkyl_gyrokinetic_react react_neut;
 
   // boundary conditions
-  enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
+  struct gkyl_gyrokinetic_bcs bcx, bcy, bcz;
 };
 
 // Parameter for gk field

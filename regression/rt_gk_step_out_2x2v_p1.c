@@ -773,8 +773,14 @@ main(int argc, char **argv)
       .temp = eval_temp_ar,      
     },
 
-    .bcx = { GKYL_SPECIES_ABSORB, GKYL_SPECIES_ZERO_FLUX },
-    .bcy = { GKYL_SPECIES_ZERO_FLUX, GKYL_SPECIES_ZERO_FLUX },
+    .bcx = { 
+      .lower = { .type = GKYL_SPECIES_ABSORB },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX },
+    },
+    .bcy = { 
+      .lower = { .type = GKYL_SPECIES_ZERO_FLUX },
+      .upper = { .type = GKYL_SPECIES_ZERO_FLUX },
+    },
     
     .num_diag_moments = 3,
     .diag_moments = { "M0", "M1i", "M2"},

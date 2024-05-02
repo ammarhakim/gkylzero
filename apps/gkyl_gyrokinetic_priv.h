@@ -562,8 +562,12 @@ struct gk_neut_species {
   gkyl_dg_updater_vlasov *slvr; // Vlasov solver 
   struct gkyl_dg_eqn *eqn_vlasov; // Vlasov equation object
   
+  int num_periodic_dir; // number of periodic directions
+  int periodic_dirs[3]; // list of periodic directions
+  bool bc_is_np[3]; // whether BC is nonperiodic.
+
   // boundary conditions on lower/upper edges in each direction  
-  enum gkyl_species_bc_type lower_bc[3], upper_bc[3];
+  struct gkyl_gyrokinetic_bc lower_bc[3], upper_bc[3];
   // Pointers to updaters that apply BC.
   struct gkyl_bc_basic *bc_lo[3];
   struct gkyl_bc_basic *bc_up[3];
@@ -581,7 +585,7 @@ struct gk_neut_species {
   bool has_neutral_reactions;
   struct gk_react react_neut; // reaction object
 
-  double *omega_cfl_ptr;
+  double *omega_cfl;
 };
 
 // field data

@@ -497,6 +497,16 @@ main(int argc, char **argv)
   }
 
   // Electron species.
+  struct gkyl_gyrokinetic_projection elc_ic = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+    .density = evalDensityInit,
+    .ctx_density = &ctx,
+    .upar = evalUparInit,
+    .ctx_upar = &ctx,
+    .temp = evalTempElcInit,
+    .ctx_temp = &ctx,
+  };
+
   struct gkyl_gyrokinetic_species elc = {
     .name = "elc",
     .charge = ctx.charge_elc, .mass = ctx.mass_elc,
@@ -505,15 +515,8 @@ main(int argc, char **argv)
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
-      .density = evalDensityInit,
-      .ctx_density = &ctx,
-      .upar = evalUparInit,
-      .ctx_upar = &ctx,
-      .temp = evalTempElcInit,
-      .ctx_temp = &ctx,
-    },
+    .projection = elc_ic,
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElcInit,
@@ -537,7 +540,10 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_INITIAL_SKIN, },
+      .lower = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = elc_ic,
+      },
       .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcz = {
@@ -550,6 +556,16 @@ main(int argc, char **argv)
   };
 
   // Ion species.
+  struct gkyl_gyrokinetic_projection ion_ic = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
+    .density = evalDensityInit,
+    .ctx_density = &ctx,
+    .upar = evalUparInit,
+    .ctx_upar = &ctx,
+    .temp = evalTempIonInit,
+    .ctx_temp = &ctx,
+  };
+
   struct gkyl_gyrokinetic_species ion = {
     .name = "ion",
     .charge = ctx.charge_ion, .mass = ctx.mass_ion,
@@ -558,15 +574,8 @@ main(int argc, char **argv)
     .cells = { NVPAR, NMU },
     .polarization_density = ctx.n0,
 
-    .projection = {
-      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-      .density = evalDensityInit,
-      .ctx_density = &ctx,
-      .upar = evalUparInit,
-      .ctx_upar = &ctx,
-      .temp = evalTempIonInit,
-      .ctx_temp = &ctx,
-    },
+    .projection = ion_ic,
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuIonInit,
@@ -590,7 +599,10 @@ main(int argc, char **argv)
     },
     
     .bcx = {
-      .lower = { .type = GKYL_SPECIES_INITIAL_SKIN, },
+      .lower = {
+        .type = GKYL_SPECIES_FIXED_FUNC,
+        .projection = ion_ic,
+      },
       .upper = { .type = GKYL_SPECIES_ZERO_FLUX, },
     },
     .bcz = {
