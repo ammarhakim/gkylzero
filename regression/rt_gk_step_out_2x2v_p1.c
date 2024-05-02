@@ -507,8 +507,8 @@ main(int argc, char **argv)
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
       .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.Te,
+      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .num_cross_collisions = 2,
@@ -609,8 +609,8 @@ main(int argc, char **argv)
       .ctx = &ctx,
       .normNu = true,
       .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.Ti,
+      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
       .self_nu = evalNuIon,
       .num_cross_collisions = 2,
       .collide_with = { "elc", "Ar1" },
@@ -672,8 +672,8 @@ main(int argc, char **argv)
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
       .nuFrac = ctx.nuFrac,
-      .n_ref = ctx.n0Ar,
-      .T_ref = ctx.TAr,
+      .n_ref = ctx.n0Ar, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.TAr, // Temperature used to calculate coulomb logarithm
       .ctx = &ctx,
       .self_nu = evalNuIon,
       .num_cross_collisions = 2,

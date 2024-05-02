@@ -10,7 +10,7 @@
 #include <gkyl_range.h>
 
 // Calculate the plasma frequency
-double plasma_frequency(double n, double m, double eps0, double hbar, double eV)
+double plasma_frequency(double n, double m, double eps0, double eV)
 {
   return sqrt(n*eV*eV/m/eps0);
 }
@@ -19,15 +19,15 @@ double plasma_frequency(double n, double m, double eps0, double hbar, double eV)
 double coulomb_log(double ns, double nr, double ms, double mr, double Ts, double Tr, double qs, double qr, double bmag_mid, double eps0, double hbar, double eV)
 {
 
-  double vts = sqrt(Ts/ms);
-  double vtr = sqrt(Tr/mr);
-  double wps = plasma_frequency(ns,ms, eps0, hbar, eV);
-  double wpr = plasma_frequency(nr,mr, eps0, hbar, eV);
-  double wcs = qs*bmag_mid/ms;
-  double wcr = qr*bmag_mid/mr;
+  double vts = sqrt(Ts/ms); // Thermal velocity for species s
+  double vtr = sqrt(Tr/mr);  // Thermal velocity for species r
+  double wps = plasma_frequency(ns,ms, eps0, eV); // Plasma Frequency for species s
+  double wpr = plasma_frequency(nr,mr, eps0, eV); // Plasma frequency for species r
+  double wcs = qs*bmag_mid/ms; // Cyclotron frequency for species s
+  double wcr = qr*bmag_mid/mr; // Cyclotron frequency for species r
   double inner1 = (wps*wps + wcs*wcs)/(Ts/ms + 3*Ts/ms) + (wpr*wpr + wcr*wcr)/(Tr/mr + 3*Ts/ms);
-  double u = 3*(vts*vts + vtr*vtr);
-  double msr = ms*mr/(ms+mr);
+  double u = 3*(vts*vts + vtr*vtr); // Relative velocity
+  double msr = ms*mr/(ms+mr); // Reduced mass
   double inner2 = fmax(fabs(qs*qr)/(4*M_PI*eps0*msr*u*u), hbar/(2*sqrt(eV)*msr*u));
   double inner = (1/inner1)*(1/inner2/inner2) + 1;
   return 0.5*log(inner);

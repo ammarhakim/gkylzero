@@ -113,14 +113,9 @@ void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up) {
   int idx_mid[cdim];
   double xc[cdim];
   for(int i = 0; i <cdim; i++) {
-    if (up->grid.cells[i]%2 == 0) {
-      idx_mid[i] = up->grid.cells[i]/2;
-      xc[i] = 1.0;
-    }
-    else {
-      idx_mid[i] = up->grid.cells[i]/2+1 ;
-      xc[i] = 0.0;
-    }
+    int mod = up->grid.cells[i]%2 == 0? 0 : 1;
+    idx_mid[i] = up->grid.cells[i]/2 + mod;
+    xc[i] = up->grid.cells[i]%2 == 0? 1.0 : 0.0;
   }
 
   double bmag_mid = 0.0;

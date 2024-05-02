@@ -434,8 +434,8 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.Te,
+      .n_ref = ctx.n0, // Density used to calculate couloumb logarithm
+      .T_ref = ctx.Te, // Temperature used to claculate coulomb logarithm
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .num_cross_collisions = 1,
@@ -508,8 +508,8 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
-      .n_ref = ctx.n0,
-      .T_ref = ctx.TAr,
+      .n_ref = ctx.n0, // Density used to calculate couloumb logarithm
+      .T_ref = ctx.TAr, // Temperature used to claculate coulomb logarithm
       .ctx = &ctx,
       .self_nu = evalNuIon,
       .num_cross_collisions = 1,
