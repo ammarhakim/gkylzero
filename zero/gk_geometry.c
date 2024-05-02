@@ -108,6 +108,24 @@ void gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange,
   }
 }
 
+void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up) {
+  int cdim = up->grid.ndim;
+  int idx_mid[cdim];
+  double xc[cdim];
+  for(int i = 0; i <cdim; i++) {
+    idx_mid[i] = up->grid.cells[i]/2+1;
+    xc[i] = up->grid.cells[i]%2 == 0? -1.0 : 0.0;
+  }
+
+  double bmag_mid = 0.0;
+  if (gkyl_range_contains_idx(&up->local, idx_mid)) {
+    long lidx = gkyl_range_idx(&up->local, idx_mid);
+    const double *bcoeffs = gkyl_array_cfetch(up->bmag, lidx);
+    double *bmag_mid = gkyl_array_fetch(up->bmag_mid, 0);
+    bmag_mid[0] = up->basis.eval_expand(xc, bcoeffs);
+  }
+}
+
 struct gk_geometry*
 gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometry_inp *geometry_inp)
 {
@@ -138,6 +156,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->bmag_mid = gkyl_array_new(GKYL_DOUBLE, 1, 1);
 
   // Now fill the arrays by deflation
   int rem_dirs[3] = {0};
@@ -203,6 +222,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->gyyj);
   gkyl_array_release(up->gxzj);
   gkyl_array_release(up->eps2);
+  gkyl_array_release(up->bmag_mid);
   if (gkyl_gk_geometry_is_cu_dev(up)) 
     gkyl_cu_free(up->on_dev); 
 

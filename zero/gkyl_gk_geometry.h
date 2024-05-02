@@ -20,25 +20,32 @@ struct gk_geometry {
   struct gkyl_basis basis;
   struct gkyl_rect_grid grid;
 
-  struct gkyl_array* mc2p;
-  struct gkyl_array* bmag;
-  struct gkyl_array* g_ij;
-  struct gkyl_array* dxdz;
-  struct gkyl_array* dzdx;
-  struct gkyl_array* jacobgeo;
-  struct gkyl_array* jacobgeo_inv;
-  struct gkyl_array* gij;
-  struct gkyl_array* b_i;
-  struct gkyl_array* cmag;
-  struct gkyl_array* jacobtot;
-  struct gkyl_array* jacobtot_inv;
-  struct gkyl_array* bmag_inv;
-  struct gkyl_array* bmag_inv_sq;
-  struct gkyl_array* gxxj;
-  struct gkyl_array* gxyj;
-  struct gkyl_array* gyyj;
-  struct gkyl_array* gxzj;
-  struct gkyl_array* eps2; // eps2 = Jg^33 - J/g_33
+  // These 20 DG fields contain the geometric quantities needed to solve the
+  // GK Equation and Poisson Equation and to apply certain BC's
+  // The first 19 are defined on the configuration space domain. The last is a single element.
+  struct gkyl_array* mc2p; // 3 components. Cartesian X,Y, and Z
+  struct gkyl_array* bmag; // 1 component. B Magnitude of magnetic field
+  struct gkyl_array* g_ij; // 6 components. 
+                           // Metric coefficients g_{ij} Stored in order g_11, g12, g_13, g_22, g_23, g_33
+  struct gkyl_array* dxdz; // 9 components.
+                           // Cartesian components of tangent Vectors stored in order e_1, e_2, e_3
+  struct gkyl_array* dzdx; // 9 components.
+                           // Cartesian components of dual vectors stroed in order e^1, e^2, e^3
+  struct gkyl_array* jacobgeo; // 1 component. Configuration space jacobian J
+  struct gkyl_array* jacobgeo_inv; // 1 component. 1/J
+  struct gkyl_array* gij; // Matric coefficients g^{ij}. See g_ij for order.
+  struct gkyl_array* b_i; // 3 components. Contravariant components of magnetic field vector b_1, b_2, b_3.
+  struct gkyl_array* cmag; // 1 component. C = JB/sqrt(g_33)
+  struct gkyl_array* jacobtot; // 1 component. Phase space Jacobian = JB
+  struct gkyl_array* jacobtot_inv; // 1 component. 1/(JB)
+  struct gkyl_array* bmag_inv; // 1 component. 1/B.
+  struct gkyl_array* bmag_inv_sq; // 1 component. 1/B^2.
+  struct gkyl_array* gxxj; // 1 component. g^{xx} * J. For poisson solve.
+  struct gkyl_array* gxyj; // 1 component. g^{xy} * J. For poisson solve.
+  struct gkyl_array* gyyj; // 1 component. g^{yy} * J. For poisson solve.
+  struct gkyl_array* gxzj; // 1 component. g^{xz} * J. For poisson solve if z derivatives are kept.
+  struct gkyl_array* eps2; // 1 component. eps2 = Jg^33 - J/g_33. For poisson if z derivatives are kept.
+  struct gkyl_array* bmag_mid; // 1 component. B at center of domain.
 
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
@@ -109,6 +116,12 @@ gkyl_gk_geometry_augment_grid(struct gkyl_rect_grid grid, struct gkyl_gk_geometr
  */
 void 
 gkyl_gk_geometry_augment_local(const struct gkyl_range *inrange, const int *nghost, struct gkyl_range *ext_range, struct gkyl_range *range);
+
+
+/**
+ * Evaluate and set bmag at the center of the domain
+ */
+void gkyl_gk_geometry_bmag_mid(struct gk_geometry* up);
 
 /**
  * deflate geometry to lower dimensionality

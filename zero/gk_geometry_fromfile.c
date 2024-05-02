@@ -51,6 +51,7 @@ gkyl_gk_geometry_fromfile_new(struct gk_geometry* geo_host, struct gkyl_gk_geome
   up->gyyj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->gxzj= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->eps2= gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->bmag_mid = gkyl_array_new(GKYL_DOUBLE, 1, 1);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);

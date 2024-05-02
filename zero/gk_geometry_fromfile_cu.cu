@@ -44,6 +44,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   struct gkyl_array *gyyj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   struct gkyl_array *gxzj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   struct gkyl_array *eps2_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  struct gkyl_array *bmag_mid_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 1);
 
   gkyl_array_copy(mc2p_dev, geo_host->mc2p);
   gkyl_array_copy(bmag_dev, geo_host->bmag);
@@ -64,6 +65,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   gkyl_array_copy(gyyj_dev, geo_host->gyyj);
   gkyl_array_copy(gxzj_dev, geo_host->gxzj);
   gkyl_array_copy(eps2_dev, geo_host->eps2);
+  gkyl_array_copy(bmag_mid_dev, geo_host->bmag_mid);
 
   // this is for the memcpy below
   up->mc2p  = mc2p_dev->on_dev;
@@ -85,6 +87,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   up->gyyj  = gyyj_dev->on_dev;
   up->gxzj  = gxzj_dev->on_dev;
   up->eps2  = eps2_dev->on_dev;
+  up->bmag_mid  = bmag_mid_dev->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -115,6 +118,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   up->gyyj  = gyyj_dev;
   up->gxzj  = gxzj_dev;
   up->eps2  = eps2_dev;
+  up->bmag_mid  = bmag_mid_dev;
   
   return up;
 }

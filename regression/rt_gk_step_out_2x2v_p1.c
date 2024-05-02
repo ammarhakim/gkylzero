@@ -406,6 +406,7 @@ main(int argc, char **argv)
 
   // create global range
   int cells[] = { NX, NZ };
+  int cdim = sizeof(cells) / sizeof(cells[0]);
   struct gkyl_range globalr;
   gkyl_create_global_range(2, cells, &globalr);
 
@@ -506,12 +507,9 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
-      .self_nu_fac = norm_nu_func(ctx.nuFrac, ctx.n0, ctx.n0, ctx.massElc, ctx.massElc, ctx.chargeElc, ctx.chargeElc, ctx.Te, ctx.Te),
-      .cross_nu_fac = {
-        norm_nu_func(ctx.nuFrac, ctx.n0, ctx.n0, ctx.massElc, ctx.massIon, ctx.chargeElc, ctx.chargeIon, ctx.Te, ctx.Ti),
-        norm_nu_func(ctx.nuFrac, ctx.n0, ctx.n0Ar, ctx.massElc, ctx.massAr, ctx.chargeElc, ctx.chargeIon, ctx.Te, ctx.TAr)
-      },
-      .bmag_mid = 2.51,
+      .nuFrac = ctx.nuFrac,
+      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.Te, // Temperature used to calculate coulomb logarithm
       .ctx = &ctx,
       .self_nu = evalNuElc,
       .num_cross_collisions = 2,
@@ -611,12 +609,9 @@ main(int argc, char **argv)
       .collision_id = GKYL_LBO_COLLISIONS,
       .ctx = &ctx,
       .normNu = true,
-      .self_nu_fac = norm_nu_func(ctx.nuFrac, ctx.n0, ctx.n0, ctx.massIon, ctx.massIon, ctx.chargeIon, ctx.chargeIon, ctx.Ti, ctx.Ti),
-      .cross_nu_fac = {
-        norm_nu_func(ctx.nuFrac, ctx.n0, ctx.n0, ctx.massIon, ctx.massElc, ctx.chargeIon, ctx.chargeElc, ctx.Ti, ctx.Te), 
-        norm_nu_func(ctx.nuFrac, ctx.n0, ctx.n0Ar, ctx.massIon, ctx.massAr, ctx.chargeIon, ctx.chargeIon, ctx.Ti, ctx.TAr)
-      },
-      .bmag_mid = 2.51,
+      .nuFrac = ctx.nuFrac,
+      .n_ref = ctx.n0, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.Ti, // Temperature used to calculate coulomb logarithm
       .self_nu = evalNuIon,
       .num_cross_collisions = 2,
       .collide_with = { "elc", "Ar1" },
@@ -677,12 +672,9 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .normNu = true,
-      .self_nu_fac = norm_nu_func(ctx.nuFrac, ctx.n0Ar, ctx.n0Ar, ctx.massAr, ctx.massAr, ctx.chargeIon, ctx.chargeIon, ctx.TAr, ctx.TAr),
-      .cross_nu_fac = {
-        norm_nu_func(ctx.nuFrac, ctx.n0Ar, ctx.n0, ctx.massAr, ctx.massElc, ctx.chargeIon, ctx.chargeElc, ctx.TAr, ctx.Te), 
-        norm_nu_func(ctx.nuFrac, ctx.n0Ar, ctx.n0, ctx.massAr, ctx.massIon, ctx.chargeIon, ctx.chargeIon, ctx.TAr, ctx.Ti)
-      },
-      .bmag_mid = 2.51,
+      .nuFrac = ctx.nuFrac,
+      .n_ref = ctx.n0Ar, // Density used to calculate coulomb logarithm
+      .T_ref = ctx.TAr, // Temperature used to calculate coulomb logarithm
       .ctx = &ctx,
       .self_nu = evalNuIon,
       .num_cross_collisions = 2,
@@ -764,7 +756,6 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .bmag_fac = ctx.B0, 
     .fem_parbc = GKYL_FEM_PARPROJ_NONE, 
     .poisson_bcs = {.lo_type = {GKYL_POISSON_DIRICHLET}, 
                     .up_type = {GKYL_POISSON_DIRICHLET}, 

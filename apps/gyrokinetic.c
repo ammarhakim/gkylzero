@@ -299,6 +299,12 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
 
   gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
 
+  gkyl_gk_geometry_bmag_mid(app->gk_geom); // set bmag mid
+  int comm_sz, bcast_rank;
+  gkyl_comm_get_size(app->comm, &comm_sz);
+  bcast_rank = comm_sz%2 == 0 ? comm_sz/2 - 1 : comm_sz/2;
+  gkyl_comm_array_bcast_host(app->comm, app->gk_geom->bmag_mid, app->gk_geom->bmag_mid, bcast_rank);
+  
   // If we are on the gpu, copy from host
   if (app->use_gpu) {
     struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, app->use_gpu);

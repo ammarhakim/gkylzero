@@ -49,11 +49,11 @@ struct gkyl_gyrokinetic_collisions {
 
   // inputs for Spitzer collisionality
   bool normNu; // Set to true if you want to rescale collision frequency
-  double self_nu_fac; // Self collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
-  double cross_nu_fac[GKYL_MAX_SPECIES]; // Cross collision freqs without factor of n_r/(v_ts^2+v_tr^2)^(3/2)
+  double n_ref; // Density used to calculate coulomb logarithm
+  double T_ref; // Temperature used to calculate coulomb logarithm
   double bmag_mid; // bmag at the middle of the domain
   double nuFrac; // Parameter for rescaling collision frequency from SI values
-  double hbar; // Planck's constant/2 pi 
+  double hbar, eps0, eV; // Planck's constant/2 pi, vacuum permativity, elementary charge
 
   int num_cross_collisions; // number of species to cross-collide with
   char collide_with[GKYL_MAX_SPECIES][128]; // names of species to cross collide with
@@ -223,7 +223,7 @@ struct gkyl_gyrokinetic_neut_species {
 // Parameter for gk field
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
-  double bmag_fac; 
+  double polarization_bmag; 
   double kperpSq; // kperp^2 parameter for 1D field equations
   double xLCFS; // radial location of the LCFS.
 

@@ -117,6 +117,7 @@ struct gkyl_comm {
   allreduce_t allreduce_host; // all reduce using the host (MPI) communicator.
   gkyl_array_allgather_t gkyl_array_allgather; // gather local arrays to global array.
   gkyl_array_bcast_t gkyl_array_bcast; // broadcast array to other processes.
+  gkyl_array_bcast_t gkyl_array_bcast_host; // broadcast host side array to other processes.
   gkyl_array_sync_t gkyl_array_sync; // sync array.
   gkyl_array_per_sync_t gkyl_array_per_sync; // sync array in periodic dirs.
 
@@ -294,6 +295,22 @@ gkyl_comm_array_bcast(struct gkyl_comm *comm,
   const struct gkyl_array *array_send, struct gkyl_array *array_recv, int root)
 {
   return comm->gkyl_array_bcast(comm, array_send, array_recv, root);
+}
+
+/**
+ * Broadcast a host side array to other processes.
+ *
+ * @param comm Communicator.
+ * @param array_send Array to send (only in rank 'root').
+ * @param array_recv Receive buffer array.
+ * @param root Broadcasting process.
+ * @return error code: 0 for success
+ */
+static int
+gkyl_comm_array_bcast_host(struct gkyl_comm *comm, 
+  const struct gkyl_array *array_send, struct gkyl_array *array_recv, int root)
+{
+  return comm->gkyl_array_bcast_host(comm, array_send, array_recv, root);
 }
 
 /**
