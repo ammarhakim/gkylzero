@@ -12,7 +12,7 @@ typedef struct gkyl_dg_calc_canonical_pb_vars gkyl_dg_calc_canonical_pb_vars;
 /**
  * Create new updater to compute canonical_pb variables needed in 
  * updates for general geometry. Methods compute:
- * alpha_surf : Surface expansion of phase space flux alpha for streaming in general geometry (v^i = v . e^i)
+ * alpha_surf : Surface expansion of phase space flux alpha = {z, H}
  * 
  * @param phase_grid Phase space grid (for getting cell spacing and cell center)
  * @param conf_basis Configuration space basis functions
@@ -33,14 +33,14 @@ gkyl_dg_calc_canonical_pb_vars_cu_dev_new(const struct gkyl_rect_grid *phase_gri
   const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis);
 
 /**
- * Compute surface expansion of phase space flux alpha
- * Evaluates e^i = g^ij e_j at surfaces before computing v^i = v . e^i to insure continuity
+ * Compute surface expansion of phase space flux alpha = {z, H}
  * 
  * Note: Each cell stores the surface expansion on the *lower* edge of the cell
  * @param up Updater for computing general geometry canonical_pb variables 
  * @param conf_range Configuration space range (should only be local range because geometry only defined on local range)
  * @param phase_range Phase space range 
  * @param phase_ext_range Extended Phase space range (so we obtain alpha_surf at all the needed surfaces)
+ * @param hamil Hamiltonian expansion in a cell
  * @param alpha_surf Output surface expansion in a cell on the *lower* edge in each direction 
  * @param sgn_alpha_surf Output sign(alpha) at quadrature points along a surface 
  * @param const_sgn_alpha Output boolean array for if sign(alpha) is a constant on the surface
