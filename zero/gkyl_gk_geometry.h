@@ -93,6 +93,27 @@ struct gkyl_gk_geometry_inp {
 
 };
 
+/**
+ * Create a new geometry object
+ * If use-gpu is false, the geometric quantities will be empty, so quantities should be read 
+ * from file later on
+ * If use-gpu is true, the geometric quantities will be copied from the pre-populated host object
+ *
+ * @param geo_host gk_geometry object on the host
+ *   Unused if calling with use_gpu=false
+ *   If use_gpu=true, geo_host must already be initialized.
+ * @param geometry_inp geometry input struct containing grid, range, and other geo info
+ * @param use_gpu whether or not to use gpu
+ */
+struct gk_geometry*
+gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu);
+
+/**
+ * Create a new gk geometry object that lives on NV-GPU from a host geometry object: see new() method
+ * above for documentation.
+ */
+struct gk_geometry* 
+gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp);
 
 /**
  * Augment a grid with dim < 3 to 3d by adding 1 cell in the other directions

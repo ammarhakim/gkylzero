@@ -8,12 +8,10 @@ extern "C" {
 #include <gkyl_math.h>
 #include <gkyl_util.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_gk_geometry_fromfile.h>
-
 }
 // CPU interface to create and track a GPU object
 struct gk_geometry* 
-gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp)
+gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 

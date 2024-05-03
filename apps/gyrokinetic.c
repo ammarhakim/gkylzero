@@ -272,7 +272,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   struct gk_geometry* gk_geom_3d;
   switch (geometry_inp.geometry_id) {
     case GKYL_GEOMETRY_FROMFILE:
-      gk_geom_3d = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, false);
+      gk_geom_3d = gkyl_gk_geometry_new(app->gk_geom, &geometry_inp, false);
       break;
     case GKYL_TOKAMAK:
       gk_geom_3d = gkyl_gk_geometry_tok_new(&geometry_inp);
@@ -307,7 +307,7 @@ gkyl_gyrokinetic_app_new(struct gkyl_gk *gk)
   
   // If we are on the gpu, copy from host
   if (app->use_gpu) {
-    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_fromfile_new(app->gk_geom, &geometry_inp, app->use_gpu);
+    struct gk_geometry* gk_geom_dev = gkyl_gk_geometry_new(app->gk_geom, &geometry_inp, app->use_gpu);
     gkyl_gk_geometry_release(app->gk_geom);
     app->gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);

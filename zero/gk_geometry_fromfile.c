@@ -8,18 +8,17 @@
 #include <gkyl_calc_metric.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_gk_geometry_fromfile.h>
 #include <gkyl_math.h>
 #include <gkyl_nodal_ops.h>
 
 
 struct gk_geometry*
-gkyl_gk_geometry_fromfile_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu)
+gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp, bool use_gpu)
 {
 
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    return gkyl_gk_geometry_fromfile_cu_dev_new(geo_host, geometry_inp);
+    return gkyl_gk_geometry_cu_dev_new(geo_host, geometry_inp);
   } 
 #endif 
 
