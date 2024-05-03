@@ -8,12 +8,10 @@ extern "C" {
 #include <gkyl_math.h>
 #include <gkyl_util.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_gk_geometry_fromfile.h>
-
 }
 // CPU interface to create and track a GPU object
 struct gk_geometry* 
-gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp)
+gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up =(struct gk_geometry*) gkyl_malloc(sizeof(struct gk_geometry));
 
@@ -25,25 +23,26 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   up->grid = geometry_inp->grid;
 
   // Copy the host-side initialized geometry object to the device
-  struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *dxdz_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *dzdx_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 9*up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *jacobgeo_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *jacobgeo_inv_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *gij_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 6*up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *b_i_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *cmag_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *jacobtot_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *jacobtot_inv_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *bmag_inv_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *bmag_inv_sq_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *gxxj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *gxyj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *gyyj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *gxzj_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-  struct gkyl_array *eps2_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  struct gkyl_array *mc2p_dev = gkyl_array_cu_dev_new(geo_host->mc2p->type, geo_host->mc2p->ncomp, geo_host->mc2p->size);
+  struct gkyl_array *bmag_dev = gkyl_array_cu_dev_new(geo_host->bmag->type, geo_host->bmag->ncomp, geo_host->bmag->size);
+  struct gkyl_array *g_ij_dev = gkyl_array_cu_dev_new(geo_host->g_ij->type, geo_host->g_ij->ncomp, geo_host->g_ij->size);
+  struct gkyl_array *dxdz_dev = gkyl_array_cu_dev_new(geo_host->dxdz->type, geo_host->dxdz->ncomp, geo_host->dxdz->size);
+  struct gkyl_array *dzdx_dev = gkyl_array_cu_dev_new(geo_host->dzdx->type, geo_host->dzdx->ncomp, geo_host->dzdx->size);
+  struct gkyl_array *jacobgeo_dev = gkyl_array_cu_dev_new(geo_host->jacobgeo->type, geo_host->jacobgeo->ncomp, geo_host->jacobgeo->size);
+  struct gkyl_array *jacobgeo_inv_dev = gkyl_array_cu_dev_new(geo_host->jacobgeo_inv->type, geo_host->jacobgeo_inv->ncomp, geo_host->jacobgeo_inv->size);
+  struct gkyl_array *gij_dev = gkyl_array_cu_dev_new(geo_host->gij->type, geo_host->gij->ncomp, geo_host->gij->size);
+  struct gkyl_array *b_i_dev = gkyl_array_cu_dev_new(geo_host->b_i->type, geo_host->b_i->ncomp, geo_host->b_i->size);
+  struct gkyl_array *cmag_dev = gkyl_array_cu_dev_new(geo_host->cmag->type, geo_host->cmag->ncomp, geo_host->cmag->size);
+  struct gkyl_array *jacobtot_dev = gkyl_array_cu_dev_new(geo_host->jacobtot->type, geo_host->jacobtot->ncomp, geo_host->jacobtot->size);
+  struct gkyl_array *jacobtot_inv_dev = gkyl_array_cu_dev_new(geo_host->jacobtot_inv->type, geo_host->jacobtot_inv->ncomp, geo_host->jacobtot_inv->size);
+  struct gkyl_array *bmag_inv_dev = gkyl_array_cu_dev_new(geo_host->bmag_inv->type, geo_host->bmag_inv->ncomp, geo_host->bmag_inv->size);
+  struct gkyl_array *bmag_inv_sq_dev = gkyl_array_cu_dev_new(geo_host->bmag_inv_sq->type, geo_host->bmag_inv_sq->ncomp, geo_host->bmag_inv_sq->size);
+  struct gkyl_array *gxxj_dev = gkyl_array_cu_dev_new(geo_host->gxxj->type, geo_host->gxxj->ncomp, geo_host->gxxj->size);
+  struct gkyl_array *gxyj_dev = gkyl_array_cu_dev_new(geo_host->gxyj->type, geo_host->gxyj->ncomp, geo_host->gxyj->size);
+  struct gkyl_array *gyyj_dev = gkyl_array_cu_dev_new(geo_host->gyyj->type, geo_host->gyyj->ncomp, geo_host->gyyj->size);
+  struct gkyl_array *gxzj_dev = gkyl_array_cu_dev_new(geo_host->gxzj->type, geo_host->gxzj->ncomp, geo_host->gxzj->size);
+  struct gkyl_array *eps2_dev = gkyl_array_cu_dev_new(geo_host->eps2->type, geo_host->eps2->ncomp, geo_host->eps2->size);
+  struct gkyl_array *bmag_mid_dev = gkyl_array_cu_dev_new(geo_host->bmag_mid->type, geo_host->bmag_mid->ncomp, geo_host->bmag_mid->size);
 
   gkyl_array_copy(mc2p_dev, geo_host->mc2p);
   gkyl_array_copy(bmag_dev, geo_host->bmag);
@@ -64,6 +63,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   gkyl_array_copy(gyyj_dev, geo_host->gyyj);
   gkyl_array_copy(gxzj_dev, geo_host->gxzj);
   gkyl_array_copy(eps2_dev, geo_host->eps2);
+  gkyl_array_copy(bmag_mid_dev, geo_host->bmag_mid);
 
   // this is for the memcpy below
   up->mc2p  = mc2p_dev->on_dev;
@@ -85,6 +85,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   up->gyyj  = gyyj_dev->on_dev;
   up->gxzj  = gxzj_dev->on_dev;
   up->eps2  = eps2_dev->on_dev;
+  up->bmag_mid  = bmag_mid_dev->on_dev;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -115,6 +116,7 @@ gkyl_gk_geometry_fromfile_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_g
   up->gyyj  = gyyj_dev;
   up->gxzj  = gxzj_dev;
   up->eps2  = eps2_dev;
+  up->bmag_mid  = bmag_mid_dev;
   
   return up;
 }

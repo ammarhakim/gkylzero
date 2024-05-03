@@ -761,6 +761,7 @@ gkyl_mpi_comm_new(const struct gkyl_mpi_comm_inp *inp)
   mpi->base.gkyl_array_recv = array_recv;
   mpi->base.gkyl_array_irecv = array_irecv;
   mpi->base.gkyl_array_bcast = array_bcast;
+  mpi->base.gkyl_array_bcast_host = array_bcast;
   mpi->base.allreduce = allreduce;
   mpi->base.allreduce_host = allreduce;
   mpi->base.extend_comm = extend_comm;
