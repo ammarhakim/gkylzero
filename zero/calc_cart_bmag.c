@@ -70,46 +70,34 @@ gkyl_eval_cart_bmag(const gkyl_calc_cart_bmag *up, double xcart[3], double bcart
   double phi = atan(xcart[1]/xcart[0]);
 
 
-
-  for(int i = 0; i < gc->cgrid->ndim; i++){
-    int idxtemp = gc->crange_global->lower[i] + (int) floor((xn[i] - (gc->cgrid->lower[i]) )/gc->cgrid->dx[i]);
-    idxtemp = GKYL_MIN2(idxtemp, gc->crange->upper[i]);
-    idxtemp = GKYL_MAX2(idxtemp, gc->crange->lower[i]);
-    citer.idx[i] = idxtemp;
-  }
-
-
-
   //First find which rz cell we are in to get B, B_R B_Z
   int rz_idx[2];
-  gkyl_range_iter_init(&iter, up->local);
 
-  int idxtemp = up->local.lower[0] + (int) floor((R - gc->grid->lower[0])/gc->grid->dx[0]);
+  int idxtemp = up->local.lower[0] + (int) floor((R - up->grid->lower[0])/up->grid->dx[0]);
   idxtemp = GKYL_MIN2(idxtemp, up->local.upper[0]);
   idxtemp = GKYL_MAX2(idxtemp, up->local.lower[0]);
   rz_idx[0] = idxtemp;
 
-  int idxtemp = up->local.lower[1] + (int) floor((R - gc->grid->lower[1])/gc->grid->dx[1]);
+  idxtemp = up->local.lower[1] + (int) floor((R - up->grid->lower[1])/up->grid->dx[1]);
   idxtemp = GKYL_MIN2(idxtemp, up->local.upper[1]);
   idxtemp = GKYL_MAX2(idxtemp, up->local.lower[1]);
   rz_idx[1] = idxtemp;
 
 
-  long loc = gkyl_range_idx(gc->range, rz_idx);
-  const double *coeffs_bmag = gkyl_array_cfetch(up->bmagrz,loc);
+  long loc = gkyl_range_idx(&up->local, rz_idx);
+  const double *coeffs_bmag = gkyl_array_cfetch(up->bmag_rz,loc);
   const double *coeffs_br = gkyl_array_cfetch(up->br_rz,loc);
   const double *coeffs_bz = gkyl_array_cfetch(up->bz_rz,loc);
 
   double xc[2];
   gkyl_rect_grid_cell_center(up->grid, rz_idx, xc);
   double xy[2];
-  xy[0] = (R-xc[0])/(gc->grid->dx[0]*0.5);
-  xy[1] = (Z-xc[1])/(gc->grid->dx[1]*0.5);
+  xy[0] = (R-xc[0])/(up->grid->dx[0]*0.5);
+  xy[1] = (Z-xc[1])/(up->grid->dx[1]*0.5);
   double bmag = up->basis->eval_expand(xy, coeffs_bmag);
   double br = up->basis->eval_expand(xy, coeffs_br);
   double bz = up->basis->eval_expand(xy, coeffs_bz);
 
-  double bcart[3];
   bcart[0] = br*cos(phi);
   bcart[1] = br*sin(phi);
   bcart[2] = bz;
@@ -118,7 +106,7 @@ gkyl_eval_cart_bmag(const gkyl_calc_cart_bmag *up, double xcart[3], double bcart
 void
 gkyl_calc_cart_bmag_release(gkyl_calc_cart_bmag* up)
 {
-  gkyl_array_release(up->bmagrz);
+  gkyl_array_release(up->bmag_rz);
   gkyl_array_release(up->br_rz);
   gkyl_array_release(up->bz_rz);
   gkyl_free(up);

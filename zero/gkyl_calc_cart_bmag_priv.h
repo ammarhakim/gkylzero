@@ -16,7 +16,7 @@ static const cart_bmag_kernel_list ser_cart_bmag_kernel_list[] = {
 };
 
 GKYL_CU_DH
-static const bmag_kernel_list tensor_cart_bmag_kernel_list[] = {
+static const cart_bmag_kernel_list tensor_cart_bmag_kernel_list[] = {
   { NULL, NULL, NULL }, // 0x No 0D basis functions
   { NULL, NULL, NULL}, // 1x Not tested yet
   { NULL, cart_bmag_2x_Tensor_p1, cart_bmag_2x_Tensor_p2}, //Only 2x makes sense
